@@ -1,0 +1,38 @@
+# Project
+artwork
+backups
+build
+out
+scripts
+styles
+target
+exploded
+
+# Mac OSX
+.DS_Store
+.Spotlight-V100
+.Trashes
+
+# Thumbnails
+._*
+
+# VS Code
+.vscode
+*.code-workspace
+
+# IntelliJ
+.idea
+.run
+.idea/**/tasks.xml
+.idea/**/usage.statistics.xml
+.idea/**/dictionaries
+.idea/**/shelf
+.idea/**/contentModel.xml
+.idea/**/dataSources/
+.idea/**/dataSources.ids
+.idea/**/dataSources.local.xml
+.idea/**/sqlDataSources.xml
+.idea/**/dynamic.xml
+.idea/**/uiDesigner.xml
+.idea/**/dbnavigator.xml
+.idea/httpRequests
