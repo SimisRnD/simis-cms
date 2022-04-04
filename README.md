@@ -1,6 +1,6 @@
 # SimIS CMS
 
-What is SimIS CMS? [Agile, Enterprise, Open Source, Content Management System (CMS)](https://www.simiscms.com).
+What is SimIS CMS? [Agile, Enterprise, Open Source Content Management System (CMS)](https://www.simiscms.com).
 
 SimIS CMS comes out-of-the-box with modules, advanced security, easy setup, and powerful developer features. Use and configure what's there, and customize what's not. The flexible Open Source license lets you move beyond the technology to focus on delivering a quality website.
 
@@ -24,7 +24,9 @@ limitations under the License.
 
 ## Overview
 
-Need a website? SimIS CMS can be used from Day 1. Once installed the Admin signs in and can quickly create a sitemap. Working on their own, or with others, the pages of the site are added. Each web page can have shared elements and styles, as well as their own elements and styles. A designer can work on the site's global style, then target page-by-page improvements, while content authors fill out the web page content. The page elements include searchable text, images, and videos. There are many dynamic elements which can be added, including slideshows, news feeds, calendar events, blog posts, and more. For more complex components, a developer can work both online and off to enable the functionality or create it.
+Need a website? SimIS CMS can be used from Day 1. 
+
+Once installed the Admin signs in and can quickly create a sitemap. Working on their own, or with others, the pages of the site are added. Each web page can have shared elements and styles, as well as their own elements and styles. A designer can work on the site's global style, then target page-by-page improvements, while content authors fill out the web page content. The page elements include searchable text, images, and videos. There are many dynamic elements which can be added, including slideshows, news feeds, calendar events, blog posts, and more. For more complex components, a developer can work both online and off to enable the functionality or create it.
 
 ## Features
 
