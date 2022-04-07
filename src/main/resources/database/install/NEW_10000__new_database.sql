@@ -223,7 +223,7 @@ INSERT INTO lookup_role (level, code, title) VALUES (80, 'content-manager', 'Con
 INSERT INTO lookup_role (level, code, title) VALUES (90, 'community-manager', 'Community Manager');
 INSERT INTO lookup_role (level, code, title) VALUES (93, 'data-manager', 'Data Manager');
 INSERT INTO lookup_role (level, code, title) VALUES (95, 'ecommerce-manager', 'E-commerce Manager');
-INSERT INTO lookup_role (level, code, title) VALUES (100, 'admin', 'Admin');
+INSERT INTO lookup_role (level, code, title) VALUES (100, 'admin', 'System Administrator');
 
 CREATE TABLE users (
   user_id BIGSERIAL PRIMARY KEY,
