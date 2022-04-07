@@ -31,7 +31,7 @@ Need a website? SimIS CMS can be used from Day 1:
 * Once installed the administrator signs in and can quickly create a sitemap. Working on their own, or with others, the pages of the site are added.
 * Each web page can have shared elements and styles, as well as their own elements and styles.
 * A designer can work on the site's global style and layout, then target page-by-page improvements, while content authors fill out the web page content.
-* Content authors work with the page elements which include searchable text, images, and videos. There are many dynamic elements which can be selected, including slideshows, news feeds, calendar events, blog posts, and more. 
+* Content authors work with the page elements which include searchable text, images, and videos. There are many dynamic elements which can be selected, including slideshows, news feeds, calendar events, blog posts, and more.
 * For more complex components, a developer can work both online and off to enable the functionality or create it.
 
 ## Features
@@ -57,9 +57,9 @@ In general:
 3. Configure
 4. Maintain
 
-An optimized web application archive (.war), with production settings, is released to this project's GitHub releases, ready for installation and which automatically upgrades previously installed versions. 
+An optimized web application archive (.war), with production settings, is released to this project's GitHub releases, ready for installation and which automatically upgrades previously installed versions.
 
-The release notes will include a list of changes for review. 
+The release notes will include a list of changes for review.
 
 Download the .war and follow your choice of deployment options.
 
@@ -102,7 +102,7 @@ With Tomcat installed, and CATALINA_HOME configured, copy the .war into place:
 cp target/simis-cms.war $CATALINA_HOME/webapps/ROOT.war
 ```
 
-Upgrading is as simple as replacing the ROOT.war with a newer version. 
+Upgrading is as simple as replacing the ROOT.war with a newer version.
 
 ### Deploying with Docker
 
