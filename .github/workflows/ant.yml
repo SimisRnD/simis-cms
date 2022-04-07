@@ -5,9 +5,9 @@ name: Java CI
 
 on:
   push:
-    branches: [ $default-branch ]
+    branches: [ main ]
   pull_request:
-    branches: [ $default-branch ]
+    branches: [ main ]
 
 jobs:
   build:
@@ -20,7 +20,8 @@ jobs:
         java-version: 17
     - name: Build with Ant
       run: ant -noinput -buildfile build.xml compile
-#    - name: Run the unit tests
-#      run: ant -noinput -buildfile build.xml -lib lib/tests/ test
+    - name: Run the unit tests
+      run: ant -noinput -buildfile build.xml -lib lib/tests test
+# Requires Jasper
 #    - name: Package the web application
 #      run: ant -noinput -buildfile build.xml package
