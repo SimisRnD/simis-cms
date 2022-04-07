@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 
-<project name="SimIS CMS" default="package" basedir=".">
+<project name="SimIS CMS" default="build" basedir=".">
 
   <property name="project" value="simis-cms" />
   <property name="jdk" value="11" />
@@ -25,7 +25,7 @@
   <property name="j2ee.lib.dir" value="${env.CATALINA_HOME}/lib" />
   <import file="${j2ee.bin.dir}/catalina-tasks.xml" optional="true" />
 
-  <!-- Version string for scripts to use -->
+  <!-- Version for scripts to use -->
   <target name="version">
     <echo message="Project: ${ant.project.name}"/>
     <loadfile srcfile="${src.dir}/com/simisinc/platform/ApplicationInfo.java" property="version">
@@ -83,7 +83,7 @@
     </javac>
   </target>
 
-  <target name="jar" depends="clean,compile">
+  <target name="jar" depends="compile">
     <mkdir dir="${target.dir}"/>
     <jar jarfile="${target.dir}/${project}.jar">
       <fileset dir="${build.dir}" />
@@ -266,6 +266,10 @@
       <arg value="--file=mvn-pom.xml" />
       <arg value="--package-manager=maven" />
     </exec>
+  </target>
+
+  <target name="build" depends="clean,package">
+    <echo message="Production .war: ${target.dir}/${project}.war"/>
   </target>
 
 </project>
