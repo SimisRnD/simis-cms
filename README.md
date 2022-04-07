@@ -146,7 +146,7 @@ export ANT_HOME=$HOME/Tools/apache-ant-1.10.11
 export PATH=$ANT_HOME/bin:$MAVEN_HOME/bin:$PATH
 ```
 
-To build and package the .war, run "ant"
+To compile, package, and build the .war, run "ant"
 
 ```bash
 ant
@@ -158,12 +158,6 @@ For development, it is recommended to run and debug directly as a process in you
 
 ## CI/CD Pipeline
 
-### Pipeline Build Stage
-
-```
-ant
-```
-
 ### Pipeline Build Dependencies Scan
 
 ```bash
@@ -172,10 +166,22 @@ snyk auth
 snyk test --file=mvn-pom.xml --package-manager=maven
 ```
 
-### Pipeline Unit Tests
+### Pipeline Build Stage
+
+```
+ant compile
+```
+
+## Pipeline Unit Tests
 
 ```bash
-ant tests
+ant test
+```
+
+### Pipeline Generate Web Application
+
+```bash
+ant package
 ```
 
 ## Developer Resources

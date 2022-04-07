@@ -18,10 +18,10 @@ jobs:
       uses: actions/setup-java@v1
       with:
         java-version: 17
-    - name: Build with Ant
+    - name: Compile the source
       run: ant -noinput -buildfile build.xml compile
-    - name: Run the unit tests
+    - name: Run unit tests
       run: ant -noinput -buildfile build.xml -lib lib/tests test
-# Requires Jasper
+# Requires Jasper .jar
 #    - name: Package the web application
 #      run: ant -noinput -buildfile build.xml package
