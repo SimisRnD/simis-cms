@@ -1,0 +1,69 @@
+<?xml version="1.0" ?>
+<!--
+  ~ Copyright 2022 SimIS Inc. (https://www.simiscms.com)
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<template name="Photo Album and Gallery" image="Photo Album and Gallery.png">
+  <rules>
+    <folder uniqueId="photo-and-video-library" name="Photo and Video Library" />
+  </rules>
+  <page>
+    <!-- Setup albums in Admin/Files & Folders -->
+    <section id="sticky-gallery" class="margin-top-30 hide-for-small-only">
+      <column class="small-12 medium-6 cell">
+        <widget name="content">
+          <uniqueId>${webPageName}-welcome</uniqueId>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 cell extended-vertical-line position-absolute">
+        <widget name="photoGallery">
+          <folderUniqueId>photo-and-video-library</folderUniqueId>
+          <showCaption>false</showCaption>
+          <isSticky>true</isSticky>
+          <controlId>1</controlId>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 cell">
+        <widget name="albumGallery" class="color-cards margin-bottom-50 small-margin-bottom-20">
+          <folderUniqueId>photo-and-video-library</folderUniqueId>
+          <smallCardCount>3</smallCardCount>
+          <limit>24</limit>
+          <controlId>1</controlId>
+        </widget>
+      </column>
+    </section>
+    <section class="show-for-small-only">
+      <column class="small-12 margin-30 cell">
+        <widget name="content">
+          <uniqueId>${webPageName}-welcome</uniqueId>
+        </widget>
+      </column>
+      <column class="small-12 margin-30 cell">
+        <widget name="photoGallery">
+          <folderUniqueId>photo-and-video-library</folderUniqueId>
+          <showCaption>false</showCaption>
+          <controlId>2</controlId>
+        </widget>
+      </column>
+      <column class="small-12 margin-30 cell">
+        <widget name="albumGallery" class="color-cards">
+          <folderUniqueId>photo-and-video-library</folderUniqueId>
+          <smallCardCount>3</smallCardCount>
+          <limit>24</limit>
+          <controlId>2</controlId>
+        </widget>
+      </column>
+    </section>
+  </page>
+</template>

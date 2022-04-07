@@ -1,0 +1,57 @@
+# Site Workflows
+---
+
+- id: user-signed-up
+  vars:
+    user: '{{ event.user }}'
+  workflow:
+    - email:
+      to-user: '{{ user.id }}'
+      subject: '{{ site.name }} - Please confirm your email address'
+      template: 'cms/site-sign-up'
+
+- id: user-invited
+  vars:
+    user: '{{ event.user }}'
+    invitedBy: '{{ event.invitedBy }}'
+  workflow:
+    - email:
+      to-user: '{{ user.id }}'
+      subject: '{{ site.name }} - Welcome to the site'
+      template: 'cms/site-invitation'
+    - history:
+      message: '_{{ invitedBy.fullName }}_ **{{ verb }}** _{{ user.fullName }}_ to the site'
+      actor-id: '{{ invitedBy.id }}'
+      verb: invited
+      object: user
+      object-id: '{{ user.id }}'
+
+- id: user-registered
+  vars:
+    user: '{{ event.user }}'
+    ipAddress: '{{ event.ipAddress }}'
+    location: '{{ event.location }}'
+  workflow:
+    - email:
+      to-user: '{{ user.id }}'
+      subject: 'Thank you for registering'
+      template: 'cms/registration-confirmation'
+    - email:
+      to-role: 'community-manager'
+      subject: 'User id {{ user.id }} registered'
+      template: 'cms/admin-user-registered-notification'
+    - history:
+      message: '_{{ user.fullName }}_ **{{ verb }}** with the site'
+      actor-id: '{{ user.id }}'
+      verb: registered
+      object: user
+      object-id: '{{ user.id }}'
+
+- id: user-password-reset
+  vars:
+    user: '{{ event.user }}'
+  workflow:
+    - email:
+      to-user: '{{ user.id }}'
+      subject: '{{ site.name }} - Password reset request'
+      template: 'cms/site-user-password-reset'

@@ -1,0 +1,282 @@
+<?xml version="1.0" ?>
+<pages>
+  <!-- Cart Pages -->
+  <page name="/cart" title="Your Shopping Bag">
+    <section class="align-center">
+      <column class="small-12 medium-11 cell">
+        <widget name="cart">
+          <title>Your bag</title>
+          <emptyMessage>Your bag is empty.</emptyMessage>
+          <card1uniqueId>cart-card1</card1uniqueId>
+          <card2uniqueId>cart-card2</card2uniqueId>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/checkout" title="Checkout" class="platform-ecommerce">
+    <section class="align-center margin-top-50 small-margin-top-30">
+      <column class="small-12 medium-11 cell">
+        <widget name="content">
+          <html><![CDATA[<h1>Checkout</h1>]]></html>
+        </widget>
+      </column>
+    </section>
+    <section class="align-center">
+      <column class="small-12 medium-7 small-order-2 medium-order-1 cell">
+        <widget name="globalMessage">
+          <key>orderError</key>
+          <type>error</type>
+        </widget>
+        <widget name="content">
+          <html><![CDATA[<hr /><h2 class="checkout-stage-title">1. Shipping Address</h2>]]></html>
+        </widget>
+        <widget name="shippingAddressForm" />
+        <widget name="content">
+          <html><![CDATA[
+          <hr /><h2 class="checkout-stage-title stage-next">2. Delivery Options</h2>
+          <hr /><h2 class="checkout-stage-title stage-next">3. Billing Details</h2>
+          <hr /><h2 class="checkout-stage-title stage-next">4. Order Updates / Account Creation</h2>
+          <hr /><h2 class="checkout-stage-title stage-next">5. Order Review</h2>
+          <hr /><button class="button primary" disabled>Place Order</button>
+        ]]></html>
+        </widget>
+      </column>
+      <column class="small-12 medium-4 small-order-1 medium-order-2 cell">
+        <widget name="cart" class="callout box checkout-summary-callout" sticky="true">
+          <title>Summary</title>
+          <view>summary</view>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/checkout/delivery-options" title="Checkout Delivery Options" class="platform-ecommerce">
+    <section class="align-center margin-top-50 small-margin-top-30">
+      <column class="small-12 medium-11 cell">
+        <widget name="content">
+          <html><![CDATA[<h1>Checkout</h1>]]></html>
+        </widget>
+      </column>
+    </section>
+    <section class="align-center">
+      <column class="small-12 medium-7 small-order-2 medium-order-1 cell">
+        <widget name="globalMessage">
+          <key>orderError</key>
+          <type>error</type>
+        </widget>
+        <widget name="content">
+          <html><![CDATA[<hr /><h2 class="checkout-stage-title">1. Shipping Address</h2>]]></html>
+        </widget>
+        <widget name="shippingAddressDetails" />
+        <widget name="content">
+          <html><![CDATA[
+          <hr /><h2 class="checkout-stage-title">2. Delivery Options</h2>
+        ]]></html>
+        </widget>
+        <widget name="shippingMethodForm" />
+        <widget name="content">
+          <html><![CDATA[
+          <hr /><h2 class="checkout-stage-title stage-next">3. Billing Details</h2>
+          <hr /><h2 class="checkout-stage-title stage-next">4. Order Updates / Account Creation</h2>
+          <hr /><h2 class="checkout-stage-title stage-next">5. Order Review</h2>
+          <hr /><button class="button primary" disabled>Place Order</button>
+        ]]></html>
+        </widget>
+      </column>
+      <column class="small-12 medium-4 small-order-1 medium-order-2 cell hide-for-small-only">
+        <widget name="cart" class="callout box checkout-summary-callout" sticky="true">
+          <title>Summary</title>
+          <view>summary</view>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/checkout/payment-method" title="Checkout Payment Form" class="platform-ecommerce">
+    <section class="align-center margin-top-50 small-margin-top-30">
+      <column class="small-12 medium-11 cell">
+        <widget name="content">
+          <html><![CDATA[<h1>Checkout</h1>]]></html>
+        </widget>
+      </column>
+    </section>
+    <section class="align-center">
+      <column class="small-12 medium-7 small-order-2 medium-order-1 cell">
+        <widget name="globalMessage">
+          <key>orderError</key>
+          <type>error</type>
+        </widget>
+        <widget name="content">
+          <html><![CDATA[<hr /><h2 class="checkout-stage-title">1. Shipping Address</h2>]]></html>
+        </widget>
+        <widget name="shippingAddressDetails" />
+        <widget name="content">
+          <html><![CDATA[
+          <hr /><h2 class="checkout-stage-title">2. Delivery Options</h2>
+        ]]></html>
+        </widget>
+        <widget name="shippingMethodDetails" />
+        <widget name="content">
+          <html><![CDATA[
+          <hr /><h2 class="checkout-stage-title">3. Billing Details</h2>
+        ]]></html>
+        </widget>
+        <widget name="paymentForm" />
+        <widget name="content">
+          <html><![CDATA[
+          <hr /><h2 class="checkout-stage-title stage-next">4. Order Updates / Account Creation</h2>
+          <hr /><h2 class="checkout-stage-title stage-next">5. Order Review</h2>
+          <hr /><button class="button primary" disabled>Place Order</button>
+        ]]></html>
+        </widget>
+      </column>
+      <column class="small-12 medium-4 small-order-1 medium-order-2 cell hide-for-small-only">
+        <widget name="cart" class="callout box checkout-summary-callout" sticky="true">
+          <title>Summary</title>
+          <view>summary</view>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/checkout/order-updates" title="Checkout Order Updates" class="platform-ecommerce">
+    <section class="align-center margin-top-50 small-margin-top-30">
+      <column class="small-12 medium-11 cell">
+        <widget name="content">
+          <html><![CDATA[<h1>Checkout</h1>]]></html>
+        </widget>
+      </column>
+    </section>
+    <section class="align-center">
+      <column class="small-12 medium-7 small-order-2 medium-order-1 cell">
+        <widget name="globalMessage">
+          <key>orderError</key>
+          <type>error</type>
+        </widget>
+        <widget name="content">
+          <html><![CDATA[<hr /><h2 class="checkout-stage-title">1. Shipping Address</h2>]]></html>
+        </widget>
+        <widget name="shippingAddressDetails" />
+        <widget name="content">
+          <html><![CDATA[
+          <hr /><h2 class="checkout-stage-title">2. Delivery Options</h2>
+        ]]></html>
+        </widget>
+        <widget name="shippingMethodDetails" />
+        <widget name="content">
+          <html><![CDATA[
+          <hr /><h2 class="checkout-stage-title">3. Billing Details</h2>
+        ]]></html>
+        </widget>
+        <widget name="paymentDetails" />
+        <widget name="content">
+          <html><![CDATA[
+          <hr /><h2 class="checkout-stage-title">4. Order Updates / Account Creation</h2>
+        ]]></html>
+        </widget>
+        <widget name="orderUpdatesForm" />
+        <widget name="content">
+          <html><![CDATA[
+          <hr /><h2 class="checkout-stage-title stage-next">5. Order Review</h2>
+          <hr /><button class="button primary" disabled>Place Order</button>
+        ]]></html>
+        </widget>
+      </column>
+      <column class="small-12 medium-4 small-order-1 medium-order-2 cell hide-for-small-only">
+        <widget name="cart" class="callout box checkout-summary-callout" sticky="true">
+          <title>Summary</title>
+          <view>summary</view>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/checkout/order-review" title="Checkout Order Review" class="platform-ecommerce">
+    <section class="align-center margin-top-50 small-margin-top-30">
+      <column class="small-12 medium-11 cell">
+        <widget name="content">
+          <html><![CDATA[<h1>Checkout</h1>]]></html>
+        </widget>
+      </column>
+    </section>
+    <section class="align-center">
+      <column class="small-12 medium-7 small-order-2 medium-order-1 cell">
+        <widget name="globalMessage">
+          <key>orderError</key>
+          <type>error</type>
+        </widget>
+        <widget name="content">
+          <html><![CDATA[<hr /><h2 class="checkout-stage-title">1. Shipping Address</h2>]]></html>
+        </widget>
+        <widget name="shippingAddressDetails" />
+        <widget name="content">
+          <html><![CDATA[
+          <hr /><h2 class="checkout-stage-title">2. Delivery Options</h2>
+        ]]></html>
+        </widget>
+        <widget name="shippingMethodDetails" />
+        <widget name="content">
+          <html><![CDATA[
+          <hr /><h2 class="checkout-stage-title">3. Billing Details</h2>
+        ]]></html>
+        </widget>
+        <widget name="paymentDetails" />
+        <widget name="content">
+          <html><![CDATA[
+          <hr /><h2 class="checkout-stage-title">4. Order Updates / Account Creation</h2>
+        ]]></html>
+        </widget>
+        <widget name="orderUpdatesDetails" />
+        <widget name="content">
+          <html><![CDATA[
+          <hr /><h2 class="checkout-stage-title">5. Order Review</h2>
+        ]]></html>
+        </widget>
+        <widget name="cart">
+          <view>items</view>
+          <emptyMessage>Your bag is empty.</emptyMessage>
+        </widget>
+        <!-- the final order button -->
+        <widget name="placeOrder" />
+      </column>
+      <column class="small-12 medium-4 small-order-1 medium-order-2 cell">
+        <widget name="cart" class="callout box checkout-summary-callout hide-for-small-only" sticky="true">
+          <title>Summary</title>
+          <view>summary</view>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/order-confirmation" title="Order Confirmation" class="platform-ecommerce">
+    <section class="margin-top-50">
+      <column class="small-12 medium-11 cell">
+        <widget name="content">
+          <html><![CDATA[<h1>Order Confirmation</h1>]]></html>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 medium-11 cell">
+        <widget name="orderConfirmation">
+          <!--          <calloutHtml><![CDATA[<p>-->
+          <!--          Temporary processing delay: We're experiencing delays in order-->
+          <!--          processing that may affect your estimated delivery date.-->
+          <!--          </p>]]></calloutHtml>-->
+          <introHtml><![CDATA[<p>Thank You! Your order has been placed.</p>
+          <p><strong>Order #${orderNumber}</strong></p>
+          <p>We sent an email to <strong>${email}</strong> with your order confirmation and receipt.
+          If the email hasn't arrived within two minutes, please check your spam folder to see if the email was
+          routed there.</p>
+          <p>Please allow up to 24 hours for us to process your order for shipment.</p>
+          <p>View all order details in your account or contact Customer Service.</p>
+          ]]></introHtml>
+        </widget>
+        <!--  Estimated delivery by Thursday, May 30th, 2019 -->
+        <!-- Register -->
+        <!-- Sign Up For Updates! -->
+      </column>
+    </section>
+  </page>
+</pages>

@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <title></title>
+  <style type="text/css">
+    /* Client Specific Styles */
+    body,
+    table,
+    td,
+    a {
+      -webkit-text-size-adjust: 100%;
+      -ms-text-size-adjust: 100%;
+    }
+    table,
+    td {
+      mso-table-lspace: 0pt;
+      mso-table-rspace: 0pt;
+    }
+    img {
+      -ms-interpolation-mode: bicubic;
+    }
+    /* Reset Styles */
+    img {
+      border: 0;
+      height: auto;
+      line-height: 100%;
+      outline: none;
+      text-decoration: none;
+      max-width: 100%;
+    }
+    table {
+      border-collapse: collapse !important;
+    }
+    body {
+      height: 100% !important;
+      margin: 0 !important;
+      padding: 0 !important;
+      width: 100% !important;
+    }
+    /* iOS Links */
+    a[x-apple-data-detectors] {
+      color: inherit !important;
+      text-decoration: none !important;
+      font-size: inherit !important;
+      font-family: inherit !important;
+      font-weight: inherit !important;
+      line-height: inherit !important;
+    }
+    /* Mobile Styles */
+    @media screen and (max-width: 600px) {
+      .mobile-wrapper {
+        width: 95% !important;
+        max-width: 95% !important;
+      }
+      .mobile-padding {
+        padding-left: 3% !important;
+        padding-right: 3% !important;
+      }
+    }
+    /* Android Center Fix */
+    div[style*="margin: 16px 0;"] {
+      margin: 0 !important;
+    }
+    /* Styles */
+    h1,
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+      font-weight: 600;
+      color: #333333;
+      line-height: 1.5;
+      margin: 0 0 20px 0;
+      font-family: 'Proxima Nova Soft', 'Proxima Nova', 'Helvetica Neue', Helvetica, Arial, sans-serif !important;
+    }
+    h1 {
+      font-size: 22px;
+    }
+    h2 {
+      font-size: 18px;
+    }
+    h3 {
+      font-size: 16px;
+    }
+    h4,
+    h5,
+    h6 {
+      font-size: 14px;
+    }
+    p {
+      font-family: 'Proxima Nova Soft', 'Proxima Nova', 'Helvetica Neue', Helvetica, Arial, sans-serif !important;
+      font-size: 16px;
+      line-height: 1.5;
+      margin: 0 0 20px 0;
+      color: #868e96;
+    }
+    a {
+      color: #329af0;
+      text-decoration: underline;
+    }
+    ul li,
+    ol li {
+      font-family: 'Proxima Nova Soft', 'Proxima Nova', 'Helvetica Neue', Helvetica, Arial, sans-serif !important;
+      font-size: 16px;
+      line-height: 1.5;
+      color: #868e96;
+    }
+    a.web-button {
+      font-size: 20px;
+      font-weight: 600;
+      font-family: 'Proxima Nova Soft', 'Proxima Nova', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      color: #f8f9fa;
+      display: inline-block;
+      border: 1px solid #1c7cd6;
+      padding: 16px 48px;
+      border-radius: 4px;
+      text-decoration: none;
+      background-color: #1c7cd6;
+    }
+    dt {
+      font-weight: bold;
+      font-size: 12px;
+      margin-bottom: 8px;
+    }
+    dd {
+      font-size: 14px;
+      margin-left: 16px;
+      margin-bottom: 18px;
+    }
+  </style>
+</head>
+<body th:inline="text" style="margin: 0 !important; padding: 0; !important background-color: #f8f9fa !important; font-family: 'Proxima Nova', 'Helvetica Neue', Helvetica, Arial, sans-serif !important; color: #495057;" bgcolor="#f8f9fa">
+  <table border="0" cellpadding="0" cellspacing="0" width="100%">
+    <tr>
+      <td align="center" height="100%" valign="top" width="100%" bgcolor="#f8f9fa" style="padding: 25px 15px 25px 15px;" class="mobile-padding">
+        <table align="center" border="0" cellpadding="0" cellspacing="0" width="100%" class="mobile-wrapper" style="max-width:700px">
+          <tr>
+            <td align="center" valign="top" style="padding: 0; font-family: 'Proxima Nova', 'Helvetica Neue', Helvetica, Arial, sans-serif;">
+              <table cellspacing="0" cellpadding="0" border="0" width="100%">
+                <tr>
+                  <td align="center" bgcolor="#ffffff" style="border-radius: 8px; padding: 40px;" class="mobile-padding">
+                    <table cellspacing="0" cellpadding="0" border="0" width="100%">
+                      <tr>
+                        <td align="center" valign="top" style="padding: 10px 50px 40px 50px;">
+                          <div th:if="${site.logo != null}">
+                            <img src="logo.png" th:src="${site.logo}" width="300" style="max-width:430px !important; max-height:150px !important;" alt="Site Name" th:alt="${site.name}" />
+                          </div>
+                          <div th:if="${site.logo == null}">
+                            <h1 style="margin: 0; text-align:center; color: #333333; font-family: 'Proxima Nova Soft', 'Proxima Nova', 'Helvetica Neue', Helvetica, Arial, sans-serif !important; font-size: 22px; line-height: 1.5;"><span th:text="${site.name}">Site Name</span></h1>
+                          </div>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td class="template-content" style="font-family: 'Proxima Nova', 'Helvetica Neue', Helvetica, Arial, sans-serif !important; padding: 0;">
+                          <h2 style="color: #333333; font-family: 'Proxima Nova Soft', 'Proxima Nova', 'Helvetica Neue', Helvetica, Arial, sans-serif !important; font-size: 18px; font-weight:normal; line-height: 1.5; margin: 0 0 20px;">The following information was submitted:</h2>
+                          <p style="color: #333333; font-family: 'Proxima Nova Soft', 'Proxima Nova', 'Helvetica Neue', Helvetica, Arial, sans-serif !important; font-size: 12px; line-height: 1.5; margin: 0;">
+                            <span th:text="${#strings.toUpperCase(formData.formUniqueId)}  ">CONTACT US</span>
+                          </p>
+                          <p style="color: #333333; font-family: 'Proxima Nova Soft', 'Proxima Nova', 'Helvetica Neue', Helvetica, Arial, sans-serif !important; font-size: 12px; line-height: 1.5; margin: 0;">
+                            ip: <span th:text="${formData.ipAddress}">address</span> (<span th:text="${location}">location</span>)
+                          </p>
+                          <dl>
+                            <th:block th:each="formField: ${formData.formFieldList}">
+                              <dt th:text="${formField.label}">Question</dt>
+                              <dd th:text="${formField.userValue}">Response</dd>
+                            </th:block>
+                          </dl>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

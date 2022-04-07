@@ -1,0 +1,10 @@
+Country,Region/State,Zip/Postal Code,Min Subtotal,Min Weight,Shipping Fee,Handling Fee,Description
+US,AK,*,0,0,10.00,0,Standard
+US,HI,*,0,0,10.00,0,Standard
+US,*,*,0,0,5.00,0,Standard
+US,*,*,0,0,15.00,0,2-Day
+US,*,*,0,0,20.00,0,Next Day
+US,*,*,40,0,0.00,0,Standard
+AUS,*,*,0,0,9.95,0,International
+AUS,*,*,0,9,19.95,0,International
+*,*,*,0,0,29.95,0,International

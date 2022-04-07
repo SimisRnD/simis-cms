@@ -1,0 +1,42 @@
+<?xml version="1.0" ?>
+<!--
+  ~ Copyright 2022 SimIS Inc. (https://www.simiscms.com)
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<template name="Show Weather Example" image="">
+  <page title="Weather Example">
+    <section>
+      <column class="small-6 cell">
+        <widget name="remoteContent">
+          <url>https://forecast.weather.gov/MapClick.php?lat=35.735041600000045&amp;lon=-78.77842899999996</url>
+          <startTag><![CDATA[<!-- Detailed Forecast -->]]></startTag>
+          <endTag><![CDATA[<!-- /Detailed Forecast -->]]></endTag>
+          <includeTags>false</includeTags>
+        </widget>
+      </column>
+      <column class="small-6 cell">
+        <widget name="remoteContent" class="callout box">
+          <title>From NOAA</title>
+          <url>http://www.wpc.ncep.noaa.gov/noaa/noaa.gif</url>
+        </widget>
+        <widget name="remoteContent">
+          <url>https://forecast.weather.gov/MapClick.php?lat=35.735041600000045&amp;lon=-78.77842899999996&amp;1=2</url>
+          <startTag><![CDATA[<b>Current conditions at</b>]]></startTag>
+          <endTag><![CDATA[</span>]]></endTag>
+          <includeTags>false</includeTags>
+        </widget>
+      </column>
+    </section>
+  </page>
+</template>

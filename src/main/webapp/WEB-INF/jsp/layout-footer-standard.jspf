@@ -1,0 +1,150 @@
+<%--
+  ~ Copyright 2022 SimIS Inc.
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  --%>
+<footer>
+  <div class="platform-footer hide-for-print">
+    <div class="grid-container">
+      <div class="grid-x">
+        <div class="small-12 medium-5 cell">
+          <c:if test="${themePropertyMap['theme.footer.logo.color'] ne 'none'}">
+          <p class="text-center medium-text-left">
+            <c:choose>
+              <c:when test="${themePropertyMap['theme.footer.logo.color'] eq 'all-white'}">
+                <c:choose>
+                  <c:when test="${!empty sitePropertyMap['site.logo.white']}">
+                    <img src="<c:out value="${sitePropertyMap['site.logo.white']}"/>" width="134" />
+                  </c:when>
+                  <c:otherwise>
+                    <img src="${systemPropertyMap['system.www.context']}/images/logo-white.png" width="134" />
+                  </c:otherwise>
+                </c:choose>
+              </c:when>
+              <c:when test="${themePropertyMap['theme.footer.logo.color'] eq 'color-and-white'}">
+                <c:choose>
+                  <c:when test="${!empty sitePropertyMap['site.logo.mixed']}">
+                    <img src="<c:out value="${sitePropertyMap['site.logo.mixed']}"/>" width="134" />
+                  </c:when>
+                  <c:otherwise>
+                    <img src="${systemPropertyMap['system.www.context']}/images/logo-white-color.png" width="134" />
+                  </c:otherwise>
+                </c:choose>
+              </c:when>
+              <c:when test="${themePropertyMap['theme.footer.logo.color'] eq 'text-only'}">
+                <c:out value="${sitePropertyMap['site.name']}"/>
+              </c:when>
+              <c:otherwise>
+                <c:choose>
+                  <c:when test="${!empty sitePropertyMap['site.logo']}">
+                    <img src="<c:out value="${sitePropertyMap['site.logo']}"/>" width="134" />
+                  </c:when>
+                  <c:otherwise>
+                    <img src="${systemPropertyMap['system.www.context']}/images/logo-footer.png" width="134" />
+                  </c:otherwise>
+                </c:choose>
+              </c:otherwise>
+            </c:choose>
+          </p>
+          </c:if>
+          <p class="text-center medium-text-left">
+            <small><c:out value="${sitePropertyMap['site.description']}" /></small>
+          </p>
+          <c:if test="${!empty socialPropertyMap['social.email'] || !empty socialPropertyMap['social.phone']}">
+            <p class="text-center medium-text-left">
+              <small>
+                <c:if test="${!empty socialPropertyMap['social.email']}">
+                  Email: <a href="mailto:<c:out value="${socialPropertyMap['social.email']}"/>"><c:out value="${socialPropertyMap['social.email']}"/></a>
+                </c:if>
+                <c:if test="${!empty socialPropertyMap['social.phone']}">
+                  Telephone: <c:out value="${socialPropertyMap['social.phone']}"/>
+                </c:if>
+              </small>
+            </p>
+          </c:if>
+        </div>
+        <div class="small-12 medium-7 cell">
+          <c:if test="${!empty socialPropertyMap}">
+            <p class="text-center medium-text-right">
+              <c:if test="${!empty socialPropertyMap['social.facebook.url']}">
+                <a target="_blank" href="<c:out value="${socialPropertyMap['social.facebook.url']}"/>"><span class="fa-stack"><i class="fa fa-circle fa-stack-2x"></i><i class="fa fa-facebook fa-stack-1x fa-inverse"></i></span></a>
+              </c:if>
+              <c:if test="${!empty socialPropertyMap['social.twitter.url']}">
+                <a target="_blank" href="<c:out value="${socialPropertyMap['social.twitter.url']}"/>"><span class="fa-stack"><i class="fa fa-circle fa-stack-2x"></i><i class="fa fa-twitter fa-stack-1x fa-inverse"></i></span></a>
+              </c:if>
+              <c:if test="${!empty socialPropertyMap['social.linkedin.url']}">
+                <a target="_blank" href="<c:out value="${socialPropertyMap['social.linkedin.url']}"/>"><span class="fa-stack"><i class="fa fa-circle fa-stack-2x"></i><i class="fa fa-linkedin fa-stack-1x fa-inverse"></i></span></a>
+              </c:if>
+              <c:if test="${!empty socialPropertyMap['social.instagram.url']}">
+                <a target="_blank" href="<c:out value="${socialPropertyMap['social.instagram.url']}"/>"><span class="fa-stack"><i class="fa fa-circle fa-stack-2x"></i><i class="fa fa-instagram fa-stack-1x fa-inverse"></i></span></a>
+              </c:if>
+              <c:if test="${!empty socialPropertyMap['social.youtube.url']}">
+                <a target="_blank" href="<c:out value="${socialPropertyMap['social.youtube.url']}"/>"><span class="fa-stack"><i class="fa fa-circle fa-stack-2x"></i><i class="fa fa-youtube fa-stack-1x fa-inverse"></i></span></a>
+              </c:if>
+              <c:if test="${!empty socialPropertyMap['social.flickr.url']}">
+                <a target="_blank" href="<c:out value="${socialPropertyMap['social.flickr.url']}"/>"><span class="fa-stack"><i class="fa fa-circle fa-stack-2x"></i><i class="fa fa-flickr fa-stack-1x fa-inverse"></i></span></a>
+              </c:if>
+            </p>
+          </c:if>
+          <c:if test="${'none' ne themePropertyMap['theme.menu.location']}">
+            <ul class="menu simple align-center-small align-right" style="margin: 12px 0">
+              <c:forEach items="${masterMenuTabList}" var="menuTab" varStatus="menuTabStatus">
+                <c:choose>
+                  <c:when test="${menuTab.link eq '/' && menuTabStatus.index == 0}">
+                    <%-- Hide Home (the first one) --%>
+                  </c:when>
+                  <c:otherwise>
+                    <li <c:if test="${!menuTabStatus.last || 'pro' eq themePropertyMap['theme.menu.location']}">class="footer-menu-item" </c:if>style="padding-left: 8px; margin: 0"><a href="${ctx}${menuTab.link}"><c:out value="${menuTab.name}" /></a></li>
+                  </c:otherwise>
+                </c:choose>
+              </c:forEach>
+              <c:if test="${'pro' eq themePropertyMap['theme.menu.location']}">
+                <li style="padding-left: 8px; margin: 0"><a href="${ctx}/contact-us">Contact</a></li>
+              </c:if>
+            </ul>
+          </c:if>
+          <c:if test="${'true' eq sitePropertyMap['site.privacy.policy'] || 'true' eq sitePropertyMap['site.terms.conditions']}">
+            <ul class="menu simple align-center-small align-right" style="margin-bottom: 12px">
+              <c:if test="${'true' eq sitePropertyMap['site.privacy.policy']}">
+                <li><a href="${ctx}/legal/privacy">Privacy Policy</a></li>
+              </c:if>
+              <c:if test="${'true' eq sitePropertyMap['site.terms.conditions']}">
+                <li><a href="${ctx}/legal/terms">Terms & Conditions</a></li>
+              </c:if>
+            </ul>
+          </c:if>
+          <c:if test="${!empty sitePropertyMap['site.name'] || !empty sitePropertyMap['site.footer.line1']}">
+            <c:choose>
+              <c:when test="${!empty sitePropertyMap['site.footer.line1']}">
+                <p class="text-center medium-text-right">
+                  <c:out value="${sitePropertyMap['site.footer.line1']}" />
+                  <c:if test="${!empty sitePropertyMap['site.footer.line2']}">
+                    <br /><c:out value="${sitePropertyMap['site.footer.line2']}" />
+                  </c:if>
+                </p>
+              </c:when>
+              <c:otherwise>
+                <p class="text-center medium-text-right">
+                  &copy; <%= new java.text.SimpleDateFormat("yyyy").format(new java.util.Date()) %> <c:out value="${sitePropertyMap['site.name']}"/>. All Rights Reserved.
+                </p>
+              </c:otherwise>
+            </c:choose>
+          </c:if>
+          <c:if test="${!empty analyticsPropertyMap['analytics.pixel.url'] && !fn:startsWith(pageRenderInfo.name, '/admin')}">
+            <img src="<c:out value="${analyticsPropertyMap['analytics.pixel.url']}" />" width="1" /> 
+          </c:if>
+        </div>
+      </div>
+    </div>
+  </div>
+</footer>

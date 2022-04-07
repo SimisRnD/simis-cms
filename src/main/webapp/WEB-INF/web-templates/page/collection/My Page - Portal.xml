@@ -1,0 +1,53 @@
+<?xml version="1.0" ?>
+<!--
+  ~ Copyright 2022 SimIS Inc. (https://www.simiscms.com)
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<template name="My Page: Portal" image="">
+  <page role="users" title="My Page">
+    <section>
+      <column class="small-12 medium-3 cell">
+        <widget name="tableOfContents">
+          <uniqueId>user-portal</uniqueId>
+        </widget>
+      </column>
+      <column class="small-12 medium-5 cell">
+        <widget name="content">
+          <uniqueId>my-page-content</uniqueId>
+          <html><![CDATA[<p>Welcome to the site</p>]]></html>
+        </widget>
+        <widget name="fileList">
+          <title>User Files</title>
+          <showWhenEmpty>false</showWhenEmpty>
+          <folderUniqueId>user-files</folderUniqueId>
+        </widget>
+      </column>
+      <column class="small-12 medium-4 cell">
+        <widget name="myInfo" />
+        <widget name="itemsList">
+          <title>Favorite Spaces</title>
+          <message>Areas you can access...</message>
+          <showWhenEmpty>false</showWhenEmpty>
+          <collectionUniqueId>member-spaces</collectionUniqueId>
+        </widget>
+        <!--
+        <widget name="mySettings">
+          <icon>fa-gear</icon>
+          <title>Your Info</title>
+        </widget>
+        -->
+      </column>
+    </section>
+  </page>
+</template>

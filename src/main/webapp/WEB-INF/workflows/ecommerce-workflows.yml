@@ -1,0 +1,23 @@
+# E-Commerce Workflows
+---
+
+- id: order-submitted
+  vars:
+    order: '{{ event.order }}'
+    products: '{{ event.products }}'
+    shippingMethod: '{{ event.shippingMethod }}'
+    location: '{{ event.location }}'
+  workflow:
+    - email:
+      to-role: 'ecommerce-manager'
+      subject: '{{ !order.live ? "TEST " : "" }}New order # {{ order.uniqueId }}'
+      template: 'ecommerce/admin-order-submitted-notification'
+#    - email:
+#      to-email: '{{ order.email }}'
+#      subject: 'Thanks for your order at {{ site.name }}!'
+#      template: 'ecommerce/order-confirmation.html'
+
+#- id: order-confirmation-requested
+#- id: order-shipped
+#- id: order-canceled
+#- id: order-refunded

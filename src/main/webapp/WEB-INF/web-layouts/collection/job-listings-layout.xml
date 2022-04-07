@@ -1,0 +1,45 @@
+<?xml version="1.0" ?>
+<!--
+  ~ Copyright 2022 SimIS Inc. (https://www.simiscms.com)
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<pages>
+
+  <page name="_show_job-listings_" itemUniqueId="/show/*">
+    <section class="margin-bottom-15">
+      <column class="small-12 cell">
+        <widget name="itemMenu" />
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell callout box radius">
+        <widget name="itemFields">
+          <uniqueId>${item.uniqueId}</uniqueId>
+          <fields>
+            <field name="Organization" value="location" />
+            <field name="City" value="city" />
+            <field name="State" value="state" />
+            <field name="Web Page" value="url" type="url" />
+            <field name="Email" value="email" type="email" />
+            <field name="Phone Number" value="phoneNumber" />
+          </fields>
+        </widget>
+        <widget name="content">
+          <html><![CDATA[<p><strong>Job Description:</p></strong><p>${item.summary:toHtml}</p>]]></html>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+</pages>

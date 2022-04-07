@@ -1,12 +1,12 @@
 # Project
-artwork
-backups
-build
-out
-scripts
-styles
-target
-exploded
+/artwork
+/backups
+/build
+/out
+/scripts
+/styles
+/target
+/exploded
 
 # Mac OSX
 .DS_Store
@@ -36,3 +36,4 @@ exploded
 .idea/**/uiDesigner.xml
 .idea/**/dbnavigator.xml
 .idea/httpRequests
+simis-cms.iml

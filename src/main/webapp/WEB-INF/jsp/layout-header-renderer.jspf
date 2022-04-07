@@ -1,0 +1,127 @@
+<%--
+  ~ Copyright 2022 SimIS Inc.
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  --%>
+<nav>
+  <div data-sticky-container>
+    <div id="platform-menu" class="<c:if test="${fn:startsWith(headerRenderInfo.name, '/admin')}"> platform-admin-menu</c:if>"
+         data-sticky data-margin-top="0" data-sticky-on="small">
+      <c:if test="${!fn:startsWith(pageRenderInfo.name, '/admin') && (userSession.hasRole('admin') || (userSession.hasRole('content-manager') && pageRenderInfo.name ne '/'))}">
+        <div class="platform-content-container">
+          <div class="platform-content-editor" style="top:-4px">
+            <c:if test="${pageRenderInfo.pagePath ne '/' && !fn:contains(pageRenderInfo.name, '*') && (userSession.hasRole('admin') || userSession.hasRole('content-manager'))}">
+              <c:if test="${masterWebPage.id > -1}">
+                <c:choose>
+                  <c:when test="${empty masterWebPage.title}">
+                    <c:set var="pageIndicator" value="alert" scope="request" />
+                  </c:when>
+                  <c:when test="${empty masterWebPage.description}">
+                    <c:set var="pageIndicator" value="warning" scope="request" />
+                  </c:when>
+                </c:choose>
+                <a class="hollow button small secondary<c:if test="${!empty pageIndicator}"> ${pageIndicator}</c:if>" href="${ctx}/admin/web-page?webPage=<c:out value="${pageRenderInfo.pagePath}" />&amp;returnPage=${pageRenderInfo.pagePath}"><i class="fa-fw fa fa-info"></i></a>
+              </c:if>
+            </c:if>
+            <c:if test="${userSession.hasRole('admin')}">
+              <a class="hollow button small secondary" href="${ctx}/admin/web-container-designer?name=<c:out value="${headerRenderInfo.name}" />&amp;returnPage=${pageRenderInfo.pagePath}"><i class="fa-fw fa fa-code"></i></a>
+            </c:if>
+          </div>
+        </div>
+      </c:if>
+      <c:forEach items="${headerRenderInfo.sectionRenderInfoList}" var="section" varStatus="sectionStatus">
+        <c:set var="renderClass" scope="request" value="show-for-medium"/>
+        <c:if test="${!empty section.htmlId && (section.htmlId eq 'platform-small-menu' || section.htmlId eq 'platform-small-toggle-menu')}">
+          <c:set var="renderClass" scope="request" value="show-for-small-only"/>
+        </c:if>
+        <%-- Determine the section container CSS --%>
+        <c:choose>
+          <c:when test="${renderClass eq 'show-for-small-only'}">
+            <div <c:if test="${!empty section.htmlId}">id="${section.htmlId}" </c:if>class="${section.cssClass} ${renderClass}"<c:if test="${!empty section.cssStyle}"> style="<c:out value="${section.cssStyle}" />"</c:if>>
+          </c:when>
+          <c:when test="${empty section.cssClass && fn:startsWith(headerRenderInfo.name, '/admin')}">
+            <div <c:if test="${!empty section.htmlId}">id="${section.htmlId}" </c:if>class="grid-x grid-padding-x"<c:if test="${!empty section.cssStyle}"> style="<c:out value="${section.cssStyle}" />"</c:if>>
+          </c:when>
+          <c:when test="${!empty section.cssClass && (fn:contains(section.cssClass,'grid') || fn:contains(section.cssClass,'platform-no-margin') || fn:contains(section.cssClass,'no-container'))}">
+            <div <c:if test="${!empty section.htmlId}">id="${section.htmlId}" </c:if>class="${section.cssClass} ${renderClass}"<c:if test="${!empty section.cssStyle}"> style="<c:out value="${section.cssStyle}" />"</c:if>>
+          </c:when>
+          <c:otherwise>
+            <div class="full-container ${renderClass}<c:if test="${!empty section.cssClass && fn:contains(section.cssClass, 'utility-bar')}"> ${section.cssClass}</c:if>"<c:if test="${!empty section.htmlId}"> id="${section.htmlId}"</c:if><c:if test="${!empty section.cssStyle}"> style="<c:out value="${section.cssStyle}" />"</c:if>>
+            <div class="grid-container">
+            <div class="grid-x grid-margin-x<c:if test="${!empty section.cssClass && !fn:contains(section.cssClass, 'utility-bar')}"> ${section.cssClass}</c:if><c:if test="${!empty section.cssClass && fn:contains(section.cssClass, 'align-middle')}"> align-middle</c:if>">
+          </c:otherwise>
+        </c:choose>
+        <%-- Render the columns --%>
+        <c:forEach items="${section.columnRenderInfoList}" var="column" varStatus="columnStatus">
+          <%-- Determine if the column specifies an id --%>
+          <c:set var="columnId" scope="request" value="hrandom${sectionStatus.index}-${columnStatus.index}"/>
+          <c:if test="${!empty column.htmlId}">
+            <c:set var="columnId" scope="request" value="${column.htmlId}"/>
+          </c:if>
+          <c:choose>
+            <c:when test="${!empty column.cssClass}">
+              <div id="${columnId}" class="${column.cssClass}"<c:if test="${!empty column.cssStyle}"> style="<c:out
+                value="${column.cssStyle}"/>"</c:if><c:if test="${column.sticky}"> data-sticky-container</c:if>>
+            </c:when>
+            <c:otherwise>
+              <div id="${columnId}" class="small-12 cell"<c:if test="${!empty column.cssStyle}"> style="<c:out
+                value="${column.cssStyle}"/>"</c:if><c:if test="${column.sticky}"> data-sticky-container</c:if>>
+            </c:otherwise>
+          </c:choose>
+          <c:forEach items="${column.widgetRenderInfoList}" var="widget">
+            <c:choose>
+              <c:when test="${empty widget.cssClass && empty widget.htmlId && empty widget.cssStyle && !widget.sticky}">
+                ${widget.content}
+              </c:when>
+              <c:when test="${!empty widget.cssClass}">
+                <div <c:if test="${!empty widget.htmlId}">id="${widget.htmlId}" </c:if>class="${widget.cssClass}"<c:if test="${!empty widget.cssStyle}"> style="<c:out value="${widget.cssStyle}" />"</c:if><c:if test="${widget.sticky}"> data-sticky data-margin-top="${stickyMarginTop}" data-top-anchor="${columnId}"</c:if>>
+                    ${widget.content}
+                </div>
+              </c:when>
+              <c:otherwise>
+                <div<c:if test="${!empty widget.htmlId}"> id="${widget.htmlId}"</c:if><c:if test="${!empty widget.cssStyle}"> style="<c:out value="${widget.cssStyle}" />"</c:if><c:if test="${widget.sticky}"> data-sticky data-margin-top="4" data-top-anchor="${columnId}"</c:if>>
+                    ${widget.content}
+                </div>
+              </c:otherwise>
+            </c:choose>
+          </c:forEach>
+          <c:choose>
+            <c:when test="${!empty column.cssClass}">
+              </div>
+            </c:when>
+            <c:otherwise>
+              </div>
+            </c:otherwise>
+          </c:choose>
+        </c:forEach>
+        <%-- Close the section --%>
+        <c:choose>
+          <c:when test="${renderClass eq 'show-for-small-only'}">
+            </div>
+          </c:when>
+          <c:when test="${empty section.cssClass && fn:startsWith(headerRenderInfo.name, '/admin')}">
+            </div>
+          </c:when>
+          <c:when test="${!empty section.cssClass && (fn:contains(section.cssClass,'grid') || fn:contains(section.cssClass,'platform-no-margin') || fn:contains(section.cssClass,'no-container'))}">
+            </div>
+          </c:when>
+          <c:otherwise>
+            </div>
+            </div>
+            </div>
+          </c:otherwise>
+        </c:choose>
+      </c:forEach>
+    </div>
+  </div>
+</nav>

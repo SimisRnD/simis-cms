@@ -1,0 +1,397 @@
+<?xml version="1.0" ?>
+<headers>
+  <!--
+    Edit Header (add button) -> store in DB
+    Edit Footer (add button) -> store in DB
+
+    Menu formatting: equal buttons (without admin menu)
+    Separate Admin Drop-down Menu
+    Cart Icon w/new dynamic cart capability (Your Shopping Cart)
+    Mobile menu
+  -->
+
+  <header name="header.plain" title="Logo">
+    <section>
+      <column class="small-12 cell text-center">
+        <widget name="logo">
+          <maxHeight>45px</maxHeight>
+        </widget>
+      </column>
+    </section>
+  </header>
+
+  <header name="header.default" title="Default Header">
+    <!-- Small menu -->
+    <section id="platform-small-menu">
+      <column class="small-12 medium-12 cell text-center">
+        <widget name="systemAlert" class="utility-bar" />
+        <widget name="toggleMenu">
+          <view>white</view>
+        </widget>
+      </column>
+    </section>
+    <section id="platform-small-toggle-menu">
+      <column>
+        <widget name="mainMenu">
+          <view>nested</view>
+          <submenuIcon>fa-angle-right</submenuIcon>
+        </widget>
+        <widget name="menu">
+          <class>vertical</class>
+          <links>
+            <link name="Contact Us" link="/contact-us" />
+            <link name="Login" link="/login" role="guest" rule="site.login" />
+            <link name="Register" link="/login" role="guest" rule="site.registrations" />
+            <link name="My Account" link="/my-page" role="users" />
+            <link name="Log Out" link="/logout" role="users" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <!-- Main menu -->
+    <section class="utility-bar grid-x align-middle">
+      <column class="small-12 cell text-center">
+        <widget name="systemAlert" />
+      </column>
+    </section>
+    <section id="header-main-menu" class="padding-top-10 padding-bottom-10">
+      <column class="small-12 cell">
+        <widget name="logo" class="float-left margin-right-25">
+          <view>color</view>
+          <maxHeight>50px</maxHeight>
+        </widget>
+        <widget name="menu" style="font-size: 14px;" class="float-right header-item">
+          <class>align-left text-no-wrap menu-button</class>
+          <links>
+            <link name="Contact Us" class="button primary round" link="/contact-us" />
+            <link name="Login" link="/login" role="guest" />
+            <link name="Register" link="/login" role="guest" rule="site.registrations" />
+            <link name="My Account" link="/my-page" role="users" />
+            <link name="Log Out" link="/logout" role="users" />
+            <link name="Cart" icon="fa fa-light fa-bag-shopping" icon-only="true" type="cart" />
+            <link name="Settings" icon="fa-cog" icon-only="true" type="admin" />
+          </links>
+        </widget>
+        <widget name="searchForm" class="float-right header-search">
+          <expand>true</expand>
+        </widget>
+        <widget name="mainMenu" class="float-left header-item">
+          <submenuIcon>fa-angle-right</submenuIcon>
+          <submenuIconClass>float-left margin-right-5</submenuIconClass>
+        </widget>
+      </column>
+    </section>
+  </header>
+
+  <header name="header.edo" title="Logo, options, menu underneath">
+    <!-- Small menu -->
+    <section id="platform-small-menu">
+      <column class="small-12 medium-12 cell text-center">
+        <widget name="systemAlert" class="utility-bar" />
+        <widget name="toggleMenu" />
+      </column>
+    </section>
+    <section id="platform-small-toggle-menu">
+      <column>
+        <widget name="mainMenu">
+          <view>nested</view>
+          <submenuIcon>fa-angle-right</submenuIcon>
+        </widget>
+        <widget name="menu">
+          <class>vertical</class>
+          <links>
+            <link name="Contact" link="/contact-us" />
+            <link name="Login" link="/login" role="guest" rule="site.login" />
+            <link name="Register" link="/register" role="guest" rule="site.registrations" />
+            <link name="My Account" link="/my-page" role="users" />
+            <link name="Log Out" link="/logout" role="users" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <!-- Main menu -->
+    <section class="utility-bar grid-x align-middle margin-bottom-10">
+      <column class="small-12 cell text-center">
+        <widget name="systemAlert" />
+      </column>
+    </section>
+    <section class="align-middle padding-top-10">
+      <column class="small-5 cell">
+        <widget name="logo">
+          <maxHeight>100px</maxHeight>
+        </widget>
+      </column>
+      <column class="small-7 cell">
+        <widget name="menu">
+          <class>float-right</class>
+          <links>
+            <link name="Settings" icon="fa-cog" icon-only="true" type="admin" />
+            <link group="admin" name="Log Out" link="/logout" role="users" />
+          </links>
+        </widget>
+        <widget name="button">
+          <name>Calendar</name>
+          <link>/calendar</link>
+          <class>margin-left-10 float-right</class>
+        </widget>
+        <widget name="button">
+          <name>Business Directory</name>
+          <link>/business-directory</link>
+          <class>float-right</class>
+        </widget>
+        <widget name="searchForm" class="max-width-250 float-right clear-both" />
+      </column>
+    </section>
+    <section class="margin-top-10">
+      <column>
+        <widget name="mainMenu" />
+      </column>
+    </section>
+  </header>
+
+  <header name="header.simple" title="Logo, menu, search, admin">
+    <style><![CDATA[
+#header-main-menu .dropdown.menu>li.is-dropdown-submenu-parent {
+  margin-right: 10px;
+}
+
+#header-main-menu .dropdown.menu>li.is-dropdown-submenu-parent>a::after { display: inline; left: unset; right: unset; margin-left: 6px; }
+
+#header-main-menu li.is-dropdown-submenu-item i { float: left; height:20px; margin-right: 5px; }
+
+#platform-menu .menu .active>a {
+  background-color: unset;
+}
+
+#platform-menu ul.menu li.is-dropdown-submenu-parent.active>a {
+  text-decoration: underline;
+  text-decoration-color: #ffffff;
+  text-decoration-thickness: 4px;
+  text-underline-position: under;
+  background-color: transparent;
+}
+
+#header-main-menu ul.menu li.is-dropdown-submenu a:hover {
+  background-color: #256598;
+  border-radius: 0;
+}
+
+#header-main-menu ul.menu li.is-dropdown-submenu-parent.is-active,
+#header-main-menu ul.menu li.is-dropdown-submenu-parent:hover,
+#header-main-menu ul.menu li.is-dropdown-submenu-parent.is-active>a,
+#header-main-menu ul.menu li.is-dropdown-submenu-parent>a:hover
+{
+  text-decoration: none;
+}
+
+.header-item { padding-top: 6px; padding-bottom: 14px; }
+
+#platform-small-menu, #platform-small-menu .title-bar {
+  background-color: #000000 !important;
+}
+
+#platform-small-toggle-menu ul.vertical.menu.drilldown {
+  padding-bottom: 800px;
+}
+    ]]></style>
+    <!-- Small menu -->
+    <section id="platform-small-menu">
+      <column class="small-12 medium-12 cell text-center">
+        <widget name="systemAlert" class="utility-bar" />
+        <widget name="toggleMenu">
+          <view>white</view>
+        </widget>
+      </column>
+    </section>
+    <section id="platform-small-toggle-menu">
+      <column>
+        <widget name="mainMenu">
+          <view>nested</view>
+          <submenuIcon>fa-angle-right</submenuIcon>
+        </widget>
+        <widget name="menu">
+          <class>vertical</class>
+          <links>
+            <link name="Contact Us" link="/contact-us" />
+            <link name="Login" link="/login" role="guest" rule="site.login" />
+            <link name="Register" link="/register" role="guest" rule="site.registrations" />
+            <link name="My Account" link="/my-page" role="users" />
+            <link name="Log Out" link="/logout" role="users" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <!-- Main menu -->
+    <section class="utility-bar grid-x align-middle">
+      <column class="small-12 cell text-center">
+        <widget name="systemAlert" />
+      </column>
+    </section>
+    <section id="header-main-menu" class="padding-top-10 padding-bottom-0">
+      <column class="small-12 cell">
+        <widget name="logo" class="float-left margin-right-25">
+          <maxHeight>50px</maxHeight>
+        </widget>
+        <widget name="menu" style="font-size: 14px;" class="float-right header-item">
+          <class>align-left text-no-wrap menu-button</class>
+          <links>
+            <link name="Contact Us" class="button primary round" link="/contact-us" />
+            <link name="Login" link="/login" role="guest" />
+            <link name="My Account" link="/my-page" role="users" />
+            <link name="Cart" icon="fa-light fa-bag-shopping" icon-only="true" type="cart" />
+            <link name="Settings" icon="fa-cog" icon-only="true" type="admin" />
+          </links>
+        </widget>
+        <widget name="searchForm" class="float-right header-search">
+          <expand>true</expand>
+        </widget>
+        <widget name="mainMenu" class="float-left header-item">
+          <submenuIcon>fa-angle-right</submenuIcon>
+          <submenuIconClass>float-left margin-right-5</submenuIconClass>
+        </widget>
+      </column>
+    </section>
+  </header>
+
+  <header name="header.simis" title="Logo, text and buttons right, menu underneath">
+    <style><![CDATA[
+#header-content { background-color: white; color: black; }
+#header-main-menu { border-top: 1px solid black; border-bottom: 1px solid black; background-color: gray; }
+#header-main-menu .dropdown.menu>li>a { text-transform: uppercase; text-align: center; }
+#header-main-menu .dropdown.menu>li.is-dropdown-submenu-parent>a::after { display: inline; left: unset; right: unset; margin-left: 6px; }
+#header-main-menu li.is-dropdown-submenu-item i { color: #fce374; float: left; height:20px; margin-right: 5px; }
+#header-menu > li > a { color: black !important; }
+    ]]></style>
+    <!-- Small menu -->
+    <section id="platform-small-menu">
+      <column class="small-12 medium-12 cell text-center">
+        <widget name="systemAlert" class="utility-bar" />
+        <widget name="toggleMenu" />
+      </column>
+    </section>
+    <section id="platform-small-toggle-menu">
+      <column>
+        <widget name="mainMenu">
+          <view>nested</view>
+          <submenuIcon>fa-angle-right</submenuIcon>
+        </widget>
+        <widget name="menu">
+          <class>vertical</class>
+          <links>
+            <link name="Contact" link="/contact-us" />
+            <link name="Login" link="/login" role="guest" rule="site.login" />
+            <link name="Register" link="/register" role="guest" rule="site.registrations" />
+            <link name="My Account" link="/my-page" role="users" />
+            <link name="Log Out" link="/logout" role="users" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <!-- Main menu -->
+    <section id="header-system-alert" class="utility-bar">
+      <column class="small-12 medium-12 cell text-center">
+        <widget name="systemAlert" />
+      </column>
+    </section>
+    <section id="header-content" class="align-middle padding-top-10 padding-bottom-10">
+      <column class="small-5 medium-3 large-3 cell">
+        <widget name="logo">
+          <maxWidth>250px</maxWidth>
+          <maxHeight>150px</maxHeight>
+        </widget>
+      </column>
+      <column class="small-7 medium-offset-1 medium-auto cell">
+        <widget name="content" class="width-auto text-right">
+          <html>CMMI-DEV/3</html>
+        </widget>
+        <widget name="menu">
+          <id>header-menu</id>
+          <class>align-right</class>
+          <links>
+            <link name="Home" link="/" />
+            <link name="Contact" link="/contact-us" />
+            <link name="Login" link="/login" role="guest" rule="site.login" />
+            <link name="Register" link="/register" role="guest" rule="site.registrations" />
+            <link name="My Account" link="/my-page" role="users" />
+            <link name="Log Out" link="/logout" role="users" />
+            <link name="Cart" icon="fa-light fa-bag-shopping" icon-only="true" type="cart" />
+            <link name="Settings" icon="fa-cog" icon-only="true" type="admin" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section id="header-main-menu">
+      <column>
+        <widget name="mainMenu">
+          <class>expanded</class>
+          <submenuIcon>fa-angle-right</submenuIcon>
+        </widget>
+      </column>
+    </section>
+  </header>
+
+  <header name="header.hcccova" title="Logo, menu right">
+    <style><![CDATA[
+#platform-menu .menu .active>a {
+  background: unset;
+  color: #deb06f !important;
+}
+    ]]></style>
+    <!-- Small menu -->
+    <section id="platform-small-menu">
+      <column class="small-12 medium-12 cell text-center">
+        <widget name="systemAlert" class="utility-bar" />
+        <widget name="toggleMenu" />
+      </column>
+    </section>
+    <section id="platform-small-toggle-menu">
+      <column>
+        <widget name="mainMenu">
+          <view>nested</view>
+          <submenuIcon>fa-angle-right</submenuIcon>
+        </widget>
+        <widget name="menu">
+          <class>vertical</class>
+          <links>
+            <link name="Login" link="/login" role="guest" rule="site.login" />
+            <link name="Register" link="/register" role="guest" rule="site.registrations" />
+            <link name="My Account" link="/my-page" role="users" />
+            <link name="Log Out" link="/logout" role="users" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <!-- Main menu -->
+    <section class="utility-bar grid-x align-middle">
+      <column class="small-12 medium-offset-4 medium-5 cell text-center">
+        <widget name="systemAlert" />
+      </column>
+      <column class="medium-auto cell align-right">
+        <widget name="menu">
+          <id>header-menu</id>
+          <class>align-right</class>
+          <links>
+            <link name="Login" link="/login" role="guest" rule="site.login" />
+            <link name="Register" link="/register" role="guest" rule="site.registrations" />
+            <link name="My Account" link="/my-page" role="users" />
+            <link name="Log Out" link="/logout" role="users" />
+            <link name="Cart" icon="fa-light fa-bag-shopping" icon-only="true" type="cart" />
+            <link name="Settings" icon="fa-cog" icon-only="true" type="admin" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section class="align-middle padding-top-10 padding-bottom-10">
+      <column class="small-5 medium-3 large-3 cell">
+        <widget name="logo">
+          <maxHeight>45px</maxHeight>
+        </widget>
+      </column>
+      <column class="small-7 medium-offset-1 medium-auto cell">
+        <widget name="mainMenu">
+          <class>align-right</class>
+        </widget>
+      </column>
+    </section>
+  </header>
+</headers>

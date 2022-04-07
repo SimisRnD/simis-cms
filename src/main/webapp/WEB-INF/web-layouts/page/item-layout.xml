@@ -1,0 +1,224 @@
+<?xml version="1.0" ?>
+<pages>
+
+  <!-- Default page when a tab is not found -->
+  <page name="/show/*/not-configured" itemUniqueId="/show/*/not-configured">
+    <section class="margin-bottom-15">
+      <column class="small-12 cell">
+        <widget name="itemMenu" />
+      </column>
+    </section>
+    <section class="align-center margin-50">
+      <column class="shrink">
+        <widget name="content" class="callout box text-center">
+          <html>This page has not been configured</html>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <!-- Assets -->
+  <page name="/show/*/assets/file" itemUniqueId="/show/*/assets/file" title="Download File">
+    <widget name="downloadItemFile" />
+  </page>
+  <page name="/show/*/assets/view" itemUniqueId="/show/*/assets/view" title="View File">
+    <widget name="downloadItemFile">
+      <view>true</view>
+    </widget>
+  </page>
+  <!--  <page name="/show{/uniqueId/assets/img}" itemUniqueId="/show/*/assets/img">-->
+  <!--    <widget name="streamItemImage" />-->
+  <!--  </page>-->
+
+  <!-- Default Item Page -->
+  <page name="/show/*" itemUniqueId="/show/*">
+    <section class="margin-bottom-15">
+      <column class="small-12 cell">
+        <widget name="itemMenu" />
+      </column>
+    </section>
+    <section>
+      <column class="small-12 medium-4 cell">
+        <widget name="itemFields" class="callout box">
+          <title>Information</title>
+          <uniqueId>${item.uniqueId}</uniqueId>
+          <fields>
+            <field name="About" value="summary" />
+            <field name="Category" value="categoryList" />
+            <field name="Web Page" value="url" type="url" />
+            <field name="Email" value="email" type="email" />
+            <field name="Address" value="address" />
+            <field name="County" value="county" />
+            <field name="Phone Number" value="phoneNumber" />
+            <field name="Price" value="cost" type="currency" />
+            <field name="Id" value="barcode" />
+          </fields>
+          <showAllCustomFields>true</showAllCustomFields>
+          <!--<customFields>-->
+          <!--<customField name="" value="" type="" />-->
+          <!--</customFields>-->
+        </widget>
+        <widget name="itemsList" class="callout box">
+          <title>Nearest ${item.collection.name}...</title>
+          <showWhenEmpty>false</showWhenEmpty>
+          <nearbyItemUniqueId>${item.uniqueId}</nearbyItemUniqueId>
+          <collectionUniqueId>${item.collectionUniqueId}</collectionUniqueId>
+          <limit>10</limit>
+          <showPaging>false</showPaging>
+        </widget>
+      </column>
+      <column class="small-12 medium-4 cell">
+        <widget name="map" class="callout primary">
+          <latitude>${item.latitude}</latitude>
+          <longitude>${item.longitude}</longitude>
+          <markerTitle>${item.name}</markerTitle>
+          <markerText>${item.city}, ${item.state}</markerText>
+        </widget>
+      </column>
+      <column class="small-12 medium-4 cell">
+        <widget name="itemRelationshipsList" class="callout box">
+          <title>Connections</title>
+          <showWhenEmpty>false</showWhenEmpty>
+        </widget>
+        <widget name="itemRelationshipForm" class="callout box" role="admin">
+          <title>Add a connection</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/show/*/chat" itemUniqueId="/show/*/chat">
+    <!-- Move background to the item/collection background header color -->
+    <section class="margin-bottom-15">
+      <column class="small-12 cell">
+        <widget name="itemMenu" />
+      </column>
+    </section>
+    <section>
+      <column class="auto cell">
+        <widget name="activityList" role="admin,user">
+          <uniqueId>${item.uniqueId}</uniqueId>
+        </widget>
+        <widget name="activityForm" role="admin,user">
+          <uniqueId>${item.uniqueId}</uniqueId>
+        </widget>
+      </column>
+      <column class="small-3 cell show-for-medium">
+        <widget name="itemMembersList" class="callout box">
+          <title>Participants</title>
+          <showWhenEmpty>true</showWhenEmpty>
+        </widget>
+<!--        <widget name="itemMemberForm" class="callout box" role="admin">-->
+<!--          <title>Add a user</title>-->
+<!--        </widget>-->
+      </column>
+    </section>
+  </page>
+
+  <page name="/show/*/documents" itemUniqueId="/show/*/documents">
+    <!-- Move background to the item/collection background header color -->
+    <section class="margin-bottom-15">
+      <column class="small-12 cell">
+        <widget name="itemMenu" />
+      </column>
+    </section>
+    <section>
+      <column class="auto cell">
+        <widget name="itemFileList" class="callout box">
+          <title>Documents</title>
+          <type>pdf</type>
+          <uniqueId>${item.uniqueId}</uniqueId>
+          <showWhenEmpty>true</showWhenEmpty>
+          <useViewer>true</useViewer>
+          <emptyMessage>No documents were found</emptyMessage>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/show/*/videos" itemUniqueId="/show/*/videos">
+    <!-- Move background to the item/collection background header color -->
+    <section class="margin-bottom-15">
+      <column class="small-12 cell">
+        <widget name="itemMenu" />
+      </column>
+    </section>
+    <section>
+      <column class="auto cell">
+        <widget name="itemFileList" class="callout box">
+          <title>Videos</title>
+          <type>video</type>
+          <uniqueId>${item.uniqueId}</uniqueId>
+          <showWhenEmpty>true</showWhenEmpty>
+          <useViewer>true</useViewer>
+          <emptyMessage>No videos were found</emptyMessage>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/show/*/members" itemUniqueId="/show/*/members">
+    <section class="margin-bottom-15">
+      <column class="small-12 cell">
+        <widget name="itemMenu" />
+      </column>
+    </section>
+    <section>
+      <column class="small-12 medium-8 cell">
+        <widget name="itemMembersList" class="callout box">
+          <title>Collaboration Members</title>
+          <showWhenEmpty>true</showWhenEmpty>
+        </widget>
+      </column>
+      <column class="small-12 medium-4 cell">
+        <widget name="itemMemberForm" class="callout box" role="admin">
+          <title>Add a user</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/show/*/settings" itemUniqueId="/show/*/settings" role="admin">
+    <section class="margin-bottom-15">
+      <column class="small-12 cell">
+        <widget name="itemMenu" />
+      </column>
+    </section>
+    <section>
+      <column class="small-4 cell">
+        <widget name="itemMembersList" class="callout box" role="admin">
+          <title>Members</title>
+          <showWhenEmpty>false</showWhenEmpty>
+        </widget>
+        <widget name="itemMemberForm" class="callout box" role="admin">
+          <title>Add a user</title>
+        </widget>
+      </column>
+      <column class="small-4 cell">
+        <widget name="itemFileDropZone" class="callout box" role="admin">
+          <title>Upload a file</title>
+        </widget>
+      </column>
+      <column class="small-4 cell">
+        <widget name="itemRelationshipsList" class="callout box">
+          <title>Related Items</title>
+          <showWhenEmpty>false</showWhenEmpty>
+        </widget>
+        <widget name="itemRelationshipForm" class="callout box" role="admin">
+          <title>Add a related item</title>
+        </widget>
+        <widget name="editItemButton">
+          <buttonName>Edit this item</buttonName>
+          <uniqueId>${item.uniqueId}</uniqueId>
+          <returnPage>${ctx}/show/${item.uniqueId}</returnPage>
+        </widget>
+        <widget name="deleteItemButton">
+          <buttonName>Delete this item</buttonName>
+          <uniqueId>${item.uniqueId}</uniqueId>
+          <returnPage>${ctx}/directory/${item.collectionUniqueId}</returnPage>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+</pages>

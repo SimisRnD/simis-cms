@@ -1,0 +1,10 @@
+# Tasks
+# The workflow engine registers the following task's name and class so that workflows can execute the matching task
+# The library includes: set, when, log
+---
+- id: history
+  name: Saves a history record to the repository
+  class: com.simisinc.platform.infrastructure.workflow.HistoryTask
+- id: email
+  name: Sends an email using a template
+  class: com.simisinc.platform.infrastructure.workflow.EmailTask

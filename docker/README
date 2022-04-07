@@ -1,0 +1,27 @@
+
+./docker-compose.yaml
+
+./docker
+├── app
+│   └── Dockerfile
+└── db
+    ├── Dockerfile
+    └── init.sql
+
+./target
+└── simis-cms.war
+
+# Build the web application (or copy the .war into ./target)
+ant package
+
+# Build/Re-build the Docker images
+docker-compose build
+
+# Build/Run all containers in the background
+docker-compose up -d
+
+# Connect to the containers
+docker ps
+docker logs --follow simis-cms-app-1
+docker exec -it simis-cms-app-1 "tail -f /usr/local/tomcat/logs/*"
+docker exec -it simis-cms-db-1 "psql -U postgres -d simis-cms"

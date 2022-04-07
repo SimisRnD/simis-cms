@@ -1,0 +1,86 @@
+<?xml version="1.0" ?>
+<!--
+  ~ Copyright 2022 SimIS Inc. (https://www.simiscms.com)
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<pages>
+
+  <page name="_show_campaigns_" itemUniqueId="/show/*">
+    <section class="margin-bottom-15">
+      <column class="small-12 cell">
+        <widget name="itemMenu">
+          <tabs>
+            <tab name="Details" href="${ctx}/show/${item.uniqueId}" isActive="true" />
+            <tab name="Prospects" href="${ctx}/show/${item.uniqueId}/prospects" isActive="false" />
+          </tabs>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="auto cell callout box">
+        <widget name="itemFields">
+          <title>Campaign Information</title>
+          <uniqueId>${item.uniqueId}</uniqueId>
+          <fields>
+            <field name="About" value="summary" />
+            <field name="Scheduled" value="expectedDate" type="date" />
+            <field name="Started" value="startDate" type="date" />
+            <field name="Expires" value="expirationDate" type="date" />
+            <field name="Ended" value="endDate" type="date" />
+            <field name="Category" value="categoryList" />
+            <field name="Web Page" value="url" type="url" />
+            <field name="Email" value="email" type="email" />
+            <field name="Address" value="address" />
+            <field name="County" value="county" />
+            <field name="Phone Number" value="phoneNumber" />
+            <field name="Price" value="cost" type="currency" />
+            <field name="Id" value="barcode" />
+          </fields>
+          <showAllCustomFields>true</showAllCustomFields>
+          <!--<customFields>-->
+          <!--<customField name="" value="" type="" />-->
+          <!--</customFields>-->
+        </widget>
+      </column>
+      <column class="small-12 medium-6 cell callout box">
+        <widget name="itemRelationshipsList">
+          <title>Prospects</title>
+          <showWhenEmpty>true</showWhenEmpty>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="_show_campaigns_/_prospects_" itemUniqueId="/show/*/prospects">
+    <section class="margin-bottom-15">
+      <column class="small-12 cell">
+        <widget name="itemMenu">
+          <tabs>
+            <tab name="Details" href="${ctx}/show/${item.uniqueId}" isActive="false" />
+            <tab name="Prospects" href="${ctx}/show/${item.uniqueId}/prospects" isActive="true" />
+          </tabs>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="auto cell">
+        <widget name="itemRelationshipsList">
+          <title>All Prospects</title>
+          <showWhenEmpty>true</showWhenEmpty>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+</pages>

@@ -1,0 +1,64 @@
+
+.subnav-section {
+  z-index: 1001;
+  height: 50px;
+  background: #1779ba;
+  left: 0;
+  width: 100%;
+  overflow: hidden;
+  display: -webkit-flex;
+  display: -ms-flexbox;
+  display: flex;
+}
+
+.subnav-section-menu {
+  margin: 0;
+  bottom: 0;
+}
+
+.subnav-section-menu li {
+  float: none;
+  display: inline-block;
+}
+
+.subnav-section-menu .title {
+  padding: 10px 20px 0 0;
+}
+
+.subnav-section-menu .title, .subnav-section-menu .title a {
+  color: #fefefe;
+}
+
+.subnav-section-menu .title a:hover {
+  text-decoration: underline;
+}
+
+.subnav-section-menu li.item a {
+  padding: 0.9rem 1rem;
+  font-size: 0.75rem;
+  color: #fefefe;
+  text-transform: uppercase;
+  display: block;
+  font-weight: bold;
+  letter-spacing: 1px;
+  transition: all 0.35s ease-in-out;
+}
+
+.subnav-section-menu li.item a.is-active {
+  background: rgba(254, 254, 254, 0.25);
+}
+.subnav-section-menu li.item a.not-active {
+  background: rgba(254, 254, 254, 0.065);
+}
+.subnav-section-menu li.item a.not-active:hover {
+  background: rgba(254, 254, 254, 0.2);
+}
+
+@media screen and (max-width: 39.9375em) {
+  /*.platform-body {*/
+    /*padding-top: 150px;*/
+  /*}*/
+  .subnav-section {
+    top: 30px;
+  }
+}

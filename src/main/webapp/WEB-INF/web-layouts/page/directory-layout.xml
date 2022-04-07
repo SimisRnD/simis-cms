@@ -1,0 +1,135 @@
+<?xml version="1.0" ?>
+<pages>
+
+  <!-- Data Directory -->
+  <page name="/directories" title="Directories" class="full-page">
+    <section class="grid-x grid-margin-x platform-no-margin">
+      <column class="small-12 cell">
+        <widget name="content" class="text-center padding-top-30">
+          <html><![CDATA[
+<h1>Directories</h1>
+<p>Choose a directory to discover content and to collaborate with others</p>
+]]></html>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="grid-container">
+        <widget name="directory">
+          <view>cards</view>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/directory{/collectionUniqueId}" collectionUniqueId="/directory/*" class="full-page">
+    <section class="grid-x grid-margin-x platform-no-margin">
+      <column class="small-12 cell">
+        <widget name="content" class="text-center padding-10">
+          <html><![CDATA[
+<h1>${collection.name}</h1>
+<p>Make a selection for more information</p>
+]]></html>
+        </widget>
+      </column>
+    </section>
+    <!--
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="List of Directories" value="/directories" />
+            <link name="${collection.name}" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    -->
+    <section>
+      <column class="small-order-3 hide-for-small-only medium-order-1 small-3 medium-3 cell">
+        <widget name="categoriesList" class="callout primary">
+          <title>Categories</title>
+          <collectionUniqueId>${collection.uniqueId}</collectionUniqueId>
+          <basedOnItems>true</basedOnItems>
+        </widget>
+      </column>
+      <column class="small-order-1 medium-order-2 auto cell">
+        <widget name="itemsList">
+          <!--<title>Explore ${collection.name}...</title>-->
+          <showWhenEmpty>true</showWhenEmpty>
+          <collectionUniqueId>${collection.uniqueId}</collectionUniqueId>
+<!--          <columns>3</columns>-->
+<!--          <limit>42</limit>-->
+        </widget>
+        <widget name="addItemButton">
+          <buttonName>Add an Item</buttonName>
+          <collectionUniqueId>${collection.uniqueId}</collectionUniqueId>
+        </widget>
+      </column>
+      <column class="small-order-2 small-12 medium-4 cell">
+        <widget name="itemsSearchForm" class="callout secondary">
+          <icon>fa-search</icon>
+          <title>${collection.name}</title>
+          <useLocation>true</useLocation>
+          <redirectTo>/directory/${collection.uniqueId}</redirectTo>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/add-an-item{?collectionUniqueId}" collectionUniqueId="?collectionUniqueId">
+    <section>
+      <column class="small-12 cell">
+        <widget name="content">
+          <html><![CDATA[<h3>${collection.name:html}</h3>]]></html>
+        </widget>
+        <widget name="addItemForm">
+          <title>Create an item</title>
+          <collectionUniqueId>${collection.uniqueId}</collectionUniqueId>
+          <form>full</form>
+          <returnPage>/directory/${collection.uniqueId}</returnPage>
+          <cancelUrl>/directory/${collection.uniqueId}</cancelUrl>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/edit{/uniqueId}" itemUniqueId="/edit/*" title="Edit" class="full-page" role="admin,data-manager">
+    <section class="grid-x grid-margin-x platform-no-margin">
+      <column class="small-12 cell">
+        <widget name="content" class="text-center padding-10">
+          <html><![CDATA[<h1>${item.name:html}</h1>]]></html>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 medium-9 small-order-2 medium-order-1 cell">
+        <widget name="editItemForm">
+          <!--          <title>${item.name}</title>-->
+          <uniqueId>${item.uniqueId}</uniqueId>
+        </widget>
+      </column>
+      <column class="small-12 medium-3 small-order-1 medium-order-2 cell">
+        <widget name="approveItemButton">
+          <title>Approve this listing</title>
+          <buttonClass>success expanded</buttonClass>
+          <uniqueId>${item.uniqueId}</uniqueId>
+          <!-- <returnPage>${ctx}/directory/${item.collectionUniqueId}</returnPage>-->
+        </widget>
+        <widget name="hideItemButton">
+          <title>Hide this listing</title>
+          <buttonClass>warning expanded</buttonClass>
+          <uniqueId>${item.uniqueId}</uniqueId>
+          <!-- <returnPage>${ctx}/directory/${item.collectionUniqueId}</returnPage>-->
+        </widget>
+        <widget name="deleteItemButton">
+          <buttonName>Delete this listing</buttonName>
+          <buttonClass>alert expanded</buttonClass>
+          <uniqueId>${item.uniqueId}</uniqueId>
+          <!-- <returnPage>${ctx}/directory/${item.collectionUniqueId}</returnPage>-->
+        </widget>
+      </column>
+    </section>
+  </page>
+
+</pages>

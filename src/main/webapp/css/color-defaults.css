@@ -1,0 +1,75 @@
+/*
+ * Default Colors are under editor control
+ */
+
+@media screen and (max-width: 39.9375em) {
+  .platform-body, .full-page .platform-body {
+    margin-top: 40px;
+  }
+}
+
+/* Tab Bar Logo Img Size */
+#platform-menu .top-bar .logo img {
+  max-height: 50px;
+  max-width: 100%;
+  height: auto;
+}
+
+/* Top Bar Logo Text Color */
+#platform-menu ul.menu li.menu-text {
+  color: #FFFFB0;
+}
+/* Top Bar Menu Tab Text Color */
+#platform-menu ul.menu li a {
+  color: #fff;
+}
+/* Top Bar Menu Tab Hover Color */
+#platform-menu ul.menu li a:hover {
+  background: #1468a0;
+}
+
+/* Top Bar Drop-Down Menu Active Tab Background Color */
+#platform-menu .is-active {
+  background: #1468a0;
+}
+/* Top Bar Drop-Down Menu Item Background */
+#platform-menu .is-dropdown-submenu-item {
+  background: #41525e;
+}
+/* Top Bar Drop-Down Menu Hover Item Background */
+#platform-menu .is-dropdown-submenu-item a:hover {
+  background: #4396E6;
+}
+
+/* Footer */
+.callout.platform-footer {
+  background-color: #3c3c3c;
+  color: #acacac;
+}
+
+/* Callout */
+.callout {
+  background-color: #ffffea;
+}
+.callout.box {
+  background-color: #ffffff;
+  color: #0a0a0a;
+}
+
+/* Labels */
+.label.success {
+  background-color: #43AC6A;
+  color: #ffffff; }
+
+/* Cards */
+.admin.card {
+  border: 1px solid #DBDCDD;
+}
+.admin.card .card-divider {
+  background-color: #DBDCDD;
+}
+.admin.card .fa-3x {
+  color: #666;
+}
+
+/* Buttons */

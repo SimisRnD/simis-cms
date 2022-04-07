@@ -1,5 +1,7 @@
 # SimIS CMS
 
+Welcome to the first public code drop of SimIS CMS. While it has worked wonders for building web sites and as a backend for mobile apps, we're keen to find out how well it is globally received – kick the tires, jump on in, and give it a spin. Discussion and issues are hosted at github: <https://github.com/SimisRnD/simis-cms>.
+
 What is SimIS CMS? [Agile, Enterprise, Open Source, Content Management System (CMS)](https://www.simiscms.com).
 
 SimIS CMS comes out-of-the-box with modules, advanced security, easy setup, and powerful developer features. Use and configure what's there, and customize what's not. The flexible Open Source license lets you move beyond the technology to focus on delivering a quality website.
@@ -24,7 +26,13 @@ limitations under the License.
 
 ## Overview
 
-Need a website? SimIS CMS can be used from Day 1. Once installed the Admin signs in and can quickly create a sitemap. Working on their own, or with others, the pages of the site are added. Each web page can have shared elements and styles, as well as their own elements and styles. A designer can work on the site's global style, then target page-by-page improvements, while content authors fill out the web page content. The page elements include searchable text, images, and videos. There are many dynamic elements which can be added, including slideshows, news feeds, calendar events, blog posts, and more. For more complex components, a developer can work both online and off to enable the functionality or create it.
+Need a website? SimIS CMS can be used from Day 1:
+
+* Once installed the administrator signs in and can quickly create a sitemap. Working on their own, or with others, the pages of the site are added.
+* Each web page can have shared elements and styles, as well as their own elements and styles.
+* A designer can work on the site's global style and layout, then target page-by-page improvements, while content authors fill out the web page content.
+* Content authors work with the page elements which include searchable text, images, and videos. There are many dynamic elements which can be selected, including slideshows, news feeds, calendar events, blog posts, and more. 
+* For more complex components, a developer can work both online and off to enable the functionality or create it.
 
 ## Features
 
@@ -40,18 +48,84 @@ Need a website? SimIS CMS can be used from Day 1. Once installed the Admin signs
 - API: Rest API
 - Platform: Micro Widgets, Connection Pool, Cache, Scheduler, Workflow, Expression Engine, Upgrades, Migrations, Record Paging
 
-## Requirements
+## Release Process
 
- - [Java SDK 17+](https://www.oracle.com/java/technologies/downloads/)
- - [Apache Tomcat 9.0.x](https://tomcat.apache.org)
- - [PostgreSQL 14](https://www.postgresql.org) with [PostGIS 3.2](https://postgis.net)
+In general:
 
-## Build Requirements
+1. Deploy
+2. Login
+3. Configure
+4. Maintain
 
- - [Apache Ant 1.10+](https://ant.apache.org)
- - [Apache Maven 3.6+](https://maven.apache.org)
+An optimized web application archive (.war), with production settings, is released to this project's GitHub releases, ready for installation and which automatically upgrades previously installed versions. 
 
-## Build Process
+The release notes will include a list of changes for review. 
+
+Download the .war and follow your choice of deployment options.
+
+## Deployment Options
+
+### Deploying with Apache Tomcat
+
+Production System Requirements:
+
+- [Java SDK 17+](https://www.oracle.com/java/technologies/downloads/)
+- [Apache Tomcat 9.0.x](https://tomcat.apache.org)
+- [PostgreSQL 14](https://www.postgresql.org) with [PostGIS 3.2](https://postgis.net)
+- The web application and optional services have only been tested on Linux and MacOS
+
+Steps:
+
+* Install Apache Tomcat
+* Install PostgreSQL and PostGIS
+* Create a "simis-cms" PostgreSQL database
+* Create a "simis-cms" file directory for uploaded and generated assets (see below)
+* Deploy the web-app .war in Tomcat's webapps folder (call it ROOT.war for a root web context) and start the Tomcat service
+* The database will be installed and the Tomcat log will contain two random checksums for the Admin's user/pass (you must review the logs for the login information)
+* Login, navigate to Admin, and follow the Getting Started to-do list
+
+In detail:
+
+The path for file assets and external configuration on linux is /opt/simis; otherwise $USER_HOME/Web/simis-cms
+
+```bash
+mkdir -p /opt/simis
+```
+or
+```bash
+mkdir -p ~/Web/simis-cms
+```
+
+With Tomcat installed, and CATALINA_HOME configured, copy the .war into place:
+
+```bash
+cp target/simis-cms.war $CATALINA_HOME/webapps/ROOT.war
+```
+
+Upgrading is as simple as replacing the ROOT.war with a newer version. 
+
+### Deploying with Docker
+
+The build process places the .war in the target/ directory, or the release file can be placed there manually. That's all that is needed for Docker.
+
+```bash
+docker-compose up --build -d
+```
+
+For new installs, review the installation logs for the administrator's username and password.
+
+```bash
+docker logs --follow simis-cms-app-1
+```
+
+## Building from Source
+
+### Developer Build Requirements
+
+- [Apache Ant 1.10+](https://ant.apache.org)
+- [Apache Maven 3.6+](https://maven.apache.org)
+
+### Developer Build Process
 
 Make sure Java is installed:
 
@@ -80,56 +154,28 @@ ant
 
 The optimized web application archive is found in target/simis-cms.war
 
-## Deploying with Apache Tomcat
+For development, it is recommended to run and debug directly as a process in your IDE.
 
-* Create a "simis-cms" database
-* Create a "simis-cms" file directory for uploaded and generated assets (see below)
-* Deploy the web-app .war in Tomcat's webapps folder (call it ROOT.war for a root web context) and start the service
-* The database will be installed and the Tomcat log will contain two random checksums for the Admin's user/pass
-* Login, navigate to Admin, and follow the Getting Started to-do list
+## CI/CD Pipeline
 
-The path for file assets and external configuration on linux is /opt/simis; otherwise $USER_HOME/Web/simis-cms
-
-```bash
-mkdir -p /opt/simis
-```
-or
-```bash
-mkdir -p ~/Web/simis-cms
-```
-
-With Tomcat installed, and CATALINA_HOME configured, copy the .war into place:
-
-```bash
-cp target/simis-cms.war $CATALINA_HOME/webapps/ROOT.war
-```
-
-## Deploying with Docker
-
-```bash
-$ ant
-$ cp env-simis-cms .env
-$ vi .env
-$ docker-compose up --build
-```
-
-Review the installation logs for the administrator's username and password.
-
-Run docker-compose with `-d` to skip the logs and run detached.
-
-Example .env config:
+### Pipeline Build Stage
 
 ```
-CMS_URL_SCHEME=https
-CMS_HOSTNAME=www.example.com
+ant
 ```
 
-## Security Scan
+### Pipeline Build Dependencies Scan
 
 ```bash
 npm install -g snyk
 snyk auth
 snyk test --file=mvn-pom.xml --package-manager=maven
+```
+
+### Pipeline Unit Tests
+
+```bash
+ant tests
 ```
 
 ## Developer Resources
@@ -145,8 +191,11 @@ snyk test --file=mvn-pom.xml --package-manager=maven
 * [Foundation for Sites Documentation](https://foundation.zurb.com/sites/docs/)
 * [Font Awesome Icons](https://fontawesome.com/icons?d=gallery)
 * [Apache Commons JEXL](https://commons.apache.org/proper/commons-jexl/reference/syntax.html)
+* [Snyk](https://snyk.io)
 
-## Projects used
+## Attribution
+
+Thank you to all those who have helped make SimIS CMS!
 
 This project uses and licenses several technologies:
 

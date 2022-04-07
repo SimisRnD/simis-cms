@@ -1,0 +1,271 @@
+<?xml version="1.0"?>
+
+<project name="SimIS CMS" default="package" basedir=".">
+
+  <property name="project" value="simis-cms" />
+  <property name="jdk" value="11" />
+  <property name="fs" value="${file.separator}"/>
+  <property name="lf" value="${line.separator}"/>
+  <property name="javadoc.dir" value="docs" />
+  <property name="base.dir" value="." />
+  <property name="src.dir" value="${base.dir}/src/main/java" />
+  <property name="src.test.dir" value="${base.dir}/src/test/java" />
+  <property name="lib.dir" value="${base.dir}/lib/build" />
+  <property name="lib.compile.dir" value="${base.dir}/lib/compile" />
+  <property name="lib.test.dir" value="${base.dir}/lib/tests" />
+  <property name="database.dir" value="${base.dir}/src/main/database" />
+  <property name="resources.dir" value="${base.dir}/src/main/resources" />
+  <property name="web.dir" value="${base.dir}/src/main/webapp" />
+  <property name="build.dir" value="${base.dir}/build" />
+  <property name="target.dir" value="${base.dir}/target" />
+  <property name="exploded.dir" value="${base.dir}/exploded/ROOT" />
+
+  <property environment="env"/>
+  <property name="j2ee.bin.dir" value="${env.CATALINA_HOME}/bin" />
+  <property name="j2ee.lib.dir" value="${env.CATALINA_HOME}/lib" />
+  <import file="${j2ee.bin.dir}/catalina-tasks.xml" optional="true" />
+
+  <!-- Version string for scripts to use -->
+  <target name="version">
+    <echo message="Project: ${ant.project.name}"/>
+    <loadfile srcfile="${src.dir}/com/simisinc/platform/ApplicationInfo.java" property="version">
+      <filterchain>
+        <linecontains>
+          <contains value="String VERSION ="/>
+        </linecontains>
+        <tokenfilter>
+<!--          public static final String VERSION = "20200323.10000";-->
+          <replacestring from="public static final String VERSION = &quot;" to=""/>
+          <replacestring from="&quot;;" to=""/>
+          <trim />
+        </tokenfilter>
+      </filterchain>
+    </loadfile>
+    <fail unless="version">The version string could not be detected in ApplicationInfo.java</fail>
+    <echo message="Version: ${version}"/>
+  </target>
+
+  <target name="clean" depends="version">
+    <delete dir="${build.dir}" />
+    <delete dir="${target.dir}" />
+  </target>
+
+  <!-- Creates build directories -->
+  <target name="prepare">
+    <mkdir dir="${build.dir}"/>    
+    <tstamp />
+    <path id="web.classpath">
+      <fileset dir="${lib.compile.dir}">
+        <include name="**/*.jar"/>
+      </fileset>
+      <fileset dir="${lib.dir}">
+        <include name="**/*.jar"/>
+      </fileset>
+    </path>
+    <path id="test.classpath">
+      <fileset dir="${lib.test.dir}">
+        <include name="**/*.jar"/>
+      </fileset>
+    </path>
+  </target>
+
+  <!-- Compiles the source code -->
+  <target name="compile" depends="prepare">
+    <javac srcdir="${src.dir}" source="${jdk}" target="${jdk}"
+           destdir="${build.dir}"
+           debug="off"
+           deprecation="on"
+           optimize="on"
+           includeantruntime="false">
+      <classpath>
+        <path refid="web.classpath"/>
+      </classpath>
+    </javac>
+  </target>
+
+  <target name="jar" depends="clean,compile">
+    <mkdir dir="${target.dir}"/>
+    <jar jarfile="${target.dir}/${project}.jar">
+      <fileset dir="${build.dir}" />
+    </jar>
+  </target>
+
+  <target name="package" depends="jar">
+    <mkdir dir="${target.dir}/${project}"/>
+    <mkdir dir="${target.dir}/${project}/WEB-INF"/>
+    <mkdir dir="${target.dir}/${project}/WEB-INF/compiled"/>
+    <mkdir dir="${target.dir}/${project}/WEB-INF/classes"/>
+    <mkdir dir="${target.dir}/${project}/WEB-INF/lib"/>
+    <mkdir dir="${target.dir}/${project}/WEB-INF/jsp"/>
+    <!-- Project Jar -->
+    <copy file="${target.dir}/${project}.jar"
+          todir="${target.dir}/${project}/WEB-INF/lib"
+          verbose="true"/>
+    <!-- Dependency Libraries -->
+    <copy todir="${target.dir}/${project}/WEB-INF/lib" flatten="true">
+      <fileset dir="${lib.dir}">
+        <include name="**/*.jar"/>
+      </fileset>
+    </copy>
+    <!-- Resources -->
+    <copy todir="${target.dir}/${project}/WEB-INF">
+      <fileset dir="${web.dir}/WEB-INF">
+        <include name="**/*.html"/>
+        <include name="**/*.xml"/>
+        <include name="**/*.yml"/>
+        <include name="**/*.tld"/>
+        <include name="**/*.mmdb"/>
+        <include name="**/*.properties"/>
+      </fileset>
+    </copy>
+    <copy todir="${target.dir}/${project}/WEB-INF/classes">
+      <fileset dir="${resources.dir}">
+        <include name="**/*.properties"/>
+        <include name="**/*.sql"/>
+        <exclude name="jobrunr.properties"/>
+        <exclude name="jobrunr.production.properties"/>
+        <exclude name="simplelog.properties"/>
+        <exclude name="simplelog.production.properties"/>
+      </fileset>
+    </copy>
+    <!-- Production setting -->
+    <copy file="${resources.dir}/jobrunr.production.properties"
+          tofile="${target.dir}/${project}/WEB-INF/classes/jobrunr.properties"
+          overwrite="true"
+          verbose="false"/>
+    <copy file="${resources.dir}/simplelog.production.properties"
+          tofile="${target.dir}/${project}/WEB-INF/classes/simplelog.properties"
+          overwrite="true"
+          verbose="false"/>
+    <!-- Version string for scripts -->
+    <echo file="${target.dir}/${project}/WEB-INF/VERSION" append="true">${version}</echo>
+    <!-- Web -->
+    <copy todir="${target.dir}/${project}">
+      <fileset dir="${web.dir}">
+        <include name="robots.txt"/>
+        <include name="css/**"/>
+        <include name="fonts/**"/>
+        <include name="images/**"/>
+        <include name="javascript/**"/>
+      </fileset>
+    </copy>
+    <!-- Prepare the JSPs-->
+    <copy todir="${target.dir}/${project}/WEB-INF/jsp">
+      <fileset dir="${web.dir}/WEB-INF/jsp"/>
+    </copy>
+    <!-- Convert the JSPs to Classes -->
+    <jasper validateXml="false"
+            uriroot="${target.dir}/${project}"
+            webXmlFragment="${target.dir}/${project}/WEB-INF/generated_web.xml"
+            addWebXmlMappings="true"
+            outputDir="${target.dir}/${project}/WEB-INF/src" />
+    <!-- Compile the JSPs -->
+    <javac destdir="${target.dir}/${project}/WEB-INF/compiled" source="${jdk}" target="${jdk}"
+           optimize="on" debug="off"
+           srcdir="${target.dir}/${project}/WEB-INF/src"
+           excludes="**/*.smap">
+      <classpath>
+        <pathelement location="${target.dir}/${project}/WEB-INF/classes"/>
+        <fileset dir="${target.dir}/${project}/WEB-INF/lib">
+          <include name="*.jar"/>
+        </fileset>
+        <pathelement location="${j2ee.lib.dir}"/>
+        <fileset dir="${j2ee.lib.dir}">
+          <include name="*.jar"/>
+        </fileset>
+        <fileset dir="${j2ee.bin.dir}">
+          <include name="*.jar"/>
+        </fileset>
+      </classpath>
+      <include name="**" />
+      <exclude name="tags/**" />
+    </javac>
+    <!-- JAR the JSPs -->
+    <jar jarfile="${target.dir}/${project}/WEB-INF/lib/${project}-jsp.jar"
+         basedir="${target.dir}/${project}/WEB-INF/compiled" includes="**/*.class" />
+    <!-- Cleanup -->
+    <delete>
+      <fileset dir="${target.dir}/${project}/WEB-INF/jsp"/>
+      <fileset dir="${target.dir}/${project}/WEB-INF/src"/>
+      <fileset dir="${target.dir}/${project}/WEB-INF/compiled"/>
+    </delete>
+    <delete includeemptydirs="true">
+      <fileset dir="${target.dir}/${project}"  >
+        <and>
+          <size value="0"/>
+          <type type="dir"/>
+        </and>
+      </fileset>
+    </delete>
+    <!-- Create .war -->
+    <war destfile="${target.dir}/${project}.war"
+         basedir="${target.dir}/${project}"
+         compress="true"
+         manifest="${base.dir}/src/main/webapp/META-INF/MANIFEST.MF"
+         webxml="${base.dir}/src/main/webapp/WEB-INF/web.xml"/>
+    <!-- Write out a version file to go with the .war -->
+    <echo file="${target.dir}/VERSION" message="${version}"/>
+  </target>
+
+  <target name="test-compile" depends="jar">
+    <javac srcdir="${src.test.dir}" source="${jdk}" target="${jdk}"
+           destdir="${build.dir}"
+           debug="off"
+           deprecation="on"
+           optimize="on"
+           includeantruntime="false">
+      <classpath>
+        <path refid="web.classpath"/>
+        <path refid="test.classpath"/>
+      </classpath>
+    </javac>
+  </target>
+
+  <target name="test" depends="test-compile">
+    <mkdir dir="${target.dir}/test-reports"/>
+    <junitlauncher haltOnFailure="true" printSummary="true">
+      <classpath refid="web.classpath" />
+      <classpath refid="test.classpath" />
+      <classpath>
+        <pathelement location="${build.dir}"/>
+      </classpath>
+      <testclasses outputdir="${target.dir}/test-reports">
+        <fileset dir="${build.dir}">
+          <include name="**/*Tests.class" />
+        </fileset>
+        <listener type="legacy-xml" sendSysOut="true" sendSysErr="true" />
+        <listener type="legacy-plain" sendSysOut="true" sendSysErr="true" />
+      </testclasses>
+    </junitlauncher>
+  </target>
+
+  <target name="test-reports" depends="test">
+    <java classpathref="test.classpath" classname="org.junit.platform.console.ConsoleLauncher" fork="true" failonerror="true">
+      <arg value="--scan-classpath"/>
+      <arg line="--reports-dir build/test-report"/>
+    </java>
+    <junitreport todir="${target.dir}/test-reports">
+      <fileset dir="${target.dir}/test-reports">
+        <include name="TEST-*.xml"/>
+      </fileset>
+      <report format="frames" todir="${target.dir}/test-reports/html"/>
+    </junitreport>
+  </target>
+
+  <target name="mvn-dependencies">
+    <exec executable="mvn">
+      <arg value="dependency:tree" />
+      <arg value="-DoutputType=dot" />
+      <arg value="--file=mvn-pom.xml" />
+    </exec>
+  </target>
+
+  <target name="snyk">
+    <exec executable="snyk">
+      <arg value="test" />
+      <arg value="--file=mvn-pom.xml" />
+      <arg value="--package-manager=maven" />
+    </exec>
+  </target>
+
+</project>

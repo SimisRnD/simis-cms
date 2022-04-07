@@ -1,0 +1,232 @@
+<?xml version="1.0" ?>
+<!--
+  ~ Copyright 2022 SimIS Inc. (https://www.simiscms.com)
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<widgets>
+  <widget name="test" class="com.simisinc.platform.presentation.controller.cms.GenericWidget" />
+  <widget name="prototype" class="com.simisinc.platform.presentation.controller.cms.PrototypeWidget" />
+  <!-- Login and Registration -->
+  <widget name="login" class="com.simisinc.platform.presentation.controller.login.LoginWidget" />
+  <widget name="logout" class="com.simisinc.platform.presentation.controller.login.LogoutWidget" />
+  <widget name="register" class="com.simisinc.platform.presentation.controller.register.RegisterWidget" />
+  <widget name="forgotPassword" class="com.simisinc.platform.presentation.controller.login.ForgotPasswordWidget" />
+  <widget name="accountValidation" class="com.simisinc.platform.presentation.controller.login.AccountValidationWidget" />
+  <!-- Content Management -->
+  <widget name="logo" class="com.simisinc.platform.presentation.controller.cms.LogoWidget" />
+  <widget name="copyright" class="com.simisinc.platform.presentation.controller.cms.CopyrightWidget" />
+  <widget name="systemAlert" class="com.simisinc.platform.presentation.controller.cms.SystemAlertWidget" />
+  <widget name="toggleMenu" class="com.simisinc.platform.presentation.controller.cms.ToggleMenuWidget" />
+  <widget name="mainMenu" class="com.simisinc.platform.presentation.controller.cms.MainMenuWidget" />
+  <widget name="globalMessage" class="com.simisinc.platform.presentation.controller.cms.GlobalMessageWidget" />
+  <widget name="breadcrumbs" class="com.simisinc.platform.presentation.controller.cms.BreadCrumbsWidget" />
+  <widget name="searchForm" class="com.simisinc.platform.presentation.controller.cms.SearchFormWidget" />
+  <widget name="searchInfo" class="com.simisinc.platform.presentation.controller.cms.SearchInfoWidget" />
+  <widget name="webPageSearchResults" class="com.simisinc.platform.presentation.controller.cms.WebPageSearchResultsWidget" />
+  <widget name="webPageTitleSearchResults" class="com.simisinc.platform.presentation.controller.cms.WebPageTitleSearchResultsWidget" />
+  <widget name="tableOfContents" class="com.simisinc.platform.presentation.controller.cms.TableOfContentsWidget" />
+  <widget name="tableOfContentsEditor" class="com.simisinc.platform.presentation.controller.cms.TableOfContentsEditorWidget" />
+  <widget name="link" class="com.simisinc.platform.presentation.controller.cms.LinkWidget" />
+  <widget name="button" class="com.simisinc.platform.presentation.controller.cms.ButtonWidget" />
+  <widget name="menu" class="com.simisinc.platform.presentation.controller.cms.MenuWidget" />
+  <widget name="card" class="com.simisinc.platform.presentation.controller.cms.CardWidget" />
+  <widget name="systemMessages" class="com.simisinc.platform.presentation.controller.cms.SystemMessagesWidget" />
+  <widget name="content" class="com.simisinc.platform.presentation.controller.cms.ContentWidget" />
+  <widget name="contentTabs" class="com.simisinc.platform.presentation.controller.cms.ContentTabsWidget" />
+  <widget name="contentEditor" class="com.simisinc.platform.presentation.controller.cms.ContentEditorWidget" />
+  <widget name="blogPostList" class="com.simisinc.platform.presentation.controller.cms.BlogPostListWidget" />
+  <widget name="blogPost" class="com.simisinc.platform.presentation.controller.cms.BlogPostWidget" />
+  <widget name="blogPostName" class="com.simisinc.platform.presentation.controller.cms.BlogPostNameWidget" />
+  <widget name="blogEditor" class="com.simisinc.platform.presentation.controller.cms.BlogEditorWidget" />
+  <widget name="form" class="com.simisinc.platform.presentation.controller.cms.FormWidget" />
+  <widget name="albumGallery" class="com.simisinc.platform.presentation.controller.cms.AlbumGalleryWidget" />
+  <widget name="photoGallery" class="com.simisinc.platform.presentation.controller.cms.PhotoGalleryWidget" />
+  <widget name="fileList" class="com.simisinc.platform.presentation.controller.cms.FileListWidget" />
+  <widget name="fileListByFolder" class="com.simisinc.platform.presentation.controller.cms.FileListByFolderWidget" />
+  <widget name="fileListByYear" class="com.simisinc.platform.presentation.controller.cms.FileListByYearWidget" />
+  <widget name="fileDropZone" class="com.simisinc.platform.presentation.controller.cms.FileDropZoneWidget" />
+  <widget name="imageUpload" class="com.simisinc.platform.presentation.controller.cms.ImageUploadWidget" />
+  <widget name="imageBrowser" class="com.simisinc.platform.presentation.controller.cms.ImageBrowserWidget" />
+  <widget name="videoBrowser" class="com.simisinc.platform.presentation.controller.cms.VideoBrowserWidget" />
+  <widget name="fileBrowser" class="com.simisinc.platform.presentation.controller.cms.FileBrowserWidget" />
+  <widget name="wiki" class="com.simisinc.platform.presentation.controller.cms.WikiWidget" />
+  <widget name="wikiEditor" class="com.simisinc.platform.presentation.controller.cms.WikiEditorWidget" />
+  <widget name="streamImage" class="com.simisinc.platform.presentation.controller.cms.StreamImageWidget" />
+  <widget name="captchaImage" class="com.simisinc.platform.presentation.controller.cms.CaptchaImageWidget" />
+  <widget name="downloadFile" class="com.simisinc.platform.presentation.controller.cms.DownloadFileWidget" />
+  <widget name="remoteContent" class="com.simisinc.platform.presentation.controller.cms.RemoteContentWidget" />
+  <widget name="socialMediaLinks" class="com.simisinc.platform.presentation.controller.cms.SocialMediaLinksWidget" />
+  <widget name="instagram" class="com.simisinc.platform.presentation.controller.cms.InstagramWidget" />
+  <widget name="leaderboard" class="com.simisinc.platform.presentation.controller.cms.LeaderboardWidget" />
+  <!-- User Profile and Management -->
+  <widget name="emailSubscribe" class="com.simisinc.platform.presentation.controller.mailinglists.EmailSubscribeWidget" />
+  <widget name="myInfo" class="com.simisinc.platform.presentation.controller.userProfile.MyInfoWidget" />
+  <widget name="mySiteInfo" class="com.simisinc.platform.presentation.controller.userProfile.MySiteInfoWidget" />
+  <widget name="mySettings" class="com.simisinc.platform.presentation.controller.userProfile.MySettingsWidget" />
+  <widget name="myAccountDetails" class="com.simisinc.platform.presentation.controller.userProfile.MyAccountDetailsWidget" />
+  <widget name="myEmailPreferences" class="com.simisinc.platform.presentation.controller.userProfile.MyEmailPreferencesWidget" />
+  <widget name="myOrderHistory" class="com.simisinc.platform.presentation.controller.userProfile.MyOrderHistoryWidget" />
+  <!-- E-Commerce Features -->
+  <widget name="productBrowser" class="com.simisinc.platform.presentation.controller.ecommerce.ProductBrowserWidget" />
+<!--  <widget name="productPrice" class="com.simisinc.platform.presentation.controller.ecommerce.ProductPriceWidget" />-->
+  <widget name="productName" class="com.simisinc.platform.presentation.controller.ecommerce.ProductNameWidget" />
+  <widget name="productImage" class="com.simisinc.platform.presentation.controller.ecommerce.ProductImageWidget" />
+  <widget name="productDescription" class="com.simisinc.platform.presentation.controller.ecommerce.ProductDescriptionWidget" />
+  <widget name="addToCart" class="com.simisinc.platform.presentation.controller.ecommerce.AddToCartWidget" />
+  <widget name="cart" class="com.simisinc.platform.presentation.controller.ecommerce.CartWidget" />
+  <widget name="customerForm" class="com.simisinc.platform.presentation.controller.ecommerce.CustomerFormWidget" />
+  <widget name="shippingAddressForm" class="com.simisinc.platform.presentation.controller.ecommerce.ShippingAddressFormWidget" />
+  <widget name="shippingAddressDetails" class="com.simisinc.platform.presentation.controller.ecommerce.ShippingAddressDetailsWidget" />
+  <widget name="shippingMethodForm" class="com.simisinc.platform.presentation.controller.ecommerce.ShippingMethodFormWidget" />
+  <widget name="shippingMethodDetails" class="com.simisinc.platform.presentation.controller.ecommerce.ShippingMethodDetailsWidget" />
+  <widget name="paymentForm" class="com.simisinc.platform.presentation.controller.ecommerce.PaymentFormWidget" />
+  <widget name="paymentDetails" class="com.simisinc.platform.presentation.controller.ecommerce.PaymentDetailsWidget" />
+  <widget name="orderUpdatesForm" class="com.simisinc.platform.presentation.controller.ecommerce.OrderUpdatesFormWidget" />
+  <widget name="orderUpdatesDetails" class="com.simisinc.platform.presentation.controller.ecommerce.OrderUpdatesDetailsWidget" />
+  <widget name="placeOrder" class="com.simisinc.platform.presentation.controller.ecommerce.PlaceOrderWidget" />
+  <widget name="orderConfirmation" class="com.simisinc.platform.presentation.controller.ecommerce.OrderConfirmationWidget" />
+  <!-- Calendar, Map, Property Map, Tasks -->
+  <widget name="calendar" class="com.simisinc.platform.presentation.controller.calendar.CalendarWidget" />
+  <widget name="upcomingCalendarEvents" class="com.simisinc.platform.presentation.controller.calendar.UpcomingCalendarEventsWidget" />
+  <widget name="calendarEventDetails" class="com.simisinc.platform.presentation.controller.calendar.CalendarEventDetailsWidget" />
+  <widget name="calendarSearchResults" class="com.simisinc.platform.presentation.controller.calendar.CalendarSearchResultsWidget" />
+  <widget name="map" class="com.simisinc.platform.presentation.controller.maps.MapWidget" />
+  <widget name="propertyMapApp" class="com.simisinc.platform.presentation.controller.maps.PropertyMapAppWidget" />
+  <widget name="todoList" class="com.simisinc.platform.presentation.controller.todoList.TodoListWidget" />
+  <!-- Collections -->
+  <widget name="directory" class="com.simisinc.platform.presentation.controller.items.DirectoryWidget" />
+  <widget name="itemsSearchForm" class="com.simisinc.platform.presentation.controller.items.ItemsSearchFormWidget" />
+  <widget name="itemsList" class="com.simisinc.platform.presentation.controller.items.ItemsListWidget" />
+  <widget name="itemsMapApp" class="com.simisinc.platform.presentation.controller.items.ItemsMapAppWidget" />
+  <widget name="itemMenu" class="com.simisinc.platform.presentation.controller.items.ItemMenuWidget" />
+  <widget name="itemFields" class="com.simisinc.platform.presentation.controller.items.ItemFieldsWidget" />
+  <widget name="categoriesList" class="com.simisinc.platform.presentation.controller.items.CategoriesListWidget" />
+  <widget name="addItemButton" class="com.simisinc.platform.presentation.controller.items.AddItemButtonWidget" />
+  <widget name="addItemForm" class="com.simisinc.platform.presentation.controller.items.CreateAnItemWidget" />
+  <widget name="editItemButton" class="com.simisinc.platform.presentation.controller.items.EditItemButtonWidget" />
+  <widget name="editItemForm" class="com.simisinc.platform.presentation.controller.items.EditItemFormWidget" />
+  <widget name="approveItemButton" class="com.simisinc.platform.presentation.controller.items.ApproveItemButtonWidget" />
+  <widget name="hideItemButton" class="com.simisinc.platform.presentation.controller.items.HideItemButtonWidget" />
+  <widget name="deleteItemButton" class="com.simisinc.platform.presentation.controller.items.DeleteItemButtonWidget" />
+  <!-- Items -->
+  <widget name="itemsSearchResults" class="com.simisinc.platform.presentation.controller.items.ItemsSearchResultsWidget" />
+  <widget name="activityList" class="com.simisinc.platform.presentation.controller.items.ActivityListWidget" />
+  <widget name="activityForm" class="com.simisinc.platform.presentation.controller.items.ActivityFormWidget" />
+  <widget name="itemRelationshipsList" class="com.simisinc.platform.presentation.controller.items.ItemRelationshipsListWidget" />
+  <widget name="itemRelationshipForm" class="com.simisinc.platform.presentation.controller.items.ItemRelationshipFormWidget" />
+  <widget name="itemMembersList" class="com.simisinc.platform.presentation.controller.items.ItemMembersListWidget" />
+  <widget name="itemMemberForm" class="com.simisinc.platform.presentation.controller.items.ItemMemberFormWidget" />
+  <widget name="downloadItemFile" class="com.simisinc.platform.presentation.controller.items.DownloadItemFileWidget" />
+  <widget name="itemFileList" class="com.simisinc.platform.presentation.controller.items.ItemFileListWidget" />
+  <widget name="itemFileDropZone" class="com.simisinc.platform.presentation.controller.items.ItemFileDropZoneWidget" />
+  <!-- Projects -->
+  <!--<widget name="projectList" class="com.simisinc.platform.presentation.controller.projects.ProjectListWidget" />-->
+  <!--<widget name="projectForm" class="com.simisinc.platform.presentation.controller.projects.ProjectFormWidget" />-->
+  <!--<widget name="projectBoard" class="com.simisinc.platform.presentation.controller.projects.ProjectBoardWidget" />-->
+  <!-- Issues -->
+  <!--<widget name="issueList" class="com.simisinc.platform.presentation.controller.issues.IssueListWidget" />-->
+  <!-- Admin -->
+  <widget name="usersList" class="com.simisinc.platform.presentation.controller.admin.login.UsersListWidget" />
+  <widget name="userDetails" class="com.simisinc.platform.presentation.controller.admin.login.UserDetailsWidget" />
+  <widget name="userForm" class="com.simisinc.platform.presentation.controller.admin.login.UserFormWidget" />
+  <widget name="groupsList" class="com.simisinc.platform.presentation.controller.admin.GroupsListWidget" />
+  <widget name="groupForm" class="com.simisinc.platform.presentation.controller.admin.GroupFormWidget" />
+  <widget name="siteMap" class="com.simisinc.platform.presentation.controller.cms.SiteMapWidget" />
+  <widget name="siteMapEditor" class="com.simisinc.platform.presentation.controller.cms.SiteMapEditorWidget" />
+  <widget name="webPageList" class="com.simisinc.platform.presentation.controller.admin.cms.WebPageListWidget" />
+  <widget name="webPageForm" class="com.simisinc.platform.presentation.controller.admin.cms.WebPageFormWidget" />
+  <widget name="cssEditor" class="com.simisinc.platform.presentation.controller.cms.CssEditorWidget" />
+  <widget name="webContainerDesigner" class="com.simisinc.platform.presentation.controller.cms.WebContainerDesignerWidget" />
+  <widget name="webPageDesigner" class="com.simisinc.platform.presentation.controller.cms.WebPageDesignerWidget" />
+  <widget name="contentList" class="com.simisinc.platform.presentation.controller.admin.cms.ContentListWidget" />
+  <widget name="contentForm" class="com.simisinc.platform.presentation.controller.admin.cms.ContentFormWidget" />
+  <widget name="adminImageBrowser" class="com.simisinc.platform.presentation.controller.admin.cms.AdminImageBrowserWidget" />
+  <widget name="blogList" class="com.simisinc.platform.presentation.controller.admin.cms.BlogListWidget" />
+  <widget name="blogForm" class="com.simisinc.platform.presentation.controller.admin.cms.BlogFormWidget" />
+  <widget name="calendarList" class="com.simisinc.platform.presentation.controller.admin.cms.CalendarListWidget" />
+  <widget name="calendarForm" class="com.simisinc.platform.presentation.controller.admin.cms.CalendarFormWidget" />
+  <widget name="calendarEventForm" class="com.simisinc.platform.presentation.controller.admin.cms.CalendarEventFormWidget" />
+  <widget name="collectionsList" class="com.simisinc.platform.presentation.controller.admin.items.CollectionsListWidget" />
+  <widget name="collectionForm" class="com.simisinc.platform.presentation.controller.admin.items.CollectionFormWidget" />
+  <widget name="collectionDetails" class="com.simisinc.platform.presentation.controller.admin.items.CollectionDetailsWidget" />
+  <widget name="collectionThemeEditor" class="com.simisinc.platform.presentation.controller.admin.items.CollectionThemeEditorWidget" />
+  <widget name="collectionTabsList" class="com.simisinc.platform.presentation.controller.admin.items.CollectionTabsListWidget" />
+  <widget name="collectionTabsEditor" class="com.simisinc.platform.presentation.controller.admin.items.CollectionTabsEditorWidget" />
+  <widget name="collectionCategoriesList" class="com.simisinc.platform.presentation.controller.admin.items.CollectionCategoriesListWidget" />
+  <widget name="collectionCategoryForm" class="com.simisinc.platform.presentation.controller.admin.items.CollectionCategoryFormWidget" />
+  <widget name="collectionRelationshipsList" class="com.simisinc.platform.presentation.controller.admin.items.CollectionRelationshipsListWidget" />
+  <widget name="collectionRelationshipForm" class="com.simisinc.platform.presentation.controller.admin.items.CollectionRelationshipFormWidget" />
+  <widget name="collectionItemsList" class="com.simisinc.platform.presentation.controller.admin.items.CollectionItemsListWidget" />
+  <widget name="mailingLists" class="com.simisinc.platform.presentation.controller.mailinglists.MailingListsWidget" />
+  <widget name="mailingListForm" class="com.simisinc.platform.presentation.controller.mailinglists.MailingListFormWidget" />
+  <widget name="mailingListSearchForm" class="com.simisinc.platform.presentation.controller.mailinglists.MailingListSearchFormWidget" />
+  <widget name="mailingListMembers" class="com.simisinc.platform.presentation.controller.mailinglists.MailingListMembersWidget" />
+  <widget name="folderList" class="com.simisinc.platform.presentation.controller.admin.cms.FolderListWidget" />
+  <widget name="folderDetails" class="com.simisinc.platform.presentation.controller.admin.cms.FolderDetailsWidget" />
+  <widget name="folderForm" class="com.simisinc.platform.presentation.controller.admin.cms.FolderFormWidget" />
+  <widget name="folderSubFoldersList" class="com.simisinc.platform.presentation.controller.admin.cms.FolderSubFoldersListWidget" />
+  <widget name="folderFilesList" class="com.simisinc.platform.presentation.controller.admin.cms.FolderFilesListWidget" />
+  <widget name="subFolderDetails" class="com.simisinc.platform.presentation.controller.admin.cms.SubFolderDetailsWidget" />
+  <widget name="subFolderForm" class="com.simisinc.platform.presentation.controller.admin.cms.SubFolderFormWidget" />
+  <widget name="folderFileDropZone" class="com.simisinc.platform.presentation.controller.admin.cms.FolderFileDropZoneWidget" />
+  <widget name="folderFileForm" class="com.simisinc.platform.presentation.controller.admin.cms.FolderFileFormWidget" />
+  <widget name="wikiList" class="com.simisinc.platform.presentation.controller.admin.cms.WikiListWidget" />
+  <widget name="wikiForm" class="com.simisinc.platform.presentation.controller.admin.cms.WikiFormWidget" />
+  <widget name="sitePropertiesEditor" class="com.simisinc.platform.presentation.controller.admin.SitePropertiesEditorWidget" />
+  <widget name="themeEditor" class="com.simisinc.platform.presentation.controller.admin.cms.ThemeEditorWidget" />
+  <widget name="apisList" class="com.simisinc.platform.presentation.controller.admin.ApisListWidget" />
+  <widget name="appsList" class="com.simisinc.platform.presentation.controller.admin.AppsListWidget" />
+  <widget name="appForm" class="com.simisinc.platform.presentation.controller.admin.AppFormWidget" />
+  <widget name="blockedIP" class="com.simisinc.platform.presentation.controller.admin.BlockedIPListWidget" />
+  <widget name="blockedIPListForm" class="com.simisinc.platform.presentation.controller.admin.BlockedIPFormWidget" />
+  <widget name="formDataList" class="com.simisinc.platform.presentation.controller.admin.cms.FormDataListWidget" />
+  <widget name="datasets" class="com.simisinc.platform.presentation.controller.admin.datasets.DatasetsWidget" />
+  <widget name="datasetName" class="com.simisinc.platform.presentation.controller.datasets.DatasetNameWidget" />
+  <widget name="datasetUpload" class="com.simisinc.platform.presentation.controller.admin.datasets.DatasetUploadWidget" />
+  <widget name="datasetConfiguration" class="com.simisinc.platform.presentation.controller.admin.datasets.DatasetConfigurationWidget" />
+  <widget name="datasetMapper" class="com.simisinc.platform.presentation.controller.admin.datasets.DatasetMapperWidget" />
+  <widget name="datasetPreview" class="com.simisinc.platform.presentation.controller.admin.datasets.DatasetPreviewWidget" />
+  <widget name="streamDataset" class="com.simisinc.platform.presentation.controller.admin.datasets.StreamDatasetWidget" />
+  <widget name="sendMail" class="com.simisinc.platform.presentation.controller.admin.SendMailWidget" />
+  <widget name="siteStats" class="com.simisinc.platform.presentation.controller.admin.SiteStatsWidget" />
+  <widget name="communityStats" class="com.simisinc.platform.presentation.controller.admin.cms.CommunityStatsWidget" />
+  <widget name="ecommerceStats" class="com.simisinc.platform.presentation.controller.admin.ecommerce.EcommerceStatsWidget" />
+  <widget name="productList" class="com.simisinc.platform.presentation.controller.admin.ecommerce.ProductListWidget" />
+  <widget name="productForm" class="com.simisinc.platform.presentation.controller.admin.ecommerce.ProductFormWidget" />
+  <widget name="productCategoriesList" class="com.simisinc.platform.presentation.controller.admin.ecommerce.ProductCategoriesListWidget" />
+  <widget name="productCategoryForm" class="com.simisinc.platform.presentation.controller.admin.ecommerce.ProductCategoryFormWidget" />
+  <widget name="customerList" class="com.simisinc.platform.presentation.controller.admin.ecommerce.CustomerListWidget" />
+  <widget name="customerListSearchForm" class="com.simisinc.platform.presentation.controller.admin.ecommerce.CustomerListSearchFormWidget" />
+  <widget name="orderList" class="com.simisinc.platform.presentation.controller.admin.ecommerce.OrderListWidget" />
+  <widget name="orderListSearchForm" class="com.simisinc.platform.presentation.controller.admin.ecommerce.OrderListSearchFormWidget" />
+  <widget name="shipOrder" class="com.simisinc.platform.presentation.controller.admin.ecommerce.ShipOrderWidget" />
+  <widget name="checkOrderStatus" class="com.simisinc.platform.presentation.controller.admin.ecommerce.CheckOrderStatusWidget" />
+  <widget name="sendOrderConfirmation" class="com.simisinc.platform.presentation.controller.admin.ecommerce.SendOrderConfirmationWidget" />
+  <widget name="sendShippingConfirmation" class="com.simisinc.platform.presentation.controller.admin.ecommerce.SendShippingConfirmationWidget" />
+  <widget name="cancelOrder" class="com.simisinc.platform.presentation.controller.admin.ecommerce.CancelOrderWidget" />
+  <widget name="sendOrderCancellationConfirmation" class="com.simisinc.platform.presentation.controller.admin.ecommerce.SendOrderCancellationConfirmationWidget" />
+  <widget name="issueRefund" class="com.simisinc.platform.presentation.controller.admin.ecommerce.IssueRefundWidget" />
+  <widget name="sendOrderRefundConfirmation" class="com.simisinc.platform.presentation.controller.admin.ecommerce.SendOrderRefundConfirmationWidget" />
+  <widget name="addOrderTrackingNumber" class="com.simisinc.platform.presentation.controller.admin.ecommerce.AddOrderTrackingNumberWidget" />
+  <widget name="pricingRulesList" class="com.simisinc.platform.presentation.controller.admin.ecommerce.PricingRulesListWidget" />
+  <widget name="pricingRuleForm" class="com.simisinc.platform.presentation.controller.admin.ecommerce.PricingRuleFormWidget" />
+  <widget name="shippingRatesList" class="com.simisinc.platform.presentation.controller.admin.ecommerce.ShippingRatesListWidget" />
+  <widget name="shippingRateForm" class="com.simisinc.platform.presentation.controller.admin.ecommerce.ShippingRateFormWidget" />
+  <widget name="salesTaxNexusList" class="com.simisinc.platform.presentation.controller.admin.ecommerce.SalesTaxNexusListWidget" />
+  <widget name="salesTaxNexusAddressForm" class="com.simisinc.platform.presentation.controller.admin.ecommerce.SalesTaxNexusAddressFormWidget" />
+  <widget name="xapiStatementList" class="com.simisinc.platform.presentation.controller.admin.xapi.XapiStatementListWidget" />
+  <!-- Not implemented -->
+  <widget name="profilePhoto" class="com.simisinc.platform.presentation.controller.cms.GenericWidget" />
+  <widget name="profileDetails" class="com.simisinc.platform.presentation.controller.cms.GenericWidget" />
+</widgets>

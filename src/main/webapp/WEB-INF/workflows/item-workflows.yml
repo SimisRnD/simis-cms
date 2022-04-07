@@ -1,0 +1,16 @@
+# Item Workflows
+---
+
+- id: item-file-uploaded
+  vars:
+    user: '{{ event.user }}'
+    item: '{{ event.item }}'
+    itemFileItem: '{{ event.itemFileItem }}'
+  workflow:
+    - history:
+      message: '_{{ user.fullName }}_ **{{ verb }}** a file: [{{ itemFileItem.title }}]({{ itemFileItem.link }})'
+      actor-id: '{{ user.id }}'
+      verb: added
+      contextItemId: '{{ item.id }}'
+      object: itemFileItem
+      object-id: '{{ itemFileItem.id }}'

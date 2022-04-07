@@ -1,0 +1,53 @@
+/* Site Map */
+.site-map-container {
+  background-color: #fefefe;
+  padding: 5px;
+  border: 1px solid #dcdedf;
+  border-radius: 4px;
+  overflow: auto;
+  white-space: nowrap;
+  margin-bottom: 20px;
+}
+.site-map-container::-webkit-scrollbar {
+  -webkit-appearance: none;
+  width: 7px;
+}
+.site-map-container::-webkit-scrollbar-thumb {
+  border-radius: 4px;
+  background-color: rgba(0,0,0,.5);
+  -webkit-box-shadow: 0 0 1px rgba(255,255,255,.5);
+}
+.site-map-submenu-container {
+  padding-bottom: 30px;
+}
+.site-map-menu-tab {
+  border: 1px solid #bcd8e8;
+  border-radius: 5px;
+  background-color: #d5edfa;
+  margin-right: 5px;
+  padding: 2px;
+  display: inline-block;
+  vertical-align:top;
+  position: relative;
+}
+.site-map-menu-tab .subheader {
+  color: #82a8c5;
+}
+.site-map-submenu-tab {
+  border: 1px solid #bcd8e8;
+  border-radius: 5px;
+  background-color: #fff;
+  margin: 4px;
+  padding: 2px;
+  position: relative;
+}
+.site-map-submenu-tab .subheader {
+  color: #95ae66;
+}
+
+.site-map-menu-tab-drag-handle, .site-map-submenu-tab-drag-handle {
+  cursor: move;
+  cursor: grab;
+  cursor: -moz-grab;
+  cursor: -webkit-grab;
+}

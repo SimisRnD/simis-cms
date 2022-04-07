@@ -1,0 +1,72 @@
+
+# site roles, user groups, collection roles
+
+# -- item.*
+# -- tab: files
+#
+# -- Assign permissions to a user... overall, in collections, in item instances
+# -- Then in Collection Tabs... have a new permission to see the tab... "item.tasks.view"
+# -- Then in Collection Roles... set the permissions there if needed... like if the user is a Manager of the Item in the Collection
+# -- Then in layouts... set layout, item, widget... have a new permission="item.tasks.view"
+
+# members
+item.members.view: View the list of members
+item.members.add: Add and invite members
+item.members.edit: Edit members
+item.members.delete: Remove members
+item.members.join: Instantly join
+item.members.join.ask: Ask to join
+item.members.manage: Approve or deny member requests
+
+# files
+item.files.view: View all of the files
+item.files.view.own: View own list of files
+item.files.download: Download any file
+item.files.download.own: Download own files
+item.files.upload: Upload files
+item.files.upload.version: Upload versions to any existing file
+item.files.upload.version.own: Upload versions to own files
+item.files.edit: Edit any file
+item.files.edit.own: Edit own files
+item.files.delete: Delete any file
+item.files.delete.own: Delete own files
+
+# blog
+item.blog.view: View the blog
+item.blog.add: Add a draft blog post
+item.blog.edit: Edit any blog post
+item.blog.edit.own: Edit own blog posts
+item.blog.delete: Delete any blog post
+item.blog.delete.own: Delete own blog posts
+item.blog.publish: Publish blog posts
+item.blog.publish.own: Publish own blog posts
+
+# chat
+item.chat.view: View chat messages
+item.chat.view.own: View own chat messages
+item.chat.post: Add a chat message
+item.chat.post.edit: Edit any chat message
+item.chat.post.edit.own: Edit own chat message
+item.chat.post.delete: Delete any chat message
+item.chat.post.delete.own: Delete own chat messages
+
+# activity stream
+item.activity.view: View the activity stream
+item.activity.add: Add entries to the activity stream
+item.activity.edit: Edit any activity stream entry
+item.activity.edit.own: Edit own activity stream entries
+item.activity.delete: Delete any activity stream entry
+item.activity.delete.own: Delete own activity stream entries
+
+#wiki
+item.wiki.view: View the wiki
+item.wiki.add: Add a page to the wiki
+item.wiki.edit: Edit any wiki page
+item.wiki.edit.own: Edit own wiki pages
+item.wiki.delete: Delete any wiki page
+item.wiki.delete.own: Delete own wiki pages
+
+# calendar
+
+# lists
+

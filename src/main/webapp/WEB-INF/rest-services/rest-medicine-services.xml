@@ -1,0 +1,35 @@
+<?xml version="1.0" ?>
+<!--
+  ~ Copyright 2022 SimIS Inc. (https://www.simiscms.com)
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<services>
+  <service method="get" endpoint="med/individualList" class="com.simisinc.platform.presentation.rest.medicine.IndividualListService" />
+  <service method="get" endpoint="med/medicineList/{individualUniqueId}" class="com.simisinc.platform.presentation.rest.medicine.MedicineListService" />
+  <service method="get" endpoint="med/drugList" class="com.simisinc.platform.presentation.rest.medicine.DrugListService" />
+  <service method="post put delete" endpoint="med/medicine/{medicineId}" class="com.simisinc.platform.presentation.rest.medicine.MedicineService" />
+  <service method="post" endpoint="suspend/medicine/{medicineId}" class="com.simisinc.platform.presentation.rest.medicine.SuspendMedicineService" />
+  <service method="post" endpoint="resume/medicine/{medicineId}" class="com.simisinc.platform.presentation.rest.medicine.ResumeMedicineService" />
+  <service method="post" endpoint="archive/medicine/{medicineId}" class="com.simisinc.platform.presentation.rest.medicine.ArchiveMedicineService" />
+  <service method="get" endpoint="med/reminderList" class="com.simisinc.platform.presentation.rest.medicine.MedicineReminderListService" />
+  <service method="post" endpoint="med/medicineLog" class="com.simisinc.platform.presentation.rest.medicine.MedicineLogService" />
+  <service method="get" endpoint="med/medicineLogList" class="com.simisinc.platform.presentation.rest.medicine.MedicineLogListService" />
+  <!--<service method="get" endpoint="med/prescriptions" class="com.simisinc.platform.presentation.rest.medicine.PrescriptionsService" />-->
+  <!--<service method="get" endpoint="med/schedules" class="com.simisinc.platform.presentation.rest.medicine.SchedulesService" />-->
+  <!--<service method="get" endpoint="med/schedule/{individualUniqueId}" class="com.simisinc.platform.presentation.rest.medicine.SchedulesService" />-->
+  <!--<service method="get" endpoint="med/scheduleTimes" class="com.simisinc.platform.presentation.rest.medicine.ScheduleTimesService" />-->
+  <!--<service method="post" endpoint="med/prescription" class="com.simisinc.platform.presentation.rest.medicine.PrescriptionService" />-->
+  <!--<service method="post" endpoint="med/schedule" class="com.simisinc.platform.presentation.rest.medicine.ScheduleService" />-->
+  <!--<service method="post" endpoint="med/scheduleTime" class="com.simisinc.platform.presentation.rest.medicine.ScheduleTimeService" />-->
+</services>

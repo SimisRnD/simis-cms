@@ -1,0 +1,133 @@
+.tox .tox-dialog__body {
+	max-height: 75vh;
+}
+
+.fa-important{
+	font-family: "Font Awesome 6 Free", "Font Awesome 6 Pro", "Font Awesome 6 Brands", "Font Awesome 6 Duotone",
+	"Font Awesome 5 Pro", "Font Awesome 5 Brands", "Font Awesome 5 Duotone" !important; !important;
+}
+.fa {
+	font-family: "Font Awesome 6 Pro", "Font Awesome 6 Free" !important;
+}
+.far{
+	font-family: "Font Awesome 6 Pro", "Font Awesome 6 Free" !important;
+}
+.fas{
+	font-family: "Font Awesome 6 Pro", "Font Awesome 6 Free" !important;
+	font-weight: 900 !important;
+}
+.fal{
+	font-family: "Font Awesome 6 Pro", "Font Awesome 6 Free" !important;
+}
+.fab{
+	font-family: "Font Awesome 6 Brands" !important;
+}
+.fad{
+	font-family: "Font Awesome 6 Duotone" !important;
+}
+
+/* Category */
+
+.mce-fontawesome-panel-title {
+	display: flex;
+	align-items: center;
+	font-weight: 700;
+	margin-top: 5px;
+	margin-bottom: 4px;
+	cursor: pointer !important;
+	padding: 6px;
+	border-bottom: 1px solid transparent;
+}
+
+.mce-fontawesome-panel-title:hover,
+.mce-fontawesome-panel-title:focus {
+	background-color: rgba(0,0,0,.1);
+}
+
+.mce-fontawesome-panel-accordion-open .mce-fontawesome-panel-title {
+	background-color: rgba(67,139,250,.1);
+	border-bottom: 1px solid #EEEEEE;
+	margin-bottom: 3px;
+}
+
+.mce-fontawesome-panel-accordion-indicator {
+	margin-left: auto;
+	font-family:
+			"Font Awesome 6 Free", "Font Awesome 6 Pro", "Font Awesome 6 Brands", "Font Awesome 6 Duotone",
+			"Font Awesome 5 Pro", "Font Awesome 5 Brands", "Font Awesome 5 Duotone" !important;
+}
+
+.mce-fontawesome-panel-content {
+	transition: .5s height;
+	overflow: hidden;
+}
+
+/* Icon */
+
+.mce-fontawesome-panel .mce-icon-cell {
+	position: relative;
+	float: left;
+	width: 29px;
+	height: 29px;
+}
+.mce-icon-cell.mce-icon-cell{
+	position: relative;
+	float: left;
+	width: 29px;
+	height: 29px;
+}
+
+.mce-icon-cell .fas, .mce-icon-cell .far, .mce-icon-cell .fab, .mce-icon-cell .fad, .mce-icon-cell .fal {
+	display: block;
+	line-height: 29px;
+	cursor: pointer;
+	text-align: center;
+	border-radius: 3px;
+}
+
+.mce-icon-cell .fas:hover, .mce-icon-cell .fas:focus,
+.mce-icon-cell .far:hover, .mce-icon-cell .far:focus,
+.mce-icon-cell .fab:hover, .mce-icon-cell .fab:focus,
+.mce-icon-cell .fad:hover, .mce-icon-cell .fad:focus,
+.mce-icon-cell .fal:hover, .mce-icon-cell .fal:focus {
+	background-color: rgba(57, 119, 214, 0.1);
+}
+
+/* Search */
+
+.mce-fontawesome-search-container::before {
+	font-family:
+			"Font Awesome 6 Free", "Font Awesome 6 Pro", "Font Awesome 6 Brands", "Font Awesome 6 Duotone",
+			"Font Awesome 5 Pro", "Font Awesome 5 Brands", "Font Awesome 5 Duotone";
+	content: "\f002";
+	position: absolute;
+	bottom: 10px;
+	left: 20px;
+	line-height: 30px;
+	color: rgba(0,0,0,.4);
+}
+
+.mce-fontawesome-search-container input {
+	padding: 0 0 0 25px !important;
+}
+
+.mce-fontawesome-search-container input::-webkit-input-placeholder {
+	color: rgba(0,0,0,.4);
+}
+
+.mce-fontawesome-search-container input::-moz-placeholder {
+	color: rgba(0,0,0,.4);
+}
+
+.mce-fontawesome-search-container input:-ms-input-placeholder {
+	color: rgba(0,0,0,.4);
+}
+
+.mce-fontawesome-search-noresults {
+	text-align: center;
+	color: rgba(0, 0, 0, 0.4);
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: calc(50% - 8px);
+}

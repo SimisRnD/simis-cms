@@ -1,0 +1,52 @@
+<?xml version="1.0" ?>
+<!--
+  ~ Copyright 2022 SimIS Inc. (https://www.simiscms.com)
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<template name="My Account: E-Commerce" image="My Account for E-Commerce.png">
+  <page role="users">
+    <section>
+      <column class="small-12 cell">
+        <widget name="content" class="margin-bottom-50">
+          <html><![CDATA[<h1>Hi ${user.firstName:html}, welcome back.</h1>]]></html>
+        </widget>
+      </column>
+    </section>
+    <section class="margin-bottom-100">
+      <column class="small-12 medium-5 cell">
+        <widget name="myAccountDetails">
+          <title>Account Details</title>
+        </widget>
+        <widget name="myEmailPreferences" hr="true">
+          <title>Email Preferences</title>
+          <subtitle><![CDATA[You’re in control of our communications. Please let us know how often you’d like to hear from us by clicking an option below.]]></subtitle>
+        </widget>
+      </column>
+      <column class="medium-1 vertical-line hide-for-small-only cell">
+        <widget name="content">
+          <html><![CDATA[&nbsp;]]></html>
+        </widget>
+      </column>
+      <column class="small-12 medium-5 cell">
+        <widget name="itemsList">
+          <title>Areas you can access</title>
+          <showWhenEmpty>false</showWhenEmpty>
+        </widget>
+        <widget name="myOrderHistory">
+          <title>Order History</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+</template>

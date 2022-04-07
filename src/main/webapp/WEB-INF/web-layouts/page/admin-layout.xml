@@ -1,0 +1,2101 @@
+<?xml version="1.0" ?>
+<pages>
+  <!--
+  <sharedColumns>
+    <sharedColumn id="admin-menu" class="small-4 medium-3 large-2 cell align-self-stretch admin-menu">
+      <widget name="content" />
+    </sharedColumn>
+  </sharedColumns>
+  -->
+  <!--
+  <sharedWidgets>
+  </sharedWidgets>
+  -->
+  <!-- Admin -->
+  <page name="/admin" role="admin,content-manager,community-manager,ecommerce-manager" title="Admin">
+    <section>
+      <column>
+        <widget name="content" class="margin-bottom-20">
+          <html><![CDATA[<h4>Welcome back ${user.fullName:html}</h4>]]></html>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 medium-6 large-3 cell">
+        <widget name="siteStats" class="stats card">
+          <icon>fa-globe</icon>
+          <title>Online Now</title>
+          <label>Sessions</label>
+          <label1>Session</label1>
+          <report>total-sessions-now</report>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 large-3 cell">
+        <widget name="siteStats" class="stats card">
+          <icon>fa-globe</icon>
+          <title>Online Today</title>
+          <label>Sessions</label>
+          <label1>Session</label1>
+          <report>total-sessions-today</report>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <!--<column use="admin-menu" />-->
+      <column class="small-12 cell">
+        <widget name="content">
+          <uniqueId>admin-content-C04096CF-EEB1-4C4A-8002-58F00608D2F3</uniqueId>
+        </widget>
+      </column>
+      <!--
+      <column class="small-4 cell">
+        <widget name="systemMessages" />
+        <widget name="todoList" role="admin" class="clear-float">
+          <title>Administrator Getting Started Tasks</title>
+          <uniqueId>admin-administrator-checklist</uniqueId>
+          <items>
+            <item name="Navigate to the Admin module" checked="true" />
+            <item name="Update the site settings with the site's name and details" />
+            <item name="Verify the mail server settings, so mail can be sent" />
+            <item name="Create an administrator account" />
+            <item name="Sign in with your administrator account" />
+            <item name="Create the site map and beginning content" />
+            <item name="Add any social media accounts for the site" />
+            <item name="Setup the user groups for this site (if any)" />
+            <item name="Update the site settings to optionally allow users to register" />
+            <item name="Update the site settings to put the site online!" />
+          </items>
+        </widget>
+        <widget name="todoList" role="admin,content-manager">
+          <title>Content Creator Getting Started Tasks</title>
+          <uniqueId>admin-content-checklist</uniqueId>
+          <items>
+            <item name="Navigate to the Admin module" checked="true" />
+            <item name="Review the site map" />
+            <item name="Upload shared images" />
+            <item name="Create and modify content" />
+          </items>
+        </widget>
+        <widget name="todoList" role="admin,community-manager">
+          <title>Community Manager Getting Started Tasks</title>
+          <uniqueId>admin-community-checklist</uniqueId>
+          <items>
+            <item name="Navigate to the Admin module" checked="true" />
+            <item name="Review the user groups" />
+            <item name="Review the form data" />
+            <item name="Check out the analytics" />
+          </items>
+        </widget>
+      </column>
+      -->
+    </section>
+  </page>
+
+  <page name="/admin/documentation" title="Documentation" role="admin,content-manager,community-manager">
+    <column class="small-12 cell">
+      <widget name="content">
+        <html><![CDATA[<h3>App Platform Resources</h3>
+<ul>
+<li><a target="_blank" href="https://www.simisinc.com/mobile-apps-and-websites">Platform Product Information</a></li>
+<li><a href="/admin/documentation/wiki/Home">Platform Documentation Wiki</a></li>
+</ul>]]></html>
+      </widget>
+    </column>
+  </page>
+  <page name="/admin/documentation/wiki" role="admin,content-manager,community-manager">
+    <column class="small-12 cell">
+      <widget name="wiki" class="padding-20 padding-width-30">
+        <title>Documentation</title>
+        <wikiUniqueId>simis-documentation</wikiUniqueId>
+      </widget>
+    </column>
+  </page>
+
+  <page name="/admin/site-properties" role="admin" title="Site Settings">
+    <!--<section>-->
+      <!--<column class="small-12 cell">-->
+        <!--<widget name="breadcrumbs">-->
+          <!--<links>-->
+            <!--<link name="Site Settings" value="" />-->
+          <!--</links>-->
+        <!--</widget>-->
+      <!--</column>-->
+    <!--</section>-->
+    <section>
+      <column class="small-12 cell">
+        <widget name="sitePropertiesEditor">
+          <title>Site Settings</title>
+          <prefix>site</prefix>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/site-header-properties" role="admin,content-manager" title="Utility Bar Settings">
+    <section>
+      <column class="small-12 cell">
+        <widget name="sitePropertiesEditor">
+          <title>Header Settings</title>
+          <prefix>site.header,theme.utilitybar</prefix>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/social-media-settings" role="admin" title="Social Media Settings">
+    <!--<section>-->
+      <!--<column class="small-12 cell">-->
+        <!--<widget name="breadcrumbs">-->
+          <!--<links>-->
+            <!--<link name="Social Media Settings" value="" />-->
+          <!--</links>-->
+        <!--</widget>-->
+      <!--</column>-->
+    <!--</section>-->
+    <section>
+      <column class="small-12 large-10 cell">
+        <widget name="sitePropertiesEditor">
+          <title>Social Media Settings</title>
+          <prefix>social</prefix>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/theme-properties" role="admin" title="Theme Settings">
+    <!--<section>-->
+      <!--<column class="small-12 cell">-->
+        <!--<widget name="breadcrumbs">-->
+          <!--<links>-->
+            <!--<link name="Theme Settings" value="" />-->
+          <!--</links>-->
+        <!--</widget>-->
+      <!--</column>-->
+    <!--</section>-->
+    <section>
+      <column class="small-12 medium-6 large-5 cell">
+        <widget name="sitePropertiesEditor">
+          <title>Theme Settings</title>
+          <prefix>theme</prefix>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 large-5 cell">
+        <widget name="content" class="box">
+          <html><![CDATA[<h4>Typography</h4>
+          <h1>H1 Header</h1>
+          <h2>H2 Header</h2>
+          <h3>H3 Header</h3>
+          <h4>H4 Header</h4>
+          <h5>H5 Header</h5>
+          <p class="no-gap">This is body text and there is also <strong>bold text</strong>.</p>
+          <hr />
+          <h4>Reference Elements</h4>
+          <table>
+            <thead>
+              <tr>
+                <th>Table Header</th>
+                <th>Table Header</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>Content Goes Here</td>
+                <td>Content Goes Here</td>
+              </tr>
+            </tbody>
+          </table>
+          <div class="margin-top-200">
+            <span class="label">Default Label</span>
+            <span class="primary label">Primary Label</span>
+            <span class="secondary label">Secondary Label</span>
+            <span class="success label">Success Label</span>
+            <span class="alert label">Alert Label</span>
+            <span class="warning label">Warning Label</span>
+          </div>
+          <div class="margin-top-20">
+            <span class="primary badge">1</span>
+            <span class="secondary badge">2</span>
+            <span class="success badge">3</span>
+            <span class="alert badge">A</span>
+            <span class="warning badge">B</span>
+          </div>
+          <div class="primary progress margin-top-20" role="progressbar" tabindex="0" aria-valuenow="25" aria-valuemin="0" aria-valuetext="25 percent" aria-valuemax="100">
+            <div class="progress-meter" style="width: 25%">
+              <p class="progress-meter-text">25%</p>
+            </div>
+          </div>
+          <div class="warning progress">
+            <div class="progress-meter" style="width: 50%">
+              <p class="progress-meter-text">50%</p>
+            </div>
+          </div>
+          <div class="alert progress">
+            <div class="progress-meter" style="width: 75%">
+              <p class="progress-meter-text">75%</p>
+            </div>
+          </div>
+          <div class="success progress" role="progressbar" tabindex="0" aria-valuenow="100" aria-valuemin="0" aria-valuetext="100 percent" aria-valuemax="100">
+            <div class="progress-meter" style="width: 100%">
+              <p class="progress-meter-text">100%</p>
+            </div>
+          </div>
+          <ul class="pagination" role="navigation" aria-label="Pagination">
+            <li class="disabled">Previous <span class="show-for-sr">page</span></li>
+            <li class="current"><span class="show-for-sr">You're on page</span> 1</li>
+            <li><a href="#0" aria-label="Page 2">2</a></li>
+            <li><a href="#0" aria-label="Page 3">3</a></li>
+            <li><a href="#0" aria-label="Page 4">4</a></li>
+            <li class="ellipsis" aria-hidden="true"></li>
+            <li><a href="#0" aria-label="Page 12">12</a></li>
+            <li><a href="#0" aria-label="Page 13">13</a></li>
+            <li><a href="#0" aria-label="Next page">Next <span class="show-for-sr">page</span></a></li>
+          </ul>
+          <div class="margin-top-200 margin-bottom-200">
+            <a class="button base" href="#">Default</a>
+            <a class="button primary" href="#">Primary</a>
+            <a class="button secondary" href="#">Secondary</a>
+            <a class="button success" href="#">Success</a>
+            <a class="button alert" href="#">Alert</a>
+            <a class="button warning" href="#">Warning</a>
+          </div>
+          <div class="base callout">Callout</div>
+          <div class="primary callout">Primary Callout</div>
+          <div class="secondary callout">Secondary Callout</div>
+          <div class="success callout">Success Callout</div>
+          <div class="warning callout">Warning Callout</div>
+          <div class="alert callout">Alert Callout</div>
+]]></html>
+        </widget>
+        <widget name="themeEditor" class="callout radius secondary" hr="true">
+          <title>Themes</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/form-data" role="admin,community-manager" title="Form Data">
+    <!--<section>-->
+      <!--<column class="small-12 cell">-->
+        <!--<widget name="breadcrumbs">-->
+          <!--<links>-->
+            <!--<link name="Form Data" value="" />-->
+          <!--</links>-->
+        <!--</widget>-->
+      <!--</column>-->
+    <!--</section>-->
+    <section>
+      <column class="small-12 cell">
+        <widget name="formDataList">
+          <title>Submitted Forms</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/mailing-lists" role="admin,community-manager" title="Mailing Lists">
+    <!--<section>-->
+      <!--<column class="small-12 cell">-->
+        <!--<widget name="breadcrumbs">-->
+          <!--<links>-->
+            <!--<link name="Form Data" value="" />-->
+          <!--</links>-->
+        <!--</widget>-->
+      <!--</column>-->
+    <!--</section>-->
+    <section>
+      <column class="small-12 medium-10 large-9 cell">
+        <widget name="mailingLists">
+          <title>Mailing Lists</title>
+        </widget>
+      </column>
+      <column class="small-12 medium-2 large-3 cell">
+        <widget name="mailingListForm" class="callout radius primary">
+          <title>Add a mailing list</title>
+        </widget>
+        <widget name="mailingListSearchForm" class="callout radius primary">
+          <title>Search emails</title>
+          <redirectTo>/admin/mailing-lists</redirectTo>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/mailing-list{?mailingListId}" role="admin,community-manager" title="Mailing List Details">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Mailing Lists" value="/admin/mailing-lists" />
+            <link name="Mailing List Details" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="mailingListForm" />
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/mailing-list-members{?mailingListId}" role="admin,community-manager" title="Mailing List Members">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Mailing Lists" value="/admin/mailing-lists" />
+            <link name="Mailing List Members" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="mailingListMembers" />
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/mail-properties" role="admin" title="Mail Server Settings">
+    <!--<section>-->
+      <!--<column class="small-12 cell">-->
+        <!--<widget name="breadcrumbs">-->
+          <!--<links>-->
+            <!--<link name="Mail Server Settings" value="" />-->
+          <!--</links>-->
+        <!--</widget>-->
+      <!--</column>-->
+    <!--</section>-->
+    <section>
+      <column class="small-12 medium-7 cell">
+        <widget name="sitePropertiesEditor">
+          <title>Email Settings</title>
+          <prefix>mail</prefix>
+        </widget>
+      </column>
+      <column class="small-12 medium-5 cell">
+        <widget name="sendMail" class="callout primary radius" sticky="true">
+          <icon>mail</icon>
+          <title>Mail Test</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/configure-analytics" role="admin" title="Analytics Settings">
+    <section>
+      <column class="small-12 large-10 cell">
+        <widget name="sitePropertiesEditor">
+          <title>Analytics Settings</title>
+          <prefix>analytics</prefix>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/captcha-properties" role="admin" title="Captcha Settings">
+    <!--<section>-->
+      <!--<column class="small-12 cell">-->
+        <!--<widget name="breadcrumbs">-->
+          <!--<links>-->
+            <!--<link name="Captcha Settings" value="" />-->
+          <!--</links>-->
+        <!--</widget>-->
+      <!--</column>-->
+    <!--</section>-->
+    <section>
+      <column class="small-12 large-10 cell">
+        <widget name="sitePropertiesEditor">
+          <title>Captcha Settings</title>
+          <prefix>captcha</prefix>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/ecommerce-properties" role="admin" title="E-Commerce Settings">
+    <section>
+      <column class="small-12 large-10 cell">
+        <widget name="sitePropertiesEditor">
+          <title>E-commerce Settings</title>
+          <prefix>ecommerce</prefix>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/mailing-list-properties" role="admin" title="Mailing List Settings">
+    <section>
+      <column class="small-12 large-10 cell">
+        <widget name="sitePropertiesEditor">
+          <title>Mailing List Settings</title>
+          <prefix>mailing-list</prefix>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/maps-properties" role="admin" title="Map Settings">
+    <!--<section>-->
+      <!--<column class="small-12 cell">-->
+        <!--<widget name="breadcrumbs">-->
+          <!--<links>-->
+            <!--<link name="Map Settings" value="" />-->
+          <!--</links>-->
+        <!--</widget>-->
+      <!--</column>-->
+    <!--</section>-->
+    <section>
+      <column class="small-12 medium-7 cell">
+        <widget name="sitePropertiesEditor">
+          <title>Maps Settings</title>
+          <prefix>maps</prefix>
+        </widget>
+      </column>
+      <column class="medium-5 cell">
+        <widget name="content" class="callout primary radius">
+          <html><![CDATA[<h4>About Map Services</h4>
+          <ul><li>The Tiles service value can be 'openstreetmap' or 'mapbox'</li><li>The Geocoder service value can be 'nominatim' or 'mapbox'</li></ul>
+<h5>Nominatim Info</h5><p>No heavy uses; 1 request per second maximum.</p>
+<h5>Mapbox Info</h5><p>The Free to start plan allows: 50,000 map views / mo and 50,000 geocode requests / mo. Rate-limited to 600 per minute.</p>
+]]></html>
+        </widget>
+        <widget name="map" class="callout secondary radius">
+          <latitude>36.869648</latitude>
+          <longitude>-76.416138</longitude>
+          <markerTitle>SimIS HQ</markerTitle>
+          <markerText>Portsmouth, Virginia</markerText>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/community/analytics" role="admin,community-manager" title="Site Analytics">
+    <!--<section>-->
+      <!--<column class="small-12 cell">-->
+        <!--<widget name="breadcrumbs">-->
+          <!--<links>-->
+            <!--<link name="Analytics" value="" />-->
+          <!--</links>-->
+        <!--</widget>-->
+      <!--</column>-->
+    <!--</section>-->
+    <section>
+      <column class="small-12 medium-6 large-3 cell">
+        <widget name="siteStats" class="stats card">
+          <icon>fa-globe</icon>
+          <title>Online Now</title>
+          <label>Sessions</label>
+          <label1>Session</label1>
+          <report>total-sessions-now</report>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 large-3 cell">
+        <widget name="siteStats" class="stats card">
+          <icon>fa-globe</icon>
+          <title>Online Today</title>
+          <label>Sessions</label>
+          <label1>Session</label1>
+          <report>total-sessions-today</report>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 large-3 cell">
+        <widget name="communityStats" class="stats card">
+          <icon>fa-mail-bulk</icon>
+          <title>Mailing Lists</title>
+          <label>Total Sign-ups</label>
+          <label1>Total Sign-up</label1>
+          <report>total-mailing-list-members</report>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 large-3 cell">
+        <widget name="siteStats" class="stats card">
+          <icon>fa-users</icon>
+          <title>Registrations</title>
+          <label>Total Users</label>
+          <label1>Total User</label1>
+          <report>total-users</report>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="siteStats" class="stats card">
+          <title>Last 14 Days</title>
+          <report>locations-map</report>
+          <days>14</days>
+<!--          <mapHeight>200</mapHeight>-->
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 medium-6 cell">
+        <widget name="siteStats" class="stats card">
+          <title>Daily Sessions</title>
+          <label>Sessions</label>
+          <report>daily-sessions</report>
+          <type>line</type>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 cell">
+        <widget name="siteStats" class="stats card">
+          <title>Monthly Sessions</title>
+          <label>Sessions</label>
+          <report>monthly-sessions</report>
+          <type>line</type>
+        </widget>
+      </column>
+<!--
+      <column class="small-12 medium-6 cell">
+        <widget name="siteStats" class="stats card">
+          <title>Daily User Registrations</title>
+          <label>User Registrations</label>
+          <report>daily-user-registrations</report>
+        </widget>
+      </column>
+-->
+<!--
+      <column class="small-12 medium-6 cell">
+        <widget name="siteStats" class="stats card">
+          <title>Daily Active Users</title>
+          <label>Active Users</label>
+          <report>dau</report>
+        </widget>
+      </column>
+-->
+      <column class="small-12 medium-6 cell">
+        <widget name="siteStats" class="stats card">
+          <title>Monthly Active Users</title>
+          <label>Active Users</label>
+          <report>mau</report>
+          <type>bar</type>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 cell">
+        <widget name="siteStats" class="stats card">
+          <title>Monthly User Registrations</title>
+          <label>User Registrations</label>
+          <report>monthly-user-registrations</report>
+          <type>bar</type>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/users" role="admin,community-manager" title="Users">
+    <!--<section>-->
+      <!--<column class="small-12 cell">-->
+        <!--<widget name="breadcrumbs">-->
+          <!--<links>-->
+            <!--<link name="Users" value="" />-->
+          <!--</links>-->
+        <!--</widget>-->
+      <!--</column>-->
+    <!--</section>-->
+    <section>
+      <column class="small-12 cell">
+        <widget name="usersList">
+          <title>Users</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/user-details{?userId}" role="admin,community-manager" title="User Details">
+    <section>
+      <column class="small-12 cell">
+        <widget name="userDetails" />
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/modify-user{?userId}" role="admin,community-manager" title="Edit User">
+    <section>
+      <column class="small-12 cell">
+        <widget name="userForm" />
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/groups" role="admin" title="User Groups">
+    <!--<section>-->
+      <!--<column class="small-12 cell">-->
+        <!--<widget name="breadcrumbs">-->
+          <!--<links>-->
+            <!--<link name="User Groups" value="" />-->
+          <!--</links>-->
+        <!--</widget>-->
+      <!--</column>-->
+    <!--</section>-->
+    <section>
+      <column class="small-12 medium-7 cell">
+        <widget name="groupsList">
+          <title>User Groups</title>
+        </widget>
+      </column>
+      <column class="small-12 medium-5 cell">
+        <widget name="groupForm" class="callout radius primary" sticky="true">
+          <title>Add a user group</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/group{?groupId}" role="admin" title="Edit Group">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="User Groups" value="/admin/groups" />
+            <link name="User Group Details" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 medium-10 large-9 cell">
+        <widget name="groupForm">
+          <title>Edit this group</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/content/analytics" role="admin,content-manager" title="Content Analytics">
+    <!--<section>-->
+    <!--<column class="small-12 cell">-->
+    <!--<widget name="breadcrumbs">-->
+    <!--<links>-->
+    <!--<link name="Analytics" value="" />-->
+    <!--</links>-->
+    <!--</widget>-->
+    <!--</column>-->
+    <!--</section>-->
+    <section>
+      <column class="small-12 medium-12 large-6 cell small-order-2 medium-order-1">
+        <widget name="siteStats" class="stats card">
+<!--          <icon>fa-sticky-note-o</icon>-->
+          <title>Top Pages</title>
+          <report>web-urls</report>
+          <label>Link</label>
+          <value>Hits</value>
+          <days>7</days>
+          <limit>20</limit>
+          <options>
+            <option name="7 Days" value="7d" />
+            <option name="2 Weeks" value="2w" />
+            <option name="1 Month" value="1m" />
+            <option name="6 Months" value="6m" />
+            <option name="Today" value="12h" />
+          </options>
+        </widget>
+      </column>
+      <column class="small-12 medium-12 large-6 cell small-order-1 medium-order-2">
+        <widget name="siteStats" class="stats card">
+          <title>Web Page Hits</title>
+          <label>Hits</label>
+          <label1>Hit</label1>
+          <report>daily-hits</report>
+        </widget>
+        <widget name="siteStats" class="stats card">
+          <title>Referrals</title>
+          <report>referrals</report>
+          <days>30</days>
+          <limit>10</limit>
+        </widget>
+      </column>
+      <!--
+      <column class="small-12 medium-12 large-6 cell">
+        <widget name="siteStats" class="stats card">
+          <icon>fa-sticky-note-o</icon>
+          <title>Top Modules</title>
+          <report>web-pages</report>
+          <label>Module</label>
+          <value>Hits</value>
+          <limit>10</limit>
+        </widget>
+      </column>
+      -->
+    </section>
+  </page>
+
+  <page name="/admin/sitemap" role="admin,content-manager" title="Site Map">
+    <!--<section>-->
+      <!--<column class="small-12 cell">-->
+        <!--<widget name="breadcrumbs">-->
+          <!--<links>-->
+            <!--<link name="Site Map" value="" />-->
+          <!--</links>-->
+        <!--</widget>-->
+      <!--</column>-->
+    <!--</section>-->
+    <section>
+      <column class="small-12 cell">
+        <widget name="siteMap">
+          <title>Site Map Editor</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <!-- @todo Turn this into a menu, then link to additional config pages -->
+  <!-- @todo Turn this into a menu, then link to additional config pages, also sticky-footer-links -->
+
+  <page name="/admin/useful-links" role="admin,content-manager" title="Useful Links">
+    <section>
+      <column class="small-6 cell">
+        <widget name="tableOfContentsEditor">
+          <title>Footer Useful Links Column 1</title>
+          <uniqueId>footer-useful-links-1</uniqueId>
+        </widget>
+      </column>
+      <column class="small-6 cell">
+        <widget name="tableOfContentsEditor">
+          <title>Footer Useful Links Column 2</title>
+          <uniqueId>footer-useful-links-2</uniqueId>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/sticky-footer-links" role="admin,content-manager" title="Sticky Footer Links">
+    <section>
+      <column class="small-6 cell">
+        <widget name="tableOfContentsEditor">
+          <title>Sticky Footer Buttons</title>
+          <uniqueId>footer-sticky-links</uniqueId>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/sitemap-editor" role="admin,content-manager" title="Site Map Editor">
+    <!--<section>-->
+      <!--<column class="small-12 cell">-->
+        <!--<widget name="breadcrumbs">-->
+          <!--<links>-->
+            <!--<link name="Site Map" value="" />-->
+          <!--</links>-->
+        <!--</widget>-->
+      <!--</column>-->
+    <!--</section>-->
+    <section>
+      <column class="small-12 cell">
+        <widget name="siteMapEditor">
+          <title>Site Map Renaming</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/web-pages" role="admin,content-manager" title="Web Pages">
+    <!--<section>-->
+      <!--<column class="small-12 cell">-->
+        <!--<widget name="breadcrumbs">-->
+          <!--<links>-->
+            <!--<link name="Web Pages" value="" />-->
+          <!--</links>-->
+        <!--</widget>-->
+      <!--</column>-->
+    <!--</section>-->
+    <section>
+      <column class="small-12 cell">
+        <widget name="webPageList">
+          <title>Web Pages</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/web-page" role="admin,content-manager" title="Web Page Details">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Web Pages" value="/admin/web-pages" />
+            <link name="Web Page" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="webPageForm" />
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/web-page-designer" role="admin,content-manager" title="Web Page Designer">
+    <section>
+      <column class="small-12 cell">
+        <widget name="webPageDesigner" />
+      </column>
+    </section>
+  </page>
+  <page name="/admin/web-container-designer" role="admin,content-manager" title="Container Editor">
+    <section>
+      <column class="small-12 cell">
+        <widget name="webContainerDesigner" />
+      </column>
+    </section>
+  </page>
+  <page name="/admin/css-editor" role="admin,content-manager" title="CSS Editor">
+    <section>
+      <column class="small-12 cell">
+        <widget name="cssEditor" />
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/collections" role="admin,data-manager" title="Data Collections">
+    <!--<section>-->
+      <!--<column class="small-12 cell">-->
+        <!--<widget name="breadcrumbs">-->
+          <!--<links>-->
+            <!--<link name="Data Collections" value="" />-->
+          <!--</links>-->
+        <!--</widget>-->
+      <!--</column>-->
+    <!--</section>-->
+    <section>
+      <column class="small-12 cell">
+        <widget name="collectionsList">
+          <title>Data Collections</title>
+          <view>cards</view>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="collectionsList">
+<!--          <title>Data Collections</title>-->
+        </widget>
+      </column>
+    </section>
+  </page>
+
+<!--  <page name="/admin/collections/new" role="admin,data-manager" title="Add a Collection">-->
+<!--    <section>-->
+<!--      <column class="small-12 cell">-->
+<!--        <widget name="breadcrumbs">-->
+<!--          <links>-->
+<!--            <link name="Collections" value="/admin/collections" />-->
+<!--            <link name="New Collection" value="" />-->
+<!--          </links>-->
+<!--        </widget>-->
+<!--      </column>-->
+<!--    </section>-->
+<!--    <section>-->
+<!--      <column class="small-12 cell">-->
+<!--        <widget name="collectionForm" />-->
+<!--      </column>-->
+<!--    </section>-->
+<!--  </page>-->
+
+  <page name="/admin/collection-form{?collectionId}" collectionUniqueId="?collectionId" role="admin,data-manager" title="Collection Configuration">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Collections" value="/admin/collections" />
+            <link name="Configuration" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="collectionForm" />
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/collection-details{?collectionId}" collectionUniqueId="?collectionId" role="admin,data-manager" title="Collection Details">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Data Collections" value="/admin/collections" />
+            <link name="Configuration" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="itemMenu" class="margin-bottom-15">
+          <adminMode>true</adminMode>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="content">
+          <html><![CDATA[
+<ul class="tabs margin-bottom-2">
+  <li class="tabs-title is-active"><a aria-selected="true" href="/admin/collection-details?collectionId=${request.collectionId}">Details</a></li>
+  <li class="tabs-title"><a href="/admin/collection-theme?collectionId=${request.collectionId}">Theme</a></li>
+  <li class="tabs-title"><a href="/admin/collection-tabs?collectionId=${request.collectionId}">Tabs</a></li>
+  <li class="tabs-title"><a href="/admin/collection-categories?collectionId=${request.collectionId}">Categories</a></li>
+  <li class="tabs-title"><a href="/admin/collection-relationships?collectionId=${request.collectionId}">Relationships</a></li>
+  <li class="tabs-title"><a href="/admin/collection-records?collectionId=${request.collectionId}">Records</a></li>
+</ul>
+]]></html>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell margin-top-10">
+        <widget name="collectionDetails" />
+      </column>
+    </section>
+    <section>
+      <column class="small-12 medium-4 cell">
+        <widget name="collectionCategoriesList" />
+      </column>
+      <column class="small-12 medium-4 cell">
+        <widget name="collectionRelationshipsList" />
+      </column>
+      <column class="small-12 medium-4 cell">
+        <widget name="collectionItemsList">
+          <limit>10</limit>
+          <columns>name</columns>
+          <showPaging>false</showPaging>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/collection-theme{?collectionId}" collectionUniqueId="?collectionId" role="admin,data-manager" title="Configure theme">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Data Collections" value="/admin/collections" />
+            <link name="Configuration" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="itemMenu" class="margin-bottom-15">
+          <adminMode>true</adminMode>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="content">
+          <html><![CDATA[
+<ul class="tabs margin-bottom-2">
+  <li class="tabs-title"><a href="/admin/collection-details?collectionId=${request.collectionId}">Details</a></li>
+  <li class="tabs-title is-active"><a aria-selected="true" href="/admin/collection-theme?collectionId=${request.collectionId}">Theme</a></li>
+  <li class="tabs-title"><a href="/admin/collection-tabs?collectionId=${request.collectionId}">Tabs</a></li>
+  <li class="tabs-title"><a href="/admin/collection-categories?collectionId=${request.collectionId}">Categories</a></li>
+  <li class="tabs-title"><a href="/admin/collection-relationships?collectionId=${request.collectionId}">Relationships</a></li>
+  <li class="tabs-title"><a href="/admin/collection-records?collectionId=${request.collectionId}">Records</a></li>
+</ul>
+]]></html>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="collectionThemeEditor" class="margin-top-10">
+          <title>Edit the style</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/collection-tabs{?collectionId}" collectionUniqueId="?collectionId" role="admin,data-manager" title="Edit Tabs">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Data Collections" value="/admin/collections" />
+            <link name="Configuration" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="itemMenu" class="margin-bottom-15">
+          <adminMode>true</adminMode>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="content">
+          <html><![CDATA[
+<ul class="tabs margin-bottom-2">
+  <li class="tabs-title"><a href="/admin/collection-details?collectionId=${request.collectionId}">Details</a></li>
+  <li class="tabs-title"><a href="/admin/collection-theme?collectionId=${request.collectionId}">Theme</a></li>
+  <li class="tabs-title is-active"><a aria-selected="true" href="/admin/collection-tabs?collectionId=${request.collectionId}">Tabs</a></li>
+  <li class="tabs-title"><a href="/admin/collection-categories?collectionId=${request.collectionId}">Categories</a></li>
+  <li class="tabs-title"><a href="/admin/collection-relationships?collectionId=${request.collectionId}">Relationships</a></li>
+  <li class="tabs-title"><a href="/admin/collection-records?collectionId=${request.collectionId}">Records</a></li>
+</ul>
+]]></html>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="collectionTabsEditor">
+          <title>Edit the tabs</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/collection-categories{?collectionId}" collectionUniqueId="?collectionId" role="admin,data-manager" title="Collection Details">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Data Collections" value="/admin/collections" />
+            <link name="Configuration" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="itemMenu" class="margin-bottom-15">
+          <adminMode>true</adminMode>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="content">
+          <html><![CDATA[
+<ul class="tabs margin-bottom-2">
+  <li class="tabs-title"><a href="/admin/collection-details?collectionId=${request.collectionId}">Details</a></li>
+  <li class="tabs-title"><a href="/admin/collection-theme?collectionId=${request.collectionId}">Theme</a></li>
+  <li class="tabs-title"><a href="/admin/collection-tabs?collectionId=${request.collectionId}">Tabs</a></li>
+  <li class="tabs-title is-active"><a aria-selected="true" href="/admin/collection-categories?collectionId=${request.collectionId}">Categories</a></li>
+  <li class="tabs-title"><a href="/admin/collection-relationships?collectionId=${request.collectionId}">Relationships</a></li>
+  <li class="tabs-title"><a href="/admin/collection-records?collectionId=${request.collectionId}">Records</a></li>
+</ul>
+]]></html>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 medium-10 large-8 cell">
+        <widget name="collectionCategoriesList" />
+      </column>
+      <column class="small-12 medium-2 large-4 cell">
+        <widget name="collectionCategoryForm" class="callout radius primary">
+          <title>Add a category</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/category{?categoryId}" role="admin,data-manager" title="Edit Category">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Collections" value="/admin/collections" />
+            <link name="Collection Details" value="/admin/collection-details?collectionId=${request.collectionId}" />
+            <link name="Category" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 medium-11 large-10 cell">
+        <widget name="collectionCategoryForm">
+          <title>Edit this category</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/collection-relationships{?collectionId}" collectionUniqueId="?collectionId" role="admin,data-manager" title="Collection Details">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Data Collections" value="/admin/collections" />
+            <link name="Configuration" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="itemMenu" class="margin-bottom-15">
+          <adminMode>true</adminMode>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="content">
+          <html><![CDATA[
+<ul class="tabs margin-bottom-2">
+  <li class="tabs-title"><a href="/admin/collection-details?collectionId=${request.collectionId}">Details</a></li>
+  <li class="tabs-title"><a href="/admin/collection-theme?collectionId=${request.collectionId}">Theme</a></li>
+  <li class="tabs-title"><a href="/admin/collection-tabs?collectionId=${request.collectionId}">Tabs</a></li>
+  <li class="tabs-title"><a href="/admin/collection-categories?collectionId=${request.collectionId}">Categories</a></li>
+  <li class="tabs-title is-active"><a aria-selected="true" href="/admin/collection-relationships?collectionId=${request.collectionId}">Relationships</a></li>
+  <li class="tabs-title"><a href="/admin/collection-records?collectionId=${request.collectionId}">Records</a></li>
+</ul>
+]]></html>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 medium-10 large-8 cell">
+        <widget name="collectionRelationshipsList" />
+      </column>
+      <column class="small-12 medium-2 large-4 cell">
+        <widget name="collectionRelationshipForm" class="callout radius primary">
+          <title>Define a child relationship</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/collection-records{?collectionId}" collectionUniqueId="?collectionId" role="admin,data-manager" title="Collection Details">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Data Collections" value="/admin/collections" />
+            <link name="Configuration" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="itemMenu" class="margin-bottom-15">
+          <adminMode>true</adminMode>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="content">
+          <html><![CDATA[
+<ul class="tabs margin-bottom-2">
+  <li class="tabs-title"><a href="/admin/collection-details?collectionId=${request.collectionId}">Details</a></li>
+  <li class="tabs-title"><a href="/admin/collection-theme?collectionId=${request.collectionId}">Theme</a></li>
+  <li class="tabs-title"><a href="/admin/collection-tabs?collectionId=${request.collectionId}">Tabs</a></li>
+  <li class="tabs-title"><a href="/admin/collection-categories?collectionId=${request.collectionId}">Categories</a></li>
+  <li class="tabs-title"><a href="/admin/collection-relationships?collectionId=${request.collectionId}">Relationships</a></li>
+  <li class="tabs-title is-active"><a aria-selected="true" href="/admin/collection-records?collectionId=${request.collectionId}">Records</a></li>
+</ul>
+]]></html>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="collectionItemsList" />
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/content-list" role="admin,content-manager" title="Content">
+    <!--<section>-->
+      <!--<column class="small-12 cell">-->
+        <!--<widget name="breadcrumbs">-->
+          <!--<links>-->
+            <!--<link name="Content" value="" />-->
+          <!--</links>-->
+        <!--</widget>-->
+      <!--</column>-->
+    <!--</section>-->
+    <section>
+      <column class="small-12 medium-10 large-9 cell">
+        <widget name="contentList">
+          <title>Content</title>
+        </widget>
+      </column>
+      <column class="small-12 medium-2 large-3 cell">
+        <widget name="contentForm" class="callout radius primary" sticky="true">
+          <title>Add content</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/images" role="admin,content-manager" title="Images">
+    <!--<section>-->
+      <!--<column class="small-12 cell">-->
+        <!--<widget name="breadcrumbs">-->
+          <!--<links>-->
+            <!--<link name="Images" value="" />-->
+          <!--</links>-->
+        <!--</widget>-->
+      <!--</column>-->
+    <!--</section>-->
+    <section>
+      <column class="small-12 cell">
+        <widget name="adminImageBrowser"/>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/email-templates" role="admin,content-manager,community-manager" title="Email Templates">
+    <!--<section>-->
+      <!--<column class="small-12 cell">-->
+        <!--<widget name="breadcrumbs">-->
+          <!--<links>-->
+            <!--<link name="Email Templates" value="" />-->
+          <!--</links>-->
+        <!--</widget>-->
+      <!--</column>-->
+    <!--</section>-->
+    <section>
+      <column class="small-12 cell">
+        <widget name="content">
+          <html><![CDATA[<p>Here we'll show the email templates...</p>]]></html>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/blogs" role="admin,content-manager" title="Blogs">
+    <!--<section>-->
+      <!--<column class="small-12 cell">-->
+        <!--<widget name="breadcrumbs">-->
+          <!--<links>-->
+            <!--<link name="Blogs" value="" />-->
+          <!--</links>-->
+        <!--</widget>-->
+      <!--</column>-->
+    <!--</section>-->
+    <section>
+      <column class="small-8 medium-4 large-6 cell">
+        <widget name="blogList">
+          <title>Blogs</title>
+        </widget>
+      </column>
+      <column class="small-8 medium-5 large-5 cell">
+        <widget name="blogPostList">
+          <!--<blogUniqueId>all... need to implement</blogUniqueId>-->
+          <view>overview</view>
+          <limit>10</limit>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/blog{?blogId}" role="admin,content-manager" title="Blog Details">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Blogs" value="/admin/blogs" />
+            <link name="Blog Details" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="blogForm" />
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/calendars" role="admin,content-manager,community-manager" title="Calendars">
+    <!--<section>-->
+      <!--<column class="small-12 cell">-->
+        <!--<widget name="breadcrumbs">-->
+          <!--<links>-->
+            <!--<link name="Calendars" value="" />-->
+          <!--</links>-->
+        <!--</widget>-->
+      <!--</column>-->
+    <!--</section>-->
+    <section>
+      <column class="small-12 cell">
+        <widget name="calendar">
+          <!--<view>small</view>-->
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 medium-6 large-5 cell">
+        <widget name="calendarList" />
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/calendar{?calendarId}" role="admin,content-manager,community-manager" title="Calendar Details">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Calendars" value="/admin/calendars" />
+            <link name="Calendar Details" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="calendarForm" />
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/folders" role="admin,content-manager,community-manager" title="Files and Folders">
+    <!--<section>-->
+      <!--<column class="small-12 cell">-->
+        <!--<widget name="breadcrumbs">-->
+          <!--<links>-->
+            <!--<link name="Folders" value="" />-->
+          <!--</links>-->
+        <!--</widget>-->
+      <!--</column>-->
+    <!--</section>-->
+    <section>
+      <column class="small-12 cell">
+        <widget name="folderList">
+          <title>Folders</title>
+        </widget>
+      </column>
+      <!--
+      <column class="small-8 medium-4 large-5 cell">
+        <widget name="content">
+          <html><![CDATA[<p>Latest files</p>]]></html>
+        </widget>
+      </column>
+      -->
+    </section>
+  </page>
+
+  <page name="/admin/folder{?folderId}" role="admin" title="Folder Details">
+    <section>
+      <column class="small-12 cell">
+        <widget name="folderForm" />
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/folder-details{?folderId}" role="admin,content-manager,community-manager" title="Folder Files">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Folders" value="/admin/folders" />
+            <link name="Files" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 medium-10 large-8 cell">
+        <widget name="folderDetails" />
+        <widget name="folderSubFoldersList" />
+        <widget name="folderFilesList" />
+      </column>
+      <column class="small-12 medium-2 large-4 cell">
+        <widget name="folderFileDropZone" class="callout radius primary">
+          <title>Add Files</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/sub-folder{?subFolderId}" role="admin,content-manager,community-manager" title="Sub-Folder Details">
+    <section>
+      <column class="small-12 cell">
+        <widget name="subFolderForm" />
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/sub-folder-details{?subFolderId}" role="admin,content-manager,community-manager" title="Sub-Folder Files">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Folders" value="/admin/folders" />
+            <link name="Sub-Folder" value="/admin/folder-details?folderId={param:folderId}" />
+            <link name="Files" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 medium-10 large-8 cell">
+<!--        <widget name="folderDetails" />-->
+        <widget name="subFolderDetails" />
+<!--        <widget name="subFolderFilesList" />-->
+        <widget name="folderFilesList" />
+      </column>
+      <column class="small-12 medium-2 large-4 cell">
+        <widget name="folderFileDropZone" class="callout radius primary">
+          <title>Add Files To Sub-Folder</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/file-form{?subFolderId}" role="admin,content-manager,community-manager" title="File Form">
+    <section>
+      <column class="small-12 cell">
+        <widget name="folderFileForm">
+          <title>Add a Link</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/wikis" role="admin,content-manager,community-manager" title="Wikis">
+    <section>
+      <column class="small-12 medium-10 large-8 cell">
+        <widget name="wikiList">
+          <title>Wikis</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/wiki{?wikiId}" role="admin,content-manager,community-manager" title="Wiki Details">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Wikis" value="/admin/wikis" />
+            <link name="Wiki Details" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="wikiForm" />
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/apis" role="admin" title="APIs">
+    <section>
+      <column class="small-12 medium-10 large-9 cell">
+        <widget name="apisList">
+          <title>APIs</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/apps" role="admin,data-manager" title="Apps">
+    <!--<section>-->
+      <!--<column class="small-12 cell">-->
+        <!--<widget name="breadcrumbs">-->
+          <!--<links>-->
+            <!--<link name="Apps" value="" />-->
+          <!--</links>-->
+        <!--</widget>-->
+      <!--</column>-->
+    <!--</section>-->
+    <section>
+      <column class="small-12 medium-7 large-8 cell">
+        <widget name="appsList">
+          <title>Apps</title>
+        </widget>
+      </column>
+      <column class="small-12 medium-5 large-4 cell">
+        <widget name="appForm" class="callout radius primary" sticky="true">
+          <title>Add an app</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/app{?appId}" role="admin,data-manager" title="Edit App">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Apps" value="/admin/apps" />
+            <link name="App Details" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="appForm">
+          <title>Edit this app</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/blocked-ip-list" role="admin" title="Blocked IP list">
+    <section>
+      <column class="small-12 medium-9 large-8 small-order-2 medium-order-1 small-margin-top-10 cell">
+        <widget name="blockedIP">
+          <title>Blocked IP List</title>
+        </widget>
+      </column>
+      <column class="small-12 medium-3 large-4 small-order-1 medium-order-2 cell">
+        <widget name="blockedIPListForm" class="callout radius primary" sticky="true">
+          <title>Add to List</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/datasets" role="admin,data-manager" title="Datasets">
+    <!--<section>-->
+      <!--<column class="small-12 cell">-->
+        <!--<widget name="breadcrumbs">-->
+          <!--<links>-->
+            <!--<link name="Datasets" value="" />-->
+          <!--</links>-->
+        <!--</widget>-->
+      <!--</column>-->
+    <!--</section>-->
+    <widget name="globalMessage">
+      <key>datasetError</key>
+      <type>error</type>
+    </widget>
+    <section>
+      <column class="small-12 cell">
+        <widget name="content" class="float-right">
+          <html><![CDATA[<a class="tiny button secondary radius" href="${ctx}/admin/datasets" style="margin-bottom:0"><i class="fa fa-refresh"></i> Refresh</a>
+]]></html>
+        </widget>
+        <widget name="datasets">
+          <title>Datasets</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/datasets/new" role="admin,data-manager" title="Add a Dataset">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Datasets" value="/admin/datasets" />
+            <link name="New Dataset" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="datasetUpload">
+          <title>New Dataset</title>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell margin-top-20">
+        <widget name="content" class="padding-width-50">
+      <html><![CDATA[
+<h4>Example File Format</h4>
+<div class="table-scroll">
+<table>
+<tr>
+<th>Name</th>
+<th>Category</th>
+<th>Description</th>
+<th>Latitude</th>
+<th>Longitude</th>
+<th>Location</th>
+<th>Address</th>
+<th>City</th>
+<th>State</th>
+<th>Postal Code</th>
+<th>Country</th>
+<th>County</th>
+<th>Phone Number</th>
+<th>Email Address</th>
+</tr>
+</table>
+</div>
+]]></html>
+       </widget>
+       <widget name="content" class="padding-width-50">
+          <html><![CDATA[
+<hr>
+<h4>Multicolumn Datasets</h4>
+<p>If your dataset has multiple columns, the file must be in csv format. The first row must contain the column names.</p>
+<p>Example:</p>
+<table>
+<tr><th class="text-left">Make</th><th class="text-left">Model</th></tr>
+<tr><td>BMW</td><td>328</td></tr>
+<tr><td>BMW</td><td>X5</td></tr>
+<tr><td>Ford</td><td>Explorer</td></tr>
+<tr><td>Ford</td><td>Mustang</td></tr>
+</table>
+]]></html>
+        </widget>
+        <widget name="content" class="padding-width-50">
+          <html><![CDATA[
+<hr>
+<h4>Plain Text Lists</h4>
+<p>If your dataset is a simple list of values, specify each value on a separate line. Do not include a header row.</p>
+<p>Example:</p>
+<table>
+<tr><td>BMW</td></tr>
+<tr><td>Ford</td></tr>
+<tr><td>Honda</td></tr>
+<tr><td>Kia</td></tr>
+<tr><td>Toyota</td></tr>
+</table>
+]]></html>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/dataset-configuration{?datasetId}" role="admin,data-manager" title="Dataset Configuration">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Datasets" value="/admin/datasets" />
+            <link name="Configuration" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="datasetName" class="margin-bottom-10" />
+        <widget name="content">
+          <html><![CDATA[
+<ul class="tabs margin-bottom-2">
+  <li class="tabs-title"><a href="/admin/dataset-preview?datasetId=${request.datasetId}">Preview</a></li>
+  <li class="tabs-title"><a href="/admin/dataset-text?datasetId=${request.datasetId}">Text Preview</a></li>
+  <li class="tabs-title"><a href="/admin/dataset-mapper?datasetId=${request.datasetId}">Map Fields</a></li>
+  <li class="tabs-title is-active"><a aria-selected="true" href="/admin/dataset-configuration?datasetId=${request.datasetId}">Info</a></li>
+</ul>
+]]></html>
+        </widget>
+        <widget name="datasetConfiguration" class="margin-top-10">
+          <!--<title>Configure the dataset</title>-->
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/dataset-mapper{?datasetId}" role="admin,data-manager" title="Dataset Mapper">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Datasets" value="/admin/datasets" />
+            <link name="Map Fields" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="datasetName" class="margin-bottom-10" />
+        <widget name="content">
+          <html><![CDATA[
+<ul class="tabs margin-bottom-2">
+  <li class="tabs-title"><a href="/admin/dataset-preview?datasetId=${request.datasetId}">Preview</a></li>
+  <li class="tabs-title"><a href="/admin/dataset-text?datasetId=${request.datasetId}">Text Preview</a></li>
+  <li class="tabs-title is-active"><a aria-selected="true" href="/admin/dataset-mapper?datasetId=${request.datasetId}">Map Fields</a></li>
+  <li class="tabs-title"><a href="/admin/dataset-configuration?datasetId=${request.datasetId}">Info</a></li>
+</ul>
+]]></html>
+        </widget>
+        <widget name="datasetMapper" class="margin-top-10">
+          <!--<title>Configure the field mapping</title>-->
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/dataset-preview{?datasetId}" role="admin,data-manager" title="Dataset Preview">
+    <section>
+      <column class="small-5 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Datasets" value="/admin/datasets" />
+            <link name="Preview" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="datasetName" class="margin-bottom-10" />
+        <widget name="content">
+          <html><![CDATA[
+<ul class="tabs margin-bottom-2">
+  <li class="tabs-title is-active"><a aria-selected="true" href="/admin/dataset-preview?datasetId=${request.datasetId}">Preview</a></li>
+  <li class="tabs-title"><a href="/admin/dataset-text?datasetId=${request.datasetId}">Text Preview</a></li>
+  <li class="tabs-title"><a href="/admin/dataset-mapper?datasetId=${request.datasetId}">Map Fields</a></li>
+  <li class="tabs-title"><a href="/admin/dataset-configuration?datasetId=${request.datasetId}">Info</a></li>
+</ul>
+]]></html>
+        </widget>
+        <widget name="datasetPreview" />
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/dataset-text{?datasetId}" role="admin,data-manager" title="Dataset Text Preview">
+    <section>
+      <column class="small-5 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Datasets" value="/admin/datasets" />
+            <link name="Text Preview" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="datasetName" class="margin-bottom-10" />
+        <widget name="content">
+          <html><![CDATA[
+<ul class="tabs margin-bottom-2">
+  <li class="tabs-title"><a href="/admin/dataset-preview?datasetId=${request.datasetId}">Preview</a></li>
+  <li class="tabs-title is-active"><a aria-selected="true" href="/admin/dataset-text?datasetId=${request.datasetId}">Text Preview</a></li>
+  <li class="tabs-title"><a href="/admin/dataset-mapper?datasetId=${request.datasetId}">Map Fields</a></li>
+  <li class="tabs-title"><a href="/admin/dataset-configuration?datasetId=${request.datasetId}">Info</a></li>
+</ul>
+]]></html>
+        </widget>
+        <widget name="datasetPreview">
+          <view>text</view>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <!-- Download the dataset -->
+  <page name="/assets/dataset" role="admin,data-manager">
+    <widget name="streamDataset" />
+  </page>
+
+  <!-- E-commerce -->
+  <page name="/admin/e-commerce/analytics" role="admin,ecommerce-manager" title="E-Commerce Analytics">
+    <!--<section>-->
+    <!--<column class="small-12 cell">-->
+    <!--<widget name="breadcrumbs">-->
+    <!--<links>-->
+    <!--<link name="Analytics" value="" />-->
+    <!--</links>-->
+    <!--</widget>-->
+    <!--</column>-->
+    <!--</section>-->
+    <section>
+      <column class="small-12 medium-4 cell">
+        <widget name="ecommerceStats" class="stats card">
+          <icon>fa-dolly</icon>
+          <title>Not Shipped</title>
+          <label>Orders</label>
+          <label1>Order</label1>
+          <report>total-not-shipped</report>
+        </widget>
+      </column>
+      <column class="small-12 medium-4 cell">
+        <widget name="ecommerceStats" class="stats card">
+          <icon>fa-shipping-fast</icon>
+          <title>Shipped</title>
+          <label>Orders</label>
+          <label1>Order</label1>
+          <report>total-shipped</report>
+        </widget>
+      </column>
+      <column class="small-12 medium-4 cell">
+        <widget name="ecommerceStats" class="stats card">
+          <icon>fa-cash-register</icon>
+          <title>Total Orders</title>
+          <label>Orders</label>
+          <label1>Order</label1>
+          <report>total-orders</report>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 medium-12 large-4 cell">
+        <widget name="ecommerceStats" class="stats card">
+          <title>Orders</title>
+          <label>Orders</label>
+          <report>daily-orders</report>
+          <type>bar</type>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 large-4 cell">
+        <widget name="ecommerceStats" class="stats card">
+          <title>Items Sold</title>
+          <label>Items</label>
+          <report>daily-items-sold</report>
+          <type>bar</type>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 large-4 cell">
+        <widget name="ecommerceStats" class="stats card">
+          <title>Amount Sold</title>
+          <label>Amount</label>
+          <report>daily-amount-sold</report>
+          <type>bar</type>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 medium-12 large-8 cell">
+        <widget name="ecommerceStats" class="stats card">
+          <title>Last 90 Days</title>
+          <report>locations-map</report>
+          <days>90</days>
+<!--          <mapHeight>216</mapHeight>-->
+        </widget>
+      </column>
+      <column class="small-12 medium-12 large-4 cell">
+        <widget name="ecommerceStats" class="stats card">
+          <title>Top Locations</title>
+          <report>top-locations</report>
+          <days>90</days>
+          <limit>6</limit>
+        </widget>
+      </column>
+    </section>
+  </page>
+  <page name="/admin/orders" role="admin,ecommerce-manager" title="Orders">
+    <section>
+      <column class="small-7 medium-8 large-9 cell">
+        <widget name="orderList">
+          <title>Orders</title>
+        </widget>
+      </column>
+      <column class="small-5 medium-4 large-3 cell">
+        <!--<widget name="orderForm" class="callout radius primary">-->
+        <!--<title>Add an order</title>-->
+        <!--</widget>-->
+        <widget name="orderListSearchForm" class="callout radius primary">
+          <title>Search orders</title>
+          <redirectTo>/admin/orders</redirectTo>
+        </widget>
+      </column>
+    </section>
+  </page>
+  <page name="/admin/order-details{?order-number}" role="admin,ecommerce-manager" title="Order Details">
+    <section class="grid-x grid-padding-x hide-for-print">
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Orders" value="/admin/orders" />
+            <link name="Order Details" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="content">
+          <html><![CDATA[<h1>Order No. ${request.order-number}</h1>]]></html>
+        </widget>
+        <widget name="globalMessage">
+          <key>orderManagementMessage</key>
+          <type>success</type>
+        </widget>
+        <widget name="globalMessage">
+          <key>orderManagementError</key>
+          <type>error</type>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="auto cell">
+        <widget name="orderConfirmation"/>
+      </column>
+      <column class="small-12 medium-12 large-3 callout radius primary cell hide-for-print">
+        <widget name="shipOrder" />
+        <widget name="checkOrderStatus" />
+        <widget name="addOrderTrackingNumber" />
+        <widget name="cancelOrder" />
+
+        <widget name="issueRefund" />
+        <widget name="sendOrderConfirmation" />
+        <widget name="sendShippingConfirmation" />
+        <widget name="sendOrderCancellationConfirmation" />
+        <widget name="sendOrderRefundConfirmation" />
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/customers" role="admin,ecommerce-manager" title="Customers">
+    <section>
+      <column class="small-7 medium-8 large-9 cell">
+        <widget name="customerList">
+          <title>Customers</title>
+        </widget>
+      </column>
+      <column class="small-5 medium-4 large-3 cell">
+        <!--<widget name="customerForm" class="callout radius primary">-->
+          <!--<title>Add a customer</title>-->
+        <!--</widget>-->
+        <widget name="customerListSearchForm" class="callout radius primary">
+          <title>Search customers</title>
+          <redirectTo>/admin/customers</redirectTo>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/products" role="admin,ecommerce-manager" title="Products">
+    <section>
+      <column class="small-12 cell">
+        <widget name="productList">
+          <title>Products</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+  <page name="/admin/product{?productId}" role="admin,ecommerce-manager" title="Product Details">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Products" value="/admin/products" />
+            <link name="Product Details" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="productForm" />
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/product-categories" role="admin,ecommerce-manager" title="Product Categories">
+    <section>
+      <column class="small-12 cell">
+        <widget name="productCategoriesList">
+          <title>Product Categories</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+  <page name="/admin/product-category{?productCategoryId}" role="admin,ecommerce-manager" title="Product Category">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Product Categories" value="/admin/product-categories" />
+            <link name="Product Category Details" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="productCategoryForm" />
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/pricing-rules" role="admin,ecommerce-manager" title="Pricing Rules">
+    <section>
+      <column class="small-12 cell">
+        <widget name="pricingRulesList">
+          <title>Pricing Rules</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+  <page name="/admin/pricing-rule{?ruleId}" role="admin,ecommerce-manager" title="Pricing Rule">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Pricing Rules" value="/admin/pricing-rules" />
+            <link name="Pricing Rule Details" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="pricingRuleForm" />
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/sales-tax-nexus" role="admin,ecommerce-manager" title="Sales Tax Nexus">
+    <section>
+      <column class="small-12 cell">
+        <widget name="salesTaxNexusList">
+          <title>Sales Tax Nexus</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+  <page name="/admin/sales-tax-nexus-address{?addressId}" role="admin,ecommerce-manager" title="Sales Tax Nexus Address">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Sales Tax Nexus" value="/admin/sales-tax-nexus" />
+            <link name="Address Details" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="salesTaxNexusAddressForm" />
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/shipping-rates" role="admin,ecommerce-manager" title="Shipping Rates">
+    <section>
+      <column class="small-12 cell">
+        <widget name="shippingRatesList">
+          <title>Shipping Rates</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+  <page name="/admin/shipping-rate{?shippingRateId}" role="admin,ecommerce-manager" title="Shipping Rate">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Shipping Rates" value="/admin/shipping-rates" />
+            <link name="Shipping Rate Details" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="shippingRateForm" />
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/activity" role="admin,content-manager,community-manager,ecommerce-manager" title="Activity">
+    <section>
+      <column class="small-12 medium-10 large-9 cell">
+        <widget name="xapiStatementList">
+          <title>Activity</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+</pages>

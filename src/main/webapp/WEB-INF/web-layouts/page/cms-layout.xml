@@ -1,0 +1,440 @@
+<?xml version="1.0" ?>
+<pages>
+  <!-- Default Template -->
+  <page name="_page_content_not_ready_" role="admin,content-manager">
+    <section>
+      <column>
+        <widget name="content">
+          <html><![CDATA[
+          <h3>${webPage.link}</h3>
+          <div class="callout alert">
+          <h5>This is a new page and is not available to users yet.</h5>
+          <p>You can edit the page design if you wish to create the page.</p>
+          </div>
+          <p><a class="button tiny radius primary" href="${ctx}/admin/web-page-designer?webPage=${webPage.link}"><i class="fa fa-code"></i> Set a Page Layout</a></p>
+          ]]></html>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <!-- Default Template -->
+  <page name="_new_install_" role="guest">
+    <section class="align-center">
+      <column class="small-9 medium-3 large-4 cell margin-top-100 small-margin-top-0">
+        <widget name="content" class="text-center">
+          <html><![CDATA[
+          <div class="padding-25">
+            <h5><i class="fa fa-2x fa-rocket" style="color:red"></i> Hang on!</h5>
+          </div>
+          <p>
+            <h5>This is a new site and<br />it&#8217;s not available to users just yet.</h5>
+          </p>
+          <p>
+            <small><i class="fa fa-angle-double-left"></i> Please wait while the web team finishes the site <i class="fa fa-angle-double-right"></i></small>
+          </p>
+          <p>&nbsp;</p>
+          <p>
+            Powered by ${platform.name}<br />
+            <a target="_blank" href="${platform.url}">${platform.url}</a>
+          </p>
+          ]]></html>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <!-- Login -->
+  <page name="/login" role="guest,admin,content-manager" title="Login" class="platform-dialog">
+    <section id="platform-login" class="align-center">
+      <column class="small-12 medium-6 large-5 cell">
+        <widget name="content" class="show-for-medium">
+          <html><![CDATA[
+          &nbsp;
+          ]]></html>
+        </widget>
+        <widget name="content" class="text-center">
+          <uniqueId>login-hello</uniqueId>
+        </widget>
+        <widget name="content" class="show-for-medium">
+          <html><![CDATA[
+          <small>&nbsp;</small>
+          ]]></html>
+        </widget>
+        <widget name="login" class="callout box radius">
+          <title>Sign In</title>
+          <!--<redirect-success>/profile</redirect-success>-->
+        </widget>
+        <widget name="content" class="show-for-medium">
+          <html><![CDATA[
+          <p>&nbsp;</p>
+          ]]></html>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/logout" title="Logout">
+    <section>
+      <column>
+        <widget name="logout">
+          <!--<redirect-success>/</redirect-success>-->
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/register" role="guest,admin,content-manager" title="Create Your Account" class="platform-dialog">
+    <section id="platform-register" class="align-center">
+      <column class="small-12 medium-7 large-6 cell">
+        <widget name="content" class="show-for-medium">
+          <html><![CDATA[
+          &nbsp;
+          ]]></html>
+        </widget>
+        <widget name="content" class="text-center">
+          <uniqueId>register-hello</uniqueId>
+        </widget>
+        <widget name="content" class="show-for-medium">
+          <html><![CDATA[
+          &nbsp;
+          ]]></html>
+        </widget>
+        <widget name="register" class="callout box radius">
+          <title>Create Your Account</title>
+          <showLegalLinks>true</showLegalLinks>
+          <useCaptcha>true</useCaptcha>
+          <!--<redirect-success>/profile</redirect-success>-->
+        </widget>
+        <widget name="content" class="show-for-medium">
+          <html><![CDATA[
+          <p>&nbsp;</p>
+          ]]></html>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/validation-sent" role="guest,admin,content-manager" title="Validate Account">
+    <section class="align-center">
+      <column class="small-12 medium-8 large-6 text-center cell">
+        <widget name="content" class="show-for-medium">
+          <html><![CDATA[
+          <p>&nbsp;</p>
+          ]]></html>
+        </widget>
+        <widget name="content">
+          <uniqueId>validate-account-hello</uniqueId>
+          <html><![CDATA[<h3>Welcome to our site</h3>]]></html>
+        </widget>
+        <widget name="content" class="callout box">
+          <html><![CDATA[
+          <p class="show-for-medium">&nbsp;</p>
+          <p><i class="fa fa-5x fa-envelope-open-o"></i></p>
+          <h3>Confirm Email</h3>
+          <p>Confirm your email by clicking the verification link we just sent to your inbox.</p>
+          ]]></html>
+        </widget>
+        <widget name="content" class="show-for-medium">
+          <html><![CDATA[
+          <p>&nbsp;</p>
+          ]]></html>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/validate-account" title="Validate Account">
+    <section class="align-center">
+      <column class="small-12 medium-6 cell">
+        <widget name="content" class="show-for-medium">
+          <html><![CDATA[
+          <p>&nbsp;</p>
+          ]]></html>
+        </widget>
+        <widget name="content" class="text-center">
+          <uniqueId>validation-hello</uniqueId>
+          <html><![CDATA[<h1>Account Validation</h1>]]></html>
+        </widget>
+        <widget name="content" class="show-for-medium">
+          <html><![CDATA[
+          <small>&nbsp;</small>
+          ]]></html>
+        </widget>
+        <widget name="accountValidation" class="callout box radius" />
+        <widget name="content" class="show-for-medium">
+          <html><![CDATA[
+          <p>&nbsp;</p>
+          ]]></html>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/forgot-password" role="guest,admin,content-manager" title="Forgot Password" class="platform-dialog">
+    <section id="platform-forgot-password" class="align-center">
+      <column class="small-12 medium-7 large-5 cell">
+        <widget name="content" class="show-for-medium">
+          <html><![CDATA[
+          &nbsp;
+          ]]></html>
+        </widget>
+        <widget name="content" class="show-for-medium">
+          <html><![CDATA[
+          &nbsp;
+          ]]></html>
+        </widget>
+        <widget name="forgotPassword" class="callout box radius">
+          <title>Password Reset</title>
+          <content>Reset my password</content>
+        </widget>
+        <widget name="content" class="show-for-medium">
+          <html><![CDATA[
+          <p>&nbsp;</p>
+          ]]></html>
+        </widget>
+        <widget name="content" class="show-for-medium">
+          <html><![CDATA[
+          &nbsp;
+          ]]></html>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <!-- Order page for user accounts -->
+  <page name="/order-details{?order-number}" role="users" title="Order Details">
+    <section>
+      <column class="small-12 medium-11 cell">
+        <widget name="orderConfirmation">
+          <introHtml><![CDATA[<p><a href="${ctx}/my-page">Back to Account Overview</a></p><h1>Order No. ${orderNumber}</h1>]]></introHtml>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <!-- Content Editing -->
+  <page name="/content-editor" role="admin,content-manager" title="Content Editor" class="full-page">
+    <section>
+      <column class="small-12 cell">
+        <widget name="contentEditor" />
+      </column>
+    </section>
+  </page>
+  <page name="/blog-editor" role="admin,content-manager" title="Blog Editor">
+    <section>
+      <column class="small-12 cell">
+        <widget name="blogEditor" />
+      </column>
+    </section>
+  </page>
+  <page name="/table-of-contents-editor" role="admin,content-manager" title="Table of Contents Editor" class="full-page">
+    <section>
+      <column class="small-12 cell">
+        <widget name="tableOfContentsEditor" />
+      </column>
+    </section>
+  </page>
+  <page name="/wiki-editor" role="admin,content-manager,community-manager" title="Wiki Editor" class="full-page">
+    <section>
+      <column class="small-12 cell">
+        <widget name="wikiEditor" />
+      </column>
+    </section>
+  </page>
+
+  <!-- Editing Features -->
+  <page name="/image-browser" role="admin,content-manager" title="Image Browser">
+    <widget name="imageBrowser" />
+  </page>
+  <page name="/video-browser" role="admin,content-manager" title="Video Browser">
+    <widget name="videoBrowser" />
+  </page>
+  <page name="/file-browser" role="admin,content-manager" title="File Browser">
+    <widget name="fileBrowser" />
+  </page>
+  <page name="/image-upload" role="admin,content-manager">
+    <widget name="imageUpload" />
+  </page>
+  <!-- Assets -->
+  <page name="/assets/img">
+    <widget name="streamImage" />
+  </page>
+  <page name="/assets/file">
+    <widget name="downloadFile" />
+  </page>
+  <page name="/assets/view">
+    <widget name="downloadFile">
+      <view>true</view>
+    </widget>
+  </page>
+  <page name="/assets/captcha">
+    <widget name="captchaImage" />
+  </page>
+
+  <!-- Shopping Template Pages -->
+  <page name="/shopTemplate" title="Shop">
+    <section>
+      <column class="small-12 cell text-center">
+        <widget name="content" class="margin-top-50">
+          <uniqueId>shop-hello</uniqueId>
+          <html>Our Lineup</html>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell text-center">
+        <widget name="productBrowser">
+          <view>cards</view>
+          <cardSize>300px</cardSize>
+        </widget>
+        <widget name="content" class="platform-content margin-top-50">
+          <view>cards</view>
+          <cardSize>300px</cardSize>
+          <uniqueId>shop-products</uniqueId>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell text-center">
+        <widget name="content" class="margin-top-50">
+          <uniqueId>shop-footer</uniqueId>
+        </widget>
+      </column>
+    </section>
+    <section hr="true">
+      <column class="small-12 text-center cell">
+        <widget name="content" class="margin-top-50 margin-bottom-50">
+          <uniqueId>home-follow-us</uniqueId>
+          <html>Follow Us</html>
+        </widget>
+      </column>
+    </section>
+    <section hr="true" class="align-center">
+      <column class="small-12 medium-10 large-8 text-center margin-top-50 margin-bottom-50 cell">
+        <widget name="content">
+          <uniqueId>home-newsletter-headline</uniqueId>
+          <html>Join The Newsletter</html>
+        </widget>
+      </column>
+    </section>
+    <section class="align-center">
+      <column class="small-12 medium-10 large-8 cell">
+        <widget name="emailSubscribe">
+          <buttonName>Subscribe</buttonName>
+          <showName>true</showName>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/shopProductTemplate" title="Shop">
+    <section class="align-middle align-right margin-top-50 margin-bottom-100">
+      <column class="small-12 medium-5 cell">
+        <widget name="content">
+          <uniqueId>shop-${productUniqueId}-image</uniqueId>
+          <view>gallery</view>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 cell center-text-for-small-only">
+        <widget name="content">
+          <uniqueId>shop-${productUniqueId}-content</uniqueId>
+        </widget>
+        <widget name="addToCart">
+          <product>${productUniqueId}</product>
+          <showPrice>true</showPrice>
+          <redirectTo>${ctx}/cart</redirectTo>
+          <unavailableText>Coming soon</unavailableText>
+        </widget>
+        <widget name="content">
+          <uniqueId>shop-${productUniqueId}-subcontent</uniqueId>
+        </widget>
+      </column>
+    </section>
+    <section class="align-middle">
+      <column class="small-12 medium-6 cell">
+        <widget name="content">
+          <uniqueId>product-benefit-image</uniqueId>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 cell">
+        <widget name="content">
+          <uniqueId>product-benefit-content</uniqueId>
+        </widget>
+      </column>
+    </section>
+    <section hr="true">
+      <column class="small-12 text-center cell">
+        <widget name="content" class="margin-top-50 margin-bottom-50">
+          <uniqueId>home-follow-us</uniqueId>
+          <html>Follow Us</html>
+        </widget>
+      </column>
+    </section>
+    <section hr="true" class="align-center">
+      <column class="small-12 medium-10 large-8 text-center margin-top-50 margin-bottom-50 cell">
+        <widget name="content">
+          <uniqueId>home-newsletter-headline</uniqueId>
+          <html>Join The Newsletter</html>
+        </widget>
+      </column>
+    </section>
+    <section class="align-center">
+      <column class="small-12 medium-10 large-8 cell">
+        <widget name="emailSubscribe">
+          <buttonName>Subscribe</buttonName>
+          <showName>true</showName>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <!-- Calendar Events Page -->
+  <page name="/calendar-event{/event-unique-id}" title="Calendar">
+    <section class="align-center">
+      <column class="medium-8 cell">
+        <widget name="calendarEventDetails" class="margin-25" />
+      </column>
+    </section>
+  </page>
+
+  <!-- Community Page -->
+  <page name="/community" title="Community">
+    <section>
+      <column class="medium-7 cell">
+        <widget name="content">
+          <uniqueId>community-title</uniqueId>
+          <html><![CDATA[<h3>Welcome to the Community!</h3>]]></html>
+        </widget>
+        <widget name="itemsList">
+          <title>Explore our collaboration groups...</title>
+          <showWhenEmpty>true</showWhenEmpty>
+          <collectionUniqueId>groups</collectionUniqueId>
+        </widget>
+        <widget name="addItemButton">
+          <buttonName>Add a Group</buttonName>
+          <collectionUniqueId>groups</collectionUniqueId>
+        </widget>
+      </column>
+      <column class="medium-5 cell">
+        <!--
+        <widget name="register" class="callout radius box" role="guest">
+          <title>Join the community!</title>
+        </widget>
+        -->
+        <!--<widget name="calendar" />-->
+      </column>
+    </section>
+  </page>
+  <page name="/start-a-group" title="Start a Group">
+    <section>
+      <column class="small-12 medium-6 cell">
+        <widget name="addItemForm">
+          <title>Create a group</title>
+          <collectionUniqueId>groups</collectionUniqueId>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+</pages>

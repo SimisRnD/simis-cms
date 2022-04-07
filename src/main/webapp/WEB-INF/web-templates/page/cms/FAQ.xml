@@ -1,0 +1,58 @@
+<?xml version="1.0" ?>
+<!--
+  ~ Copyright 2022 SimIS Inc. (https://www.simiscms.com)
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<template name="FAQ" image="FAQ.png">
+  <page>
+    <section class="align-center">
+      <column class="small-12 medium-10 large-7 cell">
+        <widget name="content" class="margin-top-75 margin-bottom-25 small-margin-25">
+          <uniqueId>${webPageName}-title</uniqueId>
+        </widget>
+        <widget name="content">
+          <uniqueId>${webPageName}-hello</uniqueId>
+        </widget>
+        <widget name="content" class="margin-top-50">
+          <view>accordion</view>
+          <uniqueId>${webPageName}-content</uniqueId>
+          <class>outer-accordion</class>
+          <innerClass>inner-accordion</innerClass>
+          <html><![CDATA[<h1>Our Products</h1>
+ <p>&gt; <span style="font-weight: 400;">How do I know which product is right for me?</span></p>
+ <p><span style="font-weight: 400;">Our products designed to meet your specific needs and fit into your lifestyle.</span></p>
+ <hr />
+ <p>&gt; <span style="font-weight: 400;">How do I use the product?</span></p>
+ <p><span style="font-weight: 400;">You can follow these directions.</span></p>
+ <hr />
+ <p>&gt; <span style="font-weight: 400;">How do I use this other product?</span></p>
+ <p><span style="font-weight: 400;">You can follow these directions</span></p>
+ <h1>Our Services</h1>
+ <p>&gt; <span style="font-weight: 400;">How do I know which product is right for me?</span></p>
+ <p><span style="font-weight: 400;">Our products designed to meet your specific needs and fit into your lifestyle. </span></p>
+ <hr />
+ <p>&gt; <span style="font-weight: 400;">How do I use the product?</span></p>
+ <p><span style="font-weight: 400;">You can follow these directions.</span></p>
+ <hr />
+ <p>&gt; <span style="font-weight: 400;">How do I use this other product?</span></p>
+ <p><span style="font-weight: 400;">You can follow these directions</span></p>
+ ]]></html>
+        </widget>
+        <widget name="content" class="margin-top-50 callout no-box light">
+          <uniqueId>${webPageName}-more</uniqueId>
+        </widget>
+      </column>
+    </section>
+  </page>
+</template>

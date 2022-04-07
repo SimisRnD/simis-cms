@@ -1,0 +1,593 @@
+<%--
+  ~ Copyright 2022 SimIS Inc.
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  --%>
+<%-- Navigation --%>
+<div data-sticky-container>
+  <%-- Small Title Bar--%>
+  <div id="platform-small-menu" class="hide-for-medium" style="position: fixed; z-index: 1001;top: 0;width:100%;">
+    <div class="title-bar" data-responsive-toggle="platform-small-toggle-menu">
+      <button class="menu-icon" type="button" data-toggle="platform-small-toggle-menu"></button>
+      <div class="logo">
+        <c:choose>
+          <c:when test="${themePropertyMap['theme.logo.color'] eq 'text-only' or themePropertyMap['theme.logo.color'] eq 'none'}">
+            <a href="${ctx}/">Home</a>
+          </c:when>
+          <c:when test="${!empty sitePropertyMap['site.logo.white']}">
+            <a href="${ctx}/"><img src="<c:out value="${sitePropertyMap['site.logo.white']}"/>" /></a>
+          </c:when>
+          <c:otherwise>
+            <a href="${ctx}/"><img src="${systemPropertyMap['system.www.context']}/images/logo-white-color.png" /></a>
+          </c:otherwise>
+        </c:choose>
+      </div>
+      <div class="title-bar-title"><c:out value="${sitePropertyMap['site.name']}"/></div>
+    </div>
+    <div id="platform-small-toggle-menu">
+      <ul class="menu">
+        <c:forEach items="${masterMenuTabList}" var="menuTab" varStatus="menuTabStatus">
+          <c:choose>
+            <c:when test="${menuTab.link eq '/' && menuTabStatus.index == 0}"><%-- Hide Home (the first one) --%></c:when>
+            <c:when test="${menuTab.link eq '#'}">
+              <li><a href="#"><c:out value="${menuTab.name}" /></a></li>
+            </c:when>
+            <c:otherwise>
+              <li><a href="${ctx}${menuTab.link}"><c:out value="${menuTab.name}" /></a></li>
+            </c:otherwise>
+          </c:choose>
+        </c:forEach>
+        <c:if test="${'true' eq sitePropertyMap['site.cart']}">
+          <c:choose>
+            <c:when test="${empty userSession.cart}">
+              <li><a href="${ctx}/cart" title="Your Shopping Cart"><i class="${font:fal()} fa-bag-shopping"></i></a></li>
+            </c:when>
+            <c:otherwise>
+              <li><a href="${ctx}/cart" title="Your Shopping Cart"><i class="${font:fal()} fa-fw fa-bag-shopping"></i><span class="platform-layered-badge badge"><fmt:formatNumber value="${userSession.cart.totalQty}" /></span></a></li>
+            </c:otherwise>
+          </c:choose>
+        </c:if>
+        <c:choose>
+          <c:when test="${userSession.loggedIn}">
+            <li><a href="${ctx}/my-page">Account</a></li>
+            <%--<li class="menu-text"><a class="no-menu" href="#"><i class="fa fa-bell fa-fw"></i></a></li>--%>
+          </c:when>
+          <c:otherwise>
+            <c:if test="${'true' eq sitePropertyMap['site.registrations']}">
+              <li><a href="${ctx}/register">Sign Up</a></li>
+            </c:if>
+            <c:if test="${'true' eq sitePropertyMap['site.login']}">
+              <li><a href="${ctx}/login">Log In</a></li>
+            </c:if>
+          </c:otherwise>
+        </c:choose>
+      </ul>
+    </div>
+  </div>
+  <%-- Medium and Large Top Bar --%>
+  <c:set var="stickyMarginTop" scope="request" value="4"/>
+  <c:choose>
+    <c:when test="${'none' eq themePropertyMap['theme.menu.location']}">
+      <c:if test="${userSession.loggedIn}">
+      <ul class="dropdown menu align-center" data-dropdown-menu>
+        <li><a href="${ctx}/">Home</a></li>
+        <c:forEach items="${masterMenuTabList}" var="menuTab" varStatus="menuTabStatus">
+          <c:choose>
+            <c:when test="${menuTab.link eq '/'}">
+              <%-- Hide Home Links --%>
+            </c:when>
+            <c:when test="${!empty menuTab.menuItemList}">
+              <li<c:if test="${pageRenderInfo.name eq menuTab.link}"> class="NOactive"</c:if>>
+                <c:choose>
+                  <c:when test="${menuTab.link eq '#'}">
+                    <a href="#"><c:out value="${menuTab.name}" /></a>
+                  </c:when>
+                  <c:otherwise>
+                    <a href="${ctx}${menuTab.link}"><c:out value="${menuTab.name}" /></a>
+                  </c:otherwise>
+                </c:choose>
+                <ul class="menu vertical">
+                  <c:forEach items="${menuTab.menuItemList}" var="menuItem">
+                    <li><a href="${ctx}${menuItem.link}"><c:out value="${menuItem.name}" /></a></li>
+                  </c:forEach>
+                </ul>
+              </li>
+            </c:when>
+            <c:otherwise>
+              <li<c:if test="${fn:startsWith(pageRenderInfo.name, menuTab.link)}"> class="NOactive"</c:if>>
+                <c:choose>
+                  <c:when test="${menuTab.link eq '#'}">
+                    <a href="#"><c:out value="${menuTab.name}" /></a>
+                  </c:when>
+                  <c:otherwise>
+                    <a href="${ctx}${menuTab.link}"><c:out value="${menuTab.name}" /></a>
+                  </c:otherwise>
+                </c:choose>
+              </li>
+            </c:otherwise>
+          </c:choose>
+        </c:forEach>
+        <li>
+          <a href="${ctx}/my-page">Account</a>
+          <ul class="menu vertical">
+            <li><a href="${ctx}/my-page"><i class="fa fa-user fa-fw"></i> My Page</a></li>
+            <c:if test="${!fn:startsWith(pageRenderInfo.name, '/admin') && pageRenderInfo.name ne '/' && !fn:contains(masterWebPage.link, '*') && (userSession.hasRole('admin') || userSession.hasRole('content-manager'))}">
+              <li><a href="${ctx}/admin/web-page?webPage=${pageRenderInfo.pagePath}"><i class="fa fa-edit fa-fw"></i> Edit Page Info</a></li>
+            </c:if>
+            <c:if test="${(userSession.hasRole('admin') || userSession.hasRole('content-manager')) && !empty masterWebPage.link}">
+              <li><a href="${ctx}/admin/web-page-designer?webPage=${masterWebPage.link}"><i class="fa fa-code fa-fw"></i> Edit Page Layout</a></li>
+            </c:if>
+            <c:if test="${userSession.hasRole('admin') }">
+              <li><a href="${ctx}/admin/theme-properties"><i class="fa fa-css3 fa-fw"></i> Edit Site Theme</a></li>
+            </c:if>
+            <c:if test="${userSession.hasRole('admin') || userSession.hasRole('content-manager') || userSession.hasRole('community-manager') || userSession.hasRole('data-manager') || userSession.hasRole('ecommerce-manager')}">
+              <li><a href="${ctx}/admin"><i class="fa fa-cog fa-fw"></i> Admin</a></li>
+            </c:if>
+            <li><a href="${ctx}/logout"><i class="fa fa-sign-out fa-fw"></i> Log Out</a></li>
+          </ul>
+        </li>
+        <%--<li class="menu-text"><a class="no-menu" href="#"><i class="fa fa-bell fa-fw"></i></a></li>--%>
+      </ul>
+      </c:if>
+    </c:when>
+    <c:when test="${'pro' eq themePropertyMap['theme.menu.location']}">
+      <c:set var="stickyMarginTop" scope="request" value="8"/>
+      <div id="platform-menu" class="show-for-medium<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin')}"> platform-admin-menu</c:if>" data-sticky data-options="marginTop:0;">
+        <div class="grid-x grid-margin-x menu-header">
+          <div class="small-12 cell">
+            <div class="grid-container">
+              <div class="grid-x grid-margin-x">
+                <div class="medium-4 cell">
+                  <c:if test="${themePropertyMap['theme.logo.color'] ne 'none'}">
+                  <div class="top-logo">
+                    <c:choose>
+                      <c:when test="${themePropertyMap['theme.logo.color'] eq 'text-only'}">
+                        <a href="${ctx}/"><c:out value="${sitePropertyMap['site.name']}"/></a>
+                      </c:when>
+                      <c:when test="${!empty sitePropertyMap['site.logo']}">
+                        <a href="${ctx}/"><img src="<c:out value="${sitePropertyMap['site.logo']}"/>" /></a>
+                      </c:when>
+                      <c:otherwise>
+                        <a href="${ctx}/"><img src="${systemPropertyMap['system.www.context']}/images/logo-header.png" /></a>
+                      </c:otherwise>
+                    </c:choose>
+                  </div>
+                  </c:if>
+                </div>
+                <div class="medium-8 hide-for-print">
+                  <div style="float:right">
+                  <c:if test="${!empty sitePropertyMap['site.header.line1']}">
+                    <p class="menu-header-text"><c:out value="${sitePropertyMap['site.header.line1']}" /></p>
+                  </c:if>
+                  <ul class="dropdown menu" data-dropdown-menu>
+                    <li><a href="${ctx}/">Home</a></li>
+                    <li><a href="${ctx}/contact-us">Contact</a></li>
+                    <c:if test="${'true' eq sitePropertyMap['site.cart']}">
+                      <c:choose>
+                        <c:when test="${empty userSession.cart || userSession.cart.totalItems eq 0}">
+                          <li><a href="${ctx}/cart" title="Your Shopping Cart"><i class="${font:fal()} fa-bag-shopping"></i></a></li>
+                        </c:when>
+                        <c:otherwise>
+                          <li><a href="${ctx}/cart" title="Your Shopping Cart"><i class="${font:fal()} fa-fw fa-bag-shopping" aria-describedby="cartCount"></i><span class="platform-layered-badge badge" id="cartCount"><fmt:formatNumber value="${userSession.cart.totalQty}" /></span></a></li>
+                        </c:otherwise>
+                      </c:choose>
+                    </c:if>
+                    <c:choose>
+                      <c:when test="${userSession.loggedIn}">
+                        <li>
+                          <a href="${ctx}/my-page">Account</a>
+                          <ul class="menu vertical">
+                            <li><a href="${ctx}/my-page"><i class="fa fa-user fa-fw"></i> My Page</a></li>
+                            <c:if test="${!fn:startsWith(pageRenderInfo.name, '/admin') && pageRenderInfo.name ne '/' && !fn:contains(masterWebPage.link, '*') && (userSession.hasRole('admin') || userSession.hasRole('content-manager'))}">
+                              <li><a href="${ctx}/admin/web-page?webPage=${pageRenderInfo.pagePath}"><i class="fa fa-edit fa-fw"></i> Edit Page Info</a></li>
+                            </c:if>
+                            <c:if test="${(userSession.hasRole('admin') || userSession.hasRole('content-manager')) && !empty masterWebPage.link}">
+                              <li><a href="${ctx}/admin/web-page-designer?webPage=${masterWebPage.link}"><i class="fa fa-code fa-fw"></i> Edit Page Layout</a></li>
+                            </c:if>
+                            <c:if test="${userSession.hasRole('admin') }">
+                              <li><a href="${ctx}/admin/theme-properties"><i class="fa fa-css3 fa-fw"></i> Edit Site Theme</a></li>
+                            </c:if>
+                            <c:if test="${userSession.hasRole('admin') || userSession.hasRole('content-manager') || userSession.hasRole('community-manager') || userSession.hasRole('data-manager') || userSession.hasRole('ecommerce-manager')}">
+                              <li><a href="${ctx}/admin"><i class="fa fa-cog fa-fw"></i> Admin</a></li>
+                            </c:if>
+                            <li><a href="${ctx}/logout"><i class="fa fa-sign-out fa-fw"></i> Log Out</a></li>
+                          </ul>
+                        </li>
+                        <%--<li class="menu-text"><a class="no-menu" href="#"><i class="fa fa-bell fa-fw"></i></a></li>--%>
+                      </c:when>
+                      <c:otherwise>
+                        <c:if test="${'true' eq sitePropertyMap['site.registrations']}">
+                          <li><a href="${ctx}/register">Sign Up</a></li>
+                        </c:if>
+                        <c:if test="${'true' eq sitePropertyMap['site.login']}">
+                          <li><a href="${ctx}/login">Log In</a></li>
+                        </c:if>
+                      </c:otherwise>
+                    </c:choose>
+                  </ul>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="grid-x grid-margin-x menu-body hide-for-print">
+          <div class="small-12 cell">
+            <div class="grid-container">
+              <div class="grid-x grid-margin-x">
+                <div class="small-12 cell">
+                  <ul class="dropdown menu align-center" data-dropdown-menu>
+                    <c:forEach items="${masterMenuTabList}" var="menuTab" varStatus="menuTabStatus">
+                      <c:choose>
+                        <c:when test="${menuTab.link eq '/' && menuTabStatus.index == 0}"><%-- Hide Home (the first one) --%></c:when>
+                        <c:when test="${!empty menuTab.menuItemList}">
+                          <li<c:if test="${pageRenderInfo.name eq menuTab.link}"> class="NOactive"</c:if> style="width: <%= (100/(masterMenuTabList.size() - 1)) %>%">
+                            <c:choose>
+                              <c:when test="${menuTab.link eq '#'}">
+                                <a href="#"><c:out value="${menuTab.name}" /></a>
+                              </c:when>
+                              <c:otherwise>
+                                <a href="${ctx}${menuTab.link}"><c:out value="${menuTab.name}" /></a>
+                              </c:otherwise>
+                            </c:choose>
+                            <ul class="menu vertical">
+                              <c:forEach items="${menuTab.menuItemList}" var="menuItem">
+                                <li><i class="fa fa-angle-right"></i><a href="${ctx}${menuItem.link}"><c:out value="${menuItem.name}" /></a></li>
+                              </c:forEach>
+                            </ul>
+                          </li>
+                        </c:when>
+                        <c:otherwise>
+                          <li<c:if test="${fn:startsWith(pageRenderInfo.name, menuTab.link)}"> class="NOactive"</c:if> style="width: <%= (100/(masterMenuTabList.size() - 1)) %>%">
+                            <c:choose>
+                              <c:when test="${menuTab.link eq '#'}">
+                                <a href="#"><c:out value="${menuTab.name}" /></a>
+                              </c:when>
+                              <c:otherwise>
+                                <a href="${ctx}${menuTab.link}"><c:out value="${menuTab.name}" /></a>
+                              </c:otherwise>
+                            </c:choose>
+                          </li>
+                        </c:otherwise>
+                      </c:choose>
+                    </c:forEach>
+                    <%--<li><span class="label round secondary">0</span> <i class="${font:fal()} fa-shopping-bag"></i></li>--%>
+                  </ul>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+    </div>
+    </c:when>
+    <c:when test="${'center' eq themePropertyMap['theme.menu.location']}">
+      <c:set var="stickyMarginTop" scope="request" value="5"/>
+      <div id="platform-menu" class="show-for-medium<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin')}"> platform-admin-menu</c:if>" data-sticky data-options="marginTop:0;">
+        <div class="top-bar-center">
+          <div style="position:absolute;top:0;right:10px" class="hide-for-print">
+            <ul class="dropdown menu" data-dropdown-menu>
+              <c:if test="${'true' eq sitePropertyMap['site.cart']}">
+                <c:choose>
+                  <c:when test="${empty userSession.cart || userSession.cart.totalItems eq 0}">
+                    <li><a href="${ctx}/cart" title="Your Shopping Cart"><i class="${font:fal()} fa-bag-shopping"></i></a></li>
+                  </c:when>
+                  <c:otherwise>
+                    <li><a href="${ctx}/cart" title="Your Shopping Cart"><i class="${font:fal()} fa-fw fa-bag-shopping" aria-describedby="cartCount"></i><span class="platform-layered-badge badge" id="cartCount"><fmt:formatNumber value="${userSession.cart.totalQty}" /></span></a></li>
+                  </c:otherwise>
+                </c:choose>
+              </c:if>
+              <c:choose>
+                <c:when test="${userSession.loggedIn && fn:startsWith(pageRenderInfo.name, '/admin')}">
+
+                </c:when>
+                <c:when test="${userSession.loggedIn}">
+                  <li>
+                    <a href="${ctx}/my-page">Account</a>
+                    <ul class="menu vertical">
+                      <li><a href="${ctx}/my-page"><i class="fa fa-user fa-fw"></i> My Page</a></li>
+                      <c:if test="${!fn:startsWith(pageRenderInfo.name, '/admin') && pageRenderInfo.name ne '/' && !fn:contains(masterWebPage.link, '*') && (userSession.hasRole('admin') || userSession.hasRole('content-manager'))}">
+                        <li><a href="${ctx}/admin/web-page?webPage=${pageRenderInfo.pagePath}"><i class="fa fa-edit fa-fw"></i> Edit Page Info</a></li>
+                      </c:if>
+                      <c:if test="${(userSession.hasRole('admin') || userSession.hasRole('content-manager')) && !empty masterWebPage.link}">
+                        <li><a href="${ctx}/admin/web-page-designer?webPage=${masterWebPage.link}"><i class="fa fa-code fa-fw"></i> Edit Page Layout</a></li>
+                      </c:if>
+                      <c:if test="${userSession.hasRole('admin') }">
+                        <li><a href="${ctx}/admin/theme-properties"><i class="fa fa-css3 fa-fw"></i> Edit Site Theme</a></li>
+                      </c:if>
+                      <c:if test="${userSession.hasRole('admin') || userSession.hasRole('content-manager') || userSession.hasRole('community-manager') || userSession.hasRole('data-manager') || userSession.hasRole('ecommerce-manager')}">
+                        <li><a href="${ctx}/admin"><i class="fa fa-cog fa-fw"></i> Admin</a></li>
+                      </c:if>
+                      <li><a href="${ctx}/logout"><i class="fa fa-sign-out fa-fw"></i> Log Out</a></li>
+                    </ul>
+                  </li>
+                  <%--<li class="menu-text"><a class="no-menu" href="#"><i class="fa fa-bell fa-fw"></i></a></li>--%>
+                </c:when>
+                <c:otherwise>
+                  <c:if test="${'true' eq sitePropertyMap['site.registrations']}">
+                    <li><a href="${ctx}/register">Sign Up</a></li>
+                  </c:if>
+                  <c:if test="${'true' eq sitePropertyMap['site.login']}">
+                    <li><a href="${ctx}/login">Log In</a></li>
+                  </c:if>
+                </c:otherwise>
+              </c:choose>
+            </ul>
+          </div>
+      <c:if test="${!fn:startsWith(pageRenderInfo.name, '/admin')}">
+        <div class="top-center-logo text-center clear-float">
+          <c:choose>
+            <c:when test="${themePropertyMap['theme.logo.color'] eq 'text-only' or themePropertyMap['theme.logo.color'] eq 'none'}">
+              <a href="${ctx}/"><c:out value="${sitePropertyMap['site.name']}"/></a>
+            </c:when>
+            <c:when test="${!empty sitePropertyMap['site.logo']}">
+              <a href="${ctx}/"><img src="<c:out value="${sitePropertyMap['site.logo']}"/>" /></a>
+            </c:when>
+            <c:otherwise>
+              <a href="${ctx}/"><img src="${systemPropertyMap['system.www.context']}/images/logo-header.png" /></a>
+            </c:otherwise>
+          </c:choose>
+        </div>
+        <div class="row column" style="width: 100%; margin:0 auto;">
+      </c:if>
+      <ul class="dropdown menu align-center hide-for-print" data-dropdown-menu>
+        <%--<li class="menu-text"><c:out value="${sitePropertyMap['site.name']}"/></li>--%>
+        <%--<li><a href="${ctx}/"><c:out value="${sitePropertyMap['site.name']}"/></a></li>--%>
+        <c:forEach items="${masterMenuTabList}" var="menuTab" varStatus="menuTabStatus">
+          <c:choose>
+            <c:when test="${menuTab.link eq '/' && menuTabStatus.index == 0}">
+              <%-- Hide Home (the first one) --%>
+            </c:when>
+            <c:when test="${!empty menuTab.menuItemList}">
+              <li<c:if test="${pageRenderInfo.name eq menuTab.link}"> class="NOactive"</c:if>>
+                <c:choose>
+                  <c:when test="${menuTab.link eq '#'}">
+                    <a href="#"><c:out value="${menuTab.name}" /></a>
+                  </c:when>
+                  <c:otherwise>
+                    <a href="${ctx}${menuTab.link}"><c:out value="${menuTab.name}" /></a>
+                  </c:otherwise>
+                </c:choose>
+                <ul class="menu vertical">
+                  <c:forEach items="${menuTab.menuItemList}" var="menuItem">
+                    <li><a href="${ctx}${menuItem.link}"><c:out value="${menuItem.name}" /></a></li>
+                  </c:forEach>
+                </ul>
+              </li>
+            </c:when>
+            <c:otherwise>
+              <li<c:if test="${fn:startsWith(pageRenderInfo.name, menuTab.link)}"> class="NOactive"</c:if>>
+                <c:choose>
+                  <c:when test="${menuTab.link eq '#'}">
+                    <a href="#"><c:out value="${menuTab.name}" /></a>
+                  </c:when>
+                  <c:otherwise>
+                    <a href="${ctx}${menuTab.link}"><c:out value="${menuTab.name}" /></a>
+                  </c:otherwise>
+                </c:choose>
+              </li>
+            </c:otherwise>
+          </c:choose>
+        </c:forEach>
+      </ul>
+      </div>
+      <c:if test="${!fn:startsWith(pageRenderInfo.name, '/admin')}">
+        </div>
+      </c:if>
+      </div>
+    </c:when>
+    <c:otherwise>
+      <div id="platform-menu" class="show-for-medium<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin')}"> platform-admin-menu</c:if>" data-sticky data-options="marginTop:0;" style="position:fixed;top:0;width:100%">
+      <c:if test="${!fn:startsWith(pageRenderInfo.name, '/admin')}">
+      <div class="row column" style="width: 100%; max-width: 75rem; margin:0 auto;">
+      </c:if>
+      <div class="top-bar">
+        <c:if test="${themePropertyMap['theme.logo.color'] ne 'none'}">
+        <div class="top-bar-left">
+          <ul class="dropdown menu" data-dropdown-menu>
+            <%--<li><a href="${ctx}/"><c:out value="${sitePropertyMap['site.name']}"/></a></li>--%>
+            <c:choose>
+              <c:when test="${themePropertyMap['theme.logo.color'] eq 'all-white'}">
+                <c:choose>
+                  <c:when test="${!empty sitePropertyMap['site.logo.white']}">
+                    <li class="logo"><a href="${ctx}/"><img src="<c:out value="${sitePropertyMap['site.logo.white']}"/>" /></a></li>
+                  </c:when>
+                  <c:otherwise>
+                    <li class="logo"><a href="${ctx}/"><img src="${systemPropertyMap['system.www.context']}/images/logo-white.png" /></a></li>
+                  </c:otherwise>
+                </c:choose>
+              </c:when>
+              <c:when test="${themePropertyMap['theme.logo.color'] eq 'color-and-white'}">
+                <c:choose>
+                  <c:when test="${!empty sitePropertyMap['site.logo.mixed']}">
+                    <li class="logo"><a href="${ctx}/"><img src="<c:out value="${sitePropertyMap['site.logo.mixed']}"/>" /></a></li>
+                  </c:when>
+                  <c:otherwise>
+                    <li class="logo"><a href="${ctx}/"><img src="${systemPropertyMap['system.www.context']}/images/logo-white-color.png" /></a></li>
+                  </c:otherwise>
+                </c:choose>
+              </c:when>
+              <c:when test="${themePropertyMap['theme.logo.color'] eq 'text-only'}">
+                <li class="menu-text"><a href="${ctx}/"><c:out value="${sitePropertyMap['site.name']}"/></a></li>
+              </c:when>
+              <c:otherwise>
+                <c:choose>
+                  <c:when test="${!empty sitePropertyMap['site.logo']}">
+                    <li class="logo"><a href="${ctx}/"><img src="<c:out value="${sitePropertyMap['site.logo']}"/>" /></a></li>
+                  </c:when>
+                  <c:otherwise>
+                    <li class="logo"><a href="${ctx}/"><img src="${systemPropertyMap['system.www.context']}/images/logo-header.png" /></a></li>
+                  </c:otherwise>
+                </c:choose>
+              </c:otherwise>
+            </c:choose>
+            <c:if test="${themePropertyMap['theme.menu.location'] ne 'right'}">
+              <c:forEach items="${masterMenuTabList}" var="menuTab" varStatus="menuTabStatus">
+                <c:choose>
+                  <c:when test="${menuTab.link eq '/' && menuTabStatus.index == 0}">
+                    <%-- Hide Home (the first one) --%>
+                  </c:when>
+                  <c:when test="${!empty menuTab.menuItemList}">
+                    <li<c:if test="${pageRenderInfo.name eq menuTab.link}"> class="NOactive"</c:if>>
+                      <c:choose>
+                        <c:when test="${menuTab.link eq '#'}">
+                          <a href="#"><c:out value="${menuTab.name}" /></a>
+                        </c:when>
+                        <c:otherwise>
+                          <a href="${ctx}${menuTab.link}"><c:out value="${menuTab.name}" /></a>
+                        </c:otherwise>
+                      </c:choose>
+                      <ul class="menu vertical">
+                        <c:forEach items="${menuTab.menuItemList}" var="menuItem">
+                          <li><a href="${ctx}${menuItem.link}"><c:out value="${menuItem.name}" /></a></li>
+                        </c:forEach>
+                      </ul>
+                    </li>
+                  </c:when>
+                  <c:otherwise>
+                    <li<c:if test="${fn:startsWith(pageRenderInfo.name, menuTab.link)}"> class="NOactive"</c:if>>
+                      <c:choose>
+                        <c:when test="${menuTab.link eq '#'}">
+                          <a href="#"><c:out value="${menuTab.name}" /></a>
+                        </c:when>
+                        <c:otherwise>
+                          <a href="${ctx}${menuTab.link}"><c:out value="${menuTab.name}" /></a>
+                        </c:otherwise>
+                      </c:choose>
+                    </li>
+                  </c:otherwise>
+                </c:choose>
+              </c:forEach>
+              <c:if test="${'true' eq sitePropertyMap['site.cart']}">
+                <c:choose>
+                  <c:when test="${empty userSession.cart || userSession.cart.totalItems eq 0}">
+                    <li><a href="${ctx}/cart" title="Your Shopping Cart"><i class="${font:fal()} fa-bag-shopping fa-2x"></i></a></li>
+                  </c:when>
+                  <c:otherwise>
+                    <li><a href="${ctx}/cart" title="Your Shopping Cart"><i class="${font:fal()} fa-fw fa-bag-shopping" aria-describedby="cartCount"></i><span class="platform-layered-badge badge" id="cartCount"><fmt:formatNumber value="${userSession.cart.totalQty}" /></span></a></li>
+                  </c:otherwise>
+                </c:choose>
+              </c:if>
+            </c:if>
+          </ul>
+        </div>
+        </c:if>
+        <div class="top-bar-right">
+          <ul class="dropdown menu" data-click-open="false" data-disable-hover="false" data-dropdown-menu>
+            <%--<li><input type="search" placeholder="Search"></li>--%>
+            <%--<li><button type="button" class="button">Search</button></li>--%>
+            <%-- Render the right side menu --%>
+            <c:if test="${'right' eq themePropertyMap['theme.menu.location']}">
+              <c:forEach items="${masterMenuTabList}" var="menuTab" varStatus="menuTabStatus">
+                <c:choose>
+                  <c:when test="${menuTab.link eq '/' && menuTabStatus.index == 0}">
+                    <%-- Hide Home (the first one) --%>
+                  </c:when>
+                  <c:when test="${!empty menuTab.menuItemList}">
+                    <li<c:if test="${pageRenderInfo.name eq menuTab.link}"> class="NOactive"</c:if>>
+                      <c:choose>
+                        <c:when test="${menuTab.link eq '#'}">
+                          <a href="#"><c:out value="${menuTab.name}" /></a>
+                        </c:when>
+                        <c:otherwise>
+                          <a href="${ctx}${menuTab.link}"><c:out value="${menuTab.name}" /></a>
+                        </c:otherwise>
+                      </c:choose>
+                      <ul class="menu vertical">
+                        <c:forEach items="${menuTab.menuItemList}" var="menuItem">
+                          <li><a href="${ctx}${menuItem.link}"><c:out value="${menuItem.name}" /></a></li>
+                        </c:forEach>
+                      </ul>
+                    </li>
+                  </c:when>
+                  <c:otherwise>
+                    <li<c:if test="${fn:startsWith(pageRenderInfo.name, menuTab.link)}"> class="NOactive"</c:if>>
+                      <c:choose>
+                        <c:when test="${menuTab.link eq '#'}">
+                          <a href="#"><c:out value="${menuTab.name}" /></a>
+                        </c:when>
+                        <c:otherwise>
+                          <a href="${ctx}${menuTab.link}"><c:out value="${menuTab.name}" /></a>
+                        </c:otherwise>
+                      </c:choose>
+                    </li>
+                  </c:otherwise>
+                </c:choose>
+              </c:forEach>
+              <c:if test="${'true' eq sitePropertyMap['site.cart']}">
+                <c:choose>
+                  <c:when test="${empty userSession.cart || userSession.cart.totalItems eq 0}">
+                    <li><a href="${ctx}/cart" title="Your Shopping Items"><i class="${font:fal()} fa-bag-shopping"></i></a></li>
+                  </c:when>
+                  <c:otherwise>
+                    <li><a href="${ctx}/cart" title="Your Shopping Cart"><i class="${font:fal()} fa-fw fa-bag-shopping" aria-describedby="cartCount"></i><span class="platform-layered-badge badge" id="cartCount"><fmt:formatNumber value="${userSession.cart.totalQty}" /></span></a></li>
+                  </c:otherwise>
+                </c:choose>
+              </c:if>
+            </c:if>
+            <%-- Render the logged in menu --%>
+            <c:choose>
+              <c:when test="${userSession.loggedIn}">
+                <li>
+                  <a style="margin-left: 30px" href="${ctx}/my-page">Account</a>
+                  <ul class="menu vertical">
+                    <li><a href="${ctx}/my-page"><i class="fa fa-user fa-fw"></i> My Page</a></li>
+                    <c:if test="${!fn:startsWith(pageRenderInfo.name, '/admin') && pageRenderInfo.name ne '/' && !fn:contains(masterWebPage.link, '*') && (userSession.hasRole('admin') || userSession.hasRole('content-manager'))}">
+                      <li><a href="${ctx}/admin/web-page?webPage=${pageRenderInfo.pagePath}"><i class="fa fa-edit fa-fw"></i> Edit Page Info</a></li>
+                    </c:if>
+                    <c:if test="${(userSession.hasRole('admin') || userSession.hasRole('content-manager')) && !empty masterWebPage.link}">
+                      <li><a href="${ctx}/admin/web-page-designer?webPage=${masterWebPage.link}"><i class="fa fa-code fa-fw"></i> Edit Page Layout</a></li>
+                    </c:if>
+                    <c:if test="${userSession.hasRole('admin') }">
+                      <li><a href="${ctx}/admin/theme-properties"><i class="fa fa-css3 fa-fw"></i> Edit Site Theme</a></li>
+                    </c:if>
+                    <c:if test="${userSession.hasRole('admin') || userSession.hasRole('content-manager') || userSession.hasRole('community-manager') || userSession.hasRole('data-manager') || userSession.hasRole('ecommerce-manager')}">
+                      <li><a href="${ctx}/admin"><i class="fa fa-cog fa-fw"></i> Admin</a></li>
+                    </c:if>
+                    <li><a href="${ctx}/logout"><i class="fa fa-sign-out fa-fw"></i> Log Out</a></li>
+                  </ul>
+                </li>
+                <%--<li class="menu-text"><a class="no-menu" href="#"><i class="fa fa-bell fa-fw"></i></a></li>--%>
+              </c:when>
+              <c:otherwise>
+                <c:if test="${'true' eq sitePropertyMap['site.registrations'] || 'true' eq sitePropertyMap['site.login']}">
+                  <c:choose>
+                    <c:when test="${'right' eq themePropertyMap['theme.menu.location']}">
+                      <c:if test="${'true' eq sitePropertyMap['site.registrations']}">
+                        <li><a class="button" style="margin-left:1.5rem;margin-top:0.4rem" href="${ctx}/register">Sign Up</a></li>
+                      </c:if>
+                      <c:if test="${'true' eq sitePropertyMap['site.login']}">
+                        <li><a class="button" style="<c:if test="${'false' eq sitePropertyMap['site.registrations']}">margin-left:1.5rem;</c:if>margin-top:0.4rem" href="${ctx}/login">Log In</a></li>
+                      </c:if>
+                    </c:when>
+                    <c:otherwise>
+                      <c:if test="${'true' eq sitePropertyMap['site.registrations']}">
+                        <li><a class="button" href="${ctx}/register">Sign Up</a></li>
+                      </c:if>
+                      <c:if test="${'true' eq sitePropertyMap['site.login']}">
+                        <li><a class="button" href="${ctx}/login">Log In</a></li>
+                      </c:if>
+                    </c:otherwise>
+                  </c:choose>
+                </c:if>
+              </c:otherwise>
+            </c:choose>
+          </ul>
+        </div>
+      </div>
+      <c:if test="${!fn:startsWith(pageRenderInfo.name, '/admin')}">
+        </div>
+      </c:if>
+      </div>
+    </c:otherwise>
+  </c:choose>
+</div>

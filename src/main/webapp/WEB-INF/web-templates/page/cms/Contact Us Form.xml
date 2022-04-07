@@ -1,0 +1,47 @@
+<?xml version="1.0" ?>
+<!--
+  ~ Copyright 2022 SimIS Inc. (https://www.simiscms.com)
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<template name="Contact Us Form" image="Contact Us Form.png">
+  <page>
+    <section class="align-center">
+      <column class="small-12 medium-8 large-6 cell">
+        <widget name="content" class="show-for-medium">
+          <html><![CDATA[
+        <p>&nbsp;</p>
+        ]]></html>
+        </widget>
+        <widget name="content" class="text-center">
+          <uniqueId>${webPageName}-hello</uniqueId>
+          <html><![CDATA[<p>Get in touch with us and we'll get back to you...</p>]]></html>
+        </widget>
+        <widget name="form" class="callout box">
+          <formUniqueId>${webPageName}</formUniqueId>
+          <fields>
+            <field name="Name" value="name" placeholder="Your first and last name" required="true" />
+            <field name="Organization" value="organization" />
+            <field name="Email Address" value="email" type="email" required="true" />
+            <!--<field name="Are you:" value="are-you" list="Patient,Doctor,Lawmaker,Other" />-->
+            <!--<field name="Who would you like to contact?" value="who" list="Sales,Marketing,Technical,Other" />-->
+            <!--<field name="Phone Number" value="phoneNumber" />-->
+            <field name="How Can We Help?" value="comments" required="true" />
+          </fields>
+          <buttonName>Submit</buttonName>
+          <successMessage><![CDATA[Thanks! We normally respond within 24-48 hours.]]></successMessage>
+        </widget>
+      </column>
+    </section>
+  </page>
+</template>

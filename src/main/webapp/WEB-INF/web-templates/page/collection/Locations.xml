@@ -1,0 +1,57 @@
+<?xml version="1.0" ?>
+<!--
+  ~ Copyright 2022 SimIS Inc. (https://www.simiscms.com)
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<template name="Locations" image="Locations.png">
+  <rules>
+    <collection uniqueId="locations" name="Locations" />
+  </rules>
+  <page>
+    <section class="grid-x grid-margin-x align-center banner-hello">
+      <column class="small-12 cell column-container">
+        <widget name="content">
+          <uniqueId>locations-hello</uniqueId>
+        </widget>
+      </column>
+    </section>
+    <section class="align-center">
+      <column class="small-12 cell">
+        <widget name="content" class="margin-75">
+          <uniqueId>locations-opening-header</uniqueId>
+        </widget>
+      </column>
+    </section>
+    <section class="align-center">
+      <column class="small-12 cell">
+        <widget name="itemsMapApp" class="thumbTrack">
+          <collectionUniqueId>locations</collectionUniqueId>
+          <showWhenEmpty>true</showWhenEmpty>
+          <mapHeight>65vh</mapHeight>
+          <mapZoomLevel>4</mapZoomLevel>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="addItemButton" role="admin,data-manager" class="margin-top-10">
+          <buttonName>Add a Location</buttonName>
+          <collectionUniqueId>locations</collectionUniqueId>
+          <requiresPermission>false</requiresPermission>
+          <addUrl>${ctx}/add-an-item?collectionUniqueId=locations</addUrl>
+        </widget>
+      </column>
+    </section>
+  </page>
+</template>

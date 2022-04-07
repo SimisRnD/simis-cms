@@ -1,0 +1,59 @@
+.leaderboard { 
+  border: none; 
+}
+.leaderboard thead {
+  color: #98cda6;
+  background-color: #ffffff;
+  border: none;
+  font-weight: bold;
+}
+.leaderboard thead tr {
+  background-color: #ffffff;
+}
+.leaderboard thead tr th {
+  border-bottom: 2px solid #98cda6;
+}
+.leaderboard tbody tr {
+  border-top: 10px solid #ffffff;
+  border-bottom: 10px solid #ffffff;
+}
+/* .leaderboard th, .leaderboard td {     */
+  /* white-space: nowrap; */
+/* } */
+.leaderboard-rank {
+  font-size: 18px;
+  font-weight: bold;
+  color: white;
+  background-color: #98cda6;
+  border-right: 10px solid white;
+}
+/* .leaderboard .leaderboard-photo { */
+  /* background-color: #56C4CE; */
+  /* padding: 0; */
+  /* width: 100px; */
+/* } */
+.leaderboard-photo {
+  width: 80px;
+}
+.leaderboard-name {
+  font-size: 18px;
+  font-weight: bold;
+  color: white;
+  background-color: #56C4CE;
+}
+.leaderboard-points {
+  font-size: 24px;
+  font-weight: bold;
+  color: white;
+  background-color: #56C4CE;
+  text-align: right;
+}
+
+.leaderboard-photo {
+  margin-right: 6px;
+}
+@media screen and (max-width: 39.9375em) {
+  .leaderboard-photo {
+    margin-right: 80px;
+  }
+}

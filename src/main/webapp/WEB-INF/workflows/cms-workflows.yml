@@ -1,0 +1,95 @@
+# CMS Workflows
+---
+
+- id: form-submitted
+  vars:
+    formData: '{{ event.formData }}'
+    location: '{{ event.location }}'
+    emailTo: '{{ event.emailAddressesTo }}'
+    generatedId: '{{ event.generatedId }}'
+  workflow:
+    - when: '{{ !formData.flaggedAsSpam }}'
+    - block:
+      - when: '{{ !empty(emailTo) }}'
+      - email:
+        to-email: '{{ emailTo }}'
+        subject: 'Website {{ formData.getFormUniqueId() }} form {{ generatedId }} submitted'
+        template: 'cms/admin-form-submitted-notification'
+    - block:
+      - when: '{{ empty(emailTo) }}'
+      - email:
+        to-role: 'community-manager'
+        subject: 'Website {{ formData.getFormUniqueId() }} form {{ generatedId }} submitted'
+        template: 'cms/admin-form-submitted-notification'
+
+- id: blog-post-published
+  vars:
+    user: '{{ event.user }}'
+    blogPost: '{{ event.blogPost }}'
+  workflow:
+    - history:
+      message: '_{{ user.fullName }}_ **{{ verb }}** a blog post: [{{ blogPost.title }}]({{ blogPost.link }})'
+      actor-id: '{{ user.id }}'
+      verb: published
+      object: blogPost
+      object-id: '{{ blogPost.id }}'
+
+- id: calendar-event-scheduled
+  vars:
+    user: '{{ event.user }}'
+    calendarEvent: '{{ event.calendarEvent }}'
+  workflow:
+  - history:
+    message: '_{{ user.fullName }}_ **{{ verb }}** a calendar event: [{{ calendarEvent.title }}]({{ calendarEvent.link }})'
+    actor-id: '{{ user.id }}'
+    verb: scheduled
+    object: calendarEvent
+    object-id: '{{ calendarEvent.id }}'
+
+- id: calendar-event-rescheduled
+  vars:
+    user: '{{ event.user }}'
+    calendarEvent: '{{ event.calendarEvent }}'
+  workflow:
+  - history:
+    message: '_{{ user.fullName }}_ **{{ verb }}** a calendar event: [{{ calendarEvent.title }}]({{ calendarEvent.link }})'
+    actor-id: '{{ user.id }}'
+    verb: rescheduled
+    object: calendarEvent
+    object-id: '{{ calendarEvent.id }}'
+
+- id: calendar-event-removed
+  vars:
+    user: '{{ event.user }}'
+    calendarEvent: '{{ event.calendarEvent }}'
+  workflow:
+  - history:
+    message: '_{{ user.fullName }}_ **{{ verb }}** a calendar event: {{ calendarEvent.title }}'
+    actor-id: '{{ user.id }}'
+    verb: removed
+    object: calendarEvent
+    object-id: '{{ calendarEvent.id }}'
+
+- id: web-page-published
+  vars:
+    user: '{{ event.user }}'
+    webPage: '{{ event.webPage }}'
+  workflow:
+    - history:
+      message: '_{{ user.fullName }}_ **{{ verb }}** a web page: [{{ event.title }}]({{ webPage.link }})'
+      actor-id: '{{ user.id }}'
+      verb: published
+      object: webPage
+      object-id: '{{ webPage.id }}'
+
+- id: web-page-updated
+  vars:
+    user: '{{ event.user }}'
+    webPage: '{{ event.webPage }}'
+  workflow:
+    - history:
+      message: '_{{ user.fullName }}_ **{{ verb }}** a web page: [{{ event.title }}]({{ webPage.link }})'
+      actor-id: '{{ user.id }}'
+      verb: updated
+      object: webPage
+      object-id: '{{ webPage.id }}'

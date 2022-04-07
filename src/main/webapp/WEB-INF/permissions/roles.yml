@@ -1,0 +1,72 @@
+
+# site roles, user groups, collection roles
+
+collections:
+
+  default:
+    options:
+      - allow_users_to_join
+    tabs:
+      home:
+        label: About
+        link: /
+        roles: *
+      chat:
+        label: Members
+        link: /members
+        roles: admin
+      settings:
+        label: Settings
+        link: /settings
+        roles: admin
+    roles:
+      guest:
+        options:
+          label: Guest
+          rank: 500
+        permissions:
+          - item.files.view
+          - item.files.download
+      member:
+        inheritance:
+          - guest
+        permissions:
+          - item.files.upload
+      vip:
+        inheritance:
+          - member
+        permissions:
+          - permission1
+      assigned:
+        inheritance:
+          - member
+        permissions:
+          - permission1
+      expert:
+        inheritance:
+          - member
+        permissions:
+          - permission1
+      moderator:
+        inheritance:
+          - member
+        permissions:
+          - permission1
+      employee:
+        inheritance:
+          - member
+        permissions:
+          - permission1
+      manager:
+        inheritance:
+          - member
+        permissions:
+          - permission1
+      owner:
+        inheritance:
+          - member
+        permissions:
+          - permission1
+      admin:
+        permissions:
+          - *

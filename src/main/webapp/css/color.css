@@ -1,0 +1,73 @@
+/*
+ * Customizations
+ * This is a sample file to be placed in the web directory
+ */
+
+/* Tab Bar Logo Img Size */
+#platform-menu .top-bar .logo img {
+  max-height: 50px;
+  max-width: 100%;
+  height: auto;
+}
+
+#platform-menu li.logo a img {
+  height: 35px;
+}
+
+#platform-menu.platform-admin-menu li.logo a img {
+  height: 35px;
+}
+
+.callout.header a {
+  color: #eeeeee;
+}
+
+.platform-blog-list-container a {
+  color: #cb5a3e;
+}
+
+.platform-activity-title {
+  color: #fff;
+  background-color: #3877b5;
+}
+
+.platform-scrollable-view {
+  border: 1px solid #3877b5;
+}
+
+/*
+#platform-menu {
+  background-color: rgb(48, 75, 98) !important;
+  background-color: rgba(48, 75, 98, 0.85) !important;
+  padding-top: 30px;
+  padding-bottom: 6px;
+  border-bottom: 4px solid #3c747a;
+}
+
+#platform-menu.platform-admin-menu {
+  background-color: rgb(48, 75, 98) !important;
+  padding-top: 0;
+  padding-bottom: 0;
+  border-bottom: none;
+}
+*/
+
+
+#platform-menu.is-stuck {
+  /*background-color: rgba(11, 83, 148, 0.85) !important;*/
+  /*background-color: rgba(133, 141, 148, 0.85) !important;*/
+  /*transition: all 3s ease-in-out;*/
+}
+
+.video-background {
+  background-color: #000;
+  border-bottom: 10px solid #1c1d20;
+}
+.video-background video {
+  filter:opacity(50%);
+}
+.video-background-content {
+  color: #fff;
+}
+
+/**** Sample Changes ****/

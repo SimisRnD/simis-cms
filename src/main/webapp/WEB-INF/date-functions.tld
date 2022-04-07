@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<!--
+  ~ Copyright 2022 SimIS Inc. (https://www.simiscms.com)
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<taglib xmlns="http://java.sun.com/xml/ns/javaee"
+        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+        xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-jsptaglibrary_2_1.xsd"
+        version="2.1">
+    <tlib-version>1.0</tlib-version>
+    <short-name>date</short-name>
+    <function>
+        <description>
+            Determines if the date is in the future
+        </description>
+        <name>isAfterNow</name>
+        <function-class>com.simisinc.platform.application.cms.DateCommand</function-class>
+        <function-signature>boolean isAfterNow(java.sql.Timestamp)</function-signature>
+    </function>
+    <function>
+        <description>
+            Determines if the date is in the past
+        </description>
+        <name>isBeforeNow</name>
+        <function-class>com.simisinc.platform.application.cms.DateCommand</function-class>
+        <function-signature>boolean isBeforeNow(java.sql.Timestamp)</function-signature>
+    </function>
+    <function>
+        <description>
+            Determines if the date is within a certain time
+        </description>
+        <name>isMinutesOld</name>
+        <function-class>com.simisinc.platform.application.cms.DateCommand</function-class>
+        <function-signature>boolean isMinutesOld(java.sql.Timestamp,int)</function-signature>
+    </function>
+    <function>
+        <description>
+            Returns the date in format Month Day'th Year
+        </description>
+        <name>formatMonthDayYear</name>
+        <function-class>com.simisinc.platform.application.cms.FormatDateCommand</function-class>
+        <function-signature>java.lang.String formatMonthDayYear(java.sql.Timestamp)</function-signature>
+    </function>
+    <function>
+        <description>
+            Returns the time in format h:mm a
+        </description>
+        <name>formatTime</name>
+        <function-class>com.simisinc.platform.application.cms.FormatDateCommand</function-class>
+        <function-signature>java.lang.String formatTime(java.sql.Timestamp)</function-signature>
+    </function>
+    <function>
+        <description>
+            Returns the relative date/time
+        </description>
+        <name>relative</name>
+        <function-class>com.simisinc.platform.application.cms.DateCommand</function-class>
+        <function-signature>java.lang.String relative(java.sql.Timestamp)</function-signature>
+    </function>
+    <function>
+        <description>
+            Returns the date/time with the given adjustment
+        </description>
+        <name>adjustDays</name>
+        <function-class>com.simisinc.platform.application.cms.DateCommand</function-class>
+        <function-signature>java.sql.Timestamp addDays(java.sql.Timestamp, int)</function-signature>
+    </function>
+</taglib>

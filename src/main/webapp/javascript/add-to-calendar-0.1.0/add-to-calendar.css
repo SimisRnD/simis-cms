@@ -1,0 +1,130 @@
+
+.add-to-calendar {
+	position: relative;
+  text-align: left;
+}
+
+.add-to-calendar > * {
+	display:none;
+}
+
+.add-to-calendar > .add-to-calendar-widget {
+	display:block;
+}
+
+.add-to-calendar-label {
+  cursor: pointer;
+}
+.add-to-calendar-label i {
+	margin-right: 6px;
+}
+
+.add-to-calendar-label + div.add-to-calendar-dropdown,
+.add-to-calendar-checkbox + div.add-to-calendar-dropdown {
+  display: none;
+}
+
+.add-to-calendar-widget.open .add-to-calendar-label + div.add-to-calendar-dropdown,
+.add-to-calendar-checkbox:checked + div.add-to-calendar-dropdown {
+  display: block;
+}
+
+input[type=checkbox].add-to-calendar-checkbox {
+  position: absolute;
+  visibility:hidden;
+}
+
+.add-to-calendar-widget.open .add-to-calendar-label + div.add-to-calendar-dropdown a,
+.add-to-calendar-checkbox + div.add-to-calendar-dropdown a {
+	line-height: 28px;
+  cursor: pointer;
+  display:block;
+  margin-bottom: .25em;
+	margin-right: .25rem;
+}
+.add-to-calendar-widget.open .add-to-calendar-label + div.add-to-calendar-dropdown a:last-child,
+.add-to-calendar-checkbox + div.add-to-calendar-dropdown a:last-child {
+  margin-bottom: 0;
+}
+
+.add-to-calendar-widget.open .add-to-calendar-label + div.add-to-calendar-dropdown a:before,
+.add-to-calendar-checkbox + div.add-to-calendar-dropdown a:before {
+	width: 30px;
+  height: 24px;
+  display: inline-block;
+  vertical-align: top;
+  margin: 0 .5em 0 0;
+  content: ' ';
+}
+
+/* --------------------
+    prettify
+-------------------- */
+
+.add-to-calendar-widget {
+	font-family:sans-serif;
+	position:relative;
+}
+
+.add-to-calendar-label {
+	display: inline-block;
+	margin-top: 15px;
+  margin-right: 50px;
+}
+@media (max-width: 39.99em) {
+  .add-to-calendar {
+    display: block;
+  }
+  .add-to-calendar-label {
+    margin-top: 15px;
+    margin-right: 0;
+  }
+}
+
+.add-to-calendar-dropdown  {
+	position: absolute;
+	z-index: 99;
+	background-color: white;
+	top: 55px;
+	left:0;
+	padding: 0.5em 0.5em 0.5em 0;
+	margin:0!important;
+	box-shadow: 0px 3px 6px rgba(0,0,0,0.2);
+  border: 1px solid #ebebeb;
+}
+
+.add-to-calendar-dropdown a {
+	display: block;
+	text-decoration: none;
+	color: inherit;
+	opacity:.7;
+}
+
+.add-to-calendar-dropdown a:hover {
+	opacity:1;
+}
+
+.icon-ical {
+  background: url(./gfx/icon-apple-t5.svg) 10px 40% no-repeat;
+  background-size: 22px 100%;
+}
+.icon-google {
+  background: url(./gfx/icon-google-t5.svg) 10px 50% no-repeat;
+  background-size: 22px 100%;
+}
+.icon-outlook {
+	background: url(./gfx/icon-outlook-t5.svg) 10px 50% no-repeat;
+	background-size: 22px 100%;
+}
+.icon-outlkcom {
+	background: url(./gfx/icon-outlookcom-t5.svg) 10px 50% no-repeat;
+	background-size: 22px 100%;
+}
+.icon-off365 {
+  background: url(./gfx/icon-office365-t5.svg) 10px 50% no-repeat;
+  background-size: 22px 100%;
+}
+.icon-yahoo {
+  background: url(./gfx/icon-yahoo-t5.svg) 10px 50% no-repeat;
+  background-size: 22px 100%;
+}

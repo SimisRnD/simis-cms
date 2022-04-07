@@ -1,0 +1,46 @@
+<?xml version="1.0" ?>
+<!--
+  ~ Copyright 2022 SimIS Inc. (https://www.simiscms.com)
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<template name="Job Listings" image="Job Listings.png">
+  <rules>
+    <collection uniqueId="job-listings" name="Job Listings" />
+  </rules>
+  <page>
+    <section>
+      <column class="small-12 cell">
+        <widget name="content">
+          <html><![CDATA[<h2>Career and Job Listings</span></h2>]]></html>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="addItemButton" role="users">
+          <buttonName>Add a Job Listing</buttonName>
+          <collectionUniqueId>job-listings</collectionUniqueId>
+          <requiresPermission>false</requiresPermission>
+          <addUrl>${ctx}/add-job-listing</addUrl>
+        </widget>
+        <widget name="itemsList">
+          <view>jobs</view>
+          <sortBy>new</sortBy>
+          <showWhenEmpty>true</showWhenEmpty>
+          <collectionUniqueId>job-listings</collectionUniqueId>
+        </widget>
+      </column>
+    </section>
+  </page>
+</template>
