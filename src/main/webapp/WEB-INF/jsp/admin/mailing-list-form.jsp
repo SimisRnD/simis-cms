@@ -30,10 +30,10 @@
   </c:if>
   <%@include file="../page_messages.jspf" %>
   <%-- Form Content --%>
-    <label>Basic Name
+    <label>Basic Name <span class="required">*</span>
       <input type="text" placeholder="What kind is this..." name="name" value="<c:out value="${mailingList.name}"/>">
     </label>
-  <label>Title
+  <label>Title <span class="required">*</span>
     <input type="text" placeholder="Give it a title users will see..." name="title" value="<c:out value="${mailingList.title}"/>">
   </label>
   <label>Description
