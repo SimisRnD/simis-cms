@@ -33,6 +33,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 
+import static com.simisinc.platform.application.medicine.MedicineConstants.COLLECTION_CAREGIVERS_UNIQUE_ID;
+import static com.simisinc.platform.application.medicine.MedicineConstants.COLLECTION_INDIVIDUALS_UNIQUE_ID;
+
 /**
  * Returns a list of individuals being cared for
  *
@@ -43,15 +46,12 @@ public class IndividualListService {
 
   private static Log LOG = LogFactory.getLog(IndividualListService.class);
 
-  private static String CAREGIVERS_UNIQUE_ID = "caregivers";
-  private static String INDIVIDUALS_UNIQUE_ID = "individuals";
-
   // endpoint: med/individuals
   public ServiceResponse get(ServiceContext context) {
 
     // Check the caregivers collection for access
-    Collection caregiversCollection = LoadCollectionCommand.loadCollectionByUniqueIdForAuthorizedUser(CAREGIVERS_UNIQUE_ID, context.getUserId());
-    Collection individualsCollection = LoadCollectionCommand.loadCollectionByUniqueIdForAuthorizedUser(INDIVIDUALS_UNIQUE_ID, context.getUserId());
+    Collection caregiversCollection = LoadCollectionCommand.loadCollectionByUniqueIdForAuthorizedUser(COLLECTION_CAREGIVERS_UNIQUE_ID, context.getUserId());
+    Collection individualsCollection = LoadCollectionCommand.loadCollectionByUniqueIdForAuthorizedUser(COLLECTION_INDIVIDUALS_UNIQUE_ID, context.getUserId());
     if (caregiversCollection == null || individualsCollection == null) {
       ServiceResponse response = new ServiceResponse(400);
       response.getError().put("title", "Collection was not found");

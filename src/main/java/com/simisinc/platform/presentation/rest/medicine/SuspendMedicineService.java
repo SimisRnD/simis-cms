@@ -22,7 +22,6 @@ import com.simisinc.platform.domain.model.medicine.Medicine;
 import com.simisinc.platform.infrastructure.persistence.medicine.MedicineRepository;
 import com.simisinc.platform.presentation.rest.ServiceContext;
 import com.simisinc.platform.presentation.rest.ServiceResponse;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -36,9 +35,6 @@ import org.apache.commons.logging.LogFactory;
 public class SuspendMedicineService {
 
   private static Log LOG = LogFactory.getLog(SuspendMedicineService.class);
-
-  private static String DRUG_LIST_UNIQUE_ID = "drug-list";
-  private static String INDIVIDUALS_UNIQUE_ID = "individuals";
 
   // POST: suspend/medicine/{medicineId}
   public ServiceResponse post(ServiceContext context) {

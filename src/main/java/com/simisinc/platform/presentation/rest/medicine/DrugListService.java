@@ -32,6 +32,8 @@ import org.apache.commons.logging.LogFactory;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.simisinc.platform.application.medicine.MedicineConstants.COLLECTION_DRUG_LIST_UNIQUE_ID;
+
 /**
  * Returns a list of drugs based on the query
  *
@@ -42,13 +44,11 @@ public class DrugListService {
 
   private static Log LOG = LogFactory.getLog(DrugListService.class);
 
-  private static String DRUG_LIST_UNIQUE_ID = "drug-list";
-
   // endpoint: med/drugList?q={query}
   public ServiceResponse get(ServiceContext context) {
 
     // Check the drug list collection for access
-    Collection drugListCollection = LoadCollectionCommand.loadCollectionByUniqueIdForAuthorizedUser(DRUG_LIST_UNIQUE_ID, context.getUserId());
+    Collection drugListCollection = LoadCollectionCommand.loadCollectionByUniqueIdForAuthorizedUser(COLLECTION_DRUG_LIST_UNIQUE_ID, context.getUserId());
     if (drugListCollection == null) {
       ServiceResponse response = new ServiceResponse(400);
       response.getError().put("title", "Drug list was not found");

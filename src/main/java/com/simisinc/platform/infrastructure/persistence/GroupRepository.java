@@ -18,7 +18,10 @@ package com.simisinc.platform.infrastructure.persistence;
 
 import com.simisinc.platform.domain.model.Group;
 import com.simisinc.platform.domain.model.User;
-import com.simisinc.platform.infrastructure.database.*;
+import com.simisinc.platform.infrastructure.database.DB;
+import com.simisinc.platform.infrastructure.database.DataConstraints;
+import com.simisinc.platform.infrastructure.database.DataResult;
+import com.simisinc.platform.infrastructure.database.SqlUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -49,6 +52,15 @@ public class GroupRepository {
     return (Group) DB.selectRecordFrom(
         TABLE_NAME,
         new SqlUtils().add("group_id = ?", id),
+        GroupRepository::buildRecord);
+  }
+
+  public static Group findByUniqueId(String uniqueId) {
+    if (StringUtils.isBlank(uniqueId)) {
+      return null;
+    }
+    return (Group) DB.selectRecordFrom(
+        TABLE_NAME, new SqlUtils().add("unique_id = ?", uniqueId),
         GroupRepository::buildRecord);
   }
 
@@ -98,6 +110,7 @@ public class GroupRepository {
   private static Group add(Group record) {
     SqlUtils insertValues = new SqlUtils()
         .add("name", StringUtils.trimToNull(record.getName()))
+        .add("unique_id", StringUtils.trimToNull(record.getUniqueId()))
         .add("description", StringUtils.trimToNull(record.getDescription()));
     record.setId(DB.insertInto(TABLE_NAME, insertValues, PRIMARY_KEY));
     if (record.getId() == -1) {
@@ -110,6 +123,7 @@ public class GroupRepository {
   private static Group update(Group record) {
     SqlUtils updateValues = new SqlUtils()
         .add("name", StringUtils.trimToNull(record.getName()))
+        .add("unique_id", StringUtils.trimToNull(record.getUniqueId()))
         .add("description", StringUtils.trimToNull(record.getDescription()));
     SqlUtils where = new SqlUtils()
         .add("group_id = ?", record.getId());
@@ -194,6 +208,7 @@ public class GroupRepository {
       record.setName(rs.getString("name"));
       record.setDescription(rs.getString("description"));
       record.setUserCount(rs.getLong("user_count"));
+      record.setUniqueId(rs.getString("unique_id"));
       return record;
     } catch (SQLException se) {
       LOG.error("buildRecord", se);

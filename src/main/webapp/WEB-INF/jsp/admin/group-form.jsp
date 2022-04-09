@@ -30,11 +30,16 @@
   </c:if>
   <%@include file="../page_messages.jspf" %>
   <%-- Form Content --%>
-  <label>Name
-    <input type="text" placeholder="Give it a name..." name="name" value="<c:out value="${group.name}"/>">
+  <label>Name <span class="required">*</span>
+    <input type="text" placeholder="Give it a name..." name="name" aria-describedby="uniqueNameHelpText" value="<c:out value="${group.name}"/>" required>
   </label>
+    <p class="help-text" id="uniqueNameHelpText">The name must be unique</p>
   <label>Description
     <input type="text" placeholder="Describe it..." name="description" value="<c:out value="${group.description}"/>">
   </label>
+  <label>Unique Id <span class="required">*</span>
+    <input type="text" placeholder="Internal Reference Id..." name="uniqueId" aria-describedby="uniqueIdHelpText" value="<c:out value="${group.uniqueId}"/>">
+  </label>
+  <p class="help-text" id="uniqueIdHelpText">Leave blank to auto-generate; this value does not usually change! No spaces, use lowercase, a-z, 0-9, dashes</p>
   <p><input type="submit" class="button radius success expanded" value="Save"/></p>
 </form>

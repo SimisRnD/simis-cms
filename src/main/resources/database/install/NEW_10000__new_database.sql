@@ -270,10 +270,11 @@ CREATE TABLE groups (
   group_id BIGSERIAL PRIMARY KEY,
   name VARCHAR(100) UNIQUE NOT NULL,
   description TEXT,
-  user_count BIGINT NOT NULL DEFAULT 0
+  user_count BIGINT NOT NULL DEFAULT 0,
+  unique_id VARCHAR(255) UNIQUE NOT NULL
 );
 
-INSERT INTO groups (name) VALUES ('All Users');
+INSERT INTO groups (name, unique_id) VALUES ('All Users', 'users');
 
 CREATE TABLE user_groups (
   user_group_id BIGSERIAL PRIMARY KEY,

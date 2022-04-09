@@ -302,12 +302,12 @@ public class User extends Entity {
     this.groupList = groupList;
   }
 
-  public boolean hasGroup(long groupId) {
+  public boolean hasGroup(String groupUniqueId) {
     if (groupList == null) {
       return false;
     }
     for (Group group : groupList) {
-      if (group.getId() == groupId) {
+      if (group.getUniqueId().equals(groupUniqueId)) {
         return true;
       }
     }

@@ -41,6 +41,9 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.simisinc.platform.application.medicine.MedicineConstants.COLLECTION_CAREGIVERS_UNIQUE_ID;
+import static com.simisinc.platform.application.medicine.MedicineConstants.COLLECTION_INDIVIDUALS_UNIQUE_ID;
+
 /**
  * Returns a list of medicine action history
  *
@@ -50,9 +53,6 @@ import java.util.List;
 public class MedicineLogListService {
 
   private static Log LOG = LogFactory.getLog(MedicineLogListService.class);
-
-  private static String CAREGIVERS_UNIQUE_ID = "caregivers";
-  private static String INDIVIDUALS_UNIQUE_ID = "individuals";
 
   // endpoint: med/medicineLogList/{uniqueId}
   public ServiceResponse get(ServiceContext context) {
@@ -67,8 +67,8 @@ public class MedicineLogListService {
     ZoneId timezone = ZoneId.of(tz);
 
     // Check the caregivers collection for access
-    Collection caregiversCollection = LoadCollectionCommand.loadCollectionByUniqueIdForAuthorizedUser(CAREGIVERS_UNIQUE_ID, context.getUserId());
-    Collection individualsCollection = LoadCollectionCommand.loadCollectionByUniqueIdForAuthorizedUser(INDIVIDUALS_UNIQUE_ID, context.getUserId());
+    Collection caregiversCollection = LoadCollectionCommand.loadCollectionByUniqueIdForAuthorizedUser(COLLECTION_CAREGIVERS_UNIQUE_ID, context.getUserId());
+    Collection individualsCollection = LoadCollectionCommand.loadCollectionByUniqueIdForAuthorizedUser(COLLECTION_INDIVIDUALS_UNIQUE_ID, context.getUserId());
     if (caregiversCollection == null || individualsCollection == null) {
       ServiceResponse response = new ServiceResponse(400);
       response.getError().put("title", "Collection was not found");

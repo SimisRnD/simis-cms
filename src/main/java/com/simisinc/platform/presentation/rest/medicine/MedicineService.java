@@ -40,6 +40,9 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.simisinc.platform.application.medicine.MedicineConstants.COLLECTION_DRUG_LIST_UNIQUE_ID;
+import static com.simisinc.platform.application.medicine.MedicineConstants.COLLECTION_INDIVIDUALS_UNIQUE_ID;
+
 /**
  * An endpoint for saving medicine for an individual
  *
@@ -49,9 +52,6 @@ import java.util.List;
 public class MedicineService {
 
   private static Log LOG = LogFactory.getLog(MedicineService.class);
-
-  private static String DRUG_LIST_UNIQUE_ID = "drug-list";
-  private static String INDIVIDUALS_UNIQUE_ID = "individuals";
 
   // PUT: med/medicine[/medicineId]
   public ServiceResponse put(ServiceContext context) {
@@ -77,7 +77,7 @@ public class MedicineService {
       // Handle the individualUniqueId
       String individualUniqueId = context.getParameter("individualUniqueId");
       if (!StringUtils.isBlank(individualUniqueId)) {
-        Collection individualsCollection = LoadCollectionCommand.loadCollectionByUniqueIdForAuthorizedUser(INDIVIDUALS_UNIQUE_ID, context.getUserId());
+        Collection individualsCollection = LoadCollectionCommand.loadCollectionByUniqueIdForAuthorizedUser(COLLECTION_INDIVIDUALS_UNIQUE_ID, context.getUserId());
         Item item = LoadItemCommand.loadItemByUniqueIdWithinCollection(individualUniqueId, individualsCollection);
         if (item != null) {
           medicineBean.setIndividualId(item.getId());
@@ -86,7 +86,7 @@ public class MedicineService {
       // Handle the drugUniqueId
       String drugUniqueId = context.getParameter("drugUniqueId");
       if (!StringUtils.isBlank(drugUniqueId)) {
-        Collection drugListCollection = LoadCollectionCommand.loadCollectionByUniqueIdForAuthorizedUser(DRUG_LIST_UNIQUE_ID, context.getUserId());
+        Collection drugListCollection = LoadCollectionCommand.loadCollectionByUniqueIdForAuthorizedUser(COLLECTION_DRUG_LIST_UNIQUE_ID, context.getUserId());
         Item item = LoadItemCommand.loadItemByUniqueIdWithinCollection(drugUniqueId, drugListCollection);
         if (item != null) {
           medicineBean.setDrugId(item.getId());

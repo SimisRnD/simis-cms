@@ -27,6 +27,7 @@ public class Group extends Entity {
   private Long id = -1L;
 
   private String name = null;
+  private String uniqueId = null;
   private String description = null;
   private long userCount = 0;
 
@@ -47,6 +48,14 @@ public class Group extends Entity {
 
   public void setName(String name) {
     this.name = name;
+  }
+
+  public String getUniqueId() {
+    return uniqueId;
+  }
+
+  public void setUniqueId(String uniqueId) {
+    this.uniqueId = uniqueId;
   }
 
   public String getDescription() {
