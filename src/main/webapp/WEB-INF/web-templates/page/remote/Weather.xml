@@ -31,7 +31,7 @@
           <url>http://www.wpc.ncep.noaa.gov/noaa/noaa.gif</url>
         </widget>
         <widget name="remoteContent">
-          <url>https://forecast.weather.gov/MapClick.php?lat=35.735041600000045&amp;lon=-78.77842899999996&amp;1=2</url>
+          <url>https://forecast.weather.gov/MapClick.php?lat=35.735041600000045&amp;lon=-78.77842899999996</url>
           <startTag><![CDATA[<b>Current conditions at</b>]]></startTag>
           <endTag><![CDATA[</span>]]></endTag>
           <includeTags>false</includeTags>
