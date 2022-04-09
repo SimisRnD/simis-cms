@@ -173,7 +173,10 @@ public class EmailTask implements Work {
           email.addTo(user.getEmail(), user.getFullName());
         }
         if (StringUtils.isNotBlank(toEmail)) {
-          email.addTo(toEmail);
+          String[] listOfEmails = toEmail.split(",");
+          for (String thisEmail : listOfEmails) {
+            email.addTo(thisEmail.trim());
+          }
         }
 
         // Set the content
