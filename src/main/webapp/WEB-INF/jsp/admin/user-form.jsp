@@ -253,10 +253,10 @@
     <div class="small-12 medium-4 cell">
       <fieldset>
         <div class="grid-x grid-padding-x callout secondary">
-          <div class="small-2 text-right cell">
+          <div class="small-3 text-right cell">
             <label>Roles</label>
           </div>
-          <div class="small-10 cell">
+          <div class="small-9 cell">
             <c:forEach items="${roleList}" var="role">
               <c:choose>
                 <c:when test="${role.code eq 'admin' && !userSession.hasRole('admin')}"><%-- --%></c:when>
@@ -270,10 +270,10 @@
       </fieldset>
       <fieldset>
         <div class="grid-x grid-padding-x callout secondary">
-          <div class="small-2 text-right cell">
+          <div class="small-3 text-right cell">
             <label>Groups</label>
           </div>
-          <div class="small-10 cell">
+          <div class="small-9 cell">
             <c:forEach items="${groupList}" var="group">
               <input id="groupId${group.id}" type="checkbox" name="groupId${group.id}" value="${group.id}" <c:if test="${user.hasGroup(group.id)}">checked</c:if>/><label for="groupId${group.id}"><c:out value="${group.name}" /></label><br />
             </c:forEach>
