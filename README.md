@@ -63,6 +63,8 @@ The release notes will include a list of changes for review.
 
 Download the .war and follow your choice of deployment options.
 
+To log into a new site, add "/login" to the URL.
+
 ## Deployment Options
 
 ### Deploying with Apache Tomcat
