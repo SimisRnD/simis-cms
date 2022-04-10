@@ -254,8 +254,11 @@ public class PageServlet extends HttpServlet {
       }
 
       // Verify the user has access to the page
-      if (!pageRef.allowsUser(userSession)) {
-        LOG.error("PAGE NOT ALLOWED: " + pagePath + " [roles=" + pageRef.getRoles().toString() + "] " + request.getRemoteAddr());
+      if (!WebComponentCommand.allowsUser(pageRef, userSession)) {
+        LOG.warn("PAGE NOT ALLOWED: " + pagePath + " " +
+            (!pageRef.getRoles().isEmpty() ? "[roles=" + pageRef.getRoles().toString() + "]" + " " : "") +
+            (!pageRef.getGroups().isEmpty() ? "[groups=" + pageRef.getGroups().toString() + "]" + " " : "") +
+            request.getRemoteAddr());
         controllerSession.clearAllWidgetData();
         response.sendError(HttpServletResponse.SC_NOT_FOUND);
         return;

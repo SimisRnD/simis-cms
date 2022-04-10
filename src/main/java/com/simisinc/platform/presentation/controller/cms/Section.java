@@ -16,8 +16,6 @@
 
 package com.simisinc.platform.presentation.controller.cms;
 
-import com.simisinc.platform.presentation.controller.login.UserSession;
-
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
@@ -36,6 +34,7 @@ public class Section implements Serializable {
   private List<Column> columns = new ArrayList<Column>();
   private List<Section> sections = new ArrayList<Section>();
   private List<String> roles = new ArrayList<String>();
+  private List<String> groups = new ArrayList<String>();
 
   // Output properties
   private String htmlId = null;
@@ -111,21 +110,11 @@ public class Section implements Serializable {
     this.roles = roles;
   }
 
-  public boolean allowsUser(UserSession userSession) {
-    if (roles.isEmpty()) {
-      return true;
-    }
-    for (String role : roles) {
-      if ("guest".equals(role) && !userSession.isLoggedIn()) {
-        return true;
-      }
-      if ("users".equals(role) && userSession.isLoggedIn()) {
-        return true;
-      }
-      if (userSession.hasRole(role)) {
-        return true;
-      }
-    }
-    return false;
+  public List<String> getGroups() {
+    return groups;
+  }
+
+  public void setGroups(List<String> groups) {
+    this.groups = groups;
   }
 }

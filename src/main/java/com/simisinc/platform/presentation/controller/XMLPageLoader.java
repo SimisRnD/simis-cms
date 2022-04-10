@@ -205,12 +205,23 @@ public class XMLPageLoader implements Serializable {
     if (e.hasAttribute("description")) {
       page.setDescription(e.getAttribute("description"));
     }
-    String aRoles = e.getAttribute("role");
-    if (aRoles != null && aRoles.length() > 0) {
-      List<String> roles = Stream.of(aRoles.split(","))
-          .map(String::trim)
-          .collect(toList());
-      page.setRoles(roles);
+    if (e.hasAttribute("role")) {
+      String aRoles = e.getAttribute("role");
+      if (aRoles.length() > 0) {
+        List<String> roles = Stream.of(aRoles.split(","))
+            .map(String::trim)
+            .collect(toList());
+        page.setRoles(roles);
+      }
+    }
+    if (e.hasAttribute("group")) {
+      String aGroups = e.getAttribute("group");
+      if (aGroups.length() > 0) {
+        List<String> groups = Stream.of(aGroups.split(","))
+            .map(String::trim)
+            .collect(toList());
+        page.setGroups(groups);
+      }
     }
     if (e.hasAttribute("class")) {
       if (e.hasAttribute("endpoint")) {
