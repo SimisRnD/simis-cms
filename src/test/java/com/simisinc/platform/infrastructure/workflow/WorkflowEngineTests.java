@@ -23,6 +23,12 @@ import org.junit.jupiter.api.Test;
 
 import java.util.concurrent.TimeUnit;
 
+/**
+ * Tests for domain event processing
+ *
+ * @author matt rajkowski
+ * @created 4/9/2021 4:36 PM
+ */
 public class WorkflowEngineTests {
 
   @Test

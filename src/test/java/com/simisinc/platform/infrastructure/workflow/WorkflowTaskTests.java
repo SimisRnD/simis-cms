@@ -38,6 +38,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+/**
+ * Tests for workflow files
+ *
+ * @author matt rajkowski
+ * @created 4/9/2021 4:36 PM
+ */
 public class WorkflowTaskTests {
 
   @Test
@@ -46,6 +52,8 @@ public class WorkflowTaskTests {
     // Read in all the platform playbooks
     Path path = Path.of("", "src/main/webapp/WEB-INF/workflows");
     File directory = path.toFile();
+    Assertions.assertTrue(directory.isDirectory());
+    Assertions.assertNotNull(directory.listFiles());
     Map<String, String> taskLibrary = new HashMap<>();
     try {
       for (File file : directory.listFiles()) {
