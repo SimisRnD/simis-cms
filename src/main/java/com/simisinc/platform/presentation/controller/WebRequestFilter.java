@@ -34,6 +34,7 @@ import com.simisinc.platform.domain.model.Visitor;
 import com.simisinc.platform.domain.model.ecommerce.Cart;
 import com.simisinc.platform.domain.model.ecommerce.PricingRule;
 import com.simisinc.platform.domain.model.login.UserLogin;
+import com.simisinc.platform.infrastructure.persistence.GroupRepository;
 import com.simisinc.platform.infrastructure.persistence.RoleRepository;
 import com.simisinc.platform.infrastructure.persistence.SessionRepository;
 import com.simisinc.platform.infrastructure.persistence.login.UserLoginRepository;
@@ -284,6 +285,7 @@ public class WebRequestFilter implements Filter {
     // Update the roles every request for dynamic changes
     if (userSession.isLoggedIn()) {
       userSession.setRoleList(RoleRepository.findAllByUserId(userSession.getUser().getId()));
+      userSession.setGroupList(GroupRepository.findAllByUserId(userSession.getUser().getId()));
     }
 
     // Check once to see if this browser has a cookie for the user
