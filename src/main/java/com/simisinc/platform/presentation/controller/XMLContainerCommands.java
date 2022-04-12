@@ -75,12 +75,23 @@ public class XMLContainerCommands implements Serializable {
       if (cssStyle != null) {
         section.setCssStyle(cssStyle);
       }
-      String aRoles = child.getAttribute("role");
-      if (aRoles != null && aRoles.length() > 0) {
-        List<String> roles = Stream.of(aRoles.split(","))
-            .map(String::trim)
-            .collect(toList());
-        section.setRoles(roles);
+      if (child.hasAttribute("role")) {
+        String aRoles = child.getAttribute("role");
+        if (aRoles.length() > 0) {
+          List<String> roles = Stream.of(aRoles.split(","))
+              .map(String::trim)
+              .collect(toList());
+          section.setRoles(roles);
+        }
+      }
+      if (child.hasAttribute("group")) {
+        String aGroups = child.getAttribute("group");
+        if (aGroups.length() > 0) {
+          List<String> groups = Stream.of(aGroups.split(","))
+              .map(String::trim)
+              .collect(toList());
+          section.setGroups(groups);
+        }
       }
       if (child.hasAttribute("hr") && child.getAttribute("hr").equals("true")) {
         section.setHr(true);
@@ -150,12 +161,23 @@ public class XMLContainerCommands implements Serializable {
         if (cssStyle != null) {
           column.setCssStyle(cssStyle);
         }
-        String aRoles = child.getAttribute("role");
-        if (aRoles != null && aRoles.length() > 0) {
-          List<String> roles = Stream.of(aRoles.split(","))
-              .map(String::trim)
-              .collect(toList());
-          column.setRoles(roles);
+        if (child.hasAttribute("role")) {
+          String aRoles = child.getAttribute("role");
+          if (aRoles.length() > 0) {
+            List<String> roles = Stream.of(aRoles.split(","))
+                .map(String::trim)
+                .collect(toList());
+            column.setRoles(roles);
+          }
+        }
+        if (child.hasAttribute("group")) {
+          String aGroups = child.getAttribute("group");
+          if (aGroups.length() > 0) {
+            List<String> groups = Stream.of(aGroups.split(","))
+                .map(String::trim)
+                .collect(toList());
+            column.setGroups(groups);
+          }
         }
         columns.add(column);
         LOG.trace("Adding column");
@@ -224,12 +246,23 @@ public class XMLContainerCommands implements Serializable {
       if (child.hasAttribute("hr") && child.getAttribute("hr").equals("true")) {
         widget.setHr(true);
       }
-      String aRoles = child.getAttribute("role");
-      if (aRoles != null && aRoles.length() > 0) {
-        List<String> roles = Stream.of(aRoles.split(","))
-            .map(String::trim)
-            .collect(toList());
-        widget.setRoles(roles);
+      if (child.hasAttribute("role")) {
+        String aRoles = child.getAttribute("role");
+        if (aRoles.length() > 0) {
+          List<String> roles = Stream.of(aRoles.split(","))
+              .map(String::trim)
+              .collect(toList());
+          widget.setRoles(roles);
+        }
+      }
+      if (child.hasAttribute("group")) {
+        String aGroups = child.getAttribute("group");
+        if (aGroups.length() > 0) {
+          List<String> groups = Stream.of(aGroups.split(","))
+              .map(String::trim)
+              .collect(toList());
+          widget.setGroups(groups);
+        }
       }
       widget.setWidgetName(name);
       if (widgetLibrary.containsKey(name)) {

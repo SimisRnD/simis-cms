@@ -133,12 +133,23 @@ public class XMLFooterLoader implements Serializable {
       layoutName = layoutName.substring(0, layoutName.indexOf("{"));
     }
     Footer footer = new Footer(layoutName);
-    String aRoles = container.getAttribute("role");
-    if (aRoles != null && aRoles.length() > 0) {
-      List<String> roles = Stream.of(aRoles.split(","))
-          .map(String::trim)
-          .collect(toList());
-      footer.setRoles(roles);
+    if (container.hasAttribute("role")) {
+      String aRoles = container.getAttribute("role");
+      if (aRoles.length() > 0) {
+        List<String> roles = Stream.of(aRoles.split(","))
+            .map(String::trim)
+            .collect(toList());
+        footer.setRoles(roles);
+      }
+    }
+    if (container.hasAttribute("group")) {
+      String aGroups = container.getAttribute("group");
+      if (aGroups.length() > 0) {
+        List<String> groups = Stream.of(aGroups.split(","))
+            .map(String::trim)
+            .collect(toList());
+        footer.setGroups(groups);
+      }
     }
     if (container.hasAttribute("class")) {
       // Applies the html class to the footer
