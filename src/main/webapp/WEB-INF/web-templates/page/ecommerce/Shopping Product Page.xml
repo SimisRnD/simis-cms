@@ -1,0 +1,78 @@
+<?xml version="1.0" ?>
+<!--
+  ~ Copyright 2022 SimIS Inc. (https://www.simiscms.com)
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<template name="Shopping Product Page" image="Shopping Catalog.png">
+  <page>
+    <section class="align-middle align-right margin-top-50 margin-bottom-100">
+      <column class="small-12 medium-5 cell">
+        <widget name="content">
+          <uniqueId>shop-${productUniqueId}-image</uniqueId>
+          <view>gallery</view>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 cell center-text-for-small-only">
+        <widget name="content">
+          <uniqueId>shop-${productUniqueId}-content</uniqueId>
+        </widget>
+        <widget name="addToCart">
+          <product>${productUniqueId}</product>
+          <showPrice>true</showPrice>
+          <redirectTo>${ctx}/cart</redirectTo>
+          <unavailableText>Coming soon</unavailableText>
+        </widget>
+        <widget name="content">
+          <uniqueId>shop-${productUniqueId}-subcontent</uniqueId>
+        </widget>
+      </column>
+    </section>
+    <section class="align-middle">
+      <column class="small-12 medium-6 cell">
+        <widget name="content">
+          <uniqueId>product-benefit-image</uniqueId>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 cell">
+        <widget name="content">
+          <uniqueId>product-benefit-content</uniqueId>
+        </widget>
+      </column>
+    </section>
+    <section hr="true">
+      <column class="small-12 text-center cell">
+        <widget name="content" class="margin-top-50 margin-bottom-50">
+          <uniqueId>home-follow-us</uniqueId>
+          <html>Follow Us</html>
+        </widget>
+      </column>
+    </section>
+    <section hr="true" class="align-center">
+      <column class="small-12 medium-10 large-8 text-center margin-top-50 margin-bottom-50 cell">
+        <widget name="content">
+          <uniqueId>home-newsletter-headline</uniqueId>
+          <html>Join The Newsletter</html>
+        </widget>
+      </column>
+    </section>
+    <section class="align-center">
+      <column class="small-12 medium-10 large-8 cell">
+        <widget name="emailSubscribe">
+          <buttonName>Subscribe</buttonName>
+          <showName>true</showName>
+        </widget>
+      </column>
+    </section>
+  </page>
+</template>
