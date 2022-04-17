@@ -17,7 +17,7 @@
 package com.simisinc.platform.infrastructure.workflow;
 
 import com.simisinc.platform.application.xapi.XapiStatementCommand;
-import com.simisinc.platform.application.xapi.WorkflowCommand;
+import com.simisinc.platform.application.workflow.WorkflowCommand;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.cms.BlogPost;
 import com.simisinc.platform.domain.model.xapi.XapiStatement;

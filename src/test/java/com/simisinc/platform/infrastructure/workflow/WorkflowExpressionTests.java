@@ -16,7 +16,7 @@
 
 package com.simisinc.platform.infrastructure.workflow;
 
-import com.simisinc.platform.application.xapi.WorkflowCommand;
+import com.simisinc.platform.application.workflow.WorkflowCommand;
 import org.jeasy.flows.work.Expression;
 import org.jeasy.flows.work.LogTask;
 import org.jeasy.flows.work.TaskContext;

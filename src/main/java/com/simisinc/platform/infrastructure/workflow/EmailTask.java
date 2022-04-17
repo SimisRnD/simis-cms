@@ -23,7 +23,7 @@ import com.simisinc.platform.application.cms.HtmlCommand;
 import com.simisinc.platform.application.cms.UrlCommand;
 import com.simisinc.platform.application.email.EmailCommand;
 import com.simisinc.platform.application.email.EmailTemplateCommand;
-import com.simisinc.platform.application.xapi.WorkflowCommand;
+import com.simisinc.platform.application.workflow.WorkflowCommand;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.infrastructure.scheduler.SchedulerManager;
 import org.apache.commons.lang3.StringUtils;
