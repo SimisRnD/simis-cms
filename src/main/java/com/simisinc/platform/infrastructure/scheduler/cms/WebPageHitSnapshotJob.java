@@ -22,7 +22,7 @@ import org.apache.commons.logging.LogFactory;
 import org.jobrunr.jobs.annotations.Job;
 
 /**
- * Description
+ * Makes a summary snapshot of web page hits
  *
  * @author matt rajkowski
  * @created 5/21/18 2:00 PM

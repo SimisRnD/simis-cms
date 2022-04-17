@@ -32,7 +32,7 @@ import org.jobrunr.jobs.annotations.Job;
 import java.util.List;
 
 /**
- * Description
+ * Sends new orders to the related fulfillment service
  *
  * @author matt rajkowski
  * @created 12/15/19 11:00 AM

@@ -29,7 +29,7 @@ import org.jobrunr.jobs.lambdas.JobRequest;
 import org.jobrunr.jobs.lambdas.JobRequestHandler;
 
 /**
- * Description
+ * Saves a web page hit
  *
  * @author matt rajkowski
  * @created 5/21/18 10:00 AM

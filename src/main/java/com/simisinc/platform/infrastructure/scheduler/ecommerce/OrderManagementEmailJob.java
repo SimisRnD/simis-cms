@@ -53,7 +53,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Description
+ * Sends order conformation emails
  *
  * @author matt rajkowski
  * @created 11/13/2019 8:25 PM

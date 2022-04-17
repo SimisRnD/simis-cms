@@ -33,7 +33,7 @@ import org.jobrunr.jobs.lambdas.JobRequestHandler;
 import java.sql.Timestamp;
 
 /**
- * Description
+ * Imports records as items belonging to a collection
  *
  * @author matt rajkowski
  * @created 5/21/18 12:50 PM
