@@ -16,12 +16,10 @@
 
 package com.simisinc.platform.infrastructure.persistence.cms;
 
-import com.simisinc.platform.presentation.controller.DataConstants;
-
 import java.sql.Timestamp;
 
 /**
- * Description
+ * Properties for querying objects from the wiki page repository
  *
  * @author matt rajkowski
  * @created 2/10/19 11:19 AM

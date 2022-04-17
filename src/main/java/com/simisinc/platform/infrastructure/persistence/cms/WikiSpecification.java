@@ -17,7 +17,7 @@
 package com.simisinc.platform.infrastructure.persistence.cms;
 
 /**
- * Description
+ * Properties for querying objects from the wiki repository
  *
  * @author matt rajkowski
  * @created 2/9/19 5:32 PM

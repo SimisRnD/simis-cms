@@ -32,7 +32,7 @@ import java.util.Calendar;
 import java.util.List;
 
 /**
- * Description
+ * Persists and retrieves medicine reminder objects
  *
  * @author matt rajkowski
  * @created 9/11/18 1:54 PM

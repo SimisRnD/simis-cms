@@ -20,7 +20,7 @@ import com.simisinc.platform.domain.model.Entity;
 import com.simisinc.platform.presentation.controller.DataConstants;
 
 /**
- * Description
+ * Properties for querying objects from the item file repository
  *
  * @author matt rajkowski
  * @created 4/19/2021 1:00 PM

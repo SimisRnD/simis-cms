@@ -28,7 +28,7 @@ import java.sql.SQLException;
 import java.util.List;
 
 /**
- * Description
+ * Persists and retrieves visitor objects
  *
  * @author matt rajkowski
  * @created 4/7/19 11:43 AM

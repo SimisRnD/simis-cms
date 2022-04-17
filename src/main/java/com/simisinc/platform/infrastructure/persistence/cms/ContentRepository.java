@@ -30,7 +30,7 @@ import java.sql.Timestamp;
 import java.util.List;
 
 /**
- * Description
+ * Persists and retrieves content objects
  *
  * @author matt rajkowski
  * @created 4/8/18 4:33 PM

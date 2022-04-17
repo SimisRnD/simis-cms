@@ -27,7 +27,7 @@ import java.sql.*;
 import java.util.List;
 
 /**
- * Description
+ * Persists and retrieves category objects
  *
  * @author matt rajkowski
  * @created 4/18/18 10:15 PM

@@ -27,7 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Description
+ * Persists and retrieves email objects
  *
  * @author matt rajkowski
  * @created 3/24/19 9:30 PM

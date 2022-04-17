@@ -29,7 +29,7 @@ import java.sql.SQLException;
 import java.util.List;
 
 /**
- * Description
+ * Persists and retrieves user role objects
  *
  * @author matt rajkowski
  * @created 6/19/18 8:49 PM

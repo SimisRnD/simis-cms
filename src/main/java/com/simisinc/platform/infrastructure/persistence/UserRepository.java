@@ -36,7 +36,7 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Description
+ * Persists and retrieves user objects
  *
  * @author matt rajkowski
  * @created 4/8/18 4:33 PM

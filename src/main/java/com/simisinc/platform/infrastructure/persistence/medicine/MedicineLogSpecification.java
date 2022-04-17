@@ -20,7 +20,7 @@ import java.sql.Timestamp;
 import java.util.List;
 
 /**
- * Description
+ * Properties for querying objects from the medicine log repository
  *
  * @author matt rajkowski
  * @created 11/5/18 8:50 AM

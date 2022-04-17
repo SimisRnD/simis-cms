@@ -30,7 +30,7 @@ import java.sql.SQLException;
 import java.util.List;
 
 /**
- * Description
+ * Persists and retrieves item category objects
  *
  * @author matt rajkowski
  * @created 5/29/18 12:04 PM

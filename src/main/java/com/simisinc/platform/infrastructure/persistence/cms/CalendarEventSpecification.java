@@ -21,7 +21,7 @@ import com.simisinc.platform.presentation.controller.DataConstants;
 import java.sql.Timestamp;
 
 /**
- * Description
+ * Properties for querying objects from the calendar event repository
  *
  * @author matt rajkowski
  * @created 10/29/18 1:28 PM

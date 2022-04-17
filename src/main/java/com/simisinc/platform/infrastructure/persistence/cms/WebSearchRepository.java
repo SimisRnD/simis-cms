@@ -27,7 +27,7 @@ import java.sql.PreparedStatement;
 import java.sql.SQLException;
 
 /**
- * Description
+ * Persists and retrieves web search objects
  *
  * @author matt rajkowski
  * @created 3/5/2021 2:00 PM

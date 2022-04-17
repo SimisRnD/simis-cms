@@ -30,7 +30,7 @@ import java.sql.Timestamp;
 import java.util.List;
 
 /**
- * Description
+ * Persists and retrieves style sheet objects
  *
  * @author matt rajkowski
  * @created 1/25/21 10:05 PM

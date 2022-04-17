@@ -19,7 +19,7 @@ package com.simisinc.platform.infrastructure.persistence.cms;
 import com.simisinc.platform.presentation.controller.DataConstants;
 
 /**
- * Description
+ * Properties for querying objects from the form data repository
  *
  * @author matt rajkowski
  * @created 6/1/18 2:43 PM

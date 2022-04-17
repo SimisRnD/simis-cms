@@ -17,7 +17,7 @@
 package com.simisinc.platform.infrastructure.persistence.items;
 
 /**
- * Filters and constraints for activity record lists
+ * Properties for querying objects from the activity repository
  *
  * @author matt rajkowski
  * @created 1/22/19 12:12 PM

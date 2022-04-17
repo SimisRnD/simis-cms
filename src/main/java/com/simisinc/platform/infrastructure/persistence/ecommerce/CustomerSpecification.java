@@ -17,7 +17,7 @@
 package com.simisinc.platform.infrastructure.persistence.ecommerce;
 
 /**
- * Description
+ * Properties for querying objects from the customer repository
  *
  * @author matt rajkowski
  * @created 7/15/19 10:00 AM

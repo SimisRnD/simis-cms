@@ -32,7 +32,7 @@ import java.sql.Timestamp;
 import java.util.List;
 
 /**
- * Description
+ * Persists and retrieves customer objects
  *
  * @author matt rajkowski
  * @created 4/24/19 10:45 PM

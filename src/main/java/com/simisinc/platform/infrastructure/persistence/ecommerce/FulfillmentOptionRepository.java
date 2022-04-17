@@ -28,7 +28,7 @@ import java.sql.SQLException;
 import java.util.List;
 
 /**
- * Description
+ * Persists and retrieves fulfillment option objects
  *
  * @author matt rajkowski
  * @created 4/9/20 1:30 PM

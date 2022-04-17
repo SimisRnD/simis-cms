@@ -29,7 +29,7 @@ import java.sql.SQLException;
 import java.util.List;
 
 /**
- * Description
+ * Persists and retrieves medicine log objects
  *
  * @author matt rajkowski
  * @created 9/18/18 9:44 AM

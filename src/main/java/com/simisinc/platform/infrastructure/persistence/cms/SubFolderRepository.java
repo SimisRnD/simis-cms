@@ -31,7 +31,7 @@ import java.sql.SQLException;
 import java.util.List;
 
 /**
- * Description
+ * Persists and retrieves sub-folder objects
  *
  * @author matt rajkowski
  * @created 8/27/19 3:26 PM

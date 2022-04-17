@@ -41,7 +41,7 @@ import static com.simisinc.platform.application.ecommerce.OrderCommand.generateU
 import static com.simisinc.platform.application.ecommerce.OrderStatusCommand.*;
 
 /**
- * Description
+ * Persists and retrieves order objects
  *
  * @author matt rajkowski
  * @created 5/2/19 6:45 AM

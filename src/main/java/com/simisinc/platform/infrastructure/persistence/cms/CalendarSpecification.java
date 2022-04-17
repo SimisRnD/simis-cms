@@ -17,7 +17,7 @@
 package com.simisinc.platform.infrastructure.persistence.cms;
 
 /**
- * Description
+ * Properties for querying objects from the calendar repository
  *
  * @author matt rajkowski
  * @created 10/29/18 2:05 PM

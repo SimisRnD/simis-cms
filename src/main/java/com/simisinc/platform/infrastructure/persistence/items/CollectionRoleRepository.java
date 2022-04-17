@@ -30,7 +30,7 @@ import java.sql.SQLException;
 import java.util.List;
 
 /**
- * Description
+ * Persists and retrieves collection role objects
  *
  * @author matt rajkowski
  * @created 8/24/18 10:24 AM

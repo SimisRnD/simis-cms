@@ -27,7 +27,7 @@ import java.sql.SQLException;
 import java.util.List;
 
 /**
- * Description
+ * Persists and retrieves US sales tax rates objects
  *
  * @author matt rajkowski
  * @created 4/25/19 8:00 AM

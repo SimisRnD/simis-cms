@@ -31,7 +31,7 @@ import java.sql.SQLException;
 import java.util.List;
 
 /**
- * Description
+ * Persists and retrieves item folder group objects
  *
  * @author matt rajkowski
  * @created 4/19/2021 1:00 PM

@@ -19,7 +19,7 @@ package com.simisinc.platform.infrastructure.persistence.cms;
 import com.simisinc.platform.domain.model.Entity;
 
 /**
- * Description
+ * Properties for querying objects from the image repository
  *
  * @author matt rajkowski
  * @created 7/16/18 9:47 AM

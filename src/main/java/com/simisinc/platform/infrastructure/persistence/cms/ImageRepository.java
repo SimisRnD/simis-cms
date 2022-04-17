@@ -27,7 +27,7 @@ import java.sql.SQLException;
 import java.util.List;
 
 /**
- * Description
+ * Persists and retrieves image objects
  *
  * @author matt rajkowski
  * @created 5/3/18 3:30 PM

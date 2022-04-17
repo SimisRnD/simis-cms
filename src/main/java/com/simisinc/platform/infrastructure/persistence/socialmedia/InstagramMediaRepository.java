@@ -29,7 +29,7 @@ import java.sql.SQLException;
 import java.util.List;
 
 /**
- * Description
+ * Persists and retrieves Instagram media objects
  *
  * @author matt rajkowski
  * @created 9/15/19 9:15 AM

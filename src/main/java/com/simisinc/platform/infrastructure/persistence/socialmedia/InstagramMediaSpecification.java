@@ -17,7 +17,7 @@
 package com.simisinc.platform.infrastructure.persistence.socialmedia;
 
 /**
- * Description
+ * Properties for querying objects from the Instagram media repository
  *
  * @author matt rajkowski
  * @created 10/9/19 8:13 PM

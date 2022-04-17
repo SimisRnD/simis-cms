@@ -27,7 +27,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 
 /**
- * Description
+ * Persists and retrieves zip code objects
  *
  * @author matt rajkowski
  * @created 5/29/18 9:54 AM

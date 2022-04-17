@@ -28,7 +28,7 @@ import java.sql.SQLException;
 import java.util.List;
 
 /**
- * Description
+ * Persists and retrieves app objects
  *
  * @author matt rajkowski
  * @created 4/17/18 7:48 PM

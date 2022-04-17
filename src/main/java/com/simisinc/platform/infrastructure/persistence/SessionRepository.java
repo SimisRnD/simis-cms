@@ -33,7 +33,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Description
+ * Persists and retrieves session objects
  *
  * @author matt rajkowski
  * @created 7/2/18 11:21 AM

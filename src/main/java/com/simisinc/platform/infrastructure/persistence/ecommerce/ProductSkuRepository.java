@@ -35,7 +35,7 @@ import java.sql.*;
 import java.util.List;
 
 /**
- * Description
+ * Persists and retrieves product sku objects
  *
  * @author matt rajkowski
  * @created 3/17/19 4:46 PM

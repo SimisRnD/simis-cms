@@ -28,7 +28,7 @@ import java.sql.SQLException;
 import java.util.List;
 
 /**
- * Description
+ * Persists and retrieves shipping carrier objects
  *
  * @author matt rajkowski
  * @created 4/23/20 7:00 AM

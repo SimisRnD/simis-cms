@@ -30,7 +30,7 @@ import java.sql.Timestamp;
 import java.util.List;
 
 /**
- * Description
+ * Persists and retrieves theme objects
  *
  * @author matt rajkowski
  * @created 1/12/19 1:56 PM

@@ -17,7 +17,7 @@
 package com.simisinc.platform.infrastructure.persistence.cms;
 
 /**
- * Description
+ * Properties for querying objects from the blog repository
  *
  * @author matt rajkowski
  * @created 8/7/18 9:12 AM

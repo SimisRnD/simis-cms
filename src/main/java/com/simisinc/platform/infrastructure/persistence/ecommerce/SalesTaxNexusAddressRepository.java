@@ -28,7 +28,7 @@ import java.sql.Timestamp;
 import java.util.List;
 
 /**
- * Description
+ * Persists and retrieves sales tax nexus address objects
  *
  * @author matt rajkowski
  * @created 5/29/19 1:36 PM

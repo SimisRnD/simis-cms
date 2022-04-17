@@ -28,7 +28,7 @@ import java.sql.SQLException;
 import java.util.List;
 
 /**
- * Description
+ * Persists and retrieves prescription objects
  *
  * @author matt rajkowski
  * @created 9/10/18 6:02 PM

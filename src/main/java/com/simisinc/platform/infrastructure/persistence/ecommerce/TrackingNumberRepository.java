@@ -28,7 +28,7 @@ import java.sql.SQLException;
 import java.util.List;
 
 /**
- * Description
+ * Persists and retrieves tracking number objects
  *
  * @author matt rajkowski
  * @created 4/22/20 7:59 PM

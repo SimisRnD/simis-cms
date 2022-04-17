@@ -17,7 +17,7 @@
 package com.simisinc.platform.infrastructure.persistence.ecommerce;
 
 /**
- * Description
+ * Properties for querying objects from US sales tax rates repository
  *
  * @author matt rajkowski
  * @created 6/29/19 11:33 AM
