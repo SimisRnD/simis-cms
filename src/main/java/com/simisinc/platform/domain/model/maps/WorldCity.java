@@ -19,7 +19,7 @@ package com.simisinc.platform.domain.model.maps;
 import com.simisinc.platform.domain.model.Entity;
 
 /**
- * Description
+ * Geospatial data for a city
  *
  * @author matt rajkowski
  * @created 5/27/18 1:10 PM

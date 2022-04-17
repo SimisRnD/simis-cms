@@ -21,7 +21,7 @@ import com.simisinc.platform.domain.model.Entity;
 import java.sql.Timestamp;
 
 /**
- * Mailing Lists
+ * Mailing list member and status
  *
  * @author matt rajkowski
  * @created 3/24/19 8:45 PM

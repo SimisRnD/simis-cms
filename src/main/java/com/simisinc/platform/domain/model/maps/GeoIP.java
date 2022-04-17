@@ -19,7 +19,7 @@ package com.simisinc.platform.domain.model.maps;
 import com.simisinc.platform.domain.model.Entity;
 
 /**
- * Description
+ * Geospatial data for an IP address
  *
  * @author matt rajkowski
  * @created 7/2/18 9:13 AM

@@ -19,7 +19,7 @@ package com.simisinc.platform.domain.model.maps;
 import com.simisinc.platform.domain.model.Entity;
 
 /**
- * Description
+ * Geospatial data for a US postal code
  *
  * @author matt rajkowski
  * @created 5/29/18 9:53 AM

@@ -19,7 +19,7 @@ package com.simisinc.platform.domain.model;
 import java.io.Serializable;
 
 /**
- * Description
+ * Domain model
  *
  * @author matt rajkowski
  * @created 4/8/18 4:16 PM

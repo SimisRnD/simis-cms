@@ -16,6 +16,8 @@
 
 package com.simisinc.platform.domain.model.items;
 
+import com.simisinc.platform.domain.model.Entity;
+
 import java.util.Map;
 
 /**
@@ -24,7 +26,7 @@ import java.util.Map;
  * @author matt rajkowski
  * @created 8/9/18 3:26 PM
  */
-public class ItemCustomField {
+public class ItemCustomField extends Entity {
 
   final static long serialVersionUID = 8345648404174283569L;
 

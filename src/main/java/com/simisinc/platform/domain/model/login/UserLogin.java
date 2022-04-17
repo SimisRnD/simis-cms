@@ -21,7 +21,7 @@ import com.simisinc.platform.domain.model.Entity;
 import java.sql.Timestamp;
 
 /**
- * Description
+ * A user's login and session information
  *
  * @author matt rajkowski
  * @created 4/10/18 5:34 PM

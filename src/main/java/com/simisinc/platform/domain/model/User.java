@@ -22,7 +22,7 @@ import java.sql.Timestamp;
 import java.util.List;
 
 /**
- * Description
+ * User of the system
  *
  * @author matt rajkowski
  * @created 4/8/18 4:18 PM

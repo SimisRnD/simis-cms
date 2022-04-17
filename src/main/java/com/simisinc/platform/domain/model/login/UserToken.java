@@ -21,7 +21,7 @@ import com.simisinc.platform.domain.model.Entity;
 import java.sql.Timestamp;
 
 /**
- * Description
+ * A user's access token
  *
  * @author matt rajkowski
  * @created 4/10/18 5:50 PM

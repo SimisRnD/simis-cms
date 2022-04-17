@@ -19,7 +19,7 @@ package com.simisinc.platform.domain.model;
 import java.sql.Timestamp;
 
 /**
- * Description
+ * Visitor of the system, accessing web pages without a user account
  *
  * @author matt rajkowski
  * @created 4/7/19 11:39 AM
