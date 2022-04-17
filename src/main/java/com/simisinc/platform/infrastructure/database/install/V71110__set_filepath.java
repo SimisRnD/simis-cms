@@ -24,7 +24,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 
 /**
- * Description
+ * Initializes and saves system properties to the database
  *
  * @author matt rajkowski
  * @created 1/22/19 12:12 PM

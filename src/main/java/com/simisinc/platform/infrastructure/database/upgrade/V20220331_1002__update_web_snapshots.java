@@ -26,7 +26,7 @@ import java.sql.Timestamp;
 import java.time.LocalDate;
 
 /**
- * Description
+ * Updates the web snapshots, incorporating changes to the bot data
  *
  * @author matt rajkowski
  * @created 3/7/20 4:29 PM

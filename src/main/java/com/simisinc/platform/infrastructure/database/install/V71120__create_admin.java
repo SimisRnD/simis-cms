@@ -33,7 +33,7 @@ import org.flywaydb.core.api.migration.Context;
 import java.util.UUID;
 
 /**
- * Description
+ * Creates a system administrator account for accessing the web application
  *
  * @author matt rajkowski
  * @created 1/22/19 12:12 PM
