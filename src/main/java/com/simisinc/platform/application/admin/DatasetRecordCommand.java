@@ -26,7 +26,7 @@ import org.apache.commons.validator.routines.UrlValidator;
 import java.util.List;
 
 /**
- * Description
+ * Functions for validating dataset data rows
  *
  * @author matt rajkowski
  * @created 2/27/20 2:25 PM

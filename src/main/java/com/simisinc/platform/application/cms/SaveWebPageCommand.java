@@ -30,7 +30,7 @@ import org.apache.commons.logging.LogFactory;
 import java.util.Date;
 
 /**
- * Description
+ * Validates and saves web page objects
  *
  * @author matt rajkowski
  * @created 5/4/18 6:21 PM

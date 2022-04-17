@@ -18,10 +18,8 @@ package com.simisinc.platform.domain.model.maps;
 
 import com.simisinc.platform.domain.model.Entity;
 
-import java.sql.Timestamp;
-
 /**
- * Description
+ * Assigned credentials used to access mapping services
  *
  * @author matt rajkowski
  * @created 4/26/18 8:20 AM

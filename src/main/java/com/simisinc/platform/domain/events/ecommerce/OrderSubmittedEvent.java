@@ -28,7 +28,7 @@ import lombok.NoArgsConstructor;
 import java.util.List;
 
 /**
- * Description
+ * Event details for when an order is submitted
  *
  * @author matt rajkowski
  * @created 5/2/21 11:40 AM

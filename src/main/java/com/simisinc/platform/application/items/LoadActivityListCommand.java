@@ -26,7 +26,7 @@ import org.apache.commons.logging.LogFactory;
 import java.util.List;
 
 /**
- * Description
+ * Loads an activity list from cache or storage
  *
  * @author matt rajkowski
  * @created 8/20/18 2:05 PM

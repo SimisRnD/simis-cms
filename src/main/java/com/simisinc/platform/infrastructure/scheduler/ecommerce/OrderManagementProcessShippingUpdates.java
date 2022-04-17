@@ -32,7 +32,7 @@ import org.jobrunr.jobs.annotations.Job;
 import java.util.List;
 
 /**
- * Description
+ * Retrieves shipping status updates for orders
  *
  * @author matt rajkowski
  * @created 12/15/19 11:37 AM

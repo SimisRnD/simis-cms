@@ -16,8 +16,6 @@
 
 package com.simisinc.platform.presentation.controller.admin.cms;
 
-import java.lang.reflect.InvocationTargetException;
-
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.cms.LoadWikiCommand;
 import com.simisinc.platform.application.cms.SaveWikiCommand;
@@ -25,12 +23,13 @@ import com.simisinc.platform.application.cms.UrlCommand;
 import com.simisinc.platform.domain.model.cms.Wiki;
 import com.simisinc.platform.presentation.controller.cms.GenericWidget;
 import com.simisinc.platform.presentation.controller.cms.WidgetContext;
-
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang3.StringUtils;
 
+import java.lang.reflect.InvocationTargetException;
+
 /**
- * Description
+ * Widget for displaying a system administration form to add/update wikis
  *
  * @author matt rajkowski
  * @created 2/10/19 11:35 AM

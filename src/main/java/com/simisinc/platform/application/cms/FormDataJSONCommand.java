@@ -31,7 +31,7 @@ import java.util.Iterator;
 import java.util.List;
 
 /**
- * Description
+ * Encodes and decodes custom form fields
  *
  * @author matt rajkowski
  * @created 6/1/18 3:13 PM

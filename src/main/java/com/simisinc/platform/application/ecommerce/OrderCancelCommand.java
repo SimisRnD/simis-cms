@@ -25,7 +25,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Description
+ * Cancels an order
  *
  * @author matt rajkowski
  * @created 11/20/19 9:24 PM

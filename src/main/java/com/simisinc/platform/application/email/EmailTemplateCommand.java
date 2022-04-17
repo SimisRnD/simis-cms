@@ -26,7 +26,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Description
+ * Creates an email context with site information properties to be used by the email template
  *
  * @author matt rajkowski
  * @created 4/26/2021 9:23 PM

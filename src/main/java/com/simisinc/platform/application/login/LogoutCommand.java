@@ -25,7 +25,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 /**
- * Description
+ * Commands for logging the user out
  *
  * @author matt rajkowski
  * @created 2/4//21 12:33 PM

@@ -21,7 +21,7 @@ import com.simisinc.platform.presentation.controller.DataConstants;
 import java.util.ArrayList;
 
 /**
- * Description
+ * Properties for querying objects from the product repository
  *
  * @author matt rajkowski
  * @created 3/17/18 4:48 PM

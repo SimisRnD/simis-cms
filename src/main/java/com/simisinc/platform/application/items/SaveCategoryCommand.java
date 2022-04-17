@@ -24,7 +24,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Description
+ * Validates and saves a category object
  *
  * @author matt rajkowski
  * @created 4/19/18 2:47 PM

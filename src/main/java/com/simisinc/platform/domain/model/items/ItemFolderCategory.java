@@ -19,7 +19,7 @@ package com.simisinc.platform.domain.model.items;
 import com.simisinc.platform.domain.model.Entity;
 
 /**
- * Description
+ * An item folder category
  *
  * @author matt rajkowski
  * @created 4/19/2021 1:00 PM

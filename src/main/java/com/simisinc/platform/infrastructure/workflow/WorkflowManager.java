@@ -38,7 +38,7 @@ import java.util.*;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Description
+ * Manager used for running synchronous and asynchronous workflows
  *
  * @author matt rajkowski
  * @created 3/20/21 11:30 AM

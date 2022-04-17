@@ -26,7 +26,7 @@ import org.jobrunr.jobs.lambdas.JobRequest;
 import org.jobrunr.jobs.lambdas.JobRequestHandler;
 
 /**
- * Description
+ * Runs asynchronous workflows
  *
  * @author matt rajkowski
  * @created 3/20/21 11:25 AM

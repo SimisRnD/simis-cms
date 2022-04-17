@@ -17,7 +17,7 @@
 package com.simisinc.platform.domain.model;
 
 /**
- * Description
+ * Data for showing in the UI
  *
  * @author matt rajkowski
  * @created 5/7/18 2:02 PM

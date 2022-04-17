@@ -16,10 +16,6 @@
 
 package com.simisinc.platform.presentation.controller.admin.cms;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import com.simisinc.platform.domain.model.cms.Blog;
 import com.simisinc.platform.infrastructure.persistence.cms.BlogPostRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.BlogPostSpecification;
@@ -27,8 +23,12 @@ import com.simisinc.platform.infrastructure.persistence.cms.BlogRepository;
 import com.simisinc.platform.presentation.controller.cms.GenericWidget;
 import com.simisinc.platform.presentation.controller.cms.WidgetContext;
 
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
 /**
- * Description
+ * Widget to display a list of blogs to the system administrators
  *
  * @author matt rajkowski
  * @created 8/7/18 10:38 AM

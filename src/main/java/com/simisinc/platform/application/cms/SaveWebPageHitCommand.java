@@ -25,7 +25,7 @@ import java.sql.Timestamp;
 import java.util.concurrent.ConcurrentLinkedQueue;
 
 /**
- * Description
+ * Saves web page hit objects
  *
  * @author matt rajkowski
  * @created 5/21/18 1:30 PM

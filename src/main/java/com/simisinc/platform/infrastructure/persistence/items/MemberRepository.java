@@ -29,7 +29,7 @@ import java.sql.Timestamp;
 import java.util.List;
 
 /**
- * Description
+ * Persists and retrieves member objects
  *
  * @author matt rajkowski
  * @created 8/24/18 8:36 AM

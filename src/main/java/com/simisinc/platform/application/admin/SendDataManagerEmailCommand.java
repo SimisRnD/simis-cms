@@ -28,7 +28,7 @@ import org.apache.commons.mail.ImageHtmlEmail;
 import java.util.List;
 
 /**
- * Description
+ * Sends emails to data managers
  *
  * @author matt rajkowski
  * @created 8/9/18 2:21 PM

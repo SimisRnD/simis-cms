@@ -26,7 +26,7 @@ import org.apache.commons.logging.LogFactory;
 import java.util.List;
 
 /**
- * Description
+ * Loads a folder object based on user
  *
  * @author matt rajkowski
  * @created 12/12/18 3:38 PM

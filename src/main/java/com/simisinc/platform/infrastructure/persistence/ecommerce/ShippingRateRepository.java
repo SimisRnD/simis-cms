@@ -28,7 +28,7 @@ import java.sql.SQLException;
 import java.util.List;
 
 /**
- * Description
+ * Persists and retrieves shipping rate objects
  *
  * @author matt rajkowski
  * @created 5/8/19 9:21 AM

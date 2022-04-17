@@ -43,7 +43,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Generates and validates captchas
+ * Generates and validates CAPTCHAs
  *
  * @author matt rajkowski
  * @created 8/14/18 9:30 AM

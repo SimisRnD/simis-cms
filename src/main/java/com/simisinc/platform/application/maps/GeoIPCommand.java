@@ -32,7 +32,7 @@ import java.net.InetAddress;
 import java.net.URL;
 
 /**
- * Description
+ * Methods to integrate with geo IP services
  *
  * @author matt rajkowski
  * @created 7/2/18 9:14 AM

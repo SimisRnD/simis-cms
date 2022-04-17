@@ -31,7 +31,7 @@ import java.util.Iterator;
 import java.util.List;
 
 /**
- * Description
+ * Handles JSON values, typically used for preferences and attributes
  *
  * @author matt rajkowski
  * @created 3/17/19 7:12 PM

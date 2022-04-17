@@ -30,7 +30,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Description
+ * Persists and retrieves user login objects
  *
  * @author matt rajkowski
  * @created 4/10/18 5:23 PM

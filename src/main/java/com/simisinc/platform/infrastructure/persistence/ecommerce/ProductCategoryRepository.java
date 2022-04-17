@@ -29,7 +29,7 @@ import java.sql.Timestamp;
 import java.util.List;
 
 /**
- * Description
+ * Persists and retrieves product category objects
  *
  * @author matt rajkowski
  * @created 4/10/21 5:10 PM

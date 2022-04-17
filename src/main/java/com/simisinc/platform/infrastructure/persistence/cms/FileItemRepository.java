@@ -30,7 +30,7 @@ import java.sql.*;
 import java.util.List;
 
 /**
- * Description
+ * Persists and retrieves file item objects
  *
  * @author matt rajkowski
  * @created 12/12/18 2:07 PM

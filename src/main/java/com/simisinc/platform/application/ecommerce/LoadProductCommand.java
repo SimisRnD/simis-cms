@@ -22,7 +22,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Description
+ * Loads product objects
  *
  * @author matt rajkowski
  * @created 3/18/19 4:35 PM

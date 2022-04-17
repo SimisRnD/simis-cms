@@ -22,7 +22,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Description
+ * Methods to hash and verify a password
  *
  * @author matt rajkowski
  * @created 6/25/18 11:55 AM

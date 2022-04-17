@@ -27,7 +27,7 @@ import java.sql.SQLException;
 import java.util.List;
 
 /**
- * Description
+ * Persists and retrieves world city objects
  *
  * @author matt rajkowski
  * @created 5/27/18 1:15 PM

@@ -19,7 +19,7 @@ package com.simisinc.platform.domain.model.cms;
 import com.simisinc.platform.domain.model.Entity;
 
 /**
- * Description
+ * A dynamic content area typically defined by xml
  *
  * @author matt rajkowski
  * @created 1/21/21 9:39 PM

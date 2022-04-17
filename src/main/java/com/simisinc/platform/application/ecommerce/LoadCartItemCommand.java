@@ -22,7 +22,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Description
+ * Loads cart item objects
  *
  * @author matt rajkowski
  * @created 4/16/19 10:26 AM

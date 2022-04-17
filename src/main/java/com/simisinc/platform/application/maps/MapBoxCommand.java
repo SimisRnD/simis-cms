@@ -36,7 +36,7 @@ import static org.jobrunr.utils.resilience.RateLimiter.Builder.rateLimit;
 import static org.jobrunr.utils.resilience.RateLimiter.SECOND;
 
 /**
- * Description
+ * MapBox integration
  *
  * @author matt rajkowski
  * @created 4/26/18 8:16 AM

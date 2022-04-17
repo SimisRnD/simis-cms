@@ -25,7 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Description
+ * Returns US Holidays for the given date range
  *
  * @author matt rajkowski
  * @created 6/18/21 9:30 AM

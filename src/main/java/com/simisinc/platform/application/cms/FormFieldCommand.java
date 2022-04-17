@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Description
+ * Turns widget preferences into Form Fields
  *
  * @author matt rajkowski
  * @created 6/1/18 11:43 AM

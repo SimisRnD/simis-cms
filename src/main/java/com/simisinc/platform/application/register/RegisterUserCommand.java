@@ -32,7 +32,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Description
+ * Methods for user registration
  *
  * @author matt rajkowski
  * @created 4/8/18 9:36 PM

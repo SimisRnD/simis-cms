@@ -24,7 +24,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Description
+ * Handles user posted web form values
  *
  * @author matt rajkowski
  * @created 4/25/18 9:05 AM

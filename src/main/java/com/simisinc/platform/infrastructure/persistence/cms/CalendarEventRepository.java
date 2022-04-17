@@ -31,7 +31,7 @@ import java.sql.Timestamp;
 import java.util.List;
 
 /**
- * Description
+ * Persists and retrieves calendar event objects
  *
  * @author matt rajkowski
  * @created 10/29/18 1:27 PM

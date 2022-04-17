@@ -27,7 +27,7 @@ import java.sql.SQLException;
 import java.util.List;
 
 /**
- * Description
+ * Persists and retrieves shipping country objects
  *
  * @author matt rajkowski
  * @created 6/27/19 11:52 AM

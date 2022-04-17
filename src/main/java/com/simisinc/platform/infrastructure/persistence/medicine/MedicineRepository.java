@@ -33,7 +33,7 @@ import java.sql.Timestamp;
 import java.util.List;
 
 /**
- * Description
+ * Persists and retrieves medicine objects
  *
  * @author matt rajkowski
  * @created 8/28/18 10:49 AM

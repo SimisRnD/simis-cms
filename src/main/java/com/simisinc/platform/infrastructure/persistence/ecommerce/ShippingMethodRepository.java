@@ -27,7 +27,7 @@ import java.sql.SQLException;
 import java.util.List;
 
 /**
- * Description
+ * Persists and retrieves shipping method objects
  *
  * @author matt rajkowski
  * @created 6/27/19 9:14 AM

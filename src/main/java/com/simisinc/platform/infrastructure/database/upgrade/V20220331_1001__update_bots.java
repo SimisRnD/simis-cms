@@ -30,7 +30,7 @@ import java.sql.PreparedStatement;
 import java.util.List;
 
 /**
- * Description
+ * Updates the session information based on identifying bots
  *
  * @author matt rajkowski
  * @created 3/7/20 4:29 PM

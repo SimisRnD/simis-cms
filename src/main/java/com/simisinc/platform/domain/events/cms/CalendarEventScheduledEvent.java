@@ -23,7 +23,7 @@ import com.simisinc.platform.infrastructure.persistence.UserRepository;
 import lombok.NoArgsConstructor;
 
 /**
- * Description
+ * Event details for when a calendar event is scheduled
  *
  * @author matt rajkowski
  * @created 7/6/21 11:53 PM

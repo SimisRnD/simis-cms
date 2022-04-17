@@ -29,7 +29,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 
 /**
- * Description
+ * Persists and retrieves mailing list member objects
  *
  * @author matt rajkowski
  * @created 3/25/19 9:10 PM

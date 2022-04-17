@@ -24,7 +24,7 @@ import org.geojson.Feature;
 import java.text.DecimalFormat;
 
 /**
- * Description
+ * Determines related information for a given GIS Feature
  *
  * @author matt rajkowski
  * @created 3/15/2019 12:00 PM

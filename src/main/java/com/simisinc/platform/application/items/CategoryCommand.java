@@ -21,7 +21,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Description
+ * Methods to display category object information
  *
  * @author matt rajkowski
  * @created 7/29/19 9:09 AM

@@ -23,7 +23,7 @@ import java.sql.Timestamp;
 import java.util.List;
 
 /**
- * Mailing Lists
+ * Email record
  *
  * @author matt rajkowski
  * @created 3/24/19 8:50 PM

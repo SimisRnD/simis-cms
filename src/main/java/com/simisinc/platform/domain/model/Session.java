@@ -19,7 +19,7 @@ package com.simisinc.platform.domain.model;
 import java.sql.Timestamp;
 
 /**
- * Description
+ * Web session
  *
  * @author matt rajkowski
  * @created 7/2/18 11:27 AM

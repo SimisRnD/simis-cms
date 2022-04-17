@@ -32,7 +32,7 @@ import java.sql.Timestamp;
 import java.util.List;
 
 /**
- * Description
+ * Persists and retrieves blog post objects
  *
  * @author matt rajkowski
  * @created 8/7/18 9:15 AM

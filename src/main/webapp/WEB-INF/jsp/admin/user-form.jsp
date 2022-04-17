@@ -112,13 +112,14 @@
           </div>
         </div>
 
-        <c:if test="${user.email ne user.username}">
+        <c:if test="${!empty user.username && user.email ne user.username}">
           <div class="grid-x grid-padding-x">
             <div class="small-4 cell">
-              <label>Username</label>
+              <label class="text-right middle">Username</label>
             </div>
             <div class="small-8 cell">
-              <c:out value="${user.username}" />
+              <div class="middle"><c:out value="${user.username}" /></div>
+              <input type="hidden" id="username" name="username" value="<c:out value="${user.username}" />" />
             </div>
           </div>
         </c:if>
@@ -275,7 +276,7 @@
           </div>
           <div class="small-9 cell">
             <c:forEach items="${groupList}" var="group">
-              <input id="groupId${group.id}" type="checkbox" name="groupId${group.id}" value="${group.id}" <c:if test="${user.hasGroup(group.id)}">checked</c:if>/><label for="groupId${group.id}"><c:out value="${group.name}" /></label><br />
+              <input id="groupId${group.id}" type="checkbox" name="groupId${group.id}" value="${group.id}" <c:if test="${user.hasGroup(group.uniqueId)}">checked</c:if>/><label for="groupId${group.id}"><c:out value="${group.name}" /></label><br />
             </c:forEach>
           </div>
         </div>

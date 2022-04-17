@@ -22,7 +22,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Description
+ * Loads a calendar object from cache or storage
  *
  * @author matt rajkowski
  * @created 10/29/18 2:20 PM

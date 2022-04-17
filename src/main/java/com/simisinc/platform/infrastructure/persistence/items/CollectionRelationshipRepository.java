@@ -28,7 +28,7 @@ import java.sql.SQLException;
 import java.util.List;
 
 /**
- * Description
+ * Persists and retrieves collection relationship objects
  *
  * @author matt rajkowski
  * @created 7/26/18 1:09 PM

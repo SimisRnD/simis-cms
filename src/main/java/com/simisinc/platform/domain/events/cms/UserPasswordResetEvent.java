@@ -21,7 +21,7 @@ import com.simisinc.platform.domain.model.User;
 import lombok.NoArgsConstructor;
 
 /**
- * Description
+ * Event details for when a user's password is reset
  *
  * @author matt rajkowski
  * @created 4/30/21 2:36 PM

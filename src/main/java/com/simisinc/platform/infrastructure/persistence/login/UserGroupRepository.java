@@ -30,7 +30,7 @@ import java.sql.SQLException;
 import java.util.List;
 
 /**
- * Description
+ * Persists and retrieves user group objects
  *
  * @author matt rajkowski
  * @created 6/19/18 8:36 PM

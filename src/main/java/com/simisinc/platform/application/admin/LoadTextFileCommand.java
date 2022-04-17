@@ -32,7 +32,7 @@ import java.util.List;
 import java.util.stream.Stream;
 
 /**
- * Description
+ * Reads in dataset rows from a text file
  *
  * @author matt rajkowski
  * @created 1/28/20 11:32 AM

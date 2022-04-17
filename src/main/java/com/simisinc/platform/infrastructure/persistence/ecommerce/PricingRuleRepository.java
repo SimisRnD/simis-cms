@@ -35,7 +35,7 @@ import java.util.stream.Stream;
 import static java.util.stream.Collectors.toList;
 
 /**
- * Description
+ * Persists and retrieves pricing rule objects
  *
  * @author matt rajkowski
  * @created 11/21/19 8:53 PM

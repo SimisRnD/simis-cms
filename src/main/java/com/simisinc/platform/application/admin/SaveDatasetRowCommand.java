@@ -41,7 +41,7 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 /**
- * Description
+ * Converts the dataset row to a collection item
  *
  * @author matt rajkowski
  * @created 5/21/18 12:53 PM

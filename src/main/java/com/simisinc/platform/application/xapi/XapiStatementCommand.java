@@ -28,7 +28,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 /**
- * Description
+ * Methods for xAPI statements
  *
  * @author matt rajkowski
  * @created 4/6/2021 9:55 AM

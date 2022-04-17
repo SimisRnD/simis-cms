@@ -26,7 +26,7 @@ import org.apache.commons.logging.LogFactory;
 import java.util.List;
 
 /**
- * Description
+ * Widget to display the image browser to system administrators
  *
  * @author matt rajkowski
  * @created 7/11/18 4:21 PM

@@ -31,7 +31,7 @@ import java.sql.SQLException;
 import java.util.List;
 
 /**
- * Description
+ * Persists and retrieves file version objects
  *
  * @author matt rajkowski
  * @created 12/12/18 3:03 PM

@@ -27,7 +27,7 @@ import java.sql.SQLException;
 import java.util.List;
 
 /**
- * Description
+ * Persists and retrieves database version objects
  *
  * @author matt rajkowski
  * @created 6/21/18 2:40 PM

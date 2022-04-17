@@ -22,7 +22,7 @@ import com.simisinc.platform.presentation.controller.DataConstants;
 import java.util.ArrayList;
 
 /**
- * Description
+ * Properties for querying objects from the product sku repository
  *
  * @author matt rajkowski
  * @created 3/17/18 5:06 PM

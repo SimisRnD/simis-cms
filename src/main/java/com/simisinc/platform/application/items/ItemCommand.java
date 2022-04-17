@@ -63,6 +63,7 @@ public class ItemCommand {
     return CheckItemPermissionCommand.userHasViewPermission(item, user);
   }
 
+  // @todo send using a workflow email
   public static void sendEmail(Item item, String emailAddresses) {
 
     LOG.debug("Sending item needs approval email...");

@@ -23,7 +23,7 @@ import com.simisinc.platform.domain.model.User;
 import java.sql.Timestamp;
 
 /**
- * Description
+ * A user's group
  *
  * @author matt rajkowski
  * @created 6/19/18 8:24 AM

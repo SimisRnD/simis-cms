@@ -30,7 +30,7 @@ import java.sql.Timestamp;
 import java.util.List;
 
 /**
- * Description
+ * Persists and retrieves user token objects
  *
  * @author matt rajkowski
  * @created 4/10/18 5:23 PM

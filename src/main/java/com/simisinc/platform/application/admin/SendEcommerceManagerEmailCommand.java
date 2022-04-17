@@ -29,7 +29,7 @@ import org.apache.commons.mail.ImageHtmlEmail;
 import java.util.List;
 
 /**
- * Description
+ * Sends emails to e-commerce managers
  *
  * @author matt rajkowski
  * @created 8/9/18 4:54 PM

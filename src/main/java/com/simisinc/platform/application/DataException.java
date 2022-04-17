@@ -17,7 +17,7 @@
 package com.simisinc.platform.application;
 
 /**
- * Description
+ * Data exception
  *
  * @author matt rajkowski
  * @created 4/8/18 10:18 PM

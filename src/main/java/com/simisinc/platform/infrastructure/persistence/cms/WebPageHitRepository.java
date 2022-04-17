@@ -30,7 +30,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Description
+ * Persists and retrieves web page hit objects
  *
  * @author matt rajkowski
  * @created 5/21/18 1:54 PM

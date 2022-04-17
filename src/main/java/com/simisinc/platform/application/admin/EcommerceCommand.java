@@ -20,7 +20,8 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Description
+ * Checks if e-commerce is running in test or production mode; test mode will use sandbox payment settings and mark
+ * orders as a test
  *
  * @author matt rajkowski
  * @created 11/11/19 5:56 PM

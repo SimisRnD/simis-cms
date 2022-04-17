@@ -37,7 +37,7 @@ import java.util.stream.Stream;
 import static java.util.stream.Collectors.toList;
 
 /**
- * Description
+ * Applies pricing rules
  *
  * @author matt rajkowski
  * @created 11/21/19 9:49 PM

@@ -19,7 +19,7 @@ package com.simisinc.platform.infrastructure.persistence.cms;
 import com.simisinc.platform.presentation.controller.DataConstants;
 
 /**
- * Description
+ * Properties for querying objects from the blog post repository
  *
  * @author matt rajkowski
  * @created 8/7/18 9:16 AM

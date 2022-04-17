@@ -17,6 +17,8 @@
 package com.simisinc.platform.infrastructure.persistence.mailinglists;
 
 /**
+ * Properties for querying objects from the mailing list member repository
+ *
  * @author matt rajkowski
  * @created 8/19/19 7:47 AM
  */

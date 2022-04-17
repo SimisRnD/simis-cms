@@ -24,7 +24,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Description
+ * Validates and saves an item's folder object
  *
  * @author matt rajkowski
  * @created 4/19/2021 1:00 PM

@@ -17,7 +17,7 @@
 package com.simisinc.platform.application;
 
 /**
- * Description
+ * Group exception
  *
  * @author matt rajkowski
  * @created 4/19/18 1:44 PM

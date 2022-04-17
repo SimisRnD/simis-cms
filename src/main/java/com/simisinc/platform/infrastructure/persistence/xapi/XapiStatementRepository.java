@@ -28,7 +28,7 @@ import java.sql.SQLException;
 import java.util.List;
 
 /**
- * Description
+ * Persists and retrieves experience api (xAPI) statement objects
  *
  * @author matt rajkowski
  * @created 4/6/2021 8:15 AM

@@ -22,7 +22,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Description
+ * Methods for checking user logins
  *
  * @author matt rajkowski
  * @created 9/21/18 10:53 AM

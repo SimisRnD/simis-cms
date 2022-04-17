@@ -36,7 +36,7 @@ import static org.jobrunr.utils.resilience.RateLimiter.Builder.rateLimit;
 import static org.jobrunr.utils.resilience.RateLimiter.SECOND;
 
 /**
- * Description
+ * Nominatim integration
  *
  * @author matt rajkowski
  * @created 6/24/21 9:00 PM

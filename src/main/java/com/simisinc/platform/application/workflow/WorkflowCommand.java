@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.simisinc.platform.application.xapi;
+package com.simisinc.platform.application.workflow;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
@@ -24,7 +24,7 @@ import org.jeasy.flows.work.TaskContext;
 import org.jeasy.flows.work.WorkContext;
 
 /**
- * Description
+ * Methods for workflow values
  *
  * @author matt rajkowski
  * @created 4/6/2021 9:55 AM

@@ -21,7 +21,7 @@ import com.simisinc.platform.domain.model.items.Item;
 import com.simisinc.platform.infrastructure.persistence.items.ItemRepository;
 
 /**
- * Description
+ * Methods to change item object approval
  *
  * @author matt rajkowski
  * @created 8/6/18 9:05 AM

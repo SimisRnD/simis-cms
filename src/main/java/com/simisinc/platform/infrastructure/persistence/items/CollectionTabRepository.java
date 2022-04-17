@@ -30,7 +30,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Description
+ * Persists and retrieves colleciton tab objects
  *
  * @author matt rajkowski
  * @created 4/13/21 12:00 PM

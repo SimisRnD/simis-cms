@@ -29,7 +29,7 @@ import java.sql.SQLException;
 import java.util.List;
 
 /**
- * Description
+ * Persists and retrieves dataset objects
  *
  * @author matt rajkowski
  * @created 4/24/18 7:40 PM

@@ -26,7 +26,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Description
+ * Loads a table of contents, which are used for navigation
  *
  * @author matt rajkowski
  * @created 8/20/19 8:41 AM

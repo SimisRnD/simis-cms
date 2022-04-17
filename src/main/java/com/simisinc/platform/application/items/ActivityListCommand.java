@@ -28,7 +28,7 @@ import org.apache.commons.logging.LogFactory;
 import java.util.List;
 
 /**
- * Description
+ * Methods for activity object dynamic variables
  *
  * @author matt rajkowski
  * @created 8/20/18 2:05 PM

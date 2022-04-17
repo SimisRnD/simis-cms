@@ -20,7 +20,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Description
+ * Generates a URL compatible id
  *
  * @author matt rajkowski
  * @created 5/6/18 7:00 PM

@@ -26,7 +26,7 @@ import java.text.NumberFormat;
 import java.util.List;
 
 /**
- * Description
+ * Determines a product's price or price range
  *
  * @author matt rajkowski
  * @created 3/22/19 9:33 AM

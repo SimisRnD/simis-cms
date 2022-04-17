@@ -22,7 +22,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Description
+ * Methods for displaying group information
  *
  * @author matt rajkowski
  * @created 7/19/18 11:24 AM

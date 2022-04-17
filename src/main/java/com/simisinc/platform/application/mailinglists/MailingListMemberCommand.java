@@ -34,7 +34,7 @@ import static com.simisinc.platform.infrastructure.scheduler.mailinglists.Proces
 import static com.simisinc.platform.infrastructure.scheduler.mailinglists.ProcessEmailSubscriptionJob.STATUS_UNSUBSCRIBED;
 
 /**
- * Description
+ * Methods for mailing list membership management
  *
  * @author matt rajkowski
  * @created 6/18/19 10:30 PM

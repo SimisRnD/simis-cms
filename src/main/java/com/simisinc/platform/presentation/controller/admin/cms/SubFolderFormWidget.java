@@ -27,7 +27,7 @@ import org.apache.commons.lang3.StringUtils;
 import java.lang.reflect.InvocationTargetException;
 
 /**
- * Description
+ * Widget for displaying a system administration form to add/update sub-folders
  *
  * @author matt rajkowski
  * @created 9/3/19 12:01 PM

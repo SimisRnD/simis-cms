@@ -44,7 +44,7 @@ import java.util.Properties;
 import static org.jobrunr.server.BackgroundJobServerConfiguration.usingStandardBackgroundJobServerConfiguration;
 
 /**
- * Description
+ * Initializes background jobs to be run on a schedule
  *
  * @author matt rajkowski
  * @created 1/12/22 9:00 PM

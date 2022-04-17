@@ -28,7 +28,7 @@ import org.apache.commons.logging.LogFactory;
 import java.util.List;
 
 /**
- * Description
+ * Determines the status of an order
  *
  * @author matt rajkowski
  * @created 7/14/19 6:54 PM

@@ -27,7 +27,7 @@ import static com.simisinc.platform.application.cms.GenerateBlogUniqueIdCommand.
 
 
 /**
- * Description
+ * Validates and saves blog objects
  *
  * @author matt rajkowski
  * @created 8/7/18 11:16 AM

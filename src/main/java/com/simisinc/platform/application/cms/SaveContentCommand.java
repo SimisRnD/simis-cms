@@ -23,7 +23,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Description
+ * Validates and saves content objects
  *
  * @author matt rajkowski
  * @created 4/26/18 11:12 AM

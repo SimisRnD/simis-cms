@@ -30,7 +30,7 @@ import java.sql.Timestamp;
 import java.util.List;
 
 /**
- * Description
+ * Persists and retrieves wiki page objects
  *
  * @author matt rajkowski
  * @created 2/10/19 11:18 AM

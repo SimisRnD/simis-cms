@@ -16,7 +16,7 @@
 
 package com.simisinc.platform.infrastructure.workflow;
 
-import com.simisinc.platform.application.xapi.WorkflowCommand;
+import com.simisinc.platform.application.workflow.WorkflowCommand;
 import org.jeasy.flows.work.Expression;
 import org.jeasy.flows.work.LogTask;
 import org.jeasy.flows.work.TaskContext;
@@ -27,6 +27,12 @@ import org.junit.jupiter.api.Test;
 import java.util.HashMap;
 import java.util.Map;
 
+/**
+ * Tests for workflow expression processing
+ *
+ * @author matt rajkowski
+ * @created 4/30/2021 4:34 PM
+ */
 public class WorkflowExpressionTests {
 
   @Test

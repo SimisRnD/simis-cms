@@ -28,7 +28,7 @@ import org.apache.commons.validator.routines.checkdigit.CheckDigitException;
 import org.apache.commons.validator.routines.checkdigit.ModulusTenCheckDigit;
 
 /**
- * Description
+ * Validates and saves customer information
  *
  * @author matt rajkowski
  * @created 4/24/19 10:08 PM

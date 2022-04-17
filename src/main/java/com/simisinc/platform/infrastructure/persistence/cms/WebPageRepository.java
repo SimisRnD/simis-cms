@@ -32,7 +32,7 @@ import java.sql.Timestamp;
 import java.util.List;
 
 /**
- * Description
+ * Persists and retrieves web page objects
  *
  * @author matt rajkowski
  * @created 5/3/18 5:44 PM

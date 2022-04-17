@@ -23,7 +23,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Description
+ * Generates order items from a cart
  *
  * @author matt rajkowski
  * @created 4/23/20 2:30 PM

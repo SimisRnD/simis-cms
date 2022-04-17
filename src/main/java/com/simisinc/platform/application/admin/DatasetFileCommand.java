@@ -39,7 +39,7 @@ import java.sql.Timestamp;
 import java.util.List;
 
 /**
- * Description
+ * Functions for working with dataset files
  *
  * @author matt rajkowski
  * @created 2/7/2020 4:25 PM

@@ -31,7 +31,7 @@ import java.sql.Timestamp;
 import java.util.List;
 
 /**
- * Description
+ * Persists and retrieves activity objects
  *
  * @author matt rajkowski
  * @created 8/20/18 11:32 AM

@@ -20,6 +20,8 @@ import java.time.DayOfWeek;
 import java.time.LocalDate;
 
 /**
+ * Returns a holiday's date for the specified year
+ *
  * @author Gregory N. Mirsky; http://images.techhive.com/downloads/idge/imported/article/jvw/1998/01/holidays.java
  * @author John D. Mitchell
  * @author Matt Rajkowski

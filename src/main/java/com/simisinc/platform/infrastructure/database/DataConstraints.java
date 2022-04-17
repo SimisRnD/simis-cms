@@ -21,7 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * The record paging context
+ * The record paging and column sorting context
  *
  * @author matt rajkowski
  * @created 1/22/19 12:12 PM

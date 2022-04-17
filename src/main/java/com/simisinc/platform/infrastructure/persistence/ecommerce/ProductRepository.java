@@ -32,7 +32,7 @@ import java.sql.Timestamp;
 import java.util.List;
 
 /**
- * Description
+ * Persists and retrieves product objects
  *
  * @author matt rajkowski
  * @created 3/17/19 4:46 PM

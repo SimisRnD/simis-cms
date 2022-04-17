@@ -24,7 +24,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Description
+ * Validates and saves a collection object
  *
  * @author matt rajkowski
  * @created 4/19/18 1:37 PM

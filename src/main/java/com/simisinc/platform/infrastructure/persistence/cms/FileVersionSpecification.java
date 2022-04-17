@@ -19,7 +19,7 @@ package com.simisinc.platform.infrastructure.persistence.cms;
 import com.simisinc.platform.domain.model.Entity;
 
 /**
- * Description
+ * Properties for querying objects from the file version repository
  *
  * @author matt rajkowski
  * @created 12/12/18 3:06 PM

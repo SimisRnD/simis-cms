@@ -22,7 +22,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Description
+ * Methods to check collection object permissions
  *
  * @author matt rajkowski
  * @created 9/28/18 10:30 AM

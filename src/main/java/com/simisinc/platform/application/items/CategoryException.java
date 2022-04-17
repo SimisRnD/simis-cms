@@ -17,7 +17,7 @@
 package com.simisinc.platform.application.items;
 
 /**
- * Description
+ * Category exception
  *
  * @author matt rajkowski
  * @created 4/19/18 2:52 PM

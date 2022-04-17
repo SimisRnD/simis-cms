@@ -22,7 +22,7 @@ import org.apache.commons.logging.LogFactory;
 import org.jobrunr.jobs.annotations.Job;
 
 /**
- * Description
+ * Deletes old web hits data
  *
  * @author matt rajkowski
  * @created 5/21/18 2:45 PM

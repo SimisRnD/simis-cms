@@ -33,7 +33,7 @@ import java.sql.Timestamp;
 import static com.simisinc.platform.application.items.GenerateItemUniqueIdCommand.generateUniqueId;
 
 /**
- * Description
+ * Validates and saves an item object
  *
  * @author matt rajkowski
  * @created 4/19/18 2:47 PM

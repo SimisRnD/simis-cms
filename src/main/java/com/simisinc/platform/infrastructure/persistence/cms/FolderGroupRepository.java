@@ -30,7 +30,7 @@ import java.sql.SQLException;
 import java.util.List;
 
 /**
- * Description
+ * Properties for querying objects from the repository
  *
  * @author matt rajkowski
  * @created 12/12/18 2:02 PM

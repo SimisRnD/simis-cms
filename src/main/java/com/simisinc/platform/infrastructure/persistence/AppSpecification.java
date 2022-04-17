@@ -19,7 +19,7 @@ package com.simisinc.platform.infrastructure.persistence;
 import com.simisinc.platform.domain.model.Entity;
 
 /**
- * Description
+ * Properties for querying objects from the app repository
  *
  * @author matt rajkowski
  * @created 7/16/18 10:26 AM

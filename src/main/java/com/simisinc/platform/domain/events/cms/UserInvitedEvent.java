@@ -21,7 +21,7 @@ import com.simisinc.platform.domain.model.User;
 import lombok.NoArgsConstructor;
 
 /**
- * Description
+ * Event details for when a user is invited
  *
  * @author matt rajkowski
  * @created 4/29/21 5:32 PM

@@ -20,7 +20,7 @@ import com.simisinc.platform.domain.model.Entity;
 import com.simisinc.platform.domain.model.Group;
 
 /**
- * Description
+ * An item folder group used for configuring permissions
  *
  * @author matt rajkowski
  * @created 4/19/2021 1:00 PM

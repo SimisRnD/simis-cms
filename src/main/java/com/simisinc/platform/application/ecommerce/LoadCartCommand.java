@@ -23,7 +23,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Description
+ * Loads a user's cart
  *
  * @author matt rajkowski
  * @created 4/14/19 9:39 PM

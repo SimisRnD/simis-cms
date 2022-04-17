@@ -22,7 +22,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Web pages in the repository
+ * Loads a link's web page object
  *
  * @author matt rajkowski
  * @created 8/8/18 11:26 AM

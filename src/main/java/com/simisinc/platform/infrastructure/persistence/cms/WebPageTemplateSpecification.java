@@ -19,7 +19,7 @@ package com.simisinc.platform.infrastructure.persistence.cms;
 import com.simisinc.platform.domain.model.Entity;
 
 /**
- * Description
+ * Properties for querying objects from the web page template repository
  *
  * @author matt rajkowski
  * @created 7/16/18 10:41 AM

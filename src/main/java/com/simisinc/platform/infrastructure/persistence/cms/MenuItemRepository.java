@@ -31,7 +31,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Description
+ * Persists and retrieves menu item objects
  *
  * @author matt rajkowski
  * @created 5/1/18 11:43 AM

@@ -25,7 +25,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.http.conn.util.InetAddressUtils;
 
 /**
- * Description
+ * Validates and saves blocked IP objects
  *
  * @author matt rajkowski
  * @created 3/25/20 10:10 AM

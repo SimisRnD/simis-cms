@@ -17,7 +17,7 @@
 package com.simisinc.platform.application.login;
 
 /**
- * Description
+ * Incorrect account information exception
  *
  * @author matt rajkowski
  * @created 4/9/18 10:26 AM

@@ -25,7 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Description
+ * Loads blocked IP addresses list from cache or storage and handles updating the cache
  *
  * @author matt rajkowski
  * @created 3/25/20 10:10 AM

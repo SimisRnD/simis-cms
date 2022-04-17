@@ -30,7 +30,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Description
+ * Handles loading and retrieving page layouts for different page types (pages, collections, json services, etc.)
  *
  * @author matt rajkowski
  * @created 2/8/21 9:45 PM

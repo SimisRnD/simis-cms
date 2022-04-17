@@ -30,7 +30,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Description
+ * Loads a map of redirected URLs from a file
  *
  * @author matt rajkowski
  * @created 1/10/19 4:22 PM

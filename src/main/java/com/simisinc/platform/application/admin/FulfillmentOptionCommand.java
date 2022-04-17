@@ -29,7 +29,7 @@ import org.apache.commons.logging.LogFactory;
 import java.util.List;
 
 /**
- * Description
+ * Determines how products within an order will be fulfilled
  *
  * @author matt rajkowski
  * @created 4/9/20 2:15 PM

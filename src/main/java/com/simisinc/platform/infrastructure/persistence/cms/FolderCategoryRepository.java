@@ -28,7 +28,7 @@ import java.sql.SQLException;
 import java.util.List;
 
 /**
- * Description
+ * Persists and retrieves folder category objects
  *
  * @author matt rajkowski
  * @created 9/6/2019 2:02 PM

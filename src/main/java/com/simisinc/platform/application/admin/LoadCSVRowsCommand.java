@@ -36,7 +36,7 @@ import static com.simisinc.platform.application.admin.SaveDatasetRowCommand.extr
 import static com.simisinc.platform.application.admin.SaveDatasetRowCommand.hasOption;
 
 /**
- * Description
+ * Reads in dataset rows from a CSV dataset file
  *
  * @author matt rajkowski
  * @created 5/11/18 10:08 AM

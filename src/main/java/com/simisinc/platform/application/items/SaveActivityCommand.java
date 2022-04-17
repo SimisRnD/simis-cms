@@ -24,7 +24,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Description
+ * Validates and saves an activity object
  *
  * @author matt rajkowski
  * @created 8/21/18 8:00 AM

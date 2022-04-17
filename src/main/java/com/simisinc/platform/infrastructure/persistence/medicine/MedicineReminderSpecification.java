@@ -22,7 +22,7 @@ import java.sql.Timestamp;
 import java.util.List;
 
 /**
- * Description
+ * Properties for querying objects from the medicine reminder repository
  *
  * @author matt rajkowski
  * @created 9/11/18 3:31 PM

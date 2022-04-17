@@ -26,7 +26,7 @@ import java.sql.*;
 import java.util.List;
 
 /**
- * Description
+ * Persists and retrieves mailing list objects
  *
  * @author matt rajkowski
  * @created 3/24/19 9:46 PM

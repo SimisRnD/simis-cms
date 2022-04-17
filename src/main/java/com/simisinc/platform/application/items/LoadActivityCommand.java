@@ -22,7 +22,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Description
+ * Loads an activity object from cache or storage
  *
  * @author matt rajkowski
  * @created 8/21/18 8:00 AM

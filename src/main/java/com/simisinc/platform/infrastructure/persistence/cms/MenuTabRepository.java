@@ -29,7 +29,7 @@ import java.sql.SQLException;
 import java.util.List;
 
 /**
- * Description
+ * Persists and retrieves menu tab objects
  *
  * @author matt rajkowski
  * @created 4/30/18 3:56 PM

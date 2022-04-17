@@ -32,7 +32,7 @@ import java.sql.Timestamp;
 import java.util.List;
 
 /**
- * Description
+ * Persists and retrieves cart item objects
  *
  * @author matt rajkowski
  * @created 4/14/19 9:57 PM

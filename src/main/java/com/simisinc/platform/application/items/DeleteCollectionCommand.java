@@ -23,7 +23,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Description
+ * Methods to delete a collection
  *
  * @author matt rajkowski
  * @created 4/19/18 3:49 PM

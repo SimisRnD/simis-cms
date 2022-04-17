@@ -30,7 +30,7 @@ import java.sql.SQLException;
 import java.util.List;
 
 /**
- * Description
+ * Persists and retrieves web page template objects
  *
  * @author matt rajkowski
  * @created 5/7/18 7:35 AM

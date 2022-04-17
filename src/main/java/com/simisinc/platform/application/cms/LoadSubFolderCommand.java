@@ -25,7 +25,7 @@ import org.apache.commons.logging.LogFactory;
 import java.util.List;
 
 /**
- * Description
+ * Loads a sub-folder
  *
  * @author matt rajkowski
  * @created 8/27/19 4:29 PM

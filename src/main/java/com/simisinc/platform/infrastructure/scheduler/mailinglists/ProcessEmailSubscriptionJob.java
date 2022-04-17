@@ -32,7 +32,7 @@ import org.jobrunr.jobs.lambdas.JobRequest;
 import org.jobrunr.jobs.lambdas.JobRequestHandler;
 
 /**
- * Description
+ * Sends mailing list subscription data to external service provider
  *
  * @author matt rajkowski
  * @created 9/12/2019 11:36 AM

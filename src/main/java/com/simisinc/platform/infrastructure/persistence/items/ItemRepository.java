@@ -42,7 +42,7 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * Description
+ * Persists and retrieves item objects
  *
  * @author matt rajkowski
  * @created 4/18/18 10:15 PM

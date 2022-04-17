@@ -20,7 +20,7 @@ import com.simisinc.platform.domain.model.ecommerce.Product;
 import com.simisinc.platform.domain.model.ecommerce.ProductSkuAttribute;
 
 /**
- * Description
+ * Methods for working with product attributes
  *
  * @author matt rajkowski
  * @created 11/11/19 3:27 PM

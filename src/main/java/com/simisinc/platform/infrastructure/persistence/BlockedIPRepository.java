@@ -29,7 +29,7 @@ import java.sql.SQLException;
 import java.util.List;
 
 /**
- * Description
+ * Persists and retrieves blocked IP objects
  *
  * @author matt rajkowski
  * @created 3/25/20 10:10 AM

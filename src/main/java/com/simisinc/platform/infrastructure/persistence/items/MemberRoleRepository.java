@@ -30,7 +30,7 @@ import java.sql.SQLException;
 import java.util.List;
 
 /**
- * Description
+ * Properties for querying objects from the member role repository
  *
  * @author matt rajkowski
  * @created 8/24/18 9:53 AM

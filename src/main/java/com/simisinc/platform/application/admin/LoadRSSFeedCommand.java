@@ -33,7 +33,7 @@ import java.util.Date;
 import java.util.List;
 
 /**
- * Description
+ * Reads in dataset rows from an RSS feed dataset file
  *
  * @author matt rajkowski
  * @created 6/12/18 9:24 AM

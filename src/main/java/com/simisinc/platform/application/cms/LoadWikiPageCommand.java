@@ -22,7 +22,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Description
+ * Loads a wiki page object
  *
  * @author matt rajkowski
  * @created 2/10/19 3:18 PM

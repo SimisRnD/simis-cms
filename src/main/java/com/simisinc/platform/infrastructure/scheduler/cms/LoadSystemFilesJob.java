@@ -24,7 +24,7 @@ import org.apache.commons.logging.LogFactory;
 import org.jobrunr.jobs.annotations.Job;
 
 /**
- * Description
+ * Loads external configuration files
  *
  * @author matt rajkowski
  * @created 3/19/2022 7:47 AM

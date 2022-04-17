@@ -29,7 +29,7 @@ import org.apache.commons.logging.LogFactory;
 import static com.simisinc.platform.application.cms.GenerateCalendarEventUniqueIdCommand.generateUniqueId;
 
 /**
- * Description
+ * Validates and saves calendar event objects
  *
  * @author matt rajkowski
  * @created 10/29/18 1:21 PM

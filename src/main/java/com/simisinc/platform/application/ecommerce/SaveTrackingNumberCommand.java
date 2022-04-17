@@ -24,7 +24,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Tracking number utilities
+ * Validates and saves tracking number objects
  *
  * @author matt rajkowski
  * @created 4/22/20 8:32 PM

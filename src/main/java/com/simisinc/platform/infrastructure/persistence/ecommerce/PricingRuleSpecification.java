@@ -19,6 +19,8 @@ package com.simisinc.platform.infrastructure.persistence.ecommerce;
 import com.simisinc.platform.presentation.controller.DataConstants;
 
 /**
+ * Properties for querying objects from the pricing rule repository
+ *
  * @author matt rajkowski
  * @created 11/21/19 8:57 PM
  */

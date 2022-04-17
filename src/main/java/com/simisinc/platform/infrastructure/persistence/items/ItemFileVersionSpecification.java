@@ -19,7 +19,7 @@ package com.simisinc.platform.infrastructure.persistence.items;
 import com.simisinc.platform.domain.model.Entity;
 
 /**
- * Description
+ * Properties for querying objects from the item file version repository
  *
  * @author matt rajkowski
  * @created 4/19/2021 1:00 PM

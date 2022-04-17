@@ -28,7 +28,7 @@ import org.jobrunr.jobs.annotations.Job;
 import java.util.ArrayList;
 
 /**
- * Description
+ * Retrieves the latest Instagram posts
  *
  * @author matt rajkowski
  * @created 9/15/19 4:50 PM

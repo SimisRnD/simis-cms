@@ -17,12 +17,18 @@
 package com.simisinc.platform.application.cms;
 
 /**
- * Description
+ * Methods for working with numbers
  *
  * @author matt rajkowski
  * @created 7/11/18 5:18 PM
  */
 public class NumberCommand {
+
+  /**
+   * Returns a string value of a number, with a suffix
+   * @param count
+   * @return
+   */
   public static String suffix(long count) {
     if (count < 1000) {
       return String.valueOf(count);

@@ -26,7 +26,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Description
+ * Loads a list of products
  *
  * @author matt rajkowski
  * @created 2/5/2021 9:42 PM

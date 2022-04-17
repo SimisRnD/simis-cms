@@ -24,7 +24,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Description
+ * Validates and saves a mailing list object
  *
  * @author matt rajkowski
  * @created 3/24/19 10:51 PM

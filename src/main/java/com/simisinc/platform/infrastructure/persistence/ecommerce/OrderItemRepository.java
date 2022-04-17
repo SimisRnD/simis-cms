@@ -32,7 +32,7 @@ import java.util.List;
 import static com.simisinc.platform.application.ecommerce.OrderStatusCommand.*;
 
 /**
- * Description
+ * Persists and retrieves order item objects
  *
  * @author matt rajkowski
  * @created 4/23/20 2:16 PM

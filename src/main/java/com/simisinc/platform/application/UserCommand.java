@@ -22,7 +22,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Description
+ * Displays information about a user
  *
  * @author matt rajkowski
  * @created 8/8/18 2:27 PM

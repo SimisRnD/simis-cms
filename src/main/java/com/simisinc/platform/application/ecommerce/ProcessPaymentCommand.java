@@ -24,7 +24,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Description
+ * Validates payment object
  *
  * @author matt rajkowski
  * @created 5/8/19 9:03 AM

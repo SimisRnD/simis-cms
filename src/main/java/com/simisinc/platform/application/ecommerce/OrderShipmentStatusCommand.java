@@ -29,7 +29,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Description
+ * Checks and updates an order status
  *
  * @author matt rajkowski
  * @created 11/20/19 8:10 PM

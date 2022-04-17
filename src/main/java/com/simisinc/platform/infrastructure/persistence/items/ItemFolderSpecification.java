@@ -17,7 +17,7 @@
 package com.simisinc.platform.infrastructure.persistence.items;
 
 /**
- * Encapsulates the records being returned and the record count for paging
+ * Properties for querying objects from the item folder repository
  *
  * @author matt rajkowski
  * @created 4/20/21 7:44 AM

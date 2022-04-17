@@ -25,7 +25,7 @@ import org.apache.commons.logging.LogFactory;
 import static com.simisinc.platform.application.GenerateGroupUniqueIdCommand.generateUniqueId;
 
 /**
- * Description
+ * Validates and saves a group object
  *
  * @author matt rajkowski
  * @created 4/24/18 8:58 AM

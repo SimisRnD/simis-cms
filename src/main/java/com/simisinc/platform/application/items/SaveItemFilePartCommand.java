@@ -30,7 +30,7 @@ import java.io.File;
 import java.nio.file.Paths;
 
 /**
- * Description
+ * Validates and saves an item's uploaded file item object
  *
  * @author matt rajkowski
  * @created 4/19/2021 1:00 PM

@@ -17,7 +17,7 @@
 package com.simisinc.platform.infrastructure.persistence.xapi;
 
 /**
- * Description
+ * Properties for querying objects from the xAPI statement repository
  *
  * @author matt rajkowski
  * @created 4/6/21 8:16 AM

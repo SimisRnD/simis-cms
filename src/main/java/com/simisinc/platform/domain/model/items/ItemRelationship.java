@@ -21,7 +21,7 @@ import com.simisinc.platform.domain.model.Entity;
 import java.sql.Timestamp;
 
 /**
- * Description
+ * An item relationship
  *
  * @author matt rajkowski
  * @created 7/27/18 3:36 PM

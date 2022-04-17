@@ -19,7 +19,7 @@ package com.simisinc.platform.infrastructure.persistence.ecommerce;
 import com.simisinc.platform.presentation.controller.DataConstants;
 
 /**
- * Description
+ * Properties for querying objects from the order repository
  *
  * @author matt rajkowski
  * @created 6/10/19 7:39 PM

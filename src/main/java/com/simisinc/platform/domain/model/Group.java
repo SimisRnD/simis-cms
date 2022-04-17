@@ -17,7 +17,7 @@
 package com.simisinc.platform.domain.model;
 
 /**
- * Description
+ * User group of the system
  *
  * @author matt rajkowski
  * @created 4/24/18 8:39 AM

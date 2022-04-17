@@ -19,6 +19,8 @@ package com.simisinc.platform.infrastructure.persistence.ecommerce;
 import java.math.BigDecimal;
 
 /**
+ * Properties for querying objects from the shipping rate repository
+ *
  * @author matt rajkowski
  * @created 7/3/19 8:35 AM
  */
