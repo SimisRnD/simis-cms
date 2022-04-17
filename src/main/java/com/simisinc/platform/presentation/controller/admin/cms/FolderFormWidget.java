@@ -16,10 +16,6 @@
 
 package com.simisinc.platform.presentation.controller.admin.cms;
 
-import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
-import java.util.List;
-
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.cms.FolderException;
 import com.simisinc.platform.application.cms.LoadFolderCommand;
@@ -33,12 +29,15 @@ import com.simisinc.platform.domain.model.items.PrivacyType;
 import com.simisinc.platform.infrastructure.persistence.GroupRepository;
 import com.simisinc.platform.presentation.controller.cms.GenericWidget;
 import com.simisinc.platform.presentation.controller.cms.WidgetContext;
-
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang3.StringUtils;
 
+import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
+import java.util.List;
+
 /**
- * Description
+ * Widget for displaying a system administration form to add/update folders
  *
  * @author matt rajkowski
  * @created 12/12/18 3:37 PM

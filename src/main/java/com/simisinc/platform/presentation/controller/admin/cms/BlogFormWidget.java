@@ -16,8 +16,6 @@
 
 package com.simisinc.platform.presentation.controller.admin.cms;
 
-import java.lang.reflect.InvocationTargetException;
-
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.cms.LoadBlogCommand;
 import com.simisinc.platform.application.cms.SaveBlogCommand;
@@ -25,12 +23,13 @@ import com.simisinc.platform.application.cms.UrlCommand;
 import com.simisinc.platform.domain.model.cms.Blog;
 import com.simisinc.platform.presentation.controller.cms.GenericWidget;
 import com.simisinc.platform.presentation.controller.cms.WidgetContext;
-
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang3.StringUtils;
 
+import java.lang.reflect.InvocationTargetException;
+
 /**
- * Description
+ * Widget for displaying a system administration form to add/update blogs
  *
  * @author matt rajkowski
  * @created 8/7/18 10:47 AM

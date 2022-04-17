@@ -16,19 +16,18 @@
 
 package com.simisinc.platform.presentation.controller.admin.cms;
 
-import java.lang.reflect.InvocationTargetException;
-
 import com.simisinc.platform.application.AppException;
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.cms.SaveCalendarEventCommand;
 import com.simisinc.platform.domain.model.cms.CalendarEvent;
 import com.simisinc.platform.presentation.controller.cms.GenericWidget;
 import com.simisinc.platform.presentation.controller.cms.WidgetContext;
-
 import org.apache.commons.beanutils.BeanUtils;
 
+import java.lang.reflect.InvocationTargetException;
+
 /**
- * Description
+ * Widget for displaying a system administration form to add/update calendar events
  *
  * @author matt rajkowski
  * @created 10/29/18 1:06 PM

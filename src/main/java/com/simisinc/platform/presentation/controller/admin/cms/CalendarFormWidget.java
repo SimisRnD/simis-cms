@@ -16,8 +16,6 @@
 
 package com.simisinc.platform.presentation.controller.admin.cms;
 
-import java.lang.reflect.InvocationTargetException;
-
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.cms.LoadCalendarCommand;
 import com.simisinc.platform.application.cms.SaveCalendarCommand;
@@ -25,12 +23,13 @@ import com.simisinc.platform.application.cms.UrlCommand;
 import com.simisinc.platform.domain.model.cms.Calendar;
 import com.simisinc.platform.presentation.controller.cms.GenericWidget;
 import com.simisinc.platform.presentation.controller.cms.WidgetContext;
-
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang3.StringUtils;
 
+import java.lang.reflect.InvocationTargetException;
+
 /**
- * Description
+ * Widget for displaying a system administration form to add/update calendars
  *
  * @author matt rajkowski
  * @created 10/29/18 2:15 PM

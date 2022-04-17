@@ -29,7 +29,7 @@ import org.apache.commons.lang3.StringUtils;
 import java.lang.reflect.InvocationTargetException;
 
 /**
- * Description
+ * Widget for displaying a system administration form to add/update web pages
  *
  * @author matt rajkowski
  * @created 5/4/18 6:12 PM

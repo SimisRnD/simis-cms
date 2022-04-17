@@ -23,7 +23,7 @@ import com.simisinc.platform.presentation.controller.cms.WidgetContext;
 import org.apache.commons.lang3.StringUtils;
 
 /**
- * Description
+ * Widget for displaying a system administration form to add/update content
  *
  * @author matt rajkowski
  * @created 4/18/18 10:25 PM

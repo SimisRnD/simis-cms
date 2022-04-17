@@ -16,9 +16,6 @@
 
 package com.simisinc.platform.presentation.controller.admin.cms;
 
-import java.lang.reflect.InvocationTargetException;
-import java.util.List;
-
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.cms.CheckFolderPermissionCommand;
 import com.simisinc.platform.application.cms.FolderException;
@@ -33,14 +30,16 @@ import com.simisinc.platform.infrastructure.persistence.cms.FolderRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.SubFolderRepository;
 import com.simisinc.platform.presentation.controller.cms.GenericWidget;
 import com.simisinc.platform.presentation.controller.cms.WidgetContext;
-
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import java.lang.reflect.InvocationTargetException;
+import java.util.List;
+
 /**
- * Description
+ * Widget for displaying a system administration form to add/update files
  *
  * @author matt rajkowski
  * @created 9/6/2019 3:07 PM
