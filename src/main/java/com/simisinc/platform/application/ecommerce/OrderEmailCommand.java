@@ -27,7 +27,7 @@ import org.jobrunr.scheduling.BackgroundJobRequest;
 import java.util.List;
 
 /**
- * Description
+ * Sends emails for orders
  *
  * @author matt rajkowski
  * @created 1/24/22 9:38 PM

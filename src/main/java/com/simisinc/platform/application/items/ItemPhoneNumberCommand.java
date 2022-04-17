@@ -24,7 +24,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Description
+ * Methods for formatting an item's phone number
  *
  * @author matt rajkowski
  * @created 5/29/18 9:40 AM

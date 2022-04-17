@@ -28,7 +28,7 @@ import org.apache.commons.mail.resolver.DataSourceUrlResolver;
 import java.net.URL;
 
 /**
- * Description
+ * Prepares an official site email
  *
  * @author matt rajkowski
  * @created 6/26/18 7:35 AM

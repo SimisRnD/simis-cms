@@ -17,7 +17,7 @@
 package com.simisinc.platform.application.cms;
 
 /**
- * Description
+ * A sub-folder exception
  *
  * @author matt rajkowski
  * @created 8/27/19 5:21 PM

@@ -30,7 +30,7 @@ import java.nio.file.Files;
 import java.util.List;
 
 /**
- * Description
+ * Checks and processes RSS Feed files
  *
  * @author matt rajkowski
  * @created 1/29/2019 3:20 PM

@@ -26,7 +26,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Description
+ * Validates and saves menu tab objects
  *
  * @author matt rajkowski
  * @created 5/1/18 8:43 AM

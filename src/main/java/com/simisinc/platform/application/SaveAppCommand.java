@@ -25,7 +25,7 @@ import org.apache.commons.logging.LogFactory;
 import java.util.UUID;
 
 /**
- * Description
+ * Validates and saves an app object
  *
  * @author matt rajkowski
  * @created 4/30/18 8:41 AM

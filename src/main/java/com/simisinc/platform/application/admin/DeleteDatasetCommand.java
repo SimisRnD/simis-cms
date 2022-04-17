@@ -25,7 +25,7 @@ import org.apache.commons.logging.LogFactory;
 import java.io.File;
 
 /**
- * Description
+ * Deletes dataset files from the database and filesystem
  *
  * @author matt rajkowski
  * @created 4/25/18 12:33 PM

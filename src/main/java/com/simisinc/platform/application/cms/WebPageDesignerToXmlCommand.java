@@ -31,7 +31,7 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * Description
+ * Generates XML from the web page designer object
  *
  * @author matt rajkowski
  * @created 6/9/18 10:00 AM

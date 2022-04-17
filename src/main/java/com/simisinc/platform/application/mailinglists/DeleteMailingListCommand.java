@@ -22,7 +22,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Description
+ * Methods to delete a mailing list
  *
  * @author matt rajkowski
  * @created 3/25/19 9:04 AM

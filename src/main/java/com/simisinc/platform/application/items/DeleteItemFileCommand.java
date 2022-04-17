@@ -31,7 +31,7 @@ import java.io.File;
 import java.util.List;
 
 /**
- * Description
+ * Methods to delete an item's file item
  *
  * @author matt rajkowski
  * @created 4/19/2021 1:00 PM

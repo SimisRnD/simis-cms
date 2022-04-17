@@ -23,7 +23,7 @@ import org.apache.commons.lang3.StringUtils;
 import java.math.BigDecimal;
 
 /**
- * Description
+ * Checks inventory
  *
  * @author matt rajkowski
  * @created 3/22/19 9:35 AM

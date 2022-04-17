@@ -17,7 +17,7 @@
 package com.simisinc.platform.application.ecommerce;
 
 /**
- * Description
+ * A product exception
  *
  * @author matt rajkowski
  * @created 3/18/19 4:39 PM

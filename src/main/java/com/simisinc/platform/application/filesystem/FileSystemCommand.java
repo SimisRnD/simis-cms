@@ -35,7 +35,7 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Description
+ * Commands for working with the file system
  *
  * @author matt rajkowski
  * @created 4/25/18 9:56 AM

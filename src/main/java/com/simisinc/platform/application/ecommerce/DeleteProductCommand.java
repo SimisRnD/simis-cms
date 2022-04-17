@@ -22,7 +22,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Description
+ * Handles deleting product objects
  *
  * @author matt rajkowski
  * @created 3/22/19 11:38 AM

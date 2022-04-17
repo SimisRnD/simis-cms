@@ -26,7 +26,7 @@ import org.apache.commons.logging.LogFactory;
 import java.util.List;
 
 /**
- * Description
+ * Loads a collection object from cache or storage
  *
  * @author matt rajkowski
  * @created 4/23/18 3:39 PM

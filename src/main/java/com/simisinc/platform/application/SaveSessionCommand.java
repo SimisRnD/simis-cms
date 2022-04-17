@@ -23,7 +23,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Description
+ * Validates and saves a user's session object
  *
  * @author matt rajkowski
  * @created 7/2/18 12:59 PM

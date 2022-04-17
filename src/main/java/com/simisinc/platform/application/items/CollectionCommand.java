@@ -22,7 +22,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Description
+ * Methods to display information about a collection
  *
  * @author matt rajkowski
  * @created 7/26/18 1:54 PM

@@ -29,7 +29,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 /**
- * Description
+ * Loads shipping rates from a file
  *
  * @author matt rajkowski
  * @created 5/2/19 6:26 AM

@@ -28,7 +28,7 @@ import org.apache.commons.logging.LogFactory;
 import static com.simisinc.platform.application.cms.GenerateBlogPostUniqueIdCommand.generateUniqueId;
 
 /**
- * Description
+ * Validates and saves blog post objects
  *
  * @author matt rajkowski
  * @created 8/7/18 3:36 PM

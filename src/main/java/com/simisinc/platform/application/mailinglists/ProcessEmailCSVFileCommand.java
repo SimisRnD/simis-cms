@@ -34,7 +34,7 @@ import java.io.File;
 import java.util.List;
 
 /**
- * Description
+ * Methods to import mailing lists
  *
  * @author matt rajkowski
  * @created 3/25/19 10:53 PM

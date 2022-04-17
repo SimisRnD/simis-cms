@@ -24,7 +24,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Description
+ * Validates and saves sales tax nexus address objects
  *
  * @author matt rajkowski
  * @created 5/29/19 1:55 PM

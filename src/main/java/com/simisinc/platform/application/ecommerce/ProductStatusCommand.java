@@ -24,7 +24,7 @@ import org.apache.commons.logging.LogFactory;
 import java.sql.Timestamp;
 
 /**
- * Description
+ * Methods for displaying the status of a product
  *
  * @author matt rajkowski
  * @created 3/22/19 10:16 AM

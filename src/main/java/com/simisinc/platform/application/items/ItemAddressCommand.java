@@ -22,7 +22,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Description
+ * Methods for displaying item address information
  *
  * @author matt rajkowski
  * @created 4/25/18 8:30 PM

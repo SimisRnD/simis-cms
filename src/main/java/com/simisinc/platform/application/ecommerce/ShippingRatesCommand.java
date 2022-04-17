@@ -35,7 +35,7 @@ import java.util.stream.Stream;
 import static java.util.stream.Collectors.toList;
 
 /**
- * Description
+ * Finds and validates delivery options
  *
  * @author matt rajkowski
  * @created 4/24/19 10:08 PM

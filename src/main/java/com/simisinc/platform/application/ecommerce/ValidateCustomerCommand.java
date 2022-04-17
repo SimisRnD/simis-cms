@@ -22,7 +22,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Description
+ * Validates customer information
  *
  * @author matt rajkowski
  * @created 6/24/19 7:58 PM

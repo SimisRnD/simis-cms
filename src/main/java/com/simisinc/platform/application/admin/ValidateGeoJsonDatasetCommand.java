@@ -31,7 +31,7 @@ import java.util.Iterator;
 import java.util.List;
 
 /**
- * Description
+ * Checks and processes GeoJSON files
  *
  * @author matt rajkowski
  * @created 2/3/19 1:56 PM

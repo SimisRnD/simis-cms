@@ -24,7 +24,7 @@ import org.apache.commons.validator.routines.UrlValidator;
 import java.net.URLEncoder;
 
 /**
- * Description
+ * Functions for encoding and validating web content
  *
  * @author matt rajkowski
  * @created 4/27/18 12:55 PM

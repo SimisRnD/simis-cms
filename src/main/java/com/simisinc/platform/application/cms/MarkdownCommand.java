@@ -34,7 +34,7 @@ import org.apache.commons.logging.LogFactory;
 import java.util.Arrays;
 
 /**
- * Description
+ * Methods for working with markdown
  *
  * @author matt rajkowski
  * @created 12/21/2021 3:48 PM

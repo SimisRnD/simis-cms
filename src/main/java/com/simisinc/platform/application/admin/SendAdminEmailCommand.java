@@ -28,7 +28,7 @@ import org.apache.commons.mail.ImageHtmlEmail;
 import java.util.List;
 
 /**
- * Description
+ * Sends emails to admins
  *
  * @author matt rajkowski
  * @created 7/13/18 8:31 AM

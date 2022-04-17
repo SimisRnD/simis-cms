@@ -31,7 +31,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.commons.validator.routines.EmailValidator;
 
 /**
- * Description
+ * Validates and saves an email address to a mailing list
  *
  * @author matt rajkowski
  * @created 3/24/19 10:02 PM

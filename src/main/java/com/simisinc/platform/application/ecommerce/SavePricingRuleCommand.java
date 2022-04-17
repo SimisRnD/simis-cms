@@ -24,7 +24,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Description
+ * Validates and saves pricing rule objects
  *
  * @author matt rajkowski
  * @created 12/12/19 6:07 PM

@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Description
+ * Reads site properties, using a cache if possible
  *
  * @author matt rajkowski
  * @created 4/23/18 3:39 PM

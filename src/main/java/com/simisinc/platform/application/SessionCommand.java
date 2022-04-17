@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Description
+ * Methods for working with sessions
  *
  * @author matt rajkowski
  * @created 3/6/20 12:59 PM

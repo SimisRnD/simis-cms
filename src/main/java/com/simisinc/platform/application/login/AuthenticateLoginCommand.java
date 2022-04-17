@@ -35,7 +35,7 @@ import java.time.Duration;
 import java.util.Date;
 
 /**
- * Description
+ * Commands for working with user authentication
  *
  * @author matt rajkowski
  * @created 4/8/18 9:36 PM

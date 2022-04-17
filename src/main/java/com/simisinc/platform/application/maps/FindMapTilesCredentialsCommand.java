@@ -22,7 +22,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Description
+ * Methods for map tile service integration
  *
  * @author matt rajkowski
  * @created 4/26/18 8:16 AM

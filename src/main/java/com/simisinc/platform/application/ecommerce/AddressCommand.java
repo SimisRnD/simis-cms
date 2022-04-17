@@ -40,7 +40,7 @@ import java.io.InputStream;
 import java.net.URLEncoder;
 
 /**
- * Address
+ * Address verification
  *
  * @author matt rajkowski
  * @created 4/24/19 10:08 PM

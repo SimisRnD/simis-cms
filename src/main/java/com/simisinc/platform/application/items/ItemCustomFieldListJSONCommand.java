@@ -31,7 +31,7 @@ import java.util.Iterator;
 import java.util.List;
 
 /**
- * Description
+ * Encodes and decodes an item's custom fields
  *
  * @author matt rajkowski
  * @created 8/9/18 3:53 PM

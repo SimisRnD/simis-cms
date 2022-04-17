@@ -27,7 +27,7 @@ import static com.simisinc.platform.application.cms.GenerateWikiUniqueIdCommand.
 
 
 /**
- * Description
+ * Validates and saves wiki objects
  *
  * @author matt rajkowski
  * @created 2/10/19 11:37 AM

@@ -30,7 +30,7 @@ import org.apache.commons.logging.LogFactory;
 import java.util.List;
 
 /**
- * Description
+ * Loads a user object and related information
  *
  * @author matt rajkowski
  * @created 6/19/18 9:04 PM

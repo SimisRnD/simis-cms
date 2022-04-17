@@ -24,7 +24,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Description
+ * Validates and saves sub-folder objects
  *
  * @author matt rajkowski
  * @created 8/27/19 5:22 PM

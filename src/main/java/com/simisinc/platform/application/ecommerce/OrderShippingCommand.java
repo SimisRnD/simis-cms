@@ -27,7 +27,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Description
+ * Submits an order to a fulfillment service
  *
  * @author matt rajkowski
  * @created 12/15/19 11:26 AM

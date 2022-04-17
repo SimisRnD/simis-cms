@@ -25,7 +25,7 @@ import org.apache.commons.logging.LogFactory;
 import java.util.List;
 
 /**
- * Description
+ * Loads an item's file item object from cache or storage
  *
  * @author matt rajkowski
  * @created 4/19/2021 1:00 PM

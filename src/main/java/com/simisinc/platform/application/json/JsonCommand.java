@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Description
+ * Functinos for working with JSON data
  *
  * @author matt rajkowski
  * @created 9/9/19 10:47 AM

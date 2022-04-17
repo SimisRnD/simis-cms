@@ -22,7 +22,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Description
+ * Methods for working with dynamic values
  *
  * @author matt rajkowski
  * @created 2/24/2020 7:49 AM
@@ -31,6 +31,13 @@ public class ReplaceBlogPostDynamicValuesCommand {
 
   private static Log LOG = LogFactory.getLog(ReplaceBlogPostDynamicValuesCommand.class);
 
+  /**
+   * Replaces dynamic values for blog posts
+   *
+   * @param blogPost
+   * @param value
+   * @return
+   */
   public static String replaceValues(BlogPost blogPost, String value) {
     try {
       // Blog Post

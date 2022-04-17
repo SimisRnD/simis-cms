@@ -38,7 +38,7 @@ import java.math.BigDecimal;
 import java.util.*;
 
 /**
- * Commands for working with Square
+ * Commands for working with Square Product Catalog
  *
  * @author matt rajkowski
  * @created 1/8/2020 7:49 AM

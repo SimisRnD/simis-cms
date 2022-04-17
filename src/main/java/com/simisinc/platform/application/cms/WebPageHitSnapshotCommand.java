@@ -24,7 +24,7 @@ import java.sql.Timestamp;
 import java.time.LocalDate;
 
 /**
- * Description
+ * Saves and updates web page snapshots -- summing up web page hits
  *
  * @author matt rajkowski
  * @created 5/21/18 2:40 PM

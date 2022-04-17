@@ -34,7 +34,7 @@ import java.nio.file.Files;
 import java.util.Iterator;
 
 /**
- * Description
+ * Validates image objects
  *
  * @author matt rajkowski
  * @created 5/3/18 3:25 PM

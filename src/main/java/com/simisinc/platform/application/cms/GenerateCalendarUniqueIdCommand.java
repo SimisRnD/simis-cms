@@ -22,7 +22,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Description
+ * Generates a plain text string - a uniqueId for URLs and referencing
  *
  * @author matt rajkowski
  * @created 10/29/18 2:19 PM

@@ -23,7 +23,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Description
+ * Loads a visitor object
  *
  * @author matt rajkowski
  * @created 4/8/19 8:25 AM

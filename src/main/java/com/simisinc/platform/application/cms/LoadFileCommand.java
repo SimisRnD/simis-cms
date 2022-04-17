@@ -25,7 +25,7 @@ import org.apache.commons.logging.LogFactory;
 import java.util.List;
 
 /**
- * Description
+ * Loads a file item object based on user
  *
  * @author matt rajkowski
  * @created 12/13/18 4:29 PM

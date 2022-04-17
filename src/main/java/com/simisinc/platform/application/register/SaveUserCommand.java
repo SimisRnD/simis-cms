@@ -30,7 +30,7 @@ import javax.security.auth.login.AccountException;
 import static com.simisinc.platform.application.register.GenerateUserUniqueIdCommand.generateUniqueId;
 
 /**
- * Description
+ * Validates and saves a user object
  *
  * @author matt rajkowski
  * @created 4/8/18 9:36 PM

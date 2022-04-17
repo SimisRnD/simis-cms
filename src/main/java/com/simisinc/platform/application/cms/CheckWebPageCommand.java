@@ -21,7 +21,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Description
+ * Displays the web page status
  *
  * @author matt rajkowski
  * @created 6/8/18 8:12 PM

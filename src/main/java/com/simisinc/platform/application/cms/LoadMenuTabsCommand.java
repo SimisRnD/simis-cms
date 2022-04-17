@@ -25,7 +25,7 @@ import org.apache.commons.logging.LogFactory;
 import java.util.List;
 
 /**
- * Description
+ * Loads a list of menu tabs
  *
  * @author matt rajkowski
  * @created 5/1/18 10:57 AM

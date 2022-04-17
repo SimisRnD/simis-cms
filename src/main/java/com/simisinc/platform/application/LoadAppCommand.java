@@ -22,7 +22,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Description
+ * Loads an app object from cache or storage
  *
  * @author matt rajkowski
  * @created 7/18/18 8:29 AM

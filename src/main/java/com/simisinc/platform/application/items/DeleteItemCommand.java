@@ -23,7 +23,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Description
+ * Methods to delete an item
  *
  * @author matt rajkowski
  * @created 4/25/18 8:30 PM

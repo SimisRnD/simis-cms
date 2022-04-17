@@ -27,7 +27,7 @@ import java.util.stream.Stream;
 import static java.util.stream.Collectors.toList;
 
 /**
- * Description
+ * Methods for woroking with TinyMCE content
  *
  * @author matt rajkowski
  * @created 3/2/20 10:00 PM

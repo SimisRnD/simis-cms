@@ -33,7 +33,7 @@ import java.util.Iterator;
 import java.util.List;
 
 /**
- * Description
+ * Reads in dataset rows from a GeoJSON dataset file
  *
  * @author matt rajkowski
  * @created 2/3/19 2:22 PM

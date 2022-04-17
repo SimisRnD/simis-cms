@@ -17,7 +17,7 @@
 package com.simisinc.platform.application.login;
 
 /**
- * Description
+ * Account not validated exception
  *
  * @author matt rajkowski
  * @created 4/9/18 10:23 AM

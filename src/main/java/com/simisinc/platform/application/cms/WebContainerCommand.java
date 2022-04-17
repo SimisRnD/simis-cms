@@ -28,7 +28,7 @@ import javax.servlet.ServletContext;
 import java.util.Map;
 
 /**
- * Description
+ * Loads header and footer objects
  *
  * @author matt rajkowski
  * @created 2/8/21 5:06 PM

@@ -29,7 +29,7 @@ import java.io.File;
 import java.nio.file.Paths;
 
 /**
- * Description
+ * Validates, retrieves http file parts, and saves file item objects
  *
  * @author matt rajkowski
  * @created 12/18/18 3:11 PM

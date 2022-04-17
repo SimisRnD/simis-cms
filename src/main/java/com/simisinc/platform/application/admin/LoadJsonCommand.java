@@ -32,7 +32,7 @@ import static com.simisinc.platform.application.admin.SaveDatasetRowCommand.extr
 import static com.simisinc.platform.application.admin.SaveDatasetRowCommand.hasOption;
 
 /**
- * Description
+ * Reads in dataset rows from a JSON dataset file
  *
  * @author matt rajkowski
  * @created 1/28/20 1:08 PM

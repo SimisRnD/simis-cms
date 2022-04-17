@@ -22,7 +22,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Description
+ * Loads a blog object from cache or storage
  *
  * @author matt rajkowski
  * @created 8/7/18 10:48 AM

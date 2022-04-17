@@ -21,7 +21,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Description
+ * Functions for text strings
  *
  * @author matt rajkowski
  * @created 4/26/18 10:16 AM

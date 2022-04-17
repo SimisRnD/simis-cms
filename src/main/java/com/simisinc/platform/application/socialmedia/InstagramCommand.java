@@ -33,7 +33,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 
 /**
- * Description
+ * Instagram integration
  *
  * @author matt rajkowski
  * @created 9/10/19 5:07 PM

@@ -30,7 +30,7 @@ import java.util.stream.Stream;
 import static java.util.stream.Collectors.toList;
 
 /**
- * Description
+ * Validates cart states
  *
  * @author matt rajkowski
  * @created 7/11/19 7:49 AM

@@ -24,7 +24,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Description
+ * Validates and saves product category objects
  *
  * @author matt rajkowski
  * @created 4/10/21 5:30 PM

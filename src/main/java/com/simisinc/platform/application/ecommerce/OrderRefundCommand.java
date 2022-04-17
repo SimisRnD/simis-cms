@@ -27,7 +27,7 @@ import org.apache.commons.logging.LogFactory;
 import java.math.BigDecimal;
 
 /**
- * Description
+ * Refunds payment for part or all of an order
  *
  * @author matt rajkowski
  * @created 11/20/19 8:10 PM

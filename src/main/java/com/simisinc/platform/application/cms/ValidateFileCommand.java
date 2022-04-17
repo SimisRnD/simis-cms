@@ -27,7 +27,7 @@ import java.io.File;
 import java.nio.file.Files;
 
 /**
- * Description
+ * Validates file item objects
  *
  * @author matt rajkowski
  * @created 12/13/18 11:47 AM

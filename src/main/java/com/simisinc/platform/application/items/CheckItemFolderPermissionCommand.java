@@ -22,7 +22,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Description
+ * Methods to check item folder object permissions
  *
  * @author matt rajkowski
  * @created 4/19/2021 1:00 PM

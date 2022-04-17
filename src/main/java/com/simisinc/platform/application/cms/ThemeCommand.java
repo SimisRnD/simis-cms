@@ -26,7 +26,7 @@ import org.apache.commons.logging.LogFactory;
 import java.util.List;
 
 /**
- * Description
+ * Methods for working with theme snapshots
  *
  * @author matt rajkowski
  * @created 7/12/19 1:31 PM
@@ -36,6 +36,10 @@ public class ThemeCommand {
   private static final String prefix = "theme";
   private static Log LOG = LogFactory.getLog(ThemeCommand.class);
 
+  /**
+   * Saves the current site properties into a theme backup
+   * @param name
+   */
   public static void createSnapshotWithName(String name) {
     // Create a snapshot of the current properties
     List<SiteProperty> siteProperties = SitePropertyRepository.findAllByPrefix(prefix);
@@ -52,6 +56,10 @@ public class ThemeCommand {
     }
   }
 
+  /**
+   * Reads the saved theme properties and sets them as the current theme
+   * @param theme
+   */
   public static void restoreTheme(Theme theme) {
     // Load the theme
     List<SiteProperty> themeProperties = theme.getSiteProperties();

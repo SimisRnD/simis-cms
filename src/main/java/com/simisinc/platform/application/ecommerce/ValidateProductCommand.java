@@ -27,7 +27,7 @@ import org.apache.commons.logging.LogFactory;
 import java.util.List;
 
 /**
- * Description
+ * Validates product and SKUs
  *
  * @author matt rajkowski
  * @created 3/22/19 7:34 AM

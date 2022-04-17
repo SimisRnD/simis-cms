@@ -26,7 +26,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Description
+ * Validates and saves shipping rate objects
  *
  * @author matt rajkowski
  * @created 6/26/19 9:57 PM

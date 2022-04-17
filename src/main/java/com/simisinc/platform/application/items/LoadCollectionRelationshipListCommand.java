@@ -25,7 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Description
+ * Loads a collection's relationship list
  *
  * @author matt rajkowski
  * @created 7/27/18 11:43 AM

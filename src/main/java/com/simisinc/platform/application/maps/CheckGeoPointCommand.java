@@ -23,7 +23,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Description
+ * Methods to update an item's geo point
  *
  * @author matt rajkowski
  * @created 4/26/18 8:16 AM

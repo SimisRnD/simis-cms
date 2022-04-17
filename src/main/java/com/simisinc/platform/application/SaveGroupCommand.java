@@ -23,7 +23,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Description
+ * Validates and saves a group object
  *
  * @author matt rajkowski
  * @created 4/24/18 8:58 AM

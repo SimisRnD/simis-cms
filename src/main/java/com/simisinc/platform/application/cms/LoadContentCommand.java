@@ -23,7 +23,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Description
+ * Loads a content object from cache or storage
  *
  * @author matt rajkowski
  * @created 5/3/18 12:30 PM

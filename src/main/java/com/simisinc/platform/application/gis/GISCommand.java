@@ -24,7 +24,7 @@ import org.apache.commons.logging.LogFactory;
 import java.util.List;
 
 /**
- * Description
+ * Functions for working with geospatial distances
  *
  * @author matt rajkowski
  * @created 3/15/2019 12:00 PM

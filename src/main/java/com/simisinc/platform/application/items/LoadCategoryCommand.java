@@ -22,7 +22,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Description
+ * Loads a category object from cache or storage
  *
  * @author matt rajkowski
  * @created 4/23/18 3:39 PM

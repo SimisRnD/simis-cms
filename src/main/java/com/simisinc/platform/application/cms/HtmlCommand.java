@@ -31,7 +31,7 @@ import org.jsoup.select.Elements;
 import java.util.ArrayList;
 
 /**
- * Description
+ * HTML encoding and decoding functions
  *
  * @author matt rajkowski
  * @created 4/26/18 10:16 AM

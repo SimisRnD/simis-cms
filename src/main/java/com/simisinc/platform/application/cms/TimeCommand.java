@@ -24,7 +24,7 @@ import java.time.ZoneId;
 import java.time.temporal.ChronoUnit;
 
 /**
- * Description
+ * Methods for working with server and client time differences
  *
  * @author matt rajkowski
  * @created 9/27/18 4:14 PM

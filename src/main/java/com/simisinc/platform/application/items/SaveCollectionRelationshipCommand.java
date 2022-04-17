@@ -23,7 +23,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Description
+ * Validates and saves a collection relationship object
  *
  * @author matt rajkowski
  * @created 7/26/18 1:37 PM

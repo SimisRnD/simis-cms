@@ -41,7 +41,7 @@ import java.util.Map;
 import static com.simisinc.platform.application.ecommerce.OrderStatusCommand.PAID;
 
 /**
- * Commands for working with Stripe
+ * Commands for working with Stripe Payments
  *
  * @author matt rajkowski
  * @created 7/5/19 4:35 PM

@@ -26,7 +26,7 @@ import org.apache.commons.logging.LogFactory;
 import static com.simisinc.platform.application.cms.GenerateWikiPageUniqueIdCommand.generateUniqueId;
 
 /**
- * Description
+ * Validates and saves wiki page objects
  *
  * @author matt rajkowski
  * @created 2/10/19 11:57 AM

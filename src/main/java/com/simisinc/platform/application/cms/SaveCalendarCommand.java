@@ -27,7 +27,7 @@ import static com.simisinc.platform.application.cms.GenerateCalendarUniqueIdComm
 
 
 /**
- * Description
+ * Validates and saves calendar objects
  *
  * @author matt rajkowski
  * @created 10/29/18 2:17 PM

@@ -23,7 +23,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Description
+ * Validates and saves an item's member object
  *
  * @author matt rajkowski
  * @created 7/27/18 3:47 PM

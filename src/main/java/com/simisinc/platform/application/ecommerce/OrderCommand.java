@@ -39,7 +39,7 @@ import java.util.List;
 import static com.simisinc.platform.application.ecommerce.OrderStatusCommand.CREATED;
 
 /**
- * Description
+ * Generates an order from a cart
  *
  * @author matt rajkowski
  * @created 7/13/19 9:56 AM

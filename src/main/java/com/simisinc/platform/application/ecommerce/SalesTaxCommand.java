@@ -30,7 +30,7 @@ import java.util.Arrays;
 import java.util.List;
 
 /**
- * Description
+ * Methods for handling sales tax
  *
  * @author matt rajkowski
  * @created 4/24/19 10:08 PM

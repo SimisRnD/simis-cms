@@ -25,7 +25,7 @@ import org.apache.commons.logging.LogFactory;
 import java.util.UUID;
 
 /**
- * Description
+ * Validates and saves a visitor object
  *
  * @author matt rajkowski
  * @created 4/7/19 11:36 AM

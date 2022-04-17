@@ -28,7 +28,7 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * Description
+ * Commands for creating and updating a user's cart
  *
  * @author matt rajkowski
  * @created 4/9/19 10:15 AM

@@ -22,7 +22,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Description
+ * Loads the stylesheet for a web page
  *
  * @author matt rajkowski
  * @created 2/1/2021 8:00 AM

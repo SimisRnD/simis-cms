@@ -22,7 +22,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Description
+ * Methods to delete a group
  *
  * @author matt rajkowski
  * @created 4/24/18 9:33 AM

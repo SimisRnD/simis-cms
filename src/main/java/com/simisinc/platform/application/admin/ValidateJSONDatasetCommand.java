@@ -30,7 +30,7 @@ import java.nio.file.Files;
 import java.util.List;
 
 /**
- * Description
+ * Checks and processes JSON files
  *
  * @author matt rajkowski
  * @created 4/25/18 9:05 AM

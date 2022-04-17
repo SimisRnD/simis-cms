@@ -34,7 +34,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Description
+ * Validates and saves an item's file item object
  *
  * @author matt rajkowski
  * @created 4/19/2021 1:00 PM

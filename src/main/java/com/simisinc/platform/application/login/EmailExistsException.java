@@ -17,7 +17,7 @@
 package com.simisinc.platform.application.login;
 
 /**
- * Description
+ * Email exists exception
  *
  * @author matt rajkowski
  * @created 4/8/18 10:16 PM

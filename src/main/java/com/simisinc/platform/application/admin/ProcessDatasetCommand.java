@@ -32,7 +32,7 @@ import org.jobrunr.scheduling.BackgroundJobRequest;
 import java.util.List;
 
 /**
- * Description
+ * Handles the dataset to collection item conversion
  *
  * @author matt rajkowski
  * @created 5/17/18 3:13 PM

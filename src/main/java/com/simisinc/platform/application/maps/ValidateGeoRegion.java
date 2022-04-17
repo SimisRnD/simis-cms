@@ -21,7 +21,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 /**
- * Description
+ * Methods for world cities region integration
  *
  * @author matt rajkowski
  * @created 5/25/18 4:45 PM
