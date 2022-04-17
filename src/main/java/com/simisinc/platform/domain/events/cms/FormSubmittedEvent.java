@@ -29,7 +29,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 /**
- * Description
+ * Event details for when a form is submitted
  *
  * @author matt rajkowski
  * @created 2/6/2022 8:56 PM

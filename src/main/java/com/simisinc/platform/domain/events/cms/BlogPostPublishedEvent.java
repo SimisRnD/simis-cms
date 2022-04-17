@@ -24,7 +24,7 @@ import com.simisinc.platform.infrastructure.persistence.cms.BlogPostRepository;
 import lombok.NoArgsConstructor;
 
 /**
- * Description
+ * Event details for when a blog post is published
  *
  * @author matt rajkowski
  * @created 4/9/21 4:33 PM

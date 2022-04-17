@@ -19,7 +19,7 @@ package com.simisinc.platform.domain.events;
 import java.io.Serializable;
 
 /**
- * Description
+ * Abstract class for domain events
  *
  * @author matt rajkowski
  * @created 3/19/2021 8:00 AM

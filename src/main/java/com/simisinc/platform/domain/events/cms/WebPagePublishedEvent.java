@@ -24,7 +24,7 @@ import lombok.NoArgsConstructor;
 import org.apache.commons.lang3.StringUtils;
 
 /**
- * Description
+ * Event details for when a web page is published
  *
  * @author matt rajkowski
  * @created 4/9/21 4:33 PM
