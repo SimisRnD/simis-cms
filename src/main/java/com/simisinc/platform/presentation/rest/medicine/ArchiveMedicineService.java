@@ -18,7 +18,6 @@ package com.simisinc.platform.presentation.rest.medicine;
 
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.medicine.ArchiveMedicineCommand;
-import com.simisinc.platform.application.medicine.ResumeMedicineCommand;
 import com.simisinc.platform.domain.model.medicine.Medicine;
 import com.simisinc.platform.infrastructure.persistence.medicine.MedicineRepository;
 import com.simisinc.platform.presentation.rest.ServiceContext;
@@ -36,9 +35,6 @@ import org.apache.commons.logging.LogFactory;
 public class ArchiveMedicineService {
 
   private static Log LOG = LogFactory.getLog(ArchiveMedicineService.class);
-
-  private static String DRUG_LIST_UNIQUE_ID = "drug-list";
-  private static String INDIVIDUALS_UNIQUE_ID = "individuals";
 
   // POST: archive/medicine/{medicineId}
   public ServiceResponse post(ServiceContext context) {

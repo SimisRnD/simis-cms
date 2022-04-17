@@ -47,9 +47,6 @@ public class MedicineLogService {
 
   private static Log LOG = LogFactory.getLog(MedicineLogService.class);
 
-  private static String DRUG_LIST_UNIQUE_ID = "drug-list";
-  private static String INDIVIDUALS_UNIQUE_ID = "individuals";
-
   // POST: med/medicineLog/?reminderId={reminderId}
   // POST: med/medicineLog/?medicineId={medicineId}
   public ServiceResponse post(ServiceContext context) {

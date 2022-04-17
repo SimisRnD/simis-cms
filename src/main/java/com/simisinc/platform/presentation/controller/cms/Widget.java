@@ -16,8 +16,6 @@
 
 package com.simisinc.platform.presentation.controller.cms;
 
-import com.simisinc.platform.presentation.controller.login.UserSession;
-
 import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -38,6 +36,7 @@ public class Widget implements Serializable {
   protected String widgetName = "";
   protected String widgetClassName = "";
   private List<String> roles = new ArrayList<String>();
+  private List<String> groups = new ArrayList<String>();
   protected Map<String, String> preferences = new HashMap<String, String>();
 
   // Output properties
@@ -118,22 +117,12 @@ public class Widget implements Serializable {
     this.roles = roles;
   }
 
-  public boolean allowsUser(UserSession userSession) {
-    if (roles.isEmpty()) {
-      return true;
-    }
-    for (String role : roles) {
-      if ("guest".equals(role) && !userSession.isLoggedIn()) {
-        return true;
-      }
-      if ("users".equals(role) && userSession.isLoggedIn()) {
-        return true;
-      }
-      if (userSession.hasRole(role)) {
-        return true;
-      }
-    }
-    return false;
+  public List<String> getGroups() {
+    return groups;
+  }
+
+  public void setGroups(List<String> groups) {
+    this.groups = groups;
   }
 
   public Map<String, String> getPreferences() {

@@ -25,12 +25,17 @@ package com.simisinc.platform.domain.model;
 public class Group extends Entity {
 
   private Long id = -1L;
-
   private String name = null;
+  private String uniqueId = null;
   private String description = null;
   private long userCount = 0;
 
   public Group() {
+  }
+
+  public Group(String name, String uniqueId) {
+    this.name = name;
+    this.uniqueId = uniqueId;
   }
 
   public Long getId() {
@@ -47,6 +52,14 @@ public class Group extends Entity {
 
   public void setName(String name) {
     this.name = name;
+  }
+
+  public String getUniqueId() {
+    return uniqueId;
+  }
+
+  public void setUniqueId(String uniqueId) {
+    this.uniqueId = uniqueId;
   }
 
   public String getDescription() {

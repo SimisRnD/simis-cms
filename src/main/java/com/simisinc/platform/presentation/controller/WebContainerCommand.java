@@ -51,10 +51,10 @@ import static com.simisinc.platform.presentation.controller.RequestConstants.*;
  * @author matt rajkowski
  * @created 2/7/2021 2:40 PM
  */
-public class WebContainerCommands implements Serializable {
+public class WebContainerCommand implements Serializable {
 
   static final long serialVersionUID = 536435325324169646L;
-  private static Log LOG = LogFactory.getLog(WebContainerCommands.class);
+  private static Log LOG = LogFactory.getLog(WebContainerCommand.class);
 
   private static final String REQUEST_SHARED_VALUE_MAP = "REQUEST_SHARED_VALUE_MAP";
   private static final String MESSAGE = "MESSAGE";
@@ -65,8 +65,8 @@ public class WebContainerCommands implements Serializable {
 
 
   public static boolean processWidgets(WebContainerContext webContainerContext, List<Section> sections,
-                                    ContainerRenderInfo containerRenderInfo, Map<String, String> coreData,
-                                    String contextPath, String pagePath, UserSession userSession, Map<String, String> themePropertyMap) throws Exception {
+                                       ContainerRenderInfo containerRenderInfo, Map<String, String> coreData,
+                                       String contextPath, String pagePath, UserSession userSession, Map<String, String> themePropertyMap) throws Exception {
 
     LOG.debug("Processing container... " + containerRenderInfo.getName() + ": " + sections.size());
 
@@ -90,9 +90,12 @@ public class WebContainerCommands implements Serializable {
     // Process the page (read-only)
     for (Section section : sections) {
 
-      // Check the user's role
-      if (!section.allowsUser(userSession)) {
-        LOG.debug("SECTION NOT ALLOWED: roles=" + section.getRoles().toString());
+      // Check the user's role and groups
+      if (!WebComponentCommand.allowsUser(section, userSession)) {
+        LOG.debug("SECTION NOT ALLOWED: " +
+            (!section.getRoles().isEmpty() ? "[roles=" + section.getRoles().toString() + "]" + " " : "") +
+            (!section.getGroups().isEmpty() ? "[groups=" + section.getGroups().toString() + "]" + " " : "") +
+            request.getRemoteAddr());
         continue;
       }
 
@@ -102,9 +105,12 @@ public class WebContainerCommands implements Serializable {
       LOG.debug("  Columns: " + section.getColumns().size());
       for (Column column : section.getColumns()) {
 
-        // Check the user's role
-        if (!column.allowsUser(userSession)) {
-          LOG.debug("COLUMN NOT ALLOWED: roles=" + column.getRoles().toString());
+        // Check the user's role and groups
+        if (!WebComponentCommand.allowsUser(column, userSession)) {
+          LOG.debug("COLUMN NOT ALLOWED: " +
+              (!column.getRoles().isEmpty() ? "[roles=" + column.getRoles().toString() + "]" + " " : "") +
+              (!column.getGroups().isEmpty() ? "[groups=" + column.getGroups().toString() + "]" + " " : "") +
+              request.getRemoteAddr());
           continue;
         }
 
@@ -124,9 +130,12 @@ public class WebContainerCommands implements Serializable {
             }
           }
 
-          // Check the user's role
-          if (!widget.allowsUser(userSession)) {
-            LOG.debug("WIDGET NOT ALLOWED: " + widget.getWidgetName() + " roles=" + widget.getRoles().toString());
+          // Check the user's role and groups
+          if (!WebComponentCommand.allowsUser(widget, userSession)) {
+            LOG.debug("WIDGET NOT ALLOWED: " + widget.getWidgetName() + " " +
+                (!widget.getRoles().isEmpty() ? "[roles=" + widget.getRoles().toString() + "]" + " " : "") +
+                (!widget.getGroups().isEmpty() ? "[groups=" + widget.getGroups().toString() + "]" + " " : "") +
+                request.getRemoteAddr());
             continue;
           }
 

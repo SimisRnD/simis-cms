@@ -33,9 +33,9 @@ import java.util.Map;
  * @author matt rajkowski
  * @created 2/8/21 5:06 PM
  */
-public class WebContainerCommand {
+public class WebContainerLayoutCommand {
 
-  private static Log LOG = LogFactory.getLog(WebContainerCommand.class);
+  private static Log LOG = LogFactory.getLog(WebContainerLayoutCommand.class);
 
   public static Header retrieveHeader(ServletContext servletContext, Map<String, String> widgetLibrary) {
     // Use the header preference?

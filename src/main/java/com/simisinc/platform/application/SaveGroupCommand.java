@@ -22,6 +22,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import static com.simisinc.platform.application.GenerateGroupUniqueIdCommand.generateUniqueId;
+
 /**
  * Validates and saves a group object
  *
@@ -40,11 +42,20 @@ public class SaveGroupCommand {
       errorMessages.append("A name is required");
     }
 
+    // Validate it's a unique name
     if (groupBean.getId() == -1 && GroupRepository.findByName(groupBean.getName()) != null) {
       if (errorMessages.length() > 0) {
         errorMessages.append(", ");
       }
       errorMessages.append("A unique name is required");
+    }
+
+    // Validate the unique id
+    if (StringUtils.isNotBlank(groupBean.getUniqueId()) && !GenerateGroupUniqueIdCommand.isValid(groupBean.getUniqueId())) {
+      if (errorMessages.length() > 0) {
+        errorMessages.append(", ");
+      }
+      errorMessages.append("The uniqueId contains invalid characters");
     }
 
     if (errorMessages.length() > 0) {
@@ -63,6 +74,8 @@ public class SaveGroupCommand {
       LOG.debug("Saving a new record... ");
       group = new Group();
     }
+    // @note set the uniqueId before setting the name
+    group.setUniqueId(generateUniqueId(group, groupBean));
     group.setName(groupBean.getName());
     group.setDescription(groupBean.getDescription());
     return GroupRepository.save(group);

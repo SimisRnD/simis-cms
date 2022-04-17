@@ -26,11 +26,15 @@ public class Role extends Entity {
 
   private int id = -1;
   private int level = -1;
-
   private String code = null;
   private String title = null;
 
   public Role() {
+  }
+
+  public Role(String title, String code) {
+    this.title = title;
+    this.code = code;
   }
 
   public int getId() {

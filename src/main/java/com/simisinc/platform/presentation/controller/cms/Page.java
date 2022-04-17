@@ -16,7 +16,6 @@
 
 package com.simisinc.platform.presentation.controller.cms;
 
-import com.simisinc.platform.presentation.controller.login.UserSession;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
@@ -40,6 +39,7 @@ public class Page {
 
   private List<Section> sections = new ArrayList<Section>();
   private List<String> roles = new ArrayList<String>();
+  private List<String> groups = new ArrayList<String>();
 
   public Page() {
   }
@@ -98,22 +98,12 @@ public class Page {
     this.roles = roles;
   }
 
-  public boolean allowsUser(UserSession userSession) {
-    if (roles.isEmpty()) {
-      return true;
-    }
-    for (String role : roles) {
-      if ("guest".equals(role) && !userSession.isLoggedIn()) {
-        return true;
-      }
-      if ("users".equals(role) && userSession.isLoggedIn()) {
-        return true;
-      }
-      if (userSession.hasRole(role)) {
-        return true;
-      }
-    }
-    return false;
+  public List<String> getGroups() {
+    return groups;
+  }
+
+  public void setGroups(List<String> groups) {
+    this.groups = groups;
   }
 
   public String getCollectionUniqueId() {

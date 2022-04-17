@@ -19,14 +19,12 @@ package com.simisinc.platform.presentation.rest.medicine;
 import com.simisinc.platform.application.items.LoadCollectionCommand;
 import com.simisinc.platform.application.items.LoadItemCommand;
 import com.simisinc.platform.application.medicine.IndividualRelationshipCommand;
-import com.simisinc.platform.domain.model.Group;
 import com.simisinc.platform.domain.model.items.Collection;
 import com.simisinc.platform.domain.model.items.Item;
 import com.simisinc.platform.domain.model.medicine.Medicine;
 import com.simisinc.platform.domain.model.medicine.MedicineSchedule;
 import com.simisinc.platform.domain.model.medicine.Prescription;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
-import com.simisinc.platform.infrastructure.persistence.GroupRepository;
 import com.simisinc.platform.infrastructure.persistence.medicine.*;
 import com.simisinc.platform.presentation.controller.DataConstants;
 import com.simisinc.platform.presentation.rest.ServiceContext;
@@ -39,6 +37,8 @@ import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.simisinc.platform.application.medicine.MedicineConstants.*;
+
 /**
  * Returns a list of medicines being tracked for an individual
  *
@@ -49,16 +49,12 @@ public class MedicineListService {
 
   private static Log LOG = LogFactory.getLog(MedicineListService.class);
 
-  private static String ADMIN_USER_GROUP = "Program Administrator";
-  private static String CAREGIVERS_UNIQUE_ID = "caregivers";
-  private static String INDIVIDUALS_UNIQUE_ID = "individuals";
-
   // GET: med/medicines/{individualUniqueId}
   public ServiceResponse get(ServiceContext context) {
 
     // Determine the individual (must exist and be part of the individuals collection)
     String individualUniqueId = context.getPathParam();
-    Collection individualsCollection = LoadCollectionCommand.loadCollectionByUniqueIdForAuthorizedUser(INDIVIDUALS_UNIQUE_ID, context.getUserId());
+    Collection individualsCollection = LoadCollectionCommand.loadCollectionByUniqueIdForAuthorizedUser(COLLECTION_INDIVIDUALS_UNIQUE_ID, context.getUserId());
     Item individual = LoadItemCommand.loadItemByUniqueId(individualUniqueId);
     if (individualsCollection == null || individual == null || individual.getCollectionId() != individualsCollection.getId()) {
       ServiceResponse response = new ServiceResponse(400);
@@ -67,7 +63,7 @@ public class MedicineListService {
     }
 
     // Check the caregivers collection for access (must exist and user must have access to at least one item in the collection)
-    Collection caregiversCollection = LoadCollectionCommand.loadCollectionByUniqueIdForAuthorizedUser(CAREGIVERS_UNIQUE_ID, context.getUserId());
+    Collection caregiversCollection = LoadCollectionCommand.loadCollectionByUniqueIdForAuthorizedUser(COLLECTION_CAREGIVERS_UNIQUE_ID, context.getUserId());
     if (caregiversCollection == null) {
       ServiceResponse response = new ServiceResponse(400);
       response.getError().put("title", "Collection was not found");
@@ -97,8 +93,7 @@ public class MedicineListService {
     specification.setIndividualId(individual.getId());
 
     // See if the user has the "Program Administrator" role
-    Group group = GroupRepository.findByName(ADMIN_USER_GROUP);
-    if (group == null || !context.getUser().hasGroup(group.getId())) {
+    if (!context.getUser().hasGroup(USER_GROUP_CAREGIVER_UNIQUE_ID)) {
       // This user can only see available records
       specification.setArchivedOnly(DataConstants.FALSE);
     }

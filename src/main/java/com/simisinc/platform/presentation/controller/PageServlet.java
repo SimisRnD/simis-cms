@@ -81,8 +81,8 @@ public class PageServlet extends HttpServlet {
     Map<String, String> widgetLibrary = WebPageXmlLayoutCommand.init(config.getServletContext());
 
     // Load the web containers
-    LOG.info("Loading the web containers...");
-    WebContainerCommand.populateCache(config.getServletContext(), widgetLibrary);
+    LOG.info("Populating the header and footer containers...");
+    WebContainerLayoutCommand.populateCache(config.getServletContext(), widgetLibrary);
 
     // Instantiate the widgets
     LOG.info("Instantiating the widgets...");
@@ -254,8 +254,11 @@ public class PageServlet extends HttpServlet {
       }
 
       // Verify the user has access to the page
-      if (!pageRef.allowsUser(userSession)) {
-        LOG.error("PAGE NOT ALLOWED: " + pagePath + " [roles=" + pageRef.getRoles().toString() + "] " + request.getRemoteAddr());
+      if (!WebComponentCommand.allowsUser(pageRef, userSession)) {
+        LOG.warn("PAGE NOT ALLOWED: " + pagePath + " " +
+            (!pageRef.getRoles().isEmpty() ? "[roles=" + pageRef.getRoles().toString() + "]" + " " : "") +
+            (!pageRef.getGroups().isEmpty() ? "[groups=" + pageRef.getGroups().toString() + "]" + " " : "") +
+            request.getRemoteAddr());
         controllerSession.clearAllWidgetData();
         response.sendError(HttpServletResponse.SC_NOT_FOUND);
         return;
@@ -390,7 +393,7 @@ public class PageServlet extends HttpServlet {
       }
 
       // Render the page first
-      if (WebContainerCommands.processWidgets(webContainerContext, pageRef.getSections(), pageRenderInfo, coreData, contextPath, pagePath, userSession, themePropertyMap)) {
+      if (WebContainerCommand.processWidgets(webContainerContext, pageRef.getSections(), pageRenderInfo, coreData, contextPath, pagePath, userSession, themePropertyMap)) {
         // The widget processor handled the response, immediately return
         return;
       }
@@ -398,17 +401,17 @@ public class PageServlet extends HttpServlet {
       // Render the header
       Header requestHeader = null;
       if (pageRenderInfo.getName().startsWith("/checkout")) {
-        requestHeader = WebContainerCommand.retrievePlainHeader(request.getServletContext(), widgetLibrary);
+        requestHeader = WebContainerLayoutCommand.retrievePlainHeader(request.getServletContext(), widgetLibrary);
       } else {
-        requestHeader = WebContainerCommand.retrieveHeader(request.getServletContext(), widgetLibrary);
+        requestHeader = WebContainerLayoutCommand.retrieveHeader(request.getServletContext(), widgetLibrary);
       }
       HeaderRenderInfo headerRenderInfo = new HeaderRenderInfo(requestHeader, pagePath);
-      WebContainerCommands.processWidgets(webContainerContext, requestHeader.getSections(), headerRenderInfo, coreData, contextPath, pagePath, userSession, themePropertyMap);
+      WebContainerCommand.processWidgets(webContainerContext, requestHeader.getSections(), headerRenderInfo, coreData, contextPath, pagePath, userSession, themePropertyMap);
 
       // Render the footer
-      Footer footer = WebContainerCommand.retrieveFooter(request.getServletContext(), widgetLibrary);
+      Footer footer = WebContainerLayoutCommand.retrieveFooter(request.getServletContext(), widgetLibrary);
       FooterRenderInfo footerRenderInfo = new FooterRenderInfo(footer, pagePath);
-      WebContainerCommands.processWidgets(webContainerContext, footer.getSections(), footerRenderInfo, coreData, contextPath, pagePath, userSession, themePropertyMap);
+      WebContainerCommand.processWidgets(webContainerContext, footer.getSections(), footerRenderInfo, coreData, contextPath, pagePath, userSession, themePropertyMap);
 
       // Finalize the controller session (zero out the widget's session data)
       controllerSession.clearAllWidgetData();

@@ -20,15 +20,15 @@ import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.LoadUserCommand;
 import com.simisinc.platform.application.items.LoadCollectionCommand;
 import com.simisinc.platform.application.items.LoadItemCommand;
-import com.simisinc.platform.domain.model.Group;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.items.Collection;
 import com.simisinc.platform.domain.model.items.Item;
 import com.simisinc.platform.domain.model.medicine.Medicine;
-import com.simisinc.platform.infrastructure.persistence.GroupRepository;
 import com.simisinc.platform.infrastructure.persistence.medicine.MedicineRepository;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+
+import static com.simisinc.platform.application.medicine.MedicineConstants.*;
 
 /**
  * Description
@@ -39,10 +39,6 @@ import org.apache.commons.logging.LogFactory;
 public class DeleteMedicineCommand {
 
   private static Log LOG = LogFactory.getLog(DeleteMedicineCommand.class);
-
-  private static String ADMIN_USER_GROUP = "Program Administrator";
-  private static String CAREGIVERS_UNIQUE_ID = "caregivers";
-  private static String INDIVIDUALS_UNIQUE_ID = "individuals";
 
   /**
    * Delete the medicine and all of the dependencies
@@ -59,8 +55,8 @@ public class DeleteMedicineCommand {
     }
 
     // Check the collections for access
-    Collection caregiversCollection = LoadCollectionCommand.loadCollectionByUniqueIdForAuthorizedUser(CAREGIVERS_UNIQUE_ID, userId);
-    Collection individualsCollection = LoadCollectionCommand.loadCollectionByUniqueIdForAuthorizedUser(INDIVIDUALS_UNIQUE_ID, userId);
+    Collection caregiversCollection = LoadCollectionCommand.loadCollectionByUniqueIdForAuthorizedUser(COLLECTION_CAREGIVERS_UNIQUE_ID, userId);
+    Collection individualsCollection = LoadCollectionCommand.loadCollectionByUniqueIdForAuthorizedUser(COLLECTION_INDIVIDUALS_UNIQUE_ID, userId);
     if (caregiversCollection == null || individualsCollection == null) {
       throw new DataException("The collections could not be found");
     }
@@ -73,8 +69,7 @@ public class DeleteMedicineCommand {
 
     // Make sure the user has the "Program Administrator" role
     User user = LoadUserCommand.loadUser(userId);
-    Group group = GroupRepository.findByName(ADMIN_USER_GROUP);
-    if (group == null || !user.hasGroup(group.getId())) {
+    if (user == null || !user.hasGroup(USER_GROUP_PROGRAM_ADMINISTRATOR_UNIQUE_ID)) {
       throw new DataException("The user is not authorized, please check with a program administrator");
     }
 

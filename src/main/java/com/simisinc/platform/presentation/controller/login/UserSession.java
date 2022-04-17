@@ -17,6 +17,7 @@
 package com.simisinc.platform.presentation.controller.login;
 
 import com.simisinc.platform.application.LoadUserCommand;
+import com.simisinc.platform.domain.model.Group;
 import com.simisinc.platform.domain.model.Role;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.ecommerce.Cart;
@@ -55,6 +56,7 @@ public class UserSession implements Serializable {
   private long visitorId = -1;
   private long userId = GUEST_ID;
   private List<Role> roleList = null;
+  private List<Group> groupList = null;
   private long loginTime = -1;
   private String formToken = UUID.randomUUID().toString();
   private boolean cookieChecked = false;
@@ -75,11 +77,16 @@ public class UserSession implements Serializable {
   public void login(User user) {
     userId = user.getId();
     roleList = user.getRoleList();
+    groupList = user.getGroupList();
     loginTime = System.currentTimeMillis();
   }
 
   public void setRoleList(List<Role> roleList) {
     this.roleList = roleList;
+  }
+
+  public void setGroupList(List<Group> groupList) {
+    this.groupList = groupList;
   }
 
   public String getSessionId() {
@@ -166,6 +173,21 @@ public class UserSession implements Serializable {
     }
     for (Role role : roleList) {
       if (role.getCode().equals(code)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  public boolean hasGroup(String uniqueId) {
+    if (groupList == null) {
+      return false;
+    }
+    if (StringUtils.isBlank(uniqueId)) {
+      return false;
+    }
+    for (Group group : groupList) {
+      if (group.getUniqueId().equals(uniqueId)) {
         return true;
       }
     }
