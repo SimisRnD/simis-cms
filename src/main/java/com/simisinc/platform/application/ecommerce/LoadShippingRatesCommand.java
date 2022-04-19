@@ -44,7 +44,7 @@ public class LoadShippingRatesCommand {
 
     // Get a file handle
     String serverConfigPath = FileSystemCommand.getFileServerConfigPath();
-    File serverFile = new File(serverConfigPath + "/e-commerce/" + "shipping-rates.csv");
+    File serverFile = new File(serverConfigPath + "e-commerce/" + "shipping-rates.csv");
     if (!serverFile.exists()) {
       LOG.info("Skipping, no redirects found in: " + serverFile.getAbsolutePath());
       return null;
