@@ -44,10 +44,10 @@ public class LoadRedirectsCommand {
     Map<String, String> redirectMap = new HashMap<>();
 
     // Get a file handle
-    String serverRootPath = FileSystemCommand.getFileServerRootPath();
-    File serverFile = new File(serverRootPath + "redirects.csv");
-    if (!serverFile.exists()) {
-      LOG.info("Skipping, no redirects found in: " + serverRootPath + "redirects.csv");
+    String serverConfigPath = FileSystemCommand.getFileServerConfigPath();
+    File file = new File(serverConfigPath + "cms/redirects.csv");
+    if (!file.exists()) {
+      LOG.info("Skipping, no redirects found in: " + file.getAbsolutePath());
       return null;
     }
 
@@ -57,7 +57,7 @@ public class LoadRedirectsCommand {
 
     // Read the file
     CsvParser parser = new CsvParser(parserSettings);
-    try (InputStream inputStream = new FileInputStream(serverFile)) {
+    try (InputStream inputStream = new FileInputStream(file)) {
       parser.beginParsing(inputStream, "ISO-8859-1");
       String[] row;
       while ((row = parser.parseNext()) != null) {
