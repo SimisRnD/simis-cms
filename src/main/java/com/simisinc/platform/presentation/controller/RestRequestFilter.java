@@ -88,14 +88,13 @@ public class RestRequestFilter implements Filter {
     String resource = requestURI.substring(contextPath.length());
 
     // Prevent bots from finding the name
-    if (StringUtils.isBlank(request.getServerName()) || InetAddressUtils.isIPv4Address(request.getServerName())) {
+    if (StringUtils.isBlank(request.getServerName()) || InetAddressUtils.isIPv4Address(request.getServerName()) || InetAddressUtils.isIPv6Address(request.getServerName())) {
       do404(servletResponse);
       return;
     }
 
     if (requireSSL && !"https".equalsIgnoreCase(scheme)) {
-      if (!"localhost".equals(request.getServerName())) {
-        // @note consider erroring out instead of a redirect
+      if (!"localhost".equals(request.getServerName()) && !InetAddressUtils.isIPv4Address(request.getServerName()) && !InetAddressUtils.isIPv6Address(request.getServerName())) {
         String requestURL = ((HttpServletRequest) request).getRequestURL().toString();
         requestURL = StringUtils.replace(requestURL, "http://", "https://");
         LOG.debug("Redirecting to: " + requestURL);

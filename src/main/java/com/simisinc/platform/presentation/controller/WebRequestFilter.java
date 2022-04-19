@@ -73,13 +73,11 @@ public class WebRequestFilter implements Filter {
   private Map<String, String> redirectMap = null;
 
   public void init(FilterConfig config) throws ServletException {
-
     LOG.info("WebRequestFilter starting up...");
     String startupSuccessful = (String) config.getServletContext().getAttribute("STARTUP_SUCCESSFUL");
     if (!"true".equals(startupSuccessful)) {
       throw new ServletException("Startup failed due to previous error");
     }
-
     String ssl = LoadSitePropertyCommand.loadByName("system.ssl");
     if ("true".equals(ssl)) {
       LOG.info("SSL is required by system.ssl");
@@ -142,7 +140,7 @@ public class WebRequestFilter implements Filter {
 
     // Redirect to SSL
     if (requireSSL && !"https".equalsIgnoreCase(scheme)) {
-      if (!"localhost".equals(request.getServerName())) {
+      if (!"localhost".equals(request.getServerName()) && !InetAddressUtils.isIPv4Address(request.getServerName()) && !InetAddressUtils.isIPv6Address(request.getServerName())) {
         String requestURL = httpServletRequest.getRequestURL().toString();
         requestURL = StringUtils.replace(requestURL, "http://", "https://");
         LOG.debug("Redirecting to: " + requestURL);
