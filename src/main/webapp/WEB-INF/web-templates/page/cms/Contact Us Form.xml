@@ -29,6 +29,8 @@
         </widget>
         <widget name="form" class="callout box">
           <formUniqueId>${webPageName}</formUniqueId>
+          <useCaptcha>true</useCaptcha>
+          <checkForSpam>true</checkForSpam>
           <fields>
             <field name="Name" value="name" placeholder="Your first and last name" required="true" />
             <field name="Organization" value="organization" />
