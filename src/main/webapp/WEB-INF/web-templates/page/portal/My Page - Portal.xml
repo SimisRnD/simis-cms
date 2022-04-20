@@ -35,6 +35,7 @@
       </column>
       <column class="small-12 medium-4 cell">
         <widget name="myInfo" />
+        <widget name="mySiteInfo"/>
         <widget name="itemsList">
           <title>Favorite Spaces</title>
           <message>Areas you can access...</message>
