@@ -52,6 +52,8 @@ public class CaptchaCommand {
 
   private static Log LOG = LogFactory.getLog(CaptchaCommand.class);
 
+  private static final SecureRandom random = new SecureRandom();
+
   public static boolean validateRequest(WidgetContext context) {
 
     // Determine the service
@@ -161,8 +163,6 @@ public class CaptchaCommand {
     g.setColor(Color.blue);
     int start = 10;
     byte[] bytes = text.getBytes();
-
-    SecureRandom random = new SecureRandom();
     for (int i = 0; i < bytes.length; i++) {
       g.setColor(new Color(random.nextInt(255), random.nextInt(255), random.nextInt(255)));
       g.drawString(new String(new byte[]{bytes[i]}), start + (i * 20), (int) (Math.random() * 20 + 20));
