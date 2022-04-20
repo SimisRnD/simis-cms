@@ -8,9 +8,9 @@
 <!--  </parent>-->
   <groupId>com.simisinc.platform</groupId>
   <artifactId>simis-cms</artifactId>
-  <version>20220406.10000-SNAPSHOT</version>
-  <name>Web Platform</name>
-  <description>Agile, Enterprise, Open Source, Content Management System (CMS)</description>
+  <version>20220419.10000-SNAPSHOT</version>
+  <name>SimIS CMS</name>
+  <description>Agile, Enterprise, Open Source Content Management System (CMS)</description>
   <url>https://www.simiscms.com</url>
 <!--  <packaging>war</packaging>-->
   <properties>
