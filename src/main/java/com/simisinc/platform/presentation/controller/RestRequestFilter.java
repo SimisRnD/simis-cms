@@ -21,6 +21,7 @@ import com.simisinc.platform.application.LoadAppCommand;
 import com.simisinc.platform.application.SaveSessionCommand;
 import com.simisinc.platform.application.UserCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.cms.HostnameCommand;
 import com.simisinc.platform.application.json.JsonCommand;
 import com.simisinc.platform.application.login.AuthenticateLoginCommand;
 import com.simisinc.platform.application.maps.GeoIPCommand;
@@ -87,12 +88,13 @@ public class RestRequestFilter implements Filter {
     String requestURI = httpServletRequest.getRequestURI();
     String resource = requestURI.substring(contextPath.length());
 
-    // Prevent bots from finding the name
-    if (StringUtils.isBlank(request.getServerName()) || InetAddressUtils.isIPv4Address(request.getServerName()) || InetAddressUtils.isIPv6Address(request.getServerName())) {
+    // Check allowed hostnames
+    if (!HostnameCommand.passesCheck(request.getServerName())) {
       do404(servletResponse);
       return;
     }
 
+    // Redirect to SSL
     if (requireSSL && !"https".equalsIgnoreCase(scheme)) {
       if (!"localhost".equals(request.getServerName()) && !InetAddressUtils.isIPv4Address(request.getServerName()) && !InetAddressUtils.isIPv6Address(request.getServerName())) {
         String requestURL = ((HttpServletRequest) request).getRequestURL().toString();

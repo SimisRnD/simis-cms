@@ -19,6 +19,7 @@ package com.simisinc.platform.infrastructure.scheduler.cms;
 import com.simisinc.platform.application.SessionCommand;
 import com.simisinc.platform.application.cms.BlockedIPListCommand;
 import com.simisinc.platform.application.cms.FormCommand;
+import com.simisinc.platform.application.cms.HostnameCommand;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jobrunr.jobs.annotations.Job;
@@ -38,5 +39,6 @@ public class LoadSystemFilesJob {
     BlockedIPListCommand.load();
     FormCommand.load();
     SessionCommand.load();
+    HostnameCommand.load();
   }
 }

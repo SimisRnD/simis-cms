@@ -21,6 +21,7 @@ import com.simisinc.platform.application.SaveSessionCommand;
 import com.simisinc.platform.application.SaveVisitorCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.cms.BlockedIPListCommand;
+import com.simisinc.platform.application.cms.HostnameCommand;
 import com.simisinc.platform.application.cms.LoadBlockedIPListCommand;
 import com.simisinc.platform.application.cms.LoadRedirectsCommand;
 import com.simisinc.platform.application.ecommerce.CartCommand;
@@ -56,8 +57,7 @@ import java.util.Enumeration;
 import java.util.Map;
 
 import static com.simisinc.platform.presentation.controller.login.UserSession.WEB_SOURCE;
-import static javax.servlet.http.HttpServletResponse.SC_MOVED_PERMANENTLY;
-import static javax.servlet.http.HttpServletResponse.SC_NOT_FOUND;
+import static javax.servlet.http.HttpServletResponse.*;
 
 /**
  * Sets up the framework for the visitor
@@ -105,8 +105,8 @@ public class WebRequestFilter implements Filter {
     String referer = httpServletRequest.getHeader("Referer");
     String userAgent = httpServletRequest.getHeader("USER-AGENT");
 
-    // Prevent bots from finding the name
-    if (StringUtils.isBlank(request.getServerName()) || InetAddressUtils.isIPv4Address(request.getServerName()) || InetAddressUtils.isIPv6Address(request.getServerName())) {
+    // Check hostnames
+    if (!HostnameCommand.passesCheck(request.getServerName())) {
       do404(servletResponse);
       return;
     }
@@ -474,6 +474,17 @@ public class WebRequestFilter implements Filter {
     HttpServletResponse response = (HttpServletResponse) servletResponse;
     response.setHeader("Location", redirectLocation);
     response.sendError(SC_MOVED_PERMANENTLY);
+  }
+
+  private void do302(ServletResponse servletResponse, String redirectLocation) throws IOException {
+    HttpServletResponse response = (HttpServletResponse) servletResponse;
+    response.setHeader("Location", redirectLocation);
+    response.sendError(SC_MOVED_TEMPORARILY);
+  }
+
+  private void do401(ServletResponse servletResponse) throws IOException {
+    HttpServletResponse response = (HttpServletResponse) servletResponse;
+    response.sendError(SC_UNAUTHORIZED);
   }
 
   private void do404(ServletResponse servletResponse) throws IOException {
