@@ -111,6 +111,7 @@ Upgrading is as simple as replacing the ROOT.war with a newer version.
 The build process places the .war in the target/ directory, or the release file can be placed there manually. That's all that is needed for Docker.
 
 ```bash
+export DOCKER_BUILDKIT=1
 docker-compose up --build -d
 ```
 
