@@ -44,37 +44,26 @@ public class InstagramCommand {
 
   private static String BASE_URL = "https://graph.facebook.com/v6.0";
 
-
   public static String retrieveUserAccessToken() {
-
     // The user must use the Graph Explorer to create a User Access Token:
     // Choose the corresponding App, then Choose User Access Token
     // Choose "Get Token"
-
     return null;
   }
 
   public static String exchangeUserTokenForExtendedToken() {
-
-    // 2019-09-11 EAAh9oxVUEHI-----
-
     // curl -i -X GET "https://graph.facebook.com/v4.0/oauth/access_token?
     //    grant_type=fb_exchange_token
     //    client_id={app-id}&
     //    client_secret={app-secret}&
     //    fb_exchange_token={user-access-token}"
-
     return null;
   }
 
   public static String retrieveAppAccessToken() {
-
     // @todo this method requires a Facebook verified business account and approved permissions
-    String appId = "---";
-    String appSecret = "---";
-
-    // curl -X GET "https://graph.facebook.com/oauth/access_token?client_id=---&client_secret=---&grant_type=client_credentials"
-    // {"access_token":"---|---","token_type":"bearer"}
+//    String appId = "---";
+//    String appSecret = "---";
     return null;
   }
 
@@ -90,11 +79,6 @@ public class InstagramCommand {
       return null;
     }
 
-    // access_token=your-app_id|your-app_secret
-//    String appId = "---";
-//    String appSecret = "---";
-//    accessToken = appId + "%7C" + appSecret;
-
     String url = BASE_URL + "/me/accounts?access_token=" + accessToken;
     try {
       HttpClient client = HttpClientBuilder.create().build();
@@ -104,10 +88,6 @@ public class InstagramCommand {
       String value = EntityUtils.toString(entity);
       LOG.debug("Value: " + value);
 
-      // {"data": [{
-      //      "access_token":"",
-      //      "name": "---",
-      //      "id": "---"
       JsonNode json = JsonLoader.fromString(value);
       if (json.has("data")) {
         JsonNode data = json.get("data");
@@ -151,8 +131,6 @@ public class InstagramCommand {
       String value = EntityUtils.toString(entity);
       LOG.debug("Value: " + value);
 
-      // {"instagram_business_account":{"id":"---"},"id":"---"}
-
       int fieldNameIdx = value.indexOf("\"instagram_business_account\":");
       if (fieldNameIdx == -1) {
         LOG.warn("UserId not found");
@@ -192,10 +170,6 @@ public class InstagramCommand {
       String value = EntityUtils.toString(entity);
       LOG.debug("Value: " + value);
 
-      // {
-      //  "data": [
-      //    {"id": "---"},{"id": "---"},...
-
       int dataIdx = value.indexOf("\"data\":");
       if (dataIdx == -1) {
         LOG.warn("Data not found");
@@ -234,8 +208,6 @@ public class InstagramCommand {
       return null;
     }
 
-    // /18018363490239961?fields=permalink,media_type,media_url,caption,shortcode,timestamp
-
     String url = BASE_URL + "/" + graphId + "?fields=permalink,media_type,media_url,caption,shortcode,timestamp&access_token=" + accessToken;
     try {
       HttpClient client = HttpClientBuilder.create().build();
@@ -244,19 +216,6 @@ public class InstagramCommand {
       HttpEntity entity = response.getEntity();
       String value = EntityUtils.toString(entity);
       LOG.debug("Value: " + value);
-
-      // {
-      //  "permalink": "https://www.instagram.com/p/B2PfYAhAv17/",
-      //  "media_type": "IMAGE",
-      //  "media_url": "https://scontent.xx.fbcdn.net/v/t51.2885-15/69270221_696249670876634_2545035723937948200_n.jpg?_nc_cat=111&_nc_oc=AQmZZagcenAMbFE6sMZonmLKoVz2PLqbT6MftfZzx7Js3p8Jd9Fo0Hb6EquhlL4mrE4&_nc_ht=scontent.xx&oh=19c9fc60aea938a4e1e5af603ebeb612&oe=5DEF9159",
-      //  "caption": "---.
-      //•
-      //•
-      //• asd",
-      //  "shortcode": "B2PfYAhAv17",
-      //  "timestamp": "2019-09-10T19:14:18+0000",
-      //  "id": "18018363490239961"
-      //}
 
       JsonNode json = JsonLoader.fromString(value);
       LOG.debug("JSON Size: " + json.size());
