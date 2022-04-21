@@ -115,9 +115,9 @@ The build process places the .war in the target/ directory, or the release file 
 .env contents:
 
 ```
-CMS_ADMIN_USERNAME=admin123
-CMS_ADMIN_PASSWORD=admin456
-CMS_FORCE_SSL=false
+CMS_ADMIN_USERNAME=
+CMS_ADMIN_PASSWORD=
+CMS_FORCE_SSL=true|false
 ```
 
 ```bash
