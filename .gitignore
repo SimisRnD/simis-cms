@@ -8,6 +8,9 @@
 /target
 /exploded
 
+# Docker
+.env
+
 # Mac OSX
 .DS_Store
 .Spotlight-V100

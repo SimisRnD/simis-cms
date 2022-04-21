@@ -23,6 +23,9 @@ services:
     ports:
       - 80:8080
     environment:
+      CMS_ADMIN_USERNAME: "${CMS_ADMIN_USERNAME:?err}"
+      CMS_ADMIN_PASSWORD: "${CMS_ADMIN_PASSWORD:?err}"
+      CMS_FORCE_SSL: "${CMS_FORCE_SSL:-true}"
       DB_SERVER_NAME: "db"
       DB_USER: "postgres"
       DB_PASSWORD: "postgres"

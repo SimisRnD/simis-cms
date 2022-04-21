@@ -59,7 +59,9 @@ In general:
 
 An optimized web application archive (.war), with production settings, is released to this project's GitHub releases, ready for installation and which automatically upgrades previously installed versions.
 
-The release notes will include a list of changes for review.
+The latest release is at <https://github.com/SimisRnD/simis-cms/releases>.
+
+Release notes include a list of changes for review.
 
 Download the .war and follow your choice of deployment options.
 
@@ -108,14 +110,22 @@ Upgrading is as simple as replacing the ROOT.war with a newer version.
 
 ### Deploying with Docker
 
-The build process places the .war in the target/ directory, or the release file can be placed there manually. That's all that is needed for Docker.
+The build process places the .war in the target/ directory, or the release file can be downloaded and placed in target/ manually. You will need to create a .env file with additional settings.
+
+.env contents:
+
+```
+CMS_ADMIN_USERNAME=admin123
+CMS_ADMIN_PASSWORD=admin456
+CMS_FORCE_SSL=false
+```
 
 ```bash
 export DOCKER_BUILDKIT=1
 docker-compose up --build -d
 ```
 
-For new installs, review the installation logs for the administrator's username and password.
+For new installs, if an installation property was not provided, review the runtime logs for the administrator's username and password.
 
 ```bash
 docker logs --follow simis-cms-app-1

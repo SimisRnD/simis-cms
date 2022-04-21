@@ -45,15 +45,24 @@ public class V71120__create_admin extends BaseJavaMigration {
   @Override
   public void migrate(Context context) throws Exception {
 
-    // Create a random user and password visible in the log
+    // Create a system administrator user and password visible in the log
     String tempName = "admin" + System.currentTimeMillis();
+    if (System.getenv().containsKey("CMS_ADMIN_USERNAME")) {
+      LOG.info("Found variable CMS_ADMIN_USERNAME");
+      tempName = System.getenv("CMS_ADMIN_USERNAME");
+    } else {
+      LOG.info("account: " + tempName);
+      System.out.println("account: " + tempName);
+    }
     String tempPW = UUID.randomUUID().toString();
+    if (System.getenv().containsKey("CMS_ADMIN_PASSWORD")) {
+      LOG.info("Found variable CMS_ADMIN_PASSWORD");
+      tempPW = System.getenv("CMS_ADMIN_PASSWORD");
+    } else {
+      LOG.info("checksum: " + tempPW);
+      System.out.println("checksum: " + tempPW);
+    }
     String hash = UserPasswordCommand.hash(tempPW);
-
-    LOG.info("account: " + tempName);
-    LOG.info("checksum: " + tempPW);
-    System.out.println("account: " + tempName);
-    System.out.println("checksum: " + tempPW);
 
     // Create a user
     User user = new User();
