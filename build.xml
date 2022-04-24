@@ -20,10 +20,12 @@
   <property name="target.dir" value="${base.dir}/target" />
   <property name="exploded.dir" value="${base.dir}/exploded/ROOT" />
 
-  <property environment="env"/>
-  <property name="j2ee.bin.dir" value="${env.CATALINA_HOME}/bin" />
-  <property name="j2ee.lib.dir" value="${env.CATALINA_HOME}/lib" />
-  <import file="${j2ee.bin.dir}/catalina-tasks.xml" optional="true" />
+  <property name="jee.lib.dir" value="${base.dir}/lib/war" />
+  <typedef resource="org/apache/catalina/ant/catalina.tasks">
+    <classpath>
+      <fileset dir="${base.dir}/lib/war" includes="*.jar"/>
+    </classpath>
+  </typedef>
 
   <!-- Version for scripts to use -->
   <target name="version">
@@ -169,11 +171,8 @@
         <fileset dir="${target.dir}/${project}/WEB-INF/lib">
           <include name="*.jar"/>
         </fileset>
-        <pathelement location="${j2ee.lib.dir}"/>
-        <fileset dir="${j2ee.lib.dir}">
-          <include name="*.jar"/>
-        </fileset>
-        <fileset dir="${j2ee.bin.dir}">
+        <pathelement location="${jee.lib.dir}"/>
+        <fileset dir="${jee.lib.dir}">
           <include name="*.jar"/>
         </fileset>
       </classpath>

@@ -19,9 +19,8 @@ jobs:
       with:
         java-version: 17
     - name: Compile the source
-      run: ant -noinput -buildfile build.xml compile
+      run: ant -noinput -buildfile build.xml clean compile
     - name: Run unit tests
       run: ant -noinput -buildfile build.xml -lib lib/tests test
-# Requires Jasper .jar
-#    - name: Package the web application
-#      run: ant -noinput -buildfile build.xml package
+    - name: Package the web application
+      run: ant -noinput -buildfile build.xml -lib lib/war package
