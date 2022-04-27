@@ -157,7 +157,10 @@ public class WebRequestFilter implements Filter {
         resource.startsWith("/fonts") ||
         resource.startsWith("/html") ||
         resource.startsWith("/images") ||
-        resource.startsWith("/javascript")) {
+        resource.startsWith("/javascript") ||
+        resource.startsWith("/combined.css") ||
+        resource.startsWith("/combined.js") ||
+        resource.startsWith("/css/custom/")) {
       chain.doFilter(request, servletResponse);
       return;
     }
