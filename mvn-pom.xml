@@ -8,7 +8,7 @@
 <!--  </parent>-->
   <groupId>com.simisinc.platform</groupId>
   <artifactId>simis-cms</artifactId>
-  <version>20220419.10000-SNAPSHOT</version>
+  <version>20220426.10000-SNAPSHOT</version>
   <name>SimIS CMS</name>
   <description>Agile, Enterprise, Open Source Content Management System (CMS)</description>
   <url>https://www.simiscms.com</url>
@@ -72,7 +72,7 @@
     <slf4j.version>1.7.32</slf4j.version>
     <snakeyaml.version>1.30</snakeyaml.version>
     <square-connect.version>2.20191120.0</square-connect.version>
-    <square.version>18.0.0.20211215</square.version>
+    <square.version>19.0.0.20220420</square.version>
     <stripe.version>20.94.0</stripe.version>
     <thymeleaf.version>3.0.11</thymeleaf.version>
     <timeago.version>3.0.1</timeago.version>
