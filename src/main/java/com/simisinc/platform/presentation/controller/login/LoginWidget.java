@@ -17,6 +17,8 @@
 package com.simisinc.platform.presentation.controller.login;
 
 import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.oauth.OAuthRequestCommand;
 import com.simisinc.platform.application.login.AuthenticateLoginCommand;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.SiteProperty;
@@ -54,7 +56,9 @@ public class LoginWidget extends GenericWidget {
     // Standard request items
     context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));
     context.getRequest().setAttribute("title", context.getPreferences().get("title"));
-
+    if (OAuthRequestCommand.isEnabled()) {
+      context.getRequest().setAttribute("oAuthProvider", LoadSitePropertyCommand.loadByName("oauth.provider"));
+    }
     context.setJsp(JSP);
     return context;
   }

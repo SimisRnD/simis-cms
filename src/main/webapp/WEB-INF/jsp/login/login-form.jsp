@@ -16,6 +16,7 @@
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.login.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.cms.WidgetContext" scope="request"/>
+<jsp:useBean id="oAuthProvider" class="java.lang.String" scope="request"/>
 <form method="post">
   <%-- Required by controller --%>
   <input type="hidden" name="widget" value="${widgetContext.uniqueId}" />
@@ -42,6 +43,9 @@
         <a href="${ctx}/forgot-password">Forgot password</a>
       </p>
       <p><input type="submit" class="button primary radius expanded" value="Sign In"></input></p>
+      <c:if test="${!empty oAuthProvider}">
+        <p><a href="${ctx}/" class="button secondary radius expanded">Login with <c:out value="${oAuthProvider}" /></a></p>
+      </c:if>
       <input id="stay-logged-in" name="stayLoggedIn" value="on" type="checkbox" checked><label for="stay-logged-in">Stay logged in</label>
     </div>
   </div>
