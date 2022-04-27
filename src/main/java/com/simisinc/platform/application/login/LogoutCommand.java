@@ -16,6 +16,8 @@
 
 package com.simisinc.platform.application.login;
 
+import com.simisinc.platform.application.oauth.OAuthLogoutCommand;
+import com.simisinc.platform.application.oauth.OAuthRequestCommand;
 import com.simisinc.platform.presentation.controller.CookieConstants;
 import com.simisinc.platform.presentation.controller.SessionConstants;
 import com.simisinc.platform.presentation.controller.login.UserSession;
@@ -53,9 +55,9 @@ public class LogoutCommand {
       request.getSession().removeAttribute(SessionConstants.USER);
     }
 
-    // @todo Expire the token in the database immediately
-    if (userId > -1) {
-
+    // Log out of OAuth
+    if (OAuthRequestCommand.isEnabled()) {
+      OAuthLogoutCommand.logout(userId, request);
     }
   }
 }
