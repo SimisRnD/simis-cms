@@ -16,15 +16,11 @@
 
 package com.simisinc.platform.presentation.controller;
 
-import com.simisinc.platform.application.DataException;
-import com.simisinc.platform.application.LoadAppCommand;
-import com.simisinc.platform.application.SaveSessionCommand;
-import com.simisinc.platform.application.UserCommand;
+import com.simisinc.platform.application.*;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.cms.HostnameCommand;
 import com.simisinc.platform.application.json.JsonCommand;
 import com.simisinc.platform.application.login.AuthenticateLoginCommand;
-import com.simisinc.platform.application.maps.GeoIPCommand;
 import com.simisinc.platform.domain.model.App;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.login.UserLogin;
@@ -175,10 +171,9 @@ public class RestRequestFilter implements Filter {
 
         // Start a new session
         String ipAddress = request.getRemoteAddr();
-        UserSession userSession = new UserSession(API_SOURCE, httpServletRequest.getSession().getId(), ipAddress);
-        userSession.setUserAgent(httpServletRequest.getHeader("USER-AGENT"));
+        String userAgent = httpServletRequest.getHeader("USER-AGENT");
+        UserSession userSession = CreateSessionCommand.createSession(API_SOURCE, httpServletRequest.getSession().getId(), ipAddress, null, userAgent);
         userSession.setAppId(thisApp.getId());
-        userSession.setGeoIP(GeoIPCommand.getLocation(ipAddress));
         userSession.login(user);
         SaveSessionCommand.saveSession(userSession);
 
@@ -210,10 +205,9 @@ public class RestRequestFilter implements Filter {
   private void doRecordSession(App app, HttpServletRequest httpServletRequest, ServletResponse response) throws IOException {
     // Start a new session
     String ipAddress = httpServletRequest.getRemoteAddr();
-    UserSession userSession = new UserSession(API_SOURCE, httpServletRequest.getSession().getId(), ipAddress);
-    userSession.setUserAgent(httpServletRequest.getHeader("USER-AGENT"));
+    String userAgent = httpServletRequest.getHeader("USER-AGENT");
+    UserSession userSession = CreateSessionCommand.createSession(API_SOURCE, httpServletRequest.getSession().getId(), ipAddress, null, userAgent);
     userSession.setAppId(app.getId());
-    userSession.setGeoIP(GeoIPCommand.getLocation(ipAddress));
     SaveSessionCommand.saveSession(userSession);
 
     // Make a response
@@ -233,10 +227,9 @@ public class RestRequestFilter implements Filter {
 
     // Start a new session
     String ipAddress = httpServletRequest.getRemoteAddr();
-    UserSession userSession = new UserSession(API_SOURCE, httpServletRequest.getSession().getId(), ipAddress);
-    userSession.setUserAgent(httpServletRequest.getHeader("USER-AGENT"));
+    String userAgent = httpServletRequest.getHeader("USER-AGENT");
+    UserSession userSession = CreateSessionCommand.createSession(API_SOURCE, httpServletRequest.getSession().getId(), ipAddress, null, userAgent);
     userSession.setAppId(app.getId());
-    userSession.setGeoIP(GeoIPCommand.getLocation(ipAddress));
     SaveSessionCommand.saveSession(userSession);
 
     // Track the login

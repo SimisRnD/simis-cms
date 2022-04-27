@@ -17,7 +17,10 @@
 package com.simisinc.platform.infrastructure.persistence;
 
 import com.simisinc.platform.domain.model.Role;
-import com.simisinc.platform.infrastructure.database.*;
+import com.simisinc.platform.infrastructure.database.DB;
+import com.simisinc.platform.infrastructure.database.DataConstraints;
+import com.simisinc.platform.infrastructure.database.DataResult;
+import com.simisinc.platform.infrastructure.database.SqlUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -44,6 +47,15 @@ public class RoleRepository {
     }
     return (Role) DB.selectRecordFrom(
         TABLE_NAME, new SqlUtils().add("code = ?", code),
+        RoleRepository::buildRecord);
+  }
+
+  public static Role findByOAuthPath(String oAuthPath) {
+    if (StringUtils.isBlank(oAuthPath)) {
+      return null;
+    }
+    return (Role) DB.selectRecordFrom(
+        TABLE_NAME, new SqlUtils().add("oauth_path = ?", oAuthPath),
         RoleRepository::buildRecord);
   }
 

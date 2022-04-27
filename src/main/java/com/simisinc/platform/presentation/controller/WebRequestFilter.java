@@ -16,10 +16,13 @@
 
 package com.simisinc.platform.presentation.controller;
 
+import com.simisinc.platform.application.CreateSessionCommand;
 import com.simisinc.platform.application.LoadVisitorCommand;
 import com.simisinc.platform.application.SaveSessionCommand;
 import com.simisinc.platform.application.SaveVisitorCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.oauth.OAuthLogoutCommand;
+import com.simisinc.platform.application.oauth.OAuthRequestCommand;
 import com.simisinc.platform.application.cms.BlockedIPListCommand;
 import com.simisinc.platform.application.cms.HostnameCommand;
 import com.simisinc.platform.application.cms.LoadBlockedIPListCommand;
@@ -29,7 +32,6 @@ import com.simisinc.platform.application.ecommerce.LoadCartCommand;
 import com.simisinc.platform.application.ecommerce.PricingRuleCommand;
 import com.simisinc.platform.application.login.AuthenticateLoginCommand;
 import com.simisinc.platform.application.login.LogoutCommand;
-import com.simisinc.platform.application.maps.GeoIPCommand;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.Visitor;
 import com.simisinc.platform.domain.model.ecommerce.Cart;
@@ -105,6 +107,19 @@ public class WebRequestFilter implements Filter {
     String referer = httpServletRequest.getHeader("Referer");
     String userAgent = httpServletRequest.getHeader("USER-AGENT");
 
+    // Show the resource and headers
+    if (LOG.isTraceEnabled()) {
+      LOG.trace("Resource: " + resource);
+      Enumeration<?> headerNames = httpServletRequest.getHeaderNames();
+      while (headerNames.hasMoreElements()) {
+        String name = (String) headerNames.nextElement();
+        LOG.debug("Header: " + name + "=" + httpServletRequest.getHeader(name));
+      }
+    }
+    if (LOG.isDebugEnabled()) {
+      LOG.debug(httpServletRequest.getMethod() + " uri " + resource);
+    }
+
     // Check hostnames
     if (!HostnameCommand.passesCheck(request.getServerName())) {
       do404(servletResponse);
@@ -135,7 +150,14 @@ public class WebRequestFilter implements Filter {
 
     // Handle logouts immediately
     if (resource.equals("/logout")) {
+      // Log out of the system
       LogoutCommand.logout((HttpServletRequest) request, ((HttpServletResponse) servletResponse));
+      // Redirect to OAuth Provider via the home page
+      if (OAuthRequestCommand.isEnabled()) {
+        String redirectURL = OAuthLogoutCommand.getLogoutRedirect();
+        do302(servletResponse, redirectURL);
+        return;
+      }
     }
 
     // Redirect to SSL
@@ -149,8 +171,20 @@ public class WebRequestFilter implements Filter {
       }
     }
 
-    // Handle the request
-    LOG.trace("Resource: " + resource);
+    // If OAuth is required, and the user is not verified, redirect to provider
+    String oauthRedirect = OAuthRequestCommand.handleRequest((HttpServletRequest) request, (HttpServletResponse) servletResponse, resource);
+    if (oauthRedirect != null) {
+      if (StringUtils.isBlank(oauthRedirect)) {
+        LOG.error("OAUTH: A redirect url could not be created");
+        do401(servletResponse);
+        return;
+      }
+      LOG.debug("OAUTH: Redirecting to " + oauthRedirect);
+      do302(servletResponse, oauthRedirect);
+      return;
+    }
+
+    // Allow some resources
     if (resource.startsWith("/favicon") ||
         resource.startsWith("/favicon.ico") ||
         resource.startsWith("/css") ||
@@ -177,25 +211,14 @@ public class WebRequestFilter implements Filter {
       return;
     }
 
-    // Show the headers
-    if (LOG.isTraceEnabled()) {
-      Enumeration<?> headerNames = httpServletRequest.getHeaderNames();
-      while (headerNames.hasMoreElements()) {
-        String name = (String) headerNames.nextElement();
-        LOG.debug("Header: " + name + "=" + httpServletRequest.getHeader(name));
-      }
-    }
-
-    // Make sure the web visitor is setup for the widget controller
-    if (LOG.isDebugEnabled()) {
-      LOG.debug(httpServletRequest.getMethod() + " uri " + resource);
-    }
+    // A method to retain controller data between GET requests
     HttpSession session = httpServletRequest.getSession();
     ControllerSession controllerSession = (ControllerSession) session.getAttribute(SessionConstants.CONTROLLER);
     if (controllerSession == null) {
       synchronized (httpServletRequest.getSession()) {
         controllerSession = (ControllerSession) session.getAttribute(SessionConstants.CONTROLLER);
         if (controllerSession == null) {
+          LOG.debug("Creating a new controller session");
           controllerSession = new ControllerSession();
           httpServletRequest.getSession().setAttribute(SessionConstants.CONTROLLER, controllerSession);
         }
@@ -249,7 +272,7 @@ public class WebRequestFilter implements Filter {
     }
 
     // Make sure the web visitor has session information
-    LOG.trace("Checking session...");
+    LOG.debug("Checking session...");
     UserSession userSession = (UserSession) session.getAttribute(SessionConstants.USER);
     boolean doSaveSession = false;
     if (userSession == null) {
@@ -258,15 +281,7 @@ public class WebRequestFilter implements Filter {
         if (userSession == null) {
           LOG.debug("Creating session...");
           // Start a new session
-          userSession = new UserSession(WEB_SOURCE, httpServletRequest.getSession().getId(), ipAddress);
-          userSession.setReferer(referer);
-          userSession.setUserAgent(userAgent);
-          userSession.setGeoIP(GeoIPCommand.getLocation(ipAddress));
-          if (userSession.getGeoIP() != null && StringUtils.isNotBlank(userSession.getGeoIP().getTimezone())) {
-            LOG.debug("Using Timezone: " + userSession.getGeoIP().getTimezone());
-            // Override the system timezone for this user session
-//            Config.set(httpServletRequest.getSession(), Config.FMT_TIME_ZONE, userSession.getGeoIP().getTimezone());
-          }
+          userSession = CreateSessionCommand.createSession(WEB_SOURCE, httpServletRequest.getSession().getId(), ipAddress, referer, userAgent);
           httpServletRequest.getSession().setAttribute(SessionConstants.USER, userSession);
           // Determine if this is a monitoring app
           if (httpServletRequest.getHeader("X-Monitor") == null) {
@@ -282,6 +297,7 @@ public class WebRequestFilter implements Filter {
 
     // Update the roles every request for dynamic changes
     if (userSession.isLoggedIn()) {
+      LOG.debug("Updating user roles and groups");
       userSession.setRoleList(RoleRepository.findAllByUserId(userSession.getUser().getId()));
       userSession.setGroupList(GroupRepository.findAllByUserId(userSession.getUser().getId()));
     }
