@@ -42,6 +42,7 @@ public class UserSession implements Serializable {
 
   public static final String API_SOURCE = "api";
   public static final String WEB_SOURCE = "web";
+  public static final String OAUTH_SOURCE = "oauth";
 
   final static long serialVersionUID = 8345648404174283570L;
   protected static Log LOG = LogFactory.getLog(UserSession.class);

@@ -14,18 +14,25 @@
  * limitations under the License.
  */
 
-package com.simisinc.platform.presentation.controller;
+package com.simisinc.platform.infrastructure.scheduler.login;
+
+import com.simisinc.platform.infrastructure.persistence.login.UserTokenRepository;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.jobrunr.jobs.annotations.Job;
 
 /**
- * Description
+ * Deletes old tokens
  *
  * @author matt rajkowski
- * @created 4/9/18 8:47 AM
+ * @created 4/26/22 10:39 PM
  */
-public class SessionConstants {
-  public static final String CONTROLLER = "controllerSession";
-  public static final String USER = "userSession";
-  public static final String CAPTCHA_TEXT = "captchaText";
-  public static final String OAUTH_USER_TOKEN = "oauthUserToken";
-  public static final String OAUTH_USER_EXPIRATION_TIME = "oauthUserExpiration";
+public class UserTokensCleanupJob {
+
+  private static Log LOG = LogFactory.getLog(UserTokensCleanupJob.class);
+
+  @Job(name = "Delete old tokens")
+  public static void execute() {
+    UserTokenRepository.deleteOldTokens();
+  }
 }

@@ -18,7 +18,11 @@ package com.simisinc.platform.infrastructure.persistence.login;
 
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.login.UserToken;
-import com.simisinc.platform.infrastructure.database.*;
+import com.simisinc.platform.infrastructure.database.DB;
+import com.simisinc.platform.infrastructure.database.DataConstraints;
+import com.simisinc.platform.infrastructure.database.DataResult;
+import com.simisinc.platform.infrastructure.database.SqlUtils;
+import com.simisinc.platform.infrastructure.persistence.oauth.OAuthTokenRepository;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -79,16 +83,30 @@ public class UserTokenRepository {
     return record;
   }
 
+  public static void remove(UserToken userToken) {
+    if (userToken == null || StringUtils.isBlank(userToken.getToken())) {
+      return;
+    }
+    OAuthTokenRepository.remove(userToken);
+    DB.deleteFrom(TABLE_NAME, new SqlUtils().add("token_id = ?", userToken.getId()));
+  }
+
+  public static int removeAll(Connection connection, User user) throws SQLException {
+    OAuthTokenRepository.removeAll(connection, user);
+    return DB.deleteFrom(connection, TABLE_NAME, new SqlUtils().add("user_id = ?", user.getId()));
+  }
+
   public static void extendTokenExpiration(String token, int seconds) {
     SqlUtils updateValues = new SqlUtils()
-        .add("expires", new Timestamp(System.currentTimeMillis() + (seconds * 1000)));
+        .add("expires", new Timestamp(System.currentTimeMillis() + (seconds * 1000L)));
     SqlUtils where = new SqlUtils()
         .add("token = ?", token);
     DB.update(TABLE_NAME, updateValues, where);
   }
 
-  public static int removeAll(Connection connection, User user) throws SQLException {
-    return DB.deleteFrom(connection, TABLE_NAME, new SqlUtils().add("user_id = ?", user.getId()));
+  public static void deleteOldTokens() {
+    OAuthTokenRepository.deleteOldTokens();
+    DB.deleteFrom(TABLE_NAME, new SqlUtils().add("expires < NOW() - INTERVAL '1 day'"));
   }
 
   private static UserToken buildRecord(ResultSet rs) {

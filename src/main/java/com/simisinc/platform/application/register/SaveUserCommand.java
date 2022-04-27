@@ -42,6 +42,10 @@ public class SaveUserCommand {
   public static final String allowedChars = "1234567890abcdefghijklmnopqrstuvwyxz";
 
   public static User saveUser(User userBean) throws DataException, AccountException {
+    return saveUser(userBean, false);
+  }
+
+  public static User saveUser(User userBean, boolean isSystemUser) throws DataException, AccountException {
 
     // Validate the required fields
     if (StringUtils.isBlank(userBean.getFirstName()) ||
@@ -51,14 +55,19 @@ public class SaveUserCommand {
     }
 
     EmailValidator emailValidator = EmailValidator.getInstance(false);
-    if (!emailValidator.isValid(userBean.getEmail())) {
-      throw new DataException("Check the email address and try again");
+    if (!userBean.getEmail().equals(userBean.getUsername())) {
+      if (!emailValidator.isValid(userBean.getEmail())) {
+        throw new DataException("Check the email address and try again");
+      }
     }
 
     // Determine the user saving the record
-    User userMakingChange = LoadUserCommand.loadUser(userBean.getModifiedBy());
-    if (userMakingChange == null) {
-      throw new DataException("There has been validation error");
+    User userMakingChange = null;
+    if (!isSystemUser) {
+      userMakingChange = LoadUserCommand.loadUser(userBean.getModifiedBy());
+      if (userMakingChange == null) {
+        throw new DataException("Could not find the user making the change");
+      }
     }
 
     // Transform the fields and store...
@@ -70,10 +79,13 @@ public class SaveUserCommand {
         throw new DataException("The existing record could not be found");
       }
       user.setModifiedBy(userBean.getModifiedBy());
-      // Validate
-      if (user.getId() == userBean.getModifiedBy()) {
-        if (user.hasRole("admin") && !userBean.hasRole("admin")) {
-          throw new DataException("You cannot remove the Admin role from your own account");
+      // Validate (skip if managed by provider)
+      if (!isSystemUser) {
+        if (user.getId() == userBean.getModifiedBy()) {
+          if (user.hasRole("admin") && !userBean.hasRole("admin")) {
+            LOG.debug("prevented removing the Admin role");
+            throw new DataException("You cannot remove the Admin role from your own account");
+          }
         }
       }
     } else {
@@ -87,16 +99,19 @@ public class SaveUserCommand {
       user.setCreatedBy(userBean.getCreatedBy());
       user.setCreated(userBean.getCreated());
     }
+
     // Verify the allowed roles
-    if (!userMakingChange.hasRole("admin")) {
+    LOG.debug("Verifying the allowed roles...");
+    if (userMakingChange != null && !userMakingChange.hasRole("admin")) {
       // Maintain the admin permission because the record already has it
       if (user.hasRole("admin") && !userBean.hasRole("admin")) {
         userBean.getRoleList().add(userBean.getRole("admin"));
-      } else if (userBean.hasRole("admin")) {
+      } else if (!user.hasRole("admin") && userBean.hasRole("admin")) {
         // Don't allow it to be added if it wasn't there
         userBean.removeRole("admin");
       }
     }
+
     // @note set the uniqueId before setting the first and last name
     user.setUniqueId(generateUniqueId(user, userBean));
     user.setFirstName(userBean.getFirstName());

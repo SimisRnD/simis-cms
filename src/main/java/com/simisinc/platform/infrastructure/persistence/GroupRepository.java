@@ -64,6 +64,15 @@ public class GroupRepository {
         GroupRepository::buildRecord);
   }
 
+  public static Group findByOAuthPath(String oAuthPath) {
+    if (StringUtils.isBlank(oAuthPath)) {
+      return null;
+    }
+    return (Group) DB.selectRecordFrom(
+        TABLE_NAME, new SqlUtils().add("oauth_path = ?", oAuthPath),
+        GroupRepository::buildRecord);
+  }
+
   public static Group findByName(String name) {
     if (StringUtils.isBlank(name)) {
       return null;

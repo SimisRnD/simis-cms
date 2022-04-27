@@ -212,11 +212,23 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (231, 'Boxzooka Secret', 'ecommerce.boxzooka.production.secret', '', 'disabled');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (240, 'TaxJar API Key', 'ecommerce.taxjar.apiKey', '', 'text');
 
+-- Authentication
+
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (10, 'OpenAuth Provider', 'oauth.provider', 'None', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (12, 'OpenAuth Client Id', 'oauth.clientId', '', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (14, 'OpenAuth Client Secret', 'oauth.clientSecret', '', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (16, 'OpenAuth Service URL', 'oauth.serviceUrl', '', 'url');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (18, 'OpenAuth Redirect Guests', 'oauth.redirectGuests', 'true', 'boolean');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (20, 'OpenAuth Enabled', 'oauth.enabled', 'false', 'boolean');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (22, 'OpenAuth Role Attribute', 'oauth.role.attribute', 'roles', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (24, 'OpenAuth Group Attribute', 'oauth.group.attribute', 'groups', 'text');
+
 CREATE TABLE lookup_role (
   role_id SERIAL PRIMARY KEY,
   level INTEGER NOT NULL,
   code VARCHAR(20),
-  title VARCHAR(100)
+  title VARCHAR(100),
+  oauth_path VARCHAR(255)
 );
 
 INSERT INTO lookup_role (level, code, title) VALUES (80, 'content-manager', 'Content Manager');
@@ -271,7 +283,8 @@ CREATE TABLE groups (
   name VARCHAR(100) UNIQUE NOT NULL,
   description TEXT,
   user_count BIGINT NOT NULL DEFAULT 0,
-  unique_id VARCHAR(255) UNIQUE NOT NULL
+  unique_id VARCHAR(255) UNIQUE NOT NULL,
+  oauth_path VARCHAR(255)
 );
 
 INSERT INTO groups (name, unique_id) VALUES ('All Users', 'users');
@@ -364,6 +377,26 @@ CREATE TABLE user_tokens (
   expires TIMESTAMP(3) NOT NULL,
   created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP
 );
+CREATE INDEX user_tokens_token_idx ON user_tokens(token);
+
+CREATE TABLE oauth_tokens (
+  token_id BIGSERIAL PRIMARY KEY,
+  user_id BIGINT REFERENCES users(user_id) NOT NULL,
+  user_token_id BIGINT REFERENCES user_tokens(token_id) NOT NULL,
+  provider VARCHAR(50) NOT NULL,
+  access_token TEXT NOT NULL,
+  token_type VARCHAR(100) NOT NULL,
+  expires_in INTEGER DEFAULT NULL,
+  refresh_token TEXT,
+  refresh_expires_in INTEGER DEFAULT NULL,
+  scope VARCHAR(100),
+  expires TIMESTAMP(3),
+  refresh_expires TIMESTAMP(3),
+  created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
+  enabled BOOLEAN DEFAULT true
+);
+CREATE INDEX oauth_user_id_idx ON oauth_tokens(user_id);
+CREATE INDEX oauth_provider_idx ON oauth_tokens(provider);
 
 CREATE TABLE block_list (
   block_list_id BIGSERIAL PRIMARY KEY,
