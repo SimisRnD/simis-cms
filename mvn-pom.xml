@@ -26,7 +26,7 @@
     <argon2.version>2.11</argon2.version>
     <args4j.version>2.33</args4j.version>
     <bucket4j.version>7.3.0</bucket4j.version>
-    <caffeine.version>3.0.6</caffeine.version>
+    <caffeine.version>3.1.0</caffeine.version>
     <commons-beanutils.version>1.9.4</commons-beanutils.version>
     <commons-codec.version>1.15</commons-codec.version>
     <commons-collections4.version>4.4</commons-collections4.version>
