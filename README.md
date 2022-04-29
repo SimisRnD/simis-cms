@@ -2,7 +2,7 @@
 
 Welcome to the first public code drop of SimIS CMS. While it has worked wonders for building web sites and as a backend for mobile apps, we're keen to find out how well it is globally received – kick the tires, jump on in, and give it a spin. Discussion and issues are hosted at github: <https://github.com/SimisRnD/simis-cms>.
 
-What is SimIS CMS? [Agile, Enterprise, Open Source, Content Management System (CMS)](https://www.simiscms.com).
+What is SimIS CMS? [Agile, Enterprise, Open Source Content Management System (CMS)](https://www.simiscms.com).
 
 SimIS CMS comes out-of-the-box with modules, advanced security, easy setup, and powerful developer features. Use and configure what's there, and customize what's not. The flexible Open Source license lets you move beyond the technology to focus on delivering a quality website.
 
@@ -44,7 +44,7 @@ Need a website? SimIS CMS can be used from Day 1:
 - CRM: Forms, Leads & Customers, Orders
 - Settings: Theme, Site SEO, Social Media, Mail Server, Maps, Captcha, Analytics, E-commerce, Mailing Lists
 - Integration: Google Analytics, Map Box, Open Street Map, Square, Stripe, Taxjar, USPS, Boxzooka
-- Security: Firewall (Integration and Blocked IP lists), Spam Filter, Geo Filter, Rate Limiting, Snyk scanning
+- Security: OAuth, Firewall (Integration and Blocked IP lists), Spam Filter, Geo Filter, Rate Limiting, Snyk scanning
 - API: Rest API
 - Platform: Micro Widgets, Connection Pool, Cache, Scheduler, Workflow, Expression Engine, Upgrades, Migrations, Record Paging
 
@@ -177,6 +177,7 @@ For development, it is recommended to run and debug directly as a process in you
 npm install -g snyk
 snyk auth
 snyk test --file=mvn-pom.xml --package-manager=maven
+snyk monitor --file=mvn-pom.xml --package-manager=maven
 ```
 
 ### Pipeline Build Stage
@@ -211,6 +212,42 @@ ant package
 * [Font Awesome Icons](https://fontawesome.com/icons?d=gallery)
 * [Apache Commons JEXL](https://commons.apache.org/proper/commons-jexl/reference/syntax.html)
 * [Snyk](https://snyk.io)
+
+## OAuth Provider Login (Keycloak example)
+
+In Keycloak:
+
+1. Create a realm or use an existing one
+2. Add a client: simis-cms
+3. Add Client Roles to Keycloak: system-administrator, content-manager, community-manager, data-manager, ecommerce-manager
+4. Add Realm Groups to Keycloak: employees, supervisors
+5. Create Client Mappers and Tokens: User Client Role (roles), Group Membership (groups)
+6. Create users and choose roles and groups for the user
+
+In SimIS CMS:
+
+```sql
+UPDATE site_properties SET property_value = 'true' WHERE property_name = 'oauth.enabled';
+
+UPDATE site_properties SET property_value = 'Keycloak' WHERE property_name = 'oauth.provider';
+UPDATE site_properties SET property_value = 'simis-cms' WHERE property_name = 'oauth.clientId';
+UPDATE site_properties SET property_value = 'client-secret' WHERE property_name = 'oauth.clientSecret';
+UPDATE site_properties SET property_value = 'https://localhost/realms/example' WHERE property_name = 'oauth.serviceUrl';
+UPDATE site_properties SET property_value = true WHERE property_name = 'oauth.redirectGuests';
+UPDATE site_properties SET property_value = 'roles' WHERE property_name = 'oauth.role.attribute';
+UPDATE site_properties SET property_value = 'groups' WHERE property_name = 'oauth.group.attribute';
+
+UPDATE lookup_role SET oauth_path = 'system-administrator' where code = 'admin';
+UPDATE lookup_role SET oauth_path = 'content-manager' where code = 'content-manager';
+UPDATE lookup_role SET oauth_path = 'community-manager' where code = 'community-manager';
+UPDATE lookup_role SET oauth_path = 'data-manager' where code = 'data-manager';
+UPDATE lookup_role SET oauth_path = 'ecommerce-manager' where code = 'ecommerce-manager';
+
+UPDATE groups SET oauth_path = '/learners' WHERE unique_id = 'learners';
+UPDATE groups SET oauth_path = '/instructors' WHERE unique_id = 'instructors';
+```
+
+Reset the cache
 
 ## Attribution
 
