@@ -16,6 +16,7 @@
 
 package com.simisinc.platform.infrastructure.database.install;
 
+import org.apache.commons.lang3.StringUtils;
 import org.flywaydb.core.api.migration.BaseJavaMigration;
 import org.flywaydb.core.api.migration.Context;
 
@@ -32,6 +33,21 @@ public class V71130__set_properties extends BaseJavaMigration {
 
   @Override
   public void migrate(Context context) throws Exception {
+
+    if (System.getenv().containsKey("CMS_URL")) {
+      String url = System.getenv("CMS_URL");
+      if (StringUtils.isNotBlank(url) &&
+          (url.startsWith("http://") || url.startsWith("https://"))) {
+        Connection connection = context.getConnection();
+        try (PreparedStatement pst = connection.prepareStatement(
+            "UPDATE site_properties SET property_value = ? WHERE property_name = ?")) {
+          pst.setString(1, url.toLowerCase().trim());
+          pst.setString(2, "site.url");
+          pst.execute();
+        }
+      }
+    }
+
     // See if the SSL override is specified
     if (System.getenv().containsKey("CMS_FORCE_SSL")) {
       boolean forceSSL = !"false".equals(System.getenv("CMS_FORCE_SSL"));
