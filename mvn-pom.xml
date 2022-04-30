@@ -12,7 +12,7 @@
   <name>SimIS CMS</name>
   <description>Agile, Enterprise, Open Source Content Management System (CMS)</description>
   <url>https://www.simiscms.com</url>
-<!--  <packaging>war</packaging>-->
+  <packaging>war</packaging>
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <java.version>11</java.version>
@@ -64,7 +64,6 @@
     <libphonenumber.version>8.12.40</libphonenumber.version>
     <lombok.version>1.18.22</lombok.version>
     <netty.version>4.1.74</netty.version>
-    <pdfbox.version>2.0.24</pdfbox.version>
     <postgresql.version>42.3.3</postgresql.version>
     <pushy.version>0.15.1</pushy.version>
     <restfb.version>2.24.0</restfb.version>
@@ -351,11 +350,6 @@
       <scope>provided</scope>
     </dependency>
     <dependency>
-      <groupId>org.apache.pdfbox</groupId>
-      <artifactId>pdfbox</artifactId>
-      <version>${pdfbox.version}</version>
-    </dependency>
-    <dependency>
       <groupId>org.postgresql</groupId>
       <artifactId>postgresql</artifactId>
       <version>${postgresql.version}</version>
@@ -384,6 +378,16 @@
       <groupId>com.squareup</groupId>
       <artifactId>square</artifactId>
       <version>${square.version}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>org.jetbrains.kotlin</groupId>
+          <artifactId>kotlin-stdlib</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.jetbrains.kotlin</groupId>
+          <artifactId>kotlin-stdlib-common</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
     <dependency>
       <groupId>com.stripe</groupId>
@@ -514,28 +518,22 @@
         </executions>
       </plugin>
       -->
-      <!--
       <plugin>
         <artifactId>maven-war-plugin</artifactId>
         <version>${maven-war-plugin.version}</version>
         <configuration>
-          <packagingExcludes>jsp/**</packagingExcludes>
           <webResources>
             <resource>
-              <directory>src/main/webapp/jsp</directory>
-            </resource>
-            <resource>
-              <directory>lib/easy-flows</directory>
+              <directory>lib/build/easy-flows</directory>
               <targetPath>WEB-INF/lib</targetPath>
             </resource>
             <resource>
-              <directory>lib/granule</directory>
+              <directory>lib/build/granule</directory>
               <targetPath>WEB-INF/lib</targetPath>
             </resource>
           </webResources>
         </configuration>
       </plugin>
-      -->
       <plugin>
         <artifactId>maven-assembly-plugin</artifactId>
         <executions>
