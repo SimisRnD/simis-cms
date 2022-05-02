@@ -63,6 +63,11 @@ public class SessionCommand {
     lastModifiedMap.put(filename, file.lastModified());
   }
 
+  public static void setList(String filename, List<String> list) {
+    listMap.put(filename, list);
+    lastModifiedMap.put(filename, 0L);
+  }
+
   public static List<String> getBotList() {
     return listMap.get(BOT_LIST);
   }
@@ -72,6 +77,9 @@ public class SessionCommand {
       return true;
     }
     List<String> botList = listMap.get(BOT_LIST);
+    if (botList == null || botList.isEmpty()) {
+      return false;
+    }
     return botList.stream().anyMatch(userAgent::contains);
   }
 }
