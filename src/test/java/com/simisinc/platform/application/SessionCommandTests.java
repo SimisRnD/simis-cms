@@ -40,18 +40,16 @@ public class SessionCommandTests {
   @Test
   void checkWithConfiguration() {
     // Mock directory path
-    MockedStatic<FileSystemCommand> staticFileSystemCommand = mockStatic(FileSystemCommand.class);
-    staticFileSystemCommand.when(FileSystemCommand::getFileServerConfigPath).thenReturn(".");
-    SessionCommand.load();
+    try (MockedStatic<FileSystemCommand> staticFileSystemCommand = mockStatic(FileSystemCommand.class)) {
+      staticFileSystemCommand.when(FileSystemCommand::getFileServerConfigPath).thenReturn(".");
+      SessionCommand.load();
 
-    String userAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 15_3_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.3 Mobile/15E148 Safari/604.1";
-    List<String> botList = new ArrayList<>();
-    botList.add("MyBot");
-    SessionCommand.setList(BOT_LIST, botList);
-    Assertions.assertFalse(SessionCommand.checkForBot(userAgent));
-    Assertions.assertTrue(SessionCommand.checkForBot("MyBot"));
-
-    // Close static mocks
-    staticFileSystemCommand.close();
+      String userAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 15_3_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.3 Mobile/15E148 Safari/604.1";
+      List<String> botList = new ArrayList<>();
+      botList.add("MyBot");
+      SessionCommand.setList(BOT_LIST, botList);
+      Assertions.assertFalse(SessionCommand.checkForBot(userAgent));
+      Assertions.assertTrue(SessionCommand.checkForBot("MyBot"));
+    }
   }
 }

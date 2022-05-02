@@ -39,34 +39,30 @@ public class HostnameCommandTests {
   @Test
   void passesCheckWithConfiguration() {
     // Mock directory path
-    MockedStatic<FileSystemCommand> staticFileSystemCommand = mockStatic(FileSystemCommand.class);
-    staticFileSystemCommand.when(FileSystemCommand::getFileServerConfigPath).thenReturn(".");
-    HostnameCommand.load();
+    try (MockedStatic<FileSystemCommand> staticFileSystemCommand = mockStatic(FileSystemCommand.class)) {
+      staticFileSystemCommand.when(FileSystemCommand::getFileServerConfigPath).thenReturn(".");
+      HostnameCommand.load();
 
-    String hostname = "localhost";
-    List<String> approvedList = new ArrayList<>();
-    approvedList.add(hostname);
-    HostnameCommand.setList(HOSTNAME_ALLOW_LIST, approvedList);
-    Assertions.assertTrue(HostnameCommand.passesCheck(hostname));
-
-    // Close static mocks
-    staticFileSystemCommand.close();
+      String hostname = "localhost";
+      List<String> approvedList = new ArrayList<>();
+      approvedList.add(hostname);
+      HostnameCommand.setList(HOSTNAME_ALLOW_LIST, approvedList);
+      Assertions.assertTrue(HostnameCommand.passesCheck(hostname));
+    }
   }
 
   @Test
   void doesNotPassCheck() {
     // Mock directory path
-    MockedStatic<FileSystemCommand> staticFileSystemCommand = mockStatic(FileSystemCommand.class);
-    staticFileSystemCommand.when(FileSystemCommand::getFileServerConfigPath).thenReturn(".");
-    HostnameCommand.load();
+    try (MockedStatic<FileSystemCommand> staticFileSystemCommand = mockStatic(FileSystemCommand.class)) {
+      staticFileSystemCommand.when(FileSystemCommand::getFileServerConfigPath).thenReturn(".");
+      HostnameCommand.load();
 
-    String hostnameAllowed = "localhost";
-    List<String> approvedList = new ArrayList<>();
-    approvedList.add(hostnameAllowed);
-    HostnameCommand.setList(HOSTNAME_ALLOW_LIST, approvedList);
-    Assertions.assertFalse(HostnameCommand.passesCheck("example.com"));
-
-    // Close static mocks
-    staticFileSystemCommand.close();
+      String hostnameAllowed = "localhost";
+      List<String> approvedList = new ArrayList<>();
+      approvedList.add(hostnameAllowed);
+      HostnameCommand.setList(HOSTNAME_ALLOW_LIST, approvedList);
+      Assertions.assertFalse(HostnameCommand.passesCheck("example.com"));
+    }
   }
 }
