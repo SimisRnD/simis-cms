@@ -76,7 +76,7 @@ public class BlockedIPListCommand {
 
     // If allowed, return quickly
     List<String> ipAllowList = listMap.get(IP_ALLOW_LIST);
-    if (ipAllowList == null || ipAllowList.isEmpty() || ipAllowList.contains(ipAddress)) {
+    if (ipAllowList != null && ipAllowList.contains(ipAddress)) {
       LOG.debug("Allowed IP: " + ipAddress);
       return true;
     }
