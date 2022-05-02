@@ -34,7 +34,7 @@ import java.util.Map;
 public class HostnameCommand {
 
   private static Log LOG = LogFactory.getLog(HostnameCommand.class);
-  private static final String HOSTNAME_ALLOW_LIST = "hostname-allow-list.csv";
+  static final String HOSTNAME_ALLOW_LIST = "hostname-allow-list.csv";
 
   private static Map<String, List<String>> listMap = new HashMap<>();
   private static Map<String, Long> lastModifiedMap = new HashMap<>();
@@ -61,10 +61,15 @@ public class HostnameCommand {
     lastModifiedMap.put(filename, file.lastModified());
   }
 
+  public static void setList(String filename, List<String> list) {
+    listMap.put(filename, list);
+    lastModifiedMap.put(filename, 0L);
+  }
+
   public static boolean passesCheck(String hostname) {
     // If allowed, return quickly
     List<String> hostnameAllowList = listMap.get(HOSTNAME_ALLOW_LIST);
-    if (hostnameAllowList.isEmpty() || hostnameAllowList.contains(hostname)) {
+    if (hostnameAllowList == null || hostnameAllowList.isEmpty() || hostnameAllowList.contains(hostname)) {
       LOG.debug("Allowed hostname: " + hostname);
       return true;
     }
