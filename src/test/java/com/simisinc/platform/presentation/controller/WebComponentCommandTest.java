@@ -30,7 +30,7 @@ import java.util.List;
  * @author matt rajkowski
  * @created 4/10/2022 9:24 AM
  */
-public class WebComponentCommandTests {
+public class WebComponentCommandTest {
   @Test
   void userHasRoleAndGroupTest() {
 

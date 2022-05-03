@@ -26,7 +26,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
 
-public class GenerateBlogUniqueIdCommandTests {
+public class GenerateBlogUniqueIdCommandTest {
 
   @Test
   void generateUniqueIdForNewBlog() {

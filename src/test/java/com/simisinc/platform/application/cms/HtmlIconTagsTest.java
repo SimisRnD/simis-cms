@@ -27,7 +27,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
  * @author matt rajkowski
  * @created 3/2/21 10:00 PM
  */
-public class HtmlIconTagsTests {
+public class HtmlIconTagsTest {
 
   @Test
   void iconTagsBasicTest() {

@@ -33,7 +33,7 @@ import java.util.Map;
  * @author matt rajkowski
  * @created 4/30/2021 4:34 PM
  */
-public class WorkflowExpressionTests {
+public class WorkflowExpressionTest {
 
   @Test
   void expressionTest() {

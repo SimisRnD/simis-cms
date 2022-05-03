@@ -32,7 +32,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author matt rajkowski
  * @created 12/8/2020 1:46 PM
  */
-public class HolidaysTests {
+public class HolidaysTest {
 
   @Test
   void dateBased() {

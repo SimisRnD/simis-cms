@@ -26,7 +26,7 @@ import org.junit.jupiter.api.Test;
  * @author matt rajkowski
  * @created 1/9/22 4:13 PM
  */
-public class PhoneNumberTests {
+public class PhoneNumberTest {
 
 
   @Test

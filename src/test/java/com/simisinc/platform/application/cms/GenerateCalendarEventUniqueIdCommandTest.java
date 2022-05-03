@@ -22,11 +22,10 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.mockStatic;
 
-public class GenerateCalendarEventUniqueIdCommandTests {
+public class GenerateCalendarEventUniqueIdCommandTest {
 
   @Test
   void generateUniqueIdForNewCalendarEvent() {

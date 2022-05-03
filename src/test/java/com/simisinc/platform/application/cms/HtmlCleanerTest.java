@@ -26,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
  * @author matt rajkowski
  * @created 3/2/21 10:00 PM
  */
-public class HtmlCleanerTests {
+public class HtmlCleanerTest {
 
   @Test
   void cleanHtml() {

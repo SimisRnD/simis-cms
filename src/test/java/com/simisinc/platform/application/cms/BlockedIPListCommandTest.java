@@ -29,7 +29,7 @@ import java.util.List;
 
 import static org.mockito.Mockito.mockStatic;
 
-public class BlockedIPListCommandTests {
+public class BlockedIPListCommandTest {
 
   @Test
   void passesCheckWithEmptyConfiguration() {

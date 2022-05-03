@@ -32,7 +32,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
  * @author matt rajkowski
  * @created 3/22/22 5:10 PM
  */
-public class FormCommandTests {
+public class FormCommandTest {
 
   @Test
   void testSpamPositive() {

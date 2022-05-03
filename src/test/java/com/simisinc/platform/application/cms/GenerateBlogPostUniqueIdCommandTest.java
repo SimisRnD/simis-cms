@@ -24,7 +24,7 @@ import org.mockito.MockedStatic;
 
 import static org.mockito.Mockito.*;
 
-public class GenerateBlogPostUniqueIdCommandTests {
+public class GenerateBlogPostUniqueIdCommandTest {
 
   @Test
   void generateUniqueIdForNewBlogPost() {

@@ -21,7 +21,7 @@ import org.junit.jupiter.api.Test;
 
 import java.sql.Timestamp;
 
-public class DateCommandTests {
+public class DateCommandTest {
 
   @Test
   void isAfterNow() {

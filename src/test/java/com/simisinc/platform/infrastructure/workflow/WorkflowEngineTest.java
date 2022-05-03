@@ -29,7 +29,7 @@ import java.util.concurrent.TimeUnit;
  * @author matt rajkowski
  * @created 4/9/2021 4:36 PM
  */
-public class WorkflowEngineTests {
+public class WorkflowEngineTest {
 
   @Test
   void domainEventTest() throws Exception {

@@ -21,7 +21,7 @@ import org.junit.jupiter.api.Test;
 
 import java.sql.Timestamp;
 
-public class FormatDateCommandTests {
+public class FormatDateCommandTest {
 
   @Test
   void formatMonthDayYear() {
