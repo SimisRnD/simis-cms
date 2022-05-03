@@ -213,7 +213,7 @@
     <echo file="${target.dir}/VERSION" message="${version}"/>
   </target>
 
-  <target name="test-compile" depends="jar">
+  <target name="compile-test" depends="jar">
     <javac srcdir="${src.test.dir}" source="${jdk}" target="${jdk}"
            destdir="${build.dir}"
            debug="off"
@@ -227,9 +227,9 @@
     </javac>
   </target>
 
-  <target name="test" depends="test-compile">
+  <target name="run-test" depends="compile-test">
     <mkdir dir="${target.dir}/test-reports"/>
-    <jacoco:agent property="jacocoagent" destfile="target/jacoco.exec"/>
+    <jacoco:agent property="jacocoagent" destfile="${target.dir}/jacoco.exec"/>
     <junitlauncher haltOnFailure="true" printSummary="true">
       <classpath refid="web.classpath" />
       <classpath refid="test.classpath" />
@@ -238,6 +238,7 @@
       </classpath>
       <testclasses outputdir="${target.dir}/test-reports">
         <fileset dir="${build.dir}">
+          <include name="**/*Test.class" />
           <include name="**/*Tests.class" />
         </fileset>
         <fork>
@@ -247,24 +248,24 @@
     </junitlauncher>
   </target>
 
-  <target name="report" depends="test">
+  <target name="test" depends="run-test">
     <jacoco:report>
       <executiondata>
-        <file file="target/jacoco.exec"/>
+        <file file="${target.dir}/jacoco.exec"/>
       </executiondata>
-      <structure name="JaCoCo Report">
+      <structure name="SimIS CMS">
         <classfiles>
-          <fileset dir="build/" />
+          <fileset dir="${build.dir}" />
         </classfiles>
         <sourcefiles encoding="UTF-8">
           <fileset dir="src/main/java"/>
         </sourcefiles>
       </structure>
-      <html destdir="target/jacoco-report"/>
+      <html destdir="${target.dir}/coverage-reports/jacoco"/>
     </jacoco:report>
     <java classpathref="test.classpath" classname="org.junit.platform.console.ConsoleLauncher" fork="true" failonerror="true">
       <arg value="--scan-classpath"/>
-      <arg line="--reports-dir build/test-report"/>
+      <arg line="--reports-dir ${target.dir}/test-reports"/>
     </java>
     <junitreport todir="${target.dir}/test-reports">
       <fileset dir="${target.dir}/test-reports">
