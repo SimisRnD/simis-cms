@@ -43,9 +43,9 @@ public class LoadTableOfContentsCommand {
 
     // Make a deep copy
     TableOfContents tableOfContents = new TableOfContents();
-    tableOfContents.setId(tableOfContents.getId());
-    tableOfContents.setName(tableOfContents.getName());
-    tableOfContents.setTocUniqueId(tableOfContents.getTocUniqueId());
+    tableOfContents.setId(cachedTableOfContents.getId());
+    tableOfContents.setName(cachedTableOfContents.getName());
+    tableOfContents.setTocUniqueId(cachedTableOfContents.getTocUniqueId());
     List<TableOfContentsLink> entries = new ArrayList<>();
     for (TableOfContentsLink cachedLink : cachedTableOfContents.getEntries()) {
       TableOfContentsLink link = new TableOfContentsLink();
