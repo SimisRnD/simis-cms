@@ -19,10 +19,13 @@ package com.simisinc.platform.presentation.controller.cms;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.cms.HtmlCommand;
 import com.simisinc.platform.application.cms.LoadMenuTabsCommand;
+import com.simisinc.platform.application.cms.WebPageXmlLayoutCommand;
 import com.simisinc.platform.domain.model.cms.*;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.persistence.cms.*;
 import com.simisinc.platform.presentation.controller.RequestConstants;
+import com.simisinc.platform.presentation.controller.WebComponentCommand;
+import com.simisinc.platform.presentation.controller.login.UserSession;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.LinkedHashMap;
@@ -71,100 +74,167 @@ public class WebPageSearchResultsWidget extends GenericWidget {
     contentSpecification.setSearchTerm(query);
     List<Content> contentList = ContentRepository.findAll(contentSpecification, constraints);
 
-    // Find active web pages with the matching content object
+    // Prepare the response
     Map<String, SearchResult> resultsMap = new LinkedHashMap<>();
-    if (contentList != null) {
-      // Determine the web pages that can be searched
-      WebPageSpecification webPageSpecification = new WebPageSpecification();
-      if (!(context.hasRole("admin") || context.hasRole("content-manager"))) {
-        webPageSpecification.setSearchable(true);
-        webPageSpecification.setDraft(false);
-      }
-      webPageSpecification.setHasRedirect(false);
-      List<WebPage> webPageList = WebPageRepository.findAll(webPageSpecification, null);
-      // Now search the web pages for a matching unique id
-      for (Content content : contentList) {
-        String contentUniqueId = content.getUniqueId();
-        for (WebPage webPage : webPageList) {
-          // Find an active page the content is valid on
-          if (webPage.getPageXml() != null &&
-              (webPage.getPageXml().contains("<uniqueId>" + contentUniqueId + "</uniqueId>") ||
-                  webPage.getPageXml().contains("${uniqueId:" + contentUniqueId + "}"))) {
-            String link = webPage.getLink();
-            // Skip blank links
-            if (StringUtils.isBlank(link)) {
+    if (contentList == null) {
+      // No content was found, return early
+      finishRequest(context, resultsMap);
+    }
+
+    // Determine the web pages that can be searched
+    UserSession userSession = context.getUserSession();
+    WebPageSpecification webPageSpecification = new WebPageSpecification();
+    if (!(context.hasRole("admin") || context.hasRole("content-manager"))) {
+      webPageSpecification.setSearchable(true);
+      webPageSpecification.setDraft(false);
+    }
+    webPageSpecification.setHasRedirect(false);
+    List<WebPage> webPageList = WebPageRepository.findAll(webPageSpecification, null);
+
+    // Now search the web pages for a matching unique id
+    for (Content content : contentList) {
+      String contentUniqueId = content.getUniqueId();
+
+      // Find active web pages with the matching content object
+      boolean foundThisContentIdAlready = false;
+      for (WebPage webPage : webPageList) {
+        // Skip the rest of the pages and go to the next contentId match
+        if (foundThisContentIdAlready) {
+          break;
+        }
+
+        String link = webPage.getLink();
+        // Skip blank links
+        if (StringUtils.isBlank(link)) {
+          continue;
+        }
+        // Skip my page, unless user is logged in
+        if (link.startsWith("/my-page") && !context.getUserSession().isLoggedIn()) {
+          continue;
+        }
+        // Skip the cart to give priority to content pages
+        if ("/cart".equals(link)) {
+          continue;
+        }
+
+        // Find an active page the content is valid on
+        if (StringUtils.isBlank(webPage.getPageXml()) ||
+            (!webPage.getPageXml().contains("<uniqueId>" + contentUniqueId + "</uniqueId>") &&
+                !webPage.getPageXml().contains("${uniqueId:" + contentUniqueId + "}"))) {
+          // No uniqueIds on this page to confirm
+          continue;
+        }
+
+        // Confirm the content is in a content widget, and verify the widget will render for this user
+        Page pageRef = WebPageXmlLayoutCommand.retrievePageForRequest(webPage, link);
+        if (pageRef == null) {
+          continue;
+        }
+        if (!WebComponentCommand.allowsUser(pageRef, userSession)) {
+          continue;
+        }
+        for (Section section : pageRef.getSections()) {
+          // Skip the rest of the pages and go to the next contentId match
+          if (foundThisContentIdAlready) {
+            break;
+          }
+          if (!WebComponentCommand.allowsUser(section, userSession)) {
+            continue;
+          }
+          for (Column column : section.getColumns()) {
+            // Skip the rest of the pages and go to the next contentId match
+            if (foundThisContentIdAlready) {
+              break;
+            }
+            if (!WebComponentCommand.allowsUser(column, userSession)) {
               continue;
             }
-            // Skip my page, unless user is logged in
-            if (link.startsWith("/my-page") && !context.getUserSession().isLoggedIn()) {
-              continue;
-            }
-            // Skip the cart to give priority to content pages
-            if ("/cart".equals(link)) {
-              continue;
-            }
-            // Determine if the link is in the navigation... like menu tabs, menu items, table of contents
-            if (!context.hasRole("admin")) {
-              boolean foundLinkedPage = false;
-              for (MenuTab menuTab : menuTabList) {
-                if (menuTab.getLink().equals(link)) {
-                  foundLinkedPage = true;
-                  break;
-                }
-                for (MenuItem menuItem : menuTab.getMenuItemList()) {
-                  if (menuItem.getLink().equals(link)) {
-                    foundLinkedPage = true;
+            for (Widget widget : column.getWidgets()) {
+              // Skip the rest of the pages and go to the next contentId match
+              if (foundThisContentIdAlready) {
+                break;
+              }
+              if (!WebComponentCommand.allowsUser(widget, userSession)) {
+                continue;
+              }
+              // Check the widget
+              if (!"content".equals(widget.getWidgetName())) {
+                continue;
+              }
+              for (String key : widget.getPreferences().keySet()) {
+                String value = widget.getPreferences().get(key);
+                LOG.debug("Pref: " + key + "=" + value);
+                if (("uniqueId".equals(key) && value.contains(contentUniqueId)) || (value.contains("${uniqueId:" + contentUniqueId + "}"))) {
+                  // Page was found, but we only want to show results for linked pages, to avoid hidden pages
+                  if (isPageInTheNavigation(context, link, menuTabList, tableOfContentsList)) {
+                    addTheSearchResult(webPage, link, content, resultsMap);
+                    // No need to show more web pages which have the same repeated contentId
+                    foundThisContentIdAlready = true;
                     break;
                   }
                 }
               }
-              // Determine if the link is in the table of contents
-              if (!foundLinkedPage) {
-                for (TableOfContents tableOfContents : tableOfContentsList) {
-                  for (TableOfContentsLink tableOfContentsLink : tableOfContents.getEntries()) {
-                    if (link.equals(tableOfContentsLink.getLink())) {
-                      foundLinkedPage = true;
-                      break;
-                    }
-                  }
-                }
-              }
-              if (!(context.hasRole("admin") || context.hasRole("content-manager"))) {
-                if (!foundLinkedPage) {
-                  continue;
-                }
-              }
             }
-
-            // Add the search result
-            String htmlContent = HtmlCommand.toHtml(content.getHighlight());
-            if (htmlContent != null) {
-              htmlContent = StringUtils.replace(htmlContent, "${b}", "<strong>");
-              htmlContent = StringUtils.replace(htmlContent, "${/b}", "</strong>");
-            }
-            SearchResult searchResult = resultsMap.get(link);
-            if (searchResult == null) {
-              searchResult = new SearchResult();
-              searchResult.setLink(link);
-              if ("/".equals(link)) {
-                // It's the home page
-                searchResult.setPageTitle(LoadSitePropertyCommand.loadByName("site.name"));
-              } else {
-                searchResult.setPageTitle(webPage.getTitle());
-              }
-              searchResult.setHtmlExcerpt(htmlContent);
-              resultsMap.put(link, searchResult);
-            } else {
-              searchResult.setHtmlExcerpt(searchResult.getHtmlExcerpt() + " " + htmlContent);
-            }
-            // No need to show more web pages which have the same repeated contentId
-            break;
           }
         }
       }
-      context.getRequest().setAttribute("searchResultList", resultsMap.values());
     }
+    context.getRequest().setAttribute("searchResultList", resultsMap.values());
+    return finishRequest(context, resultsMap);
+  }
 
+  private boolean isPageInTheNavigation(WidgetContext context, String link, List<MenuTab> menuTabList, List<TableOfContents> tableOfContentsList) {
+    // Allow the admin to see results for any page
+    if (context.hasRole("admin") || context.hasRole("content-manager")) {
+      return true;
+    }
+    // Determine if the link is in the navigation... like menu tabs, menu items, table of contents
+    for (MenuTab menuTab : menuTabList) {
+      if (menuTab.getLink().equals(link)) {
+        return true;
+      }
+      for (MenuItem menuItem : menuTab.getMenuItemList()) {
+        if (menuItem.getLink().equals(link)) {
+          return true;
+        }
+      }
+    }
+    // Determine if the link is in the table of contents
+    for (TableOfContents tableOfContents : tableOfContentsList) {
+      for (TableOfContentsLink tableOfContentsLink : tableOfContents.getEntries()) {
+        if (link.equals(tableOfContentsLink.getLink())) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  private void addTheSearchResult(WebPage webPage, String link, Content content, Map<String, SearchResult> resultsMap) {
+    // Add the search result
+    String htmlContent = HtmlCommand.toHtml(content.getHighlight());
+    if (htmlContent != null) {
+      htmlContent = StringUtils.replace(htmlContent, "${b}", "<strong>");
+      htmlContent = StringUtils.replace(htmlContent, "${/b}", "</strong>");
+    }
+    SearchResult searchResult = resultsMap.get(link);
+    if (searchResult == null) {
+      searchResult = new SearchResult();
+      searchResult.setLink(link);
+      if ("/".equals(link)) {
+        // It's the home page
+        searchResult.setPageTitle(LoadSitePropertyCommand.loadByName("site.name"));
+      } else {
+        searchResult.setPageTitle(webPage.getTitle());
+      }
+      searchResult.setHtmlExcerpt(htmlContent);
+      resultsMap.put(link, searchResult);
+    } else {
+      searchResult.setHtmlExcerpt(searchResult.getHtmlExcerpt() + " " + htmlContent);
+    }
+  }
+
+  private WidgetContext finishRequest(WidgetContext context, Map<String, SearchResult> resultsMap) {
     // Determine if the widget is shown
     boolean showWhenEmpty = "true".equals(context.getPreferences().getOrDefault("showWhenEmpty", "true"));
     if (resultsMap.isEmpty() && !showWhenEmpty) {
