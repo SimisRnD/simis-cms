@@ -34,9 +34,9 @@ import java.util.Map;
 public class BlockedIPListCommand {
 
   private static Log LOG = LogFactory.getLog(BlockedIPListCommand.class);
-  private static final String IP_ALLOW_LIST = "ip-allow-list.csv";
-  private static final String IP_IGNORE_LIST = "ip-deny-list.csv";
-  private static final String URL_BLOCK_LIST = "url-block-list.csv";
+  static final String IP_ALLOW_LIST = "ip-allow-list.csv";
+  static final String IP_IGNORE_LIST = "ip-deny-list.csv";
+  static final String URL_BLOCK_LIST = "url-block-list.csv";
 
   private static Map<String, List<String>> listMap = new HashMap<>();
   private static Map<String, Long> lastModifiedMap = new HashMap<>();
@@ -65,20 +65,25 @@ public class BlockedIPListCommand {
     lastModifiedMap.put(filename, file.lastModified());
   }
 
+  public static void setList(String filename, List<String> list) {
+    listMap.put(filename, list);
+    lastModifiedMap.put(filename, 0L);
+  }
+
   public static boolean passesCheck(String resource, String ipAddress) {
 
     LOG.debug("Checking IP: " + ipAddress);
 
     // If allowed, return quickly
     List<String> ipAllowList = listMap.get(IP_ALLOW_LIST);
-    if (ipAllowList.contains(ipAddress)) {
+    if (ipAllowList != null && ipAllowList.contains(ipAddress)) {
       LOG.debug("Allowed IP: " + ipAddress);
       return true;
     }
 
     // If blocked in file, return an error
     List<String> ipIgnoreList = listMap.get(IP_IGNORE_LIST);
-    if (ipIgnoreList.contains(ipAddress)) {
+    if (ipIgnoreList != null && ipIgnoreList.contains(ipAddress)) {
       LOG.debug("Blocked IP: " + ipAddress);
       return false;
     }
