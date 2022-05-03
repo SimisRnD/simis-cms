@@ -16,12 +16,20 @@
 
 package com.simisinc.platform.presentation.controller.cms;
 
-import com.simisinc.platform.application.cms.LoadMenuTabsCommand;
 import com.simisinc.platform.SiteProperty;
+import com.simisinc.platform.application.cms.LoadMenuTabsCommand;
+import com.simisinc.platform.application.cms.WebPageXmlLayoutCommand;
+import com.simisinc.platform.domain.model.cms.MenuItem;
 import com.simisinc.platform.domain.model.cms.MenuTab;
+import com.simisinc.platform.domain.model.cms.WebPage;
 import com.simisinc.platform.infrastructure.persistence.SitePropertyRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
 import com.simisinc.platform.presentation.controller.RequestConstants;
+import com.simisinc.platform.presentation.controller.WebComponentCommand;
+import com.simisinc.platform.presentation.controller.login.UserSession;
+import org.apache.commons.lang3.StringUtils;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -48,6 +56,7 @@ public class MainMenuWidget extends GenericWidget {
 
     // Check for preferences
     String view = context.getPreferences().get("view");
+    boolean checkUser = "true".equals(context.getPreferences().getOrDefault("checkUser", "true"));
     context.getRequest().setAttribute("useHighlight", context.getPreferences().getOrDefault("useHighlight", "true"));
     context.getRequest().setAttribute("useSmallHighlight", context.getPreferences().getOrDefault("useSmallHighlight", "false"));
     context.getRequest().setAttribute("showAdmin", context.getPreferences().getOrDefault("showAdmin", "true"));
@@ -55,9 +64,44 @@ public class MainMenuWidget extends GenericWidget {
     context.getRequest().setAttribute("submenuIcon", context.getPreferences().get("submenuIcon"));
     context.getRequest().setAttribute("submenuIconClass", context.getPreferences().get("submenuIconClass"));
 
-    // Show the menu
+    // Prepare the menu
     List<MenuTab> menuTabList = LoadMenuTabsCommand.loadActiveIncludeMenuItemList();
-    context.getRequest().setAttribute(RequestConstants.MASTER_MENU_TAB_LIST, menuTabList);
+    List<MenuTab> menuTabListToUse = new ArrayList<>();
+
+    // Determine which menu items are shown
+    if (context.hasRole("admin") || context.hasRole("content-manager") || !checkUser) {
+      // Allow admin and content manager to view the whole menu, and when the check is disabled by preference
+      menuTabListToUse.addAll(menuTabList);
+    } else {
+      // Verify the page has content for other users, based on content, roles and groups
+      UserSession userSession = context.getUserSession();
+      for (MenuTab menuTab : menuTabList) {
+        if (canShowMenuItemToUser(menuTab.getLink(), userSession)) {
+          // Copy the MenuTab, since a cache was used
+          MenuTab thisMenuTab = new MenuTab();
+          thisMenuTab.setName(menuTab.getName());
+          thisMenuTab.setLink(menuTab.getLink());
+          // Process the sub-menu items
+          if (menuTab.getMenuItemList() != null) {
+            List<MenuItem> thisMenuItemList = new ArrayList<>();
+            for (MenuItem menuItem : menuTab.getMenuItemList()) {
+              if (canShowMenuItemToUser(menuItem.getLink(), userSession)) {
+                // Copy the menu item, since a cache was used
+                MenuItem thisMenuItem = new MenuItem();
+                thisMenuItem.setName(menuItem.getName());
+                thisMenuItem.setLink(menuItem.getLink());
+                thisMenuItemList.add(thisMenuItem);
+              }
+            }
+            if (!thisMenuItemList.isEmpty()) {
+              thisMenuTab.setMenuItemList(thisMenuItemList);
+            }
+            menuTabListToUse.add(thisMenuTab);
+          }
+        }
+      }
+    }
+    context.getRequest().setAttribute(RequestConstants.MASTER_MENU_TAB_LIST, menuTabListToUse);
 
     // Show the JSP
     if ("flat".equals(view)) {
@@ -68,5 +112,47 @@ public class MainMenuWidget extends GenericWidget {
       context.setJsp(JSP);
     }
     return context;
+  }
+
+  private boolean canShowMenuItemToUser(String link, UserSession userSession) {
+    WebPage webPage = WebPageRepository.findByLink(link);
+    if (webPage == null) {
+      return false;
+    }
+    // The page is a draft
+    if (webPage.getDraft()) {
+      return false;
+    }
+    // The page is empty
+    if (StringUtils.isBlank(webPage.getPageXml())) {
+      return false;
+    }
+    // The user does not have access to any widgets on the page
+    Page pageRef = WebPageXmlLayoutCommand.retrievePageForRequest(webPage, link);
+    if (pageRef == null) {
+      return false;
+    }
+    // Best to place the group list at the page level, to cover the whole page
+    if (!WebComponentCommand.allowsUser(pageRef, userSession)) {
+      return false;
+    }
+    for (Section section : pageRef.getSections()) {
+      if (!WebComponentCommand.allowsUser(section, userSession)) {
+        return false;
+      }
+      for (Column column : section.getColumns()) {
+        if (!WebComponentCommand.allowsUser(column, userSession)) {
+          return false;
+        }
+        for (Widget widget : column.getWidgets()) {
+          if (!WebComponentCommand.allowsUser(widget, userSession)) {
+            return false;
+          }
+          // @note the widget content response is not tested
+          return true;
+        }
+      }
+    }
+    return false;
   }
 }
