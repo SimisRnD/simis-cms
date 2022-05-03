@@ -92,17 +92,12 @@ public class WebPageSearchResultsWidget extends GenericWidget {
     List<WebPage> webPageList = WebPageRepository.findAll(webPageSpecification, null);
 
     // Now search the web pages for a matching unique id
+    contentLoop:
     for (Content content : contentList) {
       String contentUniqueId = content.getUniqueId();
 
       // Find active web pages with the matching content object
-      boolean foundThisContentIdAlready = false;
       for (WebPage webPage : webPageList) {
-        // Skip the rest of the pages and go to the next contentId match
-        if (foundThisContentIdAlready) {
-          break;
-        }
-
         String link = webPage.getLink();
         // Skip blank links
         if (StringUtils.isBlank(link)) {
@@ -134,26 +129,14 @@ public class WebPageSearchResultsWidget extends GenericWidget {
           continue;
         }
         for (Section section : pageRef.getSections()) {
-          // Skip the rest of the pages and go to the next contentId match
-          if (foundThisContentIdAlready) {
-            break;
-          }
           if (!WebComponentCommand.allowsUser(section, userSession)) {
             continue;
           }
           for (Column column : section.getColumns()) {
-            // Skip the rest of the pages and go to the next contentId match
-            if (foundThisContentIdAlready) {
-              break;
-            }
             if (!WebComponentCommand.allowsUser(column, userSession)) {
               continue;
             }
             for (Widget widget : column.getWidgets()) {
-              // Skip the rest of the pages and go to the next contentId match
-              if (foundThisContentIdAlready) {
-                break;
-              }
               if (!WebComponentCommand.allowsUser(widget, userSession)) {
                 continue;
               }
@@ -169,8 +152,7 @@ public class WebPageSearchResultsWidget extends GenericWidget {
                   if (isPageInTheNavigation(context, link, menuTabList, tableOfContentsList)) {
                     addTheSearchResult(webPage, link, content, resultsMap);
                     // No need to show more web pages which have the same repeated contentId
-                    foundThisContentIdAlready = true;
-                    break;
+                    continue contentLoop;
                   }
                 }
               }
