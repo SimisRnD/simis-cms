@@ -21,7 +21,6 @@
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.login.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.cms.WidgetContext" scope="request"/>
 <jsp:useBean id="masterMenuTabList" class="java.util.ArrayList" scope="request"/>
-<jsp:useBean id="masterCollectionList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="webPage" class="com.simisinc.platform.domain.model.cms.WebPage" scope="request"/>
 <jsp:useBean id="pagePath" class="java.lang.String" scope="request"/>
 <jsp:useBean id="useHighlight" class="java.lang.String" scope="request"/>

@@ -28,7 +28,6 @@
 <jsp:useBean id="themePropertyMap" class="java.util.HashMap" scope="request"/>
 <jsp:useBean id="socialPropertyMap" class="java.util.HashMap" scope="request"/>
 <jsp:useBean id="masterMenuTabList" class="java.util.ArrayList" scope="request"/>
-<jsp:useBean id="masterCollectionList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="masterWebPage" class="com.simisinc.platform.domain.model.cms.WebPage" scope="request"/>
 <jsp:useBean id="controllerShowMainMenu" class="java.lang.String" scope="request"/>
 <%-- Navigation --%>
