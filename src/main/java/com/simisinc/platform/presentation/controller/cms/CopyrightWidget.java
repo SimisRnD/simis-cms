@@ -19,7 +19,7 @@ package com.simisinc.platform.presentation.controller.cms;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 
 /**
- * Description
+ * Displays dynamic copyright information
  *
  * @author matt rajkowski
  * @created 2/8/21 12:00 PM
@@ -30,7 +30,10 @@ public class CopyrightWidget extends GenericWidget {
 
   public WidgetContext execute(WidgetContext context) {
     String name = context.getPreferences().getOrDefault("name", LoadSitePropertyCommand.loadByName("site.name"));
-    context.setHtml("&copy; " + new java.text.SimpleDateFormat("yyyy").format(new java.util.Date()) + " <span translate=\"no\">" + name + "</span>" + (!name.endsWith(".") ? "." : "") + " All Rights Reserved.");
+    String tag = context.getPreferences().getOrDefault("tag", "All Rights Reserved.");
+    context.setHtml(
+        "&copy; " + new java.text.SimpleDateFormat("yyyy").format(new java.util.Date()) + " " +
+            "<span translate=\"no\">" + name + (!name.endsWith(".") ? "." : "") + "</span>" + tag);
     return context;
   }
 }
