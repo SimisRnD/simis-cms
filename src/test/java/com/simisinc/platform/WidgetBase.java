@@ -41,6 +41,8 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.*;
 
 /**
+ * Sets up the common HTTP servlet objects for executing widgets
+ *
  * @author matt rajkowski
  * @created 5/3/2022 7:00 PM
  */
@@ -51,6 +53,7 @@ public class WidgetBase {
   public HttpServletResponse response = mock(HttpServletResponse.class);
   public HttpSession session = mock(HttpSession.class);
   public WidgetContext widgetContext = null;
+  public Map<String, String> preferences = null;
 
   @BeforeEach
   void setupWidgetContext() {
@@ -85,8 +88,25 @@ public class WidgetBase {
       }
     }).when(request).getAttribute(anyString());
 
+    Mockito.doAnswer(new Answer<String>() {
+      @Override
+      public String answer(InvocationOnMock invocation) throws Throwable {
+        String key = invocation.getArgument(0, String.class);
+        String value = (String) attributes.get(key);
+        return value;
+      }
+    }).when(request).getParameter(anyString());
+
     // Every widget needs a widget context
     widgetContext = new WidgetContext(request, response, "widget1");
+
+    // Widgets can have preferences
+    preferences = new HashMap<>();
+    widgetContext.setPreferences(preferences);
+
+    // Widgets can read request parameters
+    Map<String, String[]> parameterMap = new HashMap<>();
+    widgetContext.setParameterMap(parameterMap);
 
     // Widgets are accessed by users and guests
     List<Role> roleList = new ArrayList<>();
