@@ -25,9 +25,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
 import java.sql.Connection;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import static com.simisinc.platform.presentation.controller.cms.ContentWidget.*;
 import static org.mockito.ArgumentMatchers.eq;
@@ -42,10 +40,8 @@ class ContentWidgetTest extends WidgetBase {
 
   @Test
   void execute() {
-    // Widgets can have preferences
-    Map<String, String> preferences = new HashMap<>();
+    // Set widget preferences
     preferences.put("uniqueId", "hello-content");
-    widgetContext.setPreferences(preferences);
 
     // Set the content the widget will use
     Content content = new Content();
@@ -67,10 +63,8 @@ class ContentWidgetTest extends WidgetBase {
 
   @Test
   void executeInLineContent() {
-    // Widgets can have preferences
-    Map<String, String> preferences = new HashMap<>();
+    // Set widget preferences
     preferences.put("uniqueId", "hello-content");
-    widgetContext.setPreferences(preferences);
 
     // Set the content the widget will use
     Content content = new Content();
@@ -101,11 +95,9 @@ class ContentWidgetTest extends WidgetBase {
 
   @Test
   void executeCardContent() {
-    // Widgets can have preferences
-    Map<String, String> preferences = new HashMap<>();
+    // Set widget preferences
     preferences.put("uniqueId", "hello-content");
     preferences.put("view", "cards");
-    widgetContext.setPreferences(preferences);
 
     // Set the content the widget will use
     Content content = new Content();
@@ -130,11 +122,9 @@ class ContentWidgetTest extends WidgetBase {
 
   @Test
   void executeAccordionContent() {
-    // Widgets can have preferences
-    Map<String, String> preferences = new HashMap<>();
+    // Set widget preferences
     preferences.put("uniqueId", "hello-content");
     preferences.put("view", "accordion");
-    widgetContext.setPreferences(preferences);
 
     // Set the content the widget will use
     Content content = new Content();
@@ -214,12 +204,10 @@ class ContentWidgetTest extends WidgetBase {
 
   @Test
   void executeRevealContent() {
-    // Widgets can have preferences
-    Map<String, String> preferences = new HashMap<>();
+    // Set widget preferences
     preferences.put("uniqueId", "hello-content");
     preferences.put("view", "reveal");
     preferences.put("addReveal", "true");
-    widgetContext.setPreferences(preferences);
 
     // Set the content the widget will use
     Content content = new Content();
@@ -253,15 +241,11 @@ class ContentWidgetTest extends WidgetBase {
 
   @Test
   void action() {
-    // Widgets can have preferences
-    Map<String, String> preferences = new HashMap<>();
+    // Set widget preferences
     preferences.put("uniqueId", "hello-content");
-    widgetContext.setPreferences(preferences);
 
     // Widgets can have parameters
-    Map<String, String[]> parameterMap = new HashMap<>();
-    parameterMap.put("action", new String[]{"publish"});
-    widgetContext.setParameterMap(parameterMap);
+    widgetContext.getParameterMap().put("action", new String[]{"publish"});
 
     // Set the content the widget will use
     Content content = new Content();
