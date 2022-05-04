@@ -36,27 +36,23 @@ public class LoadSitePropertyCommand {
 
   private static Log LOG = LogFactory.getLog(LoadSitePropertyCommand.class);
 
-  public static Map<String, String> loadAsMap(String prefix) {
-    // Use the cache
-    List<SiteProperty> sitePropertyList = (List<SiteProperty>) CacheManager.getLoadingCache(CacheManager.SYSTEM_PROPERTY_PREFIX_CACHE).get(prefix);
 
-    // Return a map for the JSPs to use
-    Map<String, String> sitePropertyMap = new HashMap<>();
-    for (SiteProperty siteProperty : sitePropertyList) {
-      sitePropertyMap.put(siteProperty.getName(), siteProperty.getValue());
-    }
-    return sitePropertyMap;
+  public static Map<String, String> loadAsMap(String prefix) {
+    return loadAsMap(prefix, true);
   }
 
   public static Map<String, String> loadNonEmptyAsMap(String prefix) {
+    return loadAsMap(prefix, false);
+  }
+
+  private static Map<String, String> loadAsMap(String prefix, boolean includeEmptyValues) {
     // Use the cache
     List<SiteProperty> sitePropertyList = (List<SiteProperty>) CacheManager.getLoadingCache(CacheManager.SYSTEM_PROPERTY_PREFIX_CACHE).get(prefix);
-
-    // Return a map for the JSPs to use
+    // Return the requested map
     Map<String, String> sitePropertyMap = new HashMap<>();
     for (SiteProperty siteProperty : sitePropertyList) {
       String value = siteProperty.getValue();
-      if (StringUtils.isNotBlank(value)) {
+      if (includeEmptyValues || StringUtils.isNotBlank(value)) {
         sitePropertyMap.put(siteProperty.getName(), value);
       }
     }
