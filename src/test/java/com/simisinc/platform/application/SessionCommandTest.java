@@ -27,7 +27,11 @@ import java.util.List;
 import static com.simisinc.platform.application.SessionCommand.BOT_LIST;
 import static org.mockito.Mockito.mockStatic;
 
-public class SessionCommandTest {
+/**
+ * @author matt rajkowski
+ * @created 5/3/2022 7:00 PM
+ */
+class SessionCommandTest {
 
   @Test
   void failsCheckWithEmptyConfiguration() {

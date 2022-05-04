@@ -30,7 +30,11 @@ import java.io.ByteArrayOutputStream;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.Mockito.*;
 
-public class CaptchaCommandTest {
+/**
+ * @author matt rajkowski
+ * @created 5/3/2022 7:00 PM
+ */
+class CaptchaCommandTest {
 
   @Test
   void validateRequest() {

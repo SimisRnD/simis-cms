@@ -37,7 +37,7 @@ import java.util.Map;
  * @author matt rajkowski
  * @created 4/26/2021 9:32 PM
  */
-public class EmailTemplateTests {
+class EmailTemplateTests {
 
   @Test
   void emailTemplateDirectoryTest() {

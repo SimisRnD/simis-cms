@@ -31,7 +31,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author matt rajkowski
  * @created 1/4/22 8:14 AM
  */
-public class JsonTest {
+class JsonTest {
 
   public static final String JSON_VALUE = "[{\"id\": 1, \"name\": \"attribute0\", \"value\": \"value1\"}, {\"id\": 2, \"name\": \"attribute1\", \"value\": \"\"}]";
 

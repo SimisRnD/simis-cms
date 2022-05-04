@@ -26,7 +26,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * @author matt rajkowski
  * @created 1/11/21 2:33 PM
  */
-public class PasswordTest {
+class PasswordTest {
 
   @Test
   void passwordHash() {

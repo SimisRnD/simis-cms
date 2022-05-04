@@ -27,7 +27,11 @@ import java.util.List;
 import static com.simisinc.platform.application.cms.HostnameCommand.HOSTNAME_ALLOW_LIST;
 import static org.mockito.Mockito.mockStatic;
 
-public class HostnameCommandTest {
+/**
+ * @author matt rajkowski
+ * @created 5/3/2022 7:00 PM
+ */
+class HostnameCommandTest {
 
   @Test
   void passesCheckWithEmptyConfiguration() {

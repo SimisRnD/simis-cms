@@ -25,7 +25,11 @@ import org.mockito.MockedStatic;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.mockStatic;
 
-public class GenerateCalendarEventUniqueIdCommandTest {
+/**
+ * @author matt rajkowski
+ * @created 5/3/2022 7:00 PM
+ */
+class GenerateCalendarEventUniqueIdCommandTest {
 
   @Test
   void generateUniqueIdForNewCalendarEvent() {
