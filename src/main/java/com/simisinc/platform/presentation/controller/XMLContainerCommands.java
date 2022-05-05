@@ -308,19 +308,17 @@ public class XMLContainerCommands implements Serializable {
           continue;
         }
         NamedNodeMap attributes = element.getAttributes();
-        if (attributes != null) {
-          if (sb.length() > 0) {
-            // Record separator
-            sb.append("|||");
+        if (sb.length() > 0) {
+          // Record separator
+          sb.append("|||");
+        }
+        for (int a = 0; a < attributes.getLength(); a++) {
+          Node attribute = attributes.item(a);
+          if (a > 0) {
+            // Field separator
+            sb.append("||");
           }
-          for (int a = 0; a < attributes.getLength(); a++) {
-            Node attribute = attributes.item(a);
-            if (a > 0) {
-              // Field separator
-              sb.append("||");
-            }
-            sb.append(attribute.getNodeName()).append("|").append(attribute.getNodeValue());
-          }
+          sb.append(attribute.getNodeName()).append("|").append(attribute.getNodeValue());
         }
       }
       if (sb.length() > 0) {
