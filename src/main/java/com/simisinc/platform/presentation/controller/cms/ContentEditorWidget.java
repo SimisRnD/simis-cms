@@ -25,7 +25,6 @@ import com.simisinc.platform.infrastructure.persistence.cms.ContentRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
 import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.time.DateUtils;
 
 import java.util.Date;
 
@@ -139,7 +138,8 @@ public class ContentEditorWidget extends GenericWidget {
           WebPage webPage = LoadWebPageCommand.loadByLink(returnPage);
           if (webPage != null) {
             // Check for events
-            boolean justUpdatedInTheLastDay = (new Date()).after(DateUtils.addDays(webPage.getModified(), 1));
+            boolean justUpdatedInTheLastDay =
+                (((new Date()).getTime() - webPage.getModified().getTime()) > 24 * 60 * 60 * 1000);
 
             // Update the related page
             WebPageRepository.markAsModified(webPage, context.getUserId());
