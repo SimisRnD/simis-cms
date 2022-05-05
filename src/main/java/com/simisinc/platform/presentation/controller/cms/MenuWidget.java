@@ -37,7 +37,7 @@ import java.util.stream.Stream;
 import static java.util.stream.Collectors.toList;
 
 /**
- * Description
+ * Displays a standalone link with a drop-down menu
  *
  * @author matt rajkowski
  * @created 1/29/2021 12:00 PM

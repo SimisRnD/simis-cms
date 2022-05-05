@@ -24,7 +24,11 @@ import org.mockito.MockedStatic;
 
 import static org.mockito.Mockito.*;
 
-public class GenerateBlogPostUniqueIdCommandTest {
+/**
+ * @author matt rajkowski
+ * @created 5/3/2022 7:00 PM
+ */
+class GenerateBlogPostUniqueIdCommandTest {
 
   @Test
   void generateUniqueIdForNewBlogPost() {

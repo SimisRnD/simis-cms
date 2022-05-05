@@ -14,32 +14,31 @@
  * limitations under the License.
  */
 
-package com.simisinc.platform.application.cms;
+package com.simisinc.platform;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import java.sql.Timestamp;
+import static com.simisinc.platform.ApplicationInfo.VERSION;
 
 /**
  * @author matt rajkowski
  * @created 5/3/2022 7:00 PM
  */
-class FormatDateCommandTest {
+class ApplicationInfoTest {
 
   @Test
-  void formatMonthDayYear() {
-    long time = 1651362006994L;
-    Timestamp timestamp = new Timestamp(time);
-    String formattedMonthDayYear = FormatDateCommand.formatMonthDayYear(timestamp);
-    Assertions.assertEquals("April 30th, 2022", formattedMonthDayYear);
-  }
+  void version() {
+    // "20220426.10000"
+    Assertions.assertNotNull(VERSION);
+    String version = VERSION;
+    int dotIdx = version.indexOf(".");
+    Assertions.assertEquals(8, dotIdx);
 
-  @Test
-  void formatTime() {
-    long time = 1651362006994L;
-    Timestamp timestamp = new Timestamp(time);
-    String formattedTime = FormatDateCommand.formatTime(timestamp);
-    Assertions.assertEquals("7:40 PM", formattedTime);
+    int datePart = Integer.parseInt(version.substring(0, dotIdx));
+    int buildPart = Integer.parseInt(version.substring(dotIdx + 1));
+
+    Assertions.assertTrue(datePart >= 20220426);
+    Assertions.assertTrue(buildPart >= 10000);
   }
 }

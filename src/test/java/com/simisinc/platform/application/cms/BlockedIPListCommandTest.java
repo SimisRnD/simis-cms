@@ -21,20 +21,24 @@ import com.simisinc.platform.infrastructure.database.DB;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
-import org.mockito.Mockito;
 
 import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 
-public class BlockedIPListCommandTest {
+/**
+ * @author matt rajkowski
+ * @created 5/3/2022 7:00 PM
+ */
+class BlockedIPListCommandTest {
 
   @Test
   void passesCheckWithEmptyConfiguration() {
     // Mock DB calls
-    Connection jdbcConnection = Mockito.mock(Connection.class);
+    Connection jdbcConnection = mock(Connection.class);
     try (MockedStatic<DB> db = mockStatic(DB.class)) {
       db.when(DB::getConnection).thenReturn(jdbcConnection);
 
@@ -80,7 +84,7 @@ public class BlockedIPListCommandTest {
   @Test
   void doesNotPassResourceCheck() {
     // Mock DB calls
-    Connection jdbcConnection = Mockito.mock(Connection.class);
+    Connection jdbcConnection = mock(Connection.class);
     try (MockedStatic<DB> db = mockStatic(DB.class)) {
       db.when(DB::getConnection).thenReturn(jdbcConnection);
 

@@ -25,7 +25,11 @@ import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.List;
 
-public class FormDataJSONCommandTest {
+/**
+ * @author matt rajkowski
+ * @created 5/3/2022 7:00 PM
+ */
+class FormDataJSONCommandTest {
 
   @Test
   void createJSONString() {

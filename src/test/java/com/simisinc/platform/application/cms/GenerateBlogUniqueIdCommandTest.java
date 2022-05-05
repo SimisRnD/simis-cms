@@ -26,7 +26,11 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
 
-public class GenerateBlogUniqueIdCommandTest {
+/**
+ * @author matt rajkowski
+ * @created 5/3/2022 7:00 PM
+ */
+class GenerateBlogUniqueIdCommandTest {
 
   @Test
   void generateUniqueIdForNewBlog() {

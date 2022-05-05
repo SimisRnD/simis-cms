@@ -14,32 +14,25 @@
  * limitations under the License.
  */
 
-package com.simisinc.platform.application.cms;
+package com.simisinc.platform.presentation.controller.cms;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import java.sql.Timestamp;
-
 /**
  * @author matt rajkowski
- * @created 5/3/2022 7:00 PM
+ * @created 5/4/2022 7:00 PM
  */
-class FormatDateCommandTest {
+class PreferenceEntriesListTest {
 
   @Test
-  void formatMonthDayYear() {
-    long time = 1651362006994L;
-    Timestamp timestamp = new Timestamp(time);
-    String formattedMonthDayYear = FormatDateCommand.formatMonthDayYear(timestamp);
-    Assertions.assertEquals("April 30th, 2022", formattedMonthDayYear);
-  }
-
-  @Test
-  void formatTime() {
-    long time = 1651362006994L;
-    Timestamp timestamp = new Timestamp(time);
-    String formattedTime = FormatDateCommand.formatTime(timestamp);
-    Assertions.assertEquals("7:40 PM", formattedTime);
+  void readEntries() {
+    String data =
+        "link|/login||name|Login||role|guest||rule|site.login|||" +
+            "link|/login||name|Register||role|guest||rule|site.registrations|||" +
+            "link|/my-page||name|My Profile||role|users|||" +
+            "link|/logout||name|Log Out||role|users";
+    PreferenceEntriesList entriesList = new PreferenceEntriesList(data);
+    Assertions.assertEquals(4, entriesList.size());
   }
 }

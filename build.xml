@@ -255,7 +255,9 @@
       </executiondata>
       <structure name="SimIS CMS">
         <classfiles>
-          <fileset dir="${build.dir}" />
+          <fileset dir="${build.dir}">
+            <exclude name="**/*Test*.class"/>
+          </fileset>
         </classfiles>
         <sourcefiles encoding="UTF-8">
           <fileset dir="src/main/java"/>

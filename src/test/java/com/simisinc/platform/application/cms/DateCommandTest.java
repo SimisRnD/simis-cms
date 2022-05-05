@@ -21,7 +21,11 @@ import org.junit.jupiter.api.Test;
 
 import java.sql.Timestamp;
 
-public class DateCommandTest {
+/**
+ * @author matt rajkowski
+ * @created 5/3/2022 7:00 PM
+ */
+class DateCommandTest {
 
   @Test
   void isAfterNow() {

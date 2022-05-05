@@ -44,7 +44,7 @@ import java.util.Map;
  * @author matt rajkowski
  * @created 4/9/2021 4:36 PM
  */
-public class WorkflowTaskTest {
+class WorkflowTaskTest {
 
   @Test
   void workflowDirectoryTest() {
