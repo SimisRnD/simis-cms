@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 
-<project name="SimIS CMS" default="build" basedir=".">
+<project name="SimIS CMS" default="build" basedir="." xmlns:jacoco="antlib:org.jacoco.ant">
 
   <property name="project" value="simis-cms" />
   <property name="jdk" value="11" />
@@ -26,6 +26,13 @@
       <fileset dir="${base.dir}/lib/war" includes="*.jar"/>
     </classpath>
   </typedef>
+
+  <taskdef resource="com/puppycrawl/tools/checkstyle/ant/checkstyle-ant-task.properties"
+           classpath="${base.dir}/lib/style/checkstyle-10.2-all.jar"/>
+
+  <taskdef uri="antlib:org.jacoco.ant" resource="org/jacoco/ant/antlib.xml">
+    <classpath path="${base.dir}/lib/tests/org.jacoco.ant-0.8.8-nodeps.jar"/>
+  </taskdef>
 
   <!-- Version for scripts to use -->
   <target name="version">
@@ -206,7 +213,7 @@
     <echo file="${target.dir}/VERSION" message="${version}"/>
   </target>
 
-  <target name="test-compile" depends="jar">
+  <target name="compile-test" depends="jar">
     <javac srcdir="${src.test.dir}" source="${jdk}" target="${jdk}"
            destdir="${build.dir}"
            debug="off"
@@ -220,8 +227,9 @@
     </javac>
   </target>
 
-  <target name="test" depends="test-compile">
+  <target name="run-test" depends="compile-test">
     <mkdir dir="${target.dir}/test-reports"/>
+    <jacoco:agent property="jacocoagent" destfile="${target.dir}/jacoco.exec"/>
     <junitlauncher haltOnFailure="true" printSummary="true">
       <classpath refid="web.classpath" />
       <classpath refid="test.classpath" />
@@ -230,18 +238,34 @@
       </classpath>
       <testclasses outputdir="${target.dir}/test-reports">
         <fileset dir="${build.dir}">
+          <include name="**/*Test.class" />
           <include name="**/*Tests.class" />
         </fileset>
-        <listener type="legacy-xml" sendSysOut="true" sendSysErr="true" />
-        <listener type="legacy-plain" sendSysOut="true" sendSysErr="true" />
+        <fork>
+          <jvmarg value="${jacocoagent}"/>
+        </fork>
       </testclasses>
     </junitlauncher>
   </target>
 
-  <target name="test-reports" depends="test">
+  <target name="test" depends="run-test">
+    <jacoco:report>
+      <executiondata>
+        <file file="${target.dir}/jacoco.exec"/>
+      </executiondata>
+      <structure name="SimIS CMS">
+        <classfiles>
+          <fileset dir="${build.dir}" />
+        </classfiles>
+        <sourcefiles encoding="UTF-8">
+          <fileset dir="src/main/java"/>
+        </sourcefiles>
+      </structure>
+      <html destdir="${target.dir}/coverage-reports/jacoco"/>
+    </jacoco:report>
     <java classpathref="test.classpath" classname="org.junit.platform.console.ConsoleLauncher" fork="true" failonerror="true">
       <arg value="--scan-classpath"/>
-      <arg line="--reports-dir build/test-report"/>
+      <arg line="--reports-dir ${target.dir}/test-reports"/>
     </java>
     <junitreport todir="${target.dir}/test-reports">
       <fileset dir="${target.dir}/test-reports">
