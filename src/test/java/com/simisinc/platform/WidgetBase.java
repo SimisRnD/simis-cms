@@ -48,6 +48,10 @@ import static org.mockito.Mockito.*;
  */
 public class WidgetBase {
 
+  public static final String ADMIN = "admin";
+  public static final String CONTENT_MANAGER = "content-manager";
+  public static final String COMMUNITY_MANAGER = "community-manager";
+
   public ServletContext servletContext = mock(ServletContext.class);
   public HttpServletRequest request = mock(HttpServletRequest.class);
   public HttpServletResponse response = mock(HttpServletResponse.class);
@@ -100,6 +104,14 @@ public class WidgetBase {
     // Every widget needs a widget context
     widgetContext = new WidgetContext(request, response, "widget1");
 
+    // Collection to store attributes keys/values between requests
+    Map<String, String> sharedWidgetValueMap = null;
+    widgetContext.setSharedRequestValueMap(sharedWidgetValueMap);
+
+    // Widgets can access core data which is provided by the container
+    Map<String, String> coreData = new HashMap<>();
+    widgetContext.setCoreData(coreData);
+
     // Widgets can have preferences
     preferences = new HashMap<>();
     widgetContext.setPreferences(preferences);
@@ -108,10 +120,47 @@ public class WidgetBase {
     Map<String, String[]> parameterMap = new HashMap<>();
     widgetContext.setParameterMap(parameterMap);
 
+    // Default to being logged in
+    login(widgetContext);
+  }
+
+  public static void addRole(WidgetContext context, String... args) {
+    UserSession userSession = context.getUserSession();
+    if (userSession.isLoggedIn()) {
+      List<Role> roleList = new ArrayList<>();
+      for (String roleValue : args) {
+        if (ADMIN.equals(roleValue)) {
+          Role role = new Role("System Administrator", ADMIN);
+          roleList.add(role);
+        } else if (CONTENT_MANAGER.equals(roleValue)) {
+          Role role = new Role("Content Manager", CONTENT_MANAGER);
+          roleList.add(role);
+        } else if (COMMUNITY_MANAGER.equals(roleValue)) {
+          Role role = new Role("Content Manager", COMMUNITY_MANAGER);
+          roleList.add(role);
+        }
+      }
+      userSession.setRoleList(roleList);
+    }
+  }
+
+  public static void addGroup(WidgetContext context, String... args) {
+    UserSession userSession = context.getUserSession();
+    if (userSession.isLoggedIn()) {
+      List<Group> groupList = new ArrayList<>();
+      for (String groupValue : args) {
+        Group group = new Group();
+        group.setUniqueId(groupValue);
+        group.setName(groupValue);
+        groupList.add(group);
+      }
+      userSession.setGroupList(groupList);
+    }
+  }
+
+  public static void login(WidgetContext widgetContext) {
     // Widgets are accessed by users and guests
     List<Role> roleList = new ArrayList<>();
-    Role administratorRole = new Role("System Administrator", "admin");
-    roleList.add(administratorRole);
 
     // Related user information
     List<Group> groupList = new ArrayList<>();
@@ -121,16 +170,17 @@ public class WidgetBase {
     user.setId(1L);
     user.setRoleList(roleList);
     user.setGroupList(groupList);
+
     UserSession userSession = new UserSession();
     userSession.login(user);
     widgetContext.setUserSession(userSession);
+    widgetContext.getCoreData().put("userId", String.valueOf(userSession.getUserId()));
+  }
 
-    Map<String, String> coreData = new HashMap<>();
-    coreData.put("userId", String.valueOf(userSession.getUserId()));
-    widgetContext.setCoreData(coreData);
-
-    // Collection to store attributes keys/values
-    Map<String, String> sharedWidgetValueMap = null;
-    widgetContext.setSharedRequestValueMap(sharedWidgetValueMap);
+  public static void logout(WidgetContext widgetContext) {
+    // User information
+    UserSession userSession = new UserSession();
+    widgetContext.setUserSession(userSession);
+    widgetContext.getCoreData().remove("userId");
   }
 }
