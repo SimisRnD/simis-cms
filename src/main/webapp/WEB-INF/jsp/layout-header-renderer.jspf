@@ -20,6 +20,9 @@
       <c:if test="${!fn:startsWith(pageRenderInfo.name, '/admin') && (userSession.hasRole('admin') || (userSession.hasRole('content-manager') && pageRenderInfo.name ne '/'))}">
         <div class="platform-content-container">
           <div class="platform-content-editor" style="top:-4px">
+            <c:if test="${masterWebPage.draft && (userSession.hasRole('admin') || userSession.hasRole('content-manager'))}">
+              <span class="label alert tiny">Draft</span>
+            </c:if>
             <c:if test="${pageRenderInfo.pagePath ne '/' && !fn:contains(pageRenderInfo.name, '*') && (userSession.hasRole('admin') || userSession.hasRole('content-manager'))}">
               <c:if test="${masterWebPage.id > -1}">
                 <c:choose>

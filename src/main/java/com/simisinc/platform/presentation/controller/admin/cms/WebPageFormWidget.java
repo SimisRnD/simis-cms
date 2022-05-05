@@ -89,6 +89,14 @@ public class WebPageFormWidget extends GenericWidget {
     // Populate the form fields
     BeanUtils.populate(webPageBean, context.getParameterMap());
 
+    // Handle publish/draft choice
+    String publish = context.getParameter("publish");
+    if (StringUtils.isBlank(publish)) {
+      webPageBean.setDraft(true);
+    } else {
+      webPageBean.setDraft(false);
+    }
+
     // Handle when value is not sent in request
     String searchable = context.getParameter("searchable");
     if (StringUtils.isBlank(searchable)) {

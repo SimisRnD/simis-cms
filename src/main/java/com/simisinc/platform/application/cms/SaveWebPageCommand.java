@@ -23,7 +23,6 @@ import com.simisinc.platform.domain.model.cms.WebPage;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
 import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.lang3.time.DateUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -119,6 +118,7 @@ public class SaveWebPageCommand {
     webPage.setComments(webPageBean.getComments());
     webPage.setPageXml(webPageBean.getPageXml());
     webPage.setSearchable(webPageBean.getSearchable());
+    webPage.setDraft(webPageBean.getDraft());
     WebPage result = WebPageRepository.save(webPage);
 
     if (result != null) {
@@ -127,7 +127,7 @@ public class SaveWebPageCommand {
       boolean justUpdatedInTheLastDay =
           !isNewWebPage &&
               webPage.getModified() != null &&
-              (new Date()).after(DateUtils.addDays(webPage.getModified(), 1));
+              (((new Date()).getTime() - webPage.getModified().getTime()) > 24 * 60 * 60 * 1000);
       // Trigger events
       if (isNewWebPage) {
         WorkflowManager.triggerWorkflowForEvent(new WebPagePublishedEvent(result));

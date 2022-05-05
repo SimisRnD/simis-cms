@@ -30,6 +30,7 @@
 <jsp:useBean id="sitePropertyMap" class="java.util.HashMap" scope="request"/>
 <jsp:useBean id="themePropertyMap" class="java.util.HashMap" scope="request"/>
 <jsp:useBean id="analyticsPropertyMap" class="java.util.HashMap" scope="request"/>
+<jsp:useBean id="ecommercePropertyMap" class="java.util.HashMap" scope="request"/>
 <!doctype html>
 <html class="no-js" lang="en" xml:lang="en" xmlns="http://www.w3.org/1999/xhtml">
 <head>
@@ -137,21 +138,6 @@
         </c:if>
         <c:if test="${!empty themePropertyMap['theme.body.text.color']}">body{color:<c:out value="${themePropertyMap['theme.body.text.color']}" />}</c:if>
         <c:if test="${!empty themePropertyMap['theme.body.backgroundColor']}">body{background-color:<c:out value="${themePropertyMap['theme.body.backgroundColor']}" />}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.utilitybar.text.color']}">#platform-menu .utility-bar{color:<c:out value="${themePropertyMap['theme.utilitybar.text.color']}" />}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.utilitybar.link.color']}">#platform-menu .utility-bar a{color:<c:out value="${themePropertyMap['theme.utilitybar.link.color']}" />}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.utilitybar.backgroundColor']}">#platform-menu .utility-bar{background-color:<c:out value="${themePropertyMap['theme.utilitybar.backgroundColor']}" />}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.topbar.text.color']}">#platform-menu, #platform-menu .menu-text, #platform-menu .menu-text a,#platform-menu .menu-text a:hover{color:<c:out value="${themePropertyMap['theme.topbar.text.color']}" />}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.topbar.backgroundColor']}">#platform-menu,#platform-small-menu,#platform-small-menu .title-bar,#platform-small-toggle-menu .drilldown a{background-color:<c:out value="${themePropertyMap['theme.topbar.backgroundColor']}" />}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.topbar.backgroundColor']}">.callout.header{background-color:<c:out value="${themePropertyMap['theme.topbar.backgroundColor']}" />}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.topbar.menu.text.color']}">#platform-menu ul.menu li a,#platform-small-menu ul.menu li a,#platform-small-menu .title-bar-title{color:<c:out value="${themePropertyMap['theme.topbar.menu.text.color']}" />}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.topbar.menu.text.color']}">.callout.header{color:<c:out value="${themePropertyMap['theme.topbar.menu.text.color']}" />}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.topbar.menu.arrow.color']}">.dropdown.menu>li.is-dropdown-submenu-parent>a::after{border-color:<c:out value="${themePropertyMap['theme.topbar.menu.arrow.color']}" /> transparent transparent}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.topbar.menu.text.hoverBackgroundColor']}">#platform-menu ul.menu li a:hover,#platform-menu .is-active{background-color:<c:out value="${themePropertyMap['theme.topbar.menu.text.hoverBackgroundColor']}" />}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.topbar.menu.hoverTextColor']}">#platform-menu ul.menu li > a:hover,#platform-menu ul.menu li.is-active > a,#platform-menu .is-active .is-dropdown-submenu-item a:hover{color:<c:out value="${themePropertyMap['theme.topbar.menu.hoverTextColor']}" />}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.topbar.menu.dropdown.backgroundColor']}">#platform-menu ul.is-dropdown-submenu li.is-dropdown-submenu-item{background-color:<c:out value="${themePropertyMap['theme.topbar.menu.dropdown.backgroundColor']}" />}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.topbar.menu.dropdown.text.color']}">#platform-menu ul.is-dropdown-submenu li.is-dropdown-submenu-item a{color:<c:out value="${themePropertyMap['theme.topbar.menu.dropdown.text.color']}" />;}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.topbar.menu.activeBackgroundColor']}">#platform-menu ul.menu .active > a{background-color:<c:out value="${themePropertyMap['theme.topbar.menu.activeBackgroundColor']}" />}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.topbar.menu.activeTextColor']}">#platform-menu ul.menu .active > a{color:<c:out value="${themePropertyMap['theme.topbar.menu.activeTextColor']}" />}</c:if>
         <c:if test="${!empty themePropertyMap['theme.button.text.color']}">.button{color:<c:out value="${themePropertyMap['theme.button.text.color']}" /> !important}</c:if>
         <c:if test="${!empty themePropertyMap['theme.button.default.backgroundColor']}">.button{background-color:<c:out value="${themePropertyMap['theme.button.default.backgroundColor']}" />}</c:if>
         <c:if test="${!empty themePropertyMap['theme.button.default.hoverBackgroundColor']}">.button:hover, .button:focus{background-color:<c:out value="${themePropertyMap['theme.button.default.hoverBackgroundColor']}" />}</c:if>
@@ -179,6 +165,22 @@
         <c:if test="${!empty themePropertyMap['theme.callout.alert.text.color']}">.callout.alert,.callout.alert label{color:<c:out value="${themePropertyMap['theme.callout.alert.text.color']}" />}</c:if>
         <c:if test="${!empty themePropertyMap['theme.footer.backgroundColor']}">.platform-footer{background-color:<c:out value="${themePropertyMap['theme.footer.backgroundColor']}" />}.platform-footer .fa-inverse{color:<c:out value="${themePropertyMap['theme.footer.backgroundColor']}" />}</c:if>
         <c:if test="${!empty themePropertyMap['theme.footer.text.color']}">.platform-footer,.platform-footer p{color:<c:out value="${themePropertyMap['theme.footer.text.color']}" />}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.utilitybar.text.color']}">#platform-menu .utility-bar{color:<c:out value="${themePropertyMap['theme.utilitybar.text.color']}" />}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.utilitybar.link.color']}">#platform-menu .utility-bar a{color:<c:out value="${themePropertyMap['theme.utilitybar.link.color']}" />}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.utilitybar.backgroundColor']}">#platform-menu .utility-bar{background-color:<c:out value="${themePropertyMap['theme.utilitybar.backgroundColor']}" />}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.topbar.text.color']}">#platform-menu, #platform-menu .menu-text, #platform-menu .menu-text a,#platform-menu .menu-text a:hover{color:<c:out value="${themePropertyMap['theme.topbar.text.color']}" />}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.topbar.backgroundColor']}">#platform-menu,#platform-small-menu,#platform-small-menu .title-bar,#platform-small-toggle-menu .drilldown a{background-color:<c:out value="${themePropertyMap['theme.topbar.backgroundColor']}" />}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.topbar.backgroundColor']}">.callout.header{background-color:<c:out value="${themePropertyMap['theme.topbar.backgroundColor']}" />}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.topbar.menu.text.color']}">#platform-menu ul.menu li a,#platform-small-menu ul.menu li a,#platform-small-menu .title-bar-title{color:<c:out value="${themePropertyMap['theme.topbar.menu.text.color']}" />}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.topbar.menu.text.color']}">.callout.header, #platform-menu button.button i.fa{color:<c:out value="${themePropertyMap['theme.topbar.menu.text.color']}" />}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.topbar.menu.arrow.color']}">.dropdown.menu>li.is-dropdown-submenu-parent>a::after{border-color:<c:out value="${themePropertyMap['theme.topbar.menu.arrow.color']}" /> transparent transparent}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.topbar.menu.text.hoverBackgroundColor']}">#platform-menu ul.menu li a:hover,#platform-menu .is-active{background-color:<c:out value="${themePropertyMap['theme.topbar.menu.text.hoverBackgroundColor']}" />}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.topbar.menu.hoverTextColor']}">#platform-menu ul.menu li > a:hover,#platform-menu ul.menu li.is-active > a,#platform-menu .is-active .is-dropdown-submenu-item a:hover{color:<c:out value="${themePropertyMap['theme.topbar.menu.hoverTextColor']}" />}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.topbar.menu.hoverTextColor']}">#platform-menu button.button i.fa:hover{color:<c:out value="${themePropertyMap['theme.topbar.menu.hoverTextColor']}" />}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.topbar.menu.dropdown.backgroundColor']}">#platform-menu ul.is-dropdown-submenu li.is-dropdown-submenu-item{background-color:<c:out value="${themePropertyMap['theme.topbar.menu.dropdown.backgroundColor']}" />}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.topbar.menu.dropdown.text.color']}">#platform-menu ul.is-dropdown-submenu li.is-dropdown-submenu-item a{color:<c:out value="${themePropertyMap['theme.topbar.menu.dropdown.text.color']}" />;}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.topbar.menu.activeBackgroundColor']}">#platform-menu ul.menu .active > a{background-color:<c:out value="${themePropertyMap['theme.topbar.menu.activeBackgroundColor']}" />}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.topbar.menu.activeTextColor']}">#platform-menu ul.menu .active > a{color:<c:out value="${themePropertyMap['theme.topbar.menu.activeTextColor']}" />}</c:if>
         <c:if test="${!empty themePropertyMap['theme.footer.links.color']}">.platform-footer a{color:<c:out value="${themePropertyMap['theme.footer.links.color']}" />}</c:if>
         #site-newsletter-overlay, #site-promo-overlay {
           position: fixed;
@@ -289,20 +291,6 @@
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/sticky-footer-links')}"> class="is-active"</c:if>><a href="${ctx}/admin/sticky-footer-links"><i class="${font:far()} fa-file fa-fw"></i> <span>Sticky Page Buttons</span></a></li>
             </ul>
           </c:if>
-          <%-- E-Commerce menu --%>
-          <c:if test="${userSession.hasRole('admin') || userSession.hasRole('ecommerce-manager')}">
-            <ul class="vertical menu">
-              <li class="section-title">E-Commerce</li>
-              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/e-commerce/analytics')}"> class="is-active"</c:if>><a href="${ctx}/admin/e-commerce/analytics"><i class="${font:far()} fa-chart-line fa-fw"></i> <span>Analytics</span></a></li>
-              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/order')}"> class="is-active"</c:if>><a href="${ctx}/admin/orders"><i class="${font:far()} fa-receipt fa-fw"></i> <span>Orders</span></a></li>
-              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/customer')}"> class="is-active"</c:if>><a href="${ctx}/admin/customers"><i class="${font:far()} fa-address-book fa-fw"></i> <span>Customers</span></a></li>
-              <li<c:if test="${pageRenderInfo.name eq '/admin/products' || pageRenderInfo.name eq '/admin/product'}"> class="is-active"</c:if>><a href="${ctx}/admin/products"><i class="${font:far()} fa-dolly fa-fw"></i> <span>Products</span></a></li>
-              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/product-categor')}"> class="is-active"</c:if>><a href="${ctx}/admin/product-categories"><i class="${font:far()} fa-border-all fa-fw"></i> <span>Categories</span></a></li>
-              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/pricing-rule')}"> class="is-active"</c:if>><a href="${ctx}/admin/pricing-rules"><i class="${font:far()} fa-tags fa-fw"></i> <span>Pricing Rules</span></a></li>
-              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/sales-tax-nexus')}"> class="is-active"</c:if>><a href="${ctx}/admin/sales-tax-nexus"><i class="${font:far()} fa-balance-scale fa-fw"></i> <span>Sales Tax Nexus</span></a></li>
-              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/shipping-rates')}"> class="is-active"</c:if>><a href="${ctx}/admin/shipping-rates"><i class="${font:far()} fa-shipping-fast fa-fw"></i> <span>Shipping Rates</span></a></li>
-            </ul>
-          </c:if>
           <%-- Data menu --%>
           <c:if test="${userSession.hasRole('admin') || userSession.hasRole('data-manager')}">
             <ul class="vertical menu">
@@ -311,6 +299,23 @@
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/collection')}"> class="is-active"</c:if>><a href="${ctx}/admin/collections"><i class="${font:far()} fa-database fa-fw"></i> <span>Collections</span></a></li>
             </ul>
           </c:if>
+          <%-- E-Commerce menu (if enabled if settings) --%>
+          <c:if test="${!empty ecommercePropertyMap['ecommerce.enabled'] && ecommercePropertyMap['ecommerce.enabled'] eq 'true'}">
+            <c:if test="${userSession.hasRole('admin') || userSession.hasRole('ecommerce-manager')}">
+              <ul class="vertical menu">
+                <li class="section-title">E-Commerce</li>
+                <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/e-commerce/analytics')}"> class="is-active"</c:if>><a href="${ctx}/admin/e-commerce/analytics"><i class="${font:far()} fa-chart-line fa-fw"></i> <span>Analytics</span></a></li>
+                <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/order')}"> class="is-active"</c:if>><a href="${ctx}/admin/orders"><i class="${font:far()} fa-receipt fa-fw"></i> <span>Orders</span></a></li>
+                <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/customer')}"> class="is-active"</c:if>><a href="${ctx}/admin/customers"><i class="${font:far()} fa-address-book fa-fw"></i> <span>Customers</span></a></li>
+                <li<c:if test="${pageRenderInfo.name eq '/admin/products' || pageRenderInfo.name eq '/admin/product'}"> class="is-active"</c:if>><a href="${ctx}/admin/products"><i class="${font:far()} fa-dolly fa-fw"></i> <span>Products</span></a></li>
+                <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/product-categor')}"> class="is-active"</c:if>><a href="${ctx}/admin/product-categories"><i class="${font:far()} fa-border-all fa-fw"></i> <span>Categories</span></a></li>
+                <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/pricing-rule')}"> class="is-active"</c:if>><a href="${ctx}/admin/pricing-rules"><i class="${font:far()} fa-tags fa-fw"></i> <span>Pricing Rules</span></a></li>
+                <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/sales-tax-nexus')}"> class="is-active"</c:if>><a href="${ctx}/admin/sales-tax-nexus"><i class="${font:far()} fa-balance-scale fa-fw"></i> <span>Sales Tax Nexus</span></a></li>
+                <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/shipping-rates')}"> class="is-active"</c:if>><a href="${ctx}/admin/shipping-rates"><i class="${font:far()} fa-shipping-fast fa-fw"></i> <span>Shipping Rates</span></a></li>
+              </ul>
+            </c:if>
+          </c:if>
+          <%-- API, Apps, etc. --%>
           <c:if test="${userSession.hasRole('admin')}">
             <ul class="vertical menu">
               <li class="section-title">Access</li>

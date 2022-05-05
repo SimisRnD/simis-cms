@@ -164,6 +164,10 @@ public class PageServlet extends HttpServlet {
       String pagePath = requestURI.substring(contextPath.length());
       LOG.debug("Using resource: " + pagePath);
 
+      // Use the session data (created in WebRequestFilter)
+      ControllerSession controllerSession = (ControllerSession) request.getSession().getAttribute(SessionConstants.CONTROLLER);
+      UserSession userSession = (UserSession) request.getSession().getAttribute(SessionConstants.USER);
+
       if (!pagePath.startsWith("/assets")) {
         response.setHeader("Cache-Control", "no-cache, no-store, max-age=0, must-revalidate");
         response.setHeader("Pragma", "no-cache");
@@ -180,6 +184,16 @@ public class PageServlet extends HttpServlet {
       // Always access the webPage record so it can be used downstream
       WebPage webPage = LoadWebPageCommand.loadByLink(pagePath);
       if (webPage != null) {
+        // Determine if this is a draft page
+        if (webPage.getDraft()) {
+          if (!userSession.hasRole("admin") && !userSession.hasRole("content-manager")) {
+            LOG.error("DRAFT FOUND, no access: " + pagePath + " " + request.getRemoteAddr());
+            controllerSession.clearAllWidgetData();
+            response.sendError(HttpServletResponse.SC_NOT_FOUND);
+            return;
+          }
+        }
+        // Determine if this is a redirect
         String redirectLocation = webPage.getRedirectUrl();
         if (StringUtils.isNotBlank(redirectLocation)) {
           // Handle a redirect immediately
@@ -208,10 +222,7 @@ public class PageServlet extends HttpServlet {
       Map<String, String> themePropertyMap = LoadSitePropertyCommand.loadAsMap("theme");
       Map<String, String> socialPropertyMap = LoadSitePropertyCommand.loadAsMap("social");
       Map<String, String> analyticsPropertyMap = LoadSitePropertyCommand.loadAsMap("analytics");
-
-      // Use the session data (created in WebRequestFilter)
-      ControllerSession controllerSession = (ControllerSession) request.getSession().getAttribute(SessionConstants.CONTROLLER);
-      UserSession userSession = (UserSession) request.getSession().getAttribute(SessionConstants.USER);
+      Map<String, String> ecommercePropertyMap = LoadSitePropertyCommand.loadAsMap("ecommerce");
 
       // Web Page Hits
       if (pageRef != null) {
@@ -434,6 +445,7 @@ public class PageServlet extends HttpServlet {
       request.setAttribute("themePropertyMap", themePropertyMap);
       request.setAttribute("socialPropertyMap", socialPropertyMap);
       request.setAttribute("analyticsPropertyMap", analyticsPropertyMap);
+      request.setAttribute("ecommercePropertyMap", ecommercePropertyMap);
 
       // Determine global items
       if (userSession.isLoggedIn() || "true".equals(sitePropertyMap.getOrDefault("site.online", "false"))) {

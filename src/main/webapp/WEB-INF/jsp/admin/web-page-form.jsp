@@ -80,6 +80,15 @@
       </label>
     </div>
     <div class="small-12 medium-6 cell">
+      <label>Publish?
+        <div class="switch large">
+          <input class="switch-input" id="publish-yes-no" type="checkbox" name="publish" value="true"<c:if test="${!webPage.draft}"> checked</c:if>>
+          <label class="switch-paddle" for="publish-yes-no">
+            <span class="switch-active" aria-hidden="true">Yes</span>
+            <span class="switch-inactive" aria-hidden="true">No</span>
+          </label>
+        </div>
+      </label>
       <label>Show in Sitemap.xml?
         <div class="switch large">
           <input class="switch-input" id="sitemap-yes-no" type="checkbox" name="showInSitemap" value="true"<c:if test="${webPage.showInSitemap}"> checked</c:if>>

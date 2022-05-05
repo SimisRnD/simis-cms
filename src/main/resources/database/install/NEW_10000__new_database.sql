@@ -178,6 +178,7 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 
 -- E-Commerce
 
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (1, 'Enable e-commerce?', 'ecommerce.enabled', 'true', 'disabled');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (3, 'Enable real orders?', 'ecommerce.production', 'false', 'boolean');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (7, 'Last Order Date', 'ecommerce.lastOrderDate', 'None', 'disabled');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (10, 'Payment Processor API', 'ecommerce.paymentProcessor', 'None', 'disabled');
@@ -262,8 +263,8 @@ CREATE TABLE users (
   country VARCHAR(100),
   postal_code VARCHAR(100)
 );
--- CREATE INDEX users_email_idx ON users(email);
--- CREATE INDEX users_usr_name_idx ON users(username);
+CREATE UNIQUE INDEX users_lc_email ON users (LOWER(email));
+CREATE UNIQUE INDEX users_lc_username ON users (LOWER(username));
 CREATE INDEX users_act_token_idx ON users(account_token);
 CREATE INDEX users_created_idx ON users(created);
 CREATE INDEX users_unique_id ON users(unique_id);
