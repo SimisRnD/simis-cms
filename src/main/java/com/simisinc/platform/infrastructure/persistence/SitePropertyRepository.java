@@ -16,7 +16,7 @@
 
 package com.simisinc.platform.infrastructure.persistence;
 
-import com.simisinc.platform.SiteProperty;
+import com.simisinc.platform.domain.model.SiteProperty;
 import com.simisinc.platform.infrastructure.cache.CacheManager;
 import com.simisinc.platform.infrastructure.database.*;
 import org.apache.commons.lang3.StringUtils;

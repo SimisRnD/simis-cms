@@ -18,7 +18,7 @@ package com.simisinc.platform.application.ecommerce;
 
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
-import com.simisinc.platform.SiteProperty;
+import com.simisinc.platform.domain.model.SiteProperty;
 import com.simisinc.platform.domain.model.ecommerce.*;
 import com.simisinc.platform.infrastructure.database.DB;
 import com.simisinc.platform.infrastructure.persistence.SitePropertyRepository;

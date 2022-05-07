@@ -17,7 +17,7 @@
 package com.simisinc.platform.infrastructure.persistence.cms;
 
 import com.simisinc.platform.application.cms.ThemeJSONCommand;
-import com.simisinc.platform.SiteProperty;
+import com.simisinc.platform.domain.model.SiteProperty;
 import com.simisinc.platform.domain.model.cms.Theme;
 import com.simisinc.platform.infrastructure.database.*;
 import org.apache.commons.lang3.StringUtils;

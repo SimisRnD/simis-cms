@@ -14,9 +14,7 @@
  * limitations under the License.
  */
 
-package com.simisinc.platform;
-
-import com.simisinc.platform.domain.model.Entity;
+package com.simisinc.platform.domain.model;
 
 /**
  * A name/value pairs - properties of the web application for displaying in the UI and values for consuming

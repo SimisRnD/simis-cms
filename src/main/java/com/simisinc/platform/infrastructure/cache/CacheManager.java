@@ -20,7 +20,7 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.simisinc.platform.domain.model.App;
-import com.simisinc.platform.SiteProperty;
+import com.simisinc.platform.domain.model.SiteProperty;
 import com.simisinc.platform.domain.model.cms.Content;
 import com.simisinc.platform.domain.model.cms.Stylesheet;
 import com.simisinc.platform.domain.model.cms.TableOfContents;

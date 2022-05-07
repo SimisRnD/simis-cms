@@ -16,7 +16,7 @@
 
 package com.simisinc.platform.infrastructure.persistence;
 
-import com.simisinc.platform.DatabaseVersion;
+import com.simisinc.platform.domain.model.DatabaseVersion;
 import com.simisinc.platform.infrastructure.database.*;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;

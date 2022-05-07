@@ -16,7 +16,7 @@
 
 package com.simisinc.platform.presentation.widgets.cms;
 
-import com.simisinc.platform.SiteProperty;
+import com.simisinc.platform.domain.model.SiteProperty;
 import com.simisinc.platform.application.cms.LoadMenuTabsCommand;
 import com.simisinc.platform.application.cms.ValidateUserAccessToWebPageCommand;
 import com.simisinc.platform.domain.model.cms.MenuItem;

@@ -19,7 +19,7 @@ package com.simisinc.platform.application.cms;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.fge.jackson.JsonLoader;
 import com.simisinc.platform.application.json.JsonCommand;
-import com.simisinc.platform.SiteProperty;
+import com.simisinc.platform.domain.model.SiteProperty;
 import com.simisinc.platform.domain.model.cms.Theme;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;

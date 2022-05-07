@@ -17,7 +17,7 @@
 package com.simisinc.platform.presentation.widgets.admin;
 
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
-import com.simisinc.platform.SiteProperty;
+import com.simisinc.platform.domain.model.SiteProperty;
 import com.simisinc.platform.infrastructure.persistence.SitePropertyRepository;
 import com.simisinc.platform.presentation.controller.SqlTimestampConverter;
 import com.simisinc.platform.presentation.widgets.GenericWidget;

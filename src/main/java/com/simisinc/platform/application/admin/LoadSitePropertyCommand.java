@@ -16,7 +16,7 @@
 
 package com.simisinc.platform.application.admin;
 
-import com.simisinc.platform.SiteProperty;
+import com.simisinc.platform.domain.model.SiteProperty;
 import com.simisinc.platform.infrastructure.cache.CacheManager;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;

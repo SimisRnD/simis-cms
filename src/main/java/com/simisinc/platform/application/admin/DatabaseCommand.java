@@ -17,7 +17,7 @@
 package com.simisinc.platform.application.admin;
 
 import com.simisinc.platform.ApplicationInfo;
-import com.simisinc.platform.DatabaseVersion;
+import com.simisinc.platform.domain.model.DatabaseVersion;
 import com.simisinc.platform.infrastructure.persistence.DatabaseVersionRepository;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;

@@ -16,7 +16,7 @@
 
 package com.simisinc.platform.application.cms;
 
-import com.simisinc.platform.SiteProperty;
+import com.simisinc.platform.domain.model.SiteProperty;
 import com.simisinc.platform.domain.model.cms.Theme;
 import com.simisinc.platform.infrastructure.persistence.SitePropertyRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.ThemeRepository;

@@ -17,7 +17,7 @@
 package com.simisinc.platform.domain.model.cms;
 
 import com.simisinc.platform.domain.model.Entity;
-import com.simisinc.platform.SiteProperty;
+import com.simisinc.platform.domain.model.SiteProperty;
 
 import java.sql.Timestamp;
 import java.util.List;
