@@ -22,7 +22,7 @@
 <%@ taglib prefix="font" uri="/WEB-INF/font-functions.tld" %>
 <%@ taglib prefix="g" uri="http://granule.com/tags" %>
 <jsp:useBean id="masterWebPage" class="com.simisinc.platform.domain.model.cms.WebPage" scope="request"/>
-<jsp:useBean id="pageRenderInfo" class="com.simisinc.platform.presentation.controller.cms.PageRenderInfo" scope="request"/>
+<jsp:useBean id="pageRenderInfo" class="com.simisinc.platform.presentation.controller.PageRenderInfo" scope="request"/>
 <jsp:useBean id="systemPropertyMap" class="java.util.HashMap" scope="request"/>
 <jsp:useBean id="sitePropertyMap" class="java.util.HashMap" scope="request"/>
 <jsp:useBean id="themePropertyMap" class="java.util.HashMap" scope="request"/>

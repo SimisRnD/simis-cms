@@ -55,7 +55,7 @@
   </servlet>
   <servlet>
     <servlet-name>RestServlet</servlet-name>
-    <servlet-class>com.simisinc.platform.presentation.rest.RestServlet</servlet-class>
+    <servlet-class>com.simisinc.platform.presentation.controller.RestServlet</servlet-class>
     <load-on-startup>1</load-on-startup>
   </servlet>
   <servlet>

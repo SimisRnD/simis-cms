@@ -16,8 +16,8 @@
 
 package com.simisinc.platform.presentation.rest.register;
 
-import com.simisinc.platform.presentation.rest.ServiceContext;
-import com.simisinc.platform.presentation.rest.ServiceResponse;
+import com.simisinc.platform.presentation.controller.ServiceContext;
+import com.simisinc.platform.presentation.controller.ServiceResponse;
 
 /**
  * Description

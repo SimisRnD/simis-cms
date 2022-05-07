@@ -18,7 +18,7 @@ package com.simisinc.platform.application.cms;
 
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.presentation.controller.SessionConstants;
-import com.simisinc.platform.presentation.controller.cms.WidgetContext;
+import com.simisinc.platform.presentation.controller.WidgetContext;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;

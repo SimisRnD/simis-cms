@@ -25,7 +25,7 @@ import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.cms.FileItem;
 import com.simisinc.platform.infrastructure.persistence.GroupRepository;
 import com.simisinc.platform.infrastructure.persistence.UserRepository;
-import com.simisinc.platform.presentation.controller.cms.WidgetContext;
+import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.univocity.parsers.common.record.Record;
 import com.univocity.parsers.conversions.Conversions;
 import com.univocity.parsers.csv.CsvParser;

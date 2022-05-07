@@ -17,7 +17,7 @@
 package com.simisinc.platform.application;
 
 import com.simisinc.platform.application.maps.GeoIPCommand;
-import com.simisinc.platform.presentation.controller.login.UserSession;
+import com.simisinc.platform.presentation.controller.UserSession;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;

@@ -22,8 +22,8 @@ import com.simisinc.platform.domain.model.items.Item;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.persistence.items.ItemRepository;
 import com.simisinc.platform.infrastructure.persistence.items.ItemSpecification;
-import com.simisinc.platform.presentation.rest.ServiceContext;
-import com.simisinc.platform.presentation.rest.ServiceResponse;
+import com.simisinc.platform.presentation.controller.ServiceContext;
+import com.simisinc.platform.presentation.controller.ServiceResponse;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 

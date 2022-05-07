@@ -19,8 +19,8 @@ package com.simisinc.platform.application.cms;
 import com.simisinc.platform.infrastructure.cache.CacheManager;
 import com.simisinc.platform.presentation.controller.XMLFooterLoader;
 import com.simisinc.platform.presentation.controller.XMLHeaderLoader;
-import com.simisinc.platform.presentation.controller.cms.Footer;
-import com.simisinc.platform.presentation.controller.cms.Header;
+import com.simisinc.platform.presentation.controller.Footer;
+import com.simisinc.platform.presentation.controller.Header;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 

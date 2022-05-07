@@ -20,7 +20,7 @@ import com.simisinc.platform.domain.model.StatisticsData;
 import com.simisinc.platform.infrastructure.database.DB;
 import com.simisinc.platform.infrastructure.database.SqlUtils;
 import com.simisinc.platform.infrastructure.persistence.SessionRepository;
-import com.simisinc.platform.presentation.controller.cms.WebPageHit;
+import com.simisinc.platform.domain.model.cms.WebPageHit;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 

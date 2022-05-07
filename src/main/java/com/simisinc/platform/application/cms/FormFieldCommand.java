@@ -17,7 +17,7 @@
 package com.simisinc.platform.application.cms;
 
 import com.simisinc.platform.domain.model.cms.FormField;
-import com.simisinc.platform.presentation.controller.cms.PreferenceEntriesList;
+import com.simisinc.platform.presentation.widgets.cms.PreferenceEntriesList;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 

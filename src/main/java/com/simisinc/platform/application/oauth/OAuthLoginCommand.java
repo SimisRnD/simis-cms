@@ -27,7 +27,7 @@ import com.simisinc.platform.infrastructure.persistence.login.UserLoginRepositor
 import com.simisinc.platform.infrastructure.persistence.login.UserTokenRepository;
 import com.simisinc.platform.presentation.controller.CookieConstants;
 import com.simisinc.platform.presentation.controller.SessionConstants;
-import com.simisinc.platform.presentation.controller.login.UserSession;
+import com.simisinc.platform.presentation.controller.UserSession;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -38,7 +38,7 @@ import javax.servlet.http.HttpServletResponse;
 import java.sql.Timestamp;
 import java.util.UUID;
 
-import static com.simisinc.platform.presentation.controller.login.UserSession.OAUTH_SOURCE;
+import static com.simisinc.platform.presentation.controller.UserSession.OAUTH_SOURCE;
 
 /**
  * Retrieves user information and uses it to login the user

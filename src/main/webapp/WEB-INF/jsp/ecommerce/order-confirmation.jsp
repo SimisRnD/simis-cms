@@ -20,8 +20,8 @@
 <%@ taglib prefix="text" uri="/WEB-INF/text-functions.tld" %>
 <%@ taglib prefix="order" uri="/WEB-INF/order-functions.tld" %>
 <%@ taglib prefix="product" uri="/WEB-INF/product-functions.tld" %>
-<jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.login.UserSession" scope="session"/>
-<jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.cms.WidgetContext" scope="request"/>
+<jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
+<jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="title" class="java.lang.String" scope="request"/>
 <jsp:useBean id="calloutHtml" class="java.lang.String" scope="request"/>
 <jsp:useBean id="introHtml" class="java.lang.String" scope="request"/>

@@ -15,14 +15,14 @@
   ~ limitations under the License.
   -->
 <services>
-  <service endpoint="/json/activityList" class="com.simisinc.platform.presentation.controller.items.ActivityListAjax" />
-  <service endpoint="/json/lookupItem" class="com.simisinc.platform.presentation.controller.items.LookupItemAjax" />
-  <service endpoint="/json/lookupLocation" class="com.simisinc.platform.presentation.controller.items.LookupLocationAjax" />
-  <service endpoint="/json/lookupUser" class="com.simisinc.platform.presentation.controller.LookupUserAjax" />
-  <service endpoint="/json/calendar" class="com.simisinc.platform.presentation.controller.calendar.CalendarAjax" />
-  <service endpoint="/json/calendarEvent" class="com.simisinc.platform.presentation.controller.calendar.CalendarEventAjax" />
-  <service endpoint="/json/file" class="com.simisinc.platform.presentation.controller.cms.FileAjax" />
-  <service endpoint="/json/photoList" class="com.simisinc.platform.presentation.controller.cms.PhotoListAjax" />
-  <service endpoint="/json/emailSubscribe" class="com.simisinc.platform.presentation.controller.ecommerce.EmailSubscribeAjax" />
-  <service endpoint="/json/mailingList" class="com.simisinc.platform.presentation.controller.mailinglists.MailingListAjax" />
+  <service endpoint="/json/activityList" class="com.simisinc.platform.presentation.widgets.items.ActivityListAjax" />
+  <service endpoint="/json/lookupItem" class="com.simisinc.platform.presentation.widgets.items.LookupItemAjax" />
+  <service endpoint="/json/lookupLocation" class="com.simisinc.platform.presentation.widgets.items.LookupLocationAjax" />
+  <service endpoint="/json/lookupUser" class="com.simisinc.platform.presentation.widgets.cms.LookupUserAjax" />
+  <service endpoint="/json/calendar" class="com.simisinc.platform.presentation.widgets.calendar.CalendarAjax" />
+  <service endpoint="/json/calendarEvent" class="com.simisinc.platform.presentation.widgets.calendar.CalendarEventAjax" />
+  <service endpoint="/json/file" class="com.simisinc.platform.presentation.widgets.cms.FileAjax" />
+  <service endpoint="/json/photoList" class="com.simisinc.platform.presentation.widgets.cms.PhotoListAjax" />
+  <service endpoint="/json/emailSubscribe" class="com.simisinc.platform.presentation.widgets.ecommerce.EmailSubscribeAjax" />
+  <service endpoint="/json/mailingList" class="com.simisinc.platform.presentation.widgets.mailinglists.MailingListAjax" />
 </services>

@@ -18,7 +18,7 @@ package com.simisinc.platform.infrastructure.persistence.cms;
 
 import com.simisinc.platform.infrastructure.database.DB;
 import com.simisinc.platform.infrastructure.database.SqlUtils;
-import com.simisinc.platform.presentation.controller.cms.WebSearch;
+import com.simisinc.platform.domain.model.cms.WebSearch;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 

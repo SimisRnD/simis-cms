@@ -19,8 +19,8 @@
 <%@ taglib prefix="js" uri="/WEB-INF/javascript-escape.tld" %>
 <%@ taglib prefix="url" uri="/WEB-INF/url-functions.tld" %>
 <%@ taglib prefix="text" uri="/WEB-INF/text-functions.tld" %>
-<jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.login.UserSession" scope="session"/>
-<jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.cms.WidgetContext" scope="request"/>
+<jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
+<jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="sitePropertyMap" class="java.util.HashMap" scope="request"/>
 <script type="text/javascript">
     function validateEmail${widgetContext.uniqueId}(email) {

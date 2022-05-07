@@ -22,7 +22,7 @@ import com.simisinc.platform.domain.model.items.PrivacyType;
 import com.simisinc.platform.infrastructure.cache.CacheManager;
 import com.simisinc.platform.infrastructure.database.*;
 import com.simisinc.platform.presentation.controller.DataConstants;
-import com.simisinc.platform.presentation.controller.login.UserSession;
+import com.simisinc.platform.presentation.controller.UserSession;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;

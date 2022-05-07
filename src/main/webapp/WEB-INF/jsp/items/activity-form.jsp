@@ -19,8 +19,8 @@
 <%@ taglib prefix="date" uri="/WEB-INF/date-functions.tld" %>
 <%@ taglib prefix="user" uri="/WEB-INF/user-functions.tld" %>
 <%@ taglib prefix="item" uri="/WEB-INF/item-functions.tld" %>
-<jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.login.UserSession" scope="session"/>
-<jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.cms.WidgetContext" scope="request"/>
+<jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
+<jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="recordPaging" class="com.simisinc.platform.infrastructure.database.DataConstraints" scope="request"/>
 <jsp:useBean id="activity" class="com.simisinc.platform.domain.model.items.Activity" scope="request"/>
 <jsp:useBean id="item" class="com.simisinc.platform.domain.model.items.Item" scope="request"/>

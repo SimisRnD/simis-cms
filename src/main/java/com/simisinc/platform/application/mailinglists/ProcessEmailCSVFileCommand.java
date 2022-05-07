@@ -22,7 +22,7 @@ import com.simisinc.platform.application.filesystem.FileSystemCommand;
 import com.simisinc.platform.domain.model.cms.FileItem;
 import com.simisinc.platform.domain.model.mailinglists.Email;
 import com.simisinc.platform.domain.model.mailinglists.MailingList;
-import com.simisinc.platform.presentation.controller.cms.WidgetContext;
+import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.univocity.parsers.common.record.Record;
 import com.univocity.parsers.conversions.Conversions;
 import com.univocity.parsers.csv.CsvParser;

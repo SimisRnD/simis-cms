@@ -19,8 +19,8 @@
 <%@ taglib prefix="js" uri="/WEB-INF/javascript-escape.tld" %>
 <%@ taglib prefix="user" uri="/WEB-INF/user-functions.tld" %>
 <%@ taglib prefix="collection" uri="/WEB-INF/collection-functions.tld" %>
-<jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.login.UserSession" scope="session"/>
-<jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.cms.WidgetContext" scope="request"/>
+<jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
+<jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="memberList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="recordPaging" class="com.simisinc.platform.infrastructure.database.DataConstraints" scope="request"/>
 <jsp:useBean id="canDelete" class="java.lang.String" scope="request"/>

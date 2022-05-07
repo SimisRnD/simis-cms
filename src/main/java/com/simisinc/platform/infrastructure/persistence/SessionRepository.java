@@ -21,7 +21,7 @@ import com.simisinc.platform.domain.model.Session;
 import com.simisinc.platform.domain.model.Visitor;
 import com.simisinc.platform.domain.model.StatisticsData;
 import com.simisinc.platform.infrastructure.database.*;
-import com.simisinc.platform.presentation.controller.login.UserSession;
+import com.simisinc.platform.presentation.controller.UserSession;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;

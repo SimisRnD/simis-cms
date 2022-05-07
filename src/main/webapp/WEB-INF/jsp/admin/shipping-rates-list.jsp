@@ -18,8 +18,8 @@
 <%@ taglib prefix="js" uri="/WEB-INF/javascript-escape.tld" %>
 <%@ taglib prefix="url" uri="/WEB-INF/url-functions.tld" %>
 <%@ taglib prefix="number" uri="/WEB-INF/number-functions.tld" %>
-<jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.login.UserSession" scope="session"/>
-<jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.cms.WidgetContext" scope="request"/>
+<jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
+<jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="shippingRateList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="shippingMethodList" class="java.util.ArrayList" scope="request"/>
 <c:if test="${!empty title}">

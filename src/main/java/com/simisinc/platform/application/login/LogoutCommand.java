@@ -20,7 +20,7 @@ import com.simisinc.platform.application.oauth.OAuthLogoutCommand;
 import com.simisinc.platform.application.oauth.OAuthRequestCommand;
 import com.simisinc.platform.presentation.controller.CookieConstants;
 import com.simisinc.platform.presentation.controller.SessionConstants;
-import com.simisinc.platform.presentation.controller.login.UserSession;
+import com.simisinc.platform.presentation.controller.UserSession;
 
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;

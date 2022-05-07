@@ -16,9 +16,6 @@
 
 package com.simisinc.platform.presentation.controller;
 
-import com.simisinc.platform.presentation.controller.cms.Column;
-import com.simisinc.platform.presentation.controller.cms.Section;
-import com.simisinc.platform.presentation.controller.cms.Widget;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;

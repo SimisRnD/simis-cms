@@ -22,8 +22,8 @@
 <%@ taglib prefix="date" uri="/WEB-INF/date-functions.tld" %>
 <%@ taglib prefix="number" uri="/WEB-INF/number-functions.tld" %>
 <%@ taglib prefix="folderCategory" uri="/WEB-INF/folder-category-functions.tld" %>
-<jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.login.UserSession" scope="session"/>
-<jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.cms.WidgetContext" scope="request"/>
+<jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
+<jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="useViewer" class="java.lang.String" scope="request"/>
 <jsp:useBean id="useDateForTitle" class="java.lang.String" scope="request"/>
 <jsp:useBean id="folderYearMap" class="java.util.LinkedHashMap" scope="request"/>

@@ -23,8 +23,8 @@
 <%@ taglib prefix="date" uri="/WEB-INF/date-functions.tld" %>
 <%@ taglib prefix="number" uri="/WEB-INF/number-functions.tld" %>
 <%@ taglib prefix="folderCategory" uri="/WEB-INF/folder-category-functions.tld" %>
-<jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.login.UserSession" scope="session"/>
-<jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.cms.WidgetContext" scope="request"/>
+<jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
+<jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="subFolderList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="fileItemList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="recordPaging" class="com.simisinc.platform.infrastructure.database.DataConstraints" scope="request"/>

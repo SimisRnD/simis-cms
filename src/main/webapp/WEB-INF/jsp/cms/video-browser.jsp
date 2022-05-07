@@ -22,8 +22,8 @@
 <%@ taglib prefix="text" uri="/WEB-INF/text-functions.tld" %>
 <%@ taglib prefix="url" uri="/WEB-INF/url-functions.tld" %>
 <%@ taglib prefix="number" uri="/WEB-INF/number-functions.tld" %>
-<jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.login.UserSession" scope="session"/>
-<jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.cms.WidgetContext" scope="request"/>
+<jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
+<jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="fileItemList" class="java.util.ArrayList" scope="request"/>
 <%-- Include the formatting for when TinyMCE uses an iFrame to open the browser --%>
 <%-- All of Foundation.css would override colors and stuff when using the browser directly --%>

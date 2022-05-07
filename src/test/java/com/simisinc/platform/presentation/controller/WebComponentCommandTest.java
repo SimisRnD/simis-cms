@@ -19,7 +19,6 @@ package com.simisinc.platform.presentation.controller;
 import com.simisinc.platform.domain.model.Group;
 import com.simisinc.platform.domain.model.Role;
 import com.simisinc.platform.domain.model.User;
-import com.simisinc.platform.presentation.controller.login.UserSession;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 

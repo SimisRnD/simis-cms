@@ -41,8 +41,6 @@ import com.simisinc.platform.infrastructure.persistence.GroupRepository;
 import com.simisinc.platform.infrastructure.persistence.RoleRepository;
 import com.simisinc.platform.infrastructure.persistence.SessionRepository;
 import com.simisinc.platform.infrastructure.persistence.login.UserLoginRepository;
-import com.simisinc.platform.presentation.controller.login.ControllerSession;
-import com.simisinc.platform.presentation.controller.login.UserSession;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -58,7 +56,7 @@ import java.io.IOException;
 import java.util.Enumeration;
 import java.util.Map;
 
-import static com.simisinc.platform.presentation.controller.login.UserSession.WEB_SOURCE;
+import static com.simisinc.platform.presentation.controller.UserSession.WEB_SOURCE;
 import static javax.servlet.http.HttpServletResponse.*;
 
 /**

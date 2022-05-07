@@ -18,7 +18,7 @@ package com.simisinc.platform.infrastructure.scheduler.cms;
 
 import com.simisinc.platform.application.cms.SaveWebPageHitCommand;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageHitRepository;
-import com.simisinc.platform.presentation.controller.cms.WebPageHit;
+import com.simisinc.platform.domain.model.cms.WebPageHit;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;

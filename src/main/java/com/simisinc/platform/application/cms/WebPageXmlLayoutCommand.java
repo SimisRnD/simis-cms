@@ -19,7 +19,7 @@ package com.simisinc.platform.application.cms;
 import com.simisinc.platform.domain.model.cms.WebPage;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
 import com.simisinc.platform.presentation.controller.XMLPageLoader;
-import com.simisinc.platform.presentation.controller.cms.Page;
+import com.simisinc.platform.presentation.controller.Page;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;

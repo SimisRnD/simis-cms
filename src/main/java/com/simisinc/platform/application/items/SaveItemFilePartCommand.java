@@ -20,7 +20,7 @@ import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.filesystem.FileSystemCommand;
 import com.simisinc.platform.domain.model.items.Item;
 import com.simisinc.platform.domain.model.items.ItemFileItem;
-import com.simisinc.platform.presentation.controller.cms.WidgetContext;
+import com.simisinc.platform.presentation.controller.WidgetContext;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;

@@ -19,9 +19,9 @@
 <%@ taglib prefix="group" uri="/WEB-INF/group-functions.tld" %>
 <%@ taglib prefix="geoip" uri="/WEB-INF/geoip-functions.tld" %>
 <%@ taglib prefix="user" uri="/WEB-INF/user-functions.tld" %>
-<jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.login.UserSession" scope="session"/>
+<jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="themePropertyMap" class="java.util.HashMap" scope="request"/>
-<jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.cms.WidgetContext" scope="request"/>
+<jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="user" class="com.simisinc.platform.domain.model.User" scope="request"/>
 <jsp:useBean id="roleList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="groupList" class="java.util.ArrayList" scope="request"/>

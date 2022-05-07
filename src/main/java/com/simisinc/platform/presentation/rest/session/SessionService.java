@@ -16,8 +16,8 @@
 
 package com.simisinc.platform.presentation.rest.session;
 
-import com.simisinc.platform.presentation.rest.ServiceContext;
-import com.simisinc.platform.presentation.rest.ServiceResponse;
+import com.simisinc.platform.presentation.controller.ServiceContext;
+import com.simisinc.platform.presentation.controller.ServiceResponse;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 

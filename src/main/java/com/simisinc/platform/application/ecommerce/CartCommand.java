@@ -20,7 +20,7 @@ import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.domain.model.ecommerce.*;
 import com.simisinc.platform.infrastructure.persistence.ecommerce.CartItemRepository;
 import com.simisinc.platform.infrastructure.persistence.ecommerce.CartRepository;
-import com.simisinc.platform.presentation.controller.login.UserSession;
+import com.simisinc.platform.presentation.controller.UserSession;
 import org.apache.commons.lang3.StringUtils;
 
 import java.math.BigDecimal;

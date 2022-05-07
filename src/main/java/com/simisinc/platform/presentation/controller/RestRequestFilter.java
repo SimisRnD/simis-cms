@@ -27,7 +27,6 @@ import com.simisinc.platform.domain.model.login.UserLogin;
 import com.simisinc.platform.domain.model.login.UserToken;
 import com.simisinc.platform.infrastructure.persistence.login.UserLoginRepository;
 import com.simisinc.platform.infrastructure.persistence.login.UserTokenRepository;
-import com.simisinc.platform.presentation.controller.login.UserSession;
 import org.apache.commons.codec.binary.Base64;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
@@ -46,7 +45,7 @@ import java.time.LocalDate;
 import java.util.StringTokenizer;
 import java.util.UUID;
 
-import static com.simisinc.platform.presentation.controller.login.UserSession.API_SOURCE;
+import static com.simisinc.platform.presentation.controller.UserSession.API_SOURCE;
 import static javax.servlet.http.HttpServletResponse.*;
 
 /**

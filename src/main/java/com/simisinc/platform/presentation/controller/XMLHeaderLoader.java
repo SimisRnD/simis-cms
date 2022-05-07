@@ -18,7 +18,6 @@ package com.simisinc.platform.presentation.controller;
 
 import com.simisinc.platform.domain.model.cms.WebContainer;
 import com.simisinc.platform.infrastructure.persistence.cms.WebContainerRepository;
-import com.simisinc.platform.presentation.controller.cms.Header;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;

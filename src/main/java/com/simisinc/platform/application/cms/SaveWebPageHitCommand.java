@@ -18,8 +18,8 @@ package com.simisinc.platform.application.cms;
 
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.cms.WebPage;
-import com.simisinc.platform.presentation.controller.cms.WebPageHit;
-import com.simisinc.platform.presentation.controller.login.UserSession;
+import com.simisinc.platform.domain.model.cms.WebPageHit;
+import com.simisinc.platform.presentation.controller.UserSession;
 
 import java.sql.Timestamp;
 import java.util.concurrent.ConcurrentLinkedQueue;
