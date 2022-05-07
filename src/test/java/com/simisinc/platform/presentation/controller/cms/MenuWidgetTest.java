@@ -18,6 +18,7 @@ package com.simisinc.platform.presentation.controller.cms;
 
 import com.simisinc.platform.WidgetBase;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.presentation.controller.RequestConstants;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
@@ -34,27 +35,25 @@ import static org.mockito.Mockito.mockStatic;
  */
 class MenuWidgetTest extends WidgetBase {
 
-  //  <widget name="menu">
-  //     <class>vertical</class>
-  //     <links>
-  //       <link name="Contact Us" link="/contact-us" />
-  //       <link name="Login" link="/login" role="guest" rule="site.login" />
-  //       <link name="Register" link="/login" role="guest" rule="site.registrations" />
-  //       <link name="My Account" link="/my-page" role="users" />
-  //       <link name="Log Out" link="/logout" role="users" />
-  //     </links>
-  //   </widget>
-
   @Test
   void execute() {
     // Set widget preferences
-    preferences.put("showWhenEmpty", "false");
-    preferences.put("class", "vertical");
-    preferences.put("links",
-        "link|/login||name|Login||role|guest||rule|site.login|||" +
-            "link|/login||name|Register||role|guest||rule|site.registrations|||" +
-            "link|/my-page||name|My Profile||role|users|||" +
-            "link|/logout||name|Log Out||role|users");
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"menu\">\n" +
+            "  <class>vertical</class>\n" +
+            "  <showWhenEmpty>false</showWhenEmpty>\n" +
+            "  <links>\n" +
+            "    <link name=\"Contact Us\" link=\"/contact-us\" />\n" +
+            "    <link name=\"Login\" link=\"/login\" role=\"guest\" rule=\"site.login\" />\n" +
+            "    <link name=\"Register\" link=\"/login\" role=\"guest\" rule=\"site.registrations\" />\n" +
+            "    <link name=\"My Account\" link=\"/my-page\" role=\"users\" />\n" +
+            "    <link name=\"Admin\" link=\"/admin\" role=\"admin\" />\n" +
+            "    <link name=\"Log Out\" link=\"/logout\" role=\"users\" />\n" +
+            "  </links>\n" +
+            "</widget>");
+
+    // Set the page the user is on
+    request.setAttribute(RequestConstants.WEB_PAGE_PATH, "/");
 
     try (MockedStatic<LoadSitePropertyCommand> property = mockStatic(LoadSitePropertyCommand.class)) {
       property.when(() -> LoadSitePropertyCommand.loadByName("site.login")).thenReturn("true");
@@ -67,8 +66,19 @@ class MenuWidgetTest extends WidgetBase {
         List<Map<String, String>> linkList = (List) widgetContext.getRequest().getAttribute("linkList");
 
         // Verify the result
-        Assertions.assertEquals(2, linkList.size());
+        Assertions.assertEquals(3, linkList.size());
         Assertions.assertEquals(JSP, widgetContext.getJsp());
+
+        // Upgrade the user to Admin
+        setRoles(widgetContext, ADMIN);
+
+        widget.execute(widgetContext);
+        linkList = (List) widgetContext.getRequest().getAttribute("linkList");
+
+        // Verify the result
+        Assertions.assertEquals(4, linkList.size());
+        Assertions.assertEquals(JSP, widgetContext.getJsp());
+
       }
 
       // Log the user out
@@ -80,7 +90,7 @@ class MenuWidgetTest extends WidgetBase {
         widget.execute(widgetContext);
         List<Map<String, String>> linkList = (List) widgetContext.getRequest().getAttribute("linkList");
 
-        Assertions.assertEquals(1, linkList.size());
+        Assertions.assertEquals(2, linkList.size());
         Assertions.assertEquals(JSP, widgetContext.getJsp());
       }
     }

@@ -19,17 +19,25 @@ package com.simisinc.platform;
 import com.simisinc.platform.domain.model.Group;
 import com.simisinc.platform.domain.model.Role;
 import com.simisinc.platform.domain.model.User;
+import com.simisinc.platform.presentation.controller.XMLContainerCommands;
 import com.simisinc.platform.presentation.controller.cms.WidgetContext;
 import com.simisinc.platform.presentation.controller.login.UserSession;
+import org.apache.commons.io.IOUtils;
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
 import org.mockito.stubbing.Answer;
+import org.w3c.dom.Document;
+import org.w3c.dom.NodeList;
 
 import javax.servlet.ServletContext;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -44,6 +52,7 @@ import static org.mockito.Mockito.*;
  * Sets up the common HTTP servlet objects for executing widgets
  *
  * @author matt rajkowski
+ * @author https://stackoverflow.com/questions/22714359/how-to-partially-mock-httpservletrequest-using-mockito
  * @created 5/3/2022 7:00 PM
  */
 public class WidgetBase {
@@ -66,8 +75,8 @@ public class WidgetBase {
     when(request.getServletContext()).thenReturn(servletContext);
     when(request.getSession()).thenReturn(session);
 
-    // Request attributes
-    // https://stackoverflow.com/questions/22714359/how-to-partially-mock-httpservletrequest-using-mockito
+    // Mock Request setAttribute
+    final Map<String, String[]> parameterMap = new HashMap<>();
     final Map<String, Object> attributes = new ConcurrentHashMap<String, Object>();
     doAnswer(new Answer<Void>() {
       @Override
@@ -76,30 +85,58 @@ public class WidgetBase {
         Object value = invocation.getArgument(1, Object.class);
         if (value != null) {
           attributes.put(key, value);
+          if (value instanceof String) {
+            parameterMap.put(key, new String[]{(String) value});
+          }
+        } else {
+          attributes.remove(key);
         }
         return null;
       }
     }).when(request).setAttribute(anyString(), any());
 
-    // Mock getAttribute
-    // https://stackoverflow.com/questions/22714359/how-to-partially-mock-httpservletrequest-using-mockito
+    // Mock Request getAttribute
     Mockito.doAnswer(new Answer<Object>() {
       @Override
       public Object answer(InvocationOnMock invocation) throws Throwable {
         String key = invocation.getArgument(0, String.class);
-        Object value = attributes.get(key);
-        return value;
+        return attributes.get(key);
       }
     }).when(request).getAttribute(anyString());
 
+    // Mock Request getParameter
     Mockito.doAnswer(new Answer<String>() {
       @Override
       public String answer(InvocationOnMock invocation) throws Throwable {
         String key = invocation.getArgument(0, String.class);
-        String value = (String) attributes.get(key);
-        return value;
+        return (String) attributes.get(key);
       }
     }).when(request).getParameter(anyString());
+
+    // Mock Session setAttribute
+    final Map<String, Object> sessionAttributes = new ConcurrentHashMap<String, Object>();
+    doAnswer(new Answer<Void>() {
+      @Override
+      public Void answer(InvocationOnMock invocation) throws Throwable {
+        String key = invocation.getArgument(0, String.class);
+        Object value = invocation.getArgument(1, Object.class);
+        if (value != null) {
+          sessionAttributes.put(key, value);
+        } else {
+          sessionAttributes.remove(key);
+        }
+        return null;
+      }
+    }).when(session).setAttribute(anyString(), any());
+
+    // Mock Session getAttribute
+    Mockito.doAnswer(new Answer<Object>() {
+      @Override
+      public Object answer(InvocationOnMock invocation) throws Throwable {
+        String key = invocation.getArgument(0, String.class);
+        return sessionAttributes.get(key);
+      }
+    }).when(session).getAttribute(anyString());
 
     // Every widget needs a widget context
     widgetContext = new WidgetContext(request, response, "widget1");
@@ -117,14 +154,13 @@ public class WidgetBase {
     widgetContext.setPreferences(preferences);
 
     // Widgets can read request parameters
-    Map<String, String[]> parameterMap = new HashMap<>();
     widgetContext.setParameterMap(parameterMap);
 
     // Default to being logged in
     login(widgetContext);
   }
 
-  public static void addRole(WidgetContext context, String... args) {
+  public static void setRoles(WidgetContext context, String... args) {
     UserSession userSession = context.getUserSession();
     if (userSession.isLoggedIn()) {
       List<Role> roleList = new ArrayList<>();
@@ -144,7 +180,7 @@ public class WidgetBase {
     }
   }
 
-  public static void addGroup(WidgetContext context, String... args) {
+  public static void setGroups(WidgetContext context, String... args) {
     UserSession userSession = context.getUserSession();
     if (userSession.isLoggedIn()) {
       List<Group> groupList = new ArrayList<>();
@@ -182,5 +218,23 @@ public class WidgetBase {
     UserSession userSession = new UserSession();
     widgetContext.setUserSession(userSession);
     widgetContext.getCoreData().remove("userId");
+  }
+
+  public static void addPreferencesFromWidgetXml(WidgetContext context, String xmlFragment) {
+    try {
+      DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+      DocumentBuilder builder = factory.newDocumentBuilder();
+      Document document = null;
+      try (InputStream is = IOUtils.toInputStream(xmlFragment, "UTF-8")) {
+        document = builder.parse(is);
+      }
+      NodeList nodeList = document.getElementsByTagName("widget");
+      if (nodeList.getLength() < 0) {
+        return;
+      }
+      XMLContainerCommands.addWidgetPreferences(context.getPreferences(), nodeList.item(0).getChildNodes());
+    } catch (Exception e) {
+      Assertions.fail(e.getMessage());
+    }
   }
 }

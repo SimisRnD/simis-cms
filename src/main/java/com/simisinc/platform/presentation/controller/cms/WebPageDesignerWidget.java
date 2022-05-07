@@ -244,8 +244,10 @@ public class WebPageDesignerWidget extends GenericWidget {
       try {
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         DocumentBuilder builder = factory.newDocumentBuilder();
-        InputStream is = IOUtils.toInputStream(webPage.getPageXml(), "UTF-8");
-        Document document = builder.parse(is);
+        Document document = null;
+        try (InputStream is = IOUtils.toInputStream(webPage.getPageXml(), "UTF-8")) {
+          document = builder.parse(is);
+        }
         NodeList pageTags = document.getElementsByTagName("page");
         if (pageTags.getLength() != 1) {
           context.setRequestObject(webPage);

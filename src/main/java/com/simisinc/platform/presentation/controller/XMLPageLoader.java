@@ -138,16 +138,19 @@ public class XMLPageLoader implements Serializable {
       throws FactoryConfigurationError, ParserConfigurationException, SAXException, IOException {
     DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
     DocumentBuilder builder = factory.newDocumentBuilder();
-    InputStream is = context.getResourceAsStream(file);
-    return builder.parse(is);
+    try (InputStream is = context.getResourceAsStream(file)) {
+      return builder.parse(is);
+    }
   }
 
   public Page addFromXml(String pageName, WebPage webPage)
       throws FactoryConfigurationError, ParserConfigurationException, SAXException, IOException {
     DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
     DocumentBuilder builder = factory.newDocumentBuilder();
-    InputStream is = IOUtils.toInputStream(webPage.getPageXml(), "UTF-8");
-    Document document = builder.parse(is);
+    Document document = null;
+    try (InputStream is = IOUtils.toInputStream(webPage.getPageXml(), "UTF-8")) {
+      document = builder.parse(is);
+    }
     NodeList pageTags = document.getElementsByTagName("page");
     if (pageTags == null) {
       pageTags = document.getElementsByTagName("service");

@@ -18,16 +18,12 @@ package com.simisinc.platform.presentation.controller.cms;
 
 import com.simisinc.platform.SiteProperty;
 import com.simisinc.platform.application.cms.LoadMenuTabsCommand;
-import com.simisinc.platform.application.cms.WebPageXmlLayoutCommand;
+import com.simisinc.platform.application.cms.ValidateUserAccessToWebPageCommand;
 import com.simisinc.platform.domain.model.cms.MenuItem;
 import com.simisinc.platform.domain.model.cms.MenuTab;
-import com.simisinc.platform.domain.model.cms.WebPage;
 import com.simisinc.platform.infrastructure.persistence.SitePropertyRepository;
-import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
 import com.simisinc.platform.presentation.controller.RequestConstants;
-import com.simisinc.platform.presentation.controller.WebComponentCommand;
 import com.simisinc.platform.presentation.controller.login.UserSession;
-import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -76,7 +72,7 @@ public class MainMenuWidget extends GenericWidget {
       // Verify the page has content for other users, based on content, roles and groups
       UserSession userSession = context.getUserSession();
       for (MenuTab menuTab : menuTabList) {
-        if (canShowMenuItemToUser(menuTab.getLink(), userSession)) {
+        if (ValidateUserAccessToWebPageCommand.hasAccess(menuTab.getLink(), userSession)) {
           // Copy the MenuTab, since a cache was used
           MenuTab thisMenuTab = new MenuTab();
           thisMenuTab.setName(menuTab.getName());
@@ -85,7 +81,7 @@ public class MainMenuWidget extends GenericWidget {
           if (menuTab.getMenuItemList() != null) {
             List<MenuItem> thisMenuItemList = new ArrayList<>();
             for (MenuItem menuItem : menuTab.getMenuItemList()) {
-              if (canShowMenuItemToUser(menuItem.getLink(), userSession)) {
+              if (ValidateUserAccessToWebPageCommand.hasAccess(menuItem.getLink(), userSession)) {
                 // Copy the menu item, since a cache was used
                 MenuItem thisMenuItem = new MenuItem();
                 thisMenuItem.setName(menuItem.getName());
@@ -112,47 +108,5 @@ public class MainMenuWidget extends GenericWidget {
       context.setJsp(JSP);
     }
     return context;
-  }
-
-  private boolean canShowMenuItemToUser(String link, UserSession userSession) {
-    WebPage webPage = WebPageRepository.findByLink(link);
-    if (webPage == null) {
-      return false;
-    }
-    // The page is a draft
-    if (webPage.getDraft()) {
-      return false;
-    }
-    // The page is empty
-    if (StringUtils.isBlank(webPage.getPageXml())) {
-      return false;
-    }
-    // The user does not have access to any widgets on the page
-    Page pageRef = WebPageXmlLayoutCommand.retrievePageForRequest(webPage, link);
-    if (pageRef == null) {
-      return false;
-    }
-    // Best to place the group list at the page level, to cover the whole page
-    if (!WebComponentCommand.allowsUser(pageRef, userSession)) {
-      return false;
-    }
-    for (Section section : pageRef.getSections()) {
-      if (!WebComponentCommand.allowsUser(section, userSession)) {
-        return false;
-      }
-      for (Column column : section.getColumns()) {
-        if (!WebComponentCommand.allowsUser(column, userSession)) {
-          return false;
-        }
-        for (Widget widget : column.getWidgets()) {
-          if (!WebComponentCommand.allowsUser(widget, userSession)) {
-            return false;
-          }
-          // @note the widget content response is not tested
-          return true;
-        }
-      }
-    }
-    return false;
   }
 }

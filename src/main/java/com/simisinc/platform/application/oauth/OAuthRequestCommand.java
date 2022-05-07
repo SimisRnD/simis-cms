@@ -60,7 +60,7 @@ public class OAuthRequestCommand {
 
     if (!isEnabled()) {
       // Skip if not turned on
-      LOG.debug("OAuth is not enabled");
+      LOG.trace("OAuth is not enabled");
       return null;
     }
 

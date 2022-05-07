@@ -64,15 +64,15 @@ public class XMLContainerCommands implements Serializable {
       // Check for sections
       Section section = new Section();
       String htmlId = child.getAttribute("id");
-      if (htmlId != null) {
+      if (StringUtils.isNotBlank(htmlId)) {
         section.setHtmlId(htmlId);
       }
       String cssClass = child.getAttribute("class");
-      if (cssClass != null) {
+      if (StringUtils.isNotBlank(cssClass)) {
         section.setCssClass(cssClass);
       }
       String cssStyle = child.getAttribute("style");
-      if (cssStyle != null) {
+      if (StringUtils.isNotBlank(cssStyle)) {
         section.setCssStyle(cssStyle);
       }
       if (child.hasAttribute("role")) {
@@ -150,15 +150,15 @@ public class XMLContainerCommands implements Serializable {
         }
         Column column = new Column();
         String htmlId = child.getAttribute("id");
-        if (htmlId != null) {
+        if (StringUtils.isNotBlank(htmlId)) {
           column.setHtmlId(htmlId);
         }
         String cssClass = child.getAttribute("class");
-        if (cssClass != null) {
+        if (StringUtils.isNotBlank(cssClass)) {
           column.setCssClass(cssClass);
         }
         String cssStyle = child.getAttribute("style");
-        if (cssStyle != null) {
+        if (StringUtils.isNotBlank(cssStyle)) {
           column.setCssStyle(cssStyle);
         }
         if (child.hasAttribute("role")) {
@@ -222,22 +222,22 @@ public class XMLContainerCommands implements Serializable {
       LOG.trace("Found name: " + name);
       Widget widget = new Widget(name);
       String htmlId = child.getAttribute("id");
-      if (htmlId != null) {
+      if (StringUtils.isNotBlank(htmlId)) {
         widget.setHtmlId(htmlId);
       }
       String cssClass = child.getAttribute("class");
-      if (cssClass != null) {
+      if (StringUtils.isNotBlank(cssClass)) {
         widget.setCssClass(cssClass);
       }
       String cssStyle = child.getAttribute("style");
-      if (cssStyle != null) {
+      if (StringUtils.isNotBlank(cssStyle)) {
         widget.setCssStyle(cssStyle);
       }
       String sticky = child.getAttribute("sticky");
       if ("true".equals(sticky)) {
         columnInfo.setSticky(true);
         widget.setSticky(true);
-        if (cssClass != null) {
+        if (StringUtils.isNotBlank(cssClass)) {
           widget.setCssClass(cssClass + " sticky");
         } else {
           widget.setCssClass("sticky");
@@ -269,12 +269,16 @@ public class XMLContainerCommands implements Serializable {
         LOG.trace("Adding widget to layout: " + name);
         widget.setWidgetClassName(widgetLibrary.get(name));
         widgets.add(widget);
-        addPreferences(widget, child.getChildNodes());
+        addWidgetPreferences(widget, child.getChildNodes());
       }
     }
   }
 
-  private static void addPreferences(Widget widget, NodeList children) {
+  private static void addWidgetPreferences(Widget widget, NodeList children) {
+    addWidgetPreferences(widget.getPreferences(), children);
+  }
+
+  public static void addWidgetPreferences(Map<String, String> preferenceMap, NodeList children) {
     int len = children.getLength();
     for (int i = 0; i < len; i++) {
       if (children.item(i).getNodeType() != Element.ELEMENT_NODE) {
@@ -286,7 +290,7 @@ public class XMLContainerCommands implements Serializable {
       String value = child.getTextContent();
       if (StringUtils.isNotBlank(value)) {
         LOG.trace("Adding preference: " + childName + "=" + value);
-        widget.addPreference(childName, value);
+        preferenceMap.put(childName, value);
         continue;
       }
       if (!child.hasChildNodes()) {
@@ -325,7 +329,7 @@ public class XMLContainerCommands implements Serializable {
         if (LOG.isDebugEnabled()) {
           LOG.trace("Adding preference: " + childName + "(" + fieldCount + ")" + ": [" + sb.toString() + "]");
         }
-        widget.addPreference(childName, sb.toString());
+        preferenceMap.put(childName, sb.toString());
       }
     }
   }

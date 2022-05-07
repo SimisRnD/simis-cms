@@ -120,8 +120,10 @@ public class WebContainerDesignerWidget extends GenericWidget {
       try {
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
         DocumentBuilder builder = factory.newDocumentBuilder();
-        InputStream is = IOUtils.toInputStream(webContainer.getContainerXml(), "UTF-8");
-        Document document = builder.parse(is);
+        Document document = null;
+        try (InputStream is = IOUtils.toInputStream(webContainer.getContainerXml(), "UTF-8")) {
+          document = builder.parse(is);
+        }
         NodeList tags = document.getElementsByTagName(type);
         if (tags.getLength() != 1) {
           context.setRequestObject(webContainer);

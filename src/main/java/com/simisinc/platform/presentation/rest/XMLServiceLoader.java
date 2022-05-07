@@ -79,8 +79,9 @@ public class XMLServiceLoader implements Serializable {
       throws FactoryConfigurationError, ParserConfigurationException, SAXException, IOException {
     DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
     DocumentBuilder builder = factory.newDocumentBuilder();
-    InputStream is = context.getResourceAsStream(file);
-    return builder.parse(is);
+    try (InputStream is = context.getResourceAsStream(file)) {
+      return builder.parse(is);
+    }
   }
 
   private void addServices(Document document) {

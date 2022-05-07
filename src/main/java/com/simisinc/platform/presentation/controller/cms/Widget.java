@@ -128,8 +128,4 @@ public class Widget implements Serializable {
   public Map<String, String> getPreferences() {
     return preferences;
   }
-
-  public void addPreference(String name, String value) {
-    preferences.put(name, value);
-  }
 }

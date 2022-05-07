@@ -34,8 +34,8 @@ public class ContentTabsWidget extends GenericWidget {
 
   static final long serialVersionUID = -8484048371911908893L;
 
-  private static String LINKS_JSP = "/cms/content-tabs-links.jsp";
-  private static String JSP = "/cms/content-tabs.jsp";
+  static String LINKS_JSP = "/cms/content-tabs-links.jsp";
+  static String JSP = "/cms/content-tabs.jsp";
 
   public WidgetContext execute(WidgetContext context) {
 
