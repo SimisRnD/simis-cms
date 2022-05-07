@@ -120,8 +120,10 @@ public class TrackingCommand {
       // Parse the XML
       DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
       DocumentBuilder builder = factory.newDocumentBuilder();
-      InputStream is = IOUtils.toInputStream(responseValue, "UTF-8");
-      Document document = builder.parse(is);
+      Document document = null;
+      try (InputStream is = IOUtils.toInputStream(responseValue, "UTF-8")) {
+        document = builder.parse(is);
+      }
 
       NodeList trackInfoList = document.getElementsByTagName("TrackInfo");
       if (trackInfoList == null || trackInfoList.getLength() != 1) {
