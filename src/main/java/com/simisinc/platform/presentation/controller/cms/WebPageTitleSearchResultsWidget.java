@@ -16,17 +16,17 @@
 
 package com.simisinc.platform.presentation.controller.cms;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import com.simisinc.platform.application.cms.LoadMenuTabsCommand;
+import com.simisinc.platform.application.cms.ValidateUserAccessToWebPageCommand;
 import com.simisinc.platform.domain.model.cms.MenuItem;
 import com.simisinc.platform.domain.model.cms.MenuTab;
 import com.simisinc.platform.domain.model.cms.SearchResult;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.presentation.controller.RequestConstants;
-
 import org.apache.commons.lang3.StringUtils;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Description
@@ -68,6 +68,10 @@ public class WebPageTitleSearchResultsWidget extends GenericWidget {
 
     for (MenuTab menuTab : menuTabList) {
       if (menuTab.getName().toLowerCase().contains(query)) {
+        // Check the corresponding page
+        if (!ValidateUserAccessToWebPageCommand.hasAccess(menuTab.getLink(), context.getUserSession())) {
+          continue;
+        }
         SearchResult searchResult = new SearchResult();
         searchResult.setPageTitle(menuTab.getName());
         searchResult.setLink(menuTab.getLink());
@@ -75,6 +79,10 @@ public class WebPageTitleSearchResultsWidget extends GenericWidget {
       }
       for (MenuItem menuItem : menuTab.getMenuItemList()) {
         if (menuItem.getName().toLowerCase().contains(query)) {
+          // Check the corresponding page
+          if (!ValidateUserAccessToWebPageCommand.hasAccess(menuItem.getLink(), context.getUserSession())) {
+            continue;
+          }
           SearchResult searchResult = new SearchResult();
           searchResult.setPageTitle(menuItem.getName());
           searchResult.setLink(menuItem.getLink());
@@ -83,7 +91,7 @@ public class WebPageTitleSearchResultsWidget extends GenericWidget {
       }
     }
 
-    // Load the table of contents
+    // Check the page the table of contents links to
 //    List<TableOfContents> tableOfContentsList = TableOfContentsRepository.findAll(null, null);
 
     context.getRequest().setAttribute("searchResultList", searchResultList);
