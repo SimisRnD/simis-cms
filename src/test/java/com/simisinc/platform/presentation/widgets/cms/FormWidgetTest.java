@@ -30,8 +30,6 @@ import org.mockito.MockedStatic;
 
 import java.util.List;
 
-import static com.simisinc.platform.presentation.widgets.cms.FormWidget.JSP;
-import static com.simisinc.platform.presentation.widgets.cms.FormWidget.SUCCESS_JSP;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mockStatic;
 
@@ -75,7 +73,7 @@ class FormWidgetTest extends WidgetBase {
       FormWidget widget = new FormWidget();
       widget.execute(widgetContext);
       // Verify the output
-      Assertions.assertEquals(JSP, widgetContext.getJsp());
+      Assertions.assertEquals(FormWidget.JSP, widgetContext.getJsp());
 
       List<FormField> formFieldList = (List) widgetContext.getRequest().getAttribute("formFieldList");
       Assertions.assertEquals(6, formFieldList.size());
@@ -109,7 +107,7 @@ class FormWidgetTest extends WidgetBase {
     // Show a form Error
     FormWidget widget = new FormWidget();
     widget.execute(widgetContext);
-    Assertions.assertEquals(JSP, widgetContext.getJsp());
+    Assertions.assertEquals(FormWidget.JSP, widgetContext.getJsp());
   }
 
   @Test
@@ -120,7 +118,7 @@ class FormWidgetTest extends WidgetBase {
     // Show the form submit success message
     FormWidget widget = new FormWidget();
     widget.execute(widgetContext);
-    Assertions.assertEquals(SUCCESS_JSP, widgetContext.getJsp());
+    Assertions.assertEquals(FormWidget.SUCCESS_JSP, widgetContext.getJsp());
   }
 
   @Test
@@ -133,11 +131,11 @@ class FormWidgetTest extends WidgetBase {
     session.setAttribute(SessionConstants.CAPTCHA_TEXT, "G1B8A");
 
     // Set the request values
-    request.setAttribute("captcha", "G1B8A");
-    request.setAttribute(widgetContext.getUniqueId() + "name", "First Last");
-    request.setAttribute(widgetContext.getUniqueId() + "organization", "Organization");
-    request.setAttribute(widgetContext.getUniqueId() + "email", "email@example.com");
-    request.setAttribute(widgetContext.getUniqueId() + "comments", "These are my comments.");
+    addQueryParameter(widgetContext, "captcha", "G1B8A");
+    addQueryParameter(widgetContext, widgetContext.getUniqueId() + "name", "First Last");
+    addQueryParameter(widgetContext, widgetContext.getUniqueId() + "organization", "Organization");
+    addQueryParameter(widgetContext, widgetContext.getUniqueId() + "email", "email@example.com");
+    addQueryParameter(widgetContext, widgetContext.getUniqueId() + "comments", "These are my comments.");
 
     // Execute the widget
     try (MockedStatic<LoadSitePropertyCommand> property = mockStatic(LoadSitePropertyCommand.class)) {
@@ -175,9 +173,9 @@ class FormWidgetTest extends WidgetBase {
     session.setAttribute(SessionConstants.CAPTCHA_TEXT, "G1B8A");
 
     // Set the request values
-    request.setAttribute("captcha", "G1B8A");
-    request.setAttribute(widgetContext.getUniqueId() + "name", "First Last");
-    request.setAttribute(widgetContext.getUniqueId() + "organization", "Organization");
+    addQueryParameter(widgetContext, "captcha", "G1B8A");
+    addQueryParameter(widgetContext, widgetContext.getUniqueId() + "name", "First Last");
+    addQueryParameter(widgetContext, widgetContext.getUniqueId() + "organization", "Organization");
 
     // Execute the widget
     try (MockedStatic<LoadSitePropertyCommand> property = mockStatic(LoadSitePropertyCommand.class)) {

@@ -19,9 +19,9 @@ package com.simisinc.platform;
 import com.simisinc.platform.domain.model.Group;
 import com.simisinc.platform.domain.model.Role;
 import com.simisinc.platform.domain.model.User;
-import com.simisinc.platform.presentation.controller.XMLContainerCommands;
-import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.controller.UserSession;
+import com.simisinc.platform.presentation.controller.WidgetContext;
+import com.simisinc.platform.presentation.controller.XMLContainerCommands;
 import org.apache.commons.io.IOUtils;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeEach;
@@ -85,9 +85,6 @@ public class WidgetBase {
         Object value = invocation.getArgument(1, Object.class);
         if (value != null) {
           attributes.put(key, value);
-          if (value instanceof String) {
-            parameterMap.put(key, new String[]{(String) value});
-          }
         } else {
           attributes.remove(key);
         }
@@ -158,6 +155,10 @@ public class WidgetBase {
 
     // Default to being logged in
     login(widgetContext);
+  }
+
+  public static void addQueryParameter(WidgetContext context, String name, String value) {
+    context.getParameterMap().put(name, new String[]{value});
   }
 
   public static void setRoles(WidgetContext context, String... args) {
