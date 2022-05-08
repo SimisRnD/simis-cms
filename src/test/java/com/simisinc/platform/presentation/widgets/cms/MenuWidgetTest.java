@@ -26,7 +26,6 @@ import org.mockito.MockedStatic;
 import java.util.List;
 import java.util.Map;
 
-import static com.simisinc.platform.presentation.widgets.cms.MenuWidget.JSP;
 import static org.mockito.Mockito.mockStatic;
 
 /**
@@ -67,7 +66,7 @@ class MenuWidgetTest extends WidgetBase {
 
         // Verify the result
         Assertions.assertEquals(3, linkList.size());
-        Assertions.assertEquals(JSP, widgetContext.getJsp());
+        Assertions.assertEquals(MenuWidget.JSP, widgetContext.getJsp());
 
         // Upgrade the user to Admin
         setRoles(widgetContext, ADMIN);
@@ -77,7 +76,7 @@ class MenuWidgetTest extends WidgetBase {
 
         // Verify the result
         Assertions.assertEquals(4, linkList.size());
-        Assertions.assertEquals(JSP, widgetContext.getJsp());
+        Assertions.assertEquals(MenuWidget.JSP, widgetContext.getJsp());
 
       }
 
@@ -91,7 +90,7 @@ class MenuWidgetTest extends WidgetBase {
         List<Map<String, String>> linkList = (List) widgetContext.getRequest().getAttribute("linkList");
 
         Assertions.assertEquals(2, linkList.size());
-        Assertions.assertEquals(JSP, widgetContext.getJsp());
+        Assertions.assertEquals(MenuWidget.JSP, widgetContext.getJsp());
       }
     }
   }
