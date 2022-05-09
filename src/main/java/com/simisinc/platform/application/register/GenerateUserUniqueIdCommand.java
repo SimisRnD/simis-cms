@@ -16,10 +16,9 @@
 
 package com.simisinc.platform.application.register;
 
+import com.simisinc.platform.application.cms.MakeContentUniqueIdCommand;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.infrastructure.persistence.UserRepository;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 
 /**
  * Generates a plain text string - a uniqueId for URLs and referencing
@@ -28,8 +27,6 @@ import org.apache.commons.logging.LogFactory;
  * @created 1/10/22 8:57 PM
  */
 public class GenerateUserUniqueIdCommand {
-
-  private static Log LOG = LogFactory.getLog(GenerateUserUniqueIdCommand.class);
 
   public static String generateUniqueId(User previousUser, User user) {
 
@@ -42,8 +39,7 @@ public class GenerateUserUniqueIdCommand {
     }
 
     // Create a new uniqueId
-    String name = user.getFullName();
-    String value = parseToValidValue(name);
+    String value = MakeContentUniqueIdCommand.parseToValidValue(user.getFullName());
 
     // Find the next available unique instance
     int count = 1;
@@ -54,32 +50,4 @@ public class GenerateUserUniqueIdCommand {
     }
     return uniqueId;
   }
-
-  public static String parseToValidValue(String nameValue) {
-    String name = nameValue.toLowerCase();
-    StringBuilder sb = new StringBuilder();
-    final int len = name.length();
-    char lastChar = '-';
-    for (int i = 0; i < len; i++) {
-      char c = name.charAt(i);
-      if (SaveUserCommand.allowedChars.indexOf(name.charAt(i)) > -1) {
-        sb.append(c);
-        lastChar = c;
-      } else if (c == '&') {
-        sb.append("and");
-        lastChar = '&';
-      } else if (c == ' ' || c == '-' || c == '/') {
-        if (lastChar != '-') {
-          sb.append("-");
-        }
-        lastChar = '-';
-      }
-    }
-    String value = sb.toString();
-    while (value.endsWith("-")) {
-      value = value.substring(0, value.length() - 1);
-    }
-    return value;
-  }
-
 }

@@ -16,9 +16,6 @@
 
 package com.simisinc.platform.application.cms;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 /**
  * Generates a URL compatible id
  *
@@ -27,32 +24,39 @@ import org.apache.commons.logging.LogFactory;
  */
 public class MakeContentUniqueIdCommand {
 
-  private static final String allowedChars = "abcdefghijklmnopqrstuvwyxz0123456789";
-  private static Log LOG = LogFactory.getLog(MakeContentUniqueIdCommand.class);
+  private static final String ALLOWED_CHARS = "1234567890abcdefghijklmnopqrstuvwyxz";
 
-  public static String getId(String originalName) {
+  public static String parseToValidValue(String originalName) {
+
+    // Use lowercase
+    String name = originalName.toLowerCase();
 
     // Create a new one
     StringBuilder sb = new StringBuilder();
-    String name = originalName.toLowerCase();
     final int len = name.length();
     char lastChar = '_';
     for (int i = 0; i < len; i++) {
       char c = name.charAt(i);
-      if (allowedChars.indexOf(name.charAt(i)) > -1) {
+      if (ALLOWED_CHARS.indexOf(name.charAt(i)) > -1) {
         sb.append(c);
         lastChar = c;
       } else if (c == '&') {
         sb.append("and");
         lastChar = '&';
-      } else if (c == ' ' || c == '-') {
+      } else if (c == ' ' || c == '-' || c == '/') {
         if (lastChar != '-') {
           sb.append("-");
         }
         lastChar = '-';
       }
     }
-    return sb.toString();
+    String value = sb.toString();
+
+    // Don't end with a -
+    while (value.endsWith("-")) {
+      value = value.substring(0, value.length() - 1);
+    }
+    return value;
   }
 
 }

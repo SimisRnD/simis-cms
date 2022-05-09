@@ -118,7 +118,7 @@ public class WebPageDesignerWidget extends GenericWidget {
             "  <section>\n" +
             "    <column class=\"small-12 cell\">\n" +
             "      <widget name=\"content\">\n" +
-            "        <uniqueId>" + MakeContentUniqueIdCommand.getId(webPageLinkValue.substring(1)) + "-hello</uniqueId>\n" +
+            "        <uniqueId>" + MakeContentUniqueIdCommand.parseToValidValue(webPageLinkValue.substring(1)) + "-hello</uniqueId>\n" +
             "      </widget>\n" +
             "    </column>\n" +
             "  </section>\n" +
@@ -205,7 +205,7 @@ public class WebPageDesignerWidget extends GenericWidget {
     if (webPageTemplate != null) {
       // A template exists
       String template = webPageTemplate.getPageXml();
-      String webPageName = MakeContentUniqueIdCommand.getId(contentUniqueIdValue);
+      String webPageName = MakeContentUniqueIdCommand.parseToValidValue(contentUniqueIdValue);
       if (StringUtils.isBlank(webPageName)) {
         webPageName = "home";
       }
@@ -235,7 +235,7 @@ public class WebPageDesignerWidget extends GenericWidget {
         webPage.setPageXml(null);
       } else {
         // Content is being updated
-        String webPageName = MakeContentUniqueIdCommand.getId(contentUniqueIdValue);
+        String webPageName = MakeContentUniqueIdCommand.parseToValidValue(contentUniqueIdValue);
         pageXmlValue = StringUtils.replace(pageXmlValue, "${webPageName}", webPageName);
         webPage.setPageXml(pageXmlValue);
       }

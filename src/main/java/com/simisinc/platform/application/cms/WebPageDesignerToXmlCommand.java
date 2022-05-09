@@ -42,40 +42,6 @@ public class WebPageDesignerToXmlCommand {
 
   public static String convertFromBootstrapHtml(WebPage webPage, String content) {
 
-    //  <div class="row">
-    //    <div class="column col-sm-12 col-md-12 col-xs-12">
-    //      <!--gm-editable-region--><p>Write your content</p><!--/gm-editable-region-->
-    //      <!--gm-editable-region--><h3 data-widget="prototype"><span style="font-size: inherit;">Some</span></h3><!--/gm-editable-region-->
-    //    </div>
-    //  </div>
-    //  <div class="row">
-    //    <div class="column col-md-7 col-sm-7 col-xs-7"></div><div class="column col-md-5 col-sm-5 col-xs-5"></div>
-    //  </div>
-
-    //  <div class="row">
-    //    <div class="column col-sm-12 col-md-12 col-xs-12"><!--gm-editable-region--><p>Write your content</p><!--/gm-editable-region--><!--gm-editable-region--><h3 data-widget="widget-prototype"><span style="font-size: inherit;">Some</span></h3><!--/gm-editable-region--></div>
-    //  </div>
-    // <div class="row">
-    //   <div class="column col-md-7 col-sm-7 col-xs-7">
-    //     <!--gm-editable-region--><h3 data-widget="widget-prototype">Headline</h3><p>Write a description</p><!--/gm-editable-region-->
-    //   </div>
-    //   <div class="column col-md-5 col-sm-5 col-xs-5">
-    //     <!--gm-editable-region--><p>Write your content</p><!--/gm-editable-region-->
-    //   </div>
-    // </div>
-
-    //   <div class="row text-center">
-    //    <div class="column col-sm-12 col-md-12 col-xs-12"><!--gm-editable-region--><p>Write your content</p><!--/gm-editable-region--></div>
-    //  </div>
-    //  <div class="row">
-    //    <div class="column col-md-7 col-sm-7 col-xs-7">
-    //      <!--gm-editable-region--><h3 data-widget="widget-prototype">Headline</h3><p>Write a description</p><!--/gm-editable-region-->
-    //    </div>
-    //    <div class="column col-md-5 col-sm-5 col-xs-5 callout radius primary text-center">
-    //      <!--gm-editable-region--><h3 data-widget="widget-prototype">Headline</h3><p>Write a description</p><!--/gm-editable-region-->
-    //    </div>
-    //  </div>
-
     Page page = new Page();
     String uniqueIdPrefix = webPage.getLink().substring(1);
     if (StringUtils.isBlank(uniqueIdPrefix)) {

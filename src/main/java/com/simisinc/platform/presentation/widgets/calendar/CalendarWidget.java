@@ -64,8 +64,10 @@ public class CalendarWidget extends GenericWidget {
     String view = context.getPreferences().getOrDefault("view", null);
     if ("small".equals(view)) {
       context.setJsp(SMALL_JSP);
+      context.getRequest().setAttribute("height", context.getPreferences().getOrDefault("height", "550"));
     } else {
       context.setJsp(JSP);
+      context.getRequest().setAttribute("height", context.getPreferences().getOrDefault("height", "640"));
     }
     return context;
   }

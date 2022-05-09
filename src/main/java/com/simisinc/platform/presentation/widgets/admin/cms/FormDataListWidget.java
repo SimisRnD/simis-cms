@@ -21,10 +21,9 @@ import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.persistence.cms.FormDataRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.FormDataSpecification;
 import com.simisinc.platform.presentation.controller.RequestConstants;
-import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.controller.WidgetContext;
+import com.simisinc.platform.presentation.widgets.GenericWidget;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 
 /**
@@ -64,11 +63,6 @@ public class FormDataListWidget extends GenericWidget {
     // Show the editor
     context.setJsp(JSP);
     return context;
-  }
-
-  public WidgetContext post(WidgetContext context) throws InvocationTargetException, IllegalAccessException {
-    LOG.error("MUST OVERRIDE THE DEFAULT POST METHOD");
-    return null;
   }
 
   public WidgetContext action(WidgetContext context) {

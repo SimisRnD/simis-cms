@@ -14,112 +14,116 @@
   ~ limitations under the License.
   --%>
 <%@ page import="static com.simisinc.platform.ApplicationInfo.VERSION" %>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
+<%@ taglib prefix="js" uri="/WEB-INF/javascript-escape.tld" %>
+<%@ taglib prefix="url" uri="/WEB-INF/url-functions.tld" %>
+<jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
+<jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
+<jsp:useBean id="calendarList" class="java.util.ArrayList" scope="request"/>
+<jsp:useBean id="calendarEventList" class="java.util.ArrayList" scope="request"/>
+<jsp:useBean id="calendarEvent" class="com.simisinc.platform.domain.model.cms.CalendarEvent" scope="request"/>
+<jsp:useBean id="calendarUniqueId" class="java.lang.String" scope="request"/>
+<jsp:useBean id="height" class="java.lang.String" scope="request"/>
 <%-- Full Calendar --%>
-<link rel="stylesheet" href="${ctx}/css/fullcalendar-3.9.0/fullcalendar.min.css" />
+<link rel="stylesheet" href="${ctx}/javascript/fullcalendar-3.10.3/fullcalendar.min.css" />
 <link rel="stylesheet" href="${ctx}/css/platform-calendar.css?v=<%= VERSION %>" />
-<script src="${ctx}/javascript/fullcalendar-3.9.0/moment.min.js"></script>
-<script src="${ctx}/javascript/fullcalendar-3.9.0/fullcalendar.min.js"></script>
+<script src="${ctx}/javascript/fullcalendar-3.10.3/moment.min.js"></script>
+<script src="${ctx}/javascript/fullcalendar-3.10.3/fullcalendar.min.js"></script>
 <%-- Render the widget --%>
 <div id="calendar-small"></div>
+<div id="tooltip" class="tooltip top align-center under-reveal" style="display:none"></div>
 <script>
+  function showTooltip(data, event) {
+    <%-- Change the tooltip content --%>
+    var content = "<h5>" + data.title+"</h5>";
+    if (data.allDay === undefined || !data.allDay) {
+      content += "<p>";
+      content += data.start.format("LT") + "-";
+      content += data.end.format("LT");
+      content += "</p>";
+    }
+    if (data.location) {
+      content += "<p><i class='fa fa-map-marker'></i> " + data.location + "</p>";
+    }
+    if (data.description || data.detailsUrl) {
+      content += "<p class='no-gap'>(click for more details)</p>";
+    }
+    <%--
+    // if (data.description) {
+    //   content += "<p>" + data.description + "</p>";
+    // }
+    // if (data.detailsUrl) {
+    //   content += "Web page <i class='fa fa-external-link'></i>";
+    // }
+    --%>
+    $("#tooltip").html(content);
+    <%-- Center and show it --%>
+    var element = $(event.target).closest('.fc-event');
+    var top = element.offset().top;
+    var left = element.offset().left;
+    var width = element.outerWidth();
+    var tHeight = $("#tooltip").outerHeight();
+    var tWidth = $("#tooltip").outerWidth();
+    $('#tooltip').css({top: top - tHeight - 12, left: left + (width/2) - (tWidth/2)});
+    // $('#tooltip').fadeIn(300);
+    $('#tooltip').show();
+  }
+
   $(function () {
     $('#calendar-small').fullCalendar({
       header: {
-        left:   'title',
+        left: 'title',
         center: '',
-        right:  'today prev,next'
+        // right:  'month,agendaWeek,agendaDay,listWeek today prev,next'
+        right:  'month,listWeek today prev,next'
       },
-      // defaultDate: today,
+      defaultView: 'month',
       selectable: false,
       selectHelper: false,
       // aspectRatio: 1,
-      height: 600,
-      defaultView: 'month',
-      fixedWeekCount: true,
+      height: <c:out value="${height}" />,
       views: {
         month: {
           titleFormat: 'MMMM YYYY'
+        },
+        week: {
+          titleFormat: "MMMM D YYYY"
+        },
+        day: {
+          titleFormat: 'D MMM, YYYY'
         }
-      },
-      select: function (start, end) {
-
-        alert('You clicked to view a date');
-
-        /*
-        // on select we show the Sweet Alert modal with an input
-        swal({
-          title: 'Create an Event',
-          html: '<br><input class="form-control" placeholder="Event Title" id="input-field">',
-          showCancelButton: true,
-          closeOnConfirm: true
-        }, function () {
-
-          var eventData;
-          event_title = $('#input-field').val();
-
-          if (event_title) {
-            eventData = {
-              title: event_title,
-              start: start,
-              end: end
-            };
-            $calendar.fullCalendar('renderEvent', eventData, true); // stick? = true
-          }
-
-          $calendar.fullCalendar('unselect');
-
-        });
-        */
-
       },
       editable: false,
-      eventLimit: true, // allow "more" link when too many events
+      eventLimit: true,
+      eventClick: function(event) {
+        // Determine if this event has a page
+        if (event.id <= 0) {
+            return;
+        }
+        window.location.href='${ctx}/calendar-event/' + event.uniqueId + '?returnPage=${widgetContext.uri}';
+        <%--
+        if (event.detailsUrl) {
+          window.open(event.detailsUrl);
+          return false;
+        }
+        --%>
+      },
+      eventMouseover: function(data, event, view) {
+        showTooltip(data, event);
+      },
+      eventMouseout: function(data, event, view) {
+        $('#tooltip').hide();
+      },
+      timezone: 'local',
       eventSources: [
-        // {
-        //   url: '/myfeed.php',
-        //   data: {
-        //     custom_param1: 'something',
-        //     custom_param2: 'somethingelse'
-        //   },
-        //   color: '#E3F3FA',
-        //   color: '#F5DDDD',
-        //   color: '#ECF4DB',
-        //   color: '#FAEEDE',
-        //   textColor: '#000000'
-        // },
-        // { googleCalendarId: 'abcd1234@group.calendar.google.com' },
         {
-          events: [
-            {
-              id: 1,
-              title: 'Conference',
-              start: '2018-04-18',
-              end: '2018-04-25'
-              // className: 'event-blue'
-            },
-            {
-              id: 3,
-              title: 'Busch Gardens (link)',
-              start: '2018-04-28T10:00:00',
-              end: '2018-04-28T19:30:00',
-              url: 'http://buschgardens.com/',
-              allDay: false
-            }
-          ],
-          // color: '#DEE5FA',
-          // textColor: '#000000'
-          color: '#79C554',
+          url: '/json/calendar<c:if test="${!empty calendarUniqueId}">?calendarUniqueId=<c:out value="${calendarUniqueId}" /></c:if>',
+          color: '#999999',
           textColor: '#ffffff'
         }
-      ],
-      eventClick: function(event) {
-        if (event.url) {
-          window.open(event.url);
-          return false;
-        } else {
-          alert('You clicked on event id ' + event.id);
-        }
-      }
+      ]
     });
   });
 </script>

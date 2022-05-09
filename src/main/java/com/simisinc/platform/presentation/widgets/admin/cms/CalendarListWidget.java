@@ -16,16 +16,16 @@
 
 package com.simisinc.platform.presentation.widgets.admin.cms;
 
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
 import com.simisinc.platform.domain.model.cms.Calendar;
 import com.simisinc.platform.infrastructure.persistence.cms.CalendarEventRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.CalendarEventSpecification;
 import com.simisinc.platform.infrastructure.persistence.cms.CalendarRepository;
-import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.controller.WidgetContext;
+import com.simisinc.platform.presentation.widgets.GenericWidget;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Description
@@ -67,7 +67,7 @@ public class CalendarListWidget extends GenericWidget {
   public WidgetContext delete(WidgetContext context) {
 
     // Permission is required
-    if (!(context.hasRole("admin"))) {
+    if (!context.hasRole("admin")) {
       context.setWarningMessage("Must be an admin");
       return context;
     }
