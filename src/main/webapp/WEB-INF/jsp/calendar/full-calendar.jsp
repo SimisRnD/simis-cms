@@ -25,11 +25,12 @@
 <jsp:useBean id="calendarEventList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="calendarEvent" class="com.simisinc.platform.domain.model.cms.CalendarEvent" scope="request"/>
 <jsp:useBean id="calendarUniqueId" class="java.lang.String" scope="request"/>
+<jsp:useBean id="height" class="java.lang.String" scope="request"/>
 <%-- Full Calendar --%>
-<link rel="stylesheet" href="${ctx}/css/fullcalendar-3.9.0/fullcalendar.min.css" />
+<link rel="stylesheet" href="${ctx}/javascript/fullcalendar-3.10.3/fullcalendar.min.css" />
 <link rel="stylesheet" href="${ctx}/css/platform-calendar.css?v=<%= VERSION %>" />
-<script src="${ctx}/javascript/fullcalendar-3.9.0/moment.min.js"></script>
-<script src="${ctx}/javascript/fullcalendar-3.9.0/fullcalendar.min.js"></script>
+<script src="${ctx}/javascript/fullcalendar-3.10.3/moment.min.js"></script>
+<script src="${ctx}/javascript/fullcalendar-3.10.3/fullcalendar.min.js"></script>
 <c:if test="${(userSession.hasRole('admin') || userSession.hasRole('content-manager'))}">
 <style>
   .fc-day:hover{
@@ -103,7 +104,7 @@
         selectable: true,
       </c:if>
       // eventLimit: true,
-      height: 640,
+      height: <c:out value="${height}" />,
       views: {
         month: {
           titleFormat: 'MMMM YYYY'

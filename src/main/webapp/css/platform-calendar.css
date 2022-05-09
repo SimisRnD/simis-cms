@@ -4,14 +4,11 @@
 
 /* Calendar */
 #calendar {
+  margin-bottom: 15px;
   background-color: #fff;
-  padding: 5px;
-  border-radius: 4px;
 }
 #calendar-small {
-  margin-top: 15px;
   margin-bottom: 15px;
-  padding: 5px;
   background-color: #fff;
 }
 .tooltip.under-reveal {
