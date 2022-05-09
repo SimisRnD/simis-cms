@@ -61,7 +61,8 @@
 
   <!-- Creates build directories -->
   <target name="prepare">
-    <mkdir dir="${build.dir}"/>    
+    <mkdir dir="${build.dir}"/>
+    <mkdir dir="${target.dir}"/>
     <tstamp />
     <path id="web.classpath">
       <fileset dir="${lib.compile.dir}">
@@ -93,7 +94,6 @@
   </target>
 
   <target name="jar" depends="compile">
-    <mkdir dir="${target.dir}"/>
     <jar jarfile="${target.dir}/${project}.jar">
       <fileset dir="${build.dir}" />
     </jar>
@@ -211,6 +211,16 @@
          webxml="${base.dir}/src/main/webapp/WEB-INF/web.xml"/>
     <!-- Write out a version file to go with the .war -->
     <echo file="${target.dir}/VERSION" message="${version}"/>
+  </target>
+
+  <target name="checkstyle" depends="prepare">
+    <mkdir dir="${target.dir}/checkstyle"/>
+    <checkstyle config="checkstyle.xml"
+                failureProperty="checkstyle.failure"
+                failOnViolation="true">
+      <formatter type="xml" tofile="${target.dir}/checkstyle/checkstyle_report.xml"/>
+      <fileset dir="${src.dir}" includes="**/*.java"/>
+    </checkstyle>
   </target>
 
   <target name="compile-test" depends="jar">
