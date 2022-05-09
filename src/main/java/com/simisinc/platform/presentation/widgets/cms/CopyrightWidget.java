@@ -35,7 +35,7 @@ public class CopyrightWidget extends GenericWidget {
     String tag = context.getPreferences().getOrDefault("tag", "All Rights Reserved.");
     context.setHtml(
         "&copy; " + new java.text.SimpleDateFormat("yyyy").format(new java.util.Date()) + " " +
-            "<span translate=\"no\">" + name + (!name.endsWith(".") ? "." : "") + "</span>" + tag);
+            "<span translate=\"no\">" + name + (!name.endsWith(".") ? "." : "") + "</span>" + " " + tag);
     return context;
   }
 }
