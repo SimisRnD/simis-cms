@@ -16,11 +16,10 @@
 
 package com.simisinc.platform.application;
 
+import com.simisinc.platform.application.cms.MakeContentUniqueIdCommand;
 import com.simisinc.platform.domain.model.Group;
 import com.simisinc.platform.infrastructure.persistence.GroupRepository;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 
 /**
  * Description
@@ -30,10 +29,7 @@ import org.apache.commons.logging.LogFactory;
  */
 public class GenerateGroupUniqueIdCommand {
 
-  private static Log LOG = LogFactory.getLog(GenerateGroupUniqueIdCommand.class);
-
-  public static final String allowedChars = "abcdefghijklmnopqrstuvwyxz0123456789";
-  private static final String allowedFinalChars = "abcdefghijklmnopqrstuvwyxz0123456789-";
+  private static final String ALLOWED_FINAL_CHARS = "abcdefghijklmnopqrstuvwyxz0123456789-";
 
   public static String generateUniqueId(Group previousGroup, Group group) {
 
@@ -47,14 +43,13 @@ public class GenerateGroupUniqueIdCommand {
 
     // See if the specified one is unique
     if (StringUtils.isNotBlank(group.getUniqueId()) &&
-        StringUtils.containsOnly(group.getUniqueId(), allowedFinalChars) &&
+        StringUtils.containsOnly(group.getUniqueId(), ALLOWED_FINAL_CHARS) &&
         GroupRepository.findByUniqueId(group.getUniqueId()) == null) {
       return group.getUniqueId();
     }
 
     // Create a new uniqueId
-    String name = group.getName();
-    String value = parseToValidValue(name);
+    String value = MakeContentUniqueIdCommand.parseToValidValue(group.getName());
 
     // Find the next available unique instance
     int count = 1;
@@ -66,35 +61,8 @@ public class GenerateGroupUniqueIdCommand {
     return uniqueId;
   }
 
-  public static String parseToValidValue(String nameValue) {
-    String name = nameValue.toLowerCase();
-    StringBuilder sb = new StringBuilder();
-    final int len = name.length();
-    char lastChar = '-';
-    for (int i = 0; i < len; i++) {
-      char c = name.charAt(i);
-      if (allowedChars.indexOf(name.charAt(i)) > -1) {
-        sb.append(c);
-        lastChar = c;
-      } else if (c == '&') {
-        sb.append("and");
-        lastChar = '&';
-      } else if (c == ' ' || c == '-' || c == '/') {
-        if (lastChar != '-') {
-          sb.append("-");
-        }
-        lastChar = '-';
-      }
-    }
-    String value = sb.toString();
-    while (value.endsWith("-")) {
-      value = value.substring(0, value.length() - 1);
-    }
-    return value;
-  }
-
   public static boolean isValid(String uniqueId) {
-    if (StringUtils.isBlank(uniqueId) || !StringUtils.containsOnly(uniqueId, allowedFinalChars)) {
+    if (StringUtils.isBlank(uniqueId) || !StringUtils.containsOnly(uniqueId, ALLOWED_FINAL_CHARS)) {
       return false;
     }
     return true;

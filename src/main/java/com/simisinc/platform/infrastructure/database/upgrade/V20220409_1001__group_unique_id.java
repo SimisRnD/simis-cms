@@ -16,9 +16,8 @@
 
 package com.simisinc.platform.infrastructure.database.upgrade;
 
+import com.simisinc.platform.application.cms.MakeContentUniqueIdCommand;
 import com.simisinc.platform.domain.model.Group;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.flywaydb.core.api.migration.BaseJavaMigration;
 import org.flywaydb.core.api.migration.Context;
 
@@ -29,8 +28,6 @@ import java.sql.Statement;
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.simisinc.platform.application.register.GenerateUserUniqueIdCommand.parseToValidValue;
-
 /**
  * Updates existing group records to have a unique id
  *
@@ -38,8 +35,6 @@ import static com.simisinc.platform.application.register.GenerateUserUniqueIdCom
  * @created 4/9/22 8:45 AM
  */
 public class V20220409_1001__group_unique_id extends BaseJavaMigration {
-
-  private static Log LOG = LogFactory.getLog(BaseJavaMigration.class);
 
   @Override
   public void migrate(Context context) throws Exception {
@@ -65,7 +60,7 @@ public class V20220409_1001__group_unique_id extends BaseJavaMigration {
     for (Group group : groupList) {
       // Create a uniqueId
       String name = group.getName();
-      String value = parseToValidValue(name);
+      String value = MakeContentUniqueIdCommand.parseToValidValue(name);
       String uniqueId = generateUniqueId(connection, value);
       updateUniqueId(connection, group.getId(), uniqueId);
     }

@@ -52,7 +52,7 @@ public class CaptchaCommand {
 
   private static Log LOG = LogFactory.getLog(CaptchaCommand.class);
 
-  private static final SecureRandom random = new SecureRandom();
+  private static final SecureRandom RANDOM = new SecureRandom();
 
   public static boolean validateRequest(WidgetContext context) {
 
@@ -164,7 +164,7 @@ public class CaptchaCommand {
     int start = 10;
     byte[] bytes = text.getBytes();
     for (int i = 0; i < bytes.length; i++) {
-      g.setColor(new Color(random.nextInt(255), random.nextInt(255), random.nextInt(255)));
+      g.setColor(new Color(RANDOM.nextInt(255), RANDOM.nextInt(255), RANDOM.nextInt(255)));
       g.drawString(new String(new byte[]{bytes[i]}), start + (i * 20), (int) (Math.random() * 20 + 20));
     }
 

@@ -20,8 +20,8 @@ import com.simisinc.platform.domain.model.cms.Blog;
 import com.simisinc.platform.infrastructure.persistence.cms.BlogPostRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.BlogPostSpecification;
 import com.simisinc.platform.infrastructure.persistence.cms.BlogRepository;
-import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.controller.WidgetContext;
+import com.simisinc.platform.presentation.widgets.GenericWidget;
 
 import java.util.HashMap;
 import java.util.List;
@@ -67,7 +67,7 @@ public class BlogListWidget extends GenericWidget {
   public WidgetContext delete(WidgetContext context) {
 
     // Permission is required
-    if (!(context.hasRole("admin"))) {
+    if (!context.hasRole("admin")) {
       context.setWarningMessage("Must be an admin");
       return context;
     }

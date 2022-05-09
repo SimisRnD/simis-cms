@@ -34,7 +34,7 @@ import java.util.Map;
  */
 public class FormFieldCommand {
 
-  private static final String allowedChars = "abcdefghijklmnopqrstuvwyxz1234567890";
+  private static final String ALLOWED_CHARS = "abcdefghijklmnopqrstuvwyxz1234567890";
   private static Log LOG = LogFactory.getLog(FormFieldCommand.class);
 
   public static List<FormField> parseFieldContent(String uniqueFormId, PreferenceEntriesList entriesList) {
@@ -97,7 +97,7 @@ public class FormFieldCommand {
     final int len = name.length();
     for (int i = 0; i < len; i++) {
       char c = name.charAt(i);
-      if (allowedChars.indexOf(name.charAt(i)) > -1) {
+      if (ALLOWED_CHARS.indexOf(name.charAt(i)) > -1) {
         sb.append(c);
       } else if (c == ' ') {
         sb.append("-");

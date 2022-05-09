@@ -18,8 +18,6 @@ package com.simisinc.platform.application.cms;
 
 import com.simisinc.platform.domain.model.cms.Calendar;
 import com.simisinc.platform.infrastructure.persistence.cms.CalendarRepository;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 
 /**
  * Generates a plain text string - a uniqueId for URLs and referencing
@@ -28,9 +26,6 @@ import org.apache.commons.logging.LogFactory;
  * @created 10/29/18 2:19 PM
  */
 public class GenerateCalendarUniqueIdCommand {
-
-  public static final String allowedChars = "1234567890abcdefghijklmnopqrstuvwyxz";
-  private static Log LOG = LogFactory.getLog(GenerateCalendarUniqueIdCommand.class);
 
   public static String generateUniqueId(Calendar previousRecord, Calendar record) {
 
@@ -43,37 +38,14 @@ public class GenerateCalendarUniqueIdCommand {
     }
 
     // Create a new one
-    StringBuilder sb = new StringBuilder();
-    String name = record.getName().toLowerCase();
-    final int len = name.length();
-    char lastChar = '-';
-    for (int i = 0; i < len; i++) {
-      char c = name.charAt(i);
-      if (allowedChars.indexOf(name.charAt(i)) > -1) {
-        sb.append(c);
-        lastChar = c;
-      } else if (c == '&') {
-        sb.append("and");
-        lastChar = '&';
-      } else if (c == ' ' || c == '-' || c == '/') {
-        if (lastChar != '-') {
-          sb.append("-");
-        }
-        lastChar = '-';
-      }
-    }
-    String value = sb.toString();
-    while (value.endsWith("-")) {
-      value = value.substring(0, value.length() - 1);
-    }
+    String value = MakeContentUniqueIdCommand.parseToValidValue(record.getName());
 
     // Find the next available unique instance
     int count = 1;
-    String originalUniqueId = value;
     String uniqueId = value;
     while (CalendarRepository.findByUniqueId(uniqueId) != null) {
       ++count;
-      uniqueId = originalUniqueId + "-" + count;
+      uniqueId = value + "-" + count;
     }
     return uniqueId;
   }

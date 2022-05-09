@@ -17,9 +17,7 @@
 package com.simisinc.platform.application.cms;
 
 import com.simisinc.platform.domain.model.cms.Wiki;
-import com.simisinc.platform.infrastructure.persistence.cms.CalendarRepository;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import com.simisinc.platform.infrastructure.persistence.cms.WikiRepository;
 
 /**
  * Generates a plain text string - a uniqueId for URLs and referencing
@@ -28,9 +26,6 @@ import org.apache.commons.logging.LogFactory;
  * @created 2/10/19 11:39 AM
  */
 public class GenerateWikiUniqueIdCommand {
-
-  public static final String allowedChars = "1234567890abcdefghijklmnopqrstuvwyxz";
-  private static Log LOG = LogFactory.getLog(GenerateWikiUniqueIdCommand.class);
 
   public static String generateUniqueId(Wiki previousRecord, Wiki record) {
 
@@ -43,37 +38,14 @@ public class GenerateWikiUniqueIdCommand {
     }
 
     // Create a new one
-    StringBuilder sb = new StringBuilder();
-    String name = record.getName().toLowerCase();
-    final int len = name.length();
-    char lastChar = '-';
-    for (int i = 0; i < len; i++) {
-      char c = name.charAt(i);
-      if (allowedChars.indexOf(name.charAt(i)) > -1) {
-        sb.append(c);
-        lastChar = c;
-      } else if (c == '&') {
-        sb.append("and");
-        lastChar = '&';
-      } else if (c == ' ' || c == '-' || c == '/') {
-        if (lastChar != '-') {
-          sb.append("-");
-        }
-        lastChar = '-';
-      }
-    }
-    String value = sb.toString();
-    while (value.endsWith("-")) {
-      value = value.substring(0, value.length() - 1);
-    }
+    String value = MakeContentUniqueIdCommand.parseToValidValue(record.getName());
 
     // Find the next available unique instance
     int count = 1;
-    String originalUniqueId = value;
     String uniqueId = value;
-    while (CalendarRepository.findByUniqueId(uniqueId) != null) {
+    while (WikiRepository.findByUniqueId(uniqueId) != null) {
       ++count;
-      uniqueId = originalUniqueId + "-" + count;
+      uniqueId = value + "-" + count;
     }
     return uniqueId;
   }
