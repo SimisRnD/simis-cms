@@ -37,6 +37,11 @@ public class MyInfoWidget extends GenericWidget {
     context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));
     context.getRequest().setAttribute("title", context.getPreferences().get("title"));
 
+    // Preferences
+    context.getRequest().setAttribute("showName", context.getPreferences().getOrDefault("showName", "true"));
+    context.getRequest().setAttribute("showNickname", context.getPreferences().getOrDefault("showNickname", "false"));
+    context.getRequest().setAttribute("showJoinDate", context.getPreferences().getOrDefault("showJoinDate", "true"));
+
     context.getRequest().setAttribute("user", context.getUserSession().getUser());
     context.setJsp(JSP);
     return context;

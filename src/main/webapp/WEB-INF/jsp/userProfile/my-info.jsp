@@ -21,10 +21,19 @@
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="user" class="com.simisinc.platform.domain.model.User" scope="request"/>
+<jsp:useBean id="showName" class="java.lang.String" scope="request"/>
+<jsp:useBean id="showNickname" class="java.lang.String" scope="request"/>
+<jsp:useBean id="showJoinDate" class="java.lang.String" scope="request"/>
 <%@include file="../page_messages.jspf" %>
 <c:if test="${!empty title}">
   <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}"/></h4>
 </c:if>
+<c:if test="${showName eq 'true'}">
 <h4><c:out value="${user.fullName}"/></h4>
+</c:if>
+<c:if test="${showNickname eq 'true'}">
 <p class="subheader"><span class="display-field-value"><c:if test="${!empty user.nickname}"><c:out value="${user.nickname}"/></span></p></c:if>
+</c:if>
+<c:if test="${showJoinDate eq 'true'}">
 <p class="subheader"><span class="display-field-value">You joined the site on <c:out value="${date:formatMonthDayYear(user.created)}"/></span></p>
+</c:if>
