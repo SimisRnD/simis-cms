@@ -117,8 +117,19 @@ public class CreateAnItemWidget extends GenericWidget {
     context.getRequest().setAttribute("title", context.getPreferences().get("title"));
 
     // Preferences
-    context.getRequest().setAttribute("cancelUrl", context.getPreferences().get("cancelUrl"));
     context.getRequest().setAttribute("returnPage", UrlCommand.getValidReturnPage(context.getParameter("returnPage")));
+
+    // Determine the cancel page
+    String cancelUrl = context.getPreferences().get("cancelUrl");
+    if (StringUtils.isBlank(cancelUrl)) {
+      // Go to the overview page
+      if (StringUtils.isNotBlank(collection.getListingsLink())) {
+        cancelUrl = collection.getListingsLink();
+      } else {
+        cancelUrl = "/directory/" + collection.getUniqueId();
+      }
+    }
+    context.getRequest().setAttribute("cancelUrl", cancelUrl);
 
     // Show the JSP
     String form = context.getPreferences().getOrDefault("form", "default");
