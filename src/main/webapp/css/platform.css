@@ -1074,7 +1074,9 @@ a.read-more {
   color: #ffffff;
 }
 
-.callout.no-box, table tbody.no-box, table tbody tr.no-box {
+.callout.no-box, table tbody.no-box, table tbody tr.no-box,
+.callout.no-border, table tbody.no-border, table tbody tr.no-border,
+.callout.border-none, table tbody.border-none, table tbody tr.border-none{
   border: none;
 }
 
