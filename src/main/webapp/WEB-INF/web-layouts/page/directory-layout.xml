@@ -87,8 +87,6 @@
           <title>Create an item</title>
           <collectionUniqueId>${collection.uniqueId}</collectionUniqueId>
           <form>full</form>
-          <returnPage>/directory/${collection.uniqueId}</returnPage>
-          <cancelUrl>/directory/${collection.uniqueId}</cancelUrl>
         </widget>
       </column>
     </section>
@@ -105,7 +103,7 @@
     <section>
       <column class="small-12 medium-9 small-order-2 medium-order-1 cell">
         <widget name="editItemForm">
-          <!--          <title>${item.name}</title>-->
+<!--          <title>${item.name}</title>-->
           <uniqueId>${item.uniqueId}</uniqueId>
         </widget>
       </column>
@@ -114,19 +112,16 @@
           <title>Approve this listing</title>
           <buttonClass>success expanded</buttonClass>
           <uniqueId>${item.uniqueId}</uniqueId>
-          <!-- <returnPage>${ctx}/directory/${item.collectionUniqueId}</returnPage>-->
         </widget>
         <widget name="hideItemButton">
           <title>Hide this listing</title>
           <buttonClass>warning expanded</buttonClass>
           <uniqueId>${item.uniqueId}</uniqueId>
-          <!-- <returnPage>${ctx}/directory/${item.collectionUniqueId}</returnPage>-->
         </widget>
         <widget name="deleteItemButton">
           <buttonName>Delete this listing</buttonName>
           <buttonClass>alert expanded</buttonClass>
           <uniqueId>${item.uniqueId}</uniqueId>
-          <!-- <returnPage>${ctx}/directory/${item.collectionUniqueId}</returnPage>-->
         </widget>
       </column>
     </section>
