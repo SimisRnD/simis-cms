@@ -20,10 +20,8 @@ import com.simisinc.platform.application.items.LoadCollectionCommand;
 import com.simisinc.platform.domain.model.items.Category;
 import com.simisinc.platform.domain.model.items.Collection;
 import com.simisinc.platform.infrastructure.persistence.items.CategoryRepository;
-import com.simisinc.platform.infrastructure.persistence.items.CollectionRepository;
-import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.controller.WidgetContext;
-import org.apache.commons.lang3.StringUtils;
+import com.simisinc.platform.presentation.widgets.GenericWidget;
 
 import java.util.List;
 
@@ -41,25 +39,9 @@ public class CategoriesListWidget extends GenericWidget {
 
   public WidgetContext execute(WidgetContext context) {
 
-    // Determine the collection properties
-    Collection collection = null;
-    String collectionName = context.getPreferences().get("collection");
-    if (StringUtils.isNotBlank(collectionName)) {
-      collection = CollectionRepository.findByName(collectionName);
-      if (collection == null) {
-        LOG.warn("Specified collection was not found: " + collectionName);
-        return null;
-      }
-    } else {
-      String collectionUniqueId = context.getPreferences().get("collectionUniqueId");
-      if (StringUtils.isNotBlank(collectionUniqueId)) {
-        collection = LoadCollectionCommand.loadCollectionByUniqueId(collectionUniqueId);
-        if (collection == null) {
-          LOG.warn("Specified collectionUniqueId was not found: " + collectionUniqueId);
-          return null;
-        }
-      }
-    }
+    // Determine the collection
+    String collectionUniqueId = context.getPreferences().get("collectionUniqueId");
+    Collection collection = LoadCollectionCommand.loadCollectionByUniqueIdForAuthorizedUser(collectionUniqueId, context.getUserId());
     if (collection == null) {
       LOG.warn("Set a collection or collectionUniqueId preference");
       return null;

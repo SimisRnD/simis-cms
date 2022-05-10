@@ -23,11 +23,10 @@ import com.simisinc.platform.domain.model.Session;
 import com.simisinc.platform.domain.model.items.Collection;
 import com.simisinc.platform.domain.model.items.Item;
 import com.simisinc.platform.domain.model.maps.MapCredentials;
-import com.simisinc.platform.infrastructure.persistence.items.CollectionRepository;
 import com.simisinc.platform.infrastructure.persistence.items.ItemRepository;
 import com.simisinc.platform.infrastructure.persistence.items.ItemSpecification;
-import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.controller.WidgetContext;
+import com.simisinc.platform.presentation.widgets.GenericWidget;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
@@ -58,33 +57,11 @@ public class ItemsMapAppWidget extends GenericWidget {
     }
     context.getRequest().setAttribute("mapCredentials", mapCredentials);
 
-    // Determine the collection properties
-    Collection collection = null;
-    String collectionName = context.getPreferences().get("collection");
-    if (StringUtils.isNotBlank(collectionName)) {
-      collection = CollectionRepository.findByName(collectionName);
-      if (collection == null) {
-        LOG.warn("Specified collection was not found: " + collectionName);
-        return null;
-      }
-    } else {
-      String collectionUniqueId = context.getPreferences().get("collectionUniqueId");
-      if (StringUtils.isNotBlank(collectionUniqueId)) {
-        collection = LoadCollectionCommand.loadCollectionByUniqueId(collectionUniqueId);
-        if (collection == null) {
-          LOG.warn("Specified collectionUniqueId was not found: " + collectionUniqueId);
-          return null;
-        }
-      }
-    }
+    // Determine the collection
+    String collectionUniqueId = context.getPreferences().get("collectionUniqueId");
+    Collection collection = LoadCollectionCommand.loadCollectionByUniqueIdForAuthorizedUser(collectionUniqueId, context.getUserId());
     if (collection == null) {
       LOG.warn("Set a collection or collectionUniqueId preference");
-      return null;
-    }
-
-    // Validate access to the collection
-    if (LoadCollectionCommand.loadCollectionByIdForAuthorizedUser(collection.getId(), context.getUserId()) == null) {
-      LOG.warn("User does not have access to this collection");
       return null;
     }
     context.getRequest().setAttribute("collection", collection);

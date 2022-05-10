@@ -20,19 +20,15 @@ import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.cms.CaptchaCommand;
 import com.simisinc.platform.application.cms.UrlCommand;
-import com.simisinc.platform.application.items.CategoryException;
-import com.simisinc.platform.application.items.CheckCollectionPermissionCommand;
-import com.simisinc.platform.application.items.ItemCommand;
-import com.simisinc.platform.application.items.SaveItemCommand;
+import com.simisinc.platform.application.items.*;
 import com.simisinc.platform.domain.model.items.Category;
 import com.simisinc.platform.domain.model.items.Collection;
 import com.simisinc.platform.domain.model.items.Item;
 import com.simisinc.platform.domain.model.items.ItemCustomField;
 import com.simisinc.platform.infrastructure.persistence.items.CategoryRepository;
-import com.simisinc.platform.infrastructure.persistence.items.CollectionRepository;
 import com.simisinc.platform.infrastructure.persistence.items.ItemRepository;
-import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.controller.WidgetContext;
+import com.simisinc.platform.presentation.widgets.GenericWidget;
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -63,19 +59,11 @@ public class CreateAnItemWidget extends GenericWidget {
 
   public WidgetContext execute(WidgetContext context) {
 
-    // Determine the collection properties
-    Collection collection = null;
-    String collectionName = context.getPreferences().get("collection");
-    if (StringUtils.isNotBlank(collectionName)) {
-      collection = CollectionRepository.findByName(collectionName);
-    } else {
-      String collectionUniqueId = context.getPreferences().get("collectionUniqueId");
-      if (StringUtils.isNotBlank(collectionUniqueId)) {
-        collection = CollectionRepository.findByUniqueId(collectionUniqueId);
-      }
-    }
+    // Determine the collection
+    String collectionUniqueId = context.getPreferences().get("collectionUniqueId");
+    Collection collection = LoadCollectionCommand.loadCollectionByUniqueIdForAuthorizedUser(collectionUniqueId, context.getUserId());
     if (collection == null) {
-      LOG.warn("Collection was not found: " + collectionName);
+      LOG.warn("Set a collection or collectionUniqueId preference");
       return null;
     }
     context.getRequest().setAttribute("collection", collection);
@@ -148,21 +136,14 @@ public class CreateAnItemWidget extends GenericWidget {
 
   public WidgetContext post(WidgetContext context) throws InvocationTargetException, IllegalAccessException {
 
-    // Determine the collection properties
-    Collection collection = null;
-    String collectionName = context.getPreferences().get("collection");
-    if (StringUtils.isNotBlank(collectionName)) {
-      collection = CollectionRepository.findByName(collectionName);
-    } else {
-      String collectionUniqueId = context.getPreferences().get("collectionUniqueId");
-      if (StringUtils.isNotBlank(collectionUniqueId)) {
-        collection = CollectionRepository.findByUniqueId(collectionUniqueId);
-      }
-    }
+    // Determine the collection
+    String collectionUniqueId = context.getPreferences().get("collectionUniqueId");
+    Collection collection = LoadCollectionCommand.loadCollectionByUniqueIdForAuthorizedUser(collectionUniqueId, context.getUserId());
     if (collection == null) {
-      LOG.warn("Collection was not found: " + collectionName);
+      LOG.warn("Set a collection or collectionUniqueId preference");
       return null;
     }
+    context.getRequest().setAttribute("collection", collection);
 
     // Form Permission
     String requiresPermissionValue = context.getPreferences().getOrDefault("requiresPermission", "true");
@@ -253,9 +234,6 @@ public class CreateAnItemWidget extends GenericWidget {
       context.setRequestObject(itemBean);
       if (itemBean.getId() > -1) {
         context.setWarningMessage("This name appears to be a duplicate. Please try again.");
-//        context.setRedirect("/admin/category?categoryId=" + categoryBean.getId());
-      } else {
-//        context.setRedirect("/admin/collection-details?collectionId=" + categoryBean.getCollectionId());
       }
       return context;
     }
@@ -269,8 +247,13 @@ public class CreateAnItemWidget extends GenericWidget {
 
     // Determine the page to return to
     String returnPage = context.getPreferences().getOrDefault("returnPage", UrlCommand.getValidReturnPage(context.getParameter("returnPage")));
-    if (returnPage == null) {
-      returnPage = "/community";
+    if (StringUtils.isBlank(returnPage)) {
+      // Go to the overview page
+      if (StringUtils.isNotBlank(collection.getListingsLink())) {
+        returnPage = collection.getListingsLink();
+      } else {
+        returnPage = "/directory/" + collection.getUniqueId();
+      }
     }
     if (requiresApproval) {
       context.setSuccessMessage("Thanks, the record was saved! We've notified an administrator to review your listing for approval.");
