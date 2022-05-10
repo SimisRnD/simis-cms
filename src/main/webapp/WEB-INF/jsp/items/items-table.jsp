@@ -38,7 +38,7 @@
         <th>Company Name</th>
         <th>Website</th>
         <th>Phone Number</th>
-        <th>Primary Industry</th>
+        <th>Primary Category</th>
         <th>Street Address</th>
       </tr>
       </thead>
