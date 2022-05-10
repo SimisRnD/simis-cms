@@ -286,7 +286,7 @@ public class XMLContainerCommands implements Serializable {
       String childName = child.getTagName();
       String value = child.getTextContent();
       if (StringUtils.isNotBlank(value)) {
-        LOG.trace("Adding preference: " + childName + "=" + value);
+        LOG.debug("Adding preference: " + childName + "=" + value);
         preferenceMap.put(childName, value);
         continue;
       }
@@ -315,6 +315,11 @@ public class XMLContainerCommands implements Serializable {
         }
         for (int a = 0; a < attributes.getLength(); a++) {
           Node attribute = attributes.item(a);
+          String attributeName = attribute.getNodeName();
+          String attributeValue = attribute.getNodeValue();
+          if (StringUtils.isBlank(attributeName) || StringUtils.isBlank(attributeValue)) {
+            continue;
+          }
           if (a > 0) {
             // Field separator
             sb.append("||");
