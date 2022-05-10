@@ -41,37 +41,6 @@ public class ItemsSearchResultsWidget extends GenericWidget {
 
   public WidgetContext execute(WidgetContext context) {
 
-    // Determine the collection properties
-//    Collection collection = null;
-//    String collectionName = context.getPreferences().get("collection");
-//    if (StringUtils.isNotBlank(collectionName)) {
-//      collection = CollectionRepository.findByName(collectionName);
-//      if (collection == null) {
-//        LOG.warn("Specified collection was not found: " + collectionName);
-//        return null;
-//      }
-//    } else {
-//      String collectionUniqueId = context.getPreferences().get("collectionUniqueId");
-//      if (StringUtils.isNotBlank(collectionUniqueId)) {
-//        collection = LoadCollectionCommand.loadCollectionByUniqueId(collectionUniqueId);
-//        if (collection == null) {
-//          LOG.warn("Specified collectionUniqueId was not found: " + collectionUniqueId);
-//          return null;
-//        }
-//      }
-//    }
-//    if (collection == null) {
-//      LOG.warn("Set a collection or collectionUniqueId preference");
-//      return null;
-//    }
-//
-//    // Validate access to the collection
-//    if (LoadCollectionCommand.loadCollectionByIdForAuthorizedUser(collection.getId(), context.getUserId()) == null) {
-//      LOG.warn("User does not have access to this collection");
-//      return null;
-//    }
-//    context.getRequest().setAttribute("collection", collection);
-
     // Determine the record paging
     int limit = Integer.parseInt(context.getPreferences().getOrDefault("limit", "15"));
     int page = context.getParameterAsInt("page", 1);
