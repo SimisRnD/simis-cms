@@ -28,6 +28,7 @@ public class SearchResult extends Entity {
 
   private String link = null;
   private String pageTitle = null;
+  private String pageDescription = null;
   private String htmlExcerpt = null;
 
   public SearchResult() {
@@ -47,6 +48,14 @@ public class SearchResult extends Entity {
 
   public void setPageTitle(String pageTitle) {
     this.pageTitle = pageTitle;
+  }
+
+  public String getPageDescription() {
+    return pageDescription;
+  }
+
+  public void setPageDescription(String pageDescription) {
+    this.pageDescription = pageDescription;
   }
 
   public String getHtmlExcerpt() {

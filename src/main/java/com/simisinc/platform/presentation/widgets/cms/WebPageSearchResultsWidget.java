@@ -208,6 +208,9 @@ public class WebPageSearchResultsWidget extends GenericWidget {
       } else {
         searchResult.setPageTitle(webPage.getTitle());
       }
+      if (StringUtils.isNotBlank(webPage.getDescription())) {
+        searchResult.setPageDescription(webPage.getDescription());
+      }
       searchResult.setHtmlExcerpt(htmlContent);
       resultsMap.put(link, searchResult);
     } else {

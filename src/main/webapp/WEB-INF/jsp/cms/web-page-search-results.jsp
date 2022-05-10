@@ -36,6 +36,9 @@
         <h5><a href="${ctx}${searchResult.link}"><c:out value="${searchResult.link}"/></a></h5>
       </c:otherwise>
     </c:choose>
+    <c:if test="${!empty searchResult.pageDescription}">
+      <p><c:out value="${searchResult.pageDescription}" /></p>
+    </c:if>
     <p>${searchResult.htmlExcerpt}</p>
   </div>
 </c:forEach>
