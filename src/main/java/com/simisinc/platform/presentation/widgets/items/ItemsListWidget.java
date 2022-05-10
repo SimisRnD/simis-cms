@@ -22,12 +22,11 @@ import com.simisinc.platform.domain.model.items.Collection;
 import com.simisinc.platform.domain.model.items.Item;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.persistence.items.CategoryRepository;
-import com.simisinc.platform.infrastructure.persistence.items.CollectionRepository;
 import com.simisinc.platform.infrastructure.persistence.items.ItemRepository;
 import com.simisinc.platform.infrastructure.persistence.items.ItemSpecification;
 import com.simisinc.platform.presentation.controller.RequestConstants;
-import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.controller.WidgetContext;
+import com.simisinc.platform.presentation.widgets.GenericWidget;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
@@ -43,6 +42,7 @@ public class ItemsListWidget extends GenericWidget {
   static final long serialVersionUID = -8484048371911908893L;
 
   static String JSP = "/items/items-list.jsp";
+  static String CARD_VIEW_JSP = "/items/items-card-view.jsp";
   static String TABLE_VIEW_JSP = "/items/items-table.jsp";
   static String JOBS_LIST_JSP = "/items/items-jobs-list.jsp";
   static String SEARCH_RESULTS_JSP = "/items/items-search-results-list.jsp";
@@ -52,39 +52,19 @@ public class ItemsListWidget extends GenericWidget {
     // Determine the view
     String jsp = JSP;
     String view = context.getPreferences().get("view");
-    if ("table".equals(view)) {
+    if ("cards".equals(view)) {
+      jsp = CARD_VIEW_JSP;
+    } else if ("table".equals(view)) {
       jsp = TABLE_VIEW_JSP;
     } else if ("jobs".equals(view)) {
       jsp = JOBS_LIST_JSP;
     }
 
-    // Determine the collection properties
-    Collection collection = null;
-    String collectionName = context.getPreferences().get("collection");
-    if (StringUtils.isNotBlank(collectionName)) {
-      collection = CollectionRepository.findByName(collectionName);
-      if (collection == null) {
-        LOG.warn("Specified collection was not found: " + collectionName);
-        return null;
-      }
-    } else {
-      String collectionUniqueId = context.getPreferences().get("collectionUniqueId");
-      if (StringUtils.isNotBlank(collectionUniqueId)) {
-        collection = LoadCollectionCommand.loadCollectionByUniqueId(collectionUniqueId);
-        if (collection == null) {
-          LOG.warn("Specified collectionUniqueId was not found: " + collectionUniqueId);
-          return null;
-        }
-      }
-    }
+    // Determine the collection
+    String collectionUniqueId = context.getPreferences().get("collectionUniqueId");
+    Collection collection = LoadCollectionCommand.loadCollectionByUniqueIdForAuthorizedUser(collectionUniqueId, context.getUserId());
     if (collection == null) {
-      LOG.warn("Set a collection or collectionUniqueId preference");
-      return null;
-    }
-
-    // Validate access to the collection
-    if (LoadCollectionCommand.loadCollectionByIdForAuthorizedUser(collection.getId(), context.getUserId()) == null) {
-      LOG.warn("User does not have access to this collection");
+      LOG.warn("Set a collection or collectionUniqueId preference, or user does not have access");
       return null;
     }
     context.getRequest().setAttribute("collection", collection);
@@ -165,6 +145,9 @@ public class ItemsListWidget extends GenericWidget {
     context.getRequest().setAttribute("title", context.getPreferences().get("title"));
     context.getRequest().setAttribute("showPaging", context.getPreferences().getOrDefault("showPaging", "true"));
     context.getRequest().setAttribute("returnPage", context.getRequest().getRequestURI());
+
+    // View preferences
+    context.getRequest().setAttribute("cardWidth", context.getPreferences().getOrDefault("cardWidth", "200"));
 
     // Show the JSP
     context.setJsp(jsp);
