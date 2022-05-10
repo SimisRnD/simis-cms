@@ -20,6 +20,7 @@ import com.simisinc.platform.domain.model.items.Collection;
 import com.simisinc.platform.infrastructure.cache.CacheManager;
 import com.simisinc.platform.infrastructure.persistence.items.CollectionRepository;
 import com.simisinc.platform.infrastructure.persistence.items.CollectionSpecification;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -36,6 +37,9 @@ public class LoadCollectionCommand {
   private static Log LOG = LogFactory.getLog(LoadCollectionCommand.class);
 
   public static Collection loadCollectionByUniqueId(String uniqueId) {
+    if (StringUtils.isBlank(uniqueId)) {
+      return null;
+    }
     return (Collection) CacheManager.getLoadingCache(CacheManager.COLLECTION_UNIQUE_ID_CACHE).get(uniqueId);
   }
 
@@ -45,6 +49,9 @@ public class LoadCollectionCommand {
 
 
   public static Collection loadCollectionByIdForAuthorizedUser(long collectionId, long userId) {
+    if (collectionId < 1) {
+      return null;
+    }
     CollectionSpecification specification = new CollectionSpecification();
     specification.setId(collectionId);
     specification.setForUserId(userId);
@@ -56,6 +63,9 @@ public class LoadCollectionCommand {
   }
 
   public static Collection loadCollectionByUniqueIdForAuthorizedUser(String uniqueId, long userId) {
+    if (StringUtils.isBlank(uniqueId)) {
+      return null;
+    }
     CollectionSpecification specification = new CollectionSpecification();
     specification.setUniqueId(uniqueId);
     specification.setForUserId(userId);
