@@ -21,6 +21,7 @@
 <jsp:useBean id="collection" class="com.simisinc.platform.domain.model.items.Collection" scope="request"/>
 <jsp:useBean id="item" class="com.simisinc.platform.domain.model.items.Item" scope="request"/>
 <jsp:useBean id="categoryList" class="java.util.ArrayList" scope="request"/>
+<jsp:useBean id="cancelUrl" class="java.lang.String" scope="request"/>
 <form method="post" autocomplete="off">
   <%-- Required by controller --%>
   <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
@@ -54,6 +55,44 @@
       </div>
     </div>
 
+    <%-- Categories --%>
+    <c:if test="${!empty categoryList}">
+      <div class="grid-container">
+        <div class="grid-x grid-padding-x">
+          <div class="small-12 cell">
+            <h3>Categories</h3>
+            <span class="input-group-label">Primary Category</span>
+            <select class="input-group-field" id="categoryId" name="categoryId">
+              <option value="">Make a selection...</option>
+              <c:forEach items="${categoryList}" var="category">
+                <option value="${category.id}"<c:if test="${item.categoryId eq category.id}"> selected</c:if>><c:out value="${category.name}" /></option>
+              </c:forEach>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class="grid-container margin-top-20">
+        <div class="grid-x grid-padding-x">
+          <div class="small-12 cell">
+            <div class="input-container">
+              <span class="input-group-label">Additional Categories</span>
+              <c:forEach items="${categoryList}" var="category">
+                <%--                <c:if test="${fn:contains(item.categoryIdList, category.id)}"> checked</c:if>--%>
+                <c:set var="contains" value="false" />
+                <c:forEach var="thisCategoryId" items="${item.categoryIdList}">
+                  <c:if test="${thisCategoryId eq category.id}">
+                    <c:set var="contains" value="true" />
+                  </c:if>
+                </c:forEach>
+                <input id="categoryId${category.id}" type="checkbox" name="categoryId${category.id}" value="${category.id}"<c:if test="${contains eq 'true'}"> checked</c:if> /><label for="categoryId${category.id}"><c:out value="${category.name}" /></label>
+              </c:forEach>
+            </div>
+          </div>
+        </div>
+      </div>
+    </c:if>
+
+    <%-- Location --%>
     <div class="grid-container">
       <div class="grid-x grid-padding-x">
         <div class="small-12 cell">
@@ -369,49 +408,12 @@
     </div>
     </c:if>
 
-    <%-- Categories --%>
-    <c:if test="${!empty categoryList}">
-      <div class="grid-container">
-        <div class="grid-x grid-padding-x">
-          <div class="small-12 cell">
-            <h3>Categories</h3>
-            <span class="input-group-label">Primary Category</span>
-            <select class="input-group-field" id="categoryId" name="categoryId">
-              <option value=""></option>
-              <c:forEach items="${categoryList}" var="category">
-                <option value="${category.id}"<c:if test="${item.categoryId eq category.id}"> selected</c:if>><c:out value="${category.name}" /></option>
-              </c:forEach>
-            </select>
-          </div>
-        </div>
-      </div>
-      <div class="grid-container">
-        <div class="grid-x grid-padding-x">
-          <div class="small-12 cell">
-            <div class="input-container">
-              <span class="input-group-label">Additional Categories</span>
-              <c:forEach items="${categoryList}" var="category">
-<%--                <c:if test="${fn:contains(item.categoryIdList, category.id)}"> checked</c:if>--%>
-                <c:set var="contains" value="false" />
-                <c:forEach var="thisCategoryId" items="${item.categoryIdList}">
-                  <c:if test="${thisCategoryId eq category.id}">
-                    <c:set var="contains" value="true" />
-                  </c:if>
-                </c:forEach>
-                <input id="categoryId${category.id}" type="checkbox" name="categoryId${category.id}" value="${category.id}"<c:if test="${contains eq 'true'}"> checked</c:if> /><label for="categoryId${category.id}"><c:out value="${category.name}" /></label>
-              </c:forEach>
-            </div>
-          </div>
-        </div>
-      </div>
-    </c:if>
-
     <div class="grid-container">
       <div class="grid-x grid-padding-x">
         <div class="small-12 cell">
           <p>
             <input type="submit" class="button radius success" value="Save"/>
-            <c:if test="${!empty returnPage}"><a class="button radius secondary" href="${returnPage}">Cancel</a></c:if>
+            <c:if test="${!empty cancelUrl}"><a class="button radius secondary" href="${cancelUrl}">Cancel</a></c:if>
           </p>
         </div>
       </div>
