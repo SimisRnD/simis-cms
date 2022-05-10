@@ -77,7 +77,7 @@
         left: 'title',
         center: '',
         // right:  'month,agendaWeek,agendaDay,listWeek today prev,next'
-        right:  'month,listWeek today prev,next'
+        right:  'month,listWeek,agendaDay today prev,next'
       },
       defaultView: 'month',
       selectable: false,
@@ -89,7 +89,7 @@
           titleFormat: 'MMMM YYYY'
         },
         week: {
-          titleFormat: "MMMM D YYYY"
+          titleFormat: "MMM D, YYYY"
         },
         day: {
           titleFormat: 'D MMM, YYYY'
