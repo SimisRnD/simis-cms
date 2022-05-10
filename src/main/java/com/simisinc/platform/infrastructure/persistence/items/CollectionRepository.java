@@ -16,6 +16,7 @@
 
 package com.simisinc.platform.infrastructure.persistence.items;
 
+import com.simisinc.platform.application.items.LoadCollectionCommand;
 import com.simisinc.platform.domain.model.items.Collection;
 import com.simisinc.platform.domain.model.items.CollectionGroup;
 import com.simisinc.platform.domain.model.items.PrivacyType;
@@ -293,6 +294,10 @@ public class CollectionRepository {
       }
     } catch (SQLException se) {
       LOG.error("SQLException: " + se.getMessage());
+    } finally {
+      // Expire the cache
+      CacheManager.invalidateKey(CacheManager.COLLECTION_UNIQUE_ID_CACHE,
+          LoadCollectionCommand.loadCollectionById(collectionId).getUniqueId());
     }
     LOG.error("The update failed!");
     return false;
