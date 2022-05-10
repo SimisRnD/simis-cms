@@ -56,13 +56,13 @@
     <java-activation.version>1.2.0</java-activation.version>
     <java-mail.version>1.6.2</java-mail.version>
     <jna.version>5.8.0</jna.version>
-    <jobrunr.version>5.1.0</jobrunr.version>
+    <jobrunr.version>5.1.1</jobrunr.version>
     <johnzon.version>1.1.8</johnzon.version>
     <jsoup.version>1.14.2</jsoup.version>
     <jstl.version>1.2</jstl.version>
     <libphonenumber.version>8.12.40</libphonenumber.version>
     <lombok.version>1.18.22</lombok.version>
-    <netty.version>4.1.74</netty.version>
+    <netty.version>4.1.77</netty.version>
     <postgresql.version>42.3.3</postgresql.version>
     <pushy.version>0.15.1</pushy.version>
     <restfb.version>2.24.0</restfb.version>
