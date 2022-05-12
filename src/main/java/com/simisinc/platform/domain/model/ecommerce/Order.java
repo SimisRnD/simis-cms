@@ -46,7 +46,7 @@ public class Order extends Entity {
   private Address billingAddress = null;
   private Address shippingAddress = null;
 
-  private int shippingMethodId = -1;
+  private long shippingMethodId = -1;
   private long shippingRateId = -1;
   private String taxId = null;
   private String promoCode = null;
@@ -215,11 +215,11 @@ public class Order extends Entity {
     this.shippingAddress = shippingAddress;
   }
 
-  public int getShippingMethodId() {
+  public long getShippingMethodId() {
     return shippingMethodId;
   }
 
-  public void setShippingMethodId(int shippingMethodId) {
+  public void setShippingMethodId(long shippingMethodId) {
     this.shippingMethodId = shippingMethodId;
   }
 
