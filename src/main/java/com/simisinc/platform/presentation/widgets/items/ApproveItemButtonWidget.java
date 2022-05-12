@@ -23,8 +23,8 @@ import com.simisinc.platform.application.items.LoadCollectionCommand;
 import com.simisinc.platform.application.items.LoadItemCommand;
 import com.simisinc.platform.domain.model.items.Collection;
 import com.simisinc.platform.domain.model.items.Item;
-import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.controller.WidgetContext;
+import com.simisinc.platform.presentation.widgets.GenericWidget;
 import org.apache.commons.lang3.StringUtils;
 
 /**
@@ -104,11 +104,7 @@ public class ApproveItemButtonWidget extends GenericWidget {
     String returnPage = context.getParameter("returnPage");
     if (StringUtils.isBlank(returnPage)) {
       Collection collection = LoadCollectionCommand.loadCollectionById(item.getCollectionId());
-      if (StringUtils.isNotBlank(collection.getListingsLink())) {
-        returnPage = collection.getListingsLink();
-      } else {
-        returnPage = "/directory/" + collection.getUniqueId();
-      }
+      returnPage = collection.createListingsLink();
     }
     context.setRedirect(context.getPreferences().getOrDefault("returnPage", UrlCommand.getValidReturnPage(returnPage)));
     return context;
