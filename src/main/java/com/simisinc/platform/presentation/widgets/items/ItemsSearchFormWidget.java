@@ -21,8 +21,8 @@ import com.simisinc.platform.application.items.LoadCollectionCommand;
 import com.simisinc.platform.domain.model.items.Category;
 import com.simisinc.platform.domain.model.items.Collection;
 import com.simisinc.platform.infrastructure.persistence.items.CategoryRepository;
-import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.controller.WidgetContext;
+import com.simisinc.platform.presentation.widgets.GenericWidget;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
@@ -97,6 +97,17 @@ public class ItemsSearchFormWidget extends GenericWidget {
 //    }
 
     String redirectTo = context.getPreferences().get("redirectTo");
+    if (StringUtils.isBlank(redirectTo)) {
+      // Use the current collectionId to get the available categories to search on
+      String collectionUniqueId = context.getPreferences().getOrDefault("collectionUniqueId", context.getCoreData().get("collectionUniqueId"));
+      if (StringUtils.isNotBlank(collectionUniqueId)) {
+        Collection collection = LoadCollectionCommand.loadCollectionByUniqueId(collectionUniqueId);
+        if (collection != null) {
+          redirectTo = collection.createListingsLink();
+        }
+      }
+    }
+
     if (redirectTo != null) {
       boolean hasFirst = false;
       // Name

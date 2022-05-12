@@ -67,6 +67,7 @@ public class EditItemFormWidget extends GenericWidget {
     if (collection == null) {
       return null;
     }
+    context.getRequest().setAttribute("collection", collection);
 
     // See if the user group can edit any item in this collection
     boolean canEditItem = CheckCollectionPermissionCommand.userHasEditPermission(collection.getId(), userId);
@@ -98,6 +99,13 @@ public class EditItemFormWidget extends GenericWidget {
     context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));
     context.getRequest().setAttribute("title", context.getPreferences().get("title"));
     context.getRequest().setAttribute("returnPage", context.getPreferences().getOrDefault("returnPage", UrlCommand.getValidReturnPage(context.getParameter("returnPage"))));
+
+    // Determine the cancel page
+    String cancelUrl = context.getPreferences().get("cancelUrl");
+    if (StringUtils.isBlank(cancelUrl)) {
+      cancelUrl = "/show/" + item.getUniqueId();
+    }
+    context.getRequest().setAttribute("cancelUrl", cancelUrl);
 
     // Show the JSP
     context.setJsp(FULL_FORM_JSP);
@@ -183,11 +191,7 @@ public class EditItemFormWidget extends GenericWidget {
     } else {
       // Go to the overview page
       Collection collection = LoadCollectionCommand.loadCollectionByIdForAuthorizedUser(item.getCollectionId(), userId);
-      if (StringUtils.isNotBlank(collection.getListingsLink())) {
-        returnPage = collection.getListingsLink();
-      } else {
-        returnPage = "/directory/" + collection.getUniqueId();
-      }
+      returnPage = collection.createListingsLink();
     }
     context.setSuccessMessage("Thanks, the record was saved!");
     context.setRedirect(returnPage);
