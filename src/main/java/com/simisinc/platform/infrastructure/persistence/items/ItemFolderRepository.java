@@ -253,11 +253,11 @@ public class ItemFolderRepository {
     if (folder == null) {
       return;
     }
-    if (folder.getHasAllowedGroups()) {
+    if (folder.doAllowedGroupsCheck()) {
       List<ItemFolderGroup> allowedGroupList = ItemFolderGroupRepository.findAllByFolderId(folder.getId());
       folder.setFolderGroupList(allowedGroupList);
     }
-    if (folder.getHasCategories()) {
+    if (folder.doCategoriesCheck()) {
       List<ItemFolderCategory> folderCategoryList = ItemFolderCategoryRepository.findAllByFolderId(folder.getId());
       folder.setFolderCategoryList(folderCategoryList);
     }

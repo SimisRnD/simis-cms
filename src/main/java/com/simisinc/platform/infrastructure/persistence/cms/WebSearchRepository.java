@@ -50,7 +50,7 @@ public class WebSearchRepository {
         .add("query", record.getQuery(), 255)
         .add("ip_address", record.getIpAddress())
         .add("session_id", record.getSessionId())
-        .add("is_logged_in", record.isLoggedIn());
+        .add("is_logged_in", record.getIsLoggedIn());
     record.setId(DB.insertInto(TABLE_NAME, insertValues, PRIMARY_KEY));
     if (record.getId() == -1) {
       LOG.error("An id was not set!");

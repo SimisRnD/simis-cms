@@ -259,7 +259,7 @@ public class CollectionRepository {
     if (collection == null) {
       return;
     }
-    if (collection.getHasAllowedGroups()) {
+    if (collection.doAllowedGroupsCheck()) {
       List<CollectionGroup> allowedGroupList = CollectionGroupRepository.findAllByCollectionId(collection.getId());
       collection.setCollectionGroupList(allowedGroupList);
     }
