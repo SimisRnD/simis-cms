@@ -240,11 +240,11 @@ public class FolderRepository {
     if (folder == null) {
       return;
     }
-    if (folder.getHasAllowedGroups()) {
+    if (folder.doAllowedGroupsCheck()) {
       List<FolderGroup> allowedGroupList = FolderGroupRepository.findAllByFolderId(folder.getId());
       folder.setFolderGroupList(allowedGroupList);
     }
-    if (folder.getHasCategories()) {
+    if (folder.doCategoriesCheck()) {
       List<FolderCategory> folderCategoryList = FolderCategoryRepository.findAllByFolderId(folder.getId());
       folder.setFolderCategoryList(folderCategoryList);
     }

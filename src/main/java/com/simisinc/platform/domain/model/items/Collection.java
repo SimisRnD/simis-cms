@@ -152,7 +152,7 @@ public class Collection extends Entity {
     this.guestPrivacyType = guestPrivacyType;
   }
 
-  public boolean getHasAllowedGroups() {
+  public boolean doAllowedGroupsCheck() {
     return hasAllowedGroups || (collectionGroupList != null && !collectionGroupList.isEmpty());
   }
 

@@ -93,11 +93,4 @@ public class WebSearch {
     isLoggedIn = loggedIn;
   }
 
-  public boolean isLoggedIn() {
-    return isLoggedIn;
-  }
-
-  public void setLoggedIn(boolean loggedIn) {
-    isLoggedIn = loggedIn;
-  }
 }
