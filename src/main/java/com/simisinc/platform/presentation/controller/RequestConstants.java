@@ -34,6 +34,13 @@ public class RequestConstants {
   public static final String CONTEXT_PATH = "ctx";
   public static final String WEB_PAGE_PATH = "pagePath";
 
+  public static final String HEADER_RENDER_INFO = "headerRenderInfo";
+  public static final String FOOTER_RENDER_INFO = "footerRenderInfo";
+  public static final String PAGE_RENDER_INFO = "pageRenderInfo";
+  public static final String PAGE_COLLECTION = "pageCollection";
+  public static final String PAGE_COLLECTION_CATEGORY = "pageCollectionCategory";
+  public static final String PAGE_BODY = "PageBody";
+
   public static final String WIDGET_CONTEXT = "widgetContext";
   public static final String MESSAGE_TEXT = "message";
   public static final String SUCCESS_MESSAGE_TEXT = "successMessage";
