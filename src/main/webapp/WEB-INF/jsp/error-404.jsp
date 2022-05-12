@@ -48,7 +48,10 @@
       <div class="grid-x">
         <div class="small-12 cell">
           <h2>Page not found</h2>
-          <h3>We're sorry, we couldn't find the page you requested.</h3>
+          <h3>
+            We're sorry, we couldn't find the page you requested,
+            or you might need to be logged in.
+          </h3>
           <p>If you feel something is missing that should be here, <a href="${ctx}/contact-us">contact us</a>.</p>
           <p>Visit our <a href="${ctx}/">home page</a>.</p>
         </div>
