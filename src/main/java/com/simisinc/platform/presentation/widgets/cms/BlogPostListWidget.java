@@ -143,6 +143,7 @@ public class BlogPostListWidget extends GenericWidget {
     if ("overview".equals(context.getPreferences().get("view"))) {
       context.setJsp(OVERVIEW_JSP);
     } else if ("titles".equals(context.getPreferences().get("view"))) {
+      context.getRequest().setAttribute("showBullets", context.getPreferences().getOrDefault("showBullets", "false"));
       context.setJsp(TITLES_JSP);
     } else if ("cards".equals(context.getPreferences().get("view"))) {
 
