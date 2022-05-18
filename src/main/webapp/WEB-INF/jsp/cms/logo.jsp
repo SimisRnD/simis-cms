@@ -26,6 +26,7 @@
 <jsp:useBean id="logoClass" class="java.lang.String" scope="request"/>
 <jsp:useBean id="logoStyle" class="java.lang.String" scope="request"/>
 <jsp:useBean id="view" class="java.lang.String" scope="request"/>
+<jsp:useBean id="text" class="java.lang.String" scope="request"/>
 <c:set var="logoSrc" scope="request" value=""/>
 <c:choose>
   <c:when test="${view eq 'white'}">
@@ -52,6 +53,9 @@
 <c:choose>
   <c:when test="${!empty logoSrc}">
     <a href="${ctx}/"><img alt="Logo" <c:if test="${!empty logoClass}">class="${logoClass}" </c:if><c:if test="${!empty logoStyle}">style="${logoStyle}" </c:if>src="${logoSrc}" /></a>
+    <c:if test="${!empty text}">
+      <span class="menu-text" translate="no"><a href="${ctx}/"><c:out value="${text}"/></a></span>
+    </c:if>
   </c:when>
   <c:otherwise>
     <span class="menu-text" translate="no"><a href="${ctx}/"><c:out value="${sitePropertyMap['site.name']}"/></a></span>

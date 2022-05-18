@@ -47,7 +47,7 @@ public class LogoWidget extends GenericWidget {
 
     // Check preferences
     String view = context.getPreferences().get("view");
-    if (view != null) {
+    if (StringUtils.isNotBlank(view)) {
       context.getRequest().setAttribute("view", view);
     }
     String style = "";
@@ -61,6 +61,10 @@ public class LogoWidget extends GenericWidget {
     }
     if (StringUtils.isNotBlank(style)) {
       context.getRequest().setAttribute("logoStyle", style);
+    }
+    String text = context.getPreferences().get("text");
+    if (StringUtils.isNotBlank(text)) {
+      context.getRequest().setAttribute("text", text);
     }
 
     // Show the JSP
