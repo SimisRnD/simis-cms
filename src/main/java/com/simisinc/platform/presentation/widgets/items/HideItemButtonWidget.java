@@ -104,11 +104,7 @@ public class HideItemButtonWidget extends GenericWidget {
     String returnPage = context.getParameter("returnPage");
     if (StringUtils.isBlank(returnPage)) {
       Collection collection = LoadCollectionCommand.loadCollectionById(item.getCollectionId());
-      if (StringUtils.isNotBlank(collection.getListingsLink())) {
-        returnPage = collection.getListingsLink();
-      } else {
-        returnPage = "/directory/" + collection.getUniqueId();
-      }
+      returnPage = collection.createListingsLink();
     }
     context.setRedirect(context.getPreferences().getOrDefault("returnPage", UrlCommand.getValidReturnPage(returnPage)));
     return context;

@@ -17,6 +17,7 @@
 package com.simisinc.platform.domain.model.items;
 
 import com.simisinc.platform.domain.model.Entity;
+import org.apache.commons.lang3.StringUtils;
 
 import java.sql.Timestamp;
 import java.util.List;
@@ -152,7 +153,7 @@ public class Collection extends Entity {
     this.guestPrivacyType = guestPrivacyType;
   }
 
-  public boolean getHasAllowedGroups() {
+  public boolean doAllowedGroupsCheck() {
     return hasAllowedGroups || (collectionGroupList != null && !collectionGroupList.isEmpty());
   }
 
@@ -314,5 +315,13 @@ public class Collection extends Entity {
 
   public void setShowSearch(boolean showSearch) {
     this.showSearch = showSearch;
+  }
+
+  public String createListingsLink() {
+    if (StringUtils.isNotBlank(this.getListingsLink())) {
+      return this.getListingsLink();
+    } else {
+      return "/directory/" + this.getUniqueId();
+    }
   }
 }

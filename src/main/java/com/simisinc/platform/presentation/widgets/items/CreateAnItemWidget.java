@@ -122,12 +122,7 @@ public class CreateAnItemWidget extends GenericWidget {
     // Determine the cancel page
     String cancelUrl = context.getPreferences().get("cancelUrl");
     if (StringUtils.isBlank(cancelUrl)) {
-      // Go to the overview page
-      if (StringUtils.isNotBlank(collection.getListingsLink())) {
-        cancelUrl = collection.getListingsLink();
-      } else {
-        cancelUrl = "/directory/" + collection.getUniqueId();
-      }
+      cancelUrl = collection.createListingsLink();
     }
     context.getRequest().setAttribute("cancelUrl", cancelUrl);
 
@@ -259,12 +254,7 @@ public class CreateAnItemWidget extends GenericWidget {
     // Determine the page to return to
     String returnPage = context.getPreferences().getOrDefault("returnPage", UrlCommand.getValidReturnPage(context.getParameter("returnPage")));
     if (StringUtils.isBlank(returnPage)) {
-      // Go to the overview page
-      if (StringUtils.isNotBlank(collection.getListingsLink())) {
-        returnPage = collection.getListingsLink();
-      } else {
-        returnPage = "/directory/" + collection.getUniqueId();
-      }
+      returnPage = collection.createListingsLink();
     }
     if (requiresApproval) {
       context.setSuccessMessage("Thanks, the record was saved! We've notified an administrator to review your listing for approval.");

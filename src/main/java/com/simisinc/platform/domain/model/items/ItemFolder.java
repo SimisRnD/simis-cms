@@ -176,7 +176,7 @@ public class ItemFolder extends Entity {
     this.guestPrivacyType = guestPrivacyType;
   }
 
-  public boolean getHasAllowedGroups() {
+  public boolean doAllowedGroupsCheck() {
     return hasAllowedGroups || (folderGroupList != null && !folderGroupList.isEmpty());
   }
 
@@ -204,7 +204,7 @@ public class ItemFolder extends Entity {
     return null;
   }
 
-  public boolean getHasCategories() {
+  public boolean doCategoriesCheck() {
     return hasCategories || (folderCategoryList != null && !folderCategoryList.isEmpty());
   }
 

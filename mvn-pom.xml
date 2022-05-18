@@ -19,7 +19,7 @@
     <maven-checkstyle.version>10.2</maven-checkstyle.version>
     <maven-jacoco-plugin.version>0.8.8</maven-jacoco-plugin.version>
     <maven-war-plugin.version>3.3.2</maven-war-plugin.version>
-    <tomcat.version>9.0.56</tomcat.version>
+    <tomcat.version>9.0.63</tomcat.version>
     <junit.version>5.4.0</junit.version>
     <mockito.version>4.5.1</mockito.version>
     <argon2.version>2.11</argon2.version>
@@ -443,6 +443,12 @@
       <version>${mockito.version}</version>
       <scope>test</scope>
     </dependency>
+    <dependency>
+      <groupId>com.github.meanbeanlib</groupId>
+      <artifactId>meanbean</artifactId>
+      <version>3.0.0-M9</version>
+      <scope>test</scope>
+    </dependency>
   </dependencies>
   <build>
     <pluginManagement>
@@ -590,7 +596,7 @@
           </execution>
           <!--<execution>
             <id>coverage-check</id>
-            <phase>package</phase>
+            <phase>test</phase>
             <goals>
               <goal>check</goal>
             </goals>
