@@ -79,6 +79,7 @@ public class MainMenuWidget extends GenericWidget {
           MenuTab thisMenuTab = new MenuTab();
           thisMenuTab.setName(menuTab.getName());
           thisMenuTab.setLink(menuTab.getLink());
+          thisMenuTab.setIcon(menuTab.getIcon());
           // Process the sub-menu items
           if (menuTab.getMenuItemList() != null) {
             List<MenuItem> thisMenuItemList = new ArrayList<>();

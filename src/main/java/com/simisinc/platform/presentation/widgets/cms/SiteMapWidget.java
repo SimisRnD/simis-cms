@@ -16,9 +16,6 @@
 
 package com.simisinc.platform.presentation.widgets.cms;
 
-import java.lang.reflect.InvocationTargetException;
-import java.util.List;
-
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.cms.DeleteMenuTabCommand;
 import com.simisinc.platform.application.cms.LoadMenuTabsCommand;
@@ -28,11 +25,13 @@ import com.simisinc.platform.domain.model.cms.MenuTab;
 import com.simisinc.platform.infrastructure.cache.CacheManager;
 import com.simisinc.platform.infrastructure.persistence.cms.MenuItemRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.MenuTabRepository;
-
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang3.StringUtils;
+
+import java.lang.reflect.InvocationTargetException;
+import java.util.List;
 
 /**
  * Description
@@ -111,13 +110,14 @@ public class SiteMapWidget extends GenericWidget {
     for (MenuTab thisTab : menuTabList) {
       // Check for a renamed menu tab
       String name = context.getParameter("menuTab" + thisTab.getId() + "name");
-      if (StringUtils.isNotBlank(name) && !name.equals(thisTab.getName())) {
-        thisTab.setName(name);
-        try {
-          SaveMenuTabCommand.renameTab(thisTab);
-        } catch (DataException e) {
-          LOG.error("Rename tab update error: " + e.getMessage());
-        }
+      thisTab.setName(name);
+      // Update the menu tab icon
+      String icon = context.getParameter("menuTab" + thisTab.getId() + "icon");
+      thisTab.setIcon(icon);
+      try {
+        SaveMenuTabCommand.renameTab(thisTab);
+      } catch (DataException e) {
+        LOG.error("Rename tab update error: " + e.getMessage());
       }
       // Check for an added menu item
       String menuItemName = context.getParameter("menuTab" + thisTab.getId() + "menuItemName");

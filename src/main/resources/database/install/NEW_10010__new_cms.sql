@@ -31,7 +31,8 @@ CREATE TABLE menu_tabs (
   draft BOOLEAN DEFAULT false,
   enabled BOOLEAN DEFAULT true,
   role_id_list VARCHAR(50) DEFAULT NULL,
-  comments TEXT
+  comments TEXT,
+  icon VARCHAR(20)
 );
 CREATE INDEX menu_tabs_order_idx ON menu_tabs(tab_order);
 CREATE INDEX menu_tabs_active_idx ON menu_tabs(draft, enabled);

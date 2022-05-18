@@ -64,7 +64,8 @@
             </c:when>
             <c:otherwise>
               <input type="text" name="menuTab${menuTab.id}name" value="<c:out value="${menuTab.name}" />" style="margin-bottom:0"/>
-              <input type="text" name="menuTab${menuTab.id}link" value="<c:out value="${menuTab.link}" />"/>
+              <input type="text" name="menuTab${menuTab.id}link" value="<c:out value="${menuTab.link}" />" placeholder="/link" style="margin-bottom:0"/>
+              <input type="text" name="menuTab${menuTab.id}icon" value="<c:out value="${menuTab.icon}" />" placeholder="Optional icon"/>
             </c:otherwise>
           </c:choose>
         </div>
@@ -88,7 +89,8 @@
                 <div class="clear-float"></div>
                 <div>
                   <input type="text" name="menuItem${menuItem.id}name" value="<c:out value="${menuItem.name}" />" style="margin-bottom:0"/>
-                  <input type="text" name="menuItem${menuItem.id}link" value="<c:out value="${menuItem.link}" />" />
+                  <input type="text" name="menuItem${menuItem.id}link" value="<c:out value="${menuItem.link}" />" placeholder="/link" style="margin-bottom:0"/>
+                  <input type="text" name="menuItem${menuItem.id}icon" value="<c:out value="${menuItem.icon}" />" placeholder="Optional icon" />
                 </div>
               </div>
             </c:forEach>
