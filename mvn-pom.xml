@@ -40,7 +40,7 @@
     <commons-validator.version>1.7</commons-validator.version>
     <easy-flows-playbook.version>0.6-SNAPSHOT</easy-flows-playbook.version>
     <fastexcel.version>0.12.12-SNAPSHOT</fastexcel.version>
-    <flexmark.version>0.62.2</flexmark.version>
+    <flexmark.version>0.64.0</flexmark.version>
     <flyway.version>8.5.6</flyway.version>
     <geoip2.version>2.15.0</geoip2.version>
     <geojson.version>1.14</geojson.version>
@@ -59,7 +59,7 @@
     <jobrunr.version>5.1.1</jobrunr.version>
     <johnzon.version>1.1.8</johnzon.version>
     <jsoup.version>1.14.2</jsoup.version>
-    <jstl.version>1.2</jstl.version>
+    <jstl.version>1.2.5</jstl.version>
     <libphonenumber.version>8.12.40</libphonenumber.version>
     <lombok.version>1.18.22</lombok.version>
     <netty.version>4.1.77</netty.version>
@@ -332,12 +332,6 @@
       <version>${jsoup.version}</version>
     </dependency>
     <dependency>
-      <groupId>jstl</groupId>
-      <artifactId>jstl</artifactId>
-      <version>${jstl.version}</version>
-      <scope>provided</scope>
-    </dependency>
-    <dependency>
       <groupId>com.googlecode.libphonenumber</groupId>
       <artifactId>libphonenumber</artifactId>
       <version>${libphonenumber.version}</version>
@@ -412,6 +406,18 @@
       <groupId>org.slf4j</groupId>
       <artifactId>slf4j-api</artifactId>
       <version>${slf4j.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.taglibs</groupId>
+      <artifactId>taglibs-standard-spec</artifactId>
+      <version>${jstl.version}</version>
+      <scope>provided</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.apache.taglibs</groupId>
+      <artifactId>taglibs-standard-impl</artifactId>
+      <version>${jstl.version}</version>
+      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.apache.tomcat</groupId>
