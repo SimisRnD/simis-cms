@@ -16,6 +16,7 @@
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <%@ taglib prefix="js" uri="/WEB-INF/javascript-escape.tld" %>
+<%@ taglib prefix="font" uri="/WEB-INF/font-functions.tld" %>
 <%@ taglib prefix="group" uri="/WEB-INF/group-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
@@ -38,7 +39,28 @@
     <c:forEach items="${categoryList}" var="category">
     <tr>
       <td>
-        <a href="${ctx}/admin/category?categoryId=${category.id}"><c:out value="${category.name}" /></a>
+        <c:choose>
+          <c:when test="${!empty category.headerBgColor && !empty category.headerTextColor}">
+            <c:choose>
+              <c:when test="${!empty category.icon}">
+                <span class="padding-10 padding-width-10 margin-right-10" style="background-color:<c:out value="${category.headerBgColor}" />;color:<c:out value="${category.headerTextColor}" />">
+                  <i class="${font:far()} fa-fw fa-<c:out value="${category.icon}" />"></i>
+                </span>
+              </c:when>
+              <c:otherwise>
+              <span class="padding-10 padding-width-10 margin-right-10" style="background-color:<c:out value="${category.headerBgColor}" />;color:<c:out value="${category.headerTextColor}" />">
+                <i class="${font:far()} fa-fw"></i>
+              </span>
+              </c:otherwise>
+            </c:choose>
+          </c:when>
+          <c:otherwise>
+            <span class="padding-10 padding-width-10 margin-right-10">
+              <i class="${font:far()} fa-fw"></i>
+            </span>
+          </c:otherwise>
+        </c:choose>
+        <a href="${ctx}/admin/category?collectionId=${collection.id}&categoryId=${category.id}"><c:out value="${category.name}" /></a>
         <a href="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&categoryId=${category.id}" onclick="return confirm('Are you sure you want to delete <c:out value="${js:escape(category.name)}" />?');"><i class="fa fa-remove"></i></a>
         <c:if test="${!empty category.description}">
           <br /><small><c:out value="${category.description}" /></small>

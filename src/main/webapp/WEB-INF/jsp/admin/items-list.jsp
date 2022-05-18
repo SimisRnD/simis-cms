@@ -18,17 +18,37 @@
 <%@ taglib prefix="font" uri="/WEB-INF/font-functions.tld" %>
 <%@ taglib prefix="js" uri="/WEB-INF/javascript-escape.tld" %>
 <%@ taglib prefix="group" uri="/WEB-INF/group-functions.tld" %>
+<%@ taglib prefix="collection" uri="/WEB-INF/collection-functions.tld" %>
+<%@ taglib prefix="category" uri="/WEB-INF/category-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="collection" class="com.simisinc.platform.domain.model.items.Collection" scope="request"/>
+<jsp:useBean id="categoryMap" class="java.util.HashMap" scope="request"/>
 <jsp:useBean id="itemList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="recordPaging" class="com.simisinc.platform.infrastructure.database.DataConstraints" scope="request"/>
 <jsp:useBean id="columns" class="java.lang.String" scope="request"/>
+<style>
+  .admin-item-list .item-image, .admin-item-list .item-icon {
+      float: left;
+  }
+  .admin-item-list a {
+      float: left;
+      margin-top: 8px;
+      display: -webkit-box;
+      -webkit-line-clamp: 1;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      text-decoration: none;
+      word-break: break-word;
+      position: static!important;
+      max-width: 85%;
+  }
+</style>
 <c:if test="${!empty title}">
   <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
 <%@include file="../page_messages.jspf" %>
-<table class="unstriped">
+<table class="unstriped admin-item-list">
   <thead>
   <tr>
     <th>Name</th>
@@ -44,6 +64,7 @@
   </thead>
   <tbody>
   <c:forEach items="${itemList}" var="item">
+    <c:set var="category" scope="request" value="${categoryMap.get(item.categoryId)}"/>
     <tr>
       <td>
         <c:choose>
@@ -52,8 +73,22 @@
               <img alt="item image" src="<c:out value="${item.imageUrl}"/>" />
             </div>
           </c:when>
+          <c:when test="${!empty category.headerBgColor && !empty category.headerTextColor}">
+            <c:choose>
+              <c:when test="${!empty category.icon}">
+                <span class="item-icon padding-10 padding-width-10 margin-right-10" style="background-color:<c:out value="${category.headerBgColor}" />;color:<c:out value="${category.headerTextColor}" />">
+                  <i class="${font:far()} fa-fw fa-<c:out value="${category.icon}" />"></i>
+                </span>
+              </c:when>
+              <c:otherwise>
+              <span class="item-icon padding-10 padding-width-10 margin-right-10" style="background-color:<c:out value="${category.headerBgColor}" />;color:<c:out value="${category.headerTextColor}" />">
+                <i class="${font:far()} fa-fw"></i>
+              </span>
+              </c:otherwise>
+            </c:choose>
+          </c:when>
           <c:when test="${!empty collection.icon}">
-            <i class="${font:fad()} fa-<c:out value="${collection.icon}" />"></i>
+            <i class="item-icon ${font:fad()} fa-<c:out value="${collection.icon}" />"></i>
           </c:when>
         </c:choose>
         <a href="${ctx}/show/${item.uniqueId}" translate="no"><c:out value="${item.name}" /></a>

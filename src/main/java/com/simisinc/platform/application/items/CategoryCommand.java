@@ -17,8 +17,10 @@
 package com.simisinc.platform.application.items;
 
 import com.simisinc.platform.domain.model.items.Category;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.apache.commons.text.StringEscapeUtils;
 
 /**
  * Methods to display category object information
@@ -36,6 +38,28 @@ public class CategoryCommand {
       return null;
     }
     return category.getName();
+  }
+
+  public static String icon(Long categoryId) {
+    Category category = LoadCategoryCommand.loadCategoryById(categoryId);
+    if (category == null) {
+      return null;
+    }
+    if (StringUtils.isBlank(category.getIcon())) {
+      return null;
+    }
+    return category.getIcon();
+  }
+
+  public static String headerColorCSS(Long categoryId) {
+    Category category = LoadCategoryCommand.loadCategoryById(categoryId);
+    if (category == null) {
+      return null;
+    }
+    if (StringUtils.isBlank(category.getHeaderTextColor()) || StringUtils.isBlank(category.getHeaderBgColor())) {
+      return null;
+    }
+    return "background-color:" + StringEscapeUtils.escapeXml11(category.getHeaderBgColor()) + ";color:" + StringEscapeUtils.escapeXml11(category.getHeaderTextColor());
   }
 
 }

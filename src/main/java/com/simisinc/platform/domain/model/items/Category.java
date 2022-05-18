@@ -33,6 +33,9 @@ public class Category extends Entity {
   private long collectionId = -1L;
   private String name = null;
   private String description = null;
+  private String icon = null;
+  private String headerTextColor = null;
+  private String headerBgColor = null;
   private long createdBy = -1;
   private Timestamp created = null;
   private Timestamp modified = null;
@@ -71,6 +74,30 @@ public class Category extends Entity {
 
   public void setDescription(String description) {
     this.description = description;
+  }
+
+  public String getIcon() {
+    return icon;
+  }
+
+  public void setIcon(String icon) {
+    this.icon = icon;
+  }
+
+  public String getHeaderTextColor() {
+    return headerTextColor;
+  }
+
+  public void setHeaderTextColor(String headerTextColor) {
+    this.headerTextColor = headerTextColor;
+  }
+
+  public String getHeaderBgColor() {
+    return headerBgColor;
+  }
+
+  public void setHeaderBgColor(String headerBgColor) {
+    this.headerBgColor = headerBgColor;
   }
 
   public long getCreatedBy() {

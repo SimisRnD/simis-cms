@@ -150,7 +150,10 @@ public class CategoryRepository {
         .add("collection_id", record.getCollectionId())
         .add("name", StringUtils.trimToNull(record.getName()))
         .add("description", StringUtils.trimToNull(record.getDescription()))
-        .add("created_by", record.getCreatedBy());
+        .add("created_by", record.getCreatedBy())
+        .add("icon", StringUtils.trimToNull(record.getIcon()))
+        .addIfExists("header_text_color", record.getHeaderTextColor())
+        .addIfExists("header_bg_color", record.getHeaderBgColor());
     try {
       try (Connection connection = DB.getConnection();
            AutoStartTransaction a = new AutoStartTransaction(connection);
@@ -173,6 +176,9 @@ public class CategoryRepository {
     SqlUtils updateValues = new SqlUtils()
         .add("name", StringUtils.trimToNull(record.getName()))
         .add("description", StringUtils.trimToNull(record.getDescription()))
+        .add("icon", StringUtils.trimToNull(record.getIcon()))
+        .add("header_text_color", StringUtils.trimToNull(record.getHeaderTextColor()))
+        .add("header_bg_color", StringUtils.trimToNull(record.getHeaderBgColor()))
         .add("modified", new Timestamp(System.currentTimeMillis()));
     SqlUtils where = new SqlUtils()
         .add("category_id = ?", record.getId());
@@ -219,6 +225,9 @@ public class CategoryRepository {
       record.setCreated(rs.getTimestamp("created"));
       record.setModified(rs.getTimestamp("modified"));
       record.setItemCount(rs.getLong("item_count"));
+      record.setIcon(rs.getString("icon"));
+      record.setHeaderTextColor(rs.getString("header_text_color"));
+      record.setHeaderBgColor(rs.getString("header_bg_color"));
       return record;
     } catch (SQLException se) {
       LOG.error("buildRecord", se);

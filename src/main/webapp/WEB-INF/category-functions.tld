@@ -28,4 +28,20 @@
         <function-class>com.simisinc.platform.application.items.CategoryCommand</function-class>
         <function-signature>java.lang.String text(java.lang.Long)</function-signature>
     </function>
+    <function>
+        <description>
+            Returns icon value of a categoryId
+        </description>
+        <name>icon</name>
+        <function-class>com.simisinc.platform.application.items.CategoryCommand</function-class>
+        <function-signature>java.lang.String icon(java.lang.Long)</function-signature>
+    </function>
+    <function>
+        <description>
+            Returns icon value of a categoryId
+        </description>
+        <name>headerColorCSS</name>
+        <function-class>com.simisinc.platform.application.items.CategoryCommand</function-class>
+        <function-signature>java.lang.String headerColorCSS(java.lang.Long)</function-signature>
+    </function>
 </taglib>
