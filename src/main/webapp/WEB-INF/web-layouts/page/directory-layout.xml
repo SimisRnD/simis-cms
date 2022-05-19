@@ -1,27 +1,6 @@
 <?xml version="1.0" ?>
 <pages>
 
-  <!-- Data Directory -->
-  <page name="/directories" title="Directories" class="full-page">
-    <section class="grid-x grid-margin-x platform-no-margin">
-      <column class="small-12 cell">
-        <widget name="content" class="text-center padding-top-30">
-          <html><![CDATA[
-<h1>Directories</h1>
-<p>Choose a directory to discover content and to collaborate with others</p>
-]]></html>
-        </widget>
-      </column>
-    </section>
-    <section>
-      <column class="grid-container">
-        <widget name="directory">
-          <view>cards</view>
-        </widget>
-      </column>
-    </section>
-  </page>
-
   <page name="/directory{/collectionUniqueId}" collectionUniqueId="/directory/*" class="full-page">
     <section class="grid-x grid-margin-x platform-no-margin">
       <column class="small-12 cell">
