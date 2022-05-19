@@ -25,6 +25,7 @@
 <jsp:useBean id="calendarEventList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="calendarEvent" class="com.simisinc.platform.domain.model.cms.CalendarEvent" scope="request"/>
 <jsp:useBean id="calendarUniqueId" class="java.lang.String" scope="request"/>
+<jsp:useBean id="defaultView" class="java.lang.String" scope="request"/>
 <jsp:useBean id="height" class="java.lang.String" scope="request"/>
 <%-- Full Calendar --%>
 <link rel="stylesheet" href="${ctx}/javascript/fullcalendar-3.10.3/fullcalendar.min.css" />
@@ -110,7 +111,7 @@
           titleFormat: 'MMMM YYYY'
         },
         week: {
-          titleFormat: "MMMM D YYYY"
+          titleFormat: "MMMM D, YYYY"
         },
         day: {
           titleFormat: 'D MMM, YYYY'
@@ -212,7 +213,11 @@
             if (event.id <= 0) {
                 return;
             }
-            window.location.href='${ctx}/calendar-event/' + event.uniqueId + '?returnPage=${widgetContext.uri}';
+            if (event.detailsUrl.indexOf('/') == 0) {
+              window.location.href='${ctx}' + event.detailsUrl + '?returnPage=${widgetContext.uri}';
+            } else {
+              window.location.href='${ctx}/calendar-event/' + event.uniqueId + '?returnPage=${widgetContext.uri}';
+            }
             <%--
             if (event.detailsUrl) {
               window.open(event.detailsUrl);

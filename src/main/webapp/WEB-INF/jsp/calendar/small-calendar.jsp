@@ -25,6 +25,7 @@
 <jsp:useBean id="calendarEventList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="calendarEvent" class="com.simisinc.platform.domain.model.cms.CalendarEvent" scope="request"/>
 <jsp:useBean id="calendarUniqueId" class="java.lang.String" scope="request"/>
+<jsp:useBean id="defaultView" class="java.lang.String" scope="request"/>
 <jsp:useBean id="height" class="java.lang.String" scope="request"/>
 <%-- Full Calendar --%>
 <link rel="stylesheet" href="${ctx}/javascript/fullcalendar-3.10.3/fullcalendar.min.css" />
@@ -73,13 +74,32 @@
 
   $(function () {
     $('#calendar-small').fullCalendar({
-      header: {
-        left: 'title',
-        center: '',
-        // right:  'month,agendaWeek,agendaDay,listWeek today prev,next'
-        right:  'month,listWeek,agendaDay today prev,next'
-      },
-      defaultView: 'month',
+      <c:choose>
+        <c:when test="${defaultView eq 'list'}">
+          header: {
+            left: 'title',
+            center: '',
+            right:  'listWeek,agendaDay,month today prev,next'
+          },
+          defaultView: 'listWeek',
+        </c:when>
+        <c:when test="${defaultView eq 'day'}">
+          header: {
+            left: 'title',
+            center: '',
+            right:  'agendaDay,listWeek,month today prev,next'
+          },
+          defaultView: 'agendaDay',
+        </c:when>
+        <c:otherwise>
+          header: {
+            left: 'title',
+            center: '',
+            right:  'month,listWeek,agendaDay today prev,next'
+          },
+          defaultView: 'month',
+        </c:otherwise>
+      </c:choose>
       selectable: false,
       selectHelper: false,
       // aspectRatio: 1,
@@ -100,9 +120,13 @@
       eventClick: function(event) {
         // Determine if this event has a page
         if (event.id <= 0) {
-            return;
+          return;
         }
-        window.location.href='${ctx}/calendar-event/' + event.uniqueId + '?returnPage=${widgetContext.uri}';
+        if (event.detailsUrl.indexOf('/') == 0) {
+          window.location.href='${ctx}' + event.detailsUrl + '?returnPage=${widgetContext.uri}';
+        } else {
+          window.location.href='${ctx}/calendar-event/' + event.uniqueId + '?returnPage=${widgetContext.uri}';
+        }
         <%--
         if (event.detailsUrl) {
           window.open(event.detailsUrl);
