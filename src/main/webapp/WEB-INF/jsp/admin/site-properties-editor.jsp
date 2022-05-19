@@ -111,11 +111,15 @@
               <select name="${siteProperty.name}">
                 <option value=""<c:if test="${siteProperty.value eq ''}"> selected</c:if>>Default (Use CSS)</option>
                 <option value="abel"<c:if test="${siteProperty.value eq 'abel'}"> selected</c:if>>Abel</option>
+                <option value="bakbak-one"<c:if test="${siteProperty.value eq 'bakbak-one'}"> selected</c:if>>Bakbak One</option>
+                <option value="inter"<c:if test="${siteProperty.value eq 'inter'}"> selected</c:if>>Inter</option>
                 <option value="lato"<c:if test="${siteProperty.value eq 'lato'}"> selected</c:if>>Lato</option>
                 <option value="libre-baskerville"<c:if test="${siteProperty.value eq 'libre-baskerville'}"> selected</c:if>>Libre Baskerville</option>
                 <option value="muli"<c:if test="${siteProperty.value eq 'muli'}"> selected</c:if>>Muli</option>
                 <option value="open-sans"<c:if test="${siteProperty.value eq 'open-sans'}"> selected</c:if>>Open Sans</option>
                 <option value="oswald"<c:if test="${siteProperty.value eq 'oswald'}"> selected</c:if>>Oswald</option>
+                <option value="oxygen"<c:if test="${siteProperty.value eq 'oxygen'}"> selected</c:if>>Oxygen</option>
+                <option value="poppins"<c:if test="${siteProperty.value eq 'poppins'}"> selected</c:if>>Poppins</option>
                 <option value="questrial"<c:if test="${siteProperty.value eq 'questrial'}"> selected</c:if>>Questrial</option>
                 <option value="rubik"<c:if test="${siteProperty.value eq 'rubik'}"> selected</c:if>>Rubik</option>
                 <option value="source-sans-pro"<c:if test="${siteProperty.value eq 'source-sans-pro'}"> selected</c:if>>Source Sans Pro</option>

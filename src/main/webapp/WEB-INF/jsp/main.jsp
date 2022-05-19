@@ -111,30 +111,38 @@
           .no-js .title-bar { display: none; }
         }
         <c:if test="${!empty themePropertyMap['theme.fonts.body']}">
-        <c:choose>
-          <c:when test="${themePropertyMap['theme.fonts.body'] eq 'abel'}">body { font-family: 'Abel', sans-serif;font-weight: 400; }</c:when>
-          <c:when test="${themePropertyMap['theme.fonts.body'] eq 'lato'}">body { font-family: 'Lato', sans-serif;font-weight: 400; }</c:when>
-          <c:when test="${themePropertyMap['theme.fonts.body'] eq 'libre-baskerville'}">body { font-family: 'Libre Baskerville', serif;font-weight: 400; }</c:when>
-          <c:when test="${themePropertyMap['theme.fonts.body'] eq 'muli'}">body { font-family: 'Muli', sans-serif;font-weight: 400; }</c:when>
-          <c:when test="${themePropertyMap['theme.fonts.body'] eq 'open-sans'}">body { font-family: 'Open Sans', sans-serif;font-weight: 400; }</c:when>
-          <c:when test="${themePropertyMap['theme.fonts.body'] eq 'oswald'}">body { font-family: 'Oswald', sans-serif;font-weight: 400; }</c:when>
-          <c:when test="${themePropertyMap['theme.fonts.body'] eq 'questrial'}">body { font-family: 'Questrial', sans-serif;font-weight: 400; }</c:when>
-          <c:when test="${themePropertyMap['theme.fonts.body'] eq 'rubik'}">body { font-family: 'Rubik', sans-serif;font-weight: 400; }</c:when>
-          <c:when test="${themePropertyMap['theme.fonts.body'] eq 'source-sans-pro'}">body { font-family: 'Source Sans Pro', sans-serif;font-weight: 400; }</c:when>
-        </c:choose>
+          <c:choose>
+            <c:when test="${themePropertyMap['theme.fonts.body'] eq 'abel'}">body { font-family: 'Abel', sans-serif;font-weight: 400; }</c:when>
+            <c:when test="${themePropertyMap['theme.fonts.body'] eq 'bakbak-one'}">body { font-family: 'Bakbak One', sans-serif;font-weight: 400; }</c:when>
+            <c:when test="${themePropertyMap['theme.fonts.body'] eq 'inter'}">body { font-family: 'Inter', sans-serif;font-weight: 400; }</c:when>
+            <c:when test="${themePropertyMap['theme.fonts.body'] eq 'lato'}">body { font-family: 'Lato', sans-serif;font-weight: 400; }</c:when>
+            <c:when test="${themePropertyMap['theme.fonts.body'] eq 'libre-baskerville'}">body { font-family: 'Libre Baskerville', serif;font-weight: 400; }</c:when>
+            <c:when test="${themePropertyMap['theme.fonts.body'] eq 'muli'}">body { font-family: 'Muli', sans-serif;font-weight: 400; }</c:when>
+            <c:when test="${themePropertyMap['theme.fonts.body'] eq 'open-sans'}">body { font-family: 'Open Sans', sans-serif;font-weight: 400; }</c:when>
+            <c:when test="${themePropertyMap['theme.fonts.body'] eq 'oswald'}">body { font-family: 'Oswald', sans-serif;font-weight: 400; }</c:when>
+            <c:when test="${themePropertyMap['theme.fonts.body'] eq 'oxygen'}">body { font-family: 'Oxygen', sans-serif;font-weight: 400; }</c:when>
+            <c:when test="${themePropertyMap['theme.fonts.body'] eq 'poppins'}">body { font-family: 'Poppins', sans-serif;font-weight: 400; }</c:when>
+            <c:when test="${themePropertyMap['theme.fonts.body'] eq 'questrial'}">body { font-family: 'Questrial', sans-serif;font-weight: 400; }</c:when>
+            <c:when test="${themePropertyMap['theme.fonts.body'] eq 'rubik'}">body { font-family: 'Rubik', sans-serif;font-weight: 400; }</c:when>
+            <c:when test="${themePropertyMap['theme.fonts.body'] eq 'source-sans-pro'}">body { font-family: 'Source Sans Pro', sans-serif;font-weight: 400; }</c:when>
+          </c:choose>
         </c:if>
         <c:if test="${!empty themePropertyMap['theme.fonts.headlines']}">
-        <c:choose>
-          <c:when test="${themePropertyMap['theme.fonts.headlines'] eq 'abel'}">h1, h2, h3, h4, h5, h6 { font-family: 'Abel', sans-serif;font-weight: 400; }</c:when>
-          <c:when test="${themePropertyMap['theme.fonts.headlines'] eq 'lato'}">h1, h2, h3, h4, h5, h6 { font-family: 'Lato', sans-serif;font-weight: 400; }</c:when>
-          <c:when test="${themePropertyMap['theme.fonts.headlines'] eq 'libre-baskerville'}">h1, h2, h3, h4, h5, h6 { font-family: 'Libre Baskerville', serif;font-weight: 400; }</c:when>
-          <c:when test="${themePropertyMap['theme.fonts.headlines'] eq 'muli'}">h1, h2, h3, h4, h5, h6 { font-family: 'Muli', sans-serif;font-weight: 400; }</c:when>
-          <c:when test="${themePropertyMap['theme.fonts.headlines'] eq 'open-sans'}">h1, h2, h3, h4, h5, h6 { font-family: 'Open Sans', sans-serif;font-weight: 400; }</c:when>
-          <c:when test="${themePropertyMap['theme.fonts.headlines'] eq 'oswald'}">h1, h2, h3, h4, h5, h6 { font-family: 'Oswald', sans-serif;font-weight: 400; }</c:when>
-          <c:when test="${themePropertyMap['theme.fonts.headlines'] eq 'questrial'}">h1, h2, h3, h4, h5, h6 { font-family: 'Questrial', sans-serif;font-weight: 400; }</c:when>
-          <c:when test="${themePropertyMap['theme.fonts.headlines'] eq 'rubik'}">h1, h2, h3, h4, h5, h6 { font-family: 'Rubik', sans-serif;font-weight: 400; }</c:when>
-          <c:when test="${themePropertyMap['theme.fonts.headlines'] eq 'source-sans-pro'}">h1, h2, h3, h4, h5, h6 { font-family: 'Source Sans Pro', sans-serif;font-weight: 400; }</c:when>
-        </c:choose>
+          <c:choose>
+            <c:when test="${themePropertyMap['theme.fonts.headlines'] eq 'abel'}">h1, h2, h3, h4, h5, h6 { font-family: 'Abel', sans-serif;font-weight: 400; }</c:when>
+            <c:when test="${themePropertyMap['theme.fonts.headlines'] eq 'bakbak-one'}">h1, h2, h3, h4, h5, h6 { font-family: 'Bakbak One', sans-serif;font-weight: 400; }</c:when>
+            <c:when test="${themePropertyMap['theme.fonts.headlines'] eq 'inter'}">h1, h2, h3, h4, h5, h6 { font-family: 'Inter', sans-serif;font-weight: 400; }</c:when>
+            <c:when test="${themePropertyMap['theme.fonts.headlines'] eq 'lato'}">h1, h2, h3, h4, h5, h6 { font-family: 'Lato', sans-serif;font-weight: 400; }</c:when>
+            <c:when test="${themePropertyMap['theme.fonts.headlines'] eq 'libre-baskerville'}">h1, h2, h3, h4, h5, h6 { font-family: 'Libre Baskerville', serif;font-weight: 400; }</c:when>
+            <c:when test="${themePropertyMap['theme.fonts.headlines'] eq 'muli'}">h1, h2, h3, h4, h5, h6 { font-family: 'Muli', sans-serif;font-weight: 400; }</c:when>
+            <c:when test="${themePropertyMap['theme.fonts.headlines'] eq 'open-sans'}">h1, h2, h3, h4, h5, h6 { font-family: 'Open Sans', sans-serif;font-weight: 400; }</c:when>
+            <c:when test="${themePropertyMap['theme.fonts.headlines'] eq 'oswald'}">h1, h2, h3, h4, h5, h6 { font-family: 'Oswald', sans-serif;font-weight: 400; }</c:when>
+            <c:when test="${themePropertyMap['theme.fonts.headlines'] eq 'oxygen'}">h1, h2, h3, h4, h5, h6 { font-family: 'Oxygen', sans-serif;font-weight: 400; }</c:when>
+            <c:when test="${themePropertyMap['theme.fonts.headlines'] eq 'poppins'}">h1, h2, h3, h4, h5, h6 { font-family: 'Poppins', sans-serif;font-weight: 400; }</c:when>
+            <c:when test="${themePropertyMap['theme.fonts.headlines'] eq 'questrial'}">h1, h2, h3, h4, h5, h6 { font-family: 'Questrial', sans-serif;font-weight: 400; }</c:when>
+            <c:when test="${themePropertyMap['theme.fonts.headlines'] eq 'rubik'}">h1, h2, h3, h4, h5, h6 { font-family: 'Rubik', sans-serif;font-weight: 400; }</c:when>
+            <c:when test="${themePropertyMap['theme.fonts.headlines'] eq 'source-sans-pro'}">h1, h2, h3, h4, h5, h6 { font-family: 'Source Sans Pro', sans-serif;font-weight: 400; }</c:when>
+          </c:choose>
         </c:if>
         <c:if test="${!empty themePropertyMap['theme.body.text.color']}">body{color:<c:out value="${themePropertyMap['theme.body.text.color']}" />}</c:if>
         <c:if test="${!empty themePropertyMap['theme.body.backgroundColor']}">body{background-color:<c:out value="${themePropertyMap['theme.body.backgroundColor']}" />}</c:if>
