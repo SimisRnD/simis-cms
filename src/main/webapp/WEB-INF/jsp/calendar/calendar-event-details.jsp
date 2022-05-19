@@ -133,10 +133,24 @@
       <p class="platform-calendar-event-buttons">
         <i class="fa fa-fw"></i>
         <c:if test="${!empty calendarEvent.detailsUrl}">
-          <a class="button primary" target="_blank" href="<c:out value="${calendarEvent.detailsUrl}" />">Learn More</a>
+          <c:choose>
+            <c:when test="${fn:startsWith(calendarEvent.detailsUrl, 'http://') || fn:startsWith(calendarEvent.detailsUrl, 'https://')}">
+              <a class="button primary" target="_blank" href="<c:out value="${calendarEvent.detailsUrl}" />">Learn More</a>
+            </c:when>
+            <c:otherwise>
+              <a class="button primary" href="<c:out value="${ctx}${calendarEvent.detailsUrl}" />">View Details</a>
+            </c:otherwise>
+          </c:choose>
         </c:if>
         <c:if test="${!empty calendarEvent.signUpUrl}">
-          <a class="button primary" target="_blank" href="<c:out value="${calendarEvent.signUpUrl}" />">Sign Up Page</a>
+          <c:choose>
+            <c:when test="${fn:startsWith(calendarEvent.signUpUrl, 'http://') || fn:startsWith(calendarEvent.signUpUrl, 'https://')}">
+              <a class="button primary" target="_blank" href="<c:out value="${calendarEvent.signUpUrl}" />">Sign Up Page</a>
+            </c:when>
+            <c:otherwise>
+              <a class="button primary" href="<c:out value="${ctx}${calendarEvent.signUpUrl}" />">Sign Up Page</a>
+            </c:otherwise>
+          </c:choose>
         </c:if>
       </p>
     </c:if>
