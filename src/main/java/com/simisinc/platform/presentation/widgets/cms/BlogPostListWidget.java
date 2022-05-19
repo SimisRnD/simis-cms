@@ -44,6 +44,7 @@ public class BlogPostListWidget extends GenericWidget {
   static String OVERVIEW_JSP = "/cms/blog-post-list-overview.jsp";
   static String TITLES_JSP = "/cms/blog-post-list-titles.jsp";
   static String CARDS_JSP = "/cms/blog-post-list-cards.jsp";
+  static String FEATURED_JSP = "/cms/blog-post-list-featured.jsp";
   static String MASONRY_JSP = "/cms/blog-post-list-masonry.jsp";
 
   public WidgetContext execute(WidgetContext context) {
@@ -81,9 +82,12 @@ public class BlogPostListWidget extends GenericWidget {
     // Check for a type: recent
     String type = context.getPreferences().get("type");
 
+    // Check for the view
+    String view = context.getPreferences().getOrDefault("view", "default");
+
     // Determine the record paging
     int limit = Integer.parseInt(context.getPreferences().getOrDefault("limit", "10"));
-    if ("masonry".equals(context.getPreferences().get("view"))) {
+    if ("masonry".equals(view)) {
       limit = Integer.parseInt(context.getPreferences().getOrDefault("limit", "50"));
     }
     int page = context.getParameterAsInt("page", 1);
@@ -140,12 +144,12 @@ public class BlogPostListWidget extends GenericWidget {
     }
 
     // Show the editor
-    if ("overview".equals(context.getPreferences().get("view"))) {
+    if ("overview".equals(view)) {
       context.setJsp(OVERVIEW_JSP);
-    } else if ("titles".equals(context.getPreferences().get("view"))) {
+    } else if ("titles".equals(view)) {
       context.getRequest().setAttribute("showBullets", context.getPreferences().getOrDefault("showBullets", "false"));
       context.setJsp(TITLES_JSP);
-    } else if ("cards".equals(context.getPreferences().get("view"))) {
+    } else if ("cards".equals(view)) {
 
       // Determine the number of cards to use across
       String smallCardCount = context.getPreferences().get("smallCardCount");
@@ -166,8 +170,10 @@ public class BlogPostListWidget extends GenericWidget {
       context.getRequest().setAttribute("cardClass", context.getPreferences().get("cardClass"));
 
       context.setJsp(CARDS_JSP);
-    } else if ("masonry".equals(context.getPreferences().get("view"))) {
+    } else if ("masonry".equals(view)) {
       context.setJsp(MASONRY_JSP);
+    } else if ("featured".equals(view)) {
+      context.setJsp(FEATURED_JSP);
     } else {
       context.setJsp(JSP);
     }
