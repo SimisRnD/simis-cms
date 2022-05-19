@@ -57,7 +57,7 @@
   <div class="input-group no-gap">
     <input id="input${widgetContext.uniqueId}" class="input-group-field" type="search"<c:if test="${expand ne 'true'}"> placeholder="<c:out value="${placeholder}" />"</c:if> name="query">
     <div class="input-group-button">
-      <button id="button${widgetContext.uniqueId}" type="button" class="button search"><i id="icon${widgetContext.uniqueId}" class="fa fa-search"></i></button>
+      <button id="button${widgetContext.uniqueId}" type="submit" class="button search"><i id="icon${widgetContext.uniqueId}" class="fa fa-search"></i></button>
     </div>
   </div>
 </form>
