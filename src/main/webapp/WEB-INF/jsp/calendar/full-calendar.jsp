@@ -28,10 +28,11 @@
 <jsp:useBean id="defaultView" class="java.lang.String" scope="request"/>
 <jsp:useBean id="height" class="java.lang.String" scope="request"/>
 <%-- Full Calendar --%>
-<link rel="stylesheet" href="${ctx}/javascript/fullcalendar-3.10.3/fullcalendar.min.css" />
+<link rel="stylesheet" href="${ctx}/javascript/fullcalendar-5.11.0/main.min.css" />
 <link rel="stylesheet" href="${ctx}/css/platform-calendar.css?v=<%= VERSION %>" />
-<script src="${ctx}/javascript/fullcalendar-3.10.3/moment.min.js"></script>
-<script src="${ctx}/javascript/fullcalendar-3.10.3/fullcalendar.min.js"></script>
+<script src="${ctx}/javascript/fullcalendar-5.11.0/moment-2.27.0.min.js"></script>
+<script src="${ctx}/javascript/fullcalendar-5.11.0/main.min.js"></script>
+<script src="${ctx}/javascript/fullcalendar-5.11.0/fc-plugin-moment-5.5.0.min.js"></script>
 <c:if test="${(userSession.hasRole('admin') || userSession.hasRole('content-manager'))}">
 <style>
   .fc-day:hover{
@@ -56,78 +57,87 @@
 <div id="calendar"><c:if test="${(userSession.hasRole('admin') || userSession.hasRole('content-manager'))}"><small><i class="fa fa-calendar-plus-o"></i> Select a date range to create events</small></c:if></div>
 <div id="tooltip" class="tooltip top align-center under-reveal" style="display:none"></div>
 <script>
-  function showTooltip(data, event) {
-    <%-- Change the tooltip content --%>
-    var content = "<h5>" + data.title+"</h5>";
-    if (data.allDay === undefined || !data.allDay) {
+  function showTooltip(el, event) {
+    let content = "<h5>" + event.title+"</h5>";
+    if (event.allDay === undefined || !event.allDay) {
       content += "<p>";
-      content += data.start.format("LT") + "-";
-      content += data.end.format("LT");
+      content += moment(event.start).format("LT") + " - " + moment(event.end).format("LT");
       content += "</p>";
     }
-    if (data.location) {
-      content += "<p><i class='fa fa-map-marker'></i> " + data.location + "</p>";
+    if (event.extendedProps.location) {
+      content += "<p><i class='fa fa-map-marker'></i> " + event.extendedProps.location + "</p>";
     }
-    if (data.description || data.detailsUrl) {
+    if (event.extendedProps.description || event.extendedProps.detailsUrl) {
       content += "<p class='no-gap'>(click for more details)</p>";
     }
-    <%--
-    // if (data.description) {
-    //   content += "<p>" + data.description + "</p>";
-    // }
-    // if (data.detailsUrl) {
-    //   content += "Web page <i class='fa fa-external-link'></i>";
-    // }
-    --%>
     $("#tooltip").html(content);
+    let ttHeight = $("#tooltip").outerHeight();
+    let ttWidth = $("#tooltip").outerWidth();
+
     <%-- Center and show it --%>
-    var element = $(event.target).closest('.fc-event');
-    var top = element.offset().top;
-    var left = element.offset().left;
-    var width = element.outerWidth();
-    var tHeight = $("#tooltip").outerHeight();
-    var tWidth = $("#tooltip").outerWidth();
-    $('#tooltip').css({top: top - tHeight - 12, left: left + (width/2) - (tWidth/2)});
-    // $('#tooltip').fadeIn(300);
-    $('#tooltip').show();
+    let parentLeft = Math.round($('#calendar-small').parent().offset().left);
+    let calendarTop = $('#calendar-small').offset().top;
+    let calendarLeft = $('#calendar-small').offset().left;
+    let elTop = $(el).offset().top;
+    let elLeft = Math.round($(el).offset().left);
+    let tdLeft = Math.round($(el).closest('td').offset().left);
+    let tdWidth = Math.round($(el).closest('td').outerWidth());
+    let top = Math.round(elTop - calendarTop - ttHeight + 8);
+    let zero = Math.round(calendarLeft - parentLeft);
+    let left = zero + tdLeft - calendarLeft + (tdWidth/2) - (ttWidth/2);
+    $('#tooltip').css({top: top, left: left});
+    $('#tooltip').fadeIn(200);
+    // $('#tooltip').show();
   }
 
-  $(function () {
-    $('#calendar').fullCalendar({
-      header: {
-        left: 'title',
+  <c:choose>
+    <c:when test="${defaultView eq 'list'}">
+      <c:set var="initialView" scope="request" value="listWeek" />
+      <c:set var="optionOrder" scope="request" value="listWeek,dayGridMonth" />
+    </c:when>
+    <c:when test="${defaultView eq 'day'}">
+      <c:set var="initialView" scope="request" value="timeGrid" />
+      <c:set var="optionOrder" scope="request" value="timeGrid,dayGridMonth" />
+    </c:when>
+    <c:otherwise>
+      <c:set var="initialView" scope="request" value="dayGridMonth" />
+      <c:set var="optionOrder" scope="request" value="dayGridMonth,listWeek" />
+    </c:otherwise>
+  </c:choose>
+
+  document.addEventListener('DOMContentLoaded', function() {
+    let calendarEl = document.getElementById('calendar');
+    let calendar = new FullCalendar.Calendar(calendarEl, {
+      initialView: '${initialView}',
+      <c:if test="${!empty height}">height: <c:out value="${height}" />,</c:if>
+      aspectRatio: 2,
+      headerToolbar: {
+        start: 'title',
         center: '',
-        right:  'today prev,next'
+        end: '${optionOrder} today prev,next'
       },
-      // defaultView: 'listWeek',
-      // defaultView: 'timelineDay',
+      buttonText: {
+        today:    'Today',
+        month:    'Month',
+        week:     'Week',
+        day:      'Day',
+        list:     'List',
+        timeGrid: 'Day'
+      },
       <c:if test="${(userSession.hasRole('admin') || userSession.hasRole('content-manager'))}">
         selectable: true,
       </c:if>
-      // eventLimit: true,
-      height: <c:out value="${height}" />,
-      views: {
-        month: {
-          titleFormat: 'MMMM YYYY'
-        },
-        week: {
-          titleFormat: "MMMM D, YYYY"
-        },
-        day: {
-          titleFormat: 'D MMM, YYYY'
-        }
-      },
       <c:if test="${(userSession.hasRole('admin') || userSession.hasRole('content-manager'))}">
-        select: function (start, end) {
-          if (start) {
+        select: function (info) {
+          if (info.start) {
             document.getElementById("calendarEventForm").reset();
             document.getElementById('formTitle').innerHTML = "Add an Event";
             document.getElementById('id').value = "-1";
-            document.getElementById('startDate').value = start.format('MM-DD-YYYY') + ' 08:00';
-            if (end) {
-              document.getElementById('endDate').value = end.subtract(1, 'days').format('MM-DD-YYYY') + ' 17:00';
+            document.getElementById('startDate').value = moment(info.start).format("MM-DD-YYYY") + ' 08:00';
+            if (info.end) {
+              document.getElementById('endDate').value = moment(info.end).subtract(1, 'days').format("MM-DD-YYYY") + ' 17:00';
             }
-            if (start.format('MM-DD-YYYY') !== end.format('MM-DD-YYYY')) {
+            if (moment(info.start).format('MM-DD-YYYY') !== moment(info.end).format('MM-DD-YYYY')) {
               $('#allDay')[0].checked = true;
             } else {
               $('#allDay')[0].checked = false;
@@ -140,41 +150,23 @@
           }
         },
       </c:if>
-      <%--
-        dayClick: function(date, event, view) {
-          if ($(event.target).is('.fc-event-container *, .fc-more') ) {
-            alert('hello ' + view.name);
-          } else {
-            alert('found ' + view.name);
-          }
-        },
-      --%>
       <c:choose>
         <c:when test="${(userSession.hasRole('admin') || userSession.hasRole('content-manager'))}">
-          eventClick: function(event) {
+          eventClick: function(info) {
 
             // Reset form
             document.getElementById("calendarEventForm").reset();
 
             // Determine if this event has a page
-            if (event.id <= 0) {
+            if (info.event.id <= 0) {
               return;
             }
 
             // Get the data and populate the form
-            $.getJSON("${ctx}/json/calendarEvent?id=" + event.id, function( data ) {
-
-              // {
-              //   "id": 22,
-              //     "allDay": true,
-              //     "start": "2018-12-03",
-              //     "end": "2018-12-05T24:00",
-              //     "location": "Washington, DC",
-              //     "title": "DC"
-              // }
+            $.getJSON("${ctx}/json/calendarEvent?id=" + info.event.id, function(data) {
               document.getElementById('formTitle').innerHTML = "Update an Event";
               document.getElementById('id').value = data.id;
-              document.getElementById('eventLinkInput').value = '${ctx}/calendar-event/' + event.uniqueId + '?returnPage=${widgetContext.uri}';
+              document.getElementById('eventLinkInput').value = '${ctx}/calendar-event/' + info.event.uniqueId + '?returnPage=${widgetContext.uri}';
               if ($('#calendarId').is('input, select')) {
                 $("#calendarId").val(data.calendarId);
               } else {
@@ -208,81 +200,37 @@
           },
         </c:when>
         <c:otherwise>
-          eventClick: function(event) {
-            // Determine if this event has a page
-            if (event.id <= 0) {
-                return;
+          eventClick: function(info) {
+            if (info.event.id <= 0) {
+              return;
             }
-            if (event.detailsUrl.indexOf('/') == 0) {
-              window.location.href='${ctx}' + event.detailsUrl + '?returnPage=${widgetContext.uri}';
+            let detailsUrl = info.event.extendedProps.detailsUrl;
+            if (detailsUrl && detailsUrl.indexOf('/') === 0) {
+              window.location.href='${ctx}' + detailsUrl + '?returnPage=${widgetContext.uri}';
             } else {
-              window.location.href='${ctx}/calendar-event/' + event.uniqueId + '?returnPage=${widgetContext.uri}';
+              window.location.href='${ctx}/calendar-event/' + info.event.extendedProps.uniqueId + '?returnPage=${widgetContext.uri}';
             }
-            <%--
-            if (event.detailsUrl) {
-              window.open(event.detailsUrl);
-              return false;
-            }
-            --%>
           },
         </c:otherwise>
       </c:choose>
-      eventMouseover: function(data, event, view) {
-        showTooltip(data, event);
+      eventMouseEnter: function(info) {
+        if (info.view.type !== 'dayGridMonth') {
+          return;
+        }
+        showTooltip(info.el, info.event);
       },
-      eventMouseout: function(data, event, view) {
+      eventMouseLeave: function(info) {
         $('#tooltip').hide();
       },
-      timezone: 'local',
       eventSources: [
         {
           url: '/json/calendar<c:if test="${!empty calendarUniqueId}">?calendarUniqueId=<c:out value="${calendarUniqueId}" /></c:if>',
           color: '#999999',
           textColor: '#ffffff'
         }
-        <%--
-        // { googleCalendarId: 'abcd1234@group.calendar.google.com' },
-        {
-          events: [
-            <c:forEach items="${calendarEventList}" var="calendarEvent" varStatus="status">
-              {
-                id: ${calendarEvent.id},
-                <c:choose>
-                  <c:when test="${calendarEvent.allDay}">
-                    allDay: true,
-                    start: '<fmt:formatDate pattern="yyyy-MM-dd" value="${calendarEvent.startDate}" />',
-                    end: '<fmt:formatDate pattern="yyyy-MM-dd" value="${calendarEvent.endDate}" />T24:00',
-                </c:when>
-                  <c:otherwise>
-                    start: '<fmt:formatDate pattern="yyyy-MM-dd" value="${calendarEvent.startDate}" />T<fmt:formatDate pattern="HH:mm" value="${calendarEvent.startDate}" />',
-                    end: '<fmt:formatDate pattern="yyyy-MM-dd" value="${calendarEvent.endDate}" />T<fmt:formatDate pattern="HH:mm" value="${calendarEvent.endDate}" />',
-                  </c:otherwise>
-                </c:choose>
-                <c:forEach items="${calendarList}" var="calendar">
-                  <c:if test="${calendar.id eq calendarEvent.calendarId}">color: '${js:escape(calendar.color)}',</c:if>
-                </c:forEach>
-                <c:choose>
-                  <c:when test="${!empty calendarEvent.detailsUrl}">
-                    url: '${url:encode(calendarEvent.detailsUrl)}',
-                  </c:when>
-                  <c:when test="${!empty calendarEvent.signUpUrl}">
-                    url: '${url:encode(calendarEvent.signUpUrl)}',
-                  </c:when>
-                </c:choose>
-                <c:if test="${!empty calendarEvent.summary}">
-                  description: '${js:escape(calendarEvent.summary)}',
-                </c:if>
-                title: '${js:escape(calendarEvent.title)}'
-              }
-              <c:if test="${!status.last}">,</c:if>
-            </c:forEach>
-          ],
-          color: '#79C554',
-          textColor: '#ffffff'
-        }
-        --%>
       ]
     });
+    calendar.render();
   });
 </script>
 <c:if test="${(userSession.hasRole('admin') || userSession.hasRole('content-manager'))}">

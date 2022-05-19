@@ -28,119 +28,102 @@
 <jsp:useBean id="defaultView" class="java.lang.String" scope="request"/>
 <jsp:useBean id="height" class="java.lang.String" scope="request"/>
 <%-- Full Calendar --%>
-<link rel="stylesheet" href="${ctx}/javascript/fullcalendar-3.10.3/fullcalendar.min.css" />
+<link rel="stylesheet" href="${ctx}/javascript/fullcalendar-5.11.0/main.min.css" />
 <link rel="stylesheet" href="${ctx}/css/platform-calendar.css?v=<%= VERSION %>" />
-<script src="${ctx}/javascript/fullcalendar-3.10.3/moment.min.js"></script>
-<script src="${ctx}/javascript/fullcalendar-3.10.3/fullcalendar.min.js"></script>
+<script src="${ctx}/javascript/fullcalendar-5.11.0/moment-2.27.0.min.js"></script>
+<script src="${ctx}/javascript/fullcalendar-5.11.0/main.min.js"></script>
+<script src="${ctx}/javascript/fullcalendar-5.11.0/fc-plugin-moment-5.5.0.min.js"></script>
 <%-- Render the widget --%>
 <div id="calendar-small"></div>
 <div id="tooltip" class="tooltip top align-center under-reveal" style="display:none"></div>
 <script>
-  function showTooltip(data, event) {
-    <%-- Change the tooltip content --%>
-    var content = "<h5>" + data.title+"</h5>";
-    if (data.allDay === undefined || !data.allDay) {
+  function showTooltip(el, event) {
+    let content = "<h5>" + event.title+"</h5>";
+    if (event.allDay === undefined || !event.allDay) {
       content += "<p>";
-      content += data.start.format("LT") + "-";
-      content += data.end.format("LT");
+      content += moment(event.start).format("LT") + " - " + moment(event.end).format("LT");
       content += "</p>";
     }
-    if (data.location) {
-      content += "<p><i class='fa fa-map-marker'></i> " + data.location + "</p>";
+    if (event.extendedProps.location) {
+      content += "<p><i class='fa fa-map-marker'></i> " + event.extendedProps.location + "</p>";
     }
-    if (data.description || data.detailsUrl) {
+    if (event.extendedProps.description || event.extendedProps.detailsUrl) {
       content += "<p class='no-gap'>(click for more details)</p>";
     }
-    <%--
-    // if (data.description) {
-    //   content += "<p>" + data.description + "</p>";
-    // }
-    // if (data.detailsUrl) {
-    //   content += "Web page <i class='fa fa-external-link'></i>";
-    // }
-    --%>
     $("#tooltip").html(content);
+    let ttHeight = $("#tooltip").outerHeight();
+    let ttWidth = $("#tooltip").outerWidth();
+
     <%-- Center and show it --%>
-    var element = $(event.target).closest('.fc-event');
-    var top = element.offset().top;
-    var left = element.offset().left;
-    var width = element.outerWidth();
-    var tHeight = $("#tooltip").outerHeight();
-    var tWidth = $("#tooltip").outerWidth();
-    $('#tooltip').css({top: top - tHeight - 12, left: left + (width/2) - (tWidth/2)});
-    // $('#tooltip').fadeIn(300);
-    $('#tooltip').show();
+    let parentLeft = Math.round($('#calendar-small').parent().offset().left);
+    let calendarTop = $('#calendar-small').offset().top;
+    let calendarLeft = $('#calendar-small').offset().left;
+    let elTop = $(el).offset().top;
+    let elLeft = Math.round($(el).offset().left);
+    let tdLeft = Math.round($(el).closest('td').offset().left);
+    let tdWidth = Math.round($(el).closest('td').outerWidth());
+    let top = Math.round(elTop - calendarTop - ttHeight + 8);
+    let zero = Math.round(calendarLeft - parentLeft);
+    let left = zero + tdLeft - calendarLeft + (tdWidth/2) - (ttWidth/2);
+    $('#tooltip').css({top: top, left: left});
+    $('#tooltip').fadeIn(200);
+    // $('#tooltip').show();
   }
 
-  $(function () {
-    $('#calendar-small').fullCalendar({
-      <c:choose>
-        <c:when test="${defaultView eq 'list'}">
-          header: {
-            left: 'title',
-            center: '',
-            right:  'listWeek,agendaDay,month today prev,next'
-          },
-          defaultView: 'listWeek',
-        </c:when>
-        <c:when test="${defaultView eq 'day'}">
-          header: {
-            left: 'title',
-            center: '',
-            right:  'agendaDay,listWeek,month today prev,next'
-          },
-          defaultView: 'agendaDay',
-        </c:when>
-        <c:otherwise>
-          header: {
-            left: 'title',
-            center: '',
-            right:  'month,listWeek,agendaDay today prev,next'
-          },
-          defaultView: 'month',
-        </c:otherwise>
-      </c:choose>
-      selectable: false,
-      selectHelper: false,
-      // aspectRatio: 1,
+  <c:choose>
+    <c:when test="${defaultView eq 'list'}">
+      <c:set var="initialView" scope="request" value="listWeek" />
+      <c:set var="optionOrder" scope="request" value="listWeek,dayGridMonth" />
+    </c:when>
+    <c:when test="${defaultView eq 'day'}">
+      <c:set var="initialView" scope="request" value="timeGrid" />
+      <c:set var="optionOrder" scope="request" value="timeGrid,dayGridMonth" />
+    </c:when>
+    <c:otherwise>
+      <c:set var="initialView" scope="request" value="dayGridMonth" />
+      <c:set var="optionOrder" scope="request" value="dayGridMonth,listWeek" />
+    </c:otherwise>
+  </c:choose>
+
+  document.addEventListener('DOMContentLoaded', function() {
+    let calendarEl = document.getElementById('calendar-small');
+    let calendar = new FullCalendar.Calendar(calendarEl, {
+      initialView: '${initialView}',
       height: <c:out value="${height}" />,
-      views: {
-        month: {
-          titleFormat: 'MMMM YYYY'
-        },
-        week: {
-          titleFormat: "MMM D, YYYY"
-        },
-        day: {
-          titleFormat: 'D MMM, YYYY'
-        }
+      headerToolbar: {
+        start: 'title',
+        center: '',
+        end: '${optionOrder} today prev,next'
       },
-      editable: false,
-      eventLimit: true,
-      eventClick: function(event) {
-        // Determine if this event has a page
-        if (event.id <= 0) {
+      buttonText: {
+        today:    'Today',
+        month:    'Month',
+        week:     'Week',
+        day:      'Day',
+        list:     'List',
+        timeGrid: 'Day'
+      },
+      selectable: false,
+      eventClick: function(info) {
+        if (info.event.id <= 0) {
           return;
         }
-        if (event.detailsUrl.indexOf('/') == 0) {
-          window.location.href='${ctx}' + event.detailsUrl + '?returnPage=${widgetContext.uri}';
+        let detailsUrl = info.event.extendedProps.detailsUrl;
+        if (detailsUrl && detailsUrl.indexOf('/') === 0) {
+          window.location.href='${ctx}' + detailsUrl + '?returnPage=${widgetContext.uri}';
         } else {
-          window.location.href='${ctx}/calendar-event/' + event.uniqueId + '?returnPage=${widgetContext.uri}';
+          window.location.href='${ctx}/calendar-event/' + info.event.extendedProps.uniqueId + '?returnPage=${widgetContext.uri}';
         }
-        <%--
-        if (event.detailsUrl) {
-          window.open(event.detailsUrl);
-          return false;
+      },
+      eventMouseEnter: function(info) {
+        if (info.view.type !== 'dayGridMonth') {
+          return;
         }
-        --%>
+        showTooltip(info.el, info.event);
       },
-      eventMouseover: function(data, event, view) {
-        showTooltip(data, event);
-      },
-      eventMouseout: function(data, event, view) {
+      eventMouseLeave: function(info) {
         $('#tooltip').hide();
       },
-      timezone: 'local',
       eventSources: [
         {
           url: '/json/calendar<c:if test="${!empty calendarUniqueId}">?calendarUniqueId=<c:out value="${calendarUniqueId}" /></c:if>',
@@ -149,5 +132,6 @@
         }
       ]
     });
+    calendar.render();
   });
 </script>
