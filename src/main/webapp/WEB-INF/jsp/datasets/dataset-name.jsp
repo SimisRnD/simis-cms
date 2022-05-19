@@ -37,8 +37,11 @@
       <c:when test="${!empty dataset.processed}">
         <span class="label round success" id="rowCount"><fmt:formatNumber value="${dataset.rowCount}" /></span>
       </c:when>
-      <c:otherwise>
+      <c:when test="${dataset.rowCount gt -1}">
         <span class="label round" id="rowCount"><fmt:formatNumber value="${dataset.rowCount}" /></span>
+      </c:when>
+      <c:otherwise>
+        <span class="label round warning" id="rowCount">No Records</span>
       </c:otherwise>
     </c:choose>
   </c:if>
