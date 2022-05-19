@@ -16,15 +16,18 @@
 
 package com.simisinc.platform.presentation.widgets.items;
 
+import com.simisinc.platform.application.cms.HtmlCommand;
+import com.simisinc.platform.domain.model.cms.SearchResult;
 import com.simisinc.platform.domain.model.items.Item;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.persistence.items.ItemRepository;
 import com.simisinc.platform.infrastructure.persistence.items.ItemSpecification;
 import com.simisinc.platform.presentation.controller.RequestConstants;
-import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.controller.WidgetContext;
+import com.simisinc.platform.presentation.widgets.GenericWidget;
 import org.apache.commons.lang3.StringUtils;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -80,6 +83,24 @@ public class ItemsSearchResultsWidget extends GenericWidget {
       return context;
     }
     context.getRequest().setAttribute("itemList", itemList);
+
+    List<SearchResult> searchResultList = new ArrayList<>();
+    for (Item item : itemList) {
+      // Add the search result
+      SearchResult searchResult = new SearchResult();
+      searchResult.setPageTitle(item.getName());
+      searchResult.setLink("/show/" + item.getUniqueId());
+      searchResult.setPageDescription(item.getSummary());
+      // Include an excerpt
+      String htmlContent = HtmlCommand.toHtml(item.getHighlight());
+      if (StringUtils.isNotBlank(htmlContent)) {
+        htmlContent = StringUtils.replace(htmlContent, "${b}", "<strong>");
+        htmlContent = StringUtils.replace(htmlContent, "${/b}", "</strong>");
+        searchResult.setHtmlExcerpt(htmlContent);
+      }
+      searchResultList.add(searchResult);
+    }
+    context.getRequest().setAttribute("searchResultList", searchResultList);
 
     // Standard request items
     context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));
