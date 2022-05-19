@@ -87,9 +87,9 @@
   <g:compress>
     <c:if test="${!empty themePropertyMap['theme.fonts.body']}">
       <link rel="stylesheet" href="${ctx}/css/google-fonts/${themePropertyMap['theme.fonts.body']}.css">
-      <c:if test="${!empty themePropertyMap['theme.fonts.headlines'] && themePropertyMap['theme.fonts.headlines'] ne themePropertyMap['theme.fonts.body']}">
-        <link rel="stylesheet" href="${ctx}/css/google-fonts/${themePropertyMap['theme.fonts.headlines']}.css">
-      </c:if>
+    </c:if>
+    <c:if test="${!empty themePropertyMap['theme.fonts.headlines'] && themePropertyMap['theme.fonts.headlines'] ne themePropertyMap['theme.fonts.body']}">
+      <link rel="stylesheet" href="${ctx}/css/google-fonts/${themePropertyMap['theme.fonts.headlines']}.css">
     </c:if>
     <link rel="stylesheet" type="text/css" href="${ctx}/css/${font:fontawesome()}/css/all.min.css" />
     <link rel="stylesheet" type="text/css" href="${ctx}/css/${font:fontawesome()}/css/v4-shims.min.css" />
