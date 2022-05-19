@@ -17,12 +17,17 @@
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <%@ taglib prefix="font" uri="/WEB-INF/font-functions.tld" %>
+<%@ taglib prefix="url" uri="/WEB-INF/url-functions.tld" %>
+<%@ taglib prefix="text" uri="/WEB-INF/text-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="collection" class="com.simisinc.platform.domain.model.items.Collection" scope="request"/>
 <jsp:useBean id="itemList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="category" class="com.simisinc.platform.domain.model.items.Category" scope="request"/>
 <jsp:useBean id="recordPaging" class="com.simisinc.platform.infrastructure.database.DataConstraints" scope="request"/>
+<jsp:useBean id="showBullets" class="java.lang.String" scope="request"/>
+<jsp:useBean id="showLaunchLink" class="java.lang.String" scope="request"/>
+<jsp:useBean id="launchLabel" class="java.lang.String" scope="request"/>
 <c:if test="${!empty title}">
   <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
@@ -33,7 +38,7 @@
 <%--</c:choose>--%>
 <c:choose>
   <c:when test="${!empty itemList}">
-    <ul class="no-bullet">
+    <ul<c:if test="${showBullets eq 'false'}"> class="no-bullet"</c:if>>
       <c:forEach items="${itemList}" var="item">
         <li>
           <c:choose>
@@ -49,6 +54,11 @@
           <a href="${ctx}/show/${item.uniqueId}"><c:out value="${item.name}" /></a>
           <c:if test="${!empty item.city}"><small class="subheader"><c:out value="${item.city}" /></small></c:if>
           <c:if test="${empty item.approved}"><span class="label warning">Needs approval</span></c:if>
+          <c:if test="${showLaunchLink eq 'true' && !empty item.url}">
+            <c:if test="${fn:startsWith(item.url, 'http://') || fn:startsWith(item.url, 'https://')}">
+              <a href="${url:encode(item.url)}" class="button primary tiny margin-0" style="padding: 0.15rem .2rem;" target="_blank" rel="nofollow" title="Visit <c:out value="${text:trim(item.url, 30, true)}"/>"><c:out value="${launchLabel}"/> <i class="fa fa-external-link"></i></i></a>
+            </c:if>
+          </c:if>
         </li>
       </c:forEach>
     </ul>
