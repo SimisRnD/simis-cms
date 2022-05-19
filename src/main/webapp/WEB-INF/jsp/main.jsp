@@ -210,8 +210,16 @@
   </c:if>
   <c:if test="${!empty pageCollection}">
     <style>
-        <c:if test="${!empty pageCollection.headerBgColor}">.item-menu.menu-bar,.item-menu.title-bar{background-color:<c:out value="${pageCollection.headerBgColor}" />}</c:if>
-        <c:if test="${!empty pageCollection.headerTextColor}">.item-menu.menu-bar, .item-menu.menu-bar .menu-text, .item-menu.menu-bar .collection-name, .item-menu.menu-bar i {color:<c:out value="${pageCollection.headerTextColor}" />}</c:if>
+        <c:choose>
+          <c:when test="${!empty pageCollectionCategory && !empty pageCollectionCategory.headerBgColor && !empty pageCollectionCategory.headerTextColor}">
+            .item-menu.menu-bar,.item-menu.title-bar{background-color:<c:out value="${pageCollectionCategory.headerBgColor}" />}
+            .item-menu.menu-bar, .item-menu.menu-bar .menu-text, .item-menu.menu-bar .collection-name, .item-menu.menu-bar i {color:<c:out value="${pageCollectionCategory.headerTextColor}" />}
+          </c:when>
+          <c:when test="${!empty pageCollection.headerBgColor && !empty pageCollection.headerTextColor}">
+            .item-menu.menu-bar,.item-menu.title-bar{background-color:<c:out value="${pageCollection.headerBgColor}" />}
+            .item-menu.menu-bar, .item-menu.menu-bar .menu-text, .item-menu.menu-bar .collection-name, .item-menu.menu-bar i {color:<c:out value="${pageCollection.headerTextColor}" />}
+          </c:when>
+        </c:choose>
         <c:if test="${!empty pageCollection.menuTextColor}">.item-menu.menu-bar div > ul > li > a {color:<c:out value="${pageCollection.menuTextColor}" />}</c:if>
         <c:if test="${!empty pageCollection.menuBgColor}">.item-menu.menu-bar div > ul > li > a {background-color:<c:out value="${pageCollection.menuBgColor}" />}</c:if>
         <c:if test="${!empty pageCollection.menuBorderColor}">.item-menu.menu-bar div > ul > li > a {border:1px solid <c:out value="${pageCollection.menuBorderColor}" />}</c:if>
