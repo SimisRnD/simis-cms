@@ -232,12 +232,18 @@ public class SessionRepository {
   }
 
   public static Session add(Session record) {
+    // remove tailing slash on referer
+    String referer = record.getReferer();
+    if (referer != null && referer.length() > 1 && referer.endsWith("/")) {
+      referer = referer.substring(0, referer.length() - 1);
+    }
+    // Insert the record
     SqlUtils insertValues = new SqlUtils()
         .add("session_id", record.getSessionId())
         .add("source", record.getSource())
         .add("ip_address", record.getIpAddress())
         .add("user_agent", StringUtils.abbreviate(record.getUserAgent(), 255))
-        .add("referer", StringUtils.abbreviate(record.getReferer(), 255))
+        .add("referer", StringUtils.abbreviate(referer, 255))
         .add("continent", record.getContinent())
         .add("country_iso", record.getCountryIso())
         .add("country", record.getCountry())
