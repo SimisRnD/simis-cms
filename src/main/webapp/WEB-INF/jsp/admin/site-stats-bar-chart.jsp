@@ -24,29 +24,29 @@
   <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}"/></h4>
 </c:if>
 <%@include file="../page_messages.jspf" %>
-<script src="${ctx}/javascript/chartjs-2.9.4/Chart.min.js"></script>
+<script src="${ctx}/javascript/chartjs-3.7.1/chart.min.js"></script>
 <canvas id="myChart-${widgetContext.uniqueId}" width="200" height="100"></canvas>
 <script>
   var chartContext = document.getElementById("myChart-${widgetContext.uniqueId}").getContext('2d');
   var myChart = new Chart(chartContext, {
     type: "bar",
-    "data": {
-      "labels": [
+    data: {
+      labels: [
         <c:forEach items="${statisticsDataList}" var="data" varStatus="status">
         "${data.label}"<c:if test="${!status.last}">, </c:if>
         </c:forEach>
       ],
-      "datasets": [{
-        "label": "${js:escape(label)}",
-        "data": [
+      datasets: [{
+        label: "${js:escape(label)}",
+        data: [
           <c:forEach items="${statisticsDataList}" var="data" varStatus="status">
           ${data.value}<c:if test="${!status.last}">, </c:if>
           </c:forEach>
         ],
-        "backgroundColor": "rgb(75, 192, 192)"
+        backgroundColor: "rgb(75, 192, 192)"
       }]
     },
-    "options": {
+    options: {
       legend: {
         display: false
       },
