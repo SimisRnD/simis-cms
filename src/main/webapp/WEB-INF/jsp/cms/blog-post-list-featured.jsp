@@ -49,7 +49,7 @@
   <c:when test="${!empty blogPostList}">
     <div class="grid-container">
       <c:forEach items="${blogPostList}" var="blogPost" varStatus="status">
-        <div class="grid-x grid-padding-x">
+        <div class="grid-x grid-padding-x margin-bottom-30">
           <c:if test="${showImage eq 'true' && !empty blogPost.imageUrl}">
             <div class="small-12 medium-5 cell">
               <div class="featured-blog-image">
@@ -59,18 +59,20 @@
           </c:if>
           <div class="small-12 medium-auto cell">
             <div class="featured-blog-title">
-              <h3><a href="${ctx}/${blog.uniqueId}/${blogPost.uniqueId}">${html:toHtml(blogPost.title)}</a></h3>
+              <h4><a href="${ctx}/${blog.uniqueId}/${blogPost.uniqueId}">${html:toHtml(blogPost.title)}</a></h4>
             </div>
-            <div class="featured-blog-intro">
-              <c:choose>
-                <c:when test="${!empty blogPost.summary}">
-                  <p>${html:toHtml(text:trim(html:text(blogPost.summary), 256, true))}</p>
-                </c:when>
-                <c:otherwise>
-                  <p>${html:toHtml(text:trim(html:text(blogPost.body), 220, true))}</p>
-                </c:otherwise>
-              </c:choose>
-            </div>
+            <c:if test="${showSummary eq 'true'}">
+              <div class="featured-blog-intro">
+                <c:choose>
+                  <c:when test="${!empty blogPost.summary}">
+                    <p>${html:toHtml(text:trim(html:text(blogPost.summary), 256, true))}</p>
+                  </c:when>
+                  <c:otherwise>
+                    <p>${html:toHtml(text:trim(html:text(blogPost.body), 220, true))}</p>
+                  </c:otherwise>
+                </c:choose>
+              </div>
+            </c:if>
             <c:if test="${showAuthor eq 'true'}">
               <div class="featured-blog-author">
                 <c:out value="${user:name(blogPost.createdBy)}"/>
