@@ -17,7 +17,7 @@
 package com.simisinc.platform.infrastructure.persistence.login;
 
 import com.simisinc.platform.domain.model.User;
-import com.simisinc.platform.domain.model.StatisticsData;
+import com.simisinc.platform.domain.model.dashboard.StatisticsData;
 import com.simisinc.platform.domain.model.login.UserLogin;
 import com.simisinc.platform.infrastructure.database.*;
 import org.apache.commons.lang3.StringUtils;

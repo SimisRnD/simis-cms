@@ -19,7 +19,7 @@ package com.simisinc.platform.infrastructure.persistence;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.domain.model.Session;
 import com.simisinc.platform.domain.model.Visitor;
-import com.simisinc.platform.domain.model.StatisticsData;
+import com.simisinc.platform.domain.model.dashboard.StatisticsData;
 import com.simisinc.platform.infrastructure.database.*;
 import com.simisinc.platform.presentation.controller.UserSession;
 import org.apache.commons.lang3.StringUtils;

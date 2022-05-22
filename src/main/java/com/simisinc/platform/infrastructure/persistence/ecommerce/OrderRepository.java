@@ -20,7 +20,7 @@ import com.simisinc.platform.application.ecommerce.OrderItemCommand;
 import com.simisinc.platform.application.ecommerce.OrderStatusCommand;
 import com.simisinc.platform.domain.model.Session;
 import com.simisinc.platform.domain.model.User;
-import com.simisinc.platform.domain.model.StatisticsData;
+import com.simisinc.platform.domain.model.dashboard.StatisticsData;
 import com.simisinc.platform.domain.model.ecommerce.Address;
 import com.simisinc.platform.domain.model.ecommerce.CartItem;
 import com.simisinc.platform.domain.model.ecommerce.Order;

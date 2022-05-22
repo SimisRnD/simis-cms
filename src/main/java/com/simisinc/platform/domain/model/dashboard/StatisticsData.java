@@ -14,7 +14,9 @@
  * limitations under the License.
  */
 
-package com.simisinc.platform.domain.model;
+package com.simisinc.platform.domain.model.dashboard;
+
+import com.simisinc.platform.domain.model.Entity;
 
 /**
  * Data for showing in the UI
