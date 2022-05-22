@@ -55,16 +55,18 @@
     let ttWidth = $("#tooltip").outerWidth();
 
     <%-- Center and show it --%>
+    let parentTop = Math.round($('#calendar-small').parent().offset().top);
     let parentLeft = Math.round($('#calendar-small').parent().offset().left);
     let calendarTop = $('#calendar-small').offset().top;
     let calendarLeft = $('#calendar-small').offset().left;
     let elTop = $(el).offset().top;
     let elLeft = Math.round($(el).offset().left);
-    let tdLeft = Math.round($(el).closest('td').offset().left);
-    let tdWidth = Math.round($(el).closest('td').outerWidth());
+    let tdTop = Math.round($(el).closest('.fc-daygrid-event-harness').offset().top);
+    let tdLeft = Math.round($(el).closest('.fc-daygrid-event-harness').offset().left);
+    let tdWidth = Math.round($(el).closest('.fc-daygrid-event-harness').outerWidth());
     let top = Math.round(elTop - calendarTop - ttHeight + 8);
     let zero = Math.round(calendarLeft - parentLeft);
-    let left = zero + tdLeft - calendarLeft + (tdWidth/2) - (ttWidth/2);
+    let left = zero + tdLeft - calendarLeft + Math.round((tdWidth/2) - (ttWidth/2));
     $('#tooltip').css({top: top, left: left});
     $('#tooltip').fadeIn(200);
     // $('#tooltip').show();
