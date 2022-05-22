@@ -52,6 +52,7 @@ public class ItemsListWidget extends GenericWidget {
     // Determine preferences
     String collectionUniqueId = context.getPreferences().get("collectionUniqueId");
     long categoryId = context.getParameterAsLong("categoryId");
+    String categoryName = context.getPreferences().get("category");
     String nearbyItemUniqueId = context.getPreferences().get("nearbyItemUniqueId");
     boolean showMine = "true".equals(context.getPreferences().getOrDefault("showMine", "false"));
     boolean showWhenEmpty = "true".equals(context.getPreferences().getOrDefault("showWhenEmpty", "false"));
@@ -98,11 +99,21 @@ public class ItemsListWidget extends GenericWidget {
       specification.setApprovedOnly(true);
     }
 
-    if (categoryId > -1) {
+    if (StringUtils.isNotBlank(categoryName)) {
+      Category category = CategoryRepository.findByNameWithinCollection(categoryName, collection.getId());
+      if (category != null && category.getCollectionId() == collection.getId()) {
+        specification.setCategoryId(category.getId());
+        context.getRequest().setAttribute("category", category);
+      } else {
+        return null;
+      }
+    } else if (categoryId > -1L) {
       Category category = CategoryRepository.findById(categoryId);
       if (category != null && category.getCollectionId() == collection.getId()) {
-        specification.setCategoryId(categoryId);
+        specification.setCategoryId(category.getId());
         context.getRequest().setAttribute("category", category);
+      } else {
+        return null;
       }
     }
 
