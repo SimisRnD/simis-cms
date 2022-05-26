@@ -19,7 +19,7 @@ package com.simisinc.platform.presentation.widgets.admin.ecommerce;
 import com.simisinc.platform.application.gis.GISCommand;
 import com.simisinc.platform.application.maps.FindMapTilesCredentialsCommand;
 import com.simisinc.platform.domain.model.Session;
-import com.simisinc.platform.domain.model.StatisticsData;
+import com.simisinc.platform.domain.model.dashboard.StatisticsData;
 import com.simisinc.platform.domain.model.maps.MapCredentials;
 import com.simisinc.platform.infrastructure.persistence.ecommerce.OrderRepository;
 import com.simisinc.platform.presentation.widgets.GenericWidget;

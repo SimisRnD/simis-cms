@@ -18,15 +18,17 @@ package com.simisinc.platform.presentation.controller;
 
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.cms.*;
+import com.simisinc.platform.application.items.LoadCategoryCommand;
 import com.simisinc.platform.application.items.LoadCollectionCommand;
 import com.simisinc.platform.application.items.LoadItemCommand;
 import com.simisinc.platform.domain.model.cms.MenuTab;
 import com.simisinc.platform.domain.model.cms.Stylesheet;
 import com.simisinc.platform.domain.model.cms.TableOfContents;
 import com.simisinc.platform.domain.model.cms.WebPage;
+import com.simisinc.platform.domain.model.items.Category;
 import com.simisinc.platform.domain.model.items.Collection;
 import com.simisinc.platform.domain.model.items.Item;
-import com.simisinc.platform.presentation.widgets.cms.*;
+import com.simisinc.platform.presentation.widgets.cms.WebContainerContext;
 import org.apache.commons.beanutils.ConvertUtils;
 import org.apache.commons.beanutils.converters.BigDecimalConverter;
 import org.apache.commons.lang3.StringUtils;
@@ -44,7 +46,7 @@ import java.sql.Timestamp;
 import java.time.ZoneId;
 import java.util.*;
 
-import static com.simisinc.platform.presentation.controller.RequestConstants.FOOTER_STICKY_LINKS;
+import static com.simisinc.platform.presentation.controller.RequestConstants.*;
 import static javax.servlet.http.HttpServletResponse.SC_MOVED_PERMANENTLY;
 
 /**
@@ -207,7 +209,7 @@ public class PageServlet extends HttpServlet {
           response.sendError(SC_MOVED_PERMANENTLY);
           return;
         }
-        request.setAttribute(RequestConstants.MASTER_WEB_PAGE, webPage);
+        request.setAttribute(MASTER_WEB_PAGE, webPage);
       }
 
       // Determine the Page XML Layout for this request
@@ -350,6 +352,12 @@ public class PageServlet extends HttpServlet {
         }
       }
 
+      // Determine the global collection category for this request
+      Category thisCollectionCategory = null;
+      if (thisItem != null) {
+        thisCollectionCategory = LoadCategoryCommand.loadCategoryById(thisItem.getCategoryId());
+      }
+
       // Setup the rendering info
       PageRenderInfo pageRenderInfo = new PageRenderInfo(pageRef, pagePath);
       if (pageRenderInfo.getName().startsWith("_")) {
@@ -427,7 +435,7 @@ public class PageServlet extends HttpServlet {
 
       // Provide values to the Tomcat web server log
       if (userSession.isLoggedIn()) {
-        request.setAttribute(RequestConstants.LOG_USER, String.valueOf(userSession.getUserId()));
+        request.setAttribute(LOG_USER, String.valueOf(userSession.getUserId()));
       }
 
       // Error out if there are no widgets rendered or allowed
@@ -449,9 +457,9 @@ public class PageServlet extends HttpServlet {
       if (userSession.isLoggedIn() || "true".equals(sitePropertyMap.getOrDefault("site.online", "false"))) {
         // @todo determine if this is needed still (it is, but until all JSP layouts are removed?)
         // Load the main menu
-        request.setAttribute(RequestConstants.SHOW_MAIN_MENU, "true");
+        request.setAttribute(SHOW_MAIN_MENU, "true");
         List<MenuTab> menuTabList = LoadMenuTabsCommand.loadActiveIncludeMenuItemList();
-        request.setAttribute(RequestConstants.MASTER_MENU_TAB_LIST, menuTabList);
+        request.setAttribute(MASTER_MENU_TAB_LIST, menuTabList);
 
         // @note this is needed globally
         if (!"container".equals(request.getSession().getAttribute("X-View-Mode"))) {
@@ -462,13 +470,16 @@ public class PageServlet extends HttpServlet {
 
       long endRequestTime = System.currentTimeMillis();
       long totalTime = endRequestTime - startRequestTime;
-      request.setAttribute(RequestConstants.RENDER_TIME, totalTime);
+      request.setAttribute(RENDER_TIME, totalTime);
 
       // Start rendering the page
-      request.setAttribute(RequestConstants.CONTEXT_PATH, contextPath);
-      request.setAttribute("pageRenderInfo", pageRenderInfo);
+      request.setAttribute(CONTEXT_PATH, contextPath);
+      request.setAttribute(PAGE_RENDER_INFO, pageRenderInfo);
       if (thisCollection != null) {
-        request.setAttribute("pageCollection", thisCollection);
+        request.setAttribute(PAGE_COLLECTION, thisCollection);
+      }
+      if (thisCollectionCategory != null) {
+        request.setAttribute(PAGE_COLLECTION_CATEGORY, thisCollectionCategory);
       }
 
       // Determine the custom stylesheets
@@ -491,12 +502,12 @@ public class PageServlet extends HttpServlet {
       } else {
         if ("container".equals(request.getSession().getAttribute("X-View-Mode"))) {
           // For API content
-          request.setAttribute("PageBody", "/WEB-INF/jsp/container-layout.jsp");
+          request.setAttribute(PAGE_BODY, "/WEB-INF/jsp/container-layout.jsp");
         } else {
           // For web content with a header and footer
-          request.setAttribute("headerRenderInfo", headerRenderInfo);
-          request.setAttribute("footerRenderInfo", footerRenderInfo);
-          request.setAttribute("PageBody", "/WEB-INF/jsp/layout.jsp");
+          request.setAttribute(HEADER_RENDER_INFO, headerRenderInfo);
+          request.setAttribute(FOOTER_RENDER_INFO, footerRenderInfo);
+          request.setAttribute(PAGE_BODY, "/WEB-INF/jsp/layout.jsp");
         }
         request.getServletContext().getRequestDispatcher("/WEB-INF/jsp/main.jsp").forward(request, response);
       }

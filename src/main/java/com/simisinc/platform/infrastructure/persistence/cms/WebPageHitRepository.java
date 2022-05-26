@@ -16,7 +16,7 @@
 
 package com.simisinc.platform.infrastructure.persistence.cms;
 
-import com.simisinc.platform.domain.model.StatisticsData;
+import com.simisinc.platform.domain.model.dashboard.StatisticsData;
 import com.simisinc.platform.infrastructure.database.DB;
 import com.simisinc.platform.infrastructure.database.SqlUtils;
 import com.simisinc.platform.infrastructure.persistence.SessionRepository;

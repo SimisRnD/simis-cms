@@ -31,7 +31,11 @@ public class LoadCategoryCommand {
 
   private static Log LOG = LogFactory.getLog(LoadCategoryCommand.class);
 
+  // @todo cache
   public static Category loadCategoryById(long categoryId) {
+    if (categoryId == -1) {
+      return null;
+    }
     return CategoryRepository.findById(categoryId);
   }
 

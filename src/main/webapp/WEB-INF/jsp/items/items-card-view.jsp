@@ -17,6 +17,7 @@
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <%@ taglib prefix="font" uri="/WEB-INF/font-functions.tld" %>
+<%@ taglib prefix="collection" uri="/WEB-INF/collection-functions.tld" %>
 <%@ taglib prefix="category" uri="/WEB-INF/category-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
@@ -24,23 +25,27 @@
 <jsp:useBean id="itemList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="category" class="com.simisinc.platform.domain.model.items.Category" scope="request"/>
 <jsp:useBean id="recordPaging" class="com.simisinc.platform.infrastructure.database.DataConstraints" scope="request"/>
-<jsp:useBean id="cardWidth" class="java.lang.String" scope="request"/>
+<jsp:useBean id="smallGridCount" class="java.lang.String" scope="request"/>
+<jsp:useBean id="mediumGridCount" class="java.lang.String" scope="request"/>
+<jsp:useBean id="largeGridCount" class="java.lang.String" scope="request"/>
 <style>
   .card-catalog a {
     font-weight: bold;
     display: -webkit-box;
-    -webkit-line-clamp: 3;
+    -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
-    text-decoration: none;
     word-break: break-word;
     position: static!important;
   }
   .card-catalog .card-top {
-    padding: 1rem;
+    padding: .5rem;
   }
   .card-catalog .item-name {
-    min-height: 90px;
+    min-height: 60px;
+  }
+  .card-catalog .card-section {
+      padding: 0.5rem 1rem;
   }
   .card-catalog .card-bottom {
     position: relative;
@@ -57,9 +62,11 @@
   <c:when test="${!empty itemList}">
     <div class="grid-x grid-margin-x align-stretch card-catalog">
       <c:forEach items="${itemList}" var="item">
-        <div class="small-4 medium-1 cell card" style="width: <c:out value="${cardWidth}" />px;">
-          <div class="card-top callout primary no-gap no-border text-center">
-            <i class="fa fa-2x fa-blackboard"></i>
+        <c:set var="categoryIcon" scope="request" value="${category:icon(item.categoryId)}"/>
+        <c:set var="categoryHeaderCSS" scope="request" value="${category:headerColorCSS(item.categoryId)}"/>
+        <div class="small-<c:out value="${smallGridCount}" /> medium-<c:out value="${mediumGridCount}" /> large-<c:out value="${largeGridCount}" /> cell card">
+          <div class="card-top no-gap text-center">
+<%--            <img style="border-radius:6px" src="/assets/img/20220523085516-11/image.jpg" />--%>
           </div>
           <div class="card-section">
             <div class="item-name">
@@ -68,8 +75,19 @@
             <c:if test="${!empty item.address}"><div class="item-city"><small><c:out value="${item.address}" /></small></div></c:if>
             <c:if test="${!empty item.keywords}"><div class="item-keywords"><small><c:out value="${item.keywords}" /></small></div></c:if>
           </div>
-          <div class="card-bottom callout secondary no-border">
-            <i class="fa fa-tv"></i>
+          <div class="card-bottom">
+            <c:set var="categoryIcon" scope="request" value="${category:icon(item.categoryId)}"/>
+            <c:choose>
+              <c:when test="${!empty categoryIcon}">
+                <i class="${font:fad()} fa-<c:out value="${categoryIcon}" />"></i>
+              </c:when>
+              <c:when test="${!empty collection:icon(item.collectionId)}">
+                <i class="${font:fad()} fa-<c:out value="${collection:icon(item.collectionId)}" />"></i>
+              </c:when>
+              <c:otherwise>
+                <i class="fa fa-blackboard"></i>
+              </c:otherwise>
+            </c:choose>
             <c:out value="${category:name(item.categoryId)}" />
           </div>
         </div>

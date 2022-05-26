@@ -16,22 +16,21 @@
 
 package com.simisinc.platform.presentation.widgets.items;
 
+import com.simisinc.platform.application.items.LoadCategoryCommand;
 import com.simisinc.platform.application.items.LoadCollectionCommand;
 import com.simisinc.platform.application.items.LoadItemCommand;
-import com.simisinc.platform.domain.model.items.Collection;
-import com.simisinc.platform.domain.model.items.CollectionTab;
-import com.simisinc.platform.domain.model.items.Item;
-import com.simisinc.platform.domain.model.items.ItemTab;
+import com.simisinc.platform.domain.model.items.*;
 import com.simisinc.platform.infrastructure.persistence.items.CollectionRepository;
 import com.simisinc.platform.infrastructure.persistence.items.CollectionTabRepository;
-import com.simisinc.platform.presentation.controller.RequestConstants;
+import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.widgets.cms.PreferenceEntriesList;
-import com.simisinc.platform.presentation.controller.WidgetContext;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+
+import static com.simisinc.platform.presentation.controller.RequestConstants.*;
 
 /**
  * Description
@@ -70,6 +69,14 @@ public class ItemMenuWidget extends GenericWidget {
     }
     context.getRequest().setAttribute("collection", collection);
 
+    // Use information from the category
+    if (item.getCategoryId() > -1) {
+      Category category = LoadCategoryCommand.loadCategoryById(item.getCategoryId());
+      if (category != null) {
+        context.getRequest().setAttribute("category", category);
+      }
+    }
+
     // Determine the tabs to display
     List<ItemTab> itemTabList = new ArrayList<>();
 
@@ -85,7 +92,7 @@ public class ItemMenuWidget extends GenericWidget {
       }
     } else {
       // Look for defaults in the configuration
-      String pagePath = (String) context.getRequest().getAttribute(RequestConstants.WEB_PAGE_PATH);
+      String pagePath = (String) context.getRequest().getAttribute(WEB_PAGE_PATH);
       List<CollectionTab> collectionTabList = CollectionTabRepository.findAllByCollectionId(collection.getId());
       if (collectionTabList != null) {
         for (CollectionTab tab : collectionTabList) {
@@ -144,7 +151,7 @@ public class ItemMenuWidget extends GenericWidget {
     context.getRequest().setAttribute("item", item);
 
     // Determine the tabs to display
-    String pagePath = (String) context.getRequest().getAttribute(RequestConstants.WEB_PAGE_PATH);
+    //String pagePath = (String) context.getRequest().getAttribute(WEB_PAGE_PATH);
     List<ItemTab> itemTabList = new ArrayList<>();
     List<CollectionTab> collectionTabList = CollectionTabRepository.findAllByCollectionId(collection.getId());
     if (collectionTabList != null) {

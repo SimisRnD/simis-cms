@@ -77,13 +77,13 @@ public class WebPageSearchResultsWidget extends GenericWidget {
     Map<String, SearchResult> resultsMap = new LinkedHashMap<>();
     if (contentList == null) {
       // No content was found, return early
-      finishRequest(context, resultsMap);
+      return finishRequest(context, resultsMap);
     }
 
     // Determine the web pages that can be searched
     UserSession userSession = context.getUserSession();
     WebPageSpecification webPageSpecification = new WebPageSpecification();
-    if (!(context.hasRole("admin") || context.hasRole("content-manager"))) {
+    if (!context.hasRole("admin") || context.hasRole("content-manager")) {
       webPageSpecification.setSearchable(true);
       webPageSpecification.setDraft(false);
     }
@@ -194,7 +194,7 @@ public class WebPageSearchResultsWidget extends GenericWidget {
   private void addTheSearchResult(WebPage webPage, String link, Content content, Map<String, SearchResult> resultsMap) {
     // Add the search result
     String htmlContent = HtmlCommand.toHtml(content.getHighlight());
-    if (htmlContent != null) {
+    if (StringUtils.isNotBlank(htmlContent)) {
       htmlContent = StringUtils.replace(htmlContent, "${b}", "<strong>");
       htmlContent = StringUtils.replace(htmlContent, "${/b}", "</strong>");
     }

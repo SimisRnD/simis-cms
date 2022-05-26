@@ -95,6 +95,7 @@ public class MenuTabRepository {
         .add("tab_order", record.getTabOrder())
         .add("name", StringUtils.trimToNull(record.getName()))
         .add("link", StringUtils.trimToNull(record.getLink()))
+        .add("icon", StringUtils.trimToNull(record.getIcon()))
         .add("page_title", StringUtils.trimToNull(record.getPageTitle()))
         .add("page_keywords", StringUtils.trimToNull(record.getPageKeywords()))
         .add("page_description", StringUtils.trimToNull(record.getPageDescription()))
@@ -114,6 +115,7 @@ public class MenuTabRepository {
         .add("tab_order", record.getTabOrder())
         .add("name", StringUtils.trimToNull(record.getName()))
         .add("link", StringUtils.trimToNull(record.getLink()))
+        .add("icon", StringUtils.trimToNull(record.getIcon()))
         .add("page_title", StringUtils.trimToNull(record.getPageTitle()))
         .add("page_keywords", StringUtils.trimToNull(record.getPageKeywords()))
         .add("page_description", StringUtils.trimToNull(record.getPageDescription()))
@@ -178,6 +180,7 @@ public class MenuTabRepository {
       record.setDraft(rs.getBoolean("draft"));
       record.setEnabled(rs.getBoolean("enabled"));
       record.setComments(rs.getString("comments"));
+      record.setIcon(rs.getString("icon"));
       return record;
     } catch (SQLException se) {
       LOG.error("buildRecord", se);

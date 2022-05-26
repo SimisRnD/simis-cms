@@ -1,7 +1,6 @@
 /* To do list card */
 
 .todo-list-card {
-  background-color: #fefefe;
   border-radius: 0;
 }
 
@@ -51,6 +50,7 @@
 .todo-list-card ul input[type="checkbox"] ~ label {
   position: relative;
   margin-left: 2rem;
+  margin-right: 0;
 }
 
 .todo-list-card ul input[type="checkbox"] ~ label::after {

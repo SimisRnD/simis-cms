@@ -32,8 +32,9 @@
     <input type="hidden" name="returnPage" value="${returnPage}"/>
   </c:if>
   <%-- Title and Message block --%>
+  <h2><em><c:out value="${collection.name}" /></em></h2>
   <c:if test="${!empty title}">
-    <h1><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}"/></h1>
+    <p><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}"/></p>
   </c:if>
   <%@include file="../page_messages.jspf" %>
   <%-- Form Content --%>
@@ -41,6 +42,7 @@
   These input types create a text field:
   text, date, datetime, datetime-local, email, month, number, password, search, tel, time, url, and week. --%>
 
+    <h3 class="margin-top-30">Name and Description</h3>
     <div class="grid-container">
       <div class="grid-x grid-padding-x">
         <div class="small-12 cell">
@@ -49,18 +51,17 @@
           </label>
           <label>
             Provide an optional summary for the item
-            <textarea placeholder="optional description" name="summary" style="height:100px"><c:out value="${item.summary}"/></textarea>
+            <textarea placeholder="optional description" name="summary" style="height:180px"><c:out value="${item.summary}"/></textarea>
           </label>
         </div>
       </div>
     </div>
 
-    <%-- Categories --%>
     <c:if test="${!empty categoryList}">
+      <h3 class="margin-top-30 margin-bottom-20">Categories</h3>
       <div class="grid-container">
         <div class="grid-x grid-padding-x">
           <div class="small-12 cell">
-            <h3>Categories</h3>
             <span class="input-group-label">Primary Category</span>
             <select class="input-group-field" id="categoryId" name="categoryId">
               <option value="">Make a selection...</option>
@@ -92,11 +93,36 @@
       </div>
     </c:if>
 
-    <%-- Location --%>
+    <h3 class="margin-top-30">Reference</h3>
     <div class="grid-container">
       <div class="grid-x grid-padding-x">
         <div class="small-12 cell">
-          <h3>Address</h3>
+          <label>URL
+            <div class="input-group">
+              <span class="input-group-label"><i class="fa fa-link"></i></span>
+              <input class="input-group-field" type="url" placeholder="http://" name="url" value="<c:out value="${item.url}"/>">
+            </div>
+          </label>
+        </div>
+      </div>
+    </div>
+    <div class="grid-container">
+      <div class="grid-x grid-padding-x">
+        <div class="small-12 cell">
+          <label>Keywords
+            <div class="input-group">
+              <span class="input-group-label"><i class="fa fa-key"></i></span>
+              <input class="input-group-field" type="text" placeholder="comma-separated keywords" name="keywords" value="<c:out value="${item.keywords}"/>">
+            </div>
+          </label>
+        </div>
+      </div>
+    </div>
+
+    <h3 class="margin-top-30">Location</h3>
+    <div class="grid-container">
+      <div class="grid-x grid-padding-x">
+        <div class="small-12 cell">
           <label>Location Name (optional)
             <input type="text" placeholder="name of location" name="location" value="<c:out value="${item.location}"/>">
           </label>
@@ -202,10 +228,10 @@
       </div>
     </div>
 
+    <h3 class="margin-top-30">GIS</h3>
     <div class="grid-container">
       <div class="grid-x grid-padding-x">
         <div class="small-12 cell">
-          <h3>GIS</h3>
           <label>County
             <input type="text" placeholder="county" name="county" value="<c:out value="${item.county}"/>">
           </label>
@@ -223,10 +249,10 @@
       </div>
     </div>
 
+    <h3 class="margin-top-30">Data</h3>
     <div class="grid-container">
       <div class="grid-x grid-padding-x">
         <div class="small-12 cell">
-          <h3>Data</h3>
           <label>Phone Number
             <div class="input-group">
               <span class="input-group-label"><i class="fa fa-phone"></i></span>
@@ -236,20 +262,6 @@
         </div>
       </div>
     </div>
-
-    <div class="grid-container">
-      <div class="grid-x grid-padding-x">
-        <div class="small-12 cell">
-          <label>URL
-            <div class="input-group">
-              <span class="input-group-label"><i class="fa fa-link"></i></span>
-              <input class="input-group-field" type="url" placeholder="http://" name="url" value="<c:out value="${item.url}"/>">
-            </div>
-          </label>
-        </div>
-      </div>
-    </div>
-
     <div class="grid-container">
       <div class="grid-x grid-padding-x">
         <div class="small-12 cell">
@@ -263,19 +275,7 @@
       </div>
     </div>
 
-    <div class="grid-container">
-      <div class="grid-x grid-padding-x">
-        <div class="small-12 cell">
-          <label>Keywords
-            <div class="input-group">
-              <span class="input-group-label"><i class="fa fa-key"></i></span>
-              <input class="input-group-field" type="text" placeholder="comma-separated keywords" name="keywords" value="<c:out value="${item.keywords}"/>">
-            </div>
-          </label>
-        </div>
-      </div>
-    </div>
-
+    <h3 class="margin-top-30">Value</h3>
     <div class="grid-container">
       <div class="grid-x grid-padding-x">
         <div class="small-12 cell">
@@ -289,6 +289,7 @@
       </div>
     </div>
 
+    <h3 class="margin-top-30">Dates</h3>
     <div class="grid-container">
       <div class="grid-x grid-padding-x">
         <div class="medium-6 cell">
@@ -326,7 +327,6 @@
           </script>
         </div>
       </div>
-
       <div class="grid-x grid-padding-x">
         <div class="medium-6 cell">
           <label>Actual Start Date
@@ -408,14 +408,8 @@
     </div>
     </c:if>
 
-    <div class="grid-container">
-      <div class="grid-x grid-padding-x">
-        <div class="small-12 cell">
-          <p>
-            <input type="submit" class="button radius success" value="Save"/>
-            <c:if test="${!empty cancelUrl}"><a class="button radius secondary" href="${cancelUrl}">Cancel</a></c:if>
-          </p>
-        </div>
-      </div>
-    </div>
+    <p class="margin-top-20">
+      <input type="submit" class="button radius success" value="Save"/>
+      <c:if test="${!empty cancelUrl}"><a class="button radius secondary" href="${ctx}${cancelUrl}">Cancel</a></c:if>
+    </p>
 </form>

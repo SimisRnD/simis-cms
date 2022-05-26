@@ -71,105 +71,57 @@ public class DB {
         if (sqlValue.getStringValues() != null) {
           for (String value : sqlValue.getStringValues()) {
             pst.setString(++fieldIdx, value);
-            if (LOG.isTraceEnabled()) {
-              LOG.debug(value);
-            }
           }
         } else {
           pst.setString(++fieldIdx, sqlValue.getStringValue());
-          if (LOG.isTraceEnabled()) {
-            LOG.debug(sqlValue.getStringValue());
-          }
         }
       } else if (sqlValue.getSqlType() == Types.BIGINT) {
         if (sqlValue.getLongValues() != null) {
           for (Long value : sqlValue.getLongValues()) {
             pst.setLong(++fieldIdx, value);
-            if (LOG.isTraceEnabled()) {
-              LOG.debug(value);
-            }
           }
         } else {
           if (sqlValue.isNull()) {
             pst.setNull(++fieldIdx, Types.BIGINT);
-            if (LOG.isTraceEnabled()) {
-              LOG.debug("null");
-            }
           } else {
             pst.setLong(++fieldIdx, sqlValue.getLongValue());
-            if (LOG.isTraceEnabled()) {
-              LOG.debug(sqlValue.getLongValue());
-            }
           }
         }
       } else if (sqlValue.getSqlType() == Types.INTEGER) {
         if (sqlValue.isNull()) {
           pst.setNull(++fieldIdx, Types.INTEGER);
-          if (LOG.isTraceEnabled()) {
-            LOG.debug("null");
-          }
         } else {
           pst.setInt(++fieldIdx, sqlValue.getIntValue());
-          if (LOG.isTraceEnabled()) {
-            LOG.debug(sqlValue.getIntValue());
-          }
         }
       } else if (sqlValue.getSqlType() == Types.DOUBLE) {
         if (sqlValue.isNull()) {
           pst.setNull(++fieldIdx, Types.DOUBLE);
-          if (LOG.isTraceEnabled()) {
-            LOG.debug("null");
-          }
         } else {
           pst.setDouble(++fieldIdx, sqlValue.getDoubleValue());
-          if (LOG.isTraceEnabled()) {
-            LOG.debug(sqlValue.getDoubleValue());
-          }
         }
       } else if (sqlValue.getSqlType() == Types.NUMERIC) {
         if (sqlValue.isNull()) {
           pst.setNull(++fieldIdx, Types.NUMERIC);
-          if (LOG.isTraceEnabled()) {
-            LOG.debug("null");
-          }
         } else {
           pst.setBigDecimal(++fieldIdx, sqlValue.getBigDecimalValue());
-          if (LOG.isTraceEnabled()) {
-            LOG.debug(sqlValue.getBigDecimalValue());
-          }
         }
       } else if (sqlValue.getSqlType() == Types.TIMESTAMP) {
         if (sqlValue.getTimestampValues() != null) {
           for (Timestamp value : sqlValue.getTimestampValues()) {
             pst.setTimestamp(++fieldIdx, value);
-            if (LOG.isTraceEnabled()) {
-              LOG.debug(value);
-            }
           }
         } else {
           if (sqlValue.isNull()) {
             pst.setNull(++fieldIdx, Types.TIMESTAMP);
-            if (LOG.isTraceEnabled()) {
-              LOG.debug("null");
-            }
           } else {
             pst.setTimestamp(++fieldIdx, sqlValue.getTimestampValue());
-            if (LOG.isTraceEnabled()) {
-              LOG.debug(sqlValue.getTimestampValue());
-            }
           }
         }
       } else if (sqlValue.getSqlType() == Types.BOOLEAN) {
         if (sqlValue.isNull()) {
           pst.setNull(++fieldIdx, Types.BOOLEAN);
-          if (LOG.isTraceEnabled()) {
-            LOG.debug("null");
-          }
         } else {
           pst.setBoolean(++fieldIdx, sqlValue.getBooleanValue());
-          if (LOG.isTraceEnabled()) {
-            LOG.debug(sqlValue.getBooleanValue());
-          }
         }
       }
     }

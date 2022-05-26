@@ -22,6 +22,7 @@
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="collection" class="com.simisinc.platform.domain.model.items.Collection" scope="request"/>
+<jsp:useBean id="category" class="com.simisinc.platform.domain.model.items.Category" scope="request"/>
 <jsp:useBean id="item" class="com.simisinc.platform.domain.model.items.Item" scope="request"/>
 <jsp:useBean id="itemTabList" class="java.util.ArrayList" scope="request"/>
 <style>
@@ -108,13 +109,16 @@
 <%-- Medium Menu --%>
 <div class="item-menu menu-bar" id="responsive-item-menu">
   <div class="item-menu-container">
-    <c:if test="${!empty item.imageUrl || !empty collection.icon}">
+    <c:if test="${!empty item.imageUrl || !empty category.icon || !empty collection.icon}">
       <div class="item-logo hide-for-small-only margin-right-15">
         <c:choose>
           <c:when test="${!empty item.imageUrl}">
             <div class="item-image-large">
               <img alt="item image" src="<c:out value="${item.imageUrl}"/>"/>
             </div>
+          </c:when>
+          <c:when test="${!empty category.icon}">
+            <i class="${font:fad()} fa-2x fa-<c:out value="${category.icon}" />"></i>
           </c:when>
           <c:when test="${!empty collection.icon}">
             <i class="${font:fad()} fa-2x fa-<c:out value="${collection.icon}" />"></i>

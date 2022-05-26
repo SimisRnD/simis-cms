@@ -64,7 +64,7 @@
         <h3>H3 Header</h3>
         <h4>H4 Header</h4>
         <h5>H5 Header</h5>
-        <p class="no-gap">This is body text and there is also <strong>bold text</strong>.</p>
+        <p class="no-gap">This is body text, with <a href="#">an example link</a>, and there is also <strong>bold text</strong>.</p>
         <hr />
         <h4>Reference Elements</h4>
         <div class="callout">Callout</div>

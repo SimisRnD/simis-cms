@@ -19,7 +19,7 @@ package com.simisinc.platform.infrastructure.persistence;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.domain.model.Session;
 import com.simisinc.platform.domain.model.Visitor;
-import com.simisinc.platform.domain.model.StatisticsData;
+import com.simisinc.platform.domain.model.dashboard.StatisticsData;
 import com.simisinc.platform.infrastructure.database.*;
 import com.simisinc.platform.presentation.controller.UserSession;
 import org.apache.commons.lang3.StringUtils;
@@ -232,12 +232,18 @@ public class SessionRepository {
   }
 
   public static Session add(Session record) {
+    // remove tailing slash on referer
+    String referer = record.getReferer();
+    if (referer != null && referer.length() > 1 && referer.endsWith("/")) {
+      referer = referer.substring(0, referer.length() - 1);
+    }
+    // Insert the record
     SqlUtils insertValues = new SqlUtils()
         .add("session_id", record.getSessionId())
         .add("source", record.getSource())
         .add("ip_address", record.getIpAddress())
         .add("user_agent", StringUtils.abbreviate(record.getUserAgent(), 255))
-        .add("referer", StringUtils.abbreviate(record.getReferer(), 255))
+        .add("referer", StringUtils.abbreviate(referer, 255))
         .add("continent", record.getContinent())
         .add("country_iso", record.getCountryIso())
         .add("country", record.getCountry())

@@ -69,6 +69,9 @@
   <widget name="socialMediaLinks" class="com.simisinc.platform.presentation.widgets.cms.SocialMediaLinksWidget" />
   <widget name="instagram" class="com.simisinc.platform.presentation.widgets.cms.InstagramWidget" />
   <widget name="leaderboard" class="com.simisinc.platform.presentation.widgets.cms.LeaderboardWidget" />
+  <!-- Dashboard -->
+  <widget name="progressCard" class="com.simisinc.platform.presentation.widgets.dashboard.ProgressCardWidget" />
+  <widget name="statisticCard" class="com.simisinc.platform.presentation.widgets.dashboard.StatisticCardWidget" />
   <!-- User Profile and Management -->
   <widget name="emailSubscribe" class="com.simisinc.platform.presentation.widgets.mailinglists.EmailSubscribeWidget" />
   <widget name="myInfo" class="com.simisinc.platform.presentation.widgets.userProfile.MyInfoWidget" />

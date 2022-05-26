@@ -36,12 +36,14 @@
       <th width="80">Order</th>
       <th width="140">Tab Name</th>
       <th width="140">Profile Tab Link</th>
+      <%--
       <th width="140">Module</th>
       <th>
         <c:forEach items="${collectionRoleList}" var="role" varStatus="status">
           <span class="text-no-wrap no-gap-all"><input type="checkbox" id="role${role.id}of${collectionTabList.size() + i}" name="role${role.id}of${collectionTabList.size() + i}" value="true" checked /><label for="role${role.id}of${collectionTabList.size() + i}"><c:out value="${role.title}"/></label></span>
         </c:forEach>
       </th>
+      --%>
     </tr>
     </thead>
     <tbody>
@@ -66,6 +68,7 @@
         <td>
           <input type="text" name="link${status.count}" value="${tab.link}" class="no-gap" />
         </td>
+        <%--
         <td>
           &nbsp;
         </td>
@@ -74,6 +77,7 @@
             <span class="text-no-wrap no-gap-all"><input type="checkbox" id="role${role.id}of${status.count}" name="role${role.id}of${status.count}" value="true" checked /><label for="role${role.id}of${status.count}"><c:out value="${role.title}"/></label></span>
           </c:forEach>
         </td>
+        --%>
       </tr>
     </c:forEach>
     <%-- Extra rows --%>
@@ -97,6 +101,7 @@
         <td>
           <input type="text" name="link${collectionTabList.size() + i}" value="" class="no-gap" />
         </td>
+        <%--
         <td>
           &nbsp;
         </td>
@@ -105,6 +110,7 @@
             <span class="text-no-wrap no-gap-all"><input type="checkbox" id="role${role.id}of${collectionTabList.size() + i}" name="role${role.id}of${collectionTabList.size() + i}" value="true" checked /><label for="role${role.id}of${collectionTabList.size() + i}"><c:out value="${role.title}"/></label></span>
           </c:forEach>
         </td>
+        --%>
       </tr>
     </c:forEach>
     </tbody>

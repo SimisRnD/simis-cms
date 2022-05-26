@@ -11,6 +11,9 @@
   margin-bottom: 15px;
   background-color: #fff;
 }
+.tooltip {
+  border-radius: 12px;
+}
 .tooltip.under-reveal {
   z-index: 1004 !important;
 }

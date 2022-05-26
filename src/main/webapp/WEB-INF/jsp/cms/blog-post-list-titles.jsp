@@ -26,6 +26,7 @@
 <jsp:useBean id="blog" class="com.simisinc.platform.domain.model.cms.Blog" scope="request"/>
 <jsp:useBean id="blogPostList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="recordPaging" class="com.simisinc.platform.infrastructure.database.DataConstraints" scope="request"/>
+<jsp:useBean id="showBullets" class="java.lang.String" scope="request"/>
 <c:if test="${!empty title}">
   <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}"/></h4>
 </c:if>
@@ -35,7 +36,7 @@
 </c:if>
 <c:choose>
   <c:when test="${!empty blogPostList}">
-    <ul class="no-bullet">
+    <ul<c:if test="${showBullets eq 'false'}"> class="no-bullet"</c:if>>
       <c:forEach items="${blogPostList}" var="blogPost" varStatus="status">
         <li>
           <a href="${ctx}/${blog.uniqueId}/${blogPost.uniqueId}">${html:toHtml(blogPost.title)}</a>

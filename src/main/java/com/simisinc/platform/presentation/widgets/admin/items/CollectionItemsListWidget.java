@@ -16,17 +16,21 @@
 
 package com.simisinc.platform.presentation.widgets.admin.items;
 
+import com.simisinc.platform.domain.model.items.Category;
 import com.simisinc.platform.domain.model.items.Collection;
 import com.simisinc.platform.domain.model.items.Item;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
+import com.simisinc.platform.infrastructure.persistence.items.CategoryRepository;
 import com.simisinc.platform.infrastructure.persistence.items.CollectionRepository;
 import com.simisinc.platform.infrastructure.persistence.items.ItemRepository;
 import com.simisinc.platform.infrastructure.persistence.items.ItemSpecification;
 import com.simisinc.platform.presentation.controller.RequestConstants;
-import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.controller.WidgetContext;
+import com.simisinc.platform.presentation.widgets.GenericWidget;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Description
@@ -68,6 +72,14 @@ public class CollectionItemsListWidget extends GenericWidget {
     ItemSpecification specification = new ItemSpecification();
     specification.setCollectionId(collection.getId());
 //    specification.setForUserId(context.getUserId());
+
+    // Use the categories in the request
+    Map<Long, Category> categoryMap = new HashMap<>();
+    List<Category> categoryList = CategoryRepository.findAllByCollectionId(collection.getId());
+    for (Category category : categoryList) {
+      categoryMap.put(category.getId(), category);
+    }
+    context.getRequest().setAttribute("categoryMap", categoryMap);
 
     // Query the data
     List<Item> itemList = ItemRepository.findAll(specification, constraints);

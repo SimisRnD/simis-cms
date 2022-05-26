@@ -44,6 +44,7 @@
         <%--<span class="input-group-label">$</span>--%>
         <input class="input-group-field" type="text" name="name" placeholder="New tab name" value="<c:out value="${menuTab.name}" />" required>
         <input class="input-group-field" type="text" name="link" placeholder="Optional /link" value="<c:out value="${menuTab.link}" />">
+        <input class="input-group-field" type="text" name="icon" placeholder="Optional icon" value="<c:out value="${menuTab.icon}" />">
         <div class="input-group-button">
           <input type="submit" class="button success" value="Add Tab">
         </div>

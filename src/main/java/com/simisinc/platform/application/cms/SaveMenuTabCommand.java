@@ -71,6 +71,7 @@ public class SaveMenuTabCommand {
           menuTab.setLink(menuTabBean.getLink().trim());
         }
       }
+      menuTab.setIcon(menuTabBean.getIcon());
       menuTab.setDraft(false);
       menuTab.setEnabled(true);
       menuTab.setTabOrder(MenuTabRepository.getNextTabOrder());

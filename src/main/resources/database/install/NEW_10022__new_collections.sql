@@ -45,7 +45,10 @@ CREATE TABLE categories (
   created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
   modified TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
   item_count BIGINT NOT NULL DEFAULT 0,
-  is_primary BOOLEAN DEFAULT true
+  is_primary BOOLEAN DEFAULT true,
+  icon VARCHAR(20),
+  header_text_color VARCHAR(30) DEFAULT '#ffffff',
+  header_bg_color VARCHAR(30) DEFAULT '#666666'
 );
 CREATE UNIQUE INDEX categories_uni_idx ON categories(collection_id, name);
 CREATE INDEX categories_col_idx ON categories(collection_id);

@@ -44,8 +44,10 @@
     <tr>
       <td>
         <a href="${ctx}/admin/dataset-preview?datasetId=${dataset.id}"><c:out value="${dataset.name}" /></a>
-        <br />
-        <small><fmt:formatNumber value="${dataset.rowCount}" /> record<c:if test="${dataset.rowCount ne 1}">s</c:if></small>
+        <c:if test="${dataset.rowCount gt -1}">
+          <br />
+          <small><fmt:formatNumber value="${dataset.rowCount}" /> record<c:if test="${dataset.rowCount ne 1}">s</c:if></small>
+        </c:if>
         <%--
         <c:choose>
           <c:when test="${dataset.rowsProcessed lt dataset.rowCount && dataset.rowsProcessed gt 0}">
@@ -88,8 +90,11 @@
             <span class="label round success"><i class="fa fa-check"></i> Processed</span><br />
             <small class="subheader"><fmt:formatNumber value="${dataset.totalProcessTime}" /> ms</small>
           </c:when>
-          <c:otherwise>
+          <c:when test="${dataset.rowCount gt -1}">
             <span class="label round">Ready</span>
+          </c:when>
+          <c:otherwise>
+            <span class="label round warning" id="rowCount">Data Not Found</span>
           </c:otherwise>
         </c:choose>
       </td>

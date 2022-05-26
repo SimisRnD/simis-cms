@@ -22,10 +22,10 @@
 <c:if test="${collection.id gt 0}">
   <c:choose>
     <c:when test="${!empty addUrl}">
-      <a class="button radius" href="${addUrl}<c:if test="${!empty returnPage}">?returnPage=${returnPage}</c:if>"><i class="fa fa-plus"></i> <c:out value="${buttonName}" /></a>
+      <a class="button radius" href="${addUrl}<c:if test="${!empty returnPage}">?returnPage=${returnPage}</c:if>"><c:out value="${buttonName}" /> <i class="fa fa-arrow-circle-right"></i></a>
     </c:when>
     <c:otherwise>
-      <a class="button radius" href="${ctx}/add-an-item?collectionUniqueId=<c:out value="${collection.uniqueId}" /><c:if test="${!empty returnPage}">&returnPage=${returnPage}</c:if>"><i class="fa fa-plus"></i> <c:out value="${buttonName}" /></a>
+      <a class="button radius" href="${ctx}/add-an-item?collectionUniqueId=<c:out value="${collection.uniqueId}" /><c:if test="${!empty returnPage}">&returnPage=${returnPage}</c:if>"><c:out value="${buttonName}" /> <i class="fa fa-arrow-circle-right"></i></a>
     </c:otherwise>
   </c:choose>
 </c:if>

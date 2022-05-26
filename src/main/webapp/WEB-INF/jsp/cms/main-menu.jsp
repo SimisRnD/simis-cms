@@ -16,6 +16,7 @@
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
+<%@ taglib prefix="font" uri="/WEB-INF/font-functions.tld" %>
 <%@ taglib prefix="url" uri="/WEB-INF/url-functions.tld" %>
 <%@ taglib prefix="text" uri="/WEB-INF/text-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
@@ -45,7 +46,7 @@
         </c:if>
         <%-- Display the submenu --%>
         <li class="is-dropdown-submenu-parent<c:if test="${isParent eq 'true'}"> active</c:if>">
-          <a href="${ctx}${menuTab.link}"><c:out value="${menuTab.name}" /></a>
+          <a href="${ctx}${menuTab.link}"><c:if test="${!empty menuTab.icon}"><i class="${font:fas()} fa-fw fa-<c:out value="${menuTab.icon}" />"></i> </c:if><c:out value="${menuTab.name}" /></a>
           <ul class="menu vertical">
             <c:forEach items="${menuTab.menuItemList}" var="menuItem">
               <li<c:if test="${useHighlight eq 'true' && menuItem.link eq pagePath}"> class="active"</c:if>><a href="${ctx}${menuItem.link}"><c:if test="${!empty submenuIcon}"><i class="fa <c:out value="${submenuIcon}" /><c:if test="${!empty submenuIconClass}"> <c:out value="${submenuIconClass}" /></c:if>"></i></c:if> <c:out value="${menuItem.name}" /></a></li>
@@ -67,7 +68,7 @@
         </li>
       </c:when>
       <c:otherwise>
-        <li class="is-standalone<c:if test="${useHighlight eq 'true' && (menuTab.link eq pagePath || (menuTab.link ne '/' && fn:startsWith(pagePath, menuTab.link)))}"> active</c:if>"><a href="${ctx}${menuTab.link}"><c:out value="${menuTab.name}" /></a></li>
+        <li class="is-standalone<c:if test="${useHighlight eq 'true' && (menuTab.link eq pagePath || (menuTab.link ne '/' && fn:startsWith(pagePath, menuTab.link)))}"> active</c:if>"><a href="${ctx}${menuTab.link}"><c:if test="${!empty menuTab.icon}"><i class="${font:fas()} fa-fw fa-<c:out value="${menuTab.icon}" />"></i> </c:if><c:out value="${menuTab.name}" /></a></li>
       </c:otherwise>
     </c:choose>
   </c:forEach>

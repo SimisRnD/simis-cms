@@ -85,7 +85,7 @@ public class ItemFieldsWidget extends GenericWidget {
         // Validate and format as needed
         if ("url".equals(type)) {
           // @verify the URL
-          if (!value.startsWith("http")) {
+          if (!value.startsWith("http://") && !value.startsWith("https://")) {
             value = "http://" + value;
           }
         } else if ("number".equals(type)) {
@@ -112,7 +112,7 @@ public class ItemFieldsWidget extends GenericWidget {
           }
         } else if ("imageUrl".equals(type)) {
           // @verify the URL
-          if (!value.startsWith("http")) {
+          if (!value.startsWith("http://") && !value.startsWith("https://")) {
             value = "http://" + value;
           }
         }

@@ -24,13 +24,16 @@ import com.simisinc.platform.domain.model.cms.Holiday;
 import com.simisinc.platform.infrastructure.persistence.cms.CalendarEventRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.CalendarEventSpecification;
 import com.simisinc.platform.infrastructure.persistence.cms.CalendarRepository;
-import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.controller.WidgetContext;
+import com.simisinc.platform.presentation.widgets.GenericWidget;
 import org.apache.commons.lang3.StringUtils;
 
 import java.sql.Timestamp;
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
@@ -79,9 +82,9 @@ public class CalendarAjax extends GenericWidget {
 
     List<CalendarEvent> calendarEventList = null;
     try {
-      SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm");
-      startDate = dateFormat.parse(start + " 00:00");
-      endDate = dateFormat.parse(end + " 00:00");
+      // ISO8601 date strings 2022-05-29T00:00:00-04:00 00:00    start=2013-12-01T00:00:00-05:00&end=2014-01-12T00:00:00-05:00
+      startDate = start.contains("T") ? parseISO8601(start) : parseSimpleDateFormat(start);
+      endDate = end.contains("T") ? parseISO8601(end) : parseSimpleDateFormat(end);
       CalendarEventSpecification specification = new CalendarEventSpecification();
       if (calendarId > -1) {
         specification.setCalendarId(calendarId);
@@ -144,9 +147,9 @@ public class CalendarAjax extends GenericWidget {
     }
 
     // Add holidays... @todo if specified
-    LocalDate startLocalDate = LocalDate.parse(start, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-    LocalDate endLocalDate = LocalDate.parse(end, DateTimeFormatter.ofPattern("yyyy-MM-dd"));
-    ;
+    LocalDate startLocalDate = convertToLocalDate(startDate);
+    LocalDate endLocalDate = convertToLocalDate(endDate);
+
     List<Holiday> holidayList = HolidaysCommand.usHolidays(startLocalDate, endLocalDate);
     int holidayId = 0;
     for (Holiday holiday : holidayList) {
@@ -178,5 +181,23 @@ public class CalendarAjax extends GenericWidget {
 
     context.setJson("[" + sb + "]");
     return context;
+  }
+
+  private Date parseISO8601(String value) {
+    // 2022-05-01T00:00:00-04:00
+    DateTimeFormatter timeFormatter = DateTimeFormatter.ISO_DATE_TIME;
+    OffsetDateTime offsetDateTime = OffsetDateTime.parse(value, timeFormatter);
+    return Date.from(Instant.from(offsetDateTime));
+  }
+
+  private Date parseSimpleDateFormat(String value) throws ParseException {
+    SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd hh:mm");
+    return dateFormat.parse(value + (value.contains(" 00:00") ? "" : " 00:00"));
+  }
+
+  private LocalDate convertToLocalDate(Date dateToConvert) {
+    return dateToConvert.toInstant()
+        .atZone(ZoneId.systemDefault())
+        .toLocalDate();
   }
 }

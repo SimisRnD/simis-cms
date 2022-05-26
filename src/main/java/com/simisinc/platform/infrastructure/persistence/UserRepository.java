@@ -18,7 +18,7 @@ package com.simisinc.platform.infrastructure.persistence;
 
 import com.simisinc.platform.domain.model.Role;
 import com.simisinc.platform.domain.model.User;
-import com.simisinc.platform.domain.model.StatisticsData;
+import com.simisinc.platform.domain.model.dashboard.StatisticsData;
 import com.simisinc.platform.infrastructure.database.*;
 import com.simisinc.platform.infrastructure.persistence.ecommerce.OrderRepository;
 import com.simisinc.platform.infrastructure.persistence.login.UserGroupRepository;

@@ -43,17 +43,28 @@ public class ItemsListWidget extends GenericWidget {
 
   static String JSP = "/items/items-list.jsp";
   static String CARD_VIEW_JSP = "/items/items-card-view.jsp";
+  static String CATEGORY_CARD_VIEW_JSP = "/items/items-category-card-view.jsp";
   static String TABLE_VIEW_JSP = "/items/items-table.jsp";
   static String JOBS_LIST_JSP = "/items/items-jobs-list.jsp";
   static String SEARCH_RESULTS_JSP = "/items/items-search-results-list.jsp";
 
   public WidgetContext execute(WidgetContext context) {
 
+    // Determine preferences
+    String collectionUniqueId = context.getPreferences().get("collectionUniqueId");
+    long categoryId = context.getParameterAsLong("categoryId");
+    String categoryName = context.getPreferences().get("category");
+    String nearbyItemUniqueId = context.getPreferences().get("nearbyItemUniqueId");
+    boolean showMine = "true".equals(context.getPreferences().getOrDefault("showMine", "false"));
+    boolean showWhenEmpty = "true".equals(context.getPreferences().getOrDefault("showWhenEmpty", "false"));
+
     // Determine the view
     String jsp = JSP;
     String view = context.getPreferences().get("view");
     if ("cards".equals(view)) {
       jsp = CARD_VIEW_JSP;
+    } else if ("category-cards".equals(view)) {
+      jsp = CATEGORY_CARD_VIEW_JSP;
     } else if ("table".equals(view)) {
       jsp = TABLE_VIEW_JSP;
     } else if ("jobs".equals(view)) {
@@ -61,7 +72,6 @@ public class ItemsListWidget extends GenericWidget {
     }
 
     // Determine the collection
-    String collectionUniqueId = context.getPreferences().get("collectionUniqueId");
     Collection collection = LoadCollectionCommand.loadCollectionByUniqueIdForAuthorizedUser(collectionUniqueId, context.getUserId());
     if (collection == null) {
       LOG.warn("Set a collection or collectionUniqueId preference, or user does not have access");
@@ -83,17 +93,30 @@ public class ItemsListWidget extends GenericWidget {
     // Determine criteria
     ItemSpecification specification = new ItemSpecification();
     specification.setCollectionId(collection.getId());
-    specification.setForUserId(context.getUserId());
+    if (showMine) {
+      specification.setForMemberWithUserId(context.getUserId());
+    } else {
+      specification.setForUserId(context.getUserId());
+    }
     if (!context.hasRole("admin") && !context.hasRole("data-manager")) {
       specification.setApprovedOnly(true);
     }
 
-    long categoryId = context.getParameterAsLong("categoryId");
-    if (categoryId > -1) {
+    if (StringUtils.isNotBlank(categoryName)) {
+      Category category = CategoryRepository.findByNameWithinCollection(categoryName, collection.getId());
+      if (category != null && category.getCollectionId() == collection.getId()) {
+        specification.setCategoryId(category.getId());
+        context.getRequest().setAttribute("category", category);
+      } else {
+        return null;
+      }
+    } else if (categoryId > -1L) {
       Category category = CategoryRepository.findById(categoryId);
       if (category != null && category.getCollectionId() == collection.getId()) {
-        specification.setCategoryId(categoryId);
+        specification.setCategoryId(category.getId());
         context.getRequest().setAttribute("category", category);
+      } else {
+        return null;
       }
     }
 
@@ -118,7 +141,6 @@ public class ItemsListWidget extends GenericWidget {
     }
 
     // Sort by nearby items
-    String nearbyItemUniqueId = context.getPreferences().get("nearbyItemUniqueId");
     if (StringUtils.isNotBlank(nearbyItemUniqueId)) {
       // Find items nearby based on the specified item
       Item item = ItemRepository.findByUniqueId(nearbyItemUniqueId);
@@ -133,7 +155,7 @@ public class ItemsListWidget extends GenericWidget {
     // Query the data
     List<Item> itemList = ItemRepository.findAll(specification, constraints);
     if (itemList == null || itemList.isEmpty()) {
-      if (!"true".equals(context.getPreferences().getOrDefault("showWhenEmpty", "false"))) {
+      if (!showWhenEmpty) {
         LOG.debug("Skipping, no items found for collection: " + collection.getUniqueId());
         return context;
       }
@@ -146,8 +168,18 @@ public class ItemsListWidget extends GenericWidget {
     context.getRequest().setAttribute("showPaging", context.getPreferences().getOrDefault("showPaging", "true"));
     context.getRequest().setAttribute("returnPage", context.getRequest().getRequestURI());
 
-    // View preferences
-    context.getRequest().setAttribute("cardWidth", context.getPreferences().getOrDefault("cardWidth", "200"));
+    // List view preferences
+    context.getRequest().setAttribute("showCategory", context.getPreferences().getOrDefault("showCategory", "false"));
+    context.getRequest().setAttribute("showBullets", context.getPreferences().getOrDefault("showBullets", "false"));
+    context.getRequest().setAttribute("showLaunchLink", context.getPreferences().getOrDefault("showLaunchLink", "false"));
+    context.getRequest().setAttribute("launchLabel", context.getPreferences().getOrDefault("launchLabel", "Launch"));
+
+    // Card size view preferences based on grid cells
+    String smallGridCount = context.getPreferences().getOrDefault("smallGridCount", "6");
+    context.getRequest().setAttribute("smallGridCount", smallGridCount);
+    String mediumGridCount = context.getPreferences().getOrDefault("mediumGridCount", "4");
+    context.getRequest().setAttribute("mediumGridCount", mediumGridCount);
+    context.getRequest().setAttribute("largeGridCount", context.getPreferences().getOrDefault("largeGridCount", "3"));
 
     // Show the JSP
     context.setJsp(jsp);

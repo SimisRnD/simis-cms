@@ -1,27 +1,6 @@
 <?xml version="1.0" ?>
 <pages>
 
-  <!-- Data Directory -->
-  <page name="/directories" title="Directories" class="full-page">
-    <section class="grid-x grid-margin-x platform-no-margin">
-      <column class="small-12 cell">
-        <widget name="content" class="text-center padding-top-30">
-          <html><![CDATA[
-<h1>Directories</h1>
-<p>Choose a directory to discover content and to collaborate with others</p>
-]]></html>
-        </widget>
-      </column>
-    </section>
-    <section>
-      <column class="grid-container">
-        <widget name="directory">
-          <view>cards</view>
-        </widget>
-      </column>
-    </section>
-  </page>
-
   <page name="/directory{/collectionUniqueId}" collectionUniqueId="/directory/*" class="full-page">
     <section class="grid-x grid-margin-x platform-no-margin">
       <column class="small-12 cell">
@@ -80,11 +59,8 @@
   <page name="/add-an-item{?collectionUniqueId}" collectionUniqueId="?collectionUniqueId">
     <section>
       <column class="small-12 cell">
-        <widget name="content">
-          <html><![CDATA[<h3>${collection.name:html}</h3>]]></html>
-        </widget>
         <widget name="addItemForm">
-          <title>Create an item</title>
+          <title>Creating an item</title>
           <collectionUniqueId>${collection.uniqueId}</collectionUniqueId>
           <form>full</form>
         </widget>
@@ -92,18 +68,11 @@
     </section>
   </page>
 
-  <page name="/edit{/uniqueId}" itemUniqueId="/edit/*" title="Edit" class="full-page" role="admin,data-manager">
-    <section class="grid-x grid-margin-x platform-no-margin">
-      <column class="small-12 cell">
-        <widget name="content" class="text-center padding-10">
-          <html><![CDATA[<h1>${item.name:html}</h1>]]></html>
-        </widget>
-      </column>
-    </section>
+  <page name="/edit{/uniqueId}" itemUniqueId="/edit/*" title="Edit" role="admin,data-manager">
     <section>
       <column class="small-12 medium-9 small-order-2 medium-order-1 cell">
         <widget name="editItemForm">
-<!--          <title>${item.name}</title>-->
+          <title>Editing an item</title>
           <uniqueId>${item.uniqueId}</uniqueId>
         </widget>
       </column>

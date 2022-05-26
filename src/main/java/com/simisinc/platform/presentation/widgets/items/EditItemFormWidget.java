@@ -85,7 +85,9 @@ public class EditItemFormWidget extends GenericWidget {
     if (columnSize > 0) {
       List<List<Category>> columnList = ListUtils.partition(categoryList, columnSize);
       context.getRequest().setAttribute("categoryList1", columnList.get(0));
-      context.getRequest().setAttribute("categoryList2", columnList.get(1));
+      if (columnSize > 1) {
+        context.getRequest().setAttribute("categoryList2", columnList.get(1));
+      }
     }
 
     // Form bean
