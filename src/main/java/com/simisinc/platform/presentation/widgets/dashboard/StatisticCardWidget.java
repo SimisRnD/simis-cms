@@ -32,6 +32,7 @@ public class StatisticCardWidget extends GenericWidget {
   static final long serialVersionUID = -8484048371911908893L;
 
   public static String JSP = "/dashboard/statistic-card.jsp";
+  public static String JSP_VERTICAL = "/dashboard/statistic-card-vertical.jsp";
 
   public WidgetContext execute(WidgetContext context) {
 
@@ -44,7 +45,12 @@ public class StatisticCardWidget extends GenericWidget {
 
     context.getRequest().setAttribute("iconColor", valueForColor(context.getPreferences().getOrDefault("iconColor", "#ffffff")));
 
-    context.setJsp(JSP);
+    String view = context.getPreferences().getOrDefault("view", null);
+    if ("vertical".equals(view)) {
+      context.setJsp(JSP_VERTICAL);
+    } else {
+      context.setJsp(JSP);
+    }
     return context;
   }
 
