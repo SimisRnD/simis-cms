@@ -860,11 +860,11 @@ jSuites.crop = (function(el, options) {
             // Update scale
             if (e.deltaY > 0) {
                 if (properties.zoom.scale > 0.1) {
-                    properties.zoom.scale *= 0.9;
+                    properties.zoom.scale *= 0.97;
                 }
             } else {
                 if (properties.zoom.scale < 5) {
-                    properties.zoom.scale *= 1.1;
+                    properties.zoom.scale *= 1.03;
                 }
             }
             properties.zoom.scale = parseFloat(properties.zoom.scale.toFixed(2));
@@ -943,272 +943,146 @@ jSuites.crop = (function(el, options) {
     return obj;
 });
 
-jSuites.heatmap = (function(el, options) {
-    // New instance
+jSuites.floating = (function(el, options) {
     var obj = {};
     obj.options = {};
 
-    // Create and apply the plugin body
-    var createBody = function() {
-        // Highest value in the data list
-        var maxValue = obj.options.data.reduce(function(max, current) {
-            return max > current.value ? max : current.value;
-        }, 0);
+    // Default configuration
+    var defaults = {
+        type: 'big',
+        title: 'Untitled',
+        width: 510,
+        height: 472,
+    }
 
-        // Represents the date currently being used
-        var date = new Date(obj.options.date);
-        date.setDate(date.getDate() + 1);
+    // Loop through our object
+    for (var property in defaults) {
+        if (options && options.hasOwnProperty(property)) {
+            obj.options[property] = options[property];
+        } else {
+            obj.options[property] = defaults[property];
+        }
+    }
 
-        // Variable that stores the month currently being used
-        var month = date.getMonth();
+    // Private methods
 
-        // Array that stores the tds that correspond to the days until these tds are added to their respective table
-        var setOfDays = [
-            [],
-            [],
-            [],
-            [],
-            [],
-            [],
-            []
-        ];
-
-        // Month name abbreviations
-        var monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
-        // Variable that stores the html that will later be inserted in the body of the plugin
-        var pluginBody = `
-          <table>
-            <tbody>
-              <tr>
-                <td rowspan="2">Sun</td>
-              </tr>
-              <tr>
-                <td></td>
-              </tr>
-              <tr>
-                <td></td>
-              </tr>
-              <tr>
-                <td></td>
-              </tr>
-              <tr>
-                <td></td>
-              </tr>
-              <tr>
-                <td></td>
-              </tr>
-              <tr>
-                <td>Sat</td>
-              </tr>
-            </tbody>
-          </table>
-        `;
-
-        pluginBody += `
-          <table>
-            <thead>
-              <tr>
-                <td colspan="6">${monthNames[date.getMonth()]}</td>
-              </tr>
-            </thead>
-            <tbody>
-        `;
-
-        // Add empty tds to create an offset if the month doesn't start on Sunday
-        var aux = 0;
-        for (var aux = 0; aux < date.getDay(); aux++) {
-            setOfDays[aux].push('<td class="blank-day"></td>');
+    var setContent = function() {
+        var temp = document.createElement('div');
+        while (el.children[0]) {
+            temp.appendChild(el.children[0]);
         }
 
-        // Last date that the plugin should show
-        var finalDate = new Date(obj.options.date);
-        finalDate.setFullYear(finalDate.getFullYear() + 1);
+        obj.content = document.createElement('div');
+        obj.content.className = 'jfloating_content';
+        obj.content.innerHTML = el.innerHTML;
 
-        var timeFinalDate = finalDate.getTime();
-
-        // Function that checks the condition of the cycle
-        var isValidDate = function() {
-            return date.getTime() <= timeFinalDate;
+        while (temp.children[0]) {
+            obj.content.appendChild(temp.children[0]);
         }
 
-        // Cycle that spans one year from the date entered in the date parameter
-        while (isValidDate()) {
-            // Adaptation due to the difference of one day when creating a date object with a string
-            var adaptedDate = new Date(date.getTime());
-            adaptedDate.setDate(adaptedDate.getDate() - 1);
+        obj.container = document.createElement('div');
+        obj.container.className = 'jfloating';
+        obj.container.appendChild(obj.content);
 
-            var textAdaptedDate = adaptedDate.toISOString().slice(0, 10);
+        if (obj.options.title) {
+            obj.container.setAttribute('title', obj.options.title);
+        } else {
+            obj.container.classList.add('no-title');
+        }
 
-            // Object in the data array that corresponds to the date currently being treated
-            var currentDay = obj.options.data.find(function(day) {
-                return day.date === textAdaptedDate;
-            });
+        // validate element dimensions
+        if (obj.options.width) {
+            obj.container.style.width = parseInt(obj.options.width) + 'px';
+        }
 
-            // If currentDay exists, a TD referring to it is added with a color resulting from its value
-            if (currentDay) {
-                var percentage = Math.trunc((currentDay.value * 100) / maxValue);
+        if (obj.options.height) {
+            obj.container.style.height = parseInt(obj.options.height) + 'px';
+        }
 
-                var colorPosition = Math.trunc((percentage / 10) / 2);
-                if (colorPosition > 4) {
-                    colorPosition = 4;
-                }
+        el.innerHTML = '';
+        el.appendChild(obj.container);
+    }
 
-                setOfDays[date.getDay()].push(`<td style="background-color: ${obj.options.colors[colorPosition]}"></td>`);
+    var setEvents = function() {
+        if (obj.container) {
+            obj.container.addEventListener('click', function(e) {
+                var rect = e.target.getBoundingClientRect();
 
-                // If currentDay does not exist, a date with the day-not-informed class is added
-            } else {
-                setOfDays[date.getDay()].push(`<td class="day-not-informed"></td>`);
-            }
-
-            // Increment the date being treated by one day
-            date.setDate(date.getDate() + 1);
-
-            // If the date used in the next cycle is a different month from the treaty until then, fill in and close the month table
-            if (date.getMonth() !== month) {
-                setOfDays.forEach(function(days) {
-                    pluginBody += '<tr>';
-
-                    days.forEach(function(day) {
-                        pluginBody += day;
-                    })
-
-                    pluginBody += '</tr>';
-                });
-
-                // Reset variable setOfDays
-                setOfDays = [
-                    [],
-                    [],
-                    [],
-                    [],
-                    [],
-                    [],
-                    []
-                ];
-
-                pluginBody += '</tbody></table>';
-
-                // If the new date value is valid for entering the cycle again, a new table starts
-                if (isValidDate()) {
-                    pluginBody += `
-                        <table>
-                          <thead>
-                            <tr>
-                              <td colspan="6">${monthNames[date.getMonth()]}</td>
-                            </tr>
-                          </thead>
-                          <tbody>
-                      `;
-
-                    // Add empty tds to create an offset if the month doesn't start on Sunday
-                    var aux = 0;
-                    for (var aux = 0; aux < date.getDay(); aux++) {
-                        setOfDays[aux].push('<td class="blank-day"></td>');
+                if (e.target.classList.contains('jfloating')) {
+                    if (e.changedTouches && e.changedTouches[0]) {
+                        var x = e.changedTouches[0].clientX;
+                        var y = e.changedTouches[0].clientY;
+                    } else {
+                        var x = e.clientX;
+                        var y = e.clientY;
                     }
-
-                    // Update the variable that stores the current month
-                    month = date.getMonth();
+    
+                    if (rect.width - (x - rect.left) < 50 && (y - rect.top) < 50) {
+                        setTimeout(function() {
+                            obj.close();
+                        }, 100);
+                    } else {
+                        obj.setState();
+                    }
                 }
-            }
-        }
-
-        // Fill in and close the last month table
-        setOfDays.forEach(function(days) {
-            pluginBody += '<tr>';
-
-            days.forEach(function(day) {
-                pluginBody += day;
             });
-
-            pluginBody += '</tr>';
-        });
-
-        pluginBody += '</tbody></table>';
-
-        // Apply the plugin body to the tag passed as an argument
-        el.getElementsByClassName('jheatmap-body')[0].innerHTML = pluginBody;
+        }
     }
 
-    obj.setData = function(data) {
-        obj.options.data = data;
-
-        createBody();
+    var setType = function() {
+        obj.container.classList.add('jfloating-' + obj.options.type);
     }
 
-    obj.getData = function() {
-        return obj.options.data.map(function(element) {
-            return element;
-        });
+    obj.state = {
+        isMinized: false,
     }
 
-    // Initializes the plugin
-    var init = (function() {
-        var defaults = {
-            title: '',
-            tooltip: false,
-            colors: ['#FFECB3', '#FFD54F', '#FFC107', '#FFA000', '#FF6F00'],
-            data: [],
-            date: new Date().toISOString().slice(0, 10),
-            onload: null,
+    obj.setState = function() {
+        if (obj.state.isMinized) {
+            obj.container.classList.remove('jfloating-minimized');
+        } else {
+            obj.container.classList.add('jfloating-minimized');
         }
+        obj.state.isMinized = ! obj.state.isMinized;
+    }
 
-        // Fill the obj.options object
-        for (var property in defaults) {
-            if (options && options.hasOwnProperty(property)) {
-                obj.options[property] = options[property];
-            } else {
-                obj.options[property] = defaults[property];
-            }
+    obj.close = function() {
+        jSuites.floating.elements.splice(jSuites.floating.elements.indexOf(obj.container), 1);
+        obj.updatePosition();
+        el.remove();
+    }
+
+    obj.updatePosition = function() {
+        for (var i = 0; i < jSuites.floating.elements.length; i ++) {
+            var floating = jSuites.floating.elements[i];
+            var prevFloating = jSuites.floating.elements[i - 1];
+            floating.style.right = i * (prevFloating ? prevFloating.offsetWidth : floating.offsetWidth) * 1.01 + 'px';
         }
+    }   
 
-        // Add the plugin class to the tag that will receive it
-        el.classList.add('jheatmap');
+    obj.init = function() {
+        // Set content into root
+        setContent();
 
-        // Apply the plugin header if it was passed as an argument
-        if (obj.options.title !== '') {
-            var pluginHeader = `
-                <div class="jheatmap-header">${obj.options.title}</div>
-              `;
+        // Set dialog events
+        setEvents();
 
-            el.innerHTML = pluginHeader;
-        }
+        // Set dialog type
+        setType();
 
-        // Apply the plugin body if it was passed as an argument
-        if (obj.options.data) {
-            el.innerHTML += '<div class="jheatmap-body"></div>';
-            createBody();
-        }
+        // Update floating position
+        jSuites.floating.elements.push(obj.container);
+        obj.updatePosition();
 
-        // Apply the plugin tooltip if it was passed as an argument
-        if (obj.options.tooltip) {
-            var pluginFooter = `
-                <div class="jheatmap-footer">
-                  <div>Less</div>
-                  <table>
-                    <tr>
-                      <td style="background-color: ${obj.options.colors[0]}"></td>
-                      <td style="background-color: ${obj.options.colors[1]}"></td>
-                      <td style="background-color: ${obj.options.colors[2]}"></td>
-                      <td style="background-color: ${obj.options.colors[3]}"></td>
-                      <td style="background-color: ${obj.options.colors[4]}"></td>
-                    </tr>
-                  </table>
-                  <div>More</div>
-                </div>
-              `;
-
-            el.innerHTML += pluginFooter;
-        }
-
-        // Call the onload function, if it was passed as an argument
-        if (obj.options.onload) {
-            obj.options.onload(el, obj);
-        }
-    })();
+        el.floating = obj;
+    }
+    
+    obj.init();
 
     return obj;
 });
+
+jSuites.floating.elements = [];
 
 jSuites.login = (function(el, options) {
     var obj = {};
@@ -1244,14 +1118,6 @@ jSuites.login = (function(el, options) {
         }
     }
 
-    // Message console container
-    if (! obj.options.message) {
-        var messageElement = document.querySelector('.message');
-        if (messageElement) {
-            obj.options.message = messageElement;
-        }
-    }
-
     // Action
     var action = null;
 
@@ -1272,7 +1138,7 @@ jSuites.login = (function(el, options) {
 
     // Code
     var labelCode = document.createElement('label');
-    labelCode.innerHTML = 'Please enter here the code received';
+    labelCode.innerHTML = jSuites.translate('Please enter here the code received by email');
     var inputCode = document.createElement('input');
     inputCode.type = 'number';
     inputCode.id = 'code';
@@ -1298,7 +1164,7 @@ jSuites.login = (function(el, options) {
 
     // Login
     var labelLogin = document.createElement('label');
-    labelLogin.innerHTML = 'Login';
+    labelLogin.innerHTML = jSuites.translate('Login');
     var inputLogin = document.createElement('input');
     inputLogin.type = 'text';
     inputLogin.name = 'login';
@@ -1312,7 +1178,7 @@ jSuites.login = (function(el, options) {
 
     // Name
     var labelName = document.createElement('label');
-    labelName.innerHTML = 'Name';
+    labelName.innerHTML = jSuites.translate('Name');
     var inputName = document.createElement('input');
     inputName.type = 'text';
     inputName.name = 'name';
@@ -1322,7 +1188,7 @@ jSuites.login = (function(el, options) {
 
     // Email
     var labelUsername = document.createElement('label');
-    labelUsername.innerHTML = 'E-mail';
+    labelUsername.innerHTML = jSuites.translate('E-mail');
     var inputUsername = document.createElement('input');
     inputUsername.type = 'text';
     inputUsername.name = 'username';
@@ -1333,7 +1199,7 @@ jSuites.login = (function(el, options) {
 
     // Password
     var labelPassword = document.createElement('label');
-    labelPassword.innerHTML = 'Password';
+    labelPassword.innerHTML = jSuites.translate('Password');
     var inputPassword = document.createElement('input');
     inputPassword.type = 'password';
     inputPassword.name = 'password';
@@ -1349,7 +1215,7 @@ jSuites.login = (function(el, options) {
 
     // Repeat password
     var labelRepeatPassword = document.createElement('label');
-    labelRepeatPassword.innerHTML = 'Repeat the new password';
+    labelRepeatPassword.innerHTML = jSuites.translate('Repeat the new password');
     var inputRepeatPassword = document.createElement('input');
     inputRepeatPassword.type = 'password';
     inputRepeatPassword.name = 'password';
@@ -1359,7 +1225,7 @@ jSuites.login = (function(el, options) {
 
     // Remember checkbox
     var labelRemember = document.createElement('label');
-    labelRemember.innerHTML = 'Remember me on this device';
+    labelRemember.innerHTML = jSuites.translate('Remember me on this device');
     var inputRemember = document.createElement('input');
     inputRemember.type = 'checkbox';
     inputRemember.name = 'remember';
@@ -1381,7 +1247,7 @@ jSuites.login = (function(el, options) {
 
     // Cancel button
     var cancelButton = document.createElement('div');
-    cancelButton.innerHTML = 'Cancel';
+    cancelButton.innerHTML = jSuites.translate('Cancel');
     cancelButton.className = 'cancelButton';
     cancelButton.onclick = function() {
         obj.requestAccess();
@@ -1391,7 +1257,7 @@ jSuites.login = (function(el, options) {
 
     // Captcha
     var labelCaptcha = document.createElement('label');
-    labelCaptcha.innerHTML = 'Please type here the code below';
+    labelCaptcha.innerHTML = jSuites.translate('Please type here the code shown below');
     var inputCaptcha = document.createElement('input');
     inputCaptcha.type = 'text';
     inputCaptcha.name = 'captcha';
@@ -1404,7 +1270,7 @@ jSuites.login = (function(el, options) {
 
     // Facebook
     var facebookButton = document.createElement('div');
-    facebookButton.innerHTML = 'Login with Facebook';
+    facebookButton.innerHTML = jSuites.translate('Login with Facebook');
     facebookButton.className = 'facebookButton';
     var divFacebookButton = document.createElement('div');
     divFacebookButton.appendChild(facebookButton);
@@ -1413,7 +1279,7 @@ jSuites.login = (function(el, options) {
     }
     // Forgot password
     var inputRequest = document.createElement('span');
-    inputRequest.innerHTML = 'Request a new password';
+    inputRequest.innerHTML = jSuites.translate('Request a new password');
     var divRequestButton = document.createElement('div');
     divRequestButton.className = 'requestButton';
     divRequestButton.appendChild(inputRequest);
@@ -1422,7 +1288,7 @@ jSuites.login = (function(el, options) {
     }
     // Create a new Profile
     var inputNewProfile = document.createElement('span');
-    inputNewProfile.innerHTML = 'Create a new profile';
+    inputNewProfile.innerHTML = jSuites.translate('Create a new profile');
     var divNewProfileButton = document.createElement('div');
     divNewProfileButton.className = 'newProfileButton';
     divNewProfileButton.appendChild(inputNewProfile);
@@ -1442,8 +1308,8 @@ jSuites.login = (function(el, options) {
     obj.showMessage = function(data) {
         var message = (typeof(data) == 'object') ? data.message : data;
 
-        if (typeof(obj.options.showMessage) == 'function') {
-            obj.options.showMessage(data);
+        if (typeof(obj.options.message) == 'function') {
+            obj.options.message(data);
         } else {
             jSuites.alert(data);
         }
@@ -1472,7 +1338,7 @@ jSuites.login = (function(el, options) {
         inputPassword.value = '';
 
         // Button
-        actionButton.value = 'Create new profile';
+        actionButton.value = jSuites.translate('Create a new profile');
 
         // Action
         action = 'newProfile';
@@ -1495,7 +1361,7 @@ jSuites.login = (function(el, options) {
         }
         container.appendChild(divActionButton);
         container.appendChild(divCancelButton);
-        actionButton.value = 'Request a new password';
+        actionButton.value = jSuites.translate('Request a new password');
         inputRecovery.value = 1;
 
         // Action
@@ -1512,7 +1378,7 @@ jSuites.login = (function(el, options) {
         container.appendChild(divCode);
         container.appendChild(divActionButton);
         container.appendChild(divCancelButton);
-        actionButton.value = 'Confirm code';
+        actionButton.value = jSuites.translate('Confirm the code');
         inputRecovery.value = 2;
 
         // Action
@@ -1530,7 +1396,7 @@ jSuites.login = (function(el, options) {
         container.appendChild(divRepeatPassword);
         container.appendChild(divActionButton);
         container.appendChild(divCancelButton);
-        actionButton.value = 'Change my password';
+        actionButton.value = jSuites.translate('Change my password');
         inputHash.value = hash;
 
         // Action
@@ -1557,7 +1423,7 @@ jSuites.login = (function(el, options) {
         }
 
         // Button
-        actionButton.value = 'Login';
+        actionButton.value = jSuites.translate('Login');
 
         // Password
         inputPassword.value = '';
@@ -1585,7 +1451,7 @@ jSuites.login = (function(el, options) {
                         if (response.authResponse) {
                             obj.execute({ f:response.authResponse.accessToken });
                         } else {
-                            obj.showMessage('Not authorized by facebook');
+                            obj.showMessage(jSuites.translate('Not authorized by facebook'));
                         }
                     }, {scope: 'public_profile,email'});
                 } else {
@@ -1616,7 +1482,7 @@ jSuites.login = (function(el, options) {
                 if (url.indexOf("error=access_denied") >= 0) {
                    setTimeout(jDestroy ,500);
                    // Not authorized by facebook
-                   obj.showMessage('Not authorized by facebook');
+                   obj.showMessage(jSuites.translate('Not authorized by facebook'));
                 }
             }
 
@@ -1642,25 +1508,21 @@ jSuites.login = (function(el, options) {
     obj.execute = function(data) {
         // New profile
         if (action == 'newProfile') {
-            var pattern = new RegExp(/^([\w-\.]+@([\w-]+\.)+[\w-]{2,4})?$/);
-            if (! inputUsername.value || ! pattern.test(inputUsername.value)) {
-                var message = 'Invalid e-mail address'; 
+            if (! jSuites.validations.email(inputUsername.value)) {
+                var message = jSuites.translate('Invalid e-mail address'); 
             }
-
-            var pattern = new RegExp(/^[a-zA-Z0-9\_\-\.\s+]+$/);
-            if (! inputLogin.value || ! pattern.test(inputLogin.value)) {
-                var message = 'Invalid username, please use only characters and numbers';
+            if (! jSuites.validations.login(inputLogin.value)) {
+                var message = jSuites.translate('Invalid username, please use only characters and numbers');
             }
-
             if (message) {
                 obj.showMessage(message);
                 return false;
             }
         } else if (action == 'changeMyPassword') {
             if (inputPassword.value.length < 3) {
-                var message = 'Password is too short';
+                var message = jSuites.translate('Password is too short');
             } else  if (inputPassword.value != inputRepeatPassword.value) {
-                var message = 'Password should match';
+                var message = jSuites.translate('Password should match');
             } else {
                 if (typeof(obj.options.newPasswordValidation) == 'function') {
                     var val = obj.options.newPasswordValidation(obj, inputPassword.value, inputPassword.value);
@@ -1684,7 +1546,7 @@ jSuites.login = (function(el, options) {
         // Captcha
         if (Array.prototype.indexOf.call(container.children, divCaptcha) >= 0) {
             if (inputCaptcha.value == '') {
-                obj.showMessage('Please enter the captch code below');
+                obj.showMessage(jSuites.translate('Please enter the captch code below'));
                 return false;
             }
         }
@@ -1839,7 +1701,7 @@ jSuites.menu = (function(el, options) {
                 menu[i].classList.remove('selected');
                 if (menu[i].getAttribute('data-id')) {
                     var state = localStorage.getItem('jmenu-' + menu[i].getAttribute('data-id'));
-                    if (state === null || state == 1) {
+                    if (state == 1) {
                         menu[i].classList.add('selected');
                     }
                 }
@@ -1854,48 +1716,59 @@ jSuites.menu = (function(el, options) {
         }
     }
 
-    obj.select = function(o) {
-        var menu = el.querySelectorAll('nav a');
-        for (var i = 0; i < menu.length; i++) {
-            menu[i].classList.remove('selected');
-        }
-        o.classList.add('selected');
+    obj.select = function(o, e) {
+        if (o.tagName == 'NAV') {
+            var m = el.querySelectorAll('nav');
+            for (var i = 0; i < m.length; i++) {
+                m[i].style.display = 'none';
+            }
+            o.style.display = '';
+            o.classList.add('selected');
+        } else {
+            var m = el.querySelectorAll('nav a');
+            for (var i = 0; i < m.length; i++) {
+                m[i].classList.remove('selected');
+            }
+            o.classList.add('selected');
 
-        // Better navigation
-        if (options && options.collapse == true) {
-            if (o.classList.contains('show')) {
-                menu = el.querySelectorAll('nav');
-                for (var i = 0; i < menu.length; i++) {
-                    menu[i].style.display = '';
-                }
-                o.style.display = 'none';
-            } else {
-                menu = el.querySelectorAll('nav');
-                for (var i = 0; i < menu.length; i++) {
-                    menu[i].style.display = 'none';
-                }
+            // Better navigation
+            if (options && options.collapse == true) {
+                if (o.classList.contains('show')) {
+                    m = el.querySelectorAll('nav');
+                    for (var i = 0; i < m.length; i++) {
+                        m[i].style.display = '';
+                    }
+                    o.style.display = 'none';
+                } else {
+                    m = el.querySelectorAll('nav');
+                    for (var i = 0; i < m.length; i++) {
+                        m[i].style.display = 'none';
+                    }
 
-                menu = el.querySelector('.show');
-                if (menu) {
-                    menu.style.display = 'block';
-                }
+                    m = el.querySelector('.show');
+                    if (m) {
+                        m.style.display = 'block';
+                    }
 
-                menu = jSuites.findElement(o.parentNode, 'selected');
-                if (menu) {
-                    menu.style.display = '';
+                    m = jSuites.findElement(o.parentNode, 'selected');
+                    if (m) {
+                        m.style.display = '';
+                    }
                 }
             }
         }
 
+        if (options && typeof(options.onclick) == 'function') {
+            options.onclick(obj, e);
+        }
+
         // Close menu if is oped
         if (jSuites.getWindowWidth() < 800) {
-            setTimeout(function() {
-                obj.hide();
-            }, 0);
+            obj.hide();
         }
     }
 
-    var actionDown = function(e) {
+    var action = function(e) {
         if (e.target.tagName == 'H2') {
             if (e.target.parentNode.classList.contains('selected')) {
                 e.target.parentNode.classList.remove('selected');
@@ -1906,14 +1779,14 @@ jSuites.menu = (function(el, options) {
             }
         } else if (e.target.tagName == 'A') {
             // Mark link as selected
-            obj.select(e.target);
+            obj.select(e.target, e);
         }
     }
 
     if ('ontouchstart' in document.documentElement === true) {
-        el.addEventListener('touchstart', actionDown);
+        el.addEventListener('touchsend', action);
     } else {
-        el.addEventListener('mousedown', actionDown);
+        el.addEventListener('mouseup', action);
     }
 
     // Add close action
@@ -2051,7 +1924,7 @@ jSuites.organogram = (function(el, options) {
     // Renders the organogram
     var render = function (parent, container) {
         for (var i = 0; i < obj.options.data.length; i ++) {
-            if (obj.options.data[i].parent === parent) {
+            if (obj.options.data[i].parent == parent) {
                 var ul = mountNodes(obj.options.data[i], container);
                 render(obj.options.data[i].id, ul);
             }
@@ -2135,13 +2008,17 @@ jSuites.organogram = (function(el, options) {
 
     //
     var setInitialPosition = function() {
-        ul.children[0].style.left = (ul.clientWidth / 2  - ul.children[0].clientWidth / 2) + 'px';
-        ul.children[0].style.top = '100px';
+        if (ul && ul.children[0]) {
+            ul.children[0].style.left = (ul.clientWidth / 2  - ul.children[0].clientWidth / 2) + 'px';
+            ul.children[0].style.top = '100px';
+        }
     }
 
     //
     var setInitialWidth = function() {
-        state.initialWidth = ul.children[0].clientWidth;
+        if (ul.children[0]) {
+            state.initialWidth = ul.children[0].clientWidth;
+        }
     }
 
     //
@@ -2582,514 +2459,6 @@ jSuites.organogram = (function(el, options) {
     return obj;
 });
 
-jSuites.player = (function(el, options) {
-    var obj = {};
-    obj.options = options || {};
-
-    var defaults = {
-        data: null,
-        position: 'bottom',
-        autoplay: true,
-    }
-
-    var state = {
-        // stores the current K
-        current: null,
-        previousVolume: null,
-    }
-
-    for (var property in defaults) {
-        if (! obj.options[property]) {
-            obj.options[property] = defaults[property];
-        }
-    }
-
-    // Element reference
-    var extraControls = null;
-    var optionsContainer = null;
-    var audioEl = null;
-    var sourceEl = null;
-    var volume = null;
-    var queue = null;
-    var volumeWrapper = null;
-    var timerProgress = null;
-    var progressBar_percent = null;
-    var progressBar = null;
-    var songImage = null;
-    var songTitle = null;
-    var songArtist = null;
-    var timerContainer = null;
-
-    // Private methods
-    var init = function() {
-        var player_container = document.createElement('div');
-        player_container.classList.add('jplayer-player');
-        
-        // Inner component
-        var leftContainer = document.createElement('div');
-        var contentContainer = document.createElement('div');
-        var rightContainer = document.createElement('div');
-
-        // Left container content
-        var songInfoWrapper = document.createElement('div');
-        songInfoWrapper.classList.add('jplayer-info-wrapper');
-
-        var songImageWrapper = document.createElement('div');
-        songImage = document.createElement('img');
-        var songLabelWrapper = document.createElement('div');
-        songTitle = document.createElement('span');
-        songArtist = document.createElement('span');
-
-        leftContainer.appendChild(songInfoWrapper);
-        songInfoWrapper.appendChild(songImageWrapper);
-        songInfoWrapper.appendChild(songLabelWrapper);
-        songImageWrapper.appendChild(songImage);
-        songLabelWrapper.appendChild(songTitle);
-        songLabelWrapper.appendChild(songArtist);
-
-        player_container.appendChild(leftContainer);
-        player_container.appendChild(contentContainer);
-        player_container.appendChild(rightContainer);
-
-        // Create main container
-        var playerMainContainer = document.createElement('div');
-        playerMainContainer.classList.add('jplayer-main-options');
-
-        optionsContainer = document.createElement('div');
-        optionsContainer.classList.add('jplayer-options-container');
-
-        // options container content
-        var iconNames = ['shuffle', 'arrow_left', 'play_arrow', 'arrow_right', 'replay'];
-        var ariaLabels = ['Active random order', 'Return', 'Play/Pause', 'Next', 'Replay']
-
-        for (var i = 0; i < 5; i ++) {
-            var button = document.createElement('button');
-            button.setAttribute('title', ariaLabels[i]);
-            button.classList.add('jplayer-options-button');
-            button.innerHTML = '<i class="material-icons">' + iconNames[i] + '</i>';
-            optionsContainer.appendChild(button);
-
-            if (i === 1) {
-                button.onclick = previousSongEvent;
-            } else if (i === 3) {
-                button.onclick = nextSongEvent;
-            } else if (i === 4) {
-                button.onclick = replaySongEvent;
-            }
-        }
-
-        // Options events
-        optionsContainer.children[2].setAttribute('action', 'play');
-        optionsContainer.children[2].onclick = playEvent;
-
-        timerContainer = document.createElement('div');
-        timerContainer.classList.add('jplayer-timer-container');
-
-        // player progress content
-        timerProgress = document.createElement('div');
-        var progressBarWrapper = document.createElement('div');
-        progressBar = document.createElement('div');
-        progressBar_percent = document.createElement('div');
-        var timerProgress_ = document.createElement('div');
-
-        timerProgress.classList.add('jplayer-timer-progress');
-        timerProgress_.classList.add('jplayer-timer-progress');
-        progressBarWrapper.classList.add('jplayer-progressbar-wrapper');
-        progressBar.classList.add('jplayer-progressbar');
-        progressBar_percent.classList.add('jplayer-progressbar-percent');
-
-        timerContainer.appendChild(timerProgress);
-        timerContainer.appendChild(progressBarWrapper);
-        timerContainer.appendChild(timerProgress_);
-
-        progressBarWrapper.appendChild(progressBar);
-        progressBar.appendChild(progressBar_percent);
-
-        playerMainContainer.appendChild(optionsContainer);
-        playerMainContainer.appendChild(timerContainer);
-        contentContainer.appendChild(playerMainContainer);
-
-        // right container inner content
-        extraControls = document.createElement('div');
-        extraControls.classList.add('jplayer-extra-controls');
-
-        queue = document.createElement('div');
-        volume = document.createElement('div');
-
-        var volumeIcon = document.createElement('div');
-        volumeIcon.innerHTML = '<i class="material-icons">volume_up</i>'
-
-        volumeWrapper = document.createElement('input');
-        volumeWrapper.setAttribute('type', 'range');
-        volumeWrapper.setAttribute('min', 0);
-        volumeWrapper.setAttribute('max', 100);
-        volumeWrapper.value = state.previousVolume = 100;
-
-        volumeWrapper.classList.add('jplayer-volume');
-        
-        volume.appendChild(volumeIcon);
-        volume.appendChild(volumeWrapper);
-
-        queue.innerHTML = '<i class="material-icons">queue_music</i>'
-
-        extraControls.appendChild(queue);
-        extraControls.appendChild(volume);
-
-        rightContainer.appendChild(extraControls);
-
-        // position logic
-        if(obj.options.position === 'bottom') {
-            player_container.classList.add('position_bottom');
-        }
-
-        if (el instanceof HTMLElement) {
-            // append saorock player into el
-            el.appendChild(player_container);
-
-            // create hide player
-            audioEl = document.createElement('audio');
-            sourceEl = document.createElement('source');
-            audioEl.setAttribute('controls', 'controls');
-            audioEl.appendChild(sourceEl);
-        
-            // events
-            window.onresize = window.onload = applyResponsiveComportamment;
-            extraControls.children[1].children[0].onclick = muteEvent;
-            volumeWrapper.oninput = setVolume;
-            volumeWrapper.onchange = setVolume;
-            audioEl.ontimeupdate = timeUpdate;
-            audioEl.onended = songEnd;
-            progressBarWrapper.onmousedown = setProgressbarPosition;
-        }
-        else {
-            document.body.appendChild(player_container);
-        }
-    }
-
-    var applyResponsiveComportamment = function(event) {
-        if (jSuites.getWindowWidth() < 576) {
-            optionsContainer.parentNode.insertBefore(timerContainer, optionsContainer);
-            if (! optionsContainer.parentNode.classList.contains('mobile')) {
-                optionsContainer.parentNode.classList.add('mobile');
-            }
-        } else {
-            if (optionsContainer.parentNode.classList.contains('mobile')) {
-                optionsContainer.parentNode.classList.remove('mobile');
-                optionsContainer.parentNode.appendChild(timerContainer);
-            }
-        }
-    }
-
-    var getCurrentAudio = function() {
-        if (! obj.options.data || (! obj.options.data.length)) {
-            return null;
-        } else {
-            if (! state.current) {
-                state.current = 0;
-            }
-            return obj.options.data[state.current];
-        }
-    }
-
-    var changePlayIcon = function() {
-        var playButton = optionsContainer.children[2];     
-
-        if (! audioEl.paused) {
-            playButton.setAttribute('action', 'pause');
-            playButton.children[0].innerHTML = 'pause';
-        } else {
-            playButton.setAttribute('action', 'play');
-            playButton.children[0].innerHTML = 'play_arrow';
-        }
-    }
-
-    var playEvent = function(event) {  
-        var playButton = optionsContainer.children[2];     
-        if (playButton.getAttribute('action') == 'play') {
-            obj.play();
-        } else if (playButton.getAttribute('action') == 'pause') {
-            obj.stop();
-        }
-
-        changePlayIcon();
-    }
-
-    var muteEvent = function(e) {
-        var volumeIcon = volume.children[0].children[0];
-
-        if (audioEl.muted) {
-            audioEl.muted = false;
-            volumeIcon.innerHTML = 'volume_up';
-            volumeWrapper.value = state.previousVolume;
-        } else {
-            state.previousVolume = volumeWrapper.value;
-            volumeWrapper.value = 0;
-            volumeIcon.innerHTML = 'volume_mute';
-            audioEl.muted = true;
-        }
-    }
-
-    var setVolume = function(e) {
-        audioEl.volume = (volumeWrapper.value / 100); 
-
-        if (! audioEl.volume) {
-            audioEl.muted = true;
-            volume.children[0].children[0].innerHTML = 'volume_mute';
-        }else if (audioEl.muted) {
-            audioEl.muted = false;
-            volume.children[0].children[0].innerHTML = 'volume_up';
-        }
-    }
-
-
-    var timeUpdate = function(e) {
-        var currentTime = audioEl.currentTime;
-        var min = parseInt(currentTime / 60);
-        var seconds = parseInt(currentTime - min * 60);
-        timerProgress.textContent = (jSuites.two(min) + ':' + jSuites.two(seconds));
-
-        // Update progressbar
-        progressBar_percent.style.width = (currentTime / audioEl.duration) * 100 + '%';
-    }
-
-    var setProgressbarPosition = function(e) {
-        var rect = progressBar.getBoundingClientRect();
-        var clickedX = e.clientX - rect.left;
-        var percent = (clickedX / progressBar.offsetWidth) * 100;
-        progressBar_percent.style.width = percent + '%';
-
-        // Set current time in the player
-        audioEl.currentTime = percent * audioEl.duration / 100;
-    }
-
-    var hasNextSong = function() {
-        if (obj.options.data[state.current + 1]) {
-            return true;
-        }
-        return false;
-    }
-
-    var hasPreviousSong = function() {
-        if (obj.options.data[state.current - 1]) {
-            return true;
-        }
-        return false;
-    }
-
-    var nextSongEvent = function(e) {
-        if (hasNextSong()) {
-            obj.next();
-        }
-    }
-
-    var previousSongEvent = function(e) {
-        if (hasPreviousSong()) {
-            obj.previous();
-        }
-    }
-
-    var replaySongEvent = function(e) {
-        obj.restart();
-    }
-
-    var songEnd = function(e) {
-        if (hasNextSong()) {
-            obj.next();
-        } else {
-            obj.restart();
-            changePlayIcon();
-        }
-    }
-
-    obj.loadSong = function() {
-        var audioObj = getCurrentAudio();
-        if (audioObj) {
-            audioEl.src = audioObj.file;
-            audioEl.load();
-            obj.play();
-        }
-
-        songImage.src = audioObj.image;
-        songTitle.innerHTML = audioObj.title;
-        songArtist.innerHTML = audioObj.author;
-    }
-
-    obj.setData = function(data) {
-        obj.options.data = data;
-
-        obj.loadSong();
-    }
-
-    obj.play = function() {
-        audioEl.play();
-        changePlayIcon();
-    }
-
-    obj.stop = function() {
-        audioEl.pause();
-    }
-
-    obj.restart = function() {
-        if (audioEl.currentTime) {
-            audioEl.currentTime = 0;
-        }
-    }
-
-    obj.next = function() {
-        state.current = state.current + 1;
-        obj.setPosition();
-    }
-
-    obj.previous = function() {
-        state.current = state.current - 1;
-        obj.setPosition();
-    }
-
-    obj.shuffle = function() {
-    }
-
-    init();
-
-    return obj;
-});
-
-jSuites.signature = (function(el, options) {
-    var obj = {};
-    obj.options = {};
-
-    // Default configuration
-    var defaults = {
-        width: '100%',
-        height: '120px',
-        lineWidth: 3,
-        onchange: null,
-        value: null,
-        readonly: false,
-    }
-
-    // Loop through our object
-    for (var property in defaults) {
-        if (options && options.hasOwnProperty(property)) {
-            obj.options[property] = options[property];
-        } else {
-            obj.options[property] = defaults[property];
-        }
-    }
-
-    el.style.width = obj.options.width;
-    el.style.height = obj.options.height;
-    el.classList.add('jsignature');
-
-    var canvas = document.createElement('canvas');
-    var ctx = canvas.getContext('2d');
-    el.appendChild(canvas);
-
-   // Position
-    var x = null;
-    var y = null;
-
-    // Coordinates
-    var coordinates = [];
-
-    obj.setValue = function(c) {
-        obj.reset();
-
-        ctx.beginPath();
-        ctx.lineWidth = obj.options.lineWidth;
-        ctx.lineCap = 'round';
-        ctx.strokeStyle = '#000';
-        ctx.moveTo(c[0][0], c[0][1]);
-
-        for (var i = 1; i < c.length; i++) {
-            ctx.lineTo(c[i][0], c[i][1]);
-            ctx.stroke();
-        }
-    }
-
-    obj.getValue = function() {
-        return coordinates;
-    }
-
-    obj.reset = function() {
-        coordinates = [];
-        ctx = canvas.getContext('2d');
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-    }
-
-    var setPosition = function(e) {
-        // Mark position
-        if (e.changedTouches && e.changedTouches[0]) {
-            var rect = e.target.getBoundingClientRect();
-            x = e.changedTouches[0].clientX - rect.x;
-            y = e.changedTouches[0].clientY - rect.y;
-        } else {
-            x = e.offsetX;
-            y = e.offsetY;
-        }
-    }
-
-    var resize = function() {
-        ctx.canvas.width = el.offsetWidth;
-        ctx.canvas.height = el.offsetHeight;
-    }
-
-    var draw = function(e) {
-        if (x == null || obj.options.readonly == true) {
-            return false;
-        } else {
-            e = e || window.event;
-            if (e.buttons) {
-                var mouseButton = e.buttons;
-            } else if (e.button) {
-                var mouseButton = e.button;
-            } else {
-                var mouseButton = e.which;
-            }
-
-            coordinates.push([ x, y ]);
-
-            ctx.beginPath();
-            ctx.lineWidth = obj.options.lineWidth;
-            ctx.lineCap = 'round';
-            ctx.strokeStyle = '#000';
-            ctx.moveTo(x, y);
-            setPosition(e);
-            ctx.lineTo(x, y);
-            ctx.stroke();
-
-            e.preventDefault();
-            e.stopPropagation();
-        }
-    }
-
-    var finalize = function() {
-        x = null;
-        y = null;
-    }
-
-    window.addEventListener('resize', resize);
-
-    if ('ontouchmove' in document.documentElement === true) {
-        el.addEventListener('touchstart', setPosition);
-        el.addEventListener('touchmove', draw);
-        el.addEventListener('touchend', finalize);
-    } else {
-        el.addEventListener('mousedown', setPosition);
-        el.addEventListener('mousemove', draw);
-        el.addEventListener('mouseup', finalize);
-    }
-
-    resize();
-
-    if (obj.options.value) {
-        obj.setValue(obj.options.value);
-    }
-
-    el.signature = obj;
-
-    return obj;
-});
-
 jSuites.template = (function(el, options) {
     // Update configuration
     if (el.classList.contains('jtemplate')) {
@@ -3134,8 +2503,14 @@ jSuites.template = (function(el, options) {
 
                     // Keep method to the event
                     element[k[i].substring(2)] = value;
-                    element[event] = function(e) {
-                        Function('e', element[e.type]).call(obj.options.template, e);
+                    if (obj.options.version == 2) {
+                        element[event] = function(e) {
+                            Function('template', 'e', element[e.type]).call(element, obj.options.template, e);
+                        }
+                    } else {
+                        element[event] = function(e) {
+                            Function('e', 'element', element[e.type]).call(obj.options.template, e, element);
+                        }
                     }
                 }
             }
@@ -3155,6 +2530,7 @@ jSuites.template = (function(el, options) {
     obj.setOptions = function() {
         // Default configuration
         var defaults = {
+            version: null,
             url: null,
             data: null,
             total: null,
@@ -3178,6 +2554,7 @@ jSuites.template = (function(el, options) {
             onchange: null,
             onsearch: null,
             onclick: null,
+            oncreateitem: null,
         }
 
         // Loop through our object
@@ -3222,6 +2599,11 @@ jSuites.template = (function(el, options) {
             container.classList.add(obj.options.containerClass);
         }
     }
+    
+    /**
+     * Contains the cache of local data loaded
+     */
+    obj.cache = [];
 
     /**
      * Append data to the template and add to the DOMContainer
@@ -3239,6 +2621,11 @@ jSuites.template = (function(el, options) {
         }
 
         parse(b);
+    
+        // Oncreate a new item
+        if (typeof(obj.options.oncreateitem) == 'function') {
+            obj.options.oncreateitem(el, obj, b.children[0], a);
+        }
     }
 
     /**
@@ -3297,7 +2684,6 @@ jSuites.template = (function(el, options) {
             console.error('Element not found');
         }
     }
-
     /**
      * Reset the data of the element
      */
@@ -3323,6 +2709,13 @@ jSuites.template = (function(el, options) {
     }
 
     /**
+     * Get the current page number
+     */
+    obj.getPage = function() {
+        return pageNumber;
+    }
+
+    /**
      * Append data to the component 
      */
     obj.appendData = function(data, p) {
@@ -3343,6 +2736,7 @@ jSuites.template = (function(el, options) {
                 content.children[0].dataReference = data[i];
                 container.appendChild(content.children[0]);
             }
+            
         }
 
         if (obj.options.url && obj.options.remoteData == true) {
@@ -3419,10 +2813,17 @@ jSuites.template = (function(el, options) {
             // Append itens
             var content = document.createElement('div');
             for (var i = startNumber; i < finalNumber; i++) {
-                // Get content
-                obj.setContent(data[i], content);
-                content.children[0].dataReference = data[i]; 
-                container.appendChild(content.children[0]);
+                // Check if cache obj contains the element
+                if (! data[i].element) {
+                    obj.setContent(data[i], content);
+                    content.children[0].dataReference = data[i];
+                    data[i].element = content.children[0];
+                    // append element into cache
+                    obj.cache.push(data[i]);
+                    container.appendChild(content.children[0]);
+                } else {
+                    container.appendChild(data[i].element);
+                }
             }
 
             if (obj.options.total) {
@@ -3464,6 +2865,7 @@ jSuites.template = (function(el, options) {
 
                     if (pageNumber == i) {
                         paginationItem.style.fontWeight = 'bold';
+                        paginationItem.style.textDecoration = 'underline';
                     }
                 }
 
@@ -3490,7 +2892,7 @@ jSuites.template = (function(el, options) {
             if (typeof(obj.options.render) == 'function') {
                 container.innerHTML = obj.options.render(obj);
             } else {
-                container.innerHTML = '';
+               container.innerHTML = '';
             }
 
             // Load data
@@ -3593,10 +2995,12 @@ jSuites.template = (function(el, options) {
     }
 
     obj.refresh = function() {
+        obj.cache = [];
         obj.render();
     }
 
     obj.reload = function() {
+        obj.cache = [];
         obj.render(0, true);
     }
 
@@ -3829,7 +3233,6 @@ jSuites.timeline = (function(el, options) {
         // Days
         var timelineDays = [];
         var events = getEventByDate(date);
-        console.log(events);
 
         // Itens
         if (! events.length) {
@@ -3884,9 +3287,10 @@ jSuites.timeline = (function(el, options) {
                 var timelineEdit = document.createElement('i');
                 timelineEdit.className = 'material-icons timeline-edit';
                 timelineEdit.innerHTML = 'edit';
+                timelineEdit.id = v.id;
                 timelineEdit.onclick = function() {
                     if (typeof(obj.options.onaction) == 'function') {
-                        obj.options.onaction(obj, this);
+                        obj.options.onaction(obj, this, this.id);
                     }
                 }
                 if (v.author == 1) {

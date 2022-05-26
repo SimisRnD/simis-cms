@@ -1,5 +1,5 @@
 /**
- * (c) jSuites Javascript Web Components (v4.4.2)
+ * (c) jSuites Javascript Web Components
  *
  * Website: https://jsuites.net
  * Description: Create amazing web based applications.
@@ -17,7 +17,7 @@
 
 var jSuites = function(options) {
     var obj = {}
-    var version = '4.4.2';
+    var version = '4.9.11';
 
     var find = function(DOMElement, component) {
         if (DOMElement[component.type] && DOMElement[component.type] == component) {
@@ -64,17 +64,76 @@ var jSuites = function(options) {
         }
     }
 
-    obj.path = function(str) {
+    /**
+     * Get or set a property from a JSON from a string.
+     */
+    obj.path = function(str, val) {
         str = str.split('.');
         if (str.length) {
             var o = this;
-            var t = null;
-            while (t = str.shift()) {
-                o = o[t];
+            var p = null;
+            while (str.length > 1) {
+                // Get the property
+                p = str.shift();
+                // Check if the property exists
+                if (o.hasOwnProperty(p)) {
+                    o = o[p];
+                } else {
+                    // Property does not exists
+                    if (val === undefined) {
+                        return undefined;
+                    } else {
+                        // Create the property
+                        o[p] = {};
+                        // Next property
+                        o = o[p];
+                    }
+                }
             }
-            return o;
+            // Get the property
+            p = str.shift();
+            // Set or get the value
+            if (val !== undefined) {
+                o[p] = val;
+                // Success
+                return true;
+            } else {
+                // Return the value
+                return o[p];
+            }
         }
+        // Something went wrong
         return false;
+    }
+
+    // Update dictionary
+    obj.setDictionary = function(d) {
+        obj.dictionary = d;
+
+        // Translations
+        var t = null;
+        for (var i = 0; i < jSuites.calendar.weekdays.length; i++) {
+            t =  jSuites.translate(jSuites.calendar.weekdays[i]);
+            if (jSuites.calendar.weekdays[i]) {
+                jSuites.calendar.weekdays[i] = t;
+                jSuites.calendar.weekdaysShort[i] = t.substr(0,3);
+            }
+        }
+        for (var i = 0; i < jSuites.calendar.months.length; i++) {
+            t = jSuites.translate(jSuites.calendar.months[i]);
+            if (t) {
+                jSuites.calendar.months[i] = t;
+                jSuites.calendar.monthsShort[i] = t.substr(0,3);
+            }
+        }
+    }
+
+    // Dictionary
+    obj.dictionary = {};
+
+    // Translate
+    obj.translate = function(t) {
+        return obj.dictionary[t] || t;
     }
 
     // Array of opened components
@@ -181,6 +240,8 @@ jSuites.ajax = (function(options, complete) {
             httpRequest.setRequestHeader('Content-Type', 'text/json');
         } else if (options.dataType == 'blob') {
             httpRequest.responseType = "blob";
+        } else if (options.dataType == 'html') {
+            httpRequest.setRequestHeader('Content-Type', 'text/html');
         }
     }
 
@@ -227,7 +288,7 @@ jSuites.ajax = (function(options, complete) {
             }
         } else {
             if (options.error && typeof(options.error) == 'function') {
-                options.error(httpRequest.responseText);
+                options.error(httpRequest.responseText, httpRequest.status);
             }
         }
 
@@ -242,19 +303,23 @@ jSuites.ajax = (function(options, complete) {
             var index = jSuites.ajax.requests.indexOf(httpRequest);
             // Remove from the ajax requests container
             jSuites.ajax.requests.splice(index, 1);
-            // Last one?
+            // Deprected: Last one?
             if (! jSuites.ajax.requests.length) {
                 // Object event
                 if (options.complete && typeof(options.complete) == 'function') {
                     options.complete(result);
                 }
-                // Global event
+            }
+            // Group requests
+            if (options.group) {
                 if (jSuites.ajax.oncomplete && typeof(jSuites.ajax.oncomplete[options.group]) == 'function') {
-                    jSuites.ajax.oncomplete[options.group]();
-                    jSuites.ajax.oncomplete[options.group] = null;
+                    if (! jSuites.ajax.pending(options.group)) {
+                        jSuites.ajax.oncomplete[options.group]();
+                        jSuites.ajax.oncomplete[options.group] = null;
+                    }
                 }
             }
-            // Controllers
+            // Multiple requests controller
             if (options.multiple && options.multiple.instance) {
                 // Get index of this request in the container
                 var index = options.multiple.instance.indexOf(httpRequest);
@@ -270,6 +335,8 @@ jSuites.ajax = (function(options, complete) {
         }
     }
 
+    // Keep the options
+    httpRequest.options = options;
     // Data
     httpRequest.data = data;
 
@@ -300,6 +367,19 @@ jSuites.ajax.exists = function(url, __callback) {
     if (http.status) {
         __callback(http.status);
     }
+}
+
+jSuites.ajax.pending = function(group) {
+    var n = 0;
+    var o = jSuites.ajax.requests;
+    if (o && o.length) {
+        for (var i = 0; i < o.length; i++) {
+            if (! group || group == o[i].options.group) {
+                n++
+            }
+        }
+    }
+    return n;
 }
 
 jSuites.ajax.oncomplete = {};
@@ -448,13 +528,13 @@ jSuites.calendar = (function(el, options) {
             // Placeholder
             placeholder: '',
             // Translations can be done here
-            months: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
-            monthsFull: ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
-            weekdays: ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],
-            weekdays_short: ['S', 'M', 'T', 'W', 'T', 'F', 'S'],
-            textDone: 'Done',
-            textReset: 'Reset',
-            textUpdate: 'Update',
+            months: jSuites.calendar.monthsShort,
+            monthsFull: jSuites.calendar.months,
+            weekdays: jSuites.calendar.weekdays,
+            weekdays_short: jSuites.calendar.weekdays,
+            textDone: jSuites.translate('Done'),
+            textReset: jSuites.translate('Reset'),
+            textUpdate: jSuites.translate('Update'),
             // Value
             value: null,
             // Fullscreen (this is automatic set for screensize < 800)
@@ -469,7 +549,13 @@ jSuites.calendar = (function(el, options) {
             // Internal mode controller
             mode: null,
             position: null,
-        };
+            // Data type
+            dataType: null,
+        }
+
+        for (var i = 0; i < defaults.weekdays_short.length; i++) {
+            defaults.weekdays_short[i] = defaults.weekdays_short[i].substr(0,1);
+        }
 
         // Loop through our object
         for (var property in defaults) {
@@ -503,10 +589,16 @@ jSuites.calendar = (function(el, options) {
             el.removeAttribute('placeholder');
         }
 
+        if (jSuites.isNumeric(obj.options.value) && obj.options.value > 0) {
+            obj.options.value = jSuites.calendar.numToDate(obj.options.value);
+            // Data type numberic
+            obj.options.dataType = 'numeric';
+        }
+
         // Texts
         calendarReset.innerHTML = obj.options.textReset;
         calendarConfirm.innerHTML = obj.options.textDone;
-        calendarControlsUpdateButton.value = obj.options.textUpdate;
+        calendarControlsUpdateButton.innerHTML = obj.options.textUpdate;
 
         // Define mask
         el.setAttribute('data-mask', obj.options.format.toLowerCase());
@@ -575,9 +667,20 @@ jSuites.calendar = (function(el, options) {
                         calendarContainer.style.left = rect.left + 'px';
                     } else {
                         if (window.innerHeight < rect.bottom + rectContent.height) {
-                            calendarContainer.style.bottom = (1 * rect.height + rectContent.height + 2) + 'px';
+                            var d = -1 * (rect.height + rectContent.height + 2);
+                            if (d + rect.top < 0) {
+                                d = -1 * (rect.top + rect.height);
+                            }
+                            calendarContainer.style.top = d + 'px';
                         } else {
                             calendarContainer.style.top = 2 + 'px'; 
+                        }
+
+                        if (window.innerWidth < rect.left + rectContent.width) {
+                            var d = window.innerWidth - (rect.left + rectContent.width + 20);
+                            calendarContainer.style.left = d + 'px';
+                        } else {
+                            calendarContainer.style.left = '0px'; 
                         }
                     }
                 }
@@ -1118,9 +1221,7 @@ jSuites.calendar = (function(el, options) {
         if (e.target.value && e.target.value.length > 3) {
             var test = jSuites.calendar.extractDateFromString(e.target.value, obj.options.format);
             if (test) {
-                if (e.target.getAttribute('data-completed') == 'true') {
-                    obj.setValue(test);
-                }
+                obj.setValue(test);
             }
         }
     }
@@ -1289,7 +1390,7 @@ jSuites.calendar = (function(el, options) {
         calendarControlsTime.appendChild(calendarSelectHour);
         calendarControlsTime.appendChild(calendarSelectMin);
 
-        calendarControlsUpdateButton = document.createElement('input');
+        calendarControlsUpdateButton = document.createElement('button');
         calendarControlsUpdateButton.setAttribute('type', 'button');
         calendarControlsUpdateButton.className = 'jcalendar-update';
 
@@ -1463,15 +1564,24 @@ jSuites.calendar.prettifyAll = function() {
 }
 
 jSuites.calendar.now = function(date, dateOnly) {
-    if (! date) {
-        var date = new Date();
+    if (Array.isArray(date)) {
+        var y = date[0];
+        var m = date[1];
+        var d = date[2];
+        var h = date[3];
+        var i = date[4];
+        var s = date[5];
+    } else {
+        if (! date) {
+            var date = new Date();
+        }
+        var y = date.getFullYear();
+        var m = date.getMonth() + 1;
+        var d = date.getDate();
+        var h = date.getHours();
+        var i = date.getMinutes();
+        var s = date.getSeconds();
     }
-    var y = date.getFullYear();
-    var m = date.getMonth() + 1;
-    var d = date.getDate();
-    var h = date.getHours();
-    var i = date.getMinutes();
-    var s = date.getSeconds();
 
     if (dateOnly == true) {
         return jSuites.two(y) + '-' + jSuites.two(m) + '-' + jSuites.two(d);
@@ -1527,9 +1637,13 @@ jSuites.calendar.extractDateFromString = function(date, format) {
 
     // Get day
     var d = v2.search("DD");
-    d = v1.substr(d,2);
-    if (parseInt(d) != d  || d > 31) {
-        test = 0;
+    if (d >= 0) {
+        d = v1.substr(d,2);
+        if (parseInt(d) != d  || d > 31) {
+            test = 0;
+        }
+    } else {
+        d = '01';
     }
 
     // Get hour
@@ -1573,6 +1687,27 @@ jSuites.calendar.extractDateFromString = function(date, format) {
     return '';
 }
 
+/**
+ * Date to number
+ */
+jSuites.calendar.dateToNum = function(a, b) {
+    a = new Date(a);
+    if (! b) {
+        b = '1899-12-30 ' + a.getHours() + ':' + a.getMinutes() + ':' + a.getSeconds();
+    }
+    b = new Date(b);
+    var v = a.getTime() - b.getTime();
+    return Math.round(v / 86400000);
+}
+
+/**
+ * Number to date
+ */
+jSuites.calendar.numToDate = function(value) {
+    var d = new Date(Math.round((value - 25569)*86400*1000));
+    return d.getFullYear() + "-" + jSuites.two(d.getMonth()+1) + "-" + jSuites.two(d.getDate()) + ' 00:00:00';
+}
+
 // Helper to convert date into string
 jSuites.calendar.getDateString = function(value, options) {
     if (! options) {
@@ -1580,161 +1715,184 @@ jSuites.calendar.getDateString = function(value, options) {
     }
 
     // Labels
-    if (typeof(options) == 'string') {
-        var format = options;
-    } else {
+    if (options && typeof(options) == 'object') {
         var format = options.format;
-    }
-
-    // Labels
-    if (options && options.weekdays) {
-        var weekdays = options.weekdays;
     } else {
-        var weekdays = [ 'Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday' ];
+        var format = options;
     }
 
-    // Labels
-    if (options && options.months) {
-        var months = options.months;
-    } else {
-        var months = [ 'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec' ];
-    }
-
-    // Labels
-    if (options && options.months) {
-        var monthsFull = options.monthsFull;
-    } else {
-        var monthsFull = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
-    }
-
-    // Default date format
     if (! format) {
-        format = 'DD/MM/YYYY';
+        format = 'YYYY-MM-DD';
     }
 
+    // Convert to number of hours
+    if (typeof(value) == 'number' && format.indexOf('[h]') >= 0) {
+        var result = parseFloat(24 * Number(value));
+        if (format.indexOf('mm') >= 0) {
+            var h = (''+result).split('.');
+            if (h[1]) {
+                var d = 60 * parseFloat('0.' + h[1])
+                d = parseFloat(d.toFixed(2));
+            } else {
+                var d = 0;
+            }
+            result = parseInt(h[0]) + ':' + jSuites.two(d);
+        }
+        return result;
+    }
+
+    // Date instance
+    if (value instanceof Date) {
+        value = jSuites.calendar.now(value);
+    } else if (value && jSuites.isNumeric(value)) {
+        value = jSuites.calendar.numToDate(value);
+    }
+
+    // Tokens
+    var tokens = [ 'DAY', 'WD', 'DDDD', 'DDD', 'DD', 'D', 'Q', 'HH24', 'HH12', 'HH', 'H', 'AM/PM', 'MI', 'SS', 'MS', 'YYYY', 'YYY', 'YY', 'Y', 'MONTH', 'MON', 'MMMMM', 'MMMM', 'MMM', 'MM', 'M', '.' ];
+
+    // Expression to extract all tokens from the string
+    var e = new RegExp(tokens.join('|'), 'gi');
+    // Extract
+    var t = format.match(e);
+
+    // Compatibility with excel
+    for (var i = 0; i < t.length; i++) {
+        if (t[i].toUpperCase() == 'MM') {
+            // Not a month, correct to minutes
+            if (t[i-1] && t[i-1].toUpperCase().indexOf('H') >= 0) {
+                t[i] = 'mi';
+            } else if (t[i-2] && t[i-2].toUpperCase().indexOf('H') >= 0) {
+                t[i] = 'mi';
+            } else if (t[i+1] && t[i+1].toUpperCase().indexOf('S') >= 0) {
+                t[i] = 'mi';
+            } else if (t[i+2] && t[i+2].toUpperCase().indexOf('S') >= 0) {
+                t[i] = 'mi';
+            }
+        }
+    }
+
+    // Object
+    var o = {
+        tokens: t
+    }
+
+    // Value
     if (value) {
         var d = ''+value;
         var splitStr = (d.indexOf('T') !== -1) ? 'T' : ' ';
         d = d.split(splitStr);
-
-        var h = '';
-        var m = '';
-        var s = '';
+ 
+        var h = 0;
+        var m = 0;
+        var s = 0;
 
         if (d[1]) {
             h = d[1].split(':');
-            m = h[1] ? h[1] : '00';
-            s = h[2] ? h[2] : '00';
-            h = h[0] ? h[0] : '00';
-        } else {
-            h = '00';
-            m = '00';
-            s = '00';
+            m = h[1] ? h[1] : 0;
+            s = h[2] ? h[2] : 0;
+            h = h[0] ? h[0] : 0;
         }
 
         d = d[0].split('-');
 
         if (d[0] && d[1] && d[2] && d[0] > 0 && d[1] > 0 && d[1] < 13 && d[2] > 0 && d[2] < 32) {
-            var calendar = new Date(d[0], d[1]-1, d[2]);
 
-            d[1] = (d[1].length < 2 ? '0' : '') + d[1];
-            d[2] = (d[2].length < 2 ? '0' : '') + d[2];
-            h = (h.length < 2 ? '0' : '') + h;
-            m = (m.length < 2 ? '0' : '') + m;
-            s = (s.length < 2 ? '0' : '') + s;
+            // Data
+            o.data = [ d[0], d[1], d[2], h, m, s ];
 
-            // New value
-            value = format;
-            // Legacy
-            value = value.replace('MMM', 'MON');
+            // Value
+            o.value = [];
 
-            // Extract tokens
-            var tokens = [ 'YYYY', 'YYY', 'YY', 'Y', 'MM', 'DD', 'DY', 'DAY', 'WD', 'D', 'Q', 'HH24', 'HH12', 'HH', 'PM', 'AM', 'MI', 'SS', 'MS', 'MONTH', 'MON'];
-            var pieces = [];
-            var tmp = value;
+            // Calendar instance
+            var calendar = new Date(o.data[0], o.data[1]-1, o.data[2], o.data[3], o.data[4], o.data[5]);
 
-            while (tmp) {
-                var t = 0;
-                for (var i = 0; i < tokens.length; i++) {
-                    if (t == 0 && tmp.toUpperCase().indexOf(tokens[i]) === 0) {
-                        t = tokens[i].length;
+            // Get method
+            var get = function(i) {
+                // Token
+                var t = this.tokens[i];
+                // Case token
+                var s = t.toUpperCase();
+                var v = null;
+
+                if (s === 'YYYY') {
+                    v = this.data[0];
+                } else if (s === 'YYY') {
+                    v = this.data[0].substring(1,4);
+                } else if (s === 'YY') {
+                    v = this.data[0].substring(2,4);
+                } else if (s === 'Y') {
+                    v = this.data[0].substring(3,4);
+                } else if (t === 'MON') {
+                    v = jSuites.calendar.months[calendar.getMonth()].substr(0,3).toUpperCase();
+                } else if (t === 'mon') {
+                    v = jSuites.calendar.months[calendar.getMonth()].substr(0,3).toLowerCase();
+                } else if (t === 'MONTH') {
+                    v = jSuites.calendar.months[calendar.getMonth()].toUpperCase();
+                } else if (t === 'month') {
+                    v = jSuites.calendar.months[calendar.getMonth()].toLowerCase();
+                } else if (s === 'MMMMM') {
+                    v = jSuites.calendar.months[calendar.getMonth()].substr(0, 1);
+                } else if (s === 'MMMM' || t === 'Month') {
+                    v = jSuites.calendar.months[calendar.getMonth()];
+                } else if (s === 'MMM' || t == 'Mon') {
+                    v = jSuites.calendar.months[calendar.getMonth()].substr(0,3);
+                } else if (s === 'MM') {
+                    v = jSuites.two(this.data[1]);
+                } else if (s === 'M') {
+                    v = calendar.getMonth()+1;
+                } else if (t === 'DAY') {
+                    v = jSuites.calendar.weekdays[calendar.getDay()].toUpperCase();
+                } else if (t === 'day') {
+                    v = jSuites.calendar.weekdays[calendar.getDay()].toLowerCase();
+                } else if (s === 'DDDD' || t == 'Day') {
+                    v = jSuites.calendar.weekdays[calendar.getDay()];
+                } else if (s === 'DDD') {
+                    v = jSuites.calendar.weekdays[calendar.getDay()].substr(0,3);
+                } else if (s === 'DD') {
+                    v = jSuites.two(this.data[2]);
+                } else if (s === 'D') {
+                    v = this.data[2];
+                } else if (s === 'Q') {
+                    v = Math.floor((calendar.getMonth() + 3) / 3);
+                } else if (s === 'HH24' || s === 'HH') {
+                    v = jSuites.two(this.data[3]);
+                } else if (s === 'HH12') {
+                    if (this.data[3] > 12) {
+                        v = jSuites.two(this.data[3] - 12);
+                    } else {
+                        v = jSuites.two(this.data[3]);
                     }
+                } else if (s === 'H') {
+                    v = this.data[3];
+                } else if (s === 'MI') {
+                    v = jSuites.two(this.data[4]);
+                } else if (s === 'SS') {
+                    v = jSuites.two(this.data[5]);
+                } else if (s === 'MS') {
+                    v = calendar.getMilliseconds();
+                } else if (s === 'AM/PM') {
+                    if (this.data[3] >= 12) {
+                        v = 'PM';
+                    } else {
+                        v = 'AM';
+                    }
+                } else if (s === 'WD') {
+                    v = jSuites.calendar.weekdays[calendar.getDay()];
                 }
-                if (t == 0) {
-                    pieces.push(tmp.substr(0, 1));
-                    tmp = tmp.substr(1);
+
+                if (v === null) {
+                    this.value[i] = this.tokens[i];
                 } else {
-                    pieces.push(tmp.substr(0, t));
-                    tmp = tmp.substr(t);
+                    this.value[i] = v;
                 }
             }
 
-            // Replace tokens per values
-            var replace = function(k, v, c) {
-                if (c == true) {
-                    for (var i = 0; i < pieces.length; i++) {
-                        if (pieces[i].toUpperCase() == k) {
-                            pieces[i] = v;
-                        }
-                    }
-                } else {
-                    for (var i = 0; i < pieces.length; i++) {
-                        if (pieces[i] == k) {
-                            pieces[i] = v;
-                        }
-                    }
-                }
+            for (var i = 0; i < o.tokens.length; i++) {
+                get.call(o, i);
             }
-
-            replace('YYYY', d[0], true);
-            replace('YYY', d[0].substring(1,4), true);
-            replace('YY', d[0].substring(2,4), true);
-            replace('Y', d[0].substring(3,4), true);
-
-            replace('MM', d[1], true);
-            replace('DD', d[2], true);
-            replace('Q', Math.floor((calendar.getMonth() + 3) / 3), true);
-
-            if (h) {
-                replace('HH24', h);
-            }
-
-            if (h > 12) {
-                replace('HH12', h - 12, true);
-                replace('HH', h - 12, true);
-                replace('AM', 'pm', true);
-                replace('PM', 'pm', true);
-            } else {
-                replace('HH12', h, true);
-                replace('HH', h, true);
-                replace('AM', 'am', true);
-                replace('PM', 'am', true);
-            }
-
-            replace('MI', m, true);
-            replace('SS', s, true);
-            replace('MS', calendar.getMilliseconds(), true);
-
-            // Textual tokens
-            replace('MONTH', monthsFull[calendar.getMonth()].toUpperCase());
-            replace('Month', monthsFull[calendar.getMonth()]);
-            replace('month', monthsFull[calendar.getMonth()].toLowerCase());
-            replace('MON', months[calendar.getMonth()].toUpperCase());
-            replace('MMM', months[calendar.getMonth()].toUpperCase());
-            replace('Mon', months[calendar.getMonth()]);
-            replace('mon', months[calendar.getMonth()].toLowerCase());
-
-            replace('DAY', weekdays[calendar.getDay()].toUpperCase());
-            replace('Day', weekdays[calendar.getDay()]);
-            replace('day', weekdays[calendar.getDay()].toLowerCase());
-            replace('DY', weekdays[calendar.getDay()].substr(0,3).toUpperCase());
-            replace('Dy', weekdays[calendar.getDay()].substr(0,3));
-            replace('dy', weekdays[calendar.getDay()].substr(0,3).toLowerCase());
-            replace('D', weekdays[calendar.getDay()]);
-            replace('WD', weekdays[calendar.getDay()]);
-
             // Put pieces together
-            value = pieces.join('');
+            value = o.value.join('');
         } else {
             value = '';
         }
@@ -1743,6 +1901,11 @@ jSuites.calendar.getDateString = function(value, options) {
     return value;
 }
 
+// Jsuites calendar labels
+jSuites.calendar.weekdays = [ 'Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday' ];
+jSuites.calendar.months = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+jSuites.calendar.weekdaysShort = [ 'Sun','Mon','Tue','Wed','Thu','Fri','Sat' ];
+jSuites.calendar.monthsShort = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
 
 
 jSuites.color = (function(el, options) {
@@ -2043,7 +2206,7 @@ jSuites.color = (function(el, options) {
         tableContainer.appendChild(t);
 
         // Select color
-        tableContainer.addEventListener("mouseup", function(e) {
+        tableContainer.addEventListener("mousedown", function(e) {
             if (e.target.tagName == 'TD') {
                 var value = e.target.getAttribute('data-value');
                 if (value) {
@@ -2641,7 +2804,16 @@ jSuites.dropdown = (function(el, options) {
     // Success
     var success = function(data, val) {
         // Set data
-        if (data) {
+        if (data && data.length) {
+            // Sort
+            if (obj.options.sortResults !== false) {
+                if(typeof obj.options.sortResults == "function") {
+                    data.sort(obj.options.sortResults);
+                } else {
+                    data.sort(sortData);
+                }
+            }
+
             obj.setData(data);
 
             // Onload method
@@ -2651,14 +2823,52 @@ jSuites.dropdown = (function(el, options) {
         }
 
         // Set value
-        applyValue(val);
+        if (val) {
+            applyValue(val);
+        }
 
         // Component value
+        if (val === undefined || val === null) {
+            obj.options.value = '';
+        }
         el.value = obj.options.value;
 
         // Open dropdown
         if (obj.options.opened == true) {
             obj.open();
+        }
+    }
+
+    
+    // Default sort
+    var sortData = function(itemA, itemB) {
+        var testA, testB;
+        if(typeof itemA == "string") {
+            testA = itemA;
+        } else {
+            if(itemA.text) {
+                testA = itemA.text;
+            } else if(itemA.name) {
+                testA = itemA.name;
+            }
+        }
+        
+        if(typeof itemB == "string") {
+            testB = itemB;
+        } else {
+            if(itemB.text) {
+                testB = itemB.text;
+            } else if(itemB.name) {
+                testB = itemB.name;
+            }
+        }
+        
+        if(typeof testA == "string" || typeof testB == "string") {
+            if(typeof testA != "string") { testA = ""+testA; }
+            if(typeof testB != "string") { testB = ""+testB; }
+            return testA.localeCompare(testB);
+        } else {
+            return testA - testB;
         }
     }
 
@@ -2689,29 +2899,36 @@ jSuites.dropdown = (function(el, options) {
         resetValue();
 
         // Read values
-        if (values) {
-            if (! Array.isArray(values)) {
-                values = (''+values).split(';');
-            }
-            for (var i = 0; i < values.length; i++) {
-                obj.value[values[i]] = '';
-            }
-            // Update the DOM
-            for (var i = 0; i < obj.items.length; i++) {
-                if (typeof(obj.value[Value(i)]) !== 'undefined') {
-                    if (obj.items[i].element) {
-                        obj.items[i].element.classList.add('jdropdown-selected')
-                    }
-                    obj.items[i].selected = true;
-
-                    // Keep label
-                    obj.value[Value(i)] = Text(i);
+        if (values !== null) {
+            if (! values) {
+                if (typeof(obj.value['']) !== 'undefined') {
+                    obj.value[''] = '';
+                }
+            } else {
+                if (! Array.isArray(values)) {
+                    values = ('' + values).split(';');
+                }
+                for (var i = 0; i < values.length; i++) {
+                    obj.value[values[i]] = '';
                 }
             }
-
-            // Global value
-            obj.options.value = Object.keys(obj.value).join(';');
         }
+
+        // Update the DOM
+        for (var i = 0; i < obj.items.length; i++) {
+            if (typeof(obj.value[Value(i)]) !== 'undefined') {
+                if (obj.items[i].element) {
+                    obj.items[i].element.classList.add('jdropdown-selected')
+                }
+                obj.items[i].selected = true;
+
+                // Keep label
+                obj.value[Value(i)] = Text(i);
+            }
+        }
+
+        // Global value
+        obj.options.value = Object.keys(obj.value).join(';');
 
         // Update labels
         obj.header.value = obj.getText();
@@ -2799,6 +3016,9 @@ jSuites.dropdown = (function(el, options) {
             onfocus: null,
             onblur: null,
             oninsert: null,
+            onbeforeinsert: null,
+            sortResults: false,
+            autofocus: false,
         }
 
         // Loop through our object
@@ -2880,19 +3100,19 @@ jSuites.dropdown = (function(el, options) {
         }
 
         // Load the content
-        if (options.url && ! options.data) {
+        if (obj.options.url && ! options.data) {
             jSuites.ajax({
-                url: options.url,
+                url: obj.options.url,
                 method: 'GET',
                 dataType: 'json',
                 success: function(data) {
                     if (data) {
-                        success(data, options.value);
+                        success(data, obj.options.value);
                     }
                 }
             });
         } else {
-            success(options.data, options.value);
+            success(obj.options.data, obj.options.value);
         }
 
         // Return the instance
@@ -2938,7 +3158,6 @@ jSuites.dropdown = (function(el, options) {
         // Search options
         obj.search = '';
         obj.results = null;
-        obj.numOfItems = 0;
 
         // Create dropdown
         el.classList.add('jdropdown');
@@ -2950,6 +3169,7 @@ jSuites.dropdown = (function(el, options) {
         // Header
         obj.header = document.createElement('input');
         obj.header.className = 'jdropdown-header';
+        obj.header.type = 'text';
         obj.header.setAttribute('autocomplete', 'off');
         obj.header.onfocus = function() {
             if (typeof(obj.options.onfocus) == 'function') {
@@ -3041,6 +3261,10 @@ jSuites.dropdown = (function(el, options) {
             });
         }
 
+        content.onwheel = function(e) {
+            e.stopPropagation();
+        }
+
         // Change method
         el.change = obj.setValue;
 
@@ -3067,8 +3291,9 @@ jSuites.dropdown = (function(el, options) {
     /**
      * Set the new data from a remote source
      * @param {string} url - url from the remote source
+     * @param {function} callback - callback when the data is loaded
      */
-    obj.setUrl = function(url) {
+    obj.setUrl = function(url, callback) {
         obj.options.url = url;
 
         jSuites.ajax({
@@ -3077,6 +3302,10 @@ jSuites.dropdown = (function(el, options) {
             dataType: 'json',
             success: function(data) {
                 obj.setData(data);
+                // Callback
+                if (typeof(callback) == 'function') {
+                    callback(obj);
+                }
             }
         });
     }
@@ -3102,18 +3331,21 @@ jSuites.dropdown = (function(el, options) {
     /**
      * Add a new item
      * @param {string} title - title of the new item
+     * @param {string} id - value/id of the new item
      */
-    obj.add = function(title) {
+    obj.add = function(title, id) {
         if (! title) {
             var current = obj.options.autocomplete == true ? obj.header.value : '';
-            var title = prompt('Text', current);
+            var title = prompt(jSuites.translate('Add A New Option'), current);
             if (! title) {
                 return false;
             }
         }
 
         // Id
-        var id = jSuites.guid()
+        if (! id) {
+           id = jSuites.guid();
+        }
 
         // Create new item
         if (! obj.options.format) {
@@ -3125,7 +3357,17 @@ jSuites.dropdown = (function(el, options) {
             var item = {
                 id: id,
                 name: title,
-            };
+            }
+        }
+
+        // Callback
+        if (typeof(obj.options.onbeforeinsert) == 'function') {
+            var ret = obj.options.onbeforeinsert(obj, item);
+            if (ret === false) {
+                return false;
+            } else if (ret) {
+                item = ret;
+            }
         }
 
         // Add item to the main list
@@ -3139,12 +3381,17 @@ jSuites.dropdown = (function(el, options) {
 
         // Callback
         if (typeof(obj.options.oninsert) == 'function') {
-            obj.options.oninsert(obj, item, item)
+            obj.options.oninsert(obj, item, newItem);
         }
 
         // Show content
         if (content.style.display == 'none') {
             content.style.display = '';
+        }
+
+        // Search?
+        if (obj.results) {
+            obj.results.push(newItem);
         }
 
         return item;
@@ -3192,6 +3439,16 @@ jSuites.dropdown = (function(el, options) {
             item.element.setAttribute('id', data.id);
         }
 
+        // Disabled
+        if (data.disabled == true) {
+            item.element.setAttribute('data-disabled', true);
+        }
+
+        // Tooltip
+        if (data.tooltip) {
+            item.element.setAttribute('title', data.tooltip);
+        }
+
         // Image
         if (data.image) {
             var image = document.createElement('img');
@@ -3201,6 +3458,17 @@ jSuites.dropdown = (function(el, options) {
                image.classList.add('jdropdown-image-small');
             }
             item.element.appendChild(image);
+        } else if (data.icon) {
+            var icon = document.createElement('span');
+            icon.className = "jdropdown-icon material-icons";
+            icon.innerText = data.icon;
+            if (! data.title) {
+               icon.classList.add('jdropdown-icon-small');
+            }
+            if (data.color) {
+                icon.style.color = data.color;
+            }
+            item.element.appendChild(icon);
         } else if (data.color) {
             var color = document.createElement('div');
             color.className = 'jdropdown-color';
@@ -3252,9 +3520,6 @@ jSuites.dropdown = (function(el, options) {
     obj.appendData = function(data) {
         // Create elements
         if (data.length) {
-            // Reset counter
-            obj.numOfItems = 0;
-
             // Helpers
             var items = [];
             var groups = [];
@@ -3271,6 +3536,9 @@ jSuites.dropdown = (function(el, options) {
                     items.push(i);
                 }
             }
+
+            // Number of items counter
+            var counter = 0;
 
             // Groups
             var groupNames = Object.keys(groups);
@@ -3295,9 +3563,9 @@ jSuites.dropdown = (function(el, options) {
                     for (var j = 0; j < groups[groupNames[i]].length; j++) {
                         var item = obj.createItem(data[groups[groupNames[i]][j]], group, groupNames[i]);
 
-                        if (obj.options.lazyLoading == false || obj.numOfItems < 200) {
+                        if (obj.options.lazyLoading == false || counter < 200) {
                             groupContent.appendChild(item.element);
-                            obj.numOfItems++;
+                            counter++;
                         }
                     }
                     // Group itens
@@ -3316,9 +3584,9 @@ jSuites.dropdown = (function(el, options) {
             if (items.length) {
                 for (var i = 0; i < items.length; i++) {
                     var item = obj.createItem(data[items[i]]);
-                    if (obj.options.lazyLoading == false || obj.numOfItems < 200) {
+                    if (obj.options.lazyLoading == false || counter < 200) {
                         content.appendChild(item.element);
-                        obj.numOfItems++;
+                        counter++;
                     }
                 }
             }
@@ -3379,7 +3647,7 @@ jSuites.dropdown = (function(el, options) {
                 return i;
             }
         }
-        return 0;
+        return false;
     }
 
     /**
@@ -3437,13 +3705,13 @@ jSuites.dropdown = (function(el, options) {
      */
     obj.setValue = function(newValue) {
         // Current value
-        var oldValue = getValue();
+        var oldValue = obj.getValue();
         // New value
         if (Array.isArray(newValue)) {
             newValue = newValue.join(';')
         }
 
-        if (oldValue != newValue) {
+        if (oldValue !== newValue) {
             // Set value
             applyValue(newValue);
 
@@ -3456,12 +3724,12 @@ jSuites.dropdown = (function(el, options) {
         obj.setValue(null);
     } 
 
-    obj.selectIndex = function(index) {
+    obj.selectIndex = function(index, force) {
         // Make sure is a number
         var index = parseInt(index);
 
         // Only select those existing elements
-        if (obj.items && obj.items[index]) {
+        if (obj.items && obj.items[index] && (force === true || obj.items[index].data.disabled !== true)) {
             // Reset cursor to a new position
             obj.setCursor(index, false);
 
@@ -3513,6 +3781,21 @@ jSuites.dropdown = (function(el, options) {
         obj.selectIndex(item.indexValue);
     }
 
+    var exists = function(k, result) {
+        for (var j = 0; j < result.length; j++) {
+            if (! obj.options.format) {
+                if (result[j].value == k) {
+                    return true;
+                }
+            } else {
+                if (result[j].id == k) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
     obj.find = function(str) {
         if (obj.search == str.trim()) {
             return false;
@@ -3521,23 +3804,50 @@ jSuites.dropdown = (function(el, options) {
         // Search term
         obj.search = str;
 
-        // Results
-        obj.numOfItems = 0;
+        // Reset index
+        obj.setCursor();
+
+        // Remove nodes from all groups
+        if (obj.groups.length) {
+            for (var i = 0; i < obj.groups.length; i++) {
+                obj.groups[i].lastChild.innerHTML = '';
+            }
+        }
+
+        // Remove all nodes
+        content.innerHTML = '';
 
         // Remove current items in the remote search
         if (obj.options.remoteSearch == true) {
-            obj.currentIndex = null;
+            // Reset results
             obj.results = null;
+            // URL
+            var url = obj.options.url + (obj.options.url.indexOf('?') > 0 ? '&' : '?') + 'q=' + str;
+            // Remote search
             jSuites.ajax({
-                url: obj.options.url + '?q=' + str,
+                url: url,
                 method: 'GET',
                 dataType: 'json',
                 success: function(result) {
                     // Reset items
                     obj.items = [];
-                    content.innerHTML = '';
-                    obj.appendData(result);
 
+                    // Add the current selected items to the results in case they are not there
+                    var current = Object.keys(obj.value);
+                    if (current.length) {
+                        for (var i = 0; i < current.length; i++) {
+                            if (! exists(current[i], result)) {
+                                if (! obj.options.format) {
+                                    result.unshift({ value: current[i], text: obj.value[current[i]] });
+                                } else {
+                                    result.unshift({ id: current[i], name: obj.value[current[i]] });
+                                }
+                            }
+                        }
+                    }
+                    // Append data
+                    obj.appendData(result);
+                    // Show or hide results
                     if (! result.length) {
                         content.style.display = 'none';
                     } else {
@@ -3550,7 +3860,7 @@ jSuites.dropdown = (function(el, options) {
             str = new RegExp(str, 'gi');
 
             // Reset search
-            obj.results = [];
+            var results = [];
 
             // Append options
             for (var i = 0; i < obj.items.length; i++) {
@@ -3560,49 +3870,52 @@ jSuites.dropdown = (function(el, options) {
                 var title = obj.items[i].data.title || '';
                 // Group name
                 var groupName = obj.items[i].data.group || '';
+                // Synonym
+                var synonym = obj.items[i].data.synonym || '';
+                if (synonym) {
+                    synonym = synonym.join(' ');
+                }
 
-                if (str == null || obj.items[i].selected == true || label.match(str) || title.match(str) || groupName.match(str)) {
-                    obj.results.push(obj.items[i]);
-
-                    if (obj.items[i].group && obj.items[i].group.children[1].children[0]) {
-                        // Remove all nodes
-                        while (obj.items[i].group.children[1].children[0]) {
-                            obj.items[i].group.children[1].removeChild(obj.items[i].group.children[1].children[0]);
-                        }
-                    }
+                if (str == null || obj.items[i].selected == true || label.match(str) || title.match(str) || groupName.match(str) || synonym.match(str)) {
+                    results.push(obj.items[i]);
                 }
             }
 
-            // Remove all nodes
-            while (content.children[0]) {
-                content.removeChild(content.children[0]);
-            }
-
-            // Show 200 items at once
-            var number = obj.results.length || 0;
-
-            // Lazyloading
-            if (obj.options.lazyLoading == true && number > 200) {
-                number = 200;
-            }
-
-            for (var i = 0; i < number; i++) {
-                if (obj.results[i].group) {
-                    if (! obj.results[i].group.parentNode) {
-                        content.appendChild(obj.results[i].group);
-                    }
-                    obj.results[i].group.children[1].appendChild(obj.results[i].element);
-                } else {
-                    content.appendChild(obj.results[i].element);
-                }
-                obj.numOfItems++;
-            }
-
-            if (! obj.results.length) {
+            if (! results.length) {
                 content.style.display = 'none';
+
+                // Results
+                obj.results = null;
             } else {
                 content.style.display = '';
+
+                // Results
+                obj.results = results;
+
+                // Show 200 items at once
+                var number = results.length || 0;
+
+                // Lazyloading
+                if (obj.options.lazyLoading == true && number > 200) {
+                    number = 200;
+                }
+
+                for (var i = 0; i < number; i++) {
+                    if (obj.results[i].group) {
+                        if (! obj.results[i].group.parentNode) {
+                            content.appendChild(obj.results[i].group);
+                        }
+                        obj.results[i].group.lastChild.appendChild(obj.results[i].element);
+                    } else {
+                        content.appendChild(obj.results[i].element);
+                    }
+                }
             }
+        }
+
+        // Auto focus
+        if (obj.options.autofocus == true) {
+            obj.first();
         }
     }
 
@@ -3632,10 +3945,10 @@ jSuites.dropdown = (function(el, options) {
             }
 
             // Set cursor for the first or first selected element
-            var k = Object.keys(getValue());
+            var k = getValue();
             if (k[0]) {
                 var cursor = obj.getPosition(k[0]);
-                if (cursor) {
+                if (cursor !== false) {
                     obj.setCursor(cursor);
                 }
             }
@@ -3725,16 +4038,19 @@ jSuites.dropdown = (function(el, options) {
         if (index == undefined) {
             obj.currentIndex = null;
         } else {
-            parseInt(index);
+            index = parseInt(index);
 
-            obj.items[index].element.classList.add('jdropdown-cursor');
-            obj.currentIndex = index;
+            // Cursor only for visible items
+            if (obj.items[index].element.parentNode) {
+                obj.items[index].element.classList.add('jdropdown-cursor');
+                obj.currentIndex = index;
 
-            // Update scroll to the cursor element
-            if (setPosition !== false && obj.items[obj.currentIndex].element) {
-                var container = content.scrollTop;
-                var element = obj.items[obj.currentIndex].element;
-                content.scrollTop = element.offsetTop - element.scrollTop + element.clientTop - 95;
+                // Update scroll to the cursor element
+                if (setPosition !== false && obj.items[obj.currentIndex].element) {
+                    var container = content.scrollTop;
+                    var element = obj.items[obj.currentIndex].element;
+                    content.scrollTop = element.offsetTop - element.scrollTop + element.clientTop - 95;
+                }
             }
         }
     }
@@ -3755,112 +4071,247 @@ jSuites.dropdown = (function(el, options) {
     }
 
     /**
-     * First visible item
+     * First available item
      */
-    obj.firstVisible = function() {
-        var newIndex = null;
-        for (var i = 0; i < obj.items.length; i++) {
-            if (obj.items && obj.items[i] && obj.items[i].element.parentNode && obj.items[i].element.style.display != 'none') {
-                newIndex = i;
-                break;
-            }
+    obj.first = function() {
+        if (obj.options.lazyLoading === true) {
+            obj.loadFirst();
         }
 
-        if (newIndex == null) {
-            return false;
+        var items = content.querySelectorAll('.jdropdown-item');
+        if (items.length) {
+            var newIndex = items[0].indexValue;
+            obj.setCursor(newIndex);
         }
-
-        obj.setCursor(newIndex);
     }
 
     /**
-     * Navigation
+     * Last available item 
      */
-    obj.first = function() {
-        var newIndex = null;
-        for (var i = obj.currentIndex - 1; i >= 0; i--) {
-            if (obj.items && obj.items[i] && obj.items[i].element.parentNode && obj.items[i].element.style.display != 'none') {
-                newIndex = i;
-            }
-        }
-
-        if (newIndex == null) {
-            return false;
-        }
-
-        obj.setCursor(newIndex);
-    }
-
     obj.last = function() {
-        var newIndex = null;
-        for (var i = obj.currentIndex + 1; i < obj.items.length; i++) {
-            if (obj.items && obj.items[i] && obj.items[i].element.parentNode && obj.items[i].element.style.display != 'none') {
-                newIndex = i;
-            }
+        if (obj.options.lazyLoading === true) {
+            obj.loadLast();
         }
 
-        if (newIndex == null) {
-            return false;
+        var items = content.querySelectorAll('.jdropdown-item');
+        if (items.length) {
+            var newIndex = items[items.length-1].indexValue;
+            obj.setCursor(newIndex);
         }
-
-        obj.setCursor(newIndex);
-    }
-
-    var next = function(index, letter) {
-        for (var i = index; i < obj.items.length; i++) {
-            if (obj.items && obj.items[i] && obj.items[i].element.parentNode && (! letter || (''+Text(i)).substr(0,1).toLowerCase() == letter)) {
-                return i;
-            }
-        }
-
-        return null;
     }
 
     obj.next = function(letter) {
-        if (letter && letter.length == 1) {
-            letter = letter.toLowerCase();
-        }
+        var newIndex = null;
 
-        if (obj.currentIndex === null) {
-            var index = obj.currentIndex = 0;
+        if (letter) {
+            if (letter.length == 1) {
+                // Current index
+                var current = obj.currentIndex || -1;
+                // Letter
+                letter = letter.toLowerCase();
+
+                var e = null;
+                var l = null;
+                var items = content.querySelectorAll('.jdropdown-item');
+                if (items.length) {
+                    for (var i = 0; i < items.length; i++) {
+                        if (items[i].indexValue > current) {
+                            if (e = obj.items[items[i].indexValue]) {
+                                if (l = e.element.innerText[0]) {
+                                    l = l.toLowerCase();
+                                    if (letter == l) {
+                                        newIndex = items[i].indexValue;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    obj.setCursor(newIndex);
+                }
+            }
         } else {
-            var index = obj.currentIndex + 1;
-        }
+            if (obj.currentIndex == undefined || obj.currentIndex == null) {
+                obj.first();
+            } else {
+                var element = obj.items[obj.currentIndex].element;
 
-        // Try to find the next from the current position
-        var newIndex = next(index, letter);
+                var next = element.nextElementSibling;
+                if (next) {
+                    if (next.classList.contains('jdropdown-group')) {
+                        next = next.lastChild.firstChild;
+                    }
+                    newIndex = next.indexValue;
+                } else {
+                    if (element.parentNode.classList.contains('jdropdown-group-items')) {
+                        if (next = element.parentNode.parentNode.nextElementSibling) {
+                            if (next.classList.contains('jdropdown-group')) {
+                                next = next.lastChild.firstChild;
+                            } else if (next.classList.contains('jdropdown-item')) {
+                                newIndex = next.indexValue;
+                            } else {
+                                next = null;
+                            }
+                        }
 
-        if (newIndex == null && letter) {
-            // Trying to find from the begining
-            newIndex = next(0, letter);
-            // Did not find
-            if (newIndex == null) {
-                return false;
+                        if (next) {
+                            newIndex = next.indexValue;
+                        }
+                    }
+                }
+
+                if (newIndex !== null) {
+                    obj.setCursor(newIndex);
+                }
             }
         }
-
-        // Set cursor
-        obj.setCursor(newIndex);
     }
 
     obj.prev = function() {
         var newIndex = null;
-        for (var i = obj.currentIndex - 1; i >= 0; i--) {
-            if (obj.items && obj.items[i] && obj.items[i].element.parentNode) {
-                newIndex = i;
-                break;
+
+        if (obj.currentIndex === null) {
+            obj.first();
+        } else {
+            var element = obj.items[obj.currentIndex].element;
+
+            var prev = element.previousElementSibling;
+            if (prev) {
+                if (prev.classList.contains('jdropdown-group')) {
+                    prev = prev.lastChild.lastChild;
+                }
+                newIndex = prev.indexValue;
+            } else {
+                if (element.parentNode.classList.contains('jdropdown-group-items')) {
+                    if (prev = element.parentNode.parentNode.previousElementSibling) {
+                        if (prev.classList.contains('jdropdown-group')) {
+                            prev = prev.lastChild.lastChild;
+                        } else if (prev.classList.contains('jdropdown-item')) {
+                            newIndex = prev.indexValue;
+                        } else {
+                            prev = null
+                        }
+                    }
+
+                    if (prev) {
+                        newIndex = prev.indexValue;
+                    }
+                }
             }
         }
 
-        if (newIndex == null) {
-            return false;
+        if (newIndex !== null) {
+            obj.setCursor(newIndex);
+        }
+    }
+
+    obj.loadFirst = function() {
+        // Search
+        if (obj.results) {
+            var results = obj.results;
+        } else {
+            var results = obj.items;
         }
 
-        obj.setCursor(newIndex);
+        // Show 200 items at once
+        var number = results.length || 0;
+
+        // Lazyloading
+        if (obj.options.lazyLoading == true && number > 200) {
+            number = 200;
+        }
+
+        // Reset container
+        content.innerHTML = '';
+
+        // First 200 items
+        for (var i = 0; i < number; i++) {
+            if (results[i].group) {
+                if (! results[i].group.parentNode) {
+                    content.appendChild(results[i].group);
+                }
+                results[i].group.lastChild.appendChild(results[i].element);
+            } else {
+                content.appendChild(results[i].element);
+            }
+        }
+
+        // Scroll go to the begin
+        content.scrollTop = 0;
+    }
+
+    obj.loadLast = function() {
+        // Search
+        if (obj.results) {
+            var results = obj.results;
+        } else {
+            var results = obj.items;
+        }
+
+        // Show first page
+        var number = results.length;
+
+        // Max 200 items
+        if (number > 200) {
+            number = number - 200;
+
+            // Reset container
+            content.innerHTML = '';
+
+            // First 200 items
+            for (var i = number; i < results.length; i++) {
+                if (results[i].group) {
+                    if (! results[i].group.parentNode) {
+                        content.appendChild(results[i].group);
+                    }
+                    results[i].group.lastChild.appendChild(results[i].element);
+                } else {
+                    content.appendChild(results[i].element);
+                }
+            }
+
+            // Scroll go to the begin
+            content.scrollTop = content.scrollHeight;
+        }
     }
 
     obj.loadUp = function() {
-        return false;
+        var test = false;
+
+        // Search
+        if (obj.results) {
+            var results = obj.results;
+        } else {
+            var results = obj.items;
+        }
+
+        var items = content.querySelectorAll('.jdropdown-item');
+        var fistItem = items[0].indexValue;
+        fistItem = obj.items[fistItem];
+        var index = results.indexOf(fistItem) - 1;
+
+        if (index > 0) {
+            var number = 0;
+
+            while (index > 0 && results[index] && number < 200) {
+                if (results[index].group) {
+                    if (! results[index].group.parentNode) {
+                        content.insertBefore(results[index].group, content.firstChild);
+                    }
+                    results[index].group.lastChild.insertBefore(results[index].element, results[index].group.lastChild.firstChild);
+                } else {
+                    content.insertBefore(results[index].element, content.firstChild);
+                }
+
+                index--;
+                number++;
+            }
+
+            // New item added
+            test = true;
+        }
+
+        return test;
     }
 
     obj.loadDown = function() {
@@ -3873,24 +4324,25 @@ jSuites.dropdown = (function(el, options) {
             var results = obj.items;
         }
 
-        if (results.length > obj.numOfItems) {
-            var numberOfItems = obj.numOfItems;
-            var number = results.length - numberOfItems;
-            if (number > 200) {
-                number = 200;
-            }
+        var items = content.querySelectorAll('.jdropdown-item');
+        var lastItem = items[items.length-1].indexValue;
+        lastItem = obj.items[lastItem];
+        var index = results.indexOf(lastItem) + 1;
 
-            for (var i = numberOfItems; i < numberOfItems + number; i++) {
-                if (results[i].group) {
-                    if (! results[i].group.parentNode) {
-                        content.appendChild(results[i].group);
+        if (index < results.length) {
+            var number = 0;
+            while (index < results.length && results[index] && number < 200) {
+                if (results[index].group) {
+                    if (! results[index].group.parentNode) {
+                        content.appendChild(results[index].group);
                     }
-                    results[i].group.children[2].appendChild(results[i].element);
+                    results[index].group.lastChild.appendChild(results[index].element);
                 } else {
-                    content.appendChild(results[i].element);
+                    content.appendChild(results[index].element);
                 }
 
-                obj.numOfItems++;
+                index++;
+                number++;
             }
 
             // New item added
@@ -3908,28 +4360,61 @@ jSuites.dropdown = (function(el, options) {
 jSuites.dropdown.keydown = function(e) {
     var dropdown = null;
     if (dropdown = jSuites.dropdown.current) {
-        if (e.which == 13) {
-            dropdown.selectIndex(dropdown.currentIndex);
-        } else if (e.which == 38) {
+        if (e.which == 13 || e.which == 9) {  // enter or tab
+            if (dropdown.header.value && dropdown.currentIndex == null && dropdown.options.newOptions) {
+                // if they typed something in, but it matched nothing, and newOptions are allowed, start that flow
+                dropdown.add();
+            } else {
+                // Quick Select/Filter
+                if (dropdown.currentIndex == null && dropdown.options.autocomplete == true && dropdown.header.value != "") {
+                    dropdown.find(dropdown.header.value);
+                }
+                dropdown.selectIndex(dropdown.currentIndex);
+            }
+        } else if (e.which == 38) {  // up arrow
             if (dropdown.currentIndex == null) {
-                dropdown.firstVisible();
+                dropdown.first();
             } else if (dropdown.currentIndex > 0) {
                 dropdown.prev();
             }
             e.preventDefault();
-        } else if (e.which == 40) {
+        } else if (e.which == 40) {  // down arrow
             if (dropdown.currentIndex == null) {
-                dropdown.firstVisible();
+                dropdown.first();
             } else if (dropdown.currentIndex + 1 < dropdown.items.length) {
                 dropdown.next();
             }
             e.preventDefault();
         } else if (e.which == 36) {
             dropdown.first();
+            if (! e.target.classList.contains('jdropdown-header')) {
+                e.preventDefault();
+            }
         } else if (e.which == 35) {
             dropdown.last();
+            if (! e.target.classList.contains('jdropdown-header')) {
+                e.preventDefault();
+            }
         } else if (e.which == 27) {
             dropdown.close();
+        } else if (e.which == 33) {  // page up
+            if (dropdown.currentIndex == null) {
+                dropdown.first();
+            } else if (dropdown.currentIndex > 0) {
+                for (var i = 0; i < 7; i++) {
+                    dropdown.prev()
+                }
+            }
+            e.preventDefault();
+        } else if (e.which == 34) {  // page down
+            if (dropdown.currentIndex == null) {
+                dropdown.first();
+            } else if (dropdown.currentIndex + 1 < dropdown.items.length) {
+                for (var i = 0; i < 7; i++) {
+                    dropdown.next()
+                }
+            }
+            e.preventDefault();
         }
     }
 }
@@ -4064,24 +4549,6 @@ jSuites.editor = (function(el, options) {
     var obj = {};
     obj.options = {};
 
-    // If element is textarea, then replace by div editor
-    if (el.tagName == 'TEXTAREA' || el.tagName == 'INPUT') {
-        // Current element
-        var element = el;
-        element.style.display = 'none';
-        // New Element
-        el = document.createElement('div');
-        // Value
-        if (! options.value) {
-            options.value = element.value;
-        }
-        // Event to populate the textarea
-        options.onblur = function(a,b,c) {
-            element.value = b.getData()
-        }
-        element.insertBefore(el);
-    }
-
     // Default configuration
     var defaults = {
         // Initial HTML content
@@ -4099,7 +4566,7 @@ jSuites.editor = (function(el, options) {
         filterPaste: true,
         // Accept drop files
         dropZone: false,
-        dropAsAttachment: false,
+        dropAsSnippet: false,
         acceptImages: false,
         acceptFiles: false,
         maxFileSize: 5000000,
@@ -4133,9 +4600,13 @@ jSuites.editor = (function(el, options) {
     var imageResize = 0;
     var editorTimer = null;
     var editorAction = null;
+    var files = [];
 
     // Make sure element is empty
     el.innerHTML = '';
+
+    // Keep the reference for the container
+    obj.el = el;
 
     if (typeof(obj.options.onclick) == 'function') {
         el.onclick = function(e) {
@@ -4149,11 +4620,6 @@ jSuites.editor = (function(el, options) {
     // Padding
     if (obj.options.padding == true) {
         el.classList.add('jeditor-padding');
-    }
-
-    // Placeholder
-    if (obj.options.placeholder) {
-        el.setAttribute('data-placeholder', obj.options.placeholder);
     }
 
     // Border
@@ -4176,6 +4642,11 @@ jSuites.editor = (function(el, options) {
     editor.setAttribute('spellcheck', false);
     editor.className = 'jeditor';
 
+    // Placeholder
+    if (obj.options.placeholder) {
+        editor.setAttribute('data-placeholder', obj.options.placeholder);
+    }
+
     // Max height
     if (obj.options.maxHeight || obj.options.height) {
         editor.style.overflowY = 'auto';
@@ -4196,7 +4667,7 @@ jSuites.editor = (function(el, options) {
     }
 
     if (! value) {
-        var value = '<br>';
+        var value = '';
     }
 
     /**
@@ -4263,49 +4734,70 @@ jSuites.editor = (function(el, options) {
         }
     }
 
+    var updateTotalImages = function() {
+        var o = null;
+        if (o = snippet.children[0]) {
+            // Make sure is a grid
+            if (! o.classList.contains('jslider-grid')) {
+                o.classList.add('jslider-grid');
+            }
+            // Quantify of images
+            var number = o.children.length;
+            // Set the configuration of the grid
+            o.setAttribute('data-number', number > 4 ? 4 : number);
+            // Total of images inside the grid
+            if (number > 4) {
+                o.setAttribute('data-total', number - 4);
+            } else {
+                o.removeAttribute('data-total');
+            }
+        }
+    }
+
     /**
-     * Append snippet or thumbs in the editor
+     * Append image to the snippet
+     */
+    var appendImage = function(image) {
+        if (! snippet.innerHTML) {
+            appendElement({});
+        }
+        snippet.children[0].appendChild(image);
+        updateTotalImages();
+    }
+
+    /**
+     * Append snippet
      * @Param object data
      */
     var appendElement = function(data) {
         // Reset snippet
         snippet.innerHTML = '';
 
-        if (data.image) {
-            var div = document.createElement('div');
-            div.className = 'jsnippet-image';
-            div.setAttribute('data-k', 'image');
-            snippet.appendChild(div);
+        // Attributes
+        var a = [ 'image', 'title', 'description', 'host', 'url' ];
 
-            var image = document.createElement('img');
-            image.src = data.image;
-            div.appendChild(image);
+        for (var i = 0; i < a.length; i++) {
+            var div = document.createElement('div');
+            div.className = 'jsnippet-' + a[i];
+            div.setAttribute('data-k', a[i]);
+            snippet.appendChild(div);
+            if (data[a[i]]) {
+                if (a[i] == 'image') {
+                    if (! Array.isArray(data.image)) {
+                        data.image = [ data.image ];
+                    }
+                    for (var j = 0; j < data.image.length; j++) {
+                        var img = document.createElement('img');
+                        img.src = data.image[j];
+                        div.appendChild(img);
+                    }
+                } else {
+                    div.innerHTML = data[a[i]];
+                }
+            }
         }
 
-        var div = document.createElement('div');
-        div.className = 'jsnippet-title';
-        div.setAttribute('data-k', 'title');
-        div.innerHTML = data.title;
-        snippet.appendChild(div);
-
-        var div = document.createElement('div');
-        div.className = 'jsnippet-description';
-        div.setAttribute('data-k', 'description');
-        div.innerHTML = data.description;
-        snippet.appendChild(div);
-
-        var div = document.createElement('div');
-        div.className = 'jsnippet-host';
-        div.setAttribute('data-k', 'host');
-        div.innerHTML = data.host;
-        snippet.appendChild(div);
-
-        var div = document.createElement('div');
-        div.className = 'jsnippet-url';
-        div.setAttribute('data-k', 'url');
-        div.innerHTML = data.url;
-        snippet.appendChild(div);
-
+        editor.appendChild(document.createElement('br'));
         editor.appendChild(snippet);
     }
 
@@ -4313,26 +4805,16 @@ jSuites.editor = (function(el, options) {
         clearTimeout(editorTimer);
         editorTimer = setTimeout(function() {
             var snippet = editor.querySelector('.jsnippet');
-            var thumbsContainer = el.querySelector('.jeditor-thumbs-container');
-
-            if (! snippet && ! thumbsContainer) {
+            if (! snippet) {
                 var html = editor.innerHTML.replace(/\n/g, ' ');
                 var container = document.createElement('div');
                 container.innerHTML = html;
-                var thumbsContainer = container.querySelector('.jeditor-thumbs-container');
-                if (thumbsContainer) {
-                    thumbsContainer.remove();
-                }
                 var text = container.innerText; 
                 var url = jSuites.editor.detectUrl(text);
 
                 if (url) {
                     if (url[0].substr(-3) == 'jpg' || url[0].substr(-3) == 'png' || url[0].substr(-3) == 'gif') {
-                        if (jSuites.editor.getDomain(url[0]) == window.location.hostname) {
-                            obj.importImage(url[0], '');
-                        } else {
-                            obj.importImage(obj.options.remoteParser + url[0], '');
-                        }
+                         obj.addImage(url[0], true);
                     } else {
                         var id = jSuites.editor.youtubeParser(url[0]);
                         obj.parseWebsite(url[0], id);
@@ -4376,12 +4858,6 @@ jSuites.editor = (function(el, options) {
                     if (result.description) {
                         p.description = result.description;
                     }
-                    // Image
-                    if (result.image) {
-                        p.image = result.image;
-                    } else if (result['og:image']) {
-                        p.image = result['og:image'];
-                    }
                     // Host
                     if (result.host) {
                         p.host = result.host;
@@ -4390,8 +4866,14 @@ jSuites.editor = (function(el, options) {
                     if (result.url) {
                         p.url = result.url;
                     }
-
+                    // Append snippet
                     appendElement(p);
+                    // Add image
+                    if (result.image) {
+                        obj.addImage(result.image, true);
+                    } else if (result['og:image']) {
+                        obj.addImage(result['og:image'], true);
+                    }
                 }
             });
         }
@@ -4406,6 +4888,20 @@ jSuites.editor = (function(el, options) {
         if (obj.options.focus) {
             jSuites.editor.setCursor(editor, true);
         }
+
+        // Reset files container
+        files = [];
+    }
+
+    obj.getFiles = function() {
+        var f = editor.querySelectorAll('.jfile');
+        var d = [];
+        for (var i = 0; i < f.length; i++) {
+            if (files[f[i].src]) {
+                d.push(files[f[i].src]);
+            }
+        }
+        return d;
     }
 
     obj.getText = function() {
@@ -4423,19 +4919,7 @@ jSuites.editor = (function(el, options) {
                 content : '',
             }
 
-            // Get tag users
-            var tagged = editor.querySelectorAll('.post-tag');
-            if (tagged.length) {
-                data.users = [];
-                for (var i = 0; i < tagged.length; i++) {
-                    var userId = tagged[i].getAttribute('data-user');
-                    if (userId) {
-                        data.users.push(userId);
-                    }
-                }
-                data.users = data.users.join(',');
-            }
-
+            // Get snippet
             if (snippet.innerHTML) {
                 var index = 0;
                 data.snippet = {};
@@ -4444,23 +4928,35 @@ jSuites.editor = (function(el, options) {
                     var key = snippet.children[i].getAttribute('data-k');
                     if (key) {
                         if (key == 'image') {
-                            data.snippet.image = snippet.children[i].children[0].getAttribute('src');
+                            if (! data.snippet.image) {
+                                data.snippet.image = [];
+                            }
+                            // Get all images
+                            for (var j = 0; j < snippet.children[i].children.length; j++) {
+                                data.snippet.image.push(snippet.children[i].children[j].getAttribute('src'))
+                            }
                         } else {
                             data.snippet[key] = snippet.children[i].innerHTML;
                         }
                     }
                 }
-
-                snippet.innerHTML = '';
-                snippet.remove();
             }
 
+            // Get files
+            var f = Object.keys(files);
+            if (f.length) {
+                data.files = [];
+                for (var i = 0; i < f.length; i++) {
+                    data.files.push(files[f[i]]);
+                }
+            }
+
+            // Get content
             var text = editor.innerHTML;
             text = text.replace(/<br>/g, "\n");
             text = text.replace(/<\/div>/g, "<\/div>\n");
             text = text.replace(/<(?:.|\n)*?>/gm, "");
             data.content = text.trim();
-            data = JSON.stringify(data);
         }
 
         return data;
@@ -4469,6 +4965,8 @@ jSuites.editor = (function(el, options) {
     // Reset
     obj.reset = function() {
         editor.innerHTML = '';
+        snippet.innerHTML = '';
+        files = [];
     }
 
     obj.addPdf = function(data) {
@@ -4486,31 +4984,25 @@ jSuites.editor = (function(el, options) {
             canvas.toBlob(function(blob) {
                 var newImage = document.createElement('img');
                 newImage.src = window.URL.createObjectURL(blob);
-                newImage.setAttribute('data-extension', 'pdf');
-                if (data.name) {
-                    newImage.setAttribute('data-name', data.name);
-                }
-                if (data.size) {
-                    newImage.setAttribute('data-size', data.size);
-                }
-                if (data.date) {
-                    newImage.setAttribute('data-date', data.date);
-                }
+                newImage.title = data.name;
                 newImage.className = 'jfile pdf';
 
-                insertNodeAtCaret(newImage);
+                files[newImage.src] = {
+                    file: newImage.src,
+                    extension: 'pdf',
+                    content: data.result,
+                }
 
-                // Image content
-                newImage.content = data.result.substr(data.result.indexOf(',') + 1);
+                insertNodeAtCaret(newImage);
             });
         }
     }
 
-    obj.getFiles = function() {
-        return jSuites.files(editor).get();
-    }
+    obj.addImage = function(src, asSnippet) {
+        if (! src) {
+            src = '';
+        }
 
-    obj.addImage = function(src, name, size, date) {
         if (src.substr(0,4) != 'data' && ! obj.options.remoteParser) {
             console.error('remoteParser not defined in your initialization');
         } else {
@@ -4538,23 +5030,21 @@ jSuites.editor = (function(el, options) {
                 canvas.toBlob(function(blob) {
                     var newImage = document.createElement('img');
                     newImage.src = window.URL.createObjectURL(blob);
+                    newImage.classList.add('jfile');
                     newImage.setAttribute('tabindex', '900');
-                    newImage.setAttribute('data-extension', extension);
-                    if (name) {
-                        newImage.setAttribute('data-name', name);
+                    files[newImage.src] = {
+                        file: newImage.src,
+                        extension: extension,
+                        content: canvas.toDataURL(),
                     }
-                    if (size) {
-                        newImage.setAttribute('data-size', size);
-                    }
-                    if (date) {
-                        newImage.setAttribute('data-date', date);
-                    }
-                    newImage.className = 'jfile';
-                    var content = canvas.toDataURL();
-                    insertNodeAtCaret(newImage);
 
-                    // Image content
-                    newImage.content = content.substr(content.indexOf(',') + 1);
+                    if (obj.options.dropAsSnippet || asSnippet) {
+                        appendImage(newImage);
+                        // Just to understand the attachment is part of a snippet
+                        files[newImage.src].snippet = true;
+                    } else {
+                        insertNodeAtCaret(newImage);
+                    }
 
                     change();
                 });
@@ -4597,7 +5087,7 @@ jSuites.editor = (function(el, options) {
                                 obj.addPdf(data.target);
                             }
                         } else {
-                            obj.addImage(data.target.result, data.target.name, data.total, data.target.lastModified);
+                            obj.addImage(data.target.result);
                         }
                     }, false);
 
@@ -4644,6 +5134,10 @@ jSuites.editor = (function(el, options) {
 
     // Event handlers
     var editorMouseUp = function(e) {
+        if (editorAction && editorAction.e) {
+            editorAction.e.classList.remove('resizing');
+        }
+
         editorAction = false;
     }
 
@@ -4668,12 +5162,12 @@ jSuites.editor = (function(el, options) {
                     d: e.target.style.cursor,
                 }
 
-                if (! e.target.style.width) {
-                    e.target.style.width = rect.width + 'px';
+                if (! e.target.width) {
+                    e.target.width = rect.width + 'px';
                 }
 
-                if (! e.target.style.height) {
-                    e.target.style.height = rect.height + 'px';
+                if (! e.target.height) {
+                    e.target.height = rect.height + 'px';
                 }
 
                 var s = window.getSelection();
@@ -4682,6 +5176,8 @@ jSuites.editor = (function(el, options) {
                         s.removeRange(s.getRangeAt(i));
                     }
                 }
+
+                e.target.classList.add('resizing');
             } else {
                 editorAction = true;
             }
@@ -4697,7 +5193,7 @@ jSuites.editor = (function(el, options) {
     }
 
     var editorMouseMove = function(e) {
-        if (e.target.tagName == 'IMG' && obj.options.allowImageResize == true) {
+        if (e.target.tagName == 'IMG' && ! e.target.parentNode.classList.contains('jsnippet-image') && obj.options.allowImageResize == true) {
             if (e.target.getAttribute('tabindex')) {
                 var rect = e.target.getBoundingClientRect();
                 if (e.clientY - rect.top < 5) {
@@ -4729,11 +5225,11 @@ jSuites.editor = (function(el, options) {
         // Move
         if (e.which == 1 && editorAction && editorAction.d) {
             if (editorAction.d == 'e-resize' || editorAction.d == 'ne-resize' ||  editorAction.d == 'se-resize') {
-                editorAction.e.style.width = (editorAction.w + (e.clientX - editorAction.x)) + 'px';
+                editorAction.e.width = (editorAction.w + (e.clientX - editorAction.x));
 
                 if (e.shiftKey) {
                     var newHeight = (e.clientX - editorAction.x) * (editorAction.h / editorAction.w);
-                    editorAction.e.style.height = editorAction.h + newHeight + 'px';
+                    editorAction.e.height = editorAction.h + newHeight;
                 } else {
                     var newHeight =  null;
                 }
@@ -4742,7 +5238,7 @@ jSuites.editor = (function(el, options) {
             if (! newHeight) {
                 if (editorAction.d == 's-resize' || editorAction.d == 'se-resize' || editorAction.d == 'sw-resize') {
                     if (! e.shiftKey) {
-                        editorAction.e.style.height = editorAction.h + (e.clientY - editorAction.y) + 'px';
+                        editorAction.e.height = editorAction.h + (e.clientY - editorAction.y);
                     }
                 }
             }
@@ -4769,7 +5265,96 @@ jSuites.editor = (function(el, options) {
         if (typeof(obj.options.onkeydown) == 'function') { 
             obj.options.onkeydown(el, obj, e);
         }
+
+        if (e.key == 'Delete') {
+            if (e.target.tagName == 'IMG' && e.target.parentNode.classList.contains('jsnippet-image')) {
+                e.target.remove();
+                updateTotalImages();
+            }
+        }
     }
+
+    // Elements to be removed
+    var remove = [HTMLUnknownElement,HTMLAudioElement,HTMLEmbedElement,HTMLIFrameElement,HTMLTextAreaElement,HTMLInputElement,HTMLScriptElement];
+
+    // Valid properties
+    var validProperty = ['width', 'height', 'align', 'border', 'src', 'tabindex'];
+
+    // Valid CSS attributes
+    var validStyle = ['color', 'font-weight', 'font-size', 'background', 'background-color', 'margin'];
+
+    var parse = function(element) {
+       // Remove attributes
+       if (element.attributes && element.attributes.length) {
+           var image = null;
+           var style = null;
+           // Process style attribute
+           var elementStyle = element.getAttribute('style');
+           if (elementStyle) {
+               style = [];
+               var t = elementStyle.split(';');
+               for (var j = 0; j < t.length; j++) {
+                   var v = t[j].trim().split(':');
+                   if (validStyle.indexOf(v[0].trim()) >= 0) {
+                       var k = v.shift();
+                       var v = v.join(':');
+                       style.push(k + ':' + v);
+                   }
+               }
+           }
+           // Process image
+           if (element.tagName.toUpperCase() == 'IMG') {
+               if (! obj.options.acceptImages || ! element.src) {
+                   element.parentNode.removeChild(element);
+               } else {
+                   // Check if is data
+                   element.setAttribute('tabindex', '900');
+                   // Check attributes for persistance
+                   obj.addImage(element.src);
+               }
+           }
+           // Remove attributes
+           var attr = [];
+           var numAttributes = element.attributes.length - 1;
+           if (numAttributes > 0) {
+               for (var i = numAttributes; i >= 0 ; i--) {
+                   attr.push(element.attributes[i].name);
+               }
+               attr.forEach(function(v) {
+                   if (validProperty.indexOf(v) == -1) {
+                       element.removeAttribute(v);
+                   }
+               });
+           }
+           element.style = '';
+           // Add valid style
+           if (style && style.length) {
+               element.setAttribute('style', style.join(';'));
+           }
+       }
+       // Parse children
+       if (element.children.length) {
+           for (var i = 0; i < element.children.length; i++) {
+               parse(element.children[i]);
+           }
+       }
+
+       if (remove.indexOf(element.constructor) >= 0) {
+           element.remove();
+       }
+    }
+
+    var filter = function(data) {
+        if (data) {
+            data = data.replace(new RegExp('<!--(.*?)-->', 'gsi'), '');
+        }
+        var parser = new DOMParser();
+        var d = parser.parseFromString(data, "text/html");
+        parse(d);
+        var span = document.createElement('span');
+        span.innerHTML = d.firstChild.innerHTML;
+        return span;
+    } 
 
     var editorPaste = function(e) {
         if (obj.options.filterPaste == true) {
@@ -4787,35 +5372,24 @@ jSuites.editor = (function(el, options) {
                 // Paste a image from the clipboard
                 obj.addFile(file);
             } else {
-                // Paste text
-                text = text.split('\r\n');
-                var str = '';
-                if (e.target.nodeName == 'DIV' && e.target.classList.contains('jeditor')) {
-                    for (var i = 0; i < text.length; i++) {
-                        var tmp = document.createElement('div');
-                        if (text[i]) {
-                            tmp.innerText = text[i];
-                        } else {
-                            tmp.innerHTML = '<br/>';
-                        }
-                        e.target.appendChild(tmp);
+                if (! html) {
+                    html = text.split('\r\n');
+                    if (! e.target.innerText) {
+                        html.map(function(v) {
+                            var d = document.createElement('div');
+                            d.innerText = v;
+                            editor.appendChild(d);
+                        });
+                    } else {
+                        html = html.map(function(v) {
+                            return '<div>' + v + '</div>';
+                        });
+                        document.execCommand('insertHtml', false, html.join(''));
                     }
                 } else {
-                    var content = document.createElement('div');
-                    for (var i = 0; i < text.length; i++) {
-                        if (text[i]) {
-                            var div = document.createElement('div');
-                            div.innerText = text[i];
-                            content.appendChild(div);
-                        }
-                    }
-                    // Insert text
-                    document.execCommand('insertHtml', false, content.innerHTML);
-                }
-
-                // Extra images from the paste
-                if (obj.options.acceptImages == true) {
-                    extractImageFromHtml(html);
+                    var d = filter(html);
+                    // Paste to the editor
+                    insertNodeAtCaret(d);
                 }
             }
 
@@ -4834,6 +5408,7 @@ jSuites.editor = (function(el, options) {
             // Do nothing
         } else {
             el.classList.add('jeditor-dragging');
+            e.preventDefault();
         }
     }
 
@@ -4848,6 +5423,7 @@ jSuites.editor = (function(el, options) {
             editorTimer = setTimeout(function() {
                 el.classList.remove('jeditor-dragging');
             }, 100);
+            e.preventDefault();
         }
     }
 
@@ -4935,13 +5511,14 @@ jSuites.editor = (function(el, options) {
 
     // Add toolbar
     if (obj.options.toolbar) {
+        // Append to the DOM
+        el.appendChild(toolbar);
         // Create toolbar
         jSuites.toolbar(toolbar, {
             container: true,
+            responsive: true,
             items: obj.options.toolbar
         });
-        // Append to the DOM
-        el.appendChild(toolbar);
     }
 
     // Focus to the editor
@@ -4955,7 +5532,9 @@ jSuites.editor = (function(el, options) {
     // Global generic value handler
     el.val = function(val) {
         if (val === undefined) {
-            return obj.getData();
+            // Data type
+            var o = el.getAttribute('data-html') === 'true' ? false : true;
+            return obj.getData(o);
         } else {
             obj.setData(val);
         }
@@ -5224,6 +5803,14 @@ jSuites.guid = function() {
     });
 }
 
+jSuites.getNode = function() {
+    var node = document.getSelection().anchorNode;
+    if (node) {
+        return (node.nodeType == 3 ? node.parentNode : node);
+    } else {
+        return null;
+    }
+}
 /**
  * Generate hash from a string
  */
@@ -5883,9 +6470,12 @@ jSuites.image = jSuites.upload = (function(el, options) {
 
             if (val) {
                 if (Array.isArray(val)) {
-                    // Add
                     for (var i = 0; i < val.length; i++) {
-                        obj.add(val[i]);
+                        if (typeof(val[i]) == 'string') {
+                            obj.add({ file: val[i] });
+                        } else {
+                            obj.add(val[i]);
+                        }
                     }
                 } else if (typeof(val) == 'string') {
                     obj.add({ file: val });
@@ -5935,24 +6525,33 @@ jSuites.lazyLoading = (function(el, options) {
     // Controls
     var scrollControls = function(e) {
         if (timeControlLoading == null) {
+            var event = false;
             var scrollTop = el.scrollTop;
             if (el.scrollTop + (el.clientHeight * 2) >= el.scrollHeight) {
                 if (options.loadDown()) {
                     if (scrollTop == el.scrollTop) {
                         el.scrollTop = el.scrollTop - (el.clientHeight);
                     }
+                    event = true;
                 }
             } else if (el.scrollTop <= el.clientHeight) {
                 if (options.loadUp()) {
                     if (scrollTop == el.scrollTop) {
                         el.scrollTop = el.scrollTop + (el.clientHeight);
                     }
+                    event = true;
                 }
             }
 
             timeControlLoading = setTimeout(function() {
                 timeControlLoading = null;
             }, options.timer);
+
+            if (event) {
+                if (typeof(options.onupdate) == 'function') {
+                    options.onupdate();
+                }
+            }
         }
     }
 
@@ -5991,494 +6590,1299 @@ jSuites.loading = (function() {
 })();
 
 jSuites.mask = (function() {
-    var obj = {};
-    var index = 0;
-    var values = []
-    var pieces = [];
+    // Currency 
+    var tokens = {
+        // Currency tokens
+        currency: [ '#(.{1})##0?(.{1}0+)?( ?;(.*)?)?', '#' ],
+        // Percentage
+        percentage: [ '0{1}(.{1}0+)?%' ],
+        // Number
+        numeric: [ '0{1}(.{1}0+)?' ],
+        // Data tokens
+        datetime: [ 'YYYY', 'YYY', 'YY', 'MMMMM', 'MMMM', 'MMM', 'MM', 'DDDDD', 'DDDD', 'DDD', 'DD', 'DY', 'DAY', 'WD', 'D', 'Q', 'HH24', 'HH12', 'HH', '\\[H\\]', 'H', 'AM/PM', 'PM', 'AM', 'MI', 'SS', 'MS', 'MONTH', 'MON', 'Y', 'M' ],
+        // Other
+        general: [ 'A', '0', '[0-9a-zA-Z\$]+', '.']
+    }
 
+    var getDate = function() {
+        if (this.mask.toLowerCase().indexOf('[h]') !== -1) {
+            var m = 0;
+            if (this.date[4]) {
+                m = parseFloat(this.date[4] / 60);
+            }
+            var v = parseInt(this.date[3]) + m;
+            v /= 24;
+        } else if (! (this.date[0] && this.date[1] && this.date[2]) && (this.date[3] || this.date[4])) {
+            v = jSuites.two(this.date[3]) + ':' + jSuites.two(this.date[4]) + ':' + jSuites.two(this.date[5]) 
+        } else {
+            if (this.date[0] && this.date[1] && ! this.date[2]) {
+                this.date[2] = 1;
+            }
+            v = jSuites.two(this.date[0]) + '-' + jSuites.two(this.date[1]) + '-' + jSuites.two(this.date[2]);
+
+            if (this.date[3] || this.date[4] || this.date[5]) {
+                v += ' ' + jSuites.two(this.date[3]) + ':' + jSuites.two(this.date[4]) + ':' + jSuites.two(this.date[5]);
+            }
+        }
+
+        return v;
+    }
+
+    var isBlank = function(v) {
+        return v === null || v === '' || v === undefined ? true : false;
+    }
+
+    var isFormula = function(value) {
+        return (''+value).chartAt(0) == '=';
+    }
+
+    var isNumeric = function(t) {
+        return t === 'currency' || t === 'percentage' || t === 'numeric' ? true : false;
+    }
     /**
-     * Apply a mask over a value considering a custom decimal representation. Default: '.'
+     * Get the decimal defined in the mask configuration
      */
-    obj.run = function(value, mask, decimal) {
-        if (value.toString().length && mask.toString().length) {
-            // Default decimal separator
-            if (typeof(decimal) == 'undefined') {
-                decimal = '.';
-            }
-
-            if (jSuites.isNumeric(value)) {
-                if (typeof(value) == 'number') {
-                    var number = (''+value).split('.');
-                } else {
-                    var number = (''+value).split(decimal);
-                }
-                var value = number[0];
-                var valueDecimal = number[1];
+    var getDecimal = function(v) {
+        if (v && Number(v) == v) {
+            return '.';
+        } else {
+            if (this.options.decimal) {
+                return this.options.decimal;
             } else {
-                value = '' + value;
-            }
-
-            // Helpers
-            index = 0;
-            values = [];
-            // Create mask token
-            obj.prepare(mask);
-            // Current value
-            var currentValue = value;
-            if (currentValue) {
-                // Checking current value
-                for (var i = 0; i < currentValue.length; i++) {
-                    if (currentValue[i] != null) {
-                        obj.process(currentValue[i]);
+                if (this.locale) {
+                    var t = Intl.NumberFormat(this.locale).format(1.1);
+                    return this.options.decimal = t[1];
+                } else {
+                    if (! v) {
+                        v  = this.mask;
                     }
-                }
-            }
-            if (valueDecimal) {
-                obj.process(decimal);
-                var currentValue = valueDecimal;
-                if (currentValue) {
-                    // Checking current value
-                    for (var i = 0; i < currentValue.length; i++) {
-                        if (currentValue[i] != null) {
-                            obj.process(currentValue[i]);
+                    var e = new RegExp('0{1}(.{1})0+', 'ig');
+                    var t = e.exec(v);
+                    if (t && t[1] && t[1].length == 1) {
+                        // Save decimal
+                        this.options.decimal = t[1];
+                        // Return decimal
+                        return t[1];
+                    } else {
+                        // Did not find any decimal last resort the default
+                        var e = new RegExp('#,##', 'ig');
+                        if ((v && v.match(e)) || '1.1'.toLocaleString().substring(1,2) == '.') {
+                            this.options.decimal = '.';
+                        } else {
+                            this.options.decimal = ',';
                         }
                     }
                 }
             }
-            // Formatted value
-            return values.join('');
+        }
+
+        if (this.options.decimal) {
+            return this.options.decimal;
+        } else {
+            return null;
+        }
+    }
+
+    var ParseValue = function(v, decimal) {
+        if (v == '') {
+            return '';
+        }
+
+        // Get decimal
+        if (! decimal) {
+            decimal = getDecimal.call(this);
+        }
+
+        // New value
+        v = (''+v).split(decimal);
+        v[0] = v[0].match(/[\-0-9]+/g, '');
+        if (v[0]) {
+            v[0] = v[0].join('');
+        }
+        if (v[0] || v[1]) {
+            if (v[1] !== undefined) {
+                v[1] = v[1].match(/[0-9]+/g, '');
+                if (v[1]) {
+                    v[1] = v[1].join('');
+                } else {
+                    v[1] = '';
+                }
+            }
         } else {
             return '';
         }
+
+        return v;
+    }
+
+    var FormatValue = function(v) {
+        if (v == '') {
+            return '';
+        }
+        // Get decimal
+        var d = getDecimal.call(this);
+        // Convert value
+        var o = Object.create(this.options || {});
+        if (! o.minimumFractionDigits) {
+            o.minimumFractionDigits = 1;
+        }
+        // Parse value
+        v = ParseValue.call(this, v);
+        if (v == '') {
+            return '';
+        }
+        // Temporary value
+        if (v[0]) {
+            var t = parseFloat(v.join('.'));
+            if (o.style == 'percent') {
+                t /= 100;
+            }
+        } else {
+            var t = null;
+        }
+        var n = new Intl.NumberFormat(this.locale, o).format(t);
+        n = n.split(d);
+        var s = n[1].replace(/[0-9]*/g, '');
+        if (s) {
+            n[2] = s;
+        }
+        if (v[1] !== undefined) {
+            n[1] = d + v[1];
+        } else {
+            n[1] = '';
+        }
+
+        return n.join('');
+    }
+
+    var Format = function(e) {
+        var v = Value.call(e);
+        if (! v) {
+            return;
+        }
+
+        // Get decimal
+        var d = getDecimal.call(this);
+        var n = FormatValue.call(this, v);
+        var t = (n.length) - v.length;
+        var index = Caret.call(e) + t;
+        // Set value and update caret
+        Value.call(e, n, index, true);
+    }
+
+    var Extract = function(v) {
+        // Keep the raw value
+        var current = ParseValue.call(this, v);
+        if (current) {
+            return parseFloat(current.join('.'));
+        }
+        return null;
     }
 
     /**
-     * Process new string by keydown or paste
+     * Caret getter and setter methods
      */
-    var execute = function(str) {
-        index = 0;
-        values = [];
-        // Create mask token
-        obj.prepare(this.getAttribute('data-mask'));
-        // Current value
-        var currentValue = '';
-        // Process selection
-        if (this.tagName == 'DIV') {
-            if (this.innerText) {
+    var Caret = function(index, adjustNumeric) {
+        if (index === undefined) {
+            if (this.tagName == 'DIV') {
+                var pos = 0;
                 var s = window.getSelection();
-                if (s && s.anchorOffset != s.focusOffset) {
-                    var offset = s.anchorOffset > s.focusOffset ? s.focusOffset : s.anchorOffset;
-                    var currentValue = this.innerText.substring(0, offset);
-                } else {
-                    var currentValue = this.innerText;
+                if (s) {
+                    if (s.rangeCount !== 0) {
+                        var r = s.getRangeAt(0);
+                        var p = r.cloneRange();
+                        p.selectNodeContents(this);
+                        p.setEnd(r.endContainer, r.endOffset);
+                        pos = p.toString().length;
+                    }
                 }
+                return pos;
+            } else {
+                return this.selectionStart;
             }
         } else {
-            if (this.selectionStart < this.selectionEnd) {
-                var currentValue = this.value.substring(0, this.selectionStart); 
-            } else {
-                var currentValue = this.value;
+            // Get the current value
+            var n = Value.call(this);
+
+            // Review the position
+            if (adjustNumeric) {
+                var p = null;
+                for (var i = 0; i < n.length; i++) {
+                    if (n[i].match(/[\-0-9]/g) || n[i] == '.' || n[i] == ',') {  
+                        p = i;
+                    }
+                }
+
+                // If the string has no numbers
+                if (p === null) {
+                    p = n.indexOf(' ');
+                }
+
+                if (index >= p) {
+                    index = p + 1;
+                }
+            }
+
+            // Do not update caret
+            if (index > n.length) {
+                index = n.length;
+            }
+
+            if (index) {
+                // Set caret
+                if (this.tagName == 'DIV') {
+                    var s = window.getSelection();
+                    var r = document.createRange();
+                    r.setStart(this.childNodes[0], index);
+                    s.removeAllRanges();
+                    s.addRange(r);
+                } else {
+                    this.selectionStart = index;
+                    this.selectionEnd = index;
+                }
             }
         }
+    }
 
-        // New string to the input
-        currentValue += str;
-
-        // Checking current value
-        for (var i = 0; i < currentValue.length; i++) {
-            if (currentValue[i] != null) {
-                obj.process(currentValue[i]);
-            }
-        }
-
-        // New value 
-        var value = values.join('');
-
-        // Update value to the element
+    /**
+     * Value getter and setter method
+     */
+    var Value = function(v, updateCaret, adjustNumeric) {
         if (this.tagName == 'DIV') {
-            if (value != this.innerText) {
-                this.innerText = value;
-                // Set focus
-                jSuites.focus(this);
-            }
-        } else {
-            this.value = value;
-        }
+            if (v === undefined) {
+                return this.innerText;
+            } else {
+                if (this.innerText !== v) {
+                    this.innerText = v;
 
-        // Completed attribute
-        if (pieces.length == values.length && pieces[pieces.length-1].length == values[values.length-1].length) {
-            this.setAttribute('data-completed', 'true');
-        } else {
-            this.setAttribute('data-completed', 'false');
-        }
-    }
-
-    obj.apply = function(e) {
-        if (e.target && ! e.target.getAttribute('readonly')) {
-            var mask = e.target.getAttribute('data-mask');
-            if (mask && e.key && e.key.length < 2 && ! e.ctrlKey) {
-                // Prevent default
-                e.preventDefault();
-                // Process new char
-                execute.call(e.target, e.key);
-            }
-        }
-    }
-
-    obj.paste = function(e) {
-        if (e.target && ! e.target.getAttribute('readonly')) {
-            // Only apply paste to jsuites mask elements
-            var mask = e.target.getAttribute('data-mask');
-            if (mask) {
-                // Get the pasted text
-                if (e.clipboardData || e.originalEvent.clipboardData) {
-                    var text = (e.originalEvent || e).clipboardData.getData('text/plain');
-                } else if (window.clipboardData) {
-                    var text = window.clipboardData.getData('Text');
+                    if (updateCaret) {
+                        Caret.call(this, updateCaret, adjustNumeric);
+                    }
                 }
-                // Process the new text
-                if (text) {
-                    // Prevent default
-                    e.preventDefault();
-                    // Process new information
-                    execute.call(e.target, text);
+            }
+        } else {
+            if (v === undefined) {
+                return this.value;
+            } else {
+                if (this.value !== v) {
+                    this.value = v;
+                    if (updateCaret) {
+                        Caret.call(this, updateCaret, adjustNumeric);
+                    }
+                }
+            }
+        }
+    }
+
+    // Labels
+    var weekDaysFull = jSuites.calendar.weekdays;
+    var weekDays = jSuites.calendar.weekdaysShort;
+    var monthsFull = jSuites.calendar.months;
+    var months = jSuites.calendar.monthsShort;
+
+    var parser = {
+        'YEAR': function(v, s) {
+            var y = ''+new Date().getFullYear();
+
+            if (typeof(this.values[this.index]) === 'undefined') {
+                this.values[this.index] = '';
+            }
+            if (parseInt(v) >= 0 && parseInt(v) <= 10) {
+                if (this.values[this.index].length < s) {
+                    this.values[this.index] += v;
+                }
+            }
+            if (this.values[this.index].length == s) {
+                if (s == 2) {
+                    var y = y.substr(0,2) + this.values[this.index];
+                } else if (s == 3) {
+                    var y = y.substr(0,1) + this.values[this.index];
+                } else if (s == 4) {
+                    var y = this.values[this.index];
+                }
+                this.date[0] = y;
+                this.index++;
+            }
+        },
+        'YYYY': function(v) {
+            parser.YEAR.call(this, v, 4);
+        },
+        'YYY': function(v) {
+            parser.YEAR.call(this, v, 3);
+        },
+        'YY': function(v) {
+            parser.YEAR.call(this, v, 2);
+        },
+        'FIND': function(v, a) {
+            if (isBlank(this.values[this.index])) {
+                this.values[this.index] = '';
+            }
+            var pos = 0;
+            var count = 0;
+            var value = (this.values[this.index] + v).toLowerCase();
+            for (var i = 0; i < a.length; i++) {
+                if (a[i].toLowerCase().indexOf(value) == 0) {
+                    pos = i;
+                    count++;
+                }
+            }
+            if (count > 1) {
+                this.values[this.index] += v;
+            } else if (count == 1) {
+                this.values[this.index] = a[pos];
+                this.index++;
+
+                return pos;
+            }
+        },
+        'MMM': function(v) {
+            var ret = parser.FIND.call(this, v, months);
+            if (ret !== undefined) {
+                this.date[1] = ret + 1;
+            }
+        },
+        'MMMM': function(v) {
+            var ret = parser.FIND.call(this, v, monthsFull);
+            if (ret !== undefined) {
+                this.date[1] = ret + 1;
+            }
+        },
+        'MMMMM': function(v) {
+            if (isBlank(this.values[this.index])) {
+                this.values[this.index] = '';
+            }
+            var pos = 0;
+            var count = 0;
+            var value = (this.values[this.index] + v).toLowerCase();
+            for (var i = 0; i < monthsFull.length; i++) {
+                if (monthsFull[i][0].toLowerCase().indexOf(value) == 0) {
+                    this.values[this.index] = monthsFull[i][0];
+                    this.date[1] = i + 1;
+                    this.index++;
+                    break;
+                }
+            }
+        },
+        'MM': function(v) {
+            if (isBlank(this.values[this.index])) {
+                if (parseInt(v) > 1 && parseInt(v) < 10) {
+                    this.date[1] = this.values[this.index] = '0' + v;
+                    this.index++;
+                } else if (parseInt(v) < 2) {
+                    this.values[this.index] = v;
+                }
+            } else {
+                if (this.values[this.index] == 1 && parseInt(v) < 3) {
+                    this.date[1] = this.values[this.index] += v;
+                    this.index++;
+                } else if (this.values[this.index] == 0 && parseInt(v) > 0 && parseInt(v) < 10) {
+                    this.date[1] = this.values[this.index] += v;
+                    this.index++;
+                }
+            }
+        },
+        'M': function(v) {
+            var test = false;
+            if (parseInt(v) >= 0 && parseInt(v) < 10) {
+                if (isBlank(this.values[this.index])) {
+                    this.values[this.index] = v;
+                    if (v > 1) {
+                        this.date[1] = this.values[this.index];
+                        this.index++;
+                    }
+                } else {
+                    if (this.values[this.index] == 1 && parseInt(v) < 3) {
+                        this.date[1] = this.values[this.index] += v;
+                        this.index++;
+                    } else if (this.values[this.index] == 0 && parseInt(v) > 0) {
+                        this.date[1] = this.values[this.index] += v;
+                        this.index++;
+                    } else {
+                        var test = true;
+                    }
+                }
+            } else {
+                var test = true;
+            }
+
+            // Re-test
+            if (test == true) {
+                var t = parseInt(this.values[this.index]);
+                if (t > 0 && t < 12) {
+                    this.date[2] = this.values[this.index];
+                    this.index++;
+                    // Repeat the character
+                    this.position--;
+                }
+            }
+        },
+        'D': function(v) {
+            var test = false;
+            if (parseInt(v) >= 0 && parseInt(v) < 10) {
+                if (isBlank(this.values[this.index])) {
+                    this.values[this.index] = v;
+                    if (parseInt(v) > 3) {
+                        this.date[2] = this.values[this.index];
+                        this.index++;
+                    }
+                } else {
+                    if (this.values[this.index] == 3 && parseInt(v) < 2) {
+                        this.date[2] = this.values[this.index] += v;
+                        this.index++;
+                    } else if (this.values[this.index] == 1 || this.values[this.index] == 2) {
+                        this.date[2] = this.values[this.index] += v;
+                        this.index++;
+                    } else if (this.values[this.index] == 0 && parseInt(v) > 0) {
+                        this.date[2] = this.values[this.index] += v;
+                        this.index++;
+                    } else {
+                        var test = true;
+                    }
+                }
+            } else {
+                var test = true;
+            }
+
+            // Re-test
+            if (test == true) {
+                var t = parseInt(this.values[this.index]);
+                if (t > 0 && t < 32) {
+                    this.date[2] = this.values[this.index];
+                    this.index++;
+                    // Repeat the character
+                    this.position--;
+                }
+            }
+        },
+        'DD': function(v) {
+            if (isBlank(this.values[this.index])) {
+                if (parseInt(v) > 3 && parseInt(v) < 10) {
+                    this.date[2] = this.values[this.index] = '0' + v;
+                    this.index++;
+                } else if (parseInt(v) < 10) {
+                    this.values[this.index] = v;
+                }
+            } else {
+                if (this.values[this.index] == 3 && parseInt(v) < 2) {
+                    this.date[2] = this.values[this.index] += v;
+                    this.index++;
+                } else if ((this.values[this.index] == 1 || this.values[this.index] == 2) && parseInt(v) < 10) {
+                    this.date[2] = this.values[this.index] += v;
+                    this.index++;
+                } else if (this.values[this.index] == 0 && parseInt(v) > 0 && parseInt(v) < 10) {
+                    this.date[2] = this.values[this.index] += v;
+                    this.index++;
+                }
+            }
+        },
+        'DDD': function(v) {
+            parser.FIND.call(this, v, weekDays);
+        },
+        'DDDD': function(v) {
+            parser.FIND.call(this, v, weekDaysFull);
+        },
+        'HH12': function(v, two) {
+            if (isBlank(this.values[this.index])) {
+                if (parseInt(v) > 1 && parseInt(v) < 10) {
+                    if (two) {
+                        v = 0 + v;
+                    }
+                    this.date[3] = this.values[this.index] = v;
+                    this.index++;
+                } else if (parseInt(v) < 10) {
+                    this.values[this.index] = v;
+                }
+            } else {
+                if (this.values[this.index] == 1 && parseInt(v) < 3) {
+                    this.date[3] = this.values[this.index] += v;
+                    this.index++;
+                } else if (this.values[this.index] < 1 && parseInt(v) < 10) {
+                    this.date[3] = this.values[this.index] += v;
+                    this.index++;
+                }
+            }
+        },
+        'HH24': function(v, two) {
+            var test = false;
+            if (parseInt(v) >= 0 && parseInt(v) < 10) {
+                if (this.values[this.index] == null || this.values[this.index] == '') {
+                    if (parseInt(v) > 2 && parseInt(v) < 10) {
+                        if (two) {
+                            v = 0 + v;
+                        }
+                        this.date[3] = this.values[this.index] = v;
+                        this.index++;
+                    } else if (parseInt(v) < 10) {
+                        this.values[this.index] = v;
+                    }
+                } else {
+                    if (this.values[this.index] == 2 && parseInt(v) < 4) {
+                        this.date[3] = this.values[this.index] += v;
+                        this.index++;
+                    } else if (this.values[this.index] < 2 && parseInt(v) < 10) {
+                        this.date[3] = this.values[this.index] += v;
+                        this.index++;
+                    }
+                }
+            }
+        },
+        'HH': function(v) {
+            parser['HH24'].call(this, v, 1);
+        },
+        'H': function(v) {
+            parser['HH24'].call(this, v, 0);
+        },
+        '\\[H\\]': function(v) {
+            if (this.values[this.index] == undefined) {
+                this.values[this.index] = '';
+            }
+            if (v.match(/[0-9]/g)) {
+                this.date[3] = this.values[this.index] += v;
+            } else {
+                if (this.values[this.index].match(/[0-9]/g)) {
+                    this.date[3] = this.values[this.index];
+                    this.index++;
+                    // Repeat the character
+                    this.position--;
+                }
+            }
+        },
+        'N60': function(v, i) {
+            if (this.values[this.index] == null || this.values[this.index] == '') {
+                if (parseInt(v) > 5 && parseInt(v) < 10) {
+                    this.date[i] = this.values[this.index] = '0' + v;
+                    this.index++;
+                } else if (parseInt(v) < 10) {
+                    this.values[this.index] = v;
+                }
+            } else {
+                if (parseInt(v) < 10) {
+                    this.date[i] = this.values[this.index] += v;
+                    this.index++;
+                 }
+            }
+        },
+        'MI': function(v) {
+            parser.N60.call(this, v, 4);
+        },
+        'SS': function(v) {
+            parser.N60.call(this, v, 5);
+        },
+        'AM/PM': function(v) {
+            this.values[this.index] = '';
+            if (v) {
+                if (this.date[3] > 12) {
+                    this.values[this.index] = 'PM';
+                } else {
+                    this.values[this.index] = 'AM';
+                }
+            }
+            this.index++;
+        },
+        'WD': function(v) {
+            if (typeof(this.values[this.index]) === 'undefined') {
+                this.values[this.index] = '';
+            }
+            if (parseInt(v) >= 0 && parseInt(v) < 7) {
+                this.values[this.index] = v;
+            }
+            if (this.value[this.index].length == 1) {
+                this.index++;
+            }
+        },
+        '0{1}(.{1}0+)?': function(v) {
+            // Get decimal
+            var decimal = getDecimal.call(this);
+            // Negative number
+            var neg = false;
+            // Create if is blank
+            if (isBlank(this.values[this.index])) {
+                this.values[this.index] = '';
+            } else {
+                if (this.values[this.index] == '-') {
+                    neg = true;
+                }
+            }
+            var current = ParseValue.call(this, this.values[this.index], decimal);
+            if (current) {
+                this.values[this.index] = current.join(decimal);
+            }
+            // New entry
+            if (parseInt(v) >= 0 && parseInt(v) < 10) {
+                if (this.values[this.index] != '0' || v == decimal) {
+                    this.values[this.index] += v;
+                }
+            } else if (decimal && v == decimal) {
+                if (this.values[this.index].indexOf(decimal) == -1) {
+                    if (! this.values[this.index]) {
+                        this.values[this.index] = '0';
+                    }
+                    this.values[this.index] += v;
+                }
+            } else if (v == '-') {
+                // Negative signed
+                neg = true;
+            }
+
+            if (neg === true && this.values[this.index][0] !== '-') {
+                this.values[this.index] = '-' + this.values[this.index];
+            }
+        },
+        '0{1}(.{1}0+)?%': function(v) {
+            parser['0{1}(.{1}0+)?'].call(this, v);
+
+            if (this.values[this.index].match(/[\-0-9]/g)) {
+                if (this.values[this.index] && this.values[this.index].indexOf('%') == -1) {
+                    this.values[this.index] += '%';
+                }
+            } else {
+                this.values[this.index] = '';
+            }
+        },
+        '#(.{1})##0?(.{1}0+)?( ?;(.*)?)?': function(v) {
+            // Parse number
+            parser['0{1}(.{1}0+)?'].call(this, v);
+            // Get decimal
+            var decimal = getDecimal.call(this);
+            // Get separator
+            var separator = this.tokens[this.index].substr(1,1);
+            // Negative
+            var negative = this.values[this.index][0] === '-' ? true : false;
+            // Current value
+            var current = ParseValue.call(this, this.values[this.index], decimal);
+
+            // Get main and decimal parts
+            if (current !== '') {
+                // Format number
+                var n = current[0].match(/[0-9]/g);
+                if (n) {
+                    // Format
+                    n = n.join('');
+                    var t = [];
+                    var s = 0;
+                    for (var j = n.length - 1; j >= 0 ; j--) {
+                        t.push(n[j]);
+                        s++;
+                        if (! (s % 3)) {
+                            t.push(separator);
+                        }
+                    }
+                    t = t.reverse();
+                    current[0] = t.join('');
+                    if (current[0].substr(0,1) == separator) {
+                        current[0] = current[0].substr(1);
+                    }
+                } else {
+                    current[0] = '';
+                }
+
+                // Value
+                this.values[this.index] = current.join(decimal);
+
+                // Negative
+                if (negative) {
+                    this.values[this.index] = '-' + this.values[this.index];
+                }
+            }
+        },
+        '0': function(v) {
+            if (v.match(/[0-9]/g)) {
+                this.values[this.index] = v;
+                this.index++;
+            }
+        },
+        '[0-9a-zA-Z$]+': function(v) {
+            if (isBlank(this.values[this.index])) {
+                this.values[this.index] = '';
+            }
+            var t = this.tokens[this.index];
+            var s = this.values[this.index];
+            var i = s.length;
+
+            if (t[i] == v) {
+                this.values[this.index] += v;
+
+                if (this.values[this.index] == t) {
+                    this.index++;
+                }
+            } else {
+                this.values[this.index] = t;
+                this.index++;
+
+                if (v.match(/[\-0-9]/g)) {
+                    // Repeat the character
+                    this.position--;
+                }
+            }
+        },
+        'A': function(v) {
+            if (v.match(/[a-zA-Z]/gi)) {
+                this.values[this.index] = v;
+                this.index++;
+            }
+        },
+        '.': function(v) {
+            parser['[0-9a-zA-Z$]+'].call(this, v);
+        }
+    }
+
+    /**
+     * Get the tokens in the mask string
+     */
+    var getTokens = function(str) {
+        if (this.type == 'general') {
+            var t = [].concat(tokens.general);
+        } else {
+            var t = [].concat(tokens.currency, tokens.datetime, tokens.percentage, tokens.numeric, tokens.general);
+        }
+        // Expression to extract all tokens from the string
+        var e = new RegExp(t.join('|'), 'gi');
+        // Extract
+        return str.match(e);
+    }
+
+    /**
+     * Get the method of one given token
+     */
+    var getMethod = function(str) {
+        if (! this.type) {
+            var types = Object.keys(tokens);
+        } else if (this.type == 'general') {
+            var types = [ 'general' ];
+        } else if (this.type == 'datetime') {
+            var types = [ 'numeric', 'datetime', 'general' ];
+        } else {
+            var types = [ 'currency', 'percentage', 'numeric', 'general' ];
+        }
+
+        // Found
+        for (var i = 0; i < types.length; i++) {
+            var type = types[i];
+            for (var j = 0; j < tokens[type].length; j++) {
+                var e = new RegExp(tokens[type][j], 'gi');
+                var r = str.match(e);
+                if (r) {
+                    return { type: type, method: tokens[type][j] }
                 }
             }
         }
     }
 
     /**
-     * Process inputs and save to values
+     * Identify each method for each token
      */
-    obj.process = function(input) {
-        do {
-            if (pieces[index] == 'mm') {
-                if (values[index] == null || values[index] == '') {
-                    if (parseInt(input) > 1 && parseInt(input) < 10) {
-                        values[index] = '0' + input;
-                        index++;
-                        return true;
-                    } else if (parseInt(input) < 10) {
-                        values[index] = input;
-                        return true;
-                    } else {
-                        return false;
-                    }
-                } else {
-                    if (values[index] == 1 && values[index] < 2 && parseInt(input) < 3) {
-                        values[index] += input;
-                        index++;
-                        return true;
-                    } else if (values[index] == 0 && values[index] < 10) {
-                        values[index] += input;
-                        index++;
-                        return true;
-                    } else {
-                        return false
-                    }
-                }
-            } else if (pieces[index] == 'dd') {
-                if (values[index] == null || values[index] == '') {
-                    if (parseInt(input) > 3 && parseInt(input) < 10) {
-                        values[index] = '0' + input;
-                        index++;
-                        return true;
-                    } else if (parseInt(input) < 10) {
-                        values[index] = input;
-                        return true;
-                    } else {
-                        return false;
-                    }
-                } else {
-                    if (values[index] == 3 && parseInt(input) < 2) {
-                        values[index] += input;
-                        index++;
-                        return true;
-                    } else if (values[index] < 3 && parseInt(input) < 10) {
-                        values[index] += input;
-                        index++;
-                        return true;
-                    } else {
-                        return false
-                    }
-                }
-            } else if (pieces[index] == 'hh24') {
-                if (values[index] == null || values[index] == '') {
-                    if (parseInt(input) > 2 && parseInt(input) < 10) {
-                        values[index] = '0' + input;
-                        index++;
-                        return true;
-                    } else if (parseInt(input) < 10) {
-                        values[index] = input;
-                        return true;
-                    } else {
-                        return false;
-                    }
-                } else {
-                    if (values[index] == 2 && parseInt(input) < 4) {
-                        values[index] += input;
-                        index++;
-                        return true;
-                    } else if (values[index] < 2 && parseInt(input) < 10) {
-                        values[index] += input;
-                        index++;
-                        return true;
-                    } else {
-                        return false
-                    }
-                }
-            } else if (pieces[index] == 'hh') {
-                if (values[index] == null || values[index] == '') {
-                    if (parseInt(input) > 1 && parseInt(input) < 10) {
-                        values[index] = '0' + input;
-                        index++;
-                        return true;
-                    } else if (parseInt(input) < 10) {
-                        values[index] = input;
-                        return true;
-                    } else {
-                        return false;
-                    }
-                } else {
-                    if (values[index] == 1 && parseInt(input) < 3) {
-                        values[index] += input;
-                        index++;
-                        return true;
-                    } else if (values[index] < 1 && parseInt(input) < 10) {
-                        values[index] += input;
-                        index++;
-                        return true;
-                    } else {
-                        return false
-                    }
-                }
-            } else if (pieces[index] == 'mi' || pieces[index] == 'ss') {
-                if (values[index] == null || values[index] == '') {
-                    if (parseInt(input) > 5 && parseInt(input) < 10) {
-                        values[index] = '0' + input;
-                        index++;
-                        return true;
-                    } else if (parseInt(input) < 10) {
-                        values[index] = input;
-                        return true;
-                    } else {
-                        return false;
-                    }
-                } else {
-                    if (parseInt(input) < 10) {
-                        values[index] += input;
-                        index++;
-                        return true;
-                     } else {
-                        return false
-                    }
-                }
-            } else if (pieces[index] == 'yy' || pieces[index] == 'yyyy') {
-                if (parseInt(input) < 10) {
-                    if (values[index] == null || values[index] == '') {
-                        values[index] = input;
-                    } else {
-                        values[index] += input;
-                    }
-                    
-                    if (values[index].length == pieces[index].length) {
-                        index++;
-                    }
-                    return true;
-                } else {
-                    return false;
-                }
-            } else if (pieces[index] == '#' || pieces[index] == '#.##' || pieces[index] == '#,##' || pieces[index] == '# ##' || pieces[index] == "#'##") {
-                if (input.match(/[0-9]/g)) {
-                    if (pieces[index] == '#.##') {
-                        var separator = '.';
-                    } else if (pieces[index] == '#,##') {
-                        var separator = ',';
-                    } else if (pieces[index] == '# ##') {
-                        var separator = ' ';
-                    } else if (pieces[index] == "#'##") {
-                        var separator = "'";
-                    } else {
-                        var separator = '';
-                    }
-                    if (values[index] == null || values[index] == '') {
-                        values[index] = input;
-                    } else {
-                        values[index] += input;
-                        if (separator) {
-                            values[index] = values[index].match(/[0-9]/g).join('');
-                            var t = [];
-                            var s = 0;
-                            for (var j = values[index].length - 1; j >= 0 ; j--) {
-                                t.push(values[index][j]);
-                                s++;
-                                if (! (s % 3)) {
-                                    t.push(separator);
-                                }
-                            }
-                            t = t.reverse();
-                            values[index] = t.join('');
-                            if (values[index].substr(0,1) == separator) {
-                                values[index] = values[index].substr(1);
-                            } 
-                        }
-                    }
-                    return true;
-                } else {
-                    if (pieces[index] == '#.##' && input == '.') {
-                        // Do nothing
-                    } else if (pieces[index] == '#,##' && input == ',') {
-                        // Do nothing
-                    } else if (pieces[index] == '# ##' && input == ' ') {
-                        // Do nothing
-                    } else if (pieces[index] == "#'##" && input == "'") {
-                        // Do nothing
-                    } else {
-                        if (values[index]) {
-                            index++;
-                            if (pieces[index]) {
-                                if (pieces[index] == input) {
-                                    values[index] = input;
-                                    return true;
-                                } else {
-                                    if (pieces[index] == '0' && pieces[index+1] == input) {
-                                        index++;
-                                        values[index] = input;
-                                        return true;
-                                    }
-                                }
-                            }
-                        }
-                    }
+    var getMethods = function(t) {
+        var result = [];
+        for (var i = 0; i < t.length; i++) {
+            var m = getMethod.call(this, t[i]);
+            if (m) {
+                result.push(m.method);
+            } else {
+                result.push(null);
+            }
+        }
 
-                    return false;
+        // Compatibility with excel
+        for (var i = 0; i < result.length; i++) {
+            if (result[i] == 'MM') {
+                // Not a month, correct to minutes
+                if (result[i-1] && result[i-1].indexOf('H') >= 0) {
+                    result[i] = 'MI';
+                } else if (result[i-2] && result[i-2].indexOf('H') >= 0) {
+                    result[i] = 'MI';
+                } else if (result[i+1] && result[i+1].indexOf('S') >= 0) {
+                    result[i] = 'MI';
+                } else if (result[i+2] && result[i+2].indexOf('S') >= 0) {
+                    result[i] = 'MI';
                 }
-            } else if (pieces[index] == '0') {
-                if (input.match(/[0-9]/g)) {
-                    values[index] = input;
-                    index++;
-                    return true;
-                } else {
-                    return false;
+            }
+        }
+
+        return result;
+    }
+
+    /**
+     * Get the type for one given token
+     */
+    var getType = function(str) {
+        var m = getMethod.call(this, str);
+        if (m) {
+            var type = m.type;
+        }
+
+        if (type) {
+            var numeric = 0;
+            // Make sure the correct type
+            var t = getTokens.call(this, str);
+            for (var i = 0; i < t.length; i++) {
+                m = getMethod.call(this, t[i]);
+                if (m && isNumeric(m.type)) {
+                    numeric++;
                 }
-            } else if (pieces[index] == 'a') {
-                if (input.match(/[a-zA-Z]/g)) {
-                    values[index] = input;
-                    index++;
-                    return true;
-                } else {
-                    return false;
+            }
+            if (numeric > 1) {
+                type = 'general';
+            }
+        }
+
+        return type;
+    }
+
+    /**
+     * Parse character per character using the detected tokens in the mask
+     */
+    var parse = function() {
+        // Parser method for this position
+        if (typeof(parser[this.methods[this.index]]) == 'function') {
+            parser[this.methods[this.index]].call(this, this.value[this.position]);
+            this.position++;
+        } else {
+            this.values[this.index] = this.tokens[this.index];
+            this.index++;
+        }
+    }
+
+    var isFormula = function(value) {
+        var v = (''+value)[0];
+        return v == '=' ? true : false;
+    }
+
+    var toPlainString = function(num) {
+        return (''+ +num).replace(/(-?)(\d*)\.?(\d*)e([+-]\d+)/,
+          function(a,b,c,d,e) {
+            return e < 0
+              ? b + '0.' + Array(1-e-c.length).join(0) + c + d
+              : b + c + d + Array(e-d.length+1).join(0);
+          });
+    }
+
+    /**
+     * Mask function
+     * @param {mixed|string} JS input or a string to be parsed
+     * @param {object|string} When the first param is a string, the second is the mask or object with the mask options
+     */
+    var obj = function(e, config, returnObject) {
+        // Options
+        var r = null;
+        var t = null;
+        var o = {
+            // Element
+            input: null,
+            // Current value
+            value: null,
+            // Mask options
+            options: {},
+            // New values for each token found
+            values: [],
+            // Token position
+            index: 0,
+            // Character position
+            position: 0,
+            // Date raw values
+            date: [0,0,0,0,0,0],
+            // Raw number for the numeric values
+            number: 0,
+        }
+
+        // This is a JavaScript Event
+        if (typeof(e) == 'object') {
+            // Element
+            o.input = e.target;
+            // Current value
+            o.value = Value.call(e.target);
+            // Current caret position
+            o.caret = Caret.call(e.target);
+            // Mask
+            if (t = e.target.getAttribute('data-mask')) {
+                o.mask = t;
+            }
+            // Type
+            if (t = e.target.getAttribute('data-type')) {
+                o.type = t;
+            }
+            // Options
+            if (e.target.mask) {
+                if (e.target.mask.options) {
+                    o.options = e.target.mask.options;
+                }
+                if (e.target.mask.locale) {
+                    o.locale = e.target.mask.locale;
                 }
             } else {
-                if (pieces[index] != null) {
-                    if (pieces[index] == '\\a') {
-                        var v = 'a';
-                    } else if (pieces[index] == '\\0') {
-                        var v = '0';
-                    } else if (pieces[index] == '[-]') {
-                        if (input == '-' || input == '+') {
-                            var v = input;
+                // Locale
+                if (t = e.target.getAttribute('data-locale')) {
+                    o.locale = t;
+                    if (o.mask) {
+                        o.options.style = o.mask;
+                    }
+                }
+            }
+            // Extra configuration
+            if (e.target.attributes && e.target.attributes.length) {
+                for (var i = 0; i < e.target.attributes.length; i++) {
+                    var k = e.target.attributes[i].name;
+                    var v = e.target.attributes[i].value;
+                    if (k.substr(0,4) == 'data') {
+                        o.options[k.substr(5)] = v;
+                    }
+                }
+            }
+        } else {
+            // Options
+            if (typeof(config) == 'string') {
+                // Mask
+                o.mask = config;
+            } else {
+                // Mask
+                var k = Object.keys(config);
+                for (var i = 0; i < k.length; i++) {
+                    o[k[i]] = config[k[i]];
+                }
+            }
+
+            if (typeof(e) === 'number') {
+                // Get decimal
+                getDecimal.call(o, o.mask);
+                // Replace to the correct decimal
+                e = (''+e).replace('.', o.options.decimal);
+            }
+
+            // Current
+            o.value = e;
+
+            if (o.input) {
+                // Value
+                Value.call(o.input, e);
+                // Focus
+                jSuites.focus(o.input);
+                // Caret
+                o.caret = Caret.call(o.input);
+            }
+        }
+
+        // Mask detected start the process
+        if (! isFormula(o.value) && (o.mask || o.locale)) {
+            // Compatibility ixes
+            if (o.mask) {
+                // Legacy
+                o.mask = o.mask.replace('[-]', '');
+                // Excel mask TODO: Improve
+                if (o.mask.indexOf('##')) {
+                    var d = o.mask.split(';');
+                    if (d[0]) {
+                        d[0] = d[0].replace('*', '');
+                        d[0] = d[0].replace(/_/g, '');
+                        d[0] = d[0].replace(/-/g, '');
+                        d[0] = d[0].replace('(','');
+                        d[0] = d[0].replace(')','');
+                        d[0] = d[0].replace('##0.###','##0.000');
+                        d[0] = d[0].replace('##0.##','##0.00');
+                        d[0] = d[0].replace('##0.#','##0.0');
+                    }
+                    o.mask = d[0];
+                }
+                // Get type
+                if (! o.type) {
+                    o.type = getType.call(o, o.mask);
+                }
+                // Get tokens
+                o.tokens = getTokens.call(o, o.mask);
+            }
+            // On new input
+            if (typeof(e) !== 'object' || ! e.inputType || e.inputType == 'insertText' || e.inputType == 'insertFromPaste') {
+                // Start tranformation
+                if (o.locale) {
+                    if (o.input) {
+                        Format.call(o, o.input);
+                    } else {
+                        var newValue = FormatValue.call(o, o.value);
+                    }
+                } else {
+                    // Get tokens
+                    o.methods = getMethods.call(o, o.tokens);
+                    // Go through all tokes
+                    while (o.position < o.value.length && typeof(o.tokens[o.index]) !== 'undefined') {
+                        // Get the approate parser
+                        parse.call(o);
+                    }
+
+                    if (isNumeric(o.type)) {
+                        // Complement things in the end of the mask
+                        while (typeof(o.tokens[o.index]) !== 'undefined') {
+                            var t = getMethod.call(o, o.tokens[o.index]);
+                            if (t && t.type == 'general') {
+                                o.values[o.index] = o.tokens[o.index];
+                            }
+                            o.index++;
+                        }
+
+                        var adjustNumeric = true;
+                    } else {
+                        var adjustNumeric = false;
+                    }
+
+                    // New value
+                    var newValue = o.values.join('');
+
+                    // Reset value
+                    if (o.input) {
+                        t = newValue.length - o.value.length;
+                        if (t > 0) {
+                            var caret = o.caret + t;
                         } else {
-                            var v = ' ';
+                            var caret = o.caret;
                         }
-                    } else {
-                        var v = pieces[index];
-                    }
-                    values[index] = v;
-                    if (input == v) {
-                        index++;
-                        return true;
+                        Value.call(o.input, newValue, caret, adjustNumeric);
                     }
                 }
             }
 
-            index++;
-        } while (pieces[index]);
+            // Update raw data
+            if (o.input) {
+                var label = null;
+                if (isNumeric(o.type)) {
+                    // Extract the number
+                    o.number = Extract.call(o, Value.call(o.input));
+                    // Keep the raw data as a property of the tag
+                    if (o.type == 'percentage') {
+                        label = o.number / 100;
+                    } else {
+                        label = o.number;
+                    }
+                } else if (o.type == 'datetime') {
+                    label = getDate.call(o);
+
+                    if (o.date[0] && o.date[1] && o.date[2]) {
+                        o.input.setAttribute('data-completed', true);
+                    }
+                }
+
+                if (label) {
+                    o.input.setAttribute('data-value', label);
+                }
+            }
+
+            if (newValue !== undefined) {
+                if (returnObject) {
+                    return o;
+                } else {
+                    return newValue;
+                }
+            }
+        }
+    }
+
+    // Extract the tokens from a mask
+    obj.prepare = function(str, o) {
+        if (! o) {
+            o = {};
+        }
+        return getTokens.call(o, str);
     }
 
     /**
-     * Create tokens for the mask
+     * Apply the mask to a element (legacy)
      */
-    obj.prepare = function(mask) {
-        pieces = [];
-        for (var i = 0; i < mask.length; i++) {
-            if (mask[i].match(/[0-9]|[a-z]|\\/g)) {
-                if (mask[i] == 'y' && mask[i+1] == 'y' && mask[i+2] == 'y' && mask[i+3] == 'y') {
-                    pieces.push('yyyy');
-                    i += 3;
-                } else if (mask[i] == 'y' && mask[i+1] == 'y') {
-                    pieces.push('yy');
-                    i++;
-                } else if (mask[i] == 'm' && mask[i+1] == 'm' && mask[i+2] == 'm' && mask[i+3] == 'm') {
-                    pieces.push('mmmm');
-                    i += 3;
-                } else if (mask[i] == 'm' && mask[i+1] == 'm' && mask[i+2] == 'm') {
-                    pieces.push('mmm');
-                    i += 2;
-                } else if (mask[i] == 'm' && mask[i+1] == 'm') {
-                    pieces.push('mm');
-                    i++;
-                } else if (mask[i] == 'd' && mask[i+1] == 'd') {
-                    pieces.push('dd');
-                    i++;
-                } else if (mask[i] == 'h' && mask[i+1] == 'h' && mask[i+2] == '2' && mask[i+3] == '4') {
-                    pieces.push('hh24');
-                    i += 3;
-                } else if (mask[i] == 'h' && mask[i+1] == 'h') {
-                    pieces.push('hh');
-                    i++;
-                } else if (mask[i] == 'm' && mask[i+1] == 'i') {
-                    pieces.push('mi');
-                    i++;
-                } else if (mask[i] == 's' && mask[i+1] == 's') {
-                    pieces.push('ss');
-                    i++;
-                } else if (mask[i] == 'a' && mask[i+1] == 'm') {
-                    pieces.push('am');
-                    i++;
-                } else if (mask[i] == 'p' && mask[i+1] == 'm') {
-                    pieces.push('pm');
-                    i++;
-                } else if (mask[i] == '\\' && mask[i+1] == '0') {
-                    pieces.push('\\0');
-                    i++;
-                } else if (mask[i] == '\\' && mask[i+1] == 'a') {
-                    pieces.push('\\a');
-                    i++;
+    obj.apply = function(e) {
+        var v = Value.call(e.target);
+        if (e.key.length == 1) {
+            v += e.key;
+        }
+        Value.call(e.target, obj(v, e.target.getAttribute('data-mask')));
+    }
+
+    /**
+     * Legacy support
+     */
+    obj.run = function(value, mask, decimal) {
+        return obj(value, { mask, decimal });
+    }
+
+    /**
+     * Extract number from masked string
+     */
+    obj.extract = function(v, options, returnObject) {
+        if (isBlank(v)) {
+            return v;
+        }
+        if (typeof(options) != 'object') {
+            return value;
+        } else {
+            if (! options.options) {
+                options.options = {};
+            }
+        }
+
+        // Compatibility
+        if (! options.mask && options.format) {
+            options.mask = options.format;
+        }
+
+        // Get decimal
+        getDecimal.call(options, options.mask);
+
+        var type = null;
+        if (options.type == 'percent' || options.options.style == 'percent') {
+            type = 'percentage';
+        } else if (options.mask) {
+            type = getType.call(options, options.mask);
+        }
+
+
+        if (type === 'datetime') {
+            if (v instanceof Date) {
+                var t = jSuites.calendar.getDateString(value, options.mask);
+            }
+
+            var o = obj(v, options, true);
+            var value = getDate.call(o);
+            if ((o.date[0] && o.date[1] && o.date[2]) && ! (o.date[3] || o.date[4] || o.date[5])) {
+                var t = jSuites.calendar.now(o.date);
+                value = jSuites.calendar.dateToNum(t);
+            }
+        } else {
+            var value = Extract.call(options, v);
+            // Percentage
+            if (type == 'percentage') {
+                value /= 100;
+            }
+            var o = options;
+        }
+
+        o.value = value;
+
+        if (returnObject) {
+            return o;
+        } else {
+            return value;
+        }
+    }
+
+    /**
+     * Render
+     */
+    obj.render = function(value, options, fullMask) {
+        if (isBlank(value)) {
+            return value;
+        }
+
+        if (typeof(options) != 'object') {
+            return value;
+        } else {
+            if (! options.options) {
+                options.options = {};
+            }
+        }
+
+        // Compatibility
+        if (! options.mask && options.format) {
+            options.mask = options.format;
+        }
+
+        var type = null;
+        if (options.type == 'percent' || options.options.style == 'percent') {
+            type = 'percentage';
+        } else if (options.mask) {
+            type = getType.call(options, options.mask);
+        } else if (value instanceof Date) {
+            type = 'datetime';
+        }
+
+        // Fill with blanks
+        var fillWithBlanks = false;
+
+        if (type =='datetime' || options.type == 'calendar') {
+            var t = jSuites.calendar.getDateString(value, options.mask);
+            if (t) {
+                value = t;
+            }
+
+            if (options.mask && fullMask) {
+                fillWithBlanks = true;
+            }
+        } else {
+            // Percentage
+            if (type == 'percentage') {
+                value *= 100;
+            }
+            // Number of decimal places
+            if (typeof(value) === 'number') {
+                var t = null;
+                if (options.mask && fullMask) {
+                    var e = new RegExp('0{1}(.{1})0+', 'ig');
+                    var d = options.mask.match(e);
+                    if (d && d[0]) {
+                        d = d[0].length - 2;
+                        t = value.toFixed(d);
+                    } else {
+                        t = (''+value);
+                    }
+                } else if (options.locale && fullMask) {
+                    var d = (''+value).split('.');
+                    if (! d[1]) {
+                        d[1] = '00';
+                    } else {
+                        if (d[1].length == 1) {
+                            d[1] += '0';
+                        }
+                    }
+                    t = d.join('.');
                 } else {
-                    pieces.push(mask[i]);
+                    t = toPlainString(value);
+                }
+
+                if (t !== null) {
+                    value = t;
+                    // Get decimal
+                    getDecimal.call(options, options.mask);
+                    // Replace to the correct decimal
+                    if (options.options.decimal) {
+                        value = value.replace('.', options.options.decimal);
+                    }
                 }
             } else {
-                if (mask[i] == '#' && mask[i+1] == '.' && mask[i+2] == '#' && mask[i+3] == '#') {
-                    pieces.push('#.##');
-                    i += 3;
-                } else if (mask[i] == '#' && mask[i+1] == ',' && mask[i+2] == '#' && mask[i+3] == '#') {
-                    pieces.push('#,##');
-                    i += 3;
-                } else if (mask[i] == '#' && mask[i+1] == ' ' && mask[i+2] == '#' && mask[i+3] == '#') {
-                    pieces.push('# ##');
-                    i += 3;
-                } else if (mask[i] == '#' && mask[i+1] == "'" && mask[i+2] == '#' && mask[i+3] == '#') {
-                    pieces.push("#'##");
-                    i += 3;
-                } else if (mask[i] == '[' && mask[i+1] == '-' && mask[i+2] == ']') {
-                    pieces.push('[-]');
-                    i += 2;
-                } else {
-                    pieces.push(mask[i]);
+                if (options.mask && fullMask) {
+                    fillWithBlanks = true;
                 }
             }
+        }
+
+        if (fillWithBlanks) {
+            var s = options.mask.length - value.length;
+            if (s > 0) {
+                for (var i = 0; i < s; i++) {
+                    value += ' ';
+                }
+            }
+        }
+
+        value = obj(value, options);
+
+        return value;
+    }
+
+    obj.set = function(e, m) {
+        if (m) {
+            e.setAttribute('data-mask', m);
+            // Reset the value
+            var event = new Event('input', {
+                bubbles: true,
+                cancelable: true,
+            });
+            e.dispatchEvent(event);
         }
     }
 
     if (typeof document !== 'undefined') {
-        document.addEventListener('paste', obj.paste);
-        document.addEventListener('keydown', obj.apply);
+        document.addEventListener('input', function(e) {
+            if (e.target.getAttribute('data-mask') || e.target.mask) {
+                obj(e);
+            }
+        });
     }
 
     return obj;
 })();
-
 
 jSuites.notification = (function(options) {
     var obj = {};
@@ -6688,22 +8092,11 @@ jSuites.picker = (function(el, options) {
         for (var i = 0; i < keys.length; i++) {
             // Item
             var dropdownItem = document.createElement('div');
+            dropdownItem.classList.add('jpicker-item');
             dropdownItem.k = keys[i];
             dropdownItem.v = obj.options.data[keys[i]];
             // Label
             dropdownItem.innerHTML = obj.getLabel(keys[i]);
-
-            // Onchange
-            dropdownItem.onclick = function() {
-                // Update label
-                obj.setValue(this.k);
-
-                // Call method
-                if (typeof(obj.options.onchange) == 'function') {
-                    obj.options.onchange.call(obj, el, obj, 'reserved', this.v, this.k);
-                }
-            }
-
             // Append
             dropdownContent.appendChild(dropdownItem);
         }
@@ -6728,6 +8121,7 @@ jSuites.picker = (function(el, options) {
             right: false,
             content: false,
             columns: null,
+            height: null,
         }
 
         // Legacy purpose only
@@ -6758,6 +8152,14 @@ jSuites.picker = (function(el, options) {
             dropdownHeader.style.width = parseInt(obj.options.width) + 'px';
         } else {
             dropdownHeader.style.width = '';
+        }
+
+        // Height
+        if (obj.options.height) {
+            dropdownContent.style.maxHeight = obj.options.height + 'px';
+            dropdownContent.style.overflow = 'scroll';
+        } else {
+            dropdownContent.style.overflow = '';
         }
 
         if (obj.options.columns > 0) {
@@ -6872,21 +8274,32 @@ jSuites.picker = (function(el, options) {
         // Class
         el.classList.add('jpicker');
         el.setAttribute('tabindex', '900');
+        el.onmousedown = function(e) {
+            if (! el.classList.contains('jpicker-focus')) {
+                obj.open();
+            }
+        }
 
         // Dropdown Header
         dropdownHeader = document.createElement('div');
         dropdownHeader.classList.add('jpicker-header');
-        dropdownHeader.onmouseup = function(e) {
-            if (! el.classList.contains('jpicker-focus')) {
-                obj.open();
-            } else {
-                obj.close();
-            }
-        }
 
         // Dropdown content
         dropdownContent = document.createElement('div');
         dropdownContent.classList.add('jpicker-content');
+        dropdownContent.onclick = function(e) {
+            var item = jSuites.findElement(e.target, 'jpicker-item');
+            if (item) {
+                if (item.parentNode === dropdownContent) {
+                    // Update label
+                    obj.setValue(item.k);
+                    // Call method
+                    if (typeof(obj.options.onchange) == 'function') {
+                        obj.options.onchange.call(obj, el, obj, item.v, item.v, item.k);
+                    }
+                }
+            }
+        }
 
         // Append content and header
         el.appendChild(dropdownHeader);
@@ -7227,6 +8640,7 @@ jSuites.tabs = (function(el, options) {
         hideHeaders: false,
         padding: null,
         palette: null,
+        maxWidth: null,
     }
 
     // Loop through the initial configuration
@@ -7247,17 +8661,23 @@ jSuites.tabs = (function(el, options) {
 
     // Helpers
     var setBorder = function(index) {
-        var rect = obj.headers.children[index].getBoundingClientRect();
+        if (obj.options.animation) {
+            var rect = obj.headers.children[index].getBoundingClientRect();
 
-        if (obj.options.palette == 'modern') {
-            border.style.width = rect.width - 4 + 'px';
-            border.style.left = obj.headers.children[index].offsetLeft + 2 + 'px';
-        } else {
-            border.style.width = rect.width + 'px';
-            border.style.left = obj.headers.children[index].offsetLeft + 'px';
+            if (obj.options.palette == 'modern') {
+                border.style.width = rect.width - 4 + 'px';
+                border.style.left = obj.headers.children[index].offsetLeft + 2 + 'px';
+            } else {
+                border.style.width = rect.width + 'px';
+                border.style.left = obj.headers.children[index].offsetLeft + 'px';
+            }
+
+            if (obj.options.position == 'bottom') {
+                border.style.top = '0px';
+            } else {
+                border.style.bottom = '0px';
+            }
         }
-
-        border.style.bottom = '0px';
     }
 
     var updateControls = function(x) {
@@ -7291,6 +8711,8 @@ jSuites.tabs = (function(el, options) {
         }
     }
 
+    obj.setBorder = setBorder;
+
     // Set value
     obj.open = function(index) {
         var previous = null;
@@ -7322,9 +8744,7 @@ jSuites.tabs = (function(el, options) {
             obj.headers.parentNode.style.display = 'none';
         } else {
             // Set border
-            if (obj.options.animation == true) {
-                setBorder(index);
-            }
+            setBorder(index);
 
             obj.headers.parentNode.style.display = '';
 
@@ -7412,7 +8832,7 @@ jSuites.tabs = (function(el, options) {
         }
     }
 
-    obj.appendElement = function(title) {
+    obj.appendElement = function(title, cb) {
         if (! title) {
             var title = prompt('Title?', '');
         }
@@ -7434,6 +8854,11 @@ jSuites.tabs = (function(el, options) {
             }
             // Open new tab
             obj.selectIndex(h);
+
+            // Callback
+            if (typeof(cb) == 'function') {
+                cb(div, h);
+            }
 
             // Return element
             return div;
@@ -7517,6 +8942,9 @@ jSuites.tabs = (function(el, options) {
         var header = document.createElement('div');
         header.className = 'jtabs-headers-container';
         header.appendChild(obj.headers);
+        if (obj.options.maxWidth) {
+            header.style.maxWidth = parseInt(obj.options.maxWidth) + 'px';
+        }
 
         // Controls
         var controls = document.createElement('div');
@@ -7702,7 +9130,8 @@ jSuites.tabs = (function(el, options) {
 });
 
 jSuites.toolbar = (function(el, options) {
-    var obj = {};
+    // New instance
+    var obj = { type:'toolbar' };
     obj.options = {};
 
     // Default configuration
@@ -7711,6 +9140,8 @@ jSuites.toolbar = (function(el, options) {
         container: false,
         badge: false,
         title: false,
+        responsive: false,
+        maxWidth: null,
         items: [],
     }
 
@@ -7771,11 +9202,14 @@ jSuites.toolbar = (function(el, options) {
         el.innerHTML = '';
     }
 
-    var toggleState = function() {
-        if (this.classList.contains('jtoolbar-active')) {
-            this.classList.remove('jtoolbar-active');
-        } else {
-            this.classList.add('jtoolbar-active');
+    obj.update = function(a, b) {
+        for (var i = 0; i < toolbarContent.children.length; i++) {
+            // Toolbar element
+            var toolbarItem = toolbarContent.children[i];
+            // State management
+            if (typeof(toolbarItem.updateState) == 'function') {
+                toolbarItem.updateState(el, obj, toolbarItem, a, b);
+            }
         }
     }
 
@@ -7805,8 +9239,8 @@ jSuites.toolbar = (function(el, options) {
             }
 
             // Selected
-            if (items[i].state) {
-                toolbarItem.toggleState = toggleState;
+            if (items[i].updateState) {
+                toolbarItem.updateState = items[i].updateState;
             }
 
             if (items[i].active) {
@@ -7876,21 +9310,67 @@ jSuites.toolbar = (function(el, options) {
 
             toolbarContent.appendChild(toolbarItem);
         }
+
+        // Fits to the page
+        obj.refresh();
     }
 
-    obj.resize = function() {
-        el.style.width = el.parentNode.offsetWidth;
+    obj.open = function() {
+        toolbarArrow.classList.add('jtoolbar-arrow-selected');
 
-        toolbarContent.appendChild(toolbarArrow);
+        var rect = toolbarFloating.getBoundingClientRect();
+        if (rect.bottom > window.innerHeight) {
+            toolbarFloating.style.bottom = '0';
+        } else {
+            toolbarFloating.style.removeProperty('bottom');
+        }
+
+        toolbarFloating.style.right = '0';
+
+        toolbarArrow.children[0].focus();
+        // Start tracking
+        jSuites.tracking(obj, true);
     }
 
-    el.classList.add('jtoolbar');
-
-    if (obj.options.container == true) {
-        el.classList.add('jtoolbar-container');
+    obj.close = function() {
+        toolbarArrow.classList.remove('jtoolbar-arrow-selected')
+        // End tracking
+        jSuites.tracking(obj, false);
     }
 
-    el.innerHTML = '';
+    obj.refresh = function() {
+        if (obj.options.responsive == true) {
+            // Width of the c
+            var rect = el.parentNode.getBoundingClientRect();
+            if (! obj.options.maxWidth) {
+                obj.options.maxWidth = rect.width;
+            }
+            // Max width
+            var width = parseInt(obj.options.maxWidth); 
+            // Remove arrow
+            toolbarArrow.remove();
+            // Move all items to the toolbar
+            while (toolbarFloating.firstChild) {
+                toolbarContent.appendChild(toolbarFloating.firstChild);
+            }
+            // Available parent space
+            var available = obj.options.maxWidth;
+            // Toolbar is larger than the parent, move elements to the floating element
+            if (available < toolbarContent.offsetWidth) {
+                // Give space to the floating element
+                available -= 50;
+                // Move to the floating option
+                while (toolbarContent.lastChild && available < toolbarContent.offsetWidth) {
+                    toolbarFloating.insertBefore(toolbarContent.lastChild, toolbarFloating.firstChild);
+                }
+            }
+            // Show arrow
+            if (toolbarFloating.children.length > 0) {
+                toolbarContent.appendChild(toolbarArrow);
+            }
+        }
+    }
+
     el.onclick = function(e) {
         var element = jSuites.findElement(e.target, 'jtoolbar-item');
         if (element) {
@@ -7898,22 +9378,32 @@ jSuites.toolbar = (function(el, options) {
         }
 
         if (e.target.classList.contains('jtoolbar-arrow')) {
-            e.target.classList.add('jtoolbar-arrow-selected');
-            e.target.children[0].focus();
+            obj.open();
         }
     }
 
+    window.addEventListener('resize', function() {
+        obj.refresh();
+    });
+
+    // Toolbar
+    el.classList.add('jtoolbar');
+    // Reset content
+    el.innerHTML = '';
+    // Container
+    if (obj.options.container == true) {
+        el.classList.add('jtoolbar-container');
+    }
+    // Content
     var toolbarContent = document.createElement('div');
     el.appendChild(toolbarContent);
-
+    // Special toolbar for mobile applications
     if (obj.options.app) {
         el.classList.add('jtoolbar-mobile');
-    } else {
-        // Not a mobile version
     }
-
+    // Create toolbar
     obj.create(obj.options.items);
-
+    // Shortcut
     el.toolbar = obj;
 
     return obj;
