@@ -51,14 +51,14 @@
       color: <c:out value="${subheaderColor}" />;
   }
 </style>
-<div class="grid-x align-middle text-middle">
-  <div class="small-4 cell" style="position:relative">
+<div class="grid-y align-middle text-middle">
+  <div class="small-4 cell padding-width-30" style="position:relative">
     <canvas id="myChart-${widgetContext.uniqueId}"></canvas>
     <c:if test="${progressCard.maxValue > 0}">
       <p id="text${widgetContext.uniqueId}" class="chart-overlay-text chart-${widgetContext.uniqueId}"><fmt:formatNumber value="${100 * (progressCard.progress / progressCard.maxValue)}" />%</p>
     </c:if>
   </div>
-  <div class="auto cell padding-left-10">
+  <div class="small-4 cell padding-top-20">
     <c:if test="${!empty progressCard.label}">
       <p class="chart-subheader-text chart-${widgetContext.uniqueId} no-gap"><c:out value="${progressCard.label}" /></p>
     </c:if>
@@ -68,11 +68,11 @@
     <p class="chart-subheader-text chart-${widgetContext.uniqueId} no-gap"><c:out value="${progressCard.maxLabel}" /></p>
     <p class="chart-header-text chart-${widgetContext.uniqueId} no-gap">${progressCard.progress}/${progressCard.maxValue}</p>
   </div>
-  <c:if test="${!empty progressCard.link}">
-    <div class="small-1 cell">
-      <a href="<c:out value="${progressCard.link}" />"><i class="fa fa-2x fa-chevron-right"></i></a>
-    </div>
-  </c:if>
+<%--  <c:if test="${!empty progressCard.link}">--%>
+<%--    <div class="small-1 cell">--%>
+<%--      <a href="<c:out value="${progressCard.link}" />"><i class="fa fa-2x fa-chevron-right"></i></a>--%>
+<%--    </div>--%>
+<%--  </c:if>--%>
 </div>
 <script>
   const data${widgetContext.uniqueId} = {
