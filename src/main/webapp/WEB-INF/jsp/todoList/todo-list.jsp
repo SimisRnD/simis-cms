@@ -19,41 +19,50 @@
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
+<jsp:useBean id="themePropertyMap" class="java.util.HashMap" scope="request"/>
 <jsp:useBean id="todoList" class="java.util.LinkedHashMap" scope="request"/>
 <%@include file="../page_messages.jspf" %>
 <link rel="stylesheet" href="${ctx}/css/platform-todo-list.css?v=<%= VERSION %>" />
-<div data-closable="fade-out" class="todo-list-card card">
-  <div class="card-divider">
-    <c:if test="${!empty title}">
-      <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}"/></h4>
-    </c:if>
-    <button class="close-button" data-close>x</button>
-  </div>
-  <div class="card-section">
-    <c:choose>
-      <c:when test="${!empty todoList}">
-        <ul>
-          <c:forEach items="${todoList}" var="todoItem" varStatus="status">
-            <li id="${widgetContext.uniqueId}${status.index}"<c:if test="${todoItem.value eq 'true'}"> class="selected"</c:if>>
-              <input id="${widgetContext.uniqueId}item${status.index}" class="${widgetContext.uniqueId}todoListItem" type="checkbox"<c:if test="${todoItem.value eq 'true'}"> checked</c:if>></input><label for="${widgetContext.uniqueId}item${status.index}"></label>
-              <c:out value="${todoItem.key}"/>
-            </li>
-          </c:forEach>
-        </ul>
-      </c:when>
-      <c:otherwise>
-        <p class="subheader">
-          No items were found
-        </p>
-      </c:otherwise>
-    </c:choose>
-  </div>
-</div>
+<style>
+    .todo-list-card ul li {
+        background-color: <c:out value="${themePropertyMap['theme.callout.secondary.backgroundColor']}" />;
+        margin: 10px 0;
+        padding: 10px;
+    }
+    .todo-list-card ul li.selected {
+        background-color: <c:out value="${themePropertyMap['theme.callout.success.backgroundColor']}" />;
+    }
+    .todo-list-card ul li:hover {
+        box-shadow: inset 0 0 0 3px <c:out value="${themePropertyMap['theme.button.primary.backgroundColor']}" />;
+    }
+</style>
+<c:if test="${!empty title}">
+  <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}" /></h4>
+</c:if>
+<c:choose>
+  <c:when test="${!empty todoList}">
+    <div class="todo-list-card">
+      <ul>
+        <c:forEach items="${todoList}" var="todoItem" varStatus="status">
+          <li id="${widgetContext.uniqueId}${status.index}"<c:if test="${todoItem.value eq 'true'}"> class="selected"</c:if>>
+            <input id="${widgetContext.uniqueId}item${status.index}" class="${widgetContext.uniqueId}todoListItem" type="checkbox"<c:if test="${todoItem.value eq 'true'}"> checked</c:if>></input><label for="${widgetContext.uniqueId}item${status.index}"></label>
+            <c:out value="${todoItem.key}"/>
+          </li>
+        </c:forEach>
+      </ul>
+    </div>
+  </c:when>
+  <c:otherwise>
+    <p class="subheader">
+      No items were found
+    </p>
+  </c:otherwise>
+</c:choose>
 <script>
   var elements = document.getElementsByClassName("${widgetContext.uniqueId}todoListItem");
   var myFunction = function(ev) {
     ev.target.parentNode.classList[ ev.target.checked ? 'add' : 'remove'] ('selected');
-    // ajax to set the database value
+    // ajax to set the value
   };
   for (var i = 0; i < elements.length; i++) {
     elements[i].addEventListener('click', myFunction, false);
