@@ -43,6 +43,7 @@ public class ItemsListWidget extends GenericWidget {
 
   static String JSP = "/items/items-list.jsp";
   static String CARD_VIEW_JSP = "/items/items-card-view.jsp";
+  static String CATEGORY_CARD_VIEW_JSP = "/items/items-category-card-view.jsp";
   static String TABLE_VIEW_JSP = "/items/items-table.jsp";
   static String JOBS_LIST_JSP = "/items/items-jobs-list.jsp";
   static String SEARCH_RESULTS_JSP = "/items/items-search-results-list.jsp";
@@ -62,6 +63,8 @@ public class ItemsListWidget extends GenericWidget {
     String view = context.getPreferences().get("view");
     if ("cards".equals(view)) {
       jsp = CARD_VIEW_JSP;
+    } else if ("category-cards".equals(view)) {
+      jsp = CATEGORY_CARD_VIEW_JSP;
     } else if ("table".equals(view)) {
       jsp = TABLE_VIEW_JSP;
     } else if ("jobs".equals(view)) {
@@ -166,6 +169,7 @@ public class ItemsListWidget extends GenericWidget {
     context.getRequest().setAttribute("returnPage", context.getRequest().getRequestURI());
 
     // List view preferences
+    context.getRequest().setAttribute("showCategory", context.getPreferences().getOrDefault("showCategory", "false"));
     context.getRequest().setAttribute("showBullets", context.getPreferences().getOrDefault("showBullets", "false"));
     context.getRequest().setAttribute("showLaunchLink", context.getPreferences().getOrDefault("showLaunchLink", "false"));
     context.getRequest().setAttribute("launchLabel", context.getPreferences().getOrDefault("launchLabel", "Launch"));

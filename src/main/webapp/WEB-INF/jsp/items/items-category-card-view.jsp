@@ -32,20 +32,18 @@
   .card-catalog a {
     font-weight: bold;
     display: -webkit-box;
-    -webkit-line-clamp: 2;
+    -webkit-line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
+    text-decoration: none;
     word-break: break-word;
     position: static!important;
   }
   .card-catalog .card-top {
-    padding: .5rem;
+    padding: 1rem;
   }
   .card-catalog .item-name {
-    min-height: 60px;
-  }
-  .card-catalog .card-section {
-      padding: 0.5rem 1rem;
+    min-height: 90px;
   }
   .card-catalog .card-bottom {
     position: relative;
@@ -65,8 +63,15 @@
         <c:set var="categoryIcon" scope="request" value="${category:icon(item.categoryId)}"/>
         <c:set var="categoryHeaderCSS" scope="request" value="${category:headerColorCSS(item.categoryId)}"/>
         <div class="small-<c:out value="${smallGridCount}" /> medium-<c:out value="${mediumGridCount}" /> large-<c:out value="${largeGridCount}" /> cell card">
-          <div class="card-top no-gap text-center">
-<%--            <img style="border-radius:6px" src="/assets/img/20220523085516-11/image.jpg" />--%>
+          <div class="card-top no-gap no-border text-center" style="<c:out value="${categoryHeaderCSS}" />">
+            <c:choose>
+              <c:when test="${!empty categoryIcon}">
+                <i class="fa fa-2x fa-<c:out value="${categoryIcon}" />"></i>
+              </c:when>
+              <c:otherwise>
+                <i class="fa fa-2x fa-blackboard"></i>
+              </c:otherwise>
+            </c:choose>
           </div>
           <div class="card-section">
             <div class="item-name">
@@ -76,18 +81,9 @@
             <c:if test="${!empty item.keywords}"><div class="item-keywords"><small><c:out value="${item.keywords}" /></small></div></c:if>
           </div>
           <div class="card-bottom">
-            <c:set var="categoryIcon" scope="request" value="${category:icon(item.categoryId)}"/>
-            <c:choose>
-              <c:when test="${!empty categoryIcon}">
-                <i class="${font:fad()} fa-<c:out value="${categoryIcon}" />"></i>
-              </c:when>
-              <c:when test="${!empty collection:icon(item.collectionId)}">
-                <i class="${font:fad()} fa-<c:out value="${collection:icon(item.collectionId)}" />"></i>
-              </c:when>
-              <c:otherwise>
-                <i class="fa fa-blackboard"></i>
-              </c:otherwise>
-            </c:choose>
+            <c:if test="${!empty collection:icon(item.collectionId)}">
+              <i class="${font:fad()} fa-<c:out value="${collection:icon(item.collectionId)}" />"></i>
+            </c:if>
             <c:out value="${category:name(item.categoryId)}" />
           </div>
         </div>
