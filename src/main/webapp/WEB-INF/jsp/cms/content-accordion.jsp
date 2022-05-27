@@ -34,27 +34,29 @@
       <a class="hollow button small secondary" href="${ctx}/content-editor?uniqueId=${uniqueId}&returnPage=${returnPage}"><i class="${font:fas()} fa-edit"></i></a>
     </div>
   </c:if>
-  <ul id="accordion0" class="accordion<c:if test="${!empty accordionClass}"> <c:out value="${accordionClass}" /></c:if>" data-accordion data-allow-all-closed="true">
-    <c:forEach items="${sectionList}" var="section" varStatus="sectionStatus">
-      <c:if test="${!empty section.title}">
-        <li class="accordion-item" data-accordion-item>
-          <a href="#" class="accordion-title"><c:out value="${section.title}" /></a>
-          <div id="accordion${sectionStatus.count}-content" class="accordion-content" data-tab-content>
-            <ul id="accordion${sectionStatus.count}" class="accordion<c:if test="${!empty innerAccordionClass}"> <c:out value="${innerAccordionClass}" /></c:if>" data-accordion data-allow-all-closed="true">
-      </c:if>
-      <c:forEach items="${section.contentList}" var="card" varStatus="cardStatus">
-        <li class="accordion-item" data-accordion-item>
-          <a href="#" class="accordion-title">${section.labelsList[cardStatus.index]}</a>
-          <div class="accordion-content" data-tab-content>
-              ${card}
-          </div>
-        </li>
+  <c:if test="${!empty sectionList}">
+    <ul id="accordion0" class="accordion<c:if test="${!empty accordionClass}"> <c:out value="${accordionClass}" /></c:if>" data-accordion data-allow-all-closed="true">
+      <c:forEach items="${sectionList}" var="section" varStatus="sectionStatus">
+        <c:if test="${!empty section.title}">
+          <li class="accordion-item" data-accordion-item>
+            <a href="#" class="accordion-title"><c:out value="${section.title}" /></a>
+            <div id="accordion${sectionStatus.count}-content" class="accordion-content" data-tab-content>
+              <ul id="accordion${sectionStatus.count}" class="accordion<c:if test="${!empty innerAccordionClass}"> <c:out value="${innerAccordionClass}" /></c:if>" data-accordion data-allow-all-closed="true">
+        </c:if>
+        <c:forEach items="${section.contentList}" var="card" varStatus="cardStatus">
+          <li class="accordion-item" data-accordion-item>
+            <a href="#" class="accordion-title">${section.labelsList[cardStatus.index]}</a>
+            <div class="accordion-content" data-tab-content>
+                ${card}
+            </div>
+          </li>
+        </c:forEach>
+        <c:if test="${!empty section.title}">
+              </ul>
+            </div>
+          </li>
+        </c:if>
       </c:forEach>
-      <c:if test="${!empty section.title}">
-            </ul>
-          </div>
-        </li>
-      </c:if>
-    </c:forEach>
-  </ul>
+    </ul>
+  </c:if>
 </div>
