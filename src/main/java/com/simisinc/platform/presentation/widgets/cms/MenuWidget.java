@@ -26,6 +26,7 @@ import com.simisinc.platform.domain.model.cms.TableOfContentsLink;
 import com.simisinc.platform.domain.model.items.Collection;
 import com.simisinc.platform.domain.model.items.Item;
 import com.simisinc.platform.presentation.controller.RequestConstants;
+import com.simisinc.platform.presentation.controller.WebComponentCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import org.apache.commons.lang3.StringUtils;
@@ -104,6 +105,7 @@ public class MenuWidget extends GenericWidget {
         String type = valueMap.get("type");
         String container = valueMap.get("container");
         String roleValue = valueMap.get("role");
+        String groupValue = valueMap.get("group");
         String ruleValue = valueMap.get("rule");
         if ("admin".equals(type)) {
           link = "/admin";
@@ -124,8 +126,8 @@ public class MenuWidget extends GenericWidget {
 
         // Determine access requirements
         boolean hasAccess = true;
-        if (StringUtils.isNotBlank(roleValue)) {
-          hasAccess = checkRoleAccess(context, roleValue);
+        if (StringUtils.isNotBlank(roleValue) || StringUtils.isNotBlank(groupValue)) {
+          hasAccess = checkUserAccess(context, roleValue, groupValue);
         }
 
         // Determine if this container can be shown
@@ -279,25 +281,23 @@ public class MenuWidget extends GenericWidget {
     return context;
   }
 
-  private static boolean checkRoleAccess(WidgetContext context, String roleValue) {
-    List<String> roles = Stream.of(roleValue.split(","))
-        .map(String::trim)
-        .collect(toList());
-    if (roles.isEmpty()) {
-      return true;
+  private static boolean checkUserAccess(WidgetContext context, String roleValue, String groupValue) {
+
+    List<String> roles = new ArrayList<>();
+    if (StringUtils.isNotBlank(roleValue)) {
+      roles = Stream.of(roleValue.split(","))
+          .map(String::trim)
+          .collect(toList());
     }
-    for (String role : roles) {
-      if ("guest".equals(role) && !context.getUserSession().isLoggedIn()) {
-        return true;
-      }
-      if ("users".equals(role) && context.getUserSession().isLoggedIn()) {
-        return true;
-      }
-      if (context.getUserSession().hasRole(role)) {
-        return true;
-      }
+
+    List<String> groups = new ArrayList<>();
+    if (StringUtils.isNotBlank(groupValue)) {
+      groups = Stream.of(groupValue.split(","))
+          .map(String::trim)
+          .collect(toList());
     }
-    return false;
+
+    return WebComponentCommand.allowsUser(roles, groups, context.getUserSession());
   }
 
   private static boolean checkRules(String ruleValue) {
@@ -327,7 +327,7 @@ public class MenuWidget extends GenericWidget {
 
   private static void addLink(WidgetContext context, List<Map<String, String>> linkList, String name, String link, String icon, String container, String roleValue) {
     // Check for access to this menu item
-    if (StringUtils.isNotBlank(roleValue) && !checkRoleAccess(context, roleValue)) {
+    if (StringUtils.isNotBlank(roleValue) && !checkUserAccess(context, roleValue, null)) {
       return;
     }
 
@@ -343,7 +343,7 @@ public class MenuWidget extends GenericWidget {
 
   private static void addDivider(WidgetContext context, List<Map<String, String>> linkList, String container, String roleValue) {
     // Check for access to this menu item
-    if (StringUtils.isNotBlank(roleValue) && !checkRoleAccess(context, roleValue)) {
+    if (StringUtils.isNotBlank(roleValue) && !checkUserAccess(context, roleValue, null)) {
       return;
     }
 
