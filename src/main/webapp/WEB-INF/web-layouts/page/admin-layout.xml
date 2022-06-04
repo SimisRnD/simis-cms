@@ -43,7 +43,7 @@
     <section>
       <!--<column use="admin-menu" />-->
       <column class="small-12 cell">
-        <widget name="content">
+        <widget name="content" class="callout">
           <uniqueId>admin-content-C04096CF-EEB1-4C4A-8002-58F00608D2F3</uniqueId>
         </widget>
       </column>

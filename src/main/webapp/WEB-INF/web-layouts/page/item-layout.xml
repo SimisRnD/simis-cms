@@ -38,12 +38,11 @@
       </column>
     </section>
     <section>
-      <column class="small-12 medium-4 cell">
+      <column class="small-12 medium-7 cell">
         <widget name="itemFields" class="callout box">
           <title>Information</title>
           <uniqueId>${item.uniqueId}</uniqueId>
           <fields>
-            <field name="About" value="summary" />
             <field name="Category" value="categoryList" />
             <field name="Web Page" value="url" type="url" />
             <field name="Email" value="email" type="email" />
@@ -58,6 +57,15 @@
           <!--<customField name="" value="" type="" />-->
           <!--</customFields>-->
         </widget>
+        <widget name="itemFields" class="callout box">
+          <title>Details</title>
+          <uniqueId>${item.uniqueId}</uniqueId>
+          <fields>
+            <field value="summary" type="textarea" />
+          </fields>
+        </widget>
+      </column>
+      <column class="small-12 medium-5 cell">
         <widget name="itemsList" class="callout box">
           <title>Nearest ${item.collection.name}...</title>
           <showWhenEmpty>false</showWhenEmpty>
@@ -66,22 +74,11 @@
           <limit>10</limit>
           <showPaging>false</showPaging>
         </widget>
-      </column>
-      <column class="small-12 medium-4 cell">
-        <widget name="map" class="callout primary">
+        <widget name="map" class="callout box">
           <latitude>${item.latitude}</latitude>
           <longitude>${item.longitude}</longitude>
           <markerTitle>${item.name}</markerTitle>
           <markerText>${item.city}, ${item.state}</markerText>
-        </widget>
-      </column>
-      <column class="small-12 medium-4 cell">
-        <widget name="itemRelationshipsList" class="callout box">
-          <title>Connections</title>
-          <showWhenEmpty>false</showWhenEmpty>
-        </widget>
-        <widget name="itemRelationshipForm" class="callout box" role="admin">
-          <title>Add a connection</title>
         </widget>
       </column>
     </section>
