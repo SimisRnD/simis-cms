@@ -77,6 +77,9 @@ public class ItemsSearchResultsWidget extends GenericWidget {
       specification.setWithinMeters(48281);
     }
 
+    // Determine how the view will show the item's link
+    boolean useItemLink = "true".equals(context.getPreferences().getOrDefault("useItemLink", "false"));
+
     // Query the data
     List<Item> itemList = ItemRepository.findAll(specification, constraints);
     if (itemList == null || itemList.isEmpty()) {
@@ -89,7 +92,11 @@ public class ItemsSearchResultsWidget extends GenericWidget {
       // Add the search result
       SearchResult searchResult = new SearchResult();
       searchResult.setPageTitle(item.getName());
-      searchResult.setLink("/show/" + item.getUniqueId());
+      if (useItemLink && StringUtils.isNotBlank(item.getUrl()) && (item.getUrl().startsWith("http://") || item.getUrl().startsWith("https://"))) {
+        searchResult.setLink(item.getUrl());
+      } else {
+        searchResult.setLink(context.getContextPath() + "/show/" + item.getUniqueId());
+      }
       searchResult.setPageDescription(item.getSummary());
       // Include an excerpt
       String htmlContent = HtmlCommand.toHtml(item.getHighlight());

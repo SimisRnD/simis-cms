@@ -33,7 +33,14 @@
   <c:set var="item" scope="request" value="${itemList[status.index]}"/>
   <div class="platform-content-search-result margin-top-10">
     <h5>
-      <a href="${ctx}${searchResult.link}"><c:out value="${searchResult.pageTitle}"/></a>
+      <c:choose>
+        <c:when test="${fn:startsWith(searchResult.link, 'http://') || fn:startsWith(searchResult.link, 'https://')}">
+          <a target="_blank" href="${searchResult.link}"><c:out value="${searchResult.pageTitle}"/></a>
+        </c:when>
+        <c:otherwise>
+          <a href="${searchResult.link}"><c:out value="${searchResult.pageTitle}"/></a>
+        </c:otherwise>
+      </c:choose>
       <c:if test="${!empty item.city}"><small class="subheader"><c:out value="${item.city}" /></small></c:if>
       <c:if test="${item.categoryId gt 0}">
         <span class="label" style="${category:headerColorCSS(item.categoryId)}"><c:out value="${category:name(item.categoryId)}" /></span>
