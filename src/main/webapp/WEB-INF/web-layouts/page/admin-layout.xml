@@ -20,22 +20,18 @@
         </widget>
       </column>
     </section>
-    <section>
-      <column class="small-12 medium-6 large-3 cell">
-        <widget name="siteStats" class="stats card">
+    <section class="grid-container grid-x grid-margin-x">
+      <column class="small-12 medium-6 large-4 cell callout">
+        <widget name="siteStats">
           <icon>fa-globe</icon>
           <title>Online Now</title>
-          <label>Sessions</label>
-          <label1>Session</label1>
           <report>total-sessions-now</report>
         </widget>
       </column>
-      <column class="small-12 medium-6 large-3 cell">
-        <widget name="siteStats" class="stats card">
+      <column class="small-12 medium-6 large-4 cell callout">
+        <widget name="siteStats">
           <icon>fa-globe</icon>
           <title>Online Today</title>
-          <label>Sessions</label>
-          <label1>Session</label1>
           <report>total-sessions-today</report>
         </widget>
       </column>
@@ -480,40 +476,32 @@
         <!--</widget>-->
       <!--</column>-->
     <!--</section>-->
-    <section>
-      <column class="small-12 medium-6 large-3 cell">
-        <widget name="siteStats" class="stats card">
+    <section class="grid-container grid-x grid-margin-x">
+      <column class="small-12 medium-6 large-3 cell callout">
+        <widget name="siteStats">
           <icon>fa-globe</icon>
           <title>Online Now</title>
-          <label>Sessions</label>
-          <label1>Session</label1>
           <report>total-sessions-now</report>
         </widget>
       </column>
-      <column class="small-12 medium-6 large-3 cell">
-        <widget name="siteStats" class="stats card">
+      <column class="small-12 medium-6 large-3 cell callout">
+        <widget name="siteStats">
           <icon>fa-globe</icon>
           <title>Online Today</title>
-          <label>Sessions</label>
-          <label1>Session</label1>
           <report>total-sessions-today</report>
         </widget>
       </column>
-      <column class="small-12 medium-6 large-3 cell">
-        <widget name="communityStats" class="stats card">
+      <column class="small-12 medium-6 large-3 cell callout">
+        <widget name="communityStats">
           <icon>fa-mail-bulk</icon>
-          <title>Mailing Lists</title>
-          <label>Total Sign-ups</label>
-          <label1>Total Sign-up</label1>
+          <title>Total Sign-ups</title>
           <report>total-mailing-list-members</report>
         </widget>
       </column>
-      <column class="small-12 medium-6 large-3 cell">
-        <widget name="siteStats" class="stats card">
+      <column class="small-12 medium-6 large-3 cell callout">
+        <widget name="siteStats">
           <icon>fa-users</icon>
-          <title>Registrations</title>
-          <label>Total Users</label>
-          <label1>Total User</label1>
+          <title>Total Users</title>
           <report>total-users</report>
         </widget>
       </column>
@@ -1797,31 +1785,25 @@
     <!--</widget>-->
     <!--</column>-->
     <!--</section>-->
-    <section>
-      <column class="small-12 medium-4 cell">
-        <widget name="ecommerceStats" class="stats card">
+    <section class="grid-container grid-x grid-margin-x">
+      <column class="small-12 medium-4 cell callout">
+        <widget name="ecommerceStats">
           <icon>fa-dolly</icon>
-          <title>Not Shipped</title>
-          <label>Orders</label>
-          <label1>Order</label1>
+          <title>Orders Not Shipped</title>
           <report>total-not-shipped</report>
         </widget>
       </column>
-      <column class="small-12 medium-4 cell">
-        <widget name="ecommerceStats" class="stats card">
+      <column class="small-12 medium-4 cell callout">
+        <widget name="ecommerceStats">
           <icon>fa-shipping-fast</icon>
-          <title>Shipped</title>
-          <label>Orders</label>
-          <label1>Order</label1>
+          <title>Orders Shipped</title>
           <report>total-shipped</report>
         </widget>
       </column>
-      <column class="small-12 medium-4 cell">
-        <widget name="ecommerceStats" class="stats card">
+      <column class="small-12 medium-4 cell callout">
+        <widget name="ecommerceStats">
           <icon>fa-cash-register</icon>
           <title>Total Orders</title>
-          <label>Orders</label>
-          <label1>Order</label1>
           <report>total-orders</report>
         </widget>
       </column>

@@ -19,20 +19,63 @@
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="numberValue" class="java.lang.String" scope="request"/>
+<jsp:useBean id="title" class="java.lang.String" scope="request"/>
 <jsp:useBean id="label" class="java.lang.String" scope="request"/>
 <jsp:useBean id="label1" class="java.lang.String" scope="request"/>
-<c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa fa-fw ${icon}"></i> </c:if><c:out value="${title}"/></h4>
-</c:if>
-<%@include file="../page_messages.jspf" %>
-<p style="margin-left: 2.35rem;">
-  <fmt:formatNumber value="${numberValue}" />
-  <c:choose>
-    <c:when test="${numberValue eq '1' && !empty label1}">
-      <c:out value="${label1}" />
-    </c:when>
-    <c:otherwise>
-      <c:out value="${label}" />
-    </c:otherwise>
-  </c:choose>
-</p>
+<jsp:useBean id="link" class="java.lang.String" scope="request"/>
+<style>
+    .statistic-card-icon${widgetContext.uniqueId} {
+        color: <c:out value="${iconColor}" />;
+    }
+    .statistic-card-value {
+        font-size: 40px;
+        font-weight: bold;
+        line-height: 1;
+    }
+</style>
+<div class="grid-x align-middle text-middle">
+  <c:if test="${!empty icon}">
+    <div class="small-5 cell">
+      <i id="icon${widgetContext.uniqueId}" class="fa ${icon} statistic-card-icon${widgetContext.uniqueId}"></i>
+    </div>
+  </c:if>
+  <div class="auto cell">
+    <p class="statistic-card-value no-gap"><fmt:formatNumber value="${numberValue}" /></p>
+    <p class="statistic-card-label no-gap">
+      <c:choose>
+        <c:when test="${!empty label1 && numberValue eq '1'}">
+          <c:out value="${label1}" />
+        </c:when>
+        <c:when test="${!empty label}">
+          <c:out value="${label}" />
+        </c:when>
+      </c:choose>
+      <c:if test="${!empty label && !empty label1 && !empty title}">
+        <br />
+      </c:if>
+      <c:if test="${!empty title}">
+        <c:out value="${title}"/>
+      </c:if>
+    </p>
+  </div>
+  <c:if test="${!empty link}">
+    <div class="small-1 cell">
+      <a href="<c:out value="${link}" />"><i class="fa fa-2x fa-chevron-right"></i></a>
+    </div>
+  </c:if>
+</div>
+<script>
+  function updateFontSize${widgetContext.uniqueId}() {
+    let value = Math.round($('#icon${widgetContext.uniqueId}').closest('.cell').outerWidth()*.6);
+    $("#icon${widgetContext.uniqueId}").css({'font-size': value + 'px'});
+  }
+
+  $(document).ready(function() {
+    updateFontSize${widgetContext.uniqueId}();
+    <%--$('#icon${widgetContext.uniqueId}').fadeIn(200);--%>
+  });
+
+  $(window).resize(function() {
+    updateFontSize${widgetContext.uniqueId}();
+  });
+</script>

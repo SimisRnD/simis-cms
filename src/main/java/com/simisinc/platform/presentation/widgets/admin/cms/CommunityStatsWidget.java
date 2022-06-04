@@ -16,13 +16,11 @@
 
 package com.simisinc.platform.presentation.widgets.admin.cms;
 
-import static com.simisinc.platform.presentation.widgets.admin.SiteStatsWidget.BAR_CHART_JSP;
-import static com.simisinc.platform.presentation.widgets.admin.SiteStatsWidget.CARD_JSP;
-import static com.simisinc.platform.presentation.widgets.admin.SiteStatsWidget.LINE_CHART_JSP;
-
 import com.simisinc.platform.infrastructure.persistence.mailinglists.MailingListRepository;
-import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.controller.WidgetContext;
+import com.simisinc.platform.presentation.widgets.GenericWidget;
+
+import static com.simisinc.platform.presentation.widgets.admin.SiteStatsWidget.*;
 
 /**
  * Description
@@ -55,8 +53,9 @@ public class CommunityStatsWidget extends GenericWidget {
       return null;
     }
 
-    context.getRequest().setAttribute("label", context.getPreferences().getOrDefault("label", "Dataset"));
+    context.getRequest().setAttribute("label", context.getPreferences().get("label"));
     context.getRequest().setAttribute("label1", context.getPreferences().get("label1"));
+    context.getRequest().setAttribute("link", context.getPreferences().get("link"));
 
     // Reports
     if ("total-mailing-list-members".equalsIgnoreCase(report)) {
