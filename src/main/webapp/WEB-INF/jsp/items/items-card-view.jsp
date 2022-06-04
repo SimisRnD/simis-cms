@@ -115,10 +115,10 @@
                   </c:if>
                   <c:choose>
                     <c:when test="${useItemLink eq 'true' && !empty item.url && (fn:startsWith(item.url, 'http://') || fn:startsWith(item.url, 'https://'))}">
-                      <a target="_blank" href="${item.url}"><i class="fa fa-4x fa-<c:out value="${thisIcon}" />"></i></a>
+                      <a target="_blank" href="${item.url}" style="<c:out value="${categoryHeaderCSS}" />"><i class="fa fa-4x fa-<c:out value="${thisIcon}" />"></i></a>
                     </c:when>
                     <c:otherwise>
-                      <a href="${ctx}/show/${item.uniqueId}"><i class="fa fa-4x fa-<c:out value="${thisIcon}" />"></i></a>
+                      <a href="${ctx}/show/${item.uniqueId}" style="<c:out value="${categoryHeaderCSS}" />"><i class="fa fa-4x fa-<c:out value="${thisIcon}" />"></i></a>
                     </c:otherwise>
                   </c:choose>
                 </div>
