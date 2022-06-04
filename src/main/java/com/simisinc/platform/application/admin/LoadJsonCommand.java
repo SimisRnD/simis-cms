@@ -28,8 +28,7 @@ import java.io.File;
 import java.util.*;
 import java.util.regex.Pattern;
 
-import static com.simisinc.platform.application.admin.SaveDatasetRowCommand.extractValue;
-import static com.simisinc.platform.application.admin.SaveDatasetRowCommand.hasOption;
+import static com.simisinc.platform.application.admin.DatasetFieldOptionCommand.*;
 
 /**
  * Reads in dataset rows from a JSON dataset file
@@ -95,11 +94,13 @@ public class LoadJsonCommand {
 
         // Determine if the row meets the criteria
         JsonNode thisRecord = records.next();
-        boolean skipped = false;
 
         // Process the row's fields
         List<String> row = new ArrayList<>();
+
+        int columnCount = -1;
         for (String column : dataset.getColumnNamesList()) {
+          ++columnCount;
 
           // Determine if the column spec has a path to a deeper value
           String[] fieldPath = column.split(Pattern.quote("."));
@@ -141,47 +142,30 @@ public class LoadJsonCommand {
               nodeValue = fieldPointer.asText();
             }
           }
+          // Simplify the value
           if (nodeValue == null || nodeValue.equalsIgnoreCase("null")) {
             nodeValue = "";
+          } else {
+            nodeValue = nodeValue.trim();
           }
-          //nodeValue = StringUtils.abbreviate(nodeValue, 30);
+          // Apply options to the field's value
+          if (applyOptions) {
+            String options = fieldOptions.get(columnCount);
+            nodeValue = applyOptionsToField(options, nodeValue);
+          }
           row.add(nodeValue);
         }
 
         // See if this row is being skipped, based on column rules
-        // @todo refactor this and SaveDatasetRowCommand options, and preview
+        boolean skipped = false;
         if (applyOptions) {
           for (int i = 0; i < row.size(); i++) {
             if (i < fieldOptions.size()) {
               String value = row.get(i);
               String options = fieldOptions.get(i);
-              if (StringUtils.isNotBlank(options)) {
-                // Check for an equals("") value (value must equal this value to be valid)
-                String equalsValue = extractValue(options, "equals");
-                if (equalsValue != null && !value.equalsIgnoreCase(equalsValue)) {
-                  // Skip the record
-                  skipped = true;
-                  break;
-                }
-                // Check for a contains("") value (value must contain this value to be valid)
-                String containsValue = extractValue(options, "contains");
-                if (containsValue != null && !value.toLowerCase().contains(containsValue.toLowerCase())) {
-                  // Skip the record
-                  skipped = true;
-                  break;
-                }
-                // Other checks
-                if (hasOption(options, "skipDuplicates")) {
-                  if (!uniqueColumnValueMap.containsKey(i + "-" + value)) {
-                    uniqueColumnValueMap.put(i + "-" + value, "0");
-                  } else {
-//                    String storedValue = uniqueColumnValueMap.get(value);
-                    // @todo condition, then
-                    // Skip the record
-                    skipped = true;
-                    break;
-                  }
-                }
+              if (isSkipped(options, value, uniqueColumnValueMap, i)) {
+                skipped = true;
+                break;
               }
             }
           }

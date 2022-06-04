@@ -33,12 +33,13 @@ import com.simisinc.platform.infrastructure.persistence.maps.ZipCodeRepository;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.commons.text.WordUtils;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
+
+import static com.simisinc.platform.application.admin.DatasetFieldOptionCommand.*;
 
 /**
  * Converts the dataset row to a collection item
@@ -64,46 +65,31 @@ public class SaveDatasetRowCommand {
       if (row.length == i) {
         continue;
       }
+      // Simplify the value
       String value = row[i];
-      if (value == null) {
-        // Skip this field
-        continue;
+      if (value == null || value.equalsIgnoreCase("null")) {
+        value = "";
+      } else {
+        value = value.trim();
       }
-      value = value.trim();
-      if (value.length() == 0 || "null".equalsIgnoreCase(value)) {
-        // Skip this field
-        continue;
-      }
-      // Check for any options
+      // Apply options to the field's value
       if (i < fieldOptions.size()) {
         String options = fieldOptions.get(i);
-        if (StringUtils.isNotBlank(options)) {
-          // Check for an equals("") value (value must equal this value to be valid)
-          String equalsValue = extractValue(options, "equals");
-          if (equalsValue != null && !value.equalsIgnoreCase(equalsValue)) {
-            // Skip the record
-            return true;
-          }
-          // Check for a contains("") value (value must contain this value to be valid)
-          String containsValue = extractValue(options, "contains");
-          if (containsValue != null && !value.toLowerCase().contains(containsValue.toLowerCase())) {
-            // Skip the record
-            return true;
-          }
-          // Other checks
-          if (options.contains("caps") || options.contains("capitalize")) {
-            value = WordUtils.capitalizeFully(value, ' ', '.', '-', '/', '\'');
-            value = value.replaceAll(" And ", " and ");
-          } else if (options.contains("uppercase")) {
-            value = StringUtils.upperCase(value);
-          } else if (options.contains("lowercase")) {
-            value = StringUtils.lowerCase(value);
-          }
-          hasSplitOption = options.contains("split(");
-          if (hasSplitOption) {
-            splitValue = extractValue(options, "split");
-          }
+        // Options which skip the record
+        if (isSkipped(options, value)) {
+          // Skip the record
+          return true;
         }
+        // Options which update the value
+        value = applyOptionsToField(options, value);
+        hasSplitOption = options.contains("split(");
+        if (hasSplitOption) {
+          splitValue = extractValue(options, "split");
+        }
+      }
+      // Skip empty values
+      if (value.length() == 0) {
+        continue;
       }
       // See if there is a field mapping
       if (i >= fieldMappings.size()) {
@@ -113,6 +99,7 @@ public class SaveDatasetRowCommand {
       if (StringUtils.isBlank(mapping)) {
         continue;
       }
+      // Set the item value
       if ("name".equals(mapping)) {
         if (item.getName() == null) {
           item.setName(value);
@@ -231,7 +218,7 @@ public class SaveDatasetRowCommand {
     }
     item.setCategoryIdList(categoryIdList.toArray(new Long[0]));
     // Restrict the item name length
-    if (item.getName().length() > 250) {
+    if (item.getName() != null && item.getName().length() > 250) {
       item.setName(item.getName().substring(0, 250));
     }
     // Duplicate check if requested
@@ -280,24 +267,4 @@ public class SaveDatasetRowCommand {
     return SaveItemCommand.saveBatchItem(item);
   }
 
-  public static boolean hasOption(String options, String term) {
-    return options.contains(term);
-  }
-
-  public static String extractValue(String options, String term) {
-    int startIdx = options.indexOf(term + "(");
-    if (startIdx == -1) {
-      return null;
-    }
-    int endIdx = options.indexOf(")", startIdx);
-    if (endIdx == -1) {
-      return null;
-    }
-    String extractedValue = options.substring(startIdx + term.length() + 1, endIdx);
-    if (extractedValue.startsWith("\"") && extractedValue.indexOf("\"") != extractedValue.lastIndexOf("\"")) {
-      return extractedValue.substring(1, extractedValue.length() - 1);
-    } else {
-      return null;
-    }
-  }
 }
