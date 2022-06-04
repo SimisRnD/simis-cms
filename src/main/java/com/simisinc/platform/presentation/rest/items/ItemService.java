@@ -39,7 +39,7 @@ public class ItemService {
 
     // Determine the item
     String itemUniqueId = context.getPathParam();
-    Item item = LoadItemCommand.loadItemByUniqueId(itemUniqueId);
+    Item item = LoadItemCommand.loadItemByUniqueIdForAuthorizedUser(itemUniqueId, context.getUserId());
     if (item == null) {
       ServiceResponse response = new ServiceResponse(404);
       response.getError().put("title", "Item was not found");
@@ -53,9 +53,6 @@ public class ItemService {
       response.getError().put("title", "Item was not found");
       return response;
     }
-
-    // Validate access to the item
-
 
     // Set the fields to return
     ItemDetailsHandler itemDetails = new ItemDetailsHandler(item);
