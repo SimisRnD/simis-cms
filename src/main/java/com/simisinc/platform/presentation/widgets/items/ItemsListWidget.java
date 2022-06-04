@@ -137,7 +137,12 @@ public class ItemsListWidget extends GenericWidget {
       specification.setWithinMeters(48281);
     }
     if (searchName != null || searchLocation != null) {
-      jsp = SEARCH_RESULTS_JSP;
+      context.getRequest().setAttribute("isSearchResults", "true");
+      context.getRequest().setAttribute("searchName", searchName);
+      context.getRequest().setAttribute("searchLocation", searchLocation);
+      if (!CARD_VIEW_JSP.equals(jsp)) {
+        jsp = SEARCH_RESULTS_JSP;
+      }
     }
 
     // Sort by nearby items
@@ -169,10 +174,14 @@ public class ItemsListWidget extends GenericWidget {
     context.getRequest().setAttribute("returnPage", context.getRequest().getRequestURI());
 
     // List view preferences
+    context.getRequest().setAttribute("showLink", context.getPreferences().getOrDefault("showLink", "true"));
+    context.getRequest().setAttribute("showImage", context.getPreferences().getOrDefault("showImage", "false"));
+    context.getRequest().setAttribute("showIcon", context.getPreferences().getOrDefault("showIcon", "false"));
     context.getRequest().setAttribute("showCategory", context.getPreferences().getOrDefault("showCategory", "false"));
     context.getRequest().setAttribute("showBullets", context.getPreferences().getOrDefault("showBullets", "false"));
     context.getRequest().setAttribute("showLaunchLink", context.getPreferences().getOrDefault("showLaunchLink", "false"));
     context.getRequest().setAttribute("launchLabel", context.getPreferences().getOrDefault("launchLabel", "Launch"));
+    context.getRequest().setAttribute("useItemLink", context.getPreferences().getOrDefault("useItemLink", "false"));
 
     // Card size view preferences based on grid cells
     String smallGridCount = context.getPreferences().getOrDefault("smallGridCount", "6");

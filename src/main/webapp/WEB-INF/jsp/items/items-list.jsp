@@ -27,7 +27,11 @@
 <jsp:useBean id="category" class="com.simisinc.platform.domain.model.items.Category" scope="request"/>
 <jsp:useBean id="recordPaging" class="com.simisinc.platform.infrastructure.database.DataConstraints" scope="request"/>
 <jsp:useBean id="showCategory" class="java.lang.String" scope="request"/>
+<jsp:useBean id="showImage" class="java.lang.String" scope="request"/>
+<jsp:useBean id="showIcon" class="java.lang.String" scope="request"/>
 <jsp:useBean id="showBullets" class="java.lang.String" scope="request"/>
+<jsp:useBean id="showLink" class="java.lang.String" scope="request"/>
+<jsp:useBean id="useItemLink" class="java.lang.String" scope="request"/>
 <jsp:useBean id="showLaunchLink" class="java.lang.String" scope="request"/>
 <jsp:useBean id="launchLabel" class="java.lang.String" scope="request"/>
 <c:if test="${!empty title}">
@@ -44,16 +48,26 @@
       <c:forEach items="${itemList}" var="item">
         <li>
           <c:choose>
-            <c:when test="${!empty item.imageUrl}">
+            <c:when test="${showImage eq 'true' && !empty item.imageUrl}">
               <div class="item-image">
                 <img alt="item image" src="<c:out value="${item.imageUrl}"/>" />
               </div>
             </c:when>
-            <c:when test="${!empty collection.icon}">
+            <c:when test="${showIcon eq 'true' && !empty collection.icon}">
               <i class="${font:fad()} fa-<c:out value="${collection.icon}" />"></i>
             </c:when>
           </c:choose>
-          <a href="${ctx}/show/${item.uniqueId}"><c:out value="${item.name}" /></a>
+          <c:choose>
+            <c:when test="${showLink eq 'false'}">
+              <c:out value="${item.name}" />
+            </c:when>
+            <c:when test="${useItemLink eq 'true' && (fn:startsWith(item.url, 'http://') || fn:startsWith(item.url, 'https://'))}">
+              <a target="_blank" href="${item.url}"><c:out value="${item.name}"/></a>
+            </c:when>
+            <c:otherwise>
+              <a href="${ctx}/show/${item.uniqueId}"><c:out value="${item.name}" /></a>
+            </c:otherwise>
+          </c:choose>
           <c:if test="${!empty item.city}"><small class="subheader"><c:out value="${item.city}" /></small></c:if>
           <c:if test="${empty item.approved}"><span class="label warning">Needs approval</span></c:if>
           <c:if test="${showCategory eq 'true' && item.categoryId gt 0}">

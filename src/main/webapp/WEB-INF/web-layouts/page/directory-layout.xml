@@ -12,46 +12,46 @@
         </widget>
       </column>
     </section>
-    <!--
-    <section>
-      <column class="small-12 cell">
-        <widget name="breadcrumbs">
-          <links>
-            <link name="List of Directories" value="/directories" />
-            <link name="${collection.name}" value="" />
-          </links>
-        </widget>
-      </column>
-    </section>
-    -->
     <section>
       <column class="small-order-3 hide-for-small-only medium-order-1 small-3 medium-3 cell">
-        <widget name="categoriesList" class="callout primary">
+        <widget name="categoriesList" class="callout secondary">
           <title>Categories</title>
           <collectionUniqueId>${collection.uniqueId}</collectionUniqueId>
           <basedOnItems>true</basedOnItems>
         </widget>
+        <widget name="itemsSearchForm" class="callout secondary">
+          <title>${collection.name}</title>
+          <icon>fa-search</icon>
+          <useLocation>true</useLocation>
+          <redirectTo>/directory/${collection.uniqueId}</redirectTo>
+        </widget>
+        <widget name="addItemButton" class="text-center">
+          <buttonName>Add an Item</buttonName>
+          <collectionUniqueId>${collection.uniqueId}</collectionUniqueId>
+        </widget>
       </column>
       <column class="small-order-1 medium-order-2 auto cell">
         <widget name="itemsList">
-          <!--<title>Explore ${collection.name}...</title>-->
           <showWhenEmpty>true</showWhenEmpty>
           <collectionUniqueId>${collection.uniqueId}</collectionUniqueId>
 <!--          <columns>3</columns>-->
 <!--          <limit>42</limit>-->
         </widget>
-        <widget name="addItemButton">
-          <buttonName>Add an Item</buttonName>
+        <!--
+        <widget name="itemsList">
+          <view>cards</view>
+          <showCategory>true</showCategory>
+          <showImage>true</showImage>
+          <showIcon>true</showIcon>
+          <showLink>false</showLink>
+          <useItemLink>true</useItemLink>
+          <showWhenEmpty>true</showWhenEmpty>
           <collectionUniqueId>${collection.uniqueId}</collectionUniqueId>
+          <smallGridCount>6</smallGridCount>
+          <mediumGridCount>6</mediumGridCount>
+          <largeGridCount>4</largeGridCount>
         </widget>
-      </column>
-      <column class="small-order-2 small-12 medium-4 cell">
-        <widget name="itemsSearchForm" class="callout secondary">
-          <icon>fa-search</icon>
-          <title>${collection.name}</title>
-          <useLocation>true</useLocation>
-          <redirectTo>/directory/${collection.uniqueId}</redirectTo>
-        </widget>
+        -->
       </column>
     </section>
   </page>
