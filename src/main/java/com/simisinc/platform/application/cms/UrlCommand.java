@@ -63,7 +63,6 @@ public class UrlCommand {
           .replace("%27", "'")
           .replace("%28", "(")
           .replace("%29", ")")
-//          .replace("%2F", "/")
           .replace("%7E", "~");
     } catch (Exception e) {
       return "#";
