@@ -145,6 +145,7 @@ public class BlogPostListWidget extends GenericWidget {
 
     // Show the editor
     if ("overview".equals(view)) {
+      context.getRequest().setAttribute("showReadMore", context.getPreferences().getOrDefault("showReadMore", "false"));
       context.setJsp(OVERVIEW_JSP);
     } else if ("titles".equals(view)) {
       context.getRequest().setAttribute("showBullets", context.getPreferences().getOrDefault("showBullets", "false"));
