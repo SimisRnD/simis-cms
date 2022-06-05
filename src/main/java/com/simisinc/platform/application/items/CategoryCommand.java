@@ -59,7 +59,7 @@ public class CategoryCommand {
     if (StringUtils.isBlank(category.getHeaderTextColor()) || StringUtils.isBlank(category.getHeaderBgColor())) {
       return null;
     }
-    return "background-color:" + StringEscapeUtils.escapeXml11(category.getHeaderBgColor()) + ";color:" + StringEscapeUtils.escapeXml11(category.getHeaderTextColor());
+    return "background:" + StringEscapeUtils.escapeXml11(category.getHeaderBgColor()) + ";color:" + StringEscapeUtils.escapeXml11(category.getHeaderTextColor());
   }
 
 }

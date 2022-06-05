@@ -69,7 +69,7 @@
                 <i class="fa fa-2x fa-<c:out value="${categoryIcon}" />"></i>
               </c:when>
               <c:otherwise>
-                <i class="fa fa-2x fa-blackboard"></i>
+                <i class="fa fa-2x fa-bookmark-o"></i>
               </c:otherwise>
             </c:choose>
           </div>

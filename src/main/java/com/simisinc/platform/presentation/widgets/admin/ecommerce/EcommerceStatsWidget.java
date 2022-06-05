@@ -60,8 +60,9 @@ public class EcommerceStatsWidget extends GenericWidget {
       return null;
     }
 
-    context.getRequest().setAttribute("label", context.getPreferences().getOrDefault("label", "Dataset"));
+    context.getRequest().setAttribute("label", context.getPreferences().get("label"));
     context.getRequest().setAttribute("label1", context.getPreferences().get("label1"));
+    context.getRequest().setAttribute("link", context.getPreferences().get("link"));
 
     // Reports
     if ("daily-items-sold".equalsIgnoreCase(report)) {

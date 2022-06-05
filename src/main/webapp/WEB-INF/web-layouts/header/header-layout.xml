@@ -126,7 +126,7 @@
           <class>float-right</class>
           <links>
             <link name="Settings" icon="fa-cog" icon-only="true" type="admin" />
-            <link group="admin" name="Log Out" link="/logout" role="users" />
+            <link container="admin" name="Log Out" link="/logout" role="users" />
           </links>
         </widget>
         <widget name="button">

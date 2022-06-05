@@ -195,7 +195,6 @@
       width: 12.5%;
     }
   }
-
   .card {
     display: -webkit-box;
     display: -webkit-flex;
@@ -235,27 +234,8 @@
   .card-section > :last-child {
     margin-bottom: 0;
   }
-
-  .image-browser {
-      display: inline-block;
-      max-width: 100%;
-      height: 175px;
-      text-align: center;
-      background-image: linear-gradient(45deg, #F6F6F6 25%, transparent 25%),
-      linear-gradient(45deg, transparent 75%, #F6F6F6 75%),
-      linear-gradient(45deg, transparent 75%, #F6F6F6 75%),
-      linear-gradient(45deg, #F6F6F6 25%, #fff 25%);
-      background-size: 10px 10px;
-      background-position: 0 0, 0 0, -5px -5px, 5px 5px;
-  }
-  .image-browser img {
-      max-width: 95%;
-      max-height: 160px;
-      position: relative;
-      top: 50%;
-      transform: translateY(-50%);
-  }
 </style>
+<link rel="stylesheet" type="text/css" href="${ctx}/css/platform.css" />
 <div class="grid-container">
   <c:if test="${empty imageList}">
     <p>No images were found.</p>

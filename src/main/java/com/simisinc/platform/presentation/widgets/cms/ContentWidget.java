@@ -55,6 +55,8 @@ public class ContentWidget extends GenericWidget {
 
     String jsp = JSP;
 
+    String view = context.getPreferences().get("view");
+
     if (context.hasRole("admin") || context.hasRole("content-manager")) {
       context.getRequest().setAttribute("showEditor", "true");
       context.getRequest().setAttribute("returnPage", context.getRequest().getRequestURI());
@@ -98,8 +100,11 @@ public class ContentWidget extends GenericWidget {
     html = embedInlineContent(context, html);
 
     // Display a button for admins to add content
+    boolean hasEditorPermission = (context.hasRole("admin") || context.hasRole("content-manager"));
+    boolean hasContent = true;
     if (uniqueId != null && html == null) {
-      if (context.hasRole("admin") || context.hasRole("content-manager")) {
+      if (hasEditorPermission) {
+        hasContent = false;
         html = "<a class=\"button tiny radius primary\" href=\"" + context.getContextPath() + "/content-editor?uniqueId=" + uniqueId + "&returnPage=" + context.getUri() + "\"><i class=\"" + FontCommand.fas() + " fa-edit\"></i> Add Content Here</a>";
       }
     }
@@ -115,190 +120,191 @@ public class ContentWidget extends GenericWidget {
 
     // Preferences
     context.getRequest().setAttribute("videoBackgroundUrl", context.getPreferences().get("videoBackgroundUrl"));
-    String view = context.getPreferences().get("view");
 
     // Extra content can be appended to the final HTML
     StringBuilder extraHTMLContent = new StringBuilder();
 
     // Some views split the content into arrays
-    if ("cards".equals(view) || "gallery".equals(view) || "reveal".equals(view) || "accordion".equals(view) || "carousel".equals(view) || "cardSlider".equals(view)) {
+    if (hasContent) {
+      if ("cards".equals(view) || "gallery".equals(view) || "reveal".equals(view) || "accordion".equals(view) || "carousel".equals(view) || "cardSlider".equals(view)) {
 
-      // Determine if cards are set by number across, or stacked across by size
-      String smallCardCount = context.getPreferences().get("smallCardCount");
-      String mediumCardCount = context.getPreferences().get("mediumCardCount");
-      String largeCardCount = context.getPreferences().get("largeCardCount");
-      if (StringUtils.isNotBlank(smallCardCount)) {
-        // Fit by number of items
-        if (StringUtils.isBlank(mediumCardCount)) {
-          mediumCardCount = smallCardCount;
-        }
-        if (StringUtils.isBlank(largeCardCount)) {
-          largeCardCount = mediumCardCount;
-        }
-        context.getRequest().setAttribute("smallCardCount", smallCardCount);
-        context.getRequest().setAttribute("mediumCardCount", mediumCardCount);
-        context.getRequest().setAttribute("largeCardCount", largeCardCount);
-      } else {
-        // Stacked across by size
-        context.getRequest().setAttribute("cardSize", context.getPreferences().getOrDefault("cardSize", "200px"));
-      }
-
-      // Standardize the content
-      html = StringUtils.replaceIgnoreCase(html, "<hr />", "<hr>");
-      html = StringUtils.replaceIgnoreCase(html, "<hr/>", "<hr>");
-
-      // Remove starting <hr>
-      if (html.startsWith("<hr>")) {
-        html = html.substring(4);
-      }
-
-      // Remove ending <hr>
-      if (html.endsWith("<hr>")) {
-        html = html.substring(0, html.length() - 4);
-      }
-
-      // Find one or more cards
-      List<String> cardList = new ArrayList<>();
-      int currentIdx = 0;
-      while (html.indexOf("<hr>", currentIdx) > -1) {
-        int endIdx = html.indexOf("<hr>", currentIdx);
-        addCard(context, cardList, html.substring(currentIdx, endIdx), extraHTMLContent);
-        currentIdx = endIdx + 4;
-      }
-      // Make sure to get the last one (or the only one)
-      addCard(context, cardList, html.substring(currentIdx), extraHTMLContent);
-      context.getRequest().setAttribute("cardList", cardList);
-
-      // Determine the view
-      if ("gallery".equals(view)) {
-        context.getRequest().setAttribute("card1", cardList.get(0));
-        context.setJsp(GALLERY_JSP);
-      } else if ("reveal".equals(view)) {
-        context.getRequest().setAttribute("revealClass", context.getPreferences().get("revealClass"));
-        context.getRequest().setAttribute("size", context.getPreferences().get("size"));
-        context.getRequest().setAttribute("attach", context.getPreferences().get("attach"));
-        context.getRequest().setAttribute("animate", context.getPreferences().get("animate"));
-        context.getRequest().setAttribute("useIcon", context.getPreferences().getOrDefault("useIcon", "false"));
-        context.getRequest().setAttribute("card1", cardList.get(0));
-        if (cardList.size() > 1) {
-          context.getRequest().setAttribute("card2", cardList.get(1));
-        }
-        context.setJsp(REVEAL_JSP);
-      } else if ("accordion".equals(view)) {
-        // CSS class
-        context.getRequest().setAttribute("accordionClass", context.getPreferences().get("class"));
-        context.getRequest().setAttribute("innerAccordionClass", context.getPreferences().get("innerClass"));
-
-        // Use the content itself to find the Accordion Label and Content; If the content begins with an <H1> then create a nested accordion
-        List<AccordionSection> sectionList = new ArrayList<>();
-        AccordionSection currentSection = null;
-
-        for (String content : cardList) {
-          // Check for a section
-          if (LOG.isDebugEnabled()) {
-            LOG.debug("Original Content: " + content);
+        // Determine if cards are set by number across, or stacked across by size
+        String smallCardCount = context.getPreferences().get("smallCardCount");
+        String mediumCardCount = context.getPreferences().get("mediumCardCount");
+        String largeCardCount = context.getPreferences().get("largeCardCount");
+        if (StringUtils.isNotBlank(smallCardCount)) {
+          // Fit by number of items
+          if (StringUtils.isBlank(mediumCardCount)) {
+            mediumCardCount = smallCardCount;
           }
-          if (content.trim().startsWith("<h1")) {
-            int sectionStartIdx = content.indexOf(">", content.indexOf("<h1"));
-            int sectionEndIdx = content.indexOf("</h1>", sectionStartIdx);
-            if (sectionEndIdx > sectionStartIdx) {
-              // Start a new section
-              String sectionName = content.substring(sectionStartIdx + 1, sectionEndIdx);
-              currentSection = new AccordionSection(sectionName);
+          if (StringUtils.isBlank(largeCardCount)) {
+            largeCardCount = mediumCardCount;
+          }
+          context.getRequest().setAttribute("smallCardCount", smallCardCount);
+          context.getRequest().setAttribute("mediumCardCount", mediumCardCount);
+          context.getRequest().setAttribute("largeCardCount", largeCardCount);
+        } else {
+          // Stacked across by size
+          context.getRequest().setAttribute("cardSize", context.getPreferences().getOrDefault("cardSize", "200px"));
+        }
+
+        // Standardize the content
+        html = StringUtils.replaceIgnoreCase(html, "<hr />", "<hr>");
+        html = StringUtils.replaceIgnoreCase(html, "<hr/>", "<hr>");
+
+        // Remove starting <hr>
+        if (html.startsWith("<hr>")) {
+          html = html.substring(4);
+        }
+
+        // Remove ending <hr>
+        if (html.endsWith("<hr>")) {
+          html = html.substring(0, html.length() - 4);
+        }
+
+        // Find one or more cards
+        List<String> cardList = new ArrayList<>();
+        int currentIdx = 0;
+        while (html.indexOf("<hr>", currentIdx) > -1) {
+          int endIdx = html.indexOf("<hr>", currentIdx);
+          addCard(context, cardList, html.substring(currentIdx, endIdx), extraHTMLContent);
+          currentIdx = endIdx + 4;
+        }
+        // Make sure to get the last one (or the only one)
+        addCard(context, cardList, html.substring(currentIdx), extraHTMLContent);
+        context.getRequest().setAttribute("cardList", cardList);
+
+        // Determine the view
+        if ("gallery".equals(view)) {
+          context.getRequest().setAttribute("card1", cardList.get(0));
+          context.setJsp(GALLERY_JSP);
+        } else if ("reveal".equals(view)) {
+          context.getRequest().setAttribute("revealClass", context.getPreferences().get("revealClass"));
+          context.getRequest().setAttribute("size", context.getPreferences().get("size"));
+          context.getRequest().setAttribute("attach", context.getPreferences().get("attach"));
+          context.getRequest().setAttribute("animate", context.getPreferences().get("animate"));
+          context.getRequest().setAttribute("useIcon", context.getPreferences().getOrDefault("useIcon", "false"));
+          context.getRequest().setAttribute("card1", cardList.get(0));
+          if (cardList.size() > 1) {
+            context.getRequest().setAttribute("card2", cardList.get(1));
+          }
+          context.setJsp(REVEAL_JSP);
+        } else if ("accordion".equals(view)) {
+          // CSS class
+          context.getRequest().setAttribute("accordionClass", context.getPreferences().get("class"));
+          context.getRequest().setAttribute("innerAccordionClass", context.getPreferences().get("innerClass"));
+
+          // Use the content itself to find the Accordion Label and Content; If the content begins with an <H1> then create a nested accordion
+          List<AccordionSection> sectionList = new ArrayList<>();
+          AccordionSection currentSection = null;
+
+          for (String content : cardList) {
+            // Check for a section
+            if (LOG.isDebugEnabled()) {
+              LOG.debug("Original Content: " + content);
+            }
+            if (content.trim().startsWith("<h1")) {
+              int sectionStartIdx = content.indexOf(">", content.indexOf("<h1"));
+              int sectionEndIdx = content.indexOf("</h1>", sectionStartIdx);
+              if (sectionEndIdx > sectionStartIdx) {
+                // Start a new section
+                String sectionName = content.substring(sectionStartIdx + 1, sectionEndIdx);
+                currentSection = new AccordionSection(sectionName);
+                sectionList.add(currentSection);
+              }
+            }
+            // Must have a section before adding data
+            if (currentSection == null) {
+              currentSection = new AccordionSection();
               sectionList.add(currentSection);
             }
-          }
-          // Must have a section before adding data
-          if (currentSection == null) {
-            currentSection = new AccordionSection();
-            sectionList.add(currentSection);
-          }
-          // Determine the label and content area
-          // <p><span style="font-weight: 400;">&gt; The label</span></p>
-          int labelStartIdx = content.indexOf(">&gt;") + 5;
-          int labelEndIdx = content.indexOf("</", labelStartIdx);
-          int tagEndIdx = content.indexOf("</p>", labelEndIdx) + 4;
-          // Split the label and content into a new card
-          String label = content.substring(labelStartIdx, labelEndIdx).trim();
-          String card = content.substring(tagEndIdx);
-          if (LOG.isDebugEnabled()) {
-            LOG.debug("Found label: " + label);
-            LOG.debug("Found card: " + card);
-          }
-          currentSection.getLabelsList().add(label);
-          currentSection.getContentList().add(card);
-        }
-        context.getRequest().setAttribute("sectionList", sectionList);
-
-        // Show the accordion
-        context.setJsp(ACCORDION_JSP);
-
-      } else if ("carousel".equals(view) || "cardSlider".equals(view)) {
-
-        // Check the preferences
-        context.getRequest().setAttribute("carouselSize", context.getPreferences().getOrDefault("carouselSize", "small"));
-        context.getRequest().setAttribute("carouselClass", context.getPreferences().get("carouselClass"));
-        context.getRequest().setAttribute("carouselTitle", context.getPreferences().get("carouselTitle"));
-        context.getRequest().setAttribute("showControls", context.getPreferences().getOrDefault("showControls", "true"));
-        context.getRequest().setAttribute("showLeftControl", context.getPreferences().getOrDefault("showLeftControl", "true"));
-        context.getRequest().setAttribute("showRightControl", context.getPreferences().getOrDefault("showRightControl", "true"));
-        context.getRequest().setAttribute("showBullets", context.getPreferences().getOrDefault("showBullets", "true"));
-
-        // Determine any carousel data options
-        StringBuilder dataOptions = new StringBuilder();
-        String timerDelayValue = context.getPreferences().getOrDefault("timerDelay", "-1");
-        int timerDelay = Integer.parseInt(timerDelayValue);
-        if (timerDelay > 0) {
-          dataOptions.append("data-timer-delay=\"").append(timerDelayValue).append("\"");
-        }
-        String pauseOnHoverValue = context.getPreferences().getOrDefault("pauseOnHover", "true");
-        if ("false".equals(pauseOnHoverValue)) {
-          if (dataOptions.length() > 0) {
-            dataOptions.append(" ");
-          }
-          dataOptions.append("data-pause-on-hover=\"false\"");
-        }
-        if (dataOptions.length() > 0) {
-          context.getRequest().setAttribute("dataOptions", dataOptions.toString());
-        }
-
-        // Determine how the content will be displayed (typically as a complete text block)
-        String display = context.getPreferences().getOrDefault("display", "text");
-        context.getRequest().setAttribute("display", display);
-        if ("images".equals(display)) {
-          // Use the content itself to extract image tag attributes
-          List<String> updatedCardList = new ArrayList<>();
-          for (String originalCard : cardList) {
-            // Determine the image
-            // <p><img src="/assets/img/20190826142844-128/Small%20Business.jpg" alt="" /></p>
-            int imgAttributesStartIdx = originalCard.indexOf("<img ") + 5;
-            int imgAttributesEndIdx = originalCard.indexOf(">", imgAttributesStartIdx);
-            String attributes = originalCard.substring(imgAttributesStartIdx, imgAttributesEndIdx);
-            if (attributes.endsWith("/")) {
-              attributes = attributes.substring(0, attributes.length() - 1);
-            }
+            // Determine the label and content area
+            // <p><span style="font-weight: 400;">&gt; The label</span></p>
+            int labelStartIdx = content.indexOf(">&gt;") + 5;
+            int labelEndIdx = content.indexOf("</", labelStartIdx);
+            int tagEndIdx = content.indexOf("</p>", labelEndIdx) + 4;
+            // Split the label and content into a new card
+            String label = content.substring(labelStartIdx, labelEndIdx).trim();
+            String card = content.substring(tagEndIdx);
             if (LOG.isDebugEnabled()) {
-              LOG.debug("Found image attributes: " + attributes);
+              LOG.debug("Found label: " + label);
+              LOG.debug("Found card: " + card);
             }
-            updatedCardList.add(attributes);
+            currentSection.getLabelsList().add(label);
+            currentSection.getContentList().add(card);
           }
-          context.getRequest().setAttribute("cardList", updatedCardList);
-        }
+          context.getRequest().setAttribute("sectionList", sectionList);
 
-        if ("cardSlider".equals(view)) {
-          context.setJsp(CARD_SLIDER_JSP);
+          // Show the accordion
+          context.setJsp(ACCORDION_JSP);
+
+        } else if ("carousel".equals(view) || "cardSlider".equals(view)) {
+
+          // Check the preferences
+          context.getRequest().setAttribute("carouselSize", context.getPreferences().getOrDefault("carouselSize", "small"));
+          context.getRequest().setAttribute("carouselClass", context.getPreferences().get("carouselClass"));
+          context.getRequest().setAttribute("carouselTitle", context.getPreferences().get("carouselTitle"));
+          context.getRequest().setAttribute("showControls", context.getPreferences().getOrDefault("showControls", "true"));
+          context.getRequest().setAttribute("showLeftControl", context.getPreferences().getOrDefault("showLeftControl", "true"));
+          context.getRequest().setAttribute("showRightControl", context.getPreferences().getOrDefault("showRightControl", "true"));
+          context.getRequest().setAttribute("showBullets", context.getPreferences().getOrDefault("showBullets", "true"));
+
+          // Determine any carousel data options
+          StringBuilder dataOptions = new StringBuilder();
+          String timerDelayValue = context.getPreferences().getOrDefault("timerDelay", "-1");
+          int timerDelay = Integer.parseInt(timerDelayValue);
+          if (timerDelay > 0) {
+            dataOptions.append("data-timer-delay=\"").append(timerDelayValue).append("\"");
+          }
+          String pauseOnHoverValue = context.getPreferences().getOrDefault("pauseOnHover", "true");
+          if ("false".equals(pauseOnHoverValue)) {
+            if (dataOptions.length() > 0) {
+              dataOptions.append(" ");
+            }
+            dataOptions.append("data-pause-on-hover=\"false\"");
+          }
+          if (dataOptions.length() > 0) {
+            context.getRequest().setAttribute("dataOptions", dataOptions.toString());
+          }
+
+          // Determine how the content will be displayed (typically as a complete text block)
+          String display = context.getPreferences().getOrDefault("display", "text");
+          context.getRequest().setAttribute("display", display);
+          if ("images".equals(display)) {
+            // Use the content itself to extract image tag attributes
+            List<String> updatedCardList = new ArrayList<>();
+            for (String originalCard : cardList) {
+              // Determine the image
+              // <p><img src="/assets/img/20190826142844-128/Small%20Business.jpg" alt="" /></p>
+              int imgAttributesStartIdx = originalCard.indexOf("<img ") + 5;
+              int imgAttributesEndIdx = originalCard.indexOf(">", imgAttributesStartIdx);
+              String attributes = originalCard.substring(imgAttributesStartIdx, imgAttributesEndIdx);
+              if (attributes.endsWith("/")) {
+                attributes = attributes.substring(0, attributes.length() - 1);
+              }
+              if (LOG.isDebugEnabled()) {
+                LOG.debug("Found image attributes: " + attributes);
+              }
+              updatedCardList.add(attributes);
+            }
+            context.getRequest().setAttribute("cardList", updatedCardList);
+          }
+
+          if ("cardSlider".equals(view)) {
+            context.setJsp(CARD_SLIDER_JSP);
+          } else {
+            context.setJsp(CAROUSEL_JSP);
+          }
+
         } else {
-          context.setJsp(CAROUSEL_JSP);
+          context.getRequest().setAttribute("gridMargin", context.getPreferences().getOrDefault("gridMargin", "false"));
+          context.getRequest().setAttribute("extraHTMLContent", extraHTMLContent.toString());
+          context.setJsp(CARD_JSP);
         }
+        context.getRequest().setAttribute("cardClass", context.getPreferences().get("cardClass"));
 
-      } else {
-        context.getRequest().setAttribute("gridMargin", context.getPreferences().getOrDefault("gridMargin", "false"));
-        context.getRequest().setAttribute("extraHTMLContent", extraHTMLContent.toString());
-        context.setJsp(CARD_JSP);
+        return context;
       }
-      context.getRequest().setAttribute("cardClass", context.getPreferences().get("cardClass"));
-
-      return context;
     }
 
     // Use the final html

@@ -77,8 +77,9 @@ public class SiteStatsWidget extends GenericWidget {
     if ("bar".equals(outputType)) {
       JSP = BAR_CHART_JSP;
     }
-    context.getRequest().setAttribute("label", context.getPreferences().getOrDefault("label", "Dataset"));
+    context.getRequest().setAttribute("label", context.getPreferences().get("label"));
     context.getRequest().setAttribute("label1", context.getPreferences().get("label1"));
+    context.getRequest().setAttribute("link", context.getPreferences().get("link"));
 
     // Check for report drop-down menu options
     PreferenceEntriesList entriesList = context.getPreferenceAsDataList("options");

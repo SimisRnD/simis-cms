@@ -24,27 +24,32 @@
 <jsp:useBean id="collection" class="com.simisinc.platform.domain.model.items.Collection" scope="request"/>
 <jsp:useBean id="itemList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="recordPaging" class="com.simisinc.platform.infrastructure.database.DataConstraints" scope="request"/>
+<jsp:useBean id="searchName" class="java.lang.String" scope="request"/>
+<jsp:useBean id="searchLocation" class="java.lang.String" scope="request"/>
 <c:if test="${!empty title}">
   <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <c:choose>
   <c:when test="${!empty itemList}">
-    <p class="subheader">
+    <p class="search-results subheader">
       <c:choose>
+        <c:when test="${recordPaging.totalRecordCount == 0}">
+          No search results found
+        </c:when>
         <c:when test="${recordPaging.totalRecordCount == 1}">
-          Showing 1 result...
+          Found 1 result
         </c:when>
         <c:when test="${recordPaging.totalRecordCount < 0}">
-          Showing <fmt:formatNumber value="${itemList.size()}" /> results...
+          Found <fmt:formatNumber value="${itemList.size()}" /> results
         </c:when>
         <c:otherwise>
-          Showing <fmt:formatNumber value="${recordPaging.totalRecordCount}" /> results...
-          <c:if test="${itemList.size() < recordPaging.totalRecordCount}">
-            showing the first ${recordPaging.pageSize}
-          </c:if>
+          Found <fmt:formatNumber value="${recordPaging.totalRecordCount}" /> results
         </c:otherwise>
       </c:choose>
+      for <strong>&quot;<c:out value="${searchName}" />&quot;</strong><c:if test="${!empty searchLocation}">
+      near <strong>&quot;<c:out value="${searchLocation}" />&quot;</strong>
+      </c:if><c:if test="${itemList.size() < recordPaging.totalRecordCount}">, showing the first ${recordPaging.pageSize}...</c:if>
     </p>
     <ul class="no-bullet">
       <c:forEach items="${itemList}" var="item">
@@ -69,8 +74,11 @@
     </ul>
   </c:when>
   <c:otherwise>
-    <p class="subheader">
-      No <c:out value="${fn:toLowerCase(collection.name)}"/> were found in the search
+    <p class="search-results subheader">
+      No search results found for <strong>&quot;<c:out value="${searchName}" />&quot;</strong>
+      <c:if test="${!empty searchLocation}">
+        near <strong>&quot;<c:out value="${searchLocation}" />&quot;</strong>
+      </c:if>
     </p>
   </c:otherwise>
 </c:choose>

@@ -56,7 +56,7 @@
   </c:choose>
 </c:if>
 <ul <c:if test="${!empty menuId}"> id="${menuId}" </c:if>class="dropdown menu<c:if test="${!empty menuClass}"> <c:out value="${menuClass}" /></c:if>" data-dropdown-menu>
-<c:set var="currentGroup" scope="request" value="---"/>
+<c:set var="currentContainer" scope="request" value="---"/>
 <c:set var="linkOpen" scope="request" value="false"/>
 <c:forEach items="${linkList}" var="link" varStatus="status">
   <li<c:if test="${useHighlight eq 'true' && link['link'] eq pagePath}"> class="active"</c:if>>
@@ -148,11 +148,11 @@
       <a class="text-no-wrap<c:if test="${!empty link['class']}"> <c:out value="${link['class']}" /></c:if>" href="${ctx}${link['link']}"<c:if test="${fn:startsWith(link['link'], 'http://') || fn:startsWith(link['link'], 'https://')}"> target="_blank"</c:if>><c:if test="${!empty link['icon']}"><i class="fa-fw <c:out value="${link['icon']}" />"></i> </c:if><c:out value="${link['name']}"/></a>
     </c:otherwise>
   </c:choose>
-  <c:if test="${linkOpen eq 'true' && (empty link['group'] || link['group'] ne currentGroup)}">
+  <c:if test="${linkOpen eq 'true' && (empty link['container'] || link['container'] ne currentContainer)}">
     </ul>
     <c:set var="linkOpen" scope="request" value="false"/>
   </c:if>
-  <c:if test="${!empty link['group'] && link['group'] ne currentGroup}">
+  <c:if test="${!empty link['container'] && link['container'] ne currentContainer}">
     <ul class="menu vertical">
     <c:set var="linkOpen" scope="request" value="true"/>
   </c:if>
@@ -160,7 +160,7 @@
     </ul>
   </c:if>
   </li>
-  <c:set var="currentGroup" scope="request" value="${link['group']}"/>
+  <c:set var="currentContainer" scope="request" value="${link['container']}"/>
 </c:forEach>
 </ul>
 </div>

@@ -49,7 +49,7 @@ public class WebComponentCommand implements Serializable {
     return allowsUser(widget.getRoles(), widget.getGroups(), userSession);
   }
 
-  static boolean allowsUser(List<String> roles, List<String> groups, UserSession userSession) {
+  public static boolean allowsUser(List<String> roles, List<String> groups, UserSession userSession) {
     if (roles.isEmpty() && groups.isEmpty()) {
       return true;
     }
