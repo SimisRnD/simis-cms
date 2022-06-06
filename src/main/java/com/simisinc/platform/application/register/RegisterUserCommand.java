@@ -31,6 +31,8 @@ import javax.security.auth.login.AccountException;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.simisinc.platform.application.register.GenerateUserUniqueIdCommand.generateUniqueId;
+
 /**
  * Methods for user registration
  *
@@ -70,6 +72,7 @@ public class RegisterUserCommand {
 
     // Transform the fields and store...
     User user = new User();
+    user.setUniqueId(generateUniqueId(null, userBean));
     user.setFirstName(userBean.getFirstName());
     user.setLastName(userBean.getLastName());
     user.setOrganization(userBean.getOrganization());
