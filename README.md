@@ -1,8 +1,10 @@
 # SimIS CMS
 
-Welcome to the first public code drop of SimIS CMS. While it has worked wonders for building web sites and as a backend for mobile apps, we're keen to find out how well it is globally received – kick the tires, jump on in, and give it a spin. Discussion and issues are hosted at github: <https://github.com/SimisRnD/simis-cms>.
+[![Java CI](https://github.com/SimisRnD/simis-cms/actions/workflows/ant.yml/badge.svg)](https://github.com/SimisRnD/simis-cms/actions/workflows/ant.yml)
 
-What is SimIS CMS? [Agile, Enterprise, Open Source Content Management System (CMS)](https://www.simiscms.com).
+Discussion and issues are hosted at github: <https://github.com/SimisRnD/simis-cms>.
+
+What is SimIS CMS? [Agile, Enterprise, Open Source Content Management System (CMS) and Portal](https://www.simiscms.com).
 
 SimIS CMS comes out-of-the-box with modules, advanced security, easy setup, and powerful developer features. Use and configure what's there, and customize what's not. The flexible Open Source license lets you move beyond the technology to focus on delivering a quality website.
 
@@ -26,7 +28,7 @@ limitations under the License.
 
 ## Overview
 
-Need a website? SimIS CMS can be used from Day 1:
+Need a website or web portal? SimIS CMS can be used from Day 1:
 
 * Once installed the administrator signs in and can quickly create a sitemap. Working on their own, or with others, the pages of the site are added.
 * Each web page can have shared elements and styles, as well as their own elements and styles.

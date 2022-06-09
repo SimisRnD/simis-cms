@@ -179,9 +179,12 @@
   </tr>
   <c:forEach items="${webPageList}" var="webPage">
     <tr>
-      <td>
+      <td nowrap="true">
         <%--<a href="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&webPageId=${group.id}" onclick="return confirm('Are you sure you want to delete <c:out value="${js:escape(webPage.link)}" />?');"><i class="fa fa-remove"></i></a>--%>
         <a href="${ctx}/admin/web-page?webPageId=${webPage.id}&returnPage=/admin/web-pages"><i class="fa fa-edit"></i></a>
+        <c:if test="${userSession.hasRole('admin')}">
+          <a href="${ctx}/admin/web-page-designer?webPage=${webPage.link}&returnPage=/admin/web-pages"><i class="fa fa-code"></i></a>
+        </c:if>
       </td>
       <td>
         <c:choose>

@@ -101,7 +101,11 @@
         });
     },
     images_upload_url: '${ctx}/image-upload?widget=imageUpload1&token=${userSession.formToken}', // return { "location": "folder/sub-folder/new-location.png" }
+    paste_data_images: true,
     automatic_uploads: true
+    // paste_word_valid_elements: "p,a,b,strong,i,em,h1,h2,h3,h4,h5,ol,ul,li"
+    // paste_retain_style_properties: "color"
+    // paste_as_text: true
   });
 
   function FileBrowser(value, type, callback) {

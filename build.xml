@@ -237,6 +237,22 @@
     </javac>
   </target>
 
+  <target name="ci-test" depends="compile-test">
+    <junitlauncher haltOnFailure="true">
+      <classpath refid="web.classpath" />
+      <classpath refid="test.classpath" />
+      <classpath>
+        <pathelement location="${build.dir}"/>
+      </classpath>
+      <testclasses>
+        <fileset dir="${build.dir}">
+          <include name="**/*Test.class" />
+          <include name="**/*Tests.class" />
+        </fileset>
+      </testclasses>
+    </junitlauncher>
+  </target>
+
   <target name="run-test" depends="compile-test">
     <mkdir dir="${target.dir}/test-reports"/>
     <jacoco:agent property="jacocoagent" destfile="${target.dir}/jacoco.exec"/>

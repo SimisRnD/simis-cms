@@ -20,7 +20,7 @@ jobs:
         java-version: 11
     - name: Compile the source
       run: ant -noinput -buildfile build.xml clean compile
-#    - name: Run unit tests
-#      run: ant -noinput -buildfile build.xml -lib lib/tests test
+    - name: Run unit tests
+      run: ant -noinput -buildfile build.xml -lib lib/tests ci-test
     - name: Package the web application
       run: ant -noinput -buildfile build.xml -lib lib/war package
