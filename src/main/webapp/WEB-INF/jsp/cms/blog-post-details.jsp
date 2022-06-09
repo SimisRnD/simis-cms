@@ -92,11 +92,11 @@
   <hr/>
   <c:choose>
     <c:when test="${!empty link}">
-      <a class="button radius secondary" href="${ctx}/blog-editor?blogUniqueId=${blog.uniqueId}&returnPage=${link}&blogPostId=${blogPost.id}"><i class="fa fa-edit"></i> Edit Post</a>
+      <a class="button radius secondary no-gap"" href="${ctx}/blog-editor?blogUniqueId=${blog.uniqueId}&returnPage=${link}&blogPostId=${blogPost.id}"><i class="fa fa-edit"></i> Edit Post</a>
     </c:when>
     <c:otherwise>
-      <a class="button radius secondary" href="${ctx}/blog-editor?blogUniqueId=${blog.uniqueId}&returnPage=/${blog.uniqueId}&blogPostId=${blogPost.id}"><i class="fa fa-edit"></i> Edit Post</a>
+      <a class="button radius secondary no-gap"" href="${ctx}/blog-editor?blogUniqueId=${blog.uniqueId}&returnPage=/${blog.uniqueId}&blogPostId=${blogPost.id}"><i class="fa fa-edit"></i> Edit Post</a>
     </c:otherwise>
   </c:choose>
-  <a class="button radius alert" href="javascript:deletePost()"><i class="fa fa-trash-o"></i> Delete Post</a>
+  <a class="button radius alert no-gap"" href="javascript:deletePost()"><i class="fa fa-trash-o"></i> Delete Post</a>
 </c:if>
