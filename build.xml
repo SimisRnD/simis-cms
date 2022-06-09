@@ -238,7 +238,7 @@
   </target>
 
   <target name="ci-test" depends="compile-test">
-    <junitlauncher haltOnFailure="true">
+    <junitlauncher haltOnFailure="false" printsummary="true" failureproperty="hasFailingTest">
       <classpath refid="web.classpath" />
       <classpath refid="test.classpath" />
       <classpath>
@@ -251,6 +251,7 @@
         </fileset>
       </testclasses>
     </junitlauncher>
+    <fail if="hasFailingTests" />
   </target>
 
   <target name="run-test" depends="compile-test">
