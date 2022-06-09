@@ -251,7 +251,7 @@
         </fileset>
       </testclasses>
     </junitlauncher>
-    <fail if="hasFailingTests" />
+    <fail if="hasFailingTest" />
   </target>
 
   <target name="run-test" depends="compile-test">
