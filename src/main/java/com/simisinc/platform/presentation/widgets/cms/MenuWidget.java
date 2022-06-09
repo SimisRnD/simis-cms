@@ -58,6 +58,8 @@ public class MenuWidget extends GenericWidget {
     context.getRequest().setAttribute("title", context.getPreferences().get("title"));
     context.getRequest().setAttribute("useHighlight", context.getPreferences().getOrDefault("useHighlight", "false"));
     boolean showWhenEmpty = "true".equals(context.getPreferences().getOrDefault("showWhenEmpty", "false"));
+    boolean redirectToFirstTabWithAccess = "true".equals(context.getPreferences().getOrDefault("redirectToFirstTabWithAccess", "false"));
+    boolean showWhenOneEntry = "true".equals(context.getPreferences().getOrDefault("showWhenOneEntry", "true"));
 
     List<Map<String, String>> linkList = new ArrayList<>();
     List<String> addedContainers = new ArrayList<>();
@@ -241,10 +243,24 @@ public class MenuWidget extends GenericWidget {
         LOG.error("Could not get property: " + e.getMessage());
       }
     }
-    if (linkList.isEmpty() && !showWhenEmpty) {
+    if (!showWhenEmpty && linkList.isEmpty()) {
+      return context;
+    }
+    if (!showWhenOneEntry && linkList.size() == 1) {
       return context;
     }
     context.getRequest().setAttribute("linkList", linkList);
+
+    // A feature so that this landing page redirects to the first page the user has access to
+    if (redirectToFirstTabWithAccess) {
+      if (linkList.isEmpty()) {
+        return null;
+      }
+      Map<String, String> linkProperties = linkList.get(0);
+      String link = linkProperties.get("link");
+      context.setRedirect(link);
+      return context;
+    }
 
     /*
     // Determine if the cart items are going to be available in this menu
