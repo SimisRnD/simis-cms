@@ -52,6 +52,7 @@
         });
     },
     images_upload_url: '${ctx}/image-upload?widget=imageUpload1&token=${userSession.formToken}', // return { "location": "folder/sub-folder/new-location.png" }
+    paste_data_images: true,
     automatic_uploads: true
   });
 
