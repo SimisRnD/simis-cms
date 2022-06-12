@@ -169,20 +169,14 @@ public class WebRequestFilter implements Filter {
       }
     }
 
-    // If OAuth is required, and the user is not verified, redirect to provider
-    String oauthRedirect = OAuthRequestCommand.handleRequest((HttpServletRequest) request, (HttpServletResponse) servletResponse, resource);
-    if (oauthRedirect != null) {
-      if (StringUtils.isBlank(oauthRedirect)) {
-        LOG.error("OAUTH: A redirect url could not be created");
-        do401(servletResponse);
-        return;
-      }
-      LOG.debug("OAUTH: Redirecting to " + oauthRedirect);
-      do302(servletResponse, oauthRedirect);
+    // REST API has own clients
+    if (resource.startsWith("/api")) {
+      // Chain to RestRequestFilter
+      chain.doFilter(request, servletResponse);
       return;
     }
 
-    // Allow some resources
+    // Allow some browser resources
     if (resource.startsWith("/favicon") ||
         resource.startsWith("/favicon.ico") ||
         resource.startsWith("/css") ||
@@ -197,18 +191,16 @@ public class WebRequestFilter implements Filter {
       return;
     }
 
-    if (resource.startsWith("/api")) {
-      chain.doFilter(request, servletResponse);
-      return;
-    }
-
-    if (resource.startsWith("/files")) {
-      chain.doFilter(request, servletResponse);
-      return;
-    }
-
-    if (resource.contains(".action")) {
-      chain.doFilter(request, servletResponse);
+    // If OAuth is required, and the user is not verified, redirect to provider
+    String oauthRedirect = OAuthRequestCommand.handleRequest((HttpServletRequest) request, (HttpServletResponse) servletResponse, resource);
+    if (oauthRedirect != null) {
+      if (StringUtils.isBlank(oauthRedirect)) {
+        LOG.error("OAUTH: A redirect url could not be created");
+        do401(servletResponse);
+        return;
+      }
+      LOG.debug("OAUTH: Redirecting to " + oauthRedirect);
+      do302(servletResponse, oauthRedirect);
       return;
     }
 
