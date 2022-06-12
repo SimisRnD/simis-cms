@@ -33,7 +33,6 @@ import org.apache.commons.logging.LogFactory;
  */
 public class SaveMenuTabCommand {
 
-  private static final String allowedChars = "abcdefghijklmnopqrstuvwyxz0123456789";
   private static Log LOG = LogFactory.getLog(SaveMenuTabCommand.class);
 
   public static MenuTab appendNewTab(MenuTab menuTabBean) throws DataException {
@@ -63,7 +62,7 @@ public class SaveMenuTabCommand {
       LOG.debug("Saving a new record... ");
       menuTab = new MenuTab();
       if (StringUtils.isBlank(menuTabBean.getLink())) {
-        menuTab.setLink(generateLink(menuTabBean.getName()));
+        menuTab.setLink("/" + GenerateLinkFromNameCommand.getLink(menuTabBean.getName()));
       } else {
         if (!menuTabBean.getLink().startsWith("/") && !menuTabBean.getLink().startsWith("#")) {
           menuTab.setLink("/" + menuTabBean.getLink().trim());
@@ -164,42 +163,12 @@ public class SaveMenuTabCommand {
       }
       menuItem.setLink(menuItemLink);
     } else {
-      menuItem.setLink(generateLink(menuItemName));
+      menuItem.setLink("/" + GenerateLinkFromNameCommand.getLink(menuItemName));
     }
     menuItem.setDraft(false);
     menuItem.setEnabled(true);
     menuItem.setItemOrder(MenuItemRepository.getNextTabOrder(menuTab));
     return MenuItemRepository.save(menuItem);
-  }
-
-
-  private static String generateLink(String originalName) {
-
-    // Create a new one
-    StringBuilder sb = new StringBuilder("/");
-    String name = originalName.toLowerCase();
-    final int len = name.length();
-    char lastChar = '-';
-    for (int i = 0; i < len; i++) {
-      char c = name.charAt(i);
-      if (allowedChars.indexOf(name.charAt(i)) > -1) {
-        sb.append(c);
-        lastChar = c;
-      } else if (c == '&') {
-        sb.append("and");
-        lastChar = '&';
-      } else if (c == ' ' || c == '-') {
-        if (lastChar != '-') {
-          sb.append("-");
-        }
-        lastChar = '-';
-      }
-    }
-
-    // Find the next available unique instance
-//    int count = 1;
-//    String originalGeneratedLink = sb.toString();
-    return sb.toString();
   }
 
 }

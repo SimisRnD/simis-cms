@@ -16,6 +16,7 @@
 
 package com.simisinc.platform.presentation.widgets.admin.items;
 
+import com.simisinc.platform.application.cms.GenerateLinkFromNameCommand;
 import com.simisinc.platform.application.cms.UrlCommand;
 import com.simisinc.platform.domain.model.items.Collection;
 import com.simisinc.platform.domain.model.items.CollectionRole;
@@ -40,39 +41,9 @@ import java.util.List;
  */
 public class CollectionTabsEditorWidget extends GenericWidget {
 
-  public static final String allowedChars = "abcdefghijklmnopqrstuvwyxz1234567890";
   static final long serialVersionUID = -8484048371911908893L;
 
   static String JSP = "/admin/collection-tabs-editor.jsp";
-
-  public static String generateLinkFromName(String name) {
-    // Force lowercase
-    name = name.toLowerCase();
-    // Replace spaces and special characters
-    StringBuilder sb = new StringBuilder();
-    final int len = name.length();
-    char lastChar = '-';
-    for (int i = 0; i < len; i++) {
-      char c = name.charAt(i);
-      if (allowedChars.indexOf(name.charAt(i)) > -1) {
-        sb.append(c);
-        lastChar = c;
-      } else if (c == '&') {
-        sb.append("and");
-        lastChar = '&';
-      } else if (c == ' ' || c == '-' || c == '/') {
-        if (lastChar != '-') {
-          sb.append("-");
-        }
-        lastChar = '-';
-      }
-    }
-    String value = sb.toString();
-    while (value.endsWith("-")) {
-      value = value.substring(0, value.length() - 1);
-    }
-    return value;
-  }
 
   public WidgetContext execute(WidgetContext context) {
 
@@ -134,7 +105,7 @@ public class CollectionTabsEditorWidget extends GenericWidget {
       }
       // Use the specified link or create one
       if (StringUtils.isBlank(link)) {
-        link = generateLinkFromName(name);
+        link = GenerateLinkFromNameCommand.getLink(name);
       }
       // Validate the link
       if (!link.startsWith("/")) {
