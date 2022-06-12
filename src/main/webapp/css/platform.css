@@ -183,6 +183,9 @@ p {
 .platform-no-margin {
   margin-bottom: 15px;
 }
+.platform-body .bump-up {
+  margin-top: -25px;
+}
 
 @media print, screen and (min-width: 40em) {
   .column-container {
@@ -1097,6 +1100,7 @@ a.read-more {
 
 .admin.card .card-divider {
   background-color: #deebf8;
+  /*min-height: 84px;*/
 }
 
 .admin.card .fa-3x {
