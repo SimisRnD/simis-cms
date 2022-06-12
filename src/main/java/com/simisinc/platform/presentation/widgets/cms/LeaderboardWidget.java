@@ -16,21 +16,16 @@
 
 package com.simisinc.platform.presentation.widgets.cms;
 
-import java.net.URL;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
-
 import com.simisinc.platform.application.admin.DatasetFileCommand;
+import com.simisinc.platform.application.cms.GenerateLinkFromNameCommand;
 import com.simisinc.platform.domain.model.datasets.Dataset;
 import com.simisinc.platform.infrastructure.persistence.datasets.DatasetRepository;
-
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import org.apache.commons.lang3.StringUtils;
+
+import java.net.URL;
+import java.util.*;
 
 /**
  * Description
@@ -41,7 +36,6 @@ import org.apache.commons.lang3.StringUtils;
 public class LeaderboardWidget extends GenericWidget {
 
   static final long serialVersionUID = -8484048371911908893L;
-  public static final String allowedChars = "1234567890abcdefghijklmnopqrstuvwyxz";
 
   static String JSP = "/cms/leaderboard.jsp";
 
@@ -85,7 +79,7 @@ public class LeaderboardWidget extends GenericWidget {
           continue;
         }
         String thisField = columnValue.trim();
-        String thisWebField = generateLinkFromName(thisField);
+        String thisWebField = GenerateLinkFromNameCommand.getLink(thisField);
         if (filter.equals(thisWebField)) {
           webFieldToShow = thisWebField;
         }
@@ -151,7 +145,7 @@ public class LeaderboardWidget extends GenericWidget {
       optionsList.put("Total Points", "total");
       for (int i = fields.indexOf("TOTAL") + 1; i < fields.size(); i++) {
         String name = fields.get(i);
-        String value = generateLinkFromName(name);
+        String value = GenerateLinkFromNameCommand.getLink(name);
         optionsList.put(name, value);
       }
 
@@ -175,35 +169,6 @@ public class LeaderboardWidget extends GenericWidget {
       return 0L;
     }
     return Long.parseLong(StringUtils.getDigits(value));
-  }
-
-  private static String generateLinkFromName(String name) {
-    // Force lowercase
-    name = name.toLowerCase();
-    // Replace spaces and special characters
-    StringBuilder sb = new StringBuilder();
-    final int len = name.length();
-    char lastChar = '-';
-    for (int i = 0; i < len; i++) {
-      char c = name.charAt(i);
-      if (allowedChars.indexOf(name.charAt(i)) > -1) {
-        sb.append(c);
-        lastChar = c;
-      } else if (c == '&') {
-        sb.append("and");
-        lastChar = '&';
-      } else if (c == ' ' || c == '-' || c == '/') {
-        if (lastChar != '-') {
-          sb.append("-");
-        }
-        lastChar = '-';
-      }
-    }
-    String value = sb.toString();
-    while (value.endsWith("-")) {
-      value = value.substring(0, value.length() - 1);
-    }
-    return value;
   }
 
 }

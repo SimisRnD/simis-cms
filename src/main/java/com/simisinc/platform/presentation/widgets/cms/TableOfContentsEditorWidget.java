@@ -16,19 +16,19 @@
 
 package com.simisinc.platform.presentation.widgets.cms;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-
+import com.simisinc.platform.application.cms.GenerateLinkFromNameCommand;
 import com.simisinc.platform.application.cms.UrlCommand;
 import com.simisinc.platform.domain.model.cms.TableOfContents;
 import com.simisinc.platform.domain.model.cms.TableOfContentsLink;
 import com.simisinc.platform.infrastructure.persistence.cms.TableOfContentsRepository;
-
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import org.apache.commons.lang3.StringUtils;
+
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.List;
 
 /**
  * Description
@@ -38,38 +38,8 @@ import org.apache.commons.lang3.StringUtils;
  */
 public class TableOfContentsEditorWidget extends GenericWidget {
 
-  public static final String allowedChars = "abcdefghijklmnopqrstuvwyxz1234567890";
   static final long serialVersionUID = -8484048371911908893L;
   static String JSP = "/cms/table-of-contents-editor.jsp";
-
-  public static String generateLinkFromName(String name) {
-    // Force lowercase
-    name = name.toLowerCase();
-    // Replace spaces and special characters
-    StringBuilder sb = new StringBuilder();
-    final int len = name.length();
-    char lastChar = '-';
-    for (int i = 0; i < len; i++) {
-      char c = name.charAt(i);
-      if (allowedChars.indexOf(name.charAt(i)) > -1) {
-        sb.append(c);
-        lastChar = c;
-      } else if (c == '&') {
-        sb.append("and");
-        lastChar = '&';
-      } else if (c == ' ' || c == '-' || c == '/') {
-        if (lastChar != '-') {
-          sb.append("-");
-        }
-        lastChar = '-';
-      }
-    }
-    String value = sb.toString();
-    while (value.endsWith("-")) {
-      value = value.substring(0, value.length() - 1);
-    }
-    return value;
-  }
 
   public WidgetContext execute(WidgetContext context) {
 
@@ -132,7 +102,7 @@ public class TableOfContentsEditorWidget extends GenericWidget {
       String link = context.getParameter("link" + count).trim();
       // Use the specified link or create one
       if (StringUtils.isBlank(link)) {
-        link = generateLinkFromName(name);
+        link = GenerateLinkFromNameCommand.getLink(name);
       }
       // Validate the link
       if (!link.startsWith("/") && !link.startsWith("http://") && !link.startsWith("https://")) {
