@@ -1702,8 +1702,35 @@
 </ul>
 ]]></html>
         </widget>
-        <widget name="datasetMapper" class="margin-top-10">
+      </column>
+    </section>
+    <section>
+      <column class="small-9 cell">
+        <widget name="datasetMapper">
           <!--<title>Configure the field mapping</title>-->
+        </widget>
+      </column>
+      <column class="small-3 cell">
+        <widget name="content" class="callout secondary">
+          <html>
+            <![CDATA[
+            <h4>Options</h4>
+            <p class="subheader">Separate multiple options with a &quot;;&quot;</p>
+            <ul>
+              <li>caps</li>
+              <li>uppercase</li>
+              <li>equals(&quot;value&quot;)</li>
+              <li>notEquals(&quot;value&quot;)</li>
+              <li>contains(&quot;value&quot;)</li>
+              <li>split(&quot;separator&quot;)</li>
+              <li>setValue(&quot;value&quot;)</li>
+              <li>prepend(&quot;value&quot;)</li>
+              <li>append(&quot;value&quot;)</li>
+              <li>uriEncode</li>
+              <li>skipDuplicates</li>
+            </ul>
+            ]]>
+          </html>
         </widget>
       </column>
     </section>

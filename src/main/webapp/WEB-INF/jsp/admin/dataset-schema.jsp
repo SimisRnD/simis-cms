@@ -86,7 +86,7 @@
           </select>
         </td>
         <td>
-          <input type="text" name="columnOptions${status.index}" placeholder="caps;uppercase;equals(&quot;value&quot;);contains(&quot;value&quot;);split(&quot;separator&quot;);setValue(&quot;value&quot;);prepend(&quot;value&quot;);append(&quot;value&quot;);uriEncode;skipDuplicates" value="<c:out value="${fieldOptionsList[status.index]}" />" autocomplete="off" />
+          <input type="text" name="columnOptions${status.index}" placeholder="Options" value="<c:out value="${fieldOptionsList[status.index]}" />" autocomplete="off" />
         </td>
       </tr>
       </c:forEach>
