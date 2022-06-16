@@ -205,13 +205,37 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (215, 'Stripe Production Secret', 'ecommerce.stripe.production.secret', '', 'disabled');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (220, 'Square Test App Id', 'ecommerce.square.test.key', '', 'text');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (221, 'Square Test Secret', 'ecommerce.square.test.secret', '', 'text');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (222, 'Square Test LocationId', 'ecommerce.square.test.location', '', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (222, 'Square Test Location Id', 'ecommerce.square.test.location', '', 'text');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (223, 'Square Production App Id', 'ecommerce.square.production.key', '', 'disabled');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (224, 'Square Production Secret', 'ecommerce.square.production.secret', '', 'disabled');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (225, 'Square Production LocationId', 'ecommerce.square.production.location', '', 'disabled');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (230, 'Boxzooka Customer Id', 'ecommerce.boxzooka.production.id', '', 'disabled');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (231, 'Boxzooka Secret', 'ecommerce.boxzooka.production.secret', '', 'disabled');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (240, 'TaxJar API Key', 'ecommerce.taxjar.apiKey', '', 'text');
+
+-- E-Learning
+
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (1, 'Enable e-learning?', 'elearning.enabled', 'true', 'boolean');
+
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (10, 'Enable LRS xAPI?', 'elearning.xapi.enabled', 'false', 'boolean');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (12, 'LRS URL', 'elearning.lrs.url', '', 'url');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (13, 'LRS Key', 'elearning.lrs.key', '', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (14, 'LRS Secret', 'elearning.lrs.secret', '', 'text');
+
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (20, 'Enable Moodle?', 'elearning.moodle.enabled', 'false', 'boolean');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (22, 'Moodle URL', 'elearning.moodle.url', '', 'url');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (24, 'Moodle Token', 'elearning.moodle.token', '', 'text');
+
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (30, 'Enable PERLS?', 'elearning.perls.enabled', 'false', 'boolean');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (32, 'PERLS URL', 'elearning.perls.url', '', 'url');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (34, 'PERLS Client Id', 'elearning.perls.clientId', '', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (36, 'PERLS Secret', 'elearning.perls.secret', '', 'text');
+
+-- Web Conferencing
+
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (1, 'Enable web conferencing?', 'conferencing.enabled', 'true', 'boolean');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (10, 'BBB URL', 'conferencing.bbb.url', '', 'url');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (12, 'BBB Secret', 'conferencing.bbb.secret', '', 'text');
 
 -- Authentication
 

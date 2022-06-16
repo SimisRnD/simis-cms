@@ -16,11 +16,14 @@ CREATE UNIQUE INDEX lookup_coll_role_uni_idx ON lookup_collection_role(code, col
 INSERT INTO lookup_collection_role (level, code, title) VALUES (10, 'admin', 'Admin');
 INSERT INTO lookup_collection_role (level, code, title) VALUES (20, 'owner', 'Owner');
 INSERT INTO lookup_collection_role (level, code, title) VALUES (30, 'manager', 'Manager');
+INSERT INTO lookup_collection_role (level, code, title) VALUES (34, 'supervisor', 'Supervisor');
+INSERT INTO lookup_collection_role (level, code, title) VALUES (38, 'instructor', 'Instructor');
 INSERT INTO lookup_collection_role (level, code, title) VALUES (40, 'employee', 'Employee');
 INSERT INTO lookup_collection_role (level, code, title) VALUES (50, 'moderator', 'Moderator');
 INSERT INTO lookup_collection_role (level, code, title) VALUES (60, 'expert', 'Expert');
 INSERT INTO lookup_collection_role (level, code, title) VALUES (70, 'assigned', 'Assigned');
 INSERT INTO lookup_collection_role (level, code, title) VALUES (80, 'vip', 'VIP');
+INSERT INTO lookup_collection_role (level, code, title) VALUES (84, 'learner', 'Learner');
 INSERT INTO lookup_collection_role (level, code, title) VALUES (90, 'member', 'Member');
 INSERT INTO lookup_collection_role (level, code, title) VALUES (100, 'guest', 'Guest');
 
