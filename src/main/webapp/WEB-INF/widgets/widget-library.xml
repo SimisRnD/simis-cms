@@ -99,6 +99,8 @@
   <widget name="orderUpdatesDetails" class="com.simisinc.platform.presentation.widgets.ecommerce.OrderUpdatesDetailsWidget" />
   <widget name="placeOrder" class="com.simisinc.platform.presentation.widgets.ecommerce.PlaceOrderWidget" />
   <widget name="orderConfirmation" class="com.simisinc.platform.presentation.widgets.ecommerce.OrderConfirmationWidget" />
+  <!-- E-Learning Features -->
+  <widget name="remoteCourseList" class="com.simisinc.platform.presentation.widgets.elearning.RemoteCourseListWidget" />
   <!-- Calendar, Map, Property Map, Tasks -->
   <widget name="calendar" class="com.simisinc.platform.presentation.widgets.calendar.CalendarWidget" />
   <widget name="upcomingCalendarEvents" class="com.simisinc.platform.presentation.widgets.calendar.UpcomingCalendarEventsWidget" />
