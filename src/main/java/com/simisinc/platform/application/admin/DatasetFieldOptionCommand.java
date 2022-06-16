@@ -65,6 +65,12 @@ public class DatasetFieldOptionCommand {
       // Skip the record
       return true;
     }
+    // Check for an notEquals("") value (value must not equal this value to be valid)
+    String notEqualsValue = extractValue(options, "notEquals");
+    if (value.equalsIgnoreCase(notEqualsValue)) {
+      // Skip the record
+      return true;
+    }
     // Check for a contains("") value (value must contain this value to be valid)
     String containsValue = extractValue(options, "contains");
     if (containsValue != null && !value.toLowerCase().contains(containsValue.toLowerCase())) {

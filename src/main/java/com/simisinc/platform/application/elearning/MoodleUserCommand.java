@@ -1,0 +1,61 @@
+/*
+ * Copyright 2022 SimIS Inc. (https://www.simiscms.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.simisinc.platform.application.elearning;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.simisinc.platform.domain.model.User;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import java.util.HashMap;
+import java.util.Map;
+
+/**
+ * Commands for working with Moodle Users
+ *
+ * @author matt rajkowski
+ * @created 6/14/2022 9:34 PM
+ */
+public class MoodleUserCommand {
+
+  private static Log LOG = LogFactory.getLog(MoodleUserCommand.class);
+  private static final String GET_USERS_API = "core_user_get_users_by_field";
+
+  public static long retrieveUserId(User user) {
+    // Determine the user's Moodle id
+    Map<String, String> parameters = new HashMap<>();
+    parameters.put("field", "email");
+    parameters.put("values[]", user.getEmail());
+    JsonNode json = MoodleApiClientCommand.sendHttpGet(GET_USERS_API, parameters);
+
+    // Verify that record(s) have been returned
+    if (json == null || (json.isArray() && json.isEmpty()) || !json.isArray()) {
+      return -1;
+    }
+
+    // Use the first record
+    json = json.get(0);
+    if (json.has("id")) {
+      long userId = json.get("id").longValue();
+      if (userId > 0) {
+        LOG.debug("Found UserId: " + userId);
+        return userId;
+      }
+    }
+    return -1;
+  }
+}
