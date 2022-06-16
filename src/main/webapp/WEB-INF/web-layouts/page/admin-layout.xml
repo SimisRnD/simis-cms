@@ -420,6 +420,17 @@
     </section>
   </page>
 
+  <page name="/admin/elearning-properties" role="admin" title="E-Learning Settings">
+    <section>
+      <column class="small-12 large-10 cell">
+        <widget name="sitePropertiesEditor">
+          <title>E-learning Settings</title>
+          <prefix>elearning</prefix>
+        </widget>
+      </column>
+    </section>
+  </page>
+
   <page name="/admin/mailing-list-properties" role="admin" title="Mailing List Settings">
     <section>
       <column class="small-12 large-10 cell">
@@ -461,6 +472,17 @@
           <longitude>-76.416138</longitude>
           <markerTitle>SimIS HQ</markerTitle>
           <markerText>Portsmouth, Virginia</markerText>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/web-conferencing-properties" role="admin" title="Web Conferencing Settings">
+    <section>
+      <column class="small-12 large-10 cell">
+        <widget name="sitePropertiesEditor">
+          <title>Web Conferencing Settings</title>
+          <prefix>conferencing</prefix>
         </widget>
       </column>
     </section>
