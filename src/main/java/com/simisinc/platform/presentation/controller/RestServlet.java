@@ -17,6 +17,7 @@
 package com.simisinc.platform.presentation.controller;
 
 import com.simisinc.platform.application.cms.SaveWebPageHitCommand;
+import com.simisinc.platform.application.json.JsonCommand;
 import com.simisinc.platform.domain.model.App;
 import com.simisinc.platform.domain.model.User;
 import org.apache.commons.logging.Log;
@@ -30,6 +31,7 @@ import javax.servlet.annotation.MultipartConfig;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import java.io.PrintWriter;
 import java.lang.reflect.Method;
 import java.util.HashMap;
@@ -129,7 +131,7 @@ public class RestServlet extends HttpServlet {
       }
       if (classRef == null) {
         LOG.error("Class not found for service: " + endpoint);
-        response.sendError(SC_NOT_FOUND);
+        sendError(response, SC_NOT_FOUND, "Endpoint not found");
         return;
       }
 
@@ -172,62 +174,86 @@ public class RestServlet extends HttpServlet {
         LOG.error("Exception. MESSAGE = " + e.getMessage(), e);
       }
       if (result == null) {
-        response.sendError(SC_NOT_FOUND);
+        LOG.debug("Returning an error...");
+        sendError(response, SC_NOT_FOUND, "Service error occurred");
         return;
       }
       if (result.getStatus() != 200) {
+        LOG.debug("Setting result: " + result.getStatus());
         response.setStatus(result.getStatus());
         result.getError().put("status", String.valueOf(result.getStatus()));
       }
 
-      Jsonb jsonb = JsonbBuilder.create();
-      StringBuilder sb = new StringBuilder();
-      sb.append("{");
-      boolean hasValues = false;
-      if (!result.getMeta().isEmpty()) {
-        hasValues = true;
-        String meta = jsonb.toJson(result.getMeta());
-        sb.append("\"meta\": ").append(meta);
-      }
-      if (!result.getError().isEmpty()) {
-        if (hasValues) {
-          sb.append(",");
-        } else {
+      LOG.debug("Returning JSON...");
+      try (Jsonb jsonb = JsonbBuilder.create()) {
+        StringBuilder sb = new StringBuilder();
+        sb.append("{");
+        boolean hasValues = false;
+        if (!result.getMeta().isEmpty()) {
           hasValues = true;
+          String meta = jsonb.toJson(result.getMeta());
+          sb.append("\"meta\": ").append(meta);
         }
-        String error = jsonb.toJson(result.getError());
-        sb.append("\"errors\": ").append("[").append(error).append("]");
-      }
-      if (result.getData() != null) {
-        if (hasValues) {
-          sb.append(",");
-        } else {
-          hasValues = true;
+        if (!result.getError().isEmpty()) {
+          if (hasValues) {
+            sb.append(",");
+          } else {
+            hasValues = true;
+          }
+          String error = jsonb.toJson(result.getError());
+          sb.append("\"errors\": ").append("[").append(error).append("]");
         }
-        String data = jsonb.toJson(result.getData());
-        sb.append("\"data\": ").append(data);
-      }
-      if (!result.getLinks().isEmpty()) {
-        if (hasValues) {
-          sb.append(",");
+        if (result.getData() != null) {
+          if (hasValues) {
+            sb.append(",");
+          } else {
+            hasValues = true;
+          }
+          String data = jsonb.toJson(result.getData());
+          sb.append("\"data\": ").append(data);
         }
-        String links = jsonb.toJson(result.getLinks());
-        sb.append("\"links\": ").append(links);
-      }
-      sb.append("}");
-      String json = sb.toString();
+        if (!result.getLinks().isEmpty()) {
+          if (hasValues) {
+            sb.append(",");
+          }
+          String links = jsonb.toJson(result.getLinks());
+          sb.append("\"links\": ").append(links);
+        }
+        sb.append("}");
+        String json = sb.toString();
 
-      long endRequestTime = System.currentTimeMillis();
-      long totalTime = endRequestTime - startRequestTime;
-      LOG.debug("REST total time: " + totalTime + "ms");
+        long endRequestTime = System.currentTimeMillis();
+        long totalTime = endRequestTime - startRequestTime;
+        LOG.debug("REST total time: " + totalTime + "ms");
 
-      response.setContentLength(json.length());
-      PrintWriter out = response.getWriter();
-      out.print(json);
-      out.flush();
+        response.setContentLength(json.length());
+        PrintWriter out = response.getWriter();
+        out.print(json);
+        out.flush();
+        if (LOG.isDebugEnabled()) {
+          LOG.debug("Response sent: " + json);
+        }
+      }
     } catch (Exception e) {
       LOG.error("Could not render: " + e.getMessage());
       LOG.error(e);
+      try {
+        sendError(response, 500, "Error occurred");
+      } catch (Exception io) {
+        // no connection
+      }
     }
+  }
+
+  public static void sendError(HttpServletResponse response, int code, String errorMessage) throws IOException {
+    response.setStatus(code);
+    PrintWriter out = response.getWriter();
+    out.print("{\n" +
+        "      \"error\": {\n" +
+        "        \"code\": " + code + ",\n" +
+        "        \"message\": \"" + JsonCommand.toJson(errorMessage) + "\"\n" +
+        "      }\n" +
+        "    }");
+    out.flush();
   }
 }

@@ -110,14 +110,14 @@ public class RestRequestFilter implements Filter {
     if (StringUtils.isEmpty(apiKey)) {
       LOG.debug("No key");
       HttpServletResponse response = (HttpServletResponse) servletResponse;
-      response.sendError(SC_UNAUTHORIZED, "Unauthorized");
+      RestServlet.sendError(response, SC_UNAUTHORIZED, "Unauthorized, no key");
       return;
     }
     App thisApp = LoadAppCommand.loadAppByPublicKey(apiKey);
     if (thisApp == null || !thisApp.isEnabled()) {
       LOG.debug("Invalid key");
       HttpServletResponse response = (HttpServletResponse) servletResponse;
-      response.sendError(SC_UNAUTHORIZED, "Unauthorized");
+      RestServlet.sendError(response, SC_UNAUTHORIZED, "Unauthorized");
       return;
     }
     request.setAttribute(RequestConstants.REST_APP, thisApp);
@@ -331,7 +331,7 @@ public class RestRequestFilter implements Filter {
     LOG.debug("Returning 401...");
     HttpServletResponse response = (HttpServletResponse) servletResponse;
     response.setHeader("WWW-Authenticate", "Basic realm=\"Protected\"");
-    response.sendError(SC_UNAUTHORIZED, "Unauthorized");
+    RestServlet.sendError(response, SC_UNAUTHORIZED, "Unauthorized");
   }
 
   private void doExpiredToken(ServletResponse servletResponse) throws IOException {
@@ -341,17 +341,17 @@ public class RestRequestFilter implements Filter {
         "Bearer realm=\"Protected\", " +
             "error=\"invalid_token\", " +
             "error_description=\"The access token expired\"");
-    response.sendError(SC_UNAUTHORIZED, "Unauthorized");
+    RestServlet.sendError(response, SC_UNAUTHORIZED, "Unauthorized");
   }
 
   private void do301(ServletResponse servletResponse, String redirectLocation) throws IOException {
     HttpServletResponse response = (HttpServletResponse) servletResponse;
     response.setHeader("Location", redirectLocation);
-    response.sendError(SC_MOVED_PERMANENTLY);
+    RestServlet.sendError(response, SC_MOVED_PERMANENTLY, redirectLocation);
   }
 
   private void do404(ServletResponse servletResponse) throws IOException {
     HttpServletResponse response = (HttpServletResponse) servletResponse;
-    response.sendError(SC_NOT_FOUND);
+    RestServlet.sendError(response, SC_NOT_FOUND, "Not found");
   }
 }
