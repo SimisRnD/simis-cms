@@ -69,8 +69,7 @@
     <rome-rss.version>1.18.0</rome-rss.version>
     <slf4j.version>1.7.32</slf4j.version>
     <snakeyaml.version>1.30</snakeyaml.version>
-    <square-connect.version>2.20191120.0</square-connect.version>
-    <square.version>19.0.0.20220420</square.version>
+    <square.version>20.1.0.20220616</square.version>
     <stripe.version>20.94.0</stripe.version>
     <thymeleaf.version>3.0.11</thymeleaf.version>
     <timeago.version>3.0.1</timeago.version>
@@ -361,11 +360,6 @@
       <groupId>com.rometools</groupId>
       <artifactId>rome-utils</artifactId>
       <version>${rome-rss.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.squareup</groupId>
-      <artifactId>connect</artifactId>
-      <version>${square-connect.version}</version>
     </dependency>
     <dependency>
       <groupId>com.squareup</groupId>

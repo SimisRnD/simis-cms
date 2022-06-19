@@ -28,8 +28,8 @@ import com.simisinc.platform.domain.model.ecommerce.ProductSku;
 import com.simisinc.platform.domain.model.ecommerce.ProductSkuAttribute;
 import com.simisinc.platform.infrastructure.persistence.ecommerce.ProductRepository;
 import com.simisinc.platform.infrastructure.persistence.ecommerce.ProductSkuRepository;
-import com.squareup.connect.models.Error;
-import com.squareup.connect.models.*;
+import com.squareup.square.models.Error;
+import com.squareup.square.models.*;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -66,36 +66,33 @@ public class SquareProductCatalogCommand {
     Map<String, Long> versionMap = retrieveCatalog();
 
     // Send all the product changes in a batch (up to 10,000 objects and sub-objects per batch)
-    List<CatalogObjectBatch> batches = new ArrayList<>();
-    CatalogObjectBatch batch = new CatalogObjectBatch();
+    List<CatalogObject> catalogObjects = new ArrayList<>();
 
     // for Square, take the Products, each Sku will be a Variation under the Item object
     LOG.info("Loading product repository...");
     List<Product> productList = ProductRepository.findAll();
     for (Product product : productList) {
       // Prepare the Item CatalogObject
-      CatalogObject catalogObject = new CatalogObject();
-      catalogObject.setType("ITEM");
       String squareCatalogId = product.getSquareCatalogId();
       if (StringUtils.isBlank(squareCatalogId)) {
         // Create a unique Id (#productId)
         squareCatalogId = "#" + product.getId();
       }
-      catalogObject.setId(squareCatalogId);
+      CatalogObject.Builder catalogObjectBuilder = new CatalogObject.Builder("ITEM", squareCatalogId);
       if (versionMap.containsKey(squareCatalogId)) {
-        catalogObject.setVersion(versionMap.get(squareCatalogId));
+        catalogObjectBuilder.version(versionMap.get(squareCatalogId));
         LOG.debug("Mapped product " + product.getUniqueId() + " to version " + versionMap.get(squareCatalogId));
       } else {
         LOG.debug("Version not found for product " + product.getUniqueId());
       }
-      catalogObject.setPresentAtAllLocations(true);
+      catalogObjectBuilder.presentAtAllLocations(true);
 
       LOG.info("Adding product to batch: " + squareCatalogId);
 
       // Prepare the Item Data - CatalogItem
-      CatalogItem itemData = new CatalogItem();
-      itemData.setName(product.getNameWithCaption());
-      itemData.setDescription(HtmlCommand.text(product.getDescription()));
+      CatalogItem.Builder itemDataBuilder = new CatalogItem.Builder();
+      itemDataBuilder.name(product.getNameWithCaption());
+      itemDataBuilder.description(HtmlCommand.text(product.getDescription()));
 
       // Retrieve the SKUs to be listed under the catalog item data
       List<ProductSku> productSkuList = ProductSkuRepository.findAllByProductId(product.getId());
@@ -108,21 +105,19 @@ public class SquareProductCatalogCommand {
         }
 
         // Prepare the Item Data Variations
-        CatalogObject variation = new CatalogObject();
-        variation.setType("ITEM_VARIATION");
         String squareVariationId = productSku.getSquareVariationId();
         if (StringUtils.isBlank(squareVariationId)) {
           // Create a unique Id (#productId-productSkuId)
           squareVariationId = "#" + product.getId() + "-" + productSku.getId();
         }
-        variation.setId(squareVariationId);
+        CatalogObject.Builder variationBuilder = new CatalogObject.Builder("ITEM_VARIATION", squareVariationId);
         if (versionMap.containsKey(squareVariationId)) {
-          variation.setVersion(versionMap.get(squareVariationId));
+          variationBuilder.version(versionMap.get(squareVariationId));
           LOG.debug("Mapped productSku " + productSku.getSku() + " to version " + versionMap.get(squareVariationId));
         } else {
           LOG.debug("Version not found for productSku " + productSku.getSku());
         }
-        variation.setPresentAtAllLocations(true);
+        variationBuilder.presentAtAllLocations(true);
         // Determine the attributes for the variation name
         StringBuilder productSkuAttributes = new StringBuilder();
         if (productSku.getAttributes() != null) {
@@ -138,20 +133,20 @@ public class SquareProductCatalogCommand {
           }
         }
         // Prepare the variation data
-        CatalogItemVariation itemVariationData = new CatalogItemVariation();
-        itemVariationData.setItemId(squareCatalogId);
+        CatalogItemVariation.Builder itemVariationDataBuilder = new CatalogItemVariation.Builder();
+        itemVariationDataBuilder.itemId(squareCatalogId);
         if (productSkuAttributes.length() > 0) {
-          itemVariationData.setName(productSkuAttributes.toString());
+          itemVariationDataBuilder.name(productSkuAttributes.toString());
         }
-        itemVariationData.setSku(productSku.getSku());
+        itemVariationDataBuilder.sku(productSku.getSku());
         if (StringUtils.isNotBlank(productSku.getBarcode())) {
-          itemVariationData.setUpc(productSku.getBarcode());
+          itemVariationDataBuilder.upc(productSku.getBarcode());
         }
-        itemVariationData.setPricingType("FIXED_PRICING");
+        itemVariationDataBuilder.pricingType("FIXED_PRICING");
         long squareItemCentsAmount = productSku.getPrice().multiply(new BigDecimal(100)).longValue();
-        itemVariationData.setPriceMoney(new Money().amount(squareItemCentsAmount).currency("USD"));
-        variation.setItemVariationData(itemVariationData);
-        variationList.add(variation);
+        itemVariationDataBuilder.priceMoney(new Money(squareItemCentsAmount, "USD"));
+        variationBuilder.itemVariationData(itemVariationDataBuilder.build());
+        variationList.add(variationBuilder.build());
         LOG.info("Added productSku to batch: " + squareVariationId);
       }
       // Skip if there are no SKUs with prices
@@ -160,17 +155,18 @@ public class SquareProductCatalogCommand {
         continue;
       }
       // Looks good, prepare this product for the batch
-      itemData.setVariations(variationList);
-      catalogObject.setItemData(itemData);
-      batch.addObjectsItem(catalogObject);
+      itemDataBuilder.variations(variationList);
+      catalogObjectBuilder.itemData(itemDataBuilder.build());
+      catalogObjects.add(catalogObjectBuilder.build());
     }
-    batches.add(batch);
 
     // Prepare the batch
-    LOG.info("Preparing batch upsert... size: " + batch.getObjects().size());
-    BatchUpsertCatalogObjectsRequest batchUpsertCatalogObjectsRequest = new BatchUpsertCatalogObjectsRequest()
-        .idempotencyKey(UUID.randomUUID().toString())
-        .batches(batches);
+    List<CatalogObjectBatch> batches = new ArrayList<>();
+    CatalogObjectBatch.Builder batchBuilder = new CatalogObjectBatch.Builder(catalogObjects);
+    batches.add(batchBuilder.build());
+    LOG.info("Preparing batch upsert... size: " + catalogObjects.size());
+    BatchUpsertCatalogObjectsRequest batchUpsertCatalogObjectsRequest =
+        new BatchUpsertCatalogObjectsRequest(UUID.randomUUID().toString(), batches);
 
     try {
       // Create the JSON string

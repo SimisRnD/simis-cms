@@ -22,8 +22,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.domain.model.ecommerce.Order;
-import com.squareup.connect.models.Error;
-import com.squareup.connect.models.*;
+import com.squareup.square.models.Error;
+import com.squareup.square.models.*;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -57,10 +57,10 @@ public class SquareRefundCommand {
     LOG.debug("Using square amount: " + squareCentsAmount);
 
     // Create the Square Refund record
-    RefundPaymentRequest refundPaymentRequest = new RefundPaymentRequest()
-        .idempotencyKey(UUID.randomUUID().toString())
-        .paymentId(order.getChargeToken())
-        .amountMoney(new Money().amount(squareCentsAmount).currency("USD"));
+    RefundPaymentRequest refundPaymentRequest =
+        new RefundPaymentRequest.Builder(UUID.randomUUID().toString(), new Money(squareCentsAmount, "USD"))
+            .paymentId(order.getChargeToken())
+            .build();
     try {
       // Create the JSON string
       String data = new ObjectMapper()

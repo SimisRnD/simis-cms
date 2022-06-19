@@ -30,14 +30,15 @@ import com.simisinc.platform.domain.model.ecommerce.*;
 import com.simisinc.platform.infrastructure.persistence.ecommerce.OrderItemRepository;
 import com.simisinc.platform.infrastructure.persistence.ecommerce.OrderRepository;
 import com.simisinc.platform.infrastructure.persistence.ecommerce.ProductSkuRepository;
-import com.squareup.connect.models.Error;
-import com.squareup.connect.models.*;
+import com.squareup.square.models.Error;
+import com.squareup.square.models.*;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import java.math.BigDecimal;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 
@@ -117,11 +118,11 @@ public class SquareOrderCommand {
     // The top-level container for order information. Order objects include fields for line item details,
     // fulfillment details, and order summary data, including the location ID credited with the order,
     // and the total amount of taxes collected
-    com.squareup.connect.models.Order squareOrder =
-        new com.squareup.connect.models.Order()
-            .referenceId(order.getUniqueId())
-            .locationId(locationId);
+    com.squareup.square.models.Order.Builder squareOrderBuilder =
+        new com.squareup.square.models.Order.Builder(locationId)
+            .referenceId(order.getUniqueId());
 
+    List<OrderLineItem> lineItems = new ArrayList<>();
     List<OrderItem> orderItemList = OrderItemRepository.findItemsByOrderId(order.getId());
     for (OrderItem orderItem : orderItemList) {
       // Use the synchronized product info
@@ -138,13 +139,12 @@ public class SquareOrderCommand {
 
       // Specify the SKU being ordered as the catalogId
       long squareItemCentsAmount = orderItem.getEachAmount().multiply(new BigDecimal(100)).longValue();
-      OrderLineItem lineItem = new OrderLineItem()
-          .catalogObjectId(productSku.getSquareVariationId())
-          .quantity(orderItem.getQuantity().toPlainString())
-          .basePriceMoney(new Money().amount(squareItemCentsAmount).currency("USD"));
-
-      squareOrder.addLineItemsItem(lineItem);
+      OrderLineItem.Builder lineItemBuilder = new OrderLineItem.Builder(orderItem.getQuantity().toPlainString());
+      lineItemBuilder.catalogObjectId(productSku.getSquareVariationId());
+      lineItemBuilder.basePriceMoney(new Money(squareItemCentsAmount, "USD"));
+      lineItems.add(lineItemBuilder.build());
     }
+    squareOrderBuilder.lineItems(lineItems);
 
     // Add any discount
     if (order.getDiscountAmount() != null && order.getDiscountAmount().doubleValue() > 0) {
@@ -155,48 +155,56 @@ public class SquareOrderCommand {
       //    "currency": "USD"
       //  },
       //  "scope": "ORDER"
+      List<OrderLineItemDiscount> discounts = new ArrayList<>();
       long squareCentsAmount = order.getDiscountAmount().multiply(new BigDecimal(100)).longValue();
-      OrderLineItemDiscount discount =
-          new OrderLineItemDiscount()
-              .amountMoney(new Money().amount(squareCentsAmount).currency("USD"))
+      OrderLineItemDiscount.Builder discountBuilder =
+          new OrderLineItemDiscount.Builder()
+              .amountMoney(new Money(squareCentsAmount, "USD"))
               .type("FIXED_AMOUNT")
               .scope("ORDER");
       if (StringUtils.isNotBlank(order.getPromoCode())) {
-        discount.setName("Promo code " + order.getPromoCode());
+        discountBuilder.name("Promo code " + order.getPromoCode());
       }
-      squareOrder.addDiscountsItem(discount);
+      discounts.add(discountBuilder.build());
+      squareOrderBuilder.discounts(discounts);
     }
 
-    // Add any shipping charges
+    // Determine any shipping charges
+    List<OrderServiceCharge> serviceCharges = new ArrayList<>();
     if (order.getShippingFee().doubleValue() > 0.0) {
       long squareCentsAmount = order.getShippingFee().multiply(new BigDecimal(100)).longValue();
-      OrderServiceCharge serviceCharge = new OrderServiceCharge()
+      OrderServiceCharge.Builder serviceChargeBuilder = new OrderServiceCharge.Builder()
           .name("Shipping")
-          .amountMoney(new Money().amount(squareCentsAmount).currency("USD"));
+          .amountMoney(new Money(squareCentsAmount, "USD"));
       if (SalesTaxCommand.isShippingTaxable(order.getShippingAddress())) {
-        serviceCharge.setCalculationPhase("SUBTOTAL_PHASE");
-        serviceCharge.setTaxable(true);
+        serviceChargeBuilder.calculationPhase("SUBTOTAL_PHASE");
+        serviceChargeBuilder.taxable(true);
       } else {
-        serviceCharge.setCalculationPhase("TOTAL_PHASE");
-        serviceCharge.setTaxable(false);
+        serviceChargeBuilder.calculationPhase("TOTAL_PHASE");
+        serviceChargeBuilder.taxable(false);
       }
-      squareOrder.addServiceChargesItem(serviceCharge);
+      serviceCharges.add(serviceChargeBuilder.build());
     }
 
-    // Add any handling charges
+    // Determine any handling charges
     if (order.getHandlingFee().doubleValue() > 0.0) {
       long squareCentsAmount = order.getHandlingFee().multiply(new BigDecimal(100)).longValue();
-      OrderServiceCharge serviceCharge = new OrderServiceCharge()
+      OrderServiceCharge.Builder serviceChargeBuilder = new OrderServiceCharge.Builder()
           .name("Handling")
-          .amountMoney(new Money().amount(squareCentsAmount).currency("USD"));
+          .amountMoney(new Money(squareCentsAmount, "USD"));
       if (SalesTaxCommand.isHandlingTaxable(order.getShippingAddress())) {
-        serviceCharge.setCalculationPhase("SUBTOTAL_PHASE");
-        serviceCharge.setTaxable(true);
+        serviceChargeBuilder.calculationPhase("SUBTOTAL_PHASE");
+        serviceChargeBuilder.taxable(true);
       } else {
-        serviceCharge.setCalculationPhase("TOTAL_PHASE");
-        serviceCharge.setTaxable(false);
+        serviceChargeBuilder.calculationPhase("TOTAL_PHASE");
+        serviceChargeBuilder.taxable(false);
       }
-      squareOrder.addServiceChargesItem(serviceCharge);
+      serviceCharges.add(serviceChargeBuilder.build());
+    }
+
+    // Add any service changes
+    if (!serviceCharges.isEmpty()) {
+      squareOrderBuilder.serviceCharges(serviceCharges);
     }
 
     // Add any tax
@@ -210,20 +218,21 @@ public class SquareOrderCommand {
       //  "scope": "ORDER"
       long squareCentsAmount = order.getTaxAmount().multiply(new BigDecimal(100)).longValue();
       BigDecimal taxPercentage = order.getTaxRate().multiply(new BigDecimal(100));
-      OrderLineItemTax tax =
-          new OrderLineItemTax()
-              .name("Sales Tax")
-              .percentage(taxPercentage.toPlainString())
-              .appliedMoney(new Money().amount(squareCentsAmount).currency("USD"))
-              .type("ADDITIVE")
-              .scope("ORDER");
-      squareOrder.addTaxesItem(tax);
+      OrderLineItemTax.Builder taxBuilder = new OrderLineItemTax.Builder()
+          .name("Sales Tax")
+          .percentage(taxPercentage.toPlainString())
+          .appliedMoney(new Money(squareCentsAmount, "USD"))
+          .type("ADDITIVE")
+          .scope("ORDER");
+      List<OrderLineItemTax> taxes = new ArrayList<>();
+      taxes.add(taxBuilder.build());
+      squareOrderBuilder.taxes(taxes);
     }
 
     // Create the Square Order record (to track order details in Square)
-    CreateOrderRequest createOrderRequest = new CreateOrderRequest()
+    CreateOrderRequest.Builder createOrderRequest = new CreateOrderRequest.Builder()
         .idempotencyKey(UUID.randomUUID().toString())
-        .order(squareOrder);
+        .order(squareOrderBuilder.build());
 
     try {
       // Create the JSON string
@@ -299,37 +308,29 @@ public class SquareOrderCommand {
     LOG.debug("Using square amount: " + squareCentsAmount);
 
     // Use the shipping address
-    com.squareup.connect.models.Address shippingAddress = new com.squareup.connect.models.Address();
-
-    if (StringUtils.isNotBlank(order.getShippingAddress().getFirstName())) {
-      shippingAddress.setFirstName(order.getShippingAddress().getFirstName());
-    }
-    if (StringUtils.isNotBlank(order.getShippingAddress().getLastName())) {
-      shippingAddress.setLastName(order.getShippingAddress().getLastName());
-    }
-    shippingAddress.setAddressLine1(order.getShippingAddress().getStreet());
+    com.squareup.square.models.Address.Builder shippingAddressBuilder = new com.squareup.square.models.Address.Builder();
+    shippingAddressBuilder.addressLine1(order.getShippingAddress().getStreet());
     if (StringUtils.isNotBlank(order.getShippingAddress().getAddressLine2())) {
-      shippingAddress.setAddressLine2(order.getShippingAddress().getAddressLine2());
+      shippingAddressBuilder.addressLine2(order.getShippingAddress().getAddressLine2());
     }
     if (StringUtils.isNotBlank(order.getShippingAddress().getAddressLine3())) {
-      shippingAddress.setAddressLine2(order.getShippingAddress().getAddressLine3());
+      shippingAddressBuilder.addressLine3(order.getShippingAddress().getAddressLine3());
     }
-    shippingAddress.setLocality(order.getShippingAddress().getCity());
-    shippingAddress.setAdministrativeDistrictLevel1(order.getShippingAddress().getState());
-    shippingAddress.setPostalCode(order.getShippingAddress().getPostalCode());
+    shippingAddressBuilder.locality(order.getShippingAddress().getCity());
+    shippingAddressBuilder.administrativeDistrictLevel1(order.getShippingAddress().getState());
+    shippingAddressBuilder.postalCode(order.getShippingAddress().getPostalCode());
     if ("UNITED STATES".equalsIgnoreCase(order.getShippingAddress().getCountry())) {
-      shippingAddress.setCountry("US");
+      shippingAddressBuilder.country("US");
     }
+    com.squareup.square.models.Address shippingAddress = shippingAddressBuilder.build();
 
     // Create the Square Payment record
-    CreatePaymentRequest createPaymentRequest = new CreatePaymentRequest()
-        .idempotencyKey(UUID.randomUUID().toString())
-        .orderId(order.getSquareOrderId())
-        .amountMoney(new Money().amount(squareCentsAmount).currency("USD"))
-        .sourceId(order.getPaymentToken())
-        .referenceId(order.getUniqueId()) //Max 40 characters
-        .buyerEmailAddress(order.getEmail())
-        .shippingAddress(shippingAddress);
+    CreatePaymentRequest.Builder createPaymentRequest =
+        new CreatePaymentRequest.Builder(order.getPaymentToken(), UUID.randomUUID().toString(), new Money(squareCentsAmount, "USD"))
+            .orderId(order.getSquareOrderId())
+            .referenceId(order.getUniqueId()) //Max 40 characters
+            .buyerEmailAddress(order.getEmail())
+            .shippingAddress(shippingAddress);
 
     try {
       // Create the JSON string
@@ -372,7 +373,7 @@ public class SquareOrderCommand {
       }
 
       // Update the order
-      com.squareup.connect.models.Payment payment = response.getPayment();
+      com.squareup.square.models.Payment payment = response.getPayment();
       if (LOG.isDebugEnabled()) {
         LOG.debug("Charge status: " + payment.getStatus());
       }
@@ -397,7 +398,7 @@ public class SquareOrderCommand {
         order.setBillingAddress(billingAddress);
       }
       if (payment.getCardDetails() != null) {
-        com.squareup.connect.models.Card card = payment.getCardDetails().getCard();
+        com.squareup.square.models.Card card = payment.getCardDetails().getCard();
         if (card != null) {
           order.setPaymentType("card");
           order.setPaymentBrand(card.getCardBrand());
