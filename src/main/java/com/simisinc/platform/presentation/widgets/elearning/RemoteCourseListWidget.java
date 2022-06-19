@@ -16,10 +16,7 @@
 
 package com.simisinc.platform.presentation.widgets.elearning;
 
-import com.simisinc.platform.application.elearning.ElearningCommand;
-import com.simisinc.platform.application.elearning.MoodleCourseListCommand;
-import com.simisinc.platform.application.elearning.MoodleInstructorCourseCommand;
-import com.simisinc.platform.application.elearning.MoodleLeanerCourseCommand;
+import com.simisinc.platform.application.elearning.*;
 import com.simisinc.platform.domain.model.elearning.CourseUserAggregate;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
@@ -56,7 +53,15 @@ public class RemoteCourseListWidget extends GenericWidget {
     // Retrieve the courses
     boolean moodleEnabled = ElearningCommand.isMoodleEnabled();
     List<CourseUserAggregate> courseList = new ArrayList<>();
-    if ("teacher".equals(role)) {
+    if ("manager".equals(role) || "supervisor".equals(role)) {
+      // Retrieve the Moodle course list for 'teaching' roles
+      if (moodleEnabled) {
+        List<CourseUserAggregate> moodleList = MoodleManagerCourseCommand.retrieveManagerCourses(context.getUserSession().getUser());
+        if (moodleList != null) {
+          courseList.addAll(moodleList);
+        }
+      }
+    } else if ("teacher".equals(role) || "instructor".equals(role)) {
       // Retrieve the Moodle course list for 'teaching' roles
       if (moodleEnabled) {
         List<CourseUserAggregate> moodleList = MoodleInstructorCourseCommand.retrieveTeacherCourses(context.getUserSession().getUser());

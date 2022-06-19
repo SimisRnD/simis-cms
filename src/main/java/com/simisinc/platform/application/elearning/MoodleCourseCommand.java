@@ -24,6 +24,8 @@ import org.apache.commons.logging.LogFactory;
 
 import java.util.*;
 
+import static com.simisinc.platform.application.elearning.MoodleApiClientCommand.GET_ENROLLED_USERS_API;
+
 /**
  * Commands for working with Moodle Courses
  *
@@ -33,7 +35,6 @@ import java.util.*;
 public class MoodleCourseCommand {
 
   private static Log LOG = LogFactory.getLog(MoodleCourseCommand.class);
-  private static final String GET_ENROLLED_USERS_API = "core_enrol_get_enrolled_users";
 
   public static List<CourseUser> retrieveEnrolledUsers(String remoteCourseId) {
     List<CourseUser> list = new ArrayList<>();
@@ -88,7 +89,9 @@ public class MoodleCourseCommand {
             JsonNode thisRole = roles.next();
             if (thisRole.has("shortname")) {
               String shortName = thisRole.get("shortname").asText();
-              if ("editingteacher".equals(shortName)) {
+              if ("manager".equals(shortName)) {
+                courseUser.setManager(true);
+              } else if ("editingteacher".equals(shortName)) {
                 courseUser.setTeacher(true);
               } else if ("teacher".equals(shortName)) {
                 courseUser.setTeacher(true);

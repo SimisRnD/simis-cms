@@ -28,10 +28,10 @@ import com.simisinc.platform.domain.model.ecommerce.Card;
 import com.simisinc.platform.domain.model.ecommerce.Cart;
 import com.simisinc.platform.domain.model.ecommerce.Order;
 import com.simisinc.platform.infrastructure.persistence.ecommerce.OrderRepository;
-import com.squareup.connect.models.CreatePaymentRequest;
-import com.squareup.connect.models.CreatePaymentResponse;
-import com.squareup.connect.models.Error;
-import com.squareup.connect.models.Money;
+import com.squareup.square.models.CreatePaymentRequest;
+import com.squareup.square.models.CreatePaymentResponse;
+import com.squareup.square.models.Error;
+import com.squareup.square.models.Money;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -107,13 +107,11 @@ public class SquarePaymentCommand {
     LOG.debug("Using square amount: " + squareCentsAmount);
 
     // Create the Square Payment record
-    CreatePaymentRequest createPaymentRequest = new CreatePaymentRequest()
-        .idempotencyKey(UUID.randomUUID().toString())
-//        .orderId(squareOrderId?)
-        .amountMoney(new Money().amount(squareCentsAmount).currency("USD"))
-        .sourceId(order.getPaymentToken())
-        .referenceId(order.getUniqueId())
-        .buyerEmailAddress(order.getEmail());
+    CreatePaymentRequest createPaymentRequest =
+        new CreatePaymentRequest.Builder(order.getPaymentToken(), UUID.randomUUID().toString(), new Money(squareCentsAmount, "USD"))
+//            .orderId(squareOrderId?)
+            .referenceId(order.getUniqueId())
+            .buyerEmailAddress(order.getEmail()).build();
 
     try {
       // Create the JSON string
@@ -152,7 +150,7 @@ public class SquarePaymentCommand {
       }
 
       // Update the order
-      com.squareup.connect.models.Payment payment = response.getPayment();
+      com.squareup.square.models.Payment payment = response.getPayment();
       if (LOG.isDebugEnabled()) {
         LOG.debug("Charge status: " + response.getPayment().getStatus());
       }
@@ -176,7 +174,7 @@ public class SquarePaymentCommand {
         order.setBillingAddress(billingAddress);
       }
       if (payment.getCardDetails() != null) {
-        com.squareup.connect.models.Card card = payment.getCardDetails().getCard();
+        com.squareup.square.models.Card card = payment.getCardDetails().getCard();
         if (card != null) {
           order.setPaymentType("card");
           order.setPaymentBrand(card.getCardBrand());

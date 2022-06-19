@@ -151,6 +151,10 @@ public class Course extends Entity {
     this.lastModifiedTime = lastModifiedTime;
   }
 
+  public boolean getVisible() {
+    return visible;
+  }
+
   public boolean isVisible() {
     return visible;
   }

@@ -29,6 +29,9 @@ public class CourseUserAggregate extends Entity {
   private Course course = null;
   private CourseUser courseUser = null;
 
+  public CourseUserAggregate() {
+  }
+
   public CourseUserAggregate(Course course, CourseUser courseUser) {
     this.course = course;
     this.courseUser = courseUser;
