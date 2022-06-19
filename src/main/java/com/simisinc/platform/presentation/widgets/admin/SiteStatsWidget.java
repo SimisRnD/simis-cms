@@ -125,8 +125,12 @@ public class SiteStatsWidget extends GenericWidget {
     if (success != null) {
       List<StatisticsData> statisticsDataList = (List) context.getRequest().getAttribute("statisticsDataList");
       if (statisticsDataList != null) {
-        Jsonb jsonb = JsonbBuilder.create();
-        json = jsonb.toJson(statisticsDataList);
+        try (Jsonb jsonb = JsonbBuilder.create()) {
+          json = jsonb.toJson(statisticsDataList);
+        } catch (Exception e) {
+          LOG.error(e);
+          return null;
+        }
       }
     }
     context.setJson(json);
