@@ -16,10 +16,7 @@
 
 package com.simisinc.platform.presentation.widgets.elearning;
 
-import com.simisinc.platform.application.elearning.ElearningCommand;
-import com.simisinc.platform.application.elearning.MoodleCourseListCommand;
-import com.simisinc.platform.application.elearning.MoodleInstructorCourseCommand;
-import com.simisinc.platform.application.elearning.MoodleLeanerCourseCommand;
+import com.simisinc.platform.application.elearning.*;
 import com.simisinc.platform.domain.model.elearning.CourseUserAggregate;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
