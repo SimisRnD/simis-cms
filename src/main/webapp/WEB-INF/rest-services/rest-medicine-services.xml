@@ -19,9 +19,9 @@
   <service method="get" endpoint="med/medicineList/{individualUniqueId}" class="com.simisinc.platform.presentation.rest.medicine.MedicineListService" />
   <service method="get" endpoint="med/drugList" class="com.simisinc.platform.presentation.rest.medicine.DrugListService" />
   <service method="post put delete" endpoint="med/medicine/{medicineId}" class="com.simisinc.platform.presentation.rest.medicine.MedicineService" />
-  <service method="post" endpoint="suspend/medicine/{medicineId}" class="com.simisinc.platform.presentation.rest.medicine.SuspendMedicineService" />
-  <service method="post" endpoint="resume/medicine/{medicineId}" class="com.simisinc.platform.presentation.rest.medicine.ResumeMedicineService" />
-  <service method="post" endpoint="archive/medicine/{medicineId}" class="com.simisinc.platform.presentation.rest.medicine.ArchiveMedicineService" />
+  <service method="post" endpoint="med/suspend/medicine/{medicineId}" class="com.simisinc.platform.presentation.rest.medicine.SuspendMedicineService" />
+  <service method="post" endpoint="med/resume/medicine/{medicineId}" class="com.simisinc.platform.presentation.rest.medicine.ResumeMedicineService" />
+  <service method="post" endpoint="med/archive/medicine/{medicineId}" class="com.simisinc.platform.presentation.rest.medicine.ArchiveMedicineService" />
   <service method="get" endpoint="med/reminderList" class="com.simisinc.platform.presentation.rest.medicine.MedicineReminderListService" />
   <service method="post" endpoint="med/medicineLog" class="com.simisinc.platform.presentation.rest.medicine.MedicineLogService" />
   <service method="get" endpoint="med/medicineLogList" class="com.simisinc.platform.presentation.rest.medicine.MedicineLogListService" />
