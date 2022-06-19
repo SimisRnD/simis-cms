@@ -30,6 +30,8 @@ import org.apache.commons.logging.LogFactory;
 
 import java.util.*;
 
+import static com.simisinc.platform.application.elearning.MoodleApiClientCommand.GET_USERS_COURSES_API;
+
 /**
  * Commands for working with Moodle Courses
  *
@@ -39,9 +41,6 @@ import java.util.*;
 public class MoodleCourseListCommand {
 
   private static Log LOG = LogFactory.getLog(MoodleCourseListCommand.class);
-
-  // @note API returns visible courses only https://tracker.moodle.org/browse/MDL-47229
-  private static final String GET_USERS_COURSES_API = "core_enrol_get_users_courses";
 
   public static List<CourseUserAggregate> retrieveCoursesEnrolled(User user, boolean withUserCount) {
     // Determine the user's Moodle id

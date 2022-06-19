@@ -42,6 +42,10 @@ public class MoodleApiClientCommand {
 
   private static Log LOG = LogFactory.getLog(MoodleApiClientCommand.class);
 
+  public static final String GET_USERS_COURSES_API = "core_enrol_get_users_courses";
+  public static final String GET_USERS_API = "core_user_get_users_by_field";
+  public static final String GET_ENROLLED_USERS_API = "core_enrol_get_enrolled_users";
+
   public static JsonNode sendHttpGet(String wsFunction, Map<String, String> parameters) {
 
     // Check the Moodle properties

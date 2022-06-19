@@ -24,6 +24,8 @@ import org.apache.commons.logging.LogFactory;
 import java.util.HashMap;
 import java.util.Map;
 
+import static com.simisinc.platform.application.elearning.MoodleApiClientCommand.GET_USERS_API;
+
 /**
  * Commands for working with Moodle Users
  *
@@ -33,7 +35,6 @@ import java.util.Map;
 public class MoodleUserCommand {
 
   private static Log LOG = LogFactory.getLog(MoodleUserCommand.class);
-  private static final String GET_USERS_API = "core_user_get_users_by_field";
 
   public static long retrieveUserId(User user) {
     // Determine the user's Moodle id

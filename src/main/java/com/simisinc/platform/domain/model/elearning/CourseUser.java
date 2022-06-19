@@ -37,6 +37,7 @@ public class CourseUser extends Entity {
   private String lastName = null;
   private String email = null;
   private String username = null;
+  private boolean manager = false;
   private boolean teacher = false;
   private boolean enrolled = false;
   private LocalDate enrollmentDate = null;
@@ -103,12 +104,32 @@ public class CourseUser extends Entity {
     this.username = username;
   }
 
+  public boolean getManager() {
+    return manager;
+  }
+
+  public boolean isManager() {
+    return manager;
+  }
+
+  public void setManager(boolean manager) {
+    this.manager = manager;
+  }
+
+  public boolean getTeacher() {
+    return teacher;
+  }
+
   public boolean isTeacher() {
     return teacher;
   }
 
   public void setTeacher(boolean teacher) {
     this.teacher = teacher;
+  }
+
+  public boolean getEnrolled() {
+    return enrolled;
   }
 
   public boolean isEnrolled() {
@@ -133,6 +154,10 @@ public class CourseUser extends Entity {
 
   public void setEnrollmentTime(LocalTime enrollmentTime) {
     this.enrollmentTime = enrollmentTime;
+  }
+
+  public boolean getCompleted() {
+    return completed;
   }
 
   public boolean isCompleted() {
@@ -165,6 +190,10 @@ public class CourseUser extends Entity {
 
   public void setLastAccessTime(LocalTime lastAccessTime) {
     this.lastAccessTime = lastAccessTime;
+  }
+
+  public boolean getFavorite() {
+    return favorite;
   }
 
   public boolean isFavorite() {

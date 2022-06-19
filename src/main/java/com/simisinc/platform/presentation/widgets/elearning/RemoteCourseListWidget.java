@@ -56,7 +56,15 @@ public class RemoteCourseListWidget extends GenericWidget {
     // Retrieve the courses
     boolean moodleEnabled = ElearningCommand.isMoodleEnabled();
     List<CourseUserAggregate> courseList = new ArrayList<>();
-    if ("teacher".equals(role)) {
+    if ("manager".equals(role) || "supervisor".equals(role)) {
+      // Retrieve the Moodle course list for 'teaching' roles
+      if (moodleEnabled) {
+        List<CourseUserAggregate> moodleList = MoodleManagerCourseCommand.retrieveManagerCourses(context.getUserSession().getUser());
+        if (moodleList != null) {
+          courseList.addAll(moodleList);
+        }
+      }
+    } else if ("teacher".equals(role) || "instructor".equals(role)) {
       // Retrieve the Moodle course list for 'teaching' roles
       if (moodleEnabled) {
         List<CourseUserAggregate> moodleList = MoodleInstructorCourseCommand.retrieveTeacherCourses(context.getUserSession().getUser());
