@@ -60,8 +60,6 @@ public class ItemService {
     // Prepare the response
     ServiceResponse response = new ServiceResponse(200);
     response.getMeta().put("type", "item");
-    response.getMeta().put("currentPage", 1);
-    response.getMeta().put("pages", 1);
     response.setData(itemDetails);
     return response;
   }

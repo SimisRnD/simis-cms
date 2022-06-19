@@ -125,7 +125,9 @@ public class MedicineListService {
     // Prepare the response
     ServiceResponse response = new ServiceResponse(200);
     response.getMeta().put("type", "medicine");
-    response.getMeta().put("totalRecordCount", medicineList.size());
+    response.getMeta().put("pageIndex", constraints.getPageNumber());
+    response.getMeta().put("totalPages", constraints.getMaxPageNumber());
+    response.getMeta().put("totalItems", constraints.getTotalRecordCount());
     response.setData(recordList);
     return response;
   }

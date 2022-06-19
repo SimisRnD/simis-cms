@@ -69,8 +69,9 @@ public class CategoryListService {
     // Prepare the response
     ServiceResponse response = new ServiceResponse(200);
     response.getMeta().put("type", "category");
-//    response.getMeta().put("currentPage", pageNumber);
-//    response.getMeta().put("pages", maxPages);
+//    response.getMeta().put("pageIndex", 1);
+//    response.getMeta().put("totalPages", 1);
+    response.getMeta().put("totalItems", recordList.size());
     response.setData(recordList);
     return response;
   }

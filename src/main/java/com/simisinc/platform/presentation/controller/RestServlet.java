@@ -184,6 +184,8 @@ public class RestServlet extends HttpServlet {
         result.getError().put("status", String.valueOf(result.getStatus()));
       }
 
+      // Aspire to, but not quite there:
+      // https://google.github.io/styleguide/jsoncstyleguide.xml
       LOG.debug("Returning JSON...");
       try (Jsonb jsonb = JsonbBuilder.create()) {
         StringBuilder sb = new StringBuilder();
@@ -200,8 +202,11 @@ public class RestServlet extends HttpServlet {
           } else {
             hasValues = true;
           }
-          String error = jsonb.toJson(result.getError());
-          sb.append("\"errors\": ").append("[").append(error).append("]");
+          sb.append("\"error\": ")
+              .append("{")
+              .append("\"code\": ").append(result.getStatus()).append(",")
+              .append("\"message\": \"").append(JsonCommand.toJson(result.getError().get("title"))).append("\"")
+              .append("}");
         }
         if (result.getData() != null) {
           if (hasValues) {
