@@ -29,6 +29,8 @@
 <jsp:useBean id="showLaunchLink" class="java.lang.String" scope="request"/>
 <jsp:useBean id="launchLabel" class="java.lang.String" scope="request"/>
 <jsp:useBean id="noRecordsFoundMessage" class="java.lang.String" scope="request"/>
+<jsp:useBean id="courseButtonText" class="java.lang.String" scope="request"/>
+<jsp:useBean id="courseButtonLink" class="java.lang.String" scope="request"/>
 <c:if test="${!empty title}">
   <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
@@ -71,3 +73,6 @@
     </p>
   </c:otherwise>
 </c:choose>
+<c:if test="${!empty courseButtonLink && !empty courseButtonText}">
+  <a class="button tiny" href="${courseButtonLink}" target="_blank"><c:out value="${courseButtonText}" /> <i class="fa fa-arrow-circle-right"></i></a>
+</c:if>
