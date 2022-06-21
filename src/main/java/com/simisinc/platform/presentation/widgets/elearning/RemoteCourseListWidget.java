@@ -48,15 +48,18 @@ public class RemoteCourseListWidget extends GenericWidget {
     context.getRequest().setAttribute("useItemLink", context.getPreferences().getOrDefault("useItemLink", "false"));
     context.getRequest().setAttribute("showLaunchLink", context.getPreferences().getOrDefault("showLaunchLink", "false"));
     context.getRequest().setAttribute("launchLabel", context.getPreferences().getOrDefault("launchLabel", "Launch"));
+    context.getRequest().setAttribute("noRecordsFoundMessage", context.getPreferences().getOrDefault("noRecordsFoundMessage", "No courses were found"));
     boolean showWhenEmpty = "true".equals(context.getPreferences().getOrDefault("showWhenEmpty", "false"));
+    boolean showParticipants = "true".equals(context.getPreferences().getOrDefault("showParticipants", "false"));
 
     // Retrieve the courses
     boolean moodleEnabled = ElearningCommand.isMoodleEnabled();
+    boolean perlsEnabled = ElearningCommand.isPERLSEnabled();
     List<CourseUserAggregate> courseList = new ArrayList<>();
     if ("manager".equals(role) || "supervisor".equals(role)) {
       // Retrieve the Moodle course list for 'teaching' roles
       if (moodleEnabled) {
-        List<CourseUserAggregate> moodleList = MoodleManagerCourseCommand.retrieveManagerCourses(context.getUserSession().getUser());
+        List<CourseUserAggregate> moodleList = MoodleManagerCourseCommand.retrieveManagerCourses(context.getUserSession().getUser(), showParticipants);
         if (moodleList != null) {
           courseList.addAll(moodleList);
         }
@@ -64,7 +67,7 @@ public class RemoteCourseListWidget extends GenericWidget {
     } else if ("teacher".equals(role) || "instructor".equals(role)) {
       // Retrieve the Moodle course list for 'teaching' roles
       if (moodleEnabled) {
-        List<CourseUserAggregate> moodleList = MoodleInstructorCourseCommand.retrieveTeacherCourses(context.getUserSession().getUser());
+        List<CourseUserAggregate> moodleList = MoodleInstructorCourseCommand.retrieveTeacherCourses(context.getUserSession().getUser(), showParticipants);
         if (moodleList != null) {
           courseList.addAll(moodleList);
         }
@@ -72,7 +75,7 @@ public class RemoteCourseListWidget extends GenericWidget {
     } else if ("any".equals(role)) {
       // Retrieve the Moodle course list for any role
       if (moodleEnabled) {
-        List<CourseUserAggregate> moodleList = MoodleCourseListCommand.retrieveCoursesEnrolled(context.getUserSession().getUser(), false);
+        List<CourseUserAggregate> moodleList = MoodleCourseListCommand.retrieveCoursesEnrolled(context.getUserSession().getUser(), showParticipants);
         if (moodleList != null) {
           courseList.addAll(moodleList);
         }
@@ -80,7 +83,7 @@ public class RemoteCourseListWidget extends GenericWidget {
     } else {
       // Retrieve the Moodle course list for 'student' role
       if (moodleEnabled) {
-        List<CourseUserAggregate> moodleList = MoodleLeanerCourseCommand.retrieveLearnerCourses(context.getUserSession().getUser());
+        List<CourseUserAggregate> moodleList = MoodleLeanerCourseCommand.retrieveLearnerCourses(context.getUserSession().getUser(), showParticipants);
         if (moodleList != null) {
           courseList.addAll(moodleList);
         }
