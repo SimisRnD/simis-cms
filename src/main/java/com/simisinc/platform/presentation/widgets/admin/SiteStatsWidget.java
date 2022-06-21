@@ -35,6 +35,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import static com.simisinc.platform.presentation.widgets.dashboard.StatisticCardWidget.valueForColor;
+
 /**
  * Description
  *
@@ -80,6 +82,7 @@ public class SiteStatsWidget extends GenericWidget {
     context.getRequest().setAttribute("label", context.getPreferences().get("label"));
     context.getRequest().setAttribute("label1", context.getPreferences().get("label1"));
     context.getRequest().setAttribute("link", context.getPreferences().get("link"));
+    context.getRequest().setAttribute("iconColor", valueForColor(context.getPreferences().getOrDefault("iconColor", null)));
 
     // Check for report drop-down menu options
     PreferenceEntriesList entriesList = context.getPreferenceAsDataList("options");
