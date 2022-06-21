@@ -36,7 +36,7 @@ public class MoodleManagerCourseCommand {
 
   private static Log LOG = LogFactory.getLog(MoodleManagerCourseCommand.class);
 
-  public static List<CourseUserAggregate> retrieveManagerCourses(User user) {
+  public static List<CourseUserAggregate> retrieveManagerCourses(User user, boolean withUserCount) {
     // Determine the userId
     long remoteUserId = MoodleUserCommand.retrieveUserId(user);
     if (remoteUserId == -1) {
@@ -44,7 +44,7 @@ public class MoodleManagerCourseCommand {
     }
 
     // Retrieve all the courses for a user
-    List<CourseUserAggregate> courseList = MoodleCourseListCommand.retrieveCoursesEnrolledForRemoteUserId(remoteUserId, true);
+    List<CourseUserAggregate> courseList = MoodleCourseListCommand.retrieveCoursesEnrolledForRemoteUserId(remoteUserId, withUserCount);
     if (courseList == null) {
       return null;
     }

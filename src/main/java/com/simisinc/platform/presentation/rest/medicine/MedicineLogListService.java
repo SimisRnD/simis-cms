@@ -124,7 +124,7 @@ public class MedicineLogListService {
       // Prepare an empty response
       ServiceResponse response = new ServiceResponse(200);
       response.getMeta().put("type", "medicineLog");
-      response.getMeta().put("totalRecordCount", 0);
+      response.getMeta().put("totalItems", 0);
       response.setData(new ArrayList<>());
       return response;
     }
@@ -152,7 +152,9 @@ public class MedicineLogListService {
     // Prepare the response
     ServiceResponse response = new ServiceResponse(200);
     response.getMeta().put("type", "medicineLog");
-    response.getMeta().put("totalRecordCount", recordList.size());
+    response.getMeta().put("pageIndex", constraints.getPageNumber());
+    response.getMeta().put("totalPages", constraints.getMaxPageNumber());
+    response.getMeta().put("totalItems", constraints.getTotalRecordCount());
     response.setData(recordList);
     return response;
   }

@@ -31,7 +31,7 @@
       <column class="small-12 medium-6 large-4 cell callout">
         <widget name="siteStats">
           <icon>fa-globe</icon>
-          <title>Online Today</title>
+          <title>Sessions Today</title>
           <report>total-sessions-today</report>
         </widget>
       </column>
@@ -509,7 +509,7 @@
       <column class="small-12 medium-6 large-3 cell callout">
         <widget name="siteStats">
           <icon>fa-globe</icon>
-          <title>Online Today</title>
+          <title>Sessions Today</title>
           <report>total-sessions-today</report>
         </widget>
       </column>

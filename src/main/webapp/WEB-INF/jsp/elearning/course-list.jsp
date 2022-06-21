@@ -28,6 +28,9 @@
 <jsp:useBean id="useItemLink" class="java.lang.String" scope="request"/>
 <jsp:useBean id="showLaunchLink" class="java.lang.String" scope="request"/>
 <jsp:useBean id="launchLabel" class="java.lang.String" scope="request"/>
+<jsp:useBean id="noRecordsFoundMessage" class="java.lang.String" scope="request"/>
+<jsp:useBean id="courseButtonText" class="java.lang.String" scope="request"/>
+<jsp:useBean id="courseButtonLink" class="java.lang.String" scope="request"/>
 <c:if test="${!empty title}">
   <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
@@ -50,13 +53,26 @@
               <a href="${url:encode(item.course.url)}" class="button primary tiny margin-0" style="padding: 0.2rem .2rem;" target="_blank" rel="nofollow" title="Visit <c:out value="${text:trim(item.course.url, 30, true)}"/>"><c:out value="${launchLabel}"/> <i class="fa fa-external-link"></i></i></a>
             </c:if>
           </c:if>
+          <c:if test="${item.course.enrollments gt 0}">
+            <c:choose>
+              <c:when test="${item.course.enrollments eq 1}">
+                <span class="margin-left-5 subheader">(${item.course.enrollments} participant)</span>
+              </c:when>
+              <c:otherwise>
+                <span class="margin-left-5 subheader">(${item.course.enrollments} participants)</span>
+              </c:otherwise>
+            </c:choose>
+          </c:if>
         </li>
       </c:forEach>
     </ul>
   </c:when>
   <c:otherwise>
     <p class="subheader">
-      No courses were found
+      <c:out value="${noRecordsFoundMessage}" />
     </p>
   </c:otherwise>
 </c:choose>
+<c:if test="${!empty courseButtonLink && !empty courseButtonText}">
+  <a class="button tiny" href="${courseButtonLink}" target="_blank"><c:out value="${courseButtonText}" /> <i class="fa fa-arrow-circle-right"></i></a>
+</c:if>

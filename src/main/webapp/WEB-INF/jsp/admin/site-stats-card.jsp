@@ -23,10 +23,13 @@
 <jsp:useBean id="label" class="java.lang.String" scope="request"/>
 <jsp:useBean id="label1" class="java.lang.String" scope="request"/>
 <jsp:useBean id="link" class="java.lang.String" scope="request"/>
+<jsp:useBean id="iconColor" class="java.lang.String" scope="request"/>
 <style>
+    <c:if test="${!empty iconColor}">
     .statistic-card-icon${widgetContext.uniqueId} {
         color: <c:out value="${iconColor}" />;
     }
+    </c:if>
     .statistic-card-value {
         font-size: 40px;
         font-weight: bold;

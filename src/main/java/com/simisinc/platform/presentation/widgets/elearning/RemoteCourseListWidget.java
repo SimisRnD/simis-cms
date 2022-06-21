@@ -16,6 +16,7 @@
 
 package com.simisinc.platform.presentation.widgets.elearning;
 
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.elearning.*;
 import com.simisinc.platform.domain.model.elearning.CourseUserAggregate;
 import com.simisinc.platform.presentation.controller.WidgetContext;
@@ -39,6 +40,11 @@ public class RemoteCourseListWidget extends GenericWidget {
 
   public WidgetContext execute(WidgetContext context) {
 
+    // Determine system settings
+    boolean moodleEnabled = ElearningCommand.isMoodleEnabled();
+    boolean perlsEnabled = ElearningCommand.isPERLSEnabled();
+    String moodleServerUrl = LoadSitePropertyCommand.loadByName("elearning.moodle.url");
+
     // Common attributes
     context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));
     context.getRequest().setAttribute("title", context.getPreferences().get("title"));
@@ -48,15 +54,17 @@ public class RemoteCourseListWidget extends GenericWidget {
     context.getRequest().setAttribute("useItemLink", context.getPreferences().getOrDefault("useItemLink", "false"));
     context.getRequest().setAttribute("showLaunchLink", context.getPreferences().getOrDefault("showLaunchLink", "false"));
     context.getRequest().setAttribute("launchLabel", context.getPreferences().getOrDefault("launchLabel", "Launch"));
+    context.getRequest().setAttribute("noRecordsFoundMessage", context.getPreferences().getOrDefault("noRecordsFoundMessage", "No courses were found"));
     boolean showWhenEmpty = "true".equals(context.getPreferences().getOrDefault("showWhenEmpty", "false"));
+    boolean showParticipants = "true".equals(context.getPreferences().getOrDefault("showParticipants", "false"));
+    boolean showAddCourseButton = moodleEnabled && "true".equals(context.getPreferences().getOrDefault("showAddCourseButton", "false"));
 
     // Retrieve the courses
-    boolean moodleEnabled = ElearningCommand.isMoodleEnabled();
     List<CourseUserAggregate> courseList = new ArrayList<>();
     if ("manager".equals(role) || "supervisor".equals(role)) {
       // Retrieve the Moodle course list for 'teaching' roles
       if (moodleEnabled) {
-        List<CourseUserAggregate> moodleList = MoodleManagerCourseCommand.retrieveManagerCourses(context.getUserSession().getUser());
+        List<CourseUserAggregate> moodleList = MoodleManagerCourseCommand.retrieveManagerCourses(context.getUserSession().getUser(), showParticipants);
         if (moodleList != null) {
           courseList.addAll(moodleList);
         }
@@ -64,15 +72,20 @@ public class RemoteCourseListWidget extends GenericWidget {
     } else if ("teacher".equals(role) || "instructor".equals(role)) {
       // Retrieve the Moodle course list for 'teaching' roles
       if (moodleEnabled) {
-        List<CourseUserAggregate> moodleList = MoodleInstructorCourseCommand.retrieveTeacherCourses(context.getUserSession().getUser());
+        List<CourseUserAggregate> moodleList = MoodleInstructorCourseCommand.retrieveTeacherCourses(context.getUserSession().getUser(), showParticipants);
         if (moodleList != null) {
           courseList.addAll(moodleList);
         }
       }
+      // Show the Add Course button
+      if (showAddCourseButton) {
+        context.getRequest().setAttribute("courseButtonText", context.getPreferences().getOrDefault("courseButtonText", "Add a Course"));
+        context.getRequest().setAttribute("courseButtonLink", moodleServerUrl + "/course/edit.php");
+      }
     } else if ("any".equals(role)) {
       // Retrieve the Moodle course list for any role
       if (moodleEnabled) {
-        List<CourseUserAggregate> moodleList = MoodleCourseListCommand.retrieveCoursesEnrolled(context.getUserSession().getUser(), false);
+        List<CourseUserAggregate> moodleList = MoodleCourseListCommand.retrieveCoursesEnrolled(context.getUserSession().getUser(), showParticipants);
         if (moodleList != null) {
           courseList.addAll(moodleList);
         }
@@ -80,7 +93,7 @@ public class RemoteCourseListWidget extends GenericWidget {
     } else {
       // Retrieve the Moodle course list for 'student' role
       if (moodleEnabled) {
-        List<CourseUserAggregate> moodleList = MoodleLeanerCourseCommand.retrieveLearnerCourses(context.getUserSession().getUser());
+        List<CourseUserAggregate> moodleList = MoodleLeanerCourseCommand.retrieveLearnerCourses(context.getUserSession().getUser(), showParticipants);
         if (moodleList != null) {
           courseList.addAll(moodleList);
         }

@@ -20,6 +20,7 @@ import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.domain.model.dashboard.StatisticCard;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * Description
@@ -43,7 +44,7 @@ public class StatisticCardWidget extends GenericWidget {
     statisticCard.setLink(context.getPreferences().getOrDefault("link", null));
     context.getRequest().setAttribute("statisticCard", statisticCard);
 
-    context.getRequest().setAttribute("iconColor", valueForColor(context.getPreferences().getOrDefault("iconColor", "#ffffff")));
+    context.getRequest().setAttribute("iconColor", valueForColor(context.getPreferences().getOrDefault("iconColor", null)));
 
     String view = context.getPreferences().getOrDefault("view", null);
     if ("vertical".equals(view)) {
@@ -54,7 +55,10 @@ public class StatisticCardWidget extends GenericWidget {
     return context;
   }
 
-  private String valueForColor(String colorName) {
+  public static String valueForColor(String colorName) {
+    if (StringUtils.isBlank(colorName)) {
+      return colorName;
+    }
     if (colorName.startsWith("theme.")) {
       return LoadSitePropertyCommand.loadByName(colorName);
     }

@@ -76,7 +76,6 @@ public class DrugListService {
 
     // Retrieve the records
     List<Item> itemList = ItemRepository.findAll(specification, constraints);
-    int maxPages = constraints.getMaxPageNumber();
 
     // Set the fields to return
     List<ItemHandler> recordList = new ArrayList<>();
@@ -87,9 +86,9 @@ public class DrugListService {
     // Prepare the response
     ServiceResponse response = new ServiceResponse(200);
     response.getMeta().put("type", "drug");
-    response.getMeta().put("currentPage", pageNumber);
-    response.getMeta().put("pages", maxPages);
-    response.getMeta().put("totalRecordCount", constraints.getTotalRecordCount());
+    response.getMeta().put("pageIndex", constraints.getPageNumber());
+    response.getMeta().put("totalPages", constraints.getMaxPageNumber());
+    response.getMeta().put("totalItems", constraints.getTotalRecordCount());
     response.setData(recordList);
     return response;
   }

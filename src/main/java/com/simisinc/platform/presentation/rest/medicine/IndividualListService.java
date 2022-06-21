@@ -96,7 +96,7 @@ public class IndividualListService {
     // Prepare the response
     ServiceResponse response = new ServiceResponse(200);
     response.getMeta().put("type", "individual");
-    response.getMeta().put("totalRecordCount", individualsList.size());
+    response.getMeta().put("totalItems", individualsList.size());
     response.setData(recordList);
     return response;
   }

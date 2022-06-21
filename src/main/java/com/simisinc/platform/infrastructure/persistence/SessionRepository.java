@@ -134,7 +134,7 @@ public class SessionRepository {
     String SQL_QUERY =
         "SELECT COUNT(DISTINCT(session_id)) AS session_count " +
             "FROM web_page_hits " +
-            "WHERE hit_date > NOW() - INTERVAL '10 minutes' " +
+            "WHERE hit_date > NOW() - INTERVAL '20 minutes' " +
             "AND NOT EXISTS (SELECT 1 FROM sessions WHERE session_id = web_page_hits.session_id AND is_bot = TRUE)";
     try (Connection connection = DB.getConnection();
          PreparedStatement pst = connection.prepareStatement(SQL_QUERY);
