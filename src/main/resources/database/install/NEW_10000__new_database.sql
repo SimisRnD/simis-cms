@@ -176,6 +176,13 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (40, 'Flickr', 'social.flickr.url', '', 'url');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (45, 'Youtube', 'social.youtube.url', '', 'url');
 
+-- BI
+
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (1, 'Enable bi?', 'bi.enabled', 'true', 'boolean');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (10, 'Superset Url', 'bi.superset.url', '', 'url');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (12, 'Superset Id', 'bi.superset.id', '', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (14, 'Superset Secret', 'bi.superset.secret', '', 'text');
+
 -- E-Commerce
 
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (1, 'Enable e-commerce?', 'ecommerce.enabled', 'true', 'disabled');
@@ -221,6 +228,7 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (12, 'LRS URL', 'elearning.lrs.url', '', 'url');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (13, 'LRS Key', 'elearning.lrs.key', '', 'text');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (14, 'LRS Secret', 'elearning.lrs.secret', '', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (16, 'LRS Auth Header', 'elearning.lrs.authHeader', '', 'text');
 
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (20, 'Enable Moodle?', 'elearning.moodle.enabled', 'false', 'boolean');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (22, 'Moodle URL', 'elearning.moodle.url', '', 'url');
