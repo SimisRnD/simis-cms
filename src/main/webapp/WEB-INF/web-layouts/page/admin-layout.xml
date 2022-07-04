@@ -409,6 +409,17 @@
     </section>
   </page>
 
+  <page name="/admin/bi-properties" role="admin" title="BI Settings">
+    <section>
+      <column class="small-12 large-10 cell">
+        <widget name="sitePropertiesEditor">
+          <title>BI Settings</title>
+          <prefix>bi</prefix>
+        </widget>
+      </column>
+    </section>
+  </page>
+
   <page name="/admin/ecommerce-properties" role="admin" title="E-Commerce Settings">
     <section>
       <column class="small-12 large-10 cell">
