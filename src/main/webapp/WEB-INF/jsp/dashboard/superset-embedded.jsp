@@ -26,7 +26,7 @@
 </c:if>
 <div id="superset-container${widgetContext.uniqueId}" class="superset-dashboard-container">
 </div>
-<script src="https://unpkg.com/@superset-ui/embedded-sdk"></script>
+<script src="${ctx}/javascript/superset-embedded-sdk-0.1.0-alpha.7/index.js"></script>
 <script>
   function fetchGuestTokenFromBackend${widgetContext.uniqueId}() {
     return new Promise(function (resolve, reject) {
