@@ -16,8 +16,6 @@
 
 package com.simisinc.platform.presentation.widgets.cms;
 
-import java.util.Arrays;
-
 import com.simisinc.platform.application.cms.LoadWikiCommand;
 import com.simisinc.platform.application.cms.LoadWikiPageCommand;
 import com.simisinc.platform.domain.model.cms.Wiki;
@@ -28,6 +26,7 @@ import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.vladsch.flexmark.ext.gfm.strikethrough.StrikethroughExtension;
 import com.vladsch.flexmark.ext.gfm.tasklist.TaskListExtension;
+import com.vladsch.flexmark.ext.gitlab.GitLabExtension;
 import com.vladsch.flexmark.ext.tables.TablesExtension;
 import com.vladsch.flexmark.ext.typographic.TypographicExtension;
 import com.vladsch.flexmark.ext.wikilink.WikiLinkExtension;
@@ -36,8 +35,9 @@ import com.vladsch.flexmark.html.HtmlRenderer;
 import com.vladsch.flexmark.parser.Parser;
 import com.vladsch.flexmark.util.ast.Node;
 import com.vladsch.flexmark.util.data.MutableDataSet;
-
 import org.apache.commons.lang3.StringUtils;
+
+import java.util.Arrays;
 
 /**
  * Description
@@ -114,13 +114,14 @@ public class WikiWidget extends GenericWidget {
     MutableDataSet options = new MutableDataSet();
     options.set(Parser.EXTENSIONS, Arrays.asList(
 //        AnchorLinkExtension.create(),
-        StrikethroughExtension.create(),
-        TablesExtension.create(),
-        TaskListExtension.create(),
-        TypographicExtension.create(),
-        WikiLinkExtension.create(),
-        YouTubeLinkExtension.create(),
-        WikiParserExtension.create()
+            StrikethroughExtension.create(),
+            TablesExtension.create(),
+            TaskListExtension.create(),
+            TypographicExtension.create(),
+            WikiLinkExtension.create(),
+            YouTubeLinkExtension.create(),
+            WikiParserExtension.create(),
+            GitLabExtension.create()
         )
     );
     options.set(HtmlRenderer.SOFT_BREAK, "<br />\n");
@@ -133,6 +134,10 @@ public class WikiWidget extends GenericWidget {
     Node document = parser.parse(wikiPage.getBody());
     String contentHtml = renderer.render(document);
     context.getRequest().setAttribute("contentHtml", contentHtml);
+
+    if (wikiPage.getBody().contains("```mermaid")) {
+      context.getRequest().setAttribute("mermaid", "true");
+    }
 
     // Set the HTML page title
     if (wiki.getStartingPage() != wikiPage.getId()) {
