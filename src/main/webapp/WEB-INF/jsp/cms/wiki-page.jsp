@@ -22,8 +22,12 @@
 <jsp:useBean id="wiki" class="com.simisinc.platform.domain.model.cms.Wiki" scope="request"/>
 <jsp:useBean id="wikiPage" class="com.simisinc.platform.domain.model.cms.WikiPage" scope="request"/>
 <jsp:useBean id="wikiLinkPrefix" class="java.lang.String" scope="request"/>
+<jsp:useBean id="mermaid" class="java.lang.String" scope="request"/>
 <link rel="stylesheet" href="${ctx}/css/prism-1.15.0/prism.css">
 <script src="${ctx}/javascript/prism-1.15.0/prism.min.js"></script>
+<c:if test="${mermaid eq 'true'}">
+<script src="${ctx}/javascript/mermaid-9.1.3/mermaid.min.js"></script>
+</c:if>
 <c:choose>
   <c:when test="${wiki.startingPage eq wikiPage.id && !empty title}">
     <h4 class="no-gap"><c:out value="${title}" /></h4>
