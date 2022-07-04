@@ -315,6 +315,7 @@ This project uses and licenses several technologies:
    Payform                     License  Credit card form                                  https://github.com/jondavidjohn/payform
    Prism                       MIT      Highlighter                                       https://github.com/PrismJS/prism/
    Spectrum                    MIT      Color picker                                      https://github.com/bgrins/spectrum
+   Superset-UI Embedded SDK    Apache   Visualizations and dashboards                     https://github.com/apache/superset
    Swiper                      MIT      Modern mobile touch slider                        https://github.com/nolimits4web/swiper
    TinyMCE                     LGPL     HTML editor                                       https://github.com/tinymce/tinymce
    TinyMCE-FontAwesome-Plugin  MIT      Icon chooser                                      https://github.com/josh18/TinyMCE-FontAwesome-Plugin

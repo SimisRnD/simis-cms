@@ -25,4 +25,6 @@
   <service endpoint="/json/photoList" class="com.simisinc.platform.presentation.widgets.cms.PhotoListAjax" />
   <service endpoint="/json/emailSubscribe" class="com.simisinc.platform.presentation.widgets.ecommerce.EmailSubscribeAjax" />
   <service endpoint="/json/mailingList" class="com.simisinc.platform.presentation.widgets.mailinglists.MailingListAjax" />
+  <!-- Dashboards -->
+  <service endpoint="/json/supersetGuestToken" class="com.simisinc.platform.presentation.widgets.dashboard.SupersetGuestTokenAjax" />
 </services>
