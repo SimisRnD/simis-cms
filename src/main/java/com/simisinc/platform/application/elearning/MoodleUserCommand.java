@@ -17,12 +17,15 @@
 package com.simisinc.platform.application.elearning;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.github.benmanes.caffeine.cache.Caffeine;
+import com.github.benmanes.caffeine.cache.LoadingCache;
 import com.simisinc.platform.domain.model.User;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import static com.simisinc.platform.application.elearning.MoodleApiClientCommand.GET_USERS_API;
 
@@ -34,13 +37,26 @@ import static com.simisinc.platform.application.elearning.MoodleApiClientCommand
  */
 public class MoodleUserCommand {
 
+  private static LoadingCache<String, Long> userCache = Caffeine.newBuilder()
+      .maximumSize(1_000_000)
+      .expireAfterAccess(60, TimeUnit.MINUTES)
+      .build(MoodleUserCommand::retrieveUserId);
+
   private static Log LOG = LogFactory.getLog(MoodleUserCommand.class);
 
   public static long retrieveUserId(User user) {
+    Long moodleUserId = userCache.get(user.getEmail());
+    if (moodleUserId == null || moodleUserId <= 0) {
+      return -1;
+    }
+    return moodleUserId;
+  }
+
+  public static long retrieveUserId(String email) {
     // Determine the user's Moodle id
     Map<String, String> parameters = new HashMap<>();
     parameters.put("field", "email");
-    parameters.put("values[]", user.getEmail());
+    parameters.put("values[]", email);
     JsonNode json = MoodleApiClientCommand.sendHttpGet(GET_USERS_API, parameters);
 
     // Verify that record(s) have been returned
