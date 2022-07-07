@@ -42,6 +42,9 @@ public class SupersetGuestTokenCommand {
 
   public static String retrieveGuestTokenForDashboard(User user, String dashboardId) {
     OAuthToken oAuthToken = SupersetJWTCommand.retrieveAccessToken();
+    if (oAuthToken == null) {
+      return null;
+    }
     return retrieveGuestTokenForDashboard(oAuthToken, user, dashboardId);
   }
 

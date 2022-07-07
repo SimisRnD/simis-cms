@@ -33,6 +33,11 @@ public class SupersetWidget extends GenericWidget {
   public static String JSP = "/dashboard/superset-embedded.jsp";
 
   public WidgetContext execute(WidgetContext context) {
+    boolean enabled = ("true".equals(LoadSitePropertyCommand.loadByName("bi.enabled", "false")));
+    if (!enabled) {
+      LOG.debug("BI is not enabled");
+      return context;
+    }
     // guestToken (via AJAX request)
     String dashboardValue = context.getPreferences().get("dashboardValue");
     String dashboardEmbeddedId = context.getPreferences().get("dashboardEmbeddedId");
