@@ -16,6 +16,7 @@
 
 package com.simisinc.platform.presentation.widgets.dashboard;
 
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.dashboards.SupersetGuestTokenCommand;
 import com.simisinc.platform.application.json.JsonCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
@@ -33,6 +34,12 @@ public class SupersetGuestTokenAjax extends GenericWidget {
   static final long serialVersionUID = -8484048371911908893L;
 
   public WidgetContext execute(WidgetContext context) {
+    boolean enabled = ("true".equals(LoadSitePropertyCommand.loadByName("bi.enabled", "false")));
+    if (!enabled) {
+      context.setJson("{}");
+      return context;
+    }
+
     String dashboardId = context.getParameter("dashboardId");
     if (StringUtils.isBlank(dashboardId)) {
       context.setJson("{}");
@@ -40,6 +47,10 @@ public class SupersetGuestTokenAjax extends GenericWidget {
     }
 
     String guestToken = SupersetGuestTokenCommand.retrieveGuestTokenForDashboard(context.getUserSession().getUser(), dashboardId);
+    if (StringUtils.isBlank(guestToken)) {
+      context.setJson("{}");
+      return context;
+    }
     context.setJson("{\"guestToken\":\"" + JsonCommand.toJson(guestToken) + "\"}");
     return context;
   }
