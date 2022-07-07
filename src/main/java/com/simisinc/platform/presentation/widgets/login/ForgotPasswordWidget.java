@@ -17,17 +17,18 @@
 package com.simisinc.platform.presentation.widgets.login;
 
 import com.simisinc.platform.application.LoadUserCommand;
+import com.simisinc.platform.application.login.AuthenticateLoginCommand;
 import com.simisinc.platform.domain.events.cms.UserPasswordResetEvent;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.infrastructure.persistence.UserRepository;
 import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
-import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.controller.WidgetContext;
+import com.simisinc.platform.presentation.widgets.GenericWidget;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.validator.routines.EmailValidator;
 
 /**
- * Description
+ * Forgot Password widget
  *
  * @author matt rajkowski
  * @created 5/2/18 10:27 AM
@@ -62,12 +63,32 @@ public class ForgotPasswordWidget extends GenericWidget {
       return context;
     }
 
+    // Rate limiting
+    if (!AuthenticateLoginCommand.isUsernameAllowedRightNow(username, false)) {
+      context.setWarningMessage(AuthenticateLoginCommand.INVALID_ATTEMPTS);
+      return context;
+    }
+    if (!AuthenticateLoginCommand.isIpAllowedRightNow(context.getUserSession().getIpAddress(), false)) {
+      context.setWarningMessage(AuthenticateLoginCommand.INVALID_ATTEMPTS);
+      return context;
+    }
+
     // Locate the user
     User user = LoadUserCommand.loadUser(username);
     if (user == null) {
-      context.setWarningMessage("Check the username and try again");
+      if (!AuthenticateLoginCommand.isIpAllowedRightNow(context.getUserSession().getIpAddress(), true)) {
+        context.setWarningMessage(AuthenticateLoginCommand.INVALID_ATTEMPTS);
+      } else {
+        context.setWarningMessage("Check the username and try again");
+      }
       return context;
     }
+
+    // Record rate limiting
+    // Limit the number of attempts per username (system(s) attempting the same username)
+    // Limit the number of attempts per ip (a system attempting multiple users)
+    AuthenticateLoginCommand.isUsernameAllowedRightNow(username, true);
+    AuthenticateLoginCommand.isIpAllowedRightNow(context.getUserSession().getIpAddress(), true);
 
     // Make sure the user has a valid email address
     EmailValidator emailValidator = EmailValidator.getInstance(false);

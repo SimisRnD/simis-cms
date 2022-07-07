@@ -42,8 +42,8 @@ import java.util.Date;
  */
 public class AuthenticateLoginCommand {
 
-  private static final String INVALID_CREDENTIALS = "The account information provided did not match our records. Please try again.";
-  private static final String INVALID_ATTEMPTS = "Too many login attempts. Please try again later.";
+  public static final String INVALID_CREDENTIALS = "The account information provided did not match our records. Please try again.";
+  public static final String INVALID_ATTEMPTS = "Too many login attempts. Please try again later.";
 
   private static Log LOG = LogFactory.getLog(AuthenticateLoginCommand.class);
 
@@ -54,7 +54,7 @@ public class AuthenticateLoginCommand {
    * @param startWatching
    * @return
    */
-  private static boolean isUsernameAllowedRightNow(String username, boolean startWatching) {
+  public static boolean isUsernameAllowedRightNow(String username, boolean startWatching) {
     Cache cache = CacheManager.getCache(CacheManager.LOGIN_ATTEMPT_BY_USERNAME_CACHE);
     Bucket bucket = (Bucket) cache.getIfPresent(username);
     if (bucket == null) {
@@ -75,7 +75,7 @@ public class AuthenticateLoginCommand {
    * @param startWatching
    * @return
    */
-  private static boolean isIpAllowedRightNow(String ipAddress, boolean startWatching) {
+  public static boolean isIpAllowedRightNow(String ipAddress, boolean startWatching) {
     Cache cache = CacheManager.getCache(CacheManager.LOGIN_ATTEMPT_BY_IP_CACHE);
     Bucket bucket = (Bucket) cache.getIfPresent(ipAddress);
     if (bucket == null) {
