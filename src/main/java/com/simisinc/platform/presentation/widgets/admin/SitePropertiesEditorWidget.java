@@ -17,6 +17,7 @@
 package com.simisinc.platform.presentation.widgets.admin;
 
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.cms.ColorCommand;
 import com.simisinc.platform.domain.model.SiteProperty;
 import com.simisinc.platform.infrastructure.persistence.SitePropertyRepository;
 import com.simisinc.platform.presentation.controller.SqlTimestampConverter;
@@ -124,7 +125,7 @@ public class SitePropertiesEditorWidget extends GenericWidget {
           context.setErrorMessage(siteProperty.getLabel() + " has an invalid URL");
         }
       } else if ("color".equals(siteProperty.getType())) {
-        if (!newValue.startsWith("#") || newValue.length() != 7) {
+        if (!ColorCommand.isHexColor(newValue)) {
           context.setErrorMessage(siteProperty.getLabel() + " needs hex formatting value");
         }
       }
