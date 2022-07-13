@@ -24,5 +24,19 @@ CREATE TABLE datasets (
   records_path VARCHAR(255),
   schedule_type INTEGER DEFAULT NULL,
   scheduled_date TIMESTAMP,
-  last_download TIMESTAMP
+  last_download TIMESTAMP,
+  download_status INTEGER DEFAULT 0,
+  process_status INTEGER DEFAULT 0,
+  process_message TEXT,
+  schedule_enabled BOOLEAN DEFAULT false,
+  schedule_frequency INTERVAL DEFAULT '1D',
+  schedule_time TIME DEFAULT '03:00',
+  schedule_last_run TIMESTAMP(3),
+  sync_enabled BOOLEAN DEFAULT false,
+  sync_date TIMESTAMP(3),
+  sync_status INTEGER DEFAULT 0,
+  sync_message TEXT
 );
+
+CREATE INDEX datasets_sched_idx ON datasets(schedule_enabled);
+CREATE INDEX datasets_sync_idx ON datasets(sync_enabled);

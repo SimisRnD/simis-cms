@@ -44,7 +44,10 @@ CREATE TABLE items (
   archived_by BIGINT REFERENCES users(user_id),
   approved_by BIGINT REFERENCES users(user_id),
   approved TIMESTAMP(3) DEFAULT NULL,
-  source VARCHAR(255)
+  source VARCHAR(255),
+  dataset_record_id VARCHAR(255),
+  description TEXT,
+  description_text TEXT
 );
 CREATE INDEX items_col_id_idx ON items(collection_id);
 CREATE INDEX items_uni_id_idx ON items(unique_id);
@@ -72,7 +75,8 @@ begin
   new.tsv :=
           setweight(to_tsvector('title_stem', new.name), 'A') ||
           setweight(to_tsvector(coalesce(new.keywords,'')), 'B') ||
-          setweight(to_tsvector('title_stem', coalesce(new.summary,'')), 'D');
+          setweight(to_tsvector('title_stem', coalesce(new.summary,'')), 'C') ||
+          setweight(to_tsvector('title_stem', coalesce(new.description_text,'')), 'D');
   return new;
 end
 $$ LANGUAGE plpgsql;

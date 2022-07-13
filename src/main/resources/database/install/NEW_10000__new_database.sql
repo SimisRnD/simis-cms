@@ -293,13 +293,22 @@ CREATE TABLE users (
   city VARCHAR(100),
   state VARCHAR(100),
   country VARCHAR(100),
-  postal_code VARCHAR(100)
+  postal_code VARCHAR(100),
+  latitude FLOAT DEFAULT 0,
+  longitude FLOAT DEFAULT 0,
+  geom geometry(Point,4326),
+  description TEXT,
+  description_text TEXT,
+  image_url VARCHAR(255),
+  video_url VARCHAR(255),
+  field_values JSONB
 );
 CREATE UNIQUE INDEX users_lc_email ON users (LOWER(email));
 CREATE UNIQUE INDEX users_lc_username ON users (LOWER(username));
 CREATE INDEX users_act_token_idx ON users(account_token);
 CREATE INDEX users_created_idx ON users(created);
 CREATE INDEX users_unique_id ON users(unique_id);
+CREATE INDEX users_geom_gix ON users USING GIST (geom);
 
 CREATE TABLE user_roles (
   user_role_id BIGSERIAL PRIMARY KEY,
