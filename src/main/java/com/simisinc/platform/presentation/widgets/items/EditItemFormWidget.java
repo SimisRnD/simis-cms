@@ -19,13 +19,13 @@ package com.simisinc.platform.presentation.widgets.items;
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.cms.UrlCommand;
 import com.simisinc.platform.application.items.*;
+import com.simisinc.platform.domain.model.CustomField;
 import com.simisinc.platform.domain.model.items.Category;
 import com.simisinc.platform.domain.model.items.Collection;
 import com.simisinc.platform.domain.model.items.Item;
-import com.simisinc.platform.domain.model.items.ItemCustomField;
 import com.simisinc.platform.infrastructure.persistence.items.CategoryRepository;
-import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.controller.WidgetContext;
+import com.simisinc.platform.presentation.widgets.GenericWidget;
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.collections4.ListUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -164,11 +164,11 @@ public class EditItemFormWidget extends GenericWidget {
     // Check for custom fields (@todo load from the collection database)
 
 
-    itemBean.addCustomField(new ItemCustomField("contactName", "Contact Name", context.getParameter(context.getUniqueId() + "contactName")));
-    itemBean.addCustomField(new ItemCustomField("contactPhoneNumber", "Phone", context.getParameter(context.getUniqueId() + "contactPhoneNumber")));
-    itemBean.addCustomField(new ItemCustomField("contactEmail", "Email", context.getParameter(context.getUniqueId() + "contactEmail")));
-    itemBean.addCustomField(new ItemCustomField("numberOfEmployees", "# of employees", context.getParameter(context.getUniqueId() + "numberOfEmployees")));
-    itemBean.addCustomField(new ItemCustomField("numberOfYearsInBusiness", "# years in business", context.getParameter(context.getUniqueId() + "numberOfYearsInBusiness")));
+    itemBean.addCustomField(new CustomField("contactName", "Contact Name", context.getParameter(context.getUniqueId() + "contactName")));
+    itemBean.addCustomField(new CustomField("contactPhoneNumber", "Phone", context.getParameter(context.getUniqueId() + "contactPhoneNumber")));
+    itemBean.addCustomField(new CustomField("contactEmail", "Email", context.getParameter(context.getUniqueId() + "contactEmail")));
+    itemBean.addCustomField(new CustomField("numberOfEmployees", "# of employees", context.getParameter(context.getUniqueId() + "numberOfEmployees")));
+    itemBean.addCustomField(new CustomField("numberOfYearsInBusiness", "# years in business", context.getParameter(context.getUniqueId() + "numberOfYearsInBusiness")));
 
     // Save the item
     Item item = null;

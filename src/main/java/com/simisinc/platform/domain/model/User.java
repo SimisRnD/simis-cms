@@ -16,9 +16,11 @@
 
 package com.simisinc.platform.domain.model;
 
+import com.simisinc.platform.application.CustomFieldListCommand;
 import com.simisinc.platform.domain.model.login.UserLogin;
 
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -38,6 +40,9 @@ public class User extends Entity {
   private String organization = null;
   private String department = null;
   private String nickname = null;
+  private String description = null;
+  private String imageUrl = null;
+  private String videoUrl = null;
   private String email = null;
   private String username = null;
   private String password = null;
@@ -47,6 +52,8 @@ public class User extends Entity {
   private String state = null;
   private String country = null;
   private String postalCode = null;
+  private double latitude = 0.0;
+  private double longitude = 0.0;
 
   private boolean enabled = false;
   private String accountToken = null;
@@ -59,6 +66,8 @@ public class User extends Entity {
   private List<Role> roleList = null;
   private List<Group> groupList = null;
   private UserLogin lastLogin = null;
+
+  private List<CustomField> customFieldList = null;
 
   public User() {
   }
@@ -131,6 +140,30 @@ public class User extends Entity {
     this.nickname = nickname;
   }
 
+  public String getDescription() {
+    return description;
+  }
+
+  public void setDescription(String description) {
+    this.description = description;
+  }
+
+  public String getImageUrl() {
+    return imageUrl;
+  }
+
+  public void setImageUrl(String imageUrl) {
+    this.imageUrl = imageUrl;
+  }
+
+  public String getVideoUrl() {
+    return videoUrl;
+  }
+
+  public void setVideoUrl(String videoUrl) {
+    this.videoUrl = videoUrl;
+  }
+
   public String getEmail() {
     return email;
   }
@@ -193,6 +226,30 @@ public class User extends Entity {
 
   public void setPostalCode(String postalCode) {
     this.postalCode = postalCode;
+  }
+
+  public double getLatitude() {
+    return latitude;
+  }
+
+  public void setLatitude(double latitude) {
+    this.latitude = latitude;
+  }
+
+  public double getLongitude() {
+    return longitude;
+  }
+
+  public void setLongitude(double longitude) {
+    this.longitude = longitude;
+  }
+
+  public boolean hasGeoPoint() {
+    return (latitude != 0 && longitude != 0);
+  }
+
+  public boolean isGeocoded() {
+    return hasGeoPoint();
   }
 
   public boolean isEnabled() {
@@ -320,5 +377,20 @@ public class User extends Entity {
 
   public void setLastLogin(UserLogin lastLogin) {
     this.lastLogin = lastLogin;
+  }
+
+  public List<CustomField> getCustomFieldList() {
+    return customFieldList;
+  }
+
+  public void setCustomFieldList(List<CustomField> customFieldList) {
+    this.customFieldList = customFieldList;
+  }
+
+  public void addCustomField(CustomField customField) {
+    if (this.getCustomFieldList() == null) {
+      this.setCustomFieldList(new ArrayList<>());
+    }
+    CustomFieldListCommand.addCustomField(this.getCustomFieldList(), customField);
   }
 }

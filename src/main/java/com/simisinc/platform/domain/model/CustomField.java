@@ -14,19 +14,17 @@
  * limitations under the License.
  */
 
-package com.simisinc.platform.domain.model.items;
-
-import com.simisinc.platform.domain.model.Entity;
+package com.simisinc.platform.domain.model;
 
 import java.util.Map;
 
 /**
- * Additional custom information related to an item
+ * Additional custom information related to a record
  *
  * @author matt rajkowski
  * @created 8/9/18 3:26 PM
  */
-public class ItemCustomField extends Entity {
+public class CustomField extends Entity {
 
   final static long serialVersionUID = 8345648404174283569L;
 
@@ -39,16 +37,16 @@ public class ItemCustomField extends Entity {
   private String defaultValue = null;
   private String value = null;
 
-  public ItemCustomField() {
+  public CustomField() {
   }
 
-  public ItemCustomField(String name, String label, String value) {
+  public CustomField(String name, String label, String value) {
     this.name = name;
     this.label = label;
     this.value = value;
   }
 
-  public ItemCustomField(String name, String label, String type, String value) {
+  public CustomField(String name, String label, String type, String value) {
     this.name = name;
     this.label = label;
     this.type = type;

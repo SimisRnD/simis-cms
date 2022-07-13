@@ -16,8 +16,9 @@
 
 package com.simisinc.platform.infrastructure.persistence.items;
 
+import com.simisinc.platform.application.cms.HtmlCommand;
 import com.simisinc.platform.application.filesystem.FileSystemCommand;
-import com.simisinc.platform.application.items.ItemCustomFieldListJSONCommand;
+import com.simisinc.platform.application.CustomFieldListJSONCommand;
 import com.simisinc.platform.application.maps.ValidateGeoRegion;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.items.Collection;
@@ -107,7 +108,7 @@ public class ItemRepository {
       insertValues.addGeomPoint("geom", record.getLatitude(), record.getLongitude());
     }
     if (record.getCustomFieldList() != null && !record.getCustomFieldList().isEmpty()) {
-      insertValues.add(new SqlValue("field_values", SqlValue.JSONB_TYPE, ItemCustomFieldListJSONCommand.createJSONString(record)));
+      insertValues.add(new SqlValue("field_values", SqlValue.JSONB_TYPE, CustomFieldListJSONCommand.createJSONString(record.getCustomFieldList())));
     }
 
     // Use a transaction
@@ -183,7 +184,7 @@ public class ItemRepository {
     }
     // Handle custom fields
     if (record.getCustomFieldList() != null && !record.getCustomFieldList().isEmpty()) {
-      updateValues.add(new SqlValue("field_values", SqlValue.JSONB_TYPE, ItemCustomFieldListJSONCommand.createJSONString(record)));
+      updateValues.add(new SqlValue("field_values", SqlValue.JSONB_TYPE, CustomFieldListJSONCommand.createJSONString(record.getCustomFieldList())));
     } else {
       updateValues.add(new SqlValue("field_values", SqlValue.JSONB_TYPE, null));
     }
@@ -588,7 +589,7 @@ public class ItemRepository {
       record.setAssigned(rs.getTimestamp("assigned"));
       record.setImageUrl(rs.getString("image_url"));
       record.setCategoryId(DB.getLong(rs, "category_id", -1));
-      ItemCustomFieldListJSONCommand.populateFromJSONString(record, rs.getString("field_values"));
+      record.setCustomFieldList(CustomFieldListJSONCommand.populateFromJSONString(rs.getString("field_values")));
       record.setArchivedBy(DB.getLong(rs, "archived_by", -1));
       record.setApprovedBy(DB.getLong(rs, "approved_by", -1));
       record.setApproved(rs.getTimestamp("approved"));

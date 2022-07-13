@@ -19,10 +19,10 @@ package com.simisinc.platform.application.items;
 import com.simisinc.platform.application.admin.SendDataManagerEmailCommand;
 import com.simisinc.platform.application.email.EmailCommand;
 import com.simisinc.platform.application.maps.GeoIPCommand;
+import com.simisinc.platform.domain.model.CustomField;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.items.Category;
 import com.simisinc.platform.domain.model.items.Item;
-import com.simisinc.platform.domain.model.items.ItemCustomField;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -105,7 +105,7 @@ public class ItemCommand {
     appendEmailValue(textSb, listSb, "Description", item.getSummary());
 
     // Contact Info
-    for (ItemCustomField customField : item.getCustomFieldList()) {
+    for (CustomField customField : item.getCustomFieldList()) {
       appendEmailValue(textSb, listSb, customField.getName(), customField.getValue());
     }
 

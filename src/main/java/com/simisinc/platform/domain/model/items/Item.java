@@ -17,9 +17,9 @@
 package com.simisinc.platform.domain.model.items;
 
 import com.simisinc.platform.application.items.ItemAddressCommand;
+import com.simisinc.platform.application.CustomFieldListCommand;
+import com.simisinc.platform.domain.model.CustomField;
 import com.simisinc.platform.domain.model.Entity;
-import org.apache.commons.beanutils.BeanUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -79,7 +79,7 @@ public class Item extends Entity {
   private String keywords = null;
   private long assignedTo = -1;
   private Timestamp assigned = null;
-  private List<ItemCustomField> customFieldList = null;
+  private List<CustomField> customFieldList = null;
   private String source = null;
   private String ipAddress = null;
   private String highlight = null;
@@ -427,48 +427,19 @@ public class Item extends Entity {
     return ItemAddressCommand.toText(this);
   }
 
-  public List<ItemCustomField> getCustomFieldList() {
+  public List<CustomField> getCustomFieldList() {
     return customFieldList;
   }
 
-  public void setCustomFieldList(List<ItemCustomField> customFieldList) {
+  public void setCustomFieldList(List<CustomField> customFieldList) {
     this.customFieldList = customFieldList;
   }
 
-  public void addCustomField(ItemCustomField customField) {
-    if (customFieldList == null) {
-      customFieldList = new ArrayList<>();
+  public void addCustomField(CustomField customField) {
+    if (this.getCustomFieldList() == null) {
+      this.setCustomFieldList(new ArrayList<>());
     }
-    if (StringUtils.isNotBlank(customField.getValue())) {
-      boolean isNew = true;
-      List<ItemCustomField> duplicateList = new ArrayList<>();
-      for (ItemCustomField existingField : customFieldList) {
-        if (existingField.getName().equalsIgnoreCase(customField.getName())) {
-          if (!isNew) {
-            duplicateList.add(existingField);
-          } else {
-            try {
-              // Copy the properties over
-              BeanUtils.copyProperties(existingField, customField);
-              LOG.debug("Updated existing");
-            } catch (Exception e) {
-              LOG.error("Tried to copy properties from new field", e);
-            }
-            isNew = false;
-          }
-        }
-      }
-      if (isNew) {
-        LOG.debug("Added new");
-        customFieldList.add(customField);
-      }
-      if (!duplicateList.isEmpty()) {
-        for (ItemCustomField duplicate : duplicateList) {
-          LOG.debug("Removed duplicate");
-          customFieldList.remove(duplicate);
-        }
-      }
-    }
+    CustomFieldListCommand.addCustomField(this.getCustomFieldList(), customField);
   }
 
   public String getSource() {

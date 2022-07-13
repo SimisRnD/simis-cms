@@ -17,19 +17,19 @@
 package com.simisinc.platform.presentation.widgets.items;
 
 import com.simisinc.platform.application.items.LoadItemCommand;
+import com.simisinc.platform.domain.model.CustomField;
 import com.simisinc.platform.domain.model.items.Category;
 import com.simisinc.platform.domain.model.items.Item;
-import com.simisinc.platform.domain.model.items.ItemCustomField;
 import com.simisinc.platform.infrastructure.persistence.items.CategoryRepository;
+import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.widgets.cms.PreferenceEntriesList;
-import com.simisinc.platform.presentation.controller.WidgetContext;
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.text.DecimalFormat;
 import java.text.NumberFormat;
-import java.util.LinkedHashMap;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -57,7 +57,7 @@ public class ItemFieldsWidget extends GenericWidget {
     if (entriesList.isEmpty()) {
       return context;
     }
-    Map<String, String> fieldList = new LinkedHashMap<>();
+    List<CustomField> fieldList = new ArrayList<>();
     for (Map<String, String> valueMap : entriesList) {
       try {
         String label = valueMap.get("name");
@@ -116,7 +116,11 @@ public class ItemFieldsWidget extends GenericWidget {
             value = "http://" + value;
           }
         }
-        fieldList.put(label, value);
+        CustomField field = new CustomField();
+        field.setLabel(label);
+        field.setValue(value);
+        field.setType(type);
+        fieldList.add(field);
       } catch (Exception e) {
         LOG.error("Could not get property: " + e.getMessage());
       }
@@ -125,8 +129,8 @@ public class ItemFieldsWidget extends GenericWidget {
     // Show the custom fields if requested
     boolean showAllCustomFields = "true".equals(context.getPreferences().get("showAllCustomFields"));
     if (showAllCustomFields && item.getCustomFieldList() != null && !item.getCustomFieldList().isEmpty()) {
-      for (ItemCustomField customField : item.getCustomFieldList()) {
-        fieldList.put(customField.getName(), customField.getValue());
+      for (CustomField customField : item.getCustomFieldList()) {
+        fieldList.add(customField);
       }
     }
 

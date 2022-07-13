@@ -14,13 +14,12 @@
  * limitations under the License.
  */
 
-package com.simisinc.platform.application.items;
+package com.simisinc.platform.application;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.fge.jackson.JsonLoader;
 import com.simisinc.platform.application.json.JsonCommand;
-import com.simisinc.platform.domain.model.items.Item;
-import com.simisinc.platform.domain.model.items.ItemCustomField;
+import com.simisinc.platform.domain.model.CustomField;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -31,24 +30,24 @@ import java.util.Iterator;
 import java.util.List;
 
 /**
- * Encodes and decodes an item's custom fields
+ * Encodes and decodes custom fields
  *
  * @author matt rajkowski
  * @created 8/9/18 3:53 PM
  */
-public class ItemCustomFieldListJSONCommand {
+public class CustomFieldListJSONCommand {
 
-  private static Log LOG = LogFactory.getLog(ItemCustomFieldListJSONCommand.class);
+  private static Log LOG = LogFactory.getLog(CustomFieldListJSONCommand.class);
 
-  public static String createJSONString(Item record) {
-    if (record.getCustomFieldList() == null || record.getCustomFieldList().isEmpty()) {
+  public static String createJSONString(List<CustomField> customFieldList) {
+    if (customFieldList == null || customFieldList.isEmpty()) {
       LOG.debug("No fields found");
       return null;
     }
 
     StringBuilder sb = new StringBuilder();
     int count = 0;
-    for (ItemCustomField customField : record.getCustomFieldList()) {
+    for (CustomField customField : customFieldList) {
       if (count > 0) {
         sb.append(",");
       }
@@ -92,25 +91,25 @@ public class ItemCustomFieldListJSONCommand {
     return "[" + sb.toString() + "]";
   }
 
-  public static void populateFromJSONString(Item record, String jsonValue) throws SQLException {
+  public static List<CustomField> populateFromJSONString(String jsonValue) throws SQLException {
     // Convert JSON string back into values
     if (StringUtils.isBlank(jsonValue)) {
       LOG.debug("populateFromJSONString value is empty");
-      return;
+      return null;
     }
     try {
       JsonNode config = JsonLoader.fromString(jsonValue);
       if (!config.isArray()) {
         LOG.error("populateFromJSONString value is not an array");
-        return;
+        return null;
       }
 
       // Determine the values
-      List<ItemCustomField> customFieldList = new ArrayList<>();
+      List<CustomField> customFieldList = new ArrayList<>();
       Iterator<JsonNode> fields = config.elements();
       while (fields.hasNext()) {
         JsonNode node = fields.next();
-        ItemCustomField customField = new ItemCustomField();
+        CustomField customField = new CustomField();
         if (node.has("name")) {
           customField.setName(node.get("name").asText());
         }
@@ -129,7 +128,7 @@ public class ItemCustomFieldListJSONCommand {
         customFieldList.add(customField);
       }
       // Store in the record
-      record.setCustomFieldList(customFieldList);
+      return customFieldList;
     } catch (Exception e) {
       throw new SQLException("Could not convert from JSON", e.getMessage());
     }
