@@ -27,6 +27,11 @@
 <jsp:useBean id="calendarUniqueId" class="java.lang.String" scope="request"/>
 <jsp:useBean id="defaultView" class="java.lang.String" scope="request"/>
 <jsp:useBean id="height" class="java.lang.String" scope="request"/>
+<jsp:useBean id="showEvents" class="java.lang.String" scope="request"/>
+<jsp:useBean id="showHolidays" class="java.lang.String" scope="request"/>
+<jsp:useBean id="showMoodleEvents" class="java.lang.String" scope="request"/>
+<jsp:useBean id="moodleBackgroundColor" class="java.lang.String" scope="request"/>
+<jsp:useBean id="moodleTextColor" class="java.lang.String" scope="request"/>
 <%-- Full Calendar --%>
 <link rel="stylesheet" href="${ctx}/javascript/fullcalendar-5.11.0/main.min.css" />
 <link rel="stylesheet" href="${ctx}/css/platform-calendar.css?v=<%= VERSION %>" />
@@ -206,7 +211,9 @@
               return;
             }
             let detailsUrl = info.event.extendedProps.detailsUrl;
-            if (detailsUrl && detailsUrl.indexOf('/') === 0) {
+            if (detailsUrl && (detailsUrl.indexOf('http://') === 0 || detailsUrl.indexOf('https://') === 0)) {
+              window.open(detailsUrl, '_blank');
+            } else if (detailsUrl && detailsUrl.indexOf('/') === 0) {
               window.location.href='${ctx}' + detailsUrl + '?returnPage=${widgetContext.uri}';
             } else {
               window.location.href='${ctx}/calendar-event/' + info.event.extendedProps.uniqueId + '?returnPage=${widgetContext.uri}';
@@ -224,11 +231,27 @@
         $('#tooltip').hide();
       },
       eventSources: [
+        <c:if test="${showEvents eq 'true'}">
         {
-          url: '/json/calendar<c:if test="${!empty calendarUniqueId}">?calendarUniqueId=<c:out value="${calendarUniqueId}" /></c:if>',
+          url: '/json/calendar?showEvents=true<c:if test="${!empty calendarUniqueId}">&calendarUniqueId=<c:out value="${calendarUniqueId}" /></c:if>',
           color: '#999999',
           textColor: '#ffffff'
+        },
+        </c:if>
+        <c:if test="${showHolidays eq 'true'}">
+        {
+          url: '/json/calendar?showHolidays=true',
+          color: '#999999',
+          textColor: '#ffffff'
+        },
+        </c:if>
+        <c:if test="${showMoodleEvents eq 'true'}">
+        {
+          url: '/json/calendar?showMoodleEvents=true',
+          color: '${moodleBackgroundColor}',
+          textColor: '${moodleTextColor}'
         }
+        </c:if>
       ]
     });
     calendar.render();

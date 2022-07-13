@@ -18,6 +18,7 @@ package com.simisinc.platform.presentation.widgets.calendar;
 
 import com.simisinc.platform.application.AppException;
 import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.cms.ColorCommand;
 import com.simisinc.platform.application.cms.SaveCalendarEventCommand;
 import com.simisinc.platform.domain.events.cms.CalendarEventRemovedEvent;
 import com.simisinc.platform.domain.model.cms.Calendar;
@@ -70,6 +71,18 @@ public class CalendarWidget extends GenericWidget {
       context.getRequest().setAttribute("height", context.getPreferences().getOrDefault("height", null));
     }
     context.getRequest().setAttribute("defaultView", context.getPreferences().getOrDefault("default", "month"));
+    context.getRequest().setAttribute("showEvents", context.getPreferences().getOrDefault("showEvents", "true"));
+    context.getRequest().setAttribute("showHolidays", context.getPreferences().getOrDefault("showHolidays", "true"));
+    context.getRequest().setAttribute("showMoodleEvents", context.getPreferences().getOrDefault("showMoodleEvents", "false"));
+
+    String moodleBackgroundColor = context.getPreferences().getOrDefault("moodleBackgroundColor", "#D34601");
+    String moodleTextColor = context.getPreferences().getOrDefault("moodleTextColor", "#FFFFFF");
+    if (ColorCommand.isHexColor(moodleBackgroundColor)) {
+      context.getRequest().setAttribute("moodleBackgroundColor", moodleBackgroundColor);
+    }
+    if (ColorCommand.isHexColor(moodleTextColor)) {
+      context.getRequest().setAttribute("moodleTextColor", moodleTextColor);
+    }
     return context;
   }
 
