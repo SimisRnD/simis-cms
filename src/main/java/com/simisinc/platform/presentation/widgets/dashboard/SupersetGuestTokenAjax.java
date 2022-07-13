@@ -23,6 +23,8 @@ import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import org.apache.commons.lang3.StringUtils;
 
+import static com.simisinc.platform.presentation.widgets.dashboard.SupersetWidget.SESSION_PREFIX;
+
 /**
  * Provides a guestToken for the dashboard request
  *
@@ -46,7 +48,26 @@ public class SupersetGuestTokenAjax extends GenericWidget {
       return context;
     }
 
-    String guestToken = SupersetGuestTokenCommand.retrieveGuestTokenForDashboard(context.getUserSession().getUser(), dashboardId);
+    // Verify the request set a control value and optional rls statement
+    String widgetUniqueId = context.getParameter("widgetUniqueId");
+    if (widgetUniqueId == null) {
+      LOG.debug("Missing parameter: widgetUniqueId");
+      context.setJson("{}");
+      return context;
+    }
+    String widgetUniqueIdValue = (String) context.getRequest().getSession().getAttribute(SESSION_PREFIX + widgetUniqueId + dashboardId);
+    if (widgetUniqueIdValue == null || !widgetUniqueIdValue.equals(widgetUniqueId)) {
+      LOG.debug("Session value did not match for widgetUniqueId: " + widgetUniqueId);
+      context.setJson("{}");
+      return context;
+    }
+
+    // Determine the optional rls value
+    String rlsClause = (String) context.getRequest().getSession().getAttribute(SESSION_PREFIX + widgetUniqueId + dashboardId + "-rls-clause");
+    LOG.debug("Using rls-clause: " + rlsClause);
+
+    // Request the dashboard
+    String guestToken = SupersetGuestTokenCommand.retrieveGuestTokenForDashboard(context.getUserSession().getUser(), dashboardId, rlsClause);
     if (StringUtils.isBlank(guestToken)) {
       context.setJson("{}");
       return context;

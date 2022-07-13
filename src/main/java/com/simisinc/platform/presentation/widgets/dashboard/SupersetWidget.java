@@ -19,6 +19,7 @@ package com.simisinc.platform.presentation.widgets.dashboard;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * Renders a Superset dashboard using the superset embedded sdk
@@ -31,6 +32,8 @@ public class SupersetWidget extends GenericWidget {
   static final long serialVersionUID = -8484048371911908893L;
 
   public static String JSP = "/dashboard/superset-embedded.jsp";
+
+  public static String SESSION_PREFIX = "SupersetWidget";
 
   public WidgetContext execute(WidgetContext context) {
     boolean enabled = ("true".equals(LoadSitePropertyCommand.loadByName("bi.enabled", "false")));
@@ -49,6 +52,17 @@ public class SupersetWidget extends GenericWidget {
     context.getRequest().setAttribute("height", context.getPreferences().getOrDefault("height", "300px"));
     boolean hideChartControls = "true".equals(context.getPreferences().getOrDefault("hideChartControls", "true"));
     context.getRequest().setAttribute("hideChartControls", hideChartControls ? "true" : "false");
+
+    // Use a control session value to be used by Ajax
+    context.getRequest().getSession().setAttribute(SESSION_PREFIX + context.getUniqueId() + dashboardValue, context.getUniqueId());
+
+    // Share the RLS with the Ajax request
+    String rlsClause = context.getPreferences().get("clause");
+    if (StringUtils.isNotBlank(rlsClause)) {
+      context.getRequest().getSession().setAttribute(SESSION_PREFIX + context.getUniqueId() + dashboardValue + "-rls-clause", rlsClause);
+    } else {
+      context.getRequest().getSession().removeAttribute(SESSION_PREFIX + context.getUniqueId() + dashboardValue + "-rls-clause");
+    }
 
     context.setJsp(JSP);
     return context;

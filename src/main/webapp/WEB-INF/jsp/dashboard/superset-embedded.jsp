@@ -38,7 +38,7 @@
   function fetchGuestTokenFromBackend${widgetContext.uniqueId}() {
     return new Promise(function (resolve, reject) {
       $.ajax({
-        url: '/json/supersetGuestToken?dashboardId=<c:out value="${dashboardValue}" />',
+        url: '/json/supersetGuestToken?widgetUniqueId=${widgetContext.uniqueId}&dashboardId=<c:out value="${dashboardValue}" />',
         success: function (data) {
           resolve(data.guestToken);
         }

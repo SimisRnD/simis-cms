@@ -336,11 +336,15 @@ public class WidgetContext implements Serializable {
   }
 
   public boolean getParameterAsBoolean(String name) {
+    return getParameterAsBoolean(name, false);
+  }
+
+  public boolean getParameterAsBoolean(String name, boolean defaultValue) {
     String value = getParameter(name);
     if (value != null) {
       return ("on".equals(value) || "true".equals(value) || "yes".equals(value));
     }
-    return false;
+    return defaultValue;
   }
 
   public void addSharedRequestValue(String name, String value) {

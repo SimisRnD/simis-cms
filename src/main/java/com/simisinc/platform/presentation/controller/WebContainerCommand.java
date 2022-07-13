@@ -228,6 +228,8 @@ public class WebContainerCommand implements Serializable {
               value = StringUtils.replace(value, "${user.lastName:html}", StringEscapeUtils.escapeXml11(BeanUtils.getProperty(thisUser, "lastName")));
               value = StringUtils.replace(value, "${user.fullName}", BeanUtils.getProperty(thisUser, "fullName"));
               value = StringUtils.replace(value, "${user.fullName:html}", StringEscapeUtils.escapeXml11(BeanUtils.getProperty(thisUser, "fullName")));
+              value = StringUtils.replace(value, "${user.fullName:json}", StringEscapeUtils.escapeJson(BeanUtils.getProperty(thisUser, "fullName")));
+              value = StringUtils.replace(value, "${user.fullName:sql}", BeanUtils.getProperty(thisUser, "fullName").replaceAll("'", "''"));
             }
             if (value.contains("${request.")) {
               // @todo add while loop

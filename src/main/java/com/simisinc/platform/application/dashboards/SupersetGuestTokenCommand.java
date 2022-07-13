@@ -40,15 +40,15 @@ public class SupersetGuestTokenCommand {
 
   private static Log LOG = LogFactory.getLog(SupersetGuestTokenCommand.class);
 
-  public static String retrieveGuestTokenForDashboard(User user, String dashboardId) {
+  public static String retrieveGuestTokenForDashboard(User user, String dashboardId, String rlsValue) {
     OAuthToken oAuthToken = SupersetJWTCommand.retrieveAccessToken();
     if (oAuthToken == null) {
       return null;
     }
-    return retrieveGuestTokenForDashboard(oAuthToken, user, dashboardId);
+    return retrieveGuestTokenForDashboard(oAuthToken, user, dashboardId, rlsValue);
   }
 
-  public static String retrieveGuestTokenForDashboard(OAuthToken oAuthToken, User user, String dashboardId) {
+  public static String retrieveGuestTokenForDashboard(OAuthToken oAuthToken, User user, String dashboardId, String rlsClause) {
     String clientId = LoadSitePropertyCommand.loadByName("bi.superset.id");
     String secret = LoadSitePropertyCommand.loadByName("bi.superset.secret");
     if (StringUtils.isAnyBlank(clientId, secret)) {
@@ -66,10 +66,16 @@ public class SupersetGuestTokenCommand {
     resourcesArray.add(resourcesParameters);
 
     List<Object> rlsArray = new ArrayList<>();
-//    Map<String, Object> rls1 = new HashMap<>();
-//    rls1.put("clause", "string");
-//    rls1.put("dataset", 0);
-//    rlsArray.add(rls1);
+    if (StringUtils.isNotBlank(rlsClause)) {
+      Map<String, Object> rls = new HashMap<>();
+//      rls.put("filterType", "Regular|Base");
+//      rls.put("tables", "[public.all_entities]");
+//      rls.put("roles", "[Public]");
+//      rls.put("groupKey", "department = 'Finance' OR department = 'Marketing'");
+      rls.put("clause", rlsClause);
+//    rls.put("dataset", 0);
+      rlsArray.add(rls);
+    }
 
     Map<String, Object> userParameters = new HashMap<>();
     userParameters.put("first_name", user.getFirstName());
