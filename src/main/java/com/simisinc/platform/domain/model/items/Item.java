@@ -46,6 +46,7 @@ public class Item extends Entity {
   private String uniqueId = null;
   private String name = null;
   private String summary = null;
+  private String description = null;
   private long createdBy = -1;
   private Timestamp created = null;
   private long modifiedBy = -1;
@@ -148,6 +149,14 @@ public class Item extends Entity {
 
   public void setSummary(String summary) {
     this.summary = summary;
+  }
+
+  public String getDescription() {
+    return description;
+  }
+
+  public void setDescription(String description) {
+    this.description = description;
   }
 
   public long getCreatedBy() {

@@ -70,6 +70,8 @@ public class ItemRepository {
         .add("unique_id", StringUtils.trimToNull(record.getUniqueId()))
         .add("name", StringUtils.trimToNull(record.getName()))
         .add("summary", StringUtils.trimToNull(record.getSummary()))
+        .add("description", StringUtils.trimToNull(record.getDescription()))
+        .add("description_text", HtmlCommand.text(StringUtils.trimToNull(record.getDescription())))
         .add("created_by", record.getCreatedBy())
         .add("modified_by", record.getModifiedBy())
         .add("location_name", StringUtils.trimToNull(record.getLocation()))
@@ -140,6 +142,8 @@ public class ItemRepository {
         .add("unique_id", StringUtils.trimToNull(record.getUniqueId()))
         .add("name", StringUtils.trimToNull(record.getName()))
         .add("summary", StringUtils.trimToNull(record.getSummary()))
+        .add("description", StringUtils.trimToNull(record.getDescription()))
+        .add("description_text", HtmlCommand.text(StringUtils.trimToNull(record.getDescription())))
         .add("modified_by", record.getModifiedBy())
         .add("modified", new Timestamp(System.currentTimeMillis()))
         .add("location_name", StringUtils.trimToNull(record.getLocation()))
@@ -589,6 +593,7 @@ public class ItemRepository {
       record.setApprovedBy(DB.getLong(rs, "approved_by", -1));
       record.setApproved(rs.getTimestamp("approved"));
       record.setSource(rs.getString("source"));
+      record.setDescription(rs.getString("description"));
       if (DB.hasColumn(rs, "highlight")) {
         record.setHighlight(rs.getString("highlight"));
       }

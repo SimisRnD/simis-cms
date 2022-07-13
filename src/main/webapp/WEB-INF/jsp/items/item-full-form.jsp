@@ -22,6 +22,86 @@
 <jsp:useBean id="item" class="com.simisinc.platform.domain.model.items.Item" scope="request"/>
 <jsp:useBean id="categoryList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="cancelUrl" class="java.lang.String" scope="request"/>
+<script src="${ctx}/javascript/tinymce-5.7.0/tinymce.min.js"></script>
+<script>
+  tinymce.init({
+    selector: '#description',
+    branding: false,
+    width: '100%',
+    height: 300,
+    menubar: false,
+    relative_urls: false,
+    convert_urls: true,
+    browser_spellcheck: true,
+    plugins: [
+      'advlist autolink lists link image charmap print preview anchor textcolor hr',
+      'searchreplace visualblocks code',
+      'insertdatetime media table paste help wordcount'
+    ],
+    toolbar: 'link | image | media | table | undo redo |  formatselect | bold italic backcolor  | bullist numlist outdent indent hr | removeformat | visualblocks code | help',
+    image_class_list: [
+      {title: 'None', value: ''},
+      {title: 'Image Left/Wrap Text Right', value: 'image-left'},
+      {title: 'Image Right/Wrap Text left', value: 'image-right'},
+      {title: 'Image Center On Line', value: 'image-center'}
+    ]
+    // file_picker_types: 'file image media',
+    // default_link_target: '_blank',
+    // file_picker_callback: function (callback, value, meta) {
+    //   FileBrowser(value, meta.filetype, function (fileUrl) {
+    //     callback(fileUrl);
+    //   });
+    // },
+    <%--images_upload_url: '${ctx}/item-image-upload?widget=itemImageUpload1&token=${userSession.formToken}', // return { "location": "folder/sub-folder/new-location.png" }--%>
+    // paste_data_images: true,
+    // automatic_uploads: true
+  });
+
+  function FileBrowser(value, type, callback) {
+    // type will be: file, image, media
+    var cmsType = 'item-mage';
+    if (type === 'media') {
+      cmsType = 'item-video';
+    } else if (type === 'file') {
+      cmsType = 'item-file';
+    }
+    var cmsURL = '${ctx}/' + cmsType + '-browser';
+    const instanceApi = tinyMCE.activeEditor.windowManager.openUrl({
+      title: 'Browser',
+      url: cmsURL,
+      width: 850,
+      height: 650,
+      onMessage: function(dialogApi, details) {
+        callback(details.content);
+        instanceApi.close();
+      }
+    });
+    return false;
+  }
+</script>
+<%-- Handle item image uploads --%>
+<script>
+  function SavePhoto(e) {
+    var file = e.files[0]; // similar to: document.getElementById("file").files[0]
+    var formData = new FormData();
+    formData.append("file", file);
+    var xhr = new XMLHttpRequest();
+    xhr.onreadystatechange = function() {
+      if (this.readyState === 4) {
+        if (this.status === 200) {
+          var fileData = JSON.parse(this.responseText);
+          document.getElementById("imageUrl").value = fileData.location;
+          document.getElementById("imageUrlPreview").src = fileData.location;
+        } else {
+          document.getElementById("imageFile").value = "";
+          alert('There was an error with the file. Make sure to use a .jpg or .png');
+        }
+      }
+    };
+    xhr.open("POST", '${ctx}/item-image-upload?widget=itemImageUpload1&token=${userSession.formToken}');
+    xhr.send(formData);
+  }
+</script>
 <form method="post" autocomplete="off">
   <%-- Required by controller --%>
   <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
@@ -53,6 +133,12 @@
             Provide an optional summary for the item
             <textarea placeholder="optional description" name="summary" style="height:180px"><c:out value="${item.summary}"/></textarea>
           </label>
+          <p>
+            <label>
+              Provide an optional formatted description for the item
+              <textarea id="description" name="description"><c:out value="${item.description}"/></textarea>
+            </label>
+          </p>
         </div>
       </div>
     </div>
