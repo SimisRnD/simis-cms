@@ -46,9 +46,14 @@ public class MoodleApiClientCommand {
   public static final String GET_USERS_API = "core_user_get_users_by_field";
   public static final String GET_ENROLLED_USERS_API = "core_enrol_get_enrolled_users";
 
+  public static final String GET_CALENDAR_EVENTS = "core_calendar_get_calendar_events";
+  public static final String GET_CALENDAR_EVENT_BY_ID = "core_calendar_get_calendar_event_by_id";
+  public static final String GET_CALENDAR_EVENTS_BY_COURSES = "core_calendar_get_action_events_by_courses";
+
+
   public static JsonNode sendHttpGet(String wsFunction, Map<String, String> parameters) {
 
-    // Check the Moodle properties
+    // Check the API properties
     if (!ElearningCommand.isMoodleEnabled()) {
       LOG.debug("Moodle is not enabled");
       return null;
@@ -73,7 +78,7 @@ public class MoodleApiClientCommand {
       return null;
     }
 
-    // Generate the Moodle URL
+    // Generate the URL
     String url = serverUrl + "/webservice/rest/server.php" +
         "?wstoken=" + token +
         "&moodlewsrestformat=json" +
