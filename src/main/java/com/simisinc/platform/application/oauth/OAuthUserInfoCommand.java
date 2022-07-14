@@ -66,14 +66,27 @@ public class OAuthUserInfoCommand {
     LOG.debug("Determining user information...");
 
     // Find the user or create a new one
+    User user = null;
     String username = json.get("preferred_username").asText();
-    User user = UserRepository.findByUsername(username);
+    String email = null;
+    if (json.has("email")) {
+      email = json.get("email").asText();
+    }
+    // Search by optional email address first since that is a key
+    if (StringUtils.isNotBlank(email)) {
+      user = UserRepository.findByEmailAddress(email);
+    }
+    // Then try username
+    if (user == null) {
+      user = UserRepository.findByUsername(username);
+    }
     if (user == null) {
       user = new User();
-      user.setUsername(username);
     }
-    user.setModifiedBy(-1);
     // Update related values
+    user.setModifiedBy(-1);
+    user.setUsername(username);
+    user.setEmail(email);
     if (json.has("given_name")) {
       JsonNode node = json.get("given_name");
       user.setFirstName(node.asText());
@@ -81,10 +94,6 @@ public class OAuthUserInfoCommand {
     if (json.has("family_name")) {
       JsonNode node = json.get("family_name");
       user.setLastName(node.asText());
-    }
-    if (json.has("email")) {
-      JsonNode node = json.get("email");
-      user.setEmail(node.asText());
     }
     if (json.has("email_verified")) {
       JsonNode node = json.get("email_verified");
