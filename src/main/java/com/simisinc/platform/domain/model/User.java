@@ -18,6 +18,7 @@ package com.simisinc.platform.domain.model;
 
 import com.simisinc.platform.application.CustomFieldListCommand;
 import com.simisinc.platform.domain.model.login.UserLogin;
+import org.apache.commons.lang3.StringUtils;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;
@@ -105,7 +106,16 @@ public class User extends Entity {
   }
 
   public String getFullName() {
-    return firstName + " " + lastName;
+    if (StringUtils.isNoneBlank(firstName, lastName)) {
+      return firstName + " " + lastName;
+    }
+    if (StringUtils.isNotBlank(firstName)) {
+      return firstName;
+    }
+    if (StringUtils.isNotBlank(lastName)) {
+      return lastName;
+    }
+    return null;
   }
 
   public String getTitle() {
