@@ -38,7 +38,7 @@
           <uniqueId>${item.uniqueId}</uniqueId>
           <fields>
             <field name="Category" value="categoryList" />
-            <field name="Web Page" value="url" type="url" />
+            <field name="Resource Link" value="url" type="url" />
             <field name="Email" value="email" type="email" />
             <field name="Address" value="address" />
             <field name="County" value="county" />
