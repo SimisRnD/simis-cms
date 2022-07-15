@@ -27,20 +27,21 @@
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <c:forEach items="${fieldList}" var="field" varStatus="status">
-  <c:if test="${!empty field.label}">
-    <strong><c:out value="${field.label}"/></strong>:
-  </c:if>
-  <p>
   <c:choose>
     <c:when test="${'html' eq field.type}">
-      ${field.value}
+      <c:if test="${!empty field.label}">
+        <strong><c:out value="${field.label}"/></strong>:
+      </c:if>
+      <p>${field.value}</p>
     </c:when>
-    <c:when test="${fn:startsWith(field.value, 'http://') || fn:startsWith(field.value, 'https://')}">
-      <a href="${url:encode(field.value)}" target="_blank" rel="nofollow"><c:out value="${text:trim(field.value, 50, true)}"/></a>
+    <c:when test="${'url' eq field.type && (fn:startsWith(field.value, 'http://') || fn:startsWith(field.value, 'https://'))}">
+      <p><a class="button small no-gap" href="${url:encode(field.value)}" target="_blank" rel="nofollow">${field.label}</a></p>
     </c:when>
     <c:otherwise>
-      <c:out value="${field.value}"/>
+      <c:if test="${!empty field.label}">
+        <strong><c:out value="${field.label}"/></strong>:
+      </c:if>
+      <p><c:out value="${field.value}"/></p>
     </c:otherwise>
   </c:choose>
-  </p>
 </c:forEach>
