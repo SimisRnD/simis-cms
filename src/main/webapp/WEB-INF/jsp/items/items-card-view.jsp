@@ -32,6 +32,8 @@
 <jsp:useBean id="showIcon" class="java.lang.String" scope="request"/>
 <jsp:useBean id="showLink" class="java.lang.String" scope="request"/>
 <jsp:useBean id="useItemLink" class="java.lang.String" scope="request"/>
+<jsp:useBean id="useInfoLink" class="java.lang.String" scope="request"/>
+<jsp:useBean id="showActionLinks" class="java.lang.String" scope="request"/>
 <jsp:useBean id="showLaunchLink" class="java.lang.String" scope="request"/>
 <jsp:useBean id="launchLabel" class="java.lang.String" scope="request"/>
 <jsp:useBean id="isSearchResults" class="java.lang.String" scope="request"/>
@@ -97,11 +99,17 @@
             <c:when test="${showImage eq 'true' && !empty item.imageUrl}">
               <div class="card-top no-gap text-center image-browser" style="<c:out value="${categoryHeaderCSS}" />">
               <c:choose>
+                <c:when test="${showLink eq 'true'}">
+                  <img src="${item.imageUrl}" />
+                </c:when>
                 <c:when test="${useItemLink eq 'true' && !empty item.url && (fn:startsWith(item.url, 'http://') || fn:startsWith(item.url, 'https://'))}">
                   <a target="_blank" href="${item.url}"><img src="${item.imageUrl}" /></a>
                 </c:when>
-                <c:otherwise>
+                <c:when test="${useInfoLink eq 'true'}">
                   <a href="${ctx}/show/${item.uniqueId}"><img src="${item.imageUrl}" /></a>
+                </c:when>
+                <c:otherwise>
+                  <img src="${item.imageUrl}" />
                 </c:otherwise>
               </c:choose>
               </div>
@@ -117,8 +125,11 @@
                     <c:when test="${useItemLink eq 'true' && !empty item.url && (fn:startsWith(item.url, 'http://') || fn:startsWith(item.url, 'https://'))}">
                       <a target="_blank" href="${item.url}" style="<c:out value="${categoryHeaderCSS}" />"><i class="fa fa-4x fa-<c:out value="${thisIcon}" />"></i></a>
                     </c:when>
-                    <c:otherwise>
+                    <c:when test="${useInfoLink eq 'true'}">
                       <a href="${ctx}/show/${item.uniqueId}" style="<c:out value="${categoryHeaderCSS}" />"><i class="fa fa-4x fa-<c:out value="${thisIcon}" />"></i></a>
+                    </c:when>
+                    <c:otherwise>
+                      <p style="<c:out value="${categoryHeaderCSS}" />"><i class="fa fa-4x fa-<c:out value="${thisIcon}" />"></i></p>
                     </c:otherwise>
                   </c:choose>
                 </div>
@@ -134,8 +145,11 @@
                 <c:when test="${useItemLink eq 'true' && (fn:startsWith(item.url, 'http://') || fn:startsWith(item.url, 'https://'))}">
                   <a target="_blank" href="${item.url}"><c:out value="${item.name}"/></a>
                 </c:when>
-                <c:otherwise>
+                <c:when test="${useInfoLink eq 'true'}">
                   <a href="${ctx}/show/${item.uniqueId}"><c:out value="${item.name}" /></a>
+                </c:when>
+                <c:otherwise>
+                  <c:out value="${item.name}" />
                 </c:otherwise>
               </c:choose>
             </div>
@@ -159,16 +173,14 @@
                 </c:choose>
                 <c:out value="${category:name(item.categoryId)}" />
               </div>
-              <c:if test="${showLink eq 'false'}">
+              <c:if test="${showActionLinks eq 'true'}">
                 <div class="shrink cell item-url text-right">
-                  <c:choose>
-                    <c:when test="${useItemLink eq 'true' && !empty item.url && (fn:startsWith(item.url, 'http://') || fn:startsWith(item.url, 'https://'))}">
-                      <a target="_blank" href="${item.url}"><c:out value="${launchLabel}"/></a>
-                    </c:when>
-                    <c:otherwise>
-                      <a href="${ctx}/show/${item.uniqueId}">View</a>
-                    </c:otherwise>
-                  </c:choose>
+                  <c:if test="${useItemLink eq 'true' && !empty item.url && (fn:startsWith(item.url, 'http://') || fn:startsWith(item.url, 'https://'))}">
+                    <a target="_blank" href="${item.url}"><c:out value="${launchLabel}"/></a>
+                  </c:if>
+                  <c:if test="${useInfoLink eq 'true'}">
+                    <a href="${ctx}/show/${item.uniqueId}">Info</a>
+                  </c:if>
                 </div>
               </c:if>
             </div>
