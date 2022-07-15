@@ -37,6 +37,7 @@ public class SectionRenderInfo implements Serializable {
   private String htmlId = null;
   private String cssClass = null;
   private String cssStyle = null;
+  private boolean sticky = false;
   private boolean hr = false;
   private String videoBackgroundUrl = null;
 
@@ -47,6 +48,7 @@ public class SectionRenderInfo implements Serializable {
     this.htmlId = section.getHtmlId();
     this.cssClass = section.getCssClass();
     this.cssStyle = section.getCssStyle();
+    this.sticky = section.isSticky();
     this.hr = section.hasHr();
     this.videoBackgroundUrl = section.getVideoBackgroundUrl();
   }
@@ -77,6 +79,10 @@ public class SectionRenderInfo implements Serializable {
 
   public String getCssStyle() {
     return cssStyle;
+  }
+
+  public boolean isSticky() {
+    return sticky;
   }
 
   public boolean getHr() {

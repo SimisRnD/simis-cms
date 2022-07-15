@@ -40,6 +40,7 @@ public class Section implements Serializable {
   private String htmlId = null;
   private String cssClass = null;
   private String cssStyle = null;
+  private boolean sticky = false;
   private boolean hr = false;
   private String videoBackgroundUrl = null;
 
@@ -68,6 +69,14 @@ public class Section implements Serializable {
 
   public void setCssStyle(String cssStyle) {
     this.cssStyle = cssStyle;
+  }
+
+  public boolean isSticky() {
+    return sticky;
+  }
+
+  public void setSticky(boolean sticky) {
+    this.sticky = sticky;
   }
 
   public boolean hasHr() {

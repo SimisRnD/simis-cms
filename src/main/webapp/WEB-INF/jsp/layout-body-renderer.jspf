@@ -13,7 +13,7 @@
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
   --%>
-<c:set var="stickyMarginTop" scope="request" value="6"/>
+<c:set var="stickyMarginTop" scope="request" value="8"/>
 <article>
   <div class="${rendererClass}">
     <c:if test="${!fn:startsWith(pageRenderInfo.name, '/admin') && userSession.hasRole('admin')}">
@@ -24,19 +24,23 @@
       </div>
     </c:if>
     <c:forEach items="${pageRenderInfo.sectionRenderInfoList}" var="section" varStatus="sectionStatus">
+      <c:set var="sectionId" scope="request" value="random${sectionStatus.index}"/>
+      <c:if test="${!empty section.htmlId}">
+        <c:set var="section" scope="request" value="${section.htmlId}"/>
+      </c:if>
       <c:if test="${section.hr}">
         <hr />
       </c:if>
       <%-- Determine the section container CSS --%>
       <c:choose>
         <c:when test="${empty section.cssClass && fn:startsWith(pageRenderInfo.name, '/admin')}">
-          <div <c:if test="${!empty section.htmlId}">id="${section.htmlId}" </c:if>class="grid-x grid-padding-x"<c:if test="${!empty section.cssStyle}"> style="<c:out value="${section.cssStyle}" />"</c:if>>
+          <div id="${sectionId}" class="grid-x grid-padding-x"<c:if test="${!empty section.cssStyle}"> style="<c:out value="${section.cssStyle}" />"</c:if>>
         </c:when>
         <c:when test="${!empty section.cssClass && (fn:contains(section.cssClass,'grid') || fn:contains(section.cssClass,'platform-no-margin'))}">
-          <div <c:if test="${!empty section.htmlId}">id="${section.htmlId}" </c:if>class="${section.cssClass}"<c:if test="${!empty section.cssStyle}"> style="<c:out value="${section.cssStyle}" />"</c:if>>
+          <div id="${sectionId}" class="${section.cssClass}"<c:if test="${!empty section.cssStyle}"> style="<c:out value="${section.cssStyle}" />"</c:if>>
         </c:when>
         <c:otherwise>
-          <div class="full-container"<c:if test="${!empty section.htmlId}"> id="${section.htmlId}"</c:if><c:if test="${!empty section.cssStyle}"> style="<c:out value="${section.cssStyle}" />"</c:if>>
+          <div class="full-container" id="${sectionId}"<c:if test="${!empty section.cssStyle}"> style="<c:out value="${section.cssStyle}" />"</c:if>>
 <%--          <div class="full-container"<c:if test="${!empty section.htmlId}"> id="${section.htmlId}"</c:if>>--%>
             <div class="grid-container">
               <div class="grid-x grid-margin-x<c:if test="${!empty section.cssClass}"> ${section.cssClass}</c:if>">
@@ -67,6 +71,7 @@
             <div id="${columnId}" class="small-12 cell"<c:if test="${!empty column.cssStyle}"> style="<c:out value="${column.cssStyle}" />"</c:if><c:if test="${column.sticky}"> data-sticky-container</c:if>>
           </c:otherwise>
         </c:choose>
+        <c:if test="${section.sticky && column.sticky}"><div class="sticky" data-sticky data-sticky-on="medium" data-margin-top="${stickyMarginTop}" data-top-anchor="${columnId}:top" data-btm-anchor="platform-footer"></c:if>
         <c:forEach items="${column.widgetRenderInfoList}" var="widget">
           <c:if test="${widget.hr}">
             <hr />
@@ -87,6 +92,7 @@
             </c:otherwise>
           </c:choose>
         </c:forEach>
+        <c:if test="${section.sticky && column.sticky}"></div></c:if>
         </div>
       </c:forEach>
       <%-- Close the video background --%>
