@@ -179,9 +179,11 @@ public class ItemsListWidget extends GenericWidget {
     context.getRequest().setAttribute("showIcon", context.getPreferences().getOrDefault("showIcon", "false"));
     context.getRequest().setAttribute("showCategory", context.getPreferences().getOrDefault("showCategory", "false"));
     context.getRequest().setAttribute("showBullets", context.getPreferences().getOrDefault("showBullets", "false"));
+    context.getRequest().setAttribute("showActionLinks", context.getPreferences().getOrDefault("showActionLinks", "false"));
     context.getRequest().setAttribute("showLaunchLink", context.getPreferences().getOrDefault("showLaunchLink", "false"));
     context.getRequest().setAttribute("launchLabel", context.getPreferences().getOrDefault("launchLabel", "Launch"));
     context.getRequest().setAttribute("useItemLink", context.getPreferences().getOrDefault("useItemLink", "false"));
+    context.getRequest().setAttribute("useInfoLink", context.getPreferences().getOrDefault("useInfoLink", "true"));
 
     // Card size view preferences based on grid cells
     String smallGridCount = context.getPreferences().getOrDefault("smallGridCount", "6");

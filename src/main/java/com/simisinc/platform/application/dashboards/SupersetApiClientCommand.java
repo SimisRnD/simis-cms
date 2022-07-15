@@ -123,7 +123,8 @@ public class SupersetApiClientCommand {
       // Check for errors... HTTP/1.1 405 Method Not Allowed
       StatusLine statusLine = response.getStatusLine();
       if (statusLine.getStatusCode() > 299) {
-        LOG.error("HttpPost Error for URL (" + url + "): " + statusLine.getStatusCode() + " " + statusLine.getReasonPhrase());
+        LOG.error(
+            "HttpPost Error for URL (" + url + "): " + statusLine.getStatusCode() + " " + statusLine.getReasonPhrase());
       }
       return JsonLoader.fromString(remoteContent);
     } catch (Exception e) {
@@ -171,10 +172,18 @@ public class SupersetApiClientCommand {
 
     // Add any optional parameters
     if (parameters != null && !parameters.isEmpty()) {
+      boolean hasParam = url.contains("?");
+      StringBuilder sb = new StringBuilder();
       for (Map.Entry<String, String> set : parameters.entrySet()) {
-        url += (!url.contains("?") ? "?" : "&");
-        url += set.getKey() + "=" + set.getValue();
+        if (!hasParam) {
+          sb.append("?");
+          hasParam = true;
+        } else {
+          sb.append("&");
+        }
+        sb.append(set.getKey() + "=" + set.getValue());
       }
+      url += sb.toString();
     }
 
     // Send

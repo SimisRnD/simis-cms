@@ -99,7 +99,7 @@ public class XMLContainerCommands implements Serializable {
       }
       sections.add(section);
       LOG.trace("Adding section");
-      appendColumns(document, section.getColumns(), child.getChildNodes(), widgetLibrary);
+      appendColumns(document, section, section.getColumns(), child.getChildNodes(), widgetLibrary);
     }
 
     // Perform a 2nd pass on the children to see if there are widgets here (short form)
@@ -114,7 +114,7 @@ public class XMLContainerCommands implements Serializable {
       } else {
         // Perform a 3rd pass on the children to see if there are columns here (short form)
         Section indirectSection = new Section();
-        appendColumns(document, indirectSection.getColumns(), children, widgetLibrary);
+        appendColumns(document, indirectSection, indirectSection.getColumns(), children, widgetLibrary);
         if (!indirectSection.getColumns().isEmpty()) {
           sections.add(indirectSection);
         }
@@ -122,7 +122,7 @@ public class XMLContainerCommands implements Serializable {
     }
   }
 
-  private static void appendColumns(Document document, List<Column> columns, NodeList children, Map<String, String> widgetLibrary) {
+  private static void appendColumns(Document document, Section sectionInfo, List<Column> columns, NodeList children, Map<String, String> widgetLibrary) {
     // Process the columns
     int len = children.getLength();
     for (int i = 0; i < len; i++) {
@@ -157,6 +157,11 @@ public class XMLContainerCommands implements Serializable {
         String cssStyle = child.getAttribute("style");
         if (StringUtils.isNotBlank(cssStyle)) {
           column.setCssStyle(cssStyle);
+        }
+        String sticky = child.getAttribute("sticky");
+        if ("true".equals(sticky)) {
+          sectionInfo.setSticky(true);
+          column.setSticky(true);
         }
         if (child.hasAttribute("role")) {
           String aRoles = child.getAttribute("role");

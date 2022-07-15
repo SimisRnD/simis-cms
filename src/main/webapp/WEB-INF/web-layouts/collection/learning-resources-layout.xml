@@ -25,6 +25,15 @@
     <section>
       <column class="small-12 medium-7 cell">
         <widget name="itemFields" class="callout box">
+          <title>Details</title>
+          <uniqueId>${item.uniqueId}</uniqueId>
+          <fields>
+            <field value="description" type="html" />
+          </fields>
+        </widget>
+      </column>
+      <column class="small-12 medium-5 cell">
+        <widget name="itemFields" class="callout box">
           <title>Information</title>
           <uniqueId>${item.uniqueId}</uniqueId>
           <fields>
@@ -43,39 +52,16 @@
           <!--</customFields>-->
         </widget>
         <widget name="itemFields" class="callout box">
-          <title>Details</title>
+          <title>Summary</title>
           <uniqueId>${item.uniqueId}</uniqueId>
           <fields>
             <field value="summary" type="textarea" />
           </fields>
         </widget>
-        <widget name="itemFields" class="callout box">
-          <title>Details</title>
-          <uniqueId>${item.uniqueId}</uniqueId>
-          <fields>
-            <field value="description" type="html" />
-          </fields>
-        </widget>
-      </column>
-      <column class="small-12 medium-5 cell">
         <widget name="itemRelationshipsList" class="callout secondary">
           <title>Course Sessions – review for enrollment information</title>
-          <collectionUniqueId>courses</collectionUniqueId>
+          <collectionUniqueId>course-sessions</collectionUniqueId>
           <showWhenEmpty>false</showWhenEmpty>
-        </widget>
-        <widget name="itemsList" class="callout box">
-          <title>Nearest ${item.collection.name}...</title>
-          <showWhenEmpty>false</showWhenEmpty>
-          <nearbyItemUniqueId>${item.uniqueId}</nearbyItemUniqueId>
-          <collectionUniqueId>${item.collectionUniqueId}</collectionUniqueId>
-          <limit>10</limit>
-          <showPaging>false</showPaging>
-        </widget>
-        <widget name="map" class="callout box">
-          <latitude>${item.latitude}</latitude>
-          <longitude>${item.longitude}</longitude>
-          <markerTitle>${item.name}</markerTitle>
-          <markerText>${item.city}, ${item.state}</markerText>
         </widget>
       </column>
     </section>
