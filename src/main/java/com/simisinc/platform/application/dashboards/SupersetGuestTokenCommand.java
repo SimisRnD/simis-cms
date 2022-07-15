@@ -80,11 +80,7 @@ public class SupersetGuestTokenCommand {
     Map<String, Object> userParameters = new HashMap<>();
     userParameters.put("first_name", user.getFirstName());
     userParameters.put("last_name", user.getLastName());
-    if (StringUtils.isNotBlank(user.getUsername())) {
-      userParameters.put("username", user.getUsername());
-    } else {
-      userParameters.put("username", user.getEmail());
-    }
+    userParameters.put("username", clientId);
 
     // Construct the final jason node
     Map<String, Object> parameters = new HashMap<>();

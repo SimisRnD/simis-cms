@@ -57,7 +57,7 @@ public class SupersetGuestTokenAjax extends GenericWidget {
     }
     String widgetUniqueIdValue = (String) context.getRequest().getSession().getAttribute(SESSION_PREFIX + widgetUniqueId + dashboardId);
     if (widgetUniqueIdValue == null || !widgetUniqueIdValue.equals(widgetUniqueId)) {
-      LOG.debug("Session value did not match for widgetUniqueId: " + widgetUniqueId);
+      LOG.warn("Session value did not match for widgetUniqueId: " + widgetUniqueId);
       context.setJson("{}");
       return context;
     }
