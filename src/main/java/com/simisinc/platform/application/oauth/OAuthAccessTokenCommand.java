@@ -53,6 +53,7 @@ public class OAuthAccessTokenCommand {
     List<NameValuePair> params = new ArrayList<>();
     params.add(new BasicNameValuePair("grant_type", "authorization_code"));
     params.add(new BasicNameValuePair("code", code));
+//    params.add(new BasicNameValuePair("scope", "openid profile email"));
 
     JsonNode json = OAuthHttpCommand.sendHttpPost("protocol/openid-connect/token", params);
     if (json == null) {
@@ -79,7 +80,7 @@ public class OAuthAccessTokenCommand {
     return populateTokenFromJson(oAuthToken, json);
   }
 
-  private static OAuthToken populateTokenFromJson(OAuthToken oAuthToken, JsonNode json) {
+  public static OAuthToken populateTokenFromJson(OAuthToken oAuthToken, JsonNode json) {
     oAuthToken.setProvider("oauth");
     oAuthToken.setTokenType("bearer");
     if (json.has("access_token")) {
