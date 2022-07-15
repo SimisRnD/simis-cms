@@ -22,27 +22,32 @@
 <jsp:useBean id="searchName" class="java.lang.String" scope="request"/>
 <jsp:useBean id="searchLocation" class="java.lang.String" scope="request"/>
 <jsp:useBean id="categoryId" class="java.lang.String" scope="request"/>
+<jsp:useBean id="useAutoComplete" class="java.lang.String" scope="request"/>
 <jsp:useBean id="useLocation" class="java.lang.String" scope="request"/>
+<jsp:useBean id="showCategories" class="java.lang.String" scope="request"/>
 <form method="post" autocomplete="off">
   <%-- Required by controller --%>
   <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
   <input type="hidden" name="token" value="${userSession.formToken}"/>
   <%-- Form values --%>
+  <c:if test="${showCategories ne 'true' && !empty categoryId}">
+    <input type="hidden" name="categoryId${widgetContext.uniqueId}" value="${categoryId}">
+  </c:if>
   <%-- Title and Message block --%>
   <c:if test="${!empty title}">
     <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}"/></h4>
   </c:if>
   <%@include file="../page_messages.jspf" %>
   <%-- Form Content --%>
-  <label>Name
-    <input type="text" placeholder="Search by name..." id="name" name="name" value="<c:if test="${!empty searchName}"><c:out value="${searchName}" /></c:if>" autocomplete="off">
+  <label>Keyword
+    <input type="text" placeholder="Search by keyword..." id="name" name="name" value="<c:if test="${!empty searchName}"><c:out value="${searchName}" /></c:if>" autocomplete="off">
   </label>
   <c:if test="${useLocation eq 'true'}">
   <label>Location
     <input type="text" placeholder="Search near city, state" id="location" name="location" value="<c:if test="${!empty searchLocation}"><c:out value="${searchLocation}" /></c:if>" autocomplete="off">
   </label>
   </c:if>
-  <c:if test="${!empty categoryList}">
+  <c:if test="${showCategories eq 'true' && !empty categoryList}">
     <label>Category
       <select name="categoryId${widgetContext.uniqueId}">
         <option value="-1">All</option>
@@ -54,6 +59,7 @@
   </c:if>
   <p><input type="submit" class="button radius primary expanded" value="Search"/></p>
 </form>
+<c:if test="${useLocation eq 'true' or useAutoComplete eq 'true'}">
 <script>
   <c:if test="${useLocation eq 'true'}">
   <%-- Location --%>
@@ -69,7 +75,7 @@
   });
   </c:if>
 
-  <%-- Name --%>
+  <c:if test="${useAutoComplete eq 'true'}">
   var xhr${widgetContext.uniqueId}name;
   new autoComplete({
     selector: 'input[name="name"]',
@@ -92,4 +98,6 @@
       }
     }
   });
+  </c:if>
 </script>
+</c:if>
