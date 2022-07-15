@@ -132,15 +132,21 @@ public class SaveUserCommand {
         user.setUsername(userBean.getEmail());
       }
     }
+    user.setDescription(userBean.getDescription());
+    user.setImageUrl(userBean.getImageUrl());
+    user.setVideoUrl(userBean.getVideoUrl());
     user.setTitle(userBean.getTitle());
     user.setDepartment(userBean.getDepartment());
     user.setCity(userBean.getCity());
     user.setState(userBean.getState());
     user.setCountry(userBean.getCountry());
     user.setPostalCode(userBean.getPostalCode());
+    user.setLatitude(userBean.getLatitude());
+    user.setLongitude(userBean.getLongitude());
     user.setRoleList(userBean.getRoleList());
     user.setGroupList(userBean.getGroupList());
     user.setTimeZone(userBean.getTimeZone());
+    user.setCustomFieldList(userBean.getCustomFieldList());
     return UserRepository.save(user);
   }
 

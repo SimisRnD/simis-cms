@@ -16,7 +16,7 @@
   -->
 <pages>
 
-  <page name="_show_course-catalog_" itemUniqueId="/show/*">
+  <page name="_show_learning-resources_" itemUniqueId="/show/*">
     <section class="margin-bottom-15">
       <column class="small-12 cell">
         <widget name="itemMenu" />
@@ -47,6 +47,13 @@
           <uniqueId>${item.uniqueId}</uniqueId>
           <fields>
             <field value="summary" type="textarea" />
+          </fields>
+        </widget>
+        <widget name="itemFields" class="callout box">
+          <title>Details</title>
+          <uniqueId>${item.uniqueId}</uniqueId>
+          <fields>
+            <field value="description" type="html" />
           </fields>
         </widget>
       </column>

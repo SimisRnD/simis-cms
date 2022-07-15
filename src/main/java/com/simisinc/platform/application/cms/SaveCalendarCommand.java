@@ -50,12 +50,10 @@ public class SaveCalendarCommand {
       errorMessages.append("A name is required");
     }
     if (!StringUtils.isBlank(calendarBean.getColor())) {
-
       String color = calendarBean.getColor();
-      if (color.length() != 7 || !color.startsWith("#") || !StringUtils.isAlphanumeric(color.substring(1))) {
+      if (!ColorCommand.isHexColor(color)) {
         errorMessages.append("Color must be a hex value like #a1a1a1");
       }
-
     }
 
     if (errorMessages.length() > 0) {

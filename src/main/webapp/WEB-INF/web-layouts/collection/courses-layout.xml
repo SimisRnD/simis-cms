@@ -49,6 +49,13 @@
             <field value="summary" type="textarea" />
           </fields>
         </widget>
+        <widget name="itemFields" class="callout box">
+          <title>Details</title>
+          <uniqueId>${item.uniqueId}</uniqueId>
+          <fields>
+            <field value="description" type="html" />
+          </fields>
+        </widget>
       </column>
       <column class="small-12 medium-5 cell">
         <widget name="itemRelationshipsList" class="callout secondary">

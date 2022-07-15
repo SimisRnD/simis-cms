@@ -17,6 +17,7 @@
 package com.simisinc.platform.application.items;
 
 import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.cms.HtmlCommand;
 import com.simisinc.platform.application.cms.UrlCommand;
 import com.simisinc.platform.application.maps.CheckGeoPointCommand;
 import com.simisinc.platform.domain.model.items.Collection;
@@ -117,6 +118,9 @@ public class SaveItemCommand {
     // Check geocoding
     itemBean = CheckGeoPointCommand.updateGeoPoint(itemBean);
 
+    // Clean the content
+    String cleanedContent = HtmlCommand.cleanContent(itemBean.getDescription());
+
     // Transform the fields and store...
     Item item;
     if (itemBean.getId() > -1) {
@@ -150,6 +154,7 @@ public class SaveItemCommand {
     item.setCategoryIdList(itemBean.getCategoryIdList());
     item.setName(itemBean.getName());
     item.setSummary(itemBean.getSummary());
+    item.setDescription(cleanedContent);
     item.setLatitude(itemBean.getLatitude());
     item.setLongitude(itemBean.getLongitude());
     item.setLocation(itemBean.getLocation());

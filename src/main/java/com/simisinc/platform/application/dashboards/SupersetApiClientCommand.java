@@ -87,7 +87,7 @@ public class SupersetApiClientCommand {
     // Generate the URL
     String url = serverUrl + API_VERSION + endpoint;
 
-    // Send to Square
+    // Send to API
     try (CloseableHttpClient client = HttpClients.createDefault()) {
 
       HttpPost httpPost = new HttpPost(url);

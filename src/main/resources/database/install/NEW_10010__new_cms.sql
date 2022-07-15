@@ -356,8 +356,9 @@ CREATE OR REPLACE FUNCTION blog_posts_tsv_trigger() RETURNS trigger AS $$
 begin
   new.tsv :=
     setweight(to_tsvector('title_stem', new.title), 'A') ||
-    setweight(to_tsvector('title_stem', coalesce(new.summary,'')), 'B') ||
-    setweight(to_tsvector('title_stem', coalesce(new.body,'')), 'D');
+    setweight(to_tsvector(coalesce(new.keywords,'')), 'B') ||
+    setweight(to_tsvector('title_stem', coalesce(new.summary,'')), 'C') ||
+    setweight(to_tsvector('title_stem', coalesce(new.body_text,'')), 'D');
   return new;
 end
 $$ LANGUAGE plpgsql;

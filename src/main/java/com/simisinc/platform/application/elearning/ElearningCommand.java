@@ -66,14 +66,16 @@ public class ElearningCommand {
   public static boolean isPERLSEnabled() {
     boolean enabled = ("true".equals(LoadSitePropertyCommand.loadByName("elearning.perls.enabled", "false")));
     if (!enabled) {
+      LOG.debug("Not enabled");
       return false;
     }
     String url = LoadSitePropertyCommand.loadByName("elearning.perls.url");
     if (!UrlCommand.isUrlValid(url)) {
+      LOG.debug("Invalid URL");
       return false;
     }
     String clientId = LoadSitePropertyCommand.loadByName("elearning.perls.clientId");
-    String token = LoadSitePropertyCommand.loadByName("elearning.perls.token");
+    String token = LoadSitePropertyCommand.loadByName("elearning.perls.secret");
     return StringUtils.isNotBlank(url) && StringUtils.isNotBlank(clientId) && StringUtils.isNotBlank(token);
   }
 }

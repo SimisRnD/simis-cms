@@ -16,14 +16,15 @@
 
 package com.simisinc.platform.application.admin;
 
+import com.simisinc.platform.application.cms.HtmlCommand;
 import com.simisinc.platform.application.items.ItemPhoneNumberCommand;
 import com.simisinc.platform.application.items.SaveItemCommand;
 import com.simisinc.platform.application.maps.CheckGeoPointCommand;
+import com.simisinc.platform.domain.model.CustomField;
 import com.simisinc.platform.domain.model.datasets.Dataset;
 import com.simisinc.platform.domain.model.items.Category;
 import com.simisinc.platform.domain.model.items.Collection;
 import com.simisinc.platform.domain.model.items.Item;
-import com.simisinc.platform.domain.model.items.ItemCustomField;
 import com.simisinc.platform.domain.model.maps.WorldCity;
 import com.simisinc.platform.domain.model.maps.ZipCode;
 import com.simisinc.platform.infrastructure.persistence.items.CategoryRepository;
@@ -145,6 +146,10 @@ public class SaveDatasetRowCommand {
         } else {
           item.setSummary(item.getSummary() + ", " + value);
         }
+      } else if ("description".equals(mapping)) {
+        // Clean the content
+        String cleanedContent = HtmlCommand.cleanContent(value);
+        item.setDescription(cleanedContent);
       } else if ("geopoint".equals(mapping)) {
         // [lon, lat]
         if (value.contains(",")) {
@@ -212,7 +217,7 @@ public class SaveDatasetRowCommand {
         // @todo
       } else if ("custom".equals(mapping)) {
         String columnName = columnNames.get(i);
-        ItemCustomField customField = new ItemCustomField(columnName, columnName, value);
+        CustomField customField = new CustomField(columnName, columnName, value);
         item.addCustomField(customField);
       }
     }

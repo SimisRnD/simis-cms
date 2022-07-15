@@ -21,17 +21,20 @@
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="collection" class="com.simisinc.platform.domain.model.items.Collection" scope="request"/>
-<jsp:useBean id="fieldList" class="java.util.LinkedHashMap" scope="request"/>
+<jsp:useBean id="fieldList" class="java.util.ArrayList" scope="request"/>
 <c:if test="${!empty title}">
   <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <c:forEach items="${fieldList}" var="field" varStatus="status">
-  <c:if test="${!empty field.key}">
-    <strong><c:out value="${field.key}"/></strong>:
+  <c:if test="${!empty field.label}">
+    <strong><c:out value="${field.label}"/></strong>:
   </c:if>
   <p>
   <c:choose>
+    <c:when test="${'html' eq field.type}">
+      ${field.value}
+    </c:when>
     <c:when test="${fn:startsWith(field.value, 'http://') || fn:startsWith(field.value, 'https://')}">
       <a href="${url:encode(field.value)}" target="_blank" rel="nofollow"><c:out value="${text:trim(field.value, 50, true)}"/></a>
     </c:when>

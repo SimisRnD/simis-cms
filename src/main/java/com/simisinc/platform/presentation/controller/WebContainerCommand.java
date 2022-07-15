@@ -172,7 +172,9 @@ public class WebContainerCommand implements Serializable {
           for (String preference : widget.getPreferences().keySet()) {
             String value = widget.getPreferences().get(preference);
             // check for dynamic preferences
-            value = StringUtils.replace(value, "${ctx}", contextPath);
+            while (value.contains("${ctx}")) {
+              value = StringUtils.replace(value, "${ctx}", contextPath);
+            }
             if (value.contains("${platform.")) {
               value = StringUtils.replace(value, "${platform.name}", StringEscapeUtils.escapeXml11(ApplicationInfo.PRODUCT_NAME));
               value = StringUtils.replace(value, "${platform.url}", ApplicationInfo.PRODUCT_URL);
@@ -191,51 +193,37 @@ public class WebContainerCommand implements Serializable {
             }
             if (value.contains("${collection.") && coreData.containsKey("collectionUniqueId")) {
               Collection collection = LoadCollectionCommand.loadCollectionByUniqueId(coreData.get("collectionUniqueId"));
-              value = StringUtils.replace(value, "${collection.uniqueId}", BeanUtils.getProperty(collection, "uniqueId"));
-              value = StringUtils.replace(value, "${collection.name}", BeanUtils.getProperty(collection, "name"));
-              value = StringUtils.replace(value, "${collection.link}", BeanUtils.getProperty(collection, "listingsLink"));
-              value = StringUtils.replace(value, "${collection.listingsLink}", BeanUtils.getProperty(collection, "listingsLink"));
-              value = StringUtils.replace(value, "${collection.name:html}", StringEscapeUtils.escapeXml11(BeanUtils.getProperty(collection, "name")));
+              value = replaceVariable(value, "collection.uniqueId", collection, "uniqueId");
+              value = replaceVariable(value, "collection.name", collection, "name");
+              value = replaceVariable(value, "collection.link", collection, "listingsLink");
+              value = replaceVariable(value, "collection.listingsLink", collection, "listingsLink");
             }
             if (value.contains("${item.") && coreData.containsKey("itemUniqueId")) {
               Item item = LoadItemCommand.loadItemByUniqueId(coreData.get("itemUniqueId"));
               Collection collection = LoadCollectionCommand.loadCollectionById(item.getCollectionId());
-              value = StringUtils.replace(value, "${item.uniqueId}", BeanUtils.getProperty(item, "uniqueId"));
-              value = StringUtils.replace(value, "${item.name}", BeanUtils.getProperty(item, "name"));
-              value = StringUtils.replace(value, "${item.name:html}", StringEscapeUtils.escapeXml11(BeanUtils.getProperty(item, "name")));
-              value = StringUtils.replace(value, "${item.summary:toHtml}", HtmlCommand.textToHtml(BeanUtils.getProperty(item, "summary")));
-              value = StringUtils.replace(value, "${item.summary:html}", StringEscapeUtils.escapeXml11(BeanUtils.getProperty(item, "summary")));
-              value = StringUtils.replace(value, "${item.summary:html}", "");
-              value = StringUtils.replace(value, "${item.collectionUniqueId}", BeanUtils.getProperty(collection, "uniqueId"));
-              value = StringUtils.replace(value, "${item.collection.name}", BeanUtils.getProperty(collection, "name"));
-              value = StringUtils.replace(value, "${item.collection.link}", BeanUtils.getProperty(collection, "listingsLink"));
-              value = StringUtils.replace(value, "${item.collection.listingsLink}", BeanUtils.getProperty(collection, "listingsLink"));
-              value = StringUtils.replace(value, "${item.latitude}", BeanUtils.getProperty(item, "latitude"));
-              value = StringUtils.replace(value, "${item.longitude}", BeanUtils.getProperty(item, "longitude"));
-              value = StringUtils.replace(value, "${item.city}", BeanUtils.getProperty(item, "city"));
-              value = StringUtils.replace(value, "${item.state}", BeanUtils.getProperty(item, "state"));
-              value = StringUtils.replace(value, "${item.postalCode}", BeanUtils.getProperty(item, "postalCode"));
+              value = replaceVariable(value, "item.uniqueId", item, "uniqueId");
+              value = replaceVariable(value, "item.name", item, "name");
+              value = replaceVariable(value, "item.summary", item, "summary");
+              value = replaceVariable(value, "item.collectionUniqueId", collection, "uniqueId");
+              value = replaceVariable(value, "item.collection.name", collection, "name");
+              value = replaceVariable(value, "item.collection.link", collection, "listingsLink");
+              value = replaceVariable(value, "item.collection.listingsLink", collection, "listingsLink");
+              value = replaceVariable(value, "item.latitude", item, "latitude");
+              value = replaceVariable(value, "item.longitude", item, "longitude");
+              value = replaceVariable(value, "item.city", item, "city");
+              value = replaceVariable(value, "item.state", item, "state");
+              value = replaceVariable(value, "item.postalCode", item, "postalCode");
             }
             if (value.contains("${user.") && userSession.isLoggedIn()) {
-              // @todo make this dynamic and speedup
               User thisUser = LoadUserCommand.loadUser(userSession.getUserId());
-              value = StringUtils.replace(value, "${user.id}", BeanUtils.getProperty(thisUser, "id"));
-              value = StringUtils.replace(value, "${user.email}", BeanUtils.getProperty(thisUser, "email"));
-              value = StringUtils.replace(value, "${user.email:html}", StringEscapeUtils.escapeXml11(BeanUtils.getProperty(thisUser, "email")));
-              value = StringUtils.replace(value, "${user.firstName}", BeanUtils.getProperty(thisUser, "firstName"));
-              value = StringUtils.replace(value, "${user.firstName:html}", StringEscapeUtils.escapeXml11(BeanUtils.getProperty(thisUser, "firstName")));
-              value = StringUtils.replace(value, "${user.lastName}", BeanUtils.getProperty(thisUser, "lastName"));
-              value = StringUtils.replace(value, "${user.lastName:html}", StringEscapeUtils.escapeXml11(BeanUtils.getProperty(thisUser, "lastName")));
-              value = StringUtils.replace(value, "${user.fullName}", BeanUtils.getProperty(thisUser, "fullName"));
-              value = StringUtils.replace(value, "${user.fullName:html}", StringEscapeUtils.escapeXml11(BeanUtils.getProperty(thisUser, "fullName")));
+              value = replaceVariable(value, "user.id", thisUser, "id");
+              value = replaceVariable(value, "user.email", thisUser, "email");
+              value = replaceVariable(value, "user.firstName", thisUser, "firstName");
+              value = replaceVariable(value, "user.lastName", thisUser, "lastName");
+              value = replaceVariable(value, "user.fullName", thisUser, "fullName");
             }
-            if (value.contains("${request.")) {
-              // @todo add while loop
-              int idxStart = value.indexOf("${request.") + 10;
-              int idxEnd = value.indexOf("}", idxStart);
-              String requestParam = value.substring(idxStart, idxEnd);
-              String requestValue = widgetContext.getRequest().getParameter(requestParam);
-              value = StringUtils.replace(value, "${request." + requestParam + "}", requestValue);
+            while (value.contains("${request.")) {
+              value = replaceVariableWithParameterValue(request, value);
             }
             preferences.put(preference, value);
           }
@@ -465,5 +453,96 @@ public class WebContainerCommand implements Serializable {
       }
     }
     return false;
+  }
+
+  // replaceVariable("collection.uniqueId", value, collection, "uniqueId")
+  public static String replaceVariable(String content, String term, Object bean, String property) {
+
+    if (bean == null) {
+      return content;
+    }
+
+    // See if the term exists in the content
+    if (!content.contains("${" + term + "}") && !content.contains("${" + term + ":")) {
+      return content;
+    }
+
+    // Retrieve the bean's value
+    String replacementValue = null;
+    try {
+      replacementValue = BeanUtils.getProperty(bean, property);
+    } catch (Exception e) {
+      LOG.debug("Value not found for property: " + property);
+    }
+    if (StringUtils.isBlank(replacementValue)) {
+      LOG.debug("The bean did not have a value for the term: " + term + ", using blank value");
+      replacementValue = "";
+    }
+
+    // See if there is a requested encoding
+    int startIdx = content.indexOf("${" + term + "}");
+    int splitIdx = -1;
+    if (startIdx == -1) {
+      startIdx = content.indexOf("${" + term + ":");
+      splitIdx = content.indexOf(":", startIdx);
+    }
+    if (startIdx == -1) {
+      return content;
+    }
+    int endIdx = content.indexOf("}", startIdx);
+
+    String searchString = content.substring(startIdx, endIdx + 1);
+    if (splitIdx == -1) {
+      return StringUtils.replace(content, searchString, replacementValue);
+    }
+
+    // Use the encoding
+    String encoding = content.substring(splitIdx + 1, endIdx);
+    if ("html".equals(encoding)) {
+      replacementValue = StringEscapeUtils.escapeXml11(replacementValue);
+    } else if ("toHtml".equals(encoding)) {
+      replacementValue = HtmlCommand.textToHtml(replacementValue);
+    } else if ("json".equals(encoding)) {
+      replacementValue = StringEscapeUtils.escapeJson(replacementValue);
+    } else if ("sql".equals(encoding)) {
+      replacementValue = StringUtils.replace(replacementValue, "'", "''");
+    }
+    return StringUtils.replace(content, searchString, replacementValue);
+  }
+
+  public static String replaceVariableWithParameterValue(HttpServletRequest request, String content) {
+    // Determine the search string
+    int idxStart = content.indexOf("${request.");
+    int idxEnd = content.indexOf("}", idxStart);
+    if (idxEnd == -1) {
+      LOG.warn("variable not enclosed between {}");
+      idxEnd = content.length() - 1;
+    }
+    String searchString = content.substring(idxStart, idxEnd + 1);
+    // Determine the parameter and parameter value
+    String requestParam = content.substring(idxStart + "${request.".length(), idxEnd);
+    String encoding = null;
+    if (requestParam.contains(":")) {
+      int splitIdx = requestParam.indexOf(":");
+      encoding = requestParam.substring(splitIdx + 1);
+      requestParam = requestParam.substring(0, splitIdx);
+    }
+    String replacementValue = request.getParameter(requestParam);
+    if (StringUtils.isBlank(replacementValue)) {
+      LOG.debug("Parameter value not found for: " + requestParam);
+      replacementValue = "";
+    }
+
+    // Use the encoding
+    if ("html".equals(encoding)) {
+      replacementValue = StringEscapeUtils.escapeXml11(replacementValue);
+    } else if ("toHtml".equals(encoding)) {
+      replacementValue = HtmlCommand.textToHtml(replacementValue);
+    } else if ("json".equals(encoding)) {
+      replacementValue = StringEscapeUtils.escapeJson(replacementValue);
+    } else if ("sql".equals(encoding)) {
+      replacementValue = StringUtils.replace(replacementValue, "'", "''");
+    }
+    return StringUtils.replace(content, searchString, replacementValue);
   }
 }
