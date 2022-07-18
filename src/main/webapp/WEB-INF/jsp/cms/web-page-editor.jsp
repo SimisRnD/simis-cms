@@ -23,7 +23,7 @@
 <jsp:useBean id="menuTabList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="menuTab" class="com.simisinc.platform.domain.model.cms.MenuTab" scope="request"/>
 <link rel="stylesheet" href="${ctx}/css/platform-sitemap-editor.css?v=<%= VERSION %>" />
-<link rel="stylesheet" href="${ctx}/css/dragula-3.7.2/dragula.min.css"/>
+<link rel="stylesheet" href="${ctx}/javascript/dragula-3.7.3/dragula.min.css"/>
 <c:if test="${!empty title}">
   <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}"/></h4>
 </c:if>
@@ -120,7 +120,7 @@
 </form>
 
 
-<script src="${ctx}/javascript/dragula-3.7.2/dragula.min.js"></script>
+<script src="${ctx}/javascript/dragula-3.7.3/dragula.min.js"></script>
 <script>
   var menuTabs = dragula([document.querySelector('#site-map-container')], {
     direction: 'horizontal',
