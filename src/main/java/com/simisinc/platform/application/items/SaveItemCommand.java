@@ -104,6 +104,22 @@ public class SaveItemCommand {
         itemBean.setUrl(url);
       }
     }
+    if (StringUtils.isNotBlank(itemBean.getImageUrl())) {
+      // Format the URL
+      String url = itemBean.getImageUrl().trim();
+      if (!url.startsWith("http://") && !url.startsWith("https://")) {
+        url = "http://" + url;
+      }
+      // Validate the URL
+      if (!UrlCommand.isUrlValid(url)) {
+        if (errorMessages.length() > 0) {
+          errorMessages.append("\n");
+        }
+        errorMessages.append("The URL does not look valid");
+      } else {
+        itemBean.setImageUrl(url);
+      }
+    }
     if (StringUtils.isNotBlank(itemBean.getEmail())) {
       EmailValidator emailValidator = EmailValidator.getInstance(false);
       if (!emailValidator.isValid(itemBean.getEmail())) {
@@ -174,6 +190,7 @@ public class SaveItemCommand {
     item.setEndDate(itemBean.getEndDate());
     item.setExpirationDate(itemBean.getExpirationDate());
     item.setUrl(itemBean.getUrl());
+    item.setImageUrl(itemBean.getImageUrl());
     item.setBarcode(itemBean.getBarcode());
     item.setKeywords(itemBean.getKeywords());
     item.setCustomFieldList(itemBean.getCustomFieldList());

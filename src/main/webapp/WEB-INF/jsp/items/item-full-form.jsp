@@ -195,6 +195,18 @@
     <div class="grid-container">
       <div class="grid-x grid-padding-x">
         <div class="small-12 cell">
+          <label>Image URL
+            <div class="input-group">
+              <span class="input-group-label"><i class="fa fa-link"></i></span>
+              <input class="input-group-field" type="url" placeholder="http://" name="imageUrl" value="<c:out value="${item.imageUrl}"/>">
+            </div>
+          </label>
+        </div>
+      </div>
+    </div>
+    <div class="grid-container">
+      <div class="grid-x grid-padding-x">
+        <div class="small-12 cell">
           <label>Keywords
             <div class="input-group">
               <span class="input-group-label"><i class="fa fa-key"></i></span>
