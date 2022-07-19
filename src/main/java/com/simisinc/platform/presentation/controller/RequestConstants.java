@@ -24,6 +24,10 @@ package com.simisinc.platform.presentation.controller;
  */
 public class RequestConstants {
 
+  private RequestConstants() {
+    throw new IllegalStateException("Utility class");
+  }
+
   public static final String RENDER_TIME = "totalRenderTime";
 
   public static final String SHOW_MAIN_MENU = "controllerShowMainMenu";
