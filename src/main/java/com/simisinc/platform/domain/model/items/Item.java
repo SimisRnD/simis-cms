@@ -16,17 +16,18 @@
 
 package com.simisinc.platform.domain.model.items;
 
-import com.simisinc.platform.application.items.ItemAddressCommand;
-import com.simisinc.platform.domain.model.CustomField;
-import com.simisinc.platform.domain.model.Entity;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.Map;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import com.simisinc.platform.application.CustomFieldCommand;
+import com.simisinc.platform.application.items.ItemAddressCommand;
+import com.simisinc.platform.domain.model.CustomField;
+import com.simisinc.platform.domain.model.Entity;
 
 /**
  * A specific object within a collection used as a basis for information, sharing, and collaboration
@@ -436,21 +437,14 @@ public class Item extends Entity {
   }
 
   public void addCustomField(CustomField customField) {
-    if (this.getCustomFieldList() == null) {
-      this.setCustomFieldList(new HashMap<>());
+    if (customFieldList == null) {
+      customFieldList = new HashMap<>();
     }
-    if (StringUtils.isBlank(customField.getValue())) {
-      customFieldList.remove(customField.getName());
-    } else {
-      customFieldList.put(customField.getName(), customField);
-    }
+    CustomFieldCommand.addCustomFieldToList(customFieldList, customField);
   }
 
   public CustomField getCustomField(String name) {
-    if (customFieldList == null) {
-      return null;
-    }
-    return customFieldList.get(name);
+    return CustomFieldCommand.getCustomField(customFieldList, name);
   }
 
   public String getSource() {

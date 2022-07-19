@@ -19,6 +19,7 @@ package com.simisinc.platform.presentation.widgets.cms;
 import com.simisinc.platform.domain.model.SiteProperty;
 import com.simisinc.platform.application.cms.LoadMenuTabsCommand;
 import com.simisinc.platform.application.cms.ValidateUserAccessToWebPageCommand;
+import com.simisinc.platform.application.items.LoadCollectionCommand;
 import com.simisinc.platform.domain.model.cms.MenuItem;
 import com.simisinc.platform.domain.model.cms.MenuTab;
 import com.simisinc.platform.infrastructure.persistence.SitePropertyRepository;
@@ -101,6 +102,12 @@ public class MainMenuWidget extends GenericWidget {
       }
     }
     context.getRequest().setAttribute(RequestConstants.MASTER_MENU_TAB_LIST, menuTabListToUse);
+
+    // Check for a collection to match the title to
+    String collectionUniqueId = context.getCoreData().get("collectionUniqueId");
+    if (collectionUniqueId != null) {
+      context.getRequest().setAttribute("collection", LoadCollectionCommand.loadCollectionByUniqueId(collectionUniqueId));
+    }
 
     // Show the JSP
     if ("flat".equals(view)) {

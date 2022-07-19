@@ -17,6 +17,8 @@
 package com.simisinc.platform.application;
 
 import com.simisinc.platform.domain.model.CustomField;
+
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -75,5 +77,20 @@ public class CustomFieldCommand {
       LOG.error("Could not create custom field: " + e.getMessage());
     }
     return null;
+  }
+
+  public static void addCustomFieldToList(Map<String, CustomField> customFieldList, CustomField customField) {
+    if (StringUtils.isBlank(customField.getValue())) {
+      customFieldList.remove(customField.getName());
+    } else {
+      customFieldList.put(customField.getName(), customField);
+    }
+  }
+
+  public static CustomField getCustomField(Map<String, CustomField> customFieldList, String name) {
+    if (customFieldList == null) {
+      return null;
+    }
+    return customFieldList.get(name);
   }
 }
