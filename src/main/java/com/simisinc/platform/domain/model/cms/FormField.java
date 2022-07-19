@@ -39,6 +39,9 @@ public class FormField extends Entity {
   private String defaultValue = null;
   private String userValue = null;
 
+  public FormField() {
+  }
+
   public Long getId() {
     return id;
   }

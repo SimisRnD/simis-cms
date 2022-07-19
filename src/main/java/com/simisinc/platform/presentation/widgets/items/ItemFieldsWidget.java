@@ -16,22 +16,15 @@
 
 package com.simisinc.platform.presentation.widgets.items;
 
+import com.simisinc.platform.application.items.ItemCustomFieldCommand;
 import com.simisinc.platform.application.items.LoadItemCommand;
 import com.simisinc.platform.domain.model.CustomField;
-import com.simisinc.platform.domain.model.items.Category;
 import com.simisinc.platform.domain.model.items.Item;
-import com.simisinc.platform.infrastructure.persistence.items.CategoryRepository;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.widgets.cms.PreferenceEntriesList;
-import org.apache.commons.beanutils.BeanUtils;
-import org.apache.commons.lang3.StringUtils;
 
-import java.text.DecimalFormat;
-import java.text.NumberFormat;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Description
@@ -43,7 +36,7 @@ public class ItemFieldsWidget extends GenericWidget {
 
   static final long serialVersionUID = -8484048371911908893L;
 
-  static String JSP = "/items/item-fields.jsp";
+  static String JSP = "/portal/custom-fields.jsp";
 
   public WidgetContext execute(WidgetContext context) {
 
@@ -57,81 +50,14 @@ public class ItemFieldsWidget extends GenericWidget {
     if (entriesList.isEmpty()) {
       return context;
     }
-    List<CustomField> fieldList = new ArrayList<>();
-    for (Map<String, String> valueMap : entriesList) {
-      try {
-        String label = valueMap.get("name");
-        String objectParameter = valueMap.get("value");
-        String type = valueMap.get("type");
-        String value = null;
-        // Determine the values to show
-        if ("categoryList".equals(objectParameter)) {
-          List<Category> categoryList = CategoryRepository.findAllByItemId(item.getId());
-          if (!categoryList.isEmpty()) {
-            for (Category category : categoryList) {
-              if (value == null) {
-                value = category.getName();
-              } else {
-                value += "; " + category.getName();
-              }
-            }
-          }
-        } else {
-          value = BeanUtils.getProperty(item, objectParameter);
-        }
-        if (StringUtils.isBlank(value)) {
-          continue;
-        }
-        // Validate and format as needed
-        if ("url".equals(type)) {
-          // @verify the URL
-          if (!value.startsWith("http://") && !value.startsWith("https://")) {
-            value = "http://" + value;
-          }
-        } else if ("number".equals(type)) {
-          DecimalFormat decimalFormat = new DecimalFormat("0.#####");
-          value = decimalFormat.format(Double.valueOf(value));
-          if ("0".equals(value) || "0.0".equals(value) || "0.00".equals(value)) {
-            continue;
-          }
-        } else if ("currency".equals(type)) {
-          NumberFormat format = NumberFormat.getCurrencyInstance();
-          value = format.format(Double.valueOf(value));
-          if ("$0.00".equals(value)) {
-            continue;
-          }
-        } else if ("date".equals(type)) {
-          // 2018-08-13 11:00:00.0
-          if (value.contains(" ")) {
-            value = value.substring(0, value.indexOf(" "));
-          }
-        } else if ("dateTime".equals(type)) {
-          // 2018-08-13 11:00:00.0
-          if (value.contains(":00.0")) {
-            value = value.substring(0, value.indexOf(":00.0"));
-          }
-        } else if ("imageUrl".equals(type)) {
-          // @verify the URL
-          if (!value.startsWith("http://") && !value.startsWith("https://")) {
-            value = "http://" + value;
-          }
-        }
-        CustomField field = new CustomField();
-        field.setLabel(label);
-        field.setValue(value);
-        field.setType(type);
-        fieldList.add(field);
-      } catch (Exception e) {
-        LOG.error("Could not get property: " + e.getMessage());
-      }
-    }
+
+    // Use the fields preference to determine the object properties to be shown
+    List<CustomField> fieldList = ItemCustomFieldCommand.renderDisplayValues(entriesList, item);
 
     // Show the custom fields if requested
     boolean showAllCustomFields = "true".equals(context.getPreferences().get("showAllCustomFields"));
     if (showAllCustomFields && item.getCustomFieldList() != null && !item.getCustomFieldList().isEmpty()) {
-      for (CustomField customField : item.getCustomFieldList()) {
-        fieldList.add(customField);
-      }
+      fieldList.addAll(item.getCustomFieldList().values());
     }
 
     // Show the fields unless there are none

@@ -20,28 +20,32 @@
 <%@ taglib prefix="text" uri="/WEB-INF/text-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
-<jsp:useBean id="collection" class="com.simisinc.platform.domain.model.items.Collection" scope="request"/>
 <jsp:useBean id="fieldList" class="java.util.ArrayList" scope="request"/>
 <c:if test="${!empty title}">
   <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
 <%@include file="../page_messages.jspf" %>
+<table>
+  <tbody>
 <c:forEach items="${fieldList}" var="field" varStatus="status">
-  <c:choose>
-    <c:when test="${'html' eq field.type}">
-      <c:if test="${!empty field.label}">
-        <strong><c:out value="${field.label}"/></strong>:
-      </c:if>
-      <p>${field.value}</p>
-    </c:when>
-    <c:when test="${'url' eq field.type && (fn:startsWith(field.value, 'http://') || fn:startsWith(field.value, 'https://'))}">
-      <p><a class="button small no-gap" href="${url:encode(field.value)}" target="_blank" rel="nofollow">${field.label}</a></p>
-    </c:when>
-    <c:otherwise>
-      <c:if test="${!empty field.label}">
-        <strong><c:out value="${field.label}"/></strong>:
-      </c:if>
-      <p><c:out value="${field.value}"/></p>
-    </c:otherwise>
-  </c:choose>
+  <tr>
+    <td style="vertical-align: top">
+      <c:out value="${field.label}"/>
+    </td>
+    <td style="vertical-align: top">
+      <c:choose>
+        <c:when test="${'html' eq field.type}">
+          ${field.value}
+        </c:when>
+        <c:when test="${'url' eq field.type && (fn:startsWith(field.value, 'http://') || fn:startsWith(field.value, 'https://'))}">
+          <a href="${url:encode(field.value)}" target="_blank" rel="nofollow"><c:out value="${field.value}" /></a>
+        </c:when>
+        <c:otherwise>
+          <c:out value="${field.value}"/>
+        </c:otherwise>
+      </c:choose>
+    </td>
+  </tr>
 </c:forEach>
+  </tbody>
+</table>

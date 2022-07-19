@@ -105,7 +105,7 @@ public class ItemCommand {
     appendEmailValue(textSb, listSb, "Description", item.getSummary());
 
     // Contact Info
-    for (CustomField customField : item.getCustomFieldList()) {
+    for (CustomField customField : item.getCustomFieldList().values()) {
       appendEmailValue(textSb, listSb, customField.getName(), customField.getValue());
     }
 

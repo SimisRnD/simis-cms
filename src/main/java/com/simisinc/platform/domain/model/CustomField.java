@@ -26,7 +26,7 @@ import java.util.Map;
  */
 public class CustomField extends Entity {
 
-  final static long serialVersionUID = 8345648404174283569L;
+  static final long serialVersionUID = 8345648404174283569L;
 
   private String label = null;
   private String name = null;
@@ -34,6 +34,7 @@ public class CustomField extends Entity {
   private boolean isRequired = false;
   private String placeholder = null;
   private Map<String, String> listOfOptions = null;
+  private String property = null;
   private String defaultValue = null;
   private String value = null;
 
@@ -107,6 +108,14 @@ public class CustomField extends Entity {
 
   public void setListOfOptions(Map<String, String> listOfOptions) {
     this.listOfOptions = listOfOptions;
+  }
+
+  public String getProperty() {
+    return property;
+  }
+
+  public void setProperty(String property) {
+    this.property = property;
   }
 
   public String getDefaultValue() {

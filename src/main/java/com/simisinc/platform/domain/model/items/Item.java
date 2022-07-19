@@ -17,16 +17,16 @@
 package com.simisinc.platform.domain.model.items;
 
 import com.simisinc.platform.application.items.ItemAddressCommand;
-import com.simisinc.platform.application.CustomFieldListCommand;
 import com.simisinc.platform.domain.model.CustomField;
 import com.simisinc.platform.domain.model.Entity;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import java.math.BigDecimal;
 import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
  * A specific object within a collection used as a basis for information, sharing, and collaboration
@@ -79,7 +79,7 @@ public class Item extends Entity {
   private String keywords = null;
   private long assignedTo = -1;
   private Timestamp assigned = null;
-  private List<CustomField> customFieldList = null;
+  private Map<String, CustomField> customFieldList = null;
   private String source = null;
   private String ipAddress = null;
   private String highlight = null;
@@ -427,19 +427,30 @@ public class Item extends Entity {
     return ItemAddressCommand.toText(this);
   }
 
-  public List<CustomField> getCustomFieldList() {
+  public Map<String, CustomField> getCustomFieldList() {
     return customFieldList;
   }
 
-  public void setCustomFieldList(List<CustomField> customFieldList) {
+  public void setCustomFieldList(Map<String, CustomField> customFieldList) {
     this.customFieldList = customFieldList;
   }
 
   public void addCustomField(CustomField customField) {
     if (this.getCustomFieldList() == null) {
-      this.setCustomFieldList(new ArrayList<>());
+      this.setCustomFieldList(new HashMap<>());
     }
-    CustomFieldListCommand.addCustomField(this.getCustomFieldList(), customField);
+    if (StringUtils.isBlank(customField.getValue())) {
+      customFieldList.remove(customField.getName());
+    } else {
+      customFieldList.put(customField.getName(), customField);
+    }
+  }
+
+  public CustomField getCustomField(String name) {
+    if (customFieldList == null) {
+      return null;
+    }
+    return customFieldList.get(name);
   }
 
   public String getSource() {

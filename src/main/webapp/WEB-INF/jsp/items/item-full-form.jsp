@@ -25,7 +25,7 @@
 <script src="${ctx}/javascript/tinymce-5.7.0/tinymce.min.js"></script>
 <script>
   tinymce.init({
-    selector: '#description',
+    selector: '.html-field',
     branding: false,
     width: '100%',
     height: 300,
@@ -59,7 +59,7 @@
 
   function FileBrowser(value, type, callback) {
     // type will be: file, image, media
-    var cmsType = 'item-mage';
+    var cmsType = 'item-image';
     if (type === 'media') {
       cmsType = 'item-video';
     } else if (type === 'file') {
@@ -136,7 +136,7 @@
           <p>
             <label>
               Provide an optional formatted description for the item
-              <textarea id="description" name="description"><c:out value="${item.description}"/></textarea>
+              <textarea id="description" name="description" class="html-field"><c:out value="${item.description}"/></textarea>
             </label>
           </p>
         </div>
@@ -471,36 +471,48 @@
     --%>
 
     <c:if test="${!empty item.customFieldList}">
+    <h3>Additional Fields</h3>
     <div class="grid-container">
       <div class="grid-x grid-padding-x">
         <div class="small-12 cell">
-          <h3>Additional Fields</h3>
-      <c:forEach items="${item.customFieldList}" var="formField" varStatus="status">
-        <label><c:out value="${formField.label}"/>
-          <c:choose>
-            <c:when test="${!empty formField.listOfOptions}">
-              <select name="${widgetContext.uniqueId}<c:out value="${formField.name}"/>">
-                <option value="">&lt; Please Choose &gt;</option>
-                <c:forEach items="${formField.listOfOptions}" var="option">
-                  <option value="${option.key}"><c:out value="${option.value}" /></option>
-                </c:forEach>
-              </select>
-            </c:when>
-            <c:when test="${formField.type eq 'textarea'}">
-              <textarea name="${widgetContext.uniqueId}<c:out value="${formField.name}"/>"
-              <c:if test="${!empty formField.placeholder}"> placeholder="<c:out value="${formField.placeholder}" />"</c:if>
-              <c:if test="${formField.required}">required</c:if>><c:if test="${!empty formField.value}"><c:out value="${formField.value}" /></c:if></textarea>
-            </c:when>
-            <c:otherwise>
-              <input type="text"
-              <c:if test="${!empty formField.placeholder}"> placeholder="<c:out value="${formField.placeholder}" />"</c:if>
-                     name="${widgetContext.uniqueId}<c:out value="${formField.name}"/>"
-                     <c:if test="${!empty formField.value}">value="<c:out value="${formField.value}" />"</c:if>
-                     <c:if test="${formField.required}">required</c:if>>
-            </c:otherwise>
-          </c:choose>
-        </label>
-      </c:forEach>
+        <c:forEach items="${item.customFieldList.values()}" var="formField" varStatus="status">
+          <label><c:out value="${formField.label}"/><c:if test="${formField.required}"> <span class="required">*</span></c:if>
+            <c:choose>
+              <c:when test="${!empty formField.listOfOptions}">
+                <select id="${widgetContext.uniqueId}<c:out value="${formField.name}"/>" name="${widgetContext.uniqueId}<c:out value="${formField.name}"/>">
+                  <option value="">&lt; Please Choose &gt;</option>
+                  <c:forEach items="${formField.listOfOptions}" var="option">
+                    <c:choose>
+                      <c:when test="${option.value eq formField.value}">
+                        <option value="${option.key}" selected><c:out value="${option.value}" /></option>
+                      </c:when>
+                      <c:otherwise>
+                        <option value="${option.key}"><c:out value="${option.value}" /></option>
+                      </c:otherwise>
+                    </c:choose>
+                  </c:forEach>
+                </select>
+              </c:when>
+              <c:when test="${formField.type eq 'html'}">
+                <textarea id="${widgetContext.uniqueId}<c:out value="${formField.name}"/>" class="html-field" name="${widgetContext.uniqueId}<c:out value="${formField.name}"/>"
+                  <c:if test="${!empty formField.placeholder}"> placeholder="<c:out value="${formField.placeholder}" />"</c:if>
+                  <c:if test="${formField.required}">required</c:if>><c:if test="${!empty formField.value}"><c:out value="${formField.value}" /></c:if></textarea>
+              </c:when>
+              <c:when test="${formField.type eq 'textarea'}">
+                <textarea id="${widgetContext.uniqueId}<c:out value="${formField.name}"/>" name="${widgetContext.uniqueId}<c:out value="${formField.name}"/>"
+                  <c:if test="${!empty formField.placeholder}"> placeholder="<c:out value="${formField.placeholder}" />"</c:if>
+                  <c:if test="${formField.required}">required</c:if>><c:if test="${!empty formField.value}"><c:out value="${formField.value}" /></c:if></textarea>
+              </c:when>
+              <c:otherwise>
+                <input type="text"
+                  id="${widgetContext.uniqueId}<c:out value="${formField.name}"/>" name="${widgetContext.uniqueId}<c:out value="${formField.name}"/>"
+                  <c:if test="${!empty formField.placeholder}"> placeholder="<c:out value="${formField.placeholder}" />"</c:if>
+                  <c:if test="${!empty formField.value}">value="<c:out value="${formField.value}" />"</c:if>
+                  <c:if test="${formField.required}">required</c:if>>
+              </c:otherwise>
+            </c:choose>
+          </label>
+        </c:forEach>
         </div>
       </div>
     </div>
