@@ -34,9 +34,14 @@
   </c:if>
   $(document).ready(function() {
     $('#form${widgetContext.uniqueId} input:not([type="submit"])').keydown(function(e) {
-      if (e.keyCode == 13) {
+      if (e.keyCode === 13) {
           return false;
       }
+  });
+  $('textarea').keypress(function(event) {
+    if (event.keyCode === 13) {
+      event.preventDefault();
+    }
   });
 
   function checkForm${widgetContext.uniqueId}() {
@@ -87,7 +92,7 @@
         </select>
       </c:when>
       <c:when test="${formField.type eq 'textarea'}">
-        <textarea id="${widgetContext.uniqueId}<c:out value="${formField.name}"/>" name="${widgetContext.uniqueId}<c:out value="${formField.name}"/>"
+        <textarea id="${widgetContext.uniqueId}<c:out value="${formField.name}"/>" name="${widgetContext.uniqueId}<c:out value="${formField.name}"/>" style="height:120px"
             <c:if test="${!empty formField.placeholder}"> placeholder="<c:out value="${formField.placeholder}" />"</c:if>
             <c:if test="${formField.required}">required</c:if>><c:if test="${!empty formField.userValue}"><c:out value="${formField.userValue}" /></c:if></textarea>
       </c:when>
