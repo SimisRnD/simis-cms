@@ -286,6 +286,9 @@ public class UserProfile extends Entity {
   }
 
   public CustomField getCustomField(String name) {
+    if (customFieldList == null) {
+      return null;
+    }
     return customFieldList.get(name);
   }
 }
