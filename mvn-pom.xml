@@ -65,6 +65,7 @@
     <netty.version>4.1.78</netty.version>
     <postgresql.version>42.4.0</postgresql.version>
     <pushy.version>0.15.1</pushy.version>
+    <resilience4j.version>1.7.1</resilience4j.version>
     <restfb.version>2.24.0</restfb.version>
     <rome-rss.version>1.18.0</rome-rss.version>
     <slf4j.version>1.7.32</slf4j.version>
@@ -347,6 +348,11 @@
       <version>${postgresql.version}</version>
     </dependency>
     <dependency>
+      <groupId>io.github.resilience4j</groupId>
+      <artifactId>resilience4j-bulkhead</artifactId>
+      <version>${resilience4j.version}</version>
+    </dependency>
+    <dependency>
       <groupId>com.restfb</groupId>
       <artifactId>restfb</artifactId>
       <version>${restfb.version}</version>
@@ -573,6 +579,12 @@
         <groupId>org.jacoco</groupId>
         <artifactId>jacoco-maven-plugin</artifactId>
         <version>${maven-jacoco-plugin.version}</version>
+        <configuration>
+          <excludes>
+<!--            <exclude>**/com/simisinc/platform/infrastructure/persistence/**</exclude>-->
+            <exclude>**/com/simisinc/platform/**/ecommerce/**</exclude>
+          </excludes>
+        </configuration>
         <executions>
           <execution>
             <id>prepare-agent</id>
@@ -590,7 +602,7 @@
               <outputDirectory>${project.build.directory}/coverage-reports/jacoco</outputDirectory>
             </configuration>
           </execution>
-          <!--<execution>
+          <execution>
             <id>coverage-check</id>
             <phase>test</phase>
             <goals>
@@ -604,13 +616,13 @@
                     <limit>
                       <counter>COMPLEXITY</counter>
                       <value>COVEREDRATIO</value>
-                      <minimum>0.60</minimum>
+                      <minimum>0.20</minimum>
                     </limit>
                   </limits>
                 </rule>
               </rules>
             </configuration>
-          </execution>-->
+          </execution>
         </executions>
       </plugin>
     </plugins>

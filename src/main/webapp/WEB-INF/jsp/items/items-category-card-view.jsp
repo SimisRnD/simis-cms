@@ -77,8 +77,8 @@
             <div class="item-name">
               <a href="${ctx}/show/${item.uniqueId}"><c:out value="${item.name}" /></a>
             </div>
-            <c:if test="${!empty item.address}"><div class="item-city"><small><c:out value="${item.address}" /></small></div></c:if>
-            <c:if test="${!empty item.keywords}"><div class="item-keywords"><small><c:out value="${item.keywords}" /></small></div></c:if>
+            <c:if test="${showAddress eq 'true' && !empty item.address}"><div class="item-city"><small><c:out value="${item.address}" /></small></div></c:if>
+            <c:if test="${showKeywords eq 'true' && !empty item.keywords}"><div class="item-keywords"><small><c:out value="${item.keywords}" /></small></div></c:if>
           </div>
           <div class="card-bottom">
             <c:if test="${!empty collection:icon(item.collectionId)}">
