@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.simisinc</groupId>
   <artifactId>simis-cms</artifactId>
-  <version>20220531.10000-SNAPSHOT</version>
+  <version>20220718.10000-SNAPSHOT</version>
   <name>SimIS CMS</name>
   <description>Agile, Enterprise, Open Source Content Management System (CMS)</description>
   <url>https://www.simiscms.com</url>
@@ -555,6 +555,8 @@
         <artifactId>maven-war-plugin</artifactId>
         <version>${maven-war-plugin.version}</version>
         <configuration>
+          <webappDirectory>${project.build.directory}/exploded-war/ROOT</webappDirectory>
+          <archiveClasses>false</archiveClasses>
           <webResources>
             <resource>
               <directory>lib/build/easy-flows</directory>

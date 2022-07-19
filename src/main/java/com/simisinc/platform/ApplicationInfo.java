@@ -32,7 +32,7 @@ public class ApplicationInfo {
   // Use: Change the date, increment the decimal on same day updates
   // then reset back to 10000
   //                         VERSION = "--------.10000";
-  public static final String VERSION = "20220715.10000";
+  public static final String VERSION = "20220718.10000";
 
   public static void main(String args[]) {
     System.out.println("Version: " + VERSION);

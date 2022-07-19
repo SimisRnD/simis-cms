@@ -25,9 +25,9 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import java.sql.SQLException;
-import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
-import java.util.List;
+import java.util.Map;
 
 /**
  * Encodes and decodes custom fields
@@ -39,7 +39,7 @@ public class CustomFieldListJSONCommand {
 
   private static Log LOG = LogFactory.getLog(CustomFieldListJSONCommand.class);
 
-  public static String createJSONString(List<CustomField> customFieldList) {
+  public static String createJSONString(Map<String, CustomField> customFieldList) {
     if (customFieldList == null || customFieldList.isEmpty()) {
       LOG.debug("No fields found");
       return null;
@@ -47,7 +47,7 @@ public class CustomFieldListJSONCommand {
 
     StringBuilder sb = new StringBuilder();
     int count = 0;
-    for (CustomField customField : customFieldList) {
+    for (CustomField customField : customFieldList.values()) {
       if (count > 0) {
         sb.append(",");
       }
@@ -91,7 +91,7 @@ public class CustomFieldListJSONCommand {
     return "[" + sb.toString() + "]";
   }
 
-  public static List<CustomField> populateFromJSONString(String jsonValue) throws SQLException {
+  public static Map<String, CustomField> populateFromJSONString(String jsonValue) throws SQLException {
     // Convert JSON string back into values
     if (StringUtils.isBlank(jsonValue)) {
       LOG.debug("populateFromJSONString value is empty");
@@ -105,7 +105,7 @@ public class CustomFieldListJSONCommand {
       }
 
       // Determine the values
-      List<CustomField> customFieldList = new ArrayList<>();
+      Map<String, CustomField> customFieldList = new HashMap<>();
       Iterator<JsonNode> fields = config.elements();
       while (fields.hasNext()) {
         JsonNode node = fields.next();
@@ -125,7 +125,7 @@ public class CustomFieldListJSONCommand {
         if (node.has("value")) {
           customField.setValue(node.get("value").asText());
         }
-        customFieldList.add(customField);
+        customFieldList.put(customField.getName(), customField);
       }
       // Store in the record
       return customFieldList;

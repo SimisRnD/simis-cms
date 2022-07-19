@@ -71,12 +71,12 @@ class WebContainerCommandTest {
     // User information
     User user = new User();
     user.setId(1L);
-    user.setDescription("\"Goal\" of 75%");
+    user.setNickname("\"Goal\" of 75%");
 
-    String content = "<p>${user.description:html}</p>";
-    String term = "user.description";
+    String content = "<p>${user.nickname:html}</p>";
+    String term = "user.nickname";
     Object bean = user;
-    String property = "description";
+    String property = "nickname";
 
     String value = WebContainerCommand.replaceVariable(content, term, bean, property);
 
@@ -88,12 +88,12 @@ class WebContainerCommandTest {
     // User information
     User user = new User();
     user.setId(1L);
-    user.setDescription("\"Goal\" of 75%");
+    user.setNickname("\"Goal\" of 75%");
 
-    String content = "${user.description:toHtml}";
-    String term = "user.description";
+    String content = "${user.nickname:toHtml}";
+    String term = "user.nickname";
     Object bean = user;
-    String property = "description";
+    String property = "nickname";
 
     String value = WebContainerCommand.replaceVariable(content, term, bean, property);
 
@@ -105,16 +105,16 @@ class WebContainerCommandTest {
     // User information
     User user = new User();
     user.setId(1L);
-    user.setDescription("\"Goal\" of 75%");
+    user.setNickname("\"Goal\" of 75%");
 
-    String content = "{\"description\":\"${user.description:json}\"}";
-    String term = "user.description";
+    String content = "{\"nickname\":\"${user.nickname:json}\"}";
+    String term = "user.nickname";
     Object bean = user;
-    String property = "description";
+    String property = "nickname";
 
     String value = WebContainerCommand.replaceVariable(content, term, bean, property);
 
-    Assertions.assertEquals("{\"description\":\"\\\"Goal\\\" of 75%\"}", value);
+    Assertions.assertEquals("{\"nickname\":\"\\\"Goal\\\" of 75%\"}", value);
   }
 
   @Test

@@ -16,8 +16,6 @@
 
 package com.simisinc.platform.infrastructure.persistence;
 
-import com.simisinc.platform.application.CustomFieldListJSONCommand;
-import com.simisinc.platform.application.cms.HtmlCommand;
 import com.simisinc.platform.domain.model.Role;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.dashboard.StatisticsData;
@@ -265,9 +263,6 @@ public class UserRepository {
       insertValues.add("longitude", record.getLongitude());
       insertValues.addGeomPoint("geom", record.getLatitude(), record.getLongitude());
     }
-    if (record.getCustomFieldList() != null && !record.getCustomFieldList().isEmpty()) {
-      insertValues.add(new SqlValue("field_values", SqlValue.JSONB_TYPE, CustomFieldListJSONCommand.createJSONString(record.getCustomFieldList())));
-    }
     // Use a transaction
     try {
       try (Connection connection = DB.getConnection();
@@ -303,8 +298,6 @@ public class UserRepository {
         .add("last_name", StringUtils.trimToNull(record.getLastName()))
         .add("organization", StringUtils.trimToNull(record.getOrganization()))
         .add("nickname", StringUtils.trimToNull(record.getNickname()))
-        .add("description", StringUtils.trimToNull(record.getDescription()))
-        .add("description_text", HtmlCommand.text(StringUtils.trimToNull(record.getDescription())))
         .add("email", StringUtils.trimToNull(record.getEmail()))
         .add("username", StringUtils.trimToNull(record.getUsername()))
         .add("title", StringUtils.trimToNull(record.getTitle()))
@@ -314,8 +307,6 @@ public class UserRepository {
         .add("state", StringUtils.trimToNull(record.getState()))
         .add("country", StringUtils.trimToNull(record.getCountry()))
         .add("postal_code", StringUtils.trimToNull(record.getPostalCode()))
-        .add("image_url", StringUtils.trimToNull(record.getImageUrl()))
-        .add("video_url", StringUtils.trimToNull(record.getVideoUrl()))
         .add("modified_by", record.getModifiedBy(), -1)
         .add("modified", new Timestamp(System.currentTimeMillis()));
     if (record.hasGeoPoint()) {
@@ -326,12 +317,6 @@ public class UserRepository {
       updateValues.add("latitude", 0L, 0L);
       updateValues.add("longitude", 0L, 0L);
       updateValues.addGeomPoint("geom", 0, 0);
-    }
-    // Handle custom fields
-    if (record.getCustomFieldList() != null && !record.getCustomFieldList().isEmpty()) {
-      updateValues.add(new SqlValue("field_values", SqlValue.JSONB_TYPE, CustomFieldListJSONCommand.createJSONString(record.getCustomFieldList())));
-    } else {
-      updateValues.add(new SqlValue("field_values", SqlValue.JSONB_TYPE, null));
     }
     SqlUtils where = new SqlUtils()
         .add("user_id = ?", record.getId());
@@ -484,10 +469,6 @@ public class UserRepository {
       record.setPostalCode(rs.getString("postal_code"));
       record.setLatitude(rs.getDouble("latitude"));
       record.setLongitude(rs.getDouble("longitude"));
-      record.setDescription(rs.getString("description"));
-      record.setImageUrl(rs.getString("image_url"));
-      record.setVideoUrl(rs.getString("video_url"));
-      record.setCustomFieldList(CustomFieldListJSONCommand.populateFromJSONString(rs.getString("field_values")));
       return record;
     } catch (SQLException se) {
       LOG.error("buildRecord", se);

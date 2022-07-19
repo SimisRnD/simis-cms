@@ -16,19 +16,19 @@
 
 package com.simisinc.platform.domain.model;
 
-import com.simisinc.platform.domain.model.login.UserLogin;
 import org.apache.commons.lang3.StringUtils;
 
 import java.sql.Timestamp;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
 
 /**
- * User of the system
+ * Profile of a user of the system
  *
  * @author matt rajkowski
- * @created 4/8/18 4:18 PM
+ * @created 7/17/22 8:02 AM
  */
-public class User extends Entity {
+public class UserProfile extends Entity {
 
   private Long id = -1L;
   private String uniqueId = null;
@@ -39,10 +39,10 @@ public class User extends Entity {
   private String organization = null;
   private String department = null;
   private String nickname = null;
+  private String description = null;
+  private String imageUrl = null;
+  private String videoUrl = null;
   private String email = null;
-  private String username = null;
-  private String password = null;
-
   private String timeZone = null;
   private String city = null;
   private String state = null;
@@ -51,19 +51,14 @@ public class User extends Entity {
   private double latitude = 0.0;
   private double longitude = 0.0;
 
-  private boolean enabled = false;
-  private String accountToken = null;
-  private Timestamp validated = null;
   private long createdBy = -1;
   private long modifiedBy = -1;
   private Timestamp created = null;
   private Timestamp modified = null;
 
-  private List<Role> roleList = null;
-  private List<Group> groupList = null;
-  private UserLogin lastLogin = null;
+  private Map<String, CustomField> customFieldList = null;
 
-  public User() {
+  public UserProfile() {
   }
 
   public Long getId() {
@@ -143,28 +138,36 @@ public class User extends Entity {
     this.nickname = nickname;
   }
 
+  public String getDescription() {
+    return description;
+  }
+
+  public void setDescription(String description) {
+    this.description = description;
+  }
+
+  public String getImageUrl() {
+    return imageUrl;
+  }
+
+  public void setImageUrl(String imageUrl) {
+    this.imageUrl = imageUrl;
+  }
+
+  public String getVideoUrl() {
+    return videoUrl;
+  }
+
+  public void setVideoUrl(String videoUrl) {
+    this.videoUrl = videoUrl;
+  }
+
   public String getEmail() {
     return email;
   }
 
   public void setEmail(String email) {
     this.email = email;
-  }
-
-  public String getUsername() {
-    return username;
-  }
-
-  public void setUsername(String username) {
-    this.username = username;
-  }
-
-  public String getPassword() {
-    return password;
-  }
-
-  public void setPassword(String password) {
-    this.password = password;
   }
 
   public String getTimeZone() {
@@ -231,34 +234,6 @@ public class User extends Entity {
     return hasGeoPoint();
   }
 
-  public boolean isEnabled() {
-    return enabled;
-  }
-
-  public void setEnabled(boolean enabled) {
-    this.enabled = enabled;
-  }
-
-  public String getAccountToken() {
-    return accountToken;
-  }
-
-  public void setAccountToken(String accountToken) {
-    this.accountToken = accountToken;
-  }
-
-  public Timestamp getValidated() {
-    return validated;
-  }
-
-  public void setValidated(Timestamp validated) {
-    this.validated = validated;
-  }
-
-  public boolean isNotValidated() {
-    return validated == null;
-  }
-
   public long getCreatedBy() {
     return createdBy;
   }
@@ -291,70 +266,26 @@ public class User extends Entity {
     this.modified = modified;
   }
 
-  public List<Role> getRoleList() {
-    return roleList;
+  public Map<String, CustomField> getCustomFieldList() {
+    return customFieldList;
   }
 
-  public void setRoleList(List<Role> roleList) {
-    this.roleList = roleList;
+  public void setCustomFieldList(Map<String, CustomField> customFieldList) {
+    this.customFieldList = customFieldList;
   }
 
-  public boolean hasRole(String code) {
-    if (roleList == null) {
-      return false;
+  public void addCustomField(CustomField customField) {
+    if (customFieldList == null) {
+      customFieldList = new HashMap<>();
     }
-    for (Role role : roleList) {
-      if (role.getCode().equals(code)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  public Role getRole(String code) {
-    if (roleList == null) {
-      return null;
-    }
-    for (Role role : roleList) {
-      if (role.getCode().equals(code)) {
-        return role;
-      }
-    }
-    return null;
-  }
-
-  public void removeRole(String code) {
-    Role role = getRole(code);
-    if (role != null) {
-      roleList.remove(role);
+    if (StringUtils.isBlank(customField.getValue())) {
+      customFieldList.remove(customField.getName());
+    } else {
+      customFieldList.put(customField.getName(), customField);
     }
   }
 
-  public List<Group> getGroupList() {
-    return groupList;
-  }
-
-  public void setGroupList(List<Group> groupList) {
-    this.groupList = groupList;
-  }
-
-  public boolean hasGroup(String groupUniqueId) {
-    if (groupList == null) {
-      return false;
-    }
-    for (Group group : groupList) {
-      if (group.getUniqueId().equals(groupUniqueId)) {
-        return true;
-      }
-    }
-    return false;
-  }
-
-  public UserLogin getLastLogin() {
-    return lastLogin;
-  }
-
-  public void setLastLogin(UserLogin lastLogin) {
-    this.lastLogin = lastLogin;
+  public CustomField getCustomField(String name) {
+    return customFieldList.get(name);
   }
 }

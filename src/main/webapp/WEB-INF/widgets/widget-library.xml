@@ -81,6 +81,9 @@
   <widget name="myAccountDetails" class="com.simisinc.platform.presentation.widgets.userProfile.MyAccountDetailsWidget" />
   <widget name="myEmailPreferences" class="com.simisinc.platform.presentation.widgets.userProfile.MyEmailPreferencesWidget" />
   <widget name="myOrderHistory" class="com.simisinc.platform.presentation.widgets.userProfile.MyOrderHistoryWidget" />
+  <widget name="myProfileInfo" class="com.simisinc.platform.presentation.widgets.userProfile.MyProfileInfoWidget" />
+<!--  <widget name="myProfileImage" class="com.simisinc.platform.presentation.widgets.userProfile.MyProfileImageWidget" />-->
+  <widget name="editMyProfile" class="com.simisinc.platform.presentation.widgets.userProfile.EditMyProfileFormWidget" />
   <!-- E-Commerce Features -->
   <widget name="productBrowser" class="com.simisinc.platform.presentation.widgets.ecommerce.ProductBrowserWidget" />
 <!--  <widget name="productPrice" class="com.simisinc.platform.presentation.widgets.ecommerce.ProductPriceWidget" />-->

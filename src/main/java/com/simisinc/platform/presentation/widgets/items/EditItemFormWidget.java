@@ -126,6 +126,10 @@ public class EditItemFormWidget extends GenericWidget {
     if (itemBean == null) {
       return null;
     }
+    Item previousBean = LoadItemCommand.loadItemById(itemBean.getId());
+    if (previousBean == null) {
+      return null;
+    }
 
     // See if the user group can edit any item in this collection
     boolean canEditItem = CheckCollectionPermissionCommand.userHasEditPermission(itemBean.getCollectionId(), userId);
@@ -161,9 +165,21 @@ public class EditItemFormWidget extends GenericWidget {
     itemBean.setCategoryId(mainCategoryId);
     itemBean.setCategoryIdList(categoryIdList.toArray(new Long[0]));
 
+    // Check the request for custom fields
+    if (previousBean.getCustomFieldList() != null) {
+      for (CustomField field : previousBean.getCustomFieldList().values()) {
+        String parameterName = context.getUniqueId() + field.getName();
+        String parameterValue = context.getParameter(parameterName);
+        if ("list".equals(field.getType()) && field.getListOfOptions() != null) {
+          field.setValue(field.getListOfOptions().get(parameterValue));
+        } else {
+          field.setValue(parameterValue);
+        }
+        itemBean.addCustomField(field);
+      }
+    }
+
     // Check for custom fields (@todo load from the collection database)
-
-
     itemBean.addCustomField(new CustomField("contactName", "Contact Name", context.getParameter(context.getUniqueId() + "contactName")));
     itemBean.addCustomField(new CustomField("contactPhoneNumber", "Phone", context.getParameter(context.getUniqueId() + "contactPhoneNumber")));
     itemBean.addCustomField(new CustomField("contactEmail", "Email", context.getParameter(context.getUniqueId() + "contactEmail")));
@@ -175,9 +191,9 @@ public class EditItemFormWidget extends GenericWidget {
     try {
       item = SaveItemCommand.saveItem(itemBean);
       if (item == null) {
-        throw new CategoryException("Your information could not be saved due to a system error. Please try again.");
+        throw new DataException("Your information could not be saved due to a system error. Please try again.");
       }
-    } catch (DataException | CategoryException e) {
+    } catch (DataException e) {
       context.setErrorMessage(e.getMessage());
       context.setRequestObject(itemBean);
       return context;

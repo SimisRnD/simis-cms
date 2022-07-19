@@ -18,6 +18,7 @@ package com.simisinc.platform.application.cms;
 
 import com.simisinc.platform.domain.model.cms.FormField;
 import com.simisinc.platform.presentation.widgets.cms.PreferenceEntriesList;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -34,7 +35,7 @@ import java.util.Map;
  */
 public class FormFieldCommand {
 
-  private static final String ALLOWED_CHARS = "abcdefghijklmnopqrstuvwyxz1234567890";
+  private static final String ALLOWED_CHARS = "abcdefghijklmnopqrstuvwyxz1234567890-";
   private static Log LOG = LogFactory.getLog(FormFieldCommand.class);
 
   public static List<FormField> parseFieldContent(String uniqueFormId, PreferenceEntriesList entriesList) {
@@ -90,7 +91,10 @@ public class FormFieldCommand {
   }
 
 
-  private static String generateHtmlName(String fieldName, List<String> nameList) {
+  public static String generateHtmlName(String fieldName, List<String> nameList) {
+    if (StringUtils.isBlank(fieldName)) {
+      return null;
+    }
     // Create a new one
     StringBuilder sb = new StringBuilder();
     String name = fieldName.toLowerCase();

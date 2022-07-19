@@ -132,9 +132,6 @@ public class SaveUserCommand {
         user.setUsername(userBean.getEmail());
       }
     }
-    user.setDescription(userBean.getDescription());
-    user.setImageUrl(userBean.getImageUrl());
-    user.setVideoUrl(userBean.getVideoUrl());
     user.setTitle(userBean.getTitle());
     user.setDepartment(userBean.getDepartment());
     user.setCity(userBean.getCity());
@@ -146,7 +143,6 @@ public class SaveUserCommand {
     user.setRoleList(userBean.getRoleList());
     user.setGroupList(userBean.getGroupList());
     user.setTimeZone(userBean.getTimeZone());
-    user.setCustomFieldList(userBean.getCustomFieldList());
     return UserRepository.save(user);
   }
 
