@@ -35,6 +35,7 @@
 <jsp:useBean id="useInfoLink" class="java.lang.String" scope="request"/>
 <jsp:useBean id="showActionLinks" class="java.lang.String" scope="request"/>
 <jsp:useBean id="showLaunchLink" class="java.lang.String" scope="request"/>
+<jsp:useBean id="infoLabel" class="java.lang.String" scope="request"/>
 <jsp:useBean id="launchLabel" class="java.lang.String" scope="request"/>
 <jsp:useBean id="isSearchResults" class="java.lang.String" scope="request"/>
 <jsp:useBean id="searchName" class="java.lang.String" scope="request"/>
@@ -175,11 +176,11 @@
               </div>
               <c:if test="${showActionLinks eq 'true'}">
                 <div class="shrink cell item-url text-right">
-                  <c:if test="${useItemLink eq 'true' && !empty item.url && (fn:startsWith(item.url, 'http://') || fn:startsWith(item.url, 'https://'))}">
+                  <c:if test="${showLaunchLink eq 'true' && useItemLink eq 'true' && !empty item.url && (fn:startsWith(item.url, 'http://') || fn:startsWith(item.url, 'https://'))}">
                     <a target="_blank" href="${item.url}"><c:out value="${launchLabel}"/></a>
                   </c:if>
                   <c:if test="${useInfoLink eq 'true'}">
-                    <a href="${ctx}/show/${item.uniqueId}">Info</a>
+                    <a href="${ctx}/show/${item.uniqueId}"><c:out value="${infoLabel}"/></a>
                   </c:if>
                 </div>
               </c:if>
