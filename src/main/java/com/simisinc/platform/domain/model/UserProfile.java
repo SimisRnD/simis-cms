@@ -16,6 +16,7 @@
 
 package com.simisinc.platform.domain.model;
 
+import com.simisinc.platform.application.CustomFieldCommand;
 import org.apache.commons.lang3.StringUtils;
 
 import java.sql.Timestamp;
@@ -278,17 +279,10 @@ public class UserProfile extends Entity {
     if (customFieldList == null) {
       customFieldList = new HashMap<>();
     }
-    if (StringUtils.isBlank(customField.getValue())) {
-      customFieldList.remove(customField.getName());
-    } else {
-      customFieldList.put(customField.getName(), customField);
-    }
+    CustomFieldCommand.addCustomFieldToList(customFieldList, customField);
   }
 
   public CustomField getCustomField(String name) {
-    if (customFieldList == null) {
-      return null;
-    }
-    return customFieldList.get(name);
+    return CustomFieldCommand.getCustomField(customFieldList, name);
   }
 }
