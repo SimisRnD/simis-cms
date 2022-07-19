@@ -22,6 +22,7 @@
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="masterMenuTabList" class="java.util.ArrayList" scope="request"/>
+<jsp:useBean id="collection" class="com.simisinc.platform.domain.model.items.Collection" scope="request"/>
 <jsp:useBean id="webPage" class="com.simisinc.platform.domain.model.cms.WebPage" scope="request"/>
 <jsp:useBean id="pagePath" class="java.lang.String" scope="request"/>
 <jsp:useBean id="useHighlight" class="java.lang.String" scope="request"/>
@@ -36,6 +37,9 @@
         <c:set var="isParent" scope="request" value="false"/>
         <c:if test="${useHighlight eq 'true'}">
           <c:if test="${menuTab.link eq pagePath}">
+            <c:set var="isParent" scope="request" value="true"/>
+          </c:if>
+          <c:if test="${!empty collection && fn:toLowerCase(collection.name) eq fn:toLowerCase(menuTab.name)}">
             <c:set var="isParent" scope="request" value="true"/>
           </c:if>
           <c:forEach items="${menuTab.menuItemList}" var="menuItem">
@@ -62,10 +66,11 @@
                   </div>
                 </li>
 --%>
-
-
           </ul>
         </li>
+      </c:when>
+      <c:when test="${!empty collection && fn:toLowerCase(collection.name) eq fn:toLowerCase(menuTab.name)}">
+        <li class="is-standalone active"><a href="${ctx}${menuTab.link}"><c:if test="${!empty menuTab.icon}"><i class="${font:fas()} fa-fw fa-<c:out value="${menuTab.icon}" />"></i> </c:if><c:out value="${menuTab.name}" /></a></li>
       </c:when>
       <c:otherwise>
         <li class="is-standalone<c:if test="${useHighlight eq 'true' && (menuTab.link eq pagePath || (menuTab.link ne '/' && fn:startsWith(pagePath, menuTab.link)))}"> active</c:if>"><a href="${ctx}${menuTab.link}"><c:if test="${!empty menuTab.icon}"><i class="${font:fas()} fa-fw fa-<c:out value="${menuTab.icon}" />"></i> </c:if><c:out value="${menuTab.name}" /></a></li>
