@@ -41,17 +41,17 @@ public class PERLSApiClientCommand {
 
   private static Log LOG = LogFactory.getLog(PERLSApiClientCommand.class);
 
-  public static String PACKAGE_API = "/node/learn_package";
-  public static String ARTICLE_API = "/node/learn_article";
-  public static String COURSE_API = "/node/course";
-  public static String EVENT_API = "/node/event";
-  public static String FLASH_CARD_API = "/node/flash_card";
-  public static String LINK_API = "/node/learn_link";
-  public static String PODCAST_API = "/node/podcast";
-  public static String PODCAST_EPISODE_API = "/node/podcast_episode";
-  public static String QUIZ_API = "/node/quiz";
-  public static String TIP_CARD_API = "/node/tip_card";
-  public static String TAXONOMY_TERM_API = "/taxonomy_term/category";
+  public static final String PACKAGE_API = "/node/learn_package";
+  public static final String ARTICLE_API = "/node/learn_article";
+  public static final String COURSE_API = "/node/course?include=field_media_image.field_media_image,field_tags&fields[file--file]=uri";
+  public static final String EVENT_API = "/node/event";
+  public static final String FLASH_CARD_API = "/node/flash_card";
+  public static final String LINK_API = "/node/learn_link";
+  public static final String PODCAST_API = "/node/podcast";
+  public static final String PODCAST_EPISODE_API = "/node/podcast_episode";
+  public static final String QUIZ_API = "/node/quiz";
+  public static final String TIP_CARD_API = "/node/tip_card";
+  public static final String TAXONOMY_TERM_API = "/taxonomy_term/category";
 
 
   public static String sendHttpGetToString(String wsFunction, Map<String, String> parameters) {
