@@ -18,6 +18,7 @@ package com.simisinc.platform.application.cms;
 
 import com.simisinc.platform.domain.model.cms.FormField;
 import com.simisinc.platform.presentation.widgets.cms.PreferenceEntriesList;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -91,6 +92,9 @@ public class FormFieldCommand {
 
 
   public static String generateHtmlName(String fieldName, List<String> nameList) {
+    if (StringUtils.isBlank(fieldName)) {
+      return null;
+    }
     // Create a new one
     StringBuilder sb = new StringBuilder();
     String name = fieldName.toLowerCase();
