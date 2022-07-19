@@ -31,6 +31,8 @@
 <jsp:useBean id="showImage" class="java.lang.String" scope="request"/>
 <jsp:useBean id="showIcon" class="java.lang.String" scope="request"/>
 <jsp:useBean id="showLink" class="java.lang.String" scope="request"/>
+<jsp:useBean id="showAddress" class="java.lang.String" scope="request"/>
+<jsp:useBean id="showKeywords" class="java.lang.String" scope="request"/>
 <jsp:useBean id="useItemLink" class="java.lang.String" scope="request"/>
 <jsp:useBean id="useInfoLink" class="java.lang.String" scope="request"/>
 <jsp:useBean id="showActionLinks" class="java.lang.String" scope="request"/>
@@ -154,8 +156,8 @@
                 </c:otherwise>
               </c:choose>
             </div>
-            <c:if test="${!empty item.address}"><div class="item-city"><small><c:out value="${item.address}" /></small></div></c:if>
-            <c:if test="${!empty item.keywords}"><div class="item-keywords"><small><c:out value="${item.keywords}" /></small></div></c:if>
+            <c:if test="${showAddress eq 'true' && !empty item.address}"><div class="item-city"><small><c:out value="${item.address}" /></small></div></c:if>
+            <c:if test="${showKeywords eq 'true' && !empty item.keywords}"><div class="item-keywords"><small><c:out value="${item.keywords}" /></small></div></c:if>
           </div>
           <div class="card-bottom">
             <div class="grid-x align-bottom">
