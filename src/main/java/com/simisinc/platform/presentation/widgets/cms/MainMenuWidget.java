@@ -103,6 +103,7 @@ public class MainMenuWidget extends GenericWidget {
     }
     context.getRequest().setAttribute(RequestConstants.MASTER_MENU_TAB_LIST, menuTabListToUse);
 
+    // Check for a collection to match the title to
     String collectionUniqueId = context.getCoreData().get("collectionUniqueId");
     if (collectionUniqueId != null) {
       context.getRequest().setAttribute("collection", LoadCollectionCommand.loadCollectionByUniqueId(collectionUniqueId));
