@@ -34,7 +34,7 @@ import java.util.Map;
  */
 public class FormFieldCommand {
 
-  private static final String ALLOWED_CHARS = "abcdefghijklmnopqrstuvwyxz1234567890";
+  private static final String ALLOWED_CHARS = "abcdefghijklmnopqrstuvwyxz1234567890-";
   private static Log LOG = LogFactory.getLog(FormFieldCommand.class);
 
   public static List<FormField> parseFieldContent(String uniqueFormId, PreferenceEntriesList entriesList) {
@@ -90,7 +90,7 @@ public class FormFieldCommand {
   }
 
 
-  private static String generateHtmlName(String fieldName, List<String> nameList) {
+  public static String generateHtmlName(String fieldName, List<String> nameList) {
     // Create a new one
     StringBuilder sb = new StringBuilder();
     String name = fieldName.toLowerCase();
