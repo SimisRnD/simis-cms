@@ -85,6 +85,9 @@ public class ItemCustomFieldCommand {
           }
         } else {
           value = BeanUtils.getProperty(item, objectParameter);
+          if ("url".equals(objectParameter) && StringUtils.isNotBlank(item.getUrlText())) {
+            customField.setLabel(item.getUrlText());
+          }
         }
 
         // Format the values given the rules
