@@ -53,7 +53,7 @@ public class ItemRepository {
   private static Log LOG = LogFactory.getLog(ItemRepository.class);
 
   private static String TABLE_NAME = "items";
-  private static String PRIMARY_KEY[] = new String[]{"item_id"};
+  private static String[] PRIMARY_KEY = new String[]{"item_id"};
 
 
   public static Item save(Item record) {

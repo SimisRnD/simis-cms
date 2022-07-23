@@ -38,7 +38,7 @@ public class AppRepository {
   private static Log LOG = LogFactory.getLog(AppRepository.class);
 
   private static String TABLE_NAME = "apps";
-  private static String PRIMARY_KEY[] = new String[]{"app_id"};
+  private static String[] PRIMARY_KEY = new String[]{"app_id"};
 
   private static DataResult query(AppSpecification specification, DataConstraints constraints) {
     SqlUtils where = null;
