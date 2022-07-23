@@ -27,6 +27,7 @@ import org.apache.commons.logging.LogFactory;
 import java.sql.SQLException;
 import java.util.HashMap;
 import java.util.Iterator;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -105,7 +106,7 @@ public class CustomFieldListJSONCommand {
       }
 
       // Determine the values
-      Map<String, CustomField> customFieldList = new HashMap<>();
+      Map<String, CustomField> customFieldList = new LinkedHashMap<>();
       Iterator<JsonNode> fields = config.elements();
       while (fields.hasNext()) {
         JsonNode node = fields.next();

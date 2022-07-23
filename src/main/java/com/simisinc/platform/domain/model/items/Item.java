@@ -16,18 +16,17 @@
 
 package com.simisinc.platform.domain.model.items;
 
-import java.math.BigDecimal;
-import java.sql.Timestamp;
-import java.util.HashMap;
-import java.util.Map;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 import com.simisinc.platform.application.CustomFieldCommand;
 import com.simisinc.platform.application.items.ItemAddressCommand;
 import com.simisinc.platform.domain.model.CustomField;
 import com.simisinc.platform.domain.model.Entity;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import java.math.BigDecimal;
+import java.sql.Timestamp;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
  * A specific object within a collection used as a basis for information, sharing, and collaboration
@@ -439,7 +438,7 @@ public class Item extends Entity {
 
   public void addCustomField(CustomField customField) {
     if (customFieldList == null) {
-      customFieldList = new HashMap<>();
+      customFieldList = new LinkedHashMap<>();
     }
     CustomFieldCommand.addCustomFieldToList(customFieldList, customField);
   }
