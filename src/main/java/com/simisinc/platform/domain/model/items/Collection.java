@@ -16,11 +16,15 @@
 
 package com.simisinc.platform.domain.model.items;
 
+import com.simisinc.platform.application.CustomFieldCommand;
+import com.simisinc.platform.domain.model.CustomField;
 import com.simisinc.platform.domain.model.Entity;
 import org.apache.commons.lang3.StringUtils;
 
 import java.sql.Timestamp;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * A common category or directory for organizing items with customization and permissions
@@ -61,6 +65,7 @@ public class Collection extends Entity {
   private String menuHoverBorderColor = null;
   private boolean showSearch = false;
   private boolean showListingsLink = false;
+  private Map<String, CustomField> customFieldList = null;
 
   public Collection() {
   }
@@ -323,5 +328,24 @@ public class Collection extends Entity {
     } else {
       return "/directory/" + this.getUniqueId();
     }
+  }
+
+  public Map<String, CustomField> getCustomFieldList() {
+    return customFieldList;
+  }
+
+  public void setCustomFieldList(Map<String, CustomField> customFieldList) {
+    this.customFieldList = customFieldList;
+  }
+
+  public void addCustomField(CustomField customField) {
+    if (customFieldList == null) {
+      customFieldList = new LinkedHashMap<String, CustomField>();
+    }
+    CustomFieldCommand.addCustomFieldToList(customFieldList, customField);
+  }
+
+  public CustomField getCustomField(String name) {
+    return CustomFieldCommand.getCustomField(customFieldList, name);
   }
 }

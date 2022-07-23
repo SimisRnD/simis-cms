@@ -475,12 +475,12 @@
     </label>
     --%>
 
-    <c:if test="${!empty item.customFieldList}">
+    <c:if test="${!empty customFieldList}">
     <h3>Additional Fields</h3>
     <div class="grid-container">
       <div class="grid-x grid-padding-x">
         <div class="small-12 cell">
-        <c:forEach items="${item.customFieldList.values()}" var="formField" varStatus="status">
+        <c:forEach items="${customFieldList.values()}" var="formField" varStatus="status">
           <label><c:out value="${formField.label}"/><c:if test="${formField.required}"> <span class="required">*</span></c:if>
             <c:choose>
               <c:when test="${!empty formField.listOfOptions}">
