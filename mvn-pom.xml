@@ -56,13 +56,13 @@
     <java-activation.version>1.2.0</java-activation.version>
     <java-mail.version>1.6.2</java-mail.version>
     <jna.version>5.8.0</jna.version>
-    <jobrunr.version>5.1.4</jobrunr.version>
+    <jobrunr.version>5.1.6</jobrunr.version>
     <johnzon.version>1.1.8</johnzon.version>
     <jsoup.version>1.14.2</jsoup.version>
     <jstl.version>1.2.5</jstl.version>
     <libphonenumber.version>8.12.40</libphonenumber.version>
     <lombok.version>1.18.22</lombok.version>
-    <netty.version>4.1.78</netty.version>
+    <netty.version>4.1.79</netty.version>
     <postgresql.version>42.4.0</postgresql.version>
     <pushy.version>0.15.1</pushy.version>
     <resilience4j.version>1.7.1</resilience4j.version>
@@ -557,11 +557,12 @@
         </executions>
       </plugin>
       -->
+      <!-- war and war:exploded -->
       <plugin>
         <artifactId>maven-war-plugin</artifactId>
         <version>${maven-war-plugin.version}</version>
         <configuration>
-          <webappDirectory>${project.build.directory}/exploded-war/ROOT</webappDirectory>
+          <webappDirectory>${project.build.directory}/exploded2/ROOT</webappDirectory>
           <archiveClasses>false</archiveClasses>
           <webResources>
             <resource>
