@@ -25,6 +25,13 @@
     <section>
       <column class="small-12 medium-7 cell">
         <widget name="itemFields" class="callout box">
+          <title>Summary</title>
+          <uniqueId>${item.uniqueId}</uniqueId>
+          <fields>
+            <field value="summary" type="textarea" />
+          </fields>
+        </widget>
+        <widget name="itemFields" class="callout box">
           <title>Details</title>
           <uniqueId>${item.uniqueId}</uniqueId>
           <fields>
@@ -50,13 +57,6 @@
           <!--<customFields>-->
           <!--<customField name="" value="" type="" />-->
           <!--</customFields>-->
-        </widget>
-        <widget name="itemFields" class="callout box">
-          <title>Summary</title>
-          <uniqueId>${item.uniqueId}</uniqueId>
-          <fields>
-            <field value="summary" type="textarea" />
-          </fields>
         </widget>
         <widget name="itemRelationshipsList" class="callout secondary">
           <title>Course Sessions – review for enrollment information</title>
