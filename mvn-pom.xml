@@ -562,7 +562,7 @@
         <artifactId>maven-war-plugin</artifactId>
         <version>${maven-war-plugin.version}</version>
         <configuration>
-          <webappDirectory>${project.build.directory}/exploded2/ROOT</webappDirectory>
+          <webappDirectory>${project.build.directory}/exploded-war/ROOT</webappDirectory>
           <archiveClasses>false</archiveClasses>
           <webResources>
             <resource>
