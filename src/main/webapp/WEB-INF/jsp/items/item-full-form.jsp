@@ -182,12 +182,17 @@
     <h3 class="margin-top-30">Reference</h3>
     <div class="grid-container">
       <div class="grid-x grid-padding-x">
-        <div class="small-12 cell">
+        <div class="small-12 medium-8 cell">
           <label>URL
             <div class="input-group">
               <span class="input-group-label"><i class="fa fa-link"></i></span>
               <input class="input-group-field" type="url" placeholder="http://" name="url" value="<c:out value="${item.url}"/>">
             </div>
+          </label>
+        </div>
+        <div class="small-6 medium-4 cell">
+          <label>Link Text
+            <input type="text" placeholder="link text" name="urlText" value="<c:out value="${item.urlText}"/>">
           </label>
         </div>
       </div>

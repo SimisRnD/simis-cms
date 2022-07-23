@@ -190,6 +190,7 @@ public class SaveItemCommand {
     item.setEndDate(itemBean.getEndDate());
     item.setExpirationDate(itemBean.getExpirationDate());
     item.setUrl(itemBean.getUrl());
+    item.setUrlText(itemBean.getUrlText());
     item.setImageUrl(itemBean.getImageUrl());
     item.setBarcode(itemBean.getBarcode());
     item.setKeywords(itemBean.getKeywords());

@@ -92,6 +92,7 @@ public class ItemRepository {
         .add("end_date", record.getEndDate())
         .add("expiration_date", record.getExpirationDate())
         .add("url", StringUtils.trimToNull(record.getUrl()))
+        .add("url_text", StringUtils.trimToNull(record.getUrlText()))
         .add("image_url", StringUtils.trimToNull(record.getImageUrl()))
         .add("barcode", StringUtils.trimToNull(record.getBarcode()))
         .add("keywords", StringUtils.trimToNull(record.getKeywords()))
@@ -164,6 +165,7 @@ public class ItemRepository {
         .add("end_date", record.getEndDate())
         .add("expiration_date", record.getExpirationDate())
         .add("url", StringUtils.trimToNull(record.getUrl()))
+        .add("url_text", StringUtils.trimToNull(record.getUrlText()))
         .add("image_url", StringUtils.trimToNull(record.getImageUrl()))
         .add("barcode", StringUtils.trimToNull(record.getBarcode()))
         .add("keywords", StringUtils.trimToNull(record.getKeywords()))
@@ -595,6 +597,8 @@ public class ItemRepository {
       record.setApproved(rs.getTimestamp("approved"));
       record.setSource(rs.getString("source"));
       record.setDescription(rs.getString("description"));
+      record.setUrlText(rs.getString("url_text"));
+      // Other
       if (DB.hasColumn(rs, "highlight")) {
         record.setHighlight(rs.getString("highlight"));
       }

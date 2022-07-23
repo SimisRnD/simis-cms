@@ -75,6 +75,7 @@ public class Item extends Entity {
   private Timestamp endDate = null;
   private Timestamp expirationDate = null;
   private String url = null;
+  private String urlText = null;
   private String imageUrl = null;
   private String barcode = null;
   private String keywords = null;
@@ -469,5 +470,13 @@ public class Item extends Entity {
 
   public void setHighlight(String highlight) {
     this.highlight = highlight;
+  }
+
+  public String getUrlText() {
+    return urlText;
+  }
+
+  public void setUrlText(String urlText) {
+    this.urlText = urlText;
   }
 }
