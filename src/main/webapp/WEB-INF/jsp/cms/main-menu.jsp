@@ -69,7 +69,7 @@
           </ul>
         </li>
       </c:when>
-      <c:when test="${!empty collection && fn:toLowerCase(collection.name) eq fn:toLowerCase(menuTab.name)}">
+      <c:when test="${!empty collection && !fn:startsWith(pagePath, '/admin/') && fn:toLowerCase(collection.name) eq fn:toLowerCase(menuTab.name)}">
         <li class="is-standalone active"><a href="${ctx}${menuTab.link}"><c:if test="${!empty menuTab.icon}"><i class="${font:fas()} fa-fw fa-<c:out value="${menuTab.icon}" />"></i> </c:if><c:out value="${menuTab.name}" /></a></li>
       </c:when>
       <c:otherwise>
