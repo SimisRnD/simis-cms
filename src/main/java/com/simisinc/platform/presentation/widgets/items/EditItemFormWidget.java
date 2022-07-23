@@ -16,9 +16,13 @@
 
 package com.simisinc.platform.presentation.widgets.items;
 
+import com.simisinc.platform.application.CustomFieldListMergeCommand;
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.cms.UrlCommand;
-import com.simisinc.platform.application.items.*;
+import com.simisinc.platform.application.items.CheckCollectionPermissionCommand;
+import com.simisinc.platform.application.items.LoadCollectionCommand;
+import com.simisinc.platform.application.items.LoadItemCommand;
+import com.simisinc.platform.application.items.SaveItemCommand;
 import com.simisinc.platform.domain.model.CustomField;
 import com.simisinc.platform.domain.model.items.Category;
 import com.simisinc.platform.domain.model.items.Collection;
@@ -35,6 +39,7 @@ import org.apache.commons.logging.LogFactory;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Description
@@ -63,6 +68,8 @@ public class EditItemFormWidget extends GenericWidget {
     if (item == null) {
       return null;
     }
+
+    // Determine the collection
     Collection collection = LoadCollectionCommand.loadCollectionByIdForAuthorizedUser(item.getCollectionId(), userId);
     if (collection == null) {
       return null;
@@ -84,9 +91,11 @@ public class EditItemFormWidget extends GenericWidget {
     int columnSize = (int) Math.ceil((double) categoryList.size() / 2);
     if (columnSize > 0) {
       List<List<Category>> columnList = ListUtils.partition(categoryList, columnSize);
-      context.getRequest().setAttribute("categoryList1", columnList.get(0));
-      if (columnSize > 1) {
-        context.getRequest().setAttribute("categoryList2", columnList.get(1));
+      if (columnList.size() > 0) {
+        context.getRequest().setAttribute("categoryList1", columnList.get(0));
+        if (columnList.size() > 1) {
+          context.getRequest().setAttribute("categoryList2", columnList.get(1));
+        }
       }
     }
 
@@ -97,10 +106,19 @@ public class EditItemFormWidget extends GenericWidget {
       context.getRequest().setAttribute("item", item);
     }
 
+    // Combine the lists
+    Map<String, CustomField> customFieldList = CustomFieldListMergeCommand.mergeCustomFieldLists(
+        collection.getCustomFieldList(),
+        item.getCustomFieldList());
+    context.getRequest().setAttribute("customFieldList", customFieldList);
+
     // Standard request items
     context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));
     context.getRequest().setAttribute("title", context.getPreferences().get("title"));
-    context.getRequest().setAttribute("returnPage", context.getPreferences().getOrDefault("returnPage", UrlCommand.getValidReturnPage(context.getParameter("returnPage"))));
+
+    // Preferences
+    context.getRequest().setAttribute("returnPage", context.getPreferences().getOrDefault("returnPage",
+        UrlCommand.getValidReturnPage(context.getParameter("returnPage"))));
 
     // Determine the cancel page
     String cancelUrl = context.getPreferences().get("cancelUrl");
@@ -130,6 +148,10 @@ public class EditItemFormWidget extends GenericWidget {
     if (previousBean == null) {
       return null;
     }
+
+    // Determine the collection
+    Collection collection = LoadCollectionCommand.loadCollectionByIdForAuthorizedUser(previousBean.getCollectionId(),
+        userId);
 
     // See if the user group can edit any item in this collection
     boolean canEditItem = CheckCollectionPermissionCommand.userHasEditPermission(itemBean.getCollectionId(), userId);
@@ -165,9 +187,14 @@ public class EditItemFormWidget extends GenericWidget {
     itemBean.setCategoryId(mainCategoryId);
     itemBean.setCategoryIdList(categoryIdList.toArray(new Long[0]));
 
-    // Check the request for custom fields
-    if (previousBean.getCustomFieldList() != null) {
-      for (CustomField field : previousBean.getCustomFieldList().values()) {
+    // Determine custom fields to check for
+    Map<String, CustomField> customFieldList = CustomFieldListMergeCommand.mergeCustomFieldLists(
+        collection.getCustomFieldList(),
+        previousBean.getCustomFieldList());
+
+    // Check the request for custom field values
+    if (customFieldList != null) {
+      for (CustomField field : customFieldList.values()) {
         String parameterName = context.getUniqueId() + field.getName();
         String parameterValue = context.getParameter(parameterName);
         if ("list".equals(field.getType()) && field.getListOfOptions() != null) {
@@ -178,13 +205,6 @@ public class EditItemFormWidget extends GenericWidget {
         itemBean.addCustomField(field);
       }
     }
-
-    // Check for custom fields (@todo load from the collection database)
-    itemBean.addCustomField(new CustomField("contactName", "Contact Name", context.getParameter(context.getUniqueId() + "contactName")));
-    itemBean.addCustomField(new CustomField("contactPhoneNumber", "Phone", context.getParameter(context.getUniqueId() + "contactPhoneNumber")));
-    itemBean.addCustomField(new CustomField("contactEmail", "Email", context.getParameter(context.getUniqueId() + "contactEmail")));
-    itemBean.addCustomField(new CustomField("numberOfEmployees", "# of employees", context.getParameter(context.getUniqueId() + "numberOfEmployees")));
-    itemBean.addCustomField(new CustomField("numberOfYearsInBusiness", "# years in business", context.getParameter(context.getUniqueId() + "numberOfYearsInBusiness")));
 
     // Save the item
     Item item = null;
@@ -200,7 +220,8 @@ public class EditItemFormWidget extends GenericWidget {
     }
 
     // Determine the page to return to
-    String returnPage = context.getPreferences().getOrDefault("returnPage", UrlCommand.getValidReturnPage(context.getParameter("returnPage")));
+    String returnPage = context.getPreferences().getOrDefault("returnPage",
+        UrlCommand.getValidReturnPage(context.getParameter("returnPage")));
     if (StringUtils.isNotBlank(returnPage)) {
       // Go to the item (could be renamed)
       if (returnPage.startsWith("/show/")) {
@@ -208,7 +229,6 @@ public class EditItemFormWidget extends GenericWidget {
       }
     } else {
       // Go to the overview page
-      Collection collection = LoadCollectionCommand.loadCollectionByIdForAuthorizedUser(item.getCollectionId(), userId);
       returnPage = collection.createListingsLink();
     }
     context.setSuccessMessage("Thanks, the record was saved!");

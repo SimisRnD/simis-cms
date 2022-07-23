@@ -47,7 +47,8 @@ CREATE TABLE items (
   source VARCHAR(255),
   dataset_record_id VARCHAR(255),
   description TEXT,
-  description_text TEXT
+  description_text TEXT,
+  url_text VARCHAR(50)
 );
 CREATE INDEX items_col_id_idx ON items(collection_id);
 CREATE INDEX items_uni_id_idx ON items(unique_id);

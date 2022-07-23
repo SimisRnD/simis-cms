@@ -16,12 +16,15 @@
 
 package com.simisinc.platform.presentation.widgets.cms;
 
-import com.simisinc.platform.presentation.controller.WidgetContext;
-import com.simisinc.platform.presentation.widgets.GenericWidget;
-import org.apache.commons.lang3.StringUtils;
-
 import java.util.LinkedHashMap;
 import java.util.Map;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import com.simisinc.platform.presentation.controller.WidgetContext;
+import com.simisinc.platform.presentation.widgets.GenericWidget;
 
 /**
  * Description
@@ -32,6 +35,8 @@ import java.util.Map;
 public class BreadCrumbsWidget extends GenericWidget {
 
   static final long serialVersionUID = -8484048371911908893L;
+  
+  protected static Log LOG = LogFactory.getLog(BreadCrumbsWidget.class);
 
   static String JSP = "/cms/breadcrumbs.jsp";
 
@@ -51,6 +56,9 @@ public class BreadCrumbsWidget extends GenericWidget {
         String value = valueMap.get("link");
         if (value == null) {
           value = valueMap.get("value");
+        }
+        if (value == null) {
+          value = "";
         }
 
         int index = value.indexOf("{param:");

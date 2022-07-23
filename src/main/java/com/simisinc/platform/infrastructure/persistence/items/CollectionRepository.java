@@ -16,6 +16,7 @@
 
 package com.simisinc.platform.infrastructure.persistence.items;
 
+import com.simisinc.platform.application.CustomFieldListJSONCommand;
 import com.simisinc.platform.application.items.LoadCollectionCommand;
 import com.simisinc.platform.domain.model.items.Collection;
 import com.simisinc.platform.domain.model.items.CollectionGroup;
@@ -42,7 +43,7 @@ public class CollectionRepository {
   private static Log LOG = LogFactory.getLog(CollectionRepository.class);
 
   private static String TABLE_NAME = "collections";
-  private static String PRIMARY_KEY[] = new String[]{"collection_id"};
+  private static String[] PRIMARY_KEY = new String[] { "collection_id" };
 
   public static Collection save(Collection record) {
     if (record.getId() > -1) {
@@ -59,7 +60,8 @@ public class CollectionRepository {
         .add("created_by", record.getCreatedBy())
         .add("allows_guests", PrivacyType.isPublic(record.getGuestPrivacyType()))
         .add("guest_privacy_type", record.getGuestPrivacyType())
-        .add("has_allowed_groups", record.getCollectionGroupList() != null && !record.getCollectionGroupList().isEmpty())
+        .add("has_allowed_groups",
+            record.getCollectionGroupList() != null && !record.getCollectionGroupList().isEmpty())
         .add("listings_link", StringUtils.trimToNull(record.getListingsLink()))
         .add("icon", StringUtils.trimToNull(record.getIcon()))
         .add("show_listings_link", record.getShowListingsLink())
@@ -68,8 +70,8 @@ public class CollectionRepository {
     // Use a transaction
     try {
       try (Connection connection = DB.getConnection();
-           AutoStartTransaction a = new AutoStartTransaction(connection);
-           AutoRollback transaction = new AutoRollback(connection)) {
+          AutoStartTransaction a = new AutoStartTransaction(connection);
+          AutoRollback transaction = new AutoRollback(connection)) {
         // In a transaction (use the existing connection)
         record.setId(DB.insertInto(connection, TABLE_NAME, insertValues, PRIMARY_KEY));
         // Manage the access groups
@@ -94,7 +96,8 @@ public class CollectionRepository {
         .add("description", StringUtils.trimToNull(record.getDescription()))
         .add("allows_guests", PrivacyType.isPublic(record.getGuestPrivacyType()))
         .add("guest_privacy_type", record.getGuestPrivacyType())
-        .add("has_allowed_groups", record.getCollectionGroupList() != null && !record.getCollectionGroupList().isEmpty())
+        .add("has_allowed_groups",
+            record.getCollectionGroupList() != null && !record.getCollectionGroupList().isEmpty())
         .add("listings_link", StringUtils.trimToNull(record.getListingsLink()))
         .add("icon", StringUtils.trimToNull(record.getIcon()))
         .add("show_listings_link", record.getShowListingsLink())
@@ -103,8 +106,8 @@ public class CollectionRepository {
     SqlUtils where = new SqlUtils().add("collection_id = ?", record.getId());
     // Use a transaction
     try (Connection connection = DB.getConnection();
-         AutoStartTransaction a = new AutoStartTransaction(connection);
-         AutoRollback transaction = new AutoRollback(connection)) {
+        AutoStartTransaction a = new AutoStartTransaction(connection);
+        AutoRollback transaction = new AutoRollback(connection)) {
       // In a transaction (use the existing connection)
       DB.update(connection, TABLE_NAME, updateValues, where);
       // Manage the access groups
@@ -118,6 +121,25 @@ public class CollectionRepository {
     } catch (SQLException se) {
       LOG.error("SQLException: " + se.getMessage(), se);
     }
+    return null;
+  }
+
+  public static Collection updateCustomFields(Collection record) {
+    SqlUtils updateValues = new SqlUtils()
+        .add("modified", new Timestamp(System.currentTimeMillis()));
+    if (record.getCustomFieldList() != null && !record.getCustomFieldList().isEmpty()) {
+      updateValues.add(new SqlValue("field_values", SqlValue.JSONB_TYPE,
+          CustomFieldListJSONCommand.createJSONString(record.getCustomFieldList())));
+    } else {
+      updateValues.add(new SqlValue("field_values", SqlValue.JSONB_TYPE, null));
+    }
+    SqlUtils where = new SqlUtils().add("collection_id = ?", record.getId());
+    if (DB.update(TABLE_NAME, updateValues, where)) {
+      // Expire the cache
+      CacheManager.invalidateKey(CacheManager.COLLECTION_UNIQUE_ID_CACHE, record.getUniqueId());
+      return record;
+    }
+    LOG.error("The update failed!");
     return null;
   }
 
@@ -149,13 +171,13 @@ public class CollectionRepository {
   public static boolean remove(Collection record) {
     try {
       try (Connection connection = DB.getConnection();
-           AutoStartTransaction a = new AutoStartTransaction(connection);
-           AutoRollback transaction = new AutoRollback(connection)) {
+          AutoStartTransaction a = new AutoStartTransaction(connection);
+          AutoRollback transaction = new AutoRollback(connection)) {
         // Delete the references
         // @note the Item, and its mapping to a Category, is currently not cleaned up until a business decision is made
-//        ActivityRepository.removeAll(connection, record);
-//        ItemCategoryRepository.removeAll(connection, record);
-//        ItemRepository.removeAll(connection, record);
+        //        ActivityRepository.removeAll(connection, record);
+        //        ItemCategoryRepository.removeAll(connection, record);
+        //        ItemRepository.removeAll(connection, record);
         CollectionRoleRepository.removeAll(connection, record);
         CollectionGroupRepository.removeAll(connection, record);
         CollectionTabRepository.removeAll(connection, record);
@@ -265,7 +287,6 @@ public class CollectionRepository {
     }
   }
 
-
   public static boolean updateCategoryCount(Connection connection, long collectionId, int value) throws SQLException {
     // Increment the count
     try (PreparedStatement pst = createPreparedStatementForCategoryCount(connection, collectionId, value)) {
@@ -273,18 +294,17 @@ public class CollectionRepository {
     }
   }
 
-  private static PreparedStatement createPreparedStatementForCategoryCount(Connection connection, long collectionId, int value) throws SQLException {
-    String SQL_QUERY =
-        "UPDATE collections " +
-            "SET category_count = category_count + ? " +
-            "WHERE collection_id = ?";
+  private static PreparedStatement createPreparedStatementForCategoryCount(Connection connection, long collectionId,
+      int value) throws SQLException {
+    String SQL_QUERY = "UPDATE collections " +
+        "SET category_count = category_count + ? " +
+        "WHERE collection_id = ?";
     int i = 0;
     PreparedStatement pst = connection.prepareStatement(SQL_QUERY);
     pst.setInt(++i, value);
     pst.setLong(++i, collectionId);
     return pst;
   }
-
 
   public static boolean updateItemCount(Connection connection, long collectionId, int value) {
     try {
@@ -303,11 +323,11 @@ public class CollectionRepository {
     return false;
   }
 
-  private static PreparedStatement createPreparedStatementForItemCount(Connection connection, long collectionId, int value) throws SQLException {
-    String SQL_QUERY =
-        "UPDATE collections " +
-            "SET item_count = item_count + ? " +
-            "WHERE collection_id = ?";
+  private static PreparedStatement createPreparedStatementForItemCount(Connection connection, long collectionId,
+      int value) throws SQLException {
+    String SQL_QUERY = "UPDATE collections " +
+        "SET item_count = item_count + ? " +
+        "WHERE collection_id = ?";
     int i = 0;
     PreparedStatement pst = connection.prepareStatement(SQL_QUERY);
     pst.setInt(++i, value);
@@ -347,6 +367,7 @@ public class CollectionRepository {
       record.setMenuHoverTextColor(rs.getString("menu_hover_text_color"));
       record.setMenuHoverBgColor(rs.getString("menu_hover_bg_color"));
       record.setMenuHoverBorderColor(rs.getString("menu_hover_border_color"));
+      record.setCustomFieldList(CustomFieldListJSONCommand.populateFromJSONString(rs.getString("field_values")));
       return record;
     } catch (SQLException se) {
       LOG.error("buildRecord", se);

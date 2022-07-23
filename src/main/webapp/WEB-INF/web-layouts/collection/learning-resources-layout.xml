@@ -25,6 +25,13 @@
     <section>
       <column class="small-12 medium-7 cell">
         <widget name="itemFields" class="callout box">
+          <title>Summary</title>
+          <uniqueId>${item.uniqueId}</uniqueId>
+          <fields>
+            <field value="summary" type="textarea" />
+          </fields>
+        </widget>
+        <widget name="itemFields" class="callout box">
           <title>Details</title>
           <uniqueId>${item.uniqueId}</uniqueId>
           <fields>
@@ -38,7 +45,8 @@
           <uniqueId>${item.uniqueId}</uniqueId>
           <fields>
             <field name="Category" value="categoryList" />
-            <field name="Resource Link" value="url" type="url" />
+            <field name="Instructor" value="custom.instructor" />
+            <field name="Role" value="custom.role" />
             <field name="Email" value="email" type="email" />
             <field name="Address" value="address" />
             <field name="County" value="county" />
@@ -46,22 +54,18 @@
             <field name="Price" value="cost" type="currency" />
             <field name="Id" value="barcode" />
           </fields>
-          <showAllCustomFields>true</showAllCustomFields>
-          <!--<customFields>-->
-          <!--<customField name="" value="" type="" />-->
-          <!--</customFields>-->
-        </widget>
-        <widget name="itemFields" class="callout box">
-          <title>Summary</title>
-          <uniqueId>${item.uniqueId}</uniqueId>
-          <fields>
-            <field value="summary" type="textarea" />
-          </fields>
+          <showAllCustomFields>false</showAllCustomFields>
         </widget>
         <widget name="itemRelationshipsList" class="callout secondary">
           <title>Course Sessions – review for enrollment information</title>
           <collectionUniqueId>course-sessions</collectionUniqueId>
           <showWhenEmpty>false</showWhenEmpty>
+        </widget>
+        <widget name="itemFields">
+          <uniqueId>${item.uniqueId}</uniqueId>
+          <fields>
+            <field name="Resource Link" value="url" type="url" />
+          </fields>
         </widget>
       </column>
     </section>

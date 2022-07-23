@@ -125,6 +125,7 @@ public class ContextListener implements ServletContextListener {
     } else {
       File directory = new File(serverRootPath);
       if (!directory.exists()) {
+        LOG.info("Creating directory at: " + serverRootPath);
         directory.mkdirs();
       }
       if (!directory.isDirectory()) {

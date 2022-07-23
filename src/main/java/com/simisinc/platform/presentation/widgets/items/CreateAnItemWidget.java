@@ -16,11 +16,28 @@
 
 package com.simisinc.platform.presentation.widgets.items;
 
+import java.lang.reflect.InvocationTargetException;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.beanutils.BeanUtils;
+import org.apache.commons.collections4.ListUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import com.simisinc.platform.application.CustomFieldListMergeCommand;
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.cms.CaptchaCommand;
 import com.simisinc.platform.application.cms.UrlCommand;
-import com.simisinc.platform.application.items.*;
+import com.simisinc.platform.application.items.CategoryException;
+import com.simisinc.platform.application.items.CheckCollectionPermissionCommand;
+import com.simisinc.platform.application.items.ItemCommand;
+import com.simisinc.platform.application.items.LoadCollectionCommand;
+import com.simisinc.platform.application.items.SaveItemCommand;
 import com.simisinc.platform.domain.model.CustomField;
 import com.simisinc.platform.domain.model.items.Category;
 import com.simisinc.platform.domain.model.items.Collection;
@@ -29,19 +46,9 @@ import com.simisinc.platform.infrastructure.persistence.items.CategoryRepository
 import com.simisinc.platform.infrastructure.persistence.items.ItemRepository;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
-import org.apache.commons.beanutils.BeanUtils;
-import org.apache.commons.collections4.ListUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
-import java.lang.reflect.InvocationTargetException;
-import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
- * Description
+ * Create an item widget
  *
  * @author matt rajkowski
  * @created 4/20/18 2:49 PM
@@ -61,7 +68,8 @@ public class CreateAnItemWidget extends GenericWidget {
 
     // Determine the collection
     String collectionUniqueId = context.getPreferences().get("collectionUniqueId");
-    Collection collection = LoadCollectionCommand.loadCollectionByUniqueIdForAuthorizedUser(collectionUniqueId, context.getUserId());
+    Collection collection = LoadCollectionCommand.loadCollectionByUniqueIdForAuthorizedUser(collectionUniqueId,
+        context.getUserId());
     if (collection == null) {
       LOG.warn("Set a collection or collectionUniqueId preference");
       return null;
@@ -74,7 +82,8 @@ public class CreateAnItemWidget extends GenericWidget {
 
     // Check user group permissions
     if (requiresPermission) {
-      boolean canAddItem = CheckCollectionPermissionCommand.userHasAddPermission(collection.getId(), context.getUserId());
+      boolean canAddItem = CheckCollectionPermissionCommand.userHasAddPermission(collection.getId(),
+          context.getUserId());
       if (!canAddItem) {
         context.setJsp(NEED_PERMISSION_JSP);
         return context;
@@ -104,13 +113,21 @@ public class CreateAnItemWidget extends GenericWidget {
     }
 
     // Form bean
+    Item item = null;
     if (context.getRequestObject() != null) {
-      context.getRequest().setAttribute("item", context.getRequestObject());
+      item = (Item) context.getRequestObject();
+      context.getRequest().setAttribute("item", item);
     } else {
       long itemId = context.getParameterAsLong("itemId");
-      Item item = ItemRepository.findById(itemId);
+      item = ItemRepository.findById(itemId);
       context.getRequest().setAttribute("item", item);
     }
+
+    // Combine the lists
+    Map<String, CustomField> customFieldList = CustomFieldListMergeCommand.mergeCustomFieldLists(
+        collection.getCustomFieldList(),
+        (item != null ? item.getCustomFieldList() : null));
+    context.getRequest().setAttribute("customFieldList", customFieldList);
 
     // Standard request items
     context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));
@@ -144,7 +161,8 @@ public class CreateAnItemWidget extends GenericWidget {
 
     // Determine the collection
     String collectionUniqueId = context.getPreferences().get("collectionUniqueId");
-    Collection collection = LoadCollectionCommand.loadCollectionByUniqueIdForAuthorizedUser(collectionUniqueId, context.getUserId());
+    Collection collection = LoadCollectionCommand.loadCollectionByUniqueIdForAuthorizedUser(collectionUniqueId,
+        context.getUserId());
     if (collection == null) {
       LOG.warn("Set a collection or collectionUniqueId preference");
       return null;
@@ -162,7 +180,8 @@ public class CreateAnItemWidget extends GenericWidget {
 
     // Check user group permissions
     if (requiresPermission) {
-      boolean canAddItem = CheckCollectionPermissionCommand.userHasAddPermission(collection.getId(), context.getUserId());
+      boolean canAddItem = CheckCollectionPermissionCommand.userHasAddPermission(collection.getId(),
+          context.getUserId());
       if (!canAddItem) {
         LOG.warn("User does not have permission");
         return null;
@@ -221,12 +240,23 @@ public class CreateAnItemWidget extends GenericWidget {
       itemBean.setApproved(new Timestamp(System.currentTimeMillis()));
     }
 
-    // Check for custom fields (@todo load from the collection database)
-    itemBean.addCustomField(new CustomField("contactName", "Contact Name", context.getParameter("contactName")));
-    itemBean.addCustomField(new CustomField("contactPhoneNumber", "Phone", context.getParameter("contactPhoneNumber")));
-    itemBean.addCustomField(new CustomField("contactEmail", "Email", context.getParameter("contactEmail")));
-    itemBean.addCustomField(new CustomField("numberOfEmployees", "# of employees", context.getParameter("numberOfEmployees")));
-    itemBean.addCustomField(new CustomField("numberOfYearsInBusiness", "# years in business", context.getParameter("numberOfYearsInBusiness")));
+    // Determine custom fields to check for
+    Map<String, CustomField> customFieldList = collection.getCustomFieldList();
+
+    // Check the request for custom field values
+    if (customFieldList != null) {
+      for (CustomField field : customFieldList.values()) {
+        String parameterName = context.getUniqueId() + field.getName();
+        String parameterValue = context.getParameter(parameterName);
+        LOG.debug("Checking param/value: " + parameterName + "=" + parameterValue);
+        if ("list".equals(field.getType()) && field.getListOfOptions() != null) {
+          field.setValue(field.getListOfOptions().get(parameterValue));
+        } else {
+          field.setValue(parameterValue);
+        }
+        itemBean.addCustomField(field);
+      }
+    }
 
     // Save the item
     Item item = null;
@@ -246,18 +276,20 @@ public class CreateAnItemWidget extends GenericWidget {
 
     // Send an alert based on the preferences (or transform for another system)
     // ItemCreatedEvent (use rules engine)
-//    if (requiresApproval) {
+    //    if (requiresApproval) {
     String emailAddresses = context.getPreferences().get("emailTo");
     ItemCommand.sendEmail(item, emailAddresses);
-//    }
+    //    }
 
     // Determine the page to return to
-    String returnPage = context.getPreferences().getOrDefault("returnPage", UrlCommand.getValidReturnPage(context.getParameter("returnPage")));
+    String returnPage = context.getPreferences().getOrDefault("returnPage",
+        UrlCommand.getValidReturnPage(context.getParameter("returnPage")));
     if (StringUtils.isBlank(returnPage)) {
       returnPage = collection.createListingsLink();
     }
     if (requiresApproval) {
-      context.setSuccessMessage("Thanks, the record was saved! We've notified an administrator to review your listing for approval.");
+      context.setSuccessMessage(
+          "Thanks, the record was saved! We've notified an administrator to review your listing for approval.");
     } else {
       context.setSuccessMessage("Thanks, the record was saved!");
     }

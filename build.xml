@@ -18,7 +18,7 @@
   <property name="web.dir" value="${base.dir}/src/main/webapp" />
   <property name="build.dir" value="${base.dir}/build" />
   <property name="target.dir" value="${base.dir}/target" />
-  <property name="exploded.dir" value="${base.dir}/exploded/ROOT" />
+  <property name="exploded.dir" value="${target.dir}/exploded/ROOT" />
 
   <property name="jee.lib.dir" value="${base.dir}/lib/war" />
   <typedef resource="org/apache/catalina/ant/catalina.tasks">
@@ -99,7 +99,85 @@
     </jar>
   </target>
 
-  <target name="package" depends="jar">
+  <target name="webapp" depends="compile">
+    <mkdir dir="${exploded.dir}"/>
+    <mkdir dir="${exploded.dir}/WEB-INF"/>
+    <mkdir dir="${exploded.dir}/WEB-INF/classes"/>
+    <mkdir dir="${exploded.dir}/WEB-INF/lib"/>
+    <mkdir dir="${exploded.dir}/WEB-INF/jsp"/>
+    <!-- Project Classes -->
+    <copy todir="${exploded.dir}/WEB-INF/classes">
+      <fileset dir="${build.dir}">
+        <include name="**"/>
+      </fileset>
+    </copy>
+    <!-- Dependency Libraries -->
+
+    <copy todir="${target.dir}/lib" flatten="true" preservelastmodified="true">
+      <fileset dir="${lib.dir}">
+        <include name="**/*.jar"/>
+      </fileset>
+    </copy>
+    <sync todir="${exploded.dir}/WEB-INF/lib">
+      <fileset dir="${target.dir}/lib"/>
+    </sync>
+    <!-- Resources -->
+    <copy todir="${exploded.dir}/WEB-INF">
+      <fileset dir="${web.dir}/WEB-INF">
+        <include name="**/*.html"/>
+        <include name="**/*.xml"/>
+        <include name="**/*.yml"/>
+        <include name="**/*.tld"/>
+        <include name="**/*.mmdb"/>
+        <include name="**/*.properties"/>
+      </fileset>
+    </copy>
+    <copy todir="${exploded.dir}/WEB-INF/classes">
+      <fileset dir="${resources.dir}">
+        <include name="**/*.properties"/>
+        <include name="**/*.sql"/>
+        <exclude name="jobrunr.properties"/>
+        <exclude name="jobrunr.production.properties"/>
+        <exclude name="simplelog.properties"/>
+        <exclude name="simplelog.production.properties"/>
+      </fileset>
+    </copy>
+    <!-- Developer setting -->
+    <copy file="${resources.dir}/jobrunr.properties"
+          tofile="${exploded.dir}/WEB-INF/classes/jobrunr.properties"
+          verbose="false"/>
+    <copy file="${resources.dir}/simplelog.properties"
+          tofile="${exploded.dir}/WEB-INF/classes/simplelog.properties"
+          verbose="false"/>
+    <!-- Version string for scripts -->
+    <echo file="${exploded.dir}/WEB-INF/VERSION" append="true">${version}</echo>
+    <!-- Web -->
+    <copy todir="${exploded.dir}">
+      <fileset dir="${web.dir}">
+        <include name="robots.txt"/>
+        <include name="css/**"/>
+        <include name="fonts/**"/>
+        <include name="images/**"/>
+        <include name="javascript/**"/>
+      </fileset>
+    </copy>
+    <!-- Prepare the JSPs-->
+    <copy todir="${exploded.dir}/WEB-INF/jsp">
+      <fileset dir="${web.dir}/WEB-INF/jsp"/>
+    </copy>
+    <!-- Cleanup -->
+    <delete verbose="true" includeemptydirs="true">
+      <fileset dir="${exploded.dir}"  >
+        <and>
+          <size value="0"/>
+          <type type="dir"/>
+        </and>
+      </fileset>
+    </delete>
+    <echo file="${exploded.dir}/VERSION" message="${version}"/>
+  </target>
+
+  <target name="package" depends="jar,webapp">
     <mkdir dir="${target.dir}/${project}"/>
     <mkdir dir="${target.dir}/${project}/WEB-INF"/>
     <mkdir dir="${target.dir}/${project}/WEB-INF/compiled"/>

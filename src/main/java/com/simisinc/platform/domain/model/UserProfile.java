@@ -20,7 +20,7 @@ import com.simisinc.platform.application.CustomFieldCommand;
 import org.apache.commons.lang3.StringUtils;
 
 import java.sql.Timestamp;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
@@ -277,7 +277,7 @@ public class UserProfile extends Entity {
 
   public void addCustomField(CustomField customField) {
     if (customFieldList == null) {
-      customFieldList = new HashMap<>();
+      customFieldList = new LinkedHashMap<>();
     }
     CustomFieldCommand.addCustomFieldToList(customFieldList, customField);
   }

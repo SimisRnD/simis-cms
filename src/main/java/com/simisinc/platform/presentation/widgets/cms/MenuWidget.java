@@ -16,6 +16,18 @@
 
 package com.simisinc.platform.presentation.widgets.cms;
 
+import static java.util.stream.Collectors.toList;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Stream;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.cms.FontCommand;
 import com.simisinc.platform.application.cms.LoadTableOfContentsCommand;
@@ -29,15 +41,6 @@ import com.simisinc.platform.presentation.controller.RequestConstants;
 import com.simisinc.platform.presentation.controller.WebComponentCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
-import org.apache.commons.lang3.StringUtils;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Stream;
-
-import static java.util.stream.Collectors.toList;
 
 /**
  * Displays a menu as standalone links, when container is specified a drop-down menu is used
@@ -48,6 +51,7 @@ import static java.util.stream.Collectors.toList;
 public class MenuWidget extends GenericWidget {
 
   static final long serialVersionUID = -8484048371911908893L;
+  protected static Log LOG = LogFactory.getLog(MenuWidget.class);
 
   static String JSP = "/cms/menu.jsp";
 
@@ -124,6 +128,9 @@ public class MenuWidget extends GenericWidget {
           }
           link = "/cart";
 //          showCartItems = true;
+//        } else if ("notifications".equals(type)) {
+//          link = "/notifications";
+//          showNotificationsItems = true;
         }
 
         // Determine access requirements

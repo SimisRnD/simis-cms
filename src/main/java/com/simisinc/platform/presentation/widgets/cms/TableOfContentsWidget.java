@@ -20,13 +20,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import com.simisinc.platform.application.cms.LoadTableOfContentsCommand;
 import com.simisinc.platform.domain.model.cms.TableOfContents;
 import com.simisinc.platform.domain.model.cms.TableOfContentsLink;
-
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
-import org.apache.commons.lang3.StringUtils;
 
 /**
  * Description
@@ -37,6 +39,7 @@ import org.apache.commons.lang3.StringUtils;
 public class TableOfContentsWidget extends GenericWidget {
 
   static final long serialVersionUID = -8484048371911908893L;
+  protected static Log LOG = LogFactory.getLog(TableOfContentsWidget.class);
 
   static String JSP = "/cms/table-of-contents.jsp";
 
@@ -111,7 +114,7 @@ public class TableOfContentsWidget extends GenericWidget {
       String name = linkValue.substring(0, idx);
       String href = linkValue.substring(idx + 1);
       TableOfContentsLink link = new TableOfContentsLink(name, href);
-//      link.setActive(true);
+      //      link.setActive(true);
       tableOfContents.getEntries().add(0, link);
     }
 

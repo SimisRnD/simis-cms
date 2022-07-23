@@ -50,7 +50,8 @@ public class ItemCustomFieldCommand {
     return parseCustomFields(entriesList, item, false);
   }
 
-  public static List<CustomField> parseCustomFields(PreferenceEntriesList entriesList, Item item, boolean requireValue) {
+  public static List<CustomField> parseCustomFields(PreferenceEntriesList entriesList, Item item,
+      boolean requireValue) {
     List<CustomField> fieldList = new ArrayList<>();
     for (Map<String, String> valueMap : entriesList) {
       try {
@@ -85,6 +86,9 @@ public class ItemCustomFieldCommand {
           }
         } else {
           value = BeanUtils.getProperty(item, objectParameter);
+          if ("url".equals(objectParameter) && StringUtils.isNotBlank(item.getUrlText())) {
+            customField.setLabel(item.getUrlText());
+          }
         }
 
         // Format the values given the rules

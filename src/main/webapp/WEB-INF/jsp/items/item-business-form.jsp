@@ -154,12 +154,12 @@
         <input class="input-group-field" type="tel" placeholder="(xxx) xxx-xxxx" name="phoneNumber" value="<c:out value="${item.phoneNumber}"/>" required="true">
       </div>
       <div class="input-group">
-        <span class="input-group-label"># of employees</span>
-        <input class="input-group-field" type="text" placeholder="" name="numberOfEmployees" value="">
+        <span class="input-group-label"># of Employees</span>
+        <input class="input-group-field" type="text" placeholder="" name="${widgetContext.uniqueId}numberOfEmployees" value="">
       </div>
       <div class="input-group">
-        <span class="input-group-label"># of years in business</span>
-        <input class="input-group-field" type="text" placeholder="" name="numberOfYearsInBusiness" value="">
+        <span class="input-group-label">Business Start Date (mo/year)</span>
+        <input class="input-group-field" type="text" placeholder="month/4-digit year" name="${widgetContext.uniqueId}businessStartDate" value="">
       </div>
     </div>
   </div>
@@ -188,7 +188,7 @@
           <label>Minority/Women/Disadvantaged/Veteran-Business Enterprise</label>
           <div class="grid-x grid-padding-x">
             <div class="small-12 cell">
-              <input class="input-group-field" type="checkbox" name="mwbeSWAM" value="mwbeSWAM" id="mwbeSWAM"><label for="mwbeSWAM">Yes</label>
+              <input class="input-group-field" type="checkbox" name="${widgetContext.uniqueId}mwbeSWAM" value="mwbeSWAM" id="mwbeSWAM"><label for="mwbeSWAM">Yes</label>
             </div>
           </div>
         </div>
@@ -207,16 +207,16 @@
     <div id="item-form-info-8" class="small-12 medium-7 cell">
       <div class="input-group">
         <span class="input-group-label">Contact Name  <span class="required">*</span></span>
-        <input class="input-group-field" type="text" placeholder="" name="contactName" value="" required="true">
+        <input class="input-group-field" type="text" placeholder="" name="${widgetContext.uniqueId}contactName" value="" required="true">
       </div>
 
       <div class="input-container">
         <div class="input-group">
           <span class="input-group-label">Phone</span>
-          <input class="input-group-field" type="tel" placeholder="(xxx) xxx-xxxx" name="contactPhoneNumber" value="">
+          <input class="input-group-field" type="tel" placeholder="(xxx) xxx-xxxx" name="${widgetContext.uniqueId}contactPhoneNumber" value="">
 
           <span class="input-group-label">Email  <span class="required">*</span></span>
-          <input class="input-group-field" type="email" placeholder="" name="contactEmail" value="" required="true">
+          <input class="input-group-field" type="email" placeholder="" name="${widgetContext.uniqueId}contactEmail" value="" required="true">
         </div>
       </div>
 
