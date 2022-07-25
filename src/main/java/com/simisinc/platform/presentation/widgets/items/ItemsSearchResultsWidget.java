@@ -66,7 +66,7 @@ public class ItemsSearchResultsWidget extends GenericWidget {
 
     // Determine criteria
     ItemSpecification specification = new ItemSpecification();
-//    specification.setCollectionId(collection.getId());
+    //    specification.setCollectionId(collection.getId());
     specification.setForUserId(context.getUserId());
     if (!context.hasRole("admin") && !context.hasRole("data-manager")) {
       specification.setApprovedOnly(true);
@@ -92,12 +92,15 @@ public class ItemsSearchResultsWidget extends GenericWidget {
       // Add the search result
       SearchResult searchResult = new SearchResult();
       searchResult.setPageTitle(item.getName());
-      if (useItemLink && StringUtils.isNotBlank(item.getUrl()) && (item.getUrl().startsWith("http://") || item.getUrl().startsWith("https://"))) {
+      if (useItemLink && StringUtils.isNotBlank(item.getUrl())
+          && (item.getUrl().startsWith("http://") || item.getUrl().startsWith("https://"))) {
         searchResult.setLink(item.getUrl());
       } else {
         searchResult.setLink(context.getContextPath() + "/show/" + item.getUniqueId());
       }
-      searchResult.setPageDescription(item.getSummary());
+      if (StringUtils.isNotBlank(item.getSummary())) {
+        searchResult.setPageDescription(item.getSummary());
+      }
       // Include an excerpt
       String htmlContent = HtmlCommand.toHtml(item.getHighlight());
       if (StringUtils.isNotBlank(htmlContent)) {
