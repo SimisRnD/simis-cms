@@ -118,6 +118,7 @@ public class SaveWebPageCommand {
     webPage.setComments(webPageBean.getComments());
     webPage.setPageXml(webPageBean.getPageXml());
     webPage.setSearchable(webPageBean.getSearchable());
+    webPage.setShowInSitemap(webPageBean.getShowInSitemap());
     webPage.setDraft(webPageBean.getDraft());
     WebPage result = WebPageRepository.save(webPage);
 
