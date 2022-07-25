@@ -50,10 +50,10 @@ public class ItemsSearchFormWidget extends GenericWidget {
     context.getRequest().setAttribute("useAutoComplete",
         context.getPreferences().getOrDefault("useAutoComplete", "true"));
     context.getRequest().setAttribute("useLocation", context.getPreferences().getOrDefault("useLocation", "true"));
+    context.getRequest().setAttribute("useIcon", context.getPreferences().getOrDefault("useIcon", "false"));
     context.getRequest().setAttribute("showCategories",
         context.getPreferences().getOrDefault("showCategories", "true"));
-    context.getRequest().setAttribute("useIcon",
-        context.getPreferences().getOrDefault("useIcon", "false"));
+      boolean basedOnItems = "true".equals(context.getPreferences().getOrDefault("basedOnItems", "false"));
 
     // Search values
     context.getRequest().setAttribute("searchName", context.getRequest().getParameter("searchName"));
@@ -69,8 +69,8 @@ public class ItemsSearchFormWidget extends GenericWidget {
     Collection collection = LoadCollectionCommand.loadCollectionByUniqueId(collectionUniqueId);
     if (collection != null) {
       context.getRequest().setAttribute("collection", collection);
-      List<Category> categoryList = CategoryRepository.findAllByCollectionId(collection.getId());
-      if (categoryList != null && categoryList.size() <= 100) {
+      List<Category> categoryList = CategoryRepository.findAllByCollectionId(collection.getId(), basedOnItems);
+      if (categoryList != null && !categoryList.isEmpty() && categoryList.size() <= 100) {
         context.getRequest().setAttribute("categoryList", categoryList);
       }
     }
