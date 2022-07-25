@@ -49,6 +49,7 @@
   <widget name="blogPost" class="com.simisinc.platform.presentation.widgets.cms.BlogPostWidget" />
   <widget name="blogPostName" class="com.simisinc.platform.presentation.widgets.cms.BlogPostNameWidget" />
   <widget name="blogEditor" class="com.simisinc.platform.presentation.widgets.cms.BlogEditorWidget" />
+  <widget name="blogPostSearchResults" class="com.simisinc.platform.presentation.widgets.cms.BlogPostSearchResultsWidget" />
   <widget name="form" class="com.simisinc.platform.presentation.widgets.cms.FormWidget" />
   <widget name="albumGallery" class="com.simisinc.platform.presentation.widgets.cms.AlbumGalleryWidget" />
   <widget name="photoGallery" class="com.simisinc.platform.presentation.widgets.cms.PhotoGalleryWidget" />

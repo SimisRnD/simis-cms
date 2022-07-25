@@ -32,6 +32,7 @@ public class BlogPostSpecification {
   private int publishedOnly = DataConstants.UNDEFINED;
   private int startDateIsBeforeNow = DataConstants.UNDEFINED;
   private int isWithinEndDate = DataConstants.UNDEFINED;
+  private String searchTerm = null;
 
   public BlogPostSpecification() {
   }
@@ -103,4 +104,13 @@ public class BlogPostSpecification {
   public void setIsWithinEndDate(boolean isWithinEndDate) {
     this.isWithinEndDate = (isWithinEndDate ? DataConstants.TRUE : DataConstants.FALSE);
   }
+
+  public String getSearchTerm() {
+    return searchTerm;
+  }
+
+  public void setSearchTerm(String searchTerm) {
+    this.searchTerm = searchTerm;
+  }
+
 }
