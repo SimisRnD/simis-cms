@@ -47,8 +47,10 @@
           Found <fmt:formatNumber value="${recordPaging.totalRecordCount}" /> results
         </c:otherwise>
       </c:choose>
+      <%-- Display on one line with the comma correctly placed --%>
       for <strong>&quot;<c:out value="${searchName}" />&quot;</strong><c:if test="${!empty searchLocation}">
-      near <strong>&quot;<c:out value="${searchLocation}" />&quot;</strong>
+      near <strong>&quot;<c:out value="${searchLocation}" />&quot;</strong></c:if><c:if test="${!empty category}">
+      in <strong>&quot;<c:out value="${category.name}" />&quot;</strong>
       </c:if><c:if test="${itemList.size() < recordPaging.totalRecordCount}">, showing the first ${recordPaging.pageSize}...</c:if>
     </p>
     <ul class="no-bullet">
@@ -78,6 +80,9 @@
       No search results found for <strong>&quot;<c:out value="${searchName}" />&quot;</strong>
       <c:if test="${!empty searchLocation}">
         near <strong>&quot;<c:out value="${searchLocation}" />&quot;</strong>
+      </c:if>
+      <c:if test="${!empty category}">
+        in <strong>&quot;<c:out value="${category.name}" />&quot;</strong>
       </c:if>
     </p>
   </c:otherwise>

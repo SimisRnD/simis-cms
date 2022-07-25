@@ -102,6 +102,7 @@ public class ItemsListWidget extends GenericWidget {
       specification.setApprovedOnly(true);
     }
 
+    // Determine the category
     if (StringUtils.isNotBlank(categoryName)) {
       Category category = CategoryRepository.findByNameWithinCollection(categoryName, collection.getId());
       if (category != null && category.getCollectionId() == collection.getId()) {

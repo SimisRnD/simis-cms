@@ -38,6 +38,7 @@ public class ItemsSearchFormWidget extends GenericWidget {
   static final long serialVersionUID = -8484048371911908893L;
 
   static String JSP = "/items/items-search-form.jsp";
+  static String EXPANDED_VIEW_JSP = "/items/items-search-expanded-form.jsp";
 
   public WidgetContext execute(WidgetContext context) {
 
@@ -46,16 +47,21 @@ public class ItemsSearchFormWidget extends GenericWidget {
     context.getRequest().setAttribute("title", context.getPreferences().get("title"));
 
     // Determine the form settings
-    context.getRequest().setAttribute("useAutoComplete", context.getPreferences().getOrDefault("useAutoComplete", "true"));
+    context.getRequest().setAttribute("useAutoComplete",
+        context.getPreferences().getOrDefault("useAutoComplete", "true"));
     context.getRequest().setAttribute("useLocation", context.getPreferences().getOrDefault("useLocation", "true"));
-    context.getRequest().setAttribute("showCategories", context.getPreferences().getOrDefault("showCategories", "true"));
+    context.getRequest().setAttribute("showCategories",
+        context.getPreferences().getOrDefault("showCategories", "true"));
+    context.getRequest().setAttribute("useIcon",
+        context.getPreferences().getOrDefault("useIcon", "false"));
 
     // Search values
     context.getRequest().setAttribute("searchName", context.getRequest().getParameter("searchName"));
     context.getRequest().setAttribute("searchLocation", context.getRequest().getParameter("searchLocation"));
 
     // Use the current collectionId to get the available categories to search on
-    String collectionUniqueId = context.getPreferences().getOrDefault("collectionUniqueId", context.getCoreData().get("collectionUniqueId"));
+    String collectionUniqueId = context.getPreferences().getOrDefault("collectionUniqueId",
+        context.getCoreData().get("collectionUniqueId"));
     if (StringUtils.isBlank(collectionUniqueId)) {
       LOG.warn("Collection not specified");
       return context;
@@ -75,7 +81,12 @@ public class ItemsSearchFormWidget extends GenericWidget {
     }
 
     // Show the JSP
-    context.setJsp(JSP);
+    String view = context.getPreferences().get("view");
+    if ("expanded".equals(view)) {
+      context.setJsp(EXPANDED_VIEW_JSP);
+    } else {
+      context.setJsp(JSP);
+    }
     return context;
   }
 
@@ -94,14 +105,15 @@ public class ItemsSearchFormWidget extends GenericWidget {
     context.addSharedRequestValue("searchLocation", location);
 
     String categoryId = context.getParameter("categoryId" + context.getUniqueId());
-//    if (StringUtils.isNumeric(categoryId) && !"-1".equals(categoryId)) {
-//      context.addSharedRequestValue("categoryId", categoryId);
-//    }
+    //    if (StringUtils.isNumeric(categoryId) && !"-1".equals(categoryId)) {
+    //      context.addSharedRequestValue("categoryId", categoryId);
+    //    }
 
     String redirectTo = context.getPreferences().get("redirectTo");
     if (StringUtils.isBlank(redirectTo)) {
       // Use the current collectionId to get the available categories to search on
-      String collectionUniqueId = context.getPreferences().getOrDefault("collectionUniqueId", context.getCoreData().get("collectionUniqueId"));
+      String collectionUniqueId = context.getPreferences().getOrDefault("collectionUniqueId",
+          context.getCoreData().get("collectionUniqueId"));
       if (StringUtils.isNotBlank(collectionUniqueId)) {
         Collection collection = LoadCollectionCommand.loadCollectionByUniqueId(collectionUniqueId);
         if (collection != null) {
