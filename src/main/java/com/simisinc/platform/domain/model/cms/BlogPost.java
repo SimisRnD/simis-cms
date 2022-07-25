@@ -16,10 +16,10 @@
 
 package com.simisinc.platform.domain.model.cms;
 
+import java.sql.Timestamp;
+
 import com.simisinc.platform.application.cms.LoadBlogCommand;
 import com.simisinc.platform.domain.model.Entity;
-
-import java.sql.Timestamp;
 
 /**
  * A blog post
@@ -60,9 +60,11 @@ public class BlogPost extends Entity {
   private String videoUrl = null;
   private String videoEmbed = null;
   private String scriptEmbed = null;
-//  private String fileUrl = null;
+  //  private String fileUrl = null;
 
   private String[] tagsList = null;
+
+  private String highlight = null;
 
   public BlogPost() {
   }
@@ -318,4 +320,13 @@ public class BlogPost extends Entity {
   public String getLink() {
     return "/" + LoadBlogCommand.loadBlogById(blogId).getUniqueId() + "/" + uniqueId;
   }
+
+  public String getHighlight() {
+    return highlight;
+  }
+
+  public void setHighlight(String highlight) {
+    this.highlight = highlight;
+  }
+
 }

@@ -40,32 +40,42 @@
     <section>
       <column class="small-12 medium-7 cell">
         <widget name="itemFields" class="callout box">
+          <title>Summary</title>
+          <uniqueId>${item.uniqueId}</uniqueId>
+          <fields>
+            <field value="summary" type="textarea" />
+          </fields>
+        </widget>
+        <widget name="itemFields" class="callout box">
+          <title>Details</title>
+          <uniqueId>${item.uniqueId}</uniqueId>
+          <fields>
+            <field value="description" type="html" />
+          </fields>
+        </widget>
+      </column>
+      <column class="small-12 medium-5 cell">
+        <widget name="itemFields" class="callout box">
           <title>Information</title>
           <uniqueId>${item.uniqueId}</uniqueId>
           <fields>
             <field name="Category" value="categoryList" />
-            <field name="Web Page" value="url" type="url" />
             <field name="Email" value="email" type="email" />
             <field name="Address" value="address" />
             <field name="County" value="county" />
             <field name="Phone Number" value="phoneNumber" />
             <field name="Price" value="cost" type="currency" />
             <field name="Id" value="barcode" />
+            <field name="URL" value="url" type="text" />
           </fields>
           <showAllCustomFields>true</showAllCustomFields>
-          <!--<customFields>-->
-          <!--<customField name="" value="" type="" />-->
-          <!--</customFields>-->
         </widget>
-        <widget name="itemFields" class="callout box">
-          <title>Details</title>
+        <widget name="itemFields">
           <uniqueId>${item.uniqueId}</uniqueId>
           <fields>
-            <field value="summary" type="textarea" />
+            <field name="Visit the Web Page" value="url" type="url" />
           </fields>
         </widget>
-      </column>
-      <column class="small-12 medium-5 cell">
         <widget name="itemsList" class="callout box">
           <title>Nearest ${item.collection.name}...</title>
           <showWhenEmpty>false</showWhenEmpty>
@@ -197,13 +207,6 @@
         </widget>
       </column>
       <column class="small-4 cell">
-        <widget name="itemRelationshipsList" class="callout box">
-          <title>Related Items</title>
-          <showWhenEmpty>false</showWhenEmpty>
-        </widget>
-        <widget name="itemRelationshipForm" class="callout box" role="admin">
-          <title>Add a related item</title>
-        </widget>
         <widget name="editItemButton">
           <buttonName>Edit this item</buttonName>
           <uniqueId>${item.uniqueId}</uniqueId>
@@ -213,6 +216,13 @@
           <buttonName>Delete this item</buttonName>
           <uniqueId>${item.uniqueId}</uniqueId>
           <returnPage>${ctx}/directory/${item.collectionUniqueId}</returnPage>
+        </widget>
+        <widget name="itemRelationshipsList" class="callout box">
+          <title>Related Items</title>
+          <showWhenEmpty>false</showWhenEmpty>
+        </widget>
+        <widget name="itemRelationshipForm" class="callout box" role="admin">
+          <title>Add a related item</title>
         </widget>
       </column>
     </section>

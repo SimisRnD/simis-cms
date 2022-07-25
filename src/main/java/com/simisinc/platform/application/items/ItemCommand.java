@@ -105,29 +105,31 @@ public class ItemCommand {
     appendEmailValue(textSb, listSb, "Description", item.getSummary());
 
     // Contact Info
-    for (CustomField customField : item.getCustomFieldList().values()) {
-      appendEmailValue(textSb, listSb, customField.getName(), customField.getValue());
+    if (item.getCustomFieldList() != null) {
+      for (CustomField customField : item.getCustomFieldList().values()) {
+        appendEmailValue(textSb, listSb, customField.getName(), customField.getValue());
+      }
     }
 
     // Approval Info
     appendEmailValue(textSb, listSb, "Needs approval?", item.getApproved() == null ? "Yes" : "No");
 
     // HTML and Text bodies
-    String html =
-        "<html>" +
-            "<p>The following information was submitted:</p>" +
-            "<ul>" + listSb.toString() + "</ul>" +
-            "<small>Url: " + StringEscapeUtils.escapeXml11(item.getSource()) + "</small><br />" +
-            "<small>IP: " + item.getIpAddress() + " (" + StringEscapeUtils.escapeXml11(GeoIPCommand.getCityStateCountryLocation(item.getIpAddress())) + ")</small>" +
-            "</html>";
+    String html = "<html>" +
+        "<p>The following information was submitted:</p>" +
+        "<ul>" + listSb.toString() + "</ul>" +
+        "<small>Url: " + StringEscapeUtils.escapeXml11(item.getSource()) + "</small><br />" +
+        "<small>IP: " + item.getIpAddress() + " ("
+        + StringEscapeUtils.escapeXml11(GeoIPCommand.getCityStateCountryLocation(item.getIpAddress())) + ")</small>" +
+        "</html>";
 
-    String text =
-        "The following information was submitted:\n" +
-            "\n" +
-            textSb.toString() + "\n" +
-            "Url: " + item.getSource() + "\n" +
-            "IP: " + item.getIpAddress() + " (" + GeoIPCommand.getCityStateCountryLocation(item.getIpAddress()) + ")" + "\n" +
-            "\n";
+    String text = "The following information was submitted:\n" +
+        "\n" +
+        textSb.toString() + "\n" +
+        "Url: " + item.getSource() + "\n" +
+        "IP: " + item.getIpAddress() + " (" + GeoIPCommand.getCityStateCountryLocation(item.getIpAddress()) + ")" + "\n"
+        +
+        "\n";
 
     // Send the email
     if (StringUtils.isNotBlank(emailAddresses)) {
@@ -138,7 +140,7 @@ public class ItemCommand {
           email.addTo(thisEmail.trim());
         }
         email.setSubject(subject);
-//        email.addPart(html, "text/html;charset=UTF-8");
+        //        email.addPart(html, "text/html;charset=UTF-8");
         email.setHtmlMsg(html);
         email.setTextMsg(text);
         email.send();
@@ -164,6 +166,7 @@ public class ItemCommand {
     } else {
       textSb.append(label).append(": ").append(value);
     }
-    listSb.append("<li>").append(StringEscapeUtils.escapeXml11(label)).append(": ").append(StringEscapeUtils.escapeXml11(value)).append("</li>");
+    listSb.append("<li>").append(StringEscapeUtils.escapeXml11(label)).append(": ")
+        .append(StringEscapeUtils.escapeXml11(value)).append("</li>");
   }
 }

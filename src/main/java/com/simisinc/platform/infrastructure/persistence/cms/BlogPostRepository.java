@@ -16,20 +16,26 @@
 
 package com.simisinc.platform.infrastructure.persistence.cms;
 
-import com.simisinc.platform.application.cms.HtmlCommand;
-import com.simisinc.platform.domain.model.cms.Blog;
-import com.simisinc.platform.domain.model.cms.BlogPost;
-import com.simisinc.platform.infrastructure.database.*;
-import com.simisinc.platform.presentation.controller.DataConstants;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.List;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import com.simisinc.platform.application.cms.HtmlCommand;
+import com.simisinc.platform.domain.model.cms.Blog;
+import com.simisinc.platform.domain.model.cms.BlogPost;
+import com.simisinc.platform.infrastructure.database.AutoRollback;
+import com.simisinc.platform.infrastructure.database.AutoStartTransaction;
+import com.simisinc.platform.infrastructure.database.DB;
+import com.simisinc.platform.infrastructure.database.DataConstraints;
+import com.simisinc.platform.infrastructure.database.DataResult;
+import com.simisinc.platform.infrastructure.database.SqlUtils;
+import com.simisinc.platform.presentation.controller.DataConstants;
 
 /**
  * Persists and retrieves blog post objects
@@ -42,7 +48,7 @@ public class BlogPostRepository {
   private static Log LOG = LogFactory.getLog(BlogPostRepository.class);
 
   private static String TABLE_NAME = "blog_posts";
-  private static String PRIMARY_KEY[] = new String[]{"post_id"};
+  private static String PRIMARY_KEY[] = new String[] { "post_id" };
 
   private static SqlUtils createWhereStatement(BlogPostSpecification specification) {
     SqlUtils where = null;
@@ -70,13 +76,27 @@ public class BlogPostRepository {
           where.add("(end_date IS NULL OR end_date >= NOW())");
         }
       }
+      if (StringUtils.isNotBlank(specification.getSearchTerm())) {
+        where.add("tsv @@ PLAINTO_TSQUERY('content_stem', ?)", specification.getSearchTerm().trim());
+      }
     }
     return where;
   }
 
   private static DataResult query(BlogPostSpecification specification, DataConstraints constraints) {
+    SqlUtils select = new SqlUtils();
     SqlUtils where = createWhereStatement(specification);
-    return DB.selectAllFrom(TABLE_NAME, where, constraints, BlogPostRepository::buildRecord);
+    SqlUtils orderBy = null;
+    if (specification != null && StringUtils.isNotBlank(specification.getSearchTerm())) {
+      select.add(
+          "ts_headline('english', body_text, PLAINTO_TSQUERY('content_stem', ?), 'StartSel=${b}, StopSel=${/b}, MaxWords=30, MinWords=15, ShortWord=3, HighlightAll=FALSE, MaxFragments=2, FragmentDelimiter=\" ... \"') AS highlight",
+          specification.getSearchTerm().trim());
+      select.add("TS_RANK_CD(tsv, PLAINTO_TSQUERY('content_stem', ?)) AS rank", specification.getSearchTerm().trim());
+      // Override the order by for rank first
+      orderBy = new SqlUtils();
+      orderBy.add("rank DESC, post_id desc");
+    }
+    return DB.selectAllFrom(TABLE_NAME, select, where, orderBy, constraints, BlogPostRepository::buildRecord);
   }
 
   public static BlogPost findByUniqueId(Long blogId, String postUniqueId) {
@@ -119,7 +139,6 @@ public class BlogPostRepository {
     SqlUtils where = createWhereStatement(specification);
     return DB.selectCountFrom(TABLE_NAME, where);
   }
-
 
   public static BlogPost save(BlogPost record) {
     if (record.getId() > -1) {
@@ -170,7 +189,7 @@ public class BlogPostRepository {
     SqlUtils where = new SqlUtils()
         .add("post_id = ?", record.getId());
     if (DB.update(TABLE_NAME, updateValues, where)) {
-//      CacheManager.invalidateKey(CacheManager.CONTENT_UNIQUE_ID_CACHE, record.getUniqueId());
+      //      CacheManager.invalidateKey(CacheManager.CONTENT_UNIQUE_ID_CACHE, record.getUniqueId());
       return record;
     }
     LOG.error("The update failed!");
@@ -180,12 +199,12 @@ public class BlogPostRepository {
   public static boolean remove(BlogPost record) {
     try {
       try (Connection connection = DB.getConnection();
-           AutoStartTransaction a = new AutoStartTransaction(connection);
-           AutoRollback transaction = new AutoRollback(connection)) {
+          AutoStartTransaction a = new AutoStartTransaction(connection);
+          AutoRollback transaction = new AutoRollback(connection)) {
         // Delete the references
-//        ItemCategoryRepository.removeAll(connection, record);
-//        CollectionRepository.updateItemCount(connection, record.getCollectionId(), -1);
-//        CategoryRepository.updateItemCount(connection, record.getCategoryId(), -1);
+        //        ItemCategoryRepository.removeAll(connection, record);
+        //        CollectionRepository.updateItemCount(connection, record.getCollectionId(), -1);
+        //        CategoryRepository.updateItemCount(connection, record.getCategoryId(), -1);
         // Delete the record
         DB.deleteFrom(connection, TABLE_NAME, new SqlUtils().add("post_id = ?", record.getId()));
         // Finish transaction
@@ -223,6 +242,10 @@ public class BlogPostRepository {
       record.setStartDate(rs.getTimestamp("start_date"));
       record.setEndDate(rs.getTimestamp("end_date"));
       record.setKeywords(rs.getString("keywords"));
+      // Additional fields
+      if (DB.hasColumn(rs, "highlight")) {
+        record.setHighlight(rs.getString("highlight"));
+      }
       return record;
     } catch (SQLException se) {
       LOG.error("buildRecord", se);

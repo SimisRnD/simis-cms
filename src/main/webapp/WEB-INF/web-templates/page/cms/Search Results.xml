@@ -22,24 +22,31 @@
           <uniqueId>${webPageName}-hello</uniqueId>
         </widget>
         <widget name="searchInfo" />
-        <widget name="webPageTitleSearchResults">
+        <widget name="webPageTitleSearchResults" hr="true">
+          <title>Pages found:</title>
           <showWhenEmpty>false</showWhenEmpty>
         </widget>
-        <widget name="calendarSearchResults">
-          <title>Upcoming Event</title>
+        <widget name="calendarSearchResults" hr="true">
+          <title>Upcoming Event:</title>
           <limit>1</limit>
           <showWhenEmpty>false</showWhenEmpty>
         </widget>
-        <widget name="webPageSearchResults">
+        <widget name="webPageSearchResults" hr="true">
+          <title>Web Pages Found:</title>
+          <limit>5</limit>
           <showWhenEmpty>false</showWhenEmpty>
         </widget>
-        <widget name="itemsSearchResults">
+        <widget name="blogPostSearchResults" hr="true">
+          <title>News Posts Found:</title>
+          <limit>5</limit>
           <showWhenEmpty>false</showWhenEmpty>
         </widget>
-<!--        <widget name="content">-->
-<!--          -->
-<!--          <html></html>-->
-<!--        </widget>-->
+        <widget name="itemsSearchResults" hr="true">
+          <title>Resources Found:</title>
+          <limit>10</limit>
+          <showWhenEmpty>false</showWhenEmpty>
+          <useItemLink>true</useItemLink>
+        </widget>
         <widget name="content" class="margin-50">
           <uniqueId>${webPageName}-footer</uniqueId>
         </widget>

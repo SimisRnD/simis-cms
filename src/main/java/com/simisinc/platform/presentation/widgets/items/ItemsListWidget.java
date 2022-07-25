@@ -102,6 +102,7 @@ public class ItemsListWidget extends GenericWidget {
       specification.setApprovedOnly(true);
     }
 
+    // Determine the category
     if (StringUtils.isNotBlank(categoryName)) {
       Category category = CategoryRepository.findByNameWithinCollection(categoryName, collection.getId());
       if (category != null && category.getCollectionId() == collection.getId()) {
@@ -180,6 +181,7 @@ public class ItemsListWidget extends GenericWidget {
     context.getRequest().setAttribute("showCategory", context.getPreferences().getOrDefault("showCategory", "false"));
     context.getRequest().setAttribute("showAddress", context.getPreferences().getOrDefault("showAddress", "true"));
     context.getRequest().setAttribute("showKeywords", context.getPreferences().getOrDefault("showKeywords", "true"));
+    context.getRequest().setAttribute("showUrl", context.getPreferences().getOrDefault("showUrl", "false"));
     context.getRequest().setAttribute("showBullets", context.getPreferences().getOrDefault("showBullets", "false"));
     context.getRequest().setAttribute("showActionLinks", context.getPreferences().getOrDefault("showActionLinks", "false"));
     context.getRequest().setAttribute("showLaunchLink", context.getPreferences().getOrDefault("showLaunchLink", "false"));

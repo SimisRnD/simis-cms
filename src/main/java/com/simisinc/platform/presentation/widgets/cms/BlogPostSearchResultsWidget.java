@@ -14,33 +14,34 @@
  * limitations under the License.
  */
 
-package com.simisinc.platform.presentation.widgets.items;
-
-import com.simisinc.platform.application.cms.HtmlCommand;
-import com.simisinc.platform.domain.model.cms.SearchResult;
-import com.simisinc.platform.domain.model.items.Item;
-import com.simisinc.platform.infrastructure.database.DataConstraints;
-import com.simisinc.platform.infrastructure.persistence.items.ItemRepository;
-import com.simisinc.platform.infrastructure.persistence.items.ItemSpecification;
-import com.simisinc.platform.presentation.controller.RequestConstants;
-import com.simisinc.platform.presentation.controller.WidgetContext;
-import com.simisinc.platform.presentation.widgets.GenericWidget;
-import org.apache.commons.lang3.StringUtils;
+package com.simisinc.platform.presentation.widgets.cms;
 
 import java.util.ArrayList;
 import java.util.List;
 
+import org.apache.commons.lang3.StringUtils;
+
+import com.simisinc.platform.application.cms.HtmlCommand;
+import com.simisinc.platform.domain.model.cms.BlogPost;
+import com.simisinc.platform.domain.model.cms.SearchResult;
+import com.simisinc.platform.infrastructure.database.DataConstraints;
+import com.simisinc.platform.infrastructure.persistence.cms.BlogPostRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.BlogPostSpecification;
+import com.simisinc.platform.presentation.controller.RequestConstants;
+import com.simisinc.platform.presentation.controller.WidgetContext;
+import com.simisinc.platform.presentation.widgets.GenericWidget;
+
 /**
- * Description
+ * Returns search results for blog posts
  *
  * @author matt rajkowski
- * @created 3/27/18 4:27 PM
+ * @created 7/24/2022 8:53 PM
  */
-public class ItemsSearchResultsWidget extends GenericWidget {
+public class BlogPostSearchResultsWidget extends GenericWidget {
 
   static final long serialVersionUID = -8484048371911908893L;
 
-  static String JSP = "/items/items-integrated-search-results-list.jsp";
+  static String JSP = "/cms/blog-search-results-list.jsp";
 
   public WidgetContext execute(WidgetContext context) {
 
@@ -61,48 +62,30 @@ public class ItemsSearchResultsWidget extends GenericWidget {
       return null;
     }
 
-    // Determine the location
-    String location = context.getParameter("location");
-
     // Determine criteria
-    ItemSpecification specification = new ItemSpecification();
-    //    specification.setCollectionId(collection.getId());
-    specification.setForUserId(context.getUserId());
-    if (!context.hasRole("admin") && !context.hasRole("data-manager")) {
-      specification.setApprovedOnly(true);
-    }
-    specification.setSearchName(query);
-    if (StringUtils.isNotBlank(location)) {
-      specification.setSearchLocation(location);
-      specification.setWithinMeters(48281);
-    }
-
-    // Determine how the view will show the item's link
-    boolean useItemLink = "true".equals(context.getPreferences().getOrDefault("useItemLink", "false"));
+    BlogPostSpecification specification = new BlogPostSpecification();
+    specification.setPublishedOnly(true);
+    specification.setSearchTerm(query);
 
     // Query the data
-    List<Item> itemList = ItemRepository.findAll(specification, constraints);
-    if (itemList == null || itemList.isEmpty()) {
+    List<BlogPost> blogPostList = BlogPostRepository.findAll(specification, constraints);
+    if (blogPostList == null || blogPostList.isEmpty()) {
       return context;
     }
-    context.getRequest().setAttribute("itemList", itemList);
+    context.getRequest().setAttribute("blogPostList", blogPostList);
 
     List<SearchResult> searchResultList = new ArrayList<>();
-    for (Item item : itemList) {
+    for (BlogPost blogPost : blogPostList) {
       // Add the search result
       SearchResult searchResult = new SearchResult();
-      searchResult.setPageTitle(item.getName());
-      if (useItemLink && StringUtils.isNotBlank(item.getUrl())
-          && (item.getUrl().startsWith("http://") || item.getUrl().startsWith("https://"))) {
-        searchResult.setLink(item.getUrl());
-      } else {
-        searchResult.setLink(context.getContextPath() + "/show/" + item.getUniqueId());
+      searchResult.setPageTitle(blogPost.getTitle());
+      if (StringUtils.isNotBlank(blogPost.getSummary())) {
+        searchResult.setPageDescription(blogPost.getSummary());
       }
-      if (StringUtils.isNotBlank(item.getSummary())) {
-        searchResult.setPageDescription(item.getSummary());
-      }
+      searchResult.setLink(blogPost.getLink());
+
       // Include an excerpt
-      String htmlContent = HtmlCommand.toHtml(item.getHighlight());
+      String htmlContent = HtmlCommand.toHtml(blogPost.getHighlight());
       if (StringUtils.isNotBlank(htmlContent)) {
         htmlContent = StringUtils.replace(htmlContent, "${b}", "<strong>");
         htmlContent = StringUtils.replace(htmlContent, "${/b}", "</strong>");
