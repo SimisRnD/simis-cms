@@ -58,6 +58,7 @@ public class SupersetGuestTokenCommand {
       LOG.warn("Access token is required");
       return null;
     }
+    String username = user.getFullName().toLowerCase().replace(" ", "-");
 
     List<Object> resourcesArray = new ArrayList<>();
     Map<String, Object> resourcesParameters = new HashMap<>();
@@ -68,10 +69,6 @@ public class SupersetGuestTokenCommand {
     List<Object> rlsArray = new ArrayList<>();
     if (StringUtils.isNotBlank(rlsClause)) {
       Map<String, Object> rls = new HashMap<>();
-//      rls.put("filterType", "Regular|Base");
-//      rls.put("tables", "[public.all_entities]");
-//      rls.put("roles", "[Public]");
-//      rls.put("groupKey", "department = 'Finance' OR department = 'Marketing'");
       rls.put("clause", rlsClause);
 //    rls.put("dataset", 0);
       rlsArray.add(rls);
@@ -80,7 +77,7 @@ public class SupersetGuestTokenCommand {
     Map<String, Object> userParameters = new HashMap<>();
     userParameters.put("first_name", user.getFirstName());
     userParameters.put("last_name", user.getLastName());
-    userParameters.put("username", clientId);
+    userParameters.put("username", username);
 
     // Construct the final jason node
     Map<String, Object> parameters = new HashMap<>();
