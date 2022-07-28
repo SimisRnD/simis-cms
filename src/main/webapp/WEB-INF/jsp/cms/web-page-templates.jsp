@@ -73,17 +73,19 @@
       </div>
     </c:if>
   </form>
-  <c:choose>
-    <c:when test="${!empty returnPage}">
-      <a href="${returnPage}" class="button radius secondary">Cancel</a>
-    </c:when>
-    <c:when test="${!empty webPage.link}">
-      <a href="${ctx}${webPage.link}" class="button radius secondary">Cancel</a>
-    </c:when>
-    <c:otherwise>
+  <div class="button-container">
+    <c:choose>
+      <c:when test="${!empty returnPage}">
+        <a href="${returnPage}" class="button radius secondary">Cancel</a>
+      </c:when>
+      <c:when test="${!empty webPage.link}">
+        <a href="${ctx}${webPage.link}" class="button radius secondary">Cancel</a>
+      </c:when>
+      <c:otherwise>
 
-    </c:otherwise>
-  </c:choose>
+      </c:otherwise>
+    </c:choose>
+  </div>
 </div>
 <script>
   function mySubmit(templateId, templateUniqueId) {

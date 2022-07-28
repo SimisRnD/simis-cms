@@ -64,9 +64,7 @@
       </fieldset>
     </div>
   </div>
-  <div class="grid-x grid-margin-x">
-    <div class="small-12 cell">
-      <button class="button primary" name="button" value="save">Save &amp; Continue</button>
-    </div>
+  <div class="button-container">
+    <button class="button primary" name="button" value="save">Save &amp; Continue</button>
   </div>
 </form>

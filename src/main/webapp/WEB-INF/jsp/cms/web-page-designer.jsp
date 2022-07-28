@@ -33,29 +33,19 @@
   .margin-bottom-30 { margin-bottom: 30px !important; }
 </style>
 <div id="designer-container">
-<c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="${font:far()} ${icon}"></i> </c:if><c:out value="${title}"/></h4>
-</c:if>
-<%@include file="../page_messages.jspf" %>
-<p><small><c:out value="${webPage.link}"/></small></p>
-<div id="mycanvas">
-  <div class="row margin-bottom-30">
-    <div class="column col-sm-12">
-      <p>Write your content</p>
+  <c:if test="${!empty title}">
+    <h4><c:if test="${!empty icon}"><i class="${font:far()} ${icon}"></i> </c:if><c:out value="${title}"/></h4>
+  </c:if>
+  <%@include file="../page_messages.jspf" %>
+  <p><small><c:out value="${webPage.link}"/></small></p>
+  <div id="mycanvas">
+    <div class="row margin-bottom-30">
+      <div class="column col-sm-12">
+        <p>Write your content</p>
+      </div>
     </div>
   </div>
-</div>
-<%--
-<div id="mycanvas">
-  <div class="grid-x">
-    <div class="cell small-12">
-      <div class="primary callout">Write your content</div>
-    </div>
-  </div>
-</div>
---%>
-<div>
-  <p>
+  <div class="button-container">
     <c:choose>
       <c:when test="${!empty returnPage}">
         <a id="nextButton" href="${returnPage}" class="button radius secondary">Cancel</a>
@@ -67,8 +57,7 @@
 
       </c:otherwise>
     </c:choose>
-  </p>
-</div>
+  </div>
 </div>
 <script>
 

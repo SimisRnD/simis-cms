@@ -53,7 +53,7 @@
   }
 </script>
 <div style="margin-top: 6px;background-color:<c:out value="${themePropertyMap['theme.body.backgroundColor']}" />;">
-  <div class="float-right" style="padding:5px 0 0 0;">
+  <div class="button-container float-right">
     <a class="button small radius float-right" href="${ctx}/admin/modify-user?userId=${user.id}">Modify User</a>
     <ul class="dropdown menu" style="padding-right: 15px;" data-dropdown-menu>
       <li>

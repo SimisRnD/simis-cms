@@ -36,5 +36,7 @@
   <label>Reason
     <input type="text" placeholder="" name="reason" value="<c:out value="${blockedIP.reason}"/>">
   </label>
-  <p><input type="submit" class="button radius success expanded" value="Save"/></p>
+  <div class="button-container">
+    <input type="submit" class="button radius success expanded" value="Save"/>
+  </div>
 </form>

@@ -36,5 +36,7 @@
   <label>Name
     <input type="text" placeholder="Search by name..." id="name" name="name" value="<c:if test="${!empty searchName}"><c:out value="${searchName}" /></c:if>" autocomplete="off">
   </label>
-  <p><input type="submit" class="button radius primary expanded" value="Search"/></p>
+  <div class="button-container">
+    <input type="submit" class="button radius primary expanded" value="Search"/>
+  </div>
 </form>

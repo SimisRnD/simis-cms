@@ -91,8 +91,8 @@
         </div>
       </c:forEach>
     </c:if>
-    <p>
+    <div class="button-container">
       <input type="submit" class="button radius expanded" value="Add Tracking Number" />
-    </p>
+    </div>
   </form>
 </div>

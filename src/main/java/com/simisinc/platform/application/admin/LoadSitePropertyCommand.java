@@ -80,4 +80,13 @@ public class LoadSitePropertyCommand {
     }
     return null;
   }
+
+  public static boolean loadByNameAsBoolean(String name) {
+    String booleanValue = loadByName(name);
+    if ("true".equals(booleanValue)) {
+      return true;
+    }
+    return false;
+  }
+
 }

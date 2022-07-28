@@ -29,6 +29,7 @@ import org.jsoup.safety.Safelist;
 import org.jsoup.select.Elements;
 
 import java.util.ArrayList;
+import java.util.UUID;
 
 /**
  * HTML encoding and decoding functions
@@ -39,6 +40,7 @@ import java.util.ArrayList;
 public class HtmlCommand {
 
   private static Log LOG = LogFactory.getLog(HtmlCommand.class);
+  private static final String ALLOWED_CHARS = "abcdefghijklmnopqrstuvwyxz1234567890-";
 
   /**
    * Turns HTML content into readable text
@@ -81,6 +83,27 @@ public class HtmlCommand {
     settings.charset("ASCII");
 
     return clean.html();
+  }
+
+  public static String makeId(String text) {
+    if (StringUtils.isBlank(text)) {
+      return UUID.randomUUID().toString();
+    }
+    StringBuilder sb = new StringBuilder();
+    String name = text.toLowerCase();
+    final int len = name.length();
+    for (int i = 0; i < len; i++) {
+      char c = name.charAt(i);
+      if (ALLOWED_CHARS.indexOf(name.charAt(i)) > -1) {
+        sb.append(c);
+      } else if (c == ' ') {
+        sb.append("-");
+      }
+    }
+    if (sb.length() == 0) {
+      return UUID.randomUUID().toString();
+    }
+    return sb.toString();
   }
 
   /**
@@ -188,7 +211,8 @@ public class HtmlCommand {
 
     // Use the html body
     if (cleanedContent.contains("<body>") && cleanedContent.contains("</body>")) {
-      cleanedContent = cleanedContent.substring(cleanedContent.indexOf("<body>") + 6, cleanedContent.indexOf("</body>"));
+      cleanedContent = cleanedContent.substring(cleanedContent.indexOf("<body>") + 6,
+          cleanedContent.indexOf("</body>"));
     }
 
     if (LOG.isDebugEnabled()) {
@@ -279,7 +303,7 @@ public class HtmlCommand {
     ArrayList<String> allowedItems = new ArrayList<String>();
     allowedItems.add("color");
     allowedItems.add("font-size");
-
+  
     Elements e = document.getElementsByTag("span");
     for (Element element : e) {
       String[] styles = element.attr("style").split(";");
@@ -307,16 +331,16 @@ public class HtmlCommand {
     }
     for (Element element : e) {
       if (element.html().length() == 0) {
-//        LOG.debug("Removing empty element for tag: " + tagName);
+        //        LOG.debug("Removing empty element for tag: " + tagName);
         element.remove();
         // when the document has changed, re-run this pass
         removeEmptyEnclosingElements(document, tagName);
         break;
       }
       if (element.attributes().size() == 0 || element.attributes().asList().size() == 0) {
-//        LOG.debug("Adding: " + element.html());
+        //        LOG.debug("Adding: " + element.html());
         element.before(element.html());
-//        LOG.debug("Removing: " + element.outerHtml());
+        //        LOG.debug("Removing: " + element.outerHtml());
         element.remove();
         // when the document has changed, re-run this pass
         removeEmptyEnclosingElements(document, tagName);

@@ -16,20 +16,19 @@
 
 package com.simisinc.platform.presentation.widgets.cms;
 
-import com.simisinc.platform.domain.model.SiteProperty;
+import java.util.ArrayList;
+import java.util.List;
+
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.cms.LoadMenuTabsCommand;
 import com.simisinc.platform.application.cms.ValidateUserAccessToWebPageCommand;
 import com.simisinc.platform.application.items.LoadCollectionCommand;
 import com.simisinc.platform.domain.model.cms.MenuItem;
 import com.simisinc.platform.domain.model.cms.MenuTab;
-import com.simisinc.platform.infrastructure.persistence.SitePropertyRepository;
 import com.simisinc.platform.presentation.controller.RequestConstants;
 import com.simisinc.platform.presentation.controller.UserSession;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Description
@@ -48,8 +47,8 @@ public class MainMenuWidget extends GenericWidget {
   public WidgetContext execute(WidgetContext context) {
 
     // Determine if the site menu can be shown
-    SiteProperty siteOnline = SitePropertyRepository.findByName("site.online");
-    if (!context.getUserSession().isLoggedIn() && (siteOnline == null || "false".equals(siteOnline.getValue()))) {
+    boolean siteIsOnline = LoadSitePropertyCommand.loadByNameAsBoolean("site.online");
+    if (!context.getUserSession().isLoggedIn() && !siteIsOnline) {
       return context;
     }
 

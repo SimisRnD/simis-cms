@@ -44,8 +44,8 @@ tinymce.init({
   <p>
     <textarea name="content"><c:out value="${codeContent}" /></textarea>
   </p>
-  <p>
+  <div class="button-container">
     <%--<input type="submit" class="button radius success" value="Save" />--%>
     <a href="${returnPage}" class="button radius secondary">Cancel</a>
-  </p>
+  </div>
 </form>

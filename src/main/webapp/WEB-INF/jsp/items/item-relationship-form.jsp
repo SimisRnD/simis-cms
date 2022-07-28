@@ -57,7 +57,9 @@
   <input type="text" placeholder="Enter a name" id="relatedItemName" name="relatedItemName" value="" autocomplete="off">
   <%--<input type="checkbox" name="reciprocal" /> Reciprocal--%>
   <input type="hidden" id="relatedItemUniqueId" name="relatedItemUniqueId" value=""/>
-  <p><input type="submit" class="button radius success expanded" value="Save"/></p>
+  <div class="button-container">
+    <input type="submit" class="button radius success expanded" value="Save"/>
+  </div>
 </form>
 <script>
   function checkForm${widgetContext.uniqueId}() {

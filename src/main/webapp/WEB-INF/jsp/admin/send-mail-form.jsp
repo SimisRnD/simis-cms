@@ -34,5 +34,7 @@
   <label>Subject
     <p>Site Invitation Message</p>
   </label>
-  <p><input type="submit" class="button radius success expanded" value="Send Mail"/></p>
+  <div class="button-container">
+    <input type="submit" class="button radius success expanded" value="Send Mail"/>
+  </div>
 </form>

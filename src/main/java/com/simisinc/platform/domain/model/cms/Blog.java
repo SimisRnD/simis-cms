@@ -113,4 +113,8 @@ public class Blog extends Entity {
   public void setEnabled(boolean enabled) {
     this.enabled = enabled;
   }
+
+  public String getLink() {
+    return "/" + uniqueId;
+  }
 }

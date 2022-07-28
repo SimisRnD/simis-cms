@@ -99,26 +99,21 @@
     </c:forEach>
   </div>
 --%>
+  <div class="button-container">
+    <input type="submit" class="button radius success" value="Save"/>
+    <c:choose>
+      <c:when test="${!empty returnPage}">
+        <a href="${returnPage}" class="button radius secondary">Cancel</a>
+      </c:when>
+      <c:when test="${!empty webPage.link}">
+        <a href="${ctx}${webPage.link}" class="button radius secondary">Cancel</a>
+      </c:when>
+      <c:otherwise>
 
-
-  <div>
-    <p>
-      <input type="submit" class="button radius success" value="Save"/>
-      <c:choose>
-        <c:when test="${!empty returnPage}">
-          <a href="${returnPage}" class="button radius secondary">Cancel</a>
-        </c:when>
-        <c:when test="${!empty webPage.link}">
-          <a href="${ctx}${webPage.link}" class="button radius secondary">Cancel</a>
-        </c:when>
-        <c:otherwise>
-
-        </c:otherwise>
-      </c:choose>
-    </p>
+      </c:otherwise>
+    </c:choose>
   </div>
 </form>
-
 
 <script src="${ctx}/javascript/dragula-3.7.3/dragula.min.js"></script>
 <script>

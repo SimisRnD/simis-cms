@@ -261,9 +261,11 @@
   <div class="reveal tiny" id="modalReveal" data-reveal>
     <h3>Event Options</h3>
     <p>Would you like to make changes or view the details of this event?</p>
-    <button class="button" data-open="formReveal">Edit this Event</button>
-    <input type="hidden" id="eventLinkInput" value="#" />
-    <button id="eventLink" class="button">View the Event Details</button>
+    <div class="button-container text-no-wrap">
+      <button class="button" data-open="formReveal">Edit this Event</button>
+      <input type="hidden" id="eventLinkInput" value="#" />
+      <button id="eventLink" class="button">View the Event Details</button>
+    </div>
     <button class="close-button" data-close aria-label="Close modal" type="button">
       <span aria-hidden="true">&times;</span>
     </button>
@@ -370,11 +372,11 @@
           </label>
         </div>
       </div>
-      <p>
+      <div class="button-container">
         <input type="submit" class="button radius success expanded" value="Save" />
         <input id="duplicateButton" style="display:none" type="submit" class="button radius primary expanded" name="duplicate" value="Duplicate" />
-        <span id="deleteButton" style="display:none"><a href="javascript:deleteCalendarEvent()" class="button radius alert expanded">Delete</a></span>
-      </p>
+        <a id="deleteButton" style="display:none" href="javascript:deleteCalendarEvent()" class="button radius alert expanded">Delete</a>
+      </div>
     </form>
   </div>
   <script>

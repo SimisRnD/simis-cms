@@ -51,7 +51,7 @@
       <p>
         <textarea id="pageXml" name="pageXml" data-gutter="1" rows="24" data-editor="xml"><c:out value="${webPage.pageXml}"/></textarea>
       </p>
-      <p class="no-gap">
+      <div class="button-container">
         <input type="submit" class="button radius success no-gap" value="Save"/>
         <c:choose>
           <c:when test="${!empty returnPage}">
@@ -64,7 +64,7 @@
 
           </c:otherwise>
         </c:choose>
-      </p>
+      </div>
     </div>
     <div class="small-12 hide-for-small-only medium-3 cell">
       <div id="information" class="callout secondary" style="overflow:scroll">

@@ -15,6 +15,7 @@
   --%>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="font" uri="/WEB-INF/font-functions.tld" %>
+<%@ taglib prefix="html" uri="/WEB-INF/html-functions.tld" %>
 <%@ taglib prefix="js" uri="/WEB-INF/javascript-escape.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
@@ -22,6 +23,7 @@
 <jsp:useBean id="accordionClass" class="java.lang.String" scope="request"/>
 <jsp:useBean id="innerAccordionClass" class="java.lang.String" scope="request"/>
 <jsp:useBean id="sectionList" class="java.util.ArrayList" scope="request"/>
+<jsp:useBean id="expandTopLevel" class="java.lang.String" scope="request"/>
 <c:if test="${!empty title}">
   <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}"/></h4>
 </c:if>
@@ -35,17 +37,24 @@
     </div>
   </c:if>
   <c:if test="${!empty sectionList}">
-    <ul id="accordion0" class="accordion<c:if test="${!empty accordionClass}"> <c:out value="${accordionClass}" /></c:if>" data-accordion data-allow-all-closed="true">
+    <ul id="accordion0" class="accordion<c:if test="${!empty accordionClass}"> <c:out value="${accordionClass}" /></c:if>" data-accordion data-allow-all-closed="true"<c:if test="${expandTopLevel eq 'true'}"> data-multi-expand="true"</c:if>>
       <c:forEach items="${sectionList}" var="section" varStatus="sectionStatus">
         <c:if test="${!empty section.title}">
-          <li class="accordion-item" data-accordion-item>
-            <a href="#" class="accordion-title"><c:out value="${section.title}" /></a>
+          <li id="${html:makeId(section.title)}" class="accordion-item<c:if test="${expandTopLevel eq 'true'}"> is-active</c:if>" data-accordion-item>
+            <c:choose>
+              <c:when test="${expandTopLevel eq 'true'}">
+                <h5 class="accordion-header accordion-title-level-1"><c:out value="${section.title}" /></h5>
+              </c:when>
+              <c:otherwise>
+                <a href="#" class="accordion-title accordion-title-level-1"><c:out value="${section.title}" /></a>
+              </c:otherwise>
+            </c:choose>            
             <div id="accordion${sectionStatus.count}-content" class="accordion-content" data-tab-content>
               <ul id="accordion${sectionStatus.count}" class="accordion<c:if test="${!empty innerAccordionClass}"> <c:out value="${innerAccordionClass}" /></c:if>" data-accordion data-allow-all-closed="true">
         </c:if>
         <c:forEach items="${section.contentList}" var="card" varStatus="cardStatus">
-          <li class="accordion-item" data-accordion-item>
-            <a href="#" class="accordion-title">${section.labelsList[cardStatus.index]}</a>
+          <li id="${html:makeId(section.labelsList[cardStatus.index])}" class="accordion-item" data-accordion-item>
+            <a href="#" class="accordion-title accordion-title-level-2">${section.labelsList[cardStatus.index]}</a>
             <div class="accordion-content" data-tab-content>
                 ${card}
             </div>

@@ -50,7 +50,9 @@
     <input id="headerTextColor" type="text" name="headerTextColor" value="<c:out value="${category.headerTextColor}"/>">
     Header Text Color
   </label>
-  <p><input type="submit" class="button radius success expanded margin-top-20" value="Save" /></p>
+  <div class="button-container">
+    <input type="submit" class="button radius success expanded" value="Save" />
+  </div>
 </form>
 <script>
   var colorIdList = [];

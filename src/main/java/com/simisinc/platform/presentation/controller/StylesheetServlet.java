@@ -16,23 +16,25 @@
 
 package com.simisinc.platform.presentation.controller;
 
-import com.granule.utils.HttpHeaders;
-import com.simisinc.platform.application.cms.LoadStylesheetCommand;
-import com.simisinc.platform.domain.model.cms.Stylesheet;
-import org.apache.commons.codec.digest.DigestUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.util.zip.GZIPOutputStream;
 
 import javax.servlet.ServletConfig;
 import javax.servlet.ServletException;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
-import java.util.zip.GZIPOutputStream;
+
+import org.apache.commons.codec.digest.DigestUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import com.granule.utils.HttpHeaders;
+import com.simisinc.platform.application.cms.LoadStylesheetCommand;
+import com.simisinc.platform.domain.model.cms.Stylesheet;
 
 /**
  * Handles all web browser page requests
@@ -65,10 +67,7 @@ public class StylesheetServlet extends HttpServlet {
     // /css/stylesheet123.css?v=test
 
     int startIdx = pagePath.indexOf(cssPathPart);
-    LOG.debug("startIdx: " + startIdx);
     int endIdx = pagePath.indexOf(".css", startIdx);
-    LOG.debug("endIdx: " + endIdx);
-
     if (startIdx == -1 || endIdx == -1) {
       response.setStatus(404);
       return;
@@ -93,6 +92,7 @@ public class StylesheetServlet extends HttpServlet {
       response.setStatus(404);
       return;
     }
+    String css = stylesheet.getCss();
 
     // Check for a last-modified header and return 304 if possible
     long lastModified = stylesheet.getModified().getTime();
@@ -105,7 +105,7 @@ public class StylesheetServlet extends HttpServlet {
       }
     }
 
-    // Prepare the content
+    // Set headers and send the content
     LOG.debug("Sending stylesheet for pagePath: " + pagePath + " [" + webPageId + "]");
     response.setHeader("Content-Type", "text/css; charset=utf-8");
     if (lastModified > 0) {
@@ -113,26 +113,23 @@ public class StylesheetServlet extends HttpServlet {
     } else {
       HttpHeaders.setCacheExpireDate(response, 6048000);
     }
-    // @note should this always be gzipCss?
-    String css = stylesheet.getCss();
-    byte[] gzipCss = gzip(css);
-    response.setHeader("ETag", DigestUtils.md5Hex(gzipCss));
-
-    OutputStream os = response.getOutputStream();
-    try {
-      if (gzipSupported(request)) {
+    LOG.debug("CSS original length: " + css.length());
+    if (gzipSupported(request)) {
+      try (OutputStream os = response.getOutputStream()) {
+        byte[] gzipCss = gzip(css);
+        response.setHeader("ETag", DigestUtils.md5Hex(gzipCss));
         response.setHeader("Content-Encoding", "gzip");
         os.write(gzipCss);
-      } else {
-        response.getWriter().print(css);
+        os.flush();
+        LOG.debug("Sent as gzip... gzip length: " + gzipCss.length);
       }
-      os.flush();
-    } finally {
-      os.close();
+    } else {
+      response.setHeader("ETag", DigestUtils.md5Hex(css));
+      response.getWriter().print(css);
     }
   }
 
-  private boolean gzipSupported(HttpServletRequest request) {
+  private static boolean gzipSupported(HttpServletRequest request) {
     String acceptEncoding = request.getHeader("Accept-Encoding");
     if (acceptEncoding == null || !acceptEncoding.contains("gzip")) {
       return false;
@@ -149,9 +146,11 @@ public class StylesheetServlet extends HttpServlet {
 
   private static byte[] gzip(String text) throws IOException {
     ByteArrayOutputStream bos = new ByteArrayOutputStream();
-    GZIPOutputStream gzipStream = new GZIPOutputStream(bos);
-    gzipStream.write(text.getBytes("UTF-8"));
-    gzipStream.close();
+    try (
+        GZIPOutputStream gzipStream = new GZIPOutputStream(bos)) {
+      gzipStream.write(text.getBytes("UTF-8"));
+      gzipStream.flush();
+    }
     return bos.toByteArray();
   }
 }

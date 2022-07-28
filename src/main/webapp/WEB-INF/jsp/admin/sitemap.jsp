@@ -116,16 +116,16 @@
           </div>
           <input class="input-group-field" type="text" name="menuTab${menuTab.id}menuItemName" placeholder="New item..." value="">
           <input class="input-group-field" type="text" name="menuTab${menuTab.id}menuItemLink" placeholder="Optional /link" value="">
-          <input type="submit" class="button tiny expanded success" value="Add Item">
+          <div class="button-container">
+            <input type="submit" class="button tiny expanded success" value="Add Item">
+          </div>
         </c:if>
       </div>
     </c:forEach>
   </div>
-  <div>
-    <p>
-      <input type="submit" class="button radius success" value="Save Site Map Changes"/>
-      <a href="${ctx}/admin" class="button radius secondary">Cancel</a>
-    </p>
+  <div class="button-container">
+    <input type="submit" class="button radius success" value="Save Site Map Changes"/>
+    <a href="${ctx}/admin" class="button radius secondary">Cancel</a>
   </div>
 </form>
 <script src="${ctx}/javascript/dragula-3.7.3/dragula.min.js"></script>

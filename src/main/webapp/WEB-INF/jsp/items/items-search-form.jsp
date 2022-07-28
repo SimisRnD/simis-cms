@@ -57,7 +57,9 @@
       </select>
     </label>
   </c:if>
-  <p><input type="submit" class="button radius primary expanded" value="Search"/></p>
+  <div class="button-container">
+    <input type="submit" class="button radius primary expanded" value="Search"/>
+  </div>
 </form>
 <c:if test="${useLocation eq 'true' or useAutoComplete eq 'true'}">
 <script>

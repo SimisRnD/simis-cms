@@ -193,6 +193,7 @@ public class ContentWidget extends GenericWidget {
           // CSS class
           context.getRequest().setAttribute("accordionClass", context.getPreferences().get("class"));
           context.getRequest().setAttribute("innerAccordionClass", context.getPreferences().get("innerClass"));
+          context.getRequest().setAttribute("expandTopLevel", context.getPreferences().getOrDefault("expandTopLevel", "false"));
 
           // Use the content itself to find the Accordion Label and Content; If the content begins with an <H1> then create a nested accordion
           List<AccordionSection> sectionList = new ArrayList<>();

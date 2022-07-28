@@ -37,5 +37,7 @@
     </c:forEach>
   </select>
   <%--<input type="checkbox" name="reciprocal" /> Reciprocal--%>
-  <p><input type="submit" class="button radius success expanded" value="Save"/></p>
+  <div class="button-container">
+    <input type="submit" class="button radius success expanded" value="Save"/>
+  </div>
 </form>

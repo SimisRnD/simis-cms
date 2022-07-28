@@ -38,5 +38,7 @@
   <label>Description
     <input type="text" placeholder="Describe it..." name="summary" value="<c:out value="${item.summary}"/>">
   </label>
-  <p><input type="submit" class="button radius success expanded" value="Save"/></p>
+  <div class="button-container">
+    <input type="submit" class="button radius success expanded" value="Save"/>
+  </div>
 </form>

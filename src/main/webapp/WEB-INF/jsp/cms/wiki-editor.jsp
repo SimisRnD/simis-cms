@@ -59,18 +59,16 @@
       <p>
         <textarea id="content" name="content" data-gutter="1" rows="24" data-editor="markdown"><c:out value="${content}"/></textarea>
       </p>
-      <div>
-        <p>
-          <input type="submit" class="button radius success" value="Save"/>
-          <c:choose>
-            <c:when test="${!empty returnPage}">
-              <a href="${returnPage}" class="button radius secondary">Cancel</a>
-            </c:when>
-            <c:otherwise>
+      <div class="button-container">
+        <input type="submit" class="button radius success" value="Save"/>
+        <c:choose>
+          <c:when test="${!empty returnPage}">
+            <a href="${returnPage}" class="button radius secondary">Cancel</a>
+          </c:when>
+          <c:otherwise>
 
-            </c:otherwise>
-          </c:choose>
-        </p>
+          </c:otherwise>
+        </c:choose>
       </div>
     </div>
     <div class="small-12 hide-for-small-only medium-3 cell">

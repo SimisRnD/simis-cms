@@ -56,21 +56,19 @@
       <p id="pageXmlContainer">
         <textarea id="pageXml" name="pageXml" data-gutter="1" rows="24"><c:out value="${webPage.pageXml}"/></textarea>
       </p>
-      <div>
-        <p>
-          <input type="submit" class="button radius success" value="Save"/>
-          <c:choose>
-            <c:when test="${!empty returnPage}">
-              <a href="${returnPage}" class="button radius secondary">Cancel</a>
-            </c:when>
-            <c:when test="${!empty webPage.link}">
-              <a href="${ctx}${webPage.link}" class="button radius secondary">Cancel</a>
-            </c:when>
-            <c:otherwise>
+      <div class="button-container">
+        <input type="submit" class="button radius success" value="Save"/>
+        <c:choose>
+          <c:when test="${!empty returnPage}">
+            <a href="${returnPage}" class="button radius secondary">Cancel</a>
+          </c:when>
+          <c:when test="${!empty webPage.link}">
+            <a href="${ctx}${webPage.link}" class="button radius secondary">Cancel</a>
+          </c:when>
+          <c:otherwise>
 
-            </c:otherwise>
-          </c:choose>
-        </p>
+          </c:otherwise>
+        </c:choose>
       </div>
     </form>
     <script>

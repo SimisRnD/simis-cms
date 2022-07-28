@@ -19,6 +19,7 @@
   <property name="build.dir" value="${base.dir}/build" />
   <property name="target.dir" value="${base.dir}/target" />
   <property name="exploded.dir" value="${target.dir}/exploded/ROOT" />
+  <property name="exploded.work.dir" value="${target.dir}/exploded-work/ROOT" />
 
   <property name="jee.lib.dir" value="${base.dir}/lib/war" />
   <typedef resource="org/apache/catalina/ant/catalina.tasks">
@@ -33,6 +34,10 @@
   <taskdef uri="antlib:org.jacoco.ant" resource="org/jacoco/ant/antlib.xml">
     <classpath path="${base.dir}/lib/tests/org.jacoco.ant-0.8.8-nodeps.jar"/>
   </taskdef>
+
+  <tstamp prefix="start">
+    <format property="val" pattern="yyyy-MM-dd h:mm aa" />
+  </tstamp>
 
   <!-- Version for scripts to use -->
   <target name="version">
@@ -52,15 +57,16 @@
     </loadfile>
     <fail unless="version">The version string could not be detected in ApplicationInfo.java</fail>
     <echo message="Version: ${version}"/>
+    <echo message="Date: ${start.val}" />
   </target>
 
-  <target name="clean" depends="version">
+  <target name="clean">
     <delete dir="${build.dir}" />
     <delete dir="${target.dir}" />
   </target>
 
   <!-- Creates build directories -->
-  <target name="prepare">
+  <target name="prepare" depends="version">
     <mkdir dir="${build.dir}"/>
     <mkdir dir="${target.dir}"/>
     <tstamp />
@@ -100,29 +106,29 @@
   </target>
 
   <target name="webapp" depends="compile">
-    <mkdir dir="${exploded.dir}"/>
-    <mkdir dir="${exploded.dir}/WEB-INF"/>
-    <mkdir dir="${exploded.dir}/WEB-INF/classes"/>
-    <mkdir dir="${exploded.dir}/WEB-INF/lib"/>
-    <mkdir dir="${exploded.dir}/WEB-INF/jsp"/>
+    <delete dir="${exploded.work.dir}"/>
+    <mkdir dir="${exploded.work.dir}"/>
+    <mkdir dir="${exploded.work.dir}/WEB-INF"/>
+    <mkdir dir="${exploded.work.dir}/WEB-INF/classes"/>
+    <mkdir dir="${exploded.work.dir}/WEB-INF/lib"/>
+    <mkdir dir="${exploded.work.dir}/WEB-INF/jsp"/>
     <!-- Project Classes -->
-    <copy todir="${exploded.dir}/WEB-INF/classes">
+    <copy todir="${exploded.work.dir}/WEB-INF/classes" preservelastmodified="true">
       <fileset dir="${build.dir}">
         <include name="**"/>
       </fileset>
     </copy>
     <!-- Dependency Libraries -->
-
     <copy todir="${target.dir}/lib" flatten="true" preservelastmodified="true">
       <fileset dir="${lib.dir}">
         <include name="**/*.jar"/>
       </fileset>
     </copy>
-    <sync todir="${exploded.dir}/WEB-INF/lib">
+    <sync todir="${exploded.work.dir}/WEB-INF/lib">
       <fileset dir="${target.dir}/lib"/>
     </sync>
     <!-- Resources -->
-    <copy todir="${exploded.dir}/WEB-INF">
+    <copy todir="${exploded.work.dir}/WEB-INF" preservelastmodified="true">
       <fileset dir="${web.dir}/WEB-INF">
         <include name="**/*.html"/>
         <include name="**/*.xml"/>
@@ -132,7 +138,7 @@
         <include name="**/*.properties"/>
       </fileset>
     </copy>
-    <copy todir="${exploded.dir}/WEB-INF/classes">
+    <copy todir="${exploded.work.dir}/WEB-INF/classes" preservelastmodified="true">
       <fileset dir="${resources.dir}">
         <include name="**/*.properties"/>
         <include name="**/*.sql"/>
@@ -144,15 +150,15 @@
     </copy>
     <!-- Developer setting -->
     <copy file="${resources.dir}/jobrunr.properties"
-          tofile="${exploded.dir}/WEB-INF/classes/jobrunr.properties"
-          verbose="false"/>
+          tofile="${exploded.work.dir}/WEB-INF/classes/jobrunr.properties"
+          verbose="false"
+          preservelastmodified="true"/>
     <copy file="${resources.dir}/simplelog.properties"
-          tofile="${exploded.dir}/WEB-INF/classes/simplelog.properties"
-          verbose="false"/>
-    <!-- Version string for scripts -->
-    <echo file="${exploded.dir}/WEB-INF/VERSION" append="true">${version}</echo>
+          tofile="${exploded.work.dir}/WEB-INF/classes/simplelog.properties"
+          verbose="false"
+          preservelastmodified="true"/>
     <!-- Web -->
-    <copy todir="${exploded.dir}">
+    <copy todir="${exploded.work.dir}" preservelastmodified="true">
       <fileset dir="${web.dir}">
         <include name="robots.txt"/>
         <include name="css/**"/>
@@ -162,19 +168,27 @@
       </fileset>
     </copy>
     <!-- Prepare the JSPs-->
-    <copy todir="${exploded.dir}/WEB-INF/jsp">
+    <copy todir="${exploded.work.dir}/WEB-INF/jsp" preservelastmodified="true">
       <fileset dir="${web.dir}/WEB-INF/jsp"/>
     </copy>
     <!-- Cleanup -->
-    <delete verbose="true" includeemptydirs="true">
-      <fileset dir="${exploded.dir}"  >
+    <!-- <delete verbose="true" includeemptydirs="true">
+      <fileset dir="${exploded.work.dir}"  >
         <and>
           <size value="0"/>
           <type type="dir"/>
         </and>
       </fileset>
-    </delete>
-    <echo file="${exploded.dir}/VERSION" message="${version}"/>
+    </delete> -->
+    <!-- Sync with the exploded directory -->
+    <mkdir dir="${exploded.dir}"/>
+    <sync todir="${exploded.dir}">
+      <fileset dir="${exploded.work.dir}">
+        <include name="**"/>
+      </fileset>
+    </sync>
+    <!-- Version string for scripts -->
+    <!-- <echo file="${exploded.dir}/WEB-INF/VERSION" append="true">${version}</echo> -->
   </target>
 
   <target name="package" depends="jar,webapp">

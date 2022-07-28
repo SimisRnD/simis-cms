@@ -52,8 +52,8 @@
       <input name="password" type="password" placeholder="Password" autocomplete="off" required>
     </label>
     <p class="help-text" id="passwordHelp">Your password is required to process the refund</p>
-    <p>
+    <div class="button-container">
       <input type="submit" class="button radius expanded" value="Issue Refund" />
-    </p>
+    </div>
   </form>
 </div>
