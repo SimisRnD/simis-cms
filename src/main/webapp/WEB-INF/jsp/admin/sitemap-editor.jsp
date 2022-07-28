@@ -99,11 +99,9 @@
       </div>
     </c:forEach>
   </div>
-  <div>
-    <p>
-      <input type="submit" class="button radius success" value="Save Site Map Changes"/>
-      <a href="${ctx}/admin" class="button radius secondary">Cancel</a>
-    </p>
+  <div class="button-container">
+    <input type="submit" class="button radius success" value="Save Site Map Changes"/>
+    <a href="${ctx}/admin" class="button radius secondary">Cancel</a>
   </div>
 </form>
 <script src="${ctx}/javascript/dragula-3.7.3/dragula.min.js"></script>

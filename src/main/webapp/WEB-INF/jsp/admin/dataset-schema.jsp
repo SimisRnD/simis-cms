@@ -120,10 +120,10 @@
       <input type="checkbox" id="doProcess" name="doProcess" value="true" /><label for="doProcess">Import the records into a directory after saving</label>
     </fieldset>
   </div>
-  <p>
+  <div class="button-container">
     <input type="submit" class="button radius success" name="process" value="Save"/>
     <a class="button radius secondary" href="${ctx}/admin/datasets">Cancel</a>
-  </p>
+  </div>
 </form>
 <div class="reveal medium" id="processReveal" data-reveal data-animation-in="slide-in-down fast">
   <h3>Validating Data...</h3>

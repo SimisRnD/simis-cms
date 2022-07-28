@@ -33,5 +33,7 @@
   <label>Reference name <span class="required">*</span>
     <input type="text" placeholder="example-unique-id" name="uniqueId" value="<c:out value="${content.uniqueId}"/>" required>
   </label>
-  <p><input type="submit" class="button radius primary expanded" value="Continue"/></p>
+  <div class="button-container">
+    <input type="submit" class="button radius primary expanded" value="Continue"/>
+  </div>
 </form>

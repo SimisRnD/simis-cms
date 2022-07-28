@@ -49,15 +49,15 @@
       </label>
     </div>
   </label>
-  <c:choose>
-    <c:when test="${!empty returnPage}">
-      <p>
+  <div class="button-container">
+    <c:choose>
+      <c:when test="${!empty returnPage}">
         <input type="submit" class="button radius success" value="Save"/>
         <a href="${returnPage}" class="button radius secondary">Cancel</a>
-      </p>
-    </c:when>
-    <c:otherwise>
-      <p><input type="submit" class="button radius success expanded" value="Save"/></p>
-    </c:otherwise>
-  </c:choose>
+      </c:when>
+      <c:otherwise>
+        <input type="submit" class="button radius success expanded" value="Save"/>
+      </c:otherwise>
+    </c:choose>
+  </div>
 </form>

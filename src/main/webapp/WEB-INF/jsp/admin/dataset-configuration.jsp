@@ -52,8 +52,8 @@
   </c:if>
   <label for="file" class="button small secondary radius"><i class="fa fa-upload"></i> Upload Replacement File</label>
   <input type="file" id="file" name="file" class="show-for-sr">
-  <p>
+  <div class="button-container">
     <input type="submit" class="button radius success" name="process" value="Save"/>
     <a class="button radius secondary" href="${ctx}/admin/datasets">Cancel</a>
-  </p>
+  </div>
 </form>

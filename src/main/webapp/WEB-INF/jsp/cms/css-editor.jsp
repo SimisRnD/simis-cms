@@ -49,12 +49,12 @@
       <p>
         <textarea id="stylesheetCss" name="css" data-gutter="1" rows="24" data-editor="css"><c:out value="${stylesheet.css}"/></textarea>
       </p>
-      <p class="no-gap">
+      <div class="button-container">
         <input type="submit" class="button radius success no-gap" value="Save"/>
         <c:if test="${!empty returnPage}">
           <a href="${returnPage}" class="button radius secondary no-gap">Cancel</a>
         </c:if>
-      </p>
+      </div>
     </div>
     <div class="small-12 hide-for-small-only medium-4 cell">
       <div id="information" style="overflow:scroll;padding-right:20px">

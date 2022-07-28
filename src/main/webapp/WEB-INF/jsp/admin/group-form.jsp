@@ -41,5 +41,7 @@
     <input type="text" placeholder="Internal Reference Id..." name="uniqueId" aria-describedby="uniqueIdHelpText" value="<c:out value="${group.uniqueId}"/>">
   </label>
   <p class="help-text" id="uniqueIdHelpText">Leave blank to auto-generate; this value does not usually change! No spaces, use lowercase, a-z, 0-9, dashes</p>
-  <p><input type="submit" class="button radius success expanded" value="Save"/></p>
+  <div class="button-container">
+    <input type="submit" class="button radius success expanded" value="Save"/>
+  </div>
 </form>

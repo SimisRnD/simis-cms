@@ -44,15 +44,15 @@
     <input type="text" placeholder="Describe it..." name="description" value="<c:out value="${blog.description}"/>">
   </label>
   <input id="enabled" type="checkbox" name="enabled" value="true" <c:if test="${blog.id == -1 || blog.enabled}">checked</c:if>/><label for="enabled">Online?</label>
-  <c:choose>
-    <c:when test="${!empty returnPage}">
-      <p>
-        <input type="submit" class="button radius success" value="Save"/>
-        <a href="${returnPage}" class="button radius secondary">Cancel</a>
-      </p>
-    </c:when>
-    <c:otherwise>
-      <p><input type="submit" class="button radius success expanded" value="Save"/></p>
-    </c:otherwise>
-  </c:choose>
+  <div class="button-container">
+    <c:choose>
+      <c:when test="${!empty returnPage}">
+          <input type="submit" class="button radius success" value="Save"/>
+          <a href="${returnPage}" class="button radius secondary">Cancel</a>
+      </c:when>
+      <c:otherwise>
+        <input type="submit" class="button radius success expanded" value="Save"/>
+      </c:otherwise>
+    </c:choose>
+  </div>
 </form>

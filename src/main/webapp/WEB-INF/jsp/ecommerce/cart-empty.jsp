@@ -28,5 +28,7 @@
   <c:if test="${!empty emptyMessage}">
     <p><c:out value="${emptyMessage}"/></p>
   </c:if>
-  <p><a class="button" href="${ctx}${shopUrl}">Continue Browsing</a></p>
+  <div class="button-container">
+    <a class="button" href="${ctx}${shopUrl}">Continue Browsing</a>
+  </div>
 </div>

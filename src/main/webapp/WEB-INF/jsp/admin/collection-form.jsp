@@ -145,17 +145,15 @@
       </table>
     </fieldset>
   </c:if>
+  <div class="button-container">
     <c:choose>
       <c:when test="${!empty returnPage}">
-        <p>
-          <input type="submit" class="button radius success" value="Save"/>
-          <a href="${returnPage}" class="button radius secondary">Cancel</a>
-        </p>
+        <input type="submit" class="button radius success" value="Save"/>
+        <a href="${returnPage}" class="button radius secondary">Cancel</a>
       </c:when>
       <c:otherwise>
-        <p>
-          <input type="submit" class="button radius success" value="Save"/>
-        </p>
+        <input type="submit" class="button radius success" value="Save"/>
       </c:otherwise>
     </c:choose>
+  </div>
 </form>

@@ -48,10 +48,10 @@
   <label>Name
     <input type="text" placeholder="Search by name..." id="name" name="name" value="<c:if test="${!empty searchName}"><c:out value="${searchName}" /></c:if>" autocomplete="off">
   </label>
-  <p>
+  <div class="button-container">
     <input type="submit" class="button radius primary expanded" value="Search"/>
     <input id="resetButton" type="reset" class="button radius secondary expanded" value="Reset"/>
-  </p>
+  </div>
 </form>
 <script>
   $(document).ready(function () {

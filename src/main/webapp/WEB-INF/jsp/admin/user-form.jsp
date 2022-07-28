@@ -34,7 +34,7 @@
   <div id="sticky-container" data-sticky-container>
     <div id="sticky-item" data-sticky style="width:100%" data-top-anchor="1" data-sticky-on="small">
       <div style="padding-top:16px;background-color:<c:out value="${themePropertyMap['theme.body.backgroundColor']}" />;">
-        <div class="float-right" style="padding:5px 0 0 0;">
+        <div class="button-container float-right">
             <input type="submit" class="button small radius success" value="Save"/>
             <a class="button small radius secondary" href="${ctx}/admin/user-details?userId=${user.id}">Cancel</a>
         </div>

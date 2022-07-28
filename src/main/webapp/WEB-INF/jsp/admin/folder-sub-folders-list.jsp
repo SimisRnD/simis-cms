@@ -124,8 +124,8 @@
         });
       });
     </script>
-    <p>
+    <div class="button-container">
       <input type="submit" class="button radius expanded" value="Save" />
-    </p>
+    </div>
   </form>
 </div>

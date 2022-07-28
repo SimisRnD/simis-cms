@@ -53,8 +53,8 @@
       <option value="application/rss+xml"<c:if test="${dataset.fileType eq 'application/rss+xml'}"> selected</c:if>>RSS+XML</option>
     </select>
   </label>
-  <p>
+  <div class="button-container">
     <input type="submit" class="button radius success" value="Add Dataset"/>
     <a class="button radius secondary" href="${ctx}/admin/datasets">Cancel</a>
-  </p>
+  </div>
 </form>

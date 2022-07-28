@@ -117,8 +117,8 @@
     <label>Organization
       <input type="text" placeholder="Organization" name="organization" value="">
     </label>
-    <p>
+    <div class="button-container">
       <input type="submit" class="button radius expanded" value="Save" />
-    </p>
+    </div>
   </form>
 </div>

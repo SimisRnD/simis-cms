@@ -30,7 +30,9 @@
       <label>Email Address
         <input type="text" placeholder="Email" name="username">
       </label>
-      <p><input type="submit" class="button primary radius expanded" value="Reset my password"></input></p>
+      <div class="button-container">
+        <input type="submit" class="button primary radius expanded" value="Reset my password"></input></p>
+      </div>
     </div>
   </div>
 </form>

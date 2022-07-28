@@ -55,12 +55,12 @@
         </c:otherwise>
       </c:choose>
       </p>
-      <p class="no-gap">
+      <div class="button-container">
         <input type="submit" class="button radius success no-gap" value="Save"/>
         <c:if test="${!empty returnPage}">
           <a href="${returnPage}" class="button radius secondary no-gap">Cancel</a>
         </c:if>
-      </p>
+      </div>
     </div>
     <div class="small-12 hide-for-small-only medium-3 cell">
       <div id="information" class="callout secondary" style="overflow:scroll">

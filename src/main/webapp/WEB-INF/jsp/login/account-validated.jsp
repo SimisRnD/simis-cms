@@ -41,7 +41,9 @@
           <label>Re-Enter Password
             <input name="password2" type="password" placeholder="Re-Enter Password" autocomplete="off" required>
           </label>
-          <p><input type="submit" class="button radius success expanded" value="Create Password"/></p>
+          <div class="button-container">
+            <input type="submit" class="button radius success expanded" value="Create Password"/>
+          </div>
         </div>
       </div>
     </form>

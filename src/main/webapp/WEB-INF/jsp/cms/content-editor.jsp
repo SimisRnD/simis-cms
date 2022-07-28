@@ -149,17 +149,19 @@
   <p>
     <textarea name="content"><c:out value="${contentHtml}"/></textarea>
   </p>
-  <c:choose>
-    <c:when test="${content.id eq -1}">
-      <input type="submit" class="button radius primary" name="save" value="Save" />
-    </c:when>
-    <c:otherwise>
-      <input type="submit" class="button radius success" name="save" value="Publish Immediately" />
-      <input type="submit" class="button radius warning" name="save" value="Save as Draft" />
-      <c:if test="${isDraft eq 'true'}">
-        <input type="submit" class="button radius alert" name="save" value="Remove this Draft" />
-      </c:if>
-    </c:otherwise>
-  </c:choose>
-  <a href="${returnPage}" class="button radius secondary">Cancel</a>
+  <div class="button-container">
+    <c:choose>
+      <c:when test="${content.id eq -1}">
+        <input type="submit" class="button radius primary" name="save" value="Save" />
+      </c:when>
+      <c:otherwise>
+        <input type="submit" class="button radius success" name="save" value="Publish Immediately" />
+        <input type="submit" class="button radius warning" name="save" value="Save as Draft" />
+        <c:if test="${isDraft eq 'true'}">
+          <input type="submit" class="button radius alert" name="save" value="Remove this Draft" />
+        </c:if>
+      </c:otherwise>
+    </c:choose>
+    <a href="${returnPage}" class="button radius secondary">Cancel</a>
+  </div>
 </form>

@@ -42,7 +42,9 @@
   </select>
   <input type="text" placeholder="Enter a name" id="searchName" name="searchName" value="" autocomplete="off">
   <input type="hidden" id="selectedEntry" name="selectedEntry" value=""/>
-  <p><input type="submit" class="button radius success expanded" value="Add"/></p>
+  <div class="button-container">
+    <input type="submit" class="button radius success expanded" value="Add"/>
+  </div>
 </form>
 <script>
   function checkForm${widgetContext.uniqueId}() {

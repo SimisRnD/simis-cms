@@ -265,9 +265,9 @@
       <label>Version
         <input type="text" placeholder="Version" name="version" id="version" value="">
       </label>
-      <p>
+      <div class="button-container">
         <input type="submit" class="button radius success expanded" value="Save" />
-      </p>
+      </div>
     </form>
   </div>
 </c:if>

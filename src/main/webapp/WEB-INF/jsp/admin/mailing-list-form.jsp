@@ -40,15 +40,15 @@
     <input type="text" placeholder="Describe it..." name="description" value="<c:out value="${mailingList.description}"/>">
   </label>
   <input id="showOnline" type="checkbox" name="showOnline" value="true" <c:if test="${mailingList.showOnline}">checked</c:if>/><label for="showOnline">Show Online?</label>
-  <c:choose>
-    <c:when test="${mailingList.id eq -1}">
-      <p><input type="submit" class="button radius success expanded" value="Save"/></p>
-    </c:when>
-    <c:otherwise>
-      <p>
+  <div class="button-container">
+    <c:choose>
+      <c:when test="${mailingList.id eq -1}">
+        <input type="submit" class="button radius success expanded" value="Save"/>
+      </c:when>
+      <c:otherwise>
         <input type="submit" class="button radius success" value="Save"/>
         <a href="${ctx}/admin/mailing-lists" class="button radius secondary">Cancel</a>
-      </p>
-    </c:otherwise>
-  </c:choose>
+      </c:otherwise>
+    </c:choose>
+  </div>
 </form>

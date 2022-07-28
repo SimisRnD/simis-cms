@@ -1030,6 +1030,19 @@ ul.pagination li.pagination-next a:hover {
 
 /* Buttons */
 
+.button-container {
+  margin-top: 12px;
+}
+.button-container button, .button-container .button {
+  margin: 0 10px 0 0;
+}
+.button-container button.expanded, .button-container .button.expanded {
+  margin: 0;
+}
+.button-container .expanded:not(:first-child) {
+  margin-top: 10px;
+}
+
 button.radius, .button.radius {
   border-radius: 5px;
 }

@@ -177,10 +177,10 @@
     </c:forEach>
     </tbody>
   </table>
-  <p>
+  <div class="button-container">
     <input type="submit" class="button radius success" value="Save" />
     <a href="${ctx}/admin" class="button radius secondary">Cancel</a>
-  </p>
+  </div>
 </form>
 <div class="reveal large" id="imageBrowserReveal" data-reveal data-animation-in="slide-in-down fast">
   <h3>Loading...</h3>

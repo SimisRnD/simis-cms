@@ -522,9 +522,8 @@
       </div>
     </div>
     </c:if>
-
-    <p class="margin-top-20">
+    <div class="button-container">
       <input type="submit" class="button radius success" value="Save"/>
-      <c:if test="${!empty cancelUrl}"><a class="button radius secondary" href="${ctx}${cancelUrl}">Cancel</a></c:if>
-    </p>
+      <c:if test="${!empty cancelUrl}"><span class="button-gap"><a class="button radius secondary" href="${ctx}${cancelUrl}">Cancel</a></span></c:if>
+    </div>
 </form>

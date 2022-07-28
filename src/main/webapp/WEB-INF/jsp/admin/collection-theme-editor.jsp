@@ -124,10 +124,10 @@
       </table>
     </div>
   </div>
-  <p>
+  <div class="button-container">
     <input type="submit" class="button radius success" value="Save"/>
     <a href="${returnPage}" class="button radius secondary">Cancel</a>
-  </p>
+  </div>
 </form>
 <script>
   <%-- Map the variable property to the mapped CSS classes --%>

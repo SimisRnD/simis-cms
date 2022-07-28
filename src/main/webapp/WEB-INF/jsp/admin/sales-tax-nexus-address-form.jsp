@@ -135,13 +135,9 @@
         </label>
       </div>
     </div>
-    <div class="grid-x grid-margin-x">
-      <div class="small-12 cell">
-        <p>
-          <input type="submit" class="button radius success" value="Save"/>
-          <c:if test="${!empty returnPage}"><a class="button radius secondary" href="${returnPage}">Cancel</a></c:if>
-        </p>
-      </div>
+    <div class="button-container">
+      <input type="submit" class="button radius success" value="Save"/>
+      <c:if test="${!empty returnPage}"><a class="button radius secondary" href="${returnPage}">Cancel</a></c:if>
     </div>
   </div>
 </form>
