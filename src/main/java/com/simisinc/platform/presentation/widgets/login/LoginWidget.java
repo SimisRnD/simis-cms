@@ -127,8 +127,8 @@ public class LoginWidget extends GenericWidget {
     context.getResponse().addCookie(cookie);
 
     // Redirect to the success page
-    SiteProperty siteOnline = SitePropertyRepository.findByName("site.online");
-    if (siteOnline != null && "true".equals(siteOnline.getValue())) {
+    boolean siteIsOnline = LoadSitePropertyCommand.loadByNameAsBoolean("site.online");
+    if (siteIsOnline) {
       // Site is open, so go to the user's page
       context.setRedirect("/my-page");
     } else {
