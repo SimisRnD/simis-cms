@@ -36,4 +36,12 @@
         <function-class>com.simisinc.platform.application.cms.HtmlCommand</function-class>
         <function-signature>java.lang.String toHtml(java.lang.String)</function-signature>
     </function>
+    <function>
+        <description>
+            Generates safe html id for the given string
+        </description>
+        <name>makeId</name>
+        <function-class>com.simisinc.platform.application.cms.HtmlCommand</function-class>
+        <function-signature>java.lang.String makeId(java.lang.String)</function-signature>
+    </function>
 </taglib>
