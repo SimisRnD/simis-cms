@@ -88,8 +88,9 @@
     </div>
   </div>
 </div>
+<hr/>
+<a class="button radius secondary no-gap" href="${ctx}${blog.link}"><i class="fa fa-arrow-left"></i> Back to List</a>
 <c:if test="${userSession.hasRole('admin') || userSession.hasRole('content-manager')}">
-  <hr/>
   <c:choose>
     <c:when test="${!empty link}">
       <a class="button radius secondary no-gap"" href="${ctx}/blog-editor?blogUniqueId=${blog.uniqueId}&returnPage=${link}&blogPostId=${blogPost.id}"><i class="fa fa-edit"></i> Edit Post</a>

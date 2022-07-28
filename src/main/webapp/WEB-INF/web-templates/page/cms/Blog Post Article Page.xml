@@ -21,11 +21,6 @@
         <widget name="blogPost">
           <blogUniqueId>${webPageName}</blogUniqueId>
         </widget>
-        <widget name="button">
-          <name>Back to List</name>
-          <link>${ctx}/${webPageName}</link>
-          <leftIcon>fa-arrow-left</leftIcon>
-        </widget>
       </column>
       <column class="medium-4 cell">
         <widget name="content" class="callout box">
