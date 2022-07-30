@@ -1,0 +1,28 @@
+{
+    "java.project.referencedLibraries": [
+        "lib/build/**/*.jar",
+        "lib/compile/**/*.jar",
+        "lib/tests/**/*.jar",
+        "lib/war/**/*.jar",
+        "lib/**/*.jar"
+    ],
+    "java.dependency.syncWithFolderExplorer": true,
+    "cSpell.words": [
+        "Servlet"
+    ],
+    "java.test.defaultConfig": "webConfig",
+    "java.test.config": [
+        {
+            "name": "webConfig",
+            "workingDirectory": "${workspaceFolder}",
+            // "args": [ "-c", "com.test" ],
+            // "vmargs": [ "-Xmx512M" ],
+            // "env": { "key": "value" },
+            "sourcePaths": ["${workspaceFolder}/src/main/java"]
+        }
+    ],
+    "java.project.sourcePaths": [
+        "src/main/java",
+        "src/test/java"
+    ]
+}

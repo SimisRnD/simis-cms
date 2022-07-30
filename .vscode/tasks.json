@@ -1,0 +1,82 @@
+{
+    // See https://go.microsoft.com/fwlink/?LinkId=733558
+    // for the documentation about the tasks.json format
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "ant: compile",
+            "type": "shell",
+            "command": "ant compile",
+            "problemMatcher": [
+                {
+                    "pattern": {
+                        "regexp": "/BUILD FAILED/gm",
+                        "file": 1,
+                        "line": 2,
+                        "column": 3,
+                        "message": 5
+                    }
+                }
+            ]
+        },
+        {
+            "label": "ant: test",
+            "type": "shell",
+            "command": "ant test",
+            "problemMatcher": [
+                {
+                    "pattern": {
+                        "regexp": "/BUILD FAILED/gm",
+                        "file": 1,
+                        "line": 2,
+                        "column": 3,
+                        "message": 5
+                    }
+                }
+            ]
+        },
+        {
+            "label": "ant: package",
+            "type": "shell",
+            "command": "ant package",
+            "problemMatcher": [
+                {
+                    "pattern": {
+                        "regexp": "/BUILD FAILED/gm",
+                        "file": 1,
+                        "line": 2,
+                        "column": 3,
+                        "message": 5
+                    }
+                }
+            ]
+        },
+        {
+            "label": "deploy",
+            "type": "shell",
+            "command": "ant webapp",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "presentation": {
+                "reveal": "silent",
+                "panel": "dedicated",
+                "revealProblems": "onProblem",
+                "close": false,
+                "clear": true
+            },
+            "problemMatcher": [
+                {
+                    "pattern": {
+                        "regexp": "/BUILD FAILED/gm",
+                        "file": 1,
+                        "line": 2,
+                        "column": 3,
+                        "message": 5
+                    }
+                }
+            ]
+        }
+    ]
+}

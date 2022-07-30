@@ -20,7 +20,7 @@
 ._*
 
 # VS Code
-.vscode
+#.vscode
 *.code-workspace
 cspell.json
 
