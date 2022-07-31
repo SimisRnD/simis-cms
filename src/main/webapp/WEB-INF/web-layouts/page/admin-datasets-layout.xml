@@ -1,0 +1,265 @@
+<?xml version="1.0" ?>
+<pages>
+
+  <!-- Admin: Datasets -->
+  <page name="/admin/datasets" role="admin,data-manager" title="Datasets">
+    <!--<section>-->
+      <!--<column class="small-12 cell">-->
+        <!--<widget name="breadcrumbs">-->
+          <!--<links>-->
+            <!--<link name="Datasets" value="" />-->
+          <!--</links>-->
+        <!--</widget>-->
+      <!--</column>-->
+    <!--</section>-->
+    <widget name="globalMessage">
+      <key>datasetError</key>
+      <type>error</type>
+    </widget>
+    <section>
+      <column class="small-12 cell">
+        <widget name="content" class="float-right">
+          <html><![CDATA[<a class="tiny button secondary radius" href="${ctx}/admin/datasets" style="margin-bottom:0"><i class="fa fa-refresh"></i> Refresh</a>
+]]></html>
+        </widget>
+        <widget name="datasets">
+          <title>Datasets</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/datasets/new" role="admin,data-manager" title="Add a Dataset">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Datasets" value="/admin/datasets" />
+            <link name="New Dataset" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="datasetUpload">
+          <title>New Dataset</title>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell margin-top-20">
+        <widget name="content" class="padding-width-50">
+      <html><![CDATA[
+<h4>Example File Format</h4>
+<div class="table-scroll">
+<table>
+<tr>
+<th>Name</th>
+<th>Category</th>
+<th>Description</th>
+<th>Latitude</th>
+<th>Longitude</th>
+<th>Location</th>
+<th>Address</th>
+<th>City</th>
+<th>State</th>
+<th>Postal Code</th>
+<th>Country</th>
+<th>County</th>
+<th>Phone Number</th>
+<th>Email Address</th>
+</tr>
+</table>
+</div>
+]]></html>
+       </widget>
+       <widget name="content" class="padding-width-50">
+          <html><![CDATA[
+<hr>
+<h4>Multicolumn Datasets</h4>
+<p>If your dataset has multiple columns, the file must be in csv format. The first row must contain the column names.</p>
+<p>Example:</p>
+<table>
+<tr><th class="text-left">Make</th><th class="text-left">Model</th></tr>
+<tr><td>BMW</td><td>328</td></tr>
+<tr><td>BMW</td><td>X5</td></tr>
+<tr><td>Ford</td><td>Explorer</td></tr>
+<tr><td>Ford</td><td>Mustang</td></tr>
+</table>
+]]></html>
+        </widget>
+        <widget name="content" class="padding-width-50">
+          <html><![CDATA[
+<hr>
+<h4>Plain Text Lists</h4>
+<p>If your dataset is a simple list of values, specify each value on a separate line. Do not include a header row.</p>
+<p>Example:</p>
+<table>
+<tr><td>BMW</td></tr>
+<tr><td>Ford</td></tr>
+<tr><td>Honda</td></tr>
+<tr><td>Kia</td></tr>
+<tr><td>Toyota</td></tr>
+</table>
+]]></html>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/dataset-configuration{?datasetId}" role="admin,data-manager" title="Dataset Configuration">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Datasets" value="/admin/datasets" />
+            <link name="Configuration" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="datasetName" class="margin-bottom-10" />
+        <widget name="content">
+          <html><![CDATA[
+<ul class="tabs margin-bottom-2">
+  <li class="tabs-title"><a href="/admin/dataset-preview?datasetId=${request.datasetId}">Preview</a></li>
+  <li class="tabs-title"><a href="/admin/dataset-text?datasetId=${request.datasetId}">Text Preview</a></li>
+  <li class="tabs-title"><a href="/admin/dataset-mapper?datasetId=${request.datasetId}">Map Fields</a></li>
+  <li class="tabs-title is-active"><a aria-selected="true" href="/admin/dataset-configuration?datasetId=${request.datasetId}">Info</a></li>
+</ul>
+]]></html>
+        </widget>
+        <widget name="datasetConfiguration" class="margin-top-10">
+          <!--<title>Configure the dataset</title>-->
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/dataset-mapper{?datasetId}" role="admin,data-manager" title="Dataset Mapper">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Datasets" value="/admin/datasets" />
+            <link name="Map Fields" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="datasetName" class="margin-bottom-10" />
+        <widget name="content">
+          <html><![CDATA[
+<ul class="tabs margin-bottom-2">
+  <li class="tabs-title"><a href="/admin/dataset-preview?datasetId=${request.datasetId}">Preview</a></li>
+  <li class="tabs-title"><a href="/admin/dataset-text?datasetId=${request.datasetId}">Text Preview</a></li>
+  <li class="tabs-title is-active"><a aria-selected="true" href="/admin/dataset-mapper?datasetId=${request.datasetId}">Map Fields</a></li>
+  <li class="tabs-title"><a href="/admin/dataset-configuration?datasetId=${request.datasetId}">Info</a></li>
+</ul>
+]]></html>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-9 cell">
+        <widget name="datasetMapper">
+          <!--<title>Configure the field mapping</title>-->
+        </widget>
+      </column>
+      <column class="small-3 cell">
+        <widget name="content" class="callout secondary">
+          <html>
+            <![CDATA[
+            <h4>Options</h4>
+            <p class="subheader">Separate multiple options with a &quot;;&quot;</p>
+            <ul>
+              <li>caps</li>
+              <li>uppercase</li>
+              <li>equals(&quot;value&quot;)</li>
+              <li>notEquals(&quot;value&quot;)</li>
+              <li>contains(&quot;value&quot;)</li>
+              <li>split(&quot;separator&quot;)</li>
+              <li>setValue(&quot;value&quot;)</li>
+              <li>prepend(&quot;value&quot;)</li>
+              <li>append(&quot;value&quot;)</li>
+              <li>uriEncode</li>
+              <li>skipDuplicates</li>
+            </ul>
+            ]]>
+          </html>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/dataset-preview{?datasetId}" role="admin,data-manager" title="Dataset Preview">
+    <section>
+      <column class="small-5 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Datasets" value="/admin/datasets" />
+            <link name="Preview" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="datasetName" class="margin-bottom-10" />
+        <widget name="content">
+          <html><![CDATA[
+<ul class="tabs margin-bottom-2">
+  <li class="tabs-title is-active"><a aria-selected="true" href="/admin/dataset-preview?datasetId=${request.datasetId}">Preview</a></li>
+  <li class="tabs-title"><a href="/admin/dataset-text?datasetId=${request.datasetId}">Text Preview</a></li>
+  <li class="tabs-title"><a href="/admin/dataset-mapper?datasetId=${request.datasetId}">Map Fields</a></li>
+  <li class="tabs-title"><a href="/admin/dataset-configuration?datasetId=${request.datasetId}">Info</a></li>
+</ul>
+]]></html>
+        </widget>
+        <widget name="datasetPreview" />
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/dataset-text{?datasetId}" role="admin,data-manager" title="Dataset Text Preview">
+    <section>
+      <column class="small-5 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Datasets" value="/admin/datasets" />
+            <link name="Text Preview" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="datasetName" class="margin-bottom-10" />
+        <widget name="content">
+          <html><![CDATA[
+<ul class="tabs margin-bottom-2">
+  <li class="tabs-title"><a href="/admin/dataset-preview?datasetId=${request.datasetId}">Preview</a></li>
+  <li class="tabs-title is-active"><a aria-selected="true" href="/admin/dataset-text?datasetId=${request.datasetId}">Text Preview</a></li>
+  <li class="tabs-title"><a href="/admin/dataset-mapper?datasetId=${request.datasetId}">Map Fields</a></li>
+  <li class="tabs-title"><a href="/admin/dataset-configuration?datasetId=${request.datasetId}">Info</a></li>
+</ul>
+]]></html>
+        </widget>
+        <widget name="datasetPreview">
+          <view>text</view>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <!-- Download the dataset -->
+  <page name="/assets/dataset" role="admin,data-manager">
+    <widget name="streamDataset" />
+  </page>
+
+</pages>

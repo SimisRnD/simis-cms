@@ -1,0 +1,311 @@
+<?xml version="1.0" ?>
+<pages>
+  <!-- Admin: E-Commerce -->
+  <page name="/admin/ecommerce-properties" role="admin" title="E-Commerce Settings">
+    <section>
+      <column class="small-12 large-10 cell">
+        <widget name="sitePropertiesEditor">
+          <title>E-commerce Settings</title>
+          <prefix>ecommerce</prefix>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <!-- E-commerce -->
+  <page name="/admin/e-commerce/analytics" role="admin,ecommerce-manager" title="E-Commerce Analytics">
+    <!--<section>-->
+    <!--<column class="small-12 cell">-->
+    <!--<widget name="breadcrumbs">-->
+    <!--<links>-->
+    <!--<link name="Analytics" value="" />-->
+    <!--</links>-->
+    <!--</widget>-->
+    <!--</column>-->
+    <!--</section>-->
+    <section class="grid-container grid-x grid-margin-x">
+      <column class="small-12 medium-4 cell callout">
+        <widget name="ecommerceStats">
+          <icon>fa-dolly</icon>
+          <title>Orders Not Shipped</title>
+          <report>total-not-shipped</report>
+        </widget>
+      </column>
+      <column class="small-12 medium-4 cell callout">
+        <widget name="ecommerceStats">
+          <icon>fa-shipping-fast</icon>
+          <title>Orders Shipped</title>
+          <report>total-shipped</report>
+        </widget>
+      </column>
+      <column class="small-12 medium-4 cell callout">
+        <widget name="ecommerceStats">
+          <icon>fa-cash-register</icon>
+          <title>Total Orders</title>
+          <report>total-orders</report>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 medium-12 large-4 cell">
+        <widget name="ecommerceStats" class="stats card">
+          <title>Orders</title>
+          <label>Orders</label>
+          <report>daily-orders</report>
+          <type>bar</type>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 large-4 cell">
+        <widget name="ecommerceStats" class="stats card">
+          <title>Items Sold</title>
+          <label>Items</label>
+          <report>daily-items-sold</report>
+          <type>bar</type>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 large-4 cell">
+        <widget name="ecommerceStats" class="stats card">
+          <title>Amount Sold</title>
+          <label>Amount</label>
+          <report>daily-amount-sold</report>
+          <type>bar</type>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 medium-12 large-8 cell">
+        <widget name="ecommerceStats" class="stats card">
+          <title>Last 90 Days</title>
+          <report>locations-map</report>
+          <days>90</days>
+<!--          <mapHeight>216</mapHeight>-->
+        </widget>
+      </column>
+      <column class="small-12 medium-12 large-4 cell">
+        <widget name="ecommerceStats" class="stats card">
+          <title>Top Locations</title>
+          <report>top-locations</report>
+          <days>90</days>
+          <limit>6</limit>
+        </widget>
+      </column>
+    </section>
+  </page>
+  <page name="/admin/orders" role="admin,ecommerce-manager" title="Orders">
+    <section>
+      <column class="small-7 medium-8 large-9 cell">
+        <widget name="orderList">
+          <title>Orders</title>
+        </widget>
+      </column>
+      <column class="small-5 medium-4 large-3 cell">
+        <!--<widget name="orderForm" class="callout radius primary">-->
+        <!--<title>Add an order</title>-->
+        <!--</widget>-->
+        <widget name="orderListSearchForm" class="callout radius primary">
+          <title>Search orders</title>
+          <redirectTo>/admin/orders</redirectTo>
+        </widget>
+      </column>
+    </section>
+  </page>
+  <page name="/admin/order-details{?order-number}" role="admin,ecommerce-manager" title="Order Details">
+    <section class="grid-x grid-padding-x hide-for-print">
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Orders" value="/admin/orders" />
+            <link name="Order Details" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="content">
+          <html><![CDATA[<h1>Order No. ${request.order-number}</h1>]]></html>
+        </widget>
+        <widget name="globalMessage">
+          <key>orderManagementMessage</key>
+          <type>success</type>
+        </widget>
+        <widget name="globalMessage">
+          <key>orderManagementError</key>
+          <type>error</type>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="auto cell">
+        <widget name="orderConfirmation"/>
+      </column>
+      <column class="small-12 medium-12 large-3 callout radius primary cell hide-for-print">
+        <widget name="shipOrder" />
+        <widget name="checkOrderStatus" />
+        <widget name="addOrderTrackingNumber" />
+        <widget name="cancelOrder" />
+
+        <widget name="issueRefund" />
+        <widget name="sendOrderConfirmation" />
+        <widget name="sendShippingConfirmation" />
+        <widget name="sendOrderCancellationConfirmation" />
+        <widget name="sendOrderRefundConfirmation" />
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/customers" role="admin,ecommerce-manager" title="Customers">
+    <section>
+      <column class="small-7 medium-8 large-9 cell">
+        <widget name="customerList">
+          <title>Customers</title>
+        </widget>
+      </column>
+      <column class="small-5 medium-4 large-3 cell">
+        <!--<widget name="customerForm" class="callout radius primary">-->
+          <!--<title>Add a customer</title>-->
+        <!--</widget>-->
+        <widget name="customerListSearchForm" class="callout radius primary">
+          <title>Search customers</title>
+          <redirectTo>/admin/customers</redirectTo>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/products" role="admin,ecommerce-manager" title="Products">
+    <section>
+      <column class="small-12 cell">
+        <widget name="productList">
+          <title>Products</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+  <page name="/admin/product{?productId}" role="admin,ecommerce-manager" title="Product Details">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Products" value="/admin/products" />
+            <link name="Product Details" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="productForm" />
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/product-categories" role="admin,ecommerce-manager" title="Product Categories">
+    <section>
+      <column class="small-12 cell">
+        <widget name="productCategoriesList">
+          <title>Product Categories</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+  <page name="/admin/product-category{?productCategoryId}" role="admin,ecommerce-manager" title="Product Category">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Product Categories" value="/admin/product-categories" />
+            <link name="Product Category Details" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="productCategoryForm" />
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/pricing-rules" role="admin,ecommerce-manager" title="Pricing Rules">
+    <section>
+      <column class="small-12 cell">
+        <widget name="pricingRulesList">
+          <title>Pricing Rules</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+  <page name="/admin/pricing-rule{?ruleId}" role="admin,ecommerce-manager" title="Pricing Rule">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Pricing Rules" value="/admin/pricing-rules" />
+            <link name="Pricing Rule Details" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="pricingRuleForm" />
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/sales-tax-nexus" role="admin,ecommerce-manager" title="Sales Tax Nexus">
+    <section>
+      <column class="small-12 cell">
+        <widget name="salesTaxNexusList">
+          <title>Sales Tax Nexus</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+  <page name="/admin/sales-tax-nexus-address{?addressId}" role="admin,ecommerce-manager" title="Sales Tax Nexus Address">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Sales Tax Nexus" value="/admin/sales-tax-nexus" />
+            <link name="Address Details" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="salesTaxNexusAddressForm" />
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/shipping-rates" role="admin,ecommerce-manager" title="Shipping Rates">
+    <section>
+      <column class="small-12 cell">
+        <widget name="shippingRatesList">
+          <title>Shipping Rates</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+  <page name="/admin/shipping-rate{?shippingRateId}" role="admin,ecommerce-manager" title="Shipping Rate">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Shipping Rates" value="/admin/shipping-rates" />
+            <link name="Shipping Rate Details" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="shippingRateForm" />
+      </column>
+    </section>
+  </page>
+
+</pages>
