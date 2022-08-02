@@ -36,7 +36,9 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (14, 'Search engine keywords', 'site.keywords', 'community, groups, calendar');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (16, 'Site Open Graph Image', 'site.image', '', 'image');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (20, 'Is online?', 'site.online', 'false', 'boolean');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (22, 'Show cart?', 'site.cart', 'false', 'boolean');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (21, 'Is API enabled?', 'site.api', 'false', 'boolean');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (22, 'Is Sitemap.xml enabled?', 'site.sitemap.xml', 'false', 'boolean');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (23, 'Show cart?', 'site.cart', 'false', 'boolean');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (24, 'Allow registrations?', 'site.registrations', 'false', 'boolean');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (26, 'Show login?', 'site.login', 'false', 'boolean');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (30, 'Header line 1', 'site.header.line1', '');
