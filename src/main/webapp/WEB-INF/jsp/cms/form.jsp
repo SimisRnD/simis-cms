@@ -37,11 +37,12 @@
       if (e.keyCode === 13) {
           return false;
       }
-  });
-  $('textarea').keypress(function(event) {
-    if (event.keyCode === 13) {
-      event.preventDefault();
-    }
+    });
+    $('textarea').keypress(function(event) {
+      if (event.keyCode === 13) {
+        event.preventDefault();
+      }
+    });
   });
 
   function checkForm${widgetContext.uniqueId}() {
@@ -62,7 +63,6 @@
     </c:forEach>
     return true;
   }
-});
 </script>
 <form id="form${widgetContext.uniqueId}" method="post" onsubmit="return checkForm${widgetContext.uniqueId}()">
   <%-- Required by controller --%>
