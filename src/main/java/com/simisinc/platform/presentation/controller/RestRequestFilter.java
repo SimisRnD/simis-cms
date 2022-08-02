@@ -16,7 +16,40 @@
 
 package com.simisinc.platform.presentation.controller;
 
-import com.simisinc.platform.application.*;
+import static com.simisinc.platform.presentation.controller.UserSession.API_SOURCE;
+import static javax.servlet.http.HttpServletResponse.SC_MOVED_PERMANENTLY;
+import static javax.servlet.http.HttpServletResponse.SC_NOT_FOUND;
+import static javax.servlet.http.HttpServletResponse.SC_UNAUTHORIZED;
+
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
+import java.sql.Timestamp;
+import java.time.LocalDate;
+import java.util.StringTokenizer;
+import java.util.UUID;
+
+import javax.security.auth.login.LoginException;
+import javax.servlet.Filter;
+import javax.servlet.FilterChain;
+import javax.servlet.FilterConfig;
+import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.commons.codec.binary.Base64;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.http.conn.util.InetAddressUtils;
+
+import com.simisinc.platform.application.CreateSessionCommand;
+import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.LoadAppCommand;
+import com.simisinc.platform.application.SaveSessionCommand;
+import com.simisinc.platform.application.UserCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.cms.HostnameCommand;
 import com.simisinc.platform.application.json.JsonCommand;
@@ -27,26 +60,6 @@ import com.simisinc.platform.domain.model.login.UserLogin;
 import com.simisinc.platform.domain.model.login.UserToken;
 import com.simisinc.platform.infrastructure.persistence.login.UserLoginRepository;
 import com.simisinc.platform.infrastructure.persistence.login.UserTokenRepository;
-import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.http.conn.util.InetAddressUtils;
-
-import javax.security.auth.login.LoginException;
-import javax.servlet.*;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.UnsupportedEncodingException;
-import java.sql.Timestamp;
-import java.time.LocalDate;
-import java.util.StringTokenizer;
-import java.util.UUID;
-
-import static com.simisinc.platform.presentation.controller.UserSession.API_SOURCE;
-import static javax.servlet.http.HttpServletResponse.*;
 
 /**
  * Authorizes the REST request
@@ -76,7 +89,8 @@ public class RestRequestFilter implements Filter {
   public void destroy() {
   }
 
-  public void doFilter(ServletRequest request, ServletResponse servletResponse, FilterChain chain) throws ServletException, IOException {
+  public void doFilter(ServletRequest request, ServletResponse servletResponse, FilterChain chain)
+      throws ServletException, IOException {
     HttpServletRequest httpServletRequest = (HttpServletRequest) request;
     String scheme = request.getScheme();
     String contextPath = request.getServletContext().getContextPath();
@@ -91,7 +105,8 @@ public class RestRequestFilter implements Filter {
 
     // Redirect to SSL
     if (requireSSL && !"https".equalsIgnoreCase(scheme)) {
-      if (!"localhost".equals(request.getServerName()) && !InetAddressUtils.isIPv4Address(request.getServerName()) && !InetAddressUtils.isIPv6Address(request.getServerName())) {
+      if (!"localhost".equals(request.getServerName()) && !InetAddressUtils.isIPv4Address(request.getServerName())
+          && !InetAddressUtils.isIPv6Address(request.getServerName())) {
         String requestURL = ((HttpServletRequest) request).getRequestURL().toString();
         requestURL = StringUtils.replace(requestURL, "http://", "https://");
         LOG.debug("Redirecting to: " + requestURL);
@@ -101,6 +116,14 @@ public class RestRequestFilter implements Filter {
     }
 
     LOG.trace("REST Resource: " + resource);
+
+    boolean isAPIOnline = LoadSitePropertyCommand.loadByNameAsBoolean("site.api");
+    if (!isAPIOnline) {
+      LOG.debug("API is disabled");
+      HttpServletResponse response = (HttpServletResponse) servletResponse;
+      RestServlet.sendError(response, SC_UNAUTHORIZED, "API is disabled");
+      return;
+    }
 
     // Check for API Key
     String apiKey = ((HttpServletRequest) request).getHeader("X-API-Key");
@@ -143,7 +166,21 @@ public class RestRequestFilter implements Filter {
           return;
         }
       }
-      doUnauthorized(servletResponse);
+
+      // Determine if the API is available as a guest, or if an authenticated user is required
+      boolean siteIsOnline = LoadSitePropertyCommand.loadByNameAsBoolean("site.online");
+      if (!siteIsOnline) {
+        // An authenticated user is required when the site is not online
+        doUnauthorized(servletResponse);
+      }
+
+      // Demote to guest access
+      User user = new User();
+      user.setId(UserSession.GUEST_ID);
+
+      // Let the REST service process this request
+      request.setAttribute(RequestConstants.REST_USER, user);
+      chain.doFilter(request, servletResponse);
       return;
     }
 
@@ -171,7 +208,8 @@ public class RestRequestFilter implements Filter {
         // Start a new session
         String ipAddress = request.getRemoteAddr();
         String userAgent = httpServletRequest.getHeader("USER-AGENT");
-        UserSession userSession = CreateSessionCommand.createSession(API_SOURCE, httpServletRequest.getSession().getId(), ipAddress, null, userAgent);
+        UserSession userSession = CreateSessionCommand.createSession(API_SOURCE,
+            httpServletRequest.getSession().getId(), ipAddress, null, userAgent);
         userSession.setAppId(thisApp.getId());
         userSession.login(user);
         SaveSessionCommand.saveSession(userSession);
@@ -201,11 +239,13 @@ public class RestRequestFilter implements Filter {
     doExpiredToken(servletResponse);
   }
 
-  private void doRecordSession(App app, HttpServletRequest httpServletRequest, ServletResponse response) throws IOException {
+  private void doRecordSession(App app, HttpServletRequest httpServletRequest, ServletResponse response)
+      throws IOException {
     // Start a new session
     String ipAddress = httpServletRequest.getRemoteAddr();
     String userAgent = httpServletRequest.getHeader("USER-AGENT");
-    UserSession userSession = CreateSessionCommand.createSession(API_SOURCE, httpServletRequest.getSession().getId(), ipAddress, null, userAgent);
+    UserSession userSession = CreateSessionCommand.createSession(API_SOURCE, httpServletRequest.getSession().getId(),
+        ipAddress, null, userAgent);
     userSession.setAppId(app.getId());
     SaveSessionCommand.saveSession(userSession);
 
@@ -222,12 +262,14 @@ public class RestRequestFilter implements Filter {
     out.flush();
   }
 
-  private void doReturnNewToken(App app, User user, HttpServletRequest httpServletRequest, ServletResponse response) throws IOException {
+  private void doReturnNewToken(App app, User user, HttpServletRequest httpServletRequest, ServletResponse response)
+      throws IOException {
 
     // Start a new session
     String ipAddress = httpServletRequest.getRemoteAddr();
     String userAgent = httpServletRequest.getHeader("USER-AGENT");
-    UserSession userSession = CreateSessionCommand.createSession(API_SOURCE, httpServletRequest.getSession().getId(), ipAddress, null, userAgent);
+    UserSession userSession = CreateSessionCommand.createSession(API_SOURCE, httpServletRequest.getSession().getId(),
+        ipAddress, null, userAgent);
     userSession.setAppId(app.getId());
     SaveSessionCommand.saveSession(userSession);
 
@@ -256,7 +298,7 @@ public class RestRequestFilter implements Filter {
         "\"access_token\":\"" + loginToken + "\",\n" +
         "\"token_type\":\"bearer\",\n" +
         "\"expires_in\":" + tokenExpirationInSeconds + ",\n" +
-//        "\"refresh_token\":\"IwOGYzYTlmM2YxOTQ5MGE3YmNmMDFkNTVk\",\n" +
+        //        "\"refresh_token\":\"IwOGYzYTlmM2YxOTQ5MGE3YmNmMDFkNTVk\",\n" +
         "\"name\":\"" + JsonCommand.toJson(UserCommand.name(user)) + "\",\n" +
         "\"first_name\":\"" + JsonCommand.toJson(user.getFirstName()) + "\",\n" +
         "\"last_name\":\"" + JsonCommand.toJson(user.getLastName()) + "\",\n" +
