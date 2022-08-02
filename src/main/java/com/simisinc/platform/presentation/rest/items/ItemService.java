@@ -16,13 +16,15 @@
 
 package com.simisinc.platform.presentation.rest.items;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import com.simisinc.platform.application.items.LoadCollectionCommand;
 import com.simisinc.platform.application.items.LoadItemCommand;
 import com.simisinc.platform.domain.model.items.Item;
 import com.simisinc.platform.presentation.controller.ServiceContext;
 import com.simisinc.platform.presentation.controller.ServiceResponse;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import com.simisinc.platform.presentation.controller.ServiceResponseCommand;
 
 /**
  * Description
@@ -47,7 +49,8 @@ public class ItemService {
     }
 
     // Validate access to the collection
-    if (LoadCollectionCommand.loadCollectionByIdForAuthorizedUser(item.getCollectionId(), context.getUserId()) == null) {
+    if (LoadCollectionCommand.loadCollectionByIdForAuthorizedUser(item.getCollectionId(),
+        context.getUserId()) == null) {
       LOG.warn("User does not have access to this collection");
       ServiceResponse response = new ServiceResponse(400);
       response.getError().put("title", "Item was not found");
@@ -59,7 +62,7 @@ public class ItemService {
 
     // Prepare the response
     ServiceResponse response = new ServiceResponse(200);
-    response.getMeta().put("type", "item");
+    ServiceResponseCommand.addMeta(response, "item");
     response.setData(itemDetails);
     return response;
   }

@@ -20,6 +20,8 @@ import com.simisinc.platform.application.items.LoadCollectionCommand;
 import com.simisinc.platform.domain.model.items.Collection;
 import com.simisinc.platform.presentation.controller.ServiceContext;
 import com.simisinc.platform.presentation.controller.ServiceResponse;
+import com.simisinc.platform.presentation.controller.ServiceResponseCommand;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -48,10 +50,7 @@ public class CollectionListService {
 
     // Prepare the response
     ServiceResponse response = new ServiceResponse(200);
-    response.getMeta().put("type", "collection");
-//    response.getMeta().put("pageIndex", 1);
-//    response.getMeta().put("totalPages", 1);
-    response.getMeta().put("recordList", recordList.size());
+    ServiceResponseCommand.addMeta(response, "collection", recordList, null);
     response.setData(recordList);
     return response;
   }

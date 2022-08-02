@@ -16,6 +16,12 @@
 
 package com.simisinc.platform.presentation.rest.items;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import com.simisinc.platform.application.items.LoadCollectionCommand;
 import com.simisinc.platform.domain.model.items.Category;
 import com.simisinc.platform.domain.model.items.Collection;
@@ -23,11 +29,7 @@ import com.simisinc.platform.infrastructure.persistence.items.CategoryRepository
 import com.simisinc.platform.infrastructure.persistence.items.CollectionRepository;
 import com.simisinc.platform.presentation.controller.ServiceContext;
 import com.simisinc.platform.presentation.controller.ServiceResponse;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
-import java.util.ArrayList;
-import java.util.List;
+import com.simisinc.platform.presentation.controller.ServiceResponseCommand;
 
 /**
  * Description
@@ -68,10 +70,7 @@ public class CategoryListService {
 
     // Prepare the response
     ServiceResponse response = new ServiceResponse(200);
-    response.getMeta().put("type", "category");
-//    response.getMeta().put("pageIndex", 1);
-//    response.getMeta().put("totalPages", 1);
-    response.getMeta().put("totalItems", recordList.size());
+    ServiceResponseCommand.addMeta(response, "category", recordList, null);
     response.setData(recordList);
     return response;
   }

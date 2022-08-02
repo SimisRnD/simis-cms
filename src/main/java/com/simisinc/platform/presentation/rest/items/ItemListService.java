@@ -16,6 +16,12 @@
 
 package com.simisinc.platform.presentation.rest.items;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import com.simisinc.platform.application.items.LoadCollectionCommand;
 import com.simisinc.platform.domain.model.items.Collection;
 import com.simisinc.platform.domain.model.items.Item;
@@ -24,11 +30,7 @@ import com.simisinc.platform.infrastructure.persistence.items.ItemRepository;
 import com.simisinc.platform.infrastructure.persistence.items.ItemSpecification;
 import com.simisinc.platform.presentation.controller.ServiceContext;
 import com.simisinc.platform.presentation.controller.ServiceResponse;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
-import java.util.ArrayList;
-import java.util.List;
+import com.simisinc.platform.presentation.controller.ServiceResponseCommand;
 
 /**
  * Returns a list of items for the given collection unique id
@@ -81,10 +83,7 @@ public class ItemListService {
 
     // Prepare the response
     ServiceResponse response = new ServiceResponse(200);
-    response.getMeta().put("type", "item");
-    response.getMeta().put("pageIndex", constraints.getPageNumber());
-    response.getMeta().put("totalPages", constraints.getMaxPageNumber());
-    response.getMeta().put("totalItems", constraints.getTotalRecordCount());
+    ServiceResponseCommand.addMeta(response, "item", itemList, constraints);
     response.setData(recordList);
     return response;
   }

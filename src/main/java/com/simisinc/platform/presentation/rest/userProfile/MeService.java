@@ -16,11 +16,13 @@
 
 package com.simisinc.platform.presentation.rest.userProfile;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.presentation.controller.ServiceContext;
 import com.simisinc.platform.presentation.controller.ServiceResponse;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import com.simisinc.platform.presentation.controller.ServiceResponseCommand;
 
 /**
  * Description
@@ -42,7 +44,7 @@ public class MeService {
 
     // Prepare the response
     ServiceResponse response = new ServiceResponse(200);
-    response.getMeta().put("type", "user");
+    ServiceResponseCommand.addMeta(response, "user");
     response.setData(handler);
     return response;
   }

@@ -16,6 +16,15 @@
 
 package com.simisinc.platform.presentation.rest.medicine;
 
+import static com.simisinc.platform.application.medicine.MedicineConstants.COLLECTION_DRUG_LIST_UNIQUE_ID;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import com.simisinc.platform.application.items.LoadCollectionCommand;
 import com.simisinc.platform.domain.model.items.Collection;
 import com.simisinc.platform.domain.model.items.Item;
@@ -24,15 +33,8 @@ import com.simisinc.platform.infrastructure.persistence.items.ItemRepository;
 import com.simisinc.platform.infrastructure.persistence.items.ItemSpecification;
 import com.simisinc.platform.presentation.controller.ServiceContext;
 import com.simisinc.platform.presentation.controller.ServiceResponse;
+import com.simisinc.platform.presentation.controller.ServiceResponseCommand;
 import com.simisinc.platform.presentation.rest.items.ItemHandler;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
-import java.util.ArrayList;
-import java.util.List;
-
-import static com.simisinc.platform.application.medicine.MedicineConstants.COLLECTION_DRUG_LIST_UNIQUE_ID;
 
 /**
  * Returns a list of drugs based on the query
@@ -48,7 +50,8 @@ public class DrugListService {
   public ServiceResponse get(ServiceContext context) {
 
     // Check the drug list collection for access
-    Collection drugListCollection = LoadCollectionCommand.loadCollectionByUniqueIdForAuthorizedUser(COLLECTION_DRUG_LIST_UNIQUE_ID, context.getUserId());
+    Collection drugListCollection = LoadCollectionCommand
+        .loadCollectionByUniqueIdForAuthorizedUser(COLLECTION_DRUG_LIST_UNIQUE_ID, context.getUserId());
     if (drugListCollection == null) {
       ServiceResponse response = new ServiceResponse(400);
       response.getError().put("title", "Drug list was not found");
@@ -85,10 +88,7 @@ public class DrugListService {
 
     // Prepare the response
     ServiceResponse response = new ServiceResponse(200);
-    response.getMeta().put("type", "drug");
-    response.getMeta().put("pageIndex", constraints.getPageNumber());
-    response.getMeta().put("totalPages", constraints.getMaxPageNumber());
-    response.getMeta().put("totalItems", constraints.getTotalRecordCount());
+    ServiceResponseCommand.addMeta(response, "drug", recordList, null);
     response.setData(recordList);
     return response;
   }

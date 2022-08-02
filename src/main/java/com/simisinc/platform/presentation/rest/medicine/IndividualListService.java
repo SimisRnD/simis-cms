@@ -16,6 +16,16 @@
 
 package com.simisinc.platform.presentation.rest.medicine;
 
+import static com.simisinc.platform.application.medicine.MedicineConstants.COLLECTION_CAREGIVERS_UNIQUE_ID;
+import static com.simisinc.platform.application.medicine.MedicineConstants.COLLECTION_INDIVIDUALS_UNIQUE_ID;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import com.simisinc.platform.application.items.LoadCollectionCommand;
 import com.simisinc.platform.application.items.LoadItemCommand;
 import com.simisinc.platform.domain.model.items.Collection;
@@ -26,15 +36,7 @@ import com.simisinc.platform.infrastructure.persistence.items.ItemRepository;
 import com.simisinc.platform.infrastructure.persistence.items.ItemSpecification;
 import com.simisinc.platform.presentation.controller.ServiceContext;
 import com.simisinc.platform.presentation.controller.ServiceResponse;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-
-import static com.simisinc.platform.application.medicine.MedicineConstants.COLLECTION_CAREGIVERS_UNIQUE_ID;
-import static com.simisinc.platform.application.medicine.MedicineConstants.COLLECTION_INDIVIDUALS_UNIQUE_ID;
+import com.simisinc.platform.presentation.controller.ServiceResponseCommand;
 
 /**
  * Returns a list of individuals being cared for
@@ -50,8 +52,10 @@ public class IndividualListService {
   public ServiceResponse get(ServiceContext context) {
 
     // Check the caregivers collection for access
-    Collection caregiversCollection = LoadCollectionCommand.loadCollectionByUniqueIdForAuthorizedUser(COLLECTION_CAREGIVERS_UNIQUE_ID, context.getUserId());
-    Collection individualsCollection = LoadCollectionCommand.loadCollectionByUniqueIdForAuthorizedUser(COLLECTION_INDIVIDUALS_UNIQUE_ID, context.getUserId());
+    Collection caregiversCollection = LoadCollectionCommand
+        .loadCollectionByUniqueIdForAuthorizedUser(COLLECTION_CAREGIVERS_UNIQUE_ID, context.getUserId());
+    Collection individualsCollection = LoadCollectionCommand
+        .loadCollectionByUniqueIdForAuthorizedUser(COLLECTION_INDIVIDUALS_UNIQUE_ID, context.getUserId());
     if (caregiversCollection == null || individualsCollection == null) {
       ServiceResponse response = new ServiceResponse(400);
       response.getError().put("title", "Collection was not found");
@@ -72,7 +76,8 @@ public class IndividualListService {
     HashMap<Long, Item> individualsList = new HashMap<>();
     if (caregiverList != null) {
       for (Item caregiver : caregiverList) {
-        List<ItemRelationship> itemRelationshipList = ItemRelationshipRepository.findRelatedItemsForItemIdInCollection(caregiver, individualsCollection);
+        List<ItemRelationship> itemRelationshipList = ItemRelationshipRepository
+            .findRelatedItemsForItemIdInCollection(caregiver, individualsCollection);
         if (itemRelationshipList != null) {
           LOG.debug("itemRelationshipList size: " + itemRelationshipList.size());
           for (ItemRelationship relationship : itemRelationshipList) {
@@ -85,8 +90,6 @@ public class IndividualListService {
       }
     }
 
-    LOG.debug("individualsList size: " + individualsList.size());
-
     // Set the fields to return
     List<IndividualHandler> recordList = new ArrayList<>();
     for (Item item : individualsList.values()) {
@@ -95,8 +98,7 @@ public class IndividualListService {
 
     // Prepare the response
     ServiceResponse response = new ServiceResponse(200);
-    response.getMeta().put("type", "individual");
-    response.getMeta().put("totalItems", individualsList.size());
+    ServiceResponseCommand.addMeta(response, "individual", recordList, null);
     response.setData(recordList);
     return response;
   }

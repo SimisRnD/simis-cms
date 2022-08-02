@@ -16,6 +16,18 @@
 
 package com.simisinc.platform.presentation.rest.medicine;
 
+import static com.simisinc.platform.application.medicine.MedicineConstants.COLLECTION_CAREGIVERS_UNIQUE_ID;
+import static com.simisinc.platform.application.medicine.MedicineConstants.COLLECTION_INDIVIDUALS_UNIQUE_ID;
+import static com.simisinc.platform.application.medicine.MedicineConstants.USER_GROUP_CAREGIVER_UNIQUE_ID;
+
+import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import com.simisinc.platform.application.items.LoadCollectionCommand;
 import com.simisinc.platform.application.items.LoadItemCommand;
 import com.simisinc.platform.application.medicine.IndividualRelationshipCommand;
@@ -25,19 +37,15 @@ import com.simisinc.platform.domain.model.medicine.Medicine;
 import com.simisinc.platform.domain.model.medicine.MedicineSchedule;
 import com.simisinc.platform.domain.model.medicine.Prescription;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
-import com.simisinc.platform.infrastructure.persistence.medicine.*;
+import com.simisinc.platform.infrastructure.persistence.medicine.MedicineRepository;
+import com.simisinc.platform.infrastructure.persistence.medicine.MedicineScheduleRepository;
+import com.simisinc.platform.infrastructure.persistence.medicine.MedicineSpecification;
+import com.simisinc.platform.infrastructure.persistence.medicine.MedicineTimeRepository;
+import com.simisinc.platform.infrastructure.persistence.medicine.PrescriptionRepository;
 import com.simisinc.platform.presentation.controller.DataConstants;
 import com.simisinc.platform.presentation.controller.ServiceContext;
 import com.simisinc.platform.presentation.controller.ServiceResponse;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
-import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.List;
-
-import static com.simisinc.platform.application.medicine.MedicineConstants.*;
+import com.simisinc.platform.presentation.controller.ServiceResponseCommand;
 
 /**
  * Returns a list of medicines being tracked for an individual
@@ -54,16 +62,19 @@ public class MedicineListService {
 
     // Determine the individual (must exist and be part of the individuals collection)
     String individualUniqueId = context.getPathParam();
-    Collection individualsCollection = LoadCollectionCommand.loadCollectionByUniqueIdForAuthorizedUser(COLLECTION_INDIVIDUALS_UNIQUE_ID, context.getUserId());
+    Collection individualsCollection = LoadCollectionCommand
+        .loadCollectionByUniqueIdForAuthorizedUser(COLLECTION_INDIVIDUALS_UNIQUE_ID, context.getUserId());
     Item individual = LoadItemCommand.loadItemByUniqueId(individualUniqueId);
-    if (individualsCollection == null || individual == null || individual.getCollectionId() != individualsCollection.getId()) {
+    if (individualsCollection == null || individual == null
+        || individual.getCollectionId() != individualsCollection.getId()) {
       ServiceResponse response = new ServiceResponse(400);
       response.getError().put("title", "Individual was not found");
       return response;
     }
 
     // Check the caregivers collection for access (must exist and user must have access to at least one item in the collection)
-    Collection caregiversCollection = LoadCollectionCommand.loadCollectionByUniqueIdForAuthorizedUser(COLLECTION_CAREGIVERS_UNIQUE_ID, context.getUserId());
+    Collection caregiversCollection = LoadCollectionCommand
+        .loadCollectionByUniqueIdForAuthorizedUser(COLLECTION_CAREGIVERS_UNIQUE_ID, context.getUserId());
     if (caregiversCollection == null) {
       ServiceResponse response = new ServiceResponse(400);
       response.getError().put("title", "Collection was not found");
@@ -71,7 +82,8 @@ public class MedicineListService {
     }
 
     // Verify the Individual is in one of my Caregiver groups
-    boolean isAuthorizedForUser = IndividualRelationshipCommand.isAuthorizedForUser(individual, caregiversCollection, context.getUserId());
+    boolean isAuthorizedForUser = IndividualRelationshipCommand.isAuthorizedForUser(individual, caregiversCollection,
+        context.getUserId());
     if (!isAuthorizedForUser) {
       LOG.warn("Individual: " + individualUniqueId + " not authorized for user: " + context.getUserId());
       ServiceResponse response = new ServiceResponse(400);
@@ -100,7 +112,7 @@ public class MedicineListService {
 
     // Configure the constraints
     DataConstraints constraints = new DataConstraints();
-    constraints.setColumnsToSortBy(new String[]{"archived desc", "suspended desc", "medicine_id"});
+    constraints.setColumnsToSortBy(new String[] { "archived desc", "suspended desc", "medicine_id" });
 
     List<Medicine> medicineList = MedicineRepository.findAll(specification, constraints);
 
@@ -124,10 +136,7 @@ public class MedicineListService {
 
     // Prepare the response
     ServiceResponse response = new ServiceResponse(200);
-    response.getMeta().put("type", "medicine");
-    response.getMeta().put("pageIndex", constraints.getPageNumber());
-    response.getMeta().put("totalPages", constraints.getMaxPageNumber());
-    response.getMeta().put("totalItems", constraints.getTotalRecordCount());
+    ServiceResponseCommand.addMeta(response, "medicine", recordList, null);
     response.setData(recordList);
     return response;
   }

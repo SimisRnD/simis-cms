@@ -16,12 +16,14 @@
 
 package com.simisinc.platform.presentation.rest.cms;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import com.simisinc.platform.application.cms.LoadContentCommand;
 import com.simisinc.platform.domain.model.cms.Content;
 import com.simisinc.platform.presentation.controller.ServiceContext;
 import com.simisinc.platform.presentation.controller.ServiceResponse;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import com.simisinc.platform.presentation.controller.ServiceResponseCommand;
 
 /**
  * Description
@@ -49,7 +51,7 @@ public class ContentService {
 
     // Prepare the response
     ServiceResponse response = new ServiceResponse(200);
-    response.getMeta().put("type", "content");
+    ServiceResponseCommand.addMeta(response, "content");
     response.setData(contentHandler);
     return response;
   }

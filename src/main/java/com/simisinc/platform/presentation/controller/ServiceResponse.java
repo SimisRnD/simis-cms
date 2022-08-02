@@ -17,7 +17,8 @@
 package com.simisinc.platform.presentation.controller;
 
 import java.io.Serializable;
-import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
  * Description
@@ -30,10 +31,10 @@ public class ServiceResponse implements Serializable {
   final static long serialVersionUID = 215434482513634196L;
 
   private int status = -1;
-  private HashMap<String, Object> meta = new HashMap<>();
+  private Map<String, Object> meta = new LinkedHashMap<>();
   private Object data = null;
-  private HashMap<String, String> links = new HashMap<>();
-  private HashMap<String, String> error = new HashMap<>();
+  private Map<String, String> links = new LinkedHashMap<>();
+  private Map<String, String> error = new LinkedHashMap<>();
 
   public ServiceResponse(int status) {
     this.status = status;
@@ -43,7 +44,7 @@ public class ServiceResponse implements Serializable {
     return status;
   }
 
-  public HashMap<String, Object> getMeta() {
+  public Map<String, Object> getMeta() {
     return meta;
   }
 
@@ -55,11 +56,11 @@ public class ServiceResponse implements Serializable {
     this.data = data;
   }
 
-  public HashMap<String, String> getLinks() {
+  public Map<String, String> getLinks() {
     return links;
   }
 
-  public HashMap<String, String> getError() {
+  public Map<String, String> getError() {
     return error;
   }
 }
