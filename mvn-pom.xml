@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.simisinc</groupId>
   <artifactId>simis-cms</artifactId>
-  <version>20220718.10000-SNAPSHOT</version>
+  <version>20220724.10000-SNAPSHOT</version>
   <name>SimIS CMS</name>
   <description>Agile, Enterprise, Open Source Content Management System (CMS)</description>
   <url>https://www.simiscms.com</url>
@@ -24,7 +24,7 @@
     <mockito.version>4.5.1</mockito.version>
     <argon2.version>2.11</argon2.version>
     <args4j.version>2.33</args4j.version>
-    <bucket4j.version>7.3.0</bucket4j.version>
+    <bucket4j.version>8.0.1</bucket4j.version>
     <caffeine.version>3.1.1</caffeine.version>
     <commons-beanutils.version>1.9.4</commons-beanutils.version>
     <commons-codec.version>1.15</commons-codec.version>
@@ -98,7 +98,7 @@
       <version>${jna.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.github.vladimir-bukhtoyarov</groupId>
+      <groupId>com.bucket4j</groupId>
       <artifactId>bucket4j-core</artifactId>
       <version>${bucket4j.version}</version>
     </dependency>
