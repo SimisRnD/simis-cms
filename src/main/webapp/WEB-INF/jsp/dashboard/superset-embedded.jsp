@@ -22,6 +22,7 @@
 <%@ taglib prefix="number" uri="/WEB-INF/number-functions.tld" %>
 <jsp:useBean id="dashboardValue" class="java.lang.String" scope="request"/>
 <jsp:useBean id="hideChartControls" class="java.lang.String" scope="request"/>
+<jsp:useBean id="hideChartTitle" class="java.lang.String" scope="request"/>
 <style>
     #superset-container${widgetContext.uniqueId},
     #superset-container${widgetContext.uniqueId} iframe {
@@ -50,6 +51,6 @@
     supersetDomain: "<c:out value="${supersetDomain}" />",
     mountPoint: document.getElementById("superset-container${widgetContext.uniqueId}"),
     fetchGuestToken: () => fetchGuestTokenFromBackend${widgetContext.uniqueId}(),
-    dashboardUiConfig: { hideTitle: true, hideChartControls: ${hideChartControls} }
+    dashboardUiConfig: { hideTitle: ${hideChartTitle}, hideChartControls: ${hideChartControls} }
   });
 </script>

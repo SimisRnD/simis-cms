@@ -50,6 +50,8 @@ public class SupersetWidget extends GenericWidget {
     context.getRequest().setAttribute("dashboardEmbeddedId", dashboardEmbeddedId);
     context.getRequest().setAttribute("supersetDomain", supersetDomain);
     context.getRequest().setAttribute("height", context.getPreferences().getOrDefault("height", "300px"));
+    boolean hideChartTitle = "true".equals(context.getPreferences().getOrDefault("hideChartTitle", "true"));
+    context.getRequest().setAttribute("hideChartTitle", hideChartTitle ? "true" : "false");
     boolean hideChartControls = "true".equals(context.getPreferences().getOrDefault("hideChartControls", "true"));
     context.getRequest().setAttribute("hideChartControls", hideChartControls ? "true" : "false");
 
