@@ -17,7 +17,6 @@
 package com.simisinc.platform.application.ecommerce;
 
 import com.simisinc.platform.application.DataException;
-import com.simisinc.platform.application.admin.EcommerceCommand;
 import com.simisinc.platform.domain.model.ecommerce.Order;
 import com.simisinc.platform.infrastructure.persistence.ecommerce.OrderRepository;
 import org.apache.commons.logging.Log;

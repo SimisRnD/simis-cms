@@ -17,7 +17,6 @@
 package com.simisinc.platform.application.ecommerce;
 
 import com.simisinc.platform.application.DataException;
-import com.simisinc.platform.application.admin.FulfillmentOptionCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.domain.model.ecommerce.*;
 import com.simisinc.platform.infrastructure.persistence.ecommerce.*;

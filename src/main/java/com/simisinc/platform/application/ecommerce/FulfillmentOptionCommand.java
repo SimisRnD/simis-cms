@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.simisinc.platform.application.admin;
+package com.simisinc.platform.application.ecommerce;
 
 import com.simisinc.platform.domain.model.ecommerce.FulfillmentOption;
 import com.simisinc.platform.domain.model.ecommerce.Order;

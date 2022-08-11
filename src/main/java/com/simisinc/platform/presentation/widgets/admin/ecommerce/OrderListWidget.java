@@ -16,13 +16,7 @@
 
 package com.simisinc.platform.presentation.widgets.admin.ecommerce;
 
-import java.io.File;
-import java.lang.reflect.InvocationTargetException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.List;
-
-import com.simisinc.platform.application.admin.EcommerceCommand;
+import com.simisinc.platform.application.ecommerce.EcommerceCommand;
 import com.simisinc.platform.application.filesystem.FileSystemCommand;
 import com.simisinc.platform.domain.model.ecommerce.Order;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
@@ -30,10 +24,15 @@ import com.simisinc.platform.infrastructure.persistence.ecommerce.OrderRepositor
 import com.simisinc.platform.infrastructure.persistence.ecommerce.OrderSpecification;
 import com.simisinc.platform.presentation.controller.MultipartFileSender;
 import com.simisinc.platform.presentation.controller.RequestConstants;
-import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.controller.WidgetContext;
-
+import com.simisinc.platform.presentation.widgets.GenericWidget;
 import org.apache.commons.lang3.StringUtils;
+
+import java.io.File;
+import java.lang.reflect.InvocationTargetException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
 
 /**
  * Description

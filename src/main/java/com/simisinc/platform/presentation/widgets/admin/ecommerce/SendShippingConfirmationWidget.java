@@ -16,7 +16,7 @@
 
 package com.simisinc.platform.presentation.widgets.admin.ecommerce;
 
-import com.simisinc.platform.application.admin.EcommerceCommand;
+import com.simisinc.platform.application.ecommerce.EcommerceCommand;
 import com.simisinc.platform.application.ecommerce.OrderEmailCommand;
 import com.simisinc.platform.domain.model.ecommerce.Order;
 import com.simisinc.platform.infrastructure.persistence.ecommerce.OrderRepository;

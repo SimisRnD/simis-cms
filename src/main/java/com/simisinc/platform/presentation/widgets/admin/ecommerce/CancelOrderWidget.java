@@ -16,17 +16,16 @@
 
 package com.simisinc.platform.presentation.widgets.admin.ecommerce;
 
-import java.lang.reflect.InvocationTargetException;
-
 import com.simisinc.platform.application.DataException;
-import com.simisinc.platform.application.admin.EcommerceCommand;
+import com.simisinc.platform.application.ecommerce.EcommerceCommand;
 import com.simisinc.platform.application.ecommerce.OrderCancelCommand;
 import com.simisinc.platform.domain.model.ecommerce.Order;
 import com.simisinc.platform.infrastructure.persistence.ecommerce.OrderRepository;
-import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.controller.WidgetContext;
-
+import com.simisinc.platform.presentation.widgets.GenericWidget;
 import org.apache.commons.lang3.StringUtils;
+
+import java.lang.reflect.InvocationTargetException;
 
 /**
  * Description

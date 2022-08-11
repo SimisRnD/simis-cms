@@ -14,8 +14,9 @@
  * limitations under the License.
  */
 
-package com.simisinc.platform.application.admin;
+package com.simisinc.platform.application.ecommerce;
 
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
