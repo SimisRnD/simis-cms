@@ -48,11 +48,16 @@ public class SaveDatasetRowCommand {
 
   private static Log LOG = LogFactory.getLog(SaveDatasetRowCommand.class);
 
-  public static boolean saveRecord(String[] row, Dataset dataset, Collection collection, List<String> fieldMappings,
-      List<String> columnNames, List<String> fieldOptions) {
+  public static boolean saveRecord(String[] row, Dataset dataset, Collection collection) {
 
     Item item = null;
     Item previousItem = null;
+
+    // Compute these...
+    List<String> columnNames = dataset.getColumnNamesList();
+    List<String> fieldTitles = dataset.getFieldTitlesList();
+    List<String> fieldMappings = dataset.getFieldMappingsList();
+    List<String> fieldOptions = dataset.getFieldOptionsList();
 
     // If the dataset specifies a unique column name, then find the value
     String datasetKeyValue = null;
@@ -75,7 +80,7 @@ public class SaveDatasetRowCommand {
       item = new Item();
       item.setDatasetKeyValue(datasetKeyValue);
     }
-    item = constructItem(item, row, dataset, collection, fieldMappings, columnNames, fieldOptions);
+    item = constructItem(item, row, dataset, collection, columnNames, fieldTitles, fieldMappings, fieldOptions);
     if (item != null) {
       updateGeoPoint(item);
       return SaveItemCommand.saveBatchItem(previousItem, item);
@@ -85,8 +90,7 @@ public class SaveDatasetRowCommand {
   }
 
   public static Item constructItem(Item item, String[] row, Dataset dataset, Collection collection,
-      List<String> fieldMappings,
-      List<String> columnNames, List<String> fieldOptions) {
+      List<String> columnNames, List<String> fieldTitles, List<String> fieldMappings, List<String> fieldOptions) {
 
     // Values from the dataset
     item.setDatasetId(dataset.getId());
@@ -253,6 +257,10 @@ public class SaveDatasetRowCommand {
         // @todo
       } else if ("custom".equals(mapping)) {
         String columnName = columnNames.get(i);
+        String title = fieldTitles.get(i);
+        if (StringUtils.isNotBlank(title)) {
+          columnName = title;
+        }
         CustomField customField = new CustomField(columnName, columnName, value);
         item.addCustomField(customField);
       }

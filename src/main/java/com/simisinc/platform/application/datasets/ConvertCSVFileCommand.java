@@ -48,11 +48,6 @@ public class ConvertCSVFileCommand {
       throw new Exception("File was not found, dataset: " + dataset.getId());
     }
 
-    // Compute these...
-    List<String> columnNames = dataset.getColumnNamesList();
-    List<String> fieldMappings = dataset.getFieldMappingsList();
-    List<String> fieldOptions = dataset.getFieldOptionsList();
-
     // Determine the CSV configuration
     CsvParserSettings parserSettings = new CsvParserSettings();
     parserSettings.setLineSeparatorDetectionEnabled(true);
@@ -70,7 +65,7 @@ public class ConvertCSVFileCommand {
       String[] row;
       while ((row = parser.parseNext()) != null) {
         // Transform the row to item, then save
-        boolean isSaved = SaveDatasetRowCommand.saveRecord(row, dataset, collection, fieldMappings, columnNames, fieldOptions);
+        boolean isSaved = SaveDatasetRowCommand.saveRecord(row, dataset, collection);
         if (!isSaved) {
           throw new DataException("Save error");
         }

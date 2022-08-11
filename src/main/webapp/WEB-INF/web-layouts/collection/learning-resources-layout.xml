@@ -47,11 +47,19 @@
             <field name="Category" value="categoryList" />
             <field name="Instructor" value="custom.instructor" />
             <field name="Role" value="custom.role" />
+            <field name="Audience" value="custom.audience" />
+            <field name="Career Category" value="custom.career_category" />
+            <field name="Subject Matter" value="custom.subject_matter" />
+            <field name="Prerequisites" value="custom.prerequisites" />
+            <field name="Delivery Mode" value="custom.delivery_mode" />
+            <field name="Estimated Completion Time" value="custom.estimated_completion_time" />
+            <field name="Accredited By" value="custom.accredited_by" />
+            <field name="Price" value="cost" type="currency" />
             <field name="Email" value="email" type="email" />
             <field name="Address" value="address" />
+            <field name="Country" value="country" />
             <field name="County" value="county" />
             <field name="Phone Number" value="phoneNumber" />
-            <field name="Price" value="cost" type="currency" />
             <field name="Id" value="barcode" />
           </fields>
           <showAllCustomFields>false</showAllCustomFields>
