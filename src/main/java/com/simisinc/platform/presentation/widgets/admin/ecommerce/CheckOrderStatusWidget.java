@@ -17,8 +17,8 @@
 package com.simisinc.platform.presentation.widgets.admin.ecommerce;
 
 import com.simisinc.platform.application.DataException;
-import com.simisinc.platform.application.admin.EcommerceCommand;
-import com.simisinc.platform.application.admin.FulfillmentOptionCommand;
+import com.simisinc.platform.application.ecommerce.EcommerceCommand;
+import com.simisinc.platform.application.ecommerce.FulfillmentOptionCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.ecommerce.OrderShipmentStatusCommand;
 import com.simisinc.platform.domain.model.ecommerce.FulfillmentOption;

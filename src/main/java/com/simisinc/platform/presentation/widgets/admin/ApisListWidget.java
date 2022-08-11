@@ -18,7 +18,7 @@ package com.simisinc.platform.presentation.widgets.admin;
 
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.controller.WidgetContext;
-import com.simisinc.platform.presentation.controller.XMLServiceLoader;
+import com.simisinc.platform.rest.controller.XMLServiceLoader;
 
 import java.util.*;
 

@@ -18,7 +18,6 @@ package com.simisinc.platform.application.ecommerce;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.fge.jackson.JsonLoader;
-import com.simisinc.platform.application.admin.EcommerceCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;

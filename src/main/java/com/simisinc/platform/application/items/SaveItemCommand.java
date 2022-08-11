@@ -199,13 +199,14 @@ public class SaveItemCommand {
     return ItemRepository.save(item);
   }
 
-  public static boolean saveBatchItem(Item item) {
-    // @todo consider geocoding any addresses
-    item.setUniqueId(generateUniqueId(null, item));
-    Timestamp now = new Timestamp(System.currentTimeMillis());
-    item.setApproved(now);
-    if (item.getAssignedTo() > -1) {
-      item.setAssigned(now);
+  public static boolean saveBatchItem(Item previousItem, Item item) {
+    item.setUniqueId(generateUniqueId(previousItem, item));
+    if (previousItem == null) {
+      Timestamp now = new Timestamp(System.currentTimeMillis());
+      item.setApproved(now);
+      if (item.getAssignedTo() > -1) {
+        item.setAssigned(now);
+      }
     }
     return (ItemRepository.save(item) != null);
   }

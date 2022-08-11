@@ -32,10 +32,11 @@
   <thead>
     <tr>
       <th>Name</th>
-      <th>File</th>
+      <th width="180" class="text-center">Data Date</th>
+      <th width="200" class="text-center">Data Status</th>
+      <th width="200" class="text-center">Sync Status</th>
+      <th class="text-center">File Type</th>
       <th class="text-center">Size</th>
-      <th width="180" class="text-center">Date</th>
-      <th width="200" class="text-center">Status</th>
       <th width="80">Action</th>
     </tr>
   </thead>
@@ -62,10 +63,6 @@
         </c:choose>
         --%>
       </td>
-      <td>
-        <small><c:out value="${dataset.filename}" /></small>
-      </td>
-      <td class="text-center"><small><c:out value="${number:suffix(dataset.fileLength)}"/></small></td>
       <td class="text-center">
         <small>
         <c:choose>
@@ -81,9 +78,30 @@
         </small>
       </td>
       <td class="text-center">
+        <c:if test="${dataset.scheduleEnabled}">
+          <c:choose>
+            <c:when test="${dataset.queueStatus eq 1}">
+              <span class="label round primary">Queued</span>
+            </c:when>
+            <c:when test="${dataset.queueStatus gt 1}">
+              <span class="label round alert">Failed</span>
+            </c:when>
+            <c:otherwise>
+              <span class="label round success">Scheduled</span>
+            </c:otherwise>
+          </c:choose>
+          <br />
+          <small><c:out value="${dataset.scheduleFrequency}" /></small>
+        </c:if>
+      </td>
+      <td class="text-center">
         <c:choose>
-          <c:when test="${dataset.rowsProcessed lt dataset.rowCount && dataset.rowsProcessed gt 0}">
-            <span class="label round warning"><i class="fa fa-spinner fa-spin fa-fw"></i> Processing</span><br />
+          <c:when test="${dataset.processStatus eq 1}">
+            <span class="label round success"><i class="fa fa-spinner fa-spin fa-fw"></i> Processing</span><br />
+            <fmt:formatNumber value="${dataset.rowsProcessed}" /> / <fmt:formatNumber value="${dataset.rowCount}" />
+          </c:when>
+          <c:when test="${dataset.processStatus gt 1}">
+            <span class="label round alert"><i class="fa fa-spinner fa-spin fa-fw"></i> Processing</span><br />
             <fmt:formatNumber value="${dataset.rowsProcessed}" /> / <fmt:formatNumber value="${dataset.rowCount}" />
           </c:when>
           <c:when test="${!empty dataset.processed}">
@@ -91,13 +109,17 @@
             <small class="subheader"><fmt:formatNumber value="${dataset.totalProcessTime}" /> ms</small>
           </c:when>
           <c:when test="${dataset.rowCount gt -1}">
-            <span class="label round">Ready</span>
+            <span class="label round secondary">Ready</span>
           </c:when>
           <c:otherwise>
             <span class="label round warning" id="rowCount">Data Not Found</span>
           </c:otherwise>
         </c:choose>
       </td>
+      <td class="text-center">
+        <small><c:out value="${dataset.fileType}" /></small>
+      </td>
+      <td class="text-center"><small><c:out value="${number:suffix(dataset.fileLength)}"/></small></td>
       <td>
         <a title="Modify dataset" href="${ctx}/admin/dataset-mapper?datasetId=${dataset.id}"><small><i class="${font:fas()} fa-edit"></i></small></a>
         <a href="${ctx}/assets/dataset/<fmt:formatDate pattern="yyyyMMddHHmmss" value="${dataset.created}" />-${dataset.id}/${url:encodeUri(dataset.filename)}"><i class="fa fa-download"></i></a>
@@ -121,7 +143,7 @@
     </c:forEach>
     <c:if test="${empty datasetList}">
       <tr>
-        <td colspan="6">No datasets were found</td>
+        <td colspan="7">No datasets were found</td>
       </tr>
     </c:if>
   </tbody>

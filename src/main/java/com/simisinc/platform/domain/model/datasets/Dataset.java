@@ -16,11 +16,16 @@
 
 package com.simisinc.platform.domain.model.datasets;
 
+import com.simisinc.platform.application.CustomFieldCommand;
+import com.simisinc.platform.domain.model.CustomField;
 import com.simisinc.platform.domain.model.Entity;
 
 import java.sql.Timestamp;
+import java.time.LocalTime;
 import java.util.Arrays;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Information, file meta-data, and dataset to item mappings for datasets
@@ -30,35 +35,53 @@ import java.util.List;
  */
 public class Dataset extends Entity {
 
-  private String collectionUniqueId = null;
-  private long categoryId = -1;
   private Long id = -1L;
   private String name = null;
+  private String sourceUrl = null;
+  private String sourceInfo = null;
+  private Map<String, CustomField> customFieldList = null;
+  private long createdBy = -1;
+  private long modifiedBy = -1;
+  private Timestamp created = null;
+  // File Download
   private String filename = null;
-  private String fileServerPath = null;
   private long fileLength = -1;
+  private String fileType = null;
+  private String fileServerPath = null;
+  private Timestamp lastDownload = null;
+  // File Processing
+  private String recordsPath = null;
   private int rowCount = -1;
   private int columnCount = -1;
+  private int rowsProcessed = 0;
+  private Timestamp processed = null;
+  private long totalProcessTime = 0;
+  private int processStatus = -1;
+  private String processMessage = null;
+  // Mapping
+  private String collectionUniqueId = null;
+  private long categoryId = -1;
   private String[] columnNames = null;
   private String[] fieldTitles = null;
   private String[] fieldMappings = null;
   private String[] fieldOptions = null;
-  private long createdBy = -1;
-  private long modifiedBy = -1;
-  private Timestamp created = null;
-  private int rowsProcessed = 0;
-  private Timestamp processed = null;
-  private long totalProcessTime = 0;
-  private String fileType = null;
-  private String sourceInfo = null;
-  private String sourceUrl = null;
-  private String recordsPath = null;
-  private int scheduleType = ScheduleType.UNDEFINED;
-  private Timestamp scheduled = null;
-  private Timestamp lastDownload = null;
-
-  // not saved
-  private boolean skipDuplicateNames = false;
+  private String uniqueColumnName = null;
+  // Schedule
+  private boolean scheduleEnabled = false;
+  private Timestamp scheduledDate = null;
+  private String scheduleFrequency = null;
+  private LocalTime scheduleTime = null;
+  private Timestamp scheduleLastRun = null;
+  // Queue
+  private int queueStatus = -1;
+  private Timestamp queueDate = null;
+  private int queueAttempts = 0;
+  // Sync
+  private boolean syncEnabled = false;
+  private Timestamp syncDate = null;
+  private int syncStatus = -1;
+  private String syncMessage = null;
+  private String syncMergeType = null;
 
   public Dataset() {
   }
@@ -275,20 +298,12 @@ public class Dataset extends Entity {
     this.recordsPath = recordsPath;
   }
 
-  public int getScheduleType() {
-    return scheduleType;
+  public String getScheduleFrequency() {
+    return scheduleFrequency;
   }
 
-  public void setScheduleType(int scheduleType) {
-    this.scheduleType = scheduleType;
-  }
-
-  public Timestamp getScheduled() {
-    return scheduled;
-  }
-
-  public void setScheduled(Timestamp scheduled) {
-    this.scheduled = scheduled;
+  public void setScheduleFrequency(String schedule) {
+    this.scheduleFrequency = schedule;
   }
 
   public Timestamp getLastDownload() {
@@ -299,11 +314,142 @@ public class Dataset extends Entity {
     this.lastDownload = lastDownload;
   }
 
-  public boolean isSkipDuplicateNames() {
-    return skipDuplicateNames;
+  public String getUniqueColumnName() {
+    return uniqueColumnName;
   }
 
-  public void setSkipDuplicateNames(boolean skipDuplicateNames) {
-    this.skipDuplicateNames = skipDuplicateNames;
+  public void setUniqueColumnName(String uniqueColumnName) {
+    this.uniqueColumnName = uniqueColumnName;
+  }
+
+  public Map<String, CustomField> getCustomFieldList() {
+    return customFieldList;
+  }
+
+  public void setCustomFieldList(Map<String, CustomField> customFieldList) {
+    this.customFieldList = customFieldList;
+  }
+
+  public void addCustomField(CustomField customField) {
+    if (customFieldList == null) {
+      customFieldList = new LinkedHashMap<String, CustomField>();
+    }
+    CustomFieldCommand.addCustomFieldToList(customFieldList, customField);
+  }
+
+  public CustomField getCustomField(String name) {
+    return CustomFieldCommand.getCustomField(customFieldList, name);
+  }
+
+  public boolean getScheduleEnabled() {
+    return scheduleEnabled;
+  }
+
+  public void setScheduleEnabled(boolean scheduleEnabled) {
+    this.scheduleEnabled = scheduleEnabled;
+  }
+
+  public LocalTime getScheduleTime() {
+    return scheduleTime;
+  }
+
+  public void setScheduleTime(LocalTime scheduleTime) {
+    this.scheduleTime = scheduleTime;
+  }
+
+  public Timestamp getScheduleLastRun() {
+    return scheduleLastRun;
+  }
+
+  public void setScheduleLastRun(Timestamp scheduleLastRun) {
+    this.scheduleLastRun = scheduleLastRun;
+  }
+
+  public int getProcessStatus() {
+    return processStatus;
+  }
+
+  public void setProcessStatus(int processStatus) {
+    this.processStatus = processStatus;
+  }
+
+  public String getProcessMessage() {
+    return processMessage;
+  }
+
+  public void setProcessMessage(String processMessage) {
+    this.processMessage = processMessage;
+  }
+
+  public Timestamp getScheduledDate() {
+    return scheduledDate;
+  }
+
+  public void setScheduledDate(Timestamp scheduledDate) {
+    this.scheduledDate = scheduledDate;
+  }
+
+  public boolean getSyncEnabled() {
+    return syncEnabled;
+  }
+
+  public void setSyncEnabled(boolean syncEnabled) {
+    this.syncEnabled = syncEnabled;
+  }
+
+  public Timestamp getSyncDate() {
+    return syncDate;
+  }
+
+  public void setSyncDate(Timestamp syncDate) {
+    this.syncDate = syncDate;
+  }
+
+  public int getSyncStatus() {
+    return syncStatus;
+  }
+
+  public void setSyncStatus(int syncStatus) {
+    this.syncStatus = syncStatus;
+  }
+
+  public String getSyncMessage() {
+    return syncMessage;
+  }
+
+  public void setSyncMessage(String syncMessage) {
+    this.syncMessage = syncMessage;
+  }
+
+  public String getSyncMergeType() {
+    return syncMergeType;
+  }
+
+  public void setSyncMergeType(String syncMergeType) {
+    this.syncMergeType = syncMergeType;
+  }
+
+  public int getQueueStatus() {
+    return queueStatus;
+  }
+
+  public void setQueueStatus(int queueStatus) {
+    this.queueStatus = queueStatus;
+  }
+
+  public Timestamp getQueueDate() {
+    return queueDate;
+  }
+
+  public void setQueueDate(Timestamp queueDate) {
+    this.queueDate = queueDate;
+  }
+
+  public int getQueueAttempts() {
+    return queueAttempts;
+  }
+
+  public void setQueueAttempts(int queueAttempts) {
+    this.queueAttempts = queueAttempts;
   }
 }

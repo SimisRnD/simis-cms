@@ -16,7 +16,7 @@
 
 package com.simisinc.platform.presentation.widgets.admin.datasets;
 
-import com.simisinc.platform.application.admin.DeleteDatasetCommand;
+import com.simisinc.platform.application.datasets.DeleteDatasetCommand;
 import com.simisinc.platform.domain.model.datasets.Dataset;
 import com.simisinc.platform.infrastructure.persistence.datasets.DatasetRepository;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
@@ -26,7 +26,7 @@ import org.apache.commons.lang3.StringUtils;
 import java.util.List;
 
 /**
- * Description
+ * Widget to view and manage a list of widgets
  *
  * @author matt rajkowski
  * @created 4/24/18 7:33 PM

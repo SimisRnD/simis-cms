@@ -21,7 +21,6 @@ import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.simisinc.platform.application.DataException;
-import com.simisinc.platform.application.admin.EcommerceCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.admin.SendEcommerceManagerEmailCommand;
 import com.simisinc.platform.domain.model.ecommerce.Address;

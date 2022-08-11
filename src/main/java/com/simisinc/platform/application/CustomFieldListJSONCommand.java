@@ -124,7 +124,6 @@ public class CustomFieldListJSONCommand {
   public static Map<String, CustomField> populateFromJSONString(String jsonValue) throws SQLException {
     // Convert JSON string back into values
     if (StringUtils.isBlank(jsonValue)) {
-      LOG.debug("populateFromJSONString value is empty");
       return null;
     }
     try {

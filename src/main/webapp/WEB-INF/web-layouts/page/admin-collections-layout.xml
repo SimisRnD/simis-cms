@@ -1,0 +1,410 @@
+<?xml version="1.0" ?>
+<pages>
+  <!-- Admin: Collections -->
+  <page name="/admin/collections" role="admin,data-manager" title="Data Collections">
+    <!--<section>-->
+      <!--<column class="small-12 cell">-->
+        <!--<widget name="breadcrumbs">-->
+          <!--<links>-->
+            <!--<link name="Data Collections" value="" />-->
+          <!--</links>-->
+        <!--</widget>-->
+      <!--</column>-->
+    <!--</section>-->
+    <section>
+      <column class="small-12 cell">
+        <widget name="collectionsList">
+          <title>Data Collections</title>
+          <view>cards</view>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="collectionsList">
+<!--          <title>Data Collections</title>-->
+        </widget>
+      </column>
+    </section>
+  </page>
+
+<!--  <page name="/admin/collections/new" role="admin,data-manager" title="Add a Collection">-->
+<!--    <section>-->
+<!--      <column class="small-12 cell">-->
+<!--        <widget name="breadcrumbs">-->
+<!--          <links>-->
+<!--            <link name="Collections" value="/admin/collections" />-->
+<!--            <link name="New Collection" value="" />-->
+<!--          </links>-->
+<!--        </widget>-->
+<!--      </column>-->
+<!--    </section>-->
+<!--    <section>-->
+<!--      <column class="small-12 cell">-->
+<!--        <widget name="collectionForm" />-->
+<!--      </column>-->
+<!--    </section>-->
+<!--  </page>-->
+
+  <page name="/admin/collection-form{?collectionId}" collectionUniqueId="?collectionId" role="admin,data-manager" title="Collection Configuration">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Collections" value="/admin/collections" />
+            <link name="Configuration" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="collectionForm" />
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/collection-details{?collectionId}" collectionUniqueId="?collectionId" role="admin,data-manager" title="Collection Details">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Data Collections" value="/admin/collections" />
+            <link name="Configuration" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="itemMenu" class="margin-bottom-15">
+          <adminMode>true</adminMode>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="content">
+          <html><![CDATA[
+<ul class="tabs margin-bottom-2">
+  <li class="tabs-title is-active"><a aria-selected="true" href="/admin/collection-details?collectionId=${request.collectionId}">Details</a></li>
+  <li class="tabs-title"><a href="/admin/collection-theme?collectionId=${request.collectionId}">Theme</a></li>
+  <li class="tabs-title"><a href="/admin/collection-tabs?collectionId=${request.collectionId}">Tabs</a></li>
+  <li class="tabs-title"><a href="/admin/collection-categories?collectionId=${request.collectionId}">Categories</a></li>
+  <li class="tabs-title"><a href="/admin/collection-custom-fields?collectionId=${request.collectionId}">Custom Fields</a></li>
+  <li class="tabs-title"><a href="/admin/collection-relationships?collectionId=${request.collectionId}">Relationships</a></li>
+  <li class="tabs-title"><a href="/admin/collection-records?collectionId=${request.collectionId}">Records</a></li>
+</ul>
+]]></html>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell margin-top-10">
+        <widget name="collectionDetails" />
+      </column>
+    </section>
+    <section>
+      <column class="small-12 medium-4 cell">
+        <widget name="collectionCategoriesList" />
+      </column>
+      <column class="small-12 medium-4 cell">
+        <widget name="collectionRelationshipsList" />
+      </column>
+      <column class="small-12 medium-4 cell">
+        <widget name="collectionItemsList">
+          <limit>10</limit>
+          <columns>name</columns>
+          <showPaging>false</showPaging>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/collection-theme{?collectionId}" collectionUniqueId="?collectionId" role="admin,data-manager" title="Configure theme">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Data Collections" value="/admin/collections" />
+            <link name="Configuration" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="itemMenu" class="margin-bottom-15">
+          <adminMode>true</adminMode>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="content">
+          <html><![CDATA[
+<ul class="tabs margin-bottom-2">
+  <li class="tabs-title"><a href="/admin/collection-details?collectionId=${request.collectionId}">Details</a></li>
+  <li class="tabs-title is-active"><a aria-selected="true" href="/admin/collection-theme?collectionId=${request.collectionId}">Theme</a></li>
+  <li class="tabs-title"><a href="/admin/collection-tabs?collectionId=${request.collectionId}">Tabs</a></li>
+  <li class="tabs-title"><a href="/admin/collection-categories?collectionId=${request.collectionId}">Categories</a></li>
+  <li class="tabs-title"><a href="/admin/collection-custom-fields?collectionId=${request.collectionId}">Custom Fields</a></li>
+  <li class="tabs-title"><a href="/admin/collection-relationships?collectionId=${request.collectionId}">Relationships</a></li>
+  <li class="tabs-title"><a href="/admin/collection-records?collectionId=${request.collectionId}">Records</a></li>
+</ul>
+]]></html>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="collectionThemeEditor" class="margin-top-10">
+          <title>Edit the style</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/collection-tabs{?collectionId}" collectionUniqueId="?collectionId" role="admin,data-manager" title="Edit Tabs">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Data Collections" value="/admin/collections" />
+            <link name="Configuration" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="itemMenu" class="margin-bottom-15">
+          <adminMode>true</adminMode>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="content">
+          <html><![CDATA[
+<ul class="tabs margin-bottom-2">
+  <li class="tabs-title"><a href="/admin/collection-details?collectionId=${request.collectionId}">Details</a></li>
+  <li class="tabs-title"><a href="/admin/collection-theme?collectionId=${request.collectionId}">Theme</a></li>
+  <li class="tabs-title is-active"><a aria-selected="true" href="/admin/collection-tabs?collectionId=${request.collectionId}">Tabs</a></li>
+  <li class="tabs-title"><a href="/admin/collection-categories?collectionId=${request.collectionId}">Categories</a></li>
+  <li class="tabs-title"><a href="/admin/collection-custom-fields?collectionId=${request.collectionId}">Custom Fields</a></li>
+  <li class="tabs-title"><a href="/admin/collection-relationships?collectionId=${request.collectionId}">Relationships</a></li>
+  <li class="tabs-title"><a href="/admin/collection-records?collectionId=${request.collectionId}">Records</a></li>
+</ul>
+]]></html>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="collectionTabsEditor">
+          <title>Edit the tabs</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/collection-categories{?collectionId}" collectionUniqueId="?collectionId" role="admin,data-manager" title="Collection Categories">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Data Collections" value="/admin/collections" />
+            <link name="Configuration" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="itemMenu" class="margin-bottom-15">
+          <adminMode>true</adminMode>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="content">
+          <html><![CDATA[
+<ul class="tabs margin-bottom-2">
+  <li class="tabs-title"><a href="/admin/collection-details?collectionId=${request.collectionId}">Details</a></li>
+  <li class="tabs-title"><a href="/admin/collection-theme?collectionId=${request.collectionId}">Theme</a></li>
+  <li class="tabs-title"><a href="/admin/collection-tabs?collectionId=${request.collectionId}">Tabs</a></li>
+  <li class="tabs-title is-active"><a aria-selected="true" href="/admin/collection-categories?collectionId=${request.collectionId}">Categories</a></li>
+  <li class="tabs-title"><a href="/admin/collection-custom-fields?collectionId=${request.collectionId}">Custom Fields</a></li>
+  <li class="tabs-title"><a href="/admin/collection-relationships?collectionId=${request.collectionId}">Relationships</a></li>
+  <li class="tabs-title"><a href="/admin/collection-records?collectionId=${request.collectionId}">Records</a></li>
+</ul>
+]]></html>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 medium-10 large-8 cell">
+        <widget name="collectionCategoriesList" />
+      </column>
+      <column class="small-12 medium-2 large-4 cell">
+        <widget name="collectionCategoryForm" class="callout radius primary">
+          <title>Add a category</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/category{?categoryId}" role="admin,data-manager" title="Edit Category">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Collections" value="/admin/collections" />
+            <link name="Collection Details" value="/admin/collection-details?collectionId=${request.collectionId}" />
+            <link name="Category" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 medium-11 large-10 cell">
+        <widget name="collectionCategoryForm">
+          <title>Edit this category</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/collection-custom-fields{?collectionId}" collectionUniqueId="?collectionId" role="admin,data-manager" title="Collection Custom Fields">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Data Collections" value="/admin/collections" />
+            <link name="Configuration" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="itemMenu" class="margin-bottom-15">
+          <adminMode>true</adminMode>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="content">
+          <html><![CDATA[
+<ul class="tabs margin-bottom-2">
+  <li class="tabs-title"><a href="/admin/collection-details?collectionId=${request.collectionId}">Details</a></li>
+  <li class="tabs-title"><a href="/admin/collection-theme?collectionId=${request.collectionId}">Theme</a></li>
+  <li class="tabs-title"><a href="/admin/collection-tabs?collectionId=${request.collectionId}">Tabs</a></li>
+  <li class="tabs-title"><a href="/admin/collection-categories?collectionId=${request.collectionId}">Categories</a></li>
+  <li class="tabs-title is-active"><a aria-selected="true" href="/admin/collection-custom-fields?collectionId=${request.collectionId}">Custom Fields</a></li>
+  <li class="tabs-title"><a href="/admin/collection-relationships?collectionId=${request.collectionId}">Relationships</a></li>
+  <li class="tabs-title"><a href="/admin/collection-records?collectionId=${request.collectionId}">Records</a></li>
+</ul>
+]]></html>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="collectionCustomFieldsForm" />
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/collection-relationships{?collectionId}" collectionUniqueId="?collectionId" role="admin,data-manager" title="Collection Relationships">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Data Collections" value="/admin/collections" />
+            <link name="Configuration" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="itemMenu" class="margin-bottom-15">
+          <adminMode>true</adminMode>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="content">
+          <html><![CDATA[
+<ul class="tabs margin-bottom-2">
+  <li class="tabs-title"><a href="/admin/collection-details?collectionId=${request.collectionId}">Details</a></li>
+  <li class="tabs-title"><a href="/admin/collection-theme?collectionId=${request.collectionId}">Theme</a></li>
+  <li class="tabs-title"><a href="/admin/collection-tabs?collectionId=${request.collectionId}">Tabs</a></li>
+  <li class="tabs-title"><a href="/admin/collection-categories?collectionId=${request.collectionId}">Categories</a></li>
+  <li class="tabs-title"><a href="/admin/collection-custom-fields?collectionId=${request.collectionId}">Custom Fields</a></li>
+  <li class="tabs-title is-active"><a aria-selected="true" href="/admin/collection-relationships?collectionId=${request.collectionId}">Relationships</a></li>
+  <li class="tabs-title"><a href="/admin/collection-records?collectionId=${request.collectionId}">Records</a></li>
+</ul>
+]]></html>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 medium-10 large-8 cell">
+        <widget name="collectionRelationshipsList" />
+      </column>
+      <column class="small-12 medium-2 large-4 cell">
+        <widget name="collectionRelationshipForm" class="callout radius primary">
+          <title>Define a child relationship</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/collection-records{?collectionId}" collectionUniqueId="?collectionId" role="admin,data-manager" title="Collection Records">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Data Collections" value="/admin/collections" />
+            <link name="Configuration" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="itemMenu" class="margin-bottom-15">
+          <adminMode>true</adminMode>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="content">
+          <html><![CDATA[
+<ul class="tabs margin-bottom-2">
+  <li class="tabs-title"><a href="/admin/collection-details?collectionId=${request.collectionId}">Details</a></li>
+  <li class="tabs-title"><a href="/admin/collection-theme?collectionId=${request.collectionId}">Theme</a></li>
+  <li class="tabs-title"><a href="/admin/collection-tabs?collectionId=${request.collectionId}">Tabs</a></li>
+  <li class="tabs-title"><a href="/admin/collection-categories?collectionId=${request.collectionId}">Categories</a></li>
+  <li class="tabs-title"><a href="/admin/collection-custom-fields?collectionId=${request.collectionId}">Custom Fields</a></li>
+  <li class="tabs-title"><a href="/admin/collection-relationships?collectionId=${request.collectionId}">Relationships</a></li>
+  <li class="tabs-title is-active"><a aria-selected="true" href="/admin/collection-records?collectionId=${request.collectionId}">Records</a></li>
+</ul>
+]]></html>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="collectionItemsList" />
+      </column>
+    </section>
+  </page>
+</pages>

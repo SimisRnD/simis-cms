@@ -17,6 +17,7 @@
 package com.simisinc.platform.infrastructure.scheduler;
 
 import com.simisinc.platform.infrastructure.database.DataSource;
+import com.simisinc.platform.infrastructure.scheduler.admin.DatasetsDownloadAndSyncJob;
 import com.simisinc.platform.infrastructure.scheduler.cms.LoadSystemFilesJob;
 import com.simisinc.platform.infrastructure.scheduler.cms.RecordWebPageHitJob;
 import com.simisinc.platform.infrastructure.scheduler.cms.WebPageHitSnapshotJob;
@@ -60,6 +61,7 @@ public class SchedulerManager {
   public static final String WEB_PAGE_HIT_SNAPSHOT_JOB = "WebPageHitSnapshot";
   public static final String WEB_PAGE_HITS_CLEANUP_JOB = "WebPageHitsCleanup";
   public static final String USER_TOKENS_CLEANUP_JOB = "UserTokensCleanup";
+  public static final String DATASETS_DOWNLOAD_AND_SYNC_JOB = "DatasetsDownloadAndSync";
   public static final String INSTAGRAM_MEDIA_SNAPSHOT_JOB = "InstagramMediaSnapshot";
   public static final String ORDER_MANAGEMENT_PROCESS_NEW_ORDERS_JOB = "OrderManagementProcessNewOrders";
   public static final String ORDER_MANAGEMENT_PROCESS_SHIPPING_UPDATES_JOB = "OrderManagementProcessShippingUpdates";
@@ -129,8 +131,13 @@ public class SchedulerManager {
 
       BackgroundJob.scheduleRecurrently(USER_TOKENS_CLEANUP_JOB, Cron.hourly(), UserTokensCleanupJob::execute);
 
+      // Dataset jobs... a single job can continuously check or multiple
+      BackgroundJob.scheduleRecurrently(DATASETS_DOWNLOAD_AND_SYNC_JOB, Cron.minutely(), DatasetsDownloadAndSyncJob::execute);
+
+      // @todo While the job checks for Instagram settings, it would be nice to turn off the job if not configured
       BackgroundJob.scheduleRecurrently(INSTAGRAM_MEDIA_SNAPSHOT_JOB, Cron.hourly(25), InstagramMediaSnapshotJob::execute);
 
+      // @todo While the job checks for E-Commerce settings, it would be nice to turn off the job if disabled
       BackgroundJob.scheduleRecurrently(ORDER_MANAGEMENT_PROCESS_NEW_ORDERS_JOB, Cron.minutely(), OrderManagementProcessNewOrders::execute);
       BackgroundJob.scheduleRecurrently(ORDER_MANAGEMENT_PROCESS_SHIPPING_UPDATES_JOB, Cron.hourly(), OrderManagementProcessShippingUpdates::execute);
 

@@ -118,7 +118,9 @@ CREATE TABLE web_pages (
   page_image_url VARCHAR(255),
   searchable BOOLEAN DEFAULT true,
   show_in_sitemap BOOLEAN DEFAULT true,
-  has_redirect BOOLEAN DEFAULT false
+  has_redirect BOOLEAN DEFAULT false,
+  sitemap_priority NUMERIC(2,1) DEFAULT 0.5,
+  sitemap_changefreq VARCHAR(20)
 );
 CREATE INDEX web_pages_link_idx ON web_pages(link);
 CREATE INDEX web_pages_search_idx ON web_pages(searchable);

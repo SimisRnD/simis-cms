@@ -16,20 +16,16 @@
 
 package com.simisinc.platform.presentation.widgets.admin.datasets;
 
-import com.simisinc.platform.application.DataException;
-import com.simisinc.platform.application.admin.DatasetColumnJSONCommand;
-import com.simisinc.platform.application.admin.DatasetFileCommand;
-import com.simisinc.platform.application.admin.DeleteDatasetCommand;
-import com.simisinc.platform.application.admin.LoadJsonCommand;
-import com.simisinc.platform.application.admin.SaveDatasetCommand;
-import com.simisinc.platform.domain.model.datasets.Dataset;
-import com.simisinc.platform.infrastructure.persistence.datasets.DatasetRepository;
-import com.simisinc.platform.presentation.widgets.GenericWidget;
-import com.simisinc.platform.presentation.controller.WidgetContext;
-
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+
+import com.simisinc.platform.application.datasets.DatasetColumnJSONCommand;
+import com.simisinc.platform.application.datasets.LoadJsonCommand;
+import com.simisinc.platform.domain.model.datasets.Dataset;
+import com.simisinc.platform.infrastructure.persistence.datasets.DatasetRepository;
+import com.simisinc.platform.presentation.controller.WidgetContext;
+import com.simisinc.platform.presentation.widgets.GenericWidget;
 
 /**
  * Description
@@ -39,7 +35,6 @@ import org.apache.commons.logging.LogFactory;
  */
 public class DatasetConfigurationWidget extends GenericWidget {
 
-  static final long serialVersionUID = -8484048371911908893L;
   private static String JSP = "/admin/dataset-configuration.jsp";
   private static Log LOG = LogFactory.getLog(DatasetConfigurationWidget.class);
 
@@ -57,10 +52,6 @@ public class DatasetConfigurationWidget extends GenericWidget {
     } else {
       // Check for the specified dataset
       long datasetId = context.getParameterAsLong("datasetId");
-      String datasetIdValue = context.getSharedRequestValue("datasetId");
-      if (datasetId == -1 && StringUtils.isNumeric(datasetIdValue)) {
-        datasetId = Long.parseLong(datasetIdValue);
-      }
       dataset = DatasetRepository.findById(datasetId);
       if (dataset == null) {
         context.setErrorMessage("Dataset was not found");
@@ -83,10 +74,6 @@ public class DatasetConfigurationWidget extends GenericWidget {
 
   public WidgetContext post(WidgetContext context) {
 
-    // Check form values and extra operations
-    String downloadValue = context.getParameter("doDownload");
-    boolean doDownload = StringUtils.isNotBlank(downloadValue) && "true".equals(downloadValue);
-
     // Determine the current dataset
     long datasetId = context.getParameterAsLong("datasetId");
     Dataset dataset = DatasetRepository.findById(datasetId);
@@ -94,30 +81,14 @@ public class DatasetConfigurationWidget extends GenericWidget {
       context.setErrorMessage("Dataset was not found");
       return context;
     }
+
+    // Recommend a return URL
+    context.setRedirect("/admin/dataset-configuration?datasetId=" + dataset.getId());
+
+    // Populate required field for updates
     dataset.setModifiedBy(context.getUserId());
 
-    // Populate dataset fields
-    dataset.setName(context.getParameter("name"));
-    dataset.setSourceInfo(context.getParameter("sourceInfo"));
-    dataset.setSourceUrl(context.getParameter("sourceUrl"));
-
-    // Determine if a file has been replaced or a remote download is requested
-    boolean checkForNewFile = (doDownload && StringUtils.isNotBlank(dataset.getSourceUrl())) ||
-        (!doDownload && StringUtils.isBlank(dataset.getSourceUrl()));
-    if (checkForNewFile) {
-      // Get a handle on the previous file
-      Dataset previousDataset = DatasetRepository.findById(dataset.getId());
-      // Check for new file(s) and validate (@todo if a download, then use a background job)
-      if (DatasetFileCommand.handleNewFile(context, dataset, dataset.getFileType())) {
-        // Delete old file (not dataset!)
-        DeleteDatasetCommand.deleteFile(previousDataset);
-      } else {
-        context.setWarningMessage("The file was not updated");
-        return context;
-      }
-    }
-
-    if (DatasetFileCommand.type(dataset.getFileType()) == DatasetFileCommand.JSON) {
+    if (dataset.getFileType().contains("json")) {
       // Set the path to the records
       dataset.setRecordsPath(context.getParameter("recordsPath"));
 
@@ -138,26 +109,14 @@ public class DatasetConfigurationWidget extends GenericWidget {
     }
 
     // Save the dataset record
-    try {
-      dataset = SaveDatasetCommand.updateDataset(dataset);
-      if (dataset == null) {
-        context.setErrorMessage("An error occurred, the dataset was not saved");
-        return context;
-      }
-      // Recommend next page
-      context.addSharedRequestValue("datasetId", String.valueOf(dataset.getId()));
-      context.setRedirect("/admin/dataset-configuration?datasetId=" + dataset.getId());
-    } catch (DataException de) {
-      context.setErrorMessage("An error occurred: " + de.getMessage());
+    dataset = DatasetRepository.updateConfiguration(dataset);
+    if (dataset == null) {
+      context.setErrorMessage("An error occurred, the dataset was not saved");
+      context.setRequestObject(dataset);
       return context;
     }
 
-    if (checkForNewFile) {
-      context.setSuccessMessage("The file was updated");
-      context.setRedirect("/admin/dataset-preview?datasetId=" + dataset.getId());
-    } else {
-      context.setSuccessMessage("The settings were saved successfully");
-    }
+    context.setSuccessMessage("The configuration was saved successfully");
     return context;
   }
 }

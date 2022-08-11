@@ -16,7 +16,8 @@
 
 package com.simisinc.platform.infrastructure.scheduler.admin;
 
-import com.simisinc.platform.application.admin.DatasetFileCommand;
+import com.simisinc.platform.application.datasets.DatasetFileCommand;
+import com.simisinc.platform.application.datasets.DeleteDatasetItemsCommand;
 import com.simisinc.platform.application.items.LoadCollectionCommand;
 import com.simisinc.platform.domain.model.datasets.Dataset;
 import com.simisinc.platform.domain.model.items.Collection;
@@ -51,14 +52,9 @@ public class ProcessDatasetJob implements JobRequest {
   @Setter
   private long modifiedByUserId = -1;
 
-  @Getter
-  @Setter
-  private boolean skipDuplicates = false;
-
   public ProcessDatasetJob(Dataset dataset) {
     datasetId = dataset.getId();
     modifiedByUserId = dataset.getModifiedBy();
-    skipDuplicates = dataset.isSkipDuplicateNames();
   }
 
   @Override
@@ -88,26 +84,42 @@ public class ProcessDatasetJob implements JobRequest {
       // Handle non-persisted values
       long modifiedByUserId = jobRequest.getModifiedByUserId();
       dataset.setModifiedBy(modifiedByUserId);
-      boolean skipDuplicates = jobRequest.isSkipDuplicates();
-      dataset.setSkipDuplicateNames(skipDuplicates);
-      LOG.debug("Skip duplicates? " + skipDuplicates);
 
       // Run the conversion
       LOG.info("Processing the dataset... " + dataset.getName());
+      boolean didProcessStart = false;
+      String message = null;
       long startProcessTime = System.currentTimeMillis();
       try {
-        DatasetFileCommand.convertFileToCollection(dataset, collection);
+        if (DatasetRepository.markAsProcessStarted(dataset)) {
+          // Set a sync timestamp for this sync
+          didProcessStart = true;
+          Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+          DatasetRepository.resetSyncTimestamp(dataset, timestamp);
+          // Add/Update records
+          if (DatasetFileCommand.convertFileToCollection(dataset, collection) && dataset.getRowsProcessed() > 0) {
+            // Remove/Hide inactive/stale records
+            int deleteCount = DeleteDatasetItemsCommand.deleteItemsForDataset(dataset, timestamp);
+            LOG.debug("Deleted stale dataset records: " + deleteCount);
+          } else {
+            LOG.debug("Conversion error, records processed: " + dataset.getRowsProcessed());
+          }
+        }
       } catch (Exception e) {
-        LOG.error("CSV Error", e);
+        LOG.error("Processing Error", e);
+        message = e.getMessage();
       }
 
-      // Finally
+      // Mark the process as finished
       long endProcessTime = System.currentTimeMillis();
       long totalTime = endProcessTime - startProcessTime;
-      dataset.setProcessed(new Timestamp(endProcessTime));
-      dataset.setTotalProcessTime(totalTime);
-      DatasetRepository.save(dataset);
-      LOG.debug("Finished " + totalTime + "ms");
+      if (didProcessStart) {
+        dataset.setTotalProcessTime(totalTime);
+        // @todo use a SyncResult object
+        DatasetRepository.saveSyncResult(dataset, message);
+        DatasetRepository.markAsProcessFinished(dataset, message);
+        LOG.debug("Finished " + totalTime + "ms");
+      }
     }
   }
 }

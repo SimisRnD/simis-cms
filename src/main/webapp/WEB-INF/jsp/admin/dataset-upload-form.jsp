@@ -33,7 +33,7 @@
   <label>Name <span class="required">*</span>
     <input type="text" placeholder="Give it a name..." name="name" value="<c:out value="${dataset.name}"/>" required>
   </label>
-  <label>Dataset Source Information
+  <label>Description
     <textarea name="sourceInfo"><c:out value="${dataset.sourceInfo}"/></textarea>
   </label>
   <label>Download data from a URL
@@ -46,10 +46,11 @@
   <p class="help-text">File must be a .csv, .json, or .geojson</p>
   <label>Dataset Type <span class="required">*</span>
     <select name="fileType">
+      <option value="application/json"<c:if test="${dataset.fileType eq 'application/json'}"> selected</c:if>>JSON</option>
+      <option value="application/vnd.api+json"<c:if test="${dataset.fileType eq 'application/vnd.api+json'}"> selected</c:if>>JSON API</option>
+      <option value="application/vnd.geo+json"<c:if test="${dataset.fileType eq 'application/vnd.geo+json'}"> selected</c:if>>GeoJSON</option>
       <option value="text/csv"<c:if test="${dataset.fileType eq 'text/csv'}"> selected</c:if>>CSV</option>
       <option value="text/plain"<c:if test="${dataset.fileType eq 'text/plain'}"> selected</c:if>>Plain Text List</option>
-      <option value="application/json"<c:if test="${dataset.fileType eq 'application/json'}"> selected</c:if>>JSON</option>
-      <option value="application/vnd.geo+json"<c:if test="${dataset.fileType eq 'application/vnd.geo+json'}"> selected</c:if>>GeoJSON</option>
       <option value="application/rss+xml"<c:if test="${dataset.fileType eq 'application/rss+xml'}"> selected</c:if>>RSS+XML</option>
     </select>
   </label>

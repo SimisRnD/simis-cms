@@ -237,6 +237,8 @@
       </fileset>
     </copy>
     <!-- Dependency Libraries -->
+    <delete dir="${target.dir}/lib"/>
+    <mkdir dir="${target.dir}/lib"/>
     <copy todir="${target.dir}/lib" flatten="true" preservelastmodified="true">
       <fileset dir="${lib.dir}">
         <include name="**/*.jar"/>
@@ -298,6 +300,7 @@
         </and>
       </fileset>
     </delete> -->
+    <echo message=""/>
     <!-- Sync with the exploded directory -->
     <mkdir dir="${exploded.dir}"/>
     <sync todir="${exploded.dir}">
@@ -305,8 +308,10 @@
         <include name="**"/>
       </fileset>
     </sync>
-    <!-- Version string for scripts -->
-    <!-- <echo file="${exploded.dir}/WEB-INF/VERSION" append="true">${version}</echo> -->
+    <tstamp prefix="end">
+      <format property="val" pattern="yyyy-MM-dd h:mm aa" />
+    </tstamp>
+    <echo message="Finished: ${end.val}" />
   </target>
 
   <target name="checkstyle" depends="prepare">

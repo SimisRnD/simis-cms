@@ -16,10 +16,7 @@
 
 package com.simisinc.platform.presentation.widgets.admin.datasets;
 
-import com.simisinc.platform.application.DataException;
-import com.simisinc.platform.application.admin.DatasetFileCommand;
-import com.simisinc.platform.application.admin.ProcessDatasetCommand;
-import com.simisinc.platform.application.admin.SaveDatasetCommand;
+import com.simisinc.platform.application.datasets.DatasetFileCommand;
 import com.simisinc.platform.application.items.LoadCollectionCommand;
 import com.simisinc.platform.domain.model.datasets.Dataset;
 import com.simisinc.platform.domain.model.items.Category;
@@ -27,8 +24,8 @@ import com.simisinc.platform.domain.model.items.Collection;
 import com.simisinc.platform.infrastructure.persistence.datasets.DatasetRepository;
 import com.simisinc.platform.infrastructure.persistence.items.CategoryRepository;
 import com.simisinc.platform.infrastructure.persistence.items.CollectionRepository;
-import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.controller.WidgetContext;
+import com.simisinc.platform.presentation.widgets.GenericWidget;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -39,7 +36,7 @@ import java.util.Collections;
 import java.util.List;
 
 /**
- * Description
+ * Widget to configure dataset field mapping
  *
  * @author matt rajkowski
  * @created 4/24/18 8:05 PM
@@ -132,10 +129,6 @@ public class DatasetMapperWidget extends GenericWidget {
 
   public WidgetContext post(WidgetContext context) {
 
-    // Check form values
-    String processValue = context.getParameter("doProcess");
-    boolean doProcess = StringUtils.isNotBlank(processValue) && "true".equals(processValue);
-
     // Determine the current dataset
     long datasetId = context.getParameterAsLong("datasetId");
     Dataset dataset = DatasetRepository.findById(datasetId);
@@ -143,6 +136,11 @@ public class DatasetMapperWidget extends GenericWidget {
       context.setErrorMessage("Dataset was not found");
       return context;
     }
+
+    // Recommend a return URL
+    context.setRedirect("/admin/dataset-mapper?datasetId=" + dataset.getId());
+
+    // Populate required field for updates
     dataset.setModifiedBy(context.getUserId());
 
     // Determine if a collection will be used
@@ -162,8 +160,11 @@ public class DatasetMapperWidget extends GenericWidget {
       }
     }
 
-    // Import options
-    dataset.setSkipDuplicateNames("true".equals(context.getParameter("skipDuplicateNames")));
+    // Determine the unique column and validate input
+    String uniqueColumnName = context.getParameter("uniqueColumnName");
+    if (dataset.getColumnNamesList().contains(uniqueColumnName)) {
+      dataset.setUniqueColumnName(uniqueColumnName);
+    }
 
     // Look for the column field array
     ArrayList<String> fieldMappings = new ArrayList<>();
@@ -194,30 +195,10 @@ public class DatasetMapperWidget extends GenericWidget {
     dataset.setFieldOptions(fieldOptions.toArray(new String[0]));
 
     // Save the dataset record
-    try {
-      dataset = SaveDatasetCommand.updateDataset(dataset);
-      if (dataset == null) {
-        context.setErrorMessage("An error occurred, the dataset was not saved");
-        return context;
-      }
-      // Recommend next page
-      context.setRedirect("/admin/dataset-mapper?datasetId=" + dataset.getId());
-    } catch (DataException de) {
-      context.setErrorMessage("An error occurred: " + de.getMessage());
-      return context;
-    }
-
-    // Process the data
-    if (doProcess) {
-      try {
-        ProcessDatasetCommand.startProcess(dataset);
-      } catch (DataException de) {
-        context.setErrorMessage("An error occurred: " + de.getMessage());
-        context.setRedirect("/admin/dataset-mapper?datasetId=" + datasetId);
-        return context;
-      }
-      context.setSuccessMessage("Processing started...");
-      context.setRedirect("/admin/datasets");
+    dataset = DatasetRepository.updateMapping(dataset);
+    if (dataset == null) {
+      context.setErrorMessage("An error occurred, the dataset was not saved");
+      context.setRequestObject(dataset);
       return context;
     }
 

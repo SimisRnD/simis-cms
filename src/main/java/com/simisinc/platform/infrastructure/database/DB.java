@@ -21,6 +21,7 @@ import com.univocity.parsers.csv.CsvRoutines;
 import com.univocity.parsers.csv.CsvWriterSettings;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+import org.postgresql.util.PGInterval;
 
 import java.io.File;
 import java.sql.*;
@@ -43,13 +44,15 @@ public class DB {
     return DataSource.getDataSource().getConnection();
   }
 
-  private static PreparedStatement createPreparedStatement(Connection connection, String sqlQuery, SqlUtils where) throws SQLException {
+  private static PreparedStatement createPreparedStatement(Connection connection, String sqlQuery, SqlUtils where)
+      throws SQLException {
     PreparedStatement pst = connection.prepareStatement(sqlQuery);
     prepareValues(pst, where);
     return pst;
   }
 
-  private static PreparedStatement createPreparedStatement(Connection connection, String sqlQuery, SqlUtils insertValues, String[] primaryKey) throws SQLException {
+  private static PreparedStatement createPreparedStatement(Connection connection, String sqlQuery,
+      SqlUtils insertValues, String[] primaryKey) throws SQLException {
     PreparedStatement pst = connection.prepareStatement(sqlQuery, primaryKey);
     prepareValues(pst, insertValues);
     return pst;
@@ -123,6 +126,12 @@ public class DB {
         } else {
           pst.setBoolean(++fieldIdx, sqlValue.getBooleanValue());
         }
+      } else if (sqlValue.getSqlType() == Types.OTHER && sqlValue.getCastType() == SqlValue.INTERVAL_TYPE) {
+        if (sqlValue.isNull()) {
+          pst.setNull(++fieldIdx, Types.OTHER);
+        } else {
+          pst.setObject(++fieldIdx, new PGInterval(sqlValue.getStringValue()));
+        }
       }
     }
     return fieldIdx;
@@ -140,8 +149,8 @@ public class DB {
     long nextVal = -1;
     String sqlNextVal = "SELECT nextval('" + sequenceName + "')";
     try (Connection connection = getConnection();
-         PreparedStatement pst = createPreparedStatement(connection, sqlNextVal, null);
-         ResultSet rs = pst.executeQuery()) {
+        PreparedStatement pst = createPreparedStatement(connection, sqlNextVal, null);
+        ResultSet rs = pst.executeQuery()) {
       if (rs.next()) {
         nextVal = rs.getLong(1);
       }
@@ -156,7 +165,7 @@ public class DB {
     long nextVal = -1;
     String sqlRestartSequence = "ALTER SEQUENCE " + sequenceName + " RESTART WITH " + value;
     try (Connection connection = getConnection();
-         PreparedStatement pst = createPreparedStatement(connection, sqlRestartSequence, null)) {
+        PreparedStatement pst = createPreparedStatement(connection, sqlRestartSequence, null)) {
       pst.execute();
     } catch (SQLException se) {
       LOG.error(sqlRestartSequence);
@@ -172,8 +181,8 @@ public class DB {
     String selectFunction = "SELECT " + sql + " FROM " + tableName + whereSb.toString();
     long startQueryTime = System.currentTimeMillis();
     try (Connection connection = getConnection();
-         PreparedStatement pst = createPreparedStatement(connection, selectFunction, where);
-         ResultSet rs = pst.executeQuery()) {
+        PreparedStatement pst = createPreparedStatement(connection, selectFunction, where);
+        ResultSet rs = pst.executeQuery()) {
       if (rs.next()) {
         value = rs.getLong(1);
       }
@@ -192,7 +201,8 @@ public class DB {
     return value;
   }
 
-  public static List<Long> selectFunctionAsLongList(String sqlFields, String tableName, SqlUtils where, SqlUtils orderBy) {
+  public static List<Long> selectFunctionAsLongList(String sqlFields, String tableName, SqlUtils where,
+      SqlUtils orderBy) {
 
     // Prepare the query
     StringBuilder sb = new StringBuilder();
@@ -209,8 +219,8 @@ public class DB {
     // Construct the where clause
     List<Long> records = new ArrayList<>();
     try (Connection connection = getConnection();
-         PreparedStatement pst = createPreparedStatement(connection, sql, where);
-         ResultSet rs = pst.executeQuery()) {
+        PreparedStatement pst = createPreparedStatement(connection, sql, where);
+        ResultSet rs = pst.executeQuery()) {
       while (rs.next()) {
         long value = rs.getLong(1);
         records.add(value);
@@ -228,8 +238,8 @@ public class DB {
     String value = null;
     String sqlCount = "SELECT " + sql + " FROM " + tableName + whereSb.toString();
     try (Connection connection = getConnection();
-         PreparedStatement pst = createPreparedStatement(connection, sqlCount, where);
-         ResultSet rs = pst.executeQuery()) {
+        PreparedStatement pst = createPreparedStatement(connection, sqlCount, where);
+        ResultSet rs = pst.executeQuery()) {
       if (rs.next()) {
         value = rs.getString(1);
       }
@@ -244,7 +254,8 @@ public class DB {
     return selectRecordFrom(tableName, null, null, where, buildRecord);
   }
 
-  public static Object selectRecordFrom(String tableName, SqlUtils select, SqlJoins joins, SqlUtils where, Function<ResultSet, Entity> buildRecord) {
+  public static Object selectRecordFrom(String tableName, SqlUtils select, SqlJoins joins, SqlUtils where,
+      Function<ResultSet, Entity> buildRecord) {
     // Construct the where clause
     StringBuilder joinsSb = createJoins(joins);
     StringBuilder whereSb = createWhereClause(where);
@@ -262,8 +273,8 @@ public class DB {
     // Prepare the query
     long startQueryTime = System.currentTimeMillis();
     try (Connection connection = getConnection();
-         PreparedStatement pst = createPreparedStatement(connection, sb.toString(), where);
-         ResultSet rs = pst.executeQuery()) {
+        PreparedStatement pst = createPreparedStatement(connection, sb.toString(), where);
+        ResultSet rs = pst.executeQuery()) {
       if (rs.next()) {
         return (buildRecord.apply(rs));
       }
@@ -283,19 +294,23 @@ public class DB {
     return null;
   }
 
-  public static DataResult selectAllFrom(String tableName, SqlUtils where, DataConstraints constraints, Function<ResultSet, Entity> buildRecord) {
+  public static DataResult selectAllFrom(String tableName, SqlUtils where, DataConstraints constraints,
+      Function<ResultSet, Entity> buildRecord) {
     return selectAllFrom(tableName, null, null, where, null, constraints, buildRecord);
   }
 
-  public static DataResult selectAllFrom(String tableName, SqlJoins joins, SqlUtils where, DataConstraints constraints, Function<ResultSet, Entity> buildRecord) {
+  public static DataResult selectAllFrom(String tableName, SqlJoins joins, SqlUtils where, DataConstraints constraints,
+      Function<ResultSet, Entity> buildRecord) {
     return selectAllFrom(tableName, null, joins, where, null, constraints, buildRecord);
   }
 
-  public static DataResult selectAllFrom(String tableName, SqlUtils select, SqlUtils where, SqlUtils orderBy, DataConstraints constraints, Function<ResultSet, Entity> buildRecord) {
+  public static DataResult selectAllFrom(String tableName, SqlUtils select, SqlUtils where, SqlUtils orderBy,
+      DataConstraints constraints, Function<ResultSet, Entity> buildRecord) {
     return selectAllFrom(tableName, select, null, where, orderBy, constraints, buildRecord);
   }
 
-  public static DataResult selectAllFrom(String tableName, SqlUtils select, SqlJoins joins, SqlUtils where, SqlUtils orderBy, DataConstraints constraints, Function<ResultSet, Entity> buildRecord) {
+  public static DataResult selectAllFrom(String tableName, SqlUtils select, SqlJoins joins, SqlUtils where,
+      SqlUtils orderBy, DataConstraints constraints, Function<ResultSet, Entity> buildRecord) {
 
     // Determine the max records based on the where conditions
     DataResult dataResult = new DataResult();
@@ -309,8 +324,8 @@ public class DB {
       String sqlCount = "SELECT COUNT(*) FROM " + tableName + joinsSb.toString() + whereSb.toString();
       long startQueryTime = System.currentTimeMillis();
       try (Connection connection = getConnection();
-           PreparedStatement pst = createPreparedStatement(connection, sqlCount, where);
-           ResultSet rs = pst.executeQuery()) {
+          PreparedStatement pst = createPreparedStatement(connection, sqlCount, where);
+          ResultSet rs = pst.executeQuery()) {
         if (rs.next()) {
           recordCount = rs.getLong(1);
         }
@@ -366,8 +381,8 @@ public class DB {
     List<Entity> records = null;
     long startQueryTime = System.currentTimeMillis();
     try (Connection connection = getConnection();
-         PreparedStatement pst = createPreparedStatement(connection, sb.toString(), select, where, orderBy);
-         ResultSet rs = pst.executeQuery()) {
+        PreparedStatement pst = createPreparedStatement(connection, sb.toString(), select, where, orderBy);
+        ResultSet rs = pst.executeQuery()) {
       records = new ArrayList<>();
       while (rs.next()) {
         records.add(buildRecord.apply(rs));
@@ -509,7 +524,8 @@ public class DB {
 
   public static long insertInto(String tableName, SqlUtils insertValues, String[] primaryKey, String onConflict) {
     try (Connection connection = getConnection();
-         PreparedStatement pst = createPreparedStatementForInsert(connection, tableName, insertValues, primaryKey, onConflict)) {
+        PreparedStatement pst = createPreparedStatementForInsert(connection, tableName, insertValues, primaryKey,
+            onConflict)) {
       return executeInsert(pst);
     } catch (SQLException se) {
       LOG.error("SQLException: " + se.getMessage());
@@ -517,18 +533,20 @@ public class DB {
     return -1;
   }
 
-  public static long insertInto(Connection connection, String tableName, SqlUtils insertValues, String[] primaryKey) throws SQLException {
-    try (PreparedStatement pst = createPreparedStatementForInsert(connection, tableName, insertValues, primaryKey, null)) {
+  public static long insertInto(Connection connection, String tableName, SqlUtils insertValues, String[] primaryKey)
+      throws SQLException {
+    try (PreparedStatement pst = createPreparedStatementForInsert(connection, tableName, insertValues, primaryKey,
+        null)) {
       return executeInsert(pst);
     } catch (SQLException se) {
       throw new SQLException("insertInto record failed [" + tableName + "]: " + se.getMessage(), se);
     }
   }
 
-  private static PreparedStatement createPreparedStatementForInsert(Connection connection, String tableName, SqlUtils insertValues, String[] primaryKey, String onConflict) throws SQLException {
-    String SQL_INSERT_QUERY =
-        "INSERT INTO " + tableName + " " +
-            createInsertValues(insertValues) + (onConflict != null ? " " + onConflict : "");
+  private static PreparedStatement createPreparedStatementForInsert(Connection connection, String tableName,
+      SqlUtils insertValues, String[] primaryKey, String onConflict) throws SQLException {
+    String SQL_INSERT_QUERY = "INSERT INTO " + tableName + " " +
+        createInsertValues(insertValues) + (onConflict != null ? " " + onConflict : "");
     return createPreparedStatement(connection, SQL_INSERT_QUERY, insertValues, primaryKey);
   }
 
@@ -559,7 +577,7 @@ public class DB {
 
   public static boolean update(String tableName, SqlUtils updateValues, SqlUtils where) {
     try (Connection connection = getConnection();
-         PreparedStatement pst = createPreparedStatementForUpdate(connection, tableName, updateValues, where)) {
+        PreparedStatement pst = createPreparedStatementForUpdate(connection, tableName, updateValues, where)) {
       if (pst.executeUpdate() > 0) {
         return true;
       }
@@ -569,7 +587,8 @@ public class DB {
     return false;
   }
 
-  public static boolean update(Connection connection, String tableName, SqlUtils updateValues, SqlUtils where) throws SQLException {
+  public static boolean update(Connection connection, String tableName, SqlUtils updateValues, SqlUtils where)
+      throws SQLException {
     try (PreparedStatement pst = createPreparedStatementForUpdate(connection, tableName, updateValues, where)) {
       if (pst.executeUpdate() > 0) {
         return true;
@@ -582,7 +601,7 @@ public class DB {
 
   public static boolean update(String tableName, String statement, SqlUtils where) {
     try (Connection connection = getConnection();
-         PreparedStatement pst = createPreparedStatementForUpdate(connection, tableName, statement, where)) {
+        PreparedStatement pst = createPreparedStatementForUpdate(connection, tableName, statement, where)) {
       if (pst.executeUpdate() > 0) {
         return true;
       }
@@ -592,35 +611,36 @@ public class DB {
     return false;
   }
 
-  private static PreparedStatement createPreparedStatementForUpdate(Connection connection, String tableName, String statement, SqlUtils where) throws SQLException {
+  private static PreparedStatement createPreparedStatementForUpdate(Connection connection, String tableName,
+      String statement, SqlUtils where) throws SQLException {
     if (statement == null) {
       return null;
     }
-    String SQL_UPDATE_QUERY =
-        "UPDATE " + tableName +
-            " SET " +
-            statement +
-            createWhereClause(where);
+    String SQL_UPDATE_QUERY = "UPDATE " + tableName +
+        " SET " +
+        statement +
+        createWhereClause(where);
     //LOG.debug("SQL_UPDATE_QUERY: " + SQL_UPDATE_QUERY);
     return createPreparedStatement(connection, SQL_UPDATE_QUERY, where);
   }
 
-  private static PreparedStatement createPreparedStatementForUpdate(Connection connection, String tableName, SqlUtils updateValues, SqlUtils where) throws SQLException {
+  private static PreparedStatement createPreparedStatementForUpdate(Connection connection, String tableName,
+      SqlUtils updateValues, SqlUtils where) throws SQLException {
     if (updateValues == null) {
       return null;
     }
-    String SQL_UPDATE_QUERY =
-        "UPDATE " + tableName +
-            " SET " +
-            createUpdateValues(updateValues) +
-            createWhereClause(where);
+    String SQL_UPDATE_QUERY = "UPDATE " + tableName +
+        " SET " +
+        createUpdateValues(updateValues) +
+        createWhereClause(where);
     if (LOG.isDebugEnabled()) {
       LOG.debug("SQL_UPDATE_QUERY: " + SQL_UPDATE_QUERY);
     }
     return createPreparedStatement(connection, SQL_UPDATE_QUERY, updateValues, where, null);
   }
 
-  private static PreparedStatement createPreparedStatement(Connection connection, String sqlQuery, SqlUtils selectOrUpdate, SqlUtils where, SqlUtils orderBy) throws SQLException {
+  private static PreparedStatement createPreparedStatement(Connection connection, String sqlQuery,
+      SqlUtils selectOrUpdate, SqlUtils where, SqlUtils orderBy) throws SQLException {
     PreparedStatement pst = connection.prepareStatement(sqlQuery);
     int fieldIdx = prepareValues(pst, selectOrUpdate);
     fieldIdx = prepareValues(pst, where, fieldIdx);
@@ -660,7 +680,7 @@ public class DB {
 
   public static int deleteFrom(String tableName, SqlUtils where) {
     try (Connection connection = getConnection();
-         PreparedStatement pst = createPreparedStatementForDelete(connection, tableName, where)) {
+        PreparedStatement pst = createPreparedStatementForDelete(connection, tableName, where)) {
       return pst.executeUpdate();
     } catch (SQLException se) {
       LOG.error("SQLException deleteFrom failed: " + se.getMessage());
@@ -676,7 +696,8 @@ public class DB {
     }
   }
 
-  private static PreparedStatement createPreparedStatementForDelete(Connection connection, String tableName, SqlUtils where) throws SQLException {
+  private static PreparedStatement createPreparedStatementForDelete(Connection connection, String tableName,
+      SqlUtils where) throws SQLException {
 
     // Construct the where clause
     StringBuilder whereSb = createWhereClause(where);
@@ -713,7 +734,46 @@ public class DB {
     return value;
   }
 
-  public static void exportToCsvAllFrom(String tableName, SqlUtils selectFields, SqlJoins joins, SqlUtils where, SqlUtils orderBy, DataConstraints constraints, File file) {
+  public static String getPeriod(ResultSet rs, String field) throws SQLException {
+    PGInterval pgi = (PGInterval) rs.getObject(field);
+    if (rs.wasNull()) {
+      return null;
+    }
+    // convert to ISO 8601
+    StringBuilder sb = new StringBuilder("P");
+    if (pgi.getYears() > 0) {
+      sb.append(pgi.getYears()).append("Y");
+    }
+    if (pgi.getMonths() > 0) {
+      sb.append(pgi.getMonths()).append("M");
+    }
+    if (pgi.getDays() > 0) {
+      sb.append(pgi.getDays()).append("D");
+    }
+    // Determine if just the period is shown
+    if (sb.length() > 1 && pgi.getHours() == 0 && pgi.getMinutes() == 0 && pgi.getWholeSeconds() == 0) {
+      return sb.toString();
+    }
+    // Show the time, even if it's 0
+    sb.append("T");
+    boolean foundTime = false;
+    if (pgi.getHours() > 0) {
+      foundTime = true;
+      sb.append(pgi.getHours()).append("H");
+    }
+    if (pgi.getMinutes() > 0) {
+      foundTime = true;
+      sb.append(pgi.getMinutes()).append("M");
+    }
+    // Show 0 if there's no other time
+    if (!foundTime || pgi.getWholeSeconds() > 0) {
+      sb.append(pgi.getWholeSeconds()).append("S");
+    }
+    return sb.toString();
+  }
+
+  public static void exportToCsvAllFrom(String tableName, SqlUtils selectFields, SqlJoins joins, SqlUtils where,
+      SqlUtils orderBy, DataConstraints constraints, File file) {
 
     StringBuilder joinsSb = createJoins(joins);
     StringBuilder whereSb = createWhereClause(where);
@@ -750,14 +810,14 @@ public class DB {
     writerSettings.getFormat().setDelimiter(',');
     writerSettings.setQuoteAllFields(true);
     writerSettings.setHeaderWritingEnabled(true);
-//    writerSettings.setHeaders("email", "created", "master_unsub", "unsubscribed", "is_valid");
+    //    writerSettings.setHeaders("email", "created", "master_unsub", "unsubscribed", "is_valid");
     CsvRoutines routines = new CsvRoutines(writerSettings);
 
     // Get a connection, execute the query, return the data
     long startQueryTime = System.currentTimeMillis();
     try (Connection connection = getConnection();
-         PreparedStatement pst = createPreparedStatement(connection, sb.toString(), selectFields, where, orderBy);
-         ResultSet rs = pst.executeQuery()) {
+        PreparedStatement pst = createPreparedStatement(connection, sb.toString(), selectFields, where, orderBy);
+        ResultSet rs = pst.executeQuery()) {
       // Stream the result set to the file
       routines.write(rs, file);
     } catch (SQLException se) {

@@ -17,7 +17,7 @@
 package com.simisinc.platform.presentation.widgets.ecommerce;
 
 import com.simisinc.platform.application.DataException;
-import com.simisinc.platform.application.admin.EcommerceCommand;
+import com.simisinc.platform.application.ecommerce.EcommerceCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.ecommerce.*;
 import com.simisinc.platform.application.mailinglists.SaveEmailCommand;

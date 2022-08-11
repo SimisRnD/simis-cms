@@ -17,7 +17,7 @@
 package com.simisinc.platform.presentation.widgets.admin.ecommerce;
 
 import com.simisinc.platform.application.DataException;
-import com.simisinc.platform.application.admin.EcommerceCommand;
+import com.simisinc.platform.application.ecommerce.EcommerceCommand;
 import com.simisinc.platform.application.ecommerce.OrderRefundCommand;
 import com.simisinc.platform.application.login.AuthenticateLoginCommand;
 import com.simisinc.platform.domain.model.ecommerce.Order;

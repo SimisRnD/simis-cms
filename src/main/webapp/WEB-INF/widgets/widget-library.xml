@@ -206,7 +206,10 @@
   <widget name="datasetName" class="com.simisinc.platform.presentation.widgets.datasets.DatasetNameWidget" />
   <widget name="datasetUpload" class="com.simisinc.platform.presentation.widgets.admin.datasets.DatasetUploadWidget" />
   <widget name="datasetConfiguration" class="com.simisinc.platform.presentation.widgets.admin.datasets.DatasetConfigurationWidget" />
+  <widget name="datasetDetails" class="com.simisinc.platform.presentation.widgets.admin.datasets.DatasetDetailsWidget" />
   <widget name="datasetMapper" class="com.simisinc.platform.presentation.widgets.admin.datasets.DatasetMapperWidget" />
+  <widget name="datasetSource" class="com.simisinc.platform.presentation.widgets.admin.datasets.DatasetSourceWidget" />
+  <widget name="datasetSync" class="com.simisinc.platform.presentation.widgets.admin.datasets.DatasetSyncWidget" />
   <widget name="datasetPreview" class="com.simisinc.platform.presentation.widgets.admin.datasets.DatasetPreviewWidget" />
   <widget name="streamDataset" class="com.simisinc.platform.presentation.widgets.admin.datasets.StreamDatasetWidget" />
   <widget name="sendMail" class="com.simisinc.platform.presentation.widgets.admin.SendMailWidget" />

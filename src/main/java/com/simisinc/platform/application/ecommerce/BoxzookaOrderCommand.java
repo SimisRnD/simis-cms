@@ -18,7 +18,6 @@ package com.simisinc.platform.application.ecommerce;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.simisinc.platform.application.DataException;
-import com.simisinc.platform.application.admin.FulfillmentOptionCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.json.JsonCommand;
 import com.simisinc.platform.domain.model.ecommerce.*;

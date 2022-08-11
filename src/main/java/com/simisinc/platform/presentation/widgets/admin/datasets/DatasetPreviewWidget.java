@@ -16,20 +16,19 @@
 
 package com.simisinc.platform.presentation.widgets.admin.datasets;
 
-import java.util.List;
-
-import com.simisinc.platform.application.admin.DatasetFileCommand;
 import com.simisinc.platform.application.admin.LoadTextFileCommand;
+import com.simisinc.platform.application.datasets.DatasetFileCommand;
 import com.simisinc.platform.domain.model.datasets.Dataset;
 import com.simisinc.platform.infrastructure.persistence.datasets.DatasetRepository;
-import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.controller.WidgetContext;
-
+import com.simisinc.platform.presentation.widgets.GenericWidget;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import java.util.List;
+
 /**
- * Description
+ * Widget to preview dataset content
  *
  * @author matt rajkowski
  * @created 5/19/18 3:00 PM
