@@ -17,7 +17,7 @@
 package com.simisinc.platform.infrastructure.scheduler.ecommerce;
 
 import com.simisinc.platform.application.DataException;
-import com.simisinc.platform.application.admin.EcommerceCommand;
+import com.simisinc.platform.application.ecommerce.EcommerceCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.ecommerce.OrderShipmentStatusCommand;
 import com.simisinc.platform.domain.model.ecommerce.Order;
