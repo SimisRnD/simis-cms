@@ -38,7 +38,7 @@
   </filter>
   <filter>
     <filter-name>RestRequestFilter</filter-name>
-    <filter-class>com.simisinc.platform.presentation.controller.RestRequestFilter</filter-class>
+    <filter-class>com.simisinc.platform.rest.controller.RestRequestFilter</filter-class>
   </filter>
   <filter-mapping>
     <filter-name>WebRequestFilter</filter-name>
@@ -55,7 +55,7 @@
   </servlet>
   <servlet>
     <servlet-name>RestServlet</servlet-name>
-    <servlet-class>com.simisinc.platform.presentation.controller.RestServlet</servlet-class>
+    <servlet-class>com.simisinc.platform.rest.controller.RestServlet</servlet-class>
     <load-on-startup>1</load-on-startup>
   </servlet>
   <servlet>

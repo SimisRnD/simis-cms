@@ -15,12 +15,12 @@
   ~ limitations under the License.
   -->
 <services>
-  <service method="post" endpoint="session" class="com.simisinc.platform.presentation.rest.session.SessionService" />
+  <service method="post" endpoint="session" class="com.simisinc.platform.rest.services.session.SessionService" />
   <!--<service endpoint="register" class="com.simisinc.platform.presentation.rest.register.RegisterService" />-->
-  <service method="get" endpoint="me" class="com.simisinc.platform.presentation.rest.userProfile.MeService" />
-  <service method="get" endpoint="content/{contentUniqueId}" class="com.simisinc.platform.presentation.rest.cms.ContentService" />
-  <service method="get" endpoint="collections" class="com.simisinc.platform.presentation.rest.items.CollectionListService" />
-  <service method="get" endpoint="categories/{collectionUniqueId}" class="com.simisinc.platform.presentation.rest.items.CategoryListService" />
-  <service method="get" endpoint="items/{collectionUniqueId}" class="com.simisinc.platform.presentation.rest.items.ItemListService" />
-  <service method="get" endpoint="item/{itemUniqueId}" class="com.simisinc.platform.presentation.rest.items.ItemService" />
+  <service method="get" endpoint="me" class="com.simisinc.platform.rest.services.userProfile.MeService" />
+  <service method="get" endpoint="content/{contentUniqueId}" class="com.simisinc.platform.rest.services.cms.ContentService" />
+  <service method="get" endpoint="collections" class="com.simisinc.platform.rest.services.items.CollectionListService" />
+  <service method="get" endpoint="categories/{collectionUniqueId}" class="com.simisinc.platform.rest.services.items.CategoryListService" />
+  <service method="get" endpoint="items/{collectionUniqueId}" class="com.simisinc.platform.rest.services.items.ItemListService" />
+  <service method="get" endpoint="item/{itemUniqueId}" class="com.simisinc.platform.rest.services.items.ItemService" />
 </services>
