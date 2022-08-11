@@ -33,8 +33,23 @@
   <tbody>
     <c:forEach items="${apiList}" var="api">
     <tr>
-      <td>
-        <c:out value="${fn:toUpperCase(api.method)}" />
+      <td align="center">
+        <c:forEach var="method" items="${fn:split(api.method,',')}">
+            <c:choose>
+              <c:when test="${fn:trim(method) eq 'get'}">
+                <span class="label radius primary">GET</span>
+              </c:when>
+              <c:when test="${fn:trim(method) eq 'post'}">
+                <span class="label radius secondary">POST</span>
+              </c:when>
+              <c:when test="${fn:trim(method) eq 'put'}">
+                <span class="label radius secondary">PUT</span>
+              </c:when>
+              <c:when test="${fn:trim(method) eq 'delete'}">
+                <span class="label radius alert">DELETE</span>
+              </c:when>
+            </c:choose>
+        </c:forEach>
       </td>
       <td>
         /api/<c:out value="${api.endpointValue}" />
