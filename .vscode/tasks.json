@@ -4,7 +4,7 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "label": "ant: compile",
+            "label": "compile",
             "type": "shell",
             "command": "ant compile",
             "problemMatcher": [
@@ -20,7 +20,7 @@
             ]
         },
         {
-            "label": "ant: test",
+            "label": "test",
             "type": "shell",
             "command": "ant test",
             "problemMatcher": [
@@ -36,7 +36,7 @@
             ]
         },
         {
-            "label": "ant: package",
+            "label": "package",
             "type": "shell",
             "command": "ant package",
             "problemMatcher": [
@@ -61,6 +61,32 @@
             },
             "presentation": {
                 "reveal": "silent",
+                "panel": "dedicated",
+                "revealProblems": "onProblem",
+                "close": false,
+                "clear": true
+            },
+            "problemMatcher": [
+                {
+                    "pattern": {
+                        "regexp": "/BUILD FAILED/gm",
+                        "file": 1,
+                        "line": 2,
+                        "column": 3,
+                        "message": 5
+                    }
+                }
+            ]
+        },
+        {
+            "label": "clean deploy",
+            "type": "shell",
+            "command": "ant clean webapp",
+            "group": {
+                "kind": "build",
+                "isDefault": false
+            },
+            "presentation": {
                 "panel": "dedicated",
                 "revealProblems": "onProblem",
                 "close": false,
