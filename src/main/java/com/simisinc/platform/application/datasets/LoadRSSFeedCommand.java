@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.simisinc.platform.application.admin;
+package com.simisinc.platform.application.datasets;
 
 import com.rometools.rome.feed.synd.SyndEntry;
 import com.rometools.rome.feed.synd.SyndFeed;

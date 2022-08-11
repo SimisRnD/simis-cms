@@ -37,6 +37,26 @@
   <%-- Form values --%>
   <input type="hidden" name="id" value="${dataset.id}"/>
   <%-- Form --%>
+  <label>Collection
+    <select name="collectionUniqueId">
+      <option value=""></option>
+      <c:forEach items="${collectionList}" var="collection">
+        <option value="<c:out value="${collection.uniqueId}" />"<c:if test="${collection.uniqueId eq dataset.collectionUniqueId}"> selected</c:if>><c:out value="${collection.name}" /></option>
+      </c:forEach>
+      <option value="NEW-<c:out value="${dataset.name}" />"<c:if test="${fn:startsWith(dataset.collectionUniqueId, 'NEW-')}"> selected</c:if>>&lt;${dataset.name}&gt;</option>
+    </select>
+  </label>
+
+  <label>Unique Field for Merge
+    <select name="uniqueColumnName">
+      <option value=""></option>
+      <c:forEach items="${dataset.fieldTitlesList}" var="column" varStatus="status">
+        <option value="<c:out value="${column}" />"<c:if test="${column eq dataset.uniqueColumnName}"> selected</c:if>><c:out value="${column}" /></option>
+      </c:forEach>
+    </select>
+  </label>
+
+  <%-- Map Fields --%>
   <table class="unstriped">
     <thead>
       <tr>
@@ -91,51 +111,16 @@
         </td>
       </tr>
       </c:forEach>
-      <%--<c:if test="${empty columnList}">--%>
-        <%--<tr>--%>
-          <%--<td colspan="3">No fields were found</td>--%>
-        <%--</tr>--%>
-      <%--</c:if>--%>
+      <c:if test="${empty dataset.fieldTitlesList}">
+        <tr>
+          <td colspan="3">No fields were found</td>
+        </tr>
+      </c:if>
     </tbody>
   </table>
-  <div class="grid-x grid-padding-x">
-    <fieldset class="small-12 cell">
-      <legend>Import Options</legend>
-      <label>Selected Directory
-        <select name="collectionUniqueId">
-          <option value=""></option>
-          <c:forEach items="${collectionList}" var="collection">
-            <option value="<c:out value="${collection.uniqueId}" />"<c:if test="${collection.uniqueId eq dataset.collectionUniqueId}"> selected</c:if>><c:out value="${collection.name}" /></option>
-          </c:forEach>
-          <option value="NEW-<c:out value="${dataset.name}" />"<c:if test="${fn:startsWith(dataset.collectionUniqueId, 'NEW-')}"> selected</c:if>>&lt;${dataset.name}&gt;</option>
-        </select>
-      </label>
-      <input type="checkbox" id="skipDuplicateNames" name="skipDuplicateNames" value="true" checked="checked" /><label for="skipDuplicateNames">Skip duplicate records
-      <c:choose>
-        <c:when test="${dataset.fileType eq 'application/rss+xml'}">(by URL)</c:when>
-        <c:otherwise>(by Name)</c:otherwise>
-      </c:choose>
-      </label>
-      <br />
-      <input type="checkbox" id="doProcess" name="doProcess" value="true" /><label for="doProcess">Import the records into a directory after saving</label>
-    </fieldset>
-  </div>
   <div class="button-container">
     <input type="submit" class="button radius success" name="process" value="Save"/>
-    <a class="button radius secondary" href="${ctx}/admin/datasets">Cancel</a>
   </div>
 </form>
-<div class="reveal medium" id="processReveal" data-reveal data-animation-in="slide-in-down fast">
-  <h3>Validating Data...</h3>
-  <%--<p><a class="button small radius primary" href="${ctx}/admin/datasets">Continue to datasets list <i class="fa fa-caret-right"></i></a></p>--%>
-</div>
-<script>
-  function checkForm() {
-    var doProcessCheckbox = document.getElementById("doProcess");
-    if (doProcessCheckbox.checked) {
-      var elem = new Foundation.Reveal($('#processReveal'));
-      elem.open();
-    }
-    return true;
-  }
-</script>
+
+

@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.simisinc.platform.application.admin;
+package com.simisinc.platform.application.datasets;
 
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.domain.model.datasets.Dataset;
@@ -78,10 +78,11 @@ public class ConvertCSVFileCommand {
         if (rowsProcessed % 100 == 0) {
           LOG.debug("..." + rowsProcessed);
           dataset.setRowsProcessed(rowsProcessed);
-          DatasetRepository.save(dataset);
+          DatasetRepository.updateRowsProcessed(dataset);
         }
       }
       dataset.setRowsProcessed(rowsProcessed);
+      DatasetRepository.updateRowsProcessed(dataset);
       return true;
     } catch (Exception e) {
       throw new Exception("Convert Error: " + e.getMessage());

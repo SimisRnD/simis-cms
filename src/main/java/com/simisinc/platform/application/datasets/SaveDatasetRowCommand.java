@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.simisinc.platform.application.admin;
+package com.simisinc.platform.application.datasets;
 
 import com.simisinc.platform.application.cms.HtmlCommand;
 import com.simisinc.platform.application.items.ItemPhoneNumberCommand;
@@ -25,12 +25,8 @@ import com.simisinc.platform.domain.model.datasets.Dataset;
 import com.simisinc.platform.domain.model.items.Category;
 import com.simisinc.platform.domain.model.items.Collection;
 import com.simisinc.platform.domain.model.items.Item;
-import com.simisinc.platform.domain.model.maps.WorldCity;
-import com.simisinc.platform.domain.model.maps.ZipCode;
 import com.simisinc.platform.infrastructure.persistence.items.CategoryRepository;
 import com.simisinc.platform.infrastructure.persistence.items.ItemRepository;
-import com.simisinc.platform.infrastructure.persistence.maps.WorldCityRepository;
-import com.simisinc.platform.infrastructure.persistence.maps.ZipCodeRepository;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -40,7 +36,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
 
-import static com.simisinc.platform.application.admin.DatasetFieldOptionCommand.*;
+import static com.simisinc.platform.application.datasets.DatasetFieldOptionCommand.*;
 
 /**
  * Converts the dataset row to a collection item
@@ -52,9 +48,49 @@ public class SaveDatasetRowCommand {
 
   private static Log LOG = LogFactory.getLog(SaveDatasetRowCommand.class);
 
-  public static boolean saveRecord(String[] row, Dataset dataset, Collection collection, List<String> fieldMappings, List<String> columnNames, List<String> fieldOptions) {
-    Item item = new Item();
+  public static boolean saveRecord(String[] row, Dataset dataset, Collection collection, List<String> fieldMappings,
+      List<String> columnNames, List<String> fieldOptions) {
+
+    Item item = null;
+    Item previousItem = null;
+
+    // If the dataset specifies a unique column name, then find the value
+    String datasetKeyValue = null;
+    if (StringUtils.isNotBlank(dataset.getUniqueColumnName())) {
+      // Scan the columns for the unique name, then retrieve the row value
+      for (int i = 0; i < columnNames.size(); i++) {
+        String columnName = columnNames.get(i);
+        if (columnName.equals(dataset.getUniqueColumnName())) {
+          datasetKeyValue = row[i];
+          // Now try to load the previous item
+          item = ItemRepository.findByDatasetKeyValue(datasetKeyValue, dataset.getId());
+          if (item != null) {
+            previousItem = ItemRepository.findById(item.getId());
+          }
+          break;
+        }
+      }
+    }
+    if (item == null) {
+      item = new Item();
+      item.setDatasetKeyValue(datasetKeyValue);
+    }
+    item = constructItem(item, row, dataset, collection, fieldMappings, columnNames, fieldOptions);
+    if (item != null) {
+      updateGeoPoint(item);
+      return SaveItemCommand.saveBatchItem(previousItem, item);
+    }
+    // It was skipped on purpose
+    return true;
+  }
+
+  public static Item constructItem(Item item, String[] row, Dataset dataset, Collection collection,
+      List<String> fieldMappings,
+      List<String> columnNames, List<String> fieldOptions) {
+
+    // Values from the dataset
     item.setDatasetId(dataset.getId());
+    item.setDatasetSyncDate(dataset.getSyncDate());
     item.setCollectionId(collection.getId());
     item.setCreatedBy(dataset.getModifiedBy());
     item.setModifiedBy(dataset.getModifiedBy());
@@ -79,7 +115,7 @@ public class SaveDatasetRowCommand {
         // Options which skip the record
         if (isSkipped(options, value)) {
           // Skip the record
-          return true;
+          return null;
         }
         // Options which update the value
         value = applyOptionsToField(options, value);
@@ -108,7 +144,7 @@ public class SaveDatasetRowCommand {
           item.setName(item.getName() + " " + value);
         }
       } else if ("category".equals(mapping)) {
-        String[] categories = new String[]{value};
+        String[] categories = new String[] { value };
         if (hasSplitOption) {
           if (splitValue != null) {
             categories = value.split(Pattern.quote(splitValue));
@@ -226,50 +262,19 @@ public class SaveDatasetRowCommand {
     if (item.getName() != null && item.getName().length() > 250) {
       item.setName(item.getName().substring(0, 250));
     }
-    // Duplicate check if requested
-    if (dataset.isSkipDuplicateNames()) {
-      Item possibleDuplicate = ItemRepository.findByNameWithinCollection(item.getName(), collection.getId());
-      if (possibleDuplicate != null) {
-        LOG.debug("Found duplicate: " + item.getName());
-        return true;
-      }
-    }
-    // Before saving, consider using the World Cities geocode
-    if (!item.hasGeoPoint()) {
-      // Use a geocoder
-      if (StringUtils.isNotBlank(item.getStreet()) && StringUtils.isNotBlank(item.getCity()) && StringUtils.isNotBlank(item.getState())) {
-        Item geoPoint = CheckGeoPointCommand.updateGeoPoint(item);
-        if (geoPoint.hasGeoPoint()) {
-          item.setLatitude(geoPoint.getLatitude());
-          item.setLongitude(geoPoint.getLongitude());
-        }
-      }
-      // Consider using the World Cities geocode
-      if (!item.hasGeoPoint() && StringUtils.isNotBlank(item.getPostalCode())) {
-        // Find a zipcode geopoint, to estimate the lat/long
-        ZipCode zipCode = ZipCodeRepository.findByCode(item.getPostalCode());
-        if (zipCode != null && zipCode.hasGeoPoint()) {
-          item.setLatitude(zipCode.getLatitude());
-          item.setLongitude(zipCode.getLongitude());
-        }
-      }
-      if (!item.hasGeoPoint() && StringUtils.isNotBlank(item.getCity()) && StringUtils.isNotBlank(item.getState())) {
-        String region = item.getState();
-        String country = "us";
-        if (item.getCountry() != null && !"united states".equalsIgnoreCase(item.getCountry())) {
-          // Leave blank or convert to 2-digit value
-          region = null;
-          country = null;
-        }
-        // Find a world cities geopoint based on country (US for now), to estimate the lat/long
-        WorldCity worldCity = WorldCityRepository.findByCityRegionCountry(item.getCity(), region, country);
-        if (worldCity != null) {
-          item.setLatitude(worldCity.getLatitude());
-          item.setLongitude(worldCity.getLongitude());
-        }
-      }
-    }
-    return SaveItemCommand.saveBatchItem(item);
+    return item;
   }
 
+  private static void updateGeoPoint(Item item) {
+    // Before saving, consider using the World Cities geocode
+    if (item.hasGeoPoint()) {
+      return;
+    }
+    // Use a geocoder
+    CheckGeoPointCommand.updateGeoPoint(item);
+    // In addition to CheckGeoPoint, consider using the Zip/World Cities geocode
+    if (!item.hasGeoPoint()) {
+      CheckGeoPointCommand.updateGeoPointByRelativeLocation(item);
+    }
+  }
 }

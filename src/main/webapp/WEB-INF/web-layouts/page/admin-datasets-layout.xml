@@ -48,7 +48,7 @@
       </column>
     </section>
     <section>
-      <column class="small-12 cell margin-top-20">
+      <column class="small-12 cell margin-top-100">
         <widget name="content" class="padding-width-50">
       <html><![CDATA[
 <h4>Example File Format</h4>
@@ -108,6 +108,40 @@
     </section>
   </page>
 
+  <page name="/admin/dataset-details{?datasetId}" role="admin,data-manager" title="Dataset Details">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Datasets" value="/admin/datasets" />
+            <link name="Details" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="datasetName" class="margin-bottom-10" />
+        <widget name="content" class="margin-bottom-10">
+          <html><![CDATA[
+<ul class="tabs margin-bottom-2">
+  <li class="tabs-title"><a href="/admin/dataset-preview?datasetId=${request.datasetId}">Preview</a></li>
+  <li class="tabs-title"><a href="/admin/dataset-text?datasetId=${request.datasetId}">Text Preview</a></li>
+  <li class="tabs-title"><a href="/admin/dataset-source?datasetId=${request.datasetId}">Source</a></li>
+  <li class="tabs-title"><a href="/admin/dataset-sync?datasetId=${request.datasetId}">Sync</a></li>
+  <li class="tabs-title"><a href="/admin/dataset-mapper?datasetId=${request.datasetId}">Map Fields</a></li>
+  <li class="tabs-title"><a href="/admin/dataset-configuration?datasetId=${request.datasetId}">Configuration</a></li>
+  <li class="tabs-title is-active"><a aria-selected="true" href="/admin/dataset-details?datasetId=${request.datasetId}">Details</a></li>
+</ul>
+]]></html>
+        </widget>
+        <widget name="datasetDetails" class="margin-top-10">
+          <!--<title>Configure the dataset</title>-->
+        </widget>
+      </column>
+    </section>
+  </page>
+
   <page name="/admin/dataset-configuration{?datasetId}" role="admin,data-manager" title="Dataset Configuration">
     <section>
       <column class="small-12 cell">
@@ -122,18 +156,40 @@
     <section>
       <column class="small-12 cell">
         <widget name="datasetName" class="margin-bottom-10" />
-        <widget name="content">
+        <widget name="content" class="margin-bottom-10">
           <html><![CDATA[
 <ul class="tabs margin-bottom-2">
   <li class="tabs-title"><a href="/admin/dataset-preview?datasetId=${request.datasetId}">Preview</a></li>
   <li class="tabs-title"><a href="/admin/dataset-text?datasetId=${request.datasetId}">Text Preview</a></li>
+  <li class="tabs-title"><a href="/admin/dataset-source?datasetId=${request.datasetId}">Source</a></li>
+  <li class="tabs-title"><a href="/admin/dataset-sync?datasetId=${request.datasetId}">Sync</a></li>
   <li class="tabs-title"><a href="/admin/dataset-mapper?datasetId=${request.datasetId}">Map Fields</a></li>
-  <li class="tabs-title is-active"><a aria-selected="true" href="/admin/dataset-configuration?datasetId=${request.datasetId}">Info</a></li>
+  <li class="tabs-title is-active"><a aria-selected="true" href="/admin/dataset-configuration?datasetId=${request.datasetId}">Configuration</a></li>
+  <li class="tabs-title"><a href="/admin/dataset-details?datasetId=${request.datasetId}">Details</a></li>
 </ul>
 ]]></html>
         </widget>
-        <widget name="datasetConfiguration" class="margin-top-10">
-          <!--<title>Configure the dataset</title>-->
+      </column>
+    </section>
+    <section>
+      <column class="small-9 cell">
+        <widget name="datasetConfiguration" class="margin-top-10" />
+      </column>
+      <column class="small-3 cell">
+        <widget name="content" class="callout secondary" sticky="true">
+          <html>
+            <![CDATA[
+            <h4>Path to Records Array</h4>
+            <p class="subheader">Use &quot;/&quot; for top-level</p>
+            <h4>Column Configuration</h4>
+            <p class="subheader">Use JSON dot-notation</p>
+            <ul>
+              <li>example.title=name</li>
+              <li>example.data.summary=summary</li>
+              <li>example.data.description=description</li>
+            </ul>
+            ]]>
+          </html>
         </widget>
       </column>
     </section>
@@ -153,13 +209,16 @@
     <section>
       <column class="small-12 cell">
         <widget name="datasetName" class="margin-bottom-10" />
-        <widget name="content">
+        <widget name="content" class="margin-bottom-10">
           <html><![CDATA[
 <ul class="tabs margin-bottom-2">
   <li class="tabs-title"><a href="/admin/dataset-preview?datasetId=${request.datasetId}">Preview</a></li>
   <li class="tabs-title"><a href="/admin/dataset-text?datasetId=${request.datasetId}">Text Preview</a></li>
+  <li class="tabs-title"><a href="/admin/dataset-source?datasetId=${request.datasetId}">Source</a></li>
+  <li class="tabs-title"><a href="/admin/dataset-sync?datasetId=${request.datasetId}">Sync</a></li>
   <li class="tabs-title is-active"><a aria-selected="true" href="/admin/dataset-mapper?datasetId=${request.datasetId}">Map Fields</a></li>
-  <li class="tabs-title"><a href="/admin/dataset-configuration?datasetId=${request.datasetId}">Info</a></li>
+  <li class="tabs-title"><a href="/admin/dataset-configuration?datasetId=${request.datasetId}">Configuration</a></li>
+  <li class="tabs-title"><a href="/admin/dataset-details?datasetId=${request.datasetId}">Details</a></li>
 </ul>
 ]]></html>
         </widget>
@@ -167,12 +226,10 @@
     </section>
     <section>
       <column class="small-9 cell">
-        <widget name="datasetMapper">
-          <!--<title>Configure the field mapping</title>-->
-        </widget>
+        <widget name="datasetMapper" />
       </column>
       <column class="small-3 cell">
-        <widget name="content" class="callout secondary">
+        <widget name="content" class="callout secondary" sticky="true">
           <html>
             <![CDATA[
             <h4>Options</h4>
@@ -180,18 +237,100 @@
             <ul>
               <li>caps</li>
               <li>uppercase</li>
-              <li>equals(&quot;value&quot;)</li>
-              <li>notEquals(&quot;value&quot;)</li>
-              <li>contains(&quot;value&quot;)</li>
+              <li>lowercase</li>
               <li>split(&quot;separator&quot;)</li>
               <li>setValue(&quot;value&quot;)</li>
               <li>prepend(&quot;value&quot;)</li>
               <li>append(&quot;value&quot;)</li>
+              <li>replace(&quot;term&quot;,&quot;value&quot;)</li>
+              <li>blank(&quot;value&quot;)</li>
               <li>uriEncode</li>
+              <li>validateUrl</li>
+            </ul>
+            <ul>
+              <li>equals(&quot;value&quot;)</li>
+              <li>notEquals(&quot;value&quot;)</li>
+              <li>contains(&quot;value&quot;)</li>
               <li>skipDuplicates</li>
             </ul>
             ]]>
           </html>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/dataset-sync{?datasetId}" role="admin,data-manager" title="Dataset Sync">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Datasets" value="/admin/datasets" />
+            <link name="Sync" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="datasetName" class="margin-bottom-10" />
+        <widget name="content" class="margin-bottom-10">
+          <html><![CDATA[
+<ul class="tabs margin-bottom-2">
+  <li class="tabs-title"><a href="/admin/dataset-preview?datasetId=${request.datasetId}">Preview</a></li>
+  <li class="tabs-title"><a href="/admin/dataset-text?datasetId=${request.datasetId}">Text Preview</a></li>
+  <li class="tabs-title"><a href="/admin/dataset-source?datasetId=${request.datasetId}">Source</a></li>
+  <li class="tabs-title is-active"><a aria-selected="true" href="/admin/dataset-sync?datasetId=${request.datasetId}">Sync</a></li>
+  <li class="tabs-title"><a href="/admin/dataset-mapper?datasetId=${request.datasetId}">Map Fields</a></li>
+  <li class="tabs-title"><a href="/admin/dataset-configuration?datasetId=${request.datasetId}">Configuration</a></li>
+  <li class="tabs-title"><a href="/admin/dataset-details?datasetId=${request.datasetId}">Details</a></li>
+</ul>
+]]></html>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="datasetSync">
+          <!--<title>Configure sync schedule and options</title>-->
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/dataset-source{?datasetId}" role="admin,data-manager" title="Dataset Source">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Datasets" value="/admin/datasets" />
+            <link name="Source" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="datasetName" class="margin-bottom-10" />
+        <widget name="content" class="margin-bottom-10">
+          <html><![CDATA[
+<ul class="tabs margin-bottom-2">
+  <li class="tabs-title"><a href="/admin/dataset-preview?datasetId=${request.datasetId}">Preview</a></li>
+  <li class="tabs-title"><a href="/admin/dataset-text?datasetId=${request.datasetId}">Text Preview</a></li>
+  <li class="tabs-title is-active"><a aria-selected="true" href="/admin/dataset-source?datasetId=${request.datasetId}">Source</a></li>
+  <li class="tabs-title"><a href="/admin/dataset-sync?datasetId=${request.datasetId}">Sync</a></li>
+  <li class="tabs-title"><a href="/admin/dataset-mapper?datasetId=${request.datasetId}">Map Fields</a></li>
+  <li class="tabs-title"><a href="/admin/dataset-configuration?datasetId=${request.datasetId}">Configuration</a></li>
+  <li class="tabs-title"><a href="/admin/dataset-details?datasetId=${request.datasetId}">Details</a></li>
+</ul>
+]]></html>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="datasetSource">
+          <!--<title>Configure sync schedule and options</title>-->
         </widget>
       </column>
     </section>
@@ -211,13 +350,16 @@
     <section>
       <column class="small-12 cell">
         <widget name="datasetName" class="margin-bottom-10" />
-        <widget name="content">
+        <widget name="content" class="margin-bottom-10">
           <html><![CDATA[
 <ul class="tabs margin-bottom-2">
   <li class="tabs-title is-active"><a aria-selected="true" href="/admin/dataset-preview?datasetId=${request.datasetId}">Preview</a></li>
   <li class="tabs-title"><a href="/admin/dataset-text?datasetId=${request.datasetId}">Text Preview</a></li>
+  <li class="tabs-title"><a href="/admin/dataset-source?datasetId=${request.datasetId}">Source</a></li>
+  <li class="tabs-title"><a href="/admin/dataset-sync?datasetId=${request.datasetId}">Sync</a></li>
   <li class="tabs-title"><a href="/admin/dataset-mapper?datasetId=${request.datasetId}">Map Fields</a></li>
-  <li class="tabs-title"><a href="/admin/dataset-configuration?datasetId=${request.datasetId}">Info</a></li>
+  <li class="tabs-title"><a href="/admin/dataset-configuration?datasetId=${request.datasetId}">Configuration</a></li>
+  <li class="tabs-title"><a href="/admin/dataset-details?datasetId=${request.datasetId}">Details</a></li>
 </ul>
 ]]></html>
         </widget>
@@ -240,13 +382,16 @@
     <section>
       <column class="small-12 cell">
         <widget name="datasetName" class="margin-bottom-10" />
-        <widget name="content">
+        <widget name="content" class="margin-bottom-10">
           <html><![CDATA[
 <ul class="tabs margin-bottom-2">
   <li class="tabs-title"><a href="/admin/dataset-preview?datasetId=${request.datasetId}">Preview</a></li>
   <li class="tabs-title is-active"><a aria-selected="true" href="/admin/dataset-text?datasetId=${request.datasetId}">Text Preview</a></li>
+  <li class="tabs-title"><a href="/admin/dataset-source?datasetId=${request.datasetId}">Source</a></li>
+  <li class="tabs-title"><a href="/admin/dataset-sync?datasetId=${request.datasetId}">Sync</a></li>
   <li class="tabs-title"><a href="/admin/dataset-mapper?datasetId=${request.datasetId}">Map Fields</a></li>
-  <li class="tabs-title"><a href="/admin/dataset-configuration?datasetId=${request.datasetId}">Info</a></li>
+  <li class="tabs-title"><a href="/admin/dataset-configuration?datasetId=${request.datasetId}">Configuration</a></li>
+  <li class="tabs-title"><a href="/admin/dataset-details?datasetId=${request.datasetId}">Details</a></li>
 </ul>
 ]]></html>
         </widget>

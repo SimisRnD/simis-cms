@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.simisinc.platform.application.admin;
+package com.simisinc.platform.application.datasets;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.fge.jackson.JsonLoader;

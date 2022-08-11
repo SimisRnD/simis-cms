@@ -18,6 +18,8 @@ package com.simisinc.platform.infrastructure.persistence.items;
 
 import com.simisinc.platform.presentation.controller.DataConstants;
 
+import java.sql.Timestamp;
+
 /**
  * Properties for querying objects from the item repository
  *
@@ -45,6 +47,8 @@ public class ItemSpecification {
   private int hasCoordinates = DataConstants.UNDEFINED;
   private boolean approvedOnly = false;
   private boolean unapprovedOnly = false;
+  private long datasetId = -1L;
+  private Timestamp datasetSyncTimestampThreshold = null;
 
   public ItemSpecification() {
   }
@@ -212,4 +216,21 @@ public class ItemSpecification {
   public void setHasCoordinates(boolean hasCoordinates) {
     this.hasCoordinates = (hasCoordinates ? DataConstants.TRUE : DataConstants.FALSE);
   }
+
+  public long getDatasetId() {
+    return datasetId;
+  }
+
+  public void setDatasetId(long datasetId) {
+    this.datasetId = datasetId;
+  }
+
+  public Timestamp getDatasetSyncTimestampThreshold() {
+    return datasetSyncTimestampThreshold;
+  }
+
+  public void setDatasetSyncTimestampThreshold(Timestamp datasetSyncTimestampThreshold) {
+    this.datasetSyncTimestampThreshold = datasetSyncTimestampThreshold;
+  }
+
 }

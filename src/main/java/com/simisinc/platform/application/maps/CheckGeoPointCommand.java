@@ -16,11 +16,16 @@
 
 package com.simisinc.platform.application.maps;
 
-import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
-import com.simisinc.platform.domain.model.items.Item;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.domain.model.items.Item;
+import com.simisinc.platform.domain.model.maps.WorldCity;
+import com.simisinc.platform.domain.model.maps.ZipCode;
+import com.simisinc.platform.infrastructure.persistence.maps.WorldCityRepository;
+import com.simisinc.platform.infrastructure.persistence.maps.ZipCodeRepository;
 
 /**
  * Methods to update an item's geo point
@@ -59,6 +64,34 @@ public class CheckGeoPointCommand {
     }
     if ("nominatim".equalsIgnoreCase(geocoderService)) {
       return NominatimCommmand.updateGeoPoint(item);
+    }
+    return item;
+  }
+
+  public static Item updateGeoPointByRelativeLocation(Item item) {
+    // In addition to CheckGeoPoint, consider using the World Cities geocode
+    if (!item.hasGeoPoint() && StringUtils.isNotBlank(item.getPostalCode())) {
+      // Find a zipcode geopoint, to estimate the lat/long
+      ZipCode zipCode = ZipCodeRepository.findByCode(item.getPostalCode());
+      if (zipCode != null && zipCode.hasGeoPoint()) {
+        item.setLatitude(zipCode.getLatitude());
+        item.setLongitude(zipCode.getLongitude());
+      }
+    }
+    if (!item.hasGeoPoint() && StringUtils.isNotBlank(item.getCity()) && StringUtils.isNotBlank(item.getState())) {
+      String region = item.getState();
+      String country = "us";
+      if (item.getCountry() != null && !"united states".equalsIgnoreCase(item.getCountry())) {
+        // Leave blank or convert to 2-digit value
+        region = null;
+        country = null;
+      }
+      // Find a world cities geopoint based on country (US for now), to estimate the lat/long
+      WorldCity worldCity = WorldCityRepository.findByCityRegionCountry(item.getCity(), region, country);
+      if (worldCity != null) {
+        item.setLatitude(worldCity.getLatitude());
+        item.setLongitude(worldCity.getLongitude());
+      }
     }
     return item;
   }

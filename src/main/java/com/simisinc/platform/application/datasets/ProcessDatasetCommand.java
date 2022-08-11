@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.simisinc.platform.application.admin;
+package com.simisinc.platform.application.datasets;
 
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.items.LoadCollectionCommand;
@@ -63,7 +63,7 @@ public class ProcessDatasetCommand {
         collection = SaveCollectionCommand.saveCollection(collectionBean);
         // Associate it with the dataset
         dataset.setCollectionUniqueId(collection.getUniqueId());
-        DatasetRepository.save(dataset);
+        DatasetRepository.updateCollectionUniqueId(dataset);
       }
     } else {
       // Try to load it
@@ -72,8 +72,6 @@ public class ProcessDatasetCommand {
     if (collection == null) {
       throw new DataException("The specific collection was not found, try another?");
     }
-
-    // Get a file handle
 
     // Validate that the columns and fields exist
     List<String> columnNames = dataset.getColumnNamesList();
@@ -91,11 +89,6 @@ public class ProcessDatasetCommand {
     if (!isValid) {
       throw new DataException("File is not valid");
     }
-
-    // Mark the dataset as being processed
-    LOG.debug("Processing the dataset... " + dataset.getName());
-    dataset.setRowsProcessed(1);
-    DatasetRepository.save(dataset);
 
     // Start the background job
     BackgroundJobRequest.enqueue(new ProcessDatasetJob(dataset));

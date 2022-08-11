@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.simisinc.platform.application.admin;
+package com.simisinc.platform.application.datasets;
 
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.domain.model.datasets.Dataset;
@@ -31,8 +31,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import static com.simisinc.platform.application.admin.DatasetFieldOptionCommand.applyOptionsToField;
-import static com.simisinc.platform.application.admin.DatasetFieldOptionCommand.isSkipped;
+import static com.simisinc.platform.application.datasets.DatasetFieldOptionCommand.applyOptionsToField;
+import static com.simisinc.platform.application.datasets.DatasetFieldOptionCommand.isSkipped;
 
 /**
  * Reads in dataset rows from a CSV dataset file

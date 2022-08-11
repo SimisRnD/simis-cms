@@ -20,23 +20,22 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import com.simisinc.platform.application.datasets.DatasetColumnJSONCommand;
-import com.simisinc.platform.application.datasets.LoadJsonCommand;
 import com.simisinc.platform.domain.model.datasets.Dataset;
 import com.simisinc.platform.infrastructure.persistence.datasets.DatasetRepository;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 
 /**
- * Description
+ * Widget to configure dataset details
  *
  * @author matt rajkowski
  * @created 4/24/18 8:05 PM
  */
-public class DatasetConfigurationWidget extends GenericWidget {
+public class DatasetDetailsWidget extends GenericWidget {
 
-  private static String JSP = "/admin/dataset-configuration.jsp";
-  private static Log LOG = LogFactory.getLog(DatasetConfigurationWidget.class);
+  private static Log LOG = LogFactory.getLog(DatasetDetailsWidget.class);
+
+  private static String JSP = "/admin/dataset-details.jsp";
 
   public WidgetContext execute(WidgetContext context) {
 
@@ -61,12 +60,6 @@ public class DatasetConfigurationWidget extends GenericWidget {
       context.getRequest().setAttribute("dataset", dataset);
     }
 
-    // Convert JSON config to plain-text columnConfiguration
-    if (dataset.getFileType().contains("json")) {
-      String columnConfiguration = DatasetColumnJSONCommand.createPlainTextString(dataset);
-      context.getRequest().setAttribute("columnConfiguration", columnConfiguration);
-    }
-
     // Show the editor
     context.setJsp(JSP);
     return context;
@@ -83,40 +76,29 @@ public class DatasetConfigurationWidget extends GenericWidget {
     }
 
     // Recommend a return URL
-    context.setRedirect("/admin/dataset-configuration?datasetId=" + dataset.getId());
+    context.setRedirect("/admin/dataset-details?datasetId=" + dataset.getId());
 
-    // Populate required field for updates
+    // Populate dataset fields
+    dataset.setName(context.getParameter("name"));
+    dataset.setSourceInfo(context.getParameter("sourceInfo"));
     dataset.setModifiedBy(context.getUserId());
 
-    if (dataset.getFileType().contains("json")) {
-      // Set the path to the records
-      dataset.setRecordsPath(context.getParameter("recordsPath"));
-
-      // Check if the column configuration text has changed
-      String columnConfigurationText = context.getParameter("columnConfiguration");
-      LOG.debug("columnConfigurationText:\n" + columnConfigurationText);
-
-      if (StringUtils.isBlank(columnConfigurationText)) {
-        // Use the record(s) to determine the columns
-        columnConfigurationText = DatasetColumnJSONCommand.detectColumnsFromDataset(dataset);
-      }
-
-      // Update the dataset column values
-      DatasetColumnJSONCommand.populateFromPlainText(dataset, columnConfigurationText);
-
-      // Update the row count
-      dataset.setRowCount(LoadJsonCommand.retrieveRowCount(dataset));
+    // Validate the required fields
+    if (StringUtils.isBlank(dataset.getName())) {
+      context.setErrorMessage("A name is required, please check the fields and try again");
+      context.setRequestObject(dataset);
+      return context;
     }
 
     // Save the dataset record
-    dataset = DatasetRepository.updateConfiguration(dataset);
+    dataset = DatasetRepository.updateDetails(dataset);
     if (dataset == null) {
       context.setErrorMessage("An error occurred, the dataset was not saved");
       context.setRequestObject(dataset);
       return context;
     }
 
-    context.setSuccessMessage("The configuration was saved successfully");
+    context.setSuccessMessage("The details were saved successfully");
     return context;
   }
 }

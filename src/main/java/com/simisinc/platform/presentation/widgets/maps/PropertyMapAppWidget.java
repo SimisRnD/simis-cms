@@ -16,22 +16,21 @@
 
 package com.simisinc.platform.presentation.widgets.maps;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-
-import com.simisinc.platform.application.admin.LoadGeoJsonFeedCommand;
+import com.simisinc.platform.application.datasets.LoadGeoJsonFeedCommand;
 import com.simisinc.platform.application.gis.portsmouth.PopulatePortsmouthDataCommand;
 import com.simisinc.platform.application.maps.FindMapTilesCredentialsCommand;
 import com.simisinc.platform.domain.model.datasets.Dataset;
 import com.simisinc.platform.domain.model.maps.MapCredentials;
 import com.simisinc.platform.infrastructure.persistence.datasets.DatasetRepository;
-import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.controller.WidgetContext;
-
+import com.simisinc.platform.presentation.widgets.GenericWidget;
 import org.apache.commons.lang3.StringUtils;
 import org.geojson.Feature;
 import org.geojson.GeoJsonObject;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 
 /**
  * Map widget with app features

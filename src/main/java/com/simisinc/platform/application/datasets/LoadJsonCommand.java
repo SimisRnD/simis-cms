@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package com.simisinc.platform.application.admin;
+package com.simisinc.platform.application.datasets;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.fge.jackson.JsonLoader;
@@ -28,7 +28,8 @@ import java.io.File;
 import java.util.*;
 import java.util.regex.Pattern;
 
-import static com.simisinc.platform.application.admin.DatasetFieldOptionCommand.*;
+import static com.simisinc.platform.application.datasets.DatasetFieldOptionCommand.applyOptionsToField;
+import static com.simisinc.platform.application.datasets.DatasetFieldOptionCommand.isSkipped;
 
 /**
  * Reads in dataset rows from a JSON dataset file
@@ -40,7 +41,8 @@ public class LoadJsonCommand {
 
   private static Log LOG = LogFactory.getLog(LoadJsonCommand.class);
 
-  public static List<String[]> loadRecords(Dataset dataset, int maxRowCountToReturn, boolean applyOptions) throws DataException {
+  public static List<String[]> loadRecords(Dataset dataset, int maxRowCountToReturn, boolean applyOptions)
+      throws DataException {
     File file = DatasetFileCommand.getFile(dataset);
     if (file == null) {
       throw new DataException("Dataset file not found");
@@ -48,7 +50,8 @@ public class LoadJsonCommand {
     return loadRecords(dataset, file, maxRowCountToReturn, applyOptions);
   }
 
-  private static List<String[]> loadRecords(Dataset dataset, File file, int maxRowCountToReturn, boolean applyOptions) throws DataException {
+  private static List<String[]> loadRecords(Dataset dataset, File file, int maxRowCountToReturn, boolean applyOptions)
+      throws DataException {
     List<String[]> rows = new ArrayList<>();
     if (file == null) {
       return rows;
@@ -90,7 +93,8 @@ public class LoadJsonCommand {
       // Process the records
       Iterator<JsonNode> records = json.elements();
       int count = 0;
-      while (records.hasNext() && (maxRowCountToReturn == -1 || (maxRowCountToReturn > -1 && count < maxRowCountToReturn))) {
+      while (records.hasNext()
+          && (maxRowCountToReturn == -1 || (maxRowCountToReturn > -1 && count < maxRowCountToReturn))) {
 
         // Determine if the row meets the criteria
         JsonNode thisRecord = records.next();
@@ -102,11 +106,16 @@ public class LoadJsonCommand {
         for (String column : dataset.getColumnNamesList()) {
           ++columnCount;
 
+          // The column could be renamed, so acquire just the definition part
+          String[] columnInfo = column.split(Pattern.quote("="));
+          if (columnInfo.length > 1) {
+            column = columnInfo[0].trim();
+          }
+
           // Determine if the column spec has a path to a deeper value
           String[] fieldPath = column.split(Pattern.quote("."));
           JsonNode fieldPointer = null;
           for (String fieldName : fieldPath) {
-            LOG.debug("Checking JSON field: " + fieldName);
             // Remove the array index from the field name, if it is specified
             int arrayValue = -1;
             if (fieldName.contains("[") && fieldName.contains("]")) {
@@ -122,6 +131,10 @@ public class LoadJsonCommand {
             if (fieldPointer != null) {
               if (fieldPointer.has(fieldName)) {
                 fieldPointer = fieldPointer.get(fieldName);
+              } else {
+                // The pointer was not found so use an empty node value
+                fieldPointer = null;
+                break;
               }
             } else if (thisRecord.has(fieldName)) {
               fieldPointer = thisRecord.get(fieldName);

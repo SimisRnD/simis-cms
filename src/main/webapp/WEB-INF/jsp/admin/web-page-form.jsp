@@ -14,6 +14,7 @@
   ~ limitations under the License.
   --%>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="webPage" class="com.simisinc.platform.domain.model.cms.WebPage" scope="request"/>
@@ -89,15 +90,35 @@
           </label>
         </div>
       </label>
-      <label>Show in Sitemap.xml?
-        <div class="switch large">
-          <input class="switch-input" id="sitemap-yes-no" type="checkbox" name="showInSitemap" value="true"<c:if test="${webPage.showInSitemap}"> checked</c:if>>
-          <label class="switch-paddle" for="sitemap-yes-no">
-            <span class="switch-active" aria-hidden="true">Yes</span>
-            <span class="switch-inactive" aria-hidden="true">No</span>
+      <div class="grid-x grid-padding-x">
+        <div class="small-12 medium-3 cell">
+          <label>Show in Sitemap.xml?
+            <div class="switch large">
+              <input class="switch-input" id="sitemap-yes-no" type="checkbox" name="showInSitemap" value="true"<c:if
+                test="${webPage.showInSitemap}"> checked</c:if>>
+              <label class="switch-paddle" for="sitemap-yes-no">
+                <span class="switch-active" aria-hidden="true">Yes</span>
+                <span class="switch-inactive" aria-hidden="true">No</span>
+              </label>
+            </div>
           </label>
         </div>
-      </label>
+        <div class="small-12 medium-3 cell">
+          <label>Priority (0.0-1.0)
+            <input type="text" name="sitemapPriority" value="<fmt:formatNumber value="${webPage.sitemapPriority}" />" />
+          </label>
+        </div>
+        <div class="small-12 medium-3 cell">
+          <label>Change Frequency
+            <select name="sitemapChangeFrequency">
+              <option value=""></option>
+              <c:forEach items="${sitemapChangeFrequencyMap}" var="option">
+                <option value="<c:out value="${option.key}" />"<c:if test="${webPage.sitemapChangeFrequency eq option.key}"> selected</c:if>><c:out value="${option.value}" /></option>
+              </c:forEach>
+            </select>
+          </label>
+        </div>
+      </div>
       <label>Searchable?
         <div class="switch large">
           <input class="switch-input" id="searchable-yes-no" type="checkbox" name="searchable" value="true"<c:if test="${webPage.searchable}"> checked</c:if>>
@@ -108,9 +129,7 @@
         </div>
       </label>
       <small>Open Graph Image</small>
-      <p>
-        <img id="imageUrlPreview" src="<c:out value="${webPage.imageUrl}"/>" style="max-height: 150px; max-width: 150px"/>
-      </p>
+      <img id="imageUrlPreview" src="<c:out value="${webPage.imageUrl}"/>" style="max-height: 150px; max-width: 150px"/>
       <input type="text" class="no-gap" placeholder="Local Image URL" id="imageUrl" name="imageUrl" value="<c:out value="${webPage.imageUrl}"/>">
       <label for="imageFile" class="button">Upload Image File...</label>
       <input type="file" id="imageFile" class="show-for-sr" onchange="SavePhoto(this)">
@@ -119,7 +138,7 @@
       </p>
     </div>
   </div>
-  <p>
+  <div class="button-container">
     <input type="submit" class="button radius success" value="Save" />
     <c:choose>
       <c:when test="${!empty returnPage}">
@@ -135,7 +154,7 @@
     <c:if test="${userSession.hasRole('admin')}">
       <a class="button radius alert" href="javascript:deletePage()"><i class="fa fa-trash-o"></i> Delete Page</a>
     </c:if>
-  </p>
+  </div>
 </form>
 <div class="reveal large" id="imageBrowserReveal" data-reveal data-animation-in="slide-in-down fast">
   <h3>Loading...</h3>

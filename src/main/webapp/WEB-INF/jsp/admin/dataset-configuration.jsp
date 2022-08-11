@@ -32,28 +32,18 @@
   <%-- Form values --%>
   <input type="hidden" name="id" value="${dataset.id}"/>
   <%-- Form --%>
-  <label>Dataset Name
-    <input type="text" name="name" value="<c:out value="${dataset.name}"/>">
-  </label>
-  <label>Dataset Source Information
-    <textarea name="sourceInfo"><c:out value="${dataset.sourceInfo}"/></textarea>
-  </label>
-  <label>Source URL
-    <input type="text" placeholder="http(s)://" name="sourceUrl" value="<c:out value="${dataset.sourceUrl}"/>">
-    <input type="checkbox" id="doDownload" name="doDownload" value="true" /><label for="doDownload">Download the file from the source url and replace this dataset</label><br />
-  </label>
-  <c:if test="${dataset.fileType eq 'application/json'}">
+  <p>
+    <c:out value="${dataset.fileType}" />
+  </p>
+  <c:if test="${fn:contains(dataset.fileType, 'json')}">
     <label>JSON Records Path
       <input type="text" placeholder="/" name="recordsPath" value="<c:out value="${dataset.recordsPath}"/>">
     </label>
     <label>JSON Columns Configuration
-      <textarea name="columnConfiguration" rows="10"><c:out value="${columnConfiguration}"/></textarea>
+      <textarea name="columnConfiguration" rows="12"><c:out value="${columnConfiguration}"/></textarea>
     </label>
+    <div class="button-container">
+      <input type="submit" class="button radius success" name="process" value="Save"/>
+    </div>
   </c:if>
-  <label for="file" class="button small secondary radius"><i class="fa fa-upload"></i> Upload Replacement File</label>
-  <input type="file" id="file" name="file" class="show-for-sr">
-  <div class="button-container">
-    <input type="submit" class="button radius success" name="process" value="Save"/>
-    <a class="button radius secondary" href="${ctx}/admin/datasets">Cancel</a>
-  </div>
 </form>

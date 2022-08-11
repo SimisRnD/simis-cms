@@ -16,6 +16,8 @@
 
 package com.simisinc.platform.infrastructure.database;
 
+import org.apache.commons.lang3.StringUtils;
+
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.sql.Types;
@@ -30,6 +32,7 @@ public class SqlValue {
 
   public static final int GEOM_TYPE = 2018052314;
   public static final int JSONB_TYPE = 2018053112;
+  public static final int INTERVAL_TYPE = 2022080914;
 
   // Name/condition/field
   private String field;
@@ -138,10 +141,16 @@ public class SqlValue {
 
   public SqlValue(String fieldName, int castType, String value) {
     this.field = fieldName;
+    this.stringValue = value;
+    this.castType = castType;
     if (castType == JSONB_TYPE) {
-      this.stringValue = value;
       this.sqlType = Types.VARCHAR;
-      this.castType = castType;
+    } else if (castType == INTERVAL_TYPE) {
+      this.sqlType = Types.OTHER;
+      if (StringUtils.isBlank(value)) {
+        stringValue = null;
+        isNull = true;
+      }
     }
   }
 

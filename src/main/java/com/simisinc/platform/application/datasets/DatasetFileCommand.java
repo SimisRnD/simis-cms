@@ -14,12 +14,14 @@
  * limitations under the License.
  */
 
-package com.simisinc.platform.application.admin;
+package com.simisinc.platform.application.datasets;
 
 import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.elearning.PERLSCourseListCommand;
 import com.simisinc.platform.application.filesystem.FileSystemCommand;
 import com.simisinc.platform.domain.model.datasets.Dataset;
 import com.simisinc.platform.domain.model.items.Collection;
+import com.simisinc.platform.infrastructure.persistence.datasets.DatasetRepository;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -54,6 +56,14 @@ public class DatasetFileCommand {
   public static final int GEO_JSON = 3;
   public static final int RSS = 4;
   public static final int TEXT = 5;
+  public static final int JSON_API = 6;
+
+  public static final String GEO_JSON_TYPE = "application/vnd.geo+json";
+  public static final String JSON_TYPE = "application/json";
+  public static final String JSON_API_TYPE = "application/vnd.api+json";
+  public static final String CSV_TYPE = "text/csv";
+  public static final String TEXT_TYPE = "text/plain";
+  public static final String RSS_TYPE = "application/rss+xml";
 
   public static File getFile(Dataset dataset) {
     // Get a file handle
@@ -71,28 +81,32 @@ public class DatasetFileCommand {
   }
 
   public static int type(String fileType) {
-    if ("application/vnd.geo+json".equals(fileType)) {
+    if (GEO_JSON_TYPE.equals(fileType)) {
       return GEO_JSON;
-    } else if ("application/rss+xml".equals(fileType)) {
+    } else if (RSS_TYPE.equals(fileType)) {
       return RSS;
-    } else if ("text/csv".equals(fileType)) {
+    } else if (CSV_TYPE.equals(fileType)) {
       return CSV;
-    } else if ("text/plain".equals(fileType)) {
+    } else if (TEXT_TYPE.equals(fileType)) {
       return TEXT;
-    } else if ("application/json".equals(fileType)) {
+    } else if (JSON_TYPE.equals(fileType)) {
       return JSON;
+    } else if (JSON_API_TYPE.equals(fileType)) {
+      return JSON_API;
     }
     return UNKNOWN;
   }
 
-  public static boolean handleNewFile(WidgetContext context, Dataset dataset, String fileType) {
+  public static String extension(int type) {
     String extension = null;
-    int type = type(fileType);
     switch (type) {
       case CSV:
         extension = "csv";
         break;
       case JSON:
+        extension = "json";
+        break;
+      case JSON_API:
         extension = "json";
         break;
       case GEO_JSON:
@@ -107,8 +121,43 @@ public class DatasetFileCommand {
       default:
         break;
     }
+    return extension;
+  }
+
+  public static boolean isValidDatasetFile(Dataset dataset, int type) {
+    try {
+      switch (type) {
+        case CSV:
+          ValidateCSVDatasetCommand.checkFile(dataset);
+          break;
+        case JSON:
+          ValidateJSONDatasetCommand.checkFile(dataset);
+          break;
+        case JSON_API:
+          ValidateJsonApiDatasetCommand.checkFile(dataset);
+          break;
+        case GEO_JSON:
+          ValidateGeoJsonDatasetCommand.checkFile(dataset);
+          break;
+        case RSS:
+          ValidateRSSDatasetCommand.checkFile(dataset);
+          break;
+        default:
+          throw new DataException("File type not found: " + type);
+      }
+    } catch (DataException de) {
+      LOG.error("Data exception", de);
+      return false;
+    }
+    return true;
+  }
+
+  public static boolean handleUpload(WidgetContext context, Dataset dataset) {
+    String fileType = dataset.getFileType();
+    int type = type(fileType);
+    String extension = extension(type);
     if (extension == null) {
-      LOG.warn("File type not found: " + fileType);
+      context.setErrorMessage("File type not supported");
       context.setRequestObject(dataset);
       return false;
     }
@@ -128,27 +177,26 @@ public class DatasetFileCommand {
     } catch (Exception e) {
       LOG.debug("File part was not found, continuing...");
     }
+    if (filePart == null || StringUtils.isBlank(filePart.getSubmittedFileName())) {
+      context.setErrorMessage("An uploaded file was not found in the multipart form-data");
+      context.setRequestObject(dataset);
+      return false;
+    }
 
+    // Save the file and update the dataset object
     File tempFile = new File(filesystemPath);
     try {
-      if (filePart != null && StringUtils.isNotBlank(filePart.getSubmittedFileName())) {
-        // Save the file from the request
-        String filename = saveFile(filePart, filesystemPath, tempFile);
-        if (filename == null) {
-          LOG.debug("Filename not found");
-          throw new Exception("File upload error");
-        }
-        dataset.setFilename(filename);
-        dataset.setLastDownload(new Timestamp(System.currentTimeMillis()));
-      } else if (StringUtils.isNotBlank(dataset.getSourceUrl())) {
-        // Download the specified file
-        if (!downloadFile(dataset.getSourceUrl(), tempFile)) {
-          throw new Exception("File download error from: " + dataset.getSourceUrl());
-        }
-        dataset.setLastDownload(new Timestamp(System.currentTimeMillis()));
+      // Save the file from the request
+      String filename = saveFile(filePart, filesystemPath, tempFile);
+      if (filename == null) {
+        LOG.debug("Filename not found");
+        throw new DataException("File upload error");
       }
+      dataset.setFilename(filename);
+      dataset.setLastDownload(new Timestamp(System.currentTimeMillis()));
     } catch (Exception e) {
       LOG.warn("An error occurred", e);
+      context.setErrorMessage("An error occurred with the file");
       context.setRequestObject(dataset);
       return false;
     }
@@ -160,36 +208,25 @@ public class DatasetFileCommand {
     dataset.setFileServerPath(dataPath);
 
     // Verify the file content and enhance the dataset record
-    try {
-      switch (type) {
-        case CSV:
-          ValidateCSVDatasetCommand.checkFile(dataset);
-          break;
-        case JSON:
-          ValidateJSONDatasetCommand.checkFile(dataset);
-          break;
-        case GEO_JSON:
-          ValidateGeoJsonDatasetCommand.checkFile(dataset);
-          break;
-        case RSS:
-          ValidateRSSDatasetCommand.checkFile(dataset);
-          break;
-        default:
-          throw new DataException("File type not found: " + fileType);
-      }
-    } catch (DataException de) {
-      LOG.error("Data exception", de);
+    if (!isValidDatasetFile(dataset, type)) {
+      context.setErrorMessage("The file could not be validated");
       return false;
     }
 
-    // Update the dataset repository
     try {
+      // Get a handle on the previous file if there is one
+      Dataset previousDataset = DatasetRepository.findById(dataset.getId());
+      // Update the dataset repository
       Dataset savedDataset = SaveDatasetCommand.saveDataset(dataset);
       if (savedDataset == null) {
         throw new DataException("Your information could not be saved due to a system error. Please try again.");
       }
       // Share the new id with the caller
       dataset.setId(savedDataset.getId());
+      // Clean up the previous dataset file
+      if (previousDataset != null) {
+        DeleteDatasetCommand.deleteFile(previousDataset);
+      }
       return true;
     } catch (DataException e) {
       // Clean up the file
@@ -199,6 +236,83 @@ public class DatasetFileCommand {
       }
     }
     return false;
+  }
+
+  public static void handleRemoteFileDownload(Dataset dataset, long userId) throws DataException {
+    if (StringUtils.isBlank(dataset.getSourceUrl())) {
+      throw new DataException("A source url is required");
+    }
+
+    String fileType = dataset.getFileType();
+    int type = type(fileType);
+    String extension = extension(type);
+    if (extension == null) {
+      throw new DataException("File type not supported");
+    }
+
+    // Prepare to save the file
+    String serverRootPath = FileSystemCommand.getFileServerRootPath();
+    String serverSubPath = FileSystemCommand.generateFileServerSubPath("datasets");
+    String serverCompletePath = serverRootPath + serverSubPath;
+    String uniqueFilename = FileSystemCommand.generateUniqueFilename(userId);
+    String filesystemPath = serverCompletePath + uniqueFilename + "." + extension;
+    String dataPath = serverSubPath + uniqueFilename + "." + extension;
+
+    // Download the file
+    File tempFile = new File(filesystemPath);
+    try {
+      if ("application/vnd.api+json".equals(fileType)) {
+        File result = PERLSCourseListCommand.retrieveCourseListToFile(tempFile);
+        if (result == null) {
+          throw new DataException("JSON API File download error");
+        }
+        dataset.setRecordsPath("/data");
+      } else {
+        if (!downloadFile(dataset.getSourceUrl(), tempFile)) {
+          throw new DataException("File download error from: " + dataset.getSourceUrl());
+        }
+      }
+    } catch (Exception e) {
+      LOG.warn("An error occurred", e);
+      throw new DataException(e.getMessage());
+    }
+    dataset.setLastDownload(new Timestamp(System.currentTimeMillis()));
+    if (dataset.getFilename() == null) {
+      dataset.setFilename("data." + extension);
+    }
+    dataset.setFileType(fileType);
+    dataset.setFileLength(tempFile.length());
+    dataset.setFileServerPath(dataPath);
+
+    // Verify the file content and enhance the dataset record
+    if (!isValidDatasetFile(dataset, type)) {
+      throw new DataException("The file could not be validated");
+    }
+
+    try {
+      // Get a handle on the previous file (if there is one)
+      Dataset previousDataset = DatasetRepository.findById(dataset.getId());
+      // Update the dataset repository
+      Dataset savedDataset = SaveDatasetCommand.saveDataset(dataset);
+      if (savedDataset == null) {
+        throw new DataException("Your information could not be saved due to a system error. Please try again.");
+      }
+      // Share the new id with the caller
+      dataset.setId(savedDataset.getId());
+      // Clean up the previous dataset file
+      if (previousDataset != null) {
+        DeleteDatasetCommand.deleteFile(previousDataset);
+      }
+    } catch (DataException e) {
+      // Clean up the file
+      if (tempFile.exists()) {
+        LOG.warn("Deleting the temporary file: " + filesystemPath);
+        tempFile.delete();
+      }
+    } catch (Exception e) {
+      LOG.error("Unexpected exception: " + e.getMessage());
+      throw new DataException("Unexpected error");
+    }
   }
 
   public static String saveFile(Part filePart, String completePath, File tempFile) {
@@ -278,21 +392,18 @@ public class DatasetFileCommand {
       }
 
       // Save it
-      InputStream stream = entity.getContent();
-      try {
-        BufferedInputStream inputStream = new BufferedInputStream(stream);
-        BufferedOutputStream outputStream = new BufferedOutputStream(new FileOutputStream(tempFile));
-        int inByte;
-        while ((inByte = inputStream.read()) != -1) {
-          outputStream.write(inByte);
+      try (InputStream stream = entity.getContent()) {
+        try (BufferedInputStream inputStream = new BufferedInputStream(stream)) {
+          try (BufferedOutputStream outputStream = new BufferedOutputStream(new FileOutputStream(tempFile))) {
+            int inByte;
+            while ((inByte = inputStream.read()) != -1) {
+              outputStream.write(inByte);
+            }
+          }
         }
-        inputStream.close();
-        outputStream.close();
       } catch (IOException ex) {
         LOG.debug("Could not save file: " + ex.getMessage());
         throw ex;
-      } finally {
-        stream.close();
       }
     } catch (Exception e) {
       // Clean up the file
@@ -321,6 +432,8 @@ public class DatasetFileCommand {
         return LoadCSVRowsCommand.loadRows(dataset, rowsToReturn, applyOptions);
       case JSON:
         return LoadJsonCommand.loadRecords(dataset, rowsToReturn, applyOptions);
+      case JSON_API:
+        return LoadJsonCommand.loadRecords(dataset, rowsToReturn, applyOptions);
       case GEO_JSON:
         return LoadGeoJsonFeedCommand.loadRows(dataset, rowsToReturn);
       case RSS:
@@ -336,6 +449,8 @@ public class DatasetFileCommand {
       case CSV:
         return ValidateCSVDatasetCommand.validateAllRows(dataset);
       case JSON:
+        return ValidateJSONDatasetCommand.validateAllRows(dataset);
+      case JSON_API:
         return ValidateJSONDatasetCommand.validateAllRows(dataset);
       case GEO_JSON:
         return ValidateGeoJsonDatasetCommand.validateAllRows(dataset);
@@ -353,6 +468,8 @@ public class DatasetFileCommand {
         return ConvertCSVFileCommand.convertFileToCollection(dataset, collection);
       case JSON:
         return ConvertJsonFileCommand.convertFileToCollection(dataset, collection);
+      case JSON_API:
+        // return ConvertJsonApiFileCommand.convertFileToCollection(dataset, collection);
       case GEO_JSON:
         // return ConvertGeoJsonFeedCommand.validateAllRows(dataset);
       case RSS:

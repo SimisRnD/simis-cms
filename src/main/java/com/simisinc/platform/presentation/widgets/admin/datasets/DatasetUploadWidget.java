@@ -16,13 +16,15 @@
 
 package com.simisinc.platform.presentation.widgets.admin.datasets;
 
-import com.simisinc.platform.application.admin.DatasetFileCommand;
-import com.simisinc.platform.domain.model.datasets.Dataset;
-import com.simisinc.platform.presentation.widgets.GenericWidget;
-import com.simisinc.platform.presentation.controller.WidgetContext;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+
+import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.datasets.DatasetFileCommand;
+import com.simisinc.platform.domain.model.datasets.Dataset;
+import com.simisinc.platform.presentation.controller.WidgetContext;
+import com.simisinc.platform.presentation.widgets.GenericWidget;
 
 /**
  * Description
@@ -40,6 +42,11 @@ public class DatasetUploadWidget extends GenericWidget {
     // Standard request items
     context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));
     context.getRequest().setAttribute("title", context.getPreferences().get("title"));
+
+    if (context.getRequestObject() != null) {
+      Dataset dataset = (Dataset) context.getRequestObject();
+      context.getRequest().setAttribute("dataset", dataset);
+    }
 
     // Show the editor
     context.setJsp(JSP);
@@ -63,17 +70,32 @@ public class DatasetUploadWidget extends GenericWidget {
       datasetBean.setSourceUrl(sourceUrl.trim());
     }
     if (StringUtils.isNotBlank(sourceInfo)) {
-      datasetBean.setSourceInfo(sourceInfo.trim());
+      datasetBean.setSourceInfo(StringUtils.trimToNull(sourceInfo));
     }
+    datasetBean.setFileType(fileType);
     LOG.info("fileType: " + fileType);
-    if (DatasetFileCommand.handleNewFile(context, datasetBean, fileType)) {
-      LOG.info("New dataset id... " + datasetBean.getId());
-      context.setRedirect("/admin/dataset-preview?datasetId=" + datasetBean.getId());
-      return context;
-    } else {
-      context.setErrorMessage("Dataset was not processed for type " + fileType);
-      return context;
-    }
-  }
 
+    // Determine if this is a remote url or uploaded file
+    if (datasetBean.getSourceUrl() != null) {
+      // Download the remote file
+      try {
+        DatasetFileCommand.handleRemoteFileDownload(datasetBean, context.getUserId());
+      } catch (DataException e) {
+        context.setErrorMessage(e.getMessage());
+        context.setRequestObject(datasetBean);
+        return context;
+      }
+    } else {
+      // Check for an uploaded file and validate
+      if (!DatasetFileCommand.handleUpload(context, datasetBean)) {
+        context.setWarningMessage("The file was not processed");
+        context.setRequestObject(datasetBean);
+        return context;
+      }
+    }
+
+    LOG.info("New dataset id... " + datasetBean.getId());
+    context.setRedirect("/admin/dataset-preview?datasetId=" + datasetBean.getId());
+    return context;
+  }
 }

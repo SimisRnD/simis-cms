@@ -53,8 +53,7 @@ public class ItemRepository {
   private static Log LOG = LogFactory.getLog(ItemRepository.class);
 
   private static String TABLE_NAME = "items";
-  private static String[] PRIMARY_KEY = new String[]{"item_id"};
-
+  private static String[] PRIMARY_KEY = new String[] { "item_id" };
 
   public static Item save(Item record) {
     if (record.getId() > -1) {
@@ -102,21 +101,24 @@ public class ItemRepository {
         .add("assigned", record.getAssigned())
         .add("approved_by", record.getApprovedBy(), -1)
         .add("approved", record.getApproved())
-        .add("source", record.getSource());
+        .add("source", record.getSource())
+        .add("sync_date", record.getDatasetSyncDate())
+        .add("dataset_key_value", record.getDatasetKeyValue());
     if (record.hasGeoPoint()) {
       insertValues.add("latitude", record.getLatitude());
       insertValues.add("longitude", record.getLongitude());
       insertValues.addGeomPoint("geom", record.getLatitude(), record.getLongitude());
     }
     if (record.getCustomFieldList() != null && !record.getCustomFieldList().isEmpty()) {
-      insertValues.add(new SqlValue("field_values", SqlValue.JSONB_TYPE, CustomFieldListJSONCommand.createJSONString(record.getCustomFieldList())));
+      insertValues.add(new SqlValue("field_values", SqlValue.JSONB_TYPE,
+          CustomFieldListJSONCommand.createJSONString(record.getCustomFieldList())));
     }
 
     // Use a transaction
     try {
       try (Connection connection = DB.getConnection();
-           AutoStartTransaction a = new AutoStartTransaction(connection);
-           AutoRollback transaction = new AutoRollback(connection)) {
+          AutoStartTransaction a = new AutoStartTransaction(connection);
+          AutoRollback transaction = new AutoRollback(connection)) {
         // In a transaction (use the existing connection)
         record.setId(DB.insertInto(connection, TABLE_NAME, insertValues, PRIMARY_KEY));
         // Manage the categories
@@ -135,12 +137,11 @@ public class ItemRepository {
     return null;
   }
 
-
   private static Item update(Item record) {
     SqlUtils updateValues = new SqlUtils()
         .add("collection_id", record.getCollectionId())
         .add("category_id", record.getCategoryId(), -1)
-//        .add("dataset_id", record.getDatasetId(), -1)
+        //        .add("dataset_id", record.getDatasetId(), -1)
         .add("unique_id", StringUtils.trimToNull(record.getUniqueId()))
         .add("name", StringUtils.trimToNull(record.getName()))
         .add("summary", StringUtils.trimToNull(record.getSummary()))
@@ -174,7 +175,8 @@ public class ItemRepository {
         .add("assigned_to", record.getAssignedTo(), -1)
         .add("assigned", record.getAssigned())
         .add("approved_by", record.getApprovedBy(), -1)
-        .add("approved", record.getApproved());
+        .add("approved", record.getApproved())
+        .addIfExists("sync_date", record.getDatasetSyncDate());
     if (record.hasGeoPoint()) {
       updateValues.add("latitude", record.getLatitude());
       updateValues.add("longitude", record.getLongitude());
@@ -186,7 +188,8 @@ public class ItemRepository {
     }
     // Handle custom fields
     if (record.getCustomFieldList() != null && !record.getCustomFieldList().isEmpty()) {
-      updateValues.add(new SqlValue("field_values", SqlValue.JSONB_TYPE, CustomFieldListJSONCommand.createJSONString(record.getCustomFieldList())));
+      updateValues.add(new SqlValue("field_values", SqlValue.JSONB_TYPE,
+          CustomFieldListJSONCommand.createJSONString(record.getCustomFieldList())));
     } else {
       updateValues.add(new SqlValue("field_values", SqlValue.JSONB_TYPE, null));
     }
@@ -200,8 +203,8 @@ public class ItemRepository {
     // Use a transaction
     try {
       try (Connection connection = DB.getConnection();
-           AutoStartTransaction a = new AutoStartTransaction(connection);
-           AutoRollback transaction = new AutoRollback(connection)) {
+          AutoStartTransaction a = new AutoStartTransaction(connection);
+          AutoRollback transaction = new AutoRollback(connection)) {
         // In a transaction (use the existing connection)
         DB.update(connection, TABLE_NAME, updateValues, where);
 
@@ -246,7 +249,7 @@ public class ItemRepository {
         // Finish the transaction
         transaction.commit();
         // Expire the cache
-//        CacheManager.invalidateKey(CacheManager.ITEM_UNIQUE_ID_CACHE, record.getUniqueId());
+        //        CacheManager.invalidateKey(CacheManager.ITEM_UNIQUE_ID_CACHE, record.getUniqueId());
         return record;
       }
     } catch (SQLException se) {
@@ -263,8 +266,8 @@ public class ItemRepository {
       List<ItemFileVersion> fileVersionList = ItemFileVersionRepository.findAll(specification, null);
       // Delete the database entries
       try (Connection connection = DB.getConnection();
-           AutoStartTransaction a = new AutoStartTransaction(connection);
-           AutoRollback transaction = new AutoRollback(connection)) {
+          AutoStartTransaction a = new AutoStartTransaction(connection);
+          AutoRollback transaction = new AutoRollback(connection)) {
         // Delete the references
         ActivityRepository.removeAll(connection, record);
         ItemCategoryRepository.removeAll(connection, record);
@@ -340,7 +343,9 @@ public class ItemRepository {
           .addIfExists("item_id <> ?", specification.getExcludeId(), -1)
           .addIfExists("items.unique_id = ?", specification.getUniqueId())
           .addIfExists("collections.collection_id = ?", specification.getCollectionId(), -1)
-          .addIfExists("barcode = ?", specification.getBarcode());
+          .addIfExists("barcode = ?", specification.getBarcode())
+          .addIfExists("dataset_id = ?", specification.getDatasetId(), -1)
+          .addIfExists("sync_date < ?", specification.getDatasetSyncTimestampThreshold());
 
       if (specification.getApprovedOnly()) {
         where.add("approved is not null");
@@ -360,7 +365,8 @@ public class ItemRepository {
       }
       if (specification.getCategoryId() > -1) {
         //where.add("category_id = ?", specification.getCategoryId(), -1);
-        where.add("EXISTS (SELECT 1 FROM item_categories WHERE item_id = items.item_id AND category_id = ?)", specification.getCategoryId());
+        where.add("EXISTS (SELECT 1 FROM item_categories WHERE item_id = items.item_id AND category_id = ?)",
+            specification.getCategoryId());
       }
 
       // For user id
@@ -375,19 +381,24 @@ public class ItemRepository {
           where.add(
               "(collections.allows_guests = true " +
                   "OR (has_allowed_groups = true " +
-                  "AND EXISTS (SELECT 1 FROM collection_groups WHERE collection_groups.collection_id = collections.collection_id AND view_all = true " +
-                  "AND EXISTS (SELECT 1 FROM user_groups WHERE user_groups.group_id = collection_groups.group_id AND user_id = ?))" +
+                  "AND EXISTS (SELECT 1 FROM collection_groups WHERE collection_groups.collection_id = collections.collection_id AND view_all = true "
+                  +
+                  "AND EXISTS (SELECT 1 FROM user_groups WHERE user_groups.group_id = collection_groups.group_id AND user_id = ?))"
+                  +
                   ") " +
-                  "OR EXISTS (SELECT 1 FROM members WHERE items.item_id = members.item_id AND user_id = ? AND approved IS NOT NULL)" +
+                  "OR EXISTS (SELECT 1 FROM members WHERE items.item_id = members.item_id AND user_id = ? AND approved IS NOT NULL)"
+                  +
                   ")",
-              new Long[]{specification.getForUserId(), specification.getForUserId()});
+              new Long[] { specification.getForUserId(), specification.getForUserId() });
         }
       }
 
       // User must be a member of the item
       if (specification.getForMemberWithUserId() != DataConstants.UNDEFINED) {
         // For logged in users
-        where.add("EXISTS (SELECT 1 FROM members WHERE items.item_id = members.item_id AND user_id = ? AND approved IS NOT NULL)", specification.getForMemberWithUserId());
+        where.add(
+            "EXISTS (SELECT 1 FROM members WHERE items.item_id = members.item_id AND user_id = ? AND approved IS NOT NULL)",
+            specification.getForMemberWithUserId());
       }
 
       // Use the location geo data
@@ -401,7 +412,7 @@ public class ItemRepository {
         if (StringUtils.isNumeric(value) && value.length() == 5) {
           // This is a zip code
           if (specification.getWithinMeters() > 0) {
-//            where.add("ST_DWithin(geom::geography, (SELECT geom::geography FROM zip_codes WHERE code = ?), " + specification.getWithinMeters() + ")", value);
+            //            where.add("ST_DWithin(geom::geography, (SELECT geom::geography FROM zip_codes WHERE code = ?), " + specification.getWithinMeters() + ")", value);
           }
           // Override the order by for closest first
           orderBy.add("geom <-> (SELECT geom FROM zip_codes WHERE code = ?)", value);
@@ -420,24 +431,28 @@ public class ItemRepository {
             // Use the region
             // @todo the region is validated because a prepared statement is needed
             if (specification.getWithinMeters() > 0) {
-//              where.add("ST_DWithin(geom::geography, (SELECT geom::geography FROM world_cities WHERE city = ? AND region = '" + region + "' ORDER BY population DESC LIMIT 1), " + specification.getWithinMeters() + ")", city);
+              //              where.add("ST_DWithin(geom::geography, (SELECT geom::geography FROM world_cities WHERE city = ? AND region = '" + region + "' ORDER BY population DESC LIMIT 1), " + specification.getWithinMeters() + ")", city);
             }
             // Override the order by for closest first
-            orderBy.add("geom <-> (SELECT geom FROM world_cities WHERE city = ? AND region = '" + region + "' ORDER BY population DESC LIMIT 1)", city);
+            orderBy.add("geom <-> (SELECT geom FROM world_cities WHERE city = ? AND region = '" + region
+                + "' ORDER BY population DESC LIMIT 1)", city);
           } else {
             // Just use the city
             if (specification.getWithinMeters() > 0) {
-//              where.add("ST_DWithin(geom::geography, (SELECT geom::geography FROM world_cities WHERE city = ? ORDER BY population DESC LIMIT 1), " + specification.getWithinMeters() + ")", city);
+              //              where.add("ST_DWithin(geom::geography, (SELECT geom::geography FROM world_cities WHERE city = ? ORDER BY population DESC LIMIT 1), " + specification.getWithinMeters() + ")", city);
             }
             // Override the order by for closest first
-            orderBy.add("geom <-> (SELECT geom FROM world_cities WHERE city = ? ORDER BY population DESC LIMIT 1)", city);
+            orderBy.add("geom <-> (SELECT geom FROM world_cities WHERE city = ? ORDER BY population DESC LIMIT 1)",
+                city);
           }
         }
       }
 
       // Use the search engine
       if (StringUtils.isNotBlank(specification.getSearchName())) {
-        select.add("ts_headline('english', items.name || ' ' || coalesce(keywords,'') || ' ' || coalesce(summary,''), PLAINTO_TSQUERY('title_stem', ?), 'StartSel=${b}, StopSel=${/b}, MaxWords=30, MinWords=15, ShortWord=3, HighlightAll=FALSE, MaxFragments=2, FragmentDelimiter=\" ... \"') AS highlight", specification.getSearchName().trim());
+        select.add(
+            "ts_headline('english', items.name || ' ' || coalesce(keywords,'') || ' ' || coalesce(summary,''), PLAINTO_TSQUERY('title_stem', ?), 'StartSel=${b}, StopSel=${/b}, MaxWords=30, MinWords=15, ShortWord=3, HighlightAll=FALSE, MaxFragments=2, FragmentDelimiter=\" ... \"') AS highlight",
+            specification.getSearchName().trim());
         select.add("TS_RANK_CD(tsv, PLAINTO_TSQUERY('title_stem', ?)) AS rank", specification.getSearchName().trim());
         where.add("tsv @@ PLAINTO_TSQUERY('title_stem', ?)", specification.getSearchName().trim());
         // Override the order by for rank first
@@ -450,7 +465,7 @@ public class ItemRepository {
         where.add("geom IS NOT NULL");
         if (specification.getWithinMeters() > 0) {
           // @note currently slow
-//          where.add("ST_DWithin(geom::geography, (SELECT geom::geography FROM items WHERE item_id = ?), " + specification.getWithinMeters() + ")", specification.getNearItemId());
+          //          where.add("ST_DWithin(geom::geography, (SELECT geom::geography FROM items WHERE item_id = ?), " + specification.getWithinMeters() + ")", specification.getNearItemId());
         }
         // Override the order by for closest first
         orderBy.add("geom <-> (SELECT geom FROM items WHERE item_id = ?)", specification.getNearItemId());
@@ -460,9 +475,11 @@ public class ItemRepository {
         constraints.setUseCount(false);
         where.add("geom IS NOT NULL");
         if (specification.getWithinMeters() > 0) {
-          where.add("ST_DWithin(geom::geography, ST_SetSRID(ST_MakePoint(" + specification.getLatitude() + "," + specification.getLongitude() + "), 4326)::geography, " + specification.getWithinMeters() + ")");
+          where.add("ST_DWithin(geom::geography, ST_SetSRID(ST_MakePoint(" + specification.getLatitude() + ","
+              + specification.getLongitude() + "), 4326)::geography, " + specification.getWithinMeters() + ")");
         }
-        orderBy.add("geom <-> ST_SetSRID(ST_MakePoint(" + specification.getLatitude() + "," + specification.getLongitude() + "), 4326)");
+        orderBy.add("geom <-> ST_SetSRID(ST_MakePoint(" + specification.getLatitude() + ","
+            + specification.getLongitude() + "), 4326)");
       }
 
       if (specification.getHasCoordinates() != DataConstants.UNDEFINED) {
@@ -544,6 +561,21 @@ public class ItemRepository {
         ItemRepository::buildRecord);
   }
 
+  public static Item findByDatasetKeyValue(String datasetKeyValue, long datasetId) {
+    if (StringUtils.isBlank(datasetKeyValue)) {
+      return null;
+    }
+    if (datasetId == -1) {
+      LOG.warn("findByDatasetKeyValue dataset ID is -1");
+      return null;
+    }
+    return (Item) DB.selectRecordFrom(
+        TABLE_NAME, new SqlUtils()
+            .add("dataset_key_value = ?", datasetKeyValue)
+            .add("dataset_id = ?", datasetId),
+        ItemRepository::buildRecord);
+  }
+
   public static List<Item> findAll(ItemSpecification specification, DataConstraints constraints) {
     if (constraints == null) {
       constraints = new DataConstraints();
@@ -598,6 +630,8 @@ public class ItemRepository {
       record.setSource(rs.getString("source"));
       record.setDescription(rs.getString("description"));
       record.setUrlText(rs.getString("url_text"));
+      record.setDatasetSyncDate(rs.getTimestamp("sync_date"));
+      record.setDatasetKeyValue(rs.getString("dataset_key_value"));
       // Other
       if (DB.hasColumn(rs, "highlight")) {
         record.setHighlight(rs.getString("highlight"));

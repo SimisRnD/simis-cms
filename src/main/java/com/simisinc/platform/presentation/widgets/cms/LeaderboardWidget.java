@@ -16,7 +16,7 @@
 
 package com.simisinc.platform.presentation.widgets.cms;
 
-import com.simisinc.platform.application.admin.DatasetFileCommand;
+import com.simisinc.platform.application.datasets.DatasetFileCommand;
 import com.simisinc.platform.application.cms.GenerateLinkFromNameCommand;
 import com.simisinc.platform.domain.model.datasets.Dataset;
 import com.simisinc.platform.infrastructure.persistence.datasets.DatasetRepository;

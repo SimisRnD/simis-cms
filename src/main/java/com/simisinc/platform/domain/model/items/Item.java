@@ -83,6 +83,9 @@ public class Item extends Entity {
   private Map<String, CustomField> customFieldList = null;
   private String source = null;
   private String ipAddress = null;
+  private Timestamp datasetSyncDate = null;
+  private String datasetKeyValue = null;
+  // populated by search
   private String highlight = null;
 
   public Item() {
@@ -478,4 +481,21 @@ public class Item extends Entity {
   public void setUrlText(String urlText) {
     this.urlText = urlText;
   }
+
+  public Timestamp getDatasetSyncDate() {
+    return datasetSyncDate;
+  }
+
+  public void setDatasetSyncDate(Timestamp syncDate) {
+    this.datasetSyncDate = syncDate;
+  }
+
+  public String getDatasetKeyValue() {
+    return datasetKeyValue;
+  }
+
+  public void setDatasetKeyValue(String datasetKeyValue) {
+    this.datasetKeyValue = datasetKeyValue;
+  }
+
 }

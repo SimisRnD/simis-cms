@@ -16,36 +16,43 @@
 
 package com.simisinc.platform.presentation.widgets.admin.datasets;
 
+import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.datasets.DatasetFileCommand;
+import com.simisinc.platform.application.datasets.DeleteDatasetItemsCommand;
+import com.simisinc.platform.application.datasets.ProcessDatasetCommand;
 import com.simisinc.platform.application.items.LoadCollectionCommand;
 import com.simisinc.platform.domain.model.datasets.Dataset;
+import com.simisinc.platform.domain.model.datasets.DatasetScheduleFrequencyOptions;
 import com.simisinc.platform.domain.model.items.Category;
 import com.simisinc.platform.domain.model.items.Collection;
+import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.persistence.datasets.DatasetRepository;
 import com.simisinc.platform.infrastructure.persistence.items.CategoryRepository;
-import com.simisinc.platform.infrastructure.persistence.items.CollectionRepository;
+import com.simisinc.platform.infrastructure.persistence.items.ItemRepository;
+import com.simisinc.platform.infrastructure.persistence.items.ItemSpecification;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
-import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
 /**
- * Widget to configure dataset field mapping
+ * Widget to configure dataset download schedules and sync options
  *
  * @author matt rajkowski
- * @created 4/24/18 8:05 PM
+ * @created 7/31/2022 7:23 PM
  */
-public class DatasetMapperWidget extends GenericWidget {
+public class DatasetSyncWidget extends GenericWidget {
 
-  static final long serialVersionUID = -8484048371911908893L;
-  private static String JSP = "/admin/dataset-schema.jsp";
-  private static Log LOG = LogFactory.getLog(DatasetMapperWidget.class);
+  private static Log LOG = LogFactory.getLog(DatasetSyncWidget.class);
+
+  private static String JSP = "/admin/dataset-sync.jsp";
 
   public WidgetContext execute(WidgetContext context) {
 
@@ -69,16 +76,29 @@ public class DatasetMapperWidget extends GenericWidget {
       context.getRequest().setAttribute("dataset", dataset);
     }
 
-    // Collection drop-down
-    List<Collection> collectionList = CollectionRepository.findAll();
-    context.getRequest().setAttribute("collectionList", collectionList);
-    if (StringUtils.isNotBlank(dataset.getCollectionUniqueId())) {
-      Collection collection = LoadCollectionCommand.loadCollectionByUniqueId(dataset.getCollectionUniqueId());
+    // Collection
+    Collection collection = LoadCollectionCommand.loadCollectionByUniqueId(dataset.getCollectionUniqueId());
+    if (collection != null) {
+      context.getRequest().setAttribute("collection", collection);
       if (collection != null) {
         List<Category> categoryList = CategoryRepository.findAllByCollectionId(collection.getId());
         context.getRequest().setAttribute("categoryList", categoryList);
       }
     }
+
+    // New Collection
+
+    // Specific category
+
+    // Show the number of sync'd records
+    DataConstraints constraints = new DataConstraints(1, 1, "item_id");
+    ItemSpecification specification = new ItemSpecification();
+    specification.setDatasetId(dataset.getId());
+    ItemRepository.findAll(specification, constraints);
+    context.getRequest().setAttribute("syncCount", String.valueOf(constraints.getTotalRecordCount()));
+
+    // Show the Schedule Options
+    context.getRequest().setAttribute("scheduleOptionsMap", DatasetScheduleFrequencyOptions.map);
 
     // Column mapping comparisons
     ArrayList<String> fieldMappingsList = new ArrayList<>();
@@ -127,8 +147,7 @@ public class DatasetMapperWidget extends GenericWidget {
     return context;
   }
 
-  public WidgetContext post(WidgetContext context) {
-
+  public WidgetContext post(WidgetContext context) throws InvocationTargetException, IllegalAccessException {
     // Determine the current dataset
     long datasetId = context.getParameterAsLong("datasetId");
     Dataset dataset = DatasetRepository.findById(datasetId);
@@ -138,71 +157,73 @@ public class DatasetMapperWidget extends GenericWidget {
     }
 
     // Recommend a return URL
-    context.setRedirect("/admin/dataset-mapper?datasetId=" + dataset.getId());
+    context.setRedirect("/admin/dataset-sync?datasetId=" + dataset.getId());
 
-    // Populate required field for updates
+    // Process the data
+    String removeAll = context.getParameter("removeAll");
+    if (removeAll != null) {
+      return removeAll(context, dataset);
+    } else {
+      return saveForm(context, dataset);
+    }
+
+  }
+
+  private static WidgetContext removeAll(WidgetContext context, Dataset dataset) {
+    try {
+      long deleteCount = DeleteDatasetItemsCommand.deleteItemsForDataset(dataset, null);
+      if (deleteCount == 0) {
+        context.setSuccessMessage("There were no items to be removed");
+      } else if (deleteCount == 1) {
+        context.setSuccessMessage("Successfully removed 1 item");
+      } else {
+        context.setSuccessMessage("Successfully removed " + deleteCount + " items");
+      }
+    } catch (Exception e) {
+      context.setErrorMessage(e.getMessage());
+      context.setRequestObject(dataset);
+      return context;
+    }
+    return context;
+  }
+
+  private static WidgetContext saveForm(WidgetContext context, Dataset dataset)
+      throws InvocationTargetException, IllegalAccessException {
+    // Handle the form post
+    Dataset datasetBean = new Dataset();
+    BeanUtils.populate(datasetBean, context.getParameterMap());
+
+    // Set the allowed values
+    dataset.setScheduleEnabled(datasetBean.getScheduleEnabled());
+    dataset.setScheduleFrequency(datasetBean.getScheduleFrequency());
+    dataset.setSyncEnabled(datasetBean.getSyncEnabled());
+    dataset.setSyncMergeType(datasetBean.getSyncMergeType());
     dataset.setModifiedBy(context.getUserId());
 
-    // Determine if a collection will be used
-    String collectionUniqueId = context.getParameter("collectionUniqueId");
-    if (StringUtils.isBlank(collectionUniqueId)) {
-      dataset.setCollectionUniqueId(null);
-    } else {
-      // Set collection and category info
-      dataset.setCollectionUniqueId(collectionUniqueId);
-      Collection collection = LoadCollectionCommand.loadCollectionByUniqueId(collectionUniqueId);
-      long categoryId = context.getParameterAsLong("categoryId");
-      if (categoryId > 0) {
-        Category category = CategoryRepository.findById(categoryId);
-        if (category != null && category.getCollectionId() == collection.getId()) {
-          dataset.setCategoryId(categoryId);
-        }
-      }
-    }
-
-    // Determine the unique column and validate input
-    String uniqueColumnName = context.getParameter("uniqueColumnName");
-    if (dataset.getColumnNamesList().contains(uniqueColumnName)) {
-      dataset.setUniqueColumnName(uniqueColumnName);
-    }
-
-    // Look for the column field array
-    ArrayList<String> fieldMappings = new ArrayList<>();
-    for (int i = 0; i < dataset.getColumnCount(); i++) {
-      String mapValue = context.getParameter("columnMapping" + i);
-      if (StringUtils.isNotBlank(mapValue)) {
-        fieldMappings.add(mapValue);
-      } else {
-        fieldMappings.add("");
-      }
-    }
-    dataset.setFieldMappings(fieldMappings.toArray(new String[0]));
-
-    // Look for the column options array
-    ArrayList<String> fieldOptions = new ArrayList<>();
-    for (int i = 0; i < dataset.getColumnCount(); i++) {
-      String optionValue = context.getParameter("columnOptions" + i);
-      if (StringUtils.isNotBlank(optionValue)) {
-        if (optionValue.contains("|")) {
-          context.setErrorMessage("Option contained an invalid character");
-          return context;
-        }
-        fieldOptions.add(optionValue);
-      } else {
-        fieldOptions.add("");
-      }
-    }
-    dataset.setFieldOptions(fieldOptions.toArray(new String[0]));
-
-    // Save the dataset record
-    dataset = DatasetRepository.updateMapping(dataset);
+    // Save the dataset record sync values
+    dataset = DatasetRepository.updateScheduleAndSyncDetails(dataset);
     if (dataset == null) {
       context.setErrorMessage("An error occurred, the dataset was not saved");
       context.setRequestObject(dataset);
       return context;
     }
 
-    context.setSuccessMessage("The settings were saved successfully");
+    // Process the data
+    String doProcess = context.getParameter("process");
+    if (doProcess != null) {
+      try {
+        ProcessDatasetCommand.startProcess(dataset);
+      } catch (DataException de) {
+        context.setErrorMessage("An error occurred: " + de.getMessage());
+        context.setRequestObject(dataset);
+        return context;
+      }
+      context.setSuccessMessage("Processing started...");
+      return context;
+    }
+
+    context.setSuccessMessage("The settings were updated successfully");
     return context;
   }
+
 }

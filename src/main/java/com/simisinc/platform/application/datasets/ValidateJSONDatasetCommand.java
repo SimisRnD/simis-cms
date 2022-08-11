@@ -14,10 +14,10 @@
  * limitations under the License.
  */
 
-package com.simisinc.platform.application.admin;
+package com.simisinc.platform.application.datasets;
 
-import com.rometools.rome.feed.synd.SyndFeed;
-import com.rometools.rome.io.SyndFeedInput;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.github.fge.jackson.JsonLoader;
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.domain.model.datasets.Dataset;
 import org.apache.commons.io.FilenameUtils;
@@ -30,14 +30,14 @@ import java.nio.file.Files;
 import java.util.List;
 
 /**
- * Checks and processes RSS Feed files
+ * Checks and processes JSON files
  *
  * @author matt rajkowski
- * @created 1/29/2019 3:20 PM
+ * @created 4/25/18 9:05 AM
  */
-public class ValidateRSSDatasetCommand {
+public class ValidateJSONDatasetCommand {
 
-  private static Log LOG = LogFactory.getLog(ValidateRSSDatasetCommand.class);
+  private static Log LOG = LogFactory.getLog(ValidateJSONDatasetCommand.class);
 
   public static void checkFile(Dataset datasetBean) throws DataException {
 
@@ -48,17 +48,18 @@ public class ValidateRSSDatasetCommand {
     }
 
     // Check mime type
+    // text/json?
+    // application/json
     String mimeType = null;
     try {
       mimeType = Files.probeContentType(datasetFile.toPath());
-      LOG.debug("MimeType: " + mimeType);
     } catch (Exception e) {
       LOG.error("Error checking file for data", e);
     }
     if (mimeType == null) {
       String extension = FilenameUtils.getExtension(datasetFile.getAbsolutePath());
-      if ("xml".equalsIgnoreCase(extension)) {
-        mimeType = "application/rss+xml";
+      if ("json".equalsIgnoreCase(extension)) {
+        mimeType = "application/json";
       } else {
         throw new DataException("Could not determine type");
       }
@@ -66,28 +67,44 @@ public class ValidateRSSDatasetCommand {
     LOG.debug("MimeType: " + mimeType);
     datasetBean.setFileType(mimeType);
 
-    // Validate the content before continuing
-    SyndFeed feed = null;
+    // Read the file for columns and row counts
+    JsonNode json = null;
     try {
-      feed = new SyndFeedInput().build(datasetFile);
+      json = JsonLoader.fromFile(datasetFile);
+
+      // If an array, use the document node
+      if (StringUtils.isBlank(datasetBean.getRecordsPath())) {
+        if (json.isArray()) {
+          datasetBean.setRecordsPath("/");
+        }
+      }
+
+      // Verify the specified data path
+      if (StringUtils.isNotBlank(datasetBean.getRecordsPath())) {
+        String[] recordsPath = datasetBean.getRecordsPath().split("/");
+        for (String fieldName : recordsPath) {
+          if (json.has(fieldName)) {
+            json = json.get(fieldName);
+          }
+        }
+        if (json.isArray()) {
+          datasetBean.setRowCount(json.size());
+        }
+      }
     } catch (Exception e) {
-      throw new DataException("The content could not be parsed: " + e.getMessage());
+      LOG.error("JSON Error: " + e.getMessage());
+      throw new DataException("File type is incorrect: " + e.getMessage());
     }
-    if (StringUtils.isBlank(datasetBean.getName()) && StringUtils.isNotBlank(feed.getTitle())) {
-      datasetBean.setName(feed.getTitle());
+
+    if (datasetBean.getColumnCount() == -1) {
+      datasetBean.setColumnCount(0);
     }
-    if (StringUtils.isBlank(datasetBean.getSourceInfo()) && StringUtils.isNotBlank(feed.getDescription())) {
-      datasetBean.setSourceInfo(feed.getDescription());
-    }
-    datasetBean.setRowCount(feed.getEntries().size());
-    datasetBean.setColumnCount(4);
-    datasetBean.setColumnNames(new String[]{"title", "link", "pubDate", "description"});
   }
 
   public static boolean validateAllRows(Dataset dataset) throws DataException {
 
     // Load the rows
-    List<String[]> rows = LoadRSSFeedCommand.loadRows(dataset, Integer.MAX_VALUE);
+    List<String[]> rows = LoadJsonCommand.loadRecords(dataset, Integer.MAX_VALUE, true);
 
     // Use the field mappings
     List<String> fieldMappings = dataset.getFieldMappingsList();
