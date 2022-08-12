@@ -14,6 +14,7 @@
   ~ limitations under the License.
   --%>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <%@ taglib prefix="font" uri="/WEB-INF/font-functions.tld" %>
 <%@ taglib prefix="js" uri="/WEB-INF/javascript-escape.tld" %>
@@ -33,8 +34,9 @@
     <tr>
       <th>Name</th>
       <th width="180" class="text-center">Data Date</th>
-      <th width="200" class="text-center">Data Status</th>
-      <th width="200" class="text-center">Sync Status</th>
+      <th width="180" class="text-center">Schedule Status</th>
+      <th width="180" class="text-center">Sync Status</th>
+      <th width="180" class="text-center">Records</th>
       <th class="text-center">File Type</th>
       <th class="text-center">Size</th>
       <th width="80">Action</th>
@@ -45,37 +47,30 @@
     <tr>
       <td>
         <a href="${ctx}/admin/dataset-preview?datasetId=${dataset.id}"><c:out value="${dataset.name}" /></a>
-        <c:if test="${dataset.rowCount gt -1}">
-          <br />
-          <small><fmt:formatNumber value="${dataset.rowCount}" /> record<c:if test="${dataset.rowCount ne 1}">s</c:if></small>
-        </c:if>
-        <%--
-        <c:choose>
-          <c:when test="${dataset.rowsProcessed lt dataset.rowCount && dataset.rowsProcessed gt 0}">
-            <span class="label round warning" id="rowCount"><fmt:formatNumber value="${dataset.rowCount}" /></span>
-          </c:when>
-          <c:when test="${!empty dataset.processed}">
-            <span class="label round success" id="rowCount"><fmt:formatNumber value="${dataset.rowCount}" /></span>
-          </c:when>
-          <c:otherwise>
-            <span class="label round" id="rowCount"><fmt:formatNumber value="${dataset.rowCount}" /></span>
-          </c:otherwise>
-        </c:choose>
-        --%>
+        <br />
+        <small>
+          <c:if test="${dataset.rowsProcessed gt -1}"><fmt:formatNumber value="${dataset.rowsProcessed}" /> /</c:if>
+          <c:if test="${dataset.rowCount gt -1}">          
+            <fmt:formatNumber value="${dataset.rowCount}" /> record<c:if test="${dataset.rowCount ne 1}">s</c:if>
+          </c:if>
+        </small>
       </td>
       <td class="text-center">
-        <small>
         <c:choose>
           <c:when test="${!empty dataset.lastDownload}">
-            <fmt:formatDate pattern="yyyy-MM-dd hh:mm a" value="${dataset.lastDownload}" /><br />
-            <c:out value="${date:relative(dataset.lastDownload)}" />
+            <c:choose>
+              <c:when test="${fn:contains(date:relative(dataset.lastDownload), 'an hour') || fn:contains(date:relative(dataset.lastDownload), 'minute') || fn:contains(date:relative(dataset.lastDownload), 'now')}">
+                <span class="label round tiny success"><c:out value="${date:relative(dataset.lastDownload)}" /></span>
+              </c:when>
+              <c:otherwise>
+                <span class="label round tiny"><c:out value="${date:relative(dataset.lastDownload)}" /></span>
+              </c:otherwise>
+            </c:choose>
           </c:when>
           <c:otherwise>
-            <fmt:formatDate pattern="yyyy-MM-dd hh:mm a" value="${dataset.created}" /><br />
-            <c:out value="${date:relative(dataset.created)}" />
+            <small><c:out value="${date:relative(dataset.created)}" /></small>
           </c:otherwise>
         </c:choose>
-        </small>
       </td>
       <td class="text-center">
         <c:if test="${dataset.scheduleEnabled}">
@@ -92,6 +87,21 @@
           </c:choose>
           <br />
           <small><c:out value="${dataset.scheduleFrequency}" /></small>
+        </c:if>
+      </td>
+      <td class="text-center">
+        <c:if test="${dataset.syncEnabled}">
+          <c:choose>
+            <c:when test="${dataset.syncStatus eq 1}">
+              <span class="label round primary">Processing</span>
+            </c:when>
+            <c:when test="${dataset.syncStatus gt 1}">
+              <span class="label round alert">Failed</span>
+            </c:when>
+            <c:otherwise>
+              <span class="label round success">Enabled</span>
+            </c:otherwise>
+          </c:choose>
         </c:if>
       </td>
       <td class="text-center">
@@ -127,23 +137,10 @@
         <%--<a href="${ctx}/admin/dataset?datasetId=${dataset.id}"><i class="fas fa-edit"></i></a>--%>
       </td>
     </tr>
-<%--
-    <c:if test="${!empty dataset.columnNames}">
-      <tr>
-        <td colspan="7">
-          <small class="subheader">
-            <c:forEach items="${dataset.columnNames}" var="column" varStatus="status">
-              <c:out value="${column}" /><c:if test="${!status.last}">,</c:if>
-            </c:forEach>
-          </small>
-        </td>
-      </tr>
-    </c:if>
---%>
     </c:forEach>
     <c:if test="${empty datasetList}">
       <tr>
-        <td colspan="7">No datasets were found</td>
+        <td colspan="8">No datasets were found</td>
       </tr>
     </c:if>
   </tbody>
