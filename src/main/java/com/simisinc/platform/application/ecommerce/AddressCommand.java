@@ -16,28 +16,25 @@
 
 package com.simisinc.platform.application.ecommerce;
 
-import com.simisinc.platform.application.DataException;
-import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
-import com.simisinc.platform.domain.model.ecommerce.Address;
+import java.io.InputStream;
+import java.net.URLEncoder;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.commons.text.StringEscapeUtils;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.util.EntityUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import java.io.InputStream;
-import java.net.URLEncoder;
+import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.http.HttpGetToStringCommand;
+import com.simisinc.platform.domain.model.ecommerce.Address;
 
 /**
  * Address verification
@@ -75,9 +72,7 @@ public class AddressCommand {
     String service = LoadSitePropertyCommand.loadByName("ecommerce.addressValidation");
     String uspsUserId = LoadSitePropertyCommand.loadByName("ecommerce.usps.webtools.userid");
 
-
     // @todo Determine if using USPS or Built-In Zipcode data to format address
-
 
     // Use USPS Verification
     if (StringUtils.isBlank(service) || !service.equalsIgnoreCase("USPS")) {
@@ -90,27 +85,41 @@ public class AddressCommand {
     }
 
     // Create the xml
-    String xml =
-        "<AddressValidateRequest USERID=\"" + StringEscapeUtils.escapeXml11(uspsUserId) + "\">" +
-            "<Revision>1</Revision>" +
-            "<Address ID=\"0\">" +
-            (StringUtils.isNotBlank(address.getStreet()) ? "<Address1>" + StringEscapeUtils.escapeXml11(address.getStreet().trim()) + "</Address1>" : "<Address1/>") +
-            (StringUtils.isNotBlank(address.getAddressLine2()) ? "<Address2>" + StringEscapeUtils.escapeXml11(address.getAddressLine2().trim()) + "</Address2>" : "<Address2/>") +
-            (StringUtils.isNotBlank(address.getCity()) ? "<City>" + StringEscapeUtils.escapeXml11(address.getCity().trim()) + "</City>" : "<City/>") +
-            (StringUtils.isNotBlank(address.getState()) ? "<State>" + StringEscapeUtils.escapeXml11(address.getState().trim()) + "</State>" : "<State/>") +
-            (StringUtils.isNotBlank(address.getPostalCode()) ? "<Zip5>" + StringEscapeUtils.escapeXml11(address.getPostalCode().trim()) + "</Zip5>" : "<Zip5/>") +
-            "<Zip4></Zip4>" +
-            "</Address>" +
-            "</AddressValidateRequest>";
+    String xml = "<AddressValidateRequest USERID=\"" + StringEscapeUtils.escapeXml11(uspsUserId) + "\">" +
+        "<Revision>1</Revision>" +
+        "<Address ID=\"0\">" +
+        (StringUtils.isNotBlank(address.getStreet())
+            ? "<Address1>" + StringEscapeUtils.escapeXml11(address.getStreet().trim()) + "</Address1>"
+            : "<Address1/>")
+        +
+        (StringUtils.isNotBlank(address.getAddressLine2())
+            ? "<Address2>" + StringEscapeUtils.escapeXml11(address.getAddressLine2().trim()) + "</Address2>"
+            : "<Address2/>")
+        +
+        (StringUtils.isNotBlank(address.getCity())
+            ? "<City>" + StringEscapeUtils.escapeXml11(address.getCity().trim()) + "</City>"
+            : "<City/>")
+        +
+        (StringUtils.isNotBlank(address.getState())
+            ? "<State>" + StringEscapeUtils.escapeXml11(address.getState().trim()) + "</State>"
+            : "<State/>")
+        +
+        (StringUtils.isNotBlank(address.getPostalCode())
+            ? "<Zip5>" + StringEscapeUtils.escapeXml11(address.getPostalCode().trim()) + "</Zip5>"
+            : "<Zip5/>")
+        +
+        "<Zip4></Zip4>" +
+        "</Address>" +
+        "</AddressValidateRequest>";
 
     // Retrieve a formatted address
     try {
       LOG.debug("Sending xml... " + xml);
-      HttpClient client = HttpClientBuilder.create().build();
-      HttpGet request = new HttpGet(USPS_SHIPPING_API_URL + URLEncoder.encode(xml, "UTF-8"));
-      HttpResponse response = client.execute(request);
-      HttpEntity entity = response.getEntity();
-      String responseValue = EntityUtils.toString(entity);
+      String url = USPS_SHIPPING_API_URL + URLEncoder.encode(xml, "UTF-8");
+      String responseValue = HttpGetToStringCommand.execute(url);
+      if (responseValue == null) {
+        return null;
+      }
       LOG.debug("USPS RESPONSE: " + responseValue);
 
       // Process the XML response
@@ -187,14 +196,13 @@ public class AddressCommand {
   }
 
   public static boolean isMostlyTheSame(Address address1, Address address2) {
-    return (
-        address1.getStreet().equalsIgnoreCase(address2.getStreet()) &&
-            ((StringUtils.isBlank(address1.getAddressLine2()) && StringUtils.isBlank(address2.getAddressLine2()))
-                || address1.getAddressLine2().equalsIgnoreCase(address2.getAddressLine2())) &&
-            address1.getCity().equalsIgnoreCase(address2.getCity()) &&
-            address1.getState().equalsIgnoreCase(address2.getState()) &&
-            address1.getPostalCode().substring(0, 5).equalsIgnoreCase(address2.getPostalCode().substring(0, 5))
-    );
+    return (address1.getStreet().equalsIgnoreCase(address2.getStreet()) &&
+        ((StringUtils.isBlank(address1.getAddressLine2()) && StringUtils.isBlank(address2.getAddressLine2()))
+            || address1.getAddressLine2().equalsIgnoreCase(address2.getAddressLine2()))
+        &&
+        address1.getCity().equalsIgnoreCase(address2.getCity()) &&
+        address1.getState().equalsIgnoreCase(address2.getState()) &&
+        address1.getPostalCode().substring(0, 5).equalsIgnoreCase(address2.getPostalCode().substring(0, 5)));
   }
 
   private static void appendMessage(StringBuilder errorMessages, String message) {

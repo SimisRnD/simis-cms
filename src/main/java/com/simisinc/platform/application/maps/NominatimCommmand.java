@@ -16,24 +16,22 @@
 
 package com.simisinc.platform.application.maps;
 
-import com.simisinc.platform.ApplicationInfo;
-import com.simisinc.platform.domain.model.items.Item;
+import static org.jobrunr.utils.resilience.RateLimiter.SECOND;
+import static org.jobrunr.utils.resilience.RateLimiter.Builder.rateLimit;
+
+import java.net.URLEncoder;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.TimeUnit;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.util.EntityUtils;
 import org.jobrunr.utils.resilience.RateLimiter;
 
-import java.net.URLEncoder;
-import java.util.concurrent.TimeUnit;
-
-import static org.jobrunr.utils.resilience.RateLimiter.Builder.rateLimit;
-import static org.jobrunr.utils.resilience.RateLimiter.SECOND;
+import com.simisinc.platform.ApplicationInfo;
+import com.simisinc.platform.application.http.HttpGetToStringCommand;
+import com.simisinc.platform.domain.model.items.Item;
 
 /**
  * Nominatim integration
@@ -89,12 +87,12 @@ public class NominatimCommmand {
         TimeUnit.MILLISECONDS.sleep(100);
       }
       // HTTP request
-      HttpClient client = HttpClientBuilder.create().build();
-      HttpGet request = new HttpGet(url);
-      request.setHeader("User-Agent", ApplicationInfo.PRODUCT_NAME);
-      HttpResponse response = client.execute(request);
-      HttpEntity entity = response.getEntity();
-      String value = EntityUtils.toString(entity);
+      Map<String, String> headers = new HashMap<>();
+      headers.put("User-Agent", ApplicationInfo.PRODUCT_NAME);
+      String value = HttpGetToStringCommand.execute(url, headers);
+      if (value == null) {
+        return item;
+      }
 
       // [
       //  {

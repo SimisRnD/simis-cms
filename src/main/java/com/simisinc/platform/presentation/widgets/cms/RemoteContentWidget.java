@@ -16,19 +16,9 @@
 
 package com.simisinc.platform.presentation.widgets.cms;
 
-import com.github.benmanes.caffeine.cache.Cache;
-import com.simisinc.platform.infrastructure.cache.CacheManager;
-import com.simisinc.platform.presentation.controller.WidgetContext;
-import com.simisinc.platform.presentation.widgets.GenericWidget;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.util.EntityUtils;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -36,6 +26,12 @@ import org.jsoup.nodes.Entities;
 import org.jsoup.safety.Cleaner;
 import org.jsoup.safety.Safelist;
 import org.jsoup.select.Elements;
+
+import com.github.benmanes.caffeine.cache.Cache;
+import com.simisinc.platform.application.http.HttpGetToStringCommand;
+import com.simisinc.platform.infrastructure.cache.CacheManager;
+import com.simisinc.platform.presentation.controller.WidgetContext;
+import com.simisinc.platform.presentation.widgets.GenericWidget;
 
 /**
  * Description
@@ -77,88 +73,76 @@ public class RemoteContentWidget extends GenericWidget {
     // @todo if this fails we don't want many more requests...
     try {
       long startRequestTime = System.currentTimeMillis();
-      HttpClient client = HttpClientBuilder.create().build();
-      HttpGet request = new HttpGet(url);
-      HttpResponse response = client.execute(request);
-      if (response != null) {
-        HttpEntity entity = response.getEntity();
-        if (entity == null) {
-          return null;
-        }
-        String remoteContent = EntityUtils.toString(entity);
-        if (StringUtils.isBlank(remoteContent)) {
-          return null;
-        }
+      String remoteContent = HttpGetToStringCommand.execute(url);
+      if (StringUtils.isBlank(remoteContent)) {
+        return null;
+      }
+      long endRequestTime = System.currentTimeMillis();
+      long totalTime = endRequestTime - startRequestTime;
+      LOG.info("Remote request: " + url + " " + totalTime + "ms");
 
-        long endRequestTime = System.currentTimeMillis();
-        long totalTime = endRequestTime - startRequestTime;
-        LOG.info("Remote request: " + url + " " + totalTime + "ms");
-
-        // Determine if the content can be returned as-is
-        boolean doClean = Boolean.parseBoolean(context.getPreferences().getOrDefault("clean", "true"));
-        if (!doClean) {
-          // Trusted content, like a micro-service
-          cache.put(url, remoteContent);
-          return useReturnType(context, remoteContent);
-        }
-
-        // Get a portion of the content
-        String start = context.getPreferences().get("startTag");
-        String end = context.getPreferences().get("endTag");
-        if (start != null && end != null) {
-          boolean trimSuccess = false;
-          int startIdx = remoteContent.indexOf(start);
-          if (startIdx > -1) {
-            int endIdx = remoteContent.indexOf(end, startIdx);
-            if (endIdx > -1) {
-              if (!includeTags) {
-                startIdx = startIdx + start.length();
-                endIdx = endIdx - end.length();
-              }
-              remoteContent = remoteContent.substring(startIdx, endIdx + end.length());
-              trimSuccess = true;
-            }
-          }
-          if (!trimSuccess) {
-            LOG.warn("The content could not be trimmed for url: " + url);
-            return null;
-          }
-        }
-
-        // Clean the content
-        Safelist safelist = Safelist.relaxed();
-        safelist.addAttributes("span", "style");
-        Document dirty = Jsoup.parseBodyFragment(remoteContent, "");
-        Cleaner cleaner = new Cleaner(safelist);
-        Document clean = cleaner.clean(dirty);
-
-        // Make sure all elements target blank, add no follow
-        Elements select = clean.select("a");
-        for (Element e : select) {
-          // baseUri will be used by absUrl
-//              String absUrl = e.absUrl("href");
-//              e.attr("href", absUrl);
-          e.attr("target", "_blank");
-          e.attr("rel", "nofollow");
-        }
-
-        // Allow HTML entities
-        Document.OutputSettings settings = clean.outputSettings();
-        settings.prettyPrint(false);
-        settings.escapeMode(Entities.EscapeMode.extended);
-        settings.charset("ASCII");
-        content = clean.body().html();
-
-        // Check for additional processing
-        if ("true".equals(context.getPreferences().get("adjustTable"))) {
-          content = StringUtils.replace(content, "<table>", "<table class=\"scroll\">");
-        }
-
-        cache.put(url, content);
-        return useReturnType(context, content);
+      // Determine if the content can be returned as-is
+      boolean doClean = Boolean.parseBoolean(context.getPreferences().getOrDefault("clean", "true"));
+      if (!doClean) {
+        // Trusted content, like a micro-service
+        cache.put(url, remoteContent);
+        return useReturnType(context, remoteContent);
       }
 
+      // Get a portion of the content
+      String start = context.getPreferences().get("startTag");
+      String end = context.getPreferences().get("endTag");
+      if (start != null && end != null) {
+        boolean trimSuccess = false;
+        int startIdx = remoteContent.indexOf(start);
+        if (startIdx > -1) {
+          int endIdx = remoteContent.indexOf(end, startIdx);
+          if (endIdx > -1) {
+            if (!includeTags) {
+              startIdx = startIdx + start.length();
+              endIdx = endIdx - end.length();
+            }
+            remoteContent = remoteContent.substring(startIdx, endIdx + end.length());
+            trimSuccess = true;
+          }
+        }
+        if (!trimSuccess) {
+          LOG.warn("The content could not be trimmed for url: " + url);
+          return null;
+        }
+      }
 
+      // Clean the content
+      Safelist safelist = Safelist.relaxed();
+      safelist.addAttributes("span", "style");
+      Document dirty = Jsoup.parseBodyFragment(remoteContent, "");
+      Cleaner cleaner = new Cleaner(safelist);
+      Document clean = cleaner.clean(dirty);
+
+      // Make sure all elements target blank, add no follow
+      Elements select = clean.select("a");
+      for (Element e : select) {
+        // baseUri will be used by absUrl
+        //              String absUrl = e.absUrl("href");
+        //              e.attr("href", absUrl);
+        e.attr("target", "_blank");
+        e.attr("rel", "nofollow");
+      }
+
+      // Allow HTML entities
+      Document.OutputSettings settings = clean.outputSettings();
+      settings.prettyPrint(false);
+      settings.escapeMode(Entities.EscapeMode.extended);
+      settings.charset("ASCII");
+      content = clean.body().html();
+
+      // Check for additional processing
+      if ("true".equals(context.getPreferences().get("adjustTable"))) {
+        content = StringUtils.replace(content, "<table>", "<table class=\"scroll\">");
+      }
+
+      cache.put(url, content);
+      return useReturnType(context, content);
     } catch (Exception e) {
       LOG.warn("Could not get content from: " + url, e);
     }

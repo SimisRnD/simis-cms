@@ -16,21 +16,17 @@
 
 package com.simisinc.platform.application.socialmedia;
 
+import java.util.ArrayList;
+import java.util.Iterator;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.fge.jackson.JsonLoader;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.http.HttpGetToStringCommand;
 import com.simisinc.platform.domain.model.socialmedia.InstagramMedia;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.util.EntityUtils;
-
-import java.util.ArrayList;
-import java.util.Iterator;
 
 /**
  * Instagram integration
@@ -62,8 +58,8 @@ public class InstagramCommand {
 
   public static String retrieveAppAccessToken() {
     // @todo this method requires a Facebook verified business account and approved permissions
-//    String appId = "---";
-//    String appSecret = "---";
+    //    String appId = "---";
+    //    String appSecret = "---";
     return null;
   }
 
@@ -81,11 +77,10 @@ public class InstagramCommand {
 
     String url = BASE_URL + "/me/accounts?access_token=" + accessToken;
     try {
-      HttpClient client = HttpClientBuilder.create().build();
-      HttpGet request = new HttpGet(url);
-      HttpResponse response = client.execute(request);
-      HttpEntity entity = response.getEntity();
-      String value = EntityUtils.toString(entity);
+      String value = HttpGetToStringCommand.execute(url);
+      if (value == null) {
+        return null;
+      }
       LOG.debug("Value: " + value);
 
       JsonNode json = JsonLoader.fromString(value);
@@ -98,7 +93,7 @@ public class InstagramCommand {
             if (account.has("name") && pageName.equals(account.get("name").asText())) {
               String facebookPageId = account.get("id").asText();
               String accessTokenForPage = account.get("access_token").asText();
-              return new String[]{facebookPageId, accessTokenForPage};
+              return new String[] { facebookPageId, accessTokenForPage };
             }
           }
         }
@@ -124,11 +119,10 @@ public class InstagramCommand {
 
     String url = BASE_URL + "/" + facebookId + "?fields=instagram_business_account&access_token=" + accessToken;
     try {
-      HttpClient client = HttpClientBuilder.create().build();
-      HttpGet request = new HttpGet(url);
-      HttpResponse response = client.execute(request);
-      HttpEntity entity = response.getEntity();
-      String value = EntityUtils.toString(entity);
+      String value = HttpGetToStringCommand.execute(url);
+      if (value == null) {
+        return null;
+      }
       LOG.debug("Value: " + value);
 
       int fieldNameIdx = value.indexOf("\"instagram_business_account\":");
@@ -163,11 +157,10 @@ public class InstagramCommand {
 
     String url = BASE_URL + "/" + igUserId + "/media?access_token=" + accessToken;
     try {
-      HttpClient client = HttpClientBuilder.create().build();
-      HttpGet request = new HttpGet(url);
-      HttpResponse response = client.execute(request);
-      HttpEntity entity = response.getEntity();
-      String value = EntityUtils.toString(entity);
+      String value = HttpGetToStringCommand.execute(url);
+      if (value == null) {
+        return null;
+      }
       LOG.debug("Value: " + value);
 
       int dataIdx = value.indexOf("\"data\":");
@@ -208,13 +201,13 @@ public class InstagramCommand {
       return null;
     }
 
-    String url = BASE_URL + "/" + graphId + "?fields=permalink,media_type,media_url,caption,shortcode,timestamp&access_token=" + accessToken;
+    String url = BASE_URL + "/" + graphId
+        + "?fields=permalink,media_type,media_url,caption,shortcode,timestamp&access_token=" + accessToken;
     try {
-      HttpClient client = HttpClientBuilder.create().build();
-      HttpGet request = new HttpGet(url);
-      HttpResponse response = client.execute(request);
-      HttpEntity entity = response.getEntity();
-      String value = EntityUtils.toString(entity);
+      String value = HttpGetToStringCommand.execute(url);
+      if (value == null) {
+        return null;
+      }
       LOG.debug("Value: " + value);
 
       JsonNode json = JsonLoader.fromString(value);
