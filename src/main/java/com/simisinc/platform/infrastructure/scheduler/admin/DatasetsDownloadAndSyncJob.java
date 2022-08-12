@@ -54,9 +54,11 @@ public class DatasetsDownloadAndSyncJob {
       try {
         // Do the download
         DatasetDownloadRemoteFileCommand.handleRemoteFileDownload(dataset, dataset.getModifiedBy());
+        LOG.info("Downloaded dataset: " + dataset.getName());
       } catch (Exception e) {
         // Mark this for trying again later, record the error message
         DatasetRepository.markToRetryDownload(dataset, e.getMessage());
+        LOG.warn("Download attempt failed for dataset: " + dataset.getName());
       }
 
       // Check if the dataset has sync'ing enabled
