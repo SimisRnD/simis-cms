@@ -313,6 +313,9 @@ public class DatasetFileCommand {
       LOG.error("Unexpected exception: " + e.getMessage());
       throw new DataException("Unexpected error");
     }
+
+    // Mark it as updated/unlocked
+    DatasetRepository.markAsUnqueued(dataset);
   }
 
   public static String saveFile(Part filePart, String completePath, File tempFile) {

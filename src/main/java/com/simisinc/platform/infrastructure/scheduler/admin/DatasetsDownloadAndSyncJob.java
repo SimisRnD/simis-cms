@@ -52,8 +52,6 @@ public class DatasetsDownloadAndSyncJob {
       try {
         // Do the download
         DatasetFileCommand.handleRemoteFileDownload(dataset, dataset.getModifiedBy());
-        // Mark it as updated/unlocked
-        DatasetRepository.markAsUnqueued(dataset);
       } catch (Exception e) {
         // Mark this for trying again later, record the error message
         DatasetRepository.markToRetryDownload(dataset, e.getMessage());

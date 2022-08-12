@@ -154,8 +154,8 @@ public class DatasetSourceWidget extends GenericWidget {
       return context;
     }
 
-    // Perform the remote download
     try {
+      // Perform the remote download
       DatasetFileCommand.handleRemoteFileDownload(dataset, context.getUserId());
     } catch (DataException e) {
       context.setErrorMessage(e.getMessage());
