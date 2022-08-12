@@ -16,19 +16,21 @@
 
 package com.simisinc.platform.presentation.widgets.admin.datasets;
 
+import java.lang.reflect.InvocationTargetException;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.cms.UrlCommand;
-import com.simisinc.platform.application.datasets.DatasetFileCommand;
+import com.simisinc.platform.application.datasets.DatasetDownloadRemoteFileCommand;
+import com.simisinc.platform.application.datasets.DatasetUploadFileCommand;
 import com.simisinc.platform.application.datasets.SaveDatasetCommand;
 import com.simisinc.platform.domain.model.datasets.Dataset;
 import com.simisinc.platform.infrastructure.persistence.datasets.DatasetRepository;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
-import java.lang.reflect.InvocationTargetException;
 
 /**
  * Widget to configure dataset remote url and file attachments
@@ -156,7 +158,7 @@ public class DatasetSourceWidget extends GenericWidget {
 
     try {
       // Perform the remote download
-      DatasetFileCommand.handleRemoteFileDownload(dataset, context.getUserId());
+      DatasetDownloadRemoteFileCommand.handleRemoteFileDownload(dataset, context.getUserId());
     } catch (DataException e) {
       context.setErrorMessage(e.getMessage());
       context.setRequestObject(dataset);
@@ -169,7 +171,7 @@ public class DatasetSourceWidget extends GenericWidget {
 
   private WidgetContext uploadFileAction(WidgetContext context, Dataset dataset) {
     // Check for an uploaded file and validate
-    if (!DatasetFileCommand.handleUpload(context, dataset)) {
+    if (!DatasetUploadFileCommand.handleUpload(context, dataset)) {
       context.setWarningMessage("The file was not updated");
       return context;
     }
