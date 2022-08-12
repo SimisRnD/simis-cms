@@ -135,9 +135,6 @@
         <select name="syncMergeType">
           <option value="">Choose</option>
           <option value="sync"<c:if test="${dataset.syncMergeType eq 'sync'}"> selected</c:if>>Full Merge: Add, Update, and Delete records</option>
-          <option value="replace"<c:if test="${dataset.syncMergeType eq 'replace'}"> selected</c:if>>Replace All: Reload and replace dataset records</option>
-          <option value="update"<c:if test="${dataset.syncMergeType eq 'update'}"> selected</c:if>>Update All: Add new records and Update existing records</option>
-          <option value="append"<c:if test="${dataset.syncMergeType eq 'append'}"> selected</c:if>>Append Only: Add new records only</option>
         </select>
       </div>
     </div>
