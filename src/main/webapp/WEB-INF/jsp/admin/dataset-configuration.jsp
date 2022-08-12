@@ -39,6 +39,9 @@
     <label>JSON Records Path
       <input type="text" placeholder="/" name="recordsPath" value="<c:out value="${dataset.recordsPath}"/>">
     </label>
+    <label>JSON Paging URL Path
+      <input type="text" placeholder="/next" name="pagingUrlPath" value="<c:out value="${dataset.pagingUrlPath}"/>">
+    </label>
     <label>JSON Columns Configuration
       <textarea name="columnConfiguration" rows="12"><c:out value="${columnConfiguration}"/></textarea>
     </label>

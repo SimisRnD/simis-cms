@@ -21,6 +21,7 @@ import com.simisinc.platform.domain.model.Group;
 import com.simisinc.platform.domain.model.Role;
 import com.simisinc.platform.domain.model.User;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -38,8 +39,8 @@ public class MeHandler {
   String nickname;
   @JsonInclude(JsonInclude.Include.NON_NULL)
   String email;
-  List<Role> roleList = null;
-  List<Group> groupList = null;
+  List<String> roleList = null;
+  List<String> groupList = null;
 
   public MeHandler(User thisUser) {
     firstName = thisUser.getFirstName();
@@ -51,8 +52,24 @@ public class MeHandler {
     } else {
       email = null;
     }
-    roleList = thisUser.getRoleList();
-    groupList = thisUser.getGroupList();
+
+    // Just return the names
+    List<Role> serverRoleList = thisUser.getRoleList();
+    if (serverRoleList != null) {
+      roleList = new ArrayList<>();
+      for (Role role : serverRoleList) {
+        roleList.add(role.getTitle());
+      }
+    }
+
+    // // Just return the names
+    List<Group> serverGroupList = thisUser.getGroupList();
+    if (serverGroupList != null) {
+      groupList = new ArrayList<>();
+      for (Group group : serverGroupList) {
+        groupList.add(group.getName());
+      }
+    }
   }
 
   public String getFirstName() {
@@ -95,19 +112,19 @@ public class MeHandler {
     this.email = email;
   }
 
-  public List<Role> getRoleList() {
+  public List<String> getRoleList() {
     return roleList;
   }
 
-  public void setRoleList(List<Role> roleList) {
+  public void setRoleList(List<String> roleList) {
     this.roleList = roleList;
   }
 
-  public List<Group> getGroupList() {
+  public List<String> getGroupList() {
     return groupList;
   }
 
-  public void setGroupList(List<Group> groupList) {
+  public void setGroupList(List<String> groupList) {
     this.groupList = groupList;
   }
 

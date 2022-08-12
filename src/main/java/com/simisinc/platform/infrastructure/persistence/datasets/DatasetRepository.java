@@ -109,6 +109,7 @@ public class DatasetRepository {
         .add("path", StringUtils.trimToNull(record.getFileServerPath()))
         .add("last_download", record.getLastDownload())
         .add("records_path", record.getRecordsPath())
+        .add("paging_url_path", record.getPagingUrlPath())
         .add("column_count", record.getColumnCount(), -1)
         .add("row_count", record.getRowCount())
         .add("collection_unique_id", record.getCollectionUniqueId())
@@ -137,6 +138,7 @@ public class DatasetRepository {
         .add("path", StringUtils.trimToNull(record.getFileServerPath()))
         .add("last_download", record.getLastDownload())
         .add("records_path", record.getRecordsPath())
+        .add("paging_url_path", record.getPagingUrlPath())
         .add("column_count", record.getColumnCount(), -1)
         .add("row_count", record.getRowCount())
         .add("modified_by", record.getModifiedBy());
@@ -170,6 +172,7 @@ public class DatasetRepository {
     // Update
     SqlUtils updateValues = new SqlUtils()
         .add("records_path", record.getRecordsPath())
+        .add("paging_url_path", record.getPagingUrlPath())
         .add("column_count", record.getColumnCount(), -1)
         .add("row_count", record.getRowCount());
     updateValues.add(
@@ -434,6 +437,7 @@ public class DatasetRepository {
       record.setQueueStatus(DB.getInt(rs, "queue_status", 0));
       record.setQueueDate(rs.getTimestamp("queue_date"));
       record.setQueueAttempts(DB.getInt(rs, "queue_attempts", 0));
+      record.setPagingUrlPath(rs.getString("paging_url_path"));
       return record;
     } catch (SQLException se) {
       LOG.error("buildRecord", se);

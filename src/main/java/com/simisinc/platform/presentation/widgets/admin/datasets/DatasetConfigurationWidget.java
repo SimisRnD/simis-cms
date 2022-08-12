@@ -91,6 +91,7 @@ public class DatasetConfigurationWidget extends GenericWidget {
     if (dataset.getFileType().contains("json")) {
       // Set the path to the records
       dataset.setRecordsPath(context.getParameter("recordsPath"));
+      dataset.setPagingUrlPath(context.getParameter("pagingUrlPath"));
 
       // Check if the column configuration text has changed
       String columnConfigurationText = context.getParameter("columnConfiguration");

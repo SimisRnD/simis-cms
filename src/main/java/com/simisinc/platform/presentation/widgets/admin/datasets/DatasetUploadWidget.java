@@ -21,7 +21,8 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import com.simisinc.platform.application.DataException;
-import com.simisinc.platform.application.datasets.DatasetFileCommand;
+import com.simisinc.platform.application.datasets.DatasetDownloadRemoteFileCommand;
+import com.simisinc.platform.application.datasets.DatasetUploadFileCommand;
 import com.simisinc.platform.domain.model.datasets.Dataset;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
@@ -79,7 +80,7 @@ public class DatasetUploadWidget extends GenericWidget {
     if (datasetBean.getSourceUrl() != null) {
       // Download the remote file
       try {
-        DatasetFileCommand.handleRemoteFileDownload(datasetBean, context.getUserId());
+        DatasetDownloadRemoteFileCommand.handleRemoteFileDownload(datasetBean, context.getUserId());
       } catch (DataException e) {
         context.setErrorMessage(e.getMessage());
         context.setRequestObject(datasetBean);
@@ -87,7 +88,7 @@ public class DatasetUploadWidget extends GenericWidget {
       }
     } else {
       // Check for an uploaded file and validate
-      if (!DatasetFileCommand.handleUpload(context, datasetBean)) {
+      if (!DatasetUploadFileCommand.handleUpload(context, datasetBean)) {
         context.setWarningMessage("The file was not processed");
         context.setRequestObject(datasetBean);
         return context;

@@ -16,16 +16,18 @@
 
 package com.simisinc.platform.infrastructure.scheduler.admin;
 
-import com.simisinc.platform.application.datasets.DatasetFileCommand;
-import com.simisinc.platform.application.datasets.ProcessDatasetCommand;
-import com.simisinc.platform.domain.model.datasets.Dataset;
-import com.simisinc.platform.infrastructure.persistence.datasets.DatasetRepository;
-import lombok.NoArgsConstructor;
+import java.util.List;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jobrunr.jobs.annotations.Job;
 
-import java.util.List;
+import com.simisinc.platform.application.datasets.DatasetDownloadRemoteFileCommand;
+import com.simisinc.platform.application.datasets.ProcessDatasetCommand;
+import com.simisinc.platform.domain.model.datasets.Dataset;
+import com.simisinc.platform.infrastructure.persistence.datasets.DatasetRepository;
+
+import lombok.NoArgsConstructor;
 
 /**
  * Downloads scheduled datasets and kicks off processing
@@ -51,9 +53,7 @@ public class DatasetsDownloadAndSyncJob {
       LOG.debug("Dataset to download: " + dataset.getName());
       try {
         // Do the download
-        DatasetFileCommand.handleRemoteFileDownload(dataset, dataset.getModifiedBy());
-        // Mark it as updated/unlocked
-        DatasetRepository.markAsUnqueued(dataset);
+        DatasetDownloadRemoteFileCommand.handleRemoteFileDownload(dataset, dataset.getModifiedBy());
       } catch (Exception e) {
         // Mark this for trying again later, record the error message
         DatasetRepository.markToRetryDownload(dataset, e.getMessage());

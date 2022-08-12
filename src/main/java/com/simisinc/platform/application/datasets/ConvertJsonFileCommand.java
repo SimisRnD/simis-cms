@@ -44,11 +44,6 @@ public class ConvertJsonFileCommand {
       throw new Exception("File was not found, dataset: " + dataset.getId());
     }
 
-    // Compute these...
-    List<String> columnNames = dataset.getColumnNamesList();
-    List<String> fieldMappings = dataset.getFieldMappingsList();
-    List<String> fieldOptions = dataset.getFieldOptionsList();
-
     // Load the records
     List<String[]> rows = LoadJsonCommand.loadRecords(dataset, Integer.MAX_VALUE, false);
 
@@ -56,7 +51,7 @@ public class ConvertJsonFileCommand {
     int rowsProcessed = 0;
     for (String[] row : rows) {
       // Transform the row to item, then save
-      boolean isSaved = SaveDatasetRowCommand.saveRecord(row, dataset, collection, fieldMappings, columnNames, fieldOptions);
+      boolean isSaved = SaveDatasetRowCommand.saveRecord(row, dataset, collection);
       if (!isSaved) {
         throw new DataException("Save error");
       }

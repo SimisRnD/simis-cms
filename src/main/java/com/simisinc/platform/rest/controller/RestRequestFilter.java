@@ -154,6 +154,8 @@ public class RestRequestFilter implements Filter {
           doReturnNewToken(thisApp, user, httpServletRequest, servletResponse);
           return;
         }
+        doUnauthorized(servletResponse);
+        return;
       }
 
       // Determine if the API is available as a guest, or if an authenticated user is required
@@ -161,6 +163,7 @@ public class RestRequestFilter implements Filter {
       if (!siteIsOnline) {
         // An authenticated user is required when the site is not online
         doUnauthorized(servletResponse);
+        return;
       }
 
       // Demote to guest access

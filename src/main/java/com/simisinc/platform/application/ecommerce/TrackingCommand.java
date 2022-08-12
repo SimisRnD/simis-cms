@@ -16,27 +16,24 @@
 
 package com.simisinc.platform.application.ecommerce;
 
-import com.simisinc.platform.application.DataException;
-import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import java.io.InputStream;
+import java.net.URLEncoder;
+
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.commons.text.StringEscapeUtils;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.util.EntityUtils;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.NodeList;
 
-import javax.xml.parsers.DocumentBuilder;
-import javax.xml.parsers.DocumentBuilderFactory;
-import java.io.InputStream;
-import java.net.URLEncoder;
+import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.http.HttpGetToStringCommand;
 
 /**
  * Package Tracking
@@ -56,7 +53,7 @@ public class TrackingCommand {
    * @return
    * @throws DataException
    */
-//  public static TrackingInfo trackPackage(String trackingNumbers, StringBuilder errorMessages) {
+  //  public static TrackingInfo trackPackage(String trackingNumbers, StringBuilder errorMessages) {
   public static String trackUSPSPackage(String trackingNumbers, StringBuilder errorMessages) {
 
     if (trackingNumbers == null) {
@@ -72,18 +69,17 @@ public class TrackingCommand {
     }
 
     // Create the xml
-    String xml =
-        "<TrackRequest USERID=\"" + StringEscapeUtils.escapeXml11(uspsUserId) + "\">\n" +
-            "<TrackID ID=\"" + StringEscapeUtils.escapeXml11(trackingNumbers) + "\"></TrackID></TrackRequest>";
+    String xml = "<TrackRequest USERID=\"" + StringEscapeUtils.escapeXml11(uspsUserId) + "\">\n" +
+        "<TrackID ID=\"" + StringEscapeUtils.escapeXml11(trackingNumbers) + "\"></TrackID></TrackRequest>";
 
     // Retrieve any tracking information
     try {
       LOG.debug("Sending xml... " + xml);
-      HttpClient client = HttpClientBuilder.create().build();
-      HttpGet request = new HttpGet(USPS_TRACKING_API_URL + URLEncoder.encode(xml, "UTF-8"));
-      HttpResponse response = client.execute(request);
-      HttpEntity entity = response.getEntity();
-      String responseValue = EntityUtils.toString(entity);
+      String url = USPS_TRACKING_API_URL + URLEncoder.encode(xml, "UTF-8");
+      String responseValue = HttpGetToStringCommand.execute(url);
+      if (responseValue == null) {
+        return null;
+      }
       LOG.debug("USPS RESPONSE: " + responseValue);
 
       // Process the XML response

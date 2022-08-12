@@ -1126,7 +1126,26 @@
 
   <page name="/admin/apis" role="admin" title="APIs">
     <section>
-      <column class="small-12 medium-10 large-9 cell">
+      <column class="small-12 cell">
+        <widget name="content" class="callout">
+          <title>Example</title>
+          <html><![CDATA[
+<pre><code>http -a username:password POST http://localhost:8080/api/oauth2/authorize X-API-Key:&lt;secret_key&gt;</code></pre>
+<br />
+<pre><code>{
+  "access_token": "you-receive-this",
+  "expires_in": 2592000,
+  "first_name": "First", "last_name": "Last", "name": "First Last",
+  "scope": "create", "token_type": "bearer"
+}</code></pre>
+<br />
+<pre><code>http -A bearer -a &lt;access_token&gt; GET http://localhost:8080/api/me X-API-Key:&lt;secret_key&gt;</code></pre>
+]]></html>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
         <widget name="apisList">
           <title>APIs</title>
         </widget>
