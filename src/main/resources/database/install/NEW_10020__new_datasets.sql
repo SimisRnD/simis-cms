@@ -40,7 +40,8 @@ CREATE TABLE datasets (
   queue_date TIMESTAMP(3),
   queue_attempts INTEGER DEFAULT 0,
   queue_interval INTERVAL DEFAULT NULL,
-  queue_message TEXT
+  queue_message TEXT,
+  paging_url_path VARCHAR(255)
 );
 
 CREATE INDEX datasets_sched_idx ON datasets(schedule_enabled);

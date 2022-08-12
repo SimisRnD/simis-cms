@@ -51,6 +51,7 @@ public class Dataset extends Entity {
   private Timestamp lastDownload = null;
   // File Processing
   private String recordsPath = null;
+  private String pagingUrlPath = null;
   private int rowCount = -1;
   private int columnCount = -1;
   private int rowsProcessed = 0;
@@ -451,5 +452,13 @@ public class Dataset extends Entity {
 
   public void setQueueAttempts(int queueAttempts) {
     this.queueAttempts = queueAttempts;
+  }
+
+  public String getPagingUrlPath() {
+    return pagingUrlPath;
+  }
+
+  public void setPagingUrlPath(String pagingUrlPath) {
+    this.pagingUrlPath = pagingUrlPath;
   }
 }

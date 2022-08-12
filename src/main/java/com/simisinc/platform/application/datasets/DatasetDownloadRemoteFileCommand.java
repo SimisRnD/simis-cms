@@ -16,27 +16,23 @@
 
 package com.simisinc.platform.application.datasets;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.sql.Timestamp;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.commons.validator.routines.UrlValidator;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.HttpClientBuilder;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.github.fge.jackson.JsonLoader;
 import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.admin.SaveTextFileCommand;
 import com.simisinc.platform.application.elearning.PERLSCourseListCommand;
 import com.simisinc.platform.application.filesystem.FileSystemCommand;
+import com.simisinc.platform.application.http.HttpGetToFileCommand;
+import com.simisinc.platform.application.http.HttpGetToStringCommand;
 import com.simisinc.platform.domain.model.datasets.Dataset;
 import com.simisinc.platform.infrastructure.persistence.datasets.DatasetRepository;
 
@@ -95,8 +91,17 @@ public class DatasetDownloadRemoteFileCommand {
         }
         dataset.setRecordsPath("/data");
       } else {
-        if (!downloadFile(dataset.getSourceUrl(), tempFile)) {
-          throw new DataException("File download error from: " + dataset.getSourceUrl());
+        // Determine if there could be multiple JSON files
+        if (StringUtils.isNotBlank(dataset.getPagingUrlPath())) {
+          if (!downloadPagedFile(dataset.getSourceUrl(), dataset.getPagingUrlPath(), dataset.getRecordsPath(),
+              tempFile)) {
+            throw new DataException("File with paging download error from: " + dataset.getSourceUrl());
+          }
+        } else {
+          // Download a single JSON file
+          if (!HttpGetToFileCommand.execute(dataset.getSourceUrl(), tempFile)) {
+            throw new DataException("File download error from: " + dataset.getSourceUrl());
+          }
         }
       }
     } catch (Exception e) {
@@ -145,73 +150,99 @@ public class DatasetDownloadRemoteFileCommand {
     DatasetRepository.markAsUnqueued(dataset);
   }
 
-  public static boolean downloadFile(String url, File tempFile) {
-    // Validate the parameters
-    if (StringUtils.isBlank(url)) {
-      LOG.debug("No url");
+  /**
+   * Downloads a series of JSON files into a single merged file
+   * 
+   * @param url
+   * @param jsonPagingPath
+   * @param tempFile
+   * @return
+   */
+  public static boolean downloadPagedFile(String url, String jsonPagingPath, String jsonRecordsPath, File tempFile) {
+
+    // Download the first file, as a string
+    String content = HttpGetToStringCommand.execute(url);
+    if (StringUtils.isBlank(content)) {
       return false;
     }
-    String[] schemes = { "http", "https" };
-    UrlValidator urlValidator = new UrlValidator(schemes);
-    if (!urlValidator.isValid(url)) {
-      LOG.debug("Invalid url: " + url);
-      return false;
-    }
-    // Download to a file
+
     try {
-      HttpClient client = HttpClientBuilder.create().build();
-      HttpGet request = new HttpGet(url);
-      HttpResponse response = client.execute(request);
-      if (response == null) {
-        LOG.debug("No response");
-        return false;
-      }
+      // Check if there's additional pages (jsonPagingPath) and then download each
+      JsonNode json = JsonLoader.fromString(content);
 
-      // Check the status code
-      int status = response.getStatusLine().getStatusCode();
-      if (status < 200 || status >= 300) {
-        LOG.debug("Received status: " + status);
-        return false;
-      }
-
-      // Use the entity
-      HttpEntity entity = response.getEntity();
-      if (entity == null) {
-        LOG.debug("No entity");
-        return false;
-      }
-
-      // Save it
-      try (InputStream stream = entity.getContent()) {
-        try (BufferedInputStream inputStream = new BufferedInputStream(stream)) {
-          try (BufferedOutputStream outputStream = new BufferedOutputStream(new FileOutputStream(tempFile))) {
-            int inByte;
-            while ((inByte = inputStream.read()) != -1) {
-              outputStream.write(inByte);
-            }
+      // Advance to the records path, if known
+      JsonNode jsonRecordsNode = null;
+      String[] recordsPath = jsonRecordsPath.split("/");
+      for (String fieldName : recordsPath) {
+        if (jsonRecordsNode == null) {
+          if (json.has(fieldName)) {
+            jsonRecordsNode = json.get(fieldName);
+          }
+        } else {
+          if (jsonRecordsNode.has(fieldName)) {
+            jsonRecordsNode = jsonRecordsNode.get(fieldName);
           }
         }
-      } catch (IOException ex) {
-        LOG.debug("Could not save file: " + ex.getMessage());
-        throw ex;
       }
+      if (jsonRecordsNode == null || !jsonRecordsNode.isArray()) {
+        return false;
+      }
+
+      // Append any pages
+      appendNextUrls(jsonRecordsNode, json, jsonPagingPath, jsonRecordsPath);
+
+      // Write the whole JSON to a file
+      SaveTextFileCommand.save(json.toPrettyString(), tempFile);
+      return true;
+
     } catch (Exception e) {
-      // Clean up the file
-      if (tempFile.exists()) {
-        LOG.warn("Deleting an uploaded file: " + tempFile.getAbsolutePath());
-        tempFile.delete();
-      }
-      LOG.error("downloadFile error", e);
+      LOG.debug("JSON error", e);
       return false;
     }
-
-    // Make sure a file was received
-    if (tempFile.length() <= 0) {
-      tempFile.delete();
-      LOG.debug("File length 0");
-      return false;
-    }
-
-    return true;
   }
+
+  private static void appendNextUrls(JsonNode jsonRecordsNode, JsonNode currentJson, String jsonPagingPath,
+      String jsonRecordsPath) throws IOException {
+
+    // Advance to the paging path
+    String nextUrl = null;
+    String[] pagingPath = jsonPagingPath.split("/");
+    for (String fieldName : pagingPath) {
+      if (currentJson.has(fieldName)) {
+        nextUrl = currentJson.get(fieldName).asText();
+      }
+    }
+    // Determine if there's another page
+    if (StringUtils.isBlank(nextUrl)) {
+      return;
+    }
+    LOG.debug("Next url: " + nextUrl);
+
+    // Use the url to get the next page content
+    String content = HttpGetToStringCommand.execute(nextUrl);
+    if (StringUtils.isBlank(content)) {
+      throw new IOException("Content is blank");
+    }
+
+    // Access the new records and append them to the original json
+    JsonNode nextJson = JsonLoader.fromString(content);
+
+    // Advance to the records path, if known
+    String[] recordsPath = jsonRecordsPath.split("/");
+    for (String fieldName : recordsPath) {
+      if (nextJson.has(fieldName)) {
+        nextJson = nextJson.get(fieldName);
+      }
+    }
+    if (nextJson == null || !nextJson.isArray()) {
+      throw new IOException("No records in nextJson");
+    }
+    for (JsonNode element : nextJson) {
+      ((ArrayNode) jsonRecordsNode).add(element);
+    }
+
+    // Keep going
+    appendNextUrls(jsonRecordsNode, nextJson, jsonPagingPath, jsonRecordsPath);
+  }
+
 }
