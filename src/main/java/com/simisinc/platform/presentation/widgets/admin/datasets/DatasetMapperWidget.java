@@ -162,7 +162,7 @@ public class DatasetMapperWidget extends GenericWidget {
 
     // Determine the unique column and validate input
     String uniqueColumnName = context.getParameter("uniqueColumnName");
-    if (dataset.getColumnNamesList().contains(uniqueColumnName)) {
+    if (dataset.getFieldTitlesList().contains(uniqueColumnName)) {
       dataset.setUniqueColumnName(uniqueColumnName);
     }
 
