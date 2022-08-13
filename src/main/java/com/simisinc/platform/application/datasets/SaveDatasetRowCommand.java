@@ -98,6 +98,8 @@ public class SaveDatasetRowCommand {
     item.setCollectionId(collection.getId());
     item.setCreatedBy(dataset.getModifiedBy());
     item.setModifiedBy(dataset.getModifiedBy());
+
+    List<String> foundFields = new ArrayList<>();
     List<Long> categoryIdList = new ArrayList<>();
     boolean hasSplitOption = false;
     String splitValue = null;
@@ -181,7 +183,8 @@ public class SaveDatasetRowCommand {
         }
       } else if ("summary".equals(mapping)) {
         // Build a summary if multiple fields have the same mapping
-        if (StringUtils.isBlank(item.getSummary())) {
+        if (!foundFields.contains("summary")) {
+          foundFields.add("summary");
           item.setSummary(value);
         } else {
           item.setSummary(item.getSummary() + ", " + value);
