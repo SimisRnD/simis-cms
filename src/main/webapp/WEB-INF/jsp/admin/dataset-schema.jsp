@@ -79,6 +79,7 @@
             <option value="category"<c:if test="${fieldMappingsList[status.index] eq 'category'}"> selected</c:if>>Category</option>
             <option value="summary"<c:if test="${fieldMappingsList[status.index] eq 'summary'}"> selected</c:if>>Summary</option>
             <option value="description"<c:if test="${fieldMappingsList[status.index] eq 'description'}"> selected</c:if>>HTML Description</option>
+            <option value="textDescription"<c:if test="${fieldMappingsList[status.index] eq 'textDescription'}"> selected</c:if>>Text Description</option>
             <option value="geopoint"<c:if test="${fieldMappingsList[status.index] eq 'geopoint'}"> selected</c:if>>Geo Point</option>
             <option value="latitude"<c:if test="${fieldMappingsList[status.index] eq 'latitude'}"> selected</c:if>>Latitude</option>
             <option value="longitude"<c:if test="${fieldMappingsList[status.index] eq 'longitude'}"> selected</c:if>>Longitude</option>
