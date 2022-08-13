@@ -16,15 +16,16 @@
 
 package com.simisinc.platform.application.datasets;
 
-import com.simisinc.platform.application.cms.UrlCommand;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.commons.text.StringTokenizer;
 import org.apache.commons.text.WordUtils;
 
-import java.util.List;
-import java.util.Map;
+import com.simisinc.platform.application.cms.UrlCommand;
 
 /**
  * Functions for field definition options
@@ -40,16 +41,16 @@ public class DatasetFieldOptionCommand {
     return options.contains(term);
   }
 
-  public static String extractValue(String options, String term) {
-    int startIdx = options.indexOf(term + "(");
+  public static String extractValue(String token, String term) {
+    int startIdx = token.indexOf(term + "(");
     if (startIdx == -1) {
       return null;
     }
-    int endIdx = options.indexOf(")", startIdx);
+    int endIdx = token.indexOf(")", startIdx);
     if (endIdx == -1) {
       return null;
     }
-    String extractedValue = options.substring(startIdx + term.length() + 1, endIdx);
+    String extractedValue = token.substring(startIdx + term.length() + 1, endIdx);
     if (extractedValue.startsWith("\"") && extractedValue.indexOf("\"") != extractedValue.lastIndexOf("\"")) {
       return extractedValue.substring(1, extractedValue.length() - 1);
     } else {
@@ -57,17 +58,17 @@ public class DatasetFieldOptionCommand {
     }
   }
 
-  public static String[] extractVars(String options, String term) {
-    int startIdx = options.indexOf(term + "(");
+  public static String[] extractVars(String token, String term) {
+    int startIdx = token.indexOf(term + "(");
     if (startIdx == -1) {
       return new String[0];
     }
-    int endIdx = options.indexOf(")", startIdx);
+    int endIdx = token.indexOf(")", startIdx);
     if (endIdx == -1) {
       return new String[0];
     }
 
-    String input = options.substring(startIdx + term.length() + 1, endIdx);
+    String input = token.substring(startIdx + term.length() + 1, endIdx);
     StringTokenizer st = StringTokenizer.getCSVInstance(input);
     return st.getTokenArray();
   }
@@ -149,7 +150,7 @@ public class DatasetFieldOptionCommand {
         }
       } else if (token.startsWith("setValue(")) {
         // Set Value
-        value = extractValue(options, "setValue");
+        value = extractValue(token, "setValue");
       } else if ("caps".equals(token) || "capitalize".equals(token)) {
         // Capitalize
         value = WordUtils.capitalizeFully(value, ' ', '.', '-', '/', '\'');
@@ -162,10 +163,10 @@ public class DatasetFieldOptionCommand {
         value = StringUtils.lowerCase(value);
       } else if (token.startsWith("prepend(")) {
         // Prepend
-        value = extractValue(options, "prepend") + value;
+        value = extractValue(token, "prepend") + value;
       } else if (token.startsWith("append(")) {
         // Append
-        value = value + extractValue(options, "append");
+        value = value + extractValue(token, "append");
       } else if (token.startsWith("trim(")) {
         // Trim
         value = value.trim();
@@ -177,7 +178,7 @@ public class DatasetFieldOptionCommand {
         }
       } else if (token.startsWith("blank(")) {
         // Blank the matching term
-        String trimToNullValue = extractValue(options, "blank");
+        String trimToNullValue = extractValue(token, "blank");
         if (trimToNullValue != null && trimToNullValue.equals(value)) {
           value = "";
         }
