@@ -90,7 +90,12 @@ public class HttpGetToStringCommand {
         return null;
       }
 
-      return EntityUtils.toString(response.getEntity(), "UTF-8");
+      // Test the content
+      String content = EntityUtils.toString(response.getEntity(), "UTF-8");
+      if (content == null || content.length() <= 0) {
+        return null;
+      }
+      return content;
     } catch (Exception e) {
       return null;
     }

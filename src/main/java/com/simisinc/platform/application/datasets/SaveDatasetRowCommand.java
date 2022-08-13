@@ -130,10 +130,6 @@ public class SaveDatasetRowCommand {
           splitValue = extractValue(options, "split");
         }
       }
-      // Skip empty values
-      if (value.length() == 0) {
-        continue;
-      }
       // See if there is a field mapping
       if (i >= fieldMappings.size()) {
         continue;
@@ -142,11 +138,17 @@ public class SaveDatasetRowCommand {
       if (StringUtils.isBlank(mapping)) {
         continue;
       }
+      // Skip empty values, but allow custom method to manage empty values
+      if (value.length() == 0 && !"custom".equals(mapping)) {
+        continue;
+      }
       // Set the item value
       if ("name".equals(mapping)) {
-        if (item.getName() == null) {
+        // Append value if multiple fields have the same mapping
+        if (!foundFields.contains("name")) {
+          foundFields.add("name");
           item.setName(value);
-        } else if (!item.getName().equals(value)) {
+        } else {
           item.setName(item.getName() + " " + value);
         }
       } else if ("category".equals(mapping)) {
@@ -182,7 +184,7 @@ public class SaveDatasetRowCommand {
           }
         }
       } else if ("summary".equals(mapping)) {
-        // Build a summary if multiple fields have the same mapping
+        // Append value if multiple fields have the same mapping
         if (!foundFields.contains("summary")) {
           foundFields.add("summary");
           item.setSummary(value);
@@ -193,6 +195,8 @@ public class SaveDatasetRowCommand {
         // Clean the content
         String cleanedContent = HtmlCommand.cleanContent(value);
         item.setDescription(cleanedContent);
+      } else if ("textDescription".equals(mapping)) {
+        item.setDescription(value);
       } else if ("geopoint".equals(mapping)) {
         // [lon, lat]
         if (value.contains(",")) {
