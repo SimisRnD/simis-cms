@@ -48,12 +48,15 @@ public class Dataset extends Entity {
   private long fileLength = -1;
   private String fileType = null;
   private String fileServerPath = null;
+  private String fileHash = null;
   private Timestamp lastDownload = null;
-  // File Processing
+  // File Details
   private String recordsPath = null;
   private String pagingUrlPath = null;
   private int rowCount = -1;
   private int columnCount = -1;
+  private int recordCount = -1;
+  // File Processing
   private int rowsProcessed = 0;
   private Timestamp processed = null;
   private long totalProcessTime = 0;
@@ -83,6 +86,10 @@ public class Dataset extends Entity {
   private int syncStatus = -1;
   private String syncMessage = null;
   private String syncMergeType = null;
+  private int syncRecordCount = -1;
+  private int syncAddCount = -1;
+  private int syncUpdateCount = -1;
+  private int syncDeleteCount = -1;
 
   public Dataset() {
   }
@@ -460,5 +467,53 @@ public class Dataset extends Entity {
 
   public void setPagingUrlPath(String pagingUrlPath) {
     this.pagingUrlPath = pagingUrlPath;
+  }
+
+  public String getFileHash() {
+    return fileHash;
+  }
+
+  public void setFileHash(String fileHash) {
+    this.fileHash = fileHash;
+  }
+
+  public int getRecordCount() {
+    return recordCount;
+  }
+
+  public void setRecordCount(int recordCount) {
+    this.recordCount = recordCount;
+  }
+
+  public int getSyncRecordCount() {
+    return syncRecordCount;
+  }
+
+  public void setSyncRecordCount(int syncRecordCount) {
+    this.syncRecordCount = syncRecordCount;
+  }
+
+  public int getSyncAddCount() {
+    return syncAddCount;
+  }
+
+  public void setSyncAddCount(int syncAddCount) {
+    this.syncAddCount = syncAddCount;
+  }
+
+  public int getSyncUpdateCount() {
+    return syncUpdateCount;
+  }
+
+  public void setSyncUpdateCount(int syncUpdateCount) {
+    this.syncUpdateCount = syncUpdateCount;
+  }
+
+  public int getSyncDeleteCount() {
+    return syncDeleteCount;
+  }
+
+  public void setSyncDeleteCount(int syncDeleteCount) {
+    this.syncDeleteCount = syncDeleteCount;
   }
 }

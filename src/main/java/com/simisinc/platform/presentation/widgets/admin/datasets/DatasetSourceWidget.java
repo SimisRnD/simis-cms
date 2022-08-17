@@ -158,7 +158,11 @@ public class DatasetSourceWidget extends GenericWidget {
 
     try {
       // Perform the remote download
-      DatasetDownloadRemoteFileCommand.handleRemoteFileDownload(dataset, context.getUserId());
+      if (!DatasetDownloadRemoteFileCommand.handleRemoteFileDownload(dataset, context.getUserId())) {
+        context.setWarningMessage("The downloaded file has the same content as the previous file");
+        context.setRequestObject(dataset);
+        return context;
+      }
     } catch (DataException e) {
       context.setErrorMessage(e.getMessage());
       context.setRequestObject(dataset);

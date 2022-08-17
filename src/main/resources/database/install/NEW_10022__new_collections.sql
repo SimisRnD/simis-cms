@@ -31,7 +31,8 @@ CREATE TABLE collections (
   menu_hover_text_color VARCHAR(30) DEFAULT '#ffffff',
   menu_hover_bg_color VARCHAR(30) DEFAULT 'transparent',
   menu_hover_border_color VARCHAR(30) DEFAULT '#ff9900',
-  field_values JSONB
+  field_values JSONB,
+  item_url_text VARCHAR(50)
 );
 CREATE INDEX collections_nm_idx ON collections(name);
 CREATE INDEX collections_ag_idx ON collections(has_allowed_groups);
@@ -49,7 +50,8 @@ CREATE TABLE categories (
   is_primary BOOLEAN DEFAULT true,
   icon VARCHAR(20),
   header_text_color VARCHAR(30) DEFAULT '#ffffff',
-  header_bg_color VARCHAR(30) DEFAULT '#666666'
+  header_bg_color VARCHAR(30) DEFAULT '#666666',
+  item_url_text VARCHAR(50)
 );
 CREATE UNIQUE INDEX categories_uni_idx ON categories(collection_id, name);
 CREATE INDEX categories_col_idx ON categories(collection_id);
