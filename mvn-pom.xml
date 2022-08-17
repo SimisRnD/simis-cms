@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.simisinc</groupId>
   <artifactId>simis-cms</artifactId>
-  <version>20220731.10000-SNAPSHOT</version>
+  <version>20220816.10000-SNAPSHOT</version>
   <name>SimIS CMS</name>
   <description>Agile, Enterprise, Open Source Content Management System (CMS)</description>
   <url>https://www.simiscms.com</url>
@@ -63,14 +63,14 @@
     <libphonenumber.version>8.12.40</libphonenumber.version>
     <lombok.version>1.18.22</lombok.version>
     <netty.version>4.1.79</netty.version>
-    <postgresql.version>42.4.0</postgresql.version>
+    <postgresql.version>42.4.2</postgresql.version>
     <pushy.version>0.15.1</pushy.version>
     <resilience4j.version>1.7.1</resilience4j.version>
     <restfb.version>2.24.0</restfb.version>
     <rome-rss.version>1.18.0</rome-rss.version>
     <slf4j.version>1.7.32</slf4j.version>
     <snakeyaml.version>1.30</snakeyaml.version>
-    <square.version>20.1.0.20220616</square.version>
+    <square.version>22.0.0.20220720</square.version>
     <stripe.version>20.94.0</stripe.version>
     <thymeleaf.version>3.0.11</thymeleaf.version>
     <timeago.version>3.0.1</timeago.version>
