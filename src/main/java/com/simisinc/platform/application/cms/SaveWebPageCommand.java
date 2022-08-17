@@ -19,6 +19,7 @@ package com.simisinc.platform.application.cms;
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.domain.events.cms.WebPagePublishedEvent;
 import com.simisinc.platform.domain.events.cms.WebPageUpdatedEvent;
+import com.simisinc.platform.domain.model.cms.SitemapChangeFrequencyOptions;
 import com.simisinc.platform.domain.model.cms.WebPage;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
 import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
@@ -80,16 +81,18 @@ public class SaveWebPageCommand {
       }
     }
 
-    /*
-    if (webPageBean.getId() == -1 && WebPageRepository.findByName(webPageBean.getLink()) != null) {
-      if (errorMessages.length() > 0) {
-        errorMessages.append(", ");
-      }
-      errorMessages.append("A unique name is required");
+    // Sitemap priority
+    if (webPageBean.getSitemapPriority() != null &&
+        (webPageBean.getSitemapPriority().doubleValue() > 1.0
+            || webPageBean.getSitemapPriority().doubleValue() < 0.0)) {
+      errorMessages.append("Sitemap priority must be in the rang 0.0 - 1.0 (0.5 is the default)");
     }
-    */
 
-    // @todo Make sure the template exists
+    // Sitemap change frequency
+    if (StringUtils.isNotBlank(webPageBean.getSitemapChangeFrequency())
+        && !SitemapChangeFrequencyOptions.map.containsKey(webPageBean.getSitemapChangeFrequency())) {
+      errorMessages.append("Sitemap change frequency choice is unavailable");
+    }
 
     if (errorMessages.length() > 0) {
       throw new DataException("Please check the form and try again:\n" + errorMessages.toString());
@@ -120,15 +123,16 @@ public class SaveWebPageCommand {
     webPage.setSearchable(webPageBean.getSearchable());
     webPage.setShowInSitemap(webPageBean.getShowInSitemap());
     webPage.setDraft(webPageBean.getDraft());
+    webPage.setSitemapPriority(webPageBean.getSitemapPriority());
+    webPage.setSitemapChangeFrequency(webPageBean.getSitemapChangeFrequency());
     WebPage result = WebPageRepository.save(webPage);
 
     if (result != null) {
       // Check for events
       boolean isNewWebPage = (webPageBean.getId() != -1 || webPageBean.getModified() == null);
-      boolean justUpdatedInTheLastDay =
-          !isNewWebPage &&
-              webPage.getModified() != null &&
-              (((new Date()).getTime() - webPage.getModified().getTime()) > 24 * 60 * 60 * 1000);
+      boolean justUpdatedInTheLastDay = !isNewWebPage &&
+          webPage.getModified() != null &&
+          (((new Date()).getTime() - webPage.getModified().getTime()) > 24 * 60 * 60 * 1000);
       // Trigger events
       if (isNewWebPage) {
         WorkflowManager.triggerWorkflowForEvent(new WebPagePublishedEvent(result));
