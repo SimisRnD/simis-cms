@@ -36,6 +36,7 @@ public class Category extends Entity {
   private String icon = null;
   private String headerTextColor = null;
   private String headerBgColor = null;
+  private String itemUrlText = null;
   private long createdBy = -1;
   private Timestamp created = null;
   private Timestamp modified = null;
@@ -131,4 +132,14 @@ public class Category extends Entity {
   public void setItemCount(long itemCount) {
     this.itemCount = itemCount;
   }
+
+  public String getItemUrlText() {
+    return itemUrlText;
+  }
+
+  public void setItemUrlText(String urlText) {
+    this.itemUrlText = urlText;
+  }
+
+  
 }

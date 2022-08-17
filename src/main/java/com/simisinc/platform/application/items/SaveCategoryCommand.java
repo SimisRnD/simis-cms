@@ -68,6 +68,7 @@ public class SaveCategoryCommand {
     category.setIcon(categoryBean.getIcon());
     category.setHeaderTextColor(categoryBean.getHeaderTextColor());
     category.setHeaderBgColor(categoryBean.getHeaderBgColor());
+    category.setItemUrlText(categoryBean.getItemUrlText());
     category.setCreatedBy(categoryBean.getCreatedBy());
     return CategoryRepository.save(category);
   }

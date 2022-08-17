@@ -50,8 +50,11 @@
     <input id="headerTextColor" type="text" name="headerTextColor" value="<c:out value="${category.headerTextColor}"/>">
     Header Text Color
   </label>
+  <label>Default Item External Link Text
+    <input type="text" placeholder="View Site" name="itemUrlText" value="<c:out value="${category.itemUrlText}"/>">
+  </label>
   <div class="button-container">
-    <input type="submit" class="button radius success expanded" value="Save" />
+    <input type="submit" class="button radius success" value="Save" />
   </div>
 </form>
 <script>

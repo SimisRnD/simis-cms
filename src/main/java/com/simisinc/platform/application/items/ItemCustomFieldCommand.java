@@ -16,21 +16,23 @@
 
 package com.simisinc.platform.application.items;
 
-import com.simisinc.platform.application.CustomFieldCommand;
-import com.simisinc.platform.application.CustomFieldFormatCommand;
-import com.simisinc.platform.domain.model.CustomField;
-import com.simisinc.platform.domain.model.items.Category;
-import com.simisinc.platform.domain.model.items.Item;
-import com.simisinc.platform.infrastructure.persistence.items.CategoryRepository;
-import com.simisinc.platform.presentation.widgets.cms.PreferenceEntriesList;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
+import com.simisinc.platform.application.CustomFieldCommand;
+import com.simisinc.platform.application.CustomFieldFormatCommand;
+import com.simisinc.platform.domain.model.CustomField;
+import com.simisinc.platform.domain.model.items.Category;
+import com.simisinc.platform.domain.model.items.Collection;
+import com.simisinc.platform.domain.model.items.Item;
+import com.simisinc.platform.infrastructure.persistence.items.CategoryRepository;
+import com.simisinc.platform.presentation.widgets.cms.PreferenceEntriesList;
 
 /**
  * Turns widget preferences into Form Fields
@@ -86,8 +88,16 @@ public class ItemCustomFieldCommand {
           }
         } else {
           value = BeanUtils.getProperty(item, objectParameter);
-          if ("url".equals(objectParameter) && StringUtils.isNotBlank(item.getUrlText())) {
-            customField.setLabel(item.getUrlText());
+          if ("url".equals(objectParameter)) {
+            Collection collection = LoadCollectionCommand.loadCollectionById(item.getCollectionId());
+            Category category = LoadCategoryCommand.loadCategoryById(item.getCategoryId());
+            if (StringUtils.isNotBlank(item.getUrlText())) {
+              customField.setLabel(item.getUrlText());
+            } else if (category != null && StringUtils.isNotBlank(category.getItemUrlText())) {
+              customField.setLabel(category.getItemUrlText());
+            } else if (collection != null && StringUtils.isNotBlank(collection.getItemUrlText())) {
+              customField.setLabel(collection.getItemUrlText());
+            }
           }
         }
 
