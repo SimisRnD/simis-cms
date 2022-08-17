@@ -43,7 +43,7 @@ public class GroupRepository {
   private static Log LOG = LogFactory.getLog(GroupRepository.class);
 
   private static String TABLE_NAME = "groups";
-  private static String PRIMARY_KEY[] = new String[]{"group_id"};
+  private static String[] PRIMARY_KEY = new String[]{"group_id"};
 
   public static Group findById(long id) {
     if (id == -1) {

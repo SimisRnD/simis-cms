@@ -37,7 +37,7 @@ public class ShippingMethodRepository {
   private static Log LOG = LogFactory.getLog(ShippingMethodRepository.class);
 
   private static String TABLE_NAME = "lookup_shipping_method";
-  private static String PRIMARY_KEY[] = new String[]{"method_id"};
+  private static String[] PRIMARY_KEY = new String[]{"method_id"};
 
   public static List<ShippingMethod> findAll() {
     DataResult result = DB.selectAllFrom(

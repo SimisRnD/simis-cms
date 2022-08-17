@@ -40,7 +40,7 @@ public class CollectionGroupRepository {
   private static Log LOG = LogFactory.getLog(CollectionGroupRepository.class);
 
   private static String TABLE_NAME = "collection_groups";
-  private static String PRIMARY_KEY[] = new String[]{"allowed_id"};
+  private static String[] PRIMARY_KEY = new String[]{"allowed_id"};
 
   public static List<CollectionGroup> findAllByCollectionId(long collectionId) {
     if (collectionId == -1) {

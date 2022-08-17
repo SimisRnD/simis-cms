@@ -42,7 +42,7 @@ public class ProductRepository {
   private static Log LOG = LogFactory.getLog(ProductRepository.class);
 
   private static String TABLE_NAME = "products";
-  private static String PRIMARY_KEY[] = new String[]{"product_id"};
+  private static String[] PRIMARY_KEY = new String[]{"product_id"};
 
   private static DataResult query(ProductSpecification specification, DataConstraints constraints) {
     SqlUtils where = null;

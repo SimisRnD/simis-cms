@@ -42,7 +42,7 @@ public class MedicineReminderRepository {
   private static Log LOG = LogFactory.getLog(MedicineReminderRepository.class);
 
   private static String TABLE_NAME = "medicine_reminders";
-  private static String PRIMARY_KEY[] = new String[]{"reminder_id"};
+  private static String[] PRIMARY_KEY = new String[]{"reminder_id"};
 
 
   private static DataResult query(MedicineReminderSpecification specification, DataConstraints constraints) {

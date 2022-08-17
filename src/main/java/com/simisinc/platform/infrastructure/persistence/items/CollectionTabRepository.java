@@ -40,7 +40,7 @@ public class CollectionTabRepository {
   private static Log LOG = LogFactory.getLog(CollectionTabRepository.class);
 
   private static String TABLE_NAME = "collection_tabs";
-  private static String PRIMARY_KEY[] = new String[]{"tab_id"};
+  private static String[] PRIMARY_KEY = new String[]{"tab_id"};
 
   public static List<CollectionTab> findAllByCollectionId(long collectionId) {
     if (collectionId == -1) {

@@ -38,7 +38,7 @@ import java.util.List;
  */
 public class MenuItemRepository {
 
-  private static final String PRIMARY_KEY[] = new String[]{"menu_item_id"};
+  private static final String[] PRIMARY_KEY = new String[]{"menu_item_id"};
   private static String TABLE_NAME = "menu_items";
 
   private static Log LOG = LogFactory.getLog(MenuItemRepository.class);

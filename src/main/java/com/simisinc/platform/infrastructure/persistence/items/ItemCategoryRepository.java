@@ -40,7 +40,7 @@ public class ItemCategoryRepository {
   private static Log LOG = LogFactory.getLog(ItemCategoryRepository.class);
 
   private static String TABLE_NAME = "item_categories";
-  private static String PRIMARY_KEY[] = new String[]{"id"};
+  private static String[] PRIMARY_KEY = new String[]{"id"};
 
 
   public static ItemCategory save(ItemCategory record) {

@@ -34,7 +34,7 @@ import java.util.List;
  */
 public class CategoryRepository {
 
-  private static final String PRIMARY_KEY[] = new String[] { "category_id" };
+  private static final String[] PRIMARY_KEY = new String[] { "category_id" };
   private static String TABLE_NAME = "categories";
 
   private static Log LOG = LogFactory.getLog(CategoryRepository.class);

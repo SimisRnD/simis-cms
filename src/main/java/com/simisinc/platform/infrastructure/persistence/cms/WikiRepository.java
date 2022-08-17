@@ -39,7 +39,7 @@ public class WikiRepository {
   private static Log LOG = LogFactory.getLog(WikiRepository.class);
 
   private static String TABLE_NAME = "wikis";
-  private static String PRIMARY_KEY[] = new String[]{"wiki_id"};
+  private static String[] PRIMARY_KEY = new String[]{"wiki_id"};
 
   private static DataResult query(WikiSpecification specification, DataConstraints constraints) {
     SqlUtils where = null;

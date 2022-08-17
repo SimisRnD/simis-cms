@@ -39,7 +39,7 @@ public class BlockedIPRepository {
   private static Log LOG = LogFactory.getLog(BlockedIPRepository.class);
 
   private static String TABLE_NAME = "block_list";
-  private static String PRIMARY_KEY[] = new String[]{"block_list_id"};
+  private static String[] PRIMARY_KEY = new String[]{"block_list_id"};
 
   private static DataResult query(DataConstraints constraints) {
     return DB.selectAllFrom(TABLE_NAME, null, constraints, BlockedIPRepository::buildRecord);

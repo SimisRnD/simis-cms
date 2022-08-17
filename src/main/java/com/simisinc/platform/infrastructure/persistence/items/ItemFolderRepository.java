@@ -38,7 +38,7 @@ public class ItemFolderRepository {
   private static Log LOG = LogFactory.getLog(ItemFolderRepository.class);
 
   private static String TABLE_NAME = "item_folders";
-  private static String PRIMARY_KEY[] = new String[]{"folder_id"};
+  private static String[] PRIMARY_KEY = new String[]{"folder_id"};
 
   public static ItemFolder save(ItemFolder record) {
     if (record.getId() > -1) {

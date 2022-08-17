@@ -40,7 +40,7 @@ public class FormDataRepository {
   private static Log LOG = LogFactory.getLog(FormDataRepository.class);
 
   private static String TABLE_NAME = "form_data";
-  private static String PRIMARY_KEY[] = new String[]{"form_data_id"};
+  private static String[] PRIMARY_KEY = new String[]{"form_data_id"};
 
   private static DataResult query(FormDataSpecification specification, DataConstraints constraints) {
     SqlUtils where = null;

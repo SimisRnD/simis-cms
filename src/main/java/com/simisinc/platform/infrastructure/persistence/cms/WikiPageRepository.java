@@ -40,7 +40,7 @@ public class WikiPageRepository {
   private static Log LOG = LogFactory.getLog(WikiPageRepository.class);
 
   private static String TABLE_NAME = "wiki_pages";
-  private static String PRIMARY_KEY[] = new String[]{"wiki_page_id"};
+  private static String[] PRIMARY_KEY = new String[]{"wiki_page_id"};
 
   private static SqlUtils createWhereStatement(WikiPageSpecification specification) {
     SqlUtils where = null;

@@ -38,7 +38,7 @@ public class VisitorRepository {
   private static Log LOG = LogFactory.getLog(VisitorRepository.class);
 
   private static String TABLE_NAME = "visitors";
-  private static String PRIMARY_KEY[] = new String[]{"visitor_id"};
+  private static String[] PRIMARY_KEY = new String[]{"visitor_id"};
 
   public static List<Visitor> findAll() {
     DataResult result = DB.selectAllFrom(

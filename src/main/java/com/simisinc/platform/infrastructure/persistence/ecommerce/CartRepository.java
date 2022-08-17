@@ -40,7 +40,7 @@ public class CartRepository {
   private static Log LOG = LogFactory.getLog(CartRepository.class);
 
   private static String TABLE_NAME = "carts";
-  private static String PRIMARY_KEY[] = new String[]{"cart_id"};
+  private static String[] PRIMARY_KEY = new String[]{"cart_id"};
 
   public static List<Cart> findAll() {
     DataResult result = DB.selectAllFrom(

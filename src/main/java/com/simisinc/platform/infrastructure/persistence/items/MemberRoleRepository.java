@@ -40,7 +40,7 @@ public class MemberRoleRepository {
   private static Log LOG = LogFactory.getLog(MemberRoleRepository.class);
 
   private static String TABLE_NAME = "member_roles";
-  private static String PRIMARY_KEY[] = new String[]{"member_role_id"};
+  private static String[] PRIMARY_KEY = new String[]{"member_role_id"};
 
   public static List<MemberRole> findAllByUserIdAndItemId(long userId, long itemId) {
     if (userId == -1) {

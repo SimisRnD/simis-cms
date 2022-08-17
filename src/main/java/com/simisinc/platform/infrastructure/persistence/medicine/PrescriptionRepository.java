@@ -38,7 +38,7 @@ public class PrescriptionRepository {
   private static Log LOG = LogFactory.getLog(PrescriptionRepository.class);
 
   private static String TABLE_NAME = "prescriptions";
-  private static String PRIMARY_KEY[] = new String[]{"prescription_id"};
+  private static String[] PRIMARY_KEY = new String[]{"prescription_id"};
 
 
   public static Prescription save(Prescription record) {

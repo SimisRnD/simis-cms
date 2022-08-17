@@ -39,7 +39,7 @@ public class InstagramMediaRepository {
   private static Log LOG = LogFactory.getLog(InstagramMediaRepository.class);
 
   private static String TABLE_NAME = "instagram_media";
-  private static String PRIMARY_KEY[] = new String[]{"id"};
+  private static String[] PRIMARY_KEY = new String[]{"id"};
 
   public static InstagramMedia findByGraphId(String graphId) {
     if (StringUtils.isBlank(graphId)) {

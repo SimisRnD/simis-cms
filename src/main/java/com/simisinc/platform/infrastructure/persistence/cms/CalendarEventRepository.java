@@ -41,7 +41,7 @@ public class CalendarEventRepository {
   private static Log LOG = LogFactory.getLog(CalendarEventRepository.class);
 
   private static String TABLE_NAME = "calendar_events";
-  private static String PRIMARY_KEY[] = new String[]{"event_id"};
+  private static String[] PRIMARY_KEY = new String[]{"event_id"};
 
   private static SqlUtils createWhereStatement(CalendarEventSpecification specification) {
     SqlUtils where = new SqlUtils();

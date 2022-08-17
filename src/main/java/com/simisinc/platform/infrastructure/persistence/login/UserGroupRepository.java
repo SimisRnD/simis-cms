@@ -40,7 +40,7 @@ public class UserGroupRepository {
   private static Log LOG = LogFactory.getLog(UserGroupRepository.class);
 
   private static String TABLE_NAME = "user_groups";
-  private static String PRIMARY_KEY[] = new String[]{"user_group_id"};
+  private static String[] PRIMARY_KEY = new String[]{"user_group_id"};
 
   public static List<UserGroup> findAllByUserId(long userId) {
     if (userId == -1) {

@@ -42,7 +42,7 @@ public class MailingListMemberRepository {
   private static String JOIN =
       "LEFT JOIN emails ON (mailing_list_members.email_id = emails.email_id) " +
       "LEFT JOIN mailing_lists ON (mailing_list_members.list_id = mailing_lists.list_id)";
-  private static String PRIMARY_KEY[] = new String[]{"member_id"};
+  private static String[] PRIMARY_KEY = new String[]{"member_id"};
 
   public static void addEmailToList(Email email, MailingList mailingList) {
     // Determine if the email is already listed

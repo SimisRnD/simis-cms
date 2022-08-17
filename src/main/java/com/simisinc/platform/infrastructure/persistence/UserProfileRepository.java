@@ -41,7 +41,7 @@ public class UserProfileRepository {
   private static Log LOG = LogFactory.getLog(UserProfileRepository.class);
 
   private static String TABLE_NAME = "users";
-  private static String PRIMARY_KEY[] = new String[]{"user_id"};
+  private static String[] PRIMARY_KEY = new String[]{"user_id"};
 
   private static DataResult query(UserSpecification specification, DataConstraints constraints) {
     SqlUtils select = new SqlUtils();

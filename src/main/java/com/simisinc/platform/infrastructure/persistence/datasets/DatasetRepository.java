@@ -45,7 +45,7 @@ public class DatasetRepository {
   private static Log LOG = LogFactory.getLog(DatasetRepository.class);
 
   private static String TABLE_NAME = "datasets";
-  private static String PRIMARY_KEY[] = new String[] { "dataset_id" };
+  private static String[] PRIMARY_KEY = new String[] { "dataset_id" };
 
   private static final int STATUS_READY = 0;
   private static final int STATUS_RUNNING = 1;

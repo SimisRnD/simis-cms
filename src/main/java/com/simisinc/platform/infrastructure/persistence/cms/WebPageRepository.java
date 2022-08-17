@@ -42,7 +42,7 @@ public class WebPageRepository {
   private static Log LOG = LogFactory.getLog(WebPageRepository.class);
 
   private static String TABLE_NAME = "web_pages";
-  private static String PRIMARY_KEY[] = new String[]{"web_page_id"};
+  private static String[] PRIMARY_KEY = new String[]{"web_page_id"};
 
   private static SqlUtils createWhereStatement(WebPageSpecification specification) {
     SqlUtils where = null;

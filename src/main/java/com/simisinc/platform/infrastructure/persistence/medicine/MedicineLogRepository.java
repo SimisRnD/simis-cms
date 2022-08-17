@@ -39,7 +39,7 @@ public class MedicineLogRepository {
   private static Log LOG = LogFactory.getLog(MedicineLogRepository.class);
 
   private static String TABLE_NAME = "medicine_log";
-  private static String PRIMARY_KEY[] = new String[]{"log_id"};
+  private static String[] PRIMARY_KEY = new String[]{"log_id"};
 
   private static DataResult query(MedicineLogSpecification specification, DataConstraints constraints) {
     SqlJoins joins = new SqlJoins();

@@ -38,7 +38,7 @@ public class CollectionRelationshipRepository {
   private static Log LOG = LogFactory.getLog(CollectionRelationshipRepository.class);
 
   private static String TABLE_NAME = "collection_relationships";
-  private static String PRIMARY_KEY[] = new String[]{"relationship_id"};
+  private static String[] PRIMARY_KEY = new String[]{"relationship_id"};
 
   public static List<CollectionRelationship> findAllParentsByCollectionId(long collectionId) {
     if (collectionId == -1) {

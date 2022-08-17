@@ -49,7 +49,7 @@ public class ProductSkuRepository {
       "products.active_date AS product_active_date," +
           "products.deactivate_on AS product_deactivate_on";
   private static String JOIN = "LEFT JOIN products ON (product_skus.product_id = products.product_id)";
-  private static String PRIMARY_KEY[] = new String[]{"sku_id"};
+  private static String[] PRIMARY_KEY = new String[]{"sku_id"};
 
   private static DataResult query(ProductSkuSpecification specification, DataConstraints constraints) {
     SqlUtils select = new SqlUtils().add(ADDITIONAL_SELECT);

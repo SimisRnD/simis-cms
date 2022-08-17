@@ -48,7 +48,7 @@ public class BlogPostRepository {
   private static Log LOG = LogFactory.getLog(BlogPostRepository.class);
 
   private static String TABLE_NAME = "blog_posts";
-  private static String PRIMARY_KEY[] = new String[] { "post_id" };
+  private static String[] PRIMARY_KEY = new String[] { "post_id" };
 
   private static SqlUtils createWhereStatement(BlogPostSpecification specification) {
     SqlUtils where = null;

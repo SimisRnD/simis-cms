@@ -41,7 +41,7 @@ public class FolderRepository {
   private static Log LOG = LogFactory.getLog(FolderRepository.class);
 
   private static String TABLE_NAME = "folders";
-  private static String PRIMARY_KEY[] = new String[]{"folder_id"};
+  private static String[] PRIMARY_KEY = new String[]{"folder_id"};
 
   public static Folder save(Folder record) {
     if (record.getId() > -1) {

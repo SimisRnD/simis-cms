@@ -38,7 +38,7 @@ public class TrackingNumberRepository {
   private static Log LOG = LogFactory.getLog(TrackingNumberRepository.class);
 
   private static String TABLE_NAME = "order_tracking_numbers";
-  private static String PRIMARY_KEY[] = new String[]{"tracking_id"};
+  private static String[] PRIMARY_KEY = new String[]{"tracking_id"};
 
   public static TrackingNumber findById(long trackingId) {
     return (TrackingNumber) DB.selectRecordFrom(

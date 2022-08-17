@@ -40,7 +40,7 @@ public class TableOfContentsRepository {
   private static Log LOG = LogFactory.getLog(TableOfContentsRepository.class);
 
   private static String TABLE_NAME = "table_of_contents";
-  private static String PRIMARY_KEY[] = new String[]{"toc_id"};
+  private static String[] PRIMARY_KEY = new String[]{"toc_id"};
 
   private static DataResult query(TableOfContentsSpecification specification, DataConstraints constraints) {
     SqlUtils where = null;

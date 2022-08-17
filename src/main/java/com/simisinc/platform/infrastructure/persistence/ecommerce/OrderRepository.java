@@ -51,7 +51,7 @@ public class OrderRepository {
   private static Log LOG = LogFactory.getLog(OrderRepository.class);
 
   private static String TABLE_NAME = "orders";
-  private static String PRIMARY_KEY[] = new String[]{"order_id"};
+  private static String[] PRIMARY_KEY = new String[]{"order_id"};
   private static String STATUS_JOIN = "LEFT JOIN lookup_order_status los ON (orders.status = los.status_id)";
 
   private static DataResult query(OrderSpecification specification, DataConstraints constraints) {

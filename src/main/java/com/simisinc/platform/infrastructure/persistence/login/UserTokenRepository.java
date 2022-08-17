@@ -44,7 +44,7 @@ public class UserTokenRepository {
   private static Log LOG = LogFactory.getLog(UserTokenRepository.class);
 
   private static String TABLE_NAME = "user_tokens";
-  private static String PRIMARY_KEY[] = new String[]{"token_id"};
+  private static String[] PRIMARY_KEY = new String[]{"token_id"};
 
   public static UserToken findByToken(String token) {
     if (StringUtils.isBlank(token)) {

@@ -39,7 +39,7 @@ public class MemberRepository {
   private static Log LOG = LogFactory.getLog(MemberRepository.class);
 
   private static String TABLE_NAME = "members";
-  private static String PRIMARY_KEY[] = new String[]{"member_id"};
+  private static String[] PRIMARY_KEY = new String[]{"member_id"};
 
   public static Member findById(long memberId) {
     if (memberId == -1) {

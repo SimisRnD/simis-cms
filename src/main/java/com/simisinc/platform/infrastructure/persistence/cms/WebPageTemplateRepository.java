@@ -40,7 +40,7 @@ public class WebPageTemplateRepository {
   private static Log LOG = LogFactory.getLog(WebPageTemplateRepository.class);
 
   private static String TABLE_NAME = "web_page_templates";
-  private static String PRIMARY_KEY[] = new String[]{"template_id"};
+  private static String[] PRIMARY_KEY = new String[]{"template_id"};
 
   private static DataResult query(WebPageTemplateSpecification specification, DataConstraints constraints) {
     SqlUtils where = null;

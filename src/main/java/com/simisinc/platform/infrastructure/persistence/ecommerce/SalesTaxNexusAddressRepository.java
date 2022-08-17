@@ -38,7 +38,7 @@ public class SalesTaxNexusAddressRepository {
   private static Log LOG = LogFactory.getLog(SalesTaxNexusAddressRepository.class);
 
   private static String TABLE_NAME = "sales_tax_nexus_addresses";
-  private static String PRIMARY_KEY[] = new String[]{"address_id"};
+  private static String[] PRIMARY_KEY = new String[]{"address_id"};
 
   public static List<SalesTaxNexusAddress> findAll() {
     DataResult result = DB.selectAllFrom(

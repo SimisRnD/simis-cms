@@ -42,7 +42,7 @@ public class ItemSubFolderRepository {
   private static Log LOG = LogFactory.getLog(ItemSubFolderRepository.class);
 
   private static String TABLE_NAME = "item_sub_folders";
-  private static String PRIMARY_KEY[] = new String[]{"sub_folder_id"};
+  private static String[] PRIMARY_KEY = new String[]{"sub_folder_id"};
 
   private static DataResult query(ItemSubFolderSpecification specification, DataConstraints constraints) {
     SqlUtils select = new SqlUtils();

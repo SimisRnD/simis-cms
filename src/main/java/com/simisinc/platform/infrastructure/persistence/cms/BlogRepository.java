@@ -39,7 +39,7 @@ public class BlogRepository {
   private static Log LOG = LogFactory.getLog(BlogRepository.class);
 
   private static String TABLE_NAME = "blogs";
-  private static String PRIMARY_KEY[] = new String[]{"blog_id"};
+  private static String[] PRIMARY_KEY = new String[]{"blog_id"};
 
   private static DataResult query(BlogSpecification specification, DataConstraints constraints) {
     SqlUtils where = null;

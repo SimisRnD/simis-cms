@@ -38,7 +38,7 @@ public class WebContainerRepository {
   private static Log LOG = LogFactory.getLog(WebContainerRepository.class);
 
   private static String TABLE_NAME = "web_containers";
-  private static String PRIMARY_KEY[] = new String[]{"container_id"};
+  private static String[] PRIMARY_KEY = new String[]{"container_id"};
 
   public static WebContainer findById(long id) {
     if (id == -1) {

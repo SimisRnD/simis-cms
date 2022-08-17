@@ -37,7 +37,7 @@ public class EmailRepository {
   private static Log LOG = LogFactory.getLog(EmailRepository.class);
 
   private static String TABLE_NAME = "emails";
-  private static String PRIMARY_KEY[] = new String[]{"email_id"};
+  private static String[] PRIMARY_KEY = new String[]{"email_id"};
 
   private static DataResult query(EmailSpecification specification, DataConstraints constraints) {
     SqlUtils select = new SqlUtils();

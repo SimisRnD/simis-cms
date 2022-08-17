@@ -40,7 +40,7 @@ public class ThemeRepository {
   private static Log LOG = LogFactory.getLog(ThemeRepository.class);
 
   private static String TABLE_NAME = "themes";
-  private static String PRIMARY_KEY[] = new String[]{"theme_id"};
+  private static String[] PRIMARY_KEY = new String[]{"theme_id"};
 
   public static Theme findByName(String name) {
     return (Theme) DB.selectRecordFrom(

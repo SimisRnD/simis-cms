@@ -38,7 +38,7 @@ public class XapiStatementRepository {
   private static Log LOG = LogFactory.getLog(XapiStatementRepository.class);
 
   private static String TABLE_NAME = "xapi_statements";
-  private static String PRIMARY_KEY[] = new String[]{"statement_id"};
+  private static String[] PRIMARY_KEY = new String[]{"statement_id"};
 
   private static SqlUtils createWhereStatement(XapiStatementSpecification specification) {
     SqlUtils where = null;
