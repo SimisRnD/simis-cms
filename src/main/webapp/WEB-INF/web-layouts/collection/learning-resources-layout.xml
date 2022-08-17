@@ -45,22 +45,31 @@
           <uniqueId>${item.uniqueId}</uniqueId>
           <fields>
             <field name="Category" value="categoryList" />
+            <field name="Subject Area" value="custom.subject_area" />
+            <field name="Subject Matter" value="custom.subject_matter" />
+            <field name="Conveys Concept" value="custom.conveys_concept" />
+            <field name="Competencies Taught" value="custom.competencies_taught" />
+            <field name="Competencies Assessed" value="custom.competencies_assessed" />
             <field name="Instructor" value="custom.instructor" />
             <field name="Delivery Mode" value="custom.delivery_mode" />
             <field name="Estimated Completion Time" value="custom.estimated_completion_time" />
-            <field name="Accredited By" value="custom.accredited_by" />
+            <field name="Duration" value="custom.duration" />
             <field name="Audience" value="custom.audience" />
             <field name="Prerequisites" value="custom.prerequisites" />
+            <field name="Accredited By" value="custom.accredited_by" />
+            <field name="Command" value="custom.command" />
+            <field name="Developed By" value="custom.developer" />
+            <field name="Authored By" value="custom.author" />
             <field name="Career Category" value="custom.career_category" />
+            <field name="Language" value="custom.inLanguage" />
             <field name="Role" value="custom.role" />
-            <field name="Subject Matter" value="custom.subject_matter" />
             <field name="Price" value="cost" type="currency" />
             <field name="Email" value="email" type="email" />
             <field name="Address" value="address" />
             <field name="Country" value="country" />
             <field name="County" value="county" />
             <field name="Phone Number" value="phoneNumber" />
-            <field name="Id" value="barcode" />
+            <field name="Code" value="custom.code" />
           </fields>
           <showAllCustomFields>false</showAllCustomFields>
         </widget>
