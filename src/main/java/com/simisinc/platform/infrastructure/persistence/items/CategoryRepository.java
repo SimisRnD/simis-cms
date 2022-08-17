@@ -34,7 +34,7 @@ import java.util.List;
  */
 public class CategoryRepository {
 
-  private static final String PRIMARY_KEY[] = new String[]{"category_id"};
+  private static final String PRIMARY_KEY[] = new String[] { "category_id" };
   private static String TABLE_NAME = "categories";
 
   private static Log LOG = LogFactory.getLog(CategoryRepository.class);
@@ -70,7 +70,8 @@ public class CategoryRepository {
       return null;
     }
     SqlUtils where = new SqlUtils()
-        .add("EXISTS (SELECT 1 FROM item_categories WHERE category_id = categories.category_id AND item_id = ?)", itemId);
+        .add("EXISTS (SELECT 1 FROM item_categories WHERE category_id = categories.category_id AND item_id = ?)",
+            itemId);
     DataResult result = DB.selectAllFrom(
         TABLE_NAME,
         where,
@@ -91,7 +92,7 @@ public class CategoryRepository {
     where.add("collection_id = ?", collectionId);
     if (basedOnItems) {
       where.add("item_count > 0");
-//      where.add("EXISTS (SELECT 1 FROM items WHERE category_id = items.category_id AND collection_id = ?)", collectionId);
+      //      where.add("EXISTS (SELECT 1 FROM items WHERE category_id = items.category_id AND collection_id = ?)", collectionId);
     }
     DataResult result = DB.selectAllFrom(
         TABLE_NAME,
@@ -123,8 +124,8 @@ public class CategoryRepository {
   public static boolean remove(Category record) {
     try {
       try (Connection connection = DB.getConnection();
-           AutoStartTransaction a = new AutoStartTransaction(connection);
-           AutoRollback transaction = new AutoRollback(connection)) {
+          AutoStartTransaction a = new AutoStartTransaction(connection);
+          AutoRollback transaction = new AutoRollback(connection)) {
         // Delete the references
         ItemCategoryRepository.removeAll(connection, record);
         // Update pointers
@@ -153,11 +154,12 @@ public class CategoryRepository {
         .add("created_by", record.getCreatedBy())
         .add("icon", StringUtils.trimToNull(record.getIcon()))
         .addIfExists("header_text_color", record.getHeaderTextColor())
-        .addIfExists("header_bg_color", record.getHeaderBgColor());
+        .addIfExists("header_bg_color", record.getHeaderBgColor())
+        .add("item_url_text", StringUtils.trimToNull(record.getItemUrlText()));
     try {
       try (Connection connection = DB.getConnection();
-           AutoStartTransaction a = new AutoStartTransaction(connection);
-           AutoRollback transaction = new AutoRollback(connection)) {
+          AutoStartTransaction a = new AutoStartTransaction(connection);
+          AutoRollback transaction = new AutoRollback(connection)) {
         // Insert the record
         record.setId(DB.insertInto(connection, TABLE_NAME, insertValues, PRIMARY_KEY));
         // Update the pointer
@@ -179,6 +181,7 @@ public class CategoryRepository {
         .add("icon", StringUtils.trimToNull(record.getIcon()))
         .add("header_text_color", StringUtils.trimToNull(record.getHeaderTextColor()))
         .add("header_bg_color", StringUtils.trimToNull(record.getHeaderBgColor()))
+        .add("item_url_text", StringUtils.trimToNull(record.getItemUrlText()))
         .add("modified", new Timestamp(System.currentTimeMillis()));
     SqlUtils where = new SqlUtils()
         .add("category_id = ?", record.getId());
@@ -189,11 +192,11 @@ public class CategoryRepository {
     return null;
   }
 
-  private static PreparedStatement createPreparedStatementForItemCount(Connection connection, long categoryId, int value) throws SQLException {
-    String SQL_QUERY =
-        "UPDATE categories " +
-            "SET item_count = item_count + ? " +
-            "WHERE category_id = ?";
+  private static PreparedStatement createPreparedStatementForItemCount(Connection connection, long categoryId,
+      int value) throws SQLException {
+    String SQL_QUERY = "UPDATE categories " +
+        "SET item_count = item_count + ? " +
+        "WHERE category_id = ?";
     int i = 0;
     PreparedStatement pst = connection.prepareStatement(SQL_QUERY);
     pst.setInt(++i, value);
@@ -228,6 +231,7 @@ public class CategoryRepository {
       record.setIcon(rs.getString("icon"));
       record.setHeaderTextColor(rs.getString("header_text_color"));
       record.setHeaderBgColor(rs.getString("header_bg_color"));
+      record.setItemUrlText(rs.getString("item_url_text"));
       return record;
     } catch (SQLException se) {
       LOG.error("buildRecord", se);

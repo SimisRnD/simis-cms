@@ -46,19 +46,27 @@ public class DatasetsDownloadAndSyncJob {
     // Retrieve a list of datasets that are ready and enabled to be downloaded
     List<Dataset> datasetList = DatasetRepository.findAllScheduledForDownload();
     for (Dataset dataset : datasetList) {
-      // Try to mark it as being downloaded
+      // Try to queue this dataset for downloading
       if (!DatasetRepository.markAsQueuedIfAllowed(dataset)) {
         continue;
       }
       LOG.debug("Dataset to download: " + dataset.getName());
+      boolean isNewFile = false;
       try {
         // Do the download
-        DatasetDownloadRemoteFileCommand.handleRemoteFileDownload(dataset, dataset.getModifiedBy());
+        isNewFile = DatasetDownloadRemoteFileCommand.handleRemoteFileDownload(dataset, dataset.getModifiedBy());
         LOG.info("Downloaded dataset: " + dataset.getName());
       } catch (Exception e) {
         // Mark this for trying again later, record the error message
         DatasetRepository.markToRetryDownload(dataset, e.getMessage());
         LOG.warn("Download attempt failed for dataset: " + dataset.getName());
+        continue;
+      }
+
+      // Determine what to do with an unchanged file
+      if (!isNewFile) {
+        // Skip further processing
+        continue;
       }
 
       // Check if the dataset has sync'ing enabled

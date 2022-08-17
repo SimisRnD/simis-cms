@@ -66,6 +66,7 @@ public class Collection extends Entity {
   private boolean showSearch = false;
   private boolean showListingsLink = false;
   private Map<String, CustomField> customFieldList = null;
+  private String itemUrlText = null;
 
   public Collection() {
   }
@@ -348,4 +349,13 @@ public class Collection extends Entity {
   public CustomField getCustomField(String name) {
     return CustomFieldCommand.getCustomField(customFieldList, name);
   }
+
+  public String getItemUrlText() {
+    return itemUrlText;
+  }
+
+  public void setItemUrlText(String urlText) {
+    this.itemUrlText = urlText;
+  }
+
 }

@@ -65,7 +65,8 @@ public class CollectionRepository {
         .add("listings_link", StringUtils.trimToNull(record.getListingsLink()))
         .add("icon", StringUtils.trimToNull(record.getIcon()))
         .add("show_listings_link", record.getShowListingsLink())
-        .add("show_search", record.getShowSearch());
+        .add("show_search", record.getShowSearch())
+        .add("item_url_text", StringUtils.trimToNull(record.getItemUrlText()));
 
     // Use a transaction
     try {
@@ -102,6 +103,7 @@ public class CollectionRepository {
         .add("icon", StringUtils.trimToNull(record.getIcon()))
         .add("show_listings_link", record.getShowListingsLink())
         .add("show_search", record.getShowSearch())
+        .add("item_url_text", StringUtils.trimToNull(record.getItemUrlText()))
         .add("modified", new Timestamp(System.currentTimeMillis()));
     SqlUtils where = new SqlUtils().add("collection_id = ?", record.getId());
     // Use a transaction
@@ -368,6 +370,7 @@ public class CollectionRepository {
       record.setMenuHoverBgColor(rs.getString("menu_hover_bg_color"));
       record.setMenuHoverBorderColor(rs.getString("menu_hover_border_color"));
       record.setCustomFieldList(CustomFieldListJSONCommand.populateFromJSONString(rs.getString("field_values")));
+      record.setItemUrlText(rs.getString("item_url_text"));
       return record;
     } catch (SQLException se) {
       LOG.error("buildRecord", se);

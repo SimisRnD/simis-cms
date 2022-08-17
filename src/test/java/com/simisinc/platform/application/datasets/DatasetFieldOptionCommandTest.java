@@ -44,6 +44,15 @@ class DatasetFieldOptionCommandTest {
   }
 
   @Test
+  void testRepeatedOption() {
+    String options = "blank(\"Not Available\");blank(\"The Value\")";
+    String value = "The Value";
+
+    String newValue = DatasetFieldOptionCommand.applyOptionsToField(options, value);
+    Assertions.assertEquals("", newValue);
+  }
+
+  @Test
   void testNoOptions() {
     String options = "";
     String value = "Yes and True";

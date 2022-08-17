@@ -83,6 +83,7 @@ public class SaveCollectionCommand {
     collection.setIcon(collectionBean.getIcon());
     collection.setShowListingsLink(collectionBean.getShowListingsLink());
     collection.setShowSearch(collectionBean.getShowSearch());
+    collection.setItemUrlText(collectionBean.getItemUrlText());
     return CollectionRepository.save(collection);
   }
 

@@ -1113,7 +1113,11 @@ a.read-more {
 
 .admin.card .card-divider {
   background-color: #deebf8;
-  /*min-height: 84px;*/
+  min-height: 84px;
+}
+
+.admin.card .card-section {
+  min-height: 84px;
 }
 
 .admin.card .fa-3x {

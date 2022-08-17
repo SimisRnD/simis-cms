@@ -16,18 +16,23 @@
 
 package com.simisinc.platform.infrastructure.persistence.datasets;
 
-import com.simisinc.platform.application.CustomFieldListJSONCommand;
-import com.simisinc.platform.application.datasets.DatasetColumnJSONCommand;
-import com.simisinc.platform.domain.model.datasets.Dataset;
-import com.simisinc.platform.infrastructure.database.*;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.List;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import com.simisinc.platform.application.CustomFieldListJSONCommand;
+import com.simisinc.platform.application.datasets.DatasetColumnJSONCommand;
+import com.simisinc.platform.domain.model.datasets.Dataset;
+import com.simisinc.platform.infrastructure.database.DB;
+import com.simisinc.platform.infrastructure.database.DataConstraints;
+import com.simisinc.platform.infrastructure.database.DataResult;
+import com.simisinc.platform.infrastructure.database.SqlUtils;
+import com.simisinc.platform.infrastructure.database.SqlValue;
 
 /**
  * Persists and retrieves dataset objects
@@ -106,6 +111,7 @@ public class DatasetRepository {
         .add("filename", StringUtils.trimToNull(record.getFilename()))
         .add("file_length", record.getFileLength())
         .add("file_type", record.getFileType())
+        .add("file_hash", record.getFileHash())
         .add("path", StringUtils.trimToNull(record.getFileServerPath()))
         .add("last_download", record.getLastDownload())
         .add("records_path", record.getRecordsPath())
@@ -135,6 +141,7 @@ public class DatasetRepository {
         .add("filename", StringUtils.trimToNull(record.getFilename()))
         .add("file_length", record.getFileLength())
         .add("file_type", record.getFileType())
+        .add("file_hash", record.getFileHash())
         .add("path", StringUtils.trimToNull(record.getFileServerPath()))
         .add("last_download", record.getLastDownload())
         .add("records_path", record.getRecordsPath())
@@ -284,7 +291,8 @@ public class DatasetRepository {
         .add("queue_status", STATUS_READY)
         .add("queue_date = NULL")
         .add("queue_message = NULL")
-        .add("queue_attempts = 0");
+        .add("queue_attempts = 0")
+        .add(new SqlValue("queue_interval", SqlValue.INTERVAL_TYPE, "PT5M"));
     SqlUtils where = new SqlUtils()
         .add("dataset_id = ?", record.getId());
     return DB.update(TABLE_NAME, updateValues, where);
@@ -294,24 +302,38 @@ public class DatasetRepository {
     // Determine when to retry or finally fail
     int queueStatus = STATUS_READY;
     String retryInterval = "PT5M";
-     if (record.getQueueAttempts() < 5) {
-       retryInterval = "PT5M";
-     } else if (record.getQueueAttempts() < 10) {
-       retryInterval = "PT30M";
-     } else if (record.getQueueAttempts() < 20) {
-       retryInterval = "PT6H";
-     } else if (record.getQueueAttempts() < 30) {
-       retryInterval = "P1D";
-     } else {
-       queueStatus = STATUS_FAILED;
-     }
+    if (record.getQueueAttempts() < 5) {
+      retryInterval = "PT5M";
+    } else if (record.getQueueAttempts() < 10) {
+      retryInterval = "PT30M";
+    } else if (record.getQueueAttempts() < 20) {
+      retryInterval = "PT6H";
+    } else if (record.getQueueAttempts() < 30) {
+      retryInterval = "P1D";
+    } else {
+      queueStatus = STATUS_FAILED;
+    }
     SqlUtils updateValues = new SqlUtils()
         .add("queue_status", queueStatus)
         .add("queue_message", reason)
-        .add("queue_interval", retryInterval);
+        .add(new SqlValue("queue_interval", SqlValue.INTERVAL_TYPE, retryInterval));
     SqlUtils where = new SqlUtils()
         .add("dataset_id = ?", record.getId());
     return DB.update(TABLE_NAME, updateValues, where);
+  }
+
+  public static boolean markLastDownload(Dataset record) {
+    Timestamp timestamp = new Timestamp(System.currentTimeMillis());
+    SqlUtils updateValues = new SqlUtils()
+        .add("last_download", timestamp);
+    SqlUtils where = new SqlUtils()
+        .add("dataset_id = ?", record.getId());
+    boolean updated = DB.update(TABLE_NAME, updateValues, where);
+    if (updated) {
+      // Update the record for additional workflows
+      record.setLastDownload(timestamp);
+    }
+    return updated;
   }
 
   public static boolean markScheduleLastRun(Dataset record, int status, String message) {
@@ -438,6 +460,12 @@ public class DatasetRepository {
       record.setQueueDate(rs.getTimestamp("queue_date"));
       record.setQueueAttempts(DB.getInt(rs, "queue_attempts", 0));
       record.setPagingUrlPath(rs.getString("paging_url_path"));
+      record.setRecordCount(DB.getInt(rs, "record_count", 0));
+      record.setSyncRecordCount(DB.getInt(rs, "sync_record_count", 0));
+      record.setSyncAddCount(DB.getInt(rs, "sync_add_count", 0));
+      record.setSyncUpdateCount(DB.getInt(rs, "sync_update_count", 0));
+      record.setSyncDeleteCount(DB.getInt(rs, "sync_delete_count", 0));
+      record.setFileHash(rs.getString("file_hash"));
       return record;
     } catch (SQLException se) {
       LOG.error("buildRecord", se);

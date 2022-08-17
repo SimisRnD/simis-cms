@@ -79,7 +79,7 @@
         </div>
       </label>
     </div>
-    <div class="small-12 medium-4 cell">
+    <div class="small-12 medium-3 cell">
       <label>Show search
         <div class="switch large">
           <input class="switch-input" id="showSearch-yes-no" type="checkbox" name="showSearch" value="true"<c:if test="${collection.showSearch eq 'true'}"> checked</c:if>>
@@ -88,6 +88,11 @@
             <span class="switch-inactive" aria-hidden="true">No</span>
           </label>
         </div>
+      </label>
+    </div>
+    <div class="small-12 medium-3 cell">
+      <label>Default Item External Link Text
+        <input type="text" placeholder="View Site" name="itemUrlText" value="<c:out value="${collection.itemUrlText}"/>">
       </label>
     </div>
   </div>

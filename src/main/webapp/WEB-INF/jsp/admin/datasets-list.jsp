@@ -81,6 +81,9 @@
             <c:when test="${dataset.queueStatus gt 1}">
               <span class="label round alert">Failed</span>
             </c:when>
+            <c:when test="${dataset.queueAttempts gt 1}">
+              <span class="label round warning">Retrying</span>
+            </c:when>
             <c:otherwise>
               <span class="label round success">Scheduled</span>
             </c:otherwise>

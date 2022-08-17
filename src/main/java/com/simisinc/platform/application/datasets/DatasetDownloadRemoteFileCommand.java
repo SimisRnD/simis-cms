@@ -61,7 +61,7 @@ public class DatasetDownloadRemoteFileCommand {
   public static final String TEXT_TYPE = "text/plain";
   public static final String RSS_TYPE = "application/rss+xml";
 
-  public static void handleRemoteFileDownload(Dataset dataset, long userId) throws DataException {
+  public static boolean handleRemoteFileDownload(Dataset dataset, long userId) throws DataException {
     if (StringUtils.isBlank(dataset.getSourceUrl())) {
       throw new DataException("A source url is required");
     }
@@ -115,15 +115,27 @@ public class DatasetDownloadRemoteFileCommand {
     dataset.setFileType(fileType);
     dataset.setFileLength(tempFile.length());
     dataset.setFileServerPath(dataPath);
-
-    // Verify the file content and enhance the dataset record
-    if (!DatasetFileCommand.isValidDatasetFile(dataset, type)) {
-      throw new DataException("The file could not be validated");
-    }
+    dataset.setFileHash(FileSystemCommand.getFileChecksum(tempFile));
 
     try {
-      // Get a handle on the previous file (if there is one)
+      // Compare the file content with the previous version to see if it is new
       Dataset previousDataset = DatasetRepository.findById(dataset.getId());
+      if (previousDataset != null && previousDataset.getFileHash() != null
+          && previousDataset.getFileHash().equals(dataset.getFileHash())) {
+        // The content is the same as the last download
+        tempFile.delete();
+        // Give it a new last_download attempt date
+        DatasetRepository.markLastDownload(dataset);
+        // Mark it as updated/unlocked
+        DatasetRepository.markAsUnqueued(dataset);
+        return false;
+      }
+      
+      // Verify the file content and enhance the dataset record
+      if (!DatasetFileCommand.isValidDatasetFile(dataset, type)) {
+        throw new DataException("The file could not be validated");
+      }
+
       // Update the dataset repository
       Dataset savedDataset = SaveDatasetCommand.saveDataset(dataset);
       if (savedDataset == null) {
@@ -148,6 +160,7 @@ public class DatasetDownloadRemoteFileCommand {
 
     // Mark it as updated/unlocked
     DatasetRepository.markAsUnqueued(dataset);
+    return true;
   }
 
   /**

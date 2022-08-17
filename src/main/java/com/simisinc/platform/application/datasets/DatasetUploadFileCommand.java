@@ -97,6 +97,7 @@ public class DatasetUploadFileCommand {
     dataset.setFileType(fileType);
     dataset.setFileLength(tempFile.length());
     dataset.setFileServerPath(dataPath);
+    dataset.setFileHash(FileSystemCommand.getFileChecksum(tempFile));
 
     // Verify the file content and enhance the dataset record
     if (!DatasetFileCommand.isValidDatasetFile(dataset, type)) {
