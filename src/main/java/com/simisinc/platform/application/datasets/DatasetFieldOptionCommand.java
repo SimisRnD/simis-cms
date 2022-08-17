@@ -100,6 +100,12 @@ public class DatasetFieldOptionCommand {
       // Skip the record
       return true;
     }
+    // Check for a startsWith("") value (value must start with this value to be valid)
+    String startsWithValue = extractValue(options, "startsWith");
+    if (startsWithValue != null && !value.toLowerCase().startsWith(startsWithValue.toLowerCase())) {
+      // Skip the record
+      return true;
+    }
 
     // Other checks
     if (uniqueColumnValueMap != null && columnId > -1 && hasOption(options, "skipDuplicates")) {
@@ -188,6 +194,7 @@ public class DatasetFieldOptionCommand {
           if (!token.startsWith("equals(") &&
               !token.startsWith("notEquals(") &&
               !token.startsWith("contains(") &&
+              !token.startsWith("startsWith(") &&
               !token.startsWith("skipDuplicates")) {
             LOG.debug("Token not found: " + token);
           }
