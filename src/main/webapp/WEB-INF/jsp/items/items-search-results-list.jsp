@@ -19,6 +19,7 @@
 <%@ taglib prefix="font" uri="/WEB-INF/font-functions.tld" %>
 <%@ taglib prefix="html" uri="/WEB-INF/html-functions.tld" %>
 <%@ taglib prefix="text" uri="/WEB-INF/text-functions.tld" %>
+<%@ taglib prefix="url" uri="/WEB-INF/url-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="collection" class="com.simisinc.platform.domain.model.items.Collection" scope="request"/>
@@ -48,10 +49,19 @@
         </c:otherwise>
       </c:choose>
       <%-- Display on one line with the comma correctly placed --%>
-      for <strong>&quot;<c:out value="${searchName}" />&quot;</strong><c:if test="${!empty searchLocation}">
+      <c:if test="${!empty searchName}">for <strong>&quot;<c:out value="${searchName}" />&quot;</strong></c:if><c:if test="${!empty searchLocation}">
       near <strong>&quot;<c:out value="${searchLocation}" />&quot;</strong></c:if><c:if test="${!empty category}">
       in <strong>&quot;<c:out value="${category.name}" />&quot;</strong>
-      </c:if><c:if test="${itemList.size() < recordPaging.totalRecordCount}">, showing the first ${recordPaging.pageSize}...</c:if>
+      </c:if><c:if test="${itemList.size() < recordPaging.totalRecordCount}">, showing 
+        <c:choose>
+          <c:when test="${recordPaging.pageNumber gt 1}">
+            page ${recordPaging.pageNumber}...
+          </c:when>
+          <c:otherwise>
+            the first ${recordPaging.pageSize}...
+          </c:otherwise>
+        </c:choose>
+      </c:if>
     </p>
     <ul class="no-bullet">
       <c:forEach items="${itemList}" var="item">
@@ -74,6 +84,11 @@
         </li>
       </c:forEach>
     </ul>
+    <%-- Paging Control --%>
+    <c:if test="${category.id gt 0 || !empty searchName || !empty searchLocation}">
+      <c:set var="recordPagingParams" scope="request"><c:if test="${category.id gt 0}">&categoryId=${category.id}</c:if><c:if test="${!empty searchName}">&searchName=${url:encodeUri(searchName)}</c:if><c:if test="${!empty searchLocation}">&searchLocation=${url:encodeUri(searchLocation)}</c:if></c:set>
+    </c:if>
+    <%@include file="../paging_control.jspf" %>
   </c:when>
   <c:otherwise>
     <p class="search-results subheader">

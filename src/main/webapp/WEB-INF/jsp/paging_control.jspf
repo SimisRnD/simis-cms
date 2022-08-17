@@ -14,7 +14,11 @@
   ~ limitations under the License.
   --%>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <c:if test="${(empty showPaging || showPaging eq 'true') && (!empty recordPaging && recordPaging.maxPageNumber gt 1)}">
+  <c:if test="${!empty recordPagingParams && fn:startsWith(recordPagingParams, '&')}">
+    <c:set var="recordPagingParams" scope="request">${fn:substringAfter(recordPagingParams, '&')}</c:set>
+  </c:if>
   <nav aria-label="Pagination">
     <ul class="pagination text-center">
       <c:choose>
