@@ -213,6 +213,8 @@ public class SaveDatasetRowCommand {
             item.setLongitude(Double.valueOf(longitude));
           }
         }
+      } else if ("keywords".equals(mapping)) {
+        item.setKeywords(value);
       } else if ("latitude".equals(mapping)) {
         item.setLatitude(Double.valueOf(value));
       } else if ("longitude".equals(mapping)) {

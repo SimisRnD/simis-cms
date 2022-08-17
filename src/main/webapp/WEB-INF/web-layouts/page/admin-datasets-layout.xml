@@ -251,6 +251,7 @@
               <li>equals(&quot;value&quot;)</li>
               <li>notEquals(&quot;value&quot;)</li>
               <li>contains(&quot;value&quot;)</li>
+              <li>startsWith(&quot;value&quot;)</li>
               <li>skipDuplicates</li>
             </ul>
             ]]>
