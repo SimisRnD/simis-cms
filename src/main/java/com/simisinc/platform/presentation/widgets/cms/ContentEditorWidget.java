@@ -144,7 +144,7 @@ public class ContentEditorWidget extends GenericWidget {
           WebPage webPage = LoadWebPageCommand.loadByLink(returnPage);
           if (webPage != null) {
             // Check for events
-            boolean justUpdatedInTheLastDay = DateCommand.isHoursOld(webPage.getModified(), 24);
+            boolean justUpdatedInTheLastDay = DateCommand.isHoursOld(webPage.getModified(), 10);
 
             // Update the related page
             WebPageRepository.markAsModified(webPage, context.getUserId());
