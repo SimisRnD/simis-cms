@@ -68,6 +68,13 @@
     <servlet-class>com.simisinc.platform.presentation.controller.StylesheetServlet</servlet-class>
     <load-on-startup>1</load-on-startup>
   </servlet>
+  <!--
+  <servlet>
+    <servlet-name>SitemapXmlServlet</servlet-name>
+    <servlet-class>com.simisinc.platform.presentation.controller.SitemapXmlServlet</servlet-class>
+    <load-on-startup>1</load-on-startup>
+  </servlet>
+  -->
   <!-- Mappings -->
   <servlet-mapping>
     <servlet-name>default</servlet-name>
@@ -96,6 +103,13 @@
     <servlet-name>StylesheetServlet</servlet-name>
     <url-pattern>/css/custom/*</url-pattern>
   </servlet-mapping>
+  <!--
+  <servlet-mapping>
+    <servlet-name>SitemapXmlServlet</servlet-name>
+    <url-pattern>/sitemap.xml</url-pattern>
+    <url-pattern>/sitemap-review.xml</url-pattern>
+  </servlet-mapping>
+  -->
   <servlet-mapping>
     <servlet-name>CompressServlet</servlet-name>
     <url-pattern>/combined.js</url-pattern>
