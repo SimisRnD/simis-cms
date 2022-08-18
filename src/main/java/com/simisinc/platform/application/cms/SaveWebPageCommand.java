@@ -132,7 +132,7 @@ public class SaveWebPageCommand {
       boolean isNewWebPage = (webPageBean.getId() == -1 || webPageBean.getModified() == null);
       boolean justUpdatedInTheLastDay = !isNewWebPage &&
           webPage.getModified() != null &&
-          DateCommand.isHoursOld(webPage.getModified(), 24);
+          DateCommand.isHoursOld(webPage.getModified(), 10);
       // Trigger events
       if (isNewWebPage) {
         WorkflowManager.triggerWorkflowForEvent(new WebPagePublishedEvent(result));
