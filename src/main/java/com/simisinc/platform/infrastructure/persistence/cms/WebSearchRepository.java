@@ -37,7 +37,7 @@ public class WebSearchRepository {
   private static Log LOG = LogFactory.getLog(WebSearchRepository.class);
 
   private static String TABLE_NAME = "web_searches";
-  private static String PRIMARY_KEY[] = new String[]{"search_id"};
+  private static String[] PRIMARY_KEY = new String[]{"search_id"};
 
 
   public static WebSearch save(WebSearch record) {

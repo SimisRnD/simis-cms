@@ -37,7 +37,7 @@ public class ImageRepository {
   private static Log LOG = LogFactory.getLog(ImageRepository.class);
 
   private static String TABLE_NAME = "images";
-  private static String PRIMARY_KEY[] = new String[]{"image_id"};
+  private static String[] PRIMARY_KEY = new String[]{"image_id"};
 
   private static DataResult query(ImageSpecification specification, DataConstraints constraints) {
     SqlUtils where = null;

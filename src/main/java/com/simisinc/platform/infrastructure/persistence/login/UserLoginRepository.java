@@ -40,7 +40,7 @@ public class UserLoginRepository {
   private static Log LOG = LogFactory.getLog(UserLoginRepository.class);
 
   private static String TABLE_NAME = "user_logins";
-  private static String PRIMARY_KEY[] = new String[]{"login_id"};
+  private static String[] PRIMARY_KEY = new String[]{"login_id"};
 
   private static DataResult query(UserLoginSpecification specification, DataConstraints constraints) {
     SqlUtils select = new SqlUtils();

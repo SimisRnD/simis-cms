@@ -38,7 +38,7 @@ public class ItemFileVersionRepository {
   private static Log LOG = LogFactory.getLog(ItemFileVersionRepository.class);
 
   private static String TABLE_NAME = "item_file_versions";
-  private static String PRIMARY_KEY[] = new String[]{"version_id"};
+  private static String[] PRIMARY_KEY = new String[]{"version_id"};
 
   private static DataResult query(ItemFileVersionSpecification specification, DataConstraints constraints) {
     SqlUtils where = null;

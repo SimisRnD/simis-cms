@@ -36,7 +36,7 @@ public class MailingListRepository {
   private static Log LOG = LogFactory.getLog(MailingListRepository.class);
 
   private static String TABLE_NAME = "mailing_lists";
-  private static String PRIMARY_KEY[] = new String[]{"list_id"};
+  private static String[] PRIMARY_KEY = new String[]{"list_id"};
 
   public static List<MailingList> findAll() {
     DataResult result = DB.selectAllFrom(

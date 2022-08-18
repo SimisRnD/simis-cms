@@ -80,7 +80,7 @@ public class PERLSAccessTokenCommand {
       System.out.println("CODE: " + response.statusCode());
       System.out.println("BODY: " + response.body());
 
-      // Check for a Moodle exception
+      // Check for an exception
       JsonNode jsonNode = JsonLoader.fromString(response.body());
       if (jsonNode.has("exception")) {
         LOG.warn("Exception: " + jsonNode.get("exception"));

@@ -42,7 +42,7 @@ public class CartItemRepository {
   private static Log LOG = LogFactory.getLog(CartItemRepository.class);
 
   private static String TABLE_NAME = "cart_items";
-  private static String PRIMARY_KEY[] = new String[]{"item_id"};
+  private static String[] PRIMARY_KEY = new String[]{"item_id"};
 
   public static List<CartItem> findValidItemsByCartId(long cartId) {
     DataResult result = DB.selectAllFrom(

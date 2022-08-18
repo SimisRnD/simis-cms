@@ -39,7 +39,7 @@ public class UserRoleRepository {
   private static Log LOG = LogFactory.getLog(UserRoleRepository.class);
 
   private static String TABLE_NAME = "user_roles";
-  private static String PRIMARY_KEY[] = new String[]{"user_role_id"};
+  private static String[] PRIMARY_KEY = new String[]{"user_role_id"};
 
   public static List<UserRole> findAllByUserId(long userId) {
     if (userId == -1) {

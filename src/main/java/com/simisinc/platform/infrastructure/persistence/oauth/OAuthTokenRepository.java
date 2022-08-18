@@ -39,7 +39,7 @@ public class OAuthTokenRepository {
   private static Log LOG = LogFactory.getLog(OAuthTokenRepository.class);
 
   private static String TABLE_NAME = "oauth_tokens";
-  private static String PRIMARY_KEY[] = new String[]{"token_id"};
+  private static String[] PRIMARY_KEY = new String[]{"token_id"};
 
   public static OAuthToken findByUserTokenId(long userId, long userTokenId) {
     if (userId < 1) {

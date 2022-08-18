@@ -42,7 +42,7 @@ public class OrderItemRepository {
   private static Log LOG = LogFactory.getLog(OrderItemRepository.class);
 
   private static String TABLE_NAME = "order_items";
-  private static String PRIMARY_KEY[] = new String[]{"item_id"};
+  private static String[] PRIMARY_KEY = new String[]{"item_id"};
 
   public static List<OrderItem> findItemsByOrderId(long orderId) {
     DataResult result = DB.selectAllFrom(

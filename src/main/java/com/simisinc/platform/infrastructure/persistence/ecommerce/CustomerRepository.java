@@ -42,7 +42,7 @@ public class CustomerRepository {
   private static Log LOG = LogFactory.getLog(CustomerRepository.class);
 
   private static String TABLE_NAME = "customers";
-  private static String PRIMARY_KEY[] = new String[] { "customer_id" };
+  private static String[] PRIMARY_KEY = new String[] { "customer_id" };
 
   private static DataResult query(CustomerSpecification specification, DataConstraints constraints) {
     SqlUtils where = null;

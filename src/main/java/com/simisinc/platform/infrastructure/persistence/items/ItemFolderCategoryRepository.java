@@ -39,7 +39,7 @@ public class ItemFolderCategoryRepository {
   private static Log LOG = LogFactory.getLog(ItemFolderCategoryRepository.class);
 
   private static String TABLE_NAME = "item_folder_categories";
-  private static String PRIMARY_KEY[] = new String[]{"category_id"};
+  private static String[] PRIMARY_KEY = new String[]{"category_id"};
 
   public static ItemFolderCategory findById(long id) {
     if (id == -1) {

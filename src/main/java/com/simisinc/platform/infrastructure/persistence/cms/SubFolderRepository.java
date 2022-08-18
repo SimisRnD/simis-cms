@@ -41,7 +41,7 @@ public class SubFolderRepository {
   private static Log LOG = LogFactory.getLog(SubFolderRepository.class);
 
   private static String TABLE_NAME = "sub_folders";
-  private static String PRIMARY_KEY[] = new String[]{"sub_folder_id"};
+  private static String[] PRIMARY_KEY = new String[]{"sub_folder_id"};
 
   private static DataResult query(SubFolderSpecification specification, DataConstraints constraints) {
     SqlUtils select = new SqlUtils();

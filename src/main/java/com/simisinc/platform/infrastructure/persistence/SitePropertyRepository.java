@@ -40,7 +40,7 @@ public class SitePropertyRepository {
   private static Log LOG = LogFactory.getLog(SitePropertyRepository.class);
 
   private static String TABLE_NAME = "site_properties";
-  private static String PRIMARY_KEY[] = new String[]{"property_id"};
+  private static String[] PRIMARY_KEY = new String[]{"property_id"};
 
 
   public static SiteProperty findByName(String name) {

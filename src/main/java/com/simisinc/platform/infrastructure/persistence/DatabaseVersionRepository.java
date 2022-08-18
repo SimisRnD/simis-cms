@@ -37,7 +37,7 @@ public class DatabaseVersionRepository {
   private static Log LOG = LogFactory.getLog(DatabaseVersionRepository.class);
 
   private static String TABLE_NAME = "database_version";
-  private static String PRIMARY_KEY[] = new String[]{"version_id"};
+  private static String[] PRIMARY_KEY = new String[]{"version_id"};
 
   public static long count() {
     return DB.selectCountFrom(TABLE_NAME);

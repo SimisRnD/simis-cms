@@ -38,7 +38,7 @@ public class MedicineScheduleRepository {
   private static Log LOG = LogFactory.getLog(MedicineScheduleRepository.class);
 
   private static String TABLE_NAME = "medicine_schedule";
-  private static String PRIMARY_KEY[] = new String[]{"schedule_id"};
+  private static String[] PRIMARY_KEY = new String[]{"schedule_id"};
 
 
   public static MedicineSchedule save(MedicineSchedule record) {

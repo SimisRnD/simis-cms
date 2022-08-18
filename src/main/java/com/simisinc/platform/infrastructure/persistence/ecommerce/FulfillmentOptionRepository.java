@@ -38,7 +38,7 @@ public class FulfillmentOptionRepository {
   private static Log LOG = LogFactory.getLog(FulfillmentOptionRepository.class);
 
   private static String TABLE_NAME = "lookup_fulfillment_options";
-  private static String PRIMARY_KEY[] = new String[]{"fulfillment_id"};
+  private static String[] PRIMARY_KEY = new String[]{"fulfillment_id"};
 
   public static List<FulfillmentOption> findAll() {
     SqlUtils where = new SqlUtils().add("enabled = ?", true);

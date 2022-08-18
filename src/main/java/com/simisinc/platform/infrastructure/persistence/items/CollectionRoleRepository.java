@@ -40,7 +40,7 @@ public class CollectionRoleRepository {
   private static Log LOG = LogFactory.getLog(CollectionRoleRepository.class);
 
   private static String TABLE_NAME = "lookup_collection_role";
-  private static String PRIMARY_KEY[] = new String[]{"role_id"};
+  private static String[] PRIMARY_KEY = new String[]{"role_id"};
 
   public static CollectionRole findById(long id) {
     if (id == -1) {

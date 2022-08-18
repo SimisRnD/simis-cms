@@ -43,7 +43,7 @@ public class SessionRepository {
   private static Log LOG = LogFactory.getLog(SessionRepository.class);
 
   private static String TABLE_NAME = "sessions";
-  private static String PRIMARY_KEY[] = new String[]{"id"};
+  private static String[] PRIMARY_KEY = new String[]{"id"};
 
   public static Session findBySessionId(long sessionId) {
     if (sessionId == -1) {

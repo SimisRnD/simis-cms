@@ -45,7 +45,7 @@ public class PricingRuleRepository {
   private static Log LOG = LogFactory.getLog(PricingRuleRepository.class);
 
   private static String TABLE_NAME = "pricing_rules";
-  private static String PRIMARY_KEY[] = new String[]{"rule_id"};
+  private static String[] PRIMARY_KEY = new String[]{"rule_id"};
 
   private static DataResult query(PricingRuleSpecification specification, DataConstraints constraints) {
     SqlUtils where = null;

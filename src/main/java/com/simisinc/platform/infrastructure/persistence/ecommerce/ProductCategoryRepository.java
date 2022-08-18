@@ -39,7 +39,7 @@ public class ProductCategoryRepository {
   private static Log LOG = LogFactory.getLog(ProductCategoryRepository.class);
 
   private static String TABLE_NAME = "lookup_product_categories";
-  private static String PRIMARY_KEY[] = new String[]{"category_id"};
+  private static String[] PRIMARY_KEY = new String[]{"category_id"};
 
   public static List<ProductCategory> findAll() {
     DataResult result = DB.selectAllFrom(

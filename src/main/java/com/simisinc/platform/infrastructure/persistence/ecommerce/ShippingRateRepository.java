@@ -40,7 +40,7 @@ public class ShippingRateRepository {
   private static String TABLE_NAME = "shipping_rates";
   private static String ADDITIONAL_SELECT = "lookup_shipping_method.title";
   private static String JOIN = "LEFT JOIN lookup_shipping_method ON (shipping_rates.shipping_method = lookup_shipping_method.method_id)";
-  private static String PRIMARY_KEY[] = new String[]{"rate_id"};
+  private static String[] PRIMARY_KEY = new String[]{"rate_id"};
 
   private static DataResult query(ShippingRateSpecification specification, DataConstraints constraints) {
     SqlUtils select = new SqlUtils().add(ADDITIONAL_SELECT);

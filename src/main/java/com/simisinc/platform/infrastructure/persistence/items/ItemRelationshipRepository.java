@@ -39,7 +39,7 @@ public class ItemRelationshipRepository {
   private static Log LOG = LogFactory.getLog(ItemRelationshipRepository.class);
 
   private static String TABLE_NAME = "item_relationships";
-  private static String PRIMARY_KEY[] = new String[]{"relationship_id"};
+  private static String[] PRIMARY_KEY = new String[]{"relationship_id"};
 
   public static ItemRelationship findById(long relationshipId) {
     if (relationshipId == -1) {

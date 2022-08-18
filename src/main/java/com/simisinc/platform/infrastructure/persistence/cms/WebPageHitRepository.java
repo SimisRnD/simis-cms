@@ -40,7 +40,7 @@ public class WebPageHitRepository {
   private static Log LOG = LogFactory.getLog(WebPageHitRepository.class);
 
   private static String TABLE_NAME = "web_page_hits";
-  private static String PRIMARY_KEY[] = new String[]{"hit_id"};
+  private static String[] PRIMARY_KEY = new String[]{"hit_id"};
 
 
   public static WebPageHit save(WebPageHit record) {

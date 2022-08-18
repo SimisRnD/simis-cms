@@ -39,7 +39,7 @@ public class CalendarRepository {
   private static Log LOG = LogFactory.getLog(CalendarRepository.class);
 
   private static String TABLE_NAME = "calendars";
-  private static String PRIMARY_KEY[] = new String[]{"calendar_id"};
+  private static String[] PRIMARY_KEY = new String[]{"calendar_id"};
 
   private static DataResult query(CalendarSpecification specification, DataConstraints constraints) {
     SqlUtils where = null;

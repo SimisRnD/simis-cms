@@ -42,7 +42,7 @@ public class WebPageRepository {
   private static Log LOG = LogFactory.getLog(WebPageRepository.class);
 
   private static String TABLE_NAME = "web_pages";
-  private static String PRIMARY_KEY[] = new String[]{"web_page_id"};
+  private static String[] PRIMARY_KEY = new String[]{"web_page_id"};
 
   private static SqlUtils createWhereStatement(WebPageSpecification specification) {
     SqlUtils where = null;
@@ -124,7 +124,9 @@ public class WebPageRepository {
         .add("draft_page_xml", StringUtils.trimToNull(record.getDraftPageXml()))
         .add("comments", record.getComments())
         .add("page_image_url", record.getImageUrl())
-        .add("has_redirect", StringUtils.trimToNull(record.getRedirectUrl()) != null);
+        .add("has_redirect", StringUtils.trimToNull(record.getRedirectUrl()) != null)
+        .add("sitemap_priority", record.getSitemapPriority())
+        .add("sitemap_changefreq", StringUtils.trimToNull(record.getSitemapChangeFrequency()));
     record.setId(DB.insertInto(TABLE_NAME, insertValues, PRIMARY_KEY));
     if (record.getId() == -1) {
       LOG.error("An id was not set!");
@@ -158,7 +160,9 @@ public class WebPageRepository {
         .add("draft_page_xml", StringUtils.trimToNull(record.getDraftPageXml()))
         .add("comments", record.getComments())
         .add("page_image_url", record.getImageUrl())
-        .add("has_redirect", StringUtils.trimToNull(record.getRedirectUrl()) != null);
+        .add("has_redirect", StringUtils.trimToNull(record.getRedirectUrl()) != null)
+        .add("sitemap_priority", record.getSitemapPriority())
+        .add("sitemap_changefreq", StringUtils.trimToNull(record.getSitemapChangeFrequency()));
     SqlUtils where = new SqlUtils()
         .add("web_page_id = ?", record.getId());
     if (DB.update(TABLE_NAME, updateValues, where)) {
@@ -237,6 +241,8 @@ public class WebPageRepository {
       record.setImageUrl(rs.getString("page_image_url"));
       record.setSearchable(rs.getBoolean("searchable"));
       record.setShowInSitemap(rs.getBoolean("show_in_sitemap"));
+      record.setSitemapPriority(rs.getBigDecimal("sitemap_priority"));
+      record.setSitemapChangeFrequency(rs.getString("sitemap_changefreq"));
       return record;
     } catch (SQLException se) {
       LOG.error("buildRecord", se);

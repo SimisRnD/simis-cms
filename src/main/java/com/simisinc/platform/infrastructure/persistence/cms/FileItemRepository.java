@@ -40,7 +40,7 @@ public class FileItemRepository {
   private static Log LOG = LogFactory.getLog(FileItemRepository.class);
 
   private static String TABLE_NAME = "files";
-  private static String PRIMARY_KEY[] = new String[]{"file_id"};
+  private static String[] PRIMARY_KEY = new String[]{"file_id"};
 
   private static DataResult query(FileSpecification specification, DataConstraints constraints) {
     SqlUtils select = new SqlUtils();

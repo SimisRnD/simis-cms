@@ -40,7 +40,7 @@ public class FolderGroupRepository {
   private static Log LOG = LogFactory.getLog(FolderGroupRepository.class);
 
   private static String TABLE_NAME = "folder_groups";
-  private static String PRIMARY_KEY[] = new String[]{"allowed_id"};
+  private static String[] PRIMARY_KEY = new String[]{"allowed_id"};
 
   public static List<FolderGroup> findAllByFolderId(long folderId) {
     if (folderId == -1) {

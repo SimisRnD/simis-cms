@@ -40,7 +40,7 @@ public class StylesheetRepository {
   private static Log LOG = LogFactory.getLog(StylesheetRepository.class);
 
   private static String TABLE_NAME = "stylesheets";
-  private static String PRIMARY_KEY[] = new String[]{"stylesheet_id"};
+  private static String[] PRIMARY_KEY = new String[]{"stylesheet_id"};
 
   public static Stylesheet findById(long id) {
     if (id == -1) {

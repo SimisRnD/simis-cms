@@ -43,7 +43,7 @@ public class MedicineRepository {
   private static Log LOG = LogFactory.getLog(MedicineRepository.class);
 
   private static String TABLE_NAME = "medicines";
-  private static String PRIMARY_KEY[] = new String[]{"medicine_id"};
+  private static String[] PRIMARY_KEY = new String[]{"medicine_id"};
 
 
   public static Medicine save(Medicine record) {

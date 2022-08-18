@@ -41,7 +41,7 @@ public class ActivityRepository {
   private static Log LOG = LogFactory.getLog(ActivityRepository.class);
 
   private static String TABLE_NAME = "item_activity_stream";
-  private static String PRIMARY_KEY[] = new String[]{"activity_id"};
+  private static String[] PRIMARY_KEY = new String[]{"activity_id"};
 
 
   public static Activity save(Activity record) {

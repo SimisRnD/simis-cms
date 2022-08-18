@@ -38,7 +38,7 @@ public class FolderCategoryRepository {
   private static Log LOG = LogFactory.getLog(FolderCategoryRepository.class);
 
   private static String TABLE_NAME = "folder_categories";
-  private static String PRIMARY_KEY[] = new String[]{"category_id"};
+  private static String[] PRIMARY_KEY = new String[]{"category_id"};
 
   public static FolderCategory findById(long id) {
     if (id == -1) {

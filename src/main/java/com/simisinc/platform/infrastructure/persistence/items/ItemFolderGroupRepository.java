@@ -41,7 +41,7 @@ public class ItemFolderGroupRepository {
   private static Log LOG = LogFactory.getLog(ItemFolderGroupRepository.class);
 
   private static String TABLE_NAME = "item_folder_groups";
-  private static String PRIMARY_KEY[] = new String[]{"allowed_id"};
+  private static String[] PRIMARY_KEY = new String[]{"allowed_id"};
 
   public static List<ItemFolderGroup> findAllByFolderId(long folderId) {
     if (folderId == -1) {

@@ -41,7 +41,7 @@ public class FileVersionRepository {
   private static Log LOG = LogFactory.getLog(FileVersionRepository.class);
 
   private static String TABLE_NAME = "file_versions";
-  private static String PRIMARY_KEY[] = new String[]{"version_id"};
+  private static String[] PRIMARY_KEY = new String[]{"version_id"};
 
   private static DataResult query(FileVersionSpecification specification, DataConstraints constraints) {
     SqlUtils where = null;

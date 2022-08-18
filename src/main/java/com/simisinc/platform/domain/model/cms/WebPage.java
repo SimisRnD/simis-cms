@@ -18,6 +18,7 @@ package com.simisinc.platform.domain.model.cms;
 
 import com.simisinc.platform.domain.model.Entity;
 
+import java.math.BigDecimal;
 import java.sql.Timestamp;
 
 /**
@@ -39,10 +40,12 @@ public class WebPage extends Entity {
   private boolean enabled = false;
   private boolean searchable = false;
   private boolean showInSitemap = false;
-//  private boolean showPageHeader = false;
-//  private boolean showPageFooter = false;
-//  private long popupId = -1;
-//  private String abTestingRedirectLink = null;
+  private String sitemapChangeFrequency = null;
+  private BigDecimal sitemapPriority = new BigDecimal(0);
+  //  private boolean showPageHeader = false;
+  //  private boolean showPageFooter = false;
+  //  private long popupId = -1;
+  //  private String abTestingRedirectLink = null;
   private long createdBy = -1;
   private Timestamp created = null;
   private Timestamp modified = null;
@@ -231,5 +234,21 @@ public class WebPage extends Entity {
 
   public void setComments(String comments) {
     this.comments = comments;
+  }
+
+  public BigDecimal getSitemapPriority() {
+    return sitemapPriority;
+  }
+
+  public void setSitemapPriority(BigDecimal sitemapPriority) {
+    this.sitemapPriority = sitemapPriority;
+  }
+
+  public String getSitemapChangeFrequency() {
+    return sitemapChangeFrequency;
+  }
+
+  public void setSitemapChangeFrequency(String sitemapChangeFrequency) {
+    this.sitemapChangeFrequency = sitemapChangeFrequency;
   }
 }

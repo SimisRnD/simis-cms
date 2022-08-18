@@ -37,7 +37,7 @@ public class ShippingCountryRepository {
   private static Log LOG = LogFactory.getLog(ShippingCountryRepository.class);
 
   private static String TABLE_NAME = "lookup_shipping_countries";
-  private static String PRIMARY_KEY[] = new String[]{"country_id"};
+  private static String[] PRIMARY_KEY = new String[]{"country_id"};
 
   public static List<ShippingCountry> findAll() {
     DataResult result = DB.selectAllFrom(

@@ -41,7 +41,7 @@ public class ItemFileItemRepository {
   private static Log LOG = LogFactory.getLog(ItemFileItemRepository.class);
 
   private static String TABLE_NAME = "item_files";
-  private static String PRIMARY_KEY[] = new String[]{"file_id"};
+  private static String[] PRIMARY_KEY = new String[]{"file_id"};
 
   private static DataResult query(ItemFileSpecification specification, DataConstraints constraints) {
     SqlUtils select = new SqlUtils();

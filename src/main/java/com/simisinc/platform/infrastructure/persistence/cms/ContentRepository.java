@@ -40,7 +40,7 @@ public class ContentRepository {
   private static Log LOG = LogFactory.getLog(ContentRepository.class);
 
   private static String TABLE_NAME = "content";
-  private static String PRIMARY_KEY[] = new String[]{"content_id"};
+  private static String[] PRIMARY_KEY = new String[]{"content_id"};
 
   private static DataResult query(ContentSpecification specification, DataConstraints constraints) {
     SqlUtils select = new SqlUtils();
