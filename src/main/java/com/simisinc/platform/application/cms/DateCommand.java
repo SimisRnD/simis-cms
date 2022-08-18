@@ -53,6 +53,13 @@ public class DateCommand {
     return (timestamp.getTime() < (System.currentTimeMillis() - (minutesToCheck * 60 * 1000)));
   }
 
+  public static boolean isHoursOld(Timestamp timestamp, int hoursToCheck) {
+    if (timestamp == null) {
+      return false;
+    }
+    return (timestamp.getTime() < (System.currentTimeMillis() - (hoursToCheck * 60 * 60 * 1000)));
+  }
+
   public static String relative(Timestamp timestamp) {
     if (timestamp == null) {
       return "";

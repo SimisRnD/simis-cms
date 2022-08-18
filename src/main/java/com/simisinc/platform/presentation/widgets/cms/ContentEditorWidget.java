@@ -16,8 +16,15 @@
 
 package com.simisinc.platform.presentation.widgets.cms;
 
+import org.apache.commons.lang3.StringUtils;
+
 import com.simisinc.platform.application.DataException;
-import com.simisinc.platform.application.cms.*;
+import com.simisinc.platform.application.cms.DateCommand;
+import com.simisinc.platform.application.cms.LoadContentCommand;
+import com.simisinc.platform.application.cms.LoadWebPageCommand;
+import com.simisinc.platform.application.cms.SaveContentCommand;
+import com.simisinc.platform.application.cms.TinyMceCommand;
+import com.simisinc.platform.application.cms.UrlCommand;
 import com.simisinc.platform.domain.events.cms.WebPageUpdatedEvent;
 import com.simisinc.platform.domain.model.cms.Content;
 import com.simisinc.platform.domain.model.cms.WebPage;
@@ -26,9 +33,6 @@ import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
 import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
-import org.apache.commons.lang3.StringUtils;
-
-import java.util.Date;
 
 /**
  * Description
@@ -140,8 +144,7 @@ public class ContentEditorWidget extends GenericWidget {
           WebPage webPage = LoadWebPageCommand.loadByLink(returnPage);
           if (webPage != null) {
             // Check for events
-            boolean justUpdatedInTheLastDay =
-                (((new Date()).getTime() - webPage.getModified().getTime()) > 24 * 60 * 60 * 1000);
+            boolean justUpdatedInTheLastDay = DateCommand.isHoursOld(webPage.getModified(), 24);
 
             // Update the related page
             WebPageRepository.markAsModified(webPage, context.getUserId());
