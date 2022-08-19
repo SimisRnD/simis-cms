@@ -150,13 +150,15 @@ public class LoadJsonCommand {
           String nodeValue = "";
           if (fieldPointer != null) {
             if (fieldPointer.isContainerNode()) {
+              // Use the container content
               nodeValue = fieldPointer.toString();
-            } else {
+            } else if (fieldPointer.isValueNode()) {
+              // Use the value as a string
               nodeValue = fieldPointer.asText();
             }
           }
           // Simplify the value
-          if (nodeValue == null || nodeValue.equalsIgnoreCase("null")) {
+          if (nodeValue == null) {
             nodeValue = "";
           } else {
             nodeValue = nodeValue.trim();

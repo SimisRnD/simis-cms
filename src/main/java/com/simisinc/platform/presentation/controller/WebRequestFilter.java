@@ -94,7 +94,8 @@ public class WebRequestFilter implements Filter {
   public void destroy() {
   }
 
-  public void doFilter(ServletRequest request, ServletResponse servletResponse, FilterChain chain) throws ServletException, IOException {
+  public void doFilter(ServletRequest request, ServletResponse servletResponse, FilterChain chain)
+      throws ServletException, IOException {
 
     HttpServletRequest httpServletRequest = (HttpServletRequest) request;
     String scheme = request.getScheme();
@@ -160,7 +161,8 @@ public class WebRequestFilter implements Filter {
 
     // Redirect to SSL
     if (requireSSL && !"https".equalsIgnoreCase(scheme)) {
-      if (!"localhost".equals(request.getServerName()) && !InetAddressUtils.isIPv4Address(request.getServerName()) && !InetAddressUtils.isIPv6Address(request.getServerName())) {
+      if (!"localhost".equals(request.getServerName()) && !InetAddressUtils.isIPv4Address(request.getServerName())
+          && !InetAddressUtils.isIPv6Address(request.getServerName())) {
         String requestURL = httpServletRequest.getRequestURL().toString();
         requestURL = StringUtils.replace(requestURL, "http://", "https://");
         LOG.debug("Redirecting to: " + requestURL);
@@ -192,7 +194,8 @@ public class WebRequestFilter implements Filter {
     }
 
     // If OAuth is required, and the user is not verified, redirect to provider
-    String oauthRedirect = OAuthRequestCommand.handleRequest((HttpServletRequest) request, (HttpServletResponse) servletResponse, resource);
+    String oauthRedirect = OAuthRequestCommand.handleRequest((HttpServletRequest) request,
+        (HttpServletResponse) servletResponse, resource);
     if (oauthRedirect != null) {
       if (StringUtils.isBlank(oauthRedirect)) {
         LOG.error("OAUTH: A redirect url could not be created");
@@ -201,6 +204,12 @@ public class WebRequestFilter implements Filter {
       }
       LOG.debug("OAUTH: Redirecting to " + oauthRedirect);
       do302(servletResponse, oauthRedirect);
+      return;
+    }
+
+    // Allow this request to access the sitemap.xml
+    if (resource.equals("/sitemap.xml")) {
+      chain.doFilter(request, servletResponse);
       return;
     }
 
@@ -274,7 +283,8 @@ public class WebRequestFilter implements Filter {
         if (userSession == null) {
           LOG.debug("Creating session...");
           // Start a new session
-          userSession = CreateSessionCommand.createSession(WEB_SOURCE, httpServletRequest.getSession().getId(), ipAddress, referer, userAgent);
+          userSession = CreateSessionCommand.createSession(WEB_SOURCE, httpServletRequest.getSession().getId(),
+              ipAddress, referer, userAgent);
           httpServletRequest.getSession().setAttribute(SessionConstants.USER, userSession);
           // Determine if this is a monitoring app
           if (httpServletRequest.getHeader("X-Monitor") == null) {

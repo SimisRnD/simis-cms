@@ -84,6 +84,10 @@ public class SquareProductCatalogCommand {
         LOG.debug("Mapped product " + product.getUniqueId() + " to version " + versionMap.get(squareCatalogId));
       } else {
         LOG.debug("Version not found for product " + product.getUniqueId());
+        if (!squareCatalogId.startsWith("#")) {
+          // Product no longer exists
+          continue;
+        }
       }
       catalogObjectBuilder.presentAtAllLocations(true);
 
@@ -116,6 +120,10 @@ public class SquareProductCatalogCommand {
           LOG.debug("Mapped productSku " + productSku.getSku() + " to version " + versionMap.get(squareVariationId));
         } else {
           LOG.debug("Version not found for productSku " + productSku.getSku());
+          if (!squareVariationId.startsWith("#")) {
+            // Product sku no longer exists
+            continue;
+          }
         }
         variationBuilder.presentAtAllLocations(true);
         // Determine the attributes for the variation name

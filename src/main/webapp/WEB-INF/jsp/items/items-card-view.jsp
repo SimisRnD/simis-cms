@@ -90,8 +90,7 @@
     <%-- Display on one line with the comma correctly placed --%>
     <c:if test="${!empty searchName}">for <strong>&quot;<c:out value="${searchName}" />&quot;</strong></c:if><c:if test="${!empty searchLocation}">
     near <strong>&quot;<c:out value="${searchLocation}" />&quot;</strong></c:if><c:if test="${!empty category && !empty category.name}">
-    in <strong>&quot;<c:out value="${category.name}" />&quot;</strong>
-    </c:if><c:if test="${itemList.size() < recordPaging.totalRecordCount}">, showing 
+    in <strong>&quot;<c:out value="${category.name}" />&quot;</strong></c:if><c:if test="${itemList.size() < recordPaging.totalRecordCount}">, showing 
       <c:choose>
         <c:when test="${recordPaging.pageNumber gt 1}">
           page ${recordPaging.pageNumber}...

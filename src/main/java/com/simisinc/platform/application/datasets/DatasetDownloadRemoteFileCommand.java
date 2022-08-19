@@ -130,7 +130,7 @@ public class DatasetDownloadRemoteFileCommand {
         DatasetRepository.markAsUnqueued(dataset);
         return false;
       }
-      
+
       // Verify the file content and enhance the dataset record
       if (!DatasetFileCommand.isValidDatasetFile(dataset, type)) {
         throw new DataException("The file could not be validated");
@@ -217,16 +217,24 @@ public class DatasetDownloadRemoteFileCommand {
   private static void appendNextUrls(JsonNode jsonRecordsNode, JsonNode currentJson, String jsonPagingPath,
       String jsonRecordsPath) throws IOException {
 
+    if (currentJson == null) {
+      throw new IOException("currentJson is null");
+    }
+
     // Advance to the paging path
     String nextUrl = null;
     String[] pagingPath = jsonPagingPath.split("/");
     for (String fieldName : pagingPath) {
-      if (currentJson.has(fieldName)) {
-        nextUrl = currentJson.get(fieldName).asText();
+      if (StringUtils.isNotBlank(fieldName) && currentJson.has(fieldName)) {
+        JsonNode thisNode = currentJson.get(fieldName);
+        if (!thisNode.isNull()) {
+          nextUrl = thisNode.asText();
+        }
       }
     }
     // Determine if there's another page
     if (StringUtils.isBlank(nextUrl)) {
+      LOG.debug("Next url is empty");
       return;
     }
     LOG.debug("Next url: " + nextUrl);
@@ -239,18 +247,29 @@ public class DatasetDownloadRemoteFileCommand {
 
     // Access the new records and append them to the original json
     JsonNode nextJson = JsonLoader.fromString(content);
+    JsonNode newRecordsJson = null;
 
     // Advance to the records path, if known
     String[] recordsPath = jsonRecordsPath.split("/");
     for (String fieldName : recordsPath) {
-      if (nextJson.has(fieldName)) {
-        nextJson = nextJson.get(fieldName);
+      if (StringUtils.isBlank(fieldName)) {
+        continue;
+      }
+      if (newRecordsJson == null) {
+        if (nextJson.has(fieldName)) {
+          newRecordsJson = nextJson.get(fieldName);
+        }
+      } else {
+        if (newRecordsJson.has(fieldName)) {
+          newRecordsJson = newRecordsJson.get(fieldName);
+        }
       }
     }
-    if (nextJson == null || !nextJson.isArray()) {
+    if (newRecordsJson == null || !newRecordsJson.isArray()) {
       throw new IOException("No records in nextJson");
     }
-    for (JsonNode element : nextJson) {
+    // Append the records
+    for (JsonNode element : newRecordsJson) {
       ((ArrayNode) jsonRecordsNode).add(element);
     }
 
