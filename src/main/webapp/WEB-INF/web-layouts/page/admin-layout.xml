@@ -1139,7 +1139,8 @@
   "scope": "create", "token_type": "bearer"
 }</code></pre>
 <br />
-<pre><code>http -A bearer -a &lt;access_token&gt; GET http://localhost:8080/api/me X-API-Key:&lt;secret_key&gt;</code></pre>
+<pre><code>http -A bearer -a &lt;access_token&gt; GET http://localhost:8080/api/me X-API-Key:&lt;secret_key&gt;</code></pre><br />
+<pre><code>http GET http://localhost:8080/api/collections?key=&lt;secret_key&gt;</code></pre>
 ]]></html>
         </widget>
       </column>
