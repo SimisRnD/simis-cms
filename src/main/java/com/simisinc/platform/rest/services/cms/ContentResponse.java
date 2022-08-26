@@ -14,12 +14,9 @@
  * limitations under the License.
  */
 
-package com.simisinc.platform.rest.services.medicine;
+package com.simisinc.platform.rest.services.cms;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.simisinc.platform.application.cms.TextCommand;
-import com.simisinc.platform.domain.model.items.Item;
-import org.apache.commons.lang3.StringUtils;
+import com.simisinc.platform.domain.model.cms.Content;
 
 /**
  * Description
@@ -27,30 +24,29 @@ import org.apache.commons.lang3.StringUtils;
  * @author matt rajkowski
  * @created 1/22/19 12:12 PM
  */
-public class IndividualHandler {
+public class ContentResponse {
 
   String uniqueId;
-  String name;
-  @JsonInclude(JsonInclude.Include.NON_NULL)
-  String info = null;
+  String content;
 
-  public IndividualHandler(Item record) {
-    uniqueId = record.getUniqueId();
-    name = record.getName();
-    if (StringUtils.isNotEmpty(record.getSummary())) {
-      info = TextCommand.trim(record.getSummary(), 75, true);
-    }
+  public ContentResponse(Content thisContent) {
+    uniqueId = thisContent.getUniqueId();
+    content = thisContent.getContent();
   }
 
   public String getUniqueId() {
     return uniqueId;
   }
 
-  public String getName() {
-    return name;
+  public void setUniqueId(String uniqueId) {
+    this.uniqueId = uniqueId;
   }
 
-  public String getInfo() {
-    return info;
+  public String getContent() {
+    return content;
+  }
+
+  public void setContent(String content) {
+    this.content = content;
   }
 }

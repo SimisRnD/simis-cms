@@ -16,16 +16,6 @@
 
 package com.simisinc.platform.rest.services.medicine;
 
-import static com.simisinc.platform.application.medicine.MedicineConstants.COLLECTION_CAREGIVERS_UNIQUE_ID;
-import static com.simisinc.platform.application.medicine.MedicineConstants.COLLECTION_INDIVIDUALS_UNIQUE_ID;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 import com.simisinc.platform.application.items.LoadCollectionCommand;
 import com.simisinc.platform.application.items.LoadItemCommand;
 import com.simisinc.platform.domain.model.items.Collection;
@@ -37,6 +27,15 @@ import com.simisinc.platform.infrastructure.persistence.items.ItemSpecification;
 import com.simisinc.platform.rest.controller.ServiceContext;
 import com.simisinc.platform.rest.controller.ServiceResponse;
 import com.simisinc.platform.rest.controller.ServiceResponseCommand;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+
+import static com.simisinc.platform.application.medicine.MedicineConstants.COLLECTION_CAREGIVERS_UNIQUE_ID;
+import static com.simisinc.platform.application.medicine.MedicineConstants.COLLECTION_INDIVIDUALS_UNIQUE_ID;
 
 /**
  * Returns a list of individuals being cared for
@@ -91,9 +90,9 @@ public class IndividualListService {
     }
 
     // Set the fields to return
-    List<IndividualHandler> recordList = new ArrayList<>();
+    List<IndividualResponse> recordList = new ArrayList<>();
     for (Item item : individualsList.values()) {
-      recordList.add(new IndividualHandler(item));
+      recordList.add(new IndividualResponse(item));
     }
 
     // Prepare the response

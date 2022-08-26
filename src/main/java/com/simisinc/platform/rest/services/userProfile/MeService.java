@@ -40,12 +40,12 @@ public class MeService {
     User user = context.getUser();
 
     // Set the fields to return
-    MeHandler handler = new MeHandler(user);
+    MeResponse meResponse = new MeResponse(user);
 
     // Prepare the response
     ServiceResponse response = new ServiceResponse(200);
     ServiceResponseCommand.addMeta(response, "user");
-    response.setData(handler);
+    response.setData(meResponse);
     return response;
   }
 

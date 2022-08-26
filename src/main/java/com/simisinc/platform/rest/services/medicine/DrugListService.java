@@ -16,16 +16,6 @@
 
 package com.simisinc.platform.rest.services.medicine;
 
-import static com.simisinc.platform.application.medicine.MedicineConstants.COLLECTION_DRUG_LIST_UNIQUE_ID;
-
-import java.util.ArrayList;
-import java.util.List;
-
-import com.simisinc.platform.rest.services.items.ItemHandler;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 import com.simisinc.platform.application.items.LoadCollectionCommand;
 import com.simisinc.platform.domain.model.items.Collection;
 import com.simisinc.platform.domain.model.items.Item;
@@ -35,6 +25,15 @@ import com.simisinc.platform.infrastructure.persistence.items.ItemSpecification;
 import com.simisinc.platform.rest.controller.ServiceContext;
 import com.simisinc.platform.rest.controller.ServiceResponse;
 import com.simisinc.platform.rest.controller.ServiceResponseCommand;
+import com.simisinc.platform.rest.services.items.ItemResponse;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import static com.simisinc.platform.application.medicine.MedicineConstants.COLLECTION_DRUG_LIST_UNIQUE_ID;
 
 /**
  * Returns a list of drugs based on the query
@@ -81,9 +80,9 @@ public class DrugListService {
     List<Item> itemList = ItemRepository.findAll(specification, constraints);
 
     // Set the fields to return
-    List<ItemHandler> recordList = new ArrayList<>();
+    List<ItemResponse> recordList = new ArrayList<>();
     for (Item item : itemList) {
-      recordList.add(new ItemHandler(item));
+      recordList.add(new ItemResponse(item));
     }
 
     // Prepare the response

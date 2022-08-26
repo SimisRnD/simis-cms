@@ -47,12 +47,12 @@ public class ContentService {
     }
 
     // Set the fields to return
-    ContentHandler contentHandler = new ContentHandler(content);
+    ContentResponse contentResponse = new ContentResponse(content);
 
     // Prepare the response
     ServiceResponse response = new ServiceResponse(200);
     ServiceResponseCommand.addMeta(response, "content");
-    response.setData(contentHandler);
+    response.setData(contentResponse);
     return response;
   }
 

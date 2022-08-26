@@ -35,7 +35,7 @@ import java.util.List;
  * @author matt rajkowski
  * @created 1/22/19 12:12 PM
  */
-public class MedicineHandler {
+public class MedicineResponse {
 
   Long id;
 
@@ -88,7 +88,7 @@ public class MedicineHandler {
   @JsonInclude(JsonInclude.Include.NON_NULL)
   Integer dosagesPerRefill;
 
-  public MedicineHandler(Medicine record, MedicineSchedule medicineSchedule, Prescription prescription, ZoneId clientTimezone) {
+  public MedicineResponse(Medicine record, MedicineSchedule medicineSchedule, Prescription prescription, ZoneId clientTimezone) {
     id = record.getId();
     if (record.getIndividualId() > -1) {
       Item item = LoadItemCommand.loadItemById(record.getIndividualId());
