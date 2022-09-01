@@ -18,15 +18,11 @@ package com.simisinc.platform.rest.services.medicine;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.simisinc.platform.application.items.LoadItemCommand;
-import com.simisinc.platform.application.medicine.FormatMedicineReminderTextCommand;
+import com.simisinc.platform.application.medicine.FormatMedicineLogTextCommand;
 import com.simisinc.platform.domain.model.items.Item;
 import com.simisinc.platform.domain.model.medicine.Medicine;
-import com.simisinc.platform.domain.model.medicine.MedicineReminder;
-import com.simisinc.platform.domain.model.medicine.MedicineSchedule;
-import com.simisinc.platform.domain.model.medicine.MedicineTime;
+import com.simisinc.platform.domain.model.medicine.MedicineLog;
 import com.simisinc.platform.infrastructure.persistence.medicine.MedicineRepository;
-import com.simisinc.platform.infrastructure.persistence.medicine.MedicineScheduleRepository;
-import com.simisinc.platform.infrastructure.persistence.medicine.MedicineTimeRepository;
 import org.apache.commons.lang3.StringUtils;
 
 import java.time.ZoneId;
@@ -37,7 +33,7 @@ import java.time.ZoneId;
  * @author matt rajkowski
  * @created 1/22/19 12:12 PM
  */
-public class MedicineReminderHandler {
+public class MedicineLogResponse {
 
   Long id;
   @JsonInclude(JsonInclude.Include.NON_NULL)
@@ -51,20 +47,18 @@ public class MedicineReminderHandler {
   @JsonInclude(JsonInclude.Include.NON_NULL)
   Integer dosageQuantity;
   @JsonInclude(JsonInclude.Include.NON_NULL)
-  String notes;
-  Long reminderTimestamp;
-  String reminderDateText;
-  String reminderTimeText;
+  String comments;
+  Long administeredTimestamp;
+  String administeredDateText;
+  String administeredTimeText;
   @JsonInclude(JsonInclude.Include.NON_NULL)
-  Long loggedTimestamp;
-  @JsonInclude(JsonInclude.Include.NON_NULL)
-  String loggedText;
+  String administeredText;
   @JsonInclude(JsonInclude.Include.NON_NULL)
   Boolean wasTaken;
   @JsonInclude(JsonInclude.Include.NON_NULL)
   Boolean wasSkipped;
 
-  public MedicineReminderHandler(MedicineReminder reminder, ZoneId timezone) {
+  public MedicineLogResponse(MedicineLog log, ZoneId timezone) {
 
     // Name
     // Medicine
@@ -72,13 +66,11 @@ public class MedicineReminderHandler {
     // Day
     // Hour/Minute
     // Taken at 9:09 AM
-    Item individual = LoadItemCommand.loadItemById(reminder.getIndividualId());
-    Medicine medicine = MedicineRepository.findById(reminder.getMedicineId());
+    Item individual = LoadItemCommand.loadItemById(log.getIndividualId());
+    Medicine medicine = MedicineRepository.findById(log.getMedicineId());
     Item drug = LoadItemCommand.loadItemById(medicine.getDrugId());
-    MedicineSchedule medicineSchedule = MedicineScheduleRepository.findById(reminder.getScheduleId());
-    MedicineTime medicineTime = MedicineTimeRepository.findById(reminder.getTimeId());
 
-    id = reminder.getId();
+    id = log.getId();
     individualName = individual.getName();
     drugName = drug.getName();
     barcode = medicine.getBarcode();
@@ -98,36 +90,36 @@ public class MedicineReminderHandler {
       }
       dosage = sb.toString();
     }
-    if (medicineTime.getQuantity() > 0) {
-      dosageQuantity = medicineTime.getQuantity();
+    if (log.getQuantityGiven() > 0) {
+      dosageQuantity = log.getQuantityGiven();
     } else {
       dosageQuantity = null;
     }
-    if (StringUtils.isNotBlank(medicineSchedule.getNotes())) {
-      notes = medicineSchedule.getNotes();
+    if (StringUtils.isNotBlank(log.getComments())) {
+      comments = log.getComments();
     } else {
-      notes = null;
+      comments = null;
     }
 
 //    reminderTimestamp = reminder.getReminder().toInstant().atZone(timezone).toInstant().toEpochMilli();
-    reminderTimestamp = reminder.getReminder().getTime();
-    reminderDateText = FormatMedicineReminderTextCommand.formatDayText(reminder, timezone);
-    reminderTimeText = FormatMedicineReminderTextCommand.formatTimeText(reminder, timezone);
+    administeredTimestamp = log.getAdministered().getTime();
+    administeredDateText = FormatMedicineLogTextCommand.formatDayText(log, timezone);
+    administeredTimeText = FormatMedicineLogTextCommand.formatTimeText(log, timezone);
 
-    if (reminder.getLogged() != null) {
-      loggedTimestamp = reminder.getLogged().getTime();
-      loggedText = FormatMedicineReminderTextCommand.formatLoggedText(reminder, timezone);
+    if (log.getAdministered() != null) {
+      administeredTimestamp = log.getAdministered().getTime();
+      administeredText = FormatMedicineLogTextCommand.formatAdministeredText(log, timezone);
     } else {
-      loggedTimestamp = null;
-      loggedText = null;
+      administeredTimestamp = null;
+      administeredText = null;
     }
 
-    if (reminder.getWasTaken()) {
+    if (log.getWasTaken()) {
       wasTaken = true;
     } else {
       wasTaken = null;
     }
-    if (reminder.getWasSkipped()) {
+    if (log.getWasSkipped()) {
       wasSkipped = true;
     } else {
       wasSkipped = null;
@@ -158,28 +150,24 @@ public class MedicineReminderHandler {
     return dosageQuantity;
   }
 
-  public String getNotes() {
-    return notes;
+  public String getComments() {
+    return comments;
   }
 
-  public Long getReminderTimestamp() {
-    return reminderTimestamp;
+  public Long getAdministeredTimestamp() {
+    return administeredTimestamp;
   }
 
-  public String getReminderDateText() {
-    return reminderDateText;
+  public String getAdministeredText() {
+    return administeredText;
   }
 
-  public String getReminderTimeText() {
-    return reminderTimeText;
+  public String getAdministeredDateText() {
+    return administeredDateText;
   }
 
-  public Long getLoggedTimestamp() {
-    return loggedTimestamp;
-  }
-
-  public String getLoggedText() {
-    return loggedText;
+  public String getAdministeredTimeText() {
+    return administeredTimeText;
   }
 
   public Boolean getWasTaken() {

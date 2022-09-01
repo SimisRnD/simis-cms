@@ -58,7 +58,7 @@ public class ItemService {
     }
 
     // Set the fields to return
-    ItemDetailsHandler itemDetails = new ItemDetailsHandler(item);
+    ItemDetailsResponse itemDetails = new ItemDetailsResponse(item);
 
     // Prepare the response
     ServiceResponse response = new ServiceResponse(200);

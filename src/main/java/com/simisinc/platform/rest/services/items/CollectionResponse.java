@@ -25,7 +25,7 @@ import com.simisinc.platform.domain.model.items.Collection;
  * @author matt rajkowski
  * @created 1/22/19 12:12 PM
  */
-public class CollectionHandler {
+public class CollectionResponse {
 
   String name;
   String uniqueId;
@@ -33,7 +33,7 @@ public class CollectionHandler {
   String description;
   long categoryCount;
 
-  public CollectionHandler(Collection record) {
+  public CollectionResponse(Collection record) {
     name = record.getName();
     uniqueId = record.getUniqueId();
     description = record.getDescription();

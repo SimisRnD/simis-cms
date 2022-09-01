@@ -43,9 +43,9 @@ public class CollectionListService {
 
     // Load the collections
     List<Collection> collectionList = LoadCollectionCommand.findAllAuthorizedForUser(context.getUserId());
-    List<CollectionHandler> recordList = new ArrayList<>();
+    List<CollectionResponse> recordList = new ArrayList<>();
     for (Collection collection : collectionList) {
-      recordList.add(new CollectionHandler(collection));
+      recordList.add(new CollectionResponse(collection));
     }
 
     // Prepare the response

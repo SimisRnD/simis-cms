@@ -16,12 +16,6 @@
 
 package com.simisinc.platform.rest.services.items;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 import com.simisinc.platform.application.items.LoadCollectionCommand;
 import com.simisinc.platform.domain.model.items.Collection;
 import com.simisinc.platform.domain.model.items.Item;
@@ -31,6 +25,11 @@ import com.simisinc.platform.infrastructure.persistence.items.ItemSpecification;
 import com.simisinc.platform.rest.controller.ServiceContext;
 import com.simisinc.platform.rest.controller.ServiceResponse;
 import com.simisinc.platform.rest.controller.ServiceResponseCommand;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Returns a list of items for the given collection unique id
@@ -76,9 +75,9 @@ public class ItemListService {
     List<Item> itemList = ItemRepository.findAll(specification, constraints);
 
     // Set the fields to return
-    List<ItemHandler> recordList = new ArrayList<>();
+    List<ItemResponse> recordList = new ArrayList<>();
     for (Item item : itemList) {
-      recordList.add(new ItemHandler(item));
+      recordList.add(new ItemResponse(item));
     }
 
     // Prepare the response

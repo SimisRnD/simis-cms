@@ -16,12 +16,6 @@
 
 package com.simisinc.platform.rest.services.items;
 
-import java.util.ArrayList;
-import java.util.List;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 import com.simisinc.platform.application.items.LoadCollectionCommand;
 import com.simisinc.platform.domain.model.items.Category;
 import com.simisinc.platform.domain.model.items.Collection;
@@ -30,6 +24,11 @@ import com.simisinc.platform.infrastructure.persistence.items.CollectionReposito
 import com.simisinc.platform.rest.controller.ServiceContext;
 import com.simisinc.platform.rest.controller.ServiceResponse;
 import com.simisinc.platform.rest.controller.ServiceResponseCommand;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Description
@@ -63,9 +62,9 @@ public class CategoryListService {
 
     // Load the category list
     List<Category> categoryList = CategoryRepository.findAllByCollectionId(collection.getId());
-    List<CategoryHandler> recordList = new ArrayList<>();
+    List<CategoryResponse> recordList = new ArrayList<>();
     for (Category category : categoryList) {
-      recordList.add(new CategoryHandler(category));
+      recordList.add(new CategoryResponse(category));
     }
 
     // Prepare the response

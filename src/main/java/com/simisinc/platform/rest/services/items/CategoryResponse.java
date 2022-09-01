@@ -14,9 +14,10 @@
  * limitations under the License.
  */
 
-package com.simisinc.platform.rest.services.cms;
+package com.simisinc.platform.rest.services.items;
 
-import com.simisinc.platform.domain.model.cms.Content;
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.simisinc.platform.domain.model.items.Category;
 
 /**
  * Description
@@ -24,29 +25,29 @@ import com.simisinc.platform.domain.model.cms.Content;
  * @author matt rajkowski
  * @created 1/22/19 12:12 PM
  */
-public class ContentHandler {
+public class CategoryResponse {
 
-  String uniqueId;
-  String content;
+  long id;
+  String name;
+  @JsonInclude(JsonInclude.Include.NON_EMPTY)
+  String description;
 
-  public ContentHandler(Content thisContent) {
-    uniqueId = thisContent.getUniqueId();
-    content = thisContent.getContent();
+  public CategoryResponse(Category record) {
+    id = record.getId();
+    name = record.getName();
+    description = record.getDescription();
   }
 
-  public String getUniqueId() {
-    return uniqueId;
+  public long getId() {
+    return id;
   }
 
-  public void setUniqueId(String uniqueId) {
-    this.uniqueId = uniqueId;
+  public String getName() {
+    return name;
   }
 
-  public String getContent() {
-    return content;
+  public String getDescription() {
+    return description;
   }
 
-  public void setContent(String content) {
-    this.content = content;
-  }
 }

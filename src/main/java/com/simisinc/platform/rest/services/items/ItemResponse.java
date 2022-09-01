@@ -17,7 +17,9 @@
 package com.simisinc.platform.rest.services.items;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.simisinc.platform.application.cms.TextCommand;
 import com.simisinc.platform.domain.model.items.Item;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * Description
@@ -25,33 +27,23 @@ import com.simisinc.platform.domain.model.items.Item;
  * @author matt rajkowski
  * @created 1/22/19 12:12 PM
  */
-public class ItemDetailsHandler {
+public class ItemResponse {
 
   String uniqueId;
   String name;
-  @JsonInclude(JsonInclude.Include.NON_EMPTY)
-  String summary;
-  @JsonInclude(JsonInclude.Include.NON_EMPTY)
-  String street;
-  @JsonInclude(JsonInclude.Include.NON_EMPTY)
-  String city;
-  @JsonInclude(JsonInclude.Include.NON_EMPTY)
-  String state;
-  @JsonInclude(JsonInclude.Include.NON_EMPTY)
-  String postalCode;
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  String summaryPart = null;
   @JsonInclude(JsonInclude.Include.NON_NULL)
   Double latitude;
   @JsonInclude(JsonInclude.Include.NON_NULL)
   Double longitude;
 
-  public ItemDetailsHandler(Item record) {
+  public ItemResponse(Item record) {
     uniqueId = record.getUniqueId();
     name = record.getName();
-    summary = record.getSummary();
-    street = record.getStreet();
-    city = record.getCity();
-    state = record.getState();
-    postalCode = record.getPostalCode();
+    if (StringUtils.isNotEmpty(record.getSummary())) {
+      summaryPart = TextCommand.trim(record.getSummary(), 75, true);
+    }
     if (record.hasGeoPoint()) {
       latitude = record.getLatitude();
       longitude = record.getLongitude();
@@ -66,24 +58,8 @@ public class ItemDetailsHandler {
     return name;
   }
 
-  public String getSummary() {
-    return summary;
-  }
-
-  public String getStreet() {
-    return street;
-  }
-
-  public String getCity() {
-    return city;
-  }
-
-  public String getState() {
-    return state;
-  }
-
-  public String getPostalCode() {
-    return postalCode;
+  public String getSummaryPart() {
+    return summaryPart;
   }
 
   public Double getLatitude() {

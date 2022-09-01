@@ -30,7 +30,7 @@ import java.util.List;
  * @author matt rajkowski
  * @created 1/22/19 12:12 PM
  */
-public class MeHandler {
+public class MeResponse {
 
   String firstName;
   String lastName;
@@ -42,7 +42,7 @@ public class MeHandler {
   List<String> roleList = null;
   List<String> groupList = null;
 
-  public MeHandler(User thisUser) {
+  public MeResponse(User thisUser) {
     firstName = thisUser.getFirstName();
     lastName = thisUser.getLastName();
     fullName = thisUser.getFullName();

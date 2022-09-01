@@ -14,10 +14,12 @@
  * limitations under the License.
  */
 
-package com.simisinc.platform.rest.services.items;
+package com.simisinc.platform.rest.services.medicine;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
-import com.simisinc.platform.domain.model.items.Category;
+import com.simisinc.platform.application.cms.TextCommand;
+import com.simisinc.platform.domain.model.items.Item;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * Description
@@ -25,29 +27,30 @@ import com.simisinc.platform.domain.model.items.Category;
  * @author matt rajkowski
  * @created 1/22/19 12:12 PM
  */
-public class CategoryHandler {
+public class IndividualResponse {
 
-  long id;
+  String uniqueId;
   String name;
-  @JsonInclude(JsonInclude.Include.NON_EMPTY)
-  String description;
+  @JsonInclude(JsonInclude.Include.NON_NULL)
+  String info = null;
 
-  public CategoryHandler(Category record) {
-    id = record.getId();
+  public IndividualResponse(Item record) {
+    uniqueId = record.getUniqueId();
     name = record.getName();
-    description = record.getDescription();
+    if (StringUtils.isNotEmpty(record.getSummary())) {
+      info = TextCommand.trim(record.getSummary(), 75, true);
+    }
   }
 
-  public long getId() {
-    return id;
+  public String getUniqueId() {
+    return uniqueId;
   }
 
   public String getName() {
     return name;
   }
 
-  public String getDescription() {
-    return description;
+  public String getInfo() {
+    return info;
   }
-
 }

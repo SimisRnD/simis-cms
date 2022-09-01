@@ -16,20 +16,6 @@
 
 package com.simisinc.platform.rest.services.medicine;
 
-import static com.simisinc.platform.application.medicine.MedicineConstants.COLLECTION_CAREGIVERS_UNIQUE_ID;
-import static com.simisinc.platform.application.medicine.MedicineConstants.COLLECTION_INDIVIDUALS_UNIQUE_ID;
-
-import java.sql.Timestamp;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.util.ArrayList;
-import java.util.List;
-
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 import com.simisinc.platform.application.items.LoadCollectionCommand;
 import com.simisinc.platform.application.items.LoadItemCommand;
 import com.simisinc.platform.domain.model.items.Collection;
@@ -45,6 +31,19 @@ import com.simisinc.platform.infrastructure.persistence.medicine.MedicineLogSpec
 import com.simisinc.platform.rest.controller.ServiceContext;
 import com.simisinc.platform.rest.controller.ServiceResponse;
 import com.simisinc.platform.rest.controller.ServiceResponseCommand;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import java.sql.Timestamp;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.List;
+
+import static com.simisinc.platform.application.medicine.MedicineConstants.COLLECTION_CAREGIVERS_UNIQUE_ID;
+import static com.simisinc.platform.application.medicine.MedicineConstants.COLLECTION_INDIVIDUALS_UNIQUE_ID;
 
 /**
  * Returns a list of medicine action history
@@ -148,9 +147,9 @@ public class MedicineLogListService {
     List<MedicineLog> medicineHistoryList = MedicineLogRepository.findAll(medicineLogSpecification, constraints);
 
     // Set the fields to return
-    List<MedicineLogHandler> recordList = new ArrayList<>();
+    List<MedicineLogResponse> recordList = new ArrayList<>();
     for (MedicineLog medicineLog : medicineHistoryList) {
-      recordList.add(new MedicineLogHandler(medicineLog, timezone));
+      recordList.add(new MedicineLogResponse(medicineLog, timezone));
     }
 
     // Prepare the response

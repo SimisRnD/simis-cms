@@ -141,7 +141,7 @@
   </c:if>
   <%-- Javascript before content--%>
   <g:compress>
-    <script src="${ctx}/javascript/jquery-3.6.0/jquery-3.6.0.min.js"></script>
+    <script src="${ctx}/javascript/jquery-3.6.1/jquery-3.6.1.min.js"></script>
     <script src="${ctx}/javascript/foundation-datepicker-20180424/foundation-datepicker.min.js"></script>
     <script src="${ctx}/javascript/autocomplete-1.0.7/auto-complete.js"></script>
     <script src="${ctx}/javascript/js-cookie-2.2.1/js.cookie.min.js"></script>
