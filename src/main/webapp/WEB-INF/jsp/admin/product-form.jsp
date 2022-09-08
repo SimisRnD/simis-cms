@@ -22,7 +22,7 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="product" class="com.simisinc.platform.domain.model.ecommerce.Product" scope="request"/>
 <jsp:useBean id="fulfillmentOptionList" class="java.util.ArrayList" scope="request"/>
-<script src="${ctx}/javascript/tinymce-5.7.0/tinymce.min.js"></script>
+<script src="${ctx}/javascript/tinymce-6.1.2/tinymce.min.js"></script>
 <script>
   tinymce.init({
     selector: 'textarea',
@@ -32,12 +32,8 @@
     menubar: false,
     relative_urls: false,
     convert_urls: true,
-    plugins: [
-      'advlist autolink lists link charmap print preview anchor textcolor',
-      'searchreplace visualblocks code',
-      'insertdatetime media table paste help wordcount'
-    ],
-    toolbar: 'link | table | undo redo |  formatselect | bold italic backcolor  | bullist numlist outdent indent | removeformat | visualblocks code | help',
+    plugins: 'advlist autolink lists link charmap preview anchor searchreplace visualblocks code insertdatetime media table wordcount',
+    toolbar: 'link table | undo redo | blocks | bold italic backcolor  | bullist numlist outdent indent | removeformat | visualblocks code',
     images_upload_url: '${ctx}/image-upload?widget=imageUpload1&token=${userSession.formToken}',
     automatic_uploads: true
   });

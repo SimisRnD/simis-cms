@@ -19,7 +19,7 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="content" class="com.simisinc.platform.domain.model.cms.Content" scope="request"/>
 <jsp:useBean id="isDraft" class="java.lang.String" scope="request"/>
-<script src="${ctx}/javascript/tinymce-5.7.0/tinymce.min.js"></script>
+<script src="${ctx}/javascript/tinymce-6.1.2/tinymce.min.js"></script>
 <script>
   $(window).on('resize', function () {
     setTimeout(function () {
@@ -47,15 +47,10 @@
     relative_urls : false,
     convert_urls : true,
     content_css: ['${ctx}/css/${font:fontawesome()}/css/all.min.css'],
-    noneditable_noneditable_class: 'tinymce-noedit',
+    noneditable_class: 'tinymce-noedit',
     browser_spellcheck: true,
-    plugins: [
-      'advlist autolink lists link image charmap print preview anchor hr',
-      'searchreplace visualblocks code',
-      'media table paste help wordcount',
-      'fontawesome noneditable'
-    ],
-    toolbar: 'link | image | media | table | undo redo |  formatselect | bold italic backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent hr anchor | fontawesome | removeformat | visualblocks code | help',
+    plugins: 'advlist autolink lists link image charmap preview anchor searchreplace visualblocks code media table wordcount fontawesome',
+    toolbar: 'link image media table | undo redo | blocks | bold italic backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent hr anchor | fontawesome removeformat visualblocks code',
 
     image_class_list: [
       {title: 'None', value: ''},
@@ -78,30 +73,15 @@
       {title: 'Button Box Round', value: 'button box round'},
       {title: 'Call to Action', value: 'button call-to-action'}
     ],
-
-    <%--
-    link_list: [
-      {title: 'Home', value: '/'},
-      {title: 'Category Level 1', menu: [
-          {title: 'C1 Page 1', value: '/c1/foo'},
-          {title: 'C1 Page 2', value: '/c1/bar'},
-          {title: 'Category Level 2', menu: [
-              {title: 'C2 Page 1', value: '/c1/c2/foo'},
-              {title: 'C2 Page 2', value: '/c1/c2/bar'}
-            ]}
-        ]}
-    ],
-    --%>
     extended_valid_elements: 'span[*]',
     file_picker_types: 'file image media',
-    // default_link_target: '_blank',
+    // link_default_target: '_blank',
     file_picker_callback: function (callback, value, meta) {
         FileBrowser(value, meta.filetype, function (fileUrl) {
             callback(fileUrl);
         });
     },
     images_upload_url: '${ctx}/image-upload?widget=imageUpload1&token=${userSession.formToken}', // return { "location": "folder/sub-folder/new-location.png" }
-    paste_data_images: true,
     automatic_uploads: true
     // paste_word_valid_elements: "p,a,b,strong,i,em,h1,h2,h3,h4,h5,ol,ul,li"
     // paste_retain_style_properties: "color"
