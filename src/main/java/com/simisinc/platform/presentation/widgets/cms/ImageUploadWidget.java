@@ -65,6 +65,9 @@ public class ImageUploadWidget extends GenericWidget {
         return context;
       }
       submittedFilename = Paths.get(filePart.getSubmittedFileName()).getFileName().toString(); // MSIE fix.
+      if (submittedFilename.startsWith("mceclip0")) {
+        submittedFilename = StringUtils.replace(submittedFilename, "mceclip0", "clip");
+      }
       extension = FilenameUtils.getExtension(submittedFilename);
       tempFile = new File(serverCompletePath + uniqueFilename + "." + extension);
       fileLength = filePart.getSize();
