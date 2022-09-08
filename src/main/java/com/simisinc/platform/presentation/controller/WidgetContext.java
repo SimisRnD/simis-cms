@@ -16,14 +16,16 @@
 
 package com.simisinc.platform.presentation.controller;
 
-import com.simisinc.platform.presentation.widgets.cms.PreferenceEntriesList;
-import org.apache.commons.lang3.StringUtils;
-
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 import java.io.Serializable;
 import java.util.HashMap;
 import java.util.Map;
+
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.commons.lang3.StringUtils;
+
+import com.simisinc.platform.presentation.widgets.cms.PreferenceEntriesList;
 
 /**
  * Description
@@ -38,6 +40,7 @@ public class WidgetContext implements Serializable {
   private HttpServletRequest request = null;
   private HttpServletResponse response = null;
   private String uniqueId = null;
+  private String resourcePath = null;
   private Map<String, String> preferences = null;
   private Map<String, String[]> parameterMap = null;
   private Map<String, String> coreData = null;
@@ -67,10 +70,12 @@ public class WidgetContext implements Serializable {
   public WidgetContext() {
   }
 
-  public WidgetContext(HttpServletRequest request, HttpServletResponse response, String widgetUniqueId) {
+  public WidgetContext(HttpServletRequest request, HttpServletResponse response, String widgetUniqueId,
+      String resourcePath) {
     this.request = request;
     this.response = response;
     this.uniqueId = widgetUniqueId;
+    this.resourcePath = resourcePath;
   }
 
   public HttpServletRequest getRequest() {
@@ -370,5 +375,9 @@ public class WidgetContext implements Serializable {
       return null;
     }
     return sharedRequestValueMap.get(name);
+  }
+
+  public String getResourcePath() {
+    return resourcePath;
   }
 }

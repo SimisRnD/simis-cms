@@ -34,7 +34,7 @@ import java.io.OutputStream;
 import java.net.URLDecoder;
 
 /**
- * Description
+ * Widget for 
  *
  * @author matt rajkowski
  * @created 12/13/18 2:50 PM
@@ -48,17 +48,24 @@ public class DownloadFileWidget extends GenericWidget {
 
     // GET uri /assets/file/20180503171549-5/something.pdf
     // GET uri /assets/view/20180503171549-5/something.pdf
-    LOG.debug("Found request uri: " + context.getUri());
 
-    // Determine the file id
+    // Use the request uri
+    String resourceValue = context.getUri().substring(context.getResourcePath().length() + 1);
+    LOG.debug("Using resource value: " + resourceValue);
+    int dashIdx = resourceValue.indexOf("-");
+    if (dashIdx == -1) {
+      return null;
+    }
+
+    // Determine the file id and web path
+    String webPath = resourceValue.substring(0, dashIdx);
     long fileId = -1;
     String fileIdValue = null;
-    int startIdx = context.getUri().indexOf("-") + 1;
-    int endIdx = context.getUri().indexOf("/", startIdx);
+    int endIdx = resourceValue.indexOf("/", dashIdx);
     if (endIdx == -1) {
-      fileIdValue = context.getUri().substring(startIdx);
+      fileIdValue = resourceValue.substring(dashIdx + 1);
     } else {
-      fileIdValue = context.getUri().substring(startIdx, endIdx);
+      fileIdValue = resourceValue.substring(dashIdx + 1, endIdx);
     }
     if (StringUtils.isNumeric(fileIdValue)) {
       fileId = Long.parseLong(fileIdValue);
@@ -99,21 +106,6 @@ public class DownloadFileWidget extends GenericWidget {
     File file = new File(FileSystemCommand.getFileServerRootPath() + record.getFileServerPath());
     if (!file.isFile()) {
       LOG.warn("Server file does not exist: " + record.getFileServerPath());
-      return null;
-    }
-
-    // Compare the URL with the filename to make sure they are the same
-    String requestedFile = context.getUri().substring(endIdx + 1);
-    if (requestedFile.contains("?")) {
-      requestedFile = requestedFile.substring(0, requestedFile.indexOf("?"));
-    }
-    try {
-      requestedFile = URLDecoder.decode(requestedFile, "UTF-8");
-    } catch (Exception e) {
-      LOG.warn("Could not url decode: " + requestedFile);
-    }
-    if (!requestedFile.equals(record.getFilename())) {
-      LOG.warn("Filename requested did not match saved filename");
       return null;
     }
 

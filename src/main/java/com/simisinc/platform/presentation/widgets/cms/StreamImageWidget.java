@@ -23,14 +23,15 @@ import java.net.URLDecoder;
 
 import javax.servlet.http.HttpServletResponse;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import com.simisinc.platform.application.filesystem.FileSystemCommand;
 import com.simisinc.platform.domain.model.cms.Image;
 import com.simisinc.platform.infrastructure.persistence.cms.ImageRepository;
-
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 
 /**
  * Description
@@ -46,16 +47,34 @@ public class StreamImageWidget extends GenericWidget {
   public WidgetContext execute(WidgetContext context) {
 
     // GET uri /assets/img/20180503171549-5/logo.png
-    // yyyyMMddHHmmss
     LOG.debug("Found request uri: " + context.getUri());
 
-    int startIdx = context.getUri().indexOf("-") + 1;
-    int endIdx = context.getUri().indexOf("/", startIdx);
-    if (endIdx == -1) {
+    // Use the request uri
+    String resourceValue = context.getUri().substring(context.getResourcePath().length() + 1);
+    LOG.debug("Using resource value: " + resourceValue);
+    int dashIdx = resourceValue.indexOf("-");
+    if (dashIdx == -1) {
       return null;
     }
-    String fileIdValue = context.getUri().substring(startIdx, endIdx);
-    long fileId = Long.parseLong(fileIdValue);
+
+    // Determine the file id and web path
+    String webPath = resourceValue.substring(0, dashIdx);
+    long fileId = -1;
+    String fileIdValue = null;
+    int endIdx = resourceValue.indexOf("/", dashIdx);
+    if (endIdx == -1) {
+      fileIdValue = resourceValue.substring(dashIdx + 1);
+    } else {
+      fileIdValue = resourceValue.substring(dashIdx + 1, endIdx);
+    }
+    if (StringUtils.isNumeric(fileIdValue)) {
+      fileId = Long.parseLong(fileIdValue);
+    } else {
+      LOG.warn("Invalid fileId parameter: " + context.getUri());
+    }
+    if (fileId == -1) {
+      return null;
+    }
 
     Image record = ImageRepository.findById(fileId);
     if (record == null) {
@@ -65,22 +84,6 @@ public class StreamImageWidget extends GenericWidget {
     File file = new File(FileSystemCommand.getFileServerRootPath() + record.getFileServerPath());
     if (!file.isFile()) {
       LOG.warn("Server file does not exist: " + record.getFileServerPath());
-      return null;
-    }
-
-    String requestedFile = context.getUri().substring(endIdx + 1);
-    if (requestedFile.contains("?")) {
-      requestedFile = requestedFile.substring(0, requestedFile.indexOf("?"));
-    }
-
-    try {
-      requestedFile = URLDecoder.decode(requestedFile, "UTF-8");
-    } catch (Exception e) {
-      LOG.warn("Could not url decode: " + requestedFile);
-    }
-
-    if (!requestedFile.equals(record.getFilename())) {
-      LOG.warn("Filename requested did not match saved filename");
       return null;
     }
 
