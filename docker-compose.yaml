@@ -7,9 +7,8 @@ services:
       context: ./
       dockerfile: ./docker/db/Dockerfile
     environment:
-      POSTGRES_USER: "postgres"
-      POSTGRES_PASSWORD: "postgres"
-      ALLOW_IP_RANGE: "0.0.0.0/0"
+      POSTGRES_USER: "${DB_USER:?err}"
+      POSTGRES_PASSWORD: "${DB_PASSWORD:?err}"
     restart: always
     networks:
       - platform
@@ -27,9 +26,10 @@ services:
       CMS_ADMIN_PASSWORD: "${CMS_ADMIN_PASSWORD:?err}"
       CMS_FORCE_SSL: "${CMS_FORCE_SSL:-true}"
       DB_SERVER_NAME: "db"
-      DB_USER: "postgres"
-      DB_PASSWORD: "postgres"
-      DB_NAME: "simis-cms"
+      DB_SSL: "${DB_SSL:-false}"
+      DB_USER: "${DB_USER:?err}"
+      DB_PASSWORD: "${DB_PASSWORD:?err}"
+      DB_NAME: "${DB_NAME:-simis-cms}"
     restart: on-failure
     depends_on:
       - db

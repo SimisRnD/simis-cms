@@ -120,6 +120,8 @@ The build process places the .war in the target/ directory, or the release file 
 CMS_ADMIN_USERNAME=
 CMS_ADMIN_PASSWORD=
 CMS_FORCE_SSL=true|false
+DB_USER=
+DB_PASSWORD=
 ```
 
 ```bash

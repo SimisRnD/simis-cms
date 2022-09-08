@@ -98,6 +98,10 @@ public class ContextListener implements ServletContextListener {
         LOG.info("Found variable DB_NAME=" + System.getenv("DB_NAME"));
         databaseProperties.setProperty("dataSource.databaseName", System.getenv("DB_NAME"));
       }
+      if (System.getenv().containsKey("DB_SSL") && "true".equals(System.getenv("DB_SSL"))) {
+        LOG.info("Found variable DB_SSL=" + System.getenv("DB_SSL"));
+        databaseProperties.setProperty("dataSource.ssl", "true");
+      }
       DataSource.init(databaseProperties);
       // See if this is a new install or an upgrade
       if (!DatabaseCommand.initialize(databaseProperties)) {
