@@ -31,7 +31,7 @@
 </style>
 </c:if>
 <div class="swiper-outer-container">
-  <div id="swiper${widgetContext.uniqueId}" class="swiper-container">
+  <div id="swiper${widgetContext.uniqueId}" class="swiper">
     <div class="swiper-wrapper">
     <c:forEach items="${productList}" var="product">
       <div class="swiper-slide">
