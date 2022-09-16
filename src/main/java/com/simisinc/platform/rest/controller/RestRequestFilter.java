@@ -62,6 +62,7 @@ public class RestRequestFilter implements Filter {
 
   private boolean requireSSL = false;
 
+  @Override
   public void init(FilterConfig config) throws ServletException {
     LOG.info("RestRequestFilter starting up...");
     String startupSuccessful = (String) config.getServletContext().getAttribute("STARTUP_SUCCESSFUL");
@@ -75,6 +76,7 @@ public class RestRequestFilter implements Filter {
     }
   }
 
+  @Override
   public void destroy() {
   }
 
