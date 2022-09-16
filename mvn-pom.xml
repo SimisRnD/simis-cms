@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.simisinc</groupId>
   <artifactId>simis-cms</artifactId>
-  <version>20220816.10000-SNAPSHOT</version>
+  <version>20220905.10000-SNAPSHOT</version>
   <name>SimIS CMS</name>
   <description>Agile, Enterprise, Open Source Content Management System (CMS)</description>
   <url>https://www.simiscms.com</url>
@@ -70,6 +70,7 @@
     <rome-rss.version>1.18.0</rome-rss.version>
     <slf4j.version>1.7.32</slf4j.version>
     <square.version>23.1.0.20220823</square.version>
+    <okhttp.version>4.10.0</okhttp.version>
     <stripe.version>20.94.0</stripe.version>
     <thymeleaf.version>3.0.11</thymeleaf.version>
     <timeago.version>3.0.1</timeago.version>
@@ -360,6 +361,25 @@
       <groupId>com.squareup</groupId>
       <artifactId>square</artifactId>
       <version>${square.version}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>org.jetbrains.kotlin</groupId>
+          <artifactId>kotlin-stdlib</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.jetbrains.kotlin</groupId>
+          <artifactId>kotlin-stdlib-common</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>com.squareup.okhttp3</groupId>
+          <artifactId>okhttp</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>com.squareup.okhttp3</groupId>
+      <artifactId>okhttp</artifactId>
+      <version>${okhttp.version}</version>
       <exclusions>
         <exclusion>
           <groupId>org.jetbrains.kotlin</groupId>
