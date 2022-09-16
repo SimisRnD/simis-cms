@@ -16,18 +16,25 @@
 
 package com.simisinc.platform.infrastructure.database;
 
-import com.simisinc.platform.domain.model.Entity;
-import com.univocity.parsers.csv.CsvRoutines;
-import com.univocity.parsers.csv.CsvWriterSettings;
+import java.io.File;
+import java.math.BigDecimal;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.sql.Types;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Function;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.postgresql.util.PGInterval;
 
-import java.io.File;
-import java.sql.*;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.Function;
+import com.simisinc.platform.domain.model.Entity;
+import com.univocity.parsers.csv.CsvRoutines;
+import com.univocity.parsers.csv.CsvWriterSettings;
 
 /**
  * Functions to interface with the database and handle special cases
@@ -118,6 +125,30 @@ public class DB {
             pst.setNull(++fieldIdx, Types.TIMESTAMP);
           } else {
             pst.setTimestamp(++fieldIdx, sqlValue.getTimestampValue());
+          }
+        }
+      } else if (sqlValue.getSqlType() == Types.JAVA_OBJECT) {
+        // Set multiple java objects
+        if (sqlValue.getObjectValues() != null) {
+          for (Object value : sqlValue.getObjectValues()) {
+            // Determine the type and value
+            if (value instanceof String) {
+              pst.setString(++fieldIdx, (String) value);
+            } else if (value instanceof Integer) {
+              pst.setInt(++fieldIdx, (Integer) value);
+            } else if (value instanceof Long) {
+              pst.setLong(++fieldIdx, (Long) value);
+            } else if (value instanceof Double) {
+              pst.setDouble(++fieldIdx, (Double) value);
+            } else if (value instanceof Boolean) {
+              pst.setBoolean(++fieldIdx, (Boolean) value);
+            } else if (value instanceof Timestamp) {
+              pst.setTimestamp(++fieldIdx, (Timestamp) value);
+            } else if (value instanceof BigDecimal) {
+              pst.setBigDecimal(++fieldIdx, (BigDecimal) value);
+            } else {
+              throw new SQLException("Type not implemented for " + value.getClass());
+            }
           }
         }
       } else if (sqlValue.getSqlType() == Types.BOOLEAN) {

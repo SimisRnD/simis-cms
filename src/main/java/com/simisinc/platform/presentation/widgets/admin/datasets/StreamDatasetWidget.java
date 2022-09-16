@@ -16,21 +16,21 @@
 
 package com.simisinc.platform.presentation.widgets.admin.datasets;
 
-import com.simisinc.platform.application.filesystem.FileSystemCommand;
-import com.simisinc.platform.domain.model.datasets.Dataset;
-import com.simisinc.platform.infrastructure.persistence.datasets.DatasetRepository;
-import com.simisinc.platform.presentation.widgets.GenericWidget;
-import com.simisinc.platform.presentation.controller.WidgetContext;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.OutputStream;
-import java.net.URLDecoder;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import com.simisinc.platform.application.filesystem.FileSystemCommand;
+import com.simisinc.platform.domain.model.datasets.Dataset;
+import com.simisinc.platform.infrastructure.persistence.datasets.DatasetRepository;
+import com.simisinc.platform.presentation.controller.WidgetContext;
+import com.simisinc.platform.presentation.widgets.GenericWidget;
 
 /**
- * Description
+ * Streams previously uploaded datasets
  *
  * @author matt rajkowski
  * @created 5/18/18 1:45 PM
@@ -43,34 +43,31 @@ public class StreamDatasetWidget extends GenericWidget {
   public WidgetContext execute(WidgetContext context) {
 
     // GET uri /assets/dataset/20180503171549-5/something.csv
-    // yyyyMMddHHmmss
-    LOG.debug("Found request uri: " + context.getUri());
 
-    int startIdx = context.getUri().indexOf("-") + 1;
-    int endIdx = context.getUri().indexOf("/", startIdx);
-    String fileIdValue = context.getUri().substring(startIdx, endIdx);
-    long fileId = Long.parseLong(fileIdValue);
-
-    Dataset record = DatasetRepository.findById(fileId);
-    File file = new File(FileSystemCommand.getFileServerRootPath() + record.getFileServerPath());
-    if (!file.isFile()) {
-      LOG.warn("Server file does not exist: " + record.getFileServerPath());
+    // Use the request uri
+    String resourceValue = context.getUri().substring(context.getResourcePath().length() + 1);
+    if (resourceValue.contains("/")) {
+      resourceValue = resourceValue.substring(0, resourceValue.indexOf("/"));
+    }
+    LOG.debug("Using resource value: " + resourceValue);
+    int dashIdx = resourceValue.lastIndexOf("-");
+    if (dashIdx == -1) {
       return null;
     }
 
-    String requestedFile = context.getUri().substring(endIdx + 1);
-    if (requestedFile.contains("?")) {
-      requestedFile = requestedFile.substring(0, requestedFile.indexOf("?"));
+    // Determine the file id and web path
+    String webPath = resourceValue.substring(0, dashIdx);
+    String fileIdValue = resourceValue.substring(dashIdx + 1);
+    long fileId = Long.parseLong(fileIdValue);
+    if (fileId <= 0) {
+      return null;
     }
 
-    try {
-      requestedFile = URLDecoder.decode(requestedFile, "UTF-8");
-    } catch (Exception e) {
-      LOG.warn("Could not url decode: " + requestedFile);
-    }
-
-    if (!requestedFile.equals(record.getFilename())) {
-      LOG.warn("Filename requested did not match saved filename");
+    // Retrieve the dataset and file handle
+    Dataset record = DatasetRepository.findByWebPathAndId(webPath, fileId);
+    File file = new File(FileSystemCommand.getFileServerRootPath() + record.getFileServerPath());
+    if (!file.isFile()) {
+      LOG.warn("Server file does not exist: " + record.getFileServerPath());
       return null;
     }
 

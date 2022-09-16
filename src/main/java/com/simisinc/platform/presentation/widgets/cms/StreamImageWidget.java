@@ -19,11 +19,9 @@ package com.simisinc.platform.presentation.widgets.cms;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.OutputStream;
-import java.net.URLDecoder;
 
 import javax.servlet.http.HttpServletResponse;
 
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -34,7 +32,7 @@ import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 
 /**
- * Description
+ * Streams previously uploaded images
  *
  * @author matt rajkowski
  * @created 5/3/18 4:00 PM
@@ -51,32 +49,24 @@ public class StreamImageWidget extends GenericWidget {
 
     // Use the request uri
     String resourceValue = context.getUri().substring(context.getResourcePath().length() + 1);
+    if (resourceValue.contains("/")) {
+      resourceValue = resourceValue.substring(0, resourceValue.indexOf("/"));
+    }
     LOG.debug("Using resource value: " + resourceValue);
-    int dashIdx = resourceValue.indexOf("-");
+    int dashIdx = resourceValue.lastIndexOf("-");
     if (dashIdx == -1) {
       return null;
     }
 
     // Determine the file id and web path
     String webPath = resourceValue.substring(0, dashIdx);
-    long fileId = -1;
-    String fileIdValue = null;
-    int endIdx = resourceValue.indexOf("/", dashIdx);
-    if (endIdx == -1) {
-      fileIdValue = resourceValue.substring(dashIdx + 1);
-    } else {
-      fileIdValue = resourceValue.substring(dashIdx + 1, endIdx);
-    }
-    if (StringUtils.isNumeric(fileIdValue)) {
-      fileId = Long.parseLong(fileIdValue);
-    } else {
-      LOG.warn("Invalid fileId parameter: " + context.getUri());
-    }
-    if (fileId == -1) {
+    String fileIdValue = resourceValue.substring(dashIdx + 1);
+    long fileId = Long.parseLong(fileIdValue);
+    if (fileId <= 0) {
       return null;
     }
 
-    Image record = ImageRepository.findById(fileId);
+    Image record = ImageRepository.findByWebPathAndId(webPath, fileId);
     if (record == null) {
       LOG.warn("Server image record does not exist: " + fileId);
       return null;

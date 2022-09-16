@@ -16,12 +16,16 @@
 
 package com.simisinc.platform.application.cms;
 
-import com.simisinc.platform.application.DataException;
-import com.simisinc.platform.domain.model.cms.Image;
-import com.simisinc.platform.infrastructure.persistence.cms.ImageRepository;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+
+import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.domain.model.cms.Image;
+import com.simisinc.platform.infrastructure.persistence.cms.ImageRepository;
 
 /**
  * Validates and saves image objects
@@ -58,6 +62,10 @@ public class SaveImageCommand {
     } else {
       LOG.debug("Saving a new record... ");
       image = new Image();
+      // Determine the web path for downloads, can randomize, etc.
+      Date created = new Date(System.currentTimeMillis());
+      SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
+      image.setWebPath(sdf.format(created));
     }
     image.setFilename(imageBean.getFilename());
     image.setFileServerPath(imageBean.getFileServerPath());

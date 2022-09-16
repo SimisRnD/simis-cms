@@ -71,6 +71,19 @@ public class DatasetRepository {
         DatasetRepository::buildRecord);
   }
 
+  public static Dataset findByWebPathAndId(String versionWebPath, long id) {
+    if (StringUtils.isBlank(versionWebPath) || id == -1) {
+      return null;
+    }
+    SqlUtils where = new SqlUtils()
+        .add("web_path = ?", versionWebPath)
+        .add("dataset_id = ?", id);
+    return (Dataset) DB.selectRecordFrom(
+        TABLE_NAME,
+        where,
+        DatasetRepository::buildRecord);
+  }
+
   public static List<Dataset> findAll() {
     DataResult result = DB.selectAllFrom(
         TABLE_NAME,
@@ -112,6 +125,7 @@ public class DatasetRepository {
         .add("file_length", record.getFileLength())
         .add("file_type", record.getFileType())
         .add("file_hash", record.getFileHash())
+        .add("web_path", StringUtils.trimToNull(record.getWebPath()))
         .add("path", StringUtils.trimToNull(record.getFileServerPath()))
         .add("last_download", record.getLastDownload())
         .add("records_path", record.getRecordsPath())
@@ -142,6 +156,7 @@ public class DatasetRepository {
         .add("file_length", record.getFileLength())
         .add("file_type", record.getFileType())
         .add("file_hash", record.getFileHash())
+        .add("web_path", StringUtils.trimToNull(record.getWebPath()))
         .add("path", StringUtils.trimToNull(record.getFileServerPath()))
         .add("last_download", record.getLastDownload())
         .add("records_path", record.getRecordsPath())
@@ -466,6 +481,7 @@ public class DatasetRepository {
       record.setSyncUpdateCount(DB.getInt(rs, "sync_update_count", 0));
       record.setSyncDeleteCount(DB.getInt(rs, "sync_delete_count", 0));
       record.setFileHash(rs.getString("file_hash"));
+      record.setWebPath(rs.getString("web_path"));
       return record;
     } catch (SQLException se) {
       LOG.error("buildRecord", se);

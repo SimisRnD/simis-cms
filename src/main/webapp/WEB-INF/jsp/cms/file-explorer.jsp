@@ -96,16 +96,16 @@
         <c:forEach items="${subFolder.fileItemList}" var="file" varStatus="status">
           <c:choose>
             <c:when test="${file.categoryId lt 1}">
-              <span class="label"><a title="<c:out value="${file.title}" />" href="${ctx}/assets/file/<fmt:formatDate pattern="yyyyMMddHHmmss" value="${file.modified}" />-${file.id}/${url:encodeUri(file.filename)}">File</a></span>
+              <span class="label"><a title="<c:out value="${file.title}" />" href="${ctx}/assets/file/${file.url}">File</a></span>
             </c:when>
             <c:when test="${fn:toLowerCase(file.fileType) eq 'url'}">
-              <span class="label"><a target="_blank" title="<c:out value="${file.title}" />" href="${ctx}/assets/view/<fmt:formatDate pattern="yyyyMMddHHmmss" value="${file.modified}" />-${file.id}?ref=${url:encodeUri(file.filename)}"><c:out value="${folderCategory:name(file.categoryId)}" /></a></span>
+              <span class="label"><a target="_blank" title="<c:out value="${file.title}" />" href="${ctx}/assets/view/${file.baseUrl}?ref=${url:encodeUri(file.filename)}"><c:out value="${folderCategory:name(file.categoryId)}" /></a></span>
             </c:when>
             <c:when test="${fn:toLowerCase(file.fileType) eq 'video' || fn:toLowerCase(file.fileType) eq 'pdf' || fn:toLowerCase(file.fileType) eq 'image'}">
-              <span class="label"><a target="_blank" title="<c:out value="${file.title}" />" href="${ctx}/assets/view/<fmt:formatDate pattern="yyyyMMddHHmmss" value="${file.modified}" />-${file.id}/${url:encodeUri(file.filename)}"><c:out value="${folderCategory:name(file.categoryId)}" /></a></span>
+              <span class="label"><a target="_blank" title="<c:out value="${file.title}" />" href="${ctx}/assets/view/${file.url}"><c:out value="${folderCategory:name(file.categoryId)}" /></a></span>
             </c:when>
             <c:otherwise>
-              <span class="label"><a title="<c:out value="${file.title}" />" href="${ctx}/assets/file/<fmt:formatDate pattern="yyyyMMddHHmmss" value="${file.modified}" />-${file.id}/${url:encodeUri(file.filename)}"><c:out value="${folderCategory:name(file.categoryId)}" /></a></span>
+              <span class="label"><a title="<c:out value="${file.title}" />" href="${ctx}/assets/file/${file.url}"><c:out value="${folderCategory:name(file.categoryId)}" /></a></span>
             </c:otherwise>
           </c:choose>
   <%--        <c:if test="${file.fileLength gt 0}">--%>

@@ -135,7 +135,7 @@
       <td class="text-center"><small><c:out value="${number:suffix(dataset.fileLength)}"/></small></td>
       <td>
         <a title="Modify dataset" href="${ctx}/admin/dataset-mapper?datasetId=${dataset.id}"><small><i class="${font:fas()} fa-edit"></i></small></a>
-        <a href="${ctx}/assets/dataset/<fmt:formatDate pattern="yyyyMMddHHmmss" value="${dataset.created}" />-${dataset.id}/${url:encodeUri(dataset.filename)}"><i class="fa fa-download"></i></a>
+        <a href="${ctx}/assets/dataset/${dataset.url}"><i class="fa fa-download"></i></a>
         <a href="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&datasetId=${dataset.id}" onclick="return confirm('Are you sure you want to delete <c:out value="${js:escape(dataset.name)}" />?');"><i class="fa fa-remove"></i></a>
         <%--<a href="${ctx}/admin/dataset?datasetId=${dataset.id}"><i class="fas fa-edit"></i></a>--%>
       </td>

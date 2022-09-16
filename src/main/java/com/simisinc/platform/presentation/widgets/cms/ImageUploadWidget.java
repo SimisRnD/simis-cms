@@ -16,22 +16,24 @@
 
 package com.simisinc.platform.presentation.widgets.cms;
 
+import java.io.File;
+import java.lang.reflect.InvocationTargetException;
+import java.nio.file.Paths;
+
+import javax.servlet.http.Part;
+
+import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.thymeleaf.util.StringUtils;
+
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.cms.SaveImageCommand;
-import com.simisinc.platform.application.cms.UrlCommand;
 import com.simisinc.platform.application.cms.ValidateImageCommand;
 import com.simisinc.platform.application.filesystem.FileSystemCommand;
 import com.simisinc.platform.domain.model.cms.Image;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
-import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
-import javax.servlet.http.Part;
-import java.io.File;
-import java.lang.reflect.InvocationTargetException;
-import java.nio.file.Paths;
 
 /**
  * Description
@@ -119,11 +121,8 @@ public class ImageUploadWidget extends GenericWidget {
       return context;
     }
 
-    // GET uri /assets/img/20180503171549-5/logo.png
-    // yyyyMMddHHmmss
-
-    // Return Json
-    context.setJson("{\"location\": \"" + "/assets/img/" + System.currentTimeMillis() + "-" + image.getId() + "/" + UrlCommand.encodeUri(image.getFilename()) + "\"}");
+    // Return Json with the new image's URL
+    context.setJson("{\"location\": \"" + "/assets/img/" + image.getUrl() + "\"}");
     return context;
   }
 }

@@ -40,7 +40,7 @@ public class FileItemRepository {
   private static Log LOG = LogFactory.getLog(FileItemRepository.class);
 
   private static String TABLE_NAME = "files";
-  private static String[] PRIMARY_KEY = new String[]{"file_id"};
+  private static String[] PRIMARY_KEY = new String[] { "file_id" };
 
   private static DataResult query(FileSpecification specification, DataConstraints constraints) {
     SqlUtils select = new SqlUtils();
@@ -97,6 +97,13 @@ public class FileItemRepository {
                   ")",
               specification.getForUserId());
         }
+      }
+
+      // For versionWebPath
+      if (specification.getVersionWebPath() != null) {
+        where.add(
+            "(web_path = ? OR EXISTS (SELECT 1 FROM file_versions WHERE file_versions.web_path = ? AND file_versions.file_id = ?))",
+            new Object[] { specification.getVersionWebPath(), specification.getVersionWebPath(), specification.getId() });
       }
 
       // Use the search engine
@@ -156,6 +163,7 @@ public class FileItemRepository {
         .add("file_type", record.getFileType())
         .add("mime_type", record.getMimeType())
         .add("file_hash", record.getFileHash())
+        .add("web_path", StringUtils.trimToNull(record.getWebPath()))
         .add("width", record.getWidth(), -1)
         .add("height", record.getHeight(), -1)
         .add("summary", StringUtils.trimToNull(record.getSummary()))
@@ -169,8 +177,8 @@ public class FileItemRepository {
     // Use a transaction
     try {
       try (Connection connection = DB.getConnection();
-           AutoStartTransaction a = new AutoStartTransaction(connection);
-           AutoRollback transaction = new AutoRollback(connection)) {
+          AutoStartTransaction a = new AutoStartTransaction(connection);
+          AutoRollback transaction = new AutoRollback(connection)) {
         // In a transaction (use the existing connection)
         record.setId(DB.insertInto(connection, TABLE_NAME, insertValues, PRIMARY_KEY));
         // Create a version record
@@ -192,8 +200,8 @@ public class FileItemRepository {
   private static FileItem update(FileItem record) {
     try {
       try (Connection connection = DB.getConnection();
-           AutoStartTransaction a = new AutoStartTransaction(connection);
-           AutoRollback transaction = new AutoRollback(connection)) {
+          AutoStartTransaction a = new AutoStartTransaction(connection);
+          AutoRollback transaction = new AutoRollback(connection)) {
         // Update the counts in case the folder changed
         FolderRepository.updateFileCountForFileId(connection, record.getId(), -1);
         SubFolderRepository.updateFileCountForFileId(connection, record.getId(), -1);
@@ -213,7 +221,7 @@ public class FileItemRepository {
             .add("processed", record.getProcessed())
             .add("expiration_date", record.getExpirationDate())
             .add("privacy_type", record.getPrivacyType());
-//        .add("default_token", StringUtils.trimToNull(record.getDefaultToken()));
+        //        .add("default_token", StringUtils.trimToNull(record.getDefaultToken()));
         SqlUtils where = new SqlUtils()
             .add("file_id = ?", record.getId());
         if (DB.update(connection, TABLE_NAME, updateValues, where)) {
@@ -237,8 +245,8 @@ public class FileItemRepository {
   public static FileItem saveVersion(FileItem record) {
     try {
       try (Connection connection = DB.getConnection();
-           AutoStartTransaction a = new AutoStartTransaction(connection);
-           AutoRollback transaction = new AutoRollback(connection)) {
+          AutoStartTransaction a = new AutoStartTransaction(connection);
+          AutoRollback transaction = new AutoRollback(connection)) {
         // Update the counts in case the folder changed
         FolderRepository.updateFileCountForFileId(connection, record.getId(), -1);
         SubFolderRepository.updateFileCountForFileId(connection, record.getId(), -1);
@@ -253,6 +261,7 @@ public class FileItemRepository {
             .add("version", StringUtils.trimToNull(record.getVersion()))
             .add("extension", StringUtils.trimToNull(record.getExtension()))
             .add("path", StringUtils.trimToNull(record.getFileServerPath()))
+            .add("web_path", StringUtils.trimToNull(record.getWebPath()))
             .add("file_length", record.getFileLength())
             .add("file_type", record.getFileType())
             .add("mime_type", record.getMimeType())
@@ -291,8 +300,8 @@ public class FileItemRepository {
   public static boolean remove(FileItem record) {
     try {
       try (Connection connection = DB.getConnection();
-           AutoStartTransaction a = new AutoStartTransaction(connection);
-           AutoRollback transaction = new AutoRollback(connection)) {
+          AutoStartTransaction a = new AutoStartTransaction(connection);
+          AutoRollback transaction = new AutoRollback(connection)) {
         // Delete the references
         FileVersionRepository.removeAll(connection, record);
         FolderRepository.updateFileCount(connection, record.getFolderId(), -1);
@@ -317,11 +326,11 @@ public class FileItemRepository {
     return DB.deleteFrom(connection, TABLE_NAME, new SqlUtils().add("sub_folder_id = ?", record.getId()));
   }
 
-  private static PreparedStatement createPreparedStatementForUpdateDownloadCount(Connection connection, FileItem record) throws SQLException {
-    String SQL_QUERY =
-        "UPDATE files " +
-            "SET download_count = download_count + 1 " +
-            "WHERE file_id = ?";
+  private static PreparedStatement createPreparedStatementForUpdateDownloadCount(Connection connection, FileItem record)
+      throws SQLException {
+    String SQL_QUERY = "UPDATE files " +
+        "SET download_count = download_count + 1 " +
+        "WHERE file_id = ?";
     int i = 0;
     PreparedStatement pst = connection.prepareStatement(SQL_QUERY);
     pst.setLong(++i, record.getId());
@@ -330,7 +339,7 @@ public class FileItemRepository {
 
   public static boolean incrementDownloadCount(FileItem record) {
     try (Connection connection = DB.getConnection();
-         PreparedStatement pst = createPreparedStatementForUpdateDownloadCount(connection, record)) {
+        PreparedStatement pst = createPreparedStatementForUpdateDownloadCount(connection, record)) {
       if (pst.executeUpdate() > 0) {
         return true;
       }
@@ -370,6 +379,7 @@ public class FileItemRepository {
       record.setDownloadCount(rs.getLong("download_count"));
       record.setSubFolderId(DB.getLong(rs, "sub_folder_id", -1L));
       record.setCategoryId(DB.getLong(rs, "category_id", -1L));
+      record.setWebPath(rs.getString("web_path"));
       return record;
     } catch (SQLException se) {
       LOG.error("buildRecord", se);

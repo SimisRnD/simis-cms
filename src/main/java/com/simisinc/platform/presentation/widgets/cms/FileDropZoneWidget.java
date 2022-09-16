@@ -16,17 +16,22 @@
 
 package com.simisinc.platform.presentation.widgets.cms;
 
-import com.simisinc.platform.application.DataException;
-import com.simisinc.platform.application.cms.*;
-import com.simisinc.platform.domain.model.cms.FileItem;
-import com.simisinc.platform.domain.model.cms.Folder;
-import com.simisinc.platform.presentation.controller.WidgetContext;
-import com.simisinc.platform.presentation.widgets.GenericWidget;
+import java.lang.reflect.InvocationTargetException;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import java.lang.reflect.InvocationTargetException;
+import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.cms.CheckFolderPermissionCommand;
+import com.simisinc.platform.application.cms.LoadFolderCommand;
+import com.simisinc.platform.application.cms.SaveFileCommand;
+import com.simisinc.platform.application.cms.SaveFilePartCommand;
+import com.simisinc.platform.application.cms.ValidateFileCommand;
+import com.simisinc.platform.domain.model.cms.FileItem;
+import com.simisinc.platform.domain.model.cms.Folder;
+import com.simisinc.platform.presentation.controller.WidgetContext;
+import com.simisinc.platform.presentation.widgets.GenericWidget;
 
 /**
  * Description
@@ -39,7 +44,6 @@ public class FileDropZoneWidget extends GenericWidget {
   static final long serialVersionUID = -8484048371911908893L;
   private static String JSP = "/cms/file-drop-zone.jsp";
   private static Log LOG = LogFactory.getLog(FileDropZoneWidget.class);
-
 
   /**
    * Prepare the drop zone for uploads
@@ -128,7 +132,7 @@ public class FileDropZoneWidget extends GenericWidget {
       // yyyyMMddHHmmss
       // Return Json
       LOG.debug("Finished!");
-      context.setJson("{\"location\": \"" + "/assets/file/" + System.currentTimeMillis() + "-" + fileItem.getId() + "/" + UrlCommand.encodeUri(fileItem.getFilename()) + "\"}");
+      context.setJson("{\"location\": \"" + "/assets/file/" + fileItem.getUrl() + "\"}");
       return context;
     } catch (DataException data) {
       // Clean up the file if it exists

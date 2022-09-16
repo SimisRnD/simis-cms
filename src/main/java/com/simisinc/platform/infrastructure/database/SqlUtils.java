@@ -179,6 +179,11 @@ public class SqlUtils {
     return this;
   }
 
+  public SqlUtils add(String name, Object[] value) {
+    values.add(new SqlValue(name, value));
+    return this;
+  }
+
   public SqlUtils addIfExists(String name, Timestamp value) {
     if (value != null) {
       values.add(new SqlValue(name, value));

@@ -19,6 +19,8 @@ package com.simisinc.platform.application.cms;
 import com.simisinc.platform.domain.model.cms.FileItem;
 import com.simisinc.platform.infrastructure.persistence.cms.FileItemRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.FileSpecification;
+
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -44,6 +46,21 @@ public class LoadFileCommand {
       return null;
     }
     FileSpecification specification = new FileSpecification();
+    specification.setId(fileId);
+    specification.setForUserId(userId);
+    List<FileItem> itemList = FileItemRepository.findAll(specification, null);
+    if (itemList.size() == 1) {
+      return itemList.get(0);
+    }
+    return null;
+  }
+  
+  public static FileItem loadLatestFileByIdForAuthorizedUser(String versionWebPath, long fileId, long userId) {
+    if (StringUtils.isBlank(versionWebPath) || fileId == -1 || userId == -1) {
+      return null;
+    }
+    FileSpecification specification = new FileSpecification();
+    specification.setVersionWebPath(versionWebPath);
     specification.setId(fileId);
     specification.setForUserId(userId);
     List<FileItem> itemList = FileItemRepository.findAll(specification, null);

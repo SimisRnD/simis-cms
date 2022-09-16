@@ -19,6 +19,8 @@ package com.simisinc.platform.application.datasets;
 import java.io.File;
 import java.io.IOException;
 import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
@@ -116,6 +118,11 @@ public class DatasetDownloadRemoteFileCommand {
     dataset.setFileLength(tempFile.length());
     dataset.setFileServerPath(dataPath);
     dataset.setFileHash(FileSystemCommand.getFileChecksum(tempFile));
+
+    // Determine the web path for downloads, can randomize, etc.
+    Date created = new Date(System.currentTimeMillis());
+    SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
+    dataset.setWebPath(sdf.format(created));
 
     try {
       // Compare the file content with the previous version to see if it is new

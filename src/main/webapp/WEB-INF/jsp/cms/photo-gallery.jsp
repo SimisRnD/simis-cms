@@ -66,7 +66,7 @@
       <div id="photo-gallery" class="swiper-wrapper">
       <c:forEach items="${fileList}" var="file">
         <div class="swiper-slide">
-          <img data-src="${ctx}/assets/view/<fmt:formatDate pattern="yyyyMMddHHmmss" value="${file.created}" />-${file.id}/${url:encodeUri(file.filename)}" class="swiper-lazy">
+          <img data-src="${ctx}/assets/view/${file.url}" alt="Image" class="swiper-lazy">
           <div class="swiper-lazy-preloader"></div>
           <c:if test="${showCaption eq 'true'}"><p class="slider-caption"><c:out value="${file.title}"/></p></c:if>
         </div>

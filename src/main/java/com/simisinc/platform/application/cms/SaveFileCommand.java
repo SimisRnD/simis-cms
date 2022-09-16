@@ -16,12 +16,16 @@
 
 package com.simisinc.platform.application.cms;
 
-import com.simisinc.platform.application.DataException;
-import com.simisinc.platform.domain.model.cms.FileItem;
-import com.simisinc.platform.infrastructure.persistence.cms.FileItemRepository;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+
+import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.domain.model.cms.FileItem;
+import com.simisinc.platform.infrastructure.persistence.cms.FileItemRepository;
 
 /**
  * Validates and saves file item objects
@@ -113,6 +117,10 @@ public class SaveFileCommand {
       fileItem.setFolderId(fileItemBean.getFolderId());
       fileItem.setSubFolderId(fileItemBean.getSubFolderId());
       fileItem.setCategoryId(fileItemBean.getCategoryId());
+      // Determine the web path for downloads, can randomize, etc.
+      Date created = new Date(System.currentTimeMillis());
+      SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
+      fileItem.setWebPath(sdf.format(created));
     }
     fileItem.setTitle(fileItemBean.getTitle());
     fileItem.setVersion(fileItemBean.getVersion());
@@ -153,6 +161,10 @@ public class SaveFileCommand {
     fileItem.setExpirationDate(fileItemBean.getExpirationDate());
     fileItem.setPrivacyType(fileItemBean.getPrivacyType());
     fileItem.setDefaultToken(fileItemBean.getDefaultToken());
+    // Determine the web path for downloads, can randomize, etc.
+    Date created = new Date(System.currentTimeMillis());
+    SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
+    fileItem.setWebPath(sdf.format(created));
     return FileItemRepository.saveVersion(fileItem);
   }
 

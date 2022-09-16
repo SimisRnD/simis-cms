@@ -92,6 +92,7 @@ public class FileVersionRepository {
         .add("version", StringUtils.trimToNull(record.getVersion()))
         .add("extension", StringUtils.trimToNull(record.getExtension()))
         .add("path", StringUtils.trimToNull(record.getFileServerPath()))
+        .add("web_path", StringUtils.trimToNull(record.getWebPath()))
         .add("file_length", record.getFileLength())
         .add("file_type", record.getFileType())
         .add("mime_type", record.getMimeType())
@@ -187,6 +188,7 @@ public class FileVersionRepository {
       record.setDownloadCount(rs.getLong("download_count"));
       record.setSubFolderId(DB.getLong(rs, "sub_folder_id", -1L));
       record.setCategoryId(DB.getLong(rs, "category_id", -1L));
+      record.setWebPath(rs.getString("web_path"));
       return record;
     } catch (SQLException se) {
       LOG.error("buildRecord", se);

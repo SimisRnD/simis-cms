@@ -73,6 +73,7 @@ public class SaveDatasetCommand {
     dataset.setFileType(datasetBean.getFileType());
     dataset.setFileLength(datasetBean.getFileLength());
     dataset.setFileHash(datasetBean.getFileHash());
+    dataset.setWebPath(datasetBean.getWebPath());
     dataset.setRowCount(datasetBean.getRowCount());
     dataset.setColumnCount(datasetBean.getColumnCount());
     dataset.setColumnNames(datasetBean.getColumnNames());

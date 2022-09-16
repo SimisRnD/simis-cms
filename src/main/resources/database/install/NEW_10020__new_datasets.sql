@@ -47,12 +47,14 @@ CREATE TABLE datasets (
   sync_add_count INTEGER DEFAULT 0,
   sync_update_count INTEGER DEFAULT 0,
   sync_delete_count INTEGER DEFAULT 0,
-  file_hash VARCHAR(1024)
+  file_hash VARCHAR(1024),
+  web_path VARCHAR(50) NOT NULL
 );
 
 CREATE INDEX datasets_sched_idx ON datasets(schedule_enabled);
 CREATE INDEX datasets_sync_idx ON datasets(sync_enabled);
 CREATE INDEX datasets_que_stat_idx ON datasets(queue_status);
+CREATE INDEX datasets_web_path_idx ON datasets(web_path);
 
 CREATE TABLE dataset_sync_log (
   log_id BIGSERIAL PRIMARY KEY,

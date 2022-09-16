@@ -50,13 +50,13 @@
       </c:forEach>
     </div>
     <div class="medium-6 cell">
-      <h4>Files</h4>
+      <h4>PDF Files</h4>
       <c:if test="${empty fileItemList}">
         No files were found
       </c:if>
       <c:forEach items="${fileItemList}" var="file" varStatus="status">
         <i class="${font:far()} fa-file-pdf"></i>
-        <a href="#" style="text-decoration: underline;" onclick="mySubmit(this.dataset.src)" data-src="${ctx}/assets/view/<fmt:formatDate pattern="yyyyMMddHHmmss" value="${file.modified}" />-${file.id}/${url:encodeUri(file.filename)}"><c:out value="${file.title}" /></a>
+        <a href="#" style="text-decoration: underline;" onclick="mySubmit(this.dataset.src)" data-src="${ctx}/assets/view/${file.url}"><c:out value="${file.title}" /></a>
         <small><c:out value="${file.mimeType}" /></small>
         <small><c:out value="${number:suffix(file.fileLength)}"/></small>
         <c:if test="${!status.last}"><br /></c:if>

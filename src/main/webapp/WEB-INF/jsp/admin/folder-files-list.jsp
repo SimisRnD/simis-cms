@@ -20,6 +20,7 @@
 <%@ taglib prefix="user" uri="/WEB-INF/user-functions.tld" %>
 <%@ taglib prefix="group" uri="/WEB-INF/group-functions.tld" %>
 <%@ taglib prefix="folderCategory" uri="/WEB-INF/folder-category-functions.tld" %>
+<%@ taglib prefix="text" uri="/WEB-INF/text-functions.tld" %>
 <%@ taglib prefix="url" uri="/WEB-INF/url-functions.tld" %>
 <%@ taglib prefix="date" uri="/WEB-INF/date-functions.tld" %>
 <%@ taglib prefix="number" uri="/WEB-INF/number-functions.tld" %>
@@ -44,7 +45,7 @@
       <th>
         Filename
       </th>
-      <th width="110" class="text-center">action</th>
+      <th width="110">action</th>
       <th width="50" class="text-center">size</th>
       <th width="60" class="text-center">uploaded</th>
       <th width="70" class="text-center">downloads</th>
@@ -60,7 +61,7 @@
     <tr>
       <td>
         <c:if test="${fn:toLowerCase(file.fileType) eq 'image'}">
-          <img class="image-left" width="200" src="${ctx}/assets/view/<fmt:formatDate pattern="yyyyMMddHHmmss" value="${file.modified}" />-${file.id}/${url:encodeUri(file.filename)}" />
+          <img class="image-left" width="200" src="${ctx}/assets/view/${file.url}" />
         </c:if>
         <small>
           <a href="javascript:selectFile(${file.id});"><c:out value="${file.title}" /></a>
@@ -81,7 +82,7 @@
           <br />
           <c:choose>
             <c:when test="${fn:toLowerCase(file.fileType) eq 'url'}">
-              <small><a target="_blank" href="<c:out value="${file.filename}" />"><c:out value="${file.filename}" /></a></small>
+              <small><a target="_blank" href="<c:out value="${file.filename}" />"><c:out value="${text:trim(file.filename, 50, true)}" /></a></small>
             </c:when>
             <c:otherwise>
               <small><c:out value="${file.filename}" /></small>
@@ -94,17 +95,22 @@
       </td>
       <td nowrap>
         <c:choose>
+          <c:when test="${fn:toLowerCase(file.fileType) eq 'url'}">
+            <a class="clipboard" title="Copy view link to clipboard" data-clipboard-text="${ctx}/assets/view/${file.baseUrl}?ref=${url:encodeUri(file.filename)}"><i class="fa fa-clipboard"></i></a>
+          </c:when>
           <c:when test="${fn:toLowerCase(file.fileType) eq 'video'}">
-            <a class="clipboard" title="Copy view link to clipboard" data-clipboard-text="${ctx}/assets/view/<fmt:formatDate pattern="yyyyMMddHHmmss" value="${file.modified}" />-${file.id}/${url:encodeUri(file.filename)}"><i class="fa fa-clipboard"></i></a>
+            <a class="clipboard" title="Copy view link to clipboard" data-clipboard-text="${ctx}/assets/view/${file.url}"><i class="fa fa-clipboard"></i></a>
           </c:when>
           <c:otherwise>
-            <a class="clipboard" title="Copy download link to clipboard" data-clipboard-text="${ctx}/assets/file/<fmt:formatDate pattern="yyyyMMddHHmmss" value="${file.modified}" />-${file.id}/${url:encodeUri(file.filename)}"><i class="fa fa-clipboard"></i></a>
+            <a class="clipboard" title="Copy download link to clipboard" data-clipboard-text="${ctx}/assets/file/${file.url}"><i class="fa fa-clipboard"></i></a>
           </c:otherwise>
         </c:choose>
         <c:if test="${fn:toLowerCase(file.fileType) eq 'pdf' || fn:toLowerCase(file.fileType) eq 'image' || fn:toLowerCase(file.fileType) eq 'video'}">
-          <a target="_blank" title="Open in new tab" href="${ctx}/assets/view/<fmt:formatDate pattern="yyyyMMddHHmmss" value="${file.modified}" />-${file.id}/${url:encodeUri(file.filename)}"><i class="fa fa-desktop"></i></a>
+          <a target="_blank" title="Open in new tab" href="${ctx}/assets/view/${file.url}"><i class="fa fa-desktop"></i></a>
         </c:if>
-        <a title="Download file" href="${ctx}/assets/file/<fmt:formatDate pattern="yyyyMMddHHmmss" value="${file.modified}" />-${file.id}/${url:encodeUri(file.filename)}"><i class="fa fa-download"></i></a>
+        <c:if test="${fn:toLowerCase(file.fileType) ne 'url'}">
+          <a title="Download file" href="${ctx}/assets/file/${file.url}"><i class="fa fa-download"></i></a>
+        </c:if>
         <c:if test="${canDelete eq 'true'}">
           <a title="Delete file" href="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&fileId=${file.id}" onclick="return confirm('Are you sure you want to delete <c:out value="${js:escape(file.filename)}" />?');"><i class="fa fa-remove"></i></a>
         </c:if>

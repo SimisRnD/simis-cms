@@ -16,6 +16,15 @@
 
 package com.simisinc.platform.application.items;
 
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.cms.UrlCommand;
 import com.simisinc.platform.domain.model.Group;
@@ -26,12 +35,6 @@ import com.simisinc.platform.domain.model.items.PrivacyType;
 import com.simisinc.platform.infrastructure.persistence.GroupRepository;
 import com.simisinc.platform.infrastructure.persistence.items.ItemFileItemRepository;
 import com.simisinc.platform.infrastructure.persistence.items.ItemFolderRepository;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Validates and saves an item's file item object
@@ -62,9 +65,8 @@ public class SaveItemFileCommand {
       if (StringUtils.isBlank(fileItemBean.getFilename())) {
         throw new DataException("A file name is required, please check the fields and try again");
       }
-      if (StringUtils.isBlank(fileItemBean.getFileServerPath()) && !
-          ("url".equals(fileItemBean.getExtension()) && UrlCommand.isUrlValid(fileItemBean.getFilename()))
-      ) {
+      if (StringUtils.isBlank(fileItemBean.getFileServerPath())
+          && !("url".equals(fileItemBean.getExtension()) && UrlCommand.isUrlValid(fileItemBean.getFilename()))) {
         LOG.error("The developer needs to set a path");
         throw new DataException("A system path error occurred");
       }
@@ -134,6 +136,10 @@ public class SaveItemFileCommand {
       fileItem.setFolderId(fileItemBean.getFolderId());
       fileItem.setSubFolderId(fileItemBean.getSubFolderId());
       fileItem.setCategoryId(fileItemBean.getCategoryId());
+      // Determine the web path for downloads, can randomize, etc.
+      Date created = new Date(System.currentTimeMillis());
+      SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
+      fileItem.setWebPath(sdf.format(created));
     }
     fileItem.setTitle(fileItemBean.getTitle());
     fileItem.setVersion(fileItemBean.getVersion());
@@ -199,6 +205,10 @@ public class SaveItemFileCommand {
     fileItem.setExpirationDate(fileItemBean.getExpirationDate());
     fileItem.setPrivacyType(fileItemBean.getPrivacyType());
     fileItem.setDefaultToken(fileItemBean.getDefaultToken());
+    // Determine the web path for downloads, can randomize, etc.
+    Date created = new Date(System.currentTimeMillis());
+    SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
+    fileItem.setWebPath(sdf.format(created));
     return ItemFileItemRepository.saveVersion(fileItem);
   }
 
