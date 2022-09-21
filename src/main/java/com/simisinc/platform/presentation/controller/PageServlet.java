@@ -167,6 +167,11 @@ public class PageServlet extends HttpServlet {
       // Use the session data (created in WebRequestFilter)
       ControllerSession controllerSession = (ControllerSession) request.getSession().getAttribute(SessionConstants.CONTROLLER);
       UserSession userSession = (UserSession) request.getSession().getAttribute(SessionConstants.USER);
+      if (userSession == null) {
+        LOG.debug("A user session is required, and it's set by the servlet filter");
+        response.sendError(HttpServletResponse.SC_NOT_FOUND);
+        return;
+      }
 
       if (!pagePath.startsWith("/assets")) {
         response.setHeader("Cache-Control", "no-cache, no-store, max-age=0, must-revalidate");
