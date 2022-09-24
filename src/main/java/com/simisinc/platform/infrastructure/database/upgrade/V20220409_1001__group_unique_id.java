@@ -44,16 +44,16 @@ public class V20220409_1001__group_unique_id extends BaseJavaMigration {
 
     {
       // Get a list of all users (user_id, first_name, last_name)
-      Statement st = connection.createStatement();
-      ResultSet rs = st.executeQuery("SELECT group_id, name FROM groups WHERE unique_id IS NULL");
-      while (rs.next()) {
-        Group group = new Group();
-        group.setId(rs.getLong("group_id"));
-        group.setName(rs.getString("name"));
-        groupList.add(group);
+      try (Statement st = connection.createStatement()) {
+        ResultSet rs = st.executeQuery("SELECT group_id, name FROM groups WHERE unique_id IS NULL");
+        while (rs.next()) {
+          Group group = new Group();
+          group.setId(rs.getLong("group_id"));
+          group.setName(rs.getString("name"));
+          groupList.add(group);
+        }
+        rs.close();
       }
-      rs.close();
-      st.close();
     }
 
     // Save a unique_user_id
@@ -67,14 +67,14 @@ public class V20220409_1001__group_unique_id extends BaseJavaMigration {
   }
 
   private String generateUniqueId(Connection connection, String baseValue) throws Exception {
-    PreparedStatement pst = connection.prepareStatement("SELECT * FROM groups WHERE unique_id = ?");
-    int count = 1;
     String uniqueId = baseValue;
-    while (!testUniqueId(pst, uniqueId)) {
-      ++count;
-      uniqueId = baseValue + "-" + count;
+    try (PreparedStatement pst = connection.prepareStatement("SELECT * FROM groups WHERE unique_id = ?")) {
+      int count = 1;
+      while (!testUniqueId(pst, uniqueId)) {
+        ++count;
+        uniqueId = baseValue + "-" + count;
+      }
     }
-    pst.close();
     return uniqueId;
   }
 
@@ -90,11 +90,11 @@ public class V20220409_1001__group_unique_id extends BaseJavaMigration {
   }
 
   private void updateUniqueId(Connection connection, long userId, String uniqueId) throws Exception {
-    PreparedStatement pst = connection.prepareStatement("UPDATE groups SET unique_id = ? WHERE group_id = ?");
-    int i = 0;
-    pst.setString(++i, uniqueId);
-    pst.setLong(++i, userId);
-    pst.execute();
-    pst.close();
+    try (PreparedStatement pst = connection.prepareStatement("UPDATE groups SET unique_id = ? WHERE group_id = ?")) {
+      int i = 0;
+      pst.setString(++i, uniqueId);
+      pst.setLong(++i, userId);
+      pst.execute();
+    }
   }
 }
