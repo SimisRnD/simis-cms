@@ -19,19 +19,17 @@ package com.simisinc.platform.application.login;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.LoadUserCommand;
+import com.simisinc.platform.application.RateLimitCommand;
 import com.simisinc.platform.application.UserPasswordCommand;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.login.UserToken;
 import com.simisinc.platform.infrastructure.cache.CacheManager;
 import com.simisinc.platform.infrastructure.persistence.login.UserTokenRepository;
-import io.github.bucket4j.Bandwidth;
-import io.github.bucket4j.Bucket;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import javax.security.auth.login.LoginException;
-import java.time.Duration;
 import java.util.Date;
 
 /**
@@ -43,51 +41,8 @@ import java.util.Date;
 public class AuthenticateLoginCommand {
 
   public static final String INVALID_CREDENTIALS = "The account information provided did not match our records. Please try again.";
-  public static final String INVALID_ATTEMPTS = "Too many login attempts. Please try again later.";
 
   private static Log LOG = LogFactory.getLog(AuthenticateLoginCommand.class);
-
-  /**
-   * Rate limiting on a login page can be applied according to the user's username.
-   *
-   * @param username
-   * @param startWatching
-   * @return
-   */
-  public static boolean isUsernameAllowedRightNow(String username, boolean startWatching) {
-    Cache cache = CacheManager.getCache(CacheManager.LOGIN_ATTEMPT_BY_USERNAME_CACHE);
-    Bucket bucket = (Bucket) cache.getIfPresent(username);
-    if (bucket == null) {
-      if (startWatching) {
-        Bandwidth limit = Bandwidth.simple(5, Duration.ofMinutes(30));
-        bucket = Bucket.builder().addLimit(limit).build();
-        cache.put(username, bucket);
-      }
-      return true;
-    }
-    return bucket.tryConsume(1);
-  }
-
-  /**
-   * Rate limiting on a login page can be applied according to the IP address trying to log in
-   *
-   * @param ipAddress
-   * @param startWatching
-   * @return
-   */
-  public static boolean isIpAllowedRightNow(String ipAddress, boolean startWatching) {
-    Cache cache = CacheManager.getCache(CacheManager.LOGIN_ATTEMPT_BY_IP_CACHE);
-    Bucket bucket = (Bucket) cache.getIfPresent(ipAddress);
-    if (bucket == null) {
-      if (startWatching) {
-        Bandwidth limit = Bandwidth.simple(10, Duration.ofMinutes(30));
-        bucket = Bucket.builder().addLimit(limit).build();
-        cache.put(ipAddress, bucket);
-      }
-      return true;
-    }
-    return bucket.tryConsume(1);
-  }
 
   public static User getAuthenticatedUser(String username, String password, String ipAddress) throws DataException, LoginException {
 
@@ -101,11 +56,11 @@ public class AuthenticateLoginCommand {
     // - One username trying to be logged into by multiple IP addresses (enforce limit)
     // - Many usernames (valid or not) trying to be logged into by one IP address
     // - Many usernames (valid or not) trying to be logged into by multiple IP addresses
-    if (!isUsernameAllowedRightNow(username, false)) {
-      throw new LoginException(INVALID_ATTEMPTS);
+    if (!RateLimitCommand.isUsernameAllowedRightNow(username, false)) {
+      throw new LoginException(RateLimitCommand.INVALID_ATTEMPTS);
     }
-    if (!isIpAllowedRightNow(ipAddress, false)) {
-      throw new LoginException(INVALID_ATTEMPTS);
+    if (!RateLimitCommand.isIpAllowedRightNow(ipAddress, false)) {
+      throw new LoginException(RateLimitCommand.INVALID_ATTEMPTS);
     }
 
     // See if a user exists
@@ -114,8 +69,8 @@ public class AuthenticateLoginCommand {
       LOG.debug("Account not found");
       // Check and enforce rate limiting
       // Limit the number of attempts per ip accessing different usernames
-      if (!isIpAllowedRightNow(ipAddress, true)) {
-        throw new LoginException(INVALID_ATTEMPTS);
+      if (!RateLimitCommand.isIpAllowedRightNow(ipAddress, true)) {
+        throw new LoginException(RateLimitCommand.INVALID_ATTEMPTS);
       }
       throw new LoginException(INVALID_CREDENTIALS);
     }
@@ -146,8 +101,8 @@ public class AuthenticateLoginCommand {
     // Record rate limiting
     // Limit the number of attempts per username (system(s) attempting the same username)
     // Limit the number of attempts per ip (a system attempting multiple users)
-    isUsernameAllowedRightNow(username, true);
-    isIpAllowedRightNow(ipAddress, true);
+    RateLimitCommand.isUsernameAllowedRightNow(username, true);
+    RateLimitCommand.isIpAllowedRightNow(ipAddress, true);
     LOG.debug("Password incorrect");
     throw new LoginException(INVALID_CREDENTIALS);
   }
