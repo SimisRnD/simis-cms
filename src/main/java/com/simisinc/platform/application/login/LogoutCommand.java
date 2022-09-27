@@ -18,6 +18,7 @@ package com.simisinc.platform.application.login;
 
 import com.simisinc.platform.application.oauth.OAuthLogoutCommand;
 import com.simisinc.platform.application.oauth.OAuthRequestCommand;
+import com.simisinc.platform.infrastructure.persistence.login.UserTokenRepository;
 import com.simisinc.platform.presentation.controller.CookieConstants;
 import com.simisinc.platform.presentation.controller.SessionConstants;
 import com.simisinc.platform.presentation.controller.UserSession;
@@ -53,6 +54,8 @@ public class LogoutCommand {
         userId = userSession.getUserId();
       }
       request.getSession().removeAttribute(SessionConstants.USER);
+      // Prevent other sessions
+      UserTokenRepository.removeAll(userId);
     }
 
     // Log out of OAuth

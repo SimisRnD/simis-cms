@@ -166,6 +166,8 @@ public class PageServlet extends HttpServlet {
 
       // Use the session data (created in WebRequestFilter)
       ControllerSession controllerSession = (ControllerSession) request.getSession().getAttribute(SessionConstants.CONTROLLER);
+
+      // Confirm the servlet filter setup a user session
       UserSession userSession = (UserSession) request.getSession().getAttribute(SessionConstants.USER);
       if (userSession == null) {
         LOG.debug("A user session is required, and it's set by the servlet filter");
@@ -467,7 +469,7 @@ public class PageServlet extends HttpServlet {
         request.setAttribute(MASTER_MENU_TAB_LIST, menuTabList);
 
         // @note this is needed globally
-        if (!"container".equals(request.getSession().getAttribute("X-View-Mode"))) {
+        if (!"container".equals(request.getSession().getAttribute(SessionConstants.X_VIEW_MODE))) {
           TableOfContents footerStickyLinks = LoadTableOfContentsCommand.loadByUniqueId("footer-sticky-links", false);
           request.setAttribute(FOOTER_STICKY_LINKS, footerStickyLinks);
         }
@@ -505,7 +507,7 @@ public class PageServlet extends HttpServlet {
       if (webContainerContext.isEmbedded()) {
         request.getServletContext().getRequestDispatcher("/WEB-INF/jsp/embedded.jsp").forward(request, response);
       } else {
-        if ("container".equals(request.getSession().getAttribute("X-View-Mode"))) {
+        if ("container".equals(request.getSession().getAttribute(SessionConstants.X_VIEW_MODE))) {
           // For API content
           request.setAttribute(PAGE_BODY, "/WEB-INF/jsp/container-layout.jsp");
         } else {

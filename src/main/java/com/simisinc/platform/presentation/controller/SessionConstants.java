@@ -17,7 +17,7 @@
 package com.simisinc.platform.presentation.controller;
 
 /**
- * Description
+ * Session parameter names
  *
  * @author matt rajkowski
  * @created 4/9/18 8:47 AM
@@ -25,6 +25,7 @@ package com.simisinc.platform.presentation.controller;
 public class SessionConstants {
   public static final String CONTROLLER = "controllerSession";
   public static final String USER = "userSession";
+  public static final String X_VIEW_MODE = "xViewMode";
   public static final String CAPTCHA_TEXT = "captchaText";
   public static final String OAUTH_USER_TOKEN = "oauthUserToken";
   public static final String OAUTH_USER_EXPIRATION_TIME = "oauthUserExpiration";

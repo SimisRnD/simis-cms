@@ -368,6 +368,8 @@ public class UserRepository {
     SqlUtils where = new SqlUtils()
         .add("user_id = ?", record.getId());
     if (DB.update(TABLE_NAME, updateValues, where)) {
+      // Invalidate user_tokens since there is a new password
+      UserTokenRepository.removeAll(record.getId());
       return record;
     }
     LOG.error("updatePassword failed!");
