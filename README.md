@@ -57,9 +57,10 @@ In general:
 1. Deploy
 2. Login
 3. Configure
-4. Maintain
+4. Create
+5. Maintain
 
-An optimized web application archive (.war), with production settings, is released to this project's GitHub releases, ready for installation and which automatically upgrades previously installed versions.
+An optimized web application archive (.war), with production settings, is released to this project's GitHub releases, ready for installation and which automatically upgrades previously installed versions. Always have a backup of your database and file library path.
 
 The latest release is at <https://github.com/SimisRnD/simis-cms/releases>.
 
@@ -67,7 +68,7 @@ Release notes include a list of changes for review.
 
 Download the .war and follow your choice of deployment options.
 
-To log into a new site, add "/login" to the URL.
+To log into a new site, add "/login" to the URL. Later, turn on the login setting to reveal a login button for your website.
 
 ## Deployment Options
 
