@@ -136,7 +136,7 @@ public class WidgetBase {
     }).when(session).getAttribute(anyString());
 
     // Every widget needs a widget context
-    widgetContext = new WidgetContext(request, response, "widget1");
+    widgetContext = new WidgetContext(request, response, "widget1", "/example/path");
 
     // Collection to store attributes keys/values between requests
     Map<String, String> sharedWidgetValueMap = null;

@@ -16,6 +16,16 @@
 
 package com.simisinc.platform.presentation.widgets.cms;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.OutputStream;
+
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import com.simisinc.platform.application.cms.LoadFileCommand;
 import com.simisinc.platform.application.filesystem.FileSystemCommand;
 import com.simisinc.platform.domain.model.cms.FileItem;
@@ -23,18 +33,9 @@ import com.simisinc.platform.infrastructure.persistence.cms.FileItemRepository;
 import com.simisinc.platform.presentation.controller.MultipartFileSender;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
-import javax.servlet.http.HttpServletResponse;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.OutputStream;
-import java.net.URLDecoder;
 
 /**
- * Description
+ * Streams previously uploaded files and videos, supports resume 
  *
  * @author matt rajkowski
  * @created 12/13/18 2:50 PM
@@ -48,24 +49,23 @@ public class DownloadFileWidget extends GenericWidget {
 
     // GET uri /assets/file/20180503171549-5/something.pdf
     // GET uri /assets/view/20180503171549-5/something.pdf
-    LOG.debug("Found request uri: " + context.getUri());
 
-    // Determine the file id
-    long fileId = -1;
-    String fileIdValue = null;
-    int startIdx = context.getUri().indexOf("-") + 1;
-    int endIdx = context.getUri().indexOf("/", startIdx);
-    if (endIdx == -1) {
-      fileIdValue = context.getUri().substring(startIdx);
-    } else {
-      fileIdValue = context.getUri().substring(startIdx, endIdx);
+    // Use the request uri
+    String resourceValue = context.getUri().substring(context.getResourcePath().length() + 1);
+    if (resourceValue.contains("/")) {
+      resourceValue = resourceValue.substring(0, resourceValue.indexOf("/"));
     }
-    if (StringUtils.isNumeric(fileIdValue)) {
-      fileId = Long.parseLong(fileIdValue);
-    } else {
-      LOG.warn("Invalid fileId parameter: " + context.getUri());
+    LOG.debug("Using resource value: " + resourceValue);
+    int dashIdx = resourceValue.lastIndexOf("-");
+    if (dashIdx == -1) {
+      return null;
     }
-    if (fileId == -1) {
+
+    // Determine the file id and web path
+    String webPath = resourceValue.substring(0, dashIdx);
+    String fileIdValue = resourceValue.substring(dashIdx + 1);
+    long fileId = Long.parseLong(fileIdValue);
+    if (fileId <= 0) {
       return null;
     }
 
@@ -76,7 +76,7 @@ public class DownloadFileWidget extends GenericWidget {
       record = LoadFileCommand.loadItemById(fileId);
     } else {
       // User must have view access in the folder's user group
-      record = LoadFileCommand.loadFileByIdForAuthorizedUser(fileId, context.getUserId());
+      record = LoadFileCommand.loadLatestFileByIdForAuthorizedUser(webPath, fileId, context.getUserId());
     }
     if (record == null) {
       LOG.warn("File record does not exist or no access: " + fileId);
@@ -99,21 +99,6 @@ public class DownloadFileWidget extends GenericWidget {
     File file = new File(FileSystemCommand.getFileServerRootPath() + record.getFileServerPath());
     if (!file.isFile()) {
       LOG.warn("Server file does not exist: " + record.getFileServerPath());
-      return null;
-    }
-
-    // Compare the URL with the filename to make sure they are the same
-    String requestedFile = context.getUri().substring(endIdx + 1);
-    if (requestedFile.contains("?")) {
-      requestedFile = requestedFile.substring(0, requestedFile.indexOf("?"));
-    }
-    try {
-      requestedFile = URLDecoder.decode(requestedFile, "UTF-8");
-    } catch (Exception e) {
-      LOG.warn("Could not url decode: " + requestedFile);
-    }
-    if (!requestedFile.equals(record.getFilename())) {
-      LOG.warn("Filename requested did not match saved filename");
       return null;
     }
 
@@ -163,10 +148,17 @@ public class DownloadFileWidget extends GenericWidget {
     }
     LOG.debug("Using mime type: " + mimeType);
 
+    // Set header info
     context.getResponse().setDateHeader("Last-Modified", lastModified);
     context.getResponse().setContentType(mimeType);
     context.getResponse().setContentLength((int) file.length());
 
+    // Check for head method
+    if ("head".equalsIgnoreCase(context.getRequest().getMethod())) {
+      context.setHandledResponse(true);
+      return context;
+    }
+    
     // Stream the file
     try {
       FileInputStream in = new FileInputStream(file);

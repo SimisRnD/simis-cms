@@ -16,21 +16,25 @@
 
 package com.simisinc.platform.presentation.widgets.items;
 
+import java.lang.reflect.InvocationTargetException;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import com.simisinc.platform.application.DataException;
-import com.simisinc.platform.application.cms.UrlCommand;
 import com.simisinc.platform.application.cms.ValidateFileCommand;
-import com.simisinc.platform.application.items.*;
+import com.simisinc.platform.application.items.CheckItemFolderPermissionCommand;
+import com.simisinc.platform.application.items.LoadCollectionCommand;
+import com.simisinc.platform.application.items.LoadItemCommand;
+import com.simisinc.platform.application.items.SaveItemFileCommand;
+import com.simisinc.platform.application.items.SaveItemFilePartCommand;
 import com.simisinc.platform.domain.model.items.Collection;
 import com.simisinc.platform.domain.model.items.Item;
 import com.simisinc.platform.domain.model.items.ItemFileItem;
 import com.simisinc.platform.domain.model.items.ItemFolder;
 import com.simisinc.platform.infrastructure.persistence.items.ItemFolderRepository;
-import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.controller.WidgetContext;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
-import java.lang.reflect.InvocationTargetException;
+import com.simisinc.platform.presentation.widgets.GenericWidget;
 
 /**
  * Description
@@ -43,7 +47,6 @@ public class ItemFileDropZoneWidget extends GenericWidget {
   static final long serialVersionUID = -8484048371911908893L;
   private static String JSP = "/items/item-file-drop-zone.jsp";
   private static Log LOG = LogFactory.getLog(ItemFileDropZoneWidget.class);
-
 
   /**
    * Prepare the drop zone for uploads
@@ -63,7 +66,8 @@ public class ItemFileDropZoneWidget extends GenericWidget {
     if (item == null) {
       return null;
     }
-    Collection collection = LoadCollectionCommand.loadCollectionByIdForAuthorizedUser(item.getCollectionId(), context.getUserId());
+    Collection collection = LoadCollectionCommand.loadCollectionByIdForAuthorizedUser(item.getCollectionId(),
+        context.getUserId());
     if (collection == null) {
       return null;
     }
@@ -72,7 +76,8 @@ public class ItemFileDropZoneWidget extends GenericWidget {
     if (!context.hasRole("admin")) {
       String defaultName = "Documents";
       ItemFolder folder = ItemFolderRepository.findByName(defaultName, item.getId());
-      if (folder == null || !CheckItemFolderPermissionCommand.userHasAddPermission(folder.getId(), context.getUserId())) {
+      if (folder == null
+          || !CheckItemFolderPermissionCommand.userHasAddPermission(folder.getId(), context.getUserId())) {
         return null;
       }
     }
@@ -98,7 +103,8 @@ public class ItemFileDropZoneWidget extends GenericWidget {
     if (item == null) {
       return null;
     }
-    Collection collection = LoadCollectionCommand.loadCollectionByIdForAuthorizedUser(item.getCollectionId(), context.getUserId());
+    Collection collection = LoadCollectionCommand.loadCollectionByIdForAuthorizedUser(item.getCollectionId(),
+        context.getUserId());
     if (collection == null) {
       return null;
     }
@@ -107,7 +113,8 @@ public class ItemFileDropZoneWidget extends GenericWidget {
     if (!context.hasRole("admin")) {
       String defaultName = "Documents";
       ItemFolder folder = ItemFolderRepository.findByName(defaultName, item.getId());
-      if (folder == null || !CheckItemFolderPermissionCommand.userHasAddPermission(folder.getId(), context.getUserId())) {
+      if (folder == null
+          || !CheckItemFolderPermissionCommand.userHasAddPermission(folder.getId(), context.getUserId())) {
         return null;
       }
     }
@@ -120,7 +127,7 @@ public class ItemFileDropZoneWidget extends GenericWidget {
         LOG.warn("File part was not found in request");
         throw new DataException("A file was not found, please choose a file and try again");
       }
-//      fileItemBean.setFolderId(folder.getId());
+      //      fileItemBean.setFolderId(folder.getId());
       fileItemBean.setVersion("1.0");
       fileItemBean.setCreatedBy(context.getUserId());
       fileItemBean.setModifiedBy(context.getUserId());
@@ -135,7 +142,7 @@ public class ItemFileDropZoneWidget extends GenericWidget {
       // yyyyMMddHHmmss
       // Return Json
       LOG.debug("Finished!");
-      context.setJson("{\"location\": \"" + "/show/" + itemUniqueId + "/assets/file/" + System.currentTimeMillis() + "-" + fileItem.getId() + "/" + UrlCommand.encodeUri(fileItem.getFilename()) + "\"}");
+      context.setJson("{\"location\": \"" + "/show/" + itemUniqueId + "/assets/file/" + fileItem.getUrl() + "\"}");
       return context;
     } catch (DataException data) {
       // Clean up the file if it exists

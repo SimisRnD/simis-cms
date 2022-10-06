@@ -22,7 +22,7 @@
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="cancelUrl" class="java.lang.String" scope="request"/>
-<script src="${ctx}/javascript/tinymce-5.7.0/tinymce.min.js"></script>
+<script src="${ctx}/javascript/tinymce-6.1.2/tinymce.min.js"></script>
 <script>
   tinymce.init({
     selector: '.html-field',
@@ -33,12 +33,8 @@
     relative_urls: false,
     convert_urls: true,
     browser_spellcheck: true,
-    plugins: [
-      'advlist autolink lists charmap print preview anchor',
-      'searchreplace visualblocks code',
-      'paste help wordcount'
-    ],
-    toolbar: 'undo redo | formatselect | bold italic backcolor  | bullist numlist outdent indent | removeformat | visualblocks code | help'
+    plugins: 'advlist autolink lists charmap preview anchor searchreplace visualblocks code wordcount',
+    toolbar: 'undo redo | blocks | bold italic backcolor  | bullist numlist outdent indent | removeformat | visualblocks code'
   });
 </script>
 <jsp:useBean id="fieldList" class="java.util.ArrayList" scope="request"/>

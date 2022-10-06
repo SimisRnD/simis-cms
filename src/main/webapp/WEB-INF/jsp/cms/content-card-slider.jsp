@@ -43,7 +43,7 @@
     </div>
   </c:if>
   <div class="swiper-outer-container<c:if test="${!empty carouselClass}"> <c:out value="${carouselClass}" /></c:if>">
-    <div id="swiper${widgetContext.uniqueId}" class="swiper-container">
+    <div id="swiper${widgetContext.uniqueId}" class="swiper">
       <div class="swiper-wrapper">
         <c:forEach items="${cardList}" var="card" varStatus="cardStatus">
           <div class="swiper-slide">

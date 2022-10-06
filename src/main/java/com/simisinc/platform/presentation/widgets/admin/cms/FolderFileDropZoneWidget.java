@@ -18,22 +18,21 @@ package com.simisinc.platform.presentation.widgets.admin.cms;
 
 import java.lang.reflect.InvocationTargetException;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.cms.CheckFolderPermissionCommand;
 import com.simisinc.platform.application.cms.SaveFileCommand;
 import com.simisinc.platform.application.cms.SaveFilePartCommand;
-import com.simisinc.platform.application.cms.UrlCommand;
 import com.simisinc.platform.application.cms.ValidateFileCommand;
 import com.simisinc.platform.domain.model.cms.FileItem;
 import com.simisinc.platform.domain.model.cms.Folder;
 import com.simisinc.platform.domain.model.cms.SubFolder;
 import com.simisinc.platform.infrastructure.persistence.cms.FolderRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.SubFolderRepository;
-import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.controller.WidgetContext;
-
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import com.simisinc.platform.presentation.widgets.GenericWidget;
 
 /**
  * Description
@@ -46,7 +45,6 @@ public class FolderFileDropZoneWidget extends GenericWidget {
   static final long serialVersionUID = -8484048371911908893L;
   private static String JSP = "/admin/folder-file-drop-zone.jsp";
   private static Log LOG = LogFactory.getLog(FolderFileDropZoneWidget.class);
-
 
   /**
    * Prepare the drop zone for uploads
@@ -141,7 +139,7 @@ public class FolderFileDropZoneWidget extends GenericWidget {
       // yyyyMMddHHmmss
       // Return Json
       LOG.debug("Finished!");
-      context.setJson("{\"location\": \"" + "/assets/file/" + System.currentTimeMillis() + "-" + fileItem.getId() + "/" + UrlCommand.encodeUri(fileItem.getFilename()) + "\"}");
+      context.setJson("{\"location\": \"" + "/assets/file/" + fileItem.getUrl() + "\"}");
       return context;
     } catch (DataException data) {
       // Clean up the file if it exists

@@ -17,7 +17,7 @@
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="codeContent" class="java.lang.String" scope="request"/>
-<script src="${ctx}/javascript/tinymce-5.7.0/tinymce.min.js"></script>
+<script src="${ctx}/javascript/tinymce-6.1.2/tinymce.min.js"></script>
 <script>
 tinymce.init({
   selector: 'textarea',
@@ -25,12 +25,8 @@ tinymce.init({
   width: '100%',
   height: 500,
   menubar: false,
-  plugins: [
-    '',
-    'searchreplace code fullscreen',
-    'code help wordcount'
-  ],
-  toolbar: 'insert | undo redo |  removeformat | help',
+  plugins: 'searchreplace code fullscreen code wordcount',
+  toolbar: 'insert | undo redo | removeformat',
   insert_button_items: ''
 });
 </script>

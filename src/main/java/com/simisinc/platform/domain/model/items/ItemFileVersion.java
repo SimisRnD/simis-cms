@@ -16,9 +16,10 @@
 
 package com.simisinc.platform.domain.model.items;
 
-import com.simisinc.platform.domain.model.Entity;
-
 import java.sql.Timestamp;
+
+import com.simisinc.platform.application.cms.UrlCommand;
+import com.simisinc.platform.domain.model.Entity;
 
 /**
  * A specific version of an item's file
@@ -43,6 +44,7 @@ public class ItemFileVersion extends Entity {
   private String fileType = null;
   private String mimeType = null;
   private String fileHash = null;
+  private String webPath = null;
   private int width = -1;
   private int height = -1;
   private String summary;
@@ -238,4 +240,17 @@ public class ItemFileVersion extends Entity {
   public void setDownloadCount(long downloadCount) {
     this.downloadCount = downloadCount;
   }
+
+  public String getWebPath() {
+    return webPath;
+  }
+
+  public void setWebPath(String webPath) {
+    this.webPath = webPath;
+  }
+
+  public String getUrl() {
+    return webPath + "-" + id + "/" + UrlCommand.encodeUri(filename);
+  }
+
 }

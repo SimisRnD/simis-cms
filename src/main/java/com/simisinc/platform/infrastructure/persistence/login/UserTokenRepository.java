@@ -16,6 +16,16 @@
 
 package com.simisinc.platform.infrastructure.persistence.login;
 
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.sql.Timestamp;
+import java.util.List;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.login.UserToken;
 import com.simisinc.platform.infrastructure.database.DB;
@@ -23,15 +33,6 @@ import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.database.DataResult;
 import com.simisinc.platform.infrastructure.database.SqlUtils;
 import com.simisinc.platform.infrastructure.persistence.oauth.OAuthTokenRepository;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
-import java.sql.Timestamp;
-import java.util.List;
 
 /**
  * Persists and retrieves user token objects
@@ -89,6 +90,13 @@ public class UserTokenRepository {
     }
     OAuthTokenRepository.remove(userToken);
     DB.deleteFrom(TABLE_NAME, new SqlUtils().add("token_id = ?", userToken.getId()));
+  }
+
+  public static void removeAll(long userId) {
+    if (userId < 0) {
+      return;
+    }
+    DB.deleteFrom(TABLE_NAME, new SqlUtils().add("user_id = ?", userId));
   }
 
   public static int removeAll(Connection connection, User user) throws SQLException {

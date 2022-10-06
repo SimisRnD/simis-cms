@@ -183,9 +183,11 @@ CREATE TABLE images (
   processed_file_length BIGINT DEFAULT 0,
   processed_file_type VARCHAR(20),
   processed_width INTEGER NOT NULL DEFAULT 0,
-  processed_height INTEGER NOT NULL DEFAULT 0
+  processed_height INTEGER NOT NULL DEFAULT 0,
+  web_path VARCHAR(50) NOT NULL
 );
 CREATE INDEX images_created_idx ON images(created);
+CREATE INDEX images_web_path_idx ON images(web_path);
 
 CREATE TABLE form_data (
   form_data_id BIGSERIAL PRIMARY KEY,
@@ -540,7 +542,8 @@ CREATE TABLE files (
   document_text TEXT,
   tsv TSVECTOR,
   sub_folder_id BIGINT REFERENCES sub_folders(sub_folder_id),
-  category_id BIGINT REFERENCES folder_categories(category_id)
+  category_id BIGINT REFERENCES folder_categories(category_id),
+  web_path VARCHAR(50) NOT NULL
 );
 CREATE INDEX files_tsv_idx ON files USING gin(tsv);
 CREATE INDEX files_folder_id_idx ON files(folder_id);
@@ -548,6 +551,7 @@ CREATE INDEX files_created_idx ON files(created);
 CREATE INDEX files_title_idx ON files(title);
 CREATE INDEX files_sub_folder_idx ON files(sub_folder_id);
 CREATE INDEX files_category_idx ON files(category_id);
+CREATE INDEX files_web_path_idx ON files(web_path);
 
 CREATE TEXT SEARCH DICTIONARY file_stem (
     TEMPLATE = snowball,
@@ -592,12 +596,14 @@ CREATE TABLE file_versions (
   created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
   download_count BIGINT DEFAULT 0,
   sub_folder_id BIGINT REFERENCES sub_folders(sub_folder_id),
-  category_id BIGINT REFERENCES folder_categories(category_id)
+  category_id BIGINT REFERENCES folder_categories(category_id),
+  web_path VARCHAR(50) NOT NULL
 );
 CREATE INDEX file_ver_file_id_idx ON file_versions(file_id);
 CREATE INDEX file_ver_fold_id_idx ON file_versions(folder_id);
 CREATE INDEX file_ver_created_idx ON file_versions(created);
 CREATE INDEX file_ver_sub_fold_idx ON file_versions(sub_folder_id);
+CREATE INDEX file_ver_web_path_idx ON file_versions(web_path);
 
 -- We want to know popular files
 -- We want to know geolocation of ip_address

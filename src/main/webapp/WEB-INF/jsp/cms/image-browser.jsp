@@ -244,8 +244,8 @@
     <c:forEach items="${imageList}" var="image" varStatus="status">
       <div class="cell card">
         <div class="image-browser">
-          <img onclick="mySubmit(this.dataset.src)" data-src="${ctx}/assets/img/<fmt:formatDate pattern="yyyyMMddHHmmss" value="${image.created}" />-${image.id}/${url:encodeUri(image.filename)}"
-               src="${ctx}/assets/img/<fmt:formatDate pattern="yyyyMMddHHmmss" value="${image.created}" />-${image.id}/${url:encodeUri(image.filename)}">
+          <img onclick="mySubmit(this.dataset.src)" data-src="${ctx}/assets/img/${image.url}"
+               src="${ctx}/assets/img/${image.url}" alt="<c:out value="${image.filename}"/>">
         </div>
         <div class="card-section">
           <div>

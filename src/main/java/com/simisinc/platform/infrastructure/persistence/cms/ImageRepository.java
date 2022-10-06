@@ -37,7 +37,7 @@ public class ImageRepository {
   private static Log LOG = LogFactory.getLog(ImageRepository.class);
 
   private static String TABLE_NAME = "images";
-  private static String[] PRIMARY_KEY = new String[]{"image_id"};
+  private static String[] PRIMARY_KEY = new String[] { "image_id" };
 
   private static DataResult query(ImageSpecification specification, DataConstraints constraints) {
     SqlUtils where = null;
@@ -65,6 +65,19 @@ public class ImageRepository {
         ImageRepository::buildRecord);
   }
 
+  public static Image findByWebPathAndId(String versionWebPath, long id) {
+    if (StringUtils.isBlank(versionWebPath) || id == -1) {
+      return null;
+    }
+    SqlUtils where = new SqlUtils()
+        .add("web_path = ?", versionWebPath)
+        .add("image_id = ?", id);
+    return (Image) DB.selectRecordFrom(
+        TABLE_NAME,
+        where,
+        ImageRepository::buildRecord);
+  }
+
   public static List<Image> findAll() {
     return findAll(null, null);
   }
@@ -89,6 +102,7 @@ public class ImageRepository {
     SqlUtils insertValues = new SqlUtils()
         .add("filename", StringUtils.trimToNull(record.getFilename()))
         .add("path", StringUtils.trimToNull(record.getFileServerPath()))
+        .add("web_path", StringUtils.trimToNull(record.getWebPath()))
         .add("created_by", record.getCreatedBy())
         .add("file_length", record.getFileLength())
         .add("file_type", record.getFileType())
@@ -131,6 +145,7 @@ public class ImageRepository {
       record.setFileType(rs.getString("file_type"));
       record.setWidth(rs.getInt("width"));
       record.setHeight(rs.getInt("height"));
+      record.setWebPath(rs.getString("web_path"));
       return record;
     } catch (SQLException se) {
       LOG.error("buildRecord", se);

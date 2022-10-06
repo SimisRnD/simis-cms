@@ -40,6 +40,15 @@ public class FileSpecification extends Entity {
   private String searchContent = null;
   private int withinLastDays = -1;
   private int inASubFolder = DataConstants.UNDEFINED;
+  private String versionWebPath = null;
+
+  public String getVersionWebPath() {
+    return versionWebPath;
+  }
+
+  public void setVersionWebPath(String versionWebPath) {
+    this.versionWebPath = versionWebPath;
+  }
 
   public FileSpecification() {
   }

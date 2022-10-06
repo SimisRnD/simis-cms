@@ -157,7 +157,7 @@ public class WebContainerCommand implements Serializable {
           }
 
           // Setup the context for this widget processor
-          WidgetContext widgetContext = new WidgetContext(request, response, thisWidgetUniqueId);
+          WidgetContext widgetContext = new WidgetContext(request, response, thisWidgetUniqueId, containerRenderInfo.getName());
           widgetContext.setParameterMap(request.getParameterMap());
           widgetContext.setCoreData(coreData);
           widgetContext.setUserSession(userSession);

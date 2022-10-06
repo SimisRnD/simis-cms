@@ -46,17 +46,17 @@
           <c:out value="${file.title}" />
         </c:when>
         <c:when test="${fn:toLowerCase(file.fileType) eq 'url'}">
-          <a target="_blank" href="${ctx}/show/${item.uniqueId}/assets/view/<fmt:formatDate pattern="yyyyMMddHHmmss" value="${file.modified}" />-${file.id}?ref=${url:encodeUri(file.filename)}"><c:out value="${file.title}" /></a>
+          <a target="_blank" href="${ctx}/show/${item.uniqueId}/assets/view/${file.url}"><c:out value="${file.title}" /></a>
         </c:when>
         <c:when test="${fn:toLowerCase(file.fileType) eq 'video'}">
-          <a target="_blank" href="${ctx}/show/${item.uniqueId}/assets/view/<fmt:formatDate pattern="yyyyMMddHHmmss" value="${file.modified}" />-${file.id}/${url:encodeUri(file.filename)}"><c:out value="${file.title}" /></a>
+          <a target="_blank" href="${ctx}/show/${item.uniqueId}/assets/view/${file.url}"><c:out value="${file.title}" /></a>
         </c:when>
         <c:when test="${useViewer eq 'true' && fn:toLowerCase(file.fileType) eq 'pdf'}">
-          <a target="_blank" href="${ctx}/show/${item.uniqueId}/assets/view/<fmt:formatDate pattern="yyyyMMddHHmmss" value="${file.modified}" />-${file.id}/${url:encodeUri(file.filename)}"><c:out value="${file.title}" /></a>
+          <a target="_blank" href="${ctx}/show/${item.uniqueId}/assets/view/${file.url}"><c:out value="${file.title}" /></a>
           <small class="subheader">.pdf</small>
         </c:when>
         <c:otherwise>
-          <a href="${ctx}/show/${item.uniqueId}/assets/file/<fmt:formatDate pattern="yyyyMMddHHmmss" value="${file.modified}" />-${file.id}/${url:encodeUri(file.filename)}"><c:out value="${file.title}" /></a>
+          <a href="${ctx}/show/${item.uniqueId}/assets/file/${file.url}"><c:out value="${file.title}" /></a>
         </c:otherwise>
       </c:choose>
       <c:if test="${file.fileLength gt 0}">

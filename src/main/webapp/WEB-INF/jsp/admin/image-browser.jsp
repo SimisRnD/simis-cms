@@ -31,7 +31,7 @@
     <c:forEach items="${imageList}" var="image" varStatus="status">
       <div class="cell card">
         <div class="image-browser">
-          <img src="${ctx}/assets/img/<fmt:formatDate pattern="yyyyMMddHHmmss" value="${image.created}" />-${image.id}/${url:encodeUri(image.filename)}">
+          <img src="${ctx}/assets/img/${image.url}">
         </div>
         <div class="card-section">
           <div>
@@ -39,7 +39,7 @@
             <small style="color: #999999">${image.width}x${image.height}</small>
             <small style="color: #999999"><c:out value="${number:suffix(image.fileLength)}"/></small><br />
             <small style="color: #999999"><fmt:formatDate pattern="yyyy-MM-dd" value="${image.created}" /></small><br />
-            <small><a target="_blank" href="${ctx}/assets/img/<fmt:formatDate pattern="yyyyMMddHHmmss" value="${image.created}" />-${image.id}/${url:encodeUri(image.filename)}">Image Link</a></small>
+            <small><a target="_blank" href="${ctx}/assets/img/${image.url}">Image Link</a></small>
           </div>
         </div>
       </div>

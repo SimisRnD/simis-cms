@@ -16,16 +16,17 @@
 
 package com.simisinc.platform.domain.model.datasets;
 
-import com.simisinc.platform.application.CustomFieldCommand;
-import com.simisinc.platform.domain.model.CustomField;
-import com.simisinc.platform.domain.model.Entity;
-
 import java.sql.Timestamp;
 import java.time.LocalTime;
 import java.util.Arrays;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+
+import com.simisinc.platform.application.CustomFieldCommand;
+import com.simisinc.platform.application.cms.UrlCommand;
+import com.simisinc.platform.domain.model.CustomField;
+import com.simisinc.platform.domain.model.Entity;
 
 /**
  * Information, file meta-data, and dataset to item mappings for datasets
@@ -49,6 +50,7 @@ public class Dataset extends Entity {
   private String fileType = null;
   private String fileServerPath = null;
   private String fileHash = null;
+  private String webPath = null;
   private Timestamp lastDownload = null;
   // File Details
   private String recordsPath = null;
@@ -515,5 +517,17 @@ public class Dataset extends Entity {
 
   public void setSyncDeleteCount(int syncDeleteCount) {
     this.syncDeleteCount = syncDeleteCount;
+  }
+
+  public String getWebPath() {
+    return webPath;
+  }
+
+  public void setWebPath(String webPath) {
+    this.webPath = webPath;
+  }
+
+  public String getUrl() {
+    return webPath + "-" + id + "/" + UrlCommand.encodeUri(filename);
   }
 }

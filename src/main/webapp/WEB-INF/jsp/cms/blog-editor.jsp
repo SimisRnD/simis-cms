@@ -21,7 +21,7 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="blog" class="com.simisinc.platform.domain.model.cms.Blog" scope="request"/>
 <jsp:useBean id="blogPost" class="com.simisinc.platform.domain.model.cms.BlogPost" scope="request"/>
-<script src="${ctx}/javascript/tinymce-5.7.0/tinymce.min.js"></script>
+<script src="${ctx}/javascript/tinymce-6.1.2/tinymce.min.js"></script>
 <script>
   tinymce.init({
     selector: 'textarea',
@@ -32,12 +32,8 @@
     relative_urls: false,
     convert_urls: true,
     browser_spellcheck: true,
-    plugins: [
-      'advlist autolink lists link image charmap print preview anchor textcolor hr',
-      'searchreplace visualblocks code',
-      'insertdatetime media table paste help wordcount'
-    ],
-    toolbar: 'link | image | media | table | undo redo |  formatselect | bold italic backcolor  | bullist numlist outdent indent hr | removeformat | visualblocks code | help',
+    plugins: 'advlist autolink lists link image charmap preview anchor searchreplace visualblocks code insertdatetime media table wordcount',
+    toolbar: 'link image media table | undo redo | blocks | bold italic backcolor | bullist numlist outdent indent hr | removeformat | visualblocks code',
     image_class_list: [
       {title: 'None', value: ''},
       {title: 'Image Left/Wrap Text Right', value: 'image-left'},
@@ -45,7 +41,7 @@
       {title: 'Image Center On Line', value: 'image-center'}
     ],
     file_picker_types: 'file image media',
-    // default_link_target: '_blank',
+    // link_default_target: '_blank',
     file_picker_callback: function (callback, value, meta) {
         FileBrowser(value, meta.filetype, function (fileUrl) {
             callback(fileUrl);

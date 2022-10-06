@@ -16,13 +16,38 @@
 
 package com.simisinc.platform.presentation.controller;
 
+import static com.simisinc.platform.presentation.controller.UserSession.WEB_SOURCE;
+import static javax.servlet.http.HttpServletResponse.SC_MOVED_PERMANENTLY;
+import static javax.servlet.http.HttpServletResponse.SC_MOVED_TEMPORARILY;
+import static javax.servlet.http.HttpServletResponse.SC_NOT_FOUND;
+import static javax.servlet.http.HttpServletResponse.SC_UNAUTHORIZED;
+
+import java.io.IOException;
+import java.util.Enumeration;
+import java.util.Map;
+
+import javax.servlet.Filter;
+import javax.servlet.FilterChain;
+import javax.servlet.FilterConfig;
+import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+import javax.servlet.jsp.jstl.core.Config;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.http.conn.util.InetAddressUtils;
+
 import com.simisinc.platform.application.CreateSessionCommand;
 import com.simisinc.platform.application.LoadVisitorCommand;
 import com.simisinc.platform.application.SaveSessionCommand;
 import com.simisinc.platform.application.SaveVisitorCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
-import com.simisinc.platform.application.oauth.OAuthLogoutCommand;
-import com.simisinc.platform.application.oauth.OAuthRequestCommand;
 import com.simisinc.platform.application.cms.BlockedIPListCommand;
 import com.simisinc.platform.application.cms.HostnameCommand;
 import com.simisinc.platform.application.cms.LoadBlockedIPListCommand;
@@ -32,32 +57,15 @@ import com.simisinc.platform.application.ecommerce.LoadCartCommand;
 import com.simisinc.platform.application.ecommerce.PricingRuleCommand;
 import com.simisinc.platform.application.login.AuthenticateLoginCommand;
 import com.simisinc.platform.application.login.LogoutCommand;
+import com.simisinc.platform.application.oauth.OAuthLogoutCommand;
+import com.simisinc.platform.application.oauth.OAuthRequestCommand;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.Visitor;
 import com.simisinc.platform.domain.model.ecommerce.Cart;
 import com.simisinc.platform.domain.model.ecommerce.PricingRule;
 import com.simisinc.platform.domain.model.login.UserLogin;
-import com.simisinc.platform.infrastructure.persistence.GroupRepository;
-import com.simisinc.platform.infrastructure.persistence.RoleRepository;
 import com.simisinc.platform.infrastructure.persistence.SessionRepository;
 import com.simisinc.platform.infrastructure.persistence.login.UserLoginRepository;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.http.conn.util.InetAddressUtils;
-
-import javax.servlet.*;
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import javax.servlet.http.HttpSession;
-import javax.servlet.jsp.jstl.core.Config;
-import java.io.IOException;
-import java.util.Enumeration;
-import java.util.Map;
-
-import static com.simisinc.platform.presentation.controller.UserSession.WEB_SOURCE;
-import static javax.servlet.http.HttpServletResponse.*;
 
 /**
  * Sets up the framework for the visitor
@@ -119,7 +127,7 @@ public class WebRequestFilter implements Filter {
       LOG.debug(httpServletRequest.getMethod() + " uri " + resource);
     }
 
-    // Check hostnames
+    // Check allowed host names
     if (!HostnameCommand.passesCheck(request.getServerName())) {
       do404(servletResponse);
       return;
@@ -180,15 +188,13 @@ public class WebRequestFilter implements Filter {
 
     // Allow some browser resources
     if (resource.startsWith("/favicon") ||
-        resource.startsWith("/favicon.ico") ||
         resource.startsWith("/css") ||
         resource.startsWith("/fonts") ||
         resource.startsWith("/html") ||
         resource.startsWith("/images") ||
         resource.startsWith("/javascript") ||
         resource.startsWith("/combined.css") ||
-        resource.startsWith("/combined.js") ||
-        resource.startsWith("/css/custom/")) {
+        resource.startsWith("/combined.js")) {
       chain.doFilter(request, servletResponse);
       return;
     }
@@ -207,7 +213,7 @@ public class WebRequestFilter implements Filter {
       return;
     }
 
-    // Allow this request to access the sitemap.xml
+    // Allow this request to forward to the sitemap.xml processor
     if (resource.equals("/sitemap.xml")) {
       chain.doFilter(request, servletResponse);
       return;
@@ -227,8 +233,28 @@ public class WebRequestFilter implements Filter {
       }
     }
 
-    // See if this is a container-only experience (no menus/footers)
-    if ("container".equals(httpServletRequest.getHeader("X-View-Mode"))) {
+    // Determine several values from user cookies to use in functions
+    Cookie[] cookies = httpServletRequest.getCookies();
+    String cookieViewMode = null;
+    String cookieVisitorToken = null;
+    String cookieCartToken = null;
+    String cookieUserToken = null;
+    if (cookies != null) {
+      for (Cookie thisCookie : cookies) {
+        if (thisCookie.getName().equals(CookieConstants.VIEW_MODE)) {
+          cookieViewMode = StringUtils.trimToNull(thisCookie.getValue());
+        } else if (thisCookie.getName().equals(CookieConstants.USER_TOKEN)) {
+          cookieUserToken = StringUtils.trimToNull(thisCookie.getValue());
+        } else if (thisCookie.getName().equals(CookieConstants.VISITOR_TOKEN)) {
+          cookieVisitorToken = StringUtils.trimToNull(thisCookie.getValue());
+        } else if (thisCookie.getName().equals(CookieConstants.CART_TOKEN)) {
+          cookieCartToken = StringUtils.trimToNull(thisCookie.getValue());
+        }
+      }
+    }
+
+    // Check headers to see if this is a container-only experience (no menus/footers)
+    if ("container".equals(httpServletRequest.getHeader(SessionConstants.X_VIEW_MODE))) {
       // Add a cookie in case session invalidates
       Cookie cookie = new Cookie(CookieConstants.VIEW_MODE, "container");
       if (request.isSecure()) {
@@ -238,8 +264,8 @@ public class WebRequestFilter implements Filter {
       cookie.setPath("/");
       cookie.setMaxAge(-1);
       ((HttpServletResponse) servletResponse).addCookie(cookie);
-      session.setAttribute("X-View-Mode", "container");
-    } else if ("normal".equals(httpServletRequest.getHeader("X-View-Mode"))) {
+      session.setAttribute(SessionConstants.X_VIEW_MODE, "container");
+    } else if ("normal".equals(httpServletRequest.getHeader(SessionConstants.X_VIEW_MODE))) {
       // Remove the cookie
       Cookie cookie = new Cookie(CookieConstants.VIEW_MODE, "");
       if (request.isSecure()) {
@@ -249,26 +275,18 @@ public class WebRequestFilter implements Filter {
       cookie.setPath("/");
       cookie.setMaxAge(0);
       ((HttpServletResponse) servletResponse).addCookie(cookie);
-      session.setAttribute("X-View-Mode", "normal");
+      session.setAttribute(SessionConstants.X_VIEW_MODE, "normal");
     } else {
       // Set the session either way for efficiency
-      if (session.getAttribute("X-View-Mode") == null) {
+      if (session.getAttribute(SessionConstants.X_VIEW_MODE) == null) {
         boolean foundCookie = false;
-        Cookie[] cookies = httpServletRequest.getCookies();
-        if (cookies != null) {
-          for (Cookie thisCookie : cookies) {
-            if (thisCookie.getName().equals(CookieConstants.VIEW_MODE)) {
-              if ("container".equals(thisCookie.getValue())) {
-                // This is a container mode
-                foundCookie = true;
-                session.setAttribute("X-View-Mode", "container");
-              }
-            }
-          }
+        if (cookieViewMode != null && "container".equals(cookieViewMode)) {
+          foundCookie = true;
+          session.setAttribute(SessionConstants.X_VIEW_MODE, "container");
         }
         if (!foundCookie) {
           // This is a normal web request
-          session.setAttribute("X-View-Mode", "normal");
+          session.setAttribute(SessionConstants.X_VIEW_MODE, "normal");
         }
       }
     }
@@ -281,7 +299,7 @@ public class WebRequestFilter implements Filter {
       synchronized (httpServletRequest.getSession()) {
         userSession = (UserSession) session.getAttribute(SessionConstants.USER);
         if (userSession == null) {
-          LOG.debug("Creating session...");
+          LOG.debug("Creating user session...");
           // Start a new session
           userSession = CreateSessionCommand.createSession(WEB_SOURCE, httpServletRequest.getSession().getId(),
               ipAddress, referer, userAgent);
@@ -298,46 +316,29 @@ public class WebRequestFilter implements Filter {
       }
     }
 
-    // Update the roles every request for dynamic changes
-    if (userSession.isLoggedIn()) {
-      LOG.debug("Updating user roles and groups");
-      userSession.setRoleList(RoleRepository.findAllByUserId(userSession.getUser().getId()));
-      userSession.setGroupList(GroupRepository.findAllByUserId(userSession.getUser().getId()));
-    }
-
     // Check once to see if this browser has a cookie for the user
+    boolean userVerifiedThisRequest = false;
     if (!userSession.isLoggedIn() && !userSession.isCookieChecked() && !resource.equals("/logout")) {
       // Only check for the cookie once per session
       userSession.setCookieChecked(true);
 
-      // Check the cookies for tokens
+      // Determine if this is a visitor
       Visitor visitor = null;
-      String userToken = null;
-      Cookie[] cookies = httpServletRequest.getCookies();
-      if (cookies != null) {
-        for (Cookie thisCookie : cookies) {
-          // Look for tokens
-          if (thisCookie.getName().equals(CookieConstants.VISITOR_TOKEN)) {
-            // Found a visitor token
-            String visitorToken = StringUtils.trimToNull(thisCookie.getValue());
-            visitor = LoadVisitorCommand.loadVisitorByToken(visitorToken);
-            if (visitor != null) {
-              userSession.setVisitorId(visitor.getId());
-            }
-          } else if (thisCookie.getName().equals(CookieConstants.CART_TOKEN)) {
-            // Found a cart token
-            String cartToken = StringUtils.trimToNull(thisCookie.getValue());
-            LOG.debug("Setting an existing cart from token: " + cartToken);
-            Cart cart = LoadCartCommand.loadCartByToken(cartToken);
-            if (cart != null) {
-              LOG.debug("Cart was found in database: " + cartToken);
-              userSession.setCart(cart);
-            }
-          } else if (thisCookie.getName().equals(CookieConstants.USER_TOKEN)) {
-            // Found a user token
-            userToken = StringUtils.trimToNull(thisCookie.getValue());
-            LOG.trace(thisCookie.getName() + "=" + userToken);
-          }
+      if (StringUtils.isNotBlank(cookieVisitorToken)) {
+        // Found a visitor token
+        visitor = LoadVisitorCommand.loadVisitorByToken(cookieVisitorToken);
+        if (visitor != null) {
+          userSession.setVisitorId(visitor.getId());
+        }
+      }
+
+      // Determine if there is a cart
+      if (StringUtils.isNotBlank(cookieCartToken)) {
+        LOG.debug("Setting an existing cart from token: " + cookieCartToken);
+        Cart cart = LoadCartCommand.loadCartByToken(cookieCartToken);
+        if (cart != null) {
+          LOG.debug("Cart was found in database: " + cookieCartToken);
+          userSession.setCart(cart);
         }
       }
 
@@ -352,6 +353,7 @@ public class WebRequestFilter implements Filter {
           SessionRepository.updateVisitorId(userSession, visitor);
         }
       }
+
       {
         // Create or extend the visitor cookie
         int oneYearSecondsInt = 365 * 24 * 60 * 60;
@@ -393,9 +395,11 @@ public class WebRequestFilter implements Filter {
       }
 
       // Attempt to login the user
-      if (userToken != null) {
-        User user = AuthenticateLoginCommand.getAuthenticatedUser(userToken);
+      if (cookieUserToken != null) {
+        User user = AuthenticateLoginCommand.getAuthenticatedUser(cookieUserToken);
         if (user != null) {
+          // Let the request know an authenticated user was retrieved
+          userVerifiedThisRequest = true;
           // Log the user in
           LOG.debug("Got a token user: " + user.getId());
           userSession.login(user);
@@ -412,9 +416,9 @@ public class WebRequestFilter implements Filter {
           UserLoginRepository.save(userLogin);
           // Extend the token expiration date
           int twoWeeksSecondsInt = 14 * 24 * 60 * 60;
-          AuthenticateLoginCommand.extendTokenExpiration(userToken, twoWeeksSecondsInt);
+          AuthenticateLoginCommand.extendTokenExpiration(cookieUserToken, twoWeeksSecondsInt);
           // Extend the cookie
-          Cookie cookie = new Cookie(CookieConstants.USER_TOKEN, userToken);
+          Cookie cookie = new Cookie(CookieConstants.USER_TOKEN, cookieUserToken);
           if (request.isSecure()) {
             cookie.setSecure(true);
           }
@@ -434,6 +438,24 @@ public class WebRequestFilter implements Filter {
           ((HttpServletResponse) servletResponse).addCookie(cookie);
         }
       }
+    }
+
+    // Verify the user record on each request
+    if (!userVerifiedThisRequest && userSession.isLoggedIn()) {
+      // Verify the roles every request for dynamic changes
+      User user = AuthenticateLoginCommand.getAuthenticatedUser(cookieUserToken);
+      if (user == null) {
+        // Logout
+        LogoutCommand.logout((HttpServletRequest) request, ((HttpServletResponse) servletResponse));
+        // Return to login
+        do302(servletResponse, "/login");
+        return;
+      }
+
+      // Update user roles and groups
+      LOG.debug("Updating user roles and groups");
+      userSession.setRoleList(user.getRoleList());
+      userSession.setGroupList(user.getGroupList());
     }
 
     // The home page can show an overlay (a couple of different kinds)

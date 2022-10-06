@@ -3,9 +3,9 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.simisinc</groupId>
   <artifactId>simis-cms</artifactId>
-  <version>20220816.10000-SNAPSHOT</version>
+  <version>20221001.10000-SNAPSHOT</version>
   <name>SimIS CMS</name>
-  <description>Agile, Enterprise, Open Source Content Management System (CMS)</description>
+  <description>Agile, Enterprise, Open Source Content Management System (CMS) and Portal</description>
   <url>https://www.simiscms.com</url>
   <packaging>war</packaging>
   <properties>
@@ -50,13 +50,13 @@
     <hikaricp.version>5.0.1</hikaricp.version>
     <ical4j.version>3.0.6</ical4j.version>
     <im4java.version>1.4.0</im4java.version>
-    <jackson.version>2.13.2</jackson.version>
+    <jackson.version>2.13.4</jackson.version>
     <jackson-coreutils.version>1.0</jackson-coreutils.version>
-    <jackson-databind.version>2.13.2.2</jackson-databind.version>
+    <jackson-databind.version>2.13.4</jackson-databind.version>
     <java-activation.version>1.2.0</java-activation.version>
     <java-mail.version>1.6.2</java-mail.version>
     <jna.version>5.8.0</jna.version>
-    <jobrunr.version>5.1.6</jobrunr.version>
+    <jobrunr.version>5.2.0</jobrunr.version>
     <johnzon.version>1.1.8</johnzon.version>
     <jsoup.version>1.15.3</jsoup.version>
     <jstl.version>1.2.5</jstl.version>
@@ -70,6 +70,7 @@
     <rome-rss.version>1.18.0</rome-rss.version>
     <slf4j.version>1.7.32</slf4j.version>
     <square.version>23.1.0.20220823</square.version>
+    <okhttp.version>4.10.0</okhttp.version>
     <stripe.version>20.94.0</stripe.version>
     <thymeleaf.version>3.0.11</thymeleaf.version>
     <timeago.version>3.0.1</timeago.version>
@@ -251,11 +252,6 @@
       <version>${jackson-databind.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.fasterxml.jackson.dataformat</groupId>
-      <artifactId>jackson-dataformat-yaml</artifactId>
-      <version>${jackson.version}</version>
-    </dependency>
-    <dependency>
       <groupId>com.fasterxml.jackson.datatype</groupId>
       <artifactId>jackson-datatype-jsr310</artifactId>
       <version>${jackson.version}</version>
@@ -365,6 +361,25 @@
       <groupId>com.squareup</groupId>
       <artifactId>square</artifactId>
       <version>${square.version}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>org.jetbrains.kotlin</groupId>
+          <artifactId>kotlin-stdlib</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.jetbrains.kotlin</groupId>
+          <artifactId>kotlin-stdlib-common</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>com.squareup.okhttp3</groupId>
+          <artifactId>okhttp</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>com.squareup.okhttp3</groupId>
+      <artifactId>okhttp</artifactId>
+      <version>${okhttp.version}</version>
       <exclusions>
         <exclusion>
           <groupId>org.jetbrains.kotlin</groupId>
@@ -619,6 +634,33 @@
             </configuration>
           </execution>
         </executions>
+      </plugin>
+      <plugin>
+        <groupId>org.cyclonedx</groupId>
+        <artifactId>cyclonedx-maven-plugin</artifactId>
+        <version>2.7.1</version>
+        <executions>
+            <execution>
+                <phase>package</phase>
+                <goals>
+                    <goal>makeAggregateBom</goal>
+                </goals>
+            </execution>
+        </executions>
+        <configuration>
+            <projectType>library</projectType>
+            <schemaVersion>1.4</schemaVersion>
+            <includeBomSerialNumber>true</includeBomSerialNumber>
+            <includeCompileScope>true</includeCompileScope>
+            <includeProvidedScope>true</includeProvidedScope>
+            <includeRuntimeScope>true</includeRuntimeScope>
+            <includeSystemScope>true</includeSystemScope>
+            <includeTestScope>false</includeTestScope>
+            <includeLicenseText>false</includeLicenseText>
+            <outputReactorProjects>true</outputReactorProjects>
+            <outputFormat>all</outputFormat>
+            <outputName>bom</outputName>
+        </configuration>
       </plugin>
     </plugins>
     <resources>

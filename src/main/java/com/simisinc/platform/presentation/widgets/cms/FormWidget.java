@@ -16,6 +16,14 @@
 
 package com.simisinc.platform.presentation.widgets.cms;
 
+import java.util.List;
+
+import com.simisinc.platform.application.RateLimitCommand;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.commons.validator.routines.EmailValidator;
+
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.cms.CaptchaCommand;
 import com.simisinc.platform.application.cms.FormCommand;
@@ -27,12 +35,6 @@ import com.simisinc.platform.infrastructure.persistence.cms.FormDataRepository;
 import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.commons.validator.routines.EmailValidator;
-
-import java.util.List;
 
 /**
  * Description
@@ -47,8 +49,15 @@ public class FormWidget extends GenericWidget {
 
   static String JSP = "/cms/form.jsp";
   static String SUCCESS_JSP = "/cms/form-success.jsp";
+  static String RATE_LIMITED_JSP = "/cms/error-rate-limited.jsp";
 
   public WidgetContext execute(WidgetContext context) {
+
+    // No need to show widget when rate limiting is triggered
+    if (!RateLimitCommand.isIpAllowedRightNow(context.getRequest().getRemoteAddr(), false)) {
+      context.setJsp(RATE_LIMITED_JSP);
+      return context;
+    }
 
     String isSuccess = context.getSharedRequestValue(context.getUniqueId() + "formWidgetSuccess");
     if ("true".equals(isSuccess)) {
@@ -158,6 +167,14 @@ public class FormWidget extends GenericWidget {
       if (!captchaSuccess) {
         isValid = false;
         context.setWarningMessage("The form could not be validated");
+      }
+    }
+
+    // If the user is not logged in, then limit the number of form posts here by IP
+    if (!context.getUserSession().isLoggedIn()) {
+      if (!RateLimitCommand.isIpAllowedRightNow(context.getRequest().getRemoteAddr(), true)) {
+        context.setErrorMessage(RateLimitCommand.INVALID_ATTEMPTS);
+        return context;
       }
     }
 

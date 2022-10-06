@@ -52,6 +52,7 @@ public class SqlValue {
   private Timestamp[] timestampValues;
   private BigDecimal bigDecimalValue;
   private Boolean booleanValue;
+  private Object[] objectValues;
 
   public SqlValue(String fieldOrClause) {
     this.field = fieldOrClause;
@@ -154,6 +155,12 @@ public class SqlValue {
     }
   }
 
+  public SqlValue(String fieldOrClause, Object[] objectValues) {
+    this.field = fieldOrClause;
+    this.objectValues = objectValues;
+    this.sqlType = Types.JAVA_OBJECT;
+  }
+
   public SqlValue(String fieldName, int type, double latitude, double longitude) {
     this.field = fieldName;
     if (type == GEOM_TYPE) {
@@ -200,6 +207,10 @@ public class SqlValue {
 
   public Timestamp[] getTimestampValues() {
     return timestampValues;
+  }
+
+  public Object[] getObjectValues() {
+    return objectValues;
   }
 
   public BigDecimal getBigDecimalValue() {

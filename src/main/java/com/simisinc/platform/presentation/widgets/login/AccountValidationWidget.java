@@ -16,14 +16,16 @@
 
 package com.simisinc.platform.presentation.widgets.login;
 
+import org.apache.commons.lang3.StringUtils;
+
 import com.simisinc.platform.application.UserPasswordCommand;
+import com.simisinc.platform.application.login.LogoutCommand;
 import com.simisinc.platform.domain.events.cms.UserRegisteredEvent;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.infrastructure.persistence.UserRepository;
 import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
-import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.controller.WidgetContext;
-import org.apache.commons.lang3.StringUtils;
+import com.simisinc.platform.presentation.widgets.GenericWidget;
 
 /**
  * Description
@@ -131,6 +133,9 @@ public class AccountValidationWidget extends GenericWidget {
         WorkflowManager.triggerWorkflowForEvent(new UserRegisteredEvent(user, context.getRequest().getRemoteAddr()));
       }
     }
+
+    // Log the user out
+    LogoutCommand.logout(context.getRequest(), context.getResponse());
 
     context.setRedirect("/validate-account?status=complete");
     return context;

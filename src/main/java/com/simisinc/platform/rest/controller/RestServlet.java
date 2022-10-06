@@ -56,6 +56,7 @@ public class RestServlet extends HttpServlet {
   // Services Cache
   private Map<String, Object> serviceInstances = new HashMap<String, Object>();
 
+  @Override
   public void init(ServletConfig config) throws ServletException {
 
     LOG.info("RestServlet starting up...");
@@ -85,10 +86,12 @@ public class RestServlet extends HttpServlet {
     LOG.info("Services loaded: " + serviceInstances.size());
   }
 
+  @Override
   public void destroy() {
 
   }
 
+  @Override
   public void service(HttpServletRequest request, HttpServletResponse response) {
 
     long startRequestTime = System.currentTimeMillis();
@@ -108,6 +111,7 @@ public class RestServlet extends HttpServlet {
       String requestURI = request.getRequestURI();
       String endpoint = requestURI.substring(contextPath.length() + "/api/".length());
       String pathParam = null;
+      String pathParam2 = null;
 
       // Get the cached class reference for processing
       Object classRef = serviceInstances.get(endpoint);

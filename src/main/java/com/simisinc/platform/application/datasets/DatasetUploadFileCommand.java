@@ -19,6 +19,8 @@ package com.simisinc.platform.application.datasets;
 import java.io.File;
 import java.nio.file.Paths;
 import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 
 import javax.servlet.http.Part;
 
@@ -98,6 +100,11 @@ public class DatasetUploadFileCommand {
     dataset.setFileLength(tempFile.length());
     dataset.setFileServerPath(dataPath);
     dataset.setFileHash(FileSystemCommand.getFileChecksum(tempFile));
+
+    // Determine the web path for downloads, can randomize, etc.
+    Date created = new Date(System.currentTimeMillis());
+    SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
+    dataset.setWebPath(sdf.format(created));
 
     // Verify the file content and enhance the dataset record
     if (!DatasetFileCommand.isValidDatasetFile(dataset, type)) {

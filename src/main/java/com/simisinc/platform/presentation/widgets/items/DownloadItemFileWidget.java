@@ -179,10 +179,17 @@ public class DownloadItemFileWidget extends GenericWidget {
     }
     LOG.debug("Using mime type: " + mimeType);
 
+    // Set header info
     context.getResponse().setDateHeader("Last-Modified", lastModified);
     context.getResponse().setContentType(mimeType);
     context.getResponse().setContentLength((int) file.length());
 
+    // Check for head method
+    if ("head".equalsIgnoreCase(context.getRequest().getMethod())) {
+      context.setHandledResponse(true);
+      return context;
+    }
+    
     // Stream the file
     try {
       FileInputStream in = new FileInputStream(file);

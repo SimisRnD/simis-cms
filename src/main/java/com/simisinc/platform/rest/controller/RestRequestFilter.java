@@ -62,6 +62,7 @@ public class RestRequestFilter implements Filter {
 
   private boolean requireSSL = false;
 
+  @Override
   public void init(FilterConfig config) throws ServletException {
     LOG.info("RestRequestFilter starting up...");
     String startupSuccessful = (String) config.getServletContext().getAttribute("STARTUP_SUCCESSFUL");
@@ -75,6 +76,7 @@ public class RestRequestFilter implements Filter {
     }
   }
 
+  @Override
   public void destroy() {
   }
 
@@ -85,10 +87,17 @@ public class RestRequestFilter implements Filter {
     String contextPath = request.getServletContext().getContextPath();
     String requestURI = httpServletRequest.getRequestURI();
     String resource = requestURI.substring(contextPath.length());
+    String ipAddress = request.getRemoteAddr();
 
     // Check allowed hostnames
     if (!HostnameCommand.passesCheck(request.getServerName())) {
       do404(servletResponse);
+      return;
+    }
+
+    // Check if IP is rate limited
+    if (!RateLimitCommand.isIpAllowedRightNow(ipAddress, false)) {
+      do429(servletResponse);
       return;
     }
 
@@ -125,9 +134,18 @@ public class RestRequestFilter implements Filter {
       RestServlet.sendError(response, SC_UNAUTHORIZED, "Unauthorized, no key");
       return;
     }
+    // Validate the app's key
     App thisApp = LoadAppCommand.loadAppByPublicKey(apiKey);
     if (thisApp == null || !thisApp.isEnabled()) {
       LOG.debug("Invalid key");
+
+      // Limit the number of attempts per minute by ip for an invalid key
+      if (!RateLimitCommand.isIpAllowedRightNow(ipAddress, true)) {
+        do429(servletResponse);
+        return;
+      }
+
+      // Unauthorized
       HttpServletResponse response = (HttpServletResponse) servletResponse;
       RestServlet.sendError(response, SC_UNAUTHORIZED, "Unauthorized");
       return;
@@ -166,6 +184,12 @@ public class RestRequestFilter implements Filter {
         return;
       }
 
+      // Limit the number of hits per minute based on the successful use of the api key
+      if (!RateLimitCommand.isAppAllowedRightNow(thisApp)) {
+        do429(servletResponse);
+        return;
+      }
+
       // Demote to guest access
       User user = new User();
       user.setId(UserSession.GUEST_ID);
@@ -178,19 +202,24 @@ public class RestRequestFilter implements Filter {
 
     // Validate the token
     LOG.debug("Found token: " + token);
-
     UserToken userToken = AuthenticateLoginCommand.getValidToken(token);
     if (userToken == null) {
       doExpiredToken(servletResponse);
       return;
     }
+
     User user = AuthenticateLoginCommand.getAuthenticatedUser(userToken);
     if (user != null) {
 
       LOG.debug("Got a token user: " + user.getId());
 
-      // If this request is the first for today, then record a new login and session
+        // Limit the number of hits per minute based on the user and api key
+        if (!RateLimitCommand.isAppUserAllowedRightNow(thisApp, user.getId())) {
+          do429(servletResponse);
+          return;
+        }
 
+      // If this request is the first for today, then record a new login and session
       if (userToken.getCreated().before(Timestamp.valueOf(LocalDate.now().atStartOfDay()))) {
 
         // Update the session details
@@ -198,7 +227,6 @@ public class RestRequestFilter implements Filter {
         AuthenticateLoginCommand.extendTokenExpiration(token, twoWeeksSecondsInt);
 
         // Start a new session
-        String ipAddress = request.getRemoteAddr();
         String userAgent = httpServletRequest.getHeader("USER-AGENT");
         UserSession userSession = CreateSessionCommand.createSession(API_SOURCE,
             httpServletRequest.getSession().getId(), ipAddress, null, userAgent);
@@ -228,6 +256,7 @@ public class RestRequestFilter implements Filter {
       return;
     }
 
+    // User is invalid
     doExpiredToken(servletResponse);
   }
 
@@ -387,5 +416,10 @@ public class RestRequestFilter implements Filter {
   private void do404(ServletResponse servletResponse) throws IOException {
     HttpServletResponse response = (HttpServletResponse) servletResponse;
     RestServlet.sendError(response, SC_NOT_FOUND, "Not found");
+  }
+
+  private void do429(ServletResponse servletResponse) throws IOException {
+    HttpServletResponse response = (HttpServletResponse) servletResponse;
+    RestServlet.sendError(response, 429, "Too many requests");
   }
 }

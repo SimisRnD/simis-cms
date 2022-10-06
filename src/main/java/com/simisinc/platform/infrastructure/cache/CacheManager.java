@@ -53,8 +53,10 @@ public class CacheManager {
   public static String CONTENT_REMOTE_URL_CACHE = "ContentRemoteUrlCache";
   public static String COLLECTION_UNIQUE_ID_CACHE = "CollectionUniqueIdCache";
   public static String TABLE_OF_CONTENTS_UNIQUE_ID_CACHE = "TableOfContentsUniqueIdCache";
-  public static String LOGIN_ATTEMPT_BY_USERNAME_CACHE = "LoginAttemptByUsernameCache";
-  public static String LOGIN_ATTEMPT_BY_IP_CACHE = "LoginAttemptByIpCache";
+  public static String RATE_LIMIT_LOGIN_ATTEMPT_BY_USERNAME_CACHE = "RateLimitLoginAttemptByUsernameCache";
+  public static String RATE_LIMIT_ATTEMPT_BY_IP_CACHE = "RateLimitAttemptByIpCache";
+  public static String RATE_LIMIT_BY_APP_CACHE = "RateLimitByAppCache";
+  public static String RATE_LIMIT_BY_APP_USER_CACHE = "RateLimitByAppUserCache";
   public static String OBJECT_CACHE = "ObjectCache";
 
   // Object cache keys
@@ -74,7 +76,7 @@ public class CacheManager {
 
     // System Property Cache (prefix = map)
     LoadingCache<String, List<SiteProperty>> sitePropertyListCache = Caffeine.newBuilder()
-        .maximumSize(1_000)
+        .maximumSize(10_000)
 //        .expireAfterWrite(5, TimeUnit.MINUTES)
 //        .refreshAfterWrite(1, TimeUnit.MINUTES)
         .build(SitePropertyRepository::findAllByPrefix);
@@ -82,7 +84,7 @@ public class CacheManager {
 
     // App Cache (publicKey = app)
     LoadingCache<String, App> appCache = Caffeine.newBuilder()
-        .maximumSize(50)
+        .maximumSize(1_000)
 //        .expireAfterWrite(5, TimeUnit.MINUTES)
 //        .refreshAfterWrite(1, TimeUnit.MINUTES)
         .build(AppRepository::findByPublicKey);
@@ -90,7 +92,7 @@ public class CacheManager {
 
     // User Credentials Cache (credentials = user id)
     Cache<Long, String> userCredentialsCache = Caffeine.newBuilder()
-        .maximumSize(100_000)
+        .maximumSize(1_000_000)
         .expireAfterAccess(20, TimeUnit.HOURS)
         .build();
     cacheManager.put(USER_CREDENTIALS_CACHE, userCredentialsCache);
@@ -136,15 +138,30 @@ public class CacheManager {
 
     // Login attempt by username cache
     Cache<String, Object> loginAttemptByUsernameCache = Caffeine.newBuilder()
+        .maximumSize(100_000)
         .expireAfterAccess(30, TimeUnit.MINUTES)
         .build();
-    cacheManager.put(LOGIN_ATTEMPT_BY_USERNAME_CACHE, loginAttemptByUsernameCache);
+    cacheManager.put(RATE_LIMIT_LOGIN_ATTEMPT_BY_USERNAME_CACHE, loginAttemptByUsernameCache);
 
-    // Login attempt by IP cache
-    Cache<String, Object> loginAttemptByIpCache = Caffeine.newBuilder()
+    // Attempt by IP cache
+    Cache<String, Object> accessAttemptByIpCache = Caffeine.newBuilder()
+        .maximumSize(1_000_000)
         .expireAfterAccess(30, TimeUnit.MINUTES)
         .build();
-    cacheManager.put(LOGIN_ATTEMPT_BY_IP_CACHE, loginAttemptByIpCache);
+    cacheManager.put(RATE_LIMIT_ATTEMPT_BY_IP_CACHE, accessAttemptByIpCache);
+
+    // Rate limit by app cache
+    Cache<String, Object> rateLimitByAppCache = Caffeine.newBuilder()
+        .expireAfterAccess(15, TimeUnit.MINUTES)
+        .build();
+    cacheManager.put(RATE_LIMIT_BY_APP_CACHE, rateLimitByAppCache);
+
+    // Rate limit by app+user cache
+    Cache<String, Object> rateLimitByAppUserCache = Caffeine.newBuilder()
+        .maximumSize(1_000_000)
+        .expireAfterAccess(15, TimeUnit.MINUTES)
+        .build();
+    cacheManager.put(RATE_LIMIT_BY_APP_USER_CACHE, rateLimitByAppUserCache);
 
     // Generic object cache
     Cache<String, Object> objectCache = Caffeine.newBuilder()

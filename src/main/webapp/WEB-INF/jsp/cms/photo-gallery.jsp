@@ -29,7 +29,7 @@
 <jsp:useBean id="showCaption" class="java.lang.String" scope="request"/>
 <jsp:useBean id="isSticky" class="java.lang.String" scope="request"/>
 <style>
-  .swiper-container {
+  .swiper {
     border: 1px solid #cccccc;
     min-height: 450px;
   }
@@ -62,11 +62,11 @@
     <div class="slider-header text-center" id="slider-header${controlId}">
       <h4><c:out value="${subFolder.name}" /></h4>
     </div>
-    <div id="swiper-container${widgetContext.uniqueId}" class="swiper-container">
+    <div id="swiper${widgetContext.uniqueId}" class="swiper">
       <div id="photo-gallery" class="swiper-wrapper">
       <c:forEach items="${fileList}" var="file">
         <div class="swiper-slide">
-          <img data-src="${ctx}/assets/view/<fmt:formatDate pattern="yyyyMMddHHmmss" value="${file.created}" />-${file.id}/${url:encodeUri(file.filename)}" class="swiper-lazy">
+          <img data-src="${ctx}/assets/view/${file.url}" alt="Image" class="swiper-lazy">
           <div class="swiper-lazy-preloader"></div>
           <c:if test="${showCaption eq 'true'}"><p class="slider-caption"><c:out value="${file.title}"/></p></c:if>
         </div>
@@ -79,7 +79,7 @@
   </div>
 </div>
 <script>
-  var swiper${widgetContext.uniqueId} = new Swiper('#swiper-container${widgetContext.uniqueId}', {
+  var swiper${widgetContext.uniqueId} = new Swiper('#swiper${widgetContext.uniqueId}', {
     preloadImages: false,
     lazy: true,
     autoplay: {

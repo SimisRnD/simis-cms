@@ -252,7 +252,8 @@ CREATE TABLE item_files (
   document_text TEXT,
   tsv TSVECTOR,
   sub_folder_id BIGINT REFERENCES item_sub_folders(sub_folder_id),
-  category_id BIGINT REFERENCES item_folder_categories(category_id)
+  category_id BIGINT REFERENCES item_folder_categories(category_id),
+  web_path VARCHAR(50) NOT NULL
 );
 CREATE INDEX i_files_tsv_idx ON item_files USING gin(tsv);
 CREATE INDEX i_files_folder_id_idx ON item_files(folder_id);
@@ -260,6 +261,7 @@ CREATE INDEX i_files_created_idx ON item_files(created);
 CREATE INDEX i_files_title_idx ON item_files(title);
 CREATE INDEX i_files_sub_folder_idx ON item_files(sub_folder_id);
 CREATE INDEX i_files_category_idx ON item_files(category_id);
+CREATE INDEX i_files_web_path_idx ON item_files(web_path);
 
 CREATE TEXT SEARCH DICTIONARY item_file_stem (
   TEMPLATE = snowball,
@@ -305,12 +307,14 @@ CREATE TABLE item_file_versions (
   created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
   download_count BIGINT DEFAULT 0,
   sub_folder_id BIGINT REFERENCES item_sub_folders(sub_folder_id),
-  category_id BIGINT REFERENCES item_folder_categories(category_id)
+  category_id BIGINT REFERENCES item_folder_categories(category_id),
+  web_path VARCHAR(50) NOT NULL
 );
 CREATE INDEX i_file_ver_file_id_idx ON item_file_versions(file_id);
 CREATE INDEX i_file_ver_fold_id_idx ON item_file_versions(folder_id);
 CREATE INDEX i_file_ver_created_idx ON item_file_versions(created);
 CREATE INDEX i_file_ver_sub_fold_idx ON item_file_versions(sub_folder_id);
+CREATE INDEX i_file_ver_web_path_idx ON item_file_versions(web_path);
 
 -- CREATE TABLE item_mailing_list_members
 -- CREATE TABLE item_wiki_pages

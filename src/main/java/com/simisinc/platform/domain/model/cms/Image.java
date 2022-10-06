@@ -16,9 +16,11 @@
 
 package com.simisinc.platform.domain.model.cms;
 
-import com.simisinc.platform.domain.model.Entity;
-
 import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
+
+import com.simisinc.platform.application.cms.UrlCommand;
+import com.simisinc.platform.domain.model.Entity;
 
 /**
  * Represents an image which can be sent by the website
@@ -36,6 +38,7 @@ public class Image extends Entity {
   private Timestamp created = null;
   private Timestamp processed = null;
   private String fileType = null;
+  private String webPath = null;
   private int width = -1;
   private int height = -1;
 
@@ -120,5 +123,17 @@ public class Image extends Entity {
 
   public void setHeight(int height) {
     this.height = height;
+  }
+
+  public String getWebPath() {
+    return webPath;
+  }
+
+  public void setWebPath(String webPath) {
+    this.webPath = webPath;
+  }
+
+  public String getUrl() {
+    return webPath + "-" + id + "/" + UrlCommand.encodeUri(filename);
   }
 }
