@@ -176,8 +176,9 @@ public class PageServlet extends HttpServlet {
       }
 
       if (!pagePath.startsWith("/assets")) {
-        response.setHeader("Cache-Control", "no-cache, no-store, max-age=0, must-revalidate");
         response.setHeader("Pragma", "no-cache");
+        response.setHeader("Cache-Control", "no-cache, no-store, max-age=0, must-revalidate");
+        response.setHeader("Expires", "-1");
       }
 
       // Determine if this is a JSON service (shares similarities as a page)
