@@ -71,11 +71,19 @@ public class StreamDatasetWidget extends GenericWidget {
       return null;
     }
 
+    // Set header info
     context.getResponse().setHeader("Content-Disposition", "attachment; filename=\"" + record.getFilename() + "\"");
     context.getResponse().setHeader("Content-Transfer-Encoding", "binary");
     context.getResponse().setContentType(record.getFileType());
     context.getResponse().setContentLength((int) file.length());
 
+    // Check for head method
+    if ("head".equalsIgnoreCase(context.getRequest().getMethod())) {
+      context.setHandledResponse(true);
+      return context;
+    }
+
+    // Stream the file
     try {
       FileInputStream in = new FileInputStream(file);
       OutputStream out = context.getResponse().getOutputStream();

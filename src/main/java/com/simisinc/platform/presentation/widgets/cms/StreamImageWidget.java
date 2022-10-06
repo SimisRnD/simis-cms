@@ -86,11 +86,18 @@ public class StreamImageWidget extends GenericWidget {
       return context;
     }
 
-    // Send the file
+    // Set header info
     context.getResponse().setDateHeader("Last-Modified", lastModified);
     context.getResponse().setContentType(record.getFileType());
     context.getResponse().setContentLength((int) file.length());
 
+    // Check for head method
+    if ("head".equalsIgnoreCase(context.getRequest().getMethod())) {
+      context.setHandledResponse(true);
+      return context;
+    }
+
+    // Send the file
     try {
       FileInputStream in = new FileInputStream(file);
       OutputStream out = context.getResponse().getOutputStream();
