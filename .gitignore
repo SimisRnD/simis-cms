@@ -16,17 +16,16 @@
 .Spotlight-V100
 .Trashes
 
-# Thumbnails
-._*
-
 # VS Code
-#.vscode
 *.code-workspace
 cspell.json
 
 # IntelliJ
-.idea
-.run
+#.idea
+#.run
+#.settings
+#*.iml
+.idea/**/workspace.xml
 .idea/**/tasks.xml
 .idea/**/usage.statistics.xml
 .idea/**/dictionaries
@@ -40,4 +39,3 @@ cspell.json
 .idea/**/uiDesigner.xml
 .idea/**/dbnavigator.xml
 .idea/httpRequests
-simis-cms.iml

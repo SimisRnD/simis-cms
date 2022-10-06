@@ -1,0 +1,68 @@
+<component name="libraryTable">
+  <library name="Build Jars">
+    <CLASSES>
+      <root url="file://$PROJECT_DIR$/lib/build/argon2" />
+      <root url="file://$PROJECT_DIR$/lib/build/caffeine" />
+      <root url="file://$PROJECT_DIR$/lib/build/flexmark" />
+      <root url="file://$PROJECT_DIR$/lib/build/flyway" />
+      <root url="file://$PROJECT_DIR$/lib/build/geoip2" />
+      <root url="file://$PROJECT_DIR$/lib/build/geojson" />
+      <root url="file://$PROJECT_DIR$/lib/build/granule" />
+      <root url="file://$PROJECT_DIR$/lib/build/gson" />
+      <root url="file://$PROJECT_DIR$/lib/build/hikaricp" />
+      <root url="file://$PROJECT_DIR$/lib/build/jackson" />
+      <root url="file://$PROJECT_DIR$/lib/build/javamail" />
+      <root url="file://$PROJECT_DIR$/lib/build/jobrunr" />
+      <root url="file://$PROJECT_DIR$/lib/build/johnzon" />
+      <root url="file://$PROJECT_DIR$/lib/build/jsoup" />
+      <root url="file://$PROJECT_DIR$/lib/build/jstl" />
+      <root url="file://$PROJECT_DIR$/lib/build/libphonenumber" />
+      <root url="file://$PROJECT_DIR$/lib/build/postgresql" />
+      <root url="file://$PROJECT_DIR$/lib/build/pushy" />
+      <root url="file://$PROJECT_DIR$/lib/build/restfb" />
+      <root url="file://$PROJECT_DIR$/lib/build/rome-rss" />
+      <root url="file://$PROJECT_DIR$/lib/build/slf4j" />
+      <root url="file://$PROJECT_DIR$/lib/build/square" />
+      <root url="file://$PROJECT_DIR$/lib/build/stripe" />
+      <root url="file://$PROJECT_DIR$/lib/build/thymeleaf" />
+      <root url="file://$PROJECT_DIR$/lib/build/timeago" />
+      <root url="file://$PROJECT_DIR$/lib/build/uniVocity-parsers" />
+      <root url="file://$PROJECT_DIR$/lib/build/commons" />
+      <root url="file://$PROJECT_DIR$/lib/build/easy-flows" />
+      <root url="file://$PROJECT_DIR$/lib/build/bucket4j" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES>
+      <root url="file://$PROJECT_DIR$/lib/build/granule" />
+    </SOURCES>
+    <jarDirectory url="file://$PROJECT_DIR$/lib/build/argon2" recursive="false" />
+    <jarDirectory url="file://$PROJECT_DIR$/lib/build/bucket4j" recursive="false" />
+    <jarDirectory url="file://$PROJECT_DIR$/lib/build/caffeine" recursive="false" />
+    <jarDirectory url="file://$PROJECT_DIR$/lib/build/commons" recursive="false" />
+    <jarDirectory url="file://$PROJECT_DIR$/lib/build/easy-flows" recursive="false" />
+    <jarDirectory url="file://$PROJECT_DIR$/lib/build/flexmark" recursive="false" />
+    <jarDirectory url="file://$PROJECT_DIR$/lib/build/flyway" recursive="false" />
+    <jarDirectory url="file://$PROJECT_DIR$/lib/build/geoip2" recursive="false" />
+    <jarDirectory url="file://$PROJECT_DIR$/lib/build/geojson" recursive="false" />
+    <jarDirectory url="file://$PROJECT_DIR$/lib/build/granule" recursive="false" />
+    <jarDirectory url="file://$PROJECT_DIR$/lib/build/gson" recursive="false" />
+    <jarDirectory url="file://$PROJECT_DIR$/lib/build/hikaricp" recursive="false" />
+    <jarDirectory url="file://$PROJECT_DIR$/lib/build/jackson" recursive="false" />
+    <jarDirectory url="file://$PROJECT_DIR$/lib/build/javamail" recursive="false" />
+    <jarDirectory url="file://$PROJECT_DIR$/lib/build/jobrunr" recursive="false" />
+    <jarDirectory url="file://$PROJECT_DIR$/lib/build/johnzon" recursive="false" />
+    <jarDirectory url="file://$PROJECT_DIR$/lib/build/jsoup" recursive="false" />
+    <jarDirectory url="file://$PROJECT_DIR$/lib/build/jstl" recursive="false" />
+    <jarDirectory url="file://$PROJECT_DIR$/lib/build/libphonenumber" recursive="false" />
+    <jarDirectory url="file://$PROJECT_DIR$/lib/build/postgresql" recursive="false" />
+    <jarDirectory url="file://$PROJECT_DIR$/lib/build/pushy" recursive="false" />
+    <jarDirectory url="file://$PROJECT_DIR$/lib/build/restfb" recursive="false" />
+    <jarDirectory url="file://$PROJECT_DIR$/lib/build/rome-rss" recursive="false" />
+    <jarDirectory url="file://$PROJECT_DIR$/lib/build/slf4j" recursive="false" />
+    <jarDirectory url="file://$PROJECT_DIR$/lib/build/square" recursive="false" />
+    <jarDirectory url="file://$PROJECT_DIR$/lib/build/stripe" recursive="false" />
+    <jarDirectory url="file://$PROJECT_DIR$/lib/build/thymeleaf" recursive="false" />
+    <jarDirectory url="file://$PROJECT_DIR$/lib/build/timeago" recursive="false" />
+    <jarDirectory url="file://$PROJECT_DIR$/lib/build/uniVocity-parsers" recursive="false" />
+  </library>
+</component>
