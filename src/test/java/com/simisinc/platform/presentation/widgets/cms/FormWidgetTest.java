@@ -16,7 +16,18 @@
 
 package com.simisinc.platform.presentation.widgets.cms;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.Mockito.mockStatic;
+
+import java.util.List;
+
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
+
 import com.simisinc.platform.WidgetBase;
+import com.simisinc.platform.application.RateLimitCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.domain.model.cms.FormData;
 import com.simisinc.platform.domain.model.cms.FormField;
@@ -24,14 +35,6 @@ import com.simisinc.platform.infrastructure.persistence.cms.FormDataRepository;
 import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
 import com.simisinc.platform.presentation.controller.SessionConstants;
 import com.simisinc.platform.presentation.controller.WidgetContext;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-import org.mockito.MockedStatic;
-
-import java.util.List;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mockStatic;
 
 /**
  * @author matt rajkowski
@@ -70,31 +73,37 @@ class FormWidgetTest extends WidgetBase {
     // Shows the form
     try (MockedStatic<LoadSitePropertyCommand> property = mockStatic(LoadSitePropertyCommand.class)) {
       property.when(() -> LoadSitePropertyCommand.loadByName("captcha.google.sitekey")).thenReturn(null);
-      FormWidget widget = new FormWidget();
-      widget.execute(widgetContext);
-      // Verify the output
-      Assertions.assertEquals(FormWidget.JSP, widgetContext.getJsp());
 
-      List<FormField> formFieldList = (List) widgetContext.getRequest().getAttribute("formFieldList");
-      Assertions.assertEquals(6, formFieldList.size());
+      try (MockedStatic<RateLimitCommand> rateLimitCommand = mockStatic(RateLimitCommand.class)) {
+        rateLimitCommand.when(() -> RateLimitCommand.isIpAllowedRightNow(any(), anyBoolean())).thenReturn(true);
 
-      FormField formFieldName = formFieldList.get(0);
-      Assertions.assertEquals("Your first and last name", formFieldName.getLabel());
-      Assertions.assertEquals("name", formFieldName.getName());
-      Assertions.assertNull(formFieldName.getType());
-      Assertions.assertTrue(formFieldName.isRequired());
+        FormWidget widget = new FormWidget();
+        widget.execute(widgetContext);
 
-      FormField formFieldOrganization = formFieldList.get(1);
-      Assertions.assertEquals("Name of your organization", formFieldOrganization.getLabel());
-      Assertions.assertEquals("organization", formFieldOrganization.getName());
-      Assertions.assertNull(formFieldOrganization.getType());
-      Assertions.assertFalse(formFieldOrganization.isRequired());
+        // Verify the output
+        Assertions.assertEquals(FormWidget.JSP, widgetContext.getJsp());
 
-      FormField formFieldReason = formFieldList.get(5);
-      Assertions.assertEquals("How Can We Help?", formFieldReason.getLabel());
-      Assertions.assertEquals("comments", formFieldReason.getName());
-      Assertions.assertEquals("textarea", formFieldReason.getType());
-      Assertions.assertTrue(formFieldReason.isRequired());
+        List<FormField> formFieldList = (List) widgetContext.getRequest().getAttribute("formFieldList");
+        Assertions.assertEquals(6, formFieldList.size());
+
+        FormField formFieldName = formFieldList.get(0);
+        Assertions.assertEquals("Your first and last name", formFieldName.getLabel());
+        Assertions.assertEquals("name", formFieldName.getName());
+        Assertions.assertNull(formFieldName.getType());
+        Assertions.assertTrue(formFieldName.isRequired());
+
+        FormField formFieldOrganization = formFieldList.get(1);
+        Assertions.assertEquals("Name of your organization", formFieldOrganization.getLabel());
+        Assertions.assertEquals("organization", formFieldOrganization.getName());
+        Assertions.assertNull(formFieldOrganization.getType());
+        Assertions.assertFalse(formFieldOrganization.isRequired());
+
+        FormField formFieldReason = formFieldList.get(5);
+        Assertions.assertEquals("How Can We Help?", formFieldReason.getLabel());
+        Assertions.assertEquals("comments", formFieldReason.getName());
+        Assertions.assertEquals("textarea", formFieldReason.getType());
+        Assertions.assertTrue(formFieldReason.isRequired());
+      }
     }
   }
 
@@ -105,9 +114,13 @@ class FormWidgetTest extends WidgetBase {
     widgetContext.setRequestObject(formData);
 
     // Show a form Error
-    FormWidget widget = new FormWidget();
-    widget.execute(widgetContext);
-    Assertions.assertEquals(FormWidget.JSP, widgetContext.getJsp());
+    try (MockedStatic<RateLimitCommand> rateLimitCommand = mockStatic(RateLimitCommand.class)) {
+      rateLimitCommand.when(() -> RateLimitCommand.isIpAllowedRightNow(any(), anyBoolean())).thenReturn(true);
+
+      FormWidget widget = new FormWidget();
+      widget.execute(widgetContext);
+      Assertions.assertEquals(FormWidget.JSP, widgetContext.getJsp());
+    }
   }
 
   @Test
@@ -116,9 +129,13 @@ class FormWidgetTest extends WidgetBase {
     widgetContext.addSharedRequestValue(widgetContext.getUniqueId() + "formWidgetSuccess", "true");
 
     // Show the form submit success message
-    FormWidget widget = new FormWidget();
-    widget.execute(widgetContext);
-    Assertions.assertEquals(FormWidget.SUCCESS_JSP, widgetContext.getJsp());
+    try (MockedStatic<RateLimitCommand> rateLimitCommand = mockStatic(RateLimitCommand.class)) {
+      rateLimitCommand.when(() -> RateLimitCommand.isIpAllowedRightNow(any(), anyBoolean())).thenReturn(true);
+      
+      FormWidget widget = new FormWidget();
+      widget.execute(widgetContext);
+      Assertions.assertEquals(FormWidget.SUCCESS_JSP, widgetContext.getJsp());
+    }
   }
 
   @Test
@@ -191,6 +208,18 @@ class FormWidgetTest extends WidgetBase {
       Assertions.assertNotNull(result);
       Assertions.assertEquals("How Can We Help? is required", widgetContext.getWarningMessage());
       Assertions.assertNull(widgetContext.getErrorMessage());
+    }
+  }
+
+  @Test
+  void rateLimitError() {
+    // Show a form Error
+    try (MockedStatic<RateLimitCommand> rateLimitCommand = mockStatic(RateLimitCommand.class)) {
+      rateLimitCommand.when(() -> RateLimitCommand.isIpAllowedRightNow(any(), anyBoolean())).thenReturn(false);
+
+      FormWidget widget = new FormWidget();
+      widget.execute(widgetContext);
+      Assertions.assertEquals(FormWidget.RATE_LIMITED_JSP, widgetContext.getJsp());
     }
   }
 }
