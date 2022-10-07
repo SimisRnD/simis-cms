@@ -1,0 +1,18 @@
+<component name="ArtifactManager">
+  <artifact type="exploded-war" build-on-make="true" name="simis-cms:war exploded">
+    <output-path>$PROJECT_DIR$/out/artifacts/simis_cms_war_exploded</output-path>
+    <root id="root">
+      <element id="directory" name="WEB-INF">
+        <element id="directory" name="classes">
+          <element id="module-output" name="simis-cms" />
+          <element id="dir-copy" path="$PROJECT_DIR$/src/main/resources" />
+        </element>
+        <element id="directory" name="lib">
+          <element id="library" level="project" name="Build Jars" />
+          <element id="library" level="project" name="Compile Jars" />
+        </element>
+      </element>
+      <element id="javaee-facet-resources" facet="simis-cms/web/Web" />
+    </root>
+  </artifact>
+</component>

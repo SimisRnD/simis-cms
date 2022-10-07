@@ -1,0 +1,12 @@
+<component name="libraryTable">
+  <library name="Compile Jars">
+    <CLASSES>
+      <root url="file://$PROJECT_DIR$/lib/compile/lombok" />
+      <root url="jar://$PROJECT_DIR$/lib/compile/jee/jsp-api.jar!/" />
+      <root url="jar://$PROJECT_DIR$/lib/compile/jee/servlet-api.jar!/" />
+    </CLASSES>
+    <JAVADOC />
+    <SOURCES />
+    <jarDirectory url="file://$PROJECT_DIR$/lib/compile/lombok" recursive="false" />
+  </library>
+</component>
