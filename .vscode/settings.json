@@ -24,5 +24,6 @@
     "java.project.sourcePaths": [
         "src/main/java",
         "src/test/java"
-    ]
+    ],
+    "snyk.advanced.additionalParameters": "--file=mvn-pom.xml --package-manager=maven"
 }
