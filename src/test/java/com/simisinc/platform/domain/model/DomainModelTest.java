@@ -40,7 +40,7 @@ class DomainModelTest {
 
     // Test getters and setters for the domain model
     Class<?>[] beanClasses = ClassPathUtils.findClassesIn("com.simisinc.platform.domain.model");
-    for (Class k : beanClasses) {
+    for (Class<?> k : beanClasses) {
       String thisClass = k.getName();
       if (complexClasses.contains(thisClass)) {
         continue;

@@ -31,7 +31,7 @@ class SpecificationTest {
   @Test
   void test() {
     Class<?>[] beanClasses = ClassPathUtils.findClassesIn("com.simisinc.platform.infrastructure.persistence");
-    for (Class k : beanClasses) {
+    for (Class<?> k : beanClasses) {
       String thisClass = k.getName();
       if (!thisClass.endsWith("Specification")) {
         continue;

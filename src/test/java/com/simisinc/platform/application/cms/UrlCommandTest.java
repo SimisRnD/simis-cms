@@ -19,8 +19,6 @@ package com.simisinc.platform.application.cms;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.*;
-
 /**
  * @author matt rajkowski
  * @created 5/8/2022 7:00 AM
