@@ -6,6 +6,7 @@
     "vscjava.vscode-java-dependency",
     "vscjava.vscode-java-test",
     "redhat.vscode-community-server-connector",
-    "redhat.vscode-rsp-ui"
+    "redhat.vscode-rsp-ui",
+    "Gruntfuggly.triggertaskonsave"
   ]
 }
