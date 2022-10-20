@@ -52,7 +52,7 @@
     <im4java.version>1.4.0</im4java.version>
     <jackson.version>2.13.4</jackson.version>
     <jackson-coreutils.version>1.0</jackson-coreutils.version>
-    <jackson-databind.version>2.13.4</jackson-databind.version>
+    <jackson-databind.version>2.13.4.2</jackson-databind.version>
     <java-activation.version>1.2.0</java-activation.version>
     <java-mail.version>1.6.2</java-mail.version>
     <jna.version>5.8.0</jna.version>
