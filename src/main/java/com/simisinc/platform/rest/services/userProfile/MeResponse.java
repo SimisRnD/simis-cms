@@ -62,7 +62,7 @@ public class MeResponse {
       }
     }
 
-    // // Just return the names
+    // Just return the names
     List<Group> serverGroupList = thisUser.getGroupList();
     if (serverGroupList != null) {
       groupList = new ArrayList<>();
