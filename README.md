@@ -276,26 +276,35 @@ SimIS CMS includes an extendable api for user-based access and server-2-server c
 
 In your application, have the user supply their CMS username and password, then request authorization:
 
+```bash
 http -a username:password POST http://localhost:8080/api/oauth2/authorize X-API-Key:<secret_key>
+```
 
 When authorization is obtained, the response will include an access token to use.
 
+```json
 {
   "access_token": "you-receive-this",
   "expires_in": 2592000,
   "first_name": "First", "last_name": "Last", "name": "First Last",
   "scope": "create", "token_type": "bearer"
 }
+```
 
 Now calls can be made with the access token:
 
+```bash
 http -A bearer -a <access_token> GET http://localhost:8080/api/me X-API-Key:<secret_key>
-http -A bearer -a <access_token> GET http://localhost:8080/api/me?key=<secret_key>
+```
 
+```bash
+http -A bearer -a <access_token> GET http://localhost:8080/api/me?key=<secret_key>
+```
 Calls without a user:
 
+```bash
 http GET http://localhost:8080/api/me?key=<secret_key>
-
+```
 
 ## Customization
 
