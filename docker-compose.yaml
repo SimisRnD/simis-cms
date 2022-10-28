@@ -25,7 +25,7 @@ services:
       CMS_ADMIN_USERNAME: "${CMS_ADMIN_USERNAME:?err}"
       CMS_ADMIN_PASSWORD: "${CMS_ADMIN_PASSWORD:?err}"
       CMS_FORCE_SSL: "${CMS_FORCE_SSL:-true}"
-      DB_SERVER_NAME: "db"
+      DB_SERVER_NAME: "${DB_SERVER_NAME:-db"
       DB_SSL: "${DB_SSL:-false}"
       DB_USER: "${DB_USER:?err}"
       DB_PASSWORD: "${DB_PASSWORD:?err}"
