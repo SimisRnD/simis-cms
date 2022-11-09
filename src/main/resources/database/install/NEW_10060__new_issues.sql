@@ -41,6 +41,9 @@ CREATE TABLE issues (
   labels JSONB,
   due_date TIMESTAMP(3)
   -- approved by; resolution date
+  -- description
+  -- reported_by
+  -- type, 
 );
 CREATE INDEX issues_item_id_idx ON issues(item_id);
 CREATE INDEX issues_item_is_num_idx ON issues(item_id, item_issue_number);
@@ -50,7 +53,7 @@ CREATE TABLE issue_history (
   history_id BIGSERIAL PRIMARY KEY,
   issue_id BIGINT REFERENCES issues(issue_id) NOT NULL,
   activity_type VARCHAR(50) NOT NULL,
-  event_text VARCHAR(254) NOT NULL,
+  event_text VARCHAR(255) NOT NULL,
   created_by BIGINT REFERENCES users(user_id) DEFAULT NULL,
   created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP
   --  has_attachment BOOLEAN DEFAULT false,
@@ -59,12 +62,6 @@ CREATE TABLE issue_history (
 );
 CREATE INDEX issue_his_iss_id_idx ON issue_history(issue_id);
 
--- {createdBy} self-assigned this {created}
--- {createdBy} added the [{label:10}] label {created}
--- {createdBy} closed this {created}
--- [rajkowski](/rajkowski) self-assigned this [2 minutes ago](#event-2144252065)
--- [rajkowski](/rajkowski) added the [bug](/Group/cary-connects-mobile/labels/bug)  label [2 minutes ago](#event-2144252179)
--- [<img alt="@rajkowski" width="16" height="16" src="https://avatars1.githubusercontent.com/u/10373492?s=60&amp;v=4">](/rajkowski) [rajkowski](/rajkowski) closed this [just now](#event-2144253312)
 
 CREATE TABLE issue_comments (
   comment_id BIGSERIAL PRIMARY KEY,

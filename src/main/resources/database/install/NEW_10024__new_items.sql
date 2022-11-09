@@ -146,13 +146,19 @@ CREATE INDEX item_act_st_item_id ON item_activity_stream(item_id);
 CREATE INDEX item_act_st_act_type ON item_activity_stream(activity_type);
 CREATE INDEX item_act_st_createdby ON item_activity_stream(created_by);
 
--- CREATE TABLE item_menu_tabs (order, name, role, each with a page_xml? also in collection); ItemMenuTab
 -- CREATE TABLE item_stylesheets
+
+-- CREATE TABLE item_menu_tabs (order, name, role, each with a page_xml? also in collection); ItemMenuTab
+-- CREATE TABLE item_table_of_contents (useful links for navigating page content)
+
+-- CREATE TABLE item_web_pages
 -- CREATE TABLE item_content... ItemContentWidget
+
 -- CREATE TABLE item_images
 -- CREATE TABLE item_form_data
--- CREATE TABLE item_table_of_contents (useful links for navigating page content)
+-- CREATE TABLE item_blogs
 -- CREATE TABLE item_blog_posts
+-- CREATE TABLE item_calendars
 -- CREATE TABLE item_calendar_events
 
 CREATE TABLE item_folders (
@@ -317,6 +323,8 @@ CREATE INDEX i_file_ver_sub_fold_idx ON item_file_versions(sub_folder_id);
 CREATE INDEX i_file_ver_web_path_idx ON item_file_versions(web_path);
 
 -- CREATE TABLE item_mailing_list_members
+
 -- CREATE TABLE item_wiki_pages
+
 -- CREATE TABLE item_issues
 -- CREATE TABLE item_projects
