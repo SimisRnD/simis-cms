@@ -30,6 +30,7 @@ import com.simisinc.platform.infrastructure.persistence.ecommerce.CustomerReposi
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import org.apache.commons.beanutils.BeanUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import java.lang.reflect.InvocationTargetException;
 
@@ -107,13 +108,20 @@ public class PaymentFormWidget extends GenericWidget {
     } else if ("Square".equalsIgnoreCase(service)) {
       // Determine the publishable key to use in the client
       String squareAppId = null;
+      String squareLocationId = null;
       if (EcommerceCommand.isProductionEnabled()) {
         squareAppId = LoadSitePropertyCommand.loadByName("ecommerce.square.production.key");
+        squareLocationId = LoadSitePropertyCommand.loadByName("ecommerce.square.production.location");
       } else {
         squareAppId = LoadSitePropertyCommand.loadByName("ecommerce.square.test.key");
+        squareLocationId = LoadSitePropertyCommand.loadByName("ecommerce.square.test.location");
         context.getRequest().setAttribute("testMode", "true");
       }
       context.getRequest().setAttribute("squareAppId", squareAppId);
+      if (StringUtils.isBlank(squareLocationId)) {
+        squareLocationId = "";
+      }
+      context.getRequest().setAttribute("squareLocationId", squareLocationId);
       context.setJsp(PAYMENT_FORM_SQUARE_JSP);
 
     } else {

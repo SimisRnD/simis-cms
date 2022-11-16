@@ -25,48 +25,127 @@
 <jsp:useBean id="customer" class="com.simisinc.platform.domain.model.ecommerce.Customer" scope="request"/>
 <jsp:useBean id="payment" class="com.simisinc.platform.domain.model.ecommerce.Payment" scope="request"/>
 <jsp:useBean id="squareAppId" class="java.lang.String" scope="request"/>
+<jsp:useBean id="squareLocationId" class="java.lang.String" scope="request"/>
 <jsp:useBean id="testMode" class="java.lang.String" scope="request"/>
 <%-- Square --%>
 <c:choose>
   <c:when test="${testMode eq 'true'}">
-    <script type="text/javascript" src="https://js.squareupsandbox.com/v2/paymentform"></script>
+    <script type="text/javascript" src="https://sandbox.web.squarecdn.com/v1/square.js"></script>
   </c:when>
   <c:otherwise>
-    <script type="text/javascript" src="https://js.squareup.com/v2/paymentform"></script>
+    <script type="text/javascript" src="https://web.squarecdn.com/v1/square.js"></script>
   </c:otherwise>
 </c:choose>
 <%-- Page Scripts --%>
 <%@include file="../page_messages.jspf" %>
+<script>
+    const appId = '<c:out value="${squareAppId}" />';
+    const locationId = '<c:out value="${squareLocationId}" />';
+
+    async function initializeCard(payments) {
+      const card = await payments.card();
+      await card.attach('#card-container');
+      return card;
+    }
+
+    async function tokenize(paymentMethod) {
+      const tokenResult = await paymentMethod.tokenize();
+      if (tokenResult.status === 'OK') {
+        return tokenResult.token;
+      } else {
+        let errorMessage = `Tokenization failed with status: ${tokenResult.status}`;
+        if (tokenResult.errors) {
+          errorMessage += ` and errors: ${JSON.stringify(
+            tokenResult.errors
+          )}`;
+        }
+
+        throw new Error(errorMessage);
+      }
+    }
+
+    // status is either SUCCESS or FAILURE;
+    function displayPaymentResults(status) {
+      const statusContainer = document.getElementById(
+        'payment-status-container'
+      );
+      if (status === 'SUCCESS') {
+        statusContainer.classList.remove('is-failure');
+        statusContainer.classList.add('is-success');
+      } else {
+        statusContainer.classList.remove('is-success');
+        statusContainer.classList.add('is-failure');
+      }
+      statusContainer.style.visibility = 'visible';
+    }
+
+    document.addEventListener('DOMContentLoaded', async function () {
+      if (!window.Square) {
+        throw new Error('Square.js failed to load properly');
+      }
+
+      let payments;
+      try {
+        payments = window.Square.payments(appId, locationId);
+      } catch {
+        const statusContainer = document.getElementById(
+          'payment-status-container'
+        );
+        statusContainer.className = 'missing-credentials';
+        statusContainer.style.visibility = 'visible';
+        return;
+      }
+
+      let card;
+      try {
+        card = await initializeCard(payments);
+      } catch (e) {
+        console.error('Initializing Card failed', e);
+        return;
+      }
+
+      // Checkpoint 2.
+      async function handlePaymentMethodSubmission(event, paymentMethod) {
+        event.preventDefault();
+
+        try {
+          // disable the submit button as we await tokenization and make a payment request.
+          cardButton.disabled = true;
+          const token = await tokenize(paymentMethod);
+
+          // submit the form with the token
+          var form = document.getElementById('payment-form');
+          var hiddenInput = document.createElement('input');
+          hiddenInput.setAttribute('type', 'hidden');
+          hiddenInput.setAttribute('name', 'squareNonce');
+          hiddenInput.setAttribute('value', token);
+          form.appendChild(hiddenInput);
+          form.submit();
+        } catch (e) {
+          cardButton.disabled = false;
+          displayPaymentResults('FAILURE');
+          console.error(e.message);
+        }
+      }
+
+      const cardButton = document.getElementById('card-button');
+      cardButton.addEventListener('click', async function (event) {
+        await handlePaymentMethodSubmission(event, card);
+      });
+    });
+</script>
 <style>
-  .third {
-    float: left;
-    width: calc((100% - 32px) / 3);
-    padding: 0;
-    margin: 0 16px 16px 0;
+  .sq-card-iframe-container {
+    margin-top: 16px;
   }
-  .third:last-of-type {
-    margin-right: 0;
+  /*
+  .sq-card-wrapper .sq-card-message-no-error, .sq-card-wrapper .sq-card-message-no-error::before {
+    color: #ffffff !important;
   }
-  .sq-input {
-    box-sizing: border-box;
-    border: 1px solid #E0E2E3;
-    background-color: white;
-    border-radius: 3px;
-    display: inline-block;
-    -webkit-transition: border-color .2s ease-in-out;
-    -moz-transition: border-color .2s ease-in-out;
-    -ms-transition: border-color .2s ease-in-out;
-    transition: border-color .2s ease-in-out;
+  .sq-card-wrapper .sq-card-message-no-error::before {
+    background-color: #ffffff;
   }
-  .sq-input--focus {
-    border: 1px solid #4A90E2;
-  }
-  .sq-input--error {
-    border: 1px solid #E02F2F;
-  }
-  #sq-card-number {
-    /*margin-bottom: 16px;*/
-  }
+  */
 </style>
 <form method="post" id="payment-form">
   <%-- Required by controller --%>
@@ -76,7 +155,7 @@
   <div class="grid-x">
     <div class="small-12 cell">
       <div class="form-row">
-        <label for="sq-card-number">
+        <label>
           <c:choose>
             <c:when test="${cart.grandTotal gt 0}">
               Pay with your Credit Card via Square <span class="required">*</span>
@@ -88,81 +167,10 @@
           <c:if test="${testMode eq 'true'}"><span class="label warning">TEST MODE</span></c:if>
         </label>
         <div id="form-container">
-<%--          <div id="sq-card"></div>--%>
-          <div id="sq-card-number"></div>
-          <div class="third" id="sq-expiration-date"></div>
-          <div class="third" id="sq-cvv"></div>
-          <div class="third" id="sq-postal-code"></div>
-          <div id="card-errors" class="input-error" role="alert"></div>
-          <button id="sq-creditcard" class="button-credit-card button primary" onclick="onGetCardNonce(event)">Save &amp; Continue</button>
+          <div id="card-container"></div>
+          <button id="card-button" type="button" class="button-credit-card button primary">Verify &amp; Continue</button>
         </div>
       </div>
     </div>
   </div>
 </form>
-<script type="text/javascript">
-  // Create and initialize a payment form object
-  const paymentForm = new SqPaymentForm({
-    applicationId: "<c:out value="${squareAppId}" />",
-    inputClass: 'sq-input',
-    autoBuild: false,
-    inputStyles: [{
-      fontSize: '16px',
-      lineHeight: '24px',
-      padding: '16px'
-      // placeholderColor: '#666666',
-      // backgroundColor: '#a0a0a0'
-    }],
-    // Initialize the credit card placeholders
-<%-- in beta
-    card: {
-      elementId: 'sq-card'
-    },
---%>
-    cardNumber: {
-      elementId: 'sq-card-number',
-      placeholder: 'Card Number'
-    },
-    cvv: {
-      elementId: 'sq-cvv',
-      placeholder: 'CVV'
-    },
-    expirationDate: {
-      elementId: 'sq-expiration-date',
-      placeholder: 'MM/YY'
-    },
-    postalCode: {
-      elementId: 'sq-postal-code',
-      placeholder: 'Postal'
-    },
-    callbacks: {
-      /*
-      * Triggered when: SqPaymentForm completes a card nonce request
-      */
-      cardNonceResponseReceived: function (errors, nonce, cardData) {
-        if (errors) {
-          var errorMsg = '';
-          errors.forEach(function (error) {
-            errorMsg += ('  ' + error.message);
-          });
-          var errorElement = document.getElementById('card-errors');
-          errorElement.textContent = errorMsg;
-          return;
-        }
-        var form = document.getElementById('payment-form');
-        var hiddenInput = document.createElement('input');
-        hiddenInput.setAttribute('type', 'hidden');
-        hiddenInput.setAttribute('name', 'squareNonce');
-        hiddenInput.setAttribute('value', nonce);
-        form.appendChild(hiddenInput);
-        form.submit();
-      }
-    }
-  });
-  paymentForm.build();
-
-  function onGetCardNonce(event) {
-    event.preventDefault();
-    paymentForm.requestCardNonce();
-  }
-</script>

@@ -16,6 +16,17 @@
 
 package com.simisinc.platform.application.ecommerce;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -28,14 +39,16 @@ import com.simisinc.platform.domain.model.ecommerce.ProductSku;
 import com.simisinc.platform.domain.model.ecommerce.ProductSkuAttribute;
 import com.simisinc.platform.infrastructure.persistence.ecommerce.ProductRepository;
 import com.simisinc.platform.infrastructure.persistence.ecommerce.ProductSkuRepository;
+import com.squareup.square.models.BatchUpsertCatalogObjectsRequest;
+import com.squareup.square.models.BatchUpsertCatalogObjectsResponse;
+import com.squareup.square.models.CatalogIdMapping;
+import com.squareup.square.models.CatalogItem;
+import com.squareup.square.models.CatalogItemVariation;
+import com.squareup.square.models.CatalogObject;
+import com.squareup.square.models.CatalogObjectBatch;
 import com.squareup.square.models.Error;
-import com.squareup.square.models.*;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
-import java.math.BigDecimal;
-import java.util.*;
+import com.squareup.square.models.ListCatalogResponse;
+import com.squareup.square.models.Money;
 
 /**
  * Commands for working with Square Product Catalog
@@ -205,7 +218,7 @@ public class SquareProductCatalogCommand {
       if (response == null) {
         throw new DataException("The product catalog information response could not be processed");
       }
-      if (!response.getErrors().isEmpty()) {
+      if (response.getErrors() != null && !response.getErrors().isEmpty()) {
         LOG.warn("Checking errors...");
         StringBuilder sb = new StringBuilder();
         for (Error error : response.getErrors()) {
@@ -218,6 +231,11 @@ public class SquareProductCatalogCommand {
           }
         }
         throw new DataException("The product catalog information could not be processed, please check the following: " + sb.toString());
+      }
+
+      // Proceed if any mappings exist
+      if (response.getIdMappings() == null || response.getIdMappings().isEmpty()) {
+        return true;
       }
 
       // Update the product and product SKU Square Ids
@@ -266,6 +284,10 @@ public class SquareProductCatalogCommand {
 
         if (LOG.isDebugEnabled()) {
           LOG.debug("Receiving: " + json.toString());
+        }
+
+        if (json.isEmpty()) {
+          return versionMap;
         }
 
         // Determine the response

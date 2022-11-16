@@ -16,6 +16,13 @@
 
 package com.simisinc.platform.application.ecommerce;
 
+import java.math.BigDecimal;
+import java.util.UUID;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -23,13 +30,10 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.domain.model.ecommerce.Order;
 import com.squareup.square.models.Error;
-import com.squareup.square.models.*;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
-import java.math.BigDecimal;
-import java.util.UUID;
+import com.squareup.square.models.Money;
+import com.squareup.square.models.PaymentRefund;
+import com.squareup.square.models.RefundPaymentRequest;
+import com.squareup.square.models.RefundPaymentResponse;
 
 /**
  * Commands for working with Square Refunds
@@ -79,7 +83,7 @@ public class SquareRefundCommand {
       if (response == null) {
         throw new DataException("The refund information could not be processed, please check your refund details");
       }
-      if (!response.getErrors().isEmpty()) {
+      if (response.getErrors() != null && !response.getErrors().isEmpty()) {
         StringBuilder sb = new StringBuilder();
         for (Error error : response.getErrors()) {
           if (sb.length() > 0) {

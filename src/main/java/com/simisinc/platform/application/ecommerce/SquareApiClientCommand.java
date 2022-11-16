@@ -42,7 +42,7 @@ public class SquareApiClientCommand {
 
   private static Log LOG = LogFactory.getLog(SquareApiClientCommand.class);
 
-  private static String SQUARE_API_VERSION = "2021-08-18";
+  private static String SQUARE_API_VERSION = "2022-09-21";
 
   public static JsonNode sendSquareHttpPost(String endpoint, String jsonString) {
 

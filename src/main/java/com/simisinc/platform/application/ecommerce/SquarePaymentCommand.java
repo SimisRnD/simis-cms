@@ -16,6 +16,16 @@
 
 package com.simisinc.platform.application.ecommerce;
 
+import static com.simisinc.platform.application.ecommerce.OrderStatusCommand.PAID;
+
+import java.math.BigDecimal;
+import java.sql.Timestamp;
+import java.util.UUID;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -31,15 +41,6 @@ import com.squareup.square.models.CreatePaymentRequest;
 import com.squareup.square.models.CreatePaymentResponse;
 import com.squareup.square.models.Error;
 import com.squareup.square.models.Money;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
-import java.math.BigDecimal;
-import java.sql.Timestamp;
-import java.util.UUID;
-
-import static com.simisinc.platform.application.ecommerce.OrderStatusCommand.PAID;
 
 /**
  * Commands for working with Square Payments
@@ -110,7 +111,8 @@ public class SquarePaymentCommand {
         new CreatePaymentRequest.Builder(order.getPaymentToken(), UUID.randomUUID().toString(), new Money(squareCentsAmount, "USD"))
 //            .orderId(squareOrderId?)
             .referenceId(order.getUniqueId())
-            .buyerEmailAddress(order.getEmail()).build();
+            .buyerEmailAddress(order.getEmail())
+            .build();
 
     try {
       // Create the JSON string
@@ -130,7 +132,7 @@ public class SquarePaymentCommand {
       if (response == null) {
         throw new DataException("The payment information could not be processed, please check your payment details");
       }
-      if (!response.getErrors().isEmpty()) {
+      if (response.getErrors() != null && !response.getErrors().isEmpty()) {
         StringBuilder sb = new StringBuilder();
         for (Error error : response.getErrors()) {
           if (sb.length() > 0) {

@@ -16,6 +16,18 @@
 
 package com.simisinc.platform.application.ecommerce;
 
+import static com.simisinc.platform.application.ecommerce.OrderStatusCommand.PAID;
+
+import java.math.BigDecimal;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import com.fasterxml.jackson.annotation.JsonInclude;
 import com.fasterxml.jackson.databind.DeserializationFeature;
 import com.fasterxml.jackson.databind.JsonNode;
@@ -25,23 +37,22 @@ import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.admin.SendEcommerceManagerEmailCommand;
 import com.simisinc.platform.domain.model.ecommerce.Address;
 import com.simisinc.platform.domain.model.ecommerce.Order;
-import com.simisinc.platform.domain.model.ecommerce.*;
+import com.simisinc.platform.domain.model.ecommerce.OrderItem;
+import com.simisinc.platform.domain.model.ecommerce.Product;
+import com.simisinc.platform.domain.model.ecommerce.ProductSku;
 import com.simisinc.platform.infrastructure.persistence.ecommerce.OrderItemRepository;
 import com.simisinc.platform.infrastructure.persistence.ecommerce.OrderRepository;
 import com.simisinc.platform.infrastructure.persistence.ecommerce.ProductSkuRepository;
+import com.squareup.square.models.CreateOrderRequest;
+import com.squareup.square.models.CreateOrderResponse;
+import com.squareup.square.models.CreatePaymentRequest;
+import com.squareup.square.models.CreatePaymentResponse;
 import com.squareup.square.models.Error;
-import com.squareup.square.models.*;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
-import java.math.BigDecimal;
-import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
-
-import static com.simisinc.platform.application.ecommerce.OrderStatusCommand.PAID;
+import com.squareup.square.models.Money;
+import com.squareup.square.models.OrderLineItem;
+import com.squareup.square.models.OrderLineItemDiscount;
+import com.squareup.square.models.OrderLineItemTax;
+import com.squareup.square.models.OrderServiceCharge;
 
 /**
  * Commands for working with Square Orders
@@ -117,9 +128,9 @@ public class SquareOrderCommand {
     // The top-level container for order information. Order objects include fields for line item details,
     // fulfillment details, and order summary data, including the location ID credited with the order,
     // and the total amount of taxes collected
-    com.squareup.square.models.Order.Builder squareOrderBuilder =
-        new com.squareup.square.models.Order.Builder(locationId)
-            .referenceId(order.getUniqueId());
+    com.squareup.square.models.Order.Builder squareOrderBuilder = new com.squareup.square.models.Order.Builder(
+        locationId)
+        .referenceId(order.getUniqueId());
 
     List<OrderLineItem> lineItems = new ArrayList<>();
     List<OrderItem> orderItemList = OrderItemRepository.findItemsByOrderId(order.getId());
@@ -156,11 +167,10 @@ public class SquareOrderCommand {
       //  "scope": "ORDER"
       List<OrderLineItemDiscount> discounts = new ArrayList<>();
       long squareCentsAmount = order.getDiscountAmount().multiply(new BigDecimal(100)).longValue();
-      OrderLineItemDiscount.Builder discountBuilder =
-          new OrderLineItemDiscount.Builder()
-              .amountMoney(new Money(squareCentsAmount, "USD"))
-              .type("FIXED_AMOUNT")
-              .scope("ORDER");
+      OrderLineItemDiscount.Builder discountBuilder = new OrderLineItemDiscount.Builder()
+          .amountMoney(new Money(squareCentsAmount, "USD"))
+          .type("FIXED_AMOUNT")
+          .scope("ORDER");
       if (StringUtils.isNotBlank(order.getPromoCode())) {
         discountBuilder.name("Promo code " + order.getPromoCode());
       }
@@ -229,7 +239,7 @@ public class SquareOrderCommand {
     }
 
     // Create the Square Order record (to track order details in Square)
-    CreateOrderRequest.Builder createOrderRequest = new CreateOrderRequest.Builder()
+    CreateOrderRequest.Builder createOrderRequestBuilder = new CreateOrderRequest.Builder()
         .idempotencyKey(UUID.randomUUID().toString())
         .order(squareOrderBuilder.build());
 
@@ -237,7 +247,7 @@ public class SquareOrderCommand {
       // Create the JSON string
       String data = new ObjectMapper()
           .setSerializationInclusion(JsonInclude.Include.NON_EMPTY)
-          .writeValueAsString(createOrderRequest);
+          .writeValueAsString(createOrderRequestBuilder.build());
 
       if (LOG.isDebugEnabled()) {
         LOG.debug("Order String: " + data);
@@ -259,7 +269,7 @@ public class SquareOrderCommand {
       if (LOG.isDebugEnabled()) {
         LOG.debug(response.toString());
       }
-      if (!response.getErrors().isEmpty()) {
+      if (response.getErrors() != null && !response.getErrors().isEmpty()) {
         StringBuilder sb = new StringBuilder();
         for (Error error : response.getErrors()) {
           if (sb.length() > 0) {
@@ -270,7 +280,8 @@ public class SquareOrderCommand {
             sb.append(errorDetail);
           }
         }
-        throw new DataException("The order information could not be processed, please check the following: " + sb.toString());
+        throw new DataException(
+            "The order information could not be processed, please check the following: " + sb.toString());
       }
 
       // Use the order for the payment
@@ -283,14 +294,15 @@ public class SquareOrderCommand {
     } catch (DataException de) {
       LOG.error("Square Order creation skipped for #" + order.getUniqueId(), de);
       // Let admins know something is wrong
-      SendEcommerceManagerEmailCommand.sendMessage("Square Order creation skipped for #" + order.getUniqueId(), null, de.getMessage());
+      SendEcommerceManagerEmailCommand.sendMessage("Square Order creation skipped for #" + order.getUniqueId(), null,
+          de.getMessage());
       return null;
     } catch (Exception e) {
       LOG.error("Exception when calling OrdersApi#createOrder", e);
-      throw new DataException("Sorry, a system error occurred contacting the processing company, please try again later");
+      throw new DataException(
+          "Sorry, a system error occurred contacting the processing company, please try again later");
     }
   }
-
 
   private static boolean payForOrder(Order order, boolean productionEnabled) throws DataException {
 
@@ -324,18 +336,18 @@ public class SquareOrderCommand {
     com.squareup.square.models.Address shippingAddress = shippingAddressBuilder.build();
 
     // Create the Square Payment record
-    CreatePaymentRequest.Builder createPaymentRequest =
-        new CreatePaymentRequest.Builder(order.getPaymentToken(), UUID.randomUUID().toString(), new Money(squareCentsAmount, "USD"))
-            .orderId(order.getSquareOrderId())
-            .referenceId(order.getUniqueId()) //Max 40 characters
-            .buyerEmailAddress(order.getEmail())
-            .shippingAddress(shippingAddress);
+    CreatePaymentRequest.Builder createPaymentRequestBuilder = new CreatePaymentRequest.Builder(order.getPaymentToken(),
+        UUID.randomUUID().toString(), new Money(squareCentsAmount, "USD"))
+        .orderId(order.getSquareOrderId())
+        .referenceId(order.getUniqueId()) //Max 40 characters
+        .buyerEmailAddress(order.getEmail())
+        .shippingAddress(shippingAddress);
 
     try {
       // Create the JSON string
       String data = new ObjectMapper()
           .setSerializationInclusion(JsonInclude.Include.NON_EMPTY)
-          .writeValueAsString(createPaymentRequest);
+          .writeValueAsString(createPaymentRequestBuilder.build());
 
       if (LOG.isDebugEnabled()) {
         LOG.debug("Payment String: " + data);
@@ -357,7 +369,7 @@ public class SquareOrderCommand {
       if (LOG.isDebugEnabled()) {
         LOG.debug(response.toString());
       }
-      if (!response.getErrors().isEmpty()) {
+      if (response.getErrors() != null && !response.getErrors().isEmpty()) {
         StringBuilder sb = new StringBuilder();
         for (Error error : response.getErrors()) {
           if (sb.length() > 0) {
@@ -368,7 +380,8 @@ public class SquareOrderCommand {
             sb.append(errorDetail);
           }
         }
-        throw new DataException("The payment information could not be processed, please check the following: " + sb.toString());
+        throw new DataException(
+            "The payment information could not be processed, please check the following: " + sb.toString());
       }
 
       // Update the order
@@ -381,7 +394,8 @@ public class SquareOrderCommand {
       order.setPaymentProcessor("square");
       order.setLive(productionEnabled);
       order.setChargeToken(payment.getId());
-      boolean isPaid = "APPROVED".equalsIgnoreCase(payment.getStatus()) || "COMPLETED".equalsIgnoreCase(payment.getStatus());
+      boolean isPaid = "APPROVED".equalsIgnoreCase(payment.getStatus())
+          || "COMPLETED".equalsIgnoreCase(payment.getStatus());
       if (isPaid) {
         order.setStatusId(statusId);
         order.setPaid(true);
@@ -415,12 +429,14 @@ public class SquareOrderCommand {
     } catch (DataException de) {
       // Let admins know something is wrong
       if (productionEnabled) {
-        SendEcommerceManagerEmailCommand.sendMessage("Square Order payment error occurred #" + order.getUniqueId(), null, de.getMessage());
+        SendEcommerceManagerEmailCommand.sendMessage("Square Order payment error occurred #" + order.getUniqueId(),
+            null, de.getMessage());
       }
       throw de;
     } catch (Exception e) {
       LOG.error("Exception when calling PaymentsApi#createPayment", e);
-      throw new DataException("Sorry, a system error occurred contacting the processing company, please try again later");
+      throw new DataException(
+          "Sorry, a system error occurred contacting the processing company, please try again later");
     }
     return false;
   }
