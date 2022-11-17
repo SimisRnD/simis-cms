@@ -26,7 +26,7 @@
     <c:forEach items="${pageRenderInfo.sectionRenderInfoList}" var="section" varStatus="sectionStatus">
       <c:set var="sectionId" scope="request" value="random${sectionStatus.index}"/>
       <c:if test="${!empty section.htmlId}">
-        <c:set var="section" scope="request" value="${section.htmlId}"/>
+        <c:set var="sectionId" scope="request" value="${section.htmlId}"/>
       </c:if>
       <c:if test="${section.hr}">
         <hr />
