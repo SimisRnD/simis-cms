@@ -413,7 +413,7 @@ This project uses and licenses several technologies:
    Simple Maps                 CC       City, country, Lat, Long                          https://simplemaps.com/data/world-cities
    Zip Codes                   Attrib.  Zip codes                                         http://federalgovernmentzipcodes.us/
 
- Services:
+ Optional Services:
 
    Boxzooka                    Shipping/Fulfillment                                       https://boxzooka.com
    Google Analytics            Analytics                                                  https://marketingplatform.google.com/about/analytics/
