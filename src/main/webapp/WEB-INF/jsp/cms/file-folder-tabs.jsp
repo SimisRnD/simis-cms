@@ -63,7 +63,7 @@
                         <span class="label"><a title="<c:out value="${file.title}" />" href="${ctx}/assets/file/${file.url}">File</a></span>
                       </c:when>
                       <c:when test="${fn:toLowerCase(file.fileType) eq 'url'}">
-                        <span class="label"><a target="_blank" title="<c:out value="${file.title}" />" href="${ctx}/assets/view/${file.url}"><c:out value="${folderCategory:name(file.categoryId)}" /></a></span>
+                        <span class="label"><a target="_blank" title="<c:out value="${file.title}" />" href="${ctx}/assets/view/${file.baseUrl}?ref=${url:encodeUri(file.filename)}"><c:out value="${folderCategory:name(file.categoryId)}" /></a></span>
                       </c:when>
                       <c:when test="${fn:toLowerCase(file.fileType) eq 'video' || fn:toLowerCase(file.fileType) eq 'pdf' || fn:toLowerCase(file.fileType) eq 'image'}">
                         <span class="label"><a target="_blank" title="<c:out value="${file.title}" />" href="${ctx}/assets/view/${file.url}"><c:out value="${folderCategory:name(file.categoryId)}" /></a></span>
