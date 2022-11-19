@@ -45,8 +45,12 @@ public class ReplaceFilePathCommand {
     newContent = updateFileReferences(newContent, "/assets/file/");
     return newContent;
   }
-    
+
   private static String updateFileReferences(String originalContent, String searchValue) {
+    if (originalContent == null) {
+      return originalContent;
+    }
+
     String content = originalContent;
 
     int idx = 0;
@@ -60,10 +64,18 @@ public class ReplaceFilePathCommand {
         break;
       }
 
-      // Extract the value...
+      // Extract the value... limit to a link
       int startIdx = idx + searchValue.length();
-      int endIdx = content.indexOf("/", startIdx);
-      if (endIdx <= 0) {
+      int endQuoteIdx = content.indexOf("\"", startIdx);
+      if (endQuoteIdx < 0) {
+        // didn't find a match
+        break;
+      }
+      int endIdx = content.indexOf("?", startIdx);
+      if (endIdx == -1) {
+        endIdx = content.indexOf("/", startIdx);
+      }
+      if (endIdx <= 0 || endIdx > endQuoteIdx) {
         // reached an invalid condition
         break;
       }
@@ -86,7 +98,7 @@ public class ReplaceFilePathCommand {
         continue;
       }
 
-      // Get the image
+      // Get the record
       FileItem file = FileItemRepository.findById(fileId);
       if (file == null) {
         continue;

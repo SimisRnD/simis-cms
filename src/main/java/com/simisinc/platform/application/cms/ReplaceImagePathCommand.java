@@ -32,6 +32,7 @@ import com.simisinc.platform.infrastructure.persistence.cms.ImageRepository;
 public class ReplaceImagePathCommand {
 
   private static Log LOG = LogFactory.getLog(ReplaceImagePathCommand.class);
+  private static final String SEARCH_VALUE = "/assets/img/";
 
   /**
    * Update image values in content
@@ -48,16 +49,24 @@ public class ReplaceImagePathCommand {
     while (idx > -1) {
 
       // Find the content
-      idx = content.indexOf("/assets/img/", idx);
+      idx = content.indexOf(SEARCH_VALUE, idx);
       if (idx < 0) {
-        // didn't find an image
+        // didn't find a match
         break;
       }
 
-      // Extract the value...
-      int startIdx = idx + "/assets/img/".length();
-      int endIdx = content.indexOf("/", startIdx);
-      if (endIdx <= 0) {
+      // Extract the value... limit to a link
+      int startIdx = idx + SEARCH_VALUE.length();
+      int endQuoteIdx = content.indexOf("\"", startIdx);
+      if (endQuoteIdx < 0) {
+        // didn't find a match
+        break;
+      }
+      int endIdx = content.indexOf("?", startIdx);
+      if (endIdx == -1) {
+        endIdx = content.indexOf("/", startIdx);
+      }
+      if (endIdx <= 0 || endIdx > endQuoteIdx) {
         // reached an invalid condition
         break;
       }
@@ -93,7 +102,7 @@ public class ReplaceImagePathCommand {
 
       // Replace the value
       String newWebPath = image.getWebPath();
-      content = StringUtils.replace(content, "/assets/img/" + webPath, "/assets/img/" + newWebPath);
+      content = StringUtils.replace(content, SEARCH_VALUE + webPath, SEARCH_VALUE + newWebPath);
     }
 
     return content;
