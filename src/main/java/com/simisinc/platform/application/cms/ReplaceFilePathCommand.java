@@ -20,27 +20,33 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import com.simisinc.platform.domain.model.cms.Image;
-import com.simisinc.platform.infrastructure.persistence.cms.ImageRepository;
+import com.simisinc.platform.domain.model.cms.FileItem;
+import com.simisinc.platform.infrastructure.persistence.cms.FileItemRepository;
 
 /**
- * Methods for updating image links in content
+ * Methods for updating file links in content
  *
  * @author matt rajkowski
- * @created 10/5/2022 8:10 PM
+ * @created 11/19/2022 7:57 AM
  */
-public class ReplaceImagePathCommand {
+public class ReplaceFilePathCommand {
 
-  private static Log LOG = LogFactory.getLog(ReplaceImagePathCommand.class);
+  private static Log LOG = LogFactory.getLog(ReplaceFilePathCommand.class);
 
   /**
-   * Update image values in content
+   * Update file values in content
    *
-   * @param blogPost
+   * @param content
    * @param value
    * @return
    */
-  public static String updateImageReferences(String originalContent) {
+  public static String updateFileReferences(String originalContent) {
+    String newContent = updateFileReferences(originalContent, "/assets/view/");
+    newContent = updateFileReferences(newContent, "/assets/file/");
+    return newContent;
+  }
+    
+  private static String updateFileReferences(String originalContent, String searchValue) {
     String content = originalContent;
 
     int idx = 0;
@@ -48,14 +54,14 @@ public class ReplaceImagePathCommand {
     while (idx > -1) {
 
       // Find the content
-      idx = content.indexOf("/assets/img/", idx);
+      idx = content.indexOf(searchValue, idx);
       if (idx < 0) {
-        // didn't find an image
+        // didn't find a match
         break;
       }
 
       // Extract the value...
-      int startIdx = idx + "/assets/img/".length();
+      int startIdx = idx + searchValue.length();
       int endIdx = content.indexOf("/", startIdx);
       if (endIdx <= 0) {
         // reached an invalid condition
@@ -81,19 +87,19 @@ public class ReplaceImagePathCommand {
       }
 
       // Get the image
-      Image image = ImageRepository.findById(fileId);
-      if (image == null) {
+      FileItem file = FileItemRepository.findById(fileId);
+      if (file == null) {
         continue;
       }
 
       // Confirm a change is needed
-      if (webPath.equals(image.getWebPath())) {
+      if (webPath.equals(file.getWebPath())) {
         continue;
       }
 
       // Replace the value
-      String newWebPath = image.getWebPath();
-      content = StringUtils.replace(content, "/assets/img/" + webPath, "/assets/img/" + newWebPath);
+      String newWebPath = file.getWebPath();
+      content = StringUtils.replace(content, searchValue + webPath, searchValue + newWebPath);
     }
 
     return content;
