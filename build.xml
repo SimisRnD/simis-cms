@@ -409,15 +409,12 @@
     <exec executable="mvn">
       <arg value="dependency:tree" />
       <arg value="-DoutputType=dot" />
-      <arg value="--file=mvn-pom.xml" />
     </exec>
   </target>
 
   <target name="snyk">
     <exec executable="snyk">
       <arg value="test" />
-      <arg value="--file=mvn-pom.xml" />
-      <arg value="--package-manager=maven" />
     </exec>
   </target>
 

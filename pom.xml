@@ -3,11 +3,22 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.simisinc</groupId>
   <artifactId>simis-cms</artifactId>
-  <version>20221028.10000-SNAPSHOT</version>
+  <version>20221119.10002-SNAPSHOT</version>
   <name>SimIS CMS</name>
-  <description>Agile, Enterprise, Open Source Content Management System (CMS) and Portal</description>
   <url>https://www.simiscms.com</url>
-  <packaging>war</packaging>
+  <description>Agile, Enterprise, Open Source Content Management System (CMS) and Web Portal</description>
+  <organization>
+    <name>SimIS Inc.</name>
+    <url>https://www.simisinc.com</url>
+  </organization>
+  <licenses>
+    <license>
+      <name>Apache License 2.0</name>
+      <url>http://www.apache.org/licenses/LICENSE-2.0</url>
+    </license>
+  </licenses>
+  <!-- NOTE: war does not generate a production war with compiled JSPs and settings, use ant package -->
+  <packaging>jar</packaging>
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <java.version>11</java.version>
@@ -533,6 +544,26 @@
           </execution>
         </executions>
       </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-antrun-plugin</artifactId>
+        <version>3.1.0</version>
+        <executions>
+          <execution>
+            <phase>validate</phase>
+            <configuration>
+              <target>
+                <ant antfile="${basedir}/build.xml">
+                  <target name="package"/>
+                </ant>
+              </target>
+            </configuration>
+            <goals>
+              <goal>run</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
       <!--
       <plugin>
         <groupId>io.leonard.maven.plugins</groupId>
@@ -573,7 +604,7 @@
       </plugin>
       -->
       <!-- war and war:exploded -->
-      <plugin>
+      <!-- <plugin>
         <artifactId>maven-war-plugin</artifactId>
         <version>${maven-war-plugin.version}</version>
         <configuration>
@@ -590,7 +621,7 @@
             </resource>
           </webResources>
         </configuration>
-      </plugin>
+      </plugin> -->
       <plugin>
         <groupId>org.jacoco</groupId>
         <artifactId>jacoco-maven-plugin</artifactId>

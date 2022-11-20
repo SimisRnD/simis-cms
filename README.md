@@ -183,8 +183,8 @@ For development, it is recommended to run and debug directly as a process in you
 ```bash
 npm install -g snyk
 snyk auth
-snyk test --file=mvn-pom.xml --package-manager=maven
-snyk monitor --file=mvn-pom.xml --package-manager=maven
+snyk test
+snyk monitor
 ```
 
 ### Pipeline Build Stage
