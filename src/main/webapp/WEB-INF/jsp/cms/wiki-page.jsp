@@ -23,10 +23,10 @@
 <jsp:useBean id="wikiPage" class="com.simisinc.platform.domain.model.cms.WikiPage" scope="request"/>
 <jsp:useBean id="wikiLinkPrefix" class="java.lang.String" scope="request"/>
 <jsp:useBean id="mermaid" class="java.lang.String" scope="request"/>
-<link rel="stylesheet" href="${ctx}/css/prism-1.15.0/prism.css">
-<script src="${ctx}/javascript/prism-1.15.0/prism.min.js"></script>
+<link rel="stylesheet" href="${ctx}/javascript/prism-1.29.0/prism.css">
+<script src="${ctx}/javascript/prism-1.29.0/prism.min.js"></script>
 <c:if test="${mermaid eq 'true'}">
-<script src="${ctx}/javascript/mermaid-9.1.3/mermaid.min.js"></script>
+<script src="${ctx}/javascript/mermaid-9.2.2/mermaid.min.js"></script>
 </c:if>
 <c:choose>
   <c:when test="${wiki.startingPage eq wikiPage.id && !empty title}">

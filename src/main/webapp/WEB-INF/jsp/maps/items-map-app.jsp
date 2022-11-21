@@ -26,11 +26,11 @@
 <jsp:useBean id="mapZoomLevel" class="java.lang.String" scope="request"/>
 <jsp:useBean id="itemList" class="java.util.ArrayList" scope="request"/>
 <%-- Leaflet JS + Marker Cluster --%>
-<link rel="stylesheet" href="${ctx}/css/leaflet-1.6.0/leaflet.css" />
-<link rel="stylesheet" href="${ctx}/css/leaflet-markercluster-1.4.1/MarkerCluster.css" />
-<link rel="stylesheet" href="${ctx}/css/leaflet-markercluster-1.4.1/MarkerCluster.Default.css" />
-<script src="${ctx}/javascript/leaflet-1.6.0/leaflet.js"></script>
-<script src="${ctx}/javascript/leaflet-markercluster-1.4.1/leaflet.markercluster.js"></script>
+<link rel="stylesheet" href="${ctx}/javascript/leaflet-1.9.3/leaflet.css" />
+<link rel="stylesheet" href="${ctx}/javascript/leaflet.markercluster-1.5.3/MarkerCluster.css" />
+<link rel="stylesheet" href="${ctx}/javascript/leaflet.markercluster-1.5.3/MarkerCluster.Default.css" />
+<script src="${ctx}/javascript/leaflet-1.9.3/leaflet.js"></script>
+<script src="${ctx}/javascript/leaflet.markercluster-1.5.3/leaflet.markercluster.js"></script>
 <%-- Render the widget --%>
 <style>
   .leaflet-popup-content h5,

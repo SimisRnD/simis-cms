@@ -27,7 +27,7 @@
 <jsp:useBean id="buttonName" class="java.lang.String" scope="request"/>
 <jsp:useBean id="showPrice" class="java.lang.String" scope="request"/>
 <link rel="stylesheet" href="${ctx}/css/platform-ecommerce.css?v=<%= VERSION %>" />
-<script type="text/javascript" src="${ctx}/javascript/jquery-format-currency-1.4.0/jquery.formatCurrency-1.4.0.min.js"></script>
+<script type="text/javascript" src="${ctx}/javascript/jquery-formatcurrency-1.6.3/jquery.formatCurrency.min.js"></script>
 <script>
   function updatePrice() {
     var qty = $('#quantity').find(":selected").text();
