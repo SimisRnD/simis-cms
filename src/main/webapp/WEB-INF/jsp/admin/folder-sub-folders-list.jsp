@@ -29,7 +29,7 @@
 <jsp:useBean id="subFolderList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="canEdit" class="java.lang.String" scope="request"/>
 <jsp:useBean id="canDelete" class="java.lang.String" scope="request"/>
-<script src="${ctx}/javascript/clipboard-2.0.4/clipboard.min.js"></script>
+<script src="${ctx}/javascript/clipboard-2.0.11/clipboard.min.js"></script>
 <button class="button small primary radius float-left" data-open="formReveal${widgetContext.uniqueId}"><i class="fa fa-plus"></i> Add Sub-Folder</button>
 <table class="unstriped">
   <thead>
