@@ -253,7 +253,7 @@
     <script src="${ctx}/javascript/jquery-3.6.1/jquery-3.6.1.min.js"></script>
     <script src="${ctx}/javascript/foundation-datepicker-20180424/foundation-datepicker.min.js"></script>
     <script src="${ctx}/javascript/autocomplete-1.0.7/auto-complete.js"></script>
-    <script src="${ctx}/javascript/js-cookie-2.2.1/js.cookie.min.js"></script>
+    <script src="${ctx}/javascript/js-cookie-3.0.1/js.cookie.min.js"></script>
     <script src="${ctx}/javascript/swiper-8.4.2/swiper-bundle.min.js"></script>
   </g:compress>
 </head>
