@@ -183,8 +183,8 @@ For development, it is recommended to run and debug directly as a process in you
 ```bash
 npm install -g snyk
 snyk auth
-snyk test
-snyk monitor
+snyk test --all-projects
+snyk monitor --all-projects
 ```
 
 ### Pipeline Build Stage
