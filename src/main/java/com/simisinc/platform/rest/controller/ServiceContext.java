@@ -38,6 +38,7 @@ public class ServiceContext implements Serializable {
   private HttpServletRequest request = null;
   private HttpServletResponse response = null;
   private String pathParam = null;
+  private String pathParam2 = null;
   private Map<String, String[]> parameterMap = null;
 
   private App app = null;
@@ -152,6 +153,14 @@ public class ServiceContext implements Serializable {
       return Integer.parseInt(value);
     }
     return defaultValue;
+  }
+
+  public String getPathParam2() {
+    return pathParam2;
+  }
+
+  public void setPathParam2(String pathParam2) {
+    this.pathParam2 = pathParam2;
   }
 
 }

@@ -16,13 +16,11 @@
 
 package com.simisinc.platform.rest.controller;
 
-import com.simisinc.platform.application.cms.SaveWebPageHitCommand;
-import com.simisinc.platform.application.json.JsonCommand;
-import com.simisinc.platform.domain.model.App;
-import com.simisinc.platform.domain.model.User;
-import com.simisinc.platform.presentation.controller.RequestConstants;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.lang.reflect.Method;
+import java.util.HashMap;
+import java.util.Map;
 
 import javax.json.bind.Jsonb;
 import javax.json.bind.JsonbBuilder;
@@ -32,11 +30,17 @@ import javax.servlet.annotation.MultipartConfig;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.lang.reflect.Method;
-import java.util.HashMap;
-import java.util.Map;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.cms.SaveWebPageHitCommand;
+import com.simisinc.platform.application.json.JsonCommand;
+import com.simisinc.platform.domain.model.App;
+import com.simisinc.platform.domain.model.User;
+import com.simisinc.platform.presentation.controller.RequestConstants;
 
 import static javax.servlet.http.HttpServletResponse.SC_NOT_FOUND;
 
@@ -47,8 +51,8 @@ import static javax.servlet.http.HttpServletResponse.SC_NOT_FOUND;
  * @created 7/17/18 1:51 PM
  */
 @MultipartConfig(fileSizeThreshold = 1024 * 1024 * 2, // 2MB
-    maxFileSize = 1024 * 1024 * 30,      // 30MB
-    maxRequestSize = 1024 * 1024 * 50)   // 50MB
+    maxFileSize = 1024 * 1024 * 30, // 30MB
+    maxRequestSize = 1024 * 1024 * 50) // 50MB
 public class RestServlet extends HttpServlet {
 
   private static Log LOG = LogFactory.getLog(RestServlet.class);
@@ -96,7 +100,27 @@ public class RestServlet extends HttpServlet {
 
     long startRequestTime = System.currentTimeMillis();
 
-    LOG.trace("Service processor...");
+    LOG.debug("Service processor...");
+
+    // Determine request values
+    String requestMethod = request.getMethod().toLowerCase();
+    String contextPath = request.getServletContext().getContextPath();
+    String requestURI = request.getRequestURI();
+    String endpoint = requestURI.substring(contextPath.length() + "/api/".length());
+    String pathParam = null;
+    String pathParam2 = null;
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("method: " + requestMethod);
+      LOG.debug("contextPath: " + contextPath);
+      LOG.debug("requestURI: " + requestURI);
+      LOG.debug("endpoint: " + endpoint);
+    }
+
+    // Prep the response
+    String siteUrl = LoadSitePropertyCommand.loadByName("site.url");
+    if (StringUtils.isNotBlank(request.getHeader("Origin")) && StringUtils.isNotBlank(siteUrl)) {
+      response.addHeader("Access-Control-Allow-Origin", siteUrl);
+    }
     response.setContentType("application/json");
     try {
       response.setCharacterEncoding("UTF-8");
@@ -105,14 +129,8 @@ public class RestServlet extends HttpServlet {
       LOG.warn("Unsupported encoding UTF-8: " + e.getMessage());
     }
 
+    // Determine the resource
     try {
-      // Determine the resource
-      String contextPath = request.getServletContext().getContextPath();
-      String requestURI = request.getRequestURI();
-      String endpoint = requestURI.substring(contextPath.length() + "/api/".length());
-      String pathParam = null;
-      String pathParam2 = null;
-
       // Get the cached class reference for processing
       Object classRef = serviceInstances.get(endpoint);
       String pathEndpoint = null;
@@ -120,18 +138,13 @@ public class RestServlet extends HttpServlet {
         LOG.debug("Could not find endpoint: " + endpoint);
         if (endpoint.contains("/")) {
           // Try as a pathParam
-          pathEndpoint = endpoint.substring(0, endpoint.lastIndexOf("/"));
-          pathParam = endpoint.substring(endpoint.lastIndexOf("/") + 1);
+          pathEndpoint = endpoint.substring(0, endpoint.indexOf("/"));
+          pathParam = endpoint.substring(endpoint.indexOf("/") + 1);
+          if (pathParam.contains("/")) {
+            pathParam2 = pathParam.substring(pathParam.indexOf("/") + 1);
+            pathParam = pathParam.substring(0, pathParam.indexOf("/"));
+          }
           classRef = serviceInstances.get(pathEndpoint);
-        }
-      }
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("contextPath: " + contextPath);
-        LOG.debug("requestURI: " + requestURI);
-        LOG.debug("endpoint: " + endpoint);
-        if (pathEndpoint != null) {
-          LOG.debug("pathEndpoint: " + pathEndpoint);
-          LOG.debug("pathParam: " + pathParam);
         }
       }
       if (classRef == null) {
@@ -139,23 +152,33 @@ public class RestServlet extends HttpServlet {
         sendError(response, SC_NOT_FOUND, "Endpoint not found");
         return;
       }
+      if (LOG.isDebugEnabled()) {
+        if (pathEndpoint != null) {
+          LOG.debug("pathEndpoint: " + pathEndpoint);
+          LOG.debug("pathParam: " + pathParam);
+          LOG.debug("pathParam2: " + pathParam2);
+        }
+      }
 
       // Determine the method
       String methodName = "get";
-      if ("post".equalsIgnoreCase(request.getMethod())) {
+      if ("post".equals(requestMethod)) {
         methodName = "post";
-      } else if ("put".equalsIgnoreCase(request.getMethod())) {
+      } else if ("put".equals(requestMethod)) {
         methodName = "put";
-      } else if ("delete".equalsIgnoreCase(request.getMethod())) {
+      } else if ("delete".equals(requestMethod)) {
         methodName = "delete";
       }
 
       // REST endpoint hits
-      SaveWebPageHitCommand.saveHit(request.getRemoteAddr(), request.getMethod(), "/api/" + (pathEndpoint != null ? pathEndpoint : endpoint), (User) request.getAttribute(RequestConstants.REST_USER));
+      SaveWebPageHitCommand.saveHit(request.getRemoteAddr(), request.getMethod(),
+          "/api/" + (pathEndpoint != null ? pathEndpoint : endpoint),
+          (User) request.getAttribute(RequestConstants.REST_USER));
 
       // Setup the context for this service processor
       ServiceContext serviceContext = new ServiceContext(request, response);
       serviceContext.setPathParam(pathParam);
+      serviceContext.setPathParam2(pathParam2);
       serviceContext.setParameterMap(request.getParameterMap());
       serviceContext.setApp((App) request.getAttribute(RequestConstants.REST_APP));
       serviceContext.setUser((User) request.getAttribute(RequestConstants.REST_USER));
@@ -169,8 +192,8 @@ public class RestServlet extends HttpServlet {
         } else {
           LOG.debug("Executing service: " + endpoint);
         }
-        Method method = classRef.getClass().getMethod(methodName, new Class[]{serviceContext.getClass()});
-        result = (ServiceResponse) method.invoke(classRef, new Object[]{serviceContext});
+        Method method = classRef.getClass().getMethod(methodName, new Class[] { serviceContext.getClass() });
+        result = (ServiceResponse) method.invoke(classRef, new Object[] { serviceContext });
       } catch (NoSuchMethodException nm) {
         LOG.error("No Such Method Exception for method execute. MESSAGE = " + nm.getMessage(), nm);
       } catch (IllegalAccessException ia) {

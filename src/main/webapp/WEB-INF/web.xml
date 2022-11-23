@@ -46,6 +46,7 @@
   </filter-mapping>
   <filter-mapping>
     <filter-name>RestRequestFilter</filter-name>
+    <url-pattern>/api</url-pattern>
     <url-pattern>/api/*</url-pattern>
   </filter-mapping>
   <servlet>
@@ -97,6 +98,7 @@
   </servlet-mapping>
   <servlet-mapping>
     <servlet-name>RestServlet</servlet-name>
+    <url-pattern>/api</url-pattern>
     <url-pattern>/api/*</url-pattern>
   </servlet-mapping>
   <servlet-mapping>
