@@ -2,6 +2,7 @@
     "java.project.referencedLibraries": [
         "lib/build/**/*.jar",
         "lib/compile/**/*.jar",
+        "lib/style/**/*.jar",
         "lib/tests/**/*.jar",
         "lib/war/**/*.jar",
         "lib/**/*.jar"
@@ -25,5 +26,6 @@
         "src/main/java",
         "src/test/java"
     ],
-    "java.configuration.updateBuildConfiguration": "disabled"
+    "java.configuration.updateBuildConfiguration": "disabled",
+    "java.compile.nullAnalysis.mode": "automatic"
 }
