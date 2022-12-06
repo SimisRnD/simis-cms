@@ -82,7 +82,7 @@ public class WebRequestFilter implements Filter {
 
   public void init(FilterConfig config) throws ServletException {
     LOG.info("WebRequestFilter starting up...");
-    String startupSuccessful = (String) config.getServletContext().getAttribute("STARTUP_SUCCESSFUL");
+    String startupSuccessful = (String) config.getServletContext().getAttribute(ContextConstants.STARTUP_SUCCESSFUL);
     if (!"true".equals(startupSuccessful)) {
       throw new ServletException("Startup failed due to previous error");
     }

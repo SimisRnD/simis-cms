@@ -27,6 +27,7 @@ import com.simisinc.platform.domain.model.login.UserLogin;
 import com.simisinc.platform.domain.model.login.UserToken;
 import com.simisinc.platform.infrastructure.persistence.login.UserLoginRepository;
 import com.simisinc.platform.infrastructure.persistence.login.UserTokenRepository;
+import com.simisinc.platform.presentation.controller.ContextConstants;
 import com.simisinc.platform.presentation.controller.RequestConstants;
 import com.simisinc.platform.presentation.controller.UserSession;
 import org.apache.commons.codec.binary.Base64;
@@ -65,7 +66,7 @@ public class RestRequestFilter implements Filter {
   @Override
   public void init(FilterConfig config) throws ServletException {
     LOG.info("RestRequestFilter starting up...");
-    String startupSuccessful = (String) config.getServletContext().getAttribute("STARTUP_SUCCESSFUL");
+    String startupSuccessful = (String) config.getServletContext().getAttribute(ContextConstants.STARTUP_SUCCESSFUL);
     if (!"true".equals(startupSuccessful)) {
       throw new ServletException("Startup failed due to previous error");
     }

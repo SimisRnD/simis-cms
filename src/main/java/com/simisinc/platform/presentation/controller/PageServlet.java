@@ -71,7 +71,7 @@ public class PageServlet extends HttpServlet {
   public void init(ServletConfig config) throws ServletException {
 
     LOG.info("PageServlet starting up...");
-    String startupSuccessful = (String) config.getServletContext().getAttribute("STARTUP_SUCCESSFUL");
+    String startupSuccessful = (String) config.getServletContext().getAttribute(ContextConstants.STARTUP_SUCCESSFUL);
     if (!"true".equals(startupSuccessful)) {
       throw new ServletException("Startup failed due to previous error");
     }

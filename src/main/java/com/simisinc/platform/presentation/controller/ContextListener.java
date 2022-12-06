@@ -16,6 +16,26 @@
 
 package com.simisinc.platform.presentation.controller;
 
+import static com.simisinc.platform.infrastructure.cache.CacheManager.CONTENT_UNIQUE_ID_CACHE;
+
+import java.io.File;
+import java.io.InputStream;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.time.ZonedDateTime;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Properties;
+
+import javax.servlet.ServletContextEvent;
+import javax.servlet.ServletContextListener;
+import javax.servlet.jsp.jstl.core.Config;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import com.simisinc.platform.ApplicationInfo;
 import com.simisinc.platform.application.admin.DatabaseCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
@@ -27,9 +47,6 @@ import com.simisinc.platform.infrastructure.persistence.cms.ContentRepository;
 import com.simisinc.platform.infrastructure.scheduler.SchedulerManager;
 import com.simisinc.platform.infrastructure.scheduler.cms.LoadSystemFilesJob;
 import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
@@ -107,12 +124,12 @@ public class ContextListener implements ServletContextListener {
       if (!DatabaseCommand.initialize(databaseProperties)) {
         isSuccessful = false;
         LOG.error("Could not initialize the database");
-        servletContextEvent.getServletContext().setAttribute("STARTUP_FAILED", "database");
+        servletContextEvent.getServletContext().setAttribute(ContextConstants.STARTUP_FAILED, "database");
       }
     } catch (Exception e) {
       isSuccessful = false;
       LOG.error("Could not find database properties", e);
-      servletContextEvent.getServletContext().setAttribute("STARTUP_FAILED", "database");
+      servletContextEvent.getServletContext().setAttribute(ContextConstants.STARTUP_FAILED, "database");
     }
 
     // Startup the CacheManager (Before any LoadSitePropertyCommand.loadByName() can be used)
@@ -125,7 +142,7 @@ public class ContextListener implements ServletContextListener {
     if (StringUtils.isBlank(serverRootPath)) {
       LOG.error("Missing system.filepath");
       isSuccessful = false;
-      servletContextEvent.getServletContext().setAttribute("STARTUP_FAILED", "missing system.filepath in database");
+      servletContextEvent.getServletContext().setAttribute(ContextConstants.STARTUP_FAILED, "missing system.filepath in database");
     } else {
       File directory = new File(serverRootPath);
       if (!directory.exists()) {
@@ -135,7 +152,7 @@ public class ContextListener implements ServletContextListener {
       if (!directory.isDirectory()) {
         isSuccessful = false;
         LOG.error("Check system.filepath, directory was not found: " + serverRootPath);
-        servletContextEvent.getServletContext().setAttribute("STARTUP_FAILED", "system.filepath setting exists but the directory '" + serverRootPath + "' was not found");
+        servletContextEvent.getServletContext().setAttribute(ContextConstants.STARTUP_FAILED, "system.filepath setting exists but the directory '" + serverRootPath + "' was not found");
       }
     }
 
