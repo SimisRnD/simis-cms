@@ -30,6 +30,9 @@
       <excludeFolder url="file://$MODULE_DIR$/exploded" />
       <excludeFolder url="file://$MODULE_DIR$/styles" />
       <excludeFolder url="file://$MODULE_DIR$/target" />
+      <excludeFolder url="file://$MODULE_DIR$/.idea/copyright" />
+      <excludeFolder url="file://$MODULE_DIR$/.idea/dataSources" />
+      <excludeFolder url="file://$MODULE_DIR$/.idea/httpRequests" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />

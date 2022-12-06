@@ -40,3 +40,4 @@ cspell.json
 .idea/**/uiDesigner.xml
 .idea/**/dbnavigator.xml
 .idea/httpRequests
+.idea/php.xml
