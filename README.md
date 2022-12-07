@@ -346,7 +346,9 @@ This project uses and licenses several technologies:
 
    Apache Commons              Apache   Utilities                                         https://commons.apache.org
    Argon2                      LGPL     Password hashing                                  https://github.com/phxql/argon2-jvm
+   Bucket4J                    Apache   Rate limiting                                     https://github.com/bucket4j/bucket4j
    Caffeine                    Apache   High performance cache                            https://github.com/ben-manes/caffeine
+   ClassGraph                  MIT      Module scanner                                    https://github.com/classgraph/classgraph
    Easy Flows Playbooks EditionMIT      Workflow engine                                   https://github.com/rajkowski/easy-flows
    FlexMark                    BSD2     Markdown parsing                                  https://github.com/vsch/flexmark-java
    Flyway                      Apache   Database scripts install and upgrade tracking     https://github.com/flyway/flyway
@@ -360,12 +362,15 @@ This project uses and licenses several technologies:
    Jackson Core Utils          LGPL     Json Parser Utility                               https://github.com/fge/jackson-coreutils
    JavaMail                    CDDL     Mail library                                      https://javaee.github.io/javamail/
    Jobrunr                     LGPL     Job scheduler                                     https://github.com/jobrunr/jobrunr
-   Johnzon                     Apache   Json Processing                                   https://johnzon.apache.org
+   Johnzon                     Apache   Json processing                                   https://johnzon.apache.org
+   JSON Schema Validator       Apache   JSON schema validator                             https://github.com/networknt/json-schema-validator
    JSoup                       MIT      HTML cleansing                                    https://github.com/jhy/jsoup/
+   JSTL                        Eclipse  Servlet tag library                               https://github.com/eclipse-ee4j/jstl-api
    JUnit5                      Apache   Unit testing framework                            https://junit.org/junit5/
    libphonenumber              Apache   Phone number validation                           https://github.com/google/libphonenumber
    PostgreSQL                  BSD      Database driver                                   https://jdbc.postgresql.org
    Pushy                       MIT      Push notifications                                https://github.com/relayrides/pushy
+   RabbitMQ                    Apache   RabbitMQ java client library                      https://www.rabbitmq.com/java-client.html
    RestFB                      MIT      Facebook Graph API client                         https://github.com/restfb/restfb
    ROME                        Apache   RSS                                               https://github.com/rometools/rome
    SLF4j                       MIT      Logger                                            https://github.com/qos-ch/slf4j
