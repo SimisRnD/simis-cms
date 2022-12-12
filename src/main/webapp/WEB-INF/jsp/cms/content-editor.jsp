@@ -19,7 +19,7 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="content" class="com.simisinc.platform.domain.model.cms.Content" scope="request"/>
 <jsp:useBean id="isDraft" class="java.lang.String" scope="request"/>
-<script src="${ctx}/javascript/tinymce-6.1.2/tinymce.min.js"></script>
+<script src="${ctx}/javascript/tinymce-6.3.1/tinymce.min.js"></script>
 <script>
   $(window).on('resize', function () {
     setTimeout(function () {
@@ -51,7 +51,9 @@
     browser_spellcheck: true,
     plugins: 'advlist autolink lists link image charmap preview anchor searchreplace visualblocks code media table wordcount fontawesome',
     toolbar: 'link image media table | undo redo | blocks | bold italic backcolor | alignleft aligncenter alignright alignjustify | bullist numlist outdent indent hr anchor | fontawesome removeformat visualblocks code',
-
+    external_plugins: {
+        "fontawesome": "${ctx}/javascript/tinymce-plugins/fontawesome/plugin.min.js"
+    },
     image_class_list: [
       {title: 'None', value: ''},
       {title: 'Image Left/Wrap Text Right', value: 'image-left'},
