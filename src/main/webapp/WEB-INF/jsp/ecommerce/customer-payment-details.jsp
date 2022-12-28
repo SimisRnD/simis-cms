@@ -16,9 +16,9 @@
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
-<%@ taglib prefix="url" uri="/WEB-INF/url-functions.tld" %>
-<%@ taglib prefix="text" uri="/WEB-INF/text-functions.tld" %>
-<%@ taglib prefix="product" uri="/WEB-INF/product-functions.tld" %>
+<%@ taglib prefix="url" uri="/WEB-INF/tlds/url-functions.tld" %>
+<%@ taglib prefix="text" uri="/WEB-INF/tlds/text-functions.tld" %>
+<%@ taglib prefix="product" uri="/WEB-INF/tlds/product-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="card" class="com.simisinc.platform.domain.model.ecommerce.Card" scope="request"/>

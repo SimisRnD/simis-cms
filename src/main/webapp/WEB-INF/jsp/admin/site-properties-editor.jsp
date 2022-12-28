@@ -15,7 +15,7 @@
   --%>
 <%@ page import="java.util.TimeZone" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
-<%@ taglib prefix="html" uri="/WEB-INF/html-functions.tld" %>
+<%@ taglib prefix="html" uri="/WEB-INF/tlds/html-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="sitePropertyList" class="java.util.ArrayList" scope="request"/>

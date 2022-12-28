@@ -9,7 +9,8 @@
     ],
     "java.dependency.syncWithFolderExplorer": true,
     "cSpell.words": [
-        "Servlet"
+        "Servlet",
+        "tlds"
     ],
     "java.test.defaultConfig": "webConfig",
     "java.test.config": [

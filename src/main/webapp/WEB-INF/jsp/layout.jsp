@@ -16,9 +16,9 @@
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
-<%@ taglib prefix="font" uri="/WEB-INF/font-functions.tld" %>
-<%@ taglib prefix="js" uri="/WEB-INF/javascript-escape.tld" %>
-<%@ taglib prefix="url" uri="/WEB-INF/url-functions.tld" %>
+<%@ taglib prefix="font" uri="/WEB-INF/tlds/font-functions.tld" %>
+<%@ taglib prefix="js" uri="/WEB-INF/tlds/javascript-escape.tld" %>
+<%@ taglib prefix="url" uri="/WEB-INF/tlds/url-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="headerRenderInfo" class="com.simisinc.platform.presentation.controller.HeaderRenderInfo" scope="request"/>
 <jsp:useBean id="footerRenderInfo" class="com.simisinc.platform.presentation.controller.FooterRenderInfo" scope="request"/>

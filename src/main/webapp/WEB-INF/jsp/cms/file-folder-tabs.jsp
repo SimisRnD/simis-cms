@@ -16,12 +16,12 @@
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
-<%@ taglib prefix="html" uri="/WEB-INF/html-functions.tld" %>
-<%@ taglib prefix="text" uri="/WEB-INF/text-functions.tld" %>
-<%@ taglib prefix="url" uri="/WEB-INF/url-functions.tld" %>
-<%@ taglib prefix="date" uri="/WEB-INF/date-functions.tld" %>
-<%@ taglib prefix="number" uri="/WEB-INF/number-functions.tld" %>
-<%@ taglib prefix="folderCategory" uri="/WEB-INF/folder-category-functions.tld" %>
+<%@ taglib prefix="html" uri="/WEB-INF/tlds/html-functions.tld" %>
+<%@ taglib prefix="text" uri="/WEB-INF/tlds/text-functions.tld" %>
+<%@ taglib prefix="url" uri="/WEB-INF/tlds/url-functions.tld" %>
+<%@ taglib prefix="date" uri="/WEB-INF/tlds/date-functions.tld" %>
+<%@ taglib prefix="number" uri="/WEB-INF/tlds/number-functions.tld" %>
+<%@ taglib prefix="folderCategory" uri="/WEB-INF/tlds/folder-category-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="useViewer" class="java.lang.String" scope="request"/>

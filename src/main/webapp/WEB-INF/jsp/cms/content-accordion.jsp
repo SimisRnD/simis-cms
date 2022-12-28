@@ -14,9 +14,9 @@
   ~ limitations under the License.
   --%>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
-<%@ taglib prefix="font" uri="/WEB-INF/font-functions.tld" %>
-<%@ taglib prefix="html" uri="/WEB-INF/html-functions.tld" %>
-<%@ taglib prefix="js" uri="/WEB-INF/javascript-escape.tld" %>
+<%@ taglib prefix="font" uri="/WEB-INF/tlds/font-functions.tld" %>
+<%@ taglib prefix="html" uri="/WEB-INF/tlds/html-functions.tld" %>
+<%@ taglib prefix="js" uri="/WEB-INF/tlds/javascript-escape.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="isDraft" class="java.lang.String" scope="request"/>

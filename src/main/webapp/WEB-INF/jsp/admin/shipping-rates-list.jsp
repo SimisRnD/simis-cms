@@ -15,9 +15,9 @@
   --%>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
-<%@ taglib prefix="js" uri="/WEB-INF/javascript-escape.tld" %>
-<%@ taglib prefix="url" uri="/WEB-INF/url-functions.tld" %>
-<%@ taglib prefix="number" uri="/WEB-INF/number-functions.tld" %>
+<%@ taglib prefix="js" uri="/WEB-INF/tlds/javascript-escape.tld" %>
+<%@ taglib prefix="url" uri="/WEB-INF/tlds/url-functions.tld" %>
+<%@ taglib prefix="number" uri="/WEB-INF/tlds/number-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="shippingRateList" class="java.util.ArrayList" scope="request"/>

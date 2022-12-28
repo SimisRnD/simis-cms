@@ -16,8 +16,8 @@
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
-<%@ taglib prefix="url" uri="/WEB-INF/url-functions.tld" %>
-<%@ taglib prefix="text" uri="/WEB-INF/text-functions.tld" %>
+<%@ taglib prefix="url" uri="/WEB-INF/tlds/url-functions.tld" %>
+<%@ taglib prefix="text" uri="/WEB-INF/tlds/text-functions.tld" %>
 <jsp:useBean id="classData" class="java.lang.String" scope="request"/>
 <jsp:useBean id="title" class="java.lang.String" scope="request"/>
 <jsp:useBean id="icon" class="java.lang.String" scope="request"/>

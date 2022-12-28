@@ -16,10 +16,10 @@
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
-<%@ taglib prefix="html" uri="/WEB-INF/html-functions.tld" %>
-<%@ taglib prefix="text" uri="/WEB-INF/text-functions.tld" %>
-<%@ taglib prefix="url" uri="/WEB-INF/url-functions.tld" %>
-<%@ taglib prefix="number" uri="/WEB-INF/number-functions.tld" %>
+<%@ taglib prefix="html" uri="/WEB-INF/tlds/html-functions.tld" %>
+<%@ taglib prefix="text" uri="/WEB-INF/tlds/text-functions.tld" %>
+<%@ taglib prefix="url" uri="/WEB-INF/tlds/url-functions.tld" %>
+<%@ taglib prefix="number" uri="/WEB-INF/tlds/number-functions.tld" %>
 <jsp:useBean id="dashboardValue" class="java.lang.String" scope="request"/>
 <jsp:useBean id="hideChartControls" class="java.lang.String" scope="request"/>
 <jsp:useBean id="hideChartTitle" class="java.lang.String" scope="request"/>
