@@ -83,6 +83,10 @@ public class XMLFooterLoader implements Serializable {
   private static Document readDocument(ServletContext context, String file)
       throws FactoryConfigurationError, ParserConfigurationException, SAXException, IOException {
     DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+    factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+    factory.setXIncludeAware(false);
+    factory.setExpandEntityReferences(false);
+
     DocumentBuilder builder = factory.newDocumentBuilder();
     try (InputStream is = context.getResourceAsStream(file)) {
       return builder.parse(is);
@@ -92,6 +96,10 @@ public class XMLFooterLoader implements Serializable {
   public static Footer addFromXml(WebContainer webContainer, Map<String, String> widgetLibrary)
       throws FactoryConfigurationError, ParserConfigurationException, SAXException, IOException {
     DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+    factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+    factory.setXIncludeAware(false);
+    factory.setExpandEntityReferences(false);
+
     DocumentBuilder builder = factory.newDocumentBuilder();
     Document document = null;
     try (InputStream is = IOUtils.toInputStream(webContainer.getContainerXml(), "UTF-8")) {

@@ -121,6 +121,10 @@ public class WebContainerDesignerWidget extends GenericWidget {
       // Validate the XML before saving and alert the user
       try {
         DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+        factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+        factory.setXIncludeAware(false);
+        factory.setExpandEntityReferences(false);
+
         DocumentBuilder builder = factory.newDocumentBuilder();
         Document document = null;
         try (InputStream is = IOUtils.toInputStream(webContainer.getContainerXml(), "UTF-8")) {

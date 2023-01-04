@@ -83,6 +83,10 @@ public class XMLJSONServiceLoader implements Serializable {
   private Document parseDocument(String file, ServletContext context)
       throws FactoryConfigurationError, ParserConfigurationException, SAXException, IOException {
     DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+    factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+    factory.setXIncludeAware(false);
+    factory.setExpandEntityReferences(false);
+
     DocumentBuilder builder = factory.newDocumentBuilder();
     try (InputStream is = context.getResourceAsStream(file)) {
       return builder.parse(is);

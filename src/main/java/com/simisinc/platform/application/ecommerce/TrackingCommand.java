@@ -115,6 +115,10 @@ public class TrackingCommand {
 
       // Parse the XML
       DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+      factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+      factory.setXIncludeAware(false);
+      factory.setExpandEntityReferences(false);
+      
       DocumentBuilder builder = factory.newDocumentBuilder();
       Document document = null;
       try (InputStream is = IOUtils.toInputStream(responseValue, "UTF-8")) {

@@ -62,6 +62,10 @@ class XMLContainerCommandsTest {
 
     try {
       DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+      factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+      factory.setXIncludeAware(false);
+      factory.setExpandEntityReferences(false);
+
       DocumentBuilder builder = factory.newDocumentBuilder();
       Document document = null;
       try (InputStream is = IOUtils.toInputStream(xmlFragment, "UTF-8")) {
@@ -112,6 +116,10 @@ class XMLContainerCommandsTest {
 
     try {
       DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+      factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+      factory.setXIncludeAware(false);
+      factory.setExpandEntityReferences(false);
+
       DocumentBuilder builder = factory.newDocumentBuilder();
       Document document = null;
       try (InputStream is = IOUtils.toInputStream(xmlFragment, "UTF-8")) {
