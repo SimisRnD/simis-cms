@@ -32,7 +32,7 @@ public class ApplicationInfo {
   // Use: Change the date, increment the decimal on same day updates
   // then reset back to 10000
   //                         VERSION = "--------.10000";
-  public static final String VERSION = "20230103.10000";
+  public static final String VERSION = "20230106.10000";
 
   /**
    * Outputs the version from the command line
