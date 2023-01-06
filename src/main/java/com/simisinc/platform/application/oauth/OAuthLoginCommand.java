@@ -51,6 +51,7 @@ public class OAuthLoginCommand {
   private static Log LOG = LogFactory.getLog(OAuthLoginCommand.class);
 
   public static void loginTheUser(HttpServletRequest request, HttpServletResponse response, OAuthToken oAuthToken) {
+    LOG.debug("Logging the user in using OAUTH request...");
     if (oAuthToken == null || StringUtils.isBlank(oAuthToken.getAccessToken())) {
       LOG.warn("An accessToken is required");
       return;

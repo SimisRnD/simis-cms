@@ -88,6 +88,11 @@ public class OAuthHttpCommand {
       String remoteContent = EntityUtils.toString(entity);
       if (StringUtils.isBlank(remoteContent)) {
         LOG.error("HttpGet Remote content is empty");
+        if (response.getStatusLine() != null) {
+          // 401 The request was denied due to an invalid or missing access token
+          // 403 The request was denied due to the bearer access token having insufficient privileges
+          LOG.debug("HttpGet status: " + response.getStatusLine().getStatusCode() + " " + response.getStatusLine().getReasonPhrase());
+        }
         return null;
       }
       if (LOG.isDebugEnabled()) {

@@ -28,7 +28,7 @@ import org.apache.commons.text.RandomStringGenerator;
 import java.util.concurrent.TimeUnit;
 
 /**
- * Configures and verifies OpenAuth2
+ * Configures and verifies OpenAuth2 and OIDC
  *
  * @author matt rajkowski
  * @created 4/20/22 6:19 PM
@@ -65,6 +65,7 @@ public class OAuthAuthorizationCommand {
         serviceUrl + (serviceUrl.endsWith("/") ? "" : "/") + "protocol/openid-connect/auth" +
             "?client_id=" + UrlCommand.encodeUri(clientId) +
             "&response_type=code" +
+            "&scope=openid%20profile%20email" +
             "&redirect_uri=" + UrlCommand.encodeUri(callback) +
             "&state=" + UrlCommand.encodeUri(state);
 

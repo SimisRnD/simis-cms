@@ -51,7 +51,7 @@ public class OAuthUserInfoCommand {
       LOG.warn("accessToken is required");
       return null;
     }
-    // http://localhost:8100/realms/name/protocol/openid-connect/userinfo
+    // http://localhost:8100/auth/realms/name/protocol/openid-connect/userinfo
     JsonNode json = OAuthHttpCommand.sendHttpGet("protocol/openid-connect/userinfo", oAuthToken);
     if (json == null) {
       LOG.warn("userinfo request failed");

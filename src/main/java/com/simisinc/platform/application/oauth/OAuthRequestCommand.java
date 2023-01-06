@@ -66,12 +66,13 @@ public class OAuthRequestCommand {
 
     // Check the URL for a "/oauth/callback"...
     if ("/oauth/callback".equals(resource)) {
-      LOG.debug("Checking callback");
+      LOG.debug("Checking callback, retrieving access token...");
       String state = request.getParameter("state");
       String code = request.getParameter("code");
       OAuthToken oAuthToken = OAuthAccessTokenCommand.retrieveAccessToken(state, code);
       if (oAuthToken == null) {
         // Failed, return user back to login
+        LOG.error("NO OAUTH TOKEN FOUND");
         return "/";
       }
       // Retrieve the user info and log them in
