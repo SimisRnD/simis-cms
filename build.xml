@@ -18,8 +18,9 @@
   <property name="web.dir" value="${base.dir}/src/main/webapp" />
   <property name="build.dir" value="${base.dir}/build" />
   <property name="target.dir" value="${base.dir}/target" />
-  <property name="exploded.dir" value="${target.dir}/exploded/ROOT" />
-  <property name="exploded.work.dir" value="${target.dir}/exploded-work/ROOT" />
+  <property name="out.dir" value="${base.dir}/out" />
+  <property name="exploded.dir" value="${out.dir}/exploded/ROOT" />
+  <property name="exploded.work.dir" value="${out.dir}/exploded-work/ROOT" />
 
   <property name="jee.lib.dir" value="${base.dir}/lib/war" />
   <typedef resource="org/apache/catalina/ant/catalina.tasks">
@@ -121,7 +122,7 @@
           todir="${target.dir}/${project}/WEB-INF/lib"
           verbose="true"/>
     <!-- Dependency Libraries -->
-    <copy todir="${target.dir}/${project}/WEB-INF/lib" flatten="true">
+    <copy todir="${target.dir}/${project}/WEB-INF/lib" flatten="true" preservelastmodified="true">
       <fileset dir="${lib.dir}">
         <include name="**/*.jar"/>
       </fileset>
@@ -237,16 +238,11 @@
       </fileset>
     </copy>
     <!-- Dependency Libraries -->
-    <delete dir="${target.dir}/lib"/>
-    <mkdir dir="${target.dir}/lib"/>
-    <copy todir="${target.dir}/lib" flatten="true" preservelastmodified="true">
+    <copy todir="${exploded.work.dir}/WEB-INF/lib" flatten="true" preservelastmodified="true">
       <fileset dir="${lib.dir}">
         <include name="**/*.jar"/>
       </fileset>
     </copy>
-    <sync todir="${exploded.work.dir}/WEB-INF/lib">
-      <fileset dir="${target.dir}/lib"/>
-    </sync>
     <!-- Resources -->
     <copy todir="${exploded.work.dir}/WEB-INF" preservelastmodified="true">
       <fileset dir="${web.dir}/WEB-INF">
