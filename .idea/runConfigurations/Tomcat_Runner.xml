@@ -1,0 +1,13 @@
+<component name="ProjectRunConfigurationManager">
+  <configuration default="false" name="Tomcat Runner" type="TomcatRunner-By-Camtwo" factoryName="TomcatRunConfiguration">
+    <option name="TomcatRunnerV001-Modules" value="{&quot;modules&quot;:[{&quot;context&quot;:&quot;/&quot;,&quot;documentBase&quot;:&quot;$PROJECT_DIR$/out/exploded/ROOT&quot;,&quot;internal&quot;:true,&quot;reloadable&quot;:true}]}" />
+    <option name="TomcatRunnerV001-TomcatInstallation" value="$USER_HOME$/Tools/apache-tomcat-idea-ce" />
+    <option name="TomcatRunnerV001-VmArgs" value="" />
+    <option name="TomcatRunnerV001-PassParentEnvVars" value="true" />
+    <option name="TomcatRunnerV001-CleanTmpWork" value="true" />
+    <method v="2">
+      <option name="Make" enabled="true" />
+      <option name="AntTarget" enabled="true" antfile="file://$PROJECT_DIR$/build.xml" target="webapp" />
+    </method>
+  </configuration>
+</component>

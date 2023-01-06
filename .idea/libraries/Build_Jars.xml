@@ -30,6 +30,7 @@
       <root url="file://$PROJECT_DIR$/lib/build/commons" />
       <root url="file://$PROJECT_DIR$/lib/build/easy-flows" />
       <root url="file://$PROJECT_DIR$/lib/build/bucket4j" />
+      <root url="file://$PROJECT_DIR$/lib/build/classgraph" />
     </CLASSES>
     <JAVADOC />
     <SOURCES>
@@ -38,6 +39,7 @@
     <jarDirectory url="file://$PROJECT_DIR$/lib/build/argon2" recursive="false" />
     <jarDirectory url="file://$PROJECT_DIR$/lib/build/bucket4j" recursive="false" />
     <jarDirectory url="file://$PROJECT_DIR$/lib/build/caffeine" recursive="false" />
+    <jarDirectory url="file://$PROJECT_DIR$/lib/build/classgraph" recursive="false" />
     <jarDirectory url="file://$PROJECT_DIR$/lib/build/commons" recursive="false" />
     <jarDirectory url="file://$PROJECT_DIR$/lib/build/easy-flows" recursive="false" />
     <jarDirectory url="file://$PROJECT_DIR$/lib/build/flexmark" recursive="false" />

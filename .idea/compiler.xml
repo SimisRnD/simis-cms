@@ -4,5 +4,8 @@
     <annotationProcessing>
       <profile default="true" name="Default" enabled="true" />
     </annotationProcessing>
+    <bytecodeTargetLevel>
+      <module name="simis-cms" target="11" />
+    </bytecodeTargetLevel>
   </component>
 </project>
