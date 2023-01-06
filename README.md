@@ -11,7 +11,7 @@ SimIS CMS comes out-of-the-box with modules, advanced security, easy setup, and 
 ## License
 
 ```
-Copyright 2022 SimIS Inc. (https://www.simiscms.com)
+Copyright 2023 SimIS Inc. (https://www.simiscms.com)
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -235,7 +235,6 @@ In SimIS CMS:
 
 ```sql
 UPDATE site_properties SET property_value = 'true' WHERE property_name = 'oauth.enabled';
-
 UPDATE site_properties SET property_value = 'Keycloak' WHERE property_name = 'oauth.provider';
 UPDATE site_properties SET property_value = 'simis-cms' WHERE property_name = 'oauth.clientId';
 UPDATE site_properties SET property_value = 'client-secret' WHERE property_name = 'oauth.clientSecret';
@@ -310,7 +309,7 @@ http GET http://localhost:8080/api/me?key=<secret_key>
 
 * Content
 * CSS
-* Files
+* Documents
 * Images
 * Layouts (header, footer)
 * Setup
@@ -322,6 +321,7 @@ http GET http://localhost:8080/api/me?key=<secret_key>
   * Site Maps
   * User Groups
 * Templates
+* Videos
 * Web Pages
 
 ## Development
