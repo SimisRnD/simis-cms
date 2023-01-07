@@ -214,7 +214,7 @@ public class PageServlet extends HttpServlet {
                     redirectLocation;
           }
           response.setHeader("Location", redirectLocation);
-          response.sendError(SC_MOVED_PERMANENTLY);
+          response.setStatus(SC_MOVED_PERMANENTLY);
           return;
         }
         request.setAttribute(MASTER_WEB_PAGE, webPage);
