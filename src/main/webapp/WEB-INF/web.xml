@@ -124,6 +124,14 @@
   </session-config>
   <!-- Errors -->
   <error-page>
+    <error-code>401</error-code>
+    <location>/WEB-INF/jsp/error-401.jsp</location>
+  </error-page>
+  <error-page>
+    <error-code>403</error-code>
+    <location>/WEB-INF/jsp/error-403.jsp</location>
+  </error-page>
+  <error-page>
     <error-code>404</error-code>
     <location>/WEB-INF/jsp/error-404.jsp</location>
   </error-page>
@@ -131,4 +139,26 @@
     <location>/WEB-INF/jsp/error-500.jsp</location>
   </error-page>
   <!-- Constraints -->
+  <security-constraint>
+    <web-resource-collection>
+      <web-resource-name>allowed methods</web-resource-name>
+      <url-pattern>/*</url-pattern>
+      <http-method-omission>HEAD</http-method-omission>
+      <http-method-omission>GET</http-method-omission>
+      <http-method-omission>POST</http-method-omission>
+    </web-resource-collection>
+    <auth-constraint/>
+  </security-constraint>
+  <security-constraint>
+    <web-resource-collection>
+      <web-resource-name>allowed methods</web-resource-name>
+      <url-pattern>/api/*</url-pattern>
+      <http-method-omission>GET</http-method-omission>
+      <http-method-omission>POST</http-method-omission>
+      <http-method-omission>PUT</http-method-omission>
+      <http-method-omission>PATCH</http-method-omission>
+      <http-method-omission>DELETE</http-method-omission>
+    </web-resource-collection>
+    <auth-constraint/>
+  </security-constraint>
 </web-app>
