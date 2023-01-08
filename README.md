@@ -366,7 +366,6 @@ This project uses and licenses several technologies:
    JSON Schema Validator       Apache   JSON schema validator                             https://github.com/networknt/json-schema-validator
    JSoup                       MIT      HTML cleansing                                    https://github.com/jhy/jsoup/
    JSTL                        Eclipse  Servlet tag library                               https://github.com/eclipse-ee4j/jstl-api
-   JUnit5                      Apache   Unit testing framework                            https://junit.org/junit5/
    libphonenumber              Apache   Phone number validation                           https://github.com/google/libphonenumber
    PostgreSQL                  BSD      Database driver                                   https://jdbc.postgresql.org
    Pushy                       MIT      Push notifications                                https://github.com/relayrides/pushy
@@ -409,6 +408,14 @@ This project uses and licenses several technologies:
    Swiper                      MIT      Modern mobile touch slider                        https://github.com/nolimits4web/swiper
    TinyMCE                     LGPL     HTML editor                                       https://github.com/tinymce/tinymce
    TinyMCE-FontAwesome-Plugin  MIT      Icon chooser                                      https://github.com/josh18/TinyMCE-FontAwesome-Plugin
+
+ Testing:
+ 
+   JUnit5                      Apache   Unit testing framework                            https://github.com/junit-team/junit5
+   Jacoco                      Eclipse  Code coverage                                     https://github.com/jacoco/jacoco
+   MeanBean                    Apache   JavaBean testing                                  https://github.com/meanbeanlib/meanbean
+   Mockito                     MIT      Mocking framework                                 https://github.com/mockito/mockito
+   Testcontainers              MIT      Containers library for tests                      https://github.com/testcontainers/testcontainers-java
 
  Data:
 
