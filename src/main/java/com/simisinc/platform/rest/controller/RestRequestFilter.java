@@ -119,7 +119,7 @@ public class RestRequestFilter implements Filter {
     if (!isAPIOnline) {
       LOG.debug("API is disabled");
       HttpServletResponse response = (HttpServletResponse) servletResponse;
-      RestServlet.sendError(response, SC_UNAUTHORIZED, "API is disabled");
+      RestServlet.sendError(response, SC_FORBIDDEN, "API is disabled");
       return;
     }
 
