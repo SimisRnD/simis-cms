@@ -99,7 +99,7 @@
     <link rel="stylesheet" type="text/css" href="${ctx}/css/animate-3.7.2/animate.min.css" />
     <link rel="stylesheet" type="text/css" href="${ctx}/css/foundation-datepicker-20180424/foundation-datepicker.min.css" />
     <link rel="stylesheet" type="text/css" href="${ctx}/javascript/autocomplete-1.0.7/auto-complete.css" />
-    <link rel="stylesheet" type="text/css" href="${ctx}/javascript/swiper-8.4.2/swiper-bundle.min.css" />
+    <link rel="stylesheet" type="text/css" href="${ctx}/javascript/swiper-8.4.6/swiper-bundle.min.css" />
     <link rel="stylesheet" type="text/css" href="${ctx}/css/platform.css" />
   </g:compress>
   <c:if test="${!empty themePropertyMap}">
@@ -254,7 +254,7 @@
     <script src="${ctx}/javascript/foundation-datepicker-20180424/foundation-datepicker.min.js"></script>
     <script src="${ctx}/javascript/autocomplete-1.0.7/auto-complete.js"></script>
     <script src="${ctx}/javascript/js-cookie-3.0.1/js.cookie.min.js"></script>
-    <script src="${ctx}/javascript/swiper-8.4.2/swiper-bundle.min.js"></script>
+    <script src="${ctx}/javascript/swiper-8.4.6/swiper-bundle.min.js"></script>
   </g:compress>
 </head>
 <body<c:if test="${pageRenderInfo.name eq '/'}"> id="body-home"</c:if><c:if test="${!empty pageRenderInfo.cssClass}"> class="<c:out value="${pageRenderInfo.cssClass}" />"</c:if>>

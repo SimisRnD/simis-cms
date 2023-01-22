@@ -21,9 +21,9 @@
 <jsp:useBean id="wiki" class="com.simisinc.platform.domain.model.cms.Wiki" scope="request"/>
 <jsp:useBean id="wikiPage" class="com.simisinc.platform.domain.model.cms.WikiPage" scope="request"/>
 <jsp:useBean id="content" class="java.lang.String" scope="request"/>
-<script src="${ctx}/javascript/ace-1.13.1/ace.js" type="text/javascript" charset="utf-8"></script>
-<script src="${ctx}/javascript/ace-1.13.1/mode-xml.js" type="text/javascript" charset="utf-8"></script>
-<%--<script src="${ctx}/javascript/ace-1.13.1/ext-language_tools.js" type="text/javascript" charset="utf-8"></script>--%>
+<script src="${ctx}/javascript/ace-1.14.0/ace.js" type="text/javascript" charset="utf-8"></script>
+<script src="${ctx}/javascript/ace-1.14.0/mode-xml.js" type="text/javascript" charset="utf-8"></script>
+<%--<script src="${ctx}/javascript/ace-1.14.0/ext-language_tools.js" type="text/javascript" charset="utf-8"></script>--%>
 <style>
   #pageXml {
     right: 0;

@@ -26,7 +26,7 @@
 <link rel="stylesheet" href="${ctx}/javascript/prism-1.29.0/prism.css">
 <script src="${ctx}/javascript/prism-1.29.0/prism.min.js"></script>
 <c:if test="${mermaid eq 'true'}">
-<script src="${ctx}/javascript/mermaid-9.2.2/mermaid.min.js"></script>
+<script src="${ctx}/javascript/mermaid-9.3.0/mermaid.min.js"></script>
 </c:if>
 <c:choose>
   <c:when test="${wiki.startingPage eq wikiPage.id && !empty title}">

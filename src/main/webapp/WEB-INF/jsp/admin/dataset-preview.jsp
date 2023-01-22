@@ -22,8 +22,8 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="dataset" class="com.simisinc.platform.domain.model.datasets.Dataset" scope="request"/>
 <jsp:useBean id="sampleRows" class="java.util.ArrayList" scope="request"/>
-<script src="${ctx}/javascript/jspreadsheet-4.10.3/jspreadsheet.min.js"></script>
-<link rel="stylesheet" media="screen" href="${ctx}/javascript/jspreadsheet-4.10.3/jspreadsheet.css">
+<script src="${ctx}/javascript/jspreadsheet-4.11.1/jspreadsheet.min.js"></script>
+<link rel="stylesheet" media="screen" href="${ctx}/javascript/jspreadsheet-4.11.1/jspreadsheet.css">
 <script src="${ctx}/javascript/jsuites-4.17.5/jsuites.min.js"></script>
 <link rel="stylesheet" media="screen" href="${ctx}/javascript/jsuites-4.17.5/jsuites.css">
 <c:if test="${!empty title}">
