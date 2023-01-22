@@ -1215,7 +1215,7 @@
 
   <page name="/admin/activity" role="admin,content-manager,community-manager,ecommerce-manager" title="Activity">
     <section>
-      <column class="small-12 medium-10 large-9 cell">
+      <column class="small-12 cell">
         <widget name="xapiStatementList">
           <title>Activity</title>
         </widget>
