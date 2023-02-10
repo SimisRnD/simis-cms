@@ -28,5 +28,6 @@
         "src/test/java"
     ],
     "java.configuration.updateBuildConfiguration": "disabled",
-    "java.compile.nullAnalysis.mode": "automatic"
+    "java.compile.nullAnalysis.mode": "automatic",
+    "maven.view": "hierarchical"
 }
