@@ -220,6 +220,8 @@
          compress="true"
          manifest="${base.dir}/src/main/webapp/META-INF/MANIFEST.MF"
          webxml="${base.dir}/src/main/webapp/WEB-INF/web.xml"/>
+    <!-- Create a checksum -->
+    <checksum file="${target.dir}/${project}.war" algorithm="SHA-256" fileext=".sha256" pattern="{0} *{1}"/>
     <!-- Write out a version file to go with the .war -->
     <echo file="${target.dir}/VERSION" message="${version}"/>
   </target>
