@@ -348,6 +348,9 @@
           <include name="**/*Test.class" />
           <include name="**/*Tests.class" />
         </fileset>
+        <fork>
+          <jvmarg value="-Djava.awt.headless=true"/>
+        </fork>
       </testclasses>
     </junitlauncher>
     <fail if="hasFailingTest" />
@@ -369,6 +372,7 @@
         </fileset>
         <fork>
           <jvmarg value="${jacocoagent}"/>
+          <jvmarg value="-Djava.awt.headless=true"/>
         </fork>
       </testclasses>
     </junitlauncher>
