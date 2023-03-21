@@ -47,11 +47,11 @@
         <dl>
           <dt>label</dt>
           <dd>display label</dd>
-          <dd>name</dd>
-          <dt>form name</dt>
-          <dd>type</dd>
-          <dt>text, textarea, html, list</dt>
-          <dd>list</dd>
+          <dt>name</dt>
+          <dd>form name</dd>
+          <dt>type</dt>
+          <dd>text, textarea, html, list</dd>
+          <dt>list</dt>
           <dt>comma-separated values or name=value</dt>
         </dl>
       </div>
