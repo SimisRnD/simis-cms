@@ -1300,6 +1300,7 @@ a.read-more {
 
 .full .margin-0 .platform-content {margin-bottom: 1px; margin-right: -3px; }
 .margin-0 { margin-top: 0; margin-bottom: 0; }
+.margin-5 { margin-top: 5px; margin-bottom: 5px; }
 .margin-10 { margin-top: 10px; margin-bottom: 10px; }
 .margin-20 { margin-top: 20px; margin-bottom: 20px; }
 .margin-25 { margin-top: 25px; margin-bottom: 25px; }
@@ -1377,6 +1378,7 @@ a.read-more {
 .margin-right-75 { margin-right: 75px; }
 .margin-right-100 { margin-right: 100px; }
 .padding-0 { padding-top: 0; padding-bottom: 0; }
+.padding-5 { padding-top: 5px; padding-bottom: 5px; }
 .padding-10 { padding-top: 10px; padding-bottom: 10px; }
 .padding-20 { padding-top: 20px; padding-bottom: 20px; }
 .padding-25 { padding-top: 25px; padding-bottom: 25px; }
@@ -1541,36 +1543,65 @@ div.preload { display: none; }
 
 .image-height-100 img {
   object-fit: cover;
+  height: 100px;
+}
+.image-height-max-100 img {
   max-height: 100px;
 }
 
 .image-height-200 img {
   object-fit: cover;
+  height: 200px;
+}
+.image-height-max-200 img {
   max-height: 200px;
 }
 
 .image-height-300 img {
   object-fit: cover;
+  height: 300px;
+}
+.image-height-max-300 img {
   max-height: 300px;
+}
+
+.image-height-350 img {
+  object-fit: cover;
+  height: 350px;
+}
+.image-height-max-350 img {
+  max-height: 350px;
 }
 
 .image-height-400 img {
   object-fit: cover;
+  height: 400px;
+}
+.image-height-max-400 img {
   max-height: 400px;
 }
 
 .image-height-500 img {
   object-fit: cover;
+  height: 500px;
+}
+.image-height-max-500 img {
   max-height: 500px;
 }
 
 .image-height-600 img {
   object-fit: cover;
+  height: 600px;
+}
+.image-height-max-600 img {
   max-height: 600px;
 }
 
 .image-height-700 img {
   object-fit: cover;
+  height: 700px;
+}
+.image-height-max-700 img {
   max-height: 700px;
 }
 
