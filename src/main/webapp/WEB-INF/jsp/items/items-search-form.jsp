@@ -19,9 +19,11 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="collection" class="com.simisinc.platform.domain.model.items.Collection" scope="request"/>
 <jsp:useBean id="categoryList" class="java.util.ArrayList" scope="request"/>
+<jsp:useBean id="buttonName" class="java.lang.String" scope="request"/>
 <jsp:useBean id="searchName" class="java.lang.String" scope="request"/>
 <jsp:useBean id="searchLocation" class="java.lang.String" scope="request"/>
 <jsp:useBean id="categoryId" class="java.lang.String" scope="request"/>
+<jsp:useBean id="useSearch" class="java.lang.String" scope="request"/>
 <jsp:useBean id="useAutoComplete" class="java.lang.String" scope="request"/>
 <jsp:useBean id="useLocation" class="java.lang.String" scope="request"/>
 <jsp:useBean id="showCategories" class="java.lang.String" scope="request"/>
@@ -39,9 +41,11 @@
   </c:if>
   <%@include file="../page_messages.jspf" %>
   <%-- Form Content --%>
-  <label>Keyword
-    <input type="text" placeholder="Search by keyword..." id="name" name="name" value="<c:if test="${!empty searchName}"><c:out value="${searchName}" /></c:if>" autocomplete="off">
-  </label>
+  <c:if test="${useSearch eq 'true'}">
+    <label>Keyword
+      <input type="text" placeholder="Search by keyword..." id="name" name="name" value="<c:if test="${!empty searchName}"><c:out value="${searchName}" /></c:if>" autocomplete="off">
+    </label>
+  </c:if>
   <c:if test="${useLocation eq 'true'}">
   <label>Location
     <input type="text" placeholder="Search near city, state" id="location" name="location" value="<c:if test="${!empty searchLocation}"><c:out value="${searchLocation}" /></c:if>" autocomplete="off">
@@ -58,7 +62,7 @@
     </label>
   </c:if>
   <div class="button-container">
-    <input type="submit" class="button radius primary expanded" value="Search"/>
+    <input type="submit" class="button radius primary expanded" value="<c:out value="${buttonName}" />"/>
   </div>
 </form>
 <c:if test="${useLocation eq 'true' or useAutoComplete eq 'true'}">
