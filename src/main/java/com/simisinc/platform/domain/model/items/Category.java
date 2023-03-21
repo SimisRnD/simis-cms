@@ -31,6 +31,7 @@ public class Category extends Entity {
   private Long id = -1L;
 
   private long collectionId = -1L;
+  private String uniqueId = null;
   private String name = null;
   private String description = null;
   private String icon = null;
@@ -59,6 +60,14 @@ public class Category extends Entity {
 
   public void setCollectionId(long collectionId) {
     this.collectionId = collectionId;
+  }
+
+  public String getUniqueId() {
+    return uniqueId;
+  }
+
+  public void setUniqueId(String uniqueId) {
+    this.uniqueId = uniqueId;
   }
 
   public String getName() {
