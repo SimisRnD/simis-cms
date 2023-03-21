@@ -29,7 +29,9 @@
 <jsp:useBean id="smallGridCount" class="java.lang.String" scope="request"/>
 <jsp:useBean id="mediumGridCount" class="java.lang.String" scope="request"/>
 <jsp:useBean id="largeGridCount" class="java.lang.String" scope="request"/>
+<jsp:useBean id="showCategory" class="java.lang.String" scope="request"/>
 <jsp:useBean id="showImage" class="java.lang.String" scope="request"/>
+<jsp:useBean id="showSummary" class="java.lang.String" scope="request"/>
 <jsp:useBean id="showIcon" class="java.lang.String" scope="request"/>
 <jsp:useBean id="showLink" class="java.lang.String" scope="request"/>
 <jsp:useBean id="showAddress" class="java.lang.String" scope="request"/>
@@ -46,7 +48,6 @@
 <style>
   .card-catalog .item-name {
     display: -webkit-box;
-    -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
     word-break: break-word;
@@ -56,7 +57,16 @@
     padding: .5rem;
   }
   .card-catalog .item-name {
-    min-height: 60px;
+    <c:choose>
+      <c:when test="${showSummary eq 'true'}">
+        min-height: 100px;
+        -webkit-line-clamp: 4;
+      </c:when>
+      <c:otherwise>
+        min-height: 60px;
+        -webkit-line-clamp: 2;
+      </c:otherwise>
+    </c:choose>
   }
   .card-catalog .card-section {
       padding: 0.5rem 1rem;
@@ -166,39 +176,46 @@
                   <c:out value="${item.name}" />
                 </c:otherwise>
               </c:choose>
+              <c:if test="${showSummary eq 'true' && !empty item.summary}"><div class="item-summary"><c:out value="${item.summary}" /></div></c:if>
             </div>
             <c:if test="${showAddress eq 'true' && !empty item.address}"><div class="item-city"><small><c:out value="${item.address}" /></small></div></c:if>
             <c:if test="${showKeywords eq 'true' && !empty item.keywords}"><div class="item-keywords"><small><c:out value="${item.keywords}" /></small></div></c:if>
           </div>
-          <div class="card-bottom">
-            <div class="grid-x align-bottom">
-              <div class="auto cell category-icon">
-                <c:set var="categoryIcon" scope="request" value="${category:icon(item.categoryId)}"/>
-                <c:choose>
-                  <c:when test="${!empty categoryIcon}">
-                    <i class="${font:fad()} fa-<c:out value="${categoryIcon}" />"></i>
-                  </c:when>
-                  <c:when test="${!empty collection:icon(item.collectionId)}">
-                    <i class="${font:fad()} fa-<c:out value="${collection:icon(item.collectionId)}" />"></i>
-                  </c:when>
-                  <c:otherwise>
-                    <i class="fa fa-blackboard"></i>
-                  </c:otherwise>
-                </c:choose>
-                <c:out value="${category:name(item.categoryId)}" />
+          <c:if test="${showCategory eq 'true' or showActionLinks eq 'true'}">
+            <div class="card-bottom">
+              <div class="grid-x align-bottom">
+                <c:if test="${showCategory eq 'true'}">
+                  <div class="auto cell category-icon">
+                    <c:if test="${showCategoryIcon eq 'true'}">
+                      <c:set var="categoryIcon" scope="request" value="${category:icon(item.categoryId)}"/>
+                      <c:choose>
+                        <c:when test="${!empty categoryIcon}">
+                          <i class="${font:fad()} fa-<c:out value="${categoryIcon}" />"></i>
+                        </c:when>
+                        <c:when test="${!empty collection:icon(item.collectionId)}">
+                          <i class="${font:fad()} fa-<c:out value="${collection:icon(item.collectionId)}" />"></i>
+                        </c:when>
+                        <c:otherwise>
+                          <i class="fa fa-blackboard"></i>
+                        </c:otherwise>
+                      </c:choose>
+                    </c:if>
+                    <c:out value="${category:name(item.categoryId)}" />
+                  </div>
+                </c:if>
+                <c:if test="${showActionLinks eq 'true'}">
+                  <div class="shrink cell item-url text-right">
+                    <c:if test="${showLaunchLink eq 'true' && useItemLink eq 'true' && !empty item.url && (fn:startsWith(item.url, 'http://') || fn:startsWith(item.url, 'https://'))}">
+                      <a target="_blank" href="${item.url}"><c:out value="${launchLabel}"/></a>
+                    </c:if>
+                    <c:if test="${useInfoLink eq 'true'}">
+                      <a href="${ctx}/show/${item.uniqueId}"><c:out value="${infoLabel}"/></a>
+                    </c:if>
+                  </div>
+                </c:if>
               </div>
-              <c:if test="${showActionLinks eq 'true'}">
-                <div class="shrink cell item-url text-right">
-                  <c:if test="${showLaunchLink eq 'true' && useItemLink eq 'true' && !empty item.url && (fn:startsWith(item.url, 'http://') || fn:startsWith(item.url, 'https://'))}">
-                    <a target="_blank" href="${item.url}"><c:out value="${launchLabel}"/></a>
-                  </c:if>
-                  <c:if test="${useInfoLink eq 'true'}">
-                    <a href="${ctx}/show/${item.uniqueId}"><c:out value="${infoLabel}"/></a>
-                  </c:if>
-                </div>
-              </c:if>
             </div>
-          </div>
+          </c:if>
         </div>
       </c:forEach>
     </div>

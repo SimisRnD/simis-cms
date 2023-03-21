@@ -178,7 +178,9 @@ public class ItemsListWidget extends GenericWidget {
     context.getRequest().setAttribute("showLink", context.getPreferences().getOrDefault("showLink", "true"));
     context.getRequest().setAttribute("showImage", context.getPreferences().getOrDefault("showImage", "false"));
     context.getRequest().setAttribute("showIcon", context.getPreferences().getOrDefault("showIcon", "false"));
+    context.getRequest().setAttribute("showSummary", context.getPreferences().getOrDefault("showSummary", "false"));
     context.getRequest().setAttribute("showCategory", context.getPreferences().getOrDefault("showCategory", "false"));
+    context.getRequest().setAttribute("showCategoryIcon", context.getPreferences().getOrDefault("showCategoryIcon", "true"));
     context.getRequest().setAttribute("showAddress", context.getPreferences().getOrDefault("showAddress", "true"));
     context.getRequest().setAttribute("showKeywords", context.getPreferences().getOrDefault("showKeywords", "true"));
     context.getRequest().setAttribute("showUrl", context.getPreferences().getOrDefault("showUrl", "false"));
