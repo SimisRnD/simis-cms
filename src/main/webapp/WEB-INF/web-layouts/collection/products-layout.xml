@@ -1,0 +1,99 @@
+<?xml version="1.0" ?>
+<!--
+  ~ Copyright 2023 SimIS Inc. (https://www.simiscms.com)
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  -->
+<pages>
+  <page name="_show_products_" itemUniqueId="/show/*">
+    <!-- <section class="margin-bottom-15">
+      <column class="small-12 cell">
+        <widget name="itemMenu" />
+      </column>
+    </section> -->
+    <section>
+      <column class="small-12 medium-4 cell">
+        <widget name="itemFields" class="callout box">
+          <uniqueId>${item.uniqueId}</uniqueId>
+          <fields>
+            <field value="imageUrl" type="image" />
+          </fields>
+        </widget>
+      </column>
+      <column class="small-12 medium-8 cell">
+        <widget name="itemFields">
+          <uniqueId>${item.uniqueId}</uniqueId>
+          <fields>
+            <field name="Category" value="categoryList" />
+          </fields>
+        </widget>
+        <widget name="itemFields">
+          <uniqueId>${item.uniqueId}</uniqueId>
+          <fields>
+            <field value="name" type="text" />
+            <field value="summary" type="text" />
+          </fields>
+        </widget>
+        <widget name="itemFields" hr="true">
+          <uniqueId>${item.uniqueId}</uniqueId>
+          <fields>
+            <field value="description" type="html" />
+          </fields>
+        </widget>
+        <!--
+        <widget name="itemFields" class="callout box">
+          <title>Information</title>
+          <uniqueId>${item.uniqueId}</uniqueId>
+          <fields>
+            <field name="Subject Area" value="custom.subject_area" />
+            <field name="Subject Matter" value="custom.subject_matter" />
+            <field name="Conveys Concept" value="custom.conveys_concept" />
+          </fields>
+          <showAllCustomFields>false</showAllCustomFields>
+        </widget>
+        -->
+      </column>
+    </section>
+    <section>
+      <column>
+        <widget name="content" hr="true">
+          <uniqueId>product-details-${item.uniqueId}</uniqueId>
+        </widget>
+        <widget name="content" class="margin-top-30">
+          <view>accordion</view>
+          <!-- <expandTopLevel>true</expandTopLevel> -->
+          <uniqueId>product-details-accordion-${item.uniqueId}</uniqueId>
+          <class>outer-accordion</class>
+          <innerClass>inner-accordion</innerClass>
+        </widget>
+        <widget name="content">
+          <uniqueId>product-details-footer-${item.uniqueId}</uniqueId>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column>
+        <widget name="content" hr="true">
+          <uniqueId>product-directions-${item.uniqueId}</uniqueId>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column>
+        <widget name="content" hr="true">
+          <uniqueId>product-questions-feedback</uniqueId>
+        </widget>
+      </column>
+    </section>
+  </page>
+</pages>
