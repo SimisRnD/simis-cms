@@ -16,10 +16,12 @@
 
 package com.simisinc.platform.application.items;
 
-import com.simisinc.platform.domain.model.items.Category;
-import com.simisinc.platform.infrastructure.persistence.items.CategoryRepository;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+
+import com.simisinc.platform.domain.model.items.Category;
+import com.simisinc.platform.infrastructure.persistence.items.CategoryRepository;
 
 /**
  * Loads a category object from cache or storage
@@ -32,6 +34,13 @@ public class LoadCategoryCommand {
   private static Log LOG = LogFactory.getLog(LoadCategoryCommand.class);
 
   // @todo cache
+  public static Category loadCategoryByUniqueIdWithinCollection(String uniqueId, long collectionId) {
+    if (StringUtils.isBlank(uniqueId) || collectionId == -1) {
+      return null;
+    }
+    return CategoryRepository.findByUniqueIdWithinCollection(uniqueId, collectionId);
+  }
+
   public static Category loadCategoryById(long categoryId) {
     if (categoryId == -1) {
       return null;

@@ -16,7 +16,16 @@
 
 package com.simisinc.platform.rest.services.items;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import com.simisinc.platform.application.items.LoadCategoryCommand;
 import com.simisinc.platform.application.items.LoadCollectionCommand;
+import com.simisinc.platform.domain.model.items.Category;
 import com.simisinc.platform.domain.model.items.Collection;
 import com.simisinc.platform.domain.model.items.Item;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
@@ -25,11 +34,6 @@ import com.simisinc.platform.infrastructure.persistence.items.ItemSpecification;
 import com.simisinc.platform.rest.controller.ServiceContext;
 import com.simisinc.platform.rest.controller.ServiceResponse;
 import com.simisinc.platform.rest.controller.ServiceResponseCommand;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Returns a list of items for the given collection unique id
@@ -41,7 +45,7 @@ public class ItemListService {
 
   private static Log LOG = LogFactory.getLog(ItemListService.class);
 
-  // endpoint: items/{collection}
+  // GET /items/{collectionUniqueId}?category={categoryUniqueId}&query=value
   public ServiceResponse get(ServiceContext context) {
 
     // Determine the collection
@@ -61,6 +65,18 @@ public class ItemListService {
       return response;
     }
 
+    // Check for a specific category
+    String categoryUniqueId = context.getParameter("category");
+    Category category = null;
+    if (!StringUtils.isBlank(categoryUniqueId)) {
+      category = LoadCategoryCommand.loadCategoryByUniqueIdWithinCollection(categoryUniqueId, collection.getId());
+      if (category == null) {
+        ServiceResponse response = new ServiceResponse(400);
+        response.getError().put("title", "Category was not found");
+        return response;
+      }
+    }
+
     // Determine the constraints
     int pageNumber = context.getParameterAsInt("page", 1);
     int pageSize = context.getParameterAsInt("size", 20);
@@ -70,7 +86,10 @@ public class ItemListService {
     ItemSpecification specification = new ItemSpecification();
     specification.setCollectionId(collection.getId());
     specification.setForUserId(context.getUserId());
-
+    if (category != null) {
+      specification.setCategoryId(category.getId());
+    }
+    
     // Retrieve the records
     List<Item> itemList = ItemRepository.findAll(specification, constraints);
 

@@ -27,19 +27,19 @@ import com.simisinc.platform.domain.model.items.Category;
  */
 public class CategoryResponse {
 
-  long id;
+  String uniqueId;
   String name;
   @JsonInclude(JsonInclude.Include.NON_EMPTY)
   String description;
 
   public CategoryResponse(Category record) {
-    id = record.getId();
+    uniqueId = record.getUniqueId();
     name = record.getName();
     description = record.getDescription();
   }
 
-  public long getId() {
-    return id;
+  public String getUniqueId() {
+    return uniqueId;
   }
 
   public String getName() {
