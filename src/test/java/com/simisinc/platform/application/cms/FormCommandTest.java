@@ -16,15 +16,16 @@
 
 package com.simisinc.platform.application.cms;
 
-import com.simisinc.platform.domain.model.cms.FormData;
-import com.simisinc.platform.domain.model.cms.FormField;
-import org.junit.jupiter.api.Test;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
+import org.junit.jupiter.api.Test;
+
+import com.simisinc.platform.domain.model.cms.FormData;
+import com.simisinc.platform.domain.model.cms.FormField;
 
 /**
  * Tests FormCommand functions
@@ -56,6 +57,22 @@ class FormCommandTest {
   }
 
   @Test
+  void testSpamPositiveWithInvalidCharacters() {
+    List<FormField> formFieldList = new ArrayList<>();
+    FormField formField = new FormField();
+    formField.setName("Name");
+    formField.setType("textarea");
+    formField.setUserValue("Get 100% off today еnglіѕh");
+    formFieldList.add(formField);
+
+    FormData formData = new FormData();
+    formData.setFormFieldList(formFieldList);
+
+    assertTrue(FormCommand.checkNotificationRules(formData));
+    assertTrue(formData.getFlaggedAsSpam());
+  }
+
+  @Test
   void testSpamNegative() {
 
     List<String> spamList = new ArrayList<>();
@@ -66,7 +83,7 @@ class FormCommandTest {
     FormField formField = new FormField();
     formField.setName("Name");
     formField.setType("textarea");
-    formField.setUserValue("Get 90% off today");
+    formField.setUserValue("Get 90% off today english");
     formFieldList.add(formField);
 
     FormData formData = new FormData();
