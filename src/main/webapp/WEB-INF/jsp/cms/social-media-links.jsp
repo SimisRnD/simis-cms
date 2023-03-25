@@ -21,7 +21,6 @@
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <c:set var="firstIcon" scope="request" value=""/>
-<c:set var="iconClass" scope="request" value="margin-left-10"/>
 <c:if test="${!empty socialPropertyMap['social.instagram.url']}">
   <a <c:if test="${!empty firstIcon}">class="${iconClass}" </c:if>target="_blank" href="<c:out value="${socialPropertyMap['social.instagram.url']}"/>"><i class="fa fa-2x fa-instagram"></i></a>
   <c:set var="firstIcon" scope="request" value="true"/>
