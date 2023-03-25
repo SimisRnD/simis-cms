@@ -41,6 +41,7 @@ public class EmailSubscribeAjax extends GenericWidget {
     // Check the parameters
     String token = context.getParameter("token");
     String emailValue = context.getParameter("email");
+    String nameValue = context.getParameter("name");
 
     // Validate the token
     if (!token.equals(context.getUserSession().getFormToken())) {
@@ -62,6 +63,9 @@ public class EmailSubscribeAjax extends GenericWidget {
     // Populate the fields
     Email emailBean = new Email();
     emailBean.setEmail(emailValue);
+    if (StringUtils.isNotBlank(nameValue)) {
+      emailBean.setFirstName(nameValue);
+    }
     emailBean.setSource("Website form");
     emailBean.setSubscribed(new Timestamp(System.currentTimeMillis()));
 
