@@ -16,20 +16,24 @@
 
 package com.simisinc.platform.infrastructure.scheduler.ecommerce;
 
-import com.simisinc.platform.application.DataException;
-import com.simisinc.platform.application.ecommerce.EcommerceCommand;
-import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
-import com.simisinc.platform.application.ecommerce.OrderShippingCommand;
-import com.simisinc.platform.domain.model.ecommerce.Order;
-import com.simisinc.platform.infrastructure.database.DataConstraints;
-import com.simisinc.platform.infrastructure.persistence.ecommerce.OrderRepository;
-import com.simisinc.platform.infrastructure.persistence.ecommerce.OrderSpecification;
+import java.time.Duration;
+import java.util.List;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jobrunr.jobs.annotations.Job;
 
-import java.util.List;
+import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.ecommerce.EcommerceCommand;
+import com.simisinc.platform.application.ecommerce.OrderShippingCommand;
+import com.simisinc.platform.domain.model.ecommerce.Order;
+import com.simisinc.platform.infrastructure.database.DataConstraints;
+import com.simisinc.platform.infrastructure.distributedlock.LockManager;
+import com.simisinc.platform.infrastructure.persistence.ecommerce.OrderRepository;
+import com.simisinc.platform.infrastructure.persistence.ecommerce.OrderSpecification;
+import com.simisinc.platform.infrastructure.scheduler.SchedulerManager;
 
 /**
  * Sends new orders to the related fulfillment service
@@ -43,6 +47,12 @@ public class OrderManagementProcessNewOrders {
 
   @Job(name = "Send orders to fulfillment service")
   public static void execute() {
+
+    // Distributed lock
+    String lock = LockManager.lock(SchedulerManager.ORDER_MANAGEMENT_PROCESS_NEW_ORDERS_JOB, Duration.ofMinutes(1));
+    if (lock == null) {
+      return;
+    }
 
     // Determine the processor
     String service = LoadSitePropertyCommand.loadByName("ecommerce.orderFulfillment");

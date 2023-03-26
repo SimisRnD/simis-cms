@@ -16,20 +16,24 @@
 
 package com.simisinc.platform.infrastructure.scheduler.ecommerce;
 
-import com.simisinc.platform.application.DataException;
-import com.simisinc.platform.application.ecommerce.EcommerceCommand;
-import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
-import com.simisinc.platform.application.ecommerce.OrderShipmentStatusCommand;
-import com.simisinc.platform.domain.model.ecommerce.Order;
-import com.simisinc.platform.infrastructure.database.DataConstraints;
-import com.simisinc.platform.infrastructure.persistence.ecommerce.OrderRepository;
-import com.simisinc.platform.infrastructure.persistence.ecommerce.OrderSpecification;
+import java.time.Duration;
+import java.util.List;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jobrunr.jobs.annotations.Job;
 
-import java.util.List;
+import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.ecommerce.EcommerceCommand;
+import com.simisinc.platform.application.ecommerce.OrderShipmentStatusCommand;
+import com.simisinc.platform.domain.model.ecommerce.Order;
+import com.simisinc.platform.infrastructure.database.DataConstraints;
+import com.simisinc.platform.infrastructure.distributedlock.LockManager;
+import com.simisinc.platform.infrastructure.persistence.ecommerce.OrderRepository;
+import com.simisinc.platform.infrastructure.persistence.ecommerce.OrderSpecification;
+import com.simisinc.platform.infrastructure.scheduler.SchedulerManager;
 
 /**
  * Retrieves shipping status updates for orders
@@ -43,6 +47,12 @@ public class OrderManagementProcessShippingUpdates {
 
   @Job(name = "Check on the shipping status of orders and send notifications")
   public static void execute() {
+
+    // Distributed lock
+    String lock = LockManager.lock(SchedulerManager.ORDER_MANAGEMENT_PROCESS_SHIPPING_UPDATES_JOB, Duration.ofHours(1));
+    if (lock == null) {
+      return;
+    }
 
     // Determine the processor
     String service = LoadSitePropertyCommand.loadByName("ecommerce.orderFulfillment");

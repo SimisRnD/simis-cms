@@ -18,6 +18,9 @@ package com.simisinc.platform.infrastructure.distributedlock;
 import java.time.Duration;
 import java.util.UUID;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import com.simisinc.platform.infrastructure.database.DB;
 import com.simisinc.platform.infrastructure.database.SqlUtils;
 import com.simisinc.platform.infrastructure.database.SqlValue;
@@ -30,6 +33,8 @@ import com.simisinc.platform.infrastructure.database.SqlValue;
  */
 public class LockManager {
 
+  private static Log LOG = LogFactory.getLog(LockManager.class);
+
   private static String TABLE_NAME = "distributed_lock";
 
   public static String lock(String name, Duration duration) {
@@ -40,7 +45,7 @@ public class LockManager {
     SqlUtils insertValues = new SqlUtils()
         .add("name", name)
         .add(new SqlValue("locked_at", SqlValue.AS_IS, "CURRENT_TIMESTAMP"))
-        .add(new SqlValue("lock_until", SqlValue.AS_IS, "CURRENT_TIMESTAMP + INTERVAL '" + duration.toString() + "'"))
+        .add(new SqlValue("lock_until", SqlValue.AS_IS, "CURRENT_TIMESTAMP - INTERVAL '10 SECONDS' + INTERVAL '" + duration.toString() + "'"))
         .add("uuid", uuid);
 
     String onConflict = "ON CONFLICT (name) " +
@@ -51,6 +56,7 @@ public class LockManager {
         "WHERE distributed_lock.name = EXCLUDED.name AND CURRENT_TIMESTAMP >= distributed_lock.lock_until";
 
     if (DB.insertIntoWithSuccess(TABLE_NAME, insertValues, onConflict)) {
+      LOG.debug("Lock succeeded: " + name);
       return uuid;
     }
     return null;

@@ -16,10 +16,15 @@
 
 package com.simisinc.platform.infrastructure.scheduler.login;
 
-import com.simisinc.platform.infrastructure.persistence.login.UserTokenRepository;
+import java.time.Duration;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jobrunr.jobs.annotations.Job;
+
+import com.simisinc.platform.infrastructure.distributedlock.LockManager;
+import com.simisinc.platform.infrastructure.persistence.login.UserTokenRepository;
+import com.simisinc.platform.infrastructure.scheduler.SchedulerManager;
 
 /**
  * Deletes old tokens
@@ -33,6 +38,12 @@ public class UserTokensCleanupJob {
 
   @Job(name = "Delete old tokens")
   public static void execute() {
+    // Distributed lock
+    String lock = LockManager.lock(SchedulerManager.USER_TOKENS_CLEANUP_JOB, Duration.ofHours(1));
+    if (lock == null) {
+      return;
+    }
+
     UserTokenRepository.deleteOldTokens();
   }
 }

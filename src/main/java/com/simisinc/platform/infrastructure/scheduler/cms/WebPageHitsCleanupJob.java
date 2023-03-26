@@ -16,10 +16,15 @@
 
 package com.simisinc.platform.infrastructure.scheduler.cms;
 
-import com.simisinc.platform.infrastructure.persistence.cms.WebPageHitRepository;
+import java.time.Duration;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jobrunr.jobs.annotations.Job;
+
+import com.simisinc.platform.infrastructure.distributedlock.LockManager;
+import com.simisinc.platform.infrastructure.persistence.cms.WebPageHitRepository;
+import com.simisinc.platform.infrastructure.scheduler.SchedulerManager;
 
 /**
  * Deletes old web hits data
@@ -33,6 +38,12 @@ public class WebPageHitsCleanupJob {
 
   @Job(name = "Delete old web hits data")
   public static void execute() {
+    // Distributed lock
+    String lock = LockManager.lock(SchedulerManager.WEB_PAGE_HITS_CLEANUP_JOB, Duration.ofHours(4));
+    if (lock == null) {
+      return;
+    }
+
     WebPageHitRepository.deleteOldWebHits();
   }
 }
