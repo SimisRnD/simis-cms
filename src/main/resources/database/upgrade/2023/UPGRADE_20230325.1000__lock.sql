@@ -1,0 +1,7 @@
+CREATE TABLE distributed_lock (
+  lock_id BIGSERIAL PRIMARY KEY,
+  name VARCHAR(64) UNIQUE NOT NULL,
+  locked_at TIMESTAMP(3) NOT NULL,
+  lock_until TIMESTAMP(3) NOT NULL,
+  uuid VARCHAR(255) NOT NULL
+);

@@ -54,14 +54,15 @@ public class RecordWebPageHitJob implements JobRequest {
 
   public static class RecordWebPageHitJobRequestHandler implements JobRequestHandler<RecordWebPageHitJob> {
     @Override
-//    @Job(name = "Record a web page hit", retries = 1, mutex = "web-page-hit")
     @Job(name = "Record a web page hit", retries = 1)
+    // @Job(name = "Record a web page hit", retries = 1, runOnServerWithTag =  "%CURRENT_SERVER")
     public void run(RecordWebPageHitJob jobRequest) {
       WebPageHitRepository.save(jobRequest.getWebPageHit());
     }
   }
 
   @Job(name = "Record web page hits")
+  // @Job(runOnServerWithTag =  "%CURRENT_SERVER")
   public static void execute() {
     WebPageHit webPageHit = null;
     int count = 0;

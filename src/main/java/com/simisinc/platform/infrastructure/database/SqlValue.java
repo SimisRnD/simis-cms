@@ -33,6 +33,7 @@ public class SqlValue {
   public static final int GEOM_TYPE = 2018052314;
   public static final int JSONB_TYPE = 2018053112;
   public static final int INTERVAL_TYPE = 2022080914;
+  public static final int AS_IS = 2023032612;
 
   // Name/condition/field
   private String field;
@@ -152,6 +153,8 @@ public class SqlValue {
         stringValue = null;
         isNull = true;
       }
+    } else if (castType == AS_IS) {
+      this.hasValue = false;
     }
   }
 
