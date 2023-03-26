@@ -60,7 +60,15 @@ public class DB {
 
   private static PreparedStatement createPreparedStatement(Connection connection, String sqlQuery,
       SqlUtils insertValues, String[] primaryKey) throws SQLException {
-    PreparedStatement pst = connection.prepareStatement(sqlQuery, primaryKey);
+    if (LOG.isTraceEnabled()) {
+      LOG.debug(sqlQuery);
+    }
+    PreparedStatement pst;
+    if (primaryKey != null) {
+      pst = connection.prepareStatement(sqlQuery, primaryKey);
+    } else {
+      pst = connection.prepareStatement(sqlQuery);
+    }
     prepareValues(pst, insertValues);
     return pst;
   }
@@ -530,7 +538,27 @@ public class DB {
     return sb;
   }
 
-  public static long executeInsert(PreparedStatement pst) throws SQLException {
+  /**
+   * 
+   * @param pst
+   * @return if a row count was returned
+   * @throws SQLException
+   */
+  private static boolean executeInsert(PreparedStatement pst) throws SQLException {
+    int rowCount = pst.executeUpdate();
+    if (rowCount > 0) {
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * 
+   * @param pst
+   * @return the long value of the generated key
+   * @throws SQLException
+   */
+  private static long executeInsertGetGeneratedKeys(PreparedStatement pst) throws SQLException {
     long id = -1;
     if (pst.executeUpdate() > 0) {
       ResultSet generatedKeys = pst.getGeneratedKeys();
@@ -545,8 +573,15 @@ public class DB {
     return id;
   }
 
-  public static long insertInto(String tableName, SqlUtils sqlUtils, String onConflict) {
-    return insertInto(tableName, sqlUtils, null, onConflict);
+  public static boolean insertIntoWithSuccess(String tableName, SqlUtils insertValues, String onConflict) {
+    try (Connection connection = getConnection();
+        PreparedStatement pst = createPreparedStatementForInsert(connection, tableName, insertValues, null,
+            onConflict)) {
+      return executeInsert(pst);
+    } catch (SQLException se) {
+      LOG.error("SQLException: " + se.getMessage());
+    }
+    return false;
   }
 
   public static long insertInto(String tableName, SqlUtils sqlUtils, String[] primaryKey) {
@@ -557,7 +592,7 @@ public class DB {
     try (Connection connection = getConnection();
         PreparedStatement pst = createPreparedStatementForInsert(connection, tableName, insertValues, primaryKey,
             onConflict)) {
-      return executeInsert(pst);
+      return executeInsertGetGeneratedKeys(pst);
     } catch (SQLException se) {
       LOG.error("SQLException: " + se.getMessage());
     }
@@ -568,7 +603,7 @@ public class DB {
       throws SQLException {
     try (PreparedStatement pst = createPreparedStatementForInsert(connection, tableName, insertValues, primaryKey,
         null)) {
-      return executeInsert(pst);
+      return executeInsertGetGeneratedKeys(pst);
     } catch (SQLException se) {
       throw new SQLException("insertInto record failed [" + tableName + "]: " + se.getMessage(), se);
     }

@@ -16,12 +16,13 @@
 
 package com.simisinc.platform.application.items;
 
-import com.simisinc.platform.application.DataException;
-import com.simisinc.platform.domain.model.items.Category;
-import com.simisinc.platform.infrastructure.persistence.items.CategoryRepository;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+
+import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.domain.model.items.Category;
+import com.simisinc.platform.infrastructure.persistence.items.CategoryRepository;
 
 /**
  * Validates and saves a category object
@@ -63,6 +64,8 @@ public class SaveCategoryCommand {
       category = new Category();
     }
     category.setCollectionId(categoryBean.getCollectionId());
+    // @note set the uniqueId before setting the name
+    category.setUniqueId(GenerateCategoryUniqueIdCommand.generateUniqueId(category, categoryBean));
     category.setName(categoryBean.getName());
     category.setDescription(categoryBean.getDescription());
     category.setIcon(categoryBean.getIcon());

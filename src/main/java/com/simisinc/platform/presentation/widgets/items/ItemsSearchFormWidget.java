@@ -47,8 +47,10 @@ public class ItemsSearchFormWidget extends GenericWidget {
     context.getRequest().setAttribute("title", context.getPreferences().get("title"));
 
     // Determine the form settings
+    context.getRequest().setAttribute("buttonName", context.getPreferences().getOrDefault("buttonName", "Search"));
     context.getRequest().setAttribute("useAutoComplete",
         context.getPreferences().getOrDefault("useAutoComplete", "true"));
+    context.getRequest().setAttribute("useSearch", context.getPreferences().getOrDefault("useSearch", "true"));
     context.getRequest().setAttribute("useLocation", context.getPreferences().getOrDefault("useLocation", "true"));
     context.getRequest().setAttribute("useIcon", context.getPreferences().getOrDefault("useIcon", "false"));
     context.getRequest().setAttribute("showCategories",

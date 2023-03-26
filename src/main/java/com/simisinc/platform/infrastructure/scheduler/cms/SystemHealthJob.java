@@ -14,40 +14,26 @@
  * limitations under the License.
  */
 
-package com.simisinc.platform.rest.services.items;
+package com.simisinc.platform.infrastructure.scheduler.cms;
 
-import com.fasterxml.jackson.annotation.JsonInclude;
-import com.simisinc.platform.domain.model.items.Category;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.jobrunr.jobs.annotations.Job;
 
 /**
- * Description
+ * Used for logging health information
  *
  * @author matt rajkowski
- * @created 1/22/19 12:12 PM
+ * @created 3/26/2023 7:47 AM
  */
-public class CategoryResponse {
+public class SystemHealthJob {
 
-  String uniqueId;
-  String name;
-  @JsonInclude(JsonInclude.Include.NON_EMPTY)
-  String description;
+  private static Log LOG = LogFactory.getLog(SystemHealthJob.class);
 
-  public CategoryResponse(Category record) {
-    uniqueId = record.getUniqueId();
-    name = record.getName();
-    description = record.getDescription();
+  @Job(name = "System Health")
+  public static void execute() {
+    if (LOG.isDebugEnabled()) {
+      LOG.info("Healthy");
+    }
   }
-
-  public String getUniqueId() {
-    return uniqueId;
-  }
-
-  public String getName() {
-    return name;
-  }
-
-  public String getDescription() {
-    return description;
-  }
-
 }

@@ -16,18 +16,19 @@
 
 package com.simisinc.platform.application.cms;
 
-import com.simisinc.platform.application.filesystem.FileSystemCommand;
-import com.simisinc.platform.application.maps.GeoIPCommand;
-import com.simisinc.platform.domain.model.cms.FormData;
-import com.simisinc.platform.domain.model.cms.FormField;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 import java.io.File;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import com.simisinc.platform.application.filesystem.FileSystemCommand;
+import com.simisinc.platform.application.maps.GeoIPCommand;
+import com.simisinc.platform.domain.model.cms.FormData;
+import com.simisinc.platform.domain.model.cms.FormField;
 
 /**
  * Determines if the form submission should be flagged for spam
@@ -38,6 +39,8 @@ import java.util.Map;
 public class FormCommand {
 
   private static Log LOG = LogFactory.getLog(FormCommand.class);
+
+  public static final String UNALLOWED_CHARACTERS = "еіѕ﻿";
 
   public static final String COUNTRY_IGNORE_LIST = "country-ignore-list.csv";
   public static final String EMAIL_IGNORE_LIST = "email-ignore-list.csv";
@@ -100,6 +103,11 @@ public class FormCommand {
         String value = field.getUserValue().toLowerCase();
         if (spamList != null && spamList.stream().anyMatch(value::contains)) {
           LOG.debug("Flagged for textarea value");
+          formData.setFlaggedAsSpam(true);
+          return true;
+        }
+        if (StringUtils.containsAny(value, UNALLOWED_CHARACTERS)) {
+          LOG.debug("Flagged for textarea invalid value");
           formData.setFlaggedAsSpam(true);
           return true;
         }

@@ -56,6 +56,7 @@
 <table>
   <thead>
     <tr>
+      <th>Name</th>
       <th>Email</th>
       <th>Location</th>
       <th width="200">Added</th>
@@ -65,6 +66,9 @@
   <tbody>
     <c:forEach items="${emailList}" var="email">
     <tr>
+      <td>
+        <c:out value="${email.firstName}" />
+      </td>
       <td>
         <%--<a href="${ctx}/admin/mailing-list-email-details?userId=${email.id}"><c:out value="${email.email}" /></a>--%>
         <c:out value="${email.email}" />
@@ -81,7 +85,7 @@
     </c:forEach>
     <c:if test="${empty emailList}">
       <tr>
-        <td colspan="4">No members were found</td>
+        <td colspan="5">No members were found</td>
       </tr>
     </c:if>
   </tbody>

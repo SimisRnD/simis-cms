@@ -35,8 +35,8 @@
     <mockito.version>5.1.0</mockito.version>
     <argon2.version>2.11</argon2.version>
     <args4j.version>2.33</args4j.version>
-    <bucket4j.version>8.1.1</bucket4j.version>
-    <caffeine.version>3.1.4</caffeine.version>
+    <bucket4j.version>8.2.0</bucket4j.version>
+    <caffeine.version>3.1.5</caffeine.version>
     <apache-http.version>4.5.14</apache-http.version>
     <classgraph.version>4.8.151</classgraph.version>
     <commons-beanutils.version>1.9.4</commons-beanutils.version>
@@ -53,7 +53,7 @@
     <commons-validator.version>1.7</commons-validator.version>
     <easy-flows-playbook.version>0.6-SNAPSHOT</easy-flows-playbook.version>
     <flexmark.version>0.64.0</flexmark.version>
-    <flyway.version>9.10.1</flyway.version>
+    <flyway.version>9.15.2</flyway.version>
     <geoip2.version>3.0.2</geoip2.version>
     <geojson.version>1.14</geojson.version>
     <granule.version>1.0.18-SNAPSHOT</granule.version>
@@ -67,7 +67,7 @@
     <java-activation.version>1.2.0</java-activation.version>
     <java-mail.version>1.6.2</java-mail.version>
     <jna.version>5.8.0</jna.version>
-    <jobrunr.version>6.1.1</jobrunr.version>
+    <jobrunr.version>6.1.2</jobrunr.version>
     <johnzon.version>1.1.8</johnzon.version>
     <jsoup.version>1.15.3</jsoup.version>
     <jstl.version>1.2.5</jstl.version>

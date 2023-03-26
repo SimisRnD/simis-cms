@@ -16,18 +16,22 @@
 
 package com.simisinc.platform.infrastructure.scheduler.medicine;
 
-import com.simisinc.platform.domain.model.medicine.Medicine;
-import com.simisinc.platform.infrastructure.database.DataConstraints;
-import com.simisinc.platform.infrastructure.persistence.medicine.MedicineReminderRepository;
-import com.simisinc.platform.infrastructure.persistence.medicine.MedicineRepository;
-import com.simisinc.platform.infrastructure.persistence.medicine.MedicineSpecification;
+import java.sql.Timestamp;
+import java.time.Duration;
+import java.time.LocalDate;
+import java.util.List;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jobrunr.jobs.annotations.Job;
 
-import java.sql.Timestamp;
-import java.time.LocalDate;
-import java.util.List;
+import com.simisinc.platform.domain.model.medicine.Medicine;
+import com.simisinc.platform.infrastructure.database.DataConstraints;
+import com.simisinc.platform.infrastructure.distributedlock.LockManager;
+import com.simisinc.platform.infrastructure.persistence.medicine.MedicineReminderRepository;
+import com.simisinc.platform.infrastructure.persistence.medicine.MedicineRepository;
+import com.simisinc.platform.infrastructure.persistence.medicine.MedicineSpecification;
+import com.simisinc.platform.infrastructure.scheduler.SchedulerManager;
 
 /**
  * This job uses the medicine schedules to extend and create a list of daily reminders
@@ -41,6 +45,12 @@ public class ProcessMedicineSchedulesJob {
 
   @Job(name = "Update medicine reminders based on schedules, approx 20 days out")
   public static void execute() {
+
+    // Distributed lock
+    String lock = LockManager.lock(SchedulerManager.PROCESS_MEDICINE_SCHEDULES_JOB, Duration.ofHours(1));
+    if (lock == null) {
+      return;
+    }
 
     // Check all available medicines to see if any need to be extended
     MedicineSpecification medicineSpecification = new MedicineSpecification();
@@ -68,8 +78,7 @@ public class ProcessMedicineSchedulesJob {
               medicine.getId(),
               Timestamp.valueOf(startDate.atStartOfDay()),
               Timestamp.valueOf(endDate.atStartOfDay()),
-              startDate.getDayOfWeek()
-          );
+              startDate.getDayOfWeek());
         }
       }
       // Start at the next number

@@ -16,16 +16,20 @@
 
 package com.simisinc.platform.infrastructure.scheduler.socialmedia;
 
-import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
-import com.simisinc.platform.application.socialmedia.InstagramCommand;
-import com.simisinc.platform.domain.model.socialmedia.InstagramMedia;
-import com.simisinc.platform.infrastructure.persistence.socialmedia.InstagramMediaRepository;
+import java.time.Duration;
+import java.util.ArrayList;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jobrunr.jobs.annotations.Job;
 
-import java.util.ArrayList;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.socialmedia.InstagramCommand;
+import com.simisinc.platform.domain.model.socialmedia.InstagramMedia;
+import com.simisinc.platform.infrastructure.distributedlock.LockManager;
+import com.simisinc.platform.infrastructure.persistence.socialmedia.InstagramMediaRepository;
+import com.simisinc.platform.infrastructure.scheduler.SchedulerManager;
 
 /**
  * Retrieves the latest Instagram posts
@@ -39,6 +43,12 @@ public class InstagramMediaSnapshotJob {
 
   @Job(name = "Retrieve the latest instagram posts")
   public static void execute() {
+
+    // Distributed lock
+    String lock = LockManager.lock(SchedulerManager.INSTAGRAM_MEDIA_SNAPSHOT_JOB, Duration.ofMinutes(60));
+    if (lock == null) {
+      return;
+    }
 
     // See if Instagram is configured
     String apiKey = LoadSitePropertyCommand.loadByName("social.instagram.accessToken");

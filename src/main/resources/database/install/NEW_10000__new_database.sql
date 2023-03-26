@@ -538,3 +538,9 @@ CREATE INDEX zip_codes_code_idx ON zip_codes(code);
 --
 -- UPDATE zip_codes SET geom = ST_SetSRID(ST_MakePoint(latitude, longitude), 4326) WHERE latitude IS NOT NULL AND longitude IS NOT NULL AND geom IS NULL;
 
+CREATE TABLE distributed_lock (
+  name VARCHAR(64) PRIMARY KEY NOT NULL,
+  locked_at TIMESTAMP(3) NOT NULL,
+  lock_until TIMESTAMP(3) NOT NULL,
+  uuid VARCHAR(255) NOT NULL
+);

@@ -64,9 +64,10 @@
 <c:if test="${expand eq 'true'}">
 <script>
     $(document).ready(function () {
-        var button = $('#button${widgetContext.uniqueId}');
-        var input = $('#input${widgetContext.uniqueId}');
-        var icon = $('#icon${widgetContext.uniqueId}');
+        let form = $('#form${widgetContext.uniqueId}');
+        let button = $('#button${widgetContext.uniqueId}');
+        let input = $('#input${widgetContext.uniqueId}');
+        let icon = $('#icon${widgetContext.uniqueId}');
         function showSearchForm${widgetContext.uniqueId}() {
             input.addClass('isExpanded');
             input.attr("placeholder", "${js:escape(placeholder)}");
@@ -87,6 +88,11 @@
             setTimeout(function () {
                 hideSearchForm${widgetContext.uniqueId}();
             }, 150);
+        });
+        form.submit(function(e){
+            if (!input.val()) {
+                e.preventDefault(e);
+            }
         });
     });
 </script>

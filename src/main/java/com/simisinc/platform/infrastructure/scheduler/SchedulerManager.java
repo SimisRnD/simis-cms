@@ -20,6 +20,7 @@ import com.simisinc.platform.infrastructure.database.DataSource;
 import com.simisinc.platform.infrastructure.scheduler.admin.DatasetsDownloadAndSyncJob;
 import com.simisinc.platform.infrastructure.scheduler.cms.LoadSystemFilesJob;
 import com.simisinc.platform.infrastructure.scheduler.cms.RecordWebPageHitJob;
+import com.simisinc.platform.infrastructure.scheduler.cms.SystemHealthJob;
 import com.simisinc.platform.infrastructure.scheduler.cms.WebPageHitSnapshotJob;
 import com.simisinc.platform.infrastructure.scheduler.cms.WebPageHitsCleanupJob;
 import com.simisinc.platform.infrastructure.scheduler.ecommerce.OrderManagementProcessNewOrders;
@@ -56,18 +57,23 @@ public class SchedulerManager {
   private static ServletContext servletContext = null;
   private static Log LOG = LogFactory.getLog(SchedulerManager.class);
 
-  // Background jobs need a unique id
+  // Jobs for every replica
+  public static final String SYSTEM_HEALTH_JOB = "SystemHealth";
+  public static final String LOAD_SYSTEM_FILES_JOB = "LoadSystemFiles";
   public static final String RECORD_WEB_PAGE_HITS_JOB = "RecordWebPageHits";
+
+  // Jobs to be run once across many replicas
   public static final String WEB_PAGE_HIT_SNAPSHOT_JOB = "WebPageHitSnapshot";
   public static final String WEB_PAGE_HITS_CLEANUP_JOB = "WebPageHitsCleanup";
   public static final String USER_TOKENS_CLEANUP_JOB = "UserTokensCleanup";
-  public static final String DATASETS_DOWNLOAD_AND_SYNC_JOB = "DatasetsDownloadAndSync";
   public static final String INSTAGRAM_MEDIA_SNAPSHOT_JOB = "InstagramMediaSnapshot";
   public static final String ORDER_MANAGEMENT_PROCESS_NEW_ORDERS_JOB = "OrderManagementProcessNewOrders";
   public static final String ORDER_MANAGEMENT_PROCESS_SHIPPING_UPDATES_JOB = "OrderManagementProcessShippingUpdates";
   public static final String PROCESS_MEDICINE_SCHEDULES_JOB = "ProcessMedicineSchedules";
-  public static final String LOAD_SYSTEM_FILES_JOB = "LoadSystemFiles";
 
+  // Jobs which can be run by multiple clients
+  public static final String DATASETS_DOWNLOAD_AND_SYNC_JOB = "DatasetsDownloadAndSync";
+  
   public SchedulerManager() {
   }
 
@@ -123,6 +129,7 @@ public class SchedulerManager {
           .initialize();
 
       // Schedule background jobs
+      // BackgroundJob.scheduleRecurrently(SYSTEM_HEALTH_JOB, Cron.every15seconds(), SystemHealthJob::execute);
       BackgroundJob.scheduleRecurrently(LOAD_SYSTEM_FILES_JOB, Cron.every5minutes(), LoadSystemFilesJob::execute);
 
       BackgroundJob.scheduleRecurrently(RECORD_WEB_PAGE_HITS_JOB, Cron.every15seconds(), RecordWebPageHitJob::execute);

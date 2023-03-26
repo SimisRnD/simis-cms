@@ -43,6 +43,9 @@ public class SocialMediaLinksWidget extends GenericWidget {
     }
     context.getRequest().setAttribute("socialPropertyMap", socialPropertyMap);
 
+    // Preferences
+    context.getRequest().setAttribute("iconClass", context.getPreferences().getOrDefault("iconClass", "margin-left-10"));
+
     // Show the JSP
     context.setJsp(JSP);
     return context;

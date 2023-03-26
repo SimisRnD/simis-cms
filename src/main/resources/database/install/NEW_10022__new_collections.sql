@@ -51,9 +51,12 @@ CREATE TABLE categories (
   icon VARCHAR(20),
   header_text_color VARCHAR(30) DEFAULT '#ffffff',
   header_bg_color VARCHAR(30) DEFAULT '#666666',
-  item_url_text VARCHAR(50)
+  item_url_text VARCHAR(50),
+  unique_id VARCHAR(255) NOT NULL,
+  image_url VARCHAR(255)
 );
 CREATE UNIQUE INDEX categories_uni_idx ON categories(collection_id, name);
+CREATE UNIQUE INDEX categories_uidx ON categories (collection_id, unique_id);
 CREATE INDEX categories_col_idx ON categories(collection_id);
 CREATE INDEX categories_nm_idx ON categories(name);
 CREATE INDEX categories_prim_idx ON categories(is_primary);

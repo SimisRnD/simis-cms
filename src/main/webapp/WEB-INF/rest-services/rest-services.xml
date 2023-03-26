@@ -21,7 +21,7 @@
   <service method="get" endpoint="content/{contentUniqueId}" class="com.simisinc.platform.rest.services.cms.ContentService" />
   <service method="get" endpoint="collections" class="com.simisinc.platform.rest.services.items.CollectionListService" />
   <service method="get" endpoint="categories/{collectionUniqueId}" class="com.simisinc.platform.rest.services.items.CategoryListService" />
-  <service method="get" endpoint="items/{collectionUniqueId}?category=value&amp;query=value" class="com.simisinc.platform.rest.services.items.ItemListService" />
+  <service method="get" endpoint="items/{collectionUniqueId}?category=${categoryUniqueId}&amp;query=value" class="com.simisinc.platform.rest.services.items.ItemListService" />
   <service method="get" endpoint="item/{itemUniqueId}" class="com.simisinc.platform.rest.services.items.ItemService" />
   <!--
   /item-blog/unique-id

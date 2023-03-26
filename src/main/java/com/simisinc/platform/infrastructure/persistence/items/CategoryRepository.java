@@ -50,6 +50,18 @@ public class CategoryRepository {
         CategoryRepository::buildRecord);
   }
 
+  public static Category findByUniqueIdWithinCollection(String uniqueId, long collectionId) {
+    if (StringUtils.isBlank(uniqueId)) {
+      return null;
+    }
+    return (Category) DB.selectRecordFrom(
+        TABLE_NAME,
+        new SqlUtils()
+            .add("collection_id = ?", collectionId)
+            .add("unique_id = ?", uniqueId),
+        CategoryRepository::buildRecord);
+  }
+
   public static Category findByNameWithinCollection(String name, long collectionId) {
     if (collectionId == -1) {
       return null;
@@ -149,6 +161,7 @@ public class CategoryRepository {
   private static Category insert(Category record) {
     SqlUtils insertValues = new SqlUtils()
         .add("collection_id", record.getCollectionId())
+        .add("unique_id", StringUtils.trimToNull(record.getUniqueId()))
         .add("name", StringUtils.trimToNull(record.getName()))
         .add("description", StringUtils.trimToNull(record.getDescription()))
         .add("created_by", record.getCreatedBy())
@@ -176,6 +189,7 @@ public class CategoryRepository {
 
   private static Category update(Category record) {
     SqlUtils updateValues = new SqlUtils()
+        .add("unique_id", StringUtils.trimToNull(record.getUniqueId()))
         .add("name", StringUtils.trimToNull(record.getName()))
         .add("description", StringUtils.trimToNull(record.getDescription()))
         .add("icon", StringUtils.trimToNull(record.getIcon()))
@@ -232,6 +246,7 @@ public class CategoryRepository {
       record.setHeaderTextColor(rs.getString("header_text_color"));
       record.setHeaderBgColor(rs.getString("header_bg_color"));
       record.setItemUrlText(rs.getString("item_url_text"));
+      record.setUniqueId(rs.getString("unique_id"));
       return record;
     } catch (SQLException se) {
       LOG.error("buildRecord", se);

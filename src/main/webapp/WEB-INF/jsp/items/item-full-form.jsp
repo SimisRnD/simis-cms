@@ -94,7 +94,7 @@
         }
       }
     };
-    xhr.open("POST", '${ctx}/item-image-upload?widget=itemImageUpload1&token=${userSession.formToken}');
+    xhr.open("POST", '${ctx}/image-upload?widget=imageUpload1&token=${userSession.formToken}');
     xhr.send(formData);
   }
 </script>
@@ -199,9 +199,15 @@
           <label>Image URL
             <div class="input-group">
               <span class="input-group-label"><i class="fa fa-link"></i></span>
-              <input class="input-group-field" type="url" placeholder="http://" name="imageUrl" value="<c:out value="${item.imageUrl}"/>">
+              <input class="input-group-field" type="text" placeholder="http://" id="imageUrl" name="imageUrl" value="<c:out value="${item.imageUrl}"/>">
+              <span class="input-group-label" style="padding: 0;"><a class="button small primary expanded no-gap" data-open="imageBrowserReveal">Browse Images</a></span>
             </div>
+            <label for="imageFile" class="button">Upload Image File...</label>
+            <input type="file" id="imageFile" class="show-for-sr" onchange="SavePhoto(this)">
           </label>
+        </div>
+        <div class="small-4 cell">
+          <img id="imageUrlPreview" src="<c:out value="${item.imageUrl}"/>" style="max-height: 150px; max-width: 150px"/>
         </div>
       </div>
     </div>
@@ -523,3 +529,21 @@
       <c:if test="${!empty cancelUrl}"><span class="button-gap"><a class="button radius secondary" href="${ctx}${cancelUrl}">Cancel</a></span></c:if>
     </div>
 </form>
+<div class="reveal large" id="imageBrowserReveal" data-reveal data-animation-in="slide-in-down fast">
+  <h3>Loading...</h3>
+</div>
+<script>
+  $('#imageBrowserReveal').on('open.zf.reveal', function () {
+    $('#imageBrowserReveal').html("<h3>Loading...</h3>");
+    $.ajax({
+      url: '${ctx}/image-browser?inputId=imageUrl&view=reveal',
+      cache: false,
+      dataType: 'html'
+    }).done(function (content) {
+      setTimeout(function () {
+        $('#imageBrowserReveal').html(content);
+        $('#imageBrowserReveal').trigger('resizeme.zf.trigger');
+      }, 1000);
+    });
+  })
+</script>

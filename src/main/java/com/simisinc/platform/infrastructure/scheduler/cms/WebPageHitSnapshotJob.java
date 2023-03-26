@@ -16,10 +16,15 @@
 
 package com.simisinc.platform.infrastructure.scheduler.cms;
 
-import com.simisinc.platform.application.cms.WebPageHitSnapshotCommand;
+import java.time.Duration;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jobrunr.jobs.annotations.Job;
+
+import com.simisinc.platform.application.cms.WebPageHitSnapshotCommand;
+import com.simisinc.platform.infrastructure.distributedlock.LockManager;
+import com.simisinc.platform.infrastructure.scheduler.SchedulerManager;
 
 /**
  * Makes a summary snapshot of web page hits
@@ -33,6 +38,12 @@ public class WebPageHitSnapshotJob {
 
   @Job(name = "Make a snapshot of web page hits")
   public static void execute() {
+    // Distributed lock
+    String lock = LockManager.lock(SchedulerManager.WEB_PAGE_HIT_SNAPSHOT_JOB, Duration.ofMinutes(5));
+    if (lock == null) {
+      return;
+    }
+
     WebPageHitSnapshotCommand.updateSnapshots();
   }
 }

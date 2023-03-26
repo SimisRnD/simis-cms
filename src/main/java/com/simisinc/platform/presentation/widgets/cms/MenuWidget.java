@@ -60,6 +60,7 @@ public class MenuWidget extends GenericWidget {
     context.getRequest().setAttribute("menuId", context.getPreferences().get("id"));
     context.getRequest().setAttribute("menuClass", context.getPreferences().get("class"));
     context.getRequest().setAttribute("title", context.getPreferences().get("title"));
+    context.getRequest().setAttribute("wrap", context.getPreferences().getOrDefault("wrap", "true"));
     context.getRequest().setAttribute("useHighlight", context.getPreferences().getOrDefault("useHighlight", "false"));
     boolean showWhenEmpty = "true".equals(context.getPreferences().getOrDefault("showWhenEmpty", "false"));
     boolean redirectToFirstTabWithAccess = "true".equals(context.getPreferences().getOrDefault("redirectToFirstTabWithAccess", "false"));
