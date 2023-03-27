@@ -27,9 +27,11 @@ import org.apache.commons.logging.LogFactory;
 public class InstanceManager {
   private static Log LOG = LogFactory.getLog(InstanceManager.class);
 
+  private static final String NODE_TYPE = "CMS_NODE_TYPE";
+
   public static void init() {
-    if (System.getenv().containsKey("NODE_TYPE")) {
-      LOG.info("Instance NODE_TYPE is configured: " + System.getenv("NODE_TYPE"));
+    if (System.getenv().containsKey(NODE_TYPE)) {
+      LOG.info("Instance NODE_TYPE is configured: " + System.getenv(NODE_TYPE));
     }
   }
 
@@ -38,7 +40,7 @@ public class InstanceManager {
    * @return if the current instance is configured as 'web' only
    */
   public static boolean isWebNodeOnly() {
-    if (System.getenv().containsKey("NODE_TYPE") && "web".equals(System.getenv("NODE_TYPE"))) {
+    if (System.getenv().containsKey(NODE_TYPE) && "web".equals(System.getenv(NODE_TYPE))) {
       return true;
     }
     return false;
