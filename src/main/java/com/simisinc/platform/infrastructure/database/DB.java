@@ -60,8 +60,8 @@ public class DB {
 
   private static PreparedStatement createPreparedStatement(Connection connection, String sqlQuery,
       SqlUtils insertValues, String[] primaryKey) throws SQLException {
-    if (LOG.isTraceEnabled()) {
-      LOG.debug(sqlQuery);
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("SQL_INSERT_QUERY: " + sqlQuery);
     }
     PreparedStatement pst;
     if (primaryKey != null) {
@@ -573,7 +573,7 @@ public class DB {
     return id;
   }
 
-  public static boolean insertIntoWithSuccess(String tableName, SqlUtils insertValues, String onConflict) {
+  public static boolean insertIntoWithConflict(String tableName, SqlUtils insertValues, String onConflict) {
     try (Connection connection = getConnection();
         PreparedStatement pst = createPreparedStatementForInsert(connection, tableName, insertValues, null,
             onConflict)) {
@@ -584,14 +584,9 @@ public class DB {
     return false;
   }
 
-  public static long insertInto(String tableName, SqlUtils sqlUtils, String[] primaryKey) {
-    return insertInto(tableName, sqlUtils, primaryKey, null);
-  }
-
-  public static long insertInto(String tableName, SqlUtils insertValues, String[] primaryKey, String onConflict) {
+  public static long insertInto(String tableName, SqlUtils insertValues, String[] primaryKey) {
     try (Connection connection = getConnection();
-        PreparedStatement pst = createPreparedStatementForInsert(connection, tableName, insertValues, primaryKey,
-            onConflict)) {
+        PreparedStatement pst = createPreparedStatementForInsert(connection, tableName, insertValues, primaryKey, null)) {
       return executeInsertGetGeneratedKeys(pst);
     } catch (SQLException se) {
       LOG.error("SQLException: " + se.getMessage());

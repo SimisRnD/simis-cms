@@ -55,7 +55,7 @@ public class LockManager {
         "uuid = EXCLUDED.uuid " +
         "WHERE distributed_lock.name = EXCLUDED.name AND CURRENT_TIMESTAMP >= distributed_lock.lock_until";
 
-    if (DB.insertIntoWithSuccess(TABLE_NAME, insertValues, onConflict)) {
+    if (DB.insertIntoWithConflict(TABLE_NAME, insertValues, onConflict)) {
       LOG.debug("Lock succeeded: " + name);
       return uuid;
     }

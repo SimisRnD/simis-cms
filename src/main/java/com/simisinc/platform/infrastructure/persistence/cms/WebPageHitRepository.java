@@ -118,7 +118,7 @@ public class WebPageHitRepository {
         "web_page_hits = EXCLUDED.web_page_hits, " +
         "unique_sessions = EXCLUDED.unique_sessions";
 
-    DB.insertInto("web_page_hit_snapshots", insertValues, null, onConflict);
+    DB.insertIntoWithConflict("web_page_hit_snapshots", insertValues, onConflict);
   }
 
   public static void deleteOldWebHits() {
