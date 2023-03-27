@@ -43,6 +43,7 @@ import com.simisinc.platform.application.maps.GeoIPCommand;
 import com.simisinc.platform.domain.model.cms.Content;
 import com.simisinc.platform.infrastructure.cache.CacheManager;
 import com.simisinc.platform.infrastructure.database.DataSource;
+import com.simisinc.platform.infrastructure.instance.InstanceManager;
 import com.simisinc.platform.infrastructure.persistence.cms.ContentRepository;
 import com.simisinc.platform.infrastructure.scheduler.SchedulerManager;
 import com.simisinc.platform.infrastructure.scheduler.cms.LoadSystemFilesJob;
@@ -85,6 +86,9 @@ public class ContextListener implements ServletContextListener {
     // Monitor the success
     boolean isSuccessful = true;
 
+    // Determine the instance type
+    InstanceManager.init();
+
     // Show the system's timezone
     LocalDateTime now = LocalDateTime.now();
     ZoneId serverZoneId = ZoneId.systemDefault();
@@ -94,7 +98,8 @@ public class ContextListener implements ServletContextListener {
     // Startup the database first
     // @todo create and use a separate Rest DataSource pool
     Properties databaseProperties = new Properties();
-    try (InputStream is = servletContextEvent.getServletContext().getResourceAsStream("/WEB-INF/classes/database.properties")) {
+    try (InputStream is = servletContextEvent.getServletContext()
+        .getResourceAsStream("/WEB-INF/classes/database.properties")) {
       LOG.info("Starting up the web database connection pool...");
       // Use the default properties
       databaseProperties.load(is);
@@ -142,7 +147,8 @@ public class ContextListener implements ServletContextListener {
     if (StringUtils.isBlank(serverRootPath)) {
       LOG.error("Missing system.filepath");
       isSuccessful = false;
-      servletContextEvent.getServletContext().setAttribute(ContextConstants.STARTUP_FAILED, "missing system.filepath in database");
+      servletContextEvent.getServletContext().setAttribute(ContextConstants.STARTUP_FAILED,
+          "missing system.filepath in database");
     } else {
       File directory = new File(serverRootPath);
       if (!directory.exists()) {
@@ -152,7 +158,8 @@ public class ContextListener implements ServletContextListener {
       if (!directory.isDirectory()) {
         isSuccessful = false;
         LOG.error("Check system.filepath, directory was not found: " + serverRootPath);
-        servletContextEvent.getServletContext().setAttribute(ContextConstants.STARTUP_FAILED, "system.filepath setting exists but the directory '" + serverRootPath + "' was not found");
+        servletContextEvent.getServletContext().setAttribute(ContextConstants.STARTUP_FAILED,
+            "system.filepath setting exists but the directory '" + serverRootPath + "' was not found");
       }
     }
 
@@ -196,7 +203,7 @@ public class ContextListener implements ServletContextListener {
     SchedulerManager.startup(servletContextEvent.getServletContext());
 
     // Give the go ahead
-    servletContextEvent.getServletContext().setAttribute("STARTUP_SUCCESSFUL", "true");
+    servletContextEvent.getServletContext().setAttribute(ContextConstants.STARTUP_SUCCESSFUL, "true");
   }
 
   @Override
