@@ -311,8 +311,8 @@
           <c:if test="${userSession.hasRole('admin') || userSession.hasRole('data-manager')}">
             <ul class="vertical menu">
               <li class="section-title">Data</li>
-              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/dataset')}"> class="is-active"</c:if>><a href="${ctx}/admin/datasets"><i class="${font:far()} fa-table fa-fw"></i> <span>Datasets</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/collection')}"> class="is-active"</c:if>><a href="${ctx}/admin/collections"><i class="${font:far()} fa-database fa-fw"></i> <span>Collections</span></a></li>
+              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/dataset')}"> class="is-active"</c:if>><a href="${ctx}/admin/datasets"><i class="${font:far()} fa-table fa-fw"></i> <span>Datasets</span></a></li>
             </ul>
           </c:if>
           <%-- E-Commerce menu (if enabled if settings) --%>
