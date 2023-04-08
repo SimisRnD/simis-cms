@@ -34,6 +34,7 @@ public class SearchFormWidget extends GenericWidget {
   public WidgetContext execute(WidgetContext context) {
     // Preferences
     context.getRequest().setAttribute("placeholder", context.getPreferences().getOrDefault("placeholder", "Search"));
+    context.getRequest().setAttribute("linkText", context.getPreferences().get("linkText"));
     context.getRequest().setAttribute("expand", context.getPreferences().getOrDefault("expand", "false"));
 
     // Show the JSP
