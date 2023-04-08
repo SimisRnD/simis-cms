@@ -39,6 +39,7 @@ import org.apache.commons.logging.LogFactory;
 import com.simisinc.platform.ApplicationInfo;
 import com.simisinc.platform.application.admin.DatabaseCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.filesystem.FileSystemCommand;
 import com.simisinc.platform.application.maps.GeoIPCommand;
 import com.simisinc.platform.domain.model.cms.Content;
 import com.simisinc.platform.infrastructure.cache.CacheManager;
@@ -48,21 +49,6 @@ import com.simisinc.platform.infrastructure.persistence.cms.ContentRepository;
 import com.simisinc.platform.infrastructure.scheduler.SchedulerManager;
 import com.simisinc.platform.infrastructure.scheduler.cms.LoadSystemFilesJob;
 import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
-
-import javax.servlet.ServletContextEvent;
-import javax.servlet.ServletContextListener;
-import javax.servlet.jsp.jstl.core.Config;
-import java.io.File;
-import java.io.InputStream;
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
-import java.time.ZonedDateTime;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Properties;
-
-import static com.simisinc.platform.infrastructure.cache.CacheManager.CONTENT_UNIQUE_ID_CACHE;
 
 /**
  * Description
@@ -141,15 +127,15 @@ public class ContextListener implements ServletContextListener {
     LOG.info("Startup the cache manager...");
     CacheManager.startup();
 
-    // Verify the database filesystem entry
-    LOG.info("Checking the file server...");
-    String serverRootPath = LoadSitePropertyCommand.loadByName("system.filepath");
+    // Verify the filesystem entry
+    String serverRootPath = FileSystemCommand.getFileServerRootPath();
     if (StringUtils.isBlank(serverRootPath)) {
       LOG.error("Missing system.filepath");
       isSuccessful = false;
       servletContextEvent.getServletContext().setAttribute(ContextConstants.STARTUP_FAILED,
           "missing system.filepath in database");
     } else {
+      LOG.info("Checking the file path: " + serverRootPath);
       File directory = new File(serverRootPath);
       if (!directory.exists()) {
         LOG.info("Creating directory at: " + serverRootPath);

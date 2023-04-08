@@ -44,9 +44,21 @@ public class FileSystemCommand {
 
   private static Log LOG = LogFactory.getLog(FileSystemCommand.class);
 
+  private static String configPath = null;
+  private static String filesPath = null;
+
   public static String getFileServerConfigPath() {
-    String serverConfigPath = LoadSitePropertyCommand.loadByName("system.configpath");
-    if (serverConfigPath == null) {
+    if (configPath != null) {
+      return configPath;
+    }
+    String serverConfigPath = null;
+    if (System.getenv().containsKey("CMS_PATH")) {
+      serverConfigPath = System.getenv("CMS_PATH") + "/config";
+    }
+    if (StringUtils.isBlank(serverConfigPath)) {
+      serverConfigPath = LoadSitePropertyCommand.loadByName("system.configpath");
+    }
+    if (StringUtils.isBlank(serverConfigPath)) {
       // @note this value is checked at system startup and will abort then
       LOG.error("system.configpath does not exist");
       LOG.info("HINT: INSERT INTO site_properties (property_label, property_name, property_value) VALUES ('Configuration path', 'system.configpath', '/opt/simis/config')");
@@ -55,12 +67,22 @@ public class FileSystemCommand {
     if (!serverConfigPath.endsWith("/")) {
       serverConfigPath += "/";
     }
-    return serverConfigPath;
+    configPath = serverConfigPath;
+    return configPath;
   }
 
   public static String getFileServerRootPath() {
-    String serverRootPath = LoadSitePropertyCommand.loadByName("system.filepath");
-    if (serverRootPath == null) {
+    if (filesPath != null) {
+      return filesPath;
+    }
+    String serverRootPath = null;
+    if (System.getenv().containsKey("CMS_PATH")) {
+      serverRootPath = System.getenv("CMS_PATH") + "/files";
+    }
+    if (StringUtils.isBlank(serverRootPath)) {
+      serverRootPath = LoadSitePropertyCommand.loadByName("system.filepath");
+    }
+    if (StringUtils.isBlank(serverRootPath)) {
       // @note this value is checked at system startup and will abort then
       LOG.error("system.filepath does not exist");
       LOG.info("HINT: INSERT INTO site_properties (property_label, property_name, property_value) VALUES ('File server path', 'system.filepath', '/opt/simis/files')");
@@ -69,7 +91,8 @@ public class FileSystemCommand {
     if (!serverRootPath.endsWith("/")) {
       serverRootPath += "/";
     }
-    return serverRootPath;
+    filesPath = serverRootPath;
+    return filesPath;
   }
 
   public static String generateFileServerSubPath(String module) {
