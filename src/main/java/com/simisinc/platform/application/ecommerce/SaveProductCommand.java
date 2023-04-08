@@ -16,13 +16,15 @@
 
 package com.simisinc.platform.application.ecommerce;
 
-import com.simisinc.platform.application.DataException;
-import com.simisinc.platform.application.cms.HtmlCommand;
-import com.simisinc.platform.domain.model.ecommerce.Product;
-import com.simisinc.platform.infrastructure.persistence.ecommerce.ProductRepository;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
+
+import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.cms.HtmlCommand;
+import com.simisinc.platform.application.cms.MakeContentUniqueIdCommand;
+import com.simisinc.platform.domain.model.ecommerce.Product;
+import com.simisinc.platform.infrastructure.persistence.ecommerce.ProductRepository;
 
 /**
  * Validates and saves product objects
@@ -125,25 +127,14 @@ public class SaveProductCommand {
     }
 
     // Create a new one
-    StringBuilder sb = new StringBuilder();
-    String name = item.getName().toLowerCase();
-    final int len = name.length();
-    for (int i = 0; i < len; i++) {
-      char c = name.charAt(i);
-      if (allowedChars.indexOf(name.charAt(i)) > -1) {
-        sb.append(c);
-      } else if (c == ' ') {
-        sb.append("-");
-      }
-    }
+    String value = MakeContentUniqueIdCommand.parseToValidValue(item.getName());
 
     // Find the next available unique instance
     int count = 1;
-    String originalUniqueId = sb.toString();
-    String uniqueId = sb.toString();
+    String uniqueId = value;
     while (ProductRepository.findByUniqueId(uniqueId) != null) {
       ++count;
-      uniqueId = originalUniqueId + "-" + count;
+      uniqueId = value + "-" + count;
     }
     return uniqueId;
   }
