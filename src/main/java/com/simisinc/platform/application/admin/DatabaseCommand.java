@@ -51,7 +51,7 @@ public class DatabaseCommand {
             databaseProperties.getProperty("dataSource.databaseName");
 
     if (!isInstalled()) {
-      LOG.info("New system detected, installing the database...");
+      LOG.info("New system detected, installing the database... " + ApplicationInfo.VERSION);
       boolean installResult = installDatabase(jdbcUrl, databaseProperties);
       if (!installResult) {
         return false;
