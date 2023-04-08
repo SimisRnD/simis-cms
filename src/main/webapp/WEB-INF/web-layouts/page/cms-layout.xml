@@ -202,17 +202,6 @@
     </section>
   </page>
 
-  <!-- Order page for user accounts -->
-  <page name="/order-details{?order-number}" role="users" title="Order Details">
-    <section>
-      <column class="small-12 medium-11 cell">
-        <widget name="orderConfirmation">
-          <introHtml><![CDATA[<p><a href="${ctx}/my-page">Back to Account Overview</a></p><h1>Order No. ${orderNumber}</h1>]]></introHtml>
-        </widget>
-      </column>
-    </section>
-  </page>
-
   <!-- Content Editing -->
   <page name="/content-editor" role="admin,content-manager" title="Content Editor" class="full-page">
     <section>
