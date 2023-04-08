@@ -16,6 +16,8 @@
 
 package com.simisinc.platform.application.items;
 
+import org.apache.commons.lang3.StringUtils;
+
 import com.simisinc.platform.application.cms.MakeContentUniqueIdCommand;
 import com.simisinc.platform.domain.model.items.Category;
 import com.simisinc.platform.infrastructure.persistence.items.CategoryRepository;
@@ -28,14 +30,25 @@ import com.simisinc.platform.infrastructure.persistence.items.CategoryRepository
  */
 public class GenerateCategoryUniqueIdCommand {
 
+  private static final String allowedChars = "abcdefghijklmnopqrstuvwyxz0123456789";
+  private static final String allowedFinalChars = "abcdefghijklmnopqrstuvwyxz0123456789-";
+
   public static String generateUniqueId(Category previousCategory, Category category) {
 
     // Use an existing uniqueId
     if (previousCategory.getUniqueId() != null) {
-      // See if the name changed
-      if (previousCategory.getName().equals(category.getName())) {
+      // See if the uniqueId changed...
+      if (previousCategory.getUniqueId().equals(category.getUniqueId())) {
         return previousCategory.getUniqueId();
       }
+    }
+
+    // See if the specified one is unique
+    if (StringUtils.isNotBlank(category.getUniqueId()) &&
+        StringUtils.containsOnly(category.getUniqueId(), allowedFinalChars) &&
+        CategoryRepository.findByUniqueIdWithinCollection(category.getUniqueId(),
+            previousCategory.getCollectionId()) == null) {
+      return category.getUniqueId();
     }
 
     // Create a new one

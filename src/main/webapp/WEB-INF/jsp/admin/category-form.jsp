@@ -39,6 +39,10 @@
   <label>Description
     <input type="text" placeholder="Describe it..." name="description" value="<c:out value="${category.description}"/>">
   </label>
+  <label>Unique Id <span class="required">*</span>
+    <input type="text" placeholder="Internal Reference Id..." name="uniqueId" aria-describedby="uniqueIdHelpText" value="<c:out value="${category.uniqueId}"/>">
+  </label>
+  <p class="help-text" id="uniqueIdHelpText">Leave blank to auto-generate; this value does not usually change! No spaces, use lowercase, a-z, 0-9, dashes</p>
   <label>Icon (<a href="https://fontawesome.com/search?m=free&s=solid" target="_blank">view</a>)
     <input type="text" placeholder="" name="icon" value="<c:out value="${category.icon}"/>">
   </label>

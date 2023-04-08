@@ -34,6 +34,9 @@ public class SaveCategoryCommand {
 
   private static Log LOG = LogFactory.getLog(SaveCategoryCommand.class);
 
+  private static final String allowedChars = "abcdefghijklmnopqrstuvwyxz0123456789";
+  private static final String allowedFinalChars = "abcdefghijklmnopqrstuvwyxz0123456789-";
+
   public static Category saveCategory(Category categoryBean) throws DataException {
 
     // Validate the required fields
@@ -47,8 +50,16 @@ public class SaveCategoryCommand {
       throw new DataException("The user creating this category was not set");
     }
 
-    if (categoryBean.getId() == -1 && CategoryRepository.findByNameWithinCollection(categoryBean.getName(), categoryBean.getCollectionId()) != null) {
+    if (categoryBean.getId() == -1 && CategoryRepository.findByNameWithinCollection(categoryBean.getName(),
+        categoryBean.getCollectionId()) != null) {
       throw new DataException("A unique name is required");
+    }
+
+    // Validate the unique id
+    if (StringUtils.isNotBlank(categoryBean.getUniqueId())) {
+      if (!StringUtils.containsOnly(categoryBean.getUniqueId(), allowedFinalChars)) {
+        throw new DataException("The uniqueId contains invalid characters");
+      }
     }
 
     // Transform the fields and store...
