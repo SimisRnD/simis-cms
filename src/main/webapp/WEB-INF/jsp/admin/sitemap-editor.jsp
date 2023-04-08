@@ -90,7 +90,6 @@
                 <div>
                   <input type="text" name="menuItem${menuItem.id}name" value="<c:out value="${menuItem.name}" />" style="margin-bottom:0"/>
                   <input type="text" name="menuItem${menuItem.id}link" value="<c:out value="${menuItem.link}" />" placeholder="/link" style="margin-bottom:0"/>
-                  <input type="text" name="menuItem${menuItem.id}icon" value="<c:out value="${menuItem.icon}" />" placeholder="Optional icon" />
                 </div>
               </div>
             </c:forEach>
