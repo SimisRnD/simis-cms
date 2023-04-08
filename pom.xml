@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.simisinc</groupId>
   <artifactId>simis-cms</artifactId>
-  <version>20230304.10000-SNAPSHOT</version>
+  <version>20230327.10000-SNAPSHOT</version>
   <name>SimIS CMS</name>
   <url>https://www.simiscms.com</url>
   <description>Agile, Enterprise, Open Source Content Management System (CMS) and Web Portal</description>
@@ -28,7 +28,7 @@
     <maven-javadoc-plugin.version>3.2.0</maven-javadoc-plugin.version>
     <maven-checkstyle-plugin.version>3.1.2</maven-checkstyle-plugin.version>
     <maven-checkstyle.version>10.2</maven-checkstyle.version>
-    <maven-jacoco-plugin.version>0.8.8</maven-jacoco-plugin.version>
+    <maven-jacoco-plugin.version>0.8.9</maven-jacoco-plugin.version>
     <maven-war-plugin.version>3.3.2</maven-war-plugin.version>
     <tomcat.version>9.0.63</tomcat.version>
     <junit.version>5.9.2</junit.version>
@@ -36,7 +36,7 @@
     <argon2.version>2.11</argon2.version>
     <args4j.version>2.33</args4j.version>
     <bucket4j.version>8.2.0</bucket4j.version>
-    <caffeine.version>3.1.5</caffeine.version>
+    <caffeine.version>3.1.6</caffeine.version>
     <apache-http.version>4.5.14</apache-http.version>
     <classgraph.version>4.8.151</classgraph.version>
     <commons-beanutils.version>1.9.4</commons-beanutils.version>
@@ -67,7 +67,7 @@
     <java-activation.version>1.2.0</java-activation.version>
     <java-mail.version>1.6.2</java-mail.version>
     <jna.version>5.8.0</jna.version>
-    <jobrunr.version>6.1.2</jobrunr.version>
+    <jobrunr.version>6.1.3</jobrunr.version>
     <johnzon.version>1.1.8</johnzon.version>
     <jsoup.version>1.15.3</jsoup.version>
     <jstl.version>1.2.5</jstl.version>
