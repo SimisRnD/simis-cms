@@ -284,7 +284,7 @@ SimIS CMS includes an extendable api for user-based access and server-2-server c
 ### User-Based JSON API
 
 1. Create an app client in Admin, note the app id and secret key.
-2. Make sure the API is enabled in Site Settings
+2. Make sure the API server is enabled in Site Settings
 3. Optionally log the user in and obtain a 'token' for future calls:
    * POST
    * DIGEST AUTHENTICATION
