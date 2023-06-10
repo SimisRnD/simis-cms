@@ -16,18 +16,19 @@
 
 package com.simisinc.platform.presentation.widgets.ecommerce;
 
+import java.lang.reflect.InvocationTargetException;
+
+import org.apache.commons.lang3.StringUtils;
+
+import com.sanctionco.jmail.JMail;
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.ecommerce.CartCommand;
 import com.simisinc.platform.domain.model.ecommerce.Cart;
 import com.simisinc.platform.domain.model.ecommerce.Customer;
 import com.simisinc.platform.infrastructure.persistence.ecommerce.CustomerRepository;
-import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.controller.WidgetContext;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.validator.routines.EmailValidator;
-
-import java.lang.reflect.InvocationTargetException;
+import com.simisinc.platform.presentation.widgets.GenericWidget;
 
 /**
  * Description
@@ -148,8 +149,7 @@ public class OrderUpdatesFormWidget extends GenericWidget {
 
     // Validate the email field
     String email = context.getParameter("email");
-    EmailValidator emailValidator = EmailValidator.getInstance(false);
-    if (!emailValidator.isValid(email)) {
+    if (!JMail.isValid(email)) {
       appendMessage(errorMessages, "Check the email address");
     } else {
       cart.setEmail(email);

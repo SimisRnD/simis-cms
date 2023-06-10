@@ -16,24 +16,25 @@
 
 package com.simisinc.platform.presentation.widgets.mailinglists;
 
-import com.simisinc.platform.application.DataException;
-import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
-import com.simisinc.platform.application.cms.CaptchaCommand;
-import com.simisinc.platform.application.mailinglists.SaveEmailCommand;
-import com.simisinc.platform.domain.model.mailinglists.Email;
-import com.simisinc.platform.presentation.widgets.GenericWidget;
-import com.simisinc.platform.presentation.controller.WidgetContext;
-import org.apache.commons.beanutils.BeanUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.commons.validator.routines.EmailValidator;
+import static java.util.stream.Collectors.toList;
 
 import java.lang.reflect.InvocationTargetException;
 import java.sql.Timestamp;
 import java.util.List;
 import java.util.stream.Stream;
 
-import static java.util.stream.Collectors.toList;
+import org.apache.commons.beanutils.BeanUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import com.sanctionco.jmail.JMail;
+import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.cms.CaptchaCommand;
+import com.simisinc.platform.application.mailinglists.SaveEmailCommand;
+import com.simisinc.platform.domain.model.mailinglists.Email;
+import com.simisinc.platform.presentation.controller.WidgetContext;
+import com.simisinc.platform.presentation.widgets.GenericWidget;
 
 /**
  * Description
@@ -131,8 +132,7 @@ public class EmailSubscribeWidget extends GenericWidget {
 
     // Validate the parameters
     boolean isValid = true;
-    EmailValidator emailValidator = EmailValidator.getInstance(false);
-    if (!emailValidator.isValid(emailBean.getEmail())) {
+    if (!JMail.isValid(emailBean.getEmail())) {
       isValid = false;
       context.setWarningMessage("Please check the email address and try again");
     }

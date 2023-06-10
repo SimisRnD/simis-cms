@@ -18,12 +18,12 @@ package com.simisinc.platform.presentation.widgets.cms;
 
 import java.util.List;
 
-import com.simisinc.platform.application.RateLimitCommand;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.commons.validator.routines.EmailValidator;
 
+import com.sanctionco.jmail.JMail;
+import com.simisinc.platform.application.RateLimitCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.cms.CaptchaCommand;
 import com.simisinc.platform.application.cms.FormCommand;
@@ -147,8 +147,7 @@ public class FormWidget extends GenericWidget {
         formField.setUserValue(parameterValue);
       }
       if ("email".equals(formField.getType())) {
-        EmailValidator emailValidator = EmailValidator.getInstance(false);
-        if (!emailValidator.isValid(parameterValue)) {
+        if (!JMail.isValid(parameterValue)) {
           isValid = false;
           context.setWarningMessage("Check the email address and try again");
         }

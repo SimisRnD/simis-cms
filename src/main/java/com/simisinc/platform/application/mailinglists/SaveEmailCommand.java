@@ -16,6 +16,11 @@
 
 package com.simisinc.platform.application.mailinglists;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import com.sanctionco.jmail.JMail;
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.maps.GeoIPCommand;
 import com.simisinc.platform.domain.model.mailinglists.Email;
@@ -24,11 +29,6 @@ import com.simisinc.platform.domain.model.maps.GeoIP;
 import com.simisinc.platform.infrastructure.persistence.mailinglists.EmailRepository;
 import com.simisinc.platform.infrastructure.persistence.mailinglists.MailingListMemberRepository;
 import com.simisinc.platform.infrastructure.persistence.mailinglists.MailingListRepository;
-
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.commons.validator.routines.EmailValidator;
 
 /**
  * Validates and saves an email address to a mailing list
@@ -63,8 +63,7 @@ public class SaveEmailCommand {
   public static Email saveEmail(Email emailBean, MailingList mailingList) throws DataException {
 
     // Validate the required fields
-    EmailValidator emailValidator = EmailValidator.getInstance(false);
-    if (!emailValidator.isValid(emailBean.getEmail())) {
+    if (!JMail.isValid(emailBean.getEmail())) {
       throw new DataException("Please check the email address and try again");
     }
     if (emailBean.getEmail().length() > 255) {

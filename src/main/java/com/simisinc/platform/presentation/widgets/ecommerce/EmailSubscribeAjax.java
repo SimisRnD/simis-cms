@@ -16,15 +16,16 @@
 
 package com.simisinc.platform.presentation.widgets.ecommerce;
 
+import java.sql.Timestamp;
+
+import org.apache.commons.lang3.StringUtils;
+
+import com.sanctionco.jmail.JMail;
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.mailinglists.SaveEmailCommand;
 import com.simisinc.platform.domain.model.mailinglists.Email;
-import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.controller.WidgetContext;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.validator.routines.EmailValidator;
-
-import java.sql.Timestamp;
+import com.simisinc.platform.presentation.widgets.GenericWidget;
 
 /**
  * Subscribes an email address
@@ -54,8 +55,7 @@ public class EmailSubscribeAjax extends GenericWidget {
       context.setJson("[]");
       return context;
     }
-    EmailValidator emailValidator = EmailValidator.getInstance(false);
-    if (!emailValidator.isValid(emailValue)) {
+    if (!JMail.isValid(emailValue)) {
       context.setJson("[]");
       return context;
     }

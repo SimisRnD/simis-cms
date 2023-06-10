@@ -16,18 +16,7 @@
 
 package com.simisinc.platform.application.ecommerce;
 
-import com.simisinc.platform.application.DataException;
-import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
-import com.simisinc.platform.domain.model.SiteProperty;
-import com.simisinc.platform.domain.model.ecommerce.*;
-import com.simisinc.platform.infrastructure.database.DB;
-import com.simisinc.platform.infrastructure.persistence.SitePropertyRepository;
-import com.simisinc.platform.infrastructure.persistence.ecommerce.*;
-import org.apache.commons.lang3.RandomStringUtils;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.commons.validator.routines.EmailValidator;
+import static com.simisinc.platform.application.ecommerce.OrderStatusCommand.CREATED;
 
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -36,7 +25,30 @@ import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
 
-import static com.simisinc.platform.application.ecommerce.OrderStatusCommand.CREATED;
+import org.apache.commons.lang3.RandomStringUtils;
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import com.sanctionco.jmail.JMail;
+import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.domain.model.SiteProperty;
+import com.simisinc.platform.domain.model.ecommerce.Cart;
+import com.simisinc.platform.domain.model.ecommerce.CartItem;
+import com.simisinc.platform.domain.model.ecommerce.Customer;
+import com.simisinc.platform.domain.model.ecommerce.Order;
+import com.simisinc.platform.domain.model.ecommerce.PricingRule;
+import com.simisinc.platform.domain.model.ecommerce.ProductSku;
+import com.simisinc.platform.domain.model.ecommerce.ShippingRate;
+import com.simisinc.platform.infrastructure.database.DB;
+import com.simisinc.platform.infrastructure.persistence.SitePropertyRepository;
+import com.simisinc.platform.infrastructure.persistence.ecommerce.CartItemRepository;
+import com.simisinc.platform.infrastructure.persistence.ecommerce.CartRepository;
+import com.simisinc.platform.infrastructure.persistence.ecommerce.CustomerRepository;
+import com.simisinc.platform.infrastructure.persistence.ecommerce.OrderRepository;
+import com.simisinc.platform.infrastructure.persistence.ecommerce.ProductSkuRepository;
+import com.simisinc.platform.infrastructure.persistence.ecommerce.ShippingRateRepository;
 
 /**
  * Generates an order from a cart
@@ -111,8 +123,7 @@ public class OrderCommand {
     }
     CartValidationCommand.validateHasCartWithItems(cart);
     CartValidationCommand.validateHasShippingAddress(customer);
-    EmailValidator emailValidator = EmailValidator.getInstance(false);
-    if (!emailValidator.isValid(customer.getEmail())) {
+    if (!JMail.isValid(customer.getEmail())) {
       throw new DataException("A valid email address is required");
     }
     if (!CartValidationCommand.validateProductDestination(customer, cart)) {

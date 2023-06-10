@@ -16,14 +16,15 @@
 
 package com.simisinc.platform.application.datasets;
 
-import com.simisinc.platform.application.items.SaveItemCommand;
+import java.util.List;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.commons.validator.routines.EmailValidator;
 import org.apache.commons.validator.routines.UrlValidator;
 
-import java.util.List;
+import com.sanctionco.jmail.JMail;
+import com.simisinc.platform.application.items.SaveItemCommand;
 
 /**
  * Functions for validating dataset data rows
@@ -95,8 +96,7 @@ public class DatasetRecordCommand {
     if (emailIdx > -1) {
       String email = row[emailIdx];
       if (StringUtils.isNotBlank(email) && !"null".equalsIgnoreCase(email)) {
-        EmailValidator emailValidator = EmailValidator.getInstance(false);
-        if (!emailValidator.isValid(email)) {
+        if (!JMail.isValid(email)) {
           return "Email address is invalid";
         }
       }

@@ -16,22 +16,24 @@
 
 package com.simisinc.platform.application.register;
 
+import static com.simisinc.platform.application.register.GenerateUserUniqueIdCommand.generateUniqueId;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.security.auth.login.AccountException;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import com.sanctionco.jmail.JMail;
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.UserPasswordCommand;
 import com.simisinc.platform.domain.model.Group;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.infrastructure.persistence.GroupRepository;
 import com.simisinc.platform.infrastructure.persistence.UserRepository;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.commons.validator.routines.EmailValidator;
-
-import javax.security.auth.login.AccountException;
-import java.util.ArrayList;
-import java.util.List;
-
-import static com.simisinc.platform.application.register.GenerateUserUniqueIdCommand.generateUniqueId;
 
 /**
  * Methods for user registration
@@ -57,8 +59,7 @@ public class RegisterUserCommand {
       throw new DataException("Passwords must be at least 6 characters");
     }
 
-    EmailValidator emailValidator = EmailValidator.getInstance(false);
-    if (!emailValidator.isValid(userBean.getEmail())) {
+    if (!JMail.isValid(userBean.getEmail())) {
       throw new DataException("Check the email address and try again");
     }
 

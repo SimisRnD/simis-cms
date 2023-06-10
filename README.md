@@ -383,6 +383,7 @@ This project uses and licenses several technologies:
    Jackson                     Apache   Json Parser                                       https://github.com/FasterXML/jackson
    Jackson Core Utils          LGPL     Json Parser Utility                               https://github.com/fge/jackson-coreutils
    JavaMail                    CDDL     Mail library                                      https://javaee.github.io/javamail/
+   JMail                       MIT      Email validator                                   https://github.com/RohanNagar/jmail
    Jobrunr                     LGPL     Job scheduler                                     https://github.com/jobrunr/jobrunr
    Johnzon                     Apache   Json processing                                   https://johnzon.apache.org
    JSON Schema Validator       Apache   JSON schema validator                             https://github.com/networknt/json-schema-validator
