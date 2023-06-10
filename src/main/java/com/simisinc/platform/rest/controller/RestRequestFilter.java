@@ -97,15 +97,19 @@ public class RestRequestFilter implements Filter {
       return;
     }
 
+    boolean isLocal = "localhost".equals(request.getServerName()) || "127.0.0.1".equals(request.getServerName());
+
     // Check if IP is rate limited
-    if (!RateLimitCommand.isIpAllowedRightNow(ipAddress, false)) {
+    if (!isLocal && !RateLimitCommand.isIpAllowedRightNow(ipAddress, false)) {
       do429(servletResponse);
       return;
     }
 
     // Redirect to SSL
     if (requireSSL && !"https".equalsIgnoreCase(scheme)) {
-      if (!"localhost".equals(request.getServerName()) && !InetAddressUtils.isIPv4Address(request.getServerName())
+      // Only redirect if a hostname was used (skip for local dev)
+      if (!isLocal
+          && !InetAddressUtils.isIPv4Address(request.getServerName())
           && !InetAddressUtils.isIPv6Address(request.getServerName())) {
         String requestURL = ((HttpServletRequest) request).getRequestURL().toString();
         requestURL = StringUtils.replace(requestURL, "http://", "https://");
@@ -205,7 +209,7 @@ public class RestRequestFilter implements Filter {
       }
 
       // Limit the number of hits per minute based on the successful use of the api key
-      if (!RateLimitCommand.isAppAllowedRightNow(thisApp)) {
+      if (!isLocal && !RateLimitCommand.isAppAllowedRightNow(thisApp)) {
         do429(servletResponse);
         return;
       }
