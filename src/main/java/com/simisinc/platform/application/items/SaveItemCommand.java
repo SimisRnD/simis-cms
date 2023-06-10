@@ -107,17 +107,23 @@ public class SaveItemCommand {
     if (StringUtils.isNotBlank(itemBean.getImageUrl())) {
       // Format the URL
       String url = itemBean.getImageUrl().trim();
-      if (!url.startsWith("http://") && !url.startsWith("https://")) {
-        url = "http://" + url;
-      }
-      // Validate the URL
-      if (!UrlCommand.isUrlValid(url)) {
-        if (errorMessages.length() > 0) {
-          errorMessages.append("\n");
-        }
-        errorMessages.append("The URL does not look valid");
-      } else {
+      if (url.startsWith("/assets/img/")) {
+        // Allow internal images
         itemBean.setImageUrl(url);
+      } else {
+        // Allow external images
+        if (!url.startsWith("http://") && !url.startsWith("https://")) {
+          url = "http://" + url;
+        }
+        // Validate the URL
+        if (!UrlCommand.isUrlValid(url)) {
+          if (errorMessages.length() > 0) {
+            errorMessages.append("\n");
+          }
+          errorMessages.append("The image URL does not look valid");
+        } else {
+          itemBean.setImageUrl(url);
+        }
       }
     }
     if (StringUtils.isNotBlank(itemBean.getEmail())) {
