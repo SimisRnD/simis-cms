@@ -41,3 +41,6 @@ cspell.json
 .idea/**/dbnavigator.xml
 .idea/httpRequests
 .idea/php.xml
+
+# Snyk
+.dccache
