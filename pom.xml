@@ -669,6 +669,8 @@
           <excludes>
 <!--            <exclude>**/com/simisinc/platform/infrastructure/persistence/**</exclude>-->
             <exclude>**/com/simisinc/platform/**/ecommerce/**</exclude>
+            <exclude>**/com/simisinc/platform/infrastructure/database/install/**</exclude>
+            <exclude>**/com/simisinc/platform/infrastructure/database/upgrade/**</exclude>
           </excludes>
         </configuration>
         <executions>
