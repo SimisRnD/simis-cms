@@ -16,20 +16,20 @@
 
 package com.simisinc.platform.application.elearning;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.github.fge.jackson.JsonLoader;
-import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
-import com.simisinc.platform.domain.model.login.OAuthToken;
+import java.io.File;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import java.io.File;
-import java.net.URI;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.util.Map;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.github.fge.jackson.JsonLoader;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.http.HttpGetToFileCommand;
+import com.simisinc.platform.application.http.HttpGetToStringCommand;
+import com.simisinc.platform.domain.model.login.OAuthToken;
 
 /**
  * Commands for working with PERLS
@@ -52,7 +52,6 @@ public class PERLSApiClientCommand {
   public static final String QUIZ_API = "/node/quiz";
   public static final String TIP_CARD_API = "/node/tip_card";
   public static final String TAXONOMY_TERM_API = "/taxonomy_term/category";
-
 
   public static String sendHttpGetToString(String wsFunction, Map<String, String> parameters) {
 
@@ -91,26 +90,17 @@ public class PERLSApiClientCommand {
       }
     }
 
-    try {
-      HttpClient httpClient = HttpClient.newHttpClient();
-      HttpRequest request = HttpRequest.newBuilder()
-          .header("Authorization", "Bearer " + token.getAccessToken())
-          .uri(new URI(url)).build();
+    // Retrieve the body content
+    Map<String, String> headers = new HashMap<>();
+    headers.put("Authorization", "Bearer " + token.getAccessToken());
 
-      HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-      if (response == null || StringUtils.isBlank(response.body())) {
-        LOG.error("sendHttpGet: no body");
-        return null;
-      }
-
-      System.out.println("CODE: " + response.statusCode());
-      System.out.println("BODY: " + response.body());
-
-      return response.body();
-    } catch (Exception e) {
-      LOG.error("sendHttpGet", e);
+    String remoteContent = HttpGetToStringCommand.execute(url, headers);
+    if (StringUtils.isBlank(remoteContent)) {
+      LOG.error("sendHttpGet: no body");
+      return null;
     }
-    return null;
+
+    return remoteContent;
   }
 
   public static File sendHttpGetToFile(String wsFunction, Map<String, String> parameters, File file) {
@@ -150,26 +140,13 @@ public class PERLSApiClientCommand {
       }
     }
 
-    try {
-      HttpClient httpClient = HttpClient.newHttpClient();
-      HttpRequest request = HttpRequest.newBuilder()
-          .header("Authorization", "Bearer " + token.getAccessToken())
-          .uri(new URI(url)).build();
+    // Retrieve the file
+    Map<String, String> headers = new HashMap<>();
+    headers.put("Authorization", "Bearer " + token.getAccessToken());
 
-      HttpResponse<?> response = httpClient.send(request, HttpResponse.BodyHandlers.ofFile(file.toPath()));
-      if (response == null || file.length() <= 0) {
-        LOG.error("sendHttpGet: no file");
-        if (file.exists()) {
-          file.delete();
-        }
-        return null;
-      }
-
-      System.out.println("CODE: " + response.statusCode());
-
+    boolean result = HttpGetToFileCommand.execute(url, headers, file);
+    if (result) {
       return file;
-    } catch (Exception e) {
-      LOG.error("sendHttpGet", e);
     }
     return null;
   }
@@ -184,10 +161,10 @@ public class PERLSApiClientCommand {
     try {
       JsonNode jsonNode = JsonLoader.fromString(body);
 
-//      if (jsonNode.has("exception")) {
-//        LOG.warn("Exception: " + jsonNode.get("exception"));
-//        return null;
-//      }
+      //      if (jsonNode.has("exception")) {
+      //        LOG.warn("Exception: " + jsonNode.get("exception"));
+      //        return null;
+      //      }
 
       return jsonNode;
     } catch (Exception e) {

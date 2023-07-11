@@ -16,16 +16,16 @@
 
 package com.simisinc.platform.application.oauth;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.simisinc.platform.domain.model.login.OAuthToken;
+import java.util.Base64;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.http.NameValuePair;
-import org.apache.http.message.BasicNameValuePair;
 
-import java.util.ArrayList;
-import java.util.List;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.simisinc.platform.domain.model.login.OAuthToken;
 
 /**
  * Configures and verifies access tokens
@@ -50,10 +50,9 @@ public class OAuthAccessTokenCommand {
     LOG.debug("Found resource: " + resource);
 
     // http://localhost:8100/realms/name/protocol/openid-connect/token
-    List<NameValuePair> params = new ArrayList<>();
-    params.add(new BasicNameValuePair("grant_type", "authorization_code"));
-    params.add(new BasicNameValuePair("code", code));
-//    params.add(new BasicNameValuePair("scope", "openid profile email"));
+    Map<String, String> params = new HashMap<>();
+    params.put("grant_type", "authorization_code");
+    params.put("code", code);
 
     JsonNode json = OAuthHttpCommand.sendHttpPost("protocol/openid-connect/token", params);
     if (json == null) {
@@ -68,9 +67,9 @@ public class OAuthAccessTokenCommand {
 
   public static OAuthToken refreshAccessToken(OAuthToken oAuthToken) {
     // http://localhost:8100/realms/name/protocol/openid-connect/token
-    List<NameValuePair> params = new ArrayList<>();
-    params.add(new BasicNameValuePair("grant_type", "refresh_token"));
-    params.add(new BasicNameValuePair("refresh_token", oAuthToken.getRefreshToken()));
+    Map<String, String> params = new HashMap<>();
+    params.put("grant_type", "refresh_token");
+    params.put("refresh_token", oAuthToken.getRefreshToken());
 
     JsonNode json = OAuthHttpCommand.sendHttpPost("protocol/openid-connect/token", params);
     if (json == null) {
@@ -84,7 +83,23 @@ public class OAuthAccessTokenCommand {
     oAuthToken.setProvider("oauth");
     oAuthToken.setTokenType("bearer");
     if (json.has("access_token")) {
-      oAuthToken.setAccessToken(json.get("access_token").asText());
+      String accessToken = json.get("access_token").asText();
+      LOG.debug("ACCESS TOKEN: " + accessToken);
+      // Check for access token payload
+      if (accessToken.contains(".")) {
+        
+        // JWT
+        String[] chunks = accessToken.split("\\.");
+        Base64.Decoder decoder = Base64.getUrlDecoder();
+        String header = new String(decoder.decode(chunks[0]));
+        String payload = new String(decoder.decode(chunks[1]));
+        
+        String tokenWithoutSignature = chunks[0].trim() + "." + chunks[1].trim();
+        String signature = chunks[2];
+
+        // accessToken = tokenWithoutSignature;
+      }
+      oAuthToken.setAccessToken(accessToken);
       oAuthToken.setExpires(null);
       if (json.has("expires_in")) {
         oAuthToken.setExpiresIn(json.get("expires_in").asInt());
@@ -94,7 +109,15 @@ public class OAuthAccessTokenCommand {
       }
       // If you do not get back a new refresh token, then it means your existing refresh token will continue to work when the new access token expires
       if (json.has("refresh_token")) {
-        oAuthToken.setRefreshToken(json.get("refresh_token").asText());
+        String refreshToken = json.get("refresh_token").asText();
+        // Check for refresh token payload
+        if (refreshToken.contains(".")) {
+          // JWT
+          String[] chunks = refreshToken.split("\\.");
+          String tokenWithoutSignature = chunks[0].trim() + "." + chunks[1].trim();
+          // refreshToken = tokenWithoutSignature;
+        }
+        oAuthToken.setRefreshToken(refreshToken);
       }
       oAuthToken.setRefreshExpires(null);
       if (json.has("refresh_expires_in")) {
@@ -105,6 +128,9 @@ public class OAuthAccessTokenCommand {
       }
       if (json.has("scope")) {
         oAuthToken.setScope(json.get("scope").asText());
+      }
+      if (json.has("id_token")) {
+        
       }
     }
     return oAuthToken;

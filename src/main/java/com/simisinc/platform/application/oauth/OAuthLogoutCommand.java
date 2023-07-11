@@ -16,19 +16,19 @@
 
 package com.simisinc.platform.application.oauth;
 
-import com.simisinc.platform.domain.model.login.OAuthToken;
-import com.simisinc.platform.domain.model.login.UserToken;
-import com.simisinc.platform.infrastructure.persistence.oauth.OAuthTokenRepository;
-import com.simisinc.platform.infrastructure.persistence.login.UserTokenRepository;
-import com.simisinc.platform.presentation.controller.SessionConstants;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.http.NameValuePair;
-import org.apache.http.message.BasicNameValuePair;
+import java.util.HashMap;
+import java.util.Map;
 
 import javax.servlet.http.HttpServletRequest;
-import java.util.ArrayList;
-import java.util.List;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import com.simisinc.platform.domain.model.login.OAuthToken;
+import com.simisinc.platform.domain.model.login.UserToken;
+import com.simisinc.platform.infrastructure.persistence.login.UserTokenRepository;
+import com.simisinc.platform.infrastructure.persistence.oauth.OAuthTokenRepository;
+import com.simisinc.platform.presentation.controller.SessionConstants;
 
 /**
  * Logs out and removes tokens
@@ -53,9 +53,9 @@ public class OAuthLogoutCommand {
       UserTokenRepository.remove(userToken);
       if (oAuthToken != null) {
         // http://localhost:8100/realms/name/protocol/openid-connect/logout
-        List<NameValuePair> params = new ArrayList<>();
-        params.add(new BasicNameValuePair("refresh_token", oAuthToken.getRefreshToken()));
-        OAuthHttpCommand.sendHttpPost("protocol/openid-connect/logout", params);
+        Map<String, String> parameters = new HashMap<>();
+        parameters.put("refresh_token", oAuthToken.getRefreshToken());
+        OAuthHttpCommand.sendHttpPost("protocol/openid-connect/logout", parameters);
         LOG.debug("Logout complete.");
       }
     }

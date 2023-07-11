@@ -16,31 +16,30 @@
 
 package com.simisinc.platform.application.cms;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.github.fge.jackson.JsonLoader;
-import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
-import com.simisinc.platform.presentation.controller.SessionConstants;
-import com.simisinc.platform.presentation.controller.WidgetContext;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.http.HttpEntity;
-import org.apache.http.NameValuePair;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.message.BasicNameValuePair;
-import org.apache.http.util.EntityUtils;
-
-import javax.imageio.ImageIO;
-import java.awt.*;
+import java.awt.BasicStroke;
+import java.awt.Color;
+import java.awt.Font;
+import java.awt.Graphics2D;
+import java.awt.RenderingHints;
+import java.awt.Stroke;
 import java.awt.image.BufferedImage;
 import java.io.OutputStream;
 import java.security.SecureRandom;
-import java.util.ArrayList;
-import java.util.List;
+import java.util.HashMap;
+import java.util.Map;
+
+import javax.imageio.ImageIO;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.github.fge.jackson.JsonLoader;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.http.HttpPostCommand;
+import com.simisinc.platform.presentation.controller.SessionConstants;
+import com.simisinc.platform.presentation.controller.WidgetContext;
 
 /**
  * Generates and validates CAPTCHAs
@@ -76,54 +75,40 @@ public class CaptchaCommand {
       LOG.warn("Google reCAPTCHA is not configured, so skipping check");
       return true;
     }
+
+    // Check for the required parameter
     String gResponse = context.getParameter("g-recaptcha-response");
     if (StringUtils.isBlank(gResponse)) {
       LOG.error("Request is missing g-recaptcha-response: " + context.getRequest().getRemoteAddr());
       return false;
     }
 
-    try (CloseableHttpClient client = HttpClients.createDefault()) {
+    // Send the value to Google for confirmation
+    String url = "https://www.google.com/recaptcha/api/siteverify";
+    Map<String, String> parameters = new HashMap<>();
+    parameters.put("secret", secretKey);
+    parameters.put("response", gResponse);
+    if (context.getUserSession() != null && StringUtils.isNotBlank(context.getUserSession().getIpAddress())) {
+      parameters.put("remoteip", context.getUserSession().getIpAddress());
+    }
+    String remoteContent = HttpPostCommand.execute(url, parameters);
+    if (StringUtils.isBlank(remoteContent)) {
+      LOG.error("Remote content is empty");
+      return false;
+    }
 
-      String url = "https://www.google.com/recaptcha/api/siteverify";
-      HttpPost httpPost = new HttpPost(url);
-
-      List<NameValuePair> params = new ArrayList<>();
-      params.add(new BasicNameValuePair("secret", secretKey));
-      params.add(new BasicNameValuePair("response", gResponse));
-      if (context.getUserSession() != null && StringUtils.isNotBlank(context.getUserSession().getIpAddress())) {
-        params.add(new BasicNameValuePair("remoteip", context.getUserSession().getIpAddress()));
-      }
-      httpPost.setEntity(new UrlEncodedFormEntity(params));
-
-      CloseableHttpResponse response = client.execute(httpPost);
-      if (response == null) {
-        LOG.error("Response is empty");
-        return false;
-      }
-
-      HttpEntity entity = response.getEntity();
-      if (entity == null) {
-        LOG.error("Entity is null");
-        return false;
-      }
-
-      String remoteContent = EntityUtils.toString(entity);
-      if (StringUtils.isBlank(remoteContent)) {
-        LOG.error("Remote content is empty");
-        return false;
-      }
-
-      // {
-      // "success": true|false,
-      // "challenge_ts": timestamp, // timestamp of the challenge load (ISO format
-      // yyyy-MM-dd'T'HH:mm:ssZZ)
-      // "hostname": string, // the hostname of the site where the reCAPTCHA was
-      // solved
-      // "error-codes": [...] // optional
-      // }
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("REMOTE TEXT: " + remoteContent);
-      }
+    // {
+    // "success": true|false,
+    // "challenge_ts": timestamp, // timestamp of the challenge load (ISO format
+    // yyyy-MM-dd'T'HH:mm:ssZZ)
+    // "hostname": string, // the hostname of the site where the reCAPTCHA was
+    // solved
+    // "error-codes": [...] // optional
+    // }
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("REMOTE TEXT: " + remoteContent);
+    }
+    try {
       JsonNode json = JsonLoader.fromString(remoteContent);
       if (json.has("success")) {
         String success = json.get("success").asText();
@@ -132,9 +117,8 @@ public class CaptchaCommand {
         }
       }
     } catch (Exception e) {
-      LOG.error("validateRequest", e);
+      LOG.error("validateRequest json error", e);
     }
-
     return false;
   }
 
@@ -165,7 +149,7 @@ public class CaptchaCommand {
     byte[] bytes = text.getBytes();
     for (int i = 0; i < bytes.length; i++) {
       g.setColor(new Color(RANDOM.nextInt(255), RANDOM.nextInt(255), RANDOM.nextInt(255)));
-      g.drawString(new String(new byte[]{bytes[i]}), start + (i * 20), (int) (Math.random() * 20 + 20));
+      g.drawString(new String(new byte[] { bytes[i] }), start + (i * 20), (int) (Math.random() * 20 + 20));
     }
 
     g.setColor(Color.white);

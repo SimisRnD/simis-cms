@@ -16,7 +16,42 @@
 
 package com.simisinc.platform.rest.controller;
 
-import com.simisinc.platform.application.*;
+import static com.simisinc.platform.presentation.controller.UserSession.API_SOURCE;
+import static javax.servlet.http.HttpServletResponse.SC_FORBIDDEN;
+import static javax.servlet.http.HttpServletResponse.SC_MOVED_PERMANENTLY;
+import static javax.servlet.http.HttpServletResponse.SC_NOT_FOUND;
+import static javax.servlet.http.HttpServletResponse.SC_UNAUTHORIZED;
+
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
+import java.sql.Timestamp;
+import java.time.LocalDate;
+import java.util.Base64;
+import java.util.StringTokenizer;
+import java.util.UUID;
+
+import javax.security.auth.login.LoginException;
+import javax.servlet.Filter;
+import javax.servlet.FilterChain;
+import javax.servlet.FilterConfig;
+import javax.servlet.ServletException;
+import javax.servlet.ServletRequest;
+import javax.servlet.ServletResponse;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.hc.core5.net.InetAddressUtils;
+
+import com.simisinc.platform.application.CreateSessionCommand;
+import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.LoadAppCommand;
+import com.simisinc.platform.application.RateLimitCommand;
+import com.simisinc.platform.application.SaveSessionCommand;
+import com.simisinc.platform.application.UserCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.cms.HostnameCommand;
 import com.simisinc.platform.application.json.JsonCommand;
@@ -30,26 +65,6 @@ import com.simisinc.platform.infrastructure.persistence.login.UserTokenRepositor
 import com.simisinc.platform.presentation.controller.ContextConstants;
 import com.simisinc.platform.presentation.controller.RequestConstants;
 import com.simisinc.platform.presentation.controller.UserSession;
-import org.apache.commons.codec.binary.Base64;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.http.conn.util.InetAddressUtils;
-
-import javax.security.auth.login.LoginException;
-import javax.servlet.*;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.io.UnsupportedEncodingException;
-import java.sql.Timestamp;
-import java.time.LocalDate;
-import java.util.StringTokenizer;
-import java.util.UUID;
-
-import static com.simisinc.platform.presentation.controller.UserSession.API_SOURCE;
-import static javax.servlet.http.HttpServletResponse.*;
 
 /**
  * Authorizes the REST request
@@ -373,7 +388,7 @@ public class RestRequestFilter implements Filter {
       return null;
     }
     try {
-      String credentials = new String(Base64.decodeBase64(st.nextToken()), "UTF-8");
+      String credentials = new String(Base64.getDecoder().decode(st.nextToken()), "UTF-8");
       int p = credentials.indexOf(":");
       if (p == -1) {
         LOG.debug("Client did not specify credentials");

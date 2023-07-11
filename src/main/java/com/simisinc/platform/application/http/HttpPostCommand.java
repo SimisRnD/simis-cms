@@ -17,9 +17,11 @@
 package com.simisinc.platform.application.http;
 
 import java.net.URI;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Map;
 
@@ -32,29 +34,39 @@ import org.apache.commons.validator.routines.UrlValidator;
  * Functions for working with http requests
  *
  * @author matt rajkowski
- * @created 2/7/2020 4:25 PM
+ * @created 7/9/2023 5:32 PM
  */
-public class HttpGetToStringCommand {
+public class HttpPostCommand {
 
   private static Log LOG = LogFactory.getLog(HttpGetToFileCommand.class);
 
-  public static final int GET = 1;
-  public static final int DELETE = 2;
+  public static final int POST = 1;
+  public static final int PATCH = 2;
+  public static final int PUT = 3;
 
-  public static String execute(String url) {
-    return execute(url, GET);
+  public static String execute(String url, Map<String, String> parameters) {
+    return execute(url, parameters, POST);
   }
 
-  public static String execute(String url, Map<String, String> headers) {
-    return execute(url, headers, GET);
+  public static String execute(String url, Map<String, String> headers, Map<String, String> parameters) {
+    return execute(url, headers, parameters, POST);
   }
 
-  public static String execute(String url, int httpMethod) {
-    return execute(url, null, httpMethod);
+  public static String execute(String url, Map<String, String> headers, String data) {
+    return execute(url, headers, data, POST);
   }
 
-  public static String execute(String url, Map<String, String> headers, int httpMethod) {
-    // Validate the parameters
+  public static String execute(String url, Map<String, String> parameters, int httpMethod) {
+    return execute(url, null, parameters, httpMethod);
+  }
+
+  public static String execute(String url, Map<String, String> headers, Map<String, String> parameters,
+      int httpMethod) {
+    return execute(url, headers, getFormDataAsString(parameters), httpMethod);
+  }
+
+  public static String execute(String url, Map<String, String> headers, String data, int httpMethod) {
+    // Validate the url
     if (StringUtils.isBlank(url)) {
       LOG.debug("No url");
       return null;
@@ -66,18 +78,12 @@ public class HttpGetToStringCommand {
       return null;
     }
 
-    // Download as a string
+    // Post the parameters
     try {
-      LOG.debug("Requesting from: " + url);
-
+      LOG.debug("Posting to: " + url);
       // Build the request
       HttpRequest.Builder builder = HttpRequest.newBuilder();
       builder.uri(URI.create(url));
-      if (DELETE == httpMethod) {
-        builder.DELETE();
-      } else {
-        builder.GET();
-      }
       builder.timeout(Duration.ofSeconds(20));
       if (headers != null) {
         for (Map.Entry<String, String> set : headers.entrySet()) {
@@ -86,10 +92,18 @@ public class HttpGetToStringCommand {
           builder.setHeader(name, value);
         }
       }
-      HttpRequest request = builder.build();
+      HttpRequest request = null;
 
-      // Send the request and handle the response
-      HttpClient client = HttpClient.newHttpClient();
+      if (PATCH == httpMethod) {
+        request = builder.method("PATCH", HttpRequest.BodyPublishers.ofString(data)).build();
+      } else if (PUT == httpMethod) {
+        request = builder.PUT(HttpRequest.BodyPublishers.ofString(data)).build();
+      } else {
+        request = builder.POST(HttpRequest.BodyPublishers.ofString(data)).build();
+      }
+
+      // Create the HTTP client
+      HttpClient client = HttpClient.newBuilder().build();
       var response = client.send(request, HttpResponse.BodyHandlers.ofString());
       if (response == null) {
         LOG.debug("No response");
@@ -113,5 +127,18 @@ public class HttpGetToStringCommand {
       LOG.error("Http client exception", e);
       return null;
     }
+  }
+
+  private static String getFormDataAsString(Map<String, String> formData) {
+    StringBuilder formBodyBuilder = new StringBuilder();
+    for (Map.Entry<String, String> singleEntry : formData.entrySet()) {
+      if (formBodyBuilder.length() > 0) {
+        formBodyBuilder.append("&");
+      }
+      formBodyBuilder.append(URLEncoder.encode(singleEntry.getKey(), StandardCharsets.UTF_8));
+      formBodyBuilder.append("=");
+      formBodyBuilder.append(URLEncoder.encode(singleEntry.getValue(), StandardCharsets.UTF_8));
+    }
+    return formBodyBuilder.toString();
   }
 }
