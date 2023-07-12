@@ -16,32 +16,26 @@
 
 package com.simisinc.platform.application.ecommerce;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.fge.jackson.JsonLoader;
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.http.HttpPostCommand;
 import com.simisinc.platform.application.json.JsonCommand;
 import com.simisinc.platform.domain.model.ecommerce.Order;
 import com.simisinc.platform.domain.model.ecommerce.SalesTaxNexusAddress;
 import com.simisinc.platform.infrastructure.persistence.ecommerce.SalesTaxNexusAddressRepository;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.http.HttpEntity;
-import org.apache.http.StatusLine;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.ContentType;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.util.EntityUtils;
-
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
-import java.util.List;
-import java.util.Map;
 
 /**
  * Commands for working with TaxJar
@@ -67,7 +61,7 @@ public class TaxJarCommand {
 
     if (order.getPaid()) {
       LOG.debug("Order is paid");
-//      return true;
+      //      return true;
     }
 
     if (order.getTotalAmount().compareTo(BigDecimal.ZERO) <= 0) {
@@ -218,24 +212,21 @@ public class TaxJarCommand {
     //  }
     //}
 
-
     return false;
   }
 
   public static boolean sendOrder(Order order) throws DataException {
-
 
     return false;
   }
 
   /*
   public static boolean sendRefund(Refund refund) throws DataException {
-
-
+  
+  
     return false;
   }
    */
-
 
   private static JsonNode sendTaxJarHttpPost(String endpoint, String jsonString) {
 
@@ -243,55 +234,33 @@ public class TaxJarCommand {
     String apiKey = LoadSitePropertyCommand.loadByName("ecommerce.taxjar.apiKey");
     String url = (EcommerceCommand.isProductionEnabled() ? API_URL : SANDBOX_URL) + endpoint;
 
-    try (CloseableHttpClient client = HttpClients.createDefault()) {
+    Map<String, String> headers = new HashMap<>();
+    headers.put("Accept", "application/json");
+    headers.put("Content-type", "application/json");
+    headers.put("Authorization", "Bearer " + apiKey);
 
-      HttpPost httpPost = new HttpPost(url);
-      httpPost.setHeader("Accept", "application/json");
-      httpPost.setHeader("Content-type", "application/json");
-      httpPost.setHeader("Authorization", "Bearer " + apiKey);
+    String remoteContent = HttpPostCommand.execute(url, headers, jsonString);
 
-      StringEntity requestEntity = new StringEntity(
-          jsonString,
-          ContentType.APPLICATION_JSON);
-      httpPost.setEntity(requestEntity);
+    // Check for content
+    if (StringUtils.isBlank(remoteContent)) {
+      LOG.error("HttpPost Remote content is empty");
+      return null;
+    }
 
-      CloseableHttpResponse response = client.execute(httpPost);
-      if (response == null) {
-        LOG.error("HttpPost Response is empty");
-        return null;
-      }
+    // TaxJar API uses the following error codes
+    // https://developers.taxjar.com/api/reference/#errors
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("REMOTE TEXT: " + remoteContent);
+    }
 
-      HttpEntity entity = response.getEntity();
-      if (entity == null) {
-        LOG.error("HttpPost Entity is null");
-        return null;
-      }
-
-      // Check for content
-      String remoteContent = EntityUtils.toString(entity);
-      if (StringUtils.isBlank(remoteContent)) {
-        LOG.error("HttpPost Remote content is empty");
-        return null;
-      }
-
-      // TaxJar API uses the following error codes
-      // https://developers.taxjar.com/api/reference/#errors
-      StatusLine statusLine = response.getStatusLine();
-      if (statusLine.getStatusCode() > 399) {
-        LOG.error("HttpPost Error for URL (" + url + "): " + statusLine.getStatusCode() + " " + statusLine.getReasonPhrase());
-        return null;
-      }
-
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("REMOTE TEXT: " + remoteContent);
-      }
+    try {
       JsonNode json = JsonLoader.fromString(remoteContent);
 
-//      if (json.has("id") && json.has("status")) {
+      //      if (json.has("id") && json.has("status")) {
       // Update the record to mark it as 'synced'
-//        EmailRepository.markSynced(emailAddress);
-//        return true;
-//      }
+      //        EmailRepository.markSynced(emailAddress);
+      //        return true;
+      //      }
 
       return json;
     } catch (Exception e) {

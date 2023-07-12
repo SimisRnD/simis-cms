@@ -37,8 +37,7 @@
     <args4j.version>2.33</args4j.version>
     <bucket4j.version>8.3.0</bucket4j.version>
     <caffeine.version>3.1.6</caffeine.version>
-    <apache-http.version>4.5.14</apache-http.version>
-    <apache-http5.version>5.2.1</apache-http5.version>
+    <apache-http.version>5.2.2</apache-http.version>
     <classgraph.version>4.8.151</classgraph.version>
     <commons-beanutils.version>1.9.4</commons-beanutils.version>
     <commons-codec.version>1.15</commons-codec.version>
@@ -124,14 +123,9 @@
       <version>${caffeine.version}</version>
     </dependency>
     <dependency>
-      <groupId>org.apache.httpcomponents</groupId>
-      <artifactId>httpclient</artifactId>
+      <groupId>org.apache.httpcomponents.core5</groupId>
+      <artifactId>httpcore5</artifactId>
       <version>${apache-http.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.httpcomponents.client5</groupId>
-      <artifactId>httpclient5</artifactId>
-      <version>${apache-http5.version}</version>
     </dependency>
     <dependency>
       <groupId>commons-beanutils</groupId>

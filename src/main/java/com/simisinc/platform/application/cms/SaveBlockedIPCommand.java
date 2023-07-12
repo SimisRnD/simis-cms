@@ -16,13 +16,14 @@
 
 package com.simisinc.platform.application.cms;
 
-import com.simisinc.platform.application.DataException;
-import com.simisinc.platform.domain.model.BlockedIP;
-import com.simisinc.platform.infrastructure.persistence.BlockedIPRepository;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.http.conn.util.InetAddressUtils;
+import org.apache.hc.core5.net.InetAddressUtils;
+
+import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.domain.model.BlockedIP;
+import com.simisinc.platform.infrastructure.persistence.BlockedIPRepository;
 
 /**
  * Validates and saves blocked IP objects

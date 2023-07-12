@@ -16,18 +16,17 @@
 
 package com.simisinc.platform.application.http;
 
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.commons.validator.routines.UrlValidator;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.util.EntityUtils;
 
 /**
  * Functions for working with http requests
@@ -35,15 +34,26 @@ import org.apache.http.util.EntityUtils;
  * @author matt rajkowski
  * @created 2/7/2020 4:25 PM
  */
-public class HttpGetToStringCommand {
+public class HttpGetCommand {
 
-  private static Log LOG = LogFactory.getLog(HttpGetToFileCommand.class);
+  private static Log LOG = LogFactory.getLog(HttpDownloadFileCommand.class);
+
+  public static final int GET = 1;
+  public static final int DELETE = 2;
 
   public static String execute(String url) {
-    return execute(url, null);
+    return execute(url, GET);
   }
 
   public static String execute(String url, Map<String, String> headers) {
+    return execute(url, headers, GET);
+  }
+
+  public static String execute(String url, int httpMethod) {
+    return execute(url, null, httpMethod);
+  }
+
+  public static String execute(String url, Map<String, String> headers, int httpMethod) {
     // Validate the parameters
     if (StringUtils.isBlank(url)) {
       LOG.debug("No url");
@@ -58,45 +68,49 @@ public class HttpGetToStringCommand {
 
     // Download as a string
     try {
-      LOG.debug("Downloading from: " + url);
-      HttpClient client = HttpClientBuilder.create().build();
-      HttpGet request = new HttpGet(url);
+      LOG.debug("Requesting from: " + url);
 
+      // Build the request
+      HttpRequest.Builder builder = HttpRequest.newBuilder();
+      builder.uri(URI.create(url));
+      if (DELETE == httpMethod) {
+        builder.DELETE();
+      } else {
+        builder.GET();
+      }
+      builder.timeout(Duration.ofSeconds(20));
       if (headers != null) {
         for (Map.Entry<String, String> set : headers.entrySet()) {
           String name = set.getKey();
           String value = set.getValue();
-          request.setHeader(name, value);
+          builder.setHeader(name, value);
         }
       }
+      HttpRequest request = builder.build();
 
-      HttpResponse response = client.execute(request);
+      // Send the request and handle the response
+      HttpClient client = HttpClient.newHttpClient();
+      var response = client.send(request, HttpResponse.BodyHandlers.ofString());
       if (response == null) {
         LOG.debug("No response");
         return null;
       }
 
       // Check the status code
-      int status = response.getStatusLine().getStatusCode();
+      int status = response.statusCode();
       if (status < 200 || status >= 300) {
         LOG.debug("Received status: " + status);
         return null;
       }
 
-      // Use the entity
-      HttpEntity entity = response.getEntity();
-      if (entity == null) {
-        LOG.debug("No entity");
-        return null;
-      }
-
-      // Test the content
-      String content = EntityUtils.toString(response.getEntity(), "UTF-8");
+      // Verify the content
+      String content = response.body();
       if (content == null || content.length() <= 0) {
         return null;
       }
       return content;
     } catch (Exception e) {
+      LOG.error("Http client exception", e);
       return null;
     }
   }

@@ -28,7 +28,7 @@ import org.jsoup.safety.Safelist;
 import org.jsoup.select.Elements;
 
 import com.github.benmanes.caffeine.cache.Cache;
-import com.simisinc.platform.application.http.HttpGetToStringCommand;
+import com.simisinc.platform.application.http.HttpGetCommand;
 import com.simisinc.platform.infrastructure.cache.CacheManager;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
@@ -73,7 +73,7 @@ public class RemoteContentWidget extends GenericWidget {
     // @todo if this fails we don't want many more requests...
     try {
       long startRequestTime = System.currentTimeMillis();
-      String remoteContent = HttpGetToStringCommand.execute(url);
+      String remoteContent = HttpGetCommand.execute(url);
       if (StringUtils.isBlank(remoteContent)) {
         return null;
       }

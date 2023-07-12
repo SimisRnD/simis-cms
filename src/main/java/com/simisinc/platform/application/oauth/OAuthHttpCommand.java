@@ -16,26 +16,19 @@
 
 package com.simisinc.platform.application.oauth;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.github.fge.jackson.JsonLoader;
-import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
-import com.simisinc.platform.domain.model.login.OAuthToken;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.http.HttpEntity;
-import org.apache.http.NameValuePair;
-import org.apache.http.StatusLine;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.message.BasicNameValuePair;
-import org.apache.http.util.EntityUtils;
 
-import java.util.List;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.github.fge.jackson.JsonLoader;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.http.HttpGetCommand;
+import com.simisinc.platform.application.http.HttpPostCommand;
+import com.simisinc.platform.domain.model.login.OAuthToken;
 
 /**
  * Sends http requests
@@ -67,44 +60,20 @@ public class OAuthHttpCommand {
     LOG.debug("Using serviceUrl: " + url);
 
     // Send to provider
-    try (CloseableHttpClient client = HttpClients.createDefault()) {
+    Map<String, String> headers = new HashMap<>();
+    headers.put("Authorization", "Bearer " + oAuthToken.getAccessToken());
+    String remoteContent = HttpGetCommand.execute(url, headers);
 
-      HttpGet httpGet = new HttpGet(url);
-      httpGet.setHeader("Authorization", "Bearer " + oAuthToken.getAccessToken());
+    // Check for content
+    if (StringUtils.isBlank(remoteContent)) {
+      LOG.error("HttpGet Remote content is empty");
+      return null;
+    }
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("REMOTE TEXT: " + remoteContent);
+    }
 
-      CloseableHttpResponse response = client.execute(httpGet);
-      if (response == null) {
-        LOG.error("HttpGet Response is empty");
-        return null;
-      }
-
-      HttpEntity entity = response.getEntity();
-      if (entity == null) {
-        LOG.error("HttpGet Entity is null");
-        return null;
-      }
-
-      // Check for content
-      String remoteContent = EntityUtils.toString(entity);
-      if (StringUtils.isBlank(remoteContent)) {
-        LOG.error("HttpGet Remote content is empty");
-        if (response.getStatusLine() != null) {
-          // 401 The request was denied due to an invalid or missing access token
-          // 403 The request was denied due to the bearer access token having insufficient privileges
-          LOG.debug("HttpGet status: " + response.getStatusLine().getStatusCode() + " " + response.getStatusLine().getReasonPhrase());
-        }
-        return null;
-      }
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("REMOTE TEXT: " + remoteContent);
-      }
-
-      // Check for errors... HTTP/1.1 405 Method Not Allowed
-      StatusLine statusLine = response.getStatusLine();
-      if (statusLine.getStatusCode() > 299) {
-        LOG.error("HttpGet Error for URL (" + url + "): " + statusLine.getStatusCode() + " " + statusLine.getReasonPhrase());
-        return null;
-      }
+    try {
       return JsonLoader.fromString(remoteContent);
     } catch (Exception e) {
       LOG.error("oauthToken error", e);
@@ -112,13 +81,13 @@ public class OAuthHttpCommand {
     return null;
   }
 
-  public static JsonNode sendHttpPost(String endpoint, List<NameValuePair> params) {
+  public static JsonNode sendHttpPost(String endpoint, Map<String, String> parameters) {
 
     if (StringUtils.isBlank(endpoint)) {
       return null;
     }
 
-    if (params == null) {
+    if (parameters == null) {
       return null;
     }
 
@@ -138,46 +107,26 @@ public class OAuthHttpCommand {
     String redirectUri = siteUrl + (siteUrl.endsWith("/") ? "" : "/") + "oauth/callback";
     LOG.debug("Using redirectUri: " + redirectUri);
 
-    params.add(new BasicNameValuePair("client_id", clientId));
-    params.add(new BasicNameValuePair("client_secret", clientSecret));
-    params.add(new BasicNameValuePair("redirect_uri", redirectUri));
+    Map<String, String> headers = new HashMap<>();
+    headers.put("Content-Type", "application/x-www-form-urlencoded");
 
-    try (CloseableHttpClient client = HttpClients.createDefault()) {
+    parameters.put("client_id", clientId);
+    parameters.put("client_secret", clientSecret);
+    parameters.put("redirect_uri", redirectUri);
 
-      HttpPost httpPost = new HttpPost(url);
-      httpPost.setHeader("Content-Type", "application/x-www-form-urlencoded");
-      httpPost.setEntity(new UrlEncodedFormEntity(params));
+    String remoteContent = HttpPostCommand.execute(url, headers, parameters);
 
-      CloseableHttpResponse response = client.execute(httpPost);
-      if (response == null) {
-        LOG.error("HttpPost Response is empty");
-        return null;
-      }
+    // Check for content
+    if (StringUtils.isBlank(remoteContent)) {
+      LOG.error("HttpPost Remote content is empty");
+      return null;
+    }
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("REMOTE TEXT: " + remoteContent);
+    }
 
-      HttpEntity entity = response.getEntity();
-      if (entity == null) {
-        LOG.error("HttpEntity is null");
-        return null;
-      }
-
-      // Check for content
-      String remoteContent = EntityUtils.toString(entity);
-      if (StringUtils.isBlank(remoteContent)) {
-        LOG.error("HttpPost Remote content is empty");
-        return null;
-      }
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("REMOTE TEXT: " + remoteContent);
-      }
-
-      // Check for errors... HTTP/1.1 405 Method Not Allowed
-      StatusLine statusLine = response.getStatusLine();
-      if (statusLine.getStatusCode() > 299) {
-        LOG.error("HttpPost Error for URL (" + url + "): " + statusLine.getStatusCode() + " " + statusLine.getReasonPhrase());
-        return null;
-      }
-
-      // Return the content as JSON
+    // Return the content as JSON
+    try {
       return JsonLoader.fromString(remoteContent);
     } catch (Exception e) {
       LOG.error("HttpPost", e);

@@ -16,22 +16,17 @@
 
 package com.simisinc.platform.application.http;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
-import java.io.InputStream;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.commons.validator.routines.UrlValidator;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.HttpClientBuilder;
 
 /**
  * Functions for working with http requests
@@ -39,9 +34,9 @@ import org.apache.http.impl.client.HttpClientBuilder;
  * @author matt rajkowski
  * @created 2/7/2020 4:25 PM
  */
-public class HttpGetToFileCommand {
+public class HttpDownloadFileCommand {
 
-  private static Log LOG = LogFactory.getLog(HttpGetToFileCommand.class);
+  private static Log LOG = LogFactory.getLog(HttpDownloadFileCommand.class);
 
   /**
    * Downloads the remote file
@@ -51,6 +46,10 @@ public class HttpGetToFileCommand {
    * @return
    */
   public static boolean execute(String url, File tempFile) {
+    return execute(url, null, tempFile);
+  }
+
+  public static boolean execute(String url, Map<String, String> headers, File tempFile) {
     // Validate the parameters
     if (StringUtils.isBlank(url)) {
       LOG.debug("No url");
@@ -64,42 +63,34 @@ public class HttpGetToFileCommand {
     }
     // Download to a file
     try {
-      HttpClient client = HttpClientBuilder.create().build();
-      HttpGet request = new HttpGet(url);
-      HttpResponse response = client.execute(request);
-      if (response == null) {
-        LOG.debug("No response");
-        return false;
-      }
-
-      // Check the status code
-      int status = response.getStatusLine().getStatusCode();
-      if (status < 200 || status >= 300) {
-        LOG.debug("Received status: " + status);
-        return false;
-      }
-
-      // Use the entity
-      HttpEntity entity = response.getEntity();
-      if (entity == null) {
-        LOG.debug("No entity");
-        return false;
-      }
-
-      // Save it
-      try (InputStream stream = entity.getContent()) {
-        try (BufferedInputStream inputStream = new BufferedInputStream(stream)) {
-          try (BufferedOutputStream outputStream = new BufferedOutputStream(new FileOutputStream(tempFile))) {
-            int inByte;
-            while ((inByte = inputStream.read()) != -1) {
-              outputStream.write(inByte);
-            }
-          }
+      // Build the request
+      HttpRequest.Builder builder = HttpRequest.newBuilder();
+      builder.uri(URI.create(url));
+      if (headers != null) {
+        for (Map.Entry<String, String> set : headers.entrySet()) {
+          String name = set.getKey();
+          String value = set.getValue();
+          builder.setHeader(name, value);
         }
-      } catch (IOException ex) {
-        LOG.debug("Could not save file: " + ex.getMessage());
-        throw ex;
       }
+      HttpRequest request = builder.build();
+
+      // Send the request and handle the response
+      HttpClient client = HttpClient.newHttpClient();
+      HttpResponse<?> response = client.send(request, HttpResponse.BodyHandlers.ofFile(tempFile.toPath()));
+
+      // Make sure a file was received
+      if (response == null || tempFile.length() <= 0) {
+        LOG.error("sendHttpGet: no file");
+        if (tempFile.exists()) {
+          tempFile.delete();
+        }
+        return false;
+      }
+
+      LOG.debug("CODE: " + response.statusCode());
+
+      return true;
     } catch (Exception e) {
       // Clean up the file
       if (tempFile.exists()) {
@@ -109,14 +100,5 @@ public class HttpGetToFileCommand {
       LOG.error("downloadFile error", e);
       return false;
     }
-
-    // Make sure a file was received
-    if (tempFile.length() <= 0) {
-      tempFile.delete();
-      LOG.debug("File length 0");
-      return false;
-    }
-
-    return true;
   }
 }

@@ -16,21 +16,16 @@
 
 package com.simisinc.platform.application.elearning;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.github.fge.jackson.JsonLoader;
-import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import java.util.Map;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.http.HttpEntity;
-import org.apache.http.StatusLine;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.util.EntityUtils;
 
-import java.util.Map;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.github.fge.jackson.JsonLoader;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.http.HttpGetCommand;
 
 /**
  * Commands for working with Moodle
@@ -49,7 +44,6 @@ public class MoodleApiClientCommand {
   public static final String GET_CALENDAR_EVENTS = "core_calendar_get_calendar_events";
   public static final String GET_CALENDAR_EVENT_BY_ID = "core_calendar_get_calendar_event_by_id";
   public static final String GET_CALENDAR_EVENTS_BY_COURSES = "core_calendar_get_action_events_by_courses";
-
 
   public static JsonNode sendHttpGet(String wsFunction, Map<String, String> parameters) {
 
@@ -93,42 +87,16 @@ public class MoodleApiClientCommand {
 
     // Send
     LOG.debug("GET: " + url);
-    try (CloseableHttpClient client = HttpClients.createDefault()) {
+    String remoteContent = HttpGetCommand.execute(url);
 
-      HttpGet httpGet = new HttpGet(url);
-      CloseableHttpResponse response = client.execute(httpGet);
-      if (response == null) {
-        LOG.error("HttpGet Response is empty");
-        return null;
-      }
+    // Check for content
+    if (StringUtils.isBlank(remoteContent)) {
+      LOG.error("HttpGet Remote content is empty");
+      return null;
+    }
 
-      HttpEntity entity = response.getEntity();
-      if (entity == null) {
-        LOG.error("HttpEntity is null");
-        return null;
-      }
-
-      // Check for content
-      String remoteContent = EntityUtils.toString(entity);
-      if (StringUtils.isBlank(remoteContent)) {
-        LOG.error("HttpGet Remote content is empty");
-        return null;
-      }
-
-      // Check the response
-      StatusLine statusLine = response.getStatusLine();
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("REMOTE TEXT (" + statusLine.getStatusCode() + "): " + remoteContent);
-      }
-
-      // Check for errors... HTTP/1.1 405 Method Not Allowed
-      if (statusLine.getStatusCode() == 404) {
-        // Not in the system
-        LOG.debug("HttpGet 404: " + url);
-        return null;
-      }
-
-      // Check for a Moodle exception
+    // Check for a Moodle exception
+    try {
       JsonNode jsonNode = JsonLoader.fromString(remoteContent);
       if (jsonNode.has("exception")) {
         LOG.warn("Exception: " + jsonNode.get("exception"));

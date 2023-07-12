@@ -16,36 +16,25 @@
 
 package com.simisinc.platform.application.mailinglists;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.github.fge.jackson.JsonLoader;
-import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
-import com.simisinc.platform.application.json.JsonCommand;
-import com.simisinc.platform.domain.model.mailinglists.Email;
-import com.simisinc.platform.domain.model.mailinglists.MailingList;
-import com.simisinc.platform.infrastructure.persistence.mailinglists.EmailRepository;
+import java.util.Base64;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.StatusLine;
-import org.apache.http.auth.UsernamePasswordCredentials;
-import org.apache.http.client.HttpClient;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPatch;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.ContentType;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.auth.BasicScheme;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClientBuilder;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.util.EntityUtils;
 
-import java.util.HashMap;
-import java.util.Map;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.github.fge.jackson.JsonLoader;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.http.HttpGetCommand;
+import com.simisinc.platform.application.http.HttpPatchCommand;
+import com.simisinc.platform.application.http.HttpPostCommand;
+import com.simisinc.platform.application.json.JsonCommand;
+import com.simisinc.platform.domain.model.mailinglists.Email;
+import com.simisinc.platform.domain.model.mailinglists.MailingList;
+import com.simisinc.platform.infrastructure.persistence.mailinglists.EmailRepository;
 
 /**
  * Mailing List integration with Mail Chimp
@@ -123,7 +112,7 @@ public class MailChimpCommand {
       LOG.debug("MailChimp API is not configured");
       return null;
     }
-    return new String[]{apiKey, listId};
+    return new String[] { apiKey, listId };
   }
 
   // MailingList: Newsletter/Mailing List/Product Interest (these will be tags in MailChimp)
@@ -139,29 +128,19 @@ public class MailChimpCommand {
       String userMd5Hex = DigestUtils.md5Hex(emailAddress.getEmail().toLowerCase());
       String url = "https://" + dc + BASE_URL + "/lists/" + apiSettings[1] + "/members/" + userMd5Hex;
 
-      HttpClient client = HttpClientBuilder.create().build();
-      HttpGet httpGet = new HttpGet(url);
-      httpGet.setHeader("Accept", "application/json");
-      httpGet.setHeader("Content-type", "application/json");
+      Map<String, String> headers = new HashMap<>();
+      headers.put("Accept", "application/json");
+      headers.put("Content-type", "application/json");
 
-      UsernamePasswordCredentials creds = new UsernamePasswordCredentials("user", apiSettings[0]);
-      httpGet.addHeader(new BasicScheme().authenticate(creds, httpGet, null));
+      String valueToEncode = "user" + ":" + apiSettings[0];
+      String credentials = "Basic " + Base64.getEncoder().encodeToString(valueToEncode.getBytes());
+      headers.put("Authorization", credentials);
 
-      HttpResponse response = client.execute(httpGet);
-
-      // a 404 means the contact does not exist
-      StatusLine statusLine = response.getStatusLine();
-      if (statusLine.getStatusCode() == 404) {
-        // Not in the system
-        LOG.debug("HttpGet Email is not in system");
-        return null;
-      }
+      String remoteContent = HttpGetCommand.execute(url, headers);
 
       // Return the json data
-      HttpEntity entity = response.getEntity();
-      String value = EntityUtils.toString(entity);
-      LOG.debug("HttpGet Value: " + value);
-      JsonNode json = JsonLoader.fromString(value);
+      LOG.debug("HttpGet Value: " + remoteContent);
+      JsonNode json = JsonLoader.fromString(remoteContent);
       if (json.has("id")) {
         LOG.debug("HttpGet Found member");
         return json;
@@ -190,10 +169,12 @@ public class MailChimpCommand {
       sb.append(", \"ip_signup\": \"").append(emailAddress.getIpAddress()).append("\"");
     }
     if (emailAddress.hasGeoPoint()) {
-      sb.append(", \"location\": {\"latitude\":").append(emailAddress.getLatitude()).append(", \"longitude\":").append(emailAddress.getLongitude()).append("}");
+      sb.append(", \"location\": {\"latitude\":").append(emailAddress.getLatitude()).append(", \"longitude\":")
+          .append(emailAddress.getLongitude()).append("}");
     }
     if (StringUtils.isNotBlank(emailAddress.getFirstName()) && StringUtils.isNotBlank(emailAddress.getLastName())) {
-      sb.append(", \"merge_fields\": {\"FIRST_NAME\":\"").append(JsonCommand.toJson(emailAddress.getFirstName())).append("\", \"LAST_NAME\":\"").append(JsonCommand.toJson(emailAddress.getLastName())).append("\"}");
+      sb.append(", \"merge_fields\": {\"FIRST_NAME\":\"").append(JsonCommand.toJson(emailAddress.getFirstName()))
+          .append("\", \"LAST_NAME\":\"").append(JsonCommand.toJson(emailAddress.getLastName())).append("\"}");
     }
     if (StringUtils.isNotBlank(emailAddress.getSource())) {
       sb.append(", \"source\":\"").append(JsonCommand.toJson(emailAddress.getSource())).append("\"");
@@ -213,7 +194,8 @@ public class MailChimpCommand {
     return sendMailChimpHttpPost(url, jsonString, emailAddress);
   }
 
-  private static boolean subscribeExistingEmailToList(JsonNode mailChimpMember, Email emailAddress, MailingList mailingList) {
+  private static boolean subscribeExistingEmailToList(JsonNode mailChimpMember, Email emailAddress,
+      MailingList mailingList) {
 
     String[] apiSettings = getApiSettings();
     String dc = apiSettings[0].substring(apiSettings[0].indexOf("-") + 1);
@@ -292,64 +274,45 @@ public class MailChimpCommand {
   }
 
   private static boolean sendMailChimpHttpPost(String url, String jsonString, Email emailAddress) {
+
+    String[] apiSettings = getApiSettings();
+
     // Send to MailChimp
-    try (CloseableHttpClient client = HttpClients.createDefault()) {
+    Map<String, String> headers = new HashMap<>();
+    headers.put("Accept", "application/json");
+    headers.put("Content-type", "application/json");
 
-      HttpPost httpPost = new HttpPost(url);
-      httpPost.setHeader("Accept", "application/json");
-      httpPost.setHeader("Content-type", "application/json");
+    String valueToEncode = "user" + ":" + apiSettings[0];
+    String credentials = "Basic " + Base64.getEncoder().encodeToString(valueToEncode.getBytes());
+    headers.put("Authorization", credentials);
 
-      String[] apiSettings = getApiSettings();
-      UsernamePasswordCredentials creds = new UsernamePasswordCredentials("user", apiSettings[0]);
-      httpPost.addHeader(new BasicScheme().authenticate(creds, httpPost, null));
+    String remoteContent = HttpPostCommand.execute(url, headers, jsonString);
 
-      StringEntity requestEntity = new StringEntity(
-          jsonString,
-          ContentType.APPLICATION_JSON);
-      httpPost.setEntity(requestEntity);
+    // Check for content
+    if (StringUtils.isBlank(remoteContent)) {
+      LOG.error("HttpPost Remote content is empty");
+      return false;
+    }
 
-      CloseableHttpResponse response = client.execute(httpPost);
-      if (response == null) {
-        LOG.error("HttpPost Response is empty");
-        return false;
-      }
+    // Check for errors... HTTP/1.1 405 Method Not Allowed
+    // {"type":"https://developer.mailchimp.com/documentation/mailchimp/guides/error-glossary/#405",
+    // "title":"Method Not Allowed",
+    // "status":405,
+    // "detail":"The requested method and resource are not compatible. See the Allow header for this resource's available methods.",
+    // "instance":""}
 
-      HttpEntity entity = response.getEntity();
-      if (entity == null) {
-        LOG.error("HttpPost Entity is null");
-        return false;
-      }
-
-      // Check for content
-      String remoteContent = EntityUtils.toString(entity);
-      if (StringUtils.isBlank(remoteContent)) {
-        LOG.error("HttpPost Remote content is empty");
-        return false;
-      }
-
-      // Check for errors... HTTP/1.1 405 Method Not Allowed
-      // {"type":"https://developer.mailchimp.com/documentation/mailchimp/guides/error-glossary/#405",
-      // "title":"Method Not Allowed",
-      // "status":405,
-      // "detail":"The requested method and resource are not compatible. See the Allow header for this resource's available methods.",
-      // "instance":""}
-      StatusLine statusLine = response.getStatusLine();
-      if (statusLine.getStatusCode() > 299) {
-        LOG.error("HttpPost Error for URL (" + url + "): " + statusLine.getStatusCode() + " " + statusLine.getReasonPhrase());
-        return false;
-      }
-
-      // {
-      //  "id": "852aaa9532cb36adfb5e9fef7a4206a9",
-      //  "email_address": "example@example.com",
-      //  "unique_email_id": "fab20fa03d",
-      //  "email_type": "html",
-      //  "status": "subscribed",
-      //  "status_if_new": "",
-      //  ...
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("REMOTE TEXT: " + remoteContent);
-      }
+    // {
+    //  "id": "852aaa9532cb36adfb5e9fef7a4206a9",
+    //  "email_address": "example@example.com",
+    //  "unique_email_id": "fab20fa03d",
+    //  "email_type": "html",
+    //  "status": "subscribed",
+    //  "status_if_new": "",
+    //  ...
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("REMOTE TEXT: " + remoteContent);
+    }
+    try {
       JsonNode json = JsonLoader.fromString(remoteContent);
       if (json.has("id") && json.has("status")) {
         // Update the record to mark it as 'synced'
@@ -364,64 +327,44 @@ public class MailChimpCommand {
 
   private static boolean sendMailChimpHttpPatch(String url, String jsonString, Email emailAddress) {
 
+    String[] apiSettings = getApiSettings();
+
     // Send to MailChimp
-    try (CloseableHttpClient client = HttpClients.createDefault()) {
+    Map<String, String> headers = new HashMap<>();
+    headers.put("Accept", "application/json");
+    headers.put("Content-type", "application/json");
 
-      HttpPatch httpPatch = new HttpPatch(url);
-      httpPatch.setHeader("Accept", "application/json");
-      httpPatch.setHeader("Content-type", "application/json");
+    String valueToEncode = "user" + ":" + apiSettings[0];
+    String credentials = "Basic " + Base64.getEncoder().encodeToString(valueToEncode.getBytes());
+    headers.put("Authorization", credentials);
 
-      String[] apiSettings = getApiSettings();
-      UsernamePasswordCredentials creds = new UsernamePasswordCredentials("user", apiSettings[0]);
-      httpPatch.addHeader(new BasicScheme().authenticate(creds, httpPatch, null));
+    String remoteContent = HttpPatchCommand.execute(url, headers, jsonString);
 
-      StringEntity requestEntity = new StringEntity(
-          jsonString,
-          ContentType.APPLICATION_JSON);
-      httpPatch.setEntity(requestEntity);
+    // Check for content
+    if (StringUtils.isBlank(remoteContent)) {
+      LOG.error("HttpPatch Remote content is empty");
+      return false;
+    }
 
-      CloseableHttpResponse response = client.execute(httpPatch);
-      if (response == null) {
-        LOG.error("HttpPatch Response is empty");
-        return false;
-      }
+    // Check for errors... HTTP/1.1 405 Method Not Allowed
+    // {"type":"https://developer.mailchimp.com/documentation/mailchimp/guides/error-glossary/#405",
+    // "title":"Method Not Allowed",
+    // "status":405,
+    // "detail":"The requested method and resource are not compatible. See the Allow header for this resource's available methods.",
+    // "instance":""}
 
-      HttpEntity entity = response.getEntity();
-      if (entity == null) {
-        LOG.error("HttpPatch Entity is null");
-        return false;
-      }
-
-      // Check for content
-      String remoteContent = EntityUtils.toString(entity);
-      if (StringUtils.isBlank(remoteContent)) {
-        LOG.error("HttpPatch Remote content is empty");
-        return false;
-      }
-
-      // Check for errors... HTTP/1.1 405 Method Not Allowed
-      // {"type":"https://developer.mailchimp.com/documentation/mailchimp/guides/error-glossary/#405",
-      // "title":"Method Not Allowed",
-      // "status":405,
-      // "detail":"The requested method and resource are not compatible. See the Allow header for this resource's available methods.",
-      // "instance":""}
-      StatusLine statusLine = response.getStatusLine();
-      if (statusLine.getStatusCode() > 299) {
-        LOG.error("HttpPatch Error for URL (" + url + "): " + statusLine.getStatusCode() + " " + statusLine.getReasonPhrase());
-        return false;
-      }
-
-      // {
-      //  "id": "852aaa9532cb36adfb5e9fef7a4206a9",
-      //  "email_address": "example@example.com",
-      //  "unique_email_id": "fab20fa03d",
-      //  "email_type": "html",
-      //  "status": "subscribed",
-      //  "status_if_new": "",
-      //  ...
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("HttpPatch REMOTE TEXT: " + remoteContent);
-      }
+    // {
+    //  "id": "852aaa9532cb36adfb5e9fef7a4206a9",
+    //  "email_address": "example@example.com",
+    //  "unique_email_id": "fab20fa03d",
+    //  "email_type": "html",
+    //  "status": "subscribed",
+    //  "status_if_new": "",
+    //  ...
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("HttpPatch REMOTE TEXT: " + remoteContent);
+    }
+    try {
       JsonNode json = JsonLoader.fromString(remoteContent);
       if (json.has("id") && json.has("status")) {
         // Update the record to mark it as 'synced'

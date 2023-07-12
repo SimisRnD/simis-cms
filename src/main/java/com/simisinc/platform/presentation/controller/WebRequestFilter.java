@@ -41,7 +41,7 @@ import javax.servlet.jsp.jstl.core.Config;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.http.conn.util.InetAddressUtils;
+import org.apache.hc.core5.net.InetAddressUtils;
 
 import com.simisinc.platform.application.CreateSessionCommand;
 import com.simisinc.platform.application.LoadVisitorCommand;

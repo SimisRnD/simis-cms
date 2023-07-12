@@ -33,8 +33,8 @@ import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.admin.SaveTextFileCommand;
 import com.simisinc.platform.application.elearning.PERLSCourseListCommand;
 import com.simisinc.platform.application.filesystem.FileSystemCommand;
-import com.simisinc.platform.application.http.HttpGetToFileCommand;
-import com.simisinc.platform.application.http.HttpGetToStringCommand;
+import com.simisinc.platform.application.http.HttpDownloadFileCommand;
+import com.simisinc.platform.application.http.HttpGetCommand;
 import com.simisinc.platform.domain.model.datasets.Dataset;
 import com.simisinc.platform.infrastructure.persistence.datasets.DatasetRepository;
 
@@ -101,7 +101,7 @@ public class DatasetDownloadRemoteFileCommand {
           }
         } else {
           // Download a single JSON file
-          if (!HttpGetToFileCommand.execute(dataset.getSourceUrl(), tempFile)) {
+          if (!HttpDownloadFileCommand.execute(dataset.getSourceUrl(), tempFile)) {
             throw new DataException("File download error from: " + dataset.getSourceUrl());
           }
         }
@@ -181,7 +181,7 @@ public class DatasetDownloadRemoteFileCommand {
   public static boolean downloadPagedFile(String url, String jsonPagingPath, String jsonRecordsPath, File tempFile) {
 
     // Download the first file, as a string
-    String content = HttpGetToStringCommand.execute(url);
+    String content = HttpGetCommand.execute(url);
     if (StringUtils.isBlank(content)) {
       return false;
     }
@@ -247,7 +247,7 @@ public class DatasetDownloadRemoteFileCommand {
     LOG.debug("Next url: " + nextUrl);
 
     // Use the url to get the next page content
-    String content = HttpGetToStringCommand.execute(nextUrl);
+    String content = HttpGetCommand.execute(nextUrl);
     if (StringUtils.isBlank(content)) {
       throw new IOException("Content is blank");
     }
