@@ -286,7 +286,6 @@ public class MailChimpCommand {
     String credentials = "Basic " + Base64.getEncoder().encodeToString(valueToEncode.getBytes());
     headers.put("Authorization", credentials);
 
-    // @todo, need to specify a string entity type of APPLICATION_JSON with the jsonString
     String remoteContent = HttpPostCommand.execute(url, headers, jsonString);
 
     // Check for content
@@ -339,7 +338,6 @@ public class MailChimpCommand {
     String credentials = "Basic " + Base64.getEncoder().encodeToString(valueToEncode.getBytes());
     headers.put("Authorization", credentials);
 
-    // @todo add entity content type of APPLICATION_JSON
     String remoteContent = HttpPatchCommand.execute(url, headers, jsonString);
 
     // Check for content
