@@ -16,11 +16,11 @@
 
 package com.simisinc.platform.application.http;
 
-import java.io.File;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.time.Duration;
 import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
@@ -34,38 +34,51 @@ import org.apache.commons.validator.routines.UrlValidator;
  * @author matt rajkowski
  * @created 2/7/2020 4:25 PM
  */
-public class HttpGetToFileCommand {
+public class HttpGetCommand {
 
-  private static Log LOG = LogFactory.getLog(HttpGetToFileCommand.class);
+  private static Log LOG = LogFactory.getLog(HttpDownloadFileCommand.class);
 
-  /**
-   * Downloads the remote file
-   * 
-   * @param url
-   * @param tempFile
-   * @return
-   */
-  public static boolean execute(String url, File tempFile) {
-    return execute(url, null, tempFile);
+  public static final int GET = 1;
+  public static final int DELETE = 2;
+
+  public static String execute(String url) {
+    return execute(url, GET);
   }
 
-  public static boolean execute(String url, Map<String, String> headers, File tempFile) {
+  public static String execute(String url, Map<String, String> headers) {
+    return execute(url, headers, GET);
+  }
+
+  public static String execute(String url, int httpMethod) {
+    return execute(url, null, httpMethod);
+  }
+
+  public static String execute(String url, Map<String, String> headers, int httpMethod) {
     // Validate the parameters
     if (StringUtils.isBlank(url)) {
       LOG.debug("No url");
-      return false;
+      return null;
     }
     String[] schemes = { "http", "https" };
     UrlValidator urlValidator = new UrlValidator(schemes);
     if (!urlValidator.isValid(url)) {
       LOG.debug("Invalid url: " + url);
-      return false;
+      return null;
     }
-    // Download to a file
+
+    // Download as a string
     try {
+      LOG.debug("Requesting from: " + url);
+
       // Build the request
       HttpRequest.Builder builder = HttpRequest.newBuilder();
       builder.uri(URI.create(url));
+      if (DELETE == httpMethod) {
+        builder.DELETE();
+      } else {
+        builder.GET();
+      }
+      builder.timeout(Duration.ofSeconds(20));
       if (headers != null) {
         for (Map.Entry<String, String> set : headers.entrySet()) {
           String name = set.getKey();
@@ -77,28 +90,28 @@ public class HttpGetToFileCommand {
 
       // Send the request and handle the response
       HttpClient client = HttpClient.newHttpClient();
-      HttpResponse<?> response = client.send(request, HttpResponse.BodyHandlers.ofFile(tempFile.toPath()));
-
-      // Make sure a file was received
-      if (response == null || tempFile.length() <= 0) {
-        LOG.error("sendHttpGet: no file");
-        if (tempFile.exists()) {
-          tempFile.delete();
-        }
-        return false;
+      var response = client.send(request, HttpResponse.BodyHandlers.ofString());
+      if (response == null) {
+        LOG.debug("No response");
+        return null;
       }
 
-      LOG.debug("CODE: " + response.statusCode());
+      // Check the status code
+      int status = response.statusCode();
+      if (status < 200 || status >= 300) {
+        LOG.debug("Received status: " + status);
+        return null;
+      }
 
-      return true;
+      // Verify the content
+      String content = response.body();
+      if (content == null || content.length() <= 0) {
+        return null;
+      }
+      return content;
     } catch (Exception e) {
-      // Clean up the file
-      if (tempFile.exists()) {
-        LOG.warn("Deleting an uploaded file: " + tempFile.getAbsolutePath());
-        tempFile.delete();
-      }
-      LOG.error("downloadFile error", e);
-      return false;
+      LOG.error("Http client exception", e);
+      return null;
     }
   }
 }

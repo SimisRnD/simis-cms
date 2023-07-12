@@ -28,7 +28,7 @@ import org.apache.commons.logging.LogFactory;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.fge.jackson.JsonLoader;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
-import com.simisinc.platform.application.http.HttpGetToStringCommand;
+import com.simisinc.platform.application.http.HttpGetCommand;
 import com.simisinc.platform.application.http.HttpPatchCommand;
 import com.simisinc.platform.application.http.HttpPostCommand;
 import com.simisinc.platform.application.json.JsonCommand;
@@ -136,7 +136,7 @@ public class MailChimpCommand {
       String credentials = "Basic " + Base64.getEncoder().encodeToString(valueToEncode.getBytes());
       headers.put("Authorization", credentials);
 
-      String remoteContent = HttpGetToStringCommand.execute(url, headers);
+      String remoteContent = HttpGetCommand.execute(url, headers);
 
       // Return the json data
       LOG.debug("HttpGet Value: " + remoteContent);

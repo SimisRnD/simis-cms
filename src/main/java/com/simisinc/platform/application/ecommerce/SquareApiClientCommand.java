@@ -26,7 +26,7 @@ import org.apache.commons.logging.LogFactory;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.fge.jackson.JsonLoader;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
-import com.simisinc.platform.application.http.HttpGetToStringCommand;
+import com.simisinc.platform.application.http.HttpGetCommand;
 import com.simisinc.platform.application.http.HttpPostCommand;
 
 /**
@@ -111,7 +111,7 @@ public class SquareApiClientCommand {
     headers.put("Content-Type", "application/json");
     headers.put("Square-Version", SQUARE_API_VERSION);
 
-    String remoteContent = HttpGetToStringCommand.execute(url, headers);
+    String remoteContent = HttpGetCommand.execute(url, headers);
 
     // Check for content
     if (StringUtils.isBlank(remoteContent)) {

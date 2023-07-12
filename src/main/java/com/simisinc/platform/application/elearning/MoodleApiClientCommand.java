@@ -25,7 +25,7 @@ import org.apache.commons.logging.LogFactory;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.fge.jackson.JsonLoader;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
-import com.simisinc.platform.application.http.HttpGetToStringCommand;
+import com.simisinc.platform.application.http.HttpGetCommand;
 
 /**
  * Commands for working with Moodle
@@ -87,7 +87,7 @@ public class MoodleApiClientCommand {
 
     // Send
     LOG.debug("GET: " + url);
-    String remoteContent = HttpGetToStringCommand.execute(url);
+    String remoteContent = HttpGetCommand.execute(url);
 
     // Check for content
     if (StringUtils.isBlank(remoteContent)) {

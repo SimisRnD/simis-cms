@@ -28,7 +28,7 @@ import org.apache.commons.logging.LogFactory;
 import org.jobrunr.utils.resilience.RateLimiter;
 
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
-import com.simisinc.platform.application.http.HttpGetToStringCommand;
+import com.simisinc.platform.application.http.HttpGetCommand;
 import com.simisinc.platform.domain.model.items.Item;
 
 /**
@@ -87,7 +87,7 @@ public class MapBoxCommand {
         TimeUnit.MILLISECONDS.sleep(100);
       }
       // HTTP request
-      String value = HttpGetToStringCommand.execute(url);
+      String value = HttpGetCommand.execute(url);
       if (value == null) {
         return item;
       }

@@ -29,7 +29,7 @@ import org.apache.commons.logging.LogFactory;
  */
 public class HttpPatchCommand {
 
-  private static Log LOG = LogFactory.getLog(HttpGetToFileCommand.class);
+  private static Log LOG = LogFactory.getLog(HttpDownloadFileCommand.class);
 
   public static String execute(String url, Map<String, String> parameters) {
     return HttpPostCommand.execute(url, null, parameters, HttpPostCommand.PATCH);

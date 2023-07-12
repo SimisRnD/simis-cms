@@ -33,7 +33,7 @@ import org.w3c.dom.NodeList;
 
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
-import com.simisinc.platform.application.http.HttpGetToStringCommand;
+import com.simisinc.platform.application.http.HttpGetCommand;
 import com.simisinc.platform.domain.model.ecommerce.Address;
 
 /**
@@ -116,7 +116,7 @@ public class AddressCommand {
     try {
       LOG.debug("Sending xml... " + xml);
       String url = USPS_SHIPPING_API_URL + URLEncoder.encode(xml, "UTF-8");
-      String responseValue = HttpGetToStringCommand.execute(url);
+      String responseValue = HttpGetCommand.execute(url);
       if (responseValue == null) {
         return null;
       }

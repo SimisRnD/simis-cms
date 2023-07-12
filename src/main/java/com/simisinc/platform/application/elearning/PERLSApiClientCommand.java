@@ -27,8 +27,8 @@ import org.apache.commons.logging.LogFactory;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.fge.jackson.JsonLoader;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
-import com.simisinc.platform.application.http.HttpGetToFileCommand;
-import com.simisinc.platform.application.http.HttpGetToStringCommand;
+import com.simisinc.platform.application.http.HttpDownloadFileCommand;
+import com.simisinc.platform.application.http.HttpGetCommand;
 import com.simisinc.platform.domain.model.login.OAuthToken;
 
 /**
@@ -94,7 +94,7 @@ public class PERLSApiClientCommand {
     Map<String, String> headers = new HashMap<>();
     headers.put("Authorization", "Bearer " + token.getAccessToken());
 
-    String remoteContent = HttpGetToStringCommand.execute(url, headers);
+    String remoteContent = HttpGetCommand.execute(url, headers);
     if (StringUtils.isBlank(remoteContent)) {
       LOG.error("sendHttpGet: no body");
       return null;
@@ -144,7 +144,7 @@ public class PERLSApiClientCommand {
     Map<String, String> headers = new HashMap<>();
     headers.put("Authorization", "Bearer " + token.getAccessToken());
 
-    boolean result = HttpGetToFileCommand.execute(url, headers, file);
+    boolean result = HttpDownloadFileCommand.execute(url, headers, file);
     if (result) {
       return file;
     }

@@ -26,7 +26,7 @@ import org.apache.commons.logging.LogFactory;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.fge.jackson.JsonLoader;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
-import com.simisinc.platform.application.http.HttpGetToStringCommand;
+import com.simisinc.platform.application.http.HttpGetCommand;
 import com.simisinc.platform.application.http.HttpPostCommand;
 import com.simisinc.platform.domain.model.login.OAuthToken;
 
@@ -165,7 +165,8 @@ public class SupersetApiClientCommand {
     Map<String, String> headers = new HashMap<>();
     headers.put("Accept", "application/json");
     headers.put("Content-Type", "application/json");
-    String remoteContent = HttpGetToStringCommand.execute(url, headers);
+    
+    String remoteContent = HttpGetCommand.execute(url, headers);
 
     // Check for content
     if (StringUtils.isBlank(remoteContent)) {

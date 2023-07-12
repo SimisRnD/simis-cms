@@ -25,7 +25,7 @@ import org.apache.commons.logging.LogFactory;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.github.fge.jackson.JsonLoader;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
-import com.simisinc.platform.application.http.HttpGetToStringCommand;
+import com.simisinc.platform.application.http.HttpGetCommand;
 import com.simisinc.platform.domain.model.socialmedia.InstagramMedia;
 
 /**
@@ -77,7 +77,7 @@ public class InstagramCommand {
 
     String url = BASE_URL + "/me/accounts?access_token=" + accessToken;
     try {
-      String value = HttpGetToStringCommand.execute(url);
+      String value = HttpGetCommand.execute(url);
       if (value == null) {
         return null;
       }
@@ -119,7 +119,7 @@ public class InstagramCommand {
 
     String url = BASE_URL + "/" + facebookId + "?fields=instagram_business_account&access_token=" + accessToken;
     try {
-      String value = HttpGetToStringCommand.execute(url);
+      String value = HttpGetCommand.execute(url);
       if (value == null) {
         return null;
       }
@@ -157,7 +157,7 @@ public class InstagramCommand {
 
     String url = BASE_URL + "/" + igUserId + "/media?access_token=" + accessToken;
     try {
-      String value = HttpGetToStringCommand.execute(url);
+      String value = HttpGetCommand.execute(url);
       if (value == null) {
         return null;
       }
@@ -204,7 +204,7 @@ public class InstagramCommand {
     String url = BASE_URL + "/" + graphId
         + "?fields=permalink,media_type,media_url,caption,shortcode,timestamp&access_token=" + accessToken;
     try {
-      String value = HttpGetToStringCommand.execute(url);
+      String value = HttpGetCommand.execute(url);
       if (value == null) {
         return null;
       }

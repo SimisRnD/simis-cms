@@ -30,7 +30,7 @@ import org.apache.commons.logging.LogFactory;
 import org.jobrunr.utils.resilience.RateLimiter;
 
 import com.simisinc.platform.ApplicationInfo;
-import com.simisinc.platform.application.http.HttpGetToStringCommand;
+import com.simisinc.platform.application.http.HttpGetCommand;
 import com.simisinc.platform.domain.model.items.Item;
 
 /**
@@ -89,7 +89,7 @@ public class NominatimCommmand {
       // HTTP request
       Map<String, String> headers = new HashMap<>();
       headers.put("User-Agent", ApplicationInfo.PRODUCT_NAME);
-      String value = HttpGetToStringCommand.execute(url, headers);
+      String value = HttpGetCommand.execute(url, headers);
       if (value == null) {
         return item;
       }

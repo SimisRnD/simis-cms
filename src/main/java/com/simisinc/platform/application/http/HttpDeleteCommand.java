@@ -27,10 +27,10 @@ import java.util.Map;
 public class HttpDeleteCommand {
 
   public static String execute(String url) {
-    return HttpGetToStringCommand.execute(url, HttpGetToStringCommand.DELETE);
+    return HttpGetCommand.execute(url, HttpGetCommand.DELETE);
   }
 
   public static String execute(String url, Map<String, String> headers) {
-    return HttpGetToStringCommand.execute(url, headers, HttpGetToStringCommand.DELETE);
+    return HttpGetCommand.execute(url, headers, HttpGetCommand.DELETE);
   }
 }
