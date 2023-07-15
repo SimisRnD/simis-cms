@@ -16,20 +16,21 @@
 
 package com.simisinc.platform.application.ecommerce;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.github.fge.jackson.JsonLoader;
-import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
-import com.simisinc.platform.domain.model.ecommerce.Order;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.http.HttpEntity;
-import org.apache.http.StatusLine;
-import org.apache.http.client.methods.*;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.util.EntityUtils;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.github.fge.jackson.JsonLoader;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.http.HttpDeleteCommand;
+import com.simisinc.platform.application.http.HttpGetCommand;
+import com.simisinc.platform.application.http.HttpPostCommand;
+import com.simisinc.platform.application.http.HttpPutCommand;
+import com.simisinc.platform.domain.model.ecommerce.Order;
 
 /**
  * Commands for working with Boxzooka
@@ -76,46 +77,30 @@ public class BoxzookaApiClientCommand {
 
     // Send to Boxzooka
     LOG.debug(method + ": " + url);
-    try (CloseableHttpClient client = HttpClients.createDefault()) {
-      HttpEntityEnclosingRequestBase request;
-      if ("PUT".equals(method)) {
-        request = new HttpPut(url);
-      } else {
-        request = new HttpPost(url);
-      }
-      request.setHeader("token", key);
-      request.setHeader("customer", customerId);
-      request.setHeader("Content-Type", "application/json");
-      request.setHeader("Accept", "application/json");
-      request.setEntity(new StringEntity(jsonString));
 
-      CloseableHttpResponse response = client.execute(request);
-      if (response == null) {
-        LOG.error("sendBoxzookaHttpRequest Response is empty");
-        return null;
-      }
+    Map<String, String> headers = new HashMap<>();
+    headers.put("token", key);
+    headers.put("customer", customerId);
+    headers.put("Content-Type", "application/json");
+    headers.put("Accept", "application/json");
 
-      HttpEntity entity = response.getEntity();
-      if (entity == null) {
-        LOG.error("sendBoxzookaHttpRequest Entity is null");
-        return null;
-      }
+    String remoteContent = null;
+    if ("PUT".equals(method)) {
+      remoteContent = HttpPutCommand.execute(url, headers, jsonString);
+    } else {
+      remoteContent = HttpPostCommand.execute(url, headers, jsonString);
+    }
 
-      // Check for content
-      String remoteContent = EntityUtils.toString(entity);
-      if (StringUtils.isBlank(remoteContent)) {
-        LOG.error("sendBoxzookaHttpRequest Remote content is empty");
-        return null;
-      }
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("REMOTE TEXT: " + remoteContent);
-      }
+    // Check for content
+    if (StringUtils.isBlank(remoteContent)) {
+      LOG.error("sendBoxzookaHttpRequest Remote content is empty");
+      return null;
+    }
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("REMOTE TEXT: " + remoteContent);
+    }
 
-      // Check for errors... HTTP/1.1 405 Method Not Allowed
-      StatusLine statusLine = response.getStatusLine();
-      if (statusLine.getStatusCode() > 299) {
-        LOG.error("sendBoxzookaHttpRequest Error for URL (" + url + "): " + statusLine.getStatusCode() + " " + statusLine.getReasonPhrase());
-      }
+    try {
       return JsonLoader.fromString(remoteContent);
     } catch (Exception e) {
       LOG.error("sendBoxzookaHttpRequest", e);
@@ -142,45 +127,26 @@ public class BoxzookaApiClientCommand {
 
     // Send to Boxzooka
     LOG.debug("GET: " + url);
-    try (CloseableHttpClient client = HttpClients.createDefault()) {
 
-      HttpGet httpGet = new HttpGet(url);
-      httpGet.setHeader("token", key);
-      httpGet.setHeader("customer", customerId);
-      httpGet.setHeader("Accept", "application/json");
-      httpGet.setHeader("Content-Type", "application/json");
+    Map<String, String> headers = new HashMap<>();
+    headers.put("token", key);
+    headers.put("customer", customerId);
+    headers.put("Accept", "application/json");
+    headers.put("Content-Type", "application/json");
 
-      CloseableHttpResponse response = client.execute(httpGet);
-      if (response == null) {
-        LOG.error("HttpGet Response is empty");
-        return null;
-      }
+    String remoteContent = HttpGetCommand.execute(url, headers);
 
-      HttpEntity entity = response.getEntity();
-      if (entity == null) {
-        LOG.error("HttpEntity is null");
-        return null;
-      }
+    // Check for content
+    if (StringUtils.isBlank(remoteContent)) {
+      LOG.error("HttpGet Remote content is empty");
+      return null;
+    }
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("REMOTE TEXT: " + remoteContent);
+    }
 
-      // Check for content
-      String remoteContent = EntityUtils.toString(entity);
-      if (StringUtils.isBlank(remoteContent)) {
-        LOG.error("HttpGet Remote content is empty");
-        return null;
-      }
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("REMOTE TEXT: " + remoteContent);
-      }
-
-      // Check for errors... HTTP/1.1 405 Method Not Allowed
-      StatusLine statusLine = response.getStatusLine();
-      if (statusLine.getStatusCode() == 404) {
-        // Not in the system
-        LOG.debug("HttpGet 404: " + url);
-        return null;
-      }
-
-      // Return the content as JSON
+    // Return the content as JSON
+    try {
       return JsonLoader.fromString(remoteContent);
     } catch (Exception e) {
       LOG.error("sendBoxzookaHttpGet", e);
@@ -207,45 +173,26 @@ public class BoxzookaApiClientCommand {
 
     // Send to Boxzooka
     LOG.debug("DELETE: " + url);
-    try (CloseableHttpClient client = HttpClients.createDefault()) {
 
-      HttpDelete httpDelete = new HttpDelete(url);
-      httpDelete.setHeader("token", key);
-      httpDelete.setHeader("customer", customerId);
-      httpDelete.setHeader("Accept", "application/json");
-      httpDelete.setHeader("Content-Type", "application/json");
+    Map<String, String> headers = new HashMap<>();
+    headers.put("token", key);
+    headers.put("customer", customerId);
+    headers.put("Accept", "application/json");
+    headers.put("Content-Type", "application/json");
 
-      CloseableHttpResponse response = client.execute(httpDelete);
-      if (response == null) {
-        LOG.error("HttpGet Response is empty");
-        return null;
-      }
+    String remoteContent = HttpDeleteCommand.execute(url, headers);
 
-      HttpEntity entity = response.getEntity();
-      if (entity == null) {
-        LOG.error("HttpPost Entity is null");
-        return null;
-      }
+    // Check for content
+    if (StringUtils.isBlank(remoteContent)) {
+      LOG.error("HttpGet Remote content is empty");
+      return null;
+    }
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("REMOTE TEXT: " + remoteContent);
+    }
 
-      // Check for content
-      String remoteContent = EntityUtils.toString(entity);
-      if (StringUtils.isBlank(remoteContent)) {
-        LOG.error("HttpGet Remote content is empty");
-        return null;
-      }
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("REMOTE TEXT: " + remoteContent);
-      }
-
-      // Check for errors... HTTP/1.1 405 Method Not Allowed
-      StatusLine statusLine = response.getStatusLine();
-      if (statusLine.getStatusCode() == 404) {
-        // Not in the system
-        LOG.debug("HttpGet 404: " + url);
-        return null;
-      }
-
-      // Return the content as JSON
+    // Return the content as JSON
+    try {
       return JsonLoader.fromString(remoteContent);
     } catch (Exception e) {
       LOG.error("sendBoxzookaHttpGet", e);

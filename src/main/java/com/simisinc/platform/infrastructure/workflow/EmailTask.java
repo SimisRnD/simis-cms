@@ -34,7 +34,8 @@ import org.jeasy.flows.work.*;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.templatemode.TemplateMode;
-import org.thymeleaf.templateresolver.ServletContextTemplateResolver;
+import org.thymeleaf.templateresolver.WebApplicationTemplateResolver;
+import org.thymeleaf.web.servlet.JavaxServletWebApplication;
 
 import javax.servlet.ServletContext;
 import java.util.ArrayList;
@@ -86,7 +87,8 @@ public class EmailTask implements Work {
         return new DefaultWorkReport(WorkStatus.FAILED, workContext);
       }
 
-      ServletContextTemplateResolver templateResolver = new ServletContextTemplateResolver(servletContext);
+      JavaxServletWebApplication application = JavaxServletWebApplication.buildApplication(servletContext);
+      WebApplicationTemplateResolver templateResolver = new WebApplicationTemplateResolver(application);
       templateResolver.setTemplateMode(TemplateMode.HTML);
       templateResolver.setPrefix("/WEB-INF/email-templates/");
       templateResolver.setSuffix(".html");

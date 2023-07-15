@@ -16,6 +16,15 @@
 
 package com.simisinc.platform.application.items;
 
+import static com.simisinc.platform.application.items.GenerateItemUniqueIdCommand.generateUniqueId;
+
+import java.sql.Timestamp;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import com.sanctionco.jmail.JMail;
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.cms.HtmlCommand;
 import com.simisinc.platform.application.cms.UrlCommand;
@@ -24,14 +33,6 @@ import com.simisinc.platform.domain.model.items.Collection;
 import com.simisinc.platform.domain.model.items.Item;
 import com.simisinc.platform.infrastructure.persistence.items.CollectionRepository;
 import com.simisinc.platform.infrastructure.persistence.items.ItemRepository;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.commons.validator.routines.EmailValidator;
-
-import java.sql.Timestamp;
-
-import static com.simisinc.platform.application.items.GenerateItemUniqueIdCommand.generateUniqueId;
 
 /**
  * Validates and saves an item object
@@ -107,22 +108,27 @@ public class SaveItemCommand {
     if (StringUtils.isNotBlank(itemBean.getImageUrl())) {
       // Format the URL
       String url = itemBean.getImageUrl().trim();
-      if (!url.startsWith("http://") && !url.startsWith("https://")) {
-        url = "http://" + url;
-      }
-      // Validate the URL
-      if (!UrlCommand.isUrlValid(url)) {
-        if (errorMessages.length() > 0) {
-          errorMessages.append("\n");
-        }
-        errorMessages.append("The URL does not look valid");
-      } else {
+      if (url.startsWith("/assets/img/")) {
+        // Allow internal images
         itemBean.setImageUrl(url);
+      } else {
+        // Allow external images
+        if (!url.startsWith("http://") && !url.startsWith("https://")) {
+          url = "http://" + url;
+        }
+        // Validate the URL
+        if (!UrlCommand.isUrlValid(url)) {
+          if (errorMessages.length() > 0) {
+            errorMessages.append("\n");
+          }
+          errorMessages.append("The image URL does not look valid");
+        } else {
+          itemBean.setImageUrl(url);
+        }
       }
     }
     if (StringUtils.isNotBlank(itemBean.getEmail())) {
-      EmailValidator emailValidator = EmailValidator.getInstance(false);
-      if (!emailValidator.isValid(itemBean.getEmail())) {
+      if (!JMail.isValid(itemBean.getEmail())) {
         errorMessages.append("The email address looks incorrect");
       }
     }

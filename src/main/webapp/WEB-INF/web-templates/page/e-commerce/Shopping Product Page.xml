@@ -16,7 +16,7 @@
   -->
 <template name="Shopping Product Page" image="Shopping Catalog.png">
   <page>
-    <section class="align-middle align-right margin-top-50 margin-bottom-100">
+    <section class="align-right margin-top-50 margin-bottom-100">
       <column class="small-12 medium-5 cell">
         <widget name="content">
           <uniqueId>shop-${productUniqueId}-image</uniqueId>
@@ -24,6 +24,10 @@
         </widget>
       </column>
       <column class="small-12 medium-6 cell center-text-for-small-only">
+        <widget name="productName" class="product-name margin-bottom-20">
+          <product>${productUniqueId}</product>
+          <showPrice>false</showPrice>
+        </widget>
         <widget name="content">
           <uniqueId>shop-${productUniqueId}-content</uniqueId>
         </widget>

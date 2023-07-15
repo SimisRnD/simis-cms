@@ -16,21 +16,18 @@
 
 package com.simisinc.platform.application.ecommerce;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.github.fge.jackson.JsonLoader;
-import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.http.HttpEntity;
-import org.apache.http.StatusLine;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.util.EntityUtils;
+
+import com.fasterxml.jackson.databind.JsonNode;
+import com.github.fge.jackson.JsonLoader;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.http.HttpGetCommand;
+import com.simisinc.platform.application.http.HttpPostCommand;
 
 /**
  * Commands for working with Square
@@ -63,45 +60,26 @@ public class SquareApiClientCommand {
     }
 
     // Send to Square
-    try (CloseableHttpClient client = HttpClients.createDefault()) {
+    Map<String, String> headers = new HashMap<>();
+    headers.put("Authorization", "Bearer " + key);
+    headers.put("Accept", "application/json");
+    headers.put("Content-Type", "application/json");
+    headers.put("Square-Version", SQUARE_API_VERSION);
 
-      HttpPost httpPost = new HttpPost(url);
-      httpPost.setHeader("Authorization", "Bearer " + key);
-      httpPost.setHeader("Accept", "application/json");
-      httpPost.setHeader("Content-Type", "application/json");
-      httpPost.setHeader("Square-Version", SQUARE_API_VERSION);
-      httpPost.setEntity(new StringEntity(jsonString));
+    // Check for content
+    String remoteContent = HttpPostCommand.execute(url, headers, jsonString);
+    if (StringUtils.isBlank(remoteContent)) {
+      LOG.error("HttpPost Remote content is empty");
+      return null;
+    }
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("REMOTE TEXT: " + remoteContent);
+    }
 
-      CloseableHttpResponse response = client.execute(httpPost);
-      if (response == null) {
-        LOG.error("HttpPost Response is empty");
-        return null;
-      }
-
-      HttpEntity entity = response.getEntity();
-      if (entity == null) {
-        LOG.error("HttpPost Entity is null");
-        return null;
-      }
-
-      // Check for content
-      String remoteContent = EntityUtils.toString(entity);
-      if (StringUtils.isBlank(remoteContent)) {
-        LOG.error("HttpPost Remote content is empty");
-        return null;
-      }
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("REMOTE TEXT: " + remoteContent);
-      }
-
-      // Check for errors... HTTP/1.1 405 Method Not Allowed
-      StatusLine statusLine = response.getStatusLine();
-      if (statusLine.getStatusCode() > 299) {
-        LOG.error("HttpPost Error for URL (" + url + "): " + statusLine.getStatusCode() + " " + statusLine.getReasonPhrase());
-      }
+    try {
       return JsonLoader.fromString(remoteContent);
     } catch (Exception e) {
-      LOG.error("sendSquareHttpPost", e);
+      LOG.error("sendSquareHttpPost json", e);
     }
     return null;
   }
@@ -126,45 +104,26 @@ public class SquareApiClientCommand {
 
     // Send to Square
     LOG.debug("GET: " + url);
-    try (CloseableHttpClient client = HttpClients.createDefault()) {
 
-      HttpGet httpGet = new HttpGet(url);
-      httpGet.setHeader("Authorization", "Bearer " + key);
-      httpGet.setHeader("Accept", "application/json");
-      httpGet.setHeader("Content-Type", "application/json");
-      httpGet.setHeader("Square-Version", SQUARE_API_VERSION);
+    Map<String, String> headers = new HashMap<>();
+    headers.put("Authorization", "Bearer " + key);
+    headers.put("Accept", "application/json");
+    headers.put("Content-Type", "application/json");
+    headers.put("Square-Version", SQUARE_API_VERSION);
 
-      CloseableHttpResponse response = client.execute(httpGet);
-      if (response == null) {
-        LOG.error("HttpGet Response is empty");
-        return null;
-      }
+    String remoteContent = HttpGetCommand.execute(url, headers);
 
-      HttpEntity entity = response.getEntity();
-      if (entity == null) {
-        LOG.error("HttpEntity is null");
-        return null;
-      }
+    // Check for content
+    if (StringUtils.isBlank(remoteContent)) {
+      LOG.error("HttpGet Remote content is empty");
+      return null;
+    }
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("REMOTE TEXT: " + remoteContent);
+    }
 
-      // Check for content
-      String remoteContent = EntityUtils.toString(entity);
-      if (StringUtils.isBlank(remoteContent)) {
-        LOG.error("HttpGet Remote content is empty");
-        return null;
-      }
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("REMOTE TEXT: " + remoteContent);
-      }
-
-      // Check for errors... HTTP/1.1 405 Method Not Allowed
-      StatusLine statusLine = response.getStatusLine();
-      if (statusLine.getStatusCode() == 404) {
-        // Not in the system
-        LOG.debug("HttpGet 404: " + url);
-        return null;
-      }
-
-      // Return the content as JSON
+    // Return the content as JSON
+    try {
       return JsonLoader.fromString(remoteContent);
     } catch (Exception e) {
       LOG.error("sendSquareHttpGet", e);

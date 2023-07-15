@@ -16,18 +16,19 @@
 
 package com.simisinc.platform.application.register;
 
+import static com.simisinc.platform.application.register.GenerateUserUniqueIdCommand.generateUniqueId;
+
+import javax.security.auth.login.AccountException;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import com.sanctionco.jmail.JMail;
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.LoadUserCommand;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.infrastructure.persistence.UserRepository;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.commons.validator.routines.EmailValidator;
-
-import javax.security.auth.login.AccountException;
-
-import static com.simisinc.platform.application.register.GenerateUserUniqueIdCommand.generateUniqueId;
 
 /**
  * Validates and saves a user object
@@ -54,9 +55,8 @@ public class SaveUserCommand {
       throw new DataException("Please check the fields and try again");
     }
 
-    EmailValidator emailValidator = EmailValidator.getInstance(false);
     if (!userBean.getEmail().equals(userBean.getUsername())) {
-      if (!emailValidator.isValid(userBean.getEmail())) {
+      if (!JMail.isValid(userBean.getEmail())) {
         throw new DataException("Check the email address and try again");
       }
     }

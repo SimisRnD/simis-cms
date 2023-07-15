@@ -16,10 +16,25 @@
 
 package com.simisinc.platform.presentation.widgets.ecommerce;
 
+import java.lang.reflect.InvocationTargetException;
+import java.math.BigDecimal;
+import java.sql.Timestamp;
+
+import javax.security.auth.login.AccountException;
+
+import org.apache.commons.lang3.StringUtils;
+
+import com.sanctionco.jmail.JMail;
 import com.simisinc.platform.application.DataException;
-import com.simisinc.platform.application.ecommerce.EcommerceCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
-import com.simisinc.platform.application.ecommerce.*;
+import com.simisinc.platform.application.ecommerce.CartValidationCommand;
+import com.simisinc.platform.application.ecommerce.EcommerceCommand;
+import com.simisinc.platform.application.ecommerce.OrderCommand;
+import com.simisinc.platform.application.ecommerce.OrderEmailCommand;
+import com.simisinc.platform.application.ecommerce.OrderProcessingCommand;
+import com.simisinc.platform.application.ecommerce.SquareOrderCommand;
+import com.simisinc.platform.application.ecommerce.SquarePaymentCommand;
+import com.simisinc.platform.application.ecommerce.StripePaymentCommand;
 import com.simisinc.platform.application.mailinglists.SaveEmailCommand;
 import com.simisinc.platform.application.maps.GeoIPCommand;
 import com.simisinc.platform.application.register.RegisterUserCommand;
@@ -33,15 +48,8 @@ import com.simisinc.platform.domain.model.maps.GeoIP;
 import com.simisinc.platform.infrastructure.persistence.ecommerce.CustomerRepository;
 import com.simisinc.platform.infrastructure.persistence.ecommerce.OrderRepository;
 import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
-import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.controller.WidgetContext;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.validator.routines.EmailValidator;
-
-import javax.security.auth.login.AccountException;
-import java.lang.reflect.InvocationTargetException;
-import java.math.BigDecimal;
-import java.sql.Timestamp;
+import com.simisinc.platform.presentation.widgets.GenericWidget;
 
 /**
  * Description
@@ -69,8 +77,7 @@ public class PlaceOrderWidget extends GenericWidget {
       // Check if there is a cart with valid items
       CartValidationCommand.validateHasCartWithItems(cart);
       CartValidationCommand.validateHasShippingAddress(customer);
-      EmailValidator emailValidator = EmailValidator.getInstance(false);
-      if (!emailValidator.isValid(cart.getEmail())) {
+      if (!JMail.isValid(cart.getEmail())) {
         throw new DataException("A valid email address is required");
       }
       // Determine if the product is restricted to the destination location

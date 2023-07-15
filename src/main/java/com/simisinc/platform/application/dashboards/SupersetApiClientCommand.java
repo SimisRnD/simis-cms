@@ -16,24 +16,19 @@
 
 package com.simisinc.platform.application.dashboards;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.github.fge.jackson.JsonLoader;
-import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
-import com.simisinc.platform.domain.model.login.OAuthToken;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.http.HttpEntity;
-import org.apache.http.StatusLine;
-import org.apache.http.client.methods.CloseableHttpResponse;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.entity.StringEntity;
-import org.apache.http.impl.client.CloseableHttpClient;
-import org.apache.http.impl.client.HttpClients;
-import org.apache.http.util.EntityUtils;
 
-import java.util.Map;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.github.fge.jackson.JsonLoader;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.http.HttpGetCommand;
+import com.simisinc.platform.application.http.HttpPostCommand;
+import com.simisinc.platform.domain.model.login.OAuthToken;
 
 /**
  * Commands for working with Superset
@@ -88,44 +83,23 @@ public class SupersetApiClientCommand {
     String url = serverUrl + API_VERSION + endpoint;
 
     // Send to API
-    try (CloseableHttpClient client = HttpClients.createDefault()) {
+    Map<String, String> headers = new HashMap<>();
+    if (oAuthToken != null && StringUtils.isNotBlank(oAuthToken.getAccessToken())) {
+      headers.put("Authorization", "Bearer " + oAuthToken.getAccessToken());
+    }
+    headers.put("Accept", "application/json");
+    headers.put("Content-Type", "application/json");
+    String remoteContent = HttpPostCommand.execute(url, headers, jsonString);
 
-      HttpPost httpPost = new HttpPost(url);
-      if (oAuthToken != null && StringUtils.isNotBlank(oAuthToken.getAccessToken())) {
-        httpPost.setHeader("Authorization", "Bearer " + oAuthToken.getAccessToken());
-      }
-      httpPost.setHeader("Accept", "application/json");
-      httpPost.setHeader("Content-Type", "application/json");
-      httpPost.setEntity(new StringEntity(jsonString));
-
-      CloseableHttpResponse response = client.execute(httpPost);
-      if (response == null) {
-        LOG.error("HttpPost Response is empty");
-        return null;
-      }
-
-      HttpEntity entity = response.getEntity();
-      if (entity == null) {
-        LOG.error("HttpPost Entity is null");
-        return null;
-      }
-
-      // Check for content
-      String remoteContent = EntityUtils.toString(entity);
-      if (StringUtils.isBlank(remoteContent)) {
-        LOG.error("HttpPost Remote content is empty");
-        return null;
-      }
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("REMOTE TEXT: " + remoteContent);
-      }
-
-      // Check for errors... HTTP/1.1 405 Method Not Allowed
-      StatusLine statusLine = response.getStatusLine();
-      if (statusLine.getStatusCode() > 299) {
-        LOG.error(
-            "HttpPost Error for URL (" + url + "): " + statusLine.getStatusCode() + " " + statusLine.getReasonPhrase());
-      }
+    // Check for content
+    if (StringUtils.isBlank(remoteContent)) {
+      LOG.error("HttpPost Remote content is empty");
+      return null;
+    }
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("REMOTE TEXT: " + remoteContent);
+    }
+    try {
       return JsonLoader.fromString(remoteContent);
     } catch (Exception e) {
       LOG.error("sendHttpPost", e);
@@ -188,45 +162,20 @@ public class SupersetApiClientCommand {
 
     // Send
     LOG.debug("GET: " + url);
-    try (CloseableHttpClient client = HttpClients.createDefault()) {
+    Map<String, String> headers = new HashMap<>();
+    headers.put("Accept", "application/json");
+    headers.put("Content-Type", "application/json");
+    
+    String remoteContent = HttpGetCommand.execute(url, headers);
 
-      HttpGet httpGet = new HttpGet(url);
-      httpGet.setHeader("Accept", "application/json");
-      httpGet.setHeader("Content-Type", "application/json");
+    // Check for content
+    if (StringUtils.isBlank(remoteContent)) {
+      LOG.error("HttpGet Remote content is empty");
+      return null;
+    }
 
-      CloseableHttpResponse response = client.execute(httpGet);
-      if (response == null) {
-        LOG.error("HttpGet Response is empty");
-        return null;
-      }
-
-      HttpEntity entity = response.getEntity();
-      if (entity == null) {
-        LOG.error("HttpEntity is null");
-        return null;
-      }
-
-      // Check for content
-      String remoteContent = EntityUtils.toString(entity);
-      if (StringUtils.isBlank(remoteContent)) {
-        LOG.error("HttpGet Remote content is empty");
-        return null;
-      }
-
-      // Check the response
-      StatusLine statusLine = response.getStatusLine();
-      if (LOG.isDebugEnabled()) {
-        LOG.debug("REMOTE TEXT (" + statusLine.getStatusCode() + "): " + remoteContent);
-      }
-
-      // Check for errors... HTTP/1.1 405 Method Not Allowed
-      if (statusLine.getStatusCode() == 404) {
-        // Not in the system
-        LOG.debug("HttpGet 404: " + url);
-        return null;
-      }
-
-      // Check for an exception
+    // Check for an exception
+    try {
       JsonNode jsonNode = JsonLoader.fromString(remoteContent);
       if (jsonNode.has("exception")) {
         LOG.warn("Exception: " + jsonNode.get("exception"));

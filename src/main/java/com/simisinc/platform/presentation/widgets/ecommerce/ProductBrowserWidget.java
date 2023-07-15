@@ -61,6 +61,7 @@ public class ProductBrowserWidget extends GenericWidget {
     context.getRequest().setAttribute("mediumCardCount", mediumCardCount);
     context.getRequest().setAttribute("largeCardCount", largeCardCount);
     context.getRequest().setAttribute("cardClass", context.getPreferences().get("cardClass"));
+    context.getRequest().setAttribute("cardImageClass", context.getPreferences().get("cardImageClass"));
     context.getRequest().setAttribute("buttonLabel", context.getPreferences().getOrDefault("button", "Shop"));
     context.getRequest().setAttribute("buttonClass", context.getPreferences().getOrDefault("buttonClass", "product-button button expanded"));
 

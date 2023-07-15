@@ -16,6 +16,9 @@
 
 package com.simisinc.platform.presentation.widgets.login;
 
+import org.apache.commons.lang3.StringUtils;
+
+import com.sanctionco.jmail.JMail;
 import com.simisinc.platform.application.LoadUserCommand;
 import com.simisinc.platform.application.RateLimitCommand;
 import com.simisinc.platform.domain.events.cms.UserPasswordResetEvent;
@@ -24,8 +27,6 @@ import com.simisinc.platform.infrastructure.persistence.UserRepository;
 import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.validator.routines.EmailValidator;
 
 /**
  * Forgot Password widget
@@ -99,8 +100,7 @@ public class ForgotPasswordWidget extends GenericWidget {
     RateLimitCommand.isIpAllowedRightNow(context.getUserSession().getIpAddress(), true);
 
     // Make sure the user has a valid email address
-    EmailValidator emailValidator = EmailValidator.getInstance(false);
-    if (!emailValidator.isValid(user.getEmail())) {
+    if (!JMail.isValid(user.getEmail())) {
       LOG.warn("This user does not have a valid email to send to");
       context.setWarningMessage("Check the username and try again");
       return context;

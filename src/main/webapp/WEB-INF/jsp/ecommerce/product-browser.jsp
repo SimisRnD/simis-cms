@@ -24,6 +24,7 @@
 <jsp:useBean id="productList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="productImageMap" class="java.util.HashMap" scope="request"/>
 <jsp:useBean id="cardClass" class="java.lang.String" scope="request"/>
+<jsp:useBean id="cardImageClass" class="java.lang.String" scope="request"/>
 <jsp:useBean id="smallCardCount" class="java.lang.String" scope="request"/>
 <jsp:useBean id="mediumCardCount" class="java.lang.String" scope="request"/>
 <jsp:useBean id="largeCardCount" class="java.lang.String" scope="request"/>
@@ -33,7 +34,7 @@
   <c:forEach items="${productList}" var="product">
     <div class="cell">
       <div class="card<c:if test="${!empty cardClass}"> <c:out value="${cardClass}" /></c:if>">
-        <div class="card-image">
+        <div class="card-image<c:if test="${!empty cardImageClass}"> <c:out value="${cardImageClass}" /></c:if>">
           <c:choose>
             <c:when test="${!empty productImageMap[product.uniqueId]}">
               <a href="${ctx}${product.productUrl}"><img alt="product image" src="<c:out value="${productImageMap[product.uniqueId]}"/>" /></a>

@@ -16,23 +16,19 @@
 
 package com.simisinc.platform.application.elearning;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.github.fge.jackson.JsonLoader;
-import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
-import com.simisinc.platform.application.oauth.OAuthAccessTokenCommand;
-import com.simisinc.platform.domain.model.login.OAuthToken;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import java.net.URI;
-import java.net.URLEncoder;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
-import java.util.Map;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.github.fge.jackson.JsonLoader;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.http.HttpPostCommand;
+import com.simisinc.platform.application.oauth.OAuthAccessTokenCommand;
+import com.simisinc.platform.domain.model.login.OAuthToken;
 
 /**
  * Commands for working with PERLS
@@ -57,31 +53,24 @@ public class PERLSAccessTokenCommand {
 
     String url = serverUrl + (serverUrl.endsWith("/") ? "" : "/") + "oauth/token";
 
+    Map<String, String> headers = new HashMap<>();
+    headers.put("Content-Type", "application/x-www-form-urlencoded");
+
     Map<String, String> formData = new HashMap<>();
     formData.put("grant_type", "client_credentials");
     formData.put("client_id", clientId);
     formData.put("client_secret", secret);
 
+    String remoteContent = HttpPostCommand.execute(url, headers, formData);
+
+    if (StringUtils.isBlank(remoteContent)) {
+      LOG.error("sendHttpGet: no body");
+      return null;
+    }
+
+    // Check for an exception
     try {
-      HttpClient httpClient = HttpClient.newHttpClient();
-
-      HttpRequest request = HttpRequest.newBuilder()
-          .uri(URI.create(url))
-          .header("Content-Type", "application/x-www-form-urlencoded")
-          .POST(HttpRequest.BodyPublishers.ofString(getFormDataAsString(formData)))
-          .build();
-
-      HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-      if (response == null || StringUtils.isBlank(response.body())) {
-        LOG.error("sendHttpGet: no body");
-        return null;
-      }
-
-      System.out.println("CODE: " + response.statusCode());
-      System.out.println("BODY: " + response.body());
-
-      // Check for an exception
-      JsonNode jsonNode = JsonLoader.fromString(response.body());
+      JsonNode jsonNode = JsonLoader.fromString(remoteContent);
       if (jsonNode.has("exception")) {
         LOG.warn("Exception: " + jsonNode.get("exception"));
         return null;
@@ -95,18 +84,5 @@ public class PERLSAccessTokenCommand {
     }
 
     return null;
-  }
-
-  private static String getFormDataAsString(Map<String, String> formData) {
-    StringBuilder formBodyBuilder = new StringBuilder();
-    for (Map.Entry<String, String> singleEntry : formData.entrySet()) {
-      if (formBodyBuilder.length() > 0) {
-        formBodyBuilder.append("&");
-      }
-      formBodyBuilder.append(URLEncoder.encode(singleEntry.getKey(), StandardCharsets.UTF_8));
-      formBodyBuilder.append("=");
-      formBodyBuilder.append(URLEncoder.encode(singleEntry.getValue(), StandardCharsets.UTF_8));
-    }
-    return formBodyBuilder.toString();
   }
 }
