@@ -36,7 +36,7 @@
     <argon2.version>2.11</argon2.version>
     <args4j.version>2.33</args4j.version>
     <bucket4j.version>8.3.0</bucket4j.version>
-    <caffeine.version>3.1.6</caffeine.version>
+    <caffeine.version>3.1.8</caffeine.version>
     <apache-http.version>5.2.2</apache-http.version>
     <classgraph.version>4.8.151</classgraph.version>
     <commons-beanutils.version>1.9.4</commons-beanutils.version>
@@ -53,7 +53,7 @@
     <commons-validator.version>1.7</commons-validator.version>
     <easy-flows-playbook.version>0.6-SNAPSHOT</easy-flows-playbook.version>
     <flexmark.version>0.64.0</flexmark.version>
-    <flyway.version>9.16.1</flyway.version>
+    <flyway.version>9.21.1</flyway.version>
     <geoip2.version>4.0.1</geoip2.version>
     <geojson.version>1.14</geojson.version>
     <granule.version>1.0.18-SNAPSHOT</granule.version>
@@ -72,7 +72,7 @@
     <johnzon.version>1.2.21</johnzon.version>
     <jsoup.version>1.16.1</jsoup.version>
     <jstl.version>1.2.5</jstl.version>
-    <kafka.version>3.5.0</kafka.version>
+    <!-- <kafka.version>3.5.1</kafka.version> -->
     <libphonenumber.version>8.13.16</libphonenumber.version>
     <lombok.version>1.18.22</lombok.version>
     <netty.version>4.1.94</netty.version>
@@ -87,7 +87,7 @@
     <okhttp.version>4.11.0</okhttp.version>
     <stripe.version>22.26.0</stripe.version>
     <testcontainers.version>1.18.3</testcontainers.version>
-    <thymeleaf.version>3.1.1</thymeleaf.version>
+    <thymeleaf.version>3.1.2</thymeleaf.version>
     <timeago.version>3.0.1</timeago.version>
     <univocity.version>2.9.1</univocity.version>
   </properties>
@@ -301,11 +301,13 @@
       <artifactId>javax.json.bind-api</artifactId>
       <version>1.0</version>
     </dependency>
+    <!--
     <dependency>
       <groupId>org.apache.kafka</groupId>
       <artifactId>kafka-clients</artifactId>
       <version>${kafka.version}</version>
     </dependency>
+  -->
     <dependency>
       <groupId>com.sun.mail</groupId>
       <artifactId>javax.mail</artifactId>
