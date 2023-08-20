@@ -28,10 +28,10 @@
 <jsp:useBean id="markerTitle" class="java.lang.String" scope="request"/>
 <jsp:useBean id="markerText" class="java.lang.String" scope="request"/>
 <%-- Leaflet JS + Marker Cluster --%>
-<link rel="stylesheet" href="${ctx}/javascript/leaflet-1.9.3/leaflet.css" />
+<link rel="stylesheet" href="${ctx}/javascript/leaflet-1.9.4/leaflet.css" />
 <link rel="stylesheet" href="${ctx}/javascript/leaflet.markercluster-1.5.3/MarkerCluster.css" />
 <link rel="stylesheet" href="${ctx}/javascript/leaflet.markercluster-1.5.3/MarkerCluster.Default.css" />
-<script src="${ctx}/javascript/leaflet-1.9.3/leaflet.js"></script>
+<script src="${ctx}/javascript/leaflet-1.9.4/leaflet.js"></script>
 <script src="${ctx}/javascript/leaflet.markercluster-1.5.3/leaflet.markercluster.js"></script>
 <%-- Render the widget --%>
 <div id="mapid${widgetContext.uniqueId}" style="height: ${mapHeight}px;"></div>

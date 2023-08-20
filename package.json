@@ -6,30 +6,30 @@
   "license": "Apache License 2.0",
   "dependencies": {
     "@superset-ui/embedded-sdk": "0.1.0-alpha.7",
-    "ace-builds": "1.14.0",
+    "ace-builds": "1.24.1",
     "chart.js": "3.9.1",
     "clipboard": "2.0.11",
-    "codemirror": "5.65.11",
+    "codemirror": "5.65.14",
     "dragula": "3.7.3",
     "dropzone": "5.9.3",
     "foundation-datepicker": "1.5.6",
     "foundation-sites": "6.7.5",
-    "fullcalendar": "5.11.3",
+    "fullcalendar": "5.11.5",
     "imagesloaded": "4.1.4",
-    "jquery": "3.6.3",
+    "jquery": "3.7.0",
     "jquery-formatcurrency": "1.6.3",
-    "js-cookie": "3.0.1",
-    "jspreadsheet-ce": "4.11.3",
-    "jsuites": "5.0.3",
-    "leaflet": "1.9.3",
+    "js-cookie": "3.0.5",
+    "jspreadsheet-ce": "4.13.4",
+    "jsuites": "5.0.25",
+    "leaflet": "1.9.4",
     "leaflet.markercluster": "1.5.3",
     "masonry-layout": "4.2.2",
-    "mermaid": "9.3.0",
+    "mermaid": "10.3.1",
     "payform": "1.4.0",
     "prismjs": "1.29.0",
     "spectrum-colorpicker": "1.8.1",
     "swiper": "8.4.6",
-    "tinymce": "6.3.1"
+    "tinymce": "6.6.2"
   },
   "non-npm-dependencies": {
     "add-to-calendar-button": "1.18.7",
@@ -37,6 +37,6 @@
     "jquery-gridmanager": "0.3.1"
   },
   "devDependencies": {
-    "tinycolor2": "1.5.2"
+    "tinycolor2": "1.6.0"
   }
 }

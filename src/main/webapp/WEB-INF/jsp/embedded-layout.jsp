@@ -141,10 +141,10 @@
   </c:if>
   <%-- Javascript before content--%>
   <g:compress>
-    <script src="${ctx}/javascript/jquery-3.6.3/jquery.min.js"></script>
+    <script src="${ctx}/javascript/jquery-3.7.0/jquery.min.js"></script>
     <script src="${ctx}/javascript/foundation-datepicker-20180424/foundation-datepicker.min.js"></script>
     <script src="${ctx}/javascript/autocomplete-1.0.7/auto-complete.js"></script>
-    <script src="${ctx}/javascript/js-cookie-3.0.1/js.cookie.min.js"></script>
+    <script src="${ctx}/javascript/js-cookie-3.0.5/js.cookie.min.js"></script>
   </g:compress>
 </head>
 <body<c:if test="${pageRenderInfo.name eq '/'}"> id="body-home"</c:if><c:if test="${!empty pageRenderInfo.cssClass}"> class="<c:out value="${pageRenderInfo.cssClass}" />"</c:if>>

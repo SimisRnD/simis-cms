@@ -22,10 +22,10 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="dataset" class="com.simisinc.platform.domain.model.datasets.Dataset" scope="request"/>
 <jsp:useBean id="sampleRows" class="java.util.ArrayList" scope="request"/>
-<script src="${ctx}/javascript/jspreadsheet-4.11.3/index.min.js"></script>
-<link rel="stylesheet" media="screen" href="${ctx}/javascript/jspreadsheet-4.11.3/jspreadsheet.css">
-<script src="${ctx}/javascript/jsuites-5.0.3/jsuites.min.js"></script>
-<link rel="stylesheet" media="screen" href="${ctx}/javascript/jsuites-5.0.3/jsuites.css">
+<script src="${ctx}/javascript/jspreadsheet-4.13.4/index.js"></script>
+<link rel="stylesheet" media="screen" href="${ctx}/javascript/jspreadsheet-4.13.4/jspreadsheet.css">
+<script src="${ctx}/javascript/jsuites-5.0.25/jsuites.min.js"></script>
+<link rel="stylesheet" media="screen" href="${ctx}/javascript/jsuites-5.0.25/jsuites.css">
 <c:if test="${!empty title}">
   <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}"/></h4>
 </c:if>

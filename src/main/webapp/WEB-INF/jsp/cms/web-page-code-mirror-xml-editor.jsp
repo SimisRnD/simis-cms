@@ -20,14 +20,14 @@
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="webPage" class="com.simisinc.platform.domain.model.cms.WebPage" scope="request"/>
-<link rel="stylesheet" href="${ctx}/javascript/codemirror-5.65.10/codemirror.css">
-<link rel="stylesheet" href="${ctx}/javascript/codemirror-5.65.10/theme/one-dark.css">
+<link rel="stylesheet" href="${ctx}/javascript/codemirror-5.65.14/codemirror.css">
+<link rel="stylesheet" href="${ctx}/javascript/codemirror-5.65.14/theme/one-dark.css">
 <g:compress>
-  <script src="${ctx}/javascript/codemirror-5.65.10/codemirror.js"></script>
-  <script src="${ctx}/javascript/codemirror-5.65.10/xml-fold.js"></script>
-  <script src="${ctx}/javascript/codemirror-5.65.10/closetag.js"></script>
-  <script src="${ctx}/javascript/codemirror-5.65.10/matchtags.js"></script>
-  <script src="${ctx}/javascript/codemirror-5.65.10/xml.js"></script>
+  <script src="${ctx}/javascript/codemirror-5.65.14/codemirror.js"></script>
+  <script src="${ctx}/javascript/codemirror-5.65.14/xml-fold.js"></script>
+  <script src="${ctx}/javascript/codemirror-5.65.14/closetag.js"></script>
+  <script src="${ctx}/javascript/codemirror-5.65.14/matchtags.js"></script>
+  <script src="${ctx}/javascript/codemirror-5.65.14/xml.js"></script>
 </g:compress>
 <style>
   .CodeMirror {
