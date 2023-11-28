@@ -33,7 +33,7 @@
            classpath="${base.dir}/lib/style/checkstyle-10.2-all.jar"/>
 
   <taskdef uri="antlib:org.jacoco.ant" resource="org/jacoco/ant/antlib.xml">
-    <classpath path="${base.dir}/lib/tests/org.jacoco.ant-0.8.8-nodeps.jar"/>
+    <classpath path="${base.dir}/lib/tests/org.jacoco.ant-0.8.11-nodeps.jar"/>
   </taskdef>
 
   <tstamp prefix="start">

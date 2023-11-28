@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.simisinc</groupId>
   <artifactId>simis-cms</artifactId>
-  <version>20230408.10000-SNAPSHOT</version>
+  <version>20231127.10000-SNAPSHOT</version>
   <name>SimIS CMS</name>
   <url>https://www.simiscms.com</url>
   <description>Agile, Enterprise, Open Source Content Management System (CMS) and Web Portal</description>
@@ -22,17 +22,18 @@
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <java.version>11</java.version>
-    <maven-release-plugin.version>2.5.3</maven-release-plugin.version>
-    <maven-compiler-plugin.version>3.10.1</maven-compiler-plugin.version>
-    <maven-surefire-plugin.version>2.22.2</maven-surefire-plugin.version>
-    <maven-javadoc-plugin.version>3.2.0</maven-javadoc-plugin.version>
-    <maven-checkstyle-plugin.version>3.1.2</maven-checkstyle-plugin.version>
-    <maven-checkstyle.version>10.2</maven-checkstyle.version>
-    <maven-jacoco-plugin.version>0.8.9</maven-jacoco-plugin.version>
-    <maven-war-plugin.version>3.3.2</maven-war-plugin.version>
+    <maven-release-plugin.version>3.0.1</maven-release-plugin.version>
+    <maven-compiler-plugin.version>3.11.0</maven-compiler-plugin.version>
+    <maven-surefire-plugin.version>3.2.2</maven-surefire-plugin.version>
+    <maven-javadoc-plugin.version>3.6.2</maven-javadoc-plugin.version>
+    <maven-checkstyle-plugin.version>3.3.1</maven-checkstyle-plugin.version>
+    <maven-checkstyle.version>10.12.5</maven-checkstyle.version>
+    <maven-cyclonedx-plugin.version>2.7.10</maven-cyclonedx-plugin.version>
+    <maven-jacoco-plugin.version>0.8.11</maven-jacoco-plugin.version>
+    <maven-war-plugin.version>3.4.0</maven-war-plugin.version>
     <tomcat.version>9.0.76</tomcat.version>
     <junit.version>5.9.2</junit.version>
-    <mockito.version>5.1.0</mockito.version>
+    <mockito.version>5.7.0</mockito.version>
     <argon2.version>2.11</argon2.version>
     <args4j.version>2.33</args4j.version>
     <bucket4j.version>8.3.0</bucket4j.version>
@@ -40,14 +41,14 @@
     <apache-http.version>5.2.2</apache-http.version>
     <classgraph.version>4.8.151</classgraph.version>
     <commons-beanutils.version>1.9.4</commons-beanutils.version>
-    <commons-codec.version>1.15</commons-codec.version>
+    <commons-codec.version>1.16.0</commons-codec.version>
     <commons-collections4.version>4.4</commons-collections4.version>
     <commons-collections3.version>3.2.2</commons-collections3.version>
-    <commons-compress.version>1.22</commons-compress.version>
+    <commons-compress.version>1.25.0</commons-compress.version>
     <commons-email.version>1.5</commons-email.version>
-    <commons-io.version>2.11.0</commons-io.version>
+    <commons-io.version>2.12.0</commons-io.version>
     <commons-jexl3.version>3.2.1</commons-jexl3.version>
-    <commons-lang3.version>3.12.0</commons-lang3.version>
+    <commons-lang3.version>3.13.0</commons-lang3.version>
     <commons-logging.version>1.2</commons-logging.version>
     <commons-text.version>1.10.0</commons-text.version>
     <commons-validator.version>1.7</commons-validator.version>
@@ -74,8 +75,8 @@
     <jstl.version>1.2.5</jstl.version>
     <!-- <kafka.version>3.5.1</kafka.version> -->
     <libphonenumber.version>8.13.16</libphonenumber.version>
-    <lombok.version>1.18.22</lombok.version>
-    <netty.version>4.1.94</netty.version>
+    <lombok.version>1.18.30</lombok.version>
+    <netty.version>4.1.101</netty.version>
     <postgresql.version>42.6.0</postgresql.version>
     <pushy.version>0.15.2</pushy.version>
     <rabbitmq.version>5.18.0</rabbitmq.version>
@@ -512,7 +513,7 @@
     </dependency>
     <dependency>
       <groupId>org.mockito</groupId>
-      <artifactId>mockito-inline</artifactId>
+      <artifactId>mockito-core</artifactId>
       <version>${mockito.version}</version>
       <scope>test</scope>
     </dependency>
@@ -644,7 +645,9 @@
         <artifactId>jspc-maven-plugin</artifactId>
         <version>2.3.0</version>
         <configuration>
-          <sourceDirectory>src/main/webapp/jsp</sourceDirectory>
+          <sourceDirectories>
+            <directory>src/main/webapp/jsp</directory>
+          </sourceDirectories>
           <resourceDirectories>
             <directory>src/main/resources</directory>
             <directory>src/main/webapp/WEB-INF</directory>
@@ -734,7 +737,7 @@
       <plugin>
         <groupId>org.cyclonedx</groupId>
         <artifactId>cyclonedx-maven-plugin</artifactId>
-        <version>2.7.3</version>
+        <version>${maven-cyclonedx-plugin.version}</version>
         <executions>
             <execution>
                 <phase>package</phase>
