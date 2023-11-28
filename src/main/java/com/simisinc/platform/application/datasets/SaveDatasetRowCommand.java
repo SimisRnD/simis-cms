@@ -17,6 +17,7 @@
 package com.simisinc.platform.application.datasets;
 
 import com.simisinc.platform.application.cms.HtmlCommand;
+import com.simisinc.platform.application.items.GenerateCategoryUniqueIdCommand;
 import com.simisinc.platform.application.items.ItemPhoneNumberCommand;
 import com.simisinc.platform.application.items.SaveItemCommand;
 import com.simisinc.platform.application.maps.CheckGeoPointCommand;
@@ -172,6 +173,8 @@ public class SaveDatasetRowCommand {
             category = new Category();
             category.setCollectionId(collection.getId());
             category.setName(categoryText.trim());
+            // @note set the uniqueId after setting the name since it's based on the name
+            category.setUniqueId(GenerateCategoryUniqueIdCommand.generateUniqueId(category, category));
             category.setCreatedBy(dataset.getModifiedBy());
             category = CategoryRepository.save(category);
           }
