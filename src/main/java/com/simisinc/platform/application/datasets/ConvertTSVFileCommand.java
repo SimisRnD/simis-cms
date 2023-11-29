@@ -27,18 +27,18 @@ import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.domain.model.datasets.Dataset;
 import com.simisinc.platform.domain.model.items.Collection;
 import com.simisinc.platform.infrastructure.persistence.datasets.DatasetRepository;
-import com.univocity.parsers.csv.CsvParser;
-import com.univocity.parsers.csv.CsvParserSettings;
+import com.univocity.parsers.tsv.TsvParser;
+import com.univocity.parsers.tsv.TsvParserSettings;
 
 /**
- * Converts a csv or text file to item records
+ * Converts a tsv or text file to item records
  *
  * @author matt rajkowski
- * @created 2/27/20 4:22 PM
+ * @created 11/28/23 9:00 PM
  */
-public class ConvertCSVFileCommand {
+public class ConvertTSVFileCommand {
 
-  private static Log LOG = LogFactory.getLog(ConvertCSVFileCommand.class);
+  private static Log LOG = LogFactory.getLog(ConvertTSVFileCommand.class);
 
   public static boolean convertFileToCollection(Dataset dataset, Collection collection) throws Exception {
 
@@ -48,15 +48,16 @@ public class ConvertCSVFileCommand {
       throw new Exception("File was not found, dataset: " + dataset.getId());
     }
 
-    // Determine the CSV configuration
-    CsvParserSettings parserSettings = new CsvParserSettings();
+    // Determine the TSV configuration
+    TsvParserSettings parserSettings = new TsvParserSettings();
     parserSettings.setLineSeparatorDetectionEnabled(true);
-    if ("text/csv;single".equals(dataset.getFileType()) || "text/plain".equals(dataset.getFileType())) {
+    if ("text/tab-separated-values;single".equals(dataset.getFileType())
+        || "text/plain".equals(dataset.getFileType())) {
       parserSettings.setHeaderExtractionEnabled(false);
     } else {
       parserSettings.setHeaderExtractionEnabled(true);
     }
-    CsvParser parser = new CsvParser(parserSettings);
+    TsvParser parser = new TsvParser(parserSettings);
 
     // Read the file and save the records
     int rowsProcessed = 0;
