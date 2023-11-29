@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 SimIS Inc. (https://www.simiscms.com)
+ * Copyright 2023 SimIS Inc. (https://www.simiscms.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,29 +16,30 @@
 
 package com.simisinc.platform.application.datasets;
 
-import com.simisinc.platform.application.DataException;
-import com.simisinc.platform.domain.model.datasets.Dataset;
-import com.univocity.parsers.csv.CsvParser;
-import com.univocity.parsers.csv.CsvParserSettings;
-import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.util.List;
 
+import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.domain.model.datasets.Dataset;
+import com.univocity.parsers.tsv.TsvParser;
+import com.univocity.parsers.tsv.TsvParserSettings;
+
 /**
- * Checks and processes CSV files
+ * Checks and processes TSV files
  *
  * @author matt rajkowski
- * @created 4/25/18 9:05 AM
+ * @created 11/28/23 8:52 PM
  */
-public class ValidateCSVDatasetCommand {
+public class ValidateTSVDatasetCommand {
 
-  private static Log LOG = LogFactory.getLog(ValidateCSVDatasetCommand.class);
+  private static Log LOG = LogFactory.getLog(ValidateTSVDatasetCommand.class);
 
   public static void checkFile(Dataset datasetBean) throws DataException {
 
@@ -49,9 +50,7 @@ public class ValidateCSVDatasetCommand {
     }
 
     // Check mime type
-    // text/csv
-    // text/plain
-    // application/vnd.ms-excel
+    // text/tab-separated-values
     String mimeType = null;
     try {
       mimeType = Files.probeContentType(datasetFile.toPath());
@@ -60,8 +59,8 @@ public class ValidateCSVDatasetCommand {
     }
     if (mimeType == null) {
       String extension = FilenameUtils.getExtension(datasetFile.getAbsolutePath());
-      if ("csv".equalsIgnoreCase(extension)) {
-        mimeType = "text/csv";
+      if ("tsv".equalsIgnoreCase(extension)) {
+        mimeType = "text/tab-separated-values";
       } else if ("txt".equalsIgnoreCase(extension)) {
         mimeType = "text/plain";
       } else {
@@ -71,13 +70,13 @@ public class ValidateCSVDatasetCommand {
     LOG.debug("MimeType: " + mimeType);
     datasetBean.setFileType(mimeType);
 
-    // Read the CSV file for columns and row counts
-    CsvParserSettings parserSettings = new CsvParserSettings();
+    // Read the TSV file for columns and row counts
+    TsvParserSettings parserSettings = new TsvParserSettings();
     parserSettings.setLineSeparatorDetectionEnabled(true);
     boolean isSingleColumn = false;
     String[] headerRow = null;
     int rowCount = 0;
-    CsvParser parser = new CsvParser(parserSettings);
+    TsvParser parser = new TsvParser(parserSettings);
     try (InputStream inputStream = new FileInputStream(datasetFile)) {
       parser.beginParsing(inputStream, "ISO-8859-1");
       String[] row;
@@ -96,7 +95,7 @@ public class ValidateCSVDatasetCommand {
         }
       }
     } catch (Exception e) {
-      LOG.error("CSV Error: " + e.getMessage());
+      LOG.error("TSV Error: " + e.getMessage());
       throw new DataException("File type is incorrect");
     } finally {
       parser.stopParsing();
@@ -105,9 +104,9 @@ public class ValidateCSVDatasetCommand {
 
     // Determine the configuration
     if (isSingleColumn || headerRow == null) {
-      datasetBean.setFileType("text/csv;single");
+      datasetBean.setFileType("text/tab-separated-values;single");
       datasetBean.setColumnCount(1);
-      datasetBean.setColumnNames(new String[]{"Item Name"});
+      datasetBean.setColumnNames(new String[] { "Item Name" });
     } else {
       datasetBean.setColumnCount(headerRow.length);
       datasetBean.setColumnNames(headerRow);
@@ -126,10 +125,11 @@ public class ValidateCSVDatasetCommand {
     // Use the field mappings
     List<String> fieldMappings = dataset.getFieldMappingsList();
 
-    // Determine the CSV configuration
-    CsvParserSettings parserSettings = new CsvParserSettings();
+    // Determine the TSV configuration
+    TsvParserSettings parserSettings = new TsvParserSettings();
     parserSettings.setLineSeparatorDetectionEnabled(true);
-    if ("text/csv;single".equals(dataset.getFileType()) || "text/plain".equals(dataset.getFileType())) {
+    if ("text/tab-separated-values;single".equals(dataset.getFileType())
+        || "text/plain".equals(dataset.getFileType())) {
       parserSettings.setHeaderExtractionEnabled(false);
     } else {
       parserSettings.setHeaderExtractionEnabled(true);
@@ -137,7 +137,7 @@ public class ValidateCSVDatasetCommand {
 
     // Read the file and validate the records
     int rowCount = 0;
-    CsvParser parser = new CsvParser(parserSettings);
+    TsvParser parser = new TsvParser(parserSettings);
     try (InputStream inputStream = new FileInputStream(dataFile)) {
       parser.beginParsing(inputStream, "ISO-8859-1");
       String[] row;
@@ -150,8 +150,8 @@ public class ValidateCSVDatasetCommand {
         }
       }
     } catch (Exception e) {
-      LOG.error("CSV Error: " + e.getMessage());
-      throw new DataException("Row validation error in CSV file at row " + rowCount + ": " + e.getMessage());
+      LOG.error("TSV Error: " + e.getMessage());
+      throw new DataException("Row validation error in TSV file at row " + rowCount + ": " + e.getMessage());
     } finally {
       parser.stopParsing();
     }

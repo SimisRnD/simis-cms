@@ -44,12 +44,14 @@ public class DatasetFileCommand {
   public static final int RSS = 4;
   public static final int TEXT = 5;
   public static final int JSON_API = 6;
+  public static final int TSV = 7;
 
   public static final String GEO_JSON_TYPE = "application/vnd.geo+json";
   public static final String JSON_TYPE = "application/json";
   public static final String JSON_API_TYPE = "application/vnd.api+json";
   public static final String CSV_TYPE = "text/csv";
   public static final String TEXT_TYPE = "text/plain";
+  public static final String TSV_TYPE = "text/tab-separated-values";
   public static final String RSS_TYPE = "application/rss+xml";
 
   public static File getFile(Dataset dataset) {
@@ -74,6 +76,8 @@ public class DatasetFileCommand {
       return RSS;
     } else if (CSV_TYPE.equals(fileType)) {
       return CSV;
+    } else if (TSV_TYPE.equals(fileType)) {
+      return TSV;
     } else if (TEXT_TYPE.equals(fileType)) {
       return TEXT;
     } else if (JSON_TYPE.equals(fileType)) {
@@ -102,6 +106,9 @@ public class DatasetFileCommand {
       case TEXT:
         extension = "txt";
         break;
+      case TSV:
+        extension = "tsv";
+        break;
       case RSS:
         extension = "rss";
         break;
@@ -129,6 +136,9 @@ public class DatasetFileCommand {
         case RSS:
           ValidateRSSDatasetCommand.checkFile(dataset);
           break;
+        case TSV:
+          ValidateTSVDatasetCommand.checkFile(dataset);
+          break;
         default:
           throw new DataException("File type not found: " + type);
       }
@@ -152,6 +162,8 @@ public class DatasetFileCommand {
         return LoadGeoJsonFeedCommand.loadRows(dataset, rowsToReturn);
       case RSS:
         return LoadRSSFeedCommand.loadRows(dataset, rowsToReturn);
+      case TSV:
+        return LoadTSVRowsCommand.loadRows(dataset, rowsToReturn, applyOptions);
       default:
         return null;
     }
@@ -170,6 +182,8 @@ public class DatasetFileCommand {
         return ValidateGeoJsonDatasetCommand.validateAllRows(dataset);
       case RSS:
         return ValidateRSSDatasetCommand.validateAllRows(dataset);
+      case TSV:
+        return ValidateTSVDatasetCommand.validateAllRows(dataset);
       default:
         return false;
     }
@@ -188,6 +202,8 @@ public class DatasetFileCommand {
         // return ConvertGeoJsonFeedCommand.validateAllRows(dataset);
       case RSS:
         // return ConvertRSSFeedCommand.validateAllRows(dataset);
+      case TSV:
+        return ConvertTSVFileCommand.convertFileToCollection(dataset, collection);
       default:
         return false;
     }

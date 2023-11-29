@@ -75,6 +75,7 @@
           <option value="application/vnd.api+json"<c:if test="${dataset.fileType eq 'application/vnd.api+json'}"> selected</c:if>>JSON API</option>
           <option value="application/vnd.geo+json"<c:if test="${dataset.fileType eq 'application/vnd.geo+json'}"> selected</c:if>>GeoJSON</option>
           <option value="text/csv"<c:if test="${dataset.fileType eq 'text/csv'}"> selected</c:if>>CSV</option>
+          <option value="text/tab-separated-values"<c:if test="${dataset.fileType eq 'text/tab-separated-values'}"> selected</c:if>>TSV</option>
           <option value="text/plain"<c:if test="${dataset.fileType eq 'text/plain'}"> selected</c:if>>Plain Text List</option>
           <option value="application/rss+xml"<c:if test="${dataset.fileType eq 'application/rss+xml'}"> selected</c:if>>RSS+XML</option>
         </select>

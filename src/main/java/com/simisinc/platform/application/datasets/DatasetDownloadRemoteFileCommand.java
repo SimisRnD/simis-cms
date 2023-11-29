@@ -48,21 +48,6 @@ public class DatasetDownloadRemoteFileCommand {
 
   private static Log LOG = LogFactory.getLog(DatasetDownloadRemoteFileCommand.class);
 
-  public static final int UNKNOWN = -1;
-  public static final int CSV = 1;
-  public static final int JSON = 2;
-  public static final int GEO_JSON = 3;
-  public static final int RSS = 4;
-  public static final int TEXT = 5;
-  public static final int JSON_API = 6;
-
-  public static final String GEO_JSON_TYPE = "application/vnd.geo+json";
-  public static final String JSON_TYPE = "application/json";
-  public static final String JSON_API_TYPE = "application/vnd.api+json";
-  public static final String CSV_TYPE = "text/csv";
-  public static final String TEXT_TYPE = "text/plain";
-  public static final String RSS_TYPE = "application/rss+xml";
-
   public static boolean handleRemoteFileDownload(Dataset dataset, long userId) throws DataException {
     if (StringUtils.isBlank(dataset.getSourceUrl())) {
       throw new DataException("A source url is required");

@@ -41,15 +41,16 @@
   </label>
   <%--<label for="file" class="button radius">Choose File...</label>--%>
   <label>Upload a file
-    <input type="file" id="file" name="file" accept="text/csv,.csv,application/json,application/vnd.geo+json,.json,.geojson">
+    <input type="file" id="file" name="file" accept="text/csv,.csv,application/json,application/vnd.geo+json,.json,.geojson,text/tab-separated-values,.tsv">
   </label>
-  <p class="help-text">File must be a .csv, .json, or .geojson</p>
+  <p class="help-text">File must be a .csv, .tsv, .json, or .geojson</p>
   <label>Dataset Type <span class="required">*</span>
     <select name="fileType">
       <option value="application/json"<c:if test="${dataset.fileType eq 'application/json'}"> selected</c:if>>JSON</option>
       <option value="application/vnd.api+json"<c:if test="${dataset.fileType eq 'application/vnd.api+json'}"> selected</c:if>>JSON API</option>
       <option value="application/vnd.geo+json"<c:if test="${dataset.fileType eq 'application/vnd.geo+json'}"> selected</c:if>>GeoJSON</option>
       <option value="text/csv"<c:if test="${dataset.fileType eq 'text/csv'}"> selected</c:if>>CSV</option>
+      <option value="text/tab-separated-values"<c:if test="${dataset.fileType eq 'text/tab-separated-values'}"> selected</c:if>>TSV</option>
       <option value="text/plain"<c:if test="${dataset.fileType eq 'text/plain'}"> selected</c:if>>Plain Text List</option>
       <option value="application/rss+xml"<c:if test="${dataset.fileType eq 'application/rss+xml'}"> selected</c:if>>RSS+XML</option>
     </select>
