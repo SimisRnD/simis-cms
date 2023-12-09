@@ -58,12 +58,12 @@
     <link rel="stylesheet" type="text/css" href="${ctx}/css/${font:fontawesome()}/css/all.min.css" />
     <link rel="stylesheet" type="text/css" href="${ctx}/css/${font:fontawesome()}/css/v4-shims.min.css" />
     <link rel="stylesheet" type="text/css" href="${ctx}/css/${font:fontawesome()}/css/v5-font-face.min.css" />
-    <link rel="stylesheet" type="text/css" href="${ctx}/css/foundation-6.6.3/foundation.min.css" />
-    <link rel="stylesheet" type="text/css" href="${ctx}/css/foundation-6.6.3/motion-ui.min.css" />
+    <link rel="stylesheet" type="text/css" href="${ctx}/css/foundation-6.8.1/foundation.min.css" />
+    <link rel="stylesheet" type="text/css" href="${ctx}/css/foundation-6.8.1/motion-ui.min.css" />
     <link rel="stylesheet" type="text/css" href="${ctx}/css/animate-3.7.2/animate.min.css" />
     <link rel="stylesheet" type="text/css" href="${ctx}/css/foundation-datepicker-20180424/foundation-datepicker.min.css" />
     <link rel="stylesheet" type="text/css" href="${ctx}/javascript/autocomplete-1.0.7/auto-complete.css" />
-    <link rel="stylesheet" type="text/css" href="${ctx}/javascript/swiper-8.4.6/swiper-bundle.min.css" />
+    <link rel="stylesheet" type="text/css" href="${ctx}/javascript/swiper-11.0.5/swiper-bundle.min.css" />
     <link rel="stylesheet" type="text/css" href="${ctx}/css/platform.css" />
   </g:compress>
   <c:if test="${!empty themePropertyMap}">
@@ -141,7 +141,7 @@
   </c:if>
   <%-- Javascript before content--%>
   <g:compress>
-    <script src="${ctx}/javascript/jquery-3.7.0/jquery.min.js"></script>
+    <script src="${ctx}/javascript/jquery-3.7.1/jquery.min.js"></script>
     <script src="${ctx}/javascript/foundation-datepicker-20180424/foundation-datepicker.min.js"></script>
     <script src="${ctx}/javascript/autocomplete-1.0.7/auto-complete.js"></script>
     <script src="${ctx}/javascript/js-cookie-3.0.5/js.cookie.min.js"></script>
@@ -198,8 +198,8 @@
 </div>
 <%-- Javascript after content--%>
   <g:compress>
-    <script src="${ctx}/javascript/foundation-6.6.3/what-input-5.2.6.min.js"></script>
-    <script src="${ctx}/javascript/foundation-6.6.3/foundation.min.js"></script>
+    <script src="${ctx}/javascript/foundation-6.8.1/what-input-5.2.6.min.js"></script>
+    <script src="${ctx}/javascript/foundation-6.8.1/foundation.min.js"></script>
     <script>
       $(document).foundation();
       <%--

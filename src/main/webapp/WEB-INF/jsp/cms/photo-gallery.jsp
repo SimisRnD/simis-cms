@@ -28,6 +28,7 @@
 <jsp:useBean id="controlId" class="java.lang.String" scope="request"/>
 <jsp:useBean id="showCaption" class="java.lang.String" scope="request"/>
 <jsp:useBean id="isSticky" class="java.lang.String" scope="request"/>
+<jsp:useBean id="marginTop" class="java.lang.String" scope="request"/>
 <style>
   .swiper {
     border: 1px solid #cccccc;
@@ -58,7 +59,7 @@
   <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}"/></h4>
 </c:if>
 <div class="platform-content"<c:if test="${isSticky eq 'true'}"> data-sticky-container</c:if>>
-  <div<c:if test="${isSticky eq 'true'}"> class="sticky" data-sticky data-anchor="sticky-gallery" data-margin-top="14"</c:if>>
+  <div<c:if test="${isSticky eq 'true'}"> class="sticky" data-sticky data-anchor="sticky-gallery" data-margin-top="<c:out value="${marginTop}"/>"</c:if>>
     <div class="slider-header text-center" id="slider-header${controlId}">
       <h4><c:out value="${subFolder.name}" /></h4>
     </div>
@@ -66,7 +67,7 @@
       <div id="photo-gallery" class="swiper-wrapper">
       <c:forEach items="${fileList}" var="file">
         <div class="swiper-slide">
-          <img data-src="${ctx}/assets/view/${file.url}" alt="Image" class="swiper-lazy">
+          <img src="${ctx}/assets/view/${file.url}" alt="Image" loading="lazy">
           <div class="swiper-lazy-preloader"></div>
           <c:if test="${showCaption eq 'true'}"><p class="slider-caption"><c:out value="${file.title}"/></p></c:if>
         </div>
@@ -80,8 +81,6 @@
 </div>
 <script>
   var swiper${widgetContext.uniqueId} = new Swiper('#swiper${widgetContext.uniqueId}', {
-    preloadImages: false,
-    lazy: true,
     autoplay: {
       delay: 5000
     },
@@ -100,7 +99,8 @@
     keyboard: {
       enabled: true,
       onlyInViewport: false
-    }
+    },
+    watchOverflow: false
   });
 
   swiper${widgetContext.uniqueId}.on('slideChangeTransitionStart', function () {
@@ -117,16 +117,17 @@
         alert('The album could not be loaded');
         return;
       }
-      swiper${widgetContext.uniqueId}.removeAllSlides();
       document.getElementById("slider-header${controlId}").innerHTML = '<h4>' + data.title + '</h4>';
-      var slides = "";
-      for (var i = 0; i < data.photoList.length; i++) {
-        var photo = data.photoList[i];
-        slides += '<div class="swiper-slide"><img data-src="' + photo.url + '" class="swiper-lazy"><div class="swiper-lazy-preloader"></div><c:if test="${showCaption eq 'true'}"><p class="slider-caption">' + photo.title + '</p></c:if></div>';
+      let slides = [];
+      for (let i = 0; i < data.photoList.length; i++) {
+        let photo = data.photoList[i];
+        slides.push('<div class="swiper-slide"><img src="' + photo.url + '" loading="lazy"><div class="swiper-lazy-preloader"></div><c:if test="${showCaption eq 'true'}"><p class="slider-caption">' + photo.title + '</p></c:if></div>');
       }
+      console.log(slides);
+      swiper${widgetContext.uniqueId}.removeAllSlides();
       swiper${widgetContext.uniqueId}.appendSlide(slides);
       swiper${widgetContext.uniqueId}.update();
-      swiper${widgetContext.uniqueId}.slideToLoop(0);
+      swiper${widgetContext.uniqueId}.slideToLoop(0, 250, false);
     });
   }
 </script>
