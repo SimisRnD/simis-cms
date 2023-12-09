@@ -158,12 +158,9 @@ public class UpcomingCalendarEventsWidget extends GenericWidget {
     if ("cards".equals(view)) {
 
       // Determine the number of cards to use across
-      String smallCardCount = context.getPreferences().get("smallCardCount");
+      String smallCardCount = context.getPreferences().getOrDefault("smallCardCount", "3");
       String mediumCardCount = context.getPreferences().get("mediumCardCount");
       String largeCardCount = context.getPreferences().get("largeCardCount");
-      if (StringUtils.isBlank(smallCardCount)) {
-        smallCardCount = "3";
-      }
       if (StringUtils.isBlank(mediumCardCount)) {
         mediumCardCount = smallCardCount;
       }
