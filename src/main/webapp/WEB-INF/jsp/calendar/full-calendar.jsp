@@ -33,11 +33,9 @@
 <jsp:useBean id="moodleBackgroundColor" class="java.lang.String" scope="request"/>
 <jsp:useBean id="moodleTextColor" class="java.lang.String" scope="request"/>
 <%-- Full Calendar --%>
-<link rel="stylesheet" href="${ctx}/javascript/fullcalendar-5.11.5/main.min.css" />
 <link rel="stylesheet" href="${ctx}/css/platform-calendar.css?v=<%= VERSION %>" />
-<script src="${ctx}/javascript/fullcalendar-5.11.5/moment-2.27.0.min.js"></script>
-<script src="${ctx}/javascript/fullcalendar-5.11.5/main.min.js"></script>
-<script src="${ctx}/javascript/fullcalendar-5.11.5/fc-plugin-moment-5.5.0.min.js"></script>
+<script src="${ctx}/javascript/fullcalendar-6.1.10/moment-2.27.0.min.js"></script>
+<script src="${ctx}/javascript/fullcalendar-6.1.10/index.global.min.js"></script>
 <c:if test="${(userSession.hasRole('admin') || userSession.hasRole('content-manager'))}">
 <style>
   .fc-day:hover{
