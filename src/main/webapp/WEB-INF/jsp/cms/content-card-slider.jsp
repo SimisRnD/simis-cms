@@ -47,13 +47,15 @@
       <div class="swiper-wrapper">
         <c:forEach items="${cardList}" var="card" varStatus="cardStatus">
           <div class="swiper-slide">
-            <div class="card<c:if test="${!empty cardClass}"> <c:out value="${cardClass}" /></c:if>">
+            <div class="<c:if test="${!empty cardClass}"> <c:out value="${cardClass}" /></c:if>">
               ${card}
             </div>
           </div>
         </c:forEach>
       </div>
     </div>
+    <!-- If we need pagination -->
+    <div id="swiper-pagination${widgetContext.uniqueId}" class="swiper-pagination"></div>
 <c:if test="${showControls eq 'true' && fn:length(cardList) gt 1}">
   <c:if test="${showLeftControl eq 'true'}">
     <div id="swiper-button-prev${widgetContext.uniqueId}" class="swiper-button-prev"></div>
@@ -81,6 +83,9 @@
         }
         // loop: true,
         // autoplay: { delay: 5000, stopOnLastSlide: true, disableOnInteraction: true },
+        ,pagination: {
+          el: '#swiper-pagination${widgetContext.uniqueId}',
+        }
         <c:if test="${showControls eq 'true' && fn:length(cardList) gt 1}">
         ,navigation: {
             <c:if test="${showLeftControl eq 'true'}">

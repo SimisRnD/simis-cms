@@ -63,6 +63,7 @@ public class PhotoGalleryWidget extends GenericWidget {
     // Preferences
     context.getRequest().setAttribute("controlId", context.getPreferences().getOrDefault("controlId", "myAlbum"));
     context.getRequest().setAttribute("isSticky", context.getPreferences().getOrDefault("isSticky", "false"));
+    context.getRequest().setAttribute("marginTop", context.getPreferences().getOrDefault("marginTop", "8"));
     context.getRequest().setAttribute("showCaption", context.getPreferences().getOrDefault("showCaption", "true"));
 
     // Determine the folder, or all (access is checked, intent permissions are not)

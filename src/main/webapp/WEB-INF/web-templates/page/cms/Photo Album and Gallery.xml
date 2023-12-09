@@ -20,25 +20,25 @@
   </rules>
   <page>
     <!-- Setup albums in Admin/Files & Folders -->
+    <!-- The one here is called Photo and Video Libary -->
     <section id="sticky-gallery" class="margin-top-30 hide-for-small-only">
-      <column class="small-12 medium-6 cell">
+      <column class="small-12 medium-5 cell">
         <widget name="content">
           <uniqueId>${webPageName}-welcome</uniqueId>
         </widget>
+        <widget class="color-cards" name="albumGallery">
+          <folderUniqueId>photo-and-video-library</folderUniqueId>
+          <smallCardCount>3</smallCardCount>
+          <limit>24</limit>
+          <controlId>1</controlId>
+        </widget>
       </column>
-      <column class="small-12 medium-6 cell extended-vertical-line position-absolute">
+      <column class="small-12 medium-7 cell">
         <widget name="photoGallery">
           <folderUniqueId>photo-and-video-library</folderUniqueId>
           <showCaption>false</showCaption>
           <isSticky>true</isSticky>
-          <controlId>1</controlId>
-        </widget>
-      </column>
-      <column class="small-12 medium-6 cell">
-        <widget name="albumGallery" class="color-cards margin-bottom-50 small-margin-bottom-20">
-          <folderUniqueId>photo-and-video-library</folderUniqueId>
-          <smallCardCount>3</smallCardCount>
-          <limit>24</limit>
+          <marginTop>8</marginTop>
           <controlId>1</controlId>
         </widget>
       </column>
