@@ -19,9 +19,9 @@
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="webPage" class="com.simisinc.platform.domain.model.cms.WebPage" scope="request"/>
-<script src="${ctx}/javascript/ace-1.24.1/ace.js" type="text/javascript" charset="utf-8"></script>
-<script src="${ctx}/javascript/ace-1.24.1/mode-xml.js" type="text/javascript" charset="utf-8"></script>
-<%--<script src="${ctx}/javascript/ace-1.24.1/ext-language_tools.js" type="text/javascript" charset="utf-8"></script>--%>
+<script src="${ctx}/javascript/ace-1.32.0/ace.js" type="text/javascript" charset="utf-8"></script>
+<script src="${ctx}/javascript/ace-1.32.0/mode-xml.js" type="text/javascript" charset="utf-8"></script>
+<%--<script src="${ctx}/javascript/ace-1.32.0/ext-language_tools.js" type="text/javascript" charset="utf-8"></script>--%>
 <style>
   #pageXml {
     right: 0;
