@@ -24,7 +24,7 @@
   <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}"/></h4>
 </c:if>
 <%@include file="../page_messages.jspf" %>
-<script src="${ctx}/javascript/chartjs-3.9.1/chart.min.js"></script>
+<script src="${ctx}/javascript/chartjs-4.4.1/chart.min.js"></script>
 <canvas id="myChart-${widgetContext.uniqueId}" width="200" height="100"></canvas>
 <script>
   var chartContext = document.getElementById("myChart-${widgetContext.uniqueId}").getContext('2d');
