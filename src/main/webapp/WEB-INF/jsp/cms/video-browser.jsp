@@ -30,7 +30,7 @@
 <g:compress>
   <link rel="stylesheet" type="text/css" href="${ctx}/css/${font:fontawesome()}/css/all.min.css" />
   <link rel="stylesheet" type="text/css" href="${ctx}/css/${font:fontawesome()}/css/v4-shims.min.css" />
-  <link rel="stylesheet" type="text/css" href="${ctx}/css/foundation-6.6.3/foundation.min.css" />
+  <link rel="stylesheet" type="text/css" href="${ctx}/css/foundation-6.8.1/foundation.min.css" />
 </g:compress>
 <h3>Videos</h3>
 <c:if test="${empty fileItemList}">
