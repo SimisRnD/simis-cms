@@ -1,0 +1,24 @@
+site_name: 'SimIS CMS TechDocs'
+site_description: 'Developer documentation for SimIS CMS'
+repo_url: https://github.com/SimisRnD/simis-cms
+edit_uri: tree/main/docs
+
+# You can test with: npx @techdocs/cli serve
+# You must have docker installed and running
+plugins:
+ - techdocs-core
+
+markdown_extensions:
+  - attr_list
+
+# For sidebar navigation on https://backstage.io/, see `microsite/sidebars.json`
+nav:
+  - Introduction: 'index.md'
+  - Installation: 'installation.md'
+  - Dev Environment: 'developer-environment.md'
+  - Project Structure: 'project-structure.md'
+  - DevSecOps Pipeline: 'pipeline.md'
+  - Customization: 'customization.md'
+  - Integrations:
+      - OAuth: 'oauth.md'
+  - Decisions: 'decisions.md'
