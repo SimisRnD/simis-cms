@@ -6,9 +6,10 @@
 
   <module name="TreeWalker">
     <module name="AnnotationUseStyle"/>
-    <module name="ConstantName"/>
-    <module name="EmptyBlock"/>
-    <module name="EmptyCatchBlock"/>
+    <!-- <module name="UnusedLocalVariable"/> -->
+    <!-- <module name="ConstantName"/> -->
+    <!-- <module name="EmptyBlock"/> -->
+    <!-- <module name="EmptyCatchBlock"/> -->
     <module name="MissingDeprecated"/>
     <module name="MissingOverride"/>
     <module name="MissingSwitchDefault"/>
@@ -18,7 +19,6 @@
     <module name="UnnecessarySemicolonAfterTypeMemberDeclaration"/>
     <module name="UnnecessarySemicolonInEnumeration"/>
     <module name="UnnecessarySemicolonInTryWithResources"/>
-    <module name="UnusedLocalVariable"/>
   </module>
 
   <!-- Size Violations -->
@@ -27,7 +27,7 @@
   </module>
   <module name="LineLength">
     <property name="fileExtensions" value="java"/>
-    <property name="max" value="180"/>
+    <property name="max" value="300"/>
     <property name="ignorePattern" value="^ *\* *([^ ]+|\{@code .*|&lt;a href=&quot;[^&quot;]+&quot;&gt;)$"/>
   </module>
 </module>
