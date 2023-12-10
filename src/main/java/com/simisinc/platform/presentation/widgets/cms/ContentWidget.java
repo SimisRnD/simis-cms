@@ -347,7 +347,8 @@ public class ContentWidget extends GenericWidget {
       //   <p><img src="/assets/img/20200519200325-142/Something.jpg" alt="Something"></p>
       //   <div>
       //     <h3>The title</h3>
-      //     <p><button class="reveal-button-text" data-toggle="modalreveal-something" aria-controls="modalreveal-something" aria-haspopup="true" tabindex="0"><img src="/assets/img/20191001153112-134/Something-Else.png" alt="" width="200" height="34"></button></p><div class="platform-content-inline-editor"><a class="hollow button tiny secondary" href="/content-editor?uniqueId=something&amp;returnPage=/somewhere"><i class="fas fa-edit"></i></a></div><p></p>
+      //     <p><button class="reveal-button-text" data-toggle="modalreveal-something" aria-controls="modalreveal-something" aria-haspopup="true" tabindex="0"><img src="/assets/img/20191001153112-134/Something-Else.png" alt="" width="200" height="34"></button></p>
+      //     <div class="platform-content-inline-editor"><a class="hollow button tiny secondary" href="/content-editor?uniqueId=something&amp;returnPage=/somewhere"><i class="fas fa-edit"></i></a></div><p></p>
       //   </div>
       // </div>
       int imgStartIdx = html.indexOf("<p><img");

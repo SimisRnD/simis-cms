@@ -900,7 +900,7 @@ public class DB {
       rs.findColumn(column);
       return true;
     } catch (SQLException ex) {
+      return false;
     }
-    return false;
   }
 }

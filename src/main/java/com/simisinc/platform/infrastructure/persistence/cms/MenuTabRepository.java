@@ -157,7 +157,7 @@ public class MenuTabRepository {
     int maxId = 0;
     try (Connection connection = DB.getConnection();
          PreparedStatement pst = connection.prepareStatement(SQL_QUERY);
-         ResultSet rs = pst.executeQuery();) {
+         ResultSet rs = pst.executeQuery()) {
       if (rs.next()) {
         maxId = rs.getInt(1) + 1;
       }

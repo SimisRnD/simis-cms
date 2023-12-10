@@ -79,7 +79,8 @@ public class MapBoxCommand {
       return item;
     }
 
-    // https://api.mapbox.com/geocoding/v5/mapbox.places/Wawa,23321.json?limit=1&access_token=pk.eyJ1IjoibWF0dHNpbWlzIiwiYSI6ImNqZ2doZjh2bjB6NHUyd29pbm5yc3Y5cjQifQ.Qio8_yBfJeesjNHUDrLKtw
+    // https://api.mapbox.com/geocoding/v5/mapbox.places/Wawa,23321.json
+    // ?limit=1&access_token=pk.eyJ1IjoibWF0dHNpbWlzIiwiYSI6ImNqZ2doZjh2bjB6NHUyd29pbm5yc3Y5cjQifQ.Qio8_yBfJeesjNHUDrLKtw
     String url = "https://api.mapbox.com/geocoding/v5/mapbox.places/" + query + ".json?limit=1&access_token=" + accessToken;
     try {
       // Use rate limiting
