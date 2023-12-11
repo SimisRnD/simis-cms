@@ -7,6 +7,7 @@
     "vscjava.vscode-java-test",
     "redhat.vscode-community-server-connector",
     "redhat.vscode-rsp-ui",
-    "Gruntfuggly.triggertaskonsave"
+    "Gruntfuggly.triggertaskonsave",
+    "davidanson.vscode-markdownlint"
   ]
 }

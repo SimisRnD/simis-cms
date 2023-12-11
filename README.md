@@ -10,7 +10,7 @@ SimIS CMS comes out-of-the-box with modules, advanced security, easy setup, and 
 
 ## License
 
-```
+```text
 Copyright 2023 SimIS Inc. (https://www.simiscms.com)
 
 Licensed under the Apache License, Version 2.0 (the "License");
@@ -38,17 +38,17 @@ Need a website or web portal? SimIS CMS can be used from Day 1:
 
 ## Features
 
-- **CMS**: Site Map, Web Pages (Templates, UI Designer, SEO, Searchable) with Content and Images, HTML Editor, CSS Editor, Blogs, Form Data, Calendars, Folders and Files, Mailing Lists, Videos, Wikis, Search, Site Alerts, Form Pop-Ups, Sticky Header and Buttons, Responsive, Bot Detection
-- **Analytics**: Tracking for Sessions, Hits, Geolocation, Content, Searches, Referrals; Charts; xAPI; Pixels
-- **Data Integration**: Datasets (CSV, TSV, JSON, GeoJSON, and RSS sources), Collections (Profiles, Geolocation, Multiple Categories, Relationships, Custom Fields, Indexed, Searchable), Data Sources
-- **Collaboration**: Users (Register, Validation, Login, Invite), User Groups, Collection Membership and Permissions, Chat
-- **E-commerce**: Products, SKUs, Categories, Customers, Orders, Account Management, Shipping Methods, Carriers, Tracking Numbers, Pricing Rules (Constraints, Discounts, and Promos)
-- **CRM**: Forms, Leads & Customers, Orders
-- **Settings**: Theme, Site SEO, Social Media, Mail Server, Maps, Captcha, Analytics, E-commerce, Mailing Lists
-- **Integration**: Google Analytics, Map Box, Open Street Map, Square, Stripe, Taxjar, USPS, Boxzooka
-- **Security**: OAuth, Firewall (Integration and Blocked IP lists), Spam Filter, Geo Filter, Rate Limiting, Snyk scanning
-- **API**: Rest API
-- **Platform**: Micro Widgets, Connection Pool, Cache, Scheduler, Workflow, Expression Engine, Upgrades, Migrations, Record Paging
+* **CMS**: Site Map, Web Pages (Templates, UI Designer, SEO, Searchable) with Content and Images, HTML Editor, CSS Editor, Blogs, Form Data, Calendars, Folders and Files, Mailing Lists, Videos, Wikis, Search, Site Alerts, Form Pop-Ups, Sticky Header and Buttons, Responsive, Bot Detection
+* **Analytics**: Tracking for Sessions, Hits, Geolocation, Content, Searches, Referrals; Charts; xAPI; Pixels
+* **Data Integration**: Datasets (CSV, TSV, JSON, GeoJSON, and RSS sources), Collections (Profiles, Geolocation, Multiple Categories, Relationships, Custom Fields, Indexed, Searchable), Data Sources
+* **Collaboration**: Users (Register, Validation, Login, Invite), User Groups, Collection Membership and Permissions, Chat
+* **E-commerce**: Products, SKUs, Categories, Customers, Orders, Account Management, Shipping Methods, Carriers, Tracking Numbers, Pricing Rules (Constraints, Discounts, and Promos)
+* **CRM**: Forms, Leads & Customers, Orders
+* **Settings**: Theme, Site SEO, Social Media, Mail Server, Maps, Captcha, Analytics, E-commerce, Mailing Lists
+* **Integration**: Google Analytics, Map Box, Open Street Map, Square, Stripe, Taxjar, USPS, Boxzooka
+* **Security**: OAuth, Firewall (Integration and Blocked IP lists), Spam Filter, Geo Filter, Rate Limiting, Snyk scanning
+* **API**: Rest API
+* **Platform**: Micro Widgets, Connection Pool, Cache, Scheduler, Workflow, Expression Engine, Upgrades, Migrations, Record Paging
 
 ## Release Process
 
@@ -82,7 +82,7 @@ Thank you to all those who have helped make SimIS CMS!
 
 This project uses and licenses several technologies:
 
-```
+```text
  Server:
 
    Apache Commons              Apache   Utilities                                         https://commons.apache.org
