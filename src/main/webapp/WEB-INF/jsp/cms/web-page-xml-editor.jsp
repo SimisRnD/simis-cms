@@ -87,26 +87,40 @@
           <dt>content</dt>
           <dd>uniqueId, html</dd>
           <dd>&lt;![CDATA[ ]]&gt;</dd>
+          <dt>contentAccordion</dt>
+          <dd>uniqueId, html</dd>
+          <dt>contentSlider</dt>
+          <dd>uniqueId, html, showControls, showPagination, loop, autoplayDelay=1000</dd>
+          <dt>contentGallery</dt>
+          <dd>uniqueId, html</dd>
+          <dt>contentReveal</dt>
+          <dd>uniqueId, html, attach=left, animate=up|down|left|right|fade, revealClass</dd>
           <dt>button</dt>
           <dd>name, link, buttonClass, leftIcon, icon</dd>
           <dt>link</dt>
           <dd>name, link, class, property</dd>
+          <dt>card</dt>
+          <dd>title, icon, link, linkTitle, linkIcon, class</dd>
+          <dt>progressCard</dt>
+          <dd>label, value, maxLabel, progress, maxValue, textColor=#|theme., subheaderColor=#|theme., progressColor=#|theme., remainderColor=#|theme.</dd>
+          <dt>statisticCard</dt>
+          <dd>label, value, icon, link, iconColor=#|theme., view=default|vertical</dd>
           <dt>logo</dt>
           <dd>maxWidth, maxHeight, view=standard,color,white</dd>
           <dt>breadcrumbs</dt>
-          <dd></dd>
+          <dd>links[name, link, value]</dd>
           <dt>contentTabs</dt>
-          <dd></dd>
+          <dd>tabs[name, linkId, link, contentUniqueId, isActive]</dd>
           <dt>emailSubscribe</dt>
           <dd></dd>
           <dt>form</dt>
-          <dd></dd>
+          <dd>formUniqueId, icon, title, subtitle, buttonName, useCaptcha, successTitle, successMessage, fields[]</dd>
           <dt>remoteContent</dt>
           <dd>title, url, startTag, endTag</dd>
           <dt>searchForm</dt>
           <dd></dd>
           <dt>tableOfContents</dt>
-          <dd></dd>
+          <dd>links[name, value]</dd>
           <dt>albumGallery</dt>
           <dd></dd>
           <dt>photoGallery</dt>
@@ -124,7 +138,7 @@
           <dt>calendarEventDetails</dt>
           <dd></dd>
           <dt>map</dt>
-          <dd></dd>
+          <dd>latitude, longitude, mapHeight, mapZoomLevel, showMarker, markerTitle, markerText</dd>
           <dt>instagram</dt>
           <dd></dd>
         </dl>
