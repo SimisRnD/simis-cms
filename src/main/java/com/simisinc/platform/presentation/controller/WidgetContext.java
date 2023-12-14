@@ -55,6 +55,7 @@ public class WidgetContext implements Serializable {
   private String jsp = null;
   private String html = null;
   private String json = null;
+  private String widgetName = null;
   private String redirect = null;
   private boolean handledResponse = false;
 
@@ -196,6 +197,18 @@ public class WidgetContext implements Serializable {
 
   public boolean hasJson() {
     return json != null;
+  }
+
+  public String getWidgetName() {
+    return widgetName;
+  }
+
+  public void setWidgetName(String widget) {
+    this.widgetName = widget;
+  }
+
+  public boolean hasWidgetName() {
+    return widgetName != null;
   }
 
   public String getRedirect() {

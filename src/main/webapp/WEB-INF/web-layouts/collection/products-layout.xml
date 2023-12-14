@@ -69,8 +69,7 @@
         <widget name="content" hr="true">
           <uniqueId>product-details-${item.uniqueId}</uniqueId>
         </widget>
-        <widget name="content" class="margin-top-30">
-          <view>accordion</view>
+        <widget name="contentAccordion" class="margin-top-30">
           <!-- <expandTopLevel>true</expandTopLevel> -->
           <uniqueId>product-details-accordion-${item.uniqueId}</uniqueId>
           <class>outer-accordion</class>

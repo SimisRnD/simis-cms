@@ -24,8 +24,7 @@
         <widget name="content">
           <uniqueId>${webPageName}-hello</uniqueId>
         </widget>
-        <widget name="content" class="margin-top-50">
-          <view>accordion</view>
+        <widget name="contentAccordion" class="margin-top-50">
           <uniqueId>${webPageName}-content</uniqueId>
           <class>outer-accordion</class>
           <innerClass>inner-accordion</innerClass>
