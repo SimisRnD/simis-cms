@@ -44,6 +44,12 @@
   <widget name="systemMessages" class="com.simisinc.platform.presentation.widgets.cms.SystemMessagesWidget" />
   <widget name="content" class="com.simisinc.platform.presentation.widgets.cms.ContentWidget" />
   <widget name="contentTabs" class="com.simisinc.platform.presentation.widgets.cms.ContentTabsWidget" />
+  <widget name="contentCards" class="com.simisinc.platform.presentation.widgets.cms.ContentCardsWidget" />
+  <widget name="contentAccordion" class="com.simisinc.platform.presentation.widgets.cms.ContentAccordionWidget" />
+  <widget name="contentSlider" class="com.simisinc.platform.presentation.widgets.cms.ContentSliderWidget" />
+  <widget name="contentReveal" class="com.simisinc.platform.presentation.widgets.cms.ContentRevealWidget" />
+  <widget name="contentGallery" class="com.simisinc.platform.presentation.widgets.cms.ContentGalleryWidget" />
+  <widget name="contentCarousel" class="com.simisinc.platform.presentation.widgets.cms.ContentCarouselWidget" />
   <widget name="contentEditor" class="com.simisinc.platform.presentation.widgets.cms.ContentEditorWidget" />
   <widget name="blogPostList" class="com.simisinc.platform.presentation.widgets.cms.BlogPostListWidget" />
   <widget name="blogPost" class="com.simisinc.platform.presentation.widgets.cms.BlogPostWidget" />

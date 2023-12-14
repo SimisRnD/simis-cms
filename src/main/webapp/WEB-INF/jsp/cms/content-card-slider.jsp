@@ -20,11 +20,13 @@
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="isDraft" class="java.lang.String" scope="request"/>
-<jsp:useBean id="display" class="java.lang.String" scope="request"/>
 <jsp:useBean id="carouselClass" class="java.lang.String" scope="request"/>
-<jsp:useBean id="carouselTitle" class="java.lang.String" scope="request"/>
-<jsp:useBean id="carouselSize" class="java.lang.String" scope="request"/>
 <jsp:useBean id="cardClass" class="java.lang.String" scope="request"/>
+<jsp:useBean id="smallCardCount" class="java.lang.String" scope="request"/>
+<jsp:useBean id="mediumCardCount" class="java.lang.String" scope="request"/>
+<jsp:useBean id="largeCardCount" class="java.lang.String" scope="request"/>
+<jsp:useBean id="loop" class="java.lang.String" scope="request"/>
+<jsp:useBean id="autoplayDelay" class="java.lang.String" scope="request"/>
 <c:if test="${showControls eq 'true' && fn:length(cardList) gt 1}">
 <style>
   #swiper${widgetContext.uniqueId} { width: calc(100% - 80px); }
@@ -54,7 +56,6 @@
         </c:forEach>
       </div>
     </div>
-    <!-- If we need pagination -->
     <div id="swiper-pagination${widgetContext.uniqueId}" class="swiper-pagination"></div>
 <c:if test="${showControls eq 'true' && fn:length(cardList) gt 1}">
   <c:if test="${showLeftControl eq 'true'}">
@@ -81,13 +82,19 @@
                 spaceBetween: 15
             }
         }
-        // loop: true,
-        // autoplay: { delay: 5000, stopOnLastSlide: true, disableOnInteraction: true },
-        ,pagination: {
-          el: '#swiper-pagination${widgetContext.uniqueId}',
-        }
+        <c:if test="${loop eq 'true'}">
+          ,loop: true
+        </c:if>
+        <c:if test="${autoplayDelay ne '-1'}">
+          ,autoplay: { delay: ${autoplayDelay}, stopOnLastSlide: true, disableOnInteraction: true }
+        </c:if>
+        <c:if test="${showPagination eq 'true'}">
+          ,pagination: {
+            el: '#swiper-pagination${widgetContext.uniqueId}',
+          }
+        </c:if>
         <c:if test="${showControls eq 'true' && fn:length(cardList) gt 1}">
-        ,navigation: {
+          ,navigation: {
             <c:if test="${showLeftControl eq 'true'}">
             nextEl: '#swiper-button-next${widgetContext.uniqueId}'
             </c:if>
@@ -95,7 +102,7 @@
             <c:if test="${showRightControl eq 'true'}">
             prevEl: '#swiper-button-prev${widgetContext.uniqueId}'
             </c:if>
-        }
+          }
         </c:if>
     });
 </script>

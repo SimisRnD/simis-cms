@@ -18,9 +18,8 @@
   <page>
     <section class="align-right margin-top-50 margin-bottom-100">
       <column class="small-12 medium-5 cell">
-        <widget name="content">
+        <widget name="contentGallery">
           <uniqueId>shop-${productUniqueId}-image</uniqueId>
-          <view>gallery</view>
         </widget>
       </column>
       <column class="small-12 medium-6 cell center-text-for-small-only">

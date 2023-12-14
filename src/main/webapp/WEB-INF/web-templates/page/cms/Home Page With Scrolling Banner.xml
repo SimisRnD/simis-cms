@@ -18,11 +18,12 @@
   <page class="full-page">
     <section class="row align-center expanded platform-no-margin">
       <column class="none">
-        <widget name="content">
-          <view>cardSlider</view>
+        <widget name="contentSlider">
           <smallCardCount>1</smallCardCount>
-          <showControls>true</showControls>
+          <showControls>false</showControls>
           <showPagination>true</showPagination>
+          <loop>false</loop>
+          <autoplayDelay>5000</autoplayDelay>
           <html><![CDATA[
 <figure class="orbit-figure">
   <img class="orbit-image" src="${ctx}/images/sample/1st.png" alt="image alt text">

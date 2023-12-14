@@ -291,6 +291,17 @@ public class WebContainerCommand implements Serializable {
             LOG.debug("Executing widget: " + widget.getWidgetName() + "." + methodName + " [" + thisWidgetUniqueId + "]");
             Method method = classRef.getClass().getMethod(methodName, widgetContext.getClass());
             result = (WidgetContext) method.invoke(classRef, new Object[]{widgetContext});
+            // Check for an alternate widget and execute it, log this
+            if (result != null && result.hasWidgetName()) {
+              LOG.warn("Widget requesting a different widget to execute: " + result.getWidgetName());
+              classRef = webContainerContext.getWidgetInstances().get(result.getWidgetName());
+              if (classRef == null) {
+                LOG.error("Class not found for widget: " + result.getWidgetName());
+                continue;
+              }
+              method = classRef.getClass().getMethod(methodName, widgetContext.getClass());
+              result = (WidgetContext) method.invoke(classRef, new Object[]{widgetContext});
+            }
           } catch (NoSuchMethodException nm) {
             LOG.error("No Such Method Exception for method execute. MESSAGE = " + nm.getMessage(), nm);
           } catch (IllegalAccessException ia) {
