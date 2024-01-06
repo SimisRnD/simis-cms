@@ -12,14 +12,14 @@ SimIS CMS includes an extendable api for user-based access and server-to-server 
 1. Create an app client in Admin, note the app id and secret key.
 2. Make sure the API server is enabled in Site Settings
 3. Optionally log the user in and obtain a 'token' for future calls:
-   * POST
-   * DIGEST AUTHENTICATION
-   * REQUEST HEADER (X-API-Key)
+   - POST
+   - DIGEST AUTHENTICATION
+   - REQUEST HEADER (X-API-Key)
 4. If a user login is not required, then default access will be demoted to a Guest User
 5. Make API calls:
-   * GET/POST/PUT/DELETE
-   * BEARER TOKEN (optional)
-   * REQUEST HEADER (X-API-Key) or URL PARAMETER (key=) for api key
+   - GET/POST/PUT/DELETE
+   - BEARER TOKEN (optional)
+   - REQUEST HEADER (X-API-Key) or URL PARAMETER (key=) for api key
 
 In your application, have the user supply their CMS username and password, then request authorization:
 

@@ -25,15 +25,15 @@ An optimized web application archive (.war), with production settings, is releas
 
 ## Production Steps
 
-* Install the .war into a base container image like "tomcat:9.0-jdk17" (call it ROOT.war for a root web context)
-* Setup PostgreSQL and PostGIS using a managed service like [Amazon RDS for PostgreSQL](https://aws.amazon.com/rds/postgresql/) with [PostGIS extension](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Appendix.PostgreSQL.CommonDBATasks.PostGIS.html); optionally use a containerized PostgreSQL like "postgres:14" and install the needed extensions
-* Create the PostgreSQL database and user credentials (the default name is "simis-cms" but it can be configured)
-* Decide on a directory location for uploaded and generated assests
-* Set the application's environment variables specific to your deployment strategy
-* Start up the application
-* The database will be installed and Tomcat's log will show the application startup status
-* Login, navigate to Admin, and follow the Getting Started to-do list
-* If an Administrator was not defined in the environment variables, then the Tomcat log will contain two random checksums for the Admin's user/pass (you must review the logs for this one-time login information)
+- Install the .war into a base container image like "tomcat:9.0-jdk17" (call it ROOT.war for a root web context)
+- Setup PostgreSQL and PostGIS using a managed service like [Amazon RDS for PostgreSQL](https://aws.amazon.com/rds/postgresql/) with [PostGIS extension](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Appendix.PostgreSQL.CommonDBATasks.PostGIS.html); optionally use a containerized PostgreSQL like "postgres:14" and install the needed extensions
+- Create the PostgreSQL database and user credentials (the default name is "simis-cms" but it can be configured)
+- Decide on a directory location for uploaded and generated assests
+- Set the application's environment variables specific to your deployment strategy
+- Start up the application
+- The database will be installed and Tomcat's log will show the application startup status
+- Login, navigate to Admin, and follow the Getting Started to-do list
+- If an Administrator was not defined in the environment variables, then the Tomcat log will contain two random checksums for the Admin's user/pass (you must review the logs for this one-time login information)
 
 ## Environment Variables
 

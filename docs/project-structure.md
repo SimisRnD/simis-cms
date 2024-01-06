@@ -22,7 +22,7 @@ The key concepts are:
 
 ## Source Code Repo
 
-```
+```text
 ├── build.xml (the Ant scripts for build, test, package)
 ├── package.json (the Javascript dependencies)
 ├── pom.xml (the Java dependencies)
@@ -165,7 +165,7 @@ The key concepts are:
 
 ## Deployed Application Generated Files (CMS_PATH)
 
-```
+```text
 ├── config (optional configurations filled out from source code, polled for updates)
 │   ├── cms
 │   │   ├── bot-list.csv

@@ -32,10 +32,21 @@ description: SimIS CMS topics for customization
 - Collections
 - Datasets
 
+## E-Commerce
+
+- Products
+- Categories
+- Discounts and Promos
+- Shipping Rates
+- Inventory
+
 ## Access
 
 - APIs
 - IP Lists
+- Groups
+- Roles
+- SSO
 
 ## Administration
 
