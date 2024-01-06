@@ -84,7 +84,7 @@ public class FileSystemCommand {
     }
     if (StringUtils.isBlank(serverRootPath)) {
       // @note this value is checked at system startup and will abort then
-      LOG.error("system.filepath does not exist");
+      LOG.error("CMS_PATH environment variable can be set, or add 'system.filepath' to the database");
       LOG.info("HINT: INSERT INTO site_properties (property_label, property_name, property_value) VALUES ('File server path', 'system.filepath', '/opt/simis/files')");
       return null;
     }
