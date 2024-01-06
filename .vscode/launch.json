@@ -6,10 +6,10 @@
     "configurations": [
         {
             "type": "java",
-            "name": "Launch ApplicationInfo",
+            "name": "ApplicationInfo",
             "request": "launch",
             "mainClass": "com.simisinc.platform.ApplicationInfo",
-            "projectName": "simis-cms_28c2300"
+            "projectName": "simis-cms"
         }
     ]
 }
