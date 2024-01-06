@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.simisinc</groupId>
   <artifactId>simis-cms</artifactId>
-  <version>20231127.10000-SNAPSHOT</version>
+  <version>20240106.10000-SNAPSHOT</version>
   <name>SimIS CMS</name>
   <url>https://www.simiscms.com</url>
   <description>Agile, Enterprise, Open Source Content Management System (CMS) and Web Portal</description>
@@ -54,7 +54,7 @@
     <commons-validator.version>1.7</commons-validator.version>
     <easy-flows-playbook.version>0.6-SNAPSHOT</easy-flows-playbook.version>
     <flexmark.version>0.64.0</flexmark.version>
-    <flyway.version>9.21.2</flyway.version>
+    <flyway.version>10.4.1</flyway.version>
     <geoip2.version>4.0.1</geoip2.version>
     <geojson.version>1.14</geojson.version>
     <granule.version>1.0.18-SNAPSHOT</granule.version>
@@ -77,7 +77,7 @@
     <libphonenumber.version>8.13.16</libphonenumber.version>
     <lombok.version>1.18.30</lombok.version>
     <netty.version>4.1.101</netty.version>
-    <postgresql.version>42.6.0</postgresql.version>
+    <postgresql.version>42.7.1</postgresql.version>
     <pushy.version>0.15.2</pushy.version>
     <rabbitmq.version>5.18.0</rabbitmq.version>
     <resilience4j.version>2.1.0</resilience4j.version>
@@ -205,6 +205,12 @@
       <artifactId>flyway-core</artifactId>
       <version>${flyway.version}</version>
     </dependency>
+    <dependency>
+      <groupId>org.flywaydb</groupId>
+      <artifactId>flyway-database-postgresql</artifactId>
+      <version>${flyway.version}</version>
+      <scope>runtime</scope>
+  </dependency>
     <dependency>
       <groupId>com.maxmind.geoip2</groupId>
       <artifactId>geoip2</artifactId>
