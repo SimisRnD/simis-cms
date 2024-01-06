@@ -40,7 +40,7 @@ public class SaveTextFileCommand {
     try (BufferedWriter writer = new BufferedWriter(new FileWriter(file))) {
       writer.write(content);
     } catch (Exception e) {
-      LOG.warn("Could not write file", e);
+      LOG.warn("Could not write file: " + file.getAbsolutePath(), e);
       return null;
     }
     return file;
