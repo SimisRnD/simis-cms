@@ -3,7 +3,7 @@
 <project name="SimIS CMS" default="build" basedir="." xmlns:jacoco="antlib:org.jacoco.ant">
 
   <property name="project" value="simis-cms" />
-  <property name="jdk" value="11" />
+  <property name="jdk" value="17" />
   <property name="fs" value="${file.separator}"/>
   <property name="lf" value="${line.separator}"/>
   <property name="javadoc.dir" value="docs" />
