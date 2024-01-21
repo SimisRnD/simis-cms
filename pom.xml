@@ -49,7 +49,6 @@
     <commons-io.version>2.12.0</commons-io.version>
     <commons-jexl3.version>3.2.1</commons-jexl3.version>
     <commons-lang3.version>3.13.0</commons-lang3.version>
-    <commons-logging.version>1.2</commons-logging.version>
     <commons-text.version>1.10.0</commons-text.version>
     <commons-validator.version>1.7</commons-validator.version>
     <easy-flows-playbook.version>0.6-SNAPSHOT</easy-flows-playbook.version>
@@ -83,7 +82,7 @@
     <resilience4j.version>2.1.0</resilience4j.version>
     <restfb.version>2023.8.0</restfb.version>
     <rome-rss.version>2.1.0</rome-rss.version>
-    <slf4j.version>2.0.7</slf4j.version>
+    <slf4j.version>2.0.11</slf4j.version>
     <square.version>24.0.0.20220921</square.version>
     <okhttp.version>4.11.0</okhttp.version>
     <stripe.version>22.26.0</stripe.version>
@@ -172,11 +171,6 @@
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-lang3</artifactId>
       <version>${commons-lang3.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>commons-logging</groupId>
-      <artifactId>commons-logging</artifactId>
-      <version>${commons-logging.version}</version>
     </dependency>
     <dependency>
       <groupId>org.apache.commons</groupId>
@@ -471,10 +465,10 @@
       <version>${slf4j.version}</version>
     </dependency>
     <dependency>
-    <groupId>org.slf4j</groupId>
-    <artifactId>jcl-over-slf4j</artifactId>
-    <version>${slf4j.version}</version>
-</dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>jcl-over-slf4j</artifactId>
+      <version>${slf4j.version}</version>
+    </dependency>
     <dependency>
       <groupId>org.apache.taglibs</groupId>
       <artifactId>taglibs-standard-spec</artifactId>

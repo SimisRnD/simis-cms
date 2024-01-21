@@ -1,11 +1,11 @@
 ## With Tomcat
 ## CATALINA_HOME:   /usr/local/tomcat
 # ant package
-# docker build -f docker/app/Dockerfile -t simis-cms .
+# docker build -f docker/app/Dockerfile -t simis-cms:latest .
 # docker image ls
-# docker run -p 80:8080 simis-cms
+# docker run -p 80:8080 --env-file=.env simis-cms:latest
 
-FROM tomcat:9.0-jdk17
+FROM tomcat:9.0-jdk21
 COPY ./target/simis-cms.war /usr/local/tomcat/webapps/ROOT.war
 ENV CATALINA_OPTS="-XX:InitialRAMPercentage=10 -XX:MinRAMPercentage=50 -XX:MaxRAMPercentage=80 -XX:+ExitOnOutOfMemoryError"
 EXPOSE 8080

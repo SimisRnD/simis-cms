@@ -144,8 +144,8 @@
         <include name="**/*.sql"/>
         <exclude name="jobrunr.properties"/>
         <exclude name="jobrunr.production.properties"/>
-        <exclude name="simplelog.properties"/>
-        <exclude name="simplelog.production.properties"/>
+        <exclude name="simplelogger.properties"/>
+        <exclude name="simplelogger.production.properties"/>
       </fileset>
     </copy>
     <!-- Production setting -->
@@ -153,8 +153,8 @@
           tofile="${target.dir}/${project}/WEB-INF/classes/jobrunr.properties"
           overwrite="true"
           verbose="false"/>
-    <copy file="${resources.dir}/simplelog.production.properties"
-          tofile="${target.dir}/${project}/WEB-INF/classes/simplelog.properties"
+    <copy file="${resources.dir}/simplelogger.production.properties"
+          tofile="${target.dir}/${project}/WEB-INF/classes/simplelogger.properties"
           overwrite="true"
           verbose="false"/>
     <!-- Version string for scripts -->
@@ -262,8 +262,8 @@
         <include name="**/*.sql"/>
         <exclude name="jobrunr.properties"/>
         <exclude name="jobrunr.production.properties"/>
-        <exclude name="simplelog.properties"/>
-        <exclude name="simplelog.production.properties"/>
+        <exclude name="simplelogger.properties"/>
+        <exclude name="simplelogger.production.properties"/>
       </fileset>
     </copy>
     <!-- Developer setting -->
@@ -271,8 +271,8 @@
           tofile="${exploded.work.dir}/WEB-INF/classes/jobrunr.properties"
           verbose="false"
           preservelastmodified="true"/>
-    <copy file="${resources.dir}/simplelog.properties"
-          tofile="${exploded.work.dir}/WEB-INF/classes/simplelog.properties"
+    <copy file="${resources.dir}/simplelogger.properties"
+          tofile="${exploded.work.dir}/WEB-INF/classes/simplelogger.properties"
           verbose="false"
           preservelastmodified="true"/>
     <!-- Web -->
