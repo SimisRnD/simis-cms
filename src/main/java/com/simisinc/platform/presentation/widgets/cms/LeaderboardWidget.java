@@ -16,16 +16,22 @@
 
 package com.simisinc.platform.presentation.widgets.cms;
 
-import com.simisinc.platform.application.datasets.DatasetFileCommand;
+import java.net.URI;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.apache.commons.lang3.StringUtils;
+
 import com.simisinc.platform.application.cms.GenerateLinkFromNameCommand;
+import com.simisinc.platform.application.datasets.DatasetFileCommand;
 import com.simisinc.platform.domain.model.datasets.Dataset;
 import com.simisinc.platform.infrastructure.persistence.datasets.DatasetRepository;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
-import org.apache.commons.lang3.StringUtils;
-
-import java.net.URL;
-import java.util.*;
 
 /**
  * Description
@@ -108,7 +114,7 @@ public class LeaderboardWidget extends GenericWidget {
           String image = null;
           try {
             image = ((String[]) rows.get(fields.indexOf("IMAGE")))[columnCount - 1];
-            new URL(image);
+            URI.create(image).toURL();
             int imageIdx = image.indexOf("/assets/img/");
             if (imageIdx > -1) {
               image = image.substring(imageIdx);
