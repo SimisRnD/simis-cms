@@ -9,7 +9,7 @@
 /exploded
 /node_modules
 
-# Docker
+# Environment variables
 .env
 
 # Mac OSX
@@ -41,6 +41,9 @@ cspell.json
 .idea/**/dbnavigator.xml
 .idea/httpRequests
 .idea/php.xml
+
+# Git
+*.patch
 
 # Snyk
 .dccache
