@@ -21,7 +21,7 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="blog" class="com.simisinc.platform.domain.model.cms.Blog" scope="request"/>
 <jsp:useBean id="blogPost" class="com.simisinc.platform.domain.model.cms.BlogPost" scope="request"/>
-<script src="${ctx}/javascript/tinymce-6.8.1/tinymce.min.js"></script>
+<script src="${ctx}/javascript/tinymce-6.8.2/tinymce.min.js"></script>
 <script>
   tinymce.init({
     selector: 'textarea',

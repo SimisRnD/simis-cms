@@ -19,9 +19,9 @@
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="stylesheet" class="com.simisinc.platform.domain.model.cms.Stylesheet" scope="request"/>
-<script src="${ctx}/javascript/ace-1.32.0/ace.js" type="text/javascript" charset="utf-8"></script>
-<script src="${ctx}/javascript/ace-1.32.0/mode-css.js" type="text/javascript" charset="utf-8"></script>
-<%--<script src="${ctx}/javascript/ace-1.32.0/ext-language_tools.js" type="text/javascript" charset="utf-8"></script>--%>
+<script src="${ctx}/javascript/ace-1.32.4/ace.js" type="text/javascript" charset="utf-8"></script>
+<script src="${ctx}/javascript/ace-1.32.4/mode-css.js" type="text/javascript" charset="utf-8"></script>
+<%--<script src="${ctx}/javascript/ace-1.32.4/ext-language_tools.js" type="text/javascript" charset="utf-8"></script>--%>
 <style>
   #stylesheetCss {
     right: 0;

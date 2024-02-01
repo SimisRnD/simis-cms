@@ -22,7 +22,7 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="product" class="com.simisinc.platform.domain.model.ecommerce.Product" scope="request"/>
 <jsp:useBean id="fulfillmentOptionList" class="java.util.ArrayList" scope="request"/>
-<script src="${ctx}/javascript/tinymce-6.8.1/tinymce.min.js"></script>
+<script src="${ctx}/javascript/tinymce-6.8.2/tinymce.min.js"></script>
 <script>
   tinymce.init({
     selector: 'textarea',

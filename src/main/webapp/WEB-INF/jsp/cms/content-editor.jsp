@@ -19,7 +19,7 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="content" class="com.simisinc.platform.domain.model.cms.Content" scope="request"/>
 <jsp:useBean id="isDraft" class="java.lang.String" scope="request"/>
-<script src="${ctx}/javascript/tinymce-6.8.1/tinymce.min.js"></script>
+<script src="${ctx}/javascript/tinymce-6.8.2/tinymce.min.js"></script>
 <script>
   $(window).on('resize', function () {
     setTimeout(function () {
