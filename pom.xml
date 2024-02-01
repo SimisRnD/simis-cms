@@ -3,7 +3,7 @@
   <modelVersion>4.0.0</modelVersion>
   <groupId>com.simisinc</groupId>
   <artifactId>simis-cms</artifactId>
-  <version>20240122.10000-SNAPSHOT</version>
+  <version>20240131.10000-SNAPSHOT</version>
   <name>SimIS CMS</name>
   <url>https://www.simiscms.com</url>
   <description>Agile, Enterprise, Open Source Content Management System (CMS) and Web Portal</description>
