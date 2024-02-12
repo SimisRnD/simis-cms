@@ -43,7 +43,7 @@ public class SystemAlertWidget extends GenericWidget {
     }
     context.getRequest().setAttribute("sitePropertyMap", sitePropertyMap);
 
-    // Show the JSP
+    // Specify the content
     context.setJsp(JSP);
     return context;
   }

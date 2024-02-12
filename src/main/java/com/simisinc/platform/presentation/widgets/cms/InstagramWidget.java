@@ -16,6 +16,7 @@
 
 package com.simisinc.platform.presentation.widgets.cms;
 
+import com.simisinc.platform.application.cms.HtmlCommand;
 import com.simisinc.platform.domain.model.socialmedia.InstagramMedia;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.persistence.socialmedia.InstagramMediaRepository;

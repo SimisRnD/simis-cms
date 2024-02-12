@@ -21,7 +21,7 @@ import com.simisinc.platform.presentation.widgets.GenericWidget;
 import org.apache.commons.lang3.StringUtils;
 
 /**
- * Description
+ * Button HTML
  *
  * @author matt rajkowski
  * @created 8/7/18 3:20 PM
