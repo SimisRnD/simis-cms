@@ -55,7 +55,7 @@
   <div class="small-4 cell" style="position:relative">
     <canvas id="myChart-${widgetContext.uniqueId}"></canvas>
     <c:if test="${progressCard.maxValue > 0}">
-      <p id="text${widgetContext.uniqueId}" class="chart-overlay-text chart-${widgetContext.uniqueId}"><fmt:formatNumber value="${100 * (progressCard.progress / progressCard.maxValue)}" />%</p>
+      <p id="text${widgetContext.uniqueId}" class="chart-overlay-text chart-${widgetContext.uniqueId}">${progressCard.percentComplete}</p>
     </c:if>
   </div>
   <div class="auto cell padding-left-10">

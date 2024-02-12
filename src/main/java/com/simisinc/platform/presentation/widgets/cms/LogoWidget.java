@@ -16,15 +16,16 @@
 
 package com.simisinc.platform.presentation.widgets.cms;
 
+import java.util.Map;
+
+import org.apache.commons.lang3.StringUtils;
+
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
-import org.apache.commons.lang3.StringUtils;
-
-import java.util.Map;
 
 /**
- * Description
+ * Renders a site logo
  *
  * @author matt rajkowski
  * @created 1/18/21 3:44 PM
@@ -45,11 +46,13 @@ public class LogoWidget extends GenericWidget {
     context.getRequest().setAttribute("sitePropertyMap", sitePropertyMap);
     context.getRequest().setAttribute("themePropertyMap", themePropertyMap);
 
-    // Check preferences
-    String view = context.getPreferences().get("view");
-    if (StringUtils.isNotBlank(view)) {
-      context.getRequest().setAttribute("view", view);
-    }
+    // Preferred logo
+    String view = context.getPreferences().getOrDefault("view", "standard");
+
+    // HTML Class
+    context.getRequest().setAttribute("logoClass", context.getPreferences().get("logoClass"));
+
+    // Inline Style
     String style = "";
     String maxWidth = context.getPreferences().get("maxWidth");
     if (StringUtils.isNotBlank(maxWidth)) {
@@ -62,9 +65,34 @@ public class LogoWidget extends GenericWidget {
     if (StringUtils.isNotBlank(style)) {
       context.getRequest().setAttribute("logoStyle", style);
     }
+
+    // Logo Text/Name
     String text = context.getPreferences().get("text");
     if (StringUtils.isNotBlank(text)) {
       context.getRequest().setAttribute("text", text);
+    }
+    context.getRequest().setAttribute("siteTitle", sitePropertyMap.get("site.name"));
+
+    // Determine a logo image source
+    String logoSrc = null;
+    switch (view) {
+      case "standard":
+      case "full-color":
+        logoSrc = sitePropertyMap.get("site.logo");
+        break;
+      case "white":
+      case "all-white":
+        logoSrc = sitePropertyMap.get("site.logo.white");
+        break;
+      case "color":
+      case "color-and-white":
+        logoSrc = sitePropertyMap.get("site.logo.mixed");
+        break;
+      default:
+        break;
+    }
+    if (StringUtils.isNotBlank(logoSrc)) {
+      context.getRequest().setAttribute("logoSrc", logoSrc);
     }
 
     // Show the JSP

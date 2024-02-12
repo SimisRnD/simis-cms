@@ -76,10 +76,10 @@
                 <div class="card-section blog-intro">
                   <c:choose>
                     <c:when test="${!empty blogPost.summary}">
-                      <p>${html:toHtml(text:trim(html:text(blogPost.summary), 256, true))}</p>
+                      <p>${html:toHtml(text:trim(blogPost.summaryText, 256, true))}</p>
                     </c:when>
                     <c:otherwise>
-                      <p>${html:toHtml(text:trim(html:text(blogPost.body), 220, true))}</p>
+                      <p>${html:toHtml(text:trim(blogPost.body, 220, true))}</p>
                     </c:otherwise>
                   </c:choose>
                 </div>

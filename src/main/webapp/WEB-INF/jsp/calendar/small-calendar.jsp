@@ -38,7 +38,7 @@
 <script src="${ctx}/javascript/fullcalendar-6.1.10/index.global.min.js"></script>
 <%-- Render the widget --%>
 <div id="calendar-small"></div>
-<div id="tooltip" class="tooltip top align-center under-reveal" style="display:none"></div>
+<div id="tooltip-small" class="tooltip top align-center under-reveal" style="display:none"></div>
 <script>
   function showTooltip(el, event) {
     let content = "<h5>" + event.title+"</h5>";
@@ -53,9 +53,9 @@
     if (event.extendedProps.description || event.extendedProps.detailsUrl) {
       content += "<p class='no-gap'>(click for more details)</p>";
     }
-    $("#tooltip").html(content);
-    let ttHeight = $("#tooltip").outerHeight();
-    let ttWidth = $("#tooltip").outerWidth();
+    $("#tooltip-small").html(content);
+    let ttHeight = $("#tooltip-small").outerHeight();
+    let ttWidth = $("#tooltip-small").outerWidth();
 
     <%-- Center and show it --%>
     let parentTop = Math.round($('#calendar-small').parent().offset().top);
@@ -67,11 +67,10 @@
     let tdTop = Math.round($(el).closest('.fc-daygrid-event-harness').offset().top);
     let tdLeft = Math.round($(el).closest('.fc-daygrid-event-harness').offset().left);
     let tdWidth = Math.round($(el).closest('.fc-daygrid-event-harness').outerWidth());
-    let top = Math.round(elTop - calendarTop - ttHeight + 8);
-    let zero = Math.round(calendarLeft - parentLeft);
-    let left = zero + tdLeft - calendarLeft + Math.round((tdWidth/2) - (ttWidth/2));
-    $('#tooltip').css({top: top, left: left});
-    $('#tooltip').fadeIn(200);
+    let top = Math.round(tdTop - ttHeight - 10);
+    let left = tdLeft + (tdWidth/2) - (ttWidth/2);
+    $('#tooltip-small').css({top: top, left: left});
+    $('#tooltip-small').fadeIn(200);
     // $('#tooltip').show();
   }
 
@@ -94,7 +93,8 @@
     let calendarEl = document.getElementById('calendar-small');
     let calendar = new FullCalendar.Calendar(calendarEl, {
       initialView: '${initialView}',
-      height: <c:out value="${height}" />,
+      <c:if test="${!empty height}">height: <c:out value="${height}" />,</c:if>
+      aspectRatio: 2,
       headerToolbar: {
         start: 'title',
         center: '',
@@ -129,7 +129,7 @@
         showTooltip(info.el, info.event);
       },
       eventMouseLeave: function(info) {
-        $('#tooltip').hide();
+        $('#tooltip-small').hide();
       },
       eventSources: [
         <c:if test="${showEvents eq 'true'}">

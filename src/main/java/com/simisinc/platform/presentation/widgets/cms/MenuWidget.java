@@ -54,6 +54,7 @@ public class MenuWidget extends GenericWidget {
   protected static Log LOG = LogFactory.getLog(MenuWidget.class);
 
   static String JSP = "/cms/menu.jsp";
+  static String TEMPLATE = "/cms/menu.html";
 
   public WidgetContext execute(WidgetContext context) {
 
@@ -61,9 +62,12 @@ public class MenuWidget extends GenericWidget {
     context.getRequest().setAttribute("menuClass", context.getPreferences().get("class"));
     context.getRequest().setAttribute("title", context.getPreferences().get("title"));
     context.getRequest().setAttribute("wrap", context.getPreferences().getOrDefault("wrap", "true"));
-    context.getRequest().setAttribute("useHighlight", context.getPreferences().getOrDefault("useHighlight", "false"));
+    boolean highlightActiveMenuItem = Boolean
+        .parseBoolean(context.getPreferences().getOrDefault("useHighlight", "false"));
+    context.getRequest().setAttribute("useHighlight", highlightActiveMenuItem ? "true" : "false");
     boolean showWhenEmpty = "true".equals(context.getPreferences().getOrDefault("showWhenEmpty", "false"));
-    boolean redirectToFirstTabWithAccess = "true".equals(context.getPreferences().getOrDefault("redirectToFirstTabWithAccess", "false"));
+    boolean redirectToFirstTabWithAccess = "true"
+        .equals(context.getPreferences().getOrDefault("redirectToFirstTabWithAccess", "false"));
     boolean showWhenOneEntry = "true".equals(context.getPreferences().getOrDefault("showWhenOneEntry", "true"));
 
     List<Map<String, String>> linkList = new ArrayList<>();
@@ -173,7 +177,7 @@ public class MenuWidget extends GenericWidget {
           icon = "fa " + icon;
         }
 
-        // Prepare the link
+        // Prepare the link object
         Map<String, String> properties = new HashMap();
         addProperty(context, properties, "name", valueMap.get("name"));
         addProperty(context, properties, "link", link);
@@ -182,6 +186,9 @@ public class MenuWidget extends GenericWidget {
         addProperty(context, properties, "icon", icon);
         addProperty(context, properties, "type", type);
         addProperty(context, properties, "icon-only", valueMap.get("icon-only"));
+        if (highlightActiveMenuItem && link.equals(context.getRequest().getPagePath())) {
+          addProperty(context, properties, "active", "true");
+        }
         linkList.add(properties);
 
         // Determine if this is an Admin menu, and the links which are allowed
@@ -208,38 +215,53 @@ public class MenuWidget extends GenericWidget {
           }
 
           // Skip options that do not apply to the current page
-          boolean thisPageIsSkipped = (pagePath.startsWith("/admin") || pagePath.startsWith("/content-editor") || isCollectionPage);
+          boolean thisPageIsSkipped = (pagePath.startsWith("/admin") || pagePath.startsWith("/content-editor")
+              || isCollectionPage);
 
           // Add the additional admin items
-          addLink(context, linkList, "Admin", "/admin", "fa fa-cogs", container, "admin,content-manager,community-manager,data-manager,ecommerce-manager");
+          addLink(context, linkList, "Admin", "/admin", "fa fa-cogs", container,
+              "admin,content-manager,community-manager,data-manager,ecommerce-manager");
 
           // Add Page Editing Links
           if (!thisPageIsSkipped) {
             addDivider(context, linkList, container, "admin,content-manager");
-            addLink(context, linkList, "Page Info", "/admin/web-page?webPage=" + pagePath, "fa fa-info", container, "admin,content-manager");
-            addLink(context, linkList, "Page Layout", "/admin/web-page-designer?webPage=" + pagePath, "fa fa-code", container, "admin,content-manager");
-            addLink(context, linkList, "Page CSS", "/admin/css-editor?webPage=" + pagePath + "&returnPage=" + pagePath, "fa fa-css3", container, "admin");
+            addLink(context, linkList, "Page Info", "/admin/web-page?webPage=" + pagePath, "fa fa-info", container,
+                "admin,content-manager");
+            addLink(context, linkList, "Page Layout", "/admin/web-page-designer?webPage=" + pagePath, "fa fa-code",
+                container, "admin,content-manager");
+            addLink(context, linkList, "Page CSS", "/admin/css-editor?webPage=" + pagePath + "&returnPage=" + pagePath,
+                "fa fa-css3", container, "admin");
           }
 
           // Add Collection and Item Editing Links
           if (isCollectionPage && collection != null) {
             if (item != null) {
               addDivider(context, linkList, container, "admin");
-              addLink(context, linkList, "Edit Item Details", "/edit/" + item.getUniqueId() + "?returnPage=/show/" + item.getUniqueId(), "fa fa-edit", container, "admin");
-              addLink(context, linkList, "Edit Item Settings", "/show/" + item.getUniqueId() + "/settings", "fa fa-edit", container, "admin");
+              addLink(context, linkList, "Edit Item Details",
+                  "/edit/" + item.getUniqueId() + "?returnPage=/show/" + item.getUniqueId(), "fa fa-edit", container,
+                  "admin");
+              addLink(context, linkList, "Edit Item Settings", "/show/" + item.getUniqueId() + "/settings",
+                  "fa fa-edit", container, "admin");
             }
             addDivider(context, linkList, container, "admin");
-            addLink(context, linkList, "Collection Setup", "/admin/collection-details?collectionId=" + collection.getId(), "fa fa-info", container, "admin");
-            addLink(context, linkList, "Collection Theme", "/admin/collection-theme?collectionId=" + collection.getId(), "fa fa-swatchbook", container, "admin");
+            addLink(context, linkList, "Collection Setup",
+                "/admin/collection-details?collectionId=" + collection.getId(), "fa fa-info", container, "admin");
+            addLink(context, linkList, "Collection Theme", "/admin/collection-theme?collectionId=" + collection.getId(),
+                "fa fa-swatchbook", container, "admin");
 //            addLink(context, linkList, "Collection CSS", "/admin/css-editor?collection=" + collection.getId() + "&returnPage=" + pagePath, "fa fa-css3", container, "admin");
 //            addLink(context, linkList, "Collection Layout", "/admin/web-page-designer?collection=" + collection.getId() + "&returnPage=" + pagePath, "fa fa-th-large", container, "admin");
           }
 
           addDivider(context, linkList, container, "admin");
           addLink(context, linkList, "Site Theme", "/admin/theme-properties", "fa fa-swatchbook", container, "admin");
-          addLink(context, linkList, "Site CSS", "/admin/css-editor?returnPage=" + pagePath, "fa fa-css3", container, "admin");
-          addLink(context, linkList, "Site Header Layout", "/admin/web-container-designer?name=header.default&returnPage=" + pagePath, FontCommand.fal() + " fa-code", container, "admin");
-          addLink(context, linkList, "Site Footer Layout", "/admin/web-container-designer?name=footer.default&returnPage=" + pagePath, FontCommand.fal() + " fa-code", container, "admin");
+          addLink(context, linkList, "Site CSS", "/admin/css-editor?returnPage=" + pagePath, "fa fa-css3", container,
+              "admin");
+          addLink(context, linkList, "Site Header Layout",
+              "/admin/web-container-designer?name=header.default&returnPage=" + pagePath,
+              FontCommand.fal() + " fa-code", container, "admin");
+          addLink(context, linkList, "Site Footer Layout",
+              "/admin/web-container-designer?name=footer.default&returnPage=" + pagePath,
+              FontCommand.fal() + " fa-code", container, "admin");
 
           // Add a Logout for users
           if (linkList.size() > 1) {
@@ -349,7 +371,8 @@ public class MenuWidget extends GenericWidget {
     map.put(name, value);
   }
 
-  private static void addLink(WidgetContext context, List<Map<String, String>> linkList, String name, String link, String icon, String container, String roleValue) {
+  private static void addLink(WidgetContext context, List<Map<String, String>> linkList, String name, String link,
+      String icon, String container, String roleValue) {
     // Check for access to this menu item
     if (StringUtils.isNotBlank(roleValue) && !checkUserAccess(context, roleValue, null)) {
       return;
@@ -365,7 +388,8 @@ public class MenuWidget extends GenericWidget {
     linkList.add(properties);
   }
 
-  private static void addDivider(WidgetContext context, List<Map<String, String>> linkList, String container, String roleValue) {
+  private static void addDivider(WidgetContext context, List<Map<String, String>> linkList, String container,
+      String roleValue) {
     // Check for access to this menu item
     if (StringUtils.isNotBlank(roleValue) && !checkUserAccess(context, roleValue, null)) {
       return;

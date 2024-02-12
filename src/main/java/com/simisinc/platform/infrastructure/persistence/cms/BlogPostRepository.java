@@ -232,6 +232,7 @@ public class BlogPostRepository {
       record.setTitle(rs.getString("title"));
       record.setBody(rs.getString("body"));
       record.setSummary(rs.getString("summary"));
+      record.setSummaryText(HtmlCommand.text(StringUtils.trimToNull(record.getSummary())));
       record.setImageUrl(rs.getString("image_url"));
       record.setCreatedBy(rs.getLong("created_by"));
       record.setCreated(rs.getTimestamp("created"));
@@ -242,6 +243,7 @@ public class BlogPostRepository {
       record.setStartDate(rs.getTimestamp("start_date"));
       record.setEndDate(rs.getTimestamp("end_date"));
       record.setKeywords(rs.getString("keywords"));
+      record.setBodyText(rs.getString("body_text"));
       // Additional fields
       if (DB.hasColumn(rs, "highlight")) {
         record.setHighlight(rs.getString("highlight"));

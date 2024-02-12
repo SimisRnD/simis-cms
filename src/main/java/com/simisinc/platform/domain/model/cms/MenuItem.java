@@ -39,6 +39,7 @@ public class MenuItem extends Entity {
   private boolean enabled = false;
   private String[] roleIdList = null;
   private String comments = null;
+  private boolean active = false;
 
   public MenuItem() {
   }
@@ -137,5 +138,13 @@ public class MenuItem extends Entity {
 
   public void setComments(String comments) {
     this.comments = comments;
+  }
+
+  public boolean isActive() {
+    return active;
+  }
+
+  public void setActive(boolean active) {
+    this.active = active;
   }
 }

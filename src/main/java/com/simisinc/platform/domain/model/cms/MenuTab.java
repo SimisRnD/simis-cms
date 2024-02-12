@@ -41,6 +41,7 @@ public class MenuTab extends Entity {
   private boolean enabled = false;
   private String[] roleIdList = null;
   private String comments = null;
+  private boolean active = false;
 
   private List<MenuItem> menuItemList = null;
 
@@ -149,5 +150,13 @@ public class MenuTab extends Entity {
 
   public void setMenuItemList(List<MenuItem> menuItemList) {
     this.menuItemList = menuItemList;
+  }
+
+  public boolean isActive() {
+    return active;
+  }
+
+  public void setActive(boolean active) {
+    this.active = active;
   }
 }
