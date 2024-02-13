@@ -96,6 +96,7 @@ public class UserTokenRepository {
     if (userId < 0) {
       return;
     }
+    OAuthTokenRepository.removeAll(userId);
     DB.deleteFrom(TABLE_NAME, new SqlUtils().add("user_id = ?", userId));
   }
 
