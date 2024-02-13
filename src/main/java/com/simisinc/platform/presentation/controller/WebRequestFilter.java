@@ -59,7 +59,6 @@ import com.simisinc.platform.application.ecommerce.PricingRuleCommand;
 import com.simisinc.platform.application.login.AuthenticateLoginCommand;
 import com.simisinc.platform.application.login.LogoutCommand;
 import com.simisinc.platform.application.oauth.OAuthConfigurationCommand;
-import com.simisinc.platform.application.oauth.OAuthLogoutCommand;
 import com.simisinc.platform.application.oauth.OAuthRequestCommand;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.Visitor;
@@ -163,8 +162,7 @@ public class WebRequestFilter implements Filter {
       LogoutCommand.logout((HttpServletRequest) request, ((HttpServletResponse) servletResponse));
       // Redirect to OAuth Provider via the home page
       if (OAuthConfigurationCommand.isEnabled()) {
-        String redirectURL = OAuthLogoutCommand.getLogoutRedirect();
-        do302(servletResponse, redirectURL);
+        do401(servletResponse);
         return;
       }
     }
@@ -212,7 +210,7 @@ public class WebRequestFilter implements Filter {
     if (oauthRedirect != null) {
       if (StringUtils.isBlank(oauthRedirect)) {
         LOG.error("OAUTH: A redirect url could not be created");
-        do401(servletResponse);
+        do500(servletResponse);
         return;
       }
       LOG.debug("OAUTH: Redirecting to " + oauthRedirect);
