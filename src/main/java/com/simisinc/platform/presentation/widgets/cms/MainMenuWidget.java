@@ -99,7 +99,8 @@ public class MainMenuWidget extends GenericWidget {
         // Determine if the menuTab should be highlighted
         if (highlightActiveTab) {
           // Is active when menuTab matches the page path, or the collection name is a match
-          if ((menuTab.getLink().equals(context.getRequest().getPagePath())) ||
+          
+          if ((menuTab.getLink().equals(context.getRequest().getRequestURI())) ||
               (collection != null && collection.getName().equalsIgnoreCase(menuTab.getName()))) {
             thisMenuTab.setActive(true);
           }
@@ -115,7 +116,7 @@ public class MainMenuWidget extends GenericWidget {
                 thisMenuItem.setLink(menuItem.getLink());
               // Is active when menuItem matches the page path
               if ((highlightActiveTab || highlightSubmenuItem) &&
-                  thisMenuItem.getLink().equals(context.getRequest().getPagePath())) {
+                  thisMenuItem.getLink().equals(context.getRequest().getRequestURI())) {
                 thisMenuItem.setActive(true);
               }
               thisMenuItemList.add(thisMenuItem);
