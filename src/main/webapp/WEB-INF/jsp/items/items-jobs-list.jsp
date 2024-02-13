@@ -41,9 +41,9 @@
     <table class="stack">
       <thead>
       <tr>
-        <th>Job Title</th>
+        <th>Title</th>
         <th>Organization</th>
-        <th>Job Location</th>
+        <th>Location</th>
 <%--        <th>Apply/More Information</th>--%>
         <th>Posted</th>
       </tr>
@@ -56,7 +56,7 @@
               <a href="/edit/<c:out value="${item.uniqueId}" />?returnPage=${returnPage}"><i class="${font:fal()} fa-edit"></i></a>
             </c:if>
             <strong><c:out value="${text:trim(item.name, 50, true)}"/></strong><c:if test="${empty item.approved}"> <span class="label warning">Needs approval</span></c:if>
-            <br /><a href="${ctx}/show/${item.uniqueId}">View Job Description</a>
+            <br /><a href="${ctx}/show/${item.uniqueId}">View Description</a>
           </td>
           <td>
             <c:if test="${!empty item.location}">
