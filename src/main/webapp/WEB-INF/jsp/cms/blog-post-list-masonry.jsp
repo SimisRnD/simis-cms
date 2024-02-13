@@ -79,7 +79,7 @@
                       <p>${html:toHtml(text:trim(blogPost.summaryText, 256, true))}</p>
                     </c:when>
                     <c:otherwise>
-                      <p>${html:toHtml(text:trim(blogPost.body, 220, true))}</p>
+                      <p>${html:toHtml(text:trim(blogPost.bodyText, 220, true))}</p>
                     </c:otherwise>
                   </c:choose>
                 </div>
