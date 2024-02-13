@@ -16,6 +16,16 @@
 
 package com.simisinc.platform.application.oauth;
 
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.security.auth.login.AccountException;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import com.fasterxml.jackson.databind.JsonNode;
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
@@ -27,14 +37,6 @@ import com.simisinc.platform.domain.model.login.OAuthToken;
 import com.simisinc.platform.infrastructure.persistence.GroupRepository;
 import com.simisinc.platform.infrastructure.persistence.RoleRepository;
 import com.simisinc.platform.infrastructure.persistence.UserRepository;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
-import javax.security.auth.login.AccountException;
-import java.sql.Timestamp;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Retrieves user information and uses it to login the user
@@ -51,26 +53,30 @@ public class OAuthUserInfoCommand {
       LOG.warn("accessToken is required");
       return null;
     }
-    // http://localhost:8100/auth/realms/name/protocol/openid-connect/userinfo
-    JsonNode json = OAuthHttpCommand.sendHttpGet("protocol/openid-connect/userinfo", oAuthToken);
+    JsonNode json = OAuthHttpCommand.sendHttpGet(OAuthConfigurationCommand.retrieveUserInfoEndpoint(), oAuthToken);
     if (json == null) {
       LOG.warn("userinfo request failed");
       return null;
     }
-
-    if (!json.has("preferred_username")) {
-      LOG.warn("preferred_username is required");
+    if (!json.has("preferred_username") && !json.has("email")) {
+      LOG.warn("preferred_username OR email is required");
       return null;
     }
 
-    LOG.debug("Determining user information...");
-
     // Find the user or create a new one
+    LOG.debug("Determining user information...");
     User user = null;
-    String username = json.get("preferred_username").asText();
+    String username = null;
     String email = null;
+
+    if (json.has("preferred_username")) {
+      username = json.get("preferred_username").asText();
+    }
     if (json.has("email")) {
       email = json.get("email").asText();
+      if (username == null) {
+        username = email;
+      }
     }
     // Search by optional email address first since that is a key
     if (StringUtils.isNotBlank(email)) {

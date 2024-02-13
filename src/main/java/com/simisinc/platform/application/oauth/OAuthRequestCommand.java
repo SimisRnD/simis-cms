@@ -16,24 +16,25 @@
 
 package com.simisinc.platform.application.oauth;
 
-import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
-import com.simisinc.platform.application.login.AuthenticateLoginCommand;
-import com.simisinc.platform.domain.model.login.OAuthToken;
-import com.simisinc.platform.domain.model.login.UserToken;
-import com.simisinc.platform.infrastructure.persistence.oauth.OAuthTokenRepository;
-import com.simisinc.platform.infrastructure.persistence.login.UserTokenRepository;
-import com.simisinc.platform.presentation.controller.CookieConstants;
-import com.simisinc.platform.presentation.controller.SessionConstants;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-import org.apache.commons.text.RandomStringGenerator;
+import java.sql.Timestamp;
 
 import javax.servlet.http.Cookie;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import javax.servlet.http.HttpSession;
-import java.sql.Timestamp;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.commons.text.RandomStringGenerator;
+
+import com.simisinc.platform.application.login.AuthenticateLoginCommand;
+import com.simisinc.platform.domain.model.login.OAuthToken;
+import com.simisinc.platform.domain.model.login.UserToken;
+import com.simisinc.platform.infrastructure.persistence.login.UserTokenRepository;
+import com.simisinc.platform.infrastructure.persistence.oauth.OAuthTokenRepository;
+import com.simisinc.platform.presentation.controller.CookieConstants;
+import com.simisinc.platform.presentation.controller.SessionConstants;
 
 /**
  * Configures and verifies OpenAuth2
@@ -48,24 +49,15 @@ public class OAuthRequestCommand {
   private static RandomStringGenerator generator = new RandomStringGenerator.Builder()
       .selectFrom("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz0123456789".toCharArray()).build();
 
-  public static boolean isEnabled() {
-    String enabled = LoadSitePropertyCommand.loadByName("oauth.enabled");
-    if (!"true".equals(enabled)) {
-      return false;
-    }
-    return true;
-  }
-
   public static String handleRequest(HttpServletRequest request, HttpServletResponse response, String resource) {
-
-    if (!isEnabled()) {
+    if (!OAuthConfigurationCommand.isEnabled()) {
       // Skip if not turned on
       LOG.trace("OAuth is not enabled");
       return null;
     }
 
     // Check the URL for a "/oauth/callback"...
-    if ("/oauth/callback".equals(resource)) {
+    if (OAuthConfigurationCommand.getRedirectUri().equals(resource)) {
       LOG.debug("Checking callback, retrieving access token...");
       String state = request.getParameter("state");
       String code = request.getParameter("code");
@@ -138,7 +130,8 @@ public class OAuthRequestCommand {
           // Continue to use it
           request.getSession().setAttribute(SessionConstants.OAUTH_USER_TOKEN, userToken.getToken());
           if (oAuthToken.getExpires() != null) {
-            request.getSession().setAttribute(SessionConstants.OAUTH_USER_EXPIRATION_TIME, oAuthToken.getExpires().getTime());
+            request.getSession().setAttribute(SessionConstants.OAUTH_USER_EXPIRATION_TIME,
+                oAuthToken.getExpires().getTime());
           }
           return null;
         }
@@ -183,7 +176,8 @@ public class OAuthRequestCommand {
         // Continue to use it
         request.getSession().setAttribute(SessionConstants.OAUTH_USER_TOKEN, userToken.getToken());
         if (oAuthToken.getExpires() != null) {
-          request.getSession().setAttribute(SessionConstants.OAUTH_USER_EXPIRATION_TIME, oAuthToken.getExpires().getTime());
+          request.getSession().setAttribute(SessionConstants.OAUTH_USER_EXPIRATION_TIME,
+              oAuthToken.getExpires().getTime());
         }
         return null;
       }

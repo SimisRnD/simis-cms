@@ -52,24 +52,20 @@ public class OAuthLogoutCommand {
       OAuthToken oAuthToken = OAuthTokenRepository.findByUserTokenId(userId, userToken.getId());
       UserTokenRepository.remove(userToken);
       if (oAuthToken != null) {
-        // http://localhost:8100/realms/name/protocol/openid-connect/logout
         Map<String, String> parameters = new HashMap<>();
         parameters.put("refresh_token", oAuthToken.getRefreshToken());
-        OAuthHttpCommand.sendHttpPost("protocol/openid-connect/logout", parameters);
+        OAuthHttpCommand.sendHttpPost(OAuthConfigurationCommand.retrieveLogoutEndpoint(), parameters);
         LOG.debug("Logout complete.");
       }
     }
   }
 
   public static String getLogoutRedirect() {
-    // http://localhost:8100/realms/name/protocol/openid-connect/logout
-    // id_token_hint
-    // end_session_endpoint
     return "/login";
   }
 
   public static String revoke(String accessToken) {
-    // http://localhost:8100/realms/name/protocol/openid-connect/revoke
+    // "revocation_endpoint"
     return null;
   }
 }

@@ -17,6 +17,7 @@
 package com.simisinc.platform.presentation.controller;
 
 import static com.simisinc.platform.presentation.controller.UserSession.WEB_SOURCE;
+import static javax.servlet.http.HttpServletResponse.SC_INTERNAL_SERVER_ERROR;
 import static javax.servlet.http.HttpServletResponse.SC_MOVED_PERMANENTLY;
 import static javax.servlet.http.HttpServletResponse.SC_MOVED_TEMPORARILY;
 import static javax.servlet.http.HttpServletResponse.SC_NOT_FOUND;
@@ -57,6 +58,7 @@ import com.simisinc.platform.application.ecommerce.LoadCartCommand;
 import com.simisinc.platform.application.ecommerce.PricingRuleCommand;
 import com.simisinc.platform.application.login.AuthenticateLoginCommand;
 import com.simisinc.platform.application.login.LogoutCommand;
+import com.simisinc.platform.application.oauth.OAuthConfigurationCommand;
 import com.simisinc.platform.application.oauth.OAuthLogoutCommand;
 import com.simisinc.platform.application.oauth.OAuthRequestCommand;
 import com.simisinc.platform.domain.model.User;
@@ -160,7 +162,7 @@ public class WebRequestFilter implements Filter {
       // Log out of the system
       LogoutCommand.logout((HttpServletRequest) request, ((HttpServletResponse) servletResponse));
       // Redirect to OAuth Provider via the home page
-      if (OAuthRequestCommand.isEnabled()) {
+      if (OAuthConfigurationCommand.isEnabled()) {
         String redirectURL = OAuthLogoutCommand.getLogoutRedirect();
         do302(servletResponse, redirectURL);
         return;
@@ -202,6 +204,11 @@ public class WebRequestFilter implements Filter {
     // If OAuth is required, and the user is not verified, redirect to provider
     String oauthRedirect = OAuthRequestCommand.handleRequest((HttpServletRequest) request,
         (HttpServletResponse) servletResponse, resource);
+    if (OAuthConfigurationCommand.hasInvalidConfiguration()) {
+      LOG.error("OAUTH: OAUTH is enabled but configuration is incomplete");
+      do500(servletResponse);
+      return;
+    }
     if (oauthRedirect != null) {
       if (StringUtils.isBlank(oauthRedirect)) {
         LOG.error("OAUTH: A redirect url could not be created");
@@ -531,6 +538,11 @@ public class WebRequestFilter implements Filter {
   private void do404(ServletResponse servletResponse) throws IOException {
     HttpServletResponse response = (HttpServletResponse) servletResponse;
     response.sendError(SC_NOT_FOUND);
+  }
+
+  private void do500(ServletResponse servletResponse) throws IOException {
+    HttpServletResponse response = (HttpServletResponse) servletResponse;
+    response.sendError(SC_INTERNAL_SERVER_ERROR);
   }
 
 }
