@@ -186,7 +186,7 @@ public class MenuWidget extends GenericWidget {
         addProperty(context, properties, "icon", icon);
         addProperty(context, properties, "type", type);
         addProperty(context, properties, "icon-only", valueMap.get("icon-only"));
-        if (highlightActiveMenuItem && link.equals(context.getRequest().getPagePath())) {
+        if (highlightActiveMenuItem && link.equals(context.getRequest().getRequestURI())) {
           addProperty(context, properties, "active", "true");
         }
         linkList.add(properties);
