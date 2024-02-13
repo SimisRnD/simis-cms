@@ -54,7 +54,7 @@ public class OAuthConfigurationCommand {
       configurationUrl = LoadSitePropertyCommand.loadByName("oauth.serverUrl");
     }
     if (StringUtils.isNotBlank(configurationUrl)) {
-      return (configurationUrl.endsWith("/") ? "" : "/") + ".well-known/openid-configuration";
+      return configurationUrl + (configurationUrl.endsWith("/") ? "" : "/") + ".well-known/openid-configuration";
     }
     return null;
   }
