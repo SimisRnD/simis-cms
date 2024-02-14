@@ -60,10 +60,6 @@ public class OAuthLogoutCommand {
     }
   }
 
-  public static String getLogoutRedirect() {
-    return "/login";
-  }
-
   public static String revoke(String accessToken) {
     // "revocation_endpoint"
     return null;
