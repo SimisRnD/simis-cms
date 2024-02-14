@@ -19,7 +19,6 @@ package com.simisinc.platform.presentation.controller;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.math.BigDecimal;
 import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.zip.GZIPOutputStream;
@@ -37,6 +36,7 @@ import org.apache.commons.logging.LogFactory;
 
 import com.granule.utils.HttpHeaders;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.cms.SitemapBuilderCommand;
 import com.simisinc.platform.domain.model.cms.WebPage;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageSpecification;
@@ -91,16 +91,14 @@ public class SitemapXmlServlet extends HttpServlet {
       }
     }
 
+    // Track the latest date
+    long mostRecentTimestamp = 0L;
+
     // Use ISO 6801 date formatter
     SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ssZZ");
 
-    // Open the XML
-    long mostRecentTimestamp = 0L;
-    StringBuilder xml = new StringBuilder();
-    xml.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
-    xml.append("<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n");
-
     // @todo Use the main menu first
+    // List<MenuTab> menuTabList = LoadMenuTabsCommand.findAllIncludeMenuItemList();
 
     // Find the web pages
     WebPageSpecification specification = new WebPageSpecification();
@@ -115,6 +113,9 @@ public class SitemapXmlServlet extends HttpServlet {
       return;
     }
 
+    // Start creating the XML
+    StringBuilder xml = SitemapBuilderCommand.startSitemapXML();
+
     // Add each web page
     for (WebPage webPage : webPageList) {
       LOG.debug("Found: " + webPage.getLink());
@@ -123,8 +124,7 @@ public class SitemapXmlServlet extends HttpServlet {
       }
       // @todo if web page contains something dynamic... can use frequency instead of date
       // Ex. blog, calendar, collection
-      appendUrlXml(xml, siteUrl, webPage.getLink(), sdf.format(webPage.getModified()),
-          webPage.getSitemapChangeFrequency(), webPage.getSitemapPriority());
+      SitemapBuilderCommand.appendUrlXml(xml, siteUrl, webPage, sdf);
     }
 
     // @todo Public Blog posts
@@ -134,7 +134,7 @@ public class SitemapXmlServlet extends HttpServlet {
     // Public Items
 
     // Close the XML
-    xml.append("</urlset>");
+    SitemapBuilderCommand.endSitemapXML(xml);
 
     // Check for a last-modified header and return 304 if possible
     if (mostRecentTimestamp > 0) {
@@ -168,37 +168,6 @@ public class SitemapXmlServlet extends HttpServlet {
       response.setHeader("ETag", DigestUtils.md5Hex(xml.toString()));
       response.getWriter().print(xml.toString());
     }
-  }
-
-  /**
-   * Generate the xml for the given URL
-   * @param xml
-   * @param siteUrl
-   * @param link
-   * @param lastModified
-   */
-  private static void appendUrlXml(StringBuilder xml, String siteUrl, String link, String lastModified,
-      String frequency,
-      BigDecimal priority) {
-    // loc: This URL must begin with the protocol (such as http/s)
-    // lastmod: (ISO 8601) 2022-07-24T14:53:29-0400
-    // changefreq: (a hint) always, hourly, daily, weekly, monthly, yearly, never
-    // priority: (0.0-1.0) The default priority of a page is 0.5
-    xml.append("<url>\n");
-    xml.append("<loc>").append(siteUrl + link).append("</loc>\n");
-    if (StringUtils.isNotBlank(frequency)) {
-      xml.append("<changefreq>").append(frequency).append("</changefreq>\n");
-    }
-    if (StringUtils.isNotBlank(lastModified)) {
-      if (StringUtils.isBlank(frequency) || "never".equals(frequency) || "yearly".equals(frequency)
-          || "monthly".equals(frequency)) {
-        xml.append("<lastmod>").append(lastModified).append("</lastmod>\n");
-      }
-    }
-    if (priority != null && priority.doubleValue() != 0.5) {
-      xml.append("<priority>").append(priority.doubleValue()).append("</priority>");
-    }
-    xml.append("</url>\n");
   }
 
   private static boolean gzipSupported(HttpServletRequest request) {
