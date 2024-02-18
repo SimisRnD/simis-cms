@@ -41,9 +41,9 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (23, 'Show cart?', 'site.cart', 'false', 'boolean');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (24, 'Allow registrations?', 'site.registrations', 'false', 'boolean');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (26, 'Show login?', 'site.login', 'false', 'boolean');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (30, 'Header line 1', 'site.header.line1', '');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (31, 'Header link name', 'site.header.link', '');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (32, 'Header details page', 'site.header.page', '', 'web-page');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (30, 'Text to display', 'site.header.line1', '');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (31, 'Optional title for link', 'site.header.link', '');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (32, 'Optional page to link to (/page)', 'site.header.page', '', 'web-page');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (50, 'Footer line 1', 'site.footer.line1', '');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (51, 'Footer line 2', 'site.footer.line2', '');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (60, 'Show privacy policy link?', 'site.privacy.policy', 'true', 'boolean');
