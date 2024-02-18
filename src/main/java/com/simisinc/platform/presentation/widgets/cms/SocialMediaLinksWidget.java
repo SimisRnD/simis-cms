@@ -16,11 +16,13 @@
 
 package com.simisinc.platform.presentation.widgets.cms;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
-
-import java.util.Map;
 
 /**
  * Description
@@ -33,6 +35,7 @@ public class SocialMediaLinksWidget extends GenericWidget {
   static final long serialVersionUID = -8484048371911908893L;
 
   static String JSP = "/cms/social-media-links.jsp";
+  static String TEMPLATE = "/cms/social-media-links.html";
 
   public WidgetContext execute(WidgetContext context) {
     // Use the property map
@@ -45,6 +48,28 @@ public class SocialMediaLinksWidget extends GenericWidget {
 
     // Preferences
     context.getRequest().setAttribute("iconClass", context.getPreferences().getOrDefault("iconClass", "margin-left-10"));
+
+    // Create a sort order
+    List<String> socialLinks = new ArrayList<>();
+    if (socialPropertyMap.containsKey("social.instagram.url")) {
+      socialLinks.add("instagram");
+    }
+    if (socialPropertyMap.containsKey("social.twitter.url")) {
+      socialLinks.add("twitter");
+    }
+    if (socialPropertyMap.containsKey("social.facebook.url")) {
+      socialLinks.add("facebook");
+    }
+    if (socialPropertyMap.containsKey("social.youtube.url")) {
+      socialLinks.add("youtube");
+    }
+    if (socialPropertyMap.containsKey("social.flickr.url")) {
+      socialLinks.add("flickr");
+    }
+    if (socialPropertyMap.containsKey("social.linkedin.url")) {
+      socialLinks.add("linkedin");
+    }
+    context.getRequest().setAttribute("socialLinks", socialLinks);
 
     // Show the JSP
     context.setJsp(JSP);

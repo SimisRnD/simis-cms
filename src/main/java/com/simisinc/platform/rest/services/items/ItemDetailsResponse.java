@@ -16,7 +16,11 @@
 
 package com.simisinc.platform.rest.services.items;
 
+import java.util.Map;
+
+import com.fasterxml.jackson.annotation.JsonAnyGetter;
 import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.annotation.JsonPropertyOrder;
 import com.simisinc.platform.domain.model.items.Item;
 
 /**
@@ -25,12 +29,15 @@ import com.simisinc.platform.domain.model.items.Item;
  * @author matt rajkowski
  * @created 1/22/19 12:12 PM
  */
+@JsonPropertyOrder({ "uniqueId", "name" })
 public class ItemDetailsResponse {
 
   String uniqueId;
   String name;
   @JsonInclude(JsonInclude.Include.NON_EMPTY)
   String summary;
+  @JsonInclude(JsonInclude.Include.NON_EMPTY)
+  String location;
   @JsonInclude(JsonInclude.Include.NON_EMPTY)
   String street;
   @JsonInclude(JsonInclude.Include.NON_EMPTY)
@@ -43,11 +50,17 @@ public class ItemDetailsResponse {
   Double latitude;
   @JsonInclude(JsonInclude.Include.NON_NULL)
   Double longitude;
+  @JsonInclude(JsonInclude.Include.NON_EMPTY)
+  String imageUrl;
+  @JsonInclude(JsonInclude.Include.NON_EMPTY)
+  String barcode;
+  private Map<String, String> customFields;
 
   public ItemDetailsResponse(Item record) {
     uniqueId = record.getUniqueId();
     name = record.getName();
     summary = record.getSummary();
+    location = record.getLocation();
     street = record.getStreet();
     city = record.getCity();
     state = record.getState();
@@ -55,6 +68,11 @@ public class ItemDetailsResponse {
     if (record.hasGeoPoint()) {
       latitude = record.getLatitude();
       longitude = record.getLongitude();
+    }
+    imageUrl = record.getImageUrl();
+    barcode = record.getBarcode();
+    if (record.getCustomFieldList() != null && !record.getCustomFieldList().isEmpty()) {
+      // @todo set the fields and values to return
     }
   }
 
@@ -68,6 +86,10 @@ public class ItemDetailsResponse {
 
   public String getSummary() {
     return summary;
+  }
+
+  public String getLocation() {
+    return location;
   }
 
   public String getStreet() {
@@ -92,5 +114,18 @@ public class ItemDetailsResponse {
 
   public Double getLongitude() {
     return longitude;
+  }
+
+  public String getImageUrl() {
+    return imageUrl;
+  }
+
+  public String getBarcode() {
+    return barcode;
+  }
+
+  @JsonAnyGetter
+  public Map<String, String> getProperties() {
+    return customFields;
   }
 }

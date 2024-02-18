@@ -11,6 +11,16 @@ Roles map to the built-in portal roles, such as System Administrator, Content Ma
 
 Groups map to the customized portal groups which users can be assigned to. Web pages, specific widgets, and data directories can be limited to specific groups.
 
+## OAuth Provider (Environment Variables example)
+
+```bash
+OAUTH_ENABLED=true
+OAUTH_SERVER_URL=https://localhost/realms/example
+OAUTH_CLIENT_ID=cms-platform
+OAUTH_CLIENT_SECRET=client-secret
+OAUTH_REDIRECT_URI=/oauth/callback
+```
+
 ## OAuth Provider Login (Keycloak example)
 
 In Keycloak:
@@ -27,9 +37,9 @@ In the SimIS CMS Database, configure the OAuth provider:
 ```sql
 UPDATE site_properties SET property_value = 'true' WHERE property_name = 'oauth.enabled';
 UPDATE site_properties SET property_value = 'Keycloak' WHERE property_name = 'oauth.provider';
+UPDATE site_properties SET property_value = 'https://localhost/realms/example' WHERE property_name = 'oauth.serverUrl';
 UPDATE site_properties SET property_value = 'simis-cms' WHERE property_name = 'oauth.clientId';
 UPDATE site_properties SET property_value = 'client-secret' WHERE property_name = 'oauth.clientSecret';
-UPDATE site_properties SET property_value = 'https://localhost/realms/example' WHERE property_name = 'oauth.serviceUrl';
 UPDATE site_properties SET property_value = true WHERE property_name = 'oauth.redirectGuests';
 ```
 

@@ -32,6 +32,7 @@ public class DataConstraints implements Serializable {
 
   private int pageNumber = 1;
   private int pageSize = -1;
+  // Helpers set by the data source
   private long totalRecordCount = -1L;
   private int maxPageNumber = 1;
 

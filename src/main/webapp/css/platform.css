@@ -207,6 +207,13 @@ p {
   margin-top: 0;
 }
 
+/* Header */
+
+#header-main-menu .menu-text a {
+  display: inline-block;
+  padding: .4rem 1rem;
+}
+
 /* Footer */
 
 .platform-footer {
@@ -224,6 +231,12 @@ p {
 }
 .platform-footer .footer-menu-item {
   border-right: 1px solid #999999; padding: 0 8px;
+}
+.platform-footer .menu-text a {
+  display: inline-block;
+  vertical-align: middle;
+  margin: 0 0 1rem 0;
+  padding: .85em .85rem .85em 0;
 }
 
 /* Default page adjustments for footer when there is minimal content */

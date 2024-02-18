@@ -16,30 +16,30 @@
 
 package com.simisinc.platform.presentation.widgets.login;
 
+import static com.simisinc.platform.presentation.controller.UserSession.WEB_SOURCE;
+
+import java.sql.Timestamp;
+import java.util.UUID;
+
+import javax.security.auth.login.LoginException;
+import javax.servlet.http.Cookie;
+
+import org.apache.commons.lang3.StringUtils;
+
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
-import com.simisinc.platform.application.oauth.OAuthRequestCommand;
 import com.simisinc.platform.application.login.AuthenticateLoginCommand;
+import com.simisinc.platform.application.oauth.OAuthConfigurationCommand;
 import com.simisinc.platform.domain.model.User;
-import com.simisinc.platform.domain.model.SiteProperty;
 import com.simisinc.platform.domain.model.login.UserLogin;
 import com.simisinc.platform.domain.model.login.UserToken;
-import com.simisinc.platform.infrastructure.persistence.SitePropertyRepository;
 import com.simisinc.platform.infrastructure.persistence.login.UserLoginRepository;
 import com.simisinc.platform.infrastructure.persistence.login.UserTokenRepository;
 import com.simisinc.platform.presentation.controller.CookieConstants;
 import com.simisinc.platform.presentation.controller.SessionConstants;
 import com.simisinc.platform.presentation.controller.UserSession;
-import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.controller.WidgetContext;
-import org.apache.commons.lang3.StringUtils;
-
-import javax.security.auth.login.LoginException;
-import javax.servlet.http.Cookie;
-import java.sql.Timestamp;
-import java.util.UUID;
-
-import static com.simisinc.platform.presentation.controller.UserSession.WEB_SOURCE;
+import com.simisinc.platform.presentation.widgets.GenericWidget;
 
 /**
  * Description
@@ -57,7 +57,7 @@ public class LoginWidget extends GenericWidget {
     // Standard request items
     context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));
     context.getRequest().setAttribute("title", context.getPreferences().get("title"));
-    if (OAuthRequestCommand.isEnabled()) {
+    if (OAuthConfigurationCommand.isEnabled()) {
       context.getRequest().setAttribute("oAuthProvider", LoadSitePropertyCommand.loadByName("oauth.provider"));
     }
     context.setJsp(JSP);

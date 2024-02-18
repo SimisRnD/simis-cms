@@ -16,16 +16,16 @@
 
 package com.simisinc.platform.application.login;
 
+import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+
+import com.simisinc.platform.application.oauth.OAuthConfigurationCommand;
 import com.simisinc.platform.application.oauth.OAuthLogoutCommand;
-import com.simisinc.platform.application.oauth.OAuthRequestCommand;
 import com.simisinc.platform.infrastructure.persistence.login.UserTokenRepository;
 import com.simisinc.platform.presentation.controller.CookieConstants;
 import com.simisinc.platform.presentation.controller.SessionConstants;
 import com.simisinc.platform.presentation.controller.UserSession;
-
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
 
 /**
  * Commands for logging the user out
@@ -59,7 +59,7 @@ public class LogoutCommand {
     }
 
     // Log out of OAuth
-    if (OAuthRequestCommand.isEnabled()) {
+    if (OAuthConfigurationCommand.isEnabled()) {
       OAuthLogoutCommand.logout(userId, request);
     }
   }

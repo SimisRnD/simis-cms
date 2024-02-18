@@ -31,8 +31,10 @@ public class AccordionSection implements Serializable {
   static final long serialVersionUID = -8484048371911908893L;
 
   private String title = null;
+  private String uniqueId = null;
   private List<String> labelsList = new ArrayList<>();
   private List<String> contentList = new ArrayList<>();
+  private List<String> uniqueIdList = new ArrayList<>();
 
   public AccordionSection() {
   }
@@ -49,6 +51,14 @@ public class AccordionSection implements Serializable {
     this.title = title;
   }
 
+  public String getUniqueId() {
+    return uniqueId;
+  }
+
+  public void setUniqueId(String uniqueId) {
+    this.uniqueId = uniqueId;
+  }
+
   public List<String> getLabelsList() {
     return labelsList;
   }
@@ -63,5 +73,13 @@ public class AccordionSection implements Serializable {
 
   public void setContentList(List<String> contentList) {
     this.contentList = contentList;
+  }
+
+  public List<String> getUniqueIdList() {
+    return uniqueIdList;
+  }
+
+  public void setUniqueIdList(List<String> uniqueIdList) {
+    this.uniqueIdList = uniqueIdList;
   }
 }

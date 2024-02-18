@@ -1,5 +1,5 @@
 <%--
-  ~ Copyright 2023 SimIS Inc.
+  ~ Copyright 2022 SimIS Inc.
   ~
   ~ Licensed under the Apache License, Version 2.0 (the "License");
   ~ you may not use this file except in compliance with the License.
@@ -21,14 +21,38 @@
   <meta http-equiv="x-ua-compatible" content="ie=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <meta http-equiv="Content-Language" content="en">
-  <title>Unauthorized</title>
+  <title>Logged out</title>
+  <link rel="stylesheet" type="text/css" href="${ctx}/css/foundation-6.8.1/foundation.min.css" />
+  <style>
+      body {
+          background-color: white;
+          color: #333333;
+      }
+      @media (prefers-color-scheme: dark) {
+          body {
+              background-color: #4B4B4B;
+              color: #D9D9D9;
+          }
+      }
+      .content {
+          position: absolute;
+          left: 50%;
+          top: 40%;
+          transform: translate(-50%, -50%);
+      }
+  </style>
 </head>
 <body>
   <div class="content">
     <div class="grid-container">
       <div class="grid-x">
         <div class="small-12 cell">
-          <h2>Unauthorized</h2>
+          <h2>Logged out</h2>
+          <h3>
+            You are now logged out, to continue to the site you
+            can visit the home page.
+          </h3>
+          <p>Visit our <a href="${ctx}/">home page</a>.</p>
         </div>
       </div>
     </div>

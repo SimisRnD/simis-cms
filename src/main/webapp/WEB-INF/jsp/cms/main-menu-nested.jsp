@@ -27,9 +27,6 @@
 <ul class="vertical menu drilldown<c:if test="${!empty menuClass}"> <c:out value="${menuClass}" /></c:if>" data-drilldown>
   <c:forEach items="${masterMenuTabList}" var="menuTab" varStatus="menuTabStatus">
     <c:choose>
-      <c:when test="${menuTab.link eq '/' && menuTabStatus.index == 0}">
-        <%-- Hide Home (the first one) --%>
-      </c:when>
       <c:when test="${!empty menuTab.menuItemList}">
         <%-- See if any submenu item is the current page for highlighting the active menu item --%>
         <c:set var="isParent" scope="request" value="false"/>

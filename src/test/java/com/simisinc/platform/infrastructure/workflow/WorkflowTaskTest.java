@@ -57,7 +57,7 @@ class WorkflowTaskTest {
     Map<String, String> taskLibrary = new HashMap<>();
     try {
       for (File file : directory.listFiles()) {
-        String filePath = file.toString();
+        String filePath = file.getPath();
         if (filePath.contains("-playbook") || filePath.contains("-workflow")) {
           // Add playbooks
           String yaml = Files.readString(file.toPath());

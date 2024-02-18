@@ -63,8 +63,8 @@
     <div class="grid-container">
       <div class="grid-x">
         <div class="small-12 cell">
-
-          <h2>An error occurred</h2>
+          <h2>A server error occurred</h2>
+          <p>A dependent server or configuration may need to be corrected.</p>
           <p>Please try your request again.</p>
           <p>If you feel something is broken, <a href="${ctx}/contact-us">contact us</a>.</p>
           <p>Visit our <a href="${ctx}/">home page</a>.</p>

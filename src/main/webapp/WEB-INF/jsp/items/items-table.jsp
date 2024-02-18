@@ -35,7 +35,7 @@
     <table>
       <thead>
       <tr>
-        <th>Company Name</th>
+        <th>Name</th>
         <th>Website</th>
         <th>Phone Number</th>
         <th>Primary Category</th>
@@ -49,7 +49,7 @@
             <c:if test="${userSession.hasRole('admin') || userSession.hasRole('data-manager')}">
               <a href="/edit/<c:out value="${item.uniqueId}" />?returnPage=${returnPage}"><i class="${font:fal()} fa-edit"></i></a>
             </c:if>
-            <c:out value="${text:trim(item.name, 30, true)}"/><c:if test="${empty item.approved}"> <span class="label warning">Needs approval</span></c:if>
+            <a href="${ctx}/show/${item.uniqueId}"><c:out value="${text:trim(item.name, 30, true)}"/><c:if test="${empty item.approved}"> <span class="label warning">Needs approval</span></c:if></a>
           </td>
           <td>
             <c:if test="${!empty item.url}">

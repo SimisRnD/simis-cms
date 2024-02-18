@@ -16,6 +16,7 @@
 
 package com.simisinc.platform.presentation.widgets.cms;
 
+import com.simisinc.platform.application.cms.HtmlCommand;
 import com.simisinc.platform.domain.model.socialmedia.InstagramMedia;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.persistence.socialmedia.InstagramMediaRepository;
@@ -80,7 +81,7 @@ public class InstagramWidget extends GenericWidget {
       }
       if ("IMAGE".equals(media.getMediaType())) {
         ++count;
-        addCard(context, cardList, "<p><a target=\"_blank\" href=\"" + media.getPermalink() + "\"><img src=\"" + media.getMediaUrl() + "\" /></a></p>");
+        addCard(context, cardList, "<p><a target=\"_blank\" title=\"Link to Instagram post\" href=\"" + media.getPermalink() + "\"><img src=\"" + media.getMediaUrl() + "\" title=\"" + HtmlCommand.toHtml(media.getCaption()) + "\" /></a></p>");
       }
     }
     context.getRequest().setAttribute("cardList", cardList);

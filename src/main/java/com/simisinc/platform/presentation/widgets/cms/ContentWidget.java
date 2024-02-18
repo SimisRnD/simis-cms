@@ -75,11 +75,13 @@ public class ContentWidget extends GenericWidget {
 
     // A message is being shown to the content manager
     if (context.hasJsp()) {
+      LOG.debug("Returning content for the Content manager");
       return context;
     }
 
     // No content is being shown because it's not set
     if (StringUtils.isBlank(html)) {
+      LOG.debug("No content to display");
       return null;
     }
 
