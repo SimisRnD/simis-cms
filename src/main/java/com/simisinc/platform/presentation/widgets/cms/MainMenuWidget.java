@@ -32,7 +32,7 @@ import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 
 /**
- * Description
+ * Displays the site's main menu
  *
  * @author matt rajkowski
  * @created 1/18/21 8:57 PM
@@ -42,8 +42,11 @@ public class MainMenuWidget extends GenericWidget {
   static final long serialVersionUID = -8484048371911908893L;
 
   static String JSP = "/cms/main-menu.jsp";
+  static String TEMPLATE = "/cms/main-menu.html";
   static String FLAT_JSP = "/cms/main-menu-flat.jsp";
+  static String FLAT_TEMPLATE = "/cms/main-menu-flat.jsp";
   static String NESTED_JSP = "/cms/main-menu-nested.jsp";
+  static String NESTED_TEMPLATE = "/cms/main-menu-nested.html";
 
   public WidgetContext execute(WidgetContext context) {
 
@@ -139,10 +142,13 @@ public class MainMenuWidget extends GenericWidget {
     // Show the JSP
     if ("flat".equals(view)) {
       context.setJsp(FLAT_JSP);
+      context.setTemplate(FLAT_TEMPLATE);
     } else if ("nested".equals(view)) {
       context.setJsp(NESTED_JSP);
+      context.setTemplate(NESTED_TEMPLATE);
     } else {
       context.setJsp(JSP);
+      context.setTemplate(TEMPLATE);
     }
     return context;
   }

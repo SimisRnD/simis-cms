@@ -42,6 +42,7 @@ public class ItemsMapAppWidget extends GenericWidget {
   static final long serialVersionUID = -8484048371911908893L;
 
   static String MAP_APP_JSP = "/maps/items-map-app.jsp";
+  static String MAP_APP_TEMPLATE = "/maps/items-map-app.html";
 
   public WidgetContext execute(WidgetContext context) {
 
@@ -127,6 +128,7 @@ public class ItemsMapAppWidget extends GenericWidget {
 
     // Show the JSP
     context.setJsp(MAP_APP_JSP);
+    context.setTemplate(MAP_APP_TEMPLATE);
     return context;
   }
 }

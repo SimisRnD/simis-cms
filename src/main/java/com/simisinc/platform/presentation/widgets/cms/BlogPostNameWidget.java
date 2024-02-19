@@ -32,6 +32,7 @@ public class BlogPostNameWidget extends GenericWidget {
   static final long serialVersionUID = -8484048371911908893L;
 
   static String JSP = "/cms/blog-post-name.jsp";
+  static String TEMPLATE = "/cms/blog-post-name.html";
 
   public WidgetContext execute(WidgetContext context) {
 
@@ -51,6 +52,7 @@ public class BlogPostNameWidget extends GenericWidget {
 
     // Show the content
     context.setJsp(JSP);
+    context.setTemplate(TEMPLATE);
     return context;
   }
 }

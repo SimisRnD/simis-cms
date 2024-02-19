@@ -36,8 +36,11 @@ public class ProductBrowserWidget extends GenericWidget {
   static final long serialVersionUID = -8484048371911908893L;
 
   static String JSP = "/ecommerce/product-browser.jsp";
+  static String TEMPLATE = "/ecommerce/product-browser.html";
   static String CARD_SLIDER_JSP = "/ecommerce/product-card-slider.jsp";
+  static String CARD_SLIDER_TEMPLATE = "/ecommerce/product-card-slider.html";
   static String UNAVAILABLE_JSP = "/ecommerce/product-browser-unavailable.jsp";
+  static String UNAVAILABLE_TEMPLATE = "/ecommerce/product-browser-unavailable.html";
 
   public WidgetContext execute(WidgetContext context) {
 
@@ -88,6 +91,7 @@ public class ProductBrowserWidget extends GenericWidget {
     List<Product> productList = LoadProductListCommand.loadProductsForSale(productUniqueIdList, limit);
     if (productList == null || productList.isEmpty()) {
       context.setJsp(UNAVAILABLE_JSP);
+      context.setTemplate(UNAVAILABLE_TEMPLATE);
       return context;
     }
 
@@ -97,7 +101,7 @@ public class ProductBrowserWidget extends GenericWidget {
     }
 
     context.getRequest().setAttribute("productList", productList);
-      context.getRequest().setAttribute("productImageMap", productImageMap);
+    context.getRequest().setAttribute("productImageMap", productImageMap);
 
     // Show the JSP
     String view = context.getPreferences().get("view");
@@ -110,8 +114,10 @@ public class ProductBrowserWidget extends GenericWidget {
 //      context.getRequest().setAttribute("showBullets", context.getPreferences().getOrDefault("showBullets", "true"));
 
       context.setJsp(CARD_SLIDER_JSP);
+      context.setTemplate(CARD_SLIDER_TEMPLATE);
     } else {
       context.setJsp(JSP);
+      context.setTemplate(TEMPLATE);
     }
     return context;
   }

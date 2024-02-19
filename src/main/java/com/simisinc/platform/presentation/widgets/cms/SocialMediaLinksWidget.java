@@ -73,6 +73,7 @@ public class SocialMediaLinksWidget extends GenericWidget {
 
     // Show the JSP
     context.setJsp(JSP);
+    context.setTemplate(TEMPLATE);
     return context;
   }
 }

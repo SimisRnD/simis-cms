@@ -34,6 +34,7 @@ public class SystemAlertWidget extends GenericWidget {
   static final long serialVersionUID = -8484048371911908893L;
 
   static String JSP = "/cms/system-alert.jsp";
+  static String TEMPLATE = "/cms/system-alert.html";
 
   public WidgetContext execute(WidgetContext context) {
     // Check if the widget has content and can be displayed
@@ -45,6 +46,7 @@ public class SystemAlertWidget extends GenericWidget {
 
     // Specify the content
     context.setJsp(JSP);
+    context.setTemplate(TEMPLATE);
     return context;
   }
 }

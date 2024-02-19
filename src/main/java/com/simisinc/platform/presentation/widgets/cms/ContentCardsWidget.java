@@ -35,6 +35,7 @@ public class ContentCardsWidget extends GenericWidget {
   static final long serialVersionUID = -8484048371911908893L;
 
   static String CARD_JSP = "/cms/content-card.jsp";
+  static String CARD_TEMPLATE = "/cms/content-card.html";
 
   public WidgetContext execute(WidgetContext context) {
 
@@ -74,6 +75,7 @@ public class ContentCardsWidget extends GenericWidget {
     context.getRequest().setAttribute("gridMargin", context.getPreferences().getOrDefault("gridMargin", "false"));
     context.getRequest().setAttribute("cardClass", context.getPreferences().get("cardClass"));
     context.setJsp(CARD_JSP);
+    context.setTemplate(CARD_TEMPLATE);
     return context;
   }
 
