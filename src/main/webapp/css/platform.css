@@ -334,6 +334,11 @@ table td .input-group {
   }
 }
 
+.admin-render-time {
+  position: absolute;
+  color: #888888;
+}
+
 /* Pagination */
 
 ul.pagination li.page {
