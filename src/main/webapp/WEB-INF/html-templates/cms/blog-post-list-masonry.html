@@ -17,6 +17,9 @@
             <h2><a th:href="${#strings.concat(ctx, '/', blog.uniqueId, '/', blogPost.uniqueId)}">[[${blogPost.title}]]</a></h2>
           </div>
           <div th:if="${#strings.equals(showAuthor, 'true') or #strings.equals(showTags, 'true')}" class="card-section blog-info">
+            <div th:if="${#strings.equals(showTags, 'true') and not #lists.isEmpty(blogPost.tagsList)}" class="float-right blog-tags">
+              <span th:each="tag: ${blogPost.tagsList}" class="label secondary" th:text="${tag}">Tag</span>
+            </div>
             <div th:if="${#strings.equals(showAuthor, 'true')}" class="blog-author">
               By <span th:text="#{user.name(${blogPost.createdBy})}">User Name</span>
             </div>
