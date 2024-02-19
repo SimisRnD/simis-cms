@@ -22,9 +22,8 @@
   <property name="exploded.dir" value="${out.dir}/exploded/ROOT" />
   <property name="exploded.work.dir" value="${out.dir}/exploded-work/ROOT" />
   <property name="custom.dir" value="${base.dir}/web-content" />
-
-
   <property name="jee.lib.dir" value="${base.dir}/lib/war" />
+
   <typedef resource="org/apache/catalina/ant/catalina.tasks">
     <classpath>
       <fileset dir="${base.dir}/lib/war" includes="*.jar"/>
@@ -171,6 +170,16 @@
         <include name="javascript/**"/>
       </fileset>
     </copy>
+    <!-- Custom Web Content (optional) -->
+    <copy todir="${target.dir}/${project}" preservelastmodified="true" overwrite="true" failonerror="false">
+      <fileset dir="${custom.dir}">
+        <include name="favicon.ico"/>
+        <include name="css/**"/>
+        <include name="fonts/**"/>
+        <include name="images/**"/>
+        <include name="javascript/**"/>
+      </fileset>
+    </copy>
     <!-- Prepare the JSPs-->
     <copy todir="${target.dir}/${project}/WEB-INF/jsp">
       <fileset dir="${web.dir}/WEB-INF/jsp"/>
@@ -287,8 +296,8 @@
         <include name="javascript/**"/>
       </fileset>
     </copy>
-    <!-- Custom Web Content -->
-    <copy todir="${exploded.work.dir}" preservelastmodified="true" overwrite="true">
+    <!-- Custom Web Content (optional) -->
+    <copy todir="${exploded.work.dir}" preservelastmodified="true" overwrite="true" failonerror="false">
       <fileset dir="${custom.dir}">
         <include name="favicon.ico"/>
         <include name="css/**"/>
