@@ -164,9 +164,10 @@ public class ContentHtmlCommand {
               "</div>" +
               embeddedHtml;
         }
-        context.getRequest().removeAttribute("showEditor");
+        // Turn off the general editor because the embedded ones will be used
+        context.getRequest().setAttribute("showEditor", "false");
       }
-      //
+
       sb.append(embeddedHtml);
       startUniqueIdx = html.indexOf("${uniqueId:", startUniqueIdx + 1);
       if (startUniqueIdx > -1) {

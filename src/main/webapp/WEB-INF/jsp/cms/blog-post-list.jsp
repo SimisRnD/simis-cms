@@ -120,14 +120,16 @@
               </div>
             </div>
           </c:if>
-          <div class="platform-blog-body">
-            <div class="grid-x grid-margin-x">
-              <div class="small-12 cell">
+          <c:if test="${showReadMore eq 'true'}">
+            <div class="platform-blog-body">
+              <div class="grid-x grid-margin-x">
+                <div class="small-12 cell">
                   ${html:toHtml(text:trim(html:text(blogPost.body), 220, true))}
-                <a href="${ctx}/${blog.uniqueId}/${blogPost.uniqueId}" class="read-more">Read more</a>
+                  <a href="${ctx}/${blog.uniqueId}/${blogPost.uniqueId}" class="read-more"><c:out value="${readMoreText}" /></a>
+                </div>
               </div>
             </div>
-          </div>
+          </c:if>
         </div>
         <c:if test="${!status.last}"><hr /></c:if>
       </c:forEach>

@@ -22,7 +22,7 @@ import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 
 /**
- * Description
+ * Displays the title of the blog post
  *
  * @author matt rajkowski
  * @created 8/20/19 9:56 PM

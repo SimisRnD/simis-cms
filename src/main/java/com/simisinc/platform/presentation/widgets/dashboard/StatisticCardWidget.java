@@ -23,7 +23,7 @@ import com.simisinc.platform.presentation.widgets.GenericWidget;
 import org.apache.commons.lang3.StringUtils;
 
 /**
- * Description
+ * Displays a chart with several stats
  *
  * @author matt rajkowski
  * @created 5/19/22 9:35 PM

@@ -41,16 +41,16 @@
       <h5>
         <a href="${ctx}/${blog.uniqueId}/${blogPost.uniqueId}">${html:toHtml(blogPost.title)}</a>
         <c:if test="${empty blogPost.published}"><span class="label warning">not published</span></c:if>
-        <c:if test="${date:isAfterNow(blogPost.startDate)}"><span class="label success">Set to display <c:out value="${date:relative(blogPost.startDate)}"/></span></c:if>
+        <c:if test="${date:isAfterNow(blogPost.startDate)}"><span class="label success">Set to display <c:out value="${date:relative(blogPost.startDate)}" /></span></c:if>
       </h5>
-      <c:if test="${!empty blogPost.startDate}">
+      <c:if test="${showDate eq 'true' && !empty blogPost.startDate}">
         <small>
           <c:out value="${date:formatMonthDayYear(blogPost.startDate)}"/>
         </small>
       </c:if>
       <c:if test="${showReadMore eq 'true'}">
         <p>
-          <a href="${ctx}/${blog.uniqueId}/${blogPost.uniqueId}" class="read-more">Read more</a>
+          <a href="${ctx}/${blog.uniqueId}/${blogPost.uniqueId}" class="read-more"><c:out value="${readMoreText}" /></a>
         </p>
       </c:if>
       <c:if test="${!status.last}">

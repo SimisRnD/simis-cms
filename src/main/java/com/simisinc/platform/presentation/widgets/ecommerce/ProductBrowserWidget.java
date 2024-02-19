@@ -26,7 +26,7 @@ import org.apache.commons.lang3.StringUtils;
 import java.util.*;
 
 /**
- * Provides product information
+ * Displays a list of products
  *
  * @author matt rajkowski
  * @created 2/4/2021 9:34 PM
@@ -64,6 +64,8 @@ public class ProductBrowserWidget extends GenericWidget {
     context.getRequest().setAttribute("cardImageClass", context.getPreferences().get("cardImageClass"));
     context.getRequest().setAttribute("buttonLabel", context.getPreferences().getOrDefault("button", "Shop"));
     context.getRequest().setAttribute("buttonClass", context.getPreferences().getOrDefault("buttonClass", "product-button button expanded"));
+    
+    int limit = Integer.parseInt(context.getPreferences().getOrDefault("limit", "-1"));
 
     // Check for <products> preference
     // <product uniqueId="the-unique-id" />
@@ -83,7 +85,7 @@ public class ProductBrowserWidget extends GenericWidget {
     }
 
     // Load the products
-    List<Product> productList = LoadProductListCommand.loadProductsForSale(productUniqueIdList);
+    List<Product> productList = LoadProductListCommand.loadProductsForSale(productUniqueIdList, limit);
     if (productList == null || productList.isEmpty()) {
       context.setJsp(UNAVAILABLE_JSP);
       return context;
@@ -95,9 +97,7 @@ public class ProductBrowserWidget extends GenericWidget {
     }
 
     context.getRequest().setAttribute("productList", productList);
-    if (!productImageMap.isEmpty()) {
       context.getRequest().setAttribute("productImageMap", productImageMap);
-    }
 
     // Show the JSP
     String view = context.getPreferences().get("view");

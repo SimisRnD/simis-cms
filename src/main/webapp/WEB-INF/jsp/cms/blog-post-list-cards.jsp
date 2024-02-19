@@ -57,9 +57,13 @@
                   <a href="${ctx}/${blog.uniqueId}/${blogPost.uniqueId}"><img alt="Blog post banner image" src="${ctx}${blogPost.imageUrl}"/></a>
                 </div>
               </c:if>
-              <c:if test="${showTags eq 'true'}">
+              <c:if test="${showTags eq 'true' && !empty blogPost.tagsList}">
                 <div class="card-section blog-tags">
-                  <h5>Blog Tag(s)</h5>
+                  <h5>
+                    <c:forEach items="${blogPost.tagsList}" var="tag">
+                      <span class="label secondary"><c:out value="${tag}" /></span>
+                    </c:forEach>
+                  </h5>
                 </div>
               </c:if>
               <div class="card-section blog-title">
@@ -67,7 +71,7 @@
               </div>
               <c:if test="${showAuthor eq 'true'}">
                 <div class="card-section blog-author">
-                  By <c:out value="${user:name(blogPost.createdBy)}"/>
+                  By <c:out value="${user:name(blogPost.createdBy)}" />
                 </div>
               </c:if>
               <c:if test="${showSummary eq 'true'}">
@@ -84,14 +88,16 @@
               </c:if>
               <c:if test="${showDate eq 'true' && !empty blogPost.startDate}">
                 <div class="card-section blog-date">
-                    <c:out value="${date:formatMonthDayYear(blogPost.startDate)}"/>
+                    <c:out value="${date:formatMonthDayYear(blogPost.startDate)}" />
                 </div>
               </c:if>
-              <div class="card-section">
-                <div class="blog-read-more">
-                  <a href="${ctx}/${blog.uniqueId}/${blogPost.uniqueId}" class="button"><c:out value="${readMoreText}" /></a>
+              <c:if test="${showReadMore eq 'true'}">
+                <div class="card-section">
+                  <div class="blog-read-more">
+                    <a href="${ctx}/${blog.uniqueId}/${blogPost.uniqueId}" class="button"><c:out value="${readMoreText}" /></a>
+                  </div>
                 </div>
-              </div>
+              </c:if>
             </div>
           </div>
         </c:forEach>

@@ -24,7 +24,7 @@ import org.apache.commons.lang3.StringUtils;
 import java.util.Map;
 
 /**
- * Description
+ * Displays a bar with content and a link, useful for a system-wide header
  *
  * @author matt rajkowski
  * @created 1/18/21 9:55 PM

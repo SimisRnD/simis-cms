@@ -25,7 +25,7 @@ import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 
 /**
- * Description
+ * Displays a list of social media links
  *
  * @author matt rajkowski
  * @created 1/20/21 3:44 PM

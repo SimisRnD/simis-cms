@@ -58,9 +58,10 @@ public class MainMenuWidget extends GenericWidget {
     boolean checkUser = "true".equals(context.getPreferences().getOrDefault("checkUser", "true"));
     boolean highlightActiveTab = Boolean.parseBoolean(context.getPreferences().getOrDefault("useHighlight", "true"));
     context.getRequest().setAttribute("useHighlight", highlightActiveTab ? "true" : "false");
-    boolean highlightSubmenuItem = Boolean
-        .parseBoolean(context.getPreferences().getOrDefault("useSmallHighlight", "false"));
-    context.getRequest().setAttribute("useSmallHighlight", highlightSubmenuItem ? "true" : "false");
+    boolean highlightSubmenuItem = Boolean.parseBoolean(context.getPreferences().getOrDefault("highlightSubmenuItem", "true"));
+    context.getRequest().setAttribute("highlightSubmenuItem", highlightSubmenuItem ? "true" : "false");
+    boolean useSmallHighlight = Boolean.parseBoolean(context.getPreferences().getOrDefault("useSmallHighlight", "false"));
+    context.getRequest().setAttribute("useSmallHighlight", useSmallHighlight ? "true" : "false");
     context.getRequest().setAttribute("showAdmin", context.getPreferences().getOrDefault("showAdmin", "true"));
     context.getRequest().setAttribute("menuClass", context.getPreferences().get("class"));
     context.getRequest().setAttribute("submenuIcon", context.getPreferences().get("submenuIcon"));
@@ -115,9 +116,12 @@ public class MainMenuWidget extends GenericWidget {
                 thisMenuItem.setName(menuItem.getName());
                 thisMenuItem.setLink(menuItem.getLink());
               // Is active when menuItem matches the page path
-              if ((highlightActiveTab || highlightSubmenuItem) &&
-                  thisMenuItem.getLink().equals(context.getRequest().getRequestURI())) {
+                if (highlightActiveTab) {
+                  thisMenuTab.setActive(true);
+                }
+                if ((highlightSubmenuItem)) {
                 thisMenuItem.setActive(true);
+                }
               }
               thisMenuItemList.add(thisMenuItem);
               }

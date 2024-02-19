@@ -24,7 +24,7 @@ import com.simisinc.platform.presentation.controller.WidgetContext;
 import org.apache.commons.lang3.StringUtils;
 
 /**
- * Description
+ * Displays a Map based on the supplied coordinates
  *
  * @author matt rajkowski
  * @created 1/22/19 12:12 PM

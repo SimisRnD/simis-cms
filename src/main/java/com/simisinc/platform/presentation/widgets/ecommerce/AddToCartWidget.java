@@ -38,7 +38,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Description
+ * Displays an Add to Cart button depending on several product conditions
  *
  * @author matt rajkowski
  * @created 4/9/19 8:53 PM
