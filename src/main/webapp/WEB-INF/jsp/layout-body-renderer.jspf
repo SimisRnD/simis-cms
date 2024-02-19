@@ -119,9 +119,9 @@
     <c:if test="${userSession.hasRole('admin') && !empty totalRenderTime &&
                   !fn:startsWith(pageRenderInfo.name, '/admin/web-page-designer') &&
                   !fn:startsWith(pageRenderInfo.name, '/content-editor')}">
-      <div class="grid-container hide-for-print" style="position:absolute">
+      <div class="grid-container hide-for-print admin-render-time">
         <div class="grid-x grid-padding-x">
-          <div class="small-12 cell text-right">
+          <div class="small-12 cell">
             <small>Render time: <c:out value="${totalRenderTime}" />ms</small>
           </div>
         </div>
