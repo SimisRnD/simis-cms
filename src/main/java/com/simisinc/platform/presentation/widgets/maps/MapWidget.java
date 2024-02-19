@@ -38,6 +38,10 @@ public class MapWidget extends GenericWidget {
 
   public WidgetContext execute(WidgetContext context) {
 
+    // Standard request items
+    context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));
+    context.getRequest().setAttribute("title", context.getPreferences().get("title"));
+
     // Determine the mapping service
     MapCredentials mapCredentials = FindMapTilesCredentialsCommand.getCredentials();
     if (mapCredentials == null) {
@@ -47,8 +51,16 @@ public class MapWidget extends GenericWidget {
     context.getRequest().setAttribute("mapCredentials", mapCredentials);
 
     // Determine the geo point
+    String coordinates = context.getPreferences().get("coordinates");
     String latitude = context.getPreferences().get("latitude");
     String longitude = context.getPreferences().get("longitude");
+
+    // Check for a unified coordinates value
+    if (!StringUtils.isBlank(coordinates) && coordinates.contains(",")) {
+      latitude = coordinates.substring(0, coordinates.indexOf(",")).trim();
+      longitude = coordinates.substring(coordinates.indexOf(",") + 1).trim();
+    }
+
     if (StringUtils.isBlank(latitude) || StringUtils.isBlank(longitude) ||
         "-1".equals(latitude) || "-1".equals(longitude) ||
         "0.0".equals(latitude) || "0.0".equals(longitude) ||
