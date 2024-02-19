@@ -219,7 +219,7 @@ public class MenuWidget extends GenericWidget {
               || isCollectionPage);
 
           // Add the additional admin items
-          addLink(context, linkList, "Admin", "/admin", "fa fa-cogs", container,
+          addLink(context, linkList, "CMS", "/admin", "fa fa-circle-nodes", container,
               "admin,content-manager,community-manager,data-manager,ecommerce-manager");
 
           // Add Page Editing Links
