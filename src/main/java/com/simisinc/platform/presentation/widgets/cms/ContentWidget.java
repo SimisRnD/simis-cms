@@ -33,6 +33,7 @@ public class ContentWidget extends GenericWidget {
   static final long serialVersionUID = -8484048371911908893L;
 
   static String JSP = "/cms/content.jsp";
+  static String TEMPLATE = "/cms/content.html";
 
   public WidgetContext execute(WidgetContext context) {
 
@@ -112,6 +113,7 @@ public class ContentWidget extends GenericWidget {
     }
 
     context.setJsp(JSP);
+    context.setTemplate(TEMPLATE);
     return context;
   }
 

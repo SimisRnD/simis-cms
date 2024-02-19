@@ -45,7 +45,9 @@ public class CalendarWidget extends GenericWidget {
   static final long serialVersionUID = -8484048371911908893L;
 
   static String JSP = "/calendar/full-calendar.jsp";
+  static String TEMPLATE = "/calendar/full-calendar.html";
   static String SMALL_JSP = "/calendar/small-calendar.jsp";
+  static String SMALL_TEMPLATE = "/calendar/small-calendar.html";
 
   public WidgetContext execute(WidgetContext context) {
 
@@ -65,9 +67,11 @@ public class CalendarWidget extends GenericWidget {
     String view = context.getPreferences().getOrDefault("view", null);
     if ("small".equals(view)) {
       context.setJsp(SMALL_JSP);
+      context.setTemplate(SMALL_TEMPLATE);
       context.getRequest().setAttribute("height", context.getPreferences().getOrDefault("height", "550"));
     } else {
       context.setJsp(JSP);
+      context.setTemplate(TEMPLATE);
       context.getRequest().setAttribute("height", context.getPreferences().getOrDefault("height", null));
     }
     context.getRequest().setAttribute("defaultView", context.getPreferences().getOrDefault("default", "month"));

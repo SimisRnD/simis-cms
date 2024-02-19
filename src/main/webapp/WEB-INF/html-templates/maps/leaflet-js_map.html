@@ -39,10 +39,10 @@
   /*[# th:if="${#strings.equals(showMarker, 'true')}" ]*/
   {
     let markerUniqueIdValue = "marker" + [[${widgetContext.uniqueId}]];
-    this[markerUniqueIdValue] = L.marker([itemLatitude, itemLongitude]).addTo(this[mapUniqueIdValue]);
-    /*[# th:if="${not #strings.isEmpty(markerTitle}" ]*/
+    this[markerUniqueIdValue] = L.marker([latitude, longitude]).addTo(this[mapUniqueIdValue]);
+    /*[# th:if="${not #strings.isEmpty(markerTitle)}" ]*/
     let markerTitle = [[${markerTitle}]];
-    let markerText = [[${not #strings.isEmpty(markerText) and not #strings.contains('{')} ? ${markerText}]];
+    let markerText = [[${not #strings.isEmpty(markerText)} ? ${markerText}]];
     this[markerUniqueIdValue].bindPopup("<b>" + markerTitle + "</b>" + (markerText.length > 0 ? "<br>" + markerText : "")).openPopup();
     // this[mapUniqueIdValue].panTo({lon: longitude, lat: latitude});
     /*[/]*/

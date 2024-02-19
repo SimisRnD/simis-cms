@@ -32,7 +32,9 @@ public class ProgressCardWidget extends GenericWidget {
   static final long serialVersionUID = -8484048371911908893L;
 
   public static String JSP = "/dashboard/progress-card.jsp";
+  public static String TEMPLATE = "/dashboard/progress-card.html";
   public static String JSP_VERTICAL = "/dashboard/progress-card-vertical.jsp";
+  public static String TEMPLATE_VERTICAL = "/dashboard/progress-card-vertical.html";
 
   public WidgetContext execute(WidgetContext context) {
     // Determine preferences
@@ -55,8 +57,10 @@ public class ProgressCardWidget extends GenericWidget {
     String view = context.getPreferences().getOrDefault("view", null);
     if ("vertical".equals(view)) {
       context.setJsp(JSP_VERTICAL);
+      context.setTemplate(TEMPLATE_VERTICAL);
     } else {
       context.setJsp(JSP);
+      context.setTemplate(TEMPLATE);
     }
     return context;
   }

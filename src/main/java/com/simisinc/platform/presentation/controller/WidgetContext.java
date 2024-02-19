@@ -28,7 +28,7 @@ import org.apache.commons.lang3.StringUtils;
 import com.simisinc.platform.presentation.widgets.cms.PreferenceEntriesList;
 
 /**
- * Description
+ * Encapsulates the methods and properties for widgets and the processor
  *
  * @author matt rajkowski
  * @created 4/6/18 2:22 PM
@@ -53,6 +53,7 @@ public class WidgetContext implements Serializable {
   private String pageKeywords = null;
 
   private String jsp = null;
+  private String template = null;
   private String html = null;
   private String json = null;
   private String widgetName = null;
@@ -173,6 +174,18 @@ public class WidgetContext implements Serializable {
 
   public boolean hasJsp() {
     return jsp != null;
+  }
+
+  public String getTemplate() {
+    return template;
+  }
+
+  public void setTemplate(String template) {
+    this.template = template;
+  }
+
+  public boolean hasTemplate() {
+    return template != null;
   }
 
   public String getHtml() {

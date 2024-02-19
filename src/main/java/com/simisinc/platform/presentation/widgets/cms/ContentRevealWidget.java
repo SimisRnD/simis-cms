@@ -35,6 +35,7 @@ public class ContentRevealWidget extends GenericWidget {
   static final long serialVersionUID = -8484048371911908893L;
 
   static String REVEAL_JSP = "/cms/content-reveal.jsp";
+  static String REVEAL_TEMPLATE = "/cms/content-reveal.html";
 
   public WidgetContext execute(WidgetContext context) {
 
@@ -76,6 +77,7 @@ public class ContentRevealWidget extends GenericWidget {
       context.getRequest().setAttribute("card2", cardList.get(1));
     }
     context.setJsp(REVEAL_JSP);
+    context.setTemplate(REVEAL_TEMPLATE);
     return context;
   }
 

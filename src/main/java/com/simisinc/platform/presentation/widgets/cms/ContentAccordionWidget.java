@@ -38,6 +38,7 @@ public class ContentAccordionWidget extends GenericWidget {
   static final long serialVersionUID = -8484048371911908893L;
 
   static String ACCORDION_JSP = "/cms/content-accordion.jsp";
+  static String ACCORDION_TEMPLATE = "/cms/content-accordion.html";
 
   public WidgetContext execute(WidgetContext context) {
 
@@ -119,7 +120,7 @@ public class ContentAccordionWidget extends GenericWidget {
 
     // Show the accordion
     context.setJsp(ACCORDION_JSP);
-
+    context.setTemplate(ACCORDION_TEMPLATE);
     return context;
   }
 

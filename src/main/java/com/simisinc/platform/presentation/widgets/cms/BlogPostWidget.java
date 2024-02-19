@@ -36,6 +36,7 @@ public class BlogPostWidget extends GenericWidget {
   static final long serialVersionUID = -8484048371911908893L;
 
   static String JSP = "/cms/blog-post-details.jsp";
+  static String TEMPLATE = "/cms/blog-post-details.html";
 
   public WidgetContext execute(WidgetContext context) {
 
@@ -74,6 +75,7 @@ public class BlogPostWidget extends GenericWidget {
 
     // Show the formatted content
     context.setJsp(JSP);
+    context.setTemplate(TEMPLATE);
     return context;
   }
 

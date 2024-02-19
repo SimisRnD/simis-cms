@@ -34,6 +34,7 @@ public class ProductNameWidget extends GenericWidget {
   static final long serialVersionUID = -8484048371911908893L;
 
   static String JSP = "/ecommerce/product-name.jsp";
+  static String TEMPLATE = "/ecommerce/product-name.html";
   static String ERROR_JSP = "/ecommerce/product-name-error.jsp";
 
   public WidgetContext execute(WidgetContext context) {
@@ -69,6 +70,7 @@ public class ProductNameWidget extends GenericWidget {
       ProductPriceCommand.configurePriceAndStartingPrice(product);
     }
     context.setJsp(JSP);
+    context.setTemplate(TEMPLATE);
     return context;
   }
 }

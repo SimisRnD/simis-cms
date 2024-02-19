@@ -42,6 +42,7 @@ public class BreadCrumbsWidget extends GenericWidget {
   protected static Log LOG = LogFactory.getLog(BreadCrumbsWidget.class);
 
   static String JSP = "/cms/breadcrumbs.jsp";
+  static String TEMPLATE = "/cms/breadcrumbs.html";
 
   public WidgetContext execute(WidgetContext context) {
 
@@ -98,6 +99,7 @@ public class BreadCrumbsWidget extends GenericWidget {
 
     // Show the html
     context.setJsp(JSP);
+    context.setTemplate(TEMPLATE);
     return context;
   }
 }

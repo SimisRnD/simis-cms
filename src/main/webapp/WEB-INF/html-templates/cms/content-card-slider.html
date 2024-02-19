@@ -31,16 +31,16 @@
   let swiperButtonPreviousId = "#swiper-button-prev" + [[${widgetContext.uniqueId}]];
 
   let swiperOptions = {
-    slidesPerView: [[${smallCardCount}]],
+    slidesPerView: [(${smallCardCount})],
     centerInsufficientSlides: true,
     spaceBetween: 15,
     breakpoints: {
         640: {
-            slidesPerView: [[${mediumCardCount}]],
+            slidesPerView: [(${mediumCardCount})],
             spaceBetween: 15
         },
         1024: {
-            slidesPerView: [[${largeCardCount}]],
+            slidesPerView: [(${largeCardCount})],
             spaceBetween: 15
         }
     }

@@ -39,6 +39,7 @@ public class InstagramWidget extends GenericWidget {
   static final long serialVersionUID = -8484048371911908893L;
 
   static String CARD_JSP = "/cms/instagram-cards.jsp";
+  static String CARD_TEMPLATE = "/cms/instagram-cards.html";
 
   public WidgetContext execute(WidgetContext context) {
 
@@ -88,6 +89,7 @@ public class InstagramWidget extends GenericWidget {
 
     // Determine the view
     context.setJsp(CARD_JSP);
+    context.setTemplate(CARD_TEMPLATE);
     return context;
   }
 

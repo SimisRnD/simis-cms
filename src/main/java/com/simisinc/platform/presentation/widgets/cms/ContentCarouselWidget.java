@@ -36,6 +36,7 @@ public class ContentCarouselWidget extends GenericWidget {
   static final long serialVersionUID = -8484048371911908893L;
 
   static String CAROUSEL_JSP = "/cms/content-carousel.jsp";
+  static String CAROUSEL_TEMPLATE = "/cms/content-carousel.html";
 
   public WidgetContext execute(WidgetContext context) {
 
@@ -120,6 +121,7 @@ public class ContentCarouselWidget extends GenericWidget {
     }
 
     context.setJsp(CAROUSEL_JSP);
+    context.setTemplate(CAROUSEL_TEMPLATE);
     return context;
   }
 

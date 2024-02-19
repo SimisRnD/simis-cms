@@ -46,6 +46,7 @@ public class BlogPostListWidget extends GenericWidget {
   static String CARDS_JSP = "/cms/blog-post-list-cards.jsp";
   static String FEATURED_JSP = "/cms/blog-post-list-featured.jsp";
   static String MASONRY_JSP = "/cms/blog-post-list-masonry.jsp";
+  static String MASONRY_TEMPLATE = "/cms/blog-post-list-masonry.html";
 
   public WidgetContext execute(WidgetContext context) {
 
@@ -136,7 +137,7 @@ public class BlogPostListWidget extends GenericWidget {
     // Load the blog posts
     List<BlogPost> blogPostList = BlogPostRepository.findAll(blogPostSpecification, constraints);
     context.getRequest().setAttribute("blogPostList", blogPostList);
-
+    
     // See if an empty widget can be shown
     if (blogPostList.isEmpty()) {
       if (!"true".equals(context.getPreferences().getOrDefault("showWhenEmpty", "true"))) {
@@ -170,6 +171,7 @@ public class BlogPostListWidget extends GenericWidget {
       context.setJsp(CARDS_JSP);
     } else if ("masonry".equals(view)) {
       context.setJsp(MASONRY_JSP);
+      context.setTemplate(MASONRY_TEMPLATE);
     } else if ("featured".equals(view)) {
       context.setJsp(FEATURED_JSP);
     } else {
