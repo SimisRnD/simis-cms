@@ -35,12 +35,12 @@
 </c:if>
 <c:if test="${!empty folderYearMap}">
   <div class="platform-content-container">
-    <ul class="tabs" data-deep-link="true" data-update-history="true" data-deep-link-smudge="true" data-deep-link-smudge-delay="500" data-tabs id="deeplinked-tabs">
+    <ul class="tabs" data-deep-link="true" data-update-history="true" data-deep-link-smudge="true" data-deep-link-smudge-delay="500" data-tabs id="deeplinked-tabs-${widgetContext.uniqueId}">
       <c:forEach items="${folderYearMap}" var="year" varStatus="tabStatus">
         <li class="tabs-title<c:if test="${tabStatus.first}"> is-active</c:if>"><a href="#<c:out value="${year.key}" />" aria-selected="true"><c:out value="${year.key}" /></a></li>
       </c:forEach>
     </ul>
-    <div class="tabs-content" data-tabs-content="deeplinked-tabs">
+    <div class="tabs-content" data-tabs-content="deeplinked-tabs-${widgetContext.uniqueId}">
       <c:forEach items="${folderYearMap}" var="year" varStatus="tabStatus">
         <div class="tabs-panel<c:if test="${tabStatus.first}"> is-active</c:if>" id="${year.key}">
           <ul class="platform-folder-list-container">

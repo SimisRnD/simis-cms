@@ -33,6 +33,8 @@ public class LoadStylesheetCommand {
 
   public static Stylesheet loadStylesheetByWebPageId(long webPageId) {
     // @todo keep track of web pages without a custom stylesheet so the cache hit can be avoided
+    // If no style then store the webPageId in a cache (invalidate the item when a style is set)
+    
     // Use the cache
     return (Stylesheet) CacheManager.getLoadingCache(CacheManager.STYLESHEET_WEB_PAGE_ID_CACHE).get(webPageId);
   }

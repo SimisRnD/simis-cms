@@ -4,12 +4,12 @@
   <groupId>com.simisinc</groupId>
   <artifactId>simis-cms</artifactId>
   <version>20240131.10000-SNAPSHOT</version>
-  <name>SimIS CMS</name>
-  <url>https://www.simiscms.com</url>
+  <name>CMS Platform</name>
+  <url>https://github.com/rajkowski/cms-platform</url>
   <description>Agile, Enterprise, Open Source Content Management System (CMS) and Web Portal</description>
   <organization>
-    <name>SimIS Inc.</name>
-    <url>https://www.simisinc.com</url>
+    <name>Matt Rajkowski</name>
+    <url>https://github.com/rajkowski</url>
   </organization>
   <licenses>
     <license>

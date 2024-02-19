@@ -1,4 +1,5 @@
 {
+    "java.settings.url": ".vscode/settings.prefs",
     "java.project.referencedLibraries": [
         "lib/build/**/*.jar",
         "lib/compile/**/*.jar",

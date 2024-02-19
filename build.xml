@@ -1,6 +1,6 @@
 <?xml version="1.0"?>
 
-<project name="SimIS CMS" default="build" basedir="." xmlns:jacoco="antlib:org.jacoco.ant">
+<project name="CMS Platform" default="build" basedir="." xmlns:jacoco="antlib:org.jacoco.ant">
 
   <property name="project" value="simis-cms" />
   <property name="jdk" value="17" />
@@ -21,8 +21,9 @@
   <property name="out.dir" value="${base.dir}/out" />
   <property name="exploded.dir" value="${out.dir}/exploded/ROOT" />
   <property name="exploded.work.dir" value="${out.dir}/exploded-work/ROOT" />
-
+  <property name="custom.dir" value="${base.dir}/web-content" />
   <property name="jee.lib.dir" value="${base.dir}/lib/war" />
+
   <typedef resource="org/apache/catalina/ant/catalina.tasks">
     <classpath>
       <fileset dir="${base.dir}/lib/war" includes="*.jar"/>
@@ -169,6 +170,16 @@
         <include name="javascript/**"/>
       </fileset>
     </copy>
+    <!-- Custom Web Content (optional) -->
+    <copy todir="${target.dir}/${project}" preservelastmodified="true" overwrite="true" failonerror="false">
+      <fileset dir="${custom.dir}">
+        <include name="favicon.ico"/>
+        <include name="css/**"/>
+        <include name="fonts/**"/>
+        <include name="images/**"/>
+        <include name="javascript/**"/>
+      </fileset>
+    </copy>
     <!-- Prepare the JSPs-->
     <copy todir="${target.dir}/${project}/WEB-INF/jsp">
       <fileset dir="${web.dir}/WEB-INF/jsp"/>
@@ -279,6 +290,16 @@
     <copy todir="${exploded.work.dir}" preservelastmodified="true">
       <fileset dir="${web.dir}">
         <include name="robots.txt"/>
+        <include name="css/**"/>
+        <include name="fonts/**"/>
+        <include name="images/**"/>
+        <include name="javascript/**"/>
+      </fileset>
+    </copy>
+    <!-- Custom Web Content (optional) -->
+    <copy todir="${exploded.work.dir}" preservelastmodified="true" overwrite="true" failonerror="false">
+      <fileset dir="${custom.dir}">
+        <include name="favicon.ico"/>
         <include name="css/**"/>
         <include name="fonts/**"/>
         <include name="images/**"/>

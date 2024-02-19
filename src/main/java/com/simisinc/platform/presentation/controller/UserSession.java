@@ -80,6 +80,8 @@ public class UserSession implements Serializable {
     roleList = user.getRoleList();
     groupList = user.getGroupList();
     loginTime = System.currentTimeMillis();
+    // @todo
+    // formToken = ... this token must be a distributed value
   }
 
   public void setRoleList(List<Role> roleList) {

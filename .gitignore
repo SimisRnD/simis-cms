@@ -8,6 +8,7 @@
 /target
 /exploded
 /node_modules
+/web-content
 
 # Environment variables
 .env

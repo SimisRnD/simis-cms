@@ -1,6 +1,6 @@
 {
-  "name": "simis-cms",
-  "version": "1.0.0",
+  "name": "cms-platform",
+  "version": "1.1.0",
   "description": "SimIS CMS: Agile, Enterprise, Open Source Content Management System (CMS) and Portal, frontend dependencies",
   "author": "SimIS Inc.",
   "license": "Apache License 2.0",
