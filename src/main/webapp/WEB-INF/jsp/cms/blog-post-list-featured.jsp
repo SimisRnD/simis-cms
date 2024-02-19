@@ -75,13 +75,18 @@
             </c:if>
             <c:if test="${showAuthor eq 'true'}">
               <div class="featured-blog-author">
-                <c:out value="${user:name(blogPost.createdBy)}"/>
+                <c:out value="${user:name(blogPost.createdBy)}" />
               </div>
             </c:if>
             <c:if test="${showDate eq 'true' && !empty blogPost.startDate}">
               <div class="featured-blog-date">
-                <c:out value="${date:formatMonthDayYear(blogPost.startDate)}"/>
+                <c:out value="${date:formatMonthDayYear(blogPost.startDate)}" />
               </div>
+            </c:if>
+            <c:if test="${showReadMore eq 'true'}">
+              <p>
+                <a href="${ctx}/${blog.uniqueId}/${blogPost.uniqueId}" class="read-more"><c:out value="${readMoreText}" /></a>
+              </p>
             </c:if>
           </div>
         </div>

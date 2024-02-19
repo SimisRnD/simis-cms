@@ -1,0 +1,17 @@
+<!--/* CMS Platform Template, 2024 */-->
+<h4 th:if="${not #strings.isEmpty(title)}">
+  <i th:if="${not #strings.isEmpty(icon)}" class="fa" th:classappend="${icon}"></i>
+  [[${title}]]
+</h4>
+<div class="platform-content-container">
+  <ul th:each="contentTab, tabStatus : contentTabList" class="tabs">
+    <li class="tabs-title" th:classappend="${contentTab.isActive} ? 'is-active'"><a th:href="${#strings.concat(ctx, contentTab.link)}" th:attr="aria-selected=${contentTab.isActive ? 'true'}">[[${contentTab.name}]]</a></li>
+  </ul>
+  <div class="tabs-content">
+    <div th:each="contentTab, tabStatus: ${contentTabList}" class="tabs-panel" th:classappend="${contentTab.isActive} ? 'is-active'">
+      <div class="platform-content">
+        [(${contentTab.html})]
+      </div>
+    </div>
+  </div>
+</div>

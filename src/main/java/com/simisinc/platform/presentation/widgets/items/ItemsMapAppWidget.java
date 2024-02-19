@@ -32,7 +32,7 @@ import org.apache.commons.lang3.StringUtils;
 import java.util.List;
 
 /**
- * Description
+ * Displays a map of dynamic items
  *
  * @author matt rajkowski
  * @created 3/25/20 8:45 PM

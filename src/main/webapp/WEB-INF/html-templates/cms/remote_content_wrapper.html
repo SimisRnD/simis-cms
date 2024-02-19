@@ -1,0 +1,6 @@
+<!--/* CMS Platform Template, 2024 */-->
+<h4 th:if="${not #strings.isEmpty(title)}">
+  <i th:if="${not #strings.isEmpty(icon)}" class="fa" th:classappend="${icon}"></i>
+  [[${title}]]
+</h4>
+[(${content})]

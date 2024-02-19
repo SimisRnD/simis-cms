@@ -22,7 +22,7 @@ import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 
 /**
- * Description
+ * Displays a chart with progress indicator
  *
  * @author matt rajkowski
  * @created 5/19/22 9:35 PM

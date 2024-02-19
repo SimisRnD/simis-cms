@@ -1,0 +1,12 @@
+<!--/* CMS Platform Template, 2024 */-->
+<div class="platform-toc-container">
+  <nav aria-label="You are here:" role="navigation">
+    <ul class="vertical menu">
+      <th:block th:each="entry, status: ${tableOfContents.entries}">
+        <li th:if="${entry.active}" class="is-active"><a class="is-active" th:href="${#strings.concat(ctx, '/', #uris.escapePath(entry.link))}" th:text="${entry.name}">Active Link</a></li>
+        <li th:if="${!entry.active and not #strings.isEmpty(entry.link)}"><a th:href="${#strings.concat(ctx, entry.link)}" th:text="${entry.name}"></a></li>
+        <li th:if="${!entry.active and #strings.isEmpty(entry.link)}"><span class="show-for-sr">Current: </span> [[${entry.name}]]</li>
+      </th:block>
+    </ul>
+  </nav>
+</div>

@@ -1,0 +1,25 @@
+<!--/* CMS Platform Template, 2024 */-->
+<h4 th:if="${not #strings.isEmpty(title)}">
+  <i th:if="${not #strings.isEmpty(icon)}" class="fa" th:classappend="${icon}"></i>
+  [[${title}]]
+</h4>
+<div class="platform-content-container" th:if="${not #strings.isEmpty(card1)}">
+  <div th:id="${#strings.concat('gallery-image', widgetContext.uniqueId)}" th:utext="${card1}" />
+  <div class="platform-content" th:if="${#arrays.length(cardList) gt 1}">
+    <div class="grid-x grid-margin-x">
+      <div th:each="card, cardStatus : ${cardList}"
+           th:id="${#strings.concat('image', widgetContext.uniqueId, cardStatus.index)}"
+           class="cell small-3 text-center">
+        <a th:href="${#strings.concat('javascript:changeImage', widgetContext.uniqueId, '(', cardStatus.index, ')')}" th:utext="${card}" />
+      </div>
+    </div>
+  </div>
+</div>
+<script th:inline="javascript">
+  const changeImageValue = "changeImage" + [[${widgetContext.uniqueId}]];
+  this[changeImageValue] = function(index) {
+    var image = $('#gallery-image' + [[${widgetContext.uniqueId}]] + ' img');
+    var thumb = $('#image' + [[${widgetContext.uniqueId}]] + index + ' img');
+    image.attr("src",thumb.attr('src'));
+  };
+</script>

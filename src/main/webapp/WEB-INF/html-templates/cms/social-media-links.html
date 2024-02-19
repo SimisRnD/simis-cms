@@ -1,0 +1,9 @@
+<!--/* CMS Platform Template, 2024 */-->
+<th:block th:each="site, status: ${socialLinks}" th:switch="${site}">
+  <a th:case="instagram" th:class="${!status.first} ? ${iconClass}" target="_blank" th:href="${socialPropertyMap['social.instagram.url']}"><i class="fa fa-2x fa-instagram"></i></a>
+  <a th:case="twitter" th:class="${!status.first} ? ${iconClass}" target="_blank" th:href="${socialPropertyMap['social.twitter.url']}"><i class="fa fa-2x fa-twitter"></i></a>
+  <a th:case="facebook" th:class="${!status.first} ? ${iconClass}" target="_blank" th:href="${socialPropertyMap['social.facebook.url']}"><i class="fa fa-2x fa-facebook-square"></i></a>
+  <a th:case="youtube" th:class="${!status.first} ? ${iconClass}" target="_blank" th:href="${socialPropertyMap['social.youtube.url']}"><i class="fa fa-2x fa-youtube"></i></a>
+  <a th:case="flickr" th:class="${!status.first} ? ${iconClass}" target="_blank" th:href="${socialPropertyMap['social.flickr.url']}"><i class="fa fa-2x fa-flickr"></i></a>
+  <a th:case="linkedin" th:class="${!status.first} ? ${iconClass}" target="_blank" th:href="${socialPropertyMap['social.linkedin.url']}"><i class="fa fa-2x fa-linkedin"></i></a>
+</th:block>

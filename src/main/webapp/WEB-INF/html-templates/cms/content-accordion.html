@@ -1,0 +1,31 @@
+<!--/* CMS Platform Template, 2024 */-->
+<h4 th:if="${not #strings.isEmpty(title)}">
+  <i th:if="${not #strings.isEmpty(icon)}" class="fa" th:classappend="${icon}"></i>
+  [[${title}]]
+</h4>
+<div th:if="${not #arrays.isEmpty(sectionList)}" class="platform-content-container">
+  <ul id="accordion0" class="accordion" th:classappend="${accordionClass}" data-accordion data-allow-all-closed="true" th:attr="data-multi-expand=${#strings.equals(expandTopLevel, 'true') ? 'true' : 'false'}">
+    <th:block th:each="section, sectionStatus : ${sectionList}" th:switch="${not #strings.isEmpty(section.title)} ? ${true} : ${false}">
+      <li th:case="${true}" th:id="${section.uniqueId}" class="accordion-item" th:classappend="${#strings.equals(expandTopLevel, 'true')} ? 'is-active'" data-accordion-item>
+        <h5 th:if="${#strings.equals(expandTopLevel, 'true')}" class="accordion-header accordion-title-level-1">[[${section.title}]]</h5>
+        <a th:if="${not #strings.equals(expandTopLevel, 'true')}" href="#" class="accordion-title accordion-title-level-1" th:text="${section.title}">Example Title</a>
+        <div th:id="${#strings.concat('accordion', sectionStatus.count, '-content')}" class="accordion-content" data-tab-content>
+          <ul th:id="${#strings.concat('accordion', sectionStatus.count)}" class="accordion" th:classappend="${innerAccordionClass}" data-accordion data-allow-all-closed="true">
+            <th:block th:each="card, cardStatus : ${section.contentList}">
+              <li th:id="${section.uniqueIdList[cardStatus.index]}" class="accordion-item" data-accordion-item>
+                <a href="#" class="accordion-title accordion-title-level-2" th:utext="${section.labelsList[cardStatus.index]}">Example Title</a>
+                <div class="accordion-content" th:utext="${card}" data-tab-content />
+              </li>
+            </th:block>
+          </ul>
+        </div>
+      </li>
+      <th:block th:case="${false}">
+        <li th:each="card, cardStatus : ${section.contentList}" th:id="${section.uniqueIdList[cardStatus.index]}" class="accordion-item" data-accordion-item>
+          <a href="#" class="accordion-title accordion-title-level-2" th:utext="${section.labelsList[cardStatus.index]}">Example Title</a>
+          <div class="accordion-content" th:utext="${card}" data-tab-content />
+        </li>
+      </th:block>
+    </th:block>
+  </ul>
+</div>

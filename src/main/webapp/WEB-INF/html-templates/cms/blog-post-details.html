@@ -1,0 +1,35 @@
+<!--/* CMS Platform Template, 2024 */-->
+<h4 th:if="${not #strings.isEmpty(title)}">
+  <i th:if="${not #strings.isEmpty(icon)}" class="fa" th:classappend="${icon}"></i>
+  [[${title}]]
+</h4>
+<div th:if="${not blog.enabled}" class="callout warning">This post is currently offline</div>
+<div th:if="${#strings.isEmpty(blogPost.published)}" class="callout warning">Currently not published</div>
+<div class="platform-blog-container">
+  <div th:if="${#strings.equals(showTitle, 'true')}" class="platform-blog-title">
+    <h2 th:text="${blogPost.title}">Title</h2>
+  </div>
+  <div th:if="${#strings.equals(showAuthor, 'true') || 
+              (#strings.equals(showDate, 'true') && not #strings.isEmpty(blogPost.startDate)) || 
+              (not #arrays.isEmpty(blogPost.tagsList))}" class="platform-blog-byline">
+    <div class="grid-x grid-margin-x">
+      <div th:if="${#strings.equals(showAuthor, 'true')}" class="cell shrink">
+        by <span th:text="#{user.name(${blogPost.createdBy})}">User Name</span>
+      </div>
+      <div th:if="${#strings.equals(showDate, 'true') && not #strings.isEmpty(blogPost.startDate)}" class="cell shrink">
+        [[${#dates.monthName(blogPost.startDate)}]]
+        [[${#dates.format(blogPost.startDate, 'dd, yyyy')}]]
+      </div>
+      <div th:if="${not #arrays.isEmpty(blogPost.tagsList)}" th:each="tag : ${blogPost.tagsList}" class="cell auto">
+        <span class="label secondary" th:text="${tag}">Tag</span>
+      </div>
+    </div>
+  </div>
+  <div class="platform-blog-body">
+    <div class="grid-x grid-margin-x">
+      <div class="small-12 cell" th:utext="${blogPost.body}" />
+    </div>
+  </div>
+</div>
+<hr />
+<a class="button radius secondary no-gap" th:href="${#strings.concat(ctx, blog.link)}"><i class="fa fa-arrow-left"></i> Back to List</a>

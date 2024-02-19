@@ -1,0 +1,18 @@
+<!--/* CMS Platform Template, 2024 */-->
+<h4 th:if="${not #strings.isEmpty(title)}">
+  <i th:if="${not #strings.isEmpty(icon)}" class="fa" th:classappend="${icon}"></i>
+  [[${title}]]
+</h4>
+<div class="platform-content-container">
+  <div th:switch="${not #strings.isEmpty(videoBackgroundUrl)} ? ${true} : ${false}">
+    <div th:case="${true}" class="video-background">
+      <video autoplay muted loop>
+        <source type="video/mp4" th:src="${videoBackgroundUrl}" src="">
+      </video>
+      <div class="video-background-content">
+        <div class="platform-content" th:utext="${contentHtml}">Sample HTML content with video background</div>
+      </div>
+    </div>
+    <div th:case="${false}" class="platform-content" th:utext="${contentHtml}">Sample HTML content</div>
+  </div>
+</div>

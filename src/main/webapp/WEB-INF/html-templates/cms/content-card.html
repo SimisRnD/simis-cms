@@ -1,0 +1,33 @@
+<!--/* CMS Platform Template, 2024 */-->
+<h4 th:if="${not #strings.isEmpty(title)}">
+  <i th:if="${not #strings.isEmpty(icon)}" class="fa" th:classappend="${icon}"></i>
+  [[${title}]]
+</h4>
+<style th:if="${not #strings.isEmpty(cardSize)}">
+  .card-container[[${widgetContext.uniqueId}]] { width: [[${cardSize}]]; }
+  .card[[${widgetContext.uniqueId}]] img { max-height: 200px; width: auto; }
+</style>
+<style>
+  .card[[${widgetContext.uniqueId}]] { border: none; }
+</style>
+<div class="platform-content-container">
+  <th:block th:switch="${not #strings.isEmpty(smallCardCount)} ? ${true} : ${false}">
+    <div th:case="${true}" class="platform-content">
+      <div th:class="${#strings.concat('grid-x', ' ', (#strings.equals(gridMargin, 'true') ? 'grid-margin-x' : ''), ' ', 'align-center text-center align-stretch small-up-', smallCardCount, ' ', 'medium-up-', mediumCardCount, ' ', 'large-up-', largeCardCount)}">
+        <div th:each="card : ${cardList}" th:class="${#strings.concat('card-container', widgetContext.uniqueId)}" th:classappend="cell">
+          <div th:class="${#strings.concat('card', widgetContext.uniqueId)}" th:classappend="${cardClass}" th:utext="${card}" />
+        </div>
+      </div>
+    </div>
+    <div th:case="${false}" class="platform-content">
+      <div class="grid-x grid-padding-x align-center text-center align-stretch">
+        <div th:each="card : ${cardList}" th:class="${#strings.concat('card-container', widgetContext.uniqueId)}" th:classappend="cell">
+          <div th:class="${#strings.concat('card', widgetContext.uniqueId)}" th:classappend="${cardClass}" th:utext="${card}" />
+        </div>
+      </div>
+    </div>
+  </th:block>
+</div>
+<th:block th:if="${not #strings.isEmpty(extraHTMLContent)}">
+  [(${extraHTMLContent})]
+</th:block>

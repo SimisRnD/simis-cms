@@ -1,0 +1,20 @@
+<!--/* CMS Platform Template, 2024 */-->
+<h4 th:if="${not #strings.isEmpty(title)}">
+  <i th:if="${not #strings.isEmpty(icon)}" class="fa" th:classappend="${icon}"></i>
+  [[${title}]]
+</h4>
+<style>
+  .card[[${widgetContext.uniqueId}]] { border: none; }
+</style>
+<div class="platform-content-container">
+  <div class="platform-content">
+    <div th:class="${#strings.concat('grid-x grid-margin-x align-center text-center align-middle small-up-', smallCardCount, ' ', 'medium-up-', mediumCardCount, ' ', 'large-up-', largeCardCount)}">
+        <div th:each="card: ${cardList}" th:class="${#strings.concat('card-container', widgetContext.uniqueId, ' ', 'cell')}">
+          <div th:class="${#strings.concat('card', widgetContext.uniqueId)}" th:classappend="${cardClass}" th:utext="${card}" />
+        </div>
+    </div>
+  </div>
+</div>
+<th:block th:if="${not #strings.isEmpty(extraHTMLContent)}">
+  [(${extraHTMLContent})]
+</th:block>

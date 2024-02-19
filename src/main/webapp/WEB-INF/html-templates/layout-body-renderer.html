@@ -1,0 +1,18 @@
+<!--/* CMS Platform Template, 2024 */-->
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+  <article th:fragment="article">
+    <div class="platform-body" data-or="container-body">
+      <th:block th:each="section, sectionStatus : ${pageRenderInfo.sectionRenderInfoList}"
+                th:with="sectionId=${not #strings.isEmpty(section.htmlId)} ? ${section.htmlId} : ${#strings.concat('random', sectionStatus.index)}">
+        <hr th:if="${section.hr}" />
+        <div th:id="${sectionId}"
+              th:class="${not #strings.isEmpty(section.cssClass) and (#strings.contains(section.cssClass, 'grid') or #strings.contains(section.cssClass, 'platform-no-margin'))} ? ${section.cssClass} : 'full-container'" 
+              th:style="${not #strings.isEmpty(section.cssStyle)} ? ${section.cssStyle}"
+              th:switch="${(not #strings.isEmpty(section.cssClass)) and (#strings.contains(section.cssClass, 'grid') or #strings.contains(section.cssClass, 'platform-no-margin'))} ? ${true} : ${false}">
+          <th:block th:replace="~{layout-section-renderer :: sections}"></th>
+        </div>
+      </th:block>
+    </div>
+  </article>
+</html>
