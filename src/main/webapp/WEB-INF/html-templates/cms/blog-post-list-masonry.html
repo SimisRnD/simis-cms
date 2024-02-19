@@ -29,7 +29,7 @@
             <p th:case="${false}" th:text="${#strings.abbreviate(blogPost.bodyText, 220)}">Sample blog text.</p>
           </div>
           <div class="card-section-bleed">
-            <div class="float-right blog-read-more">
+            <div th:if="${#strings.equals(showReadMore, 'true')}" class="float-right blog-read-more">
               <a th:href="${#strings.concat(ctx, '/', blog.uniqueId, '/', blogPost.uniqueId)}" class="read-more">[[${readMoreText}]]</a>
             </div>
             <div th:if="${#strings.equals(showDate, 'true') and not #strings.isEmpty(blogPost.startDate)}" class="blog-date">
