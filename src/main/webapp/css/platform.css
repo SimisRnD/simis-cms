@@ -335,8 +335,9 @@ table td .input-group {
 }
 
 .admin-render-time {
-  position: relative;
+  position: absolute;
   color: #888888;
+  right: 40px;
 }
 
 /* Pagination */
