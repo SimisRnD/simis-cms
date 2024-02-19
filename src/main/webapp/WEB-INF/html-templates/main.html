@@ -1,0 +1,350 @@
+<!--/* CMS Platform Template, 2024 */-->
+<!DOCTYPE html>
+<html class="no-js" lang="en" xml:lang="en" xmlns="http://www.w3.org/1999/xhtml" xmlns:th="http://www.thymeleaf.org">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="x-ua-compatible" content="ie=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta http-equiv="Content-Language" content="en">
+    <!--
+    ========================================================================
+    CMS Platform v[[${VERSION}]]
+    https://github.com/rajkowski/cms-platform
+    ========================================================================
+    -->
+    <link rel="apple-touch-icon" type="image/png" th:href="${#strings.concat(ctx, '/images/apple-touch-icon.png')}">
+    <link rel="icon" type="image/png" th:href="${#strings.concat(ctx, '/images/favicon.png')}">
+    <title>[[${pageRenderInfo.title}]]</title>
+    <meta th:if="${not #strings.isEmpty(pageRenderInfo.keywords)}" name="keywords" th:content="${pageRenderInfo.keywords}">
+    <meta th:if="${not #strings.isEmpty(pageRenderInfo.description)}" name="description" th:content="${pageRenderInfo.description}">
+    <meta th:if="${not #strings.isEmpty(pageRenderInfo.imageUrl)}" name="og:image" th:content="${pageRenderInfo.imageUrl}">
+    <link rel="stylesheet" type="text/css" href="${ctx}/css/fontawesome-free-6.1.1-web/css/all.min.css" />
+    <link rel="stylesheet" type="text/css" href="${ctx}/css/fontawesome-free-6.1.1-web/css/v4-shims.min.css" />
+    <link rel="stylesheet" type="text/css" href="${ctx}/css/fontawesome-free-6.1.1-web/css/v5-font-face.min.css" />
+    <link rel="stylesheet" type="text/css" href="${ctx}/css/foundation-6.8.1/foundation.min.css" />
+    <link rel="stylesheet" type="text/css" href="${ctx}/css/foundation-6.8.1/motion-ui.min.css" />
+    <link rel="stylesheet" type="text/css" href="${ctx}/css/animate-3.7.2/animate.min.css" />
+    <link rel="stylesheet" type="text/css" href="${ctx}/css/foundation-datepicker-20180424/foundation-datepicker.min.css" />
+    <link rel="stylesheet" type="text/css" href="${ctx}/javascript/autocomplete-1.0.7/auto-complete.css" />
+    <link rel="stylesheet" type="text/css" href="${ctx}/javascript/swiper-11.0.5/swiper-bundle.min.css" />
+    <link rel="stylesheet" type="text/css" th:href="${#strings.concat(ctx, '/css/platform.css?v=', VERSION)}" />
+    <link rel="stylesheet" type="text/css" th:href="${#strings.concat(ctx, '/css/platform-ecommerce.css?v=', VERSION)}" />
+    <style th:if="${not #strings.isEmpty(themePropertyMap['theme.body.text.color'])}">
+      .no-js .top-bar { display: none; }
+      @media screen and (min-width: 40em) {
+        .no-js .top-bar { display: block; }
+        .no-js .title-bar { display: none; }
+      }
+      body {
+        color: [[${themePropertyMap['theme.body.text.color']}]];
+        background-color: [[${themePropertyMap['theme.body.backgroundColor']}]];
+      }
+      .button {
+        color: [[${themePropertyMap['theme.button.text.color']}]];
+        background-color: [[${themePropertyMap['theme.button.default.backgroundColor']}]];
+      }
+      .button:hover, .button:focus {
+        background-color: [[${themePropertyMap['theme.button.default.hoverBackgroundColor']}]];
+      }
+      .button.primary{
+        background-color: [[${themePropertyMap['theme.button.primary.backgroundColor']}]];
+      }
+      .button.secondary {background-color: [[${themePropertyMap['theme.button.secondary.backgroundColor']}]];}
+      .button.secondary:hover, .button.secondary:focus, #platform-menu ul.menu li a.button.secondary:hover{ background-color:[[${themePropertyMap['theme.button.secondary.hoverBackgroundColor']}]];}
+      .button.success {background-color:[[${themePropertyMap['theme.button.success.backgroundColor']}]];}
+      .button.success:hover, .button.success:focus {background-color:[[${themePropertyMap['theme.button.success.hoverBackgroundColor']}]];}
+      .button.warning {background-color:[[${themePropertyMap['theme.button.warning.backgroundColor']}]];}
+      .button.warning:hover, .button.warning:focus {background-color:[[${themePropertyMap['theme.button.warning.hoverBackgroundColor']}]];}
+      .button.alert {background-color:[[${themePropertyMap['theme.button.alert.backgroundColor']}]];}
+      .button.alert:hover, .button.alert:focus {background-color:[[${themePropertyMap['theme.button.alert.hoverBackgroundColor']}]];}
+      .callout {background-color:[[${themePropertyMap['theme.callout.backgroundColor']}]];}
+      .callout,.callout label {color:[[${themePropertyMap['theme.callout.text.color']}]];}
+      .callout.primary {background-color:[[${themePropertyMap['theme.callout.primary.backgroundColor']}]];}
+      .callout.primary,.callout.primary label {color:[[${themePropertyMap['theme.callout.primary.text.color']}]];}
+      .callout.secondary {background-color:[[${themePropertyMap['theme.callout.secondary.backgroundColor']}]];}
+      .callout.secondary,.callout.secondary label {color:[[${themePropertyMap['theme.callout.secondary.text.color']}]];}
+      .callout.success {background-color:[[${themePropertyMap['theme.callout.success.backgroundColor']}]];}
+      .callout.success,.callout.success label {color:[[${themePropertyMap['theme.callout.success.text.color']}]];}
+      .callout.warning {background-color:[[${themePropertyMap['theme.callout.warning.backgroundColor']}]];}
+      .callout.warning,.callout.warning label {color:[[${themePropertyMap['theme.callout.warning.text.color']}]];}
+      .callout.alert {background-color:[[${themePropertyMap['theme.callout.alert.backgroundColor']}]];}
+      .callout.alert,.callout.alert label {color:[[${themePropertyMap['theme.callout.alert.text.color']}]];}
+      .platform-footer {background-color:[[${themePropertyMap['theme.footer.backgroundColor']}]];}.platform-footer .fa-inverse{color:[[${themePropertyMap['theme.footer.backgroundColor']}]];}
+      .platform-footer,.platform-footer p {color:[[${themePropertyMap['theme.footer.text.color']}]];}
+      #platform-menu .utility-bar {color:[[${themePropertyMap['theme.utilitybar.text.color']}]];}
+      #platform-menu .utility-bar a, #platform-menu .utility-bar button.button i.fa {color:[[${themePropertyMap['theme.utilitybar.link.color']}]];}
+      #platform-menu .utility-bar {background-color:[[${themePropertyMap['theme.utilitybar.backgroundColor']}]];}
+      #platform-menu, #platform-menu .menu-text, #platform-menu .menu-text a,#platform-menu .menu-text a:hover {color:[[${themePropertyMap['theme.topbar.text.color']}]];}
+      #platform-menu, #platform-small-menu, #platform-small-menu .title-bar,#platform-small-toggle-menu .drilldown a {background-color:[[${themePropertyMap['theme.topbar.backgroundColor']}]];}
+      .callout.header {background-color:[[${themePropertyMap['theme.topbar.backgroundColor']}]];}
+      #platform-menu ul.menu li a,#platform-small-menu ul.menu li a,#platform-small-menu .title-bar-title {color:[[${themePropertyMap['theme.topbar.menu.text.color']}]];}
+      .callout.header, #platform-menu button.button i.fa {color:[[${themePropertyMap['theme.topbar.menu.text.color']}]];}
+      .dropdown.menu>li.is-dropdown-submenu-parent>a::after {border-color:[[${themePropertyMap['theme.topbar.menu.arrow.color']}]] transparent transparent;}
+      #platform-menu ul.menu li a:hover,#platform-menu .is-active {background-color:[[${themePropertyMap['theme.topbar.menu.text.hoverBackgroundColor']}]];}
+      #platform-menu ul.menu li > a:hover,#platform-menu ul.menu li.is-active > a,#platform-menu .is-active .is-dropdown-submenu-item a:hover {color:[[${themePropertyMap['theme.topbar.menu.hoverTextColor']}]];}
+      #platform-menu button.button i.fa:hover {color:[[${themePropertyMap['theme.topbar.menu.hoverTextColor']}]];}
+      #platform-menu ul.is-dropdown-submenu li.is-dropdown-submenu-item {background-color:[[${themePropertyMap['theme.topbar.menu.dropdown.backgroundColor']}]];}
+      #platform-menu ul.is-dropdown-submenu li.is-dropdown-submenu-item a {color:[[${themePropertyMap['theme.topbar.menu.dropdown.text.color']}]];}
+      #platform-menu ul.menu .active > a {background-color:[[${themePropertyMap['theme.topbar.menu.activeBackgroundColor']}]];}
+      #platform-menu ul.menu .active > a {color:[[${themePropertyMap['theme.topbar.menu.activeTextColor']}]];}
+      .platform-footer a {color:[[${themePropertyMap['theme.footer.links.color']}]];}
+      #site-newsletter-overlay, #site-promo-overlay {
+        position: fixed;
+        bottom: 0;
+        right: 0;
+        padding: 32px 30px 70px 30px;
+        z-index: 10;
+        color: [[${sitePropertyMap['site.newsletter.color']}]];
+        background-color: [[${sitePropertyMap['site.newsletter.backgroundColor']}]];
+        border: 1px solid #dbdbdb;
+      }
+      #site-newsletter-overlay h4, #site-newsletter-overlay p, #site-promo-overlay h4, #site-promo-overlay p {
+        color: [[${sitePropertyMap['site.newsletter.color']}]];
+        font-weight: bolder;
+      }
+      #site-newsletter-overlay {
+        display: none;
+      }
+    </style>
+    <link th:if="${not #strings.isEmpty(includeGlobalStylesheet)}" rel="stylesheet" type="text/css" th:href="${#strings.concat(ctx, '/css/stylesheet.css?v=', includeGlobalStylesheetLastModified)}" />
+    <link th:if="${not #strings.isEmpty(includeStylesheet)}" rel="stylesheet" type="text/css" th:href="${#strings.concat(ctx, '/css/stylesheet_', includeStylesheet, '.css?v=', includeStylesheetLastModified)}" />
+    <!--/* JS before content */-->
+    <th:block th:if="${not #strings.isEmpty(analyticsPropertyMap['analytics.google.tagmanager']) and #strings.startsWith(analyticsPropertyMap['analytics.google.tagmanager'], 'GTM-')}">
+      <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+        new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
+        j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
+        'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
+        })(window,document,'script','dataLayer','[[${analyticsPropertyMap['analytics.google.tagmanager']}]]');</script>  
+    </th:block>
+    <script src="${ctx}/javascript/jquery-3.7.1/jquery.min.js"></script>
+    <script src="${ctx}/javascript/foundation-datepicker-20180424/foundation-datepicker.min.js"></script>
+    <script src="${ctx}/javascript/autocomplete-1.0.7/auto-complete.js"></script>
+    <script src="${ctx}/javascript/js-cookie-3.0.5/js.cookie.min.js"></script>
+    <script src="${ctx}/javascript/swiper-11.0.5/swiper-bundle.min.js"></script>
+  </head>
+  <body th:id="${#strings.equals(pageRenderInfo.name, '/')} ? 'body-home'" th:class="${not #strings.isEmpty(pageRenderInfo.cssClass)} ? ${pageRenderInfo.cssClass}">
+    <noscript th:if="${not #strings.isEmpty(analyticsPropertyMap['analytics.google.tagmanager']) and #strings.startsWith(analyticsPropertyMap['analytics.google.tagmanager'], 'GTM-')}">
+      <iframe th:src="${#strings.concat('https://www.googletagmanager.com/ns.html?id=', analyticsPropertyMap['analytics.google.tagmanager'])}" height="0" width="0" style="display:none;visibility:hidden"></iframe>
+    </noscript>
+    <div class="web-content">
+      <div th:if="${headerRenderInfo}" th:replace="~{layout-header-renderer :: nav}"></div>
+      <div th:replace="~{layout-body-renderer :: article}"></div>
+      <div th:if="${footerRenderInfo}" th:replace="~{layout-footer-renderer :: footer}"></div>
+    </div>
+    <th:block th:if="${not #strings.isEmpty(sitePropertyMap['site.confirmation']) and #strings.equals(sitePropertyMap['site.confirmation'], 'true')}">
+      <div id="site-confirmation" class="reveal full" data-reveal data-close-on-esc="false" data-close-on-click="false" data-animation-out="fade-out fast">
+        <div style="position:absolute; top: 50%; left: 50%; transform: translateY(-50%) translateX(-50%)">
+          <div class="modal-prompt">
+            <p th:switch="${not #strings.isEmpty(sitePropertyMap['site.logo'])} ? ${true} : ${false}">
+              <img th:case="${true}" alt="Logo" style="max-width: 75%" th:src="${sitePropertyMap['site.logo']}" />
+              <span th:case="${false}" th:text="${sitePropertyMap['site.name']}">Site Name</span>
+            </p>
+            <p style="white-space: nowrap">
+              <span th:if="${not #strings.isEmpty(sitePropertyMap['site.confirmation.line1'])}" th:text="${sitePropertyMap['site.confirmation.line1']}">Message Line 1</span>
+              <th:block th:if="${not #strings.isEmpty(sitePropertyMap['site.confirmation.line2'])}"><br /></th:block>
+              <span th:if="${not #strings.isEmpty(sitePropertyMap['site.confirmation.line2'])}" th:text="${sitePropertyMap['site.confirmation.line2']}">Message Line 2</span>
+            </p>
+            <p>
+              <button id="site-confirmation-yes" class="button secondary">Yes</button>
+              <span style="display:inline-block; vertical-align: middle; height:40px;">or</span>
+              <button id="site-confirmation-no" class="button secondary">No</button>
+            </p>
+          </div>
+        </div>
+      </div>
+    </th:block>
+    <div th:if="${not #strings.isEmpty(requestOverlayHeadline)}" id="site-newsletter-overlay" class="animated slideInUp faster delay-3s hide-for-print">
+      <button id="site-newsletter-close-button" class="close-button" type="button">
+        <span><i class="fa-solid fa-circle-xmark"></i></span>
+      </button>
+      <h4 th:text="${requestOverlayHeadline}">Headline</h4>
+      <p th:text="${requestOverlayMessage}">Message</p>
+      <form method="get" onsubmit="return platformNewsletterOverlaySignUp()">
+        <div class="input-group">
+          <input class="input-group-field" type="text" id="platformOverlayEmail" name="email" placeholder="name@example.com" required>
+          <div class="input-group-button">
+            <button type="submit" class="button small">Sign Up</button>
+          </div>
+        </div>
+        <p class="help-text" id="platformOverlayEmailHelpText"></p>
+      </form>
+    </div>
+    <th:block th:if="${not #strings.isEmpty(footerStickyLinks)}">
+      <style>
+        #site-sticky-footer {
+          position: fixed;
+          bottom: 0;
+          right: 0;
+          text-align: right;
+          padding-right: 30px;
+          z-index: 4;
+        }
+        .site-sticky-footer-button {
+          margin: 0 10px -12px 0;
+          padding: 24px 20px 30px 20px;
+        }
+      </style>
+      <div th:each="entry: ${footerStickyLinks.entries}" id="site-sticky-footer" class="animated slideInUp faster delay-1s hide-for-print">
+        <th:block th:if="${not #strings.startsWith(pageRenderInfo.name, entry.link)}">
+          <th:block th:if="${#strings.startsWith(entry.link, 'http://') or #strings.startsWith(entry.link, 'https://')}">
+            <a class="button secondary site-sticky-footer-button" target="_blank" th:href="${entry.link}" th:text="${entry.name}">Title</a>
+          </th:block>
+          <th:block th:if="${not #strings.startsWith(entry.link, 'http://') and not #strings.startsWith(entry.link, 'https://')}">
+            <a class="button secondary site-sticky-footer-button" th:href="${#strings.concat(ctx, entry.link)}" th:text="${entry.name}">Title</a>
+          </th:block>
+        </th:block>
+      </div>
+    </th:block>
+    <!--/* Javascript after content */-->
+    <script src="${ctx}/javascript/foundation-6.8.1/what-input-5.2.6.min.js"></script>
+    <script src="${ctx}/javascript/foundation-6.8.1/foundation.min.js"></script>
+    <script th:inline="javascript">
+      $(document).foundation();
+      /*[# th:if="${not #strings.isEmpty(sitePropertyMap['site.confirmation']) and #strings.equals(sitePropertyMap['site.confirmation'], 'true')}" ]*/
+      var siteConfirmationCookie = 'site-confirmation';
+      var foundSiteConfirmation = Cookies.get(siteConfirmationCookie);
+      if (foundSiteConfirmation !== undefined) {
+        Cookies.set(siteConfirmationCookie, 'valid', { expires: 30 });
+      } else {
+        var siteConfirmation = $('#site-confirmation');
+        siteConfirmation.foundation('open');
+        siteConfirmation.on('closed.zf.reveal', function () {
+          Cookies.set(siteConfirmationCookie, 'valid', { expires: 30 });
+        });
+        var siteConfirmationYes = $('#site-confirmation-yes');
+        siteConfirmationYes.on('click', function () {
+          siteConfirmation.foundation('close');
+        });
+        var siteConfirmationNo = $('#site-confirmation-no');
+        siteConfirmationNo.on('click', function () {
+          alert([[${sitePropertyMap['site.confirmation.declined.text']}]]);
+        });
+      }
+      /*[/]*/
+      /*[# th:if="${not #strings.isEmpty(requestOverlayHeadline)}" ]*/
+      /* Newsletter */
+      var siteNewsletterCookie = 'site-newsletter';
+      function validateEmail(email) {
+        var re = /\S+@\S+\.\S+/;
+        return re.test(email);
+      }
+      function platformNewsletterOverlaySignUp() {
+        var email = document.getElementById("platformOverlayEmail").value;
+        if (email === undefined || email.length === 0) {
+          document.getElementById('platformOverlayEmailHelpText').innerHTML = "Please enter your email address";
+          return false;
+        }
+        if (!validateEmail(email)) {
+          document.getElementById('platformOverlayEmailHelpText').innerHTML = "Please re-enter your email address using a proper format.";
+          return false;
+        }
+        $.getJSON("[(${ctx})]/json/emailSubscribe?token=" + mainToken + "&email=" + encodeURIComponent(email), function(data) {
+          if (data.status === undefined || data.status !== '0') {
+            document.getElementById('platformOverlayEmailHelpText').innerHTML = "Please re-enter your email address using a proper format.";
+            return false;
+          }
+          document.getElementById('platformOverlayEmailHelpText').innerHTML = "Thanks for signing up for " + [[${sitePropertyMap['site.name']}]] + " emails";
+          Cookies.set(siteNewsletterCookie, 'valid', { expires: 90 });
+        });
+        return false;
+      }
+      /*[/]*/
+      $(document).ready(function() {
+        // Elements can animate when they are visible on screen
+        function isScrolledIntoView(elem) {
+          var docViewTop = $(window).scrollTop();
+          var docViewBottom = docViewTop + $(window).height();
+          var elemTop = $(elem).offset().top;
+          var elemBottom = elemTop + $(elem).height();
+          return ((elemBottom <= docViewBottom) && (elemTop >= docViewTop));
+        }
+        $(window).scroll(function() {
+          $('.animated').each(function() {
+            if (isScrolledIntoView(this) === true) {
+              if ($(this).hasClass("doFadeIn")) {
+                $(this).addClass('fadeIn');
+              } else if ($(this).hasClass("doFadeInLeft")) {
+                $(this).addClass('fadeInLeft');
+              } else if ($(this).hasClass("doFadeInRight")) {
+                $(this).addClass('fadeInRight');
+              } else if ($(this).hasClass("doFadeInRightBig")) {
+                $(this).addClass('fadeInRightBig');
+              } else if ($(this).hasClass("doFadeInUp")) {
+                $(this).addClass('myFadeInUp');
+              } else if ($(this).hasClass("doFadeInDown")) {
+                $(this).addClass('fadeInDown');
+              } else if ($(this).hasClass("doSlideInLeft")) {
+                $(this).addClass('slideInLeft');
+              } else if ($(this).hasClass("doSlideInRight")) {
+                $(this).addClass('slideInRight');
+              } else if ($(this).hasClass("doSlideInUp")) {
+                $(this).addClass('slideInUp');
+              } else if ($(this).hasClass("doSlideInDown")) {
+                $(this).addClass('slideInDown');
+              }
+            }
+          });
+        });
+        // Add a smooth scroll for anchors
+        $(document).on('click', 'a[href^="#"]', function (event) {
+          event.preventDefault();
+          if ($("#platform-small-menu").is(":visible")) {
+            $('html, body').animate({
+              scrollTop: $($.attr(this, 'href')).offset().top - $("#platform-small-menu").height() - 20
+            }, 500);
+          } else {
+            $('html, body').animate({
+              scrollTop: $($.attr(this, 'href')).offset().top - $("#platform-menu").height() - 20
+            }, 500);
+          }
+        });
+        /*[# th:if="${not #strings.isEmpty(requestOverlayHeadline)}" ]*/
+        var siteNewsletterOverlay = $('#site-newsletter-overlay');
+        var siteNewsletterCloseButton = $('#site-newsletter-close-button');
+        siteNewsletterCloseButton.on('click', function () {
+          siteNewsletterOverlay.removeClass("slideInUp delay-3s");
+          siteNewsletterOverlay.addClass("slideOutDown");
+          if (siteNewsletterCookie) {
+            Cookies.set(siteNewsletterCookie, 'valid', {expires: 30});
+          }
+        });
+        if (siteNewsletterCookie) {
+          var foundSiteNewsletterOverlay = Cookies.get(siteNewsletterCookie);
+          if (foundSiteNewsletterOverlay !== undefined) {
+            Cookies.set(siteNewsletterCookie, 'valid', {expires: 30});
+          } else {
+            siteNewsletterOverlay.show();
+          }
+        }
+        /*[/]*/
+        <!-- Detect hash and scroll to link with adjustment for menu -->
+        var hash = $(window.location.hash);
+        if (hash && hash.offset()) {
+          var header = $("div#platform-menu");
+          var headerHeight = 10;
+          if (header) {
+              headerHeight += header.height();
+          }
+          $('html,body').animate({
+              scrollTop: hash.offset().top-headerHeight
+          }, 0);
+        }
+      });
+    </script>
+    <th:block th:if="${not #strings.isEmpty(analyticsPropertyMap['analytics.service']) and #strings.equals(analyticsPropertyMap['analytics.service'], 'google') and not #strings.isEmpty(analyticsPropertyMap['analytics.google.key'])}">
+      <script async th:src="${#strings.concat('https://www.googletagmanager.com/gtag/js?id=', analyticsPropertyMap['analytics.google.key'])}"></script>
+      <script th:inline="javascript">
+        window.dataLayer = window.dataLayer || [];
+        function gtag(){dataLayer.push(arguments);}
+        gtag('js', new Date());
+        gtag('config', [[${(analyticsPropertyMap['analytics.google.key'])}]]);
+      </script>
+    </th:block>
+    <th:block th:if="${not #strings.isEmpty(analyticsPropertyMap['analytics.simplifi.value'])}">
+      <script async th:src="${#strings.concat('https://tag.simpli.fi/sifitag/', analyticsPropertyMap['analytics.simplifi.value'])}"></script>
+    </th:block>
+    <th:block th:if="${not #strings.isEmpty(analyticsPropertyMap['analytics.brandcdn.value']) and not #strings.isEmpty(analyticsPropertyMap['analytics.brandcdn.value2'])}">
+      <script type="text/javascript" th:src="${#strings.concat('//tag.brandcdn.com/autoscript/', analyticsPropertyMap['analytics.brandcdn.value'], '/', analyticsPropertyMap['analytics.brandcdn.value2'])}"></script>
+    </th:block>
+  </body>
+</html>

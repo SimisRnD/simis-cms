@@ -32,5 +32,6 @@
     "java.compile.nullAnalysis.mode": "automatic",
     "maven.view": "hierarchical",
     "java.debug.settings.onBuildFailureProceed": true,
-    "java.dependency.packagePresentation": "hierarchical"
+    "java.dependency.packagePresentation": "hierarchical",
+    "thymeleaf-navigate.fragmentsPath": "src/main/webapp/WEB-INF/html-templates"
 }

@@ -1,0 +1,17 @@
+<!--/* CMS Platform Template, 2024 */-->
+<ul class="menu" th:classappend="${menuClass}" data-drilldown>
+  <th:block th:each="menuTab, menuTabStatus : ${masterMenuTabList}" th:switch="${not #arrays.isEmpty(menuTab.menuItemList)} ? ${true} : ${false}">
+    <li th:case="${true}" th:class="${menuTab.active} ? 'active'">
+      <hr th:if="${menuTabStatus.index > 0}" />
+      <a th:href="${#strings.concat(ctx, menuTab.link)}">[[${menuTab.name}]]</a>
+      <ul class="menu vertical">
+        <li th:each="menuItem, menuItemStatus : ${menuTab.menuItemList}" th:class="${menuItem.active} ? 'active'">
+          <a th:href="${#strings.concat(ctx, menuItem.link)}"><i th:if="${not #strings.isEmpty(submenuIcon)}" th:class="${#strings.concat('fa', ' ', submenuIcon)}" th:classappend="${submenuIconClass}"></i> [[${menuItem.name}]]</a>
+        </li>
+      </ul>
+    </li>
+    <li th:case="${false}" th:class="${menuTab.active} ? 'active'">
+      <a th:href="${#strings.concat(ctx, menuTab.link)}">[[${menuTab.name}]]</a>
+    </li>
+  </th:block>
+</ul>

@@ -1,0 +1,53 @@
+<!--/* CMS Platform Template, 2024 */-->
+<h4 th:if="${not #strings.isEmpty(title)}">
+  <i th:if="${not #strings.isEmpty(icon)}" class="fa" th:classappend="${icon}"></i>
+  [[${title}]]
+</h4>
+<div class="platform-content-container" th:if="${not #strings.isEmpty(card1)}">
+  <div th:if="${not #strings.isEmpty(card2) and #strings.equals(useIcon, 'true')}" class="float-right">
+    <button class="reveal-button" th:attr="data-toggle=${#strings.concat('modal', widgetContext.uniqueId)}"><i class="fa-solid fa-plus-circle"></i></button>
+  </div>
+  <button th:id="${#strings.concat('reveal-button', widgetContext.uniqueId)}" class="reveal-button-text"
+          th:attr="data-toggle=${#strings.concat('modal', widgetContext.uniqueId)}"><div class="button-reveal-content" th:utext="${card1}">Content</div></button>
+  <div th:if="${not #strings.isEmpty(card2)}"
+        th:id="${#strings.concat('modal', widgetContext.uniqueId)}"
+        class="reveal" th:classappend="${size}"
+        data-close-on-click="true"
+        data-multiple-opened="true"
+        data-reveal data-reset-on-close="true"
+        th:attr="
+        data-additional-overlay-classes=${not #strings.isEmpty(revealClass)} ? ${revealClass},
+        data-h-offset=${#strings.equals(attach, 'left')} ? '0',
+        data-animation-in=${#strings.equals(animate, 'up')} ? 'slide-in-up fast',
+        data-animation-out=${#strings.equals(animate, 'up')} ? 'slide-out-down fast',
+        data-animation-in=${#strings.equals(animate, 'down')} ? 'slide-in-down fast',
+        data-animation-out=${#strings.equals(animate, 'down')} ? 'slide-out-up fast',
+        data-animation-in=${#strings.equals(animate, 'left')} ? 'slide-in-left fast',
+        data-animation-out=${#strings.equals(animate, 'left')} ? 'slide-out-left fast',
+        data-animation-in=${#strings.equals(animate, 'right')} ? 'slide-in-right fast',
+        data-animation-out=${#strings.equals(animate, 'right')} ? 'slide-out-right fast',
+        data-animation-in=${#strings.equals(animate, 'fade')} ? 'fade-in',
+        data-animation-out=${#strings.equals(animate, 'fade')} ? 'fade-out'
+        ">
+    [(${card2})]
+    <button class="close-button" data-close aria-label="Close reveal" type="button">
+      <span aria-hidden="true"><i class="fa-solid fa-circle-xmark"></i></span>
+    </button>
+  </div>
+</div>
+<script>
+  // Attach to the modal display event; auto-play first modal video
+  document.addEventListener("DOMContentLoaded", function () {
+    $('#modal[[${widgetContext.uniqueId}]]').on('open.zf.reveal', function () {
+      let revealButtonElement = document.getElementById("reveal-button[[${widgetContext.uniqueId}]]");
+      let revealContainerElement = document.getElementById("modal[[${widgetContext.uniqueId}]]");
+      if (revealButtonElement && revealContainerElement) {
+        let videoElements = revealContainerElement.getElementsByTagName('video')
+        if (videoElements && videoElements.length > 0) {
+          let thisVideoElement = videoElements.item(0);
+          thisVideoElement.play();
+        }
+      }
+    })
+  });
+</script>

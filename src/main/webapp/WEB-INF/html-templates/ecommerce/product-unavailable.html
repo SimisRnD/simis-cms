@@ -1,0 +1,9 @@
+<!--/* CMS Platform Template, 2024 */-->
+<h4 th:if="${not #strings.isEmpty(title)}">
+  <i th:if="${not #strings.isEmpty(icon)}" class="fa" th:classappend="${icon}"></i>
+  [[${title}]]
+</h4>
+<th:block th:switch="${#strings.equals(showPrice, 'true') and not #strings.isEmpty(productSku) and productSku.hasPrice} ? ${true} : ${false}">
+  <input th:case="${true}" type="submit" class="button expanded secondary" th:value="${#strings.concat(unavailableText, '&bull;', #numbers.formatCurrency(productSku.price)}" />
+  <input th:case="${false}" type="submit" class="button expanded secondary" th:value="${unavailableText}" />
+</th:block>

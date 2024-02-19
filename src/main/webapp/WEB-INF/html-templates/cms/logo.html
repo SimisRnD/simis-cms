@@ -1,0 +1,5 @@
+<!--/* CMS Platform Template, 2024 */-->
+<th:block th:switch="${not #strings.isEmpty(logoSrc)} ? ${true} : ${false}">
+  <a th:case="${true}" th:href="${#strings.concat(ctx, '/')}"><img th:class="${logoClass}" th:style="${logoStyle}" th:src="${logoSrc}" alt="Logo" /><span th:if="${not #strings.isEmpty(text)}" class="menu-text" translate="no"><a th:href="${#strings.concat(ctx, '/')}">[[${text}]]</a></span></a>
+  <span th:case="${false}" th:if="${not #strings.isEmpty(siteTitle)}" class="menu-text" translate="no"><a th:href="${#strings.concat(ctx, '/')}">[[${siteTitle}]]</a></span>
+</th:block>

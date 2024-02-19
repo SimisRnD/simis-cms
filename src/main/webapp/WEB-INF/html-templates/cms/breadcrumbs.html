@@ -1,0 +1,11 @@
+<!--/* CMS Platform Template, 2024 */-->
+<nav aria-label="You are here:" role="navigation">
+  <ul class="breadcrumbs">
+    <li th:each="link, status: ${linkList}" th:switch="${not #strings.isEmpty(link.value)} ? ${true} : ${false}">
+      <a th:case="${true}" th:href="${#strings.concat(ctx, link.value)}" th:text="${link.key}">Breadcrumb with link</a>
+      <th:block th:case="${false}">
+        <span class="show-for-sr">Current: </span> [[${link.key}]]
+      </th:block>
+    </li>
+  </ul>
+</nav>
