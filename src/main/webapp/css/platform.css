@@ -335,7 +335,7 @@ table td .input-group {
 }
 
 .admin-render-time {
-  position: absolute;
+  position: relative;
   color: #888888;
 }
 
