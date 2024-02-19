@@ -87,6 +87,7 @@
 <script>
     var swiper${widgetContext.uniqueId} = new Swiper("#swiper${widgetContext.uniqueId}", {
         slidesPerView: <c:out value="${smallCardCount}" />,
+        centerInsufficientSlides: true,
         spaceBetween: 15,
         breakpoints: {
             640: {
