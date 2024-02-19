@@ -4,9 +4,12 @@
 <link rel="stylesheet" href="${ctx}/javascript/leaflet.markercluster-1.5.3/MarkerCluster.Default.css" />
 <script src="${ctx}/javascript/leaflet-1.9.4/leaflet.js"></script>
 <script src="${ctx}/javascript/leaflet.markercluster-1.5.3/leaflet.markercluster.js"></script>
+<h4 th:if="${not #strings.isEmpty(title)}">
+  <i th:if="${not #strings.isEmpty(icon)}" class="fa" th:classappend="${icon}"></i>
+  [[${title}]]
+</h4>
 <div th:id="${#strings.concat('mapid', widgetContext.uniqueId)}" th:style="${#strings.concat('height:', mapHeight, 'px')}"></div>
 <script th:inline="javascript">
-
   const mapUniqueIdValue = "map" + [[${widgetContext.uniqueId}]];
   const mapIdUniqueIdValue = "mapid" + [[${widgetContext.uniqueId}]];
   const latitude = [(${latitude})];
