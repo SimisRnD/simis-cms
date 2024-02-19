@@ -116,6 +116,7 @@ public class MainMenuWidget extends GenericWidget {
                 thisMenuItem.setName(menuItem.getName());
                 thisMenuItem.setLink(menuItem.getLink());
               // Is active when menuItem matches the page path
+              if (thisMenuItem.getLink().equals(context.getRequest().getRequestURI())) {
                 if (highlightActiveTab) {
                   thisMenuTab.setActive(true);
                 }
