@@ -32,7 +32,7 @@
     <maven-jacoco-plugin.version>0.8.11</maven-jacoco-plugin.version>
     <maven-war-plugin.version>3.4.0</maven-war-plugin.version>
     <tomcat.version>9.0.76</tomcat.version>
-    <junit.version>5.9.2</junit.version>
+    <junit.version>5.10.2</junit.version>
     <mockito.version>5.7.0</mockito.version>
     <argon2.version>2.11</argon2.version>
     <args4j.version>2.33</args4j.version>
@@ -44,12 +44,12 @@
     <commons-codec.version>1.16.0</commons-codec.version>
     <commons-collections4.version>4.4</commons-collections4.version>
     <commons-collections3.version>3.2.2</commons-collections3.version>
-    <commons-compress.version>1.25.0</commons-compress.version>
+    <commons-compress.version>1.26.0</commons-compress.version>
     <commons-email.version>1.5</commons-email.version>
     <commons-io.version>2.15.1</commons-io.version>
     <commons-jexl3.version>3.2.1</commons-jexl3.version>
     <commons-lang3.version>3.13.0</commons-lang3.version>
-    <commons-text.version>1.10.0</commons-text.version>
+    <commons-text.version>1.11.0</commons-text.version>
     <commons-validator.version>1.7</commons-validator.version>
     <easy-flows-playbook.version>0.6-SNAPSHOT</easy-flows-playbook.version>
     <flexmark.version>0.64.0</flexmark.version>
@@ -76,7 +76,7 @@
     <libphonenumber.version>8.13.16</libphonenumber.version>
     <lombok.version>1.18.30</lombok.version>
     <netty.version>4.1.101</netty.version>
-    <postgresql.version>42.7.1</postgresql.version>
+    <postgresql.version>42.7.2</postgresql.version>
     <pushy.version>0.15.2</pushy.version>
     <rabbitmq.version>5.18.0</rabbitmq.version>
     <resilience4j.version>2.1.0</resilience4j.version>
