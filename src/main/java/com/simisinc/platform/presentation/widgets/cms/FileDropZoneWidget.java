@@ -34,7 +34,7 @@ import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 
 /**
- * Description
+ * Displays a box for uploading files, with progress bar
  *
  * @author matt rajkowski
  * @created 1/23/2019 4:38 PM

@@ -78,7 +78,7 @@
 <li class="accordion-item" data-accordion-item>
   <a href="#" class="accordion-title accordion-title-level-2">Breadcrumbs</a>
   <div class="accordion-content" data-tab-content>
-<textarea>
+<textarea rows="10">
 <widget name="breadcrumbs">
   <links>
     <link name="Previous Page Title" value="/link" />
@@ -92,7 +92,7 @@
 <li class="accordion-item" data-accordion-item>
   <a href="#" class="accordion-title accordion-title-level-2">Content</a>
   <div class="accordion-content" data-tab-content>
-<textarea>
+<textarea rows="10">
 <widget name="content">
   <uniqueId>content-unique-id</uniqueId>
   <html>&lt;![CDATA[ Any HTML content ]]&gt;</html>
@@ -104,7 +104,7 @@
 <li class="accordion-item" data-accordion-item>
   <a href="#" class="accordion-title accordion-title-level-2">Content Accordion</a>
   <div class="accordion-content" data-tab-content>
-<textarea>
+<textarea rows="10">
 <widget name="contentAccordion">
   <uniqueId>content-unique-id</uniqueId>
   <html>&lt;![CDATA[ Any HTML content ]]&gt;</html>
@@ -116,7 +116,7 @@
 <li class="accordion-item" data-accordion-item>
   <a href="#" class="accordion-title accordion-title-level-2">Content Cards</a>
   <div class="accordion-content" data-tab-content>
-<textarea>
+<textarea rows="10">
 <widget name="contentCards">
   <uniqueId>content-unique-id</uniqueId>
   <html>&lt;![CDATA[ Any HTML content ]]&gt;</html>
@@ -128,7 +128,7 @@
 <li class="accordion-item" data-accordion-item>
   <a href="#" class="accordion-title accordion-title-level-2">Content Gallery</a>
   <div class="accordion-content" data-tab-content>
-<textarea>
+<textarea rows="10">
 <widget name="contentGallery">
   <uniqueId>content-unique-id</uniqueId>
   <html>&lt;![CDATA[ Any HTML content ]]&gt;</html>
@@ -140,12 +140,17 @@
 <li class="accordion-item" data-accordion-item>
   <a href="#" class="accordion-title accordion-title-level-2">Content Reveal</a>
   <div class="accordion-content" data-tab-content>
-<textarea>
+<textarea rows="10">
 <widget name="contentReveal">
   <uniqueId>content-unique-id</uniqueId>
   <html>&lt;![CDATA[ Any HTML content ]]&gt;</html>
-
-  uniqueId, html, attach=left, animate=up|down|left|right|fade, revealClass
+  <attach>left</attach>
+  <!-- <animate>up</animate> -->
+  <!-- <animate>down</animate> -->
+  <!-- <animate>left</animate> -->
+  <animate>right</animate>
+  <!-- <animate>fade</animate> -->
+  <!-- <revealClass>site-reveal</revealClass> -->
 </widget>
 </textarea>
   </div>
@@ -154,12 +159,14 @@
 <li class="accordion-item" data-accordion-item>
   <a href="#" class="accordion-title accordion-title-level-2">Content Slider</a>
   <div class="accordion-content" data-tab-content>
-<textarea>
+<textarea rows="10">
 <widget name="contentSlider">
   <uniqueId>content-unique-id</uniqueId>
   <html>&lt;![CDATA[ Any HTML content ]]&gt;</html>
-
-  uniqueId, html, showControls, showPagination, loop, autoplayDelay=1000
+  <showControls>true</showControls>
+  <showPagination>true</showPagination>
+  <loop>false</loop>
+  <autoplayDelay>1000</autoplayDelay>
 </widget>
 </textarea>
   </div>
@@ -168,9 +175,14 @@
 <li class="accordion-item" data-accordion-item>
   <a href="#" class="accordion-title accordion-title-level-2">Content Tabs</a>
   <div class="accordion-content" data-tab-content>
-<textarea>
+<textarea rows="10">
 <widget name="contentTabs">
-  tabs[name, linkId, link, contentUniqueId, isActive]
+  <!-- <icon></icon> -->
+  <!-- <title></title> -->
+  <smudge>false</smudge>
+  <tabs>
+    <tab name="" linkId="" link="" contentUniqueId="" isActive="" enabled="" />
+  </tabs>
 </widget>
 </textarea>
   </div>
@@ -179,9 +191,13 @@
 <li class="accordion-item" data-accordion-item>
   <a href="#" class="accordion-title accordion-title-level-2">Button</a>
   <div class="accordion-content" data-tab-content>
-<textarea>
+<textarea rows="10">
 <widget name="button">
-  name, link, buttonClass, leftIcon, icon
+  <name>Button</name>
+  <link></link>
+  <!-- <buttonClass></buttonClass> -->
+  <!-- <leftIcon></leftIcon> -->
+  <!-- <icon></icon> -->
 </widget>
 </textarea>
   </div>
@@ -190,9 +206,15 @@
 <li class="accordion-item" data-accordion-item>
   <a href="#" class="accordion-title accordion-title-level-2">Link</a>
   <div class="accordion-content" data-tab-content>
-<textarea>
+<textarea rows="10">
 <widget name="link">
-  name, link, class, property
+  <name>Text</name>
+  <link></link>
+  <!-- <target>_blank</target> -->
+  <!-- <leftIcon></leftIcon> -->
+  <!-- <icon></icon> -->
+  <!-- <linkClass></linkClass> -->
+  <!-- <property>site.registrations=true</property> -->
 </widget>
 </textarea>
   </div>
@@ -201,9 +223,14 @@
 <li class="accordion-item" data-accordion-item>
   <a href="#" class="accordion-title accordion-title-level-2">Card</a>
   <div class="accordion-content" data-tab-content>
-<textarea>
+<textarea rows="10">
 <widget name="card">
-  title, icon, link, linkTitle, linkIcon, class
+  <title></title>
+  <!-- <icon></icon>
+  <link></link>
+  <linkTitle></linkTitle>
+  <linkIcon></linkIcon>
+  <class></class> -->
 </widget>
 </textarea>
   </div>
@@ -212,8 +239,19 @@
 <li class="accordion-item" data-accordion-item>
   <a href="#" class="accordion-title accordion-title-level-2">Menu</a>
   <div class="accordion-content" data-tab-content>
-<textarea>
-<widget name="menu" />
+<textarea rows="10">
+<widget name="menu">
+  <class>vertical</class>
+  <showWhenEmpty>false</showWhenEmpty>
+  <links>
+    <link name="Contact Us" link="/contact-us" />
+    <link name="Login" link="/login" role="guest" rule="site.login" />
+    <link name="Register" link="/login" role="guest" rule="site.registrations" />
+    <link name="My Account" link="/my-page" role="users" />
+    <link name="Admin" link="/admin" role="admin" />
+    <link name="Log Out" link="/logout" role="users" />
+  </links>
+</widget>
 </textarea>
   </div>
 </li>
@@ -221,9 +259,17 @@
 <li class="accordion-item" data-accordion-item>
   <a href="#" class="accordion-title accordion-title-level-2">Progress Card</a>
   <div class="accordion-content" data-tab-content>
-<textarea>
+<textarea rows="10">
 <widget name="progressCard">
-  label, value, maxLabel, progress, maxValue, textColor=#|theme., subheaderColor=#|theme., progressColor=#|theme., remainderColor=#|theme.
+  <label></label>
+  <value></value>
+  <progress></progress>
+  <maxValue></maxValue>
+  <link></link>
+  <textColor>theme.body.text.color</textColor>
+  <subheaderColor>theme.utilitybar.backgroundColor</subheaderColor>
+  <progressColor>#00ff00</progressColor>
+  <remainderColor>#ff0000</remainderColor>
 </widget>
 </textarea>
   </div>
@@ -232,9 +278,15 @@
 <li class="accordion-item" data-accordion-item>
   <a href="#" class="accordion-title accordion-title-level-2">Statistic Card</a>
   <div class="accordion-content" data-tab-content>
-<textarea>
+<textarea rows="10">
 <widget name="statisticCard">
-  label, value, icon, link, iconColor=#|theme., view=default|vertical
+  <label></label>
+  <value></value>
+  <icon></icon>
+  <link></link>
+  <iconColor>theme.body.text.color</iconColor>
+  <view>default</view>
+  <!-- <view>vertical</view> -->
 </widget>
 </textarea>
   </div>
@@ -243,9 +295,15 @@
 <li class="accordion-item" data-accordion-item>
   <a href="#" class="accordion-title accordion-title-level-2">Logo</a>
   <div class="accordion-content" data-tab-content>
-<textarea>
+<textarea rows="10">
 <widget name="logo">
-  maxWidth, maxHeight, view=standard,color,white
+  <maxHeight></maxHeight>
+  <maxWidth></maxWidth>
+  <view>standard</view>
+  <!-- <view>color</view> -->
+  <!-- <view>white</view> -->
+  <!-- <logoClass></logoClass> -->
+  <!-- <logoStyle></logoStyle> -->
 </widget>
 </textarea>
   </div>
@@ -254,8 +312,11 @@
 <li class="accordion-item" data-accordion-item>
   <a href="#" class="accordion-title accordion-title-level-2">Copyright</a>
   <div class="accordion-content" data-tab-content>
-<textarea>
-<widget name="copyright" />
+<textarea rows="10">
+<widget name="copyright">
+  <!-- <name>Company</name> -->
+  <!-- <tag>All Rights Reserved.</tag> -->
+</widget>
 </textarea>
   </div>
 </li>
@@ -263,8 +324,21 @@
 <li class="accordion-item" data-accordion-item>
   <a href="#" class="accordion-title accordion-title-level-2">Email Subscribe</a>
   <div class="accordion-content" data-tab-content>
-<textarea>
-<widget name="emailSubscribe" />
+<textarea rows="10">
+<widget name="emailSubscribe">
+  <!-- <icon></icon> -->
+  <!-- <title></title> -->
+  <view>inline</view>
+  <!-- <view>vertical</view> -->
+  <!-- <view>default</view> -->
+  <!-- <showName>true</showName> -->
+  <!-- <introHtml></introHtml> -->
+  <buttonName>Subscribe</buttonName>
+  <!-- <footerHtml></footerHtml> -->
+  <!-- <useCaptcha>true</useCaptcha> -->
+  <!-- <mailingList>Newsletter</mailingList> -->
+  <!-- <tags>website</tags> -->
+</widget>
 </textarea>
   </div>
 </li>
@@ -272,7 +346,7 @@
 <li class="accordion-item" data-accordion-item>
   <a href="#" class="accordion-title accordion-title-level-2">Form</a>
   <div class="accordion-content" data-tab-content>
-<textarea>
+<textarea rows="10">
 <widget name="form">
   formUniqueId, icon, title, subtitle, buttonName, useCaptcha, successTitle, successMessage, fields=field[name, value, placeholder, required]
 </widget>
@@ -283,7 +357,7 @@
 <li class="accordion-item" data-accordion-item>
   <a href="#" class="accordion-title accordion-title-level-2">Blog Post List</a>
   <div class="accordion-content" data-tab-content>
-<textarea>
+<textarea rows="10">
 <widget name="blogPostList">
   <!-- <title>Featured</title> -->
   <blogUniqueId>blog</blogUniqueId>
@@ -297,7 +371,7 @@
   <showDate>true</showDate>
   <showAuthor>true</showAuthor>
   <showTags>false</showTags>
-</v>
+</widget>
 </textarea>
   </div>
 </li>
@@ -305,7 +379,7 @@
 <li class="accordion-item" data-accordion-item>
   <a href="#" class="accordion-title accordion-title-level-2">Blog Post</a>
   <div class="accordion-content" data-tab-content>
-<textarea>
+<textarea rows="10">
 <widget name="blogPost" />
 </textarea>
   </div>
@@ -314,7 +388,7 @@
 <li class="accordion-item" data-accordion-item>
   <a href="#" class="accordion-title accordion-title-level-2">Blog Post Name</a>
   <div class="accordion-content" data-tab-content>
-<textarea>
+<textarea rows="10">
 <widget name="blogPostName" />
 </textarea>
   </div>
@@ -323,7 +397,7 @@
 <li class="accordion-item" data-accordion-item>
   <a href="#" class="accordion-title accordion-title-level-2">Product Browser</a>
   <div class="accordion-content" data-tab-content>
-<textarea>
+<textarea rows="10">
 <widget name="productBrowser">
   <view>cardSlider</view>
   <button>Shop</button>
@@ -343,7 +417,7 @@
 <li class="accordion-item" data-accordion-item>
   <a href="#" class="accordion-title accordion-title-level-2">Product Name</a>
   <div class="accordion-content" data-tab-content>
-<textarea>
+<textarea rows="10">
 <widget name="productName" />
 </textarea>
   </div>
@@ -352,7 +426,7 @@
 <li class="accordion-item" data-accordion-item>
   <a href="#" class="accordion-title accordion-title-level-2">Product Image</a>
   <div class="accordion-content" data-tab-content>
-<textarea>
+<textarea rows="10">
 <widget name="productImage" />
 </textarea>
   </div>
@@ -361,7 +435,7 @@
 <li class="accordion-item" data-accordion-item>
   <a href="#" class="accordion-title accordion-title-level-2">Product Description</a>
   <div class="accordion-content" data-tab-content>
-<textarea>
+<textarea rows="10">
 <widget name="productDescription" />
 </textarea>
   </div>
@@ -370,7 +444,7 @@
 <li class="accordion-item" data-accordion-item>
   <a href="#" class="accordion-title accordion-title-level-2">Add to Cart</a>
   <div class="accordion-content" data-tab-content>
-<textarea>
+<textarea rows="10">
 <widget name="addToCart" />
 </textarea>
   </div>
@@ -379,7 +453,7 @@
 <li class="accordion-item" data-accordion-item>
   <a href="#" class="accordion-title accordion-title-level-2">Cart</a>
   <div class="accordion-content" data-tab-content>
-<textarea>
+<textarea rows="10">
 <widget name="cart" />
 </textarea>
   </div>
@@ -388,7 +462,7 @@
 <li class="accordion-item" data-accordion-item>
   <a href="#" class="accordion-title accordion-title-level-2">Remote Content</a>
   <div class="accordion-content" data-tab-content>
-<textarea>
+<textarea rows="10">
 <widget name="remoteContent">
   title, url, startTag, endTag
 </widget>
@@ -399,8 +473,12 @@
 <li class="accordion-item" data-accordion-item>
   <a href="#" class="accordion-title accordion-title-level-2">Search Form</a>
   <div class="accordion-content" data-tab-content>
-<textarea>
-<widget name="searchForm" />
+<textarea rows="10">
+<widget name="searchForm">
+  <expand>true</expand>
+  <linkText>Search</linkText>
+  <placeholder>Search the site</placeholder>
+</widget>
 </textarea>
   </div>
 </li>
@@ -408,9 +486,13 @@
 <li class="accordion-item" data-accordion-item>
   <a href="#" class="accordion-title accordion-title-level-2">Table of Contents</a>
   <div class="accordion-content" data-tab-content>
-<textarea>
+<textarea rows="10">
 <widget name="tableOfContents">
-  links[name, value]
+  <uniqueId>example-toc</uniqueId>
+  <!-- <links>
+    <link name="Title" value="/title" />
+    <link name="Title 2" value="/title-2" />
+  </links> -->
 </widget>
 </textarea>
   </div>
@@ -419,8 +501,19 @@
 <li class="accordion-item" data-accordion-item>
   <a href="#" class="accordion-title accordion-title-level-2">Album Gallery</a>
   <div class="accordion-content" data-tab-content>
-<textarea>
-<widget name="albumGallery" />
+<textarea rows="10">
+<!-- Requires a folderUniqueId to be setup with albums -->
+<widget name="albumGallery">
+  <!-- <icon></icon> -->
+  <!-- <title></title> -->
+  <folderUniqueId>example-folder-id</folderUniqueId>
+  <controlId>myAlbum</controlId>
+  <!-- <cardClass></cardClass> -->
+  <!-- <smallCardCount>6</smallCardCount> -->
+  <!-- <mediumCardCount>6</mediumCardCount> -->
+  <!-- <largeCardCount>6</largeCardCount> -->
+  <!-- <limit>12</limit> -->
+</widget>
 </textarea>
   </div>
 </li>
@@ -428,8 +521,16 @@
 <li class="accordion-item" data-accordion-item>
   <a href="#" class="accordion-title accordion-title-level-2">Photo Gallery</a>
   <div class="accordion-content" data-tab-content>
-<textarea>
-<widget name="photoGallery" />
+<textarea rows="10">
+<widget name="photoGallery">
+  <!-- <icon></icon> -->
+  <!-- <title></title> -->
+  <folderUniqueId>example-folder-id</folderUniqueId>
+  <controlId>myAlbum</controlId>
+  <isSticky>false</isSticky>
+  <marginTop>8</marginTop>
+  <showCaption>true</showCaption>
+</widget>
 </textarea>
   </div>
 </li>
@@ -437,8 +538,21 @@
 <li class="accordion-item" data-accordion-item>
   <a href="#" class="accordion-title accordion-title-level-2">File List</a>
   <div class="accordion-content" data-tab-content>
-<textarea>
-<widget name="fileList" />
+<textarea rows="10">
+<widget name="fileList">
+  <!-- <icon></icon> -->
+  <!-- <title></title> -->
+  <folderUniqueId>example-folder-id</folderUniqueId>
+  <useViewer>false</useViewer>
+  <showLinks>true</showLinks>
+  <!-- <rules>user-created</rules> -->
+  <orderBy>newest</orderBy>
+  <!-- <orderBy>oldest</orderBy> -->
+  <!-- <orderBy>ascending</orderBy> -->
+  <!-- <orderBy>descending</orderBy> -->
+  <withinLastDays>-1</withinLastDays>
+  <showWhenEmpty>true</showWhenEmpty>
+</widget>
 </textarea>
   </div>
 </li>
@@ -446,7 +560,7 @@
 <li class="accordion-item" data-accordion-item>
   <a href="#" class="accordion-title accordion-title-level-2">File List by Folder</a>
   <div class="accordion-content" data-tab-content>
-<textarea>
+<textarea rows="10">
 <widget name="fileListByFolder" />
 </textarea>
   </div>
@@ -455,7 +569,7 @@
 <li class="accordion-item" data-accordion-item>
   <a href="#" class="accordion-title accordion-title-level-2">File List by Year</a>
   <div class="accordion-content" data-tab-content>
-<textarea>
+<textarea rows="10">
 <widget name="fileListByYear" />
 </textarea>
   </div>
@@ -464,8 +578,12 @@
 <li class="accordion-item" data-accordion-item>
   <a href="#" class="accordion-title accordion-title-level-2">File Drop Zone</a>
   <div class="accordion-content" data-tab-content>
-<textarea>
-<widget name="fileDropZone" />
+<textarea rows="10">
+<widget name="fileDropZone">
+  <!-- <icon></icon> -->
+  <!-- <title></title> -->
+  <folderUniqueId>example-folder-id</folderUniqueId>
+</widget>
 </textarea>
   </div>
 </li>
@@ -473,8 +591,22 @@
 <li class="accordion-item" data-accordion-item>
   <a href="#" class="accordion-title accordion-title-level-2">Calendar</a>
   <div class="accordion-content" data-tab-content>
-<textarea>
-<widget name="calendar" />
+<textarea rows="10">
+<!-- A calendar must already be setup -->
+<widget name="calendar">
+  <calendarUniqueId>example-calendar</calendarUniqueId>
+  <showEvents>true</showEvents>
+  <!-- <showHolidays>true</showHolidays> -->
+  <!-- <showMoodleEvents>false</showMoodleEvents> -->
+  <!-- <view>default</view> -->
+  <!-- <view>small</view> -->
+  <!-- <height>550</height> -->
+  <default>month</default>
+  <!-- <default>list</default> -->
+  <!-- <default>day</default> -->
+  <!-- <moodleBackgroundColor></moodleBackgroundColor> -->
+  <!-- <moodleTextColor></moodleTextColor> -->
+</widget>
 </textarea>
   </div>
 </li>
@@ -482,8 +614,28 @@
 <li class="accordion-item" data-accordion-item>
   <a href="#" class="accordion-title accordion-title-level-2">Upcoming Calendar Events</a>
   <div class="accordion-content" data-tab-content>
-<textarea>
-<widget name="upcomingCalendarEvents" />
+<textarea rows="10">
+<widget name="upcomingCalendarEvents">
+  <!-- <icon></icon> -->
+  <!-- <title></title> -->
+  <calendarUniqueId>example-calendar</calendarUniqueId>
+  <view>list</view>
+  <!-- <view>cards</view> -->
+  <!-- <view>overview</view> -->
+  <showWhenEmpty>true</showWhenEmpty>
+  <!-- <daysToShow>-1</daysToShow> -->
+  <!-- <monthsToShow>1</monthsToShow> -->
+  <!-- <showMonthName>true</showMonthName> -->
+  <!-- <showEventLink>true</showEventLink> -->
+  <!-- <includeLastEvent>false</includeLastEvent> -->
+  <!-- <limit>-1</limit> -->
+  <!-- <smallCardCount>3</smallCardCount> -->
+  <!-- <mediumCardCount>3</mediumCardCount> -->
+  <!-- <largeCardCount>3</largeCardCount> -->
+  <!-- <cardClass></cardClass> -->
+  <!-- <calendarLink></calendarLink> -->
+  <!-- <titles>Past|Current|Upcoming</titles> -->
+</widget>
 </textarea>
   </div>
 </li>
@@ -491,8 +643,11 @@
 <li class="accordion-item" data-accordion-item>
   <a href="#" class="accordion-title accordion-title-level-2">Calendar Event Details</a>
   <div class="accordion-content" data-tab-content>
-<textarea>
-<widget name="calendarEventDetails" />
+<textarea rows="10">
+<widget name="calendarEventDetails">
+  <!-- <icon></icon> -->
+  <!-- <title></title> -->
+</widget>
 </textarea>
   </div>
 </li>
@@ -500,7 +655,7 @@
 <li class="accordion-item" data-accordion-item>
   <a href="#" class="accordion-title accordion-title-level-2">Map</a>
   <div class="accordion-content" data-tab-content>
-<textarea>
+<textarea rows="10">
 <widget name="map">
   <coordinates>0.0, 0.0</coordinates>
   <!-- <latitude>0.0</latitude> -->
@@ -518,8 +673,17 @@
 <li class="accordion-item" data-accordion-item>
   <a href="#" class="accordion-title accordion-title-level-2">Instagram Photos</a>
   <div class="accordion-content" data-tab-content>
-<textarea>
-<widget name="instagram" />
+<textarea rows="10">
+<!-- Retrieve content from Instagram, must have business account configured -->
+<widget name="instagram">
+  <!-- <icon></icon> -->
+  <!-- <title></title> -->
+  <!-- <cardClass></cardClass> -->
+  <!-- <smallCardCount>6</smallCardCount> -->
+  <!-- <mediumCardCount>6</mediumCardCount> -->
+  <!-- <largeCardCount>6</largeCardCount> -->
+  <!-- <limit>8</limit> -->
+</widget>
 </textarea>
   </div>
 </li>
@@ -527,7 +691,8 @@
 <li class="accordion-item" data-accordion-item>
   <a href="#" class="accordion-title accordion-title-level-2">Social Media Links</a>
   <div class="accordion-content" data-tab-content>
-<textarea>
+<textarea rows="10">
+<!-- Setup your social media links in the CMS -->
 <widget name="socialMediaLinks" />
 </textarea>
   </div>
@@ -536,8 +701,12 @@
 <li class="accordion-item" data-accordion-item>
   <a href="#" class="accordion-title accordion-title-level-2">Wiki</a>
   <div class="accordion-content" data-tab-content>
-<textarea>
-<widget name="wiki" />
+<textarea rows="10">
+<widget name="wiki">
+  <!-- <icon></icon> -->
+  <!-- <title></title> -->
+  <wikiUniqueId>example-wiki</wikiUniqueId>
+</widget>
 </textarea>
   </div>
 </li>
@@ -545,7 +714,7 @@
 <li class="accordion-item" data-accordion-item>
   <a href="#" class="accordion-title accordion-title-level-2">Web Page Content Search Results</a>
   <div class="accordion-content" data-tab-content>
-<textarea>
+<textarea rows="10">
 <widget name="webPageSearchResults" />
 </textarea>
   </div>
@@ -554,8 +723,12 @@
 <li class="accordion-item" data-accordion-item>
   <a href="#" class="accordion-title accordion-title-level-2">Web Page Title Search Results</a>
   <div class="accordion-content" data-tab-content>
-<textarea>
-<widget name="webPageTitleSearchResults" />
+<textarea rows="10">
+<widget name="webPageTitleSearchResults">
+  <!-- <icon></icon> -->
+  <!-- <title></title> -->
+  <!-- <limit>15</limit> -->
+</widget>
 </textarea>
   </div>
 </li>
@@ -563,7 +736,7 @@
 <li class="accordion-item" data-accordion-item>
   <a href="#" class="accordion-title accordion-title-level-2">Blog Post Search Results</a>
   <div class="accordion-content" data-tab-content>
-<textarea>
+<textarea rows="10">
 <widget name="blogPostSearchResults" />
 </textarea>
   </div>
@@ -572,7 +745,7 @@
 <li class="accordion-item" data-accordion-item>
   <a href="#" class="accordion-title accordion-title-level-2">Calendar Search Results</a>
   <div class="accordion-content" data-tab-content>
-<textarea>
+<textarea rows="10">
 <widget name="calendarSearchResults" />
 </textarea>
   </div>
@@ -581,7 +754,7 @@
 <li class="accordion-item" data-accordion-item>
   <a href="#" class="accordion-title accordion-title-level-2">Items Search Results</a>
   <div class="accordion-content" data-tab-content>
-<textarea>
+<textarea rows="10">
 <widget name="itemsSearchResults" />
 </textarea>
   </div>
