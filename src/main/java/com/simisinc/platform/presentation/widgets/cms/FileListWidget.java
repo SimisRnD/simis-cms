@@ -31,7 +31,7 @@ import org.apache.commons.logging.LogFactory;
 import java.util.List;
 
 /**
- * Description
+ * Displays a list of files
  *
  * @author matt rajkowski
  * @created 12/17/18 4:14 PM

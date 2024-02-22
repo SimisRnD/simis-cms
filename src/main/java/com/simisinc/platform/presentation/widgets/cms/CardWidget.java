@@ -20,7 +20,7 @@ import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 
 /**
- * Description
+ * Displays a Card
  *
  * @author matt rajkowski
  * @created 4/20/18 2:23 PM

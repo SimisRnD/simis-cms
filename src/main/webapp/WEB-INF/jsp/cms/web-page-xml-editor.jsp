@@ -144,8 +144,13 @@
 <widget name="contentReveal">
   <uniqueId>content-unique-id</uniqueId>
   <html>&lt;![CDATA[ Any HTML content ]]&gt;</html>
-
-  uniqueId, html, attach=left, animate=up|down|left|right|fade, revealClass
+  <attach>left</attach>
+  <!-- <animate>up</animate> -->
+  <!-- <animate>down</animate> -->
+  <!-- <animate>left</animate> -->
+  <animate>right</animate>
+  <!-- <animate>fade</animate> -->
+  <!-- <revealClass>site-reveal</revealClass> -->
 </widget>
 </textarea>
   </div>
@@ -158,8 +163,10 @@
 <widget name="contentSlider">
   <uniqueId>content-unique-id</uniqueId>
   <html>&lt;![CDATA[ Any HTML content ]]&gt;</html>
-
-  uniqueId, html, showControls, showPagination, loop, autoplayDelay=1000
+  <showControls>true</showControls>
+  <showPagination>true</showPagination>
+  <loop>false</loop>
+  <autoplayDelay>1000</autoplayDelay>
 </widget>
 </textarea>
   </div>
@@ -170,7 +177,12 @@
   <div class="accordion-content" data-tab-content>
 <textarea>
 <widget name="contentTabs">
-  tabs[name, linkId, link, contentUniqueId, isActive]
+  <!-- <icon></icon> -->
+  <!-- <title></title> -->
+  <smudge>false</smudge>
+  <tabs>
+    <tab name="" linkId="" link="" contentUniqueId="" isActive="" enabled="" />
+  </tabs>
 </widget>
 </textarea>
   </div>
@@ -181,7 +193,11 @@
   <div class="accordion-content" data-tab-content>
 <textarea>
 <widget name="button">
-  name, link, buttonClass, leftIcon, icon
+  <name>Button</name>
+  <link></link>
+  <!-- <buttonClass></buttonClass> -->
+  <!-- <leftIcon></leftIcon> -->
+  <!-- <icon></icon> -->
 </widget>
 </textarea>
   </div>
@@ -192,7 +208,13 @@
   <div class="accordion-content" data-tab-content>
 <textarea>
 <widget name="link">
-  name, link, class, property
+  <name>Text</name>
+  <link></link>
+  <!-- <target>_blank</target> -->
+  <!-- <leftIcon></leftIcon> -->
+  <!-- <icon></icon> -->
+  <!-- <linkClass></linkClass> -->
+  <!-- <property>site.registrations=true</property> -->
 </widget>
 </textarea>
   </div>
@@ -203,7 +225,12 @@
   <div class="accordion-content" data-tab-content>
 <textarea>
 <widget name="card">
-  title, icon, link, linkTitle, linkIcon, class
+  <title></title>
+  <!-- <icon></icon>
+  <link></link>
+  <linkTitle></linkTitle>
+  <linkIcon></linkIcon>
+  <class></class> -->
 </widget>
 </textarea>
   </div>
@@ -213,7 +240,18 @@
   <a href="#" class="accordion-title accordion-title-level-2">Menu</a>
   <div class="accordion-content" data-tab-content>
 <textarea>
-<widget name="menu" />
+<widget name="menu">
+  <class>vertical</class>
+  <showWhenEmpty>false</showWhenEmpty>
+  <links>
+    <link name="Contact Us" link="/contact-us" />
+    <link name="Login" link="/login" role="guest" rule="site.login" />
+    <link name="Register" link="/login" role="guest" rule="site.registrations" />
+    <link name="My Account" link="/my-page" role="users" />
+    <link name="Admin" link="/admin" role="admin" />
+    <link name="Log Out" link="/logout" role="users" />
+  </links>
+</widget>
 </textarea>
   </div>
 </li>
@@ -223,7 +261,15 @@
   <div class="accordion-content" data-tab-content>
 <textarea>
 <widget name="progressCard">
-  label, value, maxLabel, progress, maxValue, textColor=#|theme., subheaderColor=#|theme., progressColor=#|theme., remainderColor=#|theme.
+  <label></label>
+  <value></value>
+  <progress></progress>
+  <maxValue></maxValue>
+  <link></link>
+  <textColor>theme.body.text.color</textColor>
+  <subheaderColor>theme.utilitybar.backgroundColor</subheaderColor>
+  <progressColor>#00ff00</progressColor>
+  <remainderColor>#ff0000</remainderColor>
 </widget>
 </textarea>
   </div>
@@ -234,7 +280,13 @@
   <div class="accordion-content" data-tab-content>
 <textarea>
 <widget name="statisticCard">
-  label, value, icon, link, iconColor=#|theme., view=default|vertical
+  <label></label>
+  <value></value>
+  <icon></icon>
+  <link></link>
+  <iconColor>theme.body.text.color</iconColor>
+  <view>default</view>
+  <!-- <view>vertical</view> -->
 </widget>
 </textarea>
   </div>
@@ -245,7 +297,13 @@
   <div class="accordion-content" data-tab-content>
 <textarea>
 <widget name="logo">
-  maxWidth, maxHeight, view=standard,color,white
+  <maxHeight></maxHeight>
+  <maxWidth></maxWidth>
+  <view>standard</view>
+  <!-- <view>color</view> -->
+  <!-- <view>white</view> -->
+  <!-- <logoClass></logoClass> -->
+  <!-- <logoStyle></logoStyle> -->
 </widget>
 </textarea>
   </div>
@@ -255,7 +313,10 @@
   <a href="#" class="accordion-title accordion-title-level-2">Copyright</a>
   <div class="accordion-content" data-tab-content>
 <textarea>
-<widget name="copyright" />
+<widget name="copyright">
+  <!-- <name>Company</name> -->
+  <!-- <tag>All Rights Reserved.</tag> -->
+</widget>
 </textarea>
   </div>
 </li>
@@ -264,7 +325,20 @@
   <a href="#" class="accordion-title accordion-title-level-2">Email Subscribe</a>
   <div class="accordion-content" data-tab-content>
 <textarea>
-<widget name="emailSubscribe" />
+<widget name="emailSubscribe">
+  <!-- <icon></icon> -->
+  <!-- <title></title> -->
+  <view>inline</view>
+  <!-- <view>vertical</view> -->
+  <!-- <view>default</view> -->
+  <!-- <showName>true</showName> -->
+  <!-- <introHtml></introHtml> -->
+  <buttonName>Subscribe</buttonName>
+  <!-- <footerHtml></footerHtml> -->
+  <!-- <useCaptcha>true</useCaptcha> -->
+  <!-- <mailingList>Newsletter</mailingList> -->
+  <!-- <tags>website</tags> -->
+</widget>
 </textarea>
   </div>
 </li>
@@ -297,7 +371,7 @@
   <showDate>true</showDate>
   <showAuthor>true</showAuthor>
   <showTags>false</showTags>
-</v>
+</widget>
 </textarea>
   </div>
 </li>
@@ -400,7 +474,11 @@
   <a href="#" class="accordion-title accordion-title-level-2">Search Form</a>
   <div class="accordion-content" data-tab-content>
 <textarea>
-<widget name="searchForm" />
+<widget name="searchForm">
+  <expand>true</expand>
+  <linkText>Search</linkText>
+  <placeholder>Search the site</placeholder>
+</widget>
 </textarea>
   </div>
 </li>
@@ -410,7 +488,11 @@
   <div class="accordion-content" data-tab-content>
 <textarea>
 <widget name="tableOfContents">
-  links[name, value]
+  <uniqueId>example-toc</uniqueId>
+  <!-- <links>
+    <link name="Title" value="/title" />
+    <link name="Title 2" value="/title-2" />
+  </links> -->
 </widget>
 </textarea>
   </div>
@@ -420,7 +502,18 @@
   <a href="#" class="accordion-title accordion-title-level-2">Album Gallery</a>
   <div class="accordion-content" data-tab-content>
 <textarea>
-<widget name="albumGallery" />
+<!-- Requires a folderUniqueId to be setup with albums -->
+<widget name="albumGallery">
+  <!-- <icon></icon> -->
+  <!-- <title></title> -->
+  <folderUniqueId>example-folder-id</folderUniqueId>
+  <controlId>myAlbum</controlId>
+  <!-- <cardClass></cardClass> -->
+  <!-- <smallCardCount>6</smallCardCount> -->
+  <!-- <mediumCardCount>6</mediumCardCount> -->
+  <!-- <largeCardCount>6</largeCardCount> -->
+  <!-- <limit>12</limit> -->
+</widget>
 </textarea>
   </div>
 </li>
@@ -429,7 +522,15 @@
   <a href="#" class="accordion-title accordion-title-level-2">Photo Gallery</a>
   <div class="accordion-content" data-tab-content>
 <textarea>
-<widget name="photoGallery" />
+<widget name="photoGallery">
+  <!-- <icon></icon> -->
+  <!-- <title></title> -->
+  <folderUniqueId>example-folder-id</folderUniqueId>
+  <controlId>myAlbum</controlId>
+  <isSticky>false</isSticky>
+  <marginTop>8</marginTop>
+  <showCaption>true</showCaption>
+</widget>
 </textarea>
   </div>
 </li>
@@ -438,7 +539,20 @@
   <a href="#" class="accordion-title accordion-title-level-2">File List</a>
   <div class="accordion-content" data-tab-content>
 <textarea>
-<widget name="fileList" />
+<widget name="fileList">
+  <!-- <icon></icon> -->
+  <!-- <title></title> -->
+  <folderUniqueId>example-folder-id</folderUniqueId>
+  <useViewer>false</useViewer>
+  <showLinks>true</showLinks>
+  <!-- <rules>user-created</rules> -->
+  <orderBy>newest</orderBy>
+  <!-- <orderBy>oldest</orderBy> -->
+  <!-- <orderBy>ascending</orderBy> -->
+  <!-- <orderBy>descending</orderBy> -->
+  <withinLastDays>-1</withinLastDays>
+  <showWhenEmpty>true</showWhenEmpty>
+</widget>
 </textarea>
   </div>
 </li>
@@ -465,7 +579,11 @@
   <a href="#" class="accordion-title accordion-title-level-2">File Drop Zone</a>
   <div class="accordion-content" data-tab-content>
 <textarea>
-<widget name="fileDropZone" />
+<widget name="fileDropZone">
+  <!-- <icon></icon> -->
+  <!-- <title></title> -->
+  <folderUniqueId>example-folder-id</folderUniqueId>
+</widget>
 </textarea>
   </div>
 </li>
@@ -474,7 +592,21 @@
   <a href="#" class="accordion-title accordion-title-level-2">Calendar</a>
   <div class="accordion-content" data-tab-content>
 <textarea>
-<widget name="calendar" />
+<!-- A calendar must already be setup -->
+<widget name="calendar">
+  <calendarUniqueId>example-calendar</calendarUniqueId>
+  <showEvents>true</showEvents>
+  <!-- <showHolidays>true</showHolidays> -->
+  <!-- <showMoodleEvents>false</showMoodleEvents> -->
+  <!-- <view>default</view> -->
+  <!-- <view>small</view> -->
+  <!-- <height>550</height> -->
+  <default>month</default>
+  <!-- <default>list</default> -->
+  <!-- <default>day</default> -->
+  <!-- <moodleBackgroundColor></moodleBackgroundColor> -->
+  <!-- <moodleTextColor></moodleTextColor> -->
+</widget>
 </textarea>
   </div>
 </li>
@@ -483,7 +615,27 @@
   <a href="#" class="accordion-title accordion-title-level-2">Upcoming Calendar Events</a>
   <div class="accordion-content" data-tab-content>
 <textarea>
-<widget name="upcomingCalendarEvents" />
+<widget name="upcomingCalendarEvents">
+  <!-- <icon></icon> -->
+  <!-- <title></title> -->
+  <calendarUniqueId>example-calendar</calendarUniqueId>
+  <view>list</view>
+  <!-- <view>cards</view> -->
+  <!-- <view>overview</view> -->
+  <showWhenEmpty>true</showWhenEmpty>
+  <!-- <daysToShow>-1</daysToShow> -->
+  <!-- <monthsToShow>1</monthsToShow> -->
+  <!-- <showMonthName>true</showMonthName> -->
+  <!-- <showEventLink>true</showEventLink> -->
+  <!-- <includeLastEvent>false</includeLastEvent> -->
+  <!-- <limit>-1</limit> -->
+  <!-- <smallCardCount>3</smallCardCount> -->
+  <!-- <mediumCardCount>3</mediumCardCount> -->
+  <!-- <largeCardCount>3</largeCardCount> -->
+  <!-- <cardClass></cardClass> -->
+  <!-- <calendarLink></calendarLink> -->
+  <!-- <titles>Past|Current|Upcoming</titles> -->
+</widget>
 </textarea>
   </div>
 </li>
@@ -492,7 +644,10 @@
   <a href="#" class="accordion-title accordion-title-level-2">Calendar Event Details</a>
   <div class="accordion-content" data-tab-content>
 <textarea>
-<widget name="calendarEventDetails" />
+<widget name="calendarEventDetails">
+  <!-- <icon></icon> -->
+  <!-- <title></title> -->
+</widget>
 </textarea>
   </div>
 </li>
@@ -519,7 +674,16 @@
   <a href="#" class="accordion-title accordion-title-level-2">Instagram Photos</a>
   <div class="accordion-content" data-tab-content>
 <textarea>
-<widget name="instagram" />
+<!-- Retrieve content from Instagram, must have business account configured -->
+<widget name="instagram">
+  <!-- <icon></icon> -->
+  <!-- <title></title> -->
+  <!-- <cardClass></cardClass> -->
+  <!-- <smallCardCount>6</smallCardCount> -->
+  <!-- <mediumCardCount>6</mediumCardCount> -->
+  <!-- <largeCardCount>6</largeCardCount> -->
+  <!-- <limit>8</limit> -->
+</widget>
 </textarea>
   </div>
 </li>
@@ -528,6 +692,7 @@
   <a href="#" class="accordion-title accordion-title-level-2">Social Media Links</a>
   <div class="accordion-content" data-tab-content>
 <textarea>
+<!-- Setup your social media links in the CMS -->
 <widget name="socialMediaLinks" />
 </textarea>
   </div>
@@ -537,7 +702,11 @@
   <a href="#" class="accordion-title accordion-title-level-2">Wiki</a>
   <div class="accordion-content" data-tab-content>
 <textarea>
-<widget name="wiki" />
+<widget name="wiki">
+  <!-- <icon></icon> -->
+  <!-- <title></title> -->
+  <wikiUniqueId>example-wiki</wikiUniqueId>
+</widget>
 </textarea>
   </div>
 </li>
@@ -555,7 +724,11 @@
   <a href="#" class="accordion-title accordion-title-level-2">Web Page Title Search Results</a>
   <div class="accordion-content" data-tab-content>
 <textarea>
-<widget name="webPageTitleSearchResults" />
+<widget name="webPageTitleSearchResults">
+  <!-- <icon></icon> -->
+  <!-- <title></title> -->
+  <!-- <limit>15</limit> -->
+</widget>
 </textarea>
   </div>
 </li>

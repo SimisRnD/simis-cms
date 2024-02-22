@@ -22,7 +22,7 @@ import com.simisinc.platform.presentation.widgets.GenericWidget;
 import org.apache.commons.lang3.StringUtils;
 
 /**
- * Description
+ * Displays content with a link
  *
  * @author matt rajkowski
  * @created 1/18/21 3:44 PM
@@ -59,7 +59,10 @@ public class LinkWidget extends GenericWidget {
       link = context.getContextPath() + link;
     }
     context.getRequest().setAttribute("link", link);
-    context.getRequest().setAttribute("linkClass", context.getPreferences().get("class"));
+    String linkClass = context.getPreferences().get("linkClass");
+    linkClass = context.getPreferences().getOrDefault("class", linkClass);
+    
+    context.getRequest().setAttribute("linkClass", linkClass);
     context.getRequest().setAttribute("name", context.getPreferences().get("name"));
     context.getRequest().setAttribute("icon", context.getPreferences().getOrDefault("icon", context.getPreferences().get("rightIcon")));
     context.getRequest().setAttribute("leftIcon", context.getPreferences().get("leftIcon"));
