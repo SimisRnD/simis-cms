@@ -108,8 +108,8 @@ public class FileItemRepository {
 
       // Use the search engine
       if (StringUtils.isNotBlank(specification.getSearchName())) {
-        select.add("TS_RANK_CD(tsv, PLAINTO_TSQUERY('file_stem', ?)) AS rank", specification.getSearchName().trim());
-        where.add("tsv @@ PLAINTO_TSQUERY('file_stem', ?)", specification.getSearchName().trim());
+        select.add("ts_rank_cd(tsv, websearch_to_tsquery('file_stem', ?)) AS rank", specification.getSearchName().trim());
+        where.add("tsv @@ websearch_to_tsquery('file_stem', ?)", specification.getSearchName().trim());
         // Override the order by for rank first
         orderBy.add("rank DESC, file_id");
       }

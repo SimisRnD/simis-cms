@@ -451,10 +451,10 @@ public class ItemRepository {
       // Use the search engine
       if (StringUtils.isNotBlank(specification.getSearchName())) {
         select.add(
-            "ts_headline('english', items.name || ' ' || coalesce(keywords,'') || ' ' || coalesce(summary,''), PLAINTO_TSQUERY('title_stem', ?), 'StartSel=${b}, StopSel=${/b}, MaxWords=30, MinWords=15, ShortWord=3, HighlightAll=FALSE, MaxFragments=2, FragmentDelimiter=\" ... \"') AS highlight",
+            "ts_headline('english', items.name || ' ' || coalesce(keywords,'') || ' ' || coalesce(summary,''), websearch_to_tsquery('title_stem', ?), 'StartSel=${b}, StopSel=${/b}, MaxWords=30, MinWords=15, ShortWord=3, HighlightAll=FALSE, MaxFragments=2, FragmentDelimiter=\" ... \"') AS highlight",
             specification.getSearchName().trim());
-        select.add("TS_RANK_CD(tsv, PLAINTO_TSQUERY('title_stem', ?)) AS rank", specification.getSearchName().trim());
-        where.add("tsv @@ PLAINTO_TSQUERY('title_stem', ?)", specification.getSearchName().trim());
+        select.add("ts_rank_cd(tsv, websearch_to_tsquery('title_stem', ?)) AS rank", specification.getSearchName().trim());
+        where.add("tsv @@ websearch_to_tsquery('title_stem', ?)", specification.getSearchName().trim());
         // Override the order by for rank first
         orderBy.add("rank DESC, item_id");
       }

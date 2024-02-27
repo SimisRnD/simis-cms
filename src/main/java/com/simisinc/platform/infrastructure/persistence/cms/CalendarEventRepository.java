@@ -78,8 +78,8 @@ public class CalendarEventRepository {
 
     if (specification != null) {
       if (StringUtils.isNotBlank(specification.getSearchTerm())) {
-        select.add("TS_RANK_CD(tsv, PLAINTO_TSQUERY('title_stem', ?)) AS rank", specification.getSearchTerm().trim());
-        where.add("tsv @@ PLAINTO_TSQUERY('title_stem', ?)", specification.getSearchTerm().trim());
+        select.add("ts_rank_cd(tsv, websearch_to_tsquery('title_stem', ?)) AS rank", specification.getSearchTerm().trim());
+        where.add("tsv @@ websearch_to_tsquery('title_stem', ?)", specification.getSearchTerm().trim());
         // Override the order by for rank first
         orderBy = new SqlUtils();
         if (specification.getStartingDateRange() != null) {
