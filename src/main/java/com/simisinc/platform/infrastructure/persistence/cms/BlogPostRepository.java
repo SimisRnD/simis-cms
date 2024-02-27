@@ -77,7 +77,7 @@ public class BlogPostRepository {
         }
       }
       if (StringUtils.isNotBlank(specification.getSearchTerm())) {
-        where.add("tsv @@ PLAINTO_TSQUERY('content_stem', ?)", specification.getSearchTerm().trim());
+        where.add("tsv @@ websearch_to_tsquery('content_stem', ?)", specification.getSearchTerm().trim());
       }
     }
     return where;
@@ -89,9 +89,9 @@ public class BlogPostRepository {
     SqlUtils orderBy = null;
     if (specification != null && StringUtils.isNotBlank(specification.getSearchTerm())) {
       select.add(
-          "ts_headline('english', body_text, PLAINTO_TSQUERY('content_stem', ?), 'StartSel=${b}, StopSel=${/b}, MaxWords=30, MinWords=15, ShortWord=3, HighlightAll=FALSE, MaxFragments=2, FragmentDelimiter=\" ... \"') AS highlight",
+          "ts_headline('english', body_text, websearch_to_tsquery('content_stem', ?), 'StartSel=${b}, StopSel=${/b}, MaxWords=30, MinWords=15, ShortWord=3, HighlightAll=FALSE, MaxFragments=2, FragmentDelimiter=\" ... \"') AS highlight",
           specification.getSearchTerm().trim());
-      select.add("TS_RANK_CD(tsv, PLAINTO_TSQUERY('content_stem', ?)) AS rank", specification.getSearchTerm().trim());
+      select.add("ts_rank_cd(tsv, websearch_to_tsquery('content_stem', ?)) AS rank", specification.getSearchTerm().trim());
       // Override the order by for rank first
       orderBy = new SqlUtils();
       orderBy.add("rank DESC, post_id desc");
