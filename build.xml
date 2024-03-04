@@ -21,7 +21,7 @@
   <property name="out.dir" value="${base.dir}/out" />
   <property name="exploded.dir" value="${out.dir}/exploded/ROOT" />
   <property name="exploded.work.dir" value="${out.dir}/exploded-work/ROOT" />
-  <property name="custom.dir" value="${base.dir}/web-content" />
+  <property name="custom.dir" value="${base.dir}/web-customizations" />
   <property name="jee.lib.dir" value="${base.dir}/lib/war" />
 
   <typedef resource="org/apache/catalina/ant/catalina.tasks">
@@ -170,9 +170,9 @@
         <include name="javascript/**"/>
       </fileset>
     </copy>
-    <!-- Custom Web Content (optional) -->
+    <!-- Custom Web App Content (optional) -->
     <copy todir="${target.dir}/${project}" preservelastmodified="true" overwrite="true" failonerror="false">
-      <fileset dir="${custom.dir}">
+      <fileset dir="${custom.dir}/webapp">
         <include name="favicon.ico"/>
         <include name="css/**"/>
         <include name="fonts/**"/>
@@ -296,9 +296,9 @@
         <include name="javascript/**"/>
       </fileset>
     </copy>
-    <!-- Custom Web Content (optional) -->
+    <!-- Custom Web App Content (optional) -->
     <copy todir="${exploded.work.dir}" preservelastmodified="true" overwrite="true" failonerror="false">
-      <fileset dir="${custom.dir}">
+      <fileset dir="${custom.dir}/webapp">
         <include name="favicon.ico"/>
         <include name="css/**"/>
         <include name="fonts/**"/>
