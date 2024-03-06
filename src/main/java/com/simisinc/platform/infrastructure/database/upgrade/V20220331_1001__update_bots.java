@@ -16,18 +16,19 @@
 
 package com.simisinc.platform.infrastructure.database.upgrade;
 
-import com.simisinc.platform.application.SessionCommand;
-import com.simisinc.platform.application.filesystem.FileSystemCommand;
-import com.simisinc.platform.infrastructure.persistence.SitePropertyRepository;
+import java.io.File;
+import java.nio.file.Paths;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.util.List;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.flywaydb.core.api.migration.BaseJavaMigration;
 import org.flywaydb.core.api.migration.Context;
 
-import java.io.File;
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.util.List;
+import com.simisinc.platform.application.SessionCommand;
+import com.simisinc.platform.application.filesystem.FileSystemCommand;
 
 /**
  * Updates the session information based on identifying bots
@@ -42,11 +43,11 @@ public class V20220331_1001__update_bots extends BaseJavaMigration {
   @Override
   public void migrate(Context context) throws Exception {
 
-    String serverConfigPath = SitePropertyRepository.findByName("system.configpath").getValue();
+    String serverConfigPath = FileSystemCommand.getFileServerConfigPath();
     if (serverConfigPath == null) {
       return;
     }
-    File file = new File(serverConfigPath + "/cms/" + SessionCommand.BOT_LIST);
+    File file = Paths.get(serverConfigPath, "cms", SessionCommand.BOT_LIST).toFile();
     if (!file.exists()) {
       return;
     }
