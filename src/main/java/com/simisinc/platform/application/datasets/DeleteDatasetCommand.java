@@ -16,13 +16,14 @@
 
 package com.simisinc.platform.application.datasets;
 
-import com.simisinc.platform.application.filesystem.FileSystemCommand;
-import com.simisinc.platform.domain.model.datasets.Dataset;
-import com.simisinc.platform.infrastructure.persistence.datasets.DatasetRepository;
+import java.io.File;
+
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import java.io.File;
+import com.simisinc.platform.application.filesystem.FileSystemCommand;
+import com.simisinc.platform.domain.model.datasets.Dataset;
+import com.simisinc.platform.infrastructure.persistence.datasets.DatasetRepository;
 
 /**
  * Deletes dataset files from the database and filesystem
@@ -47,11 +48,10 @@ public class DeleteDatasetCommand {
 
   public static boolean deleteFile(Dataset datasetBean) {
     // Get a file handle
-    String serverRootPath = FileSystemCommand.getFileServerRootPath();
-    File dataFile = new File(serverRootPath + datasetBean.getFileServerPath());
-    if (dataFile.isFile()) {
-      LOG.debug("Deleting file: " + dataFile.getAbsolutePath());
-      dataFile.delete();
+    File serverFile = FileSystemCommand.getFileServerRootPath(datasetBean.getFileServerPath());
+    if (serverFile.isFile()) {
+      LOG.debug("Deleting file: " + serverFile.getPath());
+      serverFile.delete();
     }
     return true;
   }

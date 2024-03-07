@@ -16,18 +16,20 @@
 
 package com.simisinc.platform.application.items;
 
+import java.io.File;
+import java.nio.file.Paths;
+
+import javax.servlet.http.Part;
+
+import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.filesystem.FileSystemCommand;
 import com.simisinc.platform.domain.model.items.Item;
 import com.simisinc.platform.domain.model.items.ItemFileItem;
 import com.simisinc.platform.presentation.controller.WidgetContext;
-import org.apache.commons.io.FilenameUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
-import javax.servlet.http.Part;
-import java.io.File;
-import java.nio.file.Paths;
 
 /**
  * Validates and saves an item's uploaded file item object
@@ -42,7 +44,7 @@ public class SaveItemFilePartCommand {
   public static ItemFileItem saveFile(WidgetContext context, Item item) throws DataException {
 
     // Prepare to save the file
-    String serverRootPath = FileSystemCommand.getFileServerRootPath();
+    String serverRootPath = FileSystemCommand.getFileServerRootPathValue();
     String serverSubPath = FileSystemCommand.generateFileServerSubPath("item-uploads");
     String serverCompletePath = serverRootPath + serverSubPath;
     String uniqueFilename = FileSystemCommand.generateUniqueFilename(context.getUserId());
@@ -97,10 +99,9 @@ public class SaveItemFilePartCommand {
     if (fileItemBean == null) {
       return;
     }
-    String serverRootPath = FileSystemCommand.getFileServerRootPath();
-    File tempFile = new File(serverRootPath + fileItemBean.getFileServerPath());
+    File tempFile = FileSystemCommand.getFileServerRootPath(fileItemBean.getFileServerPath());
     if (tempFile.exists()) {
-      LOG.warn("Deleting an uploaded file: " + serverRootPath + fileItemBean.getFileServerPath());
+      LOG.warn("Deleting an uploaded file: " + tempFile.getPath());
       tempFile.delete();
     }
   }

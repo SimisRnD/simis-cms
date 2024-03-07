@@ -16,22 +16,24 @@
 
 package com.simisinc.platform.application.cms;
 
-import com.simisinc.platform.application.DataException;
-import com.simisinc.platform.application.filesystem.FileSystemCommand;
-import com.simisinc.platform.domain.model.cms.Image;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
-import javax.imageio.ImageIO;
-import javax.imageio.ImageReader;
-import javax.imageio.stream.FileImageInputStream;
-import javax.imageio.stream.ImageInputStream;
-import java.awt.*;
+import java.awt.Dimension;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.util.Iterator;
+
+import javax.imageio.ImageIO;
+import javax.imageio.ImageReader;
+import javax.imageio.stream.FileImageInputStream;
+import javax.imageio.stream.ImageInputStream;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.filesystem.FileSystemCommand;
+import com.simisinc.platform.domain.model.cms.Image;
 
 /**
  * Validates image objects
@@ -46,8 +48,7 @@ public class ValidateImageCommand {
   public static void checkFile(Image imageBean) throws DataException {
 
     // Get a file handle
-    String serverRootPath = FileSystemCommand.getFileServerRootPath();
-    File imageFile = new File(serverRootPath + imageBean.getFileServerPath());
+    File imageFile = FileSystemCommand.getFileServerRootPath(imageBean.getFileServerPath());
     if (!imageFile.exists()) {
       return;
     }

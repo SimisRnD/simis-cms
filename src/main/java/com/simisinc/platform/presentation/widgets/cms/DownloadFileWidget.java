@@ -96,7 +96,7 @@ public class DownloadFileWidget extends GenericWidget {
     }
 
     // Make sure it exists
-    File file = new File(FileSystemCommand.getFileServerRootPath() + record.getFileServerPath());
+    File file = FileSystemCommand.getFileServerRootPath(record.getFileServerPath());
     if (!file.isFile()) {
       LOG.warn("Server file does not exist: " + record.getFileServerPath());
       return null;

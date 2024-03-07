@@ -16,15 +16,16 @@
 
 package com.simisinc.platform.application.cms;
 
-import com.simisinc.platform.application.filesystem.FileSystemCommand;
-import com.simisinc.platform.domain.model.cms.FileItem;
-import com.simisinc.platform.domain.model.items.ItemFileItem;
+import java.io.File;
+import java.nio.file.Files;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import java.io.File;
-import java.nio.file.Files;
+import com.simisinc.platform.application.filesystem.FileSystemCommand;
+import com.simisinc.platform.domain.model.cms.FileItem;
+import com.simisinc.platform.domain.model.items.ItemFileItem;
 
 /**
  * Validates file item objects
@@ -39,10 +40,9 @@ public class ValidateFileCommand {
   public static void checkFile(FileItem fileItemBean) {
 
     // Get a file handle
-    String serverRootPath = FileSystemCommand.getFileServerRootPath();
-    File file = new File(serverRootPath + fileItemBean.getFileServerPath());
+    File file = FileSystemCommand.getFileServerRootPath(fileItemBean.getFileServerPath());
     if (!file.exists()) {
-      LOG.warn("File does not exist: " + serverRootPath + fileItemBean.getFileServerPath());
+      LOG.warn("File does not exist: " + file.getPath());
       return;
     }
 
@@ -67,10 +67,9 @@ public class ValidateFileCommand {
   public static void checkFile(ItemFileItem fileItemBean) {
 
     // Get a file handle
-    String serverRootPath = FileSystemCommand.getFileServerRootPath();
-    File file = new File(serverRootPath + fileItemBean.getFileServerPath());
+    File file = FileSystemCommand.getFileServerRootPath(fileItemBean.getFileServerPath());
     if (!file.exists()) {
-      LOG.warn("File does not exist: " + serverRootPath + fileItemBean.getFileServerPath());
+      LOG.warn("File does not exist: " + file.getPath());
       return;
     }
 

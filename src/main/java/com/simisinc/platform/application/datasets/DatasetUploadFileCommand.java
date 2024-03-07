@@ -56,7 +56,7 @@ public class DatasetUploadFileCommand {
     }
 
     // Prepare to save the file
-    String serverRootPath = FileSystemCommand.getFileServerRootPath();
+    String serverRootPath = FileSystemCommand.getFileServerRootPathValue();
     String serverSubPath = FileSystemCommand.generateFileServerSubPath("datasets");
     String serverCompletePath = serverRootPath + serverSubPath;
     String uniqueFilename = FileSystemCommand.generateUniqueFilename(context.getUserId());

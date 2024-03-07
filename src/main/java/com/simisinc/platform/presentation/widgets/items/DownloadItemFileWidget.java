@@ -16,6 +16,17 @@
 
 package com.simisinc.platform.presentation.widgets.items;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.OutputStream;
+import java.net.URLDecoder;
+
+import javax.servlet.http.HttpServletResponse;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import com.simisinc.platform.application.filesystem.FileSystemCommand;
 import com.simisinc.platform.application.items.LoadCollectionCommand;
 import com.simisinc.platform.application.items.LoadItemCommand;
@@ -25,17 +36,8 @@ import com.simisinc.platform.domain.model.items.Item;
 import com.simisinc.platform.domain.model.items.ItemFileItem;
 import com.simisinc.platform.infrastructure.persistence.items.ItemFileItemRepository;
 import com.simisinc.platform.presentation.controller.MultipartFileSender;
-import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.controller.WidgetContext;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
-import javax.servlet.http.HttpServletResponse;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.OutputStream;
-import java.net.URLDecoder;
+import com.simisinc.platform.presentation.widgets.GenericWidget;
 
 /**
  * Description
@@ -112,7 +114,7 @@ public class DownloadItemFileWidget extends GenericWidget {
     }
 
     // Make sure it exists
-    File file = new File(FileSystemCommand.getFileServerRootPath() + record.getFileServerPath());
+    File file = FileSystemCommand.getFileServerRootPath(record.getFileServerPath());
     if (!file.isFile()) {
       LOG.warn("Server file does not exist: " + record.getFileServerPath());
       return null;

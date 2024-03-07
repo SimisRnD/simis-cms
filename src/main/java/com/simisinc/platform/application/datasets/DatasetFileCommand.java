@@ -56,8 +56,7 @@ public class DatasetFileCommand {
 
   public static File getFile(Dataset dataset) {
     // Get a file handle
-    String serverRootPath = FileSystemCommand.getFileServerRootPath();
-    File serverFile = new File(serverRootPath + dataset.getFileServerPath());
+    File serverFile = FileSystemCommand.getFileServerRootPath(dataset.getFileServerPath());
     if (!serverFile.exists()) {
       LOG.warn("File not found: " + serverFile.getAbsolutePath());
       return null;

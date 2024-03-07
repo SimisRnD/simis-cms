@@ -16,6 +16,15 @@
 
 package com.simisinc.platform.application.admin;
 
+import java.io.File;
+import java.sql.Timestamp;
+import java.util.Date;
+import java.util.List;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.cms.DeleteBlockedIPListCommand;
 import com.simisinc.platform.application.cms.SaveBlockedIPCommand;
@@ -29,14 +38,6 @@ import com.univocity.parsers.common.record.Record;
 import com.univocity.parsers.conversions.Conversions;
 import com.univocity.parsers.csv.CsvParser;
 import com.univocity.parsers.csv.CsvParserSettings;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
-import java.io.File;
-import java.sql.Timestamp;
-import java.util.Date;
-import java.util.List;
 
 /**
  * Handles uploaded CSV file
@@ -60,8 +61,7 @@ public class ProcessBlockListCSVFileCommand {
       if (fileItemBean == null) {
         throw new DataException("Valid file not found");
       }
-      String serverRootPath = FileSystemCommand.getFileServerRootPath();
-      File csvFile = new File(serverRootPath + fileItemBean.getFileServerPath());
+      File csvFile = FileSystemCommand.getFileServerRootPath(fileItemBean.getFileServerPath());
       if (!csvFile.exists()) {
         throw new DataException("Valid file not found");
       }

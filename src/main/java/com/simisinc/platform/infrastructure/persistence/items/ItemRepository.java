@@ -16,23 +16,6 @@
 
 package com.simisinc.platform.infrastructure.persistence.items;
 
-import com.simisinc.platform.application.cms.HtmlCommand;
-import com.simisinc.platform.application.filesystem.FileSystemCommand;
-import com.simisinc.platform.application.CustomFieldListJSONCommand;
-import com.simisinc.platform.application.maps.ValidateGeoRegion;
-import com.simisinc.platform.domain.model.User;
-import com.simisinc.platform.domain.model.items.Collection;
-import com.simisinc.platform.domain.model.items.Item;
-import com.simisinc.platform.domain.model.items.ItemCategory;
-import com.simisinc.platform.domain.model.items.ItemFileVersion;
-import com.simisinc.platform.infrastructure.database.*;
-import com.simisinc.platform.infrastructure.persistence.medicine.MedicineRepository;
-import com.simisinc.platform.presentation.controller.DataConstants;
-import com.simisinc.platform.presentation.controller.UserSession;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 import java.io.File;
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -41,6 +24,31 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import com.simisinc.platform.application.CustomFieldListJSONCommand;
+import com.simisinc.platform.application.cms.HtmlCommand;
+import com.simisinc.platform.application.filesystem.FileSystemCommand;
+import com.simisinc.platform.application.maps.ValidateGeoRegion;
+import com.simisinc.platform.domain.model.User;
+import com.simisinc.platform.domain.model.items.Collection;
+import com.simisinc.platform.domain.model.items.Item;
+import com.simisinc.platform.domain.model.items.ItemCategory;
+import com.simisinc.platform.domain.model.items.ItemFileVersion;
+import com.simisinc.platform.infrastructure.database.AutoRollback;
+import com.simisinc.platform.infrastructure.database.AutoStartTransaction;
+import com.simisinc.platform.infrastructure.database.DB;
+import com.simisinc.platform.infrastructure.database.DataConstraints;
+import com.simisinc.platform.infrastructure.database.DataResult;
+import com.simisinc.platform.infrastructure.database.SqlJoins;
+import com.simisinc.platform.infrastructure.database.SqlUtils;
+import com.simisinc.platform.infrastructure.database.SqlValue;
+import com.simisinc.platform.infrastructure.persistence.medicine.MedicineRepository;
+import com.simisinc.platform.presentation.controller.DataConstants;
+import com.simisinc.platform.presentation.controller.UserSession;
 
 /**
  * Persists and retrieves item objects
@@ -289,13 +297,12 @@ public class ItemRepository {
         transaction.commit();
       }
       // Cleanup the files
-      String serverRootPath = FileSystemCommand.getFileServerRootPath();
       for (ItemFileVersion fileVersion : fileVersionList) {
         String fileServerPath = fileVersion.getFileServerPath();
         if (StringUtils.isBlank(fileServerPath)) {
           continue;
         }
-        File file = new File(serverRootPath + fileServerPath);
+        File file = FileSystemCommand.getFileServerRootPath(fileServerPath);
         if (file.exists() && file.isFile()) {
           file.delete();
         }

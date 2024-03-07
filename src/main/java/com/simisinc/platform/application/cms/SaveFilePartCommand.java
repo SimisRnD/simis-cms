@@ -41,7 +41,7 @@ public class SaveFilePartCommand {
   public static FileItem saveFile(WidgetContext context) throws DataException {
 
     // Prepare to save the file
-    String serverRootPath = FileSystemCommand.getFileServerRootPath();
+    String serverRootPath = FileSystemCommand.getFileServerRootPathValue();
     String serverSubPath = FileSystemCommand.generateFileServerSubPath("uploads");
     String serverCompletePath = serverRootPath + serverSubPath;
     String uniqueFilename = FileSystemCommand.generateUniqueFilename(context.getUserId());
@@ -95,10 +95,9 @@ public class SaveFilePartCommand {
     if (fileItemBean == null) {
       return;
     }
-    String serverRootPath = FileSystemCommand.getFileServerRootPath();
-    File tempFile = new File(serverRootPath + fileItemBean.getFileServerPath());
+    File tempFile = FileSystemCommand.getFileServerRootPath(fileItemBean.getFileServerPath());
     if (tempFile.exists()) {
-      LOG.warn("Deleting an uploaded file: " + serverRootPath + fileItemBean.getFileServerPath());
+      LOG.warn("Deleting an uploaded file: " + tempFile.getPath());
       tempFile.delete();
     }
   }

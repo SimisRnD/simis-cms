@@ -99,7 +99,8 @@ public class FileSystemCommand {
    * 
    * @return
    */
-  public static String getFileServerRootPath() {
+  public static String getFileServerRootPathValue() {
+    // Check for the cached path
     if (filesPath != null) {
       return filesPath;
     }
@@ -120,8 +121,23 @@ public class FileSystemCommand {
     if (!serverRootPath.endsWith(File.separator)) {
       serverRootPath += File.separator;
     }
+    // Cache the path
     filesPath = serverRootPath;
     return filesPath;
+  }
+
+  /** Return the serverRootPath and add any specified subdirectories. */
+  public static File getFileServerRootPath(String... subdirectories) {
+    String serverRootPath = getFileServerRootPathValue();
+    if (StringUtils.isBlank(serverRootPath)) {
+      return null;
+    }
+    if (subdirectories != null && subdirectories.length > 0) {
+      for (String subdirectory : subdirectories) {
+        serverRootPath += subdirectory + File.separator;
+      }
+    }
+    return new File(serverRootPath);
   }
 
   /**
@@ -199,7 +215,7 @@ public class FileSystemCommand {
    * @return
    */
   public static File generateTempFile(String folderName, long userId, String extension) {
-    String serverRootPath = FileSystemCommand.getFileServerRootPath();
+    String serverRootPath = FileSystemCommand.getFileServerRootPathValue();
     String serverSubPath = FileSystemCommand.generateFileServerSubPath(folderName);
     String serverCompletePath = serverRootPath + serverSubPath;
     String uniqueFilename = FileSystemCommand.generateUniqueFilename(userId);
