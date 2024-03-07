@@ -16,16 +16,13 @@
 
 package com.simisinc.platform.application.cms;
 
-import com.simisinc.platform.application.filesystem.FileSystemCommand;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-import org.mockito.MockedStatic;
+import static com.simisinc.platform.application.cms.HostnameCommand.HOSTNAME_ALLOW_LIST;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.simisinc.platform.application.cms.HostnameCommand.HOSTNAME_ALLOW_LIST;
-import static org.mockito.Mockito.mockStatic;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 /**
  * @author matt rajkowski
@@ -42,31 +39,20 @@ class HostnameCommandTest {
 
   @Test
   void passesCheckWithConfiguration() {
-    // Mock directory path
-    try (MockedStatic<FileSystemCommand> staticFileSystemCommand = mockStatic(FileSystemCommand.class)) {
-      staticFileSystemCommand.when(FileSystemCommand::getFileServerConfigPath).thenReturn(".");
-      HostnameCommand.load();
+    String hostname = "localhost";
+    List<String> approvedList = new ArrayList<>();
+    approvedList.add(hostname);
+    HostnameCommand.setList(HOSTNAME_ALLOW_LIST, approvedList);
+    Assertions.assertTrue(HostnameCommand.passesCheck(hostname));
 
-      String hostname = "localhost";
-      List<String> approvedList = new ArrayList<>();
-      approvedList.add(hostname);
-      HostnameCommand.setList(HOSTNAME_ALLOW_LIST, approvedList);
-      Assertions.assertTrue(HostnameCommand.passesCheck(hostname));
-    }
   }
 
   @Test
   void doesNotPassCheck() {
-    // Mock directory path
-    try (MockedStatic<FileSystemCommand> staticFileSystemCommand = mockStatic(FileSystemCommand.class)) {
-      staticFileSystemCommand.when(FileSystemCommand::getFileServerConfigPath).thenReturn(".");
-      HostnameCommand.load();
-
-      String hostnameAllowed = "localhost";
-      List<String> approvedList = new ArrayList<>();
-      approvedList.add(hostnameAllowed);
-      HostnameCommand.setList(HOSTNAME_ALLOW_LIST, approvedList);
-      Assertions.assertFalse(HostnameCommand.passesCheck("example.com"));
-    }
+    String hostnameAllowed = "localhost";
+    List<String> approvedList = new ArrayList<>();
+    approvedList.add(hostnameAllowed);
+    HostnameCommand.setList(HOSTNAME_ALLOW_LIST, approvedList);
+    Assertions.assertFalse(HostnameCommand.passesCheck("example.com"));
   }
 }

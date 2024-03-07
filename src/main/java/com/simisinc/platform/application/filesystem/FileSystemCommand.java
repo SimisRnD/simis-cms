@@ -49,11 +49,12 @@ public class FileSystemCommand {
   private static String filesPath = null;
 
   /**
-   * The config path
+   * Return the static config path based on system environment and database settings
    * 
    * @return
    */
-  public static String getFileServerConfigPath() {
+  public static String getFileServerConfigPathValue() {
+    // Check for existing configPath
     if (configPath != null) {
       return configPath;
     }
@@ -74,8 +75,23 @@ public class FileSystemCommand {
     if (!serverConfigPath.endsWith(File.separator)) {
       serverConfigPath += File.separator;
     }
+    // Set the static config path
     configPath = serverConfigPath;
     return configPath;
+  }
+
+  /** Return the serverConfigPath and add any specified subdirectories. */
+  public static File getFileServerConfigPath(String... subdirectories) {
+    String serverConfigPath = getFileServerConfigPathValue();
+    if (StringUtils.isBlank(serverConfigPath)) {
+      return null;
+    }
+    if (subdirectories != null && subdirectories.length > 0) {
+      for (String subdirectory : subdirectories) {
+        serverConfigPath += subdirectory + File.separator;
+      }
+    }
+    return new File(serverConfigPath);
   }
 
   /**
@@ -191,6 +207,9 @@ public class FileSystemCommand {
   }
 
   public static boolean isModified(File file, long previousModifiedValue) {
+    if (!file.exists()) {
+      return false;
+    }
     if (previousModifiedValue == file.lastModified()) {
       return false;
     }

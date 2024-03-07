@@ -17,7 +17,6 @@
 package com.simisinc.platform.infrastructure.database.upgrade;
 
 import java.io.File;
-import java.nio.file.Paths;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.util.List;
@@ -43,12 +42,8 @@ public class V20220331_1001__update_bots extends BaseJavaMigration {
   @Override
   public void migrate(Context context) throws Exception {
 
-    String serverConfigPath = FileSystemCommand.getFileServerConfigPath();
-    if (serverConfigPath == null) {
-      return;
-    }
-    File file = Paths.get(serverConfigPath, "cms", SessionCommand.BOT_LIST).toFile();
-    if (!file.exists()) {
+    File file = FileSystemCommand.getFileServerConfigPath("cms", SessionCommand.BOT_LIST);
+    if (file == null || !file.exists()) {
       return;
     }
 
