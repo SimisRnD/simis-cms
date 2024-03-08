@@ -16,6 +16,13 @@
 
 package com.simisinc.platform.application.items;
 
+import java.io.File;
+import java.util.List;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.filesystem.FileSystemCommand;
 import com.simisinc.platform.domain.model.items.ItemFileItem;
@@ -23,12 +30,6 @@ import com.simisinc.platform.domain.model.items.ItemFileVersion;
 import com.simisinc.platform.infrastructure.persistence.items.ItemFileItemRepository;
 import com.simisinc.platform.infrastructure.persistence.items.ItemFileVersionRepository;
 import com.simisinc.platform.infrastructure.persistence.items.ItemFileVersionSpecification;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
-import java.io.File;
-import java.util.List;
 
 /**
  * Methods to delete an item's file item
@@ -57,13 +58,12 @@ public class DeleteItemFileCommand {
     // Remove the file
     if (ItemFileItemRepository.remove(fileBean)) {
       // Delete all the files/versions
-      String serverRootPath = FileSystemCommand.getFileServerRootPath();
       for (ItemFileVersion fileVersion : fileVersionList) {
         String fileServerPath = fileVersion.getFileServerPath();
         if (StringUtils.isBlank(fileServerPath)) {
           continue;
         }
-        File file = new File(serverRootPath + fileServerPath);
+        File file = FileSystemCommand.getFileServerRootPath(fileServerPath);
         if (file.exists() && file.isFile()) {
           file.delete();
         }

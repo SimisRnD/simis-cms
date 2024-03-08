@@ -16,17 +16,18 @@
 
 package com.simisinc.platform.application.ecommerce;
 
-import com.simisinc.platform.application.filesystem.FileSystemCommand;
-import com.univocity.parsers.csv.CsvParser;
-import com.univocity.parsers.csv.CsvParserSettings;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import com.simisinc.platform.application.filesystem.FileSystemCommand;
+import com.univocity.parsers.csv.CsvParser;
+import com.univocity.parsers.csv.CsvParserSettings;
 
 /**
  * Loads shipping rates from a file
@@ -43,10 +44,10 @@ public class LoadShippingRatesCommand {
     Map<String, String> redirectMap = new HashMap<>();
 
     // Get a file handle
-    String serverConfigPath = FileSystemCommand.getFileServerConfigPath();
-    File serverFile = new File(serverConfigPath + "e-commerce/" + "shipping-rates.csv");
-    if (!serverFile.exists()) {
-      LOG.info("Skipping, no redirects found in: " + serverFile.getAbsolutePath());
+    File file = FileSystemCommand.getFileServerConfigPath("e-commerce", "shipping-rates.csv");
+
+    if (!file.exists()) {
+      LOG.info("Skipping, no redirects found in: " + file.getAbsolutePath());
       return null;
     }
 
@@ -56,7 +57,7 @@ public class LoadShippingRatesCommand {
 
     // Read the file
     CsvParser parser = new CsvParser(parserSettings);
-    try (InputStream inputStream = new FileInputStream(serverFile)) {
+    try (InputStream inputStream = new FileInputStream(file)) {
       parser.beginParsing(inputStream, "ISO-8859-1");
       String[] row;
       while ((row = parser.parseNext()) != null) {

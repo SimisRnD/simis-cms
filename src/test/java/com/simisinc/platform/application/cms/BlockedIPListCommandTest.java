@@ -16,18 +16,20 @@
 
 package com.simisinc.platform.application.cms;
 
-import com.simisinc.platform.application.filesystem.FileSystemCommand;
-import com.simisinc.platform.infrastructure.database.DB;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-import org.mockito.MockedStatic;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 
 import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.List;
 
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.mockStatic;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
+
+import com.simisinc.platform.domain.model.BlockedIP;
+import com.simisinc.platform.infrastructure.database.DB;
 
 /**
  * @author matt rajkowski
@@ -41,44 +43,35 @@ class BlockedIPListCommandTest {
     Connection jdbcConnection = mock(Connection.class);
     try (MockedStatic<DB> db = mockStatic(DB.class)) {
       db.when(DB::getConnection).thenReturn(jdbcConnection);
+      // Mock cached IP list
+      List<String> emptyList = new ArrayList<>();
+      try (MockedStatic<LoadBlockedIPListCommand> staticLoadBlockedIpListCommand = mockStatic(LoadBlockedIPListCommand.class)) {
+        staticLoadBlockedIpListCommand.when(LoadBlockedIPListCommand::retrieveCachedIpAddressList).thenReturn(emptyList);
 
-      // Mock directory path
-      try (MockedStatic<FileSystemCommand> staticFileSystemCommand = mockStatic(FileSystemCommand.class)) {
-        staticFileSystemCommand.when(FileSystemCommand::getFileServerConfigPath).thenReturn(".");
-
-        // Mock cached list
-        List<String> emptyList = new ArrayList<>();
-        try (MockedStatic<LoadBlockedIPListCommand> staticLoadBlockedIpListCommand = mockStatic(LoadBlockedIPListCommand.class)) {
-          staticLoadBlockedIpListCommand.when(LoadBlockedIPListCommand::retrieveCachedIpAddressList).thenReturn(emptyList);
-          BlockedIPListCommand.load();
-
-          String resource = "/resource";
-          String ipAddress = "127.0.0.1";
-          Assertions.assertTrue(BlockedIPListCommand.passesCheck(resource, ipAddress));
-        }
+        BlockedIPListCommand.setList(BlockedIPListCommand.IP_ALLOW_LIST, emptyList);
+        BlockedIPListCommand.setList(BlockedIPListCommand.IP_IGNORE_LIST, emptyList);
+        BlockedIPListCommand.setList(BlockedIPListCommand.URL_BLOCK_LIST, emptyList);
+        String resource = "/resource";
+        String ipAddress = "127.0.0.1";
+        Assertions.assertTrue(BlockedIPListCommand.passesCheck(resource, ipAddress));
       }
     }
   }
 
   @Test
   void doesNotPassIPCheck() {
-    // Mock directory path
-    try (MockedStatic<FileSystemCommand> staticFileSystemCommand = mockStatic(FileSystemCommand.class)) {
-      staticFileSystemCommand.when(FileSystemCommand::getFileServerConfigPath).thenReturn(".");
+    List<String> emptyList = new ArrayList<>();
+    List<String> blockedIpList = new ArrayList<>();
+    blockedIpList.add("1.2.3.4");
 
-      try (MockedStatic<LoadBlockedIPListCommand> staticLoadBlockedIpListCommand = mockStatic(LoadBlockedIPListCommand.class)) {
-        List<String> blockedIpList = new ArrayList<>();
-        blockedIpList.add("1.2.3.4");
-        staticLoadBlockedIpListCommand.when(LoadBlockedIPListCommand::retrieveCachedIpAddressList).thenReturn(blockedIpList);
+    BlockedIPListCommand.setList(BlockedIPListCommand.IP_ALLOW_LIST, emptyList);
+    BlockedIPListCommand.setList(BlockedIPListCommand.IP_IGNORE_LIST, blockedIpList);
+    BlockedIPListCommand.setList(BlockedIPListCommand.URL_BLOCK_LIST, emptyList);
 
-        BlockedIPListCommand.load();
-
-        String resource = "/resource";
-        String ipAddress = "1.2.3.4";
-        boolean passesCheck = BlockedIPListCommand.passesCheck(resource, ipAddress);
-        Assertions.assertFalse(passesCheck);
-      }
-    }
+    String resource = "/resource";
+    String ipAddress = "1.2.3.4";
+    boolean passesCheck = BlockedIPListCommand.passesCheck(resource, ipAddress);
+    Assertions.assertFalse(passesCheck);
   }
 
   @Test
@@ -88,19 +81,20 @@ class BlockedIPListCommandTest {
     try (MockedStatic<DB> db = mockStatic(DB.class)) {
       db.when(DB::getConnection).thenReturn(jdbcConnection);
 
-      // Mock directory path
-      try (MockedStatic<FileSystemCommand> staticFileSystemCommand = mockStatic(FileSystemCommand.class)) {
-        staticFileSystemCommand.when(FileSystemCommand::getFileServerConfigPath).thenReturn(".");
+      List<String> emptyList = new ArrayList<>();
+      try (MockedStatic<LoadBlockedIPListCommand> staticLoadBlockedIpListCommand = mockStatic(LoadBlockedIPListCommand.class)) {
+        staticLoadBlockedIpListCommand.when(LoadBlockedIPListCommand::retrieveCachedIpAddressList).thenReturn(emptyList);
 
-        // Mock cached list
-        List<String> emptyList = new ArrayList<>();
-        try (MockedStatic<LoadBlockedIPListCommand> staticLoadBlockedIpListCommand = mockStatic(LoadBlockedIPListCommand.class)) {
-          staticLoadBlockedIpListCommand.when(LoadBlockedIPListCommand::retrieveCachedIpAddressList).thenReturn(emptyList);
-          BlockedIPListCommand.load();
+        BlockedIP blockedIP = new BlockedIP();
+        try (MockedStatic<SaveBlockedIPCommand> staticSaveBlockedIpCommand = mockStatic(SaveBlockedIPCommand.class)) {
+          staticSaveBlockedIpCommand.when(() -> SaveBlockedIPCommand.save(any())).thenReturn(blockedIP);
 
           String invalidResource = "/resource";
           List<String> blockList = new ArrayList<>();
           blockList.add(invalidResource);
+
+          BlockedIPListCommand.setList(BlockedIPListCommand.IP_ALLOW_LIST, emptyList);
+          BlockedIPListCommand.setList(BlockedIPListCommand.IP_IGNORE_LIST, emptyList);
           BlockedIPListCommand.setList(BlockedIPListCommand.URL_BLOCK_LIST, blockList);
 
           String ipAddress = "1.2.3.4";

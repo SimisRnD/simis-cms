@@ -16,6 +16,12 @@
 
 package com.simisinc.platform.application.mailinglists;
 
+import java.io.File;
+import java.util.List;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.cms.SaveFilePartCommand;
 import com.simisinc.platform.application.filesystem.FileSystemCommand;
@@ -27,11 +33,6 @@ import com.univocity.parsers.common.record.Record;
 import com.univocity.parsers.conversions.Conversions;
 import com.univocity.parsers.csv.CsvParser;
 import com.univocity.parsers.csv.CsvParserSettings;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
-import java.io.File;
-import java.util.List;
 
 /**
  * Methods to import mailing lists
@@ -54,8 +55,7 @@ public class ProcessEmailCSVFileCommand {
       if (fileItemBean == null) {
         throw new DataException("Valid file not found");
       }
-      String serverRootPath = FileSystemCommand.getFileServerRootPath();
-      File csvFile = new File(serverRootPath + fileItemBean.getFileServerPath());
+      File csvFile = FileSystemCommand.getFileServerRootPath(fileItemBean.getFileServerPath());
       if (!csvFile.exists()) {
         throw new DataException("Valid file not found");
       }

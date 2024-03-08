@@ -16,13 +16,6 @@
 
 package com.simisinc.platform.application.filesystem;
 
-import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
-import com.univocity.parsers.csv.CsvParser;
-import com.univocity.parsers.csv.CsvParserSettings;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
@@ -34,6 +27,14 @@ import java.util.Date;
 import java.util.List;
 import java.util.UUID;
 
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.univocity.parsers.csv.CsvParser;
+import com.univocity.parsers.csv.CsvParserSettings;
+
 /**
  * Commands for working with the file system
  *
@@ -43,17 +44,23 @@ import java.util.UUID;
 public class FileSystemCommand {
 
   private static Log LOG = LogFactory.getLog(FileSystemCommand.class);
-
+  private static final String CMS_PATH = "CMS_PATH";
   private static String configPath = null;
   private static String filesPath = null;
 
-  public static String getFileServerConfigPath() {
+  /**
+   * Return the static config path based on system environment and database settings
+   * 
+   * @return
+   */
+  public static String getFileServerConfigPathValue() {
+    // Check for existing configPath
     if (configPath != null) {
       return configPath;
     }
     String serverConfigPath = null;
-    if (System.getenv().containsKey("CMS_PATH")) {
-      serverConfigPath = System.getenv("CMS_PATH") + "/config";
+    if (System.getenv().containsKey(CMS_PATH)) {
+      serverConfigPath = new File(System.getenv(CMS_PATH), "config").getPath();
     }
     if (StringUtils.isBlank(serverConfigPath)) {
       serverConfigPath = LoadSitePropertyCommand.loadByName("system.configpath");
@@ -61,23 +68,45 @@ public class FileSystemCommand {
     if (StringUtils.isBlank(serverConfigPath)) {
       // @note this value is checked at system startup and will abort then
       LOG.error("system.configpath does not exist");
-      LOG.info("HINT: INSERT INTO site_properties (property_label, property_name, property_value) VALUES ('Configuration path', 'system.configpath', '/opt/simis/config')");
+      LOG.info(
+          "HINT: INSERT INTO site_properties (property_label, property_name, property_value) VALUES ('Configuration path', 'system.configpath', '/opt/simis/config')");
       return null;
     }
-    if (!serverConfigPath.endsWith("/")) {
-      serverConfigPath += "/";
+    if (!serverConfigPath.endsWith(File.separator)) {
+      serverConfigPath += File.separator;
     }
+    // Set the static config path
     configPath = serverConfigPath;
     return configPath;
   }
 
-  public static String getFileServerRootPath() {
+  /** Return the serverConfigPath and add any specified subdirectories. */
+  public static File getFileServerConfigPath(String... subdirectories) {
+    String serverConfigPath = getFileServerConfigPathValue();
+    if (StringUtils.isBlank(serverConfigPath)) {
+      return null;
+    }
+    if (subdirectories != null && subdirectories.length > 0) {
+      for (String subdirectory : subdirectories) {
+        serverConfigPath += subdirectory + File.separator;
+      }
+    }
+    return new File(serverConfigPath);
+  }
+
+  /**
+   * File storage path
+   * 
+   * @return
+   */
+  public static String getFileServerRootPathValue() {
+    // Check for the cached path
     if (filesPath != null) {
       return filesPath;
     }
     String serverRootPath = null;
-    if (System.getenv().containsKey("CMS_PATH")) {
-      serverRootPath = System.getenv("CMS_PATH") + "/files";
+    if (System.getenv().containsKey(CMS_PATH)) {
+      serverRootPath = new File(System.getenv(CMS_PATH), "files").getPath();
     }
     if (StringUtils.isBlank(serverRootPath)) {
       serverRootPath = LoadSitePropertyCommand.loadByName("system.filepath");
@@ -85,16 +114,38 @@ public class FileSystemCommand {
     if (StringUtils.isBlank(serverRootPath)) {
       // @note this value is checked at system startup and will abort then
       LOG.error("CMS_PATH environment variable can be set, or add 'system.filepath' to the database");
-      LOG.info("HINT: INSERT INTO site_properties (property_label, property_name, property_value) VALUES ('File server path', 'system.filepath', '/opt/simis/files')");
+      LOG.info(
+          "HINT: INSERT INTO site_properties (property_label, property_name, property_value) VALUES ('File server path', 'system.filepath', '/opt/simis/files')");
       return null;
     }
-    if (!serverRootPath.endsWith("/")) {
-      serverRootPath += "/";
+    if (!serverRootPath.endsWith(File.separator)) {
+      serverRootPath += File.separator;
     }
+    // Cache the path
     filesPath = serverRootPath;
     return filesPath;
   }
 
+  /** Return the serverRootPath and add any specified subdirectories. */
+  public static File getFileServerRootPath(String... subdirectories) {
+    String serverRootPath = getFileServerRootPathValue();
+    if (StringUtils.isBlank(serverRootPath)) {
+      return null;
+    }
+    if (subdirectories != null && subdirectories.length > 0) {
+      for (String subdirectory : subdirectories) {
+        serverRootPath += subdirectory + File.separator;
+      }
+    }
+    return new File(serverRootPath);
+  }
+
+  /**
+   * Generator for scaleable sub-path values using dates
+   * 
+   * @param module
+   * @return
+   */
   public static String generateFileServerSubPath(String module) {
     Date date = new Date();
     LocalDate localDate = date.toInstant().atZone(ZoneId.systemDefault()).toLocalDate();
@@ -103,21 +154,32 @@ public class FileSystemCommand {
     int day = localDate.getDayOfMonth();
     String monthValue = (month < 10 ? "0" : "") + month;
     String dayValue = (day < 10 ? "0" : "") + day;
-    String subPath = module + "/" + year + "/" + monthValue + "/" + dayValue + "/";
+    String subPath = module + File.separator + year + File.separator + monthValue + File.separator + dayValue + File.separator;
 
     // Make sure the path exists
-    String fullPath = getFileServerRootPath() + subPath;
-    File directory = new File(fullPath);
+    File directory = new File(getFileServerRootPath(), subPath);
     directory.mkdirs();
 
     return subPath;
   }
 
+  /**
+   * Generator for unique filenames
+   * 
+   * @param appendValue
+   * @return
+   */
   public static String generateUniqueFilename(long appendValue) {
     String filenameUUID = UUID.randomUUID().toString();
     return System.currentTimeMillis() + "-" + filenameUUID + "-" + appendValue;
   }
 
+  /**
+   * Method to determine a file's checksum
+   * 
+   * @param file
+   * @return
+   */
   public static String getFileChecksum(File file) {
     try {
       String method = "SHA-512";
@@ -144,8 +206,16 @@ public class FileSystemCommand {
     return null;
   }
 
+  /**
+   * Generator to return a filename for temporary files
+   * 
+   * @param folderName
+   * @param userId
+   * @param extension
+   * @return
+   */
   public static File generateTempFile(String folderName, long userId, String extension) {
-    String serverRootPath = FileSystemCommand.getFileServerRootPath();
+    String serverRootPath = FileSystemCommand.getFileServerRootPathValue();
     String serverSubPath = FileSystemCommand.generateFileServerSubPath(folderName);
     String serverCompletePath = serverRootPath + serverSubPath;
     String uniqueFilename = FileSystemCommand.generateUniqueFilename(userId);
@@ -153,6 +223,9 @@ public class FileSystemCommand {
   }
 
   public static boolean isModified(File file, long previousModifiedValue) {
+    if (!file.exists()) {
+      return false;
+    }
     if (previousModifiedValue == file.lastModified()) {
       return false;
     }

@@ -16,6 +16,13 @@
 
 package com.simisinc.platform.application.cms;
 
+import java.io.File;
+import java.util.List;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.filesystem.FileSystemCommand;
 import com.simisinc.platform.domain.model.cms.FileVersion;
@@ -23,12 +30,6 @@ import com.simisinc.platform.domain.model.cms.SubFolder;
 import com.simisinc.platform.infrastructure.persistence.cms.FileVersionRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.FileVersionSpecification;
 import com.simisinc.platform.infrastructure.persistence.cms.SubFolderRepository;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
-import java.io.File;
-import java.util.List;
 
 /**
  * Deletes sub-folders
@@ -55,13 +56,12 @@ public class DeleteSubFolderCommand {
     // Remove the folder
     if (SubFolderRepository.remove(subFolderBean)) {
       // Delete all the files/versions
-      String serverRootPath = FileSystemCommand.getFileServerRootPath();
       for (FileVersion fileVersion : fileVersionList) {
         String fileServerPath = fileVersion.getFileServerPath();
         if (StringUtils.isBlank(fileServerPath)) {
           return false;
         }
-        File file = new File(serverRootPath + fileServerPath);
+        File file = FileSystemCommand.getFileServerRootPath(fileServerPath);
         if (file.exists() && file.isFile()) {
           file.delete();
         }
