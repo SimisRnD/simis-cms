@@ -1,4 +1,4 @@
-# CMS Platform -- SimIS CMS
+# CMS Platform – SimIS CMS
 
 [![Java CI](https://github.com/rajkowski/cms-platform/actions/workflows/ant.yml/badge.svg)](https://github.com/rajkowski/cms-platform/actions/workflows/ant.yml)
 
@@ -8,7 +8,7 @@ SimIS CMS comes out-of-the-box with modules, advanced security, easy setup, and 
 
 ## Documentation
 
-The latest CMS Platform documentation is at <https://github.com/rajkowski/cms-platform/blob/main/docs/index.md>.
+The latest CMS Platform documentation is available at <https://github.com/rajkowski/cms-platform/blob/main/docs/index.md> including technical documentation and diagrams.
 
 The CHANGELOG is at <https://github.com/rajkowski/cms-platform/blob/main/docs/CHANGELOG.md>.
 

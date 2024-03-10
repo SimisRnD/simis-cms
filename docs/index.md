@@ -19,7 +19,15 @@ SimIS CMS comes out-of-the-box with modules, easy setup, and powerful developer 
 - **Integration**: Google Analytics, Map Box, Open Street Map, Square, Stripe, Taxjar, USPS, Boxzooka
 - **Security**: OAuth, Firewall (Integration and Blocked IP lists), Spam Filter, Geo Filter, Rate Limiting, Snyk scanning
 - **API**: Rest API
-- **Platform**: Micro Widgets, Connection Pool, Cache, Scheduler, Workflow, Expression Engine, Upgrades, Migrations, Record Paging
+- **Platform**: Micro-Widgets, Connection Pool, Cache, Cron Scheduler, Workflow Engine, Expression Engine, Upgrades, Migrations, Record Paging
+
+## Development
+
+- Dynamic page routes (/route)
+- Wildcard routes for content types (/route/*)
+- Built-in content types and models for CMS, Blogging, and E-Commerce (content, blog, product, etc.)
+- Starter custom content types with advanced field types (items and collections)
+- Composable, responsive page layouts using widgets
 
 ## Release Process
 
