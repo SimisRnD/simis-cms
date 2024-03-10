@@ -13,6 +13,10 @@ Groups map to the customized portal groups which users can be assigned to. Web p
 
 ## OAuth Provider (Environment Variables example)
 
+In OAuth Provider, configure the client and redirect URL, a dev example would be: `http://localhost:8080/oauth/callback`. Record the client id and secret.
+
+On SimIS CMS startup, configure the following environment variables:
+
 ```bash
 OAUTH_ENABLED=true
 OAUTH_SERVER_URL=https://localhost/realms/example
@@ -26,11 +30,7 @@ OAUTH_REDIRECT_URI=/oauth/callback
 In Keycloak:
 
 1. Create a realm or use an existing one
-2. Add a client: simis-cms
-3. Add Client Roles to Keycloak: system-administrator, content-manager, community-manager, data-manager, ecommerce-manager
-4. Add Realm Groups to Keycloak: employees, supervisors, global-data-manager, etc.
-5. Create Client Mappers and Tokens: User Client Role (roles), Group Membership (groups)
-6. Create users and choose roles and groups for the user
+2. Add a client: `simis-cms`
 
 In the SimIS CMS Database, configure the OAuth provider:
 
@@ -43,7 +43,18 @@ UPDATE site_properties SET property_value = 'client-secret' WHERE property_name 
 UPDATE site_properties SET property_value = true WHERE property_name = 'oauth.redirectGuests';
 ```
 
-In the SimIS CMS Database, configure the roles mappings:
+## OAuth Groups and Roles Mapping to SimIS CMS
+
+Groups and roles can be created in Active Directory and Keycloak. During SSO, SimIS CMS can check the user's info and group memberships.
+
+For Keycloak:
+
+1. Add Client Roles to Keycloak: system-administrator, content-manager, community-manager, data-manager, ecommerce-manager
+2. Add Realm Groups to Keycloak: employees, supervisors, global-data-manager, etc.
+3. Create Client Mappers and Tokens: User Client Role (roles), Group Membership (groups)
+4. Create users and choose roles and groups for the user
+
+In the SimIS CMS Database, configure the roles mappings to existing SimIS roles:
 
 ```sql
 UPDATE site_properties SET property_value = 'roles' WHERE property_name = 'oauth.role.attribute';
@@ -54,7 +65,7 @@ UPDATE lookup_role SET oauth_path = 'data-manager' where code = 'data-manager';
 UPDATE lookup_role SET oauth_path = 'ecommerce-manager' where code = 'ecommerce-manager';
 ```
 
-In the SimIS CMS Database, configure the groups mappings:
+In the SimIS CMS Database, for new or existing groups you can configure the groups mappings:
 
 ```sql
 UPDATE site_properties SET property_value = 'groups' WHERE property_name = 'oauth.group.attribute';
