@@ -33,8 +33,8 @@ ant compile
 ant test
 ```
 
-### Pipeline Generate Web Application
+### Pipeline Containerization
 
 ```bash
-ant package
+docker build . -t cms-platform
 ```

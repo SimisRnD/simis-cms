@@ -1,17 +1,23 @@
-# SimIS CMS
+# CMS Platform -- SimIS CMS
 
-[![Java CI](https://github.com/SimisRnD/simis-cms/actions/workflows/ant.yml/badge.svg)](https://github.com/SimisRnD/simis-cms/actions/workflows/ant.yml)
-
-Discussion and issues are hosted at github: <https://github.com/SimisRnD/simis-cms>.
+[![Java CI](https://github.com/rajkowski/cms-platform/actions/workflows/ant.yml/badge.svg)](https://github.com/rajkowski/cms-platform/actions/workflows/ant.yml)
 
 What is SimIS CMS? [Agile, Enterprise, Open Source Content Management System (CMS) and Portal](https://www.simiscms.com).
 
 SimIS CMS comes out-of-the-box with modules, advanced security, easy setup, and powerful developer features. Use and configure what's there, and customize what's not. The flexible Open Source license lets you move beyond the technology to focus on delivering a quality website.
 
+## Documentation
+
+The latest CMS Platform documentation is at <https://github.com/rajkowski/cms-platform/blob/main/docs/index.md>.
+
+The CHANGELOG is at <https://github.com/rajkowski/cms-platform/blob/main/docs/CHANGELOG.md>.
+
+Documentation is in MKDocs format intended for use in platforms which use MKDocs like [Spotify Backstage](https://backstage.io).
+
 ## License
 
 ```text
-Copyright 2023 SimIS Inc. (https://www.simiscms.com)
+Copyright 2024
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
@@ -28,7 +34,7 @@ limitations under the License.
 
 ## Overview
 
-Need a website or web portal? SimIS CMS can be used from Day 1:
+Need a website or web portal? CMS Platform can be used from Day 1:
 
 * Once installed the administrator signs in and can quickly create a sitemap. Working on their own, or with others, the pages of the site are added.
 * Each web page can have shared elements and styles, as well as their own elements and styles.
@@ -38,7 +44,7 @@ Need a website or web portal? SimIS CMS can be used from Day 1:
 
 ## Features
 
-* **CMS**: Site Map, Web Pages (Templates, UI Designer, SEO, Searchable) with Content and Images, HTML Editor, CSS Editor, Blogs, Form Data, Calendars, Folders and Files, Mailing Lists, Videos, Wikis, Search, Site Alerts, Form Pop-Ups, Sticky Header and Buttons, Responsive, Bot Detection
+* **CMS**: Site Map, Web Pages (Templates, UI Designer, SEO, Searchable) with Content and Images, HTML Editor, CSS Editor, Blogs, Form Data, Calendars, Folders and Files, Mailing Lists, Videos, Wikis, Search, Site Alerts, Form Pop-Ups, Sticky Header and Buttons, Responsive, Bot Detection, Static Site Generator (SSG)
 * **Analytics**: Tracking for Sessions, Hits, Geolocation, Content, Searches, Referrals; Charts; xAPI; Pixels
 * **Data Integration**: Datasets (CSV, TSV, JSON, GeoJSON, and RSS sources), Collections (Profiles, Geolocation, Multiple Categories, Relationships, Custom Fields, Indexed, Searchable), Data Sources
 * **Collaboration**: Users (Register, Validation, Login, Invite), User Groups, Collection Membership and Permissions, Chat
@@ -62,19 +68,13 @@ In general:
 
 An optimized web application archive (.war), with production settings, is released to this project's GitHub releases, ready for installation and which automatically upgrades previously installed versions. Always have a backup of your database and file library path.
 
-The latest release is at <https://github.com/SimisRnD/simis-cms/releases>.
+The latest CMS Platform release is at <https://github.com/rajkowski/cms-platform/releases>.
 
 Release notes include a list of changes for review.
 
 Download the .war and follow your choice of deployment options.
 
 To log into a new site, add "/login" to the URL. Later, turn on the login setting to reveal a login button for your website.
-
-## Documentation
-
-Documentation is in MKDocs format intended for use in platforms which use MKDocs.
-
-The latest documentation is at <https://github.com/SimisRnD/simis-cms/blob/main/docs/index.md>.
 
 ## Attribution
 
