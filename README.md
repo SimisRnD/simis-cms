@@ -1,4 +1,4 @@
-# CMS Platform -- SimIS CMS
+# CMS Platform – SimIS CMS
 
 [![Java CI](https://github.com/rajkowski/cms-platform/actions/workflows/ant.yml/badge.svg)](https://github.com/rajkowski/cms-platform/actions/workflows/ant.yml)
 
