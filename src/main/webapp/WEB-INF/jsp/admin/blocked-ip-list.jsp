@@ -22,7 +22,7 @@
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
-<jsp:useBean id="blockedIP" class="java.util.ArrayList" scope="request"/>
+<jsp:useBean id="blockedIPList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="recordPaging" class="com.simisinc.platform.infrastructure.database.DataConstraints" scope="request"/>
 <c:if test="${!empty title}">
   <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}" /></h4>
@@ -42,7 +42,7 @@
     document.getElementById("fileForm").submit();
   }
 </script>
-<form method="post" action="${ctx}/admin/blockedIP">
+<form method="post">
   <%-- Required by controller --%>
   <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
   <input type="hidden" name="token" value="${userSession.formToken}"/>
@@ -60,7 +60,7 @@
     </tr>
   </thead>
   <tbody>
-    <c:forEach items="${blockedIP}" var="record">
+    <c:forEach items="${blockedIPList}" var="record">
     <tr>
       <td nowrap="true">
         <c:out value="${text:trim(record.ipAddress, 24, true)}" />
@@ -71,7 +71,7 @@
       <td nowrap="true"><fmt:formatDate pattern="yyyy-MM-dd" value="${record.created}" /></td>
     </tr>
     </c:forEach>
-    <c:if test="${empty blockedIP}">
+    <c:if test="${empty blockedIPList}">
       <tr>
         <td colspan="4">No records were found</td>
       </tr>
