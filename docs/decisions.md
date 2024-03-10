@@ -11,21 +11,45 @@ description: Decisions and thoughts on direction
 - Have a stable platform which is easy to maintain and deploy
 - Encourage design, accessibility, and experimentation with style, layouts, features, and components
 - Have a lean website stack which separates the CMS platform and the runtime requirements
+- Inspired by micro-frontends and portals
 
 ## Decisions
 
-- 2024: Implement a lean runtime stack
-- 2023: Refine and extend the Web and Data modules
-- 2022: Adapt to Kubernetes deployment methods, scalability, and capabilities
-- 2022: Enhance groups, roles, and permissions; use containerization
-- 2022: Public release with Apache Open Source License
-- 2021: Add Dataset and Data Collections features
-- 2020: Enhance E-Commerce and CMS features; add data and dataset modules
-- 2019: Add E-Commerce features, add social network integrations, enhance CMS features
-- 2018: Use Domain-Driven Design (DDD)
-- 2018: Use SQL, no web frameworks or database persistance dependencies for the core platform
-- 2018: Use Open Source libraries and coding environments
-- 2018: CMS first - core platform framework, settings management, CMS interface, API, analytics
+### 2024
+
+- Implement a lean runtime stack
+- Improve front-end usability
+
+### 2023
+
+- Refine and extend the Web and Data modules
+
+### 2022
+
+- Adapt to Kubernetes deployment methods, scalability, and capabilities
+- Enhance groups, roles, and permissions
+- Use containerization with a focus on DevSecOps
+- Public release with Apache Open Source License
+
+### 2021
+
+- Add Dataset and Data Collections features
+
+### 2020
+
+- Enhance E-Commerce and CMS features
+- Add data and dataset modules
+
+### 2019
+
+- Add E-Commerce features, add social network integrations, enhance CMS features
+
+### 2018
+
+- Use Domain-Driven Design (DDD)
+- Use SQL, avoid web frameworks and database persistance dependencies for the core platform
+- Use Open Source libraries and coding environments
+- CMS first - core platform framework, settings management, CMS interface, API, analytics
 
 ## Thoughts
 
@@ -37,3 +61,4 @@ description: Decisions and thoughts on direction
 6. [FEATURE] WebHooks service for events (resilience similar to Dataset downloader); app, endpoint, headers, message
 7. [FEATURE] Granular permissions; Open Policy Agent + Rego
 8. [FEATURE] CDN setting
+9. [FEATURE] Front-end editing improvements w/widgets exposing editor features
