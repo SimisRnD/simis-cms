@@ -14,6 +14,7 @@ markdown_extensions:
 # For sidebar navigation on https://backstage.io/, see `microsite/sidebars.json`
 nav:
   - Introduction: 'index.md'
+  - Architecture: 'architecture.md'
   - Project Structure: 'project-structure.md'
   - Customization: 'customization.md'
   - Dev Environment: 'developer-environment.md'
