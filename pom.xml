@@ -39,7 +39,7 @@
     <bucket4j.version>8.3.0</bucket4j.version>
     <caffeine.version>3.1.8</caffeine.version>
     <apache-http.version>5.2.2</apache-http.version>
-    <classgraph.version>4.8.151</classgraph.version>
+    <classgraph.version>4.8.161</classgraph.version>
     <commons-beanutils.version>1.9.4</commons-beanutils.version>
     <commons-codec.version>1.16.0</commons-codec.version>
     <commons-collections4.version>4.4</commons-collections4.version>
@@ -58,7 +58,6 @@
     <geojson.version>1.14</geojson.version>
     <granule.version>1.0.19-SNAPSHOT</granule.version>
     <gson.version>2.10.1</gson.version>
-    <!-- <guava.version>32.1.1</guava.version> -->
     <hikaricp.version>5.0.1</hikaricp.version>
     <im4java.version>1.4.0</im4java.version>
     <jackson.version>2.15.2</jackson.version>
@@ -72,7 +71,6 @@
     <johnzon.version>1.2.21</johnzon.version>
     <jsoup.version>1.16.1</jsoup.version>
     <jstl.version>1.2.5</jstl.version>
-    <!-- <kafka.version>3.5.1</kafka.version> -->
     <libphonenumber.version>8.13.16</libphonenumber.version>
     <lombok.version>1.18.30</lombok.version>
     <netty.version>4.1.101</netty.version>
@@ -287,11 +285,6 @@
       <artifactId>gson</artifactId>
       <version>${gson.version}</version>
     </dependency>
-    <!-- <dependency>
-      <groupId>com.google.guava</groupId>
-      <artifactId>guava</artifactId>
-      <version>${guava.version}-jre</version>
-    </dependency> -->
     <dependency>
       <groupId>com.github.fge</groupId>
       <artifactId>jackson-coreutils</artifactId>
@@ -302,13 +295,6 @@
       <artifactId>javax.json.bind-api</artifactId>
       <version>1.0</version>
     </dependency>
-    <!--
-    <dependency>
-      <groupId>org.apache.kafka</groupId>
-      <artifactId>kafka-clients</artifactId>
-      <version>${kafka.version}</version>
-    </dependency>
-  -->
     <dependency>
       <groupId>com.sun.mail</groupId>
       <artifactId>javax.mail</artifactId>
@@ -376,11 +362,6 @@
       <version>${classgraph.version}</version>
     </dependency>
     <dependency>
-      <groupId>io.github.resilience4j</groupId>
-      <artifactId>resilience4j-bulkhead</artifactId>
-      <version>${resilience4j.version}</version>
-    </dependency>
-    <dependency>
       <groupId>com.restfb</groupId>
       <artifactId>restfb</artifactId>
       <version>${restfb.version}</version>
@@ -445,11 +426,6 @@
       <version>${timeago.version}</version>
     </dependency>
     <dependency>
-      <groupId>com.rabbitmq</groupId>
-      <artifactId>amqp-client</artifactId>
-      <version>${rabbitmq.version}</version>
-    </dependency>
-    <dependency>
       <groupId>com.univocity</groupId>
       <artifactId>univocity-parsers</artifactId>
       <version>${univocity.version}</version>
@@ -473,13 +449,11 @@
       <groupId>org.apache.taglibs</groupId>
       <artifactId>taglibs-standard-spec</artifactId>
       <version>${jstl.version}</version>
-      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.apache.taglibs</groupId>
       <artifactId>taglibs-standard-impl</artifactId>
       <version>${jstl.version}</version>
-      <scope>provided</scope>
     </dependency>
     <dependency>
       <groupId>org.apache.tomcat</groupId>

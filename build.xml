@@ -68,6 +68,7 @@
   </target>
 
   <!-- Creates build directories -->
+  <!-- mvn dependency:copy-dependencies -DincludeScope=compile -DexcludeArtifactIds=commons-logging -DexcludeGroupIds=org.apache.tomcat,org.projectlombok,org.jetbrains.kotlin -->
   <target name="prepare" depends="version">
     <mkdir dir="${build.dir}"/>
     <mkdir dir="${target.dir}"/>
