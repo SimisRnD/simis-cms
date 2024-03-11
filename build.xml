@@ -416,6 +416,7 @@
         </sourcefiles>
       </structure>
       <html destdir="${target.dir}/coverage-reports/jacoco"/>
+      <xml destfile="${target.dir}/coverage-reports/jacoco/jacoco.xml"/>
     </jacoco:report>
     <java classpathref="test.classpath" classname="org.junit.platform.console.ConsoleLauncher" fork="true" failonerror="true">
       <arg value="--scan-classpath"/>
