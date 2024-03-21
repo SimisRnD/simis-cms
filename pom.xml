@@ -31,7 +31,7 @@
     <maven-cyclonedx-plugin.version>2.7.10</maven-cyclonedx-plugin.version>
     <maven-jacoco-plugin.version>0.8.11</maven-jacoco-plugin.version>
     <maven-war-plugin.version>3.4.0</maven-war-plugin.version>
-    <tomcat.version>9.0.76</tomcat.version>
+    <tomcat.version>9.0.86</tomcat.version>
     <junit.version>5.10.2</junit.version>
     <mockito.version>5.7.0</mockito.version>
     <argon2.version>2.11</argon2.version>
