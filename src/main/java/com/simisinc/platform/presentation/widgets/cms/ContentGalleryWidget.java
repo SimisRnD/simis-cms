@@ -35,6 +35,7 @@ public class ContentGalleryWidget extends GenericWidget {
   static final long serialVersionUID = -8484048371911908893L;
 
   static String GALLERY_JSP = "/cms/content-gallery.jsp";
+  static String GALLERY_TEMPLATE = "/cms/content-gallery.html";
 
   public WidgetContext execute(WidgetContext context) {
 
@@ -67,6 +68,7 @@ public class ContentGalleryWidget extends GenericWidget {
     context.getRequest().setAttribute("cardList", cardList);
     context.getRequest().setAttribute("card1", cardList.get(0));
     context.setJsp(GALLERY_JSP);
+    context.setTemplate(GALLERY_TEMPLATE);
     return context;
   }
 

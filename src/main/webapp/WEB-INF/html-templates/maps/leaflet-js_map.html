@@ -1,0 +1,51 @@
+<!--/* CMS Platform Template, 2024 */-->
+<link rel="stylesheet" href="${ctx}/javascript/leaflet-1.9.4/leaflet.css" />
+<link rel="stylesheet" href="${ctx}/javascript/leaflet.markercluster-1.5.3/MarkerCluster.css" />
+<link rel="stylesheet" href="${ctx}/javascript/leaflet.markercluster-1.5.3/MarkerCluster.Default.css" />
+<script src="${ctx}/javascript/leaflet-1.9.4/leaflet.js"></script>
+<script src="${ctx}/javascript/leaflet.markercluster-1.5.3/leaflet.markercluster.js"></script>
+<h4 th:if="${not #strings.isEmpty(title)}">
+  <i th:if="${not #strings.isEmpty(icon)}" class="fa" th:classappend="${icon}"></i>
+  [[${title}]]
+</h4>
+<div th:id="${#strings.concat('mapid', widgetContext.uniqueId)}" th:style="${#strings.concat('height:', mapHeight, 'px')}"></div>
+<script th:inline="javascript">
+  const mapUniqueIdValue = "map" + [[${widgetContext.uniqueId}]];
+  const mapIdUniqueIdValue = "mapid" + [[${widgetContext.uniqueId}]];
+  const latitude = [(${latitude})];
+  const longitude = [(${longitude})];
+  const mapZoomLevel = [(${mapZoomLevel})];
+  this[mapUniqueIdValue] = L.map(mapIdUniqueIdValue).setView([latitude, longitude], mapZoomLevel);
+
+  /*[# th:if="${#strings.equals(mapCredentials.service, 'mapbox')}" ]*/
+  const mapboxAccessToken = [[${mapCredentials.accessToken}]];
+  L.tileLayer('https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}', {
+    attribution: '&copy; <a href="https://www.mapbox.com/about/maps/">Mapbox</a> &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    tileSize: 512,
+    maxZoom: 12,
+    zoomOffset: -1,
+    id: 'mapbox/streets-v11',
+    accessToken: mapboxAccessToken
+  }).addTo(this[mapUniqueIdValue]);
+  /*[/]*/
+
+  /*[# th:if="${not #strings.equals(mapCredentials.service, 'mapbox')}" ]*/
+  L.tileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors',
+    maxZoom: 18
+  }).addTo(this[mapUniqueIdValue]);
+  /*[/]*/
+
+  /*[# th:if="${#strings.equals(showMarker, 'true')}" ]*/
+  {
+    let markerUniqueIdValue = "marker" + [[${widgetContext.uniqueId}]];
+    this[markerUniqueIdValue] = L.marker([latitude, longitude]).addTo(this[mapUniqueIdValue]);
+    /*[# th:if="${not #strings.isEmpty(markerTitle)}" ]*/
+    let markerTitle = [[${markerTitle}]];
+    let markerText = [[${not #strings.isEmpty(markerText)} ? ${markerText}]];
+    this[markerUniqueIdValue].bindPopup("<b>" + markerTitle + "</b>" + (markerText.length > 0 ? "<br>" + markerText : "")).openPopup();
+    // this[mapUniqueIdValue].panTo({lon: longitude, lat: latitude});
+    /*[/]*/
+  }
+  /*[/]*/
+</script>

@@ -24,7 +24,7 @@ import com.simisinc.platform.presentation.controller.WidgetContext;
 import org.apache.commons.lang3.StringUtils;
 
 /**
- * Description
+ * Displays a Map based on the supplied coordinates
  *
  * @author matt rajkowski
  * @created 1/22/19 12:12 PM
@@ -34,9 +34,14 @@ public class MapWidget extends GenericWidget {
   static final long serialVersionUID = -8484048371911908893L;
 
   static String LEAFLET_JSP = "/maps/leaflet-js_map.jsp";
+  static String LEAFLET_TEMPLATE = "/maps/leaflet-js_map.html";
   static String APPLE_MAP_JSP = "/maps/apple_map.jsp";
 
   public WidgetContext execute(WidgetContext context) {
+
+    // Standard request items
+    context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));
+    context.getRequest().setAttribute("title", context.getPreferences().get("title"));
 
     // Determine the mapping service
     MapCredentials mapCredentials = FindMapTilesCredentialsCommand.getCredentials();
@@ -47,8 +52,16 @@ public class MapWidget extends GenericWidget {
     context.getRequest().setAttribute("mapCredentials", mapCredentials);
 
     // Determine the geo point
+    String coordinates = context.getPreferences().get("coordinates");
     String latitude = context.getPreferences().get("latitude");
     String longitude = context.getPreferences().get("longitude");
+
+    // Check for a unified coordinates value
+    if (!StringUtils.isBlank(coordinates) && coordinates.contains(",")) {
+      latitude = coordinates.substring(0, coordinates.indexOf(",")).trim();
+      longitude = coordinates.substring(coordinates.indexOf(",") + 1).trim();
+    }
+
     if (StringUtils.isBlank(latitude) || StringUtils.isBlank(longitude) ||
         "-1".equals(latitude) || "-1".equals(longitude) ||
         "0.0".equals(latitude) || "0.0".equals(longitude) ||
@@ -78,6 +91,7 @@ public class MapWidget extends GenericWidget {
     } else {
       context.setJsp(LEAFLET_JSP);
     }
+    context.setTemplate(LEAFLET_TEMPLATE);
     return context;
   }
 }

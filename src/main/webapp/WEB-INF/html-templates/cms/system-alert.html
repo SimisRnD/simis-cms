@@ -1,0 +1,6 @@
+<!--/* CMS Platform Template, 2024 */-->
+<div class="utility-text" th:if="${#maps.containsKey(sitePropertyMap, 'site.header.line1')}" th:switch="${#maps.containsKey(sitePropertyMap, 'site.header.link')} ? ${true} : ${false}">
+  [[${sitePropertyMap['site.header.line1']}]]
+  <a th:case="${true}" th:href="${#strings.concat(ctx, sitePropertyMap['site.header.page'])}" style="white-space: nowrap" th:text="${sitePropertyMap['site.header.link']}">Link</a>
+  <a th:case="${false}" th:href="${#strings.concat(ctx, sitePropertyMap['site.header.page'])}">Details</a>
+</div>

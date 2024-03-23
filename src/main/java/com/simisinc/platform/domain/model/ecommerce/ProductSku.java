@@ -122,6 +122,10 @@ public class ProductSku extends Entity {
     this.price = price;
   }
 
+  public boolean hasPrice() {
+    return price != null && price.doubleValue() > 0;
+  }
+
   public BigDecimal getStrikePrice() {
     return strikePrice;
   }

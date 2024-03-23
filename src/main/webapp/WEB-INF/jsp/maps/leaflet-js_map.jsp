@@ -34,6 +34,9 @@
 <script src="${ctx}/javascript/leaflet-1.9.4/leaflet.js"></script>
 <script src="${ctx}/javascript/leaflet.markercluster-1.5.3/leaflet.markercluster.js"></script>
 <%-- Render the widget --%>
+<c:if test="${!empty title}">
+  <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}"/></h4>
+</c:if>
 <div id="mapid${widgetContext.uniqueId}" style="height: ${mapHeight}px;"></div>
 <script>
   var map${widgetContext.uniqueId} = L.map('mapid${widgetContext.uniqueId}').setView([${latitude}, ${longitude}], ${mapZoomLevel});

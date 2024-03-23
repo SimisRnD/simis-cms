@@ -16,6 +16,9 @@
 
 package com.simisinc.platform.domain.model.dashboard;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+
 import com.simisinc.platform.domain.model.Entity;
 
 /**
@@ -100,5 +103,10 @@ public class ProgressCard extends Entity {
 
   public void setMaxLabel(String maxLabel) {
     this.maxLabel = maxLabel;
+  }
+
+  public String getPercentComplete() {
+    double percent = 100.0 * progress / maxValue;
+    return new BigDecimal(percent).setScale(2, RoundingMode.HALF_UP) + "%";
   }
 }

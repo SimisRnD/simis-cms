@@ -22,6 +22,7 @@ import java.util.List;
 import org.apache.commons.lang3.StringUtils;
 
 import com.simisinc.platform.application.cms.ContentHtmlCommand;
+import com.simisinc.platform.application.cms.HtmlCommand;
 import com.simisinc.platform.domain.model.cms.AccordionSection;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
@@ -37,6 +38,7 @@ public class ContentAccordionWidget extends GenericWidget {
   static final long serialVersionUID = -8484048371911908893L;
 
   static String ACCORDION_JSP = "/cms/content-accordion.jsp";
+  static String ACCORDION_TEMPLATE = "/cms/content-accordion.html";
 
   public WidgetContext execute(WidgetContext context) {
 
@@ -89,6 +91,7 @@ public class ContentAccordionWidget extends GenericWidget {
           // Start a new section
           String sectionName = content.substring(sectionStartIdx + 1, sectionEndIdx);
           currentSection = new AccordionSection(sectionName);
+          currentSection.setUniqueId(HtmlCommand.makeId(sectionName));
           sectionList.add(currentSection);
         }
       }
@@ -111,12 +114,13 @@ public class ContentAccordionWidget extends GenericWidget {
       }
       currentSection.getLabelsList().add(label);
       currentSection.getContentList().add(card);
+      currentSection.getUniqueIdList().add(HtmlCommand.makeId(label));
     }
     context.getRequest().setAttribute("sectionList", sectionList);
 
     // Show the accordion
     context.setJsp(ACCORDION_JSP);
-
+    context.setTemplate(ACCORDION_TEMPLATE);
     return context;
   }
 

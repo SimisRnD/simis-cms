@@ -1,0 +1,24 @@
+<!--/* CMS Platform Template, 2024 */-->
+<div th:class="${#strings.concat('grid-x grid-margin-x align-center small-up-', smallCardCount, ' ', 'medium-up-', mediumCardCount, ' ', 'large-up-', largeCardCount)}">
+  <div th:each="product: ${productList}" class="cell">
+    <div class="card" th:classappend="${cardClass}">
+      <div class="card-image" th:classappend="${cardImageClass}">
+        <a th:if="${not #strings.isEmpty(productImageMap[product.uniqueId])}" th:href="${#strings.concat(ctx, product.productUrl)}"><img alt="product image" th:src="${productImageMap[product.uniqueId]}" /></a>
+        <a th:if="${#strings.isEmpty(productImageMap[product.uniqueId]) and not #strings.isEmpty(product.imageUrl)}" th:href="${#strings.concat(ctx, product.productUrl)}"><img alt="product image" th:src="${product.imageUrl}" /></a>
+      </div>
+      <div class="card-section">
+        <h3 class="product-name">
+          <span class="name-value" th:text="${product.name}">Product Name</span>
+          <span th:if="${not #strings.isEmpty(product.caption)}" class="caption-value" th:text="${product.caption}">Product Caption</span>
+        </h3>
+        <p th:if="${product.startingFromPrice gt 0}" class="product-info">
+          From [[${#numbers.formatCurrency(product.startingFromPrice)}]]<th:block th:if="${product.skuCount gt 1}"> / [[${product.skuCount}]] options</th:block>
+        </p>
+        <p th:if="${not product.startingFromPrice gt 0 and product.price gt 0}" class="product-info">
+          [[${#numbers.formatCurrency(product.price)}]]<th:block th:if="${product.skuCount gt 1}"> / [[${product.skuCount}]] options</th:block>
+        </p>
+        <a class="${buttonClass}" th:href="${#strings.concat(ctx, product.productUrl)}" th:text="${buttonLabel}">Button Label</a>
+      </div>
+    </div>
+  </div>
+</div>

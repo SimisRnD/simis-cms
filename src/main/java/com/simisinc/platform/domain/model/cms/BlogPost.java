@@ -35,7 +35,9 @@ public class BlogPost extends Entity {
   private String uniqueId = null;
   private String title = null;
   private String body = null;
+  private String bodyText = null;
   private String summary = null;
+  private String summaryText = null;
   private String keywords = null;
   private long createdBy = -1;
   private long modifiedBy = -1;
@@ -327,6 +329,22 @@ public class BlogPost extends Entity {
 
   public void setHighlight(String highlight) {
     this.highlight = highlight;
+  }
+
+  public String getBodyText() {
+    return bodyText;
+  }
+
+  public void setBodyText(String bodyText) {
+    this.bodyText = bodyText;
+  }
+
+  public String getSummaryText() {
+    return summaryText;
+  }
+
+  public void setSummaryText(String summaryText) {
+    this.summaryText = summaryText;
   }
 
 }

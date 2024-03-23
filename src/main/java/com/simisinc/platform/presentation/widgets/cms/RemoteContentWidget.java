@@ -34,7 +34,7 @@ import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 
 /**
- * Description
+ * Accesses remote html, cleans it, and embeds the results
  *
  * @author matt rajkowski
  * @created 5/4/18 9:45 AM
@@ -45,6 +45,7 @@ public class RemoteContentWidget extends GenericWidget {
   protected static Log LOG = LogFactory.getLog(RemoteContentWidget.class);
 
   static String JSP = "/cms/remote_content_wrapper.jsp";
+  static String TEMPLATE = "/cms/remote_content_wrapper.html";
 
   public WidgetContext execute(WidgetContext context) {
 
@@ -158,6 +159,7 @@ public class RemoteContentWidget extends GenericWidget {
       context.getRequest().setAttribute("title", context.getPreferences().get("title"));
       context.getRequest().setAttribute("content", content);
       context.setJsp(JSP);
+      context.setTemplate(TEMPLATE);
       return context;
     }
 

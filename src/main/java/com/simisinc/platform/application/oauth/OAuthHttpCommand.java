@@ -48,23 +48,20 @@ public class OAuthHttpCommand {
       return null;
     }
 
-    String serviceUrl = LoadSitePropertyCommand.loadByName("oauth.serviceUrl");
-    String clientId = LoadSitePropertyCommand.loadByName("oauth.clientId");
+    String clientId = OAuthConfigurationCommand.getClientId();
     String clientSecret = LoadSitePropertyCommand.loadByName("oauth.clientSecret");
-    String siteUrl = LoadSitePropertyCommand.loadByName("site.url");
-    if (StringUtils.isAnyBlank(serviceUrl, clientId, clientSecret, siteUrl)) {
-      LOG.warn("Service is not configured");
+    if (StringUtils.isAnyBlank(clientId, clientSecret)) {
+      LOG.warn("Service is not configured, check oauth.clientId, oauth.clientSecret");
       return null;
     }
-    String url = serviceUrl + (serviceUrl.endsWith("/") ? "" : "/") + endpoint;
-    LOG.debug("Using serviceUrl: " + url);
+    LOG.debug("Using endpoint: " + endpoint);
 
-    // Send to provider
+    // Prepare request
     Map<String, String> headers = new HashMap<>();
     headers.put("Authorization", "Bearer " + oAuthToken.getAccessToken());
-    String remoteContent = HttpGetCommand.execute(url, headers);
 
     // Check for content
+    String remoteContent = HttpGetCommand.execute(endpoint, headers);
     if (StringUtils.isBlank(remoteContent)) {
       LOG.error("HttpGet Remote content is empty");
       return null;
@@ -91,32 +88,28 @@ public class OAuthHttpCommand {
       return null;
     }
 
-    String serviceUrl = LoadSitePropertyCommand.loadByName("oauth.serviceUrl");
-    String clientId = LoadSitePropertyCommand.loadByName("oauth.clientId");
-    String clientSecret = LoadSitePropertyCommand.loadByName("oauth.clientSecret");
+    String clientId = OAuthConfigurationCommand.getClientId();
+    String clientSecret = OAuthConfigurationCommand.getClientSecret();
     String siteUrl = LoadSitePropertyCommand.loadByName("site.url");
 
-    if (StringUtils.isAnyBlank(serviceUrl, clientId, clientSecret, siteUrl)) {
-      LOG.warn("Service is not configured");
+    if (StringUtils.isAnyBlank(clientId, clientSecret, siteUrl)) {
+      LOG.warn("Service is not configured, check site.url, oauth.clientId, oauth.clientSecret");
       return null;
     }
+    LOG.debug("Using endpoint: " + endpoint);
 
-    String url = serviceUrl + (serviceUrl.endsWith("/") ? "" : "/") + endpoint;
-    LOG.debug("Using serviceUrl: " + url);
+    String redirectUrl = OAuthConfigurationCommand.getRedirectUrl();
+    LOG.debug("Using redirectUrl: " + redirectUrl);
 
-    String redirectUri = siteUrl + (siteUrl.endsWith("/") ? "" : "/") + "oauth/callback";
-    LOG.debug("Using redirectUri: " + redirectUri);
-
+    // Prepare request
     Map<String, String> headers = new HashMap<>();
     headers.put("Content-Type", "application/x-www-form-urlencoded");
-
     parameters.put("client_id", clientId);
     parameters.put("client_secret", clientSecret);
-    parameters.put("redirect_uri", redirectUri);
-
-    String remoteContent = HttpPostCommand.execute(url, headers, parameters);
+    parameters.put("redirect_uri", redirectUrl);
 
     // Check for content
+    String remoteContent = HttpPostCommand.execute(endpoint, headers, parameters);
     if (StringUtils.isBlank(remoteContent)) {
       LOG.error("HttpPost Remote content is empty");
       return null;

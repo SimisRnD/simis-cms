@@ -25,13 +25,14 @@ import com.simisinc.platform.application.cms.ValidateUserAccessToWebPageCommand;
 import com.simisinc.platform.application.items.LoadCollectionCommand;
 import com.simisinc.platform.domain.model.cms.MenuItem;
 import com.simisinc.platform.domain.model.cms.MenuTab;
+import com.simisinc.platform.domain.model.items.Collection;
 import com.simisinc.platform.presentation.controller.RequestConstants;
 import com.simisinc.platform.presentation.controller.UserSession;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 
 /**
- * Description
+ * Displays the site's main menu
  *
  * @author matt rajkowski
  * @created 1/18/21 8:57 PM
@@ -41,8 +42,11 @@ public class MainMenuWidget extends GenericWidget {
   static final long serialVersionUID = -8484048371911908893L;
 
   static String JSP = "/cms/main-menu.jsp";
+  static String TEMPLATE = "/cms/main-menu.html";
   static String FLAT_JSP = "/cms/main-menu-flat.jsp";
+  static String FLAT_TEMPLATE = "/cms/main-menu-flat.jsp";
   static String NESTED_JSP = "/cms/main-menu-nested.jsp";
+  static String NESTED_TEMPLATE = "/cms/main-menu-nested.html";
 
   public WidgetContext execute(WidgetContext context) {
 
@@ -55,31 +59,56 @@ public class MainMenuWidget extends GenericWidget {
     // Check for preferences
     String view = context.getPreferences().get("view");
     boolean checkUser = "true".equals(context.getPreferences().getOrDefault("checkUser", "true"));
-    context.getRequest().setAttribute("useHighlight", context.getPreferences().getOrDefault("useHighlight", "true"));
-    context.getRequest().setAttribute("useSmallHighlight", context.getPreferences().getOrDefault("useSmallHighlight", "false"));
+    boolean highlightActiveTab = Boolean.parseBoolean(context.getPreferences().getOrDefault("useHighlight", "true"));
+    context.getRequest().setAttribute("useHighlight", highlightActiveTab ? "true" : "false");
+    boolean highlightSubmenuItem = Boolean.parseBoolean(context.getPreferences().getOrDefault("highlightSubmenuItem", "true"));
+    context.getRequest().setAttribute("highlightSubmenuItem", highlightSubmenuItem ? "true" : "false");
+    boolean useSmallHighlight = Boolean.parseBoolean(context.getPreferences().getOrDefault("useSmallHighlight", "false"));
+    context.getRequest().setAttribute("useSmallHighlight", useSmallHighlight ? "true" : "false");
     context.getRequest().setAttribute("showAdmin", context.getPreferences().getOrDefault("showAdmin", "true"));
     context.getRequest().setAttribute("menuClass", context.getPreferences().get("class"));
     context.getRequest().setAttribute("submenuIcon", context.getPreferences().get("submenuIcon"));
     context.getRequest().setAttribute("submenuIconClass", context.getPreferences().get("submenuIconClass"));
 
+    // Base the menu on the user
+    UserSession userSession = context.getUserSession();
+
     // Prepare the menu
     List<MenuTab> menuTabList = LoadMenuTabsCommand.loadActiveIncludeMenuItemList();
     List<MenuTab> menuTabListToUse = new ArrayList<>();
 
-    // Determine which menu items are shown
-    if (context.hasRole("admin") || context.hasRole("content-manager") || !checkUser) {
-      // Allow admin and content manager to view the whole menu, and when the check is disabled by preference
-      menuTabListToUse.addAll(menuTabList);
-    } else {
-      // Verify the page has content for other users, based on content, roles and groups
-      UserSession userSession = context.getUserSession();
+    // Check for a collection to match the title to
+    Collection collection = null;
+    String collectionUniqueId = context.getCoreData().get("collectionUniqueId");
+    if (collectionUniqueId != null) {
+      collection = LoadCollectionCommand.loadCollectionByUniqueId(collectionUniqueId);
+      context.getRequest().setAttribute("collection", collection);
+    }
+
+    int menuTabCounter = 0;
       for (MenuTab menuTab : menuTabList) {
-        if (ValidateUserAccessToWebPageCommand.hasAccess(menuTab.getLink(), userSession)) {
+      ++menuTabCounter;
+      // Remove redundant Home (the first one)
+      if (menuTabCounter == 1 && menuTab.getLink().equals("/")) {
+        continue;
+      }
+      // Verify the content manager, or that the page has content for other users, based on content, roles and groups
+      if (context.hasRole("admin") || context.hasRole("content-manager") || !checkUser ||
+          ValidateUserAccessToWebPageCommand.hasAccess(menuTab.getLink(), userSession)) {
           // Copy the MenuTab, since a cache was used
           MenuTab thisMenuTab = new MenuTab();
           thisMenuTab.setName(menuTab.getName());
           thisMenuTab.setLink(menuTab.getLink());
           thisMenuTab.setIcon(menuTab.getIcon());
+        // Determine if the menuTab should be highlighted
+        if (highlightActiveTab) {
+          // Is active when menuTab matches the page path, or the collection name is a match
+          
+          if ((menuTab.getLink().equals(context.getRequest().getRequestURI())) ||
+              (collection != null && collection.getName().equalsIgnoreCase(menuTab.getName()))) {
+            thisMenuTab.setActive(true);
+          }
+        }
           // Process the sub-menu items
           if (menuTab.getMenuItemList() != null) {
             List<MenuItem> thisMenuItemList = new ArrayList<>();
@@ -89,32 +118,37 @@ public class MainMenuWidget extends GenericWidget {
                 MenuItem thisMenuItem = new MenuItem();
                 thisMenuItem.setName(menuItem.getName());
                 thisMenuItem.setLink(menuItem.getLink());
-                thisMenuItemList.add(thisMenuItem);
+              // Is active when menuItem matches the page path
+              if (thisMenuItem.getLink().equals(context.getRequest().getRequestURI())) {
+                if (highlightActiveTab) {
+                  thisMenuTab.setActive(true);
+                }
+                if ((highlightSubmenuItem)) {
+                thisMenuItem.setActive(true);
+                }
+              }
+              thisMenuItemList.add(thisMenuItem);
               }
             }
             if (!thisMenuItemList.isEmpty()) {
               thisMenuTab.setMenuItemList(thisMenuItemList);
             }
             menuTabListToUse.add(thisMenuTab);
-          }
         }
       }
     }
     context.getRequest().setAttribute(RequestConstants.MASTER_MENU_TAB_LIST, menuTabListToUse);
 
-    // Check for a collection to match the title to
-    String collectionUniqueId = context.getCoreData().get("collectionUniqueId");
-    if (collectionUniqueId != null) {
-      context.getRequest().setAttribute("collection", LoadCollectionCommand.loadCollectionByUniqueId(collectionUniqueId));
-    }
-
     // Show the JSP
     if ("flat".equals(view)) {
       context.setJsp(FLAT_JSP);
+      context.setTemplate(FLAT_TEMPLATE);
     } else if ("nested".equals(view)) {
       context.setJsp(NESTED_JSP);
+      context.setTemplate(NESTED_TEMPLATE);
     } else {
       context.setJsp(JSP);
+      context.setTemplate(TEMPLATE);
     }
     return context;
   }

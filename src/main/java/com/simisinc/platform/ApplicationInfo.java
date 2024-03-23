@@ -24,15 +24,15 @@ package com.simisinc.platform;
 public class ApplicationInfo {
 
   // Display information
-  public static final String PRODUCT_NAME = "SimIS CMS";
-  public static final String PRODUCT_URL = "https://www.simiscms.com";
+  public static final String PRODUCT_NAME = "CMS Platform";
+  public static final String PRODUCT_URL = "https://github.com/rajkowski/cms-platform";
 
   // This version format drives Flyway migrations
   // The version number must be greater than the new_db script dates
   // Use: Change the date, increment the decimal on same day updates
   // then reset back to 10000
   //                         VERSION = "--------.10000";
-  public static final String VERSION = "20240106.10000";
+  public static final String VERSION = "20240219.10000";
 
   /**
    * Outputs the version from the command line

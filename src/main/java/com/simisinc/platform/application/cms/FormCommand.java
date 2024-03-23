@@ -57,8 +57,7 @@ public class FormCommand {
 
   private static void load(String filename) {
     // Get a file handle
-    String serverConfigPath = FileSystemCommand.getFileServerConfigPath();
-    File file = new File(serverConfigPath + "cms/" + filename);
+    File file = FileSystemCommand.getFileServerConfigPath("cms", filename);
 
     // Determine if the file is new
     if (lastModifiedMap.containsKey(filename) && !FileSystemCommand.isModified(file, lastModifiedMap.get(filename))) {

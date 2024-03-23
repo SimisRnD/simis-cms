@@ -65,7 +65,7 @@ public class StreamDatasetWidget extends GenericWidget {
 
     // Retrieve the dataset and file handle
     Dataset record = DatasetRepository.findByWebPathAndId(webPath, fileId);
-    File file = new File(FileSystemCommand.getFileServerRootPath() + record.getFileServerPath());
+    File file = FileSystemCommand.getFileServerRootPath(record.getFileServerPath());
     if (!file.isFile()) {
       LOG.warn("Server file does not exist: " + record.getFileServerPath());
       return null;

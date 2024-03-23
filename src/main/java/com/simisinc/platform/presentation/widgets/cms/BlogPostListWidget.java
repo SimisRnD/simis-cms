@@ -31,7 +31,7 @@ import org.apache.commons.lang3.StringUtils;
 import java.util.List;
 
 /**
- * Description
+ * Displays a list of blog entries
  *
  * @author matt rajkowski
  * @created 8/7/18 11:55 AM
@@ -46,6 +46,7 @@ public class BlogPostListWidget extends GenericWidget {
   static String CARDS_JSP = "/cms/blog-post-list-cards.jsp";
   static String FEATURED_JSP = "/cms/blog-post-list-featured.jsp";
   static String MASONRY_JSP = "/cms/blog-post-list-masonry.jsp";
+  static String MASONRY_TEMPLATE = "/cms/blog-post-list-masonry.html";
 
   public WidgetContext execute(WidgetContext context) {
 
@@ -59,10 +60,11 @@ public class BlogPostListWidget extends GenericWidget {
     context.getRequest().setAttribute("showAuthor", context.getPreferences().getOrDefault("showAuthor", "true"));
     context.getRequest().setAttribute("showDate", context.getPreferences().getOrDefault("showDate", "true"));
     context.getRequest().setAttribute("addDateToTitle", context.getPreferences().getOrDefault("addDateToTitle", "false"));
-    context.getRequest().setAttribute("showTags", context.getPreferences().getOrDefault("showTags", "true"));
+    context.getRequest().setAttribute("showTags", context.getPreferences().getOrDefault("showTags", "false"));
     context.getRequest().setAttribute("showImage", context.getPreferences().getOrDefault("showImage", "true"));
     context.getRequest().setAttribute("showSummary", context.getPreferences().getOrDefault("showSummary", "true"));
-    context.getRequest().setAttribute("readMoreText", context.getPreferences().getOrDefault("readMoreText", "Read More"));
+    context.getRequest().setAttribute("showReadMore", context.getPreferences().getOrDefault("showReadMore", "true"));
+    context.getRequest().setAttribute("readMoreText", context.getPreferences().getOrDefault("readMoreText", "Read more"));
 
     // Determine the blog
     String blogUniqueId = context.getPreferences().get("blogUniqueId");
@@ -135,7 +137,7 @@ public class BlogPostListWidget extends GenericWidget {
     // Load the blog posts
     List<BlogPost> blogPostList = BlogPostRepository.findAll(blogPostSpecification, constraints);
     context.getRequest().setAttribute("blogPostList", blogPostList);
-
+    
     // See if an empty widget can be shown
     if (blogPostList.isEmpty()) {
       if (!"true".equals(context.getPreferences().getOrDefault("showWhenEmpty", "true"))) {
@@ -145,7 +147,6 @@ public class BlogPostListWidget extends GenericWidget {
 
     // Show the editor
     if ("overview".equals(view)) {
-      context.getRequest().setAttribute("showReadMore", context.getPreferences().getOrDefault("showReadMore", "false"));
       context.setJsp(OVERVIEW_JSP);
     } else if ("titles".equals(view)) {
       context.getRequest().setAttribute("showBullets", context.getPreferences().getOrDefault("showBullets", "false"));
@@ -170,6 +171,7 @@ public class BlogPostListWidget extends GenericWidget {
       context.setJsp(CARDS_JSP);
     } else if ("masonry".equals(view)) {
       context.setJsp(MASONRY_JSP);
+      context.setTemplate(MASONRY_TEMPLATE);
     } else if ("featured".equals(view)) {
       context.setJsp(FEATURED_JSP);
     } else {

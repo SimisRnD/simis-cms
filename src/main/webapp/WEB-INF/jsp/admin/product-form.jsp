@@ -22,7 +22,7 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="product" class="com.simisinc.platform.domain.model.ecommerce.Product" scope="request"/>
 <jsp:useBean id="fulfillmentOptionList" class="java.util.ArrayList" scope="request"/>
-<script src="${ctx}/javascript/tinymce-6.8.1/tinymce.min.js"></script>
+<script src="${ctx}/javascript/tinymce-6.8.2/tinymce.min.js"></script>
 <script>
   tinymce.init({
     selector: 'textarea',
@@ -449,7 +449,7 @@
       </div>
     </div>
   </div>
-  <div class="button-container">
+  <div class="button-container margin-bottom-20">
     <c:choose>
       <c:when test="${!empty returnPage}">
         <input type="submit" class="button radius success" value="Save"/>

@@ -33,6 +33,7 @@ public class LoadWebPageCommand {
 
   public static WebPage loadByLink(String pagePath) {
     // Look for web pages as-is
+    // @todo use cache
     WebPage webPage = WebPageRepository.findByLink(pagePath);
     if (webPage != null) {
       LOG.debug("Found web page: " + webPage.getLink());

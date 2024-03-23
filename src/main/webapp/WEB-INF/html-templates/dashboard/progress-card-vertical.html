@@ -1,0 +1,81 @@
+<!--/* CMS Platform Template, 2024 */-->
+<h4 th:if="${not #strings.isEmpty(title)}">
+  <i th:if="${not #strings.isEmpty(icon)}" class="fa" th:classappend="${icon}"></i>
+  [[${title}]]
+</h4>
+<script th:src="${#strings.concat(ctx, '/javascript/chartjs-4.4.1/chart.umd.min.js')}"></script>
+<style th:inline="css">
+  .chart-overlay-text {
+      position: absolute;
+      top: 53%;
+      left: 50%;
+      transform: translate(-50%,-50%);
+      margin:0;
+      padding:0;
+      font-size: 16px;
+      font-weight: bold;
+      text-align: center;
+      display:none;
+  }
+  .chart-overlay-text.chart-[(${widgetContext.uniqueId)]} {
+      color: [(${textColor})];
+  }
+  .chart-header-text.chart-[(${widgetContext.uniqueId)]} {
+      font-weight: bold;
+  }
+  .chart-subheader-text.chart-${widgetContext.uniqueId} {
+      color: [(${subheaderColor})];
+  }
+</style>
+<div class="grid-y align-middle text-middle">
+  <div class="small-4 cell padding-width-30" style="position:relative">
+    <canvas th:id="${#strings.concat('myChart-', widgetContext.uniqueId)}"></canvas>
+    <p th:if="${progressCard.maxValue gt 0}" th:id="${#strings.concat('text', widgetContext.uniqueId)}" class="chart-overlay-text" th:classappend="${#strings.concat('chart-', widgetContext.uniqueId)}" th:text="${progressCard.percentComplete}">100%</p>
+  </div>
+  <div class="small-4 cell padding-top-20">
+    <p th:if="${not #strings.isEmpty(progressCard.label)}" class="chart-subheader-text no-gap" th:classappend="${#strings.concat('chart-', widgetContext.uniqueId)}" th:text="${progressCard.label}">Chart Label</p>
+    <p th:if="${not #strings.isEmpty(progressCard.value)}" class="chart-header-text no-gap" th:classappend="${#strings.concat('chart-', widgetContext.uniqueId)}" th:text="${progressCard.value}">Chart Value</p>
+    <p class="chart-subheader-text no-gap" th:classappend="${#strings.concat('chart-', widgetContext.uniqueId)}" th:text="${progressCard.maxLabel}">Chart Max</p>
+    <p class="chart-header-text no-gap" th:classappend="${#strings.concat('chart-', widgetContext.uniqueId)}" th:text="${#strings.concat(progressCard.progress, '/', progressCard.maxValue)}">3/10</p>
+  </div>
+</div>
+<script th:inline="javascript">
+  {
+    const datasetValue = {
+      datasets: [
+        {
+          data: [ [(${progressCard.progress})], [(${progressCard.difference})] ],
+          backgroundColor: [
+            [[${progressColor}]],
+            [[${remainderColor}]]
+          ]
+        }
+      ]
+    };
+
+    const chartContextName = 'myChart-' + [[${widgetContext.uniqueId}]];
+    let chartContext = document.getElementById(chartContextName).getContext('2d');
+    let myChart = new Chart(chartContext, {
+      type: "doughnut",
+      data: datasetValue,
+      options: {
+        responsive: true,
+        events: []
+      }
+    });
+   
+    const textIdName = '#text' + [[${widgetContext.uniqueId}]];
+    const updateFontSize = "updateFontSize" + [[${widgetContext.uniqueId}]];
+    let [(${'updateFontSize' + widgetContext.uniqueId})] = function() {
+      let value = Math.round($(textIdName).closest('.cell').outerWidth()*.16);
+      $(textIdName).css({'font-size': value + 'px'});
+    }
+    $(document).ready(function() {
+      [(${'updateFontSize' + widgetContext.uniqueId})]();
+      $(textIdName).fadeIn(200);
+    });
+    $(window).resize(function() {
+      [(${'updateFontSize' + widgetContext.uniqueId})]();
+    });
+  }
+</script>

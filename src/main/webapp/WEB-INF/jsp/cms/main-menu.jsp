@@ -29,35 +29,15 @@
 <ul class="dropdown menu<c:if test="${!empty menuClass}"> <c:out value="${menuClass}" /></c:if>" data-dropdown-menu>
   <c:forEach items="${masterMenuTabList}" var="menuTab" varStatus="menuTabStatus">
     <c:choose>
-      <c:when test="${menuTab.link eq '/' && menuTabStatus.index == 0}">
-        <%-- Hide Home (the first one) --%>
-      </c:when>
       <c:when test="${!empty menuTab.menuItemList}">
-        <%-- See if any submenu item is the current page for highlighting the active menu item --%>
-        <c:set var="isParent" scope="request" value="false"/>
-        <c:if test="${useHighlight eq 'true'}">
-          <c:if test="${menuTab.link eq pagePath}">
-            <c:set var="isParent" scope="request" value="true"/>
-          </c:if>
-          <c:if test="${!empty collection && fn:toLowerCase(collection.name) eq fn:toLowerCase(menuTab.name)}">
-            <c:set var="isParent" scope="request" value="true"/>
-          </c:if>
-          <c:forEach items="${menuTab.menuItemList}" var="menuItem">
-            <c:if test="${menuItem.link eq pagePath}">
-              <c:set var="isParent" scope="request" value="true"/>
-            </c:if>
-          </c:forEach>
-        </c:if>
         <%-- Display the submenu --%>
-        <li class="is-dropdown-submenu-parent<c:if test="${isParent eq 'true'}"> active</c:if>">
+        <li class="is-dropdown-submenu-parent<c:if test="${menuTab.active}"> active</c:if>">
           <a href="${ctx}${menuTab.link}"><c:if test="${!empty menuTab.icon}"><i class="${font:fas()} fa-fw fa-<c:out value="${menuTab.icon}" />"></i> </c:if><c:out value="${menuTab.name}" /></a>
           <ul class="menu vertical">
             <c:forEach items="${menuTab.menuItemList}" var="menuItem">
-              <li<c:if test="${useHighlight eq 'true' && menuItem.link eq pagePath}"> class="active"</c:if>><a href="${ctx}${menuItem.link}"><c:if test="${!empty submenuIcon}"><i class="fa <c:out value="${submenuIcon}" /><c:if test="${!empty submenuIconClass}"> <c:out value="${submenuIconClass}" /></c:if>"></i></c:if> <c:out value="${menuItem.name}" /></a></li>
+              <li<c:if test="${menuItem.active}"> class="active"</c:if>><a href="${ctx}${menuItem.link}"><c:if test="${!empty submenuIcon}"><i class="fa <c:out value="${submenuIcon}" /><c:if test="${!empty submenuIconClass}"> <c:out value="${submenuIconClass}" /></c:if>"></i></c:if> <c:out value="${menuItem.name}" /></a></li>
             </c:forEach>
-
-
-                <%-- @todo Check for content to append here --%>
+            <%-- @todo Check for content to append here --%>
 <%--
                 <li class="menu-item-callout" style="padding:0 16px 16px 16px">
                   <div style="border-top: 2px solid #E0A590;padding-top: 8px;font-weight:400">

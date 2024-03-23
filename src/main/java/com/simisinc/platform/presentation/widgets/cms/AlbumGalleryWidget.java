@@ -35,7 +35,7 @@ import org.apache.commons.logging.LogFactory;
 import java.util.List;
 
 /**
- * Description
+ * Displays a graphical list of photo albums
  *
  * @author matt rajkowski
  * @created 8/29/19 1:41 PM

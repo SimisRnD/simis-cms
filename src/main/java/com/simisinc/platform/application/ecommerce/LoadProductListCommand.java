@@ -17,6 +17,7 @@
 package com.simisinc.platform.application.ecommerce;
 
 import com.simisinc.platform.domain.model.ecommerce.Product;
+import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.persistence.ecommerce.ProductRepository;
 import com.simisinc.platform.infrastructure.persistence.ecommerce.ProductSpecification;
 import org.apache.commons.logging.Log;
@@ -35,14 +36,18 @@ public class LoadProductListCommand {
 
   private static Log LOG = LogFactory.getLog(LoadProductListCommand.class);
 
-  public static List<Product> loadProductsForSale(ArrayList<String> productUniqueIdList) {
-    // Find all products for sale
+  public static List<Product> loadProductsForSale(ArrayList<String> productUniqueIdList, int limit) {
+    // Find all products for sale based on conditions
     ProductSpecification specification = new ProductSpecification();
     specification.setIsForSale(true);
     if (productUniqueIdList != null && !productUniqueIdList.isEmpty()) {
       specification.setWithProductUniqueIdList(productUniqueIdList);
     }
-    List<Product> productList = ProductRepository.findAll(specification, null);
+    // Determine some result constraints
+    DataConstraints constraints = new DataConstraints();
+    constraints.setPageSize(limit);
+    // Load the list
+    List<Product> productList = ProductRepository.findAll(specification, constraints);
     // Determine the price to show, or range of prices to show...
     for (Product product : productList) {
       ProductPriceCommand.configurePriceAndStartingPrice(product);

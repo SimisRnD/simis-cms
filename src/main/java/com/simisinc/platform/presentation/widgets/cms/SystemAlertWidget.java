@@ -24,7 +24,7 @@ import org.apache.commons.lang3.StringUtils;
 import java.util.Map;
 
 /**
- * Description
+ * Displays a bar with content and a link, useful for a system-wide header
  *
  * @author matt rajkowski
  * @created 1/18/21 9:55 PM
@@ -34,6 +34,7 @@ public class SystemAlertWidget extends GenericWidget {
   static final long serialVersionUID = -8484048371911908893L;
 
   static String JSP = "/cms/system-alert.jsp";
+  static String TEMPLATE = "/cms/system-alert.html";
 
   public WidgetContext execute(WidgetContext context) {
     // Check if the widget has content and can be displayed
@@ -43,8 +44,9 @@ public class SystemAlertWidget extends GenericWidget {
     }
     context.getRequest().setAttribute("sitePropertyMap", sitePropertyMap);
 
-    // Show the JSP
+    // Specify the content
     context.setJsp(JSP);
+    context.setTemplate(TEMPLATE);
     return context;
   }
 }

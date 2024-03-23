@@ -1,0 +1,117 @@
+<!--/* CMS Platform Template, 2024 */-->
+<link rel="stylesheet" th:href="${#strings.concat(ctx, '/css/platform-calendar.css?v=', VERSION)}" />
+<script th:src="${#strings.concat(ctx, '/javascript/fullcalendar-6.1.10/moment-2.27.0.min.js')}"></script>
+<script th:src="${#strings.concat(ctx, '/javascript/fullcalendar-6.1.10/index.global.min.js')}"></script>
+<div id="calendar-small"></div>
+<div id="tooltip-small" class="tooltip top align-center under-reveal" style="display:none"></div>
+<script th:inline="javascript">
+  function showTooltip(el, event) {
+    let content = "<h5>" + event.title+"</h5>";
+    if (event.allDay === undefined || !event.allDay) {
+      content += "<p>";
+      content += moment(event.start).format("LT") + " - " + moment(event.end).format("LT");
+      content += "</p>";
+    }
+    if (event.extendedProps.location) {
+      content += "<p><i class='fa fa-map-marker'></i> " + event.extendedProps.location + "</p>";
+    }
+    if (event.extendedProps.description || event.extendedProps.detailsUrl) {
+      content += "<p class='no-gap'>(click for more details)</p>";
+    }
+    $("#tooltip-small").html(content);
+    let ttHeight = $("#tooltip-small").outerHeight();
+    let ttWidth = $("#tooltip-small").outerWidth();
+
+    // center and show it
+    let parentTop = Math.round($('#calendar-small').parent().offset().top);
+    let parentLeft = Math.round($('#calendar-small').parent().offset().left);
+    let calendarTop = $('#calendar-small').offset().top;
+    let calendarLeft = $('#calendar-small').offset().left;
+    let elTop = $(el).offset().top;
+    let elLeft = Math.round($(el).offset().left);
+    let tdTop = Math.round($(el).closest('.fc-daygrid-event-harness').offset().top);
+    let tdLeft = Math.round($(el).closest('.fc-daygrid-event-harness').offset().left);
+    let tdWidth = Math.round($(el).closest('.fc-daygrid-event-harness').outerWidth());
+    let top = Math.round(elTop - calendarTop - ttHeight + 8);
+    let zero = Math.round(calendarLeft - parentLeft);
+    let left = zero + tdLeft - calendarLeft + Math.round((tdWidth/2) - (ttWidth/2));
+    $('#tooltip-small').css({top: top, left: left});
+    $('#tooltip-small').fadeIn(200);
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    let calendarEl = document.getElementById('calendar-small');
+    let calendar = new FullCalendar.Calendar(calendarEl, {
+      [# th:switch="${defaultView}"]
+        [# th:case="list"] initialView: 'listWeek',[/]
+        [# th:case="day"] initialView: 'timeGrid',[/]
+        [# th:case="*"] initialView: 'dayGridMonth',[/]
+      [/]
+      [# th:if="${not #strings.isEmpty(height)}"]
+        height: [(${height})],
+      [/]
+      // aspectRatio: 2,
+      headerToolbar: {
+        start: 'title',
+        center: '',
+        [# th:switch="${defaultView}"]
+        [# th:case="list"] end: 'listWeek,dayGridMonth today prev,next'[/]
+        [# th:case="day"] end: 'timeGrid,dayGridMonth today prev,next'[/]
+        [# th:case="*"] end: 'dayGridMonth,listWeek today prev,next'[/]
+      [/]
+      },
+      buttonText: {
+        today:    'Today',
+        month:    'Month',
+        week:     'Week',
+        day:      'Day',
+        list:     'List',
+        timeGrid: 'Day'
+      },
+      selectable: false,
+      eventClick: function(info) {
+        if (info.event.id <= 0) {
+          return;
+        }
+        let detailsUrl = info.event.extendedProps.detailsUrl;
+        if (detailsUrl && (detailsUrl.indexOf('http://') === 0 || detailsUrl.indexOf('https://') === 0)) {
+          window.open(detailsUrl, '_blank');
+        } else if (detailsUrl && detailsUrl.indexOf('/') === 0) {
+          window.location.href=[[${ctx}]] + detailsUrl + '?returnPage=' + [[${widgetContext.uri}]];
+        } else {
+          window.location.href=[[${ctx}]] + '/calendar-event/' + info.event.extendedProps.uniqueId + '?returnPage=' + [[${widgetContext.uri}]];
+        }
+      },
+      eventMouseEnter: function(info) {
+        if (info.view.type !== 'dayGridMonth') {
+          return;
+        }
+        showTooltip(info.el, info.event);
+      },
+      eventMouseLeave: function(info) {
+        $('#tooltip-small').hide();
+      },
+      eventSources: [
+
+        // <c:if test="${showEvents eq 'true'}">
+        // {
+        //   url: '/json/calendar?showEvents=true<c:if test="${!empty calendarUniqueId}">&calendarUniqueId=<c:out value="${calendarUniqueId}" /></c:if>',
+        //   color: '#999999',
+        //   textColor: '#ffffff'
+        // },
+        // </c:if>
+       
+        // <c:if test="${showHolidays eq 'true'}">
+        // {
+        //   url: '/json/calendar?showHolidays=true',
+        //   color: '#999999',
+        //   textColor: '#ffffff'
+        // },
+        // </c:if>
+       
+
+      ]
+    });
+    calendar.render();
+  });
+</script>

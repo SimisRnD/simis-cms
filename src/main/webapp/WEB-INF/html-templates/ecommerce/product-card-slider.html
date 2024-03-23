@@ -1,0 +1,82 @@
+<!--/* CMS Platform Template, 2024 */-->
+<style th:if="${#strings.equals(showControls, 'true') and #arrays.length(productList) gt 1}">
+  #swiper[(${widgetContext.uniqueId})] { width: calc(100% - 80px); }
+</style>
+<div class="swiper-outer-container">
+  <div th:id="${#strings.concat('swiper', widgetContext.uniqueId)}" class="swiper">
+    <div class="swiper-wrapper">
+      <div th:each="product: ${productList}" class="swiper-slide">
+        <div class="card" th:classappend="${cardClass}">
+          <div class="card-image">
+            <a th:if="${not #strings.isEmpty(productImageMap[product.uniqueId])}" th:href="${#strings.concat(ctx, product.productUrl)}"><img alt="product image" th:src="${productImageMap[product.uniqueId]}" /></a>
+            <a th:if="${#strings.isEmpty(productImageMap[product.uniqueId]) and not #strings.isEmpty(product.imageUrl)}" th:href="${#strings.concat(ctx, product.productUrl)}"><img alt="product image" th:src="${product.imageUrl}" /></a>
+          </div>
+          <div class="card-section">
+            <h3 class="product-name">
+              <span class="name-value" th:text="${product.name}">Product Name</span>
+              <span th:if="${not #strings.isEmpty(product.caption)}" class="caption-value" th:text="${product.caption}">Product Caption</span>
+            </h3>
+            <p th:if="${product.startingFromPrice gt 0}" class="product-info">
+                From [[${#numbers.formatCurrency(product.startingFromPrice)}]]<th:block th:if="${product.skuCount gt 1}"> / [[${product.skuCount}]] options</th:block>
+            </p>
+            <p th:if="${not product.startingFromPrice gt 0 and product.price gt 0}" class="product-info">
+                [[${#numbers.formatCurrency(product.price)}]]<th:block th:if="${product.skuCount gt 1}"> / [[${product.skuCount}]] options</th:block>
+            </p>
+            <a class="product-button button expanded padding-width-0" th:href="${#strings.concat(ctx, product.productUrl)}" th:text="${buttonLabel}">Button Label</a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div th:if="${#strings.equals(showPagination, 'true')}" th:id="${#strings.concat('swiper-pagination', widgetContext.uniqueId)}" class="swiper-pagination"></div>
+  <th:block th:if="${#strings.equals(showControls, 'true') and #arrays.length(productList) gt 1}">
+    <div th:if="${#strings.equals(showLeftControl, 'true')}" th:id="${#strings.concat('swiper-button-prev', widgetContext.uniqueId)}" class="swiper-button-prev"></div>
+    <div th:if="${#strings.equals(showRightControl, 'true')}" th:id="${#strings.concat('swiper-button-next', widgetContext.uniqueId)}" class="swiper-button-next"></div>
+  </th:block>
+</div>
+<script th:inline="javascript">
+  {
+    let swiperId = "swiper" + [[${widgetContext.uniqueId}]];
+    let swiperOptionsId = "swiperOptions" + [[${widgetContext.uniqueId}]];
+    let swiperPaginationId = "#swiper-pagination" + [[${widgetContext.uniqueId}]];
+    let swiperButtonNextId = "#swiper-button-next" + [[${widgetContext.uniqueId}]];
+    let swiperButtonPreviousId = "#swiper-button-prev" + [[${widgetContext.uniqueId}]];
+
+    let swiperOptions = {
+      slidesPerView: [(${smallCardCount})],
+      centerInsufficientSlides: true,
+      spaceBetween: 15,
+      breakpoints: {
+          640: {
+              slidesPerView: [(${mediumCardCount})],
+              spaceBetween: 15
+          },
+          1024: {
+              slidesPerView: [(${largeCardCount})],
+              spaceBetween: 15
+          }
+      }
+    };
+    /*[# th:if="${#strings.equals(loop, 'true')}" ]*/
+    swiperOptions.loop = 'true';
+    /*[/]*/
+    /*[# th:if="${not #strings.isEmpty(autoplayDelay) and not #strings.equals(autoplayDelay, '-1')}" ]*/
+    swiperOptions.autoplay = { delay: [[${autoplayDelay}]], stopOnLastSlide: true, disableOnInteraction: true };
+    /*[/]*/
+    /*[# th:if="${#strings.equals(showPagination, 'true')}"> ]*/
+    swiperOptions.pagination = {
+      el: swiperPaginationId
+    }
+    /*[/]*/
+    /*[# th:if="${#strings.equals(showControls, 'true') and #arrays.length(productList) gt 1}" ]*/
+    swiperOptions.navigation = {};
+      /*[# th:if="${#strings.equals(showLeftControl, 'true')}" ]*/
+      swiperOptions.navigation.nextEl = swiperButtonNextId;
+      /*[/]*/
+      /*[# th:if="${#strings.equals(showRightControl, 'true')}" ]*/
+      swiperOptions.navigation.prevEl = swiperButtonPreviousId;
+      /*[/]*/
+    /*[/]*/
+    this[swiperId] = new Swiper("#" + swiperId, swiperOptions);
+  }
+</script>

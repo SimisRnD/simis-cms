@@ -16,16 +16,13 @@
 
 package com.simisinc.platform.application;
 
-import com.simisinc.platform.application.filesystem.FileSystemCommand;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-import org.mockito.MockedStatic;
+import static com.simisinc.platform.application.SessionCommand.BOT_LIST;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import static com.simisinc.platform.application.SessionCommand.BOT_LIST;
-import static org.mockito.Mockito.mockStatic;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
 
 /**
  * @author matt rajkowski
@@ -43,17 +40,11 @@ class SessionCommandTest {
 
   @Test
   void checkWithConfiguration() {
-    // Mock directory path
-    try (MockedStatic<FileSystemCommand> staticFileSystemCommand = mockStatic(FileSystemCommand.class)) {
-      staticFileSystemCommand.when(FileSystemCommand::getFileServerConfigPath).thenReturn(".");
-      SessionCommand.load();
-
-      String userAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 15_3_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.3 Mobile/15E148 Safari/604.1";
-      List<String> botList = new ArrayList<>();
-      botList.add("MyBot");
-      SessionCommand.setList(BOT_LIST, botList);
-      Assertions.assertFalse(SessionCommand.checkForBot(userAgent));
-      Assertions.assertTrue(SessionCommand.checkForBot("MyBot"));
-    }
+    String userAgent = "Mozilla/5.0 (iPhone; CPU iPhone OS 15_3_1 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/15.3 Mobile/15E148 Safari/604.1";
+    List<String> botList = new ArrayList<>();
+    botList.add("MyBot");
+    SessionCommand.setList(BOT_LIST, botList);
+    Assertions.assertFalse(SessionCommand.checkForBot(userAgent));
+    Assertions.assertTrue(SessionCommand.checkForBot("MyBot"));
   }
 }

@@ -23,11 +23,14 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import com.simisinc.platform.application.cms.ReplaceBlogPostDynamicValuesCommand;
+import com.simisinc.platform.domain.model.cms.Blog;
+import com.simisinc.platform.domain.model.cms.BlogPost;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 
 /**
- * Description
+ * Displays breadcrumbs
  *
  * @author matt rajkowski
  * @created 4/20/18 2:23 PM
@@ -39,19 +42,36 @@ public class BreadCrumbsWidget extends GenericWidget {
   protected static Log LOG = LogFactory.getLog(BreadCrumbsWidget.class);
 
   static String JSP = "/cms/breadcrumbs.jsp";
+  static String TEMPLATE = "/cms/breadcrumbs.html";
 
   public WidgetContext execute(WidgetContext context) {
 
+    // Determine if the editor button is shown
+    boolean showEditor = false;
+
+    // Links are stored in the preferences
+    String links = context.getPreferences().get("links");
+    if (StringUtils.isBlank(links) && !showEditor) {
+      return null;
+    }
+
+    // Determine if there are dynamic names for the breadcrumbs
+    Blog blog = BlogPostWidget.retrieveValidatedBlogFromPreferences(context);
+    BlogPost blogPost = BlogPostWidget.retrieveValidatedBlogPostFromUrl(context, blog);
+
+    // Check the widget preferences for a list of breadcrumbs
     PreferenceEntriesList entriesList = context.getPreferenceAsDataList("links");
-    if (entriesList.isEmpty()) {
+    if (entriesList.isEmpty() && !showEditor) {
       LOG.debug("Links preference is empty");
       return null;
     }
 
+    // Create a list of the breadcrumb entries to display
     LOG.debug("Entries found: " + entriesList.size());
     Map<String, String> linkList = new LinkedHashMap<>();
     for (Map<String, String> valueMap : entriesList) {
       try {
+        // Determine the breadcrumb title and corresponding link
         String label = valueMap.get("name");
         String value = valueMap.get("link");
         if (value == null) {
@@ -60,14 +80,16 @@ public class BreadCrumbsWidget extends GenericWidget {
         if (value == null) {
           value = "";
         }
-
         int index = value.indexOf("{param:");
         if (index > -1) {
           String parameterName = value.substring(index + 7, value.indexOf("}", index));
           String requestParam = context.getParameter(parameterName);
           value = StringUtils.replace(value, "{param:" + parameterName + "}", requestParam);
         }
-
+        // Update dynamic values
+        if (blogPost != null) {
+          label = ReplaceBlogPostDynamicValuesCommand.replaceValues(blogPost, label);
+        }
         linkList.put(label, value);
       } catch (Exception e) {
         LOG.error("Could not get property: " + e.getMessage());
@@ -75,8 +97,9 @@ public class BreadCrumbsWidget extends GenericWidget {
     }
     context.getRequest().setAttribute("linkList", linkList);
 
-    // Show the JSP
+    // Show the html
     context.setJsp(JSP);
+    context.setTemplate(TEMPLATE);
     return context;
   }
 }

@@ -27,7 +27,7 @@ import java.util.ArrayList;
 import java.util.Map;
 
 /**
- * Description
+ * Displays horizontal tabs and contains embedded content in each tab
  *
  * @author matt rajkowski
  * @created 7/10/18 9:28 AM
@@ -37,7 +37,9 @@ public class ContentTabsWidget extends GenericWidget {
   static final long serialVersionUID = -8484048371911908893L;
 
   static String LINKS_JSP = "/cms/content-tabs-links.jsp";
+  static String LINKS_TEMPLATE = "/cms/content-tabs-links.html";
   static String JSP = "/cms/content-tabs.jsp";
+  static String TEMPLATE = "/cms/content-tabs.html";
 
   public WidgetContext execute(WidgetContext context) {
 
@@ -94,8 +96,10 @@ public class ContentTabsWidget extends GenericWidget {
 
     if ("true".equals(context.getPreferences().get("useLinks"))) {
       context.setJsp(LINKS_JSP);
+      context.setTemplate(LINKS_TEMPLATE);
     } else {
       context.setJsp(JSP);
+      context.setTemplate(TEMPLATE);
     }
     return context;
   }

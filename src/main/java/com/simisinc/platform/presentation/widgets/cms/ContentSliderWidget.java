@@ -35,6 +35,7 @@ public class ContentSliderWidget extends GenericWidget {
   static final long serialVersionUID = -8484048371911908893L;
 
   static String JSP = "/cms/content-card-slider.jsp";
+  static String TEMPLATE = "/cms/content-card-slider.html";
 
   public WidgetContext execute(WidgetContext context) {
 
@@ -80,6 +81,7 @@ public class ContentSliderWidget extends GenericWidget {
 
     context.getRequest().setAttribute("cardClass", context.getPreferences().get("cardClass"));
     context.setJsp(JSP);
+    context.setTemplate(TEMPLATE);
     return context;
   }
 

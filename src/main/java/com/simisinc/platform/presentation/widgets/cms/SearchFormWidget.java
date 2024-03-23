@@ -20,7 +20,7 @@ import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 
 /**
- * Description
+ * Displays a button, optionally with text and input form, to search the site
  *
  * @author matt rajkowski
  * @created 1/19/21 10:11 PM

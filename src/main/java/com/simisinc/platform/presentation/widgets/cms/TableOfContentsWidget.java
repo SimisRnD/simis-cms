@@ -31,7 +31,7 @@ import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 
 /**
- * Description
+ * Displays a table of contents dynamically from database
  *
  * @author matt rajkowski
  * @created 4/20/18 2:23 PM
@@ -42,6 +42,7 @@ public class TableOfContentsWidget extends GenericWidget {
   protected static Log LOG = LogFactory.getLog(TableOfContentsWidget.class);
 
   static String JSP = "/cms/table-of-contents.jsp";
+  static String TEMPLATE = "/cms/table-of-contents.html";
 
   private static TableOfContents createTableOfContentsFromPreferences(WidgetContext context) {
     // Use a widget preference fallback
@@ -121,6 +122,7 @@ public class TableOfContentsWidget extends GenericWidget {
     // Show the JSP
     context.getRequest().setAttribute("tableOfContents", tableOfContents);
     context.setJsp(JSP);
+    context.setTemplate(TEMPLATE);
     return context;
   }
 }

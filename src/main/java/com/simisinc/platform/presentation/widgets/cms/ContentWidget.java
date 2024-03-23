@@ -33,6 +33,7 @@ public class ContentWidget extends GenericWidget {
   static final long serialVersionUID = -8484048371911908893L;
 
   static String JSP = "/cms/content.jsp";
+  static String TEMPLATE = "/cms/content.html";
 
   public WidgetContext execute(WidgetContext context) {
 
@@ -75,11 +76,13 @@ public class ContentWidget extends GenericWidget {
 
     // A message is being shown to the content manager
     if (context.hasJsp()) {
+      LOG.debug("Returning content for the Content manager");
       return context;
     }
 
     // No content is being shown because it's not set
     if (StringUtils.isBlank(html)) {
+      LOG.debug("No content to display");
       return null;
     }
 
@@ -110,6 +113,7 @@ public class ContentWidget extends GenericWidget {
     }
 
     context.setJsp(JSP);
+    context.setTemplate(TEMPLATE);
     return context;
   }
 

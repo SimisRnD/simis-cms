@@ -38,7 +38,7 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Description
+ * Displays an Add to Cart button depending on several product conditions
  *
  * @author matt rajkowski
  * @created 4/9/19 8:53 PM
@@ -50,9 +50,11 @@ public class AddToCartWidget extends GenericWidget {
   static String ADD_PRODUCT_JSP = "/ecommerce/add-product-to-cart.jsp";
   static String ADD_PRODUCT_SKU_JSP = "/ecommerce/add-product-sku-to-cart.jsp";
   static String COMING_SOON_JSP = "/ecommerce/product-coming-soon.jsp";
+  static String COMING_SOON_TEMPLATE = "/ecommerce/product-coming-soon.html";
   static String SOLD_OUT_JSP = "/ecommerce/product-sold-out.jsp";
   static String MORE_ON_THE_WAY_JSP = "/ecommerce/product-more-on-the-way.jsp";
   static String UNAVAILABLE_JSP = "/ecommerce/product-unavailable.jsp";
+  static String UNAVAILABLE_TEMPLATE = "/ecommerce/product-unavailable.html";
 
   public WidgetContext execute(WidgetContext context) {
 
@@ -76,6 +78,7 @@ public class AddToCartWidget extends GenericWidget {
     if (StringUtils.isBlank(uniqueId)) {
       LOG.error("Product unique id must be specified with optional sku: " + uniqueId + "/" + sku);
       context.setJsp(UNAVAILABLE_JSP);
+      context.setTemplate(UNAVAILABLE_TEMPLATE);
       return context;
     }
 
@@ -84,6 +87,7 @@ public class AddToCartWidget extends GenericWidget {
     if (product == null) {
       LOG.warn("Product was not found for: " + uniqueId + " / " + sku);
       context.setJsp(UNAVAILABLE_JSP);
+      context.setTemplate(UNAVAILABLE_TEMPLATE);
       return context;
     }
 
@@ -100,6 +104,7 @@ public class AddToCartWidget extends GenericWidget {
     if (productSkuList == null || productSkuList.isEmpty()) {
       LOG.warn("Product SKU list was not found for: " + uniqueId + " / " + sku);
       context.setJsp(UNAVAILABLE_JSP);
+      context.setTemplate(UNAVAILABLE_TEMPLATE);
       return context;
     }
 
@@ -113,6 +118,7 @@ public class AddToCartWidget extends GenericWidget {
 
     if (!"true".equals(LoadSitePropertyCommand.loadByName("site.cart"))) {
       context.setJsp(COMING_SOON_JSP);
+      context.setTemplate(COMING_SOON_TEMPLATE);
       return context;
     }
 
@@ -130,9 +136,11 @@ public class AddToCartWidget extends GenericWidget {
     }
     if (allStatus == ProductSku.STATUS_COMING_SOON) {
       context.setJsp(COMING_SOON_JSP);
+      context.setTemplate(COMING_SOON_TEMPLATE);
       return context;
     } else if (allStatus == ProductSku.STATUS_UNAVAILABLE) {
       context.setJsp(UNAVAILABLE_JSP);
+      context.setTemplate(UNAVAILABLE_TEMPLATE);
       return context;
     } else if (allStatus == ProductSku.STATUS_MORE_ON_THE_WAY) {
       context.setJsp(MORE_ON_THE_WAY_JSP);

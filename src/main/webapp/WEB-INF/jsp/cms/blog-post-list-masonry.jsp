@@ -53,13 +53,13 @@
               </div>
               <c:if test="${showAuthor eq 'true' || showTags eq 'true'}">
                 <div class="card-section blog-info">
-                  <%--
-                  <c:if test="${showTags eq 'true'}">
+                  <c:if test="${showTags eq 'true' && !empty blogPost.tagsList}">
                     <div class="float-right blog-tags">
-                      Category
+                      <c:forEach items="${blogPost.tagsList}" var="tag">
+                        <span class="label secondary"><c:out value="${tag}" /></span>
+                      </c:forEach>
                     </div>
                   </c:if>
-                  --%>
                   <c:if test="${showAuthor eq 'true'}">
                     <div class="blog-author">
                       By <c:out value="${user:name(blogPost.createdBy)}"/>
@@ -76,18 +76,20 @@
                 <div class="card-section blog-intro">
                   <c:choose>
                     <c:when test="${!empty blogPost.summary}">
-                      <p>${html:toHtml(text:trim(html:text(blogPost.summary), 256, true))}</p>
+                      <p>${html:toHtml(text:trim(blogPost.summaryText, 256, true))}</p>
                     </c:when>
                     <c:otherwise>
-                      <p>${html:toHtml(text:trim(html:text(blogPost.body), 220, true))}</p>
+                      <p>${html:toHtml(text:trim(blogPost.bodyText, 220, true))}</p>
                     </c:otherwise>
                   </c:choose>
                 </div>
               </c:if>
               <div class="card-section-bleed">
-                <div class="float-right blog-read-more">
-                  <a href="${ctx}/${blog.uniqueId}/${blogPost.uniqueId}" class="read-more"><c:out value="${readMoreText}" /></a>
-                </div>
+                <c:if test="${showReadMore eq 'true'}">
+                  <div class="float-right blog-read-more">
+                    <a href="${ctx}/${blog.uniqueId}/${blogPost.uniqueId}" class="read-more"><c:out value="${readMoreText}" /></a>
+                  </div>
+                </c:if>
                 <c:if test="${showDate eq 'true' && !empty blogPost.startDate}">
                   <div class="blog-date">
                     <fmt:formatDate pattern="MM/dd/yy" value="${blogPost.startDate}" />

@@ -1,0 +1,54 @@
+<!--/* CMS Platform Template, 2024 */-->
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+  <nav th:fragment="nav">
+    <div data-sticky-container>
+      <div id="platform-menu" data-sticky data-margin-top="0" data-sticky-on="small">
+        <th:block th:each="section, sectionStatus : ${headerRenderInfo.sectionRenderInfoList}">
+          <div th:id="${not #strings.isEmpty(section.htmlId)} ? ${section.htmlId}"
+               th:class="${not #strings.isEmpty(section.cssClass) and (#strings.contains(section.cssClass, 'grid') or #strings.contains(section.cssClass, 'platform-no-margin'))} ? ${section.cssClass} : (${not #strings.isEmpty(section.cssClass) && #strings.contains(section.cssClass, 'utility-bar')} ? 'full-container utility-bar' : 'full-container')"
+               th:classappend="${#strings.equals(section.htmlId, 'platform-small-menu') || #strings.equals(section.htmlId, 'platform-small-toggle-menu') ? 'show-for-small-only' : 'show-for-medium' }"
+               th:style="${not #strings.isEmpty(section.cssStyle)} ? ${section.cssStyle}"
+               th:switch="${(not #strings.isEmpty(section.cssClass)) and (#strings.contains(section.cssClass, 'grid') or #strings.contains(section.cssClass, 'platform-no-margin'))} ? ${true} : ${false}">            
+            <div class="grid-container" th:case="${false}">
+              <div class="grid-x grid-margin-x" th:classappend="${not #strings.isEmpty(section.cssClass) and not #strings.contains(section.cssClass, 'utility-bar')} ? ${section.cssClass}">
+                <th:block th:if="${not #strings.isEmpty(section.videoBackgroundUrl)}">
+                  <div class="video-background">
+                    <video autoplay muted loop>
+                      <source th:src="${ctx}${section.videoBackgroundUrl}" type="video/mp4">
+                    </video>
+                    <div class="grid-container">
+                      <div class="video-background-content grid-x grid-padding-x" th:classappend="${section.cssClass}" th:style="${section.cssStyle}">
+                        <div th:replace="~{layout-column-renderer :: columns}"></div>
+                      </div>
+                    </div>
+                  </div>
+                </th:block>
+                <th:block th:unless="${not #strings.isEmpty(section.videoBackgroundUrl)}">
+                  <div th:replace="~{layout-column-renderer :: columns}"></div>
+                </th:block>
+              </div>
+            </div>
+            <th:block th:case="${true}">
+              <th:block th:if="${not #strings.isEmpty(section.videoBackgroundUrl)}">
+                <div class="video-background">
+                  <video autoplay muted loop>
+                    <source th:src="${ctx}${section.videoBackgroundUrl}" type="video/mp4">
+                  </video>
+                  <div class="grid-container">
+                    <div class="video-background-content grid-x grid-padding-x" th:classappend="${section.cssClass}" th:style="${section.cssStyle}">
+                      <div th:replace="~{layout-column-renderer :: columns}"></div>
+                    </div>
+                  </div>
+                </div>
+              </th:block>
+              <th:block th:unless="${not #strings.isEmpty(section.videoBackgroundUrl)}">
+                <div th:replace="~{layout-column-renderer :: columns}"></div>
+              </th:block>
+            </th:block>
+          </div>
+        </th:block>
+      </div>
+    </div>
+  </nav>
+</html>

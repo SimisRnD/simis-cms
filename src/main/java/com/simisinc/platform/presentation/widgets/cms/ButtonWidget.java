@@ -21,7 +21,7 @@ import com.simisinc.platform.presentation.widgets.GenericWidget;
 import org.apache.commons.lang3.StringUtils;
 
 /**
- * Description
+ * Button HTML
  *
  * @author matt rajkowski
  * @created 8/7/18 3:20 PM
@@ -31,6 +31,7 @@ public class ButtonWidget extends GenericWidget {
   static final long serialVersionUID = -8484048371911908893L;
 
   static String JSP = "/cms/button.jsp";
+  static String TEMPLATE = "/cms/button.html";
 
   public WidgetContext execute(WidgetContext context) {
     String link = context.getPreferences().get("link");
@@ -52,6 +53,7 @@ public class ButtonWidget extends GenericWidget {
 
     // Show the JSP
     context.setJsp(JSP);
+    context.setTemplate(TEMPLATE);
     return context;
   }
 }

@@ -16,15 +16,16 @@
 
 package com.simisinc.platform.application;
 
-import com.simisinc.platform.application.filesystem.FileSystemCommand;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 import java.io.File;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import com.simisinc.platform.application.filesystem.FileSystemCommand;
 
 /**
  * Methods for working with sessions
@@ -47,8 +48,7 @@ public class SessionCommand {
 
   private static void load(String filename) {
     // Get a file handle
-    String serverConfigPath = FileSystemCommand.getFileServerConfigPath();
-    File file = new File(serverConfigPath + "cms/" + filename);
+    File file = FileSystemCommand.getFileServerConfigPath("cms", filename);
 
     // Determine if the file is new
     if (lastModifiedMap.containsKey(filename) && !FileSystemCommand.isModified(file, lastModifiedMap.get(filename))) {

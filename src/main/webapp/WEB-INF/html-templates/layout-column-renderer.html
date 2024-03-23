@@ -1,0 +1,25 @@
+<!--/* CMS Platform Template, 2024 */-->
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+  <th:block th:fragment="columns">
+    <div th:each="column, columnStatus : ${section.columnRenderInfoList}"
+         th:with="columnId=${not #strings.isEmpty(column.htmlId)} ? ${column.htmlId} : ${#strings.concat('random', sectionStatus.index, '-', columnStatus.index)}"
+         th:id="${columnId}"
+         th:class="${not #strings.isEmpty(column.cssClass)} ? ${column.cssClass} : 'small-12 cell'" 
+         th:style="${not #strings.isEmpty(column.cssStyle)} ? ${column.cssStyle}"
+         th:attr="data-sticky-container=${column.sticky ? true : null }">
+      <th:block th:each="widget : ${column.widgetRenderInfoList}">
+        <hr th:if="${widget.hr}" />
+        <th:block th:if="${#strings.isEmpty(widget.cssClass) && #strings.isEmpty(widget.htmlId) && #strings.isEmpty(widget.cssStyle) && not widget.sticky}">
+          [(${widget.content})]
+        </th:block>
+        <th:block th:if="${not #strings.isEmpty(widget.cssClass) || not #strings.isEmpty(widget.htmlId) || not #strings.isEmpty(widget.cssStyle) || widget.sticky}">
+          <div th:id="${widget.htmlId}" th:class="${widget.cssClass}" th:style="${widget.cssStyle}"
+               th:attr="data-sticky=${widget.sticky ? true : null }, data-margin-top=8, data-top-anchor=${columnId}, data-btm-anchor=${#strings.concat('platform-footer', ':top')}">
+            [(${widget.content})]
+          </div>
+        </th:block>
+      </th:block>
+    </div>
+  </th:block>
+</html>

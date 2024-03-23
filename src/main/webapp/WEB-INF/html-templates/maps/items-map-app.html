@@ -1,0 +1,99 @@
+<!--/* CMS Platform Template, 2024 */-->
+<link rel="stylesheet" href="${ctx}/javascript/leaflet-1.9.4/leaflet.css" />
+<link rel="stylesheet" href="${ctx}/javascript/leaflet.markercluster-1.5.3/MarkerCluster.css" />
+<link rel="stylesheet" href="${ctx}/javascript/leaflet.markercluster-1.5.3/MarkerCluster.Default.css" />
+<script src="${ctx}/javascript/leaflet-1.9.4/leaflet.js"></script>
+<script src="${ctx}/javascript/leaflet.markercluster-1.5.3/leaflet.markercluster.js"></script>
+<style>
+  .leaflet-popup-content h5,
+  .leaflet-popup-content p {
+    margin: 0 0 5px 0;
+  }
+  @media screen and (min-width: 40em) {
+    #tableContainer[(${widgetContext.uniqueId})] {
+      height:[(${mapHeight})];
+      overflow:scroll;
+    }
+  }
+</style>
+<div class="grid-x grid-margin-x map-container">
+  <div class="cell small-12 medium-5 large-4" style="padding: 0">
+    <div th:id="${#strings.concat('tableContainer', widgetContext.uniqueId)}">
+      <table class="unstriped">
+        <thead th:if="${not #strings.isEmpty(title)}">
+          <tr>
+            <th th:text="${title}">Title</th>
+          </tr>
+        </thead>
+        <tbody th:id="${#strings.concat('tbody', widgetContext.uniqueId)}">
+          <tr th:each="item, status: ${itemList}">
+            <td>
+              <a th:href="${#strings.concat('javascript:showMarker', widgetContext.uniqueId, '(', status.index, ',', item.latitude, ',', item.longitude, ');')}" th:text="${item.name}">Item Name</a>
+              <small th:if="${not #strings.isEmpty(item.address)}" class="subheader">
+                <br />
+                [[${item.street}]]<br />
+                <th:block if="${not #strings.isEmpty(item.addressLine2)}">
+                  [[${item.addressLine2}]]<br />
+                </th:block>
+                [[${item.city}]], [[${item.state}]]<br />
+                [[${item.postalCode}]]
+                <th:block if="${not #strings.isEmpty(item.phoneNumber) and #strings.length(item.phoneNumber) gt 7}">
+                  <br />
+                  [[${item.phoneNumber}]]
+                </th:block>
+              </small>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <div class="cell small-12 medium-7 large-8">
+    <div th:id="${#strings.concat('mapid', widgetContext.uniqueId)}" th:style="${#strings.concat('height:', mapHeight)}"></div>
+  </div>
+</div>
+<script th:inline="javascript">
+  const mapUniqueIdValue = "map" + [[${widgetContext.uniqueId}]];
+  const mapIdUniqueIdValue = "mapid" + [[${widgetContext.uniqueId}]];
+  const latitude = [(${latitude})];
+  const longitude = [(${longitude})];
+  const mapZoomLevel = [(${mapZoomLevel})];
+  this[mapUniqueIdValue] = L.map(mapIdUniqueIdValue).setView([latitude, longitude], mapZoomLevel);
+
+  /*[# th:if="${#strings.equals(mapCredentials.service, 'mapbox')}" ]*/
+  const mapboxAccessToken = [[${mapCredentials.accessToken}]];
+  L.tileLayer('https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}', {
+    attribution: '&copy; <a href="https://www.mapbox.com/about/maps/">Mapbox</a> &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    tileSize: 512,
+    maxZoom: 12,
+    zoomOffset: -1,
+    id: 'mapbox/streets-v11',
+    accessToken: mapboxAccessToken
+  }).addTo(this[mapUniqueIdValue]);
+  /*[/]*/
+
+  /*[# th:if="${not #strings.equals(mapCredentials.service, 'mapbox')}" ]*/
+  L.tileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors',
+    maxZoom: 18
+  }).addTo(this[mapUniqueIdValue]);
+  /*[/]*/
+
+  const showMarkerFunction = "showMarker" + [[${widgetContext.uniqueId}]];
+  this[showMarkerFunction] = function(id, latitude, longitude) {
+    eval("marker" + [[${widgetContext.uniqueId}]] + "id" + id).openPopup();
+    this[mapUniqueIdValue].panTo({lon: longitude, lat: latitude});
+  };
+
+  /*[# th:each="item, status: ${itemList}" ]*/
+  {
+    let markerUniqueIdValue = "marker" + [[${widgetContext.uniqueId}]] + "id" + [[${status.index}]];
+    let itemLatitude = [[${item.latitude}]];
+    let itemLongitude = [[${item.longitude}]];
+    let itemName = [[${item.name}]];
+    let itemText = [[${item.street}]];
+    this[markerUniqueIdValue] = L.marker([itemLatitude, itemLongitude]).addTo(this[mapUniqueIdValue]);
+    this[markerUniqueIdValue].bindPopup("<b>" + itemName + "</b>" + (itemText.length > 0 ? "<br>" + itemText : ""));
+  }
+  /*[/]*/
+</script>

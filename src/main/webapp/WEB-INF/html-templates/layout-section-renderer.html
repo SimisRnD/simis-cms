@@ -1,0 +1,42 @@
+<!--/* CMS Platform Template, 2024 */-->
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+  <th:block th:fragment="sections">
+    <div class="grid-container" th:case="${false}">
+      <div class="grid-x grid-margin-x" th:classappend="${section.cssClass}">
+        <th:block th:if="${not #strings.isEmpty(section.videoBackgroundUrl)}">
+          <div class="video-background">
+            <video autoplay muted loop>
+              <source th:src="${ctx}${section.videoBackgroundUrl}" type="video/mp4">
+            </video>
+            <div class="grid-container">
+              <div class="video-background-content grid-x grid-padding-x" th:classappend="${section.cssClass}" th:style="${section.cssStyle}">
+                <div th:replace="~{layout-column-renderer :: columns}"></div>
+              </div>
+            </div>
+          </div>
+        </th:block>
+        <th:block th:unless="${not #strings.isEmpty(section.videoBackgroundUrl)}">
+          <div th:replace="~{layout-column-renderer :: columns}"></div>
+        </th:block>
+      </div>
+    </div>
+    <th:block th:case="${true}">
+      <th:block th:if="${not #strings.isEmpty(section.videoBackgroundUrl)}">
+        <div class="video-background">
+          <video autoplay muted loop>
+            <source th:src="${ctx}${section.videoBackgroundUrl}" type="video/mp4">
+          </video>
+          <div class="grid-container">
+            <div class="video-background-content grid-x grid-padding-x" th:classappend="${section.cssClass}" th:style="${section.cssStyle}">
+              <div th:replace="~{layout-column-renderer :: columns}"></div>
+            </div>
+          </div>
+        </div>
+      </th:block>
+      <th:block th:unless="${not #strings.isEmpty(section.videoBackgroundUrl)}">
+        <div th:replace="~{layout-column-renderer :: columns}"></div>
+      </th:block>
+    </th:block>
+  </th:block>
+</html>

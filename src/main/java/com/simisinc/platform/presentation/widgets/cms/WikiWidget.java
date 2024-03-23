@@ -40,7 +40,7 @@ import org.apache.commons.lang3.StringUtils;
 import java.util.Arrays;
 
 /**
- * Description
+ * Displays a wiki which can be navigated
  *
  * @author matt rajkowski
  * @created 2/10/19 3:12 PM

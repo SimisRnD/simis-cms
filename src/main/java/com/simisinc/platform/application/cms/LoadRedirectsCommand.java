@@ -16,18 +16,19 @@
 
 package com.simisinc.platform.application.cms;
 
-import com.simisinc.platform.application.filesystem.FileSystemCommand;
-import com.univocity.parsers.csv.CsvParser;
-import com.univocity.parsers.csv.CsvParserSettings;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
 import java.util.HashMap;
 import java.util.Map;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import com.simisinc.platform.application.filesystem.FileSystemCommand;
+import com.univocity.parsers.csv.CsvParser;
+import com.univocity.parsers.csv.CsvParserSettings;
 
 /**
  * Loads a map of redirected URLs from a file
@@ -44,8 +45,7 @@ public class LoadRedirectsCommand {
     Map<String, String> redirectMap = new HashMap<>();
 
     // Get a file handle
-    String serverConfigPath = FileSystemCommand.getFileServerConfigPath();
-    File file = new File(serverConfigPath + "cms/redirects.csv");
+    File file = FileSystemCommand.getFileServerConfigPath("cms", "redirects.csv");
     if (!file.exists()) {
       LOG.info("Skipping, no redirects found in: " + file.getAbsolutePath());
       return null;

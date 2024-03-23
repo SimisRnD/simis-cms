@@ -16,7 +16,9 @@
 
 package com.simisinc.platform.application.email;
 
-import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import java.net.URI;
+import java.net.URL;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -25,7 +27,7 @@ import org.apache.commons.mail.EmailConstants;
 import org.apache.commons.mail.ImageHtmlEmail;
 import org.apache.commons.mail.resolver.DataSourceUrlResolver;
 
-import java.net.URL;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 
 /**
  * Prepares an official site email
@@ -79,7 +81,7 @@ public class EmailCommand {
     // Define your base URL to resolve relative resource locations
     if (StringUtils.isNotBlank(siteUrl)) {
       try {
-        URL url = new URL(siteUrl);
+        URL url = URI.create(siteUrl).toURL();
         email.setDataSourceResolver(new DataSourceUrlResolver(url));
       } catch (Exception e) {
         LOG.error("Could not set DataSourceUrlResolver for url: " + siteUrl);

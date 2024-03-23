@@ -50,8 +50,8 @@ public class ImageUploadWidget extends GenericWidget {
   public WidgetContext post(WidgetContext context) throws InvocationTargetException, IllegalAccessException {
 
     // Prepare to save the file
-    String serverRootPath = FileSystemCommand.getFileServerRootPath();
     String serverSubPath = FileSystemCommand.generateFileServerSubPath("images");
+    String serverRootPath = FileSystemCommand.getFileServerRootPathValue();
     String serverCompletePath = serverRootPath + serverSubPath;
     String uniqueFilename = FileSystemCommand.generateUniqueFilename(context.getUserId());
 

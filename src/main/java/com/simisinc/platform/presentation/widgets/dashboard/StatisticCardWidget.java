@@ -23,7 +23,7 @@ import com.simisinc.platform.presentation.widgets.GenericWidget;
 import org.apache.commons.lang3.StringUtils;
 
 /**
- * Description
+ * Displays a chart with several stats
  *
  * @author matt rajkowski
  * @created 5/19/22 9:35 PM
@@ -33,7 +33,9 @@ public class StatisticCardWidget extends GenericWidget {
   static final long serialVersionUID = -8484048371911908893L;
 
   public static String JSP = "/dashboard/statistic-card.jsp";
+  public static String TEMPLATE = "/dashboard/statistic-card.html";
   public static String JSP_VERTICAL = "/dashboard/statistic-card-vertical.jsp";
+  public static String TEMPLATE_VERTICAL = "/dashboard/statistic-card-vertical.html";
 
   public WidgetContext execute(WidgetContext context) {
 
@@ -49,8 +51,10 @@ public class StatisticCardWidget extends GenericWidget {
     String view = context.getPreferences().getOrDefault("view", null);
     if ("vertical".equals(view)) {
       context.setJsp(JSP_VERTICAL);
+      context.setTemplate(TEMPLATE_VERTICAL);
     } else {
       context.setJsp(JSP);
+      context.setTemplate(TEMPLATE);
     }
     return context;
   }

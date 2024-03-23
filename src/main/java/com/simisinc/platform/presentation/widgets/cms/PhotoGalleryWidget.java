@@ -34,7 +34,7 @@ import org.apache.commons.logging.LogFactory;
 import java.util.List;
 
 /**
- * Description
+ * For a corresponding Album Gallery, a collection of photos is shown
  *
  * @author matt rajkowski
  * @created 8/29/19 1:41 PM

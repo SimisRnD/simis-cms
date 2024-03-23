@@ -128,7 +128,7 @@ public class ContextListener implements ServletContextListener {
     CacheManager.startup();
 
     // Verify the filesystem entry
-    String serverRootPath = FileSystemCommand.getFileServerRootPath();
+    String serverRootPath = FileSystemCommand.getFileServerRootPathValue();
     if (StringUtils.isBlank(serverRootPath)) {
       LOG.error("Missing system.filepath");
       isSuccessful = false;

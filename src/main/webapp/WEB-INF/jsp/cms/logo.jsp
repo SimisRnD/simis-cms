@@ -18,38 +18,13 @@
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <%@ taglib prefix="url" uri="/WEB-INF/tlds/url-functions.tld" %>
 <%@ taglib prefix="text" uri="/WEB-INF/tlds/text-functions.tld" %>
-<jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
-<jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
-<jsp:useBean id="systemPropertyMap" class="java.util.HashMap" scope="request"/>
 <jsp:useBean id="sitePropertyMap" class="java.util.HashMap" scope="request"/>
 <jsp:useBean id="themePropertyMap" class="java.util.HashMap" scope="request"/>
 <jsp:useBean id="logoClass" class="java.lang.String" scope="request"/>
 <jsp:useBean id="logoStyle" class="java.lang.String" scope="request"/>
 <jsp:useBean id="view" class="java.lang.String" scope="request"/>
 <jsp:useBean id="text" class="java.lang.String" scope="request"/>
-<c:set var="logoSrc" scope="request" value=""/>
-<c:choose>
-  <c:when test="${view eq 'white'}">
-    <c:set var="logoSrc" scope="request"><c:out value="${sitePropertyMap['site.logo.white']}"/></c:set>
-  </c:when>
-  <c:when test="${view eq 'color'}">
-    <c:set var="logoSrc" scope="request"><c:out value="${sitePropertyMap['site.logo.mixed']}"/></c:set>
-  </c:when>
-  <c:when test="${view eq 'standard'}">
-    <c:set var="logoSrc" scope="request"><c:out value="${sitePropertyMap['site.logo']}"/></c:set>
-  </c:when>
-  <c:when test="${themePropertyMap['theme.logo.color'] eq 'all-white'}">
-    <c:set var="logoSrc" scope="request"><c:out value="${sitePropertyMap['site.logo.white']}"/></c:set>
-  </c:when>
-  <c:when test="${themePropertyMap['theme.logo.color'] eq 'color-and-white'}">
-    <c:set var="logoSrc" scope="request"><c:out value="${sitePropertyMap['site.logo.mixed']}"/></c:set>
-  </c:when>
-  <c:when test="${themePropertyMap['theme.logo.color'] eq 'text-only'}">
-  </c:when>
-  <c:otherwise>
-    <c:set var="logoSrc" scope="request"><c:out value="${sitePropertyMap['site.logo']}"/></c:set>
-  </c:otherwise>
-</c:choose>
+<jsp:useBean id="siteTitle" class="java.lang.String" scope="request"/>
 <c:choose>
   <c:when test="${!empty logoSrc}">
     <a href="${ctx}/"><img alt="Logo" <c:if test="${!empty logoClass}">class="${logoClass}" </c:if><c:if test="${!empty logoStyle}">style="${logoStyle}" </c:if>src="${logoSrc}" /></a>
@@ -58,6 +33,6 @@
     </c:if>
   </c:when>
   <c:otherwise>
-    <span class="menu-text" translate="no"><a href="${ctx}/"><c:out value="${sitePropertyMap['site.name']}"/></a></span>
+    <span class="menu-text" translate="no"><a href="${ctx}/"><c:out value="${siteTitle}"/></a></span>
   </c:otherwise>
 </c:choose>

@@ -16,13 +16,11 @@
 
 package com.simisinc.platform.application.admin;
 
-import com.simisinc.platform.application.DataException;
-import com.simisinc.platform.application.filesystem.FileSystemCommand;
-import com.simisinc.platform.domain.model.datasets.Dataset;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
-import java.io.*;
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.IOException;
+import java.io.InputStreamReader;
 import java.nio.charset.CharsetDecoder;
 import java.nio.charset.CodingErrorAction;
 import java.nio.charset.StandardCharsets;
@@ -30,6 +28,13 @@ import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Stream;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
+import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.filesystem.FileSystemCommand;
+import com.simisinc.platform.domain.model.datasets.Dataset;
 
 /**
  * Reads in dataset rows from a text file
@@ -50,8 +55,7 @@ public class LoadTextFileCommand {
   public static List<String[]> loadBytes(Dataset dataset, int bytesToRead) throws DataException {
 
     // Get a file handle
-    String serverRootPath = FileSystemCommand.getFileServerRootPath();
-    File serverFile = new File(serverRootPath + dataset.getFileServerPath());
+    File serverFile = FileSystemCommand.getFileServerRootPath(dataset.getFileServerPath());
     if (!serverFile.exists()) {
       return null;
     }
@@ -95,8 +99,7 @@ public class LoadTextFileCommand {
   public static List<String[]> loadLines(Dataset dataset, int linesToReturn) throws DataException {
 
     // Get a file handle
-    String serverRootPath = FileSystemCommand.getFileServerRootPath();
-    File serverFile = new File(serverRootPath + dataset.getFileServerPath());
+    File serverFile = FileSystemCommand.getFileServerRootPath(dataset.getFileServerPath());
     if (!serverFile.exists()) {
       return null;
     }

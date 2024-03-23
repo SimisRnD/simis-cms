@@ -1,0 +1,52 @@
+<!--/* CMS Platform Template, 2024 */-->
+<script src="${ctx}/javascript/masonry-4.2.2/masonry.pkgd.min.js"></script>
+<script src="${ctx}/javascript/imagesloaded-5.0.0/imagesloaded.pkgd.min.js"></script>
+<h4 th:if="${not #strings.isEmpty(title)}">
+  <i th:if="${not #strings.isEmpty(icon)}" class="fa" th:classappend="${icon}"></i>
+  [[${title}]]
+</h4>
+<th:block th:switch="${#lists.isEmpty(blogPostList)} ? ${false} : ${true}">
+  <p th:case="${false}" class="subheader">
+    No posts were found
+  </p>
+  <div th:case="${true}" class="grid-container platform-blog-cards-container">
+    <div class="grid-x grid-margin-x small-up-1 medium-up-2 large-up-3" th:id="${#strings.concat('masonry-container', widgetContext.uniqueId)}">
+      <div th:each="blogPost, status: ${blogPostList}" class="cell">
+        <div class="card">
+          <div class="card-section blog-title">
+            <h2><a th:href="${#strings.concat(ctx, '/', blog.uniqueId, '/', blogPost.uniqueId)}">[[${blogPost.title}]]</a></h2>
+          </div>
+          <div th:if="${#strings.equals(showAuthor, 'true') or #strings.equals(showTags, 'true')}" class="card-section blog-info">
+            <div th:if="${#strings.equals(showTags, 'true') and not #lists.isEmpty(blogPost.tagsList)}" class="float-right blog-tags">
+              <span th:each="tag: ${blogPost.tagsList}" class="label secondary" th:text="${tag}">Tag</span>
+            </div>
+            <div th:if="${#strings.equals(showAuthor, 'true')}" class="blog-author">
+              By <span th:text="#{user.name(${blogPost.createdBy})}">User Name</span>
+            </div>
+          </div>
+          <div th:if="${#strings.equals(showImage, 'true') and not #strings.isEmpty(blogPost.imageUrl)}" class="card-image">
+            <a th:href="${#strings.concat(ctx, '/', blog.uniqueId, '/', blogPost.uniqueId)}"><img alt="Blog post banner image" th:src="${#strings.concat(ctx, blogPost.imageUrl)}" /></a>
+          </div>
+          <div th:if="${#strings.equals(showSummary, 'true')}" class="card-section blog-intro" th:switch="${not #strings.isEmpty(blogPost.summary)} ? ${true} : ${false}">
+            <p th:case="${true}" th:text="${#strings.abbreviate(blogPost.summaryText, 256)}">Sample blog summary</p>
+            <p th:case="${false}" th:text="${#strings.abbreviate(blogPost.bodyText, 220)}">Sample blog text.</p>
+          </div>
+          <div class="card-section-bleed">
+            <div th:if="${#strings.equals(showReadMore, 'true')}" class="float-right blog-read-more">
+              <a th:href="${#strings.concat(ctx, '/', blog.uniqueId, '/', blogPost.uniqueId)}" class="read-more">[[${readMoreText}]]</a>
+            </div>
+            <div th:if="${#strings.equals(showDate, 'true') and not #strings.isEmpty(blogPost.startDate)}" class="blog-date">
+              [[${#dates.format(blogPost.startDate, 'MM/dd/yy')}]]
+            </div>
+          </div>
+        </div>
+    </div>
+  </div>
+</th:block>
+<script>
+  var $grid = $('#masonry-container[[${widgetContext.uniqueId}]]').imagesLoaded( function() {
+    $grid.masonry({
+      itemSelector: '.cell'
+    });
+  });
+</script>

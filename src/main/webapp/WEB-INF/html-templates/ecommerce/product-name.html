@@ -1,0 +1,15 @@
+<!--/* CMS Platform Template, 2024 */-->
+<h1 th:style="${#strings.equals(showPrice, 'true') || #strings.equals(combineCaption, 'true')} ? 'margin-bottom: 0; line-height: 1.2'">
+  [[${product.name}]] <th:block th:if="${#strings.equals(combineCaption, 'true')}">[[${product.caption}]]</th:block>
+</h1>
+<th:block th:if="${not #strings.equals(combineCaption, 'true') and not #strings.isEmpty(product.caption)}">
+  <h2 th:style="${#strings.equals(showPrice, 'true')} ? 'margin-bottom: 0; line-height: 1.2'" th:text="${product.caption}">Product Caption</h2>
+</th:block>
+<th:block th:if="${#strings.equals(showPrice, 'true')}" th:switch="${product.startingFromPrice gt 0} ? ${true} : ${false}">
+  <p th:case="${true}" class="product-info">
+    From [[${#numbers.formatCurrency(product.startingFromPrice)}]]<th:block th:if="${product.skuCount gt 1}"> / [[${product.skuCount}]] options</th:block>
+  </p>
+  <p th:case="${false}" th:if="${product.price gt 0}" class="product-info">
+    [[${#numbers.formatCurrency(product.price)}]]<th:block th:if="${product.skuCount gt 1}"> / [[${product.skuCount}]] options</th:block>
+  </p>
+</th:block>

@@ -16,17 +16,18 @@
 
 package com.simisinc.platform.infrastructure.persistence.oauth;
 
+import java.sql.Connection;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.login.OAuthToken;
 import com.simisinc.platform.domain.model.login.UserToken;
 import com.simisinc.platform.infrastructure.database.DB;
 import com.simisinc.platform.infrastructure.database.SqlUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
-import java.sql.Connection;
-import java.sql.ResultSet;
-import java.sql.SQLException;
 
 /**
  * Persists and retrieves oauth token objects
@@ -39,7 +40,7 @@ public class OAuthTokenRepository {
   private static Log LOG = LogFactory.getLog(OAuthTokenRepository.class);
 
   private static String TABLE_NAME = "oauth_tokens";
-  private static String[] PRIMARY_KEY = new String[]{"token_id"};
+  private static String[] PRIMARY_KEY = new String[] { "token_id" };
 
   public static OAuthToken findByUserTokenId(long userId, long userTokenId) {
     if (userId < 1) {
@@ -106,12 +107,17 @@ public class OAuthTokenRepository {
     return DB.deleteFrom(TABLE_NAME, new SqlUtils().add("user_token_id = ?", userToken.getId()));
   }
 
+  public static int removeAll(long userId) {
+    return DB.deleteFrom(TABLE_NAME, new SqlUtils().add("user_id = ?", userId));
+  }
+
   public static int removeAll(Connection connection, User user) throws SQLException {
     return DB.deleteFrom(connection, TABLE_NAME, new SqlUtils().add("user_id = ?", user.getId()));
   }
 
   public static void deleteOldTokens() {
-    DB.deleteFrom(TABLE_NAME, new SqlUtils().add("refresh_expires IS NOT NULL AND refresh_expires < NOW() - INTERVAL '1 day'"));
+    DB.deleteFrom(TABLE_NAME,
+        new SqlUtils().add("refresh_expires IS NOT NULL AND refresh_expires < NOW() - INTERVAL '1 day'"));
   }
 
   private static OAuthToken buildRecord(ResultSet rs) {

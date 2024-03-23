@@ -52,12 +52,17 @@ public class ContentHtmlCommand {
       uniqueId = checkForBlogPreferences(context, uniqueId);
       context.getRequest().setAttribute("uniqueId", uniqueId);
       // Check for the content
+      LOG.debug("Looking up content for uniqueId: " + uniqueId);
       Content content = LoadContentCommand.loadContentByUniqueId(uniqueId);
+      if (content == null) {
+        LOG.debug("Content not found for uniqueId: " + uniqueId);
+      }
       if (content != null) {
         html = content.getContent();
         // Look for draft content
         if (context.hasRole("admin") || context.hasRole("content-manager")) {
           if (content.getDraftContent() != null) {
+            LOG.debug("Setting draft content...");
             html = content.getDraftContent();
             context.getRequest().setAttribute("isDraft", "true");
           }
@@ -159,9 +164,10 @@ public class ContentHtmlCommand {
               "</div>" +
               embeddedHtml;
         }
-        context.getRequest().removeAttribute("showEditor");
+        // Turn off the general editor because the embedded ones will be used
+        context.getRequest().setAttribute("showEditor", "false");
       }
-      //
+
       sb.append(embeddedHtml);
       startUniqueIdx = html.indexOf("${uniqueId:", startUniqueIdx + 1);
       if (startUniqueIdx > -1) {
@@ -322,7 +328,7 @@ public class ContentHtmlCommand {
           html.substring(tagEndIdx);
     } else {
       // Rewrite the HTML to reveal the new content
-      // https://foundation.zurb.com/sites/docs/motion-ui.html
+      // https://get.foundation/sites/docs/motion-ui.html
       // motion-ui values: slide-in-right, slide-in-left, slide-in-down, slide-in-up, fade-in, scale-in-down
       String revealIn = context.getPreferences().getOrDefault("revealIn", "slide-in-left fast");
       String revealOut = context.getPreferences().getOrDefault("revealOut", "slide-out-left fast");
