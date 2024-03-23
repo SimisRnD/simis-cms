@@ -36,7 +36,7 @@
     <mockito.version>5.7.0</mockito.version>
     <argon2.version>2.11</argon2.version>
     <args4j.version>2.33</args4j.version>
-    <bucket4j.version>8.3.0</bucket4j.version>
+    <bucket4j.version>8.9.0</bucket4j.version>
     <caffeine.version>3.1.8</caffeine.version>
     <apache-http.version>5.2.2</apache-http.version>
     <classgraph.version>4.8.161</classgraph.version>
