@@ -71,7 +71,7 @@
     <johnzon.version>1.2.21</johnzon.version>
     <jsoup.version>1.16.1</jsoup.version>
     <jstl.version>1.2.5</jstl.version>
-    <libphonenumber.version>8.13.16</libphonenumber.version>
+    <libphonenumber.version>8.13.31</libphonenumber.version>
     <lombok.version>1.18.30</lombok.version>
     <netty.version>4.1.101</netty.version>
     <postgresql.version>42.7.2</postgresql.version>
