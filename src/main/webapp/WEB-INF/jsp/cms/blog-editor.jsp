@@ -21,9 +21,10 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="blog" class="com.simisinc.platform.domain.model.cms.Blog" scope="request"/>
 <jsp:useBean id="blogPost" class="com.simisinc.platform.domain.model.cms.BlogPost" scope="request"/>
-<script src="${ctx}/javascript/tinymce-6.8.1/tinymce.min.js"></script>
+<script src="${ctx}/javascript/tinymce-7.9.3/tinymce.min.js"></script>
 <script>
   tinymce.init({
+    license_key: 'gpl',
     selector: 'textarea',
     branding: false,
     width: '100%',
