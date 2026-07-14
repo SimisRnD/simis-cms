@@ -1,0 +1,25 @@
+# Place at .github/dependabot.yml in SimisRnD/simis-cms
+# Opens grouped PRs for routine bumps, individual PRs for majors,
+# and covers the fork-only libraries (netty, kafka, okhttp, guava)
+# that no longer have upstream reference versions.
+version: 2
+updates:
+  - package-ecosystem: "maven"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 10
+    groups:
+      minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
+    ignore:
+      # Held deliberately: entangled with the javax-to-jakarta migration
+      - dependency-name: "org.apache.johnzon:*"
+        update-types: ["version-update:semver-major"]
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
