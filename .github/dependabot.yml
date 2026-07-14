@@ -19,6 +19,9 @@ updates:
       # Held deliberately: entangled with the javax-to-jakarta migration
       - dependency-name: "org.apache.johnzon:*"
         update-types: ["version-update:semver-major"]
+      # Held at 3.2.x: 3.3+ throws on undefined properties (breaks WorkflowTaskTest)
+      - dependency-name: "org.apache.commons:commons-jexl3"
+        versions: [">=3.3.0"]
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
