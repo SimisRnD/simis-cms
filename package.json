@@ -18,18 +18,18 @@
     "imagesloaded": "5.0.0",
     "jquery": "3.7.1",
     "jquery-formatcurrency": "1.6.3",
-    "js-cookie": "3.0.5",
+    "js-cookie": "3.0.7",
     "jspreadsheet-ce": "4.13.4",
     "jsuites": "5.0.29",
     "leaflet": "1.9.4",
     "leaflet.markercluster": "1.5.3",
     "masonry-layout": "4.2.2",
-    "mermaid": "10.6.1",
+    "mermaid": "10.9.6",
     "payform": "1.4.0",
-    "prismjs": "1.29.0",
+    "prismjs": "1.30.0",
     "spectrum-colorpicker": "1.8.1",
-    "swiper": "11.0.5",
-    "tinymce": "6.8.1"
+    "swiper": "12.1.2",
+    "tinymce": "7.9.3"
   },
   "non-npm-dependencies": {
     "add-to-calendar-button": "1.18.7",
