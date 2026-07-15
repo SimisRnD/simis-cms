@@ -83,7 +83,10 @@ public class ProductSkuRepository {
           sb.append("}");
         }
         if (sb.length() > 0) {
-          where.add("attributes @> '[" + sb.toString() + "]'");
+          // Bind the jsonb operand as a parameter (?::jsonb) rather than concatenating it into a
+          // single-quoted SQL literal: JsonCommand.toJson (escapeJson) does not escape single
+          // quotes, so a "'" in an attribute value could otherwise break out of the literal (SQLi).
+          where.add("attributes @> ?::jsonb", "[" + sb.toString() + "]");
         }
       }
     }
