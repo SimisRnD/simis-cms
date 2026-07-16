@@ -2,39 +2,26 @@
 
 [![Java CI](https://github.com/SimisRnD/simis-cms/actions/workflows/ant.yml/badge.svg)](https://github.com/SimisRnD/simis-cms/actions/workflows/ant.yml)
 
-Discussion and issues are hosted at github: <https://github.com/SimisRnD/simis-cms>.
+SimIS CMS is an open-source, integrated content management system and web portal, written in Java and run in production by SimIS Inc. — it powers [simisinc.com](https://www.simisinc.com).
 
-What is SimIS CMS? [Agile, Enterprise, Open Source Content Management System (CMS) and Portal](https://www.simiscms.com).
+Everything ships in one platform: pages, blogs, calendars, datasets, e-commerce, CRM, and analytics, with security built into the core rather than bolted on through plug-ins. Use and configure what's there, and customize what's not.
 
-SimIS CMS comes out-of-the-box with modules, advanced security, easy setup, and powerful developer features. Use and configure what's there, and customize what's not. The flexible Open Source license lets you move beyond the technology to focus on delivering a quality website.
+Questions and ideas: [Discussions](https://github.com/SimisRnD/simis-cms/discussions) · Bugs: [Issues](https://github.com/SimisRnD/simis-cms/issues)
 
 ## License
 
-```text
-Copyright 2023 SimIS Inc. (https://www.simiscms.com)
-
-Licensed under the Apache License, Version 2.0 (the "License");
-you may not use this file except in compliance with the License.
-You may obtain a copy of the License at
-
-    http://www.apache.org/licenses/LICENSE-2.0
-
-Unless required by applicable law or agreed to in writing, software
-distributed under the License is distributed on an "AS IS" BASIS,
-WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-See the License for the specific language governing permissions and
-limitations under the License.
-```
+Apache License 2.0 — see [LICENSE.txt](LICENSE.txt). Copyright 2023-2026 SimIS Inc.
 
 ## Overview
 
-Need a website or web portal? SimIS CMS can be used from Day 1:
+Need a website or web portal? SimIS CMS works from day one, and each role can get straight to work:
 
-* Once installed the administrator signs in and can quickly create a sitemap. Working on their own, or with others, the pages of the site are added.
-* Each web page can have shared elements and styles, as well as their own elements and styles.
-* A designer can work on the site's global style and layout, then target page-by-page improvements, while content authors fill out the web page content.
-* Content authors work with the page elements which include searchable text, images, and videos. There are many dynamic elements which can be selected, including slideshows, news feeds, calendar events, blog posts, and more.
-* For more complex components, a developer can work both online and off to enable the functionality or create it.
+* An administrator signs in, creates the sitemap, and starts adding pages, alone or with a team.
+* A designer sets the shared look and layout that every page inherits, then targets page-by-page improvements while authors fill in the content.
+* Content authors work with searchable text, images, and video, and can drop in dynamic elements: slideshows, news feeds, calendar events, blog posts, and more.
+* For anything more complex, a developer extends the platform or builds new functionality, working online or off.
+
+Larger teams can hand off further: built-in Community, Data, and E-commerce Manager roles scope each person's access to just their part of the site.
 
 ## Features
 
