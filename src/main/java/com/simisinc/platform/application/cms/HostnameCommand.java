@@ -34,7 +34,7 @@ import java.util.Map;
 public class HostnameCommand {
 
   private static Log LOG = LogFactory.getLog(HostnameCommand.class);
-  static final String HOSTNAME_ALLOW_LIST = "hostname-allow-list.csv";
+  public static final String HOSTNAME_ALLOW_LIST = "hostname-allow-list.csv";
 
   private static Map<String, List<String>> listMap = new HashMap<>();
   private static Map<String, Long> lastModifiedMap = new HashMap<>();
@@ -75,6 +75,18 @@ public class HostnameCommand {
     }
     LOG.warn("Invalid hostname: " + hostname);
     return false;
+  }
+
+  /**
+   * Determines if an allow list is configured and names this hostname. Unlike passesCheck, an unconfigured allow list
+   * does not vouch for the hostname, so callers can tell "explicitly trusted" apart from "nothing was configured".
+   *
+   * @param hostname the hostname to look for
+   * @return true when a non-empty allow list contains the hostname
+   */
+  public static boolean isExplicitlyAllowed(String hostname) {
+    List<String> hostnameAllowList = listMap.get(HOSTNAME_ALLOW_LIST);
+    return hostnameAllowList != null && !hostnameAllowList.isEmpty() && hostnameAllowList.contains(hostname);
   }
 
 }
