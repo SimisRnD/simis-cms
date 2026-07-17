@@ -1,0 +1,106 @@
+# Publishes SimIS-owned container images to the SimIS container registry, so
+# deployments no longer depend on any individual's personal registry. Runs on
+# the built-in GITHUB_TOKEN -- no personal credentials are stored or used.
+#
+# The first publish has to be kicked off by hand (workflow_dispatch) to create
+# the packages; after that it runs on every push to main and each release.
+name: Publish container images
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+  release:
+    types: [ published ]
+
+permissions:
+  contents: read          # read the source to build from
+  packages: write         # publish to the SimIS container registry
+  security-events: write  # send image scan results to the Security tab
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      # docker/app/Dockerfile is runtime-only -- it copies target/simis-cms.war
+      # into Tomcat -- so the .war must be built before the image.
+      - name: Package the web application
+        run: ant -noinput -buildfile build.xml -lib lib/war package
+
+      - name: Resolve the lowercase image prefix
+        run: echo "IMAGE_PREFIX=${REGISTRY}/${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_ENV"
+
+      - name: Sign in to the registry
+        run: echo '${{ secrets.GITHUB_TOKEN }}' | docker login "$REGISTRY" -u '${{ github.actor }}' --password-stdin
+
+      # --- Application image (docker/app/Dockerfile, built from repo root) ---
+      - name: Build the application image
+        run: >-
+          docker build -f docker/app/Dockerfile
+          -t "$IMAGE_PREFIX/simis-cms:latest"
+          -t "$IMAGE_PREFIX/simis-cms:$GITHUB_SHA" .
+
+      - name: Scan the application image
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ env.IMAGE_PREFIX }}/simis-cms:${{ github.sha }}
+          format: sarif
+          output: trivy-simis-cms.sarif
+          severity: CRITICAL,HIGH
+          limit-severities-for-sarif: true
+          # Report only for now: the Tomcat base image carries OS CVEs we do
+          # not control, and failing here would block every release. Raise to
+          # '1' once the baseline is triaged, to fail on new CRITICAL/HIGH.
+          exit-code: '0'
+
+      - name: Publish the application scan results
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: trivy-simis-cms.sarif
+          category: image-simis-cms
+
+      - name: Push the application image
+        run: |
+          docker push "$IMAGE_PREFIX/simis-cms:latest"
+          docker push "$IMAGE_PREFIX/simis-cms:$GITHUB_SHA"
+
+      # --- Database image ---------------------------------------------------
+      # docker/db/Dockerfile references ./docker/db/init.sql, so it builds from
+      # the repository root (not the docker/db directory).
+      - name: Build the database image
+        run: >-
+          docker build -f docker/db/Dockerfile
+          -t "$IMAGE_PREFIX/simis-cms-db:latest"
+          -t "$IMAGE_PREFIX/simis-cms-db:$GITHUB_SHA" .
+
+      - name: Scan the database image
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: ${{ env.IMAGE_PREFIX }}/simis-cms-db:${{ github.sha }}
+          format: sarif
+          output: trivy-simis-cms-db.sarif
+          severity: CRITICAL,HIGH
+          limit-severities-for-sarif: true
+          exit-code: '0'
+
+      - name: Publish the database scan results
+        uses: github/codeql-action/upload-sarif@v4
+        with:
+          sarif_file: trivy-simis-cms-db.sarif
+          category: image-simis-cms-db
+
+      - name: Push the database image
+        run: |
+          docker push "$IMAGE_PREFIX/simis-cms-db:latest"
+          docker push "$IMAGE_PREFIX/simis-cms-db:$GITHUB_SHA"
