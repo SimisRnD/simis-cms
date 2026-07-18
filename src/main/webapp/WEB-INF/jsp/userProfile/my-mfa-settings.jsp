@@ -16,6 +16,14 @@
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
+<style>
+  .mfa-recovery-codes { columns: 2; column-gap: 1.5rem; margin: .6rem 0 1rem; }
+  .mfa-recovery-codes li { break-inside: avoid; margin-bottom: .35rem; }
+  .mfa-recovery-codes li code { display: inline-block; }
+  .mfa-copy { margin: 0 0 0 .5rem; }
+  .mfa-recovery-actions { display: flex; gap: .5rem; margin-top: .3rem; }
+  .mfa-recovery-actions .button { margin: 0; }
+</style>
 <c:if test="${!empty title}">
   <h3><c:out value="${title}"/></h3>
 </c:if>
@@ -28,11 +36,15 @@
       <div class="callout warning radius">
         <h5>Save your recovery codes</h5>
         <p>Each code works once, for signing in when you can't use your authenticator app. Store them somewhere safe &mdash; you won't be able to see them again.</p>
-        <ul class="no-bullet mfa-recovery-codes">
+        <ul class="no-bullet mfa-recovery-codes" id="mfa-recovery-codes">
           <c:forEach items="${recoveryCodes}" var="recoveryCode">
             <li><code><c:out value="${recoveryCode}"/></code></li>
           </c:forEach>
         </ul>
+        <p class="mfa-recovery-actions">
+          <button type="button" class="button tiny secondary radius mfa-copy-codes">Copy all</button>
+          <button type="button" class="button tiny secondary radius mfa-download-codes">Download</button>
+        </p>
       </div>
     </c:if>
     <p>Recovery codes remaining: <strong><c:out value="${recoveryRemaining}"/></strong></p>
@@ -55,7 +67,7 @@
   <c:when test="${mfaEnrolling eq 'true'}">
     <p>Scan this code with an authenticator app (Google Authenticator, Authy, 1Password, and others), or enter the setup key by hand.</p>
     <div class="mfa-qrcode" data-otpauth="<c:out value='${otpauthUri}'/>"></div>
-    <p>Setup key: <code><c:out value="${mfaSecret}"/></code></p>
+    <p>Setup key: <code id="mfa-setup-key"><c:out value="${mfaSecret}"/></code><button type="button" class="button tiny secondary radius mfa-copy" data-copy-target="mfa-setup-key">Copy</button></p>
     <p class="show-for-small-only">
       <a href="<c:out value='${otpauthUri}'/>">Tap here to add it to an app on this device</a>
     </p>
