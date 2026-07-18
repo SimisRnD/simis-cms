@@ -68,4 +68,5 @@
     </form>
   </c:otherwise>
 </c:choose>
+<script src="${ctx}/javascript/qrcode-generator-1.4.4/qrcode.js"></script>
 <script src="${ctx}/javascript/mfa-qrcode.js"></script>
