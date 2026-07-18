@@ -29,4 +29,5 @@ public class SessionConstants {
   public static final String CAPTCHA_TEXT = "captchaText";
   public static final String OAUTH_USER_TOKEN = "oauthUserToken";
   public static final String OAUTH_USER_EXPIRATION_TIME = "oauthUserExpiration";
+  public static final String MFA_PENDING_USER_ID = "mfaPendingUserId";
 }

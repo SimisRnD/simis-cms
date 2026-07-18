@@ -20,11 +20,13 @@ import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.oauth.OAuthRequestCommand;
 import com.simisinc.platform.application.login.AuthenticateLoginCommand;
+import com.simisinc.platform.application.login.TotpCommand;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.SiteProperty;
 import com.simisinc.platform.domain.model.login.UserLogin;
 import com.simisinc.platform.domain.model.login.UserToken;
 import com.simisinc.platform.infrastructure.persistence.SitePropertyRepository;
+import com.simisinc.platform.infrastructure.persistence.UserRepository;
 import com.simisinc.platform.infrastructure.persistence.login.UserLoginRepository;
 import com.simisinc.platform.infrastructure.persistence.login.UserTokenRepository;
 import com.simisinc.platform.presentation.controller.CookieConstants;
@@ -36,6 +38,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import javax.security.auth.login.LoginException;
 import javax.servlet.http.Cookie;
+import javax.servlet.http.HttpSession;
 import java.sql.Timestamp;
 import java.util.UUID;
 
@@ -60,18 +63,36 @@ public class LoginWidget extends GenericWidget {
     if (OAuthRequestCommand.isEnabled()) {
       context.getRequest().setAttribute("oAuthProvider", LoadSitePropertyCommand.loadByName("oauth.provider"));
     }
+    // If a user passed the password check and is waiting to enter an MFA code, show that prompt
+    if (context.getRequest().getSession().getAttribute(SessionConstants.MFA_PENDING_USER_ID) != null) {
+      context.getRequest().setAttribute("mfaRequired", "true");
+    }
     context.setJsp(JSP);
     return context;
   }
 
   public WidgetContext post(WidgetContext context) {
 
-    // Populate the fields
+    boolean stayLoggedIn = "on".equals(context.getParameter("stayLoggedIn"));
+    HttpSession httpSession = context.getRequest().getSession();
+
+    // Second step: a user who already passed the password check is submitting their MFA code
+    Long mfaPendingUserId = (Long) httpSession.getAttribute(SessionConstants.MFA_PENDING_USER_ID);
+    if (mfaPendingUserId != null) {
+      User user = UserRepository.findByUserId(mfaPendingUserId);
+      String code = context.getParameter("code");
+      if (user == null || !user.getMfaEnabled() || !TotpCommand.verifyCode(user.getMfaSecret(), code)) {
+        context.setErrorMessage("The authentication code was invalid. Please try again.");
+        context.getRequest().setAttribute("mfaRequired", "true");
+        return context;
+      }
+      httpSession.removeAttribute(SessionConstants.MFA_PENDING_USER_ID);
+      return finalizeLogin(context, user, stayLoggedIn);
+    }
+
+    // First step: verify the email and password
     String email = context.getParameter("email");
     String password = context.getParameter("password");
-    boolean stayLoggedIn = "on".equals(context.getParameter("stayLoggedIn"));
-
-    // Attempt the login
     User user = null;
     try {
       if (StringUtils.isBlank(email) || StringUtils.isBlank(password)) {
@@ -83,12 +104,20 @@ public class LoginWidget extends GenericWidget {
       return context;
     }
 
+    // If MFA is enabled, do not establish the session yet -- hold the login and require a valid code first
+    if (user.getMfaEnabled() && StringUtils.isNotBlank(user.getMfaSecret())) {
+      httpSession.setAttribute(SessionConstants.MFA_PENDING_USER_ID, user.getId());
+      context.getRequest().setAttribute("mfaRequired", "true");
+      return context;
+    }
+
+    return finalizeLogin(context, user, stayLoggedIn);
+  }
+
+  private WidgetContext finalizeLogin(WidgetContext context, User user, boolean stayLoggedIn) {
+
     // Update the user's session
     UserSession userSession = (UserSession) context.getRequest().getSession().getAttribute(SessionConstants.USER);
-    if (user.getTimeZone() != null) {
-      // Override the system timezone for this user session
-//      Config.set(context.getRequest(), Config.FMT_TIME_ZONE, user.getTimeZone());
-    }
     userSession.login(user);
 
     // Track the login

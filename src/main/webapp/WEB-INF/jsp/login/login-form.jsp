@@ -33,20 +33,32 @@
   <%@include file="../page_messages.jspf" %>
   <div class="grid-x grid-margin-x">
     <div class="small-12 cell">
-      <label>Email
-        <input name="email" type="text" placeholder="Email" required>
-      </label>
-      <label>Password
-        <input name="password" type="password" placeholder="Password" autocomplete="off" required>
-      </label>
-      <p class="help-text text-right">
-        <a href="${ctx}/forgot-password">Forgot password</a>
-      </p>
-      <p><input type="submit" class="button primary radius expanded" value="Sign In"></input></p>
-      <c:if test="${!empty oAuthProvider}">
-        <p><a href="${ctx}/" class="button secondary radius expanded">Login with <c:out value="${oAuthProvider}" /></a></p>
-      </c:if>
-      <input id="stay-logged-in" name="stayLoggedIn" value="on" type="checkbox" checked><label for="stay-logged-in">Stay logged in</label>
+      <c:choose>
+        <c:when test="${mfaRequired eq 'true'}">
+          <p>Enter the 6-digit code from your authenticator app.</p>
+          <label>Authentication code
+            <input name="code" type="text" inputmode="numeric" pattern="[0-9]*" autocomplete="one-time-code" placeholder="123456" autofocus required>
+          </label>
+          <p><input type="submit" class="button primary radius expanded" value="Verify"></input></p>
+          <input id="stay-logged-in" name="stayLoggedIn" value="on" type="checkbox" checked><label for="stay-logged-in">Stay logged in</label>
+        </c:when>
+        <c:otherwise>
+          <label>Email
+            <input name="email" type="text" placeholder="Email" required>
+          </label>
+          <label>Password
+            <input name="password" type="password" placeholder="Password" autocomplete="off" required>
+          </label>
+          <p class="help-text text-right">
+            <a href="${ctx}/forgot-password">Forgot password</a>
+          </p>
+          <p><input type="submit" class="button primary radius expanded" value="Sign In"></input></p>
+          <c:if test="${!empty oAuthProvider}">
+            <p><a href="${ctx}/" class="button secondary radius expanded">Login with <c:out value="${oAuthProvider}" /></a></p>
+          </c:if>
+          <input id="stay-logged-in" name="stayLoggedIn" value="on" type="checkbox" checked><label for="stay-logged-in">Stay logged in</label>
+        </c:otherwise>
+      </c:choose>
     </div>
   </div>
 </form>
