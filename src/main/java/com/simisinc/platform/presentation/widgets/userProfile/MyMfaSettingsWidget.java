@@ -16,9 +16,12 @@
 
 package com.simisinc.platform.presentation.widgets.userProfile;
 
+import java.util.List;
+
 import org.apache.commons.lang3.StringUtils;
 
 import com.simisinc.platform.application.login.UserMfaCommand;
+import com.simisinc.platform.application.login.UserMfaRecoveryCodeCommand;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.infrastructure.persistence.UserRepository;
 import com.simisinc.platform.presentation.controller.WidgetContext;
@@ -37,6 +40,8 @@ public class MyMfaSettingsWidget extends GenericWidget {
   static final long serialVersionUID = -8484048371911908894L;
 
   static String JSP = "/userProfile/my-mfa-settings.jsp";
+
+  private static final String RECOVERY_CODES_FLASH = "mfaRecoveryCodesFlash";
 
   public WidgetContext execute(WidgetContext context) {
     // Require a logged in user
@@ -74,7 +79,9 @@ public class MyMfaSettingsWidget extends GenericWidget {
 
     if ("confirm".equals(action)) {
       if (UserMfaCommand.confirmEnrollment(user, context.getParameter("code"))) {
-        context.setSuccessMessage("Two-factor authentication is now on.");
+        // Enrollment done -- issue recovery codes and show them once on the redirect
+        flashRecoveryCodes(context, UserMfaRecoveryCodeCommand.generate(user));
+        context.setSuccessMessage("Two-factor authentication is now on. Save your recovery codes below.");
         context.setRedirect(context.getUri());
         return context;
       }
@@ -91,8 +98,19 @@ public class MyMfaSettingsWidget extends GenericWidget {
       return context;
     }
 
+    if ("regenerate".equals(action)) {
+      // Replace the recovery codes with a fresh set and show them once
+      if (user.getMfaEnabled()) {
+        flashRecoveryCodes(context, UserMfaRecoveryCodeCommand.generate(user));
+        context.setSuccessMessage("New recovery codes generated. Your previous codes no longer work.");
+      }
+      context.setRedirect(context.getUri());
+      return context;
+    }
+
     if ("disable".equals(action)) {
       UserMfaCommand.disable(user);
+      UserMfaRecoveryCodeCommand.clear(user);
       context.setSuccessMessage("Two-factor authentication has been turned off.");
       context.setRedirect(context.getUri());
       return context;
@@ -114,6 +132,19 @@ public class MyMfaSettingsWidget extends GenericWidget {
       context.getRequest().setAttribute("mfaSecret", user.getMfaSecret());
       context.getRequest().setAttribute("otpauthUri", UserMfaCommand.buildEnrollmentUri(user));
     }
+    if (enabled) {
+      context.getRequest().setAttribute("recoveryRemaining", UserMfaRecoveryCodeCommand.countRemaining(user));
+      // Show freshly generated recovery codes once (right after enabling or regenerating)
+      Object flashed = context.getRequest().getSession().getAttribute(RECOVERY_CODES_FLASH);
+      if (flashed != null) {
+        context.getRequest().setAttribute("recoveryCodes", flashed);
+        context.getRequest().getSession().removeAttribute(RECOVERY_CODES_FLASH);
+      }
+    }
     context.setJsp(JSP);
+  }
+
+  private void flashRecoveryCodes(WidgetContext context, List<String> codes) {
+    context.getRequest().getSession().setAttribute(RECOVERY_CODES_FLASH, codes);
   }
 }

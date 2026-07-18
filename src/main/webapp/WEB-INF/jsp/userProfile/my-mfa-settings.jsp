@@ -24,6 +24,25 @@
   <%-- Two-factor authentication is ON --%>
   <c:when test="${mfaEnabled eq 'true'}">
     <p><i class="fa fa-lock"></i> Two-factor authentication is <strong>on</strong>. You'll be asked for a code from your authenticator app each time you sign in.</p>
+    <c:if test="${!empty recoveryCodes}">
+      <div class="callout warning radius">
+        <h5>Save your recovery codes</h5>
+        <p>Each code works once, for signing in when you can't use your authenticator app. Store them somewhere safe &mdash; you won't be able to see them again.</p>
+        <ul class="no-bullet mfa-recovery-codes">
+          <c:forEach items="${recoveryCodes}" var="recoveryCode">
+            <li><code><c:out value="${recoveryCode}"/></code></li>
+          </c:forEach>
+        </ul>
+      </div>
+    </c:if>
+    <p>Recovery codes remaining: <strong><c:out value="${recoveryRemaining}"/></strong></p>
+    <form method="post">
+      <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
+      <input type="hidden" name="token" value="${userSession.formToken}"/>
+      <input type="hidden" name="action" value="regenerate"/>
+      <input type="submit" class="button secondary radius" value="Generate new recovery codes"
+             onclick="return confirm('Replace your recovery codes? Your current codes will stop working.');"/>
+    </form>
     <form method="post">
       <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
       <input type="hidden" name="token" value="${userSession.formToken}"/>
