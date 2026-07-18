@@ -382,14 +382,19 @@
       if (!confirm("Are you sure you want to DELETE this event?")) {
         return;
       }
-      window.location.href = '${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&id=' + document.getElementById('id').value;
+      window.location.href = '${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&id=' + encodeURIComponent(document.getElementById('id').value);
     }
     // Handle the modal and click event
     var eventLink = $('#eventLink');
     eventLink.on('click', function () {
       var $modal = $('#modalReveal');
       $modal.foundation('close');
-      window.location.href = document.getElementById('eventLinkInput').value;
+      // Only follow http(s) or relative links; block javascript:/data: URLs that would run as script
+      var target = document.getElementById('eventLinkInput').value.trim();
+      var scheme = target.match(/^([a-z][a-z0-9+.-]*):/i);
+      if (target && (!scheme || /^https?$/i.test(scheme[1]))) {
+        window.location.href = target;
+      }
     });
   </script>
 </c:if>
