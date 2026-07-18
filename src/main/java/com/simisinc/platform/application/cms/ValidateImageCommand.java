@@ -47,8 +47,8 @@ public class ValidateImageCommand {
 
     // Get a file handle
     String serverRootPath = FileSystemCommand.getFileServerRootPath();
-    File imageFile = new File(serverRootPath + imageBean.getFileServerPath());
-    if (!imageFile.exists()) {
+    File imageFile = FileSystemCommand.resolveWithinRoot(serverRootPath, imageBean.getFileServerPath());
+    if (imageFile == null || !imageFile.exists()) {
       return;
     }
 
