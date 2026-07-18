@@ -17,6 +17,8 @@ permissions:
   contents: read          # read the source to build from
   packages: write         # publish to the SimIS container registry
   security-events: write  # send image scan results to the Security tab
+  id-token: write         # keyless OIDC identity for build provenance
+  attestations: write     # record the signed provenance attestation
 
 env:
   REGISTRY: ghcr.io
@@ -75,6 +77,21 @@ jobs:
           docker push "$IMAGE_PREFIX/simis-cms:latest"
           docker push "$IMAGE_PREFIX/simis-cms:$GITHUB_SHA"
 
+      # Signed build provenance: proves this exact image was built by this
+      # workflow, from this commit -- verifiable with `gh attestation verify`.
+      - name: Capture the application image digest
+        id: app_digest
+        run: |
+          digest=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE_PREFIX/simis-cms:$GITHUB_SHA" | cut -d@ -f2)
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+
+      - name: Attest the application image
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: ${{ env.IMAGE_PREFIX }}/simis-cms
+          subject-digest: ${{ steps.app_digest.outputs.digest }}
+          push-to-registry: true
+
       # --- Database image ---------------------------------------------------
       # docker/db/Dockerfile references ./docker/db/init.sql, so it builds from
       # the repository root (not the docker/db directory).
@@ -104,3 +121,16 @@ jobs:
         run: |
           docker push "$IMAGE_PREFIX/simis-cms-db:latest"
           docker push "$IMAGE_PREFIX/simis-cms-db:$GITHUB_SHA"
+
+      - name: Capture the database image digest
+        id: db_digest
+        run: |
+          digest=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE_PREFIX/simis-cms-db:$GITHUB_SHA" | cut -d@ -f2)
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+
+      - name: Attest the database image
+        uses: actions/attest-build-provenance@v2
+        with:
+          subject-name: ${{ env.IMAGE_PREFIX }}/simis-cms-db
+          subject-digest: ${{ steps.db_digest.outputs.digest }}
+          push-to-registry: true
