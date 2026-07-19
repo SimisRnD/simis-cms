@@ -27,6 +27,7 @@ import com.simisinc.platform.application.RateLimitCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.login.AuthenticateLoginCommand;
 import com.simisinc.platform.application.login.TotpCommand;
+import com.simisinc.platform.application.login.UserMfaRecoveryCodeCommand;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.infrastructure.persistence.UserRepository;
 import com.simisinc.platform.infrastructure.persistence.login.UserLoginRepository;
@@ -95,11 +96,13 @@ class LoginWidgetTest extends WidgetBase {
     LoginWidget widget = new LoginWidget();
     try (MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
         MockedStatic<TotpCommand> totp = mockStatic(TotpCommand.class);
-        MockedStatic<RateLimitCommand> rateLimit = mockStatic(RateLimitCommand.class)) {
+        MockedStatic<RateLimitCommand> rateLimit = mockStatic(RateLimitCommand.class);
+        MockedStatic<UserMfaRecoveryCodeCommand> recovery = mockStatic(UserMfaRecoveryCodeCommand.class)) {
       userRepo.when(() -> UserRepository.findByUserId(anyLong())).thenReturn(mfaUser(42L));
       totp.when(() -> TotpCommand.verifyCode(anyString(), anyString())).thenReturn(false);
       rateLimit.when(() -> RateLimitCommand.isUsernameAllowedRightNow(anyString(), anyBoolean())).thenReturn(true);
       rateLimit.when(() -> RateLimitCommand.isIpAllowedRightNow(anyString(), anyBoolean())).thenReturn(true);
+      recovery.when(() -> UserMfaRecoveryCodeCommand.consume(any(), anyString())).thenReturn(false);
       widget.post(widgetContext);
     }
 
@@ -132,6 +135,36 @@ class LoginWidgetTest extends WidgetBase {
     }
 
     // Logged in: pending marker cleared (removeAttribute is called), redirected, auth cookie set, no error.
+    verify(session).removeAttribute(SessionConstants.MFA_PENDING_USER_ID);
+    Assertions.assertEquals("/my-page", widgetContext.getRedirect());
+    Assertions.assertNull(widgetContext.getErrorMessage());
+    verify(response, times(1)).addCookie(any());
+  }
+
+  @Test
+  void validRecoveryCodeCompletesTheLogin() {
+    session.setAttribute(SessionConstants.MFA_PENDING_USER_ID, 42L);
+    session.setAttribute(SessionConstants.USER, new UserSession());
+    addQueryParameter(widgetContext, "code", "abcde-fghij");
+
+    LoginWidget widget = new LoginWidget();
+    try (MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<TotpCommand> totp = mockStatic(TotpCommand.class);
+        MockedStatic<RateLimitCommand> rateLimit = mockStatic(RateLimitCommand.class);
+        MockedStatic<UserMfaRecoveryCodeCommand> recovery = mockStatic(UserMfaRecoveryCodeCommand.class);
+        MockedStatic<UserLoginRepository> userLoginRepo = mockStatic(UserLoginRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      userRepo.when(() -> UserRepository.findByUserId(anyLong())).thenReturn(mfaUser(42L));
+      // TOTP fails, but a recovery code is accepted
+      totp.when(() -> TotpCommand.verifyCode(anyString(), anyString())).thenReturn(false);
+      rateLimit.when(() -> RateLimitCommand.isUsernameAllowedRightNow(anyString(), anyBoolean())).thenReturn(true);
+      rateLimit.when(() -> RateLimitCommand.isIpAllowedRightNow(anyString(), anyBoolean())).thenReturn(true);
+      recovery.when(() -> UserMfaRecoveryCodeCommand.consume(any(), anyString())).thenReturn(true);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean("site.online")).thenReturn(true);
+      widget.post(widgetContext);
+    }
+
+    // A valid recovery code completes the login just like a TOTP code
     verify(session).removeAttribute(SessionConstants.MFA_PENDING_USER_ID);
     Assertions.assertEquals("/my-page", widgetContext.getRedirect());
     Assertions.assertNull(widgetContext.getErrorMessage());
@@ -220,11 +253,13 @@ class LoginWidgetTest extends WidgetBase {
     LoginWidget widget = new LoginWidget();
     try (MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
         MockedStatic<TotpCommand> totp = mockStatic(TotpCommand.class);
-        MockedStatic<RateLimitCommand> rateLimit = mockStatic(RateLimitCommand.class)) {
+        MockedStatic<RateLimitCommand> rateLimit = mockStatic(RateLimitCommand.class);
+        MockedStatic<UserMfaRecoveryCodeCommand> recovery = mockStatic(UserMfaRecoveryCodeCommand.class)) {
       userRepo.when(() -> UserRepository.findByUserId(anyLong())).thenReturn(mfaUser(42L));
       totp.when(() -> TotpCommand.verifyCode(anyString(), anyString())).thenReturn(false);
       rateLimit.when(() -> RateLimitCommand.isUsernameAllowedRightNow(anyString(), anyBoolean())).thenReturn(true);
       rateLimit.when(() -> RateLimitCommand.isIpAllowedRightNow(anyString(), anyBoolean())).thenReturn(true);
+      recovery.when(() -> UserMfaRecoveryCodeCommand.consume(any(), anyString())).thenReturn(false);
       widget.post(widgetContext);
 
       // A wrong code is recorded against both the account and the IP so repeated guesses lock out

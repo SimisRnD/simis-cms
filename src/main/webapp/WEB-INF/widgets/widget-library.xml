@@ -86,6 +86,7 @@
   <widget name="mySiteInfo" class="com.simisinc.platform.presentation.widgets.userProfile.MySiteInfoWidget" />
   <widget name="mySettings" class="com.simisinc.platform.presentation.widgets.userProfile.MySettingsWidget" />
   <widget name="myAccountDetails" class="com.simisinc.platform.presentation.widgets.userProfile.MyAccountDetailsWidget" />
+  <widget name="myMfaSettings" class="com.simisinc.platform.presentation.widgets.userProfile.MyMfaSettingsWidget" />
   <widget name="myEmailPreferences" class="com.simisinc.platform.presentation.widgets.userProfile.MyEmailPreferencesWidget" />
   <widget name="myOrderHistory" class="com.simisinc.platform.presentation.widgets.userProfile.MyOrderHistoryWidget" />
   <widget name="myProfileInfo" class="com.simisinc.platform.presentation.widgets.userProfile.MyProfileInfoWidget" />
