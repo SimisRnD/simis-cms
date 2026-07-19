@@ -74,11 +74,27 @@ class UserMfaRecoveryCodeCommandTest {
     String expectedHash = DigestUtils.sha256Hex("abcdefghij"); // the normalized form of the code below
     try (MockedStatic<UserMfaRecoveryCodeRepository> repo = mockStatic(UserMfaRecoveryCodeRepository.class)) {
       repo.when(() -> UserMfaRecoveryCodeRepository.findUnusedByUserIdAndHash(1L, expectedHash)).thenReturn(stored);
+      repo.when(() -> UserMfaRecoveryCodeRepository.markUsed(stored)).thenReturn(true);
 
       // The same code, typed with a dash and in upper case, both normalize to the stored hash
       assertTrue(UserMfaRecoveryCodeCommand.consume(user(1L), "abcde-fghij"));
       assertTrue(UserMfaRecoveryCodeCommand.consume(user(1L), "ABCDEFGHIJ"));
       repo.verify(() -> UserMfaRecoveryCodeRepository.markUsed(stored), times(2));
+    }
+  }
+
+  @Test
+  void consumeReturnsFalseWhenTheCodeWasAlreadyConsumedConcurrently() {
+    UserMfaRecoveryCode stored = new UserMfaRecoveryCode();
+    stored.setId(5L);
+    String expectedHash = DigestUtils.sha256Hex("abcdefghij");
+    try (MockedStatic<UserMfaRecoveryCodeRepository> repo = mockStatic(UserMfaRecoveryCodeRepository.class)) {
+      repo.when(() -> UserMfaRecoveryCodeRepository.findUnusedByUserIdAndHash(1L, expectedHash)).thenReturn(stored);
+      // The lookup found the code unused, but a concurrent request flipped it first:
+      // the atomic update affects no row, so this login must NOT succeed.
+      repo.when(() -> UserMfaRecoveryCodeRepository.markUsed(stored)).thenReturn(false);
+
+      assertFalse(UserMfaRecoveryCodeCommand.consume(user(1L), "abcde-fghij"));
     }
   }
 

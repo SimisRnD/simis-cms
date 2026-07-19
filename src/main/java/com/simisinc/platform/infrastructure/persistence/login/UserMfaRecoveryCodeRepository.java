@@ -67,14 +67,25 @@ public class UserMfaRecoveryCodeRepository {
         UserMfaRecoveryCodeRepository::buildRecord);
   }
 
-  public static void markUsed(UserMfaRecoveryCode record) {
+  /**
+   * Atomically consumes a recovery code: flips it to used only if it is still unused. The
+   * "used = false" guard makes single-use race-safe -- if two requests submit the same code
+   * concurrently, only the update that actually flips the row affects a row (the other matches
+   * none), so exactly one login can succeed.
+   *
+   * @param record the code to consume
+   * @return true only if this call flipped the row from unused to used
+   */
+  public static boolean markUsed(UserMfaRecoveryCode record) {
     if (record == null || record.getId() < 1) {
-      return;
+      return false;
     }
-    DB.update(
+    return DB.update(
         TABLE_NAME,
         new SqlUtils().add("used", true),
-        new SqlUtils().add("recovery_code_id = ?", record.getId()));
+        new SqlUtils()
+            .add("recovery_code_id = ?", record.getId())
+            .add("used = ?", false));
   }
 
   public static long countUnusedByUserId(long userId) {
