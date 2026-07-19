@@ -24,7 +24,7 @@ import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import org.apache.commons.lang3.StringUtils;
 
-import java.net.URL;
+import java.net.URI;
 import java.util.*;
 
 /**
@@ -108,7 +108,8 @@ public class LeaderboardWidget extends GenericWidget {
           String image = null;
           try {
             image = ((String[]) rows.get(fields.indexOf("IMAGE")))[columnCount - 1];
-            new URL(image);
+            // Validate that the value parses as a URL (result intentionally discarded)
+            URI.create(image).toURL();
             int imageIdx = image.indexOf("/assets/img/");
             if (imageIdx > -1) {
               image = image.substring(imageIdx);
