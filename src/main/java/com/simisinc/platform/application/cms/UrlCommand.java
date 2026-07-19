@@ -22,6 +22,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.commons.validator.routines.UrlValidator;
 
 import java.net.URLEncoder;
+import java.util.regex.Pattern;
 
 /**
  * Functions for encoding and validating web content
@@ -75,15 +76,23 @@ public class UrlCommand {
     return urlValidator.isValid(url);
   }
 
+  // A return page is an internal navigation target, rendered by the form JSPs into href/value
+  // attributes. Constrain it to a site-relative path + optional query/fragment built from URL-safe
+  // characters only: no quotes, angle brackets, backslash, colon, or whitespace, so a value can never
+  // break out of the attribute it is placed in or introduce a scheme. This is the defense at the
+  // source -- the sinks stay safe even where a JSP renders the value without escaping it.
+  private static final Pattern SAFE_RETURN_PAGE = Pattern.compile("^/[A-Za-z0-9/?&=#%._~+,;-]*$");
+
   public static String getValidReturnPage(String returnPage) {
     if (StringUtils.isBlank(returnPage)) {
       return null;
     }
-    if (returnPage.contains(":")) {
+    // Reject protocol-relative ("//host") targets, which are not site-relative
+    if (returnPage.startsWith("//")) {
       return null;
     }
-    if (returnPage.startsWith("/")) {
-      return returnPage;
+    if (!SAFE_RETURN_PAGE.matcher(returnPage).matches()) {
+      return null;
     }
     return returnPage;
   }
