@@ -16,6 +16,8 @@
 
 package com.simisinc.platform.presentation.widgets.cms;
 
+import com.simisinc.platform.application.cms.UrlCommand;
+
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
@@ -57,6 +59,11 @@ public class LinkWidget extends GenericWidget {
     }
     if (!link.contains("://") && !link.startsWith(context.getContextPath())) {
       link = context.getContextPath() + link;
+    }
+    // The link is rendered into an href attribute; drop the link for an unsafe url
+    link = UrlCommand.sanitizeUrl(link);
+    if (link == null) {
+      return context;
     }
     context.getRequest().setAttribute("link", link);
     context.getRequest().setAttribute("linkClass", context.getPreferences().get("class"));

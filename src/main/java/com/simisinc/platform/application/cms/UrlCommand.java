@@ -96,4 +96,36 @@ public class UrlCommand {
     }
     return returnPage;
   }
+
+  // URL characters that cannot break out of an href/src attribute: no quotes, angle brackets,
+  // backslash, backtick, or whitespace.
+  private static final Pattern SAFE_URL = Pattern.compile("^[A-Za-z0-9/?&=#%._~:@!$()*+,;-]*$");
+
+  /**
+   * Returns the url when it is safe to place in an href/src attribute -- a site-relative path,
+   * anchor, or an http(s)/mailto/tel absolute url with no attribute-breakout characters -- otherwise
+   * null. Active schemes such as javascript: and data: are rejected, as are protocol-relative "//"
+   * targets. Content-authored link values are rendered into href attributes, so this is the defense
+   * at the source.
+   */
+  public static String sanitizeUrl(String url) {
+    if (StringUtils.isBlank(url)) {
+      return null;
+    }
+    String value = url.trim();
+    if (value.startsWith("//") || !SAFE_URL.matcher(value).matches()) {
+      return null;
+    }
+    // If the value carries a scheme, allow only the safe ones
+    String lower = value.toLowerCase();
+    if (lower.matches("^[a-z][a-z0-9+.-]*:.*")) {
+      if (lower.startsWith("http://") || lower.startsWith("https://")
+          || lower.startsWith("mailto:") || lower.startsWith("tel:")) {
+        return value;
+      }
+      return null;
+    }
+    // No scheme: a site-relative path, anchor, or query
+    return value;
+  }
 }

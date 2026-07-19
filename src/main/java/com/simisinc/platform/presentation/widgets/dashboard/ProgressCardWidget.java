@@ -16,6 +16,8 @@
 
 package com.simisinc.platform.presentation.widgets.dashboard;
 
+import com.simisinc.platform.application.cms.UrlCommand;
+
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.domain.model.dashboard.ProgressCard;
 import com.simisinc.platform.presentation.controller.WidgetContext;
@@ -43,7 +45,7 @@ public class ProgressCardWidget extends GenericWidget {
     progressCard.setMaxValue(Integer.parseInt(context.getPreferences().getOrDefault("maxValue", "0")));
     progressCard.setDifference(progressCard.getMaxValue() - progressCard.getProgress());
     progressCard.setMaxLabel(context.getPreferences().getOrDefault("maxLabel", "maxLabel"));
-    progressCard.setLink(context.getPreferences().getOrDefault("link", null));
+    progressCard.setLink(UrlCommand.sanitizeUrl(context.getPreferences().getOrDefault("link", null)));
     context.getRequest().setAttribute("progressCard", progressCard);
 
     context.getRequest().setAttribute("textColor", valueForColor(context.getPreferences().getOrDefault("textColor", "#ffffff")));
