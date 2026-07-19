@@ -34,7 +34,7 @@
   </c:if>
   <c:choose>
     <c:when test="${!empty section.cssClass}">
-  <div class="${section.cssClass}"<c:if test="${!empty section.cssStyle}"> style="<c:out value="${section.cssStyle}" />"</c:if>>
+  <div class="<c:out value="${section.cssClass}"/>"<c:if test="${!empty section.cssStyle}"> style="<c:out value="${section.cssStyle}" />"</c:if>>
     </c:when>
     <c:otherwise>
   <div class="grid-container"<c:if test="${!empty section.cssStyle}"> style="<c:out value="${section.cssStyle}" />"</c:if>>
@@ -44,7 +44,7 @@
   <c:forEach items="${section.columnRenderInfoList}" var="column">
     <c:choose>
       <c:when test="${!empty column.cssClass}">
-      <div class="${column.cssClass}"<c:if test="${!empty column.cssStyle}"> style="<c:out value="${column.cssStyle}" />"</c:if>>
+      <div class="<c:out value="${column.cssClass}"/>"<c:if test="${!empty column.cssStyle}"> style="<c:out value="${column.cssStyle}" />"</c:if>>
       </c:when>
       <c:otherwise>
         <div class="small-12 cell"<c:if test="${!empty column.cssStyle}"> style="<c:out value="${column.cssStyle}" />"</c:if>>
@@ -53,7 +53,7 @@
     <c:forEach items="${column.widgetRenderInfoList}" var="widget">
       <c:choose>
         <c:when test="${!empty widget.cssClass}">
-          <div class="${widget.cssClass}"<c:if test="${!empty widget.cssStyle}"> style="<c:out value="${widget.cssStyle}" />"</c:if>>
+          <div class="<c:out value="${widget.cssClass}"/>"<c:if test="${!empty widget.cssStyle}"> style="<c:out value="${widget.cssStyle}" />"</c:if>>
         </c:when>
         <c:otherwise>
           <div<c:if test="${!empty widget.cssStyle}"> style="<c:out value="${widget.cssStyle}" />"</c:if>>

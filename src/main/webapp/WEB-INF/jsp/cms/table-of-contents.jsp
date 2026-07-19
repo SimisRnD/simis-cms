@@ -41,7 +41,7 @@
             <li class="is-active"><a class="is-active" href="${ctx}/${url:encodeUri(link.link.substring(1))}"><c:out value="${link.name}"/></a></li>
           </c:when>
           <c:when test="${!empty link.link}">
-            <li><a href="${ctx}${link.link}"><c:out value="${link.name}"/></a></li>
+            <li><a href="<c:out value="${ctx}${link.link}"/>"><c:out value="${link.name}"/></a></li>
           </c:when>
           <c:otherwise>
             <li>

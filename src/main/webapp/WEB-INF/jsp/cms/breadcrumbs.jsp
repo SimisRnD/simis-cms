@@ -26,7 +26,7 @@
     <c:forEach items="${linkList}" var="link" varStatus="status">
       <c:choose>
       <c:when test="${!empty link.value}">
-        <li><a href="${ctx}${link.value}"><c:out value="${link.key}"/></a></li>
+        <li><a href="<c:out value="${ctx}${link.value}"/>"><c:out value="${link.key}"/></a></li>
       </c:when>
         <c:otherwise>
           <li>

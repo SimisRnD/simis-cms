@@ -104,7 +104,7 @@
                     <%-- Hide Home (the first one) --%>
                   </c:when>
                   <c:otherwise>
-                    <li <c:if test="${!menuTabStatus.last || 'pro' eq themePropertyMap['theme.menu.location']}">class="footer-menu-item" </c:if>style="padding-left: 8px; margin: 0"><a href="${ctx}${menuTab.link}"><c:out value="${menuTab.name}" /></a></li>
+                    <li <c:if test="${!menuTabStatus.last || 'pro' eq themePropertyMap['theme.menu.location']}">class="footer-menu-item" </c:if>style="padding-left: 8px; margin: 0"><a href="<c:out value="${ctx}${menuTab.link}"/>"><c:out value="${menuTab.name}" /></a></li>
                   </c:otherwise>
                 </c:choose>
               </c:forEach>
