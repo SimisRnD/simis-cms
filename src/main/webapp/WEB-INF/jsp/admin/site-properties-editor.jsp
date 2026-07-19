@@ -72,6 +72,17 @@
         <td><c:out value="${siteProperty.label}" /></td>
         <td nowrap>
           <c:choose>
+            <%-- Secret values are never rendered back to the browser --%>
+            <c:when test="${secretPropertyNames.contains(siteProperty.name)}">
+              <c:choose>
+                <c:when test="${siteProperty.type eq 'disabled'}">
+                  <input type="password" class="no-gap" value="" placeholder="<c:out value="${empty siteProperty.value ? 'not set' : 'value hidden'}"/>" disabled />
+                </c:when>
+                <c:otherwise>
+                  <input type="password" class="no-gap" name="${siteProperty.name}" value="" autocomplete="new-password" placeholder="<c:out value="${empty siteProperty.value ? 'not set' : 'value hidden; leave blank to keep it'}"/>" />
+                </c:otherwise>
+              </c:choose>
+            </c:when>
             <c:when test="${siteProperty.name eq 'theme.logo.color'}">
               <select name="${siteProperty.name}">
                 <option value="full-color"<c:if test="${siteProperty.value eq 'full-color'}"> selected</c:if>>Full color</option>
