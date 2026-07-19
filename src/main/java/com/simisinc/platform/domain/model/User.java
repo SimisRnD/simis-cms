@@ -52,6 +52,8 @@ public class User extends Entity {
   private double longitude = 0.0;
 
   private boolean enabled = false;
+  private String mfaSecret = null;
+  private boolean mfaEnabled = false;
   private String accountToken = null;
   private Timestamp validated = null;
   private long createdBy = -1;
@@ -237,6 +239,22 @@ public class User extends Entity {
 
   public void setEnabled(boolean enabled) {
     this.enabled = enabled;
+  }
+
+  public String getMfaSecret() {
+    return mfaSecret;
+  }
+
+  public void setMfaSecret(String mfaSecret) {
+    this.mfaSecret = mfaSecret;
+  }
+
+  public boolean getMfaEnabled() {
+    return mfaEnabled;
+  }
+
+  public void setMfaEnabled(boolean mfaEnabled) {
+    this.mfaEnabled = mfaEnabled;
   }
 
   public String getAccountToken() {

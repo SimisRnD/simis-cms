@@ -62,8 +62,8 @@ public class ProcessUserCSVFileCommand {
         throw new DataException("Valid file not found");
       }
       String serverRootPath = FileSystemCommand.getFileServerRootPath();
-      File csvFile = new File(serverRootPath + fileItemBean.getFileServerPath());
-      if (!csvFile.exists()) {
+      File csvFile = FileSystemCommand.resolveWithinRoot(serverRootPath, fileItemBean.getFileServerPath());
+      if (csvFile == null || !csvFile.exists()) {
         throw new DataException("Valid file not found");
       }
 

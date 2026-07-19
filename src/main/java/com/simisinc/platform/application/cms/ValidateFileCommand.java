@@ -40,8 +40,8 @@ public class ValidateFileCommand {
 
     // Get a file handle
     String serverRootPath = FileSystemCommand.getFileServerRootPath();
-    File file = new File(serverRootPath + fileItemBean.getFileServerPath());
-    if (!file.exists()) {
+    File file = FileSystemCommand.resolveWithinRoot(serverRootPath, fileItemBean.getFileServerPath());
+    if (file == null || !file.exists()) {
       LOG.warn("File does not exist: " + serverRootPath + fileItemBean.getFileServerPath());
       return;
     }
@@ -68,8 +68,8 @@ public class ValidateFileCommand {
 
     // Get a file handle
     String serverRootPath = FileSystemCommand.getFileServerRootPath();
-    File file = new File(serverRootPath + fileItemBean.getFileServerPath());
-    if (!file.exists()) {
+    File file = FileSystemCommand.resolveWithinRoot(serverRootPath, fileItemBean.getFileServerPath());
+    if (file == null || !file.exists()) {
       LOG.warn("File does not exist: " + serverRootPath + fileItemBean.getFileServerPath());
       return;
     }
