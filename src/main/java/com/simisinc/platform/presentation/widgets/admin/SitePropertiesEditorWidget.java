@@ -17,6 +17,7 @@
 package com.simisinc.platform.presentation.widgets.admin;
 
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.admin.SecretSitePropertiesCommand;
 import com.simisinc.platform.application.cms.ColorCommand;
 import com.simisinc.platform.domain.model.SiteProperty;
 import com.simisinc.platform.infrastructure.persistence.SitePropertyRepository;
@@ -66,6 +67,7 @@ public class SitePropertiesEditorWidget extends GenericWidget {
       }
     }
     context.getRequest().setAttribute("sitePropertyList", siteProperties);
+    context.getRequest().setAttribute("secretPropertyNames", SecretSitePropertiesCommand.getSecretPropertyNames());
 
     context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));
     context.getRequest().setAttribute("title", context.getPreferences().get("title"));
@@ -97,6 +99,12 @@ public class SitePropertiesEditorWidget extends GenericWidget {
         newValue = "";
       } else {
         newValue = newValue.trim();
+      }
+
+      // Secret values are rendered as empty masked fields; a blank submission means unchanged,
+      // so keep the stored value instead of wiping it
+      if (SecretSitePropertiesCommand.isSecret(siteProperty.getName()) && StringUtils.isBlank(newValue)) {
+        continue;
       }
 
       // Handle types
