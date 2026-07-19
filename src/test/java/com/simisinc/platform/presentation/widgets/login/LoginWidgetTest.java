@@ -42,6 +42,7 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 /**
@@ -206,7 +207,8 @@ class LoginWidgetTest extends WidgetBase {
     Assertions.assertEquals("true", request.getAttribute("mfaRequired"));
     Assertions.assertEquals(42L, session.getAttribute(SessionConstants.MFA_PENDING_USER_ID));
     Assertions.assertNull(widgetContext.getRedirect());
-    verify(response, never()).addCookie(any());
+    // No session artifacts at all: the response (cookies, headers) was never touched
+    verifyNoInteractions(response);
   }
 
   @Test
@@ -233,6 +235,7 @@ class LoginWidgetTest extends WidgetBase {
     Assertions.assertNotNull(widgetContext.getErrorMessage());
     // Still pending: a bad code does not clear the gate or establish a session
     Assertions.assertEquals(42L, session.getAttribute(SessionConstants.MFA_PENDING_USER_ID));
-    verify(response, never()).addCookie(any());
+    // No session artifacts at all: the response (cookies, headers) was never touched
+    verifyNoInteractions(response);
   }
 }
