@@ -429,13 +429,12 @@ public class ItemRepository {
           }
           if (ValidateGeoRegion.isValidWorldCitiesRegion(region)) {
             // Use the region
-            // @todo the region is validated because a prepared statement is needed
             if (specification.getWithinMeters() > 0) {
-              //              where.add("ST_DWithin(geom::geography, (SELECT geom::geography FROM world_cities WHERE city = ? AND region = '" + region + "' ORDER BY population DESC LIMIT 1), " + specification.getWithinMeters() + ")", city);
+              //              where.add("ST_DWithin(geom::geography, (SELECT geom::geography FROM world_cities WHERE city = ? AND region = ? ORDER BY population DESC LIMIT 1), " + specification.getWithinMeters() + ")", new String[]{city, region});
             }
-            // Override the order by for closest first
-            orderBy.add("geom <-> (SELECT geom FROM world_cities WHERE city = ? AND region = '" + region
-                + "' ORDER BY population DESC LIMIT 1)", city);
+            // Override the order by for closest first; city and region are bound parameters, not concatenated into SQL
+            orderBy.add("geom <-> (SELECT geom FROM world_cities WHERE city = ? AND region = ? ORDER BY population DESC LIMIT 1)",
+                new String[]{city, region});
           } else {
             // Just use the city
             if (specification.getWithinMeters() > 0) {
