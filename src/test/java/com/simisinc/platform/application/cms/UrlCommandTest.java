@@ -75,6 +75,33 @@ class UrlCommandTest {
   }
 
   @Test
+  void sanitizeUrlAllowsSafeUrls() {
+    Assertions.assertEquals("/web/page", UrlCommand.sanitizeUrl("/web/page"));
+    Assertions.assertEquals("/web/page?a=b&c=d", UrlCommand.sanitizeUrl("/web/page?a=b&c=d"));
+    Assertions.assertEquals("#section", UrlCommand.sanitizeUrl("#section"));
+    Assertions.assertEquals("https://example.com/x", UrlCommand.sanitizeUrl("https://example.com/x"));
+    Assertions.assertEquals("http://example.com", UrlCommand.sanitizeUrl("http://example.com"));
+    Assertions.assertEquals("mailto:someone@example.com", UrlCommand.sanitizeUrl("mailto:someone@example.com"));
+    Assertions.assertEquals("tel:+15551234567", UrlCommand.sanitizeUrl("tel:+15551234567"));
+    Assertions.assertEquals("page", UrlCommand.sanitizeUrl("page"));
+  }
+
+  @Test
+  void sanitizeUrlRejectsActiveSchemesAndBreakout() {
+    Assertions.assertNull(UrlCommand.sanitizeUrl("javascript:alert(1)"));
+    Assertions.assertNull(UrlCommand.sanitizeUrl("JavaScript:alert(1)"));
+    Assertions.assertNull(UrlCommand.sanitizeUrl("data:text/html,<script>alert(1)</script>"));
+    Assertions.assertNull(UrlCommand.sanitizeUrl("vbscript:msgbox(1)"));
+    // Attribute breakout characters cannot appear in a safe url
+    Assertions.assertNull(UrlCommand.sanitizeUrl("/x\" onclick=alert(1)"));
+    Assertions.assertNull(UrlCommand.sanitizeUrl("https://x/'><img src=x onerror=alert(1)>"));
+    // Protocol-relative targets are not allowed
+    Assertions.assertNull(UrlCommand.sanitizeUrl("//evil.example.com"));
+    Assertions.assertNull(UrlCommand.sanitizeUrl(""));
+    Assertions.assertNull(UrlCommand.sanitizeUrl(null));
+  }
+
+  @Test
   void getValidReturnPageRejectsAttributeBreakoutAndSchemes() {
     // Attribute breakout: the payload has no ':' but would break out of href="..." if not rejected
     Assertions.assertNull(UrlCommand.getValidReturnPage("/x\" onmouseover=alert(document.cookie) x=\""));

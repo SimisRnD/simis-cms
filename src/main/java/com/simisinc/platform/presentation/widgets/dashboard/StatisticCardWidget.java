@@ -16,6 +16,8 @@
 
 package com.simisinc.platform.presentation.widgets.dashboard;
 
+import com.simisinc.platform.application.cms.UrlCommand;
+
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.domain.model.dashboard.StatisticCard;
 import com.simisinc.platform.presentation.controller.WidgetContext;
@@ -41,7 +43,7 @@ public class StatisticCardWidget extends GenericWidget {
     statisticCard.setValue(Integer.parseInt(context.getPreferences().getOrDefault("value", "0")));
     statisticCard.setLabel(context.getPreferences().getOrDefault("label", "label"));
     statisticCard.setIcon(context.getPreferences().getOrDefault("icon", null));
-    statisticCard.setLink(context.getPreferences().getOrDefault("link", null));
+    statisticCard.setLink(UrlCommand.sanitizeUrl(context.getPreferences().getOrDefault("link", null)));
     context.getRequest().setAttribute("statisticCard", statisticCard);
 
     context.getRequest().setAttribute("iconColor", valueForColor(context.getPreferences().getOrDefault("iconColor", null)));
