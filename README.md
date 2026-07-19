@@ -97,7 +97,6 @@ This project uses and licenses several technologies:
    JSTL                        Eclipse  Servlet tag library                               https://github.com/eclipse-ee4j/jstl-api
    libphonenumber              Apache   Phone number validation                           https://github.com/google/libphonenumber
    PostgreSQL                  BSD      Database driver                                   https://jdbc.postgresql.org
-   Pushy                       MIT      Push notifications                                https://github.com/relayrides/pushy
    RabbitMQ                    Apache   RabbitMQ java client library                      https://www.rabbitmq.com/java-client.html
    RestFB                      MIT      Facebook Graph API client                         https://github.com/restfb/restfb
    ROME                        Apache   RSS                                               https://github.com/rometools/rome
