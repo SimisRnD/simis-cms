@@ -44,7 +44,6 @@ public class SaveItemFilePartCommand {
     // Prepare to save the file
     String serverRootPath = FileSystemCommand.getFileServerRootPath();
     String serverSubPath = FileSystemCommand.generateFileServerSubPath("item-uploads");
-    String serverCompletePath = serverRootPath + serverSubPath;
     String uniqueFilename = FileSystemCommand.generateUniqueFilename(context.getUserId());
 
     // Find the file in the request and save it
@@ -66,16 +65,20 @@ public class SaveItemFilePartCommand {
       LOG.debug("Found a file...");
       submittedFilename = Paths.get(filePart.getSubmittedFileName()).getFileName().toString(); // MSIE fix.
       extension = FileSystemCommand.cleanExtension(FilenameUtils.getExtension(submittedFilename));
-      tempFile = new File(serverCompletePath + uniqueFilename + "." + extension);
+      // Resolve the target inside the file server root so user-derived values cannot traverse outside it
+      tempFile = FileSystemCommand.resolveWithinRoot(serverRootPath, serverSubPath + uniqueFilename + "." + extension);
+      if (tempFile == null) {
+        throw new DataException("There was an issue with the file");
+      }
 
       LOG.debug("Writing file " + fileLength + " bytes");
-      filePart.write(serverCompletePath + uniqueFilename + "." + extension);
+      filePart.write(tempFile.getAbsolutePath());
 
     } catch (Exception e) {
       LOG.warn("Could not handle file: " + e.getMessage());
       // Clean up the file
       if (tempFile != null && tempFile.exists()) {
-        LOG.warn("Deleting an uploaded file: " + serverCompletePath + uniqueFilename + "." + extension);
+        LOG.warn("Deleting an uploaded file: " + tempFile.getPath());
         tempFile.delete();
       }
       throw new DataException("There was an issue with the file");
