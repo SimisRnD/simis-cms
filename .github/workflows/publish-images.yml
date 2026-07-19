@@ -20,6 +20,13 @@ permissions:
   id-token: write         # keyless OIDC identity for build provenance
   attestations: write     # record the signed provenance attestation
 
+# Serialize publishes: without this, two overlapping runs can race and an older
+# commit's build could finish last and win the :latest tag. Queue instead of
+# cancel so an in-flight publish is never interrupted mid-push.
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
 env:
   REGISTRY: ghcr.io
 
