@@ -16,7 +16,7 @@ The following steps will guide you through the developer tools and environment s
 1. Install [OpenJDK 21+](https://learn.microsoft.com/en-us/java/openjdk/download)
 2. Install [Apache Ant 1.10+](https://ant.apache.org) and configure your terminal's path with ANT_HOME/bin
 3. Install [Apache Tomcat 9.x](https://tomcat.apache.org/download-90.cgi) into a directory of your choice
-4. Install the PostgreSQL database server – natively on MacOS with [Postgres.app](https://postgresapp.com) or with a Docker container like (postgis/postgis:14-3.4)
+4. Install the PostgreSQL database server – natively on MacOS with [Postgres.app](https://postgresapp.com) or with a Docker container like (postgis/postgis:17-3.5)
 5. Clone the SimIS CMS repo – `git clone https://github.com/SimisRnD/simis-cms.git`
 6. In the repo directory execute `ant webapp` – this tests your environment and updates code and library changes in a working Tomcat exploded webapp directory `./out/exploded/ROOT`
 7. Open SimIS CMS in VS Code and accept the recommended extensions
