@@ -25,8 +25,10 @@ import org.apache.commons.logging.LogFactory;
 
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.IOException;
 import java.io.InputStream;
+import java.nio.file.InvalidPathException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -145,15 +147,14 @@ public class FileSystemCommand {
     if (StringUtils.isBlank(rootPath) || relativePath == null) {
       return null;
     }
-    File file = new File(rootPath + relativePath);
     try {
-      String canonicalRoot = new File(rootPath).getCanonicalPath();
-      String canonicalFile = file.getCanonicalPath();
-      if (canonicalFile.equals(canonicalRoot) || canonicalFile.startsWith(canonicalRoot + File.separator)) {
-        return file;
+      Path root = Paths.get(rootPath).toAbsolutePath().normalize();
+      Path resolved = root.resolve(relativePath).normalize();
+      if (resolved.startsWith(root)) {
+        return resolved.toFile();
       }
       LOG.warn("Rejected a file path outside the file server root: " + relativePath);
-    } catch (IOException e) {
+    } catch (InvalidPathException e) {
       LOG.warn("Could not resolve a file path: " + relativePath);
     }
     return null;
