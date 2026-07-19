@@ -16,6 +16,7 @@
 
 package com.simisinc.platform.infrastructure.persistence;
 
+import com.simisinc.platform.application.SecretCryptoCommand;
 import com.simisinc.platform.domain.model.Role;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.dashboard.StatisticsData;
@@ -419,7 +420,9 @@ public class UserRepository {
 
   public static User saveMfaSecret(User record, String secret) {
     SqlUtils updateValues = new SqlUtils()
-        .add("mfa_secret", secret)
+        // Store the TOTP seed encrypted at rest (a DB dump must not yield working second factors);
+        // the in-memory record keeps the plaintext for immediate use.
+        .add("mfa_secret", SecretCryptoCommand.encrypt(secret))
         .add("mfa_enabled", false)
         .add("modified", new Timestamp(System.currentTimeMillis()));
     SqlUtils where = new SqlUtils()
@@ -517,7 +520,8 @@ public class UserRepository {
       record.setPostalCode(rs.getString("postal_code"));
       record.setLatitude(rs.getDouble("latitude"));
       record.setLongitude(rs.getDouble("longitude"));
-      record.setMfaSecret(rs.getString("mfa_secret"));
+      // Decrypt the at-rest TOTP seed so callers always see plaintext (legacy plaintext passes through unchanged)
+      record.setMfaSecret(SecretCryptoCommand.decrypt(rs.getString("mfa_secret")));
       record.setMfaEnabled(rs.getBoolean("mfa_enabled"));
       return record;
     } catch (SQLException se) {

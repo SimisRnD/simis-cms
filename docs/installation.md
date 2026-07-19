@@ -43,11 +43,14 @@ CMS_ADMIN_PASSWORD=
 CMS_FORCE_SSL=true|false
 CMS_NODE_TYPE=<empty>|standalone|web
 CMS_PATH=<empty>|${USER_HOME}/Web/simis-cms|/opt/simis
+CMS_SECRET_KEY=<base64 256-bit key; enables encryption at rest for stored secrets (e.g. MFA seeds)>
 DB_SERVER_NAME=
 DB_NAME=
 DB_USER=
 DB_PASSWORD=
 ```
+
+> **`CMS_SECRET_KEY`** encrypts recoverable secrets (such as per-user MFA/TOTP seeds) at rest with AES-256-GCM. Generate one with `openssl rand -base64 32` and supply it out-of-band (not committed). Keep a secure backup — losing the key makes encrypted secrets unrecoverable (affected users re-enroll MFA). Rotating: set the new key and re-save affected records. If unset, secrets are stored as plaintext (backward compatible), so set it for a hardened deployment.
 
 ## Upgrading
 
