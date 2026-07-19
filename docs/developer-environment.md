@@ -13,7 +13,7 @@ Developers can use [Visual Studio Code](https://code.visualstudio.com) with seve
 
 The following steps will guide you through the developer tools and environment setup so that your code changes can be compiled and copied automatically and then seen in your web browser.
 
-1. Install [OpenJDK 17+](https://learn.microsoft.com/en-us/java/openjdk/download)
+1. Install [OpenJDK 21+](https://learn.microsoft.com/en-us/java/openjdk/download)
 2. Install [Apache Ant 1.10+](https://ant.apache.org) and configure your terminal's path with ANT_HOME/bin
 3. Install [Apache Tomcat 9.x](https://tomcat.apache.org/download-90.cgi) into a directory of your choice
 4. Install the PostgreSQL database server – natively on MacOS with [Postgres.app](https://postgresapp.com) or with a Docker container like (postgis/postgis:14-3.4)
