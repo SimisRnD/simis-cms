@@ -296,6 +296,7 @@ class LoginWidgetTest extends WidgetBase {
     verify(session).removeAttribute(SessionConstants.MFA_PENDING_SINCE);
     Assertions.assertNotNull(widgetContext.getErrorMessage());
     Assertions.assertNull(widgetContext.getRedirect());
-    verify(response, never()).addCookie(any());
+    // The timed-out path never touches the response at all (no cookie, no redirect header)
+    verifyNoInteractions(response);
   }
 }
