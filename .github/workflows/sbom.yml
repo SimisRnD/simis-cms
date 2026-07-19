@@ -1,0 +1,65 @@
+# Generates a CycloneDX SBOM, signs it keylessly with Sigstore/cosign, and
+# attaches it to each published release. The cyclonedx-maven-plugin is already
+# configured in pom.xml (makeAggregateBom at the package phase); this workflow
+# runs it, signs the output, and publishes it.
+name: SBOM
+
+on:
+  release:
+    types: [ published ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  sbom:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write      # attach the SBOM to the release
+      id-token: write      # keyless signing via Sigstore OIDC
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: 17
+          cache: maven
+
+      - name: Generate the CycloneDX SBOM
+        run: mvn -B -ntp org.cyclonedx:cyclonedx-maven-plugin:makeAggregateBom
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@v3
+
+      - name: Sign the SBOM (keyless)
+        run: |
+          for f in target/bom.json target/bom.xml; do
+            cosign sign-blob --yes "$f" \
+              --output-signature "$f.sig" \
+              --output-certificate "$f.pem"
+          done
+
+      - name: Upload the SBOM as a build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom
+          path: |
+            target/bom.json
+            target/bom.xml
+            target/bom.json.sig
+            target/bom.json.pem
+            target/bom.xml.sig
+            target/bom.xml.pem
+
+      - name: Attach the signed SBOM to the release
+        if: github.event_name == 'release'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release upload "${{ github.event.release.tag_name }}" \
+            target/bom.json target/bom.json.sig target/bom.json.pem \
+            target/bom.xml target/bom.xml.sig target/bom.xml.pem \
+            --clobber
