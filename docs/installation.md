@@ -11,7 +11,7 @@ An optimized web application archive (.war), with production settings, is releas
 
 ## System Requirements
 
-- [OpenJDK 17+](https://learn.microsoft.com/en-us/java/openjdk/download)
+- [OpenJDK 21+](https://learn.microsoft.com/en-us/java/openjdk/download)
 - [Apache Tomcat 9.0.x](https://tomcat.apache.org)
 - [PostgreSQL 14+](https://www.postgresql.org) with [PostGIS 3.2](https://postgis.net)
 - The web application and optional services have only been tested on Linux, MacOS, and Windows with WSL
@@ -25,8 +25,8 @@ An optimized web application archive (.war), with production settings, is releas
 
 ## Production Steps
 
-- Install the .war into a base container image like "tomcat:9.0-jdk17" (call it ROOT.war for a root web context)
-- Setup PostgreSQL and PostGIS using a managed service like [Amazon RDS for PostgreSQL](https://aws.amazon.com/rds/postgresql/) with [PostGIS extension](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Appendix.PostgreSQL.CommonDBATasks.PostGIS.html); optionally use a containerized PostgreSQL like "postgres:14" and install the needed extensions
+- Install the .war into a base container image like "tomcat:9.0-jdk21" (call it ROOT.war for a root web context)
+- Setup PostgreSQL and PostGIS using a managed service like [Amazon RDS for PostgreSQL](https://aws.amazon.com/rds/postgresql/) with [PostGIS extension](https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/Appendix.PostgreSQL.CommonDBATasks.PostGIS.html); optionally use a containerized PostgreSQL like "postgres:17" and install the needed extensions
 - Create the PostgreSQL database and user credentials (the default name is "simis-cms" but it can be configured)
 - Decide on a directory location for uploaded and generated assests
 - Set the application's environment variables specific to your deployment strategy
