@@ -16,6 +16,8 @@
 
 package com.simisinc.platform.presentation.widgets.cms;
 
+import com.simisinc.platform.application.cms.NumberCommand;
+
 import com.simisinc.platform.domain.model.socialmedia.InstagramMedia;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.persistence.socialmedia.InstagramMediaRepository;
@@ -49,11 +51,12 @@ public class InstagramWidget extends GenericWidget {
     context.getRequest().setAttribute("cardClass", context.getPreferences().get("cardClass"));
 
     // Card size preferences
-    String smallCardCount = context.getPreferences().getOrDefault("smallCardCount", "6");
+    // These are rendered into the slider's javascript config, so require plain integers
+    String smallCardCount = NumberCommand.filterPositiveInteger(context.getPreferences().getOrDefault("smallCardCount", "6"), "6");
     context.getRequest().setAttribute("smallCardCount", smallCardCount);
-    String mediumCardCount = context.getPreferences().getOrDefault("mediumCardCount", smallCardCount);
+    String mediumCardCount = NumberCommand.filterPositiveInteger(context.getPreferences().getOrDefault("mediumCardCount", smallCardCount), smallCardCount);
     context.getRequest().setAttribute("mediumCardCount", mediumCardCount);
-    context.getRequest().setAttribute("largeCardCount", context.getPreferences().getOrDefault("largeCardCount", mediumCardCount));
+    context.getRequest().setAttribute("largeCardCount", NumberCommand.filterPositiveInteger(context.getPreferences().getOrDefault("largeCardCount", mediumCardCount), mediumCardCount));
 
     // Determine the record paging
     int limit = Integer.parseInt(context.getPreferences().getOrDefault("limit", "8"));

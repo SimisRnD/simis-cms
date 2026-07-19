@@ -197,7 +197,9 @@ public class ContentHtmlCommand {
       context.getRequest().setAttribute("largeCardCount", largeCardCount);
     } else {
       // Stacked across by size
-      context.getRequest().setAttribute("cardSize", context.getPreferences().getOrDefault("cardSize", "200px"));
+      // cardSize is rendered into a css width, so require a css length
+      context.getRequest().setAttribute("cardSize",
+          NumberCommand.filterCssLength(context.getPreferences().getOrDefault("cardSize", "200px"), "200px"));
     }
 
     // Standardize the content

@@ -16,6 +16,8 @@
 
 package com.simisinc.platform.presentation.widgets.ecommerce;
 
+import com.simisinc.platform.application.cms.NumberCommand;
+
 import com.simisinc.platform.application.ecommerce.LoadProductListCommand;
 import com.simisinc.platform.domain.model.ecommerce.Product;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
@@ -57,9 +59,10 @@ public class ProductBrowserWidget extends GenericWidget {
     if (StringUtils.isBlank(largeCardCount)) {
       largeCardCount = mediumCardCount;
     }
-    context.getRequest().setAttribute("smallCardCount", smallCardCount);
-    context.getRequest().setAttribute("mediumCardCount", mediumCardCount);
-    context.getRequest().setAttribute("largeCardCount", largeCardCount);
+    // These are rendered into the slider's javascript config, so require plain integers
+    context.getRequest().setAttribute("smallCardCount", NumberCommand.filterPositiveInteger(smallCardCount, "3"));
+    context.getRequest().setAttribute("mediumCardCount", NumberCommand.filterPositiveInteger(mediumCardCount, "3"));
+    context.getRequest().setAttribute("largeCardCount", NumberCommand.filterPositiveInteger(largeCardCount, "3"));
     context.getRequest().setAttribute("cardClass", context.getPreferences().get("cardClass"));
     context.getRequest().setAttribute("cardImageClass", context.getPreferences().get("cardImageClass"));
     context.getRequest().setAttribute("buttonLabel", context.getPreferences().getOrDefault("button", "Shop"));
