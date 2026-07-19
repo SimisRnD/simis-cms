@@ -22,6 +22,7 @@ import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.oauth.OAuthRequestCommand;
 import com.simisinc.platform.application.login.AuthenticateLoginCommand;
 import com.simisinc.platform.application.login.TotpCommand;
+import com.simisinc.platform.application.login.UserMfaRecoveryCodeCommand;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.SiteProperty;
 import com.simisinc.platform.domain.model.login.UserLogin;
@@ -92,13 +93,17 @@ public class LoginWidget extends GenericWidget {
       }
       User user = UserRepository.findByUserId(mfaPendingUserId);
       String code = context.getParameter("code");
-      if (user == null || !user.getMfaEnabled() || !TotpCommand.verifyCode(user.getMfaSecret(), code)) {
+      // Accept either a current TOTP code or a single-use recovery code
+      boolean verified = user != null && user.getMfaEnabled()
+          && (TotpCommand.verifyCode(user.getMfaSecret(), code)
+              || UserMfaRecoveryCodeCommand.consume(user, code));
+      if (!verified) {
         // Record the failed attempt so repeated guesses get locked out
         RateLimitCommand.isUsernameAllowedRightNow(rateLimitKey, true);
         if (StringUtils.isNotBlank(ipAddress)) {
           RateLimitCommand.isIpAllowedRightNow(ipAddress, true);
         }
-        context.setErrorMessage("The authentication code was invalid. Please try again.");
+        context.setErrorMessage("That code was invalid. Enter a code from your authenticator app, or one of your recovery codes.");
         context.getRequest().setAttribute("mfaRequired", "true");
         return context;
       }

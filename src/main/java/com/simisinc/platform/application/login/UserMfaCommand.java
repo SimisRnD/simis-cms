@@ -49,9 +49,21 @@ public class UserMfaCommand {
   public static String startEnrollment(User user) {
     String secret = TotpCommand.generateSecret();
     UserRepository.saveMfaSecret(user, secret);
+    user.setMfaSecret(secret);
+    return buildEnrollmentUri(user);
+  }
+
+  /**
+   * Builds the otpauth:// enrollment URI from the secret already stored on the user. This lets a pending enrollment be
+   * re-displayed as a QR code without generating a new secret.
+   *
+   * @param user the user with a pending (stored, not yet enabled) secret
+   * @return the otpauth:// enrollment URI
+   */
+  public static String buildEnrollmentUri(User user) {
     String issuer = StringUtils.defaultIfBlank(LoadSitePropertyCommand.loadByName("site.name"), "SimIS CMS");
     String account = StringUtils.isNotBlank(user.getEmail()) ? user.getEmail() : user.getUsername();
-    return TotpCommand.generateUri(issuer, account, secret);
+    return TotpCommand.generateUri(issuer, account, user.getMfaSecret());
   }
 
   /**

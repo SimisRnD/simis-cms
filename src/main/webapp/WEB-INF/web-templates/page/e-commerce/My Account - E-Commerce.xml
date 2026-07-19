@@ -28,6 +28,9 @@
         <widget name="myAccountDetails">
           <title>Account Details</title>
         </widget>
+        <widget name="myMfaSettings" hr="true">
+          <title>Two-Factor Authentication</title>
+        </widget>
         <widget name="myEmailPreferences" hr="true">
           <title>Email Preferences</title>
           <subtitle><![CDATA[You’re in control of our communications. Please let us know how often you’d like to hear from us by clicking an option below.]]></subtitle>
