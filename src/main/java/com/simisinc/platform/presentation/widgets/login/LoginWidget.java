@@ -17,6 +17,7 @@
 package com.simisinc.platform.presentation.widgets.login;
 
 import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.RateLimitCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.oauth.OAuthRequestCommand;
 import com.simisinc.platform.application.login.AuthenticateLoginCommand;
@@ -79,9 +80,24 @@ public class LoginWidget extends GenericWidget {
     // Second step: a user who already passed the password check is submitting their MFA code
     Long mfaPendingUserId = (Long) httpSession.getAttribute(SessionConstants.MFA_PENDING_USER_ID);
     if (mfaPendingUserId != null) {
+      // Throttle guesses so the second factor cannot be brute-forced, mirroring the password step.
+      // The account is pinned by the pending user id, so key the per-account limit on that.
+      String ipAddress = context.getRequest().getRemoteAddr();
+      String rateLimitKey = "mfa:" + mfaPendingUserId;
+      if (!RateLimitCommand.isUsernameAllowedRightNow(rateLimitKey, false)
+          || (StringUtils.isNotBlank(ipAddress) && !RateLimitCommand.isIpAllowedRightNow(ipAddress, false))) {
+        context.setErrorMessage(RateLimitCommand.INVALID_ATTEMPTS);
+        context.getRequest().setAttribute("mfaRequired", "true");
+        return context;
+      }
       User user = UserRepository.findByUserId(mfaPendingUserId);
       String code = context.getParameter("code");
       if (user == null || !user.getMfaEnabled() || !TotpCommand.verifyCode(user.getMfaSecret(), code)) {
+        // Record the failed attempt so repeated guesses get locked out
+        RateLimitCommand.isUsernameAllowedRightNow(rateLimitKey, true);
+        if (StringUtils.isNotBlank(ipAddress)) {
+          RateLimitCommand.isIpAllowedRightNow(ipAddress, true);
+        }
         context.setErrorMessage("The authentication code was invalid. Please try again.");
         context.getRequest().setAttribute("mfaRequired", "true");
         return context;

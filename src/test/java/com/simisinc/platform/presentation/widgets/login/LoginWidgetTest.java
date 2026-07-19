@@ -23,6 +23,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
 import com.simisinc.platform.WidgetBase;
+import com.simisinc.platform.application.RateLimitCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.login.AuthenticateLoginCommand;
 import com.simisinc.platform.application.login.TotpCommand;
@@ -33,8 +34,10 @@ import com.simisinc.platform.presentation.controller.SessionConstants;
 import com.simisinc.platform.presentation.controller.UserSession;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -90,9 +93,12 @@ class LoginWidgetTest extends WidgetBase {
 
     LoginWidget widget = new LoginWidget();
     try (MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
-        MockedStatic<TotpCommand> totp = mockStatic(TotpCommand.class)) {
+        MockedStatic<TotpCommand> totp = mockStatic(TotpCommand.class);
+        MockedStatic<RateLimitCommand> rateLimit = mockStatic(RateLimitCommand.class)) {
       userRepo.when(() -> UserRepository.findByUserId(anyLong())).thenReturn(mfaUser(42L));
       totp.when(() -> TotpCommand.verifyCode(anyString(), anyString())).thenReturn(false);
+      rateLimit.when(() -> RateLimitCommand.isUsernameAllowedRightNow(anyString(), anyBoolean())).thenReturn(true);
+      rateLimit.when(() -> RateLimitCommand.isIpAllowedRightNow(anyString(), anyBoolean())).thenReturn(true);
       widget.post(widgetContext);
     }
 
@@ -113,10 +119,13 @@ class LoginWidgetTest extends WidgetBase {
     LoginWidget widget = new LoginWidget();
     try (MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
         MockedStatic<TotpCommand> totp = mockStatic(TotpCommand.class);
+        MockedStatic<RateLimitCommand> rateLimit = mockStatic(RateLimitCommand.class);
         MockedStatic<UserLoginRepository> userLoginRepo = mockStatic(UserLoginRepository.class);
         MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
       userRepo.when(() -> UserRepository.findByUserId(anyLong())).thenReturn(mfaUser(42L));
       totp.when(() -> TotpCommand.verifyCode(anyString(), anyString())).thenReturn(true);
+      rateLimit.when(() -> RateLimitCommand.isUsernameAllowedRightNow(anyString(), anyBoolean())).thenReturn(true);
+      rateLimit.when(() -> RateLimitCommand.isIpAllowedRightNow(anyString(), anyBoolean())).thenReturn(true);
       siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean("site.online")).thenReturn(true);
       widget.post(widgetContext);
     }
@@ -172,6 +181,58 @@ class LoginWidgetTest extends WidgetBase {
     Assertions.assertNotNull(widgetContext.getErrorMessage());
     Assertions.assertNull(widgetContext.getRedirect());
     Assertions.assertNull(session.getAttribute(SessionConstants.MFA_PENDING_USER_ID));
+    verify(response, never()).addCookie(any());
+  }
+
+  @Test
+  void mfaCodeStepIsRateLimitedAfterTooManyAttempts() {
+    session.setAttribute(SessionConstants.MFA_PENDING_USER_ID, 42L);
+    addQueryParameter(widgetContext, "code", "000000");
+    when(request.getRemoteAddr()).thenReturn("203.0.113.7");
+
+    LoginWidget widget = new LoginWidget();
+    try (MockedStatic<TotpCommand> totp = mockStatic(TotpCommand.class);
+        MockedStatic<RateLimitCommand> rateLimit = mockStatic(RateLimitCommand.class)) {
+      // The account has used up its allowance -- the limiter says "no" before any code is checked
+      rateLimit.when(() -> RateLimitCommand.isUsernameAllowedRightNow(eq("mfa:42"), eq(false))).thenReturn(false);
+      widget.post(widgetContext);
+
+      // A brute-forcer never even gets to a code comparison while locked out
+      totp.verify(() -> TotpCommand.verifyCode(anyString(), anyString()), never());
+    }
+
+    // Rejected with the rate-limit message; still pending; nothing established
+    Assertions.assertEquals(RateLimitCommand.INVALID_ATTEMPTS, widgetContext.getErrorMessage());
+    Assertions.assertEquals("true", request.getAttribute("mfaRequired"));
+    Assertions.assertEquals(42L, session.getAttribute(SessionConstants.MFA_PENDING_USER_ID));
+    Assertions.assertNull(widgetContext.getRedirect());
+    verify(response, never()).addCookie(any());
+  }
+
+  @Test
+  void invalidMfaCodeRecordsTheFailedAttempt() {
+    session.setAttribute(SessionConstants.MFA_PENDING_USER_ID, 42L);
+    addQueryParameter(widgetContext, "code", "000000");
+    when(request.getRemoteAddr()).thenReturn("203.0.113.7");
+
+    LoginWidget widget = new LoginWidget();
+    try (MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<TotpCommand> totp = mockStatic(TotpCommand.class);
+        MockedStatic<RateLimitCommand> rateLimit = mockStatic(RateLimitCommand.class)) {
+      userRepo.when(() -> UserRepository.findByUserId(anyLong())).thenReturn(mfaUser(42L));
+      totp.when(() -> TotpCommand.verifyCode(anyString(), anyString())).thenReturn(false);
+      rateLimit.when(() -> RateLimitCommand.isUsernameAllowedRightNow(anyString(), anyBoolean())).thenReturn(true);
+      rateLimit.when(() -> RateLimitCommand.isIpAllowedRightNow(anyString(), anyBoolean())).thenReturn(true);
+      widget.post(widgetContext);
+
+      // A wrong code is recorded against both the account and the IP so repeated guesses lock out
+      rateLimit.verify(() -> RateLimitCommand.isUsernameAllowedRightNow("mfa:42", true));
+      rateLimit.verify(() -> RateLimitCommand.isIpAllowedRightNow("203.0.113.7", true));
+    }
+
+    Assertions.assertNotNull(widgetContext.getErrorMessage());
+    // Still pending: a bad code does not clear the gate or establish a session
+    Assertions.assertEquals(42L, session.getAttribute(SessionConstants.MFA_PENDING_USER_ID));
     verify(response, never()).addCookie(any());
   }
 }
