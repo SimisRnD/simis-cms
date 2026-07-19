@@ -91,6 +91,7 @@ class LoginWidgetTest extends WidgetBase {
   @Test
   void invalidMfaCodeIsRejectedAndDoesNotAuthenticate() {
     session.setAttribute(SessionConstants.MFA_PENDING_USER_ID, 42L);
+    session.setAttribute(SessionConstants.MFA_PENDING_SINCE, System.currentTimeMillis());
     addQueryParameter(widgetContext, "code", "000000");
 
     LoginWidget widget = new LoginWidget();
@@ -117,6 +118,7 @@ class LoginWidgetTest extends WidgetBase {
   @Test
   void validMfaCodeCompletesTheLogin() {
     session.setAttribute(SessionConstants.MFA_PENDING_USER_ID, 42L);
+    session.setAttribute(SessionConstants.MFA_PENDING_SINCE, System.currentTimeMillis());
     session.setAttribute(SessionConstants.USER, new UserSession()); // finalizeLogin logs into this
     addQueryParameter(widgetContext, "code", "123456");
 
@@ -144,6 +146,7 @@ class LoginWidgetTest extends WidgetBase {
   @Test
   void validRecoveryCodeCompletesTheLogin() {
     session.setAttribute(SessionConstants.MFA_PENDING_USER_ID, 42L);
+    session.setAttribute(SessionConstants.MFA_PENDING_SINCE, System.currentTimeMillis());
     session.setAttribute(SessionConstants.USER, new UserSession());
     addQueryParameter(widgetContext, "code", "abcde-fghij");
 
@@ -222,6 +225,7 @@ class LoginWidgetTest extends WidgetBase {
   @Test
   void mfaCodeStepIsRateLimitedAfterTooManyAttempts() {
     session.setAttribute(SessionConstants.MFA_PENDING_USER_ID, 42L);
+    session.setAttribute(SessionConstants.MFA_PENDING_SINCE, System.currentTimeMillis());
     addQueryParameter(widgetContext, "code", "000000");
     when(request.getRemoteAddr()).thenReturn("203.0.113.7");
 
@@ -248,6 +252,7 @@ class LoginWidgetTest extends WidgetBase {
   @Test
   void invalidMfaCodeRecordsTheFailedAttempt() {
     session.setAttribute(SessionConstants.MFA_PENDING_USER_ID, 42L);
+    session.setAttribute(SessionConstants.MFA_PENDING_SINCE, System.currentTimeMillis());
     addQueryParameter(widgetContext, "code", "000000");
     when(request.getRemoteAddr()).thenReturn("203.0.113.7");
 
@@ -273,5 +278,24 @@ class LoginWidgetTest extends WidgetBase {
     Assertions.assertEquals(42L, session.getAttribute(SessionConstants.MFA_PENDING_USER_ID));
     // No session artifacts at all: the response (cookies, headers) was never touched
     verifyNoInteractions(response);
+  }
+
+  @Test
+  void expiredMfaPendingStateFallsBackToPasswordLogin() {
+    session.setAttribute(SessionConstants.MFA_PENDING_USER_ID, 42L);
+    // Stamped an hour ago -- well beyond the 5-minute pending window
+    session.setAttribute(SessionConstants.MFA_PENDING_SINCE, System.currentTimeMillis() - (60L * 60 * 1000));
+    addQueryParameter(widgetContext, "code", "123456");
+
+    LoginWidget widget = new LoginWidget();
+    widget.post(widgetContext);
+
+    // Timed out: the pending markers are cleared, an error is shown, and nothing is established.
+    // (No repository/TOTP mocks needed -- the expiry check returns before any verification runs.)
+    verify(session).removeAttribute(SessionConstants.MFA_PENDING_USER_ID);
+    verify(session).removeAttribute(SessionConstants.MFA_PENDING_SINCE);
+    Assertions.assertNotNull(widgetContext.getErrorMessage());
+    Assertions.assertNull(widgetContext.getRedirect());
+    verify(response, never()).addCookie(any());
   }
 }
