@@ -21,7 +21,7 @@ jobs:
       with:
         # setup-java v2+ requires an explicit distribution (v1 did not)
         distribution: 'temurin'
-        java-version: 17
+        java-version: 21
     - name: Compile the source
       run: ant -noinput -buildfile build.xml clean compile
     - name: Run unit tests
