@@ -29,6 +29,7 @@ import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import org.apache.commons.beanutils.BeanUtils;
+import com.simisinc.platform.application.cms.NumberCommand;
 import org.apache.commons.lang3.StringUtils;
 
 import java.lang.reflect.InvocationTargetException;
@@ -65,10 +66,13 @@ public class CalendarWidget extends GenericWidget {
     String view = context.getPreferences().getOrDefault("view", null);
     if ("small".equals(view)) {
       context.setJsp(SMALL_JSP);
-      context.getRequest().setAttribute("height", context.getPreferences().getOrDefault("height", "550"));
+      // height is rendered into a style value, so require a CSS length
+      context.getRequest().setAttribute("height",
+          NumberCommand.filterCssLength(context.getPreferences().getOrDefault("height", "550"), "550"));
     } else {
       context.setJsp(JSP);
-      context.getRequest().setAttribute("height", context.getPreferences().getOrDefault("height", null));
+      context.getRequest().setAttribute("height",
+          NumberCommand.filterCssLength(context.getPreferences().getOrDefault("height", null), null));
     }
     context.getRequest().setAttribute("defaultView", context.getPreferences().getOrDefault("default", "month"));
     context.getRequest().setAttribute("showEvents", context.getPreferences().getOrDefault("showEvents", "true"));

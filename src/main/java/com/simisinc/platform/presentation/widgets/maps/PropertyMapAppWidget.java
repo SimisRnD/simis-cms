@@ -24,6 +24,7 @@ import com.simisinc.platform.domain.model.maps.MapCredentials;
 import com.simisinc.platform.infrastructure.persistence.datasets.DatasetRepository;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
+import com.simisinc.platform.application.cms.NumberCommand;
 import org.apache.commons.lang3.StringUtils;
 import org.geojson.Feature;
 import org.geojson.GeoJsonObject;
@@ -109,8 +110,8 @@ public class PropertyMapAppWidget extends GenericWidget {
 
     // Determine the center geo point from data, or a preset
 
-    String latitude = context.getPreferences().get("latitude");
-    String longitude = context.getPreferences().get("longitude");
+    String latitude = NumberCommand.filterCoordinate(context.getPreferences().get("latitude"));
+    String longitude = NumberCommand.filterCoordinate(context.getPreferences().get("longitude"));
     if (StringUtils.isBlank(latitude) || StringUtils.isBlank(longitude) ||
         "-1".equals(latitude) || "-1".equals(longitude) ||
         "0.0".equals(latitude) || "0.0".equals(longitude) ||
@@ -121,8 +122,8 @@ public class PropertyMapAppWidget extends GenericWidget {
     context.getRequest().setAttribute("latitude", latitude);
     context.getRequest().setAttribute("longitude", longitude);
 
-    // Determine optional map info
-    String mapHeight = context.getPreferences().getOrDefault("mapHeight", "290px");
+    // Determine optional map info (mapHeight is rendered into a style attribute, so require a CSS length)
+    String mapHeight = NumberCommand.filterCssLength(context.getPreferences().getOrDefault("mapHeight", "290px"), "290px");
     context.getRequest().setAttribute("mapHeight", mapHeight);
     int mapZoomLevelValue = Integer.parseInt(context.getPreferences().getOrDefault("mapZoomLevel", "13"));
     context.getRequest().setAttribute("mapZoomLevel", String.valueOf(mapZoomLevelValue));

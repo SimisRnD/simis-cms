@@ -19,6 +19,7 @@ package com.simisinc.platform.presentation.widgets.dashboard;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
+import com.simisinc.platform.application.cms.NumberCommand;
 import org.apache.commons.lang3.StringUtils;
 
 /**
@@ -49,7 +50,9 @@ public class SupersetWidget extends GenericWidget {
     context.getRequest().setAttribute("dashboardValue", dashboardValue);
     context.getRequest().setAttribute("dashboardEmbeddedId", dashboardEmbeddedId);
     context.getRequest().setAttribute("supersetDomain", supersetDomain);
-    context.getRequest().setAttribute("height", context.getPreferences().getOrDefault("height", "300px"));
+    // height is rendered into a style value, so require a CSS length
+    context.getRequest().setAttribute("height",
+        NumberCommand.filterCssLength(context.getPreferences().getOrDefault("height", "300px"), "300px"));
     boolean hideChartTitle = "true".equals(context.getPreferences().getOrDefault("hideChartTitle", "true"));
     context.getRequest().setAttribute("hideChartTitle", hideChartTitle ? "true" : "false");
     boolean hideChartControls = "true".equals(context.getPreferences().getOrDefault("hideChartControls", "true"));

@@ -21,6 +21,7 @@ import com.simisinc.platform.domain.model.maps.MapCredentials;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 
+import com.simisinc.platform.application.cms.NumberCommand;
 import org.apache.commons.lang3.StringUtils;
 
 /**
@@ -46,9 +47,9 @@ public class MapWidget extends GenericWidget {
     }
     context.getRequest().setAttribute("mapCredentials", mapCredentials);
 
-    // Determine the geo point
-    String latitude = context.getPreferences().get("latitude");
-    String longitude = context.getPreferences().get("longitude");
+    // Determine the geo point (must be numeric coordinates -- they are rendered into page javascript)
+    String latitude = NumberCommand.filterCoordinate(context.getPreferences().get("latitude"));
+    String longitude = NumberCommand.filterCoordinate(context.getPreferences().get("longitude"));
     if (StringUtils.isBlank(latitude) || StringUtils.isBlank(longitude) ||
         "-1".equals(latitude) || "-1".equals(longitude) ||
         "0.0".equals(latitude) || "0.0".equals(longitude) ||
@@ -59,8 +60,8 @@ public class MapWidget extends GenericWidget {
     context.getRequest().setAttribute("latitude", latitude);
     context.getRequest().setAttribute("longitude", longitude);
 
-    // Determine optional map info
-    String mapHeight = context.getPreferences().getOrDefault("mapHeight", "290");
+    // Determine optional map info (mapHeight is rendered as ${mapHeight}px, so require a plain integer)
+    String mapHeight = NumberCommand.filterPositiveInteger(context.getPreferences().getOrDefault("mapHeight", "290"), "290");
     context.getRequest().setAttribute("mapHeight", mapHeight);
     int mapZoomLevelValue = Integer.parseInt(context.getPreferences().getOrDefault("mapZoomLevel", "12"));
     context.getRequest().setAttribute("mapZoomLevel", String.valueOf(mapZoomLevelValue));
