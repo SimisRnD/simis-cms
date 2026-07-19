@@ -52,7 +52,6 @@ public class ImageUploadWidget extends GenericWidget {
     // Prepare to save the file
     String serverRootPath = FileSystemCommand.getFileServerRootPath();
     String serverSubPath = FileSystemCommand.generateFileServerSubPath("images");
-    String serverCompletePath = serverRootPath + serverSubPath;
     String uniqueFilename = FileSystemCommand.generateUniqueFilename(context.getUserId());
 
     // Find the file in the request and save it
@@ -71,15 +70,20 @@ public class ImageUploadWidget extends GenericWidget {
         submittedFilename = StringUtils.replace(submittedFilename, "mceclip0", "clip");
       }
       extension = FileSystemCommand.cleanExtension(FilenameUtils.getExtension(submittedFilename));
-      tempFile = new File(serverCompletePath + uniqueFilename + "." + extension);
+      // Resolve the target inside the file server root so user-derived values cannot traverse outside it
+      tempFile = FileSystemCommand.resolveWithinRoot(serverRootPath, serverSubPath + uniqueFilename + "." + extension);
+      if (tempFile == null) {
+        context.setErrorMessage("The file could not be saved");
+        return context;
+      }
       fileLength = filePart.getSize();
       if (fileLength > 0) {
-        filePart.write(serverCompletePath + uniqueFilename + "." + extension);
+        filePart.write(tempFile.getAbsolutePath());
       }
     } catch (Exception e) {
       // Clean up the file
       if (tempFile != null && tempFile.exists()) {
-        LOG.warn("Deleting an uploaded file: " + serverCompletePath + uniqueFilename + "." + extension);
+        LOG.warn("Deleting an uploaded file: " + tempFile.getPath());
         tempFile.delete();
       }
       return context;
@@ -88,7 +92,7 @@ public class ImageUploadWidget extends GenericWidget {
     // Make sure a file was processed
     if (fileLength <= 0) {
       if (tempFile.exists()) {
-        LOG.warn("Deleting an uploaded file: " + serverCompletePath + uniqueFilename + "." + extension);
+        LOG.warn("Deleting an uploaded file: " + tempFile.getPath());
         tempFile.delete();
       }
       context.setErrorMessage("The file size was 0 and could not be saved");
@@ -113,7 +117,7 @@ public class ImageUploadWidget extends GenericWidget {
     } catch (DataException e) {
       // Clean up the file
       if (tempFile.exists()) {
-        LOG.warn("Deleting an uploaded file: " + serverCompletePath + uniqueFilename);
+        LOG.warn("Deleting an uploaded file: " + tempFile.getPath());
         tempFile.delete();
       }
       context.setErrorMessage(e.getMessage());
