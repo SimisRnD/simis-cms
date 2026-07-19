@@ -85,7 +85,7 @@
           </div>
           <c:if test="${!empty blogPost.imageUrl}">
             <div class="platform-blog-image">
-              <a href="${ctx}/${blog.uniqueId}/${blogPost.uniqueId}"><img alt="Blog post banner image" src="${ctx}${blogPost.imageUrl}"/></a>
+              <a href="${ctx}/${blog.uniqueId}/${blogPost.uniqueId}"><img alt="Blog post banner image" src="<c:out value="${ctx}${blogPost.imageUrl}"/>"/></a>
             </div>
           </c:if>
           <c:if test="${showAuthor eq 'true' || (showDate eq 'true' && !empty blogPost.startDate) || !empty blogPost.tagsList}">

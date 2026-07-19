@@ -39,7 +39,7 @@
           <div class="card-image">
             <c:choose>
               <c:when test="${!empty productImageMap[product.uniqueId]}">
-                <a href="${ctx}${product.productUrl}"><img alt="product image" src="<c:out value="${productImageMap[product.uniqueId]}"/>" /></a>
+                <a href="<c:out value="${ctx}${product.productUrl}"/>"><img alt="product image" src="<c:out value="${productImageMap[product.uniqueId]}"/>" /></a>
               </c:when>
               <c:when test="${!empty product.imageUrl}">
                 <a href="${ctx}${product.productUrl}"><img alt="product image" src="<c:out value="${product.imageUrl}"/>" /></a>

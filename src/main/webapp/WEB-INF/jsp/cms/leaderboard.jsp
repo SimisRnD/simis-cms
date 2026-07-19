@@ -48,9 +48,9 @@
       <td align="center" class="leaderboard-rank">${status.count}</td>
       <td align="left" width="100%" class="leaderboard-name">
         <c:if test="${!empty player['IMAGE']}">
-          <img class="leaderboard-photo" src="${player['IMAGE']}" />
+          <img class="leaderboard-photo" src="<c:out value="${player['IMAGE']}" />" />
         </c:if>
-        ${player['NAME']}
+        <c:out value="${player['NAME']}" />
       </td>
       <td class="leaderboard-points"><fmt:formatNumber value="${player['VALUE']}"/></td>
     </tr>
