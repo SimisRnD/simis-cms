@@ -39,9 +39,20 @@ public class SaveVisitorCommand {
   }
 
   public static Visitor saveVisitor(UserSession userSession) {
-    // Save the record
+    return saveVisitor(userSession, generateVisitorToken());
+  }
+
+  /**
+   * Saves a visitor with a specific token. Used by cookieless analytics, where the token is the daily rotating
+   * visitor hash rather than a persistent random token.
+   *
+   * @param userSession the current session
+   * @param token       the visitor token to store
+   * @return the saved visitor
+   */
+  public static Visitor saveVisitor(UserSession userSession, String token) {
     Visitor visitor = new Visitor();
-    visitor.setToken(generateVisitorToken());
+    visitor.setToken(token);
     visitor.setSessionId(userSession.getSessionId());
     VisitorRepository.add(visitor);
     userSession.setVisitorId(visitor.getId());

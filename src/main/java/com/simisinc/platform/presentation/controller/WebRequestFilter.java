@@ -44,6 +44,7 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.hc.core5.net.InetAddressUtils;
 
 import com.simisinc.platform.application.CreateSessionCommand;
+import com.simisinc.platform.application.DailyVisitorHashCommand;
 import com.simisinc.platform.application.LoadVisitorCommand;
 import com.simisinc.platform.application.SaveSessionCommand;
 import com.simisinc.platform.application.SaveVisitorCommand;
@@ -329,11 +330,17 @@ public class WebRequestFilter implements Filter {
       // Only check for the cookie once per session
       userSession.setCookieChecked(true);
 
-      // Determine if this is a visitor
+      // Determine whether analytics runs cookieless: no persistent visitor cookie, and returning visitors within
+      // the same day are recognized by a daily rotating hash of the request fingerprint instead of a stored token.
+      boolean cookielessAnalytics = LoadSitePropertyCommand.loadByNameAsBoolean("analytics.cookieless");
+      String visitorToken = cookielessAnalytics
+          ? DailyVisitorHashCommand.dailyHash(ipAddress, userAgent, httpServletRequest.getServerName())
+          : cookieVisitorToken;
+
+      // Determine if this is a returning visitor
       Visitor visitor = null;
-      if (StringUtils.isNotBlank(cookieVisitorToken)) {
-        // Found a visitor token
-        visitor = LoadVisitorCommand.loadVisitorByToken(cookieVisitorToken);
+      if (StringUtils.isNotBlank(visitorToken)) {
+        visitor = LoadVisitorCommand.loadVisitorByToken(visitorToken);
         if (visitor != null) {
           userSession.setVisitorId(visitor.getId());
         }
@@ -353,7 +360,9 @@ public class WebRequestFilter implements Filter {
       if (visitor == null) {
         // Create and store a new token
         LOG.debug("Creating a visitor token...");
-        visitor = SaveVisitorCommand.saveVisitor(userSession);
+        visitor = (cookielessAnalytics && StringUtils.isNotBlank(visitorToken))
+            ? SaveVisitorCommand.saveVisitor(userSession, visitorToken)
+            : SaveVisitorCommand.saveVisitor(userSession);
       } else {
         // Make sure the sessionId is set
         if (doSaveSession) {
@@ -361,8 +370,8 @@ public class WebRequestFilter implements Filter {
         }
       }
 
-      {
-        // Create or extend the visitor cookie
+      // Persist the visitor identity in a cookie -- skipped entirely when running cookieless
+      if (!cookielessAnalytics) {
         int oneYearSecondsInt = 365 * 24 * 60 * 60;
         Cookie cookie = new Cookie(CookieConstants.VISITOR_TOKEN, visitor.getToken());
         if (request.isSecure()) {
