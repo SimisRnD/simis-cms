@@ -150,12 +150,15 @@ class LoginWidgetTest extends WidgetBase {
     LoginWidget widget = new LoginWidget();
     try (MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
         MockedStatic<TotpCommand> totp = mockStatic(TotpCommand.class);
+        MockedStatic<RateLimitCommand> rateLimit = mockStatic(RateLimitCommand.class);
         MockedStatic<UserMfaRecoveryCodeCommand> recovery = mockStatic(UserMfaRecoveryCodeCommand.class);
         MockedStatic<UserLoginRepository> userLoginRepo = mockStatic(UserLoginRepository.class);
         MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
       userRepo.when(() -> UserRepository.findByUserId(anyLong())).thenReturn(mfaUser(42L));
       // TOTP fails, but a recovery code is accepted
       totp.when(() -> TotpCommand.verifyCode(anyString(), anyString())).thenReturn(false);
+      rateLimit.when(() -> RateLimitCommand.isUsernameAllowedRightNow(anyString(), anyBoolean())).thenReturn(true);
+      rateLimit.when(() -> RateLimitCommand.isIpAllowedRightNow(anyString(), anyBoolean())).thenReturn(true);
       recovery.when(() -> UserMfaRecoveryCodeCommand.consume(any(), anyString())).thenReturn(true);
       siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean("site.online")).thenReturn(true);
       widget.post(widgetContext);
