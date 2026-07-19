@@ -417,6 +417,52 @@ public class UserRepository {
     return null;
   }
 
+  public static User saveMfaSecret(User record, String secret) {
+    SqlUtils updateValues = new SqlUtils()
+        .add("mfa_secret", secret)
+        .add("mfa_enabled", false)
+        .add("modified", new Timestamp(System.currentTimeMillis()));
+    SqlUtils where = new SqlUtils()
+        .add("user_id = ?", record.getId());
+    if (DB.update(TABLE_NAME, updateValues, where)) {
+      record.setMfaSecret(secret);
+      record.setMfaEnabled(false);
+      return record;
+    }
+    LOG.error("saveMfaSecret failed!");
+    return null;
+  }
+
+  public static User enableMfa(User record) {
+    SqlUtils updateValues = new SqlUtils()
+        .add("mfa_enabled", true)
+        .add("modified", new Timestamp(System.currentTimeMillis()));
+    SqlUtils where = new SqlUtils()
+        .add("user_id = ?", record.getId());
+    if (DB.update(TABLE_NAME, updateValues, where)) {
+      record.setMfaEnabled(true);
+      return record;
+    }
+    LOG.error("enableMfa failed!");
+    return null;
+  }
+
+  public static User disableMfa(User record) {
+    SqlUtils updateValues = new SqlUtils()
+        .add("mfa_secret", (String) null)
+        .add("mfa_enabled", false)
+        .add("modified", new Timestamp(System.currentTimeMillis()));
+    SqlUtils where = new SqlUtils()
+        .add("user_id = ?", record.getId());
+    if (DB.update(TABLE_NAME, updateValues, where)) {
+      record.setMfaSecret(null);
+      record.setMfaEnabled(false);
+      return record;
+    }
+    LOG.error("disableMfa failed!");
+    return null;
+  }
+
   // Remove
   public static boolean remove(User record) {
     try {
@@ -471,6 +517,8 @@ public class UserRepository {
       record.setPostalCode(rs.getString("postal_code"));
       record.setLatitude(rs.getDouble("latitude"));
       record.setLongitude(rs.getDouble("longitude"));
+      record.setMfaSecret(rs.getString("mfa_secret"));
+      record.setMfaEnabled(rs.getBoolean("mfa_enabled"));
       return record;
     } catch (SQLException se) {
       LOG.error("buildRecord", se);
