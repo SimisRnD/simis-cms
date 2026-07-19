@@ -145,6 +145,9 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (20, 'Map Geocoder Service', 'maps.service.geocoder', 'nominatim');
 -- UPDATE site_properties SET property_value = 'mapbox' WHERE property_name = 'maps.service.tiles';
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (30, 'Map Box Access Token', 'maps.mapbox.accesstoken', '');
+-- UPDATE site_properties SET property_value = 'custom' WHERE property_name = 'maps.service.tiles';
+-- No property_type: the url validator rejects the required {z}/{x}/{y} placeholders; FindMapTilesCredentialsCommand validates instead
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (40, 'Custom Map Tiles Url ({z}/{x}/{y} template)', 'maps.custom.tileserver.url', '');
 -- UPDATE site_properties SET property_value = 'google' WHERE property_name = 'maps.service.tiles';
 -- INSERT INTO site_properties (property_label, property_name, property_value) VALUES ('Google Maps Access Token', 'maps.google.accesstoken', '');
 

@@ -28,6 +28,7 @@ public class MapCredentials extends Entity {
 
   private String service = null;
   private String accessToken = null;
+  private String tileServerUrl = null;
 
   public MapCredentials() {
   }
@@ -51,5 +52,13 @@ public class MapCredentials extends Entity {
 
   public void setAccessToken(String accessToken) {
     this.accessToken = accessToken;
+  }
+
+  public String getTileServerUrl() {
+    return tileServerUrl;
+  }
+
+  public void setTileServerUrl(String tileServerUrl) {
+    this.tileServerUrl = tileServerUrl;
   }
 }

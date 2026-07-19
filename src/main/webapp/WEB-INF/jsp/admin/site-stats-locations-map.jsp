@@ -57,12 +57,19 @@
       maxZoom: 12,
       zoomOffset: -1,
       id: 'mapbox/streets-v11',
-    accessToken: '${mapCredentials.accessToken}'
+    accessToken: '${js:escape(mapCredentials.accessToken)}'
+  }).addTo(map${widgetContext.uniqueId});
+  </c:when>
+  <c:when test="${mapCredentials.service eq 'custom'}">
+  L.tileLayer('${mapCredentials.tileServerUrl}', {
+    attribution: 'Map data &copy; <a href="https://openstreetmap.org">OpenStreetMap</a> contributors',
+    minZoom: 1,
+    maxZoom: 10
   }).addTo(map${widgetContext.uniqueId});
   </c:when>
   <c:otherwise>
-  L.tileLayer('http://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-    attribution: 'Map data &copy; <a href="http://openstreetmap.org">OpenStreetMap</a> contributors',
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: 'Map data &copy; <a href="https://openstreetmap.org">OpenStreetMap</a> contributors',
     minZoom: 1,
     maxZoom: 10
   }).addTo(map${widgetContext.uniqueId});
