@@ -27,6 +27,7 @@ import com.simisinc.platform.infrastructure.persistence.items.ItemRepository;
 import com.simisinc.platform.infrastructure.persistence.items.ItemSpecification;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
+import com.simisinc.platform.application.cms.NumberCommand;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.List;
@@ -95,8 +96,8 @@ public class ItemsMapAppWidget extends GenericWidget {
     context.getRequest().setAttribute("itemList", itemList);
 
     // Determine the center geo point from data, or use a preset
-    String latitude = context.getPreferences().get("latitude");
-    String longitude = context.getPreferences().get("longitude");
+    String latitude = NumberCommand.filterCoordinate(context.getPreferences().get("latitude"));
+    String longitude = NumberCommand.filterCoordinate(context.getPreferences().get("longitude"));
     if (StringUtils.isBlank(latitude) || StringUtils.isBlank(longitude)) {
       Session center = GISCommand.centerFromItems(itemList);
       if (center != null) {
@@ -119,8 +120,8 @@ public class ItemsMapAppWidget extends GenericWidget {
       LOG.debug("Items found: " + itemList.size());
     }
 
-    // Determine optional map info
-    String mapHeight = context.getPreferences().getOrDefault("mapHeight", "290px");
+    // Determine optional map info (mapHeight is rendered into a style attribute, so require a CSS length)
+    String mapHeight = NumberCommand.filterCssLength(context.getPreferences().getOrDefault("mapHeight", "290px"), "290px");
     context.getRequest().setAttribute("mapHeight", mapHeight);
     int mapZoomLevelValue = Integer.parseInt(context.getPreferences().getOrDefault("mapZoomLevel", "13"));
     context.getRequest().setAttribute("mapZoomLevel", String.valueOf(mapZoomLevelValue));

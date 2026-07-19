@@ -16,6 +16,10 @@
 
 package com.simisinc.platform.application.cms;
 
+import java.util.regex.Pattern;
+
+import org.apache.commons.lang3.StringUtils;
+
 /**
  * Methods for working with numbers
  *
@@ -23,6 +27,38 @@ package com.simisinc.platform.application.cms;
  * @created 7/11/18 5:18 PM
  */
 public class NumberCommand {
+
+  // A signed decimal coordinate, e.g. 38.9, -77.03
+  private static final Pattern COORDINATE = Pattern.compile("^-?\\d{1,3}(\\.\\d{1,15})?$");
+  // Digits only, for a pixel dimension the template renders as ${value}px
+  private static final Pattern POSITIVE_INTEGER = Pattern.compile("^\\d{1,6}$");
+  // A CSS length: digits, optional decimal, optional unit (px, em, rem, %, vh, vw)
+  private static final Pattern CSS_LENGTH = Pattern.compile("^\\d{1,6}(\\.\\d{1,3})?(px|em|rem|%|vh|vw)?$");
+
+  /** Returns the value when it is a valid geo coordinate, otherwise null. These values are rendered into
+   * page javascript, so anything non-numeric must not reach the template. */
+  public static String filterCoordinate(String value) {
+    if (StringUtils.isNotBlank(value) && COORDINATE.matcher(value).matches()) {
+      return value;
+    }
+    return null;
+  }
+
+  /** Returns the value when it is a plain positive integer, otherwise the default. */
+  public static String filterPositiveInteger(String value, String defaultValue) {
+    if (StringUtils.isNotBlank(value) && POSITIVE_INTEGER.matcher(value).matches()) {
+      return value;
+    }
+    return defaultValue;
+  }
+
+  /** Returns the value when it is a valid CSS length (number + optional unit), otherwise the default. */
+  public static String filterCssLength(String value, String defaultValue) {
+    if (StringUtils.isNotBlank(value) && CSS_LENGTH.matcher(value).matches()) {
+      return value;
+    }
+    return defaultValue;
+  }
 
   /**
    * Returns a string value of a number, with a suffix
