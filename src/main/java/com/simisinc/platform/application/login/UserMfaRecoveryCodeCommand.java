@@ -87,8 +87,9 @@ public class UserMfaRecoveryCodeCommand {
     if (match == null) {
       return false;
     }
-    UserMfaRecoveryCodeRepository.markUsed(match);
-    return true;
+    // Consume atomically: markUsed returns true only when THIS call flips the row from unused,
+    // so a concurrent request racing on the same code cannot also succeed (single-use guarantee).
+    return UserMfaRecoveryCodeRepository.markUsed(match);
   }
 
   /**
