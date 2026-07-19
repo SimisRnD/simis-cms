@@ -76,9 +76,7 @@
     <!-- <kafka.version>3.5.1</kafka.version> -->
     <libphonenumber.version>9.0.34</libphonenumber.version>
     <lombok.version>1.18.46</lombok.version>
-    <netty.version>4.2.16.Final</netty.version>
     <postgresql.version>42.7.13</postgresql.version>
-    <pushy.version>0.15.6</pushy.version>
     <rabbitmq.version>5.34.0</rabbitmq.version>
     <resilience4j.version>2.4.0</resilience4j.version>
     <restfb.version>2023.8.0</restfb.version>
@@ -222,36 +220,6 @@
       <groupId>de.grundid.opendatalab</groupId>
       <artifactId>geojson-jackson</artifactId>
       <version>${geojson.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>io.netty</groupId>
-      <artifactId>netty-codec-http</artifactId>
-      <version>${netty.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>io.netty</groupId>
-      <artifactId>netty-codec-http2</artifactId>
-      <version>${netty.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>io.netty</groupId>
-      <artifactId>netty-handler</artifactId>
-      <version>${netty.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>io.netty</groupId>
-      <artifactId>netty-handler-proxy</artifactId>
-      <version>${netty.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>io.netty</groupId>
-      <artifactId>netty-resolver-dns</artifactId>
-      <version>${netty.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.eatthepath</groupId>
-      <artifactId>pushy</artifactId>
-      <version>${pushy.version}</version>
     </dependency>
     <dependency>
       <groupId>com.zaxxer</groupId>
