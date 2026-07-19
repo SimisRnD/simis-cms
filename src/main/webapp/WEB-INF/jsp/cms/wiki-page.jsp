@@ -26,7 +26,21 @@
 <link rel="stylesheet" href="${ctx}/javascript/prism-1.29.0/prism.css">
 <script src="${ctx}/javascript/prism-1.29.0/prism.min.js"></script>
 <c:if test="${mermaid eq 'true'}">
-<script src="${ctx}/javascript/mermaid-10.6.1/mermaid.min.js"></script>
+<script src="${ctx}/javascript/mermaid-10.9.6/mermaid.min.js"></script>
+<script>
+  mermaid.initialize({ startOnLoad: false, securityLevel: 'strict' });
+  document.addEventListener('DOMContentLoaded', function () {
+    // The markdown renderer emits ```mermaid fences as <pre><code class="language-mermaid">;
+    // convert them to the <pre class="mermaid"> elements which mermaid renders
+    document.querySelectorAll('pre > code.language-mermaid').forEach(function (code) {
+      var diagram = document.createElement('pre');
+      diagram.className = 'mermaid';
+      diagram.textContent = code.textContent;
+      code.parentElement.replaceWith(diagram);
+    });
+    mermaid.run();
+  });
+</script>
 </c:if>
 <c:choose>
   <c:when test="${wiki.startingPage eq wikiPage.id && !empty title}">
