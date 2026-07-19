@@ -141,6 +141,8 @@ class LoginWidgetTest extends WidgetBase {
     Assertions.assertEquals("/my-page", widgetContext.getRedirect());
     Assertions.assertNull(widgetContext.getErrorMessage());
     verify(response, times(1)).addCookie(any());
+    // Session fixation defense: the servlet session id is rotated when the login is finalized.
+    verify(request).changeSessionId();
   }
 
   @Test

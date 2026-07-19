@@ -171,6 +171,9 @@ public class LoginWidget extends GenericWidget {
 
     // Update the user's session
     UserSession userSession = (UserSession) context.getRequest().getSession().getAttribute(SessionConstants.USER);
+    // Rotate the servlet session id now that the user has authenticated: any session id an
+    // attacker may have fixed on the browser before login is invalidated (session-fixation defense).
+    context.getRequest().changeSessionId();
     userSession.login(user);
 
     // Track the login

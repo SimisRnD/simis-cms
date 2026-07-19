@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Context>
+  <!--
+    Apply SameSite=Lax to every cookie the application sets (JSESSIONID and the app cookies
+    userToken/visitorToken/cartToken/viewMode), which have no SameSite attribute otherwise.
+    Lax (not Strict) is deliberate: it still sends the session cookie on top-level navigations
+    from external links, so normal "click a link into the site" behavior is preserved, while
+    blocking the cookie on cross-site subrequests -- a CSRF-adjacent hardening (defense in depth
+    alongside the existing synchronizer-token check).
+  -->
+  <CookieProcessor className="org.apache.tomcat.util.http.Rfc6265CookieProcessor" sameSiteCookies="lax" />
+</Context>
