@@ -25,6 +25,7 @@ import org.apache.commons.mail.EmailConstants;
 import org.apache.commons.mail.ImageHtmlEmail;
 import org.apache.commons.mail.resolver.DataSourceUrlResolver;
 
+import java.net.URI;
 import java.net.URL;
 
 /**
@@ -79,7 +80,7 @@ public class EmailCommand {
     // Define your base URL to resolve relative resource locations
     if (StringUtils.isNotBlank(siteUrl)) {
       try {
-        URL url = new URL(siteUrl);
+        URL url = URI.create(siteUrl).toURL();
         email.setDataSourceResolver(new DataSourceUrlResolver(url));
       } catch (Exception e) {
         LOG.error("Could not set DataSourceUrlResolver for url: " + siteUrl);
