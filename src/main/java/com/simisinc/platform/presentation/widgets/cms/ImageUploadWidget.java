@@ -70,7 +70,7 @@ public class ImageUploadWidget extends GenericWidget {
       if (submittedFilename.startsWith("mceclip0")) {
         submittedFilename = StringUtils.replace(submittedFilename, "mceclip0", "clip");
       }
-      extension = FilenameUtils.getExtension(submittedFilename);
+      extension = FileSystemCommand.cleanExtension(FilenameUtils.getExtension(submittedFilename));
       tempFile = new File(serverCompletePath + uniqueFilename + "." + extension);
       fileLength = filePart.getSize();
       if (fileLength > 0) {

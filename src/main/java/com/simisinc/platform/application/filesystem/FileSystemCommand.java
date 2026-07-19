@@ -26,6 +26,9 @@ import org.apache.commons.logging.LogFactory;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.InputStream;
+import java.nio.file.InvalidPathException;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.security.MessageDigest;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -118,6 +121,45 @@ public class FileSystemCommand {
     return System.currentTimeMillis() + "-" + filenameUUID + "-" + appendValue;
   }
 
+  /**
+   * Reduces a file extension to a safe token (letters and digits only) so it cannot carry path separators or
+   * traversal sequences ("/", "\\", "..") into a file path.
+   *
+   * @param extension the raw extension, typically derived from a user-supplied filename
+   * @return the extension with everything but ASCII letters and digits removed (never null)
+   */
+  public static String cleanExtension(String extension) {
+    if (extension == null) {
+      return "";
+    }
+    return extension.replaceAll("[^A-Za-z0-9]", "");
+  }
+
+  /**
+   * Resolves a path underneath a trusted root and verifies the result stays within that root, guarding against path
+   * traversal. Preserves the existing "root + relativePath" concatenation so legitimate paths resolve unchanged.
+   *
+   * @param rootPath the trusted base directory (for example the file server root)
+   * @param relativePath the stored or supplied path to resolve beneath it
+   * @return the resolved File when it is safely inside the root, or null when it escapes or cannot be resolved
+   */
+  public static File resolveWithinRoot(String rootPath, String relativePath) {
+    if (StringUtils.isBlank(rootPath) || relativePath == null) {
+      return null;
+    }
+    try {
+      Path root = Paths.get(rootPath).toAbsolutePath().normalize();
+      Path resolved = root.resolve(relativePath).normalize();
+      if (resolved.startsWith(root)) {
+        return resolved.toFile();
+      }
+      LOG.warn("Rejected a file path outside the file server root: " + relativePath);
+    } catch (InvalidPathException e) {
+      LOG.warn("Could not resolve a file path: " + relativePath);
+    }
+    return null;
+  }
+
   public static String getFileChecksum(File file) {
     try {
       String method = "SHA-512";
@@ -149,7 +191,8 @@ public class FileSystemCommand {
     String serverSubPath = FileSystemCommand.generateFileServerSubPath(folderName);
     String serverCompletePath = serverRootPath + serverSubPath;
     String uniqueFilename = FileSystemCommand.generateUniqueFilename(userId);
-    return new File(serverCompletePath + uniqueFilename + (extension != null ? "." + extension : ""));
+    String safeExtension = cleanExtension(extension);
+    return new File(serverCompletePath + uniqueFilename + (StringUtils.isNotBlank(safeExtension) ? "." + safeExtension : ""));
   }
 
   public static boolean isModified(File file, long previousModifiedValue) {
