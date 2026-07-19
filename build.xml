@@ -169,6 +169,12 @@
         <include name="javascript/**"/>
       </fileset>
     </copy>
+    <!-- META-INF context config (e.g. the SameSite CookieProcessor) -->
+    <copy todir="${target.dir}/${project}/META-INF">
+      <fileset dir="${web.dir}/META-INF">
+        <include name="context.xml"/>
+      </fileset>
+    </copy>
     <!-- Prepare the JSPs-->
     <copy todir="${target.dir}/${project}/WEB-INF/jsp">
       <fileset dir="${web.dir}/WEB-INF/jsp"/>
