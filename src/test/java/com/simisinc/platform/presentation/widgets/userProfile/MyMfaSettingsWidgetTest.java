@@ -16,12 +16,15 @@
 
 package com.simisinc.platform.presentation.widgets.userProfile;
 
+import java.util.List;
+
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
 import com.simisinc.platform.WidgetBase;
 import com.simisinc.platform.application.login.UserMfaCommand;
+import com.simisinc.platform.application.login.UserMfaRecoveryCodeCommand;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.infrastructure.persistence.UserRepository;
 
@@ -77,13 +80,16 @@ class MyMfaSettingsWidgetTest extends WidgetBase {
     user.setId(1L);
     user.setMfaEnabled(true);
     user.setMfaSecret(SECRET);
-    try (MockedStatic<UserRepository> repo = mockStatic(UserRepository.class)) {
+    try (MockedStatic<UserRepository> repo = mockStatic(UserRepository.class);
+        MockedStatic<UserMfaRecoveryCodeCommand> recovery = mockStatic(UserMfaRecoveryCodeCommand.class)) {
       repo.when(() -> UserRepository.findByUserId(anyLong())).thenReturn(user);
+      recovery.when(() -> UserMfaRecoveryCodeCommand.countRemaining(user)).thenReturn(8L);
       new MyMfaSettingsWidget().execute(widgetContext);
     }
     Assertions.assertEquals("true", request.getAttribute("mfaEnabled"));
     // Enabled means enrollment is finished, not in progress.
     Assertions.assertEquals("false", request.getAttribute("mfaEnrolling"));
+    Assertions.assertEquals(8L, request.getAttribute("recoveryRemaining"));
   }
 
   @Test
@@ -109,10 +115,14 @@ class MyMfaSettingsWidgetTest extends WidgetBase {
     User user = new User();
     user.setId(1L);
     try (MockedStatic<UserRepository> repo = mockStatic(UserRepository.class);
-        MockedStatic<UserMfaCommand> mfa = mockStatic(UserMfaCommand.class)) {
+        MockedStatic<UserMfaCommand> mfa = mockStatic(UserMfaCommand.class);
+        MockedStatic<UserMfaRecoveryCodeCommand> recovery = mockStatic(UserMfaRecoveryCodeCommand.class)) {
       repo.when(() -> UserRepository.findByUserId(anyLong())).thenReturn(user);
       mfa.when(() -> UserMfaCommand.confirmEnrollment(user, "123456")).thenReturn(true);
+      recovery.when(() -> UserMfaRecoveryCodeCommand.generate(user)).thenReturn(List.of("abcde-fghij", "klmno-pqrst"));
       new MyMfaSettingsWidget().post(widgetContext);
+      // Enabling MFA issues recovery codes
+      recovery.verify(() -> UserMfaRecoveryCodeCommand.generate(user));
     }
     Assertions.assertEquals("/my-account", widgetContext.getRedirect());
     Assertions.assertNotNull(widgetContext.getSuccessMessage());
@@ -148,10 +158,31 @@ class MyMfaSettingsWidgetTest extends WidgetBase {
     user.setId(1L);
     user.setMfaEnabled(true);
     try (MockedStatic<UserRepository> repo = mockStatic(UserRepository.class);
-        MockedStatic<UserMfaCommand> mfa = mockStatic(UserMfaCommand.class)) {
+        MockedStatic<UserMfaCommand> mfa = mockStatic(UserMfaCommand.class);
+        MockedStatic<UserMfaRecoveryCodeCommand> recovery = mockStatic(UserMfaRecoveryCodeCommand.class)) {
       repo.when(() -> UserRepository.findByUserId(anyLong())).thenReturn(user);
       new MyMfaSettingsWidget().post(widgetContext);
       mfa.verify(() -> UserMfaCommand.disable(user));
+      // Turning off MFA also clears the recovery codes
+      recovery.verify(() -> UserMfaRecoveryCodeCommand.clear(user));
+    }
+    Assertions.assertEquals("/my-account", widgetContext.getRedirect());
+    Assertions.assertNotNull(widgetContext.getSuccessMessage());
+  }
+
+  @Test
+  void postRegenerateReplacesCodesAndRedirects() {
+    addQueryParameter(widgetContext, "action", "regenerate");
+    when(request.getRequestURI()).thenReturn("/my-account");
+    User user = new User();
+    user.setId(1L);
+    user.setMfaEnabled(true);
+    try (MockedStatic<UserRepository> repo = mockStatic(UserRepository.class);
+        MockedStatic<UserMfaRecoveryCodeCommand> recovery = mockStatic(UserMfaRecoveryCodeCommand.class)) {
+      repo.when(() -> UserRepository.findByUserId(anyLong())).thenReturn(user);
+      recovery.when(() -> UserMfaRecoveryCodeCommand.generate(user)).thenReturn(List.of("abcde-fghij"));
+      new MyMfaSettingsWidget().post(widgetContext);
+      recovery.verify(() -> UserMfaRecoveryCodeCommand.generate(user));
     }
     Assertions.assertEquals("/my-account", widgetContext.getRedirect());
     Assertions.assertNotNull(widgetContext.getSuccessMessage());
