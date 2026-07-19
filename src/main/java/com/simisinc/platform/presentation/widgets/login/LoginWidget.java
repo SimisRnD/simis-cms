@@ -58,6 +58,10 @@ public class LoginWidget extends GenericWidget {
 
   static String JSP = "/login/login-form.jsp";
 
+  // How long a user has to enter their MFA code after passing the password step before the
+  // pending state expires and they must sign in with their password again.
+  static final long MFA_PENDING_TIMEOUT_MS = 5 * 60 * 1000L;
+
   public WidgetContext execute(WidgetContext context) {
     // Standard request items
     context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));
@@ -65,12 +69,32 @@ public class LoginWidget extends GenericWidget {
     if (OAuthRequestCommand.isEnabled()) {
       context.getRequest().setAttribute("oAuthProvider", LoadSitePropertyCommand.loadByName("oauth.provider"));
     }
-    // If a user passed the password check and is waiting to enter an MFA code, show that prompt
-    if (context.getRequest().getSession().getAttribute(SessionConstants.MFA_PENDING_USER_ID) != null) {
-      context.getRequest().setAttribute("mfaRequired", "true");
+    // If a user passed the password check and is waiting to enter an MFA code, show that prompt --
+    // unless the pending state has timed out, in which case clear it and show the normal sign-in.
+    HttpSession session = context.getRequest().getSession();
+    if (session.getAttribute(SessionConstants.MFA_PENDING_USER_ID) != null) {
+      if (isMfaPendingExpired(session)) {
+        clearMfaPending(session);
+      } else {
+        context.getRequest().setAttribute("mfaRequired", "true");
+      }
     }
     context.setJsp(JSP);
     return context;
+  }
+
+  /** True when an MFA-pending state exists but has passed the timeout window (or was never stamped). */
+  private boolean isMfaPendingExpired(HttpSession session) {
+    if (session.getAttribute(SessionConstants.MFA_PENDING_USER_ID) == null) {
+      return false;
+    }
+    Long pendingSince = (Long) session.getAttribute(SessionConstants.MFA_PENDING_SINCE);
+    return pendingSince == null || System.currentTimeMillis() - pendingSince > MFA_PENDING_TIMEOUT_MS;
+  }
+
+  private void clearMfaPending(HttpSession session) {
+    session.removeAttribute(SessionConstants.MFA_PENDING_USER_ID);
+    session.removeAttribute(SessionConstants.MFA_PENDING_SINCE);
   }
 
   public WidgetContext post(WidgetContext context) {
@@ -81,6 +105,13 @@ public class LoginWidget extends GenericWidget {
     // Second step: a user who already passed the password check is submitting their MFA code
     Long mfaPendingUserId = (Long) httpSession.getAttribute(SessionConstants.MFA_PENDING_USER_ID);
     if (mfaPendingUserId != null) {
+      // Expire a stale MFA-pending state rather than leaving the second-factor gate open
+      // indefinitely -- the user must re-enter their password to start over.
+      if (isMfaPendingExpired(httpSession)) {
+        clearMfaPending(httpSession);
+        context.setErrorMessage("Your sign-in timed out. Please enter your email and password again.");
+        return context;
+      }
       // Throttle guesses so the second factor cannot be brute-forced, mirroring the password step.
       // The account is pinned by the pending user id, so key the per-account limit on that.
       String ipAddress = context.getRequest().getRemoteAddr();
@@ -107,7 +138,7 @@ public class LoginWidget extends GenericWidget {
         context.getRequest().setAttribute("mfaRequired", "true");
         return context;
       }
-      httpSession.removeAttribute(SessionConstants.MFA_PENDING_USER_ID);
+      clearMfaPending(httpSession);
       return finalizeLogin(context, user, stayLoggedIn);
     }
 
@@ -128,6 +159,7 @@ public class LoginWidget extends GenericWidget {
     // If MFA is enabled, do not establish the session yet -- hold the login and require a valid code first
     if (user.getMfaEnabled() && StringUtils.isNotBlank(user.getMfaSecret())) {
       httpSession.setAttribute(SessionConstants.MFA_PENDING_USER_ID, user.getId());
+      httpSession.setAttribute(SessionConstants.MFA_PENDING_SINCE, System.currentTimeMillis());
       context.getRequest().setAttribute("mfaRequired", "true");
       return context;
     }
