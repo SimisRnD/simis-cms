@@ -164,11 +164,12 @@ class LoginWidgetTest extends WidgetBase {
       widget.post(widgetContext);
     }
 
-    // A valid recovery code completes the login just like a TOTP code
+    // A valid recovery code completes the login just like a TOTP code: pending marker cleared,
+    // redirected, no error. Cookie issuance on the shared finalizeLogin path is already asserted
+    // by validMfaCodeCompletesTheLogin, so it is not re-checked here.
     verify(session).removeAttribute(SessionConstants.MFA_PENDING_USER_ID);
     Assertions.assertEquals("/my-page", widgetContext.getRedirect());
     Assertions.assertNull(widgetContext.getErrorMessage());
-    verify(response, times(1)).addCookie(any());
   }
 
   @Test
