@@ -1,7 +1,12 @@
-# Generates a CycloneDX SBOM, signs it keylessly with Sigstore/cosign, and
-# attaches it to each published release. The cyclonedx-maven-plugin is already
-# configured in pom.xml (makeAggregateBom at the package phase); this workflow
-# runs it, signs the output, and publishes it.
+# Generates a CycloneDX SBOM from the BUILT WAR, signs it keylessly with
+# Sigstore/cosign, and attaches it to each published release.
+#
+# The SBOM is produced by scanning the built WAR with Syft rather than by
+# reading pom.xml. The shipped WAR is assembled by Ant from the vendored
+# lib/build/*.jar files, and those can differ from the pom's declared versions
+# -- so a pom-derived SBOM would describe an artifact that was never shipped.
+# Scanning the actual WAR makes the SBOM an accurate manifest of what ships.
+# The WAR name is set by the build.xml "project" property (simis-cms.war).
 name: SBOM
 
 on:
@@ -26,10 +31,20 @@ jobs:
         with:
           distribution: 'temurin'
           java-version: 21
-          cache: maven
 
-      - name: Generate the CycloneDX SBOM
-        run: mvn -B -ntp org.cyclonedx:cyclonedx-maven-plugin:makeAggregateBom
+      # Build the same artifact that ships, so the SBOM describes exactly it
+      - name: Package the web application
+        run: ant -noinput -buildfile build.xml -lib lib/war package
+
+      - name: Install Syft
+        uses: anchore/sbom-action/download-syft@v0
+
+      # Scan the built WAR (its WEB-INF/lib/*.jar) and emit CycloneDX json + xml
+      - name: Generate the CycloneDX SBOM from the built WAR
+        run: |
+          syft target/simis-cms.war \
+            -o cyclonedx-json=target/bom.json \
+            -o cyclonedx-xml=target/bom.xml
 
       - name: Install cosign
         uses: sigstore/cosign-installer@v3
