@@ -451,7 +451,7 @@
       <column class="medium-5 cell">
         <widget name="content" class="callout primary radius">
           <html><![CDATA[<h4>About Map Services</h4>
-          <ul><li>The Tiles service value can be 'openstreetmap' or 'mapbox'</li><li>The Geocoder service value can be 'nominatim' or 'mapbox'</li></ul>
+          <ul><li>The Tiles service value can be 'openstreetmap', 'mapbox', or 'custom' (a self-hosted tile server; set the Custom Map Tiles Url to a template like https://tiles.example.com/{z}/{x}/{y}.png)</li><li>The Geocoder service value can be 'nominatim' or 'mapbox'</li></ul>
 <h5>Nominatim Info</h5><p>No heavy uses; 1 request per second maximum.</p>
 <h5>Mapbox Info</h5><p>The Free to start plan allows: 50,000 map views / mo and 50,000 geocode requests / mo. Rate-limited to 600 per minute.</p>
 ]]></html>
