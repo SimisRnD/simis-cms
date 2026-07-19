@@ -153,6 +153,12 @@ public class PageServlet extends HttpServlet {
     response.setHeader("X-Frame-Options", "SAMEORIGIN");
     response.setHeader("X-Content-Type-Options", "nosniff");
     response.setHeader("X-XSS-Protection", "1; mode=block");
+    // A conservative Content-Security-Policy baseline. These directives harden real attack surface -- injected
+    // base tags, plugin/object embedding, and clickjacking -- without restricting script or style sources, so the
+    // existing inline scripts and author-embedded content are unaffected. frame-ancestors mirrors the
+    // X-Frame-Options above for modern browsers. A stricter script-src policy needs nonces across the JSPs and is
+    // left to a later, report-only-first rollout.
+    response.setHeader("Content-Security-Policy", "base-uri 'self'; object-src 'none'; frame-ancestors 'self'");
     // Advertise HTTPS-only via HSTS, but only when the deployment is configured for SSL. Sending this from a
     // site that cannot serve HTTPS would make browsers refuse it for the max-age, so it is gated on system.ssl
     // rather than the per-request scheme, which also stays correct behind a TLS-terminating proxy.
