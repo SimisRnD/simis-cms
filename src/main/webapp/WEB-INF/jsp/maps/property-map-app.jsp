@@ -109,7 +109,7 @@
         <select class="input-group-field" id="zoning" onchange="updateMap${widgetContext.uniqueId}()">
           <option value=""></option>
           <c:forEach items="${zoningList}" var="zone">
-            <option value="${js:escape(zone)}"><c:out value="${zone}" /></option>
+            <option value="<c:out value="${zone}"/>"><c:out value="${zone}" /></option>
           </c:forEach>
         </select>
       </div>

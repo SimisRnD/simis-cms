@@ -37,10 +37,10 @@
         <div class="card-image<c:if test="${!empty cardImageClass}"> <c:out value="${cardImageClass}" /></c:if>">
           <c:choose>
             <c:when test="${!empty productImageMap[product.uniqueId]}">
-              <a href="${ctx}${product.productUrl}"><img alt="product image" src="<c:out value="${productImageMap[product.uniqueId]}"/>" /></a>
+              <a href="<c:out value="${ctx}${product.productUrl}"/>"><img alt="product image" src="<c:out value="${productImageMap[product.uniqueId]}"/>" /></a>
             </c:when>
             <c:when test="${!empty product.imageUrl}">
-              <a href="${ctx}${product.productUrl}"><img alt="product image" src="<c:out value="${product.imageUrl}"/>" /></a>
+              <a href="<c:out value="${ctx}${product.productUrl}"/>"><img alt="product image" src="<c:out value="${product.imageUrl}"/>" /></a>
             </c:when>
             <c:otherwise>
               <a href="${ctx}${product.productUrl}"><img alt="product image placeholder" src="https://placehold.it/500x300"></a>

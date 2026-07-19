@@ -63,10 +63,10 @@
           <input type="text" name="order${status.count}" value="${status.count}" class="no-gap" />
         </td>
         <td>
-          <input type="text" name="name${status.count}" value="${tab.name}" class="no-gap" />
+          <input type="text" name="name${status.count}" value="<c:out value="${tab.name}"/>" class="no-gap" />
         </td>
         <td>
-          <input type="text" name="link${status.count}" value="${tab.link}" class="no-gap" />
+          <input type="text" name="link${status.count}" value="<c:out value="${tab.link}"/>" class="no-gap" />
         </td>
         <%--
         <td>

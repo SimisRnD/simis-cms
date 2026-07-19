@@ -43,7 +43,7 @@
               <li><a href="#"><c:out value="${menuTab.name}" /></a></li>
             </c:when>
             <c:otherwise>
-              <li><a href="${ctx}${menuTab.link}"><c:out value="${menuTab.name}" /></a></li>
+              <li><a href="<c:out value="${ctx}${menuTab.link}"/>"><c:out value="${menuTab.name}" /></a></li>
             </c:otherwise>
           </c:choose>
         </c:forEach>
@@ -93,12 +93,12 @@
                     <a href="#"><c:out value="${menuTab.name}" /></a>
                   </c:when>
                   <c:otherwise>
-                    <a href="${ctx}${menuTab.link}"><c:out value="${menuTab.name}" /></a>
+                    <a href="<c:out value="${ctx}${menuTab.link}"/>"><c:out value="${menuTab.name}" /></a>
                   </c:otherwise>
                 </c:choose>
                 <ul class="menu vertical">
                   <c:forEach items="${menuTab.menuItemList}" var="menuItem">
-                    <li><a href="${ctx}${menuItem.link}"><c:out value="${menuItem.name}" /></a></li>
+                    <li><a href="<c:out value="${ctx}${menuItem.link}"/>"><c:out value="${menuItem.name}" /></a></li>
                   </c:forEach>
                 </ul>
               </li>
@@ -110,7 +110,7 @@
                     <a href="#"><c:out value="${menuTab.name}" /></a>
                   </c:when>
                   <c:otherwise>
-                    <a href="${ctx}${menuTab.link}"><c:out value="${menuTab.name}" /></a>
+                    <a href="<c:out value="${ctx}${menuTab.link}"/>"><c:out value="${menuTab.name}" /></a>
                   </c:otherwise>
                 </c:choose>
               </li>
@@ -237,12 +237,12 @@
                                 <a href="#"><c:out value="${menuTab.name}" /></a>
                               </c:when>
                               <c:otherwise>
-                                <a href="${ctx}${menuTab.link}"><c:out value="${menuTab.name}" /></a>
+                                <a href="<c:out value="${ctx}${menuTab.link}"/>"><c:out value="${menuTab.name}" /></a>
                               </c:otherwise>
                             </c:choose>
                             <ul class="menu vertical">
                               <c:forEach items="${menuTab.menuItemList}" var="menuItem">
-                                <li><i class="fa fa-angle-right"></i><a href="${ctx}${menuItem.link}"><c:out value="${menuItem.name}" /></a></li>
+                                <li><i class="fa fa-angle-right"></i><a href="<c:out value="${ctx}${menuItem.link}"/>"><c:out value="${menuItem.name}" /></a></li>
                               </c:forEach>
                             </ul>
                           </li>
@@ -254,7 +254,7 @@
                                 <a href="#"><c:out value="${menuTab.name}" /></a>
                               </c:when>
                               <c:otherwise>
-                                <a href="${ctx}${menuTab.link}"><c:out value="${menuTab.name}" /></a>
+                                <a href="<c:out value="${ctx}${menuTab.link}"/>"><c:out value="${menuTab.name}" /></a>
                               </c:otherwise>
                             </c:choose>
                           </li>
@@ -354,12 +354,12 @@
                     <a href="#"><c:out value="${menuTab.name}" /></a>
                   </c:when>
                   <c:otherwise>
-                    <a href="${ctx}${menuTab.link}"><c:out value="${menuTab.name}" /></a>
+                    <a href="<c:out value="${ctx}${menuTab.link}"/>"><c:out value="${menuTab.name}" /></a>
                   </c:otherwise>
                 </c:choose>
                 <ul class="menu vertical">
                   <c:forEach items="${menuTab.menuItemList}" var="menuItem">
-                    <li><a href="${ctx}${menuItem.link}"><c:out value="${menuItem.name}" /></a></li>
+                    <li><a href="<c:out value="${ctx}${menuItem.link}"/>"><c:out value="${menuItem.name}" /></a></li>
                   </c:forEach>
                 </ul>
               </li>
@@ -371,7 +371,7 @@
                     <a href="#"><c:out value="${menuTab.name}" /></a>
                   </c:when>
                   <c:otherwise>
-                    <a href="${ctx}${menuTab.link}"><c:out value="${menuTab.name}" /></a>
+                    <a href="<c:out value="${ctx}${menuTab.link}"/>"><c:out value="${menuTab.name}" /></a>
                   </c:otherwise>
                 </c:choose>
               </li>
@@ -443,12 +443,12 @@
                           <a href="#"><c:out value="${menuTab.name}" /></a>
                         </c:when>
                         <c:otherwise>
-                          <a href="${ctx}${menuTab.link}"><c:out value="${menuTab.name}" /></a>
+                          <a href="<c:out value="${ctx}${menuTab.link}"/>"><c:out value="${menuTab.name}" /></a>
                         </c:otherwise>
                       </c:choose>
                       <ul class="menu vertical">
                         <c:forEach items="${menuTab.menuItemList}" var="menuItem">
-                          <li><a href="${ctx}${menuItem.link}"><c:out value="${menuItem.name}" /></a></li>
+                          <li><a href="<c:out value="${ctx}${menuItem.link}"/>"><c:out value="${menuItem.name}" /></a></li>
                         </c:forEach>
                       </ul>
                     </li>
@@ -460,7 +460,7 @@
                           <a href="#"><c:out value="${menuTab.name}" /></a>
                         </c:when>
                         <c:otherwise>
-                          <a href="${ctx}${menuTab.link}"><c:out value="${menuTab.name}" /></a>
+                          <a href="<c:out value="${ctx}${menuTab.link}"/>"><c:out value="${menuTab.name}" /></a>
                         </c:otherwise>
                       </c:choose>
                     </li>
@@ -499,12 +499,12 @@
                           <a href="#"><c:out value="${menuTab.name}" /></a>
                         </c:when>
                         <c:otherwise>
-                          <a href="${ctx}${menuTab.link}"><c:out value="${menuTab.name}" /></a>
+                          <a href="<c:out value="${ctx}${menuTab.link}"/>"><c:out value="${menuTab.name}" /></a>
                         </c:otherwise>
                       </c:choose>
                       <ul class="menu vertical">
                         <c:forEach items="${menuTab.menuItemList}" var="menuItem">
-                          <li><a href="${ctx}${menuItem.link}"><c:out value="${menuItem.name}" /></a></li>
+                          <li><a href="<c:out value="${ctx}${menuItem.link}"/>"><c:out value="${menuItem.name}" /></a></li>
                         </c:forEach>
                       </ul>
                     </li>
@@ -516,7 +516,7 @@
                           <a href="#"><c:out value="${menuTab.name}" /></a>
                         </c:when>
                         <c:otherwise>
-                          <a href="${ctx}${menuTab.link}"><c:out value="${menuTab.name}" /></a>
+                          <a href="<c:out value="${ctx}${menuTab.link}"/>"><c:out value="${menuTab.name}" /></a>
                         </c:otherwise>
                       </c:choose>
                     </li>

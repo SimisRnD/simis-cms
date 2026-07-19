@@ -50,7 +50,7 @@
         </c:if>
         <%-- Display the submenu --%>
         <li class="is-dropdown-submenu-parent<c:if test="${isParent eq 'true'}"> active</c:if>">
-          <a href="${ctx}${menuTab.link}"><c:if test="${!empty menuTab.icon}"><i class="${font:fas()} fa-fw fa-<c:out value="${menuTab.icon}" />"></i> </c:if><c:out value="${menuTab.name}" /></a>
+          <a href="<c:out value="${ctx}${menuTab.link}"/>"><c:if test="${!empty menuTab.icon}"><i class="${font:fas()} fa-fw fa-<c:out value="${menuTab.icon}" />"></i> </c:if><c:out value="${menuTab.name}" /></a>
           <ul class="menu vertical">
             <c:forEach items="${menuTab.menuItemList}" var="menuItem">
               <li<c:if test="${useHighlight eq 'true' && menuItem.link eq pagePath}"> class="active"</c:if>><a href="${ctx}${menuItem.link}"><c:if test="${!empty submenuIcon}"><i class="fa <c:out value="${submenuIcon}" /><c:if test="${!empty submenuIconClass}"> <c:out value="${submenuIconClass}" /></c:if>"></i></c:if> <c:out value="${menuItem.name}" /></a></li>
@@ -70,10 +70,10 @@
         </li>
       </c:when>
       <c:when test="${!empty collection && !fn:startsWith(pagePath, '/admin/') && fn:toLowerCase(collection.name) eq fn:toLowerCase(menuTab.name)}">
-        <li class="is-standalone active"><a href="${ctx}${menuTab.link}"><c:if test="${!empty menuTab.icon}"><i class="${font:fas()} fa-fw fa-<c:out value="${menuTab.icon}" />"></i> </c:if><c:out value="${menuTab.name}" /></a></li>
+        <li class="is-standalone active"><a href="<c:out value="${ctx}${menuTab.link}"/>"><c:if test="${!empty menuTab.icon}"><i class="${font:fas()} fa-fw fa-<c:out value="${menuTab.icon}" />"></i> </c:if><c:out value="${menuTab.name}" /></a></li>
       </c:when>
       <c:otherwise>
-        <li class="is-standalone<c:if test="${useHighlight eq 'true' && (menuTab.link eq pagePath || (menuTab.link ne '/' && fn:startsWith(pagePath, menuTab.link)))}"> active</c:if>"><a href="${ctx}${menuTab.link}"><c:if test="${!empty menuTab.icon}"><i class="${font:fas()} fa-fw fa-<c:out value="${menuTab.icon}" />"></i> </c:if><c:out value="${menuTab.name}" /></a></li>
+        <li class="is-standalone<c:if test="${useHighlight eq 'true' && (menuTab.link eq pagePath || (menuTab.link ne '/' && fn:startsWith(pagePath, menuTab.link)))}"> active</c:if>"><a href="<c:out value="${ctx}${menuTab.link}"/>"><c:if test="${!empty menuTab.icon}"><i class="${font:fas()} fa-fw fa-<c:out value="${menuTab.icon}" />"></i> </c:if><c:out value="${menuTab.name}" /></a></li>
       </c:otherwise>
     </c:choose>
   </c:forEach>

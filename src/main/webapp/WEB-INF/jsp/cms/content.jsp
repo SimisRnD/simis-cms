@@ -22,7 +22,7 @@
 <jsp:useBean id="videoBackgroundUrl" class="java.lang.String" scope="request"/>
 <jsp:useBean id="isDraft" class="java.lang.String" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}" /></h4>
+  <h4><c:if test="${!empty icon}"><i class="fa <c:out value="${icon}"/>"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
 <div class="platform-content-container">
   <c:if test="${showEditor eq 'true' && !empty uniqueId}">
