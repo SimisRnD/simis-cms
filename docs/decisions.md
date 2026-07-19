@@ -10,7 +10,7 @@ description: Decisions and thoughts on direction
 - Make it easy to extend the platform for public and private use
 - Have a stable platform which is easy to maintain and deploy
 - Encourage design, accessibility, and experimentation with style, layouts, features, and components
-- Have a lean website stack which separates the CMS platform and the runtime requirements
+- Have a lean website stack which separates the CMS and the runtime requirements
 
 ## Decisions
 
