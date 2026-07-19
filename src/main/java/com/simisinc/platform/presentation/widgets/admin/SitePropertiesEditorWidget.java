@@ -16,6 +16,7 @@
 
 package com.simisinc.platform.presentation.widgets.admin;
 
+import com.simisinc.platform.application.admin.AnalyticsTrackingIdCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.cms.ColorCommand;
 import com.simisinc.platform.domain.model.SiteProperty;
@@ -127,6 +128,10 @@ public class SitePropertiesEditorWidget extends GenericWidget {
       } else if ("color".equals(siteProperty.getType())) {
         if (!ColorCommand.isHexColor(newValue)) {
           context.setErrorMessage(siteProperty.getLabel() + " needs hex formatting value");
+        }
+      } else if (AnalyticsTrackingIdCommand.isTrackingIdProperty(siteProperty.getName())) {
+        if (!AnalyticsTrackingIdCommand.isValid(newValue)) {
+          context.setErrorMessage(siteProperty.getLabel() + " is not a valid tracking id");
         }
       }
     }

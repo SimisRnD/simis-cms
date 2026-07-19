@@ -16,6 +16,7 @@
 
 package com.simisinc.platform.presentation.controller;
 
+import com.simisinc.platform.application.admin.AnalyticsTrackingIdCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.cms.*;
 import com.simisinc.platform.application.items.LoadCategoryCommand;
@@ -242,6 +243,8 @@ public class PageServlet extends HttpServlet {
       Map<String, String> themePropertyMap = LoadSitePropertyCommand.loadAsMap("theme");
       Map<String, String> socialPropertyMap = LoadSitePropertyCommand.loadAsMap("social");
       Map<String, String> analyticsPropertyMap = LoadSitePropertyCommand.loadAsMap("analytics");
+      // Never render a malformed tracking id into the public page's script tags
+      AnalyticsTrackingIdCommand.sanitize(analyticsPropertyMap);
       Map<String, String> ecommercePropertyMap = LoadSitePropertyCommand.loadAsMap("ecommerce");
 
       // Web Page Hits
