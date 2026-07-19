@@ -303,7 +303,9 @@ CREATE TABLE users (
   description_text TEXT,
   image_url VARCHAR(255),
   video_url VARCHAR(255),
-  field_values JSONB
+  field_values JSONB,
+  mfa_secret VARCHAR(64),
+  mfa_enabled BOOLEAN DEFAULT false
 );
 CREATE UNIQUE INDEX users_lc_email ON users (LOWER(email));
 CREATE UNIQUE INDEX users_lc_username ON users (LOWER(username));
