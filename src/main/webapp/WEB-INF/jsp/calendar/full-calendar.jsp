@@ -391,9 +391,15 @@
       $modal.foundation('close');
       // Only follow http(s) or relative links; block javascript:/data: URLs that would run as script
       var target = document.getElementById('eventLinkInput').value.trim();
-      var scheme = target.match(/^([a-z][a-z0-9+.-]*):/i);
-      if (target && (!scheme || /^https?$/i.test(scheme[1]))) {
-        window.location.href = target;
+      if (target) {
+        try {
+          var url = new URL(target, window.location.origin);
+          if (url.protocol === 'http:' || url.protocol === 'https:') {
+            window.location.href = url.href;
+          }
+        } catch (e) {
+          // Not a valid URL; ignore
+        }
       }
     });
   </script>
