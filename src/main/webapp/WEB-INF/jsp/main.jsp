@@ -461,10 +461,10 @@
 
             </c:when>
             <c:when test="${fn:startsWith(link.link, 'http://') || fn:startsWith(link.link, 'https://')}">
-              <a class="button secondary site-sticky-footer-button" href="${link.link}" target="_blank"><c:out value="${link.name}"/></a>
+              <a class="button secondary site-sticky-footer-button" href="<c:out value="${link.link}"/>" target="_blank"><c:out value="${link.name}"/></a>
             </c:when>
             <c:otherwise>
-              <a class="button secondary site-sticky-footer-button" href="${ctx}${link.link}"><c:out value="${link.name}"/></a>
+              <a class="button secondary site-sticky-footer-button" href="<c:out value="${ctx}${link.link}"/>"><c:out value="${link.name}"/></a>
             </c:otherwise>
           </c:choose>
         </c:forEach>

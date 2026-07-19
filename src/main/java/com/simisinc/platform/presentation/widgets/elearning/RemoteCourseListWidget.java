@@ -16,6 +16,8 @@
 
 package com.simisinc.platform.presentation.widgets.elearning;
 
+import com.simisinc.platform.application.cms.UrlCommand;
+
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.elearning.*;
 import com.simisinc.platform.domain.model.elearning.CourseUserAggregate;
@@ -80,7 +82,8 @@ public class RemoteCourseListWidget extends GenericWidget {
       // Show the Add Course button
       if (showAddCourseButton) {
         context.getRequest().setAttribute("courseButtonText", context.getPreferences().getOrDefault("courseButtonText", "Add a Course"));
-        context.getRequest().setAttribute("courseButtonLink", moodleServerUrl + "/course/edit.php");
+        context.getRequest().setAttribute("courseButtonLink",
+            UrlCommand.sanitizeUrl(moodleServerUrl + "/course/edit.php"));
       }
     } else if ("any".equals(role)) {
       // Retrieve the Moodle course list for any role
