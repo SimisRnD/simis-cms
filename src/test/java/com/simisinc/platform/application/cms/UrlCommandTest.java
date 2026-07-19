@@ -64,4 +64,28 @@ class UrlCommandTest {
     Assertions.assertNull(UrlCommand.getValidReturnPage("http://example.com"));
     Assertions.assertEquals("/web-page", UrlCommand.getValidReturnPage("/web-page"));
   }
+
+  @Test
+  void getValidReturnPageAcceptsLegitimatePaths() {
+    Assertions.assertEquals("/admin/blog", UrlCommand.getValidReturnPage("/admin/blog"));
+    Assertions.assertEquals("/admin/collection-details?collectionId=5",
+        UrlCommand.getValidReturnPage("/admin/collection-details?collectionId=5"));
+    Assertions.assertEquals("/show/my-page?a=b&c=d", UrlCommand.getValidReturnPage("/show/my-page?a=b&c=d"));
+    Assertions.assertEquals("/page#section", UrlCommand.getValidReturnPage("/page#section"));
+  }
+
+  @Test
+  void getValidReturnPageRejectsAttributeBreakoutAndSchemes() {
+    // Attribute breakout: the payload has no ':' but would break out of href="..." if not rejected
+    Assertions.assertNull(UrlCommand.getValidReturnPage("/x\" onmouseover=alert(document.cookie) x=\""));
+    Assertions.assertNull(UrlCommand.getValidReturnPage("/x\"><img src=x onerror=alert(1)>"));
+    Assertions.assertNull(UrlCommand.getValidReturnPage("/x' onclick='alert(1)"));
+    // Whitespace and backslash cannot appear in a return path
+    Assertions.assertNull(UrlCommand.getValidReturnPage("/path with space"));
+    Assertions.assertNull(UrlCommand.getValidReturnPage("/path\\x"));
+    // Must be site-relative: no scheme, no protocol-relative host
+    Assertions.assertNull(UrlCommand.getValidReturnPage("javascript:alert(1)"));
+    Assertions.assertNull(UrlCommand.getValidReturnPage("//evil.example.com/path"));
+    Assertions.assertNull(UrlCommand.getValidReturnPage("relative/no/leading/slash"));
+  }
 }
