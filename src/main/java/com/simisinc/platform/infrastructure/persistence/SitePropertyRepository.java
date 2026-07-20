@@ -16,6 +16,8 @@
 
 package com.simisinc.platform.infrastructure.persistence;
 
+import com.simisinc.platform.application.SecretCryptoCommand;
+import com.simisinc.platform.application.admin.SecretSitePropertiesCommand;
 import com.simisinc.platform.domain.model.SiteProperty;
 import com.simisinc.platform.infrastructure.cache.CacheManager;
 import com.simisinc.platform.infrastructure.database.*;
@@ -84,7 +86,13 @@ public class SitePropertyRepository {
             "WHERE property_id = ?";
     int i = 0;
     PreparedStatement pst = connection.prepareStatement(SQL_QUERY);
-    pst.setString(++i, StringUtils.trimToEmpty(record.getValue()));
+    // Encrypt secret property values at rest (payment/integration keys, passwords, tokens). encrypt() is a
+    // no-op for non-secret names, blank values, already-encrypted values, and when no key is configured.
+    String value = StringUtils.trimToEmpty(record.getValue());
+    if (SecretSitePropertiesCommand.isSecret(record.getName())) {
+      value = SecretCryptoCommand.encrypt(value);
+    }
+    pst.setString(++i, value);
     pst.setInt(++i, record.getId());
     return pst;
   }
@@ -136,7 +144,9 @@ public class SitePropertyRepository {
       record.setId(rs.getInt("property_id"));
       record.setLabel(rs.getString("property_label"));
       record.setName(rs.getString("property_name"));
-      record.setValue(rs.getString("property_value"));
+      // Decrypt at-rest secret values. decrypt() returns legacy plaintext unchanged, so this is safe for
+      // every property; a secret that cannot be decrypted (wrong/absent key) fails safe to null.
+      record.setValue(SecretCryptoCommand.decrypt(rs.getString("property_value")));
       record.setType(rs.getString("property_type"));
       return record;
     } catch (SQLException se) {

@@ -93,6 +93,13 @@ public class SecretCryptoCommand {
   }
 
   /**
+   * @return true when the value is already an {@code enc:}-prefixed ciphertext
+   */
+  public static boolean isEncrypted(String value) {
+    return value != null && value.startsWith(PREFIX);
+  }
+
+  /**
    * Encrypts a secret for storage. Blank input is returned unchanged, and when no key is configured the value is
    * returned as-is (legacy plaintext) so an unconfigured deployment keeps working.
    *
@@ -100,7 +107,9 @@ public class SecretCryptoCommand {
    * @return an {@code enc:}-prefixed ciphertext, or the input unchanged when blank / no key
    */
   public static String encrypt(String plaintext) {
-    if (StringUtils.isBlank(plaintext)) {
+    // Idempotent: a blank value or one that is already encrypted is returned unchanged, so re-encrypting
+    // a stored secret cannot double-wrap it
+    if (StringUtils.isBlank(plaintext) || isEncrypted(plaintext)) {
       return plaintext;
     }
     SecretKeySpec k = key();

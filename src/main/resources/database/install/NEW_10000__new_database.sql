@@ -15,7 +15,7 @@ CREATE TABLE site_properties (
   property_order INTEGER DEFAULT 100,
   property_label VARCHAR(50),
   property_name VARCHAR(50) UNIQUE NOT NULL,
-  property_value VARCHAR(255) NOT NULL,
+  property_value TEXT NOT NULL,
   property_type VARCHAR(100)
 );
 
