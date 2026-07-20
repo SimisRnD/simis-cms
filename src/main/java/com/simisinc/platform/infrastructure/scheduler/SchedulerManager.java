@@ -19,6 +19,8 @@ package com.simisinc.platform.infrastructure.scheduler;
 import com.simisinc.platform.infrastructure.database.DataSource;
 import com.simisinc.platform.infrastructure.instance.InstanceManager;
 import com.simisinc.platform.infrastructure.scheduler.admin.DatasetsDownloadAndSyncJob;
+import com.simisinc.platform.infrastructure.scheduler.audit.AuditLogIntegrityJob;
+import com.simisinc.platform.infrastructure.scheduler.audit.AuditLogRetentionJob;
 import com.simisinc.platform.infrastructure.scheduler.cms.LoadSystemFilesJob;
 import com.simisinc.platform.infrastructure.scheduler.cms.RecordWebPageHitJob;
 import com.simisinc.platform.infrastructure.scheduler.cms.SystemHealthJob;
@@ -71,6 +73,8 @@ public class SchedulerManager {
   public static final String ORDER_MANAGEMENT_PROCESS_NEW_ORDERS_JOB = "OrderManagementProcessNewOrders";
   public static final String ORDER_MANAGEMENT_PROCESS_SHIPPING_UPDATES_JOB = "OrderManagementProcessShippingUpdates";
   public static final String PROCESS_MEDICINE_SCHEDULES_JOB = "ProcessMedicineSchedules";
+  public static final String AUDIT_LOG_RETENTION_JOB = "AuditLogRetention";
+  public static final String AUDIT_LOG_INTEGRITY_JOB = "AuditLogIntegrity";
 
   // Jobs which can be run by multiple clients
   public static final String DATASETS_DOWNLOAD_AND_SYNC_JOB = "DatasetsDownloadAndSync";
@@ -147,6 +151,8 @@ public class SchedulerManager {
         BackgroundJob.scheduleRecurrently(ORDER_MANAGEMENT_PROCESS_NEW_ORDERS_JOB, Cron.minutely(), OrderManagementProcessNewOrders::execute);
         BackgroundJob.scheduleRecurrently(ORDER_MANAGEMENT_PROCESS_SHIPPING_UPDATES_JOB, Cron.hourly(), OrderManagementProcessShippingUpdates::execute);
         BackgroundJob.scheduleRecurrently(PROCESS_MEDICINE_SCHEDULES_JOB, Cron.daily(23, 43), ProcessMedicineSchedulesJob::execute);
+        BackgroundJob.scheduleRecurrently(AUDIT_LOG_RETENTION_JOB, Cron.daily(4, 15), AuditLogRetentionJob::execute);
+        BackgroundJob.scheduleRecurrently(AUDIT_LOG_INTEGRITY_JOB, Cron.daily(4, 30), AuditLogIntegrityJob::execute);
       }
     } catch (Exception se) {
       LOG.error("Error starting jobrunr: ", se);

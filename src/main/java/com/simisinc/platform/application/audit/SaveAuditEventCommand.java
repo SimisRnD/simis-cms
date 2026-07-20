@@ -60,12 +60,18 @@ public class SaveAuditEventCommand {
     }
     event.setSchemaVersion(SCHEMA_VERSION);
 
-    // Sink 1 -- the database (source of record)
+    // Sink 1 -- the database (source of record). The append sets the chain hashes on this same event object;
+    // if it did not persist, clear them so the JSON witness never emits a hash for a row that is not in the
+    // database (which would look like a deleted record to a SIEM-vs-database reconciliation).
     AuditLog saved = null;
     try {
       saved = AuditLogRepository.save(event);
     } catch (Exception e) {
       LOG.error("Audit database write failed for event: " + event.getEventType(), e);
+    }
+    if (saved == null) {
+      event.setPreviousHash(null);
+      event.setRecordHash(null);
     }
 
     // Sink 2 -- the structured JSON stream (Azure Monitor / Log Analytics / Sentinel)
@@ -100,6 +106,11 @@ public class SaveAuditEventCommand {
     map.put("targetLabel", event.getTargetLabel());
     map.put("sessionId", event.getSessionId());
     map.put("details", event.getDetails());
+    // The tamper-evidence chain hashes (Phase 4). Emitting them gives the SIEM an out-of-band copy of the
+    // chain, so a database that is later rewritten no longer matches the log store. Null (and so omitted) on
+    // records the database sink did not persist, and on events emitted before Phase 4.
+    map.put("previousHash", event.getPreviousHash());
+    map.put("recordHash", event.getRecordHash());
     // createJsonNode skips null values and escapes string values
     return JsonCommand.createJsonNode(map).toString();
   }
