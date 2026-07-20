@@ -68,9 +68,17 @@
   // Wait for the first query
   var updateInterval;
 
+  // Escape a label for safe insertion into the table markup (labels can be user-provided, e.g. search
+  // terms or referrers)
+  function escapeHtml${widgetContext.uniqueId}(text) {
+    var div = document.createElement('div');
+    div.textContent = text == null ? '' : text;
+    return div.innerHTML;
+  }
+
   // Update the table data
   function buildItemRow(item) {
-    return "<tr><td>" + item.label + "</td><td class=\"text-center\">" + parseFloat(item.value).toLocaleString() + "</td></tr>";
+    return "<tr><td>" + escapeHtml${widgetContext.uniqueId}(item.label) + "</td><td class=\"text-center\">" + parseFloat(item.value).toLocaleString() + "</td></tr>";
   }
 
   // Query the data

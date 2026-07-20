@@ -23,6 +23,7 @@ import com.simisinc.platform.domain.model.maps.MapCredentials;
 import com.simisinc.platform.infrastructure.persistence.SessionRepository;
 import com.simisinc.platform.infrastructure.persistence.UserRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageHitRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.WebSearchRepository;
 import com.simisinc.platform.infrastructure.persistence.login.UserLoginRepository;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.widgets.cms.PreferenceEntriesList;
@@ -220,6 +221,12 @@ public class SiteStatsWidget extends GenericWidget {
       context.getRequest().setAttribute("statisticsDataList", statisticsDataList);
       context.getRequest().setAttribute("label", context.getPreferences().getOrDefault("label", "Link"));
       context.getRequest().setAttribute("value", context.getPreferences().getOrDefault("value", "Hits"));
+      return TABLE_JSP;
+    } else if ("search-terms".equalsIgnoreCase(report)) {
+      List<StatisticsData> statisticsDataList = WebSearchRepository.findTopSearchTerms(intervalValue, limit);
+      context.getRequest().setAttribute("statisticsDataList", statisticsDataList);
+      context.getRequest().setAttribute("label", context.getPreferences().getOrDefault("label", "Search Term"));
+      context.getRequest().setAttribute("value", context.getPreferences().getOrDefault("value", "Searches"));
       return TABLE_JSP;
     } else {
       return null;
