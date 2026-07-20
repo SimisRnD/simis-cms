@@ -94,7 +94,7 @@
   <target name="compile" depends="prepare">
     <javac srcdir="${src.dir}" source="${jdk}" target="${jdk}"
            destdir="${build.dir}"
-           debug="off"
+           debug="on" debuglevel="lines,source"
            deprecation="on"
            optimize="on"
            includeantruntime="false">
@@ -187,7 +187,7 @@
             outputDir="${target.dir}/${project}/WEB-INF/src" />
     <!-- Compile the JSPs -->
     <javac destdir="${target.dir}/${project}/WEB-INF/compiled" source="${jdk}" target="${jdk}"
-           optimize="on" debug="off"
+           optimize="on" debug="on" debuglevel="lines,source"
            srcdir="${target.dir}/${project}/WEB-INF/src"
            excludes="**/*.smap">
       <classpath>
@@ -331,7 +331,7 @@
   <target name="compile-test" depends="jar">
     <javac srcdir="${src.test.dir}" source="${jdk}" target="${jdk}"
            destdir="${build.dir}"
-           debug="off"
+           debug="on" debuglevel="lines,source"
            deprecation="on"
            optimize="on"
            includeantruntime="false">
