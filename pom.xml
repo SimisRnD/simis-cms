@@ -78,7 +78,6 @@
     <lombok.version>1.18.46</lombok.version>
     <postgresql.version>42.7.13</postgresql.version>
     <rabbitmq.version>5.34.0</rabbitmq.version>
-    <resilience4j.version>2.4.0</resilience4j.version>
     <restfb.version>2023.8.0</restfb.version>
     <rome-rss.version>2.1.0</rome-rss.version>
     <slf4j.version>2.0.18</slf4j.version>
@@ -345,11 +344,6 @@
       <version>${classgraph.version}</version>
     </dependency>
     <dependency>
-      <groupId>io.github.resilience4j</groupId>
-      <artifactId>resilience4j-bulkhead</artifactId>
-      <version>${resilience4j.version}</version>
-    </dependency>
-    <dependency>
       <groupId>com.restfb</groupId>
       <artifactId>restfb</artifactId>
       <version>${restfb.version}</version>
@@ -460,12 +454,6 @@
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter</artifactId>
       <version>${junit.version}</version>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>com.tngtech.archunit</groupId>
-      <artifactId>archunit-junit5</artifactId>
-      <version>1.4.2</version>
       <scope>test</scope>
     </dependency>
     <dependency>
