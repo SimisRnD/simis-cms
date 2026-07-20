@@ -26,5 +26,12 @@ jobs:
       run: ant -noinput -buildfile build.xml clean compile
     - name: Run unit tests
       run: ant -noinput -buildfile build.xml -lib lib/tests ci-test
+    - name: Upload code coverage report
+      if: always()
+      uses: actions/upload-artifact@v4
+      with:
+        name: jacoco-coverage-report
+        path: target/coverage-reports/
+        if-no-files-found: warn
     - name: Package the web application
       run: ant -noinput -buildfile build.xml -lib lib/war package
