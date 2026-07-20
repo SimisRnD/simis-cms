@@ -1,0 +1,26 @@
+# Reports drift between pom.xml and the vendored lib/build jars that actually ship
+# in the WAR. See tools/check-dependency-drift.py for the full rationale.
+#
+# REPORT-ONLY: this workflow never fails the build. It prints the drift to the log
+# and to the PR's job summary so the divergence is visible on every change. Once the
+# one-time reconciliation has zeroed the drift, make it enforcing by adding --strict
+# to the run step below (the script then exits non-zero on any un-allowlisted drift).
+name: Dependency drift
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      # ubuntu-latest ships python3; no extra setup or network needed.
+      - name: Report pom vs vendored-jar drift
+        run: python3 tools/check-dependency-drift.py .
