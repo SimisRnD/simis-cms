@@ -17,6 +17,7 @@
 package com.simisinc.platform.presentation.widgets.cms;
 
 import com.simisinc.platform.application.cms.NumberCommand;
+import com.simisinc.platform.application.cms.UrlCommand;
 
 import com.simisinc.platform.domain.model.socialmedia.InstagramMedia;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
@@ -82,8 +83,13 @@ public class InstagramWidget extends GenericWidget {
         break;
       }
       if ("IMAGE".equals(media.getMediaType())) {
+        // Sanitize the API-supplied urls at the sink; drop the card if either is unsafe
+        String card = buildCardHtml(media);
+        if (card == null) {
+          continue;
+        }
         ++count;
-        addCard(context, cardList, "<p><a target=\"_blank\" href=\"" + media.getPermalink() + "\"><img src=\"" + media.getMediaUrl() + "\" /></a></p>");
+        addCard(context, cardList, card);
       }
     }
     context.getRequest().setAttribute("cardList", cardList);
@@ -91,6 +97,23 @@ public class InstagramWidget extends GenericWidget {
     // Determine the view
     context.setJsp(CARD_JSP);
     return context;
+  }
+
+  /**
+   * Builds the card markup for an Instagram image. The permalink and media url are supplied by the
+   * Instagram Graph API (persisted by a background job) and are rendered straight into the href and
+   * src attributes, so both are run through {@link UrlCommand#sanitizeUrl(String)} at this sink: a
+   * value carrying a quote or an active scheme (javascript:/data:) would otherwise break out of the
+   * attribute and inject script. Returns null when either url is unsafe so the caller drops the card
+   * instead of emitting raw markup.
+   */
+  static String buildCardHtml(InstagramMedia media) {
+    String permalink = UrlCommand.sanitizeUrl(media.getPermalink());
+    String mediaUrl = UrlCommand.sanitizeUrl(media.getMediaUrl());
+    if (permalink == null || mediaUrl == null) {
+      return null;
+    }
+    return "<p><a target=\"_blank\" href=\"" + permalink + "\"><img src=\"" + mediaUrl + "\" /></a></p>";
   }
 
   private void addCard(WidgetContext context, List<String> cardList, String html) {
