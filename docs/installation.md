@@ -50,7 +50,9 @@ DB_USER=
 DB_PASSWORD=
 ```
 
-> **`CMS_SECRET_KEY`** encrypts recoverable secrets (such as per-user MFA/TOTP seeds) at rest with AES-256-GCM. Generate one with `openssl rand -base64 32` and supply it out-of-band (not committed). Keep a secure backup — losing the key makes encrypted secrets unrecoverable (affected users re-enroll MFA). Rotating: set the new key and re-save affected records. If unset, secrets are stored as plaintext (backward compatible), so set it for a hardened deployment.
+> **`CMS_SECRET_KEY`** encrypts recoverable secrets at rest with AES-256-GCM: per-user MFA/TOTP seeds and the stored integration/payment secrets in Site Settings (payment gateway keys, the SMTP password, the OAuth client secret, and mailing-list/analytics API tokens). Generate one with `openssl rand -base64 32` and supply it out-of-band (not committed). Keep a secure backup — losing the key makes encrypted secrets unrecoverable (affected users re-enroll MFA; integration keys must be re-entered). Rotating: set the new key and re-save the affected records. If unset, secrets are stored as plaintext (backward compatible), so set it for a hardened deployment.
+>
+> Integration secrets encrypt when next saved. Existing plaintext values keep working (they are read back unchanged) and are encrypted the next time they are saved through Site Settings. Values that are read-only in the admin UI (production payment keys, set directly in the database) stay plaintext until re-saved — see the release notes for the optional one-time re-encryption step.
 
 ## Upgrading
 

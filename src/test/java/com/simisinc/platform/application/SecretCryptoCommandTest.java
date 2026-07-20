@@ -97,4 +97,23 @@ class SecretCryptoCommandTest {
     setKey((byte) 9); // rotate to a different key
     assertNull(SecretCryptoCommand.decrypt(encrypted), "wrong key -> null (GCM auth fails), not garbage");
   }
+
+  @Test
+  void encryptIsIdempotent() {
+    setKey((byte) 7);
+    String once = SecretCryptoCommand.encrypt("a-secret-value");
+    // Re-encrypting an already-encrypted value must not double-wrap it -- it is returned unchanged, so a
+    // re-save of a stored secret stays decryptable.
+    String twice = SecretCryptoCommand.encrypt(once);
+    assertEquals(once, twice);
+    assertEquals("a-secret-value", SecretCryptoCommand.decrypt(twice));
+  }
+
+  @Test
+  void isEncryptedDetectsThePrefix() {
+    assertTrue(SecretCryptoCommand.isEncrypted("enc:AAAA"));
+    assertFalse(SecretCryptoCommand.isEncrypted("plaintext"));
+    assertFalse(SecretCryptoCommand.isEncrypted(""));
+    assertFalse(SecretCryptoCommand.isEncrypted(null));
+  }
 }
