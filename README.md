@@ -16,6 +16,10 @@
   <img alt="Java 21" src="https://img.shields.io/badge/Java-21-orange">
 </p>
 
+<p align="center">
+  <img alt="A SimIS CMS storefront and the built-in analytics console it ships with" src="docs/assets/simis-cms-platform.png" width="820">
+</p>
+
 ---
 
 SimIS CMS is an open-source content management system and web portal, written in Java and **run in production by SimIS Inc.** — it's the same platform behind [simisinc.com](https://www.simisinc.com). This isn't a starter kit; it's a complete product you download, deploy, and own.
