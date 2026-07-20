@@ -58,4 +58,25 @@ class CopyrightWidgetTest extends WidgetBase {
       Assertions.assertFalse(html.contains("All Rights Reserved."));
     }
   }
+
+  @Test
+  void nameAndTagAreHtmlEscaped() {
+    // The site name and tag are admin/config controlled and rendered straight into setHtml; a hostile
+    // value must be entity-encoded rather than break out into live markup
+    preferences.put("name", "<script>alert(1)</script>");
+    preferences.put("tag", "Evil & Co");
+
+    try (MockedStatic<LoadSitePropertyCommand> property = mockStatic(LoadSitePropertyCommand.class)) {
+      property.when(() -> LoadSitePropertyCommand.loadByName("site.name")).thenReturn("unused");
+
+      CopyrightWidget copyrightWidget = new CopyrightWidget();
+      copyrightWidget.execute(widgetContext);
+
+      String html = widgetContext.getHtml();
+      Assertions.assertNotNull(html);
+      Assertions.assertFalse(html.contains("<script>"), html);
+      Assertions.assertTrue(html.contains("&lt;script&gt;alert(1)&lt;/script&gt;"), html);
+      Assertions.assertTrue(html.contains("Evil &amp; Co"), html);
+    }
+  }
 }
