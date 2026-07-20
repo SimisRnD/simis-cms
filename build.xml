@@ -405,6 +405,13 @@
   </target>
 
   <target name="ci-test" depends="compile-test">
+    <!-- Record code coverage during the single CI test pass. The JaCoCo agent instruments the forked
+         test JVM; after the run we emit HTML (for humans), plus XML and CSV (for tooling) under
+         target/coverage-reports, which CI publishes as a build artifact. This only measures and reports
+         coverage - it does not change the pass/fail semantics of the test run. Coverage is reported by
+         instruction, branch, complexity, and method; line coverage is unavailable because the build
+         compiles without line-number debug info (see the compile target, debug="off"). -->
+    <jacoco:agent property="jacocoagent" destfile="${target.dir}/jacoco.exec"/>
     <junitlauncher haltOnFailure="false" printsummary="true" failureproperty="hasFailingTest">
       <classpath refid="web.classpath" />
       <classpath refid="test.classpath" />
@@ -417,11 +424,31 @@
           <include name="**/*Tests.class" />
         </fileset>
         <fork>
+          <jvmarg value="${jacocoagent}"/>
           <jvmarg value="-Djava.awt.headless=true"/>
         </fork>
       </testclasses>
     </junitlauncher>
     <fail if="hasFailingTest" />
+    <!-- Build the coverage reports from the recorded execution data -->
+    <jacoco:report>
+      <executiondata>
+        <file file="${target.dir}/jacoco.exec"/>
+      </executiondata>
+      <structure name="SimIS CMS">
+        <classfiles>
+          <fileset dir="${build.dir}">
+            <exclude name="**/*Test*.class"/>
+          </fileset>
+        </classfiles>
+        <sourcefiles encoding="UTF-8">
+          <fileset dir="src/main/java"/>
+        </sourcefiles>
+      </structure>
+      <html destdir="${target.dir}/coverage-reports/jacoco"/>
+      <xml destfile="${target.dir}/coverage-reports/jacoco.xml"/>
+      <csv destfile="${target.dir}/coverage-reports/jacoco.csv"/>
+    </jacoco:report>
   </target>
 
   <target name="run-test" depends="compile-test">
