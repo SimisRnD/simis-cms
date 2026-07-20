@@ -57,10 +57,11 @@ set -euo pipefail
 # that dilute the class-level ratio to ~40%. A 0.30 floor keeps regression
 # protection on the tested paths without demanding coverage of the legacy code.
 #
-# NOTE: com.simisinc.platform.application.DoNotTrackCommand (test:
-# DoNotTrackCommandTest) belongs on this list, but it arrives with PR #136
-# (feature/honor-dnt), which is not yet merged into this lineage. Uncomment the
-# line below once #136 lands, or the gate will fail-closed on the missing class.
+# DoNotTrackCommand.isDoNotTrack() -- the Do-Not-Track / Global Privacy Control
+# honoring logic -- is covered by DoNotTrackCommandTest and shares the 0.50
+# floor. The class arrived with PR #136 (feature/honor-dnt), so this entry is
+# valid only once #136 is in the lineage; merging it before then fail-closes the
+# gate on a missing class. (See the PR description for merge-order details.)
 TARGETS='
 com.simisinc.platform.application.IpAddressCommand,0.50
 com.simisinc.platform.application.SecretCryptoCommand,0.50
@@ -68,9 +69,8 @@ com.simisinc.platform.application.UserPasswordCommand,0.50
 com.simisinc.platform.application.admin.AnalyticsTrackingIdCommand,0.50
 com.simisinc.platform.application.cms.UrlCommand,0.50
 com.simisinc.platform.application.cms.NumberCommand,0.30
+com.simisinc.platform.application.DoNotTrackCommand,0.50
 '
-# Pending PR #136 (feature/honor-dnt) -- enable when merged:
-# com.simisinc.platform.application.DoNotTrackCommand,0.50
 
 CSV="${1:-${JACOCO_CSV:-target/coverage-reports/jacoco.csv}}"
 FLOOR_MIN="${COVERAGE_FLOOR_MIN:-0}"
