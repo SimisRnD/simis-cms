@@ -402,11 +402,13 @@ public class ContentHtmlCommand {
   }
 
   private static WidgetContext deleteContent(WidgetContext context, Content content) {
-    // Attempt to delete the content
+    // Attempt to delete the content (permission was verified in performWebAction)
     try {
-      LOG.warn("Content delete is not implemented");
-      // @todo
-      //      ContentRepository.remove(content);
+      if (ContentRepository.remove(content)) {
+        context.setSuccessMessage("The content was deleted");
+      } else {
+        context.setErrorMessage("The content could not be deleted");
+      }
     } catch (Exception e) {
       context.setErrorMessage("The content could not be deleted: " + e.getMessage());
     }

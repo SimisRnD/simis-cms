@@ -24,6 +24,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -153,6 +154,28 @@ public class ContentRepository {
     if (DB.update(TABLE_NAME, set, where)) {
       CacheManager.invalidateKey(CacheManager.CONTENT_UNIQUE_ID_CACHE, record.getUniqueId());
     }
+  }
+
+  public static boolean remove(Content record) {
+    if (record == null || record.getId() == null || record.getId() < 0) {
+      return false;
+    }
+    try {
+      try (Connection connection = DB.getConnection();
+          AutoStartTransaction a = new AutoStartTransaction(connection);
+          AutoRollback transaction = new AutoRollback(connection)) {
+        // No other tables reference content_id, so deleting the record is sufficient
+        DB.deleteFrom(connection, TABLE_NAME, new SqlUtils().add("content_id = ?", record.getId()));
+        // Finish the transaction
+        transaction.commit();
+        // Keep the cache in sync so the removed content no longer resolves
+        CacheManager.invalidateKey(CacheManager.CONTENT_UNIQUE_ID_CACHE, record.getUniqueId());
+        return true;
+      }
+    } catch (SQLException se) {
+      LOG.error("SQLException: " + se.getMessage());
+    }
+    return false;
   }
 
   private static Content buildRecord(ResultSet rs) {
