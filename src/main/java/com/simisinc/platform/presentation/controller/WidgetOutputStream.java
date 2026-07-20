@@ -23,6 +23,7 @@ import javax.servlet.WriteListener;
 import java.io.BufferedOutputStream;
 import java.io.CharArrayWriter;
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 
 /**
  * Description
@@ -34,8 +35,13 @@ public class WidgetOutputStream extends ServletOutputStream {
 
   private final BufferedOutputStream bufferedOut;
 
-  public WidgetOutputStream(CharArrayWriter charArray) {
-    this.bufferedOut = new BufferedOutputStream(new WriterOutputStream(charArray, "UTF-8"), 16384);
+  public WidgetOutputStream(CharArrayWriter charArray) throws IOException {
+    this.bufferedOut = new BufferedOutputStream(
+        WriterOutputStream.builder()
+            .setWriter(charArray)
+            .setCharset(StandardCharsets.UTF_8)
+            .get(),
+        16384);
   }
 
   @Override
