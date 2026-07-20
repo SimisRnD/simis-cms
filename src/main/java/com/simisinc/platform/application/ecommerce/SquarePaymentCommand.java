@@ -117,7 +117,7 @@ public class SquarePaymentCommand {
     try {
       // Create the JSON string
       String data = new ObjectMapper()
-          .setSerializationInclusion(JsonInclude.Include.NON_EMPTY)
+          .setDefaultPropertyInclusion(JsonInclude.Include.NON_EMPTY)
           .writeValueAsString(createPaymentRequest);
       // Send to Square
       JsonNode json = SquareApiClientCommand.sendSquareHttpPost("/v2/payments", data);
