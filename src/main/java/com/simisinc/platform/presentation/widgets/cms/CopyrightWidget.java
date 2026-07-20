@@ -17,6 +17,7 @@
 package com.simisinc.platform.presentation.widgets.cms;
 
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.cms.HtmlCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 
@@ -35,7 +36,7 @@ public class CopyrightWidget extends GenericWidget {
     String tag = context.getPreferences().getOrDefault("tag", "All Rights Reserved.");
     context.setHtml(
         "&copy; " + new java.text.SimpleDateFormat("yyyy").format(new java.util.Date()) + " " +
-            "<span translate=\"no\">" + name + (!name.endsWith(".") ? "." : "") + "</span>" + " " + tag);
+            "<span translate=\"no\">" + HtmlCommand.toHtml(name) + (!name.endsWith(".") ? "." : "") + "</span>" + " " + HtmlCommand.toHtml(tag));
     return context;
   }
 }
