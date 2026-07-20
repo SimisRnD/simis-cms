@@ -16,11 +16,13 @@
 
 package com.simisinc.platform.infrastructure.persistence.cms;
 
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.domain.model.dashboard.StatisticsData;
 import com.simisinc.platform.infrastructure.database.DB;
 import com.simisinc.platform.infrastructure.database.SqlUtils;
 import com.simisinc.platform.infrastructure.persistence.SessionRepository;
 import com.simisinc.platform.domain.model.cms.WebPageHit;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -122,7 +124,33 @@ public class WebPageHitRepository {
   }
 
   public static void deleteOldWebHits() {
-    DB.deleteFrom(TABLE_NAME, new SqlUtils().add("hit_date < NOW() - INTERVAL '365 days'"));
+    // The retention window is configurable via the analytics.retentionDays site property. The value is
+    // parsed to an int (and bounded) before it is placed in the interval, so it cannot inject SQL.
+    int days = resolveRetentionDays(LoadSitePropertyCommand.loadByName("analytics.retentionDays"));
+    DB.deleteFrom(TABLE_NAME, new SqlUtils().add("hit_date < NOW() - INTERVAL '" + days + " days'"));
+  }
+
+  private static final int DEFAULT_RETENTION_DAYS = 365;
+
+  /** Parses the configured retention window to a bounded positive integer, defaulting to 365 days. */
+  static int resolveRetentionDays(String value) {
+    if (StringUtils.isBlank(value)) {
+      return DEFAULT_RETENTION_DAYS;
+    }
+    int days;
+    try {
+      days = Integer.parseInt(value.trim());
+    } catch (NumberFormatException e) {
+      return DEFAULT_RETENTION_DAYS;
+    }
+    // Keep at least a day of data, and cap at ten years to avoid an unbounded interval
+    if (days < 1) {
+      return 1;
+    }
+    if (days > 3650) {
+      return 3650;
+    }
+    return days;
   }
 
   public static List<StatisticsData> findDailyWebHits(int daysToLimit) {
