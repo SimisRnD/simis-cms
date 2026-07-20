@@ -13,7 +13,7 @@ An optimized web application archive (.war), with production settings, is releas
 
 - [OpenJDK 21+](https://learn.microsoft.com/en-us/java/openjdk/download)
 - [Apache Tomcat 9.0.x](https://tomcat.apache.org)
-- [PostgreSQL 14+](https://www.postgresql.org) with [PostGIS 3.2](https://postgis.net)
+- [PostgreSQL 17](https://www.postgresql.org) with [PostGIS 3](https://postgis.net)
 - The web application and optional services have only been tested on Linux, MacOS, and Windows with WSL
 
 ## Typical Steps

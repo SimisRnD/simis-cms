@@ -10,14 +10,14 @@ SimIS CMS comes out-of-the-box with modules, easy setup, and powerful developer 
 ## Features
 
 - **CMS**: Site Map, Web Pages (Templates, UI Designer, SEO, Searchable) with Content and Images, HTML Editor, CSS Editor, Blogs, Form Data, Calendars, Folders and Files, Mailing Lists, Videos, Wikis, Search, Site Alerts, Form Pop-Ups, Sticky Header and Buttons, Responsive, Bot Detection
-- **Analytics**: Tracking for Sessions, Hits, Geolocation, Content, Searches, Referrals; Charts; xAPI; Pixels
+- **Analytics**: Privacy-First Tracking of Sessions, Hits, Geolocation, Content, Searches, and Referrals; Cookieless Mode; IP Anonymization; Do-Not-Track / GPC Honoring; Charts; xAPI; Pixels
 - **Data Integration**: Datasets (CSV, TSV, JSON, GeoJSON, and RSS sources), Collections (Profiles, Geolocation, Multiple Categories, Relationships, Custom Fields, Indexed, Searchable), Data Sources
 - **Collaboration**: Users (Register, Validation, Login, Invite), User Groups, Collection Membership and Permissions, Chat
 - **E-commerce**: Products, SKUs, Categories, Customers, Orders, Account Management, Shipping Methods, Carriers, Tracking Numbers, Pricing Rules (Constraints, Discounts, and Promos)
 - **CRM**: Forms, Leads & Customers, Orders
 - **Settings**: Theme, Site SEO, Social Media, Mail Server, Maps, Captcha, Analytics, E-commerce, Mailing Lists
 - **Integration**: Google Analytics, Map Box, Open Street Map, Square, Stripe, Taxjar, USPS, Boxzooka
-- **Security**: OAuth, Firewall (Integration and Blocked IP lists), Spam Filter, Geo Filter, Rate Limiting, Snyk scanning
+- **Security**: Multi-Factor Authentication (TOTP, Recovery Codes), Argon2id Password Hashing, OAuth, Firewall (Integration and Blocked IP Lists), Spam Filter, Geo Filter, Rate Limiting, CSP/HSTS and Session Hardening, Encrypted Secrets at Rest, CodeQL and Snyk Scanning, Signed SBOM with Build-Provenance Attestation
 - **API**: Rest API
 - **Platform**: Micro Widgets, Connection Pool, Cache, Scheduler, Workflow, Expression Engine, Upgrades, Migrations, Record Paging
 

@@ -41,7 +41,7 @@ If not specified, the path for file assets and external configuration on Linux i
 ## Developer Resources
 
 - [SimIS CMS](https://www.simiscms.com)
-- [Java 17 SDK Documentation](https://docs.oracle.com/en/java/javase/17/)
+- [Java 21 SDK Documentation](https://docs.oracle.com/en/java/javase/21/)
 - [MVC Example with Servlets and JSP](https://www.baeldung.com/mvc-servlet-jsp)
 - [Servlet 4.0 API](https://tomcat.apache.org/tomcat-9.0-doc/servletapi/index.html)
 - [JSP 2.3 API](https://tomcat.apache.org/tomcat-9.0-doc/jspapi/index.html)
