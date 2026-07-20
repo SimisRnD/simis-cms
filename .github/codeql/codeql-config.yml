@@ -1,0 +1,12 @@
+name: "SimIS CMS CodeQL config"
+
+# Vendored third-party JavaScript libraries live under src/main/webapp/javascript (mermaid, tinymce,
+# codemirror, jquery-*, swiper, jsuites, spectrum, foundation-datepicker, ...). These are shipped
+# bundles, often minified, that SimIS does not author or hand-patch -- they are managed by updating the
+# library version and are tracked in the release SBOM. CodeQL scanning of their internals produces
+# findings against library code, not first-party code, which buries any real first-party finding in noise.
+#
+# Excluding them keeps CodeQL focused on first-party code. First-party JavaScript is inline in the JSPs
+# (reviewed manually) and there is very little first-party code under this path.
+paths-ignore:
+  - src/main/webapp/javascript
