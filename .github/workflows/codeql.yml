@@ -1,0 +1,68 @@
+# Advanced CodeQL setup that applies .github/codeql/codeql-config.yml so vendored third-party JavaScript
+# under src/main/webapp/javascript is excluded from scanning (see that file for the rationale).
+#
+# ADOPTION (requires a repository admin):
+#   1. Disable the repository's CodeQL *default* setup first (Settings -> Code security -> Code scanning ->
+#      CodeQL default setup -> disable). Default and advanced setup cannot both run.
+#   2. Change the `on:` triggers below from `workflow_dispatch` only to the usual push/pull_request/schedule
+#      (an example is left commented out) so it runs on every change like the previous default setup did.
+#   3. Merge, then confirm the CodeQL check runs green on a pull request and that first-party alerts still
+#      appear while the vendored-JS noise is gone.
+#
+# Until adopted, this workflow only runs on a manual dispatch, so it does not conflict with default setup.
+name: CodeQL
+
+on:
+  workflow_dispatch:
+  # After disabling default setup (see ADOPTION above), enable these:
+  # push:
+  #   branches: [ main ]
+  # pull_request:
+  #   branches: [ main ]
+  # schedule:
+  #   - cron: '31 3 * * 1'
+
+jobs:
+  analyze:
+    name: Analyze (${{ matrix.language }})
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - language: java-kotlin
+            build-mode: manual
+          - language: javascript-typescript
+            build-mode: none
+          - language: actions
+            build-mode: none
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up JDK 21
+        if: matrix.language == 'java-kotlin'
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: 21
+
+      - name: Initialize CodeQL
+        uses: github/codeql-action/init@v3
+        with:
+          languages: ${{ matrix.language }}
+          build-mode: ${{ matrix.build-mode }}
+          config-file: ./.github/codeql/codeql-config.yml
+
+      # java-kotlin uses build-mode: manual, so build the sources CodeQL should trace (mirrors ant.yml)
+      - name: Compile the source
+        if: matrix.language == 'java-kotlin'
+        run: ant -noinput -buildfile build.xml clean compile
+
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+        with:
+          category: "/language:${{ matrix.language }}"
