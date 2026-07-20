@@ -4,6 +4,12 @@ Thanks for your interest in SimIS CMS. This page covers how to build the project
 
 Questions and ideas are welcome in [Discussions](https://github.com/SimisRnD/simis-cms/discussions); bug reports in [Issues](https://github.com/SimisRnD/simis-cms/issues). Please report security vulnerabilities privately — see [SECURITY.md](SECURITY.md), and never open a public issue for one.
 
+## Security and auditability
+
+SimIS CMS is built for environments where security and accountability matter, so we hold to a high bar — security, auditability, and doing right by the product. Every change runs through automated, deterministic checks that leave an audit trail: build and tests, CodeQL static analysis, dependency and secret scanning, and a signed software bill of materials (SBOM) and build-provenance attestation at each release.
+
+Development is **AI-assisted** (Claude Code, Anthropic) — an advisory tool that helps draft, review, and document changes so a small team can hold that bar. It doesn't replace judgment: every change is reviewed and merged by a SimIS maintainer, who remains accountable.
+
 ## Development setup
 
 You'll need:
