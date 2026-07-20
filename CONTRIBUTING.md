@@ -2,7 +2,7 @@
 
 Thanks for your interest in SimIS CMS. This page covers how to build the project, how changes are organized, and what a pull request needs before it can merge.
 
-Questions and ideas are welcome in [Discussions](https://github.com/SimisRnD/simis-cms/discussions); bug reports in [Issues](https://github.com/SimisRnD/simis-cms/issues). Please report security vulnerabilities privately — see [SECURITY.md](SECURITY.md), and never open a public issue for one.
+Questions and ideas are welcome in [Discussions](https://github.com/SimisRnD/simis-cms/discussions); bug reports and feature requests go through the [New issue](https://github.com/SimisRnD/simis-cms/issues/new/choose) chooser, which has a template for each. Please report security vulnerabilities privately — see [SECURITY.md](SECURITY.md), and never open a public issue for one.
 
 ## Security and auditability
 
@@ -24,18 +24,20 @@ See [docs/developer-environment.md](docs/developer-environment.md) for the full 
 
 ```sh
 ant clean compile                  # compile the application
-ant -lib lib/tests ci-test         # run the full test suite (what CI runs)
+ant -lib lib/war compile-jsp       # JSP syntax gate — precompile every JSP
+ant -lib lib/tests ci-test         # run the unit test suite
 ant -lib lib/war package           # build the production .war
 ```
 
-Two things worth knowing:
+A few things worth knowing:
 
 - **Run `ant clean` before trusting a build.** Stale classes in `build/` can produce misleading errors (phantom "cannot find symbol", tests that no longer exist still running).
 - **Dependencies are vendored** in `lib/`. If you change a library version, update **both** the jar in `lib/` and the version in `pom.xml` — they can silently drift apart otherwise.
+- **CI enforces security-critical test coverage.** After the targets above, CI runs `.github/scripts/check-security-coverage.sh`, which fails the build if a hardened security class drops below its test-coverage floor — so removing or weakening those tests will turn CI red.
 
 ## Making changes
 
-- **Branch from `main`**, named by intent: `security/...`, `fix/...`, `feature/...`, `docs/...`.
+- **Branch from `main`**, named by intent: `security/...`, `fix/...`, `feature/...`, `docs/...`, `maint/...`, `ci/...`.
 - **One concern per pull request.** Small, reviewable PRs merge quickly; mixed ones stall.
 - **Write tests** for behavior you add or change. The suite runs on every PR and must pass.
 - **Match the surrounding code** — this codebase favors explicit, readable Java; follow the style of the file you're editing.
@@ -45,8 +47,8 @@ Two things worth knowing:
 
 A PR is ready to merge when:
 
-1. **CI is green** — build, test suite, and CodeQL analysis all pass.
-2. **It's labeled** with what it touches: `security`, `bug`, `dependencies`, `ci`, `documentation`, `authentication`, `modernization`, or `enhancement`.
+1. **CI is green** — compile, the JSP syntax gate, the test suite, CodeQL, and the security-coverage check all pass.
+2. **It's labeled** with what it touches — for example `security`, `bug`, `enhancement`, `dependencies`, `ci`, `documentation`, `authentication`, `modernization`, `maintenance`, `privacy`, `compliance`, or `testing`.
 3. **The description says what and why** — what problem it solves, how it was verified.
 
 ### Stacked pull requests
