@@ -3,7 +3,8 @@
 # the built-in GITHUB_TOKEN -- no personal credentials are stored or used.
 #
 # The first publish has to be kicked off by hand (workflow_dispatch) to create
-# the packages; after that it runs on every push to main and each release.
+# the packages; after that it runs on every push to main, each release, and
+# monthly on a schedule so the images pick up base-image security fixes.
 name: Publish container images
 
 on:
@@ -12,6 +13,10 @@ on:
     branches: [ main ]
   release:
     types: [ published ]
+  schedule:
+    # Monthly rebuild + re-scan so the published images adopt Debian security
+    # fixes as they ship, without waiting for a code push (06:00 UTC on the 1st).
+    - cron: '0 6 1 * *'
 
 permissions:
   contents: read          # read the source to build from
