@@ -24,6 +24,10 @@ jobs:
         java-version: 21
     - name: Compile the source
       run: ant -noinput -buildfile build.xml clean compile
+    - name: Precompile the JSPs
+      # Gate JSP syntax (unbalanced tags, unresolvable taglibs, bad EL) before the test suite.
+      # lib/war supplies the Tomcat 9 / javax Jasper used by the compile-jsp target.
+      run: ant -noinput -buildfile build.xml -lib lib/war compile-jsp
     - name: Run unit tests
       run: ant -noinput -buildfile build.xml -lib lib/tests ci-test
     - name: Package the web application
