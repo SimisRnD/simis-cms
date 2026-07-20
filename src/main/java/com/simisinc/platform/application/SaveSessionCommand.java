@@ -37,7 +37,9 @@ public class SaveSessionCommand {
     session.setSessionId(userSession.getSessionId());
     session.setSource(userSession.getSource());
     session.setAppId(userSession.getAppId());
-    session.setIpAddress(userSession.getIpAddress());
+    // The geo location was already resolved from the full ip when the session was created; only an
+    // anonymized ip is stored when analytics.anonymizeIp is enabled
+    session.setIpAddress(IpAddressCommand.anonymizeForStorage(userSession.getIpAddress()));
     session.setUserAgent(userSession.getUserAgent());
     session.setReferer(userSession.getReferer());
     if (userSession.getGeoIP() != null) {

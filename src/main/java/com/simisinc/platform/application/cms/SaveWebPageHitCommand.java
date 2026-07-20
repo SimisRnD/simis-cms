@@ -16,6 +16,7 @@
 
 package com.simisinc.platform.application.cms;
 
+import com.simisinc.platform.application.IpAddressCommand;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.cms.WebPage;
 import com.simisinc.platform.domain.model.cms.WebPageHit;
@@ -37,7 +38,7 @@ public class SaveWebPageHitCommand {
 
   public static void saveHit(String ipAddress, String method, String pagePath, WebPage webPage, UserSession userSession) {
     WebPageHit webPageHit = new WebPageHit();
-    webPageHit.setIpAddress(ipAddress);
+    webPageHit.setIpAddress(IpAddressCommand.anonymizeForStorage(ipAddress));
     webPageHit.setMethod(method);
     webPageHit.setPagePath(pagePath);
     if (webPage != null) {
@@ -55,7 +56,7 @@ public class SaveWebPageHitCommand {
 
   public static void saveHit(String ipAddress, String method, String pagePath, User user) {
     WebPageHit webPageHit = new WebPageHit();
-    webPageHit.setIpAddress(ipAddress);
+    webPageHit.setIpAddress(IpAddressCommand.anonymizeForStorage(ipAddress));
     webPageHit.setMethod(method);
     webPageHit.setPagePath(pagePath);
     if (user != null) {
