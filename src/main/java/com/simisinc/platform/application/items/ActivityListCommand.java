@@ -91,7 +91,7 @@ public class ActivityListCommand {
       // Show the name of the item, link to it
       Item item = LoadItemCommand.loadItemById(Long.parseLong(id));
       if (item != null) {
-        return ("<a href=\"#\">" + ItemCommand.name(item) + "</a>");
+        return ("<a href=\"#\">" + HtmlCommand.toHtml(ItemCommand.name(item)) + "</a>");
       }
     }
     return HtmlCommand.toHtml("<unknown>");
