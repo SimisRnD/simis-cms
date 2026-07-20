@@ -34,6 +34,7 @@ import com.simisinc.platform.infrastructure.persistence.login.UserLoginRepositor
 import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
 import com.simisinc.platform.presentation.controller.RequestConstants;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
+import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -228,10 +229,16 @@ public class UsersListWidget extends GenericWidget {
       }
     } catch (DataException | AccountException e) {
       LOG.error("Save user error", e);
+      AuditEventCommand.record(context, AuditEventCommand.USER_MANAGEMENT, "user.create", AuditEventCommand.FAILURE,
+          "user", String.valueOf(userBean.getId()), userBean.getEmail(), e.getMessage());
       context.setErrorMessage(e.getMessage());
       context.setRequestObject(userBean);
       return context;
     }
+
+    // Record the new account with its initial roles and groups
+    AuditEventCommand.record(context, AuditEventCommand.USER_MANAGEMENT, "user.create", AuditEventCommand.SUCCESS,
+        "user", String.valueOf(user.getId()), user.getEmail(), AuditEventCommand.describeRolesAndGroups(user));
 
     // Trigger events
     User invitedBy = LoadUserCommand.loadUser(user.getCreatedBy());

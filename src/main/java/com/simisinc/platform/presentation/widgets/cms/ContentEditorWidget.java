@@ -31,6 +31,7 @@ import com.simisinc.platform.domain.model.cms.WebPage;
 import com.simisinc.platform.infrastructure.persistence.cms.ContentRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
 import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
+import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 
@@ -137,9 +138,16 @@ public class ContentEditorWidget extends GenericWidget {
       Content content = SaveContentCommand.saveSafeContent(uniqueId, contentHtml, context.getUserId(), publish);
       if (content == null) {
         LOG.warn("Content record was not saved!");
+        if (publish) {
+          AuditEventCommand.record(context, AuditEventCommand.CONTENT, "content.publish", AuditEventCommand.FAILURE,
+              "content", null, uniqueId, null);
+        }
         context.setErrorMessage("An error occurred");
       } else {
         if (publish) {
+          // Record the publish (draft saves are routine and intentionally not audited)
+          AuditEventCommand.record(context, AuditEventCommand.CONTENT, "content.publish", AuditEventCommand.SUCCESS,
+              "content", String.valueOf(content.getId()), uniqueId, null);
           // The web page has content which was just updated
           WebPage webPage = LoadWebPageCommand.loadByLink(returnPage);
           if (webPage != null) {
@@ -158,6 +166,10 @@ public class ContentEditorWidget extends GenericWidget {
       }
     } catch (DataException e) {
       LOG.error("DEVELOPER: Content parameter was not found");
+      if (publish) {
+        AuditEventCommand.record(context, AuditEventCommand.CONTENT, "content.publish", AuditEventCommand.FAILURE,
+            "content", null, uniqueId, e.getMessage());
+      }
       context.setErrorMessage("A system error occurred");
     }
     return context;

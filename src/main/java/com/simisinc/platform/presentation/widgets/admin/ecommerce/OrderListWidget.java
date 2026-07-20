@@ -24,6 +24,7 @@ import com.simisinc.platform.infrastructure.persistence.ecommerce.OrderRepositor
 import com.simisinc.platform.infrastructure.persistence.ecommerce.OrderSpecification;
 import com.simisinc.platform.presentation.controller.MultipartFileSender;
 import com.simisinc.platform.presentation.controller.RequestConstants;
+import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import org.apache.commons.lang3.StringUtils;
@@ -117,6 +118,7 @@ public class OrderListWidget extends GenericWidget {
     String extension = "csv";
     String displayFilename = prefix + "-" + new SimpleDateFormat("yyyyMMdd-HHmm").format(new Date()) + "." + extension;
     File tempFile = FileSystemCommand.generateTempFile("exports", context.getUserId(), extension);
+    String exportTarget = "taxjar".equals(exportType) ? "orders_taxjar" : "orders";
     try {
       if ("taxjar".equals(exportType)) {
         // Export the data to the file
@@ -133,8 +135,13 @@ public class OrderListWidget extends GenericWidget {
           .withMimeType(mimeType)
           .withFilename(displayFilename)
           .serveResource();
+      // Record the bulk export (whole-table download of order/customer data)
+      AuditEventCommand.record(context, AuditEventCommand.DATA_ACCESS, "data.export", AuditEventCommand.SUCCESS,
+          exportTarget, "all", displayFilename, "format=" + extension);
     } catch (Exception e) {
       LOG.error("Download CSV Error", e);
+      AuditEventCommand.record(context, AuditEventCommand.DATA_ACCESS, "data.export", AuditEventCommand.FAILURE,
+          exportTarget, "all", displayFilename, "format=" + extension);
     } finally {
       if (tempFile.exists()) {
         LOG.warn("Deleting a temporary file: " + tempFile.getAbsolutePath());

@@ -20,6 +20,7 @@ import com.simisinc.platform.domain.model.cms.Wiki;
 import com.simisinc.platform.infrastructure.persistence.cms.WikiPageRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WikiPageSpecification;
 import com.simisinc.platform.infrastructure.persistence.cms.WikiRepository;
+import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 
@@ -80,8 +81,12 @@ public class WikiListWidget extends GenericWidget {
         context.setErrorMessage("Wiki was not found");
       } else {
         if (WikiRepository.remove(wiki)) {
+          AuditEventCommand.record(context, AuditEventCommand.CONTENT, "content.delete", AuditEventCommand.SUCCESS,
+              "wiki", String.valueOf(wiki.getId()), wiki.getName(), null);
           context.setSuccessMessage("Wiki was deleted");
         } else {
+          AuditEventCommand.record(context, AuditEventCommand.CONTENT, "content.delete", AuditEventCommand.FAILURE,
+              "wiki", String.valueOf(wiki.getId()), wiki.getName(), null);
           context.setWarningMessage("Wiki could not be deleted");
         }
       }

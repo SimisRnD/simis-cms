@@ -28,6 +28,7 @@ import com.simisinc.platform.domain.model.cms.FolderGroup;
 import com.simisinc.platform.domain.model.items.PrivacyType;
 import com.simisinc.platform.infrastructure.persistence.GroupRepository;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
+import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -148,6 +149,16 @@ public class FolderFormWidget extends GenericWidget {
       folderBean.setFolderCategoryList(folderCategoryList);
     }
 
+    // Summarize the submitted per-group ACL for the audit detail
+    StringBuilder aclDetails = new StringBuilder("aclGroupIds=[");
+    for (int i = 0; i < folderGroupList.size(); i++) {
+      if (i > 0) {
+        aclDetails.append(",");
+      }
+      aclDetails.append(folderGroupList.get(i).getGroupId());
+    }
+    aclDetails.append("]");
+
     // Save the folder
     Folder folder = null;
     try {
@@ -156,11 +167,19 @@ public class FolderFormWidget extends GenericWidget {
         throw new FolderException("Your information could not be saved due to a system error. Please try again.");
       }
     } catch (DataException | FolderException e) {
+      AuditEventCommand.record(context, AuditEventCommand.AUTHORIZATION, "folder.access.update",
+          AuditEventCommand.FAILURE, "folder", String.valueOf(folderBean.getId()), folderBean.getName(),
+          aclDetails.toString());
       context.setErrorMessage(e.getMessage());
       context.setRequestObject(folderBean);
       context.addSharedRequestValue("returnPage", returnPage);
       return context;
     }
+
+    // Record the folder save with its group access-control list
+    AuditEventCommand.record(context, AuditEventCommand.AUTHORIZATION, "folder.access.update",
+        AuditEventCommand.SUCCESS, "folder", String.valueOf(folder.getId()), folder.getName(),
+        aclDetails.toString());
 
     // Determine the page to return to
     context.setSuccessMessage("Folder was saved");

@@ -109,4 +109,28 @@ class SaveAuditEventCommandTest {
     // The value is preserved, just escaped inline
     assertTrue(json.contains("AUDIT forged line"));
   }
+
+  @Test
+  void adminEventCarriesTheTargetFields() {
+    // A Phase 2 admin/data-change event identifies the record that changed via the target fields
+    AuditLog event = baseEvent();
+    event.setEventCategory("user_management");
+    event.setEventType("user.disable");
+    event.setActorUserId(7L);
+    event.setActorUsername("admin@example.com");
+    event.setTargetType("user");
+    event.setTargetId("42");
+    event.setTargetLabel("jdoe@example.com");
+    event.setDetails("roles=[admin]; groups=[All Users]");
+
+    String json = SaveAuditEventCommand.toJson(event);
+
+    assertTrue(json.contains("\"category\":\"user_management\""));
+    assertTrue(json.contains("\"event\":\"user.disable\""));
+    assertTrue(json.contains("\"targetType\":\"user\""));
+    // targetId is a string field even when it holds a numeric id
+    assertTrue(json.contains("\"targetId\":\"42\""));
+    assertTrue(json.contains("\"targetLabel\":\"jdoe@example.com\""));
+    assertTrue(json.contains("\"details\":\"roles=[admin]; groups=[All Users]\""));
+  }
 }

@@ -20,6 +20,7 @@ import com.simisinc.platform.application.cms.ThemeCommand;
 import com.simisinc.platform.domain.model.cms.Theme;
 import com.simisinc.platform.infrastructure.persistence.cms.ThemeRepository;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
+import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import org.apache.commons.lang3.StringUtils;
 
@@ -60,6 +61,8 @@ public class ThemeEditorWidget extends GenericWidget {
     }
     // Save the theme
     ThemeCommand.createSnapshotWithName(name);
+    AuditEventCommand.record(context, AuditEventCommand.CONFIGURATION, "theme.create", AuditEventCommand.SUCCESS,
+        "theme", null, name, null);
     return context;
   }
 
@@ -73,7 +76,10 @@ public class ThemeEditorWidget extends GenericWidget {
     long themeId = context.getParameterAsLong("id");
     Theme theme = ThemeRepository.findById(themeId);
     if (theme != null) {
+      // Restoring a theme bulk-overwrites the theme-prefixed site settings
       ThemeCommand.restoreTheme(theme);
+      AuditEventCommand.record(context, AuditEventCommand.CONFIGURATION, "theme.restore", AuditEventCommand.SUCCESS,
+          "theme", String.valueOf(theme.getId()), theme.getName(), null);
     }
     return context;
   }
@@ -83,7 +89,10 @@ public class ThemeEditorWidget extends GenericWidget {
     long themeId = context.getParameterAsLong("id");
     Theme theme = ThemeRepository.findById(themeId);
     if (theme != null) {
+      String themeLabel = theme.getName();
       ThemeRepository.remove(theme);
+      AuditEventCommand.record(context, AuditEventCommand.CONFIGURATION, "theme.delete", AuditEventCommand.SUCCESS,
+          "theme", String.valueOf(themeId), themeLabel, null);
     }
     return context;
   }

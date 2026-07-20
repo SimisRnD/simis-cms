@@ -27,6 +27,7 @@ import com.simisinc.platform.domain.model.cms.Blog;
 import com.simisinc.platform.domain.model.cms.BlogPost;
 import com.simisinc.platform.domain.model.cms.Content;
 import com.simisinc.platform.infrastructure.persistence.cms.ContentRepository;
+import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.cms.BlogPostWidget;
 
@@ -397,19 +398,30 @@ public class ContentHtmlCommand {
   private static WidgetContext publishContent(WidgetContext context, Content content) {
     if (StringUtils.isNotBlank(content.getDraftContent())) {
       ContentRepository.publish(content);
+      AuditEventCommand.record(context, AuditEventCommand.CONTENT, "content.publish", AuditEventCommand.SUCCESS,
+          "content", String.valueOf(content.getId()), content.getUniqueId(), null);
     }
     return context;
   }
 
   private static WidgetContext deleteContent(WidgetContext context, Content content) {
+    // Capture identity before the record is removed
+    String targetId = String.valueOf(content.getId());
+    String targetLabel = content.getUniqueId();
     // Attempt to delete the content (permission was verified in performWebAction)
     try {
       if (ContentRepository.remove(content)) {
+        AuditEventCommand.record(context, AuditEventCommand.CONTENT, "content.delete", AuditEventCommand.SUCCESS,
+            "content", targetId, targetLabel, null);
         context.setSuccessMessage("The content was deleted");
       } else {
+        AuditEventCommand.record(context, AuditEventCommand.CONTENT, "content.delete", AuditEventCommand.FAILURE,
+            "content", targetId, targetLabel, null);
         context.setErrorMessage("The content could not be deleted");
       }
     } catch (Exception e) {
+      AuditEventCommand.record(context, AuditEventCommand.CONTENT, "content.delete", AuditEventCommand.FAILURE,
+          "content", targetId, targetLabel, e.getMessage());
       context.setErrorMessage("The content could not be deleted: " + e.getMessage());
     }
     return context;

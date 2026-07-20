@@ -26,6 +26,7 @@ import com.simisinc.platform.infrastructure.persistence.RoleRepository;
 import com.simisinc.platform.infrastructure.persistence.UserRepository;
 import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
+import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 
 import java.util.List;
@@ -98,8 +99,16 @@ public class UserDetailsWidget extends GenericWidget {
   }
 
   private WidgetContext resetPassword(WidgetContext context, User user) {
+    // Capture the target before the token replaces the reference
+    String targetId = String.valueOf(user.getId());
+    String targetLabel = user.getEmail();
     // Create an account token and send email
     user = UserRepository.createAccountToken(user);
+
+    // Record the admin-initiated password reset of another user
+    AuditEventCommand.record(context, AuditEventCommand.USER_MANAGEMENT, "user.password.reset",
+        user != null ? AuditEventCommand.SUCCESS : AuditEventCommand.FAILURE,
+        "user", targetId, targetLabel, null);
 
     // Trigger events
     WorkflowManager.triggerWorkflowForEvent(new UserPasswordResetEvent(user, context.getUserSession().getUser()));
@@ -114,14 +123,20 @@ public class UserDetailsWidget extends GenericWidget {
       context.setErrorMessage("You cannot suspend your own account");
       return context;
     }
-    UserRepository.suspendAccount(user);
+    User result = UserRepository.suspendAccount(user);
+    AuditEventCommand.record(context, AuditEventCommand.USER_MANAGEMENT, "user.disable",
+        result != null ? AuditEventCommand.SUCCESS : AuditEventCommand.FAILURE,
+        "user", String.valueOf(user.getId()), user.getEmail(), null);
     context.setSuccessMessage("Account suspended");
     return context;
   }
 
   private WidgetContext restoreAccount(WidgetContext context, User user) {
     // Restore the account
-    UserRepository.restoreAccount(user);
+    User result = UserRepository.restoreAccount(user);
+    AuditEventCommand.record(context, AuditEventCommand.USER_MANAGEMENT, "user.enable",
+        result != null ? AuditEventCommand.SUCCESS : AuditEventCommand.FAILURE,
+        "user", String.valueOf(user.getId()), user.getEmail(), null);
     context.setSuccessMessage("Account restored");
     return context;
   }
@@ -132,13 +147,22 @@ public class UserDetailsWidget extends GenericWidget {
       context.setErrorMessage("You cannot delete your own account");
       return context;
     }
+    // Capture identity before the record is removed
+    String targetId = String.valueOf(user.getId());
+    String targetLabel = user.getEmail();
     try {
       if (UserRepository.remove(user)) {
+        AuditEventCommand.record(context, AuditEventCommand.USER_MANAGEMENT, "user.delete",
+            AuditEventCommand.SUCCESS, "user", targetId, targetLabel, null);
         context.setSuccessMessage("Account deleted");
       } else {
+        AuditEventCommand.record(context, AuditEventCommand.USER_MANAGEMENT, "user.delete",
+            AuditEventCommand.FAILURE, "user", targetId, targetLabel, "referenced in other tables");
         context.setErrorMessage("Account not deleted - this user is referenced in other database tables");
       }
     } catch (Exception e) {
+      AuditEventCommand.record(context, AuditEventCommand.USER_MANAGEMENT, "user.delete",
+          AuditEventCommand.FAILURE, "user", targetId, targetLabel, e.getMessage());
       context.setErrorMessage("The account could not be deleted: " + e.getMessage());
     }
     return context;

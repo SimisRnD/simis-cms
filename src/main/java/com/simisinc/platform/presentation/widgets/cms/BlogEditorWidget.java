@@ -25,6 +25,7 @@ import com.simisinc.platform.domain.model.cms.WebPageTemplate;
 import com.simisinc.platform.infrastructure.persistence.cms.BlogRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageTemplateRepository;
+import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import org.apache.commons.beanutils.BeanUtils;
@@ -131,11 +132,13 @@ public class BlogEditorWidget extends GenericWidget {
     blogPostBean.setModifiedBy(context.getUserId());
 
     String enabled = context.getParameter("enabled");
-    if (StringUtils.isNotBlank(enabled)) {
+    boolean isPublished = StringUtils.isNotBlank(enabled);
+    if (isPublished) {
       blogPostBean.setPublished(new Timestamp(System.currentTimeMillis()));
     } else {
       blogPostBean.setPublished(null);
     }
+    String eventType = isPublished ? "content.publish" : "content.unpublish";
 
     String returnPage = UrlCommand.getValidReturnPage(context.getParameter("returnPage"));
 
@@ -147,11 +150,17 @@ public class BlogEditorWidget extends GenericWidget {
         throw new DataException("Your information could not be saved due to a system error. Please try again.");
       }
     } catch (DataException e) {
+      AuditEventCommand.record(context, AuditEventCommand.CONTENT, eventType, AuditEventCommand.FAILURE,
+          "blog_post", String.valueOf(blogPostBean.getId()), blogPostBean.getTitle(), e.getMessage());
       context.setErrorMessage(e.getMessage());
       context.setRequestObject(blogPostBean);
       context.addSharedRequestValue("returnPage", returnPage);
       return context;
     }
+
+    // Record the publish/unpublish
+    AuditEventCommand.record(context, AuditEventCommand.CONTENT, eventType, AuditEventCommand.SUCCESS,
+        "blog_post", String.valueOf(blogPost.getId()), blogPost.getTitle(), null);
 
     // Determine the page to return to
     context.setSuccessMessage("Blog post was saved");

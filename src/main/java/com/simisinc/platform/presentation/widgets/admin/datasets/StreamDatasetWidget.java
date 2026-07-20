@@ -26,6 +26,7 @@ import org.apache.commons.logging.LogFactory;
 import com.simisinc.platform.application.filesystem.FileSystemCommand;
 import com.simisinc.platform.domain.model.datasets.Dataset;
 import com.simisinc.platform.infrastructure.persistence.datasets.DatasetRepository;
+import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 
@@ -96,8 +97,14 @@ public class StreamDatasetWidget extends GenericWidget {
       }
       out.close();
       in.close();
+      // Record the dataset download -- the full dataset content leaves the system. Access here is
+      // gated by page configuration rather than a role check, so the actor may be anonymous.
+      AuditEventCommand.record(context, AuditEventCommand.DATA_ACCESS, "data.export", AuditEventCommand.SUCCESS,
+          "dataset_file", String.valueOf(fileId), record.getFilename(), "format=" + record.getFileType());
     } catch (Exception e) {
       LOG.debug("Stream error: " + e.getMessage());
+      AuditEventCommand.record(context, AuditEventCommand.DATA_ACCESS, "data.export", AuditEventCommand.FAILURE,
+          "dataset_file", String.valueOf(fileId), record.getFilename(), "format=" + record.getFileType());
     }
     context.setHandledResponse(true);
     return context;

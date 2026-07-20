@@ -31,6 +31,7 @@ import com.simisinc.platform.domain.model.items.CollectionGroup;
 import com.simisinc.platform.domain.model.items.PrivacyType;
 import com.simisinc.platform.infrastructure.persistence.GroupRepository;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
+import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 
 import org.apache.commons.beanutils.BeanUtils;
@@ -116,6 +117,16 @@ public class CollectionFormWidget extends GenericWidget {
       }
     }
 
+    // Summarize the submitted per-group ACL for the audit detail
+    StringBuilder aclDetails = new StringBuilder("aclGroupIds=[");
+    for (int i = 0; i < collectionGroupList.size(); i++) {
+      if (i > 0) {
+        aclDetails.append(",");
+      }
+      aclDetails.append(collectionGroupList.get(i).getGroupId());
+    }
+    aclDetails.append("]");
+
     // Save the collection
     Collection collection = null;
     try {
@@ -124,11 +135,19 @@ public class CollectionFormWidget extends GenericWidget {
         throw new CollectionException("Your information could not be saved due to a system error. Please try again.");
       }
     } catch (DataException | CollectionException e) {
+      AuditEventCommand.record(context, AuditEventCommand.AUTHORIZATION, "collection.access.update",
+          AuditEventCommand.FAILURE, "collection", String.valueOf(collectionBean.getId()), collectionBean.getName(),
+          aclDetails.toString());
       context.setErrorMessage(e.getMessage());
       context.setRequestObject(collectionBean);
       context.addSharedRequestValue("returnPage", returnPage);
       return context;
     }
+
+    // Record the collection save with its group access-control list
+    AuditEventCommand.record(context, AuditEventCommand.AUTHORIZATION, "collection.access.update",
+        AuditEventCommand.SUCCESS, "collection", String.valueOf(collection.getId()), collection.getName(),
+        aclDetails.toString());
 
     // Determine the page to return to
     context.setSuccessMessage("Collection was saved");
