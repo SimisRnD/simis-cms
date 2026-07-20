@@ -192,7 +192,7 @@ public class SquareProductCatalogCommand {
     try {
       // Create the JSON string
       String data = new ObjectMapper()
-          .setSerializationInclusion(JsonInclude.Include.NON_EMPTY)
+          .setDefaultPropertyInclusion(JsonInclude.Include.NON_EMPTY)
           .writeValueAsString(batchUpsertCatalogObjectsRequest);
 
       if (LOG.isDebugEnabled()) {

@@ -68,7 +68,7 @@ public class SquareRefundCommand {
     try {
       // Create the JSON string
       String data = new ObjectMapper()
-          .setSerializationInclusion(JsonInclude.Include.NON_EMPTY)
+          .setDefaultPropertyInclusion(JsonInclude.Include.NON_EMPTY)
           .writeValueAsString(refundPaymentRequest);
       // Send to Square
       JsonNode json = SquareApiClientCommand.sendSquareHttpPost("/v2/refunds", data);

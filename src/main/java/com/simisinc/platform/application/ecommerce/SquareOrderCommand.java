@@ -246,7 +246,7 @@ public class SquareOrderCommand {
     try {
       // Create the JSON string
       String data = new ObjectMapper()
-          .setSerializationInclusion(JsonInclude.Include.NON_EMPTY)
+          .setDefaultPropertyInclusion(JsonInclude.Include.NON_EMPTY)
           .writeValueAsString(createOrderRequestBuilder.build());
 
       if (LOG.isDebugEnabled()) {
@@ -346,7 +346,7 @@ public class SquareOrderCommand {
     try {
       // Create the JSON string
       String data = new ObjectMapper()
-          .setSerializationInclusion(JsonInclude.Include.NON_EMPTY)
+          .setDefaultPropertyInclusion(JsonInclude.Include.NON_EMPTY)
           .writeValueAsString(createPaymentRequestBuilder.build());
 
       if (LOG.isDebugEnabled()) {
