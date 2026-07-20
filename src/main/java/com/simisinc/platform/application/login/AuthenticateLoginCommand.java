@@ -24,6 +24,7 @@ import com.simisinc.platform.application.UserPasswordCommand;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.login.UserToken;
 import com.simisinc.platform.infrastructure.cache.CacheManager;
+import com.simisinc.platform.infrastructure.persistence.UserRepository;
 import com.simisinc.platform.infrastructure.persistence.login.UserTokenRepository;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
@@ -94,6 +95,10 @@ public class AuthenticateLoginCommand {
     if (verified) {
       // Hash matches password
       LOG.debug("User validated");
+      // Upgrade-on-login: now that the plaintext is confirmed, migrate an older hash to argon2id
+      if (!user.getPassword().startsWith("$argon2id$")) {
+        upgradeLegacyPasswordHash(user, password);
+      }
       cache.put(user.getId(), username + ":" + password);
       return user;
     }
@@ -105,6 +110,27 @@ public class AuthenticateLoginCommand {
     RateLimitCommand.isIpAllowedRightNow(ipAddress, true);
     LOG.debug("Password incorrect");
     throw new LoginException(INVALID_CREDENTIALS);
+  }
+
+  /**
+   * Transparently migrates a just-verified legacy password hash to argon2id.
+   *
+   * <p>PR #117 switched new hashes to argon2id while keeping verification of older $argon2i$ hashes, so existing
+   * users would otherwise keep their weaker hash until they happened to change their password. Once the supplied
+   * plaintext has been confirmed against the stored hash, it is re-hashed with the current algorithm and persisted
+   * through the same path the password-reset flow uses, so the whole store migrates during ordinary logins.
+   *
+   * <p>A persistence failure must never turn a valid login into a failed one, so any error is logged and swallowed;
+   * the user is still authenticated and the upgrade is simply retried on a later login.
+   */
+  private static void upgradeLegacyPasswordHash(User user, String password) {
+    try {
+      user.setPassword(UserPasswordCommand.hash(password));
+      UserRepository.updatePassword(user);
+      LOG.info("Upgraded password hash to argon2id for user id: " + user.getId());
+    } catch (Exception e) {
+      LOG.error("Unable to upgrade password hash to argon2id for user id: " + user.getId(), e);
+    }
   }
 
   public static UserToken getValidToken(String token) {
