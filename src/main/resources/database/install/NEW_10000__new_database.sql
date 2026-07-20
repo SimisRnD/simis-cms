@@ -155,6 +155,7 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (5, 'Cookieless analytics (no visitor cookie)?', 'analytics.cookieless', 'false', 'boolean');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (6, 'Anonymize analytics IP addresses?', 'analytics.anonymizeIp', 'false', 'boolean');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (8, 'Analytics data retention (days)', 'analytics.retentionDays', '365');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (10, 'Analytics Service', 'analytics.service', 'google');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (20, 'Google Analytics GA Key', 'analytics.google.key', '');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (22, 'Google Tag Manager GTM Key', 'analytics.google.tagmanager', '');
