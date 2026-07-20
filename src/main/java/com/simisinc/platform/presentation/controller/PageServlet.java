@@ -17,6 +17,7 @@
 package com.simisinc.platform.presentation.controller;
 
 import com.simisinc.platform.application.admin.AnalyticsTrackingIdCommand;
+import com.simisinc.platform.application.DoNotTrackCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.cms.*;
 import com.simisinc.platform.application.items.LoadCategoryCommand;
@@ -249,8 +250,9 @@ public class PageServlet extends HttpServlet {
 
       // Web Page Hits
       if (pageRef != null) {
-        // Determine if this is a monitoring app
-        if (request.getHeader("X-Monitor") == null) {
+        // Skip tracking for monitoring apps, and for requests that ask not to be tracked (DNT / GPC)
+        if (request.getHeader("X-Monitor") == null
+            && !DoNotTrackCommand.isDoNotTrack(request.getHeader("DNT"), request.getHeader("Sec-GPC"))) {
           SaveWebPageHitCommand.saveHit(request.getRemoteAddr(), request.getMethod(), pagePath, webPage, userSession);
         }
       }

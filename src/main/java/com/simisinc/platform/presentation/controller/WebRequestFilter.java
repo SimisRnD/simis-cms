@@ -43,6 +43,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.hc.core5.net.InetAddressUtils;
 
+import com.simisinc.platform.application.DoNotTrackCommand;
 import com.simisinc.platform.application.CreateSessionCommand;
 import com.simisinc.platform.application.DailyVisitorHashCommand;
 import com.simisinc.platform.application.LoadVisitorCommand;
@@ -312,8 +313,10 @@ public class WebRequestFilter implements Filter {
           userSession = CreateSessionCommand.createSession(WEB_SOURCE, httpServletRequest.getSession().getId(),
               ipAddress, referer, userAgent);
           httpServletRequest.getSession().setAttribute(SessionConstants.USER, userSession);
-          // Determine if this is a monitoring app
-          if (httpServletRequest.getHeader("X-Monitor") == null) {
+          // Skip tracking for monitoring apps, and for requests that ask not to be tracked (DNT / GPC)
+          if (httpServletRequest.getHeader("X-Monitor") == null
+              && !DoNotTrackCommand.isDoNotTrack(httpServletRequest.getHeader("DNT"),
+                  httpServletRequest.getHeader("Sec-GPC"))) {
             doSaveSession = true;
           }
         }
