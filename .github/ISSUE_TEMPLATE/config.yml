@@ -1,0 +1,10 @@
+blank_issues_enabled: true
+contact_links:
+  - name: 🔒 Report a security vulnerability (private)
+    url: https://github.com/SimisRnD/simis-cms/security/advisories/new
+    about: >-
+      Never open a public issue for a security problem. Report it privately as a
+      security advisory. See SECURITY.md for the policy.
+  - name: 💬 Questions & ideas
+    url: https://github.com/SimisRnD/simis-cms/discussions
+    about: Ask a question or float an early-stage idea in Discussions.

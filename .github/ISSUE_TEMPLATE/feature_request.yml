@@ -1,0 +1,58 @@
+name: ✨ Feature request / enhancement
+description: Propose a new capability or an improvement to an existing one
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Have a question or a rough, early-stage idea instead? Please start in [Discussions](https://github.com/SimisRnD/simis-cms/discussions). Concrete proposals are welcome here.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem / motivation
+      description: What problem does this solve, and who benefits?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+      description: What you would like to see. Include behavior, defaults, and any opt-in / site-property considerations.
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area
+      description: Which part of the platform does this touch? (helps triage)
+      options:
+        - Analytics / privacy
+        - Authentication / MFA
+        - Security hardening
+        - CMS / content
+        - E-commerce
+        - Build / CI / infrastructure
+        - Documentation
+        - Other / not sure
+    validations:
+      required: false
+  - type: textarea
+    id: scope
+    attributes:
+      label: Scope / affected areas
+      description: Optionally, the components, tables, or commands you think are involved.
+    validations:
+      required: false
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+    validations:
+      required: false
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Before submitting
+      options:
+        - label: I searched existing issues and this is not a duplicate.
+          required: true
