@@ -21,6 +21,7 @@
   <property name="out.dir" value="${base.dir}/out" />
   <property name="exploded.dir" value="${out.dir}/exploded/ROOT" />
   <property name="exploded.work.dir" value="${out.dir}/exploded-work/ROOT" />
+  <property name="jsp.check.dir" value="${target.dir}/jsp-check" />
 
   <property name="jee.lib.dir" value="${base.dir}/lib/war" />
   <typedef resource="org/apache/catalina/ant/catalina.tasks">
@@ -102,6 +103,67 @@
         <path refid="web.classpath"/>
       </classpath>
     </javac>
+  </target>
+
+  <!-- JSP syntax gate. Translates and compiles every JSP into a throwaway directory so a JSP
+       syntax error (unbalanced tag, unresolvable taglib, bad EL) fails the build instead of only
+       surfacing at runtime when Tomcat/Jasper serves the page. This mirrors the JSP handling that
+       already runs inside `package`, but stands alone so CI can run it right after `compile`
+       (failing fast, before the test suite) and so the gate survives any future change to
+       `package`. The Tomcat 9 / javax Jasper comes from lib/war (see the catalina taskdef above),
+       so invoke as: ant -lib lib/war compile-jsp -->
+  <target name="compile-jsp" depends="compile">
+    <delete dir="${jsp.check.dir}"/>
+    <mkdir dir="${jsp.check.dir}/WEB-INF/classes"/>
+    <mkdir dir="${jsp.check.dir}/WEB-INF/lib"/>
+    <mkdir dir="${jsp.check.dir}/WEB-INF/jsp"/>
+    <mkdir dir="${jsp.check.dir}/WEB-INF/src"/>
+    <mkdir dir="${jsp.check.dir}/WEB-INF/compiled"/>
+    <!-- Compiled project classes: the EL-function impls and tag handlers the JSPs reference -->
+    <copy todir="${jsp.check.dir}/WEB-INF/classes">
+      <fileset dir="${build.dir}"><include name="**"/></fileset>
+    </copy>
+    <!-- Dependency jars: supply the bundled taglib TLDs (JSTL, granule) and referenced classes -->
+    <copy todir="${jsp.check.dir}/WEB-INF/lib" flatten="true">
+      <fileset dir="${lib.dir}"><include name="**/*.jar"/></fileset>
+    </copy>
+    <!-- web.xml plus the custom function TLDs the JSPs load via /WEB-INF/tlds/*.tld -->
+    <copy todir="${jsp.check.dir}/WEB-INF">
+      <fileset dir="${web.dir}/WEB-INF">
+        <include name="**/*.xml"/>
+        <include name="**/*.tld"/>
+      </fileset>
+    </copy>
+    <!-- The JSPs themselves -->
+    <copy todir="${jsp.check.dir}/WEB-INF/jsp">
+      <fileset dir="${web.dir}/WEB-INF/jsp"/>
+    </copy>
+    <!-- Translate JSP -> Java; Jasper fails the build on syntax and taglib-resolution errors -->
+    <jasper validateXml="false"
+            uriroot="${jsp.check.dir}"
+            webXmlFragment="${jsp.check.dir}/WEB-INF/generated_web.xml"
+            addWebXmlMappings="true"
+            outputDir="${jsp.check.dir}/WEB-INF/src" />
+    <!-- Compile the generated Java to catch errors the translation stage passes through -->
+    <javac destdir="${jsp.check.dir}/WEB-INF/compiled" source="${jdk}" target="${jdk}"
+           optimize="on" debug="off"
+           includeantruntime="false"
+           srcdir="${jsp.check.dir}/WEB-INF/src"
+           excludes="**/*.smap">
+      <classpath>
+        <pathelement location="${jsp.check.dir}/WEB-INF/classes"/>
+        <fileset dir="${jsp.check.dir}/WEB-INF/lib">
+          <include name="*.jar"/>
+        </fileset>
+        <pathelement location="${jee.lib.dir}"/>
+        <fileset dir="${jee.lib.dir}">
+          <include name="*.jar"/>
+        </fileset>
+      </classpath>
+      <include name="**" />
+      <exclude name="tags/**" />
+    </javac>
+    <echo message="JSP syntax check passed: translated and compiled all JSPs under ${web.dir}/WEB-INF/jsp"/>
   </target>
 
   <target name="jar" depends="compile">
