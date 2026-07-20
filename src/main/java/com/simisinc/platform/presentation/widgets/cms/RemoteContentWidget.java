@@ -28,6 +28,7 @@ import org.jsoup.safety.Safelist;
 import org.jsoup.select.Elements;
 
 import com.github.benmanes.caffeine.cache.Cache;
+import com.simisinc.platform.application.cms.UrlCommand;
 import com.simisinc.platform.application.http.HttpGetCommand;
 import com.simisinc.platform.infrastructure.cache.CacheManager;
 import com.simisinc.platform.presentation.controller.WidgetContext;
@@ -64,7 +65,12 @@ public class RemoteContentWidget extends GenericWidget {
 
     // Create a wrapper for images
     if (url.endsWith(".gif") || url.endsWith(".png") || url.endsWith(".jpg")) {
-      content = "<img src=\"" + url + "\" />";
+      String imageTag = buildImageTag(url);
+      if (imageTag == null) {
+        LOG.warn("Ignoring unsafe remote content image url: " + url);
+        return null;
+      }
+      content = imageTag;
       cache.put(url, content);
       return useReturnType(context, content);
     }
@@ -147,6 +153,20 @@ public class RemoteContentWidget extends GenericWidget {
       LOG.warn("Could not get content from: " + url, e);
     }
     return null;
+  }
+
+  /**
+   * Builds the image wrapper for a remote image url. The url is a widget preference rendered straight
+   * into the src attribute, so it is run through {@link UrlCommand#sanitizeUrl(String)} first: a value
+   * carrying a quote or an active scheme (javascript:/data:) would otherwise break out of the
+   * attribute and inject markup. Returns null when the url is unsafe so the caller can skip it.
+   */
+  static String buildImageTag(String url) {
+    String safeUrl = UrlCommand.sanitizeUrl(url);
+    if (safeUrl == null) {
+      return null;
+    }
+    return "<img src=\"" + safeUrl + "\" />";
   }
 
   private WidgetContext useReturnType(WidgetContext context, String content) {
