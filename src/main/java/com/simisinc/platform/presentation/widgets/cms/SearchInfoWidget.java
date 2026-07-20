@@ -16,6 +16,8 @@
 
 package com.simisinc.platform.presentation.widgets.cms;
 
+import com.simisinc.platform.application.IpAddressCommand;
+
 import com.simisinc.platform.domain.model.cms.WebSearch;
 import com.simisinc.platform.infrastructure.persistence.cms.WebSearchRepository;
 import com.simisinc.platform.presentation.controller.RequestConstants;
@@ -52,7 +54,7 @@ public class SearchInfoWidget extends GenericWidget {
       WebSearch webSearch = new WebSearch();
       webSearch.setPagePath(pagePath);
       webSearch.setQuery(query);
-      webSearch.setIpAddress(context.getRequest().getRemoteAddr());
+      webSearch.setIpAddress(IpAddressCommand.anonymizeForStorage(context.getRequest().getRemoteAddr()));
       webSearch.setSessionId(context.getUserSession().getSessionId());
       webSearch.setIsLoggedIn(context.getUserSession().isLoggedIn());
       WebSearchRepository.save(webSearch);

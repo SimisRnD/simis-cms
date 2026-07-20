@@ -544,6 +544,17 @@
           <type>line</type>
         </widget>
       </column>
+      <column class="small-12 medium-6 cell">
+        <widget name="siteStats" class="stats card">
+          <icon>fa-search</icon>
+          <title>Top Search Terms</title>
+          <report>search-terms</report>
+          <label>Search Term</label>
+          <value>Searches</value>
+          <days>30</days>
+          <limit>10</limit>
+        </widget>
+      </column>
 <!--
       <column class="small-12 medium-6 cell">
         <widget name="siteStats" class="stats card">
