@@ -16,7 +16,10 @@
 
 package com.simisinc.platform.presentation.widgets.login;
 
+import com.simisinc.platform.application.audit.SaveAuditEventCommand;
 import com.simisinc.platform.application.login.LogoutCommand;
+import com.simisinc.platform.presentation.controller.SessionConstants;
+import com.simisinc.platform.presentation.controller.UserSession;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 
@@ -33,6 +36,12 @@ public class LogoutWidget extends GenericWidget {
   static String JSP = "/login/logout.jsp";
 
   public WidgetContext execute(WidgetContext context) {
+    // Audit the logout while the user is still known, before the session is cleared
+    UserSession userSession = (UserSession) context.getRequest().getSession().getAttribute(SessionConstants.USER);
+    if (userSession != null && userSession.isLoggedIn()) {
+      SaveAuditEventCommand.recordAuthentication("authentication.logout", "success",
+          userSession.getUserId(), null, context.getRequest().getRemoteAddr(), userSession.getSessionId(), null);
+    }
     // Log the user out
     LogoutCommand.logout(context.getRequest(), context.getResponse());
 

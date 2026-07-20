@@ -25,6 +25,7 @@ import org.mockito.MockedStatic;
 import com.simisinc.platform.WidgetBase;
 import com.simisinc.platform.application.RateLimitCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.audit.SaveAuditEventCommand;
 import com.simisinc.platform.application.login.AuthenticateLoginCommand;
 import com.simisinc.platform.application.login.TotpCommand;
 import com.simisinc.platform.application.login.UserMfaRecoveryCodeCommand;
@@ -48,7 +49,9 @@ import static org.mockito.Mockito.when;
 
 /**
  * Verifies the two-step login gate: a correct password alone must not establish a session when MFA is enabled, an
- * invalid code is rejected, a valid code completes the login, and accounts without MFA sign in as before.
+ * invalid code is rejected, a valid code completes the login, and accounts without MFA sign in as before. Also
+ * verifies that the authentication audit events are recorded at the capture points (the audit command is mocked
+ * so the unit test does not touch the database).
  *
  * @author SimIS Inc.
  * @created 2026-07-17
@@ -98,7 +101,8 @@ class LoginWidgetTest extends WidgetBase {
     try (MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
         MockedStatic<TotpCommand> totp = mockStatic(TotpCommand.class);
         MockedStatic<RateLimitCommand> rateLimit = mockStatic(RateLimitCommand.class);
-        MockedStatic<UserMfaRecoveryCodeCommand> recovery = mockStatic(UserMfaRecoveryCodeCommand.class)) {
+        MockedStatic<UserMfaRecoveryCodeCommand> recovery = mockStatic(UserMfaRecoveryCodeCommand.class);
+        MockedStatic<SaveAuditEventCommand> audit = mockStatic(SaveAuditEventCommand.class)) {
       userRepo.when(() -> UserRepository.findByUserId(anyLong())).thenReturn(mfaUser(42L));
       totp.when(() -> TotpCommand.verifyCode(anyString(), anyString())).thenReturn(false);
       rateLimit.when(() -> RateLimitCommand.isUsernameAllowedRightNow(anyString(), anyBoolean())).thenReturn(true);
@@ -127,13 +131,20 @@ class LoginWidgetTest extends WidgetBase {
         MockedStatic<TotpCommand> totp = mockStatic(TotpCommand.class);
         MockedStatic<RateLimitCommand> rateLimit = mockStatic(RateLimitCommand.class);
         MockedStatic<UserLoginRepository> userLoginRepo = mockStatic(UserLoginRepository.class);
-        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<SaveAuditEventCommand> audit = mockStatic(SaveAuditEventCommand.class)) {
       userRepo.when(() -> UserRepository.findByUserId(anyLong())).thenReturn(mfaUser(42L));
       totp.when(() -> TotpCommand.verifyCode(anyString(), anyString())).thenReturn(true);
       rateLimit.when(() -> RateLimitCommand.isUsernameAllowedRightNow(anyString(), anyBoolean())).thenReturn(true);
       rateLimit.when(() -> RateLimitCommand.isIpAllowedRightNow(anyString(), anyBoolean())).thenReturn(true);
       siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean("site.online")).thenReturn(true);
       widget.post(widgetContext);
+
+      // A completed MFA login records both the second-factor success and the login itself
+      audit.verify(() -> SaveAuditEventCommand.recordAuthentication(
+          eq("authentication.mfa.verify.success"), eq("success"), anyLong(), any(), any(), any(), any()));
+      audit.verify(() -> SaveAuditEventCommand.recordAuthentication(
+          eq("authentication.login.success"), eq("success"), anyLong(), any(), any(), any(), any()));
     }
 
     // Logged in: pending marker cleared (removeAttribute is called), redirected, auth cookie set, no error.
@@ -158,7 +169,8 @@ class LoginWidgetTest extends WidgetBase {
         MockedStatic<RateLimitCommand> rateLimit = mockStatic(RateLimitCommand.class);
         MockedStatic<UserMfaRecoveryCodeCommand> recovery = mockStatic(UserMfaRecoveryCodeCommand.class);
         MockedStatic<UserLoginRepository> userLoginRepo = mockStatic(UserLoginRepository.class);
-        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<SaveAuditEventCommand> audit = mockStatic(SaveAuditEventCommand.class)) {
       userRepo.when(() -> UserRepository.findByUserId(anyLong())).thenReturn(mfaUser(42L));
       // TOTP fails, but a recovery code is accepted
       totp.when(() -> TotpCommand.verifyCode(anyString(), anyString())).thenReturn(false);
@@ -191,11 +203,16 @@ class LoginWidgetTest extends WidgetBase {
     LoginWidget widget = new LoginWidget();
     try (MockedStatic<AuthenticateLoginCommand> auth = mockStatic(AuthenticateLoginCommand.class);
         MockedStatic<UserLoginRepository> userLoginRepo = mockStatic(UserLoginRepository.class);
-        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<SaveAuditEventCommand> audit = mockStatic(SaveAuditEventCommand.class)) {
       auth.when(() -> AuthenticateLoginCommand.getAuthenticatedUser(anyString(), anyString(), anyString()))
           .thenReturn(user);
       siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean("site.online")).thenReturn(true);
       widget.post(widgetContext);
+
+      // A direct (no-MFA) login records a single login.success audit event
+      audit.verify(() -> SaveAuditEventCommand.recordAuthentication(
+          eq("authentication.login.success"), eq("success"), anyLong(), any(), any(), any(), any()));
     }
 
     // No MFA -> straight to a logged-in session, never held for a code.
@@ -212,10 +229,15 @@ class LoginWidgetTest extends WidgetBase {
     when(request.getRemoteAddr()).thenReturn("127.0.0.1");
 
     LoginWidget widget = new LoginWidget();
-    try (MockedStatic<AuthenticateLoginCommand> auth = mockStatic(AuthenticateLoginCommand.class)) {
+    try (MockedStatic<AuthenticateLoginCommand> auth = mockStatic(AuthenticateLoginCommand.class);
+        MockedStatic<SaveAuditEventCommand> audit = mockStatic(SaveAuditEventCommand.class)) {
       auth.when(() -> AuthenticateLoginCommand.getAuthenticatedUser(anyString(), anyString(), anyString()))
           .thenThrow(new LoginException("Your sign in was incorrect"));
       widget.post(widgetContext);
+
+      // A failed password is audited as a login.failure
+      audit.verify(() -> SaveAuditEventCommand.recordAuthentication(
+          eq("authentication.login.failure"), eq("failure"), anyLong(), any(), any(), any(), any()));
     }
 
     Assertions.assertNotNull(widgetContext.getErrorMessage());
@@ -262,7 +284,8 @@ class LoginWidgetTest extends WidgetBase {
     try (MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
         MockedStatic<TotpCommand> totp = mockStatic(TotpCommand.class);
         MockedStatic<RateLimitCommand> rateLimit = mockStatic(RateLimitCommand.class);
-        MockedStatic<UserMfaRecoveryCodeCommand> recovery = mockStatic(UserMfaRecoveryCodeCommand.class)) {
+        MockedStatic<UserMfaRecoveryCodeCommand> recovery = mockStatic(UserMfaRecoveryCodeCommand.class);
+        MockedStatic<SaveAuditEventCommand> audit = mockStatic(SaveAuditEventCommand.class)) {
       userRepo.when(() -> UserRepository.findByUserId(anyLong())).thenReturn(mfaUser(42L));
       totp.when(() -> TotpCommand.verifyCode(anyString(), anyString())).thenReturn(false);
       rateLimit.when(() -> RateLimitCommand.isUsernameAllowedRightNow(anyString(), anyBoolean())).thenReturn(true);
@@ -273,6 +296,9 @@ class LoginWidgetTest extends WidgetBase {
       // A wrong code is recorded against both the account and the IP so repeated guesses lock out
       rateLimit.verify(() -> RateLimitCommand.isUsernameAllowedRightNow("mfa:42", true));
       rateLimit.verify(() -> RateLimitCommand.isIpAllowedRightNow("203.0.113.7", true));
+      // ...and the failed second factor is audited
+      audit.verify(() -> SaveAuditEventCommand.recordAuthentication(
+          eq("authentication.mfa.verify.failure"), eq("failure"), anyLong(), any(), any(), any(), any()));
     }
 
     Assertions.assertNotNull(widgetContext.getErrorMessage());

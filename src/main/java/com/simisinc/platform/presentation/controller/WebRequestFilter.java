@@ -67,6 +67,7 @@ import com.simisinc.platform.domain.model.ecommerce.Cart;
 import com.simisinc.platform.domain.model.ecommerce.PricingRule;
 import com.simisinc.platform.domain.model.login.UserLogin;
 import com.simisinc.platform.infrastructure.persistence.SessionRepository;
+import com.simisinc.platform.application.audit.SaveAuditEventCommand;
 import com.simisinc.platform.infrastructure.persistence.login.UserLoginRepository;
 
 /**
@@ -433,6 +434,9 @@ public class WebRequestFilter implements Filter {
           userLogin.setSessionId(userSession.getSessionId());
           userLogin.setUserAgent(httpServletRequest.getHeader("USER-AGENT"));
           UserLoginRepository.save(userLogin);
+          // Audit the cookie-token (remember-me) auto-login for the SIEM; source marker "token"
+          SaveAuditEventCommand.recordAuthentication("authentication.login.success", "success",
+              user.getId(), user.getEmail(), ipAddress, userSession.getSessionId(), "token");
           // Extend the token expiration date
           int twoWeeksSecondsInt = 14 * 24 * 60 * 60;
           AuthenticateLoginCommand.extendTokenExpiration(cookieUserToken, twoWeeksSecondsInt);

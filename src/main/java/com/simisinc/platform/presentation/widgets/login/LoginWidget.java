@@ -19,6 +19,7 @@ package com.simisinc.platform.presentation.widgets.login;
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.RateLimitCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.audit.SaveAuditEventCommand;
 import com.simisinc.platform.application.oauth.OAuthRequestCommand;
 import com.simisinc.platform.application.login.AuthenticateLoginCommand;
 import com.simisinc.platform.application.login.TotpCommand;
@@ -129,6 +130,8 @@ public class LoginWidget extends GenericWidget {
           && (TotpCommand.verifyCode(user.getMfaSecret(), code)
               || UserMfaRecoveryCodeCommand.consume(user, code));
       if (!verified) {
+        SaveAuditEventCommand.recordAuthentication("authentication.mfa.verify.failure", "failure",
+            mfaPendingUserId, (user != null ? user.getEmail() : null), ipAddress, httpSession.getId(), null);
         // Record the failed attempt so repeated guesses get locked out
         RateLimitCommand.isUsernameAllowedRightNow(rateLimitKey, true);
         if (StringUtils.isNotBlank(ipAddress)) {
@@ -139,6 +142,8 @@ public class LoginWidget extends GenericWidget {
         return context;
       }
       clearMfaPending(httpSession);
+      SaveAuditEventCommand.recordAuthentication("authentication.mfa.verify.success", "success",
+          user.getId(), user.getEmail(), ipAddress, httpSession.getId(), null);
       return finalizeLogin(context, user, stayLoggedIn);
     }
 
@@ -152,6 +157,9 @@ public class LoginWidget extends GenericWidget {
       }
       user = AuthenticateLoginCommand.getAuthenticatedUser(email.trim().toLowerCase(), password, context.getRequest().getRemoteAddr());
     } catch (DataException | LoginException e) {
+      SaveAuditEventCommand.recordAuthentication("authentication.login.failure", "failure", -1L,
+          (email != null ? email.trim().toLowerCase() : null), context.getRequest().getRemoteAddr(),
+          httpSession.getId(), e.getMessage());
       context.setErrorMessage(e.getMessage());
       return context;
     }
@@ -184,6 +192,11 @@ public class LoginWidget extends GenericWidget {
     userLogin.setSessionId(userSession.getSessionId());
     userLogin.setUserAgent(context.getRequest().getHeader("USER-AGENT"));
     UserLoginRepository.save(userLogin);
+
+    // Audit the successful authentication (both the database trail and the JSON stream for the SIEM);
+    // the details field carries the authentication source ("password" here, "oauth"/"token" elsewhere)
+    SaveAuditEventCommand.recordAuthentication("authentication.login.success", "success",
+        user.getId(), user.getEmail(), context.getRequest().getRemoteAddr(), userSession.getSessionId(), "password");
 
     // Optionally store a token for future access
     int twoWeeksSecondsInt = 14 * 24 * 60 * 60;
