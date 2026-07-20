@@ -10,7 +10,7 @@ apply automatically on startup — always take a database backup before upgradin
 ## [20260719.10000] - 2026-07-20
 
 First tagged release since `v20240106.10000` (2024-01-06): a broad security,
-authentication, privacy, and platform-modernization uplift (72 merged pull
+authentication, privacy, and platform-modernization uplift (76 merged pull
 requests).
 
 ### Added
@@ -30,7 +30,7 @@ requests).
 - SimIS-owned container images published from CI (#88).
 - CI safeguards: JaCoCo code-coverage reporting published as a build artifact, a
   coverage gate that fails the build if a hardened security class loses its unit
-  tests, and a standalone JSP-precompile syntax gate (#141, #147, #148).
+  tests, and a standalone JSP-precompile syntax gate (#141, #147, #148, #150).
 - Governance docs: `SECURITY.md` (#78), `CONTRIBUTING.md` (#108), Code of
   Conduct (#99).
 
@@ -63,8 +63,9 @@ requests).
 - Transport & browser hardening: HSTS (#84), a Content-Security-Policy baseline
   (#86), session-id rotation on login, and SameSite=Lax cookies (#113).
 - Cross-site-scripting remediation across the JSP surface — reflected, stored,
-  and attribute-context vectors — plus DOM-based, admin-input, widget, and
-  activity-message fixes (#98, #121, #124–#130, #151, #153).
+  and attribute-context vectors — plus DOM-based, admin-input, widget,
+  activity-message, remote-content, and site-copyright fixes
+  (#98, #121, #124–#130, #151, #153, #154, #155).
 - Injection & traversal: SQL-injection fix in the product SKU filter (#77),
   upload paths resolved within the file-server root (#96, #102), parameterized
   geo-search (#97), SSL redirect no longer trusts the client Host header (#83).
