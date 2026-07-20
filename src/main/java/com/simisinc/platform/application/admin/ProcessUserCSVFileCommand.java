@@ -17,6 +17,7 @@
 package com.simisinc.platform.application.admin;
 
 import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.audit.SaveAuditEventCommand;
 import com.simisinc.platform.application.cms.SaveFilePartCommand;
 import com.simisinc.platform.application.filesystem.FileSystemCommand;
 import com.simisinc.platform.application.register.SaveUserCommand;
@@ -25,6 +26,8 @@ import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.cms.FileItem;
 import com.simisinc.platform.infrastructure.persistence.GroupRepository;
 import com.simisinc.platform.infrastructure.persistence.UserRepository;
+import com.simisinc.platform.presentation.controller.AuditEventCommand;
+import com.simisinc.platform.presentation.controller.UserSession;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.univocity.parsers.common.record.Record;
 import com.univocity.parsers.conversions.Conversions;
@@ -53,6 +56,23 @@ public class ProcessUserCSVFileCommand {
   public static int processCSV(WidgetContext context) throws DataException, AccountException {
 
     int userCount = 0;
+
+    // Resolve the acting admin once so the per-row audit records do not reload the actor on every row
+    long actorUserId = context.getUserId();
+    String actorUsername = null;
+    String actorIp = null;
+    String actorSessionId = null;
+    UserSession actorSession = context.getUserSession();
+    if (actorSession != null) {
+      actorSessionId = actorSession.getSessionId();
+      actorIp = actorSession.getIpAddress();
+      if (actorSession.getUserId() > -1L && actorSession.getUser() != null) {
+        actorUsername = actorSession.getUser().getEmail();
+      }
+    }
+    if (context.getRequest() != null && context.getRequest().getRemoteAddr() != null) {
+      actorIp = context.getRequest().getRemoteAddr();
+    }
 
     FileItem fileItemBean = null;
     try {
@@ -131,12 +151,20 @@ public class ProcessUserCSVFileCommand {
         user.setCreatedBy(context.getUserId());
         user.setModifiedBy(context.getUserId());
 
-        SaveUserCommand.saveUser(user);
+        User saved = SaveUserCommand.saveUser(user);
         ++userCount;
+        // Record each imported account so a bulk import is individually attributable
+        SaveAuditEventCommand.recordAdminEvent(AuditEventCommand.USER_MANAGEMENT, "user.create",
+            AuditEventCommand.SUCCESS, actorUserId, actorUsername, actorIp, actorSessionId,
+            "user", saved != null ? String.valueOf(saved.getId()) : null, email, "csv-import");
       }
 
     } catch (DataException | AccountException data) {
       LOG.debug("An exception occurred: " + data.getMessage());
+      // Record that the bulk import aborted (after any rows already created above)
+      SaveAuditEventCommand.recordAdminEvent(AuditEventCommand.USER_MANAGEMENT, "user.create",
+          AuditEventCommand.FAILURE, actorUserId, actorUsername, actorIp, actorSessionId,
+          "user", null, null, "csv-import aborted after " + userCount + " created: " + data.getMessage());
       // Let the user know
       context.setErrorMessage(data.getMessage());
       throw data;

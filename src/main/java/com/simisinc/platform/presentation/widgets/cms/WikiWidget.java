@@ -22,6 +22,7 @@ import com.simisinc.platform.domain.model.cms.Wiki;
 import com.simisinc.platform.domain.model.cms.WikiPage;
 import com.simisinc.platform.domain.model.cms.WikiParserExtension;
 import com.simisinc.platform.infrastructure.persistence.cms.WikiPageRepository;
+import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.vladsch.flexmark.ext.gfm.strikethrough.StrikethroughExtension;
@@ -174,11 +175,18 @@ public class WikiWidget extends GenericWidget {
   }
 
   private WidgetContext deletePost(WidgetContext context, WikiPage wikiPage) {
+    String targetId = String.valueOf(wikiPage.getId());
+    String targetLabel = wikiPage.getTitle();
     // Attempt to delete the wiki page
     try {
-      WikiPageRepository.remove(wikiPage);
+      // remove() returns false on a swallowed DB failure rather than throwing, so branch on its result
+      boolean removed = WikiPageRepository.remove(wikiPage);
+      AuditEventCommand.record(context, AuditEventCommand.CONTENT, "content.delete",
+          removed ? AuditEventCommand.SUCCESS : AuditEventCommand.FAILURE, "wiki_page", targetId, targetLabel, null);
       context.setSuccessMessage("Page was deleted");
     } catch (Exception e) {
+      AuditEventCommand.record(context, AuditEventCommand.CONTENT, "content.delete", AuditEventCommand.FAILURE,
+          "wiki_page", targetId, targetLabel, e.getMessage());
       context.setErrorMessage("The page could not be deleted: " + e.getMessage());
     }
     return context;

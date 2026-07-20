@@ -121,4 +121,28 @@ public class SaveAuditEventCommand {
     event.setDetails(details);
     return record(event);
   }
+
+  /**
+   * Convenience for an administrative or data-change event (user management, authorization, configuration,
+   * content, and data access). Unlike an authentication event, the actor is the administrator performing
+   * the action and the target fields identify the record that was changed. Presentation code should call
+   * the widget-context bridge (AuditEventCommand.record) rather than this method directly. Never throws.
+   */
+  public static AuditLog recordAdminEvent(String eventCategory, String eventType, String outcome,
+      long actorUserId, String actorUsername, String sourceIp, String sessionId,
+      String targetType, String targetId, String targetLabel, String details) {
+    AuditLog event = new AuditLog();
+    event.setEventCategory(eventCategory);
+    event.setEventType(eventType);
+    event.setOutcome(outcome);
+    event.setActorUserId(actorUserId);
+    event.setActorUsername(actorUsername);
+    event.setSourceIp(sourceIp);
+    event.setSessionId(sessionId);
+    event.setTargetType(targetType);
+    event.setTargetId(targetId);
+    event.setTargetLabel(targetLabel);
+    event.setDetails(details);
+    return record(event);
+  }
 }

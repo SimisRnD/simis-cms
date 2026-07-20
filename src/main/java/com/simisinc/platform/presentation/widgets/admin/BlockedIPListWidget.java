@@ -25,6 +25,7 @@ import com.simisinc.platform.infrastructure.persistence.BlockedIPRepository;
 import com.simisinc.platform.presentation.controller.MultipartFileSender;
 import com.simisinc.platform.presentation.controller.RequestConstants;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
+import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 
 import java.io.File;
@@ -73,11 +74,18 @@ public class BlockedIPListWidget extends GenericWidget {
     long recordId = context.getParameterAsLong("blockedIPListId");
     if (recordId > -1) {
       BlockedIP blockedIP = BlockedIPRepository.findById(recordId);
+      // Capture the address before removal; removing a block un-blocks that IP (a security control change)
+      String targetLabel = blockedIP != null ? blockedIP.getIpAddress() : null;
       try {
-        DeleteBlockedIPListCommand.delete(blockedIP);
+        boolean removed = DeleteBlockedIPListCommand.delete(blockedIP);
+        AuditEventCommand.record(context, AuditEventCommand.CONFIGURATION, "blocked_ip.remove",
+            removed ? AuditEventCommand.SUCCESS : AuditEventCommand.FAILURE,
+            "blocked_ip", String.valueOf(recordId), targetLabel, null);
         context.setSuccessMessage("Record deleted");
         return context;
       } catch (Exception e) {
+        AuditEventCommand.record(context, AuditEventCommand.CONFIGURATION, "blocked_ip.remove",
+            AuditEventCommand.FAILURE, "blocked_ip", String.valueOf(recordId), targetLabel, e.getMessage());
         context.setErrorMessage("Error. Record could not be deleted.");
         return context;
       }
@@ -117,8 +125,13 @@ public class BlockedIPListWidget extends GenericWidget {
           .withMimeType(mimeType)
           .withFilename(displayFilename)
           .serveResource();
+      // Record the export of the security block list
+      AuditEventCommand.record(context, AuditEventCommand.DATA_ACCESS, "data.export", AuditEventCommand.SUCCESS,
+          "blocked_ip_list", "all", displayFilename, "format=" + extension);
     } catch (Exception e) {
       LOG.error("Download CSV Error", e);
+      AuditEventCommand.record(context, AuditEventCommand.DATA_ACCESS, "data.export", AuditEventCommand.FAILURE,
+          "blocked_ip_list", "all", displayFilename, "format=" + extension);
     } finally {
       if (tempFile.exists()) {
         LOG.warn("Deleting a temporary file: " + tempFile.getAbsolutePath());
@@ -133,8 +146,12 @@ public class BlockedIPListWidget extends GenericWidget {
     LOG.info("User is uploading a CSV file...");
     try {
       int recordCount = ProcessBlockListCSVFileCommand.processCSV(context);
+      AuditEventCommand.record(context, AuditEventCommand.CONFIGURATION, "blocked_ip.import", AuditEventCommand.SUCCESS,
+          "blocked_ip", null, null, "records=" + recordCount);
       context.setSuccessMessage(recordCount + " record" + (recordCount != 1 ? "s" : "") + " added");
     } catch (Exception e) {
+      AuditEventCommand.record(context, AuditEventCommand.CONFIGURATION, "blocked_ip.import", AuditEventCommand.FAILURE,
+          "blocked_ip", null, null, e.getMessage());
       context.setErrorMessage(e.getMessage());
     }
     return context;

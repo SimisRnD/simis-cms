@@ -22,6 +22,7 @@ import com.simisinc.platform.application.DeleteGroupCommand;
 import com.simisinc.platform.domain.model.Group;
 import com.simisinc.platform.infrastructure.persistence.GroupRepository;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
+import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 
 /**
@@ -56,12 +57,18 @@ public class GroupsListWidget extends GenericWidget {
     long groupId = context.getParameterAsLong("groupId");
     if (groupId > -1) {
       Group group = GroupRepository.findById(groupId);
+      // Capture the group label before it is removed
+      String groupLabel = group != null ? group.getName() : null;
       try {
         DeleteGroupCommand.deleteGroup(group);
+        AuditEventCommand.record(context, AuditEventCommand.AUTHORIZATION, "group.delete", AuditEventCommand.SUCCESS,
+            "group", String.valueOf(groupId), groupLabel, null);
         context.setSuccessMessage("Group deleted");
         context.setRedirect("/admin/groups");
         return context;
       } catch (Exception e) {
+        AuditEventCommand.record(context, AuditEventCommand.AUTHORIZATION, "group.delete", AuditEventCommand.FAILURE,
+            "group", String.valueOf(groupId), groupLabel, e.getMessage());
         context.setErrorMessage("Error. Group could not be deleted.");
         context.setRedirect("/admin/groups");
         return context;

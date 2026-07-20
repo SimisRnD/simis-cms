@@ -22,6 +22,7 @@ import com.simisinc.platform.application.admin.SecretSitePropertiesCommand;
 import com.simisinc.platform.application.cms.ColorCommand;
 import com.simisinc.platform.domain.model.SiteProperty;
 import com.simisinc.platform.infrastructure.persistence.SitePropertyRepository;
+import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.SqlTimestampConverter;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.controller.WidgetContext;
@@ -91,6 +92,10 @@ public class SitePropertiesEditorWidget extends GenericWidget {
       }
     }
 
+    // Track which secret properties actually received a new value, to audit the rotation by name only
+    // (never the value). Non-secret names are audited as a count; no secret value is ever recorded.
+    List<String> secretsRotated = new ArrayList<>();
+
     // Populate the entries from the request and Validate the values
     for (SiteProperty siteProperty : siteProperties) {
 
@@ -104,8 +109,12 @@ public class SitePropertiesEditorWidget extends GenericWidget {
 
       // Secret values are rendered as empty masked fields; a blank submission means unchanged,
       // so keep the stored value instead of wiping it
-      if (SecretSitePropertiesCommand.isSecret(siteProperty.getName()) && StringUtils.isBlank(newValue)) {
-        continue;
+      if (SecretSitePropertiesCommand.isSecret(siteProperty.getName())) {
+        if (StringUtils.isBlank(newValue)) {
+          continue;
+        }
+        // A non-blank secret submission is a real rotation -- record the name, never the value
+        secretsRotated.add(siteProperty.getName());
       }
 
       // Handle types
@@ -152,6 +161,13 @@ public class SitePropertiesEditorWidget extends GenericWidget {
 
     // Save the entries
     boolean saved = SitePropertyRepository.saveAll(prefix, siteProperties);
+
+    // Record the settings change -- property names and any rotated secret names only, never values
+    String settingDetails = "properties=" + siteProperties.size()
+        + (secretsRotated.isEmpty() ? "" : "; secretsRotated=" + secretsRotated);
+    AuditEventCommand.record(context, AuditEventCommand.CONFIGURATION, "setting.update",
+        saved ? AuditEventCommand.SUCCESS : AuditEventCommand.FAILURE,
+        "site_property", prefix, prefix, settingDetails);
 
     if (saved) {
       // Update global cached settings

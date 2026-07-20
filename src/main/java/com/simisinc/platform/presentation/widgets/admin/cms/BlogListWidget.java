@@ -20,6 +20,7 @@ import com.simisinc.platform.domain.model.cms.Blog;
 import com.simisinc.platform.infrastructure.persistence.cms.BlogPostRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.BlogPostSpecification;
 import com.simisinc.platform.infrastructure.persistence.cms.BlogRepository;
+import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 
@@ -80,8 +81,12 @@ public class BlogListWidget extends GenericWidget {
         context.setErrorMessage("Blog was not found");
       } else {
         if (BlogRepository.remove(blog)) {
+          AuditEventCommand.record(context, AuditEventCommand.CONTENT, "content.delete", AuditEventCommand.SUCCESS,
+              "blog", String.valueOf(blog.getId()), blog.getName(), null);
           context.setSuccessMessage("Blog was deleted");
         } else {
+          AuditEventCommand.record(context, AuditEventCommand.CONTENT, "content.delete", AuditEventCommand.FAILURE,
+              "blog", String.valueOf(blog.getId()), blog.getName(), null);
           context.setWarningMessage("Blog could not be deleted");
         }
       }

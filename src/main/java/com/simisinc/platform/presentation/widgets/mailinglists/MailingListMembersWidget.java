@@ -27,6 +27,7 @@ import com.simisinc.platform.infrastructure.persistence.mailinglists.*;
 import com.simisinc.platform.presentation.controller.MultipartFileSender;
 import com.simisinc.platform.presentation.controller.RequestConstants;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
+import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import org.apache.commons.beanutils.BeanUtils;
 
@@ -126,8 +127,13 @@ public class MailingListMembersWidget extends GenericWidget {
             .withMimeType(mimeType)
             .withFilename(displayFilename)
             .serveResource();
+        // Record the export of mailing-list member PII (email, name, subscription state)
+        AuditEventCommand.record(context, AuditEventCommand.DATA_ACCESS, "data.export", AuditEventCommand.SUCCESS,
+            "mailing_list_members", String.valueOf(mailingList.getId()), displayFilename, "format=" + extension);
       } catch (Exception e) {
         LOG.error("Download CSV Error", e);
+        AuditEventCommand.record(context, AuditEventCommand.DATA_ACCESS, "data.export", AuditEventCommand.FAILURE,
+            "mailing_list_members", String.valueOf(mailingList.getId()), displayFilename, "format=" + extension);
       } finally {
         if (tempFile.exists()) {
           LOG.warn("Deleting a temporary file: " + tempFile.getAbsolutePath());

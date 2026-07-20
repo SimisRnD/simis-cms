@@ -24,6 +24,7 @@ import com.simisinc.platform.application.SaveGroupCommand;
 import com.simisinc.platform.domain.model.Group;
 import com.simisinc.platform.infrastructure.persistence.GroupRepository;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
+import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 
 import org.apache.commons.beanutils.BeanUtils;
@@ -66,6 +67,9 @@ public class GroupFormWidget extends GenericWidget {
     Group groupBean = new Group();
     BeanUtils.populate(groupBean, context.getParameterMap());
 
+    // An existing id means an edit; a new record is a create
+    String eventType = groupBean.getId() > -1 ? "group.update" : "group.create";
+
     // Save the record
     Group group = null;
     try {
@@ -74,10 +78,16 @@ public class GroupFormWidget extends GenericWidget {
         throw new GroupException("Your information could not be saved due to a system error. Please try again.");
       }
     } catch (DataException | GroupException e) {
+      AuditEventCommand.record(context, AuditEventCommand.AUTHORIZATION, eventType, AuditEventCommand.FAILURE,
+          "group", String.valueOf(groupBean.getId()), groupBean.getName(), e.getMessage());
       context.setErrorMessage(e.getMessage());
       context.setRequestObject(groupBean);
       return context;
     }
+
+    // Record the group change (groups grant collection/folder access)
+    AuditEventCommand.record(context, AuditEventCommand.AUTHORIZATION, eventType, AuditEventCommand.SUCCESS,
+        "group", String.valueOf(group.getId()), group.getName(), null);
 
     // Determine the page to return to
     context.setSuccessMessage("Group was saved");

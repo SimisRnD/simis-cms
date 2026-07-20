@@ -26,6 +26,7 @@ import com.simisinc.platform.domain.model.items.Member;
 import com.simisinc.platform.infrastructure.persistence.items.CollectionRoleRepository;
 import com.simisinc.platform.infrastructure.persistence.items.MemberRepository;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
+import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 
 import java.util.List;
@@ -109,12 +110,24 @@ public class ItemMembersListWidget extends GenericWidget {
     }
 
     // Remove the member
+    String membershipDetails = "collectionId=" + item.getCollectionId() + "; itemId=" + item.getId();
     try {
       User user = LoadUserCommand.loadUser(record.getUserId());
-      MemberRepository.remove(record);
-      context.setSuccessMessage(user.getFullName() + " was removed");
+      String memberLabel = user != null ? user.getFullName() : null;
+      // remove() returns null on a swallowed DB failure rather than throwing, so branch on its result
+      boolean removed = MemberRepository.remove(record) != null;
+      AuditEventCommand.record(context, AuditEventCommand.AUTHORIZATION, "collection.member.remove",
+          removed ? AuditEventCommand.SUCCESS : AuditEventCommand.FAILURE, "user",
+          String.valueOf(record.getUserId()), memberLabel, membershipDetails);
+      if (removed) {
+        context.setSuccessMessage((memberLabel != null ? memberLabel : "Member") + " was removed");
+      } else {
+        context.setErrorMessage("Error. Member could not be removed.");
+      }
       return context;
     } catch (Exception e) {
+      AuditEventCommand.record(context, AuditEventCommand.AUTHORIZATION, "collection.member.remove",
+          AuditEventCommand.FAILURE, "user", String.valueOf(record.getUserId()), null, membershipDetails);
       context.setErrorMessage("Error. Member could not be removed.");
     }
     return context;

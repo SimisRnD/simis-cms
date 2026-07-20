@@ -26,6 +26,7 @@ import com.simisinc.platform.domain.model.items.Item;
 import com.simisinc.platform.domain.model.items.Member;
 import com.simisinc.platform.infrastructure.persistence.items.CollectionRoleRepository;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
+import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import org.apache.commons.lang3.StringUtils;
 
@@ -131,6 +132,8 @@ public class ItemMemberFormWidget extends GenericWidget {
     memberBean.setRoleList(memberRoleList);
     memberBean.setApprovedBy(context.getUserId());
 
+    String membershipDetails = "collectionId=" + item.getCollectionId() + "; itemId=" + item.getId();
+
     Member member = null;
     try {
       member = SaveMemberCommand.saveMember(memberBean);
@@ -138,10 +141,16 @@ public class ItemMemberFormWidget extends GenericWidget {
         throw new DataException("The information could not be saved due to a system error. Please try again.");
       }
     } catch (DataException e) {
+      AuditEventCommand.record(context, AuditEventCommand.AUTHORIZATION, "collection.member.add",
+          AuditEventCommand.FAILURE, "user", String.valueOf(user.getId()), user.getFullName(), membershipDetails);
       context.setErrorMessage(e.getMessage());
       context.setRequestObject(memberBean);
       return context;
     }
+
+    // Record the membership grant (confers collection access)
+    AuditEventCommand.record(context, AuditEventCommand.AUTHORIZATION, "collection.member.add",
+        AuditEventCommand.SUCCESS, "user", String.valueOf(user.getId()), user.getFullName(), membershipDetails);
 
     // Determine the page to return to
     context.setSuccessMessage("Member was added");

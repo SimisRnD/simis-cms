@@ -21,6 +21,7 @@ import com.simisinc.platform.application.cms.LoadBlogPostCommand;
 import com.simisinc.platform.domain.model.cms.Blog;
 import com.simisinc.platform.domain.model.cms.BlogPost;
 import com.simisinc.platform.infrastructure.persistence.cms.BlogPostRepository;
+import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import org.apache.commons.lang3.StringUtils;
@@ -130,11 +131,18 @@ public class BlogPostWidget extends GenericWidget {
   }
 
   private WidgetContext deletePost(WidgetContext context, BlogPost blogPost) {
+    String targetId = String.valueOf(blogPost.getId());
+    String targetLabel = blogPost.getTitle();
     // Attempt to delete the blog
     try {
-      BlogPostRepository.remove(blogPost);
+      // remove() returns false on a swallowed DB failure rather than throwing, so branch on its result
+      boolean removed = BlogPostRepository.remove(blogPost);
+      AuditEventCommand.record(context, AuditEventCommand.CONTENT, "content.delete",
+          removed ? AuditEventCommand.SUCCESS : AuditEventCommand.FAILURE, "blog_post", targetId, targetLabel, null);
       context.setSuccessMessage("Post was deleted");
     } catch (Exception e) {
+      AuditEventCommand.record(context, AuditEventCommand.CONTENT, "content.delete", AuditEventCommand.FAILURE,
+          "blog_post", targetId, targetLabel, e.getMessage());
       context.setErrorMessage("The post could not be deleted: " + e.getMessage());
     }
     return context;

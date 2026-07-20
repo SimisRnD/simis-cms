@@ -32,6 +32,7 @@ import com.simisinc.platform.infrastructure.persistence.ecommerce.ProductReposit
 import com.simisinc.platform.infrastructure.persistence.ecommerce.ProductSkuRepository;
 import com.simisinc.platform.presentation.controller.MultipartFileSender;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
+import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 
 /**
@@ -93,8 +94,13 @@ public class ProductListWidget extends GenericWidget {
           .withMimeType(mimeType)
           .withFilename(displayFilename)
           .serveResource();
+      // Record the bulk export (whole product SKU catalog)
+      AuditEventCommand.record(context, AuditEventCommand.DATA_ACCESS, "data.export", AuditEventCommand.SUCCESS,
+          "product_skus", "all", displayFilename, "format=" + extension);
     } catch (Exception e) {
       LOG.error("Download CSV Error", e);
+      AuditEventCommand.record(context, AuditEventCommand.DATA_ACCESS, "data.export", AuditEventCommand.FAILURE,
+          "product_skus", "all", displayFilename, "format=" + extension);
     } finally {
       if (tempFile.exists()) {
         LOG.warn("Deleting a temporary file: " + tempFile.getAbsolutePath());

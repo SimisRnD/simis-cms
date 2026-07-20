@@ -22,6 +22,7 @@ import com.simisinc.platform.application.cms.UrlCommand;
 import com.simisinc.platform.domain.model.cms.SitemapChangeFrequencyOptions;
 import com.simisinc.platform.domain.model.cms.WebPage;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
+import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import org.apache.commons.beanutils.BeanUtils;
@@ -116,6 +117,9 @@ public class WebPageFormWidget extends GenericWidget {
     webPageBean.setCreatedBy(context.getUserId());
     webPageBean.setModifiedBy(context.getUserId());
 
+    // Publishing makes the page live; saving as draft takes it out of live view
+    String eventType = webPageBean.getDraft() ? "content.unpublish" : "content.publish";
+
     // Save the record
     WebPage webPage = null;
     try {
@@ -124,10 +128,16 @@ public class WebPageFormWidget extends GenericWidget {
         throw new DataException("Your information could not be saved due to a system error. Please try again.");
       }
     } catch (DataException e) {
+      AuditEventCommand.record(context, AuditEventCommand.CONTENT, eventType, AuditEventCommand.FAILURE,
+          "web_page", String.valueOf(webPageBean.getId()), webPageBean.getTitle(), e.getMessage());
       context.setErrorMessage(e.getMessage());
       context.setRequestObject(webPageBean);
       return context;
     }
+
+    // Record the publish/unpublish
+    AuditEventCommand.record(context, AuditEventCommand.CONTENT, eventType, AuditEventCommand.SUCCESS,
+        "web_page", String.valueOf(webPage.getId()), webPage.getTitle(), null);
 
     // Determine the page to return to
     String returnPage = UrlCommand.getValidReturnPage(context.getParameter("returnPage"));
@@ -154,10 +164,16 @@ public class WebPageFormWidget extends GenericWidget {
     context.setRedirect(webPage.getLink());
     String action = context.getParameter("action");
     if ("deletePage".equals(action)) {
+      String targetId = String.valueOf(webPage.getId());
+      String targetLabel = webPage.getTitle();
       try {
         WebPageRepository.remove(webPage);
+        AuditEventCommand.record(context, AuditEventCommand.CONTENT, "content.delete", AuditEventCommand.SUCCESS,
+            "web_page", targetId, targetLabel, null);
         context.setSuccessMessage("Page was deleted");
       } catch (Exception e) {
+        AuditEventCommand.record(context, AuditEventCommand.CONTENT, "content.delete", AuditEventCommand.FAILURE,
+            "web_page", targetId, targetLabel, e.getMessage());
         context.setErrorMessage("The page could not be deleted: " + e.getMessage());
       }
     }

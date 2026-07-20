@@ -29,6 +29,7 @@ import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.infrastructure.persistence.GroupRepository;
 import com.simisinc.platform.infrastructure.persistence.RoleRepository;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
+import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 
 import org.apache.commons.beanutils.BeanUtils;
@@ -112,6 +113,10 @@ public class UserFormWidget extends GenericWidget {
       userBean.setGroupList(userGroupList);
     }
 
+    // An existing id means an edit; a new record is a create
+    boolean isUpdate = userBean.getId() > -1;
+    String eventType = isUpdate ? "user.update" : "user.create";
+
     // Save the user
     User user = null;
     try {
@@ -121,12 +126,18 @@ public class UserFormWidget extends GenericWidget {
       }
     } catch (Exception e) {
       LOG.error("User record error: " + e.getMessage(), e);
+      AuditEventCommand.record(context, AuditEventCommand.USER_MANAGEMENT, eventType, AuditEventCommand.FAILURE,
+          "user", String.valueOf(userBean.getId()), userBean.getEmail(), e.getMessage());
       context.setErrorMessage(e.getMessage());
       context.setRequestObject(userBean);
       context.setRedirect("/admin/modify-user?userId=" + userBean.getId());
       //context.addSharedRequestValue("returnPage", UrlCommand.getValidReturnPage(context.getParameter("returnPage")));
       return context;
     }
+
+    // Record the change with the effective roles and groups
+    AuditEventCommand.record(context, AuditEventCommand.USER_MANAGEMENT, eventType, AuditEventCommand.SUCCESS,
+        "user", String.valueOf(user.getId()), user.getEmail(), AuditEventCommand.describeRolesAndGroups(user));
 
     // Determine the page to return to
     context.setSuccessMessage("User was saved");
