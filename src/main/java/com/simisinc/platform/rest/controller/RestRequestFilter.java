@@ -124,8 +124,8 @@ public class RestRequestFilter implements Filter {
     if (requireSSL && !"https".equalsIgnoreCase(scheme)) {
       // Only redirect if a hostname was used (skip for local dev)
       if (!isLocal
-          && !InetAddressUtils.isIPv4Address(request.getServerName())
-          && !InetAddressUtils.isIPv6Address(request.getServerName())) {
+          && !InetAddressUtils.isIPv4(request.getServerName())
+          && !InetAddressUtils.isIPv6(request.getServerName())) {
         String requestURL = ((HttpServletRequest) request).getRequestURL().toString();
         requestURL = StringUtils.replace(requestURL, "http://", "https://");
         LOG.debug("Redirecting to: " + requestURL);
