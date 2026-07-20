@@ -18,6 +18,7 @@ package com.simisinc.platform.application.oauth;
 
 import com.simisinc.platform.application.CreateSessionCommand;
 import com.simisinc.platform.application.SaveSessionCommand;
+import com.simisinc.platform.application.audit.SaveAuditEventCommand;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.login.OAuthToken;
 import com.simisinc.platform.domain.model.login.UserLogin;
@@ -60,6 +61,8 @@ public class OAuthLoginCommand {
     User user = OAuthUserInfoCommand.createUser(oAuthToken);
     if (user == null) {
       LOG.warn("The user was not found");
+      SaveAuditEventCommand.recordAuthentication("authentication.login.failure", "failure", -1L,
+          null, request.getRemoteAddr(), request.getSession().getId(), "oauth: user could not be created");
       return;
     }
 
@@ -121,6 +124,8 @@ public class OAuthLoginCommand {
     userSession.login(user);
     SaveSessionCommand.saveSession(userSession);
     request.getSession().setAttribute(SessionConstants.USER, userSession);
+    SaveAuditEventCommand.recordAuthentication("authentication.login.success", "success",
+        user.getId(), user.getEmail(), ipAddress, userSession.getSessionId(), "oauth");
     LOG.debug("User has been signed in.");
   }
 }
