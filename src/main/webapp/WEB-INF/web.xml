@@ -32,6 +32,12 @@
     <!--<listener-class>com.simisinc.platform.presentation.controller.SessionListener</listener-class>-->
   <!--</listener>-->
   <!-- Filters -->
+  <!-- Opt-in: when CMS_TRUSTED_PROXIES is set, resolve the real client IP from
+       X-Forwarded-For before any IP-based control runs. Must be mapped first. -->
+  <filter>
+    <filter-name>TrustedProxyIpFilter</filter-name>
+    <filter-class>com.simisinc.platform.presentation.controller.TrustedProxyIpFilter</filter-class>
+  </filter>
   <filter>
     <filter-name>WebRequestFilter</filter-name>
     <filter-class>com.simisinc.platform.presentation.controller.WebRequestFilter</filter-class>
@@ -40,6 +46,10 @@
     <filter-name>RestRequestFilter</filter-name>
     <filter-class>com.simisinc.platform.rest.controller.RestRequestFilter</filter-class>
   </filter>
+  <filter-mapping>
+    <filter-name>TrustedProxyIpFilter</filter-name>
+    <url-pattern>/*</url-pattern>
+  </filter-mapping>
   <filter-mapping>
     <filter-name>WebRequestFilter</filter-name>
     <url-pattern>/*</url-pattern>
