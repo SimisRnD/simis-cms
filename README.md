@@ -1,166 +1,81 @@
-# SimIS CMS
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="src/main/webapp/images/logo-white-color.png">
+    <img alt="SimIS CMS" src="src/main/webapp/images/logo-header.png" width="360">
+  </picture>
+</p>
 
-[![Java CI](https://github.com/SimisRnD/simis-cms/actions/workflows/ant.yml/badge.svg)](https://github.com/SimisRnD/simis-cms/actions/workflows/ant.yml)
+<p align="center">
+  <strong>The all-in-one, security-first content platform — pages, commerce, data, and analytics in a single Java application you host yourself.</strong>
+</p>
 
-SimIS CMS is an open-source, integrated content management system and web portal, written in Java and run in production by SimIS Inc. — it powers [simisinc.com](https://www.simisinc.com).
+<p align="center">
+  <a href="https://github.com/SimisRnD/simis-cms/actions/workflows/ant.yml"><img alt="Java CI" src="https://github.com/SimisRnD/simis-cms/actions/workflows/ant.yml/badge.svg"></a>
+  <a href="https://github.com/SimisRnD/simis-cms/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/SimisRnD/simis-cms?display_name=tag&label=release"></a>
+  <a href="LICENSE.txt"><img alt="License: Apache-2.0" src="https://img.shields.io/github/license/SimisRnD/simis-cms"></a>
+  <img alt="Java 21" src="https://img.shields.io/badge/Java-21-orange">
+</p>
 
-Everything ships in one platform: pages, blogs, calendars, datasets, e-commerce, CRM, and analytics, with security built into the core rather than bolted on through plug-ins. Use and configure what's there, and customize what's not.
+---
 
-Questions and ideas: [Discussions](https://github.com/SimisRnD/simis-cms/discussions) · Bugs: [Issues](https://github.com/SimisRnD/simis-cms/issues)
+SimIS CMS is an open-source content management system and web portal, written in Java and **run in production by SimIS Inc.** — it's the same platform behind [simisinc.com](https://www.simisinc.com). This isn't a starter kit; it's a complete product you download, deploy, and own.
 
-## License
+Everything ships in one platform — pages, blogs, calendars, datasets, e-commerce, CRM, and analytics — with **security built into the core, not bolted on through plug-ins.** Use and configure what's there, and customize what's not.
 
-Apache License 2.0 — see [LICENSE.txt](LICENSE.txt). Copyright 2023-2026 SimIS Inc.
+**Questions and ideas:** [Discussions](https://github.com/SimisRnD/simis-cms/discussions) · **Bugs and feature requests:** [Issues](https://github.com/SimisRnD/simis-cms/issues/new/choose)
 
-## Overview
+## Why SimIS CMS
 
-Need a website or web portal? SimIS CMS works from day one, and each role can get straight to work:
+- **All-in-one.** CMS, e-commerce, CRM, datasets, and analytics in a single deployable — no plug-in sprawl, no version-matching roulette.
+- **Secure by default.** Multi-factor authentication, Argon2id password hashing, a built-in firewall and rate limiting, CodeQL static analysis, and a **signed SBOM with build-provenance attestation on every release** — so you know exactly what ships.
+- **Privacy-respecting analytics.** First-party and cookieless, with optional IP anonymization and Do-Not-Track / Global Privacy Control honoring. No third parties required.
+- **You own it.** Self-hosted, Apache-2.0 licensed, PostgreSQL-backed. Your data stays inside your boundary — a natural fit for government, education, and regulated environments.
+- **Built to extend.** Micro-widgets, an expression engine, a workflow engine, and a REST API. Configure it online, or drop to code.
 
-* An administrator signs in, creates the sitemap, and starts adding pages, alone or with a team.
-* A designer sets the shared look and layout that every page inherits, then targets page-by-page improvements while authors fill in the content.
-* Content authors work with searchable text, images, and video, and can drop in dynamic elements: slideshows, news feeds, calendar events, blog posts, and more.
-* For anything more complex, a developer extends the platform or builds new functionality, working online or off.
+## Quick start
+
+1. **Download** the latest production `.war` from [Releases](https://github.com/SimisRnD/simis-cms/releases/latest).
+2. **Start a database** — bring your own PostgreSQL (with PostGIS), or build the bundled one: `docker build -f docker/db/Dockerfile .`
+3. **Deploy** the `.war` to a Java 21 servlet container (Tomcat). It runs its own schema migrations on startup — always back up your database first.
+4. **Sign in** by adding `/login` to your site URL, then turn on the login setting to reveal a login button.
+
+New releases automatically upgrade a previous install. Full deployment options are in the [documentation](https://github.com/SimisRnD/simis-cms/blob/main/docs/index.md).
+
+## Built for every role
+
+SimIS CMS works from day one, and each role can get straight to work:
+
+- An **administrator** signs in, creates the sitemap, and starts adding pages — alone or with a team.
+- A **designer** sets the shared look and layout that every page inherits, then targets page-by-page improvements while authors fill in the content.
+- **Content authors** work with searchable text, images, and video, and drop in dynamic elements: slideshows, news feeds, calendar events, blog posts, and more.
+- A **developer** extends the platform or builds new functionality, working online or off.
 
 Larger teams can hand off further: built-in Community, Data, and E-commerce Manager roles scope each person's access to just their part of the site.
 
 ## Features
 
-* **CMS**: Site Map, Web Pages (Templates, UI Designer, SEO, Searchable) with Content and Images, HTML Editor, CSS Editor, Blogs, Form Data, Calendars, Folders and Files, Mailing Lists, Videos, Wikis, Search, Site Alerts, Form Pop-Ups, Sticky Header and Buttons, Responsive, Bot Detection
-* **Analytics**: Tracking for Sessions, Hits, Geolocation, Content, Searches, Referrals; Charts; xAPI; Pixels
-* **Data Integration**: Datasets (CSV, TSV, JSON, GeoJSON, and RSS sources), Collections (Profiles, Geolocation, Multiple Categories, Relationships, Custom Fields, Indexed, Searchable), Data Sources
-* **Collaboration**: Users (Register, Validation, Login, Invite), User Groups, Collection Membership and Permissions, Chat
-* **E-commerce**: Products, SKUs, Categories, Customers, Orders, Account Management, Shipping Methods, Carriers, Tracking Numbers, Pricing Rules (Constraints, Discounts, and Promos)
-* **CRM**: Forms, Leads & Customers, Orders
-* **Settings**: Theme, Site SEO, Social Media, Mail Server, Maps, Captcha, Analytics, E-commerce, Mailing Lists
-* **Integration**: Google Analytics, Map Box, Open Street Map, Square, Stripe, Taxjar, USPS, Boxzooka
-* **Security**: OAuth, Firewall (Integration and Blocked IP lists), Spam Filter, Geo Filter, Rate Limiting, Snyk scanning
-* **API**: Rest API
-* **Platform**: Micro Widgets, Connection Pool, Cache, Scheduler, Workflow, Expression Engine, Upgrades, Migrations, Record Paging
-
-## Release Process
-
-In general:
-
-1. Deploy
-2. Login
-3. Configure
-4. Create
-5. Maintain
-
-An optimized web application archive (.war), with production settings, is released to this project's GitHub releases, ready for installation and which automatically upgrades previously installed versions. Always have a backup of your database and file library path.
-
-The latest release is at <https://github.com/SimisRnD/simis-cms/releases>.
-
-Release notes include a list of changes for review.
-
-Download the .war and follow your choice of deployment options.
-
-To log into a new site, add "/login" to the URL. Later, turn on the login setting to reveal a login button for your website.
+* **CMS**: Site map, web pages (templates, UI designer, SEO, searchable) with content and images, HTML editor, CSS editor, blogs, form data, calendars, folders and files, mailing lists, videos, wikis, search, site alerts, form pop-ups, sticky header and buttons, responsive, bot detection
+* **Security**: Multi-factor authentication (TOTP + recovery codes), Argon2id password hashing, OAuth, firewall (integration and blocked-IP lists), spam filter, geo filter, rate limiting, CSP/HSTS and session hardening, encrypted secrets at rest, CodeQL and Snyk scanning, and a signed SBOM with build-provenance attestation each release
+* **Analytics**: Privacy-first, first-party tracking of sessions, hits, geolocation, content, searches, and referrals; optional cookieless mode, IP anonymization, and Do-Not-Track / GPC honoring; charts; xAPI; pixels
+* **Data Integration**: Datasets (CSV, TSV, JSON, GeoJSON, and RSS sources), Collections (profiles, geolocation, multiple categories, relationships, custom fields, indexed, searchable), data sources
+* **Collaboration**: Users (register, validation, login, invite), user groups, collection membership and permissions, chat
+* **E-commerce**: Products, SKUs, categories, customers, orders, account management, shipping methods, carriers, tracking numbers, pricing rules (constraints, discounts, and promos)
+* **CRM**: Forms, leads & customers, orders
+* **Settings**: Theme, site SEO, social media, mail server, maps, captcha, analytics, e-commerce, mailing lists
+* **Integrations**: Google Analytics, Mapbox, OpenStreetMap, Square, Stripe, TaxJar, USPS, Boxzooka
+* **API**: REST API
+* **Platform**: Micro-widgets, connection pool, cache, scheduler, workflow, expression engine, upgrades, migrations, record paging
 
 ## Documentation
 
-Documentation is in MKDocs format intended for use in platforms which use MKDocs.
+The documentation is written for [MkDocs](https://www.mkdocs.org/) and lives in [`docs/`](https://github.com/SimisRnD/simis-cms/blob/main/docs/index.md).
 
-The latest documentation is at <https://github.com/SimisRnD/simis-cms/blob/main/docs/index.md>.
+## Contributing
 
-## Attribution
+Pull requests are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) for how to build the project and what a PR needs. Please report security vulnerabilities privately via a [security advisory](https://github.com/SimisRnD/simis-cms/security/advisories/new); never open a public issue for one.
 
-Thank you to all those who have helped make SimIS CMS!
+## License
 
-This project uses and licenses several technologies:
+Apache License 2.0 — see [LICENSE.txt](LICENSE.txt). Copyright 2023–2026 SimIS Inc.
 
-```text
- Server:
-
-   Apache Commons              Apache   Utilities                                         https://commons.apache.org
-   Argon2                      LGPL     Password hashing                                  https://github.com/phxql/argon2-jvm
-   Bucket4J                    Apache   Rate limiting                                     https://github.com/bucket4j/bucket4j
-   Caffeine                    Apache   High performance cache                            https://github.com/ben-manes/caffeine
-   ClassGraph                  MIT      Module scanner                                    https://github.com/classgraph/classgraph
-   Easy Flows Playbooks EditionMIT      Workflow engine                                   https://github.com/rajkowski/easy-flows
-   FlexMark                    BSD2     Markdown parsing                                  https://github.com/vsch/flexmark-java
-   Flyway                      Apache   Database scripts install and upgrade tracking     https://github.com/flyway/flyway
-   GeoIP2                      Apache   IP geolocation client                             https://github.com/maxmind/GeoIP2-java
-   GeoJson                     Apache   GeoJson Parser                                    https://github.com/opendatalab-de/geojson-jackson
-   Google GSON                 Apache   Convert Java Objects to/from JSON representation  https://github.com/google/gson
-   Granule                     Apache   CSS and Javascript combine/minify                 https://github.com/rajkowski/Granule
-   HikariCP                    Apache   High performance database connection pooling      https://github.com/brettwooldridge/HikariCP
-   im4java                     LGPL     Interface to ImageMagick and GraphicsMagick       http://im4java.sourceforge.net
-   Jackson                     Apache   Json Parser                                       https://github.com/FasterXML/jackson
-   Jackson Core Utils          LGPL     Json Parser Utility                               https://github.com/fge/jackson-coreutils
-   JavaMail                    CDDL     Mail library                                      https://javaee.github.io/javamail/
-   JMail                       MIT      Email validator                                   https://github.com/RohanNagar/jmail
-   Jobrunr                     LGPL     Job scheduler                                     https://github.com/jobrunr/jobrunr
-   Johnzon                     Apache   Json processing                                   https://johnzon.apache.org
-   JSON Schema Validator       Apache   JSON schema validator                             https://github.com/networknt/json-schema-validator
-   JSoup                       MIT      HTML cleansing                                    https://github.com/jhy/jsoup/
-   JSTL                        Eclipse  Servlet tag library                               https://github.com/eclipse-ee4j/jstl-api
-   libphonenumber              Apache   Phone number validation                           https://github.com/google/libphonenumber
-   PostgreSQL                  BSD      Database driver                                   https://jdbc.postgresql.org
-   RabbitMQ                    Apache   RabbitMQ java client library                      https://www.rabbitmq.com/java-client.html
-   RestFB                      MIT      Facebook Graph API client                         https://github.com/restfb/restfb
-   ROME                        Apache   RSS                                               https://github.com/rometools/rome
-   SLF4j                       MIT      Logger                                            https://github.com/qos-ch/slf4j
-   Square                      Apache   Java bindings for SquareUp.com                    https://github.com/square/square-java-sdk
-   Stripe                      MIT      Java bindings for Stripe.com                      https://github.com/stripe/stripe-java
-   Thymeleaf                   Apache   Template engine                                   https://github.com/thymeleaf/thymeleaf
-   Timeago                     Apache   Relative time                                     https://github.com/marlonlom/timeago
-   uniVocity                   Apache   CSV processing                                    https://github.com/uniVocity/univocity-parsers
-
- Frontend:
-
-   Foundation                  MIT      Responsive CSS framework                          https://github.com/foundation/foundation-sites
-   animate.css                 MIT      CSS animations                                    https://github.com/animate-css/animate.css
-   autoComplete                MIT      Form auto-complete                                https://github.com/Pixabay/JavaScript-autoComplete
-   ChartJS                     MIT      Charts                                            https://github.com/chartjs/Chart.js
-   Clipboard.JS                MIT      Clipboard utility                                 https://github.com/zenorocha/clipboard.js
-   DatePicker                  Apache   Date and time picker                              https://github.com/najlepsiwebdesigner/foundation-datepicker
-   Dragula                     MIT      Drag and drop utilities                           https://github.com/bevacqua/dragula
-   DropZoneJS                  MIT      Drag and drop utilities                           https://gitlab.com/meno/dropzone
-   FontAwesome                 CC       Icons                                             https://github.com/FortAwesome/Font-Awesome
-   FullCalendar                MIT      Calendar                                          https://github.com/fullcalendar/fullcalendar
-   Google Fonts                Apache   Fonts                                             https://fonts.google.com
-   GridManager                 MIT      Column editor                                     https://github.com/neokoenig/jQuery-gridmanager
-   ImagesLoaded                MIT      UI event handler                                  https://github.com/desandro/imagesloaded
-   Jspreadsheet                MIT      Data grid                                         https://github.com/jspreadsheet/ce
-   JS Cookie                   MIT      Cookie functions                                  https://github.com/js-cookie/js-cookie
-   Leaflet                     License  Maps                                              https://github.com/Leaflet/Leaflet
-   MarkerCluster               Apache   Clusters for Leaflet                              https://github.com/Leaflet/Leaflet.markercluster
-   Masonry                     MIT      UI Layout                                         https://github.com/desandro/masonry
-   Mermaid                     MIT      Diagramming and charting                          https://github.com/mermaid-js/mermaid
-   Add to Calendar Buttons     MIT      Add to calendar                                   https://github.com/WebuddhaInc/add-to-calendar-buttons
-   Payform                     License  Credit card form                                  https://github.com/jondavidjohn/payform
-   Prism                       MIT      Highlighter                                       https://github.com/PrismJS/prism/
-   Spectrum                    MIT      Color picker                                      https://github.com/bgrins/spectrum
-   Superset-UI Embedded SDK    Apache   Visualizations and dashboards                     https://github.com/apache/superset
-   Swiper                      MIT      Modern mobile touch slider                        https://github.com/nolimits4web/swiper
-   TinyMCE                     LGPL     HTML editor                                       https://github.com/tinymce/tinymce
-   TinyMCE-FontAwesome-Plugin  MIT      Icon chooser                                      https://github.com/josh18/TinyMCE-FontAwesome-Plugin
-
- Testing:
- 
-   JUnit5                      Apache   Unit testing framework                            https://github.com/junit-team/junit5
-   Jacoco                      Eclipse  Code coverage                                     https://github.com/jacoco/jacoco
-   MeanBean                    Apache   JavaBean testing                                  https://github.com/meanbeanlib/meanbean
-   Mockito                     MIT      Mocking framework                                 https://github.com/mockito/mockito
-   Testcontainers              MIT      Containers library for tests                      https://github.com/testcontainers/testcontainers-java
-
- Data:
-
-   Avalara                     CC       US sales tax rate tables                          https://www.avalara.com/taxrates/en/download-tax-tables.html
-   GeoLite2                    CC       Data created by MaxMind                           https://dev.maxmind.com/geoip/geolite2-free-geolocation-data
-   GeoNames                    CC       Geographic data                                   http://download.geonames.org/export/dump/
-   Simple Maps                 CC       City, country, Lat, Long                          https://simplemaps.com/data/world-cities
-   Zip Codes                   Attrib.  Zip codes                                         http://federalgovernmentzipcodes.us/
-
- Optional Services:
-
-   Boxzooka                    Shipping/Fulfillment                                       https://boxzooka.com
-   Google Analytics            Analytics                                                  https://marketingplatform.google.com/about/analytics/
-   Map Box                     Geocoding, Map tiles                                       https://www.mapbox.com
-   Open Street Map             Geocoding, Map tiles                                       https://www.openstreetmap.org
-   Square                      Payment processing                                         https://squareup.com/us/en
-   Stripe                      Payment processing                                         https://stripe.com
-   Taxjar                      Taxes                                                      https://www.taxjar.com
-   USPS Address Validation     Address verification                                       https://www.usps.com/business/web-tools-apis/
-```
+Built on the work of many open-source projects — see [ATTRIBUTION.md](ATTRIBUTION.md) for the full list and their licenses.
