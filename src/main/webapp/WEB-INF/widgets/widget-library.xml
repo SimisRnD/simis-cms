@@ -247,6 +247,7 @@
   <widget name="salesTaxNexusList" class="com.simisinc.platform.presentation.widgets.admin.ecommerce.SalesTaxNexusListWidget" />
   <widget name="salesTaxNexusAddressForm" class="com.simisinc.platform.presentation.widgets.admin.ecommerce.SalesTaxNexusAddressFormWidget" />
   <widget name="xapiStatementList" class="com.simisinc.platform.presentation.widgets.admin.xapi.XapiStatementListWidget" />
+  <widget name="auditLogList" class="com.simisinc.platform.presentation.widgets.admin.audit.AuditLogListWidget" />
   <!-- Not implemented -->
   <widget name="profilePhoto" class="com.simisinc.platform.presentation.widgets.GenericWidget" />
   <widget name="profileDetails" class="com.simisinc.platform.presentation.widgets.GenericWidget" />

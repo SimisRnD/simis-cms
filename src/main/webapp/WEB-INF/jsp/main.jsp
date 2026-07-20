@@ -338,6 +338,7 @@
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/api')}"> class="is-active"</c:if>><a href="${ctx}/admin/apis"><i class="${font:far()} fa-paper-plane fa-fw"></i> <span>APIs</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/app')}"> class="is-active"</c:if>><a href="${ctx}/admin/apps"><i class="${font:far()} fa-mobile fa-fw"></i> <span>Apps</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/blocked-ip-list')}"> class="is-active"</c:if>><a href="${ctx}/admin/blocked-ip-list"><i class="${font:far()} fa-shield-halved fa-fw"></i> <span>Blocked IPs</span></a></li>
+              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/audit-log')}"> class="is-active"</c:if>><a href="${ctx}/admin/audit-log"><i class="${font:far()} fa-clipboard-list fa-fw"></i> <span>Audit Log</span></a></li>
             </ul>
           </c:if>
           <%-- Settings menu --%>
