@@ -74,6 +74,9 @@ class DateCommandTest {
   void addDays() {
     Timestamp now = new Timestamp(System.currentTimeMillis());
     Timestamp in10Days = DateCommand.addDays(now, 10);
-    Assertions.assertEquals("within 10 days", DateCommand.relative(in10Days));
+    // timeago 4.x rounds multi-day spans to the nearest coarser unit, so ten days now reads
+    // "within one week" where 3.x said "within 10 days". The wording comes from the library,
+    // not from us; this asserts the value we actually render so a future change is caught.
+    Assertions.assertEquals("within one week", DateCommand.relative(in10Days));
   }
 }
