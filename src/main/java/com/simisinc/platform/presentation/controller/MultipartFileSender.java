@@ -245,7 +245,11 @@ public class MultipartFileSender {
     response.reset();
     response.setBufferSize(DEFAULT_BUFFER_SIZE);
     response.setHeader("Content-Type", contentType);
-    response.setHeader("Content-Disposition", disposition + ";filename=\"" + filename + "\"");
+    // Never let the browser sniff a streamed upload into a different (active) type.
+    response.setHeader("X-Content-Type-Options", "nosniff");
+    String safeName = FileDownloadCommand.sanitizeFilename(filename);
+    response.setHeader("Content-Disposition",
+        safeName != null ? disposition + ";filename=\"" + safeName + "\"" : disposition);
     response.setHeader("Accept-Ranges", "bytes");
     response.setHeader("ETag", filename);
     response.setDateHeader("Last-Modified", lastModified);
