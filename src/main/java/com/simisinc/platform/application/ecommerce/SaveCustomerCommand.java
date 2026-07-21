@@ -43,7 +43,7 @@ public class SaveCustomerCommand {
     // Use the customer id after insert
     String prefix = "C-";
     String id = StringUtils.leftPad(String.valueOf(customer.getId()), 7, '0');
-    String rand = StringUtils.leftPad(RandomStringUtils.randomNumeric(5), 5, '0');
+    String rand = StringUtils.leftPad(RandomStringUtils.insecure().nextNumeric(5), 5, '0');
 
     CheckDigit routine = new ModulusTenCheckDigit(new int[]{1, 2}, true, true);
     String checkDigit = routine.calculate(id + rand);

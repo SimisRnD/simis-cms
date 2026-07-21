@@ -23,6 +23,7 @@ import static javax.servlet.http.HttpServletResponse.SC_NOT_FOUND;
 import static javax.servlet.http.HttpServletResponse.SC_UNAUTHORIZED;
 
 import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.Enumeration;
 import java.util.Map;
 
@@ -45,6 +46,7 @@ import org.apache.hc.core5.net.InetAddressUtils;
 
 import com.simisinc.platform.application.DoNotTrackCommand;
 import com.simisinc.platform.application.CreateSessionCommand;
+import com.simisinc.platform.application.HealthCommand;
 import com.simisinc.platform.application.DailyVisitorHashCommand;
 import com.simisinc.platform.application.LoadVisitorCommand;
 import com.simisinc.platform.application.SaveSessionCommand;
@@ -130,6 +132,14 @@ public class WebRequestFilter implements Filter {
       LOG.debug(httpServletRequest.getMethod() + " uri " + resource);
     }
 
+    // Answer the platform readiness probe early -- before host, blocked-IP, SSL, and session handling --
+    // so an internal health check (Azure App Service Health check / container HEALTHCHECK / k8s probe) is
+    // never rejected by those gates. Returns no detail (avoids version/topology disclosure).
+    if (resource.equals("/healthz")) {
+      doHealthCheck(request, servletResponse);
+      return;
+    }
+
     // Check allowed host names
     if (!HostnameCommand.passesCheck(request.getServerName())) {
       do404(servletResponse);
@@ -172,8 +182,8 @@ public class WebRequestFilter implements Filter {
 
     // Redirect to SSL
     if (requireSSL && !"https".equalsIgnoreCase(scheme)) {
-      if (!"localhost".equals(request.getServerName()) && !InetAddressUtils.isIPv4Address(request.getServerName())
-          && !InetAddressUtils.isIPv6Address(request.getServerName())) {
+      if (!"localhost".equals(request.getServerName()) && !InetAddressUtils.isIPv4(request.getServerName())
+          && !InetAddressUtils.isIPv6(request.getServerName())) {
         String requestURL = httpServletRequest.getRequestURL().toString();
         requestURL = StringUtils.replace(requestURL, "http://", "https://");
         // The request URL is built from the client-supplied Host header, so it is only echoed back when the
@@ -557,6 +567,18 @@ public class WebRequestFilter implements Filter {
       }
     }
     return requestURI;
+  }
+
+  private void doHealthCheck(ServletRequest request, ServletResponse servletResponse) throws IOException {
+    boolean ready = HealthCommand.isReady(request.getServletContext());
+    HttpServletResponse response = (HttpServletResponse) servletResponse;
+    response.setStatus(ready ? 200 : 503);
+    response.setContentType("application/json");
+    response.setCharacterEncoding("UTF-8");
+    response.setHeader("Cache-Control", "no-store");
+    PrintWriter out = response.getWriter();
+    out.print(ready ? "{\"status\":\"UP\"}" : "{\"status\":\"DOWN\"}");
+    out.flush();
   }
 
   private void do301(ServletResponse servletResponse, String redirectLocation) throws IOException {
