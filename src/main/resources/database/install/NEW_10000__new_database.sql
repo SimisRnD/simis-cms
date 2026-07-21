@@ -156,6 +156,7 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (5, 'Cookieless analytics (no visitor cookie)?', 'analytics.cookieless', 'false', 'boolean');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (6, 'Anonymize analytics IP addresses?', 'analytics.anonymizeIp', 'false', 'boolean');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (8, 'Analytics data retention (days)', 'analytics.retentionDays', '365');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (1, 'Audit log retention (days)', 'audit.retentionDays', '2555');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (10, 'Analytics Service', 'analytics.service', 'google');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (7, 'Honor Do-Not-Track / Global Privacy Control?', 'analytics.honorDnt', 'false', 'boolean');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (20, 'Google Analytics GA Key', 'analytics.google.key', '');
@@ -434,7 +435,10 @@ CREATE INDEX user_tokens_token_idx ON user_tokens(token);
 
 -- Security audit log (Milestone #3 / Phase 1; mirrored by UPGRADE_20260719.1006 for existing installs).
 -- Append-only; no foreign key on actor_user_id so a record survives the deletion of the user it
--- references; the full source IP is retained for forensics.
+-- references; the full source IP is retained for forensics. previous_hash/record_hash form a tamper-evident
+-- SHA-256 hash chain (Phase 4): record_hash = SHA-256(previous_hash || canonical(row)), previous_hash is the
+-- record_hash of the row inserted just before. Any edit, delete, reorder, or mid-chain insert breaks the
+-- chain (see AuditLogIntegrityCommand). They are populated by the application, not the database.
 CREATE TABLE audit_log (
   audit_id BIGSERIAL PRIMARY KEY,
   occurred TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP NOT NULL,
@@ -449,7 +453,9 @@ CREATE TABLE audit_log (
   target_label VARCHAR(255),
   details TEXT,
   session_id VARCHAR(255),
-  schema_version INTEGER DEFAULT 1 NOT NULL
+  schema_version INTEGER DEFAULT 1 NOT NULL,
+  previous_hash VARCHAR(64),
+  record_hash VARCHAR(64)
 );
 CREATE INDEX audit_log_occurred_idx ON audit_log(occurred);
 CREATE INDEX audit_log_category_type_idx ON audit_log(event_category, event_type);

@@ -46,6 +46,13 @@ public class AuditLog extends Entity {
   private String sessionId = null;
   private int schemaVersion = 1;
 
+  // Tamper-evidence (Phase 4): a per-row SHA-256 hash chained to the prior record. previousHash is the
+  // record_hash of the row inserted immediately before this one (a genesis constant for the first row);
+  // recordHash = SHA-256(previousHash || canonical(this record)). Any edit, deletion, reorder, or mid-chain
+  // insertion breaks the chain. Both are null on records written before Phase 4. See AuditLogIntegrityCommand.
+  private String previousHash = null;
+  private String recordHash = null;
+
   public AuditLog() {
   }
 
@@ -159,5 +166,21 @@ public class AuditLog extends Entity {
 
   public void setSchemaVersion(int schemaVersion) {
     this.schemaVersion = schemaVersion;
+  }
+
+  public String getPreviousHash() {
+    return previousHash;
+  }
+
+  public void setPreviousHash(String previousHash) {
+    this.previousHash = previousHash;
+  }
+
+  public String getRecordHash() {
+    return recordHash;
+  }
+
+  public void setRecordHash(String recordHash) {
+    this.recordHash = recordHash;
   }
 }
