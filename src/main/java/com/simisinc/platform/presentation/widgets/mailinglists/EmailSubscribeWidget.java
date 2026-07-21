@@ -16,6 +16,8 @@
 
 package com.simisinc.platform.presentation.widgets.mailinglists;
 
+import com.simisinc.platform.application.cms.HtmlCommand;
+
 import static java.util.stream.Collectors.toList;
 
 import java.lang.reflect.InvocationTargetException;
@@ -79,8 +81,14 @@ public class EmailSubscribeWidget extends GenericWidget {
     // Preferences
     context.getRequest().setAttribute("buttonName", context.getPreferences().getOrDefault("buttonName", "Subscribe"));
     context.getRequest().setAttribute("showName", context.getPreferences().getOrDefault("showName", "false"));
-    context.getRequest().setAttribute("introHtml", context.getPreferences().get("introHtml"));
-    context.getRequest().setAttribute("footerHtml", context.getPreferences().get("footerHtml"));
+    // Both render unescaped in email-subscribe-*.jsp. They are widget preferences, which come
+    // from page-layout XML that content-managers can author -- the same source that made the
+    // section/widget class attributes injectable. Sanitized rather than escaped because these
+    // are meant to contain html.
+    context.getRequest().setAttribute("introHtml",
+        HtmlCommand.cleanContent(context.getPreferences().get("introHtml")));
+    context.getRequest().setAttribute("footerHtml",
+        HtmlCommand.cleanContent(context.getPreferences().get("footerHtml")));
 
     // Standard request items
     context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));

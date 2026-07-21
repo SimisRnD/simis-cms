@@ -16,6 +16,8 @@
 
 package com.simisinc.platform.presentation.widgets.maps;
 
+import com.simisinc.platform.application.cms.HtmlCommand;
+
 import com.simisinc.platform.application.datasets.LoadGeoJsonFeedCommand;
 import com.simisinc.platform.application.gis.portsmouth.PopulatePortsmouthDataCommand;
 import com.simisinc.platform.application.maps.FindMapTilesCredentialsCommand;
@@ -48,7 +50,9 @@ public class PropertyMapAppWidget extends GenericWidget {
   public WidgetContext execute(WidgetContext context) {
 
     // Check preferences
-    context.getRequest().setAttribute("titleHtml", context.getPreferences().getOrDefault("titleHtml", null));
+    // Rendered unescaped by property-map-app.jsp; a page-XML preference like introHtml/footerHtml
+    context.getRequest().setAttribute("titleHtml",
+        HtmlCommand.cleanContent(context.getPreferences().getOrDefault("titleHtml", null)));
     String city = context.getPreferences().getOrDefault("city", null);
 
     // Determine the mapping service
