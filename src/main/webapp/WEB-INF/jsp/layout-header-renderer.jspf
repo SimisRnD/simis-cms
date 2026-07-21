@@ -50,18 +50,18 @@
         <%-- Determine the section container CSS --%>
         <c:choose>
           <c:when test="${renderClass eq 'show-for-small-only'}">
-            <div <c:if test="${!empty section.htmlId}">id="${section.htmlId}" </c:if>class="${section.cssClass} ${renderClass}"<c:if test="${!empty section.cssStyle}"> style="<c:out value="${section.cssStyle}" />"</c:if>>
+            <div <c:if test="${!empty section.htmlId}">id="<c:out value="${section.htmlId}"/>" </c:if>class="<c:out value="${section.cssClass}"/> <c:out value="${renderClass}"/>"<c:if test="${!empty section.cssStyle}"> style="<c:out value="${section.cssStyle}" />"</c:if>>
           </c:when>
           <c:when test="${empty section.cssClass && fn:startsWith(headerRenderInfo.name, '/admin')}">
-            <div <c:if test="${!empty section.htmlId}">id="${section.htmlId}" </c:if>class="grid-x grid-padding-x"<c:if test="${!empty section.cssStyle}"> style="<c:out value="${section.cssStyle}" />"</c:if>>
+            <div <c:if test="${!empty section.htmlId}">id="<c:out value="${section.htmlId}"/>" </c:if>class="grid-x grid-padding-x"<c:if test="${!empty section.cssStyle}"> style="<c:out value="${section.cssStyle}" />"</c:if>>
           </c:when>
           <c:when test="${!empty section.cssClass && (fn:contains(section.cssClass,'grid') || fn:contains(section.cssClass,'platform-no-margin') || fn:contains(section.cssClass,'no-container'))}">
-            <div <c:if test="${!empty section.htmlId}">id="${section.htmlId}" </c:if>class="${section.cssClass} ${renderClass}"<c:if test="${!empty section.cssStyle}"> style="<c:out value="${section.cssStyle}" />"</c:if>>
+            <div <c:if test="${!empty section.htmlId}">id="<c:out value="${section.htmlId}"/>" </c:if>class="<c:out value="${section.cssClass}"/> <c:out value="${renderClass}"/>"<c:if test="${!empty section.cssStyle}"> style="<c:out value="${section.cssStyle}" />"</c:if>>
           </c:when>
           <c:otherwise>
-            <div class="full-container ${renderClass}<c:if test="${!empty section.cssClass && fn:contains(section.cssClass, 'utility-bar')}"> ${section.cssClass}</c:if>"<c:if test="${!empty section.htmlId}"> id="${section.htmlId}"</c:if><c:if test="${!empty section.cssStyle}"> style="<c:out value="${section.cssStyle}" />"</c:if>>
+            <div class="full-container <c:out value="${renderClass}"/><c:if test="${!empty section.cssClass && fn:contains(section.cssClass, 'utility-bar')}"> <c:out value="${section.cssClass}"/></c:if>"<c:if test="${!empty section.htmlId}"> id="<c:out value="${section.htmlId}"/>"</c:if><c:if test="${!empty section.cssStyle}"> style="<c:out value="${section.cssStyle}" />"</c:if>>
             <div class="grid-container">
-            <div class="grid-x grid-margin-x<c:if test="${!empty section.cssClass && !fn:contains(section.cssClass, 'utility-bar')}"> ${section.cssClass}</c:if><c:if test="${!empty section.cssClass && fn:contains(section.cssClass, 'align-middle')}"> align-middle</c:if>">
+            <div class="grid-x grid-margin-x<c:if test="${!empty section.cssClass && !fn:contains(section.cssClass, 'utility-bar')}"> <c:out value="${section.cssClass}"/></c:if><c:if test="${!empty section.cssClass && fn:contains(section.cssClass, 'align-middle')}"> align-middle</c:if>">
           </c:otherwise>
         </c:choose>
         <%-- Render the columns --%>
@@ -73,11 +73,11 @@
           </c:if>
           <c:choose>
             <c:when test="${!empty column.cssClass}">
-              <div id="${columnId}" class="${column.cssClass}"<c:if test="${!empty column.cssStyle}"> style="<c:out
+              <div id="<c:out value="${columnId}"/>" class="<c:out value="${column.cssClass}"/>"<c:if test="${!empty column.cssStyle}"> style="<c:out
                 value="${column.cssStyle}"/>"</c:if><c:if test="${column.sticky}"> data-sticky-container</c:if>>
             </c:when>
             <c:otherwise>
-              <div id="${columnId}" class="small-12 cell"<c:if test="${!empty column.cssStyle}"> style="<c:out
+              <div id="<c:out value="${columnId}"/>" class="small-12 cell"<c:if test="${!empty column.cssStyle}"> style="<c:out
                 value="${column.cssStyle}"/>"</c:if><c:if test="${column.sticky}"> data-sticky-container</c:if>>
             </c:otherwise>
           </c:choose>
@@ -87,12 +87,12 @@
                 ${widget.content}
               </c:when>
               <c:when test="${!empty widget.cssClass}">
-                <div <c:if test="${!empty widget.htmlId}">id="${widget.htmlId}" </c:if>class="${widget.cssClass}"<c:if test="${!empty widget.cssStyle}"> style="<c:out value="${widget.cssStyle}" />"</c:if><c:if test="${widget.sticky}"> data-sticky data-margin-top="${stickyMarginTop}" data-top-anchor="${columnId}"</c:if>>
+                <div <c:if test="${!empty widget.htmlId}">id="<c:out value="${widget.htmlId}"/>" </c:if>class="<c:out value="${widget.cssClass}"/>"<c:if test="${!empty widget.cssStyle}"> style="<c:out value="${widget.cssStyle}" />"</c:if><c:if test="${widget.sticky}"> data-sticky data-margin-top="<c:out value="${stickyMarginTop}"/>" data-top-anchor="<c:out value="${columnId}"/>"</c:if>>
                     ${widget.content}
                 </div>
               </c:when>
               <c:otherwise>
-                <div<c:if test="${!empty widget.htmlId}"> id="${widget.htmlId}"</c:if><c:if test="${!empty widget.cssStyle}"> style="<c:out value="${widget.cssStyle}" />"</c:if><c:if test="${widget.sticky}"> data-sticky data-margin-top="4" data-top-anchor="${columnId}"</c:if>>
+                <div<c:if test="${!empty widget.htmlId}"> id="<c:out value="${widget.htmlId}"/>"</c:if><c:if test="${!empty widget.cssStyle}"> style="<c:out value="${widget.cssStyle}" />"</c:if><c:if test="${widget.sticky}"> data-sticky data-margin-top="4" data-top-anchor="<c:out value="${columnId}"/>"</c:if>>
                     ${widget.content}
                 </div>
               </c:otherwise>

@@ -56,7 +56,7 @@
     </c:otherwise>
   </c:choose>
 </c:if>
-<ul <c:if test="${!empty menuId}"> id="${menuId}" </c:if>class="dropdown menu<c:if test="${!empty menuClass}"> <c:out value="${menuClass}" /></c:if>" data-dropdown-menu>
+<ul <c:if test="${!empty menuId}"> id="<c:out value="${menuId}"/>" </c:if>class="dropdown menu<c:if test="${!empty menuClass}"> <c:out value="${menuClass}" /></c:if>" data-dropdown-menu>
 <c:set var="currentContainer" scope="request" value="---"/>
 <c:set var="linkOpen" scope="request" value="false"/>
 <c:forEach items="${linkList}" var="link" varStatus="status">

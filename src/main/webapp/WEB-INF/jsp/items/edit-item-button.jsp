@@ -23,9 +23,9 @@
 <jsp:useBean id="buttonName" class="java.lang.String" scope="request"/>
 <c:choose>
   <c:when test="${!empty editUrl}">
-    <a class="button radius" href="${editUrl}<c:if test="${!empty returnPage}">?returnPage=${returnPage}</c:if>"><i class="${font:fal()} fa-edit"></i> <c:out value="${buttonName}" /></a>
+    <a class="button radius" href="${editUrl}<c:if test="${!empty returnPage}">?returnPage=<c:out value="${returnPage}"/></c:if>"><i class="${font:fal()} fa-edit"></i> <c:out value="${buttonName}" /></a>
   </c:when>
   <c:otherwise>
-    <a class="button radius" href="${ctx}/edit/<c:out value="${item.uniqueId}" /><c:if test="${!empty returnPage}">?returnPage=${returnPage}</c:if>"><i class="${font:fal()} fa-edit"></i> <c:out value="${buttonName}" /></a>
+    <a class="button radius" href="${ctx}/edit/<c:out value="${item.uniqueId}" /><c:if test="${!empty returnPage}">?returnPage=<c:out value="${returnPage}"/></c:if>"><i class="${font:fal()} fa-edit"></i> <c:out value="${buttonName}" /></a>
   </c:otherwise>
 </c:choose>

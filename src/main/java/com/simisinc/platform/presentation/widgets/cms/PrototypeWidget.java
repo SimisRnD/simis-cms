@@ -16,6 +16,8 @@
 
 package com.simisinc.platform.presentation.widgets.cms;
 
+import com.simisinc.platform.application.cms.HtmlCommand;
+
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 
@@ -43,7 +45,10 @@ public class PrototypeWidget extends GenericWidget {
     context.getRequest().setAttribute("title", context.getPreferences().get("title"));
 
     // Prototype values
-    context.getRequest().setAttribute("html", context.getPreferences().get("html"));
+    // The html preference comes from page-layout XML, which content-managers can author, and
+    // prototype.jsp renders it unescaped. Sanitize it the same way saved content is.
+    context.getRequest().setAttribute("html",
+        HtmlCommand.cleanContent(context.getPreferences().get("html")));
     context.getRequest().setAttribute("comment", context.getPreferences().get("comment"));
 
     // Show the JSP

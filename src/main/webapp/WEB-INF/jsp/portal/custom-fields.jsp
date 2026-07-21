@@ -14,6 +14,7 @@
   ~ limitations under the License.
   --%>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="html" uri="/WEB-INF/tlds/html-functions.tld" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <%@ taglib prefix="url" uri="/WEB-INF/tlds/url-functions.tld" %>
@@ -31,7 +32,7 @@
       <c:if test="${!empty field.label}">
         <strong><c:out value="${field.label}"/></strong>:
       </c:if>
-      <p>${field.value}</p>
+      <p>${html:clean(field.value)}</p>
     </c:when>
     <c:when test="${'image' eq field.type}">
       <p><img src="<c:out value="${field.value}" />" /></p>

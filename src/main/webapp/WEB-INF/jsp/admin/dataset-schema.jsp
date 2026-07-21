@@ -43,7 +43,7 @@
       <c:forEach items="${collectionList}" var="collection">
         <option value="<c:out value="${collection.uniqueId}" />"<c:if test="${collection.uniqueId eq dataset.collectionUniqueId}"> selected</c:if>><c:out value="${collection.name}" /></option>
       </c:forEach>
-      <option value="NEW-<c:out value="${dataset.name}" />"<c:if test="${fn:startsWith(dataset.collectionUniqueId, 'NEW-')}"> selected</c:if>>&lt;${dataset.name}&gt;</option>
+      <option value="NEW-<c:out value="${dataset.name}"/>"<c:if test="${fn:startsWith(dataset.collectionUniqueId, 'NEW-')}"> selected</c:if>>&lt;<c:out value="${dataset.name}"/>&gt;</option>
     </select>
   </label>
 

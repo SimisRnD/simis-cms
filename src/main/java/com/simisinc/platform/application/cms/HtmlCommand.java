@@ -85,6 +85,37 @@ public class HtmlCommand {
     return clean.html();
   }
 
+  /**
+   * Reduces a value to something safe to interpolate into a JavaScript identifier.
+   *
+   * <p>Some widgets build function and element names from a preference, as in
+   * <code>function showAlbum${controlId}(...)</code>. Escaping is the wrong tool there -- an
+   * escaped value is no longer a valid identifier -- so the value is constrained instead, to
+   * ASCII letters, digits and underscore. Anything else is dropped, and an empty result falls
+   * back to the supplied default rather than emitting a syntax error into the page.
+   *
+   * @param text the untrusted value
+   * @param fallback the identifier to use when nothing usable remains
+   * @return a value safe to place in a JavaScript identifier position
+   */
+  public static String makeScriptSafeId(String text, String fallback) {
+    if (StringUtils.isBlank(text)) {
+      return fallback;
+    }
+    StringBuilder sb = new StringBuilder();
+    for (int i = 0; i < text.length(); i++) {
+      char c = text.charAt(i);
+      if ((c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || c == '_') {
+        sb.append(c);
+      }
+    }
+    // An identifier may not start with a digit
+    if (sb.length() == 0 || Character.isDigit(sb.charAt(0))) {
+      return fallback;
+    }
+    return sb.toString();
+  }
+
   public static String makeId(String text) {
     if (StringUtils.isBlank(text)) {
       return UUID.randomUUID().toString();

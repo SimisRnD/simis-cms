@@ -26,4 +26,4 @@
 <jsp:useBean id="leftIcon" class="java.lang.String" scope="request"/>
 <jsp:useBean id="linkClass" class="java.lang.String" scope="request"/>
 <jsp:useBean id="target" class="java.lang.String" scope="request"/>
-<a <c:if test="${!empty target}">target="${target}" </c:if><c:if test="${!empty linkClass}">class="${linkClass}" </c:if>href="${link}"><c:if test="${!empty leftIcon}"><i class="fa ${leftIcon}"></i> </c:if><c:out value="${name}"/><c:if test="${!empty icon}"> <i class="fa ${icon}"></i></c:if></a>
+<a <c:if test="${!empty target}">target="<c:out value="${target}"/>" </c:if><c:if test="${!empty linkClass}">class="<c:out value="${linkClass}"/>" </c:if>href="${link}"><c:if test="${!empty leftIcon}"><i class="fa ${leftIcon}"></i> </c:if><c:out value="${name}"/><c:if test="${!empty icon}"> <i class="fa ${icon}"></i></c:if></a>

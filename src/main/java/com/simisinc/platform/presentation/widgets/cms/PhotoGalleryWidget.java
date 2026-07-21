@@ -16,6 +16,8 @@
 
 package com.simisinc.platform.presentation.widgets.cms;
 
+import com.simisinc.platform.application.cms.HtmlCommand;
+
 import com.simisinc.platform.application.cms.LoadFolderCommand;
 import com.simisinc.platform.domain.model.cms.FileItem;
 import com.simisinc.platform.domain.model.cms.Folder;
@@ -61,7 +63,10 @@ public class PhotoGalleryWidget extends GenericWidget {
     }
 
     // Preferences
-    context.getRequest().setAttribute("controlId", context.getPreferences().getOrDefault("controlId", "myAlbum"));
+    // controlId is interpolated into javascript identifiers (function showAlbum${controlId}),
+    // so it is constrained to identifier characters rather than escaped
+    context.getRequest().setAttribute("controlId", HtmlCommand.makeScriptSafeId(
+        context.getPreferences().getOrDefault("controlId", "myAlbum"), "myAlbum"));
     context.getRequest().setAttribute("isSticky", context.getPreferences().getOrDefault("isSticky", "false"));
     context.getRequest().setAttribute("marginTop", context.getPreferences().getOrDefault("marginTop", "8"));
     context.getRequest().setAttribute("showCaption", context.getPreferences().getOrDefault("showCaption", "true"));

@@ -16,6 +16,8 @@
 
 package com.simisinc.platform.presentation.widgets.cms;
 
+import com.simisinc.platform.application.cms.HtmlCommand;
+
 import com.simisinc.platform.application.cms.NumberCommand;
 
 import com.simisinc.platform.application.cms.LoadFolderCommand;
@@ -64,7 +66,10 @@ public class AlbumGalleryWidget extends GenericWidget {
     }
 
     // Preferences
-    context.getRequest().setAttribute("controlId", context.getPreferences().getOrDefault("controlId", "myAlbum"));
+    // controlId is interpolated into javascript identifiers (function showAlbum${controlId}),
+    // so it is constrained to identifier characters rather than escaped
+    context.getRequest().setAttribute("controlId", HtmlCommand.makeScriptSafeId(
+        context.getPreferences().getOrDefault("controlId", "myAlbum"), "myAlbum"));
     context.getRequest().setAttribute("cardClass", context.getPreferences().get("cardClass"));
     // Card size preferences
     // These are rendered into the slider's javascript config, so require plain integers

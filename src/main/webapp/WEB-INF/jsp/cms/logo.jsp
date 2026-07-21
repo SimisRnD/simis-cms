@@ -52,7 +52,7 @@
 </c:choose>
 <c:choose>
   <c:when test="${!empty logoSrc}">
-    <a href="${ctx}/"><img alt="Logo" <c:if test="${!empty logoClass}">class="${logoClass}" </c:if><c:if test="${!empty logoStyle}">style="${logoStyle}" </c:if>src="${logoSrc}" /></a>
+    <a href="${ctx}/"><img alt="Logo" <c:if test="${!empty logoClass}">class="<c:out value="${logoClass}"/>" </c:if><c:if test="${!empty logoStyle}">style="<c:out value="${logoStyle}"/>" </c:if>src="<c:out value="${logoSrc}"/>" /></a>
     <c:if test="${!empty text}">
       <span class="menu-text" translate="no"><a href="${ctx}/"><c:out value="${text}"/></a></span>
     </c:if>
