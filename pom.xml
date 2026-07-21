@@ -31,7 +31,7 @@
     <maven-cyclonedx-plugin.version>2.9.2</maven-cyclonedx-plugin.version>
     <maven-jacoco-plugin.version>0.8.15</maven-jacoco-plugin.version>
     <maven-war-plugin.version>3.4.0</maven-war-plugin.version>
-    <tomcat.version>9.0.119</tomcat.version>
+    <tomcat.version>9.0.120</tomcat.version>
     <junit.version>5.14.4</junit.version>
     <mockito.version>5.23.0</mockito.version>
     <argon2.version>2.12</argon2.version>
@@ -66,7 +66,7 @@
     <jackson-coreutils.version>1.8</jackson-coreutils.version>
     <jackson-databind.version>2.22.1</jackson-databind.version>
     <!-- Jackson 3 (tools.jackson.*) — required by Flyway 12; coexists with the Jackson 2 above -->
-    <jackson3.version>3.1.4</jackson3.version>
+    <jackson3.version>3.2.1</jackson3.version>
     <java-activation.version>1.2.0</java-activation.version>
     <java-mail.version>1.6.2</java-mail.version>
     <jmail.version>1.5.1</jmail.version>
@@ -76,7 +76,7 @@
     <jsoup.version>1.22.2</jsoup.version>
     <jstl.version>1.2.5</jstl.version>
     <!-- <kafka.version>3.5.1</kafka.version> -->
-    <libphonenumber.version>9.0.34</libphonenumber.version>
+    <libphonenumber.version>9.0.35</libphonenumber.version>
     <lombok.version>1.18.46</lombok.version>
     <postgresql.version>42.7.13</postgresql.version>
     <rabbitmq.version>5.34.0</rabbitmq.version>
