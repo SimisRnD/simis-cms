@@ -25,7 +25,27 @@
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <script src="${ctx}/javascript/chartjs-4.4.1/chart.umd.min.js"></script>
-<canvas id="myChart-${widgetContext.uniqueId}" width="200" height="100"></canvas>
+<%-- The canvas chart is not readable by assistive technology, so it is labeled and paired with an equivalent
+     screen-reader-only data table (WCAG 2.1 SC 1.1.1 / 1.3.1; Section 508). --%>
+<canvas id="myChart-${widgetContext.uniqueId}" width="200" height="100" role="img"
+        aria-label="<c:out value="${not empty title ? title : label}"/> chart. The data follows in a table."></canvas>
+<table class="show-for-sr">
+  <caption><c:out value="${not empty title ? title : label}"/> &ndash; data table</caption>
+  <thead>
+    <tr>
+      <th scope="col">Category</th>
+      <th scope="col"><c:out value="${label}"/></th>
+    </tr>
+  </thead>
+  <tbody>
+    <c:forEach items="${statisticsDataList}" var="data">
+      <tr>
+        <th scope="row"><c:out value="${data.label}"/></th>
+        <td><c:out value="${data.value}"/></td>
+      </tr>
+    </c:forEach>
+  </tbody>
+</table>
 <script>
   var chartContext = document.getElementById("myChart-${widgetContext.uniqueId}").getContext('2d');
   var myChart = new Chart(chartContext, {
@@ -33,7 +53,7 @@
     data: {
       labels: [
         <c:forEach items="${statisticsDataList}" var="data" varStatus="status">
-        "${data.label}"<c:if test="${!status.last}">, </c:if>
+        "${js:escape(data.label)}"<c:if test="${!status.last}">, </c:if>
         </c:forEach>
       ],
       datasets: [{

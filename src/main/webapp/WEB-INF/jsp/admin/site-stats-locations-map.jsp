@@ -31,7 +31,10 @@
 <c:if test="${!empty title}">
   <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
-<div id="mapid${widgetContext.uniqueId}" style="height: 320px;"></div>
+<%-- role="figure" + a label name the interactive map for assistive technology without hiding Leaflet's own
+     keyboard-operable controls (Section 508 / WCAG 1.1.1). --%>
+<div id="mapid${widgetContext.uniqueId}" style="height: 320px;" role="figure"
+     aria-label="Map of visitor locations, ${fn:length(sessionList)} plotted."></div>
 <c:if test="${empty sessionList}">
   <p>No locations were found</p>
 </c:if>
