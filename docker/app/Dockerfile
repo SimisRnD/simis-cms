@@ -7,6 +7,16 @@
 
 FROM tomcat:9.0-jdk21
 
+# DISA Apache Tomcat 9 STIG hardening. Overlay the hardened server.xml (shutdown port
+# disabled, HTTP TRACE off, server banner suppressed, no error-page disclosure, autoDeploy
+# off, access logging), add JVM hardening via setenv.sh (RECYCLE_FACADES -- it APPENDS to
+# CATALINA_OPTS below, so it composes with the Application Insights agent flags), and remove
+# the bundled default web applications (manager, host-manager, docs, examples) that the STIG
+# requires be absent. Coverage & rule mapping: docker-tomcat9-stig-hardening.md (private).
+COPY ./docker/app/conf/server.xml /usr/local/tomcat/conf/server.xml
+COPY ./docker/app/conf/setenv.sh /usr/local/tomcat/bin/setenv.sh
+RUN chmod 0750 /usr/local/tomcat/bin/setenv.sh && rm -rf /usr/local/tomcat/webapps.dist
+
 # Application Insights Java agent (APM / operational telemetry). Baked into the image because App Service
 # for Containers cannot auto-instrument a custom container. The agent auto-instruments Tomcat/JDBC/JVM/HTTP
 # and is INERT until APPLICATIONINSIGHTS_CONNECTION_STRING is supplied at deploy (from Key Vault). With no

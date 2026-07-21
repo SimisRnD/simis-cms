@@ -1,0 +1,108 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Licensed to the Apache Software Foundation (ASF) under one or more
+  contributor license agreements.  See the NOTICE file distributed with
+  this work for additional information regarding copyright ownership.
+  The ASF licenses this file to You under the Apache License, Version 2.0
+  (the "License"); you may not use this file except in compliance with
+  the License.  You may obtain a copy of the License at
+
+      http://www.apache.org/licenses/LICENSE-2.0
+
+  Unless required by applicable law or agreed to in writing, software
+  distributed under the License is distributed on an "AS IS" BASIS,
+  WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  See the License for the specific language governing permissions and
+  limitations under the License.
+-->
+<!--
+  ============================================================================
+  SimIS CMS — DISA Apache Tomcat Application Server 9 STIG hardening overlay.
+  This is the stock Tomcat 9 server.xml with a small set of STIG-driven edits;
+  each is tagged [STIG] with the rationale. Coverage & rule mapping live in the
+  private runbook docker-tomcat9-stig-hardening.md. Re-verify on a Tomcat base
+  version bump. Controls: NIST 800-53 CM-6/CM-7, SC-7, SI-11.
+  ============================================================================
+-->
+<!-- [STIG] Shutdown port disabled (port="-1"): no local shutdown listener is
+     opened, so there is no unauthenticated TCP shutdown channel. Container
+     lifecycle (docker stop / SIGTERM) handles shutdown instead. -->
+<Server port="-1" shutdown="SHUTDOWN">
+  <Listener className="org.apache.catalina.startup.VersionLoggerListener" />
+  <!-- [STIG] The SecurityListener (umask/effective-user checks) should be enabled
+       once the image runs as a non-root user (paired container-runtime card). It
+       is left disabled here because the current image still starts as root and the
+       listener's checks would halt startup; enabling it before that would break boot.
+  <Listener className="org.apache.catalina.security.SecurityListener" />
+  -->
+  <Listener className="org.apache.catalina.core.AprLifecycleListener" />
+  <Listener className="org.apache.catalina.core.JreMemoryLeakPreventionListener" />
+  <Listener className="org.apache.catalina.mbeans.GlobalResourcesLifecycleListener" />
+  <Listener className="org.apache.catalina.core.ThreadLocalLeakPreventionListener" />
+
+  <GlobalNamingResources>
+    <Resource name="UserDatabase" auth="Container"
+              type="org.apache.catalina.UserDatabase"
+              description="User database that can be updated and saved"
+              factory="org.apache.catalina.users.MemoryUserDatabaseFactory"
+              pathname="conf/tomcat-users.xml" />
+  </GlobalNamingResources>
+
+  <Service name="Catalina">
+
+    <!-- [STIG] HTTP/1.1 connector hardening:
+           allowTrace="false"  — reject the HTTP TRACE method (cross-site tracing).
+           server="SimIS"      — override the Server response header so the Tomcat
+                                 product/version is not disclosed (SI-11 / info leak).
+           xpoweredBy="false"  — do not emit the X-Powered-By header.
+           maxParameterCount="1000" — preserved from the stock image config; also bounds
+                                 a parameter-flooding DoS. (Base default, not lowered here.)
+         TLS is terminated upstream (WAF / reverse proxy); this cleartext connector
+         listens only inside the boundary. It deliberately does NOT hardcode scheme/secure
+         or a RemoteIp valve: proxy-aware client IP and scheme (X-Forwarded-For / -Proto)
+         are resolved at the APPLICATION layer by TrustedProxyIpFilter → Tomcat's
+         RemoteIpFilter, gated on the CMS_TRUSTED_PROXIES env var (issue #166 / PR #182).
+         That keeps getRemoteAddr()/isSecure() correct behind the proxy (so the Secure
+         cookie flag, IP firewall, rate limiting, and audit source IP all work) without a
+         trust decision baked into this image. -->
+    <Connector port="8080" protocol="HTTP/1.1"
+               connectionTimeout="20000"
+               redirectPort="8443"
+               maxParameterCount="1000"
+               allowTrace="false"
+               server="SimIS"
+               xpoweredBy="false"
+               />
+
+    <!-- [STIG] The AJP connector remains disabled (commented out): AJP is a
+         cleartext, historically CVE-prone channel (Ghostcat) and is not used. -->
+
+    <Engine name="Catalina" defaultHost="localhost">
+
+      <Realm className="org.apache.catalina.realm.LockOutRealm">
+        <Realm className="org.apache.catalina.realm.UserDatabaseRealm"
+               resourceName="UserDatabase"/>
+      </Realm>
+
+      <!-- [STIG] autoDeploy="false": no runtime hot-deployment of WARs dropped into
+           webapps/. The application (ROOT.war) is placed at build time and deployed
+           at startup (deployOnStartup defaults true). This blocks a drop-in-WAR RCE
+           path and keeps the deployed set fixed and inventoried (CM-7). -->
+      <Host name="localhost" appBase="webapps"
+            unpackWARs="true" autoDeploy="false">
+
+        <!-- [STIG] Suppress error-page disclosure: no stack traces (showReport) and
+             no Tomcat version/server banner (showServerInfo) in error responses. -->
+        <Valve className="org.apache.catalina.valves.ErrorReportValve"
+               showReport="false" showServerInfo="false" />
+
+        <!-- [STIG] Access logging enabled (audit of every request). Extended pattern
+             adds the referer, user-agent, and response time over the stock "common". -->
+        <Valve className="org.apache.catalina.valves.AccessLogValve" directory="logs"
+               prefix="localhost_access_log" suffix=".txt"
+               pattern="%h %l %u %t &quot;%r&quot; %s %b &quot;%{Referer}i&quot; &quot;%{User-Agent}i&quot; %D" />
+
+      </Host>
+    </Engine>
+  </Service>
+</Server>
