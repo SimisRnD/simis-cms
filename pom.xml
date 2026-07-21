@@ -80,7 +80,7 @@
     <lombok.version>1.18.46</lombok.version>
     <postgresql.version>42.7.13</postgresql.version>
     <rabbitmq.version>5.34.0</rabbitmq.version>
-    <restfb.version>2023.8.0</restfb.version>
+    <restfb.version>2026.8.0</restfb.version>
     <rome-rss.version>2.1.0</rome-rss.version>
     <slf4j.version>2.0.18</slf4j.version>
     <square.version>24.0.0.20220921</square.version>
