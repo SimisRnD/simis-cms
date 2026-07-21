@@ -1,0 +1,44 @@
+# Dependabot version updates for SimIS CMS.
+#
+# Routine minor/patch bumps are grouped into a single weekly PR; majors come through
+# individually so each can be evaluated on its own. The `ignore` entries below are
+# deliberate holds -- each records WHY it is held and what would justify revisiting it,
+# so the reasoning is not lost the next time a bump is proposed.
+#
+# NOTE: the shipped WAR is built by Ant from the vendored jars in lib/build/, while this
+# pom.xml drives the IDE, Dependabot and the SBOM. A merged Dependabot PR therefore updates
+# the pom only -- the jar must also be re-vendored for the change to reach the artifact.
+# tools/check-dependency-drift.py enforces that the two stay in agreement.
+version: 2
+updates:
+  - package-ecosystem: "maven"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    open-pull-requests-limit: 10
+    groups:
+      minor-and-patch:
+        update-types:
+          - "minor"
+          - "patch"
+    ignore:
+      # Held deliberately: entangled with the javax-to-jakarta migration
+      - dependency-name: "org.apache.johnzon:*"
+        update-types: ["version-update:semver-major"]
+      # Held at 3.2.x: 3.3+ throws on undefined properties (breaks WorkflowTaskTest)
+      - dependency-name: "org.apache.commons:commons-jexl3"
+        versions: [">=3.3.0"]
+      # Held: 46.x removes com.squareup.square.models entirely (58 compile errors
+      # across the Square payments integration). No CVE on the pinned version.
+      # Revisit on: a CVE, Square EOL'ing the legacy SDK, or needing new features.
+      - dependency-name: "com.squareup:square"
+        update-types: ["version-update:semver-major"]
+      # Held: Tomcat 10+ moves the servlet API from javax.* to jakarta.*, which
+      # this app is not migrated for. Revisit with the Jakarta EE migration.
+      - dependency-name: "org.apache.tomcat:tomcat-servlet-api"
+        update-types: ["version-update:semver-major"]
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
