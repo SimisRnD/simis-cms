@@ -65,6 +65,7 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 -- Theme
 
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (5, 'Menu Theme', 'theme.menu.location', 'custom', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (6, 'Color Scheme', 'theme.ui.mode', 'light', 'text');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (7, 'Logo Color', 'theme.logo.color', 'text-only', 'text');
 
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (10, 'Headlines Font', 'theme.fonts.headlines', '', 'font');

@@ -101,6 +101,14 @@
                 <option value="none"<c:if test="${siteProperty.value eq 'none'}"> selected</c:if>>No logo</option>
               </select>
             </c:when>
+            <c:when test="${siteProperty.name eq 'theme.ui.mode'}">
+              <select name="${siteProperty.name}">
+                <option value="light"<c:if test="${siteProperty.value ne 'dark' && siteProperty.value ne 'auto' && siteProperty.value ne 'user'}"> selected</c:if>>Light only</option>
+                <option value="dark"<c:if test="${siteProperty.value eq 'dark'}"> selected</c:if>>Dark only</option>
+                <option value="auto"<c:if test="${siteProperty.value eq 'auto'}"> selected</c:if>>Match visitor's device</option>
+                <option value="user"<c:if test="${siteProperty.value eq 'user'}"> selected</c:if>>Match device, let visitor choose</option>
+              </select>
+            </c:when>
             <c:when test="${siteProperty.name eq 'theme.menu.location'}">
               <select name="${siteProperty.name}">
                 <option value="center"<c:if test="${siteProperty.value eq 'center'}"> selected</c:if>>Centered</option>

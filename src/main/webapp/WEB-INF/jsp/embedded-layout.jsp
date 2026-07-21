@@ -25,8 +25,17 @@
 <jsp:useBean id="systemPropertyMap" class="java.util.HashMap" scope="request"/>
 <jsp:useBean id="sitePropertyMap" class="java.util.HashMap" scope="request"/>
 <jsp:useBean id="themePropertyMap" class="java.util.HashMap" scope="request"/>
+<%-- Color scheme. Mirrors main.jsp so an embedded page does not stay light while the rest of the
+     site is dark. No visitor toggle here: this layout is for embedding, where the surrounding
+     document owns the chrome, so the scheme follows the site setting only. --%>
+<c:set var="colorSchemeMode" value="${empty themePropertyMap['theme.ui.mode'] ? 'light' : themePropertyMap['theme.ui.mode']}" />
+<c:choose>
+  <c:when test="${colorSchemeMode eq 'dark'}"><c:set var="colorScheme" value="dark" /></c:when>
+  <c:when test="${colorSchemeMode eq 'auto' || colorSchemeMode eq 'user'}"><c:set var="colorScheme" value="auto" /></c:when>
+  <c:otherwise><c:set var="colorScheme" value="light" /></c:otherwise>
+</c:choose>
 <!doctype html>
-<html class="no-js" lang="en">
+<html class="no-js" lang="en" data-theme="${colorScheme}">
 <head>
   <meta charset="UTF-8" />
   <meta http-equiv="x-ua-compatible" content="ie=edge">
@@ -65,10 +74,39 @@
     <link rel="stylesheet" type="text/css" href="${ctx}/javascript/autocomplete-1.0.7/auto-complete.css" />
     <link rel="stylesheet" type="text/css" href="${ctx}/javascript/swiper-12.1.2/swiper-bundle.min.css" />
     <link rel="stylesheet" type="text/css" href="${ctx}/css/platform.css" />
+    <link rel="stylesheet" type="text/css" href="${ctx}/css/platform-tokens.css" />
   </g:compress>
   <c:if test="${!empty themePropertyMap}">
     <g:compress>
       <style><%-- Prevent top-bar flicker --%>
+        :root {
+          <c:if test="${!empty themePropertyMap['theme.body.text.color']}">--sc-body-text-color:<c:out value="${themePropertyMap['theme.body.text.color']}" />;</c:if>
+          <c:if test="${!empty themePropertyMap['theme.body.backgroundColor']}">--sc-body-background-color:<c:out value="${themePropertyMap['theme.body.backgroundColor']}" />;</c:if>
+          <c:if test="${!empty themePropertyMap['theme.utilitybar.backgroundColor']}">--sc-utilitybar-background-color:<c:out value="${themePropertyMap['theme.utilitybar.backgroundColor']}" />;</c:if>
+          <c:if test="${!empty themePropertyMap['theme.topbar.backgroundColor']}">--sc-topbar-background-color:<c:out value="${themePropertyMap['theme.topbar.backgroundColor']}" />;</c:if>
+          <c:if test="${!empty themePropertyMap['theme.topbar.menu.text.color']}">--sc-topbar-menu-text-color:<c:out value="${themePropertyMap['theme.topbar.menu.text.color']}" />;</c:if>
+          <c:if test="${!empty themePropertyMap['theme.topbar.menu.arrow.color']}">--sc-topbar-menu-arrow-color:<c:out value="${themePropertyMap['theme.topbar.menu.arrow.color']}" />;</c:if>
+          <c:if test="${!empty themePropertyMap['theme.topbar.menu.dropdown.backgroundColor']}">--sc-topbar-menu-dropdown-background-color:<c:out value="${themePropertyMap['theme.topbar.menu.dropdown.backgroundColor']}" />;</c:if>
+          <c:if test="${!empty themePropertyMap['theme.topbar.menu.dropdown.text.color']}">--sc-topbar-menu-dropdown-text-color:<c:out value="${themePropertyMap['theme.topbar.menu.dropdown.text.color']}" />;</c:if>
+          <c:if test="${!empty themePropertyMap['theme.topbar.menu.text.hoverBackgroundColor']}">--sc-topbar-menu-text-hover-background-color:<c:out value="${themePropertyMap['theme.topbar.menu.text.hoverBackgroundColor']}" />;</c:if>
+          <c:if test="${!empty themePropertyMap['theme.topbar.menu.hoverTextColor']}">--sc-topbar-menu-hover-text-color:<c:out value="${themePropertyMap['theme.topbar.menu.hoverTextColor']}" />;</c:if>
+          <c:if test="${!empty themePropertyMap['theme.button.text.color']}">--sc-button-text-color:<c:out value="${themePropertyMap['theme.button.text.color']}" />;</c:if>
+          <c:if test="${!empty themePropertyMap['theme.button.default.backgroundColor']}">--sc-button-default-background-color:<c:out value="${themePropertyMap['theme.button.default.backgroundColor']}" />;</c:if>
+          <c:if test="${!empty themePropertyMap['theme.button.default.hoverBackgroundColor']}">--sc-button-default-hover-background-color:<c:out value="${themePropertyMap['theme.button.default.hoverBackgroundColor']}" />;</c:if>
+          <c:if test="${!empty themePropertyMap['theme.button.primary.backgroundColor']}">--sc-button-primary-background-color:<c:out value="${themePropertyMap['theme.button.primary.backgroundColor']}" />;</c:if>
+          <c:if test="${!empty themePropertyMap['theme.button.primary.hoverBackgroundColor']}">--sc-button-primary-hover-background-color:<c:out value="${themePropertyMap['theme.button.primary.hoverBackgroundColor']}" />;</c:if>
+          <c:if test="${!empty themePropertyMap['theme.button.secondary.backgroundColor']}">--sc-button-secondary-background-color:<c:out value="${themePropertyMap['theme.button.secondary.backgroundColor']}" />;</c:if>
+          <c:if test="${!empty themePropertyMap['theme.button.secondary.hoverBackgroundColor']}">--sc-button-secondary-hover-background-color:<c:out value="${themePropertyMap['theme.button.secondary.hoverBackgroundColor']}" />;</c:if>
+          <c:if test="${!empty themePropertyMap['theme.button.success.backgroundColor']}">--sc-button-success-background-color:<c:out value="${themePropertyMap['theme.button.success.backgroundColor']}" />;</c:if>
+          <c:if test="${!empty themePropertyMap['theme.button.success.hoverBackgroundColor']}">--sc-button-success-hover-background-color:<c:out value="${themePropertyMap['theme.button.success.hoverBackgroundColor']}" />;</c:if>
+          <c:if test="${!empty themePropertyMap['theme.button.warning.backgroundColor']}">--sc-button-warning-background-color:<c:out value="${themePropertyMap['theme.button.warning.backgroundColor']}" />;</c:if>
+          <c:if test="${!empty themePropertyMap['theme.button.warning.hoverBackgroundColor']}">--sc-button-warning-hover-background-color:<c:out value="${themePropertyMap['theme.button.warning.hoverBackgroundColor']}" />;</c:if>
+          <c:if test="${!empty themePropertyMap['theme.button.alert.backgroundColor']}">--sc-button-alert-background-color:<c:out value="${themePropertyMap['theme.button.alert.backgroundColor']}" />;</c:if>
+          <c:if test="${!empty themePropertyMap['theme.button.alert.hoverBackgroundColor']}">--sc-button-alert-hover-background-color:<c:out value="${themePropertyMap['theme.button.alert.hoverBackgroundColor']}" />;</c:if>
+          <c:if test="${!empty themePropertyMap['theme.footer.backgroundColor']}">--sc-footer-background-color:<c:out value="${themePropertyMap['theme.footer.backgroundColor']}" />;</c:if>
+          <c:if test="${!empty themePropertyMap['theme.footer.text.color']}">--sc-footer-text-color:<c:out value="${themePropertyMap['theme.footer.text.color']}" />;</c:if>
+          <c:if test="${!empty themePropertyMap['theme.footer.links.color']}">--sc-footer-links-color:<c:out value="${themePropertyMap['theme.footer.links.color']}" />;</c:if>
+        }
         .no-js .top-bar { display: none; }
         @media screen and (min-width: 40em) {
           .no-js .top-bar { display: block; }
@@ -108,34 +146,34 @@
             <c:when test="${themePropertyMap['theme.fonts.headlines'] eq 'source-sans-pro'}">h1, h2, h3, h4, h5, h6 { font-family: 'Source Sans Pro', sans-serif;font-weight: 400; }</c:when>
           </c:choose>
         </c:if>
-        <c:if test="${!empty themePropertyMap['theme.body.text.color']}">body{color:<c:out value="${themePropertyMap['theme.body.text.color']}" />}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.body.backgroundColor']}">body{background-color:<c:out value="${themePropertyMap['theme.body.backgroundColor']}" />}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.utilitybar.backgroundColor']}">#platform-menu .utility-bar{background-color:<c:out value="${themePropertyMap['theme.utilitybar.backgroundColor']}" />}</c:if>
-      <c:if test="${!empty themePropertyMap['theme.topbar.backgroundColor']}">#platform-menu,#platform-small-menu,#platform-small-menu .title-bar,#platform-small-toggle-menu .drilldown a{background-color:<c:out value="${themePropertyMap['theme.topbar.backgroundColor']}" />}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.topbar.backgroundColor']}">.callout.header{background-color:<c:out value="${themePropertyMap['theme.topbar.backgroundColor']}" />}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.topbar.menu.text.color']}">#platform-menu ul.menu li a,#platform-small-menu ul.menu li a,#platform-small-menu .title-bar-title{color:<c:out value="${themePropertyMap['theme.topbar.menu.text.color']}" />}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.topbar.menu.text.color']}">.callout.header{color:<c:out value="${themePropertyMap['theme.topbar.menu.text.color']}" />}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.topbar.menu.arrow.color']}">.dropdown.menu>li.is-dropdown-submenu-parent>a::after{border-color:<c:out value="${themePropertyMap['theme.topbar.menu.arrow.color']}" /> transparent transparent}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.topbar.menu.dropdown.backgroundColor']}">#platform-menu .is-dropdown-submenu-item{background-color:<c:out value="${themePropertyMap['theme.topbar.menu.dropdown.backgroundColor']}" />}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.topbar.menu.dropdown.text.color']}">#platform-menu .is-dropdown-submenu-item a{color:<c:out value="${themePropertyMap['theme.topbar.menu.dropdown.text.color']}" />}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.topbar.menu.text.hoverBackgroundColor']}">#platform-menu ul.menu li a:hover,#platform-menu .is-active{background-color:<c:out value="${themePropertyMap['theme.topbar.menu.text.hoverBackgroundColor']}" />}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.topbar.menu.hoverTextColor']}">#platform-menu ul.menu li > a:hover,#platform-menu ul.menu li.is-active > a,#platform-menu .is-active .is-dropdown-submenu-item a:hover{color:<c:out value="${themePropertyMap['theme.topbar.menu.hoverTextColor']}" />}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.button.text.color']}">.button{color:<c:out value="${themePropertyMap['theme.button.text.color']}" /> !important}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.button.default.backgroundColor']}">.button{background-color:<c:out value="${themePropertyMap['theme.button.default.backgroundColor']}" />}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.button.default.hoverBackgroundColor']}">.button:hover, .button:focus{background-color:<c:out value="${themePropertyMap['theme.button.default.hoverBackgroundColor']}" />}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.button.primary.backgroundColor']}">.button.primary{background-color:<c:out value="${themePropertyMap['theme.button.primary.backgroundColor']}" />}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.button.primary.hoverBackgroundColor']}">.button.primary:hover, .button.primary:focus{background-color:<c:out value="${themePropertyMap['theme.button.primary.hoverBackgroundColor']}" />}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.button.secondary.backgroundColor']}">.button.secondary{background-color:<c:out value="${themePropertyMap['theme.button.secondary.backgroundColor']}" />}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.button.secondary.hoverBackgroundColor']}">.button.secondary:hover, .button.secondary:focus{background-color:<c:out value="${themePropertyMap['theme.button.secondary.hoverBackgroundColor']}" />}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.button.success.backgroundColor']}">.button.success{background-color:<c:out value="${themePropertyMap['theme.button.success.backgroundColor']}" />}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.button.success.hoverBackgroundColor']}">.button.success:hover, .button.success:focus{background-color:<c:out value="${themePropertyMap['theme.button.success.hoverBackgroundColor']}" />}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.button.warning.backgroundColor']}">.button.warning{background-color:<c:out value="${themePropertyMap['theme.button.warning.backgroundColor']}" />}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.button.warning.hoverBackgroundColor']}">.button.warning:hover, .button.warning:focus{background-color:<c:out value="${themePropertyMap['theme.button.warning.hoverBackgroundColor']}" />}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.button.alert.backgroundColor']}">.button.alert{background-color:<c:out value="${themePropertyMap['theme.button.alert.backgroundColor']}" />}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.button.alert.hoverBackgroundColor']}">.button.alert:hover, .button.alert:focus{background-color:<c:out value="${themePropertyMap['theme.button.alert.hoverBackgroundColor']}" />}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.footer.backgroundColor']}">.platform-footer{background-color:<c:out value="${themePropertyMap['theme.footer.backgroundColor']}" />}.platform-footer .fa-inverse{color:<c:out value="${themePropertyMap['theme.footer.backgroundColor']}" />}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.footer.text.color']}">.platform-footer{color:<c:out value="${themePropertyMap['theme.footer.text.color']}" />}</c:if>
-        <c:if test="${!empty themePropertyMap['theme.footer.links.color']}">.platform-footer a{color:<c:out value="${themePropertyMap['theme.footer.links.color']}" />}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.body.text.color']}">body{color:var(--sc-body-text-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.body.backgroundColor']}">body{background-color:var(--sc-body-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.utilitybar.backgroundColor']}">#platform-menu .utility-bar{background-color:var(--sc-utilitybar-background-color)}</c:if>
+      <c:if test="${!empty themePropertyMap['theme.topbar.backgroundColor']}">#platform-menu,#platform-small-menu,#platform-small-menu .title-bar,#platform-small-toggle-menu .drilldown a{background-color:var(--sc-topbar-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.topbar.backgroundColor']}">.callout.header{background-color:var(--sc-topbar-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.topbar.menu.text.color']}">#platform-menu ul.menu li a,#platform-small-menu ul.menu li a,#platform-small-menu .title-bar-title{color:var(--sc-topbar-menu-text-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.topbar.menu.text.color']}">.callout.header{color:var(--sc-topbar-menu-text-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.topbar.menu.arrow.color']}">.dropdown.menu>li.is-dropdown-submenu-parent>a::after{border-color:var(--sc-topbar-menu-arrow-color) transparent transparent}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.topbar.menu.dropdown.backgroundColor']}">#platform-menu .is-dropdown-submenu-item{background-color:var(--sc-topbar-menu-dropdown-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.topbar.menu.dropdown.text.color']}">#platform-menu .is-dropdown-submenu-item a{color:var(--sc-topbar-menu-dropdown-text-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.topbar.menu.text.hoverBackgroundColor']}">#platform-menu ul.menu li a:hover,#platform-menu .is-active{background-color:var(--sc-topbar-menu-text-hover-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.topbar.menu.hoverTextColor']}">#platform-menu ul.menu li > a:hover,#platform-menu ul.menu li.is-active > a,#platform-menu .is-active .is-dropdown-submenu-item a:hover{color:var(--sc-topbar-menu-hover-text-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.button.text.color']}">.button{color:var(--sc-button-text-color) !important}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.button.default.backgroundColor']}">.button{background-color:var(--sc-button-default-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.button.default.hoverBackgroundColor']}">.button:hover, .button:focus{background-color:var(--sc-button-default-hover-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.button.primary.backgroundColor']}">.button.primary{background-color:var(--sc-button-primary-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.button.primary.hoverBackgroundColor']}">.button.primary:hover, .button.primary:focus{background-color:var(--sc-button-primary-hover-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.button.secondary.backgroundColor']}">.button.secondary{background-color:var(--sc-button-secondary-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.button.secondary.hoverBackgroundColor']}">.button.secondary:hover, .button.secondary:focus{background-color:var(--sc-button-secondary-hover-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.button.success.backgroundColor']}">.button.success{background-color:var(--sc-button-success-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.button.success.hoverBackgroundColor']}">.button.success:hover, .button.success:focus{background-color:var(--sc-button-success-hover-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.button.warning.backgroundColor']}">.button.warning{background-color:var(--sc-button-warning-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.button.warning.hoverBackgroundColor']}">.button.warning:hover, .button.warning:focus{background-color:var(--sc-button-warning-hover-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.button.alert.backgroundColor']}">.button.alert{background-color:var(--sc-button-alert-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.button.alert.hoverBackgroundColor']}">.button.alert:hover, .button.alert:focus{background-color:var(--sc-button-alert-hover-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.footer.backgroundColor']}">.platform-footer{background-color:var(--sc-footer-background-color)}.platform-footer .fa-inverse{color:var(--sc-footer-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.footer.text.color']}">.platform-footer{color:var(--sc-footer-text-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.footer.links.color']}">.platform-footer a{color:var(--sc-footer-links-color)}</c:if>
       </style>
     </g:compress>
   </c:if>
