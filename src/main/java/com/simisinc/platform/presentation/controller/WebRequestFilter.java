@@ -172,8 +172,8 @@ public class WebRequestFilter implements Filter {
 
     // Redirect to SSL
     if (requireSSL && !"https".equalsIgnoreCase(scheme)) {
-      if (!"localhost".equals(request.getServerName()) && !InetAddressUtils.isIPv4Address(request.getServerName())
-          && !InetAddressUtils.isIPv6Address(request.getServerName())) {
+      if (!"localhost".equals(request.getServerName()) && !InetAddressUtils.isIPv4(request.getServerName())
+          && !InetAddressUtils.isIPv6(request.getServerName())) {
         String requestURL = httpServletRequest.getRequestURL().toString();
         requestURL = StringUtils.replace(requestURL, "http://", "https://");
         // The request URL is built from the client-supplied Host header, so it is only echoed back when the
