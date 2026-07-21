@@ -65,6 +65,8 @@
     <jackson.version>2.22.1</jackson.version>
     <jackson-coreutils.version>1.8</jackson-coreutils.version>
     <jackson-databind.version>2.22.1</jackson-databind.version>
+    <!-- Jackson 3 (tools.jackson.*) — required by Flyway 12; coexists with the Jackson 2 above -->
+    <jackson3.version>3.1.4</jackson3.version>
     <java-activation.version>1.2.0</java-activation.version>
     <java-mail.version>1.6.2</java-mail.version>
     <jmail.version>1.5.1</jmail.version>
@@ -249,6 +251,26 @@
       <groupId>com.fasterxml.jackson.core</groupId>
       <artifactId>jackson-annotations</artifactId>
       <version>2.22</version>
+    </dependency>
+    <!-- Jackson 3 (tools.jackson.*): required by Flyway 12 for its configuration/TOML handling. This is a
+         DIFFERENT package namespace from the Jackson 2 (com.fasterxml.jackson.*) the application uses, so the
+         two versions coexist on the classpath. Without these, the fresh-install path (DatabaseCommand ->
+         Flyway) throws NoClassDefFoundError: tools/jackson/databind/ObjectMapper at startup. Jackson 3 reuses
+         jackson-annotations 2.x (already provided above). -->
+    <dependency>
+      <groupId>tools.jackson.core</groupId>
+      <artifactId>jackson-core</artifactId>
+      <version>${jackson3.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>tools.jackson.core</groupId>
+      <artifactId>jackson-databind</artifactId>
+      <version>${jackson3.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>tools.jackson.dataformat</groupId>
+      <artifactId>jackson-dataformat-toml</artifactId>
+      <version>${jackson3.version}</version>
     </dependency>
     <dependency>
       <groupId>com.google.code.gson</groupId>

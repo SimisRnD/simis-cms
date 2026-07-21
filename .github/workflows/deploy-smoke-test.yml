@@ -1,0 +1,71 @@
+# Deploy smoke test
+#
+# `ant package` proves the WAR *builds*; it does NOT prove the WAR *deploys*. A build-green WAR
+# can still be undeployable — e.g. an illegal "--" inside an XML comment in META-INF/context.xml,
+# which Tomcat 9's strict parser rejects at startup (that exact bug shipped to main and was only
+# caught by a manual container rehearsal — see PR #178).
+#
+# This job closes that gap: it builds the WAR, deploys it to the pinned tomcat:9.0-jdk21 image
+# against a real PostgreSQL + PostGIS (the same docker/ setup used for a real deploy), and waits
+# for the app's own healthcheck to pass. If the WAR fails to deploy or the app fails to boot,
+# the health wait times out and the job fails — in CI, not on the first Azure deploy.
+
+name: Deploy smoke test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  deploy-smoke-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up JDK
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: 21
+
+      - name: Package the web application
+        run: ant -noinput -buildfile build.xml -lib lib/war package
+
+      - name: Write docker compose env (ephemeral CI test values, not secrets)
+        run: |
+          cat > .env <<'EOF'
+          DB_USER=simis
+          DB_PASSWORD=ci_local_test_pw
+          DB_NAME=simis-cms
+          DB_SERVER_NAME=db
+          DB_SSL=false
+          CMS_ADMIN_USERNAME=admin@example.com
+          CMS_ADMIN_PASSWORD=CiSmokeTest#2026
+          CMS_FORCE_SSL=false
+          CMS_NODE_TYPE=standalone
+          EOF
+
+      - name: Start PostgreSQL and wait until the database is queryable
+        run: |
+          docker compose up -d --build db
+          # Wait for the target database to actually accept queries (init.sql creates it + PostGIS).
+          timeout 120 bash -c 'until docker compose exec -T db psql -U simis -d simis-cms -c "select 1" >/dev/null 2>&1; do echo "waiting for postgres..."; sleep 3; done'
+
+      - name: Deploy the WAR and wait for the app to become healthy
+        # `--wait` blocks until the app service's HEALTHCHECK reports healthy; if the WAR fails to
+        # deploy or the app fails to boot, the container never turns healthy and this step fails.
+        run: docker compose up -d --build --wait --wait-timeout 300 app
+
+      - name: Dump container logs on failure
+        if: failure()
+        run: docker compose logs --no-color
+
+      - name: Tear down
+        if: always()
+        run: docker compose down -v
