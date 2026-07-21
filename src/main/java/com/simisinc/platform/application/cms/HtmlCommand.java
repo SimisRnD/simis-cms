@@ -107,6 +107,83 @@ public class HtmlCommand {
   }
 
   /**
+   * Cleans HTML that was RENDERED FROM MARKDOWN, to prevent XSS attacks.
+   *
+   * <p>Markdown is not HTML, so {@link #cleanContent(String)} is the wrong tool for it: that method
+   * expects editor-produced HTML and runs TinyMCE-specific fix-ups, and pointing it at markdown
+   * source would mangle the markup rather than protect it. Markdown is also not safe by itself --
+   * CommonMark deliberately passes raw HTML through, so a {@code <script>} tag written into a
+   * markdown document survives rendering verbatim. This sanitizes the renderer's OUTPUT, which
+   * keeps the markdown intact and still removes anything executable.
+   *
+   * <p>The safe list below is not a general-purpose HTML policy. It is exactly the tag and
+   * attribute set that the configured flexmark extensions actually emit (strikethrough, tables,
+   * task lists, typographic, wiki links, YouTube embeds, GitLab, plus generated header ids),
+   * enumerated by rendering a document exercising each one. Anything outside that set is not
+   * something the renderer produces, so it can only have come from raw HTML in the source.
+   *
+   * <p>What this removes: script and style elements, every {@code on*} event-handler attribute,
+   * inline {@code style}, and {@code javascript:} URLs. Protocols are restricted per attribute, so
+   * an {@code iframe} can only load over https -- the YouTube embed keeps working while
+   * {@code <iframe src="javascript:...">} does not survive.
+   *
+   * @param renderedHtml HTML produced by the markdown renderer
+   * @return the same HTML with anything executable removed
+   */
+  public static String cleanRenderedMarkdown(String renderedHtml) {
+    if (StringUtils.isBlank(renderedHtml)) {
+      return renderedHtml;
+    }
+
+    Safelist safelist = new Safelist()
+        .addTags("a", "blockquote", "br", "code", "del", "div", "em", "h1", "h2", "h3", "h4", "h5",
+            "h6", "hr", "i", "iframe", "img", "input", "li", "ol", "p", "pre", "s", "small", "span",
+            "strong", "sub", "sup", "table", "tbody", "td", "tfoot", "th", "thead", "tr", "ul")
+        // Header ids come from HtmlRenderer.GENERATE_HEADER_ID and anchor the table of contents
+        .addAttributes("h1", "id").addAttributes("h2", "id").addAttributes("h3", "id")
+        .addAttributes("h4", "id").addAttributes("h5", "id").addAttributes("h6", "id")
+        // WikiParserExtension adds target="_blank" to external links
+        .addAttributes("a", "href", "title", "target", "id", "name")
+        .addAttributes("img", "src", "alt", "title", "width", "height")
+        // Fenced code blocks carry the language as a class, for syntax highlighting
+        .addAttributes("code", "class")
+        .addAttributes("pre", "class")
+        // Mermaid diagrams render as <div class="mermaid">
+        .addAttributes("div", "class")
+        .addAttributes("span", "class")
+        // Task lists render as a disabled checkbox inside <li class="task-list-item">
+        .addAttributes("li", "class")
+        .addAttributes("input", "type", "class", "disabled", "readonly", "checked")
+        .addAttributes("table", "class")
+        .addAttributes("td", "align", "colspan", "rowspan")
+        .addAttributes("th", "align", "colspan", "rowspan", "scope")
+        // YouTubeLinkExtension emits an https embed
+        .addAttributes("iframe", "src", "width", "height", "class", "allowfullscreen",
+            "frameborder", "title")
+        .addProtocols("a", "href", "http", "https", "mailto", "#")
+        .addProtocols("img", "src", "http", "https")
+        // https only -- this is what stops iframe src="javascript:..."
+        .addProtocols("iframe", "src", "https")
+        // Wiki links and uploaded images are site-relative and must survive
+        .preserveRelativeLinks(true);
+
+    // The base URI matters: jsoup validates an attribute's protocol against the RESOLVED url, so
+    // with preserveRelativeLinks and no base every site-relative href and src resolves to nothing,
+    // fails the protocol check, and is silently dropped -- which would break every wiki link and
+    // image. The base is only used for that resolution; the original relative value is what gets
+    // written back out. https is used so the iframe https-only rule stays consistent.
+    Document dirty = Jsoup.parseBodyFragment(renderedHtml, "https://localhost/");
+    Document clean = new Cleaner(safelist).clean(dirty);
+
+    Document.OutputSettings settings = clean.outputSettings();
+    settings.prettyPrint(false);
+    settings.escapeMode(Entities.EscapeMode.extended);
+    settings.charset("ASCII");
+
+    return clean.body().html();
+  }
+
+  /**
    * Simplifies and cleans user-submitted content against a safe list, to prevent XSS attacks
    *
    * @param contentHtml
