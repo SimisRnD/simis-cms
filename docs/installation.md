@@ -44,6 +44,7 @@ CMS_FORCE_SSL=true|false
 CMS_NODE_TYPE=<empty>|standalone|web
 CMS_PATH=<empty>|${USER_HOME}/Web/simis-cms|/opt/simis
 CMS_SECRET_KEY=<base64 256-bit key; enables encryption at rest for stored secrets (e.g. MFA seeds)>
+CMS_TRUSTED_PROXIES=<regex of trusted reverse-proxy IPs; resolves the real client IP from X-Forwarded-For>
 DB_SERVER_NAME=
 DB_NAME=
 DB_USER=
@@ -53,6 +54,8 @@ DB_PASSWORD=
 > **`CMS_SECRET_KEY`** encrypts recoverable secrets at rest with AES-256-GCM: per-user MFA/TOTP seeds and the stored integration/payment secrets in Site Settings (payment gateway keys, the SMTP password, the OAuth client secret, and mailing-list/analytics API tokens). Generate one with `openssl rand -base64 32` and supply it out-of-band (not committed). Keep a secure backup — losing the key makes encrypted secrets unrecoverable (affected users re-enroll MFA; integration keys must be re-entered). Rotating: set the new key and re-save the affected records. If unset, secrets are stored as plaintext (backward compatible), so set it for a hardened deployment.
 >
 > Integration secrets encrypt when next saved. Existing plaintext values keep working (they are read back unchanged) and are encrypted the next time they are saved through Site Settings. Values that are read-only in the admin UI (production payment keys, set directly in the database) stay plaintext until re-saved — see the release notes for the optional one-time re-encryption step.
+
+> **`CMS_TRUSTED_PROXIES`** — set this when SimIS CMS runs behind a reverse proxy, load balancer, or CDN. Without it, the client address comes from the direct connection (`getRemoteAddr()`), which behind a proxy is the *proxy's* address — so the IP firewall, rate limiting, and geo filtering all act on that one address and analytics/audit logs record it instead of the visitor. Set it to a Java regular expression matching your trusted proxy addresses (for example `10\.\d+\.\d+\.\d+` for a private-range load balancer); the real client IP is then taken from `X-Forwarded-For` **only** for requests arriving through those proxies (SimIS CMS delegates to Tomcat's `RemoteIpFilter`). Leave it unset when the container terminates client connections directly. Do not set it to match untrusted networks — that would let a client spoof its address and bypass the IP controls.
 
 ## Upgrading
 
