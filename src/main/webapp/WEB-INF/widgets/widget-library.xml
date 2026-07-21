@@ -28,6 +28,7 @@
   <widget name="copyright" class="com.simisinc.platform.presentation.widgets.cms.CopyrightWidget" />
   <widget name="systemAlert" class="com.simisinc.platform.presentation.widgets.cms.SystemAlertWidget" />
   <widget name="toggleMenu" class="com.simisinc.platform.presentation.widgets.cms.ToggleMenuWidget" />
+  <widget name="colorSchemeToggle" class="com.simisinc.platform.presentation.widgets.cms.ColorSchemeToggleWidget" />
   <widget name="mainMenu" class="com.simisinc.platform.presentation.widgets.cms.MainMenuWidget" />
   <widget name="globalMessage" class="com.simisinc.platform.presentation.widgets.cms.GlobalMessageWidget" />
   <widget name="breadcrumbs" class="com.simisinc.platform.presentation.widgets.cms.BreadCrumbsWidget" />
