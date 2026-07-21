@@ -92,7 +92,7 @@ public class OrderCommand {
     }
 
     // Generate a random string
-    String rand = StringUtils.leftPad(RandomStringUtils.randomNumeric(4), 4, '0');
+    String rand = StringUtils.leftPad(RandomStringUtils.insecure().nextNumeric(4), 4, '0');
 
     // Use the customer id after insert
     String uniqueId = (prefix + date + "-" + id + "-" + rand);

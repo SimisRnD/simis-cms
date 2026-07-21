@@ -53,6 +53,7 @@ import com.simisinc.platform.application.RateLimitCommand;
 import com.simisinc.platform.application.SaveSessionCommand;
 import com.simisinc.platform.application.UserCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.audit.SaveAuditEventCommand;
 import com.simisinc.platform.application.cms.HostnameCommand;
 import com.simisinc.platform.application.json.JsonCommand;
 import com.simisinc.platform.application.login.AuthenticateLoginCommand;
@@ -124,8 +125,8 @@ public class RestRequestFilter implements Filter {
     if (requireSSL && !"https".equalsIgnoreCase(scheme)) {
       // Only redirect if a hostname was used (skip for local dev)
       if (!isLocal
-          && !InetAddressUtils.isIPv4Address(request.getServerName())
-          && !InetAddressUtils.isIPv6Address(request.getServerName())) {
+          && !InetAddressUtils.isIPv4(request.getServerName())
+          && !InetAddressUtils.isIPv6(request.getServerName())) {
         String requestURL = ((HttpServletRequest) request).getRequestURL().toString();
         requestURL = StringUtils.replace(requestURL, "http://", "https://");
         LOG.debug("Redirecting to: " + requestURL);
@@ -281,6 +282,10 @@ public class RestRequestFilter implements Filter {
         userLogin.setSessionId(httpServletRequest.getSession().getId());
         userLogin.setUserAgent(httpServletRequest.getHeader("USER-AGENT"));
         UserLoginRepository.save(userLogin);
+
+        // Audit the token-authenticated session establishment (first API request of the day)
+        SaveAuditEventCommand.recordAuthentication("authentication.login.success", "success",
+            user.getId(), user.getEmail(), ipAddress, httpServletRequest.getSession().getId(), "api-token");
       } else {
 
         // @todo consider reasons when there is a new session
@@ -342,6 +347,11 @@ public class RestRequestFilter implements Filter {
     userLogin.setUserAgent(httpServletRequest.getHeader("USER-AGENT"));
     UserLoginRepository.save(userLogin);
 
+    // Audit the API credential login (email + password exchanged for a bearer token)
+    SaveAuditEventCommand.recordAuthentication("authentication.login.success", "success",
+        user.getId(), user.getEmail(), httpServletRequest.getRemoteAddr(),
+        httpServletRequest.getSession().getId(), "api");
+
     // Create a 30-day token
     String loginToken = "API-" + UUID.randomUUID().toString() + user.getId();
     long tokenExpirationInSeconds = 30 * 24 * 60 * 60;
@@ -402,6 +412,9 @@ public class RestRequestFilter implements Filter {
         return AuthenticateLoginCommand.getAuthenticatedUser(email, password, request.getRemoteAddr());
       } catch (DataException | LoginException e) {
         LOG.debug("Login error: " + e.getMessage());
+        // Audit the failed API credential login (records the attempted email, not the password)
+        SaveAuditEventCommand.recordAuthentication("authentication.login.failure", "failure",
+            -1L, email, request.getRemoteAddr(), null, "api");
         return null;
       }
     } catch (UnsupportedEncodingException e) {

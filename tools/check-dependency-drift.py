@@ -40,7 +40,17 @@ import xml.etree.ElementTree as ET
 # --strict. Empty today because every current pin happens to match. Add entries
 # as: "artifactId": "reason (revisit trigger)".
 ALLOWLIST: dict[str, str] = {
-    # "commons-jexl3": "held at 3.2.1; 3.3+ throws on undefined properties (WorkflowTaskTest)",
+    "flexmark-all": (
+        "vendored 0.64.0-lib is the FAT/uber jar that bundles the flexmark.ext.* modules; "
+        "the pom's plain flexmark-all 0.64.8 is a thin aggregate, so a straight version swap "
+        "drops those modules and breaks the compile. "
+        "Revisit: a matching 0.64.x '-lib' fat jar, or a proper per-module re-vendor."
+    ),
+    "jackson-coreutils": (
+        "abandoned com.github.fge lib held at 1.0; 1.8 breaks JsonLoader.fromString "
+        "(FormDataJSONCommandTest + ecommerce JsonTest). "
+        "Revisit: replace the fge dependency, or correct the pom back to 1.0."
+    ),
 }
 
 POM_NS = "{http://maven.apache.org/POM/4.0.0}"

@@ -58,12 +58,12 @@ public class IpAddressCommand {
       return ipAddress;
     }
     try {
-      if (InetAddressUtils.isIPv4Address(ipAddress)) {
+      if (InetAddressUtils.isIPv4(ipAddress)) {
         byte[] bytes = InetAddress.getByName(ipAddress).getAddress();
         bytes[3] = 0;
         return InetAddress.getByAddress(bytes).getHostAddress();
       }
-      if (InetAddressUtils.isIPv6Address(ipAddress)) {
+      if (InetAddressUtils.isIPv6(ipAddress)) {
         byte[] bytes = InetAddress.getByName(ipAddress).getAddress();
         for (int i = 6; i < bytes.length; i++) {
           bytes[i] = 0;

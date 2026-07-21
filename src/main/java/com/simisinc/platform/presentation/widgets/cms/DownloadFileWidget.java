@@ -30,6 +30,7 @@ import com.simisinc.platform.application.cms.LoadFileCommand;
 import com.simisinc.platform.application.filesystem.FileSystemCommand;
 import com.simisinc.platform.domain.model.cms.FileItem;
 import com.simisinc.platform.infrastructure.persistence.cms.FileItemRepository;
+import com.simisinc.platform.presentation.controller.FileDownloadCommand;
 import com.simisinc.platform.presentation.controller.MultipartFileSender;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
@@ -131,8 +132,7 @@ public class DownloadFileWidget extends GenericWidget {
         return context;
       }
 
-      // The file is being viewed (in a new window)
-      context.getResponse().setHeader("Content-Disposition", "inline; filename=" + record.getFilename() + ";");
+      // The file is being viewed (in a new window); the safe disposition + content type are set below.
 
       // Check for a last-modified header and return 304 if possible
       long headerValue = context.getRequest().getDateHeader("If-Modified-Since");
@@ -142,15 +142,12 @@ public class DownloadFileWidget extends GenericWidget {
         return context;
       }
 
-    } else {
-      // Force file to be downloaded
-      mimeType = "application/octet-stream";
     }
-    LOG.debug("Using mime type: " + mimeType);
 
-    // Set header info
+    // Set header info: nosniff, a safe inline/attachment disposition, and the content type. An uploaded
+    // HTML or SVG file is served as a download (never rendered inline), so it cannot execute in this origin.
     context.getResponse().setDateHeader("Last-Modified", lastModified);
-    context.getResponse().setContentType(mimeType);
+    FileDownloadCommand.applyContentHeaders(context.getResponse(), record.getMimeType(), record.getFilename(), doView);
     context.getResponse().setContentLength((int) file.length());
 
     // Check for head method

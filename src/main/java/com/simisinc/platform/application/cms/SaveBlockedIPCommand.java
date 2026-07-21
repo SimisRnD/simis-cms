@@ -41,8 +41,8 @@ public class SaveBlockedIPCommand {
     StringBuilder errorMessages = new StringBuilder();
     if (StringUtils.isBlank(blockedIPBean.getIpAddress())) {
       errorMessages.append("An IP address is required");
-    } else if (!InetAddressUtils.isIPv4Address(blockedIPBean.getIpAddress()) &&
-        !InetAddressUtils.isIPv6Address(blockedIPBean.getIpAddress())) {
+    } else if (!InetAddressUtils.isIPv4(blockedIPBean.getIpAddress()) &&
+        !InetAddressUtils.isIPv6(blockedIPBean.getIpAddress())) {
       errorMessages.append("A valid IPv4 or IPv6 address is required");
     }
     if (errorMessages.length() > 0) {

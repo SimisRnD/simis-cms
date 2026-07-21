@@ -27,6 +27,7 @@ import com.simisinc.platform.application.filesystem.FileSystemCommand;
 import com.simisinc.platform.domain.model.datasets.Dataset;
 import com.simisinc.platform.infrastructure.persistence.datasets.DatasetRepository;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
+import com.simisinc.platform.presentation.controller.FileDownloadCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 
@@ -72,8 +73,11 @@ public class StreamDatasetWidget extends GenericWidget {
       return null;
     }
 
-    // Set header info
-    context.getResponse().setHeader("Content-Disposition", "attachment; filename=\"" + record.getFilename() + "\"");
+    // Set header info (served as a download; nosniff so the stored type cannot be re-sniffed to active content)
+    context.getResponse().setHeader("X-Content-Type-Options", "nosniff");
+    String safeName = FileDownloadCommand.sanitizeFilename(record.getFilename());
+    context.getResponse().setHeader("Content-Disposition",
+        safeName != null ? "attachment; filename=\"" + safeName + "\"" : "attachment");
     context.getResponse().setHeader("Content-Transfer-Encoding", "binary");
     context.getResponse().setContentType(record.getFileType());
     context.getResponse().setContentLength((int) file.length());
