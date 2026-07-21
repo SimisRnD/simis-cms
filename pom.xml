@@ -96,7 +96,7 @@
          Multiplatform metadata artifact containing NO classes (the JVM classes moved
          to okhttp-jvm), so the jar Maven resolves cannot be vendored into the WAR.
          Revisit: switch the dependency to okhttp-jvm, or Square shipping its own client. -->
-    <okhttp.version>4.11.0</okhttp.version>
+    <okhttp.version>4.12.0</okhttp.version>
     <stripe.version>33.1.1</stripe.version>
     <testcontainers.version>1.21.4</testcontainers.version>
     <thymeleaf.version>3.1.5</thymeleaf.version>
