@@ -32,7 +32,7 @@
     <maven-jacoco-plugin.version>0.8.15</maven-jacoco-plugin.version>
     <maven-war-plugin.version>3.4.0</maven-war-plugin.version>
     <tomcat.version>9.0.120</tomcat.version>
-    <junit.version>5.14.4</junit.version>
+    <junit.version>6.1.2</junit.version>
     <mockito.version>5.23.0</mockito.version>
     <argon2.version>2.12</argon2.version>
     <args4j.version>2.37</args4j.version>
