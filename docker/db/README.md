@@ -31,6 +31,52 @@ image that surface is not reachable the way the CVEs describe: it is a
 database-only container, not internet-facing, and PostgreSQL serving SQL does
 not exercise those libraries. Real-world exploitability is low.
 
+### Machine-readable VEX
+
+The reasoning above is also published as an [OpenVEX](https://openvex.dev) document so a
+scanner can act on it without a human reading this file:
+
+    docker/db/vex/simis-cms-db.openvex.json
+
+Use it to suppress the findings we have justified, while still surfacing anything new:
+
+```sh
+trivy image --vex docker/db/vex/simis-cms-db.openvex.json \
+  --scanners vuln --severity HIGH,CRITICAL ghcr.io/simisrnd/simis-cms-db
+```
+
+**What it claims, and what it deliberately does not.** Statements are `not_affected` only
+where there is a concrete, checkable reason, and each carries an `impact_statement` saying
+what was verified:
+
+- **PostGIS/GDAL dependency chain** (gdal, libaom, libheif, libtiff, libhdf5, libsqlite3,
+  libcurl, libssh2, libexpat) — `vulnerable_code_not_in_execute_path`. The database enables
+  **vector PostGIS only** (`CREATE EXTENSION postgis`); `postgis_raster` is never created, so
+  GDAL's raster decoders and remote-dataset drivers are never loaded.
+- **Perl** (perl, perl-base, perl-modules, libperl) — `vulnerable_code_not_in_execute_path`.
+  `postgresql-17-plperl` is **not installed**, so the engine cannot invoke Perl, and the
+  entrypoint is the stock postgres shell entrypoint.
+- **libxml2** — `vulnerable_code_not_in_execute_path`. Reached only via the `xml` type and
+  `xpath()`/`xmltable()`; the shipped schema declares no xml columns.
+- **zlib1g / CVE-2023-45853** — `vulnerable_code_not_present`. The flaw is in zlib's MiniZip
+  contrib component, which Debian does not build into the shared libz shipped here (hence
+  Debian's will-not-fix).
+
+Everything else — a handful of general-purpose OS utilities (ncurses, gzip, util-linux,
+libldap, sysstat, libacl1) — is marked **`under_investigation`**, not `not_affected`. We make
+no exploitability claim we cannot support; uncertainty is never rendered as "safe".
+
+> **Scope.** These statements describe the image **as shipped and configured**. If an operator
+> installs PL/Perl, creates `postgis_raster`, or uses PostgreSQL's `xml` type, the corresponding
+> statements no longer hold and the VEX should be re-evaluated.
+
+Regenerate after any rebuild changes the finding set (this keeps the document from going
+stale, and it only ever emits statements for findings with **no** available fix):
+
+```sh
+python3 tools/generate-db-vex.py > docker/db/vex/simis-cms-db.openvex.json
+```
+
 ### They clear over time on their own
 
 `publish-images.yml` rebuilds and re-scans the image on a monthly schedule, so
