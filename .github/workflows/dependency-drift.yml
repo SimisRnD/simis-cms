@@ -1,10 +1,10 @@
-# Reports drift between pom.xml and the vendored lib/build jars that actually ship
+# Enforces parity between pom.xml and the vendored lib/build jars that actually ship
 # in the WAR. See tools/check-dependency-drift.py for the full rationale.
 #
-# REPORT-ONLY: this workflow never fails the build. It prints the drift to the log
-# and to the PR's job summary so the divergence is visible on every change. Once the
-# one-time reconciliation has zeroed the drift, make it enforcing by adding --strict
-# to the run step below (the script then exits non-zero on any un-allowlisted drift).
+# ENFORCING (--strict): fails the build on any pom-vs-vendored version drift that is
+# not in the script's ALLOWLIST. The one-time reconciliation zeroed the drift down to
+# two documented, intentional holds (flexmark fat-jar, jackson-coreutils), which are
+# allowlisted with revisit triggers; everything else must match. New drift fails here.
 name: Dependency drift
 
 on:
@@ -22,5 +22,5 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       # ubuntu-latest ships python3; no extra setup or network needed.
-      - name: Report pom vs vendored-jar drift
-        run: python3 tools/check-dependency-drift.py .
+      - name: Fail on un-allowlisted pom vs vendored-jar drift
+        run: python3 tools/check-dependency-drift.py . --strict
