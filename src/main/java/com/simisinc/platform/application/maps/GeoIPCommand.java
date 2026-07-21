@@ -124,9 +124,12 @@ public class GeoIPCommand {
         geoIP.setTimezone(response.getLocation().getTimeZone());
         geoIP.setLatitude(response.getLocation().getLatitude());
         geoIP.setLongitude(response.getLocation().getLongitude());
-        if (response.getLocation().getMetroCode() != null) {
-          geoIP.setMetroCode(response.getLocation().getMetroCode());
-        }
+        // Metro code is no longer populated. MaxMind retired the DMA metro-code data and removed
+        // Location.getMetroCode() in geoip2 5.x, so there is no value to read and no replacement
+        // field to read it from. GeoIP.metroCode keeps its default, which is the same value this
+        // method already produced whenever MaxMind returned no metro code. The metroCode property
+        // and the sessions.metro_code / emails.metro_code columns are left in place so existing
+        // rows and any downstream reader keep working.
       }
       return geoIP;
     } catch (Exception e) {

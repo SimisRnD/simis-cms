@@ -38,6 +38,22 @@ updates:
       # this app is not migrated for. Revisit with the Jakarta EE migration.
       - dependency-name: "org.apache.tomcat:tomcat-servlet-api"
         update-types: ["version-update:semver-major"]
+      # Held at 12.x: Flyway is the schema-migration engine and there is currently NO
+      # working validation of migrations against a real database -- ContentRepositoryTest
+      # reports "Tests run: 0" in CI as well as locally, and does not invoke Flyway even
+      # when it runs. A major on the component that mutates production schema, covering
+      # 14 Java and 33 SQL migrations, should not land untested.
+      # Revisit: once a migration test applies every migration to a real PostgreSQL.
+      - dependency-name: "org.flywaydb:*"
+        update-types: ["version-update:semver-major"]
+      # Held at 4.x: okhttp 5 publishes com.squareup.okhttp3:okhttp as a Kotlin
+      # Multiplatform *metadata* artifact that contains no classes at all -- the JVM
+      # classes moved to the separate okhttp-jvm artifact, which Maven does not resolve
+      # from a plain dependency. Vendoring what Maven fetches would ship an empty jar
+      # and make okhttp disappear from the WAR at runtime.
+      # Revisit: change the dependency to com.squareup.okhttp3:okhttp-jvm.
+      - dependency-name: "com.squareup.okhttp3:okhttp"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:

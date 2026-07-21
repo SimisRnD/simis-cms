@@ -54,7 +54,15 @@
     <commons-validator.version>1.10.1</commons-validator.version>
     <easy-flows-playbook.version>0.6-SNAPSHOT</easy-flows-playbook.version>
     <flexmark.version>0.64.8</flexmark.version>
-    <flyway.version>13.0.0</flyway.version>
+    <!-- Held at 12.x: Flyway is the schema-migration engine, and this project currently has NO
+         working validation of migrations against a real database. ContentRepositoryTest reports
+         "Tests run: 0" in CI as well as locally (its Docker assumption silently aborts the class),
+         and even when it does run it hand-builds a cut-down content table rather than invoking
+         Flyway. Taking a major on the component that mutates production schema, with 14 Java
+         migrations and 33 SQL migrations and no test exercising them, is not a risk worth
+         accepting for a version bump.
+         Revisit: once a migration test actually applies every migration to a real PostgreSQL. -->
+    <flyway.version>12.11.0</flyway.version>
     <geoip2.version>5.2.0</geoip2.version>
     <geojson.version>3.0</geojson.version>
     <granule.version>1.0.18-SNAPSHOT</granule.version>
@@ -84,7 +92,11 @@
     <rome-rss.version>2.1.0</rome-rss.version>
     <slf4j.version>2.0.18</slf4j.version>
     <square.version>24.0.0.20220921</square.version>
-    <okhttp.version>5.4.0</okhttp.version>
+    <!-- Held at 4.x: okhttp 5 publishes com.squareup.okhttp3:okhttp as a Kotlin
+         Multiplatform metadata artifact containing NO classes (the JVM classes moved
+         to okhttp-jvm), so the jar Maven resolves cannot be vendored into the WAR.
+         Revisit: switch the dependency to okhttp-jvm, or Square shipping its own client. -->
+    <okhttp.version>4.11.0</okhttp.version>
     <stripe.version>33.1.1</stripe.version>
     <testcontainers.version>1.21.4</testcontainers.version>
     <thymeleaf.version>3.1.5</thymeleaf.version>
@@ -386,14 +398,6 @@
       <version>${square.version}</version>
       <exclusions>
         <exclusion>
-          <groupId>org.jetbrains.kotlin</groupId>
-          <artifactId>kotlin-stdlib</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.jetbrains.kotlin</groupId>
-          <artifactId>kotlin-stdlib-common</artifactId>
-        </exclusion>
-        <exclusion>
           <groupId>com.squareup.okhttp3</groupId>
           <artifactId>okhttp</artifactId>
         </exclusion>
@@ -403,16 +407,6 @@
       <groupId>com.squareup.okhttp3</groupId>
       <artifactId>okhttp</artifactId>
       <version>${okhttp.version}</version>
-      <exclusions>
-        <exclusion>
-          <groupId>org.jetbrains.kotlin</groupId>
-          <artifactId>kotlin-stdlib</artifactId>
-        </exclusion>
-        <exclusion>
-          <groupId>org.jetbrains.kotlin</groupId>
-          <artifactId>kotlin-stdlib-common</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
     <dependency>
       <groupId>com.stripe</groupId>
