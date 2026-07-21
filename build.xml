@@ -391,6 +391,16 @@
   </target>
 
   <target name="compile-test" depends="jar">
+    <!-- Stage ONLY the SQL migrations onto the test classpath. The package target copies them
+         into the WAR, but compile does not stage them, so build.dir has no database/ directory
+         and the migration test resolves "classpath:database/install" to nothing - finding just
+         the three Java migrations, the first of which then fails against a schema the missing
+         SQL was supposed to create. Scoped to database/** on purpose: putting the whole of
+         src/main/resources on the test classpath changes what other tests resolve and breaks
+         WebRequestFilterTest. -->
+    <copy todir="${build.dir}/database">
+      <fileset dir="${basedir}/src/main/resources/database"/>
+    </copy>
     <javac srcdir="${src.test.dir}" source="${jdk}" target="${jdk}"
            destdir="${build.dir}"
            debug="on" debuglevel="lines,source"
