@@ -1,0 +1,11 @@
+{
+  "role": {
+    "name": "simis-cms"
+  },
+  "sampling": {
+    "percentage": 100
+  },
+  "selfDiagnostics": {
+    "level": "warn"
+  }
+}
