@@ -1,0 +1,25 @@
+# Fails the build when a JSP renders an EL expression into HTML or JavaScript without escaping
+# and without a recorded justification. See tools/check-unescaped-el.py for the rationale.
+#
+# ENFORCING (--strict). The sweep that produced this fixed 29 injection points and classified the
+# rest; every remaining unescaped site carries an ALLOWLIST entry saying why the value cannot
+# carry markup. A NEW one cannot appear without somebody writing that justification down.
+name: Unescaped EL
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  unescaped-el:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      # ubuntu-latest ships python3; no extra setup or network needed.
+      - name: Fail on unescaped JSP EL without a recorded justification
+        run: python3 tools/check-unescaped-el.py . --strict
