@@ -66,9 +66,14 @@ public class ContentHtmlCommand {
       }
     }
 
-    // Use the widget preferences
+    // Use the widget preferences.
+    // Sanitize this branch. Content loaded from the database above was cleaned by
+    // SaveContentCommand on the way in, but a widget preference never passes through that path --
+    // it comes straight from page-layout XML, which /admin/web-page-designer exposes to
+    // content-manager. Without this, every widget that calls this method (content, cards,
+    // carousel, gallery, reveal, slider, accordion) renders an unsanitized preference unescaped.
     if (html == null) {
-      html = context.getPreferences().get("html");
+      html = HtmlCommand.cleanContent(context.getPreferences().get("html"));
     }
 
     // It's possible to have different content injected into this content
