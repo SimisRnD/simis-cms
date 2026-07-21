@@ -1,0 +1,759 @@
+/*
+ * SimIS CMS - Design tokens and color scheme support
+ *
+ * Loaded after platform.css and before the theme's inline <style> block.
+ *
+ * Layer 1  Semantic design tokens (--sc-*) with light-mode values.
+ * Layer 2  Dark-mode token overrides.
+ * Layer 3  Chrome that consumes the tokens.
+ *
+ * IMPORTANT - light mode is intentionally left alone. Foundation and
+ * platform.css already paint every surface in light mode, so Layer 3 only
+ * repaints under [data-theme="dark"]. A site that never opts in renders
+ * exactly as it did before this file existed. The handful of rules that do
+ * apply in both modes (focus ring, reduced motion) are additive
+ * accessibility fixes, called out individually below.
+ *
+ * Color scheme is selected by the data-theme attribute on <html>:
+ *   data-theme="light"  forced light (the default; see theme.ui.mode)
+ *   data-theme="dark"   forced dark
+ *   data-theme="auto"   follow the operating system preference
+ * A missing attribute is treated as light.
+ *
+ * Contrast: every token pairing below was checked against WCAG 2.2.
+ * Text pairings meet 1.4.3 Contrast (Minimum) at 4.5:1. Control borders
+ * meet 1.4.11 Non-text Contrast at 3:1. Purely decorative separators are
+ * exempt from 1.4.11 and use the lower-contrast --sc-border on purpose.
+ */
+
+/* ==========================================================================
+   Layer 1 - Semantic tokens (light)
+   ========================================================================== */
+
+:root {
+  /* Surfaces */
+  --sc-surface: #ffffff;
+  --sc-surface-raised: #ffffff;
+  --sc-surface-sunken: #f4f6f8;
+  --sc-surface-overlay: #ffffff;
+
+  /* Text - contrast vs --sc-surface: text 19.80:1, muted 6.00:1, link 5.97:1 */
+  --sc-text: #0a0a0a;
+  --sc-text-muted: #5b6470;
+  --sc-text-inverse: #ffffff;
+  --sc-link: #1468a0;
+  --sc-link-hover: #0f4f7a;
+
+  /* Lines. --sc-border is decorative (1.4.11 exempt).
+     --sc-border-control outlines real controls: 3.40:1 on white,
+     3.14:1 on --sc-surface-sunken. */
+  --sc-border: #d7dce2;
+  --sc-border-control: #858c95;
+
+  /* Form fields */
+  --sc-field-bg: #ffffff;
+  --sc-field-text: #0a0a0a;
+  --sc-field-placeholder: #5b6470;
+  --sc-field-disabled-bg: #eef1f4;
+
+  /* Focus ring - 5.97:1 on white, comfortably past the 3:1 that
+     1.4.11 asks of a focus indicator. */
+  --sc-focus-ring: #1468a0;
+  --sc-focus-ring-width: 2px;
+  --sc-focus-ring-offset: 2px;
+
+  /* Elevation */
+  --sc-shadow-sm: 0 1px 2px rgba(10, 10, 10, 0.08);
+  --sc-shadow-md: 0 2px 8px rgba(10, 10, 10, 0.10);
+  --sc-shadow-lg: 0 8px 24px rgba(10, 10, 10, 0.14);
+
+  /* Radii and spacing - a small scale, so future components stop
+     inventing one-off pixel values. */
+  --sc-radius-sm: 3px;
+  --sc-radius-md: 6px;
+  --sc-radius-lg: 10px;
+  --sc-radius-pill: 999px;
+
+  --sc-space-1: 0.25rem;
+  --sc-space-2: 0.5rem;
+  --sc-space-3: 0.75rem;
+  --sc-space-4: 1rem;
+  --sc-space-5: 1.5rem;
+  --sc-space-6: 2rem;
+
+  /* Motion - referenced so prefers-reduced-motion has a single lever. */
+  --sc-motion-fast: 120ms;
+  --sc-motion-base: 200ms;
+  --sc-motion-ease: cubic-bezier(0.2, 0, 0.2, 1);
+
+  /* Tells the browser to render native widgets (scrollbars, date pickers,
+     select popups, form controls) in the matching scheme. */
+  color-scheme: light;
+}
+
+/* ==========================================================================
+   Layer 2 - Dark token overrides
+   ==========================================================================
+   Note what is NOT overridden: brand accent colors. Foundation's primary
+   (#1779ba) carries white text at 4.69:1 and sits on the dark page at
+   3.76:1, so it stays legible. Lightening it would actually break the
+   button label (#2f8fd0 with white text is only 3.52:1) as well as losing
+   the site's brand color. Accents are left to the theme.
+   ========================================================================== */
+
+:root[data-theme="dark"] {
+  --sc-surface: #16191d;
+  --sc-surface-raised: #1e2228;
+  --sc-surface-sunken: #101317;
+  --sc-surface-overlay: #1e2228;
+
+  /* contrast vs --sc-surface: text 14.49:1, muted 8.05:1, link 8.37:1 */
+  --sc-text: #e6e9ee;
+  --sc-text-muted: #a7b0bd;
+  --sc-text-inverse: #0a0a0a;
+  --sc-link: #7cb8f0;
+  --sc-link-hover: #a5cef5;
+
+  --sc-border: #333a44;
+  --sc-border-control: #6a7585; /* 3.78:1 on page, 3.42:1 on raised */
+
+  --sc-field-bg: #1b1f25;
+  --sc-field-text: #e6e9ee;
+  --sc-field-placeholder: #97a1af; /* 6.33:1 on --sc-field-bg */
+  --sc-field-disabled-bg: #23282f;
+
+  --sc-focus-ring: #8ab4f8;
+
+  /* Shadows read as noise on a dark page; lean on borders instead. */
+  --sc-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+  --sc-shadow-md: 0 2px 8px rgba(0, 0, 0, 0.55);
+  --sc-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.6);
+
+  color-scheme: dark;
+}
+
+/* Follow the OS only when the site has opted into "auto". An absent
+   data-theme stays light, which is what every pre-existing site gets. */
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="auto"] {
+    --sc-surface: #16191d;
+    --sc-surface-raised: #1e2228;
+    --sc-surface-sunken: #101317;
+    --sc-surface-overlay: #1e2228;
+
+    --sc-text: #e6e9ee;
+    --sc-text-muted: #a7b0bd;
+    --sc-text-inverse: #0a0a0a;
+    --sc-link: #7cb8f0;
+    --sc-link-hover: #a5cef5;
+
+    --sc-border: #333a44;
+    --sc-border-control: #6a7585;
+
+    --sc-field-bg: #1b1f25;
+    --sc-field-text: #e6e9ee;
+    --sc-field-placeholder: #97a1af;
+    --sc-field-disabled-bg: #23282f;
+
+    --sc-focus-ring: #8ab4f8;
+
+    --sc-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
+    --sc-shadow-md: 0 2px 8px rgba(0, 0, 0, 0.55);
+    --sc-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.6);
+
+    color-scheme: dark;
+  }
+}
+
+/* ==========================================================================
+   Layer 3a - Applies in BOTH modes (accessibility fixes, additive)
+   ========================================================================== */
+
+/* WCAG 2.2 SC 2.4.11 Focus Not Obscured / 2.4.13 Focus Appearance.
+   Foundation's default focus treatment on buttons and links is a faint
+   background shift that is easy to lose. :focus-visible keeps mouse users
+   from seeing a ring while giving keyboard users a real one. */
+a:focus-visible,
+button:focus-visible,
+[role="button"]:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+summary:focus-visible,
+[tabindex]:focus-visible {
+  outline: var(--sc-focus-ring-width) solid var(--sc-focus-ring);
+  outline-offset: var(--sc-focus-ring-offset);
+  border-radius: var(--sc-radius-sm);
+}
+
+/* WCAG 2.2 SC 2.3.3 Animation from Interactions. Foundation, Motion UI and
+   animate.css all animate by default; honour the OS setting. */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ==========================================================================
+   Layer 3b - Dark mode chrome
+   ==========================================================================
+   Everything below is scoped to the dark selectors so light mode is
+   untouched. The two selector groups are kept in sync deliberately;
+   :is() would collapse them but Foundation-era browsers in the support
+   matrix are not guaranteed to have it.
+   ========================================================================== */
+
+:root[data-theme="dark"] body,
+:root[data-theme="dark"] .platform-body,
+:root[data-theme="dark"] .platform-content,
+:root[data-theme="dark"] .platform-content-container {
+  background-color: var(--sc-surface);
+  color: var(--sc-text);
+}
+
+/* Long-form content and headings */
+:root[data-theme="dark"] h1,
+:root[data-theme="dark"] h2,
+:root[data-theme="dark"] h3,
+:root[data-theme="dark"] h4,
+:root[data-theme="dark"] h5,
+:root[data-theme="dark"] h6,
+:root[data-theme="dark"] p,
+:root[data-theme="dark"] li,
+:root[data-theme="dark"] dt,
+:root[data-theme="dark"] dd,
+:root[data-theme="dark"] blockquote,
+:root[data-theme="dark"] label,
+:root[data-theme="dark"] legend,
+:root[data-theme="dark"] .platform-blog-body {
+  color: var(--sc-text);
+}
+
+:root[data-theme="dark"] .help-text,
+:root[data-theme="dark"] .platform-activity-date,
+:root[data-theme="dark"] .platform-activity-content-date,
+:root[data-theme="dark"] .subheader {
+  color: var(--sc-text-muted);
+}
+
+/* Links. Scoped away from menus and buttons, which the theme colors. */
+:root[data-theme="dark"] .platform-body a,
+:root[data-theme="dark"] .platform-content a,
+:root[data-theme="dark"] .platform-blog-body a {
+  color: var(--sc-link);
+}
+
+:root[data-theme="dark"] .platform-body a:hover,
+:root[data-theme="dark"] .platform-content a:hover,
+:root[data-theme="dark"] .platform-blog-body a:hover {
+  color: var(--sc-link-hover);
+}
+
+/* Buttons keep their theme background; only the unstyled/hollow variants
+   need help, because they inherit page text color. */
+:root[data-theme="dark"] .button.hollow,
+:root[data-theme="dark"] .button.clear {
+  color: var(--sc-link);
+  border-color: var(--sc-border-control);
+  background-color: transparent;
+}
+
+/* Cards, panels, wells */
+:root[data-theme="dark"] .card,
+:root[data-theme="dark"] .card-section,
+:root[data-theme="dark"] .card-divider,
+:root[data-theme="dark"] .platform-blog-cards-container,
+:root[data-theme="dark"] .platform-calendar-details-container,
+:root[data-theme="dark"] .platform-toc-container,
+:root[data-theme="dark"] .platform-scrollable-view {
+  background-color: var(--sc-surface-raised);
+  color: var(--sc-text);
+  border-color: var(--sc-border);
+}
+
+:root[data-theme="dark"] .card-divider {
+  background-color: var(--sc-surface-sunken);
+}
+
+/* Callouts. Only the neutral default is repainted - primary/success/
+   warning/alert are theme colors and stay as the site configured them. */
+:root[data-theme="dark"] .callout {
+  border-color: var(--sc-border);
+}
+
+:root[data-theme="dark"] .callout:not(.primary):not(.secondary):not(.success):not(.warning):not(.alert):not(.header) {
+  background-color: var(--sc-surface-raised);
+  color: var(--sc-text);
+}
+
+/* Tables */
+:root[data-theme="dark"] table,
+:root[data-theme="dark"] table tbody {
+  /* Foundation paints tbody/tfoot directly (foundation.css "tbody, tfoot"),
+     so styling the table alone leaves un-striped rows white. */
+  background-color: var(--sc-surface-raised);
+  color: var(--sc-text);
+  border-color: var(--sc-border);
+}
+
+:root[data-theme="dark"] table thead,
+:root[data-theme="dark"] table tfoot {
+  background-color: var(--sc-surface-sunken);
+  color: var(--sc-text);
+}
+
+:root[data-theme="dark"] table tbody tr:nth-child(even) {
+  background-color: var(--sc-surface-sunken);
+  color: var(--sc-text);
+}
+
+:root[data-theme="dark"] table tbody td,
+:root[data-theme="dark"] table tbody th,
+:root[data-theme="dark"] table thead th {
+  border-color: var(--sc-border);
+  color: var(--sc-text);
+}
+
+:root[data-theme="dark"] table.hover tbody tr:hover {
+  background-color: var(--sc-surface-overlay);
+}
+
+/* Form fields */
+:root[data-theme="dark"] input[type="text"],
+:root[data-theme="dark"] input[type="password"],
+:root[data-theme="dark"] input[type="date"],
+:root[data-theme="dark"] input[type="datetime"],
+:root[data-theme="dark"] input[type="datetime-local"],
+:root[data-theme="dark"] input[type="month"],
+:root[data-theme="dark"] input[type="week"],
+:root[data-theme="dark"] input[type="email"],
+:root[data-theme="dark"] input[type="number"],
+:root[data-theme="dark"] input[type="search"],
+:root[data-theme="dark"] input[type="tel"],
+:root[data-theme="dark"] input[type="time"],
+:root[data-theme="dark"] input[type="url"],
+:root[data-theme="dark"] input[type="color"],
+:root[data-theme="dark"] textarea,
+:root[data-theme="dark"] select {
+  background-color: var(--sc-field-bg);
+  color: var(--sc-field-text);
+  border-color: var(--sc-border-control);
+  box-shadow: none;
+}
+
+:root[data-theme="dark"] input::placeholder,
+:root[data-theme="dark"] textarea::placeholder {
+  color: var(--sc-field-placeholder);
+  opacity: 1; /* Firefox dims placeholders by default, which undoes the ratio */
+}
+
+:root[data-theme="dark"] input:disabled,
+:root[data-theme="dark"] textarea:disabled,
+:root[data-theme="dark"] select:disabled,
+:root[data-theme="dark"] input[readonly],
+:root[data-theme="dark"] textarea[readonly] {
+  background-color: var(--sc-field-disabled-bg);
+  color: var(--sc-text-muted);
+}
+
+/* Foundation renders the select arrow as an embedded SVG data URI in a
+   dark ink that disappears on a dark field. */
+:root[data-theme="dark"] select {
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 24'><polygon points='0,0 32,0 16,24' style='fill: %23a7b0bd'></polygon></svg>");
+}
+
+:root[data-theme="dark"] .input-group-label {
+  background-color: var(--sc-surface-sunken);
+  color: var(--sc-text);
+  border-color: var(--sc-border-control);
+}
+
+/* Overlays: modals, dropdown panes, tooltips */
+:root[data-theme="dark"] .reveal,
+:root[data-theme="dark"] .dropdown-pane,
+:root[data-theme="dark"] .platform-dialog {
+  background-color: var(--sc-surface-overlay);
+  color: var(--sc-text);
+  border-color: var(--sc-border);
+  box-shadow: var(--sc-shadow-lg);
+}
+
+:root[data-theme="dark"] .reveal-overlay {
+  background-color: rgba(0, 0, 0, 0.7);
+}
+
+:root[data-theme="dark"] .tooltip {
+  background-color: var(--sc-surface-overlay);
+  color: var(--sc-text);
+  border: 1px solid var(--sc-border);
+}
+
+/* Tabs and accordions */
+:root[data-theme="dark"] .tabs,
+:root[data-theme="dark"] .tabs-content,
+:root[data-theme="dark"] .accordion,
+:root[data-theme="dark"] .accordion-content {
+  background-color: var(--sc-surface-raised);
+  color: var(--sc-text);
+  border-color: var(--sc-border);
+}
+
+:root[data-theme="dark"] .tabs-title > a,
+:root[data-theme="dark"] .accordion-title {
+  background-color: var(--sc-surface-raised);
+  color: var(--sc-link);
+  border-color: var(--sc-border);
+}
+
+:root[data-theme="dark"] .tabs-title > a:hover,
+:root[data-theme="dark"] .accordion-title:hover {
+  background-color: var(--sc-surface-sunken);
+}
+
+:root[data-theme="dark"] .tabs-title > a[aria-selected="true"] {
+  background-color: var(--sc-surface-sunken);
+  color: var(--sc-text);
+}
+
+/* Pagination and breadcrumbs */
+:root[data-theme="dark"] .pagination a,
+:root[data-theme="dark"] .pagination button,
+:root[data-theme="dark"] .breadcrumbs a {
+  color: var(--sc-link);
+}
+
+:root[data-theme="dark"] .pagination .current {
+  background-color: var(--sc-surface-sunken);
+  color: var(--sc-text);
+}
+
+:root[data-theme="dark"] .breadcrumbs li:not(:last-child)::after {
+  color: var(--sc-text-muted);
+}
+
+/* Code and rules */
+:root[data-theme="dark"] code,
+:root[data-theme="dark"] pre,
+:root[data-theme="dark"] kbd {
+  background-color: var(--sc-surface-sunken);
+  color: var(--sc-text);
+  border-color: var(--sc-border);
+}
+
+:root[data-theme="dark"] hr {
+  border-color: var(--sc-border);
+}
+
+/* Images and media authored for a light page. Full inversion is wrong -
+   this only takes the edge off pure-white logo plates. */
+:root[data-theme="dark"] img.platform-invert-on-dark {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+/* --------------------------------------------------------------------------
+   Same rules for data-theme="auto" under an OS dark preference.
+   Kept as a separate block rather than a shared selector list so that the
+   forced-dark rules above stay readable and independently reviewable.
+   -------------------------------------------------------------------------- */
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="auto"] body,
+  :root[data-theme="auto"] .platform-body,
+  :root[data-theme="auto"] .platform-content,
+  :root[data-theme="auto"] .platform-content-container {
+    background-color: var(--sc-surface);
+    color: var(--sc-text);
+  }
+
+  :root[data-theme="auto"] h1,
+  :root[data-theme="auto"] h2,
+  :root[data-theme="auto"] h3,
+  :root[data-theme="auto"] h4,
+  :root[data-theme="auto"] h5,
+  :root[data-theme="auto"] h6,
+  :root[data-theme="auto"] p,
+  :root[data-theme="auto"] li,
+  :root[data-theme="auto"] dt,
+  :root[data-theme="auto"] dd,
+  :root[data-theme="auto"] blockquote,
+  :root[data-theme="auto"] label,
+  :root[data-theme="auto"] legend,
+  :root[data-theme="auto"] .platform-blog-body {
+    color: var(--sc-text);
+  }
+
+  :root[data-theme="auto"] .help-text,
+  :root[data-theme="auto"] .platform-activity-date,
+  :root[data-theme="auto"] .platform-activity-content-date,
+  :root[data-theme="auto"] .subheader {
+    color: var(--sc-text-muted);
+  }
+
+  :root[data-theme="auto"] .platform-body a,
+  :root[data-theme="auto"] .platform-content a,
+  :root[data-theme="auto"] .platform-blog-body a {
+    color: var(--sc-link);
+  }
+
+  :root[data-theme="auto"] .platform-body a:hover,
+  :root[data-theme="auto"] .platform-content a:hover,
+  :root[data-theme="auto"] .platform-blog-body a:hover {
+    color: var(--sc-link-hover);
+  }
+
+  :root[data-theme="auto"] .button.hollow,
+  :root[data-theme="auto"] .button.clear {
+    color: var(--sc-link);
+    border-color: var(--sc-border-control);
+    background-color: transparent;
+  }
+
+  :root[data-theme="auto"] .card,
+  :root[data-theme="auto"] .card-section,
+  :root[data-theme="auto"] .card-divider,
+  :root[data-theme="auto"] .platform-blog-cards-container,
+  :root[data-theme="auto"] .platform-calendar-details-container,
+  :root[data-theme="auto"] .platform-toc-container,
+  :root[data-theme="auto"] .platform-scrollable-view {
+    background-color: var(--sc-surface-raised);
+    color: var(--sc-text);
+    border-color: var(--sc-border);
+  }
+
+  :root[data-theme="auto"] .card-divider {
+    background-color: var(--sc-surface-sunken);
+  }
+
+  :root[data-theme="auto"] .callout {
+    border-color: var(--sc-border);
+  }
+
+  :root[data-theme="auto"] .callout:not(.primary):not(.secondary):not(.success):not(.warning):not(.alert):not(.header) {
+    background-color: var(--sc-surface-raised);
+    color: var(--sc-text);
+  }
+
+  :root[data-theme="auto"] table,
+  :root[data-theme="auto"] table tbody {
+    background-color: var(--sc-surface-raised);
+    color: var(--sc-text);
+    border-color: var(--sc-border);
+  }
+
+  :root[data-theme="auto"] table thead,
+  :root[data-theme="auto"] table tfoot {
+    background-color: var(--sc-surface-sunken);
+    color: var(--sc-text);
+  }
+
+  :root[data-theme="auto"] table tbody tr:nth-child(even) {
+    background-color: var(--sc-surface-sunken);
+    color: var(--sc-text);
+  }
+
+  :root[data-theme="auto"] table tbody td,
+  :root[data-theme="auto"] table tbody th,
+  :root[data-theme="auto"] table thead th {
+    border-color: var(--sc-border);
+    color: var(--sc-text);
+  }
+
+  :root[data-theme="auto"] table.hover tbody tr:hover {
+    background-color: var(--sc-surface-overlay);
+  }
+
+  :root[data-theme="auto"] input[type="text"],
+  :root[data-theme="auto"] input[type="password"],
+  :root[data-theme="auto"] input[type="date"],
+  :root[data-theme="auto"] input[type="datetime"],
+  :root[data-theme="auto"] input[type="datetime-local"],
+  :root[data-theme="auto"] input[type="month"],
+  :root[data-theme="auto"] input[type="week"],
+  :root[data-theme="auto"] input[type="email"],
+  :root[data-theme="auto"] input[type="number"],
+  :root[data-theme="auto"] input[type="search"],
+  :root[data-theme="auto"] input[type="tel"],
+  :root[data-theme="auto"] input[type="time"],
+  :root[data-theme="auto"] input[type="url"],
+  :root[data-theme="auto"] input[type="color"],
+  :root[data-theme="auto"] textarea,
+  :root[data-theme="auto"] select {
+    background-color: var(--sc-field-bg);
+    color: var(--sc-field-text);
+    border-color: var(--sc-border-control);
+    box-shadow: none;
+  }
+
+  :root[data-theme="auto"] input::placeholder,
+  :root[data-theme="auto"] textarea::placeholder {
+    color: var(--sc-field-placeholder);
+    opacity: 1;
+  }
+
+  :root[data-theme="auto"] input:disabled,
+  :root[data-theme="auto"] textarea:disabled,
+  :root[data-theme="auto"] select:disabled,
+  :root[data-theme="auto"] input[readonly],
+  :root[data-theme="auto"] textarea[readonly] {
+    background-color: var(--sc-field-disabled-bg);
+    color: var(--sc-text-muted);
+  }
+
+  :root[data-theme="auto"] select {
+    background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 24'><polygon points='0,0 32,0 16,24' style='fill: %23a7b0bd'></polygon></svg>");
+  }
+
+  :root[data-theme="auto"] .input-group-label {
+    background-color: var(--sc-surface-sunken);
+    color: var(--sc-text);
+    border-color: var(--sc-border-control);
+  }
+
+  :root[data-theme="auto"] .reveal,
+  :root[data-theme="auto"] .dropdown-pane,
+  :root[data-theme="auto"] .platform-dialog {
+    background-color: var(--sc-surface-overlay);
+    color: var(--sc-text);
+    border-color: var(--sc-border);
+    box-shadow: var(--sc-shadow-lg);
+  }
+
+  :root[data-theme="auto"] .reveal-overlay {
+    background-color: rgba(0, 0, 0, 0.7);
+  }
+
+  :root[data-theme="auto"] .tooltip {
+    background-color: var(--sc-surface-overlay);
+    color: var(--sc-text);
+    border: 1px solid var(--sc-border);
+  }
+
+  :root[data-theme="auto"] .tabs,
+  :root[data-theme="auto"] .tabs-content,
+  :root[data-theme="auto"] .accordion,
+  :root[data-theme="auto"] .accordion-content {
+    background-color: var(--sc-surface-raised);
+    color: var(--sc-text);
+    border-color: var(--sc-border);
+  }
+
+  :root[data-theme="auto"] .tabs-title > a,
+  :root[data-theme="auto"] .accordion-title {
+    background-color: var(--sc-surface-raised);
+    color: var(--sc-link);
+    border-color: var(--sc-border);
+  }
+
+  :root[data-theme="auto"] .tabs-title > a:hover,
+  :root[data-theme="auto"] .accordion-title:hover {
+    background-color: var(--sc-surface-sunken);
+  }
+
+  :root[data-theme="auto"] .tabs-title > a[aria-selected="true"] {
+    background-color: var(--sc-surface-sunken);
+    color: var(--sc-text);
+  }
+
+  :root[data-theme="auto"] .pagination a,
+  :root[data-theme="auto"] .pagination button,
+  :root[data-theme="auto"] .breadcrumbs a {
+    color: var(--sc-link);
+  }
+
+  :root[data-theme="auto"] .pagination .current {
+    background-color: var(--sc-surface-sunken);
+    color: var(--sc-text);
+  }
+
+  :root[data-theme="auto"] .breadcrumbs li:not(:last-child)::after {
+    color: var(--sc-text-muted);
+  }
+
+  :root[data-theme="auto"] code,
+  :root[data-theme="auto"] pre,
+  :root[data-theme="auto"] kbd {
+    background-color: var(--sc-surface-sunken);
+    color: var(--sc-text);
+    border-color: var(--sc-border);
+  }
+
+  :root[data-theme="auto"] hr {
+    border-color: var(--sc-border);
+  }
+
+  :root[data-theme="auto"] img.platform-invert-on-dark {
+    filter: invert(1) hue-rotate(180deg);
+  }
+}
+
+/* ==========================================================================
+   Color scheme toggle control
+   ==========================================================================
+   Rendered in the utility bar. Inherits the bar's colors so it works
+   against whatever the site configured, in either scheme.
+   ========================================================================== */
+
+/* Hidden until platform-theme.js marks the document ready. A toggle that
+   cannot toggle is worse than no toggle at all (WCAG 2.2 SC 4.1.2 - a
+   control that reports itself as a button but does nothing). Deliberately
+   NOT keyed off Foundation's .no-js class: Foundation only removes that on
+   .foundation() init, which would both delay the button and tie this
+   feature to a dependency it does not otherwise need. */
+.platform-color-scheme-toggle {
+  display: none;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  padding: var(--sc-space-1) var(--sc-space-2);
+  margin: 0;
+  line-height: 1;
+  border-radius: var(--sc-radius-sm);
+  align-items: center;
+  gap: var(--sc-space-2);
+}
+
+:root.platform-color-scheme-ready .platform-color-scheme-toggle {
+  display: inline-flex;
+}
+
+.platform-color-scheme-toggle:hover {
+  background-color: rgba(127, 127, 127, 0.2);
+}
+
+.platform-color-scheme-toggle .fa,
+.platform-color-scheme-toggle .fas,
+.platform-color-scheme-toggle .far {
+  color: inherit;
+}
+
+/* Only one of the two icons is shown, whichever matches the active scheme.
+   Hidden with display so screen readers do not announce the inactive one;
+   the accessible name lives on the button's aria-label, which the script
+   keeps in sync. */
+.platform-color-scheme-toggle .platform-icon-dark {
+  display: none;
+}
+
+:root[data-theme="dark"] .platform-color-scheme-toggle .platform-icon-light {
+  display: none;
+}
+
+:root[data-theme="dark"] .platform-color-scheme-toggle .platform-icon-dark {
+  display: inline-block;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="auto"] .platform-color-scheme-toggle .platform-icon-light {
+    display: none;
+  }
+
+  :root[data-theme="auto"] .platform-color-scheme-toggle .platform-icon-dark {
+    display: inline-block;
+  }
+}
+

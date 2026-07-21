@@ -7,7 +7,7 @@ description: SimIS CMS topics for customization
 
 ## Content Management System
 
-- Site Theme
+- Site Theme (Design Tokens, Light/Dark Color Scheme)
 - Site CSS
 - Site Map
 - Web Pages
