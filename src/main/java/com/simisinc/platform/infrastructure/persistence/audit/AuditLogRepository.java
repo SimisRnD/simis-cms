@@ -79,6 +79,33 @@ public class AuditLogRepository {
     return (List<AuditLog>) result.getRecords();
   }
 
+  private static SqlUtils createWhereStatement(AuditLogSpecification specification) {
+    SqlUtils where = null;
+    if (specification != null) {
+      where = new SqlUtils()
+          .addIfExists("event_category = ?", specification.getEventCategory())
+          .addIfExists("event_type = ?", specification.getEventType())
+          .addIfExists("outcome = ?", specification.getOutcome())
+          .addIfExists("actor_user_id = ?", specification.getActorUserId(), -1)
+          .addIfExists("LOWER(actor_username) LIKE ?", specification.getActorUsername() != null
+              ? "%" + specification.getActorUsername().toLowerCase() + "%" : null)
+          .addIfExists("source_ip = ?", specification.getSourceIp())
+          .addIfExists("occurred >= ?", specification.getOccurredAfter())
+          .addIfExists("occurred < ?", specification.getOccurredBefore());
+    }
+    return where;
+  }
+
+  public static List<AuditLog> findAll(AuditLogSpecification specification, DataConstraints constraints) {
+    if (constraints == null) {
+      constraints = new DataConstraints();
+    }
+    constraints.setDefaultColumnToSortBy("audit_id desc");
+    SqlUtils where = createWhereStatement(specification);
+    DataResult result = DB.selectAllFrom(TABLE_NAME, where, constraints, AuditLogRepository::buildRecord);
+    return (List<AuditLog>) result.getRecords();
+  }
+
   private static AuditLog buildRecord(ResultSet rs) {
     try {
       AuditLog record = new AuditLog();
