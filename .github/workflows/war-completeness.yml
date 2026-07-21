@@ -1,0 +1,42 @@
+# Checks that the WAR actually contains the classes it references, so a missing
+# runtime dependency fails here instead of throwing NoClassDefFoundError in
+# production. See tools/check-war-completeness.py for the full rationale.
+#
+# This complements the dependency-drift check rather than overlapping it. Drift
+# compares versions of TOP-LEVEL pom dependencies; it is blind to a transitive
+# nobody declared. That gap is what let the WAR ship okhttp -- a Kotlin library --
+# with no kotlin-stdlib anywhere in it, which broke the Square payment path.
+#
+# REPORT-ONLY for now: it prints findings and exits 0. `main` currently fails this
+# check for exactly the okhttp/kotlin reason above; PR #207 fixes it. Once that has
+# merged and this reports zero unexpected, flip enforcement on by adding --strict
+# to the run line below, the same way the drift check was flipped.
+name: WAR completeness
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  completeness:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v5
+        with:
+          distribution: 'temurin'
+          java-version: 21
+
+      # The check inspects the assembled artifact, so it has to be built first.
+      - name: Build the WAR
+        run: ant -noinput -buildfile build.xml -lib lib/war package
+
+      - name: Report classes referenced but missing from the WAR
+        run: python3 tools/check-war-completeness.py --war target/simis-cms.war
