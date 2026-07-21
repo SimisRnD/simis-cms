@@ -16,6 +16,7 @@
 
 package com.simisinc.platform.presentation.widgets.cms;
 
+import com.simisinc.platform.application.cms.HtmlCommand;
 import com.simisinc.platform.application.cms.LoadWikiCommand;
 import com.simisinc.platform.application.cms.LoadWikiPageCommand;
 import com.simisinc.platform.domain.model.cms.Wiki;
@@ -131,9 +132,13 @@ public class WikiWidget extends GenericWidget {
     Parser parser = Parser.builder(options).build();
     HtmlRenderer renderer = HtmlRenderer.builder(options).build();
 
-    // Convert the markup to html
+    // Convert the markup to html, then sanitize it. Markdown is not safe on its own: CommonMark
+    // passes raw HTML through, so a <script> tag written into a wiki page renders verbatim, and
+    // wiki-page.jsp writes this value out unescaped. Wiki bodies are stored unsanitized (markdown
+    // source cannot be run through the HTML cleaner without mangling it), so the render boundary
+    // is where the content has to be made safe.
     Node document = parser.parse(wikiPage.getBody());
-    String contentHtml = renderer.render(document);
+    String contentHtml = HtmlCommand.cleanRenderedMarkdown(renderer.render(document));
     context.getRequest().setAttribute("contentHtml", contentHtml);
 
     if (wikiPage.getBody().contains("```mermaid")) {
