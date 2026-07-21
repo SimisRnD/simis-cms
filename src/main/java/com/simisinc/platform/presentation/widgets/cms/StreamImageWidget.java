@@ -28,6 +28,7 @@ import org.apache.commons.logging.LogFactory;
 import com.simisinc.platform.application.filesystem.FileSystemCommand;
 import com.simisinc.platform.domain.model.cms.Image;
 import com.simisinc.platform.infrastructure.persistence.cms.ImageRepository;
+import com.simisinc.platform.presentation.controller.FileDownloadCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 
@@ -86,9 +87,10 @@ public class StreamImageWidget extends GenericWidget {
       return context;
     }
 
-    // Set header info
+    // Set header info: nosniff + a sandbox CSP so an uploaded SVG/HTML served here (an image source) still
+    // renders but cannot run script in this origin; the image content type is preserved for embedding.
     context.getResponse().setDateHeader("Last-Modified", lastModified);
-    context.getResponse().setContentType(record.getFileType());
+    FileDownloadCommand.applyInlineMediaHeaders(context.getResponse(), record.getFileType());
     context.getResponse().setContentLength((int) file.length());
 
     // Check for head method
