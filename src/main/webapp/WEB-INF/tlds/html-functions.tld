@@ -44,4 +44,14 @@
         <function-class>com.simisinc.platform.application.cms.HtmlCommand</function-class>
         <function-signature>java.lang.String makeId(java.lang.String)</function-signature>
     </function>
+    <function>
+        <description>
+            Sanitizes stored html against the safe list, for values that are rendered unescaped.
+            Use this where the content is genuinely html and c:out would break it; use c:out
+            everywhere else.
+        </description>
+        <name>clean</name>
+        <function-class>com.simisinc.platform.application.cms.HtmlCommand</function-class>
+        <function-signature>java.lang.String cleanContent(java.lang.String)</function-signature>
+    </function>
 </taglib>

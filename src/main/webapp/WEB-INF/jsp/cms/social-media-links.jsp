@@ -22,26 +22,26 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <c:set var="firstIcon" scope="request" value=""/>
 <c:if test="${!empty socialPropertyMap['social.instagram.url']}">
-  <a <c:if test="${!empty firstIcon}">class="${iconClass}" </c:if>target="_blank" href="<c:out value="${socialPropertyMap['social.instagram.url']}"/>"><i class="fa fa-2x fa-instagram"></i></a>
+  <a <c:if test="${!empty firstIcon}">class="<c:out value="${iconClass}"/>" </c:if>target="_blank" href="<c:out value="${socialPropertyMap['social.instagram.url']}"/>"><i class="fa fa-2x fa-instagram"></i></a>
   <c:set var="firstIcon" scope="request" value="true"/>
 </c:if>
 <c:if test="${!empty socialPropertyMap['social.twitter.url']}">
-  <a <c:if test="${!empty firstIcon}">class="${iconClass}" </c:if>target="_blank" href="<c:out value="${socialPropertyMap['social.twitter.url']}"/>"><i class="fa fa-2x fa-twitter"></i></a>
+  <a <c:if test="${!empty firstIcon}">class="<c:out value="${iconClass}"/>" </c:if>target="_blank" href="<c:out value="${socialPropertyMap['social.twitter.url']}"/>"><i class="fa fa-2x fa-twitter"></i></a>
   <c:set var="firstIcon" scope="request" value="true"/>
 </c:if>
 <c:if test="${!empty socialPropertyMap['social.facebook.url']}">
-  <a <c:if test="${!empty firstIcon}">class="${iconClass}" </c:if>target="_blank" href="<c:out value="${socialPropertyMap['social.facebook.url']}"/>"><i class="fa fa-2x fa-facebook-square"></i></a>
+  <a <c:if test="${!empty firstIcon}">class="<c:out value="${iconClass}"/>" </c:if>target="_blank" href="<c:out value="${socialPropertyMap['social.facebook.url']}"/>"><i class="fa fa-2x fa-facebook-square"></i></a>
   <c:set var="firstIcon" scope="request" value="true"/>
 </c:if>
 <c:if test="${!empty socialPropertyMap['social.youtube.url']}">
-  <a <c:if test="${!empty firstIcon}">class="${iconClass}" </c:if>target="_blank" href="<c:out value="${socialPropertyMap['social.youtube.url']}"/>"><i class="fa fa-2x fa-youtube"></i></a>
+  <a <c:if test="${!empty firstIcon}">class="<c:out value="${iconClass}"/>" </c:if>target="_blank" href="<c:out value="${socialPropertyMap['social.youtube.url']}"/>"><i class="fa fa-2x fa-youtube"></i></a>
   <c:set var="firstIcon" scope="request" value="true"/>
 </c:if>
 <c:if test="${!empty socialPropertyMap['social.flickr.url']}">
-  <a <c:if test="${!empty firstIcon}">class="${iconClass}" </c:if>target="_blank" href="<c:out value="${socialPropertyMap['social.flickr.url']}"/>"><i class="fa fa-2x fa-flickr"></i></a>
+  <a <c:if test="${!empty firstIcon}">class="<c:out value="${iconClass}"/>" </c:if>target="_blank" href="<c:out value="${socialPropertyMap['social.flickr.url']}"/>"><i class="fa fa-2x fa-flickr"></i></a>
   <c:set var="firstIcon" scope="request" value="true"/>
 </c:if>
 <c:if test="${!empty socialPropertyMap['social.linkedin.url']}">
-  <a <c:if test="${!empty firstIcon}">class="${iconClass}" </c:if>target="_blank" href="<c:out value="${socialPropertyMap['social.linkedin.url']}"/>"><i class="fa fa-2x fa-linkedin"></i></a>
+  <a <c:if test="${!empty firstIcon}">class="<c:out value="${iconClass}"/>" </c:if>target="_blank" href="<c:out value="${socialPropertyMap['social.linkedin.url']}"/>"><i class="fa fa-2x fa-linkedin"></i></a>
   <c:set var="firstIcon" scope="request" value="true"/>
 </c:if>

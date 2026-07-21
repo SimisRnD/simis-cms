@@ -16,6 +16,8 @@
 
 package com.simisinc.platform.presentation.widgets.cms;
 
+import com.simisinc.platform.application.cms.UrlCommand;
+
 import static java.util.stream.Collectors.toList;
 
 import java.util.ArrayList;
@@ -176,7 +178,10 @@ public class MenuWidget extends GenericWidget {
         // Prepare the link
         Map<String, String> properties = new HashMap();
         addProperty(context, properties, "name", valueMap.get("name"));
-        addProperty(context, properties, "link", link);
+        // menu.jsp renders this straight into href="${ctx}${link['link']}" without escaping.
+        // LinkWidget already runs its equivalent through sanitizeUrl (LinkWidget.java:64); this
+        // path did not, so a link attribute in the page-layout XML reached the page verbatim.
+        addProperty(context, properties, "link", UrlCommand.sanitizeUrl(link));
         addProperty(context, properties, "class", menuItemClass);
         addProperty(context, properties, "container", container);
         addProperty(context, properties, "icon", icon);

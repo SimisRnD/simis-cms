@@ -14,6 +14,7 @@
   ~ limitations under the License.
   --%>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="html" uri="/WEB-INF/tlds/html-functions.tld" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <%@ taglib prefix="url" uri="/WEB-INF/tlds/url-functions.tld" %>
@@ -35,7 +36,7 @@
     <td style="vertical-align: top">
       <c:choose>
         <c:when test="${'html' eq field.type}">
-          ${field.value}
+          ${html:clean(field.value)}
         </c:when>
         <c:when test="${'url' eq field.type && (fn:startsWith(field.value, 'http://') || fn:startsWith(field.value, 'https://'))}">
           <a href="${url:encode(field.value)}" target="_blank" rel="nofollow"><c:out value="${field.value}" /></a>

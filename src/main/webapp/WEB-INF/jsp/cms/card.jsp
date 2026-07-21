@@ -14,6 +14,7 @@
   ~ limitations under the License.
   --%>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="js" uri="/WEB-INF/tlds/javascript-escape.tld" %>
 <%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
 <%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <%@ taglib prefix="url" uri="/WEB-INF/tlds/url-functions.tld" %>
@@ -24,7 +25,7 @@
 <jsp:useBean id="link" class="java.lang.String" scope="request"/>
 <jsp:useBean id="linkTitle" class="java.lang.String" scope="request"/>
 <jsp:useBean id="linkIcon" class="java.lang.String" scope="request"/>
-<div class="<c:out value="${classData}" />"<c:if test="${!empty link}"> onclick="window.location.href='${ctx}${link}'"</c:if>>
+<div class="<c:out value="${classData}" />"<c:if test="${!empty link}"> onclick="window.location.href='${ctx}${js:escape(link)}'"</c:if>>
   <c:if test="${!empty title}">
     <div class="card-divider"><c:out value="${title}" /></div>
   </c:if>

@@ -55,8 +55,8 @@
         <c:if test="${!empty attributeMap[attribute.name] && fn:length(attributeMap[attribute.name]) > 1}">
           <c:out value="${attribute.value}" />:<br />
           <c:forEach items="${attributeMap[attribute.name]}" var="skuAttribute" varStatus="status">
-            <input type="radio" name="${attribute.name}" value="<c:out value="${skuAttribute}" />" id="radio${attribute.name}-${status.index}">
-            <label for="radio${attribute.name}-${status.index}">
+            <input type="radio" name="<c:out value="${attribute.name}"/>" value="<c:out value="${skuAttribute}" />" id="radio<c:out value="${attribute.name}"/>-${status.index}">
+            <label for="radio<c:out value="${attribute.name}"/>-${status.index}">
               <%-- If the first attribute, show the SKU price --%>
               <c:set var="productSkuPrice" value="0" scope="request" />
               <c:set var="productStrikePrice" value="0" scope="request" />

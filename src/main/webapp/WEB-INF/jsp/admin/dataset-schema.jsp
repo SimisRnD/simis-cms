@@ -43,7 +43,7 @@
       <c:forEach items="${collectionList}" var="collection">
         <option value="<c:out value="${collection.uniqueId}" />"<c:if test="${collection.uniqueId eq dataset.collectionUniqueId}"> selected</c:if>><c:out value="${collection.name}" /></option>
       </c:forEach>
-      <option value="NEW-<c:out value="${dataset.name}" />"<c:if test="${fn:startsWith(dataset.collectionUniqueId, 'NEW-')}"> selected</c:if>>&lt;${dataset.name}&gt;</option>
+      <option value="NEW-<c:out value="${dataset.name}"/>"<c:if test="${fn:startsWith(dataset.collectionUniqueId, 'NEW-')}"> selected</c:if>>&lt;<c:out value="${dataset.name}"/>&gt;</option>
     </select>
   </label>
 
@@ -105,7 +105,7 @@
             <option value="barcode"<c:if test="${fieldMappingsList[status.index] eq 'barcode'}"> selected</c:if>>Barcode</option>
             <option value="assignedTo"<c:if test="${fieldMappingsList[status.index] eq 'assignedTo'}"> selected</c:if>>Assigned To</option>
             <option value="privacyType"<c:if test="${fieldMappingsList[status.index] eq 'privacyType'}"> selected</c:if>>Privacy Type</option>
-            <option value="custom"<c:if test="${fieldMappingsList[status.index] eq 'custom'}"> selected</c:if>>&lt;${column}&gt;</option>
+            <option value="custom"<c:if test="${fieldMappingsList[status.index] eq 'custom'}"> selected</c:if>>&lt;<c:out value="${column}"/>&gt;</option>
           </select>
         </td>
         <td>

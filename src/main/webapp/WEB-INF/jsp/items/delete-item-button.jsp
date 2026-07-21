@@ -20,5 +20,5 @@
 <jsp:useBean id="item" class="com.simisinc.platform.domain.model.items.Item" scope="request"/>
 <jsp:useBean id="buttonClass" class="java.lang.String" scope="request"/>
 <c:if test="${item.id gt 0}">
-<a class="radius button ${buttonClass}" href="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&itemUniqueId=${item.uniqueId}<c:if test="${!empty returnPage}">&returnPage=${returnPage}</c:if>" onclick="return confirm('Are you sure you want to delete <c:out value="${js:escape(item.name)}" /> and all related information?');"><i class="fa fa-trash"></i> <c:out value="${buttonName}" /></a>
+<a class="radius button ${buttonClass}" href="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&itemUniqueId=${item.uniqueId}<c:if test="${!empty returnPage}">&returnPage=<c:out value="${returnPage}"/></c:if>" onclick="return confirm('Are you sure you want to delete <c:out value="${js:escape(item.name)}" /> and all related information?');"><i class="fa fa-trash"></i> <c:out value="${buttonName}" /></a>
 </c:if>

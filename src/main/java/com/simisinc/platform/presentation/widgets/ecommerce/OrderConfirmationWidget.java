@@ -16,6 +16,8 @@
 
 package com.simisinc.platform.presentation.widgets.ecommerce;
 
+import com.simisinc.platform.application.cms.HtmlCommand;
+
 import com.simisinc.platform.application.ecommerce.LoadProductCommand;
 import com.simisinc.platform.domain.model.ecommerce.*;
 import com.simisinc.platform.infrastructure.persistence.ecommerce.*;
@@ -101,12 +103,17 @@ public class OrderConfirmationWidget extends GenericWidget {
     context.getRequest().setAttribute("trackingNumberList", trackingNumberList);
 
     // HTML Content
-    context.getRequest().setAttribute("calloutHtml", context.getPreferences().get("calloutHtml"));
+    // Both of these preferences are rendered unescaped by order-confirmation.jsp
+    context.getRequest().setAttribute("calloutHtml",
+        HtmlCommand.cleanContent(context.getPreferences().get("calloutHtml")));
     String introHtml = context.getPreferences().get("introHtml");
     if (introHtml != null) {
       introHtml = StringUtils.replace(introHtml, "${email}", order.getEmail());
       introHtml = StringUtils.replace(introHtml, "${orderNumber}", order.getUniqueId());
-      context.getRequest().setAttribute("introHtml", introHtml);
+      // Sanitize AFTER the substitutions, not before: the email address is supplied by the
+      // customer, so it is untrusted content being spliced into html that is then rendered
+      // unescaped. Cleaning the template alone would leave that injection open.
+      context.getRequest().setAttribute("introHtml", HtmlCommand.cleanContent(introHtml));
     }
 
     context.setJsp(ORDER_CONFIRMATION_JSP);

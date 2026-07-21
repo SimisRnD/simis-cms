@@ -81,7 +81,7 @@
         debug: 1,
 
         remoteURL: "${ctx}/admin/web-page-designer?widget=${widgetContext.uniqueId}&token=${userSession.formToken}&webPage=${js:escape(webPage.link)}",
-        redirectURL: "${ctx}${webPage.link}",
+        redirectURL: "${ctx}${js:escape(webPage.link)}",
         controlButtons: [[12], [7, 5], [8, 4], [9, 3], [3, 3, 3, 3], [4, 4, 4], [6, 6], [2, 8, 2], [3, 6, 3], [3, 9], [4, 8]],
         customControls: {
           global_col: [{callback: 'widget_callback', loc: 'top', iconClass: '${font:far()} fa-bars'}]
