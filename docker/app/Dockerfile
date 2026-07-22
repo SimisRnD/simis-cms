@@ -43,7 +43,58 @@ RUN curl -fsSL -o /opt/applicationinsights-agent.jar \
 COPY ./docker/app/applicationinsights.json /opt/applicationinsights.json
 
 COPY ./target/simis-cms.war /usr/local/tomcat/webapps/ROOT.war
+
+# [STIG] Run Tomcat as a non-root user. The stock image runs as root, which is a standing,
+# citable finding independent of any base-image choice. A fixed high UID/GID avoids collision
+# with host accounts and lets an orchestrator assert runAsNonRoot / runAsUser without guessing.
+#
+# What must be writable, and why -- each of these was confirmed by running the container, not
+# assumed:
+#   work/    Jasper's scratch directory. JSPs are precompiled, but Tomcat still writes here.
+#   temp/    java.io.tmpdir for the JVM.
+#   logs/    catalina.out and the STIG access log (AU-3) -- an unwritable logs/ would silently
+#            lose the per-request audit trail this profile depends on.
+#   webapps/ unpackWARs="true" extracts ROOT.war to ROOT/ at startup.
+#   /opt     the App Insights agent writes its selfDiagnostics log beside its own jar.
+#   /opt/simis  CMS_PATH, the file store. Created here on purpose: docker seeds a NAMED volume
+#            from the image path, so creating it owned by the runtime user is what makes the
+#            mounted web-data volume writable. Without this the app boots and /healthz fails
+#            its "file store writable" check.
+#
+#   conf/Catalina/localhost  Tomcat's per-host deployment directory. HostConfig.beforeStart
+#            creates this at startup even with autoDeploy="false"; without it Tomcat logs
+#            "SEVERE ... Unable to create directory for deployment" on every boot. The app
+#            still serves, but a SEVERE on a hardened image invites review questions and can
+#            mask a real error later. It is pre-created and chowned rather than making the
+#            whole of conf/ writable -- one directory of write surface instead of the entire
+#            configuration tree, which stays read-only (server.xml included).
+#
+# setenv.sh is chowned as well as chmod 0750: catalina.sh sources it only `if [ -r ]`, so a
+# root-owned 0750 file would be silently unreadable to this user and the JVM options would
+# vanish without an error. That failure mode is called out in the private STIG runbook.
+#
+# Still open (paired container-runtime work, tracked separately): read-only root filesystem,
+# dropping ALL Linux capabilities, and enabling server.xml's SecurityListener -- the listener's
+# umask/effective-user checks are what this change makes possible.
+ARG APP_UID=10001
+ARG APP_GID=10001
+RUN groupadd --gid ${APP_GID} simis \
+    && useradd --uid ${APP_UID} --gid ${APP_GID} --home-dir /usr/local/tomcat \
+               --shell /usr/sbin/nologin --no-create-home simis \
+    && mkdir -p /opt/simis /usr/local/tomcat/work /usr/local/tomcat/temp /usr/local/tomcat/logs \
+                /usr/local/tomcat/conf/Catalina/localhost \
+    && chown -R simis:simis \
+         /opt \
+         /usr/local/tomcat/work \
+         /usr/local/tomcat/temp \
+         /usr/local/tomcat/logs \
+         /usr/local/tomcat/webapps \
+         /usr/local/tomcat/conf/Catalina \
+         /usr/local/tomcat/bin/setenv.sh
+USER simis
+
 ENV CATALINA_OPTS="-javaagent:/opt/applicationinsights-agent.jar -XX:InitialRAMPercentage=10 -XX:MinRAMPercentage=50 -XX:MaxRAMPercentage=80 -XX:+ExitOnOutOfMemoryError"
+# 8080 is deliberately unprivileged -- a non-root process cannot bind <1024.
 EXPOSE 8080
 HEALTHCHECK --interval=10s --timeout=5s --start-period=30s --retries=3 CMD curl -f --max-time 5 http://localhost:8080/healthz || exit 1
 CMD ["catalina.sh", "run"]
