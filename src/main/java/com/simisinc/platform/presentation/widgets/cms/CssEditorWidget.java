@@ -16,8 +16,9 @@
 
 package com.simisinc.platform.presentation.widgets.cms;
 
-import com.granule.CSSFastMin;
+import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.cms.UrlCommand;
+import com.simisinc.platform.application.cms.ValidateStylesheetCommand;
 import com.simisinc.platform.domain.model.cms.Stylesheet;
 import com.simisinc.platform.domain.model.cms.WebPage;
 import com.simisinc.platform.infrastructure.persistence.cms.StylesheetRepository;
@@ -128,14 +129,9 @@ public class CssEditorWidget extends GenericWidget {
       // Validate the CSS before saving and alert the user
       try {
 
-        CSSFastMin cssMin = new CSSFastMin();
-        cssMin.minimize(stylesheet.getCss());
+        ValidateStylesheetCommand.checkCss(stylesheet.getCss());
 
-        // validate the CSS...
-        // matching {} counts, etc.
-        // matching /* */
-
-      } catch (Exception e) {
+      } catch (DataException e) {
         LOG.error("User input: CSS did not validate: " + e.getMessage());
         context.setRequestObject(stylesheet);
         context.setErrorMessage("The CSS could not be validated. Error reported: " + e.getMessage());

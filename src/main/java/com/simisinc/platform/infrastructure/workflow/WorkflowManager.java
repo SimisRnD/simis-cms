@@ -31,7 +31,7 @@ import org.jeasy.flows.work.WorkContext;
 import org.jobrunr.jobs.JobId;
 import org.jobrunr.scheduling.BackgroundJobRequest;
 
-import javax.servlet.ServletContext;
+import jakarta.servlet.ServletContext;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.*;

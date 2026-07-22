@@ -20,8 +20,8 @@ import com.simisinc.platform.domain.model.cms.WebPage;
 import com.simisinc.platform.presentation.controller.ControllerSession;
 import com.simisinc.platform.presentation.controller.Page;
 
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.Serializable;
 import java.util.Map;
 

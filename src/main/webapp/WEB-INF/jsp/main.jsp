@@ -16,12 +16,11 @@
 <%@ page import="static com.simisinc.platform.ApplicationInfo.PRODUCT_NAME" %>
 <%@ page import="static com.simisinc.platform.ApplicationInfo.VERSION" %>
 <%@ page contentType="text/html; charset=UTF-8" pageEncoding="UTF-8" %>
-<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
-<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="font" uri="/WEB-INF/tlds/font-functions.tld" %>
-<%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <%@ taglib prefix="js" uri="/WEB-INF/tlds/javascript-escape.tld" %>
-<%@ taglib prefix="g" uri="http://granule.com/tags" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="masterWebPage" class="com.simisinc.platform.domain.model.cms.WebPage" scope="request"/>
 <jsp:useBean id="pageRenderInfo" class="com.simisinc.platform.presentation.controller.PageRenderInfo" scope="request"/>
@@ -105,7 +104,6 @@
     </c:when>
   </c:choose>
   <%-- CSS --%>
-  <g:compress>
     <c:if test="${!empty themePropertyMap['theme.fonts.body']}">
       <link rel="stylesheet" href="${ctx}/css/google-fonts/${themePropertyMap['theme.fonts.body']}.css">
     </c:if>
@@ -125,9 +123,7 @@
     <%-- Design tokens and dark scheme. Loaded after platform.css so it can repaint chrome, and
          before the theme's inline <style> block so a site's own colors still win. --%>
     <link rel="stylesheet" type="text/css" href="${ctx}/css/platform-tokens.css" />
-  </g:compress>
   <c:if test="${!empty themePropertyMap}">
-    <g:compress>
       <style><%-- Prevent top-bar flicker --%>
         :root {
           <c:if test="${!empty themePropertyMap['theme.body.text.color']}">--sc-body-text-color:<c:out value="${themePropertyMap['theme.body.text.color']}" />;</c:if>
@@ -277,7 +273,6 @@
           display: none;
         }
       </style>
-    </g:compress>
   </c:if>
   <c:if test="${!empty includeGlobalStylesheet}">
     <link rel="stylesheet" type="text/css" href="${ctx}/css/custom/stylesheet.css?v=${includeGlobalStylesheetLastModified}" />
@@ -318,7 +313,6 @@
       })(window,document,'script','dataLayer','${js:escape(analyticsPropertyMap['analytics.google.tagmanager'])}');</script>
     </c:if>
   </c:if>
-  <g:compress>
     <script src="${ctx}/javascript/jquery-3.7.1/jquery.min.js"></script>
     <script src="${ctx}/javascript/foundation-datepicker-20180424/foundation-datepicker.min.js"></script>
     <script src="${ctx}/javascript/autocomplete-1.0.7/auto-complete.js"></script>
@@ -327,7 +321,6 @@
     <c:if test="${colorSchemeMode eq 'user'}">
       <script src="${ctx}/javascript/platform-theme.js"></script>
     </c:if>
-  </g:compress>
 </head>
 <body<c:if test="${pageRenderInfo.name eq '/'}"> id="body-home"</c:if><c:if test="${!empty pageRenderInfo.cssClass}"> class="<c:out value="${pageRenderInfo.cssClass}" />"</c:if>>
   <c:choose>
@@ -549,7 +542,6 @@
   <script>
     var mainToken = '${userSession.formToken}';
   </script>
-  <g:compress>
     <script src="${ctx}/javascript/foundation-6.8.1/what-input-5.2.6.min.js"></script>
     <script src="${ctx}/javascript/foundation-6.8.1/foundation.min.js"></script>
     <script>
@@ -705,7 +697,6 @@
         }
       });
     </script>
-  </g:compress>
   <c:if test="${!fn:startsWith(pageRenderInfo.name, '/admin')}">
     <c:if test="${!empty analyticsPropertyMap['analytics.service'] && 'google' eq analyticsPropertyMap['analytics.service'] && !empty analyticsPropertyMap['analytics.google.key']}">
       <script async src="https://www.googletagmanager.com/gtag/js?id=${js:escape(analyticsPropertyMap['analytics.google.key'])}"></script>

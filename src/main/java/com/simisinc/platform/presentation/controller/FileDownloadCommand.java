@@ -18,7 +18,7 @@ package com.simisinc.platform.presentation.controller;
 
 import java.util.Set;
 
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletResponse;
 
 import org.apache.commons.lang3.StringUtils;
 

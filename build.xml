@@ -110,7 +110,7 @@
        surfacing at runtime when Tomcat/Jasper serves the page. This mirrors the JSP handling that
        already runs inside `package`, but stands alone so CI can run it right after `compile`
        (failing fast, before the test suite) and so the gate survives any future change to
-       `package`. The Tomcat 9 / javax Jasper comes from lib/war (see the catalina taskdef above),
+       `package`. The Tomcat 11 / jakarta Jasper comes from lib/war (see the catalina taskdef above),
        so invoke as: ant -lib lib/war compile-jsp -->
   <target name="compile-jsp" depends="compile">
     <delete dir="${jsp.check.dir}"/>
@@ -123,7 +123,7 @@
     <copy todir="${jsp.check.dir}/WEB-INF/classes">
       <fileset dir="${build.dir}"><include name="**"/></fileset>
     </copy>
-    <!-- Dependency jars: supply the bundled taglib TLDs (JSTL, granule) and referenced classes -->
+    <!-- Dependency jars: supply the bundled taglib TLDs (JSTL) and referenced classes -->
     <copy todir="${jsp.check.dir}/WEB-INF/lib" flatten="true">
       <fileset dir="${lib.dir}"><include name="**/*.jar"/></fileset>
     </copy>
@@ -141,7 +141,7 @@
     <!-- Translate JSP -> Java; Jasper fails the build on syntax and taglib-resolution errors -->
     <jasper validateXml="false"
             uriroot="${jsp.check.dir}"
-            webXmlFragment="${jsp.check.dir}/WEB-INF/generated_web.xml"
+            webXmlInclude="${jsp.check.dir}/WEB-INF/generated_web.xml"
             addWebXmlMappings="true"
             outputDir="${jsp.check.dir}/WEB-INF/src" />
     <!-- Compile the generated Java to catch errors the translation stage passes through -->
@@ -244,7 +244,7 @@
     <!-- Convert the JSPs to Classes -->
     <jasper validateXml="false"
             uriroot="${target.dir}/${project}"
-            webXmlFragment="${target.dir}/${project}/WEB-INF/generated_web.xml"
+            webXmlInclude="${target.dir}/${project}/WEB-INF/generated_web.xml"
             addWebXmlMappings="true"
             outputDir="${target.dir}/${project}/WEB-INF/src" />
     <!-- Compile the JSPs -->

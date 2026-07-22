@@ -5,14 +5,26 @@
 # docker image ls
 # docker run -p 80:8080 --env-file=.env simis-cms:latest
 
-FROM tomcat:9.0-jdk21
+# Tomcat 11 (Jakarta EE / jakarta.servlet). The application targets Servlet 6.1; it will not
+# run on the Tomcat 9 base this image used previously, which serves the javax.* namespace.
+FROM tomcat:11.0-jdk21
 
-# DISA Apache Tomcat 9 STIG hardening. Overlay the hardened server.xml (shutdown port
-# disabled, HTTP TRACE off, server banner suppressed, no error-page disclosure, autoDeploy
-# off, access logging), add JVM hardening via setenv.sh (RECYCLE_FACADES -- it APPENDS to
-# CATALINA_OPTS below, so it composes with the Application Insights agent flags), and remove
-# the bundled default web applications (manager, host-manager, docs, examples) that the STIG
-# requires be absent. Coverage & rule mapping: docker-tomcat9-stig-hardening.md (private).
+# STIG hardening. Overlay the hardened server.xml (shutdown port disabled, HTTP TRACE off,
+# server banner suppressed, no error-page disclosure, autoDeploy off, access logging), add
+# setenv.sh (it APPENDS to CATALINA_OPTS below, so it composes with the Application Insights
+# agent flags), and remove the bundled default web applications (manager, host-manager, docs,
+# examples) that the STIG requires be absent -- webapps.dist is unchanged on the Tomcat 11
+# base and still contains exactly those. Coverage & rule mapping:
+# docker-tomcat9-stig-hardening.md (private).
+#
+# Carried onto Tomcat 11 during the jakarta.servlet migration. Every server.xml edit was
+# re-verified against stock Tomcat 11 and remains valid. TWO items still need a decision
+# before this counts as compliance evidence, both flagged in the files themselves:
+#   - setenv.sh: RECYCLE_FACADES does not exist in Tomcat 11, so that control is currently
+#     unenforced (the flag is commented out rather than left silently ineffective).
+#   - server.xml: Tomcat 11 adds maxPartCount / maxPartHeaderSize, which the Tomcat 9-era
+#     profile does not cover.
+# The STIG rule-ID mapping itself has NOT been re-done for a Tomcat 11 baseline.
 COPY ./docker/app/conf/server.xml /usr/local/tomcat/conf/server.xml
 COPY ./docker/app/conf/setenv.sh /usr/local/tomcat/bin/setenv.sh
 RUN chmod 0750 /usr/local/tomcat/bin/setenv.sh && rm -rf /usr/local/tomcat/webapps.dist

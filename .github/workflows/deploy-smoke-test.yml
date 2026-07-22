@@ -2,10 +2,10 @@
 #
 # `ant package` proves the WAR *builds*; it does NOT prove the WAR *deploys*. A build-green WAR
 # can still be undeployable — e.g. an illegal "--" inside an XML comment in META-INF/context.xml,
-# which Tomcat 9's strict parser rejects at startup (that exact bug shipped to main and was only
+# which Tomcat's strict parser rejects at startup (that exact bug shipped to main and was only
 # caught by a manual container rehearsal — see PR #178).
 #
-# This job closes that gap: it builds the WAR, deploys it to the pinned tomcat:9.0-jdk21 image
+# This job closes that gap: it builds the WAR, deploys it to the pinned tomcat:11.0-jdk21 image
 # against a real PostgreSQL + PostGIS (the same docker/ setup used for a real deploy), and waits
 # for the app's own healthcheck to pass. If the WAR fails to deploy or the app fails to boot,
 # the health wait times out and the job fails — in CI, not on the first Azure deploy.

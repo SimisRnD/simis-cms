@@ -13,7 +13,7 @@
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
   --%>
-<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <c:if test="${!empty errorMessage}">
   <div class="callout radius alert">
     <p class="text-center"><c:out value="${errorMessage}" /></p>

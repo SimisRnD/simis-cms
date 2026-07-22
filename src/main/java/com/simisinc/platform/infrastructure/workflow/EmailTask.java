@@ -35,9 +35,9 @@ import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.templatemode.TemplateMode;
 import org.thymeleaf.templateresolver.WebApplicationTemplateResolver;
-import org.thymeleaf.web.servlet.JavaxServletWebApplication;
+import org.thymeleaf.web.servlet.JakartaServletWebApplication;
 
-import javax.servlet.ServletContext;
+import jakarta.servlet.ServletContext;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
@@ -87,7 +87,7 @@ public class EmailTask implements Work {
         return new DefaultWorkReport(WorkStatus.FAILED, workContext);
       }
 
-      JavaxServletWebApplication application = JavaxServletWebApplication.buildApplication(servletContext);
+      JakartaServletWebApplication application = JakartaServletWebApplication.buildApplication(servletContext);
       WebApplicationTemplateResolver templateResolver = new WebApplicationTemplateResolver(application);
       templateResolver.setTemplateMode(TemplateMode.HTML);
       templateResolver.setPrefix("/WEB-INF/email-templates/");

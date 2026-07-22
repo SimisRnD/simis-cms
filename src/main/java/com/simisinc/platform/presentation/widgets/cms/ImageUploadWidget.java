@@ -20,7 +20,7 @@ import java.io.File;
 import java.lang.reflect.InvocationTargetException;
 import java.nio.file.Paths;
 
-import javax.servlet.http.Part;
+import jakarta.servlet.http.Part;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.logging.Log;

@@ -24,18 +24,17 @@ import java.text.SimpleDateFormat;
 import java.util.List;
 import java.util.zip.GZIPOutputStream;
 
-import javax.servlet.ServletConfig;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.ServletConfig;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import com.granule.utils.HttpHeaders;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.domain.model.cms.WebPage;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
@@ -51,6 +50,8 @@ import com.simisinc.platform.infrastructure.persistence.cms.WebPageSpecification
 public class SitemapXmlServlet extends HttpServlet {
 
   private static final long serialVersionUID = -371092409070142705L;
+  /** Far-future cache window used when there is no Last-Modified to serve: 70 days, in seconds */
+  private static final long CACHE_EXPIRE_SECONDS = 6048000L;
   private static Log LOG = LogFactory.getLog(SitemapXmlServlet.class);
 
   public void init(ServletConfig config) throws ServletException {
@@ -152,7 +153,8 @@ public class SitemapXmlServlet extends HttpServlet {
     if (mostRecentTimestamp > 0) {
       response.setDateHeader("Last-Modified", mostRecentTimestamp);
     } else {
-      HttpHeaders.setCacheExpireDate(response, 6048000);
+      response.setHeader("Cache-Control", "public, max-age=" + CACHE_EXPIRE_SECONDS);
+      response.setDateHeader("Expires", System.currentTimeMillis() + CACHE_EXPIRE_SECONDS * 1000L);
     }
     LOG.debug("XML original length: " + xml.length());
     if (gzipSupported(request)) {

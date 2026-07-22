@@ -17,11 +17,20 @@
 -->
 <!--
   ============================================================================
-  SimIS CMS — DISA Apache Tomcat Application Server 9 STIG hardening overlay.
-  This is the stock Tomcat 9 server.xml with a small set of STIG-driven edits;
+  SimIS CMS — STIG hardening overlay, Tomcat 11 baseline.
+  This is the stock Tomcat 11 server.xml with a small set of hardening edits;
   each is tagged [STIG] with the rationale. Coverage & rule mapping live in the
-  private runbook docker-tomcat9-stig-hardening.md. Re-verify on a Tomcat base
-  version bump. Controls: NIST 800-53 CM-6/CM-7, SC-7, SI-11.
+  private runbook docker-tomcat9-stig-hardening.md. Controls: NIST 800-53
+  CM-6/CM-7, SC-7, SI-11.
+
+  Provenance: these edits were derived against the DISA Apache Tomcat Application
+  Server 9 STIG and carried onto the Tomcat 11 base during the jakarta.servlet
+  migration. Every edit below was re-checked against stock Tomcat 11 and remains
+  valid; the referenced classes and attributes all still exist. What has NOT been
+  re-done is the rule-ID mapping itself — confirm which STIG baseline applies to
+  a Tomcat 11 server and re-map the runbook before treating this as evidence.
+
+  Re-verify on a Tomcat base version bump.
   ============================================================================
 -->
 <!-- [STIG] Shutdown port disabled (port="-1"): no local shutdown listener is
@@ -55,8 +64,17 @@
            server="SimIS"      — override the Server response header so the Tomcat
                                  product/version is not disclosed (SI-11 / info leak).
            xpoweredBy="false"  — do not emit the X-Powered-By header.
-           maxParameterCount="1000" — preserved from the stock image config; also bounds
-                                 a parameter-flooding DoS. (Base default, not lowered here.)
+           maxParameterCount="1000" — bounds a parameter-flooding DoS. Stock Tomcat 11
+                                 no longer sets this in server.xml (Tomcat 9 did); the
+                                 documented Tomcat 11 default is also 1000, so this is
+                                 the same effective limit, stated explicitly so the
+                                 value is auditable rather than implied by a default.
+
+         TODO (needs a hardening decision, not a mechanical port): Tomcat 11 adds
+         maxPartCount and maxPartHeaderSize to this connector — multipart-upload
+         limits with no Tomcat 9 equivalent, so the existing STIG profile does not
+         cover them. Decide whether to pin them and record the choice in the runbook.
+
          TLS is terminated upstream (WAF / reverse proxy); this cleartext connector
          listens only inside the boundary. It deliberately does NOT hardcode scheme/secure
          or a RemoteIp valve: proxy-aware client IP and scheme (X-Forwarded-For / -Proto)

@@ -15,11 +15,10 @@
   --%>
 <%@ page contentType="text/html; charset=UTF-8" %>
 <%@ page pageEncoding="UTF-8" %>
-<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
-<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
-<%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <%@ taglib prefix="font" uri="/WEB-INF/tlds/font-functions.tld" %>
-<%@ taglib prefix="g" uri="http://granule.com/tags" %>
 <jsp:useBean id="masterWebPage" class="com.simisinc.platform.domain.model.cms.WebPage" scope="request"/>
 <jsp:useBean id="pageRenderInfo" class="com.simisinc.platform.presentation.controller.PageRenderInfo" scope="request"/>
 <jsp:useBean id="systemPropertyMap" class="java.util.HashMap" scope="request"/>
@@ -57,7 +56,6 @@
     <c:when test="${!empty pageRenderInfo.description}"><meta name="description" content="<c:out value="${pageRenderInfo.description}"/>"></c:when>
     <c:otherwise><meta name="description" content="<c:out value="${sitePropertyMap['site.description']}"/>"></c:otherwise>
   </c:choose>
-  <g:compress>
     <c:if test="${!empty themePropertyMap['theme.fonts.body']}">
       <link rel="stylesheet" href="${ctx}/css/google-fonts/${themePropertyMap['theme.fonts.body']}.css">
     </c:if>
@@ -75,9 +73,7 @@
     <link rel="stylesheet" type="text/css" href="${ctx}/javascript/swiper-12.1.2/swiper-bundle.min.css" />
     <link rel="stylesheet" type="text/css" href="${ctx}/css/platform.css" />
     <link rel="stylesheet" type="text/css" href="${ctx}/css/platform-tokens.css" />
-  </g:compress>
   <c:if test="${!empty themePropertyMap}">
-    <g:compress>
       <style><%-- Prevent top-bar flicker --%>
         :root {
           <c:if test="${!empty themePropertyMap['theme.body.text.color']}">--sc-body-text-color:<c:out value="${themePropertyMap['theme.body.text.color']}" />;</c:if>
@@ -175,15 +171,12 @@
         <c:if test="${!empty themePropertyMap['theme.footer.text.color']}">.platform-footer{color:var(--sc-footer-text-color)}</c:if>
         <c:if test="${!empty themePropertyMap['theme.footer.links.color']}">.platform-footer a{color:var(--sc-footer-links-color)}</c:if>
       </style>
-    </g:compress>
   </c:if>
   <%-- Javascript before content--%>
-  <g:compress>
     <script src="${ctx}/javascript/jquery-3.7.1/jquery.min.js"></script>
     <script src="${ctx}/javascript/foundation-datepicker-20180424/foundation-datepicker.min.js"></script>
     <script src="${ctx}/javascript/autocomplete-1.0.7/auto-complete.js"></script>
     <script src="${ctx}/javascript/js-cookie-3.0.5/js.cookie.min.js"></script>
-  </g:compress>
 </head>
 <body<c:if test="${pageRenderInfo.name eq '/'}"> id="body-home"</c:if><c:if test="${!empty pageRenderInfo.cssClass}"> class="<c:out value="${pageRenderInfo.cssClass}" />"</c:if>>
   <div class="web-content">
@@ -235,7 +228,6 @@
 </c:forEach>
 </div>
 <%-- Javascript after content--%>
-  <g:compress>
     <script src="${ctx}/javascript/foundation-6.8.1/what-input-5.2.6.min.js"></script>
     <script src="${ctx}/javascript/foundation-6.8.1/foundation.min.js"></script>
     <script>
@@ -252,6 +244,5 @@
       });
       --%>
     </script>
-  </g:compress>
 </body>
 </html>

@@ -24,7 +24,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import javax.servlet.ServletContext;
+import jakarta.servlet.ServletContext;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
