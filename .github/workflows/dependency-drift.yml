@@ -5,6 +5,11 @@
 # not in the script's ALLOWLIST. The one-time reconciliation zeroed the drift down to
 # two documented, intentional holds (flexmark fat-jar, jackson-coreutils), which are
 # allowlisted with revisit triggers; everything else must match. New drift fails here.
+#
+# Also enforces that the pom's own project <version> tracks ApplicationInfo.VERSION,
+# the constant build.xml stamps the build with. Nothing in the build reads the pom's
+# version, so it goes stale unnoticed -- it had fallen two and a half years behind by
+# v20260719.10000. See tools/check-version-consistency.py.
 name: Dependency drift
 
 on:
@@ -24,3 +29,5 @@ jobs:
       # ubuntu-latest ships python3; no extra setup or network needed.
       - name: Fail on un-allowlisted pom vs vendored-jar drift
         run: python3 tools/check-dependency-drift.py . --strict
+      - name: Fail on pom vs ApplicationInfo project-version drift
+        run: python3 tools/check-version-consistency.py . --strict
