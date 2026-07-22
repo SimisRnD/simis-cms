@@ -28,7 +28,7 @@ the JDK.
 
 Most such references are legitimate. Java libraries routinely reference optional
 integrations they never load (jobrunr names MongoDB, okhttp names Android), and
-a servlet container supplies ``javax.servlet`` at runtime rather than the WAR.
+a servlet container supplies ``jakarta.servlet`` at runtime rather than the WAR.
 Those live in ALLOWLIST below, each with the reason it is expected. Anything NOT
 allowlisted is a class the application can reach but the JVM cannot load.
 
@@ -69,12 +69,14 @@ import zipfile
 # allowlist entry.
 ALLOWLIST: dict[str, str] = {
     # --- supplied by the servlet container, must NOT be in the WAR ---
-    "javax.servlet": "provided by Tomcat; bundling it breaks deployment",
-    "javax.el": "provided by Tomcat (Expression Language)",
+    # NOTE: javax.servlet / javax.el are deliberately NOT allowlisted. Tomcat 11 supplies the
+    # jakarta.* namespace and nothing under javax.*, so a surviving javax reference is a real
+    # runtime failure and must be reported rather than waved through.
+    "jakarta.servlet": "provided by Tomcat; bundling it breaks deployment",
+    "jakarta.el": "provided by Tomcat (Expression Language)",
     "org.apache.catalina": "Tomcat internals, provided by the container",
     "org.apache.jasper": "Tomcat JSP engine, provided by the container",
     "org.apache.tomcat": "Tomcat internals, provided by the container",
-    "jakarta.servlet": "thymeleaf's optional Jakarta path; this app is javax.*",
     # --- optional integrations the app never configures ---
     "android": "okhttp's optional Android platform support; server-side only here",
     "org.conscrypt": "okhttp optional TLS provider; the JDK provider is used",
@@ -111,10 +113,9 @@ ALLOWLIST: dict[str, str] = {
     "com.google.errorprone": "compile-time static-analysis annotations",
     "com.google.j2objc": "compile-time annotations",
     "com.google.common": "optional Guava usage in libraries that do not require it",
-    "com.google.javascript": "granule's optional Closure compiler backend; cssfastmin is configured",
     "com.google.gson": "optional Gson usage; Jackson is configured",
     "com.google.protobuf": "optional protobuf support; not used",
-    "org.apache.log4j": "legacy log4j 1.x bridge (granule, flyway); slf4j is used",
+    "org.apache.log4j": "legacy log4j 1.x bridge (flyway); slf4j is used",
     "org.apache.logging": "log4j2 bridge (flyway); slf4j is used",
     "org.apache.avalon": "legacy commons-logging bridge",
     "org.apache.commons.logging": "commons-logging bridge; slf4j is used",
@@ -133,10 +134,27 @@ ALLOWLIST: dict[str, str] = {
     "org.apache.pdfbox": "flexmark optional PDF output; not used",
     "org.apache.xml": "taglibs optional Xalan XPath engine; the JDK engine is used",
     "org.apache.xpath": "taglibs optional Xalan XPath engine; the JDK engine is used",
+    "org.apache.xerces": "JSTL optional SAX parser; the JDK parser is used",
+    "org.eclipse.tags": "JSTL's shaded Xalan, reached only by the <x:*> XML tags; those are unused",
     "com.google.re2j": "jsoup optional RE2 regex engine; java.util.regex is used",
     "com.sun.jna": "postgresql driver optional Windows SSPI auth; Linux deployment",
-    "org.apache.tools.ant": "granule's build-time Ant task; Ant is not on the runtime classpath",
     "org.apache.http": "jobrunr optional Apache HttpClient transport; not used",
+}
+
+# Allowlist entries that apply to ONE library only.
+#
+# Use this instead of a global ALLOWLIST entry whenever a reference is harmless from a
+# particular jar but would be a genuine runtime failure coming from anywhere else. A global
+# "javax.servlet" entry, for instance, would also wave through a jar that really does depend
+# on the pre-Jakarta namespace -- which Tomcat 11 does not provide.
+#
+# Format: (jar filename prefix, class-name prefix): reason
+JAR_SCOPED_ALLOWLIST: dict[tuple[str, str], str] = {
+    ("thymeleaf-", "javax.servlet"): (
+        "thymeleaf ships both servlet bridges in one jar; this app builds "
+        "JakartaServletWebApplication, so the javax path is never loaded "
+        "(revisit if thymeleaf stops shipping both)"
+    ),
 }
 
 _CLASS_RE = re.compile(r"^\s*(\S+)\s+->\s+(\S+)\s+not found\s*$")
@@ -215,6 +233,20 @@ def matched_prefix(name: str) -> str:
     return best
 
 
+def allowed_for_jar(jar: str, name: str) -> tuple[str, str] | None:
+    """Reason this class is expected to be absent *from this jar alone*, with its label.
+
+    Returns None when nothing in JAR_SCOPED_ALLOWLIST covers this (jar, class) pair.
+    """
+    best, hit = "", None
+    for (jar_prefix, class_prefix), why in JAR_SCOPED_ALLOWLIST.items():
+        if not jar.startswith(jar_prefix):
+            continue
+        if (name == class_prefix or name.startswith(class_prefix + ".")) and len(class_prefix) > len(best):
+            best, hit = class_prefix, ("%s* needs %s" % (jar_prefix, class_prefix), why)
+    return hit
+
+
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--war", default="target/simis-cms.war")
@@ -232,6 +264,8 @@ def main() -> int:
         out = run_jdeps(tree)
 
         allowed: collections.Counter = collections.Counter()
+        scoped: collections.Counter = collections.Counter()
+        scoped_reasons: dict[str, str] = {}
         unexpected: dict[tuple[str, str], list[str]] = collections.defaultdict(list)
         for line in out.splitlines():
             m = _CLASS_RE.match(line)
@@ -248,6 +282,13 @@ def main() -> int:
             reason = allowed_for(missing)
             if reason:
                 allowed[matched_prefix(missing)] += 1
+                continue
+            # Fall back to a per-library exemption before calling it a finding
+            hit = allowed_for_jar(jar, missing)
+            if hit:
+                label, why = hit
+                scoped[label] += 1
+                scoped_reasons[label] = why
             else:
                 unexpected[(jar, ".".join(missing.split(".")[:3]))].append(missing)
 
@@ -269,6 +310,12 @@ def main() -> int:
         else:
             print("UNEXPECTED: (none)")
         print()
+        if scoped:
+            print("JAR-SCOPED ALLOWLIST -- exempt for this library only (%d, %d refs):"
+                  % (len(scoped), sum(scoped.values())))
+            for label, count in sorted(scoped.items()):
+                print("  %-46s %5d  %s" % (label, count, scoped_reasons[label]))
+            print()
         print("ALLOWLISTED -- optional or container-provided (%d packages, %d refs):"
               % (len(allowed), sum(allowed.values())))
         for pkg, count in sorted(allowed.items()):

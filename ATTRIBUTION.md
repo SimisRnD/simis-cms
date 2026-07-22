@@ -16,7 +16,6 @@ SimIS CMS is built on the work of many open-source projects and data providers. 
    GeoIP2                      Apache   IP geolocation client                             https://github.com/maxmind/GeoIP2-java
    GeoJson                     Apache   GeoJson Parser                                    https://github.com/opendatalab-de/geojson-jackson
    Google GSON                 Apache   Convert Java Objects to/from JSON representation  https://github.com/google/gson
-   Granule                     Apache   CSS and Javascript combine/minify                 https://github.com/rajkowski/Granule
    HikariCP                    Apache   High performance database connection pooling      https://github.com/brettwooldridge/HikariCP
    im4java                     LGPL     Interface to ImageMagick and GraphicsMagick       http://im4java.sourceforge.net
    Jackson                     Apache   Json Parser                                       https://github.com/FasterXML/jackson

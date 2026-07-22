@@ -44,10 +44,10 @@ import org.jobrunr.jobs.lambdas.JobRequestHandler;
 import org.thymeleaf.TemplateEngine;
 import org.thymeleaf.context.Context;
 import org.thymeleaf.templatemode.TemplateMode;
-import org.thymeleaf.web.servlet.JavaxServletWebApplication;
+import org.thymeleaf.web.servlet.JakartaServletWebApplication;
 import org.thymeleaf.templateresolver.WebApplicationTemplateResolver;
 
-import javax.servlet.ServletContext;
+import jakarta.servlet.ServletContext;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -132,7 +132,7 @@ public class OrderManagementEmailJob implements JobRequest {
 
       // Prepare the email template
       ServletContext servletContext = SchedulerManager.getServletContext();
-      JavaxServletWebApplication application = JavaxServletWebApplication.buildApplication(servletContext);
+      JakartaServletWebApplication application = JakartaServletWebApplication.buildApplication(servletContext);
       WebApplicationTemplateResolver templateResolver = new WebApplicationTemplateResolver(application);
       templateResolver.setTemplateMode(TemplateMode.HTML);
       templateResolver.setPrefix("/WEB-INF/email-templates/");

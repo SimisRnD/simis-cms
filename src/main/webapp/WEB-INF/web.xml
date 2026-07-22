@@ -13,11 +13,11 @@
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
   -->
-<web-app xmlns="http://xmlns.jcp.org/xml/ns/javaee"
+<web-app xmlns="https://jakarta.ee/xml/ns/jakartaee"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee
-         http://xmlns.jcp.org/xml/ns/javaee/web-app_3_1.xsd"
-         version="3.1">
+         xsi:schemaLocation="https://jakarta.ee/xml/ns/jakartaee
+         https://jakarta.ee/xml/ns/jakartaee/web-app_6_1.xsd"
+         version="6.1">
   <display-name>App Platform</display-name>
   <!-- Context Params -->
   <!--<context-param>-->
@@ -70,11 +70,6 @@
     <load-on-startup>1</load-on-startup>
   </servlet>
   <servlet>
-    <servlet-name>CompressServlet</servlet-name>
-    <servlet-class>com.granule.CompressServlet</servlet-class>
-    <load-on-startup>1</load-on-startup>
-  </servlet>
-  <servlet>
     <servlet-name>StylesheetServlet</servlet-name>
     <servlet-class>com.simisinc.platform.presentation.controller.StylesheetServlet</servlet-class>
     <load-on-startup>1</load-on-startup>
@@ -122,11 +117,6 @@
     <url-pattern>/sitemap-review.xml</url-pattern>
   </servlet-mapping>
   -->
-  <servlet-mapping>
-    <servlet-name>CompressServlet</servlet-name>
-    <url-pattern>/combined.js</url-pattern>
-    <url-pattern>/combined.css</url-pattern>
-  </servlet-mapping>
   <!-- Sessions -->
   <session-config>
     <session-timeout>60</session-timeout>

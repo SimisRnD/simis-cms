@@ -7,7 +7,6 @@
       <root url="file://$PROJECT_DIR$/lib/build/flyway" />
       <root url="file://$PROJECT_DIR$/lib/build/geoip2" />
       <root url="file://$PROJECT_DIR$/lib/build/geojson" />
-      <root url="file://$PROJECT_DIR$/lib/build/granule" />
       <root url="file://$PROJECT_DIR$/lib/build/gson" />
       <root url="file://$PROJECT_DIR$/lib/build/hikaricp" />
       <root url="file://$PROJECT_DIR$/lib/build/jackson" />
@@ -34,7 +33,6 @@
     </CLASSES>
     <JAVADOC />
     <SOURCES>
-      <root url="file://$PROJECT_DIR$/lib/build/granule" />
     </SOURCES>
     <jarDirectory url="file://$PROJECT_DIR$/lib/build/argon2" recursive="false" />
     <jarDirectory url="file://$PROJECT_DIR$/lib/build/bucket4j" recursive="false" />
@@ -46,7 +44,6 @@
     <jarDirectory url="file://$PROJECT_DIR$/lib/build/flyway" recursive="false" />
     <jarDirectory url="file://$PROJECT_DIR$/lib/build/geoip2" recursive="false" />
     <jarDirectory url="file://$PROJECT_DIR$/lib/build/geojson" recursive="false" />
-    <jarDirectory url="file://$PROJECT_DIR$/lib/build/granule" recursive="false" />
     <jarDirectory url="file://$PROJECT_DIR$/lib/build/gson" recursive="false" />
     <jarDirectory url="file://$PROJECT_DIR$/lib/build/hikaricp" recursive="false" />
     <jarDirectory url="file://$PROJECT_DIR$/lib/build/jackson" recursive="false" />

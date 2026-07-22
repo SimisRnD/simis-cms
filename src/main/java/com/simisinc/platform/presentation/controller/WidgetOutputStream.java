@@ -18,8 +18,8 @@ package com.simisinc.platform.presentation.controller;
 
 import org.apache.commons.io.output.WriterOutputStream;
 
-import javax.servlet.ServletOutputStream;
-import javax.servlet.WriteListener;
+import jakarta.servlet.ServletOutputStream;
+import jakarta.servlet.WriteListener;
 import java.io.BufferedOutputStream;
 import java.io.CharArrayWriter;
 import java.io.IOException;

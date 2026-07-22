@@ -21,18 +21,17 @@ import java.io.IOException;
 import java.io.OutputStream;
 import java.util.zip.GZIPOutputStream;
 
-import javax.servlet.ServletConfig;
-import javax.servlet.ServletException;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.ServletConfig;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServlet;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import com.granule.utils.HttpHeaders;
 import com.simisinc.platform.application.cms.LoadStylesheetCommand;
 import com.simisinc.platform.domain.model.cms.Stylesheet;
 
@@ -46,6 +45,8 @@ import com.simisinc.platform.domain.model.cms.Stylesheet;
 public class StylesheetServlet extends HttpServlet {
 
   private static final long serialVersionUID = -371092409070142705L;
+  /** Far-future cache window used when there is no Last-Modified to serve: 70 days, in seconds */
+  private static final long CACHE_EXPIRE_SECONDS = 6048000L;
   private static Log LOG = LogFactory.getLog(StylesheetServlet.class);
   private static String cssPathPart = "/css/custom/stylesheet";
 
@@ -111,7 +112,8 @@ public class StylesheetServlet extends HttpServlet {
     if (lastModified > 0) {
       response.setDateHeader("Last-Modified", lastModified);
     } else {
-      HttpHeaders.setCacheExpireDate(response, 6048000);
+      response.setHeader("Cache-Control", "public, max-age=" + CACHE_EXPIRE_SECONDS);
+      response.setDateHeader("Expires", System.currentTimeMillis() + CACHE_EXPIRE_SECONDS * 1000L);
     }
     LOG.debug("CSS original length: " + css.length());
     if (gzipSupported(request)) {

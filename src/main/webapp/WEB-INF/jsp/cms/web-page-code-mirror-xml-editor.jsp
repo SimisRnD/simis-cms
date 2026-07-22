@@ -13,22 +13,19 @@
   ~ See the License for the specific language governing permissions and
   ~ limitations under the License.
   --%>
-<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
-<%@ taglib prefix="fmt" uri="http://java.sun.com/jsp/jstl/fmt" %>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="js" uri="/WEB-INF/tlds/javascript-escape.tld" %>
-<%@ taglib prefix="g" uri="http://granule.com/tags" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="webPage" class="com.simisinc.platform.domain.model.cms.WebPage" scope="request"/>
 <link rel="stylesheet" href="${ctx}/javascript/codemirror-5.65.14/codemirror.css">
 <link rel="stylesheet" href="${ctx}/javascript/codemirror-5.65.14/theme/one-dark.css">
-<g:compress>
   <script src="${ctx}/javascript/codemirror-5.65.14/codemirror.js"></script>
   <script src="${ctx}/javascript/codemirror-5.65.14/xml-fold.js"></script>
   <script src="${ctx}/javascript/codemirror-5.65.14/closetag.js"></script>
   <script src="${ctx}/javascript/codemirror-5.65.14/matchtags.js"></script>
   <script src="${ctx}/javascript/codemirror-5.65.14/xml.js"></script>
-</g:compress>
 <style>
   .CodeMirror {
     border: 1px solid #4d4d4d;

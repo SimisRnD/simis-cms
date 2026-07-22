@@ -42,7 +42,7 @@ import org.jobrunr.storage.StorageProvider;
 import org.jobrunr.storage.StorageProviderUtils;
 import org.jobrunr.storage.sql.common.SqlStorageProviderFactory;
 
-import javax.servlet.ServletContext;
+import jakarta.servlet.ServletContext;
 import java.io.InputStream;
 import java.time.Duration;
 import java.util.Properties;

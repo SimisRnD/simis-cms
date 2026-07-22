@@ -15,7 +15,7 @@ The following steps will guide you through the developer tools and environment s
 
 1. Install [OpenJDK 21+](https://learn.microsoft.com/en-us/java/openjdk/download)
 2. Install [Apache Ant 1.10+](https://ant.apache.org) and configure your terminal's path with ANT_HOME/bin
-3. Install [Apache Tomcat 9.x](https://tomcat.apache.org/download-90.cgi) into a directory of your choice
+3. Install [Apache Tomcat 11.x](https://tomcat.apache.org/download-11.cgi) into a directory of your choice
 4. Install the PostgreSQL database server – natively on MacOS with [Postgres.app](https://postgresapp.com) or with a Docker container like (postgis/postgis:17-3.5)
 5. Clone the SimIS CMS repo – `git clone https://github.com/SimisRnD/simis-cms.git`
 6. In the repo directory execute `ant webapp` – this tests your environment and updates code and library changes in a working Tomcat exploded webapp directory `./out/exploded/ROOT`
@@ -43,9 +43,9 @@ If not specified, the path for file assets and external configuration on Linux i
 - [SimIS CMS](https://www.simiscms.com)
 - [Java 21 SDK Documentation](https://docs.oracle.com/en/java/javase/21/)
 - [MVC Example with Servlets and JSP](https://www.baeldung.com/mvc-servlet-jsp)
-- [Servlet 4.0 API](https://tomcat.apache.org/tomcat-9.0-doc/servletapi/index.html)
-- [JSP 2.3 API](https://tomcat.apache.org/tomcat-9.0-doc/jspapi/index.html)
-- [JSTL 1.2.5 API](https://github.com/javaee/jstl-api)
+- [Jakarta Servlet 6.1 API](https://tomcat.apache.org/tomcat-11.0-doc/servletapi/index.html)
+- [Jakarta Pages (JSP) 4.0 API](https://tomcat.apache.org/tomcat-11.0-doc/jspapi/index.html)
+- [Jakarta Tags (JSTL) 3.0](https://jakarta.ee/specifications/tags/3.0/)
 - [PostgreSQL Documentation](https://www.postgresql.org/docs/)
 - [Domain Driven Design Intro](https://airbrake.io/blog/software-design/domain-driven-design)
 - [Foundation for Sites Documentation](https://foundation.zurb.com/sites/docs/)

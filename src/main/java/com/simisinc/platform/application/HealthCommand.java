@@ -19,7 +19,7 @@ package com.simisinc.platform.application;
 import java.io.File;
 import java.sql.Connection;
 
-import javax.servlet.ServletContext;
+import jakarta.servlet.ServletContext;
 
 import org.apache.commons.lang3.StringUtils;
 

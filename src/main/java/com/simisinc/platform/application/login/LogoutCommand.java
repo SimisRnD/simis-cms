@@ -23,9 +23,9 @@ import com.simisinc.platform.presentation.controller.CookieConstants;
 import com.simisinc.platform.presentation.controller.SessionConstants;
 import com.simisinc.platform.presentation.controller.UserSession;
 
-import javax.servlet.http.Cookie;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 /**
  * Commands for logging the user out
