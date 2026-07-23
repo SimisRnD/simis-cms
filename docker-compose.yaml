@@ -30,6 +30,17 @@ services:
       DB_PASSWORD: "${DB_PASSWORD:?err}"
       DB_NAME: "${DB_NAME:-simis-cms}"
     restart: on-failure
+    # [STIG] Runtime hardening: drop all Linux capabilities and block privilege escalation.
+    # Tomcat binds the unprivileged port 8080 and, since the non-root image (PR #219), never
+    # setuids -- so it needs no capabilities. no-new-privileges additionally blocks escalation
+    # through any setuid binary. Enforced by the container runtime here and in CI's deploy smoke
+    # test. App Service for Containers exposes no equivalent, so the control is evidenced as a
+    # verified image property rather than platform-enforced config -- see the container-runtime
+    # hardening card. Read-only root filesystem is the paired change, landing separately.
+    cap_drop:
+      - ALL
+    security_opt:
+      - "no-new-privileges:true"
     depends_on:
       - db
     networks:
