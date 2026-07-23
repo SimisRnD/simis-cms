@@ -20,7 +20,12 @@ import com.simisinc.platform.domain.model.User;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
+import jakarta.servlet.ServletContext;
 import jakarta.servlet.http.HttpServletRequest;
+
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URL;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -175,6 +180,39 @@ class WebContainerCommandTest {
       content = WebContainerCommand.replaceVariableWithParameterValue(request, content);
     }
     Assertions.assertEquals("Hi ", content);
+  }
+
+  // Guard against including a widget JSP that does not exist -- such an include re-enters
+  // the controller servlet and recurses until the stack overflows.
+
+  private static final String JSP_PATH = "/WEB-INF/jsp/example-widget.jsp";
+
+  @Test
+  void existingWidgetJspMayBeIncluded() throws Exception {
+    ServletContext servletContext = mock(ServletContext.class);
+    URL resource = URI.create("file:/app/WEB-INF/jsp/example-widget.jsp").toURL();
+    when(servletContext.getResource(JSP_PATH)).thenReturn(resource);
+
+    Assertions.assertTrue(WebContainerCommand.widgetJspExists(servletContext, JSP_PATH));
+  }
+
+  @Test
+  void missingWidgetJspIsNotIncluded() throws Exception {
+    ServletContext servletContext = mock(ServletContext.class);
+    // getResource returns null when the resource does not exist
+    when(servletContext.getResource(JSP_PATH)).thenReturn(null);
+
+    Assertions.assertFalse(WebContainerCommand.widgetJspExists(servletContext, JSP_PATH),
+        "a missing JSP must not be included -- that is the recursion trigger");
+  }
+
+  @Test
+  void malformedWidgetJspPathIsTreatedAsMissingNotThrown() throws Exception {
+    ServletContext servletContext = mock(ServletContext.class);
+    when(servletContext.getResource(JSP_PATH)).thenThrow(new MalformedURLException("bad path"));
+
+    // Must be swallowed and reported as "does not exist", never propagated out of the render
+    Assertions.assertFalse(WebContainerCommand.widgetJspExists(servletContext, JSP_PATH));
   }
 
 }

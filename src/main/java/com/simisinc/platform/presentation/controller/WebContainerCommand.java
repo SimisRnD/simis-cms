@@ -31,11 +31,13 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.commons.text.StringEscapeUtils;
 
+import jakarta.servlet.ServletContext;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.PrintWriter;
 import java.io.Serializable;
 import java.lang.reflect.Method;
+import java.net.MalformedURLException;
 import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
@@ -431,11 +433,20 @@ public class WebContainerCommand implements Serializable {
           String widgetContent = null;
           if (result != null) {
             if (widgetContext.hasJsp()) {
-              // @todo if the JSP does not exist, a recursive loop occurs
-              LOG.debug("Including JSP: /WEB-INF/jsp" + widgetContext.getJsp());
-              WidgetResponseWrapper responseWrapper = new WidgetResponseWrapper(response);
-              request.getRequestDispatcher("/WEB-INF/jsp" + widgetContext.getJsp()).include(request, responseWrapper);
-              widgetContent = responseWrapper.getOutputAndClose();
+              String jspPath = "/WEB-INF/jsp" + widgetContext.getJsp();
+              // Guard against including a JSP that does not exist. An include of a missing
+              // resource re-enters the controller servlet and recurses until the stack
+              // overflows (or the request hangs) -- previously an acknowledged @todo. Skip
+              // the include and log instead, so one misconfigured widget cannot take down
+              // the whole page render.
+              if (widgetJspExists(request.getServletContext(), jspPath)) {
+                LOG.debug("Including JSP: " + jspPath);
+                WidgetResponseWrapper responseWrapper = new WidgetResponseWrapper(response);
+                request.getRequestDispatcher(jspPath).include(request, responseWrapper);
+                widgetContent = responseWrapper.getOutputAndClose();
+              } else {
+                LOG.error("Widget JSP not found, skipping include to avoid a render loop: " + jspPath);
+              }
             } else if (widgetContext.hasHtml()) {
               widgetContent = widgetContext.getHtml();
             }
@@ -555,5 +566,26 @@ public class WebContainerCommand implements Serializable {
       replacementValue = StringUtils.replace(replacementValue, "'", "''");
     }
     return StringUtils.replace(content, searchString, replacementValue);
+  }
+
+  /**
+   * Returns true when a widget's JSP actually exists in the web application, so the caller
+   * can skip the include when it does not. Including a missing JSP via RequestDispatcher
+   * re-enters the controller servlet and recurses until the stack overflows -- the failure
+   * this guards against (previously an acknowledged {@code @todo} at the include site). A
+   * malformed path is treated as "does not exist" so a bad widget definition is skipped
+   * rather than thrown out of the entire page render.
+   *
+   * @param servletContext the web application context
+   * @param jspPath        the full context-relative JSP path (e.g. /WEB-INF/jsp/foo.jsp)
+   * @return true if the resource exists and may be included
+   */
+  protected static boolean widgetJspExists(ServletContext servletContext, String jspPath) {
+    try {
+      return servletContext.getResource(jspPath) != null;
+    } catch (MalformedURLException e) {
+      LOG.error("Malformed widget JSP path, skipping include: " + jspPath);
+      return false;
+    }
   }
 }
