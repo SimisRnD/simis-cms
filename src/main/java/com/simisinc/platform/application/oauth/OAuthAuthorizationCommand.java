@@ -20,11 +20,14 @@ import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.cms.UrlCommand;
+import com.simisinc.platform.presentation.controller.SessionConstants;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.commons.text.RandomStringGenerator;
 
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpSession;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -45,7 +48,7 @@ public class OAuthAuthorizationCommand {
   private static RandomStringGenerator generator = new RandomStringGenerator.Builder()
       .selectFrom("ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz0123456789".toCharArray()).build();
 
-  public static String getAuthorizationUrl(String resource) {
+  public static String getAuthorizationUrl(HttpServletRequest request, String resource) {
     String serviceUrl = LoadSitePropertyCommand.loadByName("oauth.serviceUrl");
     String clientId = LoadSitePropertyCommand.loadByName("oauth.clientId");
     if (StringUtils.isAnyBlank(serviceUrl, clientId)) {
@@ -60,6 +63,11 @@ public class OAuthAuthorizationCommand {
       resource ="/";
     }
     stateCache.put(state, resource);
+    // [CSRF] Bind the state to THIS user's session. The callback is only accepted if it returns
+    // the state this session generated -- otherwise an attacker who obtains a valid state+code for
+    // their own account could trick a victim into the callback and log the victim into the
+    // attacker's account (login CSRF / session fixation).
+    request.getSession(true).setAttribute(SessionConstants.OAUTH_STATE, state);
 
     String authorizationUrl =
         serviceUrl + (serviceUrl.endsWith("/") ? "" : "/") + "protocol/openid-connect/auth" +
@@ -75,5 +83,26 @@ public class OAuthAuthorizationCommand {
 
   public static String resourceIfStateIsValid(String state) {
     return (stateCache.getIfPresent(state));
+  }
+
+  /**
+   * Confirms that an OAuth callback's {@code state} is the one this session generated, and consumes
+   * it so it cannot be replayed. This is the CSRF protection for the login flow: the state stored in
+   * {@code getAuthorizationUrl} is bound to the session that started the flow, so a callback carrying
+   * a state that some other session obtained is rejected. Returns false for a null session, a blank
+   * state, or a mismatch; the stored state is always cleared (single use).
+   *
+   * @param session the current session ({@code request.getSession(false)}), may be null
+   * @param state   the state parameter returned on the callback
+   * @return true only if the state matches the one bound to this session
+   */
+  public static boolean consumeValidState(HttpSession session, String state) {
+    if (session == null || StringUtils.isBlank(state)) {
+      return false;
+    }
+    Object expected = session.getAttribute(SessionConstants.OAUTH_STATE);
+    // Single use: clear it whether or not it matches, so a state cannot be replayed
+    session.removeAttribute(SessionConstants.OAUTH_STATE);
+    return state.equals(expected);
   }
 }

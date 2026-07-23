@@ -69,6 +69,12 @@ public class OAuthRequestCommand {
       LOG.debug("Checking callback, retrieving access token...");
       String state = request.getParameter("state");
       String code = request.getParameter("code");
+      // [CSRF] The callback's state must be the one THIS session generated at the start of the
+      // flow; otherwise reject it (login CSRF / session fixation). Consumes the state (single use).
+      if (!OAuthAuthorizationCommand.consumeValidState(request.getSession(false), state)) {
+        LOG.warn("OAuth callback state did not match the session; rejecting a possible login CSRF");
+        return "/";
+      }
       OAuthToken oAuthToken = OAuthAccessTokenCommand.retrieveAccessToken(state, code);
       if (oAuthToken == null) {
         // Failed, return user back to login
@@ -190,6 +196,6 @@ public class OAuthRequestCommand {
     }
 
     // Otherwise, the user must log in
-    return OAuthAuthorizationCommand.getAuthorizationUrl(resource);
+    return OAuthAuthorizationCommand.getAuthorizationUrl(request, resource);
   }
 }
