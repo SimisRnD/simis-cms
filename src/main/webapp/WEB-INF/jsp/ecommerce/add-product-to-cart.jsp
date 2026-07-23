@@ -27,12 +27,10 @@
 <jsp:useBean id="buttonName" class="java.lang.String" scope="request"/>
 <jsp:useBean id="showPrice" class="java.lang.String" scope="request"/>
 <link rel="stylesheet" href="${ctx}/css/platform-ecommerce.css?v=<%= VERSION %>" />
-<script type="text/javascript" src="${ctx}/javascript/jquery-formatcurrency-1.6.3/jquery.formatCurrency.min.js"></script>
 <script>
   function updatePrice(price) {
     var qty = $('#quantity').find(":selected").text();
-    $("#price").html(qty * price);
-    $('#price').formatCurrency();
+    $("#price").html(new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(qty * price));
   }
   function checkInventory(sku) {
 

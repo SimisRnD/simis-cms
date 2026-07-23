@@ -33,14 +33,12 @@
 <jsp:useBean id="pricingRule" class="com.simisinc.platform.domain.model.ecommerce.PricingRule" scope="request"/>
 <jsp:useBean id="preventCheckout" class="java.lang.String" scope="request"/>
 <link rel="stylesheet" href="${ctx}/css/platform-ecommerce.css?v=<%= VERSION %>"/>
-<script type="text/javascript" src="${ctx}/javascript/jquery-formatcurrency-1.6.3/jquery.formatCurrency.min.js"></script>
 <script>
   var itemIdList = [<c:forEach items="${cartEntryList}" var="cartEntry" varStatus="status">${cartEntry.cartItem.id}<c:if test="${!status.last}">, </c:if></c:forEach>];
 
   function updatePrice(itemId, price) {
     var qty = $('#item-' + itemId + '-quantity').find(":selected").text();
-    $('#item-' + itemId + '-total').html(qty * price);
-    $('#item-' + itemId + '-total').formatCurrency();
+    $('#item-' + itemId + '-total').html(new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(qty * price));
     $('#cart-subtotal').html('Update cart for new subtotal');
     $('#update-button').show();
   }
