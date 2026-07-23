@@ -103,9 +103,12 @@ public class SaveUserCommand {
     // Verify the allowed roles
     LOG.debug("Verifying the allowed roles...");
     if (userMakingChange != null && !userMakingChange.hasRole("admin")) {
-      // Maintain the admin permission because the record already has it
+      // Maintain the admin permission because the record already has it. Take the role from
+      // the stored user (which has it) -- userBean does not (the condition above requires
+      // !userBean.hasRole("admin")), so userBean.getRole("admin") would be null and would add
+      // a null into the role list, dropping the very permission this branch means to keep.
       if (user.hasRole("admin") && !userBean.hasRole("admin")) {
-        userBean.getRoleList().add(userBean.getRole("admin"));
+        userBean.getRoleList().add(user.getRole("admin"));
       } else if (!user.hasRole("admin") && userBean.hasRole("admin")) {
         // Don't allow it to be added if it wasn't there
         userBean.removeRole("admin");
