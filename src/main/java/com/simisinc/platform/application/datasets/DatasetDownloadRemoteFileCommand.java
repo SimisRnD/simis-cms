@@ -35,6 +35,7 @@ import com.simisinc.platform.application.elearning.PERLSCourseListCommand;
 import com.simisinc.platform.application.filesystem.FileSystemCommand;
 import com.simisinc.platform.application.http.HttpDownloadFileCommand;
 import com.simisinc.platform.application.http.HttpGetCommand;
+import com.simisinc.platform.application.http.RemoteUrlValidationCommand;
 import com.simisinc.platform.domain.model.datasets.Dataset;
 import com.simisinc.platform.infrastructure.persistence.datasets.DatasetRepository;
 
@@ -51,6 +52,11 @@ public class DatasetDownloadRemoteFileCommand {
   public static boolean handleRemoteFileDownload(Dataset dataset, long userId) throws DataException {
     if (StringUtils.isBlank(dataset.getSourceUrl())) {
       throw new DataException("A source url is required");
+    }
+    // [SSRF] The source url is arbitrary admin input; refuse to fetch anything that
+    // resolves to an internal/loopback/link-local (cloud metadata) or private address.
+    if (!RemoteUrlValidationCommand.isFetchAllowed(dataset.getSourceUrl())) {
+      throw new DataException("The source url is not permitted");
     }
 
     String fileType = dataset.getFileType();
@@ -230,6 +236,12 @@ public class DatasetDownloadRemoteFileCommand {
       return;
     }
     LOG.debug("Next url: " + nextUrl);
+
+    // [SSRF] nextUrl comes from the fetched response, so it is fully controlled by whoever
+    // runs the source server -- validate it before following, exactly like the source url.
+    if (!RemoteUrlValidationCommand.isFetchAllowed(nextUrl)) {
+      throw new IOException("Blocked a paging url that is not permitted: " + nextUrl);
+    }
 
     // Use the url to get the next page content
     String content = HttpGetCommand.execute(nextUrl);
