@@ -182,7 +182,10 @@ CONTEXT_JS = "JS"
 
 TAG = re.compile(r"<[^>]*>", re.S)
 COMMENT = re.compile(r"<%--.*?--%>", re.S)
-SCRIPT = re.compile(r"<script\b[^>]*>(.*?)</script>", re.S | re.I)
+# The end tag allows whitespace before ">" per the HTML spec (</script >, </script\n>),
+# so match \s* -- otherwise a script block closed that way is not recognised, and an
+# unescaped EL expression in its JS context could slip past this gate (CodeQL py/bad-tag-filter).
+SCRIPT = re.compile(r"<script\b[^>]*>(.*?)</script\s*>", re.S | re.I)
 EL = re.compile(r"\$\{[^}]+\}")
 # A backtick-delimited JS template literal, including newlines.
 TEMPLATE_LITERAL = re.compile(r"`[^`]*`", re.S)
