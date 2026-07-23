@@ -74,6 +74,11 @@ set -euo pipefail
 # link-local (the cloud-metadata endpoint), and private targets. Covered by
 # RemoteUrlValidationCommandTest at ~86% and shares the 0.50 floor, since this is the
 # control that stops SSRF to internal services and instance-metadata credentials.
+# SaveUserCommand.saveUser() -- the user create/update path, including the
+# privilege-assignment guard that decides who may grant or remove the Admin role
+# -- is covered by SaveUserCommandTest at ~72% and shares the 0.50 floor. A
+# non-admin must be able to neither grant Admin nor strip it from another user;
+# the floor exists to fail the gate if that authorization coverage is removed.
 TARGETS='
 com.simisinc.platform.application.IpAddressCommand,0.50
 com.simisinc.platform.application.SecretCryptoCommand,0.50
@@ -84,6 +89,7 @@ com.simisinc.platform.application.cms.NumberCommand,0.30
 com.simisinc.platform.application.DoNotTrackCommand,0.50
 com.simisinc.platform.application.cms.ValidateUserAccessToWebPageCommand,0.50
 com.simisinc.platform.application.http.RemoteUrlValidationCommand,0.50
+com.simisinc.platform.application.register.SaveUserCommand,0.50
 '
 
 CSV="${1:-${JACOCO_CSV:-target/coverage-reports/jacoco.csv}}"
