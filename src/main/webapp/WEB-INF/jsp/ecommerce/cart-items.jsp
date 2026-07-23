@@ -28,7 +28,6 @@
 <jsp:useBean id="priceChangeList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="noLongerAvailableList" class="java.util.ArrayList" scope="request"/>
 <link rel="stylesheet" href="${ctx}/css/platform-ecommerce.css?v=<%= VERSION %>"/>
-<script type="text/javascript" src="${ctx}/javascript/jquery-formatcurrency-1.6.3/jquery.formatCurrency.min.js"></script>
 <span class="help-text float-right">
   <a href="${ctx}/cart">Edit</a>
 </span>
