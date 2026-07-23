@@ -142,7 +142,7 @@
            at startup (deployOnStartup defaults true). This blocks a drop-in-WAR RCE
            path and keeps the deployed set fixed and inventoried (CM-7). -->
       <Host name="localhost" appBase="webapps"
-            unpackWARs="true" autoDeploy="false">
+            unpackWARs="false" autoDeploy="false">
 
         <!-- [STIG] Suppress error-page disclosure: no stack traces (showReport) and
              no Tomcat version/server banner (showServerInfo) in error responses. -->

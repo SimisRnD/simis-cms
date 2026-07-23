@@ -6,6 +6,7 @@
     "percentage": 100
   },
   "selfDiagnostics": {
-    "level": "warn"
+    "level": "warn",
+    "destination": "console"
   }
 }
