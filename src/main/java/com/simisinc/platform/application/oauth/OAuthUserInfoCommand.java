@@ -65,21 +65,13 @@ public class OAuthUserInfoCommand {
 
     LOG.debug("Determining user information...");
 
-    // Find the user or create a new one
-    User user = null;
+    // Determine the identity from the token's userinfo
     String username = json.get("preferred_username").asText();
-    String email = null;
-    if (json.has("email")) {
-      email = json.get("email").asText();
-    }
-    // Search by optional email address first since that is a key
-    if (StringUtils.isNotBlank(email)) {
-      user = UserRepository.findByEmailAddress(email);
-    }
-    // Then try username
-    if (user == null) {
-      user = UserRepository.findByUsername(username);
-    }
+    String email = json.has("email") ? json.get("email").asText() : null;
+    boolean emailVerified = json.has("email_verified") && json.get("email_verified").asBoolean(false);
+
+    // Find the existing local user, or create a new one
+    User user = resolveExistingUser(username, email, emailVerified);
     if (user == null) {
       user = new User();
     }
@@ -95,11 +87,8 @@ public class OAuthUserInfoCommand {
       JsonNode node = json.get("family_name");
       user.setLastName(node.asText());
     }
-    if (json.has("email_verified")) {
-      JsonNode node = json.get("email_verified");
-      if (node.asBoolean(false)) {
-        user.setValidated(new Timestamp(System.currentTimeMillis()));
-      }
+    if (emailVerified) {
+      user.setValidated(new Timestamp(System.currentTimeMillis()));
     }
 
     // Check for CMS Roles
@@ -147,5 +136,31 @@ public class OAuthUserInfoCommand {
       LOG.error("User could not be saved: " + de.getMessage(), de);
       return null;
     }
+  }
+
+  /**
+   * Finds the existing local user an OAuth identity maps to.
+   * <p>
+   * The email is used to match an existing account ONLY when the identity provider asserts it is
+   * verified (the {@code email_verified} claim). Otherwise an OAuth identity that merely claims
+   * someone else's email -- unverified -- would match and log in as that person's local account, a
+   * classic "sign in with ..." account-takeover. An unverified or absent email falls back to the
+   * IdP's {@code preferred_username}, which is that provider's stable identifier for the account.
+   *
+   * @param username      the IdP preferred_username (required)
+   * @param email         the claimed email, or null
+   * @param emailVerified whether the IdP asserts the email is verified
+   * @return the matched user, or null if none matches (the caller then creates a new account)
+   */
+  protected static User resolveExistingUser(String username, String email, boolean emailVerified) {
+    User user = null;
+    // Match by email only when the provider has verified it
+    if (emailVerified && StringUtils.isNotBlank(email)) {
+      user = UserRepository.findByEmailAddress(email);
+    }
+    if (user == null) {
+      user = UserRepository.findByUsername(username);
+    }
+    return user;
   }
 }
