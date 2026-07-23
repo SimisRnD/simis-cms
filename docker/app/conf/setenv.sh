@@ -4,30 +4,16 @@
 # so it composes cleanly with other options (e.g. the memory/agent flags) rather
 # than overwriting them. Coverage: docker-tomcat9-stig-hardening.md.
 #
-# ---------------------------------------------------------------------------
-# ACTION REQUIRED — RECYCLE_FACADES is inert on the Tomcat 11 base.
+# This file currently sets no JVM properties. It is retained (rather than deleted)
+# because the Dockerfile copies it and because it is the natural home for any future
+# -D hardening flag.
 #
-# The previous hardening set:
+# Historical note, so the old flag is not reintroduced: Tomcat 9 required
 #     -Dorg.apache.catalina.connector.RECYCLE_FACADES=true
-# to allocate a fresh request/response facade per request instead of recycling,
-# closing a class of cross-request information-disclosure bugs.
-#
-# That system property does not exist in Tomcat 11. Verified against the
-# apache-tomcat-11.0.24 distribution: zero occurrences of RECYCLE_FACADES in any
-# lib/*.jar or in webapps/docs/config/systemprops.html, while control literals
-# checked the same way (STRICT_SERVLET_COMPLIANCE, org.apache.catalina.connector)
-# are present. Tomcat 11 therefore never reads this flag.
-#
-# It is commented out rather than left set, because a flag the container ignores
-# would let the runbook keep claiming a control that is not actually applied.
-#
-# To resolve before this is treated as compliance evidence:
-#   1. Confirm against Tomcat's own 10.x changelog why the property was removed --
-#      whether the protective behaviour became unconditional (control satisfied by
-#      default, nothing further needed) or the recycling behaviour itself changed
-#      (control needs a different mitigation).
-#   2. Update docker-tomcat9-stig-hardening.md with the finding and the rule-ID
-#      mapping for the Tomcat 11 baseline.
-#
-# CATALINA_OPTS="$CATALINA_OPTS -Dorg.apache.catalina.connector.RECYCLE_FACADES=true"
-# ---------------------------------------------------------------------------
+# to allocate a fresh request/response facade per request (closing a class of
+# cross-request information-disclosure bugs). That system property does not exist in
+# Tomcat 11. It was renamed to the connector attribute `discardFacades` (added in
+# 10.0.0-M1 / 9.0.31) AND its default was flipped to true, so on Tomcat 11 the
+# protection is on by default. This profile sets discardFacades="true" explicitly on
+# the <Connector> in server.xml, so the control is asserted there rather than here.
+# Do not re-add the RECYCLE_FACADES system property -- Tomcat 11 does not read it.

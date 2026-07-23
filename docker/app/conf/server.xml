@@ -69,11 +69,25 @@
                                  documented Tomcat 11 default is also 1000, so this is
                                  the same effective limit, stated explicitly so the
                                  value is auditable rather than implied by a default.
-
-         TODO (needs a hardening decision, not a mechanical port): Tomcat 11 adds
-         maxPartCount and maxPartHeaderSize to this connector — multipart-upload
-         limits with no Tomcat 9 equivalent, so the existing STIG profile does not
-         cover them. Decide whether to pin them and record the choice in the runbook.
+           maxPartCount / maxPartHeaderSize — multipart/form-data limits, new in
+                                 Tomcat 11 with no Tomcat 9 equivalent. Pinned to the
+                                 documented Tomcat 11 defaults (50 parts, 512 header
+                                 bytes), which already bound multipart memory to ~400MB.
+                                 Stated explicitly for the same reason as
+                                 maxParameterCount: the CMS accepts uploads, so an
+                                 assessor will ask, and an auditable value beats an
+                                 implied default. Revisit only if a real upload path
+                                 legitimately needs more than 50 parts (raising is
+                                 safer than the alternative of an unbounded default).
+           discardFacades="true" — allocate a fresh request/response facade per
+                                 request instead of recycling, closing a class of
+                                 cross-request information-disclosure bugs. This is the
+                                 Tomcat 11 replacement for the RECYCLE_FACADES system
+                                 property that Tomcat 9 used (removed setenv.sh entry).
+                                 Tomcat 11 defaults this attribute to true, so the
+                                 control is satisfied by default; it is set explicitly
+                                 so the profile asserts the behaviour rather than
+                                 depending on a default a reviewer would have to know.
 
          TLS is terminated upstream (WAF / reverse proxy); this cleartext connector
          listens only inside the boundary. It deliberately does NOT hardcode scheme/secure
@@ -87,6 +101,9 @@
                connectionTimeout="20000"
                redirectPort="8443"
                maxParameterCount="1000"
+               maxPartCount="50"
+               maxPartHeaderSize="512"
+               discardFacades="true"
                allowTrace="false"
                server="SimIS"
                xpoweredBy="false"
