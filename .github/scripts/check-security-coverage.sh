@@ -62,6 +62,12 @@ set -euo pipefail
 # floor. The class arrived with PR #136 (feature/honor-dnt), so this entry is
 # valid only once #136 is in the lineage; merging it before then fail-closes the
 # gate on a missing class. (See the PR description for merge-order details.)
+#
+# ValidateUserAccessToWebPageCommand.hasAccess() -- the page-level access gate
+# (privileged-role bypass, draft/empty/reachability checks over the real
+# role/group primitive) -- is covered by ValidateUserAccessToWebPageCommandTest
+# at ~88% and shares the 0.50 floor. The floor exists to fail the gate if those
+# tests are removed, since this is an access-control decision.
 TARGETS='
 com.simisinc.platform.application.IpAddressCommand,0.50
 com.simisinc.platform.application.SecretCryptoCommand,0.50
@@ -70,6 +76,7 @@ com.simisinc.platform.application.admin.AnalyticsTrackingIdCommand,0.50
 com.simisinc.platform.application.cms.UrlCommand,0.50
 com.simisinc.platform.application.cms.NumberCommand,0.30
 com.simisinc.platform.application.DoNotTrackCommand,0.50
+com.simisinc.platform.application.cms.ValidateUserAccessToWebPageCommand,0.50
 '
 
 CSV="${1:-${JACOCO_CSV:-target/coverage-reports/jacoco.csv}}"
