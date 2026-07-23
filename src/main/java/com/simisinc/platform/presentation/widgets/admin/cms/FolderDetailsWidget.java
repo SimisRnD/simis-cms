@@ -16,6 +16,7 @@
 
 package com.simisinc.platform.presentation.widgets.admin.cms;
 
+import com.simisinc.platform.application.cms.CheckFolderPermissionCommand;
 import com.simisinc.platform.application.cms.DeleteFolderCommand;
 import com.simisinc.platform.domain.model.cms.Folder;
 import com.simisinc.platform.infrastructure.persistence.cms.FolderRepository;
@@ -60,6 +61,15 @@ public class FolderDetailsWidget extends GenericWidget {
     long folderId = context.getParameterAsLong("folderId");
     if (folderId > -1) {
       Folder folder = FolderRepository.findById(folderId);
+      // Check the user's delete permission on THIS folder before removing it. Deleting a folder
+      // (and everything in it) is more destructive than deleting a file, which is already gated on
+      // CheckFolderPermissionCommand.userHasDeletePermission -- without this, any user who can reach
+      // the action could delete any folder by id.
+      if (folder == null || !CheckFolderPermissionCommand.userHasDeletePermission(folder.getId(), context.getUserId())) {
+        context.setErrorMessage("Error. Folder could not be deleted.");
+        context.setRedirect("/admin/folders");
+        return context;
+      }
       try {
         DeleteFolderCommand.deleteFolder(folder);
         context.setSuccessMessage("Folder deleted");
