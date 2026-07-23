@@ -22,17 +22,22 @@ import com.simisinc.platform.application.items.ItemPhoneNumberCommand;
 import com.simisinc.platform.application.items.SaveItemCommand;
 import com.simisinc.platform.application.maps.CheckGeoPointCommand;
 import com.simisinc.platform.domain.model.CustomField;
+import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.datasets.Dataset;
 import com.simisinc.platform.domain.model.items.Category;
 import com.simisinc.platform.domain.model.items.Collection;
 import com.simisinc.platform.domain.model.items.Item;
+import com.simisinc.platform.infrastructure.persistence.UserRepository;
 import com.simisinc.platform.infrastructure.persistence.items.CategoryRepository;
 import com.simisinc.platform.infrastructure.persistence.items.ItemRepository;
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.time.DateUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import java.math.BigDecimal;
+import java.sql.Timestamp;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.regex.Pattern;
@@ -252,13 +257,25 @@ public class SaveDatasetRowCommand {
       } else if ("cost".equals(mapping)) {
         item.setCost(new BigDecimal(value));
       } else if ("startDate".equals(mapping)) {
-        // @todo
+        Timestamp startDate = parseTimestamp(value);
+        if (startDate != null) {
+          item.setStartDate(startDate);
+        }
       } else if ("endDate".equals(mapping)) {
-        // @todo
+        Timestamp endDate = parseTimestamp(value);
+        if (endDate != null) {
+          item.setEndDate(endDate);
+        }
       } else if ("expectedDate".equals(mapping)) {
-        // @todo
+        Timestamp expectedDate = parseTimestamp(value);
+        if (expectedDate != null) {
+          item.setExpectedDate(expectedDate);
+        }
       } else if ("expirationDate".equals(mapping)) {
-        // @todo
+        Timestamp expirationDate = parseTimestamp(value);
+        if (expirationDate != null) {
+          item.setExpirationDate(expirationDate);
+        }
       } else if ("url".equals(mapping)) {
         item.setUrl(value);
       } else if ("imageUrl".equals(mapping)) {
@@ -266,7 +283,10 @@ public class SaveDatasetRowCommand {
       } else if ("barcode".equals(mapping)) {
         item.setBarcode(value);
       } else if ("assignedTo".equals(mapping)) {
-        // @todo
+        long assignedToUserId = resolveAssignedToUserId(value);
+        if (assignedToUserId > -1) {
+          item.setAssignedTo(assignedToUserId);
+        }
       } else if ("custom".equals(mapping)) {
         String columnName = columnNames.get(i);
         String title = fieldTitles.get(i);
@@ -283,6 +303,56 @@ public class SaveDatasetRowCommand {
       item.setName(item.getName().substring(0, 250));
     }
     return item;
+  }
+
+  /**
+   * Parses a dataset cell into a Timestamp, trying the date/time formats that dataset
+   * exports commonly use. Datasets carry no declared source format, so a set of patterns
+   * is attempted strictly (to avoid silently accepting a nonsense date). A value matching
+   * none is logged and skipped rather than stored wrong -- importing a wrong date is worse
+   * than importing none, which is the silent data loss this replaces. Parsing is naive
+   * (any zone designator is treated as a literal); fidelity beyond the stored value is out
+   * of scope here.
+   *
+   * @param value the trimmed cell value (never blank here -- blanks are skipped earlier)
+   * @return the parsed Timestamp, or null if the value could not be parsed
+   */
+  protected static Timestamp parseTimestamp(String value) {
+    try {
+      java.util.Date date = DateUtils.parseDateStrictly(value,
+          "yyyy-MM-dd'T'HH:mm:ss'Z'",
+          "yyyy-MM-dd'T'HH:mm:ssXXX",
+          "yyyy-MM-dd'T'HH:mm:ss",
+          "yyyy-MM-dd HH:mm:ss",
+          "yyyy-MM-dd",
+          "MM/dd/yyyy HH:mm:ss",
+          "MM/dd/yyyy",
+          "yyyy/MM/dd");
+      return new Timestamp(date.getTime());
+    } catch (ParseException e) {
+      LOG.warn("Dataset date value could not be parsed, skipping: '" + value + "'");
+      return null;
+    }
+  }
+
+  /**
+   * Resolves a dataset cell to a user id for an "assignedTo" mapping. The item form labels
+   * this field a user name, so the value is looked up as a username. An unrecognized user
+   * is logged and skipped (returns -1) rather than guessed at or stored as a bogus id --
+   * assigning an item to the wrong user is worse than leaving it unassigned. (Resolving by
+   * email or numeric id could be added if a dataset needs it; username is the existing
+   * convention.)
+   *
+   * @param value the trimmed cell value (never blank here -- blanks are skipped earlier)
+   * @return the matching user id, or -1 if no user matches
+   */
+  protected static long resolveAssignedToUserId(String value) {
+    User user = UserRepository.findByUsername(value);
+    if (user == null) {
+      LOG.warn("Dataset assignedTo value did not match a username, skipping: '" + value + "'");
+      return -1;
+    }
+    return user.getId();
   }
 
   private static void updateGeoPoint(Item item) {
