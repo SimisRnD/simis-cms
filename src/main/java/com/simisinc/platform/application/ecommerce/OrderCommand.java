@@ -34,6 +34,7 @@ import com.sanctionco.jmail.JMail;
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.domain.model.SiteProperty;
+import com.simisinc.platform.domain.model.ecommerce.Address;
 import com.simisinc.platform.domain.model.ecommerce.Cart;
 import com.simisinc.platform.domain.model.ecommerce.CartItem;
 import com.simisinc.platform.domain.model.ecommerce.Customer;
@@ -171,11 +172,15 @@ public class OrderCommand {
       grandTotal = grandTotal.add(cart.getShippingAndHandlingFee());
     }
 
-    // Finally, determine the taxes
-    if (cart.getTaxAmount() != null) {
-      // @todo Use the Tax service to get the final actual amount
-      grandTotal = grandTotal.add(cart.getTaxAmount());
-    }
+    // Look up the selected shipping rate up front: it is needed both to re-derive
+    // the sales tax below (shipping and handling can themselves be taxable) and to
+    // record the shipping method on the order further down.
+    ShippingRate shippingRate = ShippingRateRepository.findById(cart.getShippingRateId());
+
+    // Finally, determine the taxes -- re-derived from the Tax service and validated
+    // against the amount the customer reviewed, rather than trusted from the cart
+    // (see determineTaxToCharge for why the stored amount can be stale).
+    grandTotal = grandTotal.add(determineTaxToCharge(cart, customer, shippingRate));
 
     // Include Gift Cards (set amount going to gift card, reduce amount CC)
 
@@ -197,8 +202,7 @@ public class OrderCommand {
     order.setBillingAddress(customer.getBillingAddress());
     order.setShippingAddress(customer.getShippingAddress());
 
-    // Shipping information
-    ShippingRate shippingRate = ShippingRateRepository.findById(cart.getShippingRateId());
+    // Shipping information (shippingRate looked up above)
     if (shippingRate != null) {
       order.setShippingRateId(shippingRate.getId());
       order.setShippingMethodId(shippingRate.getShippingMethodId());
@@ -225,8 +229,7 @@ public class OrderCommand {
     order.setShippingFee(cart.getShippingFee());
     order.setHandlingFee(cart.getHandlingFee());
 
-    // Taxes
-    // @todo consider regenerating
+    // Taxes (validated against the Tax service during grand-total computation above)
     order.setTaxAmount(cart.getTaxAmount());
     order.setTaxRate(cart.getTaxRate());
 //    order.setTaxId();
@@ -254,5 +257,47 @@ public class OrderCommand {
       return validOrder;
     }
     return null;
+  }
+
+  /**
+   * Re-derives the sales tax for a cart at checkout and returns the amount to charge.
+   * <p>
+   * The tax stored on the cart was calculated earlier, when the customer chose a
+   * shipping method ({@code ShippingMethodFormWidget}). By the time the order is
+   * placed the tax-rate table, the nexus configuration, or the shipping selection
+   * may have changed, leaving that stored amount stale. This method asks the Tax
+   * service for the current amount and, if it no longer matches what the customer
+   * reviewed ({@code cart.getTaxAmount()}), throws so the caller can send them back
+   * to review -- mirroring how a changed product price or subtotal is handled --
+   * rather than silently charging a total different from the one they saw.
+   * <p>
+   * Note: the re-derivation uses the cart's current subtotal and discount, so it
+   * catches tax-rate/nexus/shipping changes. Regenerating the discount itself at
+   * checkout remains a separate concern (see the discount handling in generateOrder).
+   *
+   * @param cart         the cart being converted to an order
+   * @param customer     the customer, for the destination (shipping) address
+   * @param shippingRate the selected shipping rate (shipping/handling can be taxable)
+   * @return the sales tax to charge (never null; zero when no tax applies)
+   * @throws DataException if the re-derived tax no longer matches the reviewed amount
+   */
+  protected static BigDecimal determineTaxToCharge(Cart cart, Customer customer, ShippingRate shippingRate)
+      throws DataException {
+    BigDecimal reviewedTax = (cart.getTaxAmount() != null ? cart.getTaxAmount() : BigDecimal.ZERO);
+    BigDecimal actualTax = BigDecimal.ZERO;
+    Address shippingAddress = customer.getShippingAddress();
+    if (shippingAddress != null
+        && StringUtils.isNotBlank(shippingAddress.getCountry())
+        && StringUtils.isNotBlank(shippingAddress.getState())
+        && StringUtils.isNotBlank(shippingAddress.getPostalCode())) {
+      BigDecimal taxRate = SalesTaxCommand.estimatedTaxRateForAddress(shippingAddress);
+      if (taxRate != null && shippingRate != null) {
+        actualTax = SalesTaxCommand.estimateTax(cart, shippingAddress, taxRate, shippingRate);
+      }
+    }
+    if (actualTax.compareTo(reviewedTax) != 0) {
+      throw new DataException("The sales tax has been recalculated, please review the cart");
+    }
+    return actualTax;
   }
 }
