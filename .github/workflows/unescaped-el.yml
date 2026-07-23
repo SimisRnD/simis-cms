@@ -1,10 +1,17 @@
-# Fails the build when a JSP renders an EL expression into HTML or JavaScript without escaping
-# and without a recorded justification. See tools/check-unescaped-el.py for the rationale.
+# Fast, build-free static gates that only need python3.
 #
-# ENFORCING (--strict). The sweep that produced this fixed 29 injection points and classified the
-# rest; every remaining unescaped site carries an ALLOWLIST entry saying why the value cannot
-# carry markup. A NEW one cannot appear without somebody writing that justification down.
-name: Unescaped EL
+# 1. Unescaped EL: fails when a JSP renders an EL expression into HTML or JavaScript without
+#    escaping and without a recorded justification. See tools/check-unescaped-el.py. ENFORCING
+#    (--strict): the sweep that produced this fixed 29 injection points and classified the rest;
+#    every remaining unescaped site carries an ALLOWLIST entry saying why the value cannot carry
+#    markup. A NEW one cannot appear without somebody writing that justification down.
+#
+# 2. XML well-formedness: parses the XML config files that only Tomcat reads at startup
+#    (server.xml, context.xml, web.xml, the TLDs), so a malformed one fails here in ~1s rather
+#    than at container boot as an opaque "Cannot start server". See tools/check-xml-well-formed.py.
+#    This has bitten twice (PR #178, PR #221) -- both caught expensively by the deploy smoke test,
+#    which stays as the thorough last gate; this is the cheap first one.
+name: Static checks
 
 on:
   push:
@@ -16,10 +23,16 @@ permissions:
   contents: read
 
 jobs:
+  # Job id kept as `unescaped-el` on purpose: it is a required status check in the
+  # Protect Main ruleset, and the required context is the job name. Adding the XML
+  # check as a step here means it is enforced immediately through that existing
+  # required context, with no ruleset change needed.
   unescaped-el:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
       # ubuntu-latest ships python3; no extra setup or network needed.
+      - name: Fail on malformed XML config (server.xml, context.xml, web.xml, TLDs)
+        run: python3 tools/check-xml-well-formed.py . --strict
       - name: Fail on unescaped JSP EL without a recorded justification
         run: python3 tools/check-unescaped-el.py . --strict
