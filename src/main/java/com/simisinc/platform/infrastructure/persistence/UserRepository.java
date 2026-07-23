@@ -20,6 +20,7 @@ import com.simisinc.platform.application.SecretCryptoCommand;
 import com.simisinc.platform.domain.model.Role;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.dashboard.StatisticsData;
+import com.simisinc.platform.infrastructure.cache.CacheManager;
 import com.simisinc.platform.infrastructure.database.*;
 import com.simisinc.platform.infrastructure.persistence.ecommerce.OrderRepository;
 import com.simisinc.platform.infrastructure.persistence.login.UserGroupRepository;
@@ -371,6 +372,13 @@ public class UserRepository {
     if (DB.update(TABLE_NAME, updateValues, where)) {
       // Invalidate user_tokens since there is a new password
       UserTokenRepository.removeAll(record.getId());
+      // Invalidate the cached plaintext credentials keyed by user id. AuthenticateLoginCommand
+      // caches "username:password" on a successful login and returns on a cache hit WITHOUT
+      // re-verifying the stored hash; without this eviction the OLD password keeps authenticating
+      // after a change/reset (the cache is expireAfterAccess, so use keeps it alive) until the
+      // user next logs in with the new one. Mirrors the token invalidation above. invalidateKey
+      // is null-safe if the cache manager has not been started.
+      CacheManager.invalidateKey(CacheManager.USER_CREDENTIALS_CACHE, record.getId());
       return record;
     }
     LOG.error("updatePassword failed!");
