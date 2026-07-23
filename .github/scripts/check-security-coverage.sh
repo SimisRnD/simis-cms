@@ -69,6 +69,11 @@ set -euo pipefail
 # at ~88% and shares the 0.50 floor. The floor exists to fail the gate if those
 # tests are removed, since this is an access-control decision.
 #
+# RemoteUrlValidationCommand.isFetchAllowed() -- the SSRF guard for server-side fetches
+# of an untrusted (dataset source / response-derived paging) URL: it blocks loopback,
+# link-local (the cloud-metadata endpoint), and private targets. Covered by
+# RemoteUrlValidationCommandTest at ~86% and shares the 0.50 floor, since this is the
+# control that stops SSRF to internal services and instance-metadata credentials.
 # SaveUserCommand.saveUser() -- the user create/update path, including the
 # privilege-assignment guard that decides who may grant or remove the Admin role
 # -- is covered by SaveUserCommandTest at ~72% and shares the 0.50 floor. A
@@ -83,6 +88,7 @@ com.simisinc.platform.application.cms.UrlCommand,0.50
 com.simisinc.platform.application.cms.NumberCommand,0.30
 com.simisinc.platform.application.DoNotTrackCommand,0.50
 com.simisinc.platform.application.cms.ValidateUserAccessToWebPageCommand,0.50
+com.simisinc.platform.application.http.RemoteUrlValidationCommand,0.50
 com.simisinc.platform.application.register.SaveUserCommand,0.50
 '
 
