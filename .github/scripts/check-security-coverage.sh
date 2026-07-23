@@ -68,6 +68,12 @@ set -euo pipefail
 # role/group primitive) -- is covered by ValidateUserAccessToWebPageCommandTest
 # at ~88% and shares the 0.50 floor. The floor exists to fail the gate if those
 # tests are removed, since this is an access-control decision.
+#
+# SaveUserCommand.saveUser() -- the user create/update path, including the
+# privilege-assignment guard that decides who may grant or remove the Admin role
+# -- is covered by SaveUserCommandTest at ~72% and shares the 0.50 floor. A
+# non-admin must be able to neither grant Admin nor strip it from another user;
+# the floor exists to fail the gate if that authorization coverage is removed.
 TARGETS='
 com.simisinc.platform.application.IpAddressCommand,0.50
 com.simisinc.platform.application.SecretCryptoCommand,0.50
@@ -77,6 +83,7 @@ com.simisinc.platform.application.cms.UrlCommand,0.50
 com.simisinc.platform.application.cms.NumberCommand,0.30
 com.simisinc.platform.application.DoNotTrackCommand,0.50
 com.simisinc.platform.application.cms.ValidateUserAccessToWebPageCommand,0.50
+com.simisinc.platform.application.register.SaveUserCommand,0.50
 '
 
 CSV="${1:-${JACOCO_CSV:-target/coverage-reports/jacoco.csv}}"
