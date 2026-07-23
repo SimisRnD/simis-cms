@@ -42,7 +42,15 @@ RUN curl -fsSL -o /opt/applicationinsights-agent.jar \
     && echo "${APPLICATIONINSIGHTS_SHA256}  /opt/applicationinsights-agent.jar" | sha256sum -c -
 COPY ./docker/app/applicationinsights.json /opt/applicationinsights.json
 
-COPY ./target/simis-cms.war /usr/local/tomcat/webapps/ROOT.war
+# [STIG] Pre-extract the WAR at build time instead of letting Tomcat unpack it at startup.
+# With a read-only root filesystem, Tomcat cannot write the exploded ROOT/ into webapps/ at
+# boot -- so the app is exploded here, once, and server.xml sets unpackWARs="false". The
+# extracted tree is identical to the WAR's contents (precompiled JSPs included). This removes
+# the last startup write to webapps/ and lets that directory stay read-only.
+COPY ./target/simis-cms.war /tmp/ROOT.war
+RUN mkdir -p /usr/local/tomcat/webapps/ROOT \
+    && (cd /usr/local/tomcat/webapps/ROOT && jar xf /tmp/ROOT.war) \
+    && rm /tmp/ROOT.war
 
 # [STIG] Run Tomcat as a non-root user. The stock image runs as root, which is a standing,
 # citable finding independent of any base-image choice. A fixed high UID/GID avoids collision
@@ -54,8 +62,10 @@ COPY ./target/simis-cms.war /usr/local/tomcat/webapps/ROOT.war
 #   temp/    java.io.tmpdir for the JVM.
 #   logs/    catalina.out and the STIG access log (AU-3) -- an unwritable logs/ would silently
 #            lose the per-request audit trail this profile depends on.
-#   webapps/ unpackWARs="true" extracts ROOT.war to ROOT/ at startup.
-#   /opt     the App Insights agent writes its selfDiagnostics log beside its own jar.
+#   webapps/ (no longer a runtime write -- the WAR is pre-extracted above and unpackWARs is
+#            false, so webapps/ is read-only under the read-only root filesystem).
+#   /opt     (no longer a runtime write -- the App Insights agent's selfDiagnostics is routed to
+#            the console in applicationinsights.json, so nothing is written beside the jar).
 #   /opt/simis  CMS_PATH, the file store. Created here on purpose: docker seeds a NAMED volume
 #            from the image path, so creating it owned by the runtime user is what makes the
 #            mounted web-data volume writable. Without this the app boots and /healthz fails
@@ -73,15 +83,23 @@ COPY ./target/simis-cms.war /usr/local/tomcat/webapps/ROOT.war
 # root-owned 0750 file would be silently unreadable to this user and the JVM options would
 # vanish without an error. That failure mode is called out in the private STIG runbook.
 #
-# Still open (paired container-runtime work, tracked separately): read-only root filesystem,
-# dropping ALL Linux capabilities, and enabling server.xml's SecurityListener -- the listener's
-# umask/effective-user checks are what this change makes possible.
+# The read-only root filesystem is enforced at the container-runtime layer (docker-compose.yaml:
+# read_only + tmpfs for work/temp/logs), paired with this image's pre-extraction and
+# console-routed agent log. SecurityListener (enabled in server.xml) and dropped capabilities
+# (compose) complete the runtime hardening.
+#
+# /opt/jna is the one deliberate writable+executable surface. Argon2 password hashing loads a
+# JNA native library, which JNA extracts to a temp dir and then mmap-executes. Docker forces
+# `noexec` on tmpfs, so the general scratch dirs (work/temp/logs) cannot host it -- setenv.sh
+# points -Djna.tmpdir here, a mounted volume (volumes are exec), keeping noexec everywhere else.
+# The stronger long-term posture is a system-installed libargon2 with argon2-jvm-nolibs, which
+# would need no writable-exec surface at all; tracked as a follow-up.
 ARG APP_UID=10001
 ARG APP_GID=10001
 RUN groupadd --gid ${APP_GID} simis \
     && useradd --uid ${APP_UID} --gid ${APP_GID} --home-dir /usr/local/tomcat \
                --shell /usr/sbin/nologin --no-create-home simis \
-    && mkdir -p /opt/simis /usr/local/tomcat/work /usr/local/tomcat/temp /usr/local/tomcat/logs \
+    && mkdir -p /opt/simis /opt/jna /usr/local/tomcat/work /usr/local/tomcat/temp /usr/local/tomcat/logs \
                 /usr/local/tomcat/conf/Catalina/localhost \
     && chown -R simis:simis \
          /opt \

@@ -4,9 +4,12 @@
 # so it composes cleanly with other options (e.g. the memory/agent flags) rather
 # than overwriting them. Coverage: docker-tomcat9-stig-hardening.md.
 #
-# This file currently sets no JVM properties. It is retained (rather than deleted)
-# because the Dockerfile copies it and because it is the natural home for any future
-# -D hardening flag.
+# [STIG] Point JNA's native-library extraction at /opt/jna. Under the read-only root filesystem
+# the general scratch dirs (work/temp/logs) are noexec tmpfs, but Argon2 password hashing loads a
+# JNA native library that must be mmap-executed. /opt/jna is a mounted volume (exec, unlike tmpfs),
+# so JNA can extract and load its .so there while everything else stays noexec/read-only. Without
+# this the admin-user Flyway migration fails with UnsatisfiedLinkError ("failed to map segment").
+CATALINA_OPTS="$CATALINA_OPTS -Djna.tmpdir=/opt/jna"
 #
 # Historical note, so the old flag is not reintroduced: Tomcat 9 required
 #     -Dorg.apache.catalina.connector.RECYCLE_FACADES=true

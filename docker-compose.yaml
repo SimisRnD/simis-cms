@@ -19,6 +19,22 @@ services:
       dockerfile: ./docker/app/Dockerfile
     ports:
       - 80:8080
+    # [STIG] Read-only root filesystem. The image pre-extracts the WAR (unpackWARs=false) and
+    # routes the App Insights self-diagnostics to the console, so the only writable surfaces at
+    # runtime are these tmpfs mounts -- Tomcat's scratch/log dirs -- and the /opt/simis volume
+    # (CMS_PATH). Everything else (server.xml, the app, the JRE) is immutable. App Service for
+    # Containers exposes no equivalent, so the control is evidenced as a verified image property
+    # (see the container-runtime hardening card). The tmpfs dirs are recreated empty each start;
+    # nothing here is meant to persist -- access logs are shipped, not retained locally.
+    read_only: true
+    tmpfs:
+      - /usr/local/tomcat/work
+      - /usr/local/tomcat/temp
+      - /usr/local/tomcat/logs
+    # conf/Catalina/localhost is NOT a tmpfs: the image pre-creates it (owned by the runtime
+    # user), and Tomcat's HostConfig only needs it to EXIST -- it does not write into it for a
+    # directory-deployed app with autoDeploy=false. A tmpfs there would shadow the pre-created
+    # dir with an empty root-owned mount and re-introduce the "Unable to create directory" SEVERE.
     environment:
       CMS_ADMIN_USERNAME: "${CMS_ADMIN_USERNAME:?err}"
       CMS_ADMIN_PASSWORD: "${CMS_ADMIN_PASSWORD:?err}"
@@ -47,10 +63,15 @@ services:
       - platform
     volumes:
       - web-data:/opt/simis:delegated
-  
+      # The one writable+executable surface under the read-only root: Argon2's JNA native library
+      # must be extracted and mmap-executed, which the noexec tmpfs above cannot host. A volume is
+      # exec (unlike tmpfs); setenv.sh points -Djna.tmpdir here. See docker/app/Dockerfile.
+      - jna-exec:/opt/jna
+
 volumes:
   db-data:
   web-data:
+  jna-exec:
 
 networks:
   platform:
