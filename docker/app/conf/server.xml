@@ -38,12 +38,30 @@
      lifecycle (docker stop / SIGTERM) handles shutdown instead. -->
 <Server port="-1" shutdown="SHUTDOWN">
   <Listener className="org.apache.catalina.startup.VersionLoggerListener" />
-  <!-- [STIG] The SecurityListener (umask/effective-user checks) should be enabled
-       once the image runs as a non-root user (paired container-runtime card). It
-       is left disabled here because the current image still starts as root and the
-       listener's checks would halt startup; enabling it before that would break boot.
+  <!-- [STIG] SecurityListener ENABLED. It refuses startup if Tomcat is running as a
+       root user, and if the effective umask is less restrictive than 0027.
+
+       Previously commented out because the image started as root and the listener
+       would have halted boot. PR #219 moved the container to a non-root user
+       (uid 10001), which is what makes this safe to turn on — and turning it on is
+       what makes the non-root property *enforced* rather than merely configured: if
+       a future change reintroduces a root runtime, Tomcat now fails fast instead of
+       silently regressing.
+
+       No umask configuration is needed. catalina.sh defaults UMASK to 0027 when it
+       is unset, applies it before starting the JVM, and passes the result through as
+       -Dorg.apache.catalina.security.SecurityListener.UMASK, which is the property
+       this listener reads. (The image's *shell* umask is 0022, but that is not what
+       Tomcat runs under — verified by reading catalina.sh, not assumed.)
+
+       NOTE for future edits: XML forbids a doubled hyphen inside a comment body.
+       Tomcat's parser rejects the whole server.xml at startup if one appears, and
+       it presents as "Cannot start server, server instance is not configured"
+       rather than as a comment problem, so it is easy to misdiagnose. Use an em
+       dash for parenthetical asides. This exact mistake shipped to main once
+       before (PR #178, in META-INF/context.xml) and is why the deploy smoke test
+       exists. -->
   <Listener className="org.apache.catalina.security.SecurityListener" />
-  -->
   <Listener className="org.apache.catalina.core.AprLifecycleListener" />
   <Listener className="org.apache.catalina.core.JreMemoryLeakPreventionListener" />
   <Listener className="org.apache.catalina.mbeans.GlobalResourcesLifecycleListener" />
