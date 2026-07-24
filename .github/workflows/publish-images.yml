@@ -73,9 +73,9 @@ jobs:
           output: trivy-simis-cms.sarif
           severity: CRITICAL,HIGH
           limit-severities-for-sarif: true
-          # Report only for now: the Tomcat base image carries OS CVEs we do
-          # not control, and failing here would block every release. Raise to
-          # '1' once the baseline is triaged, to fail on new CRITICAL/HIGH.
+          # Report scan: always exit 0 so the SARIF below reaches the Security
+          # tab on every run. Enforcement is the separate gate step after the
+          # upload -- splitting them means a failing gate never costs visibility.
           exit-code: '0'
 
       - name: Publish the application scan results
@@ -83,6 +83,13 @@ jobs:
         with:
           sarif_file: trivy-simis-cms.sarif
           category: image-simis-cms
+
+      # Blocking gate: the application image's CRITICAL/HIGH baseline is zero,
+      # so any finding is new -- fail before the image is pushed, so a
+      # vulnerable image is never published. Runs after the SARIF upload and
+      # reuses the trivy binary the report scan's action installed on PATH.
+      - name: Enforce the application image scan gate
+        run: trivy image --scanners vuln --severity CRITICAL,HIGH --exit-code 1 "$IMAGE_PREFIX/simis-cms:$GITHUB_SHA"
 
       - name: Push the application image
         run: |
@@ -121,6 +128,7 @@ jobs:
           output: trivy-simis-cms-db.sarif
           severity: CRITICAL,HIGH
           limit-severities-for-sarif: true
+          # Report scan, exit 0 -- same split as the application image above.
           exit-code: '0'
 
       - name: Publish the database scan results
@@ -128,6 +136,21 @@ jobs:
         with:
           sarif_file: trivy-simis-cms-db.sarif
           category: image-simis-cms-db
+
+      # Blocking gate for the database image: the published OpenVEX suppresses
+      # the triaged Debian will-not-fix set (not_affected), and .trivyignore
+      # carries the under_investigation set with expiry dates -- so pending
+      # triage cannot be forgotten silently. Anything else (a new/unexpected
+      # CRITICAL/HIGH) fails the publish before the push. Raw CLI because
+      # trivy-action v0.36.0 exposes no vex input. The VEX claims hold for the
+      # image as configured: enabling PL/Perl, postgis_raster, or xml-handling
+      # voids them (see the VEX impact statements).
+      - name: Enforce the database image scan gate
+        run: >-
+          trivy image --scanners vuln --severity CRITICAL,HIGH --exit-code 1
+          --vex docker/db/vex/simis-cms-db.openvex.json
+          --ignorefile docker/db/.trivyignore
+          "$IMAGE_PREFIX/simis-cms-db:$GITHUB_SHA"
 
       - name: Push the database image
         run: |
