@@ -1,0 +1,30 @@
+# Tests for the tools/*.py check scripts -- the scripts the other gates run.
+# A gate whose own logic is untested can rot silently (the completeness gate
+# was a placebo for weeks before PR #243); this suite pins each tool's CLI
+# contract: discovery rules, findings, and exit codes, strict and non-strict.
+#
+# Coverage note (deliberate): check-war-completeness.py needs a built WAR and
+# generate-db-vex.py needs the GitHub API -- both are exercised for real by
+# their own workflows (war-completeness.yml on every PR; VEX regeneration at
+# triage time), so synthetic tests here would duplicate weaker versions of
+# what already runs. The five filesystem-pure tools are covered here.
+name: Tools tests
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+permissions:
+  contents: read
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      - name: Install pytest
+        run: python3 -m pip install --quiet pytest
+      - name: Run the tools test suite
+        run: python3 -m pytest tools/tests -q
