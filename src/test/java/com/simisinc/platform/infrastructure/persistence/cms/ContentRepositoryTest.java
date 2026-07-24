@@ -199,6 +199,10 @@ class ContentRepositoryTest {
           + "draft_content TEXT, "
           + "content_format INTEGER NOT NULL DEFAULT 0, "
           + "draft_content_format INTEGER NOT NULL DEFAULT 0, "
+          + "draft_status VARCHAR(20), "
+          + "submitted_by BIGINT DEFAULT -1, "
+          + "approved_by BIGINT DEFAULT -1, "
+          + "release_reference VARCHAR(255), "
           + "created_by BIGINT, "
           + "modified_by BIGINT, "
           + "created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP, "
@@ -206,6 +210,50 @@ class ContentRepositoryTest {
     } catch (SQLException se) {
       throw new IllegalStateException("Could not create the content schema", se);
     }
+  }
+
+  @Test
+  void reviewWorkflowFieldsRoundTrip() {
+    // A submitted-and-approved draft persists its review state (P1). submitted_by != approved_by is
+    // the separation-of-duties data the audit evidence rests on, so prove it survives a save/reload.
+    Content content = new Content();
+    content.setUniqueId("under-review");
+    content.setContent("<p>live</p>");
+    content.setDraftContent("<p>proposed</p>");
+    content.setDraftStatus("submitted");
+    content.setSubmittedBy(10L);
+    content.setApprovedBy(20L);
+    content.setReleaseReference("cleared per PA case 2026-114");
+    ContentRepository.save(content);
+
+    Content reloaded = ContentRepository.findByUniqueId("under-review");
+    assertNotNull(reloaded);
+    assertEquals("submitted", reloaded.getDraftStatus());
+    assertEquals(10L, reloaded.getSubmittedBy());
+    assertEquals(20L, reloaded.getApprovedBy());
+    assertEquals("cleared per PA case 2026-114", reloaded.getReleaseReference());
+  }
+
+  @Test
+  void publishClearsTheReviewWorkflow() {
+    // Publishing consumes the draft, so its workflow state resets; the durable record is the audit trail.
+    Content content = new Content();
+    content.setUniqueId("to-publish");
+    content.setDraftContent("<p>approved draft</p>");
+    content.setDraftStatus("submitted");
+    content.setSubmittedBy(10L);
+    content.setApprovedBy(20L);
+    content.setReleaseReference("cleared per PA case 2026-115");
+    ContentRepository.save(content);
+
+    ContentRepository.publish(content);
+
+    Content published = ContentRepository.findByUniqueId("to-publish");
+    assertEquals("<p>approved draft</p>", published.getContent(), "the draft became the live content");
+    assertNull(published.getDraftStatus());
+    assertEquals(-1L, published.getSubmittedBy());
+    assertEquals(-1L, published.getApprovedBy());
+    assertNull(published.getReleaseReference());
   }
 
   private static Content addContent(String uniqueId, String html) {
