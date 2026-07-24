@@ -1,10 +1,9 @@
 // ---------------------------------------------------------------------------
 // simis-cms — Azure infrastructure (Milestone #4 Phase 2)
 //
-// Foundation layer (network, observability, storage, secret custody, database)
-// plus the application tier (container registry, App Service, role grants).
-// The edge (Front Door + WAF) is authored separately and consumes the outputs
-// below.
+// All three layers: the foundation (network, observability, storage, secret
+// custody, database), the application tier (container registry, App Service,
+// role grants), and the edge (Front Door Premium + WAF, Private Link origin).
 //
 // Design inputs, all resolved in Phase 0
 // (governance/decision-milestone-4-phase0-decisions.md):
@@ -56,6 +55,13 @@ param trustedProxies string = ''
 
 @description('Public URL of the site (CMS_URL). Empty means the App Service default hostname; the custom domain replaces it at cutover.')
 param customUrl string = ''
+
+@description('WAF mode for the edge. Prevention blocks; Detection only logs while tuning.')
+@allowed(['Prevention', 'Detection'])
+param wafMode string = 'Prevention'
+
+@description('Custom domain for the edge, e.g. www.example.org. Empty until the DNS cutover decision.')
+param customDomainName string = ''
 
 var namePrefix = '${workloadName}-${environmentName}'
 
@@ -161,7 +167,22 @@ module rbac 'modules/rbac.bicep' = {
   }
 }
 
-// Consumed by the edge tier when it is authored.
+module frontDoor 'modules/frontdoor.bicep' = {
+  name: 'frontdoor'
+  params: {
+    namePrefix: namePrefix
+    tags: tags
+    appServiceId: appService.outputs.appServiceId
+    appHostName: appService.outputs.defaultHostName
+    privateLinkLocation: location
+    logAnalyticsWorkspaceId: logAnalytics.outputs.workspaceId
+    wafMode: wafMode
+    customDomainName: customDomainName
+  }
+}
+
+// Deploy-time reference: hostnames for DNS and verification, ids for the
+// approval and trusted-proxy steps documented in the README.
 output vnetId string = network.outputs.vnetId
 output appSubnetId string = network.outputs.appSubnetId
 output logAnalyticsWorkspaceId string = logAnalytics.outputs.workspaceId
@@ -175,3 +196,5 @@ output acrLoginServer string = acr.outputs.loginServer
 output acrName string = acr.outputs.registryName
 output appServiceName string = appService.outputs.appServiceName
 output appServiceHostName string = appService.outputs.defaultHostName
+output frontDoorEndpointHostName string = frontDoor.outputs.endpointHostName
+output frontDoorId string = frontDoor.outputs.frontDoorId
