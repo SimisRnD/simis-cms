@@ -1,17 +1,13 @@
 # Pending-triage CVEs for the database image scan gate.
 #
-# Each CVE here is recorded as `under_investigation` in the OpenVEX document
-# (docker/db/vex/simis-cms-db.openvex.json). Trivy's VEX filtering only
-# suppresses `not_affected`/`fixed` statements, so entries stay here, with an
-# expiry, until triage resolves them. When a CVE is triaged: update its VEX
-# statement (not_affected with justification, or affected with a fix plan) and
-# remove it from this file. If an expiry below lapses first, the publish gate
-# fails on the next run -- that is deliberate: triage cannot be forgotten
-# silently.
-CVE-2023-2953 exp:2026-09-30
-CVE-2023-33204 exp:2026-09-30
-CVE-2025-69720 exp:2026-09-30
-CVE-2026-41992 exp:2026-09-30
-CVE-2026-53615 exp:2026-09-30
-CVE-2026-54369 exp:2026-09-30
-CVE-2026-57433 exp:2026-09-30
+# Entries here are CVEs recorded as `under_investigation` in the OpenVEX
+# document (docker/db/vex/simis-cms-db.openvex.json). Trivy's VEX filtering
+# only suppresses `not_affected`/`fixed` statements, so pending entries live
+# here, each with an expiry (`CVE-XXXX-NNNN exp:YYYY-MM-DD`), until triage
+# resolves them. When a CVE is triaged: update its VEX statement and remove
+# its line here. A lapsed expiry re-fails the publish gate on the next run --
+# deliberately, so triage cannot be forgotten silently.
+#
+# Currently empty: the 7 CVEs pending as of 2026-07-23 were all triaged
+# not_affected (vulnerable_code_not_in_execute_path) with recorded evidence
+# on 2026-07-24 -- see the VEX statements' impact_statement fields.
