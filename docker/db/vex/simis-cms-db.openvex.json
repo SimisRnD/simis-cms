@@ -3,7 +3,7 @@
   "@id": "https://github.com/SimisRnD/simis-cms/docker/db/vex/simis-cms-db",
   "author": "SimIS Inc. (SimIS CMS maintainers)",
   "timestamp": "2026-07-21T12:51:42+00:00",
-  "version": 2,
+  "version": 3,
   "tooling": "tools/generate-db-vex.py",
   "statements": [
     {
@@ -41,8 +41,9 @@
           ]
         }
       ],
-      "status": "under_investigation",
-      "impact_statement": "General-purpose OS package. Not yet individually analysed for reachability in this image; no exploitability claim is made. Tracked for the next review."
+      "status": "not_affected",
+      "impact_statement": "The server binary links libldap, but the vulnerable code runs only during LDAP client operations, and LDAP authentication is not configured in this image (SCRAM password authentication; no ldap method in the active auth configuration). Configuring LDAP authentication would void this claim.",
+      "justification": "vulnerable_code_not_in_execute_path"
     },
     {
       "vulnerability": {
@@ -58,8 +59,9 @@
           ]
         }
       ],
-      "status": "under_investigation",
-      "impact_statement": "General-purpose OS package. Not yet individually analysed for reachability in this image; no exploitability claim is made. Tracked for the next review."
+      "status": "not_affected",
+      "impact_statement": "sysstat's collectors (sar/sadc) are launched only by cron, and the image contains no cron daemon, so they never execute; the read-only root filesystem additionally prevents staging the crafted data files the flaw requires.",
+      "justification": "vulnerable_code_not_in_execute_path"
     },
     {
       "vulnerability": {
@@ -192,8 +194,9 @@
           ]
         }
       ],
-      "status": "under_investigation",
-      "impact_statement": "General-purpose OS package. Not yet individually analysed for reachability in this image; no exploitability claim is made. Tracked for the next review."
+      "status": "not_affected",
+      "impact_statement": "The overflow is in the infocmp diagnostic binary (progs/infocmp.c), which no service in the image ever invokes; database operation processes no terminfo input. Debian rates the issue minor (no-DSA).",
+      "justification": "vulnerable_code_not_in_execute_path"
     },
     {
       "vulnerability": {
@@ -419,8 +422,9 @@
           ]
         }
       ],
-      "status": "under_investigation",
-      "impact_statement": "General-purpose OS package. Not yet individually analysed for reachability in this image; no exploitability claim is made. Tracked for the next review."
+      "status": "not_affected",
+      "impact_statement": "gzip executes only to decompress *.sql.gz initialization scripts on first boot; this image ships a single plain-text init.sql, and initialization content is operator-baked image content, not adversary-supplied input. Adding compressed init scripts from untrusted sources would void this claim.",
+      "justification": "vulnerable_code_not_in_execute_path"
     },
     {
       "vulnerability": {
@@ -583,8 +587,9 @@
           ]
         }
       ],
-      "status": "under_investigation",
-      "impact_statement": "General-purpose OS package. Not yet individually analysed for reachability in this image; no exploitability claim is made. Tracked for the next review."
+      "status": "not_affected",
+      "impact_statement": "The flaw is in libblkid's DOS partition-table prober; nothing in the container probes or mounts block devices, and with all Linux capabilities dropped (CapEff 0000000000000000, PR #230) the container cannot perform mount or device-probe operations at all.",
+      "justification": "vulnerable_code_not_in_execute_path"
     },
     {
       "vulnerability": {
@@ -600,8 +605,9 @@
           ]
         }
       ],
-      "status": "under_investigation",
-      "impact_statement": "General-purpose OS package. Not yet individually analysed for reachability in this image; no exploitability claim is made. Tracked for the next review."
+      "status": "not_affected",
+      "impact_statement": "Exploitation requires a privileged process performing pathname-based ACL operations on attacker-influenced paths; no process in this single-user container manipulates POSIX ACLs, and the root filesystem is read-only.",
+      "justification": "vulnerable_code_not_in_execute_path"
     },
     {
       "vulnerability": {
@@ -1037,8 +1043,10 @@
           ]
         }
       ],
-      "status": "under_investigation"
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Perl is present only as package-management dependency; no runtime component invokes it, the image contains no plperl library (so PL/Perl cannot be enabled), and nothing deserializes Storable blobs. The flaw is a deserialization panic (denial of service) even where reachable. Consistent with the six existing perl statements."
     }
   ],
-  "last_updated": "2026-07-23T00:00:00Z"
+  "last_updated": "2026-07-24T00:00:00Z"
 }
