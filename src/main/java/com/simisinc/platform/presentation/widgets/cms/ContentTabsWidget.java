@@ -17,6 +17,7 @@
 package com.simisinc.platform.presentation.widgets.cms;
 
 import com.simisinc.platform.application.cms.LoadContentCommand;
+import com.simisinc.platform.application.cms.ContentHtmlCommand;
 import com.simisinc.platform.domain.model.cms.Content;
 import com.simisinc.platform.domain.model.cms.ContentTab;
 import com.simisinc.platform.presentation.controller.WidgetContext;
@@ -63,7 +64,7 @@ public class ContentTabsWidget extends GenericWidget {
       String html = null;
       Content content = LoadContentCommand.loadContentByUniqueId(contentTab.getContentUniqueId());
       if (content != null) {
-        html = content.getContent();
+        html = ContentHtmlCommand.toHtml(content.getContent(), content.getContentFormat());
       }
 
       if (StringUtils.isBlank(html)) {

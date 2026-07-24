@@ -19,6 +19,7 @@ package com.simisinc.platform.presentation.widgets.ecommerce;
 import com.simisinc.platform.application.cms.FontCommand;
 import com.simisinc.platform.application.cms.LoadContentCommand;
 import com.simisinc.platform.application.ecommerce.*;
+import com.simisinc.platform.application.cms.ContentHtmlCommand;
 import com.simisinc.platform.domain.model.cms.Content;
 import com.simisinc.platform.domain.model.ecommerce.*;
 import com.simisinc.platform.infrastructure.persistence.ecommerce.CartItemRepository;
@@ -185,7 +186,7 @@ public class CartWidget extends GenericWidget {
         Content content = LoadContentCommand.loadContentByUniqueId(contentUniqueId);
         String html = null;
         if (content != null) {
-          html = content.getContent();
+          html = ContentHtmlCommand.toHtml(content.getContent(), content.getContentFormat());
         }
         if (StringUtils.isBlank(html)) {
           if (context.hasRole("admin") || context.hasRole("content-manager")) {
