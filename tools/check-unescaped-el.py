@@ -182,10 +182,13 @@ CONTEXT_JS = "JS"
 
 TAG = re.compile(r"<[^>]*>", re.S)
 COMMENT = re.compile(r"<%--.*?--%>", re.S)
-# The end tag allows whitespace before ">" per the HTML spec (</script >, </script\n>),
-# so match \s* -- otherwise a script block closed that way is not recognised, and an
-# unescaped EL expression in its JS context could slip past this gate (CodeQL py/bad-tag-filter).
-SCRIPT = re.compile(r"<script\b[^>]*>(.*?)</script\s*>", re.S | re.I)
+# An HTML end tag closes the element even when it carries trailing junk: the parser accepts
+# </script >, </script\n>, and </script foo="bar"> alike, discarding whatever follows the name.
+# Matching only \s* before ">" therefore misses a real end tag, leaving the rest of the file
+# masked as script and letting an unescaped EL expression slip past this gate unreported --
+# a false negative in an XSS lint. [^>]* accepts the junk; \b still rejects </scriptfoo>.
+# (CodeQL py/bad-tag-filter flagged the \s* form.)
+SCRIPT = re.compile(r"<script\b[^>]*>(.*?)</script\b[^>]*>", re.S | re.I)
 EL = re.compile(r"\$\{[^}]+\}")
 # A backtick-delimited JS template literal, including newlines.
 TEMPLATE_LITERAL = re.compile(r"`[^`]*`", re.S)
