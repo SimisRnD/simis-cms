@@ -18,13 +18,13 @@ FROM tomcat:11.0-jdk21@sha256:543dd74d992458d558875de8493399a718270b361b16e4ea67
 # docker-tomcat9-stig-hardening.md (private).
 #
 # Carried onto Tomcat 11 during the jakarta.servlet migration. Every server.xml edit was
-# re-verified against stock Tomcat 11 and remains valid. TWO items still need a decision
-# before this counts as compliance evidence, both flagged in the files themselves:
-#   - setenv.sh: RECYCLE_FACADES does not exist in Tomcat 11, so that control is currently
-#     unenforced (the flag is commented out rather than left silently ineffective).
-#   - server.xml: Tomcat 11 adds maxPartCount / maxPartHeaderSize, which the Tomcat 9-era
-#     profile does not cover.
-# The STIG rule-ID mapping itself has NOT been re-done for a Tomcat 11 baseline.
+# re-verified against stock Tomcat 11 and remains valid. The two items the migration left
+# open were resolved on the <Connector> in server.xml (see that file for the reasoning):
+#   - discardFacades="true": the Tomcat 11 replacement for the RECYCLE_FACADES system
+#     property (since removed from setenv.sh); on by default in 11, set explicitly to assert it.
+#   - maxPartCount / maxPartHeaderSize: new Tomcat 11 multipart limits with no Tomcat 9
+#     equivalent, pinned to the documented Tomcat 11 defaults (50 / 512).
+# Still open: the STIG rule-ID mapping has NOT been re-done for a Tomcat 11 baseline.
 COPY ./docker/app/conf/server.xml /usr/local/tomcat/conf/server.xml
 COPY ./docker/app/conf/setenv.sh /usr/local/tomcat/bin/setenv.sh
 RUN chmod 0750 /usr/local/tomcat/bin/setenv.sh && rm -rf /usr/local/tomcat/webapps.dist
