@@ -24,14 +24,26 @@ design. Treat it as reviewed-but-unapplied.
 | `modules/keyvault.bicep` | Key Vault (RBAC, private endpoint, purge protection) |
 | `modules/postgres.bicep` | PostgreSQL Flexible Server + database + PostGIS allow-list + private endpoint |
 | `modules/acr.bicep` | Container registry for the signed app image; admin account disabled |
-| `modules/appservice.bicep` | Plan + Linux container app: managed identity, Key Vault references, `CMS_PATH` mount, VNet integration, diagnostics |
+| `modules/appservice.bicep` | Plan + Linux container app: managed identity, Key Vault references, `CMS_PATH` mount, VNet integration, diagnostics; public ingress disabled |
 | `modules/rbac.bicep` | The app identity's grants: Key Vault Secrets User + AcrPull |
+| `modules/frontdoor.bicep` | Front Door Premium + WAF (managed rulesets), Private Link origin, optional custom domain with managed TLS, edge logs to the workspace |
 
 ## What is not here yet
 
-The **edge** (Front Door + WAF, issue #245), which consumes `main.bicep`'s outputs —
-and until it lands, `CMS_TRUSTED_PROXIES` stays empty. The pipeline that pushes the
-image to the registry is issue #246.
+The pipeline that pushes the image to the registry is issue #246.
+
+## The ingress path, end to end
+
+```
+client
+  └─ HTTPS → Front Door (managed TLS; WAF in Prevention: DRS 2.1 + bot rules)
+       └─ Private Link → App Service (publicNetworkAccess: Disabled — no public path)
+            └─ VNet-integrated outbound → private endpoints → PostgreSQL, Key Vault
+```
+
+Nothing between the client and the database is publicly reachable except the edge
+itself. The app's only ingress is Front Door's Private Link origin; the database
+and vault accept only their private endpoints.
 
 ## Decisions this implements
 
@@ -83,8 +95,24 @@ The app resolves three Key Vault references at startup, and IaC deliberately doe
 
 The image must also exist in the registry (issue #246's pipeline, or a one-time
 manual push) — App Service pulls it with its managed identity via AcrPull; there is
-no registry password. Two settings that matter at cutover: `customUrl` (CMS_URL)
-switches to the custom domain, and `trustedProxies` (CMS_TRUSTED_PROXIES) must be
-set to the edge egress ranges when the edge tier fronts the app — otherwise
-`getRemoteAddr()`/`isSecure()` see the proxy, degrading the Secure-cookie flag, the
-IP firewall, rate limiting, and the audit source IP.
+no registry password.
+
+## Edge deploy-time steps (the template cannot do these)
+
+1. **Approve the Private Link connection.** Front Door's origin appears on the App
+   Service as a *pending* private endpoint connection; approve it once
+   (`az network private-endpoint-connection approve`). Until then the edge serves
+   502s — the app has no other ingress by design.
+2. **Set `trustedProxies` (CMS_TRUSTED_PROXIES) to the `AzureFrontDoor.Backend`
+   service-tag ranges.** The proxy-aware handling shipped in #166/#182; this value
+   activates it. Without it, `getRemoteAddr()`/`isSecure()` see the proxy rather
+   than the client, degrading the Secure-cookie flag, the IP firewall, rate
+   limiting, and the audit source IP. The ranges are published in Azure's
+   service-tags feed and change over time — set at deploy, revisit on the monthly
+   cadence rather than hardcoding here.
+3. **At cutover:** set `customDomainName` (Front Door provisions the managed
+   certificate; DNS CNAMEs to the endpoint hostname) and `customUrl` (CMS_URL)
+   to the same domain. Until then the WAF fronts the default endpoint hostname.
+4. **WAF mode:** ships in `Prevention`. If content authoring hits managed-rule
+   false positives, drop to `Detection` *temporarily*, tune exclusions, and return
+   to `Prevention` before cutover — Detection-forever is the failure mode to avoid.

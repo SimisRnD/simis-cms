@@ -76,6 +76,10 @@ param cmsSecretKeySecretName string = 'cms-secret-key'
 @description('Key Vault secret name for the CMS admin bootstrap password.')
 param cmsAdminPasswordSecretName string = 'cms-admin-password'
 
+@description('Public ingress to the app. Disabled: the only path in is the edge tier\'s Private Link origin (frontdoor.bicep). Enable temporarily only for pre-edge debugging.')
+@allowed(['Enabled', 'Disabled'])
+param publicNetworkAccess string = 'Disabled'
+
 var planName = 'plan-${namePrefix}'
 var appName = 'app-${namePrefix}'
 var cmsPathMount = '/cms-data'
@@ -113,6 +117,8 @@ resource app 'Microsoft.Web/sites@2023-12-01' = {
     serverFarmId: plan.id
     httpsOnly: true
     virtualNetworkSubnetId: appSubnetId
+    // Ingress only through the edge tier's Private Link origin.
+    publicNetworkAccess: publicNetworkAccess
     // Key Vault references resolve with the system-assigned identity.
     keyVaultReferenceIdentity: 'SystemAssigned'
     siteConfig: {
@@ -182,6 +188,7 @@ resource diagnostics 'Microsoft.Insights/diagnosticSettings@2021-05-01-preview' 
 }
 
 output appServiceName string = app.name
+output appServiceId string = app.id
 output appServicePrincipalId string = app.identity.principalId
 output defaultHostName string = app.properties.defaultHostName
 output planId string = plan.id
