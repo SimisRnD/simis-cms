@@ -23,7 +23,7 @@ permissions:
   packages: write         # publish to the SimIS container registry
   security-events: write  # send image scan results to the Security tab
   id-token: write         # keyless OIDC identity for build provenance
-  attestations: write     # record the signed provenance attestation
+  attestations: write     # record the signed provenance + SBOM attestations
 
 # Serialize publishes: without this, two overlapping runs can race and an older
 # commit's build could finish last and win the :latest tag. Queue instead of
@@ -57,6 +57,11 @@ jobs:
 
       - name: Sign in to the registry
         run: echo '${{ secrets.GITHUB_TOKEN }}' | docker login "$REGISTRY" -u '${{ github.actor }}' --password-stdin
+
+      # Syft generates the per-image SBOMs below (the same tool sbom.yml uses for
+      # the WAR). Installed once here, before the images are built and scanned.
+      - name: Install Syft
+        uses: anchore/sbom-action/download-syft@v0
 
       # --- Application image (docker/app/Dockerfile, built from repo root) ---
       - name: Build the application image
@@ -104,6 +109,22 @@ jobs:
           subject-digest: ${{ steps.app_digest.outputs.digest }}
           push-to-registry: true
 
+      # Software Bill of Materials: enumerate what is actually inside the image
+      # -- base OS, JRE, and app layers. Provenance proves who built it; an SBOM
+      # says what is in it. Scans the just-built image, so the SBOM describes the
+      # same digest the attestation above is bound to. Purely additive -- the
+      # provenance step above is unchanged.
+      - name: Generate the CycloneDX SBOM for the application image
+        run: syft "$IMAGE_PREFIX/simis-cms:$GITHUB_SHA" -o cyclonedx-json=sbom-simis-cms.cdx.json
+
+      - name: Attest the application image SBOM
+        uses: actions/attest-sbom@v4
+        with:
+          subject-name: ${{ env.IMAGE_PREFIX }}/simis-cms
+          subject-digest: ${{ steps.app_digest.outputs.digest }}
+          sbom-path: sbom-simis-cms.cdx.json
+          push-to-registry: true
+
       # --- Database image ---------------------------------------------------
       # docker/db/Dockerfile references ./docker/db/init.sql, so it builds from
       # the repository root (not the docker/db directory).
@@ -145,4 +166,18 @@ jobs:
         with:
           subject-name: ${{ env.IMAGE_PREFIX }}/simis-cms-db
           subject-digest: ${{ steps.db_digest.outputs.digest }}
+          push-to-registry: true
+
+      # SBOM for the database image -- the image whose base-OS layers carry the
+      # findings the application image does not, so enumerating its contents
+      # matters most here. Same additive pattern as the application image above.
+      - name: Generate the CycloneDX SBOM for the database image
+        run: syft "$IMAGE_PREFIX/simis-cms-db:$GITHUB_SHA" -o cyclonedx-json=sbom-simis-cms-db.cdx.json
+
+      - name: Attest the database image SBOM
+        uses: actions/attest-sbom@v4
+        with:
+          subject-name: ${{ env.IMAGE_PREFIX }}/simis-cms-db
+          subject-digest: ${{ steps.db_digest.outputs.digest }}
+          sbom-path: sbom-simis-cms-db.cdx.json
           push-to-registry: true
