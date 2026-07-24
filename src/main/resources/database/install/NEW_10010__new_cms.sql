@@ -138,6 +138,8 @@ CREATE TABLE content (
   created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
   modified TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
   draft_content TEXT,
+  content_format INTEGER NOT NULL DEFAULT 0,
+  draft_content_format INTEGER NOT NULL DEFAULT 0,
   content_text TEXT,
   tsv TSVECTOR
 );
