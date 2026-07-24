@@ -1,26 +1,27 @@
 # Advanced CodeQL setup that applies .github/codeql/codeql-config.yml so vendored third-party JavaScript
 # under src/main/webapp/javascript is excluded from scanning (see that file for the rationale).
 #
-# ADOPTION (requires a repository admin):
-#   1. Disable the repository's CodeQL *default* setup first (Settings -> Code security -> Code scanning ->
-#      CodeQL default setup -> disable). Default and advanced setup cannot both run.
-#   2. Change the `on:` triggers below from `workflow_dispatch` only to the usual push/pull_request/schedule
-#      (an example is left commented out) so it runs on every change like the previous default setup did.
-#   3. Merge, then confirm the CodeQL check runs green on a pull request and that first-party alerts still
-#      appear while the vendored-JS noise is gone.
+# ADOPTED (issue #252): runs on every PR and push to main, plus a weekly schedule,
+# closing the pre-merge SAST gap -- previously analysis only ran post-merge via
+# default setup, so a PR's findings arrived after the merge decision.
 #
-# Until adopted, this workflow only runs on a manual dispatch, so it does not conflict with default setup.
+# Ordering constraint that made adoption an admin-coordinated step: default and
+# advanced setup cannot both run, so the repository's CodeQL *default* setup
+# (Settings -> Code security -> Code scanning) must be disabled immediately
+# before this lands. If this workflow errors with "default setup is enabled,"
+# that step was missed. Making the check *required* is the follow-up admin
+# ruleset toggle, tracked in #252.
 name: CodeQL
 
 on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  schedule:
+    # Weekly re-scan so new queries sweep the existing code, not just diffs.
+    - cron: '31 3 * * 1'
   workflow_dispatch:
-  # After disabling default setup (see ADOPTION above), enable these:
-  # push:
-  #   branches: [ main ]
-  # pull_request:
-  #   branches: [ main ]
-  # schedule:
-  #   - cron: '31 3 * * 1'
 
 jobs:
   analyze:
