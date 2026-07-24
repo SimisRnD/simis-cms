@@ -81,7 +81,7 @@
     <johnzon.version>1.3.0</johnzon.version>
     <jsoup.version>1.22.2</jsoup.version>
     <!-- Jakarta JSTL 3.0: the api and the Glassfish implementation version independently -->
-    <jstl-api.version>3.0.0</jstl-api.version>
+    <jstl-api.version>3.0.2</jstl-api.version>
     <jstl.version>3.0.1</jstl.version>
     <!-- <kafka.version>3.5.1</kafka.version> -->
     <libphonenumber.version>9.0.35</libphonenumber.version>
