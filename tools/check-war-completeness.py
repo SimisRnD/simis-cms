@@ -93,7 +93,6 @@ ALLOWLIST: dict[str, str] = {
     "io.netty": "amqp-client optional NIO transport; the blocking transport is used",
     "oracle.sql": "jobrunr optional Oracle support; this app uses PostgreSQL",
     "waffle.windows": "postgresql driver optional Windows SSPI auth; Linux deployment",
-    "com.sun.jna": "optional native access (argon2 uses the no-libs variant)",
     "org.osgi": "OSGi metadata hooks; this app is not an OSGi container",
     "org.jboss": "flyway optional JBoss VFS support",
     "com.openhtmltopdf": "flexmark optional PDF renderer; not used",
@@ -112,13 +111,16 @@ ALLOWLIST: dict[str, str] = {
     "net.jcip": "compile-time concurrency annotations",
     "com.google.errorprone": "compile-time static-analysis annotations",
     "com.google.j2objc": "compile-time annotations",
-    "com.google.common": "optional Guava usage in libraries that do not require it",
-    "com.google.gson": "optional Gson usage; Jackson is configured",
+    # com.google.common (Guava) is NOT a global allowlist entry: it is referenced
+    # only by jackson-coreutils and is a genuine runtime failure from anywhere
+    # else, so it lives in JAR_SCOPED_ALLOWLIST below. com.google.gson is NOT
+    # allowlisted at all: gson IS vendored and is mandatory on the Stripe path, so
+    # a missing com.google.gson.* reference is a real bug that must be reported.
     "com.google.protobuf": "optional protobuf support; not used",
     "org.apache.log4j": "legacy log4j 1.x bridge (flyway); slf4j is used",
     "org.apache.logging": "log4j2 bridge (flyway); slf4j is used",
     "org.apache.avalon": "legacy commons-logging bridge",
-    "org.apache.commons.logging": "commons-logging bridge; slf4j is used",
+    "org.apache.commons.logging": "commons-logging API is PROVIDED by jcl-over-slf4j (present in the WAR), not absent; that bridge reimplements the API on top of slf4j",
     "org.slf4j.impl": "slf4j binding lookup; the binding is present",
     # --- optional metrics/ORM integrations in the connection pool ---
     "io.dropwizard": "HikariCP optional Dropwizard metrics; not configured",
@@ -130,15 +132,22 @@ ALLOWLIST: dict[str, str] = {
     "com.github.luben": "commons-compress optional Zstandard codec; not used",
     # --- other optional library backends ---
     "org.apache.commons.digester": "commons-validator optional XML config loader; not used",
-    "org.apache.commons.pool2": "jobrunr optional connection pooling; not used",
     "org.apache.pdfbox": "flexmark optional PDF output; not used",
-    "org.apache.xml": "taglibs optional Xalan XPath engine; the JDK engine is used",
-    "org.apache.xpath": "taglibs optional Xalan XPath engine; the JDK engine is used",
     "org.apache.xerces": "JSTL optional SAX parser; the JDK parser is used",
     "org.eclipse.tags": "JSTL's shaded Xalan, reached only by the <x:*> XML tags; those are unused",
     "com.google.re2j": "jsoup optional RE2 regex engine; java.util.regex is used",
-    "com.sun.jna": "postgresql driver optional Windows SSPI auth; Linux deployment",
-    "org.apache.http": "jobrunr optional Apache HttpClient transport; not used",
+    # Narrowed from a bare "com.sun.jna": JNA *core* (com.sun.jna.*) IS vendored
+    # (jna-*.jar) because argon2 reaches com.sun.jna.Native/Memory/Pointer on the
+    # login/password path (de.mkammerer.argon2 <- UserPasswordCommand), so a bare
+    # prefix would silently absorb a future removal of that runtime-critical core.
+    # Only the un-vendored jna-platform win32 helpers are legitimately absent.
+    "com.sun.jna.platform": "postgresql driver's optional Windows SSPI auth (only com.sun.jna.platform.win32.*, e.g. Sspi/Win32Exception); Linux deployment, so jna-platform is not vendored",
+    # NOTE: bare prefixes org.apache.http / org.apache.xml / org.apache.xpath /
+    # org.apache.commons.pool2 were removed. They matched nothing in the current
+    # WAR, so as bare entries they only stood to mask a FUTURE real gap (an
+    # unshaded Xalan or an Apache HttpClient/pool2 transport actually being
+    # reached). If such a reference reappears it must surface as UNEXPECTED; add a
+    # jar-scoped entry then, keyed on the jar that legitimately provides it.
 }
 
 # Allowlist entries that apply to ONE library only.
@@ -148,12 +157,27 @@ ALLOWLIST: dict[str, str] = {
 # "javax.servlet" entry, for instance, would also wave through a jar that really does depend
 # on the pre-Jakarta namespace -- which Tomcat 11 does not provide.
 #
+# Rule of thumb: this jar-scoped form is the right home for any suppression that is only
+# legitimate because ONE specific jar provides or needs the class (thymeleaf's dual servlet
+# bridge, jackson-coreutils' unused Guava margin). Reserve bare-prefix ALLOWLIST entries for
+# namespaces that are genuinely container-provided (jakarta.servlet, org.apache.catalina/
+# jasper/tomcat) or optional across a whole family of libraries -- never for a class only one
+# jar happens to reference, because a bare prefix would then also mask a real gap elsewhere.
+#
 # Format: (jar filename prefix, class-name prefix): reason
 JAR_SCOPED_ALLOWLIST: dict[tuple[str, str], str] = {
     ("thymeleaf-", "javax.servlet"): (
         "thymeleaf ships both servlet bridges in one jar; this app builds "
         "JakartaServletWebApplication, so the javax path is never loaded "
         "(revisit if thymeleaf stops shipping both)"
+    ),
+    ("jackson-coreutils-", "com.google.common"): (
+        "jackson-coreutils references a small Guava margin (Equivalence, "
+        "Preconditions, Immutable* collections) that the JSON-Schema paths this "
+        "app exercises (Square / TaxJar / OAuth) never reach; Guava itself is not "
+        "vendored. Scoped to this one jar on purpose: a com.google.common.* "
+        "reference from any OTHER jar is a real missing-dependency bug and must "
+        "still be reported, not waved through by a bare prefix."
     ),
 }
 
