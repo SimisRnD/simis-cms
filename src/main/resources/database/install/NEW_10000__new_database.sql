@@ -275,6 +275,7 @@ CREATE TABLE lookup_role (
   oauth_path VARCHAR(255)
 );
 
+INSERT INTO lookup_role (level, code, title) VALUES (70, 'content-editor', 'Content Editor');
 INSERT INTO lookup_role (level, code, title) VALUES (80, 'content-manager', 'Content Manager');
 INSERT INTO lookup_role (level, code, title) VALUES (90, 'community-manager', 'Community Manager');
 INSERT INTO lookup_role (level, code, title) VALUES (93, 'data-manager', 'Data Manager');
