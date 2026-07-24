@@ -38,6 +38,13 @@ public class Content extends Entity {
   // page mid-conversion can have an HTML published version and a Delta draft at the same time.
   private int contentFormat = 0;
   private int draftContentFormat = 0;
+  // Governed publish path (P1): a draft moves draft -> submitted -> (approved+published | rejected).
+  // The named approver and the release-authority reference are recorded here and, immutably, in the
+  // audit trail. Separation of duties (approver != submitter) is enforced in ContentReviewCommand.
+  private String draftStatus = null;
+  private long submittedBy = -1;
+  private long approvedBy = -1;
+  private String releaseReference = null;
   private long createdBy = -1;
   private long modifiedBy = -1;
   private Timestamp created = null;
@@ -93,6 +100,38 @@ public class Content extends Entity {
 
   public void setDraftContentFormat(int draftContentFormat) {
     this.draftContentFormat = draftContentFormat;
+  }
+
+  public String getDraftStatus() {
+    return draftStatus;
+  }
+
+  public void setDraftStatus(String draftStatus) {
+    this.draftStatus = draftStatus;
+  }
+
+  public long getSubmittedBy() {
+    return submittedBy;
+  }
+
+  public void setSubmittedBy(long submittedBy) {
+    this.submittedBy = submittedBy;
+  }
+
+  public long getApprovedBy() {
+    return approvedBy;
+  }
+
+  public void setApprovedBy(long approvedBy) {
+    this.approvedBy = approvedBy;
+  }
+
+  public String getReleaseReference() {
+    return releaseReference;
+  }
+
+  public void setReleaseReference(String releaseReference) {
+    this.releaseReference = releaseReference;
   }
 
   public long getCreatedBy() {
