@@ -23,7 +23,12 @@ updates:
           - "minor"
           - "patch"
     ignore:
-      # Held deliberately: entangled with the javax-to-jakarta migration
+      # Held at 1.x. johnzon 2.x moves its JSON-P / JSON-B implementation from the
+      # javax.json.* namespace to jakarta.json.*, a migration this app has NOT done -- the
+      # JSON-B code still imports javax.json.bind.Jsonb / JsonbBuilder (johnzon pinned 1.3.0).
+      # This is a SEPARATE migration from the jakarta.servlet one that shipped in PR #216;
+      # that one does not clear this hold. Bumping to 2.x would break those imports.
+      # Revisit: migrate the app's JSON-B usage to jakarta.json.bind, then take johnzon 2.x.
       - dependency-name: "org.apache.johnzon:*"
         update-types: ["version-update:semver-major"]
       # Held at 3.2.x: 3.3+ throws on undefined properties (breaks WorkflowTaskTest)
@@ -43,8 +48,8 @@ updates:
       # while the image is still Tomcat 11 would compile against APIs the running server lacks,
       # and check-dependency-drift.py skips provided scope, so nothing would catch the mismatch.
       # Minor/patch bumps are NOT ignored, so Tomcat 11 security fixes still flow.
-      # Revisit: move the Docker base image to Tomcat 12 in the same change (and re-map the
-      # server.xml / setenv.sh STIG overlay, per the Dockerfile TODOs).
+      # Revisit: move the Docker base image to Tomcat 12 in the same change, and re-verify
+      # the server.xml / setenv.sh STIG overlay against the new base.
       - dependency-name: "org.apache.tomcat:tomcat-servlet-api"
         update-types: ["version-update:semver-major"]
       # Held at 12.x: Flyway is the schema-migration engine and there is currently NO

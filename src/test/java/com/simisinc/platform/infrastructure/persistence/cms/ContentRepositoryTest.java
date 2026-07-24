@@ -197,6 +197,8 @@ class ContentRepositoryTest {
           + "content TEXT, "
           + "content_text TEXT, "
           + "draft_content TEXT, "
+          + "content_format INTEGER NOT NULL DEFAULT 0, "
+          + "draft_content_format INTEGER NOT NULL DEFAULT 0, "
           + "created_by BIGINT, "
           + "modified_by BIGINT, "
           + "created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP, "

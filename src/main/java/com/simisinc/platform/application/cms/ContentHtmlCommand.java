@@ -43,6 +43,31 @@ public class ContentHtmlCommand {
 
   static String HTML_JSP = "/cms/content-html.jsp";
 
+  /**
+   * Renders a stored content string to display HTML according to its format stamp. This is the single
+   * point where the content pipeline decides how a stored value becomes HTML:
+   *
+   * <ul>
+   * <li>{@link DeltaContentCommand#LEGACY_HTML_FORMAT} (and any unrecognized value) is already HTML and
+   * passes through unchanged -- the backward-compatible default, since legacy content is the vast
+   * majority and was cleaned by {@code SaveContentCommand} on the way in.</li>
+   * <li>{@link DeltaContentCommand#DELTA_FORMAT_VERSION} is visual-editor Quill Delta JSON, rendered
+   * server-side through the allowlist in {@link DeltaContentCommand} -- never Quill's HTML-export path.</li>
+   * </ul>
+   *
+   * <p>Null in, null out: callers already treat a null result as "no content" (e.g. the add-content
+   * button), so that contract is preserved.
+   */
+  public static String toHtml(String content, int contentFormat) {
+    if (content == null) {
+      return null;
+    }
+    if (contentFormat == DeltaContentCommand.DELTA_FORMAT_VERSION) {
+      return DeltaContentCommand.render(content);
+    }
+    return content;
+  }
+
   public static String getHtmlFromPreferences(WidgetContext context) {
 
     String html = null;
@@ -55,11 +80,11 @@ public class ContentHtmlCommand {
       // Check for the content
       Content content = LoadContentCommand.loadContentByUniqueId(uniqueId);
       if (content != null) {
-        html = content.getContent();
+        html = toHtml(content.getContent(), content.getContentFormat());
         // Look for draft content
         if (context.hasRole("admin") || context.hasRole("content-manager")) {
           if (content.getDraftContent() != null) {
-            html = content.getDraftContent();
+            html = toHtml(content.getDraftContent(), content.getDraftContentFormat());
             context.getRequest().setAttribute("isDraft", "true");
           }
         }
@@ -141,11 +166,11 @@ public class ContentHtmlCommand {
       String embeddedHtml = "";
       Content content = LoadContentCommand.loadContentByUniqueId(embeddedUniqueId);
       if (content != null) {
-        embeddedHtml = content.getContent();
+        embeddedHtml = toHtml(content.getContent(), content.getContentFormat());
         // Look for draft content
         if (hasEditorPermission) {
           if (content.getDraftContent() != null) {
-            embeddedHtml = content.getDraftContent();
+            embeddedHtml = toHtml(content.getDraftContent(), content.getDraftContentFormat());
             hasDraftContent = true;
           }
         }
@@ -355,7 +380,7 @@ public class ContentHtmlCommand {
           //          "data-multiple-opened=\"true\"\n" +
           (StringUtils.isNotBlank(revealClass) ? "data-additional-overlay-classes=\"" + revealClass + "\"\n" : "") +
           "data-close-on-click=\"true\">\n" +
-          content.getContent() + "\n" +
+          toHtml(content.getContent(), content.getContentFormat()) + "\n" +
           "<button class=\"close-button\" data-close aria-label=\"Close reveal\" type=\"button\">\n" +
           "<span aria-hidden=\"true\"><i class=\"" + FontCommand.fal() + " fa-circle-xmark\"></i></span>\n" +
           "</button>\n" +
