@@ -7,10 +7,17 @@
 # nobody declared. That gap is what let the WAR ship okhttp -- a Kotlin library --
 # with no kotlin-stdlib anywhere in it, which broke the Square payment path.
 #
-# REPORT-ONLY for now: it prints findings and exits 0. `main` currently fails this
-# check for exactly the okhttp/kotlin reason above; PR #207 fixes it. Once that has
-# merged and this reports zero unexpected, flip enforcement on by adding --strict
-# to the run line below, the same way the drift check was flipped.
+# ENFORCING: --strict makes an unexpected class fail the job. Until 2026-07-23 this
+# ran report-only, which was a trap -- `completeness` was already a required status
+# check, so the gate looked enforcing on the branch rules while the script could only
+# ever exit 0. The only thing it actually proved was that `ant package` succeeded,
+# which the `build` check already proves.
+#
+# The precondition the earlier comment set -- PR #207 merged and the report clean --
+# was met on 2026-07-21. Verified before enabling: a locally built WAR reports
+# "0 unexpected, 46 allowlisted" and exits 0 under --strict, and the same WAR with
+# kotlin-stdlib deleted exits 1 with 73 unexpected classes (okhttp needs kotlin.*),
+# reproducing the original Square failure. The gate discriminates.
 name: WAR completeness
 
 on:
@@ -38,5 +45,5 @@ jobs:
       - name: Build the WAR
         run: ant -noinput -buildfile build.xml -lib lib/war package
 
-      - name: Report classes referenced but missing from the WAR
-        run: python3 tools/check-war-completeness.py --war target/simis-cms.war
+      - name: Fail if a class is referenced but missing from the WAR
+        run: python3 tools/check-war-completeness.py --war target/simis-cms.war --strict
