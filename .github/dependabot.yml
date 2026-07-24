@@ -34,8 +34,17 @@ updates:
       # Revisit on: a CVE, Square EOL'ing the legacy SDK, or needing new features.
       - dependency-name: "com.squareup:square"
         update-types: ["version-update:semver-major"]
-      # Held: Tomcat 10+ moves the servlet API from javax.* to jakarta.*, which
-      # this app is not migrated for. Revisit with the Jakarta EE migration.
+      # Held at 11.x. The original reason -- the javax->jakarta break at Tomcat 10 -- is
+      # retired: that migration shipped in PR #216 and the app now runs Tomcat 11 /
+      # jakarta.servlet / Servlet 6.1. The major stays held for a different, current reason:
+      # tomcat-servlet-api is `provided` (compile-only, and deliberately NOT vendored into the
+      # WAR), so its version must match the Servlet spec the *runtime* container supplies --
+      # pinned by docker/app/Dockerfile `FROM tomcat:11.0-jdk21`. A major to 12.x in the pom
+      # while the image is still Tomcat 11 would compile against APIs the running server lacks,
+      # and check-dependency-drift.py skips provided scope, so nothing would catch the mismatch.
+      # Minor/patch bumps are NOT ignored, so Tomcat 11 security fixes still flow.
+      # Revisit: move the Docker base image to Tomcat 12 in the same change (and re-map the
+      # server.xml / setenv.sh STIG overlay, per the Dockerfile TODOs).
       - dependency-name: "org.apache.tomcat:tomcat-servlet-api"
         update-types: ["version-update:semver-major"]
       # Held at 12.x: Flyway is the schema-migration engine and there is currently NO
