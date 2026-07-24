@@ -105,6 +105,10 @@ public class ContentRepository {
         .add("draft_content", StringUtils.trimToNull(record.getDraftContent()))
         .add("content_format", record.getContentFormat())
         .add("draft_content_format", record.getDraftContentFormat())
+        .add("draft_status", StringUtils.trimToNull(record.getDraftStatus()))
+        .add("submitted_by", record.getSubmittedBy())
+        .add("approved_by", record.getApprovedBy())
+        .add("release_reference", StringUtils.trimToNull(record.getReleaseReference()))
         .add("created_by", record.getCreatedBy())
         .add("modified_by", record.getModifiedBy());
     record.setId(DB.insertInto(TABLE_NAME, insertValues, PRIMARY_KEY));
@@ -122,6 +126,10 @@ public class ContentRepository {
         .add("draft_content", StringUtils.trimToNull(record.getDraftContent()))
         .add("content_format", record.getContentFormat())
         .add("draft_content_format", record.getDraftContentFormat())
+        .add("draft_status", StringUtils.trimToNull(record.getDraftStatus()))
+        .add("submitted_by", record.getSubmittedBy())
+        .add("approved_by", record.getApprovedBy())
+        .add("release_reference", StringUtils.trimToNull(record.getReleaseReference()))
         .add("modified_by", record.getModifiedBy())
         .add("modified", new Timestamp(System.currentTimeMillis()));
     SqlUtils where = new SqlUtils()
@@ -145,6 +153,12 @@ public class ContentRepository {
     // Promote the draft's format stamp with its content, then clear it alongside the emptied draft.
     updateValues.add("content_format = draft_content_format");
     updateValues.add("draft_content_format = 0");
+    // The draft is consumed, so clear its review workflow. The durable record of who submitted and
+    // approved, and under what release authority, lives in the append-only audit trail, not here.
+    updateValues.add("draft_status = null");
+    updateValues.add("submitted_by = -1");
+    updateValues.add("approved_by = -1");
+    updateValues.add("release_reference = null");
     updateValues.add("content_text", HtmlCommand.text(StringUtils.trimToNull(record.getContent())));
     SqlUtils where = new SqlUtils().add("draft_content IS NOT NULL AND content_unique_id = ?", record.getUniqueId());
     if (DB.update(TABLE_NAME, updateValues, where)) {
@@ -156,7 +170,8 @@ public class ContentRepository {
     if (record == null || StringUtils.isBlank(record.getUniqueId())) {
       return;
     }
-    String set = "draft_content = null, draft_content_format = 0";
+    String set = "draft_content = null, draft_content_format = 0, "
+        + "draft_status = null, submitted_by = -1, approved_by = -1, release_reference = null";
     SqlUtils where = new SqlUtils().add("content_unique_id = ?", record.getUniqueId());
     if (DB.update(TABLE_NAME, set, where)) {
       CacheManager.invalidateKey(CacheManager.CONTENT_UNIQUE_ID_CACHE, record.getUniqueId());
@@ -202,6 +217,12 @@ public class ContentRepository {
       }
       if (DB.hasColumn(rs, "draft_content_format")) {
         record.setDraftContentFormat(rs.getInt("draft_content_format"));
+      }
+      if (DB.hasColumn(rs, "draft_status")) {
+        record.setDraftStatus(rs.getString("draft_status"));
+        record.setSubmittedBy(rs.getLong("submitted_by"));
+        record.setApprovedBy(rs.getLong("approved_by"));
+        record.setReleaseReference(rs.getString("release_reference"));
       }
       if (DB.hasColumn(rs, "highlight")) {
         record.setHighlight(rs.getString("highlight"));

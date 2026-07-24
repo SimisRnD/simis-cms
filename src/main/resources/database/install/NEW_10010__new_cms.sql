@@ -140,6 +140,10 @@ CREATE TABLE content (
   draft_content TEXT,
   content_format INTEGER NOT NULL DEFAULT 0,
   draft_content_format INTEGER NOT NULL DEFAULT 0,
+  draft_status VARCHAR(20),
+  submitted_by BIGINT DEFAULT -1,
+  approved_by BIGINT DEFAULT -1,
+  release_reference VARCHAR(255),
   content_text TEXT,
   tsv TSVECTOR
 );
