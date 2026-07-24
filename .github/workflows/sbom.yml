@@ -21,8 +21,9 @@ jobs:
   sbom:
     runs-on: ubuntu-latest
     permissions:
-      contents: write      # attach the SBOM to the release
+      contents: write      # attach the SBOM + WAR to the release
       id-token: write      # keyless signing via Sigstore OIDC
+      attestations: write  # record the WAR build-provenance attestation
     steps:
       - uses: actions/checkout@v7
 
@@ -35,6 +36,16 @@ jobs:
       # Build the same artifact that ships, so the SBOM describes exactly it
       - name: Package the web application
         run: ant -noinput -buildfile build.xml -lib lib/war package
+
+      # Build provenance for the WAR itself (SLSA provenance): proves this
+      # exact artifact came from this workflow and commit -- the same story the
+      # container images already have, extended to the artifact inside them.
+      # The WAR is attached to the release below so the attested subject is
+      # retrievable; an attestation for an unfetchable artifact proves nothing.
+      - name: Attest WAR build provenance
+        uses: actions/attest-build-provenance@v4
+        with:
+          subject-path: target/simis-cms.war
 
       - name: Install Syft
         uses: anchore/sbom-action/download-syft@v0
@@ -75,6 +86,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release upload "${{ github.event.release.tag_name }}" \
+            target/simis-cms.war \
             target/bom.json target/bom.json.sig target/bom.json.pem \
             target/bom.xml target/bom.xml.sig target/bom.xml.pem \
             --clobber
