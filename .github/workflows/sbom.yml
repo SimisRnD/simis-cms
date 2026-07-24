@@ -60,12 +60,16 @@ jobs:
       - name: Install cosign
         uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
 
+      # cosign 3.x writes verification material as a single Sigstore bundle
+      # (--bundle); the separate --output-signature/--output-certificate flags
+      # were removed (they errored under cosign 3.0.6, installed via the
+      # cosign-installer v4 bump). The bundle carries the signature,
+      # certificate, and Rekor entry together -- verify with
+      # `cosign verify-blob --bundle` (see VERIFYING.md).
       - name: Sign the SBOM (keyless)
         run: |
           for f in target/bom.json target/bom.xml; do
-            cosign sign-blob --yes "$f" \
-              --output-signature "$f.sig" \
-              --output-certificate "$f.pem"
+            cosign sign-blob --yes "$f" --bundle "$f.sigstore.json"
           done
 
       - name: Upload the SBOM as a build artifact
@@ -75,10 +79,8 @@ jobs:
           path: |
             target/bom.json
             target/bom.xml
-            target/bom.json.sig
-            target/bom.json.pem
-            target/bom.xml.sig
-            target/bom.xml.pem
+            target/bom.json.sigstore.json
+            target/bom.xml.sigstore.json
 
       - name: Attach the signed SBOM to the release
         if: github.event_name == 'release'
@@ -87,6 +89,6 @@ jobs:
         run: |
           gh release upload "${{ github.event.release.tag_name }}" \
             target/simis-cms.war \
-            target/bom.json target/bom.json.sig target/bom.json.pem \
-            target/bom.xml target/bom.xml.sig target/bom.xml.pem \
+            target/bom.json target/bom.json.sigstore.json \
+            target/bom.xml target/bom.xml.sigstore.json \
             --clobber

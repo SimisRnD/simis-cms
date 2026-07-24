@@ -45,11 +45,13 @@ rebuilt WAR, which is not byte-identical — fails verification. That is the poi
 ## The release SBOM (signed blobs)
 
 Releases also attach a CycloneDX SBOM generated from the shipped WAR, signed
-keylessly with cosign (`bom.json` / `bom.xml` + `.sig` and `.pem` each):
+keylessly with cosign. Each SBOM (`bom.json` / `bom.xml`) travels with a
+Sigstore bundle (`bom.json.sigstore.json` / `bom.xml.sigstore.json`) that
+carries the signature, certificate, and transparency-log entry together:
 
 ```
 cosign verify-blob bom.json \
-  --signature bom.json.sig --certificate bom.json.pem \
+  --bundle bom.json.sigstore.json \
   --certificate-identity-regexp '^https://github.com/SimisRnD/simis-cms/' \
   --certificate-oidc-issuer https://token.actions.githubusercontent.com
 ```
