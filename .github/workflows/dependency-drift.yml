@@ -10,6 +10,10 @@
 # the constant build.xml stamps the build with. Nothing in the build reads the pom's
 # version, so it goes stale unnoticed -- it had fallen two and a half years behind by
 # v20260719.10000. See tools/check-version-consistency.py.
+#
+# Also verifies every vendored jar byte-for-byte against lib/PROVENANCE.sha256 --
+# the version checks above compare names, not bytes, so a tampered or swapped jar
+# would pass them and ship in the WAR. See tools/check-vendored-provenance.py.
 name: Dependency drift
 
 on:
@@ -31,3 +35,5 @@ jobs:
         run: python3 tools/check-dependency-drift.py . --strict
       - name: Fail on pom vs ApplicationInfo project-version drift
         run: python3 tools/check-version-consistency.py . --strict
+      - name: Fail on vendored-jar bytes not matching lib/PROVENANCE.sha256
+        run: python3 tools/check-vendored-provenance.py .
