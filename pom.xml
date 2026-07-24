@@ -35,7 +35,6 @@
     <junit.version>6.1.2</junit.version>
     <mockito.version>5.23.0</mockito.version>
     <argon2.version>2.12</argon2.version>
-    <args4j.version>2.37</args4j.version>
     <bucket4j.version>8.10.1</bucket4j.version>
     <caffeine.version>3.2.4</caffeine.version>
     <apache-http.version>5.4.3</apache-http.version>
@@ -114,11 +113,6 @@
       <groupId>de.mkammerer</groupId>
       <artifactId>argon2-jvm-nolibs</artifactId>
       <version>${argon2.version}</version>
-    </dependency>
-    <dependency>
-      <groupId>args4j</groupId>
-      <artifactId>args4j</artifactId>
-      <version>${args4j.version}</version>
     </dependency>
     <dependency>
       <groupId>net.java.dev.jna</groupId>
