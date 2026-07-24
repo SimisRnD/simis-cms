@@ -16,6 +16,7 @@
 
 package com.simisinc.platform.rest.services.cms;
 
+import com.simisinc.platform.application.cms.ContentHtmlCommand;
 import com.simisinc.platform.domain.model.cms.Content;
 
 /**
@@ -31,7 +32,9 @@ public class ContentResponse {
 
   public ContentResponse(Content thisContent) {
     uniqueId = thisContent.getUniqueId();
-    content = thisContent.getContent();
+    // Return displayable HTML: legacy content passes through, Delta is rendered server-side so API
+    // consumers never receive raw editor JSON.
+    content = ContentHtmlCommand.toHtml(thisContent.getContent(), thisContent.getContentFormat());
   }
 
   public String getUniqueId() {
