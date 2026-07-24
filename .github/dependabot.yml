@@ -58,3 +58,14 @@ updates:
     directory: "/"
     schedule:
       interval: "weekly"
+  # Maintains the base-image digest pins in the Dockerfiles (FROM name:tag@sha256:...):
+  # Dependabot proposes the new digest when the tag moves, so pinning stays current
+  # instead of freezing the images in time.
+  - package-ecosystem: "docker"
+    directory: "/docker/app"
+    schedule:
+      interval: "weekly"
+  - package-ecosystem: "docker"
+    directory: "/docker/db"
+    schedule:
+      interval: "weekly"

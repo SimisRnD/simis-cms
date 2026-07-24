@@ -30,7 +30,7 @@ jobs:
   unescaped-el:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
       # ubuntu-latest ships python3; no extra setup or network needed.
       - name: Fail on malformed XML config (server.xml, context.xml, web.xml, TLDs)
         run: python3 tools/check-xml-well-formed.py . --strict
