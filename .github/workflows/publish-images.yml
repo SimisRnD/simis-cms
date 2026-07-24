@@ -158,31 +158,42 @@ jobs:
           sarif_file: trivy-simis-cms-db.sarif
           category: image-simis-cms-db
 
-      # Blocking gate for the database image: the published OpenVEX suppresses
-      # the triaged Debian will-not-fix set (not_affected), and .trivyignore
-      # carries the under_investigation set with expiry dates -- so pending
-      # triage cannot be forgotten silently. Anything else (a new/unexpected
-      # CRITICAL/HIGH) fails the publish before the push. Raw CLI because
-      # trivy-action v0.36.0 exposes no vex input. The VEX claims hold for the
-      # image as configured: enabling PL/Perl, postgis_raster, or xml-handling
-      # voids them (see the VEX impact statements).
-      - name: Enforce the database image scan gate
-        run: >-
-          trivy image --scanners vuln --severity CRITICAL,HIGH --exit-code 1
-          --vex docker/db/vex/simis-cms-db.openvex.json
-          --ignorefile docker/db/.trivyignore
-          "$IMAGE_PREFIX/simis-cms-db:$GITHUB_SHA"
-
-      - name: Push the database image
-        run: |
-          docker push "$IMAGE_PREFIX/simis-cms-db:latest"
-          docker push "$IMAGE_PREFIX/simis-cms-db:$GITHUB_SHA"
+      # The commit tag goes up first so the gate below can scan the registry
+      # artifact. :latest -- the tag deployments follow -- is pushed only after
+      # the gate passes, so a failing gate never advances what gets deployed.
+      - name: Push the database image commit tag
+        run: docker push "$IMAGE_PREFIX/simis-cms-db:$GITHUB_SHA"
 
       - name: Capture the database image digest
         id: db_digest
         run: |
           digest=$(docker inspect --format='{{index .RepoDigests 0}}' "$IMAGE_PREFIX/simis-cms-db:$GITHUB_SHA" | cut -d@ -f2)
           echo "digest=$digest" >> "$GITHUB_OUTPUT"
+
+      # Blocking gate for the database image: the published OpenVEX suppresses
+      # the triaged Debian will-not-fix set (not_affected), and .trivyignore
+      # carries the under_investigation set with expiry dates -- so pending
+      # triage cannot be forgotten silently. Anything else (a new/unexpected
+      # CRITICAL/HIGH) fails the publish before :latest moves.
+      #
+      # The gate scans the pushed artifact BY REGISTRY DIGEST (--image-src
+      # remote): a locally built image has no repo digest on the runner's
+      # Docker engine, so Trivy cannot derive the pkg:oci purl the VEX products
+      # match against, and every VEX statement is silently inert -- verified by
+      # reproducing both conditions against trivy 0.70. Raw CLI because
+      # trivy-action v0.36.0 exposes no vex input. The VEX claims hold for the
+      # image as configured: enabling PL/Perl, postgis_raster, or xml-handling
+      # voids them (see the VEX impact statements).
+      - name: Enforce the database image scan gate
+        run: >-
+          trivy image --image-src remote --scanners vuln
+          --severity CRITICAL,HIGH --exit-code 1
+          --vex docker/db/vex/simis-cms-db.openvex.json
+          --ignorefile docker/db/.trivyignore
+          "$IMAGE_PREFIX/simis-cms-db@${{ steps.db_digest.outputs.digest }}"
+
+      - name: Publish the database image latest tag
+        run: docker push "$IMAGE_PREFIX/simis-cms-db:latest"
 
       - name: Attest the database image
         uses: actions/attest-build-provenance@v4
