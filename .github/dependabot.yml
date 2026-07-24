@@ -61,11 +61,36 @@ updates:
   # Maintains the base-image digest pins in the Dockerfiles (FROM name:tag@sha256:...):
   # Dependabot proposes the new digest when the tag moves, so pinning stays current
   # instead of freezing the images in time.
+  #
+  # Base-image MAJORS are held (same philosophy as the maven section): a runtime
+  # major is a migration event, not a dependency bump. The first weekly run proved
+  # the point by proposing postgres 17->18 (PR #271) -- a bump that changes the
+  # initdb on-disk format (existing volumes will not boot), invalidates the
+  # package baseline the published VEX was triaged against, and moves the
+  # PostGIS/Flyway compatibility surface. Majors happen as deliberate upgrade
+  # PRs with their own checklist; minor/patch/digest updates keep flowing here.
   - package-ecosystem: "docker"
     directory: "/docker/app"
     schedule:
       interval: "weekly"
+    ignore:
+      # Held: Tomcat majors move the servlet-API surface the app compiles
+      # against (9->11 was its own migration, PR #216). Revisit deliberately.
+      - dependency-name: "tomcat"
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: "docker"
     directory: "/docker/db"
     schedule:
       interval: "weekly"
+    ignore:
+      # Held: PostgreSQL majors change the data-directory format (pg_upgrade or
+      # dump/restore required), the Debian package set behind the published VEX,
+      # and the PostGIS compatibility matrix -- and the container major should
+      # move together with the Azure Flexible Server version in infra/, not
+      # ahead of it. See PR #271 for the held example.
+      - dependency-name: "postgres"
+        update-types: ["version-update:semver-major"]
+      # Held for the same reason majors are held generally; the gosu build
+      # stage tracks the golang minor line via digest updates.
+      - dependency-name: "golang"
+        update-types: ["version-update:semver-major"]
