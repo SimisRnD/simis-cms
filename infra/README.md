@@ -17,18 +17,21 @@ design. Treat it as reviewed-but-unapplied.
 
 | File | Purpose |
 |---|---|
-| `main.bicep` | Orchestrator; wires the modules and exposes outputs for the app tier |
+| `main.bicep` | Orchestrator; wires the modules and exposes outputs for the edge tier |
 | `modules/network.bicep` | VNet, App Service integration subnet, private-endpoint subnet, private DNS zones |
 | `modules/loganalytics.bicep` | Log Analytics workspace (container stdout → Sentinel "Path A") |
 | `modules/storage.bicep` | Storage account + file share backing `CMS_PATH` |
 | `modules/keyvault.bicep` | Key Vault (RBAC, private endpoint, purge protection) |
 | `modules/postgres.bicep` | PostgreSQL Flexible Server + database + PostGIS allow-list + private endpoint |
+| `modules/acr.bicep` | Container registry for the signed app image; admin account disabled |
+| `modules/appservice.bicep` | Plan + Linux container app: managed identity, Key Vault references, `CMS_PATH` mount, VNet integration, diagnostics |
+| `modules/rbac.bicep` | The app identity's grants: Key Vault Secrets User + AcrPull |
 
 ## What is not here yet
 
-The **application tier** (Container Registry + App Service with managed identity,
-Key Vault references, the `CMS_PATH` mount, and diagnostic settings) and the **edge**
-(Front Door + WAF). Both consume `main.bicep`'s outputs.
+The **edge** (Front Door + WAF, issue #245), which consumes `main.bicep`'s outputs —
+and until it lands, `CMS_TRUSTED_PROXIES` stays empty. The pipeline that pushes the
+image to the registry is issue #246.
 
 ## Decisions this implements
 
@@ -68,3 +71,20 @@ for f in infra/modules/*.bicep infra/main.bicep; do az bicep build --file "$f" -
 `postgresAdministratorPassword` is a `@secure()` parameter with no default and **must
 not** be committed. Supply it at deploy time from Key Vault or a secure pipeline
 variable.
+
+## Before first boot (application tier)
+
+The app resolves three Key Vault references at startup, and IaC deliberately does
+**not** create the secret values — the ISSM does, once, before the first start:
+
+- `db-password` — the database login's password
+- `cms-secret-key` — the CMS encryption key
+- `cms-admin-password` — the admin bootstrap password
+
+The image must also exist in the registry (issue #246's pipeline, or a one-time
+manual push) — App Service pulls it with its managed identity via AcrPull; there is
+no registry password. Two settings that matter at cutover: `customUrl` (CMS_URL)
+switches to the custom domain, and `trustedProxies` (CMS_TRUSTED_PROXIES) must be
+set to the edge egress ranges when the edge tier fronts the app — otherwise
+`getRemoteAddr()`/`isSecure()` see the proxy, degrading the Secure-cookie flag, the
+IP firewall, rate limiting, and the audit source IP.
