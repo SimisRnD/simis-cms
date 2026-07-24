@@ -49,7 +49,7 @@ cb46fa519fd4108a5bdde5f960c89dc5ed508e3dbf1edff89611d49817184c0d  lib/build/john
 48f7b20dbaff92dcd46d3c8e7f67bba7bb784ef1226afa9a1087851e6b61766b  lib/build/json-schema-validator/json-schema-validator-1.0.73.jar
 596785996d3c6df16f544c232d10a9a1d88783b2a4740cf5251cb616f2be704d  lib/build/jsoup/jsoup-1.22.2.jar
 5cc6e60b9e74d38c25fe4f2d22dfd40577f5b8396bc885f7061cd2c525a43b86  lib/build/jstl/jakarta.servlet.jsp.jstl-3.0.1.jar
-f244245440772c1502b09d6511c0e15e53d42f21a3a9dccdf96a955a758a92bd  lib/build/jstl/jakarta.servlet.jsp.jstl-api-3.0.0.jar
+d55951aefedb543cb16193a873b92d22c40c3b8ba26cfa7ed9229eb118bb9c9b  lib/build/jstl/jakarta.servlet.jsp.jstl-api-3.0.2.jar
 6f64eac736db9434dd6925b4a518b9d1d17177652320c37916cf9ba3ce7d7d7a  lib/build/kotlin/kotlin-stdlib-2.3.21.jar
 943405a8dfb3959a0d8835eec7b0ce9c3ee137fcaf72491a20214cb16d35d073  lib/build/libphonenumber/libphonenumber-9.0.35.jar
 6e0e4cc2d8cae902084f8a2b18728b073a6fd9d1f87c9d8bff8f298c18185b93  lib/build/postgresql/postgresql-42.7.13.jar
