@@ -33,6 +33,11 @@ public class Content extends Entity {
   private String uniqueId = null;
   private String content = null;
   private String draftContent = null;
+  // Format stamp for content/draftContent: 0 = legacy HTML, 2 = visual-editor Quill Delta JSON
+  // (DeltaContentCommand.DELTA_FORMAT_VERSION). Draft and published carry their own stamp because a
+  // page mid-conversion can have an HTML published version and a Delta draft at the same time.
+  private int contentFormat = 0;
+  private int draftContentFormat = 0;
   private long createdBy = -1;
   private long modifiedBy = -1;
   private Timestamp created = null;
@@ -72,6 +77,22 @@ public class Content extends Entity {
 
   public void setDraftContent(String draftContent) {
     this.draftContent = draftContent;
+  }
+
+  public int getContentFormat() {
+    return contentFormat;
+  }
+
+  public void setContentFormat(int contentFormat) {
+    this.contentFormat = contentFormat;
+  }
+
+  public int getDraftContentFormat() {
+    return draftContentFormat;
+  }
+
+  public void setDraftContentFormat(int draftContentFormat) {
+    this.draftContentFormat = draftContentFormat;
   }
 
   public long getCreatedBy() {

@@ -103,6 +103,8 @@ public class ContentRepository {
         .add("content", StringUtils.trimToNull(record.getContent()))
         .add("content_text", HtmlCommand.text(StringUtils.trimToNull(record.getContent())))
         .add("draft_content", StringUtils.trimToNull(record.getDraftContent()))
+        .add("content_format", record.getContentFormat())
+        .add("draft_content_format", record.getDraftContentFormat())
         .add("created_by", record.getCreatedBy())
         .add("modified_by", record.getModifiedBy());
     record.setId(DB.insertInto(TABLE_NAME, insertValues, PRIMARY_KEY));
@@ -118,6 +120,8 @@ public class ContentRepository {
         .add("content", StringUtils.trimToNull(record.getContent()))
         .add("content_text", HtmlCommand.text(StringUtils.trimToNull(record.getContent())))
         .add("draft_content", StringUtils.trimToNull(record.getDraftContent()))
+        .add("content_format", record.getContentFormat())
+        .add("draft_content_format", record.getDraftContentFormat())
         .add("modified_by", record.getModifiedBy())
         .add("modified", new Timestamp(System.currentTimeMillis()));
     SqlUtils where = new SqlUtils()
@@ -138,6 +142,9 @@ public class ContentRepository {
     SqlUtils updateValues = new SqlUtils();
     updateValues.add("content = draft_content");
     updateValues.add("draft_content = null");
+    // Promote the draft's format stamp with its content, then clear it alongside the emptied draft.
+    updateValues.add("content_format = draft_content_format");
+    updateValues.add("draft_content_format = 0");
     updateValues.add("content_text", HtmlCommand.text(StringUtils.trimToNull(record.getContent())));
     SqlUtils where = new SqlUtils().add("draft_content IS NOT NULL AND content_unique_id = ?", record.getUniqueId());
     if (DB.update(TABLE_NAME, updateValues, where)) {
@@ -149,7 +156,7 @@ public class ContentRepository {
     if (record == null || StringUtils.isBlank(record.getUniqueId())) {
       return;
     }
-    String set = "draft_content = null";
+    String set = "draft_content = null, draft_content_format = 0";
     SqlUtils where = new SqlUtils().add("content_unique_id = ?", record.getUniqueId());
     if (DB.update(TABLE_NAME, set, where)) {
       CacheManager.invalidateKey(CacheManager.CONTENT_UNIQUE_ID_CACHE, record.getUniqueId());
@@ -189,6 +196,13 @@ public class ContentRepository {
       record.setDraftContent(rs.getString("draft_content"));
       record.setCreated(rs.getTimestamp("created"));
       record.setModified(rs.getTimestamp("modified"));
+      // Guarded like highlight: a query or a not-yet-migrated database may not carry these columns.
+      if (DB.hasColumn(rs, "content_format")) {
+        record.setContentFormat(rs.getInt("content_format"));
+      }
+      if (DB.hasColumn(rs, "draft_content_format")) {
+        record.setDraftContentFormat(rs.getInt("draft_content_format"));
+      }
       if (DB.hasColumn(rs, "highlight")) {
         record.setHighlight(rs.getString("highlight"));
       }

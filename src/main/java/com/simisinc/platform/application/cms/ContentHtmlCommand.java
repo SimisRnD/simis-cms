@@ -80,11 +80,11 @@ public class ContentHtmlCommand {
       // Check for the content
       Content content = LoadContentCommand.loadContentByUniqueId(uniqueId);
       if (content != null) {
-        html = content.getContent();
+        html = toHtml(content.getContent(), content.getContentFormat());
         // Look for draft content
         if (context.hasRole("admin") || context.hasRole("content-manager")) {
           if (content.getDraftContent() != null) {
-            html = content.getDraftContent();
+            html = toHtml(content.getDraftContent(), content.getDraftContentFormat());
             context.getRequest().setAttribute("isDraft", "true");
           }
         }
@@ -166,11 +166,11 @@ public class ContentHtmlCommand {
       String embeddedHtml = "";
       Content content = LoadContentCommand.loadContentByUniqueId(embeddedUniqueId);
       if (content != null) {
-        embeddedHtml = content.getContent();
+        embeddedHtml = toHtml(content.getContent(), content.getContentFormat());
         // Look for draft content
         if (hasEditorPermission) {
           if (content.getDraftContent() != null) {
-            embeddedHtml = content.getDraftContent();
+            embeddedHtml = toHtml(content.getDraftContent(), content.getDraftContentFormat());
             hasDraftContent = true;
           }
         }
@@ -380,7 +380,7 @@ public class ContentHtmlCommand {
           //          "data-multiple-opened=\"true\"\n" +
           (StringUtils.isNotBlank(revealClass) ? "data-additional-overlay-classes=\"" + revealClass + "\"\n" : "") +
           "data-close-on-click=\"true\">\n" +
-          content.getContent() + "\n" +
+          toHtml(content.getContent(), content.getContentFormat()) + "\n" +
           "<button class=\"close-button\" data-close aria-label=\"Close reveal\" type=\"button\">\n" +
           "<span aria-hidden=\"true\"><i class=\"" + FontCommand.fal() + " fa-circle-xmark\"></i></span>\n" +
           "</button>\n" +
