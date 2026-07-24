@@ -3,7 +3,7 @@
   "@id": "https://github.com/SimisRnD/simis-cms/docker/db/vex/simis-cms-db",
   "author": "SimIS Inc. (SimIS CMS maintainers)",
   "timestamp": "2026-07-21T12:51:42+00:00",
-  "version": 1,
+  "version": 2,
   "tooling": "tools/generate-db-vex.py",
   "statements": [
     {
@@ -12,13 +12,13 @@
       },
       "products": [
         {
-          "@id": "pkg:oci/simis-cms-db?repository_url=ghcr.io/simisrnd",
+          "@id": "pkg:oci/simis-cms-db",
           "subcomponents": [
             {
-              "@id": "pkg:deb/debian/libhdf5-103-1@1.10.8+repack1-1?distro=debian-12"
+              "@id": "pkg:deb/debian/libhdf5-103-1"
             },
             {
-              "@id": "pkg:deb/debian/libhdf5-hl-100@1.10.8+repack1-1?distro=debian-12"
+              "@id": "pkg:deb/debian/libhdf5-hl-100"
             }
           ]
         }
@@ -33,10 +33,10 @@
       },
       "products": [
         {
-          "@id": "pkg:oci/simis-cms-db?repository_url=ghcr.io/simisrnd",
+          "@id": "pkg:oci/simis-cms-db",
           "subcomponents": [
             {
-              "@id": "pkg:deb/debian/libldap-2.5-0@2.5.13+dfsg-5?distro=debian-12"
+              "@id": "pkg:deb/debian/libldap-2.5-0"
             }
           ]
         }
@@ -50,10 +50,10 @@
       },
       "products": [
         {
-          "@id": "pkg:oci/simis-cms-db?repository_url=ghcr.io/simisrnd",
+          "@id": "pkg:oci/simis-cms-db",
           "subcomponents": [
             {
-              "@id": "pkg:deb/debian/sysstat@12.6.1-1?distro=debian-12"
+              "@id": "pkg:deb/debian/sysstat"
             }
           ]
         }
@@ -67,10 +67,10 @@
       },
       "products": [
         {
-          "@id": "pkg:oci/simis-cms-db?repository_url=ghcr.io/simisrnd",
+          "@id": "pkg:oci/simis-cms-db",
           "subcomponents": [
             {
-              "@id": "pkg:deb/debian/libaom3@3.6.0-1+deb12u2?distro=debian-12"
+              "@id": "pkg:deb/debian/libaom3"
             }
           ]
         }
@@ -85,10 +85,10 @@
       },
       "products": [
         {
-          "@id": "pkg:oci/simis-cms-db?repository_url=ghcr.io/simisrnd",
+          "@id": "pkg:oci/simis-cms-db",
           "subcomponents": [
             {
-              "@id": "pkg:deb/debian/zlib1g@1:1.2.13.dfsg-1?distro=debian-12"
+              "@id": "pkg:deb/debian/zlib1g"
             }
           ]
         }
@@ -103,10 +103,10 @@
       },
       "products": [
         {
-          "@id": "pkg:oci/simis-cms-db?repository_url=ghcr.io/simisrnd",
+          "@id": "pkg:oci/simis-cms-db",
           "subcomponents": [
             {
-              "@id": "pkg:deb/debian/libtiff6@4.5.0-6+deb12u4?distro=debian-12"
+              "@id": "pkg:deb/debian/libtiff6"
             }
           ]
         }
@@ -121,10 +121,10 @@
       },
       "products": [
         {
-          "@id": "pkg:oci/simis-cms-db?repository_url=ghcr.io/simisrnd",
+          "@id": "pkg:oci/simis-cms-db",
           "subcomponents": [
             {
-              "@id": "pkg:deb/debian/libaom3@3.6.0-1+deb12u2?distro=debian-12"
+              "@id": "pkg:deb/debian/libaom3"
             }
           ]
         }
@@ -139,10 +139,10 @@
       },
       "products": [
         {
-          "@id": "pkg:oci/simis-cms-db?repository_url=ghcr.io/simisrnd",
+          "@id": "pkg:oci/simis-cms-db",
           "subcomponents": [
             {
-              "@id": "pkg:deb/debian/libexpat1@2.5.0-1+deb12u2?distro=debian-12"
+              "@id": "pkg:deb/debian/libexpat1"
             }
           ]
         }
@@ -157,10 +157,10 @@
       },
       "products": [
         {
-          "@id": "pkg:oci/simis-cms-db?repository_url=ghcr.io/simisrnd",
+          "@id": "pkg:oci/simis-cms-db",
           "subcomponents": [
             {
-              "@id": "pkg:deb/debian/libheif1@1.15.1-1+deb12u1?distro=debian-12"
+              "@id": "pkg:deb/debian/libheif1"
             }
           ]
         }
@@ -175,19 +175,19 @@
       },
       "products": [
         {
-          "@id": "pkg:oci/simis-cms-db?repository_url=ghcr.io/simisrnd",
+          "@id": "pkg:oci/simis-cms-db",
           "subcomponents": [
             {
-              "@id": "pkg:deb/debian/libncursesw6@6.4-4?distro=debian-12"
+              "@id": "pkg:deb/debian/libncursesw6"
             },
             {
-              "@id": "pkg:deb/debian/libtinfo6@6.4-4?distro=debian-12"
+              "@id": "pkg:deb/debian/libtinfo6"
             },
             {
-              "@id": "pkg:deb/debian/ncurses-base@6.4-4?distro=debian-12"
+              "@id": "pkg:deb/debian/ncurses-base"
             },
             {
-              "@id": "pkg:deb/debian/ncurses-bin@6.4-4?distro=debian-12"
+              "@id": "pkg:deb/debian/ncurses-bin"
             }
           ]
         }
@@ -201,10 +201,10 @@
       },
       "products": [
         {
-          "@id": "pkg:oci/simis-cms-db?repository_url=ghcr.io/simisrnd",
+          "@id": "pkg:oci/simis-cms-db",
           "subcomponents": [
             {
-              "@id": "pkg:deb/debian/libsqlite3-0@3.40.1-2+deb12u2?distro=debian-12"
+              "@id": "pkg:deb/debian/libsqlite3-0"
             }
           ]
         }
@@ -219,13 +219,13 @@
       },
       "products": [
         {
-          "@id": "pkg:oci/simis-cms-db?repository_url=ghcr.io/simisrnd",
+          "@id": "pkg:oci/simis-cms-db",
           "subcomponents": [
             {
-              "@id": "pkg:deb/debian/libcurl3-gnutls@7.88.1-10+deb12u15?distro=debian-12"
+              "@id": "pkg:deb/debian/libcurl3-gnutls"
             },
             {
-              "@id": "pkg:deb/debian/libcurl4@7.88.1-10+deb12u15?distro=debian-12"
+              "@id": "pkg:deb/debian/libcurl4"
             }
           ]
         }
@@ -240,10 +240,10 @@
       },
       "products": [
         {
-          "@id": "pkg:oci/simis-cms-db?repository_url=ghcr.io/simisrnd",
+          "@id": "pkg:oci/simis-cms-db",
           "subcomponents": [
             {
-              "@id": "pkg:deb/debian/libtiff6@4.5.0-6+deb12u4?distro=debian-12"
+              "@id": "pkg:deb/debian/libtiff6"
             }
           ]
         }
@@ -258,19 +258,19 @@
       },
       "products": [
         {
-          "@id": "pkg:oci/simis-cms-db?repository_url=ghcr.io/simisrnd",
+          "@id": "pkg:oci/simis-cms-db",
           "subcomponents": [
             {
-              "@id": "pkg:deb/debian/libperl5.36@5.36.0-7+deb12u3?distro=debian-12"
+              "@id": "pkg:deb/debian/libperl5.36"
             },
             {
-              "@id": "pkg:deb/debian/perl@5.36.0-7+deb12u3?distro=debian-12"
+              "@id": "pkg:deb/debian/perl"
             },
             {
-              "@id": "pkg:deb/debian/perl-base@5.36.0-7+deb12u3?distro=debian-12"
+              "@id": "pkg:deb/debian/perl-base"
             },
             {
-              "@id": "pkg:deb/debian/perl-modules-5.36@5.36.0-7+deb12u3?distro=debian-12"
+              "@id": "pkg:deb/debian/perl-modules-5.36"
             }
           ]
         }
@@ -285,10 +285,10 @@
       },
       "products": [
         {
-          "@id": "pkg:oci/simis-cms-db?repository_url=ghcr.io/simisrnd",
+          "@id": "pkg:oci/simis-cms-db",
           "subcomponents": [
             {
-              "@id": "pkg:deb/debian/libexpat1@2.5.0-1+deb12u2?distro=debian-12"
+              "@id": "pkg:deb/debian/libexpat1"
             }
           ]
         }
@@ -303,10 +303,10 @@
       },
       "products": [
         {
-          "@id": "pkg:oci/simis-cms-db?repository_url=ghcr.io/simisrnd",
+          "@id": "pkg:oci/simis-cms-db",
           "subcomponents": [
             {
-              "@id": "pkg:deb/debian/libheif1@1.15.1-1+deb12u1?distro=debian-12"
+              "@id": "pkg:deb/debian/libheif1"
             }
           ]
         }
@@ -321,10 +321,10 @@
       },
       "products": [
         {
-          "@id": "pkg:oci/simis-cms-db?repository_url=ghcr.io/simisrnd",
+          "@id": "pkg:oci/simis-cms-db",
           "subcomponents": [
             {
-              "@id": "pkg:deb/debian/libheif1@1.15.1-1+deb12u1?distro=debian-12"
+              "@id": "pkg:deb/debian/libheif1"
             }
           ]
         }
@@ -339,10 +339,10 @@
       },
       "products": [
         {
-          "@id": "pkg:oci/simis-cms-db?repository_url=ghcr.io/simisrnd",
+          "@id": "pkg:oci/simis-cms-db",
           "subcomponents": [
             {
-              "@id": "pkg:deb/debian/libheif1@1.15.1-1+deb12u1?distro=debian-12"
+              "@id": "pkg:deb/debian/libheif1"
             }
           ]
         }
@@ -357,10 +357,10 @@
       },
       "products": [
         {
-          "@id": "pkg:oci/simis-cms-db?repository_url=ghcr.io/simisrnd",
+          "@id": "pkg:oci/simis-cms-db",
           "subcomponents": [
             {
-              "@id": "pkg:deb/debian/libde265-0@1.0.11-1+deb12u2?distro=debian-12"
+              "@id": "pkg:deb/debian/libde265-0"
             }
           ]
         }
@@ -375,10 +375,10 @@
       },
       "products": [
         {
-          "@id": "pkg:oci/simis-cms-db?repository_url=ghcr.io/simisrnd",
+          "@id": "pkg:oci/simis-cms-db",
           "subcomponents": [
             {
-              "@id": "pkg:deb/debian/libtiff6@4.5.0-6+deb12u4?distro=debian-12"
+              "@id": "pkg:deb/debian/libtiff6"
             }
           ]
         }
@@ -393,10 +393,10 @@
       },
       "products": [
         {
-          "@id": "pkg:oci/simis-cms-db?repository_url=ghcr.io/simisrnd",
+          "@id": "pkg:oci/simis-cms-db",
           "subcomponents": [
             {
-              "@id": "pkg:deb/debian/libheif1@1.15.1-1+deb12u1?distro=debian-12"
+              "@id": "pkg:deb/debian/libheif1"
             }
           ]
         }
@@ -411,10 +411,10 @@
       },
       "products": [
         {
-          "@id": "pkg:oci/simis-cms-db?repository_url=ghcr.io/simisrnd",
+          "@id": "pkg:oci/simis-cms-db",
           "subcomponents": [
             {
-              "@id": "pkg:deb/debian/gzip@1.12-1?distro=debian-12"
+              "@id": "pkg:deb/debian/gzip"
             }
           ]
         }
@@ -428,19 +428,19 @@
       },
       "products": [
         {
-          "@id": "pkg:oci/simis-cms-db?repository_url=ghcr.io/simisrnd",
+          "@id": "pkg:oci/simis-cms-db",
           "subcomponents": [
             {
-              "@id": "pkg:deb/debian/libperl5.36@5.36.0-7+deb12u3?distro=debian-12"
+              "@id": "pkg:deb/debian/libperl5.36"
             },
             {
-              "@id": "pkg:deb/debian/perl@5.36.0-7+deb12u3?distro=debian-12"
+              "@id": "pkg:deb/debian/perl"
             },
             {
-              "@id": "pkg:deb/debian/perl-base@5.36.0-7+deb12u3?distro=debian-12"
+              "@id": "pkg:deb/debian/perl-base"
             },
             {
-              "@id": "pkg:deb/debian/perl-modules-5.36@5.36.0-7+deb12u3?distro=debian-12"
+              "@id": "pkg:deb/debian/perl-modules-5.36"
             }
           ]
         }
@@ -455,19 +455,19 @@
       },
       "products": [
         {
-          "@id": "pkg:oci/simis-cms-db?repository_url=ghcr.io/simisrnd",
+          "@id": "pkg:oci/simis-cms-db",
           "subcomponents": [
             {
-              "@id": "pkg:deb/debian/libperl5.36@5.36.0-7+deb12u3?distro=debian-12"
+              "@id": "pkg:deb/debian/libperl5.36"
             },
             {
-              "@id": "pkg:deb/debian/perl@5.36.0-7+deb12u3?distro=debian-12"
+              "@id": "pkg:deb/debian/perl"
             },
             {
-              "@id": "pkg:deb/debian/perl-base@5.36.0-7+deb12u3?distro=debian-12"
+              "@id": "pkg:deb/debian/perl-base"
             },
             {
-              "@id": "pkg:deb/debian/perl-modules-5.36@5.36.0-7+deb12u3?distro=debian-12"
+              "@id": "pkg:deb/debian/perl-modules-5.36"
             }
           ]
         }
@@ -482,10 +482,10 @@
       },
       "products": [
         {
-          "@id": "pkg:oci/simis-cms-db?repository_url=ghcr.io/simisrnd",
+          "@id": "pkg:oci/simis-cms-db",
           "subcomponents": [
             {
-              "@id": "pkg:deb/debian/libexpat1@2.5.0-1+deb12u2?distro=debian-12"
+              "@id": "pkg:deb/debian/libexpat1"
             }
           ]
         }
@@ -500,19 +500,19 @@
       },
       "products": [
         {
-          "@id": "pkg:oci/simis-cms-db?repository_url=ghcr.io/simisrnd",
+          "@id": "pkg:oci/simis-cms-db",
           "subcomponents": [
             {
-              "@id": "pkg:deb/debian/libperl5.36@5.36.0-7+deb12u3?distro=debian-12"
+              "@id": "pkg:deb/debian/libperl5.36"
             },
             {
-              "@id": "pkg:deb/debian/perl@5.36.0-7+deb12u3?distro=debian-12"
+              "@id": "pkg:deb/debian/perl"
             },
             {
-              "@id": "pkg:deb/debian/perl-base@5.36.0-7+deb12u3?distro=debian-12"
+              "@id": "pkg:deb/debian/perl-base"
             },
             {
-              "@id": "pkg:deb/debian/perl-modules-5.36@5.36.0-7+deb12u3?distro=debian-12"
+              "@id": "pkg:deb/debian/perl-modules-5.36"
             }
           ]
         }
@@ -527,16 +527,16 @@
       },
       "products": [
         {
-          "@id": "pkg:oci/simis-cms-db?repository_url=ghcr.io/simisrnd",
+          "@id": "pkg:oci/simis-cms-db",
           "subcomponents": [
             {
-              "@id": "pkg:deb/debian/gdal-data@3.6.2+dfsg-1?distro=debian-12"
+              "@id": "pkg:deb/debian/gdal-data"
             },
             {
-              "@id": "pkg:deb/debian/gdal-plugins@3.6.2+dfsg-1+b2?distro=debian-12"
+              "@id": "pkg:deb/debian/gdal-plugins"
             },
             {
-              "@id": "pkg:deb/debian/libgdal32@3.6.2+dfsg-1+b2?distro=debian-12"
+              "@id": "pkg:deb/debian/libgdal32"
             }
           ]
         }
@@ -551,34 +551,34 @@
       },
       "products": [
         {
-          "@id": "pkg:oci/simis-cms-db?repository_url=ghcr.io/simisrnd",
+          "@id": "pkg:oci/simis-cms-db",
           "subcomponents": [
             {
-              "@id": "pkg:deb/debian/bsdutils@1:2.38.1-5+deb12u3?distro=debian-12"
+              "@id": "pkg:deb/debian/bsdutils"
             },
             {
-              "@id": "pkg:deb/debian/libblkid1@2.38.1-5+deb12u3?distro=debian-12"
+              "@id": "pkg:deb/debian/libblkid1"
             },
             {
-              "@id": "pkg:deb/debian/libfdisk1@2.38.1-5+deb12u3?distro=debian-12"
+              "@id": "pkg:deb/debian/libfdisk1"
             },
             {
-              "@id": "pkg:deb/debian/libmount1@2.38.1-5+deb12u3?distro=debian-12"
+              "@id": "pkg:deb/debian/libmount1"
             },
             {
-              "@id": "pkg:deb/debian/libsmartcols1@2.38.1-5+deb12u3?distro=debian-12"
+              "@id": "pkg:deb/debian/libsmartcols1"
             },
             {
-              "@id": "pkg:deb/debian/libuuid1@2.38.1-5+deb12u3?distro=debian-12"
+              "@id": "pkg:deb/debian/libuuid1"
             },
             {
-              "@id": "pkg:deb/debian/mount@2.38.1-5+deb12u3?distro=debian-12"
+              "@id": "pkg:deb/debian/mount"
             },
             {
-              "@id": "pkg:deb/debian/util-linux@2.38.1-5+deb12u3?distro=debian-12"
+              "@id": "pkg:deb/debian/util-linux"
             },
             {
-              "@id": "pkg:deb/debian/util-linux-extra@2.38.1-5+deb12u3?distro=debian-12"
+              "@id": "pkg:deb/debian/util-linux-extra"
             }
           ]
         }
@@ -592,10 +592,10 @@
       },
       "products": [
         {
-          "@id": "pkg:oci/simis-cms-db?repository_url=ghcr.io/simisrnd",
+          "@id": "pkg:oci/simis-cms-db",
           "subcomponents": [
             {
-              "@id": "pkg:deb/debian/libacl1@2.3.1-3?distro=debian-12"
+              "@id": "pkg:deb/debian/libacl1"
             }
           ]
         }
@@ -609,10 +609,10 @@
       },
       "products": [
         {
-          "@id": "pkg:oci/simis-cms-db?repository_url=ghcr.io/simisrnd",
+          "@id": "pkg:oci/simis-cms-db",
           "subcomponents": [
             {
-              "@id": "pkg:deb/debian/libssh2-1@1.10.0-3+b1?distro=debian-12"
+              "@id": "pkg:deb/debian/libssh2-1"
             }
           ]
         }
@@ -627,10 +627,10 @@
       },
       "products": [
         {
-          "@id": "pkg:oci/simis-cms-db?repository_url=ghcr.io/simisrnd",
+          "@id": "pkg:oci/simis-cms-db",
           "subcomponents": [
             {
-              "@id": "pkg:deb/debian/libssh2-1@1.10.0-3+b1?distro=debian-12"
+              "@id": "pkg:deb/debian/libssh2-1"
             }
           ]
         }
@@ -645,10 +645,10 @@
       },
       "products": [
         {
-          "@id": "pkg:oci/simis-cms-db?repository_url=ghcr.io/simisrnd",
+          "@id": "pkg:oci/simis-cms-db",
           "subcomponents": [
             {
-              "@id": "pkg:deb/debian/libexpat1@2.5.0-1+deb12u2?distro=debian-12"
+              "@id": "pkg:deb/debian/libexpat1"
             }
           ]
         }
@@ -663,10 +663,10 @@
       },
       "products": [
         {
-          "@id": "pkg:oci/simis-cms-db?repository_url=ghcr.io/simisrnd",
+          "@id": "pkg:oci/simis-cms-db",
           "subcomponents": [
             {
-              "@id": "pkg:deb/debian/libaom3@3.6.0-1+deb12u2?distro=debian-12"
+              "@id": "pkg:deb/debian/libaom3"
             }
           ]
         }
@@ -681,10 +681,10 @@
       },
       "products": [
         {
-          "@id": "pkg:oci/simis-cms-db?repository_url=ghcr.io/simisrnd",
+          "@id": "pkg:oci/simis-cms-db",
           "subcomponents": [
             {
-              "@id": "pkg:deb/debian/libaom3@3.6.0-1+deb12u2?distro=debian-12"
+              "@id": "pkg:deb/debian/libaom3"
             }
           ]
         }
@@ -699,10 +699,10 @@
       },
       "products": [
         {
-          "@id": "pkg:oci/simis-cms-db?repository_url=ghcr.io/simisrnd",
+          "@id": "pkg:oci/simis-cms-db",
           "subcomponents": [
             {
-              "@id": "pkg:deb/debian/libaom3@3.6.0-1+deb12u2?distro=debian-12"
+              "@id": "pkg:deb/debian/libaom3"
             }
           ]
         }
@@ -717,10 +717,10 @@
       },
       "products": [
         {
-          "@id": "pkg:oci/simis-cms-db?repository_url=ghcr.io/simisrnd",
+          "@id": "pkg:oci/simis-cms-db",
           "subcomponents": [
             {
-              "@id": "pkg:deb/debian/libaom3@3.6.0-1+deb12u2?distro=debian-12"
+              "@id": "pkg:deb/debian/libaom3"
             }
           ]
         }
@@ -735,10 +735,10 @@
       },
       "products": [
         {
-          "@id": "pkg:oci/simis-cms-db?repository_url=ghcr.io/simisrnd",
+          "@id": "pkg:oci/simis-cms-db",
           "subcomponents": [
             {
-              "@id": "pkg:deb/debian/libexpat1@2.5.0-1+deb12u2?distro=debian-12"
+              "@id": "pkg:deb/debian/libexpat1"
             }
           ]
         }
@@ -753,10 +753,10 @@
       },
       "products": [
         {
-          "@id": "pkg:oci/simis-cms-db?repository_url=ghcr.io/simisrnd",
+          "@id": "pkg:oci/simis-cms-db",
           "subcomponents": [
             {
-              "@id": "pkg:deb/debian/libexpat1@2.5.0-1+deb12u2?distro=debian-12"
+              "@id": "pkg:deb/debian/libexpat1"
             }
           ]
         }
@@ -771,19 +771,19 @@
       },
       "products": [
         {
-          "@id": "pkg:oci/simis-cms-db?repository_url=ghcr.io/simisrnd",
+          "@id": "pkg:oci/simis-cms-db",
           "subcomponents": [
             {
-              "@id": "pkg:deb/debian/libperl5.36@5.36.0-7+deb12u3?distro=debian-12"
+              "@id": "pkg:deb/debian/libperl5.36"
             },
             {
-              "@id": "pkg:deb/debian/perl@5.36.0-7+deb12u3?distro=debian-12"
+              "@id": "pkg:deb/debian/perl"
             },
             {
-              "@id": "pkg:deb/debian/perl-base@5.36.0-7+deb12u3?distro=debian-12"
+              "@id": "pkg:deb/debian/perl-base"
             },
             {
-              "@id": "pkg:deb/debian/perl-modules-5.36@5.36.0-7+deb12u3?distro=debian-12"
+              "@id": "pkg:deb/debian/perl-modules-5.36"
             }
           ]
         }
@@ -798,13 +798,13 @@
       },
       "products": [
         {
-          "@id": "pkg:oci/simis-cms-db?repository_url=ghcr.io/simisrnd",
+          "@id": "pkg:oci/simis-cms-db",
           "subcomponents": [
             {
-              "@id": "pkg:deb/debian/libcurl3-gnutls@7.88.1-10+deb12u15?distro=debian-12"
+              "@id": "pkg:deb/debian/libcurl3-gnutls"
             },
             {
-              "@id": "pkg:deb/debian/libcurl4@7.88.1-10+deb12u15?distro=debian-12"
+              "@id": "pkg:deb/debian/libcurl4"
             }
           ]
         }
@@ -819,10 +819,10 @@
       },
       "products": [
         {
-          "@id": "pkg:oci/simis-cms-db?repository_url=ghcr.io/simisrnd",
+          "@id": "pkg:oci/simis-cms-db",
           "subcomponents": [
             {
-              "@id": "pkg:deb/debian/libxml2@2.9.14+dfsg-1.3~deb12u6?distro=debian-12"
+              "@id": "pkg:deb/debian/libxml2"
             }
           ]
         }
@@ -837,10 +837,10 @@
       },
       "products": [
         {
-          "@id": "pkg:oci/simis-cms-db?repository_url=ghcr.io/simisrnd",
+          "@id": "pkg:oci/simis-cms-db",
           "subcomponents": [
             {
-              "@id": "pkg:deb/debian/libssh2-1@1.10.0-3+b1?distro=debian-12"
+              "@id": "pkg:deb/debian/libssh2-1"
             }
           ]
         }
@@ -855,16 +855,16 @@
       },
       "products": [
         {
-          "@id": "pkg:oci/simis-cms-db?repository_url=ghcr.io/simisrnd",
+          "@id": "pkg:oci/simis-cms-db",
           "subcomponents": [
             {
-              "@id": "pkg:deb/debian/gdal-data@3.6.2+dfsg-1?distro=debian-12"
+              "@id": "pkg:deb/debian/gdal-data"
             },
             {
-              "@id": "pkg:deb/debian/gdal-plugins@3.6.2+dfsg-1+b2?distro=debian-12"
+              "@id": "pkg:deb/debian/gdal-plugins"
             },
             {
-              "@id": "pkg:deb/debian/libgdal32@3.6.2+dfsg-1+b2?distro=debian-12"
+              "@id": "pkg:deb/debian/libgdal32"
             }
           ]
         }
@@ -879,16 +879,16 @@
       },
       "products": [
         {
-          "@id": "pkg:oci/simis-cms-db?repository_url=ghcr.io/simisrnd",
+          "@id": "pkg:oci/simis-cms-db",
           "subcomponents": [
             {
-              "@id": "pkg:deb/debian/gdal-data@3.6.2+dfsg-1?distro=debian-12"
+              "@id": "pkg:deb/debian/gdal-data"
             },
             {
-              "@id": "pkg:deb/debian/gdal-plugins@3.6.2+dfsg-1+b2?distro=debian-12"
+              "@id": "pkg:deb/debian/gdal-plugins"
             },
             {
-              "@id": "pkg:deb/debian/libgdal32@3.6.2+dfsg-1+b2?distro=debian-12"
+              "@id": "pkg:deb/debian/libgdal32"
             }
           ]
         }
@@ -903,13 +903,13 @@
       },
       "products": [
         {
-          "@id": "pkg:oci/simis-cms-db?repository_url=ghcr.io/simisrnd",
+          "@id": "pkg:oci/simis-cms-db",
           "subcomponents": [
             {
-              "@id": "pkg:deb/debian/libcurl3-gnutls@7.88.1-10+deb12u15?distro=debian-12"
+              "@id": "pkg:deb/debian/libcurl3-gnutls"
             },
             {
-              "@id": "pkg:deb/debian/libcurl4@7.88.1-10+deb12u15?distro=debian-12"
+              "@id": "pkg:deb/debian/libcurl4"
             }
           ]
         }
@@ -924,19 +924,19 @@
       },
       "products": [
         {
-          "@id": "pkg:oci/simis-cms-db?repository_url=ghcr.io/simisrnd",
+          "@id": "pkg:oci/simis-cms-db",
           "subcomponents": [
             {
-              "@id": "pkg:deb/debian/libperl5.36@5.36.0-7+deb12u3?distro=debian-12"
+              "@id": "pkg:deb/debian/libperl5.36"
             },
             {
-              "@id": "pkg:deb/debian/perl@5.36.0-7+deb12u3?distro=debian-12"
+              "@id": "pkg:deb/debian/perl"
             },
             {
-              "@id": "pkg:deb/debian/perl-base@5.36.0-7+deb12u3?distro=debian-12"
+              "@id": "pkg:deb/debian/perl-base"
             },
             {
-              "@id": "pkg:deb/debian/perl-modules-5.36@5.36.0-7+deb12u3?distro=debian-12"
+              "@id": "pkg:deb/debian/perl-modules-5.36"
             }
           ]
         }
@@ -951,13 +951,13 @@
       },
       "products": [
         {
-          "@id": "pkg:oci/simis-cms-db?repository_url=ghcr.io/simisrnd",
+          "@id": "pkg:oci/simis-cms-db",
           "subcomponents": [
             {
-              "@id": "pkg:deb/debian/libcurl3-gnutls@7.88.1-10+deb12u15?distro=debian-12"
+              "@id": "pkg:deb/debian/libcurl3-gnutls"
             },
             {
-              "@id": "pkg:deb/debian/libcurl4@7.88.1-10+deb12u15?distro=debian-12"
+              "@id": "pkg:deb/debian/libcurl4"
             }
           ]
         }
@@ -972,13 +972,13 @@
       },
       "products": [
         {
-          "@id": "pkg:oci/simis-cms-db?repository_url=ghcr.io/simisrnd",
+          "@id": "pkg:oci/simis-cms-db",
           "subcomponents": [
             {
-              "@id": "pkg:deb/debian/libcurl3-gnutls@7.88.1-10+deb12u15?distro=debian-12"
+              "@id": "pkg:deb/debian/libcurl3-gnutls"
             },
             {
-              "@id": "pkg:deb/debian/libcurl4@7.88.1-10+deb12u15?distro=debian-12"
+              "@id": "pkg:deb/debian/libcurl4"
             }
           ]
         }
@@ -993,19 +993,19 @@
       },
       "products": [
         {
-          "@id": "pkg:oci/simis-cms-db?repository_url=ghcr.io/simisrnd",
+          "@id": "pkg:oci/simis-cms-db",
           "subcomponents": [
             {
-              "@id": "pkg:deb/debian/libperl5.36@5.36.0-7+deb12u3?distro=debian-12"
+              "@id": "pkg:deb/debian/libperl5.36"
             },
             {
-              "@id": "pkg:deb/debian/perl@5.36.0-7+deb12u3?distro=debian-12"
+              "@id": "pkg:deb/debian/perl"
             },
             {
-              "@id": "pkg:deb/debian/perl-base@5.36.0-7+deb12u3?distro=debian-12"
+              "@id": "pkg:deb/debian/perl-base"
             },
             {
-              "@id": "pkg:deb/debian/perl-modules-5.36@5.36.0-7+deb12u3?distro=debian-12"
+              "@id": "pkg:deb/debian/perl-modules-5.36"
             }
           ]
         }
@@ -1013,6 +1013,32 @@
       "status": "not_affected",
       "justification": "vulnerable_code_not_in_execute_path",
       "impact_statement": "Perl is present as a Debian base/tooling dependency but is never executed at runtime: the image does not install postgresql-17-plperl, so the database engine cannot invoke Perl, and the container entrypoint is the stock postgres shell entrypoint, not a Perl script. No process in the running container executes these modules."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-57433"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libperl5.36"
+            },
+            {
+              "@id": "pkg:deb/debian/perl"
+            },
+            {
+              "@id": "pkg:deb/debian/perl-base"
+            },
+            {
+              "@id": "pkg:deb/debian/perl-modules-5.36"
+            }
+          ]
+        }
+      ],
+      "status": "under_investigation"
     }
-  ]
+  ],
+  "last_updated": "2026-07-23T00:00:00Z"
 }
