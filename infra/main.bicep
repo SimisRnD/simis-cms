@@ -1,9 +1,10 @@
 // ---------------------------------------------------------------------------
 // simis-cms — Azure infrastructure (Milestone #4 Phase 2)
 //
-// Foundation layer: network, observability, storage, secret custody, database.
-// The application tier (ACR + App Service) and the edge (Front Door + WAF) are
-// authored separately and consume the outputs below.
+// Foundation layer (network, observability, storage, secret custody, database)
+// plus the application tier (container registry, App Service, role grants).
+// The edge (Front Door + WAF) is authored separately and consumes the outputs
+// below.
 //
 // Design inputs, all resolved in Phase 0
 // (governance/decision-milestone-4-phase0-decisions.md):
@@ -40,6 +41,21 @@ param logRetentionInDays int = 90
 
 @description('Quota for the CMS_PATH file share, in GiB.')
 param fileShareQuotaGb int = 100
+
+@description('App Service plan SKU. Scale up only for the pilot (decision #8).')
+param appServicePlanSku string = 'P1v3'
+
+@description('Image repository and tag the app runs, relative to the registry. The publish pipeline (issue #246) pushes it.')
+param containerImage string = 'simis-cms:latest'
+
+@description('Database login the application connects with. Pilot default is the administrator login; a lesser application role is a hardening follow-up.')
+param dbUser string = 'simiscmsadmin'
+
+@description('CMS_TRUSTED_PROXIES value. Set to the edge egress ranges when the edge tier (#245) fronts the app.')
+param trustedProxies string = ''
+
+@description('Public URL of the site (CMS_URL). Empty means the App Service default hostname; the custom domain replaces it at cutover.')
+param customUrl string = ''
 
 var namePrefix = '${workloadName}-${environmentName}'
 
@@ -103,7 +119,49 @@ module postgres 'modules/postgres.bicep' = {
   }
 }
 
-// Consumed by the application tier when it is authored.
+module acr 'modules/acr.bicep' = {
+  name: 'acr'
+  params: {
+    location: location
+    namePrefix: namePrefix
+    tags: tags
+  }
+}
+
+module appService 'modules/appservice.bicep' = {
+  name: 'appservice'
+  params: {
+    location: location
+    namePrefix: namePrefix
+    tags: tags
+    appSubnetId: network.outputs.appSubnetId
+    keyVaultUri: keyVault.outputs.keyVaultUri
+    storageAccountName: storage.outputs.storageAccountName
+    cmsPathShareName: storage.outputs.fileShareName
+    logAnalyticsWorkspaceId: logAnalytics.outputs.workspaceId
+    acrLoginServer: acr.outputs.loginServer
+    containerImage: containerImage
+    planSkuName: appServicePlanSku
+    postgresFqdn: postgres.outputs.serverFqdn
+    postgresDatabaseName: postgres.outputs.databaseName
+    dbUser: dbUser
+    trustedProxies: trustedProxies
+    customUrl: customUrl
+  }
+}
+
+// Grants come last: they need the app's principal id, which only exists once
+// the app does.
+module rbac 'modules/rbac.bicep' = {
+  name: 'rbac'
+  params: {
+    principalId: appService.outputs.appServicePrincipalId
+    keyVaultName: keyVault.outputs.keyVaultName
+    acrName: acr.outputs.registryName
+  }
+}
+
+// Consumed by the edge tier when it is authored.
 output vnetId string = network.outputs.vnetId
 output appSubnetId string = network.outputs.appSubnetId
 output logAnalyticsWorkspaceId string = logAnalytics.outputs.workspaceId
@@ -113,3 +171,7 @@ output storageAccountName string = storage.outputs.storageAccountName
 output cmsPathShareName string = storage.outputs.fileShareName
 output postgresFqdn string = postgres.outputs.serverFqdn
 output postgresDatabaseName string = postgres.outputs.databaseName
+output acrLoginServer string = acr.outputs.loginServer
+output acrName string = acr.outputs.registryName
+output appServiceName string = appService.outputs.appServiceName
+output appServiceHostName string = appService.outputs.defaultHostName
