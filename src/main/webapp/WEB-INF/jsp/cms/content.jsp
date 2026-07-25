@@ -42,7 +42,20 @@
           <span class="label warning" title="Another reviewer must approve this change">AWAITING REVIEW</span>
         </c:when>
         <c:when test="${reviewOffer eq 'decide'}">
-          <a class="hollow button small success" href="${widgetContext.uri}?action=approve&widget=${widgetContext.uniqueId}&token=${userSession.formToken}" onclick="return confirm('Approve and publish this content?');">APPROVE</a>
+          <%-- The release-authority reference travels with the approval and is recorded in the audit
+               trail ("cleared per PA case ...", "CO email dated ..."), which is what makes the trail
+               exportable assessment evidence rather than just a timestamp. A GET form produces the
+               same request shape as the action links beside it. --%>
+          <form method="get" action="${widgetContext.uri}" class="platform-content-review-form">
+            <input type="hidden" name="action" value="approve"/>
+            <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
+            <input type="hidden" name="token" value="${userSession.formToken}"/>
+            <input type="text" name="releaseReference" maxlength="255"
+                   placeholder="Release authority (e.g. cleared per PA case 2026-114)"
+                   title="Optional: the approval authority to record in the audit trail"/>
+            <button type="submit" class="hollow button small success"
+                    onclick="return confirm('Approve and publish this content?');">APPROVE</button>
+          </form>
           <a class="hollow button small alert" href="${widgetContext.uri}?action=reject&widget=${widgetContext.uniqueId}&token=${userSession.formToken}" onclick="return confirm('Return this content to the author?');">REJECT</a>
         </c:when>
       </c:choose>

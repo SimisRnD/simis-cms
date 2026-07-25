@@ -80,9 +80,19 @@ public class ContentReviewCommand {
   public static void approve(Content content, long approverId, String releaseReference) throws DataException {
     requireSubmitted(content);
     requireApproverIsNotSubmitter(content, approverId);
+    String reference = StringUtils.trimToNull(releaseReference);
+    // The column is VARCHAR(255); reject an over-long value rather than letting the database throw
+    // mid-approval, which would leave the approver without a clear reason.
+    if (reference != null && reference.length() > MAX_RELEASE_REFERENCE_LENGTH) {
+      throw new DataException(
+          "The release authority reference must be " + MAX_RELEASE_REFERENCE_LENGTH + " characters or fewer");
+    }
     content.setApprovedBy(approverId);
-    content.setReleaseReference(StringUtils.trimToNull(releaseReference));
+    content.setReleaseReference(reference);
   }
+
+  /** Matches the {@code release_reference} column width. */
+  public static final int MAX_RELEASE_REFERENCE_LENGTH = 255;
 
   /**
    * An approver rejects a submitted draft, sending it back to the author to revise and resubmit.
