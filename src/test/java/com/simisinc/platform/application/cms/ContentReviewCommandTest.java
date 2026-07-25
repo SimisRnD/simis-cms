@@ -126,6 +126,40 @@ class ContentReviewCommandTest {
   }
 
   @Test
+  void offerIsNoneWithoutADraft() {
+    Content published = new Content();
+    published.setContent("<p>live</p>");
+    assertEquals(ContentReviewCommand.OFFER_NONE, ContentReviewCommand.offerFor(published, AUTHOR, true));
+    assertEquals(ContentReviewCommand.OFFER_NONE, ContentReviewCommand.offerFor(null, AUTHOR, true));
+  }
+
+  @Test
+  void offerIsDirectPublishWhenReviewIsNotRequired() {
+    assertEquals(ContentReviewCommand.OFFER_PUBLISH, ContentReviewCommand.offerFor(draft(), AUTHOR, false));
+  }
+
+  @Test
+  void offerIsSubmitForAnUnsubmittedDraftUnderReview() {
+    assertEquals(ContentReviewCommand.OFFER_SUBMIT, ContentReviewCommand.offerFor(draft(), AUTHOR, true));
+  }
+
+  @Test
+  void theSubmitterIsNotOfferedTheApproveButtonForTheirOwnDraft() throws DataException {
+    // Separation of duties reflected in the UI: the author sees "awaiting review", not approve/reject.
+    Content content = draft();
+    ContentReviewCommand.submitForReview(content, AUTHOR);
+    assertEquals(ContentReviewCommand.OFFER_AWAITING_OTHER,
+        ContentReviewCommand.offerFor(content, AUTHOR, true));
+  }
+
+  @Test
+  void anotherReviewerIsOfferedTheDecision() throws DataException {
+    Content content = draft();
+    ContentReviewCommand.submitForReview(content, AUTHOR);
+    assertEquals(ContentReviewCommand.OFFER_DECIDE, ContentReviewCommand.offerFor(content, APPROVER, true));
+  }
+
+  @Test
   void publishGateRequiresApprovalWhenReviewIsRequired() throws DataException {
     Content content = draft();
     // A brand-new draft that was never submitted cannot publish under review.

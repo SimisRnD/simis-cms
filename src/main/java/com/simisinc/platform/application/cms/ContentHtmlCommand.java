@@ -89,6 +89,9 @@ public class ContentHtmlCommand {
             html = toHtml(content.getDraftContent(), content.getDraftContentFormat());
             context.getRequest().setAttribute("isDraft", "true");
           }
+          // Which review affordance to render, decided here rather than in a JSP expression
+          context.getRequest().setAttribute("reviewOffer", ContentReviewCommand.offerFor(content,
+              context.getUserId(), LoadSitePropertyCommand.loadByNameAsBoolean("content.review.required")));
         }
       }
     }
