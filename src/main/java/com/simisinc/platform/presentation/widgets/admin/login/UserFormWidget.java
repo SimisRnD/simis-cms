@@ -18,7 +18,9 @@ package com.simisinc.platform.presentation.widgets.admin.login;
 
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.LoadUserCommand;
@@ -30,6 +32,7 @@ import com.simisinc.platform.infrastructure.persistence.GroupRepository;
 import com.simisinc.platform.infrastructure.persistence.RoleRepository;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
+import com.simisinc.platform.presentation.controller.UserSession;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 
 import org.apache.commons.beanutils.BeanUtils;
@@ -86,15 +89,31 @@ public class UserFormWidget extends GenericWidget {
     BeanUtils.populate(userBean, context.getParameterMap());
     userBean.setModifiedBy(context.getUserId());
 
-    // Populate the roles
+    // Populate the roles -- but an editor may only assign roles at or below their own highest role
+    // level. A role above that level is honored only when the target already holds it (preserve, never
+    // escalate): this stops a lower-privileged editor (e.g. a community-manager, level 90) from
+    // granting admin (level 100) or another higher role through this form, and equally from stripping
+    // one it does not control. Group delegation is unranked and deferred to the deny-by-default work (#299).
     List<Role> roleList = RoleRepository.findAll();
     if (roleList != null) {
+      int actingLevel = highestRoleLevel(context.getUserSession(), roleList);
+      Set<String> retainedHigherRoleCodes = higherRolesTargetAlreadyHolds(userBean.getId(), roleList, actingLevel);
       List<Role> userRoleList = new ArrayList<>();
       for (Role role : roleList) {
         String roleValue = context.getParameter("roleId" + role.getId());
-        if (roleValue != null && roleValue.equals(String.valueOf(role.getId()))) {
-          LOG.debug("Adding user to role: " + role.getCode());
+        boolean requested = roleValue != null && roleValue.equals(String.valueOf(role.getId()));
+        if (role.getLevel() <= actingLevel) {
+          // At or below the editor's level: the editor controls it.
+          if (requested) {
+            LOG.debug("Adding user to role: " + role.getCode());
+            userRoleList.add(role);
+          }
+        } else if (retainedHigherRoleCodes.contains(role.getCode())) {
+          // Above the editor's level but already held by the target: preserve, do not let the editor revoke it.
           userRoleList.add(role);
+        } else if (requested) {
+          LOG.warn("Blocked role escalation: user " + context.getUserId() + " (level " + actingLevel
+              + ") attempted to grant '" + role.getCode() + "' (level " + role.getLevel() + ")");
         }
       }
       userBean.setRoleList(userRoleList);
@@ -144,5 +163,46 @@ public class UserFormWidget extends GenericWidget {
     context.setRedirect("/admin/user-details?userId=" + user.getId());
     return context;
 
+  }
+
+  /**
+   * The highest role level the acting user holds, found by matching their session role codes against
+   * the authoritative role list (which carries the levels). Returns 0 when nothing matches, which
+   * fails closed -- no role above 0 can then be granted.
+   */
+  private static int highestRoleLevel(UserSession userSession, List<Role> allRoles) {
+    int max = 0;
+    if (userSession == null) {
+      return max;
+    }
+    for (Role role : allRoles) {
+      if (userSession.hasRole(role.getCode()) && role.getLevel() > max) {
+        max = role.getLevel();
+      }
+    }
+    return max;
+  }
+
+  /**
+   * The codes of roles the target user already holds whose level is above the editor's -- the roles
+   * the editor may neither grant nor revoke. Empty for a new user.
+   */
+  private static Set<String> higherRolesTargetAlreadyHolds(long userId, List<Role> allRoles, int actingLevel) {
+    Set<String> codes = new HashSet<>();
+    if (userId < 0) {
+      return codes;
+    }
+    User existing = LoadUserCommand.loadUser(userId);
+    if (existing == null || existing.getRoleList() == null) {
+      return codes;
+    }
+    for (Role held : existing.getRoleList()) {
+      for (Role authoritative : allRoles) {
+        if (authoritative.getCode().equals(held.getCode()) && authoritative.getLevel() > actingLevel) {
+          codes.add(authoritative.getCode());
+        }
+      }
+    }
+    return codes;
   }
 }
