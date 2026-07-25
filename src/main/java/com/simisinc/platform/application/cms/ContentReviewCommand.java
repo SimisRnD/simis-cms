@@ -108,6 +108,22 @@ public class ContentReviewCommand {
     return isPendingReview(content) && content.getApprovedBy() > 0;
   }
 
+  /**
+   * The publish gate. When governed publishing is not enabled ({@code reviewRequired} false) a draft may
+   * be published directly, as it always could -- backward compatible. When it is enabled, only an
+   * approved draft may go live, and there is no other path: this is the enforcement of the "no
+   * visual-editor bypass" rule, so hot-editing a live page cannot skip review.
+   *
+   * @param reviewRequired the {@code content.review.required} site setting
+   * @return whether this content may be published now
+   */
+  public static boolean mayPublish(Content content, boolean reviewRequired) {
+    if (!reviewRequired) {
+      return true;
+    }
+    return isApproved(content);
+  }
+
   private static void requireSubmitted(Content content) throws DataException {
     if (!isPendingReview(content)) {
       throw new DataException("Only a draft submitted for review can be approved or rejected");
