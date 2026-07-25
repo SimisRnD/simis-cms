@@ -18,22 +18,22 @@
 <jsp:useBean id="messageValue" class="java.lang.String" scope="request"/>
 <c:choose>
   <c:when test="${'error' eq messageType}">
-    <div class="callout radius alert">
+    <div class="callout radius alert" role="alert">
       <p class="text-center"><c:out value="${messageValue}" /></p>
     </div>
   </c:when>
   <c:when test="${'warning' eq messageType}">
-    <div class="callout radius warning">
+    <div class="callout radius warning" role="alert">
       <p class="text-center"><c:out value="${messageValue}" /></p>
     </div>
   </c:when>
   <c:when test="${'success' eq messageType}">
-    <div class="callout radius success">
+    <div class="callout radius success" role="status">
       <p class="text-center"><c:out value="${messageValue}" /></p>
     </div>
   </c:when>
   <c:otherwise>
-    <div class="callout radius">
+    <div class="callout radius" role="status">
       <p class="text-center"><c:out value="${messageValue}" /></p>
     </div>
   </c:otherwise>

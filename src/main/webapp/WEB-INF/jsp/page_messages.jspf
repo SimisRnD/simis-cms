@@ -15,17 +15,17 @@
   --%>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <c:if test="${!empty errorMessage}">
-  <div class="callout radius alert">
+  <div class="callout radius alert" role="alert">
     <p class="text-center"><c:out value="${errorMessage}" /></p>
   </div>
 </c:if>
 <c:if test="${!empty warningMessage}">
-  <div class="callout radius warning">
+  <div class="callout radius warning" role="alert">
     <p class="text-center"><c:out value="${warningMessage}" /></p>
   </div>
 </c:if>
 <c:if test="${!empty successMessage}">
-  <div class="callout radius success" data-closable>
+  <div class="callout radius success" role="status" data-closable>
     <p class="text-center" style="margin-bottom:0"><c:out value="${successMessage}" /></p>
     <%--<button class="close-button" aria-label="Dismiss alert" type="button" data-close>--%>
       <%--<span aria-hidden="true">&times;</span>--%>
@@ -33,7 +33,7 @@
   </div>
 </c:if>
 <c:if test="${!empty message}">
-  <div class="callout radius">
+  <div class="callout radius" role="status">
     <p class="text-center"><c:out value="${message}" /></p>
   </div>
 </c:if>
