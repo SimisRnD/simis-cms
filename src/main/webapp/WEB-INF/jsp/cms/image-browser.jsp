@@ -234,6 +234,22 @@
   .card-section > :last-child {
     margin-bottom: 0;
   }
+  .image-browser-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    cursor: pointer;
+    display: block;
+    width: 100%;
+  }
+  .image-browser-btn:focus {
+    outline: 2px solid #1779ba;
+    outline-offset: 2px;
+  }
+  .image-browser-btn img {
+    display: block;
+    width: 100%;
+  }
 </style>
 <link rel="stylesheet" type="text/css" href="${ctx}/css/platform.css" />
 <div class="grid-container">
@@ -244,8 +260,12 @@
     <c:forEach items="${imageList}" var="image" varStatus="status">
       <div class="cell card">
         <div class="image-browser">
-          <img onclick="mySubmit(this.dataset.src)" data-src="${ctx}/assets/img/${image.url}"
-               src="${ctx}/assets/img/${image.url}" alt="<c:out value="${image.filename}"/>">
+          <button type="button" class="image-browser-btn"
+                  onclick="mySubmit(this.dataset.src)"
+                  data-src="${ctx}/assets/img/${image.url}"
+                  aria-label="Select <c:out value="${image.filename}"/>">
+            <img src="${ctx}/assets/img/${image.url}" alt="">
+          </button>
         </div>
         <div class="card-section">
           <div>

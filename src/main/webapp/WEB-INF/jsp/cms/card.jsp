@@ -25,7 +25,8 @@
 <jsp:useBean id="link" class="java.lang.String" scope="request"/>
 <jsp:useBean id="linkTitle" class="java.lang.String" scope="request"/>
 <jsp:useBean id="linkIcon" class="java.lang.String" scope="request"/>
-<div class="<c:out value="${classData}" />"<c:if test="${!empty link}"> onclick="window.location.href='${ctx}${js:escape(link)}'"</c:if>>
+<c:if test="${!empty link}"><a href="${ctx}<c:out value="${link}"/>" class="<c:out value="${classData}" />"></c:if>
+<c:if test="${empty link}"><div class="<c:out value="${classData}" />"></c:if>
   <c:if test="${!empty title}">
     <div class="card-divider"><c:out value="${title}" /></div>
   </c:if>
@@ -56,4 +57,5 @@
     </p>
   </div>
   --%>
-</div>
+<c:if test="${!empty link}"></a></c:if>
+<c:if test="${empty link}"></div></c:if>

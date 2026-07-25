@@ -28,11 +28,11 @@
 <%@include file="../page_messages.jspf" %>
 <c:if test="${testMode eq 'true'}"><span class="label warning">TEST MODE</span></c:if>
 <button class="button primary expanded" data-open="trackingFormReveal">Add a Tracking Number</button>
-<div class="reveal small" id="trackingFormReveal" data-reveal data-close-on-click="false" data-animation-in="slide-in-down fast">
+<div class="reveal small" id="trackingFormReveal" data-reveal data-close-on-click="false" data-animation-in="slide-in-down fast" aria-labelledby="trackingFormTitle">
   <button class="close-button" data-close aria-label="Close modal" type="button">
     <span aria-hidden="true">&times;</span>
   </button>
-  <h4>Add a Tracking Number</h4>
+  <h4 id="trackingFormTitle">Add a Tracking Number</h4>
   <form id="trackingForm" method="post" autocomplete="off">
     <%-- Required by controller --%>
     <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>

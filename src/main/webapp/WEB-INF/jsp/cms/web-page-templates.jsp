@@ -36,6 +36,10 @@
       <input type="text" name="title" value="<c:out value="${webPage.title}" />" autofocus="autofocus" />
     </c:if>
     <h4>Choose a template for this page</h4>
+    <style>
+      button.template.card { background: none; padding: 0; text-align: left; width: 100%; cursor: pointer; }
+      button.template.card:focus { outline: 2px solid #1779ba; outline-offset: 2px; }
+    </style>
     <c:if test="${empty webPageTemplateList}">
       <p>No templates were found.</p>
     </c:if>
@@ -51,13 +55,13 @@
         <div class="grid-x grid-margin-x">
       </c:if>
       <div class="small-6 medium-4 large-3 cell">
-        <div class="template cell card" onclick="mySubmit(${template.id},${template.uniqueId})">
+        <button type="button" class="template cell card" onclick="mySubmit(${template.id},${template.uniqueId})">
           <c:choose>
             <c:when test="${!empty template.imagePath}">
-              <img src="${ctx}/images/templates/${url:encodeUri(template.imagePath)}">
+              <img src="${ctx}/images/templates/${url:encodeUri(template.imagePath)}" alt="">
             </c:when>
             <c:otherwise>
-              <img src="${ctx}/images/templates/Blank.png">
+              <img src="${ctx}/images/templates/Blank.png" alt="">
             </c:otherwise>
           </c:choose>
           <div class="card-section">
@@ -65,7 +69,7 @@
               <small><c:out value="${template.name}"/></small>
             </p>
           </div>
-        </div>
+        </button>
       </div>
       <c:set var="currentCategory" scope="request" value="${template.category}"/>
     </c:forEach>

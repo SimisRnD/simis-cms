@@ -112,11 +112,11 @@
 </c:if>
 <%@include file="../paging_control.jspf" %>
 <%--<div class="reveal small" id="formReveal" data-reveal data-close-on-esc="false" data-close-on-click="false" data-animation-in="slide-in-down fast">--%>
-<div class="reveal small" id="formReveal" data-reveal data-close-on-click="false" data-animation-in="slide-in-down fast">
+<div class="reveal small" id="formReveal" data-reveal data-close-on-click="false" data-animation-in="slide-in-down fast" aria-labelledby="userFormTitle">
   <button class="close-button" data-close aria-label="Close modal" type="button">
     <span aria-hidden="true">&times;</span>
   </button>
-  <h4>New User</h4>
+  <h4 id="userFormTitle">New User</h4>
   <form id="userForm" method="post" autocomplete="off">
     <%-- Required by controller --%>
     <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>

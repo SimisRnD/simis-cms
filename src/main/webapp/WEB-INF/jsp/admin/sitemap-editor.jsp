@@ -23,6 +23,10 @@
 <jsp:useBean id="menuTab" class="com.simisinc.platform.domain.model.cms.MenuTab" scope="request"/>
 <link rel="stylesheet" href="${ctx}/css/platform-sitemap-editor.css?v=<%= VERSION %>" />
 <link rel="stylesheet" href="${ctx}/javascript/dragula-3.7.3/dragula.min.css"/>
+<style>
+  .site-map-move-btn { background: none; border: 1px solid #ccc; border-radius: 3px; padding: 1px 5px; cursor: pointer; font-size: 0.85em; margin: 0 1px; }
+  .site-map-move-btn:focus { outline: 2px solid #1779ba; }
+</style>
 <c:if test="${!empty title}">
   <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}"/></h4>
 </c:if>
@@ -51,6 +55,8 @@
                 </c:when>
                 <c:otherwise>
                   <i class="fa fa-arrows-h site-map-menu-tab-drag-handle"></i>
+                  <button type="button" class="site-map-move-btn" onclick="moveTabLeft(${menuTab.id})" aria-label="Move <c:out value="${menuTab.name}"/> left">&#8592;</button>
+                  <button type="button" class="site-map-move-btn" onclick="moveTabRight(${menuTab.id})" aria-label="Move <c:out value="${menuTab.name}"/> right">&#8594;</button>
                 </c:otherwise>
               </c:choose>
             </small>
@@ -83,7 +89,8 @@
                 <div class="float-left">
                   <small class="subheader">
                     <i class="fa fa-arrows site-map-submenu-tab-drag-handle"></i>
-                    <%--<a href="${ctx}${menuItem.link}"><c:out value="${menuItem.link}" /></a>--%>
+                    <button type="button" class="site-map-move-btn" onclick="moveItemUp(${menuItem.id})" aria-label="Move <c:out value="${menuItem.name}"/> up">&#8593;</button>
+                    <button type="button" class="site-map-move-btn" onclick="moveItemDown(${menuItem.id})" aria-label="Move <c:out value="${menuItem.name}"/> down">&#8595;</button>
                   </small>
                 </div>
                 <div class="clear-float"></div>
@@ -158,6 +165,39 @@
       return handle.classList.contains('site-map-submenu-tab-drag-handle');
     }
   });
+
+  function moveTabLeft(tabId) {
+    var el = document.getElementById('site-map-menu-tab-container-' + tabId);
+    if (!el) return;
+    var prev = el.previousElementSibling;
+    if (prev && prev.id !== 'site-map-menu-tab-container-0') {
+      el.parentNode.insertBefore(el, prev);
+    }
+  }
+  function moveTabRight(tabId) {
+    var el = document.getElementById('site-map-menu-tab-container-' + tabId);
+    if (!el) return;
+    var next = el.nextElementSibling;
+    if (next) {
+      el.parentNode.insertBefore(next, el);
+    }
+  }
+  function moveItemUp(itemId) {
+    var el = document.getElementById('site-map-menu-item-' + itemId);
+    if (!el) return;
+    var prev = el.previousElementSibling;
+    if (prev) {
+      el.parentNode.insertBefore(el, prev);
+    }
+  }
+  function moveItemDown(itemId) {
+    var el = document.getElementById('site-map-menu-item-' + itemId);
+    if (!el) return;
+    var next = el.nextElementSibling;
+    if (next) {
+      el.parentNode.insertBefore(next, el);
+    }
+  }
 
   function checkSiteMapOrder() {
     // Check the main tabs

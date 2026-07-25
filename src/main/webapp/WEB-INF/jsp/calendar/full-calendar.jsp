@@ -256,8 +256,8 @@
   });
 </script>
 <c:if test="${(userSession.hasRole('admin') || userSession.hasRole('content-manager'))}">
-  <div class="reveal tiny" id="modalReveal" data-reveal>
-    <h3>Event Options</h3>
+  <div class="reveal tiny" id="modalReveal" data-reveal aria-labelledby="modalRevealTitle">
+    <h3 id="modalRevealTitle">Event Options</h3>
     <p>Would you like to make changes or view the details of this event?</p>
     <div class="button-container text-no-wrap">
       <button class="button" data-open="formReveal">Edit this Event</button>
@@ -268,7 +268,7 @@
       <span aria-hidden="true">&times;</span>
     </button>
   </div>
-  <div class="reveal small" id="formReveal" data-reveal data-close-on-esc="false" data-close-on-click="false" data-animation-in="slide-in-down fast">
+  <div class="reveal small" id="formReveal" data-reveal data-close-on-esc="false" data-close-on-click="false" data-animation-in="slide-in-down fast" aria-labelledby="formTitle">
     <button class="close-button" data-close aria-label="Close modal" type="button">
       <span aria-hidden="true">&times;</span>
     </button>
