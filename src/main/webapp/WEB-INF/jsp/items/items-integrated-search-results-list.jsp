@@ -27,7 +27,7 @@
 <jsp:useBean id="itemList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="recordPaging" class="com.simisinc.platform.infrastructure.database.DataConstraints" scope="request"/>
 <c:if test="${!empty title}">
-  <h4 class="margin-bottom-20"><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}" /></h4>
+  <h4 class="margin-bottom-20"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
 <c:forEach items="${searchResultList}" var="searchResult" varStatus="status">
   <c:set var="item" scope="request" value="${itemList[status.index]}"/>

@@ -26,7 +26,7 @@
 <jsp:useBean id="mediumCardCount" class="java.lang.String" scope="request"/>
 <jsp:useBean id="largeCardCount" class="java.lang.String" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}"/></h4>
+  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
 </c:if>
 <div class="platform-content-container">
   <div class="platform-content">
