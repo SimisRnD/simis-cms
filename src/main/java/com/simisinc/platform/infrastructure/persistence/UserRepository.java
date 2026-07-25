@@ -385,6 +385,29 @@ public class UserRepository {
     return null;
   }
 
+  /**
+   * Persists the account-lockout state after a login attempt (#295): the consecutive failed-attempt
+   * counter and the lockout expiry (null = not locked). The login flow decides the values.
+   */
+  public static void updateLockoutState(long userId, int failedAttemptCount, Timestamp lockedUntil) {
+    SqlUtils updateValues = new SqlUtils()
+        .add("failed_attempt_count", failedAttemptCount)
+        .add("locked_until", lockedUntil);
+    SqlUtils where = new SqlUtils()
+        .add("user_id = ?", userId);
+    if (!DB.update(TABLE_NAME, updateValues, where)) {
+      LOG.error("updateLockoutState failed for user id: " + userId);
+    }
+  }
+
+  /**
+   * Clears the lockout -- resets the failed-attempt count to 0 and removes any lock. Used on a
+   * successful login and when an administrator unlocks the account (#295).
+   */
+  public static void resetLockout(long userId) {
+    updateLockoutState(userId, 0, null);
+  }
+
   public static User createAccountToken(User record) {
     String newToken = UUID.randomUUID().toString();
     SqlUtils updateValues = new SqlUtils()
@@ -531,6 +554,8 @@ public class UserRepository {
       // Decrypt the at-rest TOTP seed so callers always see plaintext (legacy plaintext passes through unchanged)
       record.setMfaSecret(SecretCryptoCommand.decrypt(rs.getString("mfa_secret")));
       record.setMfaEnabled(rs.getBoolean("mfa_enabled"));
+      record.setFailedAttemptCount(rs.getInt("failed_attempt_count"));
+      record.setLockedUntil(rs.getTimestamp("locked_until"));
       return record;
     } catch (SQLException se) {
       LOG.error("buildRecord", se);
