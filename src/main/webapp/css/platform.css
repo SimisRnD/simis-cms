@@ -288,6 +288,7 @@ table td .input-group {
 }
 .admin-web-content {
   min-height: 500px;
+  overflow-x: auto;
 }
 .admin-web-content .platform-body {
   margin-top: 10px;
