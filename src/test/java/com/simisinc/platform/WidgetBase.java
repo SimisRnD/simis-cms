@@ -195,6 +195,10 @@ public class WidgetBase {
     }
   }
 
+  public static void grantStepUp(WidgetContext context) {
+    context.getUserSession().setStepUpExpiresAt(System.currentTimeMillis() + 300_000L);
+  }
+
   public static void login(WidgetContext widgetContext) {
     // Widgets are accessed by users and guests
     List<Role> roleList = new ArrayList<>();
