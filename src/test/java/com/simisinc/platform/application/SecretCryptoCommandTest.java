@@ -20,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.Base64;
@@ -82,10 +83,15 @@ class SecretCryptoCommandTest {
   }
 
   @Test
-  void withoutAKeyEncryptionIsANoOpAndDecryptFailsSafe() {
+  void withoutAKeyEncryptRefusesAndDecryptFailsSafe() {
     System.clearProperty(PROP);
     assertFalse(SecretCryptoCommand.isEnabled());
-    assertEquals("secret", SecretCryptoCommand.encrypt("secret"), "no key -> stored as-is (backward compatible)");
+    // Fail closed (#16): a secret must never be stored in plaintext when no key is configured.
+    assertThrows(IllegalStateException.class, () -> SecretCryptoCommand.encrypt("secret"),
+        "no key -> must refuse to store a secret, not return plaintext");
+    // Blank/null still pass through without a key (nothing secret to protect) -- these must not throw.
+    assertNull(SecretCryptoCommand.encrypt(null));
+    assertEquals("", SecretCryptoCommand.encrypt(""));
     // An encrypted value cannot be read without the key: fail safe to null, never expose a broken value.
     assertNull(SecretCryptoCommand.decrypt("enc:AAAAAAAAAAAAAAAA"));
   }
