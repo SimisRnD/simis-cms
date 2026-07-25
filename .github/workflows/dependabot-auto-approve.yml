@@ -1,0 +1,121 @@
+# Records an approving review on Dependabot pull requests that fall inside a narrow, documented
+# policy -- so the required-review control stops being a rubber stamp on routine version bumps
+# without weakening it for anything else (issue #224).
+#
+# THE POLICY: auto-approve maven PATCH and MINOR updates only, excluding the dependencies that
+# carry documented version holds. Approve only -- never auto-merge -- so a human still presses
+# Merge and can still notice a bump that is green but wrong.
+#
+# WHY IT IS THIS NARROW. On 2026-07-24 the cosign-installer v3 -> v4 bump (PR #272) passed every
+# PR check and was merged, then broke release SBOM signing (fixed in #278): cosign 3.x removed the
+# sign-blob flags the release workflow used. Nothing caught it because sbom.yml never runs on
+# pull_request. "Once checks pass" is therefore only as strong as what the checks EXERCISE, and
+# these classes are structurally invisible to PR CI:
+#
+#   * github-actions used only in sbom.yml / publish-images.yml (release, schedule, push-to-main)
+#   * docker base images -- validated by the publish scan gate on push to main, not on the PR
+#
+# Both are excluded here for that reason, along with all majors (PR #271 arrived as a routine
+# postgres 17 -> 18 bump that would have broken existing data volumes and invalidated the VEX
+# baseline; CONTRIBUTING.md already requires majors to be migrated and tested individually).
+#
+# Widening this scope means arguing against that evidence, not rediscovering it.
+#
+# The ruleset is NOT modified: required status checks still gate the merge, and the bypass-actor
+# list stays empty. An assessor sees a recorded approval plus this stated policy, rather than a
+# rule that silently did not apply to a whole class of changes.
+name: Dependabot auto-approve
+
+# pull_request_target runs with a token that can write to this repository. This workflow therefore
+# NEVER checks out, builds, or executes the pull request's code -- it only reads metadata and posts
+# a review. Do not add a checkout of the PR head here.
+on: pull_request_target
+
+permissions:
+  contents: read
+
+jobs:
+  auto-approve:
+    # Only Dependabot's own pull requests; the actor check is what makes the metadata trustworthy.
+    if: github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      pull-requests: write   # post the approving review
+    steps:
+      - name: Read the Dependabot metadata
+        id: metadata
+        uses: dependabot/fetch-metadata@25dd0e34f4fe68f24cc83900b1fe3fe149efef98 # v3.1.0
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Apply the auto-approval policy
+        id: policy
+        env:
+          ECOSYSTEM: ${{ steps.metadata.outputs.package-ecosystem }}
+          UPDATE_TYPE: ${{ steps.metadata.outputs.update-type }}
+          DEPENDENCY_NAMES: ${{ steps.metadata.outputs.dependency-names }}
+        run: |
+          set -euo pipefail
+
+          # Dependencies held at a version with a documented revisit trigger in dependabot.yml.
+          # Auto-approving one would silently discard that reasoning, so they are excluded even for
+          # a patch bump. Keep this list in step with the ignore entries in dependabot.yml.
+          HELD="org.apache.johnzon org.apache.commons:commons-jexl3 com.squareup:square \
+                org.apache.tomcat:tomcat-servlet-api org.flywaydb com.squareup.okhttp3:okhttp"
+
+          decision=approve
+          reason=""
+
+          if [ "$ECOSYSTEM" != "maven" ]; then
+            decision=skip
+            reason="ecosystem '$ECOSYSTEM' is outside the policy (PR CI does not exercise docker base images or the release-only actions)"
+          elif [ "$UPDATE_TYPE" != "version-update:semver-patch" ] && [ "$UPDATE_TYPE" != "version-update:semver-minor" ]; then
+            decision=skip
+            reason="update type '$UPDATE_TYPE' is outside the policy (majors are migrations, reviewed individually)"
+          else
+            for dep in ${DEPENDENCY_NAMES//,/ }; do
+              for held in $HELD; do
+                case "$dep" in
+                  "$held"*)
+                    decision=skip
+                    reason="'$dep' carries a documented version hold in dependabot.yml"
+                    ;;
+                esac
+              done
+            done
+          fi
+
+          echo "decision=$decision" >> "$GITHUB_OUTPUT"
+          echo "reason=$reason" >> "$GITHUB_OUTPUT"
+          if [ "$decision" = approve ]; then
+            echo "In policy: $ECOSYSTEM $UPDATE_TYPE ($DEPENDENCY_NAMES)"
+          else
+            echo "Human review required: $reason"
+          fi
+
+      # The approval must follow the checks, not race them: an approving review sitting on a red
+      # pull request is misleading evidence. --fail-fast stops (and fails this job, leaving the PR
+      # unapproved) as soon as any required check fails.
+      - name: Wait for the required checks
+        if: steps.policy.outputs.decision == 'approve'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh pr checks "${{ github.event.pull_request.html_url }}" --watch --fail-fast --interval 30
+
+      - name: Approve
+        if: steps.policy.outputs.decision == 'approve'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr review "${{ github.event.pull_request.html_url }}" --approve --body \
+            "Approved automatically: a maven ${{ steps.metadata.outputs.update-type }} update, within the policy documented in \`.github/workflows/dependabot-auto-approve.yml\`, with all required checks passing. Merging is still a human action."
+
+      - name: Explain why a human is needed
+        if: steps.policy.outputs.decision == 'skip'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh pr comment "${{ github.event.pull_request.html_url }}" --body \
+            "This update needs a human review: ${{ steps.policy.outputs.reason }}. See the policy in \`.github/workflows/dependabot-auto-approve.yml\`."
