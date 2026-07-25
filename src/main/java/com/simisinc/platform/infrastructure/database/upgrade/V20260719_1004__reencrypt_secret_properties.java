@@ -71,8 +71,11 @@ public class V20260719_1004__reencrypt_secret_properties extends BaseJavaMigrati
   public void migrate(Context context) throws Exception {
 
     if (!SecretCryptoCommand.isEnabled()) {
-      LOG.warn("CMS_SECRET_KEY is not configured; secret site properties will be re-saved unchanged and remain "
-          + "plaintext at rest. Configure the key and re-run this upgrade to encrypt them.");
+      // encrypt() now fails closed without a key (#16), so skip the re-save entirely rather than throw during
+      // startup. Existing values remain plaintext; configure the key and re-run this upgrade to encrypt them.
+      LOG.warn("CMS_SECRET_KEY is not configured; skipping secret site-property re-encryption. Existing values "
+          + "remain plaintext at rest. Configure the key and re-run this upgrade to encrypt them.");
+      return;
     }
 
     // Track the root prefix of every value we re-save so the property cache can be expired afterward, mirroring
