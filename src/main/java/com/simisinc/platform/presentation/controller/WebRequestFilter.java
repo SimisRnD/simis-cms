@@ -432,6 +432,13 @@ public class WebRequestFilter implements Filter {
           userVerifiedThisRequest = true;
           // Log the user in
           LOG.debug("Got a token user: " + user.getId());
+          // Rotate the servlet session id before establishing the login, so a session id an attacker
+          // may have fixed on the victim is not carried into the authenticated session (session
+          // fixation). Mirrors the interactive login path (LoginWidget). Guarded on an existing
+          // session: with none, the id is server-generated on login and there is nothing to rotate.
+          if (httpServletRequest.getSession(false) != null) {
+            httpServletRequest.changeSessionId();
+          }
           userSession.login(user);
           if (user.getTimeZone() != null) {
             Config.set(request, Config.FMT_TIME_ZONE, user.getTimeZone());
