@@ -30,21 +30,33 @@
   <i class="fa fa-folder-open-o"></i> <c:out value="${folder.name}" />
 </h4>
 </c:if>
-<%-- Identical to: --%>
-<%--<form action="" method="post" enctype="multipart/form-data">--%>
-  <%--<input type="file" name="file" />--%>
-<%--</form>--%>
+<div id="upload-status-region" role="status" aria-live="polite"></div>
+<div id="upload-error-region" role="alert" hidden></div>
 <script src="${ctx}/javascript/dropzone-5.9.3/dropzone.min.js"></script>
 <script>
+  (function() {
+    var n = sessionStorage.getItem('dz-uploaded');
+    if (n) {
+      sessionStorage.removeItem('dz-uploaded');
+      var el = document.getElementById('upload-status-region');
+      if (el) el.textContent = n + ' file' + (n == 1 ? '' : 's') + ' uploaded successfully.';
+    }
+  })();
+  var uploadErrorCount = 0;
   Dropzone.options.myDropzone = {
     autoProcessQueue: false,
     parallelUploads: 2,
     maxFilesize: 100,
-    dictDefaultMessage: 'Drag and Drop files from your desktop here (max 100MB)<br/><br/>(Click for file chooser)',
+    clickable: ['#browse-files', '#my-dropzone'],
+    dictDefaultMessage: 'Drag and drop files here, or click to browse (max 100 MB)',
     init: function() {
       var submitButton = document.querySelector("#submit-all");
-      myDropzone = this; // closure
+      var errorRegion = document.querySelector("#upload-error-region");
+      myDropzone = this;
       submitButton.addEventListener("click", function() {
+        uploadErrorCount = 0;
+        errorRegion.textContent = '';
+        errorRegion.hidden = true;
         myDropzone.processQueue();
       });
       this.on("addedfile", function() {
@@ -53,9 +65,18 @@
           submitButton.classList.remove('primary');
         }
       });
+      this.on("error", function(file, message) {
+        uploadErrorCount++;
+        var msg = (typeof message === 'string') ? message : (message && message.error ? message.error : 'Upload failed');
+        errorRegion.textContent = 'Upload error: ' + msg;
+        errorRegion.hidden = false;
+      });
       var _this = this;
       document.querySelector("#clear-dropzone").addEventListener("click", function() {
         _this.removeAllFiles(true);
+        uploadErrorCount = 0;
+        errorRegion.textContent = '';
+        errorRegion.hidden = true;
         if (submitButton.classList.contains('success')) {
           submitButton.classList.add('primary');
           submitButton.classList.remove('success');
@@ -63,15 +84,20 @@
       });
     },
     success: function() {
-      myDropzone = this; // closure
+      myDropzone = this;
       myDropzone.processQueue();
     },
     queuecomplete: function() {
-      window.location.href= '' + window.location.href;
+      if (uploadErrorCount === 0) {
+        var count = myDropzone.getFilesWithStatus(Dropzone.SUCCESS).length;
+        try { sessionStorage.setItem('dz-uploaded', count); } catch(e) {}
+        window.location.href = '' + window.location.href;
+      }
     }
   };
 </script>
-<p>Add files to upload, then choose to submit all files...</p>
+<p>Add files to upload, then click Upload All Files.</p>
+<button id="browse-files" class="button secondary hollow no-gap" type="button">Browse files</button>
 <form action="${widgetContext.uri}?widget=${widgetContext.uniqueId}" class="dropzone" id="my-dropzone">
   <%-- Required by controller --%>
   <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
