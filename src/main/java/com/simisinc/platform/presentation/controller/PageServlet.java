@@ -27,6 +27,7 @@ import com.simisinc.platform.domain.model.cms.MenuTab;
 import com.simisinc.platform.domain.model.cms.Stylesheet;
 import com.simisinc.platform.domain.model.cms.TableOfContents;
 import com.simisinc.platform.domain.model.cms.WebPage;
+import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
 import com.simisinc.platform.domain.model.items.Category;
 import com.simisinc.platform.domain.model.items.Collection;
 import com.simisinc.platform.domain.model.items.Item;
@@ -246,8 +247,15 @@ public class PageServlet extends HttpServlet {
       }
       boolean pageEditMode = "true".equals(request.getSession().getAttribute(SessionConstants.PAGE_EDIT_MODE))
           && EditorPermissionCommand.canEditContent(userSession);
+      boolean pageLayoutMode = pageEditMode && EditorPermissionCommand.canBuildLayout(userSession);
       if (pageEditMode) {
         request.setAttribute("pageEditMode", "true");
+      }
+      if (pageLayoutMode) {
+        request.setAttribute("pageLayoutMode", "true");
+        if (webPage != null && StringUtils.isNotBlank(webPage.getDraftPageXml())) {
+          request.setAttribute("hasDraft", "true");
+        }
       }
 
       // saveDraftLayout: reorder sections/columns/widgets, persist to draftPageXml
@@ -281,6 +289,62 @@ public class PageServlet extends HttpServlet {
           String msg = e.getMessage() != null ? e.getMessage().replace("\"", "'") : "Save failed";
           response.getWriter().print("{\"success\":false,\"error\":\"" + msg + "\"}");
         }
+        return;
+      }
+
+      // publishDraft: promote draftPageXml → pageXml
+      if ("publishDraft".equals(request.getParameter("action"))
+          && request.getParameter("widget") == null
+          && pageLayoutMode) {
+        String formToken = request.getParameter("token");
+        if (!userSession.getFormToken().equals(formToken)) {
+          LOG.warn("publishDraft CSRF token mismatch from " + request.getRemoteAddr());
+          response.setContentType("application/json");
+          response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+          response.getWriter().print("{\"success\":false,\"error\":\"Session expired\"}");
+          return;
+        }
+        if (webPage == null || webPage.getId() == -1) {
+          response.setContentType("application/json");
+          response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+          response.getWriter().print("{\"success\":false,\"error\":\"Page not found\"}");
+          return;
+        }
+        if (StringUtils.isBlank(webPage.getDraftPageXml())) {
+          response.setContentType("application/json");
+          response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+          response.getWriter().print("{\"success\":false,\"error\":\"No draft to publish\"}");
+          return;
+        }
+        response.setContentType("application/json");
+        WebPageRepository.publish(webPage);
+        LOG.info("Draft published for " + pagePath + " by user " + userSession.getUserId());
+        response.getWriter().print("{\"success\":true}");
+        return;
+      }
+
+      // discardDraft: clear draftPageXml without publishing
+      if ("discardDraft".equals(request.getParameter("action"))
+          && request.getParameter("widget") == null
+          && pageLayoutMode) {
+        String formToken = request.getParameter("token");
+        if (!userSession.getFormToken().equals(formToken)) {
+          LOG.warn("discardDraft CSRF token mismatch from " + request.getRemoteAddr());
+          response.setContentType("application/json");
+          response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+          response.getWriter().print("{\"success\":false,\"error\":\"Session expired\"}");
+          return;
+        }
+        if (webPage == null || webPage.getId() == -1) {
+          response.setContentType("application/json");
+          response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+          response.getWriter().print("{\"success\":false,\"error\":\"Page not found\"}");
+          return;
+        }
+        response.setContentType("application/json");
+        WebPageRepository.removeDraft(webPage);
+        LOG.info("Draft discarded for " + pagePath + " by user " + userSession.getUserId());
+        response.getWriter().print("{\"success\":true}");
         return;
       }
 

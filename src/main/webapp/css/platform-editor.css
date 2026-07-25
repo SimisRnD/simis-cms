@@ -328,6 +328,97 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-move-btns {
   opacity: 1;
 }
 
+/* ── Draft publish / discard ── */
+
+#sc-publish-btn {
+  margin-bottom: 0;
+  font-size: 0.75rem;
+}
+
+#sc-discard-draft-btn {
+  margin-bottom: 0;
+  font-size: 0.75rem;
+  color: #ccc;
+  border-color: #555;
+}
+
+#sc-discard-draft-btn:hover {
+  color: #fff;
+  border-color: #aaa;
+}
+
+/* Confirm modal overlay */
+#sc-confirm-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 10002;
+  align-items: center;
+  justify-content: center;
+}
+
+#sc-confirm-modal.sc-visible {
+  display: flex;
+}
+
+#sc-confirm-modal-box {
+  background: #1a1a2e;
+  border: 1px solid #444;
+  border-radius: 6px;
+  padding: 1.25rem 1.5rem;
+  max-width: 380px;
+  width: 90%;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+  font-family: sans-serif;
+}
+
+#sc-confirm-modal-msg {
+  color: #eee;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+  line-height: 1.5;
+}
+
+#sc-confirm-modal-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+#sc-confirm-modal-actions button {
+  font-size: 0.8rem;
+  padding: 6px 16px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  font-family: sans-serif;
+}
+
+#sc-confirm-ok {
+  background: #0056b3;
+  color: #fff;
+}
+
+#sc-confirm-ok.sc-danger {
+  background: #c0392b;
+}
+
+#sc-confirm-ok:hover {
+  opacity: 0.9;
+}
+
+#sc-confirm-cancel {
+  background: #3a3a4e;
+  color: #ccc;
+  border: 1px solid #555 !important;
+}
+
+#sc-confirm-cancel:hover {
+  background: #4a4a5e;
+  color: #fff;
+}
+
 /* Link prompt overlay */
 #sc-link-prompt {
   position: absolute;
