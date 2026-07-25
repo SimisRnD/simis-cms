@@ -94,6 +94,8 @@ public class UserDetailsWidget extends GenericWidget {
       return restoreAccount(context, user);
     } else if ("deleteAccount".equals(action)) {
       return deleteAccount(context, user);
+    } else if ("unlockAccount".equals(action)) {
+      return unlockAccount(context, user);
     }
     return context;
   }
@@ -165,6 +167,16 @@ public class UserDetailsWidget extends GenericWidget {
           AuditEventCommand.FAILURE, "user", targetId, targetLabel, e.getMessage());
       context.setErrorMessage("The account could not be deleted: " + e.getMessage());
     }
+    return context;
+  }
+
+  private WidgetContext unlockAccount(WidgetContext context, User user) {
+    // Clear the failed-attempt counter and lockout timestamp so the user can sign in again (#295, AC-7).
+    // The clear is idempotent, so the outcome is recorded as a success even if the lock had just expired.
+    UserRepository.resetLockout(user.getId());
+    AuditEventCommand.record(context, AuditEventCommand.USER_MANAGEMENT, "user.unlock",
+        AuditEventCommand.SUCCESS, "user", String.valueOf(user.getId()), user.getEmail(), null);
+    context.setSuccessMessage("Account unlocked");
     return context;
   }
 
