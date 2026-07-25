@@ -234,9 +234,33 @@ public class PageServlet extends HttpServlet {
         request.setAttribute(MASTER_WEB_PAGE, webPage);
       }
 
+      // Edit-mode toggle: ?editMode=true/false (requires canEditContent permission)
+      String editModeParam = request.getParameter("editMode");
+      if (editModeParam != null) {
+        if ("true".equals(editModeParam) && EditorPermissionCommand.canEditContent(userSession)) {
+          request.getSession().setAttribute(SessionConstants.PAGE_EDIT_MODE, "true");
+        } else {
+          request.getSession().removeAttribute(SessionConstants.PAGE_EDIT_MODE);
+        }
+      }
+      boolean pageEditMode = "true".equals(request.getSession().getAttribute(SessionConstants.PAGE_EDIT_MODE))
+          && EditorPermissionCommand.canEditContent(userSession);
+      if (pageEditMode) {
+        request.setAttribute("pageEditMode", "true");
+      }
+
       // Determine the Page XML Layout for this request
       Page pageRef = WebPageXmlLayoutCommand.retrievePageForRequest(webPage, pagePath);
       Map<String, String> widgetLibrary = WebPageXmlLayoutCommand.getWidgetLibrary();
+
+      // In edit mode, layout builders preview the draft layout (bypasses cache)
+      if (pageEditMode && EditorPermissionCommand.canBuildLayout(userSession)
+          && webPage != null && StringUtils.isNotBlank(webPage.getDraftPageXml())) {
+        Page draftRef = WebPageXmlLayoutCommand.parseFreshDraft(webPage, pagePath);
+        if (draftRef != null) {
+          pageRef = draftRef;
+        }
+      }
 
       // Load the properties
       Map<String, String> systemPropertyMap = LoadSitePropertyCommand.loadAsMap("system");
