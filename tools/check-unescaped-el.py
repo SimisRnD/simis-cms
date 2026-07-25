@@ -16,8 +16,10 @@ this codebase -- the bug was that this particular value had never been cleaned.
 
 What it does
 ------------
-Finds every EL expression that lands in one of two injection contexts:
+Finds every EL expression that lands in one of three injection contexts:
 
+  ATTR  rendered into a raw HTML tag attribute, where an event handler or
+        javascript: URI can execute (e.g. onclick, href, style, data-*)
   HTML  rendered into the document body, where markup executes
   JS    rendered inside a <script> block, where a quote breaks out of a string
 
@@ -51,7 +53,7 @@ import sys
 JSP_ROOT = "src/main/webapp/WEB-INF/jsp"
 
 # Expressions already run through an escaping function.
-ESCAPED = re.compile(r"\$\{\s*(html:toHtml|js:escape|url:encode|url:encodeUri|date:|font:|markdown:html|html:clean)\b")
+ESCAPED = re.compile(r"\$\{\s*(html:toHtml|js:escape|url:encode|url:encodeUri|date:|font:|markdown:html|html:clean|fn:escapeXml|html:makeId)\b")
 
 # Framework-generated values that never carry user input.
 FRAMEWORK = re.compile(
@@ -66,7 +68,9 @@ NUMERIC = re.compile(
     r"|[Dd]elay|[Qq]uantity|[Pp]ercent|[Ll]imit"
     r")\}$"
     r"|^\$\{[\w.]+\s*[-+]\s*\d+\}$"          # ${recordPaging.pageNumber - 1}
-    r"|^\$\{[\w.]+\(\)\}$")                   # ${recordList.size()}
+    r"|^\$\{[\w.]+\(\)\}$"                    # ${recordList.size()}
+    r"|^\$\{[\w.]+\(\)\s*\+\s*[\w.]+\}$"     # ${list.size() + i}
+    r"|^\$\{fn:length\([^}]*\)\}$")           # ${fn:length(list)}
 
 # Unescaped output that is DELIBERATE, with the reason it is safe. Keyed by
 # "<jsp path>:<expression>" for a specific site, or just "<expression>" to
@@ -175,13 +179,90 @@ ALLOWLIST: dict[str, str] = {
         "None needed - the value is a java.lang.Long produced by the database, not a string that ever held user input.",
     "${year}":
         "SAFE — ${year} is a java.lang.Long element of folderYearList, populated at src/main/java/com/simisinc/platform/presentation/widgets/cms/FileListByFolderWidget.java:104 from the SQL",
+
+    # --- ATTR context additions ---
+
+    # Numeric expressions whose names don't match the NUMERIC word-suffix list.
+    "${status.first ? 0 : menuTab.id}":
+        "EL ternary: evaluates to either the literal 0 or menuTab.id (a long DB primary key) -- both branches are purely numeric, cannot carry markup.",
+    "${includeStylesheet}":
+        "PageServlet sets this to pageStylesheet.getWebPageId(), a long DB primary key; only decimal digits, cannot carry markup.",
+    "${includeStylesheetLastModified}":
+        "PageServlet sets this to pageStylesheet.getModified().getTime(), epoch milliseconds as a long; only decimal digits.",
+    "${includeGlobalStylesheetLastModified}":
+        "PageServlet sets this to globalStylesheet.getModified().getTime(), epoch milliseconds as a long; only decimal digits.",
+
+    # Whitelist-constrained values (set to one of a small fixed set of literals).
+    "${colorScheme}":
+        "<c:choose> in main.jsp / embedded-layout.jsp maps colorSchemeMode to exactly one of 'dark', 'auto', or 'light' -- no other value is possible.",
+
+    # JSTL loop-status objects (not user input).
+    "${cartEntryStatus}":
+        "JSTL varStatus object for a <c:forEach> loop -- a runtime-generated LoopTagStatus, never user input.",
+    "${orderEntryStatus}":
+        "JSTL varStatus object for a <c:forEach> loop -- a runtime-generated LoopTagStatus, never user input.",
+
+    # Values hardcoded in the JSP layer.
+    "${rendererClass}":
+        "Set exclusively by hardcoded <c:set> literals in container-layout.jsp ('container-body') and layout.jsp ('platform-body') -- never attacker-controlled.",
+    "${logoSrc}":
+        "Set via <c:set var='logoSrc'><c:out value='${sitePropertyMap[...]}'/></c:set> in toggle-menu.jsp; the <c:out> encodes '\"' to '&quot;' when the variable is written, preventing attribute breakout at the src= sink.",
+
+    # URL / path values validated or constrained at the write side.
+    "${blog.link}":
+        "Blog.getLink() returns '/' + uniqueId where uniqueId is produced by MakeContentUniqueIdCommand.parseToValidValue(), which only emits [a-z0-9-] -- no HTML metacharacters are possible.",
+    "${menuTab.link}":
+        "SaveMenuTabCommand enforces a leading '/' or '#' prefix, blocking javascript: and protocol-relative targets; relative/anchor URLs cannot carry executable markup.",
+    "${menuItem.link}":
+        "SaveMenuTabCommand.updateMenuItemLink() enforces a leading '/' prefix on save -- all stored links are relative internal paths.",
+    "${webPage.link}":
+        "SaveWebPageCommand rejects all external URLs via UrlCommand.isUrlValid() check (error if external) -- all stored web-page links are relative internal paths with no HTML metacharacters.",
+    "${masterWebPage.link}":
+        "Same as ${webPage.link}: SaveWebPageCommand enforces relative-only links; WebPage.link is always a site-internal path.",
+    "${searchResult.link}":
+        "Populated from WebPage.link (same validation as ${webPage.link}); BlogPost, Item, and WebPage search results all store relative internal paths only.",
+    "${item.url}":
+        "SaveItemCommand validates via UrlCommand.isUrlValid() (Apache UrlValidator, http/https only); the JSP also guards with fn:startsWith(...,'http') before rendering the href branch -- invalid or non-http(s) values are never rendered.",
+    "${item.course.url}":
+        "MoodleCourseListCommand builds the URL as moodleServerUrl + '/course/view.php?id=' + numericId; the JSP guards with fn:startsWith(item.course.url,'http') before rendering as href.",
+    "${dataset.url}":
+        "Dataset.getUrl() constructs the value as webPath + '-' + id + '/' + UrlCommand.encodeUri(filename); webPath and id are system-controlled, filename is percent-encoded -- no user-controlled characters can appear.",
+    "${image.url}":
+        "Image.getUrl() constructs the value as webPath + '-' + id + '/' + UrlCommand.encodeUri(filename); same as ${dataset.url}, entirely system-constructed with encoded filename.",
+    "${wikiLinkPrefix}":
+        "Derived from request.getRequestURI() trimmed at the last '/'; a raw '\"' cannot legally appear in an HTTP request-path, so attribute breakout via this channel is not possible.",
+    "${courseButtonLink}":
+        "RemoteCourseListWidget applies UrlCommand.sanitizeUrl() before setting the attribute; sanitizeUrl rejects javascript:, data:, and any character outside [A-Za-z0-9/?&=#%._~:@!$()*+,;-].",
+
+    # Timezone and country-code values sourced from JRE or immutable seed data.
+    "${timezone}":
+        "Sourced from Java TimeZone.getAvailableIDs() in the JSP scriptlet; JRE read-only data -- not attacker-influenced, no HTML metacharacters possible.",
+    "${shippingCountry.code}":
+        "Read from the lookup_shipping_countries table seeded exclusively from SQL migrations with ISO 3166-1 alpha-2 codes (e.g. 'US', 'CA'); the code column has no user write path.",
+
+    # category:headerColorCSS applies XML escaping to both color values.
+    "${category:headerColorCSS(item.categoryId)}":
+        "CategoryCommand.headerColorCSS() builds 'background:COLOR;color:COLOR' where both COLOR values are run through StringEscapeUtils.escapeXml11() before concatenation -- '\"' and '<' are escaped.",
+
+    # Per-site entries: safe at this specific call site but not globally.
+    "items/item-full-form.jsp:${option.key}":
+        "EditItemFormWidget / CreateAnItemWidget use CustomFieldCommand which always calls generateHtmlName() before storing the key, constraining it to [a-z0-9-] -- no HTML metacharacters possible.",
+    "userProfile/my-profile-form.jsp:${cancelUrl}":
+        "EditMyProfileFormWidget calls UrlCommand.getValidReturnPage() before setAttribute; that method rejects non-relative paths and any char outside [A-Za-z0-9/?&=#%._~+,;-].",
 }
 
 CONTEXT_HTML = "HTML"
 CONTEXT_JS = "JS"
+CONTEXT_ATTR = "ATTR"
 
 TAG = re.compile(r"<[^>]*>", re.S)
 COMMENT = re.compile(r"<%--.*?--%>", re.S)
+# Namespaced (JSTL/custom) tags: <c:if>, </c:if>, <html:toHtml/>, <jsp:useBean/>, etc.
+# Both opening and self-closing forms; the name contains ':' so these are never raw HTML.
+JSTL_TAG = re.compile(r"</?[a-zA-Z][a-zA-Z0-9_]*:[^>]*>", re.S)
+# Raw HTML opening tag after JSTL masking: <div ...>, <input .../>, etc.
+# group(1) = tag name, group(2) = everything between tag name and closing '>'.
+RAW_TAG_OPEN = re.compile(r"<([a-zA-Z][a-zA-Z0-9]*)([^>]*)>", re.S)
 # An HTML end tag closes the element even when it carries trailing junk: the parser accepts
 # </script >, </script\n>, and </script foo="bar"> alike, discarding whatever follows the name.
 # Matching only \s* before ">" therefore misses a real end tag, leaving the rest of the file
@@ -203,6 +284,25 @@ def scan(path: str) -> list[tuple[int, str, str]]:
     """Return (line, expression, context) for EL reaching HTML or JS output."""
     src = io.open(path, encoding="utf-8", errors="replace").read()
     found: list[tuple[int, str, str]] = []
+
+    # ATTR context: EL inside a raw HTML tag's attribute value.
+    #
+    # The naive approach (blank all <...> spans then look for EL) hides these —
+    # it blanks the EL along with the tag.  The subtle case is a JSTL tag nested
+    # inside a raw HTML tag's attribute region, e.g.
+    #   <div <c:if test="${!empty x}">id="${x}"</c:if> class="...">
+    # A regex that looks for the closing '>' of the outer <div> tag will stop at
+    # the '>' inside '<c:if test="...">'.  Blanking JSTL tags *first* removes
+    # that false boundary so the outer tag's attribute text is contiguous and the
+    # real injection site (id="${x}") is correctly found.
+    attr_src = COMMENT.sub(_blank, src)
+    attr_src = SCRIPT.sub(_blank, attr_src)
+    attr_src = JSTL_TAG.sub(_blank, attr_src)
+    for m in RAW_TAG_OPEN.finditer(attr_src):
+        attr_text = m.group(2)
+        for e in EL.finditer(attr_text):
+            line = src.count("\n", 0, m.start(2) + e.start()) + 1
+            found.append((line, e.group(0), CONTEXT_ATTR))
 
     # JS context first, so those offsets can then be removed from the HTML pass.
     js_spans = []
@@ -279,13 +379,15 @@ def main() -> int:
         by_context = collections.defaultdict(list)
         for rel, line, expr, context in findings:
             by_context[context].append((rel, line, expr))
-        for context in (CONTEXT_HTML, CONTEXT_JS):
+        for context in (CONTEXT_ATTR, CONTEXT_HTML, CONTEXT_JS):
             rows = by_context.get(context)
             if not rows:
                 continue
-            label = ("rendered into the document body -- markup executes"
-                     if context == CONTEXT_HTML
-                     else "rendered inside <script> -- a quote breaks out of the string")
+            label = {
+                CONTEXT_ATTR: "rendered into a raw HTML attribute -- may execute via event handler or javascript: URI",
+                CONTEXT_HTML: "rendered into the document body -- markup executes",
+                CONTEXT_JS:   "rendered inside <script> -- a quote breaks out of the string",
+            }[context]
             print("%s CONTEXT (%d) -- %s:" % (context, len(rows), label))
             for rel, line, expr in sorted(rows):
                 print("  %-52s %-46s :%d" % (rel, expr, line))
@@ -303,13 +405,18 @@ def main() -> int:
 
     print("Summary: %d unallowlisted, %d allowlisted sites." % (len(findings), sum(allowed.values())))
 
-    if findings and args.strict:
-        print()
-        print("FAIL: unescaped EL without a recorded justification.")
-        print("Either wrap the value (<c:out>, js:escape, url:encodeUri), sanitize it at")
-        print("the point it is stored, or add an ALLOWLIST entry in this script saying")
-        print("why the value cannot carry markup.")
-        return 1
+    if args.strict:
+        # ATTR context is report-only pending #319 (icon/leftIcon attribute-context XSS fix).
+        # Once #319 merges, re-run with --strict-attr to confirm 0 ATTR findings, then drop
+        # this exclusion.
+        gate_findings = [(r, l, e, c) for r, l, e, c in findings if c != CONTEXT_ATTR]
+        if gate_findings:
+            print()
+            print("FAIL: unescaped EL without a recorded justification.")
+            print("Either wrap the value (<c:out>, js:escape, url:encodeUri), sanitize it at")
+            print("the point it is stored, or add an ALLOWLIST entry in this script saying")
+            print("why the value cannot carry markup.")
+            return 1
     return 0
 
 
