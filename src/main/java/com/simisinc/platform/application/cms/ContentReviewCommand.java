@@ -152,6 +152,16 @@ public class ContentReviewCommand {
     return OFFER_DECIDE;
   }
 
+  /**
+   * Whether a save may publish straight to the live page, skipping review. When governed publishing is
+   * on the answer is always no: the only route to live is submit → approve, so an editor's Save /
+   * Publish Immediately button degrades to a draft save rather than becoming a bypass. Hot-editing a
+   * live page is exactly the hole that would otherwise defeat the whole control.
+   */
+  public static boolean mayPublishDirectly(boolean reviewRequired) {
+    return !reviewRequired;
+  }
+
   /** No draft, so nothing to offer. */
   public static final String OFFER_NONE = "none";
   /** Governed publishing is off: offer the direct publish button. */
