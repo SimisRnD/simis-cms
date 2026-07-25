@@ -321,8 +321,13 @@
     <c:if test="${colorSchemeMode eq 'user'}">
       <script src="${ctx}/javascript/platform-theme.js"></script>
     </c:if>
+  <style>
+    .platform-skip-link { position: absolute; left: -9999px; top: -9999px; z-index: 9999; }
+    .platform-skip-link:focus { left: 0; top: 0; background: #fff; color: #000; padding: 0.5rem 1rem; text-decoration: none; border: 2px solid #000; }
+  </style>
 </head>
 <body<c:if test="${pageRenderInfo.name eq '/'}"> id="body-home"</c:if><c:if test="${!empty pageRenderInfo.cssClass}"> class="<c:out value="${pageRenderInfo.cssClass}" />"</c:if>>
+  <a class="platform-skip-link" href="#main">Skip to main content</a>
   <c:choose>
     <c:when test="${fn:startsWith(pageRenderInfo.name, '/admin') && pageRenderInfo.name ne '/admin/web-page' && pageRenderInfo.name ne '/admin/web-page-designer' && pageRenderInfo.name ne '/admin/web-container-designer' && pageRenderInfo.name ne '/admin/css-editor'}">
       <%-- Draw the admin menu--%>
@@ -336,6 +341,7 @@
             <i class="${font:far()} fa-user fa-fw"></i>
             <c:out value="${userSession.user.fullName}"/>
           </div>
+          <nav aria-label="Admin navigation">
           <%-- Admin Link --%>
           <ul class="vertical menu">
             <li class="section-title">Admin</li>
@@ -425,9 +431,13 @@
               <%--<li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/email-templates')}"> class="is-active"</c:if>><a href="${ctx}/admin/email-templates"><i class="${font:far()} fa-file-text fa-fw"></i> <span>Email Templates</span></a></li>--%>
             </ul>
           </c:if>
+          </nav>
         </div>
         <div class="off-canvas-content" data-off-canvas-content>
           <div class="web-content admin-web-content">
+            <c:if test="${!empty pageRenderInfo.title}">
+              <h1 class="show-for-sr"><c:out value="${pageRenderInfo.title}"/></h1>
+            </c:if>
             <jsp:include page="${PageBody}" flush="true"/>
           </div>
         </div>
