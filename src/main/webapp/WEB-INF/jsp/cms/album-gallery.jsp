@@ -75,7 +75,11 @@
       <c:forEach items="${subFolderList}" var="subFolder">
         <div class="card-container${widgetContext.uniqueId} cell">
           <div class="card${widgetContext.uniqueId}<c:if test="${!empty cardClass}"> <c:out value="${cardClass}" /></c:if>"
-               style="background-image:url('${ctx}/assets/view/${subFolder.posterFileItem.url}');" onclick="showAlbum${controlId}(${subFolder.id})">
+               style="background-image:url('${ctx}/assets/view/${subFolder.posterFileItem.url}');"
+               role="button" tabindex="0" aria-label="<c:out value="${subFolder.name}"/>"
+               onclick="showAlbum${controlId}(${subFolder.id})"
+               onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();showAlbum${controlId}(${subFolder.id});}"
+               >
             <div class="card-content">
               <div class="card-content-inner">
                 <p><c:out value="${subFolder.name}"/></p>

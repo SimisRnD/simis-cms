@@ -50,7 +50,9 @@
                   <a href="${ctx}${menuTab.link}"><c:out value="${menuTab.link}"/></a>
                 </c:when>
                 <c:otherwise>
-                  <i class="fa fa-arrows-h site-map-menu-tab-drag-handle"></i>
+                  <i class="fa fa-arrows-h site-map-menu-tab-drag-handle" aria-hidden="true"></i>
+                  <button type="button" class="button tiny secondary no-gap margin-left-5" onclick="moveSitemapTabUp(this)" aria-label="Move tab left">&#9664;</button>
+                  <button type="button" class="button tiny secondary no-gap" onclick="moveSitemapTabDown(this)" aria-label="Move tab right">&#9654;</button>
                 </c:otherwise>
               </c:choose>
             </small>
@@ -188,5 +190,18 @@
     menuItemOrderField.value = menuItemOrder;
 
     return true;
+  }
+
+  function moveSitemapTabUp(btn) {
+    var tab = btn.closest('.site-map-menu-tab');
+    var prev = tab.previousElementSibling;
+    if (!prev || prev.id === 'site-map-menu-tab-container-0') return;
+    tab.parentNode.insertBefore(tab, prev);
+  }
+
+  function moveSitemapTabDown(btn) {
+    var tab = btn.closest('.site-map-menu-tab');
+    var next = tab.nextElementSibling;
+    if (next) tab.parentNode.insertBefore(next, tab);
   }
 </script>
