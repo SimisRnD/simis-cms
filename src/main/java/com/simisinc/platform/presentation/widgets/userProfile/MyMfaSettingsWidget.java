@@ -109,6 +109,11 @@ public class MyMfaSettingsWidget extends GenericWidget {
     }
 
     if ("disable".equals(action)) {
+      // Disabling MFA requires a recent step-up re-authentication (IA-2 / AC-6).
+      if (!context.getUserSession().isStepUpValid()) {
+        context.setRedirect("/step-up-auth?return=" + context.getUri());
+        return context;
+      }
       UserMfaCommand.disable(user);
       UserMfaRecoveryCodeCommand.clear(user);
       context.setSuccessMessage("Two-factor authentication has been turned off.");

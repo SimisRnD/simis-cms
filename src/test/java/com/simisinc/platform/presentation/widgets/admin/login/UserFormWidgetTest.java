@@ -43,6 +43,7 @@ import com.simisinc.platform.presentation.controller.AuditEventCommand;
  * role -- e.g. a community-manager (level 90) granting admin (level 100), a full privilege escalation.
  * These verify the editor can only set roles at or below their own level, admins are unaffected, and a
  * higher role the target already holds is neither grantable nor strippable by a lower editor.
+ * Step-up re-auth tests verify the gate redirects when the session has not been recently verified.
  *
  * @author Elizabeth Houser
  */
@@ -72,8 +73,20 @@ class UserFormWidgetTest extends WidgetBase {
   }
 
   @Test
+  void postWithoutStepUpRedirectsToChallenge() throws Exception {
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "id", "-1");
+    // Do NOT call grantStepUp — the session has no recorded step-up
+    new UserFormWidget().post(widgetContext);
+    Assertions.assertNotNull(widgetContext.getRedirect(), "no step-up → must redirect");
+    Assertions.assertTrue(widgetContext.getRedirect().contains("/step-up-auth"),
+        "redirect must point to the step-up challenge page");
+  }
+
+  @Test
   void communityManagerCannotGrantAdminButKeepsAllowedRoles() throws Exception {
     setRoles(widgetContext, COMMUNITY_MANAGER);
+    grantStepUp(widgetContext);
     addQueryParameter(widgetContext, "id", "-1");        // create
     addQueryParameter(widgetContext, "roleId1", "1");    // content-editor (70) -- allowed
     addQueryParameter(widgetContext, "roleId4", "4");    // admin (100) -- must be refused
@@ -99,6 +112,7 @@ class UserFormWidgetTest extends WidgetBase {
   @Test
   void adminCanGrantAdmin() throws Exception {
     setRoles(widgetContext, ADMIN);
+    grantStepUp(widgetContext);
     addQueryParameter(widgetContext, "id", "-1");
     addQueryParameter(widgetContext, "roleId4", "4");    // admin
 
@@ -122,6 +136,7 @@ class UserFormWidgetTest extends WidgetBase {
   @Test
   void communityManagerCannotStripHigherRoleTheTargetAlreadyHolds() throws Exception {
     setRoles(widgetContext, COMMUNITY_MANAGER);
+    grantStepUp(widgetContext);
     addQueryParameter(widgetContext, "id", "5");         // editing an existing user
     addQueryParameter(widgetContext, "roleId1", "1");    // submits content-editor; admin left unchecked
 

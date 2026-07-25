@@ -214,6 +214,10 @@ public class WidgetBase {
     widgetContext.getCoreData().put("userId", String.valueOf(userSession.getUserId()));
   }
 
+  public static void grantStepUp(WidgetContext widgetContext) {
+    widgetContext.getUserSession().recordStepUp();
+  }
+
   public static void logout(WidgetContext widgetContext) {
     // User information
     UserSession userSession = new UserSession();

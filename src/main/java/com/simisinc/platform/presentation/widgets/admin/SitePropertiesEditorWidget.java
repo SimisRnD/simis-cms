@@ -51,6 +51,11 @@ public class SitePropertiesEditorWidget extends GenericWidget {
 
   static String PREFIX_PREFERENCE = "prefix";
 
+  // Prefixes whose properties gate privileged access controls or audit behavior.
+  // Changes to these require a recent step-up re-authentication (IA-2 / AC-6).
+  private static final java.util.Set<String> SECURITY_PREFIXES = new java.util.HashSet<>(
+      java.util.Arrays.asList("mfa", "content.review", "security"));
+
 
   public WidgetContext execute(WidgetContext context) {
 
@@ -81,8 +86,14 @@ public class SitePropertiesEditorWidget extends GenericWidget {
 
   public WidgetContext post(WidgetContext context) {
 
-    // Load the properties
+    // Security-sensitive prefixes require a recent step-up re-authentication (IA-2 / AC-6).
     String prefix = context.getPreferences().get(PREFIX_PREFERENCE);
+    if (isSecuritySensitivePrefix(prefix) && !context.getUserSession().isStepUpValid()) {
+      context.setRedirect("/step-up-auth?return=" + context.getUri());
+      return context;
+    }
+
+    // Load the properties
     List<SiteProperty> siteProperties = new ArrayList<>();
     String[] prefixList = prefix.split(",");
     for (String thisPrefix : prefixList) {
@@ -186,5 +197,17 @@ public class SitePropertiesEditorWidget extends GenericWidget {
       context.setErrorMessage("Values could not be saved");
     }
     return context;
+  }
+
+  private static boolean isSecuritySensitivePrefix(String prefix) {
+    if (StringUtils.isBlank(prefix)) {
+      return false;
+    }
+    for (String p : prefix.split(",")) {
+      if (SECURITY_PREFIXES.contains(p.trim())) {
+        return true;
+      }
+    }
+    return false;
   }
 }

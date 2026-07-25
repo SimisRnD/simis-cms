@@ -470,6 +470,12 @@ public class ContentHtmlCommand {
   }
 
   private static WidgetContext approveContent(WidgetContext context, Content content) {
+    // Content approval is a high-value action (AC-L1-b.1.iv); the approver must have re-verified
+    // their identity within the last 5 minutes (IA-2 / AC-6).
+    if (!context.getUserSession().isStepUpValid()) {
+      context.setRedirect("/step-up-auth?return=" + context.getUri());
+      return context;
+    }
     String releaseReference = context.getParameter("releaseReference");
     try {
       // approve() enforces separation of duties (the approver cannot be the submitter); approval then

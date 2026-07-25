@@ -87,6 +87,11 @@ public class UserDetailsWidget extends GenericWidget {
     context.setRedirect("/admin/user-details?userId=" + userId);
     String action = context.getParameter("action");
     if ("resetPassword".equals(action)) {
+      // Resetting another user's password requires a recent step-up re-authentication (IA-2 / AC-6).
+      if (!context.getUserSession().isStepUpValid()) {
+        context.setRedirect("/step-up-auth?return=/admin/user-details%3FuserId%3D" + userId);
+        return context;
+      }
       return resetPassword(context, user);
     } else if ("suspendAccount".equals(action)) {
       return suspendAccount(context, user);

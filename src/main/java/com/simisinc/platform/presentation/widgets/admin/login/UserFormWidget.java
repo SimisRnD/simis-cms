@@ -84,6 +84,12 @@ public class UserFormWidget extends GenericWidget {
 
   public WidgetContext post(WidgetContext context) throws InvocationTargetException, IllegalAccessException {
 
+    // Changing another user's roles requires a recent step-up re-authentication (IA-2 / AC-6).
+    if (!context.getUserSession().isStepUpValid()) {
+      context.setRedirect("/step-up-auth?return=" + context.getUri());
+      return context;
+    }
+
     // Populate the fields
     User userBean = new User();
     BeanUtils.populate(userBean, context.getParameterMap());

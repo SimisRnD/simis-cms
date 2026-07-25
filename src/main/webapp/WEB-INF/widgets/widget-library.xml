@@ -23,6 +23,7 @@
   <widget name="register" class="com.simisinc.platform.presentation.widgets.register.RegisterWidget" />
   <widget name="forgotPassword" class="com.simisinc.platform.presentation.widgets.login.ForgotPasswordWidget" />
   <widget name="accountValidation" class="com.simisinc.platform.presentation.widgets.login.AccountValidationWidget" />
+  <widget name="stepUpAuth" class="com.simisinc.platform.presentation.widgets.login.StepUpAuthWidget" />
   <!-- Content Management -->
   <widget name="logo" class="com.simisinc.platform.presentation.widgets.cms.LogoWidget" />
   <widget name="copyright" class="com.simisinc.platform.presentation.widgets.cms.CopyrightWidget" />

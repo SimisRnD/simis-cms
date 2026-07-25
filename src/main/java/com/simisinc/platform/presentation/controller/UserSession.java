@@ -65,6 +65,10 @@ public class UserSession implements Serializable {
   private long lastOrderId = -1;
   private boolean showSiteConfirmation = true;
   private boolean showSiteNewsletterSignup = true;
+  private long stepUpVerifiedAt = 0L;
+
+  // Step-up re-auth window: 5 minutes from the last successful step-up verification.
+  static final long STEP_UP_WINDOW_MS = 300_000L;
 
   public UserSession() {
   }
@@ -249,5 +253,18 @@ public class UserSession implements Serializable {
 
   public void setShowSiteNewsletterSignup(boolean showSiteNewsletterSignup) {
     this.showSiteNewsletterSignup = showSiteNewsletterSignup;
+  }
+
+  public boolean isStepUpValid() {
+    return stepUpVerifiedAt > 0
+        && (System.currentTimeMillis() - stepUpVerifiedAt) < STEP_UP_WINDOW_MS;
+  }
+
+  public void recordStepUp() {
+    stepUpVerifiedAt = System.currentTimeMillis();
+  }
+
+  public void clearStepUp() {
+    stepUpVerifiedAt = 0L;
   }
 }

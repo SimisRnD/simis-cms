@@ -202,6 +202,15 @@
     </section>
   </page>
 
+  <!-- Step-up re-authentication -->
+  <page name="/step-up-auth" title="Confirm Identity" class="platform-dialog">
+    <section class="align-center">
+      <column class="small-12 medium-8 large-6 cell">
+        <widget name="stepUpAuth" class="callout box radius" />
+      </column>
+    </section>
+  </page>
+
   <!-- Content Editing -->
   <page name="/content-editor" role="admin,content-manager" title="Content Editor" class="full-page">
     <section>
