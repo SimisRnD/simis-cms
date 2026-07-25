@@ -323,11 +323,12 @@
     </c:if>
 </head>
 <body<c:if test="${pageRenderInfo.name eq '/'}"> id="body-home"</c:if><c:if test="${!empty pageRenderInfo.cssClass}"> class="<c:out value="${pageRenderInfo.cssClass}" />"</c:if>>
+  <a class="show-for-sr" href="#main">Skip to main content</a>
   <c:choose>
     <c:when test="${fn:startsWith(pageRenderInfo.name, '/admin') && pageRenderInfo.name ne '/admin/web-page' && pageRenderInfo.name ne '/admin/web-page-designer' && pageRenderInfo.name ne '/admin/web-container-designer' && pageRenderInfo.name ne '/admin/css-editor'}">
       <%-- Draw the admin menu--%>
       <div class="off-canvas-wrapper">
-        <div class="off-canvas position-left reveal-for-medium admin-menu hide-for-print" style="z-index: 1005 !important; padding-bottom: 50px" id="offCanvas" data-off-canvas>
+        <nav class="off-canvas position-left reveal-for-medium admin-menu hide-for-print" style="z-index: 1005 !important; padding-bottom: 50px" id="offCanvas" data-off-canvas aria-label="Admin">
           <div class="app-title">
             <c:out value="<%= PRODUCT_NAME %>"/><br />
             <small>v<c:out value="<%= VERSION %>"/></small>
@@ -425,13 +426,14 @@
               <%--<li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/email-templates')}"> class="is-active"</c:if>><a href="${ctx}/admin/email-templates"><i class="${font:far()} fa-file-text fa-fw"></i> <span>Email Templates</span></a></li>--%>
             </ul>
           </c:if>
-        </div>
+        </nav>
         <div class="off-canvas-content" data-off-canvas-content>
           <div class="title-bar hide-for-medium" aria-label="Admin navigation">
             <button class="menu-icon" type="button" data-toggle="offCanvas" aria-label="Open admin menu"></button>
             <div class="title-bar-title">Admin Menu</div>
           </div>
-          <div class="web-content admin-web-content">
+          <div id="main" class="web-content admin-web-content">
+            <h1 class="show-for-sr">Administration</h1>
             <jsp:include page="${PageBody}" flush="true"/>
           </div>
         </div>

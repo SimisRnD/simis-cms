@@ -14,7 +14,7 @@
   ~ limitations under the License.
   --%>
 <%-- Navigation --%>
-<div data-sticky-container>
+<nav aria-label="Primary" data-sticky-container>
   <%-- Small Title Bar--%>
   <div id="platform-small-menu" class="hide-for-medium" style="position: fixed; z-index: 1001;top: 0;width:100%;">
     <div class="title-bar" data-responsive-toggle="platform-small-toggle-menu">
@@ -590,4 +590,4 @@
       </div>
     </c:otherwise>
   </c:choose>
-</div>
+</nav>
