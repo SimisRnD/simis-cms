@@ -241,7 +241,7 @@ public class RestRequestFilter implements Filter {
     }
 
     // Validate the token
-    LOG.debug("Found token: " + token);
+    LOG.debug("Found a bearer token in the request");
     UserToken userToken = AuthenticateLoginCommand.getValidToken(token);
     if (userToken == null) {
       doExpiredToken(servletResponse);
@@ -429,7 +429,8 @@ public class RestRequestFilter implements Filter {
     if (authHeader == null) {
       return null;
     }
-    LOG.debug("checkBearerAuthorization header: " + authHeader);
+    // Do not log the Authorization header value -- it carries the bearer token / Basic credentials.
+    LOG.debug("Processing an Authorization header");
     StringTokenizer st = new StringTokenizer(authHeader);
     if (!st.hasMoreTokens()) {
       return null;
