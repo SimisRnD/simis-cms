@@ -80,10 +80,12 @@ public class PhotoListAjax extends GenericWidget {
       sb.append("\"id\":").append(fileItem.getId()).append(",");
       sb.append("\"folderId\":").append(fileItem.getFolderId()).append(",");
       sb.append("\"subFolderId\":").append(fileItem.getSubFolderId()).append(",");
+      // title and summary are rendered into the slider markup on the client (innerHTML), so HTML-encode
+      // before JSON-encoding -- JsonCommand.toJson is JSON-safe but not HTML-safe (stored DOM XSS).
       if (StringUtils.isNotEmpty(fileItem.getSummary())) {
-        sb.append("\"summary\":\"").append(JsonCommand.toJson(fileItem.getSummary())).append("\",");
+        sb.append("\"summary\":\"").append(JsonCommand.toJson(escapeHtml(fileItem.getSummary()))).append("\",");
       }
-      sb.append("\"title\":\"").append(JsonCommand.toJson(fileItem.getTitle())).append("\",");
+      sb.append("\"title\":\"").append(JsonCommand.toJson(escapeHtml(fileItem.getTitle()))).append("\",");
       sb.append("\"filename\":\"").append(JsonCommand.toJson(fileItem.getFilename())).append("\",");
       sb.append("\"url\":\"").append(JsonCommand.toJson(url)).append("\"");
       sb.append("}");
@@ -92,10 +94,25 @@ public class PhotoListAjax extends GenericWidget {
     String photoArray = "[" + sb.toString() + "]";
 
     context.setJson("{" +
-        "\"title\": \"" + JsonCommand.toJson(subFolder.getName()) + "\"," +
+        "\"title\": \"" + JsonCommand.toJson(escapeHtml(subFolder.getName())) + "\"," +
         "\"photoList\": " + photoArray +
         "}");
 
     return context;
+  }
+
+  /**
+   * Minimal HTML entity-encoding for values the client concatenates into slider markup (innerHTML).
+   * Ampersand first so the entities it introduces are not themselves double-encoded.
+   */
+  private static String escapeHtml(String value) {
+    if (value == null) {
+      return "";
+    }
+    return value
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace("\"", "&quot;");
   }
 }
