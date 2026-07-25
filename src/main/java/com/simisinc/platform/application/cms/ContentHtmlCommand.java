@@ -84,7 +84,7 @@ public class ContentHtmlCommand {
       if (content != null) {
         html = toHtml(content.getContent(), content.getContentFormat());
         // Look for draft content
-        if (context.hasRole("admin") || context.hasRole("content-manager")) {
+        if (EditorPermissionCommand.canEditContent(context.getUserSession())) {
           if (content.getDraftContent() != null) {
             html = toHtml(content.getDraftContent(), content.getDraftContentFormat());
             context.getRequest().setAttribute("isDraft", "true");
@@ -107,7 +107,7 @@ public class ContentHtmlCommand {
     html = embedInlineContent(context, html);
 
     // Display a button for admins to add content
-    boolean hasEditorPermission = (context.hasRole("admin") || context.hasRole("content-manager"));
+    boolean hasEditorPermission = EditorPermissionCommand.canEditContent(context.getUserSession());
     if (uniqueId != null && html == null) {
       if (hasEditorPermission) {
         html = "<a class=\"button tiny radius primary\" href=\"" + context.getContextPath()
@@ -158,7 +158,7 @@ public class ContentHtmlCommand {
       return html;
     }
 
-    boolean hasEditorPermission = (context.hasRole("admin") || context.hasRole("content-manager"));
+    boolean hasEditorPermission = EditorPermissionCommand.canEditContent(context.getUserSession());
     boolean hasDraftContent = false;
     int endUniqueIdx;
 
@@ -338,7 +338,7 @@ public class ContentHtmlCommand {
     }
 
     // Determine editing, links, settings
-    boolean hasEditorPermission = (context.hasRole("admin") || context.hasRole("content-manager"));
+    boolean hasEditorPermission = EditorPermissionCommand.canEditContent(context.getUserSession());
     String returnPage = context.getUri();
     String contentEditorLink = "";
     if (hasEditorPermission) {
@@ -394,7 +394,7 @@ public class ContentHtmlCommand {
 
   public static WidgetContext performWebAction(WidgetContext context) {
     // Permission is required
-    if (!(context.hasRole("admin") || context.hasRole("content-manager"))) {
+    if (!EditorPermissionCommand.canEditContent(context.getUserSession())) {
       LOG.warn("No permission found");
       return context;
     }

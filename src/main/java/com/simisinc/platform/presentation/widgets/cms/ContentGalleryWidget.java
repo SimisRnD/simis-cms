@@ -20,6 +20,7 @@ import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
 
+import com.simisinc.platform.application.cms.EditorPermissionCommand;
 import com.simisinc.platform.application.cms.ContentHtmlCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
@@ -43,7 +44,7 @@ public class ContentGalleryWidget extends GenericWidget {
     context.getRequest().setAttribute("title", context.getPreferences().get("title"));
 
     // Determine if the editor button is shown
-    if (context.hasRole("admin") || context.hasRole("content-manager")) {
+    if (EditorPermissionCommand.canEditContent(context.getUserSession())) {
       context.getRequest().setAttribute("showEditor", "true");
       context.getRequest().setAttribute("returnPage", context.getRequest().getRequestURI());
     }
