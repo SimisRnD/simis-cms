@@ -1,0 +1,28 @@
+# Path-based PR labeler. Applies the file-path rules in .github/labeler.yml (frontend, java,
+# ci, docker, ...) so every PR gets its mechanical labels without anyone remembering to add
+# them -- this closes the "nobody labelled it" gap that let labels lapse, not triage. Topical
+# labels (security, accessibility, performance, ...) are not inferable from paths and stay
+# manual.
+#
+# Uses pull_request_target, NOT pull_request, because this repo's PRs come from forks
+# (e.g. lizhsr/simis-cms), and a fork's pull_request GITHUB_TOKEN is read-only -- it cannot
+# add labels. pull_request_target runs in the BASE repo with a writable token. That is safe
+# here: actions/labeler never checks out or executes the PR's code; it only reads the
+# changed-file list from the API and .github/labeler.yml from the base branch.
+name: Labeler
+
+on:
+  pull_request_target:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  label:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/labeler@bf12e9b00b37c5c0ca2b87b79b2daf7891dbda13 # v7
+        with:
+          sync-labels: false
