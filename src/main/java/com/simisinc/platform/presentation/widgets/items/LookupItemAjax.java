@@ -89,11 +89,16 @@ public class LookupItemAjax extends GenericWidget {
         sb.append(",");
       }
       // [['Name', 'uniqueId', 'city']]...
+      // The client's autocomplete renderItem concatenates these values into markup (both an
+      // attribute and element text), so HTML-encode before JSON-encoding: JsonCommand.toJson is
+      // JSON-safe but NOT HTML-safe, which let a crafted item name break out of the attribute and
+      // inject markup (stored DOM XSS). onSelect reads the value back via getAttribute(), which
+      // decodes the entities, so the selected input value is unchanged.
       sb.append("[");
-      sb.append("\"").append(JsonCommand.toJson(item.getName())).append("\"").append(",");
-      sb.append("\"").append(item.getUniqueId()).append("\"").append(",");
+      sb.append("\"").append(JsonCommand.toJson(escapeHtml(item.getName()))).append("\"").append(",");
+      sb.append("\"").append(JsonCommand.toJson(escapeHtml(item.getUniqueId()))).append("\"").append(",");
       if (StringUtils.isNotBlank(item.getCity())) {
-        sb.append("\"").append(JsonCommand.toJson(item.getCity())).append("\"");
+        sb.append("\"").append(JsonCommand.toJson(escapeHtml(item.getCity()))).append("\"");
       } else {
         sb.append("\"\"");
       }
@@ -101,5 +106,20 @@ public class LookupItemAjax extends GenericWidget {
     }
     context.setJson("[" + sb.toString() + "]");
     return context;
+  }
+
+  /**
+   * Minimal HTML entity-encoding for values the client concatenates into markup (attribute + text).
+   * Ampersand is replaced first so the entities it introduces are not themselves double-encoded.
+   */
+  private static String escapeHtml(String value) {
+    if (value == null) {
+      return "";
+    }
+    return value
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace("\"", "&quot;");
   }
 }
