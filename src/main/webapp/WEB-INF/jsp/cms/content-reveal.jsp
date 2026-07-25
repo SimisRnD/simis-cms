@@ -42,6 +42,7 @@
     <button id="reveal-button${widgetContext.uniqueId}" class="reveal-button-text" data-toggle="modal${widgetContext.uniqueId}"><div class="button-reveal-content">${card1}</div></button>
     <c:if test="${!empty card2}">
       <div class="reveal<c:if test="${!empty size}"> <c:out value="${size}" /></c:if>" id="modal${widgetContext.uniqueId}"
+           role="dialog" aria-modal="true"<c:if test="${!empty title}"> aria-label="<c:out value="${title}"/>"</c:if>
            data-reveal
            data-reset-on-close="true"
            <c:choose>

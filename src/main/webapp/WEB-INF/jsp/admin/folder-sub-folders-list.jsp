@@ -85,11 +85,11 @@
 <%-- @todo add paging --%>
 
 <%-- form --%>
-<div class="reveal small" id="formReveal${widgetContext.uniqueId}" data-reveal data-close-on-click="false" data-animation-in="slide-in-down fast">
+<div class="reveal small" id="formReveal${widgetContext.uniqueId}" role="dialog" aria-modal="true" aria-labelledby="formReveal${widgetContext.uniqueId}Title" data-reveal data-close-on-click="false" data-animation-in="slide-in-down fast">
   <button class="close-button" data-close aria-label="Close modal" type="button">
     <span aria-hidden="true">&times;</span>
   </button>
-  <h4>New Sub-Folder</h4>
+  <h4 id="formReveal${widgetContext.uniqueId}Title">New Sub-Folder</h4>
   <form id="subFolderForm${widgetContext.uniqueId}" method="post" autocomplete="off">
     <%-- Required by controller --%>
     <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>

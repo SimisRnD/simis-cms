@@ -51,7 +51,7 @@
         <div class="grid-x grid-margin-x">
       </c:if>
       <div class="small-6 medium-4 large-3 cell">
-        <div class="template cell card" onclick="mySubmit(${template.id},${template.uniqueId})">
+        <button type="button" class="template cell card" onclick="mySubmit(${template.id},${template.uniqueId})">
           <c:choose>
             <c:when test="${!empty template.imagePath}">
               <img src="${ctx}/images/templates/${url:encodeUri(template.imagePath)}">
@@ -65,7 +65,7 @@
               <small><c:out value="${template.name}"/></small>
             </p>
           </div>
-        </div>
+        </button>
       </div>
       <c:set var="currentCategory" scope="request" value="${template.category}"/>
     </c:forEach>

@@ -25,11 +25,11 @@
 <%@include file="../page_messages.jspf" %>
 <c:if test="${testMode eq 'true'}"><span class="label warning">TEST MODE</span></c:if>
 <button class="button alert expanded" data-open="refundFormReveal">Issue a Refund</button>
-<div class="reveal small" id="refundFormReveal" data-reveal data-close-on-click="false" data-animation-in="slide-in-down fast">
+<div class="reveal small" id="refundFormReveal" role="dialog" aria-modal="true" aria-labelledby="refundFormRevealTitle" data-reveal data-close-on-click="false" data-animation-in="slide-in-down fast">
   <button class="close-button" data-close aria-label="Close modal" type="button">
     <span aria-hidden="true">&times;</span>
   </button>
-  <h4>Issue a Refund</h4>
+  <h4 id="refundFormRevealTitle">Issue a Refund</h4>
   <form id="issueRefundForm" method="post" autocomplete="off">
     <%-- Required by controller --%>
     <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
