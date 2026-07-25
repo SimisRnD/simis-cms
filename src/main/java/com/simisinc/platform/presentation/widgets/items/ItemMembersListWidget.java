@@ -90,6 +90,14 @@ public class ItemMembersListWidget extends GenericWidget {
    */
   public WidgetContext delete(WidgetContext context) {
 
+    // Removing a member is an administrative action. The UI only offers it to admins (see execute()),
+    // and the action must enforce the same -- otherwise any user who can reach this widget could
+    // remove members by POSTing the delete directly (broken access control).
+    if (!context.hasRole("admin")) {
+      LOG.warn("Blocked member removal by a non-admin user: " + context.getUserId());
+      return null;
+    }
+
     // Verify access to the item
     String itemUniqueId = context.getPreferences().getOrDefault("uniqueId", context.getCoreData().get("itemUniqueId"));
     Item item = LoadItemCommand.loadItemByUniqueIdForAuthorizedUser(itemUniqueId, context.getUserId());
@@ -104,8 +112,11 @@ public class ItemMembersListWidget extends GenericWidget {
     // Check for member to be removed
     long memberId = context.getParameterAsLong("memberId", -1);
     Member record = MemberRepository.findById(memberId);
-    if (record == null) {
-      LOG.warn("Member record does not exist or no access: " + memberId);
+    if (record == null || record.getItemId() != item.getId()) {
+      // The member must belong to the item being managed. Without this, a valid member id from a
+      // different item could be removed through this endpoint (IDOR), and the audit record below
+      // would misattribute the removal to this item.
+      LOG.warn("Member record does not exist, no access, or is not part of this item: " + memberId);
       return null;
     }
 
