@@ -314,6 +314,8 @@ public class WebRequestFilter implements Filter {
     // Make sure the web visitor has session information
     LOG.debug("Checking session...");
     UserSession userSession = (UserSession) session.getAttribute(SessionConstants.USER);
+    boolean doNotTrack = DoNotTrackCommand.isDoNotTrack(httpServletRequest.getHeader("DNT"),
+        httpServletRequest.getHeader("Sec-GPC"));
     boolean doSaveSession = false;
     if (userSession == null) {
       synchronized (httpServletRequest.getSession()) {
@@ -325,9 +327,7 @@ public class WebRequestFilter implements Filter {
               ipAddress, referer, userAgent);
           httpServletRequest.getSession().setAttribute(SessionConstants.USER, userSession);
           // Skip tracking for monitoring apps, and for requests that ask not to be tracked (DNT / GPC)
-          if (httpServletRequest.getHeader("X-Monitor") == null
-              && !DoNotTrackCommand.isDoNotTrack(httpServletRequest.getHeader("DNT"),
-                  httpServletRequest.getHeader("Sec-GPC"))) {
+          if (httpServletRequest.getHeader("X-Monitor") == null && !doNotTrack) {
             doSaveSession = true;
           }
         }
@@ -370,22 +370,22 @@ public class WebRequestFilter implements Filter {
         }
       }
 
-      // Make sure the visitor has a token
-      if (visitor == null) {
+      // Make sure the visitor has a token (skipped for DNT / GPC requests — no row, no cookie)
+      if (visitor == null && !doNotTrack) {
         // Create and store a new token
         LOG.debug("Creating a visitor token...");
         visitor = (cookielessAnalytics && StringUtils.isNotBlank(visitorToken))
             ? SaveVisitorCommand.saveVisitor(userSession, visitorToken)
             : SaveVisitorCommand.saveVisitor(userSession);
-      } else {
+      } else if (visitor != null) {
         // Make sure the sessionId is set
         if (doSaveSession) {
           SessionRepository.updateVisitorId(userSession, visitor);
         }
       }
 
-      // Persist the visitor identity in a cookie -- skipped entirely when running cookieless
-      if (!cookielessAnalytics) {
+      // Persist the visitor identity in a cookie -- skipped when running cookieless or when DNT/GPC is signaled
+      if (!cookielessAnalytics && !doNotTrack) {
         int oneYearSecondsInt = 365 * 24 * 60 * 60;
         Cookie cookie = new Cookie(CookieConstants.VISITOR_TOKEN, visitor.getToken());
         if (request.isSecure()) {

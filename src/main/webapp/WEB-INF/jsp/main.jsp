@@ -697,7 +697,8 @@
         }
       });
     </script>
-  <c:if test="${!fn:startsWith(pageRenderInfo.name, '/admin')}">
+  <c:set var="doNotTrack" value="${header['DNT'] eq '1' or header['Sec-GPC'] eq '1'}" />
+  <c:if test="${!doNotTrack && !fn:startsWith(pageRenderInfo.name, '/admin')}">
     <c:if test="${!empty analyticsPropertyMap['analytics.service'] && 'google' eq analyticsPropertyMap['analytics.service'] && !empty analyticsPropertyMap['analytics.google.key']}">
       <script async src="https://www.googletagmanager.com/gtag/js?id=${js:escape(analyticsPropertyMap['analytics.google.key'])}"></script>
       <script>
