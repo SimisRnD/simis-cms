@@ -20,6 +20,8 @@ import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
 
+import com.simisinc.platform.application.LoadUserCommand;
+import com.simisinc.platform.application.login.StepUpAuthCommand;
 import com.simisinc.platform.application.login.UserMfaCommand;
 import com.simisinc.platform.application.login.UserMfaRecoveryCodeCommand;
 import com.simisinc.platform.domain.model.User;
@@ -109,6 +111,21 @@ public class MyMfaSettingsWidget extends GenericWidget {
     }
 
     if ("disable".equals(action)) {
+      String stepUpCredential = context.getParameter("stepUpCredential");
+      if (!StepUpAuthCommand.isValid(context.getUserSession())) {
+        if (StringUtils.isBlank(stepUpCredential)) {
+          context.addSharedRequestValue("stepUpRequired", "true");
+          showView(context, user);
+          return context;
+        }
+        User actingUser = LoadUserCommand.loadUser(context.getUserId());
+        if (!StepUpAuthCommand.verify(context.getUserSession(), actingUser, stepUpCredential)) {
+          context.setErrorMessage("Re-authentication failed. Enter your password or authenticator code.");
+          context.addSharedRequestValue("stepUpRequired", "true");
+          showView(context, user);
+          return context;
+        }
+      }
       UserMfaCommand.disable(user);
       UserMfaRecoveryCodeCommand.clear(user);
       context.setSuccessMessage("Two-factor authentication has been turned off.");

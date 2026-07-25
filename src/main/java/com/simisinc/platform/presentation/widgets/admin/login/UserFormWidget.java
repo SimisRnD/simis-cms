@@ -22,8 +22,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import org.apache.commons.lang3.StringUtils;
+
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.LoadUserCommand;
+import com.simisinc.platform.application.login.StepUpAuthCommand;
 import com.simisinc.platform.application.register.SaveUserCommand;
 import com.simisinc.platform.domain.model.Group;
 import com.simisinc.platform.domain.model.Role;
@@ -83,6 +86,23 @@ public class UserFormWidget extends GenericWidget {
 
 
   public WidgetContext post(WidgetContext context) throws InvocationTargetException, IllegalAccessException {
+
+    // Require a recent step-up before saving role or group changes
+    String stepUpCredential = context.getParameter("stepUpCredential");
+    if (!StepUpAuthCommand.isValid(context.getUserSession())) {
+      if (StringUtils.isBlank(stepUpCredential)) {
+        context.addSharedRequestValue("stepUpRequired", "true");
+        context.setJsp(JSP);
+        return context;
+      }
+      User actingUser = LoadUserCommand.loadUser(context.getUserId());
+      if (!StepUpAuthCommand.verify(context.getUserSession(), actingUser, stepUpCredential)) {
+        context.setErrorMessage("Re-authentication failed. Enter your password or authenticator code.");
+        context.addSharedRequestValue("stepUpRequired", "true");
+        context.setJsp(JSP);
+        return context;
+      }
+    }
 
     // Populate the fields
     User userBean = new User();
