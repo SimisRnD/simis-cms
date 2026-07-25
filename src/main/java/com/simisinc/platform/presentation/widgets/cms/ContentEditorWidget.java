@@ -19,6 +19,8 @@ package com.simisinc.platform.presentation.widgets.cms;
 import org.apache.commons.lang3.StringUtils;
 
 import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.cms.ContentReviewCommand;
 import com.simisinc.platform.application.cms.DateCommand;
 import com.simisinc.platform.application.cms.LoadContentCommand;
 import com.simisinc.platform.application.cms.LoadWebPageCommand;
@@ -134,8 +136,23 @@ public class ContentEditorWidget extends GenericWidget {
       publish = false;
       LOG.debug("Saving as draft...");
     }
+    // With governed publishing on there is no direct-publish path: the save becomes a draft awaiting
+    // review. SaveContentCommand enforces this regardless; mirroring the decision here keeps the audit
+    // event and the message the author sees truthful about what actually happened.
+    boolean publishWasGated = false;
+    if (publish && !ContentReviewCommand
+        .mayPublishDirectly(LoadSitePropertyCommand.loadByNameAsBoolean("content.review.required"))) {
+      publish = false;
+      publishWasGated = true;
+    }
     try {
       Content content = SaveContentCommand.saveSafeContent(uniqueId, contentHtml, context.getUserId(), publish);
+      if (publishWasGated && content != null) {
+        // A publish was requested and refused: record the gated attempt and tell the author what to do.
+        AuditEventCommand.record(context, AuditEventCommand.CONTENT, "content.publish", AuditEventCommand.FAILURE,
+            "content", String.valueOf(content.getId()), uniqueId, "gated: saved as a draft for review");
+        context.setSuccessMessage("Saved as a draft. This site requires review approval before publishing.");
+      }
       if (content == null) {
         LOG.warn("Content record was not saved!");
         if (publish) {

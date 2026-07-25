@@ -126,6 +126,14 @@ class ContentReviewCommandTest {
   }
 
   @Test
+  void directPublishIsUnavailableWhenReviewIsRequired() {
+    // The bypass that would otherwise defeat the whole control: an editor's Save / Publish Immediately
+    // must not write straight to the live page when governed publishing is on.
+    assertTrue(ContentReviewCommand.mayPublishDirectly(false), "ungoverned sites publish directly as before");
+    assertFalse(ContentReviewCommand.mayPublishDirectly(true), "governed sites have no direct-publish path");
+  }
+
+  @Test
   void offerIsNoneWithoutADraft() {
     Content published = new Content();
     published.setContent("<p>live</p>");
