@@ -217,6 +217,117 @@ body.page-edit-mode [data-editor-widget].sc-editing {
   outline-color: #0056b3;
 }
 
+/* ── Drag-to-reorder layout ── */
+
+/* Drag handles on section and widget overlays */
+.sc-editor-drag-handle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 22px;
+  height: 22px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  font-size: 14px;
+  line-height: 1;
+  z-index: 101;
+  border-radius: 0 0 0 3px;
+  color: #fff;
+  font-family: sans-serif;
+  user-select: none;
+}
+
+.sc-editor-drag-handle:active {
+  cursor: grabbing;
+}
+
+.sc-drag-handle-section {
+  background: #0056b3;
+}
+
+.sc-drag-handle-widget {
+  background: #dc3545;
+}
+
+body.page-edit-mode [data-editor-section]:hover > .sc-editor-drag-handle,
+body.page-edit-mode [data-editor-widget]:hover > .sc-editor-drag-handle {
+  display: flex;
+}
+
+/* Element being dragged */
+body.page-edit-mode [data-editor-section].sc-dragging,
+body.page-edit-mode [data-editor-widget].sc-dragging {
+  opacity: 0.4;
+  outline-style: solid !important;
+}
+
+/* Drop insertion indicator */
+.sc-drop-indicator {
+  height: 3px;
+  background: #0056b3;
+  border-radius: 2px;
+  pointer-events: none;
+  margin: 0;
+  transition: opacity 0.1s;
+}
+
+/* Keyboard move buttons (WCAG 2.5.7) */
+.sc-move-btns {
+  position: absolute;
+  top: 0;
+  right: 26px;
+  display: none;
+  gap: 2px;
+  z-index: 101;
+}
+
+body.page-edit-mode [data-editor-section]:hover > .sc-move-btns,
+body.page-edit-mode [data-editor-widget]:hover > .sc-move-btns {
+  display: flex;
+}
+
+.sc-move-btns button {
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(255,255,255,0.3);
+  color: #fff;
+  font-size: 11px;
+  padding: 2px 5px;
+  cursor: pointer;
+  border-radius: 2px;
+  line-height: 1.2;
+  font-family: sans-serif;
+}
+
+.sc-move-btns button:hover {
+  background: #0056b3;
+  border-color: #0056b3;
+}
+
+/* Save Layout button in toolbar */
+#sc-save-layout-btn {
+  margin-bottom: 0;
+  font-size: 0.75rem;
+}
+
+/* Unsaved layout change indicator */
+#sc-layout-dirty-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #f0ad4e;
+  margin-left: 4px;
+  vertical-align: middle;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+#sc-layout-dirty-dot.sc-visible {
+  opacity: 1;
+}
+
 /* Link prompt overlay */
 #sc-link-prompt {
   position: absolute;

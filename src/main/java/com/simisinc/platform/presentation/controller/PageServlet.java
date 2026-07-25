@@ -43,6 +43,7 @@ import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.io.PrintWriter;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.time.ZoneId;
@@ -247,6 +248,40 @@ public class PageServlet extends HttpServlet {
           && EditorPermissionCommand.canEditContent(userSession);
       if (pageEditMode) {
         request.setAttribute("pageEditMode", "true");
+      }
+
+      // saveDraftLayout: reorder sections/columns/widgets, persist to draftPageXml
+      if ("saveDraftLayout".equals(request.getParameter("action"))
+          && request.getParameter("widget") == null
+          && pageEditMode
+          && EditorPermissionCommand.canBuildLayout(userSession)) {
+        String formToken = request.getParameter("token");
+        if (!userSession.getFormToken().equals(formToken)) {
+          LOG.warn("saveDraftLayout CSRF token mismatch from " + request.getRemoteAddr());
+          response.setContentType("application/json");
+          response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+          PrintWriter out = response.getWriter();
+          out.print("{\"success\":false,\"error\":\"Session expired\"}");
+          return;
+        }
+        if (webPage == null || webPage.getId() == -1) {
+          response.setContentType("application/json");
+          response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+          response.getWriter().print("{\"success\":false,\"error\":\"Page not found\"}");
+          return;
+        }
+        String layoutJson = request.getParameter("layout");
+        response.setContentType("application/json");
+        try {
+          SaveDraftLayoutCommand.saveDraftLayout(webPage, layoutJson);
+          response.getWriter().print("{\"success\":true}");
+        } catch (Exception e) {
+          LOG.error("saveDraftLayout failed for " + pagePath, e);
+          response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+          String msg = e.getMessage() != null ? e.getMessage().replace("\"", "'") : "Save failed";
+          response.getWriter().print("{\"success\":false,\"error\":\"" + msg + "\"}");
+        }
+        return;
       }
 
       // Determine the Page XML Layout for this request
