@@ -61,6 +61,7 @@ import com.simisinc.platform.application.ecommerce.LoadCartCommand;
 import com.simisinc.platform.application.ecommerce.PricingRuleCommand;
 import com.simisinc.platform.application.login.AuthenticateLoginCommand;
 import com.simisinc.platform.application.login.LogoutCommand;
+import com.simisinc.platform.application.login.MfaEnforcementCommand;
 import com.simisinc.platform.application.oauth.OAuthLogoutCommand;
 import com.simisinc.platform.application.oauth.OAuthRequestCommand;
 import com.simisinc.platform.domain.model.User;
@@ -454,6 +455,14 @@ public class WebRequestFilter implements Filter {
           // Audit the cookie-token (remember-me) auto-login for the SIEM; source marker "token"
           SaveAuditEventCommand.recordAuthentication("authentication.login.success", "success",
               user.getId(), user.getEmail(), ipAddress, userSession.getSessionId(), "token");
+          // Enforce org-level MFA before the user accesses any page (IA-2(1))
+          if (MfaEnforcementCommand.requiresEnrollment(userSession, user)) {
+            String enrollUrl = MfaEnforcementCommand.getEnrollmentUrl();
+            if (!MfaEnforcementCommand.isExemptUrl(resource, enrollUrl)) {
+              do302(servletResponse, enrollUrl);
+              return;
+            }
+          }
           // Extend the token expiration date
           int twoWeeksSecondsInt = 14 * 24 * 60 * 60;
           AuthenticateLoginCommand.extendTokenExpiration(cookieUserToken, twoWeeksSecondsInt);
@@ -496,6 +505,15 @@ public class WebRequestFilter implements Filter {
       LOG.debug("Updating user roles and groups");
       userSession.setRoleList(user.getRoleList());
       userSession.setGroupList(user.getGroupList());
+
+      // Enforce org-level MFA on every request for users whose role requires it (IA-2(1))
+      if (MfaEnforcementCommand.requiresEnrollment(userSession, user)) {
+        String enrollUrl = MfaEnforcementCommand.getEnrollmentUrl();
+        if (!MfaEnforcementCommand.isExemptUrl(resource, enrollUrl)) {
+          do302(servletResponse, enrollUrl);
+          return;
+        }
+      }
     }
 
     // The home page can show an overlay (a couple of different kinds)
