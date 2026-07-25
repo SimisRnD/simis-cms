@@ -398,6 +398,17 @@
     </section>
   </page>
 
+  <page name="/admin/security-settings" role="admin" title="Security Settings">
+    <section>
+      <column class="small-12 large-8 cell">
+        <widget name="sitePropertiesEditor">
+          <title>MFA Enforcement</title>
+          <prefix>mfa</prefix>
+        </widget>
+      </column>
+    </section>
+  </page>
+
   <page name="/admin/bi-properties" role="admin" title="BI Settings">
     <section>
       <column class="small-12 large-10 cell">

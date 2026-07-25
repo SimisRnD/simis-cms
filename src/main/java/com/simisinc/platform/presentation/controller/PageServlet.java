@@ -300,6 +300,26 @@ public class PageServlet extends HttpServlet {
         return;
       }
 
+      // MFA enforcement (IA-2(1)): redirect users in a required role who have not enrolled in MFA.
+      // Exemptions: the enrollment page itself, the logout page, and static asset paths (to avoid loops).
+      if (userSession.isLoggedIn() && !"/my-security".equals(pagePath)
+          && !"/logout".equals(pagePath) && !pagePath.startsWith("/assets/")) {
+        String mfaRequiredRoles = LoadSitePropertyCommand.loadByName("mfa.required.roles");
+        if (StringUtils.isNotBlank(mfaRequiredRoles)) {
+          for (String role : mfaRequiredRoles.split(",")) {
+            if (userSession.hasRole(role.trim())) {
+              if (!userSession.isMfaEnabled()) {
+                LOG.info("MFA enforcement: redirecting user " + userSession.getUserId()
+                    + " (role=" + role.trim() + ") to /my-security to complete MFA enrollment");
+                response.sendRedirect(request.getContextPath() + "/my-security");
+                return;
+              }
+              break; // user has MFA; no need to check remaining required roles
+            }
+          }
+        }
+      }
+
       // Determine the core data to be used by local and remote widgets...
       Map<String, String> coreData = new HashMap<>();
       coreData.put("userId", String.valueOf(userSession.getUserId()));

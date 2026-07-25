@@ -492,10 +492,11 @@ public class WebRequestFilter implements Filter {
         return;
       }
 
-      // Update user roles and groups
+      // Update user roles, groups, and MFA state
       LOG.debug("Updating user roles and groups");
       userSession.setRoleList(user.getRoleList());
       userSession.setGroupList(user.getGroupList());
+      userSession.setMfaEnabled(user.getMfaEnabled());
     }
 
     // The home page can show an overlay (a couple of different kinds)

@@ -65,6 +65,7 @@ public class UserSession implements Serializable {
   private long lastOrderId = -1;
   private boolean showSiteConfirmation = true;
   private boolean showSiteNewsletterSignup = true;
+  private boolean mfaEnabled = false;
 
   public UserSession() {
   }
@@ -79,7 +80,16 @@ public class UserSession implements Serializable {
     userId = user.getId();
     roleList = user.getRoleList();
     groupList = user.getGroupList();
+    mfaEnabled = user.getMfaEnabled();
     loginTime = System.currentTimeMillis();
+  }
+
+  public boolean isMfaEnabled() {
+    return mfaEnabled;
+  }
+
+  public void setMfaEnabled(boolean mfaEnabled) {
+    this.mfaEnabled = mfaEnabled;
   }
 
   public void setRoleList(List<Role> roleList) {

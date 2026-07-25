@@ -202,6 +202,17 @@
     </section>
   </page>
 
+  <!-- User Security Settings: MFA enrollment -->
+  <page name="/my-security" title="Security Settings" class="platform-dialog">
+    <section class="align-center">
+      <column class="small-12 medium-8 large-6 cell">
+        <widget name="myMfaSettings" class="callout box radius">
+          <title>Two-Factor Authentication</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
   <!-- Content Editing -->
   <page name="/content-editor" role="admin,content-manager" title="Content Editor" class="full-page">
     <section>
