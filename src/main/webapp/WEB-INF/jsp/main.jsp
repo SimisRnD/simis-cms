@@ -427,6 +427,10 @@
           </c:if>
         </div>
         <div class="off-canvas-content" data-off-canvas-content>
+          <div class="title-bar hide-for-medium">
+            <button class="menu-icon" type="button" data-toggle="offCanvas" aria-label="Open admin menu" aria-controls="offCanvas" aria-expanded="false"></button>
+            <div class="title-bar-title">Admin</div>
+          </div>
           <div class="web-content admin-web-content">
             <jsp:include page="${PageBody}" flush="true"/>
           </div>
@@ -458,7 +462,7 @@
                   </c:otherwise>
                 </c:choose>
               </p>
-              <p style="white-space: nowrap">
+              <p>
                 <c:if test="${!empty sitePropertyMap['site.confirmation.line1']}">
                   <c:out value="${sitePropertyMap['site.confirmation.line1']}" />
                 </c:if>

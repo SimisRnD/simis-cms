@@ -43,7 +43,7 @@
     autoProcessQueue: false,
     parallelUploads: 2,
     maxFilesize: 55,
-    dictDefaultMessage: 'Drag and Drop files from your desktop here<br/><br/>(Click for file chooser)',
+    dictDefaultMessage: 'Drag and drop files here, or click to browse',
     init: function() {
       var submitButton = document.querySelector("#submit-all");
       myDropzone = this; // closure
