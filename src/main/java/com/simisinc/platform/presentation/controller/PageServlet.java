@@ -251,12 +251,9 @@ public class PageServlet extends HttpServlet {
       if (pageEditMode) {
         request.setAttribute("pageEditMode", "true");
       }
-      if (pageLayoutMode) {
-        request.setAttribute("pageLayoutMode", "true");
-        if (webPage != null && StringUtils.isNotBlank(webPage.getDraftPageXml())) {
-          request.setAttribute("hasDraft", "true");
-        }
-      }
+      boolean hasDraft = pageLayoutMode && webPage != null && StringUtils.isNotBlank(webPage.getDraftPageXml());
+      request.setAttribute("pageLayoutMode", pageLayoutMode ? "true" : "false");
+      request.setAttribute("hasDraft", hasDraft ? "true" : "false");
 
       // saveDraftLayout: reorder sections/columns/widgets, persist to draftPageXml
       if ("saveDraftLayout".equals(request.getParameter("action"))
