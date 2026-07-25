@@ -1,0 +1,52 @@
+# Keyword-based security labeler. Complements the path-based labeler (.github/labeler.yml),
+# which cannot infer `security` from file paths. This reads the PR title and branch name and
+# adds the `security` label when they match a security-domain pattern -- appsec (XSS/EL/SQLi/
+# CSRF/SSRF/traversal), crypto & secrets, authn/access (MFA/OAuth/permissions/session), and
+# hardening (STIG/non-root/capabilities). It is the same signal used to backfill the label
+# across the PR history.
+#
+# It only ADDS the label, never removes it, so a hand-applied or hand-removed `security` stays
+# as the human left it. This is a heuristic: a maintainer may still add it where the title is
+# silent about the threat, or remove a rare false positive.
+#
+# pull_request_target (not pull_request) for the same reason as labeler.yml: fork PRs get a
+# read-only token on pull_request and cannot label. This job never checks out or executes the
+# PR's code -- it only regex-tests the title and branch strings -- so pull_request_target is
+# safe here.
+name: Security labeler
+
+on:
+  pull_request_target:
+    types: [opened, edited, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  security-label:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/github-script@3a2844b7e9c422d3c10d287c895573f7108da1b3 # v9
+        with:
+          script: |
+            const pr = context.payload.pull_request;
+            // Match against title + branch only (not the body) to keep precision high.
+            const hay = `${pr.title} ${pr.head.ref}`.toLowerCase();
+            const rx = /\bxss\b|cross-site|\bsqli\b|sql\s*inject|path\s*inject|command\s*inject|injection\s*point|\bcsrf\b|\bssrf\b|\bxxe\b|traversal|open\s*redirect|clickjack|\bcsp\b|content-security|\bhsts\b|unescaped|sanitiz|\bescap(e|ed|es|ing)\b|encrypt|decrypt|\bat rest\b|\bkek\b|\bsecret(s)?\b|redact|argon2|password|credential|\bmfa\b|\btotp\b|\b2fa\b|\boauth\b|\bsso\b|\blogin\b|\bsession\b|samesite|\bcookie(s)?\b|permission|privileg|authoriz|authentic|lockout|brute|rate.?limit|access control|deny-by-default|\bstig\b|\bharden|capabilit|non-root|read-only root|trusted.?proxy|security\s*listener|\bcve\b/;
+            if (!rx.test(hay)) {
+              core.info('No security keyword matched; leaving labels unchanged.');
+              return;
+            }
+            const current = (pr.labels || []).map(l => l.name);
+            if (current.includes('security')) {
+              core.info('security label already present.');
+              return;
+            }
+            await github.rest.issues.addLabels({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: pr.number,
+              labels: ['security'],
+            });
+            core.notice(`Added 'security' (matched PR #${pr.number} title/branch).`);
