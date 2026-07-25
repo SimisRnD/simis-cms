@@ -91,7 +91,7 @@ public class WebContainerCommand implements Serializable {
     for (Section section : sections) {
 
       // Check the user's role and groups
-      if (!WebComponentCommand.allowsUser(section, userSession)) {
+      if (!WebComponentCommand.allowsUser(section, userSession, WebComponentCommand.AccessPolicy.PUBLIC)) {
         LOG.debug("SECTION NOT ALLOWED: " +
             (!section.getRoles().isEmpty() ? "[roles=" + section.getRoles().toString() + "]" + " " : "") +
             (!section.getGroups().isEmpty() ? "[groups=" + section.getGroups().toString() + "]" + " " : "") +
@@ -106,7 +106,7 @@ public class WebContainerCommand implements Serializable {
       for (Column column : section.getColumns()) {
 
         // Check the user's role and groups
-        if (!WebComponentCommand.allowsUser(column, userSession)) {
+        if (!WebComponentCommand.allowsUser(column, userSession, WebComponentCommand.AccessPolicy.PUBLIC)) {
           LOG.debug("COLUMN NOT ALLOWED: " +
               (!column.getRoles().isEmpty() ? "[roles=" + column.getRoles().toString() + "]" + " " : "") +
               (!column.getGroups().isEmpty() ? "[groups=" + column.getGroups().toString() + "]" + " " : "") +
@@ -131,7 +131,7 @@ public class WebContainerCommand implements Serializable {
           }
 
           // Check the user's role and groups
-          if (!WebComponentCommand.allowsUser(widget, userSession)) {
+          if (!WebComponentCommand.allowsUser(widget, userSession, WebComponentCommand.AccessPolicy.PUBLIC)) {
             LOG.debug("WIDGET NOT ALLOWED: " + widget.getWidgetName() + " " +
                 (!widget.getRoles().isEmpty() ? "[roles=" + widget.getRoles().toString() + "]" + " " : "") +
                 (!widget.getGroups().isEmpty() ? "[groups=" + widget.getGroups().toString() + "]" + " " : "") +

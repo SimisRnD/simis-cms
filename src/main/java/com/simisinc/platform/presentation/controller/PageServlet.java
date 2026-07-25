@@ -290,7 +290,7 @@ public class PageServlet extends HttpServlet {
       }
 
       // Verify the user has access to the page
-      if (!WebComponentCommand.allowsUser(pageRef, userSession)) {
+      if (!WebComponentCommand.allowsUser(pageRef, userSession, WebComponentCommand.AccessPolicy.PUBLIC)) {
         LOG.warn("PAGE NOT ALLOWED: " + pagePath + " " +
             (!pageRef.getRoles().isEmpty() ? "[roles=" + pageRef.getRoles().toString() + "]" + " " : "") +
             (!pageRef.getGroups().isEmpty() ? "[groups=" + pageRef.getGroups().toString() + "]" + " " : "") +

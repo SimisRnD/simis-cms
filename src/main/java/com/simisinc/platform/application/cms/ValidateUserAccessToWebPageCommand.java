@@ -59,19 +59,19 @@ public class ValidateUserAccessToWebPageCommand {
       return false;
     }
     // Best to place the group list at the page level, to cover the whole page
-    if (!WebComponentCommand.allowsUser(pageRef, userSession)) {
+    if (!WebComponentCommand.allowsUser(pageRef, userSession, WebComponentCommand.AccessPolicy.PUBLIC)) {
       return false;
     }
     for (Section section : pageRef.getSections()) {
-      if (!WebComponentCommand.allowsUser(section, userSession)) {
+      if (!WebComponentCommand.allowsUser(section, userSession, WebComponentCommand.AccessPolicy.PUBLIC)) {
         return false;
       }
       for (Column column : section.getColumns()) {
-        if (!WebComponentCommand.allowsUser(column, userSession)) {
+        if (!WebComponentCommand.allowsUser(column, userSession, WebComponentCommand.AccessPolicy.PUBLIC)) {
           return false;
         }
         for (Widget widget : column.getWidgets()) {
-          if (!WebComponentCommand.allowsUser(widget, userSession)) {
+          if (!WebComponentCommand.allowsUser(widget, userSession, WebComponentCommand.AccessPolicy.PUBLIC)) {
             return false;
           }
           // @note the widget content response is not tested

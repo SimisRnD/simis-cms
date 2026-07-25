@@ -326,7 +326,7 @@ public class MenuWidget extends GenericWidget {
           .collect(toList());
     }
 
-    return WebComponentCommand.allowsUser(roles, groups, context.getUserSession());
+    return WebComponentCommand.allowsUser(roles, groups, context.getUserSession(), WebComponentCommand.AccessPolicy.RESTRICTED);
   }
 
   private static boolean checkRules(String ruleValue) {

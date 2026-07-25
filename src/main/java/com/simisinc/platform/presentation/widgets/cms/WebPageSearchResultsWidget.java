@@ -124,19 +124,19 @@ public class WebPageSearchResultsWidget extends GenericWidget {
         if (pageRef == null) {
           continue;
         }
-        if (!WebComponentCommand.allowsUser(pageRef, userSession)) {
+        if (!WebComponentCommand.allowsUser(pageRef, userSession, WebComponentCommand.AccessPolicy.PUBLIC)) {
           continue;
         }
         for (Section section : pageRef.getSections()) {
-          if (!WebComponentCommand.allowsUser(section, userSession)) {
+          if (!WebComponentCommand.allowsUser(section, userSession, WebComponentCommand.AccessPolicy.PUBLIC)) {
             continue;
           }
           for (Column column : section.getColumns()) {
-            if (!WebComponentCommand.allowsUser(column, userSession)) {
+            if (!WebComponentCommand.allowsUser(column, userSession, WebComponentCommand.AccessPolicy.PUBLIC)) {
               continue;
             }
             for (Widget widget : column.getWidgets()) {
-              if (!WebComponentCommand.allowsUser(widget, userSession)) {
+              if (!WebComponentCommand.allowsUser(widget, userSession, WebComponentCommand.AccessPolicy.PUBLIC)) {
                 continue;
               }
               // Check the widget

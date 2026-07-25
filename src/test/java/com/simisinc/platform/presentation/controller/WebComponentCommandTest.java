@@ -56,12 +56,12 @@ class WebComponentCommandTest {
     // Component information (no additional roles/groups required)
     List<String> roles = new ArrayList<>();
     List<String> groups = new ArrayList<>();
-    Assertions.assertTrue(WebComponentCommand.allowsUser(roles, groups, userSession));
+    Assertions.assertTrue(WebComponentCommand.allowsUser(roles, groups, userSession, WebComponentCommand.AccessPolicy.PUBLIC));
 
     // Any of these: admin AND any of these: testers
     roles.add("admin");
     groups.add("testers");
-    Assertions.assertTrue(WebComponentCommand.allowsUser(roles, groups, userSession));
+    Assertions.assertTrue(WebComponentCommand.allowsUser(roles, groups, userSession, WebComponentCommand.AccessPolicy.PUBLIC));
   }
 
   @Test
@@ -88,12 +88,12 @@ class WebComponentCommandTest {
     // Component information (no additional roles/groups required)
     List<String> roles = new ArrayList<>();
     List<String> groups = new ArrayList<>();
-    Assertions.assertTrue(WebComponentCommand.allowsUser(roles, groups, userSession));
+    Assertions.assertTrue(WebComponentCommand.allowsUser(roles, groups, userSession, WebComponentCommand.AccessPolicy.PUBLIC));
 
     // Any of these: admin, users
     roles.add("admin");
     roles.add("users");
-    Assertions.assertTrue(WebComponentCommand.allowsUser(roles, groups, userSession));
+    Assertions.assertTrue(WebComponentCommand.allowsUser(roles, groups, userSession, WebComponentCommand.AccessPolicy.PUBLIC));
   }
 
   @Test
@@ -120,15 +120,15 @@ class WebComponentCommandTest {
     // Component information (no additional roles/groups required)
     List<String> roles = new ArrayList<>();
     List<String> groups = new ArrayList<>();
-    Assertions.assertTrue(WebComponentCommand.allowsUser(roles, groups, userSession));
+    Assertions.assertTrue(WebComponentCommand.allowsUser(roles, groups, userSession, WebComponentCommand.AccessPolicy.PUBLIC));
 
     // Any of these: testers
     groups.add("testers");
-    Assertions.assertTrue(WebComponentCommand.allowsUser(roles, groups, userSession));
+    Assertions.assertTrue(WebComponentCommand.allowsUser(roles, groups, userSession, WebComponentCommand.AccessPolicy.PUBLIC));
 
     // Any of these: testers, researchers
     groups.add("researchers");
-    Assertions.assertTrue(WebComponentCommand.allowsUser(roles, groups, userSession));
+    Assertions.assertTrue(WebComponentCommand.allowsUser(roles, groups, userSession, WebComponentCommand.AccessPolicy.PUBLIC));
   }
 
   @Test
@@ -159,12 +159,12 @@ class WebComponentCommandTest {
     // Any of these: admin AND any of these: testers
     roles.add("admin");
     groups.add("testers");
-    Assertions.assertFalse(WebComponentCommand.allowsUser(roles, groups, userSession));
+    Assertions.assertFalse(WebComponentCommand.allowsUser(roles, groups, userSession, WebComponentCommand.AccessPolicy.PUBLIC));
 
     // Any of these: admin, users AND any of these: researchers
     roles.add("users");
     groups.add("researchers");
-    Assertions.assertFalse(WebComponentCommand.allowsUser(roles, groups, userSession));
+    Assertions.assertFalse(WebComponentCommand.allowsUser(roles, groups, userSession, WebComponentCommand.AccessPolicy.PUBLIC));
   }
 
   @Test
@@ -195,15 +195,15 @@ class WebComponentCommandTest {
     // Any of these: admin AND any of these: testers
     roles.add("admin");
     groups.add("testers");
-    Assertions.assertFalse(WebComponentCommand.allowsUser(roles, groups, userSession));
+    Assertions.assertFalse(WebComponentCommand.allowsUser(roles, groups, userSession, WebComponentCommand.AccessPolicy.PUBLIC));
 
     // Any of these: admin AND any of these: testers, researchers
     groups.add("researchers");
-    Assertions.assertFalse(WebComponentCommand.allowsUser(roles, groups, userSession));
+    Assertions.assertFalse(WebComponentCommand.allowsUser(roles, groups, userSession, WebComponentCommand.AccessPolicy.PUBLIC));
 
     // Any of these: admin, users AND any of these: testers, researchers
     roles.add("users");
-    Assertions.assertTrue(WebComponentCommand.allowsUser(roles, groups, userSession));
+    Assertions.assertTrue(WebComponentCommand.allowsUser(roles, groups, userSession, WebComponentCommand.AccessPolicy.PUBLIC));
   }
 
   @Test
@@ -225,12 +225,12 @@ class WebComponentCommandTest {
     // Component access information (no additional roles/groups required)
     List<String> roles = new ArrayList<>();
     List<String> groups = new ArrayList<>();
-    Assertions.assertTrue(WebComponentCommand.allowsUser(roles, groups, userSession));
+    Assertions.assertTrue(WebComponentCommand.allowsUser(roles, groups, userSession, WebComponentCommand.AccessPolicy.PUBLIC));
 
     // Any of these: admin AND any of these: testers
     roles.add("admin");
     groups.add("testers");
-    Assertions.assertFalse(WebComponentCommand.allowsUser(roles, groups, userSession));
+    Assertions.assertFalse(WebComponentCommand.allowsUser(roles, groups, userSession, WebComponentCommand.AccessPolicy.PUBLIC));
   }
 
   @Test
@@ -255,11 +255,11 @@ class WebComponentCommandTest {
     List<String> groups = new ArrayList<>();
 
     // Any of these: admin
-    Assertions.assertFalse(WebComponentCommand.allowsUser(roles, groups, userSession));
+    Assertions.assertFalse(WebComponentCommand.allowsUser(roles, groups, userSession, WebComponentCommand.AccessPolicy.PUBLIC));
 
     // Any of these: admin, users
     roles.add("users");
-    Assertions.assertTrue(WebComponentCommand.allowsUser(roles, groups, userSession));
+    Assertions.assertTrue(WebComponentCommand.allowsUser(roles, groups, userSession, WebComponentCommand.AccessPolicy.PUBLIC));
   }
 
   @Test
@@ -284,11 +284,11 @@ class WebComponentCommandTest {
     groups.add("testers");
 
     // Any of these: testers
-    Assertions.assertFalse(WebComponentCommand.allowsUser(roles, groups, userSession));
+    Assertions.assertFalse(WebComponentCommand.allowsUser(roles, groups, userSession, WebComponentCommand.AccessPolicy.PUBLIC));
 
     // Any of these: testers, researchers
     groups.add("researchers");
-    Assertions.assertFalse(WebComponentCommand.allowsUser(roles, groups, userSession));
+    Assertions.assertFalse(WebComponentCommand.allowsUser(roles, groups, userSession, WebComponentCommand.AccessPolicy.PUBLIC));
   }
 
   @Test
@@ -299,13 +299,13 @@ class WebComponentCommandTest {
     // Component information (no additional roles/groups required)
     List<String> roles = new ArrayList<>();
     List<String> groups = new ArrayList<>();
-    Assertions.assertTrue(WebComponentCommand.allowsUser(roles, groups, userSession));
+    Assertions.assertTrue(WebComponentCommand.allowsUser(roles, groups, userSession, WebComponentCommand.AccessPolicy.PUBLIC));
 
     // Component access information (roles and groups required)
     roles.add("guest");
 
     // Any of these: admin AND any of these: testers
-    Assertions.assertTrue(WebComponentCommand.allowsUser(roles, groups, userSession));
+    Assertions.assertTrue(WebComponentCommand.allowsUser(roles, groups, userSession, WebComponentCommand.AccessPolicy.PUBLIC));
   }
 
 
@@ -317,14 +317,14 @@ class WebComponentCommandTest {
     // Component information (no additional roles/groups required)
     List<String> roles = new ArrayList<>();
     List<String> groups = new ArrayList<>();
-    Assertions.assertTrue(WebComponentCommand.allowsUser(roles, groups, userSession));
+    Assertions.assertTrue(WebComponentCommand.allowsUser(roles, groups, userSession, WebComponentCommand.AccessPolicy.PUBLIC));
 
     // Component access information (roles and groups required)
     roles.add("admin");
     groups.add("testers");
 
     // Any of these: admin AND any of these: testers
-    Assertions.assertFalse(WebComponentCommand.allowsUser(roles, groups, userSession));
+    Assertions.assertFalse(WebComponentCommand.allowsUser(roles, groups, userSession, WebComponentCommand.AccessPolicy.PUBLIC));
   }
 
   @Test
@@ -338,11 +338,11 @@ class WebComponentCommandTest {
     List<String> groups = new ArrayList<>();
 
     // Any of these: admin
-    Assertions.assertFalse(WebComponentCommand.allowsUser(roles, groups, userSession));
+    Assertions.assertFalse(WebComponentCommand.allowsUser(roles, groups, userSession, WebComponentCommand.AccessPolicy.PUBLIC));
 
     // Any of these: admin, users
     roles.add("users");
-    Assertions.assertFalse(WebComponentCommand.allowsUser(roles, groups, userSession));
+    Assertions.assertFalse(WebComponentCommand.allowsUser(roles, groups, userSession, WebComponentCommand.AccessPolicy.PUBLIC));
   }
 
   @Test
@@ -356,10 +356,48 @@ class WebComponentCommandTest {
 
     // Any of these: testers
     groups.add("testers");
-    Assertions.assertFalse(WebComponentCommand.allowsUser(roles, groups, userSession));
+    Assertions.assertFalse(WebComponentCommand.allowsUser(roles, groups, userSession, WebComponentCommand.AccessPolicy.PUBLIC));
 
     // Any of these: testers, researchers
     groups.add("researchers");
-    Assertions.assertFalse(WebComponentCommand.allowsUser(roles, groups, userSession));
+    Assertions.assertFalse(WebComponentCommand.allowsUser(roles, groups, userSession, WebComponentCommand.AccessPolicy.PUBLIC));
+  }
+
+  @Test
+  void restrictedPolicyDeniesEmptyRolesAndGroupsTest() {
+    List<String> roles = new ArrayList<>();
+    List<String> groups = new ArrayList<>();
+
+    // Guest (not logged in) — no roles/groups declared — RESTRICTED denies
+    UserSession guestSession = new UserSession();
+    Assertions.assertFalse(WebComponentCommand.allowsUser(roles, groups, guestSession, WebComponentCommand.AccessPolicy.RESTRICTED));
+
+    // Logged-in user with no roles/groups declared — RESTRICTED still denies
+    User user = new User();
+    user.setId(1L);
+    user.setRoleList(new ArrayList<>());
+    user.setGroupList(new ArrayList<>());
+    UserSession userSession = new UserSession();
+    userSession.login(user);
+    Assertions.assertFalse(WebComponentCommand.allowsUser(roles, groups, userSession, WebComponentCommand.AccessPolicy.RESTRICTED));
+  }
+
+  @Test
+  void publicPolicyAllowsEmptyRolesAndGroupsTest() {
+    List<String> roles = new ArrayList<>();
+    List<String> groups = new ArrayList<>();
+
+    // Guest — PUBLIC allows when no restrictions declared
+    UserSession guestSession = new UserSession();
+    Assertions.assertTrue(WebComponentCommand.allowsUser(roles, groups, guestSession, WebComponentCommand.AccessPolicy.PUBLIC));
+
+    // Logged-in user — PUBLIC allows when no restrictions declared
+    User user = new User();
+    user.setId(1L);
+    user.setRoleList(new ArrayList<>());
+    user.setGroupList(new ArrayList<>());
+    UserSession userSession = new UserSession();
+    userSession.login(user);
+    Assertions.assertTrue(WebComponentCommand.allowsUser(roles, groups, userSession, WebComponentCommand.AccessPolicy.PUBLIC));
   }
 }

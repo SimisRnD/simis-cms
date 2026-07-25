@@ -23,7 +23,20 @@ import java.io.Serializable;
 import java.util.List;
 
 /**
- * Verifies a user's access to the specified web component
+ * Verifies a user's access to the specified web component.
+ *
+ * <p>Access decisions are made against an explicit {@link AccessPolicy}:
+ * <ul>
+ *   <li>{@link AccessPolicy#PUBLIC} — a resource with no declared roles or groups is
+ *       reachable by any visitor (the correct posture for public CMS content).</li>
+ *   <li>{@link AccessPolicy#RESTRICTED} — a resource with no declared roles or groups
+ *       is denied; an explicit role or group match is required (the correct posture for
+ *       any newly-declared protected resource).</li>
+ * </ul>
+ *
+ * <p>The {@link AccessPolicy} parameter is required on every call so that the access
+ * posture is visible at the call site. This aligns with the deny-by-default posture of
+ * {@code EditorPermissionCommand} and closes SSP AC-3 / AC-6 (issue #299).
  *
  * @author matt rajkowski
  * @created 4/10/2022 8:51 AM
@@ -33,25 +46,35 @@ public class WebComponentCommand implements Serializable {
   static final long serialVersionUID = 536435325324169646L;
   private static Log LOG = LogFactory.getLog(WebComponentCommand.class);
 
-  public static boolean allowsUser(Page page, UserSession userSession) {
-    return allowsUser(page.getRoles(), page.getGroups(), userSession);
+  /**
+   * Declares the access posture of a resource when no roles or groups are configured.
+   */
+  public enum AccessPolicy {
+    /** No role/group restriction — any visitor is permitted (public CMS content). */
+    PUBLIC,
+    /** Explicit role or group required — no declaration means no access. */
+    RESTRICTED
   }
 
-  public static boolean allowsUser(Section section, UserSession userSession) {
-    return allowsUser(section.getRoles(), section.getGroups(), userSession);
+  public static boolean allowsUser(Page page, UserSession userSession, AccessPolicy policy) {
+    return allowsUser(page.getRoles(), page.getGroups(), userSession, policy);
   }
 
-  public static boolean allowsUser(Column column, UserSession userSession) {
-    return allowsUser(column.getRoles(), column.getGroups(), userSession);
+  public static boolean allowsUser(Section section, UserSession userSession, AccessPolicy policy) {
+    return allowsUser(section.getRoles(), section.getGroups(), userSession, policy);
   }
 
-  public static boolean allowsUser(Widget widget, UserSession userSession) {
-    return allowsUser(widget.getRoles(), widget.getGroups(), userSession);
+  public static boolean allowsUser(Column column, UserSession userSession, AccessPolicy policy) {
+    return allowsUser(column.getRoles(), column.getGroups(), userSession, policy);
   }
 
-  public static boolean allowsUser(List<String> roles, List<String> groups, UserSession userSession) {
+  public static boolean allowsUser(Widget widget, UserSession userSession, AccessPolicy policy) {
+    return allowsUser(widget.getRoles(), widget.getGroups(), userSession, policy);
+  }
+
+  public static boolean allowsUser(List<String> roles, List<String> groups, UserSession userSession, AccessPolicy policy) {
     if (roles.isEmpty() && groups.isEmpty()) {
-      return true;
+      return policy == AccessPolicy.PUBLIC;
     }
 
     // Roles can be for a user that is either logged in/out
