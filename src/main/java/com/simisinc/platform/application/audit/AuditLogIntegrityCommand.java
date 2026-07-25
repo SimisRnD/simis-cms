@@ -119,8 +119,20 @@ public class AuditLogIntegrityCommand {
    * verification, or that the chain is intact. Reads in bounded pages so a large trail does not have to be
    * held in memory. Records written before Phase 4 (no hash) are treated as the pre-chain prefix and skipped
    * until the first hashed record, which becomes the chain's anchor.
+   *
+   * <p>Also performs the high-water floor check: if the minimum hashed audit_id in the table is higher than
+   * the stored floor, records were deleted from the oldest prefix outside the retention job (AU-9).
    */
   public static AuditIntegrityResult verify() {
+    long storedFloor = AuditLogRepository.loadHighwaterFloorId();
+    long currentMin = AuditLogRepository.selectMinHashedAuditId();
+
+    AuditIntegrityResult floorBroken = checkHighwaterFloor(storedFloor, currentMin);
+    if (floorBroken != null) {
+      LOG.warn("Audit high-water floor FAILED: " + floorBroken.getReason());
+      return floorBroken;
+    }
+
     ChainVerifier verifier = new ChainVerifier();
     long afterAuditId = 0L;
     while (true) {
@@ -141,7 +153,27 @@ public class AuditLogIntegrityCommand {
         break;
       }
     }
-    return verifier.result();
+    AuditIntegrityResult result = verifier.result();
+    if (result.isIntact() && currentMin > 0) {
+      // Advance the floor to the current minimum, establishing it for the first time if storedFloor==0.
+      AuditLogRepository.saveHighwaterFloorId(currentMin);
+    }
+    return result;
+  }
+
+  /**
+   * Pure floor-check logic: returns a broken result if {@code currentMin > storedFloor} (oldest-prefix
+   * deletion), or null if the floor is not violated. Package-private for unit testing.
+   *
+   * <p>The check is skipped (returns null) when storedFloor==0 (not yet initialized — the first
+   * verify walk will establish the floor) or when currentMin==0 (no hashed records present).
+   */
+  static AuditIntegrityResult checkHighwaterFloor(long storedFloor, long currentMin) {
+    if (storedFloor > 0 && currentMin > 0 && currentMin > storedFloor) {
+      return AuditIntegrityResult.broken(-1L, 0L,
+          "oldest-prefix deletion detected: floor_id=" + storedFloor + " but MIN(audit_id)=" + currentMin);
+    }
+    return null;
   }
 
   private static final int PAGE_SIZE = 1000;

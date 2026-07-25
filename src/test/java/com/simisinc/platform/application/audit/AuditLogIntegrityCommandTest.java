@@ -19,6 +19,8 @@ package com.simisinc.platform.application.audit;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.Timestamp;
@@ -162,6 +164,45 @@ class AuditLogIntegrityCommandTest {
     AuditIntegrityResult result = AuditLogIntegrityCommand.verifyChain(all);
     assertTrue(result.isIntact());
     assertEquals(2, result.getCheckedCount());
+  }
+
+  // --- High-water floor tests ---
+
+  @Test
+  void floorCheckPassesWhenStoredFloorIsZeroUninitialized() {
+    // storedFloor==0 means not yet set; skip the check regardless of currentMin.
+    assertNull(AuditLogIntegrityCommand.checkHighwaterFloor(0L, 5L));
+    assertNull(AuditLogIntegrityCommand.checkHighwaterFloor(0L, 1L));
+    assertNull(AuditLogIntegrityCommand.checkHighwaterFloor(0L, 0L));
+  }
+
+  @Test
+  void floorCheckPassesWhenCurrentMinIsZeroNoHashedRecords() {
+    // currentMin==0 means no hashed records in the table; skip the check.
+    assertNull(AuditLogIntegrityCommand.checkHighwaterFloor(5L, 0L));
+  }
+
+  @Test
+  void floorCheckPassesWhenCurrentMinEqualsFloor() {
+    assertNull(AuditLogIntegrityCommand.checkHighwaterFloor(5L, 5L));
+  }
+
+  @Test
+  void floorCheckPassesWhenCurrentMinBelowFloor() {
+    // currentMin < storedFloor is an impossible normal state (means new records arrived below the floor)
+    // but it must never falsely trigger -- the check is for deletion (currentMin > floor), not insertion.
+    assertNull(AuditLogIntegrityCommand.checkHighwaterFloor(10L, 5L));
+  }
+
+  @Test
+  void floorCheckDetectsOldestPrefixDeletion() {
+    AuditLogIntegrityCommand.AuditIntegrityResult result =
+        AuditLogIntegrityCommand.checkHighwaterFloor(5L, 10L);
+    assertNotNull(result);
+    assertFalse(result.isIntact());
+    assertTrue(result.getReason().contains("oldest-prefix deletion"));
+    assertTrue(result.getReason().contains("floor_id=5"));
+    assertTrue(result.getReason().contains("MIN(audit_id)=10"));
   }
 
   @Test

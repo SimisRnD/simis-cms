@@ -52,6 +52,14 @@ public class AuditLogRetentionJob {
     int deleted = AuditLogRepository.deleteOlderThan(days);
     if (deleted > 0) {
       LOG.info("Audit retention: deleted " + deleted + " record(s) older than " + days + " days");
+      // Advance the high-water floor to the new minimum so the next verify() does not flag the
+      // reduced minimum as a deletion (AU-9). Done after the delete so the floor only moves to
+      // an ID that actually exists; a concurrent verify() between the delete and this update is
+      // benign — the false-positive window is tiny and the next retention run will clear it.
+      long newMin = AuditLogRepository.selectMinHashedAuditId();
+      if (newMin > 0) {
+        AuditLogRepository.saveHighwaterFloorId(newMin);
+      }
       SaveAuditEventCommand.recordAdminEvent("configuration", "audit.retention.purge", "success",
           -1L, "system", null, null, "audit_log", null, null,
           "deleted=" + deleted + ";olderThanDays=" + days);

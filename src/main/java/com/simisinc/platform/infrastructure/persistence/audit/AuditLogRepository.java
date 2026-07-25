@@ -228,6 +228,79 @@ public class AuditLogRepository {
     }
   }
 
+  /**
+   * Returns the minimum audit_id among records that carry a hash, or 0 if there are none.
+   * Used by the high-water floor check in {@link AuditLogIntegrityCommand#verify()}.
+   */
+  public static long selectMinHashedAuditId() {
+    try (Connection connection = DB.getConnection();
+         PreparedStatement pst = connection.prepareStatement(
+             "SELECT MIN(audit_id) FROM " + TABLE_NAME + " WHERE record_hash IS NOT NULL");
+         ResultSet rs = pst.executeQuery()) {
+      if (rs.next()) {
+        long val = rs.getLong(1);
+        return rs.wasNull() ? 0L : val;
+      }
+      return 0L;
+    } catch (SQLException e) {
+      LOG.error("selectMinHashedAuditId: " + e.getMessage(), e);
+      return 0L;
+    }
+  }
+
+  /**
+   * Loads the stored audit high-water floor ID from site_properties. Returns 0 if not yet set or
+   * unreadable, which causes the floor check in verify() to be skipped (safe default: no false positive).
+   */
+  public static long loadHighwaterFloorId() {
+    try (Connection connection = DB.getConnection();
+         PreparedStatement pst = connection.prepareStatement(
+             "SELECT property_value FROM site_properties WHERE property_name = 'audit.highwater.floor_id'");
+         ResultSet rs = pst.executeQuery()) {
+      if (rs.next()) {
+        String val = rs.getString(1);
+        if (val != null && !val.isBlank()) {
+          try {
+            return Long.parseLong(val.trim());
+          } catch (NumberFormatException e) {
+            return 0L;
+          }
+        }
+      }
+      return 0L;
+    } catch (SQLException e) {
+      LOG.error("loadHighwaterFloorId: " + e.getMessage(), e);
+      return 0L;
+    }
+  }
+
+  /**
+   * Monotonically advances the stored audit high-water floor ID. A value <= 0 is a no-op. The floor
+   * never decreases — if the stored value is already >= floorId the upsert is skipped in Java before
+   * hitting the database, so concurrent callers both writing the same value are harmless.
+   * <p>Called by {@link AuditLogIntegrityCommand#verify()} after a verified-intact chain walk and by
+   * {@link com.simisinc.platform.infrastructure.scheduler.audit.AuditLogRetentionJob} after a purge.
+   */
+  public static void saveHighwaterFloorId(long floorId) {
+    if (floorId <= 0) {
+      return;
+    }
+    long current = loadHighwaterFloorId();
+    if (floorId <= current) {
+      return;
+    }
+    try (Connection connection = DB.getConnection();
+         PreparedStatement pst = connection.prepareStatement(
+             "INSERT INTO site_properties (property_order, property_label, property_name, property_value) "
+             + "VALUES (0, 'Audit log high-water floor ID', 'audit.highwater.floor_id', ?) "
+             + "ON CONFLICT (property_name) DO UPDATE SET property_value = EXCLUDED.property_value")) {
+      pst.setString(1, Long.toString(floorId));
+      pst.executeUpdate();
+    } catch (SQLException e) {
+      LOG.error("saveHighwaterFloorId: " + e.getMessage(), e);
+    }
+  }
+
   public static List<AuditLog> findAll(DataConstraints constraints) {
     if (constraints == null) {
       constraints = new DataConstraints();
