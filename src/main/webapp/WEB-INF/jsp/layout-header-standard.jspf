@@ -18,17 +18,17 @@
   <%-- Small Title Bar--%>
   <div id="platform-small-menu" class="hide-for-medium" style="position: fixed; z-index: 1001;top: 0;width:100%;">
     <div class="title-bar" data-responsive-toggle="platform-small-toggle-menu">
-      <button class="menu-icon" type="button" data-toggle="platform-small-toggle-menu"></button>
+      <button class="menu-icon" type="button" data-toggle="platform-small-toggle-menu" aria-label="Open menu" aria-controls="platform-small-toggle-menu" aria-expanded="false"></button>
       <div class="logo">
         <c:choose>
           <c:when test="${themePropertyMap['theme.logo.color'] eq 'text-only' or themePropertyMap['theme.logo.color'] eq 'none'}">
             <a href="${ctx}/">Home</a>
           </c:when>
           <c:when test="${!empty sitePropertyMap['site.logo.white']}">
-            <a href="${ctx}/"><img src="<c:out value="${sitePropertyMap['site.logo.white']}"/>" /></a>
+            <a href="${ctx}/"><img src="<c:out value="${sitePropertyMap['site.logo.white']}"/>" alt="<c:out value="${sitePropertyMap['site.name']}"/>" /></a>
           </c:when>
           <c:otherwise>
-            <a href="${ctx}/"><img src="${systemPropertyMap['system.www.context']}/images/logo-white-color.png" /></a>
+            <a href="${ctx}/"><img src="${systemPropertyMap['system.www.context']}/images/logo-white-color.png" alt="<c:out value="${sitePropertyMap['site.name']}"/>" /></a>
           </c:otherwise>
         </c:choose>
       </div>
@@ -399,20 +399,20 @@
               <c:when test="${themePropertyMap['theme.logo.color'] eq 'all-white'}">
                 <c:choose>
                   <c:when test="${!empty sitePropertyMap['site.logo.white']}">
-                    <li class="logo"><a href="${ctx}/"><img src="<c:out value="${sitePropertyMap['site.logo.white']}"/>" /></a></li>
+                    <li class="logo"><a href="${ctx}/"><img src="<c:out value="${sitePropertyMap['site.logo.white']}"/>" alt="<c:out value="${sitePropertyMap['site.name']}"/>" /></a></li>
                   </c:when>
                   <c:otherwise>
-                    <li class="logo"><a href="${ctx}/"><img src="${systemPropertyMap['system.www.context']}/images/logo-white.png" /></a></li>
+                    <li class="logo"><a href="${ctx}/"><img src="${systemPropertyMap['system.www.context']}/images/logo-white.png" alt="<c:out value="${sitePropertyMap['site.name']}"/>" /></a></li>
                   </c:otherwise>
                 </c:choose>
               </c:when>
               <c:when test="${themePropertyMap['theme.logo.color'] eq 'color-and-white'}">
                 <c:choose>
                   <c:when test="${!empty sitePropertyMap['site.logo.mixed']}">
-                    <li class="logo"><a href="${ctx}/"><img src="<c:out value="${sitePropertyMap['site.logo.mixed']}"/>" /></a></li>
+                    <li class="logo"><a href="${ctx}/"><img src="<c:out value="${sitePropertyMap['site.logo.mixed']}"/>" alt="<c:out value="${sitePropertyMap['site.name']}"/>" /></a></li>
                   </c:when>
                   <c:otherwise>
-                    <li class="logo"><a href="${ctx}/"><img src="${systemPropertyMap['system.www.context']}/images/logo-white-color.png" /></a></li>
+                    <li class="logo"><a href="${ctx}/"><img src="${systemPropertyMap['system.www.context']}/images/logo-white-color.png" alt="<c:out value="${sitePropertyMap['site.name']}"/>" /></a></li>
                   </c:otherwise>
                 </c:choose>
               </c:when>
@@ -422,10 +422,10 @@
               <c:otherwise>
                 <c:choose>
                   <c:when test="${!empty sitePropertyMap['site.logo']}">
-                    <li class="logo"><a href="${ctx}/"><img src="<c:out value="${sitePropertyMap['site.logo']}"/>" /></a></li>
+                    <li class="logo"><a href="${ctx}/"><img src="<c:out value="${sitePropertyMap['site.logo']}"/>" alt="<c:out value="${sitePropertyMap['site.name']}"/>" /></a></li>
                   </c:when>
                   <c:otherwise>
-                    <li class="logo"><a href="${ctx}/"><img src="${systemPropertyMap['system.www.context']}/images/logo-header.png" /></a></li>
+                    <li class="logo"><a href="${ctx}/"><img src="${systemPropertyMap['system.www.context']}/images/logo-header.png" alt="<c:out value="${sitePropertyMap['site.name']}"/>" /></a></li>
                   </c:otherwise>
                 </c:choose>
               </c:otherwise>

@@ -96,7 +96,7 @@
 </style>
 <%-- Small Menu --%>
 <div class="item-menu title-bar" data-responsive-toggle="responsive-item-menu" data-hide-for="medium">
-  <button class="menu-icon" type="button" data-toggle="responsive-item-menu"></button>
+  <button class="menu-icon" type="button" data-toggle="responsive-item-menu" aria-label="Open menu" aria-controls="responsive-item-menu" aria-expanded="false"></button>
   <div class="title-bar-title">
     <c:out value="${item.name}"/>
     <c:forEach items="${itemTabList}" var="tab">
