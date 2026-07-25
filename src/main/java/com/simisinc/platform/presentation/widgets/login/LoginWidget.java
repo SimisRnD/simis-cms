@@ -125,9 +125,9 @@ public class LoginWidget extends GenericWidget {
       }
       User user = UserRepository.findByUserId(mfaPendingUserId);
       String code = context.getParameter("code");
-      // Accept either a current TOTP code or a single-use recovery code
+      // Accept either a current TOTP code (replay-protected) or a single-use recovery code
       boolean verified = user != null && user.getMfaEnabled()
-          && (TotpCommand.verifyCode(user.getMfaSecret(), code)
+          && (TotpCommand.verifyCodeAndMarkUsed(user.getMfaSecret(), code, user.getId())
               || UserMfaRecoveryCodeCommand.consume(user, code));
       if (!verified) {
         SaveAuditEventCommand.recordAuthentication("authentication.mfa.verify.failure", "failure",
