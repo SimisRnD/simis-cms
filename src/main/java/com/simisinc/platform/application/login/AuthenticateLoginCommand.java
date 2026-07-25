@@ -21,6 +21,8 @@ import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.LoadUserCommand;
 import com.simisinc.platform.application.RateLimitCommand;
 import com.simisinc.platform.application.UserPasswordCommand;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.audit.SaveAuditEventCommand;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.login.UserToken;
 import com.simisinc.platform.infrastructure.cache.CacheManager;
@@ -31,6 +33,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import javax.security.auth.login.LoginException;
+import java.sql.Timestamp;
 import java.util.Date;
 
 /**
@@ -83,6 +86,14 @@ public class AuthenticateLoginCommand {
       throw new LoginException("The account has been suspended. Please contact an administrator.");
     }
 
+    // Account lockout (#295): a locked account cannot log in even with the correct password, until the
+    // lock expires or an administrator clears it. Checked before the credentials cache so a lock always wins.
+    if (user.isLocked()) {
+      LOG.debug("Account locked until " + user.getLockedUntil());
+      throw new LoginException("This account is temporarily locked due to failed login attempts. "
+          + "Please try again later or contact an administrator.");
+    }
+
     // Check the credentials cache
     Cache cache = CacheManager.getCache(CacheManager.USER_CREDENTIALS_CACHE);
     String comparison = (String) cache.getIfPresent(user.getId());
@@ -95,6 +106,10 @@ public class AuthenticateLoginCommand {
     if (verified) {
       // Hash matches password
       LOG.debug("User validated");
+      // Clear any prior failed-attempt / lockout state on a successful login (#295)
+      if (user.getFailedAttemptCount() > 0 || user.getLockedUntil() != null) {
+        UserRepository.resetLockout(user.getId());
+      }
       // Upgrade-on-login: now that the plaintext is confirmed, migrate an older hash to argon2id
       if (!user.getPassword().startsWith("$argon2id$")) {
         upgradeLegacyPasswordHash(user, password);
@@ -102,6 +117,17 @@ public class AuthenticateLoginCommand {
       cache.put(user.getId(), username + ":" + password);
       return user;
     }
+
+    // Record the failed attempt and lock the account once the threshold is crossed (#295, AC-7)
+    int newCount = user.getFailedAttemptCount() + 1;
+    Timestamp lockedUntil = null;
+    if (newCount >= lockoutThreshold()) {
+      lockedUntil = new Timestamp(System.currentTimeMillis() + lockoutDurationMinutes() * 60_000L);
+      SaveAuditEventCommand.recordAuthentication("account.lockout", "failure", user.getId(), username,
+          ipAddress, null, "Account locked after " + newCount + " consecutive failed attempts until " + lockedUntil);
+      LOG.warn("Account locked (user id " + user.getId() + ") after " + newCount + " failed login attempts");
+    }
+    UserRepository.updateLockoutState(user.getId(), newCount, lockedUntil);
 
     // Record rate limiting
     // Limit the number of attempts per username (system(s) attempting the same username)
@@ -130,6 +156,28 @@ public class AuthenticateLoginCommand {
       LOG.info("Upgraded password hash to argon2id for user id: " + user.getId());
     } catch (Exception e) {
       LOG.error("Unable to upgrade password hash to argon2id for user id: " + user.getId(), e);
+    }
+  }
+
+  /** @return the consecutive-failed-attempt threshold before lockout (site property, default 5). */
+  private static int lockoutThreshold() {
+    return parsePositiveInt(LoadSitePropertyCommand.loadByName("account.lockout.threshold"), 5);
+  }
+
+  /** @return how long a locked account stays locked, in minutes (site property, default 15). */
+  private static int lockoutDurationMinutes() {
+    return parsePositiveInt(LoadSitePropertyCommand.loadByName("account.lockout.durationMinutes"), 15);
+  }
+
+  private static int parsePositiveInt(String value, int defaultValue) {
+    if (StringUtils.isBlank(value)) {
+      return defaultValue;
+    }
+    try {
+      int parsed = Integer.parseInt(value.trim());
+      return parsed > 0 ? parsed : defaultValue;
+    } catch (NumberFormatException e) {
+      return defaultValue;
     }
   }
 

@@ -51,6 +51,12 @@
     }
     window.location.href = '${widgetContext.uri}?action=deleteAccount&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&userId=${user.id}';
   }
+  function unlockAccount() {
+    if (!confirm("Are you sure you want to UNLOCK this user account? This clears the failed login attempts and lockout.")) {
+      return;
+    }
+    window.location.href = '${widgetContext.uri}?action=unlockAccount&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&userId=${user.id}';
+  }
 </script>
 <div style="margin-top: 6px;background-color:<c:out value="${themePropertyMap['theme.body.backgroundColor']}" />;">
   <div class="button-container float-right">
@@ -66,6 +72,9 @@
           <c:if test="${!user.enabled}">
             <li><a href="javascript:restoreAccount()">Restore Account</a></li>
           </c:if>
+          <c:if test="${user.locked}">
+            <li><a href="javascript:unlockAccount()">Unlock Account</a></li>
+          </c:if>
           <li><a href="javascript:deleteAccount()">Delete Account</a></li>
         </ul>
       </li>
@@ -75,6 +84,9 @@
     <c:out value="${user.fullName}" />
     <c:if test="${!user.enabled}">
       <span class="label alert">Suspended</span>
+    </c:if>
+    <c:if test="${user.locked}">
+      <span class="label warning">Locked</span>
     </c:if>
   </h3>
   <c:if test="${!empty user.title || !empty user.city || !empty user.state}">
@@ -261,6 +273,16 @@
         </c:choose>
       </div>
     </div>
+    <c:if test="${user.locked}">
+      <div class="grid-x grid-padding-x">
+        <div class="small-4 text-right cell">
+          <small>Locked Until</small>
+        </div>
+        <div class="small-8 align-self-middle cell">
+          <fmt:formatDate pattern="yyyy-MM-dd hh:mm a" value="${user.lockedUntil}" />
+        </div>
+      </div>
+    </c:if>
     <div class="grid-x grid-padding-x">
       <div class="small-4 text-right cell">
         <small>Created</small>

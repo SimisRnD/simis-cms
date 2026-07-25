@@ -316,7 +316,9 @@ CREATE TABLE users (
   video_url VARCHAR(255),
   field_values JSONB,
   mfa_secret VARCHAR(64),
-  mfa_enabled BOOLEAN DEFAULT false
+  mfa_enabled BOOLEAN DEFAULT false,
+  failed_attempt_count INTEGER DEFAULT 0,
+  locked_until TIMESTAMP(3)
 );
 CREATE UNIQUE INDEX users_lc_email ON users (LOWER(email));
 CREATE UNIQUE INDEX users_lc_username ON users (LOWER(username));

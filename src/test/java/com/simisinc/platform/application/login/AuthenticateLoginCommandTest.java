@@ -16,11 +16,17 @@
 
 package com.simisinc.platform.application.login;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -40,6 +46,8 @@ import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.LoadUserCommand;
 import com.simisinc.platform.application.RateLimitCommand;
 import com.simisinc.platform.application.UserPasswordCommand;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.audit.SaveAuditEventCommand;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.infrastructure.cache.CacheManager;
 import com.simisinc.platform.infrastructure.persistence.UserRepository;
@@ -226,11 +234,14 @@ class AuthenticateLoginCommandTest {
     when(credentialsCache.getIfPresent(any())).thenReturn(null); // cache miss -> real verify runs
     try (MockedStatic<RateLimitCommand> rateLimit = mockStatic(RateLimitCommand.class);
         MockedStatic<LoadUserCommand> loadUser = mockStatic(LoadUserCommand.class);
-        MockedStatic<CacheManager> cacheManager = mockStatic(CacheManager.class)) {
+        MockedStatic<CacheManager> cacheManager = mockStatic(CacheManager.class);
+        MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
       rateLimit.when(() -> RateLimitCommand.isUsernameAllowedRightNow(anyString(), anyBoolean())).thenReturn(true);
       rateLimit.when(() -> RateLimitCommand.isIpAllowedRightNow(anyString(), anyBoolean())).thenReturn(true);
       loadUser.when(() -> LoadUserCommand.loadUser("user@example.com")).thenReturn(user);
       cacheManager.when(() -> CacheManager.getCache(CacheManager.USER_CREDENTIALS_CACHE)).thenReturn(credentialsCache);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName(anyString())).thenReturn("");
 
       LoginException ex = assertThrows(LoginException.class,
           () -> AuthenticateLoginCommand.getAuthenticatedUser("user@example.com", "the WRONG password", IP_ADDRESS));
@@ -263,6 +274,113 @@ class AuthenticateLoginCommandTest {
 
       User result = AuthenticateLoginCommand.getAuthenticatedUser(username, oldPassword, IP_ADDRESS);
       assertNotNull(result, "a cache hit authenticates without re-verifying the stored hash");
+    }
+  }
+
+  // --- Durable account lockout (#295, AC-7) ---
+
+  private static User lockoutUser(int failedAttemptCount, Timestamp lockedUntil) {
+    User user = enabledUser(42L, UserPasswordCommand.hash("correct"));
+    user.setFailedAttemptCount(failedAttemptCount);
+    user.setLockedUntil(lockedUntil);
+    return user;
+  }
+
+  private static void stubForLogin(MockedStatic<RateLimitCommand> rl, MockedStatic<CacheManager> cm,
+      MockedStatic<LoadSitePropertyCommand> sp) {
+    rl.when(() -> RateLimitCommand.isUsernameAllowedRightNow(anyString(), anyBoolean())).thenReturn(true);
+    rl.when(() -> RateLimitCommand.isIpAllowedRightNow(anyString(), anyBoolean())).thenReturn(true);
+    sp.when(() -> LoadSitePropertyCommand.loadByName(anyString())).thenReturn(""); // -> default threshold 5 / 15m
+    Cache cache = mock(Cache.class);
+    when(cache.getIfPresent(any())).thenReturn(null); // cache miss -> real verify path
+    cm.when(() -> CacheManager.getCache(anyString())).thenReturn(cache);
+  }
+
+  @Test
+  void locksTheAccountOnceTheThresholdIsCrossed() {
+    try (MockedStatic<RateLimitCommand> rl = mockStatic(RateLimitCommand.class);
+        MockedStatic<LoadUserCommand> lu = mockStatic(LoadUserCommand.class);
+        MockedStatic<CacheManager> cm = mockStatic(CacheManager.class);
+        MockedStatic<UserRepository> ur = mockStatic(UserRepository.class);
+        MockedStatic<SaveAuditEventCommand> audit = mockStatic(SaveAuditEventCommand.class);
+        MockedStatic<LoadSitePropertyCommand> sp = mockStatic(LoadSitePropertyCommand.class)) {
+      stubForLogin(rl, cm, sp);
+      lu.when(() -> LoadUserCommand.loadUser("alice")).thenReturn(lockoutUser(4, null)); // one below default 5
+      assertThrows(LoginException.class,
+          () -> AuthenticateLoginCommand.getAuthenticatedUser("alice", "wrong", IP_ADDRESS));
+      // Count advances to 5 and a lock (non-null expiry) is set; the lockout is audited.
+      ur.verify(() -> UserRepository.updateLockoutState(eq(42L), eq(5), argThat(t -> t != null)));
+      audit.verify(() -> SaveAuditEventCommand.recordAuthentication(eq("account.lockout"), any(), eq(42L),
+          any(), any(), any(), any()));
+    }
+  }
+
+  @Test
+  void incrementsButDoesNotLockBelowTheThreshold() {
+    try (MockedStatic<RateLimitCommand> rl = mockStatic(RateLimitCommand.class);
+        MockedStatic<LoadUserCommand> lu = mockStatic(LoadUserCommand.class);
+        MockedStatic<CacheManager> cm = mockStatic(CacheManager.class);
+        MockedStatic<UserRepository> ur = mockStatic(UserRepository.class);
+        MockedStatic<SaveAuditEventCommand> audit = mockStatic(SaveAuditEventCommand.class);
+        MockedStatic<LoadSitePropertyCommand> sp = mockStatic(LoadSitePropertyCommand.class)) {
+      stubForLogin(rl, cm, sp);
+      lu.when(() -> LoadUserCommand.loadUser("alice")).thenReturn(lockoutUser(1, null));
+      assertThrows(LoginException.class,
+          () -> AuthenticateLoginCommand.getAuthenticatedUser("alice", "wrong", IP_ADDRESS));
+      ur.verify(() -> UserRepository.updateLockoutState(eq(42L), eq(2), isNull()));
+      audit.verify(() -> SaveAuditEventCommand.recordAuthentication(eq("account.lockout"), any(), anyLong(),
+          any(), any(), any(), any()), never());
+    }
+  }
+
+  @Test
+  void aLockedAccountIsRejectedBeforeThePasswordIsChecked() {
+    try (MockedStatic<RateLimitCommand> rl = mockStatic(RateLimitCommand.class);
+        MockedStatic<LoadUserCommand> lu = mockStatic(LoadUserCommand.class);
+        MockedStatic<CacheManager> cm = mockStatic(CacheManager.class);
+        MockedStatic<UserRepository> ur = mockStatic(UserRepository.class);
+        MockedStatic<LoadSitePropertyCommand> sp = mockStatic(LoadSitePropertyCommand.class)) {
+      stubForLogin(rl, cm, sp);
+      Timestamp locked = new Timestamp(System.currentTimeMillis() + 600_000L); // locked 10 minutes out
+      lu.when(() -> LoadUserCommand.loadUser("alice")).thenReturn(lockoutUser(5, locked));
+      // Even the correct password is refused while the account is locked.
+      assertThrows(LoginException.class,
+          () -> AuthenticateLoginCommand.getAuthenticatedUser("alice", "correct", IP_ADDRESS));
+      ur.verify(() -> UserRepository.updateLockoutState(anyLong(), anyInt(), any()), never());
+      ur.verify(() -> UserRepository.resetLockout(anyLong()), never());
+    }
+  }
+
+  @Test
+  void aSuccessfulLoginClearsThePriorFailedAttempts() throws Exception {
+    try (MockedStatic<RateLimitCommand> rl = mockStatic(RateLimitCommand.class);
+        MockedStatic<LoadUserCommand> lu = mockStatic(LoadUserCommand.class);
+        MockedStatic<CacheManager> cm = mockStatic(CacheManager.class);
+        MockedStatic<UserRepository> ur = mockStatic(UserRepository.class);
+        MockedStatic<LoadSitePropertyCommand> sp = mockStatic(LoadSitePropertyCommand.class)) {
+      stubForLogin(rl, cm, sp);
+      User u = lockoutUser(3, null); // 3 prior failures, not locked
+      lu.when(() -> LoadUserCommand.loadUser("alice")).thenReturn(u);
+      User result = AuthenticateLoginCommand.getAuthenticatedUser("alice", "correct", IP_ADDRESS);
+      assertEquals(u, result);
+      ur.verify(() -> UserRepository.resetLockout(42L));
+    }
+  }
+
+  @Test
+  void anExpiredLockNoLongerBlocksLogin() throws Exception {
+    try (MockedStatic<RateLimitCommand> rl = mockStatic(RateLimitCommand.class);
+        MockedStatic<LoadUserCommand> lu = mockStatic(LoadUserCommand.class);
+        MockedStatic<CacheManager> cm = mockStatic(CacheManager.class);
+        MockedStatic<UserRepository> ur = mockStatic(UserRepository.class);
+        MockedStatic<LoadSitePropertyCommand> sp = mockStatic(LoadSitePropertyCommand.class)) {
+      stubForLogin(rl, cm, sp);
+      Timestamp expired = new Timestamp(System.currentTimeMillis() - 1000L); // lock already expired
+      User u = lockoutUser(5, expired);
+      lu.when(() -> LoadUserCommand.loadUser("alice")).thenReturn(u);
+      User result = AuthenticateLoginCommand.getAuthenticatedUser("alice", "correct", IP_ADDRESS);
+      assertEquals(u, result);
+      ur.verify(() -> UserRepository.resetLockout(42L));
     }
   }
 }

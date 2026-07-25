@@ -56,6 +56,8 @@ public class User extends Entity {
   private boolean mfaEnabled = false;
   private String accountToken = null;
   private Timestamp validated = null;
+  private int failedAttemptCount = 0;
+  private Timestamp lockedUntil = null;
   private long createdBy = -1;
   private long modifiedBy = -1;
   private Timestamp created = null;
@@ -271,6 +273,27 @@ public class User extends Entity {
 
   public void setValidated(Timestamp validated) {
     this.validated = validated;
+  }
+
+  public int getFailedAttemptCount() {
+    return failedAttemptCount;
+  }
+
+  public void setFailedAttemptCount(int failedAttemptCount) {
+    this.failedAttemptCount = failedAttemptCount;
+  }
+
+  public Timestamp getLockedUntil() {
+    return lockedUntil;
+  }
+
+  public void setLockedUntil(Timestamp lockedUntil) {
+    this.lockedUntil = lockedUntil;
+  }
+
+  /** @return true when the account is currently locked -- locked_until is set and still in the future. */
+  public boolean isLocked() {
+    return lockedUntil != null && lockedUntil.after(new Timestamp(System.currentTimeMillis()));
   }
 
   public boolean isNotValidated() {
