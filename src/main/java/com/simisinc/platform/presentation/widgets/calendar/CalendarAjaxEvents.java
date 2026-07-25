@@ -103,13 +103,16 @@ public class CalendarAjaxEvents {
         if (color != null) {
           sb.append("\"color\":\"").append(JsonCommand.toJson(color)).append("\",");
         }
+        // description, location, and title are concatenated into the tooltip/detail markup on the
+        // client (innerHTML via .html()), so HTML-encode before JSON-encoding -- JsonCommand.toJson
+        // is JSON-safe but not HTML-safe (stored DOM XSS).
         if (StringUtils.isNotEmpty(calendarEvent.getSummary())) {
-          sb.append("\"description\":\"").append(JsonCommand.toJson(calendarEvent.getSummary())).append("\",");
+          sb.append("\"description\":\"").append(JsonCommand.toJson(escapeHtml(calendarEvent.getSummary()))).append("\",");
         }
         if (StringUtils.isNotEmpty(calendarEvent.getLocation())) {
-          sb.append("\"location\":\"").append(JsonCommand.toJson(calendarEvent.getLocation())).append("\",");
+          sb.append("\"location\":\"").append(JsonCommand.toJson(escapeHtml(calendarEvent.getLocation()))).append("\",");
         }
-        sb.append("\"title\":\"").append(JsonCommand.toJson(calendarEvent.getTitle())).append("\"");
+        sb.append("\"title\":\"").append(JsonCommand.toJson(escapeHtml(calendarEvent.getTitle()))).append("\"");
         sb.append("}");
       }
     }
@@ -122,5 +125,20 @@ public class CalendarAjaxEvents {
       }
     }
     return null;
+  }
+
+  /**
+   * Minimal HTML entity-encoding for values the client concatenates into markup (tooltip/detail).
+   * Ampersand first so the entities it introduces are not themselves double-encoded.
+   */
+  private static String escapeHtml(String value) {
+    if (value == null) {
+      return "";
+    }
+    return value
+        .replace("&", "&amp;")
+        .replace("<", "&lt;")
+        .replace(">", "&gt;")
+        .replace("\"", "&quot;");
   }
 }
