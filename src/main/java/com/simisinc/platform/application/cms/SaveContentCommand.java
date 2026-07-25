@@ -17,6 +17,7 @@
 package com.simisinc.platform.application.cms;
 
 import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.domain.model.cms.Content;
 import com.simisinc.platform.infrastructure.persistence.cms.ContentRepository;
 import org.apache.commons.logging.Log;
@@ -37,6 +38,15 @@ public class SaveContentCommand {
 
     if (contentHtml == null) {
       throw new DataException("Content is required");
+    }
+
+    // Governed publishing: a direct save can never write straight to the live page. This is enforced
+    // here, at the single save chokepoint, so no caller -- editor form, API, or a future one -- can
+    // bypass review by asking to publish. The request degrades to a draft save.
+    if (publish && !ContentReviewCommand
+        .mayPublishDirectly(LoadSitePropertyCommand.loadByNameAsBoolean("content.review.required"))) {
+      LOG.debug("Governed publishing is enabled; saving as a draft for review instead of publishing");
+      publish = false;
     }
 
     // Clean the content

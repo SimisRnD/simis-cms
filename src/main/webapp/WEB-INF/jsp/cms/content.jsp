@@ -27,9 +27,25 @@
 <div class="platform-content-container">
   <c:if test="${showEditor eq 'true' && !empty uniqueId}">
     <div class="platform-content-editor">
-      <c:if test="${isDraft eq 'true'}">
-        <a class="hollow button small warning" href="${widgetContext.uri}?action=publish&widget=${widgetContext.uniqueId}&token=${userSession.formToken}" onclick="return confirm('Publish this content?');">DRAFT</a>
-      </c:if>
+      <%-- The review affordance is chosen by ContentReviewCommand.offerFor(), so separation of duties
+           is reflected here as well as enforced on the action: a submitter is never shown Approve. --%>
+      <c:choose>
+        <c:when test="${reviewOffer eq 'publish'}">
+          <c:if test="${isDraft eq 'true'}">
+            <a class="hollow button small warning" href="${widgetContext.uri}?action=publish&widget=${widgetContext.uniqueId}&token=${userSession.formToken}" onclick="return confirm('Publish this content?');">DRAFT</a>
+          </c:if>
+        </c:when>
+        <c:when test="${reviewOffer eq 'submit'}">
+          <a class="hollow button small warning" href="${widgetContext.uri}?action=submitForReview&widget=${widgetContext.uniqueId}&token=${userSession.formToken}" onclick="return confirm('Submit this content for review?');">SUBMIT FOR REVIEW</a>
+        </c:when>
+        <c:when test="${reviewOffer eq 'awaiting'}">
+          <span class="label warning" title="Another reviewer must approve this change">AWAITING REVIEW</span>
+        </c:when>
+        <c:when test="${reviewOffer eq 'decide'}">
+          <a class="hollow button small success" href="${widgetContext.uri}?action=approve&widget=${widgetContext.uniqueId}&token=${userSession.formToken}" onclick="return confirm('Approve and publish this content?');">APPROVE</a>
+          <a class="hollow button small alert" href="${widgetContext.uri}?action=reject&widget=${widgetContext.uniqueId}&token=${userSession.formToken}" onclick="return confirm('Return this content to the author?');">REJECT</a>
+        </c:when>
+      </c:choose>
       <a class="hollow button small secondary" href="${ctx}/content-editor?uniqueId=${uniqueId}&returnPage=${returnPage}"><i class="${font:fas()} fa-edit"></i></a>
     </div>
   </c:if>

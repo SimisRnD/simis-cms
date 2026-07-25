@@ -23,6 +23,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.domain.model.cms.Blog;
 import com.simisinc.platform.domain.model.cms.BlogPost;
 import com.simisinc.platform.domain.model.cms.Content;
@@ -82,11 +84,14 @@ public class ContentHtmlCommand {
       if (content != null) {
         html = toHtml(content.getContent(), content.getContentFormat());
         // Look for draft content
-        if (context.hasRole("admin") || context.hasRole("content-manager")) {
+        if (EditorPermissionCommand.canEditContent(context.getUserSession())) {
           if (content.getDraftContent() != null) {
             html = toHtml(content.getDraftContent(), content.getDraftContentFormat());
             context.getRequest().setAttribute("isDraft", "true");
           }
+          // Which review affordance to render, decided here rather than in a JSP expression
+          context.getRequest().setAttribute("reviewOffer", ContentReviewCommand.offerFor(content,
+              context.getUserId(), LoadSitePropertyCommand.loadByNameAsBoolean("content.review.required")));
         }
       }
     }
@@ -105,7 +110,7 @@ public class ContentHtmlCommand {
     html = embedInlineContent(context, html);
 
     // Display a button for admins to add content
-    boolean hasEditorPermission = (context.hasRole("admin") || context.hasRole("content-manager"));
+    boolean hasEditorPermission = EditorPermissionCommand.canEditContent(context.getUserSession());
     if (uniqueId != null && html == null) {
       if (hasEditorPermission) {
         html = "<a class=\"button tiny radius primary\" href=\"" + context.getContextPath()
@@ -156,7 +161,7 @@ public class ContentHtmlCommand {
       return html;
     }
 
-    boolean hasEditorPermission = (context.hasRole("admin") || context.hasRole("content-manager"));
+    boolean hasEditorPermission = EditorPermissionCommand.canEditContent(context.getUserSession());
     boolean hasDraftContent = false;
     int endUniqueIdx;
 
@@ -336,7 +341,7 @@ public class ContentHtmlCommand {
     }
 
     // Determine editing, links, settings
-    boolean hasEditorPermission = (context.hasRole("admin") || context.hasRole("content-manager"));
+    boolean hasEditorPermission = EditorPermissionCommand.canEditContent(context.getUserSession());
     String returnPage = context.getUri();
     String contentEditorLink = "";
     if (hasEditorPermission) {
@@ -392,7 +397,7 @@ public class ContentHtmlCommand {
 
   public static WidgetContext performWebAction(WidgetContext context) {
     // Permission is required
-    if (!(context.hasRole("admin") || context.hasRole("content-manager"))) {
+    if (!EditorPermissionCommand.canEditContent(context.getUserSession())) {
       LOG.warn("No permission found");
       return context;
     }
@@ -414,10 +419,18 @@ public class ContentHtmlCommand {
       return context;
     }
 
-    // Determine the action
+    // Determine the action. Governed publishing (Project #6, Phase 1) adds the review workflow; the
+    // gate is enforced only when the site has opted in via content.review.required.
     String action = context.getParameter("action");
+    boolean reviewRequired = LoadSitePropertyCommand.loadByNameAsBoolean("content.review.required");
     if ("publish".equals(action)) {
-      return publishContent(context, content);
+      return publishContent(context, content, reviewRequired);
+    } else if ("submitForReview".equals(action)) {
+      return submitForReview(context, content);
+    } else if ("approve".equals(action)) {
+      return approveContent(context, content);
+    } else if ("reject".equals(action)) {
+      return rejectContent(context, content);
     } else if ("deleteContent".equals(action)) {
       return deleteContent(context, content);
     }
@@ -425,11 +438,65 @@ public class ContentHtmlCommand {
     return context;
   }
 
-  private static WidgetContext publishContent(WidgetContext context, Content content) {
-    if (StringUtils.isNotBlank(content.getDraftContent())) {
-      ContentRepository.publish(content);
-      AuditEventCommand.record(context, AuditEventCommand.CONTENT, "content.publish", AuditEventCommand.SUCCESS,
+  private static WidgetContext publishContent(WidgetContext context, Content content, boolean reviewRequired) {
+    if (StringUtils.isBlank(content.getDraftContent())) {
+      return context;
+    }
+    // The gate: with governed publishing on, an unapproved draft cannot be published directly -- the
+    // only path to live is submit -> approve. With it off, this is the direct publish it always was.
+    if (!ContentReviewCommand.mayPublish(content, reviewRequired)) {
+      AuditEventCommand.record(context, AuditEventCommand.CONTENT, "content.publish", AuditEventCommand.FAILURE,
+          "content", String.valueOf(content.getId()), content.getUniqueId(), "blocked: draft not approved for release");
+      context.setErrorMessage("This content must be submitted for review and approved before it can be published");
+      return context;
+    }
+    ContentRepository.publish(content);
+    AuditEventCommand.record(context, AuditEventCommand.CONTENT, "content.publish", AuditEventCommand.SUCCESS,
+        "content", String.valueOf(content.getId()), content.getUniqueId(), null);
+    return context;
+  }
+
+  private static WidgetContext submitForReview(WidgetContext context, Content content) {
+    try {
+      ContentReviewCommand.submitForReview(content, context.getUserId());
+      ContentRepository.save(content);
+      AuditEventCommand.record(context, AuditEventCommand.CONTENT, "content.submit", AuditEventCommand.SUCCESS,
           "content", String.valueOf(content.getId()), content.getUniqueId(), null);
+      context.setSuccessMessage("The content was submitted for review");
+    } catch (DataException e) {
+      context.setErrorMessage(e.getMessage());
+    }
+    return context;
+  }
+
+  private static WidgetContext approveContent(WidgetContext context, Content content) {
+    String releaseReference = context.getParameter("releaseReference");
+    try {
+      // approve() enforces separation of duties (the approver cannot be the submitter); approval then
+      // promotes the draft to live and records the named approver + release authority in the audit trail.
+      ContentReviewCommand.approve(content, context.getUserId(), releaseReference);
+      ContentRepository.publish(content);
+      AuditEventCommand.record(context, AuditEventCommand.CONTENT, "content.approve", AuditEventCommand.SUCCESS,
+          "content", String.valueOf(content.getId()), content.getUniqueId(),
+          StringUtils.isNotBlank(releaseReference) ? "release authority: " + releaseReference : null);
+      context.setSuccessMessage("The content was approved and published");
+    } catch (DataException e) {
+      AuditEventCommand.record(context, AuditEventCommand.CONTENT, "content.approve", AuditEventCommand.FAILURE,
+          "content", String.valueOf(content.getId()), content.getUniqueId(), e.getMessage());
+      context.setErrorMessage(e.getMessage());
+    }
+    return context;
+  }
+
+  private static WidgetContext rejectContent(WidgetContext context, Content content) {
+    try {
+      ContentReviewCommand.reject(content, context.getUserId());
+      ContentRepository.save(content);
+      AuditEventCommand.record(context, AuditEventCommand.CONTENT, "content.reject", AuditEventCommand.SUCCESS,
+          "content", String.valueOf(content.getId()), content.getUniqueId(), null);
+      context.setSuccessMessage("The content was returned to the author");
+    } catch (DataException e) {
+      context.setErrorMessage(e.getMessage());
     }
     return context;
   }
