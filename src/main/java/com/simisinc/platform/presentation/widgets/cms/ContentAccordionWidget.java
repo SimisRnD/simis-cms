@@ -21,6 +21,7 @@ import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
 
+import com.simisinc.platform.application.cms.EditorPermissionCommand;
 import com.simisinc.platform.application.cms.ContentHtmlCommand;
 import com.simisinc.platform.domain.model.cms.AccordionSection;
 import com.simisinc.platform.presentation.controller.WidgetContext;
@@ -44,7 +45,7 @@ public class ContentAccordionWidget extends GenericWidget {
     context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));
     context.getRequest().setAttribute("title", context.getPreferences().get("title"));
 
-    if (context.hasRole("admin") || context.hasRole("content-manager")) {
+    if (EditorPermissionCommand.canEditContent(context.getUserSession())) {
       context.getRequest().setAttribute("showEditor", "true");
       context.getRequest().setAttribute("returnPage", context.getRequest().getRequestURI());
     }
