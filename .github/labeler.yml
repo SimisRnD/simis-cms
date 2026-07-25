@@ -1,0 +1,59 @@
+# Path-based PR labels, applied by .github/workflows/labeler.yml (actions/labeler).
+#
+# Only labels that can be inferred from WHICH FILES a PR touches live here. Topical labels
+# that need judgement -- security, accessibility, performance, privacy, authentication,
+# modernization, bug/enhancement -- are deliberately absent and stay manual (or a future
+# triage step). sync-labels is off in the workflow, so these rules only ADD labels; a label
+# applied by hand is never stripped by the automation.
+
+frontend:
+  - changed-files:
+      - any-glob-to-any-file: 'src/main/webapp/**'
+
+java:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'src/main/java/**'
+          - 'pom.xml'
+
+testing:
+  - changed-files:
+      - any-glob-to-any-file: 'src/test/**'
+
+ci:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '.github/workflows/**'
+          - '.github/labeler.yml'
+          - 'tools/**'
+
+docker:
+  - changed-files:
+      - any-glob-to-any-file: 'docker/**'
+
+deployment:
+  - changed-files:
+      - any-glob-to-any-file: 'infra/**'
+
+compliance:
+  - changed-files:
+      - any-glob-to-any-file: 'docker/app/conf/**'
+
+supply-chain:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'lib/build/**'
+          - '.github/workflows/sbom.yml'
+          - '.github/workflows/publish-images.yml'
+
+dependencies:
+  - changed-files:
+      - any-glob-to-any-file:
+          - 'pom.xml'
+          - 'lib/build/**'
+
+documentation:
+  - changed-files:
+      - any-glob-to-any-file:
+          - '**/*.md'
+          - 'docs/**'
