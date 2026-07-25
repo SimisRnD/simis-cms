@@ -100,11 +100,13 @@ public class SecretCryptoCommand {
   }
 
   /**
-   * Encrypts a secret for storage. Blank input is returned unchanged, and when no key is configured the value is
-   * returned as-is (legacy plaintext) so an unconfigured deployment keeps working.
+   * Encrypts a secret for storage. Blank or already-encrypted input is returned unchanged. When no key is
+   * configured this fails closed (throws) rather than silently storing plaintext (#16); callers that store
+   * secrets must configure {@code CMS_SECRET_KEY}.
    *
    * @param plaintext the secret to protect
-   * @return an {@code enc:}-prefixed ciphertext, or the input unchanged when blank / no key
+   * @return an {@code enc:}-prefixed ciphertext, or the input unchanged when blank / already encrypted
+   * @throws IllegalStateException when a non-blank secret is supplied but no key is configured
    */
   public static String encrypt(String plaintext) {
     // Idempotent: a blank value or one that is already encrypted is returned unchanged, so re-encrypting
@@ -114,7 +116,13 @@ public class SecretCryptoCommand {
     }
     SecretKeySpec k = key();
     if (k == null) {
-      return plaintext;
+      // Fail closed (#16): never store a recoverable secret in plaintext. A deployment that stores secrets
+      // (TOTP seeds, integration/payment credentials) must configure CMS_SECRET_KEY; one that never uses those
+      // features never reaches here (blank/already-encrypted values return above). The re-encryption upgrade
+      // and the startup path both check isEnabled() and skip/warn rather than reach this throw.
+      throw new IllegalStateException(
+          "CMS_SECRET_KEY is not configured; refusing to store a secret in plaintext. "
+              + "Set CMS_SECRET_KEY (a base64-encoded 256-bit key) to enable secret storage.");
     }
     try {
       byte[] iv = new byte[IV_BYTES];

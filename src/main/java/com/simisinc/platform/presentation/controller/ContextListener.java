@@ -37,6 +37,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import com.simisinc.platform.ApplicationInfo;
+import com.simisinc.platform.application.SecretCryptoCommand;
 import com.simisinc.platform.application.admin.DatabaseCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.filesystem.FileSystemCommand;
@@ -68,6 +69,14 @@ public class ContextListener implements ServletContextListener {
 
     // System properties
     System.setProperty("java.awt.headless", "true");
+
+    // At-rest secret encryption (#16): warn loudly when the key is absent. Secret storage fails closed, so
+    // storing TOTP seeds or integration/payment credentials will be refused until the key is set.
+    if (!SecretCryptoCommand.isEnabled()) {
+      LOG.warn("CMS_SECRET_KEY is not configured -- at-rest secret encryption is DISABLED. Storing TOTP seeds or "
+          + "integration/payment credentials will be refused (fail-closed). Set CMS_SECRET_KEY (a base64-encoded "
+          + "256-bit key) to enable those features.");
+    }
 
     // Monitor the success
     boolean isSuccessful = true;
