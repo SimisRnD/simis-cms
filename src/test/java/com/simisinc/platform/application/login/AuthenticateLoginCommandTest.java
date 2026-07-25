@@ -263,7 +263,7 @@ class AuthenticateLoginCommandTest {
         "Sanity: the stored hash must NOT verify the old password");
 
     Cache credentialsCache = mock(Cache.class);
-    when(credentialsCache.getIfPresent(6L)).thenReturn(username + ":" + oldPassword);
+    when(credentialsCache.getIfPresent(6L)).thenReturn(AuthenticateLoginCommand.cacheToken(username, oldPassword));
     try (MockedStatic<RateLimitCommand> rateLimit = mockStatic(RateLimitCommand.class);
         MockedStatic<LoadUserCommand> loadUser = mockStatic(LoadUserCommand.class);
         MockedStatic<CacheManager> cacheManager = mockStatic(CacheManager.class)) {
