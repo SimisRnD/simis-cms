@@ -115,4 +115,26 @@ class ContentReviewCommandTest {
     ContentReviewCommand.submitForReview(content, AUTHOR);
     assertThrows(DataException.class, () -> ContentReviewCommand.approve(content, -1L, null));
   }
+
+  @Test
+  void publishGateIsOpenWhenReviewIsNotRequired() throws DataException {
+    // Backward compatible: with governed publishing off, any draft state may publish directly.
+    Content content = draft();
+    assertTrue(ContentReviewCommand.mayPublish(content, false));
+    ContentReviewCommand.submitForReview(content, AUTHOR);
+    assertTrue(ContentReviewCommand.mayPublish(content, false));
+  }
+
+  @Test
+  void publishGateRequiresApprovalWhenReviewIsRequired() throws DataException {
+    Content content = draft();
+    // A brand-new draft that was never submitted cannot publish under review.
+    assertFalse(ContentReviewCommand.mayPublish(content, true));
+    // Submitted but not yet approved: still blocked -- no bypass.
+    ContentReviewCommand.submitForReview(content, AUTHOR);
+    assertFalse(ContentReviewCommand.mayPublish(content, true));
+    // Approved by a different person: the gate opens.
+    ContentReviewCommand.approve(content, APPROVER, null);
+    assertTrue(ContentReviewCommand.mayPublish(content, true));
+  }
 }
