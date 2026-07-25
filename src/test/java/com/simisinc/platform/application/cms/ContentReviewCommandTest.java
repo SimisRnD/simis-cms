@@ -126,6 +126,22 @@ class ContentReviewCommandTest {
   }
 
   @Test
+  void anOverlongReleaseReferenceIsRejectedNotTruncated() throws DataException {
+    // The column is VARCHAR(255). Fail with a clear message rather than letting the database throw
+    // mid-approval -- and never silently truncate an authority reference that is audit evidence.
+    Content content = draft();
+    ContentReviewCommand.submitForReview(content, AUTHOR);
+    String tooLong = "x".repeat(ContentReviewCommand.MAX_RELEASE_REFERENCE_LENGTH + 1);
+    assertThrows(DataException.class, () -> ContentReviewCommand.approve(content, APPROVER, tooLong));
+    assertFalse(ContentReviewCommand.isApproved(content), "a rejected approval must not approve");
+
+    // The maximum length itself is accepted.
+    String atLimit = "x".repeat(ContentReviewCommand.MAX_RELEASE_REFERENCE_LENGTH);
+    ContentReviewCommand.approve(content, APPROVER, atLimit);
+    assertEquals(atLimit, content.getReleaseReference());
+  }
+
+  @Test
   void directPublishIsUnavailableWhenReviewIsRequired() {
     // The bypass that would otherwise defeat the whole control: an editor's Save / Publish Immediately
     // must not write straight to the live page when governed publishing is on.
