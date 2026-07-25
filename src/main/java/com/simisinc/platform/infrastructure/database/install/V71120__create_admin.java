@@ -45,7 +45,8 @@ public class V71120__create_admin extends BaseJavaMigration {
   @Override
   public void migrate(Context context) throws Exception {
 
-    // Create a system administrator user and password visible in the log
+    // Create the system administrator user. When no CMS_ADMIN_PASSWORD is set, a password is generated and
+    // surfaced once on the console for first-run login -- it is never written to the application log.
     String tempName = "admin" + System.currentTimeMillis();
     if (System.getenv().containsKey("CMS_ADMIN_USERNAME")) {
       LOG.info("Found variable CMS_ADMIN_USERNAME");
@@ -59,8 +60,10 @@ public class V71120__create_admin extends BaseJavaMigration {
       LOG.info("Found variable CMS_ADMIN_PASSWORD");
       tempPW = System.getenv("CMS_ADMIN_PASSWORD");
     } else {
-      LOG.info("checksum: " + tempPW);
-      System.out.println("checksum: " + tempPW);
+      // Surface the generated password once on the console for first-run login. Deliberately NOT written to the
+      // application logger -- credentials must not land in aggregated logs. Set CMS_ADMIN_PASSWORD to avoid
+      // generating one at all.
+      System.out.println("[SimIS CMS] Generated administrator password (set CMS_ADMIN_PASSWORD to control this): " + tempPW);
     }
     String hash = UserPasswordCommand.hash(tempPW);
 
