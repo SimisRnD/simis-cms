@@ -16,6 +16,7 @@
 
 package com.simisinc.platform.presentation.widgets.cms;
 
+import com.simisinc.platform.application.cms.EditorPermissionCommand;
 import com.simisinc.platform.application.cms.LoadContentCommand;
 import com.simisinc.platform.application.cms.ContentHtmlCommand;
 import com.simisinc.platform.domain.model.cms.Content;
@@ -68,7 +69,7 @@ public class ContentTabsWidget extends GenericWidget {
       }
 
       if (StringUtils.isBlank(html)) {
-        if (context.hasRole("admin") || context.hasRole("content-manager")) {
+        if (EditorPermissionCommand.canEditContent(context.getUserSession())) {
           html = "<a class=\"button tiny radius primary\" href=\"" + context.getContextPath() + "/content-editor?uniqueId=" + contentTab.getContentUniqueId() + "&returnPage=" + context.getUri() + "\"><i class=\"fa fa-edit\"></i> Add Content Here</a>";
         }
       }
@@ -83,7 +84,7 @@ public class ContentTabsWidget extends GenericWidget {
       return null;
     }
 
-    if (context.hasRole("admin") || context.hasRole("content-manager")) {
+    if (EditorPermissionCommand.canEditContent(context.getUserSession())) {
       context.getRequest().setAttribute("showEditor", "true");
       context.getRequest().setAttribute("returnPage", context.getRequest().getRequestURI());
     }
