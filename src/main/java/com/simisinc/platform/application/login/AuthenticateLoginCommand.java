@@ -94,13 +94,6 @@ public class AuthenticateLoginCommand {
       }
       throw new LoginException(INVALID_CREDENTIALS);
     }
-    if (user.isNotValidated()) {
-      LOG.debug("Account not validated");
-      throw new LoginException("This account needs to be validated by email. Please check your email for instructions.");
-    }
-    if (!user.isEnabled()) {
-      throw new LoginException("The account has been suspended. Please contact an administrator.");
-    }
 
     // Account lockout (#295): a locked account cannot log in even with the correct password, until the
     // lock expires or an administrator clears it. Checked before the credentials cache so a lock always wins.
@@ -114,14 +107,32 @@ public class AuthenticateLoginCommand {
     Cache cache = CacheManager.getCache(CacheManager.USER_CREDENTIALS_CACHE);
     String comparison = (String) cache.getIfPresent(user.getId());
     if (comparison != null && comparison.equals(cacheToken(username, password))) {
+    if (comparison != null && comparison.equals(username + ":" + password)) {
+      // Credentials confirmed via cache; check status before returning so a
+      // suspension that happened after caching still takes effect.
+      if (user.isNotValidated()) {
+        LOG.debug("Account not validated");
+        throw new LoginException("This account needs to be validated by email. Please check your email for instructions.");
+      }
+      if (!user.isEnabled()) {
+        throw new LoginException("The account has been suspended. Please contact an administrator.");
+      }
       return user;
     }
 
     // Verify the password
     boolean verified = UserPasswordCommand.verify(password, user.getPassword());
     if (verified) {
-      // Hash matches password
+      // Hash matches password — check account status now that the credential is confirmed.
+      // Doing so after verification avoids leaking account existence via differing error messages.
       LOG.debug("User validated");
+      if (user.isNotValidated()) {
+        LOG.debug("Account not validated");
+        throw new LoginException("This account needs to be validated by email. Please check your email for instructions.");
+      }
+      if (!user.isEnabled()) {
+        throw new LoginException("The account has been suspended. Please contact an administrator.");
+      }
       // Clear any prior failed-attempt / lockout state on a successful login (#295)
       if (user.getFailedAttemptCount() > 0 || user.getLockedUntil() != null) {
         UserRepository.resetLockout(user.getId());
