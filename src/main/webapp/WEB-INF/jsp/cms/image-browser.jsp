@@ -244,10 +244,7 @@
     <c:forEach items="${imageList}" var="image" varStatus="status">
       <div class="cell card">
         <div class="image-browser">
-          <button type="button" class="image-browser-select"
-                  data-src="${ctx}/assets/img/${image.url}"
-                  onclick="mySubmit(this.dataset.src)"
-                  aria-label="<c:out value="${image.filename}"/>">
+          <button type="button" class="image-browser-select" onclick="mySubmit(this.dataset.src)" data-src="${ctx}/assets/img/${image.url}" aria-label="Select <c:out value="${image.filename}"/>">
             <img src="${ctx}/assets/img/${image.url}" alt="">
           </button>
         </div>

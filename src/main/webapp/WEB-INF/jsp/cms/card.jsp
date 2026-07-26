@@ -25,10 +25,7 @@
 <jsp:useBean id="link" class="java.lang.String" scope="request"/>
 <jsp:useBean id="linkTitle" class="java.lang.String" scope="request"/>
 <jsp:useBean id="linkIcon" class="java.lang.String" scope="request"/>
-<c:choose>
-  <c:when test="${!empty link}"><a href="${ctx}<c:out value="${link}"/>" class="<c:out value="${classData}" />"></c:when>
-  <c:otherwise><div class="<c:out value="${classData}" />"></c:otherwise>
-</c:choose>
+<c:choose><c:when test="${!empty link}"><a class="<c:out value="${classData}"/>" href="${ctx}<c:out value="${link}"/>"></c:when><c:otherwise><div class="<c:out value="${classData}"/>"></c:otherwise></c:choose>
   <c:if test="${!empty title}">
     <div class="card-divider"><c:out value="${title}" /></div>
   </c:if>
@@ -59,7 +56,4 @@
     </p>
   </div>
   --%>
-<c:choose>
-  <c:when test="${!empty link}"></a></c:when>
-  <c:otherwise></div></c:otherwise>
-</c:choose>
+<c:choose><c:when test="${!empty link}"></a></c:when><c:otherwise></div></c:otherwise></c:choose>

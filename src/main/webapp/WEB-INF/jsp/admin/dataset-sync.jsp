@@ -145,7 +145,7 @@
     <input type="submit" class="button radius success" name="process" value="Save & Sync"/>
   </div>
 </form>
-<div class="reveal medium" id="processReveal" role="dialog" aria-modal="true" aria-labelledby="processRevealTitle" data-reveal data-animation-in="slide-in-down fast">
-  <h3 id="processRevealTitle">Validating Data...</h3>
+<div class="reveal medium" id="processReveal" data-reveal data-animation-in="slide-in-down fast" role="dialog" aria-modal="true" aria-label="Validating Data">
+  <h3>Validating Data...</h3>
   <%--<p><a class="button small radius primary" href="${ctx}/admin/datasets">Continue to datasets list <i class="fa fa-caret-right"></i></a></p>--%>
 </div>

@@ -87,9 +87,11 @@ public class ForgotPasswordWidget extends GenericWidget {
     if (user == null) {
       if (!RateLimitCommand.isIpAllowedRightNow(context.getUserSession().getIpAddress(), true)) {
         context.setWarningMessage(RateLimitCommand.INVALID_ATTEMPTS);
-      } else {
-        context.setWarningMessage("Check the username and try again");
+        return context;
       }
+      // Always show the same success message whether the username exists or not, to prevent enumeration.
+      context.setSuccessMessage("If the email you specified exists in our system, we've sent a password reset link to it.");
+      context.setJsp(SUCCESS_JSP);
       return context;
     }
 

@@ -51,13 +51,13 @@
         <div class="grid-x grid-margin-x">
       </c:if>
       <div class="small-6 medium-4 large-3 cell">
-        <button type="button" class="template cell card" onclick="mySubmit(${template.id},${template.uniqueId})">
+        <button type="button" class="template cell card" onclick="mySubmit(${template.id},${template.uniqueId})" aria-label="<c:out value="${template.name}"/>">
           <c:choose>
             <c:when test="${!empty template.imagePath}">
-              <img src="${ctx}/images/templates/${url:encodeUri(template.imagePath)}">
+              <img src="${ctx}/images/templates/${url:encodeUri(template.imagePath)}" alt="">
             </c:when>
             <c:otherwise>
-              <img src="${ctx}/images/templates/Blank.png">
+              <img src="${ctx}/images/templates/Blank.png" alt="">
             </c:otherwise>
           </c:choose>
           <div class="card-section">
