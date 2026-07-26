@@ -17,6 +17,7 @@
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="js" uri="/WEB-INF/tlds/javascript-escape.tld" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="webPage" class="com.simisinc.platform.domain.model.cms.WebPage" scope="request"/>
@@ -25,7 +26,7 @@
 <link rel="stylesheet" href="${ctx}/css/platform-sitemap-editor.css?v=<%= VERSION %>" />
 <link rel="stylesheet" href="${ctx}/javascript/dragula-3.7.3/dragula.min.css"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}"/></h4>
+  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <h3><c:out value="${webPage.link}" /></h3>
@@ -100,7 +101,7 @@
   </div>
 --%>
   <div class="button-container">
-    <input type="submit" class="button radius success" value="Save"/>
+    <input type="submit" class="button radius success" value="Save" data-disable-on-submit="Saving..."/>
     <c:choose>
       <c:when test="${!empty returnPage}">
         <a href="${returnPage}" class="button radius secondary">Cancel</a>
@@ -133,14 +134,14 @@
     if (!confirm("Are you sure you want to delete this menu tab and all of its submenu items?")) {
       return;
     }
-    window.location.href = '${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&menuTabId=' + index;
+    postAction('${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&menuTabId=' + index);
   }
 
   function deleteMenuItem(index) {
     if (!confirm("Are you sure you want to delete this sub menu item?")) {
       return;
     }
-    window.location.href = '${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&menuItemId=' + index;
+    postAction('${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&menuItemId=' + index);
   }
 
   var menuItems = dragula([

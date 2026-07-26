@@ -111,7 +111,7 @@
   <%-- Title and Message block --%>
   <h2><em><c:out value="${collection.name}" /></em></h2>
   <c:if test="${!empty title}">
-    <p><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}"/></p>
+    <p><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></p>
   </c:if>
   <%@include file="../page_messages.jspf" %>
   <%-- Form Content --%>

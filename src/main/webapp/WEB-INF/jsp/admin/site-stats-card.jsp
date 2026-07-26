@@ -16,6 +16,7 @@
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="js" uri="/WEB-INF/tlds/javascript-escape.tld" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="numberValue" class="java.lang.String" scope="request"/>
@@ -39,7 +40,7 @@
 <div class="grid-x align-middle text-middle">
   <c:if test="${!empty icon}">
     <div class="small-5 cell">
-      <i id="icon${widgetContext.uniqueId}" class="fa ${icon} statistic-card-icon${widgetContext.uniqueId}"></i>
+      <i id="icon${widgetContext.uniqueId}" class="fa ${fn:escapeXml(icon)} statistic-card-icon${widgetContext.uniqueId}"></i>
     </div>
   </c:if>
   <div class="auto cell">
