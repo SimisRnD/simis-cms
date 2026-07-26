@@ -70,7 +70,7 @@
 </form>
 <%@include file="../page_messages.jspf" %>
 <c:if test="${useLocation eq 'true'}">
-<script>
+<script nonce="${cspNonce}">
   var xhr${widgetContext.uniqueId}location;
   new autoComplete({
     selector: 'input[name="location"]',
@@ -85,7 +85,7 @@
 </c:if>
 
 <c:if test="${useAutoComplete eq 'true'}">
-<script>
+<script nonce="${cspNonce}">
   var xhr${widgetContext.uniqueId}name;
   new autoComplete({
     selector: 'input[name="name"]',

@@ -230,7 +230,7 @@
 <%-- Javascript after content--%>
     <script src="${ctx}/javascript/foundation-6.8.1/what-input-5.2.6.min.js"></script>
     <script src="${ctx}/javascript/foundation-6.8.1/foundation.min.js"></script>
-    <script>
+    <script nonce="${cspNonce}">
       $(document).foundation();
       <%--
       $('.card-profile-stats-more-link').click(function(e){

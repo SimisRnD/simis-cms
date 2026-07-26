@@ -26,17 +26,17 @@
 <jsp:useBean id="showRelatedCollectionName" class="java.lang.String" scope="request"/>
 <jsp:useBean id="showRemoveRelationshipButton" class="java.lang.String" scope="request"/>
 <c:if test="${showRemoveRelationshipButton eq 'true'}">
-  <script>
+  <script nonce="${cspNonce}">
     function removeRelationship${widgetContext.uniqueId}(relatedItemId) {
       if (!confirm("Are you sure you want to remove the relationship?")) {
         return;
       }
-      window.location.href = '${widgetContext.uri}?action=removeRelationship&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&relatedItemId=' + relatedItemId;
+      postAction('${widgetContext.uri}?action=removeRelationship&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&relatedItemId=' + relatedItemId);
     }
   </script>
 </c:if>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}"/></h4>
+  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <c:if test="${empty itemRelationshipList}">

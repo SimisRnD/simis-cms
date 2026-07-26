@@ -23,8 +23,8 @@
 <jsp:useBean id="formFieldList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="useCaptcha" class="java.lang.String" scope="request"/>
 <c:if test="${useCaptcha eq 'true' && !empty googleSiteKey}">
-<script src='https://www.google.com/recaptcha/api.js'></script>
-<script>
+<script src='https://www.google.com/recaptcha/api.js' nonce="${cspNonce}"></script>
+<script nonce="${cspNonce}">
   function onSubmit(token) {
     document.getElementById("form${widgetContext.uniqueId}").submit();
   }
@@ -36,7 +36,7 @@
   <input type="hidden" name="token" value="${userSession.formToken}"/>
   <%-- Title and Message block --%>
   <c:if test="${!empty title}">
-    <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}" /></h4>
+    <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
   </c:if>
   <%@include file="../page_messages.jspf" %>
   <%-- Form Content --%>
