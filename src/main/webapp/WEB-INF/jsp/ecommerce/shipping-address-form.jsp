@@ -100,9 +100,9 @@
             </label>
           </div>
           <div class="small-4 cell">
-            <label for="state">State/Province <span class="required">*</span>
-              <input style="<c:if test="${address.country eq 'United States'}">display:none</c:if>" type="text" id="province" name="province" value="<c:out value="${address.state}" />" />
-              <select style="<c:if test="${address.country ne 'United States'}">display:none</c:if>" id="state" name="state">
+            <input style="<c:if test="${address.country eq 'United States'}">display:none</c:if>" type="text" id="province" name="province" value="<c:out value="${address.state}" />" aria-label="State/Province" />
+            <label for="state">State/Province <span class="required">*</span></label>
+            <select style="<c:if test="${address.country ne 'United States'}">display:none</c:if>" id="state" name="state">
                 <option value="">Choose</option>
                 <option value="AL"<c:if test="${address.state eq 'AL'}"> selected</c:if>>Alabama (AL)</option>
                 <option value="AK"<c:if test="${address.state eq 'AK'}"> selected</c:if>>Alaska (AK)</option>
@@ -149,12 +149,12 @@
                 <option value="TN"<c:if test="${address.state eq 'TN'}"> selected</c:if>>Tennessee (TN)</option>
                 <option value="TX"<c:if test="${address.state eq 'TX'}"> selected</c:if>>Texas (TX)</option>
                 <option value="UT"<c:if test="${address.state eq 'UT'}"> selected</c:if>>Utah (UT)</option>
-                <option value="VT"<c:if test="${address.state eq 'VT'}"> selected</c:if>>Vermont</option>
-                <option value="VA"<c:if test="${address.state eq 'VA'}"> selected</c:if>>Virginia</option>
-                <option value="WA"<c:if test="${address.state eq 'WA'}"> selected</c:if>>Washington</option>
-                <option value="WV"<c:if test="${address.state eq 'WV'}"> selected</c:if>>West Virginia</option>
-                <option value="WI"<c:if test="${address.state eq 'WI'}"> selected</c:if>>Wisconsin</option>
-                <option value="WY"<c:if test="${address.state eq 'WY'}"> selected</c:if>>Wyoming</option>
+                <option value="VT"<c:if test="${address.state eq 'VT'}"> selected</c:if>>Vermont (VT)</option>
+                <option value="VA"<c:if test="${address.state eq 'VA'}"> selected</c:if>>Virginia (VA)</option>
+                <option value="WA"<c:if test="${address.state eq 'WA'}"> selected</c:if>>Washington (WA)</option>
+                <option value="WV"<c:if test="${address.state eq 'WV'}"> selected</c:if>>West Virginia (WV)</option>
+                <option value="WI"<c:if test="${address.state eq 'WI'}"> selected</c:if>>Wisconsin (WI)</option>
+                <option value="WY"<c:if test="${address.state eq 'WY'}"> selected</c:if>>Wyoming (WY)</option>
                 <option value="AS"<c:if test="${address.state eq 'AS'}"> selected</c:if>>American Samoa (AS)</option>
                 <option value="GU"<c:if test="${address.state eq 'GU'}"> selected</c:if>>Guam (GU)</option>
                 <option value="MP"<c:if test="${address.state eq 'MP'}"> selected</c:if>>Northern Mariana Islands (MP)</option>

@@ -47,6 +47,14 @@ public class RecordWebPageHitJob implements JobRequest {
     this.webPageHit = webPageHit;
   }
 
+  public WebPageHit getWebPageHit() {
+    return webPageHit;
+  }
+
+  public void setWebPageHit(WebPageHit webPageHit) {
+    this.webPageHit = webPageHit;
+  }
+
   @Override
   public Class<RecordWebPageHitJobRequestHandler> getJobRequestHandler() {
     return RecordWebPageHitJobRequestHandler.class;

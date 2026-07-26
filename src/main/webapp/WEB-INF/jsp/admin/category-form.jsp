@@ -46,19 +46,17 @@
   <label>Icon (<a href="https://fontawesome.com/search?m=free&s=solid" target="_blank">view</a>)
     <input type="text" placeholder="" name="icon" value="<c:out value="${category.icon}"/>">
   </label>
-  <label>
+  <label>Header Background Color
     <input id="headerBgColor" type="text" name="headerBgColor" value="<c:out value="${category.headerBgColor}"/>">
-    Header Background Color
   </label>
-  <label>
+  <label>Header Text Color
     <input id="headerTextColor" type="text" name="headerTextColor" value="<c:out value="${category.headerTextColor}"/>">
-    Header Text Color
   </label>
   <label>Default Item External Link Text
     <input type="text" placeholder="View Site" name="itemUrlText" value="<c:out value="${category.itemUrlText}"/>">
   </label>
   <div class="button-container">
-    <input type="submit" class="button radius success" value="Save" />
+    <input type="submit" class="button radius primary" value="Save" />
   </div>
 </form>
 <script>

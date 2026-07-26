@@ -79,7 +79,37 @@
 <%-- Handle item image uploads --%>
 <script>
   function SavePhoto(e) {
-    var file = e.files[0]; // similar to: document.getElementById("file").files[0]
+    var file = e.files[0];
+    var errorEl = document.getElementById("imageUploadError");
+    var errorMsg = document.getElementById("imageErrorMsg");
+    var uploadBtn = document.querySelector("label[for='imageFile']");
+
+    if (errorEl) {
+      errorEl.style.display = "none";
+    }
+
+    // Client-side validation first
+    var maxSize = 5242880; // 5MB
+    if (file.size > maxSize) {
+      errorMsg.innerHTML = '<i class="fa fa-exclamation-circle"></i> File too large. Maximum size is 5 MB.';
+      errorEl.style.display = "block";
+      document.getElementById("imageFile").value = "";
+      return;
+    }
+
+    var validTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+    if (validTypes.indexOf(file.type) === -1) {
+      errorMsg.innerHTML = '<i class="fa fa-exclamation-circle"></i> File type not supported. Please use .jpg or .png.';
+      errorEl.style.display = "block";
+      document.getElementById("imageFile").value = "";
+      return;
+    }
+
+    // Show uploading state
+    if (uploadBtn) {
+      uploadBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Uploading...';
+    }
+
     var formData = new FormData();
     formData.append("file", file);
     var xhr = new XMLHttpRequest();
@@ -89,9 +119,21 @@
           var fileData = JSON.parse(this.responseText);
           document.getElementById("imageUrl").value = fileData.location;
           document.getElementById("imageUrlPreview").src = fileData.location;
+          if (uploadBtn) {
+            uploadBtn.innerHTML = '✓ Upload Image File...';
+            setTimeout(function() {
+              uploadBtn.innerHTML = 'Upload Image File...';
+            }, 1500);
+          }
         } else {
           document.getElementById("imageFile").value = "";
-          alert('There was an error with the file. Make sure to use a .jpg or .png');
+          errorMsg.innerHTML = '<i class="fa fa-exclamation-circle"></i> Upload failed. Please check the file and try again.';
+          if (errorEl) {
+            errorEl.style.display = "block";
+          }
+          if (uploadBtn) {
+            uploadBtn.innerHTML = 'Upload Image File...';
+          }
         }
       }
     };
@@ -204,8 +246,11 @@
               <span class="input-group-label" style="padding: 0;"><a class="button small primary expanded no-gap" data-open="imageBrowserReveal">Browse Images</a></span>
             </div>
             <label for="imageFile" class="button">Upload Image File...</label>
-            <input type="file" id="imageFile" class="show-for-sr" onchange="SavePhoto(this)">
+            <input type="file" id="imageFile" class="show-for-sr" accept="image/jpeg,image/png,image/jpg" onchange="SavePhoto(this)">
           </label>
+          <div id="imageUploadError" class="callout alert" role="alert" style="display:none; margin-top: 1rem; padding: 1rem;">
+            <p id="imageErrorMsg" style="margin: 0;"></p>
+          </div>
         </div>
         <div class="small-4 cell">
           <img id="imageUrlPreview" src="<c:out value="${item.imageUrl}"/>" style="max-height: 150px; max-width: 150px"/>

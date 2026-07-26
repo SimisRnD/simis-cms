@@ -63,6 +63,30 @@ public class ProcessEmailSubscriptionJob implements JobRequest {
     this.status = status;
   }
 
+  public Email getEmail() {
+    return email;
+  }
+
+  public void setEmail(Email email) {
+    this.email = email;
+  }
+
+  public MailingList getMailingList() {
+    return mailingList;
+  }
+
+  public void setMailingList(MailingList mailingList) {
+    this.mailingList = mailingList;
+  }
+
+  public String getStatus() {
+    return status;
+  }
+
+  public void setStatus(String status) {
+    this.status = status;
+  }
+
   @Override
   public Class<ProcessEmailSubscriptionJobRequestHandler> getJobRequestHandler() {
     return ProcessEmailSubscriptionJobRequestHandler.class;

@@ -43,6 +43,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.PrintWriter;
 import java.math.BigDecimal;
@@ -354,9 +355,161 @@ public class PageServlet extends HttpServlet {
         return;
       }
 
+      // getWidgetContent: return the current stored content for a uniqueId as JSON {format, content}
+      if ("getWidgetContent".equals(request.getParameter("action"))
+          && request.getParameter("widget") == null
+          && pageEditMode) {
+        String uniqueId = request.getParameter("uniqueId");
+        response.setContentType("application/json");
+        if (StringUtils.isBlank(uniqueId)) {
+          response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+          response.getWriter().print("{\"success\":false,\"error\":\"uniqueId required\"}");
+          return;
+        }
+        try {
+          com.simisinc.platform.domain.model.cms.Content content = LoadContentCommand.loadContentByUniqueId(uniqueId);
+          if (content == null) {
+            response.getWriter().print("{\"success\":true,\"format\":0,\"content\":\"\"}");
+            return;
+          }
+          boolean hasDraftContent = StringUtils.isNotBlank(content.getDraftContent());
+          String contentValue = hasDraftContent ? content.getDraftContent() : content.getContent();
+          int format = hasDraftContent ? content.getDraftContentFormat() : content.getContentFormat();
+          ObjectMapper mapper = new ObjectMapper();
+          response.getWriter().print("{\"success\":true,\"format\":" + format + ",\"content\":" + mapper.writeValueAsString(contentValue != null ? contentValue : "") + "}");
+        } catch (Exception e) {
+          LOG.warn("getWidgetContent failed for uniqueId " + uniqueId + ": " + e.getMessage());
+          response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+          response.getWriter().print("{\"success\":false,\"error\":\"Load failed\"}");
+        }
+        return;
+      }
+
+      // saveWidgetContent: save Quill Delta JSON for a uniqueId; return rendered HTML
+      if ("saveWidgetContent".equals(request.getParameter("action"))
+          && request.getParameter("widget") == null
+          && pageEditMode) {
+        String formToken = request.getParameter("token");
+        if (!userSession.getFormToken().equals(formToken)) {
+          LOG.warn("saveWidgetContent CSRF token mismatch from " + request.getRemoteAddr());
+          response.setContentType("application/json");
+          response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+          response.getWriter().print("{\"success\":false,\"error\":\"Session expired\"}");
+          return;
+        }
+        String uniqueId = request.getParameter("uniqueId");
+        String deltaJson = request.getParameter("delta");
+        response.setContentType("application/json");
+        if (StringUtils.isBlank(uniqueId) || StringUtils.isBlank(deltaJson)) {
+          response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+          response.getWriter().print("{\"success\":false,\"error\":\"uniqueId and delta required\"}");
+          return;
+        }
+        try {
+          SaveContentCommand.saveSafeDeltaContent(uniqueId, deltaJson, userSession.getUserId(), false);
+          String html = DeltaContentCommand.render(deltaJson);
+          ObjectMapper mapper = new ObjectMapper();
+          response.getWriter().print("{\"success\":true,\"html\":" + mapper.writeValueAsString(html) + "}");
+        } catch (Exception e) {
+          LOG.warn("saveWidgetContent failed for uniqueId " + uniqueId + ": " + e.getMessage());
+          response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+          String msg = e.getMessage() != null ? e.getMessage().replace("\"", "'") : "Save failed";
+          response.getWriter().print("{\"success\":false,\"error\":\"" + msg + "\"}");
+        }
+        return;
+      }
+
+      // mutateDraftLayout: structural add/remove/set operations on sections, columns, and widgets.
+      // All mutations write only to draftPageXml and require the layout-builder capability.
+      String mutateAction = request.getParameter("action");
+      if (request.getParameter("widget") == null
+          && pageEditMode
+          && EditorPermissionCommand.canBuildLayout(userSession)
+          && (   "addSection".equals(mutateAction)
+              || "removeSection".equals(mutateAction)
+              || "setSectionClass".equals(mutateAction)
+              || "addColumn".equals(mutateAction)
+              || "removeColumn".equals(mutateAction)
+              || "setColumnClass".equals(mutateAction)
+              || "addWidget".equals(mutateAction)
+              || "removeWidget".equals(mutateAction)
+              || "setWidgetPreferences".equals(mutateAction))) {
+        response.setContentType("application/json");
+        String formToken = request.getParameter("token");
+        if (!userSession.getFormToken().equals(formToken)) {
+          LOG.warn("mutateDraftLayout CSRF token mismatch from " + request.getRemoteAddr());
+          response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+          response.getWriter().print("{\"success\":false,\"error\":\"Session expired\"}");
+          return;
+        }
+        if (webPage == null || webPage.getId() == -1) {
+          response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+          response.getWriter().print("{\"success\":false,\"error\":\"Page not found\"}");
+          return;
+        }
+        try {
+          int s = intParam(request, "s", -2);
+          int c = intParam(request, "c", -2);
+          int w = intParam(request, "w", -2);
+          int after = intParam(request, "after", -1);
+          switch (mutateAction) {
+            case "addSection":
+              MutateLayoutCommand.addSection(webPage, after, request.getParameter("class"));
+              break;
+            case "removeSection":
+              MutateLayoutCommand.removeSection(webPage, s);
+              break;
+            case "setSectionClass":
+              MutateLayoutCommand.setSectionClass(webPage, s, request.getParameter("class"));
+              break;
+            case "addColumn":
+              MutateLayoutCommand.addColumn(webPage, s, after, request.getParameter("class"));
+              break;
+            case "removeColumn":
+              MutateLayoutCommand.removeColumn(webPage, s, c);
+              break;
+            case "setColumnClass":
+              MutateLayoutCommand.setColumnClass(webPage, s, c, request.getParameter("class"));
+              break;
+            case "addWidget":
+              MutateLayoutCommand.addWidget(webPage, s, c, after,
+                  request.getParameter("widgetName"), request.getParameter("prefs"));
+              break;
+            case "removeWidget":
+              MutateLayoutCommand.removeWidget(webPage, s, c, w);
+              break;
+            case "setWidgetPreferences":
+              MutateLayoutCommand.setWidgetPreferences(webPage, s, c, w, request.getParameter("prefs"));
+              break;
+            default:
+              response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+              response.getWriter().print("{\"success\":false,\"error\":\"Unknown action\"}");
+              return;
+          }
+          response.getWriter().print("{\"success\":true}");
+        } catch (Exception e) {
+          LOG.warn("mutateDraftLayout '" + mutateAction + "' failed for " + pagePath + ": " + e.getMessage());
+          response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+          String msg = e.getMessage() != null ? e.getMessage().replace("\"", "'") : "Mutation failed";
+          response.getWriter().print("{\"success\":false,\"error\":\"" + msg + "\"}");
+        }
+        return;
+      }
+
       // Determine the Page XML Layout for this request
       Page pageRef = WebPageXmlLayoutCommand.retrievePageForRequest(webPage, pagePath);
       Map<String, String> widgetLibrary = WebPageXmlLayoutCommand.getWidgetLibrary();
+      if (pageLayoutMode) {
+        StringBuilder wl = new StringBuilder("[");
+        boolean wlFirst = true;
+        for (String name : new TreeSet<>(widgetLibrary.keySet())) {
+          if (!wlFirst) wl.append(',');
+          wl.append('"').append(name.replace("\\", "\\\\").replace("\"", "\\\"")).append('"');
+          wlFirst = false;
+        }
+        wl.append(']');
+        request.setAttribute("widgetLibraryJson", wl.toString());
+      }
 
       // In edit mode, layout builders preview the draft layout (bypasses cache)
       if (pageEditMode && EditorPermissionCommand.canBuildLayout(userSession)
@@ -669,6 +822,16 @@ public class PageServlet extends HttpServlet {
 
     } catch (Exception e) {
       LOG.error("Page error caught: " + e.getMessage(), e);
+    }
+  }
+
+  private static int intParam(HttpServletRequest request, String name, int defaultValue) {
+    String v = request.getParameter(name);
+    if (v == null) return defaultValue;
+    try {
+      return Integer.parseInt(v.trim());
+    } catch (NumberFormatException e) {
+      return defaultValue;
     }
   }
 }

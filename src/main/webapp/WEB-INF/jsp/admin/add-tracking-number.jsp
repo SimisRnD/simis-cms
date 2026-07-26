@@ -43,8 +43,8 @@
     <div class="grid-x grid-margin-x">
       <div class="small-12 medium-6 cell">
         <label>Shipping Carrier <span class="required">*</span>
-          <select id="shippingCarrierId" name="shippingCarrierId">
-            <option value="-1">Select</option>
+          <select id="shippingCarrierId" name="shippingCarrierId" required>
+            <option value="">Select</option>
             <c:forEach items="${shippingCarrierList}" var="shippingCarrier">
               <option value="${shippingCarrier.id}"<c:if test="${trackingNumber.shippingCarrierId eq shippingCarrier.id}"> selected</c:if>><c:out value="${shippingCarrier.code}" /> (<c:out value="${shippingCarrier.title}" />)</option>
             </c:forEach>

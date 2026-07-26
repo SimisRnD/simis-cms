@@ -50,7 +50,7 @@
             <input name="password" type="password" placeholder="Password" autocomplete="off" required>
           </label>
           <p class="help-text text-right">
-            <a href="${ctx}/forgot-password">Forgot password</a>
+            <a href="${ctx}/forgot-password">Forgot your password?</a>
           </p>
           <p><input type="submit" class="button primary radius expanded" value="Sign In"></input></p>
           <c:if test="${!empty oAuthProvider}">

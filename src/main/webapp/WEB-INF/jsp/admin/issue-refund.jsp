@@ -30,7 +30,7 @@
     <span aria-hidden="true">&times;</span>
   </button>
   <h4 id="refundFormRevealTitle">Issue a Refund</h4>
-  <form id="issueRefundForm" method="post" autocomplete="off">
+  <form id="issueRefundForm" method="post" autocomplete="off" onsubmit="return issueRefund()">
     <%-- Required by controller --%>
     <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
     <input type="hidden" name="token" value="${userSession.formToken}"/>
@@ -53,7 +53,19 @@
     </label>
     <p class="help-text" id="passwordHelp">Your password is required to process the refund</p>
     <div class="button-container">
-      <input type="submit" class="button radius expanded" value="Issue Refund" />
+      <input id="issueRefundButton" type="submit" class="button radius expanded" value="Issue Refund" />
     </div>
   </form>
 </div>
+<script>
+  function issueRefund() {
+    if (document.getElementById("issueRefundButton").disabled === true) {
+      return false;
+    }
+    if (confirm('Issue this refund? This action cannot be undone.')) {
+      document.getElementById("issueRefundButton").disabled = true;
+      return true;
+    }
+    return false;
+  }
+</script>
