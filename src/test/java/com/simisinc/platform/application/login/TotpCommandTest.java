@@ -21,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.charset.StandardCharsets;
+import java.time.Instant;
 
 import org.apache.commons.codec.binary.Base32;
 import org.junit.jupiter.api.Test;
@@ -95,5 +96,42 @@ class TotpCommandTest {
     assertTrue(uri.contains("issuer=SimIS%20CMS"));
     assertTrue(uri.contains("digits=6"));
     assertTrue(uri.contains("period=30"));
+  }
+
+  @Test
+  void verifyCodeAndMarkUsedSucceedsOnFirstUse() {
+    long now = Instant.now().getEpochSecond();
+    long userId = 42L;
+    String code = TotpCommand.generateCode(RFC_SECRET, now / 30L);
+    assertTrue(TotpCommand.verifyCodeAndMarkUsed(RFC_SECRET, code, userId));
+  }
+
+  @Test
+  void verifyCodeAndMarkUsedRejectsReplay() {
+    long now = Instant.now().getEpochSecond();
+    long userId = 43L;
+    String code = TotpCommand.generateCode(RFC_SECRET, now / 30L);
+    assertTrue(TotpCommand.verifyCodeAndMarkUsed(RFC_SECRET, code, userId), "first use must succeed");
+    assertFalse(TotpCommand.verifyCodeAndMarkUsed(RFC_SECRET, code, userId), "immediate replay must fail");
+  }
+
+  @Test
+  void verifyCodeAndMarkUsedIsolatesReplayByUser() {
+    long now = Instant.now().getEpochSecond();
+    long userA = 44L;
+    long userB = 45L;
+    String code = TotpCommand.generateCode(RFC_SECRET, now / 30L);
+    assertTrue(TotpCommand.verifyCodeAndMarkUsed(RFC_SECRET, code, userA), "user A first use must succeed");
+    assertTrue(TotpCommand.verifyCodeAndMarkUsed(RFC_SECRET, code, userB), "same code for user B must still succeed");
+    assertFalse(TotpCommand.verifyCodeAndMarkUsed(RFC_SECRET, code, userA), "user A replay must fail");
+  }
+
+  @Test
+  void verifyCodeAndMarkUsedRejectsWrongCode() {
+    long now = 1700003000L;
+    long userId = 46L;
+    String correct = TotpCommand.generateCode(RFC_SECRET, now / 30L);
+    String wrong = correct.equals("000000") ? "111111" : "000000";
+    assertFalse(TotpCommand.verifyCodeAndMarkUsed(RFC_SECRET, wrong, userId));
   }
 }
