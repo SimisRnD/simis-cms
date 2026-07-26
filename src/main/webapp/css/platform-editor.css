@@ -721,3 +721,92 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-mutate-btns {
 #sc-link-prompt button.sc-cancel {
   background: #555;
 }
+
+/* ── Widget picker ─────────────────────────────────────────────────────────── */
+
+#sc-widget-picker {
+  position: fixed;
+  z-index: 10020;
+  background: #fff;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  flex-direction: column;
+  width: 220px;
+  max-height: 320px;
+}
+
+#sc-widget-picker .sc-picker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 8px;
+  background: #f5f5f5;
+  border-bottom: 1px solid #ddd;
+  font-size: 11px;
+  font-weight: 600;
+  color: #333;
+  flex-shrink: 0;
+}
+
+#sc-widget-picker .sc-picker-close {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  color: #666;
+  padding: 0 2px;
+  line-height: 1;
+}
+
+#sc-widget-search {
+  margin: 6px 8px;
+  padding: 4px 6px;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  font-size: 12px;
+  outline: none;
+  flex-shrink: 0;
+}
+
+#sc-widget-search:focus {
+  border-color: #0056b3;
+}
+
+#sc-widget-list {
+  list-style: none;
+  margin: 0 0 4px;
+  padding: 0;
+  overflow-y: auto;
+  flex: 1;
+}
+
+#sc-widget-list li {
+  padding: 5px 12px;
+  font-size: 12px;
+  color: #333;
+  cursor: pointer;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+#sc-widget-list li:hover {
+  background: #e8f0fe;
+  color: #0056b3;
+}
+
+.sc-mutate-btn-add-widget {
+  background: rgba(16, 141, 149, 0.75);
+  color: #fff;
+  border: none;
+  border-radius: 3px;
+  padding: 2px 6px;
+  font-size: 11px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.sc-mutate-btn-add-widget:hover {
+  background: rgba(16, 141, 149, 1);
+}
