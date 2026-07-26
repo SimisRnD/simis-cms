@@ -305,8 +305,6 @@ public class DatasetDownloadRemoteFileCommand {
     }
 
     throw new IOException("Paged download exceeded the " + MAX_PAGES + "-page limit");
-    // Keep going
-    appendNextUrls(jsonRecordsNode, nextJson, jsonPagingPath, jsonRecordsPath, maxRows);
   }
 
 }
