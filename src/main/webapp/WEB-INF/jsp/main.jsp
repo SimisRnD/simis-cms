@@ -241,7 +241,7 @@
   </c:if>
   <%-- Javascript before content--%>
   <c:if test="${!fn:startsWith(pageRenderInfo.name, '/admin') && !fn:startsWith(pageRenderInfo.name, '/content-editor')}">
-    <c:if test="${!empty analyticsPropertyMap['analytics.google.tagmanager'] && fn:startsWith(analyticsPropertyMap['analytics.google.tagmanager'], 'GTM-')}">
+    <c:if test="${!empty analyticsPropertyMap['analytics.google.tagmanager'] && fn:startsWith(analyticsPropertyMap['analytics.google.tagmanager'], 'GTM-') && (analyticsPropertyMap['analytics.consentRequired'] ne 'true' or cookie['analytics-consent'].value eq 'accepted')}">
       <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
       new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
       j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
@@ -370,7 +370,7 @@
     <c:otherwise>
       <%-- Draw a regular page --%>
       <c:if test="${!fn:startsWith(pageRenderInfo.name, '/content-editor')}">
-        <c:if test="${!empty analyticsPropertyMap['analytics.google.tagmanager'] && fn:startsWith(analyticsPropertyMap['analytics.google.tagmanager'], 'GTM-')}">
+        <c:if test="${!empty analyticsPropertyMap['analytics.google.tagmanager'] && fn:startsWith(analyticsPropertyMap['analytics.google.tagmanager'], 'GTM-') && (analyticsPropertyMap['analytics.consentRequired'] ne 'true' or cookie['analytics-consent'].value eq 'accepted')}">
         <noscript><iframe src="https://www.googletagmanager.com/ns.html?id=${js:escape(analyticsPropertyMap['analytics.google.tagmanager'])}"
         height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>
         </c:if>
@@ -633,7 +633,9 @@
       });
     </script>
   </g:compress>
-  <c:if test="${!fn:startsWith(pageRenderInfo.name, '/admin')}">
+  <c:if test="${!fn:startsWith(pageRenderInfo.name, '/admin') && (analyticsPropertyMap['analytics.consentRequired'] ne 'true' or cookie['analytics-consent'].value eq 'accepted')}">
+    <c:set var="doNotTrack" value="${header['DNT'] eq '1' || header['Sec-GPC'] eq '1'}"/>
+  <c:if test="${!fn:startsWith(pageRenderInfo.name, '/admin') && !doNotTrack}">
     <c:if test="${!empty analyticsPropertyMap['analytics.service'] && 'google' eq analyticsPropertyMap['analytics.service'] && !empty analyticsPropertyMap['analytics.google.key']}">
       <script async src="https://www.googletagmanager.com/gtag/js?id=${js:escape(analyticsPropertyMap['analytics.google.key'])}"></script>
       <script>
@@ -649,6 +651,26 @@
     <c:if test="${!empty analyticsPropertyMap['analytics.brandcdn.value'] && !empty analyticsPropertyMap['analytics.brandcdn.value2']}">
       <script type="text/javascript" src="//tag.brandcdn.com/autoscript/${js:escape(analyticsPropertyMap['analytics.brandcdn.value'])}/${js:escape(analyticsPropertyMap['analytics.brandcdn.value2'])}"></script>
     </c:if>
+  </c:if>
+  <c:if test="${analyticsPropertyMap['analytics.consentRequired'] eq 'true' and cookie['analytics-consent'].value ne 'accepted' and cookie['analytics-consent'].value ne 'declined'}">
+    <div id="analytics-consent-banner" style="position:fixed;bottom:0;left:0;right:0;z-index:9999;background:#1a1a1a;color:#fff;padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+      <span style="flex:1;min-width:200px;">This site uses analytics to understand how visitors use it.</span>
+      <button id="analytics-consent-accept" class="button small success" style="margin:0;">Accept</button>
+      <button id="analytics-consent-decline" class="button small secondary" style="margin:0;">Decline</button>
+    </div>
+    <script>
+      var analyticsConsentAccept = document.getElementById('analytics-consent-accept');
+      if (analyticsConsentAccept) {
+        analyticsConsentAccept.addEventListener('click', function() {
+          Cookies.set('analytics-consent', 'accepted', { expires: 365 });
+          window.location.reload();
+        });
+        document.getElementById('analytics-consent-decline').addEventListener('click', function() {
+          Cookies.set('analytics-consent', 'declined', { expires: 365 });
+          document.getElementById('analytics-consent-banner').style.display = 'none';
+        });
+      }
+    </script>
   </c:if>
 </body>
 </html>
