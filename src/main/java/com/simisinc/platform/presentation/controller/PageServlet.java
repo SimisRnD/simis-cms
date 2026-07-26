@@ -224,12 +224,21 @@ public class PageServlet extends HttpServlet {
         if (StringUtils.isNotBlank(redirectLocation)) {
           // Handle a redirect immediately
           if (!redirectLocation.startsWith("http:") && !redirectLocation.startsWith("https:")) {
-            redirectLocation =
-                scheme + "://" +
-                    serverName +
-                    (port != 80 ? ":" + port : "") +
-                    (redirectLocation.startsWith("/") ? "" : "/") +
-                    redirectLocation;
+            String siteUrl = StringUtils.trimToNull(LoadSitePropertyCommand.loadByName("site.url"));
+            String baseUrl;
+            if (siteUrl != null) {
+              try {
+                java.net.URI siteUri = new java.net.URI(siteUrl);
+                int sitePort = siteUri.getPort();
+                baseUrl = siteUri.getScheme() + "://" + siteUri.getHost() +
+                    (sitePort != -1 ? ":" + sitePort : "");
+              } catch (java.net.URISyntaxException e) {
+                baseUrl = scheme + "://" + serverName + (port != 80 ? ":" + port : "");
+              }
+            } else {
+              baseUrl = scheme + "://" + serverName + (port != 80 ? ":" + port : "");
+            }
+            redirectLocation = baseUrl + (redirectLocation.startsWith("/") ? "" : "/") + redirectLocation;
           }
           response.setHeader("Location", redirectLocation);
           response.setStatus(SC_MOVED_PERMANENTLY);

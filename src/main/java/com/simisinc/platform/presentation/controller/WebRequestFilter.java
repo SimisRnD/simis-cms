@@ -61,6 +61,7 @@ import com.simisinc.platform.application.ecommerce.LoadCartCommand;
 import com.simisinc.platform.application.ecommerce.PricingRuleCommand;
 import com.simisinc.platform.application.login.AuthenticateLoginCommand;
 import com.simisinc.platform.application.login.LogoutCommand;
+import com.simisinc.platform.application.login.MfaEnforcementCommand;
 import com.simisinc.platform.application.oauth.OAuthLogoutCommand;
 import com.simisinc.platform.application.oauth.OAuthRequestCommand;
 import com.simisinc.platform.domain.model.User;
@@ -184,17 +185,22 @@ public class WebRequestFilter implements Filter {
     if (requireSSL && !"https".equalsIgnoreCase(scheme)) {
       if (!"localhost".equals(request.getServerName()) && !InetAddressUtils.isIPv4(request.getServerName())
           && !InetAddressUtils.isIPv6(request.getServerName())) {
-        String requestURL = httpServletRequest.getRequestURL().toString();
-        requestURL = StringUtils.replace(requestURL, "http://", "https://");
-        // The request URL is built from the client-supplied Host header, so it is only echoed back when the
-        // hostname is named by an allow list. Otherwise prefer the configured site, because the allow list is
-        // empty unless an operator created hostname-allow-list.csv, and an empty list vouches for nothing.
-        String siteUrl = StringUtils.trimToNull(LoadSitePropertyCommand.loadByName("site.url"));
-        if (siteUrl != null && !HostnameCommand.isExplicitlyAllowed(request.getServerName())) {
-          requestURL = StringUtils.removeEnd(siteUrl, "/") + safeRedirectPath(requestURI);
+        String redirectURL;
+        if (HostnameCommand.isExplicitlyAllowed(request.getServerName())) {
+          // Operator-listed hostname: safe to echo the Host header back in the Location
+          redirectURL = StringUtils.replace(httpServletRequest.getRequestURL().toString(), "http://", "https://");
+        } else {
+          String siteUrl = StringUtils.trimToNull(LoadSitePropertyCommand.loadByName("site.url"));
+          if (siteUrl == null) {
+            // No site.url and no allow list — cannot determine the canonical host safely; skip SSL redirect
+            LOG.warn("SSL redirect skipped: site.url is not configured and hostname is not allow-listed");
+            chain.doFilter(request, servletResponse);
+            return;
+          }
+          redirectURL = StringUtils.removeEnd(siteUrl, "/") + safeRedirectPath(requestURI);
         }
-        LOG.debug("Redirecting to: " + requestURL);
-        do301(servletResponse, requestURL);
+        LOG.debug("Redirecting to: " + redirectURL);
+        do301(servletResponse, redirectURL);
         return;
       }
     }
@@ -456,6 +462,14 @@ public class WebRequestFilter implements Filter {
           // Audit the cookie-token (remember-me) auto-login for the SIEM; source marker "token"
           SaveAuditEventCommand.recordAuthentication("authentication.login.success", "success",
               user.getId(), user.getEmail(), ipAddress, userSession.getSessionId(), "token");
+          // Enforce org-level MFA before the user accesses any page (IA-2(1))
+          if (MfaEnforcementCommand.requiresEnrollment(userSession, user)) {
+            String enrollUrl = MfaEnforcementCommand.getEnrollmentUrl();
+            if (!MfaEnforcementCommand.isExemptUrl(resource, enrollUrl)) {
+              do302(servletResponse, enrollUrl);
+              return;
+            }
+          }
           // Extend the token expiration date
           int twoWeeksSecondsInt = 14 * 24 * 60 * 60;
           AuthenticateLoginCommand.extendTokenExpiration(cookieUserToken, twoWeeksSecondsInt);
@@ -498,6 +512,15 @@ public class WebRequestFilter implements Filter {
       LOG.debug("Updating user roles and groups");
       userSession.setRoleList(user.getRoleList());
       userSession.setGroupList(user.getGroupList());
+
+      // Enforce org-level MFA on every request for users whose role requires it (IA-2(1))
+      if (MfaEnforcementCommand.requiresEnrollment(userSession, user)) {
+        String enrollUrl = MfaEnforcementCommand.getEnrollmentUrl();
+        if (!MfaEnforcementCommand.isExemptUrl(resource, enrollUrl)) {
+          do302(servletResponse, enrollUrl);
+          return;
+        }
+      }
     }
 
     // The home page can show an overlay (a couple of different kinds)
@@ -563,19 +586,7 @@ public class WebRequestFilter implements Filter {
    * @return the same path when it is a plain absolute path, otherwise "/"
    */
   static String safeRedirectPath(String requestURI) {
-    // Must be an absolute path; reject protocol-relative ("//host") and backslash variants a browser reads as a host
-    if (requestURI == null || !requestURI.startsWith("/") || requestURI.startsWith("//")
-        || requestURI.startsWith("/\\")) {
-      return "/";
-    }
-    // Reject control characters, including the CR and LF that could split the response header
-    for (int i = 0; i < requestURI.length(); i++) {
-      char c = requestURI.charAt(i);
-      if (c < 0x20 || c == 0x7f) {
-        return "/";
-      }
-    }
-    return requestURI;
+    return HostnameCommand.safeRedirectPath(requestURI);
   }
 
   private void doHealthCheck(ServletRequest request, ServletResponse servletResponse) throws IOException {

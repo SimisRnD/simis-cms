@@ -471,7 +471,7 @@
         <jsp:include page="${PageBody}" flush="true"/>
       </div>
       <c:if test="${!empty sitePropertyMap['site.confirmation'] && sitePropertyMap['site.confirmation'] eq 'true'}">
-        <div id="site-confirmation" class="reveal full" data-reveal data-close-on-esc="false" data-close-on-click="false" data-animation-out="fade-out fast">
+        <div id="site-confirmation" class="reveal full" data-reveal data-close-on-esc="false" data-close-on-click="false" data-animation-out="fade-out fast" role="dialog" aria-modal="true" aria-label="Site Confirmation">
           <div style="position:absolute; top: 50%; left: 50%; transform: translateY(-50%) translateX(-50%)">
             <div class="modal-prompt">
               <p>
@@ -504,8 +504,8 @@
       <c:choose>
         <c:when test="${!empty requestPricingRule.promoCode}">
           <div id="site-promo-overlay" class="animated slideInUp faster delay-1s hide-for-print">
-            <button id="site-promo-close-button" class="close-button" type="button">
-              <span><i class="${font:fal()} fa-circle-xmark"></i></span>
+            <button id="site-promo-close-button" class="close-button" type="button" aria-label="Close">
+              <span aria-hidden="true"><i class="${font:fal()} fa-circle-xmark"></i></span>
             </button>
             <h4>Thanks for visiting!</h4>
             <p>We've added a promo code for use on your next purchase</p>
@@ -513,8 +513,8 @@
         </c:when>
         <c:when test="${!empty requestOverlayHeadline}">
           <div id="site-newsletter-overlay" class="animated slideInUp faster delay-3s hide-for-print">
-            <button id="site-newsletter-close-button" class="close-button" type="button">
-              <span><i class="${font:fal()} fa-circle-xmark"></i></span>
+            <button id="site-newsletter-close-button" class="close-button" type="button" aria-label="Close">
+              <span aria-hidden="true"><i class="${font:fal()} fa-circle-xmark"></i></span>
             </button>
             <h4><c:out value="${requestOverlayHeadline}" /></h4>
             <p><c:out value="${requestOverlayMessage}" /></p>

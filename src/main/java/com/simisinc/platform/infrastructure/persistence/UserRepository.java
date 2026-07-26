@@ -129,7 +129,8 @@ public class UserRepository {
     return (User) DB.selectRecordFrom(
         TABLE_NAME,
         new SqlUtils()
-            .add("account_token = ?", token),
+            .add("account_token = ?", token)
+            .add("(account_token_expires IS NULL OR account_token_expires > NOW())"),
         UserRepository::buildRecord);
   }
 
@@ -410,13 +411,16 @@ public class UserRepository {
 
   public static User createAccountToken(User record) {
     String newToken = UUID.randomUUID().toString();
+    Timestamp expires = new Timestamp(System.currentTimeMillis() + 86_400_000L); // 24 hours
     SqlUtils updateValues = new SqlUtils()
         .add("account_token", newToken)
+        .add("account_token_expires", expires)
         .add("modified", new Timestamp(System.currentTimeMillis()));
     SqlUtils where = new SqlUtils()
         .add("user_id = ?", record.getId());
     if (DB.update(TABLE_NAME, updateValues, where)) {
       record.setAccountToken(newToken);
+      record.setAccountTokenExpires(expires);
       return record;
     }
     LOG.error("createAccountToken failed!");
@@ -539,6 +543,7 @@ public class UserRepository {
       record.setCreated(rs.getTimestamp("created"));
       record.setModified(rs.getTimestamp("modified"));
       record.setAccountToken(rs.getString("account_token"));
+      record.setAccountTokenExpires(rs.getTimestamp("account_token_expires"));
       record.setValidated(rs.getTimestamp("validated"));
       record.setCreatedBy(rs.getLong("created_by"));
       record.setModifiedBy(rs.getLong("modified_by"));

@@ -59,6 +59,7 @@ public class UserSession implements Serializable {
   private List<Role> roleList = null;
   private List<Group> groupList = null;
   private long loginTime = -1;
+  private long stepUpExpiresAt = 0L;
   private String formToken = UUID.randomUUID().toString();
   private boolean cookieChecked = false;
   private Cart cart = null;
@@ -197,6 +198,14 @@ public class UserSession implements Serializable {
 
   public long getLoginTime() {
     return loginTime;
+  }
+
+  public long getStepUpExpiresAt() {
+    return stepUpExpiresAt;
+  }
+
+  public void setStepUpExpiresAt(long stepUpExpiresAt) {
+    this.stepUpExpiresAt = stepUpExpiresAt;
   }
 
   public String getFormToken() {
