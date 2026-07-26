@@ -79,6 +79,7 @@ public class SaveFolderCommand {
     folder.setCreatedBy(folderBean.getCreatedBy());
     folder.setModifiedBy(folderBean.getModifiedBy());
     folder.setGuestPrivacyType(folderBean.getGuestPrivacyType());
+    folder.setAllowedExtensions(folderBean.getAllowedExtensions());
     folder.setFolderGroupList(folderBean.getFolderGroupList());
     folder.setFolderCategoryList(folderBean.getFolderCategoryList());
     return FolderRepository.save(folder);

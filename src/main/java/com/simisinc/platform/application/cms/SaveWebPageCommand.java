@@ -125,6 +125,8 @@ public class SaveWebPageCommand {
     webPage.setDraft(webPageBean.getDraft());
     webPage.setSitemapPriority(webPageBean.getSitemapPriority());
     webPage.setSitemapChangeFrequency(webPageBean.getSitemapChangeFrequency());
+    webPage.setPublishAt(webPageBean.getPublishAt());
+    webPage.setExpiresAt(webPageBean.getExpiresAt());
     WebPage result = WebPageRepository.save(webPage);
 
     if (result != null) {

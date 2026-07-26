@@ -24,7 +24,7 @@
 <jsp:useBean id="address" class="com.simisinc.platform.domain.model.ecommerce.Address" scope="request"/>
 <jsp:useBean id="shippingCountryList" class="java.util.ArrayList" scope="request"/>
 <%-- Form body--%>
-<script>
+<script nonce="${cspNonce}">
   function checkForm${widgetContext.uniqueId}() {
     if (document.getElementById("shippingCountry").value.trim() == "") {
       alert("Please choose a Country");
@@ -180,7 +180,7 @@
     <button class="button primary" name="button" value="save">Save &amp; Continue</button>
   </div>
 </form>
-<script>
+<script nonce="${cspNonce}">
   function updateCountry${widgetContext.uniqueId}() {
     var countryElement = document.getElementById("country");
     var country = countryElement.options[countryElement.selectedIndex].value;

@@ -222,6 +222,7 @@
   <widget name="streamDataset" class="com.simisinc.platform.presentation.widgets.admin.datasets.StreamDatasetWidget" />
   <widget name="sendMail" class="com.simisinc.platform.presentation.widgets.admin.SendMailWidget" />
   <widget name="siteStats" class="com.simisinc.platform.presentation.widgets.admin.SiteStatsWidget" />
+  <widget name="analyticsRetention" class="com.simisinc.platform.presentation.widgets.admin.AnalyticsRetentionWidget" />
   <widget name="communityStats" class="com.simisinc.platform.presentation.widgets.admin.cms.CommunityStatsWidget" />
   <widget name="ecommerceStats" class="com.simisinc.platform.presentation.widgets.admin.ecommerce.EcommerceStatsWidget" />
   <widget name="productList" class="com.simisinc.platform.presentation.widgets.admin.ecommerce.ProductListWidget" />

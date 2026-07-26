@@ -20,7 +20,7 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="order" class="com.simisinc.platform.domain.model.ecommerce.Order" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}" /></h4>
+  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <c:if test="${testMode eq 'true'}"><span class="label warning">TEST MODE</span></c:if>
@@ -50,6 +50,16 @@
 
 <script>
   function openShipConfirm() {
+<form method="post" onsubmit="return shipOrder()">
+  <%-- Required by controller --%>
+  <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
+  <input type="hidden" name="token" value="${userSession.formToken}"/>
+  <%-- The form --%>
+  <input type="hidden" name="uniqueId" value="${order.uniqueId}"/>
+  <button id="shipOrderButton" class="button primary expanded">Send Order to Shipping</button>
+</form>
+<script nonce="${cspNonce}">
+  function shipOrder() {
     if (document.getElementById("shipOrderButton").disabled === true) {
       return;
     }

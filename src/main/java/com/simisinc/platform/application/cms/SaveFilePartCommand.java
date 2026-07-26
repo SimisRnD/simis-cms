@@ -17,6 +17,7 @@
 package com.simisinc.platform.application.cms;
 
 import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.filesystem.FileSystemCommand;
 import com.simisinc.platform.domain.model.cms.FileItem;
 import com.simisinc.platform.presentation.controller.WidgetContext;
@@ -60,6 +61,10 @@ public class SaveFilePartCommand {
         LOG.debug("The file size was 0");
         return null;
       }
+      long maxBytes = resolveMaxUploadBytes();
+      if (fileLength > maxBytes) {
+        throw new DataException("The file exceeds the maximum allowed upload size");
+      }
 
       LOG.debug("Found a file...");
       submittedFilename = Paths.get(filePart.getSubmittedFileName()).getFileName().toString(); // MSIE fix.
@@ -92,6 +97,18 @@ public class SaveFilePartCommand {
     fileItemBean.setCreatedBy(context.getUserId());
     fileItemBean.setModifiedBy(context.getUserId());
     return fileItemBean;
+  }
+
+  private static long resolveMaxUploadBytes() {
+    long maxBytes = 10_485_760L; // 10MB default
+    String prop = LoadSitePropertyCommand.loadByName("system.upload.maxBytes");
+    if (prop != null && !prop.isBlank()) {
+      try {
+        maxBytes = Long.parseLong(prop.trim());
+      } catch (NumberFormatException ignored) {
+      }
+    }
+    return maxBytes;
   }
 
   public static void cleanupFile(FileItem fileItemBean) {

@@ -18,6 +18,7 @@
   <div class="callout radius alert" role="alert" tabindex="-1">
     <p class="text-center"><c:out value="${errorMessage}" /></p>
   </div>
+  <script nonce="${cspNonce}">document.addEventListener('DOMContentLoaded',function(){var el=document.querySelector('[role="alert"]');if(el)el.focus();});</script>
 </c:if>
 <c:if test="${!empty warningMessage}">
   <div class="callout radius warning" role="alert" tabindex="-1">
@@ -26,6 +27,7 @@
 </c:if>
 <c:if test="${!empty errorMessage || !empty warningMessage}">
   <script>document.addEventListener('DOMContentLoaded',function(){var el=document.querySelector('[role="alert"]');if(el)el.focus();});</script>
+  <script nonce="${cspNonce}">document.addEventListener('DOMContentLoaded',function(){var el=document.querySelector('[role="alert"]');if(el)el.focus();});</script>
 </c:if>
 <c:if test="${!empty successMessage}">
   <div class="callout radius success" role="status" data-closable>

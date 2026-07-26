@@ -17,7 +17,11 @@
 package com.simisinc.platform.presentation.widgets.admin.cms;
 
 import java.lang.reflect.InvocationTargetException;
+import java.util.Arrays;
+import java.util.Set;
+import java.util.stream.Collectors;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -115,6 +119,9 @@ public class FolderFileDropZoneWidget extends GenericWidget {
     // Check for a sub-folder
     long subFolderId = context.getParameterAsLong("subFolderId", -1);
 
+    // Load folder to check allowed extensions
+    Folder folder = FolderRepository.findById(folderId);
+
     FileItem fileItemBean = null;
     try {
       // Check for a file
@@ -128,6 +135,17 @@ public class FolderFileDropZoneWidget extends GenericWidget {
       fileItemBean.setVersion("1.0");
       fileItemBean.setCreatedBy(context.getUserId());
       fileItemBean.setModifiedBy(context.getUserId());
+      // Enforce the folder's extension allowlist when one is configured
+      if (folder != null && StringUtils.isNotBlank(folder.getAllowedExtensions())) {
+        Set<String> allowed = Arrays.stream(folder.getAllowedExtensions().split("[,\\s]+"))
+            .map(String::toLowerCase)
+            .filter(StringUtils::isNotBlank)
+            .collect(Collectors.toSet());
+        String ext = StringUtils.lowerCase(fileItemBean.getExtension());
+        if (!allowed.contains(ext)) {
+          throw new DataException("File type '." + ext + "' is not allowed in this folder");
+        }
+      }
       // Validate the file
       ValidateFileCommand.checkFileExtension(fileItemBean.getExtension());
       ValidateFileCommand.checkFile(fileItemBean);

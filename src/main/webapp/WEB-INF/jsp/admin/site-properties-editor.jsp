@@ -16,13 +16,14 @@
 <%@ page import="java.util.TimeZone" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="html" uri="/WEB-INF/tlds/html-functions.tld" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="sitePropertyList" class="java.util.ArrayList" scope="request"/>
 <link href="${ctx}/css/spectrum-1.8.1/spectrum.css" rel="stylesheet">
 <script src="${ctx}/javascript/spectrum-1.8.1/spectrum.js"></script>
 <%-- Handle image uploads --%>
-<script>
+<script nonce="${cspNonce}">
 
   var currentPhotoId = 'none';
   function SetPhotoId(id) {
@@ -51,7 +52,7 @@
   }
 </script>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}" /></h4>
+  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
 <form method="post">
   <%-- Required by controller --%>
@@ -204,7 +205,7 @@
 <div class="reveal large" id="imageBrowserReveal" data-reveal data-animation-in="slide-in-down fast" role="dialog" aria-modal="true" aria-label="Image Browser">
   <h3>Loading...</h3>
 </div>
-<script>
+<script nonce="${cspNonce}">
   <%-- Map the variable property to the mapped CSS classes --%>
   var colorIdList = [];
   var colorSelectorList = [];
@@ -326,7 +327,7 @@
     }
   });
 </script>
-<script>
+<script nonce="${cspNonce}">
   $('#imageBrowserReveal').on('open.zf.reveal', function () {
     $('#imageBrowserReveal').html("<h3>Loading...</h3>");
     $.ajax({

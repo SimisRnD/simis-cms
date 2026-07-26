@@ -120,7 +120,9 @@ CREATE TABLE web_pages (
   show_in_sitemap BOOLEAN DEFAULT true,
   has_redirect BOOLEAN DEFAULT false,
   sitemap_priority NUMERIC(2,1) DEFAULT 0.5,
-  sitemap_changefreq VARCHAR(20)
+  sitemap_changefreq VARCHAR(20),
+  publish_at TIMESTAMP,
+  expires_at TIMESTAMP
 );
 CREATE INDEX web_pages_link_idx ON web_pages(link);
 CREATE INDEX web_pages_search_idx ON web_pages(searchable);
@@ -474,7 +476,8 @@ CREATE TABLE folders (
   allows_guests BOOLEAN DEFAULT FALSE,
   guest_privacy_type INTEGER NOT NULL,
   enabled BOOLEAN DEFAULT true,
-  has_categories BOOLEAN DEFAULT FALSE
+  has_categories BOOLEAN DEFAULT FALSE,
+  allowed_extensions VARCHAR(500)
 );
 CREATE INDEX folders_nm_idx ON folders(name);
 CREATE INDEX folders_ag_idx ON folders(has_allowed_groups);

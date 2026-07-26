@@ -23,7 +23,7 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="cancelUrl" class="java.lang.String" scope="request"/>
 <script src="${ctx}/javascript/tinymce-7.9.3/tinymce.min.js"></script>
-<script>
+<script nonce="${cspNonce}">
   tinymce.init({
     license_key: 'gpl',
     selector: '.html-field',
@@ -60,6 +60,7 @@
     }
   </style>
 
+<script nonce="${cspNonce}">
   $(document).ready(function() {
     $('textarea').on('input', function(event) {
       var errorEl = document.getElementById("error-" + this.id);
@@ -130,7 +131,7 @@
   <input type="hidden" name="token" value="${userSession.formToken}"/>
   <%-- Title and Message block --%>
   <c:if test="${!empty title}">
-    <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}" /></h4>
+    <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
   </c:if>
   <c:if test="${!empty subtitle}">
     <p class="subheader"><c:out value="${subtitle}" /></p>
