@@ -103,6 +103,9 @@
       <meta name="og:image" content="<c:out value="${sitePropertyMap['site.url']}"/><c:out value="${sitePropertyMap['site.image']}"/>">
     </c:when>
   </c:choose>
+  <c:if test="${!empty pageRenderInfo.canonicalUrl}">
+    <link rel="canonical" href="<c:out value="${pageRenderInfo.canonicalUrl}"/>" />
+  </c:if>
   <%-- CSS --%>
     <c:if test="${!empty themePropertyMap['theme.fonts.body']}">
       <link rel="stylesheet" href="${ctx}/css/google-fonts/<c:out value="${themePropertyMap['theme.fonts.body']}"/>.css">

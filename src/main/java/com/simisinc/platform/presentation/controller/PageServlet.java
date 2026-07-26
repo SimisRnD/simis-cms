@@ -708,6 +708,24 @@ public class PageServlet extends HttpServlet {
         pageRenderInfo.setImageUrl(webPage.getImageUrl());
       }
 
+      // Set canonical URL for SEO (issue #401)
+      String siteUrl = (String) sitePropertyMap.get("site.url");
+      if (StringUtils.isNotBlank(siteUrl)) {
+        String canonicalUrl = null;
+        if (thisItem != null) {
+          canonicalUrl = siteUrl + "/items/" + thisCollection.getUniqueId() + "/" + thisItem.getUniqueId();
+        } else if (thisCollection != null) {
+          canonicalUrl = siteUrl + "/items/" + thisCollection.getUniqueId();
+        } else if (webPage != null && StringUtils.isNotBlank(webPage.getLink())) {
+          canonicalUrl = siteUrl + webPage.getLink();
+        } else if (StringUtils.isNotBlank(pagePath) && !pagePath.equals("/")) {
+          canonicalUrl = siteUrl + pagePath;
+        }
+        if (StringUtils.isNotBlank(canonicalUrl)) {
+          pageRenderInfo.setCanonicalUrl(canonicalUrl);
+        }
+      }
+
       // Finally... we have a page ready to be processed...
       if (LOG.isDebugEnabled()) {
         LOG.debug(request.getMethod() + " page " + pageRef.getName());

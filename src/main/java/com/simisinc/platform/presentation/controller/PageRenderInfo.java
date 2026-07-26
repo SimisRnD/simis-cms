@@ -41,6 +41,7 @@ public class PageRenderInfo implements ContainerRenderInfo, Serializable {
   private String description;
   private String imageUrl;
   private String pagePath;
+  private String canonicalUrl;
   private String cssClass = null;
 
   public PageRenderInfo() {
@@ -129,6 +130,14 @@ public class PageRenderInfo implements ContainerRenderInfo, Serializable {
 
   public String getCssClass() {
     return cssClass;
+  }
+
+  public String getCanonicalUrl() {
+    return canonicalUrl;
+  }
+
+  public void setCanonicalUrl(String canonicalUrl) {
+    this.canonicalUrl = canonicalUrl;
   }
 
 }
