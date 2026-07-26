@@ -471,7 +471,7 @@
         <jsp:include page="${PageBody}" flush="true"/>
       </div>
       <c:if test="${!empty sitePropertyMap['site.confirmation'] && sitePropertyMap['site.confirmation'] eq 'true'}">
-        <div id="site-confirmation" class="reveal full" data-reveal data-close-on-esc="false" data-close-on-click="false" data-animation-out="fade-out fast">
+        <div id="site-confirmation" class="reveal full" data-reveal data-close-on-esc="false" data-close-on-click="false" data-animation-out="fade-out fast" role="dialog" aria-modal="true" aria-label="Site Confirmation">
           <div style="position:absolute; top: 50%; left: 50%; transform: translateY(-50%) translateX(-50%)">
             <div class="modal-prompt">
               <p>

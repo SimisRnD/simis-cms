@@ -530,7 +530,7 @@
       <c:if test="${!empty cancelUrl}"><span class="button-gap"><a class="button radius secondary" href="${ctx}<c:out value="${cancelUrl}"/>">Cancel</a></span></c:if>
     </div>
 </form>
-<div class="reveal large" id="imageBrowserReveal" data-reveal data-animation-in="slide-in-down fast">
+<div class="reveal large" id="imageBrowserReveal" data-reveal data-animation-in="slide-in-down fast" role="dialog" aria-modal="true" aria-label="Image Browser">
   <h3>Loading...</h3>
 </div>
 <script>
