@@ -74,7 +74,7 @@
       </div>
     </c:when>
     <c:otherwise>
-      <div class="platform-content">${contentHtml}</div>
+      <div class="platform-content"<c:if test="${pageEditMode eq 'true' && !empty uniqueId}"> data-content-unique-id="<c:out value="${uniqueId}"/>" data-widget-id="<c:out value="${widgetContext.uniqueId}"/>" data-page-uri="<c:out value="${widgetContext.uri}"/>"</c:if>>${contentHtml}</div>
     </c:otherwise>
   </c:choose>
 </div>
