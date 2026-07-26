@@ -97,7 +97,7 @@ class DatabaseMigrationTest {
         .withEnv("POSTGRES_PASSWORD", DB_PASSWORD)
         .withEnv("POSTGRES_DB", BOOTSTRAP_DB)
         .withExposedPorts(POSTGRES_PORT)
-        .waitingFor(Wait.forListeningPort());
+        .waitingFor(Wait.forLogMessage(".*database system is ready to accept connections.*\\n", 1));
     postgres.start();
 
     // The migration must run against a database that does NOT already have PostGIS: the postgis
