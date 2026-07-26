@@ -87,7 +87,7 @@
         <select id="${widgetContext.uniqueId}<c:out value="${formField.name}"/>" name="${widgetContext.uniqueId}<c:out value="${formField.name}"/>">
           <option value="">&lt; Please Choose &gt;</option>
           <c:forEach items="${formField.listOfOptions}" var="option">
-            <option value="${option.key}"><c:out value="${option.value}" /></option>
+            <option value="<c:out value="${option.key}"/>"><c:out value="${option.value}" /></option>
           </c:forEach>
         </select>
       </c:when>

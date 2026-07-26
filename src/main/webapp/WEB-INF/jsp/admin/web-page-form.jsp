@@ -45,7 +45,7 @@
           if (!confirm("Are you sure you want to DELETE this page?")) {
               return;
           }
-          window.location.href = '${widgetContext.uri}?action=deletePage&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&webPageId=${webPage.id}';
+          postAction('${widgetContext.uri}?action=deletePage&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&webPageId=${webPage.id}');
       }
     </c:if>
 </script>
@@ -90,6 +90,20 @@
           </label>
         </div>
       </label>
+      <div class="grid-x grid-padding-x">
+        <div class="small-12 medium-6 cell">
+          <c:set var="publishAtFormatted"><c:if test="${!empty webPage.publishAt}"><fmt:formatDate pattern="yyyy-MM-dd'T'HH:mm" value="${webPage.publishAt}"/></c:if></c:set>
+          <label>Go live at (optional)
+            <input type="datetime-local" name="publishAt" value="${publishAtFormatted}">
+          </label>
+        </div>
+        <div class="small-12 medium-6 cell">
+          <c:set var="expiresAtFormatted"><c:if test="${!empty webPage.expiresAt}"><fmt:formatDate pattern="yyyy-MM-dd'T'HH:mm" value="${webPage.expiresAt}"/></c:if></c:set>
+          <label>Expire at (optional)
+            <input type="datetime-local" name="expiresAt" value="${expiresAtFormatted}">
+          </label>
+        </div>
+      </div>
       <div class="grid-x grid-padding-x">
         <div class="small-12 medium-3 cell">
           <label>Show in Sitemap.xml?
@@ -139,7 +153,7 @@
     </div>
   </div>
   <div class="button-container">
-    <input type="submit" class="button radius success" value="Save" />
+    <input type="submit" class="button radius success" value="Save" data-disable-on-submit="Saving..." />
     <c:choose>
       <c:when test="${!empty returnPage}">
         <a href="${returnPage}" class="button radius secondary">Cancel</a>
@@ -156,7 +170,7 @@
     </c:if>
   </div>
 </form>
-<div class="reveal large" id="imageBrowserReveal" data-reveal data-animation-in="slide-in-down fast">
+<div class="reveal large" id="imageBrowserReveal" data-reveal data-animation-in="slide-in-down fast" role="dialog" aria-modal="true" aria-label="Image Browser">
   <h3>Loading...</h3>
 </div>
 <script>
