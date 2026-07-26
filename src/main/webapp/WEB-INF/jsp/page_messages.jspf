@@ -24,14 +24,17 @@
   <div class="callout radius warning" role="alert" tabindex="-1">
     <p class="text-center"><c:out value="${warningMessage}" /></p>
   </div>
+</c:if>
+<c:if test="${!empty errorMessage || !empty warningMessage}">
+  <script>document.addEventListener('DOMContentLoaded',function(){var el=document.querySelector('[role="alert"]');if(el)el.focus();});</script>
   <script nonce="${cspNonce}">document.addEventListener('DOMContentLoaded',function(){var el=document.querySelector('[role="alert"]');if(el)el.focus();});</script>
 </c:if>
 <c:if test="${!empty successMessage}">
   <div class="callout radius success" role="status" data-closable>
     <p class="text-center" style="margin-bottom:0"><c:out value="${successMessage}" /></p>
-    <%--<button class="close-button" aria-label="Dismiss alert" type="button" data-close>--%>
-      <%--<span aria-hidden="true">&times;</span>--%>
-    <%--</button>--%>
+    <button class="close-button" aria-label="Dismiss alert" type="button" data-close>
+      <span aria-hidden="true">&times;</span>
+    </button>
   </div>
 </c:if>
 <c:if test="${!empty message}">

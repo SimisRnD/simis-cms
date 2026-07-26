@@ -26,6 +26,27 @@
 <c:if test="${useCaptcha eq 'true' && !empty googleSiteKey}">
 <script src='https://www.google.com/recaptcha/api.js' nonce="${cspNonce}"></script>
 </c:if>
+<style>
+  .form-field-error {
+    border-left: 4px solid #cc4c28 !important;
+    background-color: rgba(204, 76, 40, 0.02);
+  }
+  .error-message {
+    display: none;
+    color: #cc4c28;
+    font-weight: 500;
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+  }
+  .error-message i {
+    margin-right: 0.5rem;
+  }
+  .error-message.show {
+    display: block;
+  }
+</style>
+
+<script>
 <script nonce="${cspNonce}">
   <c:if test="${useCaptcha eq 'true' && !empty googleSiteKey}">
     function onSubmit(token) {
@@ -33,9 +54,28 @@
     }
   </c:if>
   $(document).ready(function() {
+    $('#form${widgetContext.uniqueId} input:not([type="submit"])').on('input', function(e) {
+      if (e.keyCode === 13) {
+          return false;
+      }
+      var errorEl = document.getElementById("error-" + this.id);
+      if (errorEl && this.value.trim() !== "") {
+        errorEl.classList.remove("show");
+        this.classList.remove("form-field-error");
+        this.setAttribute("aria-invalid", "false");
+      }
+    });
     $('#form${widgetContext.uniqueId} input:not([type="submit"])').keydown(function(e) {
       if (e.keyCode === 13) {
           return false;
+      }
+    });
+    $('textarea').on('input', function(event) {
+      var errorEl = document.getElementById("error-" + this.id);
+      if (errorEl && this.value.trim() !== "") {
+        errorEl.classList.remove("show");
+        this.classList.remove("form-field-error");
+        this.setAttribute("aria-invalid", "false");
       }
     });
     $('textarea').keypress(function(event) {
@@ -46,6 +86,8 @@
   });
 
   function checkForm${widgetContext.uniqueId}() {
+    var hasErrors = false;
+    var firstErrorField = null;
     <c:forEach items="${formFieldList}" var="formField" varStatus="status">
       <c:if test="${formField.required}">
         <c:choose>
@@ -53,15 +95,29 @@
 
           </c:when>
           <c:otherwise>
-            if (document.getElementById("${widgetContext.uniqueId}${js:escape(formField.name)}").value.trim() === "") {
-              alert("Please provide a value for '${js:escape(formField.label)}'");
-              return false;
+            var field = document.getElementById("${widgetContext.uniqueId}${js:escape(formField.name)}");
+            var errorEl = document.getElementById("error-${widgetContext.uniqueId}${js:escape(formField.name)}");
+            if (field.value.trim() === "") {
+              if (errorEl) {
+                errorEl.classList.add("show");
+              }
+              field.classList.add("form-field-error");
+              field.setAttribute("aria-invalid", "true");
+              hasErrors = true;
+              if (!firstErrorField) firstErrorField = field;
+            } else if (errorEl) {
+              errorEl.classList.remove("show");
+              field.classList.remove("form-field-error");
+              field.setAttribute("aria-invalid", "false");
             }
           </c:otherwise>
         </c:choose>
       </c:if>
     </c:forEach>
-    return true;
+    if (hasErrors && firstErrorField) {
+      firstErrorField.focus();
+    }
+    return !hasErrors;
   }
 </script>
 <form id="form${widgetContext.uniqueId}" method="post" onsubmit="return checkForm${widgetContext.uniqueId}()">
@@ -105,6 +161,11 @@
       </c:otherwise>
     </c:choose>
     </label>
+    <c:if test="${formField.required && empty formField.listOfOptions}">
+      <p id="error-${widgetContext.uniqueId}<c:out value="${formField.name}"/>" class="error-message" role="alert" aria-live="polite">
+        <i class="fa fa-exclamation-circle"></i><c:out value="${formField.label}"/> is required
+      </p>
+    </c:if>
   </c:forEach>
   <c:choose>
     <c:when test="${useCaptcha eq 'true' && !empty googleSiteKey}">

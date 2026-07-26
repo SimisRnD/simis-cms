@@ -71,7 +71,7 @@
             Please enter the text value you see in the image:<br />
             <img src="/assets/captcha" class="margin-bottom-10" /><br />
             <input type="text" name="captcha" value="" required/>
-            <input type="submit" class="button radius success" value="Create Account"/>
+            <input type="submit" class="button radius primary" value="Create Account"/>
           </c:when>
           <c:otherwise>
             <input type="submit" class="button primary radius expanded" value="Create Account"/>

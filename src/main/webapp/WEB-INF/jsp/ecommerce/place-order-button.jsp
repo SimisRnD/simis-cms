@@ -34,10 +34,12 @@
 </form>
 <script nonce="${cspNonce}">
   function placeOrder() {
-    if (document.getElementById("placeOrderButton").disabled === true) {
+    var button = document.getElementById("placeOrderButton");
+    if (button.disabled === true) {
       return false;
     }
-    document.getElementById("placeOrderButton").disabled = true;
+    button.disabled = true;
+    button.textContent = "Processing your order…";
     return true;
   }
 </script>

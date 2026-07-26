@@ -32,6 +32,9 @@
 </h4>
 </c:if>
 <script src="${ctx}/javascript/dropzone-5.9.3/dropzone.min.js"></script>
+<script src="${ctx}/javascript/dropzone-setup.js"></script>
+<script>
+  initializeDropzone('myDropzone', 100);
 <script nonce="${cspNonce}">
   Dropzone.options.myDropzone = {
     autoProcessQueue: false,
@@ -95,7 +98,7 @@
     }
   };
 </script>
-<p>Add files to upload, then choose to submit all files...</p>
+<p>Drag files here or use "Browse Files" to select them, then click "Upload All Files". Use "Reset" to clear your selections.</p>
 <form action="${widgetContext.uri}?widget=${widgetContext.uniqueId}" class="dropzone" id="my-dropzone">
   <%-- Required by controller --%>
   <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
@@ -107,6 +110,6 @@
 </form>
 <div id="upload-errors" role="alert" aria-live="assertive" class="callout alert"></div>
 <div id="upload-status" role="status" aria-live="polite"></div>
-<button class="button primary no-gap" id="submit-all">Upload All Files</button>
 <button type="button" class="button secondary no-gap" id="dz-browse">Browse Files</button>
+<button class="button primary no-gap" id="submit-all" disabled>Upload All Files</button>
 <button class="button secondary no-gap" id="clear-dropzone">Reset</button>

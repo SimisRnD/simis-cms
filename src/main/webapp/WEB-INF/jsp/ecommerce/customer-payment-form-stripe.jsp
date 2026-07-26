@@ -56,7 +56,7 @@
     </div>
   </div>
   <div class="button-container">
-    <button class="button primary" name="button" value="save">Save &amp; Continue</button>
+    <button id="stripeSubmitButton" class="button primary" name="button" value="save">Save &amp; Continue</button>
   </div>
 </form>
 <script nonce="${cspNonce}">
@@ -94,10 +94,15 @@
   var form = document.getElementById('payment-form');
   form.addEventListener('submit', function (event) {
     event.preventDefault();
+    var button = document.getElementById('stripeSubmitButton');
+    button.disabled = true;
+    button.textContent = 'Processing…';
     stripe.createToken(card).then(function (result) {
       if (result.error) {
         var errorElement = document.getElementById('card-errors');
         errorElement.textContent = result.error.message;
+        button.disabled = false;
+        button.textContent = 'Save & Continue';
       } else {
         // Send the token to your server.
         stripeTokenHandler(result.token);

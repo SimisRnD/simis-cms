@@ -23,6 +23,7 @@
   <input type="hidden" name="token" value="${userSession.formToken}" />
   <%-- Form Content --%>
   <c:if test="${!empty title}">
+    <h1><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}"/></h1>
     <h1 ><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h1>
   </c:if>
   <%@include file="../page_messages.jspf" %>
@@ -32,7 +33,7 @@
         <input type="text" placeholder="Email" name="username">
       </label>
       <div class="button-container">
-        <input type="submit" class="button primary radius expanded" value="Reset my password"></input></p>
+        <input type="submit" class="button primary radius expanded" value="Reset my password">
       </div>
     </div>
   </div>

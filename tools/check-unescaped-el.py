@@ -249,6 +249,8 @@ ALLOWLIST: dict[str, str] = {
         "EditItemFormWidget / CreateAnItemWidget use CustomFieldCommand which always calls generateHtmlName() before storing the key, constraining it to [a-z0-9-] -- no HTML metacharacters possible.",
     "userProfile/my-profile-form.jsp:${cancelUrl}":
         "EditMyProfileFormWidget calls UrlCommand.getValidReturnPage() before setAttribute; that method rejects non-relative paths and any char outside [A-Za-z0-9/?&=#%._~+,;-].",
+    "items/approve-item-button.jsp:${approveUrl}":
+        "Built by <c:url> tag with <c:param> elements for each query parameter (action, widget, token, itemUniqueId, returnPage); <c:url> handles percent-encoding of parameter values and assembly of the URL.",
 }
 
 CONTEXT_HTML = "HTML"

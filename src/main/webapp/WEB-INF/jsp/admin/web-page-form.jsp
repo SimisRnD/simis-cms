@@ -167,7 +167,7 @@
       </c:otherwise>
     </c:choose>
     <c:if test="${userSession.hasRole('admin')}">
-      <a class="button radius alert" href="javascript:deletePage()"><i class="fa fa-trash-o"></i> Delete Page</a>
+      <button type="button" class="button radius alert" onclick="deletePage()"><i class="fa fa-trash-o"></i> Delete Page</button>
     </c:if>
   </div>
 </form>
