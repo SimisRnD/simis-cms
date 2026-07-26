@@ -14,13 +14,14 @@
   ~ limitations under the License.
   --%>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="user" class="com.simisinc.platform.domain.model.User" scope="request"/>
 <jsp:useBean id="useCaptcha" class="java.lang.String" scope="request"/>
 <c:if test="${useCaptcha eq 'true' && !empty googleSiteKey}">
-  <script src='https://www.google.com/recaptcha/api.js'></script>
-  <script>
+  <script src='https://www.google.com/recaptcha/api.js' nonce="${cspNonce}"></script>
+  <script nonce="${cspNonce}">
     function onSubmit(token) {
       document.getElementById("form${widgetContext.uniqueId}").submit();
     }
@@ -33,7 +34,7 @@
   <%-- Form Content --%>
   <div class="dialog-header">
     <c:if test="${!empty title}">
-      <h1><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}"/></h1>
+      <h1><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h1>
     </c:if>
     <%@include file="../page_messages.jspf" %>
     <p><small>Already have an account? <a href="${ctx}/login">Sign in</a></small></p>

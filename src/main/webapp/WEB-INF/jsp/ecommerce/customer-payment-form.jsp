@@ -37,7 +37,7 @@
   }
 </style>
 <script src="${ctx}/javascript/payform-1.4.0/payform.js"></script>
-<script>
+<script nonce="${cspNonce}">
   function checkForm${widgetContext.uniqueId}() {
 
     var ccInput = document.getElementById('creditCardNumber');
@@ -147,7 +147,7 @@
   </div>
 </form>
 <%-- Format input for card number entry --%>
-<script>
+<script nonce="${cspNonce}">
   var ccInput = document.getElementById('creditCardNumber');
   payform.cardNumberInput(ccInput);
   var mmYYInput = document.getElementById('creditCardMMYY');

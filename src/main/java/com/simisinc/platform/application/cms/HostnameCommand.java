@@ -89,4 +89,26 @@ public class HostnameCommand {
     return hostnameAllowList != null && !hostnameAllowList.isEmpty() && hostnameAllowList.contains(hostname);
   }
 
+  /**
+   * Restricts a request URI so it is safe to append to a base URL in a redirect Location header.
+   * Rejects protocol-relative paths, backslash variants, and control characters that could change
+   * the redirect host or split the header. Anything unexpected collapses to "/".
+   *
+   * @param requestURI the value of HttpServletRequest.getRequestURI()
+   * @return the same path when it is a plain absolute path, otherwise "/"
+   */
+  public static String safeRedirectPath(String requestURI) {
+    if (requestURI == null || !requestURI.startsWith("/") || requestURI.startsWith("//")
+        || requestURI.startsWith("/\\")) {
+      return "/";
+    }
+    for (int i = 0; i < requestURI.length(); i++) {
+      char c = requestURI.charAt(i);
+      if (c < 0x20 || c == 0x7f) {
+        return "/";
+      }
+    }
+    return requestURI;
+  }
+
 }
