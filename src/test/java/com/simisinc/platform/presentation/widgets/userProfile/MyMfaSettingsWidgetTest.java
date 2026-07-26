@@ -18,8 +18,10 @@ package com.simisinc.platform.presentation.widgets.userProfile;
 
 import java.util.List;
 
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.mockito.Mockito;
 import org.mockito.MockedStatic;
 
 import com.simisinc.platform.WidgetBase;
@@ -42,6 +44,12 @@ import static org.mockito.Mockito.when;
 class MyMfaSettingsWidgetTest extends WidgetBase {
 
   private static final String SECRET = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ";
+
+  @AfterEach
+  void cleanup() {
+    // Ensure all mocked statics are cleared to prevent database access after test cleanup
+    Mockito.clearAllCaches();
+  }
 
   @Test
   void executeShowsOffStateWhenNotEnrolled() {
