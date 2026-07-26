@@ -14,6 +14,8 @@
 
   var inlineToolbar = null;
   var linkPrompt = null;
+  var widthPicker = null;
+  var widthPickerTarget = null;
   var activeContent = null;     // the .platform-content div currently being edited
   var activeWidget = null;      // its [data-editor-widget] ancestor
   var savedSelection = null;    // Selection saved before link prompt opens
@@ -804,6 +806,17 @@
           }).catch(function (err) { setToolbarStatus('Error: ' + err.message); });
         });
       });
+      // Width trigger — references its own button for popover positioning
+      var widthTriggerBtn = document.createElement('button');
+      widthTriggerBtn.type = 'button';
+      widthTriggerBtn.className = 'sc-mutate-btn-width sc-width-trigger';
+      widthTriggerBtn.title = 'Column width';
+      widthTriggerBtn.textContent = '⇔ Width';
+      widthTriggerBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        openWidthPicker(widthTriggerBtn, s, c, el.className);
+      });
+      btns.appendChild(widthTriggerBtn);
     } else if (type === 'widget') {
       addBtn('✕ Widget', 'sc-mutate-btn-remove', function () {
         showConfirm('Remove this widget?', 'Remove', true, function () {
@@ -819,11 +832,120 @@
     el.appendChild(btns);
   }
 
+  // ── Column-width picker popover ──────────────────────────────────────────────
+
+  var COL_PRESETS = [
+    {label: '1/1',  value: 'small-12 cell'},
+    {label: '1/2',  value: 'small-12 medium-6 cell'},
+    {label: '2/3',  value: 'small-12 medium-8 cell'},
+    {label: '1/3',  value: 'small-12 medium-4 cell'},
+    {label: '3/4',  value: 'small-12 large-9 cell'},
+    {label: '1/4',  value: 'small-12 large-3 cell'},
+  ];
+
+  function buildWidthPicker() {
+    var picker = document.createElement('div');
+    picker.id = 'sc-width-picker';
+    picker.setAttribute('role', 'dialog');
+    picker.setAttribute('aria-label', 'Column width');
+    picker.style.display = 'none';
+
+    var grid = document.createElement('div');
+    grid.id = 'sc-width-presets';
+    COL_PRESETS.forEach(function (preset) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = 'sc-width-preset-btn';
+      btn.dataset.classValue = preset.value;
+      btn.title = preset.value;
+      btn.textContent = preset.label;
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        applyColumnWidth(preset.value);
+      });
+      grid.appendChild(btn);
+    });
+    picker.appendChild(grid);
+
+    var customRow = document.createElement('div');
+    customRow.id = 'sc-width-custom-row';
+    var input = document.createElement('input');
+    input.type = 'text';
+    input.id = 'sc-width-custom-input';
+    input.placeholder = 'Custom classes…';
+    input.setAttribute('aria-label', 'Custom column class');
+    var applyBtn = document.createElement('button');
+    applyBtn.type = 'button';
+    applyBtn.id = 'sc-width-custom-apply';
+    applyBtn.textContent = 'Apply';
+    applyBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      applyColumnWidth(input.value.trim());
+    });
+    input.addEventListener('keydown', function (e) {
+      if (e.key === 'Enter') { e.stopPropagation(); applyColumnWidth(input.value.trim()); }
+      if (e.key === 'Escape') closeWidthPicker();
+    });
+    customRow.appendChild(input);
+    customRow.appendChild(applyBtn);
+    picker.appendChild(customRow);
+
+    document.body.appendChild(picker);
+    return picker;
+  }
+
+  function openWidthPicker(triggerEl, s, c, currentClass) {
+    widthPickerTarget = {s: s, c: c};
+
+    var input = document.getElementById('sc-width-custom-input');
+    if (input) input.value = currentClass || '';
+
+    document.querySelectorAll('.sc-width-preset-btn').forEach(function (btn) {
+      btn.classList.toggle('sc-active', btn.dataset.classValue === currentClass);
+    });
+
+    widthPicker.style.display = 'block';
+
+    // Position below the trigger, clamped to viewport
+    var rect = triggerEl.getBoundingClientRect();
+    var pw = 216;
+    var left = window.scrollX + rect.left;
+    if (left + pw > window.innerWidth - 8) left = window.innerWidth - pw - 8;
+    widthPicker.style.top = (window.scrollY + rect.bottom + 4) + 'px';
+    widthPicker.style.left = Math.max(8, left) + 'px';
+  }
+
+  function closeWidthPicker() {
+    if (widthPicker) widthPicker.style.display = 'none';
+    widthPickerTarget = null;
+  }
+
+  function applyColumnWidth(cls) {
+    if (!cls || !widthPickerTarget) return;
+    var target = widthPickerTarget;
+    closeWidthPicker();
+    setToolbarStatus('Updating column width…');
+    mutatePage('setColumnClass', {s: target.s, c: target.c, 'class': cls}).then(function () {
+      markHasDraft();
+      window.location.reload();
+    }).catch(function (err) { setToolbarStatus('Error: ' + err.message); });
+  }
+
   // ── Bootstrap ─────────────────────────────────────────────────────────────
 
   inlineToolbar = buildInlineToolbar();
   linkPrompt = buildLinkPrompt();
   buildConfirmModal();
+  widthPicker = buildWidthPicker();
+
+  // Close width picker on outside click
+  document.addEventListener('click', function (e) {
+    if (widthPicker && widthPicker.style.display !== 'none') {
+      if (!widthPicker.contains(e.target) && !e.target.closest('.sc-width-trigger')) {
+        closeWidthPicker();
+      }
+    }
+  });
 
   if (layoutMode) {
     buildSaveLayoutButton();      // inserts before Exit
