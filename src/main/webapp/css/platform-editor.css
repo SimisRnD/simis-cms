@@ -810,3 +810,85 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-mutate-btns {
 .sc-mutate-btn-add-widget:hover {
   background: rgba(16, 141, 149, 1);
 }
+
+/* ── P5 Slice 1: Quill inline rich text editor ─────────────────────────── */
+
+/* Widget in active Quill editing state */
+[data-editor-quill-id] {
+  cursor: text;
+}
+
+.sc-quill-editing {
+  outline: 2px solid rgba(0, 120, 212, 0.5);
+  outline-offset: 2px;
+}
+
+/* Container Quill renders into */
+.sc-quill-editor-container {
+  min-height: 80px;
+  background: #fff;
+  border: none;
+}
+
+/* Override Snow theme to integrate with the editor chrome */
+.sc-quill-editor-container .ql-toolbar.ql-snow {
+  background: #f5f6fa;
+  border: 1px solid #cdd0d5;
+  border-bottom: none;
+  border-radius: 4px 4px 0 0;
+}
+
+.sc-quill-editor-container .ql-container.ql-snow {
+  border: 1px solid #cdd0d5;
+  border-top: none;
+  border-radius: 0 0 4px 4px;
+  font-size: 1rem;
+  min-height: 60px;
+}
+
+.sc-quill-editor-container .ql-editor {
+  min-height: 60px;
+  padding: 0.75rem;
+}
+
+/* Save/Discard bar below Quill editor */
+.sc-quill-actions {
+  display: flex;
+  gap: 0.5rem;
+  padding: 6px 0;
+  align-items: center;
+}
+
+.sc-quill-actions .sc-save-btn {
+  background: #0056b3;
+  color: #fff;
+  border: none;
+  border-radius: 3px;
+  padding: 4px 14px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.sc-quill-actions .sc-save-btn:hover:not(:disabled) {
+  background: #004494;
+}
+
+.sc-quill-actions .sc-save-btn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.sc-quill-actions .sc-discard-btn {
+  background: transparent;
+  color: #666;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  padding: 4px 14px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.sc-quill-actions .sc-discard-btn:hover {
+  background: #f5f5f5;
+  color: #333;
+}

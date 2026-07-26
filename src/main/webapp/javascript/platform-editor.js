@@ -27,6 +27,166 @@
   var originalHtml = null;      // snapshot before editing begins (for Discard)
   var actionsBar = null;        // Save/Discard bar for the active widget
 
+  // Quill inline editor state
+  var activeQuill = null;         // active Quill instance
+  var quillHost = null;           // widget element hosting the active Quill editor
+  var quillContentEl = null;      // .platform-content element that was replaced
+  var quillUniqueId = null;       // content uniqueId being edited
+  var quillDirty = false;         // true if user has made changes
+  var quillActionsBar = null;     // Save/Discard bar for the Quill editor
+
+  // ── Quill inline rich text editor (P5 Slice 1) ───────────────────────────
+
+  function getUniqueIdFromWidget(widgetEl) {
+    try {
+      var prefs = JSON.parse(widgetEl.dataset.editorWidgetPrefs || '{}');
+      return prefs.uniqueId || null;
+    } catch (e) { return null; }
+  }
+
+  function buildQuillActionsBar(anchorEl) {
+    var bar = document.createElement('div');
+    bar.className = 'sc-quill-actions';
+    var saveBtn = document.createElement('button');
+    saveBtn.type = 'button';
+    saveBtn.className = 'sc-save-btn';
+    saveBtn.textContent = 'Save Draft';
+    saveBtn.addEventListener('click', function () { saveQuillDraft(bar); });
+    var discardBtn = document.createElement('button');
+    discardBtn.type = 'button';
+    discardBtn.className = 'sc-discard-btn';
+    discardBtn.textContent = 'Discard';
+    discardBtn.addEventListener('click', function () { deactivateQuill(false); });
+    bar.appendChild(saveBtn);
+    bar.appendChild(discardBtn);
+    anchorEl.parentNode.insertBefore(bar, anchorEl.nextSibling);
+    return bar;
+  }
+
+  function activateQuill(widgetEl, uniqueId) {
+    if (activeContent) deactivateEdit(false);
+    if (activeQuill) deactivateQuill(false);
+
+    var contentEl = widgetEl.querySelector('.platform-content');
+    if (!contentEl) return;
+
+    quillHost = widgetEl;
+    quillContentEl = contentEl;
+    quillUniqueId = uniqueId;
+    quillDirty = false;
+
+    // Build a container div and insert after contentEl; hide contentEl
+    var container = document.createElement('div');
+    container.className = 'sc-quill-editor-container';
+    contentEl.parentNode.insertBefore(container, contentEl.nextSibling);
+    contentEl.style.display = 'none';
+
+    var quill = new Quill(container, {
+      theme: 'snow',
+      placeholder: 'Start writing…',
+      modules: {
+        toolbar: [
+          ['bold', 'italic', 'code'],
+          [{ header: [1, 2, 3, 4, 5, 6, false] }],
+          [{ list: 'ordered' }, { list: 'bullet' }],
+          ['blockquote', 'code-block'],
+          ['link'],
+          ['clean']
+        ]
+      }
+    });
+    activeQuill = quill;
+
+    quill.on('text-change', function () { quillDirty = true; });
+
+    // Fetch stored content from server
+    fetch(window.location.pathname + '?action=getWidgetContent&uniqueId=' + encodeURIComponent(uniqueId))
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (!data.success) return;
+        if (data.format === 2 && data.content) {
+          try { quill.setContents(JSON.parse(data.content), 'silent'); } catch (e) {}
+        } else if (data.content) {
+          quill.clipboard.dangerouslyPasteHTML(data.content, 'silent');
+        }
+        quillDirty = false;
+      })
+      .catch(function () {
+        quill.clipboard.dangerouslyPasteHTML(contentEl.innerHTML, 'silent');
+        quillDirty = false;
+      });
+
+    quillActionsBar = buildQuillActionsBar(container);
+    widgetEl.classList.add('sc-quill-editing');
+    setToolbarStatus('Rich text editing…');
+    quill.focus();
+  }
+
+  function deactivateQuill(keepChanges) {
+    if (!activeQuill) return;
+    var container = activeQuill.container && activeQuill.container.closest('.sc-quill-editor-container');
+    if (!keepChanges && quillContentEl) {
+      quillContentEl.style.display = '';
+    }
+    if (container && container.parentNode) container.parentNode.removeChild(container);
+    if (quillActionsBar && quillActionsBar.parentNode) quillActionsBar.parentNode.removeChild(quillActionsBar);
+    if (quillHost) quillHost.classList.remove('sc-quill-editing');
+    activeQuill = null;
+    quillHost = null;
+    quillContentEl = null;
+    quillUniqueId = null;
+    quillDirty = false;
+    quillActionsBar = null;
+    setToolbarStatus('');
+  }
+
+  function saveQuillDraft(bar) {
+    if (!activeQuill || !quillUniqueId) return;
+    var saveBtn = bar.querySelector('.sc-save-btn');
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving…';
+    var token = toolbar ? (toolbar.dataset.token || '') : '';
+    // token is on the main toolbar if present; fall back to the global form token if set
+    if (!token && typeof mainToken !== 'undefined') token = mainToken;
+
+    var delta = JSON.stringify(activeQuill.getContents());
+    var body = new URLSearchParams();
+    body.append('action', 'saveWidgetContent');
+    body.append('token', token);
+    body.append('uniqueId', quillUniqueId);
+    body.append('delta', delta);
+
+    fetch(window.location.pathname, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body.toString()
+    })
+      .then(function (r) { return r.json(); })
+      .then(function (data) {
+        if (data.success) {
+          if (quillContentEl && data.html !== undefined) {
+            quillContentEl.innerHTML = data.html;
+          }
+          quillDirty = false;
+          saveBtn.disabled = false;
+          saveBtn.textContent = 'Save Draft';
+          setToolbarStatus('Draft saved');
+          markHasDraft();
+          // Close the editor and show updated content
+          deactivateQuill(true);
+        } else {
+          throw new Error(data.error || 'Save failed');
+        }
+      })
+      .catch(function (err) {
+        saveBtn.disabled = false;
+        saveBtn.textContent = 'Save Draft';
+        setToolbarStatus('Error: ' + err.message);
+      });
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+
   function buildInlineToolbar() {
     var t = document.createElement('div');
     t.id = 'sc-inline-toolbar';
@@ -1264,15 +1424,43 @@
       insertMoveButtons(el, 'widget');
       makeDraggable(el, 'widget');
       insertMutateButtons(el, 'widget', wSIdx, wCIdx, wIdx);
+      // In layout mode, mark content widgets that have a uniqueId preference for Quill activation
+      var uid = getUniqueIdFromWidget(el);
+      if (uid) el.dataset.editorQuillId = uid;
     }
   });
 
-  // Click on a content block → activate inline editor
+  // Double-click a content widget in layout mode → activate Quill rich text editor
+  document.addEventListener('dblclick', function (e) {
+    if (!layoutMode) return;
+    if (e.target.closest('.sc-editor-drag-handle, .sc-move-btns, .sc-mutate-btns, .sc-editor-handle, .sc-quill-actions')) return;
+    var widgetEl = e.target.closest('[data-editor-quill-id]');
+    if (widgetEl && !activeQuill) {
+      e.preventDefault();
+      activateQuill(widgetEl, widgetEl.dataset.editorQuillId);
+      return;
+    }
+  });
+
+  // Click on a content block → activate inline editor (P2; not used when Quill is active)
   document.addEventListener('click', function (e) {
     if (e.target.closest('.sc-editor-drag-handle, .sc-move-btns, .sc-mutate-btns, .sc-editor-handle')) return;
 
+    // If Quill is active, clicks outside it close it (with dirty check)
+    if (activeQuill) {
+      var inQuillEditor = quillHost && quillHost.contains(e.target);
+      var inQuillBar = quillActionsBar && quillActionsBar.contains(e.target);
+      if (!inQuillEditor && !inQuillBar) {
+        if (quillDirty && !confirm('Discard unsaved changes?')) return;
+        deactivateQuill(false);
+      }
+      return;
+    }
+
     var contentEl = e.target.closest('.platform-content[data-content-unique-id]');
     if (contentEl) {
+      // In layout mode, single-click on content is suppressed — use double-click for Quill instead
+      if (layoutMode) return;
       e.preventDefault();
       activateEdit(contentEl);
       return;
@@ -1295,13 +1483,23 @@
     showInlineToolbar();
   });
 
-  // Keyboard shortcut: Escape exits editor or closes open panels
+  // Keyboard shortcuts: Escape and Ctrl+S
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') {
       if (widgetPicker && widgetPicker.style.display !== 'none') { closeWidgetPicker(); return; }
       if (prefsPanel && prefsPanel.style.display !== 'none') { closePrefsPanel(); return; }
       if (widthPicker && widthPicker.style.display !== 'none') { closeWidthPicker(); return; }
+      if (activeQuill) {
+        if (quillDirty && !confirm('Discard unsaved changes?')) return;
+        deactivateQuill(false);
+        return;
+      }
       if (activeContent) deactivateEdit(true);
+    }
+    // Ctrl+S (or Cmd+S) saves the active Quill editor
+    if ((e.ctrlKey || e.metaKey) && e.key === 's' && activeQuill && quillActionsBar) {
+      e.preventDefault();
+      saveQuillDraft(quillActionsBar);
     }
   });
 

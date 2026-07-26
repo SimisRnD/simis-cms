@@ -282,6 +282,7 @@
   </c:if>
   <c:if test="${pageEditMode eq 'true'}">
     <link rel="stylesheet" type="text/css" href="${ctx}/css/platform-editor.css?v=<%= VERSION %>" />
+    <link rel="stylesheet" type="text/css" href="${ctx}/css/quill-2.0.3-snow.css" />
   </c:if>
   <c:if test="${!empty pageCollection}">
     <style>
@@ -743,6 +744,7 @@
     </c:if>
   </c:if>
   <c:if test="${pageEditMode eq 'true'}">
+    <script src="${ctx}/javascript/quill-2.0.3/quill.js"></script>
     <script src="${ctx}/javascript/platform-editor.js?v=<%= VERSION %>"></script>
   </c:if>
 </body>
