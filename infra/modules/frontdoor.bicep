@@ -189,8 +189,15 @@ resource route 'Microsoft.Cdn/profiles/afdEndpoints/routes@2024-02-01' = {
       affinityCookieCharacteristic: 'SameSite=Lax'
       affintiyTimeoutInMinutes: 1440
     }
-    // No caching: the CMS is dynamic and sets its own headers. Static-asset
-    // caching is a deliberate later tune, not a default.
+    // Caching: honor application Cache-Control headers. Public pages (no session
+    // context) return "public, max-age=300, stale-while-revalidate=3600" and are
+    // cached at the edge. Authenticated/session pages return "no-cache, no-store"
+    // and bypass cache. Query strings disable caching (search, filters, forms).
+    cachingBehavior: 'HonorOriginCacheControl'
+    // Enable compression for cacheable responses (reduces bandwidth)
+    compressionSettings: {
+      isCompressionEnabled: true
+    }
   }
   dependsOn: [
     origin
