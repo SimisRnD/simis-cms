@@ -106,7 +106,8 @@ public class WebVitalsCollector {
         insertValues.add("session_id", sessionId);
       }
 
-      if (DB.insertInto("web_vitals", insertValues, null)) {
+      long insertId = DB.insertInto("web_vitals", insertValues, null);
+      if (insertId > 0) {
         LOG.debug("Stored " + metricType + " metric: " + value + "ms for " + url);
       } else {
         LOG.error("Failed to store " + metricType + " metric for " + url);
