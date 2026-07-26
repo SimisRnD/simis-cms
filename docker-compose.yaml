@@ -8,12 +8,10 @@ services:
       POSTGRES_USER: "${DB_USER:?err}"
       POSTGRES_PASSWORD: "${DB_PASSWORD:?err}"
     restart: always
-    # [STIG] Runtime hardening: drop all Linux capabilities and block privilege escalation.
-    # PostgreSQL runs as non-root (postgres user) and needs no capabilities. These settings
-    # complement the hardened image (non-root, read-only rootfs via volume mount) to enforce
-    # defense-in-depth at the container runtime layer.
-    cap_drop:
-      - ALL
+    # [STIG] Runtime hardening: block privilege escalation. PostgreSQL Alpine image
+    # requires capabilities to set up directories on first run, so we enforce only
+    # no-new-privileges instead of dropping ALL. The hardened image (non-root, dedicated
+    # postgres user) provides the primary defense; this adds the escalation block.
     security_opt:
       - "no-new-privileges:true"
     networks:
