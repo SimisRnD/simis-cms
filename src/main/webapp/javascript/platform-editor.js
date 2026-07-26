@@ -16,6 +16,8 @@
   var linkPrompt = null;
   var widthPicker = null;
   var classPickerApplyFn = null;
+  var prefsPanel = null;
+  var prefsPanelTarget = null;
   var activeContent = null;     // the .platform-content div currently being edited
   var activeWidget = null;      // its [data-editor-widget] ancestor
   var savedSelection = null;    // Selection saved before link prompt opens
@@ -843,6 +845,17 @@
       });
       btns.appendChild(widthTriggerBtn);
     } else if (type === 'widget') {
+      // Prefs trigger — references its own button for panel positioning
+      var prefsTriggerBtn = document.createElement('button');
+      prefsTriggerBtn.type = 'button';
+      prefsTriggerBtn.className = 'sc-mutate-btn-prefs sc-prefs-trigger';
+      prefsTriggerBtn.title = 'Widget preferences';
+      prefsTriggerBtn.textContent = '⚙ Prefs';
+      prefsTriggerBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        openPrefsPanel(prefsTriggerBtn, s, c, w, el.dataset.editorWidgetPrefs || '{}');
+      });
+      btns.appendChild(prefsTriggerBtn);
       addBtn('✕ Widget', 'sc-mutate-btn-remove', function () {
         showConfirm('Remove this widget?', 'Remove', true, function () {
           setToolbarStatus('Removing widget…');
@@ -958,18 +971,140 @@
     classPickerApplyFn = null;
   }
 
+  // ── Widget preferences panel ──────────────────────────────────────────────
+
+  function buildPrefsPanel() {
+    var panel = document.createElement('div');
+    panel.id = 'sc-prefs-panel';
+    panel.setAttribute('role', 'dialog');
+    panel.setAttribute('aria-label', 'Widget preferences');
+    panel.style.display = 'none';
+
+    var header = document.createElement('div');
+    header.id = 'sc-prefs-header';
+    var title = document.createElement('span');
+    title.textContent = 'Widget Prefs';
+    var closeBtn = document.createElement('button');
+    closeBtn.type = 'button';
+    closeBtn.id = 'sc-prefs-close';
+    closeBtn.textContent = '×';
+    closeBtn.setAttribute('aria-label', 'Close');
+    closeBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      closePrefsPanel();
+    });
+    header.appendChild(title);
+    header.appendChild(closeBtn);
+    panel.appendChild(header);
+
+    var textarea = document.createElement('textarea');
+    textarea.id = 'sc-prefs-textarea';
+    textarea.setAttribute('aria-label', 'Preferences JSON');
+    textarea.setAttribute('spellcheck', 'false');
+    textarea.setAttribute('autocomplete', 'off');
+    panel.appendChild(textarea);
+
+    var error = document.createElement('div');
+    error.id = 'sc-prefs-error';
+    error.setAttribute('aria-live', 'polite');
+    panel.appendChild(error);
+
+    var footer = document.createElement('div');
+    footer.id = 'sc-prefs-footer';
+    var resetBtn = document.createElement('button');
+    resetBtn.type = 'button';
+    resetBtn.id = 'sc-prefs-reset';
+    resetBtn.textContent = 'Reset';
+    resetBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      if (prefsPanelTarget) textarea.value = prefsPanelTarget.original;
+      error.textContent = '';
+    });
+    var applyBtn = document.createElement('button');
+    applyBtn.type = 'button';
+    applyBtn.id = 'sc-prefs-apply';
+    applyBtn.textContent = 'Apply';
+    applyBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      applyPrefs();
+    });
+    footer.appendChild(resetBtn);
+    footer.appendChild(applyBtn);
+    panel.appendChild(footer);
+
+    panel.addEventListener('click', function (e) { e.stopPropagation(); });
+    document.body.appendChild(panel);
+    return panel;
+  }
+
+  function openPrefsPanel(triggerEl, s, c, w, currentPrefsJson) {
+    prefsPanelTarget = {s: s, c: c, w: w, original: currentPrefsJson};
+
+    var textarea = document.getElementById('sc-prefs-textarea');
+    var error = document.getElementById('sc-prefs-error');
+    try {
+      textarea.value = JSON.stringify(JSON.parse(currentPrefsJson), null, 2);
+    } catch (e) {
+      textarea.value = currentPrefsJson;
+    }
+    if (error) error.textContent = '';
+
+    prefsPanel.style.display = 'flex';
+
+    var rect = triggerEl.getBoundingClientRect();
+    var pw = 300;
+    var left = window.scrollX + rect.left;
+    if (left + pw > window.innerWidth - 8) left = window.innerWidth - pw - 8;
+    prefsPanel.style.top = (window.scrollY + rect.bottom + 4) + 'px';
+    prefsPanel.style.left = Math.max(8, left) + 'px';
+
+    textarea.focus();
+  }
+
+  function closePrefsPanel() {
+    if (prefsPanel) prefsPanel.style.display = 'none';
+    prefsPanelTarget = null;
+  }
+
+  function applyPrefs() {
+    if (!prefsPanelTarget) return;
+    var textarea = document.getElementById('sc-prefs-textarea');
+    var error = document.getElementById('sc-prefs-error');
+    var raw = textarea.value.trim();
+    if (!raw) { if (error) error.textContent = 'Enter at least one key/value pair.'; return; }
+    try {
+      JSON.parse(raw);
+    } catch (e) {
+      if (error) error.textContent = 'Invalid JSON: ' + e.message;
+      return;
+    }
+    var target = prefsPanelTarget;
+    closePrefsPanel();
+    setToolbarStatus('Saving preferences…');
+    mutatePage('setWidgetPreferences', {s: target.s, c: target.c, w: target.w, prefs: raw}).then(function () {
+      markHasDraft();
+      window.location.reload();
+    }).catch(function (err) { setToolbarStatus('Error: ' + err.message); });
+  }
+
   // ── Bootstrap ─────────────────────────────────────────────────────────────
 
   inlineToolbar = buildInlineToolbar();
   linkPrompt = buildLinkPrompt();
   buildConfirmModal();
   widthPicker = buildWidthPicker();
+  prefsPanel = buildPrefsPanel();
 
   // Close width picker on outside click
   document.addEventListener('click', function (e) {
     if (widthPicker && widthPicker.style.display !== 'none') {
       if (!widthPicker.contains(e.target) && !e.target.closest('.sc-width-trigger')) {
         closeWidthPicker();
+      }
+    }
+    if (prefsPanel && prefsPanel.style.display !== 'none') {
+      if (!prefsPanel.contains(e.target) && !e.target.closest('.sc-prefs-trigger')) {
+        closePrefsPanel();
       }
     }
   });
@@ -1048,10 +1183,12 @@
     showInlineToolbar();
   });
 
-  // Keyboard shortcut: Escape exits editor
+  // Keyboard shortcut: Escape exits editor or closes open panels
   document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape' && activeContent) {
-      deactivateEdit(true);
+    if (e.key === 'Escape') {
+      if (prefsPanel && prefsPanel.style.display !== 'none') { closePrefsPanel(); return; }
+      if (widthPicker && widthPicker.style.display !== 'none') { closeWidthPicker(); return; }
+      if (activeContent) deactivateEdit(true);
     }
   });
 

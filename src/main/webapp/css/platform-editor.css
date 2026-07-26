@@ -566,6 +566,124 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-mutate-btns {
   background: #0056b3 !important;
 }
 
+.sc-mutate-btn-prefs {
+  background: rgba(108, 117, 125, 0.75);
+}
+
+.sc-mutate-btn-prefs:hover {
+  background: #6c757d;
+}
+
+/* ── Widget preferences panel ── */
+
+#sc-prefs-panel {
+  position: absolute;
+  background: #1a1a2e;
+  border: 1px solid #444;
+  border-radius: 4px;
+  padding: 8px;
+  z-index: 10001;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  font-family: sans-serif;
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+#sc-prefs-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+#sc-prefs-header span {
+  color: #ccc;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+#sc-prefs-close {
+  background: transparent;
+  border: none;
+  color: #888;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 0 2px;
+  line-height: 1;
+}
+
+#sc-prefs-close:hover {
+  color: #fff;
+}
+
+#sc-prefs-textarea {
+  background: #2a2a3e;
+  border: 1px solid #555;
+  color: #eee;
+  padding: 6px;
+  font-size: 11px;
+  border-radius: 3px;
+  font-family: monospace;
+  resize: vertical;
+  min-height: 80px;
+  max-height: 200px;
+  width: 100%;
+  box-sizing: border-box;
+  line-height: 1.5;
+}
+
+#sc-prefs-textarea:focus {
+  outline: none;
+  border-color: #0056b3;
+}
+
+#sc-prefs-error {
+  color: #dc3545;
+  font-size: 11px;
+  min-height: 0;
+  line-height: 1.3;
+}
+
+#sc-prefs-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+#sc-prefs-reset {
+  background: #3a3a4e;
+  border: 1px solid #555;
+  color: #ccc;
+  padding: 3px 10px;
+  font-size: 11px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-family: sans-serif;
+}
+
+#sc-prefs-reset:hover {
+  color: #fff;
+  background: #4a4a5e;
+}
+
+#sc-prefs-apply {
+  background: #0056b3;
+  border: none;
+  color: #fff;
+  padding: 3px 10px;
+  font-size: 11px;
+  border-radius: 3px;
+  cursor: pointer;
+  font-family: sans-serif;
+}
+
+#sc-prefs-apply:hover {
+  opacity: 0.9;
+}
+
 /* Link prompt overlay */
 #sc-link-prompt {
   position: absolute;

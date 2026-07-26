@@ -17,6 +17,7 @@
 package com.simisinc.platform.presentation.controller;
 
 import java.io.Serializable;
+import java.util.Map;
 
 /**
  * Description
@@ -35,6 +36,7 @@ public class WidgetRenderInfo implements Serializable {
   private boolean sticky = false;
   private boolean hr = false;
   private String content = null;
+  private String prefsJson = "{}";
 
   public WidgetRenderInfo() {
   }
@@ -46,6 +48,28 @@ public class WidgetRenderInfo implements Serializable {
     this.sticky = widget.isSticky();
     this.hr = widget.hasHr();
     this.content = content;
+    Map<String, String> prefs = widget.getPreferences();
+    if (prefs != null && !prefs.isEmpty()) {
+      this.prefsJson = prefsToJson(prefs);
+    }
+  }
+
+  private static String prefsToJson(Map<String, String> prefs) {
+    StringBuilder sb = new StringBuilder("{");
+    boolean first = true;
+    for (Map.Entry<String, String> e : prefs.entrySet()) {
+      if (!first) sb.append(',');
+      sb.append('"').append(e.getKey()).append("\":\"");
+      String v = e.getValue();
+      if (v != null) {
+        sb.append(v.replace("\\", "\\\\").replace("\"", "\\\"")
+            .replace("\n", "\\n").replace("\r", "\\r").replace("\t", "\\t"));
+      }
+      sb.append('"');
+      first = false;
+    }
+    sb.append('}');
+    return sb.toString();
   }
 
   public String getHtmlId() {
@@ -68,5 +92,9 @@ public class WidgetRenderInfo implements Serializable {
 
   public String getContent() {
     return content;
+  }
+
+  public String getPrefsJson() {
+    return prefsJson;
   }
 }
