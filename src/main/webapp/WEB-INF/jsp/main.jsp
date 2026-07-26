@@ -138,6 +138,10 @@
   <c:if test="${!empty pageRenderInfo.canonicalUrl}">
     <link rel="canonical" href="<c:out value="${pageRenderInfo.canonicalUrl}"/>" />
   </c:if>
+  <%-- JSON-LD structured data for search engines and AI (issue #403) --%>
+  <c:if test="${!empty pageRenderInfo.jsonLdData}">
+    <script type="application/ld+json"><c:out value="${pageRenderInfo.jsonLdData}" escapeXml="false" /></script>
+  </c:if>
   <%-- CSS --%>
     <c:if test="${!empty themePropertyMap['theme.fonts.body']}">
       <link rel="stylesheet" href="${ctx}/css/google-fonts/<c:out value="${themePropertyMap['theme.fonts.body']}"/>.css">
