@@ -29,7 +29,7 @@
   <%-- Form values --%>
   <%-- Title and Message block --%>
   <c:if test="${!empty title}">
-    <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}"/></h4>
+    <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
   </c:if>
   <%@include file="../page_messages.jspf" %>
   <%-- Form Content --%>
@@ -53,7 +53,7 @@
     <input id="resetButton" type="reset" class="button radius secondary expanded" value="Reset"/>
   </div>
 </form>
-<script>
+<script nonce="${cspNonce}">
   $(document).ready(function () {
     $('#resetButton').click(function (event) {
       event.preventDefault();

@@ -33,7 +33,7 @@
 </style>
 </c:if>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}"/></h4>
+  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
 </c:if>
 <div class="platform-content-container">
   <c:if test="${showEditor eq 'true' && !empty uniqueId}">
@@ -67,7 +67,7 @@
 </c:if>
   </div>
 </div>
-<script>
+<script nonce="${cspNonce}">
     var swiper${widgetContext.uniqueId} = new Swiper("#swiper${widgetContext.uniqueId}", {
         slidesPerView: <c:out value="${smallCardCount}" />,
         centerInsufficientSlides: true,

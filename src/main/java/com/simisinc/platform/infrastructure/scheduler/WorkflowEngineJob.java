@@ -47,6 +47,14 @@ public class WorkflowEngineJob implements JobRequest {
     return WorkflowEngineJobRequestHandler.class;
   }
 
+  public Event getEvent() {
+    return event;
+  }
+
+  public void setEvent(Event event) {
+    this.event = event;
+  }
+
   public static class WorkflowEngineJobRequestHandler implements JobRequestHandler<WorkflowEngineJob> {
     @Override
     @Job(name = "Run a workflow", retries = 1)

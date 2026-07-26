@@ -31,9 +31,6 @@ import com.simisinc.platform.infrastructure.persistence.ecommerce.ShippingMethod
 import com.simisinc.platform.infrastructure.persistence.ecommerce.TrackingNumberRepository;
 import com.simisinc.platform.infrastructure.scheduler.SchedulerManager;
 import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -59,7 +56,6 @@ import java.util.Map;
  * @author matt rajkowski
  * @created 11/13/2019 8:25 PM
  */
-@NoArgsConstructor
 public class OrderManagementEmailJob implements JobRequest {
 
   public static String ORDER_OBJECT = "order";
@@ -72,27 +68,24 @@ public class OrderManagementEmailJob implements JobRequest {
   public static String EMAIL_TYPE_CANCELLATION_CONFIRMATION = "CANCELLATION_CONFIRMATION";
   public static String EMAIL_TYPE_REFUND_CONFIRMATION = "REFUND_CONFIRMATION";
 
-  @Getter
-  @Setter
   private Order order = null;
-
-  @Getter
-  @Setter
   private List<OrderItem> orderItemList = null;
-
-  @Getter
-  @Setter
   private List<TrackingNumber> trackingNumberList = null;
-
-  @Getter
-  @Setter
   private String emailType = null;
-
-  @Getter
-  @Setter
   private boolean isResend = false;
 
   private static Log LOG = LogFactory.getLog(OrderManagementEmailJob.class);
+
+  public Order getOrder() { return order; }
+  public void setOrder(Order order) { this.order = order; }
+  public List<OrderItem> getOrderItemList() { return orderItemList; }
+  public void setOrderItemList(List<OrderItem> orderItemList) { this.orderItemList = orderItemList; }
+  public List<TrackingNumber> getTrackingNumberList() { return trackingNumberList; }
+  public void setTrackingNumberList(List<TrackingNumber> trackingNumberList) { this.trackingNumberList = trackingNumberList; }
+  public String getEmailType() { return emailType; }
+  public void setEmailType(String emailType) { this.emailType = emailType; }
+  public boolean isResend() { return isResend; }
+  public void setResend(boolean isResend) { this.isResend = isResend; }
 
   @Override
   public Class<OrderManagementEmailJobRequestHandler> getJobRequestHandler() {

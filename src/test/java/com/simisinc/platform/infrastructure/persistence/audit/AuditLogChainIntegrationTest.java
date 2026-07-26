@@ -257,5 +257,12 @@ class AuditLogChainIntegrationTest {
         + "schema_version INTEGER DEFAULT 1 NOT NULL, "
         + "previous_hash VARCHAR(64), "
         + "record_hash VARCHAR(64))");
+    execute("DROP TABLE IF EXISTS audit_log_watermark");
+    execute("CREATE TABLE audit_log_watermark ("
+        + "id INTEGER PRIMARY KEY DEFAULT 1, "
+        + "lowest_hashed_audit_id BIGINT NOT NULL DEFAULT 0)");
+    execute("INSERT INTO audit_log_watermark (id, lowest_hashed_audit_id) "
+        + "SELECT 1, COALESCE(MIN(audit_id), 0) FROM audit_log WHERE record_hash IS NOT NULL "
+        + "ON CONFLICT (id) DO NOTHING");
   }
 }

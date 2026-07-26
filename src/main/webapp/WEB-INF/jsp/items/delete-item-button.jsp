@@ -20,5 +20,12 @@
 <jsp:useBean id="item" class="com.simisinc.platform.domain.model.items.Item" scope="request"/>
 <jsp:useBean id="buttonClass" class="java.lang.String" scope="request"/>
 <c:if test="${item.id gt 0}">
-<a class="radius button <c:out value="${buttonClass}"/>" href="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&itemUniqueId=${item.uniqueId}<c:if test="${!empty returnPage}">&returnPage=<c:out value="${returnPage}"/></c:if>" onclick="return confirm('Are you sure you want to delete <c:out value="${js:escape(item.name)}" /> and all related information?');"><i class="fa fa-trash"></i> <c:out value="${buttonName}" /></a>
+<form method="post" action="${widgetContext.uri}" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete <c:out value="${js:escape(item.name)}" /> and all related information?');">
+  <input type="hidden" name="command" value="delete"/>
+  <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
+  <input type="hidden" name="token" value="${userSession.formToken}"/>
+  <input type="hidden" name="itemUniqueId" value="${item.uniqueId}"/>
+  <c:if test="${!empty returnPage}"><input type="hidden" name="returnPage" value="${returnPage}"/></c:if>
+  <button type="submit" class="radius button <c:out value="${buttonClass}"/>"><i class="fa fa-trash"></i> <c:out value="${buttonName}" /></button>
+</form>
 </c:if>

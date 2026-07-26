@@ -15,11 +15,12 @@
   --%>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="webPage" class="com.simisinc.platform.domain.model.cms.WebPage" scope="request"/>
 <%-- Handle image uploads --%>
-<script>
+<script nonce="${cspNonce}">
     function SavePhoto(e) {
         var file = e.files[0]; // similar to: document.getElementById("file").files[0]
         var formData = new FormData();
@@ -45,7 +46,7 @@
           if (!confirm("Are you sure you want to DELETE this page?")) {
               return;
           }
-          window.location.href = '${widgetContext.uri}?action=deletePage&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&webPageId=${webPage.id}';
+          postAction('${widgetContext.uri}?action=deletePage&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&webPageId=${webPage.id}');
       }
     </c:if>
 </script>
@@ -58,7 +59,7 @@
   <input type="hidden" name="id" value="${webPage.id}" />
   <%-- Title and Message block --%>
   <c:if test="${!empty title}">
-    <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}" /></h4>
+    <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
   </c:if>
   <%@include file="../page_messages.jspf" %>
   <%-- Form Content --%>
@@ -90,6 +91,20 @@
           </label>
         </div>
       </label>
+      <div class="grid-x grid-padding-x">
+        <div class="small-12 medium-6 cell">
+          <c:set var="publishAtFormatted"><c:if test="${!empty webPage.publishAt}"><fmt:formatDate pattern="yyyy-MM-dd'T'HH:mm" value="${webPage.publishAt}"/></c:if></c:set>
+          <label>Go live at (optional)
+            <input type="datetime-local" name="publishAt" value="${publishAtFormatted}">
+          </label>
+        </div>
+        <div class="small-12 medium-6 cell">
+          <c:set var="expiresAtFormatted"><c:if test="${!empty webPage.expiresAt}"><fmt:formatDate pattern="yyyy-MM-dd'T'HH:mm" value="${webPage.expiresAt}"/></c:if></c:set>
+          <label>Expire at (optional)
+            <input type="datetime-local" name="expiresAt" value="${expiresAtFormatted}">
+          </label>
+        </div>
+      </div>
       <div class="grid-x grid-padding-x">
         <div class="small-12 medium-3 cell">
           <label>Show in Sitemap.xml?
@@ -139,7 +154,7 @@
     </div>
   </div>
   <div class="button-container">
-    <input type="submit" class="button radius success" value="Save" />
+    <input type="submit" class="button radius success" value="Save" data-disable-on-submit="Saving..." />
     <c:choose>
       <c:when test="${!empty returnPage}">
         <a href="${returnPage}" class="button radius secondary">Cancel</a>
@@ -152,14 +167,14 @@
       </c:otherwise>
     </c:choose>
     <c:if test="${userSession.hasRole('admin')}">
-      <a class="button radius alert" href="javascript:deletePage()"><i class="fa fa-trash-o"></i> Delete Page</a>
+      <button type="button" class="button radius alert" onclick="deletePage()"><i class="fa fa-trash-o"></i> Delete Page</button>
     </c:if>
   </div>
 </form>
 <div class="reveal large" id="imageBrowserReveal" data-reveal data-animation-in="slide-in-down fast" role="dialog" aria-modal="true" aria-label="Image Browser">
   <h3>Loading...</h3>
 </div>
-<script>
+<script nonce="${cspNonce}">
     $('#imageBrowserReveal').on('open.zf.reveal', function () {
         $('#imageBrowserReveal').html("<h3>Loading...</h3>");
         $.ajax({

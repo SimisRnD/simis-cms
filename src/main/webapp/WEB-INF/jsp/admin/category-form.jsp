@@ -14,6 +14,7 @@
   ~ limitations under the License.
   --%>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="category" class="com.simisinc.platform.domain.model.items.Category" scope="request"/>
@@ -29,7 +30,7 @@
   <input type="hidden" name="collectionId" value="${collection.id}" />
   <%-- Title and Message block --%>
   <c:if test="${!empty title}">
-    <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}" /></h4>
+    <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
   </c:if>
   <%@include file="../page_messages.jspf" %>
   <%-- Form Content --%>
@@ -46,22 +47,20 @@
   <label>Icon (<a href="https://fontawesome.com/search?m=free&s=solid" target="_blank">view</a>)
     <input type="text" placeholder="" name="icon" value="<c:out value="${category.icon}"/>">
   </label>
-  <label>
+  <label>Header Background Color
     <input id="headerBgColor" type="text" name="headerBgColor" value="<c:out value="${category.headerBgColor}"/>">
-    Header Background Color
   </label>
-  <label>
+  <label>Header Text Color
     <input id="headerTextColor" type="text" name="headerTextColor" value="<c:out value="${category.headerTextColor}"/>">
-    Header Text Color
   </label>
   <label>Default Item External Link Text
     <input type="text" placeholder="View Site" name="itemUrlText" value="<c:out value="${category.itemUrlText}"/>">
   </label>
   <div class="button-container">
-    <input type="submit" class="button radius success" value="Save" />
+    <input type="submit" class="button radius primary" value="Save" />
   </div>
 </form>
-<script>
+<script nonce="${cspNonce}">
   var colorIdList = [];
   colorIdList.push('headerBgColor');
   colorIdList.push('headerTextColor');

@@ -34,7 +34,7 @@
   </c:if>
   <%-- Title and Message block --%>
   <c:if test="${!empty title}">
-    <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}"/></h4>
+    <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
   </c:if>
   <%@include file="../page_messages.jspf" %>
   <%-- Form Content --%>
@@ -43,6 +43,10 @@
   </label>
   <label>Description
     <input type="text" placeholder="Describe it..." name="summary" value="<c:out value="${folder.summary}"/>">
+  </label>
+  <label>Allowed File Types
+    <input type="text" placeholder="e.g. pdf, docx, xlsx, png, jpg" name="allowedExtensions" value="<c:out value="${folder.allowedExtensions}"/>">
+    <small>Comma-separated extensions. Leave blank to allow all types.</small>
   </label>
   <fieldset>
     <legend>File Categories</legend>

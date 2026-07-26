@@ -24,9 +24,6 @@
 <jsp:useBean id="customer" class="com.simisinc.platform.domain.model.ecommerce.Customer" scope="request"/>
 <jsp:useBean id="cart" class="com.simisinc.platform.domain.model.ecommerce.Cart" scope="request"/>
 <jsp:useBean id="payment" class="com.simisinc.platform.domain.model.ecommerce.Payment" scope="request"/>
-<%-- Required by controller --%>
-<input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
-<input type="hidden" name="token" value="${userSession.formToken}"/>
 <%-- Page Scripts --%>
 <style>
   #creditCardNumber {
@@ -37,13 +34,12 @@
   }
 </style>
 <script src="${ctx}/javascript/payform-1.4.0/payform.js"></script>
-<script>
+<script nonce="${cspNonce}">
   function checkForm${widgetContext.uniqueId}() {
 
     var ccInput = document.getElementById('creditCardNumber');
     var mmYYInput = document.getElementById('creditCardMMYY');
     var cvcInput = document.getElementById('creditCardCVC');
-    var zipInput = document.getElementById('creditCardZip');
 
     var creditCardNumberHelpText = document.getElementById('creditCardNumberHelpText');
     if (!payform.validateCardNumber(ccInput.value)) {
@@ -67,14 +63,6 @@
       return false;
     } else {
       creditCardCVCHelpText.innerText = '';
-    }
-
-    var creditCardZipHelpText = document.getElementById('creditCardZipHelpText');
-    if (zipInput.value.length !== 5) {
-      creditCardZipHelpText.innerText = 'The postal code is incomplete';
-      return false;
-    } else {
-      creditCardZipHelpText.innerText = '';
     }
 
     return true;
@@ -120,7 +108,7 @@
           </div>
           --%>
           <div class="small-12 cell">
-            <input type="radio" name="billingAddressType" id="billingAddressSame" value="same"<c:if test="${1 eq 1}"> checked</c:if> required/><label for="billingAddressSame">Billing address is the same as my shipping address</label>
+            <input type="radio" name="billingAddressType" id="billingAddressSame" value="same"<c:if test="${payment.billingAddressType eq 'same'}"> checked</c:if> required/><label for="billingAddressSame">Billing address is the same as my shipping address</label>
             <p class="margin-left-25 no-gap">
               <c:out value="${customer.shippingAddress.firstName}" />
               <c:out value="${customer.shippingAddress.lastName}" /><br />
@@ -134,7 +122,7 @@
                 <c:out value="${customer.shippingAddress.country}"/>
               </c:if>
             </p>
-            <input type="radio" name="billingAddressType" id="billingAddressDifferent" value="different"<c:if test="${1 eq 2}"> checked</c:if> required/><label for="billingAddressDifferent">Use a different address for billing</label>
+            <input type="radio" name="billingAddressType" id="billingAddressDifferent" value="different"<c:if test="${payment.billingAddressType eq 'different'}"> checked</c:if> required/><label for="billingAddressDifferent">Use a different address for billing</label>
 
 
           </div>
@@ -147,15 +135,13 @@
   </div>
 </form>
 <%-- Format input for card number entry --%>
-<script>
+<script nonce="${cspNonce}">
   var ccInput = document.getElementById('creditCardNumber');
   payform.cardNumberInput(ccInput);
   var mmYYInput = document.getElementById('creditCardMMYY');
   payform.expiryInput(mmYYInput);
   var cvcInput = document.getElementById('creditCardCVC');
   payform.cvcInput(cvcInput);
-  var zipInput = document.getElementById('creditCardZip');
-  payform.numericInput(zipInput);
 
   function updateType(e) {
     var cardType = payform.parseCardType(e.target.value);

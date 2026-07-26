@@ -16,13 +16,14 @@
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="font" uri="/WEB-INF/tlds/font-functions.tld" %>
 <%@ taglib prefix="js" uri="/WEB-INF/tlds/javascript-escape.tld" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="isDraft" class="java.lang.String" scope="request"/>
 <jsp:useBean id="card1" class="java.lang.String" scope="request"/>
 <jsp:useBean id="card2" class="java.lang.String" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}"/></h4>
+  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
 </c:if>
 <div class="platform-content-container">
   <c:if test="${showEditor eq 'true' && !empty uniqueId}">
@@ -83,7 +84,7 @@
     </c:if>
   </c:if>
 </div>
-<script>
+<script nonce="${cspNonce}">
   // Attach to the modal display event; auto-play first modal video
   document.addEventListener("DOMContentLoaded", function () {
     $('#modal${widgetContext.uniqueId}').on('open.zf.reveal', function () {
