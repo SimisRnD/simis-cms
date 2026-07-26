@@ -443,7 +443,10 @@ class OverlayEditorPane {
       // Update rendered HTML on page
       const region = document.querySelector(`[data-editor-content="${this.state.currentContentId}"]`);
       if (region && data.html) {
-        region.innerHTML = data.html;
+        region.replaceChildren();
+        const temp = document.createElement('div');
+        temp.innerHTML = data.html;
+        region.appendChild(temp);
       }
 
       // Close overlay after brief delay
@@ -483,10 +486,16 @@ class OverlayEditorPane {
     try {
       const delta = this.state.quill.getContents();
       const html = this.deltaToHtml(delta);
-      previewEl.innerHTML = html;
+      previewEl.replaceChildren();
+      const temp = document.createElement('div');
+      temp.innerHTML = html;
+      previewEl.appendChild(temp);
     } catch (err) {
       console.error('OverlayEditorPane: Preview render error', err);
-      previewEl.innerHTML = '<p style="color: #999;">Error rendering preview</p>';
+      const errEl = document.createElement('p');
+      errEl.style.color = '#999';
+      errEl.textContent = 'Error rendering preview';
+      previewEl.replaceChildren(errEl);
     }
   }
 
