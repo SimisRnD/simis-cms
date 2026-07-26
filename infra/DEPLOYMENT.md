@@ -241,6 +241,30 @@ az webapp config appsettings set \
 
 **Revisit monthly:** Azure updates service tags ~weekly. Refresh this monthly so the regex stays current.
 
+### 5.3 Session Affinity (Multi-Instance)
+
+Azure Front Door uses session affinity to pin authenticated users to the same backend instance. Without affinity, a multi-instance deployment (scale-out or rolling update) would log out users mid-session because Tomcat stores sessions in JVM-local memory.
+
+**Affinity behavior:**
+- AFD sets a routing cookie on the first request
+- Subsequent requests from the same browser are routed to the same backend
+- Cookie duration: 24 hours (default; non-configurable per route in Bicep)
+- SameSite=Lax: cookie sent on same-site navigation and external links; protects against cross-site request forgery
+
+**Failover behavior (when a pinned backend becomes unhealthy):**
+- AFD health checks detect the instance is DOWN (probes fail 3× in a row)
+- Next request from that user is routed to a healthy instance
+- Session is LOST (Tomcat on the new instance has no session data)
+- User must re-authenticate
+- This is acceptable for sticky-session deployments; users tolerate re-auth during rare outages
+
+**Expected frequency:** Rare. Health probes every 30 seconds; instance must fail 3× to be marked unhealthy. Transient blips don't trigger failover.
+
+**Configuration:**
+- Enabled in `infra/modules/frontdoor.bicep` (route resource, `sessionAffinitySettings`)
+- Applied to all routes (/*) — affects the whole site
+- Cannot be tuned per route in Azure Portal (Bicep is source of truth)
+
 ---
 
 ## 6. Test Edge Connectivity

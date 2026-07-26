@@ -179,6 +179,16 @@ resource route 'Microsoft.Cdn/profiles/afdEndpoints/routes@2024-02-01' = {
         id: customDomain.id
       }
     ]
+    // Session affinity: pin authenticated users to the same backend instance
+    // for the duration of their session (default 24 hours). In multi-instance
+    // deployments, Tomcat stores sessions in JVM-local memory; without affinity,
+    // a user routed to a different instance loses their session and must
+    // re-authenticate. AFD affinity solves this via a routing cookie.
+    sessionAffinitySettings: {
+      affinityEnabled: 'Enabled'
+      affinityCookieCharacteristic: 'SameSite=Lax'
+      affintiyTimeoutInMinutes: 1440
+    }
     // No caching: the CMS is dynamic and sets its own headers. Static-asset
     // caching is a deliberate later tune, not a default.
   }
