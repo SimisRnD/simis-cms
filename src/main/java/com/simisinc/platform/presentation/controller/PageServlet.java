@@ -159,6 +159,7 @@ public class PageServlet extends HttpServlet {
     response.setHeader("X-Frame-Options", "SAMEORIGIN");
     response.setHeader("X-Content-Type-Options", "nosniff");
     response.setHeader("X-XSS-Protection", "1; mode=block");
+    response.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
     byte[] nonceBytes = new byte[16];
     SECURE_RANDOM.nextBytes(nonceBytes);
     String cspNonce = Base64.getUrlEncoder().withoutPadding().encodeToString(nonceBytes);
