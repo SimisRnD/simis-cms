@@ -1,71 +1,32 @@
+/*
+ * Copyright 2026 SimIS Inc. (https://www.simiscms.com)
+ */
+
 package com.simisinc.platform.domain.model;
 
-import javax.persistence.*;
 import java.time.LocalDateTime;
 
 /**
- * P5.1: Media Asset model
- * Represents uploaded media files (images, PDFs) in the library
+ * P5.1: Media Asset domain model
+ * Represents an uploaded media file (image, PDF) in the library
  */
-@Entity
-@Table(name = "media_assets")
 public class MediaAsset {
 
-  @Id
-  @GeneratedValue(strategy = GenerationType.IDENTITY)
   private long id;
-
-  @Column(name = "asset_id", nullable = false, unique = true, length = 128)
   private String assetId;
-
-  @Column(name = "asset_name", nullable = false, length = 512)
   private String assetName;
-
-  @Column(name = "asset_type", nullable = false, length = 32)
-  private String assetType;
-
-  @Column(name = "mime_type", length = 64)
+  private String assetType; // 'image' or 'pdf'
   private String mimeType;
-
-  @Column(name = "file_size_bytes", nullable = false)
   private long fileSizeBytes;
-
-  @Column(name = "storage_path", nullable = false)
   private String storagePath;
-
-  @Column(name = "alt_text", nullable = false)
   private String altText;
-
-  @Column(name = "tags")
   private String tags;
-
-  @Column(name = "created_by", nullable = false)
   private long createdBy;
-
-  @Column(name = "created_at", nullable = false)
   private LocalDateTime createdAt;
-
-  @Column(name = "updated_at", nullable = false)
   private LocalDateTime updatedAt;
-
-  @Column(name = "deleted_at")
   private LocalDateTime deletedAt;
 
   public MediaAsset() {
-  }
-
-  public MediaAsset(String assetId, String assetName, String assetType, String mimeType,
-      long fileSizeBytes, String storagePath, String altText, long createdBy) {
-    this.assetId = assetId;
-    this.assetName = assetName;
-    this.assetType = assetType;
-    this.mimeType = mimeType;
-    this.fileSizeBytes = fileSizeBytes;
-    this.storagePath = storagePath;
-    this.altText = altText;
-    this.createdBy = createdBy;
-    this.createdAt = LocalDateTime.now();
-    this.updatedAt = LocalDateTime.now();
   }
 
   public long getId() {
@@ -170,12 +131,5 @@ public class MediaAsset {
 
   public void setDeletedAt(LocalDateTime deletedAt) {
     this.deletedAt = deletedAt;
-  }
-
-  @Override
-  public String toString() {
-    return "MediaAsset{" + "id=" + id + ", assetId='" + assetId + '\'' + ", assetName='"
-        + assetName + '\'' + ", assetType='" + assetType + '\'' + ", fileSizeBytes="
-        + fileSizeBytes + ", createdBy=" + createdBy + ", createdAt=" + createdAt + '}';
   }
 }
