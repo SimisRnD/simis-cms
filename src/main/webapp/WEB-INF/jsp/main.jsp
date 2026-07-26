@@ -280,6 +280,9 @@
   <c:if test="${!empty includeStylesheet}">
     <link rel="stylesheet" type="text/css" href="${ctx}/css/custom/stylesheet${includeStylesheet}.css?v=${includeStylesheetLastModified}" />
   </c:if>
+  <c:if test="${pageEditMode eq 'true'}">
+    <link rel="stylesheet" type="text/css" href="${ctx}/css/platform-editor.css?v=<%= VERSION %>" />
+  </c:if>
   <c:if test="${!empty pageCollection}">
     <style>
         <c:choose>
@@ -322,7 +325,22 @@
       <script src="${ctx}/javascript/platform-theme.js"></script>
     </c:if>
 </head>
-<body<c:if test="${pageRenderInfo.name eq '/'}"> id="body-home"</c:if><c:if test="${!empty pageRenderInfo.cssClass}"> class="<c:out value="${pageRenderInfo.cssClass}" />"</c:if>>
+<c:set var="bodyClass" value="${pageRenderInfo.cssClass}"/>
+<c:if test="${pageEditMode eq 'true'}">
+  <c:choose>
+    <c:when test="${!empty pageRenderInfo.cssClass}"><c:set var="bodyClass" value="${pageRenderInfo.cssClass} page-edit-mode"/></c:when>
+    <c:otherwise><c:set var="bodyClass" value="page-edit-mode"/></c:otherwise>
+  </c:choose>
+</c:if>
+<body<c:if test="${pageRenderInfo.name eq '/'}"> id="body-home"</c:if><c:if test="${!empty bodyClass}"> class="<c:out value="${bodyClass}" />"</c:if>>
+  <c:if test="${pageEditMode eq 'true'}">
+    <div id="sc-editor-toolbar" role="toolbar" aria-label="Page editor" data-page-path="<c:out value="${pageRenderInfo.pagePath}"/>" data-ctx="${ctx}">
+      <span id="sc-editor-toolbar-title">Visual Editor</span>
+      <a href="${ctx}/admin/web-page-designer?webPage=<c:out value="${pageRenderInfo.pagePath}"/>" class="button small hollow secondary"><i class="fa fa-fw fa-code"></i> XML</a>
+      <a href="?editMode=false" id="sc-editor-exit" class="button small hollow secondary"><i class="fa fa-fw fa-times"></i> Exit</a>
+      <span id="sc-editor-status" aria-live="polite"></span>
+    </div>
+  </c:if>
   <c:choose>
     <c:when test="${fn:startsWith(pageRenderInfo.name, '/admin') && pageRenderInfo.name ne '/admin/web-page' && pageRenderInfo.name ne '/admin/web-page-designer' && pageRenderInfo.name ne '/admin/web-container-designer' && pageRenderInfo.name ne '/admin/css-editor'}">
       <%-- Draw the admin menu--%>
@@ -718,6 +736,9 @@
     <c:if test="${!empty analyticsPropertyMap['analytics.brandcdn.value'] && !empty analyticsPropertyMap['analytics.brandcdn.value2']}">
       <script type="text/javascript" src="//tag.brandcdn.com/autoscript/${js:escape(analyticsPropertyMap['analytics.brandcdn.value'])}/${js:escape(analyticsPropertyMap['analytics.brandcdn.value2'])}"></script>
     </c:if>
+  </c:if>
+  <c:if test="${pageEditMode eq 'true'}">
+    <script src="${ctx}/javascript/platform-editor.js?v=<%= VERSION %>"></script>
   </c:if>
 </body>
 </html>
