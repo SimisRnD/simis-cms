@@ -162,15 +162,16 @@ class DeltaRenderer {
   }
 
   /**
-   * Sanitize URLs (prevent javascript: and data: URIs)
+   * Sanitize URLs (prevent javascript:, vbscript:, data:, and other dangerous URIs)
    */
   static sanitizeUrl(url) {
     if (!url) return '';
 
     const trimmed = url.trim().toLowerCase();
 
-    // Reject javascript: and data: URIs
-    if (trimmed.startsWith('javascript:') || trimmed.startsWith('data:')) {
+    // Reject dangerous URI schemes (javascript:, vbscript:, data:, etc.)
+    if (trimmed.startsWith('javascript:') || trimmed.startsWith('vbscript:') ||
+        trimmed.startsWith('data:') || trimmed.startsWith('blob:')) {
       return '#';
     }
 
