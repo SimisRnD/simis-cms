@@ -25,7 +25,7 @@
 <jsp:useBean id="themePropertyMap" class="java.util.HashMap" scope="request"/>
 <jsp:useBean id="view" class="java.lang.String" scope="request"/>
 <div class="title-bar hide-for-medium" data-responsive-toggle="platform-small-toggle-menu"  data-hide-for="medium">
-  <button class="menu-icon" type="button" data-toggle="platform-small-toggle-menu"></button>
+  <button class="menu-icon" type="button" data-toggle="platform-small-toggle-menu" aria-label="Open menu" aria-controls="platform-small-toggle-menu" aria-expanded="false"></button>
   <c:set var="logoSrc" scope="request" value=""/>
   <c:choose>
     <c:when test="${view eq 'white'}">

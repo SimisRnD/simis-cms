@@ -8,6 +8,7 @@
   var toolbar = document.getElementById('sc-editor-toolbar');
   var pagePath = toolbar ? toolbar.dataset.pagePath : '';
   var ctx = toolbar ? (toolbar.dataset.ctx || '') : '';
+  var layoutMode = toolbar ? toolbar.dataset.layoutMode === 'true' : false;
 
   // ── Shared inline toolbar + link prompt DOM ──────────────────────────────
 
@@ -279,6 +280,7 @@
         originalHtml = activeContent.innerHTML; // update snapshot so Discard doesn't clobber
         saveBtn.disabled = false;
         saveBtn.textContent = 'Save Draft';
+        markHasDraft();
       } else {
         throw new Error(data.error || 'Unknown error');
       }
@@ -337,6 +339,14 @@
     if (dot) dot.classList.remove('sc-visible');
     var btn = document.getElementById('sc-save-layout-btn');
     if (btn) btn.disabled = true;
+  }
+
+  function markHasDraft() {
+    if (toolbar) toolbar.dataset.hasDraft = 'true';
+    var pub = document.getElementById('sc-publish-btn');
+    var dis = document.getElementById('sc-discard-draft-btn');
+    if (pub) pub.style.display = '';
+    if (dis) dis.style.display = '';
   }
 
   // Build the layout JSON from current DOM order.
@@ -506,6 +516,162 @@
     });
   }
 
+  // ── Confirm modal ────────────────────────────────────────────────────────
+
+  var confirmCallback = null;
+
+  function buildConfirmModal() {
+    var overlay = document.createElement('div');
+    overlay.id = 'sc-confirm-modal';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.innerHTML =
+      '<div id="sc-confirm-modal-box">' +
+        '<p id="sc-confirm-modal-msg"></p>' +
+        '<div id="sc-confirm-modal-actions">' +
+          '<button type="button" id="sc-confirm-cancel">Cancel</button>' +
+          '<button type="button" id="sc-confirm-ok">Confirm</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(overlay);
+
+    document.getElementById('sc-confirm-ok').addEventListener('click', function () {
+      overlay.classList.remove('sc-visible');
+      if (typeof confirmCallback === 'function') {
+        var cb = confirmCallback;
+        confirmCallback = null;
+        cb();
+      }
+    });
+    document.getElementById('sc-confirm-cancel').addEventListener('click', function () {
+      overlay.classList.remove('sc-visible');
+      confirmCallback = null;
+    });
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay) {
+        overlay.classList.remove('sc-visible');
+        confirmCallback = null;
+      }
+    });
+    return overlay;
+  }
+
+  function showConfirm(msg, okLabel, isDanger, callback) {
+    document.getElementById('sc-confirm-modal-msg').textContent = msg;
+    var okBtn = document.getElementById('sc-confirm-ok');
+    okBtn.textContent = okLabel || 'Confirm';
+    okBtn.classList.toggle('sc-danger', !!isDanger);
+    confirmCallback = callback;
+    document.getElementById('sc-confirm-modal').classList.add('sc-visible');
+    okBtn.focus();
+  }
+
+  // ── Publish draft ────────────────────────────────────────────────────────
+
+  function buildPublishButton() {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.id = 'sc-publish-btn';
+    btn.className = 'button small success';
+    btn.textContent = 'Publish';
+    if (toolbar.dataset.hasDraft !== 'true') btn.style.display = 'none';
+    btn.addEventListener('click', function () {
+      showConfirm(
+        'Publish this draft? The current live page will be replaced.',
+        'Publish', false, doPublishDraft
+      );
+    });
+    var exitBtn = document.getElementById('sc-editor-exit');
+    if (exitBtn) toolbar.insertBefore(btn, exitBtn);
+    else toolbar.appendChild(btn);
+    return btn;
+  }
+
+  function buildDiscardDraftButton() {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.id = 'sc-discard-draft-btn';
+    btn.className = 'button small hollow secondary';
+    btn.textContent = 'Discard Draft';
+    if (toolbar.dataset.hasDraft !== 'true') btn.style.display = 'none';
+    btn.addEventListener('click', function () {
+      showConfirm(
+        'Discard all draft changes? This cannot be undone.',
+        'Discard', true, doDiscardDraft
+      );
+    });
+    var exitBtn = document.getElementById('sc-editor-exit');
+    if (exitBtn) toolbar.insertBefore(btn, exitBtn);
+    else toolbar.appendChild(btn);
+    return btn;
+  }
+
+  function doPublishDraft() {
+    var btn = document.getElementById('sc-publish-btn');
+    btn.disabled = true;
+    btn.textContent = 'Publishing…';
+    setToolbarStatus('Publishing…');
+
+    var qs = new URLSearchParams();
+    qs.append('action', 'publishDraft');
+    qs.append('token', getToken());
+
+    fetch(window.location.pathname + '?' + qs.toString(), {
+      method: 'POST',
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'}
+    })
+    .then(function (resp) {
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      return resp.json();
+    })
+    .then(function (data) {
+      if (data.success) {
+        setToolbarStatus('Published! Reloading…');
+        window.location.reload();
+      } else {
+        throw new Error(data.error || 'Publish failed');
+      }
+    })
+    .catch(function (err) {
+      setToolbarStatus('Publish failed: ' + err.message);
+      btn.disabled = false;
+      btn.textContent = 'Publish';
+    });
+  }
+
+  function doDiscardDraft() {
+    var btn = document.getElementById('sc-discard-draft-btn');
+    btn.disabled = true;
+    btn.textContent = 'Discarding…';
+    setToolbarStatus('Discarding draft…');
+
+    var qs = new URLSearchParams();
+    qs.append('action', 'discardDraft');
+    qs.append('token', getToken());
+
+    fetch(window.location.pathname + '?' + qs.toString(), {
+      method: 'POST',
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'}
+    })
+    .then(function (resp) {
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      return resp.json();
+    })
+    .then(function (data) {
+      if (data.success) {
+        setToolbarStatus('Draft discarded. Reloading…');
+        window.location.reload();
+      } else {
+        throw new Error(data.error || 'Discard failed');
+      }
+    })
+    .catch(function (err) {
+      setToolbarStatus('Discard failed: ' + err.message);
+      btn.disabled = false;
+      btn.textContent = 'Discard Draft';
+    });
+  }
+
   // ── Save Layout button and AJAX post ─────────────────────────────────────
 
   function buildSaveLayoutButton() {
@@ -516,7 +682,9 @@
     btn.disabled = true;
     btn.innerHTML = 'Save Layout<span id="sc-layout-dirty-dot" aria-hidden="true"></span>';
     btn.addEventListener('click', saveLayout);
-    toolbar.appendChild(btn);
+    var exitBtn = document.getElementById('sc-editor-exit');
+    if (exitBtn) toolbar.insertBefore(btn, exitBtn);
+    else toolbar.appendChild(btn);
   }
 
   function saveLayout() {
@@ -550,6 +718,7 @@
         btn.innerHTML = 'Save Layout<span id="sc-layout-dirty-dot" aria-hidden="true"></span>';
         btn.disabled = true;
         setToolbarStatus('Layout saved — reload to see');
+        markHasDraft();
       } else {
         throw new Error(data.error || 'Unknown error');
       }
@@ -565,15 +734,23 @@
 
   inlineToolbar = buildInlineToolbar();
   linkPrompt = buildLinkPrompt();
-  buildSaveLayoutButton();
+  buildConfirmModal();
+
+  if (layoutMode) {
+    buildSaveLayoutButton();      // inserts before Exit
+    buildPublishButton();         // inserts before Exit (right of Save Layout)
+    buildDiscardDraftButton();    // inserts before Exit (between Save Layout and Publish)
+  }
 
   // Sections
   document.querySelectorAll('[data-editor-section]').forEach(function (el) {
     var idx = parseInt(el.dataset.editorSection, 10);
     insertHandle(el, 'section', 'Section ' + (idx + 1));
-    insertDragHandle(el, 'section');
-    insertMoveButtons(el, 'section');
-    makeDraggable(el, 'section');
+    if (layoutMode) {
+      insertDragHandle(el, 'section');
+      insertMoveButtons(el, 'section');
+      makeDraggable(el, 'section');
+    }
   });
 
   // Columns
@@ -588,41 +765,17 @@
     var isContentWidget = !!el.querySelector('[data-content-unique-id]');
     var href = isContentWidget ? null : (ctx + '/admin/web-page-designer?webPage=' + encodeURIComponent(pagePath));
     insertHandle(el, 'widget', isContentWidget ? 'Content' : 'Widget', href);
-    insertDragHandle(el, 'widget');
-    insertMoveButtons(el, 'widget');
-    makeDraggable(el, 'widget');
+    if (layoutMode) {
+      insertDragHandle(el, 'widget');
+      insertMoveButtons(el, 'widget');
+      makeDraggable(el, 'widget');
+    }
   });
 
   // Click on a content block → activate inline editor
   document.addEventListener('click', function (e) {
     if (e.target.closest('.sc-editor-drag-handle, .sc-move-btns, .sc-editor-handle')) return;
 
-    var contentEl = e.target.closest('.platform-content[data-content-unique-id]');
-    if (contentEl) {
-      e.preventDefault();
-      activateEdit(contentEl);
-      return;
-    }
-    // Click outside the active editor (not on toolbar or actions bar) → deactivate
-    if (activeContent) {
-      var inToolbar = inlineToolbar && inlineToolbar.contains(e.target);
-      var inPrompt = linkPrompt && linkPrompt.contains(e.target);
-      var inActions = actionsBar && actionsBar.contains(e.target);
-      var inContent = activeContent.contains(e.target);
-      if (!inToolbar && !inPrompt && !inActions && !inContent) {
-        deactivateEdit(true);
-      }
-    }
-  });
-
-  // Show/reposition toolbar on selection change
-  document.addEventListener('selectionchange', function () {
-    if (!activeContent) return;
-    showInlineToolbar();
-  });
-
-  // Click on a content block → activate inline editor
-  document.addEventListener('click', function (e) {
     var contentEl = e.target.closest('.platform-content[data-content-unique-id]');
     if (contentEl) {
       e.preventDefault();

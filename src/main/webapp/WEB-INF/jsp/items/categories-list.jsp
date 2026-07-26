@@ -36,19 +36,19 @@
   </c:choose>
   <c:choose>
     <c:when test="${category.id eq -1}">
-      <li><a href="${listingsLinkPrefix}"><i class="${font:fas()} fa-circle-check"></i> All <c:out value="${collection.name}" /></a>&nbsp;<small class="subheader"><fmt:formatNumber value="${collection.itemCount}" /></small></li>
+      <li><a href="<c:out value="${listingsLinkPrefix}"/>"><i class="${font:fas()} fa-circle-check"></i> All <c:out value="${collection.name}" /></a>&nbsp;<small class="subheader"><fmt:formatNumber value="${collection.itemCount}" /></small></li>
     </c:when>
     <c:otherwise>
-      <li><a href="${listingsLinkPrefix}"><i class="${font:far()} fa-circle"></i> All <c:out value="${collection.name}" /></a>&nbsp;<small class="subheader"><fmt:formatNumber value="${collection.itemCount}" /></small></li>
+      <li><a href="<c:out value="${listingsLinkPrefix}"/>"><i class="${font:far()} fa-circle"></i> All <c:out value="${collection.name}" /></a>&nbsp;<small class="subheader"><fmt:formatNumber value="${collection.itemCount}" /></small></li>
     </c:otherwise>
   </c:choose>
   <c:forEach items="${categoryList}" var="thisCategory">
     <c:choose>
       <c:when test="${category.id eq thisCategory.id}">
-        <li><a href="${listingsLinkPrefix}?categoryId=${thisCategory.id}"><i class="${font:fas()} fa-circle-check"></i> <c:out value="${thisCategory.name}" /></a>&nbsp;<small class="subheader"><fmt:formatNumber value="${thisCategory.itemCount}" /></small></li>
+        <li><a href="<c:out value="${listingsLinkPrefix}"/>?categoryId=${thisCategory.id}"><i class="${font:fas()} fa-circle-check"></i> <c:out value="${thisCategory.name}" /></a>&nbsp;<small class="subheader"><fmt:formatNumber value="${thisCategory.itemCount}" /></small></li>
       </c:when>
       <c:otherwise>
-        <li><a href="${listingsLinkPrefix}?categoryId=${thisCategory.id}"><i class="${font:far()} fa-circle"></i> <c:out value="${thisCategory.name}" /></a>&nbsp;<small class="subheader"><fmt:formatNumber value="${thisCategory.itemCount}" /></small></li>
+        <li><a href="<c:out value="${listingsLinkPrefix}"/>?categoryId=${thisCategory.id}"><i class="${font:far()} fa-circle"></i> <c:out value="${thisCategory.name}" /></a>&nbsp;<small class="subheader"><fmt:formatNumber value="${thisCategory.itemCount}" /></small></li>
       </c:otherwise>
     </c:choose>
   </c:forEach>
