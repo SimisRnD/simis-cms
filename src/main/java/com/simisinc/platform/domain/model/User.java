@@ -55,6 +55,7 @@ public class User extends Entity {
   private String mfaSecret = null;
   private boolean mfaEnabled = false;
   private String accountToken = null;
+  private Timestamp accountTokenExpires = null;
   private Timestamp validated = null;
   private int failedAttemptCount = 0;
   private Timestamp lockedUntil = null;
@@ -265,6 +266,14 @@ public class User extends Entity {
 
   public void setAccountToken(String accountToken) {
     this.accountToken = accountToken;
+  }
+
+  public Timestamp getAccountTokenExpires() {
+    return accountTokenExpires;
+  }
+
+  public void setAccountTokenExpires(Timestamp accountTokenExpires) {
+    this.accountTokenExpires = accountTokenExpires;
   }
 
   public Timestamp getValidated() {

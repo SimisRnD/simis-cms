@@ -53,7 +53,7 @@
           <c:if test="${showImage eq 'true' && !empty blogPost.imageUrl}">
             <div class="small-12 medium-5 cell">
               <div class="featured-blog-image">
-                <a href="${ctx}/${blog.uniqueId}/${blogPost.uniqueId}"><img alt="Blog post banner image" src="${ctx}${blogPost.imageUrl}"/></a>
+                <a href="${ctx}/${blog.uniqueId}/${blogPost.uniqueId}"><img alt="Blog post banner image" src="${ctx}<c:out value="${blogPost.imageUrl}"/>"/></a>
               </div>
             </div>
           </c:if>
