@@ -57,6 +57,22 @@ public class ProcessDatasetJob implements JobRequest {
     modifiedByUserId = dataset.getModifiedBy();
   }
 
+  public long getDatasetId() {
+    return datasetId;
+  }
+
+  public void setDatasetId(long datasetId) {
+    this.datasetId = datasetId;
+  }
+
+  public long getModifiedByUserId() {
+    return modifiedByUserId;
+  }
+
+  public void setModifiedByUserId(long modifiedByUserId) {
+    this.modifiedByUserId = modifiedByUserId;
+  }
+
   @Override
   public Class<ProcessDatasetJobRequestHandler> getJobRequestHandler() {
     return ProcessDatasetJobRequestHandler.class;

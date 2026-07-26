@@ -20,10 +20,36 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="order" class="com.simisinc.platform.domain.model.ecommerce.Order" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}" /></h4>
+  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <c:if test="${testMode eq 'true'}"><span class="label warning">TEST MODE</span></c:if>
+<button type="button" class="button alert expanded" onclick="openCancelConfirm()" id="cancelOrderButton">Cancel Order</button>
+
+<div class="reveal small" id="cancelConfirmReveal" data-reveal data-close-on-click="false" role="dialog" aria-modal="true" aria-labelledby="cancelConfirmTitle">
+  <button class="close-button" data-close aria-label="Close modal" type="button">
+    <span aria-hidden="true">&times;</span>
+  </button>
+  <h4 id="cancelConfirmTitle"><i class="fa fa-times-circle"></i> Confirm Cancellation</h4>
+  <p>Cancel this order? The customer will be notified and any pending charges will be reversed.</p>
+  <p class="subheader"><i class="fa fa-warning"></i> This action cannot be undone.</p>
+  <form method="post" id="cancelForm">
+    <%-- Required by controller --%>
+    <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
+    <input type="hidden" name="token" value="${userSession.formToken}"/>
+    <%-- The form --%>
+    <input type="hidden" name="uniqueId" value="${order.uniqueId}"/>
+    <div class="button-group">
+      <button type="button" class="button secondary" data-close>Keep Order</button>
+      <button type="submit" class="button alert expanded" id="cancelSubmitBtn">
+        <span class="btn-text">Confirm Cancellation</span>
+      </button>
+    </div>
+  </form>
+</div>
+
+<script>
+  function openCancelConfirm() {
 <form method="post" onsubmit="return cancelOrder()">
   <%-- Required by controller --%>
   <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
@@ -32,15 +58,20 @@
   <input type="hidden" name="uniqueId" value="${order.uniqueId}"/>
   <button id="cancelOrderButton" class="button alert expanded">Cancel Order</button>
 </form>
-<script>
+<script nonce="${cspNonce}">
   function cancelOrder() {
     if (document.getElementById("cancelOrderButton").disabled === true) {
-      return false;
+      return;
     }
-    if (confirm('Attempt to cancel this order?')) {
-      document.getElementById("cancelOrderButton").disabled = true;
-      return true;
-    }
-    return false;
+    new Foundation.Reveal(document.getElementById('cancelConfirmReveal')).open();
   }
+
+  document.getElementById('cancelForm').addEventListener('submit', function(e) {
+    var button = document.getElementById('cancelOrderButton');
+    var submitBtn = document.getElementById('cancelSubmitBtn');
+    var btnText = submitBtn.querySelector('.btn-text');
+    button.disabled = true;
+    submitBtn.disabled = true;
+    btnText.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Cancelling...';
+  });
 </script>

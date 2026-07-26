@@ -26,7 +26,7 @@
 <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
 <input type="hidden" name="token" value="${userSession.formToken}"/>
 <%-- Form body--%>
-<script>
+<script nonce="${cspNonce}">
   function checkForm${widgetContext.uniqueId}() {
     if (document.getElementById("shippingCountry").value.trim() === "") {
       alert("Please choose a Country");

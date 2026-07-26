@@ -16,22 +16,23 @@
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="group" uri="/WEB-INF/tlds/group-functions.tld" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="wikiList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="wikiPageCount" class="java.util.HashMap" scope="request"/>
 <c:if test="${userSession.hasRole('admin')}">
-<script>
+<script nonce="${cspNonce}">
   function deleteWiki(wikiId) {
     if (!confirm("Are you sure you want to delete this wiki and all of its pages?")) {
       return;
     }
-    window.location.href = '${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&id=' + wikiId;
+    postAction('${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&id=' + wikiId);
   }
 </script>
 </c:if>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}" /></h4>
+  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
 <a class="button small radius primary" href="${ctx}/admin/wiki?returnPage=/admin/wikis">Add a Wiki <i class="fa fa-arrow-circle-right"></i></a>
 <%@include file="../page_messages.jspf" %>
