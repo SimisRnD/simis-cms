@@ -30,6 +30,11 @@ ENV CGO_ENABLED=0
 RUN go install github.com/tianon/gosu@1.17
 
 # Pull official base image (digest-pinned -- see the header note)
+# REVERTED from Alpine: while Alpine offers 67% smaller base (~50MB vs ~150MB),
+# PostGIS extension availability/compatibility on Alpine is not straightforward.
+# Debian bookworm is proven, maintainable, and has well-packaged PostGIS.
+# Alpine can be revisited when either (a) we have more time to resolve PostGIS
+# packaging, or (b) a dedicated hardened Alpine postgres+postgis image is available.
 FROM postgres:17-bookworm@sha256:4f736ae292687621d4dbe0d499ffd024a36bd2ee7d8ca6f2ccd4c800f047b394
 
 # Replace the base image's gosu with the freshly built, patched-stdlib binary.
@@ -44,3 +49,10 @@ RUN apt-get update \
 
 # Run init.sql
 ADD ./docker/db/init.sql /docker-entrypoint-initdb.d/
+
+# HEALTHCHECK: verify the database is accepting connections. pg_isready returns
+# 0 if the server is accepting connections, 3 if it is not (e.g., still starting).
+# Used by orchestrators for readiness probes and container restarts. No specific
+# user required -- just checks if the port is listening.
+HEALTHCHECK --interval=10s --timeout=5s --start-period=10s --retries=3 \
+  CMD pg_isready -h localhost || exit 1

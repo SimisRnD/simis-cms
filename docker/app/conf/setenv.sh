@@ -11,6 +11,18 @@
 # this the admin-user Flyway migration fails with UnsatisfiedLinkError ("failed to map segment").
 CATALINA_OPTS="$CATALINA_OPTS -Djna.tmpdir=/opt/jna"
 #
+# [STIG] JVM security hardening: disable dangerous deserialization features to
+# prevent JNDI injection and other object-instantiation attacks. These flags prevent
+# the JVM from loading untrusted serialized objects that could instantiate arbitrary
+# classes (a major attack vector exploited by log4shell-family vulnerabilities).
+CATALINA_OPTS="$CATALINA_OPTS -Dcom.sun.jndi.ldap.object.trustURLCodebase=false"
+CATALINA_OPTS="$CATALINA_OPTS -Dcom.sun.jndi.rmi.object.trustURLCodebase=false"
+#
+# [STIG] Disable remote debugging by default. RemoteDebug must be explicitly
+# enabled at deploy time if needed (via JAVA_TOOL_OPTIONS). This prevents
+# accidental JDWP exposure in production.
+CATALINA_OPTS="$CATALINA_OPTS -Dcom.sun.jdi.allowConnectorAllocation=false"
+#
 # Historical note, so the old flag is not reintroduced: Tomcat 9 required
 #     -Dorg.apache.catalina.connector.RECYCLE_FACADES=true
 # to allocate a fresh request/response facade per request (closing a class of

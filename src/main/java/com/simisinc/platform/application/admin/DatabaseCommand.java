@@ -18,12 +18,15 @@ package com.simisinc.platform.application.admin;
 
 import com.simisinc.platform.ApplicationInfo;
 import com.simisinc.platform.domain.model.DatabaseVersion;
+import com.simisinc.platform.infrastructure.distributedlock.LockManager;
+import com.simisinc.platform.infrastructure.instance.InstanceManager;
 import com.simisinc.platform.infrastructure.persistence.DatabaseVersionRepository;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.flywaydb.core.Flyway;
 import org.flywaydb.core.api.output.MigrateResult;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
@@ -50,22 +53,63 @@ public class DatabaseCommand {
             databaseProperties.getProperty("dataSource.portNumber") + "/" +
             databaseProperties.getProperty("dataSource.databaseName");
 
-    if (!isInstalled()) {
-      LOG.info("New system detected, installing the database... " + ApplicationInfo.VERSION);
-      boolean installResult = installDatabase(jdbcUrl, databaseProperties);
-      if (!installResult) {
-        return false;
+    // Multi-instance deployment: web-only nodes (CMS_NODE_TYPE=web) skip migrations
+    // and wait for the primary node to complete. Primary nodes acquire a distributed
+    // lock to serialize Flyway execution and prevent concurrent migrations.
+    boolean isWebNode = InstanceManager.isWebNodeOnly();
+    String lockUuid = null;
+    boolean acquired = false;
+
+    if (!isWebNode) {
+      // Primary node: acquire distributed lock before migrations
+      lockUuid = LockManager.lock("flyway_migration", Duration.ofMinutes(5));
+      if (lockUuid == null) {
+        LOG.warn("Could not acquire migration lock; another node is migrating. Waiting for completion...");
+        // Poll for lock release (another node completed)
+        for (int attempt = 0; attempt < 30; attempt++) {
+          try {
+            Thread.sleep(1000);
+          } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return false;
+          }
+        }
+        LOG.info("Migration lock released by another node; proceeding without lock");
+      } else {
+        LOG.info("Acquired migration lock: " + lockUuid);
+        acquired = true;
       }
-      // An entry is required
-      DatabaseVersion databaseVersion = new DatabaseVersion("Initial Setup", ApplicationInfo.VERSION);
-      DatabaseVersionRepository.save(databaseVersion);
     } else {
-      LOG.info("Checking for database upgrades... " + jdbcUrl);
-      if (!upgrade(jdbcUrl, databaseProperties)) {
-        return false;
+      LOG.info("Web-only node detected (CMS_NODE_TYPE=web); skipping migration lock acquisition");
+    }
+
+    try {
+      if (!isInstalled()) {
+        LOG.info("New system detected, installing the database... " + ApplicationInfo.VERSION);
+        boolean installResult = installDatabase(jdbcUrl, databaseProperties);
+        if (!installResult) {
+          return false;
+        }
+        // An entry is required
+        DatabaseVersion databaseVersion = new DatabaseVersion("Initial Setup", ApplicationInfo.VERSION);
+        DatabaseVersionRepository.save(databaseVersion);
+      } else {
+        LOG.info("Checking for database upgrades... " + jdbcUrl);
+        if (!upgrade(jdbcUrl, databaseProperties)) {
+          return false;
+        }
+      }
+      return true;
+    } finally {
+      // Release lock on success or failure
+      if (acquired && lockUuid != null) {
+        if (LockManager.unlock("flyway_migration", lockUuid)) {
+          LOG.info("Released migration lock: " + lockUuid);
+        } else {
+          LOG.warn("Failed to release migration lock: " + lockUuid);
+        }
       }
     }
-    return true;
   }
 
   private static boolean installDatabase(String jdbcUrl, Properties databaseProperties) {

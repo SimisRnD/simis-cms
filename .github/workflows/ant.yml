@@ -16,6 +16,12 @@ jobs:
       contents: read
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+    - name: Check for unsafe migrations
+      # Gate destructive schema changes (DROP COLUMN/TABLE, RENAME) that appear
+      # in the same version as Java field removals. The expand/contract pattern
+      # requires these to be split: expand migration, code release, then contract
+      # migration. See docs/expand-contract-migrations.md.
+      run: python3 tools/detect_unsafe_migrations.py
     - name: Set up JDK
       uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5
       with:

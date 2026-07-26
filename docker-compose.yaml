@@ -8,6 +8,12 @@ services:
       POSTGRES_USER: "${DB_USER:?err}"
       POSTGRES_PASSWORD: "${DB_PASSWORD:?err}"
     restart: always
+    # [STIG] Runtime hardening: block privilege escalation. PostgreSQL Alpine image
+    # requires capabilities to set up directories on first run, so we enforce only
+    # no-new-privileges instead of dropping ALL. The hardened image (non-root, dedicated
+    # postgres user) provides the primary defense; this adds the escalation block.
+    security_opt:
+      - "no-new-privileges:true"
     networks:
       - platform
     volumes:

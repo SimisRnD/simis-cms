@@ -49,6 +49,18 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
+      # Secret scanning: detect hardcoded credentials (passwords, API keys, tokens)
+      # before they reach the image. TruffleHog scans git history and the checked-out
+      # code; a finding blocks the workflow to prevent secret leaks.
+      - name: Scan for secrets in code and history
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.repository.default_branch }}
+          head: HEAD
+          # Exit on any findings to prevent secrets from reaching images
+          extra_args: --fail --json
+
       - name: Set up JDK 21
         uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5
         with:
@@ -114,6 +126,10 @@ jobs:
           output: trivy-simis-cms.sarif
           severity: CRITICAL,HIGH
           limit-severities-for-sarif: true
+          # --ignore-unfixed: report only actionable CVEs with available fixes.
+          # Reduces noise by filtering out will_not_fix findings (typically in base OS).
+          # The scan gate below enforces the zero-baseline on what remains.
+          args: --ignore-unfixed
           # Report scan: always exit 0 so the SARIF below reaches the Security
           # tab on every run. Enforcement is the separate gate step after the
           # upload -- splitting them means a failing gate never costs visibility.
@@ -197,6 +213,9 @@ jobs:
           output: trivy-simis-cms-db.sarif
           severity: CRITICAL,HIGH
           limit-severities-for-sarif: true
+          # --ignore-unfixed: report only actionable CVEs with available fixes.
+          # The VEX + .trivyignore gate below handles triaged not_affected findings.
+          args: --ignore-unfixed
           # Report scan, exit 0 -- same split as the application image above.
           exit-code: '0'
 
@@ -272,3 +291,38 @@ jobs:
           subject-digest: ${{ steps.db_digest.outputs.digest }}
           sbom-path: sbom-simis-cms-db.cdx.json
           push-to-registry: true
+
+      # SBOM dependency scanning: check both generated SBOMs for known vulnerable
+      # packages. The SBOM enumerates what is actually in the images (base OS, JRE,
+      # app dependencies); this scan matches against known CVE databases. Auditable
+      # trail for compliance/audit: what versions are in the image and what known
+      # vulnerabilities exist. Uses Trivy's SBOM scanning mode for consistency with
+      # the image scanning gate above.
+      - name: Scan the application image SBOM for vulnerable packages
+        run: >-
+          trivy sbom --severity CRITICAL,HIGH --exit-code 0
+          sbom-simis-cms.cdx.json
+
+      - name: Scan the database image SBOM for vulnerable packages
+        run: >-
+          trivy sbom --severity CRITICAL,HIGH --exit-code 0
+          sbom-simis-cms-db.cdx.json
+
+      # Rolling deploy: zero-downtime update to Azure App Service using deployment slots.
+      # Triggered only on pushes to main (not on schedule). Requires:
+      #   - ACR_APP_SERVICE_NAME (repository variable): App Service instance name
+      #   - ACR_APP_RESOURCE_GROUP (repository variable): Azure resource group name
+      # If not set, the deploy is skipped (e.g., forks, pre-production branches).
+      - name: Deploy to Azure App Service (rolling update)
+        if: |
+          github.event_name == 'push' &&
+          github.ref == 'refs/heads/main' &&
+          env.ACR_REGISTRY != '' &&
+          vars.ACR_APP_SERVICE_NAME != ''
+        run: |
+          bash tools/rolling-deploy.sh \
+            --resource-group "${{ vars.ACR_APP_RESOURCE_GROUP }}" \
+            --app-service-name "${{ vars.ACR_APP_SERVICE_NAME }}" \
+            --image-uri "${{ env.ACR_REGISTRY }}/simis-cms:${{ env.VERSION_TAG }}" \
+            --health-check-timeout 300 \
+            --drain-timeout 60
