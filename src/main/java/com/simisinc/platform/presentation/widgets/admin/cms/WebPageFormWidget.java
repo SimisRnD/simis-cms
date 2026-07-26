@@ -116,11 +116,29 @@ public class WebPageFormWidget extends GenericWidget {
 
     // Parse optional scheduling timestamps (BeanUtils cannot convert String → Timestamp)
     String publishAtStr = context.getParameter("publishAt");
-    webPageBean.setPublishAt(StringUtils.isBlank(publishAtStr) ? null
-        : Timestamp.valueOf(publishAtStr.replace("T", " ") + ":00"));
+    if (StringUtils.isBlank(publishAtStr)) {
+      webPageBean.setPublishAt(null);
+    } else {
+      try {
+        webPageBean.setPublishAt(Timestamp.valueOf(publishAtStr.replace("T", " ") + ":00"));
+      } catch (IllegalArgumentException e) {
+        context.setErrorMessage("Go live date format is not valid");
+        context.setRequestObject(webPageBean);
+        return context;
+      }
+    }
     String expiresAtStr = context.getParameter("expiresAt");
-    webPageBean.setExpiresAt(StringUtils.isBlank(expiresAtStr) ? null
-        : Timestamp.valueOf(expiresAtStr.replace("T", " ") + ":00"));
+    if (StringUtils.isBlank(expiresAtStr)) {
+      webPageBean.setExpiresAt(null);
+    } else {
+      try {
+        webPageBean.setExpiresAt(Timestamp.valueOf(expiresAtStr.replace("T", " ") + ":00"));
+      } catch (IllegalArgumentException e) {
+        context.setErrorMessage("Expire date format is not valid");
+        context.setRequestObject(webPageBean);
+        return context;
+      }
+    }
 
     // Set the server values
     webPageBean.setCreatedBy(context.getUserId());
