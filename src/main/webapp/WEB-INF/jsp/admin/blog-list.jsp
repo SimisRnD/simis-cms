@@ -17,12 +17,13 @@
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="font" uri="/WEB-INF/tlds/font-functions.tld" %>
 <%@ taglib prefix="group" uri="/WEB-INF/tlds/group-functions.tld" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="blogList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="blogPostCount" class="java.util.HashMap" scope="request"/>
 <c:if test="${userSession.hasRole('admin')}">
-<script>
+<script nonce="${cspNonce}">
   function deleteBlog(blogId) {
     if (!confirm("Are you sure you want to delete this blog and all of its posts?")) {
       return;
@@ -32,7 +33,7 @@
 </script>
 </c:if>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}" /></h4>
+  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
 <a class="button small radius primary" href="${ctx}/admin/blog?returnPage=/admin/blogs">Add a Blog <i class="fa fa-arrow-circle-right"></i></a>
 <%@include file="../page_messages.jspf" %>

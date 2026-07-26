@@ -40,7 +40,7 @@
   <small><c:out value="${number:suffix(file.fileLength)}"/></small>
   <c:if test="${!status.last}"><br /></c:if>
 </c:forEach>
-<script>
+<script nonce="${cspNonce}">
   <c:choose>
     <c:when test="${!empty inputId}">
     function mySubmit(itemUrl) {

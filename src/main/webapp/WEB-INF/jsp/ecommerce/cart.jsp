@@ -33,7 +33,7 @@
 <jsp:useBean id="pricingRule" class="com.simisinc.platform.domain.model.ecommerce.PricingRule" scope="request"/>
 <jsp:useBean id="preventCheckout" class="java.lang.String" scope="request"/>
 <link rel="stylesheet" href="${ctx}/css/platform-ecommerce.css?v=<%= VERSION %>"/>
-<script>
+<script nonce="${cspNonce}">
   var itemIdList = [<c:forEach items="${cartEntryList}" var="cartEntry" varStatus="status">${cartEntry.cartItem.id}<c:if test="${!status.last}">, </c:if></c:forEach>];
 
   function updatePrice(itemId, price) {

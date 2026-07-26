@@ -25,7 +25,7 @@
 <jsp:useBean id="blockedIP" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="recordPaging" class="com.simisinc.platform.infrastructure.database.DataConstraints" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}" /></h4>
+  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <form id="fileForm" method="post" enctype="multipart/form-data">
@@ -37,7 +37,7 @@
   <label for="file" class="button small secondary radius float-left margin-left-0"><i class="fa fa-upload"></i> Upload CSV File</label>
   <input type="file" id="file" name="file" accept="text/csv" class="show-for-sr">
 </form>
-<script>
+<script nonce="${cspNonce}">
   document.getElementById("file").onchange = function() {
     document.getElementById("fileForm").submit();
   }

@@ -23,7 +23,7 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="dataset" class="com.simisinc.platform.domain.model.datasets.Dataset" scope="request"/>
 <jsp:useBean id="columnConfiguration" class="java.lang.String" scope="request"/>
-<script>
+<script nonce="${cspNonce}">
   $(document).ready(function() {
     $('textarea').keypress(function(event) {
       if (event.keyCode === 13) {
@@ -33,7 +33,7 @@
   });
 </script>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}" /></h4>
+  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <form method="post" enctype="multipart/form-data">

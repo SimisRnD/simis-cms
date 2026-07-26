@@ -56,6 +56,7 @@ public class AuditLogRepository {
 
   private static String TABLE_NAME = "audit_log";
   private static String[] PRIMARY_KEY = new String[]{"audit_id"};
+  private static String WATERMARK_TABLE = "audit_log_watermark";
 
   // A fixed key so every audit append contends on the same advisory lock (and nothing else does).
   private static final long AUDIT_CHAIN_LOCK_KEY = 872025601L;
@@ -115,6 +116,15 @@ public class AuditLogRepository {
       record.setRecordHash(recordHash);
 
       long id = DB.insertInto(connection, TABLE_NAME, buildInsertValues(record), PRIMARY_KEY);
+      if (id != -1) {
+        // Record the lowest hashed audit_id that has ever been written on this server.
+        // ON CONFLICT DO NOTHING is a no-op for all subsequent inserts — the watermark never regresses.
+        try (PreparedStatement wm = connection.prepareStatement(
+            "INSERT INTO " + WATERMARK_TABLE + "(id, lowest_hashed_audit_id) VALUES(1, ?) ON CONFLICT (id) DO NOTHING")) {
+          wm.setLong(1, id);
+          wm.executeUpdate();
+        }
+      }
       connection.commit();
 
       record.setId(id);
@@ -228,6 +238,36 @@ public class AuditLogRepository {
     }
   }
 
+  /**
+   * Returns the stored watermark: the lowest audit_id that has ever held a {@code record_hash} on this
+   * server. Returns 0 if the watermark row is absent (migration not yet applied or no hashed records
+   * written yet). Any exception (e.g. table not found on a pre-migration schema) is suppressed and
+   * returns 0 so that {@link AuditLogIntegrityCommand#verify()} degrades gracefully.
+   */
+  public static long loadWatermarkLowestId() {
+    try (Connection conn = DB.getConnection();
+         PreparedStatement pst = conn.prepareStatement(
+             "SELECT lowest_hashed_audit_id FROM " + WATERMARK_TABLE + " WHERE id = 1");
+         ResultSet rs = pst.executeQuery()) {
+      return rs.next() ? rs.getLong(1) : 0L;
+    } catch (Exception e) {
+      LOG.warn("Could not load audit watermark (schema may be pre-migration): " + e.getMessage());
+      return 0L;
+    }
+  }
+
+  /** Returns the audit_id of the oldest hashed record, or 0 if none exist. */
+  public static long findFirstHashedAuditId() {
+    DataConstraints constraints = new DataConstraints();
+    constraints.setPageSize(1);
+    constraints.setUseCount(false);
+    constraints.setColumnToSortBy("audit_id", "asc");
+    SqlUtils where = new SqlUtils().add("record_hash IS NOT NULL");
+    DataResult result = DB.selectAllFrom(TABLE_NAME, where, constraints, AuditLogRepository::buildRecord);
+    List<AuditLog> rows = (List<AuditLog>) result.getRecords();
+    return rows.isEmpty() ? 0L : rows.get(0).getId();
+  }
+
   public static List<AuditLog> findAll(DataConstraints constraints) {
     if (constraints == null) {
       constraints = new DataConstraints();
@@ -298,7 +338,14 @@ public class AuditLogRepository {
     String firstInWindow = "COALESCE("
         + "(SELECT MIN(audit_id) FROM " + TABLE_NAME + " WHERE occurred >= " + threshold + "), "
         + "(SELECT COALESCE(MAX(audit_id), 0) + 1 FROM " + TABLE_NAME + "))";
-    return DB.deleteFrom(TABLE_NAME, new SqlUtils().add("audit_id < " + firstInWindow));
+    int deleted = DB.deleteFrom(TABLE_NAME, new SqlUtils().add("audit_id < " + firstInWindow));
+    if (deleted > 0) {
+      // Advance the watermark so verify() knows the lower bound moved due to a legitimate purge.
+      DB.update(WATERMARK_TABLE,
+          "lowest_hashed_audit_id = (SELECT COALESCE(MIN(audit_id), 0) FROM " + TABLE_NAME + " WHERE record_hash IS NOT NULL)",
+          new SqlUtils().add("id = 1"));
+    }
+    return deleted;
   }
 
   /**

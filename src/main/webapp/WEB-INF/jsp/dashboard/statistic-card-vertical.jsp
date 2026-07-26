@@ -25,7 +25,7 @@
 <jsp:useBean id="statisticCard" class="com.simisinc.platform.domain.model.dashboard.StatisticCard" scope="request"/>
 <jsp:useBean id="iconColor" class="java.lang.String" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}"/></h4>
+  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
 </c:if>
 <style>
   <c:if test="${!empty iconColor}">
@@ -55,7 +55,7 @@
 <%--    </div>--%>
 <%--  </c:if>--%>
 </div>
-<script>
+<script nonce="${cspNonce}">
   function updateFontSize${widgetContext.uniqueId}() {
     let value = Math.round($('#icon${widgetContext.uniqueId}').closest('.cell').outerWidth()*.50);
     $("#icon${widgetContext.uniqueId}").css({'font-size': value + 'px'});
