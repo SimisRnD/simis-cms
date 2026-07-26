@@ -167,6 +167,26 @@ If startup fails:
 - Common: missing Key Vault secret, DB password mismatch, connectivity
 - Redeploy with corrected parameter and wait for container restart
 
+### 4.1 Background Job Storage (Multi-Instance)
+
+The app uses JobRunr for background jobs (snapshots, cleanup, order processing). With SQL-backed storage enabled (Production mode), JobRunr creates its schema tables automatically:
+- `jobrunr_jobs` — job definitions and state
+- `jobrunr_backgroundjobservers` — server registrations (for multi-instance)
+- `jobrunr_recurring_jobs` — cron schedule persistence
+
+**No manual action required.** JobRunr creates these tables on first startup with the SQL provider. The app's database user (from Bicep: `simiscmsadmin`) needs standard privileges (INSERT, UPDATE, DELETE, SELECT) which it already has.
+
+**Verify in logs:**
+```
+JobRunr version X.Y.Z
+Jobrunr storage provider: SqlStorageProvider using table prefix 'jobrunr_'
+```
+
+Multi-instance behavior:
+- Jobs marked as "cluster jobs" (snapshots, cleanup) run once across all instances, coordinated by the database
+- Per-instance jobs (page hits, system health) run on every instance independently
+- Instances with `CMS_NODE_TYPE=web` skip cluster jobs entirely
+
 ---
 
 ## 5. Configure Proxy IP Forwarding
