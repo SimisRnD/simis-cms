@@ -161,6 +161,7 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (1, 'Audit log retention (days)', 'audit.retentionDays', '2555');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (10, 'Analytics Service', 'analytics.service', 'google');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (7, 'Honor Do-Not-Track / Global Privacy Control?', 'analytics.honorDnt', 'false', 'boolean');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (9, 'Require visitor consent before loading analytics?', 'analytics.consentRequired', 'false', 'boolean');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (20, 'Google Analytics GA Key', 'analytics.google.key', '');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (22, 'Google Tag Manager GTM Key', 'analytics.google.tagmanager', '');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (25, 'SimpliFi Tag Value', 'analytics.simplifi.value', '');
