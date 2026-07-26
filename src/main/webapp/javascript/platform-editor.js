@@ -235,6 +235,7 @@
   }
 
   // ── AJAX save (content) ──────────────────────────────────────────────────
+  // ── AJAX save ─────────────────────────────────────────────────────────────
 
   function saveContentDraft(bar) {
     if (!activeContent) return;
@@ -275,6 +276,7 @@
         setStatus(bar, 'Saved');
         setToolbarStatus('Draft saved');
         originalHtml = activeContent.innerHTML;
+        originalHtml = activeContent.innerHTML; // update snapshot so Discard doesn't clobber
         saveBtn.disabled = false;
         saveBtn.textContent = 'Save Draft';
       } else {
@@ -595,6 +597,32 @@
   document.addEventListener('click', function (e) {
     if (e.target.closest('.sc-editor-drag-handle, .sc-move-btns, .sc-editor-handle')) return;
 
+    var contentEl = e.target.closest('.platform-content[data-content-unique-id]');
+    if (contentEl) {
+      e.preventDefault();
+      activateEdit(contentEl);
+      return;
+    }
+    // Click outside the active editor (not on toolbar or actions bar) → deactivate
+    if (activeContent) {
+      var inToolbar = inlineToolbar && inlineToolbar.contains(e.target);
+      var inPrompt = linkPrompt && linkPrompt.contains(e.target);
+      var inActions = actionsBar && actionsBar.contains(e.target);
+      var inContent = activeContent.contains(e.target);
+      if (!inToolbar && !inPrompt && !inActions && !inContent) {
+        deactivateEdit(true);
+      }
+    }
+  });
+
+  // Show/reposition toolbar on selection change
+  document.addEventListener('selectionchange', function () {
+    if (!activeContent) return;
+    showInlineToolbar();
+  });
+
+  // Click on a content block → activate inline editor
+  document.addEventListener('click', function (e) {
     var contentEl = e.target.closest('.platform-content[data-content-unique-id]');
     if (contentEl) {
       e.preventDefault();
