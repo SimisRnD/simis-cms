@@ -23,7 +23,7 @@
 <jsp:useBean id="categoryList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="cancelUrl" class="java.lang.String" scope="request"/>
 <script src="${ctx}/javascript/tinymce-7.9.3/tinymce.min.js"></script>
-<script>
+<script nonce="${cspNonce}">
   tinymce.init({
     license_key: 'gpl',
     selector: '.html-field',
@@ -77,9 +77,39 @@
   }
 </script>
 <%-- Handle item image uploads --%>
-<script>
+<script nonce="${cspNonce}">
   function SavePhoto(e) {
-    var file = e.files[0]; // similar to: document.getElementById("file").files[0]
+    var file = e.files[0];
+    var errorEl = document.getElementById("imageUploadError");
+    var errorMsg = document.getElementById("imageErrorMsg");
+    var uploadBtn = document.querySelector("label[for='imageFile']");
+
+    if (errorEl) {
+      errorEl.style.display = "none";
+    }
+
+    // Client-side validation first
+    var maxSize = 5242880; // 5MB
+    if (file.size > maxSize) {
+      errorMsg.innerHTML = '<i class="fa fa-exclamation-circle"></i> File too large. Maximum size is 5 MB.';
+      errorEl.style.display = "block";
+      document.getElementById("imageFile").value = "";
+      return;
+    }
+
+    var validTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+    if (validTypes.indexOf(file.type) === -1) {
+      errorMsg.innerHTML = '<i class="fa fa-exclamation-circle"></i> File type not supported. Please use .jpg or .png.';
+      errorEl.style.display = "block";
+      document.getElementById("imageFile").value = "";
+      return;
+    }
+
+    // Show uploading state
+    if (uploadBtn) {
+      uploadBtn.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Uploading...';
+    }
+
     var formData = new FormData();
     formData.append("file", file);
     var xhr = new XMLHttpRequest();
@@ -89,9 +119,21 @@
           var fileData = JSON.parse(this.responseText);
           document.getElementById("imageUrl").value = fileData.location;
           document.getElementById("imageUrlPreview").src = fileData.location;
+          if (uploadBtn) {
+            uploadBtn.innerHTML = '✓ Upload Image File...';
+            setTimeout(function() {
+              uploadBtn.innerHTML = 'Upload Image File...';
+            }, 1500);
+          }
         } else {
           document.getElementById("imageFile").value = "";
-          alert('There was an error with the file. Make sure to use a .jpg or .png');
+          errorMsg.innerHTML = '<i class="fa fa-exclamation-circle"></i> Upload failed. Please check the file and try again.';
+          if (errorEl) {
+            errorEl.style.display = "block";
+          }
+          if (uploadBtn) {
+            uploadBtn.innerHTML = 'Upload Image File...';
+          }
         }
       }
     };
@@ -111,7 +153,7 @@
   <%-- Title and Message block --%>
   <h2><em><c:out value="${collection.name}" /></em></h2>
   <c:if test="${!empty title}">
-    <p><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}"/></p>
+    <p><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></p>
   </c:if>
   <%@include file="../page_messages.jspf" %>
   <%-- Form Content --%>
@@ -204,8 +246,11 @@
               <span class="input-group-label" style="padding: 0;"><a class="button small primary expanded no-gap" data-open="imageBrowserReveal">Browse Images</a></span>
             </div>
             <label for="imageFile" class="button">Upload Image File...</label>
-            <input type="file" id="imageFile" class="show-for-sr" onchange="SavePhoto(this)">
+            <input type="file" id="imageFile" class="show-for-sr" accept="image/jpeg,image/png,image/jpg" onchange="SavePhoto(this)">
           </label>
+          <div id="imageUploadError" class="callout alert" role="alert" style="display:none; margin-top: 1rem; padding: 1rem;">
+            <p id="imageErrorMsg" style="margin: 0;"></p>
+          </div>
         </div>
         <div class="small-4 cell">
           <img id="imageUrlPreview" src="<c:out value="${item.imageUrl}"/>" style="max-height: 150px; max-width: 150px"/>
@@ -405,7 +450,7 @@
               <input class="input-group-field" type="text" placeholder="mm-dd-yyyy time" id="expectedDate" name="expectedDate" value="<fmt:formatDate pattern="MM-dd-yyyy HH:mm" value="${item.expectedDate}" />">
             </div>
           </label>
-          <script>
+          <script nonce="${cspNonce}">
             $(function(){
               $('#expectedDate').fdatepicker({
                 format: 'mm-dd-yyyy hh:ii',
@@ -422,7 +467,7 @@
               <input class="input-group-field" type="text" placeholder="mm-dd-yyyy time" id="expirationDate" name="expirationDate" value="<fmt:formatDate pattern="MM-dd-yyyy HH:mm" value="${item.expirationDate}" />">
             </div>
           </label>
-          <script>
+          <script nonce="${cspNonce}">
             $(function(){
               $('#expirationDate').fdatepicker({
                 format: 'mm-dd-yyyy hh:ii',
@@ -441,7 +486,7 @@
               <input class="input-group-field" type="text" placeholder="mm-dd-yyyy time" id="startDate" name="startDate" value="<fmt:formatDate pattern="MM-dd-yyyy HH:mm" value="${item.startDate}" />">
             </div>
           </label>
-          <script>
+          <script nonce="${cspNonce}">
             $(function(){
               $('#startDate').fdatepicker({
                 format: 'mm-dd-yyyy hh:ii',
@@ -458,7 +503,7 @@
               <input class="input-group-field" type="text" placeholder="mm-dd-yyyy time" id="endDate" name="endDate" value="<fmt:formatDate pattern="MM-dd-yyyy HH:mm" value="${item.endDate}" />">
             </div>
           </label>
-          <script>
+          <script nonce="${cspNonce}">
             $(function(){
               // yyyy-MM-dd HH:mm:ss.fffffffff
               $('#endDate').fdatepicker({
@@ -533,7 +578,7 @@
 <div class="reveal large" id="imageBrowserReveal" data-reveal data-animation-in="slide-in-down fast" role="dialog" aria-modal="true" aria-label="Image Browser">
   <h3>Loading...</h3>
 </div>
-<script>
+<script nonce="${cspNonce}">
   $('#imageBrowserReveal').on('open.zf.reveal', function () {
     $('#imageBrowserReveal').html("<h3>Loading...</h3>");
     $.ajax({

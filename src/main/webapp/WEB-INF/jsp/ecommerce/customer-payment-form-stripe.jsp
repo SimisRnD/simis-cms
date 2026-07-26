@@ -27,7 +27,7 @@
 <jsp:useBean id="stripeKey" class="java.lang.String" scope="request"/>
 <jsp:useBean id="testMode" class="java.lang.String" scope="request"/>
 <%-- Stripe --%>
-<script src="https://js.stripe.com/v3/"></script>
+<script src="https://js.stripe.com/v3/" nonce="${cspNonce}"></script>
 <%-- Page Scripts --%>
 <%@include file="../page_messages.jspf" %>
 <form method="post" id="payment-form">
@@ -56,10 +56,10 @@
     </div>
   </div>
   <div class="button-container">
-    <button class="button primary" name="button" value="save">Save &amp; Continue</button>
+    <button id="stripeSubmitButton" class="button primary" name="button" value="save">Save &amp; Continue</button>
   </div>
 </form>
-<script>
+<script nonce="${cspNonce}">
   var stripe = Stripe('<c:out value="${stripeKey}" />');
   var elements = stripe.elements();
   var style = {
@@ -94,10 +94,15 @@
   var form = document.getElementById('payment-form');
   form.addEventListener('submit', function (event) {
     event.preventDefault();
+    var button = document.getElementById('stripeSubmitButton');
+    button.disabled = true;
+    button.textContent = 'Processing…';
     stripe.createToken(card).then(function (result) {
       if (result.error) {
         var errorElement = document.getElementById('card-errors');
         errorElement.textContent = result.error.message;
+        button.disabled = false;
+        button.textContent = 'Save & Continue';
       } else {
         // Send the token to your server.
         stripeTokenHandler(result.token);

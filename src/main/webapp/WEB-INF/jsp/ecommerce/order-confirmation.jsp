@@ -30,7 +30,7 @@
 <jsp:useBean id="shippingMethod" class="com.simisinc.platform.domain.model.ecommerce.ShippingMethod" scope="request"/>
 <jsp:useBean id="trackingNumberList" class="java.util.ArrayList" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}"/></h4>
+  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
 </c:if>
 <c:if test="${!empty calloutHtml}">
   <div class="callout">

@@ -259,7 +259,7 @@
     </c:forEach>
   </div>
 </div>
-<script>
+<script nonce="${cspNonce}">
   <c:choose>
     <c:when test="${!empty inputId}">
       <%-- Directly called by a web page --%>

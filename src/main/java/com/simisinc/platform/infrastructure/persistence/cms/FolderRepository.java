@@ -64,6 +64,7 @@ public class FolderRepository {
     }
     insertValues.add("has_allowed_groups", record.getFolderGroupList() != null && !record.getFolderGroupList().isEmpty());
     insertValues.add("has_categories", record.getFolderCategoryList() != null && !record.getFolderCategoryList().isEmpty());
+    insertValues.add("allowed_extensions", StringUtils.trimToNull(record.getAllowedExtensions()));
     // Use a transaction
     try {
       try (Connection connection = DB.getConnection();
@@ -105,6 +106,7 @@ public class FolderRepository {
     }
     updateValues.add("has_allowed_groups", record.getFolderGroupList() != null && !record.getFolderGroupList().isEmpty());
     updateValues.add("has_categories", record.getFolderCategoryList() != null && !record.getFolderCategoryList().isEmpty());
+    updateValues.add("allowed_extensions", StringUtils.trimToNull(record.getAllowedExtensions()));
     SqlUtils where = new SqlUtils().add("folder_id = ?", record.getId());
     // Use a transaction
     try {
@@ -321,6 +323,7 @@ public class FolderRepository {
       record.setGuestPrivacyType(rs.getInt("guest_privacy_type"));
       record.setEnabled(rs.getBoolean("enabled"));
       record.setHasCategories(rs.getBoolean("has_categories"));
+      record.setAllowedExtensions(rs.getString("allowed_extensions"));
       return record;
     } catch (SQLException se) {
       LOG.error("buildRecord", se);

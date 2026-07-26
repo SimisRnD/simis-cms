@@ -16,6 +16,7 @@
 
 package com.simisinc.platform.application.cms;
 
+import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.filesystem.FileSystemCommand;
 import com.simisinc.platform.domain.model.cms.FileItem;
 import com.simisinc.platform.domain.model.items.ItemFileItem;
@@ -25,6 +26,9 @@ import org.apache.commons.logging.LogFactory;
 
 import java.io.File;
 import java.nio.file.Files;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * Validates file item objects
@@ -35,6 +39,25 @@ import java.nio.file.Files;
 public class ValidateFileCommand {
 
   private static Log LOG = LogFactory.getLog(ValidateFileCommand.class);
+
+  // Extensions that can execute server-side code or are commonly used for malware delivery
+  private static final Set<String> BLOCKED_EXTENSIONS = new HashSet<>(Arrays.asList(
+      "jsp", "jspx", "php", "php3", "php4", "php5", "phtml",
+      "asp", "aspx", "cfm", "cfml", "cgi", "pl",
+      "exe", "dll", "so", "dylib", "com", "msi",
+      "sh", "bash", "zsh", "cmd", "bat", "ps1", "vbs", "wsf",
+      "jar", "war", "ear", "class"
+  ));
+
+  public static void checkFileExtension(String extension) throws DataException {
+    if (StringUtils.isBlank(extension)) {
+      return;
+    }
+    if (BLOCKED_EXTENSIONS.contains(extension.toLowerCase())) {
+      LOG.warn("Blocked file extension: " + extension);
+      throw new DataException("This file type is not allowed: ." + extension);
+    }
+  }
 
   public static void checkFile(FileItem fileItemBean) {
 

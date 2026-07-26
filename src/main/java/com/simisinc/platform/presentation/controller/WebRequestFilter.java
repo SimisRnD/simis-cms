@@ -171,6 +171,18 @@ public class WebRequestFilter implements Filter {
 
     // Handle logouts immediately
     if (resource.equals("/logout")) {
+      // CSRF: validate the session token before processing logout
+      HttpSession httpSession = httpServletRequest.getSession(false);
+      if (httpSession != null) {
+        UserSession logoutUserSession = (UserSession) httpSession.getAttribute(SessionConstants.USER);
+        if (logoutUserSession != null && logoutUserSession.isLoggedIn()) {
+          String providedToken = httpServletRequest.getParameter("token");
+          if (!logoutUserSession.getFormToken().equals(providedToken)) {
+            do302(servletResponse, contextPath + "/");
+            return;
+          }
+        }
+      }
       // Log out of the system
       LogoutCommand.logout((HttpServletRequest) request, ((HttpServletResponse) servletResponse));
       // Redirect to OAuth Provider via the home page

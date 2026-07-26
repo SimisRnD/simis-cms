@@ -20,10 +20,36 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="order" class="com.simisinc.platform.domain.model.ecommerce.Order" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}" /></h4>
+  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <c:if test="${testMode eq 'true'}"><span class="label warning">TEST MODE</span></c:if>
+<button type="button" class="button primary expanded" onclick="openShipConfirm()" id="shipOrderButton">Send Order to Shipping</button>
+
+<div class="reveal small" id="shipConfirmReveal" data-reveal data-close-on-click="false" role="dialog" aria-modal="true" aria-labelledby="shipConfirmTitle">
+  <button class="close-button" data-close aria-label="Close modal" type="button">
+    <span aria-hidden="true">&times;</span>
+  </button>
+  <h4 id="shipConfirmTitle"><i class="fa fa-truck"></i> Confirm Shipment</h4>
+  <p>Ship this order to the carrier? This will notify the customer and update the order status.</p>
+  <p class="subheader"><i class="fa fa-info-circle"></i> This action cannot be undone.</p>
+  <form method="post" id="shipForm">
+    <%-- Required by controller --%>
+    <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
+    <input type="hidden" name="token" value="${userSession.formToken}"/>
+    <%-- The form --%>
+    <input type="hidden" name="uniqueId" value="${order.uniqueId}"/>
+    <div class="button-group">
+      <button type="button" class="button secondary" data-close>Cancel</button>
+      <button type="submit" class="button primary expanded" id="shipSubmitBtn">
+        <span class="btn-text">Confirm Shipment</span>
+      </button>
+    </div>
+  </form>
+</div>
+
+<script>
+  function openShipConfirm() {
 <form method="post" onsubmit="return shipOrder()">
   <%-- Required by controller --%>
   <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
@@ -32,15 +58,20 @@
   <input type="hidden" name="uniqueId" value="${order.uniqueId}"/>
   <button id="shipOrderButton" class="button primary expanded">Send Order to Shipping</button>
 </form>
-<script>
+<script nonce="${cspNonce}">
   function shipOrder() {
     if (document.getElementById("shipOrderButton").disabled === true) {
-      return false;
+      return;
     }
-    if (confirm('Ship this order?')) {
-      document.getElementById("shipOrderButton").disabled = true;
-      return true;
-    }
-    return false;
+    new Foundation.Reveal(document.getElementById('shipConfirmReveal')).open();
   }
+
+  document.getElementById('shipForm').addEventListener('submit', function(e) {
+    var button = document.getElementById('shipOrderButton');
+    var submitBtn = document.getElementById('shipSubmitBtn');
+    var btnText = submitBtn.querySelector('.btn-text');
+    button.disabled = true;
+    submitBtn.disabled = true;
+    btnText.innerHTML = '<i class="fa fa-spinner fa-spin"></i> Shipping...';
+  });
 </script>

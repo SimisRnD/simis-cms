@@ -30,15 +30,15 @@
 <%-- Square --%>
 <c:choose>
   <c:when test="${testMode eq 'true'}">
-    <script type="text/javascript" src="https://sandbox.web.squarecdn.com/v1/square.js"></script>
+    <script type="text/javascript" src="https://sandbox.web.squarecdn.com/v1/square.js" nonce="${cspNonce}"></script>
   </c:when>
   <c:otherwise>
-    <script type="text/javascript" src="https://web.squarecdn.com/v1/square.js"></script>
+    <script type="text/javascript" src="https://web.squarecdn.com/v1/square.js" nonce="${cspNonce}"></script>
   </c:otherwise>
 </c:choose>
 <%-- Page Scripts --%>
 <%@include file="../page_messages.jspf" %>
-<script>
+<script nonce="${cspNonce}">
     const appId = '<c:out value="${squareAppId}" />';
     const locationId = '<c:out value="${squareLocationId}" />';
 

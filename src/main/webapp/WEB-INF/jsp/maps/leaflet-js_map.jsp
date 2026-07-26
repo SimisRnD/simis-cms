@@ -35,7 +35,7 @@
 <script src="${ctx}/javascript/leaflet.markercluster-1.5.3/leaflet.markercluster.js"></script>
 <%-- Render the widget --%>
 <div id="mapid${widgetContext.uniqueId}" style="height: ${mapHeight}px;"></div>
-<script>
+<script nonce="${cspNonce}">
   var map${widgetContext.uniqueId} = L.map('mapid${widgetContext.uniqueId}').setView([${latitude}, ${longitude}], ${mapZoomLevel});
   <c:choose>
     <c:when test="${mapCredentials.service eq 'mapbox'}">

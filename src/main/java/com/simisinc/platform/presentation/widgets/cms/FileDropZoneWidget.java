@@ -122,6 +122,7 @@ public class FileDropZoneWidget extends GenericWidget {
       fileItemBean.setCreatedBy(context.getUserId());
       fileItemBean.setModifiedBy(context.getUserId());
       // Validate the file
+      ValidateFileCommand.checkFileExtension(fileItemBean.getExtension());
       ValidateFileCommand.checkFile(fileItemBean);
       // Save it
       FileItem fileItem = SaveFileCommand.saveFile(fileItemBean);

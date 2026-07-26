@@ -19,6 +19,14 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="item" class="com.simisinc.platform.domain.model.items.Item" scope="request"/>
 <jsp:useBean id="buttonClass" class="java.lang.String" scope="request"/>
+<%@ taglib prefix="fn" uri="jakarta.tags.core" %>
 <c:if test="${item.id gt 0}">
-<a class="radius button <c:out value="${buttonClass}"/>" href="${widgetContext.uri}?action=approve&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&itemUniqueId=${item.uniqueId}&returnPage=${returnPage}" onclick="return confirm('Are you sure you want to approve <c:out value="${js:escape(item.name)}" />?');"><i class="fa fa-check"></i> <c:out value="${title}" /></a>
+<c:url var="approveUrl" value="${widgetContext.uri}">
+  <c:param name="action" value="approve"/>
+  <c:param name="widget" value="${widgetContext.uniqueId}"/>
+  <c:param name="token" value="${userSession.formToken}"/>
+  <c:param name="itemUniqueId" value="${item.uniqueId}"/>
+  <c:if test="${!empty returnPage}"><c:param name="returnPage" value="${returnPage}"/></c:if>
+</c:url>
+<a class="radius button <c:out value="${buttonClass}"/>" href="${approveUrl}" onclick="return confirm('Are you sure you want to approve <c:out value="${js:escape(item.name)}" />?');"><i class="fa fa-check"></i> <c:out value="${title}" /></a>
 </c:if>

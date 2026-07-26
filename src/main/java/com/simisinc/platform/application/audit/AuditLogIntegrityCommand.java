@@ -33,14 +33,13 @@ import com.simisinc.platform.infrastructure.persistence.audit.AuditLogRepository
  * deleting a record from the middle or tail, reordering records, or inserting a record changes every hash
  * after it and is detectable by {@link #verify()}.
  *
- * <p><b>What this does not, by itself, detect: deletion of the oldest contiguous records.</b> {@code verify()}
- * anchors on the oldest record still present, so removing the genuine genesis (and any oldest-first run)
- * leaves a shorter but self-consistent chain -- this is the same shape as a legitimate retention purge and
- * cannot be distinguished from it by the database alone. Two things cover that gap: retention only ever
- * removes an oldest-first prefix and records an audited {@code audit.retention.purge} event of its own, and
- * the hashes are also emitted to the out-of-band SIEM witness below, which retains the earlier records. (A
- * verify-side high-water record count, so any oldest-record deletion NOT made by the retention job is caught
- * on-box too, is a planned follow-up.)
+ * <p><b>Deletion of the oldest contiguous records</b> is detected via the {@code audit_log_watermark} table.
+ * The watermark records the lowest {@code audit_id} that has ever held a {@code record_hash} on this server;
+ * {@code verify()} checks the current minimum hashed id against the stored watermark before walking the
+ * chain. If the actual minimum is higher, records have been removed from the oldest prefix outside of the
+ * normal retention job, and {@code verify()} reports a breach. The retention job advances the watermark after
+ * each legitimate purge. The hashes are also emitted to an out-of-band SIEM witness, which provides an
+ * independent copy against a complete table rewrite.
  *
  * <p>The chain is unkeyed, so on its own it proves only that the database has not been edited <i>in place</i>
  * -- an attacker who can rewrite the whole table could recompute a consistent chain. That is why the hashes
@@ -121,6 +120,20 @@ public class AuditLogIntegrityCommand {
    * until the first hashed record, which becomes the chain's anchor.
    */
   public static AuditIntegrityResult verify() {
+    // Detect unauthorized deletion of the oldest-prefix records — the one case the hash chain
+    // cannot catch on its own. The watermark records the lowest audit_id that ever held a hash;
+    // if the current minimum is higher, records were removed outside of the retention job.
+    long watermark = AuditLogRepository.loadWatermarkLowestId();
+    if (watermark > 0L) {
+      long actualFirst = AuditLogRepository.findFirstHashedAuditId();
+      if (actualFirst > watermark) {
+        LOG.warn("Audit chain integrity FAILED: oldest-prefix deletion detected; watermark="
+            + watermark + ", first hashed record=" + actualFirst);
+        return AuditIntegrityResult.broken(actualFirst, 0L,
+            "oldest-prefix deletion detected: watermark=" + watermark
+                + " but first hashed record is audit_id=" + actualFirst);
+      }
+    }
     ChainVerifier verifier = new ChainVerifier();
     long afterAuditId = 0L;
     while (true) {

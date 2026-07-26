@@ -19,17 +19,17 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="theme" class="com.simisinc.platform.domain.model.cms.Theme" scope="request"/>
 <jsp:useBean id="themeList" class="java.util.ArrayList" scope="request"/>
-<script>
+<script nonce="${cspNonce}">
 function deleteTheme(themeId) {
   if (!confirm("Are you sure you want to DELETE this theme?")) {
     return;
   }
-  window.location.href = '${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&id='+themeId;
+  postAction('${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&id='+themeId);
 }
 </script>
 <%-- Title and Message block --%>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}"/></h4>
+  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <c:if test="${!empty themeList}">
@@ -37,7 +37,7 @@ function deleteTheme(themeId) {
   <ol>
     <c:forEach items="${themeList}" var="thisTheme">
       <li>
-        <a href="${widgetContext.uri}?action=restore&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&id=${thisTheme.id}"><c:out value="${thisTheme.name}"/></a>
+        <a href="#" onclick="postAction('${widgetContext.uri}?action=restore&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&id=${thisTheme.id}'); return false;"><c:out value="${thisTheme.name}"/></a>
         <a href="javascript:deleteTheme(${thisTheme.id})"><i class="fa fa-trash-o"></i></a>
       </li>
     </c:forEach>
