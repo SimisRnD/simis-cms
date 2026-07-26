@@ -269,8 +269,8 @@
     <jar jarfile="${target.dir}/${project}/WEB-INF/lib/${project}-jsp.jar"
          basedir="${target.dir}/${project}/WEB-INF/compiled" includes="**/*.class" />
     <!-- Cleanup -->
+    <!-- Keep JSPs in WAR for Tomcat to serve; delete only intermediate compile artifacts -->
     <delete>
-      <fileset dir="${target.dir}/${project}/WEB-INF/jsp"/>
       <fileset dir="${target.dir}/${project}/WEB-INF/src"/>
       <fileset dir="${target.dir}/${project}/WEB-INF/compiled"/>
     </delete>

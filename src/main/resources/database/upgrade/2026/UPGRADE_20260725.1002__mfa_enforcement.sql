@@ -12,5 +12,5 @@ VALUES (28, 'Roles that must enrol MFA (comma-separated, e.g. admin)', 'mfa.requ
 ON CONFLICT (property_name) DO NOTHING;
 
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type)
-VALUES (29, 'MFA enrolment page URL (must be accessible without MFA)', 'mfa.enrollment.url', '/my-profile', 'web-page')
+VALUES (29, 'MFA enrollment URL', 'mfa.enrollment.url', '/my-profile', 'web-page')
 ON CONFLICT (property_name) DO NOTHING;
