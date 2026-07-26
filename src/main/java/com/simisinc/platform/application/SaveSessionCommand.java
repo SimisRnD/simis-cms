@@ -44,14 +44,18 @@ public class SaveSessionCommand {
       session.setContinent(userSession.getGeoIP().getContinent());
       session.setCountryIso(userSession.getGeoIP().getCountryISOCode());
       session.setCountry(userSession.getGeoIP().getCountry());
-      session.setCity(userSession.getGeoIP().getCity());
       session.setStateIso(userSession.getGeoIP().getStateISOCode());
       session.setState(userSession.getGeoIP().getState());
-      session.setPostalCode(userSession.getGeoIP().getPostalCode());
       session.setTimezone(userSession.getGeoIP().getTimezone());
-      session.setLatitude(userSession.getGeoIP().getLatitude());
-      session.setLongitude(userSession.getGeoIP().getLongitude());
-      session.setMetroCode(userSession.getGeoIP().getMetroCode());
+      // City, postal code, and precise coordinates are only stored for
+      // authenticated users; anonymous visitors are limited to region/country.
+      if (userSession.getUserId() != UserSession.GUEST_ID) {
+        session.setCity(userSession.getGeoIP().getCity());
+        session.setPostalCode(userSession.getGeoIP().getPostalCode());
+        session.setLatitude(userSession.getGeoIP().getLatitude());
+        session.setLongitude(userSession.getGeoIP().getLongitude());
+        session.setMetroCode(userSession.getGeoIP().getMetroCode());
+      }
     }
     session.setIsBot(SessionCommand.checkForBot(userSession.getUserAgent()));
     SessionRepository.add(session);
