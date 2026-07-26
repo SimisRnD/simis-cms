@@ -105,10 +105,10 @@
   </c:choose>
   <%-- CSS --%>
     <c:if test="${!empty themePropertyMap['theme.fonts.body']}">
-      <link rel="stylesheet" href="${ctx}/css/google-fonts/${themePropertyMap['theme.fonts.body']}.css">
+      <link rel="stylesheet" href="${ctx}/css/google-fonts/<c:out value="${themePropertyMap['theme.fonts.body']}"/>.css">
     </c:if>
     <c:if test="${!empty themePropertyMap['theme.fonts.headlines'] && themePropertyMap['theme.fonts.headlines'] ne themePropertyMap['theme.fonts.body']}">
-      <link rel="stylesheet" href="${ctx}/css/google-fonts/${themePropertyMap['theme.fonts.headlines']}.css">
+      <link rel="stylesheet" href="${ctx}/css/google-fonts/<c:out value="${themePropertyMap['theme.fonts.headlines']}"/>.css">
     </c:if>
     <link rel="stylesheet" type="text/css" href="${ctx}/css/${font:fontawesome()}/css/all.min.css" />
     <link rel="stylesheet" type="text/css" href="${ctx}/css/${font:fontawesome()}/css/v4-shims.min.css" />
@@ -280,6 +280,9 @@
   <c:if test="${!empty includeStylesheet}">
     <link rel="stylesheet" type="text/css" href="${ctx}/css/custom/stylesheet${includeStylesheet}.css?v=${includeStylesheetLastModified}" />
   </c:if>
+  <c:if test="${pageEditMode eq 'true'}">
+    <link rel="stylesheet" type="text/css" href="${ctx}/css/platform-editor.css?v=<%= VERSION %>" />
+  </c:if>
   <c:if test="${!empty pageCollection}">
     <style>
         <c:choose>
@@ -322,7 +325,26 @@
       <script src="${ctx}/javascript/platform-theme.js"></script>
     </c:if>
 </head>
-<body<c:if test="${pageRenderInfo.name eq '/'}"> id="body-home"</c:if><c:if test="${!empty pageRenderInfo.cssClass}"> class="<c:out value="${pageRenderInfo.cssClass}" />"</c:if>>
+<c:set var="bodyClass" value="${pageRenderInfo.cssClass}"/>
+<c:if test="${pageEditMode eq 'true'}">
+  <c:choose>
+    <c:when test="${!empty pageRenderInfo.cssClass}"><c:set var="bodyClass" value="${pageRenderInfo.cssClass} page-edit-mode"/></c:when>
+    <c:otherwise><c:set var="bodyClass" value="page-edit-mode"/></c:otherwise>
+  </c:choose>
+</c:if>
+<body<c:if test="${pageRenderInfo.name eq '/'}"> id="body-home"</c:if><c:if test="${!empty bodyClass}"> class="<c:out value="${bodyClass}" />"</c:if>>
+  <c:if test="${pageEditMode eq 'true'}">
+    <div id="sc-editor-toolbar" role="toolbar" aria-label="Page editor"
+         data-page-path="<c:out value="${pageRenderInfo.pagePath}"/>"
+         data-ctx="${ctx}"
+         data-layout-mode="<c:out value="${pageLayoutMode}"/>"
+         data-has-draft="<c:out value="${hasDraft}"/>">
+      <span id="sc-editor-toolbar-title">Visual Editor</span>
+      <a href="${ctx}/admin/web-page-designer?webPage=<c:out value="${pageRenderInfo.pagePath}"/>" class="button small hollow secondary"><i class="fa fa-fw fa-code"></i> XML</a>
+      <a href="?editMode=false" id="sc-editor-exit" class="button small hollow secondary"><i class="fa fa-fw fa-times"></i> Exit</a>
+      <span id="sc-editor-status" aria-live="polite"></span>
+    </div>
+  </c:if>
   <c:choose>
     <c:when test="${fn:startsWith(pageRenderInfo.name, '/admin') && pageRenderInfo.name ne '/admin/web-page' && pageRenderInfo.name ne '/admin/web-page-designer' && pageRenderInfo.name ne '/admin/web-container-designer' && pageRenderInfo.name ne '/admin/css-editor'}">
       <%-- Draw the admin menu--%>
@@ -427,6 +449,10 @@
           </c:if>
         </div>
         <div class="off-canvas-content" data-off-canvas-content>
+          <div class="title-bar hide-for-medium" aria-label="Admin navigation">
+            <button class="menu-icon" type="button" data-toggle="offCanvas" aria-label="Open admin menu"></button>
+            <div class="title-bar-title">Admin Menu</div>
+          </div>
           <div class="web-content admin-web-content">
             <jsp:include page="${PageBody}" flush="true"/>
           </div>
@@ -445,7 +471,7 @@
         <jsp:include page="${PageBody}" flush="true"/>
       </div>
       <c:if test="${!empty sitePropertyMap['site.confirmation'] && sitePropertyMap['site.confirmation'] eq 'true'}">
-        <div id="site-confirmation" class="reveal full" data-reveal data-close-on-esc="false" data-close-on-click="false" data-animation-out="fade-out fast">
+        <div id="site-confirmation" class="reveal full" data-reveal data-close-on-esc="false" data-close-on-click="false" data-animation-out="fade-out fast" role="dialog" aria-modal="true" aria-label="Site Confirmation">
           <div style="position:absolute; top: 50%; left: 50%; transform: translateY(-50%) translateX(-50%)">
             <div class="modal-prompt">
               <p>
@@ -458,7 +484,7 @@
                   </c:otherwise>
                 </c:choose>
               </p>
-              <p style="white-space: nowrap">
+              <p>
                 <c:if test="${!empty sitePropertyMap['site.confirmation.line1']}">
                   <c:out value="${sitePropertyMap['site.confirmation.line1']}" />
                 </c:if>
@@ -478,8 +504,8 @@
       <c:choose>
         <c:when test="${!empty requestPricingRule.promoCode}">
           <div id="site-promo-overlay" class="animated slideInUp faster delay-1s hide-for-print">
-            <button id="site-promo-close-button" class="close-button" type="button">
-              <span><i class="${font:fal()} fa-circle-xmark"></i></span>
+            <button id="site-promo-close-button" class="close-button" type="button" aria-label="Close">
+              <span aria-hidden="true"><i class="${font:fal()} fa-circle-xmark"></i></span>
             </button>
             <h4>Thanks for visiting!</h4>
             <p>We've added a promo code for use on your next purchase</p>
@@ -487,8 +513,8 @@
         </c:when>
         <c:when test="${!empty requestOverlayHeadline}">
           <div id="site-newsletter-overlay" class="animated slideInUp faster delay-3s hide-for-print">
-            <button id="site-newsletter-close-button" class="close-button" type="button">
-              <span><i class="${font:fal()} fa-circle-xmark"></i></span>
+            <button id="site-newsletter-close-button" class="close-button" type="button" aria-label="Close">
+              <span aria-hidden="true"><i class="${font:fal()} fa-circle-xmark"></i></span>
             </button>
             <h4><c:out value="${requestOverlayHeadline}" /></h4>
             <p><c:out value="${requestOverlayMessage}" /></p>
@@ -697,7 +723,8 @@
         }
       });
     </script>
-  <c:if test="${!fn:startsWith(pageRenderInfo.name, '/admin')}">
+  <c:set var="doNotTrack" value="${header['DNT'] eq '1' || header['Sec-GPC'] eq '1'}"/>
+  <c:if test="${!fn:startsWith(pageRenderInfo.name, '/admin') && !doNotTrack}">
     <c:if test="${!empty analyticsPropertyMap['analytics.service'] && 'google' eq analyticsPropertyMap['analytics.service'] && !empty analyticsPropertyMap['analytics.google.key']}">
       <script async src="https://www.googletagmanager.com/gtag/js?id=${js:escape(analyticsPropertyMap['analytics.google.key'])}"></script>
       <script>
@@ -713,6 +740,9 @@
     <c:if test="${!empty analyticsPropertyMap['analytics.brandcdn.value'] && !empty analyticsPropertyMap['analytics.brandcdn.value2']}">
       <script type="text/javascript" src="//tag.brandcdn.com/autoscript/${js:escape(analyticsPropertyMap['analytics.brandcdn.value'])}/${js:escape(analyticsPropertyMap['analytics.brandcdn.value2'])}"></script>
     </c:if>
+  </c:if>
+  <c:if test="${pageEditMode eq 'true'}">
+    <script src="${ctx}/javascript/platform-editor.js?v=<%= VERSION %>"></script>
   </c:if>
 </body>
 </html>
