@@ -26,7 +26,7 @@
 <jsp:useBean id="orderList" class="java.util.ArrayList" scope="request"/>
 <%@include file="../page_messages.jspf" %>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}"/></h4>
+  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
 </c:if>
 <c:if test="${!empty message}">
   <p><c:out value="${message}"/></p>

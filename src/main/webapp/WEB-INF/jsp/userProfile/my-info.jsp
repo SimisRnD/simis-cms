@@ -26,7 +26,7 @@
 <jsp:useBean id="showJoinDate" class="java.lang.String" scope="request"/>
 <%@include file="../page_messages.jspf" %>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}"/></h4>
+  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
 </c:if>
 <c:if test="${showName eq 'true'}">
 <h4><c:out value="${user.fullName}"/></h4>

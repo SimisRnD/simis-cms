@@ -30,7 +30,6 @@ import org.jsoup.select.Elements;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.simisinc.platform.application.cms.UrlCommand;
 import com.simisinc.platform.application.http.HttpGetCommand;
-import com.simisinc.platform.application.http.RemoteUrlValidationCommand;
 import com.simisinc.platform.infrastructure.cache.CacheManager;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
@@ -76,18 +75,11 @@ public class RemoteContentWidget extends GenericWidget {
       return useReturnType(context, content);
     }
 
-    // Reject internal/link-local/metadata targets before any server-side fetch (SSRF).
-    // The url is an operator-set widget preference; mirror the dataset remote-fetch guard (#236).
-    if (!RemoteUrlValidationCommand.isFetchAllowed(url)) {
-      LOG.warn("Blocked an SSRF-unsafe remote content url: " + url);
-      return null;
-    }
-
     // Get the remote data, and cache it
     // @todo if this fails we don't want many more requests...
     try {
       long startRequestTime = System.currentTimeMillis();
-      String remoteContent = HttpGetCommand.execute(url);
+      String remoteContent = HttpGetCommand.executeUserUrl(url);
       if (StringUtils.isBlank(remoteContent)) {
         return null;
       }

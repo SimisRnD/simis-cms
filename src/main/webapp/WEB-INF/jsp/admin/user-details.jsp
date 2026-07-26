@@ -26,30 +26,30 @@
 <jsp:useBean id="roleList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="groupList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="userLogin" class="com.simisinc.platform.domain.model.login.UserLogin" scope="request"/>
-<script>
+<script nonce="${cspNonce}">
   function suspendAccount() {
     if (!confirm("Are you sure you want to SUSPEND this user account?")) {
       return;
     }
-    window.location.href = '${widgetContext.uri}?action=suspendAccount&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&userId=${user.id}';
+    postAction('${widgetContext.uri}?action=suspendAccount&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&userId=${user.id}');
   }
   function restoreAccount() {
     if (!confirm("Are you sure you want to RESTORE this user account?")) {
       return;
     }
-    window.location.href = '${widgetContext.uri}?action=restoreAccount&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&userId=${user.id}';
+    postAction('${widgetContext.uri}?action=restoreAccount&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&userId=${user.id}');
   }
   function deleteAccount() {
     if (!confirm("Are you sure you want to DELETE this user account?")) {
       return;
     }
-    window.location.href = '${widgetContext.uri}?action=deleteAccount&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&userId=${user.id}';
+    postAction('${widgetContext.uri}?action=deleteAccount&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&userId=${user.id}');
   }
   function unlockAccount() {
     if (!confirm("Are you sure you want to UNLOCK this user account? This clears the failed login attempts and lockout.")) {
       return;
     }
-    window.location.href = '${widgetContext.uri}?action=unlockAccount&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&userId=${user.id}';
+    postAction('${widgetContext.uri}?action=unlockAccount&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&userId=${user.id}');
   }
 </script>
 <div style="margin-top: 6px;background-color:<c:out value="${themePropertyMap['theme.body.backgroundColor']}" />;">

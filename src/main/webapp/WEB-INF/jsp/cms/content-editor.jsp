@@ -20,7 +20,7 @@
 <jsp:useBean id="content" class="com.simisinc.platform.domain.model.cms.Content" scope="request"/>
 <jsp:useBean id="isDraft" class="java.lang.String" scope="request"/>
 <script src="${ctx}/javascript/tinymce-7.9.3/tinymce.min.js"></script>
-<script>
+<script nonce="${cspNonce}">
   $(window).on('resize', function () {
     setTimeout(function () {
       var container = document.getElementsByClassName("tox-tinymce")[0];

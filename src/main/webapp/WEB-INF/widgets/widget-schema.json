@@ -1,0 +1,336 @@
+{
+  "version": "1.0",
+  "description": "Machine-readable preferences schema for Visual Editor palette widgets. Field names match the Java widget getPreferences() keys exactly.",
+  "widgets": {
+
+    "content": {
+      "label": "Content",
+      "category": "Content",
+      "icon": "fa-align-left",
+      "preferences": [
+        {"name": "uniqueId",          "label": "Content Unique ID", "type": "text"},
+        {"name": "html",              "label": "Inline HTML",        "type": "html"},
+        {"name": "title",             "label": "Section Title",      "type": "text"},
+        {"name": "icon",              "label": "Icon (FA class)",    "type": "text"},
+        {"name": "videoBackgroundUrl","label": "Video Background URL","type": "url"}
+      ]
+    },
+
+    "contentAccordion": {
+      "label": "Accordion",
+      "category": "Content",
+      "icon": "fa-list",
+      "preferences": [
+        {"name": "uniqueId", "label": "Content Unique ID", "type": "text"},
+        {"name": "html",     "label": "Inline HTML",       "type": "html"}
+      ]
+    },
+
+    "contentSlider": {
+      "label": "Content Slider",
+      "category": "Content",
+      "icon": "fa-images",
+      "preferences": [
+        {"name": "uniqueId",     "label": "Content Unique ID",   "type": "text"},
+        {"name": "html",         "label": "Inline HTML",          "type": "html"},
+        {"name": "showControls", "label": "Show Controls",        "type": "boolean", "default": "true"},
+        {"name": "showPagination","label": "Show Pagination",     "type": "boolean", "default": "true"},
+        {"name": "loop",         "label": "Loop",                 "type": "boolean", "default": "true"},
+        {"name": "autoplayDelay","label": "Autoplay Delay (ms, -1=off)", "type": "number", "default": "-1"},
+        {"name": "carouselClass","label": "Carousel CSS Class",   "type": "text"},
+        {"name": "cardClass",    "label": "Card CSS Class",       "type": "text"}
+      ]
+    },
+
+    "contentGallery": {
+      "label": "Content Gallery",
+      "category": "Content",
+      "icon": "fa-th",
+      "preferences": [
+        {"name": "uniqueId", "label": "Content Unique ID", "type": "text"},
+        {"name": "html",     "label": "Inline HTML",       "type": "html"}
+      ]
+    },
+
+    "contentReveal": {
+      "label": "Content Reveal",
+      "category": "Content",
+      "icon": "fa-window-restore",
+      "preferences": [
+        {"name": "uniqueId",   "label": "Content Unique ID", "type": "text"},
+        {"name": "html",       "label": "Inline HTML",       "type": "html"},
+        {"name": "attach",     "label": "Attach Position",   "type": "select", "options": ["left", "right", "top", "bottom"], "default": "left"},
+        {"name": "animate",    "label": "Animation",         "type": "select", "options": ["up", "down", "left", "right", "fade"]},
+        {"name": "revealClass","label": "Reveal CSS Class",  "type": "text"},
+        {"name": "useIcon",    "label": "Use Icon Button",   "type": "boolean", "default": "false"}
+      ]
+    },
+
+    "contentTabs": {
+      "label": "Content Tabs",
+      "category": "Content",
+      "icon": "fa-folder",
+      "preferences": [
+        {
+          "name": "tabs",
+          "label": "Tabs",
+          "type": "array",
+          "items": [
+            {"name": "name",            "label": "Tab Name",       "type": "text"},
+            {"name": "linkId",          "label": "Link ID",        "type": "text"},
+            {"name": "link",            "label": "Link URL",       "type": "url"},
+            {"name": "contentUniqueId", "label": "Content Unique ID", "type": "text"},
+            {"name": "isActive",        "label": "Active",         "type": "boolean"}
+          ]
+        }
+      ]
+    },
+
+    "button": {
+      "label": "Button",
+      "category": "Navigation",
+      "icon": "fa-hand-pointer",
+      "preferences": [
+        {"name": "name",     "label": "Button Label",   "type": "text"},
+        {"name": "link",     "label": "Link URL",       "type": "url"},
+        {"name": "class",    "label": "Button Style",   "type": "text", "default": "primary"},
+        {"name": "leftIcon", "label": "Left Icon (FA)", "type": "text"},
+        {"name": "icon",     "label": "Right Icon (FA)","type": "text"}
+      ]
+    },
+
+    "link": {
+      "label": "Link",
+      "category": "Navigation",
+      "icon": "fa-link",
+      "preferences": [
+        {"name": "name",    "label": "Link Text",      "type": "text"},
+        {"name": "link",    "label": "Link URL",       "type": "url"},
+        {"name": "class",   "label": "CSS Class",      "type": "text"},
+        {"name": "icon",    "label": "Right Icon (FA)","type": "text"},
+        {"name": "target",  "label": "Target",         "type": "text"},
+        {"name": "property","label": "Property",       "type": "text"}
+      ]
+    },
+
+    "breadcrumbs": {
+      "label": "Breadcrumbs",
+      "category": "Navigation",
+      "icon": "fa-home",
+      "preferences": [
+        {
+          "name": "links",
+          "label": "Breadcrumb Links",
+          "type": "array",
+          "items": [
+            {"name": "name",  "label": "Label", "type": "text"},
+            {"name": "link",  "label": "URL",   "type": "url"},
+            {"name": "value", "label": "Value", "type": "text"}
+          ]
+        }
+      ]
+    },
+
+    "tableOfContents": {
+      "label": "Table of Contents",
+      "category": "Navigation",
+      "icon": "fa-list-ol",
+      "preferences": [
+        {
+          "name": "links",
+          "label": "Contents Links",
+          "type": "array",
+          "items": [
+            {"name": "name",  "label": "Label",    "type": "text"},
+            {"name": "value", "label": "Anchor ID","type": "text"}
+          ]
+        }
+      ]
+    },
+
+    "searchForm": {
+      "label": "Search Form",
+      "category": "Navigation",
+      "icon": "fa-search",
+      "preferences": []
+    },
+
+    "card": {
+      "label": "Card",
+      "category": "Cards",
+      "icon": "fa-id-card",
+      "preferences": [
+        {"name": "title",    "label": "Title",           "type": "text"},
+        {"name": "icon",     "label": "Icon (FA class)", "type": "text"},
+        {"name": "link",     "label": "Link URL",        "type": "url"},
+        {"name": "linkTitle","label": "Link Label",      "type": "text"},
+        {"name": "linkIcon", "label": "Link Icon (FA)",  "type": "text"},
+        {"name": "class",    "label": "CSS Class",       "type": "text"}
+      ]
+    },
+
+    "progressCard": {
+      "label": "Progress Card",
+      "category": "Cards",
+      "icon": "fa-tasks",
+      "preferences": [
+        {"name": "label",          "label": "Label",           "type": "text"},
+        {"name": "value",          "label": "Value Text",      "type": "text"},
+        {"name": "maxLabel",       "label": "Max Label",       "type": "text", "default": "maxLabel"},
+        {"name": "progress",       "label": "Progress (0–100)","type": "number", "default": "0"},
+        {"name": "maxValue",       "label": "Max Value",       "type": "number", "default": "0"},
+        {"name": "textColor",      "label": "Text Color",      "type": "color",  "default": "#ffffff"},
+        {"name": "subheaderColor", "label": "Subheader Color", "type": "color",  "default": "#ffffff"},
+        {"name": "progressColor",  "label": "Progress Color",  "type": "color",  "default": "#ffcc02"},
+        {"name": "remainderColor", "label": "Remainder Color", "type": "color",  "default": "#1f1e22"}
+      ]
+    },
+
+    "statisticCard": {
+      "label": "Statistic Card",
+      "category": "Cards",
+      "icon": "fa-chart-bar",
+      "preferences": [
+        {"name": "label",    "label": "Label",         "type": "text"},
+        {"name": "value",    "label": "Value",         "type": "text"},
+        {"name": "icon",     "label": "Icon (FA)",     "type": "text"},
+        {"name": "link",     "label": "Link URL",      "type": "url"},
+        {"name": "iconColor","label": "Icon Color",    "type": "color"},
+        {"name": "view",     "label": "View",          "type": "select", "options": ["default", "vertical"], "default": "default"}
+      ]
+    },
+
+    "logo": {
+      "label": "Logo",
+      "category": "Media",
+      "icon": "fa-image",
+      "preferences": [
+        {"name": "maxWidth", "label": "Max Width (px)", "type": "number"},
+        {"name": "maxHeight","label": "Max Height (px)","type": "number"},
+        {"name": "view",     "label": "Color Variant",  "type": "select", "options": ["standard", "color", "white"], "default": "standard"}
+      ]
+    },
+
+    "albumGallery": {
+      "label": "Album Gallery",
+      "category": "Media",
+      "icon": "fa-photo-video",
+      "preferences": []
+    },
+
+    "photoGallery": {
+      "label": "Photo Gallery",
+      "category": "Media",
+      "icon": "fa-images",
+      "preferences": []
+    },
+
+    "instagram": {
+      "label": "Instagram",
+      "category": "Media",
+      "icon": "fa-instagram",
+      "preferences": []
+    },
+
+    "form": {
+      "label": "Form",
+      "category": "Forms",
+      "icon": "fa-wpforms",
+      "preferences": [
+        {"name": "formUniqueId",  "label": "Form Unique ID", "type": "text"},
+        {"name": "icon",          "label": "Icon (FA)",      "type": "text"},
+        {"name": "title",         "label": "Form Title",     "type": "text"},
+        {"name": "subtitle",      "label": "Subtitle",       "type": "text"},
+        {"name": "buttonName",    "label": "Submit Button",  "type": "text"},
+        {"name": "useCaptcha",    "label": "Use CAPTCHA",    "type": "boolean"},
+        {"name": "successTitle",  "label": "Success Title",  "type": "text"},
+        {"name": "successMessage","label": "Success Message","type": "text"},
+        {
+          "name": "fields",
+          "label": "Form Fields",
+          "type": "array",
+          "items": []
+        }
+      ]
+    },
+
+    "emailSubscribe": {
+      "label": "Email Subscribe",
+      "category": "Forms",
+      "icon": "fa-envelope",
+      "preferences": []
+    },
+
+    "fileList": {
+      "label": "File List",
+      "category": "Files",
+      "icon": "fa-file",
+      "preferences": []
+    },
+
+    "fileListByFolder": {
+      "label": "File List by Folder",
+      "category": "Files",
+      "icon": "fa-folder-open",
+      "preferences": []
+    },
+
+    "fileListByYear": {
+      "label": "File List by Year",
+      "category": "Files",
+      "icon": "fa-calendar-alt",
+      "preferences": []
+    },
+
+    "calendar": {
+      "label": "Calendar",
+      "category": "Events",
+      "icon": "fa-calendar",
+      "preferences": []
+    },
+
+    "upcomingCalendarEvents": {
+      "label": "Upcoming Events",
+      "category": "Events",
+      "icon": "fa-calendar-check",
+      "preferences": []
+    },
+
+    "calendarEventDetails": {
+      "label": "Event Details",
+      "category": "Events",
+      "icon": "fa-info-circle",
+      "preferences": []
+    },
+
+    "map": {
+      "label": "Map",
+      "category": "Data",
+      "icon": "fa-map-marker-alt",
+      "preferences": [
+        {"name": "latitude",    "label": "Latitude",            "type": "number"},
+        {"name": "longitude",   "label": "Longitude",           "type": "number"},
+        {"name": "mapHeight",   "label": "Map Height (px)",     "type": "number", "default": "290"},
+        {"name": "mapZoomLevel","label": "Zoom Level (1–20)",   "type": "number", "default": "12"},
+        {"name": "showMarker",  "label": "Show Marker",         "type": "boolean","default": "true"},
+        {"name": "markerTitle", "label": "Marker Title",        "type": "text"},
+        {"name": "markerText",  "label": "Marker Body Text",    "type": "text"}
+      ]
+    },
+
+    "remoteContent": {
+      "label": "Remote Content",
+      "category": "Data",
+      "icon": "fa-code",
+      "preferences": [
+        {"name": "title",      "label": "Title",             "type": "text"},
+        {"name": "url",        "label": "Source URL",        "type": "url"},
+        {"name": "startTag",   "label": "Start Tag",         "type": "text"},
+        {"name": "endTag",     "label": "End Tag",           "type": "text"},
+        {"name": "includeTags","label": "Include Tags",      "type": "boolean", "default": "true"},
+        {"name": "clean",      "label": "Clean HTML",        "type": "boolean", "default": "true"}
+      ]
+    }
+
+  }
+}

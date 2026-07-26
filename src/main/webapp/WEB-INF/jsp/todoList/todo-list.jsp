@@ -37,7 +37,7 @@
     }
 </style>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}" /></h4>
+  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
 <c:choose>
   <c:when test="${!empty todoList}">
@@ -58,7 +58,7 @@
     </p>
   </c:otherwise>
 </c:choose>
-<script>
+<script nonce="${cspNonce}">
   var elements = document.getElementsByClassName("${widgetContext.uniqueId}todoListItem");
   var myFunction = function(ev) {
     ev.target.parentNode.classList[ ev.target.checked ? 'add' : 'remove'] ('selected');
