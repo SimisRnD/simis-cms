@@ -59,7 +59,7 @@
 <%@include file="../page_messages.jspf" %>
 <div id="calendar"><c:if test="${(userSession.hasRole('admin') || userSession.hasRole('content-manager'))}"><small><i class="fa fa-calendar-plus-o"></i> Select a date range to create events</small></c:if></div>
 <div id="tooltip" class="tooltip top align-center under-reveal" style="display:none"></div>
-<script>
+<script nonce="${cspNonce}">
   function showTooltip(el, event) {
     let content = "<h5>" + event.title+"</h5>";
     if (event.allDay === undefined || !event.allDay) {
@@ -256,8 +256,8 @@
   });
 </script>
 <c:if test="${(userSession.hasRole('admin') || userSession.hasRole('content-manager'))}">
-  <div class="reveal tiny" id="modalReveal" data-reveal>
-    <h3>Event Options</h3>
+  <div class="reveal tiny" id="modalReveal" data-reveal role="dialog" aria-modal="true" aria-labelledby="modalRevealTitle">
+    <h3 id="modalRevealTitle">Event Options</h3>
     <p>Would you like to make changes or view the details of this event?</p>
     <div class="button-container text-no-wrap">
       <button class="button" data-open="formReveal">Edit this Event</button>
@@ -268,7 +268,7 @@
       <span aria-hidden="true">&times;</span>
     </button>
   </div>
-  <div class="reveal small" id="formReveal" data-reveal data-close-on-esc="false" data-close-on-click="false" data-animation-in="slide-in-down fast">
+  <div class="reveal small" id="formReveal" data-reveal data-close-on-esc="false" data-close-on-click="false" data-animation-in="slide-in-down fast" role="dialog" aria-modal="true" aria-labelledby="formTitle">
     <button class="close-button" data-close aria-label="Close modal" type="button">
       <span aria-hidden="true">&times;</span>
     </button>
@@ -324,7 +324,7 @@
               <input class="input-group-field" type="text" placeholder="mm-dd-yyyy time" id="startDate" name="startDate" value="" required>
             </div>
           </label>
-          <script>
+          <script nonce="${cspNonce}">
             $(function(){
               $('#startDate').fdatepicker({
                 format: 'mm-dd-yyyy hh:ii',
@@ -341,7 +341,7 @@
               <input class="input-group-field" type="text" placeholder="mm-dd-yyyy time" id="endDate" name="endDate" value="" required>
             </div>
           </label>
-          <script>
+          <script nonce="${cspNonce}">
             $(function(){
               $('#endDate').fdatepicker({
                 format: 'mm-dd-yyyy hh:ii',
@@ -377,12 +377,12 @@
       </div>
     </form>
   </div>
-  <script>
+  <script nonce="${cspNonce}">
     function deleteCalendarEvent() {
       if (!confirm("Are you sure you want to DELETE this event?")) {
         return;
       }
-      window.location.href = '${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&id=' + encodeURIComponent(document.getElementById('id').value);
+      postAction('${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&id=' + encodeURIComponent(document.getElementById('id').value));
     }
     // Handle the modal and click event
     var eventLink = $('#eventLink');

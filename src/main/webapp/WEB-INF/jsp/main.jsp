@@ -53,7 +53,7 @@
          override an administrator who forced light or dark. Kept inline and tiny on purpose: an
          external script would arrive too late. If script-src is ever tightened in PageServlet,
          this needs a nonce. --%>
-    <script>(function(){try{var s=window.localStorage.getItem('simis-cms-color-scheme');if(s==='light'||s==='dark'){document.documentElement.setAttribute('data-theme',s);}}catch(e){}})();</script>
+    <script nonce="${cspNonce}">(function(){try{var s=window.localStorage.getItem('simis-cms-color-scheme');if(s==='light'||s==='dark'){document.documentElement.setAttribute('data-theme',s);}}catch(e){}})();</script>
   </c:if>
   <meta http-equiv="x-ua-compatible" content="ie=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -309,7 +309,7 @@
   <%-- Javascript before content--%>
   <c:if test="${!fn:startsWith(pageRenderInfo.name, '/admin') && !fn:startsWith(pageRenderInfo.name, '/content-editor')}">
     <c:if test="${!empty analyticsPropertyMap['analytics.google.tagmanager'] && fn:startsWith(analyticsPropertyMap['analytics.google.tagmanager'], 'GTM-')}">
-      <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+      <script nonce="${cspNonce}">(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
       new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
       j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
       'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
@@ -324,6 +324,10 @@
     <c:if test="${colorSchemeMode eq 'user'}">
       <script src="${ctx}/javascript/platform-theme.js"></script>
     </c:if>
+  <style>
+    .platform-skip-link { position: absolute; left: -9999px; top: -9999px; z-index: 9999; }
+    .platform-skip-link:focus { left: 0; top: 0; background: #fff; color: #000; padding: 0.5rem 1rem; text-decoration: none; border: 2px solid #000; }
+  </style>
 </head>
 <c:set var="bodyClass" value="${pageRenderInfo.cssClass}"/>
 <c:if test="${pageEditMode eq 'true'}">
@@ -358,6 +362,7 @@
             <i class="${font:far()} fa-user fa-fw"></i>
             <c:out value="${userSession.user.fullName}"/>
           </div>
+          <nav aria-label="Admin navigation">
           <%-- Admin Link --%>
           <ul class="vertical menu">
             <li class="section-title">Admin</li>
@@ -447,6 +452,7 @@
               <%--<li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/email-templates')}"> class="is-active"</c:if>><a href="${ctx}/admin/email-templates"><i class="${font:far()} fa-file-text fa-fw"></i> <span>Email Templates</span></a></li>--%>
             </ul>
           </c:if>
+          </nav>
         </div>
         <div class="off-canvas-content" data-off-canvas-content>
           <div class="title-bar hide-for-medium" aria-label="Admin navigation">
@@ -454,6 +460,9 @@
             <div class="title-bar-title">Admin Menu</div>
           </div>
           <div class="web-content admin-web-content">
+            <c:if test="${!empty pageRenderInfo.title}">
+              <h1 class="show-for-sr"><c:out value="${pageRenderInfo.title}"/></h1>
+            </c:if>
             <jsp:include page="${PageBody}" flush="true"/>
           </div>
         </div>
@@ -471,7 +480,7 @@
         <jsp:include page="${PageBody}" flush="true"/>
       </div>
       <c:if test="${!empty sitePropertyMap['site.confirmation'] && sitePropertyMap['site.confirmation'] eq 'true'}">
-        <div id="site-confirmation" class="reveal full" data-reveal data-close-on-esc="false" data-close-on-click="false" data-animation-out="fade-out fast">
+        <div id="site-confirmation" class="reveal full" data-reveal data-close-on-esc="false" data-close-on-click="false" data-animation-out="fade-out fast" role="dialog" aria-modal="true" aria-label="Site Confirmation">
           <div style="position:absolute; top: 50%; left: 50%; transform: translateY(-50%) translateX(-50%)">
             <div class="modal-prompt">
               <p>
@@ -565,12 +574,12 @@
     </c:otherwise>
   </c:choose>
   <%-- Javascript after content--%>
-  <script>
+  <script nonce="${cspNonce}">
     var mainToken = '${userSession.formToken}';
   </script>
     <script src="${ctx}/javascript/foundation-6.8.1/what-input-5.2.6.min.js"></script>
     <script src="${ctx}/javascript/foundation-6.8.1/foundation.min.js"></script>
-    <script>
+    <script nonce="${cspNonce}">
       $(document).foundation();
       <%--
       $('.card-profile-stats-more-link').click(function(e){
@@ -721,13 +730,41 @@
               scrollTop: hash.offset().top-headerHeight
           }, 0);
         }
+        $(document).on('submit', 'form', function() {
+          $(this).find('[data-disable-on-submit]').each(function() {
+            var btn = $(this);
+            btn.prop('disabled', true);
+            var loadingText = btn.data('disable-on-submit');
+            if (btn.is('input')) { btn.val(loadingText); } else { btn.text(loadingText); }
+          });
+        });
       });
+      function postAction(url) {
+        var parser = document.createElement('a');
+        parser.href = url;
+        var form = document.createElement('form');
+        form.method = 'POST';
+        form.action = parser.pathname;
+        new URLSearchParams(parser.search).forEach(function(value, key) {
+          var input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = key;
+          input.value = value;
+          form.appendChild(input);
+        });
+        document.body.appendChild(form);
+        form.submit();
+      }
+      function confirmPostAction(message, url) {
+        if (confirm(message)) { postAction(url); }
+        return false;
+      }
     </script>
   <c:set var="doNotTrack" value="${header['DNT'] eq '1' || header['Sec-GPC'] eq '1'}"/>
   <c:if test="${!fn:startsWith(pageRenderInfo.name, '/admin') && !doNotTrack}">
     <c:if test="${!empty analyticsPropertyMap['analytics.service'] && 'google' eq analyticsPropertyMap['analytics.service'] && !empty analyticsPropertyMap['analytics.google.key']}">
-      <script async src="https://www.googletagmanager.com/gtag/js?id=${js:escape(analyticsPropertyMap['analytics.google.key'])}"></script>
-      <script>
+      <script async src="https://www.googletagmanager.com/gtag/js?id=${js:escape(analyticsPropertyMap['analytics.google.key'])}" nonce="${cspNonce}"></script>
+      <script nonce="${cspNonce}">
         window.dataLayer = window.dataLayer || [];
         function gtag(){dataLayer.push(arguments);}
         gtag('js', new Date());
@@ -735,10 +772,10 @@
       </script>
     </c:if>
     <c:if test="${!empty analyticsPropertyMap['analytics.simplifi.value']}">
-      <script async src='https://tag.simpli.fi/sifitag/${js:escape(analyticsPropertyMap['analytics.simplifi.value'])}'></script>
+      <script async src='https://tag.simpli.fi/sifitag/${js:escape(analyticsPropertyMap['analytics.simplifi.value'])}' nonce="${cspNonce}"></script>
     </c:if>
     <c:if test="${!empty analyticsPropertyMap['analytics.brandcdn.value'] && !empty analyticsPropertyMap['analytics.brandcdn.value2']}">
-      <script type="text/javascript" src="//tag.brandcdn.com/autoscript/${js:escape(analyticsPropertyMap['analytics.brandcdn.value'])}/${js:escape(analyticsPropertyMap['analytics.brandcdn.value2'])}"></script>
+      <script type="text/javascript" src="//tag.brandcdn.com/autoscript/${js:escape(analyticsPropertyMap['analytics.brandcdn.value'])}/${js:escape(analyticsPropertyMap['analytics.brandcdn.value2'])}" nonce="${cspNonce}"></script>
     </c:if>
   </c:if>
   <c:if test="${pageEditMode eq 'true'}">

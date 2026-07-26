@@ -26,7 +26,7 @@
 <jsp:useBean id="query" class="java.lang.String" scope="request"/>
 <jsp:useBean id="statusFilter" class="java.lang.String" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}" /></h4>
+  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <button class="button small primary radius float-left" data-open="formReveal"><i class="fa fa-plus"></i> New User</button>
@@ -39,7 +39,7 @@
   <label for="file" class="button small secondary radius margin-left-10"><i class="fa fa-upload"></i> Upload CSV File</label>
   <input type="file" id="file" name="file" accept="text/csv" class="show-for-sr">
 </form>
-<script>
+<script nonce="${cspNonce}">
     document.getElementById("file").onchange = function() {
         document.getElementById("fileForm").submit();
     }
@@ -58,7 +58,7 @@
     </div>
   </div>
 </form>
-<script>
+<script nonce="${cspNonce}">
   document.getElementById("statusFilter").onchange = function() {
     document.getElementById("tableOptionsForm").submit();
   }
@@ -113,11 +113,11 @@
 </c:if>
 <%@include file="../paging_control.jspf" %>
 <%--<div class="reveal small" id="formReveal" data-reveal data-close-on-esc="false" data-close-on-click="false" data-animation-in="slide-in-down fast">--%>
-<div class="reveal small" id="formReveal" data-reveal data-close-on-click="false" data-animation-in="slide-in-down fast">
+<div class="reveal small" id="formReveal" data-reveal data-close-on-click="false" data-animation-in="slide-in-down fast" role="dialog" aria-modal="true" aria-labelledby="userFormRevealTitle">
   <button class="close-button" data-close aria-label="Close modal" type="button">
     <span aria-hidden="true">&times;</span>
   </button>
-  <h4>New User</h4>
+  <h4 id="userFormRevealTitle">New User</h4>
   <form id="userForm" method="post" autocomplete="off">
     <%-- Required by controller --%>
     <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
@@ -184,7 +184,7 @@
     </div>
   </form>
 </div>
-<%--<script>--%>
+<%--<script nonce="${cspNonce}">--%>
 <%--  $(document).on('open.zf.reveal', '[data-reveal]', function () {--%>
 <%--    let modal = $(this);--%>
 <%--    modal.find('[autofocus]').focus();--%>

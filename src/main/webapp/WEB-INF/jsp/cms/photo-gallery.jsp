@@ -56,7 +56,7 @@
   }
 </style>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}"/></h4>
+  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
 </c:if>
 <div class="platform-content"<c:if test="${isSticky eq 'true'}"> data-sticky-container</c:if>>
   <div<c:if test="${isSticky eq 'true'}"> class="sticky" data-sticky data-anchor="sticky-gallery" data-margin-top="<c:out value="${marginTop}"/>"</c:if>>
@@ -79,7 +79,7 @@
     </div>
   </div>
 </div>
-<script>
+<script nonce="${cspNonce}">
   var swiper${widgetContext.uniqueId} = new Swiper('#swiper${widgetContext.uniqueId}', {
     autoplay: {
       delay: 5000

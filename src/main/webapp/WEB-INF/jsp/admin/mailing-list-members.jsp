@@ -24,7 +24,7 @@
 <jsp:useBean id="emailList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="recordPaging" class="com.simisinc.platform.infrastructure.database.DataConstraints" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}" /></h4>
+  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <h4><c:out value="${mailingList.name}" /></h4>
@@ -48,7 +48,7 @@
   <input type="hidden" name="mailingListId" value="${mailingList.id}" />
   <button class="button small secondary radius float-left margin-left-10"><i class="fa fa-download"></i> Download CSV File</button>
 </form>
-<script>
+<script nonce="${cspNonce}">
   document.getElementById("file").onchange = function() {
     document.getElementById("fileForm").submit();
   }
@@ -93,11 +93,11 @@
 <%-- Paging Control --%>
 <c:set var="recordPagingParams" scope="request" value="mailingListId=${mailingList.id}"/>
 <%@include file="../paging_control.jspf" %>
-<div class="reveal small" id="formReveal" data-reveal data-close-on-click="false" data-animation-in="slide-in-down fast">
+<div class="reveal small" id="formReveal" data-reveal data-close-on-click="false" data-animation-in="slide-in-down fast" role="dialog" aria-modal="true" aria-labelledby="mailingFormRevealTitle">
   <button class="close-button" data-close aria-label="Close modal" type="button">
     <span aria-hidden="true">&times;</span>
   </button>
-  <h4>Add Email</h4>
+  <h4 id="mailingFormRevealTitle">Add Email</h4>
   <form id="userForm" method="post" autocomplete="off">
     <%-- Required by controller --%>
     <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>

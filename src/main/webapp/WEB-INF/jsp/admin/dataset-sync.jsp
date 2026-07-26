@@ -28,7 +28,7 @@
 <jsp:useBean id="fieldOptionsList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="sampleRow" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="columnConfiguration" class="java.lang.String" scope="request"/>
-<script>
+<script nonce="${cspNonce}">
   function checkForm() {
     return true;
   }
@@ -37,7 +37,7 @@
   }
 </script>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}" /></h4>
+  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <form method="post" onsubmit="return checkForm()">
@@ -145,7 +145,7 @@
     <input type="submit" class="button radius success" name="process" value="Save & Sync"/>
   </div>
 </form>
-<div class="reveal medium" id="processReveal" data-reveal data-animation-in="slide-in-down fast">
+<div class="reveal medium" id="processReveal" data-reveal data-animation-in="slide-in-down fast" role="dialog" aria-modal="true" aria-label="Validating Data">
   <h3>Validating Data...</h3>
   <%--<p><a class="button small radius primary" href="${ctx}/admin/datasets">Continue to datasets list <i class="fa fa-caret-right"></i></a></p>--%>
 </div>

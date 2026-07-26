@@ -32,7 +32,7 @@
   <%-- The form --%>
   <button id="placeOrderButton" class="button primary">Place Order</button>
 </form>
-<script>
+<script nonce="${cspNonce}">
   function placeOrder() {
     if (document.getElementById("placeOrderButton").disabled === true) {
       return false;

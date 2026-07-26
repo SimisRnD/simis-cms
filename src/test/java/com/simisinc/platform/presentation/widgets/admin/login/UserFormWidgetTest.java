@@ -72,8 +72,24 @@ class UserFormWidgetTest extends WidgetBase {
   }
 
   @Test
+  void postWithoutStepUpShowsReAuthPanel() throws Exception {
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "id", "-1");
+    addQueryParameter(widgetContext, "roleId4", "4");
+    try (MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
+        MockedStatic<GroupRepository> groupRepo = mockStatic(GroupRepository.class)) {
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
+      groupRepo.when(GroupRepository::findAll).thenReturn(new ArrayList<>());
+      new UserFormWidget().post(widgetContext);
+    }
+    Assertions.assertEquals("true", widgetContext.getSharedRequestValue("stepUpRequired"));
+    Assertions.assertNull(widgetContext.getRedirect());
+  }
+
+  @Test
   void communityManagerCannotGrantAdminButKeepsAllowedRoles() throws Exception {
     setRoles(widgetContext, COMMUNITY_MANAGER);
+    grantStepUp(widgetContext);
     addQueryParameter(widgetContext, "id", "-1");        // create
     addQueryParameter(widgetContext, "roleId1", "1");    // content-editor (70) -- allowed
     addQueryParameter(widgetContext, "roleId4", "4");    // admin (100) -- must be refused
@@ -99,6 +115,7 @@ class UserFormWidgetTest extends WidgetBase {
   @Test
   void adminCanGrantAdmin() throws Exception {
     setRoles(widgetContext, ADMIN);
+    grantStepUp(widgetContext);
     addQueryParameter(widgetContext, "id", "-1");
     addQueryParameter(widgetContext, "roleId4", "4");    // admin
 
@@ -122,6 +139,7 @@ class UserFormWidgetTest extends WidgetBase {
   @Test
   void communityManagerCannotStripHigherRoleTheTargetAlreadyHolds() throws Exception {
     setRoles(widgetContext, COMMUNITY_MANAGER);
+    grantStepUp(widgetContext);
     addQueryParameter(widgetContext, "id", "5");         // editing an existing user
     addQueryParameter(widgetContext, "roleId1", "1");    // submits content-editor; admin left unchecked
 

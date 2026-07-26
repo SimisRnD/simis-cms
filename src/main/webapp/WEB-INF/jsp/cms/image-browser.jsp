@@ -244,8 +244,9 @@
     <c:forEach items="${imageList}" var="image" varStatus="status">
       <div class="cell card">
         <div class="image-browser">
-          <img onclick="mySubmit(this.dataset.src)" data-src="${ctx}/assets/img/${image.url}"
-               src="${ctx}/assets/img/${image.url}" alt="<c:out value="${image.filename}"/>">
+          <button type="button" class="image-browser-select" onclick="mySubmit(this.dataset.src)" data-src="${ctx}/assets/img/${image.url}" aria-label="Select <c:out value="${image.filename}"/>">
+            <img src="${ctx}/assets/img/${image.url}" alt="">
+          </button>
         </div>
         <div class="card-section">
           <div>
@@ -258,7 +259,7 @@
     </c:forEach>
   </div>
 </div>
-<script>
+<script nonce="${cspNonce}">
   <c:choose>
     <c:when test="${!empty inputId}">
       <%-- Directly called by a web page --%>

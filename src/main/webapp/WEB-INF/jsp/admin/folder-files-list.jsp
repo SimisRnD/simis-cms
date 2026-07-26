@@ -112,7 +112,7 @@
           <a title="Download file" href="${ctx}/assets/file/${file.url}"><i class="fa fa-download"></i></a>
         </c:if>
         <c:if test="${canDelete eq 'true'}">
-          <a title="Delete file" href="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&fileId=${file.id}" onclick="return confirm('Are you sure you want to delete <c:out value="${js:escape(file.filename)}" />?');"><i class="fa fa-remove"></i></a>
+          <a title="Delete file" href="#" onclick="return confirmPostAction('Are you sure you want to delete <c:out value="${js:escape(file.filename)}" />?', '${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&fileId=${file.id}');"><i class="fa fa-remove"></i></a>
         </c:if>
       </td>
       <td class="text-center" nowrap>
@@ -132,7 +132,7 @@
     </c:forEach>
   </tbody>
 </table>
-<script>
+<script nonce="${cspNonce}">
   // ClipboardJS.isSupported()
   var clipboard = new ClipboardJS('.clipboard');
   clipboard.on('success', function(e) {
@@ -193,7 +193,7 @@
   }
 </script>
 <c:if test="${(userSession.hasRole('admin') || userSession.hasRole('content-manager'))}">
-  <div class="reveal small" id="fileFormReveal" data-reveal data-close-on-esc="false" data-close-on-click="false" data-animation-in="slide-in-down fast">
+  <div class="reveal small" id="fileFormReveal" data-reveal data-close-on-esc="false" data-close-on-click="false" data-animation-in="slide-in-down fast" role="dialog" aria-modal="true" aria-labelledby="formTitle">
     <button class="close-button" data-close aria-label="Close modal" type="button">
       <span aria-hidden="true">&times;</span>
     </button>
