@@ -49,6 +49,7 @@ public class Folder extends Entity {
   private String[] privacyTypes = null;
   private boolean hasCategories = false;
   private List<FolderCategory> folderCategoryList = null;
+  private String allowedExtensions = null;
 
   public Folder() {
   }
@@ -210,5 +211,13 @@ public class Folder extends Entity {
 
   public void setFolderCategoryList(List<FolderCategory> folderCategoryList) {
     this.folderCategoryList = folderCategoryList;
+  }
+
+  public String getAllowedExtensions() {
+    return allowedExtensions;
+  }
+
+  public void setAllowedExtensions(String allowedExtensions) {
+    this.allowedExtensions = allowedExtensions;
   }
 }
