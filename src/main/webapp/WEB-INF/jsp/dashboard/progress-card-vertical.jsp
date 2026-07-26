@@ -74,7 +74,7 @@
 <%--    </div>--%>
 <%--  </c:if>--%>
 </div>
-<script>
+<script nonce="${cspNonce}">
   const data${widgetContext.uniqueId} = {
     datasets: [
       {

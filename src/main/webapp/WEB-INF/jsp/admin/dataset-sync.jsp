@@ -28,7 +28,7 @@
 <jsp:useBean id="fieldOptionsList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="sampleRow" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="columnConfiguration" class="java.lang.String" scope="request"/>
-<script>
+<script nonce="${cspNonce}">
   function checkForm() {
     return true;
   }

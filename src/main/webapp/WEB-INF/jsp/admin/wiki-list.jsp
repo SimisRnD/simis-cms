@@ -21,7 +21,7 @@
 <jsp:useBean id="wikiList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="wikiPageCount" class="java.util.HashMap" scope="request"/>
 <c:if test="${userSession.hasRole('admin')}">
-<script>
+<script nonce="${cspNonce}">
   function deleteWiki(wikiId) {
     if (!confirm("Are you sure you want to delete this wiki and all of its pages?")) {
       return;

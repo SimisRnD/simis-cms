@@ -285,7 +285,7 @@
   </div>
   </div>
 </form>
-<script>
+<script nonce="${cspNonce}">
   $(document).ready(function () {
     // Dynamically set the position of the header
     var container = document.getElementById('sticky-container');

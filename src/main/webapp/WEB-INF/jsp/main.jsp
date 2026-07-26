@@ -53,7 +53,7 @@
          override an administrator who forced light or dark. Kept inline and tiny on purpose: an
          external script would arrive too late. If script-src is ever tightened in PageServlet,
          this needs a nonce. --%>
-    <script>(function(){try{var s=window.localStorage.getItem('simis-cms-color-scheme');if(s==='light'||s==='dark'){document.documentElement.setAttribute('data-theme',s);}}catch(e){}})();</script>
+    <script nonce="${cspNonce}">(function(){try{var s=window.localStorage.getItem('simis-cms-color-scheme');if(s==='light'||s==='dark'){document.documentElement.setAttribute('data-theme',s);}}catch(e){}})();</script>
   </c:if>
   <meta http-equiv="x-ua-compatible" content="ie=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
@@ -309,7 +309,7 @@
   <%-- Javascript before content--%>
   <c:if test="${!fn:startsWith(pageRenderInfo.name, '/admin') && !fn:startsWith(pageRenderInfo.name, '/content-editor')}">
     <c:if test="${!empty analyticsPropertyMap['analytics.google.tagmanager'] && fn:startsWith(analyticsPropertyMap['analytics.google.tagmanager'], 'GTM-')}">
-      <script>(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
+      <script nonce="${cspNonce}">(function(w,d,s,l,i){w[l]=w[l]||[];w[l].push({'gtm.start':
       new Date().getTime(),event:'gtm.js'});var f=d.getElementsByTagName(s)[0],
       j=d.createElement(s),dl=l!='dataLayer'?'&l='+l:'';j.async=true;j.src=
       'https://www.googletagmanager.com/gtm.js?id='+i+dl;f.parentNode.insertBefore(j,f);
@@ -565,12 +565,12 @@
     </c:otherwise>
   </c:choose>
   <%-- Javascript after content--%>
-  <script>
+  <script nonce="${cspNonce}">
     var mainToken = '${userSession.formToken}';
   </script>
     <script src="${ctx}/javascript/foundation-6.8.1/what-input-5.2.6.min.js"></script>
     <script src="${ctx}/javascript/foundation-6.8.1/foundation.min.js"></script>
-    <script>
+    <script nonce="${cspNonce}">
       $(document).foundation();
       <%--
       $('.card-profile-stats-more-link').click(function(e){
@@ -726,8 +726,8 @@
   <c:set var="doNotTrack" value="${header['DNT'] eq '1' || header['Sec-GPC'] eq '1'}"/>
   <c:if test="${!fn:startsWith(pageRenderInfo.name, '/admin') && !doNotTrack}">
     <c:if test="${!empty analyticsPropertyMap['analytics.service'] && 'google' eq analyticsPropertyMap['analytics.service'] && !empty analyticsPropertyMap['analytics.google.key']}">
-      <script async src="https://www.googletagmanager.com/gtag/js?id=${js:escape(analyticsPropertyMap['analytics.google.key'])}"></script>
-      <script>
+      <script async src="https://www.googletagmanager.com/gtag/js?id=${js:escape(analyticsPropertyMap['analytics.google.key'])}" nonce="${cspNonce}"></script>
+      <script nonce="${cspNonce}">
         window.dataLayer = window.dataLayer || [];
         function gtag(){dataLayer.push(arguments);}
         gtag('js', new Date());
@@ -735,10 +735,10 @@
       </script>
     </c:if>
     <c:if test="${!empty analyticsPropertyMap['analytics.simplifi.value']}">
-      <script async src='https://tag.simpli.fi/sifitag/${js:escape(analyticsPropertyMap['analytics.simplifi.value'])}'></script>
+      <script async src='https://tag.simpli.fi/sifitag/${js:escape(analyticsPropertyMap['analytics.simplifi.value'])}' nonce="${cspNonce}"></script>
     </c:if>
     <c:if test="${!empty analyticsPropertyMap['analytics.brandcdn.value'] && !empty analyticsPropertyMap['analytics.brandcdn.value2']}">
-      <script type="text/javascript" src="//tag.brandcdn.com/autoscript/${js:escape(analyticsPropertyMap['analytics.brandcdn.value'])}/${js:escape(analyticsPropertyMap['analytics.brandcdn.value2'])}"></script>
+      <script type="text/javascript" src="//tag.brandcdn.com/autoscript/${js:escape(analyticsPropertyMap['analytics.brandcdn.value'])}/${js:escape(analyticsPropertyMap['analytics.brandcdn.value2'])}" nonce="${cspNonce}"></script>
     </c:if>
   </c:if>
   <c:if test="${pageEditMode eq 'true'}">

@@ -26,7 +26,7 @@
 <jsp:useBean id="roleList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="groupList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="userLogin" class="com.simisinc.platform.domain.model.login.UserLogin" scope="request"/>
-<script>
+<script nonce="${cspNonce}">
   function resetPassword() {
     if (!confirm("Are you sure you want to reset the password on this account? An email with instructions will be sent to the user.")) {
       return;

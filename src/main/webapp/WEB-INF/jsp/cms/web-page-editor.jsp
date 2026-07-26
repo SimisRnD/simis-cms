@@ -116,7 +116,7 @@
 </form>
 
 <script src="${ctx}/javascript/dragula-3.7.3/dragula.min.js"></script>
-<script>
+<script nonce="${cspNonce}">
   var menuTabs = dragula([document.querySelector('#site-map-container')], {
     direction: 'horizontal',
     moves: function (el, container, handle) {

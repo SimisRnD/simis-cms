@@ -61,7 +61,7 @@
     <input type="submit" class="button radius success expanded" value="Save"/>
   </div>
 </form>
-<script>
+<script nonce="${cspNonce}">
   function checkForm${widgetContext.uniqueId}() {
     // Validate the stuff before submitting...
     if (document.getElementById("relatedCollectionId").value.trim() == "") {
@@ -79,7 +79,7 @@
     return true;
   }
 </script>
-<script>
+<script nonce="${cspNonce}">
   var xhr${widgetContext.uniqueId};
   new autoComplete({
     selector: 'input[name="relatedItemName"]',

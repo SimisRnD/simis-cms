@@ -40,7 +40,7 @@
   }
 </style>
 <div id="dataset-preview"></div>
-<script>
+<script nonce="${cspNonce}">
   var colHeaders = [
     <c:choose>
       <c:when test="${empty dataset.fieldTitles}">

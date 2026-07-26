@@ -32,7 +32,7 @@
   <input type="hidden" name="uniqueId" value="${order.uniqueId}"/>
   <button id="cancelOrderButton" class="button alert expanded">Cancel Order</button>
 </form>
-<script>
+<script nonce="${cspNonce}">
   function cancelOrder() {
     if (document.getElementById("cancelOrderButton").disabled === true) {
       return false;

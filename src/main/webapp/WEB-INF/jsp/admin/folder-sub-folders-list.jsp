@@ -115,7 +115,7 @@
         <input class="input-group-field" type="text" placeholder="mm-dd-yyyy time" id="startDate${widgetContext.uniqueId}" name="startDate" value="">
       </div>
     </label>
-    <script>
+    <script nonce="${cspNonce}">
       $(function(){
         $('#startDate${widgetContext.uniqueId}').fdatepicker({
           format: 'mm-dd-yyyy hh:ii',

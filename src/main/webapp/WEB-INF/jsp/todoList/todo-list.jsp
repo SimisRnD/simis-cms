@@ -58,7 +58,7 @@
     </p>
   </c:otherwise>
 </c:choose>
-<script>
+<script nonce="${cspNonce}">
   var elements = document.getElementsByClassName("${widgetContext.uniqueId}todoListItem");
   var myFunction = function(ev) {
     ev.target.parentNode.classList[ ev.target.checked ? 'add' : 'remove'] ('selected');

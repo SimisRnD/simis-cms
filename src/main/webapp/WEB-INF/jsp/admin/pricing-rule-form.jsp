@@ -179,7 +179,7 @@
               <input class="input-group-field" type="text" placeholder="" id="fromDate" name="fromDate" value="<fmt:formatDate pattern="MM-dd-yyyy HH:mm" value="${pricingRule.fromDate}" />">
             </div>
           </label>
-          <script>
+          <script nonce="${cspNonce}">
             $(function () {
               $('#fromDate').fdatepicker({
                 format: 'mm-dd-yyyy hh:ii',
@@ -196,7 +196,7 @@
               <input class="input-group-field" type="text" placeholder="" id="toDate" name="toDate" value="<fmt:formatDate pattern="MM-dd-yyyy HH:mm" value="${pricingRule.toDate}" />">
             </div>
           </label>
-          <script>
+          <script nonce="${cspNonce}">
             $(function () {
               $('#toDate').fdatepicker({
                 format: 'mm-dd-yyyy hh:ii',

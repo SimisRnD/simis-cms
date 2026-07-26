@@ -50,7 +50,7 @@
     </c:if>
   </c:if>
 </div>
-<script>
+<script nonce="${cspNonce}">
   function changeImage${widgetContext.uniqueId}(index) {
     var image = $('#gallery-image${widgetContext.uniqueId} img');
     var thumb = $('#image${widgetContext.uniqueId}' + index + ' img');

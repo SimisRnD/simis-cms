@@ -22,7 +22,7 @@
 <jsp:useBean id="calendarList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="calendarEventCount" class="java.util.HashMap" scope="request"/>
 <c:if test="${userSession.hasRole('admin')}">
-<script>
+<script nonce="${cspNonce}">
   function deleteCalendar(calendarId) {
     if (!confirm("Are you sure you want to delete this calendar and all of its events?")) {
       return;

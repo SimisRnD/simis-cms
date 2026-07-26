@@ -27,7 +27,7 @@
 <jsp:useBean id="showAuthor" class="java.lang.String" scope="request"/>
 <jsp:useBean id="showDate" class="java.lang.String" scope="request"/>
 <c:if test="${userSession.hasRole('admin') || userSession.hasRole('content-manager')}">
-  <script>
+  <script nonce="${cspNonce}">
     function deletePost() {
       if (!confirm("Are you sure you want to DELETE this post?")) {
         return;

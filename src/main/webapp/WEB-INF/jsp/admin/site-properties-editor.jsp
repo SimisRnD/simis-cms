@@ -22,7 +22,7 @@
 <link href="${ctx}/css/spectrum-1.8.1/spectrum.css" rel="stylesheet">
 <script src="${ctx}/javascript/spectrum-1.8.1/spectrum.js"></script>
 <%-- Handle image uploads --%>
-<script>
+<script nonce="${cspNonce}">
 
   var currentPhotoId = 'none';
   function SetPhotoId(id) {
@@ -204,7 +204,7 @@
 <div class="reveal large" id="imageBrowserReveal" data-reveal data-animation-in="slide-in-down fast">
   <h3>Loading...</h3>
 </div>
-<script>
+<script nonce="${cspNonce}">
   <%-- Map the variable property to the mapped CSS classes --%>
   var colorIdList = [];
   var colorSelectorList = [];
@@ -326,7 +326,7 @@
     }
   });
 </script>
-<script>
+<script nonce="${cspNonce}">
   $('#imageBrowserReveal').on('open.zf.reveal', function () {
     $('#imageBrowserReveal').html("<h3>Loading...</h3>");
     $.ajax({

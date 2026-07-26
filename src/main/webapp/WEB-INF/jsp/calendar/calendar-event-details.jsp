@@ -168,7 +168,7 @@
     </c:choose>
   </div>
 </div>
-<script>
+<script nonce="${cspNonce}">
   function goBack() {
     window.history.back();
   }

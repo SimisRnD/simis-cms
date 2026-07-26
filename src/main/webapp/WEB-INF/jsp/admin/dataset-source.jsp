@@ -23,7 +23,7 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="dataset" class="com.simisinc.platform.domain.model.datasets.Dataset" scope="request"/>
 <jsp:useBean id="columnConfiguration" class="java.lang.String" scope="request"/>
-<script>
+<script nonce="${cspNonce}">
   $(document).ready(function() {
     $('textarea').keypress(function(event) {
       if (event.keyCode === 13) {

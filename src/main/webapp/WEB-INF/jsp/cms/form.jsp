@@ -24,9 +24,9 @@
 <jsp:useBean id="formFieldList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="useCaptcha" class="java.lang.String" scope="request"/>
 <c:if test="${useCaptcha eq 'true' && !empty googleSiteKey}">
-<script src='https://www.google.com/recaptcha/api.js'></script>
+<script src='https://www.google.com/recaptcha/api.js' nonce="${cspNonce}"></script>
 </c:if>
-<script>
+<script nonce="${cspNonce}">
   <c:if test="${useCaptcha eq 'true' && !empty googleSiteKey}">
     function onSubmit(token) {
       document.getElementById("form${widgetContext.uniqueId}").submit();

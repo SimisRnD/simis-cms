@@ -59,7 +59,7 @@
   </div>
   <p><input type="submit" class="button radius success" value="Save"/></p>
 </form>
-<script>
+<script nonce="${cspNonce}">
   // Hook up ACE editor to all textareas with data-editor attribute
   $(function() {
     $('textarea[data-editor]').each(function() {

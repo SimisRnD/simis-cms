@@ -87,7 +87,7 @@
     </c:choose>
   </div>
 </div>
-<script>
+<script nonce="${cspNonce}">
   function mySubmit(templateId, templateUniqueId) {
     <%-- Post to the url --%>
     document.getElementById("templateId").value = templateId;

@@ -53,7 +53,7 @@
         </div>
       </div>
     </form>
-    <script type="text/javascript">
+    <script type="text/javascript" nonce="${cspNonce}">
       $(document).ready(function () {
         $('[id^=mailingListCheck]').click(function () {
           var mailingListId = $(this).val();
