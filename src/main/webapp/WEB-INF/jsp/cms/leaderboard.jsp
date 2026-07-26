@@ -35,7 +35,7 @@
         <form id="leaderboardForm" method="get">
           <select name="filter" id="filter" style="width: 160px;">
             <c:forEach items="${optionsList}" var="option" varStatus="status">
-              <option value="${option.value}"<c:if test="${selectedFilter eq option.value}"> selected</c:if>><c:out value="${option.key}" /></option>
+              <option value="<c:out value="${option.value}"/>"<c:if test="${selectedFilter eq option.value}"> selected</c:if>><c:out value="${option.key}" /></option>
             </c:forEach>
           </select>
         </form>

@@ -179,7 +179,7 @@
           <input type="submit" class="button radius success" value="Submit"/>
         </c:otherwise>
       </c:choose>
-      <c:if test="${!empty cancelUrl}"><a class="button radius secondary" href="${cancelUrl}">Cancel</a></c:if>
+      <c:if test="${!empty cancelUrl}"><a class="button radius secondary" href="<c:out value="${cancelUrl}"/>">Cancel</a></c:if>
     </div>
   </div>
 </form>

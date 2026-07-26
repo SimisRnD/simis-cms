@@ -93,7 +93,7 @@
           <%--<c:forEach items="${collection.privacyTypes}" var="privacyType" varStatus="status"><span class="label round secondary"><c:out value="${privacyType}" /></span><c:if test="${!status.last}" > </c:if></c:forEach>--%>
         </td>
         <td>
-          <small class="subheader"><a href="${ctx}${collection.listingsLink}"><c:out value="${collection.listingsLink}" /></a></small>
+          <small class="subheader"><a href="${ctx}<c:out value="${collection.listingsLink}"/>"><c:out value="${collection.listingsLink}" /></a></small>
         </td>
         <td class="text-center">
           <fmt:formatNumber value="${collection.categoryCount}" />

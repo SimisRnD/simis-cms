@@ -41,7 +41,7 @@
   <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
   <input type="hidden" name="token" value="${userSession.formToken}"/>
   <%-- Form values --%>
-  <input type="hidden" name="name" value="${webContainer.name}"/>
+  <input type="hidden" name="name" value="<c:out value="${webContainer.name}"/>"/>
   <input type="hidden" name="returnPage" value="${returnPage}" />
   <%-- The editor --%>
   <div class="grid-x grid-margin-x">

@@ -45,15 +45,16 @@
     }
 </script>
 <form id="tableOptionsForm" method="get" autocomplete="off" class="float-right">
+  <label for="statusFilter" class="show-for-sr">Status</label>
   <select id="statusFilter" name="statusFilter" class="float-left width-auto margin-right-10">
     <option value="any"<c:if test="${statusFilter eq 'any'}"> selected</c:if>>Any Status</option>
     <option value="active"<c:if test="${statusFilter eq 'active'}"> selected</c:if>>Active List</option>
     <option value="inactive"<c:if test="${statusFilter eq 'inactive'}"> selected</c:if>>Inactive List</option>
   </select>
   <div class="input-group no-gap width-auto">
-    <input class="input-group-field" type="search" name="query" placeholder="<c:if test="${empty query}">Search...</c:if>"<c:if test="${!empty query}"> value="<c:out value="${query}"/>"</c:if> autocomplete="off">
+    <input class="input-group-field" type="search" name="query" aria-label="Search users" placeholder="<c:if test="${empty query}">Search...</c:if>"<c:if test="${!empty query}"> value="<c:out value="${query}"/>"</c:if> autocomplete="off">
     <div class="input-group-button">
-      <button type="submit" class="button search"><i class="fa fa-search"></i></button>
+      <button type="submit" class="button search" aria-label="Search"><i class="fa fa-search" aria-hidden="true"></i></button>
     </div>
   </div>
 </form>

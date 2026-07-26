@@ -34,7 +34,7 @@
             <c:if test="${!empty collection.icon}"><i class="${font:fad()} fa-<c:out value="${collection.icon}" />"></i></c:if>
             <c:choose>
               <c:when test="${!empty collection.listingsLink}">
-                <a href="${ctx}${collection.listingsLink}"><c:out value="${collection.name}"/></a>
+                <a href="${ctx}<c:out value="${collection.listingsLink}"/>"><c:out value="${collection.name}"/></a>
               </c:when>
               <c:otherwise>
                 <a href="${ctx}/directory/${collection.uniqueId}"><c:out value="${collection.name}"/></a>

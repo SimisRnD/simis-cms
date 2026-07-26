@@ -69,7 +69,7 @@
               </c:if>
               <c:if test="${showImage eq 'true' && !empty blogPost.imageUrl}">
                 <div class="card-image">
-                  <a href="${ctx}/${blog.uniqueId}/${blogPost.uniqueId}"><img alt="Blog post banner image" src="${ctx}${blogPost.imageUrl}"/></a>
+                  <a href="${ctx}/${blog.uniqueId}/${blogPost.uniqueId}"><img alt="Blog post banner image" src="${ctx}<c:out value="${blogPost.imageUrl}"/>"/></a>
                 </div>
               </c:if>
               <c:if test="${showSummary eq 'true'}">
