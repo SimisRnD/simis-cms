@@ -27,6 +27,7 @@ import com.simisinc.platform.domain.model.cms.MenuTab;
 import com.simisinc.platform.domain.model.cms.Stylesheet;
 import com.simisinc.platform.domain.model.cms.TableOfContents;
 import com.simisinc.platform.domain.model.cms.WebPage;
+import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
 import com.simisinc.platform.domain.model.items.Category;
 import com.simisinc.platform.domain.model.items.Collection;
 import com.simisinc.platform.domain.model.items.Item;
@@ -43,6 +44,7 @@ import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.io.PrintWriter;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.time.ZoneId;
@@ -161,6 +163,7 @@ public class PageServlet extends HttpServlet {
     // X-Frame-Options above for modern browsers. A stricter script-src policy needs nonces across the JSPs and is
     // left to a later, report-only-first rollout.
     response.setHeader("Content-Security-Policy", "base-uri 'self'; object-src 'none'; frame-ancestors 'self'");
+    response.setHeader("Referrer-Policy", "same-origin");
     // Advertise HTTPS-only via HSTS, but only when the deployment is configured for SSL. Sending this from a
     // site that cannot serve HTTPS would make browsers refuse it for the max-age, so it is gated on system.ssl
     // rather than the per-request scheme, which also stays correct behind a TLS-terminating proxy.
@@ -215,17 +218,40 @@ public class PageServlet extends HttpServlet {
             return;
           }
         }
+        // Enforce publish schedule and expiry for non-editors
+        if (!userSession.hasRole("admin") && !userSession.hasRole("content-manager")) {
+          Timestamp now = new Timestamp(System.currentTimeMillis());
+          if (webPage.getPublishAt() != null && webPage.getPublishAt().after(now)) {
+            controllerSession.clearAllWidgetData();
+            response.sendError(HttpServletResponse.SC_NOT_FOUND);
+            return;
+          }
+          if (webPage.getExpiresAt() != null && webPage.getExpiresAt().before(now)) {
+            controllerSession.clearAllWidgetData();
+            response.sendError(HttpServletResponse.SC_GONE);
+            return;
+          }
+        }
         // Determine if this is a redirect
         String redirectLocation = webPage.getRedirectUrl();
         if (StringUtils.isNotBlank(redirectLocation)) {
           // Handle a redirect immediately
           if (!redirectLocation.startsWith("http:") && !redirectLocation.startsWith("https:")) {
-            redirectLocation =
-                scheme + "://" +
-                    serverName +
-                    (port != 80 ? ":" + port : "") +
-                    (redirectLocation.startsWith("/") ? "" : "/") +
-                    redirectLocation;
+            String siteUrl = StringUtils.trimToNull(LoadSitePropertyCommand.loadByName("site.url"));
+            String baseUrl;
+            if (siteUrl != null) {
+              try {
+                java.net.URI siteUri = new java.net.URI(siteUrl);
+                int sitePort = siteUri.getPort();
+                baseUrl = siteUri.getScheme() + "://" + siteUri.getHost() +
+                    (sitePort != -1 ? ":" + sitePort : "");
+              } catch (java.net.URISyntaxException e) {
+                baseUrl = scheme + "://" + serverName + (port != 80 ? ":" + port : "");
+              }
+            } else {
+              baseUrl = scheme + "://" + serverName + (port != 80 ? ":" + port : "");
+            }
+            redirectLocation = baseUrl + (redirectLocation.startsWith("/") ? "" : "/") + redirectLocation;
           }
           response.setHeader("Location", redirectLocation);
           response.setStatus(SC_MOVED_PERMANENTLY);
@@ -234,9 +260,127 @@ public class PageServlet extends HttpServlet {
         request.setAttribute(MASTER_WEB_PAGE, webPage);
       }
 
+      // Edit-mode toggle: ?editMode=true/false (requires canEditContent permission)
+      String editModeParam = request.getParameter("editMode");
+      if (editModeParam != null) {
+        if ("true".equals(editModeParam) && EditorPermissionCommand.canEditContent(userSession)) {
+          request.getSession().setAttribute(SessionConstants.PAGE_EDIT_MODE, "true");
+        } else {
+          request.getSession().removeAttribute(SessionConstants.PAGE_EDIT_MODE);
+        }
+      }
+      boolean pageEditMode = "true".equals(request.getSession().getAttribute(SessionConstants.PAGE_EDIT_MODE))
+          && EditorPermissionCommand.canEditContent(userSession);
+      boolean pageLayoutMode = pageEditMode && EditorPermissionCommand.canBuildLayout(userSession);
+      if (pageEditMode) {
+        request.setAttribute("pageEditMode", "true");
+      }
+      boolean hasDraft = pageLayoutMode && webPage != null && StringUtils.isNotBlank(webPage.getDraftPageXml());
+      request.setAttribute("pageLayoutMode", pageLayoutMode ? "true" : "false");
+      request.setAttribute("hasDraft", hasDraft ? "true" : "false");
+
+      // saveDraftLayout: reorder sections/columns/widgets, persist to draftPageXml
+      if ("saveDraftLayout".equals(request.getParameter("action"))
+          && request.getParameter("widget") == null
+          && pageEditMode
+          && EditorPermissionCommand.canBuildLayout(userSession)) {
+        String formToken = request.getParameter("token");
+        if (!userSession.getFormToken().equals(formToken)) {
+          LOG.warn("saveDraftLayout CSRF token mismatch from " + request.getRemoteAddr());
+          response.setContentType("application/json");
+          response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+          PrintWriter out = response.getWriter();
+          out.print("{\"success\":false,\"error\":\"Session expired\"}");
+          return;
+        }
+        if (webPage == null || webPage.getId() == -1) {
+          response.setContentType("application/json");
+          response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+          response.getWriter().print("{\"success\":false,\"error\":\"Page not found\"}");
+          return;
+        }
+        String layoutJson = request.getParameter("layout");
+        response.setContentType("application/json");
+        try {
+          SaveDraftLayoutCommand.saveDraftLayout(webPage, layoutJson);
+          response.getWriter().print("{\"success\":true}");
+        } catch (Exception e) {
+          LOG.error("saveDraftLayout failed for " + pagePath, e);
+          response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+          String msg = e.getMessage() != null ? e.getMessage().replace("\"", "'") : "Save failed";
+          response.getWriter().print("{\"success\":false,\"error\":\"" + msg + "\"}");
+        }
+        return;
+      }
+
+      // publishDraft: promote draftPageXml → pageXml
+      if ("publishDraft".equals(request.getParameter("action"))
+          && request.getParameter("widget") == null
+          && pageLayoutMode) {
+        String formToken = request.getParameter("token");
+        if (!userSession.getFormToken().equals(formToken)) {
+          LOG.warn("publishDraft CSRF token mismatch from " + request.getRemoteAddr());
+          response.setContentType("application/json");
+          response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+          response.getWriter().print("{\"success\":false,\"error\":\"Session expired\"}");
+          return;
+        }
+        if (webPage == null || webPage.getId() == -1) {
+          response.setContentType("application/json");
+          response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+          response.getWriter().print("{\"success\":false,\"error\":\"Page not found\"}");
+          return;
+        }
+        if (StringUtils.isBlank(webPage.getDraftPageXml())) {
+          response.setContentType("application/json");
+          response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+          response.getWriter().print("{\"success\":false,\"error\":\"No draft to publish\"}");
+          return;
+        }
+        response.setContentType("application/json");
+        WebPageRepository.publish(webPage);
+        LOG.info("Draft published for " + pagePath + " by user " + userSession.getUserId());
+        response.getWriter().print("{\"success\":true}");
+        return;
+      }
+
+      // discardDraft: clear draftPageXml without publishing
+      if ("discardDraft".equals(request.getParameter("action"))
+          && request.getParameter("widget") == null
+          && pageLayoutMode) {
+        String formToken = request.getParameter("token");
+        if (!userSession.getFormToken().equals(formToken)) {
+          LOG.warn("discardDraft CSRF token mismatch from " + request.getRemoteAddr());
+          response.setContentType("application/json");
+          response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+          response.getWriter().print("{\"success\":false,\"error\":\"Session expired\"}");
+          return;
+        }
+        if (webPage == null || webPage.getId() == -1) {
+          response.setContentType("application/json");
+          response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+          response.getWriter().print("{\"success\":false,\"error\":\"Page not found\"}");
+          return;
+        }
+        response.setContentType("application/json");
+        WebPageRepository.removeDraft(webPage);
+        LOG.info("Draft discarded for " + pagePath + " by user " + userSession.getUserId());
+        response.getWriter().print("{\"success\":true}");
+        return;
+      }
+
       // Determine the Page XML Layout for this request
       Page pageRef = WebPageXmlLayoutCommand.retrievePageForRequest(webPage, pagePath);
       Map<String, String> widgetLibrary = WebPageXmlLayoutCommand.getWidgetLibrary();
+
+      // In edit mode, layout builders preview the draft layout (bypasses cache)
+      if (pageEditMode && EditorPermissionCommand.canBuildLayout(userSession)
+          && webPage != null && StringUtils.isNotBlank(webPage.getDraftPageXml())) {
+        Page draftRef = WebPageXmlLayoutCommand.parseFreshDraft(webPage, pagePath);
+        if (draftRef != null) {
+          pageRef = draftRef;
+        }
+      }
 
       // Load the properties
       Map<String, String> systemPropertyMap = LoadSitePropertyCommand.loadAsMap("system");

@@ -151,9 +151,26 @@ class MyMfaSettingsWidgetTest extends WidgetBase {
   }
 
   @Test
+  void postDisableWithoutStepUpShowsReAuthPanel() {
+    addQueryParameter(widgetContext, "action", "disable");
+    User user = new User();
+    user.setId(1L);
+    user.setMfaEnabled(true);
+    try (MockedStatic<UserRepository> repo = mockStatic(UserRepository.class)) {
+      repo.when(() -> UserRepository.findByUserId(anyLong())).thenReturn(user);
+      new MyMfaSettingsWidget().post(widgetContext);
+    }
+    Assertions.assertEquals("true", widgetContext.getSharedRequestValue("stepUpRequired"));
+    Assertions.assertEquals(MyMfaSettingsWidget.JSP, widgetContext.getJsp());
+    Assertions.assertNull(widgetContext.getSuccessMessage());
+  }
+
+  @Test
   void postDisableTurnsOffAndRedirects() {
     addQueryParameter(widgetContext, "action", "disable");
     when(request.getRequestURI()).thenReturn("/my-account");
+    // Disabling MFA requires a recent step-up (AC-6 / IA-2).
+    grantStepUp(widgetContext);
     User user = new User();
     user.setId(1L);
     user.setMfaEnabled(true);

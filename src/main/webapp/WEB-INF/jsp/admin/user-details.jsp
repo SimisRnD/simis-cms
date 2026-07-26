@@ -27,35 +27,29 @@
 <jsp:useBean id="groupList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="userLogin" class="com.simisinc.platform.domain.model.login.UserLogin" scope="request"/>
 <script>
-  function resetPassword() {
-    if (!confirm("Are you sure you want to reset the password on this account? An email with instructions will be sent to the user.")) {
-      return;
-    }
-    window.location.href = '${widgetContext.uri}?action=resetPassword&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&userId=${user.id}';
-  }
   function suspendAccount() {
     if (!confirm("Are you sure you want to SUSPEND this user account?")) {
       return;
     }
-    window.location.href = '${widgetContext.uri}?action=suspendAccount&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&userId=${user.id}';
+    postAction('${widgetContext.uri}?action=suspendAccount&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&userId=${user.id}');
   }
   function restoreAccount() {
     if (!confirm("Are you sure you want to RESTORE this user account?")) {
       return;
     }
-    window.location.href = '${widgetContext.uri}?action=restoreAccount&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&userId=${user.id}';
+    postAction('${widgetContext.uri}?action=restoreAccount&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&userId=${user.id}');
   }
   function deleteAccount() {
     if (!confirm("Are you sure you want to DELETE this user account?")) {
       return;
     }
-    window.location.href = '${widgetContext.uri}?action=deleteAccount&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&userId=${user.id}';
+    postAction('${widgetContext.uri}?action=deleteAccount&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&userId=${user.id}');
   }
   function unlockAccount() {
     if (!confirm("Are you sure you want to UNLOCK this user account? This clears the failed login attempts and lockout.")) {
       return;
     }
-    window.location.href = '${widgetContext.uri}?action=unlockAccount&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&userId=${user.id}';
+    postAction('${widgetContext.uri}?action=unlockAccount&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&userId=${user.id}');
   }
 </script>
 <div style="margin-top: 6px;background-color:<c:out value="${themePropertyMap['theme.body.backgroundColor']}" />;">
@@ -66,7 +60,7 @@
         <a href="#">Actions</a>
         <ul class="menu">
           <c:if test="${user.enabled}">
-            <li><a href="javascript:resetPassword()">Reset Password</a></li>
+            <li><a href="#" data-open="resetPasswordReveal">Reset Password</a></li>
             <li><a href="javascript:suspendAccount()">Suspend Account</a></li>
           </c:if>
           <c:if test="${!user.enabled}">
@@ -350,3 +344,28 @@
 </div>
 <hr>
 <p><a href="${ctx}/admin/users"><i class="fa fa-angle-double-left"></i> Back to list</a></p>
+<div class="reveal" id="resetPasswordReveal" role="dialog" aria-modal="true" aria-labelledby="resetPasswordRevealTitle"
+     data-reveal data-close-on-click="true">
+  <h4 id="resetPasswordRevealTitle">Reset Password</h4>
+  <p>An email with password reset instructions will be sent to <strong><c:out value="${user.email}" /></strong>.</p>
+  <form method="post">
+    <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
+    <input type="hidden" name="token" value="${userSession.formToken}"/>
+    <input type="hidden" name="action" value="resetPassword"/>
+    <input type="hidden" name="userId" value="${user.id}"/>
+    <div class="grid-x grid-padding-x">
+      <div class="small-12 cell">
+        <label for="resetStepUpCredential">Your password or authenticator code <span class="required">*</span>
+          <input type="password" id="resetStepUpCredential" name="stepUpCredential" maxlength="255"
+                 placeholder="Password or 6-digit code" required
+                 title="Re-authentication required to reset another user's password"/>
+        </label>
+      </div>
+    </div>
+    <input type="submit" class="button warning radius" value="Send Reset Email"/>
+    <button class="button secondary radius" type="button" data-close>Cancel</button>
+  </form>
+  <button class="close-button" data-close aria-label="Close reveal" type="button">
+    <span aria-hidden="true">&times;</span>
+  </button>
+</div>
