@@ -98,6 +98,10 @@ public class SessionRepository {
     return records;
   }
 
+  public static long countSessionsWithPii() {
+    return DB.selectCountFrom(TABLE_NAME, new SqlUtils().add("ip_address IS NOT NULL"));
+  }
+
   public static long countDistinctSessions(Timestamp startDate, Timestamp endDate) {
     // Query the data, skip some things
     SqlUtils where = new SqlUtils()
