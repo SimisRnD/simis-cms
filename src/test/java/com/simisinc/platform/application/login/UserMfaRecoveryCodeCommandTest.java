@@ -21,13 +21,11 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
 
 import java.util.List;
 
-import org.apache.commons.codec.digest.DigestUtils;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
@@ -71,12 +69,12 @@ class UserMfaRecoveryCodeCommandTest {
   void consumeAcceptsAMatchingCodeIgnoringCaseAndDashes() {
     UserMfaRecoveryCode stored = new UserMfaRecoveryCode();
     stored.setId(5L);
-    String expectedHash = DigestUtils.sha256Hex("abcdefghij"); // the normalized form of the code below
+    stored.setCodeHash(UserMfaRecoveryCodeCommand.hash("abcdefghij")); // real argon2id hash of the normalized code
     try (MockedStatic<UserMfaRecoveryCodeRepository> repo = mockStatic(UserMfaRecoveryCodeRepository.class)) {
-      repo.when(() -> UserMfaRecoveryCodeRepository.findUnusedByUserIdAndHash(1L, expectedHash)).thenReturn(stored);
+      repo.when(() -> UserMfaRecoveryCodeRepository.findAllUnusedByUserId(1L)).thenReturn(List.of(stored));
       repo.when(() -> UserMfaRecoveryCodeRepository.markUsed(stored)).thenReturn(true);
 
-      // The same code, typed with a dash and in upper case, both normalize to the stored hash
+      // The same code, typed with a dash and in upper case, both normalize and verify against the stored hash
       assertTrue(UserMfaRecoveryCodeCommand.consume(user(1L), "abcde-fghij"));
       assertTrue(UserMfaRecoveryCodeCommand.consume(user(1L), "ABCDEFGHIJ"));
       repo.verify(() -> UserMfaRecoveryCodeRepository.markUsed(stored), times(2));
@@ -87,9 +85,9 @@ class UserMfaRecoveryCodeCommandTest {
   void consumeReturnsFalseWhenTheCodeWasAlreadyConsumedConcurrently() {
     UserMfaRecoveryCode stored = new UserMfaRecoveryCode();
     stored.setId(5L);
-    String expectedHash = DigestUtils.sha256Hex("abcdefghij");
+    stored.setCodeHash(UserMfaRecoveryCodeCommand.hash("abcdefghij"));
     try (MockedStatic<UserMfaRecoveryCodeRepository> repo = mockStatic(UserMfaRecoveryCodeRepository.class)) {
-      repo.when(() -> UserMfaRecoveryCodeRepository.findUnusedByUserIdAndHash(1L, expectedHash)).thenReturn(stored);
+      repo.when(() -> UserMfaRecoveryCodeRepository.findAllUnusedByUserId(1L)).thenReturn(List.of(stored));
       // The lookup found the code unused, but a concurrent request flipped it first:
       // the atomic update affects no row, so this login must NOT succeed.
       repo.when(() -> UserMfaRecoveryCodeRepository.markUsed(stored)).thenReturn(false);
@@ -101,7 +99,7 @@ class UserMfaRecoveryCodeCommandTest {
   @Test
   void consumeRejectsAnUnknownCode() {
     try (MockedStatic<UserMfaRecoveryCodeRepository> repo = mockStatic(UserMfaRecoveryCodeRepository.class)) {
-      repo.when(() -> UserMfaRecoveryCodeRepository.findUnusedByUserIdAndHash(anyLong(), anyString())).thenReturn(null);
+      repo.when(() -> UserMfaRecoveryCodeRepository.findAllUnusedByUserId(anyLong())).thenReturn(null);
       assertFalse(UserMfaRecoveryCodeCommand.consume(user(1L), "zzzzz-zzzzz"));
     }
   }
