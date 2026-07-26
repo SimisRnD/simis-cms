@@ -730,7 +730,35 @@
               scrollTop: hash.offset().top-headerHeight
           }, 0);
         }
+        $(document).on('submit', 'form', function() {
+          $(this).find('[data-disable-on-submit]').each(function() {
+            var btn = $(this);
+            btn.prop('disabled', true);
+            var loadingText = btn.data('disable-on-submit');
+            if (btn.is('input')) { btn.val(loadingText); } else { btn.text(loadingText); }
+          });
+        });
       });
+      function postAction(url) {
+        var parser = document.createElement('a');
+        parser.href = url;
+        var form = document.createElement('form');
+        form.method = 'POST';
+        form.action = parser.pathname;
+        new URLSearchParams(parser.search).forEach(function(value, key) {
+          var input = document.createElement('input');
+          input.type = 'hidden';
+          input.name = key;
+          input.value = value;
+          form.appendChild(input);
+        });
+        document.body.appendChild(form);
+        form.submit();
+      }
+      function confirmPostAction(message, url) {
+        if (confirm(message)) { postAction(url); }
+        return false;
+      }
     </script>
   <c:set var="doNotTrack" value="${header['DNT'] eq '1' || header['Sec-GPC'] eq '1'}"/>
   <c:if test="${!fn:startsWith(pageRenderInfo.name, '/admin') && !doNotTrack}">

@@ -18,12 +18,13 @@
 <%@ taglib prefix="js" uri="/WEB-INF/tlds/javascript-escape.tld" %>
 <%@ taglib prefix="font" uri="/WEB-INF/tlds/font-functions.tld" %>
 <%@ taglib prefix="group" uri="/WEB-INF/tlds/group-functions.tld" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="collection" class="com.simisinc.platform.domain.model.items.Collection" scope="request"/>
 <jsp:useBean id="categoryList" class="java.util.ArrayList" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}" /></h4>
+  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <table class="unstriped">
@@ -61,7 +62,7 @@
           </c:otherwise>
         </c:choose>
         <a href="${ctx}/admin/category?collectionId=${collection.id}&categoryId=${category.id}"><c:out value="${category.name}" /></a>
-        <a href="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&categoryId=${category.id}" onclick="return confirm('Are you sure you want to delete <c:out value="${js:escape(category.name)}" />?');"><i class="fa fa-remove"></i></a>
+        <a href="#" onclick="return confirmPostAction('Are you sure you want to delete <c:out value="${js:escape(category.name)}" />?', '${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&categoryId=${category.id}');"><i class="fa fa-remove"></i></a>
         <c:if test="${!empty category.description}">
           <br /><small><c:out value="${category.description}" /></small>
         </c:if>

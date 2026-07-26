@@ -16,6 +16,7 @@
 <%@ page import="java.util.TimeZone" %>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="html" uri="/WEB-INF/tlds/html-functions.tld" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="sitePropertyList" class="java.util.ArrayList" scope="request"/>
@@ -51,7 +52,7 @@
   }
 </script>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}" /></h4>
+  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
 <form method="post">
   <%-- Required by controller --%>

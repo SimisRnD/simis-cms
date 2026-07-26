@@ -134,7 +134,7 @@
             <c:if test="${userSession.hasRole('admin') || userSession.hasRole('content-manager') || userSession.hasRole('community-manager') || userSession.hasRole('data-manager') || userSession.hasRole('ecommerce-manager')}">
               <li><a href="${ctx}/admin"><i class="fa fa-cog fa-fw"></i> Admin</a></li>
             </c:if>
-            <li><a href="${ctx}/logout"><i class="fa fa-sign-out fa-fw"></i> Log Out</a></li>
+            <li><a href="${ctx}/logout?token=${userSession.formToken}"><i class="fa fa-sign-out fa-fw"></i> Log Out</a></li>
           </ul>
         </li>
         <%--<li class="menu-text"><a class="no-menu" href="#"><i class="fa fa-bell fa-fw"></i></a></li>--%>
@@ -201,7 +201,7 @@
                             <c:if test="${userSession.hasRole('admin') || userSession.hasRole('content-manager') || userSession.hasRole('community-manager') || userSession.hasRole('data-manager') || userSession.hasRole('ecommerce-manager')}">
                               <li><a href="${ctx}/admin"><i class="fa fa-cog fa-fw"></i> Admin</a></li>
                             </c:if>
-                            <li><a href="${ctx}/logout"><i class="fa fa-sign-out fa-fw"></i> Log Out</a></li>
+                            <li><a href="${ctx}/logout?token=${userSession.formToken}"><i class="fa fa-sign-out fa-fw"></i> Log Out</a></li>
                           </ul>
                         </li>
                         <%--<li class="menu-text"><a class="no-menu" href="#"><i class="fa fa-bell fa-fw"></i></a></li>--%>
@@ -308,7 +308,7 @@
                       <c:if test="${userSession.hasRole('admin') || userSession.hasRole('content-manager') || userSession.hasRole('community-manager') || userSession.hasRole('data-manager') || userSession.hasRole('ecommerce-manager')}">
                         <li><a href="${ctx}/admin"><i class="fa fa-cog fa-fw"></i> Admin</a></li>
                       </c:if>
-                      <li><a href="${ctx}/logout"><i class="fa fa-sign-out fa-fw"></i> Log Out</a></li>
+                      <li><a href="${ctx}/logout?token=${userSession.formToken}"><i class="fa fa-sign-out fa-fw"></i> Log Out</a></li>
                     </ul>
                   </li>
                   <%--<li class="menu-text"><a class="no-menu" href="#"><i class="fa fa-bell fa-fw"></i></a></li>--%>
@@ -554,7 +554,7 @@
                     <c:if test="${userSession.hasRole('admin') || userSession.hasRole('content-manager') || userSession.hasRole('community-manager') || userSession.hasRole('data-manager') || userSession.hasRole('ecommerce-manager')}">
                       <li><a href="${ctx}/admin"><i class="fa fa-cog fa-fw"></i> Admin</a></li>
                     </c:if>
-                    <li><a href="${ctx}/logout"><i class="fa fa-sign-out fa-fw"></i> Log Out</a></li>
+                    <li><a href="${ctx}/logout?token=${userSession.formToken}"><i class="fa fa-sign-out fa-fw"></i> Log Out</a></li>
                   </ul>
                 </li>
                 <%--<li class="menu-text"><a class="no-menu" href="#"><i class="fa fa-bell fa-fw"></i></a></li>--%>

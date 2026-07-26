@@ -37,7 +37,7 @@
   <button class="button small radius secondary float-left margin-left-10"><i class="fa fa-download"></i> Download Items</button>
 </form>
 --%>
-<a class="button small radius alert margin-left-10" href="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&collectionId=${collection.id}" onclick="return confirm('Are you sure you want to delete <c:out value="${js:escape(collection.name)}" />?');"><i class="fa fa-remove"></i> Delete</a>
+<a class="button small radius alert margin-left-10" href="#" onclick="return confirmPostAction('Are you sure you want to delete <c:out value="${js:escape(collection.name)}" />?', '${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&collectionId=${collection.id}');"><i class="fa fa-remove"></i> Delete</a>
 <p class="callout box radius">
   <c:if test="${!empty collection.description}">
     <small class="subheader"><c:out value="${collection.description}" /></small><br />
