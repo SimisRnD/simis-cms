@@ -29,6 +29,6 @@
     <p><c:out value="${emptyMessage}"/></p>
   </c:if>
   <div class="button-container">
-    <a class="button" href="${ctx}${shopUrl}">Continue Browsing</a>
+    <a class="button" href="${ctx}<c:out value="${shopUrl}"/>">Continue Browsing</a>
   </div>
 </div>

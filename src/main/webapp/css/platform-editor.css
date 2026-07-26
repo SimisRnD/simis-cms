@@ -134,3 +134,325 @@ a.sc-editor-handle:hover {
   opacity: 0.85;
   color: #fff;
 }
+
+/* ── Inline content editor ── */
+
+/* Active editing state */
+.platform-content[contenteditable="true"] {
+  outline: 2px solid #0056b3;
+  outline-offset: 3px;
+  min-height: 2em;
+  cursor: text;
+}
+
+.platform-content[contenteditable="true"]:focus {
+  outline-color: #003d82;
+}
+
+/* Floating inline toolbar (appears above the content block) */
+#sc-inline-toolbar {
+  position: absolute;
+  background: #1a1a2e;
+  border: 1px solid #444;
+  border-radius: 4px;
+  padding: 3px 6px;
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  z-index: 10000;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+  font-family: sans-serif;
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+#sc-inline-toolbar button {
+  background: transparent;
+  border: none;
+  color: #ccc;
+  padding: 3px 7px;
+  cursor: pointer;
+  border-radius: 3px;
+  font-size: 13px;
+  line-height: 1.4;
+  min-width: 26px;
+  font-family: sans-serif;
+}
+
+#sc-inline-toolbar button:hover,
+#sc-inline-toolbar button.sc-active {
+  background: #0056b3;
+  color: #fff;
+}
+
+#sc-inline-toolbar .sc-inline-sep {
+  width: 1px;
+  background: #444;
+  height: 18px;
+  margin: 0 3px;
+  flex-shrink: 0;
+}
+
+/* Action buttons bar (Save / Discard) rendered inside the widget area */
+.sc-inline-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 6px;
+  align-items: center;
+}
+
+.sc-inline-actions .button {
+  margin-bottom: 0;
+  font-size: 0.75rem;
+}
+
+.sc-inline-save-msg {
+  font-size: 0.75rem;
+  color: #28a745;
+  margin-left: 4px;
+}
+
+/* Dim the editor widget outline while actively editing */
+body.page-edit-mode [data-editor-widget].sc-editing {
+  outline-color: #0056b3;
+}
+
+/* ── Drag-to-reorder layout ── */
+
+/* Drag handles on section and widget overlays */
+.sc-editor-drag-handle {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 22px;
+  height: 22px;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  font-size: 14px;
+  line-height: 1;
+  z-index: 101;
+  border-radius: 0 0 0 3px;
+  color: #fff;
+  font-family: sans-serif;
+  user-select: none;
+}
+
+.sc-editor-drag-handle:active {
+  cursor: grabbing;
+}
+
+.sc-drag-handle-section {
+  background: #0056b3;
+}
+
+.sc-drag-handle-widget {
+  background: #dc3545;
+}
+
+body.page-edit-mode [data-editor-section]:hover > .sc-editor-drag-handle,
+body.page-edit-mode [data-editor-widget]:hover > .sc-editor-drag-handle {
+  display: flex;
+}
+
+/* Element being dragged */
+body.page-edit-mode [data-editor-section].sc-dragging,
+body.page-edit-mode [data-editor-widget].sc-dragging {
+  opacity: 0.4;
+  outline-style: solid !important;
+}
+
+/* Drop insertion indicator */
+.sc-drop-indicator {
+  height: 3px;
+  background: #0056b3;
+  border-radius: 2px;
+  pointer-events: none;
+  margin: 0;
+  transition: opacity 0.1s;
+}
+
+/* Keyboard move buttons (WCAG 2.5.7) */
+.sc-move-btns {
+  position: absolute;
+  top: 0;
+  right: 26px;
+  display: none;
+  gap: 2px;
+  z-index: 101;
+}
+
+body.page-edit-mode [data-editor-section]:hover > .sc-move-btns,
+body.page-edit-mode [data-editor-widget]:hover > .sc-move-btns {
+  display: flex;
+}
+
+.sc-move-btns button {
+  background: rgba(0, 0, 0, 0.55);
+  border: 1px solid rgba(255,255,255,0.3);
+  color: #fff;
+  font-size: 11px;
+  padding: 2px 5px;
+  cursor: pointer;
+  border-radius: 2px;
+  line-height: 1.2;
+  font-family: sans-serif;
+}
+
+.sc-move-btns button:hover {
+  background: #0056b3;
+  border-color: #0056b3;
+}
+
+/* Save Layout button in toolbar */
+#sc-save-layout-btn {
+  margin-bottom: 0;
+  font-size: 0.75rem;
+}
+
+/* Unsaved layout change indicator */
+#sc-layout-dirty-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #f0ad4e;
+  margin-left: 4px;
+  vertical-align: middle;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+#sc-layout-dirty-dot.sc-visible {
+  opacity: 1;
+}
+
+/* ── Draft publish / discard ── */
+
+#sc-publish-btn {
+  margin-bottom: 0;
+  font-size: 0.75rem;
+}
+
+#sc-discard-draft-btn {
+  margin-bottom: 0;
+  font-size: 0.75rem;
+  color: #ccc;
+  border-color: #555;
+}
+
+#sc-discard-draft-btn:hover {
+  color: #fff;
+  border-color: #aaa;
+}
+
+/* Confirm modal overlay */
+#sc-confirm-modal {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.6);
+  z-index: 10002;
+  align-items: center;
+  justify-content: center;
+}
+
+#sc-confirm-modal.sc-visible {
+  display: flex;
+}
+
+#sc-confirm-modal-box {
+  background: #1a1a2e;
+  border: 1px solid #444;
+  border-radius: 6px;
+  padding: 1.25rem 1.5rem;
+  max-width: 380px;
+  width: 90%;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+  font-family: sans-serif;
+}
+
+#sc-confirm-modal-msg {
+  color: #eee;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+  line-height: 1.5;
+}
+
+#sc-confirm-modal-actions {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: flex-end;
+}
+
+#sc-confirm-modal-actions button {
+  font-size: 0.8rem;
+  padding: 6px 16px;
+  border-radius: 4px;
+  border: none;
+  cursor: pointer;
+  font-family: sans-serif;
+}
+
+#sc-confirm-ok {
+  background: #0056b3;
+  color: #fff;
+}
+
+#sc-confirm-ok.sc-danger {
+  background: #c0392b;
+}
+
+#sc-confirm-ok:hover {
+  opacity: 0.9;
+}
+
+#sc-confirm-cancel {
+  background: #3a3a4e;
+  color: #ccc;
+  border: 1px solid #555 !important;
+}
+
+#sc-confirm-cancel:hover {
+  background: #4a4a5e;
+  color: #fff;
+}
+
+/* Link prompt overlay */
+#sc-link-prompt {
+  position: absolute;
+  background: #1a1a2e;
+  border: 1px solid #444;
+  border-radius: 4px;
+  padding: 6px 8px;
+  z-index: 10001;
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+}
+
+#sc-link-prompt input[type="text"] {
+  background: #2a2a3e;
+  border: 1px solid #555;
+  color: #eee;
+  padding: 3px 6px;
+  font-size: 12px;
+  border-radius: 3px;
+  width: 220px;
+}
+
+#sc-link-prompt button {
+  background: #0056b3;
+  border: none;
+  color: #fff;
+  padding: 3px 8px;
+  font-size: 12px;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+#sc-link-prompt button.sc-cancel {
+  background: #555;
+}

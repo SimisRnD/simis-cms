@@ -131,7 +131,7 @@
       <c:if test="${collection.showListingsLink}">
         <c:choose>
           <c:when test="${!empty collection.listingsLink}">
-            <a class="collection-name" href="${ctx}${collection.listingsLink}"><c:out value="${collection.name}"/></a>
+            <a class="collection-name" href="${ctx}<c:out value="${collection.listingsLink}"/>"><c:out value="${collection.name}"/></a>
           </c:when>
           <c:otherwise>
             <a class="collection-name" href="${ctx}/directory/${collection.uniqueId}"><c:out value="${collection.name}"/></a>
@@ -145,10 +145,10 @@
           <c:forEach items="${itemTabList}" var="tab">
             <c:choose>
               <c:when test="${tab.isActive}">
-                <li class="menu-item is-selected"><a href="${ctx}${tab.href}"><c:out value="${tab.name}"/></a></li>
+                <li class="menu-item is-selected"><a href="${ctx}<c:out value="${tab.href}"/>"><c:out value="${tab.name}"/></a></li>
               </c:when>
               <c:otherwise>
-                <li class="menu-item"><a href="${ctx}${tab.href}"><c:out value="${tab.name}"/></a></li>
+                <li class="menu-item"><a href="${ctx}<c:out value="${tab.href}"/>"><c:out value="${tab.name}"/></a></li>
               </c:otherwise>
             </c:choose>
           </c:forEach>

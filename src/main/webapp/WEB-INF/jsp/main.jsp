@@ -105,10 +105,10 @@
   </c:choose>
   <%-- CSS --%>
     <c:if test="${!empty themePropertyMap['theme.fonts.body']}">
-      <link rel="stylesheet" href="${ctx}/css/google-fonts/${themePropertyMap['theme.fonts.body']}.css">
+      <link rel="stylesheet" href="${ctx}/css/google-fonts/<c:out value="${themePropertyMap['theme.fonts.body']}"/>.css">
     </c:if>
     <c:if test="${!empty themePropertyMap['theme.fonts.headlines'] && themePropertyMap['theme.fonts.headlines'] ne themePropertyMap['theme.fonts.body']}">
-      <link rel="stylesheet" href="${ctx}/css/google-fonts/${themePropertyMap['theme.fonts.headlines']}.css">
+      <link rel="stylesheet" href="${ctx}/css/google-fonts/<c:out value="${themePropertyMap['theme.fonts.headlines']}"/>.css">
     </c:if>
     <link rel="stylesheet" type="text/css" href="${ctx}/css/${font:fontawesome()}/css/all.min.css" />
     <link rel="stylesheet" type="text/css" href="${ctx}/css/${font:fontawesome()}/css/v4-shims.min.css" />
@@ -334,7 +334,11 @@
 </c:if>
 <body<c:if test="${pageRenderInfo.name eq '/'}"> id="body-home"</c:if><c:if test="${!empty bodyClass}"> class="<c:out value="${bodyClass}" />"</c:if>>
   <c:if test="${pageEditMode eq 'true'}">
-    <div id="sc-editor-toolbar" role="toolbar" aria-label="Page editor" data-page-path="<c:out value="${pageRenderInfo.pagePath}"/>" data-ctx="${ctx}">
+    <div id="sc-editor-toolbar" role="toolbar" aria-label="Page editor"
+         data-page-path="<c:out value="${pageRenderInfo.pagePath}"/>"
+         data-ctx="${ctx}"
+         data-layout-mode="<c:out value="${pageLayoutMode}"/>"
+         data-has-draft="<c:out value="${hasDraft}"/>">
       <span id="sc-editor-toolbar-title">Visual Editor</span>
       <a href="${ctx}/admin/web-page-designer?webPage=<c:out value="${pageRenderInfo.pagePath}"/>" class="button small hollow secondary"><i class="fa fa-fw fa-code"></i> XML</a>
       <a href="?editMode=false" id="sc-editor-exit" class="button small hollow secondary"><i class="fa fa-fw fa-times"></i> Exit</a>
@@ -445,6 +449,10 @@
           </c:if>
         </div>
         <div class="off-canvas-content" data-off-canvas-content>
+          <div class="title-bar hide-for-medium" aria-label="Admin navigation">
+            <button class="menu-icon" type="button" data-toggle="offCanvas" aria-label="Open admin menu"></button>
+            <div class="title-bar-title">Admin Menu</div>
+          </div>
           <div class="web-content admin-web-content">
             <jsp:include page="${PageBody}" flush="true"/>
           </div>
@@ -476,7 +484,7 @@
                   </c:otherwise>
                 </c:choose>
               </p>
-              <p style="white-space: nowrap">
+              <p>
                 <c:if test="${!empty sitePropertyMap['site.confirmation.line1']}">
                   <c:out value="${sitePropertyMap['site.confirmation.line1']}" />
                 </c:if>
@@ -715,7 +723,8 @@
         }
       });
     </script>
-  <c:if test="${!fn:startsWith(pageRenderInfo.name, '/admin')}">
+  <c:set var="doNotTrack" value="${header['DNT'] eq '1' || header['Sec-GPC'] eq '1'}"/>
+  <c:if test="${!fn:startsWith(pageRenderInfo.name, '/admin') && !doNotTrack}">
     <c:if test="${!empty analyticsPropertyMap['analytics.service'] && 'google' eq analyticsPropertyMap['analytics.service'] && !empty analyticsPropertyMap['analytics.google.key']}">
       <script async src="https://www.googletagmanager.com/gtag/js?id=${js:escape(analyticsPropertyMap['analytics.google.key'])}"></script>
       <script>
