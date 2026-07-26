@@ -89,10 +89,10 @@
             <c:forEach items="${formField.listOfOptions}" var="option">
               <c:choose>
                 <c:when test="${option.value eq formField.value}">
-                  <option value="${option.key}" selected><c:out value="${option.value}" /></option>
+                  <option value="<c:out value="${option.key}"/>" selected><c:out value="${option.value}" /></option>
                 </c:when>
                 <c:otherwise>
-                  <option value="${option.key}"><c:out value="${option.value}" /></option>
+                  <option value="<c:out value="${option.key}"/>"><c:out value="${option.value}" /></option>
                 </c:otherwise>
               </c:choose>
             </c:forEach>

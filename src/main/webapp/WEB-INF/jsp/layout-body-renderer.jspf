@@ -34,13 +34,13 @@
       <%-- Determine the section container CSS --%>
       <c:choose>
         <c:when test="${empty section.cssClass && fn:startsWith(pageRenderInfo.name, '/admin')}">
-          <div id="<c:out value="${sectionId}"/>" class="grid-x grid-padding-x"<c:if test="${!empty section.cssStyle}"> style="<c:out value="${section.cssStyle}" />"</c:if>>
+          <div id="<c:out value="${sectionId}"/>" class="grid-x grid-padding-x"<c:if test="${!empty section.cssStyle}"> style="<c:out value="${section.cssStyle}" />"</c:if><c:if test="${pageEditMode eq 'true'}"> data-editor-section="${sectionStatus.index}"</c:if>>
         </c:when>
         <c:when test="${!empty section.cssClass && (fn:contains(section.cssClass,'grid') || fn:contains(section.cssClass,'platform-no-margin'))}">
-          <div id="<c:out value="${sectionId}"/>" class="<c:out value="${section.cssClass}"/>"<c:if test="${!empty section.cssStyle}"> style="<c:out value="${section.cssStyle}" />"</c:if>>
+          <div id="<c:out value="${sectionId}"/>" class="<c:out value="${section.cssClass}"/>"<c:if test="${!empty section.cssStyle}"> style="<c:out value="${section.cssStyle}" />"</c:if><c:if test="${pageEditMode eq 'true'}"> data-editor-section="${sectionStatus.index}"</c:if>>
         </c:when>
         <c:otherwise>
-          <div class="full-container" id="<c:out value="${sectionId}"/>"<c:if test="${!empty section.cssStyle}"> style="<c:out value="${section.cssStyle}" />"</c:if>>
+          <div class="full-container" id="<c:out value="${sectionId}"/>"<c:if test="${!empty section.cssStyle}"> style="<c:out value="${section.cssStyle}" />"</c:if><c:if test="${pageEditMode eq 'true'}"> data-editor-section="${sectionStatus.index}"</c:if>>
 <%--          <div class="full-container"<c:if test="${!empty section.htmlId}"> id="${section.htmlId}"</c:if>>--%>
             <div class="grid-container">
               <div class="grid-x grid-margin-x<c:if test="${!empty section.cssClass}"> <c:out value="${section.cssClass}"/></c:if>">
@@ -65,28 +65,28 @@
         </c:if>
         <c:choose>
           <c:when test="${!empty column.cssClass}">
-            <div id="<c:out value="${columnId}"/>" class="<c:out value="${column.cssClass}"/>"<c:if test="${!empty column.cssStyle}"> style="<c:out value="${column.cssStyle}" />"</c:if><c:if test="${column.sticky}"> data-sticky-container</c:if>>
+            <div id="<c:out value="${columnId}"/>" class="<c:out value="${column.cssClass}"/>"<c:if test="${!empty column.cssStyle}"> style="<c:out value="${column.cssStyle}" />"</c:if><c:if test="${column.sticky}"> data-sticky-container</c:if><c:if test="${pageEditMode eq 'true'}"> data-editor-column="${sectionStatus.index}-${columnStatus.index}"</c:if>>
           </c:when>
           <c:otherwise>
-            <div id="<c:out value="${columnId}"/>" class="small-12 cell"<c:if test="${!empty column.cssStyle}"> style="<c:out value="${column.cssStyle}" />"</c:if><c:if test="${column.sticky}"> data-sticky-container</c:if>>
+            <div id="<c:out value="${columnId}"/>" class="small-12 cell"<c:if test="${!empty column.cssStyle}"> style="<c:out value="${column.cssStyle}" />"</c:if><c:if test="${column.sticky}"> data-sticky-container</c:if><c:if test="${pageEditMode eq 'true'}"> data-editor-column="${sectionStatus.index}-${columnStatus.index}"</c:if>>
           </c:otherwise>
         </c:choose>
         <c:if test="${section.sticky && column.sticky}"><div class="sticky" data-sticky data-sticky-on="medium" data-margin-top="<c:out value="${stickyMarginTop}"/>" data-top-anchor="<c:out value="${columnId}"/>:top" data-btm-anchor="platform-footer"></c:if>
-        <c:forEach items="${column.widgetRenderInfoList}" var="widget">
+        <c:forEach items="${column.widgetRenderInfoList}" var="widget" varStatus="widgetStatus">
           <c:if test="${widget.hr}">
             <hr />
           </c:if>
           <c:choose>
-            <c:when test="${empty widget.cssClass && empty widget.htmlId && empty widget.cssStyle && !widget.sticky}">
+            <c:when test="${empty widget.cssClass && empty widget.htmlId && empty widget.cssStyle && !widget.sticky && pageEditMode ne 'true'}">
               ${widget.content}
             </c:when>
             <c:when test="${!empty widget.cssClass}">
-              <div <c:if test="${!empty widget.htmlId}">id="<c:out value="${widget.htmlId}"/>" </c:if>class="<c:out value="${widget.cssClass}"/>"<c:if test="${!empty widget.cssStyle}"> style="<c:out value="${widget.cssStyle}" />"</c:if><c:if test="${widget.sticky}"> data-sticky data-margin-top="<c:out value="${stickyMarginTop}"/>" data-top-anchor="<c:out value="${columnId}"/>" data-btm-anchor="platform-footer"</c:if>>
+              <div <c:if test="${!empty widget.htmlId}">id="<c:out value="${widget.htmlId}"/>" </c:if>class="<c:out value="${widget.cssClass}"/>"<c:if test="${!empty widget.cssStyle}"> style="<c:out value="${widget.cssStyle}" />"</c:if><c:if test="${widget.sticky}"> data-sticky data-margin-top="<c:out value="${stickyMarginTop}"/>" data-top-anchor="<c:out value="${columnId}"/>" data-btm-anchor="platform-footer"</c:if><c:if test="${pageEditMode eq 'true'}"> data-editor-widget="${sectionStatus.index}-${columnStatus.index}-${widgetStatus.index}"</c:if>>
                 ${widget.content}
               </div>
             </c:when>
             <c:otherwise>
-              <div<c:if test="${!empty widget.htmlId}"> id="<c:out value="${widget.htmlId}"/>"</c:if><c:if test="${!empty widget.cssStyle}"> style="<c:out value="${widget.cssStyle}" />"</c:if><c:if test="${widget.sticky}"> data-sticky data-margin-top="<c:out value="${stickyMarginTop}"/>" data-top-anchor="<c:out value="${columnId}"/>" data-btm-anchor="platform-footer"</c:if>>
+              <div<c:if test="${!empty widget.htmlId}"> id="<c:out value="${widget.htmlId}"/>"</c:if><c:if test="${!empty widget.cssStyle}"> style="<c:out value="${widget.cssStyle}" />"</c:if><c:if test="${widget.sticky}"> data-sticky data-margin-top="<c:out value="${stickyMarginTop}"/>" data-top-anchor="<c:out value="${columnId}"/>" data-btm-anchor="platform-footer"</c:if><c:if test="${pageEditMode eq 'true'}"> data-editor-widget="${sectionStatus.index}-${columnStatus.index}-${widgetStatus.index}"</c:if>>
                 ${widget.content}
               </div>
             </c:otherwise>

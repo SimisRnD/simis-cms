@@ -56,10 +56,10 @@
       <c:forEach items="${itemTabList}" var="tab">
         <c:choose>
           <c:when test="${tab.isActive}">
-            <li class="is-active"><a href="${ctx}${tab.href}"><c:out value="${tab.name}"/></a></li>
+            <li class="is-active"><a href="${ctx}<c:out value="${tab.href}"/>"><c:out value="${tab.name}"/></a></li>
           </c:when>
           <c:otherwise>
-            <li class=""><a href="${ctx}${tab.href}"><c:out value="${tab.name}"/></a></li>
+            <li class=""><a href="${ctx}<c:out value="${tab.href}"/>"><c:out value="${tab.name}"/></a></li>
           </c:otherwise>
         </c:choose>
       </c:forEach>
