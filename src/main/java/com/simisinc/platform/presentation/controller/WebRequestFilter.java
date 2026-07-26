@@ -61,6 +61,7 @@ import com.simisinc.platform.application.ecommerce.LoadCartCommand;
 import com.simisinc.platform.application.ecommerce.PricingRuleCommand;
 import com.simisinc.platform.application.login.AuthenticateLoginCommand;
 import com.simisinc.platform.application.login.LogoutCommand;
+import com.simisinc.platform.application.login.MfaEnforcementCommand;
 import com.simisinc.platform.application.oauth.OAuthLogoutCommand;
 import com.simisinc.platform.application.oauth.OAuthRequestCommand;
 import com.simisinc.platform.domain.model.User;
@@ -314,6 +315,8 @@ public class WebRequestFilter implements Filter {
     // Make sure the web visitor has session information
     LOG.debug("Checking session...");
     UserSession userSession = (UserSession) session.getAttribute(SessionConstants.USER);
+    boolean doNotTrack = DoNotTrackCommand.isDoNotTrack(httpServletRequest.getHeader("DNT"),
+        httpServletRequest.getHeader("Sec-GPC"));
     boolean doSaveSession = false;
     if (userSession == null) {
       synchronized (httpServletRequest.getSession()) {
@@ -325,9 +328,7 @@ public class WebRequestFilter implements Filter {
               ipAddress, referer, userAgent);
           httpServletRequest.getSession().setAttribute(SessionConstants.USER, userSession);
           // Skip tracking for monitoring apps, and for requests that ask not to be tracked (DNT / GPC)
-          if (httpServletRequest.getHeader("X-Monitor") == null
-              && !DoNotTrackCommand.isDoNotTrack(httpServletRequest.getHeader("DNT"),
-                  httpServletRequest.getHeader("Sec-GPC"))) {
+          if (httpServletRequest.getHeader("X-Monitor") == null && !doNotTrack) {
             doSaveSession = true;
           }
         }
@@ -372,11 +373,13 @@ public class WebRequestFilter implements Filter {
 
       // Make sure the visitor has a token
       if (visitor == null) {
-        // Create and store a new token
-        LOG.debug("Creating a visitor token...");
-        visitor = (cookielessAnalytics && StringUtils.isNotBlank(visitorToken))
-            ? SaveVisitorCommand.saveVisitor(userSession, visitorToken)
-            : SaveVisitorCommand.saveVisitor(userSession);
+        if (!doNotTrack) {
+          // Create and store a new token
+          LOG.debug("Creating a visitor token...");
+          visitor = (cookielessAnalytics && StringUtils.isNotBlank(visitorToken))
+              ? SaveVisitorCommand.saveVisitor(userSession, visitorToken)
+              : SaveVisitorCommand.saveVisitor(userSession);
+        }
       } else {
         // Make sure the sessionId is set
         if (doSaveSession) {
@@ -384,8 +387,8 @@ public class WebRequestFilter implements Filter {
         }
       }
 
-      // Persist the visitor identity in a cookie -- skipped entirely when running cookieless
-      if (!cookielessAnalytics) {
+      // Persist the visitor identity in a cookie -- skipped entirely when running cookieless or when DNT/GPC is set
+      if (!cookielessAnalytics && !doNotTrack && visitor != null) {
         int oneYearSecondsInt = 365 * 24 * 60 * 60;
         Cookie cookie = new Cookie(CookieConstants.VISITOR_TOKEN, visitor.getToken());
         if (request.isSecure()) {
@@ -454,6 +457,14 @@ public class WebRequestFilter implements Filter {
           // Audit the cookie-token (remember-me) auto-login for the SIEM; source marker "token"
           SaveAuditEventCommand.recordAuthentication("authentication.login.success", "success",
               user.getId(), user.getEmail(), ipAddress, userSession.getSessionId(), "token");
+          // Enforce org-level MFA before the user accesses any page (IA-2(1))
+          if (MfaEnforcementCommand.requiresEnrollment(userSession, user)) {
+            String enrollUrl = MfaEnforcementCommand.getEnrollmentUrl();
+            if (!MfaEnforcementCommand.isExemptUrl(resource, enrollUrl)) {
+              do302(servletResponse, enrollUrl);
+              return;
+            }
+          }
           // Extend the token expiration date
           int twoWeeksSecondsInt = 14 * 24 * 60 * 60;
           AuthenticateLoginCommand.extendTokenExpiration(cookieUserToken, twoWeeksSecondsInt);
@@ -496,6 +507,15 @@ public class WebRequestFilter implements Filter {
       LOG.debug("Updating user roles and groups");
       userSession.setRoleList(user.getRoleList());
       userSession.setGroupList(user.getGroupList());
+
+      // Enforce org-level MFA on every request for users whose role requires it (IA-2(1))
+      if (MfaEnforcementCommand.requiresEnrollment(userSession, user)) {
+        String enrollUrl = MfaEnforcementCommand.getEnrollmentUrl();
+        if (!MfaEnforcementCommand.isExemptUrl(resource, enrollUrl)) {
+          do302(servletResponse, enrollUrl);
+          return;
+        }
+      }
     }
 
     // The home page can show an overlay (a couple of different kinds)

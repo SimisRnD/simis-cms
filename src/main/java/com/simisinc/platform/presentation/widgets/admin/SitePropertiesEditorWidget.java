@@ -20,6 +20,7 @@ import com.simisinc.platform.application.admin.AnalyticsTrackingIdCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.admin.SecretSitePropertiesCommand;
 import com.simisinc.platform.application.cms.ColorCommand;
+import com.simisinc.platform.application.login.StepUpAuthCommand;
 import com.simisinc.platform.domain.model.SiteProperty;
 import com.simisinc.platform.infrastructure.persistence.SitePropertyRepository;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
@@ -34,7 +35,10 @@ import jakarta.servlet.jsp.jstl.core.Config;
 import java.sql.Timestamp;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.TimeZone;
 
 /**
@@ -51,6 +55,9 @@ public class SitePropertiesEditorWidget extends GenericWidget {
 
   static String PREFIX_PREFERENCE = "prefix";
 
+  // Prefixes controlling security-sensitive behaviour; changes require a recent step-up (IA-2 / AC-6).
+  private static final Set<String> SECURITY_PREFIXES =
+      new HashSet<>(Arrays.asList("mfa", "content.review", "security"));
 
   public WidgetContext execute(WidgetContext context) {
 
@@ -81,8 +88,14 @@ public class SitePropertiesEditorWidget extends GenericWidget {
 
   public WidgetContext post(WidgetContext context) {
 
-    // Load the properties
+    // Gate security-sensitive prefix changes behind a recent step-up (IA-2 / AC-6).
     String prefix = context.getPreferences().get(PREFIX_PREFERENCE);
+    if (isSecuritySensitivePrefix(prefix) && !StepUpAuthCommand.isValid(context.getUserSession())) {
+      context.setRedirect("/step-up-auth?return=" + context.getUri());
+      return context;
+    }
+
+    // Load the properties
     List<SiteProperty> siteProperties = new ArrayList<>();
     String[] prefixList = prefix.split(",");
     for (String thisPrefix : prefixList) {
@@ -186,5 +199,17 @@ public class SitePropertiesEditorWidget extends GenericWidget {
       context.setErrorMessage("Values could not be saved");
     }
     return context;
+  }
+
+  private static boolean isSecuritySensitivePrefix(String prefix) {
+    if (StringUtils.isBlank(prefix)) {
+      return false;
+    }
+    for (String p : prefix.split(",")) {
+      if (SECURITY_PREFIXES.contains(p.trim())) {
+        return true;
+      }
+    }
+    return false;
   }
 }
