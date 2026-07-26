@@ -53,7 +53,7 @@
     <input id="resetButton" type="reset" class="button radius secondary expanded" value="Reset"/>
   </div>
 </form>
-<script>
+<script nonce="${cspNonce}">
   $(document).ready(function () {
     $('#resetButton').click(function (event) {
       event.preventDefault();

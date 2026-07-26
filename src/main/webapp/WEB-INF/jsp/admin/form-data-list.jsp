@@ -23,7 +23,7 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="formDataList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="recordPaging" class="com.simisinc.platform.infrastructure.database.DataConstraints" scope="request"/>
-<script>
+<script nonce="${cspNonce}">
   function markFormAsProcessed(dataId) {
     if (!confirm("Mark as processed?")) {
       return;

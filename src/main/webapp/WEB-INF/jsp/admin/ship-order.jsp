@@ -32,7 +32,7 @@
   <input type="hidden" name="uniqueId" value="${order.uniqueId}"/>
   <button id="shipOrderButton" class="button primary expanded">Send Order to Shipping</button>
 </form>
-<script>
+<script nonce="${cspNonce}">
   function shipOrder() {
     if (document.getElementById("shipOrderButton").disabled === true) {
       return false;

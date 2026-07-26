@@ -35,7 +35,7 @@
   </c:if>
 </h4>
 <script src="${ctx}/javascript/dropzone-5.9.3/dropzone.min.js"></script>
-<script>
+<script nonce="${cspNonce}">
   Dropzone.options.myDropzone = {
     autoProcessQueue: false,
     parallelUploads: 2,

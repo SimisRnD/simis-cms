@@ -66,7 +66,7 @@
   </div>
 </form>
 <c:if test="${useLocation eq 'true' or useAutoComplete eq 'true'}">
-<script>
+<script nonce="${cspNonce}">
   <c:if test="${useLocation eq 'true'}">
   <%-- Location --%>
   var xhr${widgetContext.uniqueId}location;

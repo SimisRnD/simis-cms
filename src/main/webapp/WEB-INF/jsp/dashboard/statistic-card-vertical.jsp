@@ -55,7 +55,7 @@
 <%--    </div>--%>
 <%--  </c:if>--%>
 </div>
-<script>
+<script nonce="${cspNonce}">
   function updateFontSize${widgetContext.uniqueId}() {
     let value = Math.round($('#icon${widgetContext.uniqueId}').closest('.cell').outerWidth()*.50);
     $("#icon${widgetContext.uniqueId}").css({'font-size': value + 'px'});

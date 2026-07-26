@@ -23,7 +23,7 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="cancelUrl" class="java.lang.String" scope="request"/>
 <script src="${ctx}/javascript/tinymce-7.9.3/tinymce.min.js"></script>
-<script>
+<script nonce="${cspNonce}">
   tinymce.init({
     license_key: 'gpl',
     selector: '.html-field',
@@ -39,7 +39,7 @@
   });
 </script>
 <jsp:useBean id="fieldList" class="java.util.ArrayList" scope="request"/>
-<script>
+<script nonce="${cspNonce}">
   $(document).ready(function() {
     $('textarea').keypress(function(event) {
       if (event.keyCode === 13) {

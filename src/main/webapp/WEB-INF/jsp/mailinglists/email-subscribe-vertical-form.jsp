@@ -22,7 +22,7 @@
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="sitePropertyMap" class="java.util.HashMap" scope="request"/>
-<script type="text/javascript">
+<script type="text/javascript" nonce="${cspNonce}">
     function validateEmail${widgetContext.uniqueId}(email) {
         let re = /\S+@\S+\.\S+/;
         return re.test(email);

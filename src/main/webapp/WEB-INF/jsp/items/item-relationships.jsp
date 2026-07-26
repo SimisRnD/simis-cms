@@ -26,7 +26,7 @@
 <jsp:useBean id="showRelatedCollectionName" class="java.lang.String" scope="request"/>
 <jsp:useBean id="showRemoveRelationshipButton" class="java.lang.String" scope="request"/>
 <c:if test="${showRemoveRelationshipButton eq 'true'}">
-  <script>
+  <script nonce="${cspNonce}">
     function removeRelationship${widgetContext.uniqueId}(relatedItemId) {
       if (!confirm("Are you sure you want to remove the relationship?")) {
         return;

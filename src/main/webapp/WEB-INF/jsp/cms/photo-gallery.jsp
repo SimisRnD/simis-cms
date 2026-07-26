@@ -79,7 +79,7 @@
     </div>
   </div>
 </div>
-<script>
+<script nonce="${cspNonce}">
   var swiper${widgetContext.uniqueId} = new Swiper('#swiper${widgetContext.uniqueId}', {
     autoplay: {
       delay: 5000

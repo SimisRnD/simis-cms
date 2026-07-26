@@ -23,7 +23,7 @@
 <jsp:useBean id="blogList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="blogPostCount" class="java.util.HashMap" scope="request"/>
 <c:if test="${userSession.hasRole('admin')}">
-<script>
+<script nonce="${cspNonce}">
   function deleteBlog(blogId) {
     if (!confirm("Are you sure you want to delete this blog and all of its posts?")) {
       return;

@@ -52,7 +52,7 @@
       <input class="input-group-field" type="text" placeholder="mm-dd-yyyy time" id="startDate${widgetContext.uniqueId}" name="startDate" value="<fmt:formatDate pattern="MM-dd-yyyy HH:mm" value="${subFolder.startDate}" />">
     </div>
   </label>
-  <script>
+  <script nonce="${cspNonce}">
     $(function () {
       $('#startDate').fdatepicker({
         format: 'mm-dd-yyyy hh:ii',

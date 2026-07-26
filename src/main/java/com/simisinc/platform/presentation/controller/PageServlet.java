@@ -46,6 +46,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.PrintWriter;
 import java.math.BigDecimal;
+import java.security.SecureRandom;
 import java.sql.Timestamp;
 import java.time.ZoneId;
 import java.util.*;
@@ -65,6 +66,7 @@ import static jakarta.servlet.http.HttpServletResponse.SC_MOVED_PERMANENTLY;
 public class PageServlet extends HttpServlet {
 
   private static Log LOG = LogFactory.getLog(PageServlet.class);
+  private static final SecureRandom SECURE_RANDOM = new SecureRandom();
 
   // Widget Cache
   private Map<String, Object> widgetInstances = new HashMap<>();
@@ -157,6 +159,12 @@ public class PageServlet extends HttpServlet {
     response.setHeader("X-Frame-Options", "SAMEORIGIN");
     response.setHeader("X-Content-Type-Options", "nosniff");
     response.setHeader("X-XSS-Protection", "1; mode=block");
+    byte[] nonceBytes = new byte[16];
+    SECURE_RANDOM.nextBytes(nonceBytes);
+    String cspNonce = Base64.getUrlEncoder().withoutPadding().encodeToString(nonceBytes);
+    request.setAttribute("cspNonce", cspNonce);
+    response.setHeader("Content-Security-Policy",
+        "base-uri 'self'; object-src 'none'; frame-ancestors 'self'; script-src 'self' 'nonce-" + cspNonce + "'");
     // A conservative Content-Security-Policy baseline. These directives harden real attack surface -- injected
     // base tags, plugin/object embedding, and clickjacking -- without restricting script or style sources, so the
     // existing inline scripts and author-embedded content are unaffected. frame-ancestors mirrors the

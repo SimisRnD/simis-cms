@@ -58,7 +58,7 @@
 </table>
 </div>
 <c:if test="${!empty optionsList}">
-<script>
+<script nonce="${cspNonce}">
   // Interval to update the highlighted tab data
   var currentValue = '<c:out value="${optionsList.entrySet().toArray()[0].value}"/>';
   var updateIntervalFunction = function() {

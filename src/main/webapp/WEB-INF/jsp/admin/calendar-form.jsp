@@ -61,7 +61,7 @@
     </c:choose>
   </div>
 </form>
-<script>
+<script nonce="${cspNonce}">
   $(document).ready(function() {
     var target = document.getElementById('color');
     $("[id='color']").spectrum({

@@ -60,7 +60,7 @@
     </c:choose>
   </div>
 </div>
-<script>
+<script nonce="${cspNonce}">
 
   function widget_callback(container, btnElem) {
     // alert("The widget chooser is unavailable");

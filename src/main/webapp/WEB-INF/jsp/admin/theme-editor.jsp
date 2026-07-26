@@ -19,7 +19,7 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="theme" class="com.simisinc.platform.domain.model.cms.Theme" scope="request"/>
 <jsp:useBean id="themeList" class="java.util.ArrayList" scope="request"/>
-<script>
+<script nonce="${cspNonce}">
 function deleteTheme(themeId) {
   if (!confirm("Are you sure you want to DELETE this theme?")) {
     return;

@@ -38,7 +38,7 @@
 <c:if test="${empty sessionList}">
   <p>No locations were found</p>
 </c:if>
-<script>
+<script nonce="${cspNonce}">
   <%--var mymap = L.map('mapid${widgetContext.uniqueId}').fitWorld();--%>
   var map${widgetContext.uniqueId} = L.map('mapid${widgetContext.uniqueId}', {
     <c:choose>

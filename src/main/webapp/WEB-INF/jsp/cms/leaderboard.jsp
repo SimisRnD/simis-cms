@@ -58,7 +58,7 @@
     </c:forEach>
   </tbody>
 </table>
-<script>
+<script nonce="${cspNonce}">
   document.getElementById("filter").onchange = function() {
     document.getElementById("leaderboardForm").submit();
   }

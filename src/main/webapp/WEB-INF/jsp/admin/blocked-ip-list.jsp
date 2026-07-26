@@ -37,7 +37,7 @@
   <label for="file" class="button small secondary radius float-left margin-left-0"><i class="fa fa-upload"></i> Upload CSV File</label>
   <input type="file" id="file" name="file" accept="text/csv" class="show-for-sr">
 </form>
-<script>
+<script nonce="${cspNonce}">
   document.getElementById("file").onchange = function() {
     document.getElementById("fileForm").submit();
   }

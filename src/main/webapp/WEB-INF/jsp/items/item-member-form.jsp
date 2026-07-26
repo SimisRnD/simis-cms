@@ -47,7 +47,7 @@
     <input type="submit" class="button radius success expanded" value="Add"/>
   </div>
 </form>
-<script>
+<script nonce="${cspNonce}">
   function checkForm${widgetContext.uniqueId}() {
     if (document.getElementById("roleId").value.trim() == "") {
       alert("Make sure to choose a role");
@@ -68,7 +68,7 @@
     return true;
   }
 </script>
-<script>
+<script nonce="${cspNonce}">
   var xhr${widgetContext.uniqueId};
   new autoComplete({
     selector: 'input[name="searchName"]',

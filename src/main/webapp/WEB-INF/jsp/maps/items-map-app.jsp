@@ -79,7 +79,7 @@
     <div id="mapid${widgetContext.uniqueId}" style="height:${mapHeight};"></div>
   </div>
 </div>
-<script>
+<script nonce="${cspNonce}">
   var map${widgetContext.uniqueId} = L.map('mapid${widgetContext.uniqueId}').setView([${latitude},${longitude}],${mapZoomLevel});
   <c:choose>
     <c:when test="${mapCredentials.service eq 'mapbox'}">

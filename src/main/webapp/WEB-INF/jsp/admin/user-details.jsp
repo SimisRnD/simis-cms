@@ -26,7 +26,7 @@
 <jsp:useBean id="roleList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="groupList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="userLogin" class="com.simisinc.platform.domain.model.login.UserLogin" scope="request"/>
-<script>
+<script nonce="${cspNonce}">
   function suspendAccount() {
     if (!confirm("Are you sure you want to SUSPEND this user account?")) {
       return;

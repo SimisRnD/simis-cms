@@ -132,7 +132,7 @@
     </c:forEach>
   </tbody>
 </table>
-<script>
+<script nonce="${cspNonce}">
   // ClipboardJS.isSupported()
   var clipboard = new ClipboardJS('.clipboard');
   clipboard.on('success', function(e) {

@@ -86,7 +86,7 @@
   </c:forEach>
 </ul>
 </div>
-<script>
+<script nonce="${cspNonce}">
   // Enable notifications
   if ("Notification" in window) {
     if (Notification.permission !== 'denied') {
@@ -109,7 +109,7 @@
     }
   }
 </script>
-<script>
+<script nonce="${cspNonce}">
   // Polling
   String.prototype.toHtmlEntities = function() {
     return this.replace(/./gm, function(s) {
@@ -240,7 +240,7 @@
     }, 5000);
   })();
 </script>
-<script>
+<script nonce="${cspNonce}">
     $(document).ready(function () {
         function resizeEditor() {
             var container = document.getElementById("platform-activity-list${widgetContext.uniqueId}");

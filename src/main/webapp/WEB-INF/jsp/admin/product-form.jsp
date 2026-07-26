@@ -23,7 +23,7 @@
 <jsp:useBean id="product" class="com.simisinc.platform.domain.model.ecommerce.Product" scope="request"/>
 <jsp:useBean id="fulfillmentOptionList" class="java.util.ArrayList" scope="request"/>
 <script src="${ctx}/javascript/tinymce-7.9.3/tinymce.min.js"></script>
-<script>
+<script nonce="${cspNonce}">
   tinymce.init({
     license_key: 'gpl',
     selector: 'textarea',
@@ -40,7 +40,7 @@
   });
 </script>
 <%-- Handle image uploads --%>
-<script>
+<script nonce="${cspNonce}">
   function SavePhoto(e) {
     var file = e.files[0]; // similar to: document.getElementById("file").files[0]
     var formData = new FormData();
@@ -420,7 +420,7 @@
             <input class="input-group-field" type="text" placeholder="Display right away, or choose a specific date and time..." id="activeDate" name="activeDate" value="<fmt:formatDate pattern="MM-dd-yyyy HH:mm" value="${product.activeDate}" />">
           </div>
         </label>
-        <script>
+        <script nonce="${cspNonce}">
           $(function () {
             $('#activeDate').fdatepicker({
               format: 'mm-dd-yyyy hh:ii',
@@ -437,7 +437,7 @@
             <input class="input-group-field" type="text" placeholder="" id="deactivateOnDate" name="deactivateOnDate" value="<fmt:formatDate pattern="MM-dd-yyyy HH:mm" value="${product.deactivateOnDate}" />">
           </div>
         </label>
-        <script>
+        <script nonce="${cspNonce}">
           $(function () {
             // yyyy-MM-dd HH:mm:ss.fffffffff
             $('#deactivateOnDate').fdatepicker({
@@ -465,7 +465,7 @@
 <div class="reveal large" id="imageBrowserReveal" data-reveal data-animation-in="slide-in-down fast" role="dialog" aria-modal="true" aria-label="Image Browser">
   <h3>Loading...</h3>
 </div>
-<script>
+<script nonce="${cspNonce}">
   $('#imageBrowserReveal').on('open.zf.reveal', function () {
     $('#imageBrowserReveal').html("<h3>Loading...</h3>");
     $.ajax({

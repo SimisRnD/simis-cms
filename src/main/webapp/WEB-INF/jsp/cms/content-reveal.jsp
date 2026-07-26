@@ -84,7 +84,7 @@
     </c:if>
   </c:if>
 </div>
-<script>
+<script nonce="${cspNonce}">
   // Attach to the modal display event; auto-play first modal video
   document.addEventListener("DOMContentLoaded", function () {
     $('#modal${widgetContext.uniqueId}').on('open.zf.reveal', function () {

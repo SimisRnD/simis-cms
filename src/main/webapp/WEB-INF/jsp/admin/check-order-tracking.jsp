@@ -32,7 +32,7 @@
   <input type="hidden" name="uniqueId" value="${order.uniqueId}"/>
   <button id="checkOrderTrackingButton" class="button primary expanded">Check Order Status</button>
 </form>
-<script>
+<script nonce="${cspNonce}">
   function checkOrderTracking() {
     if (document.getElementById("checkOrderTrackingButton").disabled === true) {
       return false;

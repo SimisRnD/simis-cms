@@ -108,7 +108,7 @@
     </p>
   </c:otherwise>
 </c:choose>
-<script>
+<script nonce="${cspNonce}">
   var $grid = $('#masonry-container${widgetContext.uniqueId}').imagesLoaded( function() {
     $grid.masonry({
       itemSelector: '.cell'

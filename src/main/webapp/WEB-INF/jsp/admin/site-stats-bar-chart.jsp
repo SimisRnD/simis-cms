@@ -47,7 +47,7 @@
     </c:forEach>
   </tbody>
 </table>
-<script>
+<script nonce="${cspNonce}">
   var chartContext = document.getElementById("myChart-${widgetContext.uniqueId}").getContext('2d');
   var myChart = new Chart(chartContext, {
     type: "bar",

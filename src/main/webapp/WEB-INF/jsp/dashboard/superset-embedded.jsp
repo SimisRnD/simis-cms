@@ -35,7 +35,7 @@
 <div id="superset-container${widgetContext.uniqueId}" class="superset-dashboard-container">
 </div>
 <script src="${ctx}/javascript/superset-embedded-sdk-0.1.0-alpha.7/index.js"></script>
-<script>
+<script nonce="${cspNonce}">
   function fetchGuestTokenFromBackend${widgetContext.uniqueId}() {
     return new Promise(function (resolve, reject) {
       $.ajax({

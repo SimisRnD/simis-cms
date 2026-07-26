@@ -69,7 +69,7 @@
         </c:choose>
       </div>
     </form>
-    <script>
+    <script nonce="${cspNonce}">
       // Hook up the editor to the textarea
       var pageXml = document.getElementById("pageXml");
       var codeMirror = CodeMirror.fromTextArea(pageXml, {

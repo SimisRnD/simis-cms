@@ -31,7 +31,7 @@
   <input type="hidden" name="uniqueId" value="${order.uniqueId}"/>
   <button id="sendOrderCancellationConfirmationButton" class="button primary expanded">Send Order Cancellation Confirmation</button>
 </form>
-<script>
+<script nonce="${cspNonce}">
   function sendOrderCancellationConfirmation() {
     if (document.getElementById("sendOrderCancellationConfirmationButton").disabled === true) {
       return false;

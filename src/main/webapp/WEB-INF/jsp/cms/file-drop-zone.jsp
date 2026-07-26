@@ -30,7 +30,7 @@
   <i class="fa fa-folder-open-o"></i> <c:out value="${folder.name}" />
 </h4>
 <script src="${ctx}/javascript/dropzone-5.9.3/dropzone.min.js"></script>
-<script>
+<script nonce="${cspNonce}">
   Dropzone.options.myDropzone = {
     autoProcessQueue: false,
     parallelUploads: 2,

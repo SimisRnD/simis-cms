@@ -20,7 +20,7 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="webPage" class="com.simisinc.platform.domain.model.cms.WebPage" scope="request"/>
 <%-- Handle image uploads --%>
-<script>
+<script nonce="${cspNonce}">
     function SavePhoto(e) {
         var file = e.files[0]; // similar to: document.getElementById("file").files[0]
         var formData = new FormData();
@@ -174,7 +174,7 @@
 <div class="reveal large" id="imageBrowserReveal" data-reveal data-animation-in="slide-in-down fast" role="dialog" aria-modal="true" aria-label="Image Browser">
   <h3>Loading...</h3>
 </div>
-<script>
+<script nonce="${cspNonce}">
     $('#imageBrowserReveal').on('open.zf.reveal', function () {
         $('#imageBrowserReveal').html("<h3>Loading...</h3>");
         $.ajax({

@@ -39,7 +39,7 @@
   <label for="file" class="button small secondary radius margin-left-10"><i class="fa fa-upload"></i> Upload CSV File</label>
   <input type="file" id="file" name="file" accept="text/csv" class="show-for-sr">
 </form>
-<script>
+<script nonce="${cspNonce}">
     document.getElementById("file").onchange = function() {
         document.getElementById("fileForm").submit();
     }
@@ -58,7 +58,7 @@
     </div>
   </div>
 </form>
-<script>
+<script nonce="${cspNonce}">
   document.getElementById("statusFilter").onchange = function() {
     document.getElementById("tableOptionsForm").submit();
   }
@@ -184,7 +184,7 @@
     </div>
   </form>
 </div>
-<%--<script>--%>
+<%--<script nonce="${cspNonce}">--%>
 <%--  $(document).on('open.zf.reveal', '[data-reveal]', function () {--%>
 <%--    let modal = $(this);--%>
 <%--    modal.find('[autofocus]').focus();--%>

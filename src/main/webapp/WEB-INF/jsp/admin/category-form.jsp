@@ -62,7 +62,7 @@
     <input type="submit" class="button radius success" value="Save" />
   </div>
 </form>
-<script>
+<script nonce="${cspNonce}">
   var colorIdList = [];
   colorIdList.push('headerBgColor');
   colorIdList.push('headerTextColor');

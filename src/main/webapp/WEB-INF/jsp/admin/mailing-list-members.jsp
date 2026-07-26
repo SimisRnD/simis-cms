@@ -48,7 +48,7 @@
   <input type="hidden" name="mailingListId" value="${mailingList.id}" />
   <button class="button small secondary radius float-left margin-left-10"><i class="fa fa-download"></i> Download CSV File</button>
 </form>
-<script>
+<script nonce="${cspNonce}">
   document.getElementById("file").onchange = function() {
     document.getElementById("fileForm").submit();
   }
