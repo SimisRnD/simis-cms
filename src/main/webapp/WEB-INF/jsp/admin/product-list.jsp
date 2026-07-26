@@ -17,11 +17,12 @@
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="js" uri="/WEB-INF/tlds/javascript-escape.tld" %>
 <%@ taglib prefix="product" uri="/WEB-INF/tlds/product-functions.tld" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="productList" class="java.util.ArrayList" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}" /></h4>
+  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <a class="button small radius primary float-left" href="${ctx}/admin/product?returnPage=/admin/products">Add a Product <i class="fa fa-arrow-circle-right"></i></a>
@@ -131,7 +132,7 @@
           </c:if>
           <a href="${ctx}/admin/product?productId=${product.id}&returnPage=/admin/products"><i class="fa fa-edit"></i></a>
           <c:if test="${product.orderCount eq 0}">
-            <a href="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&productId=${product.id}" onclick="return confirm('Are you sure you want to delete <c:out value="${js:escape(product.name)}" />?');"><i class="fa fa-remove"></i></a>
+            <a href="#" onclick="return confirmPostAction('Are you sure you want to delete <c:out value="${js:escape(product.name)}" />?', '${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&productId=${product.id}');"><i class="fa fa-remove"></i></a>
           </c:if>
         </td>
       </tr>

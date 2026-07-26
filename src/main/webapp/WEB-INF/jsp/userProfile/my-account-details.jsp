@@ -23,7 +23,7 @@
 <jsp:useBean id="user" class="com.simisinc.platform.domain.model.User" scope="request"/>
 <%@include file="../page_messages.jspf" %>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}"/></h4>
+  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
 </c:if>
 <div class="full-container">
   <div class="grid-x grid-margin-x">

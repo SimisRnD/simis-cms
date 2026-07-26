@@ -17,6 +17,7 @@
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="font" uri="/WEB-INF/tlds/font-functions.tld" %>
 <%@ taglib prefix="js" uri="/WEB-INF/tlds/javascript-escape.tld" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="webPage" class="com.simisinc.platform.domain.model.cms.WebPage" scope="request"/>
@@ -34,7 +35,7 @@
 </style>
 <div id="designer-container">
   <c:if test="${!empty title}">
-    <h4><c:if test="${!empty icon}"><i class="${font:far()} ${icon}"></i> </c:if><c:out value="${title}"/></h4>
+    <h4><c:if test="${!empty icon}"><i class="${font:far()} ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
   </c:if>
   <%@include file="../page_messages.jspf" %>
   <p><small><c:out value="${webPage.link}"/></small></p>
@@ -59,7 +60,7 @@
     </c:choose>
   </div>
 </div>
-<script>
+<script nonce="${cspNonce}">
 
   function widget_callback(container, btnElem) {
     // alert("The widget chooser is unavailable");

@@ -120,7 +120,9 @@ class WebRequestFilterTest {
   }
 
   @Test
-  void sslRedirectFallsBackToTheRequestUrlWhenSiteUrlIsNotConfigured() throws Exception {
+  void sslRedirectIsSkippedWhenSiteUrlIsBlankAndHostnameIsNotAllowListed() throws Exception {
+    // When site.url is blank and the hostname is not on the allow-list the filter cannot safely determine the
+    // canonical redirect target, so it passes the request through rather than echoing the untrusted Host header.
     HttpServletResponse response = mock(HttpServletResponse.class);
     FilterChain chain = mock(FilterChain.class);
 
@@ -133,10 +135,12 @@ class WebRequestFilterTest {
       blockedIPs.when(() -> BlockedIPListCommand.passesCheck(anyString(), anyString())).thenReturn(true);
       siteProperties.when(() -> LoadSitePropertyCommand.loadByName("site.url")).thenReturn("");
 
+      HttpServletRequest request = httpRequestOverPlainHttp("www.example.com");
       WebRequestFilter filter = filterRequiringSSL(siteProperties);
-      filter.doFilter(httpRequestOverPlainHttp("www.example.com"), response, chain);
+      filter.doFilter(request, response, chain);
 
-      verify(response).setHeader("Location", "https://www.example.com/about");
+      verify(response, never()).setHeader(anyString(), anyString());
+      verify(chain).doFilter(request, response);
     }
   }
 

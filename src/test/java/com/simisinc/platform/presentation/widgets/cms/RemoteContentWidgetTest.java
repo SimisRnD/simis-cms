@@ -91,6 +91,7 @@ class RemoteContentWidgetTest extends WidgetBase {
 
       // Refused, and — the point of the guard — the server never fetched it.
       Assertions.assertNull(result);
+      httpGet.verify(() -> HttpGetCommand.executeUserUrl(any()), times(1));
       httpGet.verify(() -> HttpGetCommand.execute(any()), never());
     }
   }
@@ -107,11 +108,11 @@ class RemoteContentWidgetTest extends WidgetBase {
     try (MockedStatic<CacheManager> cacheManager = mockStatic(CacheManager.class);
         MockedStatic<HttpGetCommand> httpGet = mockStatic(HttpGetCommand.class)) {
       cacheManager.when(() -> CacheManager.getCache(CacheManager.CONTENT_REMOTE_URL_CACHE)).thenReturn(cache);
-      httpGet.when(() -> HttpGetCommand.execute("http://93.184.216.34/feed")).thenReturn("");
+      httpGet.when(() -> HttpGetCommand.executeUserUrl("http://93.184.216.34/feed")).thenReturn("");
 
       new RemoteContentWidget().execute(widgetContext);
 
-      httpGet.verify(() -> HttpGetCommand.execute("http://93.184.216.34/feed"), times(1));
+      httpGet.verify(() -> HttpGetCommand.executeUserUrl("http://93.184.216.34/feed"), times(1));
     }
   }
 }

@@ -129,7 +129,7 @@
     <a href="${returnPage}" class="button radius secondary">Cancel</a>
   </div>
 </form>
-<script>
+<script nonce="${cspNonce}">
   <%-- Map the variable property to the mapped CSS classes --%>
   var colorIdList = [];
   var colorSelectorList = [];
