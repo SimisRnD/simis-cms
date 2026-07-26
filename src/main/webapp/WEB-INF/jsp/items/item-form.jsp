@@ -28,7 +28,7 @@
   <input type="hidden" name="returnPage" value="${returnPage}"/>
   <%-- Title and Message block --%>
   <c:if test="${!empty title}">
-    <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}"/></h4>
+    <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
   </c:if>
   <%@include file="../page_messages.jspf" %>
   <%-- Form Content --%>
@@ -39,6 +39,6 @@
     <input type="text" placeholder="Describe it..." name="summary" value="<c:out value="${item.summary}"/>">
   </label>
   <div class="button-container">
-    <input type="submit" class="button radius success expanded" value="Save"/>
+    <input type="submit" class="button radius success expanded" value="Save" data-disable-on-submit="Saving..."/>
   </div>
 </form>

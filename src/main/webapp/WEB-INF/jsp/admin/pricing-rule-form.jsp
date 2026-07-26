@@ -33,7 +33,7 @@
   <input type="hidden" name="id" value="${pricingRule.id}"/>
   <%-- Title and Message block --%>
   <c:if test="${!empty title}">
-    <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}"/></h4>
+    <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
   </c:if>
   <%@include file="../page_messages.jspf" %>
   <%-- Form Content --%>
@@ -179,7 +179,7 @@
               <input class="input-group-field" type="text" placeholder="" id="fromDate" name="fromDate" value="<fmt:formatDate pattern="MM-dd-yyyy HH:mm" value="${pricingRule.fromDate}" />">
             </div>
           </label>
-          <script>
+          <script nonce="${cspNonce}">
             $(function () {
               $('#fromDate').fdatepicker({
                 format: 'mm-dd-yyyy hh:ii',
@@ -196,7 +196,7 @@
               <input class="input-group-field" type="text" placeholder="" id="toDate" name="toDate" value="<fmt:formatDate pattern="MM-dd-yyyy HH:mm" value="${pricingRule.toDate}" />">
             </div>
           </label>
-          <script>
+          <script nonce="${cspNonce}">
             $(function () {
               $('#toDate').fdatepicker({
                 format: 'mm-dd-yyyy hh:ii',

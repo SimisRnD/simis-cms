@@ -27,7 +27,7 @@
 <script src="${ctx}/javascript/jsuites-5.0.29/jsuites.min.js"></script>
 <link rel="stylesheet" media="screen" href="${ctx}/javascript/jsuites-5.0.29/jsuites.css">
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}"/></h4>
+  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <style>
@@ -40,7 +40,7 @@
   }
 </style>
 <div id="dataset-preview"></div>
-<script>
+<script nonce="${cspNonce}">
   var colHeaders = [
     <c:choose>
       <c:when test="${empty dataset.fieldTitles}">

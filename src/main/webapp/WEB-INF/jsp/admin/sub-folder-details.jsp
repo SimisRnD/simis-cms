@@ -17,11 +17,12 @@
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="js" uri="/WEB-INF/tlds/javascript-escape.tld" %>
 <%@ taglib prefix="group" uri="/WEB-INF/tlds/group-functions.tld" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="subFolder" class="com.simisinc.platform.domain.model.cms.SubFolder" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}" /></h4>
+  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <h3>
@@ -29,7 +30,7 @@
   <c:if test="${(userSession.hasRole('admin') || userSession.hasRole('content-manager'))}">
     <small>
       <a href="${ctx}/admin/sub-folder?subFolderId=${subFolder.id}&returnPage=${widgetContext.uri}/admin/sub-folder-details%3FsubFolderId=${subFolder.id}%26folderId=${subFolder.folderId}"><i class="fa fa-edit"></i></a>
-      <a href="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&subFolderId=${subFolder.id}" onclick="return confirm('Are you sure you want to delete <c:out value="${js:escape(subFolder.name)}" />?');"><i class="fa fa-remove"></i></a>
+      <a href="#" onclick="return confirmPostAction('Are you sure you want to delete <c:out value="${js:escape(subFolder.name)}" />?', '${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&subFolderId=${subFolder.id}');"><i class="fa fa-remove"></i></a>
     </small>
   </c:if>
 </h3>

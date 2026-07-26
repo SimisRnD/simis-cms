@@ -27,7 +27,7 @@
 <script src="${ctx}/javascript/prism-1.29.0/prism.min.js"></script>
 <c:if test="${mermaid eq 'true'}">
 <script src="${ctx}/javascript/mermaid-10.9.6/mermaid.min.js"></script>
-<script>
+<script nonce="${cspNonce}">
   mermaid.initialize({ startOnLoad: false, securityLevel: 'strict' });
   document.addEventListener('DOMContentLoaded', function () {
     // The markdown renderer emits ```mermaid fences as <pre><code class="language-mermaid">;
