@@ -8,6 +8,7 @@
   var toolbar = document.getElementById('sc-editor-toolbar');
   var pagePath = toolbar ? toolbar.dataset.pagePath : '';
   var ctx = toolbar ? (toolbar.dataset.ctx || '') : '';
+  var layoutMode = toolbar ? toolbar.dataset.layoutMode === 'true' : false;
 
   // ── Shared inline toolbar + link prompt DOM ──────────────────────────────
 
@@ -234,7 +235,7 @@
     if (el) el.textContent = msg;
   }
 
-  // ── AJAX save ─────────────────────────────────────────────────────────────
+  // ── AJAX save (content) ──────────────────────────────────────────────────
 
   function saveContentDraft(bar) {
     if (!activeContent) return;
@@ -274,9 +275,10 @@
       if (data.success) {
         setStatus(bar, 'Saved');
         setToolbarStatus('Draft saved');
-        originalHtml = activeContent.innerHTML; // update snapshot so Discard doesn't clobber
+        originalHtml = activeContent.innerHTML;
         saveBtn.disabled = false;
         saveBtn.textContent = 'Save Draft';
+        markHasDraft();
       } else {
         throw new Error(data.error || 'Unknown error');
       }
@@ -310,15 +312,443 @@
     el.insertBefore(handle, el.firstChild);
   }
 
+  // ── Drag-to-reorder layout ───────────────────────────────────────────────
+
+  var layoutDirty = false;
+  var dragSrcEl = null;      // element being dragged
+  var dragSrcType = null;    // 'section' or 'widget'
+  var dropIndicator = null;
+
+  function getToken() {
+    return (typeof mainToken !== 'undefined') ? mainToken : '';
+  }
+
+  function markLayoutDirty() {
+    layoutDirty = true;
+    var dot = document.getElementById('sc-layout-dirty-dot');
+    if (dot) dot.classList.add('sc-visible');
+    var btn = document.getElementById('sc-save-layout-btn');
+    if (btn) btn.disabled = false;
+  }
+
+  function markLayoutClean() {
+    layoutDirty = false;
+    var dot = document.getElementById('sc-layout-dirty-dot');
+    if (dot) dot.classList.remove('sc-visible');
+    var btn = document.getElementById('sc-save-layout-btn');
+    if (btn) btn.disabled = true;
+  }
+
+  function markHasDraft() {
+    if (toolbar) toolbar.dataset.hasDraft = 'true';
+    var pub = document.getElementById('sc-publish-btn');
+    var dis = document.getElementById('sc-discard-draft-btn');
+    if (pub) pub.style.display = '';
+    if (dis) dis.style.display = '';
+  }
+
+  // Build the layout JSON from current DOM order.
+  // Uses the data-editor-* original indices stored on each element.
+  function buildLayoutJson() {
+    var sections = [];
+    document.querySelectorAll('[data-editor-section]').forEach(function (sectionEl) {
+      var sIdx = parseInt(sectionEl.dataset.editorSection, 10);
+      var columns = [];
+      sectionEl.querySelectorAll(':scope > [data-editor-column]').forEach(function (colEl) {
+        var parts = colEl.dataset.editorColumn.split('-');
+        var cIdx = parseInt(parts[1], 10);
+        var widgets = [];
+        colEl.querySelectorAll(':scope > [data-editor-widget]').forEach(function (widgetEl) {
+          var wParts = widgetEl.dataset.editorWidget.split('-');
+          widgets.push(parseInt(wParts[2], 10));
+        });
+        columns.push({c: cIdx, widgets: widgets});
+      });
+      sections.push({s: sIdx, columns: columns});
+    });
+    return JSON.stringify({sections: sections});
+  }
+
+  function insertDragHandle(el, type) {
+    var handle = document.createElement('span');
+    handle.className = 'sc-editor-drag-handle sc-drag-handle-' + type;
+    handle.textContent = '⠿';
+    handle.setAttribute('aria-hidden', 'true');
+    handle.setAttribute('draggable', 'false'); // handle is just visual; draggable is on el
+    el.appendChild(handle);
+
+    // mousedown on handle initiates the drag by setting draggable on parent
+    handle.addEventListener('mousedown', function (e) {
+      e.stopPropagation();
+      el.setAttribute('draggable', 'true');
+    });
+    el.addEventListener('dragend', function () {
+      el.removeAttribute('draggable');
+    });
+  }
+
+  function insertMoveButtons(el, type) {
+    var btns = document.createElement('div');
+    btns.className = 'sc-move-btns';
+    btns.setAttribute('aria-label', 'Move ' + type);
+    btns.innerHTML =
+      '<button type="button" aria-label="Move ' + type + ' up" title="Move up">▲</button>' +
+      '<button type="button" aria-label="Move ' + type + ' down" title="Move down">▼</button>';
+    el.appendChild(btns);
+
+    var upBtn = btns.querySelector('button:first-child');
+    var dnBtn = btns.querySelector('button:last-child');
+
+    upBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var prev = prevSibling(el, el.dataset.editorSection !== undefined ? 'section' : 'widget');
+      if (prev) {
+        el.parentNode.insertBefore(el, prev);
+        markLayoutDirty();
+        upBtn.focus();
+      }
+    });
+    dnBtn.addEventListener('click', function (e) {
+      e.stopPropagation();
+      var next = nextSibling(el, el.dataset.editorSection !== undefined ? 'section' : 'widget');
+      if (next) {
+        el.parentNode.insertBefore(next, el);
+        markLayoutDirty();
+        dnBtn.focus();
+      }
+    });
+  }
+
+  function prevSibling(el, type) {
+    var attr = type === 'section' ? 'data-editor-section' : 'data-editor-widget';
+    var sib = el.previousElementSibling;
+    while (sib) {
+      if (sib.hasAttribute(attr)) return sib;
+      sib = sib.previousElementSibling;
+    }
+    return null;
+  }
+
+  function nextSibling(el, type) {
+    var attr = type === 'section' ? 'data-editor-section' : 'data-editor-widget';
+    var sib = el.nextElementSibling;
+    while (sib) {
+      if (sib.hasAttribute(attr)) return sib;
+      sib = sib.nextElementSibling;
+    }
+    return null;
+  }
+
+  function ensureDropIndicator() {
+    if (!dropIndicator) {
+      dropIndicator = document.createElement('div');
+      dropIndicator.className = 'sc-drop-indicator';
+      dropIndicator.id = 'sc-drop-indicator';
+    }
+    return dropIndicator;
+  }
+
+  function removeDropIndicator() {
+    if (dropIndicator && dropIndicator.parentNode) {
+      dropIndicator.parentNode.removeChild(dropIndicator);
+    }
+  }
+
+  // Attach HTML5 drag events to a draggable element (section or widget)
+  function makeDraggable(el, type) {
+    el.addEventListener('dragstart', function (e) {
+      dragSrcEl = el;
+      dragSrcType = type;
+      e.dataTransfer.effectAllowed = 'move';
+      e.dataTransfer.setData('text/plain', type); // required for Firefox
+      // Defer so the browser captures the pre-dragging look
+      setTimeout(function () { el.classList.add('sc-dragging'); }, 0);
+    });
+
+    el.addEventListener('dragend', function () {
+      el.classList.remove('sc-dragging');
+      el.removeAttribute('draggable');
+      removeDropIndicator();
+      dragSrcEl = null;
+      dragSrcType = null;
+    });
+
+    el.addEventListener('dragover', function (e) {
+      if (!dragSrcEl || dragSrcType !== type) return;
+      if (dragSrcEl === el) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+
+      var rect = el.getBoundingClientRect();
+      var mid = rect.top + rect.height / 2;
+      var ind = ensureDropIndicator();
+      if (e.clientY < mid) {
+        el.parentNode.insertBefore(ind, el);
+      } else {
+        if (el.nextElementSibling) {
+          el.parentNode.insertBefore(ind, el.nextElementSibling);
+        } else {
+          el.parentNode.appendChild(ind);
+        }
+      }
+    });
+
+    el.addEventListener('dragleave', function (e) {
+      // Only remove indicator if we're leaving entirely out of this element
+      if (!el.contains(e.relatedTarget)) {
+        removeDropIndicator();
+      }
+    });
+
+    el.addEventListener('drop', function (e) {
+      if (!dragSrcEl || dragSrcType !== type || dragSrcEl === el) return;
+      e.preventDefault();
+      e.stopPropagation();
+
+      var ind = ensureDropIndicator();
+      if (ind.parentNode) {
+        ind.parentNode.insertBefore(dragSrcEl, ind);
+      }
+      removeDropIndicator();
+      markLayoutDirty();
+    });
+  }
+
+  // ── Confirm modal ────────────────────────────────────────────────────────
+
+  var confirmCallback = null;
+
+  function buildConfirmModal() {
+    var overlay = document.createElement('div');
+    overlay.id = 'sc-confirm-modal';
+    overlay.setAttribute('role', 'dialog');
+    overlay.setAttribute('aria-modal', 'true');
+    overlay.innerHTML =
+      '<div id="sc-confirm-modal-box">' +
+        '<p id="sc-confirm-modal-msg"></p>' +
+        '<div id="sc-confirm-modal-actions">' +
+          '<button type="button" id="sc-confirm-cancel">Cancel</button>' +
+          '<button type="button" id="sc-confirm-ok">Confirm</button>' +
+        '</div>' +
+      '</div>';
+    document.body.appendChild(overlay);
+
+    document.getElementById('sc-confirm-ok').addEventListener('click', function () {
+      overlay.classList.remove('sc-visible');
+      if (typeof confirmCallback === 'function') {
+        var cb = confirmCallback;
+        confirmCallback = null;
+        cb();
+      }
+    });
+    document.getElementById('sc-confirm-cancel').addEventListener('click', function () {
+      overlay.classList.remove('sc-visible');
+      confirmCallback = null;
+    });
+    overlay.addEventListener('click', function (e) {
+      if (e.target === overlay) {
+        overlay.classList.remove('sc-visible');
+        confirmCallback = null;
+      }
+    });
+    return overlay;
+  }
+
+  function showConfirm(msg, okLabel, isDanger, callback) {
+    document.getElementById('sc-confirm-modal-msg').textContent = msg;
+    var okBtn = document.getElementById('sc-confirm-ok');
+    okBtn.textContent = okLabel || 'Confirm';
+    okBtn.classList.toggle('sc-danger', !!isDanger);
+    confirmCallback = callback;
+    document.getElementById('sc-confirm-modal').classList.add('sc-visible');
+    okBtn.focus();
+  }
+
+  // ── Publish draft ────────────────────────────────────────────────────────
+
+  function buildPublishButton() {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.id = 'sc-publish-btn';
+    btn.className = 'button small success';
+    btn.textContent = 'Publish';
+    if (toolbar.dataset.hasDraft !== 'true') btn.style.display = 'none';
+    btn.addEventListener('click', function () {
+      showConfirm(
+        'Publish this draft? The current live page will be replaced.',
+        'Publish', false, doPublishDraft
+      );
+    });
+    var exitBtn = document.getElementById('sc-editor-exit');
+    if (exitBtn) toolbar.insertBefore(btn, exitBtn);
+    else toolbar.appendChild(btn);
+    return btn;
+  }
+
+  function buildDiscardDraftButton() {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.id = 'sc-discard-draft-btn';
+    btn.className = 'button small hollow secondary';
+    btn.textContent = 'Discard Draft';
+    if (toolbar.dataset.hasDraft !== 'true') btn.style.display = 'none';
+    btn.addEventListener('click', function () {
+      showConfirm(
+        'Discard all draft changes? This cannot be undone.',
+        'Discard', true, doDiscardDraft
+      );
+    });
+    var exitBtn = document.getElementById('sc-editor-exit');
+    if (exitBtn) toolbar.insertBefore(btn, exitBtn);
+    else toolbar.appendChild(btn);
+    return btn;
+  }
+
+  function doPublishDraft() {
+    var btn = document.getElementById('sc-publish-btn');
+    btn.disabled = true;
+    btn.textContent = 'Publishing…';
+    setToolbarStatus('Publishing…');
+
+    var qs = new URLSearchParams();
+    qs.append('action', 'publishDraft');
+    qs.append('token', getToken());
+
+    fetch(window.location.pathname + '?' + qs.toString(), {
+      method: 'POST',
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'}
+    })
+    .then(function (resp) {
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      return resp.json();
+    })
+    .then(function (data) {
+      if (data.success) {
+        setToolbarStatus('Published! Reloading…');
+        window.location.reload();
+      } else {
+        throw new Error(data.error || 'Publish failed');
+      }
+    })
+    .catch(function (err) {
+      setToolbarStatus('Publish failed: ' + err.message);
+      btn.disabled = false;
+      btn.textContent = 'Publish';
+    });
+  }
+
+  function doDiscardDraft() {
+    var btn = document.getElementById('sc-discard-draft-btn');
+    btn.disabled = true;
+    btn.textContent = 'Discarding…';
+    setToolbarStatus('Discarding draft…');
+
+    var qs = new URLSearchParams();
+    qs.append('action', 'discardDraft');
+    qs.append('token', getToken());
+
+    fetch(window.location.pathname + '?' + qs.toString(), {
+      method: 'POST',
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'}
+    })
+    .then(function (resp) {
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      return resp.json();
+    })
+    .then(function (data) {
+      if (data.success) {
+        setToolbarStatus('Draft discarded. Reloading…');
+        window.location.reload();
+      } else {
+        throw new Error(data.error || 'Discard failed');
+      }
+    })
+    .catch(function (err) {
+      setToolbarStatus('Discard failed: ' + err.message);
+      btn.disabled = false;
+      btn.textContent = 'Discard Draft';
+    });
+  }
+
+  // ── Save Layout button and AJAX post ─────────────────────────────────────
+
+  function buildSaveLayoutButton() {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.id = 'sc-save-layout-btn';
+    btn.className = 'button small success';
+    btn.disabled = true;
+    btn.innerHTML = 'Save Layout<span id="sc-layout-dirty-dot" aria-hidden="true"></span>';
+    btn.addEventListener('click', saveLayout);
+    var exitBtn = document.getElementById('sc-editor-exit');
+    if (exitBtn) toolbar.insertBefore(btn, exitBtn);
+    else toolbar.appendChild(btn);
+  }
+
+  function saveLayout() {
+    var btn = document.getElementById('sc-save-layout-btn');
+    var token = getToken();
+    if (!token) {
+      setToolbarStatus('No session token');
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Saving…';
+    setToolbarStatus('Saving layout…');
+
+    var qs = new URLSearchParams();
+    qs.append('action', 'saveDraftLayout');
+    qs.append('token', token);
+    qs.append('layout', buildLayoutJson());
+
+    fetch(window.location.pathname + '?' + qs.toString(), {
+      method: 'POST',
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'}
+    })
+    .then(function (resp) {
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      return resp.json();
+    })
+    .then(function (data) {
+      if (data.success) {
+        markLayoutClean();
+        btn.innerHTML = 'Save Layout<span id="sc-layout-dirty-dot" aria-hidden="true"></span>';
+        btn.disabled = true;
+        setToolbarStatus('Layout saved — reload to see');
+        markHasDraft();
+      } else {
+        throw new Error(data.error || 'Unknown error');
+      }
+    })
+    .catch(function (err) {
+      setToolbarStatus('Layout save failed: ' + err.message);
+      btn.innerHTML = 'Save Layout<span id="sc-layout-dirty-dot" aria-hidden="true"></span>';
+      markLayoutDirty(); // re-enables button
+    });
+  }
+
   // ── Bootstrap ─────────────────────────────────────────────────────────────
 
   inlineToolbar = buildInlineToolbar();
   linkPrompt = buildLinkPrompt();
+  buildConfirmModal();
+
+  if (layoutMode) {
+    buildSaveLayoutButton();      // inserts before Exit
+    buildPublishButton();         // inserts before Exit (right of Save Layout)
+    buildDiscardDraftButton();    // inserts before Exit (between Save Layout and Publish)
+  }
 
   // Sections
   document.querySelectorAll('[data-editor-section]').forEach(function (el) {
     var idx = parseInt(el.dataset.editorSection, 10);
     insertHandle(el, 'section', 'Section ' + (idx + 1));
+    if (layoutMode) {
+      insertDragHandle(el, 'section');
+      insertMoveButtons(el, 'section');
+      makeDraggable(el, 'section');
+    }
   });
 
   // Columns
@@ -333,10 +763,17 @@
     var isContentWidget = !!el.querySelector('[data-content-unique-id]');
     var href = isContentWidget ? null : (ctx + '/admin/web-page-designer?webPage=' + encodeURIComponent(pagePath));
     insertHandle(el, 'widget', isContentWidget ? 'Content' : 'Widget', href);
+    if (layoutMode) {
+      insertDragHandle(el, 'widget');
+      insertMoveButtons(el, 'widget');
+      makeDraggable(el, 'widget');
+    }
   });
 
   // Click on a content block → activate inline editor
   document.addEventListener('click', function (e) {
+    if (e.target.closest('.sc-editor-drag-handle, .sc-move-btns, .sc-editor-handle')) return;
+
     var contentEl = e.target.closest('.platform-content[data-content-unique-id]');
     if (contentEl) {
       e.preventDefault();

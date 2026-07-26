@@ -334,7 +334,11 @@
 </c:if>
 <body<c:if test="${pageRenderInfo.name eq '/'}"> id="body-home"</c:if><c:if test="${!empty bodyClass}"> class="<c:out value="${bodyClass}" />"</c:if>>
   <c:if test="${pageEditMode eq 'true'}">
-    <div id="sc-editor-toolbar" role="toolbar" aria-label="Page editor" data-page-path="<c:out value="${pageRenderInfo.pagePath}"/>" data-ctx="${ctx}">
+    <div id="sc-editor-toolbar" role="toolbar" aria-label="Page editor"
+         data-page-path="<c:out value="${pageRenderInfo.pagePath}"/>"
+         data-ctx="${ctx}"
+         data-layout-mode="<c:out value="${pageLayoutMode}"/>"
+         data-has-draft="<c:out value="${hasDraft}"/>">
       <span id="sc-editor-toolbar-title">Visual Editor</span>
       <a href="${ctx}/admin/web-page-designer?webPage=<c:out value="${pageRenderInfo.pagePath}"/>" class="button small hollow secondary"><i class="fa fa-fw fa-code"></i> XML</a>
       <a href="?editMode=false" id="sc-editor-exit" class="button small hollow secondary"><i class="fa fa-fw fa-times"></i> Exit</a>
