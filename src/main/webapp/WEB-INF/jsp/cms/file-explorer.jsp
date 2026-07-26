@@ -43,7 +43,7 @@
   <div class="platform-sort-options">
     <ul class="dropdown menu" data-dropdown-menu>
       <c:if test="${!empty title}">
-        <li class="menu-text"><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}" /></li>
+        <li class="menu-text"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></li>
       </c:if>
       <c:if test="${!empty folderYearList}">
       <li class="has-submenu">
