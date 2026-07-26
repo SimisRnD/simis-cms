@@ -20,12 +20,15 @@ import java.security.SecureRandom;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 
+import com.simisinc.platform.application.UserPasswordCommand;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.login.UserMfaRecoveryCode;
 import com.simisinc.platform.infrastructure.persistence.login.UserMfaRecoveryCodeRepository;
+
+import de.mkammerer.argon2.Argon2;
+import de.mkammerer.argon2.Argon2Factory;
 
 /**
  * Generates and verifies multi-factor authentication recovery codes -- single-use backup codes a user falls back on
@@ -83,7 +86,17 @@ public class UserMfaRecoveryCodeCommand {
     if (normalized.length() != CODE_LENGTH) {
       return false;
     }
-    UserMfaRecoveryCode match = UserMfaRecoveryCodeRepository.findUnusedByUserIdAndHash(user.getId(), hash(normalized));
+    List<UserMfaRecoveryCode> codes = UserMfaRecoveryCodeRepository.findAllUnusedByUserId(user.getId());
+    if (codes == null) {
+      return false;
+    }
+    UserMfaRecoveryCode match = null;
+    for (UserMfaRecoveryCode code : codes) {
+      if (verifyCode(normalized, code.getCodeHash())) {
+        match = code;
+        break;
+      }
+    }
     if (match == null) {
       return false;
     }
@@ -133,7 +146,16 @@ public class UserMfaRecoveryCodeCommand {
     return input.replaceAll("[^a-zA-Z0-9]", "").toLowerCase();
   }
 
-  private static String hash(String normalizedCode) {
-    return DigestUtils.sha256Hex(normalizedCode);
+  static String hash(String normalizedCode) {
+    Argon2 argon2 = Argon2Factory.create(Argon2Factory.Argon2Types.ARGON2id);
+    return argon2.hash(1, 1024, 1, normalizedCode.toCharArray());
+  }
+
+  private static boolean verifyCode(String normalizedCode, String storedHash) {
+    if (storedHash == null) {
+      return false;
+    }
+    Argon2 argon2 = Argon2Factory.create(Argon2Factory.Argon2Types.ARGON2id);
+    return argon2.verify(storedHash, normalizedCode.toCharArray());
   }
 }
