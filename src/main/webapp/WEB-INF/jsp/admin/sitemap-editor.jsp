@@ -17,6 +17,7 @@
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="js" uri="/WEB-INF/tlds/javascript-escape.tld" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="menuTabList" class="java.util.ArrayList" scope="request"/>
@@ -24,7 +25,7 @@
 <link rel="stylesheet" href="${ctx}/css/platform-sitemap-editor.css?v=<%= VERSION %>" />
 <link rel="stylesheet" href="${ctx}/javascript/dragula-3.7.3/dragula.min.css"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}"/></h4>
+  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
 </c:if>
 <small><a href="${ctx}/admin/sitemap">Switch to adding</a></small>
 <%@include file="../page_messages.jspf" %>
@@ -50,7 +51,11 @@
                   <a href="${ctx}${menuTab.link}"><c:out value="${menuTab.link}"/></a>
                 </c:when>
                 <c:otherwise>
-                  <i class="fa fa-arrows-h site-map-menu-tab-drag-handle"></i>
+                  <i class="fa fa-arrows-h site-map-menu-tab-drag-handle" aria-hidden="true"></i>
+                  <button type="button" class="button tiny secondary" style="margin:0 2px" aria-label="Move tab left"
+                          onclick="moveTabLeft('site-map-menu-tab-container-${menuTab.id}')">&#9664;</button>
+                  <button type="button" class="button tiny secondary" style="margin:0 2px" aria-label="Move tab right"
+                          onclick="moveTabRight('site-map-menu-tab-container-${menuTab.id}')">&#9654;</button>
                 </c:otherwise>
               </c:choose>
             </small>
@@ -82,7 +87,11 @@
                 --%>
                 <div class="float-left">
                   <small class="subheader">
-                    <i class="fa fa-arrows site-map-submenu-tab-drag-handle"></i>
+                    <i class="fa fa-arrows site-map-submenu-tab-drag-handle" aria-hidden="true"></i>
+                    <button type="button" class="button tiny secondary" style="margin:0 2px" aria-label="Move item up"
+                            onclick="moveItemUp('site-map-menu-item-${menuItem.id}')">&#9650;</button>
+                    <button type="button" class="button tiny secondary" style="margin:0 2px" aria-label="Move item down"
+                            onclick="moveItemDown('site-map-menu-item-${menuItem.id}')">&#9660;</button>
                     <%--<a href="${ctx}${menuItem.link}"><c:out value="${menuItem.link}" /></a>--%>
                   </small>
                 </div>
@@ -121,14 +130,14 @@
     if (!confirm("Are you sure you want to delete this menu tab and all of its submenu items?")) {
       return;
     }
-    window.location.href = '${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&menuTabId=' + index;
+    postAction('${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&menuTabId=' + index);
   }
 
   function deleteMenuItem(index) {
     if (!confirm("Are you sure you want to delete this sub menu item?")) {
       return;
     }
-    window.location.href = '${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&menuItemId=' + index;
+    postAction('${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&menuItemId=' + index);
   }
 
   <%--
@@ -188,5 +197,28 @@
     menuItemOrderField.value = menuItemOrder;
 
     return true;
+  }
+
+  function moveTabLeft(id) {
+    var el = document.getElementById(id);
+    var prev = el.previousElementSibling;
+    if (prev && prev.id !== 'site-map-menu-tab-container-0') {
+      el.parentNode.insertBefore(el, prev);
+    }
+  }
+  function moveTabRight(id) {
+    var el = document.getElementById(id);
+    var next = el.nextElementSibling;
+    if (next) { el.parentNode.insertBefore(next, el); }
+  }
+  function moveItemUp(id) {
+    var el = document.getElementById(id);
+    var prev = el.previousElementSibling;
+    if (prev) el.parentNode.insertBefore(el, prev);
+  }
+  function moveItemDown(id) {
+    var el = document.getElementById(id);
+    var next = el.nextElementSibling;
+    if (next) el.parentNode.insertBefore(next, el);
   }
 </script>

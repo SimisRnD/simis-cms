@@ -111,7 +111,7 @@
   <%-- Title and Message block --%>
   <h2><em><c:out value="${collection.name}" /></em></h2>
   <c:if test="${!empty title}">
-    <p><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}"/></p>
+    <p><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></p>
   </c:if>
   <%@include file="../page_messages.jspf" %>
   <%-- Form Content --%>
@@ -527,10 +527,10 @@
     </c:if>
     <div class="button-container">
       <input type="submit" class="button radius success" value="Save"/>
-      <c:if test="${!empty cancelUrl}"><span class="button-gap"><a class="button radius secondary" href="${ctx}${cancelUrl}">Cancel</a></span></c:if>
+      <c:if test="${!empty cancelUrl}"><span class="button-gap"><a class="button radius secondary" href="${ctx}<c:out value="${cancelUrl}"/>">Cancel</a></span></c:if>
     </div>
 </form>
-<div class="reveal large" id="imageBrowserReveal" data-reveal data-animation-in="slide-in-down fast">
+<div class="reveal large" id="imageBrowserReveal" data-reveal data-animation-in="slide-in-down fast" role="dialog" aria-modal="true" aria-label="Image Browser">
   <h3>Loading...</h3>
 </div>
 <script>

@@ -39,7 +39,7 @@
 <jsp:useBean id="mediumCardCount" class="java.lang.String" scope="request"/>
 <jsp:useBean id="largeCardCount" class="java.lang.String" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}"/></h4>
+  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <c:if test="${!blog.enabled}">
@@ -54,7 +54,7 @@
             <div class="card<c:if test="${!empty cardClass}"> <c:out value="${cardClass}" /></c:if>">
               <c:if test="${showImage eq 'true' && !empty blogPost.imageUrl}">
                 <div class="card-image">
-                  <a href="${ctx}/${blog.uniqueId}/${blogPost.uniqueId}"><img alt="Blog post banner image" src="${ctx}${blogPost.imageUrl}"/></a>
+                  <a href="${ctx}/${blog.uniqueId}/${blogPost.uniqueId}"><img alt="Blog post banner image" src="${ctx}<c:out value="${blogPost.imageUrl}"/>"/></a>
                 </div>
               </c:if>
               <c:if test="${showTags eq 'true'}">

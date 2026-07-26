@@ -73,7 +73,7 @@
   </c:if>
   <%-- Title and Message block --%>
   <c:if test="${!empty title}">
-    <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}" /></h4>
+    <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
   </c:if>
   <c:if test="${!empty subtitle}">
     <p class="subheader"><c:out value="${subtitle}" /></p>
@@ -87,7 +87,7 @@
         <select id="${widgetContext.uniqueId}<c:out value="${formField.name}"/>" name="${widgetContext.uniqueId}<c:out value="${formField.name}"/>">
           <option value="">&lt; Please Choose &gt;</option>
           <c:forEach items="${formField.listOfOptions}" var="option">
-            <option value="${option.key}"><c:out value="${option.value}" /></option>
+            <option value="<c:out value="${option.key}"/>"><c:out value="${option.value}" /></option>
           </c:forEach>
         </select>
       </c:when>

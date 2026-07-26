@@ -30,7 +30,7 @@
 <jsp:useBean id="shippingMethod" class="com.simisinc.platform.domain.model.ecommerce.ShippingMethod" scope="request"/>
 <jsp:useBean id="trackingNumberList" class="java.util.ArrayList" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}"/></h4>
+  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
 </c:if>
 <c:if test="${!empty calloutHtml}">
   <div class="callout">
@@ -60,7 +60,7 @@
     Tracking number<c:if test="${fn:length(trackingNumberList) > 1}">s</c:if>:
     <c:forEach items="${trackingNumberList}" var="thisTrackingNumber" varStatus="trackingNumberStatus">
       <c:set var="trackingLink" scope="request" value="${order:trackingNumberLink(thisTrackingNumber)}"/>
-      <a href="${trackingLink}" target="_blank"><c:out value="${thisTrackingNumber.trackingNumber}" /></a><c:if test="${!trackingNumberStatus.last}">, </c:if>
+      <a href="<c:out value="${trackingLink}"/>" target="_blank"><c:out value="${thisTrackingNumber.trackingNumber}" /></a><c:if test="${!trackingNumberStatus.last}">, </c:if>
     </c:forEach>
   </c:when>
   <c:when test="${!empty order.trackingNumbers}">
@@ -69,7 +69,7 @@
     <c:set var="trackingLink" scope="request" value="${order:trackingNumberLinkMap(order.trackingNumbers, shippingMethod)}"/>
     <c:if test="${!empty trackingLink}">
       <c:forEach items="${trackingLink}" var="thisTrackingNumber" varStatus="trackingNumberStatus">
-        <a href="${thisTrackingNumber.value}" target="_blank"><c:out value="${thisTrackingNumber.key}" /></a><c:if test="${!trackingNumberStatus.last}">, </c:if>
+        <a href="<c:out value="${thisTrackingNumber.value}"/>" target="_blank"><c:out value="${thisTrackingNumber.key}" /></a><c:if test="${!trackingNumberStatus.last}">, </c:if>
       </c:forEach>
     </c:if>
   </c:when>

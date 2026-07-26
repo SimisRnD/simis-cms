@@ -42,10 +42,10 @@
                 <a href="<c:out value="${ctx}${product.productUrl}"/>"><img alt="product image" src="<c:out value="${productImageMap[product.uniqueId]}"/>" /></a>
               </c:when>
               <c:when test="${!empty product.imageUrl}">
-                <a href="${ctx}${product.productUrl}"><img alt="product image" src="<c:out value="${product.imageUrl}"/>" /></a>
+                <a href="${ctx}<c:out value="${product.productUrl}"/>"><img alt="product image" src="<c:out value="${product.imageUrl}"/>" /></a>
               </c:when>
               <c:otherwise>
-                <a href="${ctx}${product.productUrl}"><img alt="product image placeholder" src="https://placehold.it/500x300"></a>
+                <a href="${ctx}<c:out value="${product.productUrl}"/>"><img alt="product image placeholder" src="https://placehold.it/500x300"></a>
               </c:otherwise>
             </c:choose>
           </div>
@@ -68,7 +68,7 @@
                 </p>
               </c:when>
             </c:choose>
-            <a class="product-button button expanded padding-width-0" href="${ctx}${product.productUrl}"><c:out value="${buttonLabel}" /></a>
+            <a class="product-button button expanded padding-width-0" href="${ctx}<c:out value="${product.productUrl}"/>"><c:out value="${buttonLabel}" /></a>
           </div>
         </div>
       </div>

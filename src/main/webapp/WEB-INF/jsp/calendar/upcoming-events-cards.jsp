@@ -26,7 +26,7 @@
 <jsp:useBean id="mediumCardCount" class="java.lang.String" scope="request"/>
 <jsp:useBean id="largeCardCount" class="java.lang.String" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}"/></h4>
+  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
 </c:if>
 <div class="platform-content-container">
   <div class="platform-content">
@@ -45,7 +45,7 @@
             <div class="event-title">
               <c:choose>
                 <c:when test="${!empty calendarLink}">
-                  <h3><a href="${ctx}${calendarLink}"><c:out value="${calendarEvent.title}" />&nbsp;<i class="fa fa-caret-right"></i></a></h3>
+                  <h3><a href="${ctx}<c:out value="${calendarLink}"/>"><c:out value="${calendarEvent.title}" />&nbsp;<i class="fa fa-caret-right"></i></a></h3>
                 </c:when>
                 <c:otherwise>
                   <h3><a href="${ctx}/calendar-event/${calendarEvent.uniqueId}?returnPage=${widgetContext.uri}"><c:out value="${calendarEvent.title}" />&nbsp;<i class="fa fa-caret-right"></i></a></h3>

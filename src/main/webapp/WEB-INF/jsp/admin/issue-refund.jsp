@@ -20,16 +20,16 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="order" class="com.simisinc.platform.domain.model.ecommerce.Order" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}" /></h4>
+  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <c:if test="${testMode eq 'true'}"><span class="label warning">TEST MODE</span></c:if>
 <button class="button alert expanded" data-open="refundFormReveal">Issue a Refund</button>
-<div class="reveal small" id="refundFormReveal" data-reveal data-close-on-click="false" data-animation-in="slide-in-down fast">
+<div class="reveal small" id="refundFormReveal" data-reveal data-close-on-click="false" data-animation-in="slide-in-down fast" role="dialog" aria-modal="true" aria-labelledby="refundFormRevealTitle">
   <button class="close-button" data-close aria-label="Close modal" type="button">
     <span aria-hidden="true">&times;</span>
   </button>
-  <h4>Issue a Refund</h4>
+  <h4 id="refundFormRevealTitle">Issue a Refund</h4>
   <form id="issueRefundForm" method="post" autocomplete="off">
     <%-- Required by controller --%>
     <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>

@@ -43,7 +43,7 @@
   </c:if>
   <%-- Title and Message block --%>
   <c:if test="${!empty title}">
-    <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}"/></h4>
+    <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
   </c:if>
   <%@include file="../page_messages.jspf" %>
   <%-- Form Content --%>
@@ -241,7 +241,7 @@
           <input type="submit" class="button radius success" value="Submit"/>
         </c:otherwise>
       </c:choose>
-      <c:if test="${!empty cancelUrl}"><a class="button radius secondary" href="${cancelUrl}">Cancel</a></c:if>
+      <c:if test="${!empty cancelUrl}"><a class="button radius secondary" href="<c:out value="${cancelUrl}"/>">Cancel</a></c:if>
     </div>
   </div>
 </form>

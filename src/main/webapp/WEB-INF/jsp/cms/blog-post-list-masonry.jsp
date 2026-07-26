@@ -35,7 +35,7 @@
 <script src="${ctx}/javascript/masonry-4.2.2/masonry.pkgd.min.js"></script>
 <script src="${ctx}/javascript/imagesloaded-5.0.0/imagesloaded.pkgd.min.js"></script>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}"/></h4>
+  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <c:if test="${!blog.enabled}">
@@ -69,7 +69,7 @@
               </c:if>
               <c:if test="${showImage eq 'true' && !empty blogPost.imageUrl}">
                 <div class="card-image">
-                  <a href="${ctx}/${blog.uniqueId}/${blogPost.uniqueId}"><img alt="Blog post banner image" src="${ctx}${blogPost.imageUrl}"/></a>
+                  <a href="${ctx}/${blog.uniqueId}/${blogPost.uniqueId}"><img alt="Blog post banner image" src="${ctx}<c:out value="${blogPost.imageUrl}"/>"/></a>
                 </div>
               </c:if>
               <c:if test="${showSummary eq 'true'}">

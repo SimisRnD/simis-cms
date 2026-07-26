@@ -30,7 +30,7 @@
   <c:otherwise>
     <div class="platform-calendar-list-container">
       <c:if test="${!empty title}">
-        <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}"/></h4>
+        <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
       </c:if>
       <c:set var="lastMonth" scope="request" value="---"/>
       <c:set var="lastDay" scope="request" value="---"/>
@@ -54,7 +54,7 @@
         <div class="platform-calendar-event-block">
           <c:choose>
             <c:when test="${!empty calendarLink}">
-              <h4><a href="${ctx}${calendarLink}"><c:out value="${calendarEvent.title}" /></a></h4>
+              <h4><a href="${ctx}<c:out value="${calendarLink}"/>"><c:out value="${calendarEvent.title}" /></a></h4>
             </c:when>
             <c:otherwise>
               <h4><a href="${ctx}/calendar-event/${calendarEvent.uniqueId}?returnPage=${widgetContext.uri}"><c:out value="${calendarEvent.title}" /></a></h4>

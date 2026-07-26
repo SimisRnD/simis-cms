@@ -436,8 +436,28 @@ public class ContentHtmlCommand {
       return rejectContent(context, content);
     } else if ("deleteContent".equals(action)) {
       return deleteContent(context, content);
+    } else if ("saveDraft".equals(action)) {
+      return saveDraft(context, content);
     }
 
+    return context;
+  }
+
+  private static WidgetContext saveDraft(WidgetContext context, Content content) {
+    String html = context.getParameter("html");
+    if (StringUtils.isBlank(html)) {
+      context.setJson("{\"success\":false,\"error\":\"No content provided\"}");
+      return context;
+    }
+    try {
+      SaveContentCommand.saveSafeContent(content.getUniqueId(), html, context.getUserId(), false);
+      AuditEventCommand.record(context, AuditEventCommand.CONTENT, "content.saveDraft", AuditEventCommand.SUCCESS,
+          "content", String.valueOf(content.getId()), content.getUniqueId(), null);
+      context.setJson("{\"success\":true}");
+    } catch (Exception e) {
+      LOG.error("saveDraft failed for uniqueId " + content.getUniqueId(), e);
+      context.setJson("{\"success\":false,\"error\":\"Save failed\"}");
+    }
     return context;
   }
 

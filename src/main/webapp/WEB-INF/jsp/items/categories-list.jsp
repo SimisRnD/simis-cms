@@ -16,6 +16,7 @@
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="font" uri="/WEB-INF/tlds/font-functions.tld" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="categoryList" class="java.util.ArrayList" scope="request"/>
@@ -23,7 +24,7 @@
 <jsp:useBean id="category" class="com.simisinc.platform.domain.model.items.Category" scope="request"/>
 <jsp:useBean id="listingsLink" class="java.lang.String" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}" /></h4>
+  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
 <ul class="no-bullet" style="text-indent: -11px; margin-left: 21px !important;">
   <c:choose>
@@ -36,19 +37,19 @@
   </c:choose>
   <c:choose>
     <c:when test="${category.id eq -1}">
-      <li><a href="${listingsLinkPrefix}"><i class="${font:fas()} fa-circle-check"></i> All <c:out value="${collection.name}" /></a>&nbsp;<small class="subheader"><fmt:formatNumber value="${collection.itemCount}" /></small></li>
+      <li><a href="<c:out value="${listingsLinkPrefix}"/>"><i class="${font:fas()} fa-circle-check"></i> All <c:out value="${collection.name}" /></a>&nbsp;<small class="subheader"><fmt:formatNumber value="${collection.itemCount}" /></small></li>
     </c:when>
     <c:otherwise>
-      <li><a href="${listingsLinkPrefix}"><i class="${font:far()} fa-circle"></i> All <c:out value="${collection.name}" /></a>&nbsp;<small class="subheader"><fmt:formatNumber value="${collection.itemCount}" /></small></li>
+      <li><a href="<c:out value="${listingsLinkPrefix}"/>"><i class="${font:far()} fa-circle"></i> All <c:out value="${collection.name}" /></a>&nbsp;<small class="subheader"><fmt:formatNumber value="${collection.itemCount}" /></small></li>
     </c:otherwise>
   </c:choose>
   <c:forEach items="${categoryList}" var="thisCategory">
     <c:choose>
       <c:when test="${category.id eq thisCategory.id}">
-        <li><a href="${listingsLinkPrefix}?categoryId=${thisCategory.id}"><i class="${font:fas()} fa-circle-check"></i> <c:out value="${thisCategory.name}" /></a>&nbsp;<small class="subheader"><fmt:formatNumber value="${thisCategory.itemCount}" /></small></li>
+        <li><a href="<c:out value="${listingsLinkPrefix}"/>?categoryId=${thisCategory.id}"><i class="${font:fas()} fa-circle-check"></i> <c:out value="${thisCategory.name}" /></a>&nbsp;<small class="subheader"><fmt:formatNumber value="${thisCategory.itemCount}" /></small></li>
       </c:when>
       <c:otherwise>
-        <li><a href="${listingsLinkPrefix}?categoryId=${thisCategory.id}"><i class="${font:far()} fa-circle"></i> <c:out value="${thisCategory.name}" /></a>&nbsp;<small class="subheader"><fmt:formatNumber value="${thisCategory.itemCount}" /></small></li>
+        <li><a href="<c:out value="${listingsLinkPrefix}"/>?categoryId=${thisCategory.id}"><i class="${font:far()} fa-circle"></i> <c:out value="${thisCategory.name}" /></a>&nbsp;<small class="subheader"><fmt:formatNumber value="${thisCategory.itemCount}" /></small></li>
       </c:otherwise>
     </c:choose>
   </c:forEach>

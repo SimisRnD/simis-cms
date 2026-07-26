@@ -73,7 +73,7 @@
   <input type="hidden" name="token" value="${userSession.formToken}"/>
   <%-- Title and Message block --%>
   <c:if test="${!empty title}">
-    <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}" /></h4>
+    <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
   </c:if>
   <c:if test="${!empty subtitle}">
     <p class="subheader"><c:out value="${subtitle}" /></p>
@@ -89,10 +89,10 @@
             <c:forEach items="${formField.listOfOptions}" var="option">
               <c:choose>
                 <c:when test="${option.value eq formField.value}">
-                  <option value="${option.key}" selected><c:out value="${option.value}" /></option>
+                  <option value="<c:out value="${option.key}"/>" selected><c:out value="${option.value}" /></option>
                 </c:when>
                 <c:otherwise>
-                  <option value="${option.key}"><c:out value="${option.value}" /></option>
+                  <option value="<c:out value="${option.key}"/>"><c:out value="${option.value}" /></option>
                 </c:otherwise>
               </c:choose>
             </c:forEach>

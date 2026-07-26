@@ -21,7 +21,7 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="collectionList" class="java.util.ArrayList" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}"/></h4>
+  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <c:choose>
@@ -34,7 +34,7 @@
             <c:if test="${!empty collection.icon}"><i class="${font:fad()} fa-<c:out value="${collection.icon}" />"></i></c:if>
             <c:choose>
               <c:when test="${!empty collection.listingsLink}">
-                <a href="${ctx}${collection.listingsLink}"><c:out value="${collection.name}"/></a>
+                <a href="${ctx}<c:out value="${collection.listingsLink}"/>"><c:out value="${collection.name}"/></a>
               </c:when>
               <c:otherwise>
                 <a href="${ctx}/directory/${collection.uniqueId}"><c:out value="${collection.name}"/></a>

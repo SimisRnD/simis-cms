@@ -30,7 +30,7 @@
 <jsp:useBean id="largeCardCount" class="java.lang.String" scope="request"/>
 <jsp:useBean id="controlId" class="java.lang.String" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}"/></h4>
+  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
 </c:if>
 <style>
   .card${widgetContext.uniqueId} {
@@ -74,14 +74,16 @@
     <div class="grid-x grid-margin-x text-center align-stretch small-up-<c:out value="${smallCardCount}" /> medium-up-<c:out value="${mediumCardCount}" /> large-up-<c:out value="${largeCardCount}" />">
       <c:forEach items="${subFolderList}" var="subFolder">
         <div class="card-container${widgetContext.uniqueId} cell">
-          <div class="card${widgetContext.uniqueId}<c:if test="${!empty cardClass}"> <c:out value="${cardClass}" /></c:if>"
-               style="background-image:url('${ctx}/assets/view/${subFolder.posterFileItem.url}');" onclick="showAlbum${controlId}(${subFolder.id})">
+          <button type="button" class="card${widgetContext.uniqueId}<c:if test="${!empty cardClass}"> <c:out value="${cardClass}" /></c:if>"
+                  style="background-image:url('${ctx}/assets/view/${subFolder.posterFileItem.url}');"
+                  onclick="showAlbum${controlId}(${subFolder.id})"
+                  aria-label="<c:out value="${subFolder.name}"/>">
             <div class="card-content">
               <div class="card-content-inner">
-                <p><c:out value="${subFolder.name}"/></p>
+                <p aria-hidden="true"><c:out value="${subFolder.name}"/></p>
               </div>
             </div>
-          </div>
+          </button>
         </div>
       </c:forEach>
     </div>
