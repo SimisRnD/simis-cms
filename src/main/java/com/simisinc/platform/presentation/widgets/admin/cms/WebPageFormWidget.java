@@ -29,6 +29,7 @@ import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.lang.reflect.InvocationTargetException;
+import java.sql.Timestamp;
 
 /**
  * Widget for displaying a system administration form to add/update web pages
@@ -112,6 +113,14 @@ public class WebPageFormWidget extends GenericWidget {
     if (StringUtils.isBlank(showInSitemap)) {
       webPageBean.setShowInSitemap(false);
     }
+
+    // Parse optional scheduling timestamps (BeanUtils cannot convert String → Timestamp)
+    String publishAtStr = context.getParameter("publishAt");
+    webPageBean.setPublishAt(StringUtils.isBlank(publishAtStr) ? null
+        : Timestamp.valueOf(publishAtStr.replace("T", " ") + ":00"));
+    String expiresAtStr = context.getParameter("expiresAt");
+    webPageBean.setExpiresAt(StringUtils.isBlank(expiresAtStr) ? null
+        : Timestamp.valueOf(expiresAtStr.replace("T", " ") + ":00"));
 
     // Set the server values
     webPageBean.setCreatedBy(context.getUserId());

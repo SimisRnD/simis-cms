@@ -215,6 +215,20 @@ public class PageServlet extends HttpServlet {
             return;
           }
         }
+        // Enforce publish schedule and expiry for non-editors
+        if (!userSession.hasRole("admin") && !userSession.hasRole("content-manager")) {
+          Timestamp now = new Timestamp(System.currentTimeMillis());
+          if (webPage.getPublishAt() != null && webPage.getPublishAt().after(now)) {
+            controllerSession.clearAllWidgetData();
+            response.sendError(HttpServletResponse.SC_NOT_FOUND);
+            return;
+          }
+          if (webPage.getExpiresAt() != null && webPage.getExpiresAt().before(now)) {
+            controllerSession.clearAllWidgetData();
+            response.sendError(HttpServletResponse.SC_GONE);
+            return;
+          }
+        }
         // Determine if this is a redirect
         String redirectLocation = webPage.getRedirectUrl();
         if (StringUtils.isNotBlank(redirectLocation)) {

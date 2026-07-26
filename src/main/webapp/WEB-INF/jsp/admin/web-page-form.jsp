@@ -91,6 +91,20 @@
         </div>
       </label>
       <div class="grid-x grid-padding-x">
+        <div class="small-12 medium-6 cell">
+          <c:set var="publishAtFormatted"><c:if test="${!empty webPage.publishAt}"><fmt:formatDate pattern="yyyy-MM-dd'T'HH:mm" value="${webPage.publishAt}"/></c:if></c:set>
+          <label>Go live at (optional)
+            <input type="datetime-local" name="publishAt" value="${publishAtFormatted}">
+          </label>
+        </div>
+        <div class="small-12 medium-6 cell">
+          <c:set var="expiresAtFormatted"><c:if test="${!empty webPage.expiresAt}"><fmt:formatDate pattern="yyyy-MM-dd'T'HH:mm" value="${webPage.expiresAt}"/></c:if></c:set>
+          <label>Expire at (optional)
+            <input type="datetime-local" name="expiresAt" value="${expiresAtFormatted}">
+          </label>
+        </div>
+      </div>
+      <div class="grid-x grid-padding-x">
         <div class="small-12 medium-3 cell">
           <label>Show in Sitemap.xml?
             <div class="switch large">
