@@ -30,6 +30,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.filesystem.FileSystemCommand;
 import com.simisinc.platform.domain.model.datasets.Dataset;
 import com.simisinc.platform.infrastructure.persistence.datasets.DatasetRepository;
@@ -72,6 +73,12 @@ public class DatasetUploadFileCommand {
     }
     if (filePart == null || StringUtils.isBlank(filePart.getSubmittedFileName())) {
       context.setErrorMessage("An uploaded file was not found in the multipart form-data");
+      context.setRequestObject(dataset);
+      return false;
+    }
+    long maxUploadBytes = resolveMaxUploadBytes();
+    if (filePart.getSize() > maxUploadBytes) {
+      context.setErrorMessage("The file exceeds the maximum allowed upload size");
       context.setRequestObject(dataset);
       return false;
     }
@@ -175,5 +182,17 @@ public class DatasetUploadFileCommand {
     }
 
     return submittedFilename;
+  }
+
+  private static long resolveMaxUploadBytes() {
+    long maxBytes = 10_485_760L; // 10MB default
+    String prop = LoadSitePropertyCommand.loadByName("system.upload.maxBytes");
+    if (prop != null && !prop.isBlank()) {
+      try {
+        maxBytes = Long.parseLong(prop.trim());
+      } catch (NumberFormatException ignored) {
+      }
+    }
+    return maxBytes;
   }
 }

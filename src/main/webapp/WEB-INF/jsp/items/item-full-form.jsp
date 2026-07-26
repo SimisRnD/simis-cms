@@ -23,7 +23,7 @@
 <jsp:useBean id="categoryList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="cancelUrl" class="java.lang.String" scope="request"/>
 <script src="${ctx}/javascript/tinymce-7.9.3/tinymce.min.js"></script>
-<script>
+<script nonce="${cspNonce}">
   tinymce.init({
     license_key: 'gpl',
     selector: '.html-field',
@@ -77,7 +77,7 @@
   }
 </script>
 <%-- Handle item image uploads --%>
-<script>
+<script nonce="${cspNonce}">
   function SavePhoto(e) {
     var file = e.files[0];
     var errorEl = document.getElementById("imageUploadError");
@@ -153,7 +153,7 @@
   <%-- Title and Message block --%>
   <h2><em><c:out value="${collection.name}" /></em></h2>
   <c:if test="${!empty title}">
-    <p><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}"/></p>
+    <p><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></p>
   </c:if>
   <%@include file="../page_messages.jspf" %>
   <%-- Form Content --%>
@@ -450,7 +450,7 @@
               <input class="input-group-field" type="text" placeholder="mm-dd-yyyy time" id="expectedDate" name="expectedDate" value="<fmt:formatDate pattern="MM-dd-yyyy HH:mm" value="${item.expectedDate}" />">
             </div>
           </label>
-          <script>
+          <script nonce="${cspNonce}">
             $(function(){
               $('#expectedDate').fdatepicker({
                 format: 'mm-dd-yyyy hh:ii',
@@ -467,7 +467,7 @@
               <input class="input-group-field" type="text" placeholder="mm-dd-yyyy time" id="expirationDate" name="expirationDate" value="<fmt:formatDate pattern="MM-dd-yyyy HH:mm" value="${item.expirationDate}" />">
             </div>
           </label>
-          <script>
+          <script nonce="${cspNonce}">
             $(function(){
               $('#expirationDate').fdatepicker({
                 format: 'mm-dd-yyyy hh:ii',
@@ -486,7 +486,7 @@
               <input class="input-group-field" type="text" placeholder="mm-dd-yyyy time" id="startDate" name="startDate" value="<fmt:formatDate pattern="MM-dd-yyyy HH:mm" value="${item.startDate}" />">
             </div>
           </label>
-          <script>
+          <script nonce="${cspNonce}">
             $(function(){
               $('#startDate').fdatepicker({
                 format: 'mm-dd-yyyy hh:ii',
@@ -503,7 +503,7 @@
               <input class="input-group-field" type="text" placeholder="mm-dd-yyyy time" id="endDate" name="endDate" value="<fmt:formatDate pattern="MM-dd-yyyy HH:mm" value="${item.endDate}" />">
             </div>
           </label>
-          <script>
+          <script nonce="${cspNonce}">
             $(function(){
               // yyyy-MM-dd HH:mm:ss.fffffffff
               $('#endDate').fdatepicker({
@@ -578,7 +578,7 @@
 <div class="reveal large" id="imageBrowserReveal" data-reveal data-animation-in="slide-in-down fast" role="dialog" aria-modal="true" aria-label="Image Browser">
   <h3>Loading...</h3>
 </div>
-<script>
+<script nonce="${cspNonce}">
   $('#imageBrowserReveal').on('open.zf.reveal', function () {
     $('#imageBrowserReveal').html("<h3>Loading...</h3>");
     $.ajax({

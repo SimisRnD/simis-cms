@@ -28,6 +28,7 @@ import org.apache.commons.logging.LogFactory;
 import org.thymeleaf.util.StringUtils;
 
 import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.cms.SaveImageCommand;
 import com.simisinc.platform.application.cms.ValidateImageCommand;
 import com.simisinc.platform.application.filesystem.FileSystemCommand;
@@ -77,6 +78,11 @@ public class ImageUploadWidget extends GenericWidget {
         return context;
       }
       fileLength = filePart.getSize();
+      long maxBytes = resolveMaxUploadBytes();
+      if (fileLength > maxBytes) {
+        context.setErrorMessage("The file exceeds the maximum allowed upload size");
+        return context;
+      }
       if (fileLength > 0) {
         filePart.write(tempFile.getAbsolutePath());
       }
@@ -128,5 +134,17 @@ public class ImageUploadWidget extends GenericWidget {
     // Return Json with the new image's URL
     context.setJson("{\"location\": \"" + "/assets/img/" + image.getUrl() + "\"}");
     return context;
+  }
+
+  private static long resolveMaxUploadBytes() {
+    long maxBytes = 10_485_760L; // 10MB default
+    String prop = LoadSitePropertyCommand.loadByName("system.upload.maxBytes");
+    if (prop != null && !prop.isBlank()) {
+      try {
+        maxBytes = Long.parseLong(prop.trim());
+      } catch (NumberFormatException ignored) {
+      }
+    }
+    return maxBytes;
   }
 }

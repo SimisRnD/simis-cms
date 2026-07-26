@@ -24,7 +24,7 @@
   <%-- Form values --%>
   <%-- Title and Message block --%>
   <c:if test="${!empty title}">
-    <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}"/></h4>
+    <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
   </c:if>
   <%@include file="../page_messages.jspf" %>
   <%-- Form Content --%>
@@ -37,5 +37,6 @@
   <%-- TODO: This form is a stub — needs customizable recipient, subject, and body fields --%>
   <div class="button-container">
     <input type="submit" class="button radius secondary expanded" value="Send Mail"/>
+    <input type="submit" class="button radius success expanded" value="Send Mail" data-disable-on-submit="Sending..."/>
   </div>
 </form>

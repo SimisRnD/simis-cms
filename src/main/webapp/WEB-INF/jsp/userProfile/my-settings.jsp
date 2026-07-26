@@ -24,7 +24,7 @@
 <jsp:useBean id="user" class="com.simisinc.platform.domain.model.User" scope="request"/>
 <%@include file="../page_messages.jspf" %>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}"/></h4>
+  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
 </c:if>
 <fieldset class="fieldset">
 Profile Location: <c:out value="${user.city}" /><c:if test="${!empty user.city && !empty user.state}">,</c:if> <c:out value="${user.state}" />

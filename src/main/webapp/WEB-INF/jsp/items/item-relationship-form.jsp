@@ -15,6 +15,7 @@
   --%>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="collection" uri="/WEB-INF/tlds/collection-functions.tld" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="item" class="com.simisinc.platform.domain.model.items.Item" scope="request"/>
@@ -28,7 +29,7 @@
   <input type="hidden" name="itemUniqueId" value="${item.uniqueId}"/>
   <%-- Title and Message block --%>
   <c:if test="${!empty title}">
-    <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}"/></h4>
+    <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
   </c:if>
   <%@include file="../page_messages.jspf" %>
   <%-- Form Content --%>
@@ -61,7 +62,7 @@
     <input type="submit" class="button radius success expanded" value="Save"/>
   </div>
 </form>
-<script>
+<script nonce="${cspNonce}">
   function checkForm${widgetContext.uniqueId}() {
     // Validate the stuff before submitting...
     if (document.getElementById("relatedCollectionId").value.trim() == "") {
@@ -79,7 +80,7 @@
     return true;
   }
 </script>
-<script>
+<script nonce="${cspNonce}">
   var xhr${widgetContext.uniqueId};
   new autoComplete({
     selector: 'input[name="relatedItemName"]',
