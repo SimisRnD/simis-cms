@@ -161,6 +161,7 @@ public class PageServlet extends HttpServlet {
     // X-Frame-Options above for modern browsers. A stricter script-src policy needs nonces across the JSPs and is
     // left to a later, report-only-first rollout.
     response.setHeader("Content-Security-Policy", "base-uri 'self'; object-src 'none'; frame-ancestors 'self'");
+    response.setHeader("Referrer-Policy", "same-origin");
     // Advertise HTTPS-only via HSTS, but only when the deployment is configured for SSL. Sending this from a
     // site that cannot serve HTTPS would make browsers refuse it for the max-age, so it is gated on system.ssl
     // rather than the per-request scheme, which also stays correct behind a TLS-terminating proxy.

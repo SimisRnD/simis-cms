@@ -382,7 +382,7 @@
       if (!confirm("Are you sure you want to DELETE this event?")) {
         return;
       }
-      window.location.href = '${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&id=' + encodeURIComponent(document.getElementById('id').value);
+      postAction('${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&id=' + encodeURIComponent(document.getElementById('id').value));
     }
     // Handle the modal and click event
     var eventLink = $('#eventLink');

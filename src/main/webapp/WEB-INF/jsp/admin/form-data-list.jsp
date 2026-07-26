@@ -28,19 +28,19 @@
     if (!confirm("Mark as processed?")) {
       return;
     }
-    window.location.href = '${widgetContext.uri}?action=markAsProcessed&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&dataId=' + dataId;
+    postAction('${widgetContext.uri}?action=markAsProcessed&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&dataId=' + dataId);
   }
   function claimForm(dataId) {
     if (!confirm("Add this record to your list?")) {
       return;
     }
-    window.location.href = '${widgetContext.uri}?action=claim&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&dataId=' + dataId;
+    postAction('${widgetContext.uri}?action=claim&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&dataId=' + dataId);
   }
   function archiveForm(dataId) {
     if (!confirm("Are you sure you want to archive this record and hide it?")) {
       return;
     }
-    window.location.href = '${widgetContext.uri}?action=archive&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&dataId=' + dataId;
+    postAction('${widgetContext.uri}?action=archive&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&dataId=' + dataId);
   }
 </script>
 <c:if test="${!empty title}">

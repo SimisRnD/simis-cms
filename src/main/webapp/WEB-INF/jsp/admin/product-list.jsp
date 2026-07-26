@@ -131,7 +131,7 @@
           </c:if>
           <a href="${ctx}/admin/product?productId=${product.id}&returnPage=/admin/products"><i class="fa fa-edit"></i></a>
           <c:if test="${product.orderCount eq 0}">
-            <a href="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&productId=${product.id}" onclick="return confirm('Are you sure you want to delete <c:out value="${js:escape(product.name)}" />?');"><i class="fa fa-remove"></i></a>
+            <a href="#" onclick="return confirmPostAction('Are you sure you want to delete <c:out value="${js:escape(product.name)}" />?', '${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&productId=${product.id}');"><i class="fa fa-remove"></i></a>
           </c:if>
         </td>
       </tr>
