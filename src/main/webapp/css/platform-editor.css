@@ -558,6 +558,14 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-mutate-btns {
   background: #28a745 !important;
 }
 
+.sc-mutate-btn-style {
+  background: rgba(0, 86, 179, 0.7) !important;
+}
+
+.sc-mutate-btn-style:hover {
+  background: #0056b3 !important;
+}
+
 /* Link prompt overlay */
 #sc-link-prompt {
   position: absolute;
