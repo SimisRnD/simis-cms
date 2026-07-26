@@ -124,16 +124,16 @@
               <div class="card-top no-gap text-center image-browser" style="<c:out value="${categoryHeaderCSS}" />">
               <c:choose>
                 <c:when test="${showLink eq 'true'}">
-                  <img src="${item.imageUrl}" />
+                  <img src="<c:out value="${item.imageUrl}"/>" />
                 </c:when>
                 <c:when test="${useItemLink eq 'true' && !empty item.url && (fn:startsWith(item.url, 'http://') || fn:startsWith(item.url, 'https://'))}">
-                  <a target="_blank" href="${item.url}"><img src="${item.imageUrl}" /></a>
+                  <a target="_blank" href="${item.url}"><img src="<c:out value="${item.imageUrl}"/>" /></a>
                 </c:when>
                 <c:when test="${useInfoLink eq 'true'}">
-                  <a href="${ctx}/show/${item.uniqueId}"><img src="${item.imageUrl}" /></a>
+                  <a href="${ctx}/show/${item.uniqueId}"><img src="<c:out value="${item.imageUrl}"/>" /></a>
                 </c:when>
                 <c:otherwise>
-                  <img src="${item.imageUrl}" />
+                  <img src="<c:out value="${item.imageUrl}"/>" />
                 </c:otherwise>
               </c:choose>
               </div>

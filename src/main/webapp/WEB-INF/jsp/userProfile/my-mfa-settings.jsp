@@ -59,6 +59,9 @@
       <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
       <input type="hidden" name="token" value="${userSession.formToken}"/>
       <input type="hidden" name="action" value="disable"/>
+      <input type="password" name="stepUpCredential" maxlength="255"
+             placeholder="Your password or authenticator code" required
+             title="Enter your password or 6-digit authenticator code to confirm"/>
       <input type="submit" class="button alert radius" value="Turn off two-factor authentication"
              onclick="return confirm('Turn off two-factor authentication for your account?');"/>
     </form>

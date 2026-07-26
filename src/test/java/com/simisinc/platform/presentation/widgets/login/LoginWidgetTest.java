@@ -104,7 +104,7 @@ class LoginWidgetTest extends WidgetBase {
         MockedStatic<UserMfaRecoveryCodeCommand> recovery = mockStatic(UserMfaRecoveryCodeCommand.class);
         MockedStatic<SaveAuditEventCommand> audit = mockStatic(SaveAuditEventCommand.class)) {
       userRepo.when(() -> UserRepository.findByUserId(anyLong())).thenReturn(mfaUser(42L));
-      totp.when(() -> TotpCommand.verifyCode(anyString(), anyString())).thenReturn(false);
+      totp.when(() -> TotpCommand.verifyCodeAndMarkUsed(anyString(), anyString(), anyLong())).thenReturn(false);
       rateLimit.when(() -> RateLimitCommand.isUsernameAllowedRightNow(anyString(), anyBoolean())).thenReturn(true);
       rateLimit.when(() -> RateLimitCommand.isIpAllowedRightNow(anyString(), anyBoolean())).thenReturn(true);
       recovery.when(() -> UserMfaRecoveryCodeCommand.consume(any(), anyString())).thenReturn(false);
@@ -134,7 +134,7 @@ class LoginWidgetTest extends WidgetBase {
         MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
         MockedStatic<SaveAuditEventCommand> audit = mockStatic(SaveAuditEventCommand.class)) {
       userRepo.when(() -> UserRepository.findByUserId(anyLong())).thenReturn(mfaUser(42L));
-      totp.when(() -> TotpCommand.verifyCode(anyString(), anyString())).thenReturn(true);
+      totp.when(() -> TotpCommand.verifyCodeAndMarkUsed(anyString(), anyString(), anyLong())).thenReturn(true);
       rateLimit.when(() -> RateLimitCommand.isUsernameAllowedRightNow(anyString(), anyBoolean())).thenReturn(true);
       rateLimit.when(() -> RateLimitCommand.isIpAllowedRightNow(anyString(), anyBoolean())).thenReturn(true);
       siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean("site.online")).thenReturn(true);
@@ -173,7 +173,7 @@ class LoginWidgetTest extends WidgetBase {
         MockedStatic<SaveAuditEventCommand> audit = mockStatic(SaveAuditEventCommand.class)) {
       userRepo.when(() -> UserRepository.findByUserId(anyLong())).thenReturn(mfaUser(42L));
       // TOTP fails, but a recovery code is accepted
-      totp.when(() -> TotpCommand.verifyCode(anyString(), anyString())).thenReturn(false);
+      totp.when(() -> TotpCommand.verifyCodeAndMarkUsed(anyString(), anyString(), anyLong())).thenReturn(false);
       rateLimit.when(() -> RateLimitCommand.isUsernameAllowedRightNow(anyString(), anyBoolean())).thenReturn(true);
       rateLimit.when(() -> RateLimitCommand.isIpAllowedRightNow(anyString(), anyBoolean())).thenReturn(true);
       recovery.when(() -> UserMfaRecoveryCodeCommand.consume(any(), anyString())).thenReturn(true);
@@ -261,7 +261,7 @@ class LoginWidgetTest extends WidgetBase {
       widget.post(widgetContext);
 
       // A brute-forcer never even gets to a code comparison while locked out
-      totp.verify(() -> TotpCommand.verifyCode(anyString(), anyString()), never());
+      totp.verify(() -> TotpCommand.verifyCodeAndMarkUsed(anyString(), anyString(), anyLong()), never());
     }
 
     // Rejected with the rate-limit message; still pending; nothing established
@@ -287,7 +287,7 @@ class LoginWidgetTest extends WidgetBase {
         MockedStatic<UserMfaRecoveryCodeCommand> recovery = mockStatic(UserMfaRecoveryCodeCommand.class);
         MockedStatic<SaveAuditEventCommand> audit = mockStatic(SaveAuditEventCommand.class)) {
       userRepo.when(() -> UserRepository.findByUserId(anyLong())).thenReturn(mfaUser(42L));
-      totp.when(() -> TotpCommand.verifyCode(anyString(), anyString())).thenReturn(false);
+      totp.when(() -> TotpCommand.verifyCodeAndMarkUsed(anyString(), anyString(), anyLong())).thenReturn(false);
       rateLimit.when(() -> RateLimitCommand.isUsernameAllowedRightNow(anyString(), anyBoolean())).thenReturn(true);
       rateLimit.when(() -> RateLimitCommand.isIpAllowedRightNow(anyString(), anyBoolean())).thenReturn(true);
       recovery.when(() -> UserMfaRecoveryCodeCommand.consume(any(), anyString())).thenReturn(false);

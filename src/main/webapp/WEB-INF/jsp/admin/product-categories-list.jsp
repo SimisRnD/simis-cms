@@ -64,7 +64,7 @@
       </td>
       <td>
         <a href="${ctx}/admin/product-category?productCategoryId=${productCategory.id}&returnPage=/admin/product-categories"><i class="fa fa-edit"></i></a>
-        <a href="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&productCategoryId=${productCategory.id}" onclick="return confirm('Are you sure you want to delete <c:out value="${js:escape(productCategory.name)}" />?');"><i class="fa fa-remove"></i></a>
+        <a href="#" onclick="return confirmPostAction('Are you sure you want to delete <c:out value="${js:escape(productCategory.name)}" />?', '${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&productCategoryId=${productCategory.id}');"><i class="fa fa-remove"></i></a>
       </td>
     </tr>
     </c:forEach>

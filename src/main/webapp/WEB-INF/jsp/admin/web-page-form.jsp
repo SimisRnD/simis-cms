@@ -45,7 +45,7 @@
           if (!confirm("Are you sure you want to DELETE this page?")) {
               return;
           }
-          window.location.href = '${widgetContext.uri}?action=deletePage&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&webPageId=${webPage.id}';
+          postAction('${widgetContext.uri}?action=deletePage&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&webPageId=${webPage.id}');
       }
     </c:if>
 </script>
@@ -156,7 +156,7 @@
     </c:if>
   </div>
 </form>
-<div class="reveal large" id="imageBrowserReveal" data-reveal data-animation-in="slide-in-down fast">
+<div class="reveal large" id="imageBrowserReveal" data-reveal data-animation-in="slide-in-down fast" role="dialog" aria-modal="true" aria-label="Image Browser">
   <h3>Loading...</h3>
 </div>
 <script>

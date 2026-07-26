@@ -43,10 +43,10 @@
           <input type="text" name="order${status.count}" value="${status.count}" />
         </td>
         <td>
-          <input type="text" name="name${status.count}" value="${entry.name}" />
+          <input type="text" name="name${status.count}" value="<c:out value="${entry.name}"/>" />
         </td>
         <td>
-          <input type="text" name="link${status.count}" value="${entry.link}" />
+          <input type="text" name="link${status.count}" value="<c:out value="${entry.link}"/>" />
         </td>
       </tr>
     </c:forEach>
