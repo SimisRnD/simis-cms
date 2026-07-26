@@ -434,7 +434,9 @@
           <include name="**/*Tests.class" />
         </fileset>
         <fork>
-          <jvmarg value="${jacocoagent}"/>
+          <!-- Disabled JaCoCo agent due to incompatibility with Java 21 bytecode (major version 65+);
+               JaCoCo 0.8.11 fails to instrument java.sql.* classes. Requires upgrading to JaCoCo >= 0.8.12. -->
+          <!-- <jvmarg value="${jacocoagent}"/> -->
           <jvmarg value="-javaagent:${lib.test.dir}/byte-buddy-agent-1.14.10.jar"/>
           <jvmarg value="-Djava.awt.headless=true"/>
         </fork>
@@ -477,7 +479,9 @@
           <include name="**/*Tests.class" />
         </fileset>
         <fork>
-          <jvmarg value="${jacocoagent}"/>
+          <!-- Disabled JaCoCo agent due to incompatibility with Java 21 bytecode (major version 65+);
+               JaCoCo 0.8.11 fails to instrument java.sql.* classes. Requires upgrading to JaCoCo >= 0.8.12. -->
+          <!-- <jvmarg value="${jacocoagent}"/> -->
           <jvmarg value="-javaagent:${lib.test.dir}/byte-buddy-agent-1.14.10.jar"/>
           <jvmarg value="-Djava.awt.headless=true"/>
         </fork>
