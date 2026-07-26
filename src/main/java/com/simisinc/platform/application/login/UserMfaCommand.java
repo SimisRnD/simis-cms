@@ -77,7 +77,7 @@ public class UserMfaCommand {
     if (user == null || StringUtils.isBlank(user.getMfaSecret())) {
       return false;
     }
-    if (!TotpCommand.verifyCode(user.getMfaSecret(), code)) {
+    if (!TotpCommand.verifyCodeAndMarkUsed(user.getMfaSecret(), code, user.getId())) {
       LOG.debug("MFA enrollment code did not verify for user: " + user.getId());
       return false;
     }
