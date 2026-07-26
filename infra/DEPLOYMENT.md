@@ -159,12 +159,28 @@ az webapp log tail \
 Look for:
 - ✅ `Server startup in X milliseconds` (Tomcat started)
 - ✅ `Starting up the web database connection pool`
-- ✅ `Flyway version X.Y` and `Successfully validated X migrations`
+- ✅ `Flyway version X.Y` and `Successfully validated X migrations` OR `Acquired migration lock` / `Released migration lock` (multi-instance)
 - ✅ No `ERROR` or `FATAL` lines
+
+### 4.0 Database Migrations (Multi-Instance)
+
+The app uses Flyway for database schema management. In a multi-instance deployment (rolling update or scale-out):
+
+**Migration Lock Behavior:**
+- Primary instances (`CMS_NODE_TYPE` not set or `= primary`) acquire a distributed lock before running migrations
+- Lock is held for up to 5 minutes; prevents concurrent Flyway execution on multiple instances
+- Web-only instances (`CMS_NODE_TYPE=web`) skip migration lock and wait for primary to complete
+- Lock is released after migrations complete or on failure (no lock leak)
+
+**Log markers:**
+- `Acquired migration lock: «uuid»` → This instance is running migrations
+- `Released migration lock: «uuid»` → Migrations complete, lock released
+- `Web-only node detected; skipping migration lock acquisition` → This instance skipped migrations
+- `Could not acquire migration lock; another node is migrating` → Waiting for other node to finish
 
 If startup fails:
 - Check logs for the specific error (database, secrets, file store)
-- Common: missing Key Vault secret, DB password mismatch, connectivity
+- Common: missing Key Vault secret, DB password mismatch, connectivity, lock timeout
 - Redeploy with corrected parameter and wait for container restart
 
 ### 4.1 Background Job Storage (Multi-Instance)
