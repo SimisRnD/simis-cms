@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
  * P5.1: Media Asset domain model
  * Represents an uploaded media file (image, PDF) in the library
  */
-public class MediaAsset {
+public class MediaAsset extends Entity {
 
   private long id;
   private String assetId;
