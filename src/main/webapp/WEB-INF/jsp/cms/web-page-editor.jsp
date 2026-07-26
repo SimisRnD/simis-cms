@@ -100,7 +100,7 @@
   </div>
 --%>
   <div class="button-container">
-    <input type="submit" class="button radius success" value="Save"/>
+    <input type="submit" class="button radius success" value="Save" data-disable-on-submit="Saving..."/>
     <c:choose>
       <c:when test="${!empty returnPage}">
         <a href="${returnPage}" class="button radius secondary">Cancel</a>

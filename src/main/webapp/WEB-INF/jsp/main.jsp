@@ -721,6 +721,14 @@
               scrollTop: hash.offset().top-headerHeight
           }, 0);
         }
+        $(document).on('submit', 'form', function() {
+          $(this).find('[data-disable-on-submit]').each(function() {
+            var btn = $(this);
+            btn.prop('disabled', true);
+            var loadingText = btn.data('disable-on-submit');
+            if (btn.is('input')) { btn.val(loadingText); } else { btn.text(loadingText); }
+          });
+        });
       });
       function postAction(url) {
         var parser = document.createElement('a');
