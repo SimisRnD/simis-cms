@@ -118,4 +118,17 @@ public class ContentWidget extends GenericWidget {
     // Publish or Delete content based on the browser action
     return ContentHtmlCommand.performWebAction(context);
   }
+
+  public WidgetContext post(WidgetContext context) {
+    // The approve form is POSTed so the step-up credential never travels over GET
+    String action = context.getParameter("action");
+    if ("approve".equals(action)) {
+      execute(context);
+      if (!context.hasJsp()) {
+        return context;
+      }
+      return ContentHtmlCommand.performContentApproval(context);
+    }
+    return context;
+  }
 }

@@ -46,13 +46,16 @@
                trail ("cleared per PA case ...", "CO email dated ..."), which is what makes the trail
                exportable assessment evidence rather than just a timestamp. A GET form produces the
                same request shape as the action links beside it. --%>
-          <form method="get" action="${widgetContext.uri}" class="platform-content-review-form">
+          <form method="post" action="${widgetContext.uri}" class="platform-content-review-form">
             <input type="hidden" name="action" value="approve"/>
             <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
             <input type="hidden" name="token" value="${userSession.formToken}"/>
             <input type="text" name="releaseReference" maxlength="255"
                    placeholder="Release authority (e.g. cleared per PA case 2026-114)"
                    title="Optional: the approval authority to record in the audit trail"/>
+            <input type="password" name="stepUpCredential" maxlength="255"
+                   placeholder="Your password or authenticator code"
+                   title="Re-authentication required to approve content"/>
             <button type="submit" class="hollow button small success"
                     onclick="return confirm('Approve and publish this content?');">APPROVE</button>
           </form>
