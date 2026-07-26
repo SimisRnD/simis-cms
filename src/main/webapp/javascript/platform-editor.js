@@ -18,6 +18,9 @@
   var classPickerApplyFn = null;
   var prefsPanel = null;
   var prefsPanelTarget = null;
+  var widgetPicker = null;
+  var widgetPickerTarget = null;
+  var widgetNames = [];
   var activeContent = null;     // the .platform-content div currently being edited
   var activeWidget = null;      // its [data-editor-widget] ancestor
   var savedSelection = null;    // Selection saved before link prompt opens
@@ -844,6 +847,18 @@
         });
       });
       btns.appendChild(widthTriggerBtn);
+      // Add-widget trigger for this column (appends after last existing widget)
+      var addWidgetColBtn = document.createElement('button');
+      addWidgetColBtn.type = 'button';
+      addWidgetColBtn.className = 'sc-mutate-btn-add-widget sc-widget-trigger';
+      addWidgetColBtn.title = 'Add widget to column';
+      addWidgetColBtn.textContent = '+ Widget';
+      addWidgetColBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var widgetEls = el.querySelectorAll(':scope > [data-editor-widget]');
+        openWidgetPicker(addWidgetColBtn, s, c, widgetEls.length - 1);
+      });
+      btns.appendChild(addWidgetColBtn);
     } else if (type === 'widget') {
       // Prefs trigger — references its own button for panel positioning
       var prefsTriggerBtn = document.createElement('button');
@@ -856,6 +871,17 @@
         openPrefsPanel(prefsTriggerBtn, s, c, w, el.dataset.editorWidgetPrefs || '{}');
       });
       btns.appendChild(prefsTriggerBtn);
+      // Add-widget-after trigger for this widget position
+      var addWidgetAfterBtn = document.createElement('button');
+      addWidgetAfterBtn.type = 'button';
+      addWidgetAfterBtn.className = 'sc-mutate-btn-add-widget sc-widget-trigger';
+      addWidgetAfterBtn.title = 'Add widget after this one';
+      addWidgetAfterBtn.textContent = '+ Widget';
+      addWidgetAfterBtn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        openWidgetPicker(addWidgetAfterBtn, s, c, w);
+      });
+      btns.appendChild(addWidgetAfterBtn);
       addBtn('✕ Widget', 'sc-mutate-btn-remove', function () {
         showConfirm('Remove this widget?', 'Remove', true, function () {
           setToolbarStatus('Removing widget…');
@@ -1087,6 +1113,85 @@
     }).catch(function (err) { setToolbarStatus('Error: ' + err.message); });
   }
 
+  // ── Widget picker ─────────────────────────────────────────────────────────
+
+  function buildWidgetPicker() {
+    var p = document.createElement('div');
+    p.id = 'sc-widget-picker';
+    p.style.display = 'none';
+    p.innerHTML =
+      '<div class="sc-picker-header"><span>Add Widget</span>' +
+      '<button type="button" class="sc-picker-close" title="Close">&#215;</button></div>' +
+      '<input type="text" id="sc-widget-search" placeholder="Search widget…" autocomplete="off">' +
+      '<ul id="sc-widget-list"></ul>';
+    document.body.appendChild(p);
+
+    p.querySelector('.sc-picker-close').addEventListener('click', function () {
+      closeWidgetPicker();
+    });
+
+    var searchInput = p.querySelector('#sc-widget-search');
+    searchInput.addEventListener('input', function () {
+      filterWidgetList(searchInput.value);
+    });
+    searchInput.addEventListener('keydown', function (e) {
+      if (e.key === 'Escape') closeWidgetPicker();
+    });
+
+    return p;
+  }
+
+  function filterWidgetList(query) {
+    if (!widgetPicker) return;
+    var list = widgetPicker.querySelector('#sc-widget-list');
+    if (!list) return;
+    var q = query.trim().toLowerCase();
+    list.querySelectorAll('li').forEach(function (li) {
+      li.style.display = (!q || li.dataset.name.indexOf(q) !== -1) ? '' : 'none';
+    });
+  }
+
+  function openWidgetPicker(triggerEl, s, c, after) {
+    if (!widgetPicker) return;
+    widgetPickerTarget = {s: s, c: c, after: after};
+
+    var list = widgetPicker.querySelector('#sc-widget-list');
+    list.innerHTML = '';
+    widgetNames.forEach(function (name) {
+      var li = document.createElement('li');
+      li.dataset.name = name;
+      li.textContent = name;
+      li.addEventListener('click', function () {
+        var target = widgetPickerTarget;
+        closeWidgetPicker();
+        setToolbarStatus('Adding widget…');
+        mutatePage('addWidget', {s: target.s, c: target.c, after: target.after, widgetName: name}).then(function () {
+          markHasDraft();
+          window.location.reload();
+        }).catch(function (err) { setToolbarStatus('Error: ' + err.message); });
+      });
+      list.appendChild(li);
+    });
+
+    var searchInput = widgetPicker.querySelector('#sc-widget-search');
+    searchInput.value = '';
+    filterWidgetList('');
+
+    var rect = triggerEl.getBoundingClientRect();
+    var pw = 220;
+    var left = Math.min(rect.left, window.innerWidth - pw - 8);
+    widgetPicker.style.left = Math.max(8, left) + 'px';
+    widgetPicker.style.top = (rect.bottom + 4) + 'px';
+    widgetPicker.style.display = 'flex';
+
+    setTimeout(function () { searchInput.focus(); }, 0);
+  }
+
+  function closeWidgetPicker() {
+    if (widgetPicker) widgetPicker.style.display = 'none';
+    widgetPickerTarget = null;
+  }
+
   // ── Bootstrap ─────────────────────────────────────────────────────────────
 
   inlineToolbar = buildInlineToolbar();
@@ -1094,6 +1199,8 @@
   buildConfirmModal();
   widthPicker = buildWidthPicker();
   prefsPanel = buildPrefsPanel();
+  widgetPicker = buildWidgetPicker();
+  widgetNames = JSON.parse((toolbar && toolbar.dataset.widgetNames) || '[]');
 
   // Close width picker on outside click
   document.addEventListener('click', function (e) {
@@ -1105,6 +1212,11 @@
     if (prefsPanel && prefsPanel.style.display !== 'none') {
       if (!prefsPanel.contains(e.target) && !e.target.closest('.sc-prefs-trigger')) {
         closePrefsPanel();
+      }
+    }
+    if (widgetPicker && widgetPicker.style.display !== 'none') {
+      if (!widgetPicker.contains(e.target) && !e.target.closest('.sc-widget-trigger')) {
+        closeWidgetPicker();
       }
     }
   });
@@ -1186,6 +1298,7 @@
   // Keyboard shortcut: Escape exits editor or closes open panels
   document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') {
+      if (widgetPicker && widgetPicker.style.display !== 'none') { closeWidgetPicker(); return; }
       if (prefsPanel && prefsPanel.style.display !== 'none') { closePrefsPanel(); return; }
       if (widthPicker && widthPicker.style.display !== 'none') { closeWidthPicker(); return; }
       if (activeContent) deactivateEdit(true);

@@ -342,7 +342,8 @@
          data-page-path="<c:out value="${pageRenderInfo.pagePath}"/>"
          data-ctx="${ctx}"
          data-layout-mode="<c:out value="${pageLayoutMode}"/>"
-         data-has-draft="<c:out value="${hasDraft}"/>">
+         data-has-draft="<c:out value="${hasDraft}"/>"
+         data-widget-names="<c:out value="${widgetLibraryJson}"/>">
       <span id="sc-editor-toolbar-title">Visual Editor</span>
       <a href="${ctx}/admin/web-page-designer?webPage=<c:out value="${pageRenderInfo.pagePath}"/>" class="button small hollow secondary"><i class="fa fa-fw fa-code"></i> XML</a>
       <a href="?editMode=false" id="sc-editor-exit" class="button small hollow secondary"><i class="fa fa-fw fa-times"></i> Exit</a>

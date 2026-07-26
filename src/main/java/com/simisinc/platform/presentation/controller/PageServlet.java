@@ -458,6 +458,17 @@ public class PageServlet extends HttpServlet {
       // Determine the Page XML Layout for this request
       Page pageRef = WebPageXmlLayoutCommand.retrievePageForRequest(webPage, pagePath);
       Map<String, String> widgetLibrary = WebPageXmlLayoutCommand.getWidgetLibrary();
+      if (pageLayoutMode) {
+        StringBuilder wl = new StringBuilder("[");
+        boolean wlFirst = true;
+        for (String name : new TreeSet<>(widgetLibrary.keySet())) {
+          if (!wlFirst) wl.append(',');
+          wl.append('"').append(name.replace("\\", "\\\\").replace("\"", "\\\"")).append('"');
+          wlFirst = false;
+        }
+        wl.append(']');
+        request.setAttribute("widgetLibraryJson", wl.toString());
+      }
 
       // In edit mode, layout builders preview the draft layout (bypasses cache)
       if (pageEditMode && EditorPermissionCommand.canBuildLayout(userSession)
