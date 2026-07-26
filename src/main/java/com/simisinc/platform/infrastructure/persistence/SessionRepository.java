@@ -98,6 +98,10 @@ public class SessionRepository {
     return records;
   }
 
+  public static long countSessionsWithPii() {
+    return DB.selectCountFrom(TABLE_NAME, new SqlUtils().add("ip_address IS NOT NULL"));
+  }
+
   public static long countDistinctSessions(Timestamp startDate, Timestamp endDate) {
     // Query the data, skip some things
     SqlUtils where = new SqlUtils()
@@ -281,6 +285,46 @@ public class SessionRepository {
     SqlUtils set = new SqlUtils().add("visitor_id", visitor.getId());
     SqlUtils where = new SqlUtils().add("session_id = ?", userSession.getSessionId());
     DB.update(TABLE_NAME, set, where);
+  }
+
+  /**
+   * Nullifies PII columns for session rows older than {@code days} days. Idempotent — rows
+   * already scrubbed (ip_address IS NULL) are skipped. Returns the number of rows updated.
+   */
+  public static int scrubOldPii(int days) {
+    if (days < 1) {
+      return 0;
+    }
+    String sql = "UPDATE sessions " +
+        "SET ip_address = NULL, city = NULL, postal_code = NULL, latitude = NULL, longitude = NULL " +
+        "WHERE created < NOW() - INTERVAL '" + days + " days' AND ip_address IS NOT NULL";
+    try (Connection connection = DB.getConnection();
+         PreparedStatement pst = connection.prepareStatement(sql)) {
+      return pst.executeUpdate();
+    } catch (SQLException se) {
+      LOG.error("scrubOldPii SQLException: " + se.getMessage());
+    }
+    return 0;
+  }
+
+  /** Parses the configured analytics retention window to a bounded positive integer, defaulting to 365 days. */
+  public static int resolveRetentionDays(String value) {
+    if (StringUtils.isBlank(value)) {
+      return 365;
+    }
+    int days;
+    try {
+      days = Integer.parseInt(value.trim());
+    } catch (NumberFormatException e) {
+      return 365;
+    }
+    if (days < 1) {
+      return 1;
+    }
+    if (days > 3650) {
+      return 3650;
+    }
+    return days;
   }
 
   private static Session buildRecord(ResultSet rs) {
