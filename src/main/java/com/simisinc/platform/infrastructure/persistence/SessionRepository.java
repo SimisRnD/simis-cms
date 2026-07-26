@@ -283,6 +283,50 @@ public class SessionRepository {
     DB.update(TABLE_NAME, set, where);
   }
 
+  /**
+   * Nullifies PII columns (ip_address, city, postal_code, latitude, longitude) for session rows
+   * older than {@code days} days. Rows already scrubbed (ip_address IS NULL) are skipped so
+   * repeated runs are idempotent. Returns the number of rows updated.
+   */
+  public static int scrubOldPii(int days) {
+    if (days < 1) {
+      return 0;
+    }
+    // days is an int parsed and bounded before interpolation — no SQL injection risk.
+    String sql = "UPDATE sessions " +
+        "SET ip_address = NULL, city = NULL, postal_code = NULL, latitude = NULL, longitude = NULL " +
+        "WHERE created < NOW() - INTERVAL '" + days + " days' AND ip_address IS NOT NULL";
+    try (Connection connection = DB.getConnection();
+         PreparedStatement pst = connection.prepareStatement(sql)) {
+      return pst.executeUpdate();
+    } catch (SQLException se) {
+      LOG.error("scrubOldPii SQLException: " + se.getMessage());
+    }
+    return 0;
+  }
+
+  private static final int DEFAULT_RETENTION_DAYS = 365;
+
+  /** Parses the configured analytics retention window to a bounded positive integer, defaulting to 365 days. */
+  public static int resolveRetentionDays(String value) {
+    if (StringUtils.isBlank(value)) {
+      return DEFAULT_RETENTION_DAYS;
+    }
+    int days;
+    try {
+      days = Integer.parseInt(value.trim());
+    } catch (NumberFormatException e) {
+      return DEFAULT_RETENTION_DAYS;
+    }
+    if (days < 1) {
+      return 1;
+    }
+    if (days > 3650) {
+      return 3650;
+    }
+    return days;
+  }
+
   private static Session buildRecord(ResultSet rs) {
     try {
       Session record = new Session();
