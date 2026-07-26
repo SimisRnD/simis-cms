@@ -27,7 +27,7 @@
 <jsp:useBean id="buttonName" class="java.lang.String" scope="request"/>
 <jsp:useBean id="showPrice" class="java.lang.String" scope="request"/>
 <link rel="stylesheet" href="${ctx}/css/platform-ecommerce.css?v=<%= VERSION %>" />
-<script>
+<script nonce="${cspNonce}">
   function updatePrice() {
     var qty = $('#quantity').find(":selected").text();
     $('#price').html(new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(qty * ${productSku.price}));
@@ -39,7 +39,7 @@
   <input type="hidden" name="token" value="${userSession.formToken}"/>
   <%-- Title and Message block --%>
   <c:if test="${!empty title}">
-    <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}" /></h4>
+    <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
   </c:if>
   <%@include file="../page_messages.jspf" %>
   <div class="product-details-add-to-cart">

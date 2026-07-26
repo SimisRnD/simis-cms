@@ -25,7 +25,7 @@
 <jsp:useBean id="item" class="com.simisinc.platform.domain.model.items.Item" scope="request"/>
 <jsp:useBean id="activityList" class="java.util.ArrayList" scope="request"/>
 <c:if test="${!empty title}">
-  <h4 class="platform-activity-title"><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}"/></h4>
+  <h4 class="platform-activity-title"><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <div id="platform-activity-list${widgetContext.uniqueId}" class="platform-scrollable-view">
@@ -86,7 +86,7 @@
   </c:forEach>
 </ul>
 </div>
-<script>
+<script nonce="${cspNonce}">
   // Enable notifications
   if ("Notification" in window) {
     if (Notification.permission !== 'denied') {
@@ -109,7 +109,7 @@
     }
   }
 </script>
-<script>
+<script nonce="${cspNonce}">
   // Polling
   String.prototype.toHtmlEntities = function() {
     return this.replace(/./gm, function(s) {
@@ -240,7 +240,7 @@
     }, 5000);
   })();
 </script>
-<script>
+<script nonce="${cspNonce}">
     $(document).ready(function () {
         function resizeEditor() {
             var container = document.getElementById("platform-activity-list${widgetContext.uniqueId}");

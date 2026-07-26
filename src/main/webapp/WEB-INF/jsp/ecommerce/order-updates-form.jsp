@@ -28,7 +28,7 @@
 <jsp:useBean id="allowRegistrations" class="java.lang.String" scope="request"/>
 <jsp:useBean id="subscribeToNewsletter" class="java.lang.String" scope="request"/>
 <%-- Form body--%>
-<script>
+<script nonce="${cspNonce}">
   function checkForm${widgetContext.uniqueId}() {
     return true;
   }

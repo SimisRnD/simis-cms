@@ -39,7 +39,7 @@
 <%-- Render the widget --%>
 <div id="calendar-small"></div>
 <div id="tooltip" class="tooltip top align-center under-reveal" style="display:none"></div>
-<script>
+<script nonce="${cspNonce}">
   function showTooltip(el, event) {
     let content = "<h5>" + event.title+"</h5>";
     if (event.allDay === undefined || !event.allDay) {

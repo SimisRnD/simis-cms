@@ -36,7 +36,7 @@
   </c:if>
   <%-- Title and Message block --%>
   <c:if test="${!empty title}">
-    <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}"/></h4>
+    <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
   </c:if>
   <%@include file="../page_messages.jspf" %>
   <%-- Form Content --%>
@@ -52,7 +52,7 @@
       <input class="input-group-field" type="text" placeholder="mm-dd-yyyy time" id="startDate${widgetContext.uniqueId}" name="startDate" value="<fmt:formatDate pattern="MM-dd-yyyy HH:mm" value="${subFolder.startDate}" />">
     </div>
   </label>
-  <script>
+  <script nonce="${cspNonce}">
     $(function () {
       $('#startDate').fdatepicker({
         format: 'mm-dd-yyyy hh:ii',

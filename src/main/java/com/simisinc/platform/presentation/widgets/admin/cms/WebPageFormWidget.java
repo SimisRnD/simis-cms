@@ -29,6 +29,7 @@ import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.lang.reflect.InvocationTargetException;
+import java.sql.Timestamp;
 
 /**
  * Widget for displaying a system administration form to add/update web pages
@@ -111,6 +112,32 @@ public class WebPageFormWidget extends GenericWidget {
     String showInSitemap = context.getParameter("showInSitemap");
     if (StringUtils.isBlank(showInSitemap)) {
       webPageBean.setShowInSitemap(false);
+    }
+
+    // Parse optional scheduling timestamps (BeanUtils cannot convert String → Timestamp)
+    String publishAtStr = context.getParameter("publishAt");
+    if (StringUtils.isBlank(publishAtStr)) {
+      webPageBean.setPublishAt(null);
+    } else {
+      try {
+        webPageBean.setPublishAt(Timestamp.valueOf(publishAtStr.replace("T", " ") + ":00"));
+      } catch (IllegalArgumentException e) {
+        context.setErrorMessage("Go live date format is not valid");
+        context.setRequestObject(webPageBean);
+        return context;
+      }
+    }
+    String expiresAtStr = context.getParameter("expiresAt");
+    if (StringUtils.isBlank(expiresAtStr)) {
+      webPageBean.setExpiresAt(null);
+    } else {
+      try {
+        webPageBean.setExpiresAt(Timestamp.valueOf(expiresAtStr.replace("T", " ") + ":00"));
+      } catch (IllegalArgumentException e) {
+        context.setErrorMessage("Expire date format is not valid");
+        context.setRequestObject(webPageBean);
+        return context;
+      }
     }
 
     // Set the server values

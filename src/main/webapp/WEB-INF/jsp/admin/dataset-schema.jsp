@@ -27,7 +27,7 @@
 <jsp:useBean id="sampleRow" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="columnConfiguration" class="java.lang.String" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}" /></h4>
+  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <form method="post" onsubmit="return checkForm()">
