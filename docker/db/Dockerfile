@@ -44,3 +44,9 @@ RUN apt-get update \
 
 # Run init.sql
 ADD ./docker/db/init.sql /docker-entrypoint-initdb.d/
+
+# HEALTHCHECK: verify the database is accepting connections. pg_isready returns
+# 0 if the server is accepting connections, 3 if it is not (e.g., still starting).
+# Used by orchestrators for readiness probes and container restarts.
+HEALTHCHECK --interval=10s --timeout=5s --start-period=10s --retries=3 \
+  CMD pg_isready -U postgres -h 127.0.0.1 || exit 1

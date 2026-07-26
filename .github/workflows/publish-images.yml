@@ -114,6 +114,10 @@ jobs:
           output: trivy-simis-cms.sarif
           severity: CRITICAL,HIGH
           limit-severities-for-sarif: true
+          # --ignore-unfixed: report only actionable CVEs with available fixes.
+          # Reduces noise by filtering out will_not_fix findings (typically in base OS).
+          # The scan gate below enforces the zero-baseline on what remains.
+          args: --ignore-unfixed
           # Report scan: always exit 0 so the SARIF below reaches the Security
           # tab on every run. Enforcement is the separate gate step after the
           # upload -- splitting them means a failing gate never costs visibility.
@@ -197,6 +201,9 @@ jobs:
           output: trivy-simis-cms-db.sarif
           severity: CRITICAL,HIGH
           limit-severities-for-sarif: true
+          # --ignore-unfixed: report only actionable CVEs with available fixes.
+          # The VEX + .trivyignore gate below handles triaged not_affected findings.
+          args: --ignore-unfixed
           # Report scan, exit 0 -- same split as the application image above.
           exit-code: '0'
 
