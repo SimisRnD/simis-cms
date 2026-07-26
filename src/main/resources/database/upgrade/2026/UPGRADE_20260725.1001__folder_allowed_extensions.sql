@@ -1,0 +1,1 @@
+ALTER TABLE folders ADD COLUMN IF NOT EXISTS allowed_extensions VARCHAR(500);
