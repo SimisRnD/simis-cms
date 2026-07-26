@@ -59,7 +59,7 @@
 <%@include file="../page_messages.jspf" %>
 <div id="calendar"><c:if test="${(userSession.hasRole('admin') || userSession.hasRole('content-manager'))}"><small><i class="fa fa-calendar-plus-o"></i> Select a date range to create events</small></c:if></div>
 <div id="tooltip" class="tooltip top align-center under-reveal" style="display:none"></div>
-<script>
+<script nonce="${cspNonce}">
   function showTooltip(el, event) {
     let content = "<h5>" + event.title+"</h5>";
     if (event.allDay === undefined || !event.allDay) {
@@ -324,7 +324,7 @@
               <input class="input-group-field" type="text" placeholder="mm-dd-yyyy time" id="startDate" name="startDate" value="" required>
             </div>
           </label>
-          <script>
+          <script nonce="${cspNonce}">
             $(function(){
               $('#startDate').fdatepicker({
                 format: 'mm-dd-yyyy hh:ii',
@@ -341,7 +341,7 @@
               <input class="input-group-field" type="text" placeholder="mm-dd-yyyy time" id="endDate" name="endDate" value="" required>
             </div>
           </label>
-          <script>
+          <script nonce="${cspNonce}">
             $(function(){
               $('#endDate').fdatepicker({
                 format: 'mm-dd-yyyy hh:ii',
@@ -377,12 +377,12 @@
       </div>
     </form>
   </div>
-  <script>
+  <script nonce="${cspNonce}">
     function deleteCalendarEvent() {
       if (!confirm("Are you sure you want to DELETE this event?")) {
         return;
       }
-      window.location.href = '${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&id=' + encodeURIComponent(document.getElementById('id').value);
+      postAction('${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&id=' + encodeURIComponent(document.getElementById('id').value));
     }
     // Handle the modal and click event
     var eventLink = $('#eventLink');

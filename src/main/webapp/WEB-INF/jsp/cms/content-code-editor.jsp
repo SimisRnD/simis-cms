@@ -18,7 +18,7 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="codeContent" class="java.lang.String" scope="request"/>
 <script src="${ctx}/javascript/tinymce-7.9.3/tinymce.min.js"></script>
-<script>
+<script nonce="${cspNonce}">
 tinymce.init({
     license_key: 'gpl',
   selector: 'textarea',

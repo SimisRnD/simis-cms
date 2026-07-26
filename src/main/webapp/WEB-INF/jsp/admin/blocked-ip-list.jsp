@@ -25,7 +25,7 @@
 <jsp:useBean id="blockedIP" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="recordPaging" class="com.simisinc.platform.infrastructure.database.DataConstraints" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}" /></h4>
+  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <form id="fileForm" method="post" enctype="multipart/form-data">
@@ -37,7 +37,7 @@
   <label for="file" class="button small secondary radius float-left margin-left-0"><i class="fa fa-upload"></i> Upload CSV File</label>
   <input type="file" id="file" name="file" accept="text/csv" class="show-for-sr">
 </form>
-<script>
+<script nonce="${cspNonce}">
   document.getElementById("file").onchange = function() {
     document.getElementById("fileForm").submit();
   }
@@ -64,7 +64,7 @@
     <tr>
       <td nowrap="true">
         <c:out value="${text:trim(record.ipAddress, 24, true)}" />
-        <a href="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&blockedIPListId=${record.id}" onclick="return confirm('Are you sure you want to delete <c:out value="${js:escape(record.ipAddress)}" />?');"><i class="fa fa-remove"></i></a>
+        <a href="#" onclick="return confirmPostAction('Are you sure you want to delete <c:out value="${js:escape(record.ipAddress)}" />?', '${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&blockedIPListId=${record.id}');"><i class="fa fa-remove"></i></a>
       </td>
       <td><c:out value='${geoip:location(record.ipAddress, " ")}'/></td>
       <td nowrap="true"><small<c:if test="${fn:length(record.reason) > 40}"> title="<c:out value="${record.reason}" />"</c:if>><c:out value="${text:trim(record.reason, 40, true)}" /></small></td>

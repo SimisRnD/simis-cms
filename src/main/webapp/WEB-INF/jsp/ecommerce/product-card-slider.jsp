@@ -84,7 +84,7 @@
     </c:if>
   </c:if>
 </div>
-<script>
+<script nonce="${cspNonce}">
     var swiper${widgetContext.uniqueId} = new Swiper("#swiper${widgetContext.uniqueId}", {
         slidesPerView: <c:out value="${smallCardCount}" />,
         spaceBetween: 15,

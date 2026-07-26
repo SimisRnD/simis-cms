@@ -20,7 +20,7 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="order" class="com.simisinc.platform.domain.model.ecommerce.Order" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}" /></h4>
+  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <form method="post" onsubmit="return sendOrderRefundConfirmation()">
@@ -31,7 +31,7 @@
   <input type="hidden" name="uniqueId" value="${order.uniqueId}"/>
   <button id="sendOrderRefundConfirmationButton" class="button primary expanded">Send Refund Confirmation</button>
 </form>
-<script>
+<script nonce="${cspNonce}">
   function sendOrderRefundConfirmation() {
     if (document.getElementById("sendOrderRefundConfirmationButton").disabled === true) {
       return false;

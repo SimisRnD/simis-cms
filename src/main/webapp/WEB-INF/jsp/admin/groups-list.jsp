@@ -17,11 +17,12 @@
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="font" uri="/WEB-INF/tlds/font-functions.tld" %>
 <%@ taglib prefix="js" uri="/WEB-INF/tlds/javascript-escape.tld" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="groupList" class="java.util.ArrayList" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}" /></h4>
+  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <table class="unstriped">
@@ -44,7 +45,7 @@
       <td class="text-center"><fmt:formatNumber value="${group.userCount}" /></td>
       <td>
         <a href="${ctx}/admin/group?groupId=${group.id}"><i class="${font:fas()} fa-edit"></i></a>
-        <a href="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&groupId=${group.id}" onclick="return confirm('Are you sure you want to delete <c:out value="${js:escape(group.name)}" />?');"><i class="fa fa-remove"></i></a>
+        <a href="#" onclick="return confirmPostAction('Are you sure you want to delete <c:out value="${js:escape(group.name)}" />?', '${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&groupId=${group.id}');"><i class="fa fa-remove"></i></a>
       </td>
     </tr>
     </c:forEach>

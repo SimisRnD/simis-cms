@@ -63,7 +63,7 @@
   </div>
 </form>
 <c:if test="${expand eq 'true'}">
-<script>
+<script nonce="${cspNonce}">
     $(document).ready(function () {
         let form = $('#form${widgetContext.uniqueId}');
         let button = $('#button${widgetContext.uniqueId}');
