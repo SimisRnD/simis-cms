@@ -29,6 +29,7 @@ public class Session extends Entity {
   private Long id = -1L;
   private String sessionId = null;
   private boolean isBot = false;
+  private boolean isAnonymous = false;
   private String ipAddress = null;
   private String source = null;
   private String userAgent = null;
@@ -77,6 +78,14 @@ public class Session extends Entity {
 
   public void setIsBot(boolean bot) {
     isBot = bot;
+  }
+
+  public boolean getIsAnonymous() {
+    return isAnonymous;
+  }
+
+  public void setIsAnonymous(boolean anonymous) {
+    isAnonymous = anonymous;
   }
 
   public String getIpAddress() {
