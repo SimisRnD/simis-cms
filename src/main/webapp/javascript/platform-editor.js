@@ -728,6 +728,97 @@
     });
   }
 
+  // ── Structural mutations (add / remove section, column, widget) ─────────────
+
+  function mutatePage(action, params) {
+    var qs = new URLSearchParams();
+    qs.append('action', action);
+    qs.append('token', getToken());
+    if (params) {
+      Object.keys(params).forEach(function (k) {
+        if (params[k] !== undefined) qs.append(k, String(params[k]));
+      });
+    }
+    return fetch(window.location.pathname + '?' + qs.toString(), {
+      method: 'POST',
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'}
+    })
+    .then(function (resp) {
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      return resp.json();
+    })
+    .then(function (data) {
+      if (!data.success) throw new Error(data.error || 'Mutation failed');
+      return data;
+    });
+  }
+
+  function insertMutateButtons(el, type, s, c, w) {
+    var btns = document.createElement('div');
+    btns.className = 'sc-mutate-btns';
+
+    function addBtn(label, cls, onClick) {
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.className = cls;
+      btn.title = label;
+      btn.textContent = label;
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        onClick();
+      });
+      btns.appendChild(btn);
+    }
+
+    if (type === 'section') {
+      addBtn('+ Section', 'sc-mutate-btn-add', function () {
+        setToolbarStatus('Adding section…');
+        mutatePage('addSection', {after: s}).then(function () {
+          markHasDraft();
+          window.location.reload();
+        }).catch(function (err) { setToolbarStatus('Error: ' + err.message); });
+      });
+      addBtn('✕ Section', 'sc-mutate-btn-remove', function () {
+        showConfirm('Remove this section and all its content?', 'Remove', true, function () {
+          setToolbarStatus('Removing section…');
+          mutatePage('removeSection', {s: s}).then(function () {
+            markHasDraft();
+            window.location.reload();
+          }).catch(function (err) { setToolbarStatus('Error: ' + err.message); });
+        });
+      });
+    } else if (type === 'column') {
+      addBtn('+ Column', 'sc-mutate-btn-add', function () {
+        setToolbarStatus('Adding column…');
+        mutatePage('addColumn', {s: s, after: c}).then(function () {
+          markHasDraft();
+          window.location.reload();
+        }).catch(function (err) { setToolbarStatus('Error: ' + err.message); });
+      });
+      addBtn('✕ Column', 'sc-mutate-btn-remove', function () {
+        showConfirm('Remove this column and all its widgets?', 'Remove', true, function () {
+          setToolbarStatus('Removing column…');
+          mutatePage('removeColumn', {s: s, c: c}).then(function () {
+            markHasDraft();
+            window.location.reload();
+          }).catch(function (err) { setToolbarStatus('Error: ' + err.message); });
+        });
+      });
+    } else if (type === 'widget') {
+      addBtn('✕ Widget', 'sc-mutate-btn-remove', function () {
+        showConfirm('Remove this widget?', 'Remove', true, function () {
+          setToolbarStatus('Removing widget…');
+          mutatePage('removeWidget', {s: s, c: c, w: w}).then(function () {
+            markHasDraft();
+            window.location.reload();
+          }).catch(function (err) { setToolbarStatus('Error: ' + err.message); });
+        });
+      });
+    }
+
+    el.appendChild(btns);
+  }
+
   // ── Bootstrap ─────────────────────────────────────────────────────────────
 
   inlineToolbar = buildInlineToolbar();
@@ -748,18 +839,27 @@
       insertDragHandle(el, 'section');
       insertMoveButtons(el, 'section');
       makeDraggable(el, 'section');
+      insertMutateButtons(el, 'section', idx, -1, -1);
     }
   });
 
   // Columns
   document.querySelectorAll('[data-editor-column]').forEach(function (el) {
     var parts = el.dataset.editorColumn.split('-');
+    var colSectionIdx = parseInt(parts[0], 10);
     var colIdx = parseInt(parts[1], 10);
     insertHandle(el, 'column', 'Col ' + (colIdx + 1));
+    if (layoutMode) {
+      insertMutateButtons(el, 'column', colSectionIdx, colIdx, -1);
+    }
   });
 
   // Widgets
   document.querySelectorAll('[data-editor-widget]').forEach(function (el) {
+    var wParts = el.dataset.editorWidget.split('-');
+    var wSIdx = parseInt(wParts[0], 10);
+    var wCIdx = parseInt(wParts[1], 10);
+    var wIdx = parseInt(wParts[2], 10);
     var isContentWidget = !!el.querySelector('[data-content-unique-id]');
     var href = isContentWidget ? null : (ctx + '/admin/web-page-designer?webPage=' + encodeURIComponent(pagePath));
     insertHandle(el, 'widget', isContentWidget ? 'Content' : 'Widget', href);
@@ -767,12 +867,13 @@
       insertDragHandle(el, 'widget');
       insertMoveButtons(el, 'widget');
       makeDraggable(el, 'widget');
+      insertMutateButtons(el, 'widget', wSIdx, wCIdx, wIdx);
     }
   });
 
   // Click on a content block → activate inline editor
   document.addEventListener('click', function (e) {
-    if (e.target.closest('.sc-editor-drag-handle, .sc-move-btns, .sc-editor-handle')) return;
+    if (e.target.closest('.sc-editor-drag-handle, .sc-move-btns, .sc-mutate-btns, .sc-editor-handle')) return;
 
     var contentEl = e.target.closest('.platform-content[data-content-unique-id]');
     if (contentEl) {
