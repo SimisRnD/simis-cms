@@ -16,7 +16,10 @@
 
 package com.simisinc.platform.presentation.widgets.admin.login;
 
+import org.apache.commons.lang3.StringUtils;
+
 import com.simisinc.platform.application.LoadUserCommand;
+import com.simisinc.platform.application.login.StepUpAuthCommand;
 import com.simisinc.platform.domain.events.cms.UserPasswordResetEvent;
 import com.simisinc.platform.domain.model.Group;
 import com.simisinc.platform.domain.model.Role;
@@ -72,6 +75,40 @@ public class UserDetailsWidget extends GenericWidget {
 
     // Show the editor
     context.setJsp(JSP);
+    return context;
+  }
+
+  public WidgetContext post(WidgetContext context) {
+    long userId = context.getParameterAsLong("userId");
+    User user = LoadUserCommand.loadUser(userId);
+    if (user == null) {
+      context.setErrorMessage("The user record was not found");
+      context.setJsp(INVALID_USER_JSP);
+      return context;
+    }
+    String action = context.getParameter("action");
+    if ("resetPassword".equals(action)) {
+      String stepUpCredential = context.getParameter("stepUpCredential");
+      if (!StepUpAuthCommand.isValid(context.getUserSession())) {
+        if (StringUtils.isBlank(stepUpCredential)) {
+          context.addSharedRequestValue("stepUpRequired", "true");
+          context.getRequest().setAttribute("user", user);
+          context.setJsp(JSP);
+          return context;
+        }
+        User actingUser = LoadUserCommand.loadUser(context.getUserId());
+        if (!StepUpAuthCommand.verify(context.getUserSession(), actingUser, stepUpCredential)) {
+          context.setErrorMessage("Re-authentication failed. Enter your password or authenticator code.");
+          context.addSharedRequestValue("stepUpRequired", "true");
+          context.getRequest().setAttribute("user", user);
+          context.setJsp(JSP);
+          return context;
+        }
+      }
+      context.setRedirect("/admin/user-details?userId=" + userId);
+      return resetPassword(context, user);
+    }
+    context.setRedirect("/admin/user-details?userId=" + userId);
     return context;
   }
 
