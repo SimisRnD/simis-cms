@@ -125,7 +125,7 @@
                   <p class="no-gap">
                     <c:choose>
                       <c:when test="${!empty product.productUrl}">
-                        <a class="item-name" href="${product.productUrl}"><c:out value="${product.nameWithCaption}"/></a>
+                        <a class="item-name" href="<c:out value="${product.productUrl}"/>"><c:out value="${product.nameWithCaption}"/></a>
                       </c:when>
                       <c:otherwise>
                         <a class="item-name" href="${product.uniqueId}"><c:out value="${product.nameWithCaption}"/></a>
