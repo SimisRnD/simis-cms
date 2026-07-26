@@ -51,7 +51,11 @@
                   <a href="${ctx}${menuTab.link}"><c:out value="${menuTab.link}"/></a>
                 </c:when>
                 <c:otherwise>
-                  <i class="fa fa-arrows-h site-map-menu-tab-drag-handle"></i>
+                  <i class="fa fa-arrows-h site-map-menu-tab-drag-handle" aria-hidden="true"></i>
+                  <button type="button" class="button tiny secondary" style="margin:0 2px" aria-label="Move tab left"
+                          onclick="moveTabLeft('site-map-menu-tab-container-${menuTab.id}')">&#9664;</button>
+                  <button type="button" class="button tiny secondary" style="margin:0 2px" aria-label="Move tab right"
+                          onclick="moveTabRight('site-map-menu-tab-container-${menuTab.id}')">&#9654;</button>
                 </c:otherwise>
               </c:choose>
             </small>
@@ -83,7 +87,11 @@
                 --%>
                 <div class="float-left">
                   <small class="subheader">
-                    <i class="fa fa-arrows site-map-submenu-tab-drag-handle"></i>
+                    <i class="fa fa-arrows site-map-submenu-tab-drag-handle" aria-hidden="true"></i>
+                    <button type="button" class="button tiny secondary" style="margin:0 2px" aria-label="Move item up"
+                            onclick="moveItemUp('site-map-menu-item-${menuItem.id}')">&#9650;</button>
+                    <button type="button" class="button tiny secondary" style="margin:0 2px" aria-label="Move item down"
+                            onclick="moveItemDown('site-map-menu-item-${menuItem.id}')">&#9660;</button>
                     <%--<a href="${ctx}${menuItem.link}"><c:out value="${menuItem.link}" /></a>--%>
                   </small>
                 </div>
@@ -189,5 +197,28 @@
     menuItemOrderField.value = menuItemOrder;
 
     return true;
+  }
+
+  function moveTabLeft(id) {
+    var el = document.getElementById(id);
+    var prev = el.previousElementSibling;
+    if (prev && prev.id !== 'site-map-menu-tab-container-0') {
+      el.parentNode.insertBefore(el, prev);
+    }
+  }
+  function moveTabRight(id) {
+    var el = document.getElementById(id);
+    var next = el.nextElementSibling;
+    if (next) { el.parentNode.insertBefore(next, el); }
+  }
+  function moveItemUp(id) {
+    var el = document.getElementById(id);
+    var prev = el.previousElementSibling;
+    if (prev) el.parentNode.insertBefore(el, prev);
+  }
+  function moveItemDown(id) {
+    var el = document.getElementById(id);
+    var next = el.nextElementSibling;
+    if (next) el.parentNode.insertBefore(next, el);
   }
 </script>

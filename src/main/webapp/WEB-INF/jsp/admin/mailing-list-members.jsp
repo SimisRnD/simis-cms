@@ -93,11 +93,11 @@
 <%-- Paging Control --%>
 <c:set var="recordPagingParams" scope="request" value="mailingListId=${mailingList.id}"/>
 <%@include file="../paging_control.jspf" %>
-<div class="reveal small" id="formReveal" data-reveal data-close-on-click="false" data-animation-in="slide-in-down fast">
+<div class="reveal small" id="formReveal" data-reveal data-close-on-click="false" data-animation-in="slide-in-down fast" role="dialog" aria-modal="true" aria-labelledby="mailingFormRevealTitle">
   <button class="close-button" data-close aria-label="Close modal" type="button">
     <span aria-hidden="true">&times;</span>
   </button>
-  <h4>Add Email</h4>
+  <h4 id="mailingFormRevealTitle">Add Email</h4>
   <form id="userForm" method="post" autocomplete="off">
     <%-- Required by controller --%>
     <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
