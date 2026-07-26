@@ -30,6 +30,9 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
+
 /**
  * Time-based one-time password support (TOTP, RFC 6238) for multi-factor authentication. Generates the shared secret
  * and the otpauth:// enrollment URI an authenticator app consumes, and verifies user-supplied codes. This is the
@@ -48,6 +51,12 @@ public class TotpCommand {
   private static final int ALLOWED_DRIFT_STEPS = 1;   // accept the adjacent steps to tolerate clock skew
   private static final String HMAC_ALGORITHM = "HmacSHA1";
   private static final int[] DIGITS_DIVISOR = { 1, 10, 100, 1000, 10000, 100000, 1000000, 10000000, 100000000 };
+
+  // Replay-prevention cache: key = "userId:code", TTL 90s = 3 * PERIOD_SECONDS (covers ±1 drift window)
+  private static final Cache<String, Boolean> REPLAY_CACHE = Caffeine.newBuilder()
+      .maximumSize(10_000)
+      .expireAfterWrite(90, java.util.concurrent.TimeUnit.SECONDS)
+      .build();
 
   private TotpCommand() {
     // Static utility, not instantiated
@@ -91,6 +100,28 @@ public class TotpCommand {
    */
   public static boolean verifyCode(String base32Secret, String code) {
     return verifyCode(base32Secret, code, Instant.now().getEpochSecond());
+  }
+
+  /**
+   * Verifies a code and marks it as used so it cannot be replayed within the same validity window (90 seconds).
+   * Callers that have the user ID should prefer this over verifyCode to prevent replay attacks.
+   *
+   * @param base32Secret the user's Base32 secret
+   * @param code the code entered by the user
+   * @param userId the authenticated user's ID (used as part of the replay-cache key)
+   * @return true when the code is valid and has not already been used by this user
+   */
+  public static boolean verifyCodeAndMarkUsed(String base32Secret, String code, long userId) {
+    if (!verifyCode(base32Secret, code)) {
+      return false;
+    }
+    String cacheKey = userId + ":" + code.trim();
+    if (REPLAY_CACHE.getIfPresent(cacheKey) != null) {
+      LOG.warn("TOTP replay detected for user id: " + userId);
+      return false;
+    }
+    REPLAY_CACHE.put(cacheKey, Boolean.TRUE);
+    return true;
   }
 
   /**

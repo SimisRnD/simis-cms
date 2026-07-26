@@ -127,10 +127,20 @@ public class RestRequestFilter implements Filter {
       if (!isLocal
           && !InetAddressUtils.isIPv4(request.getServerName())
           && !InetAddressUtils.isIPv6(request.getServerName())) {
-        String requestURL = ((HttpServletRequest) request).getRequestURL().toString();
-        requestURL = StringUtils.replace(requestURL, "http://", "https://");
-        LOG.debug("Redirecting to: " + requestURL);
-        do301(servletResponse, requestURL);
+        String redirectURL;
+        if (HostnameCommand.isExplicitlyAllowed(request.getServerName())) {
+          redirectURL = StringUtils.replace(((HttpServletRequest) request).getRequestURL().toString(), "http://", "https://");
+        } else {
+          String siteUrl = StringUtils.trimToNull(LoadSitePropertyCommand.loadByName("site.url"));
+          if (siteUrl == null) {
+            LOG.warn("SSL redirect skipped: site.url is not configured and hostname is not allow-listed");
+            chain.doFilter(request, servletResponse);
+            return;
+          }
+          redirectURL = StringUtils.removeEnd(siteUrl, "/") + HostnameCommand.safeRedirectPath(requestURI);
+        }
+        LOG.debug("Redirecting to: " + redirectURL);
+        do301(servletResponse, redirectURL);
         return;
       }
     }

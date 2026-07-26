@@ -32,4 +32,5 @@ public class SessionConstants {
   public static final String OAUTH_STATE = "oauthState";
   public static final String MFA_PENDING_USER_ID = "mfaPendingUserId";
   public static final String MFA_PENDING_SINCE = "mfaPendingSince";
+  public static final String PAGE_EDIT_MODE = "pageEditMode";
 }
