@@ -28,7 +28,7 @@
     if (!confirm("Are you sure you want to delete this blog and all of its posts?")) {
       return;
     }
-    window.location.href = '${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&id=' + blogId;
+    postAction('${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&id=' + blogId);
   }
 </script>
 </c:if>

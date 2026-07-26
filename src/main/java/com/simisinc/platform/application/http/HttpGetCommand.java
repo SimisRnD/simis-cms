@@ -29,7 +29,15 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.commons.validator.routines.UrlValidator;
 
 /**
- * Functions for working with http requests
+ * Functions for working with http requests.
+ *
+ * <p>Use {@link #executeUserUrl(String)} (and the overloads) when the URL comes from
+ * untrusted input (user data, admin-entered source URLs, or URLs derived from fetched
+ * responses). Those methods run the SSRF guard automatically before connecting.
+ *
+ * <p>Use {@link #execute(String)} only for URLs that are constructed from fixed,
+ * operator-controlled configuration (third-party API base URLs, OAuth endpoints, etc.)
+ * that may legitimately resolve to internal addresses in some deployments.
  *
  * @author matt rajkowski
  * @created 2/7/2020 4:25 PM
@@ -40,6 +48,18 @@ public class HttpGetCommand {
 
   public static final int GET = 1;
   public static final int DELETE = 2;
+
+  /**
+   * Validates that {@code url} is SSRF-safe, then fetches it. Returns null and logs a
+   * warning if the guard rejects the URL. Use this for any URL derived from untrusted input.
+   */
+  public static String executeUserUrl(String url) {
+    if (!RemoteUrlValidationCommand.isFetchAllowed(url)) {
+      LOG.warn("Blocked an SSRF-unsafe user-supplied url: " + url);
+      return null;
+    }
+    return execute(url, GET);
+  }
 
   public static String execute(String url) {
     return execute(url, GET);

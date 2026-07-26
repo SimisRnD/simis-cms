@@ -32,7 +32,7 @@
       if (!confirm("Are you sure you want to DELETE this post?")) {
         return;
       }
-      window.location.href = '${widgetContext.uri}?action=deletePost&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&blogPostId=${blogPost.id}';
+      postAction('${widgetContext.uri}?action=deletePost&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&blogPostId=${blogPost.id}');
     }
   </script>
 </c:if>

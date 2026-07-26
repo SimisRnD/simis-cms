@@ -39,6 +39,6 @@
     <input type="text" placeholder="Describe it..." name="summary" value="<c:out value="${item.summary}"/>">
   </label>
   <div class="button-container">
-    <input type="submit" class="button radius success expanded" value="Save"/>
+    <input type="submit" class="button radius success expanded" value="Save" data-disable-on-submit="Saving..."/>
   </div>
 </form>

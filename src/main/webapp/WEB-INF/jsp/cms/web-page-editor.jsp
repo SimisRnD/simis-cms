@@ -101,7 +101,7 @@
   </div>
 --%>
   <div class="button-container">
-    <input type="submit" class="button radius success" value="Save"/>
+    <input type="submit" class="button radius success" value="Save" data-disable-on-submit="Saving..."/>
     <c:choose>
       <c:when test="${!empty returnPage}">
         <a href="${returnPage}" class="button radius secondary">Cancel</a>
@@ -134,14 +134,14 @@
     if (!confirm("Are you sure you want to delete this menu tab and all of its submenu items?")) {
       return;
     }
-    window.location.href = '${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&menuTabId=' + index;
+    postAction('${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&menuTabId=' + index);
   }
 
   function deleteMenuItem(index) {
     if (!confirm("Are you sure you want to delete this sub menu item?")) {
       return;
     }
-    window.location.href = '${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&menuItemId=' + index;
+    postAction('${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&menuItemId=' + index);
   }
 
   var menuItems = dragula([

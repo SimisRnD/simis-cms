@@ -31,7 +31,7 @@
   <c:if test="${userSession.hasRole('admin')}">
     <small>
       <a href="${ctx}/admin/folder?folderId=${folder.id}&returnPage=${widgetContext.uri}?folderId=${folder.id}"><i class="${font:fas()} fa-edit"></i></a>
-      <a href="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&folderId=${folder.id}" onclick="return confirm('Are you sure you want to delete <c:out value="${js:escape(folder.name)}" />?');"><i class="fa fa-remove"></i></a>
+      <a href="#" onclick="return confirmPostAction('Are you sure you want to delete <c:out value="${js:escape(folder.name)}" />?', '${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&folderId=${folder.id}');"><i class="fa fa-remove"></i></a>
     </small>
   </c:if>
 </h3>

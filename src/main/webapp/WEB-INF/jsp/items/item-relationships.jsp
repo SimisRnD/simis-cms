@@ -31,7 +31,7 @@
       if (!confirm("Are you sure you want to remove the relationship?")) {
         return;
       }
-      window.location.href = '${widgetContext.uri}?action=removeRelationship&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&relatedItemId=' + relatedItemId;
+      postAction('${widgetContext.uri}?action=removeRelationship&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&relatedItemId=' + relatedItemId);
     }
   </script>
 </c:if>

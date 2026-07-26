@@ -59,7 +59,7 @@
             <a href="${ctx}/admin/collection-details?collectionId=${relationship.relatedCollectionId}"><c:out value="${collection:name(relationship.relatedCollectionId)}" /></a>
           </c:otherwise>
         </c:choose>
-        <a href="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&relationshipId=${relationship.id}" onclick="return confirm('Are you sure you want to remove <c:out value="${js:escape('this relationship')}" />?');"><i class="fa fa-remove"></i></a>
+        <a href="#" onclick="return confirmPostAction('Are you sure you want to remove <c:out value="${js:escape('this relationship')}" />?', '${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&relationshipId=${relationship.id}');"><i class="fa fa-remove"></i></a>
       </td>
     </tr>
     </c:forEach>
