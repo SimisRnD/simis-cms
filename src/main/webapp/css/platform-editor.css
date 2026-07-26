@@ -419,6 +419,52 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-move-btns {
   color: #fff;
 }
 
+/* ── Structural mutation buttons (add / remove section, column, widget) ── */
+
+.sc-mutate-btns {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  display: none;
+  gap: 2px;
+  z-index: 101;
+  padding: 2px;
+}
+
+body.page-edit-mode [data-editor-section]:hover > .sc-mutate-btns,
+body.page-edit-mode [data-editor-column]:hover > .sc-mutate-btns,
+body.page-edit-mode [data-editor-widget]:hover > .sc-mutate-btns {
+  display: flex;
+}
+
+.sc-mutate-btns button {
+  border: none;
+  color: #fff;
+  font-size: 10px;
+  padding: 2px 6px;
+  cursor: pointer;
+  border-radius: 2px;
+  line-height: 1.4;
+  font-family: sans-serif;
+  white-space: nowrap;
+}
+
+.sc-mutate-btn-add {
+  background: rgba(0, 86, 179, 0.75);
+}
+
+.sc-mutate-btn-add:hover {
+  background: #0056b3;
+}
+
+.sc-mutate-btn-remove {
+  background: rgba(192, 57, 43, 0.75);
+}
+
+.sc-mutate-btn-remove:hover {
+  background: #c0392b;
+}
+
 /* Link prompt overlay */
 #sc-link-prompt {
   position: absolute;
