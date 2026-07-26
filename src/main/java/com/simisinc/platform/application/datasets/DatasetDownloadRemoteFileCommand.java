@@ -48,6 +48,7 @@ import com.simisinc.platform.infrastructure.persistence.datasets.DatasetReposito
 public class DatasetDownloadRemoteFileCommand {
 
   private static Log LOG = LogFactory.getLog(DatasetDownloadRemoteFileCommand.class);
+  private static final int MAX_PAGES = 1000;
 
   public static boolean handleRemoteFileDownload(Dataset dataset, long userId) throws DataException {
     if (StringUtils.isBlank(dataset.getSourceUrl())) {
@@ -219,66 +220,65 @@ public class DatasetDownloadRemoteFileCommand {
       throw new IOException("currentJson is null");
     }
 
-    // Advance to the paging path
-    String nextUrl = null;
     String[] pagingPath = jsonPagingPath.split("/");
-    for (String fieldName : pagingPath) {
-      if (StringUtils.isNotBlank(fieldName) && currentJson.has(fieldName)) {
-        JsonNode thisNode = currentJson.get(fieldName);
-        if (!thisNode.isNull()) {
-          nextUrl = thisNode.asText();
-        }
-      }
-    }
-    // Determine if there's another page
-    if (StringUtils.isBlank(nextUrl)) {
-      LOG.debug("Next url is empty");
-      return;
-    }
-    LOG.debug("Next url: " + nextUrl);
-
-    // [SSRF] nextUrl comes from the fetched response, so it is fully controlled by whoever
-    // runs the source server -- validate it before following, exactly like the source url.
-    if (!RemoteUrlValidationCommand.isFetchAllowed(nextUrl)) {
-      throw new IOException("Blocked a paging url that is not permitted: " + nextUrl);
-    }
-
-    // Use the url to get the next page content
-    String content = HttpGetCommand.execute(nextUrl);
-    if (StringUtils.isBlank(content)) {
-      throw new IOException("Content is blank");
-    }
-
-    // Access the new records and append them to the original json
-    JsonNode nextJson = JsonLoader.fromString(content);
-    JsonNode newRecordsJson = null;
-
-    // Advance to the records path, if known
     String[] recordsPath = jsonRecordsPath.split("/");
-    for (String fieldName : recordsPath) {
-      if (StringUtils.isBlank(fieldName)) {
-        continue;
-      }
-      if (newRecordsJson == null) {
-        if (nextJson.has(fieldName)) {
-          newRecordsJson = nextJson.get(fieldName);
+
+    for (int page = 0; page < MAX_PAGES; page++) {
+      // Advance to the paging path in the current page's JSON
+      String nextUrl = null;
+      for (String fieldName : pagingPath) {
+        if (StringUtils.isNotBlank(fieldName) && currentJson.has(fieldName)) {
+          JsonNode thisNode = currentJson.get(fieldName);
+          if (!thisNode.isNull()) {
+            nextUrl = thisNode.asText();
+          }
         }
-      } else {
-        if (newRecordsJson.has(fieldName)) {
-          newRecordsJson = newRecordsJson.get(fieldName);
+      }
+      // No more pages
+      if (StringUtils.isBlank(nextUrl)) {
+        LOG.debug("Next url is empty");
+        return;
+      }
+      LOG.debug("Next url: " + nextUrl);
+
+      // [SSRF] nextUrl comes from the fetched response, so it is fully controlled by whoever
+      // runs the source server -- validate it before following, exactly like the source url.
+      if (!RemoteUrlValidationCommand.isFetchAllowed(nextUrl)) {
+        throw new IOException("Blocked a paging url that is not permitted: " + nextUrl);
+      }
+
+      String content = HttpGetCommand.execute(nextUrl);
+      if (StringUtils.isBlank(content)) {
+        throw new IOException("Content is blank");
+      }
+
+      JsonNode nextJson = JsonLoader.fromString(content);
+      JsonNode newRecordsJson = null;
+      for (String fieldName : recordsPath) {
+        if (StringUtils.isBlank(fieldName)) {
+          continue;
+        }
+        if (newRecordsJson == null) {
+          if (nextJson.has(fieldName)) {
+            newRecordsJson = nextJson.get(fieldName);
+          }
+        } else {
+          if (newRecordsJson.has(fieldName)) {
+            newRecordsJson = newRecordsJson.get(fieldName);
+          }
         }
       }
-    }
-    if (newRecordsJson == null || !newRecordsJson.isArray()) {
-      throw new IOException("No records in nextJson");
-    }
-    // Append the records
-    for (JsonNode element : newRecordsJson) {
-      ((ArrayNode) jsonRecordsNode).add(element);
+      if (newRecordsJson == null || !newRecordsJson.isArray()) {
+        throw new IOException("No records in nextJson");
+      }
+      for (JsonNode element : newRecordsJson) {
+        ((ArrayNode) jsonRecordsNode).add(element);
+      }
+
+      currentJson = nextJson;
     }
 
-    // Keep going
-    appendNextUrls(jsonRecordsNode, nextJson, jsonPagingPath, jsonRecordsPath);
+    throw new IOException("Paged download exceeded the " + MAX_PAGES + "-page limit");
   }
 
 }

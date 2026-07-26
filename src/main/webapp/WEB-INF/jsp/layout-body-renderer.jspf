@@ -14,7 +14,7 @@
   ~ limitations under the License.
   --%>
 <c:set var="stickyMarginTop" scope="request" value="8"/>
-<article>
+<main id="main">
   <div class="${rendererClass}">
     <c:if test="${!fn:startsWith(pageRenderInfo.name, '/admin') && userSession.hasRole('admin')}">
       <div class="platform-content-container">
@@ -34,13 +34,13 @@
       <%-- Determine the section container CSS --%>
       <c:choose>
         <c:when test="${empty section.cssClass && fn:startsWith(pageRenderInfo.name, '/admin')}">
-          <div id="<c:out value="${sectionId}"/>" class="grid-x grid-padding-x"<c:if test="${!empty section.cssStyle}"> style="<c:out value="${section.cssStyle}" />"</c:if><c:if test="${pageEditMode eq 'true'}"> data-editor-section="${sectionStatus.index}"</c:if>>
+          <div id="<c:out value="${sectionId}"/>" class="grid-x grid-padding-x"<c:if test="${!empty section.cssStyle}"> style="<c:out value="${section.cssStyle}" />"</c:if><c:if test="${pageEditMode eq 'true'}"> data-editor-section="${sectionStatus.index}" data-editor-section-class="<c:out value="${section.cssClass}"/>"</c:if>>
         </c:when>
         <c:when test="${!empty section.cssClass && (fn:contains(section.cssClass,'grid') || fn:contains(section.cssClass,'platform-no-margin'))}">
-          <div id="<c:out value="${sectionId}"/>" class="<c:out value="${section.cssClass}"/>"<c:if test="${!empty section.cssStyle}"> style="<c:out value="${section.cssStyle}" />"</c:if><c:if test="${pageEditMode eq 'true'}"> data-editor-section="${sectionStatus.index}"</c:if>>
+          <div id="<c:out value="${sectionId}"/>" class="<c:out value="${section.cssClass}"/>"<c:if test="${!empty section.cssStyle}"> style="<c:out value="${section.cssStyle}" />"</c:if><c:if test="${pageEditMode eq 'true'}"> data-editor-section="${sectionStatus.index}" data-editor-section-class="<c:out value="${section.cssClass}"/>"</c:if>>
         </c:when>
         <c:otherwise>
-          <div class="full-container" id="<c:out value="${sectionId}"/>"<c:if test="${!empty section.cssStyle}"> style="<c:out value="${section.cssStyle}" />"</c:if><c:if test="${pageEditMode eq 'true'}"> data-editor-section="${sectionStatus.index}"</c:if>>
+          <div class="full-container" id="<c:out value="${sectionId}"/>"<c:if test="${!empty section.cssStyle}"> style="<c:out value="${section.cssStyle}" />"</c:if><c:if test="${pageEditMode eq 'true'}"> data-editor-section="${sectionStatus.index}" data-editor-section-class="<c:out value="${section.cssClass}"/>"</c:if>>
 <%--          <div class="full-container"<c:if test="${!empty section.htmlId}"> id="${section.htmlId}"</c:if>>--%>
             <div class="grid-container">
               <div class="grid-x grid-margin-x<c:if test="${!empty section.cssClass}"> <c:out value="${section.cssClass}"/></c:if>">
@@ -81,12 +81,12 @@
               ${widget.content}
             </c:when>
             <c:when test="${!empty widget.cssClass}">
-              <div <c:if test="${!empty widget.htmlId}">id="<c:out value="${widget.htmlId}"/>" </c:if>class="<c:out value="${widget.cssClass}"/>"<c:if test="${!empty widget.cssStyle}"> style="<c:out value="${widget.cssStyle}" />"</c:if><c:if test="${widget.sticky}"> data-sticky data-margin-top="<c:out value="${stickyMarginTop}"/>" data-top-anchor="<c:out value="${columnId}"/>" data-btm-anchor="platform-footer"</c:if><c:if test="${pageEditMode eq 'true'}"> data-editor-widget="${sectionStatus.index}-${columnStatus.index}-${widgetStatus.index}"</c:if>>
+              <div <c:if test="${!empty widget.htmlId}">id="<c:out value="${widget.htmlId}"/>" </c:if>class="<c:out value="${widget.cssClass}"/>"<c:if test="${!empty widget.cssStyle}"> style="<c:out value="${widget.cssStyle}" />"</c:if><c:if test="${widget.sticky}"> data-sticky data-margin-top="<c:out value="${stickyMarginTop}"/>" data-top-anchor="<c:out value="${columnId}"/>" data-btm-anchor="platform-footer"</c:if><c:if test="${pageEditMode eq 'true'}"> data-editor-widget="${sectionStatus.index}-${columnStatus.index}-${widgetStatus.index}" data-editor-widget-prefs="<c:out value="${widget.prefsJson}"/>"</c:if>>
                 ${widget.content}
               </div>
             </c:when>
             <c:otherwise>
-              <div<c:if test="${!empty widget.htmlId}"> id="<c:out value="${widget.htmlId}"/>"</c:if><c:if test="${!empty widget.cssStyle}"> style="<c:out value="${widget.cssStyle}" />"</c:if><c:if test="${widget.sticky}"> data-sticky data-margin-top="<c:out value="${stickyMarginTop}"/>" data-top-anchor="<c:out value="${columnId}"/>" data-btm-anchor="platform-footer"</c:if><c:if test="${pageEditMode eq 'true'}"> data-editor-widget="${sectionStatus.index}-${columnStatus.index}-${widgetStatus.index}"</c:if>>
+              <div<c:if test="${!empty widget.htmlId}"> id="<c:out value="${widget.htmlId}"/>"</c:if><c:if test="${!empty widget.cssStyle}"> style="<c:out value="${widget.cssStyle}" />"</c:if><c:if test="${widget.sticky}"> data-sticky data-margin-top="<c:out value="${stickyMarginTop}"/>" data-top-anchor="<c:out value="${columnId}"/>" data-btm-anchor="platform-footer"</c:if><c:if test="${pageEditMode eq 'true'}"> data-editor-widget="${sectionStatus.index}-${columnStatus.index}-${widgetStatus.index}" data-editor-widget-prefs="<c:out value="${widget.prefsJson}"/>"</c:if>>
                 ${widget.content}
               </div>
             </c:otherwise>
@@ -128,4 +128,4 @@
       </div>
     </c:if>
   </div>
-</article>
+</main>

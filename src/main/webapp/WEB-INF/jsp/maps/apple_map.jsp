@@ -31,7 +31,7 @@ NOT IMPLEMENTED
 
 <%-- Render the widget --%>
 <div id="mapid" style="height: ${mapHeight}px;"></div>
-<script>
+<script nonce="${cspNonce}">
   var mymap = L.map('mapid').setView([${latitude}, ${longitude}], 13);
 
   <c:choose>

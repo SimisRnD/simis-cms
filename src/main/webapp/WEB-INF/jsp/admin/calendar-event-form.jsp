@@ -29,7 +29,7 @@
   </c:if>
   <%-- Title and Message block --%>
   <c:if test="${!empty title}">
-    <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}"/></h4>
+    <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
   </c:if>
   <%@include file="../page_messages.jspf" %>
   <%-- Form Content --%>
@@ -37,10 +37,9 @@
     <input type="text" placeholder="Name of event" name="title" value="<c:out value="${calendarEvent.title}"/>">
   </label>
   <label>Description
-    <input type="text" placeholder="Describe it..." name="description" value="<c:out value="${blog.description}"/>">
+    <input type="text" placeholder="Describe it..." name="description" value="<c:out value="${calendarEvent.description}"/>">
   </label>
   <label>All day?
-    <%--<input id="enabled" type="checkbox" name="allDay" value="true" <c:if test="${calendarEvent.allDay}">checked</c:if>/>--%>
     <div class="switch large">
       <input class="switch-input" id="allDay-yes-no" type="checkbox" name="allDay" value="true"<c:if test="${calendarEvent.allDay}"> checked</c:if>>
       <label class="switch-paddle" for="allDay-yes-no">
@@ -49,14 +48,58 @@
       </label>
     </div>
   </label>
+  <div class="grid-x grid-margin-x">
+    <div class="small-12 medium-6 cell">
+      <label for="startDate">Start Date/Time
+        <div class="input-group">
+          <input type="text" placeholder="Click to select..." id="startDate" name="startDate" value="<c:out value="${calendarEvent.startDate}"/>" readonly aria-label="Select event start date and time" />
+          <span class="input-group-addon">
+            <i class="fa fa-calendar"></i>
+          </span>
+        </div>
+      </label>
+      <small class="help-text"><i class="fa fa-info-circle"></i> Format: mm-dd-yyyy hh:ii (e.g., 07-26-2026 14:30)</small>
+      <script>
+        $(function () {
+          $('#startDate').fdatepicker({
+            format: 'mm-dd-yyyy hh:ii',
+            disableDblClickSelection: true,
+            pickTime: true
+          });
+        });
+      </script>
+    </div>
+    <div class="small-12 medium-6 cell">
+      <label for="endDate">End Date/Time
+        <div class="input-group">
+          <input type="text" placeholder="Click to select..." id="endDate" name="endDate" value="<c:out value="${calendarEvent.endDate}"/>" readonly aria-label="Select event end date and time" />
+          <span class="input-group-addon">
+            <i class="fa fa-calendar"></i>
+          </span>
+        </div>
+      </label>
+      <small class="help-text"><i class="fa fa-info-circle"></i> Must be after start time</small>
+      <script>
+        $(function () {
+          $('#endDate').fdatepicker({
+            format: 'mm-dd-yyyy hh:ii',
+            disableDblClickSelection: true,
+            pickTime: true
+          });
+        });
+      </script>
+    </div>
+  </div>
+  <link rel="stylesheet" href="${ctx}/javascript/foundation-datepicker-20180424/foundation-datepicker.css" />
+  <script src="${ctx}/javascript/foundation-datepicker-20180424/foundation-datepicker.js"></script>
   <div class="button-container">
     <c:choose>
       <c:when test="${!empty returnPage}">
-        <input type="submit" class="button radius success" value="Save"/>
+        <input type="submit" class="button radius primary" value="Save"/>
         <a href="${returnPage}" class="button radius secondary">Cancel</a>
       </c:when>
       <c:otherwise>
-        <input type="submit" class="button radius success expanded" value="Save"/>
+        <input type="submit" class="button radius primary expanded" value="Save"/>
       </c:otherwise>
     </c:choose>
   </div>

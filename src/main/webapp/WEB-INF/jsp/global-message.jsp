@@ -21,13 +21,13 @@
     <div class="callout radius alert" role="alert" tabindex="-1">
       <p class="text-center"><c:out value="${messageValue}" /></p>
     </div>
-    <script>document.addEventListener('DOMContentLoaded',function(){var el=document.querySelector('[role="alert"]');if(el)el.focus();});</script>
+    <script nonce="${cspNonce}">document.addEventListener('DOMContentLoaded',function(){var el=document.querySelector('[role="alert"]');if(el)el.focus();});</script>
   </c:when>
   <c:when test="${'warning' eq messageType}">
     <div class="callout radius warning" role="alert" tabindex="-1">
       <p class="text-center"><c:out value="${messageValue}" /></p>
     </div>
-    <script>document.addEventListener('DOMContentLoaded',function(){var el=document.querySelector('[role="alert"]');if(el)el.focus();});</script>
+    <script nonce="${cspNonce}">document.addEventListener('DOMContentLoaded',function(){var el=document.querySelector('[role="alert"]');if(el)el.focus();});</script>
   </c:when>
   <c:when test="${'success' eq messageType}">
     <div class="callout radius success" role="status">

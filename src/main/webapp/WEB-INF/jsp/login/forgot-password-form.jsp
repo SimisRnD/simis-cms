@@ -14,6 +14,7 @@
   ~ limitations under the License.
   --%>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <form method="post">
@@ -22,7 +23,8 @@
   <input type="hidden" name="token" value="${userSession.formToken}" />
   <%-- Form Content --%>
   <c:if test="${!empty title}">
-    <h1 ><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}"/></h1>
+    <h1><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}"/></h1>
+    <h1 ><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h1>
   </c:if>
   <%@include file="../page_messages.jspf" %>
   <div class="grid-x grid-margin-x">
@@ -31,7 +33,7 @@
         <input type="text" placeholder="Email" name="username">
       </label>
       <div class="button-container">
-        <input type="submit" class="button primary radius expanded" value="Reset my password"></input></p>
+        <input type="submit" class="button primary radius expanded" value="Reset my password">
       </div>
     </div>
   </div>

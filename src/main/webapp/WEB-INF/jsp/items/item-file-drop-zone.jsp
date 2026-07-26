@@ -17,12 +17,13 @@
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="js" uri="/WEB-INF/tlds/javascript-escape.tld" %>
 <%@ taglib prefix="group" uri="/WEB-INF/tlds/group-functions.tld" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="folder" class="com.simisinc.platform.domain.model.items.ItemFolder" scope="request"/>
 <link rel="stylesheet" href="${ctx}/javascript/dropzone-5.9.3/dropzone.min.css" />
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}" /></h4>
+  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <c:if test="${!empty folder.name}">
@@ -31,7 +32,10 @@
 </h4>
 </c:if>
 <script src="${ctx}/javascript/dropzone-5.9.3/dropzone.min.js"></script>
+<script src="${ctx}/javascript/dropzone-setup.js"></script>
 <script>
+  initializeDropzone('myDropzone', 100);
+<script nonce="${cspNonce}">
   Dropzone.options.myDropzone = {
     autoProcessQueue: false,
     parallelUploads: 2,
@@ -94,7 +98,7 @@
     }
   };
 </script>
-<p>Add files to upload, then choose to submit all files...</p>
+<p>Drag files here or use "Browse Files" to select them, then click "Upload All Files". Use "Reset" to clear your selections.</p>
 <form action="${widgetContext.uri}?widget=${widgetContext.uniqueId}" class="dropzone" id="my-dropzone">
   <%-- Required by controller --%>
   <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
@@ -106,6 +110,6 @@
 </form>
 <div id="upload-errors" role="alert" aria-live="assertive" class="callout alert"></div>
 <div id="upload-status" role="status" aria-live="polite"></div>
-<button class="button primary no-gap" id="submit-all">Upload All Files</button>
 <button type="button" class="button secondary no-gap" id="dz-browse">Browse Files</button>
+<button class="button primary no-gap" id="submit-all" disabled>Upload All Files</button>
 <button class="button secondary no-gap" id="clear-dropzone">Reset</button>

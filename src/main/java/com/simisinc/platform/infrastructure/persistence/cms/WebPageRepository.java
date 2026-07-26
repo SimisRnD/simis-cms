@@ -126,7 +126,9 @@ public class WebPageRepository {
         .add("page_image_url", record.getImageUrl())
         .add("has_redirect", StringUtils.trimToNull(record.getRedirectUrl()) != null)
         .add("sitemap_priority", record.getSitemapPriority())
-        .add("sitemap_changefreq", StringUtils.trimToNull(record.getSitemapChangeFrequency()));
+        .add("sitemap_changefreq", StringUtils.trimToNull(record.getSitemapChangeFrequency()))
+        .add("publish_at", record.getPublishAt())
+        .add("expires_at", record.getExpiresAt());
     record.setId(DB.insertInto(TABLE_NAME, insertValues, PRIMARY_KEY));
     if (record.getId() == -1) {
       LOG.error("An id was not set!");
@@ -162,7 +164,9 @@ public class WebPageRepository {
         .add("page_image_url", record.getImageUrl())
         .add("has_redirect", StringUtils.trimToNull(record.getRedirectUrl()) != null)
         .add("sitemap_priority", record.getSitemapPriority())
-        .add("sitemap_changefreq", StringUtils.trimToNull(record.getSitemapChangeFrequency()));
+        .add("sitemap_changefreq", StringUtils.trimToNull(record.getSitemapChangeFrequency()))
+        .add("publish_at", record.getPublishAt())
+        .add("expires_at", record.getExpiresAt());
     SqlUtils where = new SqlUtils()
         .add("web_page_id = ?", record.getId());
     if (DB.update(TABLE_NAME, updateValues, where)) {
@@ -243,6 +247,8 @@ public class WebPageRepository {
       record.setShowInSitemap(rs.getBoolean("show_in_sitemap"));
       record.setSitemapPriority(rs.getBigDecimal("sitemap_priority"));
       record.setSitemapChangeFrequency(rs.getString("sitemap_changefreq"));
+      record.setPublishAt(rs.getTimestamp("publish_at"));
+      record.setExpiresAt(rs.getTimestamp("expires_at"));
       return record;
     } catch (SQLException se) {
       LOG.error("buildRecord", se);

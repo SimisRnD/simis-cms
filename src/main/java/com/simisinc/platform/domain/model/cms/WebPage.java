@@ -55,6 +55,8 @@ public class WebPage extends Entity {
   private String draftPageXml = null;
   private String template = null;
   private String comments = null;
+  private Timestamp publishAt = null;
+  private Timestamp expiresAt = null;
 
   public WebPage() {
   }
@@ -250,5 +252,21 @@ public class WebPage extends Entity {
 
   public void setSitemapChangeFrequency(String sitemapChangeFrequency) {
     this.sitemapChangeFrequency = sitemapChangeFrequency;
+  }
+
+  public Timestamp getPublishAt() {
+    return publishAt;
+  }
+
+  public void setPublishAt(Timestamp publishAt) {
+    this.publishAt = publishAt;
+  }
+
+  public Timestamp getExpiresAt() {
+    return expiresAt;
+  }
+
+  public void setExpiresAt(Timestamp expiresAt) {
+    this.expiresAt = expiresAt;
   }
 }
