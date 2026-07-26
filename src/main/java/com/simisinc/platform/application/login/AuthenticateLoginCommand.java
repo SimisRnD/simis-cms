@@ -16,6 +16,20 @@
 
 package com.simisinc.platform.application.login;
 
+import java.nio.charset.StandardCharsets;
+import java.security.SecureRandom;
+import java.sql.Timestamp;
+import java.util.Base64;
+import java.util.Date;
+
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
+import javax.security.auth.login.LoginException;
+
+import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+
 import com.github.benmanes.caffeine.cache.Cache;
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.LoadUserCommand;
@@ -28,13 +42,6 @@ import com.simisinc.platform.domain.model.login.UserToken;
 import com.simisinc.platform.infrastructure.cache.CacheManager;
 import com.simisinc.platform.infrastructure.persistence.UserRepository;
 import com.simisinc.platform.infrastructure.persistence.login.UserTokenRepository;
-import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
-
-import javax.security.auth.login.LoginException;
-import java.sql.Timestamp;
-import java.util.Date;
 
 /**
  * Commands for working with user authentication
@@ -47,6 +54,15 @@ public class AuthenticateLoginCommand {
   public static final String INVALID_CREDENTIALS = "The account information provided did not match our records. Please try again.";
 
   private static Log LOG = LogFactory.getLog(AuthenticateLoginCommand.class);
+
+  // Process-ephemeral key for the credential cache HMAC. Generated once at class load; a JVM restart
+  // clears all cache entries, so the key never needs to be persisted or rotated manually.
+  private static final byte[] CACHE_HMAC_KEY;
+  static {
+    byte[] key = new byte[32];
+    new SecureRandom().nextBytes(key);
+    CACHE_HMAC_KEY = key;
+  }
 
   public static User getAuthenticatedUser(String username, String password, String ipAddress) throws DataException, LoginException {
 
@@ -90,7 +106,7 @@ public class AuthenticateLoginCommand {
     // Check the credentials cache
     Cache cache = CacheManager.getCache(CacheManager.USER_CREDENTIALS_CACHE);
     String comparison = (String) cache.getIfPresent(user.getId());
-    if (comparison != null && comparison.equals(username + ":" + password)) {
+    if (comparison != null && comparison.equals(cacheToken(username, password))) {
       // Credentials confirmed via cache; check status before returning so a
       // suspension that happened after caching still takes effect.
       if (user.isNotValidated()) {
@@ -124,7 +140,7 @@ public class AuthenticateLoginCommand {
       if (!user.getPassword().startsWith("$argon2id$")) {
         upgradeLegacyPasswordHash(user, password);
       }
-      cache.put(user.getId(), username + ":" + password);
+      cache.put(user.getId(), cacheToken(username, password));
       return user;
     }
 
@@ -146,6 +162,25 @@ public class AuthenticateLoginCommand {
     RateLimitCommand.isIpAllowedRightNow(ipAddress, true);
     LOG.debug("Password incorrect");
     throw new LoginException(INVALID_CREDENTIALS);
+  }
+
+  /**
+   * Returns a Base64-encoded HMAC-SHA256 of {@code username:password} keyed with the process-ephemeral
+   * {@link #CACHE_HMAC_KEY}. Stored in place of the plaintext credential in the short-lived cache so a
+   * heap or cache dump does not directly expose passwords. Returns {@code null} on crypto error (should
+   * never happen with a fixed JDK algorithm).
+   */
+  static String cacheToken(String username, String password) {
+    try {
+      Mac mac = Mac.getInstance("HmacSHA256");
+      mac.init(new SecretKeySpec(CACHE_HMAC_KEY, "HmacSHA256"));
+      mac.update(username.getBytes(StandardCharsets.UTF_8));
+      mac.update((byte) ':');
+      return Base64.getEncoder().encodeToString(mac.doFinal(password.getBytes(StandardCharsets.UTF_8)));
+    } catch (Exception e) {
+      LOG.error("cacheToken HMAC error", e);
+      return null;
+    }
   }
 
   /**
