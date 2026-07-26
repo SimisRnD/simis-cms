@@ -476,7 +476,8 @@ CREATE TABLE folders (
   allows_guests BOOLEAN DEFAULT FALSE,
   guest_privacy_type INTEGER NOT NULL,
   enabled BOOLEAN DEFAULT true,
-  has_categories BOOLEAN DEFAULT FALSE
+  has_categories BOOLEAN DEFAULT FALSE,
+  allowed_extensions VARCHAR(500)
 );
 CREATE INDEX folders_nm_idx ON folders(name);
 CREATE INDEX folders_ag_idx ON folders(has_allowed_groups);

@@ -44,6 +44,10 @@
   <label>Description
     <input type="text" placeholder="Describe it..." name="summary" value="<c:out value="${folder.summary}"/>">
   </label>
+  <label>Allowed File Types
+    <input type="text" placeholder="e.g. pdf, docx, xlsx, png, jpg" name="allowedExtensions" value="<c:out value="${folder.allowedExtensions}"/>">
+    <small>Comma-separated extensions. Leave blank to allow all types.</small>
+  </label>
   <fieldset>
     <legend>File Categories</legend>
     <c:forEach items="${folder.folderCategoryList}" var="category" varStatus="categoryStatus">
