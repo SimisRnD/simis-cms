@@ -159,6 +159,20 @@ public class WebPageXmlLayoutCommand {
     return pageRef;
   }
 
+  public static Page parseFreshDraft(WebPage webPage, String pagePath) {
+    XMLPageLoader fresh = new XMLPageLoader(new HashMap<>());
+    fresh.setWidgetLibrary(pages.getWidgetLibrary());
+    WebPage draftView = new WebPage();
+    draftView.setLink(webPage.getLink());
+    draftView.setPageXml(webPage.getDraftPageXml());
+    try {
+      return fresh.addFromXml(pagePath, draftView);
+    } catch (Exception e) {
+      LOG.error("Could not parse draft layout for: " + pagePath, e);
+      return null;
+    }
+  }
+
   private static Page locatePage(String pagePath) {
     LOG.debug("Locate page: " + pagePath);
 

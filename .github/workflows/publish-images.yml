@@ -32,6 +32,10 @@ concurrency:
 
 env:
   REGISTRY: ghcr.io
+  # ACR_REGISTRY is the full login-server hostname (e.g. simiscms.azurecr.io).
+  # Set via a repository variable so the same workflow runs in forks without
+  # touching ACR. When the variable is absent the ACR steps are skipped.
+  ACR_REGISTRY: ${{ vars.ACR_LOGIN_SERVER }}
 
 jobs:
   publish:
@@ -61,6 +65,34 @@ jobs:
 
       - name: Sign in to the registry
         run: echo '${{ secrets.GITHUB_TOKEN }}' | docker login "$REGISTRY" -u '${{ github.actor }}' --password-stdin
+
+      # Resolve the version tag used for ACR pushes: the release tag name on a
+      # release event (e.g. v1.2.3), the commit SHA for every other trigger.
+      # Stored in VERSION_TAG so both image push steps can reference it.
+      - name: Resolve image version tag
+        run: |
+          if [[ "$GITHUB_EVENT_NAME" == "release" ]]; then
+            echo "VERSION_TAG=$GITHUB_REF_NAME" >> "$GITHUB_ENV"
+          else
+            echo "VERSION_TAG=$GITHUB_SHA" >> "$GITHUB_ENV"
+          fi
+
+      # Workload-identity federation: no client secret is stored anywhere.
+      # Requires a federated credential in Azure AD scoped to this repo and the
+      # 'publish' environment (or branch/tag, per the federation subject).
+      # The three identifiers are non-sensitive and live as repository variables.
+      # Skip when ACR_REGISTRY is not set (forks, local branches).
+      - name: Sign in to Azure (OIDC)
+        if: env.ACR_REGISTRY != ''
+        uses: azure/login@a457d4c18e4d2c624a7c0db7c0a1dc41d1e74aff # v2.3.0
+        with:
+          client-id: ${{ vars.AZURE_CLIENT_ID }}
+          tenant-id: ${{ vars.AZURE_TENANT_ID }}
+          subscription-id: ${{ vars.AZURE_SUBSCRIPTION_ID }}
+
+      - name: Sign in to ACR
+        if: env.ACR_REGISTRY != ''
+        run: az acr login --name "$ACR_REGISTRY"
 
       # Syft generates the per-image SBOMs below (the same tool sbom.yml uses for
       # the WAR). Installed once here, before the images are built and scanned.
@@ -104,6 +136,18 @@ jobs:
         run: |
           docker push "$IMAGE_PREFIX/simis-cms:latest"
           docker push "$IMAGE_PREFIX/simis-cms:$GITHUB_SHA"
+
+      # Mirror to ACR with a version tag (release tag or commit SHA) plus
+      # :latest. App Service follows :latest via its managed identity pull;
+      # the version tag lets a rollback pin to a known-good image without
+      # rebuilding. Skipped when ACR_REGISTRY is not set.
+      - name: Push the application image to ACR
+        if: env.ACR_REGISTRY != ''
+        run: |
+          docker tag "$IMAGE_PREFIX/simis-cms:$GITHUB_SHA" "$ACR_REGISTRY/simis-cms:$VERSION_TAG"
+          docker tag "$IMAGE_PREFIX/simis-cms:$GITHUB_SHA" "$ACR_REGISTRY/simis-cms:latest"
+          docker push "$ACR_REGISTRY/simis-cms:$VERSION_TAG"
+          docker push "$ACR_REGISTRY/simis-cms:latest"
 
       # Signed build provenance: proves this exact image was built by this
       # workflow, from this commit -- verifiable with `gh attestation verify`.
@@ -198,6 +242,15 @@ jobs:
 
       - name: Publish the database image latest tag
         run: docker push "$IMAGE_PREFIX/simis-cms-db:latest"
+
+      # Same version-tag + :latest pattern as the application image above.
+      - name: Push the database image to ACR
+        if: env.ACR_REGISTRY != ''
+        run: |
+          docker tag "$IMAGE_PREFIX/simis-cms-db:$GITHUB_SHA" "$ACR_REGISTRY/simis-cms-db:$VERSION_TAG"
+          docker tag "$IMAGE_PREFIX/simis-cms-db:$GITHUB_SHA" "$ACR_REGISTRY/simis-cms-db:latest"
+          docker push "$ACR_REGISTRY/simis-cms-db:$VERSION_TAG"
+          docker push "$ACR_REGISTRY/simis-cms-db:latest"
 
       - name: Attest the database image
         uses: actions/attest-build-provenance@0f67c3f4856b2e3261c31976d6725780e5e4c373 # v4

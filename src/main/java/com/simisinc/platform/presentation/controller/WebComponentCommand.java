@@ -33,25 +33,38 @@ public class WebComponentCommand implements Serializable {
   static final long serialVersionUID = 536435325324169646L;
   private static Log LOG = LogFactory.getLog(WebComponentCommand.class);
 
+  // Open-by-default: CMS pages/sections/columns/widgets are public unless roles/groups are declared.
   public static boolean allowsUser(Page page, UserSession userSession) {
-    return allowsUser(page.getRoles(), page.getGroups(), userSession);
+    return allowsUser(page.getRoles(), page.getGroups(), userSession, false);
   }
 
   public static boolean allowsUser(Section section, UserSession userSession) {
-    return allowsUser(section.getRoles(), section.getGroups(), userSession);
+    return allowsUser(section.getRoles(), section.getGroups(), userSession, false);
   }
 
   public static boolean allowsUser(Column column, UserSession userSession) {
-    return allowsUser(column.getRoles(), column.getGroups(), userSession);
+    return allowsUser(column.getRoles(), column.getGroups(), userSession, false);
   }
 
   public static boolean allowsUser(Widget widget, UserSession userSession) {
-    return allowsUser(widget.getRoles(), widget.getGroups(), userSession);
+    return allowsUser(widget.getRoles(), widget.getGroups(), userSession, false);
   }
 
+  // Open-by-default convenience overload — use allowsUser(roles, groups, session, true) for deny-by-default.
   public static boolean allowsUser(List<String> roles, List<String> groups, UserSession userSession) {
+    return allowsUser(roles, groups, userSession, false);
+  }
+
+  /**
+   * Evaluates whether the current user satisfies the declared role and group constraints.
+   *
+   * @param denyWhenEmpty when {@code true}, an empty roles+groups list denies access (deny-by-default);
+   *                      when {@code false}, an empty list allows everyone (open-by-default, legacy CMS behaviour).
+   *                      New resources that require explicit authorisation should pass {@code true}.
+   */
+  public static boolean allowsUser(List<String> roles, List<String> groups, UserSession userSession, boolean denyWhenEmpty) {
     if (roles.isEmpty() && groups.isEmpty()) {
-      return true;
+      return !denyWhenEmpty;
     }
 
     // Roles can be for a user that is either logged in/out

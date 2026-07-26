@@ -284,6 +284,20 @@
     </div>
   </div>
   </div>
+  <c:if test="${widgetContext.sharedRequestValueMap['stepUpRequired'] eq 'true'}">
+    <div class="grid-container">
+      <div class="grid-x grid-padding-x">
+        <div class="small-12 cell">
+          <div class="callout radius warning">
+            <p><strong>Re-authentication required</strong> — enter your password or 6-digit authenticator code to save this user's roles and groups.</p>
+            <input type="password" name="stepUpCredential" maxlength="255"
+                   placeholder="Password or authenticator code"
+                   title="Enter your password or 6-digit authenticator code"/>
+          </div>
+        </div>
+      </div>
+    </div>
+  </c:if>
 </form>
 <script>
   $(document).ready(function () {
