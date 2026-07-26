@@ -193,37 +193,58 @@ class AuthenticateLoginCommandTest {
   }
 
   @Test
-  void anUnvalidatedAccountIsRejected() {
+  @SuppressWarnings("unchecked")
+  void anUnvalidatedAccountIsRejectedAfterCredentialVerification() {
+    // Status checks happen AFTER credential verification to prevent username enumeration.
+    // A correct password on an unvalidated account should still show the validation error.
+    String password = "correct";
     User user = new User();
     user.setId(3L);
-    user.setEnabled(true); // validated left null -> isNotValidated() is true
+    user.setEnabled(true);
+    user.setPassword(UserPasswordCommand.hash(password)); // validated left null -> isNotValidated() is true
+    Cache credentialsCache = mock(Cache.class);
+    when(credentialsCache.getIfPresent(any())).thenReturn(null);
     try (MockedStatic<RateLimitCommand> rateLimit = mockStatic(RateLimitCommand.class);
-        MockedStatic<LoadUserCommand> loadUser = mockStatic(LoadUserCommand.class)) {
+        MockedStatic<LoadUserCommand> loadUser = mockStatic(LoadUserCommand.class);
+        MockedStatic<CacheManager> cacheManager = mockStatic(CacheManager.class);
+        MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class)) {
       rateLimit.when(() -> RateLimitCommand.isUsernameAllowedRightNow(anyString(), anyBoolean())).thenReturn(true);
       rateLimit.when(() -> RateLimitCommand.isIpAllowedRightNow(anyString(), anyBoolean())).thenReturn(true);
       loadUser.when(() -> LoadUserCommand.loadUser("unvalidated@example.com")).thenReturn(user);
+      cacheManager.when(() -> CacheManager.getCache(CacheManager.USER_CREDENTIALS_CACHE)).thenReturn(credentialsCache);
 
       LoginException ex = assertThrows(LoginException.class,
-          () -> AuthenticateLoginCommand.getAuthenticatedUser("unvalidated@example.com", "pw", IP_ADDRESS));
+          () -> AuthenticateLoginCommand.getAuthenticatedUser("unvalidated@example.com", password, IP_ADDRESS));
       assertTrue(ex.getMessage().toLowerCase().contains("validated"), ex.getMessage());
+      // A correct password on an inactive account must NOT increment the failed-attempt counter
+      userRepo.verify(() -> UserRepository.updateLockoutState(anyLong(), anyInt(), any()), never());
     }
   }
 
   @Test
-  void aSuspendedAccountIsRejected() {
+  @SuppressWarnings("unchecked")
+  void aSuspendedAccountIsRejectedAfterCredentialVerification() {
+    String password = "correct";
     User user = new User();
     user.setId(4L);
     user.setValidated(new Timestamp(System.currentTimeMillis()));
     user.setEnabled(false); // suspended
+    user.setPassword(UserPasswordCommand.hash(password));
+    Cache credentialsCache = mock(Cache.class);
+    when(credentialsCache.getIfPresent(any())).thenReturn(null);
     try (MockedStatic<RateLimitCommand> rateLimit = mockStatic(RateLimitCommand.class);
-        MockedStatic<LoadUserCommand> loadUser = mockStatic(LoadUserCommand.class)) {
+        MockedStatic<LoadUserCommand> loadUser = mockStatic(LoadUserCommand.class);
+        MockedStatic<CacheManager> cacheManager = mockStatic(CacheManager.class);
+        MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class)) {
       rateLimit.when(() -> RateLimitCommand.isUsernameAllowedRightNow(anyString(), anyBoolean())).thenReturn(true);
       rateLimit.when(() -> RateLimitCommand.isIpAllowedRightNow(anyString(), anyBoolean())).thenReturn(true);
       loadUser.when(() -> LoadUserCommand.loadUser("suspended@example.com")).thenReturn(user);
+      cacheManager.when(() -> CacheManager.getCache(CacheManager.USER_CREDENTIALS_CACHE)).thenReturn(credentialsCache);
 
       LoginException ex = assertThrows(LoginException.class,
-          () -> AuthenticateLoginCommand.getAuthenticatedUser("suspended@example.com", "pw", IP_ADDRESS));
+          () -> AuthenticateLoginCommand.getAuthenticatedUser("suspended@example.com", password, IP_ADDRESS));
       assertTrue(ex.getMessage().toLowerCase().contains("suspended"), ex.getMessage());
+      userRepo.verify(() -> UserRepository.updateLockoutState(anyLong(), anyInt(), any()), never());
     }
   }
 
@@ -263,7 +284,7 @@ class AuthenticateLoginCommandTest {
         "Sanity: the stored hash must NOT verify the old password");
 
     Cache credentialsCache = mock(Cache.class);
-    when(credentialsCache.getIfPresent(6L)).thenReturn(username + ":" + oldPassword);
+    when(credentialsCache.getIfPresent(6L)).thenReturn(AuthenticateLoginCommand.cacheToken(username, oldPassword));
     try (MockedStatic<RateLimitCommand> rateLimit = mockStatic(RateLimitCommand.class);
         MockedStatic<LoadUserCommand> loadUser = mockStatic(LoadUserCommand.class);
         MockedStatic<CacheManager> cacheManager = mockStatic(CacheManager.class)) {
