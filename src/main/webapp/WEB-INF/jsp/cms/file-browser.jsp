@@ -61,7 +61,7 @@
     </div>
   </div>
 </div>
-<script>
+<script nonce="${cspNonce}">
   <c:choose>
     <c:when test="${!empty inputId}">
     function mySubmit(itemUrl) {

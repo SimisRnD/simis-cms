@@ -29,7 +29,11 @@ import org.apache.commons.logging.LogFactory;
 import org.apache.commons.validator.routines.UrlValidator;
 
 /**
- * Functions for working with http requests
+ * Functions for working with http requests.
+ *
+ * <p>Use {@link #executeUserUrl(String, File)} when the URL comes from untrusted input
+ * (user/admin-entered source URLs). That method runs the SSRF guard before connecting.
+ * Use {@link #execute(String, File)} only for fixed, operator-controlled API endpoints.
  *
  * @author matt rajkowski
  * @created 2/7/2020 4:25 PM
@@ -39,8 +43,20 @@ public class HttpDownloadFileCommand {
   private static Log LOG = LogFactory.getLog(HttpDownloadFileCommand.class);
 
   /**
+   * Validates that {@code url} is SSRF-safe, then downloads the file. Returns false and logs
+   * a warning if the guard rejects the URL. Use this for any URL derived from untrusted input.
+   */
+  public static boolean executeUserUrl(String url, File tempFile) {
+    if (!RemoteUrlValidationCommand.isFetchAllowed(url)) {
+      LOG.warn("Blocked an SSRF-unsafe user-supplied url: " + url);
+      return false;
+    }
+    return execute(url, null, tempFile);
+  }
+
+  /**
    * Downloads the remote file
-   * 
+   *
    * @param url
    * @param tempFile
    * @return

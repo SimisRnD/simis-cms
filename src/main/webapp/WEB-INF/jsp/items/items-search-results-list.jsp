@@ -28,7 +28,7 @@
 <jsp:useBean id="searchName" class="java.lang.String" scope="request"/>
 <jsp:useBean id="searchLocation" class="java.lang.String" scope="request"/>
 <c:if test="${!empty title}">
-  <h4><c:if test="${!empty icon}"><i class="fa ${icon}"></i> </c:if><c:out value="${title}" /></h4>
+  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
 <%@include file="../page_messages.jspf" %>
 <c:choose>
