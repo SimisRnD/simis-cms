@@ -146,14 +146,14 @@
     if (!confirm("Are you sure you want to delete this menu tab and all of its submenu items?")) {
       return;
     }
-    window.location.href = '${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&menuTabId=' + index;
+    postAction('${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&menuTabId=' + index);
   }
 
   function deleteMenuItem(index) {
     if (!confirm("Are you sure you want to delete this sub menu item?")) {
       return;
     }
-    window.location.href = '${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&menuItemId=' + index;
+    postAction('${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&menuItemId=' + index);
   }
 
   <%--

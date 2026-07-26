@@ -44,7 +44,7 @@
   }
 
   function removeItem${widgetContext.uniqueId}(itemId) {
-    window.location.href = '${widgetContext.uri}?action=removeItem&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&itemId=' + itemId;
+    postAction('${widgetContext.uri}?action=removeItem&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&itemId=' + itemId);
   }
 
   function showPromoCodeEntry(e) {

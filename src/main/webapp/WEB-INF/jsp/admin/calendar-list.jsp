@@ -27,7 +27,7 @@
     if (!confirm("Are you sure you want to delete this calendar and all of its events?")) {
       return;
     }
-    window.location.href = '${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&id=' + calendarId;
+    postAction('${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&id=' + calendarId);
   }
 </script>
 </c:if>

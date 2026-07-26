@@ -26,7 +26,7 @@
     if (!confirm("Are you sure you want to delete this wiki and all of its pages?")) {
       return;
     }
-    window.location.href = '${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&id=' + wikiId;
+    postAction('${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&id=' + wikiId);
   }
 </script>
 </c:if>

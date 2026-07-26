@@ -61,7 +61,7 @@
           </c:otherwise>
         </c:choose>
         <a href="${ctx}/admin/category?collectionId=${collection.id}&categoryId=${category.id}"><c:out value="${category.name}" /></a>
-        <a href="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&categoryId=${category.id}" onclick="return confirm('Are you sure you want to delete <c:out value="${js:escape(category.name)}" />?');"><i class="fa fa-remove"></i></a>
+        <a href="#" onclick="return confirmPostAction('Are you sure you want to delete <c:out value="${js:escape(category.name)}" />?', '${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&categoryId=${category.id}');"><i class="fa fa-remove"></i></a>
         <c:if test="${!empty category.description}">
           <br /><small><c:out value="${category.description}" /></small>
         </c:if>
