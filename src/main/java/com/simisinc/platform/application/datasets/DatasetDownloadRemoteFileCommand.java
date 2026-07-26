@@ -197,16 +197,8 @@ public class DatasetDownloadRemoteFileCommand {
       }
 
       // Load the configurable row cap to prevent unbounded heap accumulation
-      int maxRows = DEFAULT_MAX_ROWS;
-      String maxRowsProp = LoadSitePropertyCommand.loadByName("dataset.maxRows");
-      if (org.apache.commons.lang3.StringUtils.isNotBlank(maxRowsProp)) {
-        try {
-          maxRows = Integer.parseInt(maxRowsProp.trim());
-        } catch (NumberFormatException ignored) {
-        }
-      }
       // Append any pages
-      appendNextUrls(jsonRecordsNode, json, jsonPagingPath, jsonRecordsPath, maxRows);
+      appendNextUrls(jsonRecordsNode, json, jsonPagingPath, jsonRecordsPath);
 
       // Write the whole JSON to a file
       SaveTextFileCommand.save(json.toPrettyString(), tempFile);
