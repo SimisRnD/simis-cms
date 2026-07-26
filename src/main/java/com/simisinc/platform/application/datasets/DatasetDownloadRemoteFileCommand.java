@@ -30,12 +30,12 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.github.fge.jackson.JsonLoader;
 import com.simisinc.platform.application.DataException;
-import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.admin.SaveTextFileCommand;
 import com.simisinc.platform.application.elearning.PERLSCourseListCommand;
 import com.simisinc.platform.application.filesystem.FileSystemCommand;
 import com.simisinc.platform.application.http.HttpDownloadFileCommand;
 import com.simisinc.platform.application.http.HttpGetCommand;
+import com.simisinc.platform.application.http.RemoteUrlValidationCommand;
 import com.simisinc.platform.domain.model.datasets.Dataset;
 import com.simisinc.platform.infrastructure.persistence.datasets.DatasetRepository;
 
@@ -48,13 +48,18 @@ import com.simisinc.platform.infrastructure.persistence.datasets.DatasetReposito
 public class DatasetDownloadRemoteFileCommand {
 
   private static Log LOG = LogFactory.getLog(DatasetDownloadRemoteFileCommand.class);
-
-  static final int DEFAULT_MAX_ROWS = 100_000;
+  private static final int MAX_PAGES = 1000;
 
   public static boolean handleRemoteFileDownload(Dataset dataset, long userId) throws DataException {
     if (StringUtils.isBlank(dataset.getSourceUrl())) {
       throw new DataException("A source url is required");
     }
+    // [SSRF] The source url is arbitrary admin input; refuse to fetch anything that
+    // resolves to an internal/loopback/link-local (cloud metadata) or private address.
+    if (!RemoteUrlValidationCommand.isFetchAllowed(dataset.getSourceUrl())) {
+      throw new DataException("The source url is not permitted");
+    }
+
     String fileType = dataset.getFileType();
     int type = DatasetFileCommand.type(fileType);
     String extension = DatasetFileCommand.extension(type);
@@ -88,7 +93,7 @@ public class DatasetDownloadRemoteFileCommand {
           }
         } else {
           // Download a single JSON file
-          if (!HttpDownloadFileCommand.executeUserUrl(dataset.getSourceUrl(), tempFile)) {
+          if (!HttpDownloadFileCommand.execute(dataset.getSourceUrl(), tempFile)) {
             throw new DataException("File download error from: " + dataset.getSourceUrl());
           }
         }
@@ -168,7 +173,7 @@ public class DatasetDownloadRemoteFileCommand {
   public static boolean downloadPagedFile(String url, String jsonPagingPath, String jsonRecordsPath, File tempFile) {
 
     // Download the first file, as a string
-    String content = HttpGetCommand.executeUserUrl(url);
+    String content = HttpGetCommand.execute(url);
     if (StringUtils.isBlank(content)) {
       return false;
     }
@@ -195,17 +200,8 @@ public class DatasetDownloadRemoteFileCommand {
         return false;
       }
 
-      // Load the configurable row cap to prevent unbounded heap accumulation
-      int maxRows = DEFAULT_MAX_ROWS;
-      String maxRowsProp = LoadSitePropertyCommand.loadByName("dataset.maxRows");
-      if (org.apache.commons.lang3.StringUtils.isNotBlank(maxRowsProp)) {
-        try {
-          maxRows = Integer.parseInt(maxRowsProp.trim());
-        } catch (NumberFormatException ignored) {
-        }
-      }
       // Append any pages
-      appendNextUrls(jsonRecordsNode, json, jsonPagingPath, jsonRecordsPath, maxRows);
+      appendNextUrls(jsonRecordsNode, json, jsonPagingPath, jsonRecordsPath);
 
       // Write the whole JSON to a file
       SaveTextFileCommand.save(json.toPrettyString(), tempFile);
@@ -218,72 +214,71 @@ public class DatasetDownloadRemoteFileCommand {
   }
 
   private static void appendNextUrls(JsonNode jsonRecordsNode, JsonNode currentJson, String jsonPagingPath,
-      String jsonRecordsPath, int maxRows) throws IOException {
+      String jsonRecordsPath) throws IOException {
 
     if (currentJson == null) {
       throw new IOException("currentJson is null");
     }
 
-    // Stop accumulating pages once the cap is reached to prevent heap exhaustion
-    if (((ArrayNode) jsonRecordsNode).size() >= maxRows) {
-      LOG.warn("Dataset paged download reached the configured row cap of " + maxRows + "; stopping to prevent unbounded accumulation");
-      return;
-    }
-
-    // Advance to the paging path
-    String nextUrl = null;
     String[] pagingPath = jsonPagingPath.split("/");
-    for (String fieldName : pagingPath) {
-      if (StringUtils.isNotBlank(fieldName) && currentJson.has(fieldName)) {
-        JsonNode thisNode = currentJson.get(fieldName);
-        if (!thisNode.isNull()) {
-          nextUrl = thisNode.asText();
-        }
-      }
-    }
-    // Determine if there's another page
-    if (StringUtils.isBlank(nextUrl)) {
-      LOG.debug("Next url is empty");
-      return;
-    }
-    LOG.debug("Next url: " + nextUrl);
-
-    // Use the url to get the next page content
-    String content = HttpGetCommand.executeUserUrl(nextUrl);
-    if (StringUtils.isBlank(content)) {
-      throw new IOException("Content is blank");
-    }
-
-    // Access the new records and append them to the original json
-    JsonNode nextJson = JsonLoader.fromString(content);
-    JsonNode newRecordsJson = null;
-
-    // Advance to the records path, if known
     String[] recordsPath = jsonRecordsPath.split("/");
-    for (String fieldName : recordsPath) {
-      if (StringUtils.isBlank(fieldName)) {
-        continue;
-      }
-      if (newRecordsJson == null) {
-        if (nextJson.has(fieldName)) {
-          newRecordsJson = nextJson.get(fieldName);
+
+    for (int page = 0; page < MAX_PAGES; page++) {
+      // Advance to the paging path in the current page's JSON
+      String nextUrl = null;
+      for (String fieldName : pagingPath) {
+        if (StringUtils.isNotBlank(fieldName) && currentJson.has(fieldName)) {
+          JsonNode thisNode = currentJson.get(fieldName);
+          if (!thisNode.isNull()) {
+            nextUrl = thisNode.asText();
+          }
         }
-      } else {
-        if (newRecordsJson.has(fieldName)) {
-          newRecordsJson = newRecordsJson.get(fieldName);
+      }
+      // No more pages
+      if (StringUtils.isBlank(nextUrl)) {
+        LOG.debug("Next url is empty");
+        return;
+      }
+      LOG.debug("Next url: " + nextUrl);
+
+      // [SSRF] nextUrl comes from the fetched response, so it is fully controlled by whoever
+      // runs the source server -- validate it before following, exactly like the source url.
+      if (!RemoteUrlValidationCommand.isFetchAllowed(nextUrl)) {
+        throw new IOException("Blocked a paging url that is not permitted: " + nextUrl);
+      }
+
+      String content = HttpGetCommand.execute(nextUrl);
+      if (StringUtils.isBlank(content)) {
+        throw new IOException("Content is blank");
+      }
+
+      JsonNode nextJson = JsonLoader.fromString(content);
+      JsonNode newRecordsJson = null;
+      for (String fieldName : recordsPath) {
+        if (StringUtils.isBlank(fieldName)) {
+          continue;
+        }
+        if (newRecordsJson == null) {
+          if (nextJson.has(fieldName)) {
+            newRecordsJson = nextJson.get(fieldName);
+          }
+        } else {
+          if (newRecordsJson.has(fieldName)) {
+            newRecordsJson = newRecordsJson.get(fieldName);
+          }
         }
       }
-    }
-    if (newRecordsJson == null || !newRecordsJson.isArray()) {
-      throw new IOException("No records in nextJson");
-    }
-    // Append the records
-    for (JsonNode element : newRecordsJson) {
-      ((ArrayNode) jsonRecordsNode).add(element);
+      if (newRecordsJson == null || !newRecordsJson.isArray()) {
+        throw new IOException("No records in nextJson");
+      }
+      for (JsonNode element : newRecordsJson) {
+        ((ArrayNode) jsonRecordsNode).add(element);
+      }
+
+      currentJson = nextJson;
     }
 
-    // Keep going
-    appendNextUrls(jsonRecordsNode, nextJson, jsonPagingPath, jsonRecordsPath, maxRows);
+    throw new IOException("Paged download exceeded the " + MAX_PAGES + "-page limit");
   }
 
 }
