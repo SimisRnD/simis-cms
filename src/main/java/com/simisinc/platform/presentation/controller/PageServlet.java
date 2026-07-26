@@ -163,6 +163,7 @@ public class PageServlet extends HttpServlet {
     // X-Frame-Options above for modern browsers. A stricter script-src policy needs nonces across the JSPs and is
     // left to a later, report-only-first rollout.
     response.setHeader("Content-Security-Policy", "base-uri 'self'; object-src 'none'; frame-ancestors 'self'");
+    response.setHeader("Referrer-Policy", "same-origin");
     // Advertise HTTPS-only via HSTS, but only when the deployment is configured for SSL. Sending this from a
     // site that cannot serve HTTPS would make browsers refuse it for the max-age, so it is gated on system.ssl
     // rather than the per-request scheme, which also stays correct behind a TLS-terminating proxy.
@@ -236,12 +237,21 @@ public class PageServlet extends HttpServlet {
         if (StringUtils.isNotBlank(redirectLocation)) {
           // Handle a redirect immediately
           if (!redirectLocation.startsWith("http:") && !redirectLocation.startsWith("https:")) {
-            redirectLocation =
-                scheme + "://" +
-                    serverName +
-                    (port != 80 ? ":" + port : "") +
-                    (redirectLocation.startsWith("/") ? "" : "/") +
-                    redirectLocation;
+            String siteUrl = StringUtils.trimToNull(LoadSitePropertyCommand.loadByName("site.url"));
+            String baseUrl;
+            if (siteUrl != null) {
+              try {
+                java.net.URI siteUri = new java.net.URI(siteUrl);
+                int sitePort = siteUri.getPort();
+                baseUrl = siteUri.getScheme() + "://" + siteUri.getHost() +
+                    (sitePort != -1 ? ":" + sitePort : "");
+              } catch (java.net.URISyntaxException e) {
+                baseUrl = scheme + "://" + serverName + (port != 80 ? ":" + port : "");
+              }
+            } else {
+              baseUrl = scheme + "://" + serverName + (port != 80 ? ":" + port : "");
+            }
+            redirectLocation = baseUrl + (redirectLocation.startsWith("/") ? "" : "/") + redirectLocation;
           }
           response.setHeader("Location", redirectLocation);
           response.setStatus(SC_MOVED_PERMANENTLY);

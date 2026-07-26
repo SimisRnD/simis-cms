@@ -69,7 +69,7 @@
       <td class="text-center">
         <a href="${ctx}/admin/mailing-list?mailingListId=${mailingList.id}&returnPage=/admin/mailing-lists"><i class="${font:fas()} fa-edit"></i></a>
         <c:if test="${mailingList.memberCount lt 11}">
-          <a href="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&mailingListId=${mailingList.id}" onclick="return confirm('Are you sure you want to delete <c:out value="${js:escape(mailingList.name)}" />?');"><i class="fa fa-remove"></i></a>
+          <a href="#" onclick="return confirmPostAction('Are you sure you want to delete <c:out value="${js:escape(mailingList.name)}" />?', '${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&mailingListId=${mailingList.id}');"><i class="fa fa-remove"></i></a>
         </c:if>
       </td>
     </tr>

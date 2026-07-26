@@ -30,6 +30,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.github.fge.jackson.JsonLoader;
 import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.admin.SaveTextFileCommand;
 import com.simisinc.platform.application.elearning.PERLSCourseListCommand;
 import com.simisinc.platform.application.filesystem.FileSystemCommand;
@@ -48,6 +49,8 @@ import com.simisinc.platform.infrastructure.persistence.datasets.DatasetReposito
 public class DatasetDownloadRemoteFileCommand {
 
   private static Log LOG = LogFactory.getLog(DatasetDownloadRemoteFileCommand.class);
+
+  static final int DEFAULT_MAX_ROWS = 100_000;
 
   public static boolean handleRemoteFileDownload(Dataset dataset, long userId) throws DataException {
     if (StringUtils.isBlank(dataset.getSourceUrl())) {
@@ -199,8 +202,17 @@ public class DatasetDownloadRemoteFileCommand {
         return false;
       }
 
+      // Load the configurable row cap to prevent unbounded heap accumulation
+      int maxRows = DEFAULT_MAX_ROWS;
+      String maxRowsProp = LoadSitePropertyCommand.loadByName("dataset.maxRows");
+      if (org.apache.commons.lang3.StringUtils.isNotBlank(maxRowsProp)) {
+        try {
+          maxRows = Integer.parseInt(maxRowsProp.trim());
+        } catch (NumberFormatException ignored) {
+        }
+      }
       // Append any pages
-      appendNextUrls(jsonRecordsNode, json, jsonPagingPath, jsonRecordsPath);
+      appendNextUrls(jsonRecordsNode, json, jsonPagingPath, jsonRecordsPath, maxRows);
 
       // Write the whole JSON to a file
       SaveTextFileCommand.save(json.toPrettyString(), tempFile);
@@ -213,10 +225,16 @@ public class DatasetDownloadRemoteFileCommand {
   }
 
   private static void appendNextUrls(JsonNode jsonRecordsNode, JsonNode currentJson, String jsonPagingPath,
-      String jsonRecordsPath) throws IOException {
+      String jsonRecordsPath, int maxRows) throws IOException {
 
     if (currentJson == null) {
       throw new IOException("currentJson is null");
+    }
+
+    // Stop accumulating pages once the cap is reached to prevent heap exhaustion
+    if (((ArrayNode) jsonRecordsNode).size() >= maxRows) {
+      LOG.warn("Dataset paged download reached the configured row cap of " + maxRows + "; stopping to prevent unbounded accumulation");
+      return;
     }
 
     // Advance to the paging path
@@ -278,7 +296,7 @@ public class DatasetDownloadRemoteFileCommand {
     }
 
     // Keep going
-    appendNextUrls(jsonRecordsNode, nextJson, jsonPagingPath, jsonRecordsPath);
+    appendNextUrls(jsonRecordsNode, nextJson, jsonPagingPath, jsonRecordsPath, maxRows);
   }
 
 }
