@@ -24,20 +24,20 @@
               <c:when test="${themePropertyMap['theme.footer.logo.color'] eq 'all-white'}">
                 <c:choose>
                   <c:when test="${!empty sitePropertyMap['site.logo.white']}">
-                    <img src="<c:out value="${sitePropertyMap['site.logo.white']}"/>" width="134" />
+                    <img src="<c:out value="${sitePropertyMap['site.logo.white']}"/>" width="134" alt="<c:out value="${sitePropertyMap['site.name']}"/>" />
                   </c:when>
                   <c:otherwise>
-                    <img src="${systemPropertyMap['system.www.context']}/images/logo-white.png" width="134" />
+                    <img src="${systemPropertyMap['system.www.context']}/images/logo-white.png" width="134" alt="<c:out value="${sitePropertyMap['site.name']}"/>" />
                   </c:otherwise>
                 </c:choose>
               </c:when>
               <c:when test="${themePropertyMap['theme.footer.logo.color'] eq 'color-and-white'}">
                 <c:choose>
                   <c:when test="${!empty sitePropertyMap['site.logo.mixed']}">
-                    <img src="<c:out value="${sitePropertyMap['site.logo.mixed']}"/>" width="134" />
+                    <img src="<c:out value="${sitePropertyMap['site.logo.mixed']}"/>" width="134" alt="<c:out value="${sitePropertyMap['site.name']}"/>" />
                   </c:when>
                   <c:otherwise>
-                    <img src="${systemPropertyMap['system.www.context']}/images/logo-white-color.png" width="134" />
+                    <img src="${systemPropertyMap['system.www.context']}/images/logo-white-color.png" width="134" alt="<c:out value="${sitePropertyMap['site.name']}"/>" />
                   </c:otherwise>
                 </c:choose>
               </c:when>
@@ -47,10 +47,10 @@
               <c:otherwise>
                 <c:choose>
                   <c:when test="${!empty sitePropertyMap['site.logo']}">
-                    <img src="<c:out value="${sitePropertyMap['site.logo']}"/>" width="134" />
+                    <img src="<c:out value="${sitePropertyMap['site.logo']}"/>" width="134" alt="<c:out value="${sitePropertyMap['site.name']}"/>" />
                   </c:when>
                   <c:otherwise>
-                    <img src="${systemPropertyMap['system.www.context']}/images/logo-footer.png" width="134" />
+                    <img src="${systemPropertyMap['system.www.context']}/images/logo-footer.png" width="134" alt="<c:out value="${sitePropertyMap['site.name']}"/>" />
                   </c:otherwise>
                 </c:choose>
               </c:otherwise>
@@ -77,22 +77,22 @@
           <c:if test="${!empty socialPropertyMap}">
             <p class="text-center medium-text-right">
               <c:if test="${!empty socialPropertyMap['social.facebook.url']}">
-                <a target="_blank" href="<c:out value="${socialPropertyMap['social.facebook.url']}"/>"><span class="fa-stack"><i class="fa fa-circle fa-stack-2x"></i><i class="fa fa-facebook fa-stack-1x fa-inverse"></i></span></a>
+                <a target="_blank" rel="noopener noreferrer" aria-label="Facebook" href="<c:out value="${socialPropertyMap['social.facebook.url']}"/>"><span class="fa-stack" aria-hidden="true"><i class="fa fa-circle fa-stack-2x"></i><i class="fa fa-facebook fa-stack-1x fa-inverse"></i></span></a>
               </c:if>
               <c:if test="${!empty socialPropertyMap['social.twitter.url']}">
-                <a target="_blank" href="<c:out value="${socialPropertyMap['social.twitter.url']}"/>"><span class="fa-stack"><i class="fa fa-circle fa-stack-2x"></i><i class="fa fa-twitter fa-stack-1x fa-inverse"></i></span></a>
+                <a target="_blank" rel="noopener noreferrer" aria-label="Twitter" href="<c:out value="${socialPropertyMap['social.twitter.url']}"/>"><span class="fa-stack" aria-hidden="true"><i class="fa fa-circle fa-stack-2x"></i><i class="fa fa-twitter fa-stack-1x fa-inverse"></i></span></a>
               </c:if>
               <c:if test="${!empty socialPropertyMap['social.linkedin.url']}">
-                <a target="_blank" href="<c:out value="${socialPropertyMap['social.linkedin.url']}"/>"><span class="fa-stack"><i class="fa fa-circle fa-stack-2x"></i><i class="fa fa-linkedin fa-stack-1x fa-inverse"></i></span></a>
+                <a target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" href="<c:out value="${socialPropertyMap['social.linkedin.url']}"/>"><span class="fa-stack" aria-hidden="true"><i class="fa fa-circle fa-stack-2x"></i><i class="fa fa-linkedin fa-stack-1x fa-inverse"></i></span></a>
               </c:if>
               <c:if test="${!empty socialPropertyMap['social.instagram.url']}">
-                <a target="_blank" href="<c:out value="${socialPropertyMap['social.instagram.url']}"/>"><span class="fa-stack"><i class="fa fa-circle fa-stack-2x"></i><i class="fa fa-instagram fa-stack-1x fa-inverse"></i></span></a>
+                <a target="_blank" rel="noopener noreferrer" aria-label="Instagram" href="<c:out value="${socialPropertyMap['social.instagram.url']}"/>"><span class="fa-stack" aria-hidden="true"><i class="fa fa-circle fa-stack-2x"></i><i class="fa fa-instagram fa-stack-1x fa-inverse"></i></span></a>
               </c:if>
               <c:if test="${!empty socialPropertyMap['social.youtube.url']}">
-                <a target="_blank" href="<c:out value="${socialPropertyMap['social.youtube.url']}"/>"><span class="fa-stack"><i class="fa fa-circle fa-stack-2x"></i><i class="fa fa-youtube fa-stack-1x fa-inverse"></i></span></a>
+                <a target="_blank" rel="noopener noreferrer" aria-label="YouTube" href="<c:out value="${socialPropertyMap['social.youtube.url']}"/>"><span class="fa-stack" aria-hidden="true"><i class="fa fa-circle fa-stack-2x"></i><i class="fa fa-youtube fa-stack-1x fa-inverse"></i></span></a>
               </c:if>
               <c:if test="${!empty socialPropertyMap['social.flickr.url']}">
-                <a target="_blank" href="<c:out value="${socialPropertyMap['social.flickr.url']}"/>"><span class="fa-stack"><i class="fa fa-circle fa-stack-2x"></i><i class="fa fa-flickr fa-stack-1x fa-inverse"></i></span></a>
+                <a target="_blank" rel="noopener noreferrer" aria-label="Flickr" href="<c:out value="${socialPropertyMap['social.flickr.url']}"/>"><span class="fa-stack" aria-hidden="true"><i class="fa fa-circle fa-stack-2x"></i><i class="fa fa-flickr fa-stack-1x fa-inverse"></i></span></a>
               </c:if>
             </p>
           </c:if>

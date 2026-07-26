@@ -1234,6 +1234,27 @@
     </section>
   </page>
 
+  <page name="/admin/mfa-properties" role="admin" title="MFA Enforcement Settings">
+    <section>
+      <column class="small-12 medium-7 cell">
+        <widget name="sitePropertiesEditor">
+          <title>MFA Enforcement</title>
+          <prefix>mfa</prefix>
+        </widget>
+      </column>
+      <column class="medium-5 cell">
+        <widget name="content" class="callout primary radius">
+          <html><![CDATA[<h4>About MFA Enforcement</h4>
+          <p><strong>Roles that must enrol MFA</strong>: enter a comma-separated list of role codes (e.g. <code>admin</code>) whose members must have two-factor authentication enrolled before accessing any page. Leave blank to disable enforcement — no user is affected until a role is listed.</p>
+          <p><strong>MFA enrolment page</strong>: the URL users are redirected to for MFA setup. This page must be reachable without MFA; the default <code>/my-profile</code> contains the two-factor authentication settings widget.</p>
+          <p class="callout warning radius" style="font-size:0.875rem"><strong>Before enabling:</strong> make sure at least one admin account already has MFA enrolled, and that the enrolment page URL is correct. Enabling enforcement for the <code>admin</code> role while no admin has MFA enrolled will redirect every admin to the enrolment page on their next request — they can still enrol there and recover normally.</p>
+          <p>Changing this setting is recorded in the <a href="/admin/audit-log">Security Audit Log</a> as a <code>setting.update</code> event — that record is the governance evidence for SSP IA-2(1).</p>
+          ]]></html>
+        </widget>
+      </column>
+    </section>
+  </page>
+
   <page name="/admin/audit-log" role="admin" title="Security Audit Log">
     <section>
       <column class="small-12 cell">

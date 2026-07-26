@@ -18,18 +18,21 @@ package com.simisinc.platform.infrastructure.persistence.login;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import com.simisinc.platform.domain.model.login.UserMfaRecoveryCode;
+import com.simisinc.platform.infrastructure.database.DataConstraints;
+import com.simisinc.platform.infrastructure.database.DataResult;
 import com.simisinc.platform.infrastructure.database.DB;
 import com.simisinc.platform.infrastructure.database.SqlUtils;
 
 /**
- * Persists and retrieves multi-factor authentication recovery codes. Codes are stored only as SHA-256 hashes and are
- * looked up by hash, so verification is a single indexed query rather than a per-row comparison.
+ * Persists and retrieves multi-factor authentication recovery codes. Codes are stored as argon2id hashes; verification
+ * loads all unused codes for the user and checks each hash in application code.
  *
  * @author SimIS Inc.
  * @created 2026-07-17
@@ -54,17 +57,19 @@ public class UserMfaRecoveryCodeRepository {
     return record;
   }
 
-  public static UserMfaRecoveryCode findUnusedByUserIdAndHash(long userId, String codeHash) {
-    if (userId < 1 || StringUtils.isBlank(codeHash)) {
+  public static List<UserMfaRecoveryCode> findAllUnusedByUserId(long userId) {
+    if (userId < 1) {
       return null;
     }
-    return (UserMfaRecoveryCode) DB.selectRecordFrom(
+    DataResult result = DB.selectAllFrom(
         TABLE_NAME,
-        new SqlUtils()
-            .add("user_id = ?", userId)
-            .add("code_hash = ?", codeHash)
-            .add("used = false"),
+        new SqlUtils().add("user_id = ?", userId).add("used = false"),
+        new DataConstraints().setDefaultColumnToSortBy("recovery_code_id").setUseCount(false),
         UserMfaRecoveryCodeRepository::buildRecord);
+    if (result.hasRecords()) {
+      return (List<UserMfaRecoveryCode>) result.getRecords();
+    }
+    return null;
   }
 
   /**

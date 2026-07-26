@@ -24,7 +24,10 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.LoadUserCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.login.StepUpAuthCommand;
+import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.cms.Blog;
 import com.simisinc.platform.domain.model.cms.BlogPost;
 import com.simisinc.platform.domain.model.cms.Content;
@@ -433,8 +436,28 @@ public class ContentHtmlCommand {
       return rejectContent(context, content);
     } else if ("deleteContent".equals(action)) {
       return deleteContent(context, content);
+    } else if ("saveDraft".equals(action)) {
+      return saveDraft(context, content);
     }
 
+    return context;
+  }
+
+  private static WidgetContext saveDraft(WidgetContext context, Content content) {
+    String html = context.getParameter("html");
+    if (StringUtils.isBlank(html)) {
+      context.setJson("{\"success\":false,\"error\":\"No content provided\"}");
+      return context;
+    }
+    try {
+      SaveContentCommand.saveSafeContent(content.getUniqueId(), html, context.getUserId(), false);
+      AuditEventCommand.record(context, AuditEventCommand.CONTENT, "content.saveDraft", AuditEventCommand.SUCCESS,
+          "content", String.valueOf(content.getId()), content.getUniqueId(), null);
+      context.setJson("{\"success\":true}");
+    } catch (Exception e) {
+      LOG.error("saveDraft failed for uniqueId " + content.getUniqueId(), e);
+      context.setJson("{\"success\":false,\"error\":\"Save failed\"}");
+    }
     return context;
   }
 
@@ -467,6 +490,40 @@ public class ContentHtmlCommand {
       context.setErrorMessage(e.getMessage());
     }
     return context;
+  }
+
+  /**
+   * Handles a POST-based content approval with step-up re-authentication.
+   * Must be called after {@code execute()} has already set the JSP on the context so that a
+   * step-up prompt can re-render the same page.
+   */
+  public static WidgetContext performContentApproval(WidgetContext context) {
+    if (!EditorPermissionCommand.canEditContent(context.getUserSession())) {
+      return context;
+    }
+    String uniqueId = context.getPreferences().get("uniqueId");
+    if (uniqueId == null) {
+      return context;
+    }
+    uniqueId = ContentHtmlCommand.checkForBlogPreferences(context, uniqueId);
+    Content content = LoadContentCommand.loadContentByUniqueId(uniqueId);
+    if (content == null) {
+      return context;
+    }
+    String stepUpCredential = context.getParameter("stepUpCredential");
+    if (!StepUpAuthCommand.isValid(context.getUserSession())) {
+      if (StringUtils.isBlank(stepUpCredential)) {
+        context.addSharedRequestValue("stepUpRequired", "true");
+        return context;
+      }
+      User actingUser = LoadUserCommand.loadUser(context.getUserId());
+      if (!StepUpAuthCommand.verify(context.getUserSession(), actingUser, stepUpCredential)) {
+        context.setErrorMessage("Re-authentication failed. Enter your password or authenticator code.");
+        context.addSharedRequestValue("stepUpRequired", "true");
+        return context;
+      }
+    }
+    return approveContent(context, content);
   }
 
   private static WidgetContext approveContent(WidgetContext context, Content content) {
