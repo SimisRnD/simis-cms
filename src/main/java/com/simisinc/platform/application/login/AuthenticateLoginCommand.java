@@ -107,7 +107,6 @@ public class AuthenticateLoginCommand {
     Cache cache = CacheManager.getCache(CacheManager.USER_CREDENTIALS_CACHE);
     String comparison = (String) cache.getIfPresent(user.getId());
     if (comparison != null && comparison.equals(cacheToken(username, password))) {
-    if (comparison != null && comparison.equals(username + ":" + password)) {
       // Credentials confirmed via cache; check status before returning so a
       // suspension that happened after caching still takes effect.
       if (user.isNotValidated()) {
