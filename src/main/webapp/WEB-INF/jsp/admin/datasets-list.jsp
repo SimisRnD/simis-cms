@@ -136,7 +136,7 @@
       <td>
         <a title="Modify dataset" href="${ctx}/admin/dataset-mapper?datasetId=${dataset.id}"><small><i class="${font:fas()} fa-edit"></i></small></a>
         <a href="${ctx}/assets/dataset/${dataset.url}"><i class="fa fa-download"></i></a>
-        <a href="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&datasetId=${dataset.id}" onclick="return confirm('Are you sure you want to delete <c:out value="${js:escape(dataset.name)}" />?');"><i class="fa fa-remove"></i></a>
+        <a href="#" onclick="return confirmPostAction('Are you sure you want to delete <c:out value="${js:escape(dataset.name)}" />?', '${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&datasetId=${dataset.id}');"><i class="fa fa-remove"></i></a>
         <%--<a href="${ctx}/admin/dataset?datasetId=${dataset.id}"><i class="fas fa-edit"></i></a>--%>
       </td>
     </tr>

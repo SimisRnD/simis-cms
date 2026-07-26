@@ -45,7 +45,7 @@
           if (!confirm("Are you sure you want to DELETE this page?")) {
               return;
           }
-          window.location.href = '${widgetContext.uri}?action=deletePage&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&webPageId=${webPage.id}';
+          postAction('${widgetContext.uri}?action=deletePage&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&webPageId=${webPage.id}');
       }
     </c:if>
 </script>

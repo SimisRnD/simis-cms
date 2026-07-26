@@ -69,7 +69,7 @@
       </td>
       <td>
         <a href="${ctx}/admin/shipping-rate?shippingRateId=${shippingRate.id}&returnPage=/admin/shipping-rates"><i class="fa fa-edit"></i></a>
-        <a href="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&shippingRateId=${shippingRate.id}" onclick="return confirm('Are you sure you want to delete <c:out value="${js:escape(shippingRate.shippingCode)}" />?');"><i class="fa fa-remove"></i></a>
+        <a href="#" onclick="return confirmPostAction('Are you sure you want to delete <c:out value="${js:escape(shippingRate.shippingCode)}" />?', '${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&shippingRateId=${shippingRate.id}');"><i class="fa fa-remove"></i></a>
       </td>
     </tr>
     </c:forEach>
