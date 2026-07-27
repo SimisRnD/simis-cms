@@ -6,8 +6,8 @@ set -e
 
 echo "Testing version consistency..."
 
-# Extract versions
-APP_VERSION=$(grep 'VERSION = ' src/main/java/com/simisinc/platform/ApplicationInfo.java | sed 's/.*"\([^"]*\)".*/\1/')
+# Extract versions (grep only the uncommented actual assignment, not the commented one)
+APP_VERSION=$(grep 'public static final String VERSION = ' src/main/java/com/simisinc/platform/ApplicationInfo.java | sed 's/.*"\([^"]*\)".*/\1/')
 POM_VERSION=$(grep '<version>' pom.xml | head -1 | sed 's/.*<version>\([^<]*\)<.*/\1/' | sed 's/-SNAPSHOT//')
 
 echo "  ApplicationInfo.VERSION: $APP_VERSION"

@@ -27,7 +27,7 @@ jobs:
       - name: Extract versions
         id: versions
         run: |
-          APP_VERSION=$(grep 'VERSION = ' src/main/java/com/simisinc/platform/ApplicationInfo.java | sed 's/.*"\([^"]*\)".*/\1/')
+          APP_VERSION=$(grep 'public static final String VERSION = ' src/main/java/com/simisinc/platform/ApplicationInfo.java | sed 's/.*"\([^"]*\)".*/\1/')
           POM_VERSION=$(grep '<version>' pom.xml | head -1 | sed 's/.*<version>\([^<]*\)<.*/\1/' | sed 's/-SNAPSHOT//')
           echo "app_version=$APP_VERSION" >> $GITHUB_OUTPUT
           echo "pom_version=$POM_VERSION" >> $GITHUB_OUTPUT
