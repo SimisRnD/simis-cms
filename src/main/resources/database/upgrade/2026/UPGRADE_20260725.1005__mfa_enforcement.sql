@@ -8,7 +8,7 @@
 -- mfa.enrollment.url  : the page that non-enrolled users are redirected to. Must not itself
 --                       require MFA or users will be locked out. Default /my-profile.
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type)
-VALUES (28, 'Roles that must enrol MFA (comma-separated, e.g. admin)', 'mfa.required.roles', '', 'text')
+VALUES (28, 'Roles requiring MFA (comma-separated)', 'mfa.required.roles', '', 'text')
 ON CONFLICT (property_name) DO NOTHING;
 
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type)

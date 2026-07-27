@@ -11,4 +11,4 @@ UPDATE sessions SET is_anonymous = (visitor_id IS NOT NULL);
 CREATE INDEX idx_sessions_is_anonymous_created ON sessions(is_anonymous, created DESC);
 
 -- Add comment for documentation
-ALTER TABLE sessions MODIFY COLUMN is_anonymous BOOLEAN NOT NULL DEFAULT FALSE COMMENT 'True if session is from anonymous visitor (no user login)';
+COMMENT ON COLUMN sessions.is_anonymous IS 'True if session is from anonymous visitor (no user login)';

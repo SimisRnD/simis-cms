@@ -9,7 +9,7 @@ ALTER TABLE web_pages ADD COLUMN IF NOT EXISTS tsv tsvector;
 -- Uses English stemmer via Snowball algorithm for intelligent matching
 DO $$
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_text_search_config WHERE cfgname = 'page_stem') THEN
+  IF NOT EXISTS (SELECT 1 FROM pg_ts_config WHERE cfgname = 'page_stem') THEN
     CREATE TEXT SEARCH DICTIONARY page_stem (
       TEMPLATE = snowball,
       Language = english
