@@ -26,21 +26,43 @@
 <jsp:useBean id="link" class="java.lang.String" scope="request"/>
 <jsp:useBean id="iconColor" class="java.lang.String" scope="request"/>
 <style>
+    .statistic-card-icon${widgetContext.uniqueId} {
+        color: var(--sc-link);
+        filter: drop-shadow(0 2px 4px rgba(0, 102, 255, 0.2));
+        transition: all var(--sc-motion-base) var(--sc-motion-ease);
+    }
     <c:if test="${!empty iconColor}">
     .statistic-card-icon${widgetContext.uniqueId} {
         color: <c:out value="${iconColor}" />;
     }
     </c:if>
+    .statistic-card-icon-wrapper${widgetContext.uniqueId} {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 100%;
+        height: 100%;
+        border-radius: 12px;
+        background: linear-gradient(135deg, rgba(0, 102, 255, 0.08) 0%, rgba(0, 102, 255, 0.03) 100%);
+    }
     .statistic-card-value {
         font-size: 40px;
-        font-weight: bold;
+        font-weight: 600;
         line-height: 1;
+        color: var(--sc-text);
+    }
+    .statistic-card-label {
+        color: var(--sc-text-muted);
+        font-size: 14px;
+        font-weight: 500;
     }
 </style>
 <div class="grid-x align-middle text-middle">
   <c:if test="${!empty icon}">
     <div class="small-5 cell">
-      <i id="icon${widgetContext.uniqueId}" class="fa ${fn:escapeXml(icon)} statistic-card-icon${widgetContext.uniqueId}"></i>
+      <div class="statistic-card-icon-wrapper${widgetContext.uniqueId}">
+        <i id="icon${widgetContext.uniqueId}" class="fa fa-2x ${fn:escapeXml(icon)} statistic-card-icon${widgetContext.uniqueId}" style="color: #0066ff !important; filter: drop-shadow(0 2px 4px rgba(0, 102, 255, 0.2));"></i>
+      </div>
     </div>
   </c:if>
   <div class="auto cell">

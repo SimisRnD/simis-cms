@@ -162,6 +162,8 @@
     <%-- Design tokens and dark scheme. Loaded after platform.css so it can repaint chrome, and
          before the theme's inline <style> block so a site's own colors still win. --%>
     <link rel="stylesheet" type="text/css" href="${ctx}/css/platform-tokens.css" />
+    <%-- Modern component overrides for a sharp, contemporary look --%>
+    <link rel="stylesheet" type="text/css" href="${ctx}/css/platform-modern-components.css" />
   <c:if test="${!empty themePropertyMap}">
       <style><%-- Prevent top-bar flicker --%>
         :root {

@@ -31,49 +31,59 @@
    ========================================================================== */
 
 :root {
-  /* Surfaces */
+  /* Surfaces - modern, clean palette */
   --sc-surface: #ffffff;
   --sc-surface-raised: #ffffff;
-  --sc-surface-sunken: #f4f6f8;
+  --sc-surface-sunken: #f8f9fa;
   --sc-surface-overlay: #ffffff;
 
-  /* Text - contrast vs --sc-surface: text 19.80:1, muted 6.00:1, link 5.97:1 */
-  --sc-text: #0a0a0a;
-  --sc-text-muted: #5b6470;
+  /* Text - high contrast, modern */
+  --sc-text: #0d1117;
+  --sc-text-muted: #57606a;
   --sc-text-inverse: #ffffff;
-  --sc-link: #1468a0;
-  --sc-link-hover: #0f4f7a;
+  --sc-link: #0066ff;
+  --sc-link-hover: #0052cc;
 
-  /* Lines. --sc-border is decorative (1.4.11 exempt).
-     --sc-border-control outlines real controls: 3.40:1 on white,
-     3.14:1 on --sc-surface-sunken. */
-  --sc-border: #d7dce2;
-  --sc-border-control: #858c95;
+  /* Sidebar section labels */
+  --sc-sidebar-label-color: #595f69;
 
-  /* Form fields */
+  /* Lines - refined grays with better definition */
+  --sc-border: #d0d7de;
+  --sc-border-control: #6e7681;
+
+  /* Form fields - modern, clean look */
   --sc-field-bg: #ffffff;
-  --sc-field-text: #0a0a0a;
-  --sc-field-placeholder: #5b6470;
-  --sc-field-disabled-bg: #eef1f4;
+  --sc-field-text: #0d1117;
+  --sc-field-placeholder: #57606a;
+  --sc-field-disabled-bg: #f6f8fa;
 
-  /* Focus ring - 5.97:1 on white, comfortably past the 3:1 that
-     1.4.11 asks of a focus indicator. */
-  --sc-focus-ring: #1468a0;
+  /* Focus ring - modern, prominent */
+  --sc-focus-ring: #0066ff;
   --sc-focus-ring-width: 2px;
   --sc-focus-ring-offset: 2px;
 
-  /* Elevation */
-  --sc-shadow-sm: 0 1px 2px rgba(10, 10, 10, 0.08);
-  --sc-shadow-md: 0 2px 8px rgba(10, 10, 10, 0.10);
-  --sc-shadow-lg: 0 8px 24px rgba(10, 10, 10, 0.14);
+  /* Semantic colors for status and actions */
+  --sc-success: #1a7f37;
+  --sc-success-light: #dafbe1;
+  --sc-warning: #d29922;
+  --sc-warning-light: #fff8c5;
+  --sc-danger: #d1242f;
+  --sc-danger-light: #ffebe6;
+  --sc-info: #0066ff;
+  --sc-info-light: #ddf4ff;
 
-  /* Radii and spacing - a small scale, so future components stop
-     inventing one-off pixel values. */
-  --sc-radius-sm: 3px;
-  --sc-radius-md: 6px;
-  --sc-radius-lg: 10px;
+  /* Elevation - subtle, modern */
+  --sc-shadow-sm: 0 1px 3px rgba(13, 17, 23, 0.12);
+  --sc-shadow-md: 0 3px 12px rgba(13, 17, 23, 0.15);
+  --sc-shadow-lg: 0 8px 24px rgba(13, 17, 23, 0.12);
+
+  /* Radii - modern feel with 8px standard */
+  --sc-radius-sm: 4px;
+  --sc-radius-md: 8px;
+  --sc-radius-lg: 12px;
   --sc-radius-pill: 999px;
 
+  /* Spacing - refined 8px base grid */
   --sc-space-1: 0.25rem;
   --sc-space-2: 0.5rem;
   --sc-space-3: 0.75rem;
@@ -81,10 +91,25 @@
   --sc-space-5: 1.5rem;
   --sc-space-6: 2rem;
 
-  /* Motion - referenced so prefers-reduced-motion has a single lever. */
-  --sc-motion-fast: 120ms;
-  --sc-motion-base: 200ms;
+  /* Motion - snappy and responsive */
+  --sc-motion-fast: 100ms;
+  --sc-motion-base: 150ms;
   --sc-motion-ease: cubic-bezier(0.2, 0, 0.2, 1);
+
+  /* Typography scale - modern, legible */
+  --sc-font-size-xs: 12px;
+  --sc-font-size-sm: 13px;
+  --sc-font-size-base: 14px;
+  --sc-font-size-lg: 16px;
+  --sc-font-size-xl: 18px;
+  --sc-font-size-2xl: 20px;
+
+  --sc-font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
+  --sc-font-family-mono: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+
+  --sc-line-height-tight: 1.4;
+  --sc-line-height-normal: 1.6;
+  --sc-line-height-relaxed: 1.8;
 
   /* Tells the browser to render native widgets (scrollbars, date pickers,
      select popups, form controls) in the matching scheme. */
@@ -102,32 +127,43 @@
    ========================================================================== */
 
 :root[data-theme="dark"] {
-  --sc-surface: #16191d;
-  --sc-surface-raised: #1e2228;
-  --sc-surface-sunken: #101317;
-  --sc-surface-overlay: #1e2228;
+  --sc-surface: #0d1117;
+  --sc-surface-raised: #161b22;
+  --sc-surface-sunken: #010409;
+  --sc-surface-overlay: #161b22;
 
-  /* contrast vs --sc-surface: text 14.49:1, muted 8.05:1, link 8.37:1 */
-  --sc-text: #e6e9ee;
-  --sc-text-muted: #a7b0bd;
-  --sc-text-inverse: #0a0a0a;
-  --sc-link: #7cb8f0;
-  --sc-link-hover: #a5cef5;
+  --sc-text: #e6edf3;
+  --sc-text-muted: #8b949e;
+  --sc-text-inverse: #0d1117;
+  --sc-link: #58a6ff;
+  --sc-link-hover: #79c0ff;
 
-  --sc-border: #333a44;
-  --sc-border-control: #6a7585; /* 3.78:1 on page, 3.42:1 on raised */
+  --sc-sidebar-label-color: #a8b0ba;
 
-  --sc-field-bg: #1b1f25;
-  --sc-field-text: #e6e9ee;
-  --sc-field-placeholder: #97a1af; /* 6.33:1 on --sc-field-bg */
-  --sc-field-disabled-bg: #23282f;
+  --sc-border: #30363d;
+  --sc-border-control: #6e7681;
 
-  --sc-focus-ring: #8ab4f8;
+  --sc-field-bg: #0d1117;
+  --sc-field-text: #e6edf3;
+  --sc-field-placeholder: #6e7681;
+  --sc-field-disabled-bg: #161b22;
 
-  /* Shadows read as noise on a dark page; lean on borders instead. */
-  --sc-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
-  --sc-shadow-md: 0 2px 8px rgba(0, 0, 0, 0.55);
-  --sc-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.6);
+  --sc-focus-ring: #58a6ff;
+
+  /* Semantic colors for dark mode */
+  --sc-success: #3fb950;
+  --sc-success-light: #238636;
+  --sc-warning: #f0883e;
+  --sc-warning-light: #9e6a03;
+  --sc-danger: #ff7b72;
+  --sc-danger-light: #da3633;
+  --sc-info: #58a6ff;
+  --sc-info-light: #0969da;
+
+  /* Shadows for dark mode - subtle and refined */
+  --sc-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --sc-shadow-md: 0 3px 12px rgba(0, 0, 0, 0.35);
+  --sc-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
 
   color-scheme: dark;
 }
@@ -136,30 +172,39 @@
    data-theme stays light, which is what every pre-existing site gets. */
 @media (prefers-color-scheme: dark) {
   :root[data-theme="auto"] {
-    --sc-surface: #16191d;
-    --sc-surface-raised: #1e2228;
-    --sc-surface-sunken: #101317;
-    --sc-surface-overlay: #1e2228;
+    --sc-surface: #0d1117;
+    --sc-surface-raised: #161b22;
+    --sc-surface-sunken: #010409;
+    --sc-surface-overlay: #161b22;
 
-    --sc-text: #e6e9ee;
-    --sc-text-muted: #a7b0bd;
-    --sc-text-inverse: #0a0a0a;
-    --sc-link: #7cb8f0;
-    --sc-link-hover: #a5cef5;
+    --sc-text: #e6edf3;
+    --sc-text-muted: #8b949e;
+    --sc-text-inverse: #0d1117;
+    --sc-link: #58a6ff;
+    --sc-link-hover: #79c0ff;
 
-    --sc-border: #333a44;
-    --sc-border-control: #6a7585;
+    --sc-border: #30363d;
+    --sc-border-control: #6e7681;
 
-    --sc-field-bg: #1b1f25;
-    --sc-field-text: #e6e9ee;
-    --sc-field-placeholder: #97a1af;
-    --sc-field-disabled-bg: #23282f;
+    --sc-field-bg: #0d1117;
+    --sc-field-text: #e6edf3;
+    --sc-field-placeholder: #6e7681;
+    --sc-field-disabled-bg: #161b22;
 
-    --sc-focus-ring: #8ab4f8;
+    --sc-focus-ring: #58a6ff;
 
-    --sc-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
-    --sc-shadow-md: 0 2px 8px rgba(0, 0, 0, 0.55);
-    --sc-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.6);
+    --sc-success: #3fb950;
+    --sc-success-light: #238636;
+    --sc-warning: #f0883e;
+    --sc-warning-light: #9e6a03;
+    --sc-danger: #ff7b72;
+    --sc-danger-light: #da3633;
+    --sc-info: #58a6ff;
+    --sc-info-light: #0969da;
+
+    --sc-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+    --sc-shadow-md: 0 3px 12px rgba(0, 0, 0, 0.35);
+    --sc-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.4);
 
     color-scheme: dark;
   }
@@ -755,5 +800,148 @@ summary:focus-visible,
   :root[data-theme="auto"] .platform-color-scheme-toggle .platform-icon-dark {
     display: inline-block;
   }
+}
+
+/* ==========================================================================
+   Modern typography utilities
+   ========================================================================== */
+
+body, .platform-body {
+  font-family: var(--sc-font-family);
+  font-size: var(--sc-font-size-base);
+  line-height: var(--sc-line-height-normal);
+}
+
+h1 { font-size: var(--sc-font-size-2xl); font-weight: 600; line-height: var(--sc-line-height-tight); }
+h2 { font-size: var(--sc-font-size-xl); font-weight: 600; line-height: var(--sc-line-height-tight); }
+h3 { font-size: var(--sc-font-size-lg); font-weight: 600; line-height: var(--sc-line-height-tight); }
+h4 { font-size: var(--sc-font-size-base); font-weight: 600; line-height: var(--sc-line-height-normal); }
+h5 { font-size: var(--sc-font-size-sm); font-weight: 600; line-height: var(--sc-line-height-normal); }
+h6 { font-size: var(--sc-font-size-xs); font-weight: 600; line-height: var(--sc-line-height-normal); text-transform: uppercase; letter-spacing: 0.5px; }
+
+code, pre, kbd {
+  font-family: var(--sc-font-family-mono);
+  font-size: var(--sc-font-size-sm);
+}
+
+/* Semantic status/alert utilities */
+.alert-success, .status-success {
+  background-color: var(--sc-success-light);
+  color: var(--sc-success);
+  border-color: var(--sc-success);
+}
+
+.alert-warning, .status-warning {
+  background-color: var(--sc-warning-light);
+  color: var(--sc-warning);
+  border-color: var(--sc-warning);
+}
+
+.alert-danger, .status-danger, .alert-error, .status-error {
+  background-color: var(--sc-danger-light);
+  color: var(--sc-danger);
+  border-color: var(--sc-danger);
+}
+
+.alert-info, .status-info {
+  background-color: var(--sc-info-light);
+  color: var(--sc-info);
+  border-color: var(--sc-info);
+}
+
+/* Improved button styling */
+.button {
+  border-radius: var(--sc-radius-md);
+  transition: all var(--sc-motion-base) var(--sc-motion-ease);
+}
+
+.button.primary, .button.success {
+  background-color: var(--sc-link);
+  border-color: var(--sc-link);
+  color: white;
+}
+
+.button.primary:hover, .button.success:hover {
+  background-color: var(--sc-link-hover);
+  border-color: var(--sc-link-hover);
+}
+
+.button.alert {
+  background-color: var(--sc-danger);
+  border-color: var(--sc-danger);
+  color: white;
+}
+
+.button.alert:hover {
+  background-color: var(--sc-danger);
+  opacity: 0.9;
+}
+
+/* Modern card styling */
+.card {
+  border-radius: var(--sc-radius-lg);
+  box-shadow: var(--sc-shadow-md);
+  border-color: var(--sc-border);
+}
+
+/* Improved form inputs */
+input[type="text"],
+input[type="password"],
+input[type="email"],
+input[type="number"],
+input[type="search"],
+input[type="url"],
+input[type="tel"],
+input[type="date"],
+input[type="datetime"],
+input[type="time"],
+textarea,
+select {
+  border-radius: var(--sc-radius-md);
+  border: 1px solid var(--sc-border);
+  transition: all var(--sc-motion-base) var(--sc-motion-ease);
+}
+
+input[type="text"]:focus,
+input[type="password"]:focus,
+input[type="email"]:focus,
+input[type="number"]:focus,
+input[type="search"]:focus,
+input[type="url"]:focus,
+input[type="tel"]:focus,
+input[type="date"]:focus,
+input[type="datetime"]:focus,
+input[type="time"]:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--sc-link);
+  box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.1);
+}
+
+/* Modern tables */
+table {
+  border-collapse: separate;
+  border-spacing: 0;
+  border-radius: var(--sc-radius-md);
+  overflow: hidden;
+}
+
+table thead {
+  background-color: var(--sc-surface-sunken);
+  font-weight: 600;
+}
+
+table tbody tr:hover {
+  background-color: var(--sc-surface-sunken);
+}
+
+/* Admin sidebar section labels - make readable */
+h6[style],
+h6:not([class]):not([id]),
+.platform-admin-sidebar h6,
+.sidebar h6,
+.left-off-canvas-menu h6,
+.left-column h6 {
+  color: var(--sc-sidebar-label-color) !important;
 }
 
