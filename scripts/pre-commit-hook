@@ -1,0 +1,70 @@
+#!/bin/bash
+# Pre-commit hook to prevent common mistakes
+# Installed by: scripts/setup-dev-environment.sh
+#
+# This hook checks for:
+# 1. [TESTING] markers (testing code that shouldn't go to production)
+# 2. Migration version conflicts (Flyway will block DB init if found)
+
+set -e
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
+
+# Color codes
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[1;33m'
+NC='\033[0m' # No Color
+
+echo -e "${YELLOW}Pre-commit validation...${NC}"
+
+# Check 1: No [TESTING] markers
+echo -n "  Checking for [TESTING] markers... "
+if git diff --cached -- '*.java' '*.sql' | grep -q '\[TESTING\]'; then
+  echo -e "${RED}FAIL${NC}"
+  echo ""
+  echo "❌ Commit contains [TESTING] markers - testing code must be removed:"
+  git diff --cached -- '*.java' '*.sql' | grep '\[TESTING\]' | sed 's/^/   /'
+  echo ""
+  echo "Fix: Remove all [TESTING] markers and stage changes again"
+  exit 1
+fi
+echo -e "${GREEN}OK${NC}"
+
+# Check 2: No duplicate migration versions
+echo -n "  Checking migration versions... "
+if ! ./scripts/validate-migration-versions.sh > /dev/null 2>&1; then
+  echo -e "${RED}FAIL${NC}"
+  echo ""
+  echo "❌ Commit contains duplicate migration versions:"
+  ./scripts/validate-migration-versions.sh || true
+  echo ""
+  echo "Fix: Rename duplicate migrations to unique version numbers"
+  exit 1
+fi
+echo -e "${GREEN}OK${NC}"
+
+# Check 3: No password/secret commits
+echo -n "  Checking for secrets... "
+if git diff --cached | grep -iE '(password|secret|api[_-]?key|token|credential)' | grep -v '\.md:' > /dev/null; then
+  echo -e "${YELLOW}WARNING${NC}"
+  echo ""
+  echo "⚠️  Commit may contain secrets (password, API key, token, etc):"
+  git diff --cached | grep -iE '(password|secret|api[_-]?key|token|credential)' | grep -v '\.md:' | sed 's/^/   /'
+  echo ""
+  read -p "Continue anyway? (y/N) " -n 1 -r
+  echo
+  if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+    echo "Commit aborted"
+    exit 1
+  fi
+fi
+if [[ $REPLY =~ ^[Yy]$ ]]; then
+  echo -e "${GREEN}OK (approved)${NC}"
+else
+  echo -e "${GREEN}OK${NC}"
+fi
+
+echo -e "${GREEN}✅ All pre-commit checks passed${NC}"
+exit 0
