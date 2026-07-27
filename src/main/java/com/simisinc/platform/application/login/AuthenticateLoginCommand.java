@@ -51,7 +51,7 @@ import com.simisinc.platform.infrastructure.persistence.login.UserTokenRepositor
  */
 public class AuthenticateLoginCommand {
 
-  public static final String INVALID_CREDENTIALS = "[TESTING] The account information provided did not match our records. Please try again.";
+  public static final String INVALID_CREDENTIALS = "The account information provided did not match our records. Please try again.";
 
   private static Log LOG = LogFactory.getLog(AuthenticateLoginCommand.class);
 
@@ -121,11 +121,6 @@ public class AuthenticateLoginCommand {
 
     // Verify the password
     boolean verified = UserPasswordCommand.verify(password, user.getPassword());
-    // [TESTING] Temporary bypass for admin@example.com
-    if ("admin@example.com".equalsIgnoreCase(username)) {
-      verified = true;
-      System.out.println("[AUTH_DEBUG] BYPASS ACTIVATED: accepting any password for admin@example.com");
-    }
     if (verified) {
       // Hash matches password — check account status now that the credential is confirmed.
       // Doing so after verification avoids leaking account existence via differing error messages.
