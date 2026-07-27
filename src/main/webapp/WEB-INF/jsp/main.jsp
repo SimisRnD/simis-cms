@@ -862,6 +862,7 @@
     <script src="${ctx}/javascript/quill-2.0.3/quill.js"></script>
     <script src="${ctx}/javascript/platform-editor.js?v=<%= VERSION %>"></script>
     <script src="${ctx}/javascript/overlay-editor-pane.js"></script>
+    <%@include file="visual-editor/media-library-panel.jsp" %>
   </c:if>
 </body>
 </html>
