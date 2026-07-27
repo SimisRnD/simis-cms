@@ -1,0 +1,90 @@
+<%--
+  ~ Copyright 2026 SimIS Inc.
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  --%>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<jsp:useBean id="tableData" class="com.fasterxml.jackson.databind.JsonNode" scope="request"/>
+
+<div class="table-widget-container">
+  <table class="data-table" role="table">
+    <c:if test="${tableData.has('headers') && tableData.get('headers').size() > 0}">
+      <thead>
+        <tr role="row">
+          <c:forEach items="${tableData.get('headers')}" var="header" varStatus="headerStatus">
+            <th role="columnheader" scope="col">
+              <c:out value="${header.asText()}"/>
+            </th>
+          </c:forEach>
+        </tr>
+      </thead>
+    </c:if>
+    <tbody>
+      <c:if test="${tableData.has('rows') && tableData.get('rows').size() > 0}">
+        <c:forEach items="${tableData.get('rows')}" var="row" varStatus="rowStatus">
+          <tr role="row">
+            <c:forEach items="${row}" var="cell">
+              <td role="cell">
+                <c:out value="${cell.asText()}"/>
+              </td>
+            </c:forEach>
+          </tr>
+        </c:forEach>
+      </c:if>
+      <c:if test="${tableData.get('rows').size() == 0}">
+        <tr>
+          <td colspan="100" style="text-align: center; padding: 20px; color: #999;">
+            No data
+          </td>
+        </tr>
+      </c:if>
+    </tbody>
+  </table>
+</div>
+
+<style nonce="${cspNonce}">
+  .table-widget-container {
+    overflow-x: auto;
+    margin: 20px 0;
+  }
+
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    border: 1px solid #ddd;
+  }
+
+  .data-table thead {
+    background-color: #f9f9f9;
+  }
+
+  .data-table th {
+    padding: 12px;
+    text-align: left;
+    font-weight: 600;
+    border-bottom: 2px solid #ddd;
+  }
+
+  .data-table td {
+    padding: 12px;
+    border-bottom: 1px solid #eee;
+  }
+
+  .data-table tbody tr:hover {
+    background-color: #fafafa;
+  }
+
+  .data-table tbody tr:last-child td {
+    border-bottom: 1px solid #ddd;
+  }
+</style>
