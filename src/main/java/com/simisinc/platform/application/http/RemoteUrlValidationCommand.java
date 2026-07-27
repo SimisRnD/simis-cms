@@ -27,7 +27,7 @@ import org.apache.commons.validator.routines.UrlValidator;
 /**
  * SSRF guard for server-side fetches of a caller-supplied (untrusted) URL. Applied where the
  * URL is arbitrary user/admin input or is derived from a fetched response -- NOT on the
- * fixed third-party API clients (OAuth, Stripe, MapBox, ...), which legitimately target
+ * fixed third-party API clients (OAuth, Stripe, ...), which legitimately target
  * configured endpoints that may be internal in some deployments.
  * <p>
  * A URL is allowed only when it is http/https and its host resolves exclusively to public,

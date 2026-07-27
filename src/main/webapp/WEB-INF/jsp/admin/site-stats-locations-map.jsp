@@ -53,16 +53,6 @@
     </c:choose>
   });
   <c:choose>
-  <c:when test="${mapCredentials.service eq 'mapbox'}">
-  L.tileLayer('https://api.mapbox.com/styles/v1/{id}/tiles/{z}/{x}/{y}?access_token={accessToken}', {
-      attribution: '&copy; <a href="https://www.mapbox.com/about/maps/">Mapbox</a> &copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
-      tileSize: 512,
-      maxZoom: 12,
-      zoomOffset: -1,
-      id: 'mapbox/streets-v11',
-    accessToken: '${js:escape(mapCredentials.accessToken)}'
-  }).addTo(map${widgetContext.uniqueId});
-  </c:when>
   <c:when test="${mapCredentials.service eq 'custom'}">
   L.tileLayer('${mapCredentials.tileServerUrl}', {
     attribution: 'Map data &copy; <a href="https://openstreetmap.org">OpenStreetMap</a> contributors',
