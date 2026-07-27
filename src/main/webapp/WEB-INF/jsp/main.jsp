@@ -339,6 +339,8 @@
   </c:choose>
 </c:if>
 <body<c:if test="${pageRenderInfo.name eq '/'}"> id="body-home"</c:if><c:if test="${!empty bodyClass}"> class="<c:out value="${bodyClass}" />"</c:if>>
+  <!-- Skip link for keyboard navigation (WCAG 2.4.1) -->
+  <a href="#main" class="platform-skip-link">Skip to main content</a>
   <c:if test="${pageEditMode eq 'true'}">
     <div id="sc-editor-toolbar" role="toolbar" aria-label="Page editor"
          data-page-path="<c:out value="${pageRenderInfo.pagePath}"/>"
