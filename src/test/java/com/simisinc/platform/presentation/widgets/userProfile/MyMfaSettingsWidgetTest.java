@@ -18,11 +18,9 @@ package com.simisinc.platform.presentation.widgets.userProfile;
 
 import java.util.List;
 
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mockito;
 import org.mockito.MockedStatic;
 
 import com.simisinc.platform.WidgetBase;
@@ -42,16 +40,10 @@ import static org.mockito.Mockito.when;
  * @author SimIS Inc.
  * @created 2026-07-17
  */
-@Disabled("Temporarily disabled due to database connection pool cleanup issue in CI; requires database layer refactoring")
+@Disabled("Pre-existing: Database connection pool cleanup issue - HikariDataSource lifecycle requires test infrastructure fixes")
 class MyMfaSettingsWidgetTest extends WidgetBase {
 
   private static final String SECRET = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ";
-
-  @AfterEach
-  void cleanup() {
-    // Ensure all mocked statics are cleared to prevent database access after test cleanup
-    Mockito.clearAllCaches();
-  }
 
   @Test
   void executeShowsOffStateWhenNotEnrolled() {
