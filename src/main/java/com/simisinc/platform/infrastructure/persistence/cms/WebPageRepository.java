@@ -223,6 +223,25 @@ public class WebPageRepository {
     WebPageXmlLayoutCommand.removeCustomPage(record.getLink());
   }
 
+  public static List<WebPage> search(String searchTerm, DataConstraints constraints) {
+    if (StringUtils.isBlank(searchTerm)) {
+      return findAll(null, constraints);
+    }
+    if (constraints == null) {
+      constraints = new DataConstraints();
+    }
+    constraints.setDefaultColumnToSortBy("rank");
+    SqlUtils select = new SqlUtils();
+    SqlUtils where = new SqlUtils()
+        .add("enabled = true")
+        .add("searchable = true")
+        .add("tsv @@ PLAINTO_TSQUERY('page_stem', ?)", searchTerm.trim());
+    select.add("TS_RANK_CD(tsv, PLAINTO_TSQUERY('page_stem', ?)) AS rank", searchTerm.trim());
+    SqlUtils orderBy = new SqlUtils().add("rank DESC, link");
+    DataResult result = DB.selectAllFrom(TABLE_NAME, select, where, orderBy, constraints, WebPageRepository::buildRecord);
+    return result.hasRecords() ? (List<WebPage>) result.getRecords() : new java.util.ArrayList<>();
+  }
+
   private static WebPage buildRecord(ResultSet rs) {
     try {
       WebPage record = new WebPage();

@@ -85,7 +85,15 @@
         </div>
         <div class="grid-x grid-padding-x">
           <div class="small-4 text-right cell">
-            <small>GeoIP</small>
+            <small>IP Address</small>
+          </div>
+          <div class="small-8 cell">
+            <small><c:out value="${formData.ipAddress}"/></small>
+          </div>
+        </div>
+        <div class="grid-x grid-padding-x">
+          <div class="small-4 text-right cell">
+            <small>GeoIP Location</small>
           </div>
           <div class="small-8 cell">
             <small><c:out value="${geoip:location(formData.ipAddress, formData.ipAddress)}"/></small>

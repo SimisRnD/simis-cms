@@ -41,7 +41,11 @@ public class PageRenderInfo implements ContainerRenderInfo, Serializable {
   private String description;
   private String imageUrl;
   private String pagePath;
+  private String canonicalUrl;
+  private String pageType = "website";
+  private String pageUrl;
   private String cssClass = null;
+  private String jsonLdData;
 
   public PageRenderInfo() {
   }
@@ -129,6 +133,38 @@ public class PageRenderInfo implements ContainerRenderInfo, Serializable {
 
   public String getCssClass() {
     return cssClass;
+  }
+
+  public String getCanonicalUrl() {
+    return canonicalUrl;
+  }
+
+  public void setCanonicalUrl(String canonicalUrl) {
+    this.canonicalUrl = canonicalUrl;
+  }
+
+  public String getPageType() {
+    return pageType;
+  }
+
+  public void setPageType(String pageType) {
+    this.pageType = pageType;
+  }
+
+  public String getPageUrl() {
+    return pageUrl;
+  }
+
+  public void setPageUrl(String pageUrl) {
+    this.pageUrl = pageUrl;
+  }
+
+  public String getJsonLdData() {
+    return jsonLdData;
+  }
+
+  public void setJsonLdData(String jsonLdData) {
+    this.jsonLdData = jsonLdData;
   }
 
 }

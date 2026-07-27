@@ -57,7 +57,10 @@ public class DataSource {
   }
 
   public static void shutdown() {
-    ds.close();
+    if (ds != null) {
+      ds.close();
+      ds = null;
+    }
   }
 
   public static javax.sql.DataSource getDataSource() {
