@@ -865,8 +865,8 @@ ul.pagination li.pagination-next a:hover {
   margin: 0;
   font-weight: bold;
   padding: 10px 20px;
-  background-color: #4991e2;
-  color: #ffffff;
+  background-color: #3F3A34;
+  color: #F5F3EF;
 }
 .admin-menu .app-user {
   margin-bottom: 10px;
@@ -907,6 +907,12 @@ ul.pagination li.pagination-next a:hover {
 }
 .admin-menu a:hover {
   color: #ffffff;
+}
+.admin-menu li.is-active {
+  background-color: #AEA38D;
+}
+.admin-menu li.is-active a {
+  color: #1C1917;
 }
 
 /* Cards */
