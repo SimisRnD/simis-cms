@@ -2,6 +2,30 @@
 
 Self-hosted, security-first Java content platform — pages, blogs, calendars, datasets, e-commerce, CRM, and analytics in one deployable. Apache-2.0, run in production by SimIS Inc. Java 21 + PostgreSQL/PostGIS, shipped as a `.war` for Tomcat 9.
 
+## ⚠️ FIRST TIME SETUP & BUILDING
+
+**Always use the safe build script:**
+
+```bash
+# First time: set up development environment
+./scripts/setup-dev-environment.sh
+
+# Every build: use this script (has all validations built-in)
+./scripts/build-safe.sh
+```
+
+The safe build script ensures:
+- ✅ Migration versions are unique (no Flyway conflicts)
+- ✅ Version consistency (pom.xml matches ApplicationInfo.VERSION)
+- ✅ Clean artifacts (prevents phantom compilation errors)
+- ✅ No testing code in commits (catches [TESTING] markers)
+- ✅ Docker rebuild without cache (prevents stale containers)
+
+**Do NOT run any of these (they cause silent failures):**
+- ❌ `docker-compose restart` — use `docker-compose down -v && docker-compose up -d` instead
+- ❌ `ant package` directly — use the safe build script
+- ❌ `docker-compose up -d --build` — must do `docker-compose down -v` first
+
 ## Build — Ant is authoritative
 
 The Maven `pom.xml` exists for IDE tooling and SBOM generation. **It does not produce the production artifact.** Use Ant:
@@ -161,27 +185,41 @@ if ("admin@example.com".equalsIgnoreCase(username)) {
 
 **MUST be removed before production.** Tagged with `[TESTING]` comments for detection.
 
-### Pre-commit Hook
+### Automated CI Gates (Required for Merges)
 
-Add to `.git/hooks/pre-commit` to catch [TESTING] markers locally:
+The following checks run in CI and **BLOCK PRs from merging** if they fail:
 
-```bash
-#!/bin/bash
-if git diff --cached | grep -q "\[TESTING\]"; then
-  echo "❌ Commit contains [TESTING] markers. Remove before committing."
-  exit 1
-fi
-if ! ./scripts/validate-migration-versions.sh >/dev/null 2>&1; then
-  echo "❌ Migration version conflicts detected."
-  exit 1
-fi
-exit 0
-```
+1. **Migration Version Validation** (`.github/workflows/ci-gates.yml`)
+   - Detects duplicate migration versions before they break database initialization
+   - Runs: `./scripts/validate-migration-versions.sh`
+   - Exit code 1 if conflicts found
 
-Then: `chmod +x .git/hooks/pre-commit`
+2. **Version Consistency Check** (`.github/workflows/ci-gates.yml`)
+   - Verifies `pom.xml` version matches `ApplicationInfo.VERSION`
+   - Prevents deployment version drift that breaks CI/CD
+   - Fails if versions diverge
 
-### Reference
+3. **Testing Code Lint** (`.github/workflows/ci-gates.yml`)
+   - Detects `[TESTING]` markers in Java code
+   - Prevents accidental merge of temporary testing bypasses
 
-- Runbook: `../simis-cms-runbooks/docs/deployment-debugging-2026-07-27.md`
-- Validator script: `scripts/validate-migration-versions.sh`
+### Pre-commit Hook (Installed Automatically)
+
+When you run `./scripts/setup-dev-environment.sh`, pre-commit hooks are installed that catch issues locally before you even create a commit:
+
+- `scripts/pre-commit-hook` — validates `[TESTING]` markers, migration versions, and potential secrets
+- Automatically runs before `git commit`
+- Prevents bad commits from reaching the repository
+
+To install manually: `./scripts/setup-dev-environment.sh`
+
+### Safety Infrastructure Reference
+
+- Build script: `scripts/build-safe.sh` — mandatory build entry point
+- Setup script: `scripts/setup-dev-environment.sh` — install pre-commit hooks
+- Pre-commit hook: `scripts/pre-commit-hook` — local validation
+- Migration validator: `scripts/validate-migration-versions.sh` — Flyway conflict detection
+- Version test: `tests/test-version-consistency.sh` — CI/CD version check
+- CI workflows: `.github/workflows/ci-gates.yml` — GitHub-enforced gates
+- Runbook: `../simis-cms-runbooks/docs/deployment-debugging-2026-07-27.md` — incident history
 - Last incident: 2026-07-27 (Docker caching + migration conflicts + cascading build failures)
