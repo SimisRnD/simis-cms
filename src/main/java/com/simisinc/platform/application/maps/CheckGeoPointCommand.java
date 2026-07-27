@@ -56,12 +56,6 @@ public class CheckGeoPointCommand {
       LOG.debug("Skipping... no maps.service.geocoder service");
       return item;
     }
-    if ("mapbox".equalsIgnoreCase(geocoderService)) {
-      String accessToken = LoadSitePropertyCommand.loadByName("maps.mapbox.accesstoken");
-      if (StringUtils.isNotBlank(accessToken)) {
-        return MapBoxCommand.updateGeoPoint(item);
-      }
-    }
     if ("nominatim".equalsIgnoreCase(geocoderService)) {
       return NominatimCommmand.updateGeoPoint(item);
     }
