@@ -987,9 +987,9 @@ public class PageServlet extends HttpServlet {
     }
   }
 
-  private static String generateJsonLdData(PageRenderInfo pageRenderInfo, String siteUrl,
-                                            Map<String, String> sitePropertyMap,
-                                            Item item, Collection collection) {
+  static String generateJsonLdData(PageRenderInfo pageRenderInfo, String siteUrl,
+                                    Map<String, String> sitePropertyMap,
+                                    Item item, Collection collection) {
     try {
       ObjectMapper mapper = new ObjectMapper();
       Map<String, Object> jsonLd = new LinkedHashMap<>();
@@ -1059,11 +1059,28 @@ public class PageServlet extends HttpServlet {
       }
 
       jsonLd.put("@graph", graph);
-      return mapper.writeValueAsString(jsonLd);
+      return escapeForInlineScript(mapper.writeValueAsString(jsonLd));
     } catch (Exception e) {
       LOG.warn("Error generating JSON-LD data: " + e.getMessage());
       return null;
     }
+  }
+
+  /**
+   * Jackson's JSON escaping only guarantees syntactically valid JSON (quotes, backslashes,
+   * control characters) -- it has no notion of the surrounding HTML, so a value containing
+   * "</script>" passes straight through. The browser's HTML parser looks for that literal byte
+   * sequence regardless of JSON string context, so an unescaped "</script>" inside e.g. a
+   * product name closes the tag early and lets an attacker-controlled payload execute. Escaping
+   * every '<', '>' and '&' to its JSON \\uXXXX form (valid inside a JSON string, and decodes back
+   * to the original character on parse) neutralizes that and any other HTML/comment breakout,
+   * without changing the parsed JSON-LD content.
+   */
+  static String escapeForInlineScript(String json) {
+    if (json == null) {
+      return null;
+    }
+    return json.replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026");
   }
 
   private static int intParam(HttpServletRequest request, String name, int defaultValue) {

@@ -89,7 +89,6 @@ SimIS CMS is built on the work of many open-source projects and data providers. 
 
    Boxzooka                    Shipping/Fulfillment                                       https://boxzooka.com
    Google Analytics            Analytics                                                  https://marketingplatform.google.com/about/analytics/
-   Map Box                     Geocoding, Map tiles                                       https://www.mapbox.com
    Open Street Map             Geocoding, Map tiles                                       https://www.openstreetmap.org
    Square                      Payment processing                                         https://squareup.com/us/en
    Stripe                      Payment processing                                         https://stripe.com

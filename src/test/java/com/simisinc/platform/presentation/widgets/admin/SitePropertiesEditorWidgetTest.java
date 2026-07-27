@@ -57,7 +57,6 @@ class SitePropertiesEditorWidgetTest extends WidgetBase {
     // Browser-bound publishable values must never be masked
     assertFalse(SecretSitePropertiesCommand.isSecret("ecommerce.stripe.production.key"));
     assertFalse(SecretSitePropertiesCommand.isSecret("captcha.google.sitekey"));
-    assertFalse(SecretSitePropertiesCommand.isSecret("maps.mapbox.accesstoken"));
     assertFalse(SecretSitePropertiesCommand.isSecret(null));
   }
 
