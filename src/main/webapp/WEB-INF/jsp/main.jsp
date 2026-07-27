@@ -721,6 +721,22 @@
             }
           });
         });
+        <%-- Preserve admin sidebar scroll position across page navigations (issue #508) --%>
+        var OFFCANVAS_SCROLL_KEY = 'simis-admin-menu-scroll';
+        var $offCanvas = $('#offCanvas');
+
+        // Restore scroll position on page load
+        if ($offCanvas.length > 0) {
+          var savedScroll = sessionStorage.getItem(OFFCANVAS_SCROLL_KEY);
+          if (savedScroll !== null) {
+            $offCanvas.scrollTop(parseInt(savedScroll, 10));
+          }
+
+          // Save scroll position when clicking menu links
+          $(document).on('click', '#offCanvas a', function() {
+            sessionStorage.setItem(OFFCANVAS_SCROLL_KEY, $offCanvas.scrollTop());
+          });
+        }
         <%-- // Add a smooth scroll for anchors --%>
         $(document).on('click', 'a[href^="#"]', function (event) {
           event.preventDefault();
