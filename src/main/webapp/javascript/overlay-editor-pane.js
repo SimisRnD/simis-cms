@@ -172,6 +172,9 @@ class OverlayEditorPane {
             <button class="toolbar-btn" data-action="link" title="Link">
               <i class="ti ti-link"></i>
             </button>
+            <button class="toolbar-btn" data-action="media" title="Insert media">
+              <i class="ti ti-photo"></i>
+            </button>
             <button class="toolbar-btn" data-action="header" title="Header">
               <i class="ti ti-heading"></i>
             </button>
@@ -342,6 +345,9 @@ class OverlayEditorPane {
       case 'link':
         this.insertLink();
         break;
+      case 'media':
+        this.showMediaLibrary();
+        break;
       case 'header':
         this.state.quill?.format('header', 2);
         break;
@@ -385,6 +391,35 @@ class OverlayEditorPane {
       } else {
         this.state.quill.insertText(0, 'Link', { link: url });
       }
+    }
+  }
+
+  /**
+   * Show media library panel for inserting images.
+   * P5.2: Media library integration with visual editor
+   */
+  showMediaLibrary() {
+    if (typeof window.showMediaLibrary === 'function') {
+      window.showMediaLibrary();
+
+      // Listen for media selection event
+      const handleMediaSelected = (event) => {
+        const asset = event.detail.asset;
+        if (asset && this.state.quill) {
+          if (asset.storagePath) {
+            const range = this.state.quill.getSelection();
+            if (range) {
+              this.state.quill.insertEmbed(range.index, 'image', asset.storagePath, 'user');
+              this.state.quill.setSelection(range.index + 1);
+            }
+          }
+          document.removeEventListener('media-selected', handleMediaSelected);
+        }
+      };
+
+      document.addEventListener('media-selected', handleMediaSelected);
+    } else {
+      console.warn('Media library panel not loaded');
     }
   }
 
