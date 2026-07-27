@@ -14,7 +14,7 @@
   ~ limitations under the License.
   --%>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
-<jsp:useBean id="tableData" class="com.fasterxml.jackson.databind.JsonNode" scope="request"/>
+<%-- tableData is a JsonNode set by TableWidget in request scope --%>
 
 <div class="table-widget-container">
   <table class="data-table" role="table">
