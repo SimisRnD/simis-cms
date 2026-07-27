@@ -16,11 +16,38 @@ You'll need:
 
 - **OpenJDK 21+** — the build targets Java 21 (`build.xml` sets `jdk=21`)
 - **Apache Ant 1.10+** — Ant is the authoritative build; the Maven `pom.xml` supports IDE tooling and SBOM generation but does not produce the production artifact
+- **Docker** — for running the application and database
 - **PostgreSQL with PostGIS** — or use the database container: `docker build -f docker/db/Dockerfile .`
 
 See [docs/developer-environment.md](docs/developer-environment.md) for the full IDE walkthrough and [docs/installation.md](docs/installation.md) for deployment.
 
+### First time setup
+
+After cloning, install development dependencies and pre-commit hooks:
+
+```sh
+./scripts/setup-dev-environment.sh
+```
+
+This validates your build prerequisites (Ant, Docker, Java 21) and installs hooks that catch common mistakes before you commit.
+
 ## Build and test
+
+**Always use the safe build script:**
+
+```sh
+./scripts/build-safe.sh
+```
+
+This runs the full sequence with validation:
+1. Validates migration versions (prevents database initialization failures)
+2. Checks version consistency (pom.xml ↔ ApplicationInfo.VERSION)
+3. Cleans old artifacts (prevents phantom "cannot find symbol" errors)
+4. Compiles and packages the application
+5. Rebuilds Docker containers without cache (prevents stale containers)
+6. Starts the stack and health-checks the app
+
+If you need fine-grained control, the underlying commands are:
 
 ```sh
 ant clean compile                  # compile the application
@@ -29,11 +56,14 @@ ant -lib lib/tests ci-test         # run the unit test suite
 ant -lib lib/war package           # build the production .war
 ```
 
-A few things worth knowing:
+### Important build notes
 
-- **Run `ant clean` before trusting a build.** Stale classes in `build/` can produce misleading errors (phantom "cannot find symbol", tests that no longer exist still running).
+- **Never use `docker-compose restart`** — it reuses cached image layers. Always use: `docker-compose down -v && docker-compose up -d`
+- **Always use `docker-compose build --no-cache`** after code changes to ensure the image picks up new code
+- **Run `ant clean` before trusting a build.** Stale classes in `build/` cause misleading errors (phantom "cannot find symbol", tests that shouldn't run).
 - **Dependencies are vendored** in `lib/`. If you change a library version, update **both** the jar in `lib/` and the version in `pom.xml` — they can silently drift apart otherwise.
-- **CI enforces security-critical test coverage.** After the targets above, CI runs `.github/scripts/check-security-coverage.sh`, which fails the build if a hardened security class drops below its test-coverage floor — so removing or weakening those tests will turn CI red.
+- **Database migrations** must have unique version numbers (Flyway validates all migrations before running any). The pre-commit hook checks for duplicates.
+- **CI enforces security-critical test coverage.** After building, CI runs `.github/scripts/check-security-coverage.sh`, which fails the build if a hardened security class drops below its test-coverage floor — so removing or weakening those tests will turn CI red.
 
 ## Making changes
 
