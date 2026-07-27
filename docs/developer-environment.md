@@ -7,6 +7,10 @@ description: Options for locally developing SimIS CMS
 
 SimIS CMS is meant to be fully developed offline. This allows developers to code, build, test, and run with the least friction when developing.
 
+:::note Quick start with Docker
+If you prefer a containerized development environment that matches production, see [CONTRIBUTING.md](../CONTRIBUTING.md#build-and-test) for the Docker-based safe build script (`./scripts/build-safe.sh`). This handles all validation, compilation, and deployment in a single command with no manual configuration needed.
+:::
+
 Developers can use [Visual Studio Code](https://code.visualstudio.com) with several recommended extensions for a truly Open Source environment. Developers can also use other IDEs like [IntelliJ IDEA](https://www.jetbrains.com/idea/). Settings for each are included in the SimIS CMS source code, however VS Code development is primarily maintained.
 
 ## Using VS Code
