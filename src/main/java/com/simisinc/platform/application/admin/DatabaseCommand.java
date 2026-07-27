@@ -128,7 +128,8 @@ public class DatabaseCommand {
       LOG.info("Database installation completed");
     }
     {
-      // Baseline off the versions
+      // For fresh installs, baseline to a high version to prevent old migrations from running.
+      // New installs don't need UPGRADE migrations since they start with the latest schema from NEW_* migrations.
       Flyway flyway = Flyway.configure()
           .table("flyway_history")
           .sqlMigrationPrefix("UPGRADE_")

@@ -27,6 +27,8 @@ import com.simisinc.platform.infrastructure.scheduler.cms.SessionsPiiScrubJob;
 import com.simisinc.platform.infrastructure.scheduler.cms.SystemHealthJob;
 import com.simisinc.platform.infrastructure.scheduler.cms.WebPageHitSnapshotJob;
 import com.simisinc.platform.infrastructure.scheduler.cms.WebPageHitsCleanupJob;
+import com.simisinc.platform.infrastructure.scheduler.cms.WebVitalsAggregationJob;
+import com.simisinc.platform.infrastructure.scheduler.cms.WebVitalsCleanupJob;
 import com.simisinc.platform.infrastructure.scheduler.ecommerce.OrderManagementProcessNewOrders;
 import com.simisinc.platform.infrastructure.scheduler.ecommerce.OrderManagementProcessShippingUpdates;
 import com.simisinc.platform.infrastructure.scheduler.login.UserTokensCleanupJob;
@@ -69,6 +71,8 @@ public class SchedulerManager {
   // Jobs to be run once across many replicas
   public static final String WEB_PAGE_HIT_SNAPSHOT_JOB = "WebPageHitSnapshot";
   public static final String WEB_PAGE_HITS_CLEANUP_JOB = "WebPageHitsCleanup";
+  public static final String WEB_VITALS_AGGREGATION_JOB = "WebVitalsAggregation";
+  public static final String WEB_VITALS_CLEANUP_JOB = "WebVitalsCleanup";
   public static final String USER_TOKENS_CLEANUP_JOB = "UserTokensCleanup";
   public static final String INSTAGRAM_MEDIA_SNAPSHOT_JOB = "InstagramMediaSnapshot";
   public static final String ORDER_MANAGEMENT_PROCESS_NEW_ORDERS_JOB = "OrderManagementProcessNewOrders";
@@ -148,6 +152,8 @@ public class SchedulerManager {
       if (canRunClusterJobs) {
         BackgroundJob.scheduleRecurrently(WEB_PAGE_HIT_SNAPSHOT_JOB, Cron.every5minutes(), WebPageHitSnapshotJob::execute);
         BackgroundJob.scheduleRecurrently(WEB_PAGE_HITS_CLEANUP_JOB, Cron.daily(4), WebPageHitsCleanupJob::execute);
+        BackgroundJob.scheduleRecurrently(WEB_VITALS_AGGREGATION_JOB, Cron.daily(23), WebVitalsAggregationJob::execute);
+        BackgroundJob.scheduleRecurrently(WEB_VITALS_CLEANUP_JOB, Cron.daily(4, 5), WebVitalsCleanupJob::execute);
         BackgroundJob.scheduleRecurrently(USER_TOKENS_CLEANUP_JOB, Cron.hourly(), UserTokensCleanupJob::execute);
         BackgroundJob.scheduleRecurrently(INSTAGRAM_MEDIA_SNAPSHOT_JOB, Cron.hourly(), InstagramMediaSnapshotJob::execute);
         BackgroundJob.scheduleRecurrently(DATASETS_DOWNLOAD_AND_SYNC_JOB, Cron.minutely(), DatasetsDownloadAndSyncJob::execute);

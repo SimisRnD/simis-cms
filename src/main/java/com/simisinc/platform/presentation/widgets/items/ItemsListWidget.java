@@ -79,6 +79,12 @@ public class ItemsListWidget extends GenericWidget {
     }
     context.getRequest().setAttribute("collection", collection);
 
+    // P5.3: Pass edit mode flag to enable collection item management UI
+    boolean isEditMode = "true".equals(context.getRequest().getParameter("editMode")) ||
+                        "true".equals(context.getRequest().getAttribute("pageEditMode") != null ?
+                        context.getRequest().getAttribute("pageEditMode").toString() : "false");
+    context.getRequest().setAttribute("isEditMode", isEditMode);
+
     // Determine the record paging
     int limit = Integer.parseInt(context.getPreferences().getOrDefault("limit", "20"));
     int page = context.getParameterAsInt("page", 1);

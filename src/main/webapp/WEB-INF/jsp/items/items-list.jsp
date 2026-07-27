@@ -34,6 +34,7 @@
 <jsp:useBean id="useItemLink" class="java.lang.String" scope="request"/>
 <jsp:useBean id="showLaunchLink" class="java.lang.String" scope="request"/>
 <jsp:useBean id="launchLabel" class="java.lang.String" scope="request"/>
+<jsp:useBean id="isEditMode" class="java.lang.String" scope="request"/>
 <c:if test="${!empty title}">
   <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
@@ -44,9 +45,14 @@
 <%--</c:choose>--%>
 <c:choose>
   <c:when test="${!empty itemList}">
-    <ul<c:if test="${showBullets eq 'false'}"> class="no-bullet"</c:if>>
+    <ul<c:if test="${showBullets eq 'false'}"> class="no-bullet"</c:if> id="itemList">
       <c:forEach items="${itemList}" var="item">
-        <li>
+        <li class="item-row" data-item-id="${item.id}" data-item-order="${item.itemOrder}">
+          <c:if test="${isEditMode eq 'true'}">
+            <span class="drag-handle" title="Drag to reorder" aria-label="Drag handle for ${item.name}">
+              <i class="fa fa-grip-vertical"></i>
+            </span>
+          </c:if>
           <c:choose>
             <c:when test="${showImage eq 'true' && !empty item.imageUrl}">
               <div class="item-image">
@@ -81,9 +87,34 @@
           <c:if test="${showUrl eq 'true' && !empty item.url}">
             <p><c:out value="${item.url}" /></p>
           </c:if>
+          <c:if test="${isEditMode eq 'true'}">
+            <button class="button alert tiny deactivate-btn" data-item-id="${item.id}" title="Deactivate this item">
+              <i class="fa fa-ban"></i> Deactivate
+            </button>
+          </c:if>
         </li>
       </c:forEach>
     </ul>
+    <c:if test="${isEditMode eq 'true'}">
+      <div class="add-item-section">
+        <h5>Add New Item</h5>
+        <form id="addItemForm" class="add-item-form">
+          <fieldset>
+            <div class="row">
+              <div class="small-12 medium-6 columns">
+                <label for="itemName">Item Name *</label>
+                <input type="text" id="itemName" name="itemName" placeholder="Item name" required>
+              </div>
+              <div class="small-12 medium-6 columns">
+                <label for="itemSummary">Item Summary</label>
+                <input type="text" id="itemSummary" name="itemSummary" placeholder="Brief summary">
+              </div>
+            </div>
+            <button type="submit" class="button success"><i class="fa fa-plus"></i> Add Item</button>
+          </fieldset>
+        </form>
+      </div>
+    </c:if>
     <%-- Paging Control --%>
     <c:if test="${category.id gt 0}">
       <c:set var="recordPagingParams" scope="request" value="categoryId=${category.id}"/>
@@ -96,3 +127,170 @@
     </p>
   </c:otherwise>
 </c:choose>
+
+<c:if test="${isEditMode eq 'true'}">
+<style>
+  .item-row {
+    position: relative;
+    padding-left: 2.5rem;
+    padding-right: 6rem;
+    margin-bottom: 0.5rem;
+  }
+  .drag-handle {
+    position: absolute;
+    left: 0;
+    top: 0.5rem;
+    cursor: grab;
+    color: #999;
+    font-size: 1rem;
+    padding: 0.25rem 0.5rem;
+  }
+  .drag-handle:active {
+    cursor: grabbing;
+  }
+  .drag-handle:hover {
+    color: #666;
+  }
+  .item-row.drag-over {
+    opacity: 0.5;
+  }
+  .deactivate-btn {
+    position: absolute;
+    right: 0;
+    top: 0.5rem;
+    font-size: 0.75rem;
+    padding: 0.25rem 0.5rem;
+  }
+  .add-item-section {
+    margin-top: 2rem;
+    padding: 1rem;
+    background-color: #f5f5f5;
+    border-radius: 0.25rem;
+  }
+  .add-item-section h5 {
+    margin-top: 0;
+  }
+  .add-item-form fieldset {
+    margin-bottom: 0;
+  }
+</style>
+
+<script>
+(function() {
+  var collectionId = '${collection.id}';
+  var itemList = document.getElementById('itemList');
+  var formToken = (typeof mainToken !== 'undefined') ? mainToken : '';
+
+  if (!itemList) return;
+
+  // Initialize Sortable for drag-to-reorder
+  if (typeof Sortable !== 'undefined') {
+    Sortable.create(itemList, {
+      handle: '.drag-handle',
+      animation: 150,
+      ghostClass: 'drag-over',
+      onEnd: function(evt) {
+        var itemRow = evt.item;
+        var itemId = itemRow.getAttribute('data-item-id');
+        var newOrder = Array.from(itemList.children).indexOf(itemRow) + 1;
+
+        // Send reorder mutation to server (form-encoded)
+        var params = new URLSearchParams();
+        params.append('action', 'reorderCollectionItem');
+        params.append('itemId', itemId);
+        params.append('newOrder', newOrder);
+        params.append('token', formToken);
+
+        fetch(window.location.pathname, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/x-www-form-urlencoded'
+          },
+          body: params.toString()
+        }).then(r => r.json()).then(function(data) {
+          if (data.success !== true) {
+            console.error('Reorder failed:', data.message);
+            location.reload();
+          }
+        }).catch(function(err) {
+          console.error('Reorder error:', err);
+          location.reload();
+        });
+      }
+    });
+  }
+
+  // Handle deactivate buttons
+  document.querySelectorAll('.deactivate-btn').forEach(function(btn) {
+    btn.addEventListener('click', function(e) {
+      e.preventDefault();
+      if (!confirm('Deactivate this item? It will no longer appear in collections.')) {
+        return;
+      }
+
+      var itemId = btn.getAttribute('data-item-id');
+      var params = new URLSearchParams();
+      params.append('action', 'deactivateCollectionItem');
+      params.append('itemId', itemId);
+      params.append('token', formToken);
+
+      fetch(window.location.pathname, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: params.toString()
+      }).then(r => r.json()).then(function(data) {
+        if (data.success === true) {
+          btn.closest('.item-row').style.opacity = '0.5';
+          btn.disabled = true;
+        } else {
+          alert('Failed to deactivate: ' + (data.message || 'Unknown error'));
+        }
+      }).catch(function(err) {
+        alert('Error: ' + err.message);
+      });
+    });
+  });
+
+  // Handle add item form
+  var addItemForm = document.getElementById('addItemForm');
+  if (addItemForm) {
+    addItemForm.addEventListener('submit', function(e) {
+      e.preventDefault();
+
+      var itemName = document.getElementById('itemName').value.trim();
+      var itemSummary = document.getElementById('itemSummary').value.trim();
+
+      if (!itemName) {
+        alert('Item name is required');
+        return;
+      }
+
+      var params = new URLSearchParams();
+      params.append('action', 'saveCollectionItem');
+      params.append('collectionId', collectionId);
+      params.append('itemName', itemName);
+      params.append('itemSummary', itemSummary);
+      params.append('token', formToken);
+
+      fetch(window.location.pathname, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded'
+        },
+        body: params.toString()
+      }).then(r => r.json()).then(function(data) {
+        if (data.success === true) {
+          location.reload();
+        } else {
+          alert('Failed to add item: ' + (data.message || 'Unknown error'));
+        }
+      }).catch(function(err) {
+        alert('Error: ' + err.message);
+      });
+    });
+  }
+})();
+</script>
+</c:if>

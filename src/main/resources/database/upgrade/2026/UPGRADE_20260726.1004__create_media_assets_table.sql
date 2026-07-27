@@ -23,29 +23,29 @@ CREATE TABLE IF NOT EXISTS media_assets (
   storage_path TEXT NOT NULL,
   alt_text TEXT NOT NULL,
   tags TEXT,
-  created_by BIGINT NOT NULL,
+  created_by BIGINT NOT NULL REFERENCES users(user_id),
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   deleted_at TIMESTAMP
 );
 
 -- Indexes for common queries
-CREATE INDEX idx_media_asset_id ON media_assets(asset_id);
-CREATE INDEX idx_media_created_at ON media_assets(created_at DESC) WHERE deleted_at IS NULL;
-CREATE INDEX idx_media_type ON media_assets(asset_type) WHERE deleted_at IS NULL;
-CREATE INDEX idx_media_created_by ON media_assets(created_by) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_media_asset_id ON media_assets(asset_id);
+CREATE INDEX IF NOT EXISTS idx_media_created_at ON media_assets(created_at DESC) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_media_type ON media_assets(asset_type) WHERE deleted_at IS NULL;
+CREATE INDEX IF NOT EXISTS idx_media_created_by ON media_assets(created_by) WHERE deleted_at IS NULL;
 
 -- Track where media is used in content (enables orphan detection, usage audit)
 CREATE TABLE IF NOT EXISTS media_asset_usage (
-  id BIGSERIAL PRIMARY KEY,
-  asset_id BIGINT NOT NULL REFERENCES media_assets(id),
-  content_id BIGINT NOT NULL REFERENCES content(id),
+  media_usage_id BIGSERIAL PRIMARY KEY,
+  asset_id BIGINT NOT NULL REFERENCES media_assets(id) ON DELETE CASCADE,
+  content_id BIGINT NOT NULL REFERENCES content(content_id) ON DELETE CASCADE,
   embed_type VARCHAR(32) NOT NULL,
   used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   UNIQUE(asset_id, content_id)
 );
 
-CREATE INDEX idx_usage_asset_id ON media_asset_usage(asset_id);
-CREATE INDEX idx_usage_content_id ON media_asset_usage(content_id);
+CREATE INDEX IF NOT EXISTS idx_usage_asset_id ON media_asset_usage(asset_id);
+CREATE INDEX IF NOT EXISTS idx_usage_content_id ON media_asset_usage(content_id);
 
 COMMIT;
