@@ -16,12 +16,11 @@
 
 package com.simisinc.platform.presentation.widgets.cms;
 
-import com.simisinc.platform.application.cms.LoadMenuTabsCommand;
 import com.simisinc.platform.application.cms.ValidateUserAccessToWebPageCommand;
-import com.simisinc.platform.domain.model.cms.MenuItem;
-import com.simisinc.platform.domain.model.cms.MenuTab;
 import com.simisinc.platform.domain.model.cms.SearchResult;
+import com.simisinc.platform.domain.model.cms.WebPage;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
+import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
 import com.simisinc.platform.presentation.controller.RequestConstants;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
@@ -62,39 +61,24 @@ public class WebPageTitleSearchResultsWidget extends GenericWidget {
     }
     query = query.toLowerCase().trim();
 
-    // Prepare the search results
+    // Prepare the search results using full-text search on web_pages table
     List<SearchResult> searchResultList = new ArrayList<>();
 
-    // Load the menu tabs, these are the directly linkable web pages
-    List<MenuTab> menuTabList = LoadMenuTabsCommand.findAllActiveIncludeMenuItemList();
+    // Search web pages using PostgreSQL tsvector for efficient full-text search
+    // (searches page_title, page_keywords, page_description with relevance ranking)
+    List<WebPage> webPageList = WebPageRepository.search(query, constraints);
 
-    for (MenuTab menuTab : menuTabList) {
-      if (menuTab.getName().toLowerCase().contains(query)) {
-        // Check the corresponding page
-        if (!ValidateUserAccessToWebPageCommand.hasAccess(menuTab.getLink(), context.getUserSession())) {
-          continue;
-        }
-        SearchResult searchResult = new SearchResult();
-        searchResult.setPageTitle(menuTab.getName());
-        searchResult.setLink(menuTab.getLink());
-        searchResultList.add(searchResult);
+    for (WebPage webPage : webPageList) {
+      // Check user access to the web page
+      if (!ValidateUserAccessToWebPageCommand.hasAccess(webPage.getLink(), context.getUserSession())) {
+        continue;
       }
-      for (MenuItem menuItem : menuTab.getMenuItemList()) {
-        if (menuItem.getName().toLowerCase().contains(query)) {
-          // Check the corresponding page
-          if (!ValidateUserAccessToWebPageCommand.hasAccess(menuItem.getLink(), context.getUserSession())) {
-            continue;
-          }
-          SearchResult searchResult = new SearchResult();
-          searchResult.setPageTitle(menuItem.getName());
-          searchResult.setLink(menuItem.getLink());
-          searchResultList.add(searchResult);
-        }
-      }
+      SearchResult searchResult = new SearchResult();
+      searchResult.setPageTitle(webPage.getTitle());
+      searchResult.setPageDescription(webPage.getDescription());
+      searchResult.setLink(webPage.getLink());
+      searchResultList.add(searchResult);
     }
-
-    // Check the page the table of contents links to
-//    List<TableOfContents> tableOfContentsList = TableOfContentsRepository.findAll(null, null);
 
     context.getRequest().setAttribute("searchResultList", searchResultList);
 
