@@ -96,7 +96,7 @@ jobs:
       # Skip when ACR_REGISTRY is not set (forks, local branches).
       - name: Sign in to Azure (OIDC)
         if: env.ACR_REGISTRY != ''
-        uses: azure/login@a457d4c18e4d2c624a7c0db7c0a1dc41d1e74aff # v2.3.0
+        uses: azure/login@v2.5.0
         with:
           client-id: ${{ vars.AZURE_CLIENT_ID }}
           tenant-id: ${{ vars.AZURE_TENANT_ID }}
