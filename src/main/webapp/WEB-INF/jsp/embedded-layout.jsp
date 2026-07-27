@@ -73,6 +73,7 @@
     <link rel="stylesheet" type="text/css" href="${ctx}/javascript/swiper-12.1.2/swiper-bundle.min.css" />
     <link rel="stylesheet" type="text/css" href="${ctx}/css/platform.css" />
     <link rel="stylesheet" type="text/css" href="${ctx}/css/platform-tokens.css" />
+    <link rel="stylesheet" type="text/css" href="${ctx}/css/platform-modern-components.css" />
   <c:if test="${!empty themePropertyMap}">
       <style><%-- Prevent top-bar flicker --%>
         :root {

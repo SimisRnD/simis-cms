@@ -31,34 +31,32 @@
    ========================================================================== */
 
 :root {
-  /* Surfaces */
-  --sc-surface: #ffffff;
-  --sc-surface-raised: #ffffff;
-  --sc-surface-sunken: #f4f6f8;
-  --sc-surface-overlay: #ffffff;
+  /* Surfaces - warm cream canvas */
+  --sc-surface: #F5F3EF;
+  --sc-surface-raised: #F5F3EF;
+  --sc-surface-sunken: #E7E3DC;
+  --sc-surface-overlay: #F5F3EF;
 
-  /* Text - contrast vs --sc-surface: text 19.80:1, muted 6.00:1, link 5.97:1 */
-  --sc-text: #0a0a0a;
-  --sc-text-muted: #5b6470;
-  --sc-text-inverse: #ffffff;
-  --sc-link: #1468a0;
-  --sc-link-hover: #0f4f7a;
+  /* Text - contrast vs warm cream: text on light background */
+  --sc-text: #2C2925;
+  --sc-text-muted: #8A7F78;
+  --sc-text-inverse: #F5F3EF;
+  --sc-link: #3F3A34;
+  --sc-link-hover: #2C2925;
 
   /* Lines. --sc-border is decorative (1.4.11 exempt).
-     --sc-border-control outlines real controls: 3.40:1 on white,
-     3.14:1 on --sc-surface-sunken. */
-  --sc-border: #d7dce2;
-  --sc-border-control: #858c95;
+     --sc-border-control outlines real controls for warm palette. */
+  --sc-border: #E7E3DC;
+  --sc-border-control: #AEA38D;
 
-  /* Form fields */
-  --sc-field-bg: #ffffff;
-  --sc-field-text: #0a0a0a;
-  --sc-field-placeholder: #5b6470;
-  --sc-field-disabled-bg: #eef1f4;
+  /* Form fields - warm cream */
+  --sc-field-bg: #F5F3EF;
+  --sc-field-text: #2C2925;
+  --sc-field-placeholder: #8A7F78;
+  --sc-field-disabled-bg: #E7E3DC;
 
-  /* Focus ring - 5.97:1 on white, comfortably past the 3:1 that
-     1.4.11 asks of a focus indicator. */
-  --sc-focus-ring: #1468a0;
+  /* Focus ring - dove taupe for warm palette */
+  --sc-focus-ring: #AEA38D;
   --sc-focus-ring-width: 2px;
   --sc-focus-ring-offset: 2px;
 
@@ -102,27 +100,27 @@
    ========================================================================== */
 
 :root[data-theme="dark"] {
-  --sc-surface: #16191d;
-  --sc-surface-raised: #1e2228;
-  --sc-surface-sunken: #101317;
-  --sc-surface-overlay: #1e2228;
+  --sc-surface: #1C1917;
+  --sc-surface-raised: #2C2925;
+  --sc-surface-sunken: #0F0D0A;
+  --sc-surface-overlay: #2C2925;
 
-  /* contrast vs --sc-surface: text 14.49:1, muted 8.05:1, link 8.37:1 */
-  --sc-text: #e6e9ee;
-  --sc-text-muted: #a7b0bd;
-  --sc-text-inverse: #0a0a0a;
-  --sc-link: #7cb8f0;
-  --sc-link-hover: #a5cef5;
+  /* contrast vs dark warm: text and accent in warm palette */
+  --sc-text: #D4CFC5;
+  --sc-text-muted: #9A8F7A;
+  --sc-text-inverse: #1C1917;
+  --sc-link: #C9B8A0;
+  --sc-link-hover: #D4CFC5;
 
-  --sc-border: #333a44;
-  --sc-border-control: #6a7585; /* 3.78:1 on page, 3.42:1 on raised */
+  --sc-border: #3F3A34;
+  --sc-border-control: #8A7F78;
 
-  --sc-field-bg: #1b1f25;
-  --sc-field-text: #e6e9ee;
-  --sc-field-placeholder: #97a1af; /* 6.33:1 on --sc-field-bg */
-  --sc-field-disabled-bg: #23282f;
+  --sc-field-bg: #2C2925;
+  --sc-field-text: #D4CFC5;
+  --sc-field-placeholder: #7D7268;
+  --sc-field-disabled-bg: #1C1917;
 
-  --sc-focus-ring: #8ab4f8;
+  --sc-focus-ring: #C9B8A0;
 
   /* Shadows read as noise on a dark page; lean on borders instead. */
   --sc-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
@@ -136,26 +134,26 @@
    data-theme stays light, which is what every pre-existing site gets. */
 @media (prefers-color-scheme: dark) {
   :root[data-theme="auto"] {
-    --sc-surface: #16191d;
-    --sc-surface-raised: #1e2228;
-    --sc-surface-sunken: #101317;
-    --sc-surface-overlay: #1e2228;
+    --sc-surface: #1C1917;
+    --sc-surface-raised: #2C2925;
+    --sc-surface-sunken: #0F0D0A;
+    --sc-surface-overlay: #2C2925;
 
-    --sc-text: #e6e9ee;
-    --sc-text-muted: #a7b0bd;
-    --sc-text-inverse: #0a0a0a;
-    --sc-link: #7cb8f0;
-    --sc-link-hover: #a5cef5;
+    --sc-text: #D4CFC5;
+    --sc-text-muted: #9A8F7A;
+    --sc-text-inverse: #1C1917;
+    --sc-link: #C9B8A0;
+    --sc-link-hover: #D4CFC5;
 
-    --sc-border: #333a44;
-    --sc-border-control: #6a7585;
+    --sc-border: #3F3A34;
+    --sc-border-control: #8A7F78;
 
-    --sc-field-bg: #1b1f25;
-    --sc-field-text: #e6e9ee;
-    --sc-field-placeholder: #97a1af;
-    --sc-field-disabled-bg: #23282f;
+    --sc-field-bg: #2C2925;
+    --sc-field-text: #D4CFC5;
+    --sc-field-placeholder: #7D7268;
+    --sc-field-disabled-bg: #1C1917;
 
-    --sc-focus-ring: #8ab4f8;
+    --sc-focus-ring: #C9B8A0;
 
     --sc-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
     --sc-shadow-md: 0 2px 8px rgba(0, 0, 0, 0.55);

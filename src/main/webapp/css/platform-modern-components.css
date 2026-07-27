@@ -1,0 +1,633 @@
+/*
+ * SimIS CMS - Modern Component Overrides
+ *
+ * Overrides Foundation's default component styles with a modern, sharp design
+ * using the updated design tokens. Load this AFTER platform.css and platform-tokens.css
+ */
+
+/* ==========================================================================
+   Buttons - Modern, refined styling
+   ========================================================================== */
+
+.button {
+  border-radius: var(--sc-radius-md);
+  border: 1px solid transparent;
+  font-size: var(--sc-font-size-base);
+  font-weight: 500;
+  padding: 0.625rem 1.25rem;
+  transition: all var(--sc-motion-base) var(--sc-motion-ease);
+  cursor: pointer;
+}
+
+.button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: var(--sc-shadow-sm);
+}
+
+.button:active:not(:disabled) {
+  transform: translateY(0);
+}
+
+/* Primary/filled buttons - warm brown background */
+.button.primary {
+  background-color: #3F3A34;
+  border-color: #3F3A34;
+  color: white;
+}
+
+.button.primary:hover:not(:disabled) {
+  background-color: #2C2925;
+  border-color: #2C2925;
+}
+
+/* Success buttons */
+.button.success {
+  background-color: #6B8E23;
+  border-color: #6B8E23;
+  color: white;
+}
+
+.button.success:hover:not(:disabled) {
+  background-color: #556B1F;
+  border-color: #556B1F;
+}
+
+/* Alert/danger buttons */
+.button.alert {
+  background-color: var(--sc-danger);
+  border-color: var(--sc-danger);
+  color: white;
+}
+
+.button.alert:hover:not(:disabled) {
+  background-color: var(--sc-danger);
+  opacity: 0.9;
+}
+
+/* Secondary/hollow buttons */
+.button.secondary, .button.hollow {
+  background-color: transparent;
+  border: 1px solid var(--sc-border-control);
+  color: var(--sc-link);
+}
+
+.button.secondary:hover:not(:disabled),
+.button.hollow:hover:not(:disabled) {
+  background-color: var(--sc-surface-sunken);
+  border-color: var(--sc-border-control);
+}
+
+/* Clear buttons */
+.button.clear {
+  background-color: transparent;
+  border: none;
+  color: var(--sc-link);
+}
+
+.button.clear:hover:not(:disabled) {
+  background-color: rgba(0, 102, 255, 0.08);
+}
+
+/* Disabled state */
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* ==========================================================================
+   Form Inputs - Modern, clean styling
+   ========================================================================== */
+
+input[type="text"],
+input[type="password"],
+input[type="date"],
+input[type="datetime"],
+input[type="datetime-local"],
+input[type="month"],
+input[type="week"],
+input[type="email"],
+input[type="number"],
+input[type="search"],
+input[type="tel"],
+input[type="time"],
+input[type="url"],
+input[type="color"],
+textarea,
+select {
+  border-radius: var(--sc-radius-md);
+  border: 1px solid var(--sc-border);
+  background-color: var(--sc-field-bg);
+  color: var(--sc-field-text);
+  font-size: var(--sc-font-size-base);
+  padding: 0.625rem 0.875rem;
+  transition: all var(--sc-motion-base) var(--sc-motion-ease);
+}
+
+input[type="text"]:focus,
+input[type="password"]:focus,
+input[type="date"]:focus,
+input[type="datetime"]:focus,
+input[type="datetime-local"]:focus,
+input[type="month"]:focus,
+input[type="week"]:focus,
+input[type="email"]:focus,
+input[type="number"]:focus,
+input[type="search"]:focus,
+input[type="tel"]:focus,
+input[type="time"]:focus,
+input[type="url"]:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--sc-link);
+  box-shadow: 0 0 0 3px rgba(0, 102, 255, 0.1);
+  outline: none;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: var(--sc-field-placeholder);
+}
+
+input:disabled,
+textarea:disabled,
+select:disabled {
+  background-color: var(--sc-field-disabled-bg);
+  color: var(--sc-text-muted);
+  cursor: not-allowed;
+}
+
+/* ==========================================================================
+   Cards and Panels - Clean, modern look
+   ========================================================================== */
+
+.card {
+  border-radius: var(--sc-radius-lg);
+  border: 1px solid var(--sc-border);
+  background-color: var(--sc-surface-raised);
+  box-shadow: var(--sc-shadow-sm);
+  overflow: hidden;
+  transition: all var(--sc-motion-base) var(--sc-motion-ease);
+}
+
+.card:hover {
+  box-shadow: var(--sc-shadow-md);
+}
+
+.card-section {
+  border-bottom: 1px solid var(--sc-border);
+  padding: 1rem 1.25rem;
+}
+
+.card-section:last-child {
+  border-bottom: none;
+}
+
+.card-divider {
+  background-color: var(--sc-surface-sunken);
+  border-top: 1px solid var(--sc-border);
+  border-bottom: none;
+  padding: 0.5rem 1.25rem;
+}
+
+/* ==========================================================================
+   Callouts - Replace cream backgrounds with modern colors
+   ========================================================================== */
+
+.callout,
+.callout.primary,
+.callout.warning {
+  border-radius: 6px !important;
+  border-left: 4px solid #AEA38D !important;
+  padding: 1rem 1.25rem !important;
+  background-color: #F5F3EF !important;
+  color: #2C2925 !important;
+  border: 1px solid #E7E3DC !important;
+}
+
+.callout.success {
+  background-color: var(--sc-success-light);
+  border-left-color: var(--sc-success);
+  color: var(--sc-success);
+}
+
+.callout.warning {
+  background-color: var(--sc-warning-light);
+  border-left-color: var(--sc-warning);
+  color: var(--sc-warning);
+}
+
+.callout.alert {
+  background-color: var(--sc-danger-light);
+  border-left-color: var(--sc-danger);
+  color: var(--sc-danger);
+}
+
+.callout.primary {
+  background-color: var(--sc-info-light);
+  border-left-color: var(--sc-info);
+  color: var(--sc-info);
+}
+
+/* Metric cards */
+.callout.metric-card {
+  background-color: #F5F3EF;
+  border: 1px solid #E7E3DC;
+  border-left: 4px solid #AEA38D;
+  text-align: center;
+  padding: 1.5rem 1rem;
+}
+
+/* ==========================================================================
+   Tables - Modern striped rows and hover effects
+   ========================================================================== */
+
+table {
+  border-collapse: separate;
+  border-spacing: 0;
+  border-radius: var(--sc-radius-md);
+  overflow: hidden;
+  border: 1px solid var(--sc-border);
+}
+
+table thead {
+  background-color: var(--sc-surface-sunken);
+}
+
+table thead th {
+  font-weight: 600;
+  padding: 0.875rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid var(--sc-border);
+}
+
+table tbody tr {
+  border-bottom: 1px solid var(--sc-border);
+  transition: background-color var(--sc-motion-base) var(--sc-motion-ease);
+}
+
+table tbody tr:last-child {
+  border-bottom: none;
+}
+
+table tbody tr:nth-child(even) {
+  background-color: var(--sc-surface-sunken);
+}
+
+table tbody tr:hover {
+  background-color: rgba(0, 102, 255, 0.05);
+}
+
+table tbody td {
+  padding: 0.875rem 1rem;
+}
+
+/* ==========================================================================
+   Typography - Refined hierarchy
+   ========================================================================== */
+
+h1, h2, h3, h4, h5, h6 {
+  color: var(--sc-text);
+  font-weight: 600;
+  margin-top: 1.5rem;
+  margin-bottom: 0.75rem;
+  line-height: var(--sc-line-height-tight);
+}
+
+h1 {
+  font-size: var(--sc-font-size-2xl);
+}
+
+h2 {
+  font-size: var(--sc-font-size-xl);
+}
+
+h3 {
+  font-size: var(--sc-font-size-lg);
+}
+
+h4, h5, h6 {
+  font-size: var(--sc-font-size-base);
+}
+
+/* Section title labels in sidebar - light gray for visibility */
+.section-title,
+.platform-admin-sidebar h6,
+.platform-sidebar h6,
+[class*="sidebar"] h6,
+[class*="sidebar"] .sidebar-label,
+[class*="sidebar"] .platform-nav-section-label,
+[class*="sidebar"] .subheader,
+aside h6,
+nav h6 {
+  color: #8b949e !important;
+  font-weight: 600;
+  text-transform: uppercase;
+  font-size: var(--sc-font-size-xs);
+  letter-spacing: 0.5px;
+  opacity: 1 !important;
+}
+
+:root[data-theme="dark"] .section-title,
+:root[data-theme="dark"] .platform-admin-sidebar h6,
+:root[data-theme="dark"] .platform-sidebar h6,
+:root[data-theme="dark"] [class*="sidebar"] h6,
+:root[data-theme="dark"] [class*="sidebar"] .sidebar-label,
+:root[data-theme="dark"] [class*="sidebar"] .platform-nav-section-label,
+:root[data-theme="dark"] [class*="sidebar"] .subheader,
+:root[data-theme="dark"] aside h6,
+:root[data-theme="dark"] nav h6 {
+  color: #b8c1cc !important;
+}
+
+p, li, dt, dd {
+  color: var(--sc-text);
+  line-height: var(--sc-line-height-normal);
+  margin-bottom: 1rem;
+}
+
+label {
+  color: var(--sc-text);
+  font-weight: 500;
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: var(--sc-font-size-sm);
+}
+
+.help-text, .subheader {
+  color: var(--sc-text-muted);
+  font-size: var(--sc-font-size-sm);
+}
+
+/* ==========================================================================
+   Tabs - Modern styling
+   ========================================================================== */
+
+.tabs {
+  border-bottom: 1px solid var(--sc-border);
+  background-color: transparent;
+  margin-bottom: 1rem;
+}
+
+.tabs-title {
+  margin-bottom: 0;
+}
+
+.tabs-title > a {
+  background-color: transparent;
+  color: var(--sc-text-muted);
+  border: none;
+  border-bottom: 2px solid transparent;
+  padding: 1rem;
+  font-weight: 500;
+  transition: all var(--sc-motion-base) var(--sc-motion-ease);
+}
+
+.tabs-title > a:hover {
+  color: var(--sc-text);
+  background-color: transparent;
+}
+
+.tabs-title > a[aria-selected="true"] {
+  color: var(--sc-link);
+  border-bottom-color: var(--sc-link);
+  background-color: transparent;
+}
+
+.tabs-content {
+  background-color: transparent;
+}
+
+/* ==========================================================================
+   Pagination - Modern styling
+   ========================================================================== */
+
+.pagination {
+  margin: 1.5rem 0;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.pagination a,
+.pagination button {
+  border-radius: var(--sc-radius-md);
+  border: 1px solid var(--sc-border);
+  padding: 0.5rem 0.75rem;
+  color: var(--sc-link);
+  background-color: var(--sc-surface-raised);
+  transition: all var(--sc-motion-base) var(--sc-motion-ease);
+  font-size: var(--sc-font-size-sm);
+}
+
+.pagination a:hover:not(.current),
+.pagination button:hover:not(.current) {
+  background-color: var(--sc-surface-sunken);
+  border-color: var(--sc-link);
+}
+
+.pagination .current {
+  background-color: var(--sc-link);
+  color: white;
+  border-color: var(--sc-link);
+  cursor: default;
+}
+
+/* ==========================================================================
+   Code and Pre - Modern styling
+   ========================================================================== */
+
+code, kbd {
+  background-color: var(--sc-surface-sunken);
+  border-radius: var(--sc-radius-sm);
+  padding: 0.125rem 0.375rem;
+  font-family: var(--sc-font-family-mono);
+  font-size: var(--sc-font-size-sm);
+  color: var(--sc-text);
+}
+
+pre {
+  background-color: var(--sc-surface-sunken);
+  border: 1px solid var(--sc-border);
+  border-radius: var(--sc-radius-md);
+  padding: 1rem;
+  overflow-x: auto;
+  font-family: var(--sc-font-family-mono);
+  font-size: var(--sc-font-size-sm);
+  line-height: var(--sc-line-height-relaxed);
+}
+
+/* ==========================================================================
+   Alerts - Semantic status colors
+   ========================================================================== */
+
+.alert {
+  border-radius: var(--sc-radius-md);
+  padding: 1rem;
+  margin-bottom: 1rem;
+  border-left: 4px solid;
+}
+
+.alert.success {
+  background-color: var(--sc-success-light);
+  border-left-color: var(--sc-success);
+  color: var(--sc-success);
+}
+
+.alert.warning {
+  background-color: var(--sc-warning-light);
+  border-left-color: var(--sc-warning);
+  color: var(--sc-warning);
+}
+
+.alert.alert-box {
+  background-color: var(--sc-danger-light);
+  border-left-color: var(--sc-danger);
+  color: var(--sc-danger);
+}
+
+.alert.information {
+  background-color: var(--sc-info-light);
+  border-left-color: var(--sc-info);
+  color: var(--sc-info);
+}
+
+/* ==========================================================================
+   Links - Modern styling
+   ========================================================================== */
+
+a {
+  color: var(--sc-link);
+  transition: color var(--sc-motion-base) var(--sc-motion-ease);
+}
+
+a:hover {
+  color: var(--sc-link-hover);
+}
+
+/* ==========================================================================
+   Breadcrumbs - Modern styling
+   ========================================================================== */
+
+.breadcrumbs {
+  margin-bottom: 1.5rem;
+  font-size: var(--sc-font-size-sm);
+}
+
+.breadcrumbs a {
+  color: var(--sc-link);
+}
+
+.breadcrumbs li:not(:last-child)::after {
+  color: var(--sc-text-muted);
+  margin: 0 0.5rem;
+}
+
+/* ==========================================================================
+   Checkboxes and Radios - Modern styling
+   ========================================================================== */
+
+input[type="checkbox"],
+input[type="radio"] {
+  width: 1.125rem;
+  height: 1.125rem;
+  cursor: pointer;
+  accent-color: var(--sc-link);
+}
+
+/* ==========================================================================
+   Dropdowns and Selects - Modern styling
+   ========================================================================== */
+
+.dropdown-pane {
+  border-radius: var(--sc-radius-md);
+  border: 1px solid var(--sc-border);
+  background-color: var(--sc-surface-raised);
+  box-shadow: var(--sc-shadow-lg);
+  padding: 0.5rem 0;
+}
+
+/* ==========================================================================
+   Platform-specific Admin Components
+   ========================================================================== */
+
+.platform-admin-header {
+  background-color: var(--sc-surface-raised);
+  border-bottom: 1px solid var(--sc-border);
+  padding: 1rem;
+}
+
+.platform-admin-sidebar {
+  background-color: var(--sc-surface-raised);
+  border-right: 1px solid var(--sc-border);
+}
+
+.platform-admin-content {
+  background-color: var(--sc-surface);
+  padding: 2rem;
+}
+
+/* Navigation items */
+.platform-nav-item {
+  padding: 0.75rem 1rem;
+  color: var(--sc-text-muted);
+  transition: all var(--sc-motion-base) var(--sc-motion-ease);
+  border-left: 3px solid transparent;
+}
+
+.platform-nav-item:hover {
+  background-color: var(--sc-surface-sunken);
+  color: var(--sc-text);
+}
+
+.platform-nav-item.active {
+  background-color: rgba(0, 102, 255, 0.05);
+  color: var(--sc-link);
+  border-left-color: var(--sc-link);
+}
+
+/* ==========================================================================
+   Utility Classes
+   ========================================================================== */
+
+.text-muted {
+  color: var(--sc-text-muted) !important;
+}
+
+.text-success {
+  color: var(--sc-success) !important;
+}
+
+.text-warning {
+  color: var(--sc-warning) !important;
+}
+
+.text-danger {
+  color: var(--sc-danger) !important;
+}
+
+/* Override all backgrounds to use warm palette */
+.grid-x.align-middle.text-middle {
+  background-color: #F5F3EF !important;
+}
+
+.grid-x.align-middle.text-middle > .cell {
+  background-color: #F5F3EF !important;
+}
+
+/* Use warm cream for metric/stat cards */
+div[class*="stat"],
+div[class*="metric"],
+.grid-x {
+  background-color: #F5F3EF !important;
+}
+
+.bg-success {
+  background-color: var(--sc-success-light) !important;
+}
+
+.bg-warning {
+  background-color: var(--sc-warning-light) !important;
+}
+
+.bg-danger {
+  background-color: var(--sc-danger-light) !important;
+}
