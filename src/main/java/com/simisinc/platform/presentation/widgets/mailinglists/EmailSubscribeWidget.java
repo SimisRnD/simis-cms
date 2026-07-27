@@ -31,6 +31,7 @@ import org.apache.commons.logging.LogFactory;
 
 import com.sanctionco.jmail.JMail;
 import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.RateLimitCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.cms.CaptchaCommand;
 import com.simisinc.platform.application.mailinglists.SaveEmailCommand;
@@ -94,8 +95,8 @@ public class EmailSubscribeWidget extends GenericWidget {
     context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));
     context.getRequest().setAttribute("title", context.getPreferences().get("title"));
 
-    // Determine the captcha service
-    boolean useCaptcha = "true".equals(context.getPreferences().getOrDefault("useCaptcha", "false"));
+    // Determine the captcha service (enabled by default for spam prevention)
+    boolean useCaptcha = "true".equals(context.getPreferences().getOrDefault("useCaptcha", "true"));
     if (useCaptcha) {
       context.getRequest().setAttribute("useCaptcha", "true");
       context.getRequest().setAttribute("googleSiteKey", LoadSitePropertyCommand.loadByName("captcha.google.sitekey"));
@@ -145,18 +146,24 @@ public class EmailSubscribeWidget extends GenericWidget {
       context.setWarningMessage("Please check the email address and try again");
     }
 
-    // Validate the captcha
-    boolean useCaptcha = "true".equals(context.getPreferences().getOrDefault("useCaptcha", "false"));
+    // Validate the captcha (enabled by default for spam prevention)
+    boolean useCaptcha = "true".equals(context.getPreferences().getOrDefault("useCaptcha", "true"));
     if (useCaptcha) {
       boolean captchaSuccess = CaptchaCommand.validateRequest(context);
       if (!captchaSuccess) {
         isValid = false;
-        context.setWarningMessage("The form could not be validated");
+        context.setWarningMessage("Please verify you're human before subscribing");
       }
     }
 
     if (!isValid) {
       context.setRequestObject(emailBean);
+      return context;
+    }
+
+    // Check rate limiting to prevent spam bot signup attempts
+    if (!RateLimitCommand.isIpAllowedRightNow(context.getRequest().getRemoteAddr(), true)) {
+      context.setErrorMessage(RateLimitCommand.INVALID_ATTEMPTS);
       return context;
     }
 
