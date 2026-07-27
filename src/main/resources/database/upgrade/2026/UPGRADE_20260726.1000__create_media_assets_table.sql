@@ -36,16 +36,16 @@ CREATE INDEX idx_media_type ON media_assets(asset_type) WHERE deleted_at IS NULL
 CREATE INDEX idx_media_created_by ON media_assets(created_by) WHERE deleted_at IS NULL;
 
 -- Track where media is used in content (enables orphan detection, usage audit)
-CREATE TABLE IF NOT EXISTS media_asset_usage (
-  id BIGSERIAL PRIMARY KEY,
-  asset_id BIGINT NOT NULL REFERENCES media_assets(id),
-  content_id BIGINT NOT NULL REFERENCES content(id),
-  embed_type VARCHAR(32) NOT NULL,
-  used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE(asset_id, content_id)
-);
-
-CREATE INDEX idx_usage_asset_id ON media_asset_usage(asset_id);
-CREATE INDEX idx_usage_content_id ON media_asset_usage(content_id);
+-- TODO: Implement media_asset_usage table with proper schema validation
+-- CREATE TABLE IF NOT EXISTS media_asset_usage (
+--   media_usage_id BIGSERIAL PRIMARY KEY,
+--   asset_id BIGINT NOT NULL REFERENCES media_assets(id),
+--   content_id BIGINT NOT NULL REFERENCES content(content_id),
+--   embed_type VARCHAR(32) NOT NULL,
+--   used_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+--   UNIQUE(asset_id, content_id)
+-- );
+-- CREATE INDEX idx_usage_asset_id ON media_asset_usage(asset_id);
+-- CREATE INDEX idx_usage_content_id ON media_asset_usage(content_id);
 
 COMMIT;

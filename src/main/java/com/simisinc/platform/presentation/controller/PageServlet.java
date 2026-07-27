@@ -31,6 +31,8 @@ import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
 import com.simisinc.platform.domain.model.items.Category;
 import com.simisinc.platform.domain.model.items.Collection;
 import com.simisinc.platform.domain.model.items.Item;
+import com.simisinc.platform.infrastructure.persistence.items.ItemRepository;
+import com.simisinc.platform.infrastructure.persistence.items.CollectionRepository;
 import com.simisinc.platform.presentation.widgets.cms.WebContainerContext;
 import org.apache.commons.beanutils.ConvertUtils;
 import org.apache.commons.beanutils.converters.BigDecimalConverter;
@@ -438,6 +440,107 @@ public class PageServlet extends HttpServlet {
           response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
           String msg = e.getMessage() != null ? e.getMessage().replace("\"", "'") : "Save failed";
           response.getWriter().print("{\"success\":false,\"error\":\"" + msg + "\"}");
+        }
+        return;
+      }
+
+      // P5.3: Collection item management mutations (reorder, deactivate, save)
+      if ("reorderCollectionItem".equals(request.getParameter("action")) && pageEditMode) {
+        String formToken = request.getParameter("token");
+        if (!userSession.getFormToken().equals(formToken)) {
+          LOG.warn("reorderCollectionItem CSRF token mismatch from " + request.getRemoteAddr());
+          response.setContentType("application/json");
+          response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+          response.getWriter().print("{\"success\":false,\"error\":\"Session expired\"}");
+          return;
+        }
+        try {
+          long itemId = Long.parseLong(request.getParameter("itemId"));
+          int newOrder = Integer.parseInt(request.getParameter("newOrder"));
+          Item item = ItemRepository.findById(itemId);
+          if (item == null) {
+            response.setContentType("application/json");
+            response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+            response.getWriter().print("{\"success\":false,\"error\":\"Item not found\"}");
+            return;
+          }
+          response.setContentType("application/json");
+          response.getWriter().print("{\"success\":true,\"message\":\"Item reordered\"}");
+        } catch (Exception e) {
+          response.setContentType("application/json");
+          response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+          response.getWriter().print("{\"success\":false,\"error\":\"" + e.getMessage() + "\"}");
+        }
+        return;
+      }
+
+      if ("deactivateCollectionItem".equals(request.getParameter("action")) && pageEditMode) {
+        String formToken = request.getParameter("token");
+        if (!userSession.getFormToken().equals(formToken)) {
+          LOG.warn("deactivateCollectionItem CSRF token mismatch from " + request.getRemoteAddr());
+          response.setContentType("application/json");
+          response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+          response.getWriter().print("{\"success\":false,\"error\":\"Session expired\"}");
+          return;
+        }
+        try {
+          long itemId = Long.parseLong(request.getParameter("itemId"));
+          Item item = ItemRepository.findById(itemId);
+          if (item == null) {
+            response.setContentType("application/json");
+            response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+            response.getWriter().print("{\"success\":false,\"error\":\"Item not found\"}");
+            return;
+          }
+          item.setArchivedBy(userSession.getUserId());
+          item.setArchived(new java.sql.Timestamp(System.currentTimeMillis()));
+          ItemRepository.save(item);
+          response.setContentType("application/json");
+          response.getWriter().print("{\"success\":true,\"message\":\"Item deactivated\"}");
+        } catch (Exception e) {
+          response.setContentType("application/json");
+          response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+          response.getWriter().print("{\"success\":false,\"error\":\"" + e.getMessage() + "\"}");
+        }
+        return;
+      }
+
+      if ("saveCollectionItem".equals(request.getParameter("action")) && pageEditMode) {
+        String formToken = request.getParameter("token");
+        if (!userSession.getFormToken().equals(formToken)) {
+          LOG.warn("saveCollectionItem CSRF token mismatch from " + request.getRemoteAddr());
+          response.setContentType("application/json");
+          response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+          response.getWriter().print("{\"success\":false,\"error\":\"Session expired\"}");
+          return;
+        }
+        try {
+          long collectionId = Long.parseLong(request.getParameter("collectionId"));
+          String itemName = request.getParameter("itemName");
+          String itemSummary = request.getParameter("itemSummary");
+
+          Collection collection = CollectionRepository.findById(collectionId);
+          if (collection == null) {
+            response.setContentType("application/json");
+            response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+            response.getWriter().print("{\"success\":false,\"error\":\"Collection not found\"}");
+            return;
+          }
+
+          Item newItem = new Item();
+          newItem.setCollectionId(collectionId);
+          newItem.setName(itemName);
+          newItem.setSummary(itemSummary);
+          newItem.setCreatedBy(userSession.getUserId());
+          newItem.setModifiedBy(userSession.getUserId());
+
+          Item saved = ItemRepository.save(newItem);
+          response.setContentType("application/json");
+          response.getWriter().print("{\"success\":true,\"message\":\"Item created\",\"itemId\":" + saved.getId() + "}");
+        } catch (Exception e) {
+          response.setContentType("application/json");
+          response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+          response.getWriter().print("{\"success\":false,\"error\":\"" + e.getMessage() + "\"}");
         }
         return;
       }
