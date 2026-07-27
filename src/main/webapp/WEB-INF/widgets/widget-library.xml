@@ -52,6 +52,7 @@
   <widget name="contentGallery" class="com.simisinc.platform.presentation.widgets.cms.ContentGalleryWidget" />
   <widget name="contentCarousel" class="com.simisinc.platform.presentation.widgets.cms.ContentCarouselWidget" />
   <widget name="contentEditor" class="com.simisinc.platform.presentation.widgets.cms.ContentEditorWidget" />
+  <widget name="dataTable" class="com.simisinc.platform.presentation.widgets.cms.TableWidget" />
   <widget name="blogPostList" class="com.simisinc.platform.presentation.widgets.cms.BlogPostListWidget" />
   <widget name="blogPost" class="com.simisinc.platform.presentation.widgets.cms.BlogPostWidget" />
   <widget name="blogPostName" class="com.simisinc.platform.presentation.widgets.cms.BlogPostNameWidget" />
