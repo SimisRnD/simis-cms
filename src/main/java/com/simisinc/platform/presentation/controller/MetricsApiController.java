@@ -19,6 +19,11 @@ package com.simisinc.platform.presentation.controller;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.domain.model.cms.WebPage;
+import com.simisinc.platform.infrastructure.database.DB;
+import com.simisinc.platform.infrastructure.database.SqlUtils;
+import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -29,6 +34,7 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.sql.Timestamp;
 import java.util.Map;
 
 /**
@@ -115,13 +121,45 @@ public class MetricsApiController extends HttpServlet {
         return;
       }
 
-      // TODO: Implement vitals storage logic
-      // 1. Parse metrics from payload (lcp, cls, inp, fcp, ttfb)
-      // 2. Normalize values (convert to integers where appropriate)
-      // 3. Store in web_vitals table with timestamp
-      // 4. Trigger aggregate computation for p50/p75/p95 on periodic schedule
+      // Extract metrics from payload
+      long lcp = payload.has("lcp") ? payload.get("lcp").asLong() : 0;
+      double clsDouble = payload.has("cls") ? payload.get("cls").asDouble() : 0.0;
+      long cls = Math.round(clsDouble * 1000);  // Convert 0-1 scale to 0-1000
+      long inp = payload.has("inp") ? payload.get("inp").asLong() : 0;
+      long fcp = payload.has("fcp") ? payload.get("fcp").asLong() : 0;
+      long ttfb = payload.has("ttfb") ? payload.get("ttfb").asLong() : 0;
 
-      LOG.debug("Web vitals collected: " + url);
+      // Try to find the web page by link
+      WebPage page = null;
+      if (!url.isEmpty()) {
+        // Extract path from URL (remove query string)
+        String path = url.contains("?") ? url.substring(0, url.indexOf("?")) : url;
+        page = WebPageRepository.findByLink(path);
+      }
+      Long pageId = page != null ? page.getId() : null;
+
+      // Capture context
+      String userAgentRaw = request.getHeader("User-Agent");
+      String userAgentHash = userAgentRaw != null ? DigestUtils.sha256Hex(userAgentRaw) : null;
+
+      // Get viewport width from request header if provided
+      String viewportHeader = request.getHeader("X-Viewport-Width");
+      Integer viewportWidth = viewportHeader != null ? parseInt(viewportHeader) : null;
+
+      // Get connection type from request header if provided
+      String connectionType = request.getHeader("X-Connection-Type");
+
+      // Timestamp for this collection
+      Timestamp recordedAt = new Timestamp(System.currentTimeMillis());
+
+      // Store each metric as a separate row
+      storeMetric("lcp", lcp, pageId, url, userAgentHash, viewportWidth, connectionType, recordedAt);
+      storeMetric("cls", cls, pageId, url, userAgentHash, viewportWidth, connectionType, recordedAt);
+      storeMetric("inp", inp, pageId, url, userAgentHash, viewportWidth, connectionType, recordedAt);
+      storeMetric("fcp", fcp, pageId, url, userAgentHash, viewportWidth, connectionType, recordedAt);
+      storeMetric("ttfb", ttfb, pageId, url, userAgentHash, viewportWidth, connectionType, recordedAt);
+
+      LOG.debug("Web vitals stored: " + url + " (lcp=" + lcp + "ms, cls=" + (clsDouble * 100) + "%, inp=" + inp + "ms, fcp=" + fcp + "ms, ttfb=" + ttfb + "ms)");
 
       response.setStatus(HttpServletResponse.SC_ACCEPTED);
       response.getWriter().print("{\"success\":true,\"message\":\"Metrics accepted\"}");
@@ -130,6 +168,30 @@ public class MetricsApiController extends HttpServlet {
       LOG.error("Error collecting web vitals", e);
       response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
       response.getWriter().print("{\"success\":false,\"error\":\"" + e.getMessage() + "\"}");
+    }
+  }
+
+  private void storeMetric(String metricName, long metricValue, Long pageId, String url,
+                           String userAgentHash, Integer viewportWidth, String connectionType,
+                           Timestamp recordedAt) {
+    SqlUtils insertValues = new SqlUtils()
+        .addIfExists("web_page_id", pageId, -1L)
+        .add("url", url)
+        .add("metric_name", metricName)
+        .add("metric_value", metricValue)
+        .add("user_agent_hash", userAgentHash)
+        .add("viewport_width", viewportWidth)
+        .add("connection_type", connectionType)
+        .add("recorded_at", recordedAt);
+
+    DB.insertInto("web_vitals", insertValues, new String[]{"vitals_id"});
+  }
+
+  private Integer parseInt(String value) {
+    try {
+      return Integer.parseInt(value);
+    } catch (NumberFormatException e) {
+      return null;
     }
   }
 }
