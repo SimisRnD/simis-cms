@@ -128,7 +128,8 @@ public class DatabaseCommand {
       LOG.info("Database installation completed");
     }
     {
-      // Baseline off the versions
+      // Run upgrade migrations for fresh installs (any new features added since baseline)
+      // Baseline to 71130 (the last NEW_* migration version) so UPGRADE migrations from 20260700+ run
       Flyway flyway = Flyway.configure()
           .table("flyway_history")
           .sqlMigrationPrefix("UPGRADE_")
@@ -137,10 +138,29 @@ public class DatabaseCommand {
           .locations(databaseUpgradeLocations())
           .placeholderReplacement(false)
           .cleanDisabled(true)
-          .baselineVersion(ApplicationInfo.VERSION)
+          .outOfOrder(true)
+          .baselineVersion("71130")
           .load();
       flyway.baseline();
       LOG.info("Database baseline completed");
+
+      // Now run any upgrade migrations after the baseline
+      flyway = Flyway.configure()
+          .table("flyway_history")
+          .validateOnMigrate(false)
+          .sqlMigrationPrefix("UPGRADE_")
+          .repeatableSqlMigrationPrefix("REPEAT_")
+          .dataSource(jdbcUrl, databaseProperties.getProperty("dataSource.user"), databaseProperties.getProperty("dataSource.password"))
+          .locations(databaseUpgradeLocations())
+          .placeholderReplacement(false)
+          .cleanDisabled(true)
+          .load();
+      MigrateResult result = flyway.migrate();
+      if (!result.success) {
+        LOG.error("Database upgrade migration error occurred: " + result.warnings.toString());
+        return false;
+      }
+      LOG.info("Database upgrade migrations completed");
     }
     return true;
   }
