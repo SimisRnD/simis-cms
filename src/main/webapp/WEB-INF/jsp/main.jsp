@@ -95,12 +95,44 @@
     <c:when test="${!empty masterWebPage.description}"><meta name="description" content="<c:out value="${masterWebPage.description}"/>"></c:when>
     <c:otherwise><meta name="description" content="<c:out value="${sitePropertyMap['site.description']}"/>"></c:otherwise>
   </c:choose>
+  <%-- Open Graph metadata for social sharing (issue #402) --%>
+  <c:if test="${!empty pageRenderInfo.pageType}">
+    <meta name="og:type" content="<c:out value="${pageRenderInfo.pageType}"/>" />
+  </c:if>
+  <c:if test="${!empty pageRenderInfo.pageUrl}">
+    <meta name="og:url" content="<c:out value="${pageRenderInfo.pageUrl}"/>" />
+  </c:if>
+  <c:if test="${!empty pageRenderInfo.title}">
+    <meta name="og:title" content="<c:out value="${pageRenderInfo.title}"/>" />
+  </c:if>
+  <c:if test="${!empty pageRenderInfo.description}">
+    <meta name="og:description" content="<c:out value="${pageRenderInfo.description}"/>" />
+  </c:if>
   <c:choose>
     <c:when test="${!empty pageRenderInfo.imageUrl && fn:startsWith(pageRenderInfo.imageUrl, '/')}">
       <meta name="og:image" content="<c:out value="${sitePropertyMap['site.url']}"/><c:out value="${pageRenderInfo.imageUrl}"/>">
     </c:when>
     <c:when test="${!empty sitePropertyMap['site.image'] && fn:startsWith(sitePropertyMap['site.image'], '/')}">
       <meta name="og:image" content="<c:out value="${sitePropertyMap['site.url']}"/><c:out value="${sitePropertyMap['site.image']}"/>">
+    </c:when>
+  </c:choose>
+  <c:if test="${!empty sitePropertyMap['site.name']}">
+    <meta name="og:site_name" content="<c:out value="${sitePropertyMap['site.name']}" />" />
+  </c:if>
+  <%-- Twitter Card metadata (issue #402) --%>
+  <meta name="twitter:card" content="summary_large_image" />
+  <c:if test="${!empty pageRenderInfo.title}">
+    <meta name="twitter:title" content="<c:out value="${pageRenderInfo.title}"/>" />
+  </c:if>
+  <c:if test="${!empty pageRenderInfo.description}">
+    <meta name="twitter:description" content="<c:out value="${pageRenderInfo.description}"/>" />
+  </c:if>
+  <c:choose>
+    <c:when test="${!empty pageRenderInfo.imageUrl && fn:startsWith(pageRenderInfo.imageUrl, '/')}">
+      <meta name="twitter:image" content="<c:out value="${sitePropertyMap['site.url']}"/><c:out value="${pageRenderInfo.imageUrl}"/>" />
+    </c:when>
+    <c:when test="${!empty sitePropertyMap['site.image'] && fn:startsWith(sitePropertyMap['site.image'], '/')}">
+      <meta name="twitter:image" content="<c:out value="${sitePropertyMap['site.url']}"/><c:out value="${sitePropertyMap['site.image']}" />" />
     </c:when>
   </c:choose>
   <c:if test="${!empty pageRenderInfo.canonicalUrl}">

@@ -726,6 +726,16 @@ public class PageServlet extends HttpServlet {
         }
       }
 
+      // Set Open Graph metadata for social sharing (issue #402)
+      if (StringUtils.isNotBlank(siteUrl)) {
+        pageRenderInfo.setPageUrl(pageRenderInfo.getCanonicalUrl());
+        if (thisItem != null || thisCollection != null) {
+          pageRenderInfo.setPageType("article");
+        } else {
+          pageRenderInfo.setPageType("website");
+        }
+      }
+
       // Finally... we have a page ready to be processed...
       if (LOG.isDebugEnabled()) {
         LOG.debug(request.getMethod() + " page " + pageRef.getName());
