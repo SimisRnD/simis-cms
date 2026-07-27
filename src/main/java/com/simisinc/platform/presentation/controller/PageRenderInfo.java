@@ -45,6 +45,7 @@ public class PageRenderInfo implements ContainerRenderInfo, Serializable {
   private String pageType = "website";
   private String pageUrl;
   private String cssClass = null;
+  private String jsonLdData;
 
   public PageRenderInfo() {
   }
@@ -156,6 +157,14 @@ public class PageRenderInfo implements ContainerRenderInfo, Serializable {
 
   public void setPageUrl(String pageUrl) {
     this.pageUrl = pageUrl;
+  }
+
+  public String getJsonLdData() {
+    return jsonLdData;
+  }
+
+  public void setJsonLdData(String jsonLdData) {
+    this.jsonLdData = jsonLdData;
   }
 
 }
