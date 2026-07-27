@@ -708,6 +708,42 @@ public class PageServlet extends HttpServlet {
         pageRenderInfo.setImageUrl(webPage.getImageUrl());
       }
 
+      // Set canonical URL for SEO (issue #401)
+      String siteUrl = (String) sitePropertyMap.get("site.url");
+      if (StringUtils.isNotBlank(siteUrl)) {
+        String canonicalUrl = null;
+        if (thisItem != null) {
+          canonicalUrl = siteUrl + "/items/" + thisCollection.getUniqueId() + "/" + thisItem.getUniqueId();
+        } else if (thisCollection != null) {
+          canonicalUrl = siteUrl + "/items/" + thisCollection.getUniqueId();
+        } else if (webPage != null && StringUtils.isNotBlank(webPage.getLink())) {
+          canonicalUrl = siteUrl + webPage.getLink();
+        } else if (StringUtils.isNotBlank(pagePath) && !pagePath.equals("/")) {
+          canonicalUrl = siteUrl + pagePath;
+        }
+        if (StringUtils.isNotBlank(canonicalUrl)) {
+          pageRenderInfo.setCanonicalUrl(canonicalUrl);
+        }
+      }
+
+      // Set Open Graph metadata for social sharing (issue #402)
+      if (StringUtils.isNotBlank(siteUrl)) {
+        pageRenderInfo.setPageUrl(pageRenderInfo.getCanonicalUrl());
+        if (thisItem != null || thisCollection != null) {
+          pageRenderInfo.setPageType("article");
+        } else {
+          pageRenderInfo.setPageType("website");
+        }
+      }
+
+      // Generate JSON-LD structured data for search engines and AI (issue #403)
+      if (StringUtils.isNotBlank(siteUrl) && StringUtils.isNotBlank(sitePropertyMap.get("site.name"))) {
+        String jsonLd = generateJsonLdData(pageRenderInfo, siteUrl, sitePropertyMap, thisItem, thisCollection);
+        if (StringUtils.isNotBlank(jsonLd)) {
+          pageRenderInfo.setJsonLdData(jsonLd);
+        }
+      }
+
       // Finally... we have a page ready to be processed...
       if (LOG.isDebugEnabled()) {
         LOG.debug(request.getMethod() + " page " + pageRef.getName());
@@ -845,6 +881,85 @@ public class PageServlet extends HttpServlet {
 
     } catch (Exception e) {
       LOG.error("Page error caught: " + e.getMessage(), e);
+    }
+  }
+
+  private static String generateJsonLdData(PageRenderInfo pageRenderInfo, String siteUrl,
+                                            Map<String, String> sitePropertyMap,
+                                            Item item, Collection collection) {
+    try {
+      ObjectMapper mapper = new ObjectMapper();
+      Map<String, Object> jsonLd = new LinkedHashMap<>();
+      jsonLd.put("@context", "https://schema.org");
+
+      List<Map<String, Object>> graph = new ArrayList<>();
+
+      // Add Organization schema (for homepage) - include on every page for consistency
+      if (StringUtils.isNotBlank(sitePropertyMap.get("site.name"))) {
+        Map<String, Object> organization = new LinkedHashMap<>();
+        organization.put("@type", "Organization");
+        organization.put("@id", siteUrl + "#organization");
+        organization.put("name", sitePropertyMap.get("site.name"));
+        organization.put("url", siteUrl);
+
+        String siteLogo = sitePropertyMap.get("site.image");
+        if (StringUtils.isNotBlank(siteLogo)) {
+          if (siteLogo.startsWith("/")) {
+            organization.put("logo", siteUrl + siteLogo);
+          } else {
+            organization.put("logo", siteLogo);
+          }
+        }
+        graph.add(organization);
+      }
+
+      // Add WebPage schema for all pages
+      Map<String, Object> webPage = new LinkedHashMap<>();
+      webPage.put("@type", "WebPage");
+      if (StringUtils.isNotBlank(pageRenderInfo.getPageUrl())) {
+        webPage.put("url", pageRenderInfo.getPageUrl());
+      }
+      if (StringUtils.isNotBlank(pageRenderInfo.getTitle())) {
+        webPage.put("name", pageRenderInfo.getTitle());
+      }
+      if (StringUtils.isNotBlank(pageRenderInfo.getDescription())) {
+        webPage.put("description", pageRenderInfo.getDescription());
+      }
+      webPage.put("isPartOf", Collections.singletonMap("@id", siteUrl + "#organization"));
+
+      // Add image if available
+      if (StringUtils.isNotBlank(pageRenderInfo.getImageUrl())) {
+        String imageUrl = pageRenderInfo.getImageUrl();
+        if (imageUrl.startsWith("/")) {
+          imageUrl = siteUrl + imageUrl;
+        }
+        webPage.put("image", imageUrl);
+      }
+      graph.add(webPage);
+
+      // Add Product schema if this is an item (catalog product)
+      if (item != null && StringUtils.isNotBlank(item.getName())) {
+        Map<String, Object> product = new LinkedHashMap<>();
+        product.put("@type", "Product");
+        product.put("name", item.getName());
+        if (StringUtils.isNotBlank(item.getDescription())) {
+          product.put("description", item.getDescription());
+        }
+        if (StringUtils.isNotBlank(pageRenderInfo.getImageUrl())) {
+          String imageUrl = pageRenderInfo.getImageUrl();
+          if (imageUrl.startsWith("/")) {
+            imageUrl = siteUrl + imageUrl;
+          }
+          product.put("image", imageUrl);
+        }
+        graph.add(product);
+      }
+
+      jsonLd.put("@graph", graph);
+      return mapper.writeValueAsString(jsonLd);
+    } catch (Exception e) {
+      LOG.warn("Error generating JSON-LD data: " + e.getMessage());
+      return null;
     }
   }
 
