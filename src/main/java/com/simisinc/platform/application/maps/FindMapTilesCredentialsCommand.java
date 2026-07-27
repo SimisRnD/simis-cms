@@ -48,11 +48,6 @@ public class FindMapTilesCredentialsCommand {
     }
     if ("openstreetmap".equalsIgnoreCase(mapService)) {
       return new MapCredentials(mapService, null);
-    } else if ("mapbox".equalsIgnoreCase(mapService)) {
-      String accessToken = LoadSitePropertyCommand.loadByName("maps.mapbox.accesstoken");
-      if (accessToken != null) {
-        return new MapCredentials(mapService, accessToken);
-      }
     } else if ("custom".equalsIgnoreCase(mapService)) {
       // A self-hosted tile server, for deployments which do not use external map services
       String tileServerUrl = validatedTileServerUrl(LoadSitePropertyCommand.loadByName("maps.custom.tileserver.url"));
