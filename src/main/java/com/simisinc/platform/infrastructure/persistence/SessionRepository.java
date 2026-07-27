@@ -74,7 +74,7 @@ public class SessionRepository {
             "FROM sessions " +
             "WHERE country IS NOT NULL " +
             "AND created > NOW() - INTERVAL '" + daysToLimit + " days' " +
-            "AND latitude IS NOT NULL " +
+            "AND is_anonymous = false " +
             "AND is_bot = false " +
             "ORDER BY continent, country, state, city, latitude, longitude";
     List<Session> records = null;

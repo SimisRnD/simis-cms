@@ -51,7 +51,9 @@ public class SaveSessionCommand {
       session.setTimezone(userSession.getGeoIP().getTimezone());
       // City, postal code, and precise coordinates are only stored for
       // authenticated users; anonymous visitors are limited to region/country.
-      if (userSession.getUserId() != UserSession.GUEST_ID) {
+      boolean isAnonymous = (userSession.getUserId() == UserSession.GUEST_ID);
+      session.setIsAnonymous(isAnonymous);
+      if (!isAnonymous) {
         session.setCity(userSession.getGeoIP().getCity());
         session.setPostalCode(userSession.getGeoIP().getPostalCode());
         session.setLatitude(userSession.getGeoIP().getLatitude());
