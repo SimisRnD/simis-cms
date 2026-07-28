@@ -108,6 +108,16 @@ public class BlogPostWidget extends GenericWidget {
     return blogPost;
   }
 
+  public WidgetContext post(WidgetContext context) {
+    // deletePost is submitted via a real POST (issue #358 moved state-changing admin actions
+    // off GET query strings), so it arrives here rather than in action() below. Dispatch
+    // through the same table action() uses for a GET caller.
+    if ("deletePost".equals(context.getParameter("action"))) {
+      return action(context);
+    }
+    return context;
+  }
+
   public WidgetContext action(WidgetContext context) {
     // Permission is required
     if (!(context.hasRole("admin") || context.hasRole("content-manager"))) {

@@ -53,6 +53,14 @@ public class ThemeEditorWidget extends GenericWidget {
   }
 
   public WidgetContext post(WidgetContext context) {
+    // restore is submitted via a real POST (issue #358 moved state-changing admin actions off
+    // GET query strings), so it arrives here rather than in action() below. Dispatch through
+    // the same table action() uses for a GET caller, before the save-theme logic below, which
+    // doesn't check the action parameter and would otherwise reject a plain restore request
+    // for missing the "name" field.
+    if ("restore".equals(context.getParameter("action"))) {
+      return action(context);
+    }
     // Validate the form
     String name = context.getParameter("name");
     if (StringUtils.isBlank(name)) {
