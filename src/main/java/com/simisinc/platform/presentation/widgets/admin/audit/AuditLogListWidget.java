@@ -16,38 +16,53 @@
 
 package com.simisinc.platform.presentation.widgets.admin.audit;
 
+import java.io.File;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.filesystem.FileSystemCommand;
 import com.simisinc.platform.domain.model.audit.AuditLog;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.persistence.audit.AuditLogRepository;
 import com.simisinc.platform.infrastructure.persistence.audit.AuditLogSpecification;
+import com.simisinc.platform.presentation.controller.AuditEventCommand;
+import com.simisinc.platform.presentation.controller.MultipartFileSender;
 import com.simisinc.platform.presentation.controller.RequestConstants;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 
 /**
  * The in-app security audit review UI (NIST 800-53 AU-6). Lists audit_log records with filters for
- * category, event type, outcome, actor, and an occurred-date range. Read-only and admin-only.
+ * category, event type, outcome, actor, source IP, target type, and an occurred-date range (either an
+ * explicit range or a quick 1h/24h/7d/30d preset). Read-only and admin-only, plus CSV/JSON export of the
+ * currently filtered results.
  *
  * @author SimIS Inc.
  */
 public class AuditLogListWidget extends GenericWidget {
 
   static final long serialVersionUID = -8484048371911908893L;
+  private static Log LOG = LogFactory.getLog(AuditLogListWidget.class);
 
   static String JSP = "/admin/audit-log-list.jsp";
 
   // The event categories the application emits (for the filter drop-down)
-  static final List<String> CATEGORY_LIST = Arrays.asList(
-      "authentication", "user_management", "authorization", "configuration", "content", "data_access");
+  static final List<String> CATEGORY_LIST = new ArrayList<>(Arrays.asList(
+      "authentication", "user_management", "authorization", "configuration", "content", "data_access"));
 
   public WidgetContext execute(WidgetContext context) {
 
@@ -64,11 +79,99 @@ public class AuditLogListWidget extends GenericWidget {
     constraints.setColumnToSortBy("occurred", "desc");
     context.getRequest().setAttribute(RequestConstants.RECORD_PAGING, constraints);
 
-    // Determine the filter criteria
+    AuditLogSpecification specification = buildSpecification(context);
+
+    // Load the list
+    List<AuditLog> auditLogList = AuditLogRepository.findAll(specification, constraints);
+    context.getRequest().setAttribute("auditLogList", auditLogList);
+
+    // Echo the filter values back so the forms keep their state, plus the category options
+    context.getRequest().setAttribute("categoryList", CATEGORY_LIST);
+    echoFilterParameters(context);
+
+    // Carry the filters through pagination (paging_control.jspf appends this to each page link).
+    // URL-encoded here so the free-text values (actor, eventType) cannot break the query string or the href.
+    StringBuilder pagingParams = new StringBuilder();
+    appendParam(pagingParams, "category", context.getParameter("category"));
+    appendParam(pagingParams, "eventType", context.getParameter("eventType"));
+    appendParam(pagingParams, "outcome", context.getParameter("outcome"));
+    appendParam(pagingParams, "actor", context.getParameter("actor"));
+    appendParam(pagingParams, "sourceIp", context.getParameter("sourceIp"));
+    appendParam(pagingParams, "targetType", context.getParameter("targetType"));
+    appendParam(pagingParams, "range", context.getParameter("range"));
+    appendParam(pagingParams, "fromDate", context.getParameter("fromDate"));
+    appendParam(pagingParams, "toDate", context.getParameter("toDate"));
+    context.getRequest().setAttribute("recordPagingParams", pagingParams.toString());
+
+    // How long events are retained before the nightly job purges them (NIST AU-11); display-only here,
+    // the value itself is configured as a site property and enforced by AuditLogRetentionJob.
+    int retentionDays = AuditLogRepository.resolveRetentionDays(LoadSitePropertyCommand.loadByName("audit.retentionDays"));
+    context.getRequest().setAttribute("retentionDays", retentionDays);
+
+    // Standard request items
+    context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));
+    context.getRequest().setAttribute("title", context.getPreferences().get("title"));
+
+    context.setJsp(JSP);
+    return context;
+  }
+
+  /** Handles CSV/JSON export of the currently filtered (unpaginated) results. */
+  public WidgetContext post(WidgetContext context) {
+    if (!context.hasRole("admin")) {
+      return context;
+    }
+    String command = context.getParameter("command");
+    if ("downloadCSVFile".equals(command)) {
+      return downloadFile(context, "csv");
+    } else if ("downloadJSONFile".equals(command)) {
+      return downloadFile(context, "json");
+    }
+    return null;
+  }
+
+  private WidgetContext downloadFile(WidgetContext context, String extension) {
+    AuditLogSpecification specification = buildSpecification(context);
+    String displayFilename = "audit-log-" + new SimpleDateFormat("yyyyMMdd-HHmm").format(new Date()) + "." + extension;
+    File tempFile = FileSystemCommand.generateTempFile("exports", context.getUserId(), extension);
+    try {
+      if ("csv".equals(extension)) {
+        AuditLogRepository.exportCsv(specification, tempFile);
+      } else {
+        AuditLogRepository.exportJson(specification, tempFile);
+      }
+      String mimeType = "csv".equals(extension) ? "text/csv" : "application/json";
+      MultipartFileSender.fromFile(tempFile)
+          .with(context.getRequest())
+          .with(context.getResponse())
+          .withMimeType(mimeType)
+          .withFilename(displayFilename)
+          .serveResource();
+      // Exporting the audit log is itself a data-access event worth auditing.
+      AuditEventCommand.record(context, AuditEventCommand.DATA_ACCESS, "audit_log.export", AuditEventCommand.SUCCESS,
+          "audit_log", "filtered", displayFilename, "format=" + extension);
+    } catch (Exception e) {
+      LOG.error("Audit log export failed", e);
+      AuditEventCommand.record(context, AuditEventCommand.DATA_ACCESS, "audit_log.export", AuditEventCommand.FAILURE,
+          "audit_log", "filtered", displayFilename, "format=" + extension);
+    } finally {
+      if (tempFile.exists()) {
+        tempFile.delete();
+      }
+    }
+    context.setHandledResponse(true);
+    return context;
+  }
+
+  /** Builds the filter specification from request parameters; shared by execute() and the export actions. */
+  private AuditLogSpecification buildSpecification(WidgetContext context) {
     String category = context.getParameter("category");
     String eventType = context.getParameter("eventType");
     String outcome = context.getParameter("outcome");
     String actor = context.getParameter("actor");
+    String sourceIp = context.getParameter("sourceIp");
+    String targetType = context.getParameter("targetType");
+    String range = context.getParameter("range");
     String fromDate = context.getParameter("fromDate");
     String toDate = context.getParameter("toDate");
 
@@ -85,46 +188,43 @@ public class AuditLogListWidget extends GenericWidget {
     if (StringUtils.isNotBlank(actor)) {
       specification.setActorUsername(actor.trim());
     }
-    // Parse the yyyy-MM-dd date range: from = start of that day, to = start of the day AFTER (half-open)
-    Timestamp from = parseDate(fromDate, 0);
-    Timestamp to = parseDate(toDate, 1);
-    if (from != null) {
-      specification.setOccurredAfter(from);
+    if (StringUtils.isNotBlank(sourceIp)) {
+      specification.setSourceIp(sourceIp.trim());
     }
-    if (to != null) {
-      specification.setOccurredBefore(to);
+    if (StringUtils.isNotBlank(targetType)) {
+      specification.setTargetType(targetType.trim());
     }
 
-    // Load the list
-    List<AuditLog> auditLogList = AuditLogRepository.findAll(specification, constraints);
-    context.getRequest().setAttribute("auditLogList", auditLogList);
+    // A quick range preset (1h/24h/7d/30d) takes precedence over an explicit date range -- it is finer
+    // grained (hour precision) than the date-only fromDate/toDate inputs can express.
+    Timestamp rangeCutoff = resolveRangeCutoff(range);
+    if (rangeCutoff != null) {
+      specification.setOccurredAfter(rangeCutoff);
+    } else {
+      // Parse the yyyy-MM-dd date range: from = start of that day, to = start of the day AFTER (half-open)
+      Timestamp from = parseDate(fromDate, 0);
+      Timestamp to = parseDate(toDate, 1);
+      if (from != null) {
+        specification.setOccurredAfter(from);
+      }
+      if (to != null) {
+        specification.setOccurredBefore(to);
+      }
+    }
+    return specification;
+  }
 
-    // Echo the filter values back so the form keeps its state, plus the category options
-    context.getRequest().setAttribute("categoryList", CATEGORY_LIST);
-    context.getRequest().setAttribute("category", category);
-    context.getRequest().setAttribute("eventType", eventType);
-    context.getRequest().setAttribute("outcome", outcome);
-    context.getRequest().setAttribute("actor", actor);
-    context.getRequest().setAttribute("fromDate", fromDate);
-    context.getRequest().setAttribute("toDate", toDate);
-
-    // Carry the filters through pagination (paging_control.jspf appends this to each page link).
-    // URL-encoded here so the free-text values (actor, eventType) cannot break the query string or the href.
-    StringBuilder pagingParams = new StringBuilder();
-    appendParam(pagingParams, "category", category);
-    appendParam(pagingParams, "eventType", eventType);
-    appendParam(pagingParams, "outcome", outcome);
-    appendParam(pagingParams, "actor", actor);
-    appendParam(pagingParams, "fromDate", fromDate);
-    appendParam(pagingParams, "toDate", toDate);
-    context.getRequest().setAttribute("recordPagingParams", pagingParams.toString());
-
-    // Standard request items
-    context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));
-    context.getRequest().setAttribute("title", context.getPreferences().get("title"));
-
-    context.setJsp(JSP);
-    return context;
+  /** Echoes the raw filter parameters back to the request so the filter forms keep their state. */
+  private void echoFilterParameters(WidgetContext context) {
+    context.getRequest().setAttribute("category", context.getParameter("category"));
+    context.getRequest().setAttribute("eventType", context.getParameter("eventType"));
+    context.getRequest().setAttribute("outcome", context.getParameter("outcome"));
+    context.getRequest().setAttribute("actor", context.getParameter("actor"));
+    context.getRequest().setAttribute("sourceIp", context.getParameter("sourceIp"));
+    context.getRequest().setAttribute("targetType", context.getParameter("targetType"));
+    context.getRequest().setAttribute("range", context.getParameter("range"));
+    context.getRequest().setAttribute("fromDate", context.getParameter("fromDate"));
+    context.getRequest().setAttribute("toDate", context.getParameter("toDate"));
   }
 
   /** Appends {@code name=urlEncoded(value)} to the paging query string when the value is present. */
@@ -148,6 +248,26 @@ public class AuditLogListWidget extends GenericWidget {
       return Timestamp.valueOf(date.atStartOfDay());
     } catch (Exception e) {
       return null;
+    }
+  }
+
+  /** Resolves a quick range preset to an "occurred after" cutoff; null when absent or unrecognized. */
+  static Timestamp resolveRangeCutoff(String range) {
+    if (StringUtils.isBlank(range)) {
+      return null;
+    }
+    Instant now = Instant.now();
+    switch (range.trim()) {
+      case "1h":
+        return Timestamp.from(now.minus(1, ChronoUnit.HOURS));
+      case "24h":
+        return Timestamp.from(now.minus(24, ChronoUnit.HOURS));
+      case "7d":
+        return Timestamp.from(now.minus(7, ChronoUnit.DAYS));
+      case "30d":
+        return Timestamp.from(now.minus(30, ChronoUnit.DAYS));
+      default:
+        return null;
     }
   }
 }
