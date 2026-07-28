@@ -44,6 +44,64 @@ import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
  */
 class SiteStatsWidgetTest extends WidgetBase {
 
+  private void assertCardReport(String report, String title, Runnable stubMock, long expectedValue) {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <icon>fa-users</icon>\n" +
+            "  <title>" + title + "</title>\n" +
+            "  <report>" + report + "</report>\n" +
+            "</widget>");
+    setRoles(widgetContext, ADMIN);
+    stubMock.run();
+
+    SiteStatsWidget widget = new SiteStatsWidget();
+    widget.execute(widgetContext);
+
+    Assertions.assertEquals(SiteStatsWidget.CARD_JSP, widgetContext.getJsp());
+    Assertions.assertEquals(title, request.getAttribute("title"));
+    Assertions.assertEquals(String.valueOf(expectedValue), request.getAttribute("numberValue"));
+  }
+
+  @Test
+  void executeEnabledAccounts() {
+    try (MockedStatic<UserRepository> userRepository = mockStatic(UserRepository.class)) {
+      assertCardReport("enabled-accounts", "Enabled Accounts",
+          () -> userRepository.when(UserRepository::countEnabledAccounts).thenReturn(150L), 150L);
+    }
+  }
+
+  @Test
+  void executeValidatedAccounts() {
+    try (MockedStatic<UserRepository> userRepository = mockStatic(UserRepository.class)) {
+      assertCardReport("validated-accounts", "Validated Accounts",
+          () -> userRepository.when(UserRepository::countValidatedAccounts).thenReturn(120L), 120L);
+    }
+  }
+
+  @Test
+  void executeNewRegistrationsThisMonth() {
+    try (MockedStatic<UserRepository> userRepository = mockStatic(UserRepository.class)) {
+      assertCardReport("new-registrations-this-month", "New This Month",
+          () -> userRepository.when(UserRepository::countNewRegistrationsThisMonth).thenReturn(7L), 7L);
+    }
+  }
+
+  @Test
+  void executeAdminStaffAccounts() {
+    try (MockedStatic<UserRepository> userRepository = mockStatic(UserRepository.class)) {
+      assertCardReport("admin-staff-accounts", "Admin/Staff Accounts",
+          () -> userRepository.when(UserRepository::countAccountsWithAnyRole).thenReturn(12L), 12L);
+    }
+  }
+
+  @Test
+  void executePublicAccounts() {
+    try (MockedStatic<UserRepository> userRepository = mockStatic(UserRepository.class)) {
+      assertCardReport("public-accounts", "Public Accounts",
+          () -> userRepository.when(UserRepository::countPublicAccounts).thenReturn(177L), 177L);
+    }
+  }
+
   @Test
   void executeCountOnlineNow() {
     // Set widget preferences

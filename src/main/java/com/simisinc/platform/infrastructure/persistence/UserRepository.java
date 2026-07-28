@@ -230,6 +230,75 @@ public class UserRepository {
     return count;
   }
 
+  /** Uses the existing enabled-filter query rather than a bespoke SQL string (selectAllFrom always runs a real COUNT(*), independent of page size -- see DB.selectAllFrom). */
+  public static long countEnabledAccounts() {
+    UserSpecification specification = new UserSpecification();
+    specification.setIsEnabled(true);
+    DataConstraints constraints = new DataConstraints();
+    constraints.setPageSize(1);
+    findAll(specification, constraints);
+    return constraints.getTotalRecordCount();
+  }
+
+  public static long countValidatedAccounts() {
+    UserSpecification specification = new UserSpecification();
+    specification.setIsVerified(true);
+    DataConstraints constraints = new DataConstraints();
+    constraints.setPageSize(1);
+    findAll(specification, constraints);
+    return constraints.getTotalRecordCount();
+  }
+
+  public static long countNewRegistrationsThisMonth() {
+    long count = -1;
+    String SQL_QUERY =
+        "SELECT COUNT(user_id) AS user_count " +
+            "FROM users " +
+            "WHERE DATE_TRUNC('month', created) = DATE_TRUNC('month', NOW())";
+    try (Connection connection = DB.getConnection();
+         PreparedStatement pst = connection.prepareStatement(SQL_QUERY);
+         ResultSet rs = pst.executeQuery()) {
+      if (rs.next()) {
+        count = rs.getLong("user_count");
+      }
+    } catch (SQLException se) {
+      LOG.error("SQLException: " + se.getMessage());
+    }
+    return count;
+  }
+
+  /**
+   * Counts users holding at least one row in user_roles (admin/staff -- there is no "public" role
+   * row to compare against; every privileged account has a role assignment, every public account
+   * has none). DISTINCT so a user holding more than one role is not double-counted.
+   */
+  public static long countAccountsWithAnyRole() {
+    long count = -1;
+    String SQL_QUERY =
+        "SELECT COUNT(DISTINCT user_id) AS user_count " +
+            "FROM user_roles";
+    try (Connection connection = DB.getConnection();
+         PreparedStatement pst = connection.prepareStatement(SQL_QUERY);
+         ResultSet rs = pst.executeQuery()) {
+      if (rs.next()) {
+        count = rs.getLong("user_count");
+      }
+    } catch (SQLException se) {
+      LOG.error("SQLException: " + se.getMessage());
+    }
+    return count;
+  }
+
+  /** Public accounts = everyone minus everyone with a role assignment (see countAccountsWithAnyRole). */
+  public static long countPublicAccounts() {
+    long total = countTotalUsers();
+    long withRole = countAccountsWithAnyRole();
+    if (total < 0 || withRole < 0) {
+      return -1;
+    }
+    return total - withRole;
+  }
+
   public static User save(User record) {
     if (record.getId() > -1) {
       return update(record);
