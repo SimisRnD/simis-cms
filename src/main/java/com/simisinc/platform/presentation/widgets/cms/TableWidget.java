@@ -63,7 +63,7 @@ public class TableWidget extends GenericWidget {
 
       // Store parsed data for JSP rendering
       context.getRequest().setAttribute("tableData", tableData);
-      context.getRequest().setAttribute("isEditMode", isEditMode);
+      context.getRequest().setAttribute("isEditMode", String.valueOf(isEditMode));
 
       // Select appropriate JSP
       if (isEditMode) {
