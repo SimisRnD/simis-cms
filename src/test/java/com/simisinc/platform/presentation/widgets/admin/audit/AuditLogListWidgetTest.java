@@ -97,9 +97,11 @@ class AuditLogListWidgetTest extends WidgetBase {
     // in a real ArrayList. A plain "is it a List" assertion would not have caught this.
     setRoles(widgetContext, "admin");
 
-    try (MockedStatic<AuditLogRepository> repository = mockStatic(AuditLogRepository.class)) {
+    try (MockedStatic<AuditLogRepository> repository = mockStatic(AuditLogRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
       repository.when(() -> AuditLogRepository.findAll(any(AuditLogSpecification.class), any(DataConstraints.class)))
           .thenReturn(new ArrayList<>());
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("audit.retentionDays")).thenReturn(null);
 
       new AuditLogListWidget().execute(widgetContext);
 
