@@ -19,6 +19,7 @@ package com.simisinc.platform.application.login;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -49,6 +50,7 @@ import com.simisinc.platform.application.UserPasswordCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.audit.SaveAuditEventCommand;
 import com.simisinc.platform.domain.model.User;
+import com.simisinc.platform.domain.model.login.UserToken;
 import com.simisinc.platform.infrastructure.cache.CacheManager;
 import com.simisinc.platform.infrastructure.persistence.UserRepository;
 
@@ -402,6 +404,67 @@ class AuthenticateLoginCommandTest {
       User result = AuthenticateLoginCommand.getAuthenticatedUser("alice", "correct", IP_ADDRESS);
       assertEquals(u, result);
       ur.verify(() -> UserRepository.resetLockout(42L));
+    }
+  }
+
+  // --- Per-request re-verification by user id (WebRequestFilter's "verify on each request" block) ---
+  // This is the overload that fixes the stayLoggedIn=false force-logout bug: it lets the filter re-check
+  // an already-authenticated session's OWN user by id, instead of via the remember-me cookie token, which
+  // never resolves for a session that didn't opt into "stay logged in".
+
+  @Test
+  void anEnabledValidatedUserIsReturnedById() {
+    User user = enabledUser(11L, UserPasswordCommand.hash("whatever"));
+    try (MockedStatic<LoadUserCommand> loadUser = mockStatic(LoadUserCommand.class)) {
+      loadUser.when(() -> LoadUserCommand.loadUser(11L)).thenReturn(user);
+      assertEquals(user, AuthenticateLoginCommand.getAuthenticatedUser(11L));
+    }
+  }
+
+  @Test
+  void anUnknownUserIdReturnsNull() {
+    try (MockedStatic<LoadUserCommand> loadUser = mockStatic(LoadUserCommand.class)) {
+      loadUser.when(() -> LoadUserCommand.loadUser(404L)).thenReturn(null);
+      assertNull(AuthenticateLoginCommand.getAuthenticatedUser(404L));
+    }
+  }
+
+  @Test
+  void anUnvalidatedUserIdReturnsNull() {
+    User user = new User();
+    user.setId(12L);
+    user.setEnabled(true);
+    // validated left null -> isNotValidated() is true
+    try (MockedStatic<LoadUserCommand> loadUser = mockStatic(LoadUserCommand.class)) {
+      loadUser.when(() -> LoadUserCommand.loadUser(12L)).thenReturn(user);
+      assertNull(AuthenticateLoginCommand.getAuthenticatedUser(12L));
+    }
+  }
+
+  @Test
+  void aDisabledUserIdReturnsNull() {
+    // Covers the security property the re-verification block exists for: an admin suspending (or
+    // deleting) a user mid-session must still take effect on that session's very next request.
+    User user = new User();
+    user.setId(13L);
+    user.setValidated(new Timestamp(System.currentTimeMillis()));
+    user.setEnabled(false);
+    try (MockedStatic<LoadUserCommand> loadUser = mockStatic(LoadUserCommand.class)) {
+      loadUser.when(() -> LoadUserCommand.loadUser(13L)).thenReturn(user);
+      assertNull(AuthenticateLoginCommand.getAuthenticatedUser(13L));
+    }
+  }
+
+  @Test
+  void getAuthenticatedUserByTokenAppliesTheSameStatusChecksAsById() {
+    // The remember-me (UserToken) lookup is now implemented in terms of the userId overload -- confirm
+    // that refactor preserves its behavior, since RestRequestFilter also depends on it.
+    User user = enabledUser(14L, UserPasswordCommand.hash("whatever"));
+    UserToken token = new UserToken();
+    token.setUserId(14L);
+    try (MockedStatic<LoadUserCommand> loadUser = mockStatic(LoadUserCommand.class)) {
+      loadUser.when(() -> LoadUserCommand.loadUser(14L)).thenReturn(user);
+      assertEquals(user, AuthenticateLoginCommand.getAuthenticatedUser(token));
     }
   }
 }

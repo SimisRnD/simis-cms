@@ -32,6 +32,7 @@ import com.simisinc.platform.infrastructure.persistence.cms.FormDataRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageHitRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebSearchRepository;
+import com.simisinc.platform.infrastructure.persistence.mailinglists.MailingListMemberRepository;
 import com.simisinc.platform.infrastructure.persistence.login.UserLoginRepository;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.widgets.cms.PreferenceEntriesList;
@@ -176,6 +177,42 @@ public class SiteStatsWidget extends GenericWidget {
     } else if ("total-users".equalsIgnoreCase(report)) {
       Long totalUserCount = UserRepository.countTotalUsers();
       context.getRequest().setAttribute("numberValue", String.valueOf(totalUserCount));
+      return CARD_JSP;
+    } else if ("active-mailing-list-subscribers".equalsIgnoreCase(report)) {
+      long count = MailingListMemberRepository.countActiveSubscribers();
+      context.getRequest().setAttribute("numberValue", String.valueOf(count));
+      return CARD_JSP;
+    } else if ("unsubscribed-mailing-list-members".equalsIgnoreCase(report)) {
+      long count = MailingListMemberRepository.countUnsubscribed();
+      context.getRequest().setAttribute("numberValue", String.valueOf(count));
+      return CARD_JSP;
+    } else if ("monthly-mailing-list-subscriptions".equalsIgnoreCase(report)) {
+      List<StatisticsData> statisticsDataList = MailingListMemberRepository.findMonthlySubscriptions(12);
+      context.getRequest().setAttribute("statisticsDataList", statisticsDataList);
+      return JSP;
+    } else if ("daily-mailing-list-subscriptions".equalsIgnoreCase(report)) {
+      List<StatisticsData> statisticsDataList = MailingListMemberRepository.findDailySubscriptions(30);
+      context.getRequest().setAttribute("statisticsDataList", statisticsDataList);
+      return JSP;
+    } else if ("enabled-accounts".equalsIgnoreCase(report)) {
+      long count = UserRepository.countEnabledAccounts();
+      context.getRequest().setAttribute("numberValue", String.valueOf(count));
+      return CARD_JSP;
+    } else if ("validated-accounts".equalsIgnoreCase(report)) {
+      long count = UserRepository.countValidatedAccounts();
+      context.getRequest().setAttribute("numberValue", String.valueOf(count));
+      return CARD_JSP;
+    } else if ("new-registrations-this-month".equalsIgnoreCase(report)) {
+      long count = UserRepository.countNewRegistrationsThisMonth();
+      context.getRequest().setAttribute("numberValue", String.valueOf(count));
+      return CARD_JSP;
+    } else if ("admin-staff-accounts".equalsIgnoreCase(report)) {
+      long count = UserRepository.countAccountsWithAnyRole();
+      context.getRequest().setAttribute("numberValue", String.valueOf(count));
+      return CARD_JSP;
+    } else if ("public-accounts".equalsIgnoreCase(report)) {
+      long count = UserRepository.countPublicAccounts();
+      context.getRequest().setAttribute("numberValue", String.valueOf(count));
       return CARD_JSP;
     } else if ("daily-hits".equalsIgnoreCase(report)) {
       List<StatisticsData> statisticsDataList = WebPageHitRepository.findDailyWebHits(30);

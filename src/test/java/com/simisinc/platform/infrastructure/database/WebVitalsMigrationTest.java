@@ -128,21 +128,29 @@ class WebVitalsMigrationTest {
     properties.setProperty("password", DB_PASSWORD);
     DataSource.init(properties);
 
-    // Minimal stand-ins for tables referenced by migrations that fall in the baseline-to-target
-    // range above. web_pages: referenced by FK from the web_vitals migrations under test. sessions:
-    // altered by UPGRADE_20260727.1000__sessions_ip_address_nullable.sql, an unrelated migration
-    // that happens to sort between the two web_vitals migrations -- outOfOrder(true) runs it here
-    // too, and LAST_WEB_VITALS_MIGRATION above is what keeps this list of "unrelated migrations
-    // that also happen to land in range" fixed at just this one, instead of growing every time
-    // something new merges into upgrade/. distributed_lock: not touched by any migration under
-    // test, but WebVitalsAggregationJob/WebVitalsCleanupJob both take a LockManager lock before
-    // running, and this test drives those jobs through their real execute() methods rather than
-    // re-implementing their SQL inline. Everything else in the real install schema is irrelevant
-    // to this conflict.
+    // Minimal stand-ins for tables referenced by migrations that fall in this baseline's range.
+    // web_pages: referenced by FK from the web_vitals migrations under test. sessions: altered by
+    // UPGRADE_20260727.1000__sessions_ip_address_nullable.sql, an unrelated migration that now
+    // sorts between the baseline and the web_vitals migrations' versions -- Flyway applies
+    // everything in range, not just the two under test, so it runs here too. emails and
+    // site_properties: both touched by UPGRADE_20260728.2000__email_classification.sql (#574),
+    // another unrelated migration that lands in this same range for the same reason -- it ALTERs
+    // emails and does an INSERT ... ON CONFLICT (property_name) into site_properties, so
+    // property_name needs the real table's UNIQUE constraint or the ON CONFLICT clause itself
+    // fails. Expect this list to keep growing by a line or two every time a later migration's
+    // version happens to sort after this baseline. distributed_lock: not touched by any migration
+    // under test, but WebVitalsAggregationJob/WebVitalsCleanupJob both take a LockManager lock
+    // before running, and this test drives those jobs through their real execute() methods rather
+    // than re-implementing their SQL inline. Everything else in the real install schema is
+    // irrelevant to this conflict.
     try (Connection connection = DB.getConnection();
         Statement statement = connection.createStatement()) {
       statement.execute("CREATE TABLE web_pages (web_page_id BIGSERIAL PRIMARY KEY, link VARCHAR(255))");
       statement.execute("CREATE TABLE sessions (session_id BIGSERIAL PRIMARY KEY, ip_address VARCHAR(64) NOT NULL)");
+      statement.execute("CREATE TABLE emails (email_id BIGSERIAL PRIMARY KEY)");
+      statement.execute("CREATE TABLE site_properties (property_id SERIAL PRIMARY KEY, "
+          + "property_order INTEGER DEFAULT 100, property_label VARCHAR(50), "
+          + "property_name VARCHAR(50) UNIQUE NOT NULL, property_value TEXT NOT NULL, property_type VARCHAR(100))");
       statement.execute("CREATE TABLE distributed_lock (name VARCHAR(64) PRIMARY KEY NOT NULL, "
           + "locked_at TIMESTAMP(3) NOT NULL, lock_until TIMESTAMP(3) NOT NULL, uuid VARCHAR(255) NOT NULL)");
     } catch (SQLException se) {
