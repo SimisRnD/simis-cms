@@ -46,7 +46,7 @@
         <c:forEach items="${sortedUrls}" var="url">
           <c:set var="summary" value="${summaryByUrl[url]}" />
           <tr>
-            <td><code>${url}</code></td>
+            <td><code><c:out value="${url}" /></code></td>
             <td>
               <span class="badge badge-${summary.lcpStatus}">
                 ${summary.lcpP75 > 0 ? summary.lcpP75 : '—'}
