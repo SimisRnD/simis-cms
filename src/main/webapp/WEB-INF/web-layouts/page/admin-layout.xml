@@ -613,6 +613,23 @@
         </widget>
       </column>
     </section>
+    <section class="grid-container grid-x grid-margin-x">
+      <column class="small-12 medium-6 large-6 cell callout">
+        <widget name="siteStats">
+          <icon>fa-list-alt</icon>
+          <title>Total Form Submissions</title>
+          <report>total-form-submissions</report>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 large-6 cell callout">
+        <widget name="siteStats">
+          <icon>fa-ban</icon>
+          <title>Spam-Flagged Submissions (30d)</title>
+          <report>form-submissions-spam-flagged</report>
+          <days>30</days>
+        </widget>
+      </column>
+    </section>
     <section>
       <column class="small-12 cell">
         <widget name="siteStats" class="stats card">
