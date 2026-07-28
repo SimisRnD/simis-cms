@@ -298,6 +298,7 @@ CREATE TABLE users (
   modified TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
   modified_by BIGINT REFERENCES users(user_id),
   account_token VARCHAR(255),
+  account_token_expires TIMESTAMP(3),
   validated TIMESTAMP(3),
   title VARCHAR(100),
   department VARCHAR(100),
@@ -400,13 +401,17 @@ CREATE TABLE sessions (
   source VARCHAR(50),
   app_id BIGINT REFERENCES apps(app_id),
   visitor_id BIGINT REFERENCES visitors(visitor_id),
-  is_bot BOOLEAN DEFAULT false
+  is_bot BOOLEAN DEFAULT false,
+  is_anonymous BOOLEAN NOT NULL DEFAULT false
 );
+
+COMMENT ON COLUMN sessions.is_anonymous IS 'True if session is from anonymous visitor (no user login)';
 
 CREATE INDEX sessions_created_idx ON sessions(created);
 CREATE INDEX sessions_sess_id_idx ON sessions(session_id);
 CREATE INDEX sessions_is_bot_idx ON sessions(is_bot);
 CREATE INDEX sessions_referer_idx ON sessions(referer);
+CREATE INDEX idx_sessions_is_anonymous_created ON sessions(is_anonymous, created DESC);
 
 -- CREATE TABLE session_country_snapshots (
 --   snapshot_id BIGSERIAL PRIMARY KEY,
