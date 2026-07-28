@@ -570,6 +570,43 @@
         </widget>
       </column>
     </section>
+    <section class="grid-container grid-x grid-margin-x">
+      <column class="small-12 medium-6 large-3 cell callout">
+        <widget name="siteStats">
+          <icon>fa-user-check</icon>
+          <title>Enabled Accounts</title>
+          <report>enabled-accounts</report>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 large-3 cell callout">
+        <widget name="siteStats">
+          <icon>fa-user-shield</icon>
+          <title>Validated Accounts</title>
+          <report>validated-accounts</report>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 large-3 cell callout">
+        <widget name="siteStats">
+          <icon>fa-user-plus</icon>
+          <title>New This Month</title>
+          <report>new-registrations-this-month</report>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 large-3 cell callout">
+        <widget name="siteStats">
+          <icon>fa-user-cog</icon>
+          <title>Admin/Staff Accounts</title>
+          <report>admin-staff-accounts</report>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 large-3 cell callout">
+        <widget name="siteStats">
+          <icon>fa-user-friends</icon>
+          <title>Public Accounts</title>
+          <report>public-accounts</report>
+        </widget>
+      </column>
+    </section>
     <section>
       <column class="small-12 cell">
         <widget name="siteStats" class="stats card">
@@ -608,7 +645,6 @@
           <limit>10</limit>
         </widget>
       </column>
-<!--
       <column class="small-12 medium-6 cell">
         <widget name="siteStats" class="stats card">
           <title>Daily User Registrations</title>
@@ -616,7 +652,6 @@
           <report>daily-user-registrations</report>
         </widget>
       </column>
--->
 <!--
       <column class="small-12 medium-6 cell">
         <widget name="siteStats" class="stats card">
