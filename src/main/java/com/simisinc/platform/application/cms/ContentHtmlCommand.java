@@ -424,14 +424,15 @@ public class ContentHtmlCommand {
 
     // Determine the action. Governed publishing (Project #6, Phase 1) adds the review workflow; the
     // gate is enforced only when the site has opted in via content.review.required.
+    // Note: "approve" is intentionally NOT handled here -- it requires step-up re-authentication
+    // (see performContentApproval(), reached via ContentWidget.post()) and must only be reachable
+    // through that gated path.
     String action = context.getParameter("action");
     boolean reviewRequired = LoadSitePropertyCommand.loadByNameAsBoolean("content.review.required");
     if ("publish".equals(action)) {
       return publishContent(context, content, reviewRequired);
     } else if ("submitForReview".equals(action)) {
       return submitForReview(context, content);
-    } else if ("approve".equals(action)) {
-      return approveContent(context, content);
     } else if ("reject".equals(action)) {
       return rejectContent(context, content);
     } else if ("deleteContent".equals(action)) {

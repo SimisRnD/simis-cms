@@ -95,4 +95,25 @@ class UserDetailsWidgetTest extends WidgetBase {
       audit.verifyNoInteractions();
     }
   }
+
+  @Test
+  void actionResetPasswordIsNotHandledByTheGetActionPath() throws Exception {
+    // Password reset requires step-up re-authentication (see post()). The GET/action() path must
+    // never reset a password directly -- that would bypass step-up entirely, reachable via a plain
+    // GET request carrying the same parameters the old pre-step-up UI link used to build.
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "userId", "5");
+    addQueryParameter(widgetContext, "action", "resetPassword");
+
+    try (MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
+        MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(lockedUser());
+
+      new UserDetailsWidget().action(widgetContext);
+
+      userRepo.verify(() -> UserRepository.createAccountToken(any()), never());
+      audit.verifyNoInteractions();
+    }
+  }
 }
