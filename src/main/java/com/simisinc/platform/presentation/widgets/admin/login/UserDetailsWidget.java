@@ -108,6 +108,13 @@ public class UserDetailsWidget extends GenericWidget {
       context.setRedirect("/admin/user-details?userId=" + userId);
       return resetPassword(context, user);
     }
+    if ("suspendAccount".equals(action) || "restoreAccount".equals(action)
+        || "deleteAccount".equals(action) || "unlockAccount".equals(action)) {
+      // These are submitted via a real POST (issue #358 moved state-changing admin actions
+      // off GET query strings), so they arrive here rather than in action() below. Dispatch
+      // through the same table action() uses for a GET caller.
+      return action(context);
+    }
     context.setRedirect("/admin/user-details?userId=" + userId);
     return context;
   }
