@@ -13,7 +13,12 @@ CREATE TABLE IF NOT EXISTS audit_log_watermark (
   lowest_hashed_audit_id BIGINT  NOT NULL DEFAULT 0
 );
 
--- Backfill: initialise the watermark from the current chain (0 if no hashed records exist yet).
+-- Backfill: initialise the watermark from the current chain, but ONLY when a hashed record already
+-- exists. If none do yet, leave the table empty rather than seeding a placeholder 0 -- the
+-- application's own ON CONFLICT DO NOTHING insert (see AuditLogRepository.add()) can only ever set
+-- the watermark once, on the row's first appearance; a pre-seeded 0 row would permanently block it
+-- from ever recording the true first hashed audit_id once one is actually written.
 INSERT INTO audit_log_watermark (id, lowest_hashed_audit_id)
-SELECT 1, COALESCE(MIN(audit_id), 0) FROM audit_log WHERE record_hash IS NOT NULL
+SELECT 1, MIN(audit_id) FROM audit_log WHERE record_hash IS NOT NULL
+HAVING MIN(audit_id) IS NOT NULL
 ON CONFLICT (id) DO NOTHING;
