@@ -359,7 +359,7 @@
         </widget>
       </column>
       <column class="small-12 medium-5 cell">
-        <widget name="sendMail" class="callout primary radius" sticky="true">
+        <widget name="sendMail" class="callout primary radius">
           <icon>mail</icon>
           <title>Mail Test</title>
         </widget>

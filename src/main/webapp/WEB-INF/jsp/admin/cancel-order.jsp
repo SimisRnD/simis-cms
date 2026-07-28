@@ -48,18 +48,8 @@
   </form>
 </div>
 
-<script>
-  function openCancelConfirm() {
-<form method="post" onsubmit="return cancelOrder()">
-  <%-- Required by controller --%>
-  <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
-  <input type="hidden" name="token" value="${userSession.formToken}"/>
-  <%-- The form --%>
-  <input type="hidden" name="uniqueId" value="${order.uniqueId}"/>
-  <button id="cancelOrderButton" class="button alert expanded">Cancel Order</button>
-</form>
 <script nonce="${cspNonce}">
-  function cancelOrder() {
+  function openCancelConfirm() {
     if (document.getElementById("cancelOrderButton").disabled === true) {
       return;
     }
