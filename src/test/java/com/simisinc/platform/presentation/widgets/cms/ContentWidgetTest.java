@@ -16,9 +16,13 @@
 
 package com.simisinc.platform.presentation.widgets.cms;
 
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 
 import java.sql.Connection;
 
@@ -27,6 +31,9 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
 import com.simisinc.platform.WidgetBase;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.cms.ContentReviewCommand;
+import com.simisinc.platform.application.cms.EditorPermissionCommand;
 import com.simisinc.platform.application.cms.LoadContentCommand;
 import com.simisinc.platform.domain.model.cms.Content;
 import com.simisinc.platform.infrastructure.database.DB;
@@ -118,6 +125,34 @@ class ContentWidgetTest extends WidgetBase {
         ContentWidget contentWidget = new ContentWidget();
         widgetContext = contentWidget.action(widgetContext);
       }
+    }
+  }
+
+  @Test
+  void actionApproveIsNotHandledByTheGetActionPath() {
+    // Content approval requires step-up re-authentication (see ContentWidget.post(), which routes
+    // through ContentHtmlCommand.performContentApproval()). The GET/action() path must never approve
+    // content directly -- that would bypass step-up entirely, reachable via a plain GET request.
+    preferences.put("uniqueId", "hello-content");
+    widgetContext.getParameterMap().put("action", new String[] { "approve" });
+
+    Content content = new Content();
+    content.setUniqueId("hello-content");
+    content.setDraftContent("<p>Draft</p>");
+
+    try (MockedStatic<LoadContentCommand> loadContent = mockStatic(LoadContentCommand.class);
+        MockedStatic<EditorPermissionCommand> editorPermission = mockStatic(EditorPermissionCommand.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<ContentReviewCommand> contentReview = mockStatic(ContentReviewCommand.class)) {
+      loadContent.when(() -> LoadContentCommand.loadContentByUniqueId(eq("hello-content"))).thenReturn(content);
+      // Grant edit permission so the test proves the dispatch itself doesn't approve, not just that
+      // permission was denied first.
+      editorPermission.when(() -> EditorPermissionCommand.canEditContent(any())).thenReturn(true);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean(anyString())).thenReturn(false);
+
+      new ContentWidget().action(widgetContext);
+
+      contentReview.verify(() -> ContentReviewCommand.approve(any(), anyLong(), anyString()), never());
     }
   }
 }
