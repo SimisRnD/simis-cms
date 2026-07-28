@@ -19,6 +19,7 @@ package com.simisinc.platform.presentation.widgets.cms;
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.cms.LoadWikiCommand;
 import com.simisinc.platform.application.cms.LoadWikiPageCommand;
+import com.simisinc.platform.application.cms.RenderWikiMarkdownCommand;
 import com.simisinc.platform.application.cms.SaveWikiPageCommand;
 import com.simisinc.platform.application.cms.UrlCommand;
 import com.simisinc.platform.domain.model.cms.Wiki;
@@ -27,6 +28,10 @@ import com.simisinc.platform.domain.model.cms.WikiPage;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import org.apache.commons.lang3.StringUtils;
+
+import javax.json.Json;
+import javax.json.JsonObject;
+import java.io.StringWriter;
 
 /**
  * Description
@@ -68,10 +73,17 @@ public class WikiEditorWidget extends GenericWidget {
 
     } else {
 
-      // Setup a new page
+      // Setup a new page. An explicit title (from the "New Page" entry point, which already knows
+      // the exact title the user typed) takes precedence over deriving one from the URL slug --
+      // that derivation is lossy (it can't recover capitalization or punctuation) and exists only
+      // as a fallback for reaching this editor without one, e.g. clicking a [[WikiLink]] to a page
+      // that doesn't exist yet.
       WikiPage tempWikiPage = new WikiPage();
       tempWikiPage.setWikiId(wiki.getId());
-      tempWikiPage.setTitle(StringUtils.replaceChars(pageUniqueId, "-", " "));
+      String requestedTitle = context.getParameter("title");
+      tempWikiPage.setTitle(StringUtils.isNotBlank(requestedTitle)
+          ? requestedTitle
+          : StringUtils.replaceChars(pageUniqueId, "-", " "));
       tempWikiPage.setUniqueId(pageUniqueId);
       context.getRequest().setAttribute("wikiPage", tempWikiPage);
       context.getRequest().setAttribute("content", "");
@@ -143,6 +155,38 @@ public class WikiEditorWidget extends GenericWidget {
       returnPage = "/";
     }
     context.setRedirect(returnPage);
+    return context;
+  }
+
+  /**
+   * Renders the editor's current (unsaved) buffer through the same path the live page uses, so
+   * preview can never show something different from what publishing would actually produce.
+   * Reached through the widget action framework (WebContainerCommand.processWidgets checks the
+   * CSRF token before this runs), same as every other widget action -- not a hand-rolled endpoint.
+   */
+  public WidgetContext action(WidgetContext context) {
+
+    if (!(context.hasRole("admin") || context.hasRole("content-manager") || context.hasRole("community-manager"))) {
+      context.setJson("{\"error\":\"Permission denied\"}");
+      return context;
+    }
+
+    String wikiUniqueId = context.getParameter("wikiUniqueId");
+    String content = context.getParameter("content");
+    if (StringUtils.isEmpty(wikiUniqueId) || content == null) {
+      context.setJson("{\"error\":\"Missing parameters\"}");
+      return context;
+    }
+
+    String wikiLinkPrefix = "/" + wikiUniqueId;
+    String contentHtml = RenderWikiMarkdownCommand.toHtml(content, wikiLinkPrefix);
+
+    JsonObject json = Json.createObjectBuilder()
+        .add("html", contentHtml)
+        .build();
+    StringWriter writer = new StringWriter();
+    Json.createWriter(writer).writeObject(json);
+    context.setJson(writer.toString());
     return context;
   }
 }

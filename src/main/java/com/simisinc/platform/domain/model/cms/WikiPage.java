@@ -39,6 +39,7 @@ public class WikiPage extends Entity {
   private long modifiedBy = -1;
   private Timestamp created = null;
   private Timestamp modified = null;
+  private String highlight = null;
 
   public WikiPage() {
   }
@@ -121,6 +122,14 @@ public class WikiPage extends Entity {
 
   public void setModified(Timestamp modified) {
     this.modified = modified;
+  }
+
+  public String getHighlight() {
+    return highlight;
+  }
+
+  public void setHighlight(String highlight) {
+    this.highlight = highlight;
   }
 
 }

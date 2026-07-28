@@ -29,6 +29,7 @@ public class WikiPageSpecification {
   private long id = -1L;
   private long wikiId = -1L;
   private String uniqueId = null;
+  private String searchTerm = null;
   private Timestamp startingDateRange = null;
   private Timestamp endingDateRange = null;
 
@@ -65,6 +66,14 @@ public class WikiPageSpecification {
 
   public void setUniqueId(String uniqueId) {
     this.uniqueId = uniqueId;
+  }
+
+  public String getSearchTerm() {
+    return searchTerm;
+  }
+
+  public void setSearchTerm(String searchTerm) {
+    this.searchTerm = searchTerm;
   }
 
   public Timestamp getStartingDateRange() {

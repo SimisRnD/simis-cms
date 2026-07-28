@@ -41,6 +41,11 @@
           <limit>5</limit>
           <showWhenEmpty>false</showWhenEmpty>
         </widget>
+        <widget name="wikiSearchResults" hr="true">
+          <title>Documentation Found:</title>
+          <limit>5</limit>
+          <showWhenEmpty>false</showWhenEmpty>
+        </widget>
         <widget name="itemsSearchResults" hr="true">
           <title>Resources Found:</title>
           <limit>10</limit>
