@@ -43,8 +43,8 @@ public class WebVitalsWidget extends GenericWidget {
   // Google Core Web Vitals thresholds (p75 targets)
   static final int LCP_GOOD = 2500;      // 2.5s
   static final int LCP_NEEDS_WORK = 4000; // 4.0s
-  static final int CLS_GOOD = 100;        // 0.1 (stored as 100 = 0.1 * 1000)
-  static final int CLS_NEEDS_WORK = 250;  // 0.25
+  static final double CLS_GOOD = 0.1;     // unitless layout-shift score
+  static final double CLS_NEEDS_WORK = 0.25;
   static final int INP_GOOD = 200;        // 200ms
   static final int INP_NEEDS_WORK = 500;  // 500ms
   static final int FCP_GOOD = 1800;       // 1.8s
@@ -90,10 +90,10 @@ public class WebVitalsWidget extends GenericWidget {
   private List<Map<String, Object>> loadWebVitalsAggregates() {
     List<Map<String, Object>> results = new ArrayList<>();
 
-    String query = "SELECT url, metric_name, p75_value, sample_count, aggregated_at " +
+    String query = "SELECT url, metric_type, p75_value, sample_count, aggregated_at " +
         "FROM web_vitals_aggregates " +
         "WHERE aggregated_at > NOW() - INTERVAL '7 days' " +
-        "ORDER BY url, metric_name, aggregated_at DESC";
+        "ORDER BY url, metric_type, aggregated_at DESC";
 
     try (java.sql.Connection connection = DB.getConnection();
          java.sql.Statement stmt = connection.createStatement();
@@ -102,8 +102,9 @@ public class WebVitalsWidget extends GenericWidget {
       while (resultSet.next()) {
         Map<String, Object> row = new HashMap<>();
         row.put("url", resultSet.getString("url"));
-        row.put("metricName", resultSet.getString("metric_name"));
-        row.put("p75Value", resultSet.getLong("p75_value"));
+        row.put("metricName", resultSet.getString("metric_type"));
+        java.math.BigDecimal p75Value = resultSet.getBigDecimal("p75_value");
+        row.put("p75Value", p75Value != null ? p75Value.doubleValue() : 0.0);
         row.put("sampleCount", resultSet.getLong("sample_count"));
         row.put("aggregatedAt", resultSet.getTimestamp("aggregated_at"));
         results.add(row);
@@ -120,25 +121,25 @@ public class WebVitalsWidget extends GenericWidget {
 
     for (Map<String, Object> row : vitalsData) {
       String url = (String) row.get("url");
-      String metricName = (String) row.get("metricName");
-      long p75Value = (Long) row.get("p75Value");
+      String metricType = (String) row.get("metricName");
+      double p75Value = (Double) row.get("p75Value");
 
       VitalsSummary s = summary.computeIfAbsent(url, k -> new VitalsSummary(url));
 
-      if ("lcp".equals(metricName)) {
-        s.lcpP75 = (int) p75Value;
+      if ("LCP".equals(metricType)) {
+        s.lcpP75 = (int) Math.round(p75Value);
         s.lcpStatus = getStatus(p75Value, LCP_GOOD, LCP_NEEDS_WORK);
-      } else if ("cls".equals(metricName)) {
-        s.clsP75 = (int) p75Value;
+      } else if ("CLS".equals(metricType)) {
+        s.clsP75 = p75Value;
         s.clsStatus = getStatus(p75Value, CLS_GOOD, CLS_NEEDS_WORK);
-      } else if ("inp".equals(metricName)) {
-        s.inpP75 = (int) p75Value;
+      } else if ("INP".equals(metricType)) {
+        s.inpP75 = (int) Math.round(p75Value);
         s.inpStatus = getStatus(p75Value, INP_GOOD, INP_NEEDS_WORK);
-      } else if ("fcp".equals(metricName)) {
-        s.fcpP75 = (int) p75Value;
+      } else if ("FCP".equals(metricType)) {
+        s.fcpP75 = (int) Math.round(p75Value);
         s.fcpStatus = getStatus(p75Value, FCP_GOOD, FCP_NEEDS_WORK);
-      } else if ("ttfb".equals(metricName)) {
-        s.ttfbP75 = (int) p75Value;
+      } else if ("TTFB".equals(metricType)) {
+        s.ttfbP75 = (int) Math.round(p75Value);
         s.ttfbStatus = getStatus(p75Value, TTFB_GOOD, TTFB_NEEDS_WORK);
       }
     }
@@ -146,7 +147,7 @@ public class WebVitalsWidget extends GenericWidget {
     return summary;
   }
 
-  private String getStatus(long value, long goodThreshold, long needsWorkThreshold) {
+  private String getStatus(double value, double goodThreshold, double needsWorkThreshold) {
     if (value <= goodThreshold) {
       return "good";
     } else if (value <= needsWorkThreshold) {
@@ -159,7 +160,7 @@ public class WebVitalsWidget extends GenericWidget {
   public static class VitalsSummary {
     public String url;
     public int lcpP75 = 0;
-    public int clsP75 = 0;
+    public double clsP75 = 0;
     public int inpP75 = 0;
     public int fcpP75 = 0;
     public int ttfbP75 = 0;
