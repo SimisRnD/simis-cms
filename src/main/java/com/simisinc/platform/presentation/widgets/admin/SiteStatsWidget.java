@@ -163,6 +163,26 @@ public class SiteStatsWidget extends GenericWidget {
       Long totalUserCount = UserRepository.countTotalUsers();
       context.getRequest().setAttribute("numberValue", String.valueOf(totalUserCount));
       return CARD_JSP;
+    } else if ("enabled-accounts".equalsIgnoreCase(report)) {
+      long count = UserRepository.countEnabledAccounts();
+      context.getRequest().setAttribute("numberValue", String.valueOf(count));
+      return CARD_JSP;
+    } else if ("validated-accounts".equalsIgnoreCase(report)) {
+      long count = UserRepository.countValidatedAccounts();
+      context.getRequest().setAttribute("numberValue", String.valueOf(count));
+      return CARD_JSP;
+    } else if ("new-registrations-this-month".equalsIgnoreCase(report)) {
+      long count = UserRepository.countNewRegistrationsThisMonth();
+      context.getRequest().setAttribute("numberValue", String.valueOf(count));
+      return CARD_JSP;
+    } else if ("admin-staff-accounts".equalsIgnoreCase(report)) {
+      long count = UserRepository.countAccountsWithAnyRole();
+      context.getRequest().setAttribute("numberValue", String.valueOf(count));
+      return CARD_JSP;
+    } else if ("public-accounts".equalsIgnoreCase(report)) {
+      long count = UserRepository.countPublicAccounts();
+      context.getRequest().setAttribute("numberValue", String.valueOf(count));
+      return CARD_JSP;
     } else if ("daily-hits".equalsIgnoreCase(report)) {
       List<StatisticsData> statisticsDataList = WebPageHitRepository.findDailyWebHits(30);
       context.getRequest().setAttribute("statisticsDataList", statisticsDataList);
