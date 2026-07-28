@@ -215,6 +215,48 @@ public class EmailRepository {
     DB.update(TABLE_NAME, set, where);
   }
 
+  /**
+   * Records the result of a deliverability validation (e.g. ZeroBounce) for this address.
+   * Overwrites any previous classification and stamps validated_at with the current time.
+   *
+   * @param record the email record to update (must already be persisted)
+   * @param validationStatus the vendor's primary classification (e.g. "valid", "invalid", "catch-all")
+   * @param validationSubStatus the vendor's finer-grained reason code; may be blank or null
+   */
+  public static void markValidated(Email record, String validationStatus, String validationSubStatus) {
+    if (record == null || record.getId() == -1) {
+      return;
+    }
+    SqlUtils updateValues = new SqlUtils()
+        .add("validation_status", validationStatus, 20)
+        .add("validation_sub_status", validationSubStatus, 50)
+        .add("validated_at", new Timestamp(System.currentTimeMillis()));
+    SqlUtils where = new SqlUtils()
+        .add("email_id = ?", record.getId());
+    DB.update(TABLE_NAME, updateValues, where);
+  }
+
+  /**
+   * Finds emails that have never been run through deliverability validation (validated_at IS NULL),
+   * oldest record first, so a scheduled classification job can work through the backlog in order.
+   *
+   * @param constraints paging/sort context; set a page size to bound the batch, e.g. new DataConstraints(1, 100)
+   * @return a page of unvalidated emails, or null if there are none
+   */
+  public static List<Email> findUnvalidatedEmails(DataConstraints constraints) {
+    if (constraints == null) {
+      constraints = new DataConstraints();
+    }
+    constraints.setDefaultColumnToSortBy("email_id");
+    SqlUtils where = new SqlUtils()
+        .add("validated_at IS NULL");
+    DataResult result = DB.selectAllFrom(TABLE_NAME, where, constraints, EmailRepository::buildRecord);
+    if (result.hasRecords()) {
+      return (List<Email>) result.getRecords();
+    }
+    return null;
+  }
+
   private static Email buildRecord(ResultSet rs) {
     try {
       Email record = new Email();
@@ -252,6 +294,9 @@ public class EmailRepository {
       record.setTotalSpent(rs.getBigDecimal("total_spent"));
       // @todo tags
       record.setSyncDate(rs.getTimestamp("sync_date"));
+      record.setValidationStatus(rs.getString("validation_status"));
+      record.setValidationSubStatus(rs.getString("validation_sub_status"));
+      record.setValidatedAt(rs.getTimestamp("validated_at"));
       return record;
     } catch (SQLException se) {
       LOG.error("buildRecord", se);

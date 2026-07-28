@@ -140,6 +140,7 @@ INSERT INTO site_properties (property_label, property_name, property_value, prop
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (10, 'Mailing List Service', 'mailing-list.service', 'None', 'text');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (20, 'MailChimp API Key', 'mailing-list.mailchimp.apiKey', '', 'text');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (22, 'MailChimp List Id', 'mailing-list.mailchimp.listId', '', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (24, 'ZeroBounce API Key', 'mailing-list.zerobounce.apiKey', '', 'text');
 
 -- Maps
 

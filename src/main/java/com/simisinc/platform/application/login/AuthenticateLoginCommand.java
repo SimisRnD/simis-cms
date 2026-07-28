@@ -240,10 +240,22 @@ public class AuthenticateLoginCommand {
   }
 
   public static User getAuthenticatedUser(UserToken userToken) {
+    return getAuthenticatedUser(userToken.getUserId());
+  }
+
+  public static User getAuthenticatedUser(String token) {
+    UserToken userToken = getValidToken(token);
+    if (userToken == null) {
+      return null;
+    }
+    return getAuthenticatedUser(userToken);
+  }
+
+  public static User getAuthenticatedUser(long userId) {
     // Check the user account
-    User user = LoadUserCommand.loadUser(userToken.getUserId());
+    User user = LoadUserCommand.loadUser(userId);
     if (user == null) {
-      LOG.debug("No user for token");
+      LOG.debug("No user for id");
       return null;
     }
     if (user.isNotValidated()) {
@@ -255,14 +267,6 @@ public class AuthenticateLoginCommand {
       return null;
     }
     return user;
-  }
-
-  public static User getAuthenticatedUser(String token) {
-    UserToken userToken = getValidToken(token);
-    if (userToken == null) {
-      return null;
-    }
-    return getAuthenticatedUser(userToken);
   }
 
   public static void extendTokenExpiration(String token, int seconds) {
