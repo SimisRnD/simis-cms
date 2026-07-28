@@ -37,9 +37,18 @@ public class WebPage extends Entity {
   private String description = null;
   private String imageUrl = null;
   private boolean draft = false;
-  private boolean enabled = false;
-  private boolean searchable = false;
-  private boolean showInSitemap = false;
+  // enabled, searchable, and showInSitemap each match their column's own DEFAULT true
+  // (NEW_10010__new_cms.sql) -- every save path (WebPageFormWidget.post(), WebPageRepository's
+  // insert/update) writes these values explicitly, so the SQL defaults were otherwise dead code.
+  // Every page created through the app -- not the install/ seed data, which sets its own values
+  // directly in SQL -- got these silently false: enabled is never even exposed as a form field
+  // (so no page created through the CMS was ever enabled, which also gates
+  // WebPageRepository.search() -- new pages were unfindable there too, not just in the sitemap);
+  // searchable and showInSitemap are exposed as form toggles, but a blank/unchecked submission
+  // (the default state for a brand-new page's render of the form) explicitly writes false.
+  private boolean enabled = true;
+  private boolean searchable = true;
+  private boolean showInSitemap = true;
   private String sitemapChangeFrequency = null;
   private BigDecimal sitemapPriority = new BigDecimal(0);
   //  private boolean showPageHeader = false;
