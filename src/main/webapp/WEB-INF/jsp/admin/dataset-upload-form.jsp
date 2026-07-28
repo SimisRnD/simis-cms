@@ -56,7 +56,6 @@
     </select>
   </label>
   <div class="button-container">
-    <input type="submit" class="button radius primary" value="Add Dataset"/>
     <input type="submit" class="button radius success" value="Add Dataset" data-disable-on-submit="Uploading..."/>
     <a class="button radius secondary" href="${ctx}/admin/datasets">Cancel</a>
   </div>
