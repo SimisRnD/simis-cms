@@ -213,6 +213,15 @@ public class CartWidget extends GenericWidget {
    */
   public WidgetContext post(WidgetContext context) {
 
+    // removeItem is submitted via a real POST (issue #358 moved state-changing actions off
+    // GET query strings), so it arrives here rather than in action() below. Dispatch through
+    // the same table action() uses for a GET caller, before the quantity/promo update logic
+    // below, which doesn't check the action parameter and would otherwise treat a plain
+    // removeItem request as a failing quantity update (no item-*-quantity params are sent).
+    if ("removeItem".equals(context.getParameter("action"))) {
+      return action(context);
+    }
+
     // Verify the user has a cart
     Cart sessionCart = context.getUserSession().getCart();
     if (sessionCart == null || sessionCart.getTotalItems() == 0) {
