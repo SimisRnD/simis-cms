@@ -39,26 +39,25 @@
   });
 </script>
 <jsp:useBean id="fieldList" class="java.util.ArrayList" scope="request"/>
-<script>
-  <style>
-    .form-field-error {
-      border-left: 4px solid #cc4c28 !important;
-      background-color: rgba(204, 76, 40, 0.02);
-    }
-    .error-message {
-      display: none;
-      color: #cc4c28;
-      font-weight: 500;
-      margin-top: 0.5rem;
-      font-size: 0.9rem;
-    }
-    .error-message i {
-      margin-right: 0.5rem;
-    }
-    .error-message.show {
-      display: block;
-    }
-  </style>
+<style>
+  .form-field-error {
+    border-left: 4px solid #cc4c28 !important;
+    background-color: rgba(204, 76, 40, 0.02);
+  }
+  .error-message {
+    display: none;
+    color: #cc4c28;
+    font-weight: 500;
+    margin-top: 0.5rem;
+    font-size: 0.9rem;
+  }
+  .error-message i {
+    margin-right: 0.5rem;
+  }
+  .error-message.show {
+    display: block;
+  }
+</style>
 
 <script nonce="${cspNonce}">
   $(document).ready(function() {
@@ -88,42 +87,42 @@
           return false;
       }
     });
-
-    function checkForm${widgetContext.uniqueId}() {
-      var hasErrors = false;
-      var firstErrorField = null;
-      <c:forEach items="${fieldList}" var="formField" varStatus="status">
-      <c:if test="${formField.required}">
-      <c:choose>
-      <c:when test="${!empty formField.listOfOptions}">
-
-      </c:when>
-      <c:otherwise>
-      var field = document.getElementById("${widgetContext.uniqueId}${js:escape(formField.name)}");
-      var errorEl = document.getElementById("error-${widgetContext.uniqueId}${js:escape(formField.name)}");
-      if (field.value.trim() === "") {
-        if (errorEl) {
-          errorEl.classList.add("show");
-        }
-        field.classList.add("form-field-error");
-        field.setAttribute("aria-invalid", "true");
-        hasErrors = true;
-        if (!firstErrorField) firstErrorField = field;
-      } else if (errorEl) {
-        errorEl.classList.remove("show");
-        field.classList.remove("form-field-error");
-        field.setAttribute("aria-invalid", "false");
-      }
-      </c:otherwise>
-      </c:choose>
-      </c:if>
-      </c:forEach>
-      if (hasErrors && firstErrorField) {
-        firstErrorField.focus();
-      }
-      return !hasErrors;
-    }
   });
+
+  function checkForm${widgetContext.uniqueId}() {
+    var hasErrors = false;
+    var firstErrorField = null;
+    <c:forEach items="${fieldList}" var="formField" varStatus="status">
+    <c:if test="${formField.required}">
+    <c:choose>
+    <c:when test="${!empty formField.listOfOptions}">
+
+    </c:when>
+    <c:otherwise>
+    var field = document.getElementById("${widgetContext.uniqueId}${js:escape(formField.name)}");
+    var errorEl = document.getElementById("error-${widgetContext.uniqueId}${js:escape(formField.name)}");
+    if (field.value.trim() === "") {
+      if (errorEl) {
+        errorEl.classList.add("show");
+      }
+      field.classList.add("form-field-error");
+      field.setAttribute("aria-invalid", "true");
+      hasErrors = true;
+      if (!firstErrorField) firstErrorField = field;
+    } else if (errorEl) {
+      errorEl.classList.remove("show");
+      field.classList.remove("form-field-error");
+      field.setAttribute("aria-invalid", "false");
+    }
+    </c:otherwise>
+    </c:choose>
+    </c:if>
+    </c:forEach>
+    if (hasErrors && firstErrorField) {
+      firstErrorField.focus();
+    }
+    return !hasErrors;
+  }
 </script>
 <form id="form${widgetContext.uniqueId}" method="post" onsubmit="return checkForm${widgetContext.uniqueId}()">
   <%-- Required by controller --%>

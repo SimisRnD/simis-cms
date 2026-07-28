@@ -33,71 +33,10 @@
 </c:if>
 <script src="${ctx}/javascript/dropzone-5.9.3/dropzone.min.js"></script>
 <script src="${ctx}/javascript/dropzone-setup.js"></script>
-<script>
-  initializeDropzone('myDropzone', 100);
 <script nonce="${cspNonce}">
-  Dropzone.options.myDropzone = {
-    autoProcessQueue: false,
-    parallelUploads: 2,
-    maxFilesize: 100,
-    clickable: '#dz-browse',
-    dictDefaultMessage: 'Drag and drop files here (max 100 MB)<br/><br/>or use the Browse button below',
-    init: function() {
-      var submitButton = document.querySelector("#submit-all");
-      var errorRegion  = document.querySelector("#upload-errors");
-      var statusRegion = document.querySelector("#upload-status");
-      var errorCount   = 0;
-      var successCount = 0;
-      myDropzone = this;
-
-      submitButton.addEventListener("click", function() {
-        errorCount = 0;
-        successCount = 0;
-        errorRegion.innerHTML = '';
-        statusRegion.textContent = '';
-        myDropzone.processQueue();
-      });
-
-      this.on("addedfile", function() {
-        if (submitButton.classList.contains('primary')) {
-          submitButton.classList.add('success');
-          submitButton.classList.remove('primary');
-        }
-      });
-
-      this.on("success", function() {
-        successCount++;
-        myDropzone.processQueue();
-      });
-
-      this.on("error", function(file, message) {
-        errorCount++;
-        var msg = document.createElement('p');
-        msg.textContent = file.name + ': ' + (typeof message === 'string' ? message : (message.error || 'Upload failed'));
-        errorRegion.appendChild(msg);
-      });
-
-      this.on("queuecomplete", function() {
-        if (errorCount === 0 && successCount > 0) {
-          statusRegion.textContent = successCount + (successCount === 1 ? ' file' : ' files') + ' uploaded. Refreshing…';
-          setTimeout(function() { window.location.href = '' + window.location.href; }, 1200);
-        }
-      });
-
-      document.querySelector("#clear-dropzone").addEventListener("click", function() {
-        myDropzone.removeAllFiles(true);
-        errorCount = 0;
-        successCount = 0;
-        errorRegion.innerHTML = '';
-        statusRegion.textContent = '';
-        if (submitButton.classList.contains('success')) {
-          submitButton.classList.add('primary');
-          submitButton.classList.remove('success');
-        }
-      });
-    }
-  };
+  initializeDropzone('myDropzone', 100);
 </script>
+
 <p>Drag files here or use "Browse Files" to select them, then click "Upload All Files". Use "Reset" to clear your selections.</p>
 <form action="${widgetContext.uri}?widget=${widgetContext.uniqueId}" class="dropzone" id="my-dropzone">
   <%-- Required by controller --%>
