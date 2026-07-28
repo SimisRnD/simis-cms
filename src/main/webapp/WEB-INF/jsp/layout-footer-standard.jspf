@@ -85,6 +85,9 @@
               <c:if test="${!empty socialPropertyMap['social.linkedin.url']}">
                 <a target="_blank" rel="noopener noreferrer" aria-label="LinkedIn" href="<c:out value="${socialPropertyMap['social.linkedin.url']}"/>"><span class="fa-stack" aria-hidden="true"><i class="fa fa-circle fa-stack-2x"></i><i class="fa fa-linkedin fa-stack-1x fa-inverse"></i></span></a>
               </c:if>
+              <c:if test="${!empty socialPropertyMap['social.github.url']}">
+                <a target="_blank" rel="noopener noreferrer" aria-label="GitHub" href="<c:out value="${socialPropertyMap['social.github.url']}"/>"><span class="fa-stack" aria-hidden="true"><i class="fa fa-circle fa-stack-2x"></i><i class="fa fa-github fa-stack-1x fa-inverse"></i></span></a>
+              </c:if>
               <c:if test="${!empty socialPropertyMap['social.instagram.url']}">
                 <a target="_blank" rel="noopener noreferrer" aria-label="Instagram" href="<c:out value="${socialPropertyMap['social.instagram.url']}"/>"><span class="fa-stack" aria-hidden="true"><i class="fa fa-circle fa-stack-2x"></i><i class="fa fa-instagram fa-stack-1x fa-inverse"></i></span></a>
               </c:if>

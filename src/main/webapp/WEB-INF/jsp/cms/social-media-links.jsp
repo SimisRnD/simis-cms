@@ -45,3 +45,7 @@
   <a <c:if test="${!empty firstIcon}">class="<c:out value="${iconClass}"/>" </c:if>target="_blank" href="<c:out value="${socialPropertyMap['social.linkedin.url']}"/>"><i class="fa fa-2x fa-linkedin"></i></a>
   <c:set var="firstIcon" scope="request" value="true"/>
 </c:if>
+<c:if test="${!empty socialPropertyMap['social.github.url']}">
+  <a <c:if test="${!empty firstIcon}">class="<c:out value="${iconClass}"/>" </c:if>target="_blank" href="<c:out value="${socialPropertyMap['social.github.url']}"/>"><i class="fa fa-2x fa-github"></i></a>
+  <c:set var="firstIcon" scope="request" value="true"/>
+</c:if>
