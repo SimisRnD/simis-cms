@@ -58,6 +58,7 @@
   <widget name="blogPostName" class="com.simisinc.platform.presentation.widgets.cms.BlogPostNameWidget" />
   <widget name="blogEditor" class="com.simisinc.platform.presentation.widgets.cms.BlogEditorWidget" />
   <widget name="blogPostSearchResults" class="com.simisinc.platform.presentation.widgets.cms.BlogPostSearchResultsWidget" />
+  <widget name="wikiSearchResults" class="com.simisinc.platform.presentation.widgets.cms.WikiSearchResultsWidget" />
   <widget name="form" class="com.simisinc.platform.presentation.widgets.cms.FormWidget" />
   <widget name="albumGallery" class="com.simisinc.platform.presentation.widgets.cms.AlbumGalleryWidget" />
   <widget name="photoGallery" class="com.simisinc.platform.presentation.widgets.cms.PhotoGalleryWidget" />
@@ -203,6 +204,7 @@
   <widget name="folderFileForm" class="com.simisinc.platform.presentation.widgets.admin.cms.FolderFileFormWidget" />
   <widget name="wikiList" class="com.simisinc.platform.presentation.widgets.admin.cms.WikiListWidget" />
   <widget name="wikiForm" class="com.simisinc.platform.presentation.widgets.admin.cms.WikiFormWidget" />
+  <widget name="wikiPageList" class="com.simisinc.platform.presentation.widgets.admin.cms.WikiPageListWidget" />
   <widget name="sitePropertiesEditor" class="com.simisinc.platform.presentation.widgets.admin.SitePropertiesEditorWidget" />
   <widget name="themeEditor" class="com.simisinc.platform.presentation.widgets.admin.cms.ThemeEditorWidget" />
   <widget name="apisList" class="com.simisinc.platform.presentation.widgets.admin.ApisListWidget" />

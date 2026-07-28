@@ -1132,6 +1132,11 @@
         <widget name="wikiForm" />
       </column>
     </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="wikiPageList" />
+      </column>
+    </section>
   </page>
 
   <page name="/admin/apis" role="admin" title="APIs">
