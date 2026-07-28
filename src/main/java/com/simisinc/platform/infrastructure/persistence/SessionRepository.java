@@ -111,6 +111,14 @@ public class SessionRepository {
     return DB.selectCountFrom(TABLE_NAME, where);
   }
 
+  public static long countDistinctBotSessions(Timestamp startDate, Timestamp endDate) {
+    SqlUtils where = new SqlUtils()
+        .add("created >= ?", startDate)
+        .add("created < ?", endDate)
+        .add("is_bot = ?", true);
+    return DB.selectCountFrom(TABLE_NAME, where);
+  }
+
   public static long countSessionsToday() {
     LocalDate now = LocalDate.now();
     Timestamp timestamp = Timestamp.valueOf(now.atStartOfDay());
