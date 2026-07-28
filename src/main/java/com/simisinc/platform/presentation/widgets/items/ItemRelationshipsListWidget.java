@@ -105,6 +105,16 @@ public class ItemRelationshipsListWidget extends GenericWidget {
     return context;
   }
 
+  public WidgetContext post(WidgetContext context) {
+    // removeRelationship is submitted via a real POST (issue #358 moved state-changing
+    // actions off GET query strings), so it arrives here rather than in action() below.
+    // Dispatch through the same table action() uses for a GET caller.
+    if ("removeRelationship".equals(context.getParameter("action"))) {
+      return action(context);
+    }
+    return context;
+  }
+
   public WidgetContext action(WidgetContext context) {
     // Check the action
     String action = context.getParameter("action");

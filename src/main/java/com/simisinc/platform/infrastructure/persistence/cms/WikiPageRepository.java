@@ -53,13 +53,27 @@ public class WikiPageRepository {
         where.add("((start_date >= ? AND start_date < ?) OR (end_date >= ? AND end_date < ?))",
             new Timestamp[]{specification.getStartingDateRange(), specification.getEndingDateRange(), specification.getStartingDateRange(), specification.getEndingDateRange()});
       }
+      if (StringUtils.isNotBlank(specification.getSearchTerm())) {
+        where.add("tsv @@ PLAINTO_TSQUERY('title_stem', ?)", specification.getSearchTerm().trim());
+      }
     }
     return where;
   }
 
   private static DataResult query(WikiPageSpecification specification, DataConstraints constraints) {
+    SqlUtils select = new SqlUtils();
     SqlUtils where = createWhereStatement(specification);
-    return DB.selectAllFrom(TABLE_NAME, where, constraints, WikiPageRepository::buildRecord);
+    SqlUtils orderBy = null;
+    if (specification != null && StringUtils.isNotBlank(specification.getSearchTerm())) {
+      select.add(
+          "ts_headline('english', body, PLAINTO_TSQUERY('title_stem', ?), 'StartSel=${b}, StopSel=${/b}, MaxWords=30, MinWords=15, ShortWord=3, HighlightAll=FALSE, MaxFragments=2, FragmentDelimiter=\" ... \"') AS highlight",
+          specification.getSearchTerm().trim());
+      select.add("TS_RANK_CD(tsv, PLAINTO_TSQUERY('title_stem', ?)) AS rank", specification.getSearchTerm().trim());
+      // Override the order by for rank first
+      orderBy = new SqlUtils();
+      orderBy.add("rank DESC, wiki_page_id");
+    }
+    return DB.selectAllFrom(TABLE_NAME, select, where, orderBy, constraints, WikiPageRepository::buildRecord);
   }
 
   public static WikiPage findByUniqueId(Long wikiId, String pageUniqueId) {
@@ -197,6 +211,9 @@ public class WikiPageRepository {
       record.setCreated(rs.getTimestamp("created"));
       record.setModifiedBy(rs.getLong("modified_by"));
       record.setModified(rs.getTimestamp("modified"));
+      if (DB.hasColumn(rs, "highlight")) {
+        record.setHighlight(rs.getString("highlight"));
+      }
       return record;
     } catch (SQLException se) {
       LOG.error("buildRecord", se);

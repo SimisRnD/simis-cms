@@ -18,12 +18,15 @@ package com.simisinc.platform.presentation.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.JsonNode;
+import com.simisinc.platform.domain.model.cms.WebPage;
 import com.simisinc.platform.infrastructure.cache.WebVitalsCollector;
+import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -51,7 +54,7 @@ import java.io.BufferedReader;
  * @author claude
  * @created 7/26/26
  */
-@WebServlet(name = "WebVitalsApi", urlPatterns = "/api/metrics/vitals")
+@WebServlet(name = "WebVitalsApi", urlPatterns = "/rum/vitals")
 public class WebVitalsApiController extends HttpServlet {
 
   private static Log LOG = LogFactory.getLog(WebVitalsApiController.class);
@@ -84,7 +87,21 @@ public class WebVitalsApiController extends HttpServlet {
       String sessionId = request.getSession(false) != null ?
           request.getSession().getId() : null;
 
-      WebVitalsCollector.collectMetrics(url, metricsNode, sessionId);
+      // Resolve the CMS page this metric belongs to, if the URL matches one
+      String path = url.contains("?") ? url.substring(0, url.indexOf("?")) : url;
+      WebPage page = WebPageRepository.findByLink(path);
+      Long webPageId = page != null ? page.getId() : null;
+
+      // Capture request context (no raw user agent is stored, only its hash).
+      // Viewport/connection come from the JSON body, not headers: the client uses
+      // navigator.sendBeacon() for reliable delivery, which cannot set custom headers.
+      String userAgentRaw = request.getHeader("User-Agent");
+      String userAgentHash = userAgentRaw != null ? DigestUtils.sha256Hex(userAgentRaw) : null;
+      Integer viewportWidth = payload.path("viewportWidth").isMissingNode() || payload.path("viewportWidth").isNull()
+          ? null : payload.path("viewportWidth").asInt();
+      String connectionType = payload.path("connectionType").isNull() ? null : payload.path("connectionType").asText(null);
+
+      WebVitalsCollector.collectMetrics(url, metricsNode, sessionId, webPageId, userAgentHash, viewportWidth, connectionType);
 
       LOG.debug("Stored web vitals for: " + url);
 
