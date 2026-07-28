@@ -46,10 +46,10 @@
 <c:choose>
   <c:when test="${!empty itemList}">
     <ul<c:if test="${showBullets eq 'false'}"> class="no-bullet"</c:if> id="itemList">
-      <c:forEach items="${itemList}" var="item">
-        <li class="item-row" data-item-id="${item.id}" data-item-order="${item.itemOrder}">
+      <c:forEach items="${itemList}" var="item" varStatus="itemStatus">
+        <li class="item-row" data-item-id="${item.id}" data-item-order="${itemStatus.index}">
           <c:if test="${isEditMode eq 'true'}">
-            <span class="drag-handle" title="Drag to reorder" aria-label="Drag handle for ${item.name}">
+            <span class="drag-handle" title="Drag to reorder" aria-label="Drag handle for ${fn:escapeXml(item.name)}">
               <i class="fa fa-grip-vertical"></i>
             </span>
           </c:if>

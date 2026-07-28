@@ -84,6 +84,15 @@ public class WebPageFormWidget extends GenericWidget {
 
   public WidgetContext post(WidgetContext context) throws InvocationTargetException, IllegalAccessException {
 
+    // deletePage is submitted via a real POST (issue #358 moved state-changing admin actions
+    // off GET query strings), so it arrives here rather than in action() below. Dispatch
+    // through the same table action() uses for a GET caller, before the page save logic
+    // below, which doesn't check the action parameter and would otherwise treat a plain
+    // deletePage request as a (validation-rejected) page save.
+    if ("deletePage".equals(context.getParameter("action"))) {
+      return action(context);
+    }
+
     // Load the record to get all the fields
     long webPageId = context.getParameterAsLong("id");
     WebPage webPageBean = WebPageRepository.findById(webPageId);

@@ -57,7 +57,7 @@ public class WebVitalsCleanupJob {
   private static void deleteOldRawMetrics() {
     // Delete raw vitals older than 30 days
     SqlUtils where = new SqlUtils()
-        .add("recorded_at < NOW() - INTERVAL '30 days'");
+        .add("created_at < NOW() - INTERVAL '30 days'");
 
     int deleted = DB.deleteFrom("web_vitals", where);
     if (deleted > 0) {
