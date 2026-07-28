@@ -73,7 +73,9 @@ import com.simisinc.platform.infrastructure.scheduler.cms.WebVitalsCleanupJob;
  * columns and creates web_vitals_aggregates. This test drives that pair through the exact Flyway
  * configuration {@link com.simisinc.platform.application.admin.DatabaseCommand} uses for upgrades
  * (same table, prefix, locations, outOfOrder, validateOnMigrate) against a real PostgreSQL
- * instance, baselined just before these two migrations so only they execute.
+ * instance, baselined just before the first of these two migrations and targeted at the second --
+ * see the {@code LAST_WEB_VITALS_MIGRATION} field below for why the upper bound matters -- so only
+ * migrations in that narrow, fixed range ever execute here.
  * </p>
  *
  * @author Elizabeth Houser
@@ -90,6 +92,16 @@ class WebVitalsMigrationTest {
   // Just below UPGRADE_20260726.2000, so baseline() marks nothing as pre-applied and both
   // web_vitals migrations execute for real, matching an existing (upgrade-path) database.
   private static final String BASELINE_BEFORE_WEB_VITALS = "20260726.1999";
+
+  // The later of the two migrations under test, passed to Flyway as an upper bound (target()).
+  // Without this, outOfOrder(true) plus no ceiling means migrate() below would apply ANY migration
+  // whose version merely sorts after the baseline above -- which already happened once for
+  // UPGRADE_20260727.1000__sessions_ip_address_nullable.sql (see the sessions stand-in table
+  // below), and would keep recurring indefinitely, since migration versions are dates and every
+  // new one is dated on or after the day it's written. Bounding both ends closes the range for
+  // good: nothing written from here on can ever be dated inside an already-past range, so the
+  // migrations that fall between these two constants are fixed forever at whatever exists today.
+  private static final String LAST_WEB_VITALS_MIGRATION = "20260727.1001";
 
   private static GenericContainer<?> postgres;
   private static MigrateResult migrateResult;
@@ -116,15 +128,17 @@ class WebVitalsMigrationTest {
     properties.setProperty("password", DB_PASSWORD);
     DataSource.init(properties);
 
-    // Minimal stand-ins for tables referenced by migrations that fall in this baseline's range.
-    // web_pages: referenced by FK from the web_vitals migrations under test. sessions: altered by
-    // UPGRADE_20260727.1000__sessions_ip_address_nullable.sql, an unrelated migration that now
-    // sorts between the baseline and the web_vitals migrations' versions -- Flyway applies
-    // everything in range, not just the two under test, so it runs here too. distributed_lock:
-    // not touched by any migration under test, but WebVitalsAggregationJob/WebVitalsCleanupJob
-    // both take a LockManager lock before running, and this test drives those jobs through their
-    // real execute() methods rather than re-implementing their SQL inline. Everything else in the
-    // real install schema is irrelevant to this conflict.
+    // Minimal stand-ins for tables referenced by migrations that fall in the baseline-to-target
+    // range above. web_pages: referenced by FK from the web_vitals migrations under test. sessions:
+    // altered by UPGRADE_20260727.1000__sessions_ip_address_nullable.sql, an unrelated migration
+    // that happens to sort between the two web_vitals migrations -- outOfOrder(true) runs it here
+    // too, and LAST_WEB_VITALS_MIGRATION above is what keeps this list of "unrelated migrations
+    // that also happen to land in range" fixed at just this one, instead of growing every time
+    // something new merges into upgrade/. distributed_lock: not touched by any migration under
+    // test, but WebVitalsAggregationJob/WebVitalsCleanupJob both take a LockManager lock before
+    // running, and this test drives those jobs through their real execute() methods rather than
+    // re-implementing their SQL inline. Everything else in the real install schema is irrelevant
+    // to this conflict.
     try (Connection connection = DB.getConnection();
         Statement statement = connection.createStatement()) {
       statement.execute("CREATE TABLE web_pages (web_page_id BIGSERIAL PRIMARY KEY, link VARCHAR(255))");
@@ -135,8 +149,9 @@ class WebVitalsMigrationTest {
       throw new IllegalStateException("Could not create the stand-in tables", se);
     }
 
-    // Same Flyway configuration as DatabaseCommand.upgrade(), baselined just before the
-    // two web_vitals migrations so they are the only ones that actually run.
+    // Same Flyway configuration as DatabaseCommand.upgrade(), baselined just before and targeted
+    // just at the two web_vitals migrations so they are the only ones that actually run. target()
+    // is the one addition beyond what upgrade() itself sets -- see LAST_WEB_VITALS_MIGRATION above.
     Flyway flyway = Flyway.configure()
         .table("flyway_history")
         .validateOnMigrate(false)
@@ -148,6 +163,7 @@ class WebVitalsMigrationTest {
         .outOfOrder(true)
         .cleanDisabled(true)
         .baselineVersion(BASELINE_BEFORE_WEB_VITALS)
+        .target(LAST_WEB_VITALS_MIGRATION)
         .load();
     flyway.baseline();
     migrateResult = flyway.migrate();
@@ -169,11 +185,10 @@ class WebVitalsMigrationTest {
   void bothMigrationsApplySuccessfully() {
     assertTrue(migrateResult.success,
         "web_vitals upgrade migrations did not apply cleanly: " + migrateResult.warnings);
-    // Not migrationsExecuted == 2: this baseline range also legitimately covers
-    // UPGRADE_20260727.1000__sessions_ip_address_nullable.sql, an unrelated migration that
-    // happens to sort between the two under test (see the sessions stand-in table above) --
-    // asserting a fixed total would break again the next time anything else lands in range.
-    // Check that the two web_vitals versions specifically are both present instead.
+    // Not migrationsExecuted == 2: the baseline-to-target range also legitimately covers
+    // UPGRADE_20260727.1000__sessions_ip_address_nullable.sql (see the sessions stand-in table
+    // above). Checking the two web_vitals versions specifically, rather than a total count or an
+    // exact set, keeps this assertion decoupled from that incidental third migration.
     Set<String> appliedVersions = new TreeSet<>();
     for (Object migration : migrateResult.migrations) {
       appliedVersions.add(((org.flywaydb.core.api.output.MigrateOutput) migration).version);
