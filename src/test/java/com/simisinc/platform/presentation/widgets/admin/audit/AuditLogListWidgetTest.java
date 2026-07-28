@@ -24,7 +24,9 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 
 import org.junit.jupiter.api.Test;
@@ -32,9 +34,11 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
 import com.simisinc.platform.WidgetBase;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.persistence.audit.AuditLogRepository;
 import com.simisinc.platform.infrastructure.persistence.audit.AuditLogSpecification;
+import com.simisinc.platform.presentation.controller.WidgetContext;
 
 /**
  * Tests the audit review widget: filters map onto the query specification, and the log is admin-only.
@@ -53,9 +57,11 @@ class AuditLogListWidgetTest extends WidgetBase {
     addQueryParameter(widgetContext, "fromDate", "2026-07-01");
     addQueryParameter(widgetContext, "toDate", "2026-07-20");
 
-    try (MockedStatic<AuditLogRepository> repository = mockStatic(AuditLogRepository.class)) {
+    try (MockedStatic<AuditLogRepository> repository = mockStatic(AuditLogRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
       repository.when(() -> AuditLogRepository.findAll(any(AuditLogSpecification.class), any(DataConstraints.class)))
           .thenReturn(new ArrayList<>());
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("audit.retentionDays")).thenReturn(null);
 
       new AuditLogListWidget().execute(widgetContext);
 
@@ -91,9 +97,11 @@ class AuditLogListWidgetTest extends WidgetBase {
     // in a real ArrayList. A plain "is it a List" assertion would not have caught this.
     setRoles(widgetContext, "admin");
 
-    try (MockedStatic<AuditLogRepository> repository = mockStatic(AuditLogRepository.class)) {
+    try (MockedStatic<AuditLogRepository> repository = mockStatic(AuditLogRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
       repository.when(() -> AuditLogRepository.findAll(any(AuditLogSpecification.class), any(DataConstraints.class)))
           .thenReturn(new ArrayList<>());
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("audit.retentionDays")).thenReturn(null);
 
       new AuditLogListWidget().execute(widgetContext);
 
@@ -117,5 +125,120 @@ class AuditLogListWidgetTest extends WidgetBase {
           never());
       assertNull(widgetContext.getRequest().getAttribute("auditLogList"));
     }
+  }
+
+  @Test
+  void sourceIpAndTargetTypeMapOntoTheSpecification() {
+    setRoles(widgetContext, "admin");
+    addQueryParameter(widgetContext, "sourceIp", "203.0.113.4");
+    addQueryParameter(widgetContext, "targetType", "user");
+
+    try (MockedStatic<AuditLogRepository> repository = mockStatic(AuditLogRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      repository.when(() -> AuditLogRepository.findAll(any(AuditLogSpecification.class), any(DataConstraints.class)))
+          .thenReturn(new ArrayList<>());
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("audit.retentionDays")).thenReturn(null);
+
+      new AuditLogListWidget().execute(widgetContext);
+
+      ArgumentCaptor<AuditLogSpecification> captor = ArgumentCaptor.forClass(AuditLogSpecification.class);
+      repository.verify(() -> AuditLogRepository.findAll(captor.capture(), any(DataConstraints.class)));
+      AuditLogSpecification spec = captor.getValue();
+
+      assertEquals("203.0.113.4", spec.getSourceIp());
+      assertEquals("user", spec.getTargetType());
+
+      String pagingParams = (String) widgetContext.getRequest().getAttribute("recordPagingParams");
+      assertTrue(pagingParams.contains("sourceIp=203.0.113.4"));
+      assertTrue(pagingParams.contains("targetType=user"));
+    }
+  }
+
+  @Test
+  void aQuickRangePresetTakesPrecedenceOverAnExplicitDateRange() {
+    setRoles(widgetContext, "admin");
+    addQueryParameter(widgetContext, "range", "24h");
+    // These would normally set a half-open [from, to) window -- the preset must win over them.
+    addQueryParameter(widgetContext, "fromDate", "2020-01-01");
+    addQueryParameter(widgetContext, "toDate", "2020-01-02");
+
+    try (MockedStatic<AuditLogRepository> repository = mockStatic(AuditLogRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      repository.when(() -> AuditLogRepository.findAll(any(AuditLogSpecification.class), any(DataConstraints.class)))
+          .thenReturn(new ArrayList<>());
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("audit.retentionDays")).thenReturn(null);
+
+      Instant before = Instant.now().minus(24, ChronoUnit.HOURS);
+      new AuditLogListWidget().execute(widgetContext);
+      Instant after = Instant.now().minus(24, ChronoUnit.HOURS);
+
+      ArgumentCaptor<AuditLogSpecification> captor = ArgumentCaptor.forClass(AuditLogSpecification.class);
+      repository.verify(() -> AuditLogRepository.findAll(captor.capture(), any(DataConstraints.class)));
+      AuditLogSpecification spec = captor.getValue();
+
+      // The cutoff is "now" at execute() time, minus 24h -- bracket it rather than pin an exact instant.
+      assertTrue(!spec.getOccurredAfter().toInstant().isBefore(before) && !spec.getOccurredAfter().toInstant().isAfter(after),
+          "expected a cutoff around 24h ago, got " + spec.getOccurredAfter());
+      assertNull(spec.getOccurredBefore(), "a range preset has no upper bound, unlike the explicit date-range fields");
+    }
+  }
+
+  @Test
+  void retentionDaysIsExposedToTheView() {
+    setRoles(widgetContext, "admin");
+
+    try (MockedStatic<AuditLogRepository> repository = mockStatic(AuditLogRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      repository.when(() -> AuditLogRepository.findAll(any(AuditLogSpecification.class), any(DataConstraints.class)))
+          .thenReturn(new ArrayList<>());
+      repository.when(() -> AuditLogRepository.resolveRetentionDays("365")).thenReturn(365);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("audit.retentionDays")).thenReturn("365");
+
+      new AuditLogListWidget().execute(widgetContext);
+
+      assertEquals(365, widgetContext.getRequest().getAttribute("retentionDays"));
+    }
+  }
+
+  @Test
+  void exportIsRefusedWithoutAdminRole() {
+    setRoles(widgetContext); // logged in, but no admin role
+    addQueryParameter(widgetContext, "command", "downloadCSVFile");
+
+    try (MockedStatic<AuditLogRepository> repository = mockStatic(AuditLogRepository.class)) {
+      WidgetContext result = new AuditLogListWidget().post(widgetContext);
+
+      repository.verifyNoInteractions();
+      assertEquals(widgetContext, result);
+    }
+  }
+
+  @Test
+  void anUnrecognizedCommandIsIgnored() {
+    setRoles(widgetContext, "admin");
+    addQueryParameter(widgetContext, "command", "somethingElse");
+
+    try (MockedStatic<AuditLogRepository> repository = mockStatic(AuditLogRepository.class)) {
+      WidgetContext result = new AuditLogListWidget().post(widgetContext);
+
+      repository.verifyNoInteractions();
+      assertNull(result);
+    }
+  }
+
+  @Test
+  void resolveRangeCutoffRecognizesEveryPreset() {
+    Instant now = Instant.now();
+    assertTrue(AuditLogListWidget.resolveRangeCutoff("1h").toInstant().isBefore(now));
+    assertTrue(AuditLogListWidget.resolveRangeCutoff("24h").toInstant().isBefore(now.minus(1, ChronoUnit.HOURS)));
+    assertTrue(AuditLogListWidget.resolveRangeCutoff("7d").toInstant().isBefore(now.minus(6, ChronoUnit.DAYS)));
+    assertTrue(AuditLogListWidget.resolveRangeCutoff("30d").toInstant().isBefore(now.minus(29, ChronoUnit.DAYS)));
+  }
+
+  @Test
+  void resolveRangeCutoffReturnsNullForBlankOrUnrecognizedValues() {
+    assertNull(AuditLogListWidget.resolveRangeCutoff(null));
+    assertNull(AuditLogListWidget.resolveRangeCutoff(""));
+    assertNull(AuditLogListWidget.resolveRangeCutoff("3 weeks ago"));
   }
 }
