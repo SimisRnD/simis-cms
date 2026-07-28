@@ -83,7 +83,7 @@ public class ItemsListWidget extends GenericWidget {
     boolean isEditMode = "true".equals(context.getRequest().getParameter("editMode")) ||
                         "true".equals(context.getRequest().getAttribute("pageEditMode") != null ?
                         context.getRequest().getAttribute("pageEditMode").toString() : "false");
-    context.getRequest().setAttribute("isEditMode", isEditMode);
+    context.getRequest().setAttribute("isEditMode", String.valueOf(isEditMode));
 
     // Determine the record paging
     int limit = Integer.parseInt(context.getPreferences().getOrDefault("limit", "20"));

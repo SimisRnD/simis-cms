@@ -284,7 +284,7 @@
         if (data.success === true) {
           location.reload();
         } else {
-          alert('Failed to add item: ' + (data.message || 'Unknown error'));
+          alert('Failed to add item: ' + (data.error || 'Unknown error'));
         }
       }).catch(function(err) {
         alert('Error: ' + err.message);
