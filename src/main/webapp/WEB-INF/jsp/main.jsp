@@ -419,6 +419,9 @@
             <ul class="vertical menu">
               <li class="section-title">Community</li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/community/analytics')}"> class="is-active"</c:if>><a href="${ctx}/admin/community/analytics"><i class="${font:far()} fa-chart-line fa-fw"></i> <span>Analytics</span></a></li>
+              <c:if test="${userSession.hasRole('admin')}">
+                <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/web-vitals')}"> class="is-active"</c:if>><a href="${ctx}/admin/web-vitals"><i class="${font:far()} fa-tachometer-alt fa-fw"></i> <span>Web Vitals</span></a></li>
+              </c:if>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/form-')}"> class="is-active"</c:if>><a href="${ctx}/admin/form-data"><i class="${font:far()} fa-list-alt fa-fw"></i> <span>Form Data</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/mailing-list') && !fn:startsWith(pageRenderInfo.name, '/admin/mailing-list-properties')}"> class="is-active"</c:if>><a href="${ctx}/admin/mailing-lists"><i class="${font:far()} fa-envelope fa-fw"></i> <span>Mailing Lists</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/user') || fn:startsWith(pageRenderInfo.name, '/admin/modify-user')}"> class="is-active"</c:if>><a href="${ctx}/admin/users"><i class="${font:far()} fa-user-circle fa-fw"></i> <span>Users</span></a></li>
@@ -837,6 +840,7 @@
     <c:if test="${!empty analyticsPropertyMap['analytics.brandcdn.value'] && !empty analyticsPropertyMap['analytics.brandcdn.value2']}">
       <script type="text/javascript" src="//tag.brandcdn.com/autoscript/${js:escape(analyticsPropertyMap['analytics.brandcdn.value'])}/${js:escape(analyticsPropertyMap['analytics.brandcdn.value2'])}" nonce="${cspNonce}"></script>
     </c:if>
+    <script src="${ctx}/javascript/web-vitals-collector.js?v=<%= VERSION %>" nonce="${cspNonce}"></script>
   </c:if>
   <c:if test="${analyticsPropertyMap['analytics.consentRequired'] eq 'true' and cookie['analytics-consent'].value ne 'accepted' and cookie['analytics-consent'].value ne 'declined'}">
     <div id="analytics-consent-banner" style="position:fixed;bottom:0;left:0;right:0;z-index:9999;background:#1a1a1a;color:#fff;padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">

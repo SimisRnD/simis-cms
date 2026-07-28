@@ -16,13 +16,21 @@
 
 package com.simisinc.platform.presentation.widgets.admin;
 
+import com.simisinc.platform.application.cms.ContentReviewCommand;
 import com.simisinc.platform.application.maps.FindMapTilesCredentialsCommand;
 import com.simisinc.platform.domain.model.Session;
+import com.simisinc.platform.domain.model.audit.AuditLog;
 import com.simisinc.platform.domain.model.dashboard.StatisticsData;
 import com.simisinc.platform.domain.model.maps.MapCredentials;
+import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.persistence.SessionRepository;
 import com.simisinc.platform.infrastructure.persistence.UserRepository;
+import com.simisinc.platform.infrastructure.persistence.audit.AuditLogRepository;
+import com.simisinc.platform.infrastructure.persistence.audit.AuditLogSpecification;
+import com.simisinc.platform.infrastructure.persistence.cms.ContentRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.FormDataRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageHitRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebSearchRepository;
 import com.simisinc.platform.infrastructure.persistence.mailinglists.MailingListMemberRepository;
 import com.simisinc.platform.infrastructure.persistence.login.UserLoginRepository;
@@ -33,6 +41,10 @@ import org.apache.commons.lang3.StringUtils;
 
 import javax.json.bind.Jsonb;
 import javax.json.bind.JsonbBuilder;
+import java.sql.Timestamp;
+import java.time.Duration;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -55,6 +67,8 @@ public class SiteStatsWidget extends GenericWidget {
   public static String CARD_JSP = "/admin/site-stats-card.jsp";
   public static String LOCATIONS_JSP = "/admin/site-stats-locations-table.jsp";
   public static String LOCATIONS_MAP_JSP = "/admin/site-stats-locations-map.jsp";
+  public static String ALERT_CARD_JSP = "/admin/site-stats-alert-card.jsp";
+  public static String RECENT_ACTIONS_JSP = "/admin/site-stats-recent-actions.jsp";
 
   public WidgetContext execute(WidgetContext context) {
 
@@ -180,6 +194,26 @@ public class SiteStatsWidget extends GenericWidget {
       List<StatisticsData> statisticsDataList = MailingListMemberRepository.findDailySubscriptions(30);
       context.getRequest().setAttribute("statisticsDataList", statisticsDataList);
       return JSP;
+    } else if ("enabled-accounts".equalsIgnoreCase(report)) {
+      long count = UserRepository.countEnabledAccounts();
+      context.getRequest().setAttribute("numberValue", String.valueOf(count));
+      return CARD_JSP;
+    } else if ("validated-accounts".equalsIgnoreCase(report)) {
+      long count = UserRepository.countValidatedAccounts();
+      context.getRequest().setAttribute("numberValue", String.valueOf(count));
+      return CARD_JSP;
+    } else if ("new-registrations-this-month".equalsIgnoreCase(report)) {
+      long count = UserRepository.countNewRegistrationsThisMonth();
+      context.getRequest().setAttribute("numberValue", String.valueOf(count));
+      return CARD_JSP;
+    } else if ("admin-staff-accounts".equalsIgnoreCase(report)) {
+      long count = UserRepository.countAccountsWithAnyRole();
+      context.getRequest().setAttribute("numberValue", String.valueOf(count));
+      return CARD_JSP;
+    } else if ("public-accounts".equalsIgnoreCase(report)) {
+      long count = UserRepository.countPublicAccounts();
+      context.getRequest().setAttribute("numberValue", String.valueOf(count));
+      return CARD_JSP;
     } else if ("daily-hits".equalsIgnoreCase(report)) {
       List<StatisticsData> statisticsDataList = WebPageHitRepository.findDailyWebHits(30);
       context.getRequest().setAttribute("statisticsDataList", statisticsDataList);
@@ -245,8 +279,75 @@ public class SiteStatsWidget extends GenericWidget {
       context.getRequest().setAttribute("label", context.getPreferences().getOrDefault("label", "Search Term"));
       context.getRequest().setAttribute("value", context.getPreferences().getOrDefault("value", "Searches"));
       return TABLE_JSP;
+    } else if ("failed-logins-24h".equalsIgnoreCase(report)) {
+      AuditLogSpecification spec = new AuditLogSpecification();
+      spec.setEventType("authentication.login.failure");
+      spec.setOccurredAfter(last24Hours());
+      DataConstraints countOnly = new DataConstraints();
+      countOnly.setPageSize(1);
+      AuditLogRepository.findAll(spec, countOnly);
+      long count = countOnly.getTotalRecordCount();
+      context.getRequest().setAttribute("numberValue", String.valueOf(count));
+      context.getRequest().setAttribute("severity", count > 0 ? "critical" : "ok");
+      return ALERT_CARD_JSP;
+    } else if ("locked-accounts".equalsIgnoreCase(report)) {
+      long count = UserRepository.countLockedAccounts();
+      context.getRequest().setAttribute("numberValue", String.valueOf(count));
+      context.getRequest().setAttribute("severity", count > 0 ? "critical" : "ok");
+      return ALERT_CARD_JSP;
+    } else if ("drafts-awaiting-review".equalsIgnoreCase(report)) {
+      long count = ContentRepository.countByDraftStatus(ContentReviewCommand.STATUS_SUBMITTED);
+      context.getRequest().setAttribute("numberValue", String.valueOf(count));
+      context.getRequest().setAttribute("severity", count > 0 ? "warning" : "ok");
+      return ALERT_CARD_JSP;
+    } else if ("scheduled-not-live".equalsIgnoreCase(report)) {
+      long count = WebPageRepository.countScheduledNotYetLive();
+      context.getRequest().setAttribute("numberValue", String.valueOf(count));
+      context.getRequest().setAttribute("severity", count > 0 ? "warning" : "ok");
+      return ALERT_CARD_JSP;
+    } else if ("submissions-awaiting-review".equalsIgnoreCase(report)) {
+      long count = FormDataRepository.countAwaitingReview();
+      context.getRequest().setAttribute("numberValue", String.valueOf(count));
+      context.getRequest().setAttribute("severity", count > 0 ? "warning" : "ok");
+      return ALERT_CARD_JSP;
+    } else if ("bot-sessions-today".equalsIgnoreCase(report)) {
+      Timestamp startOfToday = Timestamp.valueOf(java.time.LocalDate.now().atStartOfDay());
+      long count = SessionRepository.countDistinctBotSessions(startOfToday, new Timestamp(System.currentTimeMillis()));
+      context.getRequest().setAttribute("numberValue", String.valueOf(count));
+      context.getRequest().setAttribute("severity", "ok");
+      return ALERT_CARD_JSP;
+    } else if ("recent-admin-actions".equalsIgnoreCase(report)) {
+      context.getRequest().setAttribute("recentActionsList", findRecentAdminActions(5));
+      return RECENT_ACTIONS_JSP;
     } else {
       return null;
     }
+  }
+
+  private static Timestamp last24Hours() {
+    return Timestamp.from(java.time.Instant.now().minus(Duration.ofHours(24)));
+  }
+
+  /**
+   * Merges the most recent audit events across the categories an admin dashboard cares about.
+   * AuditLogSpecification filters on a single event_category, not a list, so this runs one small
+   * query per category and merges in Java rather than widening the shared specification/where-clause
+   * for a single dashboard tile.
+   */
+  static List<AuditLog> findRecentAdminActions(int limit) {
+    List<AuditLog> merged = new ArrayList<>();
+    for (String category : new String[] { "content", "configuration", "user_management" }) {
+      AuditLogSpecification spec = new AuditLogSpecification();
+      spec.setEventCategory(category);
+      DataConstraints constraints = new DataConstraints();
+      constraints.setPageSize(limit);
+      constraints.setUseCount(false);
+      List<AuditLog> categoryRecords = AuditLogRepository.findAll(spec, constraints);
+      if (categoryRecords != null) {
+        merged.addAll(categoryRecords);
+      }
+    }
+    merged.sort(Comparator.comparing(AuditLog::getOccurred).reversed());
+    return merged.subList(0, Math.min(limit, merged.size()));
   }
 }

@@ -29,21 +29,16 @@ public class GenerateWikiPageUniqueIdCommand {
 
   public static String generateUniqueId(WikiPage previousRecord, WikiPage record) {
 
-    // Use an existing uniqueId
+    // An existing page's URL must stay stable across edits -- including a title change -- so a
+    // rename can never silently break inbound [[WikiLinks]] or external links to the page. This
+    // previously regenerated the slug from the new title whenever the title changed, which is
+    // exactly the case a rename hits.
     if (previousRecord != null && previousRecord.getUniqueId() != null) {
-      // See if the name changed
-      if (previousRecord.getTitle().equals(record.getTitle())) {
-        return previousRecord.getUniqueId();
-      }
+      return previousRecord.getUniqueId();
     }
 
     // Create a new one
     String value = MakeContentUniqueIdCommand.parseToValidValue(record.getTitle());
-
-    // See if it's really the same
-    if (previousRecord != null && value.equals(previousRecord.getTitle())) {
-      return previousRecord.getUniqueId();
-    }
 
     // Find the next available unique instance (within the wiki)
     int count = 1;
