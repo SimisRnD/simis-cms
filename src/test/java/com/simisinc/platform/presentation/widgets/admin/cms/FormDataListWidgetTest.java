@@ -28,11 +28,20 @@ import java.util.List;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.times;
 
 /**
  * @author matt rajkowski
  * @created 5/8/2022 7:00 AM
+ *
+ * markAsProcessedViaPostDispatchesThroughAction guards a real regression: the form-data list submits
+ * archive/claim/markAsProcessed via a real HTTP POST (issue #358 moved state-changing admin actions off GET
+ * query strings), so WebContainerContext routes the request to post(), not action() below -- action()'s
+ * dispatch table was correct but unreachable, and this widget had no post() override at all, so the request
+ * silently no-opped (redirect back to the same page, no error, no repository call). This test calls post()
+ * directly, the same method a real request now reaches, so it fails if that dispatch gap reopens.
  */
 class FormDataListWidgetTest extends WidgetBase {
 
@@ -100,6 +109,27 @@ class FormDataListWidgetTest extends WidgetBase {
       // Execute the widget
       FormDataListWidget widget = new FormDataListWidget();
       widget.action(widgetContext);
+    }
+  }
+
+  @Test
+  void markAsProcessedViaPostDispatchesThroughAction() throws Exception {
+    FormData formData = new FormData();
+    formData.setId(1L);
+
+    addQueryParameter(widgetContext, "dataId", String.valueOf(formData.getId()));
+    addQueryParameter(widgetContext, "action", "markAsProcessed");
+
+    try (MockedStatic<FormDataRepository> formDataRepositoryMockedStatic = mockStatic(FormDataRepository.class)) {
+      formDataRepositoryMockedStatic.when(() -> FormDataRepository.findById(anyLong())).thenReturn(formData);
+      formDataRepositoryMockedStatic.when(() -> FormDataRepository.markAsProcessed(formData, widgetContext.getUserId())).thenReturn(true);
+
+      setRoles(widgetContext, ADMIN);
+
+      FormDataListWidget widget = new FormDataListWidget();
+      widget.post(widgetContext);
+
+      formDataRepositoryMockedStatic.verify(() -> FormDataRepository.markAsProcessed(formData, widgetContext.getUserId()), times(1));
     }
   }
 }
