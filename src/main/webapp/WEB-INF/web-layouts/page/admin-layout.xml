@@ -5,23 +5,77 @@
     <section>
       <column>
         <widget name="content" class="margin-bottom-20">
-          <html><![CDATA[<h4>Welcome back ${user.fullName:html}</h4>]]></html>
+          <html><![CDATA[<h4>Welcome back, ${user.fullName:html}.</h4>]]></html>
         </widget>
       </column>
     </section>
-    <section class="grid-container grid-x grid-margin-x">
-      <column class="small-12 medium-6 large-4 cell callout">
+    <section class="grid-container grid-x grid-margin-x grid-margin-y">
+      <column class="small-6 medium-4 large-3 cell callout">
         <widget name="siteStats">
           <icon>fa-globe</icon>
           <title>Online Now</title>
           <report>total-sessions-now</report>
         </widget>
       </column>
-      <column class="small-12 medium-6 large-4 cell callout">
+      <column class="small-6 medium-4 large-3 cell callout">
         <widget name="siteStats">
           <icon>fa-globe</icon>
-          <title>Sessions Today</title>
+          <title>Human Visitors Today</title>
           <report>total-sessions-today</report>
+        </widget>
+      </column>
+      <column class="small-6 medium-4 large-3 cell">
+        <widget name="siteStats">
+          <icon>fa-robot</icon>
+          <title>Bot Sessions Today</title>
+          <report>bot-sessions-today</report>
+        </widget>
+      </column>
+      <column class="small-6 medium-4 large-3 cell">
+        <widget name="siteStats">
+          <icon>fa-exclamation-triangle</icon>
+          <title>Failed Logins (24h)</title>
+          <report>failed-logins-24h</report>
+          <link>/admin/audit-log?eventType=authentication.login.failure</link>
+        </widget>
+      </column>
+      <column class="small-6 medium-4 large-3 cell">
+        <widget name="siteStats">
+          <icon>fa-lock</icon>
+          <title>Locked Accounts</title>
+          <report>locked-accounts</report>
+          <link>/admin/users</link>
+        </widget>
+      </column>
+      <column class="small-6 medium-4 large-3 cell">
+        <widget name="siteStats">
+          <icon>fa-edit</icon>
+          <title>Drafts Awaiting Review</title>
+          <report>drafts-awaiting-review</report>
+          <link>/admin/content-list</link>
+        </widget>
+      </column>
+      <column class="small-6 medium-4 large-3 cell">
+        <widget name="siteStats">
+          <icon>fa-clock</icon>
+          <title>Scheduled, Not Yet Live</title>
+          <report>scheduled-not-live</report>
+          <link>/admin/web-pages</link>
+        </widget>
+      </column>
+      <column class="small-6 medium-4 large-3 cell">
+        <widget name="siteStats">
+          <icon>fa-inbox</icon>
+          <title>Submissions Awaiting Review</title>
+          <report>submissions-awaiting-review</report>
+          <link>/admin/form-data</link>
+        </widget>
+      </column>
+      <column class="small-12 cell">
+        <widget name="siteStats">
+          <title>Recent Admin Activity</title>
+          <report>recent-admin-actions</report>
+          <link>/admin/audit-log</link>
         </widget>
       </column>
     </section>
@@ -1233,6 +1287,17 @@
       <column class="small-12 cell">
         <widget name="xapiStatementList">
           <title>Activity</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/web-vitals" role="admin" title="Web Vitals">
+    <section>
+      <column class="small-12 cell">
+        <widget name="webVitals">
+          <icon>fa-tachometer-alt</icon>
+          <title>Core Web Vitals</title>
         </widget>
       </column>
     </section>

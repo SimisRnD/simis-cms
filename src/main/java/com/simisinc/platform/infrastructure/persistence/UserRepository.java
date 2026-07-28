@@ -209,6 +209,10 @@ public class UserRepository {
     return records;
   }
 
+  public static long countLockedAccounts() {
+    return DB.selectCountFrom(TABLE_NAME, new SqlUtils().add("locked_until > ?", new Timestamp(System.currentTimeMillis())));
+  }
+
   public static long countTotalUsers() {
     long count = -1;
     String SQL_QUERY =
