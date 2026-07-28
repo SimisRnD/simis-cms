@@ -49,7 +49,7 @@ public class SendOrderCancellationConfirmationWidget extends GenericWidget {
     context.getRequest().setAttribute("title", context.getPreferences().get("title"));
 
     // Display if running in testMode
-    context.getRequest().setAttribute("testMode", !EcommerceCommand.isProductionEnabled());
+    context.getRequest().setAttribute("testMode", String.valueOf(!EcommerceCommand.isProductionEnabled()));
 
     // Determine the order
     String orderNumber = context.getParameter("order-number");

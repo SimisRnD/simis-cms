@@ -558,7 +558,7 @@
       <column class="small-12 medium-6 large-3 cell callout">
         <widget name="communityStats">
           <icon>fa-mail-bulk</icon>
-          <title>Total Sign-ups</title>
+          <title>Mailing List Subscribers</title>
           <report>total-mailing-list-members</report>
         </widget>
       </column>
@@ -573,6 +573,9 @@
     <section class="grid-container grid-x grid-margin-x">
       <column class="small-12 medium-6 large-3 cell callout">
         <widget name="siteStats">
+          <icon>fa-mail-bulk</icon>
+          <title>Active Subscribers</title>
+          <report>active-mailing-list-subscribers</report>
           <icon>fa-user-check</icon>
           <title>Enabled Accounts</title>
           <report>enabled-accounts</report>
@@ -580,6 +583,9 @@
       </column>
       <column class="small-12 medium-6 large-3 cell callout">
         <widget name="siteStats">
+          <icon>fa-mail-bulk</icon>
+          <title>Unsubscribed</title>
+          <report>unsubscribed-mailing-list-members</report>
           <icon>fa-user-shield</icon>
           <title>Validated Accounts</title>
           <report>validated-accounts</report>
@@ -655,6 +661,15 @@
 <!--
       <column class="small-12 medium-6 cell">
         <widget name="siteStats" class="stats card">
+          <title>Daily Mailing List Subscriptions</title>
+          <label>Subscriptions</label>
+          <report>daily-mailing-list-subscriptions</report>
+        </widget>
+      </column>
+-->
+<!--
+      <column class="small-12 medium-6 cell">
+        <widget name="siteStats" class="stats card">
           <title>Daily Active Users</title>
           <label>Active Users</label>
           <report>dau</report>
@@ -674,6 +689,14 @@
           <title>Monthly User Registrations</title>
           <label>User Registrations</label>
           <report>monthly-user-registrations</report>
+          <type>bar</type>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 cell">
+        <widget name="siteStats" class="stats card">
+          <title>Monthly Mailing List Subscriptions</title>
+          <label>Subscriptions</label>
+          <report>monthly-mailing-list-subscriptions</report>
           <type>bar</type>
         </widget>
       </column>

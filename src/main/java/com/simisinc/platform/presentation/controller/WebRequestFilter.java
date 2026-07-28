@@ -510,8 +510,10 @@ public class WebRequestFilter implements Filter {
 
     // Verify the user record on each request
     if (!userVerifiedThisRequest && userSession.isLoggedIn()) {
-      // Verify the roles every request for dynamic changes
-      User user = AuthenticateLoginCommand.getAuthenticatedUser(cookieUserToken);
+      // Verify the roles every request for dynamic changes. Re-check the CURRENT session's user by id --
+      // NOT via cookieUserToken, which only resolves when the user opted into "stay logged in"; keying this
+      // check on it force-logs-out every other session on its very next request.
+      User user = AuthenticateLoginCommand.getAuthenticatedUser(userSession.getUserId());
       if (user == null) {
         // Logout
         LogoutCommand.logout((HttpServletRequest) request, ((HttpServletResponse) servletResponse));

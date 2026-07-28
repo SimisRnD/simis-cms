@@ -61,11 +61,12 @@ public class SitePropertiesEditorWidget extends GenericWidget {
 
   public WidgetContext execute(WidgetContext context) {
 
+    String prefix = context.getPreferences().get(PREFIX_PREFERENCE);
+
     // Check the request for POST errors
     List<SiteProperty> siteProperties = (List) context.getRequestObject();
     if (siteProperties == null) {
       // Load the properties
-      String prefix = context.getPreferences().get(PREFIX_PREFERENCE);
       siteProperties = new ArrayList<>();
       String[] prefixList = prefix.split(",");
       for (String thisPrefix : prefixList) {
@@ -80,6 +81,9 @@ public class SitePropertiesEditorWidget extends GenericWidget {
 
     context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));
     context.getRequest().setAttribute("title", context.getPreferences().get("title"));
+    // Lets the JSP special-case content (e.g. help text) for one exact settings page without
+    // guessing from the display title, and without affecting the other pages that share this widget.
+    context.getRequest().setAttribute("prefix", prefix);
 
     // Show the editor
     context.setJsp(JSP);

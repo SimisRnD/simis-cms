@@ -65,6 +65,17 @@ public class FormDataListWidget extends GenericWidget {
     return context;
   }
 
+  public WidgetContext post(WidgetContext context) {
+    // These are submitted via a real POST (issue #358 moved state-changing admin actions off
+    // GET query strings), so they arrive here rather than in action() below. Dispatch through
+    // the same table action() uses for a GET caller.
+    String action = context.getParameter("action");
+    if ("archive".equals(action) || "claim".equals(action) || "markAsProcessed".equals(action)) {
+      return action(context);
+    }
+    return context;
+  }
+
   public WidgetContext action(WidgetContext context) {
     // Find the user record
     long dataId = context.getParameterAsLong("dataId");
