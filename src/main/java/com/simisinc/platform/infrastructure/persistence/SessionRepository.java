@@ -119,6 +119,47 @@ public class SessionRepository {
     return DB.selectCountFrom(TABLE_NAME, where);
   }
 
+  /**
+   * Counts bot sessions created within the given range. Same computation as
+   * {@link #countDistinctBotSessions(Timestamp, Timestamp)} -- kept as its own entry point so the
+   * bot-vs-real-traffic dashboard (issue #561) has a name that mirrors {@link #countDistinctSessions}
+   * ("real" sessions) without renaming the existing, separately-tested alert-card call site.
+   */
+  public static long countBotSessions(Timestamp startDate, Timestamp endDate) {
+    return countDistinctBotSessions(startDate, endDate);
+  }
+
+  /**
+   * Builds a day-bucketed, zero-filled series of session counts for the given bot status, spanning
+   * {@code daysToLimit} days ago through today (inclusive). Mirrors the generate_series + LEFT JOIN
+   * pattern used by {@link UserRepository#findDailyUserRegistrations(int)}. The is_bot filter lives in
+   * the JOIN condition rather than a WHERE clause so that days with no matching sessions still
+   * zero-fill instead of being dropped by the LEFT JOIN.
+   */
+  public static List<StatisticsData> findDailySessionsByBotStatus(int daysToLimit, boolean isBot) {
+    String SQL_QUERY =
+        "SELECT DATE_TRUNC('day', day)::VARCHAR(10) AS date_column, COUNT(id) AS daily_count " +
+            "FROM (SELECT generate_series(NOW() - INTERVAL '" + daysToLimit + " days', NOW(), INTERVAL '1 day')::date) d(day) " +
+            "LEFT JOIN sessions ON DATE_TRUNC('day', created) = DATE_TRUNC('day', day) AND is_bot = " + isBot + " " +
+            "GROUP BY d.day " +
+            "ORDER BY d.day";
+    List<StatisticsData> records = null;
+    try (Connection connection = DB.getConnection();
+         PreparedStatement pst = connection.prepareStatement(SQL_QUERY);
+         ResultSet rs = pst.executeQuery()) {
+      records = new ArrayList<>();
+      while (rs.next()) {
+        StatisticsData data = new StatisticsData();
+        data.setLabel(rs.getString("date_column"));
+        data.setValue(String.valueOf(rs.getLong("daily_count")));
+        records.add(data);
+      }
+    } catch (SQLException se) {
+      LOG.error("SQLException: " + se.getMessage());
+    }
+    return records;
+  }
+
   public static long countSessionsToday() {
     LocalDate now = LocalDate.now();
     Timestamp timestamp = Timestamp.valueOf(now.atStartOfDay());
