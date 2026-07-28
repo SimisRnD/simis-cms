@@ -42,6 +42,13 @@ public class FormDataRepository {
   private static String TABLE_NAME = "form_data";
   private static String[] PRIMARY_KEY = new String[]{"form_data_id"};
 
+  public static long countAwaitingReview() {
+    SqlUtils where = new SqlUtils()
+        .add("processed IS NULL")
+        .add("dismissed IS NULL");
+    return DB.selectCountFrom(TABLE_NAME, where);
+  }
+
   private static DataResult query(FormDataSpecification specification, DataConstraints constraints) {
     SqlUtils where = null;
     if (specification != null) {

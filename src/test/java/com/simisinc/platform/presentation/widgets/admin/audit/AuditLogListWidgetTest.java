@@ -89,6 +89,29 @@ class AuditLogListWidgetTest extends WidgetBase {
   }
 
   @Test
+  void categoryListIsARealArrayListNotTheArraysAsListView() {
+    // audit-log-list.jsp declares <jsp:useBean id="categoryList" class="java.util.ArrayList" .../>,
+    // which casts the request attribute directly to that concrete class. Arrays.asList() returns
+    // java.util.Arrays$ArrayList -- a different class despite the name -- and that mismatch threw a
+    // ClassCastException on every single page load, filtered or not, until CATEGORY_LIST was wrapped
+    // in a real ArrayList. A plain "is it a List" assertion would not have caught this.
+    setRoles(widgetContext, "admin");
+
+    try (MockedStatic<AuditLogRepository> repository = mockStatic(AuditLogRepository.class)) {
+      repository.when(() -> AuditLogRepository.findAll(any(AuditLogSpecification.class), any(DataConstraints.class)))
+          .thenReturn(new ArrayList<>());
+
+      new AuditLogListWidget().execute(widgetContext);
+
+      Object categoryList = widgetContext.getRequest().getAttribute("categoryList");
+      assertTrue(categoryList instanceof java.util.ArrayList,
+          "categoryList must be a real java.util.ArrayList, not just any List implementation, "
+              + "to satisfy the JSP's <jsp:useBean> cast: was " + (categoryList == null ? "null"
+                  : categoryList.getClass()));
+    }
+  }
+
+  @Test
   void aNonAdminIsNotShownTheAuditLog() {
     setRoles(widgetContext); // logged in, but no admin role
 

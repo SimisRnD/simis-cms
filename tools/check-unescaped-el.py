@@ -77,6 +77,43 @@ NUMERIC = re.compile(
 # cover every occurrence. Add an entry only after tracing the value to its
 # source and confirming it is sanitized, validated, or structurally safe.
 ALLOWLIST: dict[str, str] = {
+    "${cspNonce}":
+        "The CSP nonce is generated per-request in PageServlet.java via SecureRandom bytes "
+        "through Base64.getUrlEncoder().withoutPadding() -- the URL-safe alphabet contains only "
+        "[A-Za-z0-9_-], so it cannot hold a quote, angle bracket, or any other markup-breaking "
+        "character in any context.",
+    "${errorMessage}":
+        "WebVitalsWidget.java sets this to the hardcoded literal \"Error loading performance "
+        "data\" on the catch path -- never derived from request input.",
+    "${summary.lcpP75 > 0 ? summary.lcpP75 : '—'}":
+        "WebVitalsWidget.VitalsSummary.lcpP75 is a Java primitive int (WebVitalsWidget.java); "
+        "the ternary's other branch is the fixed em-dash literal. Neither can carry markup.",
+    "${summary.inpP75 > 0 ? summary.inpP75 : '—'}":
+        "Same as lcpP75 -- VitalsSummary.inpP75 is a Java primitive int; the other branch is the "
+        "fixed em-dash literal.",
+    "${summary.fcpP75 > 0 ? summary.fcpP75 : '—'}":
+        "Same as lcpP75 -- VitalsSummary.fcpP75 is a Java primitive int; the other branch is the "
+        "fixed em-dash literal.",
+    "${summary.ttfbP75 > 0 ? summary.ttfbP75 : '—'}":
+        "Same as lcpP75 -- VitalsSummary.ttfbP75 is a Java primitive int; the other branch is the "
+        "fixed em-dash literal.",
+    "${summary.overallScore}":
+        "VitalsSummary.getOverallScore() (WebVitalsWidget.java) returns a Java primitive int "
+        "computed purely from status-string equality checks against fixed literals -- cannot "
+        "carry markup.",
+    "${summary.lcpStatus}":
+        "WebVitalsWidget.getStatus() (WebVitalsWidget.java) returns exactly one of the fixed "
+        "literals \"good\"/\"needsWork\"/\"poor\"; VitalsSummary.lcpStatus otherwise defaults to "
+        "the fixed literal \"unknown\". No other value is possible, so this cannot break out of "
+        "the class=\"badge badge-...\" attribute.",
+    "${summary.clsStatus}":
+        "Same as lcpStatus -- clsStatus is set by the same getStatus() and defaults the same way.",
+    "${summary.inpStatus}":
+        "Same as lcpStatus -- inpStatus is set by the same getStatus() and defaults the same way.",
+    "${summary.fcpStatus}":
+        "Same as lcpStatus -- fcpStatus is set by the same getStatus() and defaults the same way.",
+    "${summary.ttfbStatus}":
+        "Same as lcpStatus -- ttfbStatus is set by the same getStatus() and defaults the same way.",
     "${mapCredentials.tileServerUrl}":
         "FindMapTilesCredentialsCommand.validatedTileServerUrl rejects quotes, whitespace, backslashes and angle brackets before the value is stored -- validated at the source instead of escaped at the sink",
     "${activity.messageHtml}":

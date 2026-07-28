@@ -62,6 +62,7 @@
       </p>
       <div class="button-container">
         <input type="submit" class="button radius success" value="Save"/>
+        <button type="button" id="wikiPreviewToggle" class="button radius hollow">Preview</button>
         <c:choose>
           <c:when test="${!empty returnPage}">
             <a href="${returnPage}" class="button radius secondary">Cancel</a>
@@ -73,32 +74,45 @@
       </div>
     </div>
     <div class="small-12 hide-for-small-only medium-3 cell">
-      <div class="callout secondary" style="height:65vh;overflow:scroll">
-        <p><a target="_blank" href="http://commonmark.org/help">CommonMark Help</a></p>
-        # Title<br />
-        <br />
-        ## List of things<br />
-        * Bullet 1<br />
-        * Bullet 2<br />
-        <br />
-        ## Numbered list of things<br />
-        1. Item 1<br />
-        2. Item 2<br />
-        <br />
-        [[Link to another page]]<br />
-        [External web link](http://www.example.com)<br />
-        <br />
-        **Bold** and _italicized_ text<br />
-        ~~Strikethrough text~~<br />
-        <br />
-        ```javascript<br />
-        var text = "";<br />
-        var text2 = "";<br />
-        ```<br />
-        <br />
-        | Header | Header |<br />
-        |--------|--------|<br />
-        | Cell   | Cell   |
+      <ul class="tabs" data-tabs id="wikiEditorSideTabs">
+        <li class="tabs-title is-active"><a href="#wikiHelpPanel" aria-selected="true">Help</a></li>
+        <li class="tabs-title"><a href="#wikiPreviewPanel">Preview</a></li>
+      </ul>
+      <div class="tabs-content" data-tabs-content="wikiEditorSideTabs">
+        <div class="tabs-panel is-active" id="wikiHelpPanel">
+          <div class="callout secondary" style="height:65vh;overflow:scroll">
+            <p><a target="_blank" href="http://commonmark.org/help">CommonMark Help</a></p>
+            # Title<br />
+            <br />
+            ## List of things<br />
+            * Bullet 1<br />
+            * Bullet 2<br />
+            <br />
+            ## Numbered list of things<br />
+            1. Item 1<br />
+            2. Item 2<br />
+            <br />
+            [[Link to another page]]<br />
+            [External web link](http://www.example.com)<br />
+            <br />
+            **Bold** and _italicized_ text<br />
+            ~~Strikethrough text~~<br />
+            <br />
+            ```javascript<br />
+            var text = "";<br />
+            var text2 = "";<br />
+            ```<br />
+            <br />
+            | Header | Header |<br />
+            |--------|--------|<br />
+            | Cell   | Cell   |
+          </div>
+        </div>
+        <div class="tabs-panel" id="wikiPreviewPanel">
+          <div class="callout secondary markdown-body" id="wikiPreviewContent" style="height:65vh;overflow:scroll">
+            <em>Click Preview to render the current content.</em>
+          </div>
+        </div>
       </div>
     </div>
   </div>
@@ -132,6 +146,38 @@
         textarea.val(editor.getSession().getValue());
       });
       editor.focus();
+
+      // Preview: render the editor's current (unsaved) buffer through the same server-side
+      // markdown path the live page uses, via the widget action framework -- a GET request
+      // carrying "action" routes to WikiEditorWidget.action() (WebContainerContext's method
+      // resolution). PageServlet requires both "widget" (which widget on the page the action
+      // targets) and "token" (the CSRF form token, checked uniformly for every targeted request
+      // regardless of what the widget's own action() does) or it 404s before dispatch.
+      if (textarea.attr('id') === 'content') {
+        $('#wikiPreviewToggle').on('click', function() {
+          var previewPanel = $('#wikiPreviewContent');
+          previewPanel.html('<em>Rendering&#8230;</em>');
+          $('a[href="#wikiPreviewPanel"]').trigger('click');
+          var qs = new URLSearchParams();
+          qs.append('action', 'preview');
+          qs.append('widget', '${widgetContext.uniqueId}');
+          qs.append('token', '${userSession.formToken}');
+          qs.append('wikiUniqueId', '${js:escape(wiki.uniqueId)}');
+          qs.append('content', editor.getSession().getValue());
+          fetch('${widgetContext.uri}?' + qs.toString())
+            .then(function(resp) { return resp.json(); })
+            .then(function(data) {
+              if (data.error) {
+                previewPanel.html('<em>' + data.error + '</em>');
+                return;
+              }
+              previewPanel.html(data.html);
+            })
+            .catch(function() {
+              previewPanel.html('<em>Preview failed to load.</em>');
+            });
+        });
+      }
     });
   });
 </script>

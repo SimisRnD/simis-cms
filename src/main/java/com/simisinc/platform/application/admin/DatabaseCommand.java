@@ -24,6 +24,8 @@ import com.simisinc.platform.infrastructure.persistence.DatabaseVersionRepositor
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.flywaydb.core.Flyway;
+import org.flywaydb.core.api.MigrationInfo;
+import org.flywaydb.core.api.MigrationVersion;
 import org.flywaydb.core.api.output.MigrateResult;
 
 import java.time.Duration;
@@ -130,6 +132,17 @@ public class DatabaseCommand {
     {
       // For fresh installs, baseline to a high version to prevent old migrations from running.
       // New installs don't need UPGRADE migrations since they start with the latest schema from NEW_* migrations.
+      //
+      // The baseline must be at least as high as every UPGRADE_* migration that exists on the
+      // classpath, or a fresh install silently never applies (and never even attempts) any
+      // migration dated after ApplicationInfo.VERSION -- with no error, since Flyway treats
+      // "version <= baseline" as already handled. ApplicationInfo.VERSION is a hand-bumped
+      // constant, not tied to real time, so it drifts behind the newest migration file whenever
+      // nobody remembers to bump it (it did: this uncovered a stretch of upgrade/ migrations
+      // dated after the last VERSION bump). Resolving the actual highest migration version at
+      // baseline time removes the need for that manual synchronization -- ApplicationInfo.VERSION
+      // still applies as the floor, so behavior is unchanged whenever it's already high enough.
+      MigrationVersion baselineVersion = resolveInstallBaselineVersion(jdbcUrl, databaseProperties, databaseUpgradeLocations());
       Flyway flyway = Flyway.configure()
           .table("flyway_history")
           .sqlMigrationPrefix("UPGRADE_")
@@ -138,12 +151,36 @@ public class DatabaseCommand {
           .locations(databaseUpgradeLocations())
           .placeholderReplacement(false)
           .cleanDisabled(true)
-          .baselineVersion(ApplicationInfo.VERSION)
+          .baselineVersion(baselineVersion)
           .load();
       flyway.baseline();
-      LOG.info("Database baseline completed");
+      LOG.info("Database baseline completed at version " + baselineVersion);
     }
     return true;
+  }
+
+  /**
+   * Returns the higher of ApplicationInfo.VERSION and the highest-versioned UPGRADE_* migration
+   * resolved at the given locations, so a fresh install's baseline can never sit below a
+   * migration that actually exists on the classpath.
+   */
+  static MigrationVersion resolveInstallBaselineVersion(String jdbcUrl, Properties databaseProperties, String... locations) {
+    MigrationVersion highest = MigrationVersion.fromVersion(ApplicationInfo.VERSION);
+    Flyway scanOnly = Flyway.configure()
+        .table("flyway_history")
+        .sqlMigrationPrefix("UPGRADE_")
+        .repeatableSqlMigrationPrefix("REPEAT_")
+        .dataSource(jdbcUrl, databaseProperties.getProperty("dataSource.user"), databaseProperties.getProperty("dataSource.password"))
+        .locations(locations)
+        .placeholderReplacement(false)
+        .load();
+    for (MigrationInfo migrationInfo : scanOnly.info().all()) {
+      MigrationVersion version = migrationInfo.getVersion();
+      if (version != null && version.compareTo(highest) > 0) {
+        highest = version;
+      }
+    }
+    return highest;
   }
 
   private static boolean upgrade(String jdbcUrl, Properties databaseProperties) {

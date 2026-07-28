@@ -23,7 +23,6 @@ import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
@@ -60,7 +59,12 @@ public class AuditLogListWidget extends GenericWidget {
 
   static String JSP = "/admin/audit-log-list.jsp";
 
-  // The event categories the application emits (for the filter drop-down)
+  // The event categories the application emits (for the filter drop-down). Must be a real
+  // java.util.ArrayList, not the List returned by Arrays.asList() -- the JSP's
+  // <jsp:useBean id="categoryList" class="java.util.ArrayList" .../> casts the request attribute
+  // directly to that concrete class, and Arrays.asList() returns java.util.Arrays$ArrayList, a
+  // different class despite the name. That mismatch threw a ClassCastException on every single
+  // load of this page (with or without filters) -- this admin page has never actually rendered.
   static final List<String> CATEGORY_LIST = new ArrayList<>(Arrays.asList(
       "authentication", "user_management", "authorization", "configuration", "content", "data_access"));
 
