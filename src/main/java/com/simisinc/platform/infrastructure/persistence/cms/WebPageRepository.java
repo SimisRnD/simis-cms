@@ -63,6 +63,13 @@ public class WebPageRepository {
     return DB.selectAllFrom(TABLE_NAME, where, constraints, WebPageRepository::buildRecord);
   }
 
+  public static long countScheduledNotYetLive() {
+    SqlUtils where = new SqlUtils()
+        .add("publish_at IS NOT NULL")
+        .add("publish_at > ?", new Timestamp(System.currentTimeMillis()));
+    return DB.selectCountFrom(TABLE_NAME, where);
+  }
+
   public static WebPage findById(long id) {
     if (id == -1) {
       return null;
