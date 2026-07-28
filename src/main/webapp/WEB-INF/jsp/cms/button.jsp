@@ -25,5 +25,4 @@
 <jsp:useBean id="icon" class="java.lang.String" scope="request"/>
 <jsp:useBean id="leftIcon" class="java.lang.String" scope="request"/>
 <jsp:useBean id="buttonClass" class="java.lang.String" scope="request"/>
-<a class="button radius ${buttonClass}" href="${link}"><c:if test="${!empty leftIcon}"><i class="fa ${fn:escapeXml(leftIcon)}"></i> </c:if><c:out value="${name}"/><c:if test="${!empty icon}"> <i class="fa ${fn:escapeXml(icon)}"></i></c:if></a>
-<a class="button radius <c:out value="${buttonClass}"/>" href="${link}"><c:if test="${!empty leftIcon}"><i class="fa ${leftIcon}"></i> </c:if><c:out value="${name}"/><c:if test="${!empty icon}"> <i class="fa ${icon}"></i></c:if></a>
+<a class="button radius <c:out value="${buttonClass}"/>" href="${link}"><c:if test="${!empty leftIcon}"><i class="fa ${fn:escapeXml(leftIcon)}"></i> </c:if><c:out value="${name}"/><c:if test="${!empty icon}"> <i class="fa ${fn:escapeXml(icon)}"></i></c:if></a>

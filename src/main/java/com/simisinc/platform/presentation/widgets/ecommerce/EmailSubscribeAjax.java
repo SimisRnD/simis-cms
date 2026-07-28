@@ -22,6 +22,8 @@ import org.apache.commons.lang3.StringUtils;
 
 import com.sanctionco.jmail.JMail;
 import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.RateLimitCommand;
+import com.simisinc.platform.application.cms.CaptchaCommand;
 import com.simisinc.platform.application.mailinglists.SaveEmailCommand;
 import com.simisinc.platform.domain.model.mailinglists.Email;
 import com.simisinc.platform.presentation.controller.WidgetContext;
@@ -57,6 +59,21 @@ public class EmailSubscribeAjax extends GenericWidget {
     }
     if (!JMail.isValid(emailValue)) {
       context.setJson("[]");
+      return context;
+    }
+
+    // Validate the captcha (issue #484 -- this endpoint had no bot protection at all, unlike the
+    // sibling EmailSubscribeWidget/FormWidget paths which already call this same check). Always
+    // required here: unlike a page-embedded widget instance, this JSON-service endpoint has no
+    // per-page preferences to make it optional, and the rendering JSP always shows a challenge.
+    if (!CaptchaCommand.validateRequest(context)) {
+      context.setJson("{\"status\":\"1\",\"message\":\"Please verify you're human before subscribing\"}");
+      return context;
+    }
+
+    // Rate limit by IP to prevent bot signup floods
+    if (!RateLimitCommand.isIpAllowedRightNow(context.getRequest().getRemoteAddr(), true)) {
+      context.setJson("{\"status\":\"1\",\"message\":\"" + RateLimitCommand.INVALID_ATTEMPTS + "\"}");
       return context;
     }
 
