@@ -80,7 +80,7 @@
                   <input type="password" class="no-gap" value="" placeholder="<c:out value="${empty siteProperty.value ? 'not set' : 'value hidden'}"/>" disabled />
                 </c:when>
                 <c:otherwise>
-                  <input type="password" class="no-gap" name="${siteProperty.name}" value="" autocomplete="new-password" placeholder="<c:out value="${empty siteProperty.value ? 'not set' : 'value hidden; leave blank to keep it'}"/>" />
+                  <input type="password" class="no-gap" name="${siteProperty.name}" value="" autocomplete="new-password" placeholder="<c:out value="${empty siteProperty.value ? 'not set' : 'value hidden; leave blank to keep it'}"/>"<c:if test="${siteProperty.name eq 'captcha.google.secretkey'}"> aria-describedby="captchaGoogleSecretkeyHelpText"</c:if> />
                 </c:otherwise>
               </c:choose>
             </c:when>
@@ -189,14 +189,27 @@
               <input type="text" class="no-gap" name="${siteProperty.name}" value="${html:toHtml(siteProperty.value)}" disabled />
             </c:when>
             <c:otherwise>
-              <input type="text" class="no-gap" name="${siteProperty.name}" value="${html:toHtml(siteProperty.value)}" />
+              <input type="text" class="no-gap" name="${siteProperty.name}" value="${html:toHtml(siteProperty.value)}"<c:if test="${siteProperty.name eq 'captcha.service'}"> aria-describedby="captchaServiceHelpText"</c:if><c:if test="${siteProperty.name eq 'captcha.google.sitekey'}"> aria-describedby="captchaGoogleSitekeyHelpText"</c:if> />
             </c:otherwise>
           </c:choose>
+          <c:if test="${siteProperty.name eq 'captcha.service'}">
+            <p class="help-text" id="captchaServiceHelpText">Chooses which CAPTCHA challenge protects the site's public forms. The supported value is "google", which uses Google reCAPTCHA v2 with the Site Key and Secret Key below. Leave the Site Key blank to fall back to the platform's built-in text-image challenge instead.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'captcha.google.sitekey'}">
+            <p class="help-text" id="captchaGoogleSitekeyHelpText">The public key that connects the site's forms to Google reCAPTCHA v2. It's sent to every visitor's browser, so it's safe to expose. To get one, sign in to the <a href="https://www.google.com/recaptcha/admin/" target="_blank" rel="noreferrer">Google reCAPTCHA admin console</a>, register the site, and choose reCAPTCHA v2, Invisible reCAPTCHA badge, since these forms render a button rather than a checkbox. Google issues a Site Key and Secret Key together. Example format: 6LfPTnQUAAAAALSynteQ3vrs5MxxFd9NaSPyitRj (40 characters, letters and numbers only). A value that looks much shorter, much longer, or contains spaces was likely copied incorrectly.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'captcha.google.secretkey'}">
+            <p class="help-text" id="captchaGoogleSecretkeyHelpText">The private key the server uses to verify captcha responses with Google. Never share it or commit it to source control. Google generates it together with the Site Key above, on the same reCAPTCHA admin console page; it's a similar-length alphanumeric string. This value is stored encrypted and always appears blank here after saving. Leave it blank to keep the current key, or enter a new value to replace it.</p>
+          </c:if>
         </td>
       </tr>
     </c:forEach>
     </tbody>
   </table>
+  <c:if test="${prefix eq 'captcha'}">
+    <p class="help-text">reCAPTCHA v2 protects public forms across the site (for example, the contact form, account registration, newsletter signup, and job/business listings) wherever that form has captcha enabled. Changes take effect immediately on next page load.</p>
+    <p><a href="${ctx}/contact-us" target="_blank" class="button radius secondary">Test CAPTCHA</a></p>
+  </c:if>
   <div class="button-container">
     <input type="submit" class="button radius success" value="Save" />
     <a href="${ctx}/admin" class="button radius secondary">Cancel</a>
