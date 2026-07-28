@@ -837,6 +837,7 @@
     <c:if test="${!empty analyticsPropertyMap['analytics.brandcdn.value'] && !empty analyticsPropertyMap['analytics.brandcdn.value2']}">
       <script type="text/javascript" src="//tag.brandcdn.com/autoscript/${js:escape(analyticsPropertyMap['analytics.brandcdn.value'])}/${js:escape(analyticsPropertyMap['analytics.brandcdn.value2'])}" nonce="${cspNonce}"></script>
     </c:if>
+    <script src="${ctx}/javascript/web-vitals-collector.js?v=<%= VERSION %>" nonce="${cspNonce}"></script>
   </c:if>
   <c:if test="${analyticsPropertyMap['analytics.consentRequired'] eq 'true' and cookie['analytics-consent'].value ne 'accepted' and cookie['analytics-consent'].value ne 'declined'}">
     <div id="analytics-consent-banner" style="position:fixed;bottom:0;left:0;right:0;z-index:9999;background:#1a1a1a;color:#fff;padding:12px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;">

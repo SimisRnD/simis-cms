@@ -54,7 +54,7 @@ import java.io.BufferedReader;
  * @author claude
  * @created 7/26/26
  */
-@WebServlet(name = "WebVitalsApi", urlPatterns = "/api/metrics/vitals")
+@WebServlet(name = "WebVitalsApi", urlPatterns = "/rum/vitals")
 public class WebVitalsApiController extends HttpServlet {
 
   private static Log LOG = LogFactory.getLog(WebVitalsApiController.class);

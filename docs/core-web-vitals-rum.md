@@ -11,7 +11,7 @@ RUM enables performance monitoring from actual visitor sessions, not just synthe
 Visitor loads page
   → web-vitals.js measures Core Web Vitals
     → LCP, CLS, INP, FCP, TTFB
-    → POST to /api/metrics/vitals
+    → POST to /rum/vitals
       → Server stores in web_vitals table
         → Admin dashboard queries for p75 values
           → Color-coded: Good (green), Needs Improvement (orange), Poor (red)
@@ -60,7 +60,14 @@ if (shouldTrackAnalytics()) {
 
 ### Server Side (Application)
 
-**API Endpoint:** `POST /api/metrics/vitals`
+**API Endpoint:** `POST /rum/vitals`
+
+Deliberately *not* under `/api/*`: `RestRequestFilter` is mapped to that whole prefix
+and gates every request behind `site.api` being enabled plus an `X-API-Key` -- neither
+of which makes sense for an anonymous RUM beacon fired from every page load. The
+original endpoint lived at `/api/metrics/vitals` and was consequently unreachable
+(always a 403) regardless of anything else being correct; caught by loading a real page
+in a browser against a live container, not by the build or test suite.
 
 ```
 Request:
@@ -176,13 +183,14 @@ ORDER BY url, metric_type;
 - [x] `web_vitals_aggregates` table + `WebVitalsAggregationJob` (nightly p50/p75/p95)
 - [x] `WebVitalsCleanupJob` (retention: 30 days raw, 1 year aggregates)
 
-### Phase 2: Frontend (Collector done; not yet wired into pages)
+### Phase 2: Frontend (Done)
 - [x] `web-vitals-collector.js` — PerformanceObserver-based collector (no external library dependency)
-- [ ] Add `<script src="/javascript/web-vitals-collector.js">` to the page footer/layout template
-- [ ] Test metric collection in dev/staging
-- [ ] Verify consent gate integration (only collect if opted-in) — the script checks the
-      `analytics_consent` cookie itself; confirm this agrees with the server-side
-      `analytics.consentRequired` site property once wired in
+- [x] Add `<script src="${ctx}/javascript/web-vitals-collector.js">` to `main.jsp`, gated by the
+      exact same condition as the other analytics scripts (non-admin page, no DNT/GPC, consent OK)
+- [x] Consent gate integration — the script also independently checks the real
+      `analytics-consent` cookie the banner sets, as defense-in-depth on top of the
+      server-side gate that decides whether the script tag is even emitted
+- [ ] Test metric collection in dev/staging with real traffic
 
 ### Phase 3: Admin Dashboard (Done)
 - [x] Build dashboard widget component (`WebVitalsWidget`, JSP at `/admin/web-vitals.jsp`)
@@ -267,9 +275,9 @@ SELECT DISTINCT url, metric_type FROM web_vitals WHERE created_at > NOW() - INTE
    curl https://example.org/ | grep web-vitals-collector
    ```
 
-2. Does the browser console show POST to /api/metrics/vitals?
+2. Does the browser console show POST to /rum/vitals?
    ```javascript
-   // In browser DevTools → Network tab, filter by /api/metrics/vitals
+   // In browser DevTools → Network tab, filter by /rum/vitals
    ```
 
 3. Check server logs for API endpoint:
@@ -299,7 +307,7 @@ SELECT DISTINCT url, metric_type FROM web_vitals WHERE created_at > NOW() - INTE
 **Verify:**
 - `consentManager.hasAnalyticsConsent()` returns true
 - Page loads `/javascript/web-vitals-collector.js`
-- Network tab shows POST to /api/metrics/vitals
+- Network tab shows POST to /rum/vitals
 
 ## Performance Impact
 
@@ -317,9 +325,7 @@ SELECT DISTINCT url, metric_type FROM web_vitals WHERE created_at > NOW() - INTE
 
 ## Next Steps
 
-1. **Frontend wiring** (remainder of Phase 2)
-   - Add `<script src="/javascript/web-vitals-collector.js">` to the page footer/layout template
-   - Test with real visitors
+1. **Test with real visitor traffic** now that the collector is wired into `main.jsp`
 
 2. **Admin dashboard polish** (remainder of Phase 3)
    - Add time-window selector (7/30/90 days) — currently fixed to 7 days

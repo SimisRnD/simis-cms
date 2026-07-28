@@ -2,7 +2,7 @@
  * Web Vitals Collector — Real User Measurement (RUM) for Core Web Vitals
  *
  * Collects Core Web Vitals (LCP, CLS, INP, FCP, TTFB) from real visitor sessions
- * and reports them to /api/metrics/vitals for performance monitoring.
+ * and reports them to /rum/vitals for performance monitoring.
  *
  * Features:
  * - Consent-aware: respects analytics.consentRequired setting
@@ -38,15 +38,16 @@
       return false;
     }
 
-    // Check for analytics consent cookie
-    // Format: analytics_consent=accepted|rejected|pending
-    var consentCookie = getCookie('analytics_consent');
-    if (consentCookie === 'rejected') {
+    // Check the site's real consent cookie (set by the banner in main.jsp):
+    // analytics-consent=accepted|declined
+    var consentCookie = getCookie('analytics-consent');
+    if (consentCookie === 'declined') {
       return false;
     }
 
     // If no consent cookie but consent is not explicitly required, collect
-    // (consent banner handles the requirement)
+    // (consent banner handles the requirement; this script is also only ever
+    // loaded server-side when the same consent condition already passed)
     return true;
   }
 
@@ -201,10 +202,10 @@
       // Note: sendBeacon cannot carry custom headers, so context (viewport/connection)
       // travels in the JSON body instead, for both delivery paths below.
       if (navigator.sendBeacon) {
-        navigator.sendBeacon('/api/metrics/vitals', body);
+        navigator.sendBeacon('/rum/vitals', body);
       } else {
         // Fallback to fetch
-        fetch('/api/metrics/vitals', {
+        fetch('/rum/vitals', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
