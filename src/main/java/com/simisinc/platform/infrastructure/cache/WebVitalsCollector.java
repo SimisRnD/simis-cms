@@ -40,8 +40,8 @@ import org.apache.commons.logging.LogFactory;
  *
  * Storage:
  * - Raw metrics stored in web_vitals table (one row per metric per page load)
- * - Admin dashboard queries for p50/p75/p95 aggregates over time windows
- * - Retention: raw data 30 days, aggregates 90 days (configurable)
+ * - WebVitalsAggregationJob rolls these up nightly into web_vitals_aggregates
+ * - Retention: raw data 30 days, aggregates 1 year (see WebVitalsCleanupJob)
  *
  * @author claude
  * @created 7/26/26
@@ -49,15 +49,22 @@ import org.apache.commons.logging.LogFactory;
 public class WebVitalsCollector {
 
   private static Log LOG = LogFactory.getLog(WebVitalsCollector.class);
+  private static final String[] PRIMARY_KEY = new String[]{"id"};
 
   /**
    * Store a collection of metrics for a page load.
    *
-   * @param url       The page URL (/news/article)
-   * @param metricsNode JSON object with metric_name -> {value, rating}
-   * @param sessionId Session ID for correlation (optional)
+   * @param url            The page URL (/news/article)
+   * @param metricsNode    JSON object with metric_name -> {value, rating}
+   * @param sessionId      Session ID for correlation (optional)
+   * @param webPageId      The matching web_pages.web_page_id, if the URL resolved to a known page (optional)
+   * @param userAgentHash  SHA-256 hash of the client's User-Agent header (optional)
+   * @param viewportWidth  Client viewport width in pixels, if reported (optional)
+   * @param connectionType Client connection type, if reported (optional)
    */
-  public static void collectMetrics(String url, JsonNode metricsNode, String sessionId) {
+  public static void collectMetrics(String url, JsonNode metricsNode, String sessionId,
+                                     Long webPageId, String userAgentHash, Integer viewportWidth,
+                                     String connectionType) {
     if (metricsNode == null || !metricsNode.isObject()) {
       LOG.warn("Invalid metrics node for url: " + url);
       return;
@@ -80,21 +87,25 @@ public class WebVitalsCollector {
         continue;
       }
 
-      storeMetric(url, metricType, value, rating, sessionId);
+      storeMetric(url, metricType, value, rating, sessionId, webPageId, userAgentHash, viewportWidth, connectionType);
     }
   }
 
   /**
    * Store a single metric in the database.
    *
-   * @param url        The page URL
-   * @param metricType LCP, CLS, INP, FCP, or TTFB
-   * @param value      Numeric value (ms for timing, unitless for CLS)
-   * @param rating     "good", "needs-improvement", or "poor"
-   * @param sessionId  Session ID (optional)
+   * @param url            The page URL
+   * @param metricType     LCP, CLS, INP, FCP, or TTFB
+   * @param value          Numeric value (ms for timing, unitless for CLS)
+   * @param rating         "good", "needs-improvement", or "poor"
+   * @param sessionId      Session ID (optional)
+   * @param webPageId      The matching web_pages.web_page_id (optional)
+   * @param userAgentHash  SHA-256 hash of the client's User-Agent header (optional)
+   * @param viewportWidth  Client viewport width in pixels (optional)
+   * @param connectionType Client connection type (optional)
    */
-  private static void storeMetric(String url, String metricType, Double value,
-                                   String rating, String sessionId) {
+  private static void storeMetric(String url, String metricType, Double value, String rating, String sessionId,
+                                   Long webPageId, String userAgentHash, Integer viewportWidth, String connectionType) {
     try {
       SqlUtils insertValues = new SqlUtils()
           .add("url", url)
@@ -105,8 +116,20 @@ public class WebVitalsCollector {
       if (sessionId != null && !sessionId.isEmpty()) {
         insertValues.add("session_id", sessionId);
       }
+      if (webPageId != null) {
+        insertValues.add("web_page_id", webPageId);
+      }
+      if (userAgentHash != null) {
+        insertValues.add("user_agent_hash", userAgentHash);
+      }
+      if (viewportWidth != null) {
+        insertValues.add("viewport_width", viewportWidth);
+      }
+      if (connectionType != null && !connectionType.isEmpty()) {
+        insertValues.add("connection_type", connectionType);
+      }
 
-      long insertId = DB.insertInto("web_vitals", insertValues, null);
+      long insertId = DB.insertInto("web_vitals", insertValues, PRIMARY_KEY);
       if (insertId > 0) {
         LOG.debug("Stored " + metricType + " metric: " + value + "ms for " + url);
       } else {
@@ -115,47 +138,5 @@ public class WebVitalsCollector {
     } catch (Exception e) {
       LOG.error("Error storing metric " + metricType + " for " + url + ": " + e.getMessage(), e);
     }
-  }
-
-  /**
-   * Query p75 values for a given metric across all pages (for dashboard).
-   *
-   * @param metricType The metric to query (LCP, CLS, etc.)
-   * @param hoursBack  How many hours back to query (e.g., 24 for last day)
-   * @return Aggregated p75 values by URL
-   */
-  public static String queryP75ByUrl(String metricType, int hoursBack) {
-    // TODO: Implement query using percentile_cont() or similar
-    // SELECT url,
-    //        PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY value) as p75,
-    //        COUNT(*) as sample_count
-    // FROM web_vitals
-    // WHERE metric_type = metricType
-    //   AND created_at > NOW() - INTERVAL 'hoursBack hours'
-    // GROUP BY url
-    // ORDER BY p75 DESC
-    // LIMIT 100
-
-    return null;  // TODO
-  }
-
-  /**
-   * Aggregate raw metrics into hourly buckets for long-term storage.
-   * Run periodically (e.g., daily) to summarize past 24 hours into smaller dataset.
-   *
-   * (Future: reduce storage footprint by keeping hourly aggregates instead of raw data)
-   */
-  public static void aggregateMetrics() {
-    // TODO: Implement hourly aggregation
-    // SELECT date_trunc('hour', created_at) as hour,
-    //        url, metric_type,
-    //        PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY value) as p50,
-    //        PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY value) as p75,
-    //        PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY value) as p95,
-    //        COUNT(*) as sample_count
-    // FROM web_vitals
-    // WHERE created_at BETWEEN now() - INTERVAL '2 days' AND now() - INTERVAL '1 day'
-    // GROUP BY hour, url, metric_type
-    // INSERT INTO web_vitals_hourly (...)
   }
 }

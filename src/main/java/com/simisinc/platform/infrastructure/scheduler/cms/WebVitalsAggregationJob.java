@@ -23,6 +23,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.jobrunr.jobs.annotations.Job;
 
+import java.math.BigDecimal;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
@@ -59,13 +60,13 @@ public class WebVitalsAggregationJob {
 
     try (java.sql.Connection connection = DB.getConnection();
          PreparedStatement pst = connection.prepareStatement(
-             "SELECT DISTINCT url, metric_name FROM web_vitals WHERE recorded_at > NOW() - INTERVAL '24 hours'");
+             "SELECT DISTINCT url, metric_type FROM web_vitals WHERE created_at > NOW() - INTERVAL '24 hours'");
          ResultSet rs = pst.executeQuery()) {
 
       while (rs.next()) {
         String url = rs.getString("url");
-        String metricName = rs.getString("metric_name");
-        computePercentiles(connection, url, metricName);
+        String metricType = rs.getString("metric_type");
+        computePercentiles(connection, url, metricType);
       }
     } catch (SQLException e) {
       LOG.error("Error loading vitals for aggregation", e);
@@ -74,45 +75,45 @@ public class WebVitalsAggregationJob {
     LOG.info("Completed web vitals aggregation");
   }
 
-  private static void computePercentiles(java.sql.Connection connection, String url, String metricName) {
+  private static void computePercentiles(java.sql.Connection connection, String url, String metricType) {
     try {
       String percentileQuery =
           "SELECT " +
-          "  PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY metric_value) as p50, " +
-          "  PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY metric_value) as p75, " +
-          "  PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY metric_value) as p95, " +
+          "  PERCENTILE_CONT(0.50) WITHIN GROUP (ORDER BY value) as p50, " +
+          "  PERCENTILE_CONT(0.75) WITHIN GROUP (ORDER BY value) as p75, " +
+          "  PERCENTILE_CONT(0.95) WITHIN GROUP (ORDER BY value) as p95, " +
           "  COUNT(*) as sample_count " +
           "FROM web_vitals " +
-          "WHERE url = ? AND metric_name = ? AND recorded_at > NOW() - INTERVAL '24 hours'";
+          "WHERE url = ? AND metric_type = ? AND created_at > NOW() - INTERVAL '24 hours'";
 
       try (PreparedStatement pst = connection.prepareStatement(percentileQuery)) {
         pst.setString(1, url);
-        pst.setString(2, metricName);
+        pst.setString(2, metricType);
 
         try (ResultSet rs = pst.executeQuery()) {
           if (rs.next()) {
-            long p50 = rs.getLong("p50");
-            long p75 = rs.getLong("p75");
-            long p95 = rs.getLong("p95");
+            BigDecimal p50 = rs.getBigDecimal("p50");
+            BigDecimal p75 = rs.getBigDecimal("p75");
+            BigDecimal p95 = rs.getBigDecimal("p95");
             long sampleCount = rs.getLong("sample_count");
 
             if (sampleCount > 0) {
-              insertAggregate(connection, url, metricName, p50, p75, p95, sampleCount);
-              LOG.debug("Aggregated: " + url + " / " + metricName + " (samples: " + sampleCount + ")");
+              insertAggregate(connection, url, metricType, p50, p75, p95, sampleCount);
+              LOG.debug("Aggregated: " + url + " / " + metricType + " (samples: " + sampleCount + ")");
             }
           }
         }
       }
     } catch (SQLException e) {
-      LOG.error("Error computing percentiles for " + url + " / " + metricName, e);
+      LOG.error("Error computing percentiles for " + url + " / " + metricType, e);
     }
   }
 
-  private static void insertAggregate(java.sql.Connection connection, String url, String metricName,
-                                      long p50, long p75, long p95, long sampleCount) throws SQLException {
-    String sql = "INSERT INTO web_vitals_aggregates (url, metric_name, p50_value, p75_value, p95_value, sample_count, aggregated_at) " +
-        "VALUES (?, ?, ?, ?, ?, ?, NOW()) " +
-        "ON CONFLICT (url, metric_name, aggregated_at) DO UPDATE SET " +
+  private static void insertAggregate(java.sql.Connection connection, String url, String metricType,
+                                      BigDecimal p50, BigDecimal p75, BigDecimal p95, long sampleCount) throws SQLException {
+    String sql = "INSERT INTO web_vitals_aggregates (url, metric_type, p50_value, p75_value, p95_value, sample_count, aggregated_at) " +
+        "VALUES (?, ?, ?, ?, ?, ?, date_trunc('day', NOW())) " +
+        "ON CONFLICT (url, metric_type, aggregated_at) DO UPDATE SET " +
         "  p50_value = EXCLUDED.p50_value, " +
         "  p75_value = EXCLUDED.p75_value, " +
         "  p95_value = EXCLUDED.p95_value, " +
@@ -120,10 +121,10 @@ public class WebVitalsAggregationJob {
 
     try (PreparedStatement pst = connection.prepareStatement(sql)) {
       pst.setString(1, url);
-      pst.setString(2, metricName);
-      pst.setLong(3, p50);
-      pst.setLong(4, p75);
-      pst.setLong(5, p95);
+      pst.setString(2, metricType);
+      pst.setBigDecimal(3, p50);
+      pst.setBigDecimal(4, p75);
+      pst.setBigDecimal(5, p95);
       pst.setLong(6, sampleCount);
       pst.executeUpdate();
     }

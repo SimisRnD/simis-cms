@@ -77,6 +77,43 @@ NUMERIC = re.compile(
 # cover every occurrence. Add an entry only after tracing the value to its
 # source and confirming it is sanitized, validated, or structurally safe.
 ALLOWLIST: dict[str, str] = {
+    "${cspNonce}":
+        "The CSP nonce is generated per-request in PageServlet.java via SecureRandom bytes "
+        "through Base64.getUrlEncoder().withoutPadding() -- the URL-safe alphabet contains only "
+        "[A-Za-z0-9_-], so it cannot hold a quote, angle bracket, or any other markup-breaking "
+        "character in any context.",
+    "${errorMessage}":
+        "WebVitalsWidget.java sets this to the hardcoded literal \"Error loading performance "
+        "data\" on the catch path -- never derived from request input.",
+    "${summary.lcpP75 > 0 ? summary.lcpP75 : '—'}":
+        "WebVitalsWidget.VitalsSummary.lcpP75 is a Java primitive int (WebVitalsWidget.java); "
+        "the ternary's other branch is the fixed em-dash literal. Neither can carry markup.",
+    "${summary.inpP75 > 0 ? summary.inpP75 : '—'}":
+        "Same as lcpP75 -- VitalsSummary.inpP75 is a Java primitive int; the other branch is the "
+        "fixed em-dash literal.",
+    "${summary.fcpP75 > 0 ? summary.fcpP75 : '—'}":
+        "Same as lcpP75 -- VitalsSummary.fcpP75 is a Java primitive int; the other branch is the "
+        "fixed em-dash literal.",
+    "${summary.ttfbP75 > 0 ? summary.ttfbP75 : '—'}":
+        "Same as lcpP75 -- VitalsSummary.ttfbP75 is a Java primitive int; the other branch is the "
+        "fixed em-dash literal.",
+    "${summary.overallScore}":
+        "VitalsSummary.getOverallScore() (WebVitalsWidget.java) returns a Java primitive int "
+        "computed purely from status-string equality checks against fixed literals -- cannot "
+        "carry markup.",
+    "${summary.lcpStatus}":
+        "WebVitalsWidget.getStatus() (WebVitalsWidget.java) returns exactly one of the fixed "
+        "literals \"good\"/\"needsWork\"/\"poor\"; VitalsSummary.lcpStatus otherwise defaults to "
+        "the fixed literal \"unknown\". No other value is possible, so this cannot break out of "
+        "the class=\"badge badge-...\" attribute.",
+    "${summary.clsStatus}":
+        "Same as lcpStatus -- clsStatus is set by the same getStatus() and defaults the same way.",
+    "${summary.inpStatus}":
+        "Same as lcpStatus -- inpStatus is set by the same getStatus() and defaults the same way.",
+    "${summary.fcpStatus}":
+        "Same as lcpStatus -- fcpStatus is set by the same getStatus() and defaults the same way.",
+    "${summary.ttfbStatus}":
+        "Same as lcpStatus -- ttfbStatus is set by the same getStatus() and defaults the same way.",
     "${mapCredentials.tileServerUrl}":
         "FindMapTilesCredentialsCommand.validatedTileServerUrl rejects quotes, whitespace, backslashes and angle brackets before the value is stored -- validated at the source instead of escaped at the sink",
     "${activity.messageHtml}":
@@ -251,6 +288,26 @@ ALLOWLIST: dict[str, str] = {
         "EditMyProfileFormWidget calls UrlCommand.getValidReturnPage() before setAttribute; that method rejects non-relative paths and any char outside [A-Za-z0-9/?&=#%._~+,;-].",
     "items/approve-item-button.jsp:${approveUrl}":
         "Built by <c:url> tag with <c:param> elements for each query parameter (action, widget, token, itemUniqueId, returnPage); <c:url> handles percent-encoding of parameter values and assembly of the URL.",
+
+    # <fmt:formatDate> output with a fixed, all-numeric pattern: the JSTL tag renders a real
+    # Date/Timestamp through that pattern, so the output can only ever contain digits, '-',
+    # 'T', and ':' -- structurally unable to carry HTML metacharacters. Same reasoning as the
+    # existing ${thisDay} entry above, applied to a <c:set>-captured fmt:formatDate body instead
+    # of a direct call.
+    "${publishAtFormatted}":
+        "WebPage.publishAt (WebPage.java) is a java.sql.Timestamp, not a String. web-page-form.jsp "
+        "captures it via <c:set var='publishAtFormatted'><fmt:formatDate pattern=\"yyyy-MM-dd'T'HH:mm\" "
+        "value='${webPage.publishAt}'/></c:set> -- an all-numeric pattern (no locale-sensitive "
+        "month/day-name fields), so the rendered string can only contain [0-9T:-].",
+    "${expiresAtFormatted}":
+        "Same as ${publishAtFormatted}: WebPage.expiresAt is a java.sql.Timestamp formatted through "
+        "the identical fixed all-numeric pattern yyyy-MM-dd'T'HH:mm.",
+
+    # CSP nonce: generated per-request, never derived from any request input.
+    "${cspNonce}":
+        "PageServlet.java generates this per-request as SECURE_RANDOM.nextBytes(16) run through "
+        "Base64.getUrlEncoder().withoutPadding() -- the URL-safe alphabet is exactly [A-Za-z0-9_-], "
+        "which cannot contain a quote, angle bracket, or any other markup-breaking character.",
 }
 
 CONTEXT_HTML = "HTML"
@@ -408,11 +465,7 @@ def main() -> int:
     print("Summary: %d unallowlisted, %d allowlisted sites." % (len(findings), sum(allowed.values())))
 
     if args.strict:
-        # ATTR context is report-only pending #319 (icon/leftIcon attribute-context XSS fix).
-        # Once #319 merges, re-run with --strict-attr to confirm 0 ATTR findings, then drop
-        # this exclusion.
-        gate_findings = [(r, l, e, c) for r, l, e, c in findings if c != CONTEXT_ATTR]
-        if gate_findings:
+        if findings:
             print()
             print("FAIL: unescaped EL without a recorded justification.")
             print("Either wrap the value (<c:out>, js:escape, url:encodeUri), sanitize it at")
