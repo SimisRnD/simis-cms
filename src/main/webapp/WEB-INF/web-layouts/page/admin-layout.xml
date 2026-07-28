@@ -1287,6 +1287,17 @@
     </section>
   </page>
 
+  <page name="/admin/web-vitals" role="admin" title="Web Vitals">
+    <section>
+      <column class="small-12 cell">
+        <widget name="webVitals">
+          <icon>fa-tachometer-alt</icon>
+          <title>Core Web Vitals</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
   <page name="/admin/mfa-properties" role="admin" title="MFA Enforcement Settings">
     <section>
       <column class="small-12 medium-7 cell">
