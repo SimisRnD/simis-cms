@@ -28,7 +28,6 @@ import java.sql.SQLException;
 
 import jakarta.servlet.ServletContext;
 
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
@@ -41,7 +40,6 @@ import com.simisinc.platform.presentation.controller.ContextConstants;
  *
  * @author SimIS Inc.
  */
-@Disabled("Mockito ByteBuddy instrumentation failures - JaCoCo compatibility issue")
 class HealthCommandTest {
 
   private ServletContext contextWithStartup(String value) {

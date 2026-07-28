@@ -19,7 +19,6 @@ package com.simisinc.platform.presentation.widgets.userProfile;
 import java.util.List;
 
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
@@ -40,7 +39,6 @@ import static org.mockito.Mockito.when;
  * @author SimIS Inc.
  * @created 2026-07-17
  */
-@Disabled("Pre-existing: Database connection pool cleanup issue - HikariDataSource lifecycle requires test infrastructure fixes")
 class MyMfaSettingsWidgetTest extends WidgetBase {
 
   private static final String SECRET = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ";
