@@ -48,18 +48,8 @@
   </form>
 </div>
 
-<script>
-  function openShipConfirm() {
-<form method="post" onsubmit="return shipOrder()">
-  <%-- Required by controller --%>
-  <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
-  <input type="hidden" name="token" value="${userSession.formToken}"/>
-  <%-- The form --%>
-  <input type="hidden" name="uniqueId" value="${order.uniqueId}"/>
-  <button id="shipOrderButton" class="button primary expanded">Send Order to Shipping</button>
-</form>
 <script nonce="${cspNonce}">
-  function shipOrder() {
+  function openShipConfirm() {
     if (document.getElementById("shipOrderButton").disabled === true) {
       return;
     }
