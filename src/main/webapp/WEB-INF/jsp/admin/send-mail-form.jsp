@@ -36,7 +36,6 @@
   </label>
   <%-- TODO: This form is a stub — needs customizable recipient, subject, and body fields --%>
   <div class="button-container">
-    <input type="submit" class="button radius secondary expanded" value="Send Mail"/>
     <input type="submit" class="button radius success expanded" value="Send Mail" data-disable-on-submit="Sending..."/>
   </div>
 </form>
