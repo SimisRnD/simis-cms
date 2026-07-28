@@ -6,24 +6,28 @@
 
 ---
 
+> **Correction (2026-07-28):** This document's "✅ Complete" status for #365 was inaccurate when written -- `SessionsPiiScrubJob` (added by #444) has been silently scrubbing **zero rows** since it shipped. `SessionRepository.scrubOldPii()`'s `UPDATE` always hit a `NOT NULL` constraint on `sessions.ip_address` that was never relaxed when the job was added; the constraint violation aborted the update, the code's own try/catch swallowed the `SQLException` into a log line, and the job "succeeded" while doing nothing. Found during a security-PR audit; fixed by [PR #542](https://github.com/SimisRnD/simis-cms/pull/542), **open, not yet merged** as of this correction. #367's underlying code also had a real (smaller) bug -- the `is_anonymous` flag wasn't being set when GeoIP data was unavailable, a compliance gap for exactly the anonymous-visitor case this issue exists to protect -- fixed and merged via [PR #538](https://github.com/SimisRnD/simis-cms/pull/538). See the corrected notes in each section below; the original claims are left in place with strikethrough/annotations rather than silently rewritten.
+
 ## Executive Summary
 
 Four privacy and analytics compliance initiatives to ensure visitor data is handled responsibly and transparently. All issues are architecturally sound and implementation-ready.
 
 | Issue | Title | Status | Details |
 |-------|-------|--------|---------|
-| **#365** | Scheduled Retention/Purge Job | ✅ Complete | Soft-delete PII older than 13 months; JobRunr scheduler; idempotent |
+| **#365** | Scheduled Retention/Purge Job | ⚠️ Was non-functional; fix open (PR #542) | Job ran daily but scrubbed 0 rows due to a schema/code mismatch; see correction above |
 | **#366** | Analytics Consent Gate | ✅ Complete | Cookie-based consent banner; 365-day persistence; page reload on accept |
-| **#367** | Geo Precision Reduction | ✅ Enhanced | Anonymous visitors: region/country only; authenticated: full precision; is_anonymous column + tests |
+| **#367** | Geo Precision Reduction | ✅ Complete (bug fixed by PR #538, merged) | Anonymous visitors: region/country only; authenticated: full precision; is_anonymous column + tests (currently `@Disabled` in CI -- see correction below) |
 | **#368** | Privacy Dashboard | ⏳ Ready | Admin panel showing row counts, retention period, purge estimates, "Purge now" button |
 
 ---
 
 ## Issue #365: Scheduled Retention/Purge Job
 
-**Implementation Status:** ✅ Complete (commit `4af648ef`)
+**Implementation Status (as originally written, INACCURATE):** ~~✅ Complete (commit `4af648ef`)~~
 
-### What It Does
+**Actual status as of 2026-07-28:** ⚠️ The job existed and ran on schedule, but did nothing. `sessions.ip_address` has carried a `NOT NULL` constraint since the original 2022 schema, which was never relaxed when this job was added -- every run threw a constraint violation on the first matching row, Postgres aborted the whole `UPDATE`, and the job's own try/catch swallowed the `SQLException` into a log line and returned `0`. No exception escaped, nothing alerted, and the job "succeeded" while scrubbing nothing, indefinitely. Fixed by [PR #542](https://github.com/SimisRnD/simis-cms/pull/542) (makes `sessions.ip_address` nullable, verified against a real Testcontainers Postgres) -- **open, not yet merged**. This document's "tested in staging" claim below was never true; there is no record of this job's actual output ever having been checked before now.
+
+### What It Does (once PR #542 merges)
 - Runs daily at 4:45 AM via JobRunr distributed scheduler
 - Nullifies PII older than `analytics.retentionDays` (default 365 days)
 - Soft-delete pattern: keeps non-sensitive geo (continent, country, state) for analytics
@@ -38,7 +42,7 @@ Four privacy and analytics compliance initiatives to ensure visitor data is hand
 ### Key Files
 - `SessionsPiiScrubJob.java` — Scheduler job
 - `SessionRepository.scrubOldPii()` — Database query
-- Database: `sessions` table with `ip_address IS NOT NULL` filter
+- Database: `sessions` table with `ip_address IS NOT NULL` filter (nullable only once PR #542 merges)
 
 ---
 
@@ -68,7 +72,7 @@ Four privacy and analytics compliance initiatives to ensure visitor data is hand
 
 ## Issue #367: Geo Precision Reduction for Anonymous Visitors
 
-**Implementation Status:** ✅ Enhanced (New in PR #???; enhancement complete)
+**Implementation Status:** ✅ Enhanced, with a correction: the code as originally merged had a real compliance bug -- `SaveSessionCommand` computed the `is_anonymous` flag *inside* the `if (getGeoIP() != null)` block, so it was never set at all when GeoIP data was unavailable (exactly the ambiguous case this issue exists to handle safely). Fixed by [PR #538](https://github.com/SimisRnD/simis-cms/pull/538), **merged**. Also: `SaveSessionCommandTest` (the "3 test cases" below) is currently `@Disabled` in CI -- a real, undiagnosed JaCoCo-instrumentation-only failure with no reproducible stack trace, tracked as a follow-up in #538. The tests pass locally and their assertions are accurate, but they are not currently providing CI regression coverage for this code.
 
 ### What It Does
 - Restricts geo precision at write-time for anonymous visitors
@@ -139,9 +143,9 @@ Four privacy and analytics compliance initiatives to ensure visitor data is hand
 ## Dependencies & Sequence
 
 ```
-#365 (Retention Job) ✅ COMPLETE
+#365 (Retention Job) ⚠️ WAS NON-FUNCTIONAL -- fix open, PR #542
       ↓
-#367 (Geo Precision) ✅ COMPLETE
+#367 (Geo Precision) ✅ COMPLETE (compliance bug fixed by merged PR #538)
       ↓
 #368 (Privacy Dashboard) ⏳ READY TO START
       (also depends on #366 for consent visibility)
@@ -156,7 +160,7 @@ Four privacy and analytics compliance initiatives to ensure visitor data is hand
 | Requirement | Status | Issue |
 |------------|--------|-------|
 | GDPR data minimization | ✅ #367 | Anonymous visitors: region-only geo |
-| Data retention policy | ✅ #365 | 13-month default, configurable |
+| Data retention policy | ⚠️ #365 | Job ran but scrubbed nothing; fix open (PR #542) -- see correction above |
 | Visitor consent | ✅ #366 | Banner + cookie-based gate |
 | DNT/GPC honor | ✅ #344 | Separate visitor tracking suppression |
 | Audit trail | ✅ Partial | Manual purge logs needed for #368 |
@@ -181,9 +185,9 @@ Four privacy and analytics compliance initiatives to ensure visitor data is hand
 ## Rollout Checklist
 
 Before launch:
-- [x] #365: Retention job tested in staging
+- [ ] #365: Retention job tested in staging -- correction: this was never actually done; the job silently scrubbed 0 rows until PR #542 (open) fixes the underlying schema mismatch
 - [x] #366: Consent gate tested cross-browser
-- [x] #367: Geo precision verified for anonymous/auth
+- [x] #367: Geo precision verified for anonymous/auth (verification gap found and closed by PR #538; `SaveSessionCommandTest` currently `@Disabled` in CI, see above)
 - [ ] #368: Privacy dashboard tested
 - [ ] Admin documentation updated
 - [ ] Analytics/privacy team briefed
