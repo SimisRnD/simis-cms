@@ -659,58 +659,20 @@
       </column>
       <column class="small-12 medium-6 cell">
         <widget name="siteStats" class="stats card">
-          <title>Daily Form Submissions</title>
-          <label>Submissions</label>
-          <report>daily-form-submissions</report>
+          <title>Daily Real Sessions</title>
+          <label>Real Sessions</label>
+          <report>daily-real-sessions</report>
           <type>line</type>
         </widget>
       </column>
       <column class="small-12 medium-6 cell">
         <widget name="siteStats" class="stats card">
-          <title>Monthly Form Submissions</title>
-          <label>Submissions</label>
-          <report>monthly-form-submissions</report>
+          <title>Daily Bot Sessions</title>
+          <label>Bot Sessions</label>
+          <report>daily-bot-sessions</report>
           <type>line</type>
         </widget>
       </column>
-      <column class="small-12 medium-6 cell">
-        <widget name="siteStats" class="stats card">
-          <icon>fa-list-alt</icon>
-          <title>Top Forms by Submission Volume</title>
-          <report>top-forms</report>
-          <label>Form</label>
-          <value>Submissions</value>
-          <days>30</days>
-          <limit>10</limit>
-        </widget>
-      </column>
-      <column class="small-12 medium-6 cell">
-        <widget name="siteStats" class="stats card">
-          <icon>fa-ban</icon>
-          <title>Rejected Submissions by Reason</title>
-          <report>form-failures-by-reason</report>
-          <label>Reason</label>
-          <value>Rejections</value>
-          <days>30</days>
-          <limit>10</limit>
-        </widget>
-      </column>
-      <!--
-      Conversion rate needs a specific page + form pairing filled in below; there's no reliable
-      automatic way to tell which form belongs to which page, so this is commented out until
-      configured for this site. Example: a page at /contact-us with a Contact Us form embedded
-      on it (whose formUniqueId defaults to the page name for the shipped template).
-      <column class="small-12 medium-6 large-3 cell callout">
-        <widget name="siteStats">
-          <icon>fa-percent</icon>
-          <title>% Conversion (30d)</title>
-          <report>conversion-rate</report>
-          <pagePath>/contact-us</pagePath>
-          <formUniqueId>contact-us</formUniqueId>
-          <days>30</days>
-        </widget>
-      </column>
-      -->
       <column class="small-12 medium-6 cell">
         <widget name="siteStats" class="stats card">
           <icon>fa-search</icon>

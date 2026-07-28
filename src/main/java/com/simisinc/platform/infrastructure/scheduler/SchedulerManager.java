@@ -33,6 +33,7 @@ import com.simisinc.platform.infrastructure.scheduler.cms.WebVitalsCleanupJob;
 import com.simisinc.platform.infrastructure.scheduler.ecommerce.OrderManagementProcessNewOrders;
 import com.simisinc.platform.infrastructure.scheduler.ecommerce.OrderManagementProcessShippingUpdates;
 import com.simisinc.platform.infrastructure.scheduler.login.UserTokensCleanupJob;
+import com.simisinc.platform.infrastructure.scheduler.mailinglists.EmailClassificationJob;
 import com.simisinc.platform.infrastructure.scheduler.medicine.ProcessMedicineSchedulesJob;
 import com.simisinc.platform.infrastructure.scheduler.socialmedia.InstagramMediaSnapshotJob;
 import org.apache.commons.logging.Log;
@@ -83,7 +84,7 @@ public class SchedulerManager {
   public static final String SESSIONS_PII_SCRUB_JOB = "SessionsPiiScrub";
   public static final String AUDIT_LOG_RETENTION_JOB = "AuditLogRetention";
   public static final String AUDIT_LOG_INTEGRITY_JOB = "AuditLogIntegrity";
-  public static final String FORM_SUBMISSION_FAILURE_RETENTION_JOB = "FormSubmissionFailureRetention";
+  public static final String EMAIL_CLASSIFICATION_JOB = "EmailClassification";
 
   // Jobs which can be run by multiple clients
   public static final String DATASETS_DOWNLOAD_AND_SYNC_JOB = "DatasetsDownloadAndSync";
@@ -165,7 +166,10 @@ public class SchedulerManager {
         BackgroundJob.scheduleRecurrently(SESSIONS_PII_SCRUB_JOB, Cron.daily(4, 45), SessionsPiiScrubJob::execute);
         BackgroundJob.scheduleRecurrently(AUDIT_LOG_RETENTION_JOB, Cron.daily(4, 15), AuditLogRetentionJob::execute);
         BackgroundJob.scheduleRecurrently(AUDIT_LOG_INTEGRITY_JOB, Cron.daily(4, 30), AuditLogIntegrityJob::execute);
-        BackgroundJob.scheduleRecurrently(FORM_SUBMISSION_FAILURE_RETENTION_JOB, Cron.daily(5), FormSubmissionFailureRetentionJob::execute);
+        // Once daily is plenty for a backlog job, and keeps it off ZeroBounce's real per-lookup API
+        // billing except when there's actually unvalidated backlog; runs ahead of the 4am cluster above
+        // so it isn't competing with those jobs for DB/API time.
+        BackgroundJob.scheduleRecurrently(EMAIL_CLASSIFICATION_JOB, Cron.daily(3), EmailClassificationJob::execute);
       }
     } catch (Exception se) {
       LOG.error("Error starting jobrunr: ", se);
