@@ -381,7 +381,9 @@ CREATE TABLE sessions (
   id BIGSERIAL PRIMARY KEY,
   session_id VARCHAR(255),
   created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
-  ip_address VARCHAR(200) NOT NULL,
+  -- Nullable: the daily PII-scrub job (SessionsPiiScrubJob, GH-365) nulls this out for rows past
+  -- the analytics retention window. See UPGRADE_20260727.1000 for the existing-install side of this.
+  ip_address VARCHAR(200),
   user_agent VARCHAR(255),
   referer VARCHAR(255),
   continent VARCHAR(20),
