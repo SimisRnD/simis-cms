@@ -17,11 +17,18 @@
 package com.simisinc.platform.presentation.widgets.admin;
 
 import com.simisinc.platform.WidgetBase;
+import com.simisinc.platform.domain.model.dashboard.StatisticsData;
 import com.simisinc.platform.infrastructure.persistence.SessionRepository;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
+import java.sql.Timestamp;
+import java.util.List;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mockStatic;
 
 /**
@@ -29,6 +36,115 @@ import static org.mockito.Mockito.mockStatic;
  * @created 5/9/2022 7:00 AM
  */
 class SiteStatsWidgetTest extends WidgetBase {
+
+  private void executeCardReport(String report, String title) {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <title>" + title + "</title>\n" +
+            "  <report>" + report + "</report>\n" +
+            "</widget>");
+    setRoles(widgetContext, ADMIN);
+    new SiteStatsWidget().execute(widgetContext);
+  }
+
+  @Test
+  void executeRealSessionsToday() {
+    try (MockedStatic<SessionRepository> sessionRepository = mockStatic(SessionRepository.class)) {
+      sessionRepository.when(() -> SessionRepository.countDistinctSessions(any(Timestamp.class), any(Timestamp.class)))
+          .thenReturn(42L);
+
+      executeCardReport("real-sessions-today", "Real Sessions Today");
+
+      Assertions.assertEquals(SiteStatsWidget.CARD_JSP, widgetContext.getJsp());
+      Assertions.assertEquals("42", request.getAttribute("numberValue"));
+    }
+  }
+
+  @Test
+  void executeBotSessionsToday() {
+    try (MockedStatic<SessionRepository> sessionRepository = mockStatic(SessionRepository.class)) {
+      sessionRepository.when(() -> SessionRepository.countBotSessions(any(Timestamp.class), any(Timestamp.class)))
+          .thenReturn(8L);
+
+      executeCardReport("bot-sessions-today", "Bot Sessions Today");
+
+      Assertions.assertEquals(SiteStatsWidget.CARD_JSP, widgetContext.getJsp());
+      Assertions.assertEquals("8", request.getAttribute("numberValue"));
+    }
+  }
+
+  @Test
+  void executeBotTrafficPercentageRounds() {
+    try (MockedStatic<SessionRepository> sessionRepository = mockStatic(SessionRepository.class)) {
+      // 25 of 100 sessions are bots -- expect 25%
+      sessionRepository.when(() -> SessionRepository.countDistinctSessions(any(Timestamp.class), any(Timestamp.class)))
+          .thenReturn(75L);
+      sessionRepository.when(() -> SessionRepository.countBotSessions(any(Timestamp.class), any(Timestamp.class)))
+          .thenReturn(25L);
+
+      executeCardReport("bot-traffic-percentage", "Bot Traffic %");
+
+      Assertions.assertEquals("25", request.getAttribute("numberValue"));
+    }
+  }
+
+  @Test
+  void executeBotTrafficPercentageWithNoSessionsIsZeroNotADivisionError() {
+    try (MockedStatic<SessionRepository> sessionRepository = mockStatic(SessionRepository.class)) {
+      sessionRepository.when(() -> SessionRepository.countDistinctSessions(any(Timestamp.class), any(Timestamp.class)))
+          .thenReturn(0L);
+      sessionRepository.when(() -> SessionRepository.countBotSessions(any(Timestamp.class), any(Timestamp.class)))
+          .thenReturn(0L);
+
+      executeCardReport("bot-traffic-percentage", "Bot Traffic %");
+
+      Assertions.assertEquals("0", request.getAttribute("numberValue"));
+    }
+  }
+
+  @Test
+  void executeDailyRealSessions() {
+    try (MockedStatic<SessionRepository> sessionRepository = mockStatic(SessionRepository.class)) {
+      StatisticsData point = new StatisticsData();
+      point.setLabel("2026-07-28");
+      point.setValue("5");
+      sessionRepository.when(() -> SessionRepository.findDailySessionsByBotStatus(anyInt(), anyBoolean()))
+          .thenReturn(List.of(point));
+
+      addPreferencesFromWidgetXml(widgetContext,
+          "<widget name=\"siteStats\" class=\"stats card\">\n" +
+              "  <title>Daily Real Sessions</title>\n" +
+              "  <report>daily-real-sessions</report>\n" +
+              "  <type>line</type>\n" +
+              "</widget>");
+      setRoles(widgetContext, ADMIN);
+      new SiteStatsWidget().execute(widgetContext);
+
+      sessionRepository.verify(() -> SessionRepository.findDailySessionsByBotStatus(30, false));
+      Assertions.assertEquals(SiteStatsWidget.LINE_CHART_JSP, widgetContext.getJsp());
+      Assertions.assertEquals(List.of(point), request.getAttribute("statisticsDataList"));
+    }
+  }
+
+  @Test
+  void executeDailyBotSessions() {
+    try (MockedStatic<SessionRepository> sessionRepository = mockStatic(SessionRepository.class)) {
+      sessionRepository.when(() -> SessionRepository.findDailySessionsByBotStatus(anyInt(), anyBoolean()))
+          .thenReturn(List.of());
+
+      addPreferencesFromWidgetXml(widgetContext,
+          "<widget name=\"siteStats\" class=\"stats card\">\n" +
+              "  <title>Daily Bot Sessions</title>\n" +
+              "  <report>daily-bot-sessions</report>\n" +
+              "  <type>line</type>\n" +
+              "</widget>");
+      setRoles(widgetContext, ADMIN);
+      new SiteStatsWidget().execute(widgetContext);
+
+      sessionRepository.verify(() -> SessionRepository.findDailySessionsByBotStatus(30, true));
+      Assertions.assertEquals(SiteStatsWidget.LINE_CHART_JSP, widgetContext.getJsp());
+    }
+  }
 
   @Test
   void executeCountOnlineNow() {
