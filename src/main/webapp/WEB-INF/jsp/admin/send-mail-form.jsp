@@ -36,6 +36,6 @@
     <p>SimIS CMS Mail Test</p>
   </label>
   <div class="button-container">
-    <input type="submit" class="button radius success expanded" value="Send Test Email" data-disable-on-submit="Sending..."/>
+    <input type="submit" class="button radius success expanded" value="Send Mail" data-disable-on-submit="Sending..."/>
   </div>
 </form>
