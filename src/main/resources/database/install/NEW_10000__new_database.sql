@@ -298,6 +298,7 @@ CREATE TABLE users (
   modified TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
   modified_by BIGINT REFERENCES users(user_id),
   account_token VARCHAR(255),
+  account_token_expires TIMESTAMP(3),
   validated TIMESTAMP(3),
   title VARCHAR(100),
   department VARCHAR(100),
@@ -381,7 +382,9 @@ CREATE TABLE sessions (
   id BIGSERIAL PRIMARY KEY,
   session_id VARCHAR(255),
   created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
-  ip_address VARCHAR(200) NOT NULL,
+  -- Nullable: the daily PII-scrub job (SessionsPiiScrubJob, GH-365) nulls this out for rows past
+  -- the analytics retention window. See UPGRADE_20260727.1000 for the existing-install side of this.
+  ip_address VARCHAR(200),
   user_agent VARCHAR(255),
   referer VARCHAR(255),
   continent VARCHAR(20),
@@ -398,13 +401,17 @@ CREATE TABLE sessions (
   source VARCHAR(50),
   app_id BIGINT REFERENCES apps(app_id),
   visitor_id BIGINT REFERENCES visitors(visitor_id),
-  is_bot BOOLEAN DEFAULT false
+  is_bot BOOLEAN DEFAULT false,
+  is_anonymous BOOLEAN NOT NULL DEFAULT false
 );
+
+COMMENT ON COLUMN sessions.is_anonymous IS 'True if session is from anonymous visitor (no user login)';
 
 CREATE INDEX sessions_created_idx ON sessions(created);
 CREATE INDEX sessions_sess_id_idx ON sessions(session_id);
 CREATE INDEX sessions_is_bot_idx ON sessions(is_bot);
 CREATE INDEX sessions_referer_idx ON sessions(referer);
+CREATE INDEX idx_sessions_is_anonymous_created ON sessions(is_anonymous, created DESC);
 
 -- CREATE TABLE session_country_snapshots (
 --   snapshot_id BIGSERIAL PRIMARY KEY,
@@ -464,6 +471,17 @@ CREATE TABLE audit_log (
 CREATE INDEX audit_log_occurred_idx ON audit_log(occurred);
 CREATE INDEX audit_log_category_type_idx ON audit_log(event_category, event_type);
 CREATE INDEX audit_log_actor_idx ON audit_log(actor_user_id);
+
+-- Audit log prefix-deletion watermark (#296, AU-9; mirrored by UPGRADE_20260725.1002 for existing
+-- installs). Left empty on a fresh install -- there is no audit history yet to backfill from, and
+-- the application sets row id=1 atomically on the very first hashed insert (see
+-- AuditLogRepository.add()). Pre-seeding a placeholder row here would permanently block that
+-- INSERT ... ON CONFLICT DO NOTHING from ever recording the real value. See
+-- AuditLogIntegrityCommand for how the watermark is used to detect oldest-prefix deletion.
+CREATE TABLE audit_log_watermark (
+  id                     INTEGER PRIMARY KEY DEFAULT 1,
+  lowest_hashed_audit_id BIGINT  NOT NULL DEFAULT 0
+);
 
 -- Multi-factor authentication recovery codes: one-time backup codes, stored as SHA-256 hashes
 CREATE TABLE user_mfa_recovery_codes (
