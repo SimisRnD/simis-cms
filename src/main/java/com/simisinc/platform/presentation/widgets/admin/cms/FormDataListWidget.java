@@ -111,28 +111,15 @@ public class FormDataListWidget extends GenericWidget {
     return context;
   }
 
-  /** Appends {@code name=urlEncoded(value)} to the paging query string when the value is present. */
-  private void appendParam(StringBuilder sb, String name, String value) {
-    if (StringUtils.isBlank(value)) {
-      return;
+  public WidgetContext post(WidgetContext context) {
+    // These are submitted via a real POST (issue #358 moved state-changing admin actions off
+    // GET query strings), so they arrive here rather than in action() below. Dispatch through
+    // the same table action() uses for a GET caller.
+    String action = context.getParameter("action");
+    if ("archive".equals(action) || "claim".equals(action) || "markAsProcessed".equals(action)) {
+      return action(context);
     }
-    if (sb.length() > 0) {
-      sb.append("&");
-    }
-    sb.append(name).append("=").append(URLEncoder.encode(value, StandardCharsets.UTF_8));
-  }
-
-  /** Parses a yyyy-MM-dd string to a start-of-day Timestamp plus {@code plusDays}; null when blank/invalid. */
-  private Timestamp parseDate(String value, int plusDays) {
-    if (StringUtils.isBlank(value)) {
-      return null;
-    }
-    try {
-      LocalDate date = LocalDate.parse(value.trim()).plusDays(plusDays);
-      return Timestamp.valueOf(date.atStartOfDay());
-    } catch (Exception e) {
-      return null;
-    }
+    return context;
   }
 
   public WidgetContext action(WidgetContext context) {

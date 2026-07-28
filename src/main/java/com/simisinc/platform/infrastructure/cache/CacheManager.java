@@ -32,9 +32,9 @@ import com.simisinc.platform.infrastructure.persistence.cms.StylesheetRepository
 import com.simisinc.platform.infrastructure.persistence.cms.TableOfContentsRepository;
 import com.simisinc.platform.infrastructure.persistence.items.CollectionRepository;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
 /**
@@ -65,12 +65,20 @@ public class CacheManager {
   public static final String WEBSITE_PLAIN_HEADER = "PlainHeader";
   public static final String WEBSITE_FOOTER = "Footer";
 
-  private static Map<String, Cache> cacheManager = new HashMap<>();
+  private static final Map<String, Cache> cacheManager = new ConcurrentHashMap<>();
 
   private CacheManager() {
   }
 
-  public static void startup() {
+  /**
+   * Idempotent: a second call (e.g. a redeploy re-firing the context listener) is a no-op rather than
+   * replacing every cache with a fresh, empty one.
+   */
+  public static synchronized void startup() {
+
+    if (!cacheManager.isEmpty()) {
+      return;
+    }
 
     // @todo Menu Tab/Item Cache
 
@@ -171,16 +179,30 @@ public class CacheManager {
     cacheManager.put(OBJECT_CACHE, objectCache);
   }
 
+  /**
+   * Callers (including {@code ContextListener} at webapp startup) are expected to have called
+   * {@link #startup()} already; this is a safety net for anything that reaches a cache first --
+   * notably the unit test suite, which never runs the servlet lifecycle. Idempotent, so paying this
+   * lazily costs nothing once startup has genuinely happened.
+   */
+  private static void ensureStarted() {
+    if (cacheManager.isEmpty()) {
+      startup();
+    }
+  }
+
   public static Cache getCache(String cacheName) {
+    ensureStarted();
     return cacheManager.get(cacheName);
   }
 
   public static LoadingCache getLoadingCache(String cacheName) {
+    ensureStarted();
     return (LoadingCache) cacheManager.get(cacheName);
   }
 
   public static void invalidateKey(String cacheName, Object key) {
-    Cache cache = cacheManager.get(cacheName);
+    Cache cache = getCache(cacheName);
     if (cache != null) {
       cache.invalidate(key);
     }
@@ -190,12 +212,12 @@ public class CacheManager {
     if (value == null) {
       return;
     }
-    Cache cache = cacheManager.get(OBJECT_CACHE);
+    Cache cache = getCache(OBJECT_CACHE);
     cache.put(key, value);
   }
 
   public static Object getFromObjectCache(String key) {
-    Cache cache = cacheManager.get(OBJECT_CACHE);
+    Cache cache = getCache(OBJECT_CACHE);
     return cache.getIfPresent(key);
   }
 

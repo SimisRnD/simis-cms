@@ -665,3 +665,40 @@ CREATE TABLE stylesheets (
   modified TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX stylesheets_web_idx ON stylesheets(web_page_id);
+
+-- Core Web Vitals RUM (Real User Monitoring, #429)
+-- Raw metrics collected from real page loads, one row per metric per page load
+CREATE TABLE web_vitals (
+  id BIGSERIAL PRIMARY KEY,
+  url VARCHAR(2048) NOT NULL,
+  metric_type VARCHAR(50) NOT NULL,  -- 'LCP', 'CLS', 'INP', 'FCP', 'TTFB'
+  value NUMERIC(10, 2) NOT NULL,     -- metric value (milliseconds for timing, unitless for CLS)
+  rating VARCHAR(20),                 -- 'good', 'needs-improvement', 'poor'
+  session_id VARCHAR(64),             -- visitor session (optional, for correlation)
+  web_page_id BIGINT REFERENCES web_pages(web_page_id) ON DELETE CASCADE,
+  user_agent_hash VARCHAR(64),
+  viewport_width SMALLINT,
+  connection_type VARCHAR(16),
+  created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  CONSTRAINT metric_type_check CHECK (metric_type IN ('LCP', 'CLS', 'INP', 'FCP', 'TTFB'))
+);
+CREATE INDEX idx_web_vitals_url_metric_created ON web_vitals(url, metric_type, created_at DESC);
+CREATE INDEX idx_web_vitals_created ON web_vitals(created_at DESC);
+CREATE INDEX idx_web_vitals_metric ON web_vitals(metric_type);
+CREATE INDEX idx_web_vitals_web_page_id ON web_vitals(web_page_id);
+
+-- Pre-computed p50/p75/p95 per URL per metric, refreshed nightly from raw web_vitals rows
+CREATE TABLE web_vitals_aggregates (
+  id BIGSERIAL PRIMARY KEY,
+  url VARCHAR(2048) NOT NULL,
+  metric_type VARCHAR(50) NOT NULL,
+  p50_value NUMERIC(10, 2),
+  p75_value NUMERIC(10, 2),
+  p95_value NUMERIC(10, 2),
+  sample_count INTEGER NOT NULL DEFAULT 0,
+  aggregated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  CONSTRAINT web_vitals_aggregates_metric_type_check CHECK (metric_type IN ('LCP', 'CLS', 'INP', 'FCP', 'TTFB')),
+  CONSTRAINT web_vitals_aggregates_url_metric_day_unique UNIQUE (url, metric_type, aggregated_at)
+);
+CREATE INDEX idx_web_vitals_aggregates_url_metric ON web_vitals_aggregates(url, metric_type);
+CREATE INDEX idx_web_vitals_aggregates_aggregated_at ON web_vitals_aggregates(aggregated_at DESC);

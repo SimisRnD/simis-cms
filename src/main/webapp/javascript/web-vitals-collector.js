@@ -2,7 +2,7 @@
  * Web Vitals Collector — Real User Measurement (RUM) for Core Web Vitals
  *
  * Collects Core Web Vitals (LCP, CLS, INP, FCP, TTFB) from real visitor sessions
- * and reports them to /api/metrics/vitals for performance monitoring.
+ * and reports them to /rum/vitals for performance monitoring.
  *
  * Features:
  * - Consent-aware: respects analytics.consentRequired setting
@@ -38,15 +38,16 @@
       return false;
     }
 
-    // Check for analytics consent cookie
-    // Format: analytics_consent=accepted|rejected|pending
-    var consentCookie = getCookie('analytics_consent');
-    if (consentCookie === 'rejected') {
+    // Check the site's real consent cookie (set by the banner in main.jsp):
+    // analytics-consent=accepted|declined
+    var consentCookie = getCookie('analytics-consent');
+    if (consentCookie === 'declined') {
       return false;
     }
 
     // If no consent cookie but consent is not explicitly required, collect
-    // (consent banner handles the requirement)
+    // (consent banner handles the requirement; this script is also only ever
+    // loaded server-side when the same consent condition already passed)
     return true;
   }
 
@@ -62,40 +63,60 @@
     return null;
   }
 
+  // Google Core Web Vitals thresholds, mirroring WebVitalsWidget.java so
+  // ingestion-time ratings agree with the admin dashboard's own classification.
+  var THRESHOLDS = {
+    LCP: { good: 2500, needsWork: 4000 },
+    CLS: { good: 0.1, needsWork: 0.25 },
+    INP: { good: 200, needsWork: 500 },
+    FCP: { good: 1800, needsWork: 3000 },
+    TTFB: { good: 600, needsWork: 1800 }
+  };
+
+  function rate(metricType, value) {
+    var t = THRESHOLDS[metricType];
+    if (value <= t.good) {
+      return 'good';
+    } else if (value <= t.needsWork) {
+      return 'needs-improvement';
+    }
+    return 'poor';
+  }
+
   /**
    * Collect Core Web Vitals using the standard Navigation Timing API
    * and Intersection Observer / PerformanceObserver APIs
    */
   function collectMetrics() {
-    var metrics = {
-      url: window.location.pathname + window.location.search,
-      lcp: 0,
-      cls: 0,
-      inp: 0,
-      fcp: 0,
-      ttfb: 0
-    };
+    // Only metrics that actually fired are included: the backend omits
+    // a metric entirely if the page was left before it finalized.
+    var metrics = {};
+
+    function setMetric(metricType, value) {
+      metrics[metricType] = { value: value, rating: rate(metricType, value) };
+    }
 
     // Use PerformanceObserver to capture metrics as they fire
     if ('PerformanceObserver' in window) {
       // Capture LCP (Largest Contentful Paint)
       captureMetric('largest-contentful-paint', function(entries) {
         var lastEntry = entries[entries.length - 1];
-        metrics.lcp = Math.round(lastEntry.renderTime || lastEntry.loadTime);
+        setMetric('LCP', Math.round(lastEntry.renderTime || lastEntry.loadTime));
       });
 
       // Capture Layout Shift (CLS)
       captureMetric('layout-shift', function(entries) {
-        metrics.cls = entries.reduce(function(sum, entry) {
+        var cls = entries.reduce(function(sum, entry) {
           return entry.hadRecentInput ? sum : sum + entry.value;
         }, 0);
+        setMetric('CLS', cls);
       });
 
       // Capture First Input Delay / INP (Interaction to Next Paint)
       captureMetric('first-input', function(entries) {
         if (entries.length > 0) {
           var firstEntry = entries[0];
-          metrics.inp = Math.round(firstEntry.processingDuration);
+          setMetric('INP', Math.round(firstEntry.processingDuration));
         }
       });
 
@@ -103,7 +124,7 @@
       captureMetric('paint', function(entries) {
         entries.forEach(function(entry) {
           if (entry.name === 'first-contentful-paint') {
-            metrics.fcp = Math.round(entry.startTime);
+            setMetric('FCP', Math.round(entry.startTime));
           }
         });
       });
@@ -111,8 +132,7 @@
       // Capture TTFB (Time to First Byte)
       if (window.performance && window.performance.timing) {
         var timing = window.performance.timing;
-        var ttfb = timing.responseStart - timing.navigationStart;
-        metrics.ttfb = Math.round(ttfb);
+        setMetric('TTFB', Math.round(timing.responseStart - timing.navigationStart));
       }
     }
 
@@ -163,24 +183,34 @@
       return;
     }
 
-    // Only report if we have some metrics
-    if (!metrics || !metrics.url) {
+    // Only report if at least one metric actually finalized
+    if (!metrics || Object.keys(metrics).length === 0) {
       return;
     }
 
+    var payload = {
+      url: window.location.pathname + window.location.search,
+      metrics: metrics,
+      viewportWidth: window.innerWidth || null,
+      // navigator.connection is Chromium-only; absent elsewhere
+      connectionType: (navigator.connection && navigator.connection.effectiveType) || null
+    };
+
     try {
-      // Use sendBeacon if available for reliable delivery, even if page unloads
+      var body = JSON.stringify(payload);
+      // Use sendBeacon if available for reliable delivery, even if page unloads.
+      // Note: sendBeacon cannot carry custom headers, so context (viewport/connection)
+      // travels in the JSON body instead, for both delivery paths below.
       if (navigator.sendBeacon) {
-        var payload = JSON.stringify(metrics);
-        navigator.sendBeacon('/api/metrics/vitals', payload);
+        navigator.sendBeacon('/rum/vitals', body);
       } else {
         // Fallback to fetch
-        fetch('/api/metrics/vitals', {
+        fetch('/rum/vitals', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify(metrics),
+          body: body,
           keepalive: true  // Keep connection alive even if page unloads
         }).catch(function(error) {
           console.warn('Failed to report web vitals', error);
