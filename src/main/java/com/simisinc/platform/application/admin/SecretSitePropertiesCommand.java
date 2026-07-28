@@ -45,6 +45,7 @@ public class SecretSitePropertiesCommand {
       "captcha.google.secretkey",
       // Server-side integration keys and tokens
       "mailing-list.mailchimp.apiKey",
+      "mailing-list.zerobounce.apiKey",
       "bi.superset.secret",
       "social.instagram.accessToken",
       "elearning.lrs.key",

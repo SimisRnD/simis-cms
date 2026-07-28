@@ -22,37 +22,92 @@
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="sitePropertyMap" class="java.util.HashMap" scope="request"/>
+<jsp:useBean id="useCaptcha" class="java.lang.String" scope="request"/>
+<%-- issue #484: this form previously submitted straight to EmailSubscribeAjax with no CAPTCHA or
+     rate limiting at all -- the sibling EmailSubscribeWidget/FormWidget paths already had both.
+     Mirrors the same three-way captcha branch form.jsp already uses (Google invisible reCAPTCHA,
+     the image+text fallback, or none), adapted for this widget's AJAX (not native POST) submit. --%>
+<c:if test="${useCaptcha eq 'true' && !empty googleSiteKey}">
+<script src='https://www.google.com/recaptcha/api.js' nonce="${cspNonce}"></script>
+</c:if>
 <script type="text/javascript" nonce="${cspNonce}">
     function validateEmail${widgetContext.uniqueId}(email) {
         var re = /\S+@\S+\.\S+/;
         return re.test(email);
     }
-    function emailSignUp${widgetContext.uniqueId}() {
+    function submitEmailSignUp${widgetContext.uniqueId}(extraParams) {
         var email = document.getElementById("email${widgetContext.uniqueId}").value;
         if (email === undefined || email.length === 0) {
             document.getElementById('emailHelpText${widgetContext.uniqueId}').innerHTML = "Please enter your email address";
-            return false;
+            return;
         }
         if (!validateEmail${widgetContext.uniqueId}(email)) {
             document.getElementById('emailHelpText${widgetContext.uniqueId}').innerHTML = "Please re-enter your email address using a proper format.";
-            return false;
+            return;
         }
-        $.getJSON("${ctx}/json/emailSubscribe?token=${userSession.formToken}&email=" + encodeURIComponent(email), function(data) {
+        $.getJSON("${ctx}/json/emailSubscribe?token=${userSession.formToken}&email=" + encodeURIComponent(email) + extraParams, function(data) {
             if (data.status === undefined || data.status !== '0') {
-                document.getElementById('emailHelpText${widgetContext.uniqueId}').innerHTML = "Please re-enter your email address using a proper format.";
-                return false;
+                document.getElementById('emailHelpText${widgetContext.uniqueId}').innerHTML =
+                    (data.message ? data.message : "Please re-enter your email address using a proper format.");
+                return;
             }
             document.getElementById('emailHelpText${widgetContext.uniqueId}').innerHTML = "Thanks for signing up for <c:out value="${js:escape(sitePropertyMap['site.name'])}"/> emails";
         });
+    }
+    <c:choose>
+    <c:when test="${useCaptcha eq 'true' && !empty googleSiteKey}">
+    // The g-recaptcha-bound submit button (below) intercepts the click itself and calls this
+    // callback with the verified token once the invisible check passes -- Google's own script
+    // prevents the native form submission, so this is only a harmless fallback for any other path
+    // that might fire the form's submit event (e.g. pressing Enter before the script has loaded).
+    function emailSignUp${widgetContext.uniqueId}() {
         return false;
     }
+    function emailSignUpCaptchaCallback${widgetContext.uniqueId}(token) {
+        submitEmailSignUp${widgetContext.uniqueId}("&g-recaptcha-response=" + encodeURIComponent(token));
+    }
+    </c:when>
+    <c:when test="${useCaptcha eq 'true'}">
+    function emailSignUp${widgetContext.uniqueId}() {
+        var captchaValue = document.getElementById("captcha${widgetContext.uniqueId}").value;
+        if (!captchaValue) {
+            document.getElementById('emailHelpText${widgetContext.uniqueId}').innerHTML = "Please enter the text shown in the image";
+            return false;
+        }
+        submitEmailSignUp${widgetContext.uniqueId}("&captcha=" + encodeURIComponent(captchaValue));
+        return false;
+    }
+    </c:when>
+    <c:otherwise>
+    function emailSignUp${widgetContext.uniqueId}() {
+        submitEmailSignUp${widgetContext.uniqueId}("");
+        return false;
+    }
+    </c:otherwise>
+    </c:choose>
 </script>
 <form method="get" onsubmit="return emailSignUp${widgetContext.uniqueId}()">
   <div class="input-group">
     <input class="input-group-field" type="text" id="email${widgetContext.uniqueId}" name="email${widgetContext.uniqueId}" placeholder="name@email.com" required>
     <div class="input-group-button">
-      <button type="submit" class="button call-to-action"><c:out value="${buttonName}" /></button>
+      <c:choose>
+        <c:when test="${useCaptcha eq 'true' && !empty googleSiteKey}">
+          <button type="submit" class="g-recaptcha button call-to-action"
+                  data-sitekey="<c:out value="${googleSiteKey}" />"
+                  data-callback="emailSignUpCaptchaCallback${widgetContext.uniqueId}"
+                  data-action="subscribe"><c:out value="${buttonName}" /></button>
+        </c:when>
+        <c:otherwise>
+          <button type="submit" class="button call-to-action"><c:out value="${buttonName}" /></button>
+        </c:otherwise>
+      </c:choose>
     </div>
   </div>
+  <c:if test="${useCaptcha eq 'true' && empty googleSiteKey}">
+    <p class="help-text">
+      Enter the text shown: <img src="/assets/captcha" alt="captcha" style="vertical-align: middle;" />
+      <input type="text" id="captcha${widgetContext.uniqueId}" required/>
+    </p>
+  </c:if>
   <p class="help-text" id="emailHelpText${widgetContext.uniqueId}"></p>
 </form>
