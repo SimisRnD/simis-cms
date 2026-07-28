@@ -16,12 +16,14 @@
 
 package com.simisinc.platform.presentation.widgets.admin;
 
-import com.simisinc.platform.domain.events.cms.UserInvitedEvent;
-import com.simisinc.platform.domain.events.cms.UserRegisteredEvent;
-import com.simisinc.platform.domain.events.cms.UserSignedUpEvent;
-import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
+import com.simisinc.platform.application.email.EmailCommand;
+import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.controller.WidgetContext;
+
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
+import org.apache.commons.mail.ImageHtmlEmail;
 
 import java.lang.reflect.InvocationTargetException;
 
@@ -34,6 +36,8 @@ import java.lang.reflect.InvocationTargetException;
 public class SendMailWidget extends GenericWidget {
 
   static final long serialVersionUID = -8484048371911908893L;
+
+  private static Log LOG = LogFactory.getLog(SendMailWidget.class);
 
   static String JSP = "/admin/send-mail-form.jsp";
 
@@ -50,13 +54,23 @@ public class SendMailWidget extends GenericWidget {
 
   public WidgetContext post(WidgetContext context) throws InvocationTargetException, IllegalAccessException {
 
-    // Trigger event to test the email
-    WorkflowManager.triggerWorkflowForEvent(new UserSignedUpEvent(context.getUserSession().getUser()));
-    WorkflowManager.triggerWorkflowForEvent(new UserInvitedEvent(context.getUserSession().getUser(), context.getUserSession().getUser()));
-    WorkflowManager.triggerWorkflowForEvent(new UserRegisteredEvent(context.getUserSession().getUser(), context.getRequest().getRemoteAddr()));
+    // Test the configured SMTP settings by sending a single message to the current admin
+    User user = context.getUserSession().getUser();
+    try {
+      ImageHtmlEmail email = EmailCommand.prepareNewEmail();
+      email.addTo(user.getEmail(), user.getFullName());
+      email.setSubject("SimIS CMS Mail Test");
+      email.setMsg("This is a test message sent from the Mail Server Settings page to confirm the configured SMTP settings are working.");
+      email.send();
+    } catch (Exception e) {
+      LOG.warn("Mail test failed to send", e);
+      context.setErrorMessage("Mail test failed: " + e.getMessage());
+      context.setRedirect("/admin/mail-properties");
+      return context;
+    }
 
     // Determine the page to return to (if other than this one)
-    context.setSuccessMessage("Mail was sent");
+    context.setSuccessMessage("A test email was sent to " + user.getEmail());
     context.setRedirect("/admin/mail-properties");
     return context;
   }

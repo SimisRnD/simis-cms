@@ -28,13 +28,13 @@
   </c:if>
   <%@include file="../page_messages.jspf" %>
   <%-- Form Content --%>
+  <p>Sends a test email to your own address using the SMTP settings configured to the left, to confirm they work.</p>
   <label>To
     <p>${userSession.user.email}</p>
   </label>
   <label>Subject
-    <p>Site Invitation Message</p>
+    <p>SimIS CMS Mail Test</p>
   </label>
-  <%-- TODO: This form is a stub — needs customizable recipient, subject, and body fields --%>
   <div class="button-container">
     <input type="submit" class="button radius success expanded" value="Send Mail" data-disable-on-submit="Sending..."/>
   </div>
