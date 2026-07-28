@@ -840,7 +840,7 @@
     </section>
   </page>
 
-  <page name="/admin/sitemap" role="admin,content-manager" title="Site Map">
+  <page name="/admin/sitemap" role="admin,content-manager" title="Navigation Menu Editor">
     <!--<section>-->
       <!--<column class="small-12 cell">-->
         <!--<widget name="breadcrumbs">-->
@@ -853,7 +853,7 @@
     <section>
       <column class="small-12 cell">
         <widget name="siteMap">
-          <title>Site Map Editor</title>
+          <title>Navigation Menu Editor</title>
         </widget>
       </column>
     </section>
@@ -890,7 +890,7 @@
     </section>
   </page>
 
-  <page name="/admin/sitemap-editor" role="admin,content-manager" title="Site Map Editor">
+  <page name="/admin/sitemap-editor" role="admin,content-manager" title="Navigation Menu Editor - Edit Links">
     <!--<section>-->
       <!--<column class="small-12 cell">-->
         <!--<widget name="breadcrumbs">-->
@@ -903,7 +903,7 @@
     <section>
       <column class="small-12 cell">
         <widget name="siteMapEditor">
-          <title>Site Map Renaming</title>
+          <title>Navigation Menu Editor - Edit Links</title>
         </widget>
       </column>
     </section>

@@ -27,11 +27,14 @@
 <c:if test="${!empty title}">
   <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
 </c:if>
-<div class="grid-x grid-margin-x">
-  <div class="cell small-12">
-    <small><a href="${ctx}/admin/sitemap-editor">Switch to renaming</a></small>
-  </div>
-</div>
+<p class="help-text">
+  This page controls the top navigation menu shown on your website -- not an XML sitemap or a visual page map.
+  A <strong>tab</strong> is a top-level menu entry (e.g. "Solutions"); an <strong>item</strong> is a submenu entry
+  shown when a visitor opens a tab. Add tabs and items below, drag the <i class="fa fa-arrows-h"></i>/<i class="fa fa-arrows"></i>
+  handles to reorder them, or click <i class="fa fa-circle-xmark"></i> to delete one. Changes take effect as soon as you save.
+  This page can add and delete tabs/items but not change an existing one's link -- to rename an existing tab/item or change
+  where it links, use <a href="${ctx}/admin/sitemap-editor">Navigation Menu Editor - Edit Links</a> instead.
+</p>
 <%@include file="../page_messages.jspf" %>
 <form method="post">
   <%-- Required by controller --%>
@@ -43,13 +46,14 @@
     <div class="small-12 medium-5 cell">
       <div class="input-group">
         <%--<span class="input-group-label">$</span>--%>
-        <input class="input-group-field" type="text" name="name" placeholder="New tab name" value="<c:out value="${menuTab.name}" />" required>
-        <input class="input-group-field" type="text" name="link" placeholder="Optional /link" value="<c:out value="${menuTab.link}" />">
-        <input class="input-group-field" type="text" name="icon" placeholder="Optional icon" value="<c:out value="${menuTab.icon}" />">
+        <input class="input-group-field" type="text" name="name" placeholder="New tab name" title="The name shown in the menu, e.g. Solutions" value="<c:out value="${menuTab.name}" />" required>
+        <input class="input-group-field" type="text" name="link" placeholder="Optional /link" title="Page path starting with /, e.g. /solutions. Leave blank if this tab should only open a submenu." value="<c:out value="${menuTab.link}" />">
+        <input class="input-group-field" type="text" name="icon" placeholder="Optional icon" title="Icon name from the site's icon set, without the fa- prefix, e.g. briefcase" value="<c:out value="${menuTab.icon}" />">
         <div class="input-group-button">
           <input type="submit" class="button success" value="Add Tab">
         </div>
       </div>
+      <p class="help-text">Name is required. Link must start with / (e.g. /solutions) and is optional. Icon is an optional icon name -- do not include the fa- prefix.</p>
     </div>
   </div>
 </form>
@@ -70,7 +74,7 @@
         <div>
           <div style="position: absolute;right: 5px;top: 0;">
             <small>
-              <c:if test="${!status.first}"><a href="javascript:deleteMenuTab(${menuTab.id});"><i class="fa fa-circle-xmark"></i></a></c:if>
+              <c:if test="${!status.first}"><a href="javascript:deleteMenuTab(${menuTab.id}, '<c:out value="${js:escape(menuTab.name)}" />', ${fn:length(menuTab.menuItemList)});" title="Delete this tab"><i class="fa fa-circle-xmark"></i></a></c:if>
                 <%--<a href="javascript:addTabAfter(${menuTab.id});"><i class="fa fa-plus"></i></a>--%>
             </small>
           </div>
@@ -99,7 +103,7 @@
               <div id="site-map-menu-item-${menuItem.id}" class="site-map-submenu-tab">
                 <div style="position: absolute;right: 5px;top: 0;">
                   <small>
-                    <a href="javascript:deleteMenuItem(${menuItem.id});"><i class="fa fa-circle-xmark"></i></a>
+                    <a href="javascript:deleteMenuItem(${menuItem.id}, '<c:out value="${js:escape(menuItem.name)}" />');" title="Delete this item"><i class="fa fa-circle-xmark"></i></a>
                   </small>
                 </div>
                 <div class="float-left">
@@ -115,11 +119,12 @@
               </div>
             </c:forEach>
           </div>
-          <input class="input-group-field" type="text" name="menuTab${menuTab.id}menuItemName" placeholder="New item..." value="">
-          <input class="input-group-field" type="text" name="menuTab${menuTab.id}menuItemLink" placeholder="Optional /link" value="">
+          <input class="input-group-field" type="text" name="menuTab${menuTab.id}menuItemName" placeholder="New item..." title="Adds a new submenu item under ${fn:escapeXml(menuTab.name)}" value="">
+          <input class="input-group-field" type="text" name="menuTab${menuTab.id}menuItemLink" placeholder="Optional /link" title="Page path starting with /, e.g. /government-services" value="">
           <div class="button-container">
             <input type="submit" class="button tiny expanded success" value="Add Item">
           </div>
+          <p class="help-text">Adds a submenu item under <strong><c:out value="${menuTab.name}"/></strong>. Link must start with /.</p>
         </c:if>
       </div>
     </c:forEach>
@@ -143,15 +148,16 @@
     }
   });
 
-  function deleteMenuTab(index) {
-    if (!confirm("Are you sure you want to delete this menu tab and all of its submenu items?")) {
+  function deleteMenuTab(index, name, itemCount) {
+    var itemsPhrase = itemCount > 0 ? (" and its " + itemCount + " submenu item" + (itemCount === 1 ? "" : "s")) : "";
+    if (!confirm("Delete the menu tab \"" + name + "\"" + itemsPhrase + "? This cannot be undone.")) {
       return;
     }
     postAction('${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&menuTabId=' + index);
   }
 
-  function deleteMenuItem(index) {
-    if (!confirm("Are you sure you want to delete this sub menu item?")) {
+  function deleteMenuItem(index, name) {
+    if (!confirm("Delete the menu item \"" + name + "\"? This cannot be undone.")) {
       return;
     }
     postAction('${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&menuItemId=' + index);

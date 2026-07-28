@@ -27,7 +27,12 @@
 <c:if test="${!empty title}">
   <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
 </c:if>
-<small><a href="${ctx}/admin/sitemap">Switch to adding</a></small>
+<p class="help-text">
+  This page renames existing navigation tabs/items and changes the page they link to. Link must start with /
+  (e.g. /solutions). Reorder tabs and items with the <i class="fa fa-arrows-h"></i>/<i class="fa fa-arrows"></i>
+  drag handles or the arrow buttons. To add a new tab/item or to delete one, use
+  <a href="${ctx}/admin/sitemap">Navigation Menu Editor</a> instead.
+</p>
 <%@include file="../page_messages.jspf" %>
 <c:if test="${empty menuTabList}">
   <p class="subheader">No tabs were found, add one!</p>
@@ -68,9 +73,9 @@
               <strong><c:out value="${menuTab.name}"/></strong>
             </c:when>
             <c:otherwise>
-              <input type="text" name="menuTab${menuTab.id}name" value="<c:out value="${menuTab.name}" />" style="margin-bottom:0"/>
-              <input type="text" name="menuTab${menuTab.id}link" value="<c:out value="${menuTab.link}" />" placeholder="/link" style="margin-bottom:0"/>
-              <input type="text" name="menuTab${menuTab.id}icon" value="<c:out value="${menuTab.icon}" />" placeholder="Optional icon"/>
+              <input type="text" name="menuTab${menuTab.id}name" value="<c:out value="${menuTab.name}" />" title="Tab name shown in the menu" style="margin-bottom:0"/>
+              <input type="text" name="menuTab${menuTab.id}link" value="<c:out value="${menuTab.link}" />" placeholder="/link" title="Page path starting with /, e.g. /solutions" style="margin-bottom:0"/>
+              <input type="text" name="menuTab${menuTab.id}icon" value="<c:out value="${menuTab.icon}" />" placeholder="Optional icon" title="Icon name without the fa- prefix, e.g. briefcase"/>
             </c:otherwise>
           </c:choose>
         </div>
@@ -97,8 +102,8 @@
                 </div>
                 <div class="clear-float"></div>
                 <div>
-                  <input type="text" name="menuItem${menuItem.id}name" value="<c:out value="${menuItem.name}" />" style="margin-bottom:0"/>
-                  <input type="text" name="menuItem${menuItem.id}link" value="<c:out value="${menuItem.link}" />" placeholder="/link" style="margin-bottom:0"/>
+                  <input type="text" name="menuItem${menuItem.id}name" value="<c:out value="${menuItem.name}" />" title="Item name shown in the submenu" style="margin-bottom:0"/>
+                  <input type="text" name="menuItem${menuItem.id}link" value="<c:out value="${menuItem.link}" />" placeholder="/link" title="Page path starting with /, e.g. /government-services" style="margin-bottom:0"/>
                 </div>
               </div>
             </c:forEach>
