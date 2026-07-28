@@ -33,6 +33,8 @@ import org.apache.commons.logging.LogFactory;
 import org.postgresql.util.PGInterval;
 
 import com.simisinc.platform.domain.model.Entity;
+import com.univocity.parsers.common.NormalizedString;
+import com.univocity.parsers.common.processor.RowWriterProcessor;
 import com.univocity.parsers.csv.CsvRoutines;
 import com.univocity.parsers.csv.CsvWriterSettings;
 
@@ -872,6 +874,9 @@ public class DB {
     writerSettings.setQuoteAllFields(true);
     writerSettings.setHeaderWritingEnabled(true);
     //    writerSettings.setHeaders("email", "created", "master_unsub", "unsubscribed", "is_valid");
+    // Quoting (above) only prevents CSV structural injection; a spreadsheet app still evaluates a
+    // cell as a formula based on its first character regardless of quoting, so guard against that too
+    writerSettings.setRowWriterProcessor((RowWriterProcessor<Object[]>) DB::sanitizeRowForCsvFormulaInjection);
     CsvRoutines routines = new CsvRoutines(writerSettings);
 
     // Get a connection, execute the query, return the data
@@ -893,6 +898,40 @@ public class DB {
         LOG.debug("Query took " + totalTime + "ms");
       }
     }
+  }
+
+  /**
+   * Characters that Excel/Google Sheets treat as the start of a formula when a CSV cell is opened,
+   * regardless of whether the field is quoted -- quoting only protects CSV structure, not formula
+   * evaluation.
+   */
+  private static final char[] CSV_FORMULA_INJECTION_PREFIXES = { '=', '+', '-', '@', '\t' };
+
+  static Object[] sanitizeRowForCsvFormulaInjection(Object[] row, NormalizedString[] headers, int[] indexesToWrite) {
+    for (int i = 0; i < row.length; i++) {
+      if (row[i] instanceof String value) {
+        row[i] = sanitizeCsvFormulaInjectionValue(value);
+      }
+    }
+    return row;
+  }
+
+  /**
+   * Prefixes a value with a single quote if it would otherwise be interpreted as a formula when the
+   * exported CSV is opened in a spreadsheet application (the standard mitigation for CSV formula
+   * injection, since the spreadsheet app then treats the cell as literal text).
+   */
+  static String sanitizeCsvFormulaInjectionValue(String value) {
+    if (value == null || value.isEmpty()) {
+      return value;
+    }
+    char firstChar = value.charAt(0);
+    for (char prefix : CSV_FORMULA_INJECTION_PREFIXES) {
+      if (firstChar == prefix) {
+        return "'" + value;
+      }
+    }
+    return value;
   }
 
   public static boolean hasColumn(ResultSet rs, String column) {
