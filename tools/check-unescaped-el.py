@@ -101,6 +101,19 @@ ALLOWLIST: dict[str, str] = {
         "VitalsSummary.getOverallScore() (WebVitalsWidget.java) returns a Java primitive int "
         "computed purely from status-string equality checks against fixed literals -- cannot "
         "carry markup.",
+    "${summary.lcpStatus}":
+        "WebVitalsWidget.getStatus() (WebVitalsWidget.java) returns exactly one of the fixed "
+        "literals \"good\"/\"needsWork\"/\"poor\"; VitalsSummary.lcpStatus otherwise defaults to "
+        "the fixed literal \"unknown\". No other value is possible, so this cannot break out of "
+        "the class=\"badge badge-...\" attribute.",
+    "${summary.clsStatus}":
+        "Same as lcpStatus -- clsStatus is set by the same getStatus() and defaults the same way.",
+    "${summary.inpStatus}":
+        "Same as lcpStatus -- inpStatus is set by the same getStatus() and defaults the same way.",
+    "${summary.fcpStatus}":
+        "Same as lcpStatus -- fcpStatus is set by the same getStatus() and defaults the same way.",
+    "${summary.ttfbStatus}":
+        "Same as lcpStatus -- ttfbStatus is set by the same getStatus() and defaults the same way.",
     "${mapCredentials.tileServerUrl}":
         "FindMapTilesCredentialsCommand.validatedTileServerUrl rejects quotes, whitespace, backslashes and angle brackets before the value is stored -- validated at the source instead of escaped at the sink",
     "${activity.messageHtml}":

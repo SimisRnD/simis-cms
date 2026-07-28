@@ -49,6 +49,12 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.simisinc.platform.infrastructure.cache.WebVitalsCollector;
+import com.simisinc.platform.infrastructure.scheduler.cms.WebVitalsAggregationJob;
+import com.simisinc.platform.infrastructure.scheduler.cms.WebVitalsCleanupJob;
+
 /**
  * Regression test for the web_vitals migration conflict: two Flyway upgrade migrations
  * (UPGRADE_20260726.2000 and the now-deleted UPGRADE_20260827.1000) both created a table named
@@ -114,12 +120,17 @@ class WebVitalsMigrationTest {
     // web_pages: referenced by FK from the web_vitals migrations under test. sessions: altered by
     // UPGRADE_20260727.1000__sessions_ip_address_nullable.sql, an unrelated migration that now
     // sorts between the baseline and the web_vitals migrations' versions -- Flyway applies
-    // everything in range, not just the two under test, so it runs here too. Everything else in
-    // the real install schema is irrelevant to this conflict.
+    // everything in range, not just the two under test, so it runs here too. distributed_lock:
+    // not touched by any migration under test, but WebVitalsAggregationJob/WebVitalsCleanupJob
+    // both take a LockManager lock before running, and this test drives those jobs through their
+    // real execute() methods rather than re-implementing their SQL inline. Everything else in the
+    // real install schema is irrelevant to this conflict.
     try (Connection connection = DB.getConnection();
         Statement statement = connection.createStatement()) {
       statement.execute("CREATE TABLE web_pages (web_page_id BIGSERIAL PRIMARY KEY, link VARCHAR(255))");
       statement.execute("CREATE TABLE sessions (session_id BIGSERIAL PRIMARY KEY, ip_address VARCHAR(64) NOT NULL)");
+      statement.execute("CREATE TABLE distributed_lock (name VARCHAR(64) PRIMARY KEY NOT NULL, "
+          + "locked_at TIMESTAMP(3) NOT NULL, lock_until TIMESTAMP(3) NOT NULL, uuid VARCHAR(255) NOT NULL)");
     } catch (SQLException se) {
       throw new IllegalStateException("Could not create the stand-in tables", se);
     }
@@ -227,6 +238,51 @@ class WebVitalsMigrationTest {
   }
 
   @Test
+  void collectMetricsThroughRealCollectorPersistsAllFields() throws SQLException, IOException {
+    // Unlike webVitalsCollectorInsertShapeRoundTrips() above, this calls
+    // WebVitalsCollector.collectMetrics() itself -- the method WebVitalsApiController actually
+    // calls -- instead of re-implementing its insert inline, so it also covers the per-metric
+    // loop, the missing-metric skip, and the invalid-value skip.
+    try (Connection connection = DB.getConnection();
+        Statement statement = connection.createStatement()) {
+      statement.execute("INSERT INTO web_pages (web_page_id, link) VALUES (2, '/blog/first-post') "
+          + "ON CONFLICT DO NOTHING");
+    }
+
+    ObjectMapper mapper = new ObjectMapper();
+    JsonNode metricsNode = mapper.readTree(
+        "{\"LCP\": {\"value\": 1800, \"rating\": \"good\"}, "
+            + "\"CLS\": {\"value\": 0.05, \"rating\": \"good\"}, "
+            + "\"INP\": {\"value\": -1, \"rating\": \"good\"}}");
+
+    WebVitalsCollector.collectMetrics("/blog/first-post", metricsNode, "session-xyz",
+        2L, "agenthash", 1024, "wifi");
+
+    try (Connection connection = DB.getConnection();
+        PreparedStatement pst = connection.prepareStatement(
+            "SELECT metric_type, value, rating, session_id, web_page_id, user_agent_hash, "
+                + "viewport_width, connection_type FROM web_vitals WHERE url = ? ORDER BY metric_type")) {
+      pst.setString(1, "/blog/first-post");
+      try (ResultSet rs = pst.executeQuery()) {
+        assertTrue(rs.next(), "CLS row should have been stored");
+        assertEquals("CLS", rs.getString("metric_type"));
+        assertEquals(0, new BigDecimal("0.05").compareTo(rs.getBigDecimal("value")));
+        assertEquals("good", rs.getString("rating"));
+        assertEquals("session-xyz", rs.getString("session_id"));
+        assertEquals(2L, rs.getLong("web_page_id"));
+        assertEquals("agenthash", rs.getString("user_agent_hash"));
+        assertEquals(1024, rs.getInt("viewport_width"));
+        assertEquals("wifi", rs.getString("connection_type"));
+
+        assertTrue(rs.next(), "LCP row should have been stored");
+        assertEquals("LCP", rs.getString("metric_type"));
+
+        assertTrue(!rs.next(), "INP's negative value is invalid and must be skipped, not stored");
+      }
+    }
+  }
+
+  @Test
   void aggregationUpsertReplacesTheSameDaysRow() throws SQLException {
     // Mirrors WebVitalsAggregationJob.insertAggregate()'s exact upsert shape: same
     // (url, metric_type, day) must update in place, not accumulate duplicate rows.
@@ -264,6 +320,73 @@ class WebVitalsMigrationTest {
       pst.setInt(5, p95);
       pst.setInt(6, sampleCount);
       pst.executeUpdate();
+    }
+  }
+
+  @Test
+  void aggregationJobExecuteThroughRealJobPopulatesAggregates() throws SQLException {
+    // Unlike aggregationUpsertReplacesTheSameDaysRow() above, this calls
+    // WebVitalsAggregationJob.execute() itself -- including its LockManager gate and its own
+    // percentile query -- instead of re-implementing the upsert inline.
+    try (Connection connection = DB.getConnection();
+        Statement statement = connection.createStatement()) {
+      statement.execute("INSERT INTO web_vitals (url, metric_type, value, created_at) VALUES "
+          + "('/pricing', 'LCP', 1200, NOW()), "
+          + "('/pricing', 'LCP', 2400, NOW()), "
+          + "('/pricing', 'LCP', 3600, NOW())");
+    }
+
+    WebVitalsAggregationJob.execute();
+
+    try (Connection connection = DB.getConnection();
+        PreparedStatement pst = connection.prepareStatement(
+            "SELECT p50_value, sample_count FROM web_vitals_aggregates WHERE url = ? AND metric_type = ?")) {
+      pst.setString(1, "/pricing");
+      pst.setString(2, "LCP");
+      try (ResultSet rs = pst.executeQuery()) {
+        assertTrue(rs.next(), "the aggregation job should have written a row for /pricing/LCP");
+        assertEquals(3, rs.getInt("sample_count"));
+        assertEquals(0, new BigDecimal("2400").compareTo(rs.getBigDecimal("p50_value")));
+      }
+    }
+  }
+
+  @Test
+  void cleanupJobExecuteDeletesOnlyOldRows() throws SQLException {
+    // Exercises WebVitalsCleanupJob.execute() itself against one row on either side of both
+    // retention windows (30 days raw, 1 year aggregates).
+    try (Connection connection = DB.getConnection();
+        Statement statement = connection.createStatement()) {
+      statement.execute("INSERT INTO web_vitals (url, metric_type, value, created_at) VALUES "
+          + "('/old-page', 'TTFB', 500, NOW() - INTERVAL '31 days'), "
+          + "('/new-page', 'TTFB', 500, NOW())");
+      statement.execute("INSERT INTO web_vitals_aggregates "
+          + "(url, metric_type, p75_value, sample_count, aggregated_at) VALUES "
+          + "('/old-page', 'TTFB', 500, 1, NOW() - INTERVAL '366 days'), "
+          + "('/new-page', 'TTFB', 500, 1, NOW())");
+    }
+
+    WebVitalsCleanupJob.execute();
+
+    try (Connection connection = DB.getConnection();
+        Statement statement = connection.createStatement()) {
+      try (ResultSet rs = statement.executeQuery("SELECT url FROM web_vitals WHERE url IN ('/old-page', '/new-page')")) {
+        Set<String> remaining = new HashSet<>();
+        while (rs.next()) {
+          remaining.add(rs.getString("url"));
+        }
+        assertTrue(remaining.contains("/new-page"), "recent raw row should survive cleanup");
+        assertTrue(!remaining.contains("/old-page"), "31-day-old raw row should be deleted");
+      }
+      try (ResultSet rs = statement.executeQuery(
+          "SELECT url FROM web_vitals_aggregates WHERE url IN ('/old-page', '/new-page')")) {
+        Set<String> remaining = new HashSet<>();
+        while (rs.next()) {
+          remaining.add(rs.getString("url"));
+        }
+        assertTrue(remaining.contains("/new-page"), "recent aggregate row should survive cleanup");
+        assertTrue(!remaining.contains("/old-page"), "366-day-old aggregate row should be deleted");
+      }
     }
   }
 

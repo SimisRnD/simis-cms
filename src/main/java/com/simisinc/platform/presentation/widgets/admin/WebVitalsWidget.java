@@ -174,6 +174,54 @@ public class WebVitalsWidget extends GenericWidget {
       this.url = url;
     }
 
+    // JSP EL's BeanELResolver only reaches these through JavaBean getters, not the public
+    // fields directly -- without them, every ${summary.xxx} expression in web-vitals.jsp throws
+    // jakarta.el.PropertyNotFoundException the moment the page renders (only caught by loading
+    // the actual admin page in a browser; ant/ci-test never render a JSP).
+    public String getUrl() {
+      return url;
+    }
+
+    public int getLcpP75() {
+      return lcpP75;
+    }
+
+    public double getClsP75() {
+      return clsP75;
+    }
+
+    public int getInpP75() {
+      return inpP75;
+    }
+
+    public int getFcpP75() {
+      return fcpP75;
+    }
+
+    public int getTtfbP75() {
+      return ttfbP75;
+    }
+
+    public String getLcpStatus() {
+      return lcpStatus;
+    }
+
+    public String getClsStatus() {
+      return clsStatus;
+    }
+
+    public String getInpStatus() {
+      return inpStatus;
+    }
+
+    public String getFcpStatus() {
+      return fcpStatus;
+    }
+
+    public String getTtfbStatus() {
+      return ttfbStatus;
+    }
+
     public int getOverallScore() {
       int scoreCount = 0;
       int totalScore = 0;
