@@ -24,6 +24,8 @@ import com.simisinc.platform.application.items.LoadCategoryCommand;
 import com.simisinc.platform.application.items.LoadCollectionCommand;
 import com.simisinc.platform.application.items.LoadItemCommand;
 import com.simisinc.platform.application.items.SaveItemCommand;
+import com.simisinc.platform.domain.model.SocialMediaLink;
+import com.simisinc.platform.infrastructure.persistence.SocialMediaLinkRepository;
 import com.simisinc.platform.domain.model.cms.MenuTab;
 import com.simisinc.platform.domain.model.cms.Stylesheet;
 import com.simisinc.platform.domain.model.cms.TableOfContents;
