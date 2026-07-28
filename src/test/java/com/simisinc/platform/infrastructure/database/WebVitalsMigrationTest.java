@@ -63,7 +63,7 @@ import org.testcontainers.utility.DockerImageName;
  *
  * <p>
  * The fix keeps UPGRADE_20260726.2000 (the original, reviewed migration) untouched and adds a new
- * expand-only migration, UPGRADE_20260727.1000, which ALTERs web_vitals to add the extra context
+ * expand-only migration, UPGRADE_20260727.1001, which ALTERs web_vitals to add the extra context
  * columns and creates web_vitals_aggregates. This test drives that pair through the exact Flyway
  * configuration {@link com.simisinc.platform.application.admin.DatabaseCommand} uses for upgrades
  * (same table, prefix, locations, outOfOrder, validateOnMigrate) against a real PostgreSQL
@@ -110,13 +110,18 @@ class WebVitalsMigrationTest {
     properties.setProperty("password", DB_PASSWORD);
     DataSource.init(properties);
 
-    // A minimal stand-in for the one table these migrations reference by FK (web_pages).
-    // Everything else in the real install schema is irrelevant to this conflict.
+    // Minimal stand-ins for tables referenced by migrations that fall in this baseline's range.
+    // web_pages: referenced by FK from the web_vitals migrations under test. sessions: altered by
+    // UPGRADE_20260727.1000__sessions_ip_address_nullable.sql, an unrelated migration that now
+    // sorts between the baseline and the web_vitals migrations' versions -- Flyway applies
+    // everything in range, not just the two under test, so it runs here too. Everything else in
+    // the real install schema is irrelevant to this conflict.
     try (Connection connection = DB.getConnection();
         Statement statement = connection.createStatement()) {
       statement.execute("CREATE TABLE web_pages (web_page_id BIGSERIAL PRIMARY KEY, link VARCHAR(255))");
+      statement.execute("CREATE TABLE sessions (session_id BIGSERIAL PRIMARY KEY, ip_address VARCHAR(64) NOT NULL)");
     } catch (SQLException se) {
-      throw new IllegalStateException("Could not create the web_pages stand-in table", se);
+      throw new IllegalStateException("Could not create the stand-in tables", se);
     }
 
     // Same Flyway configuration as DatabaseCommand.upgrade(), baselined just before the
@@ -153,8 +158,17 @@ class WebVitalsMigrationTest {
   void bothMigrationsApplySuccessfully() {
     assertTrue(migrateResult.success,
         "web_vitals upgrade migrations did not apply cleanly: " + migrateResult.warnings);
-    assertEquals(2, migrateResult.migrationsExecuted,
-        "expected exactly the two web_vitals migrations to run: " + migrateResult.migrations);
+    // Not migrationsExecuted == 2: this baseline range also legitimately covers
+    // UPGRADE_20260727.1000__sessions_ip_address_nullable.sql, an unrelated migration that
+    // happens to sort between the two under test (see the sessions stand-in table above) --
+    // asserting a fixed total would break again the next time anything else lands in range.
+    // Check that the two web_vitals versions specifically are both present instead.
+    Set<String> appliedVersions = new TreeSet<>();
+    for (Object migration : migrateResult.migrations) {
+      appliedVersions.add(((org.flywaydb.core.api.output.MigrateOutput) migration).version);
+    }
+    assertTrue(appliedVersions.containsAll(Set.of("20260726.2000", "20260727.1001")),
+        "expected both web_vitals migrations to run, got versions: " + appliedVersions);
   }
 
   @Test
@@ -286,14 +300,14 @@ class WebVitalsMigrationTest {
   @Test
   void installSchemaMatchesUpgradeSchemaColumns() throws IOException {
     // NEW_10010 (fresh installs) must define web_vitals/web_vitals_aggregates with exactly the
-    // same columns the upgrade path ends up with (UPGRADE_20260726.2000 + UPGRADE_20260727.1000
+    // same columns the upgrade path ends up with (UPGRADE_20260726.2000 + UPGRADE_20260727.1001
     // combined) -- this repo's install/upgrade parity convention.
     String installSql = Files.readString(
         Path.of("src/main/resources/database/install/NEW_10010__new_cms.sql"));
     String baseUpgradeSql = Files.readString(Path.of(
         "src/main/resources/database/upgrade/UPGRADE_20260726.2000__create_web_vitals_table.sql"));
     String expandUpgradeSql = Files.readString(Path.of(
-        "src/main/resources/database/upgrade/2026/UPGRADE_20260727.1000__web_vitals_context_and_aggregates.sql"));
+        "src/main/resources/database/upgrade/2026/UPGRADE_20260727.1001__web_vitals_context_and_aggregates.sql"));
 
     Set<String> installWebVitals = createTableColumns(installSql, "web_vitals");
     Set<String> installAggregates = createTableColumns(installSql, "web_vitals_aggregates");

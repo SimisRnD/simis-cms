@@ -127,7 +127,7 @@ CREATE TABLE web_vitals_aggregates (
 
 Fresh installs get this shape directly from `NEW_10010__new_cms.sql`; existing databases
 get there via `UPGRADE_20260726.2000` (base `web_vitals` table) followed by
-`UPGRADE_20260727.1000` (context columns + `web_vitals_aggregates`) — both must stay in
+`UPGRADE_20260727.1001` (context columns + `web_vitals_aggregates`) — both must stay in
 sync with the install script per this repo's install/upgrade parity convention.
 
 ### Admin Dashboard
@@ -342,5 +342,5 @@ SELECT DISTINCT url, metric_type FROM web_vitals WHERE created_at > NOW() - INTE
 - `WebVitalsCollector.java` — Storage logic
 - `WebVitalsAggregationJob.java` / `WebVitalsCleanupJob.java` — Scheduled jobs
 - `WebVitalsWidget.java` — Admin dashboard widget
-- `UPGRADE_20260726.2000__create_web_vitals_table.sql` / `UPGRADE_20260727.1000__web_vitals_context_and_aggregates.sql` — Database schema
+- `UPGRADE_20260726.2000__create_web_vitals_table.sql` / `UPGRADE_20260727.1001__web_vitals_context_and_aggregates.sql` — Database schema
 - [Web Vitals](https://web.dev/vitals/) (documentation)
