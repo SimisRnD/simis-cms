@@ -3,7 +3,7 @@
   "@id": "https://github.com/SimisRnD/simis-cms/docker/db/vex/simis-cms-db",
   "author": "SimIS Inc. (SimIS CMS maintainers)",
   "timestamp": "2026-07-21T12:51:42+00:00",
-  "version": 3,
+  "version": 4,
   "tooling": "tools/generate-db-vex.py",
   "statements": [
     {
@@ -1046,7 +1046,25 @@
       "status": "not_affected",
       "justification": "vulnerable_code_not_in_execute_path",
       "impact_statement": "Perl is present only as package-management dependency; no runtime component invokes it, the image contains no plperl library (so PL/Perl cannot be enabled), and nothing deserializes Storable blobs. The flaw is a deserialization panic (denial of service) even where reachable. Consistent with the six existing perl statements."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-47178"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libheif1"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Present only as a transitive dependency of the PostGIS package's GDAL stack. The database enables vector PostGIS only (`CREATE EXTENSION postgis`); postgis_raster is never created, so GDAL's raster/image decoders, its remote-dataset (curl/ssh2) drivers and its embedded SQLite/HDF5/XML readers are never loaded or reachable from SQL."
     }
   ],
-  "last_updated": "2026-07-24T00:00:00Z"
+  "last_updated": "2026-07-28T06:06:34Z"
 }
