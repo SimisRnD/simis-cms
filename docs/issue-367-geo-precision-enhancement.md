@@ -6,6 +6,10 @@
 
 ---
 
+> **Correction (2026-07-28):** The code as originally merged had a real compliance bug: `isAnonymous` was computed *inside* the `if (getGeoIP() != null)` block in `SaveSessionCommand.java`, so it was never set when GeoIP data was unavailable -- exactly the ambiguous case this issue exists to handle safely. Fixed by [PR #538](https://github.com/SimisRnD/simis-cms/pull/538), merged; the code snippet in section 3 below has been updated to match what actually shipped. Separately, `SaveSessionCommandTest` (section 5) is currently `@Disabled` in CI due to a real, undiagnosed JaCoCo-instrumentation-only failure -- it passes locally and its assertions are accurate, but it is not currently providing CI regression coverage.
+
+---
+
 ## What Was Enhanced
 
 ### 1. **Explicit `is_anonymous` Column** (Database)
@@ -43,21 +47,29 @@ public void setIsAnonymous(boolean anonymous) { isAnonymous = anonymous; }
 ---
 
 ### 3. **SaveSessionCommand Enhancement**
-**File:** `SaveSessionCommand.java` (lines 52–65)
+**File:** `SaveSessionCommand.java` (as of PR #538, merged)
 
-**Before:** Implicit geo restriction (conditional block only stores city/coords for auth users)
+**Before:** Implicit geo restriction (conditional block only stores city/coords for auth users) -- and, as originally merged for this issue, `isAnonymous` was computed *inside* the `getGeoIP() != null` check below, so it was silently never set on sessions with no GeoIP data.
 
-**After:** Explicit flag + clearer intent
+**After:** Explicit flag, computed unconditionally, + clearer intent
 ```java
 boolean isAnonymous = (userSession.getUserId() == UserSession.GUEST_ID);
 session.setIsAnonymous(isAnonymous);
-if (!isAnonymous) {
-  // Store full geo precision for authenticated users only
-  session.setCity(userSession.getGeoIP().getCity());
-  session.setPostalCode(userSession.getGeoIP().getPostalCode());
-  session.setLatitude(userSession.getGeoIP().getLatitude());
-  session.setLongitude(userSession.getGeoIP().getLongitude());
-  session.setMetroCode(userSession.getGeoIP().getMetroCode());
+if (userSession.getGeoIP() != null) {
+  session.setContinent(userSession.getGeoIP().getContinent());
+  session.setCountryIso(userSession.getGeoIP().getCountryISOCode());
+  session.setCountry(userSession.getGeoIP().getCountry());
+  session.setStateIso(userSession.getGeoIP().getStateISOCode());
+  session.setState(userSession.getGeoIP().getState());
+  session.setTimezone(userSession.getGeoIP().getTimezone());
+  if (!isAnonymous) {
+    // Store full geo precision for authenticated users only
+    session.setCity(userSession.getGeoIP().getCity());
+    session.setPostalCode(userSession.getGeoIP().getPostalCode());
+    session.setLatitude(userSession.getGeoIP().getLatitude());
+    session.setLongitude(userSession.getGeoIP().getLongitude());
+    session.setMetroCode(userSession.getGeoIP().getMetroCode());
+  }
 }
 ```
 
@@ -85,14 +97,14 @@ WHERE country IS NOT NULL AND is_anonymous = false AND is_bot = false
 ---
 
 ### 5. **Comprehensive Unit Tests**
-**File:** `SaveSessionCommandTest.java` (NEW)
+**File:** `SaveSessionCommandTest.java` (currently `@Disabled` in CI -- see correction at top of this document)
 
 Three test cases:
 1. **`anonymousVisitorRestrictedToRegionLevel()`** — Verifies anonymous visitors get only continent/country/state/timezone
 2. **`authenticatedUserReceivesFullGeoPrecision()`** — Verifies authenticated users get city/coords
-3. **`anonymousVisitorWithoutGeoIP()`** — Edge case: no GeoIP data provided
+3. **`anonymousVisitorWithoutGeoIP()`** — Edge case: no GeoIP data provided (this case is exactly what exposed the compliance bug the correction above describes)
 
-Uses Mockito to mock UserSession and capture Session objects saved to repository.
+Uses Mockito to mock UserSession and capture Session objects saved to repository. Pass locally; disabled in CI pending diagnosis of an undiagnosed JaCoCo-instrumentation-only failure (tracked as a follow-up in PR #538).
 
 ---
 
@@ -144,11 +156,11 @@ Uses Mockito to mock UserSession and capture Session objects saved to repository
 
 ---
 
-**Status:** Ready for code review and merge  
-**Test Coverage:** 3 new unit tests (anonymous/auth/edge cases)  
+**Status:** Merged (PR #538), with the correction above  
+**Test Coverage:** 3 unit tests (anonymous/auth/edge cases) -- pass locally, currently `@Disabled` in CI  
 **Code Review Checklist:**
 - [x] Database migration idempotent and tested
 - [x] Model changes minimal and backward compatible
-- [x] Command layer logic verified via tests
+- [x] Command layer logic verified via tests (locally -- not currently running in CI, see above)
 - [x] Repository queries use new column semantically
 - [x] No breaking changes to public APIs

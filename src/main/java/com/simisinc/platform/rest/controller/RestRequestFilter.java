@@ -378,7 +378,6 @@ public class RestRequestFilter implements Filter {
         "\"access_token\":\"" + loginToken + "\",\n" +
         "\"token_type\":\"bearer\",\n" +
         "\"expires_in\":" + tokenExpirationInSeconds + ",\n" +
-        //        "\"refresh_token\":\"IwOGYzYTlmM2YxOTQ5MGE3YmNmMDFkNTVk\",\n" +
         "\"name\":\"" + JsonCommand.toJson(UserCommand.name(user)) + "\",\n" +
         "\"first_name\":\"" + JsonCommand.toJson(user.getFirstName()) + "\",\n" +
         "\"last_name\":\"" + JsonCommand.toJson(user.getLastName()) + "\",\n" +

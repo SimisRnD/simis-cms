@@ -868,10 +868,10 @@ public class PageServlet extends HttpServlet {
         }
         pageRenderInfo.setTargetWidget(targetWidget);
 
-        // Verify a token exists
+        // Verify the token matches this session's form token
         String formToken = request.getParameter("token");
-        if (StringUtils.isEmpty(formToken)) {
-          LOG.error("DEVELOPER: A FORM TOKEN IS REQUIRED " + pagePath + " " + request.getRemoteAddr());
+        if (!isFormTokenValid(formToken, userSession.getFormToken())) {
+          LOG.error("DEVELOPER: A VALID FORM TOKEN IS REQUIRED " + pagePath + " " + request.getRemoteAddr());
           controllerSession.clearAllWidgetData();
           response.sendError(HttpServletResponse.SC_NOT_FOUND);
           return;
@@ -1081,6 +1081,19 @@ public class PageServlet extends HttpServlet {
       return null;
     }
     return json.replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026");
+  }
+
+  /**
+   * Validates the "token" request parameter against this session's real form token before a
+   * POST/DELETE/action() widget dispatch is allowed past this fail-fast gate. WebContainerCommand
+   * independently re-validates the same token against the specific target widget before invoking
+   * it, so this check being wrong would not by itself open a bypass today -- but it should still
+   * reject what it claims to reject, both to fail fast (before the page-render work downstream)
+   * and so a future change to that later check can't silently lose CSRF coverage this one already
+   * appeared to provide.
+   */
+  static boolean isFormTokenValid(String requestToken, String sessionToken) {
+    return StringUtils.isNotEmpty(requestToken) && sessionToken != null && sessionToken.equals(requestToken);
   }
 
   private static int intParam(HttpServletRequest request, String name, int defaultValue) {

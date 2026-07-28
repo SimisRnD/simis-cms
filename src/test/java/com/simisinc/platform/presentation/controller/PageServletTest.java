@@ -88,4 +88,25 @@ class PageServletTest {
     assertEquals("Product", product.get("@type").asText());
     assertTrue(product.get("name").asText().contains("</script><script>"));
   }
+
+  @Test
+  void isFormTokenValidAcceptsAMatchingToken() {
+    assertTrue(PageServlet.isFormTokenValid("abc-123", "abc-123"));
+  }
+
+  @Test
+  void isFormTokenValidRejectsAMismatchedToken() {
+    assertFalse(PageServlet.isFormTokenValid("wrong-token", "abc-123"));
+  }
+
+  @Test
+  void isFormTokenValidRejectsABlankOrMissingRequestToken() {
+    assertFalse(PageServlet.isFormTokenValid("", "abc-123"));
+    assertFalse(PageServlet.isFormTokenValid(null, "abc-123"));
+  }
+
+  @Test
+  void isFormTokenValidRejectsANullSessionToken() {
+    assertFalse(PageServlet.isFormTokenValid("abc-123", null));
+  }
 }

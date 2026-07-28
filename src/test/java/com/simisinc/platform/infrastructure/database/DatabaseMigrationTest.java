@@ -198,11 +198,42 @@ class DatabaseMigrationTest {
         "flyway_history is missing - the baseline step did not run");
   }
 
+  @Test
+  void columnsThatOnlyExistedInUpgradeMigrationsAreOnTheInstallPath() throws SQLException {
+    // A table can exist (coreTablesExist passes) while still being missing a column that an
+    // upgrade/ migration added without a matching install/ counterpart -- since a fresh install
+    // never runs the upgrade/ tree, only baselines past it. Two such gaps reached this point
+    // undetected: users.account_token_expires (added by
+    // UPGRADE_20260725.1001__account_token_expires.sql) broke every login on a fresh install --
+    // UserRepository.buildRecord() unconditionally reads it -- and sessions.is_anonymous (added
+    // by UPGRADE_20260726.1002__sessions_is_anonymous.sql) broke SessionRepository's daily
+    // unique-locations report. Both are represented here, not as an exhaustive general check,
+    // but so this specific class of regression fails loudly instead of silently again.
+    assertTrue(columnExists("users", "account_token_expires"),
+        "users.account_token_expires is missing - a fresh install cannot log anyone in "
+            + "(UserRepository.buildRecord reads this column unconditionally)");
+    assertTrue(columnExists("sessions", "is_anonymous"),
+        "sessions.is_anonymous is missing - SessionRepository.findDailyUniqueLocations() "
+            + "will fail on a fresh install");
+  }
+
   private static boolean tableExists(String name) throws SQLException {
     try (Connection connection = DB.getConnection();
         Statement statement = connection.createStatement();
         ResultSet rs = statement.executeQuery(
             "SELECT to_regclass('public." + name + "') IS NOT NULL AS present")) {
+      assertNotNull(rs);
+      return rs.next() && rs.getBoolean("present");
+    }
+  }
+
+  private static boolean columnExists(String table, String column) throws SQLException {
+    try (Connection connection = DB.getConnection();
+        Statement statement = connection.createStatement();
+        ResultSet rs = statement.executeQuery(
+            "SELECT EXISTS (SELECT 1 FROM information_schema.columns "
+                + "WHERE table_schema = 'public' AND table_name = '" + table + "' "
+                + "AND column_name = '" + column + "') AS present")) {
       assertNotNull(rs);
       return rs.next() && rs.getBoolean("present");
     }
