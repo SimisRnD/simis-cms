@@ -121,11 +121,11 @@ public class UserDetailsWidget extends GenericWidget {
       return context;
     }
     // Execute the action
+    // Note: resetPassword is intentionally NOT handled here -- it requires step-up
+    // re-authentication (see post()) and must only be reachable through that gated path.
     context.setRedirect("/admin/user-details?userId=" + userId);
     String action = context.getParameter("action");
-    if ("resetPassword".equals(action)) {
-      return resetPassword(context, user);
-    } else if ("suspendAccount".equals(action)) {
+    if ("suspendAccount".equals(action)) {
       return suspendAccount(context, user);
     } else if ("restoreAccount".equals(action)) {
       return restoreAccount(context, user);
