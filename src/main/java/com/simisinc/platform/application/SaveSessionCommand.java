@@ -42,6 +42,10 @@ public class SaveSessionCommand {
     session.setIpAddress(IpAddressCommand.anonymizeForStorage(userSession.getIpAddress()));
     session.setUserAgent(userSession.getUserAgent());
     session.setReferer(userSession.getReferer());
+    // Reflects actual login state regardless of whether GeoIP resolution succeeded -- a failed
+    // or unavailable GeoIP lookup must not silently mark an anonymous visitor as not anonymous.
+    boolean isAnonymous = (userSession.getUserId() == UserSession.GUEST_ID);
+    session.setIsAnonymous(isAnonymous);
     if (userSession.getGeoIP() != null) {
       session.setContinent(userSession.getGeoIP().getContinent());
       session.setCountryIso(userSession.getGeoIP().getCountryISOCode());
@@ -51,8 +55,6 @@ public class SaveSessionCommand {
       session.setTimezone(userSession.getGeoIP().getTimezone());
       // City, postal code, and precise coordinates are only stored for
       // authenticated users; anonymous visitors are limited to region/country.
-      boolean isAnonymous = (userSession.getUserId() == UserSession.GUEST_ID);
-      session.setIsAnonymous(isAnonymous);
       if (!isAnonymous) {
         session.setCity(userSession.getGeoIP().getCity());
         session.setPostalCode(userSession.getGeoIP().getPostalCode());

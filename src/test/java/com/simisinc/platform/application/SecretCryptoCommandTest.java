@@ -26,7 +26,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.util.Base64;
 
 import org.junit.jupiter.api.AfterEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -37,7 +36,6 @@ import org.junit.jupiter.api.Test;
  * @author SimIS Inc.
  * @created 2026-07-19
  */
-@Disabled("Pre-existing: test requires database migration tables (distributed_lock) which aren't initialized in CI environment")
 class SecretCryptoCommandTest {
 
   private static final String PROP = "cms.secret.key";

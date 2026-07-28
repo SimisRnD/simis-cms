@@ -37,7 +37,13 @@ import static org.mockito.Mockito.when;
  * @author SimIS Inc.
  * @created 7/26/2026
  */
-@Disabled("JaCoCo 0.8.11 incompatible with Java 21 bytecode (major version 70) - requires JaCoCo upgrade")
+// TODO(#538 follow-up): fails in CI under JaCoCo instrumentation with no diagnosable stack trace
+// ("Tests run: 3, Failures: 3", zero exception detail in the console log) -- passes locally with
+// identical code, including under a fresh JaCoCo-instrumented ci-test run. Unlike the other tests
+// re-enabled in #538, this one was created already-disabled and has no prior passing-CI history to
+// fall back on, so this is a real, unexplained gap rather than a known-safe restoration. Needs
+// someone with CI shell/artifact access to reproduce and diagnose before re-enabling.
+@Disabled("Fails under CI's JaCoCo instrumentation with no diagnosable stack trace -- see #538 follow-up; passes locally")
 class SaveSessionCommandTest {
 
   @Test
@@ -152,9 +158,10 @@ class SaveSessionCommandTest {
       mockedRepo.verify(() -> SessionRepository.add(sessionCaptor.capture()));
     }
 
-    // Assert: Verify session was created with is_anonymous flag set appropriately
-    // Note: isAnonymous flag should only be set when GeoIP is not null
+    // Assert: an anonymous visitor is still flagged is_anonymous even when GeoIP resolution
+    // failed or was unavailable -- this must not silently default to "not anonymous"
     Session saved = sessionCaptor.getValue();
-    Assertions.assertFalse(saved.getIsAnonymous(), "When GeoIP is null, is_anonymous should not be set");
+    Assertions.assertTrue(saved.getIsAnonymous(),
+        "An anonymous visitor's session should be flagged is_anonymous regardless of GeoIP availability");
   }
 }

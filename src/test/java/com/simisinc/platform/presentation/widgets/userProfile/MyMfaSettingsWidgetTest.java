@@ -19,7 +19,6 @@ package com.simisinc.platform.presentation.widgets.userProfile;
 import java.util.List;
 
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
@@ -40,7 +39,6 @@ import static org.mockito.Mockito.when;
  * @author SimIS Inc.
  * @created 2026-07-17
  */
-@Disabled("Pre-existing: Database connection pool cleanup issue - HikariDataSource lifecycle requires test infrastructure fixes")
 class MyMfaSettingsWidgetTest extends WidgetBase {
 
   private static final String SECRET = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ";
@@ -158,8 +156,13 @@ class MyMfaSettingsWidgetTest extends WidgetBase {
     User user = new User();
     user.setId(1L);
     user.setMfaEnabled(true);
-    try (MockedStatic<UserRepository> repo = mockStatic(UserRepository.class)) {
+    // Without a granted step-up, post() re-renders the settings view (showView()), which for an
+    // enabled user calls UserMfaRecoveryCodeCommand.countRemaining() -- must be mocked here too,
+    // same as the sibling tests below, or it falls through to a real DB call.
+    try (MockedStatic<UserRepository> repo = mockStatic(UserRepository.class);
+        MockedStatic<UserMfaRecoveryCodeCommand> recovery = mockStatic(UserMfaRecoveryCodeCommand.class)) {
       repo.when(() -> UserRepository.findByUserId(anyLong())).thenReturn(user);
+      recovery.when(() -> UserMfaRecoveryCodeCommand.countRemaining(user)).thenReturn(5L);
       new MyMfaSettingsWidget().post(widgetContext);
     }
     Assertions.assertEquals("true", widgetContext.getSharedRequestValue("stepUpRequired"));

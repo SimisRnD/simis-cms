@@ -96,11 +96,10 @@ CSV="${1:-${JACOCO_CSV:-target/coverage-reports/jacoco.csv}}"
 FLOOR_MIN="${COVERAGE_FLOOR_MIN:-0}"
 
 if [ ! -s "$CSV" ]; then
-  echo "SKIPPED: JaCoCo CSV report not found or empty: $CSV" >&2
-  echo "         JaCoCo instrumentation is disabled due to Java 21 incompatibility." >&2
-  echo "         Security-critical test coverage gate requires a JaCoCo report." >&2
-  echo "         Once JaCoCo is updated to support Java 21 bytecode, this gate will re-enable." >&2
-  exit 0
+  echo "FAIL: JaCoCo CSV report not found or empty: $CSV" >&2
+  echo "      The report never ran, or ran and produced nothing. Fail-closed by design --" >&2
+  echo "      see the header comment above for why a missing report is a hard failure." >&2
+  exit 2
 fi
 
 # The whole comparison happens in awk: it reads the target list first (comma-
