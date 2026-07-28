@@ -16,20 +16,27 @@
 
 package com.simisinc.platform.presentation.widgets.admin;
 
-import com.simisinc.platform.WidgetBase;
-import com.simisinc.platform.domain.model.dashboard.StatisticsData;
-import com.simisinc.platform.infrastructure.persistence.SessionRepository;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-import org.mockito.MockedStatic;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.mockStatic;
 
 import java.sql.Timestamp;
 import java.util.List;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.Mockito.mockStatic;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
+
+import com.simisinc.platform.WidgetBase;
+import com.simisinc.platform.domain.model.audit.AuditLog;
+import com.simisinc.platform.infrastructure.database.DataConstraints;
+import com.simisinc.platform.infrastructure.persistence.SessionRepository;
+import com.simisinc.platform.infrastructure.persistence.UserRepository;
+import com.simisinc.platform.infrastructure.persistence.audit.AuditLogRepository;
+import com.simisinc.platform.infrastructure.persistence.audit.AuditLogSpecification;
+import com.simisinc.platform.infrastructure.persistence.cms.ContentRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.FormDataRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
 
 /**
  * @author matt rajkowski
@@ -37,112 +44,61 @@ import static org.mockito.Mockito.mockStatic;
  */
 class SiteStatsWidgetTest extends WidgetBase {
 
-  private void executeCardReport(String report, String title) {
+  private void assertCardReport(String report, String title, Runnable stubMock, long expectedValue) {
     addPreferencesFromWidgetXml(widgetContext,
         "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <icon>fa-users</icon>\n" +
             "  <title>" + title + "</title>\n" +
             "  <report>" + report + "</report>\n" +
             "</widget>");
     setRoles(widgetContext, ADMIN);
-    new SiteStatsWidget().execute(widgetContext);
+    stubMock.run();
+
+    SiteStatsWidget widget = new SiteStatsWidget();
+    widget.execute(widgetContext);
+
+    Assertions.assertEquals(SiteStatsWidget.CARD_JSP, widgetContext.getJsp());
+    Assertions.assertEquals(title, request.getAttribute("title"));
+    Assertions.assertEquals(String.valueOf(expectedValue), request.getAttribute("numberValue"));
   }
 
   @Test
-  void executeRealSessionsToday() {
-    try (MockedStatic<SessionRepository> sessionRepository = mockStatic(SessionRepository.class)) {
-      sessionRepository.when(() -> SessionRepository.countDistinctSessions(any(Timestamp.class), any(Timestamp.class)))
-          .thenReturn(42L);
-
-      executeCardReport("real-sessions-today", "Real Sessions Today");
-
-      Assertions.assertEquals(SiteStatsWidget.CARD_JSP, widgetContext.getJsp());
-      Assertions.assertEquals("42", request.getAttribute("numberValue"));
+  void executeEnabledAccounts() {
+    try (MockedStatic<UserRepository> userRepository = mockStatic(UserRepository.class)) {
+      assertCardReport("enabled-accounts", "Enabled Accounts",
+          () -> userRepository.when(UserRepository::countEnabledAccounts).thenReturn(150L), 150L);
     }
   }
 
   @Test
-  void executeBotSessionsToday() {
-    try (MockedStatic<SessionRepository> sessionRepository = mockStatic(SessionRepository.class)) {
-      sessionRepository.when(() -> SessionRepository.countBotSessions(any(Timestamp.class), any(Timestamp.class)))
-          .thenReturn(8L);
-
-      executeCardReport("bot-sessions-today", "Bot Sessions Today");
-
-      Assertions.assertEquals(SiteStatsWidget.CARD_JSP, widgetContext.getJsp());
-      Assertions.assertEquals("8", request.getAttribute("numberValue"));
+  void executeValidatedAccounts() {
+    try (MockedStatic<UserRepository> userRepository = mockStatic(UserRepository.class)) {
+      assertCardReport("validated-accounts", "Validated Accounts",
+          () -> userRepository.when(UserRepository::countValidatedAccounts).thenReturn(120L), 120L);
     }
   }
 
   @Test
-  void executeBotTrafficPercentageRounds() {
-    try (MockedStatic<SessionRepository> sessionRepository = mockStatic(SessionRepository.class)) {
-      // 25 of 100 sessions are bots -- expect 25%
-      sessionRepository.when(() -> SessionRepository.countDistinctSessions(any(Timestamp.class), any(Timestamp.class)))
-          .thenReturn(75L);
-      sessionRepository.when(() -> SessionRepository.countBotSessions(any(Timestamp.class), any(Timestamp.class)))
-          .thenReturn(25L);
-
-      executeCardReport("bot-traffic-percentage", "Bot Traffic %");
-
-      Assertions.assertEquals("25", request.getAttribute("numberValue"));
+  void executeNewRegistrationsThisMonth() {
+    try (MockedStatic<UserRepository> userRepository = mockStatic(UserRepository.class)) {
+      assertCardReport("new-registrations-this-month", "New This Month",
+          () -> userRepository.when(UserRepository::countNewRegistrationsThisMonth).thenReturn(7L), 7L);
     }
   }
 
   @Test
-  void executeBotTrafficPercentageWithNoSessionsIsZeroNotADivisionError() {
-    try (MockedStatic<SessionRepository> sessionRepository = mockStatic(SessionRepository.class)) {
-      sessionRepository.when(() -> SessionRepository.countDistinctSessions(any(Timestamp.class), any(Timestamp.class)))
-          .thenReturn(0L);
-      sessionRepository.when(() -> SessionRepository.countBotSessions(any(Timestamp.class), any(Timestamp.class)))
-          .thenReturn(0L);
-
-      executeCardReport("bot-traffic-percentage", "Bot Traffic %");
-
-      Assertions.assertEquals("0", request.getAttribute("numberValue"));
+  void executeAdminStaffAccounts() {
+    try (MockedStatic<UserRepository> userRepository = mockStatic(UserRepository.class)) {
+      assertCardReport("admin-staff-accounts", "Admin/Staff Accounts",
+          () -> userRepository.when(UserRepository::countAccountsWithAnyRole).thenReturn(12L), 12L);
     }
   }
 
   @Test
-  void executeDailyRealSessions() {
-    try (MockedStatic<SessionRepository> sessionRepository = mockStatic(SessionRepository.class)) {
-      StatisticsData point = new StatisticsData();
-      point.setLabel("2026-07-28");
-      point.setValue("5");
-      sessionRepository.when(() -> SessionRepository.findDailySessionsByBotStatus(anyInt(), anyBoolean()))
-          .thenReturn(List.of(point));
-
-      addPreferencesFromWidgetXml(widgetContext,
-          "<widget name=\"siteStats\" class=\"stats card\">\n" +
-              "  <title>Daily Real Sessions</title>\n" +
-              "  <report>daily-real-sessions</report>\n" +
-              "  <type>line</type>\n" +
-              "</widget>");
-      setRoles(widgetContext, ADMIN);
-      new SiteStatsWidget().execute(widgetContext);
-
-      sessionRepository.verify(() -> SessionRepository.findDailySessionsByBotStatus(30, false));
-      Assertions.assertEquals(SiteStatsWidget.LINE_CHART_JSP, widgetContext.getJsp());
-      Assertions.assertEquals(List.of(point), request.getAttribute("statisticsDataList"));
-    }
-  }
-
-  @Test
-  void executeDailyBotSessions() {
-    try (MockedStatic<SessionRepository> sessionRepository = mockStatic(SessionRepository.class)) {
-      sessionRepository.when(() -> SessionRepository.findDailySessionsByBotStatus(anyInt(), anyBoolean()))
-          .thenReturn(List.of());
-
-      addPreferencesFromWidgetXml(widgetContext,
-          "<widget name=\"siteStats\" class=\"stats card\">\n" +
-              "  <title>Daily Bot Sessions</title>\n" +
-              "  <report>daily-bot-sessions</report>\n" +
-              "  <type>line</type>\n" +
-              "</widget>");
-      setRoles(widgetContext, ADMIN);
-      new SiteStatsWidget().execute(widgetContext);
-
-      sessionRepository.verify(() -> SessionRepository.findDailySessionsByBotStatus(30, true));
-      Assertions.assertEquals(SiteStatsWidget.LINE_CHART_JSP, widgetContext.getJsp());
+  void executePublicAccounts() {
+    try (MockedStatic<UserRepository> userRepository = mockStatic(UserRepository.class)) {
+      assertCardReport("public-accounts", "Public Accounts",
+          () -> userRepository.when(UserRepository::countPublicAccounts).thenReturn(177L), 177L);
     }
   }
 
@@ -195,5 +151,211 @@ class SiteStatsWidgetTest extends WidgetBase {
     }
 
     Assertions.assertNotNull(widgetContext.getJson());
+  }
+
+  @Test
+  void executeFailedLogins24hIsCriticalWhenAnyOccurred() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\">\n" +
+            "  <title>Failed Logins (24h)</title>\n" +
+            "  <report>failed-logins-24h</report>\n" +
+            "</widget>");
+
+    try (MockedStatic<AuditLogRepository> auditLogRepository = mockStatic(AuditLogRepository.class)) {
+      // The real count comes from DataConstraints being mutated as a side effect of the DB call
+      // (see DB.selectAllFrom); replicate that here rather than mocking a return value that this
+      // widget code never actually reads.
+      auditLogRepository
+          .when(() -> AuditLogRepository.findAll(any(AuditLogSpecification.class), any(DataConstraints.class)))
+          .thenAnswer(invocation -> {
+            DataConstraints constraints = invocation.getArgument(1);
+            constraints.setTotalRecordCount(3);
+            return List.of();
+          });
+
+      setRoles(widgetContext, ADMIN);
+      new SiteStatsWidget().execute(widgetContext);
+    }
+
+    Assertions.assertEquals(SiteStatsWidget.ALERT_CARD_JSP, widgetContext.getJsp());
+    Assertions.assertEquals("3", request.getAttribute("numberValue"));
+    Assertions.assertEquals("critical", request.getAttribute("severity"));
+  }
+
+  @Test
+  void executeFailedLogins24hIsOkWhenNoneOccurred() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\">\n" +
+            "  <title>Failed Logins (24h)</title>\n" +
+            "  <report>failed-logins-24h</report>\n" +
+            "</widget>");
+
+    try (MockedStatic<AuditLogRepository> auditLogRepository = mockStatic(AuditLogRepository.class)) {
+      auditLogRepository
+          .when(() -> AuditLogRepository.findAll(any(AuditLogSpecification.class), any(DataConstraints.class)))
+          .thenAnswer(invocation -> {
+            DataConstraints constraints = invocation.getArgument(1);
+            constraints.setTotalRecordCount(0);
+            return List.of();
+          });
+
+      setRoles(widgetContext, ADMIN);
+      new SiteStatsWidget().execute(widgetContext);
+    }
+
+    Assertions.assertEquals("0", request.getAttribute("numberValue"));
+    Assertions.assertEquals("ok", request.getAttribute("severity"));
+  }
+
+  @Test
+  void executeLockedAccounts() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\">\n" +
+            "  <title>Locked Accounts</title>\n" +
+            "  <report>locked-accounts</report>\n" +
+            "</widget>");
+
+    try (MockedStatic<UserRepository> userRepository = mockStatic(UserRepository.class)) {
+      userRepository.when(UserRepository::countLockedAccounts).thenReturn(2L);
+
+      setRoles(widgetContext, ADMIN);
+      new SiteStatsWidget().execute(widgetContext);
+    }
+
+    Assertions.assertEquals(SiteStatsWidget.ALERT_CARD_JSP, widgetContext.getJsp());
+    Assertions.assertEquals("2", request.getAttribute("numberValue"));
+    Assertions.assertEquals("critical", request.getAttribute("severity"));
+  }
+
+  @Test
+  void executeDraftsAwaitingReview() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\">\n" +
+            "  <title>Drafts Awaiting Review</title>\n" +
+            "  <report>drafts-awaiting-review</report>\n" +
+            "</widget>");
+
+    try (MockedStatic<ContentRepository> contentRepository = mockStatic(ContentRepository.class)) {
+      contentRepository.when(() -> ContentRepository.countByDraftStatus("submitted")).thenReturn(4L);
+
+      setRoles(widgetContext, ADMIN);
+      new SiteStatsWidget().execute(widgetContext);
+    }
+
+    Assertions.assertEquals("4", request.getAttribute("numberValue"));
+    Assertions.assertEquals("warning", request.getAttribute("severity"));
+  }
+
+  @Test
+  void executeScheduledNotLive() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\">\n" +
+            "  <title>Scheduled, Not Yet Live</title>\n" +
+            "  <report>scheduled-not-live</report>\n" +
+            "</widget>");
+
+    try (MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class)) {
+      webPageRepository.when(WebPageRepository::countScheduledNotYetLive).thenReturn(1L);
+
+      setRoles(widgetContext, ADMIN);
+      new SiteStatsWidget().execute(widgetContext);
+    }
+
+    Assertions.assertEquals("1", request.getAttribute("numberValue"));
+    Assertions.assertEquals("warning", request.getAttribute("severity"));
+  }
+
+  @Test
+  void executeSubmissionsAwaitingReview() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\">\n" +
+            "  <title>Submissions Awaiting Review</title>\n" +
+            "  <report>submissions-awaiting-review</report>\n" +
+            "</widget>");
+
+    try (MockedStatic<FormDataRepository> formDataRepository = mockStatic(FormDataRepository.class)) {
+      formDataRepository.when(FormDataRepository::countAwaitingReview).thenReturn(0L);
+
+      setRoles(widgetContext, ADMIN);
+      new SiteStatsWidget().execute(widgetContext);
+    }
+
+    Assertions.assertEquals("0", request.getAttribute("numberValue"));
+    Assertions.assertEquals("ok", request.getAttribute("severity"));
+  }
+
+  @Test
+  void executeBotSessionsTodayIsNeverAnAlert() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\">\n" +
+            "  <title>Bot Sessions Today</title>\n" +
+            "  <report>bot-sessions-today</report>\n" +
+            "</widget>");
+
+    try (MockedStatic<SessionRepository> sessionRepository = mockStatic(SessionRepository.class)) {
+      sessionRepository.when(() -> SessionRepository.countDistinctBotSessions(any(Timestamp.class), any(Timestamp.class)))
+          .thenReturn(57L);
+
+      setRoles(widgetContext, ADMIN);
+      new SiteStatsWidget().execute(widgetContext);
+    }
+
+    // Bot traffic is informational, never a red/yellow alert regardless of volume
+    Assertions.assertEquals("57", request.getAttribute("numberValue"));
+    Assertions.assertEquals("ok", request.getAttribute("severity"));
+  }
+
+  @Test
+  void executeRecentAdminActionsReturnsTheDedicatedListJsp() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\">\n" +
+            "  <title>Recent Admin Activity</title>\n" +
+            "  <report>recent-admin-actions</report>\n" +
+            "</widget>");
+
+    try (MockedStatic<AuditLogRepository> auditLogRepository = mockStatic(AuditLogRepository.class)) {
+      auditLogRepository.when(() -> AuditLogRepository.findAll(any(AuditLogSpecification.class), any(DataConstraints.class)))
+          .thenReturn(List.of());
+
+      setRoles(widgetContext, ADMIN);
+      new SiteStatsWidget().execute(widgetContext);
+    }
+
+    Assertions.assertEquals(SiteStatsWidget.RECENT_ACTIONS_JSP, widgetContext.getJsp());
+    Assertions.assertNotNull(request.getAttribute("recentActionsList"));
+  }
+
+  @Test
+  void findRecentAdminActionsMergesSortsAndTruncatesAcrossCategories() {
+    AuditLog oldest = eventAt("content", 1_000L);
+    AuditLog middle = eventAt("configuration", 2_000L);
+    AuditLog newest = eventAt("user_management", 3_000L);
+
+    try (MockedStatic<AuditLogRepository> auditLogRepository = mockStatic(AuditLogRepository.class)) {
+      auditLogRepository.when(() -> AuditLogRepository.findAll(
+          argThat(spec -> "content".equals(spec.getEventCategory())), any(DataConstraints.class)))
+          .thenReturn(List.of(oldest));
+      auditLogRepository.when(() -> AuditLogRepository.findAll(
+          argThat(spec -> "configuration".equals(spec.getEventCategory())), any(DataConstraints.class)))
+          .thenReturn(List.of(middle));
+      auditLogRepository.when(() -> AuditLogRepository.findAll(
+          argThat(spec -> "user_management".equals(spec.getEventCategory())), any(DataConstraints.class)))
+          .thenReturn(List.of(newest));
+
+      List<AuditLog> result = SiteStatsWidget.findRecentAdminActions(2);
+
+      // Newest first, and truncated to the requested limit even though 3 records were found
+      Assertions.assertEquals(2, result.size());
+      Assertions.assertEquals(newest, result.get(0));
+      Assertions.assertEquals(middle, result.get(1));
+    }
+  }
+
+  private static AuditLog eventAt(String category, long epochMilli) {
+    AuditLog auditLog = new AuditLog();
+    auditLog.setEventCategory(category);
+    auditLog.setEventType(category + ".test");
+    auditLog.setOccurred(new Timestamp(epochMilli));
+    return auditLog;
   }
 }

@@ -111,47 +111,12 @@ public class SessionRepository {
     return DB.selectCountFrom(TABLE_NAME, where);
   }
 
-  /** Mirrors countDistinctSessions, reporting bot volume instead of excluding it. */
-  public static long countBotSessions(Timestamp startDate, Timestamp endDate) {
+  public static long countDistinctBotSessions(Timestamp startDate, Timestamp endDate) {
     SqlUtils where = new SqlUtils()
         .add("created >= ?", startDate)
         .add("created < ?", endDate)
         .add("is_bot = ?", true);
     return DB.selectCountFrom(TABLE_NAME, where);
-  }
-
-  /**
-   * Day-bucketed session counts split by bot status, zero-filled for days with no matching
-   * sessions (issue #561). Reads the raw sessions table directly rather than the pre-aggregated
-   * web_page_hit_snapshots table, which has no bot column -- this mirrors the generate_series +
-   * LEFT JOIN pattern UserRepository.findDailyUserRegistrations already uses, with the is_bot
-   * filter kept in the JOIN condition (not a WHERE clause) so days with zero sessions of the
-   * requested bot status still appear as a zero-value row instead of being dropped entirely.
-   */
-  public static List<StatisticsData> findDailySessionsByBotStatus(int daysToLimit, boolean isBot) {
-    String SQL_QUERY =
-        "SELECT DATE_TRUNC('day', day)::VARCHAR(10) AS date_column, COUNT(DISTINCT session_id) AS daily_count " +
-            "FROM (SELECT generate_series(NOW() - INTERVAL '" + daysToLimit + " days', NOW(), INTERVAL '1 day')::date) d(day) " +
-            "LEFT JOIN sessions ON DATE_TRUNC('day', created) = DATE_TRUNC('day', d.day) AND is_bot = ? " +
-            "GROUP BY d.day " +
-            "ORDER BY d.day";
-    List<StatisticsData> records = null;
-    try (Connection connection = DB.getConnection();
-         PreparedStatement pst = connection.prepareStatement(SQL_QUERY)) {
-      pst.setBoolean(1, isBot);
-      try (ResultSet rs = pst.executeQuery()) {
-        records = new ArrayList<>();
-        while (rs.next()) {
-          StatisticsData data = new StatisticsData();
-          data.setLabel(rs.getString("date_column"));
-          data.setValue(String.valueOf(rs.getLong("daily_count")));
-          records.add(data);
-        }
-      }
-    } catch (SQLException se) {
-      LOG.error("SQLException: " + se.getMessage());
-    }
-    return records;
   }
 
   public static long countSessionsToday() {

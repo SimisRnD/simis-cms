@@ -90,6 +90,10 @@ public class ContentRepository {
     return null;
   }
 
+  public static long countByDraftStatus(String draftStatus) {
+    return DB.selectCountFrom(TABLE_NAME, new SqlUtils().add("draft_status = ?", draftStatus));
+  }
+
   public static Content save(Content record) {
     if (record.getId() > -1) {
       return update(record);
