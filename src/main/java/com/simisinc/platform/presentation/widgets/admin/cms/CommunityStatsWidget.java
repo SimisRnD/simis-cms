@@ -16,7 +16,7 @@
 
 package com.simisinc.platform.presentation.widgets.admin.cms;
 
-import com.simisinc.platform.infrastructure.persistence.mailinglists.MailingListRepository;
+import com.simisinc.platform.infrastructure.persistence.mailinglists.MailingListMemberRepository;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 
@@ -59,7 +59,10 @@ public class CommunityStatsWidget extends GenericWidget {
 
     // Reports
     if ("total-mailing-list-members".equalsIgnoreCase(report)) {
-      Long count = MailingListRepository.countTotalMembers();
+      // Distinct people, not a count of list-membership rows or the old member_count sum (see
+      // MailingListMemberRepository#countDistinctSubscribers -- that sum never decremented on
+      // unsubscribe, so it drifted upward over time).
+      long count = MailingListMemberRepository.countDistinctSubscribers();
       context.getRequest().setAttribute("numberValue", String.valueOf(count));
       context.setJsp(CARD_JSP);
     } else {

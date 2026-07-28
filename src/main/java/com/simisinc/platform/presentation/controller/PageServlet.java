@@ -23,6 +23,7 @@ import com.simisinc.platform.application.cms.*;
 import com.simisinc.platform.application.items.LoadCategoryCommand;
 import com.simisinc.platform.application.items.LoadCollectionCommand;
 import com.simisinc.platform.application.items.LoadItemCommand;
+import com.simisinc.platform.application.items.SaveItemCommand;
 import com.simisinc.platform.domain.model.cms.MenuTab;
 import com.simisinc.platform.domain.model.cms.Stylesheet;
 import com.simisinc.platform.domain.model.cms.TableOfContents;
@@ -534,7 +535,13 @@ public class PageServlet extends HttpServlet {
           newItem.setCreatedBy(userSession.getUserId());
           newItem.setModifiedBy(userSession.getUserId());
 
-          Item saved = ItemRepository.save(newItem);
+          Item saved = SaveItemCommand.saveItem(newItem);
+          if (saved == null) {
+            response.setContentType("application/json");
+            response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+            response.getWriter().print("{\"success\":false,\"error\":\"Item could not be saved\"}");
+            return;
+          }
           response.setContentType("application/json");
           response.getWriter().print("{\"success\":true,\"message\":\"Item created\",\"itemId\":" + saved.getId() + "}");
         } catch (Exception e) {
