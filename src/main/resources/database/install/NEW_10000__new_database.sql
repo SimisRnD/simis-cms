@@ -467,6 +467,17 @@ CREATE INDEX audit_log_occurred_idx ON audit_log(occurred);
 CREATE INDEX audit_log_category_type_idx ON audit_log(event_category, event_type);
 CREATE INDEX audit_log_actor_idx ON audit_log(actor_user_id);
 
+-- Audit log prefix-deletion watermark (#296, AU-9; mirrored by UPGRADE_20260725.1002 for existing
+-- installs). Left empty on a fresh install -- there is no audit history yet to backfill from, and
+-- the application sets row id=1 atomically on the very first hashed insert (see
+-- AuditLogRepository.add()). Pre-seeding a placeholder row here would permanently block that
+-- INSERT ... ON CONFLICT DO NOTHING from ever recording the real value. See
+-- AuditLogIntegrityCommand for how the watermark is used to detect oldest-prefix deletion.
+CREATE TABLE audit_log_watermark (
+  id                     INTEGER PRIMARY KEY DEFAULT 1,
+  lowest_hashed_audit_id BIGINT  NOT NULL DEFAULT 0
+);
+
 -- Multi-factor authentication recovery codes: one-time backup codes, stored as SHA-256 hashes
 CREATE TABLE user_mfa_recovery_codes (
   recovery_code_id BIGSERIAL PRIMARY KEY,

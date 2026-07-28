@@ -156,17 +156,28 @@ class AuditLogChainIntegrationTest {
   }
 
   @Test
-  void toleratesARetentionPurgeOfTheOldestRecords() {
+  void detectsUnauthorizedDeletionOfTheOldestPrefix() {
     save(nanosecondEvent(1));
     save(nanosecondEvent(2));
     save(nanosecondEvent(3));
 
-    // Deleting the oldest record (as retention does) leaves the chain verifiable from the new oldest record.
+    // Confirm the watermark actually recorded the true first hashed audit_id -- the exact condition
+    // the fresh-install/backfill fix exists to guarantee (a stale pre-seeded 0 would silently defeat
+    // the check below instead of catching it).
+    assertTrue(AuditLogRepository.loadWatermarkLowestId() > 0L,
+        "the watermark must be set once a hashed record has been written");
+
+    // A raw delete of the oldest hashed record, bypassing deleteOlderThan() entirely -- this is
+    // exactly the "deleted outside of the normal retention job" case the watermark exists to catch;
+    // only deleteOlderThan() legitimately advances it afterward (see
+    // deleteOlderThanRemovesTheAgedPrefixAndLeavesTheChainIntact for the legitimate-purge case).
     execute("DELETE FROM audit_log WHERE audit_id = 1");
 
     AuditIntegrityResult result = AuditLogIntegrityCommand.verify();
-    assertTrue(result.isIntact(), "the surviving records must still verify after an oldest-first purge");
-    assertEquals(2, result.getCheckedCount());
+    assertFalse(result.isIntact(), "an oldest-prefix deletion outside the retention job must be flagged as tampering");
+    // The reported id is the new minimum hashed record (2), not the deleted one (1) -- it identifies
+    // where the chain now starts, which no longer matches the watermark.
+    assertEquals(2L, result.getFirstInvalidAuditId());
   }
 
   @Test
@@ -261,8 +272,7 @@ class AuditLogChainIntegrationTest {
     execute("CREATE TABLE audit_log_watermark ("
         + "id INTEGER PRIMARY KEY DEFAULT 1, "
         + "lowest_hashed_audit_id BIGINT NOT NULL DEFAULT 0)");
-    execute("INSERT INTO audit_log_watermark (id, lowest_hashed_audit_id) "
-        + "SELECT 1, COALESCE(MIN(audit_id), 0) FROM audit_log WHERE record_hash IS NOT NULL "
-        + "ON CONFLICT (id) DO NOTHING");
+    // Matches the fixed migration: left empty here (audit_log is empty at this point), so the
+    // application's own first hashed insert sets the true watermark -- see AuditLogRepository.add().
   }
 }

@@ -46,7 +46,6 @@
   }
 </style>
 
-<script>
 <script nonce="${cspNonce}">
   <c:if test="${useCaptcha eq 'true' && !empty googleSiteKey}">
     function onSubmit(token) {
