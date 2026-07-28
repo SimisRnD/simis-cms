@@ -74,6 +74,9 @@ public class WidgetBase {
     when(servletContext.getContextPath()).thenReturn("/");
     when(request.getServletContext()).thenReturn(servletContext);
     when(request.getSession()).thenReturn(session);
+    // A real HttpServletRequest never returns null here; stub it so WidgetContext.getUri() (used by
+    // e.g. FormWidget's resolvePageUrl) doesn't NPE in tests that don't otherwise care about the URI.
+    when(request.getRequestURI()).thenReturn("/example/path");
 
     // Mock Request setAttribute
     final Map<String, String[]> parameterMap = new HashMap<>();

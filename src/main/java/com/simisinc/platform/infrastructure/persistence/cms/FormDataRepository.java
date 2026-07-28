@@ -18,15 +18,19 @@ package com.simisinc.platform.infrastructure.persistence.cms;
 
 import com.simisinc.platform.application.cms.FormDataJSONCommand;
 import com.simisinc.platform.domain.model.cms.FormData;
+import com.simisinc.platform.domain.model.dashboard.StatisticsData;
 import com.simisinc.platform.infrastructure.database.*;
 import com.simisinc.platform.presentation.controller.DataConstants;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -78,6 +82,8 @@ public class FormDataRepository {
           where.add("processed IS NULL");
         }
       }
+      where.addIfExists("created >= ?", specification.getOccurredAfter());
+      where.addIfExists("created < ?", specification.getOccurredBefore());
     }
     return DB.selectAllFrom(TABLE_NAME, where, constraints, FormDataRepository::buildRecord);
   }
@@ -100,6 +106,99 @@ public class FormDataRepository {
     constraints.setDefaultColumnToSortBy("form_data_id desc");
     DataResult result = query(specification, constraints);
     return (List<FormData>) result.getRecords();
+  }
+
+  /** Total submissions ever saved (issue #563) -- form_data only ever contains successful saves. */
+  public static long countTotalSubmissions() {
+    return DB.selectCountFrom(TABLE_NAME);
+  }
+
+  public static long countSpamFlagged(Timestamp startDate, Timestamp endDate) {
+    SqlUtils where = new SqlUtils()
+        .add("created >= ?", startDate)
+        .add("created < ?", endDate)
+        .add("flagged_as_spam = true");
+    return DB.selectCountFrom(TABLE_NAME, where);
+  }
+
+  /** Submissions for a single form in a date range (issue #563 -- conversion-rate tracking). */
+  public static long countSubmissions(String formUniqueId, Timestamp startDate, Timestamp endDate) {
+    SqlUtils where = new SqlUtils()
+        .add("form_unique_id = ?", formUniqueId)
+        .add("created >= ?", startDate)
+        .add("created < ?", endDate);
+    return DB.selectCountFrom(TABLE_NAME, where);
+  }
+
+  /** Day-bucketed submission counts, zero-filled, mirroring UserRepository.findDailyUserRegistrations. */
+  public static List<StatisticsData> findDailySubmissions(int daysToLimit) {
+    String SQL_QUERY =
+        "SELECT DATE_TRUNC('day', day)::VARCHAR(10) AS date_column, COUNT(form_data_id) AS daily_count " +
+            "FROM (SELECT generate_series(NOW() - INTERVAL '" + daysToLimit + " days', NOW(), INTERVAL '1 day')::date) d(day) " +
+            "LEFT JOIN " + TABLE_NAME + " ON DATE_TRUNC('day', created) = DATE_TRUNC('day', d.day) " +
+            "GROUP BY d.day " +
+            "ORDER BY d.day";
+    return queryDateBucketedCounts(SQL_QUERY);
+  }
+
+  /** Month-bucketed submission counts, zero-filled, mirroring UserRepository.findMonthlyUserRegistrations. */
+  public static List<StatisticsData> findMonthlySubmissions(int monthsLimit) {
+    String SQL_QUERY =
+        "SELECT DATE_TRUNC('month', month)::VARCHAR(10) AS date_column, COUNT(form_data_id) AS monthly_count " +
+            "FROM (SELECT generate_series(NOW() - INTERVAL '" + monthsLimit + " months', NOW(), INTERVAL '1 month')::date) d(month) " +
+            "LEFT JOIN " + TABLE_NAME + " ON DATE_TRUNC('month', created) = DATE_TRUNC('month', month) " +
+            "GROUP BY d.month " +
+            "ORDER BY d.month";
+    return queryDateBucketedCounts(SQL_QUERY);
+  }
+
+  private static List<StatisticsData> queryDateBucketedCounts(String sqlQuery) {
+    List<StatisticsData> records = null;
+    try (Connection connection = DB.getConnection();
+         PreparedStatement pst = connection.prepareStatement(sqlQuery);
+         ResultSet rs = pst.executeQuery()) {
+      records = new ArrayList<>();
+      while (rs.next()) {
+        StatisticsData data = new StatisticsData();
+        data.setLabel(rs.getString("date_column"));
+        data.setValue(String.valueOf(rs.getLong(2)));
+        records.add(data);
+      }
+    } catch (SQLException se) {
+      LOG.error("SQLException: " + se.getMessage());
+    }
+    return records;
+  }
+
+  /**
+   * Top submitted forms by form_unique_id (issue #563) -- there is no form-type taxonomy in this table
+   * (see the issue discussion: newsletter/career submissions never reach form_data at all, they go
+   * through separate widgets), so this is the finest real breakdown available.
+   */
+  public static List<StatisticsData> findSubmissionCountsByForm(int daysToLimit, int recordLimit) {
+    String SQL_QUERY =
+        "SELECT form_unique_id, COUNT(form_unique_id) AS form_count " +
+            "FROM " + TABLE_NAME + " " +
+            "WHERE created > NOW() - INTERVAL '" + daysToLimit + " days' " +
+            "AND form_unique_id IS NOT NULL " +
+            "GROUP BY form_unique_id " +
+            "ORDER BY form_count DESC " +
+            "LIMIT " + recordLimit;
+    List<StatisticsData> records = null;
+    try (Connection connection = DB.getConnection();
+         PreparedStatement pst = connection.prepareStatement(SQL_QUERY);
+         ResultSet rs = pst.executeQuery()) {
+      records = new ArrayList<>();
+      while (rs.next()) {
+        StatisticsData data = new StatisticsData();
+        data.setLabel(rs.getString("form_unique_id"));
+        data.setValue(String.valueOf(rs.getLong("form_count")));
+        records.add(data);
+      }
+    } catch (SQLException se) {
+      LOG.error("SQLException: " + se.getMessage());
+    }
+    return records;
   }
 
   public static FormData save(FormData record) {

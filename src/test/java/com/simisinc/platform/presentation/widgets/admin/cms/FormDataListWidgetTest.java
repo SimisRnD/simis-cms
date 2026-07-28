@@ -19,8 +19,11 @@ package com.simisinc.platform.presentation.widgets.admin.cms;
 import com.simisinc.platform.WidgetBase;
 import com.simisinc.platform.domain.model.cms.FormData;
 import com.simisinc.platform.infrastructure.persistence.cms.FormDataRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.FormDataSpecification;
+import com.simisinc.platform.presentation.controller.DataConstants;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
 import java.util.ArrayList;
@@ -101,5 +104,121 @@ class FormDataListWidgetTest extends WidgetBase {
       FormDataListWidget widget = new FormDataListWidget();
       widget.action(widgetContext);
     }
+  }
+
+  @Test
+  void executeDefaultsToAwaitingReview() {
+    // No status param -- issue #563's filter form defaults to the page's original hardcoded behavior
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"formDataList\">\n" +
+        "  <title>Submitted Forms</title>\n" +
+        "</widget>");
+
+    ArgumentCaptor<FormDataSpecification> specCaptor = ArgumentCaptor.forClass(FormDataSpecification.class);
+    try (MockedStatic<FormDataRepository> formDataRepositoryMockedStatic = mockStatic(FormDataRepository.class)) {
+      formDataRepositoryMockedStatic.when(() -> FormDataRepository.findAll(specCaptor.capture(), any())).thenReturn(new ArrayList<>());
+
+      setRoles(widgetContext, ADMIN);
+      FormDataListWidget widget = new FormDataListWidget();
+      widget.execute(widgetContext);
+    }
+
+    FormDataSpecification specification = specCaptor.getValue();
+    Assertions.assertEquals(DataConstants.FALSE, specification.getDismissed());
+    Assertions.assertEquals(DataConstants.FALSE, specification.getProcessed());
+    Assertions.assertEquals("awaiting", request.getAttribute("status"));
+  }
+
+  @Test
+  void executeStatusClaimedSetsClaimedTrue() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"formDataList\">\n" +
+        "  <title>Submitted Forms</title>\n" +
+        "</widget>");
+    addQueryParameter(widgetContext, "status", "claimed");
+
+    ArgumentCaptor<FormDataSpecification> specCaptor = ArgumentCaptor.forClass(FormDataSpecification.class);
+    try (MockedStatic<FormDataRepository> formDataRepositoryMockedStatic = mockStatic(FormDataRepository.class)) {
+      formDataRepositoryMockedStatic.when(() -> FormDataRepository.findAll(specCaptor.capture(), any())).thenReturn(new ArrayList<>());
+
+      setRoles(widgetContext, ADMIN);
+      FormDataListWidget widget = new FormDataListWidget();
+      widget.execute(widgetContext);
+    }
+
+    FormDataSpecification specification = specCaptor.getValue();
+    Assertions.assertEquals(DataConstants.TRUE, specification.getClaimed());
+    Assertions.assertEquals(DataConstants.UNDEFINED, specification.getDismissed(), "only the requested status should be set");
+    Assertions.assertEquals(DataConstants.UNDEFINED, specification.getProcessed());
+  }
+
+  @Test
+  void executeStatusProcessedSetsProcessedTrue() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"formDataList\">\n" +
+        "  <title>Submitted Forms</title>\n" +
+        "</widget>");
+    addQueryParameter(widgetContext, "status", "processed");
+
+    ArgumentCaptor<FormDataSpecification> specCaptor = ArgumentCaptor.forClass(FormDataSpecification.class);
+    try (MockedStatic<FormDataRepository> formDataRepositoryMockedStatic = mockStatic(FormDataRepository.class)) {
+      formDataRepositoryMockedStatic.when(() -> FormDataRepository.findAll(specCaptor.capture(), any())).thenReturn(new ArrayList<>());
+
+      setRoles(widgetContext, ADMIN);
+      FormDataListWidget widget = new FormDataListWidget();
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals(DataConstants.TRUE, specCaptor.getValue().getProcessed());
+  }
+
+  @Test
+  void executeStatusDismissedSetsDismissedTrue() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"formDataList\">\n" +
+        "  <title>Submitted Forms</title>\n" +
+        "</widget>");
+    addQueryParameter(widgetContext, "status", "dismissed");
+
+    ArgumentCaptor<FormDataSpecification> specCaptor = ArgumentCaptor.forClass(FormDataSpecification.class);
+    try (MockedStatic<FormDataRepository> formDataRepositoryMockedStatic = mockStatic(FormDataRepository.class)) {
+      formDataRepositoryMockedStatic.when(() -> FormDataRepository.findAll(specCaptor.capture(), any())).thenReturn(new ArrayList<>());
+
+      setRoles(widgetContext, ADMIN);
+      FormDataListWidget widget = new FormDataListWidget();
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals(DataConstants.TRUE, specCaptor.getValue().getDismissed());
+  }
+
+  @Test
+  void executeFormUniqueIdAndDateRangeAreAppliedAndEchoedBack() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"formDataList\">\n" +
+        "  <title>Submitted Forms</title>\n" +
+        "</widget>");
+    addQueryParameter(widgetContext, "formUniqueId", "contact-us");
+    addQueryParameter(widgetContext, "fromDate", "2026-07-01");
+    addQueryParameter(widgetContext, "toDate", "2026-07-31");
+
+    ArgumentCaptor<FormDataSpecification> specCaptor = ArgumentCaptor.forClass(FormDataSpecification.class);
+    try (MockedStatic<FormDataRepository> formDataRepositoryMockedStatic = mockStatic(FormDataRepository.class)) {
+      formDataRepositoryMockedStatic.when(() -> FormDataRepository.findAll(specCaptor.capture(), any())).thenReturn(new ArrayList<>());
+
+      setRoles(widgetContext, ADMIN);
+      FormDataListWidget widget = new FormDataListWidget();
+      widget.execute(widgetContext);
+    }
+
+    FormDataSpecification specification = specCaptor.getValue();
+    Assertions.assertEquals("contact-us", specification.getFormUniqueId());
+    Assertions.assertNotNull(specification.getOccurredAfter());
+    Assertions.assertNotNull(specification.getOccurredBefore());
+    // The toDate boundary is exclusive of the following day, so it must be after fromDate
+    Assertions.assertTrue(specification.getOccurredBefore().after(specification.getOccurredAfter()));
+
+    // The filter form and paging links both need these echoed back
+    Assertions.assertEquals("contact-us", request.getAttribute("formUniqueId"));
+    Assertions.assertEquals("2026-07-01", request.getAttribute("fromDate"));
+    Assertions.assertEquals("2026-07-31", request.getAttribute("toDate"));
+    String pagingParams = (String) request.getAttribute("recordPagingParams");
+    Assertions.assertNotNull(pagingParams);
+    Assertions.assertTrue(pagingParams.contains("formUniqueId=contact-us"));
   }
 }

@@ -16,6 +16,13 @@
 
 package com.simisinc.platform.presentation.widgets.admin.cms;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.sql.Timestamp;
+import java.time.LocalDate;
+
+import org.apache.commons.lang3.StringUtils;
+
 import com.simisinc.platform.domain.model.cms.FormData;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.persistence.cms.FormDataRepository;
@@ -47,14 +54,53 @@ public class FormDataListWidget extends GenericWidget {
     DataConstraints constraints = new DataConstraints(page, itemsPerPage, "created", "desc");
     context.getRequest().setAttribute(RequestConstants.RECORD_PAGING, constraints);
 
-    // Determine the records to show
+    // Determine the filter criteria (issue #563 -- this page previously had zero filter controls)
+    String formUniqueId = context.getParameter("formUniqueId");
+    String status = context.getParameter("status");
+    String fromDate = context.getParameter("fromDate");
+    String toDate = context.getParameter("toDate");
+
     FormDataSpecification specification = new FormDataSpecification();
-    specification.setDismissed(false);
-    specification.setProcessed(false);
+    if (StringUtils.isNotBlank(formUniqueId)) {
+      specification.setFormUniqueId(formUniqueId);
+    }
+    if ("claimed".equalsIgnoreCase(status)) {
+      specification.setClaimed(true);
+    } else if ("processed".equalsIgnoreCase(status)) {
+      specification.setProcessed(true);
+    } else if ("dismissed".equalsIgnoreCase(status)) {
+      specification.setDismissed(true);
+    } else {
+      // Default view: the original hardcoded behavior -- awaiting review
+      specification.setDismissed(false);
+      specification.setProcessed(false);
+    }
+    Timestamp from = parseDate(fromDate, 0);
+    Timestamp to = parseDate(toDate, 1);
+    if (from != null) {
+      specification.setOccurredAfter(from);
+    }
+    if (to != null) {
+      specification.setOccurredBefore(to);
+    }
 
     // Load the latest form data
     List<FormData> formDataList = FormDataRepository.findAll(specification, constraints);
     context.getRequest().setAttribute("formDataList", formDataList);
+
+    // Echo the filter values back so the form keeps its state
+    context.getRequest().setAttribute("formUniqueId", formUniqueId);
+    context.getRequest().setAttribute("status", StringUtils.isBlank(status) ? "awaiting" : status);
+    context.getRequest().setAttribute("fromDate", fromDate);
+    context.getRequest().setAttribute("toDate", toDate);
+
+    // Carry the filters through pagination (paging_control.jspf appends this to each page link)
+    StringBuilder pagingParams = new StringBuilder();
+    appendParam(pagingParams, "formUniqueId", formUniqueId);
+    appendParam(pagingParams, "status", status);
+    appendParam(pagingParams, "fromDate", fromDate);
+    appendParam(pagingParams, "toDate", toDate);
+    context.getRequest().setAttribute("recordPagingParams", pagingParams.toString());
 
     // Standard request items
     context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));
@@ -63,6 +109,30 @@ public class FormDataListWidget extends GenericWidget {
     // Show the editor
     context.setJsp(JSP);
     return context;
+  }
+
+  /** Appends {@code name=urlEncoded(value)} to the paging query string when the value is present. */
+  private void appendParam(StringBuilder sb, String name, String value) {
+    if (StringUtils.isBlank(value)) {
+      return;
+    }
+    if (sb.length() > 0) {
+      sb.append("&");
+    }
+    sb.append(name).append("=").append(URLEncoder.encode(value, StandardCharsets.UTF_8));
+  }
+
+  /** Parses a yyyy-MM-dd string to a start-of-day Timestamp plus {@code plusDays}; null when blank/invalid. */
+  private Timestamp parseDate(String value, int plusDays) {
+    if (StringUtils.isBlank(value)) {
+      return null;
+    }
+    try {
+      LocalDate date = LocalDate.parse(value.trim()).plusDays(plusDays);
+      return Timestamp.valueOf(date.atStartOfDay());
+    } catch (Exception e) {
+      return null;
+    }
   }
 
   public WidgetContext action(WidgetContext context) {
