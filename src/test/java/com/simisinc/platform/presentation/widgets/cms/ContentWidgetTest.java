@@ -20,11 +20,8 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
-
-import java.sql.Connection;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -36,7 +33,8 @@ import com.simisinc.platform.application.cms.ContentReviewCommand;
 import com.simisinc.platform.application.cms.EditorPermissionCommand;
 import com.simisinc.platform.application.cms.LoadContentCommand;
 import com.simisinc.platform.domain.model.cms.Content;
-import com.simisinc.platform.infrastructure.database.DB;
+import com.simisinc.platform.infrastructure.persistence.cms.ContentRepository;
+import com.simisinc.platform.presentation.controller.AuditEventCommand;
 
 /**
  * @author matt rajkowski
@@ -114,17 +112,26 @@ class ContentWidgetTest extends WidgetBase {
     content.setContent("<p>Card 1</p><hr><p>Card 2</p>");
     content.setDraftContent("<p>This is Card 1</p><hr><p>This is Card 2</p>");
 
-    // Execute the widget action
-    // Mock DB calls
-    Connection jdbcConnection = mock(Connection.class);
-    try (MockedStatic<DB> db = mockStatic(DB.class)) {
-      db.when(DB::getConnection).thenReturn(jdbcConnection);
-      try (MockedStatic<LoadContentCommand> staticLoadContentCommand = mockStatic(LoadContentCommand.class)) {
-        staticLoadContentCommand.when(() -> LoadContentCommand.loadContentByUniqueId(eq("hello-content")))
-            .thenReturn(content);
-        ContentWidget contentWidget = new ContentWidget();
-        widgetContext = contentWidget.action(widgetContext);
-      }
+    // Isolate every collaborator performWebAction() reaches -- including the permission and
+    // site-property checks -- rather than relying on the default (no-role) fixture to deny
+    // permission and short-circuit before them. That incidental short-circuit is what let this test
+    // pass while quietly depending on CacheManager never being asked for a cache it was never
+    // started to hold (issue #534): any future change to the default fixture's role list would have
+    // sent this test straight into that gap instead of actually exercising the publish path.
+    try (MockedStatic<LoadContentCommand> loadContent = mockStatic(LoadContentCommand.class);
+        MockedStatic<EditorPermissionCommand> editorPermission = mockStatic(EditorPermissionCommand.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<ContentRepository> contentRepository = mockStatic(ContentRepository.class);
+        MockedStatic<AuditEventCommand> auditEvent = mockStatic(AuditEventCommand.class)) {
+      loadContent.when(() -> LoadContentCommand.loadContentByUniqueId(eq("hello-content"))).thenReturn(content);
+      editorPermission.when(() -> EditorPermissionCommand.canEditContent(any())).thenReturn(true);
+      // Governed publishing off: a draft may be published directly, as it always could.
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean(anyString())).thenReturn(false);
+
+      ContentWidget contentWidget = new ContentWidget();
+      widgetContext = contentWidget.action(widgetContext);
+
+      contentRepository.verify(() -> ContentRepository.publish(content));
     }
   }
 
