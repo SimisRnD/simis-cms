@@ -59,6 +59,10 @@ public class Email extends Entity {
   private Timestamp lastEmailed = null;
   private Timestamp syncDate = null;
 
+  private String validationStatus = null;
+  private String validationSubStatus = null;
+  private Timestamp validatedAt = null;
+
   private Timestamp subscribed = null;
   private Timestamp unsubscribed = null;
   private String unsubscribeReason = null;
@@ -287,6 +291,30 @@ public class Email extends Entity {
 
   public void setSyncDate(Timestamp syncDate) {
     this.syncDate = syncDate;
+  }
+
+  public String getValidationStatus() {
+    return validationStatus;
+  }
+
+  public void setValidationStatus(String validationStatus) {
+    this.validationStatus = validationStatus;
+  }
+
+  public String getValidationSubStatus() {
+    return validationSubStatus;
+  }
+
+  public void setValidationSubStatus(String validationSubStatus) {
+    this.validationSubStatus = validationSubStatus;
+  }
+
+  public Timestamp getValidatedAt() {
+    return validatedAt;
+  }
+
+  public void setValidatedAt(Timestamp validatedAt) {
+    this.validatedAt = validatedAt;
   }
 
   public Timestamp getSubscribed() {
