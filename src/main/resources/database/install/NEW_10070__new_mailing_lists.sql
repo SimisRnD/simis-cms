@@ -41,7 +41,10 @@ CREATE TABLE emails (
   number_of_orders INTEGER DEFAULT 0,
   total_spent NUMERIC(15,6) DEFAULT 0,
   tags JSONB,
-  sync_date TIMESTAMP(3)
+  sync_date TIMESTAMP(3),
+  validation_status VARCHAR(20),
+  validation_sub_status VARCHAR(50),
+  validated_at TIMESTAMP(3)
 );
 
 CREATE INDEX emails_created_idx ON emails(created);
@@ -52,6 +55,7 @@ CREATE INDEX emails_last_ord_idx ON emails(last_order);
 CREATE INDEX emails_num_ord_idx ON emails(number_of_orders);
 CREATE INDEX emails_total_sp_idx ON emails(total_spent);
 CREATE INDEX emails_sync_date_idx ON emails(sync_date);
+CREATE INDEX emails_validation_status_idx ON emails(validation_status);
 
 CREATE TABLE mailing_lists (
   list_id BIGSERIAL PRIMARY KEY,

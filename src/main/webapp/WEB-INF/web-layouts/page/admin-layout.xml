@@ -642,6 +642,22 @@
       </column>
       <column class="small-12 medium-6 cell">
         <widget name="siteStats" class="stats card">
+          <title>Daily Real Sessions</title>
+          <label>Real Sessions</label>
+          <report>daily-real-sessions</report>
+          <type>line</type>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 cell">
+        <widget name="siteStats" class="stats card">
+          <title>Daily Bot Sessions</title>
+          <label>Bot Sessions</label>
+          <report>daily-bot-sessions</report>
+          <type>line</type>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 cell">
+        <widget name="siteStats" class="stats card">
           <icon>fa-search</icon>
           <title>Top Search Terms</title>
           <report>search-terms</report>

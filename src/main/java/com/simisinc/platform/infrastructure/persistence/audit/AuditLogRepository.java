@@ -16,6 +16,12 @@
 
 package com.simisinc.platform.infrastructure.persistence.audit;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.OutputStreamWriter;
+import java.io.Writer;
+import java.nio.charset.StandardCharsets;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -23,13 +29,16 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.time.temporal.ChronoUnit;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import com.simisinc.platform.application.audit.AuditLogIntegrityCommand;
+import com.simisinc.platform.application.json.JsonCommand;
 import com.simisinc.platform.domain.model.audit.AuditLog;
 import com.simisinc.platform.infrastructure.database.DB;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
@@ -289,6 +298,7 @@ public class AuditLogRepository {
           .addIfExists("LOWER(actor_username) LIKE ?", specification.getActorUsername() != null
               ? "%" + specification.getActorUsername().toLowerCase() + "%" : null)
           .addIfExists("source_ip = ?", specification.getSourceIp())
+          .addIfExists("target_type = ?", specification.getTargetType())
           .addIfExists("occurred >= ?", specification.getOccurredAfter())
           .addIfExists("occurred < ?", specification.getOccurredBefore());
     }
@@ -303,6 +313,65 @@ public class AuditLogRepository {
     SqlUtils where = createWhereStatement(specification);
     DataResult result = DB.selectAllFrom(TABLE_NAME, where, constraints, AuditLogRepository::buildRecord);
     return (List<AuditLog>) result.getRecords();
+  }
+
+  /** Exports every record matching the filter (unpaginated -- a fresh DataConstraints has no page size). */
+  public static void exportCsv(AuditLogSpecification specification, File file) {
+    SqlUtils selectFields = new SqlUtils()
+        .addNames(
+            "occurred AS \"Timestamp\"",
+            "event_category AS \"Category\"",
+            "event_type AS \"Event Type\"",
+            "outcome AS \"Outcome\"",
+            "actor_username AS \"Actor\"",
+            "source_ip AS \"Source IP\"",
+            "target_type AS \"Target Type\"",
+            "target_id AS \"Target ID\"",
+            "target_label AS \"Target Label\"",
+            "session_id AS \"Session ID\"",
+            "details AS \"Details\"");
+    SqlUtils where = createWhereStatement(specification);
+    DataConstraints constraints = new DataConstraints();
+    constraints.setDefaultColumnToSortBy("occurred desc");
+    DB.exportToCsvAllFrom(TABLE_NAME, selectFields, null, where, null, constraints, file);
+  }
+
+  /** Same filter and record set as {@link #exportCsv}, written as a JSON array instead. */
+  public static void exportJson(AuditLogSpecification specification, File file) throws IOException {
+    List<AuditLog> records = findAll(specification, new DataConstraints());
+    StringBuilder sb = new StringBuilder("[");
+    boolean isFirst = true;
+    for (AuditLog record : records) {
+      if (!isFirst) {
+        sb.append(",");
+      }
+      isFirst = false;
+      sb.append(toExportJson(record));
+    }
+    sb.append("]");
+    try (Writer writer = new OutputStreamWriter(new FileOutputStream(file), StandardCharsets.UTF_8)) {
+      writer.write(sb.toString());
+    }
+  }
+
+  /** One export record's JSON, built with the same escaping helper the SIEM sink uses (see SaveAuditEventCommand). */
+  private static String toExportJson(AuditLog record) {
+    Map<String, Object> map = new LinkedHashMap<>();
+    map.put("occurred", record.getOccurred() != null ? record.getOccurred().toInstant().toString() : null);
+    map.put("eventCategory", record.getEventCategory());
+    map.put("eventType", record.getEventType());
+    map.put("outcome", record.getOutcome());
+    if (record.getActorUserId() > -1L) {
+      map.put("actorUserId", record.getActorUserId());
+    }
+    map.put("actorUsername", record.getActorUsername());
+    map.put("sourceIp", record.getSourceIp());
+    map.put("targetType", record.getTargetType());
+    map.put("targetId", record.getTargetId());
+    map.put("targetLabel", record.getTargetLabel());
+    map.put("sessionId", record.getSessionId());
+    map.put("details", record.getDetails());
+    return JsonCommand.createJsonNode(map).toString();
   }
 
   /**
