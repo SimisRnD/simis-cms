@@ -21,6 +21,7 @@ import com.simisinc.platform.infrastructure.instance.InstanceManager;
 import com.simisinc.platform.infrastructure.scheduler.admin.DatasetsDownloadAndSyncJob;
 import com.simisinc.platform.infrastructure.scheduler.audit.AuditLogIntegrityJob;
 import com.simisinc.platform.infrastructure.scheduler.audit.AuditLogRetentionJob;
+import com.simisinc.platform.infrastructure.scheduler.cms.FormSubmissionFailureRetentionJob;
 import com.simisinc.platform.infrastructure.scheduler.cms.LoadSystemFilesJob;
 import com.simisinc.platform.infrastructure.scheduler.cms.RecordWebPageHitJob;
 import com.simisinc.platform.infrastructure.scheduler.cms.SessionsPiiScrubJob;
@@ -84,6 +85,7 @@ public class SchedulerManager {
   public static final String AUDIT_LOG_RETENTION_JOB = "AuditLogRetention";
   public static final String AUDIT_LOG_INTEGRITY_JOB = "AuditLogIntegrity";
   public static final String EMAIL_CLASSIFICATION_JOB = "EmailClassification";
+  public static final String FORM_SUBMISSION_FAILURE_RETENTION_JOB = "FormSubmissionFailureRetention";
 
   // Jobs which can be run by multiple clients
   public static final String DATASETS_DOWNLOAD_AND_SYNC_JOB = "DatasetsDownloadAndSync";
@@ -169,6 +171,7 @@ public class SchedulerManager {
         // billing except when there's actually unvalidated backlog; runs ahead of the 4am cluster above
         // so it isn't competing with those jobs for DB/API time.
         BackgroundJob.scheduleRecurrently(EMAIL_CLASSIFICATION_JOB, Cron.daily(3), EmailClassificationJob::execute);
+        BackgroundJob.scheduleRecurrently(FORM_SUBMISSION_FAILURE_RETENTION_JOB, Cron.daily(5), FormSubmissionFailureRetentionJob::execute);
       }
     } catch (Exception se) {
       LOG.error("Error starting jobrunr: ", se);

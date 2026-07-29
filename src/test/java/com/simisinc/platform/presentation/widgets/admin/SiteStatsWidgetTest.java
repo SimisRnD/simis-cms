@@ -16,6 +16,9 @@
 
 package com.simisinc.platform.presentation.widgets.admin;
 
+import java.sql.Timestamp;
+import java.util.List;
+
 import com.simisinc.platform.WidgetBase;
 import com.simisinc.platform.domain.model.dashboard.StatisticsData;
 import com.simisinc.platform.infrastructure.persistence.SessionRepository;
@@ -30,6 +33,7 @@ import java.util.List;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
+import org.mockito.Mockito;
 
 import java.util.List;
 
@@ -44,6 +48,8 @@ import com.simisinc.platform.infrastructure.persistence.audit.AuditLogRepository
 import com.simisinc.platform.infrastructure.persistence.audit.AuditLogSpecification;
 import com.simisinc.platform.infrastructure.persistence.cms.ContentRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.FormDataRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.FormSubmissionFailureRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.WebPageHitRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
 
 /**
@@ -449,5 +455,188 @@ class SiteStatsWidgetTest extends WidgetBase {
     auditLog.setEventType(category + ".test");
     auditLog.setOccurred(new Timestamp(epochMilli));
     return auditLog;
+  }
+
+  @Test
+  void executeTotalFormSubmissions() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <title>Total Form Submissions</title>\n" +
+            "  <report>total-form-submissions</report>\n" +
+            "</widget>");
+
+    try (MockedStatic<FormDataRepository> formDataRepositoryMockedStatic = mockStatic(FormDataRepository.class)) {
+      formDataRepositoryMockedStatic.when(FormDataRepository::countTotalSubmissions).thenReturn(42L);
+
+      setRoles(widgetContext, ADMIN);
+      SiteStatsWidget widget = new SiteStatsWidget();
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals(SiteStatsWidget.CARD_JSP, widgetContext.getJsp());
+    Assertions.assertEquals("42", request.getAttribute("numberValue"));
+  }
+
+  @Test
+  void executeFormSubmissionsSpamFlagged() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <title>Spam-Flagged Submissions (30d)</title>\n" +
+            "  <report>form-submissions-spam-flagged</report>\n" +
+            "  <days>30</days>\n" +
+            "</widget>");
+
+    try (MockedStatic<FormDataRepository> formDataRepositoryMockedStatic = mockStatic(FormDataRepository.class)) {
+      formDataRepositoryMockedStatic.when(() -> FormDataRepository.countSpamFlagged(Mockito.any(), Mockito.any())).thenReturn(7L);
+
+      setRoles(widgetContext, ADMIN);
+      SiteStatsWidget widget = new SiteStatsWidget();
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals(SiteStatsWidget.CARD_JSP, widgetContext.getJsp());
+    Assertions.assertEquals("7", request.getAttribute("numberValue"));
+  }
+
+  @Test
+  void executeDailyFormSubmissions() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <title>Daily Form Submissions</title>\n" +
+            "  <report>daily-form-submissions</report>\n" +
+            "</widget>");
+
+    List<StatisticsData> data = List.of(statistic("2026-07-28", "3"));
+    try (MockedStatic<FormDataRepository> formDataRepositoryMockedStatic = mockStatic(FormDataRepository.class)) {
+      formDataRepositoryMockedStatic.when(() -> FormDataRepository.findDailySubmissions(30)).thenReturn(data);
+
+      setRoles(widgetContext, ADMIN);
+      SiteStatsWidget widget = new SiteStatsWidget();
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals(SiteStatsWidget.LINE_CHART_JSP, widgetContext.getJsp());
+    Assertions.assertEquals(data, request.getAttribute("statisticsDataList"));
+  }
+
+  @Test
+  void executeMonthlyFormSubmissions() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <title>Monthly Form Submissions</title>\n" +
+            "  <report>monthly-form-submissions</report>\n" +
+            "</widget>");
+
+    List<StatisticsData> data = List.of(statistic("2026-07", "12"));
+    try (MockedStatic<FormDataRepository> formDataRepositoryMockedStatic = mockStatic(FormDataRepository.class)) {
+      formDataRepositoryMockedStatic.when(() -> FormDataRepository.findMonthlySubmissions(12)).thenReturn(data);
+
+      setRoles(widgetContext, ADMIN);
+      SiteStatsWidget widget = new SiteStatsWidget();
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals(SiteStatsWidget.LINE_CHART_JSP, widgetContext.getJsp());
+    Assertions.assertEquals(data, request.getAttribute("statisticsDataList"));
+  }
+
+  @Test
+  void executeTopForms() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <title>Top Forms by Submission Volume</title>\n" +
+            "  <report>top-forms</report>\n" +
+            "  <days>30</days>\n" +
+            "  <limit>10</limit>\n" +
+            "</widget>");
+
+    List<StatisticsData> data = List.of(statistic("contact-us", "20"));
+    try (MockedStatic<FormDataRepository> formDataRepositoryMockedStatic = mockStatic(FormDataRepository.class)) {
+      formDataRepositoryMockedStatic.when(() -> FormDataRepository.findSubmissionCountsByForm(30, 10)).thenReturn(data);
+
+      setRoles(widgetContext, ADMIN);
+      SiteStatsWidget widget = new SiteStatsWidget();
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals(SiteStatsWidget.TABLE_JSP, widgetContext.getJsp());
+    Assertions.assertEquals(data, request.getAttribute("statisticsDataList"));
+    Assertions.assertEquals("Form", request.getAttribute("label"));
+    Assertions.assertEquals("Submissions", request.getAttribute("value"));
+  }
+
+  @Test
+  void executeFormFailuresByReason() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <title>Rejected Submissions by Reason</title>\n" +
+            "  <report>form-failures-by-reason</report>\n" +
+            "  <days>30</days>\n" +
+            "  <limit>10</limit>\n" +
+            "</widget>");
+
+    List<StatisticsData> data = List.of(statistic("captcha_failed", "9"));
+    try (MockedStatic<FormSubmissionFailureRepository> repositoryMockedStatic = mockStatic(FormSubmissionFailureRepository.class)) {
+      repositoryMockedStatic.when(() -> FormSubmissionFailureRepository.findFailureCountsByReason(30, 10)).thenReturn(data);
+
+      setRoles(widgetContext, ADMIN);
+      SiteStatsWidget widget = new SiteStatsWidget();
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals(SiteStatsWidget.TABLE_JSP, widgetContext.getJsp());
+    Assertions.assertEquals(data, request.getAttribute("statisticsDataList"));
+  }
+
+  @Test
+  void executeConversionRate() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <title>% Conversion (30d)</title>\n" +
+            "  <report>conversion-rate</report>\n" +
+            "  <pagePath>/contact-us</pagePath>\n" +
+            "  <formUniqueId>contact-us</formUniqueId>\n" +
+            "  <days>30</days>\n" +
+            "</widget>");
+
+    try (MockedStatic<WebPageHitRepository> webPageHitRepositoryMockedStatic = mockStatic(WebPageHitRepository.class);
+         MockedStatic<FormDataRepository> formDataRepositoryMockedStatic = mockStatic(FormDataRepository.class)) {
+      webPageHitRepositoryMockedStatic.when(() -> WebPageHitRepository.countPageViews(
+          Mockito.eq("/contact-us"), Mockito.any(Timestamp.class), Mockito.any(Timestamp.class))).thenReturn(200L);
+      formDataRepositoryMockedStatic.when(() -> FormDataRepository.countSubmissions(
+          Mockito.eq("contact-us"), Mockito.any(Timestamp.class), Mockito.any(Timestamp.class))).thenReturn(25L);
+
+      setRoles(widgetContext, ADMIN);
+      SiteStatsWidget widget = new SiteStatsWidget();
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals(SiteStatsWidget.CARD_JSP, widgetContext.getJsp());
+    // 25 submissions / 200 page views = 12.5%
+    Assertions.assertEquals("12.5", request.getAttribute("numberValue"));
+  }
+
+  @Test
+  void executeConversionRateWithoutPageOrFormConfiguredSkipsTheReport() {
+    // No pagePath/formUniqueId preferences -- this report can't run without an admin-configured pairing,
+    // and must not blow up or silently query with a null page/form.
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <title>% Conversion (30d)</title>\n" +
+            "  <report>conversion-rate</report>\n" +
+            "</widget>");
+
+    setRoles(widgetContext, ADMIN);
+    SiteStatsWidget widget = new SiteStatsWidget();
+    widget.execute(widgetContext);
+
+    Assertions.assertNull(widgetContext.getJsp());
+  }
+
+  private static StatisticsData statistic(String label, String value) {
+    StatisticsData data = new StatisticsData();
+    data.setLabel(label);
+    data.setValue(value);
+    return data;
   }
 }

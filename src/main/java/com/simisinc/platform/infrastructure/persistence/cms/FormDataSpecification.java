@@ -16,6 +16,8 @@
 
 package com.simisinc.platform.infrastructure.persistence.cms;
 
+import java.sql.Timestamp;
+
 import com.simisinc.platform.presentation.controller.DataConstants;
 
 /**
@@ -34,6 +36,8 @@ public class FormDataSpecification {
   private long claimedBy = -1L;
   private int dismissed = DataConstants.UNDEFINED;
   private int processed = DataConstants.UNDEFINED;
+  private Timestamp occurredAfter = null;
+  private Timestamp occurredBefore = null;
 
   public FormDataSpecification() {
   }
@@ -116,5 +120,21 @@ public class FormDataSpecification {
 
   public void setProcessed(boolean processed) {
     this.processed = (processed ? DataConstants.TRUE : DataConstants.FALSE);
+  }
+
+  public Timestamp getOccurredAfter() {
+    return occurredAfter;
+  }
+
+  public void setOccurredAfter(Timestamp occurredAfter) {
+    this.occurredAfter = occurredAfter;
+  }
+
+  public Timestamp getOccurredBefore() {
+    return occurredBefore;
+  }
+
+  public void setOccurredBefore(Timestamp occurredBefore) {
+    this.occurredBefore = occurredBefore;
   }
 }

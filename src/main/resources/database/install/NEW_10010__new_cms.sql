@@ -225,6 +225,21 @@ CREATE INDEX form_data_claimed_by_idx ON form_data(claimed_by);
 CREATE INDEX form_data_dismissed_idx ON form_data(dismissed);
 CREATE INDEX form_data_processed_idx ON form_data(processed);
 
+-- Rejected form submissions (issue #563): deliberately lean, no field_values -- most of this volume is
+-- bot/spam noise (captcha failures, rate-limited requests) not worth persisting PII for. A rejection here
+-- never has a corresponding form_data row -- that table only ever contains successfully-saved submissions.
+CREATE TABLE form_submission_failures (
+  failure_id BIGSERIAL PRIMARY KEY,
+  form_unique_id VARCHAR(255),
+  occurred TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  reason VARCHAR(30) NOT NULL,
+  ip_address VARCHAR(200),
+  url VARCHAR(512)
+);
+CREATE INDEX form_sub_fail_form_idx ON form_submission_failures(form_unique_id);
+CREATE INDEX form_sub_fail_occurred_idx ON form_submission_failures(occurred);
+CREATE INDEX form_sub_fail_reason_idx ON form_submission_failures(reason);
+
 -- We want to know popular page_path
 -- We want to know popular web_page_id
 -- We want to know geolocation of ip_address
