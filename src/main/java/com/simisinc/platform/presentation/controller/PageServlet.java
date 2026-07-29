@@ -1179,6 +1179,33 @@ public class PageServlet extends HttpServlet {
   }
 
   /**
+   * Builds the FAQPage schema for a page with one or more FaqWidgets (issue #416). Uses
+   * FaqQuestion's pre-stripped answerText, not the widget's own rendered HTML, since Google's FAQ
+   * rich result requires the acceptedAnswer text to contain no markup.
+   */
+  static Map<String, Object> computeFaqSchema(PageRenderInfo pageRenderInfo) {
+    List<FaqQuestion> faqQuestionList = pageRenderInfo.getFaqQuestions();
+    if (faqQuestionList == null || faqQuestionList.isEmpty()) {
+      return null;
+    }
+    List<Map<String, Object>> mainEntity = new ArrayList<>();
+    for (FaqQuestion faqQuestion : faqQuestionList) {
+      Map<String, Object> question = new LinkedHashMap<>();
+      question.put("@type", "Question");
+      question.put("name", faqQuestion.getQuestion());
+      Map<String, Object> acceptedAnswer = new LinkedHashMap<>();
+      acceptedAnswer.put("@type", "Answer");
+      acceptedAnswer.put("text", faqQuestion.getAnswerText());
+      question.put("acceptedAnswer", acceptedAnswer);
+      mainEntity.add(question);
+    }
+    Map<String, Object> faqPage = new LinkedHashMap<>();
+    faqPage.put("@type", "FAQPage");
+    faqPage.put("mainEntity", mainEntity);
+    return faqPage;
+  }
+
+  /**
    * Turns a URL segment like "getting-started" into "Getting Started" for use as a breadcrumb
    * label when no page title is available to describe that part of the path.
    */

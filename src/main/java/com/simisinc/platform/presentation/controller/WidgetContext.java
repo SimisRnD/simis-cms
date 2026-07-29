@@ -64,6 +64,9 @@ public class WidgetContext implements Serializable {
   private Timestamp articleModifiedDate = null;
   private String articleAuthorName = null;
 
+  // FAQPage schema fields (issue #416), bridged from FaqWidget
+  private List<FaqQuestion> faqQuestions = null;
+
   private String jsp = null;
   private String html = null;
   private String json = null;
@@ -216,6 +219,14 @@ public class WidgetContext implements Serializable {
 
   public void setArticleAuthorName(String articleAuthorName) {
     this.articleAuthorName = articleAuthorName;
+  }
+
+  public List<FaqQuestion> getFaqQuestions() {
+    return faqQuestions;
+  }
+
+  public void setFaqQuestions(List<FaqQuestion> faqQuestions) {
+    this.faqQuestions = faqQuestions;
   }
 
   public String getJsp() {
