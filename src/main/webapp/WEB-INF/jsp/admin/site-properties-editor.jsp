@@ -201,6 +201,21 @@
           <c:if test="${siteProperty.name eq 'captcha.google.secretkey'}">
             <p class="help-text" id="captchaGoogleSecretkeyHelpText">The private key the server uses to verify captcha responses with Google. Never share it or commit it to source control. Google generates it together with the Site Key above, on the same reCAPTCHA admin console page; it's a similar-length alphanumeric string. This value is stored encrypted and always appears blank here after saving. Leave it blank to keep the current key, or enter a new value to replace it.</p>
           </c:if>
+          <c:if test="${siteProperty.name eq 'robots.ai.gptbot'}">
+            <p class="help-text">OpenAI's crawler for collecting training data for GPT models. Turning this off opts out of GPT model training only -- it does not affect OpenAI's separate live-browsing crawler that fetches a page when a ChatGPT user asks about it directly.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'robots.ai.claudebot'}">
+            <p class="help-text">Anthropic's crawler for collecting training data for Claude models. Turning this off opts out of Claude model training only -- it does not affect Anthropic's separate crawler for live, user-triggered page fetches.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'robots.ai.google-extended'}">
+            <p class="help-text">Controls whether Google may use this site's content to train Gemini and other generative AI features. Distinct from Google's regular search crawler (Googlebot) -- turning this off does not remove the site from Google Search results, only from AI training use.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'robots.ai.perplexitybot'}">
+            <p class="help-text">Perplexity's crawler for its AI answer engine, which reads pages to compose direct answers rather than just training a model. Turning this off is closer to an "exclude from AI-generated answers" opt-out than a training-data opt-out.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'robots.ai.ccbot'}">
+            <p class="help-text">Common Crawl's general-purpose crawler. Its dataset is reused by many different research labs and companies to train a wide range of models, not just one -- turning this off is the broadest of these opt-outs, but doesn't name a specific model or company.</p>
+          </c:if>
         </td>
       </tr>
     </c:forEach>
@@ -209,6 +224,9 @@
   <c:if test="${prefix eq 'captcha'}">
     <p class="help-text">reCAPTCHA v2 protects public forms across the site (for example, the contact form, account registration, newsletter signup, and job/business listings) wherever that form has captcha enabled. Changes take effect immediately on next page load.</p>
     <p><a href="${ctx}/contact-us" target="_blank" class="button radius secondary">Test CAPTCHA</a></p>
+  </c:if>
+  <c:if test="${prefix eq 'robots'}">
+    <p class="help-text">Controls what <a href="${ctx}/robots.txt" target="_blank" rel="noreferrer">/robots.txt</a> tells web crawlers. Admin pages are always excluded regardless of these settings. Each toggle below opts a specific AI crawler out of reading this site -- on by default, matching how the site behaved before these controls existed. A crawler being "off" here is a request, not an enforcement mechanism: well-behaved crawlers honor robots.txt, but nothing stops a crawler from ignoring it.</p>
   </c:if>
   <div class="button-container">
     <input type="submit" class="button radius success" value="Save" />

@@ -64,8 +64,9 @@ public class BlogPostWidget extends GenericWidget {
     }
     context.getRequest().setAttribute("blogPost", blogPost);
 
-    // Set the HTML page title
-    context.setPageTitle(blogPost.getTitle() + " - " + blog.getName());
+    // Set the HTML page title -- already includes the blog name, so the container must not
+    // also append the WebPage's own title (e.g. a wildcard page like /news/*) on top of it
+    context.setComposedPageTitle(blogPost.getTitle() + " - " + blog.getName());
     if (StringUtils.isNotBlank(blogPost.getSummary())) {
       context.setPageDescription(blogPost.getSummary());
     }
