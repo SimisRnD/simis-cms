@@ -30,8 +30,8 @@
   </c:if>
   <%@include file="../page_messages.jspf" %>
   <%-- Form Content --%>
-  <label>IP Address to Block <span class="required">*</span>
-    <input type="text" placeholder="ip address" name="ipAddress" value="<c:out value="${blockedIP.ipAddress}"/>" required>
+  <label>IP Address or CIDR Range to Block <span class="required">*</span>
+    <input type="text" placeholder="ip address or CIDR e.g. 203.0.113.0/24" name="ipAddress" value="<c:out value="${blockedIP.ipAddress}"/>" required>
   </label>
   <label>Reason
     <input type="text" placeholder="" name="reason" value="<c:out value="${blockedIP.reason}"/>">
