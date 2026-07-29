@@ -5,30 +5,18 @@
 -- Add tsvector column to store the searchable text vector
 ALTER TABLE web_pages ADD COLUMN IF NOT EXISTS tsv tsvector;
 
--- Create text search configuration for page-level content (if not exists)
--- Uses English stemmer via Snowball algorithm for intelligent matching
-DO $$
-BEGIN
-  IF NOT EXISTS (SELECT 1 FROM pg_text_search_config WHERE cfgname = 'page_stem') THEN
-    CREATE TEXT SEARCH DICTIONARY page_stem (
-      TEMPLATE = snowball,
-      Language = english
-    );
-    CREATE TEXT SEARCH CONFIGURATION page_stem (copy = english);
-    ALTER TEXT SEARCH CONFIGURATION page_stem
-      ALTER MAPPING FOR asciihword, asciiword, hword, hword_asciipart, hword_part, word
-      WITH page_stem;
-  END IF;
-END $$;
+-- Reuses title_stem (NEW_10024__new_items.sql), the same English-stemming text search
+-- configuration items/blog_posts/wikis/ecommerce already share, rather than creating a redundant,
+-- functionally identical one -- there is no page-specific stemming need here.
 
 -- Create or replace trigger function to maintain tsvector on insert/update
 -- Weights: A=title (most important), B=keywords, C=description
 CREATE OR REPLACE FUNCTION web_pages_tsv_trigger() RETURNS trigger AS $$
 begin
   new.tsv :=
-    setweight(to_tsvector('page_stem', COALESCE(new.page_title, '')), 'A') ||
-    setweight(to_tsvector('page_stem', COALESCE(new.page_keywords, '')), 'B') ||
-    setweight(to_tsvector('page_stem', COALESCE(new.page_description, '')), 'C');
+    setweight(to_tsvector('title_stem', COALESCE(new.page_title, '')), 'A') ||
+    setweight(to_tsvector('title_stem', COALESCE(new.page_keywords, '')), 'B') ||
+    setweight(to_tsvector('title_stem', COALESCE(new.page_description, '')), 'C');
   return new;
 end $$ LANGUAGE plpgsql;
 
@@ -41,9 +29,9 @@ ON web_pages FOR EACH ROW EXECUTE PROCEDURE web_pages_tsv_trigger();
 
 -- Backfill tsvector for all existing web pages
 UPDATE web_pages
-SET tsv = setweight(to_tsvector('page_stem', COALESCE(page_title, '')), 'A') ||
-          setweight(to_tsvector('page_stem', COALESCE(page_keywords, '')), 'B') ||
-          setweight(to_tsvector('page_stem', COALESCE(page_description, '')), 'C')
+SET tsv = setweight(to_tsvector('title_stem', COALESCE(page_title, '')), 'A') ||
+          setweight(to_tsvector('title_stem', COALESCE(page_keywords, '')), 'B') ||
+          setweight(to_tsvector('title_stem', COALESCE(page_description, '')), 'C')
 WHERE tsv IS NULL;
 
 -- Create GIN index for fast full-text search queries
