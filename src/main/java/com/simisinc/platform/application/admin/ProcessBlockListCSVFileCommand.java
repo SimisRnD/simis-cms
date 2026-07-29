@@ -18,6 +18,7 @@ package com.simisinc.platform.application.admin;
 
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.cms.DeleteBlockedIPListCommand;
+import com.simisinc.platform.application.cms.IpRangeCommand;
 import com.simisinc.platform.application.cms.SaveBlockedIPCommand;
 import com.simisinc.platform.application.cms.SaveFilePartCommand;
 import com.simisinc.platform.application.filesystem.FileSystemCommand;
@@ -120,8 +121,8 @@ public class ProcessBlockListCSVFileCommand {
           blockedIP.setIpAddress(ipAddress);
         }
 
-        // Don't add your own IP
-        if (ipAddress.equals(context.getRequest().getRemoteAddr())) {
+        // Don't add your own IP, whether as an exact match or as part of a submitted CIDR range
+        if (IpRangeCommand.matches(ipAddress, context.getRequest().getRemoteAddr())) {
           continue;
         }
 
