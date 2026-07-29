@@ -81,7 +81,10 @@
       <td><small><c:out value="${empty email.ipAddress ? '--' : email.ipAddress}" /></small></td>
       <td><fmt:formatDate pattern="yyyy-MM-dd hh:mm a" value="${email.created}" /></td>
       <td>
-        <a href="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&mailingListId=${mailingList.id}&emailId=${email.id}" onclick="return confirm('Are you sure you want to remove <c:out value="${js:escape(email.email)}" />?');"><i class="fa fa-remove"></i></a>
+        <a href="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&mailingListId=${mailingList.id}&emailId=${email.id}" onclick="return confirm('Are you sure you want to remove <c:out value="${js:escape(email.email)}" />?');" title="Remove member"><i class="fa fa-remove"></i></a>
+        <c:if test="${!empty email.ipAddress}">
+          <a href="#" onclick="return confirmPostAction('Block IP <c:out value="${js:escape(email.ipAddress)}" />? This will prevent that IP from accessing the site. The member itself is not removed.', '${widgetContext.uri}?command=blockIP&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&mailingListId=${mailingList.id}&emailId=${email.id}');" title="Block this IP"><i class="fa fa-ban"></i></a>
+        </c:if>
       </td>
     </tr>
     </c:forEach>

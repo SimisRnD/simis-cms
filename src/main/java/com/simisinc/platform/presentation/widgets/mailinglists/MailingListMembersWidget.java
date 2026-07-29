@@ -16,13 +16,18 @@
 
 package com.simisinc.platform.presentation.widgets.mailinglists;
 
+import com.simisinc.platform.application.AppException;
 import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.cms.IpRangeCommand;
+import com.simisinc.platform.application.cms.SaveBlockedIPCommand;
 import com.simisinc.platform.application.filesystem.FileSystemCommand;
 import com.simisinc.platform.application.mailinglists.ProcessEmailCSVFileCommand;
 import com.simisinc.platform.application.mailinglists.SaveEmailCommand;
+import com.simisinc.platform.domain.model.BlockedIP;
 import com.simisinc.platform.domain.model.mailinglists.Email;
 import com.simisinc.platform.domain.model.mailinglists.MailingList;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
+import com.simisinc.platform.infrastructure.persistence.BlockedIPRepository;
 import com.simisinc.platform.infrastructure.persistence.mailinglists.*;
 import com.simisinc.platform.presentation.controller.MultipartFileSender;
 import com.simisinc.platform.presentation.controller.RequestConstants;
@@ -30,6 +35,7 @@ import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import org.apache.commons.beanutils.BeanUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
 import java.lang.reflect.InvocationTargetException;
@@ -105,6 +111,10 @@ public class MailingListMembersWidget extends GenericWidget {
     String command = context.getParameter("command");
     if ("uploadCSVFile".equals(command)) {
       return uploadCSVFileAction(context, mailingList);
+    }
+
+    if ("blockIP".equals(command)) {
+      return blockIPAction(context, mailingList);
     }
 
     if ("downloadCSVFile".equals(command)) {
@@ -186,6 +196,58 @@ public class MailingListMembersWidget extends GenericWidget {
     // Determine the page to return to
     context.setSuccessMessage("Email was added");
     context.setRedirect("/admin/mailing-list-members?mailingListId=" + mailingList.getId());
+    return context;
+  }
+
+  /**
+   * Feeds a member's captured IP into the database-backed blocked-IP list (see docs/ip-blocking.md).
+   * Blocks the IP only - the mailing-list member row is left untouched; use the separate Delete action
+   * if the member itself should also be removed.
+   */
+  private WidgetContext blockIPAction(WidgetContext context, MailingList mailingList) {
+    context.setRedirect("/admin/mailing-list-members?mailingListId=" + mailingList.getId());
+
+    long emailId = context.getParameterAsLong("emailId");
+    Email email = EmailRepository.findById(emailId);
+    if (email == null) {
+      context.setErrorMessage("Email record was not found");
+      return context;
+    }
+
+    String ipAddress = email.getIpAddress();
+    if (StringUtils.isBlank(ipAddress)) {
+      context.setErrorMessage("No IP address is on file for this member");
+      return context;
+    }
+
+    // Don't allow blocking your own current IP, whether an exact match or as part of a CIDR range
+    if (IpRangeCommand.matches(ipAddress, context.getRequest().getRemoteAddr())) {
+      context.setErrorMessage("Cannot block your own IP");
+      return context;
+    }
+
+    // Skip if already blocked
+    if (BlockedIPRepository.findByIpAddress(ipAddress) != null) {
+      context.setWarningMessage("That IP is already blocked");
+      return context;
+    }
+
+    BlockedIP blockedIPBean = new BlockedIP();
+    blockedIPBean.setIpAddress(ipAddress);
+    blockedIPBean.setReason("Blocked from mailing list member: " + email.getEmail());
+    try {
+      BlockedIP blockedIP = SaveBlockedIPCommand.save(blockedIPBean);
+      if (blockedIP == null) {
+        throw new AppException("The IP could not be blocked due to a system error. Please try again.");
+      }
+      AuditEventCommand.record(context, AuditEventCommand.CONFIGURATION, "blocked_ip.add", AuditEventCommand.SUCCESS,
+          "blocked_ip", String.valueOf(blockedIP.getId()), blockedIP.getIpAddress(), blockedIP.getReason());
+      context.setSuccessMessage("IP " + ipAddress + " has been blocked");
+    } catch (DataException | AppException e) {
+      AuditEventCommand.record(context, AuditEventCommand.CONFIGURATION, "blocked_ip.add", AuditEventCommand.FAILURE,
+          "blocked_ip", null, ipAddress, e.getMessage());
+      context.setErrorMessage(e.getMessage());
+    }
     return context;
   }
 
