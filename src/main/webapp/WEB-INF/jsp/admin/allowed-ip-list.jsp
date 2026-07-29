@@ -59,6 +59,7 @@
       <th>Location</th>
       <th>Reason</th>
       <th width="80">Logged</th>
+      <th width="70">History</th>
     </tr>
   </thead>
   <tbody>
@@ -71,11 +72,18 @@
       <td><c:choose><c:when test="${fn:contains(record.ipAddress, '/')}"><small>Range</small></c:when><c:otherwise><c:out value='${geoip:location(record.ipAddress, " ")}'/></c:otherwise></c:choose></td>
       <td nowrap="true"><small<c:if test="${fn:length(record.reason) > 40}"> title="<c:out value="${record.reason}" />"</c:if>><c:out value="${text:trim(record.reason, 40, true)}" /></small></td>
       <td nowrap="true"><fmt:formatDate pattern="yyyy-MM-dd" value="${record.created}" /></td>
+      <td nowrap="true">
+        <c:url var="historyUrl" value="/admin/audit-log">
+          <c:param name="targetType" value="allowed_ip"/>
+          <c:param name="targetLabel" value="${record.ipAddress}"/>
+        </c:url>
+        <a href="${historyUrl}" title="View audit history for this IP">History</a>
+      </td>
     </tr>
     </c:forEach>
     <c:if test="${empty allowedIPList}">
       <tr>
-        <td colspan="4">No records were found</td>
+        <td colspan="5">No records were found</td>
       </tr>
     </c:if>
   </tbody>

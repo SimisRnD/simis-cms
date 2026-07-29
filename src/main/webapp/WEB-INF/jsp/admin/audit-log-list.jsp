@@ -80,6 +80,11 @@
       </label>
     </div>
     <div class="cell medium-3">
+      <label>Target label
+        <input type="text" name="targetLabel" placeholder="e.g. an IP address" value="<c:out value='${targetLabel}'/>">
+      </label>
+    </div>
+    <div class="cell medium-3">
       <label>From date
         <input type="date" name="fromDate" value="<c:out value='${fromDate}'/>">
       </label>
@@ -106,6 +111,7 @@
   <input type="hidden" name="actor" value="<c:out value='${actor}'/>"/>
   <input type="hidden" name="sourceIp" value="<c:out value='${sourceIp}'/>"/>
   <input type="hidden" name="targetType" value="<c:out value='${targetType}'/>"/>
+  <input type="hidden" name="targetLabel" value="<c:out value='${targetLabel}'/>"/>
   <input type="hidden" name="range" value="<c:out value='${range}'/>"/>
   <input type="hidden" name="fromDate" value="<c:out value='${fromDate}'/>"/>
   <input type="hidden" name="toDate" value="<c:out value='${toDate}'/>"/>

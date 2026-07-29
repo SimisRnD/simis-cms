@@ -299,6 +299,7 @@ public class AuditLogRepository {
               ? "%" + specification.getActorUsername().toLowerCase() + "%" : null)
           .addIfExists("source_ip = ?", specification.getSourceIp())
           .addIfExists("target_type = ?", specification.getTargetType())
+          .addIfExists("target_label = ?", specification.getTargetLabel())
           .addIfExists("occurred >= ?", specification.getOccurredAfter())
           .addIfExists("occurred < ?", specification.getOccurredBefore());
     }

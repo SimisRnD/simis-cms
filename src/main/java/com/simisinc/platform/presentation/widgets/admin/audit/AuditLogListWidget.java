@@ -47,9 +47,9 @@ import com.simisinc.platform.presentation.widgets.GenericWidget;
 
 /**
  * The in-app security audit review UI (NIST 800-53 AU-6). Lists audit_log records with filters for
- * category, event type, outcome, actor, source IP, target type, and an occurred-date range (either an
- * explicit range or a quick 1h/24h/7d/30d preset). Read-only and admin-only, plus CSV/JSON export of the
- * currently filtered results.
+ * category, event type, outcome, actor, source IP, target type, target label, and an occurred-date range
+ * (either an explicit range or a quick 1h/24h/7d/30d preset). Read-only and admin-only, plus CSV/JSON
+ * export of the currently filtered results.
  *
  * @author SimIS Inc.
  */
@@ -103,6 +103,7 @@ public class AuditLogListWidget extends GenericWidget {
     appendParam(pagingParams, "actor", context.getParameter("actor"));
     appendParam(pagingParams, "sourceIp", context.getParameter("sourceIp"));
     appendParam(pagingParams, "targetType", context.getParameter("targetType"));
+    appendParam(pagingParams, "targetLabel", context.getParameter("targetLabel"));
     appendParam(pagingParams, "range", context.getParameter("range"));
     appendParam(pagingParams, "fromDate", context.getParameter("fromDate"));
     appendParam(pagingParams, "toDate", context.getParameter("toDate"));
@@ -176,6 +177,7 @@ public class AuditLogListWidget extends GenericWidget {
     String actor = context.getParameter("actor");
     String sourceIp = context.getParameter("sourceIp");
     String targetType = context.getParameter("targetType");
+    String targetLabel = context.getParameter("targetLabel");
     String range = context.getParameter("range");
     String fromDate = context.getParameter("fromDate");
     String toDate = context.getParameter("toDate");
@@ -198,6 +200,9 @@ public class AuditLogListWidget extends GenericWidget {
     }
     if (StringUtils.isNotBlank(targetType)) {
       specification.setTargetType(targetType.trim());
+    }
+    if (StringUtils.isNotBlank(targetLabel)) {
+      specification.setTargetLabel(targetLabel.trim());
     }
 
     // A quick range preset (1h/24h/7d/30d) takes precedence over an explicit date range -- it is finer
@@ -227,6 +232,7 @@ public class AuditLogListWidget extends GenericWidget {
     context.getRequest().setAttribute("actor", context.getParameter("actor"));
     context.getRequest().setAttribute("sourceIp", context.getParameter("sourceIp"));
     context.getRequest().setAttribute("targetType", context.getParameter("targetType"));
+    context.getRequest().setAttribute("targetLabel", context.getParameter("targetLabel"));
     context.getRequest().setAttribute("range", context.getParameter("range"));
     context.getRequest().setAttribute("fromDate", context.getParameter("fromDate"));
     context.getRequest().setAttribute("toDate", context.getParameter("toDate"));
