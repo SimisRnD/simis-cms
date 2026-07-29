@@ -104,6 +104,7 @@ public class SaveCalendarEventCommand {
     calendarEvent.setSignUpUrl(calendarEventBean.getSignUpUrl());
     calendarEvent.setLocation(calendarEventBean.getLocation());
     calendarEvent.setImageUrl(calendarEventBean.getImageUrl());
+    calendarEvent.setVideoUrl(calendarEventBean.getVideoUrl());
     calendarEvent.setCreatedBy(calendarEventBean.getCreatedBy());
     calendarEvent.setModifiedBy(calendarEventBean.getModifiedBy());
     calendarEvent.setPublished(calendarEventBean.getPublished());
