@@ -2,8 +2,8 @@
   "@context": "https://openvex.dev/ns/v0.2.0",
   "@id": "https://github.com/SimisRnD/simis-cms/docker/db/vex/simis-cms-db",
   "author": "SimIS Inc. (SimIS CMS maintainers)",
-  "timestamp": "2026-07-21T12:51:42+00:00",
-  "version": 4,
+  "timestamp": "2026-07-29T23:20:00+00:00",
+  "version": 5,
   "tooling": "tools/generate-db-vex.py",
   "statements": [
     {
@@ -1064,7 +1064,28 @@
       "status": "not_affected",
       "justification": "vulnerable_code_not_in_execute_path",
       "impact_statement": "Present only as a transitive dependency of the PostGIS package's GDAL stack. The database enables vector PostGIS only (`CREATE EXTENSION postgis`); postgis_raster is never created, so GDAL's raster/image decoders, its remote-dataset (curl/ssh2) drivers and its embedded SQLite/HDF5/XML readers are never loaded or reachable from SQL."
+    },
+    {
+      "vulnerability": {
+        "name": "CVE-2026-26197"
+      },
+      "products": [
+        {
+          "@id": "pkg:oci/simis-cms-db",
+          "subcomponents": [
+            {
+              "@id": "pkg:deb/debian/libhdf5-103-1"
+            },
+            {
+              "@id": "pkg:deb/debian/libhdf5-hl-100"
+            }
+          ]
+        }
+      ],
+      "status": "not_affected",
+      "justification": "vulnerable_code_not_in_execute_path",
+      "impact_statement": "Present only as a transitive dependency of the PostGIS package's GDAL stack. The database enables vector PostGIS only (`CREATE EXTENSION postgis`); postgis_raster is never created, so GDAL's raster/image decoders, its remote-dataset (curl/ssh2) drivers and its embedded SQLite/HDF5/XML readers are never loaded or reachable from SQL. The CVE's out-of-bounds read requires opening a corrupted HDF5 file through libhdf5's own reader, which is only reachable via GDAL's HDF5 driver -- never loaded here, consistent with the existing CVE-2018-11205 statement for these same two packages."
     }
   ],
-  "last_updated": "2026-07-28T06:06:34Z"
+  "last_updated": "2026-07-29T23:20:00Z"
 }
