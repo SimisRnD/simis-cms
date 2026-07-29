@@ -17,6 +17,7 @@
 package com.simisinc.platform.presentation.controller;
 
 import java.io.Serializable;
+import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -51,6 +52,14 @@ public class WidgetContext implements Serializable {
   private String pageTitle = null;
   private String pageDescription = null;
   private String pageKeywords = null;
+
+  // Article schema fields (issue #403) -- separate from pageTitle/pageDescription above since
+  // those get a " - Site/Section Name" suffix applied for the browser tab, which would be wrong
+  // inside a JSON-LD headline
+  private String articleHeadline = null;
+  private Timestamp articlePublishedDate = null;
+  private Timestamp articleModifiedDate = null;
+  private String articleAuthorName = null;
 
   private String jsp = null;
   private String html = null;
@@ -161,6 +170,38 @@ public class WidgetContext implements Serializable {
 
   public void setPageKeywords(String pageKeywords) {
     this.pageKeywords = pageKeywords;
+  }
+
+  public String getArticleHeadline() {
+    return articleHeadline;
+  }
+
+  public void setArticleHeadline(String articleHeadline) {
+    this.articleHeadline = articleHeadline;
+  }
+
+  public Timestamp getArticlePublishedDate() {
+    return articlePublishedDate;
+  }
+
+  public void setArticlePublishedDate(Timestamp articlePublishedDate) {
+    this.articlePublishedDate = articlePublishedDate;
+  }
+
+  public Timestamp getArticleModifiedDate() {
+    return articleModifiedDate;
+  }
+
+  public void setArticleModifiedDate(Timestamp articleModifiedDate) {
+    this.articleModifiedDate = articleModifiedDate;
+  }
+
+  public String getArticleAuthorName() {
+    return articleAuthorName;
+  }
+
+  public void setArticleAuthorName(String articleAuthorName) {
+    this.articleAuthorName = articleAuthorName;
   }
 
   public String getJsp() {

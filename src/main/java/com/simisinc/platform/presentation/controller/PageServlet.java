@@ -850,14 +850,6 @@ public class PageServlet extends HttpServlet {
         }
       }
 
-      // Generate JSON-LD structured data for search engines and AI (issue #403)
-      if (StringUtils.isNotBlank(siteUrl) && StringUtils.isNotBlank(sitePropertyMap.get("site.name"))) {
-        String jsonLd = generateJsonLdData(pageRenderInfo, siteUrl, sitePropertyMap, thisItem, thisCollection);
-        if (StringUtils.isNotBlank(jsonLd)) {
-          pageRenderInfo.setJsonLdData(jsonLd);
-        }
-      }
-
       // Finally... we have a page ready to be processed...
       if (LOG.isDebugEnabled()) {
         LOG.debug(request.getMethod() + " page " + pageRef.getName());
@@ -893,6 +885,17 @@ public class PageServlet extends HttpServlet {
       if (WebContainerCommand.processWidgets(webContainerContext, pageRef.getSections(), pageRenderInfo, coreData, contextPath, pagePath, userSession, themePropertyMap)) {
         // The widget processor handled the response, immediately return
         return;
+      }
+
+      // Generate JSON-LD structured data for search engines and AI (issue #403). This runs after
+      // processWidgets so it can see page metadata a content widget (e.g. BlogPostWidget) bridged
+      // into pageRenderInfo during its own execute() -- generating it earlier would only ever see
+      // the generic item/collection/webPage title & description, never a widget-specific one.
+      if (StringUtils.isNotBlank(siteUrl) && StringUtils.isNotBlank(sitePropertyMap.get("site.name"))) {
+        String jsonLd = generateJsonLdData(pageRenderInfo, siteUrl, sitePropertyMap, thisItem, thisCollection);
+        if (StringUtils.isNotBlank(jsonLd)) {
+          pageRenderInfo.setJsonLdData(jsonLd);
+        }
       }
 
       // Render the header
@@ -1052,6 +1055,12 @@ public class PageServlet extends HttpServlet {
       }
       graph.add(webPage);
 
+      // Add Article schema for blog post pages (issue #403)
+      Map<String, Object> article = computeArticleSchema(pageRenderInfo);
+      if (article != null) {
+        graph.add(article);
+      }
+
       // Add Product schema if this is an item (catalog product)
       if (item != null && StringUtils.isNotBlank(item.getName())) {
         Map<String, Object> product = new LinkedHashMap<>();
@@ -1076,6 +1085,33 @@ public class PageServlet extends HttpServlet {
       LOG.warn("Error generating JSON-LD data: " + e.getMessage());
       return null;
     }
+  }
+
+  /**
+   * Builds the Article schema for a blog post page (issue #403). Gated on articleHeadline since
+   * that's only set by a content widget (BlogPostWidget) for a post that's actually published --
+   * every other page type leaves it blank, so this doubles as the "is this a blog post" check.
+   */
+  static Map<String, Object> computeArticleSchema(PageRenderInfo pageRenderInfo) {
+    if (StringUtils.isBlank(pageRenderInfo.getArticleHeadline())) {
+      return null;
+    }
+    Map<String, Object> article = new LinkedHashMap<>();
+    article.put("@type", "Article");
+    article.put("headline", pageRenderInfo.getArticleHeadline());
+    if (pageRenderInfo.getArticlePublishedDate() != null) {
+      article.put("datePublished", pageRenderInfo.getArticlePublishedDate().toInstant().toString());
+    }
+    if (pageRenderInfo.getArticleModifiedDate() != null) {
+      article.put("dateModified", pageRenderInfo.getArticleModifiedDate().toInstant().toString());
+    }
+    if (StringUtils.isNotBlank(pageRenderInfo.getArticleAuthorName())) {
+      Map<String, Object> author = new LinkedHashMap<>();
+      author.put("@type", "Person");
+      author.put("name", pageRenderInfo.getArticleAuthorName());
+      article.put("author", author);
+    }
+    return article;
   }
 
   /**

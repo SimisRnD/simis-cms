@@ -16,8 +16,11 @@
 
 package com.simisinc.platform.presentation.widgets.cms;
 
+import com.simisinc.platform.application.LoadUserCommand;
+import com.simisinc.platform.application.UserCommand;
 import com.simisinc.platform.application.cms.LoadBlogCommand;
 import com.simisinc.platform.application.cms.LoadBlogPostCommand;
+import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.cms.Blog;
 import com.simisinc.platform.domain.model.cms.BlogPost;
 import com.simisinc.platform.infrastructure.persistence.cms.BlogPostRepository;
@@ -71,6 +74,19 @@ public class BlogPostWidget extends GenericWidget {
     }
     if (StringUtils.isNotBlank(blogPost.getKeywords())) {
       context.setPageKeywords(blogPost.getKeywords());
+    }
+
+    // Set Article schema fields for JSON-LD (issue #403); a post that isn't actually published
+    // yet (visible here only to admin/content-manager, see retrieveValidatedBlogPostFromUrl)
+    // has nothing citable, so it gets no Article markup at all rather than a fabricated date
+    if (blogPost.getPublished() != null) {
+      context.setArticleHeadline(blogPost.getTitle());
+      context.setArticlePublishedDate(blogPost.getPublished());
+      context.setArticleModifiedDate(blogPost.getModified());
+      User author = LoadUserCommand.loadUser(blogPost.getCreatedBy());
+      if (author != null) {
+        context.setArticleAuthorName(UserCommand.name(author));
+      }
     }
 
     // Show the editor

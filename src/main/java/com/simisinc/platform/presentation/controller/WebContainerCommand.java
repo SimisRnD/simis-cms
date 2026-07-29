@@ -335,6 +335,19 @@ public class WebContainerCommand implements Serializable {
             if (StringUtils.isNotBlank(widgetContext.getPageKeywords())) {
               pageRenderInfo.setKeywords(widgetContext.getPageKeywords());
             }
+            // Article schema fields (issue #403), e.g. from BlogPostWidget
+            if (StringUtils.isNotBlank(widgetContext.getArticleHeadline())) {
+              pageRenderInfo.setArticleHeadline(widgetContext.getArticleHeadline());
+            }
+            if (widgetContext.getArticlePublishedDate() != null) {
+              pageRenderInfo.setArticlePublishedDate(widgetContext.getArticlePublishedDate());
+            }
+            if (widgetContext.getArticleModifiedDate() != null) {
+              pageRenderInfo.setArticleModifiedDate(widgetContext.getArticleModifiedDate());
+            }
+            if (StringUtils.isNotBlank(widgetContext.getArticleAuthorName())) {
+              pageRenderInfo.setArticleAuthorName(widgetContext.getArticleAuthorName());
+            }
           }
 
           // Expect JSON first and return early
