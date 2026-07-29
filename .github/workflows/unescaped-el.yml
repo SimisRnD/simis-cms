@@ -11,6 +11,14 @@
 #    than at container boot as an opaque "Cannot start server". See tools/check-xml-well-formed.py.
 #    This has bitten twice (PR #178, PR #221) -- both caught expensively by the deploy smoke test,
 #    which stays as the thorough last gate; this is the cheap first one.
+#
+# 3. Duplicate widget-preference tags: fails when a <widget> block in a *-layout.xml file
+#    defines the same preference tag twice. addWidgetPreferences() has no duplicate-key
+#    detection, so the second occurrence silently overwrites the first with no error anywhere.
+#    See tools/check-widget-duplicate-tags.py. This happened for real (issue #562 / PR #578):
+#    two dashboard tiles were live in the XML but never rendered until a manual browser check
+#    caught it (fixed narrowly in PR #650). A scan of all 468 existing <widget> blocks found no
+#    legitimate use of a repeated direct-child tag, so there is no known false positive to avoid.
 name: Static checks
 
 on:
@@ -36,3 +44,5 @@ jobs:
         run: python3 tools/check-xml-well-formed.py . --strict
       - name: Fail on unescaped JSP EL without a recorded justification
         run: python3 tools/check-unescaped-el.py . --strict
+      - name: Fail on a widget block that defines the same preference tag twice
+        run: python3 tools/check-widget-duplicate-tags.py . --strict
