@@ -18,13 +18,16 @@ package com.simisinc.platform.presentation.widgets.cms;
 
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.cms.*;
+import com.simisinc.platform.application.mailinglists.NewsletterSendCommand;
 import com.simisinc.platform.domain.model.cms.Blog;
 import com.simisinc.platform.domain.model.cms.BlogPost;
 import com.simisinc.platform.domain.model.cms.WebPage;
 import com.simisinc.platform.domain.model.cms.WebPageTemplate;
+import com.simisinc.platform.domain.model.mailinglists.MailingList;
 import com.simisinc.platform.infrastructure.persistence.cms.BlogRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageTemplateRepository;
+import com.simisinc.platform.infrastructure.persistence.mailinglists.MailingListRepository;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
@@ -33,6 +36,8 @@ import org.apache.commons.lang3.StringUtils;
 
 import java.lang.reflect.InvocationTargetException;
 import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Description
@@ -118,6 +123,18 @@ public class BlogEditorWidget extends GenericWidget {
     }
     context.getRequest().setAttribute("blog", blog);
 
+    // For the "Notify subscribers" mailing list picker (issue #500)
+    List<MailingList> allLists = MailingListRepository.findAll();
+    List<MailingList> enabledLists = new ArrayList<>();
+    if (allLists != null) {
+      for (MailingList mailingList : allLists) {
+        if (mailingList.getEnabled()) {
+          enabledLists.add(mailingList);
+        }
+      }
+    }
+    context.getRequest().setAttribute("mailingLists", enabledLists);
+
     // Show the editor
     context.setJsp(JSP);
     return context;
@@ -142,6 +159,16 @@ public class BlogEditorWidget extends GenericWidget {
 
     String returnPage = UrlCommand.getValidReturnPage(context.getParameter("returnPage"));
 
+    // Determine (independently of SaveBlogPostCommand's own identical check) whether this save is
+    // the transition into being published, for the "Notify subscribers" option below -- an edit to
+    // an already-published post, or unpublishing, must never (re-)send a notification.
+    boolean wasAlreadyPublished = false;
+    if (blogPostBean.getId() > -1) {
+      BlogPost existingPost = LoadBlogPostCommand.loadBlogPostById(blogPostBean.getId());
+      wasAlreadyPublished = existingPost != null && existingPost.getPublished() != null;
+    }
+    boolean justPublished = isPublished && !wasAlreadyPublished;
+
     // Save the blog post
     BlogPost blogPost = null;
     try {
@@ -162,8 +189,30 @@ public class BlogEditorWidget extends GenericWidget {
     AuditEventCommand.record(context, AuditEventCommand.CONTENT, eventType, AuditEventCommand.SUCCESS,
         "blog_post", String.valueOf(blogPost.getId()), blogPost.getTitle(), null);
 
+    // Notify subscribers (issue #500), only on the actual publish transition
+    String notifiedSuffix = "";
+    if (justPublished && StringUtils.isNotBlank(context.getParameter("notifySubscribers"))) {
+      long mailingListId = context.getParameterAsLong("notifyMailingListId");
+      MailingList mailingList = mailingListId > -1 ? MailingListRepository.findById(mailingListId) : null;
+      if (mailingList != null) {
+        try {
+          int queuedCount = NewsletterSendCommand.enqueueBlogPostNotification(mailingList, blogPost, context.getUserId());
+          AuditEventCommand.record(context, AuditEventCommand.CONTENT, "newsletter.enqueue", AuditEventCommand.SUCCESS,
+              "mailing_list", String.valueOf(mailingList.getId()), mailingList.getName(),
+              queuedCount + " recipient(s) queued for \"" + blogPost.getTitle() + "\"");
+          notifiedSuffix = queuedCount == 0
+              ? " No active subscribers were found on that list."
+              : " " + queuedCount + " subscriber" + (queuedCount == 1 ? "" : "s") + " will be notified.";
+        } catch (DataException e) {
+          AuditEventCommand.record(context, AuditEventCommand.CONTENT, "newsletter.enqueue", AuditEventCommand.FAILURE,
+              "mailing_list", String.valueOf(mailingList.getId()), mailingList.getName(), e.getMessage());
+          notifiedSuffix = " Subscribers could not be notified: " + e.getMessage();
+        }
+      }
+    }
+
     // Determine the page to return to
-    context.setSuccessMessage("Blog post was saved");
+    context.setSuccessMessage("Blog post was saved" + notifiedSuffix);
     if (StringUtils.isNotBlank(returnPage)) {
       context.setRedirect(returnPage);
     } else {

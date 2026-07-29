@@ -36,6 +36,7 @@ import com.simisinc.platform.infrastructure.scheduler.ecommerce.OrderManagementP
 import com.simisinc.platform.infrastructure.scheduler.login.UserTokensCleanupJob;
 import com.simisinc.platform.infrastructure.scheduler.mailinglists.EmailClassificationJob;
 import com.simisinc.platform.infrastructure.scheduler.mailinglists.MailingListQuarantineJob;
+import com.simisinc.platform.infrastructure.scheduler.mailinglists.NewsletterQueueJob;
 import com.simisinc.platform.infrastructure.scheduler.medicine.ProcessMedicineSchedulesJob;
 import com.simisinc.platform.infrastructure.scheduler.socialmedia.InstagramMediaSnapshotJob;
 import org.apache.commons.logging.Log;
@@ -90,6 +91,7 @@ public class SchedulerManager {
   public static final String EMAIL_CLASSIFICATION_JOB = "EmailClassification";
   public static final String MAILING_LIST_QUARANTINE_JOB = "MailingListQuarantine";
   public static final String FORM_SUBMISSION_FAILURE_RETENTION_JOB = "FormSubmissionFailureRetention";
+  public static final String NEWSLETTER_QUEUE_JOB = "NewsletterQueue";
 
   // Jobs which can be run by multiple clients
   public static final String DATASETS_DOWNLOAD_AND_SYNC_JOB = "DatasetsDownloadAndSync";
@@ -181,6 +183,7 @@ public class SchedulerManager {
         // night, not a full day later.
         BackgroundJob.scheduleRecurrently(MAILING_LIST_QUARANTINE_JOB, Cron.daily(3, 30), MailingListQuarantineJob::execute);
         BackgroundJob.scheduleRecurrently(FORM_SUBMISSION_FAILURE_RETENTION_JOB, Cron.daily(5), FormSubmissionFailureRetentionJob::execute);
+        BackgroundJob.scheduleRecurrently(NEWSLETTER_QUEUE_JOB, Cron.minutely(), NewsletterQueueJob::execute);
       }
     } catch (Exception se) {
       LOG.error("Error starting jobrunr: ", se);
