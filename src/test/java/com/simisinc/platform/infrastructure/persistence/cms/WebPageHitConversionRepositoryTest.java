@@ -120,7 +120,7 @@ class WebPageHitConversionRepositoryTest {
     addHit("/pricing", "session-c", 0);
     addHit("/contact-us", "session-d", 40); // outside the range
 
-    long views = WebPageHitRepository.countPageViews("/contact-us", daysAgo(30), daysAgo(0));
+    long views = WebPageHitRepository.countPageViews("/contact-us", daysAgo(30), inTheFuture());
 
     assertEquals(2, views);
   }
@@ -131,7 +131,7 @@ class WebPageHitConversionRepositoryTest {
     addSession("session-bot", true);
     addHit("/contact-us", "session-bot", 0);
 
-    long views = WebPageHitRepository.countPageViews("/contact-us", daysAgo(30), daysAgo(0));
+    long views = WebPageHitRepository.countPageViews("/contact-us", daysAgo(30), inTheFuture());
 
     assertEquals(1, views, "the bot-flagged session's hit should be excluded");
   }
@@ -163,6 +163,17 @@ class WebPageHitConversionRepositoryTest {
 
   private static Timestamp daysAgo(int days) {
     return new Timestamp(System.currentTimeMillis() - (long) days * 24 * 60 * 60 * 1000);
+  }
+
+  /**
+   * countPageViews' upper bound is exclusive ({@code hit_date < endDate}), and rows are inserted
+   * using the database server's own NOW(), not the JVM's clock -- comparing against a Java-computed
+   * "now" taken strictly after those inserts is a real race under clock skew or CI latency between
+   * the container and the test host. A few minutes of headroom removes that race without weakening
+   * what the test actually verifies (the 40-day-old row is still 30+ days outside the lower bound).
+   */
+  private static Timestamp inTheFuture() {
+    return new Timestamp(System.currentTimeMillis() + Duration.ofMinutes(5).toMillis());
   }
 
   private static boolean isDockerAvailable() {
