@@ -16,11 +16,12 @@
 
 package com.simisinc.platform.presentation.widgets.cms;
 
-import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import java.util.List;
+
+import com.simisinc.platform.domain.model.SocialMediaLink;
+import com.simisinc.platform.infrastructure.persistence.SocialMediaLinkRepository;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
-
-import java.util.Map;
 
 /**
  * Description
@@ -35,13 +36,13 @@ public class SocialMediaLinksWidget extends GenericWidget {
   static String JSP = "/cms/social-media-links.jsp";
 
   public WidgetContext execute(WidgetContext context) {
-    // Use the property map
-    Map<String, String> socialPropertyMap = LoadSitePropertyCommand.loadNonEmptyAsMap("social");
-    LOG.debug("socialPropertyMap size: " + socialPropertyMap.size());
-    if (socialPropertyMap.isEmpty()) {
+    // issue #516: an admin-editable list of (platform, url) pairs, not a fixed set of properties
+    List<SocialMediaLink> socialMediaLinkList = SocialMediaLinkRepository.findAll();
+    LOG.debug("socialMediaLinkList size: " + socialMediaLinkList.size());
+    if (socialMediaLinkList.isEmpty()) {
       return context;
     }
-    context.getRequest().setAttribute("socialPropertyMap", socialPropertyMap);
+    context.getRequest().setAttribute("socialMediaLinkList", socialMediaLinkList);
 
     // Preferences
     context.getRequest().setAttribute("iconClass", context.getPreferences().getOrDefault("iconClass", "margin-left-10"));

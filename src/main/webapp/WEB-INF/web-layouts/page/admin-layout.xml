@@ -192,9 +192,21 @@
       <!--</column>-->
     <!--</section>-->
     <section>
+      <column class="small-12 medium-9 large-8 small-order-2 medium-order-1 small-margin-top-10 cell">
+        <widget name="socialMediaLinkList">
+          <title>Social Profile Links</title>
+        </widget>
+      </column>
+      <column class="small-12 medium-3 large-4 small-order-1 medium-order-2 cell">
+        <widget name="socialMediaLinkForm" class="callout radius primary" sticky="true">
+          <title>Add a Platform</title>
+        </widget>
+      </column>
+    </section>
+    <section>
       <column class="small-12 large-10 cell">
         <widget name="sitePropertiesEditor">
-          <title>Social Media Settings</title>
+          <title>Contact &amp; Integration Settings</title>
           <prefix>social</prefix>
         </widget>
       </column>
@@ -873,7 +885,7 @@
     </section>
   </page>
 
-  <page name="/admin/sitemap" role="admin,content-manager" title="Site Map">
+  <page name="/admin/sitemap" role="admin,content-manager" title="Navigation Menu Editor">
     <!--<section>-->
       <!--<column class="small-12 cell">-->
         <!--<widget name="breadcrumbs">-->
@@ -886,7 +898,7 @@
     <section>
       <column class="small-12 cell">
         <widget name="siteMap">
-          <title>Site Map Editor</title>
+          <title>Navigation Menu Editor</title>
         </widget>
       </column>
     </section>
@@ -923,7 +935,7 @@
     </section>
   </page>
 
-  <page name="/admin/sitemap-editor" role="admin,content-manager" title="Site Map Editor">
+  <page name="/admin/sitemap-editor" role="admin,content-manager" title="Navigation Menu Editor - Edit Links">
     <!--<section>-->
       <!--<column class="small-12 cell">-->
         <!--<widget name="breadcrumbs">-->
@@ -936,7 +948,7 @@
     <section>
       <column class="small-12 cell">
         <widget name="siteMapEditor">
-          <title>Site Map Renaming</title>
+          <title>Navigation Menu Editor - Edit Links</title>
         </widget>
       </column>
     </section>
