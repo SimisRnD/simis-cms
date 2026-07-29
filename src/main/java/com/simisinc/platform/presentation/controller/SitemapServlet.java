@@ -17,10 +17,20 @@
 package com.simisinc.platform.presentation.controller;
 
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.domain.model.cms.Blog;
+import com.simisinc.platform.domain.model.cms.BlogPost;
+import com.simisinc.platform.domain.model.cms.Wiki;
+import com.simisinc.platform.domain.model.cms.WikiPage;
 import com.simisinc.platform.domain.model.cms.WebPage;
 import com.simisinc.platform.domain.model.items.Item;
+import com.simisinc.platform.infrastructure.persistence.cms.BlogPostRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.BlogPostSpecification;
+import com.simisinc.platform.infrastructure.persistence.cms.BlogRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageSpecification;
+import com.simisinc.platform.infrastructure.persistence.cms.WikiPageRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.WikiPageSpecification;
+import com.simisinc.platform.infrastructure.persistence.cms.WikiRepository;
 import com.simisinc.platform.infrastructure.persistence.items.ItemRepository;
 import com.simisinc.platform.infrastructure.persistence.items.ItemSpecification;
 import org.apache.commons.codec.digest.DigestUtils;
@@ -41,6 +51,7 @@ import java.math.RoundingMode;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.zip.GZIPOutputStream;
@@ -194,6 +205,8 @@ public class SitemapServlet extends HttpServlet {
     entries.add(new SitemapUrlEntry(escapeXml(siteUrl) + "/", null, "daily", "1.0", 0L));
     entries.addAll(webPageEntries(siteUrl));
     entries.addAll(itemEntries(siteUrl));
+    entries.addAll(blogPostEntries(siteUrl));
+    entries.addAll(wikiPageEntries(siteUrl));
     return entries;
   }
 
@@ -306,6 +319,77 @@ public class SitemapServlet extends HttpServlet {
       }
     } catch (Exception e) {
       LOG.warn("Error adding items to sitemap: " + e.getMessage());
+    }
+    return entries;
+  }
+
+  /**
+   * One entry per published blog post. Mirrors BlogPostSearchResultsWidget's own definition of
+   * "publicly findable" (setPublishedOnly(true) -- published IS NOT NULL) so the sitemap never
+   * disagrees with the app's own search results about what's public. No changefreq/priority is
+   * set since, unlike WebPage, BlogPost has no per-post override for either -- inventing a value
+   * here would be a guess, not real data.
+   */
+  private List<SitemapUrlEntry> blogPostEntries(String siteUrl) {
+    List<SitemapUrlEntry> entries = new ArrayList<>();
+    try {
+      BlogPostSpecification spec = new BlogPostSpecification();
+      spec.setPublishedOnly(true);
+      List<BlogPost> posts = BlogPostRepository.findAll(spec, null);
+
+      if (posts != null) {
+        // BlogPost#getLink() re-queries its Blog on every call; batch-load each referenced Blog
+        // once instead, the same way WikiSearchResultsWidget avoids the equivalent N+1 for wikis
+        Map<Long, Blog> blogById = new HashMap<>();
+        for (BlogPost post : posts) {
+          if (post == null || StringUtils.isBlank(post.getUniqueId())) {
+            continue;
+          }
+          Blog blog = blogById.computeIfAbsent(post.getBlogId(), BlogRepository::findById);
+          if (blog == null) {
+            continue;
+          }
+          String lastmod = post.getModified() != null ? formatDate(post.getModified()) : null;
+          long modifiedTimestamp = post.getModified() != null ? post.getModified().getTime() : 0L;
+          entries.add(new SitemapUrlEntry(
+              escapeXml(siteUrl + "/" + blog.getUniqueId() + "/" + post.getUniqueId()), lastmod, null, null, modifiedTimestamp));
+        }
+      }
+    } catch (Exception e) {
+      LOG.warn("Error adding blog posts to sitemap: " + e.getMessage());
+    }
+    return entries;
+  }
+
+  /**
+   * One entry per wiki page belonging to an enabled wiki. Wiki pages have no draft/published
+   * concept of their own (see WikiPage/WikiPageSpecification) -- the parent Wiki's enabled flag
+   * is the only visibility signal that exists, so it's the only one enforced here, matching what
+   * WikiSearchResultsWidget itself checks.
+   */
+  private List<SitemapUrlEntry> wikiPageEntries(String siteUrl) {
+    List<SitemapUrlEntry> entries = new ArrayList<>();
+    try {
+      List<WikiPage> pages = WikiPageRepository.findAll(new WikiPageSpecification(), null);
+
+      if (pages != null) {
+        Map<Long, Wiki> wikiById = new HashMap<>();
+        for (WikiPage page : pages) {
+          if (page == null || StringUtils.isBlank(page.getUniqueId())) {
+            continue;
+          }
+          Wiki wiki = wikiById.computeIfAbsent(page.getWikiId(), WikiRepository::findById);
+          if (wiki == null || !wiki.getEnabled()) {
+            continue;
+          }
+          String lastmod = page.getModified() != null ? formatDate(page.getModified()) : null;
+          long modifiedTimestamp = page.getModified() != null ? page.getModified().getTime() : 0L;
+          entries.add(new SitemapUrlEntry(
+              escapeXml(siteUrl + "/" + wiki.getUniqueId() + "/" + page.getUniqueId()), lastmod, null, null, modifiedTimestamp));
+        }
+      }
+    } catch (Exception e) {
+      LOG.warn("Error adding wiki pages to sitemap: " + e.getMessage());
     }
     return entries;
   }

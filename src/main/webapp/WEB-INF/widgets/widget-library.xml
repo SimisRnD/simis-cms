@@ -207,6 +207,7 @@
   <widget name="wikiForm" class="com.simisinc.platform.presentation.widgets.admin.cms.WikiFormWidget" />
   <widget name="wikiPageList" class="com.simisinc.platform.presentation.widgets.admin.cms.WikiPageListWidget" />
   <widget name="sitePropertiesEditor" class="com.simisinc.platform.presentation.widgets.admin.SitePropertiesEditorWidget" />
+  <widget name="seoOverview" class="com.simisinc.platform.presentation.widgets.admin.SeoOverviewWidget" />
   <widget name="themeEditor" class="com.simisinc.platform.presentation.widgets.admin.cms.ThemeEditorWidget" />
   <widget name="apisList" class="com.simisinc.platform.presentation.widgets.admin.ApisListWidget" />
   <widget name="appsList" class="com.simisinc.platform.presentation.widgets.admin.AppsListWidget" />
