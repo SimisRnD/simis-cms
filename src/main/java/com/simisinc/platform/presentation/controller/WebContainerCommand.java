@@ -357,6 +357,7 @@ public class WebContainerCommand implements Serializable {
             }
             if (widgetContext.getProductOfferCount() != null) {
               pageRenderInfo.setProductOfferCount(widgetContext.getProductOfferCount());
+            }
             // Article schema fields (issue #403), e.g. from BlogPostWidget
             if (StringUtils.isNotBlank(widgetContext.getArticleHeadline())) {
               pageRenderInfo.setArticleHeadline(widgetContext.getArticleHeadline());

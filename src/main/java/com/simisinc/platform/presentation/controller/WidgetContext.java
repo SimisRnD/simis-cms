@@ -259,6 +259,8 @@ public class WidgetContext implements Serializable {
 
   public void setProductOfferCount(Integer productOfferCount) {
     this.productOfferCount = productOfferCount;
+  }
+
   public String getArticleHeadline() {
     return articleHeadline;
   }

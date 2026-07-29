@@ -248,6 +248,8 @@ public class PageRenderInfo implements ContainerRenderInfo, Serializable {
 
   public void setProductOfferCount(Integer productOfferCount) {
     this.productOfferCount = productOfferCount;
+  }
+
   public String getArticleHeadline() {
     return articleHeadline;
   }
