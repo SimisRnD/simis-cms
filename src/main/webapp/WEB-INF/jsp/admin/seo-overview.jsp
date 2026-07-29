@@ -62,7 +62,9 @@
   <li>
     <strong><a href="${ctx}/admin/web-pages">Pages</a></strong> &mdash; each page's own edit form
     has a "Show in Sitemap.xml?" toggle plus a change-frequency and priority hint, controlling
-    whether and how that page is listed in sitemap.xml.
+    whether and how that page is listed in sitemap.xml. The
+    <a href="${ctx}/admin/seo-sitemap">SEO Sitemap</a> page manages that same setting in bulk,
+    across every page at once, and links to a live preview of the generated sitemap.xml.
   </li>
   <li>
     <strong>FAQ content</strong> &mdash; a page built with the FAQ widget automatically gets
