@@ -22,11 +22,12 @@
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
-<jsp:useBean id="blockedIP" class="java.util.ArrayList" scope="request"/>
+<jsp:useBean id="blockedIPList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="recordPaging" class="com.simisinc.platform.infrastructure.database.DataConstraints" scope="request"/>
 <c:if test="${!empty title}">
   <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
+<p class="help-text">A blocked IP is checked on every request, before the page loads; a match returns a 404 (not found) response rather than the actual page. IPs land on this list three ways: added manually below, uploaded via CSV, or automatically when a request path matches a known attack-probe pattern (see the server's <code>config/cms/url-block-list.csv</code>). Matching is an exact address match only - IPv4 or IPv6, no CIDR/subnet ranges. Two other server-side lists also apply on every request but aren't editable here: an allow list checked before this one (<code>config/cms/ip-allow-list.csv</code>) and a deny list checked after it (<code>config/cms/ip-deny-list.csv</code>). You can't block your own current IP, manually or via CSV - the save is rejected instead. Deleting a row below unblocks that IP immediately, and every add, delete, import, and export here is recorded in the platform's audit log. See <code>docs/ip-blocking.md</code> in the repository for the fuller strategy write-up.</p>
 <%@include file="../page_messages.jspf" %>
 <form id="fileForm" method="post" enctype="multipart/form-data">
   <%-- Required by controller --%>
@@ -50,6 +51,7 @@
   <input type="hidden" name="command" value="downloadCSVFile" />
   <button class="button small secondary radius float-left margin-left-10"><i class="fa fa-download"></i> Download CSV File</button>
 </form>
+<p class="help-text">Upload requires an "IP Address" column, plus optional "Reason", "Date", and "Remove" columns; set Remove to "true" on a row to unblock that IP instead of adding it. Matching existing IPs with the same reason are skipped. Download includes IP Address, Date, and Reason.</p>
 <table class="unstriped stack">
   <thead>
     <tr>
@@ -60,7 +62,7 @@
     </tr>
   </thead>
   <tbody>
-    <c:forEach items="${blockedIP}" var="record">
+    <c:forEach items="${blockedIPList}" var="record">
     <tr>
       <td nowrap="true">
         <c:out value="${text:trim(record.ipAddress, 24, true)}" />
@@ -71,7 +73,7 @@
       <td nowrap="true"><fmt:formatDate pattern="yyyy-MM-dd" value="${record.created}" /></td>
     </tr>
     </c:forEach>
-    <c:if test="${empty blockedIP}">
+    <c:if test="${empty blockedIPList}">
       <tr>
         <td colspan="4">No records were found</td>
       </tr>
