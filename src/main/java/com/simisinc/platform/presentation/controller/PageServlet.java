@@ -1220,7 +1220,9 @@ public class PageServlet extends HttpServlet {
    * Computes the canonical URL for a page response (issue #401), or null when there's nothing to
    * canonicalize (blank site.url, or no page-identity source matched). pagePath is always safe to
    * append as-is: it comes from request.getRequestURI(), which never carries the query string, so
-   * this can't reflect attacker-controlled query parameters into the tag.
+   * this can't reflect attacker-controlled query parameters into the tag. A wildcard/dynamic-page
+   * match (see LoadWebPageCommand#loadByLink) returns the template's own link (e.g. "/news/*"),
+   * not a real URL, so that case is excluded in favor of the actual pagePath.
    */
   static String computeCanonicalUrl(String siteUrl, String pagePath, WebPage webPage, Item item, Collection collection) {
     if (StringUtils.isBlank(siteUrl)) {
@@ -1232,7 +1234,7 @@ public class PageServlet extends HttpServlet {
     if (collection != null) {
       return siteUrl + "/items/" + collection.getUniqueId();
     }
-    if (webPage != null && StringUtils.isNotBlank(webPage.getLink())) {
+    if (webPage != null && StringUtils.isNotBlank(webPage.getLink()) && !webPage.getLink().endsWith("/*")) {
       return siteUrl + webPage.getLink();
     }
     if (StringUtils.isNotBlank(pagePath)) {
