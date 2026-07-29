@@ -763,6 +763,27 @@
       </column>
       <column class="small-12 medium-6 cell">
         <widget name="siteStats" class="stats card">
+          <icon>fa-search-minus</icon>
+          <title>Zero-Result Search Terms</title>
+          <report>zero-result-terms</report>
+          <label>Search Term</label>
+          <value>Zero-Result Searches</value>
+          <days>30</days>
+          <limit>10</limit>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 cell">
+        <widget name="siteStats" class="stats card">
+          <icon>fa-chart-line</icon>
+          <title>Trending Search Terms</title>
+          <report>trending-search-terms</report>
+          <label>Search Term</label>
+          <value>Searches This Week</value>
+          <limit>10</limit>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 cell">
+        <widget name="siteStats" class="stats card">
           <title>Daily User Registrations</title>
           <label>User Registrations</label>
           <report>daily-user-registrations</report>

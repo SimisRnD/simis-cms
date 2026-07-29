@@ -17,6 +17,7 @@
 package com.simisinc.platform.presentation.widgets.calendar;
 
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.cms.SearchAnalyticsCommand;
 import com.simisinc.platform.domain.model.cms.CalendarEvent;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.persistence.cms.CalendarEventRepository;
@@ -74,6 +75,7 @@ public class CalendarSearchResultsWidget extends GenericWidget {
     eventSpecification.setSearchTerm(query);
     eventSpecification.setStartingDateRange(Timestamp.valueOf(zdtStart.toLocalDateTime()));
     List<CalendarEvent> calendarEventList = CalendarEventRepository.findAll(eventSpecification, constraints);
+    SearchAnalyticsCommand.record(context, query, "calendar", calendarEventList == null ? 0 : calendarEventList.size());
 
     // Determine if the widget is shown
     boolean showWhenEmpty = "true".equals(context.getPreferences().getOrDefault("showWhenEmpty", "true"));
