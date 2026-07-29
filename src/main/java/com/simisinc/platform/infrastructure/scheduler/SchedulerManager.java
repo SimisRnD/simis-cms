@@ -35,6 +35,7 @@ import com.simisinc.platform.infrastructure.scheduler.ecommerce.OrderManagementP
 import com.simisinc.platform.infrastructure.scheduler.ecommerce.OrderManagementProcessShippingUpdates;
 import com.simisinc.platform.infrastructure.scheduler.login.UserTokensCleanupJob;
 import com.simisinc.platform.infrastructure.scheduler.mailinglists.EmailClassificationJob;
+import com.simisinc.platform.infrastructure.scheduler.mailinglists.MailingListQuarantineJob;
 import com.simisinc.platform.infrastructure.scheduler.medicine.ProcessMedicineSchedulesJob;
 import com.simisinc.platform.infrastructure.scheduler.socialmedia.InstagramMediaSnapshotJob;
 import org.apache.commons.logging.Log;
@@ -87,6 +88,7 @@ public class SchedulerManager {
   public static final String AUDIT_LOG_RETENTION_JOB = "AuditLogRetention";
   public static final String AUDIT_LOG_INTEGRITY_JOB = "AuditLogIntegrity";
   public static final String EMAIL_CLASSIFICATION_JOB = "EmailClassification";
+  public static final String MAILING_LIST_QUARANTINE_JOB = "MailingListQuarantine";
   public static final String FORM_SUBMISSION_FAILURE_RETENTION_JOB = "FormSubmissionFailureRetention";
 
   // Jobs which can be run by multiple clients
@@ -175,6 +177,9 @@ public class SchedulerManager {
         // billing except when there's actually unvalidated backlog; runs ahead of the 4am cluster above
         // so it isn't competing with those jobs for DB/API time.
         BackgroundJob.scheduleRecurrently(EMAIL_CLASSIFICATION_JOB, Cron.daily(3), EmailClassificationJob::execute);
+        // Runs after EMAIL_CLASSIFICATION_JOB so same-day classifications are quarantined the same
+        // night, not a full day later.
+        BackgroundJob.scheduleRecurrently(MAILING_LIST_QUARANTINE_JOB, Cron.daily(3, 30), MailingListQuarantineJob::execute);
         BackgroundJob.scheduleRecurrently(FORM_SUBMISSION_FAILURE_RETENTION_JOB, Cron.daily(5), FormSubmissionFailureRetentionJob::execute);
       }
     } catch (Exception se) {

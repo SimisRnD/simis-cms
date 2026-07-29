@@ -328,7 +328,9 @@ class MailingListMemberRepositoryQueryTest {
           + "created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP, "
           + "unsubscribed TIMESTAMP(3), "
           + "unsubscribe_reason VARCHAR(100), "
-          + "is_valid BOOLEAN DEFAULT true)");
+          + "is_valid BOOLEAN DEFAULT true, "
+          + "quarantined TIMESTAMP(3), "
+          + "quarantine_reason VARCHAR(50))");
       statement.execute("CREATE UNIQUE INDEX mail_lis_mem_uniq_idx ON mailing_list_members(list_id, email_id)");
     } catch (SQLException se) {
       throw new IllegalStateException("Could not create the mailing list metrics test schema", se);
