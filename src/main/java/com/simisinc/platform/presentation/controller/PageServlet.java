@@ -839,14 +839,6 @@ public class PageServlet extends HttpServlet {
         }
       }
 
-      // Generate JSON-LD structured data for search engines and AI (issue #403)
-      if (StringUtils.isNotBlank(siteUrl) && StringUtils.isNotBlank(sitePropertyMap.get("site.name"))) {
-        String jsonLd = generateJsonLdData(pageRenderInfo, siteUrl, pagePath, sitePropertyMap, thisItem, thisCollection, webPage);
-        if (StringUtils.isNotBlank(jsonLd)) {
-          pageRenderInfo.setJsonLdData(jsonLd);
-        }
-      }
-
       // Finally... we have a page ready to be processed...
       if (LOG.isDebugEnabled()) {
         LOG.debug(request.getMethod() + " page " + pageRef.getName());
@@ -891,7 +883,7 @@ public class PageServlet extends HttpServlet {
       // one, and real ecommerce product data (unlike an Item/Collection) is ONLY ever available
       // this way -- there's no URL routing to a specific Product for PageServlet to resolve itself.
       if (StringUtils.isNotBlank(siteUrl) && StringUtils.isNotBlank(sitePropertyMap.get("site.name"))) {
-        String jsonLd = generateJsonLdData(pageRenderInfo, siteUrl, sitePropertyMap, thisItem, thisCollection);
+        String jsonLd = generateJsonLdData(pageRenderInfo, siteUrl, pagePath, sitePropertyMap, thisItem, thisCollection, webPage);
         if (StringUtils.isNotBlank(jsonLd)) {
           pageRenderInfo.setJsonLdData(jsonLd);
         }
@@ -1156,6 +1148,9 @@ public class PageServlet extends HttpServlet {
     }
 
     return product;
+  }
+
+  /**
    * Builds the BreadcrumbList itemListElement array for pages at a URL depth of two or more
    * (issue #403); shallower pages return null since a single-level trail is redundant with the
    * site nav. Each ancestor segment's name is resolved the same way the page itself would be
