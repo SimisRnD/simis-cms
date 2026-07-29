@@ -18,6 +18,7 @@ package com.simisinc.platform.presentation.widgets.cms;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
 
 import java.util.List;
@@ -29,9 +30,11 @@ import org.mockito.MockedStatic;
 import com.simisinc.platform.WidgetBase;
 import com.simisinc.platform.application.RateLimitCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.cms.CaptchaCommand;
 import com.simisinc.platform.domain.model.cms.FormData;
 import com.simisinc.platform.domain.model.cms.FormField;
 import com.simisinc.platform.infrastructure.persistence.cms.FormDataRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.FormSubmissionFailureRepository;
 import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
 import com.simisinc.platform.presentation.controller.SessionConstants;
 import com.simisinc.platform.presentation.controller.WidgetContext;
@@ -200,14 +203,145 @@ class FormWidgetTest extends WidgetBase {
       property.when(() -> LoadSitePropertyCommand.loadByName("captcha.google.sitekey")).thenReturn(null);
       property.when(() -> LoadSitePropertyCommand.loadByName("captcha.google.secretkey")).thenReturn(null);
 
-      // Execute
-      FormWidget widget = new FormWidget();
-      WidgetContext result = widget.post(widgetContext);
+      try (MockedStatic<FormSubmissionFailureRepository> failureRepository = mockStatic(FormSubmissionFailureRepository.class)) {
+        // Execute
+        FormWidget widget = new FormWidget();
+        WidgetContext result = widget.post(widgetContext);
 
-      // Verify
-      Assertions.assertNotNull(result);
-      Assertions.assertEquals("How Can We Help? is required", widgetContext.getWarningMessage());
-      Assertions.assertNull(widgetContext.getErrorMessage());
+        // Verify
+        Assertions.assertNotNull(result);
+        Assertions.assertEquals("How Can We Help? is required", widgetContext.getWarningMessage());
+        Assertions.assertNull(widgetContext.getErrorMessage());
+        // issue #563 -- the rejection must be recorded, with the missing-field reason winning since it's
+        // the only field that failed
+        failureRepository.verify(() -> FormSubmissionFailureRepository.record(
+            eq("contact"), eq(FormSubmissionFailureRepository.REASON_MISSING_FIELD), any(), any()));
+      }
+    }
+  }
+
+  @Test
+  void postInvalidEmailRecordsTheInvalidEmailReason() {
+    initCommonPreferences();
+    session.setAttribute(SessionConstants.CAPTCHA_TEXT, "G1B8A");
+
+    addQueryParameter(widgetContext, "captcha", "G1B8A");
+    addQueryParameter(widgetContext, widgetContext.getUniqueId() + "name", "First Last");
+    addQueryParameter(widgetContext, widgetContext.getUniqueId() + "email", "not-an-email");
+    addQueryParameter(widgetContext, widgetContext.getUniqueId() + "comments", "These are my comments.");
+
+    try (MockedStatic<LoadSitePropertyCommand> property = mockStatic(LoadSitePropertyCommand.class)) {
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.service")).thenReturn(null);
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.google.sitekey")).thenReturn(null);
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.google.secretkey")).thenReturn(null);
+
+      try (MockedStatic<FormSubmissionFailureRepository> failureRepository = mockStatic(FormSubmissionFailureRepository.class)) {
+        FormWidget widget = new FormWidget();
+        WidgetContext result = widget.post(widgetContext);
+
+        Assertions.assertNotNull(result);
+        Assertions.assertEquals("Check the email address and try again", widgetContext.getWarningMessage());
+        failureRepository.verify(() -> FormSubmissionFailureRepository.record(
+            eq("contact"), eq(FormSubmissionFailureRepository.REASON_INVALID_EMAIL), any(), any()));
+      }
+    }
+  }
+
+  @Test
+  void postAllBlankFieldsRecordsTheBlankReason() {
+    // The REASON_BLANK branch only fires when isValid is still true after the per-field loop (see
+    // FormWidget.post()) -- i.e. a form with NO required fields, entirely unfilled. initCommonPreferences()
+    // has required fields, so blanking everything there trips REASON_MISSING_FIELD first; this needs its
+    // own all-optional field config to reach the branch under test.
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"form\">\n" +
+            "  <formUniqueId>newsletter</formUniqueId>\n" +
+            "  <fields>\n" +
+            "    <field name=\"Company (optional)\" value=\"company\" />\n" +
+            "    <field name=\"Referral source (optional)\" value=\"referral\" />\n" +
+            "  </fields>\n" +
+            "</widget>");
+    session.setAttribute(SessionConstants.CAPTCHA_TEXT, "G1B8A");
+    addQueryParameter(widgetContext, "captcha", "G1B8A");
+    // No field values at all -- both optional fields are blank
+
+    try (MockedStatic<LoadSitePropertyCommand> property = mockStatic(LoadSitePropertyCommand.class)) {
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.service")).thenReturn(null);
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.google.sitekey")).thenReturn(null);
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.google.secretkey")).thenReturn(null);
+
+      try (MockedStatic<FormSubmissionFailureRepository> failureRepository = mockStatic(FormSubmissionFailureRepository.class)) {
+        FormWidget widget = new FormWidget();
+        widget.post(widgetContext);
+
+        Assertions.assertEquals("Check the form and try again", widgetContext.getWarningMessage());
+        failureRepository.verify(() -> FormSubmissionFailureRepository.record(
+            eq("newsletter"), eq(FormSubmissionFailureRepository.REASON_BLANK), any(), any()));
+      }
+    }
+  }
+
+  @Test
+  void postCaptchaFailureRecordsTheCaptchaReason() {
+    initCommonPreferences();
+    // No CAPTCHA_TEXT in session, so CaptchaCommand.validateRequest will fail naturally -- but stub it
+    // directly to keep this test independent of that command's own internals.
+    addQueryParameter(widgetContext, widgetContext.getUniqueId() + "name", "First Last");
+    addQueryParameter(widgetContext, widgetContext.getUniqueId() + "email", "email@example.com");
+    addQueryParameter(widgetContext, widgetContext.getUniqueId() + "comments", "These are my comments.");
+
+    try (MockedStatic<LoadSitePropertyCommand> property = mockStatic(LoadSitePropertyCommand.class)) {
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.service")).thenReturn(null);
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.google.sitekey")).thenReturn(null);
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.google.secretkey")).thenReturn(null);
+
+      try (MockedStatic<CaptchaCommand> captchaCommand = mockStatic(CaptchaCommand.class)) {
+        captchaCommand.when(() -> CaptchaCommand.validateRequest(any())).thenReturn(false);
+
+        try (MockedStatic<FormSubmissionFailureRepository> failureRepository = mockStatic(FormSubmissionFailureRepository.class)) {
+          FormWidget widget = new FormWidget();
+          WidgetContext result = widget.post(widgetContext);
+
+          Assertions.assertNotNull(result);
+          Assertions.assertEquals("The form could not be validated", widgetContext.getWarningMessage());
+          failureRepository.verify(() -> FormSubmissionFailureRepository.record(
+              eq("contact"), eq(FormSubmissionFailureRepository.REASON_CAPTCHA_FAILED), any(), any()));
+        }
+      }
+    }
+  }
+
+  @Test
+  void postRateLimitedRecordsTheRateLimitedReason() {
+    initCommonPreferences();
+    // The post-time rate limit only applies to anonymous submitters (see FormWidget.post()); WidgetBase
+    // logs a user in by default, so this must explicitly log out to reach that branch at all.
+    logout(widgetContext);
+    session.setAttribute(SessionConstants.CAPTCHA_TEXT, "G1B8A");
+    addQueryParameter(widgetContext, "captcha", "G1B8A");
+    addQueryParameter(widgetContext, widgetContext.getUniqueId() + "name", "First Last");
+    addQueryParameter(widgetContext, widgetContext.getUniqueId() + "email", "email@example.com");
+    addQueryParameter(widgetContext, widgetContext.getUniqueId() + "comments", "These are my comments.");
+
+    try (MockedStatic<LoadSitePropertyCommand> property = mockStatic(LoadSitePropertyCommand.class)) {
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.service")).thenReturn(null);
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.google.sitekey")).thenReturn(null);
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.google.secretkey")).thenReturn(null);
+
+      try (MockedStatic<RateLimitCommand> rateLimitCommand = mockStatic(RateLimitCommand.class)) {
+        // Not logged in + the second, stricter post-time rate limit check fails
+        rateLimitCommand.when(() -> RateLimitCommand.isIpAllowedRightNow(any(), eq(true))).thenReturn(false);
+
+        try (MockedStatic<FormSubmissionFailureRepository> failureRepository = mockStatic(FormSubmissionFailureRepository.class)) {
+          FormWidget widget = new FormWidget();
+          WidgetContext result = widget.post(widgetContext);
+
+          Assertions.assertNotNull(result);
+          Assertions.assertNotNull(widgetContext.getErrorMessage());
+          failureRepository.verify(() -> FormSubmissionFailureRepository.record(
+              eq("contact"), eq(FormSubmissionFailureRepository.REASON_RATE_LIMITED), any(), any()));
+        }
+      }
     }
   }
 

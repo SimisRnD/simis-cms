@@ -250,6 +250,21 @@ public class WebPageHitRepository {
     return records;
   }
 
+  /**
+   * Views of a single page path in a date range, excluding bot sessions (issue #563 -- conversion-rate
+   * tracking). There is no existing per-page daily/range count; findTopWebPages/findTopPaths only rank
+   * across all pages, and the web_page_hit_snapshots table used by findDailyWebHits has no page-level
+   * column, so this queries the raw web_page_hits table directly, mirroring findTopPaths' bot-exclusion.
+   */
+  public static long countPageViews(String pagePath, Timestamp startDate, Timestamp endDate) {
+    SqlUtils where = new SqlUtils()
+        .add("page_path = ?", pagePath)
+        .add("hit_date >= ?", startDate)
+        .add("hit_date < ?", endDate)
+        .add("NOT EXISTS (SELECT 1 FROM sessions WHERE session_id = web_page_hits.session_id AND is_bot = TRUE)");
+    return DB.selectCountFrom(TABLE_NAME, where);
+  }
+
   public static List<StatisticsData> findTopPaths(int value, char intervalType, int recordLimit) {
     String SQL_QUERY =
         "SELECT page_path, count(page_path) AS path_count " +

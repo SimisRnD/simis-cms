@@ -71,8 +71,10 @@
       }]
     },
     options: {
-      legend: {
-        display: false
+      plugins: {
+        legend: {
+          display: false
+        }
       },
       scales: {
         y: {

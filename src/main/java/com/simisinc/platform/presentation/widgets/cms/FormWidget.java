@@ -32,6 +32,7 @@ import com.simisinc.platform.domain.events.cms.FormSubmittedEvent;
 import com.simisinc.platform.domain.model.cms.FormData;
 import com.simisinc.platform.domain.model.cms.FormField;
 import com.simisinc.platform.infrastructure.persistence.cms.FormDataRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.FormSubmissionFailureRepository;
 import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
@@ -120,6 +121,10 @@ public class FormWidget extends GenericWidget {
     // Determine the fields
     boolean isValid = true;
     int blankValues = 0;
+    // The first rejection reason encountered wins (issue #563) -- fields are checked in a loop that
+    // doesn't short-circuit on the first invalid one, so this must not be overwritten by a later field's
+    // failure in the same submission.
+    String rejectionReason = null;
 
     PreferenceEntriesList fieldsEntriesList = context.getPreferenceAsDataList("fields");
     if (fieldsEntriesList.isEmpty()) {
@@ -136,6 +141,9 @@ public class FormWidget extends GenericWidget {
         if (formField.isRequired()) {
           isValid = false;
           context.setWarningMessage(formField.getLabel() + " is required");
+          if (rejectionReason == null) {
+            rejectionReason = FormSubmissionFailureRepository.REASON_MISSING_FIELD;
+          }
         }
         ++blankValues;
         continue;
@@ -150,6 +158,9 @@ public class FormWidget extends GenericWidget {
         if (!JMail.isValid(parameterValue)) {
           isValid = false;
           context.setWarningMessage("Check the email address and try again");
+          if (rejectionReason == null) {
+            rejectionReason = FormSubmissionFailureRepository.REASON_INVALID_EMAIL;
+          }
         }
       }
       LOG.debug("Set userValue " + formField.getName() + "=" + formField.getUserValue());
@@ -157,6 +168,7 @@ public class FormWidget extends GenericWidget {
     if (isValid && blankValues == formFieldList.size()) {
       isValid = false;
       context.setWarningMessage("Check the form and try again");
+      rejectionReason = FormSubmissionFailureRepository.REASON_BLANK;
     }
 
     // Validate the captcha
@@ -166,6 +178,9 @@ public class FormWidget extends GenericWidget {
       if (!captchaSuccess) {
         isValid = false;
         context.setWarningMessage("The form could not be validated");
+        if (rejectionReason == null) {
+          rejectionReason = FormSubmissionFailureRepository.REASON_CAPTCHA_FAILED;
+        }
       }
     }
 
@@ -173,6 +188,7 @@ public class FormWidget extends GenericWidget {
     if (!context.getUserSession().isLoggedIn()) {
       if (!RateLimitCommand.isIpAllowedRightNow(context.getRequest().getRemoteAddr(), true)) {
         context.setErrorMessage(RateLimitCommand.INVALID_ATTEMPTS);
+        recordFailureQuietly(context, formUniqueId, FormSubmissionFailureRepository.REASON_RATE_LIMITED);
         return context;
       }
     }
@@ -186,11 +202,12 @@ public class FormWidget extends GenericWidget {
     }
     formData.setFormFieldList(formFieldList);
     formData.setIpAddress(context.getRequest().getRemoteAddr());
-    formData.setUrl(context.getUrl() + context.getUri());
+    formData.setUrl(resolvePageUrl(context));
     if (context.getParameter("queryString") != null) {
       formData.setQueryParameters(context.getParameter("queryString"));
     }
     if (!isValid) {
+      recordFailureQuietly(context, formUniqueId, rejectionReason);
       context.setRequestObject(formData);
       return context;
     }
@@ -215,5 +232,30 @@ public class FormWidget extends GenericWidget {
     context.addSharedRequestValue(context.getUniqueId() + "formWidgetSuccess", "true");
 
     return null;
+  }
+
+  /**
+   * The page URL, without duplicating the context path. context.getUrl() already includes it (scheme +
+   * host + contextPath), and context.getUri() (the servlet request URI) already includes it too per the
+   * servlet spec -- concatenating them as-is doubles it on any deployment where the app isn't mounted at
+   * the root context. Stripping it from the URI side before concatenating, matching how PageServlet computes
+   * a bare page path elsewhere in this codebase.
+   */
+  private static String resolvePageUrl(WidgetContext context) {
+    return context.getUrl() + context.getUri().substring(context.getContextPath().length());
+  }
+
+  /**
+   * Records a submission rejection for the analytics dashboard (issue #563). Never allowed to affect the
+   * rejection the user actually sees -- a recording failure here must not become a second, unrelated
+   * failure for the person submitting the form.
+   */
+  private void recordFailureQuietly(WidgetContext context, String formUniqueId, String reason) {
+    try {
+      FormSubmissionFailureRepository.record(
+          formUniqueId, reason, context.getRequest().getRemoteAddr(), resolvePageUrl(context));
+    } catch (Exception e) {
+      LOG.error("Could not record a form submission failure", e);
+    }
   }
 }
