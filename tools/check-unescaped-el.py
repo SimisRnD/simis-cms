@@ -140,6 +140,8 @@ ALLOWLIST: dict[str, str] = {
         "Every report that can reach the bar/line chart JSPs populates StatisticsData.value with `String.valueOf(rs.getLong(...))` over a COUNT/aggregate column, so the field holds only dig",
     "${extraHTMLContent}":
         "N/A -- the attribute is never set for this JSP, and cross-widget leakage of the attribute is prevented by an explicit per-widget request-attribute reset.",
+    "${faqQuestion.answerHtml}":
+        "Same trust boundary as ${widget.content} below: an admin/content-manager-authored widget preference (FaqWidget.java), not user input. The question text is rendered via <c:out> in the same JSP; only the answer is intentionally raw, since it's meant to render as HTML.",
     "${file.baseUrl}":
         "None needed - the value contains no user input at all.",
     "${file.url}":

