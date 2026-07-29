@@ -25,6 +25,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import java.io.File;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -334,5 +335,25 @@ public class FormDataRepository {
       LOG.error("buildRecord", se);
       return null;
     }
+  }
+
+  /**
+   * Exports form submissions to a CSV file (issue #483) so an admin can pull the raw IP addresses
+   * offline, e.g. to cross-reference a spam source before adding it to the IP block list.
+   */
+  public static void export(DataConstraints constraints, File file) {
+    SqlUtils selectFields = new SqlUtils()
+        .addNames(
+            "form_unique_id AS \"Form\"",
+            "ip_address AS \"IP Address\"",
+            "created AS \"Submitted\"",
+            "url AS \"URL\"",
+            "flagged_as_spam AS \"Spam Flagged\""
+        );
+    if (constraints == null) {
+      constraints = new DataConstraints();
+    }
+    constraints.setDefaultColumnToSortBy("form_data_id desc");
+    DB.exportToCsvAllFrom(TABLE_NAME, selectFields, null, null, null, constraints, file);
   }
 }
