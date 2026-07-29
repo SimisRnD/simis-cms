@@ -41,6 +41,8 @@ public class MailingListMember extends Entity {
   private long unsubscribedBy = -1;
   private String unsubscribeReason = null;
   private boolean isValid = false;
+  private Timestamp quarantined = null;
+  private String quarantineReason = null;
 
   public MailingListMember() {
   }
@@ -139,5 +141,21 @@ public class MailingListMember extends Entity {
 
   public void setIsValid(boolean valid) {
     isValid = valid;
+  }
+
+  public Timestamp getQuarantined() {
+    return quarantined;
+  }
+
+  public void setQuarantined(Timestamp quarantined) {
+    this.quarantined = quarantined;
+  }
+
+  public String getQuarantineReason() {
+    return quarantineReason;
+  }
+
+  public void setQuarantineReason(String quarantineReason) {
+    this.quarantineReason = quarantineReason;
   }
 }

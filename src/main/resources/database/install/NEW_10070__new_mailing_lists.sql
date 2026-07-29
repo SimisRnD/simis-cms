@@ -90,11 +90,14 @@ CREATE TABLE mailing_list_members (
   unsubscribed TIMESTAMP(3),
   unsubscribed_by BIGINT REFERENCES users(user_id),
   unsubscribe_reason VARCHAR(100),
-  is_valid BOOLEAN DEFAULT true
+  is_valid BOOLEAN DEFAULT true,
+  quarantined TIMESTAMP(3),
+  quarantine_reason VARCHAR(50)
 );
 CREATE UNIQUE INDEX mail_lis_mem_uniq_idx ON mailing_list_members(list_id, email_id);
 CREATE INDEX mail_lis_mem_lid_idx ON mailing_list_members(list_id);
 CREATE INDEX mail_lis_mem_eid_idx ON mailing_list_members(email_id);
+CREATE INDEX mail_lis_mem_quarantined_idx ON mailing_list_members(quarantined);
 CREATE INDEX mail_lis_mem_val_idx ON mailing_list_members(is_valid);
 
 CREATE TABLE mailing_list_history (
