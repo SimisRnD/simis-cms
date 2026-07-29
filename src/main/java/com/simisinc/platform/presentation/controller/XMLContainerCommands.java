@@ -25,8 +25,10 @@ import javax.xml.xpath.XPath;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathFactory;
 import java.io.Serializable;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toList;
@@ -281,6 +283,12 @@ public class XMLContainerCommands implements Serializable {
   }
 
   public static void addWidgetPreferences(Map<String, String> preferenceMap, NodeList children) {
+    // Tracks tags already written by THIS call, so a repeated tag within the same
+    // widget block is caught even if the caller's map was pre-populated for some
+    // other reason. A repeat here means one occurrence's value is about to be
+    // silently discarded (see PR #650 / issue #562: two dashboard tiles crammed
+    // into one <widget> block this way never rendered).
+    Set<String> tagsSeenInThisBlock = new HashSet<>();
     int len = children.getLength();
     for (int i = 0; i < len; i++) {
       if (children.item(i).getNodeType() != Element.ELEMENT_NODE) {
@@ -291,6 +299,10 @@ public class XMLContainerCommands implements Serializable {
       String childName = child.getTagName();
       String value = child.getTextContent();
       if (StringUtils.isNotBlank(value)) {
+        if (!tagsSeenInThisBlock.add(childName)) {
+          LOG.warn("Duplicate widget preference tag <" + childName + "> in this block; overwriting '" +
+              preferenceMap.get(childName) + "' with '" + value + "'");
+        }
         LOG.debug("Adding preference: " + childName + "=" + value);
         preferenceMap.put(childName, value);
         continue;
@@ -333,6 +345,10 @@ public class XMLContainerCommands implements Serializable {
         }
       }
       if (sb.length() > 0) {
+        if (!tagsSeenInThisBlock.add(childName)) {
+          LOG.warn("Duplicate widget preference tag <" + childName + "> in this block; overwriting '" +
+              preferenceMap.get(childName) + "' with '" + sb + "'");
+        }
         if (LOG.isDebugEnabled()) {
           LOG.trace("Adding preference: " + childName + "(" + fieldCount + ")" + ": [" + sb.toString() + "]");
         }

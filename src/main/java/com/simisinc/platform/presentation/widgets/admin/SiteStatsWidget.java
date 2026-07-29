@@ -44,6 +44,7 @@ import org.apache.commons.lang3.StringUtils;
 import javax.json.bind.Jsonb;
 import javax.json.bind.JsonbBuilder;
 import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -196,6 +197,16 @@ public class SiteStatsWidget extends GenericWidget {
       List<StatisticsData> statisticsDataList = MailingListMemberRepository.findDailySubscriptions(30);
       context.getRequest().setAttribute("statisticsDataList", statisticsDataList);
       return JSP;
+    } else if ("mailing-list-classification-breakdown".equalsIgnoreCase(report)) {
+      List<StatisticsData> statisticsDataList = MailingListMemberRepository.findClassificationBreakdown();
+      context.getRequest().setAttribute("statisticsDataList", statisticsDataList);
+      context.getRequest().setAttribute("label", context.getPreferences().getOrDefault("label", "Status"));
+      context.getRequest().setAttribute("value", context.getPreferences().getOrDefault("value", "Subscribers"));
+      Timestamp lastClassifiedAt = MailingListMemberRepository.findLastClassifiedAt();
+      if (lastClassifiedAt != null) {
+        context.getRequest().setAttribute("asOfDate", new SimpleDateFormat("MMM d, yyyy h:mm a").format(lastClassifiedAt));
+      }
+      return TABLE_JSP;
     } else if ("enabled-accounts".equalsIgnoreCase(report)) {
       long count = UserRepository.countEnabledAccounts();
       context.getRequest().setAttribute("numberValue", String.valueOf(count));

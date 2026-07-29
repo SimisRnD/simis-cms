@@ -19,7 +19,6 @@ package com.simisinc.platform.application.cms;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-import org.apache.hc.core5.net.InetAddressUtils;
 
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.domain.model.AllowedIP;
@@ -40,9 +39,8 @@ public class SaveAllowedIPCommand {
     StringBuilder errorMessages = new StringBuilder();
     if (StringUtils.isBlank(allowedIPBean.getIpAddress())) {
       errorMessages.append("An IP address is required");
-    } else if (!InetAddressUtils.isIPv4(allowedIPBean.getIpAddress()) &&
-        !InetAddressUtils.isIPv6(allowedIPBean.getIpAddress())) {
-      errorMessages.append("A valid IPv4 or IPv6 address is required");
+    } else if (!IpRangeCommand.isValidAddressOrCidr(allowedIPBean.getIpAddress())) {
+      errorMessages.append("A valid IPv4 or IPv6 address or CIDR range (e.g. 203.0.113.0/24) is required");
     }
     if (errorMessages.length() > 0) {
       throw new DataException("Please check the form and try again:\n" + errorMessages.toString());

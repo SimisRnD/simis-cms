@@ -23,6 +23,7 @@
 <jsp:useBean id="label" class="java.lang.String" scope="request"/>
 <jsp:useBean id="value" class="java.lang.String" scope="request"/>
 <jsp:useBean id="optionsList" class="java.util.LinkedHashMap" scope="request"/>
+<jsp:useBean id="asOfDate" class="java.lang.String" scope="request"/>
 <c:if test="${!empty title}">
   <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
@@ -56,6 +57,9 @@
     </c:if>
   </tbody>
 </table>
+<c:if test="${!empty asOfDate}">
+  <p class="text-right"><small>As of <c:out value="${asOfDate}" /></small></p>
+</c:if>
 </div>
 <c:if test="${!empty optionsList}">
 <script nonce="${cspNonce}">
