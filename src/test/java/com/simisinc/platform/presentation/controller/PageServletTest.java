@@ -184,6 +184,9 @@ class PageServletTest {
     JsonNode faqPage = parsed.get("@graph").get(2);
     assertEquals("FAQPage", faqPage.get("@type").asText());
     assertTrue(faqPage.get("mainEntity").get(0).get("name").asText().contains("</script><script>"));
+  }
+
+  @Test
   void computeProductSchemaReturnsNullWhenNotAProductPage() {
     // productName is only ever set by an ecommerce widget like ProductNameWidget; a plain page
     // must not get a fabricated Product entry

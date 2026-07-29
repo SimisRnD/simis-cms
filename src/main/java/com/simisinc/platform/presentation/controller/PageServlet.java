@@ -1088,6 +1088,12 @@ public class PageServlet extends HttpServlet {
         graph.add(breadcrumbList);
       }
 
+      // Add FAQPage schema if this page has a FaqWidget (issue #416)
+      Map<String, Object> faqPage = computeFaqSchema(pageRenderInfo);
+      if (faqPage != null) {
+        graph.add(faqPage);
+      }
+
       // Add Product schema for a real ecommerce product page (issue #403); bridged from
       // pageRenderInfo the same way Article is, since a product's identity is never resolvable
       // from the URL the way an Item/Collection's is (see computeProductSchema)
