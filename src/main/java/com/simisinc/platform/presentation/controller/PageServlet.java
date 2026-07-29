@@ -850,14 +850,6 @@ public class PageServlet extends HttpServlet {
         }
       }
 
-      // Generate JSON-LD structured data for search engines and AI (issue #403)
-      if (StringUtils.isNotBlank(siteUrl) && StringUtils.isNotBlank(sitePropertyMap.get("site.name"))) {
-        String jsonLd = generateJsonLdData(pageRenderInfo, siteUrl, sitePropertyMap, thisItem, thisCollection);
-        if (StringUtils.isNotBlank(jsonLd)) {
-          pageRenderInfo.setJsonLdData(jsonLd);
-        }
-      }
-
       // Finally... we have a page ready to be processed...
       if (LOG.isDebugEnabled()) {
         LOG.debug(request.getMethod() + " page " + pageRef.getName());
@@ -893,6 +885,19 @@ public class PageServlet extends HttpServlet {
       if (WebContainerCommand.processWidgets(webContainerContext, pageRef.getSections(), pageRenderInfo, coreData, contextPath, pagePath, userSession, themePropertyMap)) {
         // The widget processor handled the response, immediately return
         return;
+      }
+
+      // Generate JSON-LD structured data for search engines and AI (issue #403). This runs after
+      // processWidgets so it can see page metadata a content widget (e.g. ProductNameWidget)
+      // bridged into pageRenderInfo during its own execute() -- generating it earlier would only
+      // ever see the generic item/collection/webPage title & description, never a widget-specific
+      // one, and real ecommerce product data (unlike an Item/Collection) is ONLY ever available
+      // this way -- there's no URL routing to a specific Product for PageServlet to resolve itself.
+      if (StringUtils.isNotBlank(siteUrl) && StringUtils.isNotBlank(sitePropertyMap.get("site.name"))) {
+        String jsonLd = generateJsonLdData(pageRenderInfo, siteUrl, sitePropertyMap, thisItem, thisCollection);
+        if (StringUtils.isNotBlank(jsonLd)) {
+          pageRenderInfo.setJsonLdData(jsonLd);
+        }
       }
 
       // Render the header
@@ -1052,21 +1057,11 @@ public class PageServlet extends HttpServlet {
       }
       graph.add(webPage);
 
-      // Add Product schema if this is an item (catalog product)
-      if (item != null && StringUtils.isNotBlank(item.getName())) {
-        Map<String, Object> product = new LinkedHashMap<>();
-        product.put("@type", "Product");
-        product.put("name", item.getName());
-        if (StringUtils.isNotBlank(item.getDescription())) {
-          product.put("description", item.getDescription());
-        }
-        if (StringUtils.isNotBlank(pageRenderInfo.getImageUrl())) {
-          String imageUrl = pageRenderInfo.getImageUrl();
-          if (imageUrl.startsWith("/")) {
-            imageUrl = siteUrl + imageUrl;
-          }
-          product.put("image", imageUrl);
-        }
+      // Add Product schema for a real ecommerce product page (issue #403); bridged from
+      // pageRenderInfo the same way Article is, since a product's identity is never resolvable
+      // from the URL the way an Item/Collection's is (see computeProductSchema)
+      Map<String, Object> product = computeProductSchema(pageRenderInfo, siteUrl);
+      if (product != null) {
         graph.add(product);
       }
 
@@ -1076,6 +1071,56 @@ public class PageServlet extends HttpServlet {
       LOG.warn("Error generating JSON-LD data: " + e.getMessage());
       return null;
     }
+  }
+
+  /**
+   * Builds the Product schema for a real ecommerce product page (issue #403). Gated on
+   * productName since that's only set by an ecommerce widget (e.g. ProductNameWidget) for a page
+   * that actually has one -- every other page type leaves it blank. A single-SKU product (or one
+   * where every SKU shares the same price) gets a plain Offer; a product with multiple,
+   * differently-priced SKUs gets an AggregateOffer instead, since there's no one price to quote.
+   */
+  static Map<String, Object> computeProductSchema(PageRenderInfo pageRenderInfo, String siteUrl) {
+    if (StringUtils.isBlank(pageRenderInfo.getProductName())) {
+      return null;
+    }
+    Map<String, Object> product = new LinkedHashMap<>();
+    product.put("@type", "Product");
+    product.put("name", pageRenderInfo.getProductName());
+    if (StringUtils.isNotBlank(pageRenderInfo.getProductDescription())) {
+      product.put("description", pageRenderInfo.getProductDescription());
+    }
+    if (StringUtils.isNotBlank(pageRenderInfo.getProductImageUrl())) {
+      String imageUrl = pageRenderInfo.getProductImageUrl();
+      if (imageUrl.startsWith("/")) {
+        imageUrl = siteUrl + imageUrl;
+      }
+      product.put("image", imageUrl);
+    }
+
+    BigDecimal price = pageRenderInfo.getProductPrice();
+    BigDecimal lowPrice = pageRenderInfo.getProductLowPrice();
+    if (price != null || lowPrice != null) {
+      Map<String, Object> offer = new LinkedHashMap<>();
+      String currency = StringUtils.isNotBlank(pageRenderInfo.getProductCurrency()) ? pageRenderInfo.getProductCurrency() : "USD";
+      if (price != null) {
+        offer.put("@type", "Offer");
+        offer.put("price", price.stripTrailingZeros().toPlainString());
+      } else {
+        offer.put("@type", "AggregateOffer");
+        offer.put("lowPrice", lowPrice.stripTrailingZeros().toPlainString());
+        if (pageRenderInfo.getProductOfferCount() != null) {
+          offer.put("offerCount", pageRenderInfo.getProductOfferCount());
+        }
+      }
+      offer.put("priceCurrency", currency);
+      if (StringUtils.isNotBlank(pageRenderInfo.getProductAvailability())) {
+        offer.put("availability", pageRenderInfo.getProductAvailability());
+      }
+      product.put("offers", offer);
+    }
+
+    return product;
   }
 
   /**

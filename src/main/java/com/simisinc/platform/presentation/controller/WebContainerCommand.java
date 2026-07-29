@@ -335,6 +335,31 @@ public class WebContainerCommand implements Serializable {
             if (StringUtils.isNotBlank(widgetContext.getPageKeywords())) {
               pageRenderInfo.setKeywords(widgetContext.getPageKeywords());
             }
+            // Product schema fields (issue #403), e.g. from ProductNameWidget
+            if (StringUtils.isNotBlank(widgetContext.getProductName())) {
+              pageRenderInfo.setProductName(widgetContext.getProductName());
+            }
+            if (StringUtils.isNotBlank(widgetContext.getProductDescription())) {
+              pageRenderInfo.setProductDescription(widgetContext.getProductDescription());
+            }
+            if (StringUtils.isNotBlank(widgetContext.getProductImageUrl())) {
+              pageRenderInfo.setProductImageUrl(widgetContext.getProductImageUrl());
+            }
+            if (widgetContext.getProductPrice() != null) {
+              pageRenderInfo.setProductPrice(widgetContext.getProductPrice());
+            }
+            if (widgetContext.getProductLowPrice() != null) {
+              pageRenderInfo.setProductLowPrice(widgetContext.getProductLowPrice());
+            }
+            if (StringUtils.isNotBlank(widgetContext.getProductCurrency())) {
+              pageRenderInfo.setProductCurrency(widgetContext.getProductCurrency());
+            }
+            if (StringUtils.isNotBlank(widgetContext.getProductAvailability())) {
+              pageRenderInfo.setProductAvailability(widgetContext.getProductAvailability());
+            }
+            if (widgetContext.getProductOfferCount() != null) {
+              pageRenderInfo.setProductOfferCount(widgetContext.getProductOfferCount());
+            }
           }
 
           // Expect JSON first and return early
