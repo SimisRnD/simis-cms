@@ -20,6 +20,7 @@ import java.sql.Timestamp;
 import java.util.List;
 
 import com.simisinc.platform.WidgetBase;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.domain.model.dashboard.StatisticsData;
 import com.simisinc.platform.infrastructure.persistence.SessionRepository;
 import com.simisinc.platform.infrastructure.persistence.mailinglists.MailingListMemberRepository;
@@ -586,6 +587,78 @@ class SiteStatsWidgetTest extends WidgetBase {
 
     Assertions.assertEquals(SiteStatsWidget.TABLE_JSP, widgetContext.getJsp());
     Assertions.assertEquals(data, request.getAttribute("statisticsDataList"));
+  }
+
+  @Test
+  void executeMailingListQualityScore() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <title>Mailing List Quality Score</title>\n" +
+            "  <report>mailing-list-quality-score</report>\n" +
+            "</widget>");
+
+    try (MockedStatic<MailingListMemberRepository> repository = mockStatic(MailingListMemberRepository.class)) {
+      repository.when(MailingListMemberRepository::findQualityScorePercent).thenReturn(87.5);
+
+      setRoles(widgetContext, ADMIN);
+      SiteStatsWidget widget = new SiteStatsWidget();
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals(SiteStatsWidget.CARD_JSP, widgetContext.getJsp());
+    Assertions.assertEquals("87.5", request.getAttribute("numberValue"));
+  }
+
+  @Test
+  void executeMailingListSpamRateAlertIsOkBelowThreshold() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <title>Mailing List Spam Rate</title>\n" +
+            "  <report>mailing-list-spam-rate-alert</report>\n" +
+            "</widget>");
+
+    try (MockedStatic<MailingListMemberRepository> repository = mockStatic(MailingListMemberRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      // 95% quality -> 5% spam rate, below the default 10% threshold
+      repository.when(MailingListMemberRepository::findQualityScorePercent).thenReturn(95.0);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("mailing-list.quarantine.alertThresholdPercent"))
+          .thenReturn("10");
+      repository.when(() -> MailingListMemberRepository.resolveQuarantineAlertThresholdPercent("10")).thenReturn(10);
+
+      setRoles(widgetContext, ADMIN);
+      SiteStatsWidget widget = new SiteStatsWidget();
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals(SiteStatsWidget.ALERT_CARD_JSP, widgetContext.getJsp());
+    Assertions.assertEquals("5.0", request.getAttribute("numberValue"));
+    Assertions.assertEquals("ok", request.getAttribute("severity"));
+  }
+
+  @Test
+  void executeMailingListSpamRateAlertIsWarningAboveThreshold() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <title>Mailing List Spam Rate</title>\n" +
+            "  <report>mailing-list-spam-rate-alert</report>\n" +
+            "</widget>");
+
+    try (MockedStatic<MailingListMemberRepository> repository = mockStatic(MailingListMemberRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      // 70% quality -> 30% spam rate, above the default 10% threshold
+      repository.when(MailingListMemberRepository::findQualityScorePercent).thenReturn(70.0);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("mailing-list.quarantine.alertThresholdPercent"))
+          .thenReturn("10");
+      repository.when(() -> MailingListMemberRepository.resolveQuarantineAlertThresholdPercent("10")).thenReturn(10);
+
+      setRoles(widgetContext, ADMIN);
+      SiteStatsWidget widget = new SiteStatsWidget();
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals(SiteStatsWidget.ALERT_CARD_JSP, widgetContext.getJsp());
+    Assertions.assertEquals("30.0", request.getAttribute("numberValue"));
+    Assertions.assertEquals("warning", request.getAttribute("severity"));
   }
 
   @Test
