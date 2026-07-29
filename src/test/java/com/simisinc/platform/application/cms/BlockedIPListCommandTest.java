@@ -143,4 +143,31 @@ class BlockedIPListCommandTest {
       }
     }
   }
+
+  @Test
+  void doesNotPassWhenIpFallsWithinABlockedCidrRange() {
+    // Mock directory path
+    try (MockedStatic<FileSystemCommand> staticFileSystemCommand = mockStatic(FileSystemCommand.class)) {
+      staticFileSystemCommand.when(FileSystemCommand::getFileServerConfigPath).thenReturn(".");
+
+      try (MockedStatic<LoadBlockedIPListCommand> staticLoadBlockedIpListCommand = mockStatic(LoadBlockedIPListCommand.class);
+          MockedStatic<LoadAllowedIPListCommand> staticLoadAllowedIpListCommand = mockStatic(LoadAllowedIPListCommand.class)) {
+        // The blocked list holds a CIDR range, not an exact address - this is the actual
+        // integration path (BlockedIPListCommand.passesCheck -> IpRangeCommand.matches), not just
+        // IpRangeCommandTest's unit-level coverage of the matcher itself.
+        List<String> blockedIpList = new ArrayList<>();
+        blockedIpList.add("203.0.113.0/24");
+        staticLoadBlockedIpListCommand.when(LoadBlockedIPListCommand::retrieveCachedIpAddressList).thenReturn(blockedIpList);
+        staticLoadAllowedIpListCommand.when(LoadAllowedIPListCommand::retrieveCachedIpAddressList).thenReturn(new ArrayList<>());
+
+        BlockedIPListCommand.load();
+
+        String resource = "/resource";
+        Assertions.assertFalse(BlockedIPListCommand.passesCheck(resource, "203.0.113.200"),
+            "an address inside the blocked /24 range should not pass");
+        Assertions.assertTrue(BlockedIPListCommand.passesCheck(resource, "203.0.114.1"),
+            "an address outside the blocked range should still pass");
+      }
+    }
+  }
 }

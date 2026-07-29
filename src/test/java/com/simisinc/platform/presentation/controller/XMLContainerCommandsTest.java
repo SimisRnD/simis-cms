@@ -141,4 +141,52 @@ class XMLContainerCommandsTest {
     PreferenceEntriesList preferenceEntriesList = new PreferenceEntriesList(data);
     Assertions.assertEquals(6, preferenceEntriesList.size());
   }
+
+  @Test
+  void duplicateTagLastValueWins() {
+    // Two tiles crammed into one <widget> block instead of each getting its own
+    // <column> (the shape of issue #562 / PR #578): icon/title/report each appear
+    // twice. addWidgetPreferences has no duplicate-tag rejection, so the second
+    // occurrence of each tag overwrites the first -- this test locks in that
+    // last-value-wins behavior as intentional and documented, not accidental.
+    String xmlFragment =
+        "<widget name=\"siteStats\">\n" +
+            "  <icon>fa-mail-bulk</icon>\n" +
+            "  <title>Active Subscribers</title>\n" +
+            "  <report>active-mailing-list-subscribers</report>\n" +
+            "  <icon>fa-user-check</icon>\n" +
+            "  <title>Enabled Accounts</title>\n" +
+            "  <report>enabled-accounts</report>\n" +
+            "</widget>";
+
+    // A map will store the preferences
+    Map<String, String> preferences = new HashMap<>();
+
+    try {
+      DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+      factory.setFeature("http://apache.org/xml/features/disallow-doctype-decl", true);
+      factory.setXIncludeAware(false);
+      factory.setExpandEntityReferences(false);
+
+      DocumentBuilder builder = factory.newDocumentBuilder();
+      Document document = null;
+      try (InputStream is = IOUtils.toInputStream(xmlFragment, "UTF-8")) {
+        document = builder.parse(is);
+      }
+      NodeList nodeList = document.getElementsByTagName("widget");
+      if (nodeList.getLength() < 0) {
+        return;
+      }
+      XMLContainerCommands.addWidgetPreferences(preferences, nodeList.item(0).getChildNodes());
+    } catch (Exception e) {
+      Assertions.fail(e.getMessage());
+    }
+
+    // Only 3 distinct keys survive, not 6 -- the second occurrence of each tag
+    // silently overwrote the first, exactly as happened in production.
+    Assertions.assertEquals(3, preferences.size());
+    Assertions.assertEquals("fa-user-check", preferences.get("icon"));
+    Assertions.assertEquals("Enabled Accounts", preferences.get("title"));
+    Assertions.assertEquals("enabled-accounts", preferences.get("report"));
+  }
 }

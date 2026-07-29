@@ -27,7 +27,9 @@ There is no automatic blocking tied to failed logins, rate limiting, or form sub
 
 ## Matching and validation
 
-All five lists match by **exact IP address string** — there is no CIDR/subnet range support anywhere in this path. An entry added through `/admin/blocked-ip-list` or `/admin/allowed-ip-list` (manually or via CSV) must be a valid IPv4 or IPv6 address; invalid or blank input is rejected.
+All five lists accept either a plain IPv4/IPv6 address or a CIDR range (e.g. `203.0.113.0/24`, `2001:db8::/32`), matched via `IpRangeCommand`. A CIDR entry only ever matches candidate addresses of the *same* family — an IPv4 range never matches an IPv6 address, and vice versa. An entry added through `/admin/blocked-ip-list` or `/admin/allowed-ip-list` (manually or via CSV) must be a valid address or CIDR range for its family (IPv4 prefix 0-32, IPv6 prefix 0-128); invalid or blank input is rejected. There's no floor on how broad a range can be — nothing stops an entry as wide as `0.0.0.0/0`, on either list; this is a deliberate choice to trust the admin rather than enforce an arbitrary minimum prefix.
+
+The **Location** column shows "Range" instead of attempting a geolocation lookup for any CIDR entry — geolocating a whole subnet doesn't correspond to a single place, and IP geolocation libraries generally expect a single address.
 
 ## Managing the allow list (`/admin/allowed-ip-list`)
 
@@ -46,7 +48,7 @@ Note this UI manages the database-backed allow list only (check #2 above). The f
   - `Remove` (optional; set to `true` on a row to unblock that IP instead of adding/updating it)
   - Rows matching an existing IP with the same reason are skipped as duplicates.
 - **CSV download** — exports `IP Address`, `Date`, `Reason` for every currently blocked IP.
-- **Self-lockout guard** — both the manual add form and the CSV upload path reject any attempt to block the IP address the request is currently coming from. This is enforced in code, not just a warning.
+- **Self-lockout guard** — both the manual add form and the CSV upload path reject any attempt to block the IP address the request is currently coming from - including a CIDR range that happens to contain it, not just an exact-address match. This is enforced in code, not just a warning.
 
 ## Audit trail
 
@@ -55,7 +57,6 @@ Every add, delete, CSV import, and CSV export on `/admin/blocked-ip-list` and `/
 ## Known limitations
 
 - No admin UI for the deny list — it's server-file-only today (`config/cms/ip-deny-list.csv`), requiring file access to the deployment, not just admin-panel access. (The allow list has an admin UI as of `/admin/allowed-ip-list`, though its underlying file counterpart is still file-only too — see above.)
-- No CIDR/subnet blocking — blocking or allowing a range means adding every address individually.
 - No expiration — a manually or automatically blocked IP stays blocked until someone deletes it; there's no time-limited or graduated blocking.
 - No search/filter on either list's UI beyond pagination.
 

@@ -74,28 +74,30 @@ public class BlockedIPListCommand {
 
     LOG.debug("Checking IP: " + ipAddress);
 
-    // If allowed via the server-side file list, return quickly
+    // If allowed via the server-side file list, return quickly (entries may be a plain IP or a CIDR range)
     List<String> ipAllowList = listMap.get(IP_ALLOW_LIST);
-    if (ipAllowList != null && ipAllowList.contains(ipAddress)) {
+    if (ipAllowList != null && ipAllowList.stream().anyMatch(entry -> IpRangeCommand.matches(entry, ipAddress))) {
       LOG.debug("Allowed IP: " + ipAddress);
       return true;
     }
 
     // If allowed via the admin-managed, database-backed allow list, return quickly
-    if (LoadAllowedIPListCommand.retrieveCachedIpAddressList().contains(ipAddress)) {
+    if (LoadAllowedIPListCommand.retrieveCachedIpAddressList().stream()
+        .anyMatch(entry -> IpRangeCommand.matches(entry, ipAddress))) {
       LOG.debug("Allowed IP: " + ipAddress);
       return true;
     }
 
     // If blocked in file, return an error
     List<String> ipIgnoreList = listMap.get(IP_IGNORE_LIST);
-    if (ipIgnoreList != null && ipIgnoreList.contains(ipAddress)) {
+    if (ipIgnoreList != null && ipIgnoreList.stream().anyMatch(entry -> IpRangeCommand.matches(entry, ipAddress))) {
       LOG.debug("Blocked IP: " + ipAddress);
       return false;
     }
 
     // If blocked in database, return an error
-    if (LoadBlockedIPListCommand.retrieveCachedIpAddressList().contains(ipAddress)) {
+    if (LoadBlockedIPListCommand.retrieveCachedIpAddressList().stream()
+        .anyMatch(entry -> IpRangeCommand.matches(entry, ipAddress))) {
       LOG.debug("Blocked IP: " + ipAddress);
       return false;
     }

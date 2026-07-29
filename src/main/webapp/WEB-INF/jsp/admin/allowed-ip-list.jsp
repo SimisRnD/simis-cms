@@ -27,7 +27,7 @@
 <c:if test="${!empty title}">
   <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
-<p class="help-text">IPs on this list bypass every other check in <code>WebRequestFilter</code> - the deny list, the <a href="${ctx}/admin/blocked-ip-list">Blocked IP list</a>, and the URL-probe auto-block - so a match here always lets the request through. Matching is exact - IPv4 or IPv6, no CIDR/subnet ranges. A separate, server-file-based allow list (<code>config/cms/ip-allow-list.csv</code>) is also still checked and isn't managed here; see <code>docs/ip-blocking.md</code>.</p>
+<p class="help-text">IPs on this list bypass every other check in <code>WebRequestFilter</code> - the deny list, the <a href="${ctx}/admin/blocked-ip-list">Blocked IP list</a>, and the URL-probe auto-block - so a match here always lets the request through. Accepts a single IPv4/IPv6 address or a CIDR range (e.g. <code>203.0.113.0/24</code>). A separate, server-file-based allow list (<code>config/cms/ip-allow-list.csv</code>) is also still checked and isn't managed here; see <code>docs/ip-blocking.md</code>.</p>
 <%@include file="../page_messages.jspf" %>
 <form id="fileForm" method="post" enctype="multipart/form-data">
   <%-- Required by controller --%>
@@ -69,7 +69,7 @@
         <c:out value="${text:trim(record.ipAddress, 24, true)}" />
         <a href="#" onclick="return confirmPostAction('Are you sure you want to remove <c:out value="${js:escape(record.ipAddress)}" /> from the allow list?', '${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&allowedIPListId=${record.id}');"><i class="fa fa-remove"></i></a>
       </td>
-      <td><c:out value='${geoip:location(record.ipAddress, " ")}'/></td>
+      <td><c:choose><c:when test="${fn:contains(record.ipAddress, '/')}"><small>Range</small></c:when><c:otherwise><c:out value='${geoip:location(record.ipAddress, " ")}'/></c:otherwise></c:choose></td>
       <td nowrap="true"><small<c:if test="${fn:length(record.reason) > 40}"> title="<c:out value="${record.reason}" />"</c:if>><c:out value="${text:trim(record.reason, 40, true)}" /></small></td>
       <td nowrap="true"><fmt:formatDate pattern="yyyy-MM-dd" value="${record.created}" /></td>
       <td nowrap="true">

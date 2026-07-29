@@ -18,6 +18,7 @@ package com.simisinc.platform.presentation.widgets.admin;
 
 import com.simisinc.platform.application.AppException;
 import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.cms.IpRangeCommand;
 import com.simisinc.platform.application.cms.SaveBlockedIPCommand;
 import com.simisinc.platform.domain.model.BlockedIP;
 import com.simisinc.platform.infrastructure.persistence.BlockedIPRepository;
@@ -66,8 +67,8 @@ public class BlockedIPFormWidget extends GenericWidget {
     BlockedIP blockedIPBean = new BlockedIP();
     BeanUtils.populate(blockedIPBean, context.getParameterMap());
 
-    // Don't add your own IP
-    if (blockedIPBean.getIpAddress().equals(context.getRequest().getRemoteAddr())) {
+    // Don't add your own IP, whether as an exact match or as part of a submitted CIDR range
+    if (IpRangeCommand.matches(blockedIPBean.getIpAddress(), context.getRequest().getRemoteAddr())) {
       context.setErrorMessage("Cannot add your own IP");
       return context;
     }

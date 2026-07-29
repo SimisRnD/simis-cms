@@ -861,6 +861,15 @@
           <type>bar</type>
         </widget>
       </column>
+      <column class="small-12 medium-6 cell">
+        <widget name="siteStats" class="stats card">
+          <icon>fa-shield-halved</icon>
+          <title>Email Deliverability</title>
+          <label>Status</label>
+          <value>Subscribers</value>
+          <report>mailing-list-classification-breakdown</report>
+        </widget>
+      </column>
     </section>
   </page>
 
