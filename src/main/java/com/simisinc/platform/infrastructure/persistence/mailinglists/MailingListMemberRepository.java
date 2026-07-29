@@ -185,94 +185,59 @@ public class MailingListMemberRepository {
   }
 
   /**
-   * Quarantines (archives, does not delete) every currently-active membership whose linked email
-   * has a confirmed-bad deliverability classification and isn't already quarantined (issue #564).
-   * Sets is_valid = false, exactly as unsubscribe() does, so a quarantined membership
-   * automatically drops out of countActiveSubscribers() -- but does NOT touch the unsubscribed
-   * column, since quarantine is a distinct reason a membership stopped being active, not a person
-   * choosing to leave.
-   *
-   * @return the number of memberships newly quarantined by this call
+   * Distinct subscribers grouped by deliverability classification (issue #562, feeds off #574's
+   * emails.validation_status). NULL means never validated -- ZeroBounce is optional and the
+   * classification job only works through a backlog over time, so an unconfigured or
+   * still-classifying install legitimately shows most/all subscribers as "unclassified" rather
+   * than omitting them from the breakdown.
    */
-  public static int quarantineFlaggedMembers() {
+  public static List<StatisticsData> findClassificationBreakdown() {
     String SQL_QUERY =
-        "UPDATE " + TABLE_NAME + " SET is_valid = false, quarantined = CURRENT_TIMESTAMP, " +
-            "quarantine_reason = emails.validation_status " +
-            "FROM emails " +
-            "WHERE " + TABLE_NAME + ".email_id = emails.email_id " +
-            "AND " + TABLE_NAME + ".quarantined IS NULL " +
-            "AND " + TABLE_NAME + ".is_valid = true " +
-            "AND emails.validation_status IN " + QUARANTINE_TRIGGER_STATUSES_SQL;
-    try (Connection connection = DB.getConnection();
-         PreparedStatement pst = connection.prepareStatement(SQL_QUERY)) {
-      return pst.executeUpdate();
-    } catch (SQLException se) {
-      LOG.error("SQLException: " + se.getMessage());
-      return 0;
-    }
-  }
-
-  /** Distinct people currently quarantined on at least one list. */
-  public static long countQuarantined() {
-    SqlUtils where = new SqlUtils().add("quarantined IS NOT NULL");
-    return DB.selectFunction("COUNT(DISTINCT email_id)", TABLE_NAME, where);
-  }
-
-  /**
-   * A 0-100 "mailing list quality" score: of the distinct subscribers who have actually been
-   * classified, what percentage are NOT a quarantine-triggering status. Deliberately mirrors
-   * QUARANTINE_TRIGGER_STATUSES_SQL rather than only counting "valid" as good, so catch-all/unknown
-   * (which don't trigger quarantine either) don't drag the score down as if they were confirmed bad.
-   * Returns 100 (no known problems) when nothing has been classified yet, rather than an undefined
-   * or misleadingly alarming value -- e.g. before ZeroBounce is even configured.
-   */
-  public static double findQualityScorePercent() {
-    String SQL_QUERY =
-        "SELECT COUNT(*) FILTER (WHERE validation_status NOT IN " + QUARANTINE_TRIGGER_STATUSES_SQL + ") AS good_count, " +
-            "COUNT(*) AS classified_count " +
-            "FROM (SELECT DISTINCT emails.email_id, emails.validation_status " +
-            "FROM " + TABLE_NAME + " " + JOIN + " " +
-            "WHERE emails.validation_status IS NOT NULL) classified_subscribers";
+        "SELECT COALESCE(emails.validation_status, 'unclassified') AS status, " +
+            "COUNT(DISTINCT mailing_list_members.email_id) AS status_count " +
+            "FROM " + TABLE_NAME + " " +
+            JOIN + " " +
+            "GROUP BY COALESCE(emails.validation_status, 'unclassified') " +
+            "ORDER BY status_count DESC";
+    List<StatisticsData> records = null;
     try (Connection connection = DB.getConnection();
          PreparedStatement pst = connection.prepareStatement(SQL_QUERY);
          ResultSet rs = pst.executeQuery()) {
-      if (rs.next()) {
-        long classifiedCount = rs.getLong("classified_count");
-        if (classifiedCount == 0) {
-          return 100;
-        }
-        long goodCount = rs.getLong("good_count");
-        return 100.0 * goodCount / classifiedCount;
+      records = new ArrayList<>();
+      while (rs.next()) {
+        StatisticsData data = new StatisticsData();
+        data.setLabel(rs.getString("status"));
+        data.setValue(String.valueOf(rs.getLong("status_count")));
+        records.add(data);
       }
     } catch (SQLException se) {
       LOG.error("SQLException: " + se.getMessage());
     }
-    return 100;
+    return records;
   }
 
   /**
-   * Parses the configurable mailing-list.quarantine.alertThresholdPercent site property, falling
-   * back to the default on a blank or unparseable value and clamping to a sane 0-100 range --
-   * mirrors AuditLogRepository.resolveRetentionDays's exact shape for the same reason: a bad or
-   * missing config value must degrade to a safe default, never break the dashboard tile.
+   * When the most recently-checked current subscriber was last run through deliverability
+   * validation, or null if no subscriber has been classified yet. Scoped to subscribers (not a
+   * plain MAX(validated_at) over all of emails) so it reflects the freshness of what
+   * findClassificationBreakdown() actually shows, not unrelated non-subscriber addresses (emails
+   * also serves ecommerce customers) the classification job's backlog happens to include.
    */
-  public static int resolveQuarantineAlertThresholdPercent(String value) {
-    if (StringUtils.isBlank(value)) {
-      return DEFAULT_QUARANTINE_ALERT_THRESHOLD_PERCENT;
+  public static Timestamp findLastClassifiedAt() {
+    String SQL_QUERY =
+        "SELECT MAX(emails.validated_at) AS last_validated " +
+            "FROM " + TABLE_NAME + " " +
+            JOIN;
+    try (Connection connection = DB.getConnection();
+         PreparedStatement pst = connection.prepareStatement(SQL_QUERY);
+         ResultSet rs = pst.executeQuery()) {
+      if (rs.next()) {
+        return rs.getTimestamp("last_validated");
+      }
+    } catch (SQLException se) {
+      LOG.error("SQLException: " + se.getMessage());
     }
-    int percent;
-    try {
-      percent = Integer.parseInt(value.trim());
-    } catch (NumberFormatException e) {
-      return DEFAULT_QUARANTINE_ALERT_THRESHOLD_PERCENT;
-    }
-    if (percent < 0) {
-      return 0;
-    }
-    if (percent > 100) {
-      return 100;
-    }
-    return percent;
+    return null;
   }
 
   public static void export(MailingListMemberSpecification specification, DataConstraints constraints, File file) {

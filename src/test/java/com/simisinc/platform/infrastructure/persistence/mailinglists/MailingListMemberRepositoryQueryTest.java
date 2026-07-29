@@ -18,13 +18,17 @@ package com.simisinc.platform.infrastructure.persistence.mailinglists;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 import org.junit.jupiter.api.AfterAll;
@@ -42,12 +46,12 @@ import com.simisinc.platform.infrastructure.database.DB;
 import com.simisinc.platform.infrastructure.database.DataSource;
 
 /**
- * Verifies the distinct-subscriber count and trend methods (issue #562), plus the quarantine and
- * quality-score methods (issue #564), against a real PostgreSQL instance. Minimal schema
- * replicated from {@code NEW_10070__new_mailing_lists.sql} -- emails, mailing_lists,
- * mailing_list_members only, without the users-table foreign keys (nullable, not needed for these
- * tests). The emails table additionally includes the validation_status/validated_at columns added
- * by #574's UPGRADE_20260728.2000__email_classification.sql, which #564's quarantine logic reads.
+ * Verifies the distinct-subscriber count, trend, and deliverability-classification-breakdown
+ * methods (issue #562) against a real PostgreSQL instance. Minimal schema replicated from
+ * {@code NEW_10070__new_mailing_lists.sql} -- emails, mailing_lists, mailing_list_members only,
+ * without the users-table foreign keys (nullable, not needed for these tests). The emails table
+ * additionally includes the validation_status/validated_at columns added by #574's
+ * UPGRADE_20260728.2000__email_classification.sql.
  *
  * @author SimIS Inc.
  * @created 7/28/2026
@@ -173,128 +177,92 @@ class MailingListMemberRepositoryQueryTest {
   }
 
   @Test
-  void quarantineFlaggedMembersOnlyQuarantinesConfirmedBadStatuses() throws SQLException {
+  void findClassificationBreakdownGroupsDistinctSubscribersByStatus() throws SQLException {
     long list = seedList("List A");
-    long invalid = seedEmail("invalid@example.com");
-    long spamtrap = seedEmail("spamtrap@example.com");
-    long abuse = seedEmail("abuse@example.com");
-    long doNotMail = seedEmail("do-not-mail@example.com");
-    long catchAll = seedEmail("catchall@example.com");
-    long unknown = seedEmail("unknown@example.com");
     long valid = seedEmail("valid@example.com");
-    classifyEmail(invalid, "invalid", "2026-07-29 00:00:00");
-    classifyEmail(spamtrap, "spamtrap", "2026-07-29 00:00:00");
-    classifyEmail(abuse, "abuse", "2026-07-29 00:00:00");
-    classifyEmail(doNotMail, "do_not_mail", "2026-07-29 00:00:00");
-    classifyEmail(catchAll, "catch-all", "2026-07-29 00:00:00");
-    classifyEmail(unknown, "unknown", "2026-07-29 00:00:00");
-    classifyEmail(valid, "valid", "2026-07-29 00:00:00");
-    for (long emailId : new long[]{invalid, spamtrap, abuse, doNotMail, catchAll, unknown, valid}) {
-      seedMembership(list, emailId, true, null);
-    }
+    long invalid = seedEmail("invalid-addr@example.com");
+    long neverChecked = seedEmail("unchecked@example.com");
+    classifyEmail(valid, "valid", "2026-07-28 00:00:00");
+    classifyEmail(invalid, "invalid", "2026-07-28 00:00:00");
+    // neverChecked is left with validation_status/validated_at both NULL
 
-    int quarantinedCount = MailingListMemberRepository.quarantineFlaggedMembers();
-
-    assertEquals(4, quarantinedCount, "only invalid/spamtrap/abuse/do_not_mail should be quarantined");
-    assertEquals(4, MailingListMemberRepository.countQuarantined());
-    // catch-all, unknown, and valid must still be active
-    assertEquals(3, MailingListMemberRepository.countActiveSubscribers());
-  }
-
-  @Test
-  void quarantineFlaggedMembersIsIdempotent() throws SQLException {
-    long list = seedList("List A");
-    long invalid = seedEmail("invalid@example.com");
-    classifyEmail(invalid, "invalid", "2026-07-29 00:00:00");
+    seedMembership(list, valid, true, null);
     seedMembership(list, invalid, true, null);
+    seedMembership(list, neverChecked, true, null);
 
-    assertEquals(1, MailingListMemberRepository.quarantineFlaggedMembers());
-    assertEquals(0, MailingListMemberRepository.quarantineFlaggedMembers(),
-        "a second run must not re-quarantine (or re-count) an already-quarantined membership");
-    assertEquals(1, MailingListMemberRepository.countQuarantined());
+    List<StatisticsData> breakdown = MailingListMemberRepository.findClassificationBreakdown();
+
+    Map<String, String> byStatus = new HashMap<>();
+    for (StatisticsData data : breakdown) {
+      byStatus.put(data.getLabel(), data.getValue());
+    }
+    assertEquals("1", byStatus.get("valid"));
+    assertEquals("1", byStatus.get("invalid"));
+    assertEquals("1", byStatus.get("unclassified"),
+        "a never-validated subscriber must fall into 'unclassified', not be omitted: " + breakdown);
   }
 
   @Test
-  void quarantineFlaggedMembersDoesNotTouchAlreadyUnsubscribedMemberships() throws SQLException {
-    long list = seedList("List A");
-    long alreadyGone = seedEmail("already-unsubscribed@example.com");
-    classifyEmail(alreadyGone, "invalid", "2026-07-29 00:00:00");
-    seedMembership(list, alreadyGone, false, "2026-07-01 00:00:00"); // is_valid=false already
-
-    int quarantinedCount = MailingListMemberRepository.quarantineFlaggedMembers();
-
-    assertEquals(0, quarantinedCount,
-        "an already-unsubscribed membership must not be relabeled as quarantined");
-    assertEquals(0, MailingListMemberRepository.countQuarantined());
-    assertEquals(1, MailingListMemberRepository.countUnsubscribed(), "unsubscribe status must be preserved");
-  }
-
-  @Test
-  void countQuarantinedCountsDistinctPeopleNotMemberships() throws SQLException {
+  void findClassificationBreakdownCountsDistinctPeopleNotMemberships() throws SQLException {
     long listA = seedList("List A");
     long listB = seedList("List B");
-    long grace = seedEmail("grace@example.com");
-    classifyEmail(grace, "invalid", "2026-07-29 00:00:00");
-    seedMembership(listA, grace, true, null);
-    seedMembership(listB, grace, true, null); // grace is on both lists -- must count once
+    long frank = seedEmail("frank@example.com");
+    classifyEmail(frank, "valid", "2026-07-28 00:00:00");
 
-    MailingListMemberRepository.quarantineFlaggedMembers();
+    seedMembership(listA, frank, true, null);
+    seedMembership(listB, frank, true, null); // frank is on both lists -- must count once
 
-    assertEquals(1, MailingListMemberRepository.countQuarantined());
+    List<StatisticsData> breakdown = MailingListMemberRepository.findClassificationBreakdown();
+
+    assertEquals(1, breakdown.size(), "expected a single 'valid' group: " + breakdown);
+    assertEquals("valid", breakdown.get(0).getLabel());
+    assertEquals("1", breakdown.get(0).getValue());
   }
 
   @Test
-  void findQualityScorePercentReturns100WhenNothingHasBeenClassifiedYet() throws SQLException {
+  void findClassificationBreakdownExcludesNonSubscriberEmails() throws SQLException {
+    long list = seedList("List A");
+    long subscriber = seedEmail("subscriber@example.com");
+    long customerOnly = seedEmail("customer-only@example.com"); // e.g. an ecommerce customer, never subscribed
+    classifyEmail(subscriber, "valid", "2026-07-28 00:00:00");
+    classifyEmail(customerOnly, "invalid", "2026-07-28 00:00:00");
+
+    seedMembership(list, subscriber, true, null);
+    // customerOnly is intentionally never added to mailing_list_members
+
+    List<StatisticsData> breakdown = MailingListMemberRepository.findClassificationBreakdown();
+
+    assertEquals(1, breakdown.size(), "a non-subscriber address must not appear in a mailing-list breakdown: " + breakdown);
+    assertEquals("valid", breakdown.get(0).getLabel());
+  }
+
+  @Test
+  void findLastClassifiedAtReturnsNullWhenNoSubscriberHasBeenClassified() throws SQLException {
     long list = seedList("List A");
     seedMembership(list, seedEmail("unchecked@example.com"), true, null);
 
-    assertEquals(100.0, MailingListMemberRepository.findQualityScorePercent(),
-        "no known problems yet must read as clean, not as an alarming 0");
+    assertNull(MailingListMemberRepository.findLastClassifiedAt());
   }
 
   @Test
-  void findQualityScorePercentTreatsCatchAllAndUnknownAsGoodNotBad() throws SQLException {
+  void findLastClassifiedAtReturnsTheMostRecentSubscriberValidationAndIgnoresNonSubscribers() throws SQLException {
     long list = seedList("List A");
-    long catchAll = seedEmail("catchall@example.com");
-    long unknown = seedEmail("unknown@example.com");
-    classifyEmail(catchAll, "catch-all", "2026-07-29 00:00:00");
-    classifyEmail(unknown, "unknown", "2026-07-29 00:00:00");
-    seedMembership(list, catchAll, true, null);
-    seedMembership(list, unknown, true, null);
+    long older = seedEmail("older@example.com");
+    long newer = seedEmail("newer@example.com");
+    long nonSubscriberButNewer = seedEmail("customer-only@example.com");
+    classifyEmail(older, "valid", "2026-07-01 00:00:00");
+    classifyEmail(newer, "valid", "2026-07-15 00:00:00");
+    classifyEmail(nonSubscriberButNewer, "valid", "2026-07-27 00:00:00"); // newest overall, but not a subscriber
 
-    assertEquals(100.0, MailingListMemberRepository.findQualityScorePercent(),
-        "catch-all/unknown are unresolved, not confirmed bad, and must not lower the score");
-  }
+    seedMembership(list, older, true, null);
+    seedMembership(list, newer, true, null);
+    // nonSubscriberButNewer is intentionally never added to mailing_list_members
 
-  @Test
-  void findQualityScorePercentComputesTheCorrectRatioAmongClassifiedSubscribersOnly() throws SQLException {
-    long list = seedList("List A");
-    long valid1 = seedEmail("valid1@example.com");
-    long valid2 = seedEmail("valid2@example.com");
-    long valid3 = seedEmail("valid3@example.com");
-    long invalid = seedEmail("invalid@example.com");
-    long neverChecked = seedEmail("unchecked@example.com"); // must be excluded from the denominator
-    classifyEmail(valid1, "valid", "2026-07-29 00:00:00");
-    classifyEmail(valid2, "valid", "2026-07-29 00:00:00");
-    classifyEmail(valid3, "valid", "2026-07-29 00:00:00");
-    classifyEmail(invalid, "invalid", "2026-07-29 00:00:00");
-    for (long emailId : new long[]{valid1, valid2, valid3, invalid, neverChecked}) {
-      seedMembership(list, emailId, true, null);
-    }
+    Timestamp lastClassifiedAt = MailingListMemberRepository.findLastClassifiedAt();
 
-    assertEquals(75.0, MailingListMemberRepository.findQualityScorePercent(), 0.001,
-        "3 good out of 4 classified (the 5th, never-classified, subscriber must not count in the denominator)");
-  }
-
-  @Test
-  void resolveQuarantineAlertThresholdPercentFallsBackAndClamps() {
-    assertEquals(10, MailingListMemberRepository.resolveQuarantineAlertThresholdPercent(null), "default on null");
-    assertEquals(10, MailingListMemberRepository.resolveQuarantineAlertThresholdPercent(""), "default on blank");
-    assertEquals(10, MailingListMemberRepository.resolveQuarantineAlertThresholdPercent("not-a-number"),
-        "default on unparseable");
-    assertEquals(25, MailingListMemberRepository.resolveQuarantineAlertThresholdPercent("25"), "valid value passes through");
-    assertEquals(0, MailingListMemberRepository.resolveQuarantineAlertThresholdPercent("-5"), "clamped to 0");
-    assertEquals(100, MailingListMemberRepository.resolveQuarantineAlertThresholdPercent("150"), "clamped to 100");
+    assertNotNull(lastClassifiedAt);
+    assertEquals(Timestamp.valueOf("2026-07-15 00:00:00"), lastClassifiedAt,
+        "must reflect the most recent SUBSCRIBER validation, not the unrelated non-subscriber's later one");
   }
 
   private long seedList(String name) throws SQLException {
