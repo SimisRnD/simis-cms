@@ -18,6 +18,7 @@ package com.simisinc.platform.presentation.controller;
 
 import java.io.Serializable;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -25,6 +26,7 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import org.apache.commons.lang3.StringUtils;
 
+import com.simisinc.platform.domain.model.cms.FaqQuestion;
 import com.simisinc.platform.presentation.widgets.cms.PreferenceEntriesList;
 
 /**
@@ -51,6 +53,9 @@ public class WidgetContext implements Serializable {
   private String pageTitle = null;
   private String pageDescription = null;
   private String pageKeywords = null;
+
+  // FAQPage schema fields (issue #416), bridged from FaqWidget
+  private List<FaqQuestion> faqQuestions = null;
 
   private String jsp = null;
   private String html = null;
@@ -161,6 +166,14 @@ public class WidgetContext implements Serializable {
 
   public void setPageKeywords(String pageKeywords) {
     this.pageKeywords = pageKeywords;
+  }
+
+  public List<FaqQuestion> getFaqQuestions() {
+    return faqQuestions;
+  }
+
+  public void setFaqQuestions(List<FaqQuestion> faqQuestions) {
+    this.faqQuestions = faqQuestions;
   }
 
   public String getJsp() {

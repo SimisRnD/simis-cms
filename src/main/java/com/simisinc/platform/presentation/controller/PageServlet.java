@@ -26,6 +26,7 @@ import com.simisinc.platform.application.items.LoadItemCommand;
 import com.simisinc.platform.application.items.SaveItemCommand;
 import com.simisinc.platform.domain.model.SocialMediaLink;
 import com.simisinc.platform.infrastructure.persistence.SocialMediaLinkRepository;
+import com.simisinc.platform.domain.model.cms.FaqQuestion;
 import com.simisinc.platform.domain.model.cms.MenuTab;
 import com.simisinc.platform.domain.model.cms.Stylesheet;
 import com.simisinc.platform.domain.model.cms.TableOfContents;
@@ -850,14 +851,6 @@ public class PageServlet extends HttpServlet {
         }
       }
 
-      // Generate JSON-LD structured data for search engines and AI (issue #403)
-      if (StringUtils.isNotBlank(siteUrl) && StringUtils.isNotBlank(sitePropertyMap.get("site.name"))) {
-        String jsonLd = generateJsonLdData(pageRenderInfo, siteUrl, sitePropertyMap, thisItem, thisCollection);
-        if (StringUtils.isNotBlank(jsonLd)) {
-          pageRenderInfo.setJsonLdData(jsonLd);
-        }
-      }
-
       // Finally... we have a page ready to be processed...
       if (LOG.isDebugEnabled()) {
         LOG.debug(request.getMethod() + " page " + pageRef.getName());
@@ -893,6 +886,17 @@ public class PageServlet extends HttpServlet {
       if (WebContainerCommand.processWidgets(webContainerContext, pageRef.getSections(), pageRenderInfo, coreData, contextPath, pagePath, userSession, themePropertyMap)) {
         // The widget processor handled the response, immediately return
         return;
+      }
+
+      // Generate JSON-LD structured data for search engines and AI (issue #403). This runs after
+      // processWidgets so it can see page metadata a content widget (e.g. FaqWidget) bridged into
+      // pageRenderInfo during its own execute() -- generating it earlier would only ever see the
+      // generic item/collection/webPage title & description, never a widget-specific one.
+      if (StringUtils.isNotBlank(siteUrl) && StringUtils.isNotBlank(sitePropertyMap.get("site.name"))) {
+        String jsonLd = generateJsonLdData(pageRenderInfo, siteUrl, sitePropertyMap, thisItem, thisCollection);
+        if (StringUtils.isNotBlank(jsonLd)) {
+          pageRenderInfo.setJsonLdData(jsonLd);
+        }
       }
 
       // Render the header
@@ -1052,6 +1056,12 @@ public class PageServlet extends HttpServlet {
       }
       graph.add(webPage);
 
+      // Add FAQPage schema if this page has a FaqWidget (issue #416)
+      Map<String, Object> faqPage = computeFaqSchema(pageRenderInfo);
+      if (faqPage != null) {
+        graph.add(faqPage);
+      }
+
       // Add Product schema if this is an item (catalog product)
       if (item != null && StringUtils.isNotBlank(item.getName())) {
         Map<String, Object> product = new LinkedHashMap<>();
@@ -1076,6 +1086,33 @@ public class PageServlet extends HttpServlet {
       LOG.warn("Error generating JSON-LD data: " + e.getMessage());
       return null;
     }
+  }
+
+  /**
+   * Builds the FAQPage schema for a page with one or more FaqWidgets (issue #416). Uses
+   * FaqQuestion's pre-stripped answerText, not the widget's own rendered HTML, since Google's FAQ
+   * rich result requires the acceptedAnswer text to contain no markup.
+   */
+  static Map<String, Object> computeFaqSchema(PageRenderInfo pageRenderInfo) {
+    List<FaqQuestion> faqQuestionList = pageRenderInfo.getFaqQuestions();
+    if (faqQuestionList == null || faqQuestionList.isEmpty()) {
+      return null;
+    }
+    List<Map<String, Object>> mainEntity = new ArrayList<>();
+    for (FaqQuestion faqQuestion : faqQuestionList) {
+      Map<String, Object> question = new LinkedHashMap<>();
+      question.put("@type", "Question");
+      question.put("name", faqQuestion.getQuestion());
+      Map<String, Object> acceptedAnswer = new LinkedHashMap<>();
+      acceptedAnswer.put("@type", "Answer");
+      acceptedAnswer.put("text", faqQuestion.getAnswerText());
+      question.put("acceptedAnswer", acceptedAnswer);
+      mainEntity.add(question);
+    }
+    Map<String, Object> faqPage = new LinkedHashMap<>();
+    faqPage.put("@type", "FAQPage");
+    faqPage.put("mainEntity", mainEntity);
+    return faqPage;
   }
 
   /**

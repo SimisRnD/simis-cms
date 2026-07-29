@@ -20,6 +20,8 @@ import java.io.Serializable;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.simisinc.platform.domain.model.cms.FaqQuestion;
+
 /**
  * Description
  *
@@ -46,6 +48,10 @@ public class PageRenderInfo implements ContainerRenderInfo, Serializable {
   private String pageUrl;
   private String cssClass = null;
   private String jsonLdData;
+
+  // FAQPage schema (issue #416); a list rather than the single-value pattern above since more
+  // than one FaqWidget on the same page should combine into one FAQPage's mainEntity, not overwrite
+  private List<FaqQuestion> faqQuestions = null;
 
   public PageRenderInfo() {
   }
@@ -165,6 +171,17 @@ public class PageRenderInfo implements ContainerRenderInfo, Serializable {
 
   public void setJsonLdData(String jsonLdData) {
     this.jsonLdData = jsonLdData;
+  }
+
+  public List<FaqQuestion> getFaqQuestions() {
+    return faqQuestions;
+  }
+
+  public void addFaqQuestions(List<FaqQuestion> faqQuestionsToAdd) {
+    if (faqQuestions == null) {
+      faqQuestions = new ArrayList<>();
+    }
+    faqQuestions.addAll(faqQuestionsToAdd);
   }
 
 }
