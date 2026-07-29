@@ -22,6 +22,7 @@ import java.util.List;
 import org.apache.commons.lang3.StringUtils;
 
 import com.simisinc.platform.application.cms.HtmlCommand;
+import com.simisinc.platform.application.cms.SearchAnalyticsCommand;
 import com.simisinc.platform.domain.model.cms.BlogPost;
 import com.simisinc.platform.domain.model.cms.SearchResult;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
@@ -69,6 +70,7 @@ public class BlogPostSearchResultsWidget extends GenericWidget {
 
     // Query the data
     List<BlogPost> blogPostList = BlogPostRepository.findAll(specification, constraints);
+    SearchAnalyticsCommand.record(context, query, "blog", blogPostList == null ? 0 : blogPostList.size());
     if (blogPostList == null || blogPostList.isEmpty()) {
       return context;
     }

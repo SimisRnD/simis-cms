@@ -17,6 +17,7 @@
 package com.simisinc.platform.presentation.widgets.items;
 
 import com.simisinc.platform.application.cms.HtmlCommand;
+import com.simisinc.platform.application.cms.SearchAnalyticsCommand;
 import com.simisinc.platform.domain.model.cms.SearchResult;
 import com.simisinc.platform.domain.model.items.Item;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
@@ -82,6 +83,7 @@ public class ItemsSearchResultsWidget extends GenericWidget {
 
     // Query the data
     List<Item> itemList = ItemRepository.findAll(specification, constraints);
+    SearchAnalyticsCommand.record(context, query, "items", itemList == null ? 0 : itemList.size());
     if (itemList == null || itemList.isEmpty()) {
       return context;
     }
