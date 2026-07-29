@@ -22,6 +22,7 @@ import com.simisinc.platform.application.cms.SaveBlockedIPCommand;
 import com.simisinc.platform.domain.model.BlockedIP;
 import com.simisinc.platform.infrastructure.persistence.BlockedIPRepository;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
+import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import org.apache.commons.beanutils.BeanUtils;
 
@@ -85,10 +86,14 @@ public class BlockedIPFormWidget extends GenericWidget {
         throw new AppException("Your information could not be saved due to a system error. Please try again.");
       }
     } catch (DataException | AppException e) {
+      AuditEventCommand.record(context, AuditEventCommand.CONFIGURATION, "blocked_ip.add", AuditEventCommand.FAILURE,
+          "blocked_ip", null, blockedIPBean.getIpAddress(), e.getMessage());
       context.setErrorMessage(e.getMessage());
       context.setRequestObject(blockedIPBean);
       return context;
     }
+    AuditEventCommand.record(context, AuditEventCommand.CONFIGURATION, "blocked_ip.add", AuditEventCommand.SUCCESS,
+        "blocked_ip", String.valueOf(blockedIP.getId()), blockedIP.getIpAddress(), blockedIP.getReason());
 
     // Determine the page to return to
     context.setSuccessMessage("Record was saved");

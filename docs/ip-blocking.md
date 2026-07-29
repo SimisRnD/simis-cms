@@ -50,7 +50,7 @@ Note this UI manages the database-backed allow list only (check #2 above). The f
 
 ## Audit trail
 
-Every add, delete, CSV import, and CSV export on `/admin/blocked-ip-list` and `/admin/allowed-ip-list` is recorded through the platform's audit logging (`blocked_ip.*`/`allowed_ip.*`, `data.export` events). These do not appear inline on either page — view them from the **Audit Log** admin screen.
+Every add, delete, CSV import, and CSV export on `/admin/blocked-ip-list` and `/admin/allowed-ip-list` is recorded through the platform's audit logging (`blocked_ip.*`/`allowed_ip.*`, `data.export` events). Each row on both pages has a **History** link that opens the Audit Log pre-filtered to that exact IP (`targetType` + `targetLabel`), so "who added/removed this IP, when, and why" doesn't require leaving the page or reconstructing the filter by hand.
 
 ## Known limitations
 

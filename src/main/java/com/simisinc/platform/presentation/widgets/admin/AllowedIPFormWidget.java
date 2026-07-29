@@ -22,6 +22,7 @@ import com.simisinc.platform.application.cms.SaveAllowedIPCommand;
 import com.simisinc.platform.domain.model.AllowedIP;
 import com.simisinc.platform.infrastructure.persistence.AllowedIPRepository;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
+import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import org.apache.commons.beanutils.BeanUtils;
 
@@ -78,10 +79,14 @@ public class AllowedIPFormWidget extends GenericWidget {
         throw new AppException("Your information could not be saved due to a system error. Please try again.");
       }
     } catch (DataException | AppException e) {
+      AuditEventCommand.record(context, AuditEventCommand.CONFIGURATION, "allowed_ip.add", AuditEventCommand.FAILURE,
+          "allowed_ip", null, allowedIPBean.getIpAddress(), e.getMessage());
       context.setErrorMessage(e.getMessage());
       context.setRequestObject(allowedIPBean);
       return context;
     }
+    AuditEventCommand.record(context, AuditEventCommand.CONFIGURATION, "allowed_ip.add", AuditEventCommand.SUCCESS,
+        "allowed_ip", String.valueOf(allowedIP.getId()), allowedIP.getIpAddress(), allowedIP.getReason());
 
     // Determine the page to return to
     context.setSuccessMessage("Record was saved");

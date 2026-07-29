@@ -155,6 +155,36 @@ class AuditLogListWidgetTest extends WidgetBase {
   }
 
   @Test
+  void targetLabelMapsOntoTheSpecification() {
+    // Backs the per-row "History" link on /admin/blocked-ip-list and /admin/allowed-ip-list
+    // (?targetType=blocked_ip&targetLabel=<ip address>) - proves the link's query params actually
+    // reach the filter, not just that the JSP builds a URL.
+    setRoles(widgetContext, "admin");
+    addQueryParameter(widgetContext, "targetType", "blocked_ip");
+    addQueryParameter(widgetContext, "targetLabel", "203.0.113.5");
+
+    try (MockedStatic<AuditLogRepository> repository = mockStatic(AuditLogRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      repository.when(() -> AuditLogRepository.findAll(any(AuditLogSpecification.class), any(DataConstraints.class)))
+          .thenReturn(new ArrayList<>());
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("audit.retentionDays")).thenReturn(null);
+
+      new AuditLogListWidget().execute(widgetContext);
+
+      ArgumentCaptor<AuditLogSpecification> captor = ArgumentCaptor.forClass(AuditLogSpecification.class);
+      repository.verify(() -> AuditLogRepository.findAll(captor.capture(), any(DataConstraints.class)));
+      AuditLogSpecification spec = captor.getValue();
+
+      assertEquals("blocked_ip", spec.getTargetType());
+      assertEquals("203.0.113.5", spec.getTargetLabel());
+
+      String pagingParams = (String) widgetContext.getRequest().getAttribute("recordPagingParams");
+      assertTrue(pagingParams.contains("targetType=blocked_ip"));
+      assertTrue(pagingParams.contains("targetLabel=203.0.113.5"));
+    }
+  }
+
+  @Test
   void aQuickRangePresetTakesPrecedenceOverAnExplicitDateRange() {
     setRoles(widgetContext, "admin");
     addQueryParameter(widgetContext, "range", "24h");
