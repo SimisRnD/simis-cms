@@ -175,18 +175,16 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (30, 'Google reCAPTCHA Secret Key', 'captcha.google.secretkey', '');
 
 -- Social Media
+-- issue #516: platform link fields (Facebook/Instagram/LinkedIn/Twitter/Flickr/YouTube) moved to the
+-- dynamic social_media_links table below -- an admin-editable list of (platform, url) pairs instead of
+-- a fixed set of hardcoded properties. Contact info and the Instagram feed-embed integration stay here,
+-- since they aren't platform links.
 
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (5, 'Email Address', 'social.email', '');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (10, 'Telephone', 'social.phone', '');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (15, 'Email Subscribe Link', 'social.subscribe.url', '');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (20, 'Facebook', 'social.facebook.url', '', 'url');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (25, 'Instagram', 'social.instagram.url', '', 'url');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (27, 'Instagram Access Token', 'social.instagram.accessToken', '', 'text');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (28, 'Instagram Facebook Page Value', 'social.instagram.facebookPageValue', '', 'text');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (30, 'LinkedIn', 'social.linkedin.url', '', 'url');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (35, 'Twitter', 'social.twitter.url', '', 'url');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (40, 'Flickr', 'social.flickr.url', '', 'url');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (45, 'Youtube', 'social.youtube.url', '', 'url');
 
 -- BI
 
@@ -519,6 +517,16 @@ CREATE TABLE block_list (
   created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
   reason VARCHAR(255)
 );
+
+-- issue #516: an admin-editable list of (platform, url) pairs -- any platform name, not a fixed set
+CREATE TABLE social_media_links (
+  social_media_link_id BIGSERIAL PRIMARY KEY,
+  platform_name VARCHAR(100) NOT NULL,
+  url VARCHAR(512) NOT NULL,
+  link_order INTEGER DEFAULT 100,
+  created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX social_media_links_order_idx ON social_media_links(link_order);
 
 CREATE TABLE world_cities (
   country VARCHAR(2),
