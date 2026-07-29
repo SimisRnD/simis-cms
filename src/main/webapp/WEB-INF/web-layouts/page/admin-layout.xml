@@ -620,6 +620,27 @@
         </widget>
       </column>
       <column class="small-12 medium-6 large-3 cell callout">
+        <widget name="siteStats">
+          <icon>fa-user</icon>
+          <title>Real Sessions Today</title>
+          <report>real-sessions-today</report>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 large-3 cell callout">
+        <widget name="siteStats">
+          <icon>fa-robot</icon>
+          <title>Bot Sessions Today</title>
+          <report>bot-sessions-today-total</report>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 large-3 cell callout">
+        <widget name="siteStats">
+          <icon>fa-percentage</icon>
+          <title>Bot Traffic %</title>
+          <report>bot-traffic-percentage</report>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 large-3 cell callout">
         <widget name="communityStats">
           <icon>fa-mail-bulk</icon>
           <title>Mailing List Subscribers</title>
