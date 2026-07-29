@@ -29,6 +29,7 @@ import com.simisinc.platform.infrastructure.persistence.audit.AuditLogRepository
 import com.simisinc.platform.infrastructure.persistence.audit.AuditLogSpecification;
 import com.simisinc.platform.infrastructure.persistence.cms.ContentRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.FormDataRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.FormSubmissionFailureRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageHitRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebSearchRepository;
@@ -237,6 +238,31 @@ public class SiteStatsWidget extends GenericWidget {
       Long count = SessionRepository.countOnlineNow();
       context.getRequest().setAttribute("numberValue", String.valueOf(count));
       return CARD_JSP;
+    } else if ("real-sessions-today".equalsIgnoreCase(report)) {
+      long count = SessionRepository.countDistinctSessions(startOfToday(), now());
+      context.getRequest().setAttribute("numberValue", String.valueOf(count));
+      return CARD_JSP;
+    } else if ("bot-sessions-today-total".equalsIgnoreCase(report)) {
+      long count = SessionRepository.countBotSessions(startOfToday(), now());
+      context.getRequest().setAttribute("numberValue", String.valueOf(count));
+      return CARD_JSP;
+    } else if ("bot-traffic-percentage".equalsIgnoreCase(report)) {
+      Timestamp start = startOfToday();
+      Timestamp end = now();
+      long real = SessionRepository.countDistinctSessions(start, end);
+      long bot = SessionRepository.countBotSessions(start, end);
+      long total = real + bot;
+      long percentage = total == 0 ? 0 : Math.round((bot * 100.0) / total);
+      context.getRequest().setAttribute("numberValue", String.valueOf(percentage));
+      return CARD_JSP;
+    } else if ("daily-real-sessions".equalsIgnoreCase(report)) {
+      List<StatisticsData> statisticsDataList = SessionRepository.findDailySessionsByBotStatus(30, false);
+      context.getRequest().setAttribute("statisticsDataList", statisticsDataList);
+      return JSP;
+    } else if ("daily-bot-sessions".equalsIgnoreCase(report)) {
+      List<StatisticsData> statisticsDataList = SessionRepository.findDailySessionsByBotStatus(30, true);
+      context.getRequest().setAttribute("statisticsDataList", statisticsDataList);
+      return JSP;
     } else if ("locations-list".equalsIgnoreCase(report)) {
       List<Session> sessionList = SessionRepository.findDailyUniqueLocations(intervalValue);
       context.getRequest().setAttribute("sessionList", sessionList);
@@ -279,6 +305,54 @@ public class SiteStatsWidget extends GenericWidget {
       context.getRequest().setAttribute("label", context.getPreferences().getOrDefault("label", "Search Term"));
       context.getRequest().setAttribute("value", context.getPreferences().getOrDefault("value", "Searches"));
       return TABLE_JSP;
+    } else if ("total-form-submissions".equalsIgnoreCase(report)) {
+      Long count = FormDataRepository.countTotalSubmissions();
+      context.getRequest().setAttribute("numberValue", String.valueOf(count));
+      return CARD_JSP;
+    } else if ("form-submissions-spam-flagged".equalsIgnoreCase(report)) {
+      Timestamp startDate = new Timestamp(System.currentTimeMillis() - (long) intervalValue * 24 * 60 * 60 * 1000);
+      Timestamp endDate = new Timestamp(System.currentTimeMillis());
+      Long count = FormDataRepository.countSpamFlagged(startDate, endDate);
+      context.getRequest().setAttribute("numberValue", String.valueOf(count));
+      return CARD_JSP;
+    } else if ("daily-form-submissions".equalsIgnoreCase(report)) {
+      List<StatisticsData> statisticsDataList = FormDataRepository.findDailySubmissions(30);
+      context.getRequest().setAttribute("statisticsDataList", statisticsDataList);
+      return JSP;
+    } else if ("monthly-form-submissions".equalsIgnoreCase(report)) {
+      List<StatisticsData> statisticsDataList = FormDataRepository.findMonthlySubmissions(12);
+      context.getRequest().setAttribute("statisticsDataList", statisticsDataList);
+      return JSP;
+    } else if ("top-forms".equalsIgnoreCase(report)) {
+      List<StatisticsData> statisticsDataList = FormDataRepository.findSubmissionCountsByForm(intervalValue, limit);
+      context.getRequest().setAttribute("statisticsDataList", statisticsDataList);
+      context.getRequest().setAttribute("label", context.getPreferences().getOrDefault("label", "Form"));
+      context.getRequest().setAttribute("value", context.getPreferences().getOrDefault("value", "Submissions"));
+      return TABLE_JSP;
+    } else if ("form-failures-by-reason".equalsIgnoreCase(report)) {
+      List<StatisticsData> statisticsDataList = FormSubmissionFailureRepository.findFailureCountsByReason(intervalValue, limit);
+      context.getRequest().setAttribute("statisticsDataList", statisticsDataList);
+      context.getRequest().setAttribute("label", context.getPreferences().getOrDefault("label", "Reason"));
+      context.getRequest().setAttribute("value", context.getPreferences().getOrDefault("value", "Rejections"));
+      return TABLE_JSP;
+    } else if ("conversion-rate".equalsIgnoreCase(report)) {
+      // Admin-configured pairing -- there's no reliable automatic link between a page and the form(s)
+      // embedded on it, so the widget instance must say which page path and which formUniqueId to compare.
+      String pagePath = context.getPreferences().get("pagePath");
+      String formUniqueId = context.getPreferences().get("formUniqueId");
+      if (StringUtils.isBlank(pagePath) || StringUtils.isBlank(formUniqueId)) {
+        LOG.warn("DEV: conversion-rate report requires pagePath and formUniqueId preferences");
+        return null;
+      }
+      Timestamp startDate = new Timestamp(System.currentTimeMillis() - (long) intervalValue * 24 * 60 * 60 * 1000);
+      Timestamp endDate = new Timestamp(System.currentTimeMillis());
+      long pageViews = WebPageHitRepository.countPageViews(pagePath, startDate, endDate);
+      long submissions = FormDataRepository.countSubmissions(formUniqueId, startDate, endDate);
+      double rate = pageViews > 0 ? (submissions * 100.0 / pageViews) : 0;
+      // Plain numeric value -- CARD_JSP feeds this straight into <fmt:formatNumber>, which requires a
+      // parseable number (no "%" suffix, no "N/A" fallback); the "%" is conveyed via the tile's label instead.
+      context.getRequest().setAttribute("numberValue", String.format("%.1f", rate));
+      return CARD_JSP;
     } else if ("failed-logins-24h".equalsIgnoreCase(report)) {
       AuditLogSpecification spec = new AuditLogSpecification();
       spec.setEventType("authentication.login.failure");
@@ -311,8 +385,7 @@ public class SiteStatsWidget extends GenericWidget {
       context.getRequest().setAttribute("severity", count > 0 ? "warning" : "ok");
       return ALERT_CARD_JSP;
     } else if ("bot-sessions-today".equalsIgnoreCase(report)) {
-      Timestamp startOfToday = Timestamp.valueOf(java.time.LocalDate.now().atStartOfDay());
-      long count = SessionRepository.countDistinctBotSessions(startOfToday, new Timestamp(System.currentTimeMillis()));
+      long count = SessionRepository.countDistinctBotSessions(startOfToday(), now());
       context.getRequest().setAttribute("numberValue", String.valueOf(count));
       context.getRequest().setAttribute("severity", "ok");
       return ALERT_CARD_JSP;
@@ -322,6 +395,14 @@ public class SiteStatsWidget extends GenericWidget {
     } else {
       return null;
     }
+  }
+
+  private static Timestamp startOfToday() {
+    return Timestamp.valueOf(java.time.LocalDate.now().atStartOfDay());
+  }
+
+  private static Timestamp now() {
+    return new Timestamp(System.currentTimeMillis());
   }
 
   private static Timestamp last24Hours() {

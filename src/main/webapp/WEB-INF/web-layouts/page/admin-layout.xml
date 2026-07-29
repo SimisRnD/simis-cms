@@ -192,9 +192,21 @@
       <!--</column>-->
     <!--</section>-->
     <section>
+      <column class="small-12 medium-9 large-8 small-order-2 medium-order-1 small-margin-top-10 cell">
+        <widget name="socialMediaLinkList">
+          <title>Social Profile Links</title>
+        </widget>
+      </column>
+      <column class="small-12 medium-3 large-4 small-order-1 medium-order-2 cell">
+        <widget name="socialMediaLinkForm" class="callout radius primary" sticky="true">
+          <title>Add a Platform</title>
+        </widget>
+      </column>
+    </section>
+    <section>
       <column class="small-12 large-10 cell">
         <widget name="sitePropertiesEditor">
-          <title>Social Media Settings</title>
+          <title>Contact &amp; Integration Settings</title>
           <prefix>social</prefix>
         </widget>
       </column>
@@ -613,6 +625,23 @@
         </widget>
       </column>
     </section>
+    <section class="grid-container grid-x grid-margin-x">
+      <column class="small-12 medium-6 large-6 cell callout">
+        <widget name="siteStats">
+          <icon>fa-list-alt</icon>
+          <title>Total Form Submissions</title>
+          <report>total-form-submissions</report>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 large-6 cell callout">
+        <widget name="siteStats">
+          <icon>fa-ban</icon>
+          <title>Spam-Flagged Submissions (30d)</title>
+          <report>form-submissions-spam-flagged</report>
+          <days>30</days>
+        </widget>
+      </column>
+    </section>
     <section>
       <column class="small-12 cell">
         <widget name="siteStats" class="stats card">
@@ -640,6 +669,76 @@
           <type>line</type>
         </widget>
       </column>
+      <column class="small-12 medium-6 cell">
+        <widget name="siteStats" class="stats card">
+          <title>Daily Real Sessions</title>
+          <label>Real Sessions</label>
+          <report>daily-real-sessions</report>
+          <type>line</type>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 cell">
+        <widget name="siteStats" class="stats card">
+          <title>Daily Bot Sessions</title>
+          <label>Bot Sessions</label>
+          <report>daily-bot-sessions</report>
+          <type>line</type>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 cell">
+        <widget name="siteStats" class="stats card">
+          <title>Daily Form Submissions</title>
+          <label>Submissions</label>
+          <report>daily-form-submissions</report>
+          <type>line</type>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 cell">
+        <widget name="siteStats" class="stats card">
+          <title>Monthly Form Submissions</title>
+          <label>Submissions</label>
+          <report>monthly-form-submissions</report>
+          <type>line</type>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 cell">
+        <widget name="siteStats" class="stats card">
+          <icon>fa-list-alt</icon>
+          <title>Top Forms by Submission Volume</title>
+          <report>top-forms</report>
+          <label>Form</label>
+          <value>Submissions</value>
+          <days>30</days>
+          <limit>10</limit>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 cell">
+        <widget name="siteStats" class="stats card">
+          <icon>fa-ban</icon>
+          <title>Rejected Submissions by Reason</title>
+          <report>form-failures-by-reason</report>
+          <label>Reason</label>
+          <value>Rejections</value>
+          <days>30</days>
+          <limit>10</limit>
+        </widget>
+      </column>
+      <!--
+      Conversion rate needs a specific page + form pairing filled in below; there's no reliable
+      automatic way to tell which form belongs to which page, so this is commented out until
+      configured for this site. Example: a page at /contact-us with a Contact Us form embedded
+      on it (whose formUniqueId defaults to the page name for the shipped template).
+      <column class="small-12 medium-6 large-3 cell callout">
+        <widget name="siteStats">
+          <icon>fa-percent</icon>
+          <title>% Conversion (30d)</title>
+          <report>conversion-rate</report>
+          <pagePath>/contact-us</pagePath>
+          <formUniqueId>contact-us</formUniqueId>
+          <days>30</days>
+        </widget>
+      </column>
+      -->
       <column class="small-12 medium-6 cell">
         <widget name="siteStats" class="stats card">
           <icon>fa-search</icon>
@@ -840,7 +939,7 @@
     </section>
   </page>
 
-  <page name="/admin/sitemap" role="admin,content-manager" title="Site Map">
+  <page name="/admin/sitemap" role="admin,content-manager" title="Navigation Menu Editor">
     <!--<section>-->
       <!--<column class="small-12 cell">-->
         <!--<widget name="breadcrumbs">-->
@@ -853,7 +952,7 @@
     <section>
       <column class="small-12 cell">
         <widget name="siteMap">
-          <title>Site Map Editor</title>
+          <title>Navigation Menu Editor</title>
         </widget>
       </column>
     </section>
@@ -890,7 +989,7 @@
     </section>
   </page>
 
-  <page name="/admin/sitemap-editor" role="admin,content-manager" title="Site Map Editor">
+  <page name="/admin/sitemap-editor" role="admin,content-manager" title="Navigation Menu Editor - Edit Links">
     <!--<section>-->
       <!--<column class="small-12 cell">-->
         <!--<widget name="breadcrumbs">-->
@@ -903,7 +1002,7 @@
     <section>
       <column class="small-12 cell">
         <widget name="siteMapEditor">
-          <title>Site Map Renaming</title>
+          <title>Navigation Menu Editor - Edit Links</title>
         </widget>
       </column>
     </section>

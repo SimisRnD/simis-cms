@@ -74,7 +74,7 @@
         }
       },
       scales: {
-        yAxes: [{
+        y: {
           display: true,
           ticks: {
             suggestedMin: 0,
@@ -82,7 +82,7 @@
             // beginAtZero: true,
             precision:0
           }
-        }]
+        }
       }
     }
   });

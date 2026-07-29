@@ -24,6 +24,8 @@ import com.simisinc.platform.application.items.LoadCategoryCommand;
 import com.simisinc.platform.application.items.LoadCollectionCommand;
 import com.simisinc.platform.application.items.LoadItemCommand;
 import com.simisinc.platform.application.items.SaveItemCommand;
+import com.simisinc.platform.domain.model.SocialMediaLink;
+import com.simisinc.platform.infrastructure.persistence.SocialMediaLinkRepository;
 import com.simisinc.platform.domain.model.cms.MenuTab;
 import com.simisinc.platform.domain.model.cms.Stylesheet;
 import com.simisinc.platform.domain.model.cms.TableOfContents;
@@ -658,6 +660,8 @@ public class PageServlet extends HttpServlet {
       Map<String, String> sitePropertyMap = LoadSitePropertyCommand.loadAsMap("site");
       Map<String, String> themePropertyMap = LoadSitePropertyCommand.loadAsMap("theme");
       Map<String, String> socialPropertyMap = LoadSitePropertyCommand.loadAsMap("social");
+      // issue #516: an admin-editable list of (platform, url) pairs, not a fixed set of properties
+      List<SocialMediaLink> socialMediaLinkList = SocialMediaLinkRepository.findAll();
       Map<String, String> analyticsPropertyMap = LoadSitePropertyCommand.loadAsMap("analytics");
       // Never render a malformed tracking id into the public page's script tags
       AnalyticsTrackingIdCommand.sanitize(analyticsPropertyMap);
@@ -926,6 +930,7 @@ public class PageServlet extends HttpServlet {
       request.setAttribute("sitePropertyMap", sitePropertyMap);
       request.setAttribute("themePropertyMap", themePropertyMap);
       request.setAttribute("socialPropertyMap", socialPropertyMap);
+      request.setAttribute("socialMediaLinkList", socialMediaLinkList);
       request.setAttribute("analyticsPropertyMap", analyticsPropertyMap);
       request.setAttribute("ecommercePropertyMap", ecommercePropertyMap);
 

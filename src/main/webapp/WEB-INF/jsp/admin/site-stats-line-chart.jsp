@@ -77,14 +77,14 @@
         }
       },
       scales: {
-        yAxes: [{
+        y: {
           display: true,
           ticks: {
             suggestedMin: 0,
             suggestedMax: 10,
             precision:0
           }
-        }]
+        }
       }
     }
   });

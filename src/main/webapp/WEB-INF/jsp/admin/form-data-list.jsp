@@ -47,6 +47,40 @@
   <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
 </c:if>
 <%@include file="../page_messages.jspf" %>
+<%-- Filters (GET so the criteria live in the URL and paging preserves them) --%>
+<form method="get" autocomplete="off" class="margin-bottom-10">
+  <div class="grid-x grid-margin-x">
+    <div class="cell medium-3">
+      <label>Form
+        <input type="text" name="formUniqueId" placeholder="e.g. contact-us" value="<c:out value='${formUniqueId}'/>">
+      </label>
+    </div>
+    <div class="cell medium-3">
+      <label>Status
+        <select name="status">
+          <option value="awaiting"<c:if test="${status eq 'awaiting'}"> selected</c:if>>Awaiting review</option>
+          <option value="claimed"<c:if test="${status eq 'claimed'}"> selected</c:if>>Claimed</option>
+          <option value="processed"<c:if test="${status eq 'processed'}"> selected</c:if>>Processed</option>
+          <option value="dismissed"<c:if test="${status eq 'dismissed'}"> selected</c:if>>Dismissed</option>
+        </select>
+      </label>
+    </div>
+    <div class="cell medium-3">
+      <label>From date
+        <input type="date" name="fromDate" value="<c:out value='${fromDate}'/>">
+      </label>
+    </div>
+    <div class="cell medium-3">
+      <label>To date
+        <input type="date" name="toDate" value="<c:out value='${toDate}'/>">
+      </label>
+    </div>
+    <div class="cell medium-12">
+      <button type="submit" class="button small primary radius"><i class="fa fa-filter"></i> Filter</button>
+      <a href="${widgetContext.uri}" class="button small secondary radius">Clear</a>
+    </div>
+  </div>
+</form>
 <c:if test="${!empty formDataList}">
   <p><small>Forms found: <fmt:formatNumber value="${recordPaging.totalRecordCount}" /></small></p>
 </c:if>
@@ -161,7 +195,4 @@
   </tbody>
 </table>
 <%-- Paging Control --%>
-<c:if test="${category.id gt 0}">
-  <c:set var="recordPagingParams" scope="request" value="categoryId=${category.id}"/>
-</c:if>
 <%@include file="../paging_control.jspf" %>

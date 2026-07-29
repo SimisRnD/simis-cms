@@ -158,6 +158,30 @@ class UserDetailsWidgetTest extends WidgetBase {
   }
 
   @Test
+  void restoreAccountViaPostCallsRepositoryAndAudits() throws Exception {
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "userId", "5");
+    addQueryParameter(widgetContext, "action", "restoreAccount");
+
+    User target = activeUser();
+    target.setEnabled(false);
+
+    try (MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
+        MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(target);
+      userRepo.when(() -> UserRepository.restoreAccount(target)).thenReturn(target);
+
+      WidgetContext result = new UserDetailsWidget().post(widgetContext);
+
+      userRepo.verify(() -> UserRepository.restoreAccount(target), times(1));
+      audit.verify(() -> AuditEventCommand.record(any(), eq(AuditEventCommand.USER_MANAGEMENT), eq("user.enable"),
+          eq(AuditEventCommand.SUCCESS), eq("user"), eq("5"), eq("active@example.com"), any()), times(1));
+      Assertions.assertEquals("Account restored", result.getSuccessMessage());
+    }
+  }
+
+  @Test
   void deleteAccountViaPostCallsRepositoryAndAudits() throws Exception {
     setRoles(widgetContext, ADMIN);
     addQueryParameter(widgetContext, "userId", "5");
@@ -177,6 +201,80 @@ class UserDetailsWidgetTest extends WidgetBase {
       audit.verify(() -> AuditEventCommand.record(any(), eq(AuditEventCommand.USER_MANAGEMENT), eq("user.delete"),
           eq(AuditEventCommand.SUCCESS), eq("user"), eq("5"), eq("active@example.com"), any()), times(1));
       Assertions.assertEquals("Account deleted", result.getSuccessMessage());
+    }
+  }
+
+  @Test
+  void unlockAccountViaPostDispatchesThroughAction() throws Exception {
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "userId", "5");
+    addQueryParameter(widgetContext, "action", "unlockAccount");
+
+    User target = lockedUser();
+
+    try (MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
+        MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(target);
+
+      WidgetContext result = new UserDetailsWidget().post(widgetContext);
+
+      userRepo.verify(() -> UserRepository.resetLockout(5L), times(1));
+      audit.verify(() -> AuditEventCommand.record(any(), eq(AuditEventCommand.USER_MANAGEMENT), eq("user.unlock"),
+          eq(AuditEventCommand.SUCCESS), eq("user"), eq("5"), eq("locked@example.com"), any()), times(1));
+      Assertions.assertEquals("Account unlocked", result.getSuccessMessage());
+    }
+  }
+
+  @Test
+  void suspendAccountViaPostRefusesToSuspendSelf() throws Exception {
+    // The self-suspend guard lives in the shared handler that post() now correctly reaches --
+    // confirm the fix didn't bypass it.
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "userId", "1"); // the logged-in test user's own id, see WidgetBase#login
+    addQueryParameter(widgetContext, "action", "suspendAccount");
+
+    User self = new User();
+    self.setId(1L);
+    self.setEmail("self@example.com");
+    self.setEnabled(true);
+
+    try (MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
+        MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(self);
+
+      WidgetContext result = new UserDetailsWidget().post(widgetContext);
+
+      userRepo.verify(() -> UserRepository.suspendAccount(any()), never());
+      audit.verifyNoInteractions();
+      Assertions.assertEquals("You cannot suspend your own account", result.getErrorMessage());
+    }
+  }
+
+  @Test
+  void deleteAccountViaPostRefusesToDeleteSelf() throws Exception {
+    // The self-delete guard lives in the shared handler that post() now correctly reaches --
+    // confirm the fix didn't bypass it.
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "userId", "1"); // the logged-in test user's own id, see WidgetBase#login
+    addQueryParameter(widgetContext, "action", "deleteAccount");
+
+    User self = new User();
+    self.setId(1L);
+    self.setEmail("self@example.com");
+    self.setEnabled(true);
+
+    try (MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
+        MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(self);
+
+      WidgetContext result = new UserDetailsWidget().post(widgetContext);
+
+      userRepo.verify(() -> UserRepository.remove(any()), never());
+      audit.verifyNoInteractions();
+      Assertions.assertEquals("You cannot delete your own account", result.getErrorMessage());
     }
   }
 
@@ -212,32 +310,6 @@ class UserDetailsWidgetTest extends WidgetBase {
       new UserDetailsWidget().post(widgetContext);
 
       userRepo.verify(() -> UserRepository.resetLockout(5L), times(1));
-    }
-  }
-
-  @Test
-  void suspendAccountViaPostRefusesToSuspendSelf() throws Exception {
-    // The self-suspend guard lives in the shared handler that post() now correctly reaches --
-    // confirm the fix didn't bypass it.
-    setRoles(widgetContext, ADMIN);
-    addQueryParameter(widgetContext, "userId", "1"); // the logged-in test user's own id, see WidgetBase#login
-    addQueryParameter(widgetContext, "action", "suspendAccount");
-
-    User self = new User();
-    self.setId(1L);
-    self.setEmail("self@example.com");
-    self.setEnabled(true);
-
-    try (MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
-        MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
-        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
-      loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(self);
-
-      WidgetContext result = new UserDetailsWidget().post(widgetContext);
-
-      userRepo.verify(() -> UserRepository.suspendAccount(any()), never());
-      audit.verifyNoInteractions();
-      Assertions.assertEquals("You cannot suspend your own account", result.getErrorMessage());
     }
   }
 }
