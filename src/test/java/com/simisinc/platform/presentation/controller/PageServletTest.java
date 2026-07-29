@@ -145,6 +145,19 @@ class PageServletTest {
   }
 
   @Test
+  void computeCanonicalUrlUsesTheRequestPathForAWildcardTemplatePage() {
+    // A wildcard/template WebPage (LoadWebPageCommand#loadByLink's dynamic-page fallback, e.g. a
+    // "/news/*" blog listing page) resolves to a WebPage whose own link is the literal template
+    // pattern, not the requested post's URL. Unlike the alias case above, that template link must
+    // NOT be used as the canonical URL -- it would leak the "*" character into the tag.
+    WebPage webPage = new WebPage();
+    webPage.setLink("/news/*");
+
+    assertEquals("https://example.org/news/some-post-slug",
+        PageServlet.computeCanonicalUrl("https://example.org", "/news/some-post-slug", webPage, null, null));
+  }
+
+  @Test
   void computeCanonicalUrlUsesTheCollectionPathForACollectionPage() {
     Collection collection = new Collection();
     collection.setUniqueId("staff");
