@@ -215,4 +215,34 @@ class WebContainerCommandTest {
     Assertions.assertFalse(WebContainerCommand.widgetJspExists(servletContext, JSP_PATH));
   }
 
+  // A widget's title is combined with its WebPage's/Page's own title (e.g. a wildcard page like
+  // /news/* titled "News") unless the widget already composed its title in full.
+
+  @Test
+  void uncomposedTitleGetsContainerTitleAppended() {
+    String result = WebContainerCommand.composePageTitle("Contact Us", false, "Acme Corp");
+    Assertions.assertEquals("Contact Us - Acme Corp", result);
+  }
+
+  @Test
+  void uncomposedTitleIsUnchangedWhenContainerTitleIsBlank() {
+    String result = WebContainerCommand.composePageTitle("Contact Us", false, "");
+    Assertions.assertEquals("Contact Us", result);
+  }
+
+  @Test
+  void composedTitleIsNotDoubledByContainerTitle() {
+    // BlogPostWidget composes "<post title> - <blog name>" itself; a wildcard WebPage titled
+    // "News" (matching the blog name) must not be appended a second time on top of that.
+    String blogPostTitle = "Launch Announcement" + " - " + "News";
+    String result = WebContainerCommand.composePageTitle(blogPostTitle, true, "News");
+    Assertions.assertEquals("Launch Announcement - News", result);
+  }
+
+  @Test
+  void composedTitleIsUnchangedWhenContainerTitleIsBlank() {
+    String result = WebContainerCommand.composePageTitle("Launch Announcement - News", true, "");
+    Assertions.assertEquals("Launch Announcement - News", result);
+  }
+
 }

@@ -839,14 +839,6 @@ public class PageServlet extends HttpServlet {
         }
       }
 
-      // Generate JSON-LD structured data for search engines and AI (issue #403)
-      if (StringUtils.isNotBlank(siteUrl) && StringUtils.isNotBlank(sitePropertyMap.get("site.name"))) {
-        String jsonLd = generateJsonLdData(pageRenderInfo, siteUrl, sitePropertyMap, thisItem, thisCollection);
-        if (StringUtils.isNotBlank(jsonLd)) {
-          pageRenderInfo.setJsonLdData(jsonLd);
-        }
-      }
-
       // Finally... we have a page ready to be processed...
       if (LOG.isDebugEnabled()) {
         LOG.debug(request.getMethod() + " page " + pageRef.getName());
@@ -882,6 +874,17 @@ public class PageServlet extends HttpServlet {
       if (WebContainerCommand.processWidgets(webContainerContext, pageRef.getSections(), pageRenderInfo, coreData, contextPath, pagePath, userSession, themePropertyMap)) {
         // The widget processor handled the response, immediately return
         return;
+      }
+
+      // Generate JSON-LD structured data for search engines and AI (issue #403). This runs after
+      // processWidgets so it can see page metadata a content widget (e.g. BlogPostWidget) bridged
+      // into pageRenderInfo during its own execute() -- generating it earlier would only ever see
+      // the generic item/collection/webPage title & description, never a widget-specific one.
+      if (StringUtils.isNotBlank(siteUrl) && StringUtils.isNotBlank(sitePropertyMap.get("site.name"))) {
+        String jsonLd = generateJsonLdData(pageRenderInfo, siteUrl, pagePath, sitePropertyMap, thisItem, thisCollection, webPage);
+        if (StringUtils.isNotBlank(jsonLd)) {
+          pageRenderInfo.setJsonLdData(jsonLd);
+        }
       }
 
       // Render the header
@@ -988,9 +991,9 @@ public class PageServlet extends HttpServlet {
     }
   }
 
-  static String generateJsonLdData(PageRenderInfo pageRenderInfo, String siteUrl,
+  static String generateJsonLdData(PageRenderInfo pageRenderInfo, String siteUrl, String pagePath,
                                     Map<String, String> sitePropertyMap,
-                                    Item item, Collection collection) {
+                                    Item item, Collection collection, WebPage webPage) {
     try {
       ObjectMapper mapper = new ObjectMapper();
       Map<String, Object> jsonLd = new LinkedHashMap<>();
@@ -1014,22 +1017,37 @@ public class PageServlet extends HttpServlet {
             organization.put("logo", siteLogo);
           }
         }
+
+        // sameAs links this Organization to its social profiles (issue #403)
+        List<SocialMediaLink> socialMediaLinkList = SocialMediaLinkRepository.findAll();
+        if (socialMediaLinkList != null && !socialMediaLinkList.isEmpty()) {
+          List<String> sameAs = new ArrayList<>();
+          for (SocialMediaLink socialMediaLink : socialMediaLinkList) {
+            if (StringUtils.isNotBlank(socialMediaLink.getUrl())) {
+              sameAs.add(socialMediaLink.getUrl());
+            }
+          }
+          if (!sameAs.isEmpty()) {
+            organization.put("sameAs", sameAs);
+          }
+        }
+
         graph.add(organization);
       }
 
       // Add WebPage schema for all pages
-      Map<String, Object> webPage = new LinkedHashMap<>();
-      webPage.put("@type", "WebPage");
+      Map<String, Object> webPageSchema = new LinkedHashMap<>();
+      webPageSchema.put("@type", "WebPage");
       if (StringUtils.isNotBlank(pageRenderInfo.getPageUrl())) {
-        webPage.put("url", pageRenderInfo.getPageUrl());
+        webPageSchema.put("url", pageRenderInfo.getPageUrl());
       }
       if (StringUtils.isNotBlank(pageRenderInfo.getTitle())) {
-        webPage.put("name", pageRenderInfo.getTitle());
+        webPageSchema.put("name", pageRenderInfo.getTitle());
       }
       if (StringUtils.isNotBlank(pageRenderInfo.getDescription())) {
-        webPage.put("description", pageRenderInfo.getDescription());
+        webPageSchema.put("description", pageRenderInfo.getDescription());
       }
-      webPage.put("isPartOf", Collections.singletonMap("@id", siteUrl + "#organization"));
+      webPageSchema.put("isPartOf", Collections.singletonMap("@id", siteUrl + "#organization"));
 
       // Add image if available
       if (StringUtils.isNotBlank(pageRenderInfo.getImageUrl())) {
@@ -1037,9 +1055,32 @@ public class PageServlet extends HttpServlet {
         if (imageUrl.startsWith("/")) {
           imageUrl = siteUrl + imageUrl;
         }
-        webPage.put("image", imageUrl);
+        webPageSchema.put("image", imageUrl);
       }
-      graph.add(webPage);
+
+      // dateModified/datePublished are freshness signals AI answer engines weigh for citation
+      // (issue #403). datePublished prefers publishAt (the page's actual go-live date, which can
+      // differ from when the row was first created via scheduled publishing) over created.
+      if (webPage != null) {
+        if (webPage.getModified() != null) {
+          webPageSchema.put("dateModified", webPage.getModified().toInstant().toString());
+        }
+        Timestamp publishedDate = webPage.getPublishAt() != null ? webPage.getPublishAt() : webPage.getCreated();
+        if (publishedDate != null) {
+          webPageSchema.put("datePublished", publishedDate.toInstant().toString());
+        }
+      }
+
+      graph.add(webPageSchema);
+
+      // Add BreadcrumbList schema for pages more than one level deep (issue #403)
+      List<Map<String, Object>> breadcrumbItemList = computeBreadcrumbList(siteUrl, pagePath, item, collection);
+      if (breadcrumbItemList != null && !breadcrumbItemList.isEmpty()) {
+        Map<String, Object> breadcrumbList = new LinkedHashMap<>();
+        breadcrumbList.put("@type", "BreadcrumbList");
+        breadcrumbList.put("itemListElement", breadcrumbItemList);
+        graph.add(breadcrumbList);
+      }
 
       // Add Product schema if this is an item (catalog product)
       if (item != null && StringUtils.isNotBlank(item.getName())) {
@@ -1065,6 +1106,97 @@ public class PageServlet extends HttpServlet {
       LOG.warn("Error generating JSON-LD data: " + e.getMessage());
       return null;
     }
+  }
+
+  /**
+   * Builds the BreadcrumbList itemListElement array for pages at a URL depth of two or more
+   * (issue #403); shallower pages return null since a single-level trail is redundant with the
+   * site nav. Each ancestor segment's name is resolved the same way the page itself would be
+   * resolved (LoadWebPageCommand, including wildcard/template pages) so a breadcrumb never shows
+   * a path segment that the app wouldn't actually route to; a segment with no matching page falls
+   * back to a humanized version of the URL segment rather than leaving a gap in the trail.
+   */
+  static List<Map<String, Object>> computeBreadcrumbList(String siteUrl, String pagePath, Item item, Collection collection) {
+    if (StringUtils.isBlank(siteUrl) || StringUtils.isBlank(pagePath)) {
+      return null;
+    }
+    List<String> segments = new ArrayList<>();
+    for (String segment : pagePath.split("/")) {
+      if (StringUtils.isNotBlank(segment)) {
+        segments.add(segment);
+      }
+    }
+    if (segments.size() < 2) {
+      return null;
+    }
+
+    List<Map<String, Object>> itemListElement = new ArrayList<>();
+    itemListElement.add(breadcrumbListItem(1, "Home", siteUrl));
+
+    StringBuilder pathSoFar = new StringBuilder();
+    for (int i = 0; i < segments.size(); i++) {
+      String segment = segments.get(i);
+      pathSoFar.append('/').append(segment);
+      boolean isLeaf = (i == segments.size() - 1);
+
+      String name = null;
+      if (isLeaf && item != null && StringUtils.isNotBlank(item.getName())) {
+        name = item.getName();
+      } else if (collection != null && segment.equalsIgnoreCase(collection.getUniqueId())) {
+        // The collection's own segment, whether it's the leaf (collection listing page) or an
+        // ancestor of the leaf (an item detail page nested under it)
+        name = collection.getName();
+      }
+      if (StringUtils.isBlank(name)) {
+        WebPage segmentPage = LoadWebPageCommand.loadByLink(pathSoFar.toString());
+        if (segmentPage != null && StringUtils.isNotBlank(segmentPage.getTitle())) {
+          name = segmentPage.getTitle();
+        }
+      }
+      if (StringUtils.isBlank(name)) {
+        name = humanizeUrlSegment(segment);
+      }
+
+      itemListElement.add(breadcrumbListItem(i + 2, name, siteUrl + pathSoFar));
+    }
+    return itemListElement;
+  }
+
+  private static Map<String, Object> breadcrumbListItem(int position, String name, String url) {
+    Map<String, Object> listItem = new LinkedHashMap<>();
+    listItem.put("@type", "ListItem");
+    listItem.put("position", position);
+    listItem.put("name", name);
+    listItem.put("item", url);
+    return listItem;
+  }
+
+  /**
+   * Turns a URL segment like "getting-started" into "Getting Started" for use as a breadcrumb
+   * label when no page title is available to describe that part of the path.
+   */
+  static String humanizeUrlSegment(String segment) {
+    String decoded;
+    try {
+      decoded = java.net.URLDecoder.decode(segment, java.nio.charset.StandardCharsets.UTF_8);
+    } catch (Exception e) {
+      decoded = segment;
+    }
+    String[] words = decoded.replace('-', ' ').replace('_', ' ').split(" ");
+    StringBuilder result = new StringBuilder();
+    for (String word : words) {
+      if (word.isEmpty()) {
+        continue;
+      }
+      if (result.length() > 0) {
+        result.append(' ');
+      }
+      result.append(Character.toUpperCase(word.charAt(0)));
+      if (word.length() > 1) {
+        result.append(word.substring(1));
+      }
+    }
+    return result.length() > 0 ? result.toString() : segment;
   }
 
   /**
