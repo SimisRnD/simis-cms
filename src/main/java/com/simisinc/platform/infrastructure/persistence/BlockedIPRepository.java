@@ -58,6 +58,25 @@ public class BlockedIPRepository {
     return (List<BlockedIP>) result.getRecords();
   }
 
+  private static SqlUtils createWhereStatement(BlockedIPSpecification specification) {
+    SqlUtils where = new SqlUtils();
+    if (specification != null && StringUtils.isNotBlank(specification.getQuery())) {
+      String likeValue = "%" + specification.getQuery().toLowerCase() + "%";
+      where.add("(LOWER(ip_address) LIKE ? OR LOWER(reason) LIKE ?)", new String[]{likeValue, likeValue});
+    }
+    return where;
+  }
+
+  public static List<BlockedIP> findAll(BlockedIPSpecification specification, DataConstraints constraints) {
+    if (constraints == null) {
+      constraints = new DataConstraints();
+    }
+    constraints.setDefaultColumnToSortBy("created DESC");
+    SqlUtils where = createWhereStatement(specification);
+    DataResult result = DB.selectAllFrom(TABLE_NAME, where, constraints, BlockedIPRepository::buildRecord);
+    return (List<BlockedIP>) result.getRecords();
+  }
+
   public static BlockedIP findById(long id) {
     if (id == -1) {
       return null;

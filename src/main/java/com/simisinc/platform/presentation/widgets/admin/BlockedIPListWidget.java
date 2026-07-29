@@ -22,14 +22,18 @@ import com.simisinc.platform.application.filesystem.FileSystemCommand;
 import com.simisinc.platform.domain.model.BlockedIP;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.persistence.BlockedIPRepository;
+import com.simisinc.platform.infrastructure.persistence.BlockedIPSpecification;
 import com.simisinc.platform.presentation.controller.MultipartFileSender;
 import com.simisinc.platform.presentation.controller.RequestConstants;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
+import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
 import java.lang.reflect.InvocationTargetException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
@@ -55,10 +59,26 @@ public class BlockedIPListWidget extends GenericWidget {
     DataConstraints constraints = new DataConstraints(page, itemsPerPage);
     context.getRequest().setAttribute(RequestConstants.RECORD_PAGING, constraints);
 
+    // Determine the search
+    String query = context.getParameter("query");
+    context.getRequest().setAttribute("query", query);
+
+    // Determine criteria
+    BlockedIPSpecification specification = new BlockedIPSpecification();
+    if (StringUtils.isNotBlank(query)) {
+      specification.setQuery(query);
+    }
+
     // Load the list
     constraints.setColumnToSortBy("created", "desc");
-    List<BlockedIP> blockedIPList = BlockedIPRepository.findAll(constraints);
+    List<BlockedIP> blockedIPList = BlockedIPRepository.findAll(specification, constraints);
     context.getRequest().setAttribute("blockedIPList", blockedIPList);
+
+    // Carry the search through pagination (paging_control.jspf appends this to each page link).
+    // URL-encoded so a free-text query cannot break the query string or the href.
+    StringBuilder pagingParams = new StringBuilder();
+    appendParam(pagingParams, "query", query);
+    context.getRequest().setAttribute("recordPagingParams", pagingParams.toString());
 
     // Standard request items
     context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));
@@ -67,6 +87,16 @@ public class BlockedIPListWidget extends GenericWidget {
     // Show the editor
     context.setJsp(JSP);
     return context;
+  }
+
+  private void appendParam(StringBuilder sb, String name, String value) {
+    if (StringUtils.isBlank(value)) {
+      return;
+    }
+    if (sb.length() > 0) {
+      sb.append("&");
+    }
+    sb.append(name).append("=").append(URLEncoder.encode(value, StandardCharsets.UTF_8));
   }
 
   public WidgetContext delete(WidgetContext context) {
