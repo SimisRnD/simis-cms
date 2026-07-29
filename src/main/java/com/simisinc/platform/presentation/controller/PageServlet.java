@@ -839,14 +839,6 @@ public class PageServlet extends HttpServlet {
         }
       }
 
-      // Generate JSON-LD structured data for search engines and AI (issue #403)
-      if (StringUtils.isNotBlank(siteUrl) && StringUtils.isNotBlank(sitePropertyMap.get("site.name"))) {
-        String jsonLd = generateJsonLdData(pageRenderInfo, siteUrl, sitePropertyMap, thisItem, thisCollection, webPage);
-        if (StringUtils.isNotBlank(jsonLd)) {
-          pageRenderInfo.setJsonLdData(jsonLd);
-        }
-      }
-
       // Finally... we have a page ready to be processed...
       if (LOG.isDebugEnabled()) {
         LOG.debug(request.getMethod() + " page " + pageRef.getName());
@@ -889,7 +881,7 @@ public class PageServlet extends HttpServlet {
       // into pageRenderInfo during its own execute() -- generating it earlier would only ever see
       // the generic item/collection/webPage title & description, never a widget-specific one.
       if (StringUtils.isNotBlank(siteUrl) && StringUtils.isNotBlank(sitePropertyMap.get("site.name"))) {
-        String jsonLd = generateJsonLdData(pageRenderInfo, siteUrl, sitePropertyMap, thisItem, thisCollection);
+        String jsonLd = generateJsonLdData(pageRenderInfo, siteUrl, sitePropertyMap, thisItem, thisCollection, webPage);
         if (StringUtils.isNotBlank(jsonLd)) {
           pageRenderInfo.setJsonLdData(jsonLd);
         }
