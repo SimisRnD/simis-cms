@@ -49,6 +49,7 @@ import java.io.OutputStream;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
@@ -65,6 +66,12 @@ public class SitemapServlet extends HttpServlet {
   // genuinely-unset priority (which now reads back as this same value, see WebPage's field default)
   // render identically to an explicit admin choice of 0.5
   private static final BigDecimal DEFAULT_PRIORITY = new BigDecimal("0.5");
+
+  // The sitemap protocol's own hard cap: 50,000 URLs (or 50MB uncompressed, whichever comes
+  // first) per sitemap file. Used both as the "is a single file still enough" threshold and as
+  // the per-child chunk size once we're over it -- at plausible per-<url> sizes, 50,000 entries
+  // stays far under the 50MB half of the cap, so URL count is the only limit worth tracking here.
+  static final int MAX_URLS_PER_SITEMAP = 50_000;
 
   protected void doGet(HttpServletRequest request, HttpServletResponse response)
       throws ServletException, IOException {
@@ -94,27 +101,37 @@ public class SitemapServlet extends HttpServlet {
         return;
       }
 
-      StringBuilder xml = new StringBuilder();
-      xml.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
-      xml.append("<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n");
+      List<SitemapUrlEntry> allEntries = buildAllEntries(siteUrl);
+      int totalUrls = allEntries.size();
+      int totalPages = (int) Math.ceil(totalUrls / (double) MAX_URLS_PER_SITEMAP);
 
-      // Add homepage
-      xml.append("  <url>\n");
-      xml.append("    <loc>").append(escapeXml(siteUrl)).append("/</loc>\n");
-      xml.append("    <changefreq>daily</changefreq>\n");
-      xml.append("    <priority>1.0</priority>\n");
-      xml.append("  </url>\n");
+      // Exactly one of these three shapes goes out: a single page's chunk (issue #621), the
+      // sitemapindex pointing at all chunks (also #621), or -- the common case -- one flat
+      // urlset. mostRecentTimestamp is scoped to whichever entries are actually in the response,
+      // not the whole site, so a paginated chunk's own Last-Modified reflects only its own pages.
+      String content;
+      long mostRecentTimestamp;
 
-      // Add published web pages, items (products/catalog entries), blog posts, and wiki pages,
-      // tracking the most recent modification across all of them for the
-      // Last-Modified/If-Modified-Since check below
-      long mostRecentTimestamp = addWebPagesToSitemap(xml, siteUrl);
-      mostRecentTimestamp = Math.max(mostRecentTimestamp, addItemsToSitemap(xml, siteUrl));
-      mostRecentTimestamp = Math.max(mostRecentTimestamp, addBlogPostsToSitemap(xml, siteUrl));
-      mostRecentTimestamp = Math.max(mostRecentTimestamp, addWikiPagesToSitemap(xml, siteUrl));
-
-      xml.append("</urlset>");
-      String content = xml.toString();
+      String pageParam = request.getParameter("page");
+      if (pageParam != null) {
+        // A ?page=N sitemap chunk only exists as its own resource once pagination actually
+        // kicked in -- below the threshold there's nothing for it to address but the single
+        // unparameterized sitemap, so treat it as a 404 rather than silently re-serving that.
+        Integer page = parsePositiveInt(pageParam);
+        if (totalUrls <= MAX_URLS_PER_SITEMAP || page == null || page < 1 || page > totalPages) {
+          response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+          return;
+        }
+        List<SitemapUrlEntry> pageEntries = pageOf(allEntries, page);
+        content = renderUrlset(pageEntries);
+        mostRecentTimestamp = mostRecentTimestamp(pageEntries);
+      } else if (totalUrls > MAX_URLS_PER_SITEMAP) {
+        content = renderSitemapIndex(siteUrl, totalPages);
+        mostRecentTimestamp = mostRecentTimestamp(allEntries);
+      } else {
+        content = renderUrlset(allEntries);
+        mostRecentTimestamp = mostRecentTimestamp(allEntries);
+      }
 
       // Conditional-request support (issue #619): a sitemap is re-fetched periodically by
       // crawlers, almost always unchanged -- avoid resending the full body (and, via
@@ -183,12 +200,80 @@ public class SitemapServlet extends HttpServlet {
     return bos.toByteArray();
   }
 
+  private List<SitemapUrlEntry> buildAllEntries(String siteUrl) {
+    List<SitemapUrlEntry> entries = new ArrayList<>();
+    entries.add(new SitemapUrlEntry(escapeXml(siteUrl) + "/", null, "daily", "1.0", 0L));
+    entries.addAll(webPageEntries(siteUrl));
+    entries.addAll(itemEntries(siteUrl));
+    entries.addAll(blogPostEntries(siteUrl));
+    entries.addAll(wikiPageEntries(siteUrl));
+    return entries;
+  }
+
+  private static List<SitemapUrlEntry> pageOf(List<SitemapUrlEntry> allEntries, int page) {
+    int fromIndex = (page - 1) * MAX_URLS_PER_SITEMAP;
+    int toIndex = Math.min(fromIndex + MAX_URLS_PER_SITEMAP, allEntries.size());
+    return allEntries.subList(fromIndex, toIndex);
+  }
+
+  private static long mostRecentTimestamp(List<SitemapUrlEntry> entries) {
+    long mostRecent = 0L;
+    for (SitemapUrlEntry entry : entries) {
+      mostRecent = Math.max(mostRecent, entry.modifiedTimestamp);
+    }
+    return mostRecent;
+  }
+
+  private static Integer parsePositiveInt(String value) {
+    try {
+      return Integer.parseInt(value);
+    } catch (NumberFormatException e) {
+      return null;
+    }
+  }
+
+  private String renderUrlset(List<SitemapUrlEntry> entries) {
+    StringBuilder xml = new StringBuilder();
+    xml.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+    xml.append("<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n");
+    for (SitemapUrlEntry entry : entries) {
+      xml.append("  <url>\n");
+      xml.append("    <loc>").append(entry.loc).append("</loc>\n");
+      if (entry.lastmod != null) {
+        xml.append("    <lastmod>").append(entry.lastmod).append("</lastmod>\n");
+      }
+      if (entry.changefreq != null) {
+        xml.append("    <changefreq>").append(entry.changefreq).append("</changefreq>\n");
+      }
+      if (entry.priority != null) {
+        xml.append("    <priority>").append(entry.priority).append("</priority>\n");
+      }
+      xml.append("  </url>\n");
+    }
+    xml.append("</urlset>");
+    return xml.toString();
+  }
+
   /**
-   * Appends each published web page's &lt;url&gt; entry and returns the latest modified
-   * timestamp among them (0 if there are none), for the caller's Last-Modified calculation.
+   * Rendered in place of a single &lt;urlset&gt; once the total URL count exceeds
+   * {@link #MAX_URLS_PER_SITEMAP} -- points at MAX_URLS_PER_SITEMAP-sized child sitemaps served
+   * by this same servlet via {@code ?page=1..N}, per the sitemap protocol's own chunking scheme.
    */
-  private long addWebPagesToSitemap(StringBuilder xml, String siteUrl) {
-    long mostRecentTimestamp = 0L;
+  private String renderSitemapIndex(String siteUrl, int totalPages) {
+    StringBuilder xml = new StringBuilder();
+    xml.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+    xml.append("<sitemapindex xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n");
+    for (int page = 1; page <= totalPages; page++) {
+      xml.append("  <sitemap>\n");
+      xml.append("    <loc>").append(escapeXml(siteUrl + "/sitemap.xml?page=" + page)).append("</loc>\n");
+      xml.append("  </sitemap>\n");
+    }
+    xml.append("</sitemapindex>");
+    return xml.toString();
+  }
+
+  private List<SitemapUrlEntry> webPageEntries(String siteUrl) {
+    List<SitemapUrlEntry> entries = new ArrayList<>();
     try {
       WebPageSpecification spec = new WebPageSpecification();
       spec.setEnabled(1);
@@ -199,36 +284,24 @@ public class SitemapServlet extends HttpServlet {
       if (pages != null) {
         for (WebPage page : pages) {
           if (page != null && StringUtils.isNotBlank(page.getLink())) {
-            xml.append("  <url>\n");
-            xml.append("    <loc>").append(escapeXml(siteUrl + page.getLink())).append("</loc>\n");
-
-            if (page.getModified() != null) {
-              xml.append("    <lastmod>").append(formatDate(page.getModified())).append("</lastmod>\n");
-              mostRecentTimestamp = Math.max(mostRecentTimestamp, page.getModified().getTime());
-            }
-            if (StringUtils.isNotBlank(page.getSitemapChangeFrequency())) {
-              xml.append("    <changefreq>").append(escapeXml(page.getSitemapChangeFrequency())).append("</changefreq>\n");
-            }
+            String lastmod = page.getModified() != null ? formatDate(page.getModified()) : null;
+            long modifiedTimestamp = page.getModified() != null ? page.getModified().getTime() : 0L;
+            String changefreq = StringUtils.isNotBlank(page.getSitemapChangeFrequency())
+                ? escapeXml(page.getSitemapChangeFrequency())
+                : null;
             String priority = formatPriority(page.getSitemapPriority());
-            if (priority != null) {
-              xml.append("    <priority>").append(priority).append("</priority>\n");
-            }
-            xml.append("  </url>\n");
+            entries.add(new SitemapUrlEntry(escapeXml(siteUrl + page.getLink()), lastmod, changefreq, priority, modifiedTimestamp));
           }
         }
       }
     } catch (Exception e) {
       LOG.warn("Error adding web pages to sitemap: " + e.getMessage());
     }
-    return mostRecentTimestamp;
+    return entries;
   }
 
-  /**
-   * Appends each published item's &lt;url&gt; entry and returns the latest modified timestamp
-   * among them (0 if there are none), for the caller's Last-Modified calculation.
-   */
-  private long addItemsToSitemap(StringBuilder xml, String siteUrl) {
-    long mostRecentTimestamp = 0L;
+  private List<SitemapUrlEntry> itemEntries(String siteUrl) {
+    List<SitemapUrlEntry> entries = new ArrayList<>();
     try {
       ItemSpecification spec = new ItemSpecification();
       spec.setApprovedOnly(true);
@@ -238,36 +311,27 @@ public class SitemapServlet extends HttpServlet {
         for (Item item : items) {
           if (item != null && item.getId() != null && StringUtils.isNotBlank(item.getUniqueId())) {
             String itemLink = "/show/" + item.getUniqueId();
-            xml.append("  <url>\n");
-            xml.append("    <loc>").append(escapeXml(siteUrl + itemLink)).append("</loc>\n");
-
-            if (item.getModified() != null) {
-              xml.append("    <lastmod>").append(formatDate(item.getModified())).append("</lastmod>\n");
-              mostRecentTimestamp = Math.max(mostRecentTimestamp, item.getModified().getTime());
-            }
-            xml.append("    <changefreq>monthly</changefreq>\n");
-            xml.append("    <priority>0.6</priority>\n");
-            xml.append("  </url>\n");
+            String lastmod = item.getModified() != null ? formatDate(item.getModified()) : null;
+            long modifiedTimestamp = item.getModified() != null ? item.getModified().getTime() : 0L;
+            entries.add(new SitemapUrlEntry(escapeXml(siteUrl + itemLink), lastmod, "monthly", "0.6", modifiedTimestamp));
           }
         }
       }
     } catch (Exception e) {
       LOG.warn("Error adding items to sitemap: " + e.getMessage());
     }
-    return mostRecentTimestamp;
+    return entries;
   }
 
   /**
-   * Appends each published blog post's &lt;url&gt; entry and returns the latest modified
-   * timestamp among them (0 if there are none), for the caller's Last-Modified calculation.
-   * Mirrors BlogPostSearchResultsWidget's own definition of "publicly findable"
-   * (setPublishedOnly(true) -- published IS NOT NULL) so the sitemap never disagrees with the
-   * app's own search results about what's public. No &lt;changefreq&gt;/&lt;priority&gt; is
-   * emitted since, unlike WebPage, BlogPost has no per-post override for either -- inventing a
-   * value here would be a guess, not real data.
+   * One entry per published blog post. Mirrors BlogPostSearchResultsWidget's own definition of
+   * "publicly findable" (setPublishedOnly(true) -- published IS NOT NULL) so the sitemap never
+   * disagrees with the app's own search results about what's public. No changefreq/priority is
+   * set since, unlike WebPage, BlogPost has no per-post override for either -- inventing a value
+   * here would be a guess, not real data.
    */
-  private long addBlogPostsToSitemap(StringBuilder xml, String siteUrl) {
-    long mostRecentTimestamp = 0L;
+  private List<SitemapUrlEntry> blogPostEntries(String siteUrl) {
+    List<SitemapUrlEntry> entries = new ArrayList<>();
     try {
       BlogPostSpecification spec = new BlogPostSpecification();
       spec.setPublishedOnly(true);
@@ -285,31 +349,26 @@ public class SitemapServlet extends HttpServlet {
           if (blog == null) {
             continue;
           }
-          xml.append("  <url>\n");
-          xml.append("    <loc>").append(escapeXml(siteUrl + "/" + blog.getUniqueId() + "/" + post.getUniqueId())).append("</loc>\n");
-          if (post.getModified() != null) {
-            xml.append("    <lastmod>").append(formatDate(post.getModified())).append("</lastmod>\n");
-            mostRecentTimestamp = Math.max(mostRecentTimestamp, post.getModified().getTime());
-          }
-          xml.append("  </url>\n");
+          String lastmod = post.getModified() != null ? formatDate(post.getModified()) : null;
+          long modifiedTimestamp = post.getModified() != null ? post.getModified().getTime() : 0L;
+          entries.add(new SitemapUrlEntry(
+              escapeXml(siteUrl + "/" + blog.getUniqueId() + "/" + post.getUniqueId()), lastmod, null, null, modifiedTimestamp));
         }
       }
     } catch (Exception e) {
       LOG.warn("Error adding blog posts to sitemap: " + e.getMessage());
     }
-    return mostRecentTimestamp;
+    return entries;
   }
 
   /**
-   * Appends each wiki page's &lt;url&gt; entry, for pages belonging to an enabled wiki, and
-   * returns the latest modified timestamp among them (0 if there are none), for the caller's
-   * Last-Modified calculation. Wiki pages have no draft/published concept of their own (see
-   * WikiPage/WikiPageSpecification) -- the parent Wiki's enabled flag is the only visibility
-   * signal that exists, so it's the only one enforced here, matching what WikiSearchResultsWidget
-   * itself checks.
+   * One entry per wiki page belonging to an enabled wiki. Wiki pages have no draft/published
+   * concept of their own (see WikiPage/WikiPageSpecification) -- the parent Wiki's enabled flag
+   * is the only visibility signal that exists, so it's the only one enforced here, matching what
+   * WikiSearchResultsWidget itself checks.
    */
-  private long addWikiPagesToSitemap(StringBuilder xml, String siteUrl) {
-    long mostRecentTimestamp = 0L;
+  private List<SitemapUrlEntry> wikiPageEntries(String siteUrl) {
+    List<SitemapUrlEntry> entries = new ArrayList<>();
     try {
       List<WikiPage> pages = WikiPageRepository.findAll(new WikiPageSpecification(), null);
 
@@ -323,19 +382,16 @@ public class SitemapServlet extends HttpServlet {
           if (wiki == null || !wiki.getEnabled()) {
             continue;
           }
-          xml.append("  <url>\n");
-          xml.append("    <loc>").append(escapeXml(siteUrl + "/" + wiki.getUniqueId() + "/" + page.getUniqueId())).append("</loc>\n");
-          if (page.getModified() != null) {
-            xml.append("    <lastmod>").append(formatDate(page.getModified())).append("</lastmod>\n");
-            mostRecentTimestamp = Math.max(mostRecentTimestamp, page.getModified().getTime());
-          }
-          xml.append("  </url>\n");
+          String lastmod = page.getModified() != null ? formatDate(page.getModified()) : null;
+          long modifiedTimestamp = page.getModified() != null ? page.getModified().getTime() : 0L;
+          entries.add(new SitemapUrlEntry(
+              escapeXml(siteUrl + "/" + wiki.getUniqueId() + "/" + page.getUniqueId()), lastmod, null, null, modifiedTimestamp));
         }
       }
     } catch (Exception e) {
       LOG.warn("Error adding wiki pages to sitemap: " + e.getMessage());
     }
-    return mostRecentTimestamp;
+    return entries;
   }
 
   /**
@@ -370,5 +426,22 @@ public class SitemapServlet extends HttpServlet {
         .replace(">", "&gt;")
         .replace("\"", "&quot;")
         .replace("'", "&apos;");
+  }
+
+  /** One &lt;url&gt; entry's already-formatted, already-escaped field values. */
+  private static class SitemapUrlEntry {
+    final String loc;
+    final String lastmod;
+    final String changefreq;
+    final String priority;
+    final long modifiedTimestamp;
+
+    SitemapUrlEntry(String loc, String lastmod, String changefreq, String priority, long modifiedTimestamp) {
+      this.loc = loc;
+      this.lastmod = lastmod;
+      this.changefreq = changefreq;
+      this.priority = priority;
+      this.modifiedTimestamp = modifiedTimestamp;
+    }
   }
 }
