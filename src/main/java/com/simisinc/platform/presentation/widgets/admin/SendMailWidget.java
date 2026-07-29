@@ -25,7 +25,16 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.commons.mail.ImageHtmlEmail;
 
+import javax.mail.AuthenticationFailedException;
+import javax.mail.SendFailedException;
+import javax.net.ssl.SSLException;
+
 import java.lang.reflect.InvocationTargetException;
+import java.net.ConnectException;
+import java.net.NoRouteToHostException;
+import java.net.SocketTimeoutException;
+import java.net.UnknownHostException;
+import java.util.UUID;
 
 /**
  * Description
@@ -63,8 +72,10 @@ public class SendMailWidget extends GenericWidget {
       email.setMsg("This is a test message sent from the Mail Server Settings page to confirm the configured SMTP settings are working.");
       email.send();
     } catch (Exception e) {
-      LOG.warn("Mail test failed to send", e);
-      context.setErrorMessage("Mail test failed: " + e.getMessage());
+      String correlationId = UUID.randomUUID().toString();
+      LOG.warn("Mail test failed to send [" + correlationId + "]", e);
+      context.setErrorMessage(
+          "Mail test failed (" + categorize(e) + "). Reference: " + correlationId + ". Check the server logs for details.");
       context.setRedirect("/admin/mail-properties");
       return context;
     }
@@ -73,5 +84,32 @@ public class SendMailWidget extends GenericWidget {
     context.setSuccessMessage("A test email was sent to " + user.getEmail());
     context.setRedirect("/admin/mail-properties");
     return context;
+  }
+
+  /**
+   * Maps a mail-send failure to a stable, non-sensitive category for display to admins.
+   * Never returns raw exception text, which can contain hostnames, ports, or credentials.
+   */
+  private static String categorize(Throwable throwable) {
+    Throwable current = throwable;
+    for (int depth = 0; current != null && depth < 5; depth++, current = current.getCause()) {
+      if (current instanceof AuthenticationFailedException) {
+        return "auth";
+      }
+      if (current instanceof SendFailedException) {
+        return "rejected";
+      }
+      if (current instanceof SSLException) {
+        return "tls";
+      }
+      if (current instanceof SocketTimeoutException) {
+        return "timeout";
+      }
+      if (current instanceof ConnectException || current instanceof UnknownHostException
+          || current instanceof NoRouteToHostException) {
+        return "connect";
+      }
+    }
+    return "unknown";
   }
 }
