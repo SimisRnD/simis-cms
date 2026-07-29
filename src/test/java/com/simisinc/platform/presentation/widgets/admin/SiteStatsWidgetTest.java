@@ -589,6 +589,53 @@ class SiteStatsWidgetTest extends WidgetBase {
   }
 
   @Test
+  void executeMailingListClassificationBreakdown() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <title>Email Deliverability</title>\n" +
+            "  <report>mailing-list-classification-breakdown</report>\n" +
+            "</widget>");
+
+    List<StatisticsData> data = List.of(statistic("valid", "42"), statistic("unclassified", "8"));
+    try (MockedStatic<MailingListMemberRepository> repository = mockStatic(MailingListMemberRepository.class)) {
+      repository.when(MailingListMemberRepository::findClassificationBreakdown).thenReturn(data);
+      repository.when(MailingListMemberRepository::findLastClassifiedAt)
+          .thenReturn(Timestamp.valueOf("2026-07-28 12:00:00"));
+
+      setRoles(widgetContext, ADMIN);
+      SiteStatsWidget widget = new SiteStatsWidget();
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals(SiteStatsWidget.TABLE_JSP, widgetContext.getJsp());
+    Assertions.assertEquals(data, request.getAttribute("statisticsDataList"));
+    Assertions.assertEquals("Status", request.getAttribute("label"));
+    Assertions.assertEquals("Subscribers", request.getAttribute("value"));
+    Assertions.assertNotNull(request.getAttribute("asOfDate"));
+  }
+
+  @Test
+  void executeMailingListClassificationBreakdownOmitsAsOfDateWhenNeverClassified() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <title>Email Deliverability</title>\n" +
+            "  <report>mailing-list-classification-breakdown</report>\n" +
+            "</widget>");
+
+    try (MockedStatic<MailingListMemberRepository> repository = mockStatic(MailingListMemberRepository.class)) {
+      repository.when(MailingListMemberRepository::findClassificationBreakdown).thenReturn(List.of());
+      repository.when(MailingListMemberRepository::findLastClassifiedAt).thenReturn(null);
+
+      setRoles(widgetContext, ADMIN);
+      SiteStatsWidget widget = new SiteStatsWidget();
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals(SiteStatsWidget.TABLE_JSP, widgetContext.getJsp());
+    Assertions.assertNull(request.getAttribute("asOfDate"));
+  }
+
+  @Test
   void executeConversionRate() {
     addPreferencesFromWidgetXml(widgetContext,
         "<widget name=\"siteStats\" class=\"stats card\">\n" +
