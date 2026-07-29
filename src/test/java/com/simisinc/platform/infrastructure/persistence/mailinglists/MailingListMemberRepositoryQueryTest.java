@@ -18,13 +18,17 @@ package com.simisinc.platform.infrastructure.persistence.mailinglists;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.time.Duration;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 import org.junit.jupiter.api.AfterAll;
@@ -42,10 +46,12 @@ import com.simisinc.platform.infrastructure.database.DB;
 import com.simisinc.platform.infrastructure.database.DataSource;
 
 /**
- * Verifies the new distinct-subscriber count and trend methods (issue #562) against a real
- * PostgreSQL instance. Minimal schema replicated from {@code NEW_10070__new_mailing_lists.sql} --
- * emails, mailing_lists, mailing_list_members only, without the users-table foreign keys (nullable,
- * not needed for these tests).
+ * Verifies the distinct-subscriber count, trend, and deliverability-classification-breakdown
+ * methods (issue #562) against a real PostgreSQL instance. Minimal schema replicated from
+ * {@code NEW_10070__new_mailing_lists.sql} -- emails, mailing_lists, mailing_list_members only,
+ * without the users-table foreign keys (nullable, not needed for these tests). The emails table
+ * additionally includes the validation_status/validated_at columns added by #574's
+ * UPGRADE_20260728.2000__email_classification.sql.
  *
  * @author SimIS Inc.
  * @created 7/28/2026
@@ -170,6 +176,95 @@ class MailingListMemberRepositoryQueryTest {
         "expected oldest to newest: " + series);
   }
 
+  @Test
+  void findClassificationBreakdownGroupsDistinctSubscribersByStatus() throws SQLException {
+    long list = seedList("List A");
+    long valid = seedEmail("valid@example.com");
+    long invalid = seedEmail("invalid-addr@example.com");
+    long neverChecked = seedEmail("unchecked@example.com");
+    classifyEmail(valid, "valid", "2026-07-28 00:00:00");
+    classifyEmail(invalid, "invalid", "2026-07-28 00:00:00");
+    // neverChecked is left with validation_status/validated_at both NULL
+
+    seedMembership(list, valid, true, null);
+    seedMembership(list, invalid, true, null);
+    seedMembership(list, neverChecked, true, null);
+
+    List<StatisticsData> breakdown = MailingListMemberRepository.findClassificationBreakdown();
+
+    Map<String, String> byStatus = new HashMap<>();
+    for (StatisticsData data : breakdown) {
+      byStatus.put(data.getLabel(), data.getValue());
+    }
+    assertEquals("1", byStatus.get("valid"));
+    assertEquals("1", byStatus.get("invalid"));
+    assertEquals("1", byStatus.get("unclassified"),
+        "a never-validated subscriber must fall into 'unclassified', not be omitted: " + breakdown);
+  }
+
+  @Test
+  void findClassificationBreakdownCountsDistinctPeopleNotMemberships() throws SQLException {
+    long listA = seedList("List A");
+    long listB = seedList("List B");
+    long frank = seedEmail("frank@example.com");
+    classifyEmail(frank, "valid", "2026-07-28 00:00:00");
+
+    seedMembership(listA, frank, true, null);
+    seedMembership(listB, frank, true, null); // frank is on both lists -- must count once
+
+    List<StatisticsData> breakdown = MailingListMemberRepository.findClassificationBreakdown();
+
+    assertEquals(1, breakdown.size(), "expected a single 'valid' group: " + breakdown);
+    assertEquals("valid", breakdown.get(0).getLabel());
+    assertEquals("1", breakdown.get(0).getValue());
+  }
+
+  @Test
+  void findClassificationBreakdownExcludesNonSubscriberEmails() throws SQLException {
+    long list = seedList("List A");
+    long subscriber = seedEmail("subscriber@example.com");
+    long customerOnly = seedEmail("customer-only@example.com"); // e.g. an ecommerce customer, never subscribed
+    classifyEmail(subscriber, "valid", "2026-07-28 00:00:00");
+    classifyEmail(customerOnly, "invalid", "2026-07-28 00:00:00");
+
+    seedMembership(list, subscriber, true, null);
+    // customerOnly is intentionally never added to mailing_list_members
+
+    List<StatisticsData> breakdown = MailingListMemberRepository.findClassificationBreakdown();
+
+    assertEquals(1, breakdown.size(), "a non-subscriber address must not appear in a mailing-list breakdown: " + breakdown);
+    assertEquals("valid", breakdown.get(0).getLabel());
+  }
+
+  @Test
+  void findLastClassifiedAtReturnsNullWhenNoSubscriberHasBeenClassified() throws SQLException {
+    long list = seedList("List A");
+    seedMembership(list, seedEmail("unchecked@example.com"), true, null);
+
+    assertNull(MailingListMemberRepository.findLastClassifiedAt());
+  }
+
+  @Test
+  void findLastClassifiedAtReturnsTheMostRecentSubscriberValidationAndIgnoresNonSubscribers() throws SQLException {
+    long list = seedList("List A");
+    long older = seedEmail("older@example.com");
+    long newer = seedEmail("newer@example.com");
+    long nonSubscriberButNewer = seedEmail("customer-only@example.com");
+    classifyEmail(older, "valid", "2026-07-01 00:00:00");
+    classifyEmail(newer, "valid", "2026-07-15 00:00:00");
+    classifyEmail(nonSubscriberButNewer, "valid", "2026-07-27 00:00:00"); // newest overall, but not a subscriber
+
+    seedMembership(list, older, true, null);
+    seedMembership(list, newer, true, null);
+    // nonSubscriberButNewer is intentionally never added to mailing_list_members
+
+    Timestamp lastClassifiedAt = MailingListMemberRepository.findLastClassifiedAt();
+
+    assertNotNull(lastClassifiedAt);
+    assertEquals(Timestamp.valueOf("2026-07-15 00:00:00"), lastClassifiedAt,
+        "must reflect the most recent SUBSCRIBER validation, not the unrelated non-subscriber's later one");
+  }
+
   private long seedList(String name) throws SQLException {
     try (Connection connection = DB.getConnection();
         Statement statement = connection.createStatement()) {
@@ -192,6 +287,14 @@ class MailingListMemberRepositoryQueryTest {
     }
   }
 
+  private void classifyEmail(long emailId, String validationStatus, String validatedAt) throws SQLException {
+    try (Connection connection = DB.getConnection();
+        Statement statement = connection.createStatement()) {
+      statement.execute("UPDATE emails SET validation_status = '" + validationStatus + "', validated_at = '"
+          + validatedAt + "' WHERE email_id = " + emailId);
+    }
+  }
+
   private void seedMembership(long listId, long emailId, boolean isValid, String unsubscribed) throws SQLException {
     try (Connection connection = DB.getConnection();
         Statement statement = connection.createStatement()) {
@@ -207,7 +310,10 @@ class MailingListMemberRepositoryQueryTest {
       statement.execute("CREATE TABLE emails ("
           + "email_id BIGSERIAL PRIMARY KEY, "
           + "email VARCHAR(255) UNIQUE NOT NULL, "
-          + "created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP)");
+          + "created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP, "
+          + "validation_status VARCHAR(20), "
+          + "validation_sub_status VARCHAR(50), "
+          + "validated_at TIMESTAMP(3))");
       statement.execute("CREATE TABLE mailing_lists ("
           + "list_id BIGSERIAL PRIMARY KEY, "
           + "list_order INTEGER DEFAULT 100, "
