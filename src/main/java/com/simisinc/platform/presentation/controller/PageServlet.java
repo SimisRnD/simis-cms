@@ -1014,6 +1014,21 @@ public class PageServlet extends HttpServlet {
             organization.put("logo", siteLogo);
           }
         }
+
+        // sameAs links this Organization to its social profiles (issue #403)
+        List<SocialMediaLink> socialMediaLinkList = SocialMediaLinkRepository.findAll();
+        if (socialMediaLinkList != null && !socialMediaLinkList.isEmpty()) {
+          List<String> sameAs = new ArrayList<>();
+          for (SocialMediaLink socialMediaLink : socialMediaLinkList) {
+            if (StringUtils.isNotBlank(socialMediaLink.getUrl())) {
+              sameAs.add(socialMediaLink.getUrl());
+            }
+          }
+          if (!sameAs.isEmpty()) {
+            organization.put("sameAs", sameAs);
+          }
+        }
+
         graph.add(organization);
       }
 
