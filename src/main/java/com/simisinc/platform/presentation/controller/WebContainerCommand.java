@@ -371,6 +371,11 @@ public class WebContainerCommand implements Serializable {
             if (StringUtils.isNotBlank(widgetContext.getArticleAuthorName())) {
               pageRenderInfo.setArticleAuthorName(widgetContext.getArticleAuthorName());
             }
+            // FAQPage schema (issue #416), e.g. from FaqWidget -- additive since more than one
+            // FaqWidget on the same page should combine into one FAQPage, not overwrite
+            if (widgetContext.getFaqQuestions() != null && !widgetContext.getFaqQuestions().isEmpty()) {
+              pageRenderInfo.addFaqQuestions(widgetContext.getFaqQuestions());
+            }
           }
 
           // Expect JSON first and return early
