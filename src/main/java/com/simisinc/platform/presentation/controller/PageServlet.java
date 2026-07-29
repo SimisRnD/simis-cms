@@ -824,20 +824,9 @@ public class PageServlet extends HttpServlet {
 
       // Set canonical URL for SEO (issue #401)
       String siteUrl = (String) sitePropertyMap.get("site.url");
-      if (StringUtils.isNotBlank(siteUrl)) {
-        String canonicalUrl = null;
-        if (thisItem != null) {
-          canonicalUrl = siteUrl + "/items/" + thisCollection.getUniqueId() + "/" + thisItem.getUniqueId();
-        } else if (thisCollection != null) {
-          canonicalUrl = siteUrl + "/items/" + thisCollection.getUniqueId();
-        } else if (webPage != null && StringUtils.isNotBlank(webPage.getLink())) {
-          canonicalUrl = siteUrl + webPage.getLink();
-        } else if (StringUtils.isNotBlank(pagePath) && !pagePath.equals("/")) {
-          canonicalUrl = siteUrl + pagePath;
-        }
-        if (StringUtils.isNotBlank(canonicalUrl)) {
-          pageRenderInfo.setCanonicalUrl(canonicalUrl);
-        }
+      String canonicalUrl = computeCanonicalUrl(siteUrl, pagePath, webPage, thisItem, thisCollection);
+      if (StringUtils.isNotBlank(canonicalUrl)) {
+        pageRenderInfo.setCanonicalUrl(canonicalUrl);
       }
 
       // Set Open Graph metadata for social sharing (issue #402)
@@ -852,7 +841,7 @@ public class PageServlet extends HttpServlet {
 
       // Generate JSON-LD structured data for search engines and AI (issue #403)
       if (StringUtils.isNotBlank(siteUrl) && StringUtils.isNotBlank(sitePropertyMap.get("site.name"))) {
-        String jsonLd = generateJsonLdData(pageRenderInfo, siteUrl, sitePropertyMap, thisItem, thisCollection);
+        String jsonLd = generateJsonLdData(pageRenderInfo, siteUrl, sitePropertyMap, thisItem, thisCollection, webPage);
         if (StringUtils.isNotBlank(jsonLd)) {
           pageRenderInfo.setJsonLdData(jsonLd);
         }
@@ -1001,7 +990,7 @@ public class PageServlet extends HttpServlet {
 
   static String generateJsonLdData(PageRenderInfo pageRenderInfo, String siteUrl,
                                     Map<String, String> sitePropertyMap,
-                                    Item item, Collection collection) {
+                                    Item item, Collection collection, WebPage webPage) {
     try {
       ObjectMapper mapper = new ObjectMapper();
       Map<String, Object> jsonLd = new LinkedHashMap<>();
@@ -1025,22 +1014,37 @@ public class PageServlet extends HttpServlet {
             organization.put("logo", siteLogo);
           }
         }
+
+        // sameAs links this Organization to its social profiles (issue #403)
+        List<SocialMediaLink> socialMediaLinkList = SocialMediaLinkRepository.findAll();
+        if (socialMediaLinkList != null && !socialMediaLinkList.isEmpty()) {
+          List<String> sameAs = new ArrayList<>();
+          for (SocialMediaLink socialMediaLink : socialMediaLinkList) {
+            if (StringUtils.isNotBlank(socialMediaLink.getUrl())) {
+              sameAs.add(socialMediaLink.getUrl());
+            }
+          }
+          if (!sameAs.isEmpty()) {
+            organization.put("sameAs", sameAs);
+          }
+        }
+
         graph.add(organization);
       }
 
       // Add WebPage schema for all pages
-      Map<String, Object> webPage = new LinkedHashMap<>();
-      webPage.put("@type", "WebPage");
+      Map<String, Object> webPageSchema = new LinkedHashMap<>();
+      webPageSchema.put("@type", "WebPage");
       if (StringUtils.isNotBlank(pageRenderInfo.getPageUrl())) {
-        webPage.put("url", pageRenderInfo.getPageUrl());
+        webPageSchema.put("url", pageRenderInfo.getPageUrl());
       }
       if (StringUtils.isNotBlank(pageRenderInfo.getTitle())) {
-        webPage.put("name", pageRenderInfo.getTitle());
+        webPageSchema.put("name", pageRenderInfo.getTitle());
       }
       if (StringUtils.isNotBlank(pageRenderInfo.getDescription())) {
-        webPage.put("description", pageRenderInfo.getDescription());
+        webPageSchema.put("description", pageRenderInfo.getDescription());
       }
-      webPage.put("isPartOf", Collections.singletonMap("@id", siteUrl + "#organization"));
+      webPageSchema.put("isPartOf", Collections.singletonMap("@id", siteUrl + "#organization"));
 
       // Add image if available
       if (StringUtils.isNotBlank(pageRenderInfo.getImageUrl())) {
@@ -1048,9 +1052,23 @@ public class PageServlet extends HttpServlet {
         if (imageUrl.startsWith("/")) {
           imageUrl = siteUrl + imageUrl;
         }
-        webPage.put("image", imageUrl);
+        webPageSchema.put("image", imageUrl);
       }
-      graph.add(webPage);
+
+      // dateModified/datePublished are freshness signals AI answer engines weigh for citation
+      // (issue #403). datePublished prefers publishAt (the page's actual go-live date, which can
+      // differ from when the row was first created via scheduled publishing) over created.
+      if (webPage != null) {
+        if (webPage.getModified() != null) {
+          webPageSchema.put("dateModified", webPage.getModified().toInstant().toString());
+        }
+        Timestamp publishedDate = webPage.getPublishAt() != null ? webPage.getPublishAt() : webPage.getCreated();
+        if (publishedDate != null) {
+          webPageSchema.put("datePublished", publishedDate.toInstant().toString());
+        }
+      }
+
+      graph.add(webPageSchema);
 
       // Add Product schema if this is an item (catalog product)
       if (item != null && StringUtils.isNotBlank(item.getName())) {
@@ -1093,6 +1111,31 @@ public class PageServlet extends HttpServlet {
       return null;
     }
     return json.replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026");
+  }
+
+  /**
+   * Computes the canonical URL for a page response (issue #401), or null when there's nothing to
+   * canonicalize (blank site.url, or no page-identity source matched). pagePath is always safe to
+   * append as-is: it comes from request.getRequestURI(), which never carries the query string, so
+   * this can't reflect attacker-controlled query parameters into the tag.
+   */
+  static String computeCanonicalUrl(String siteUrl, String pagePath, WebPage webPage, Item item, Collection collection) {
+    if (StringUtils.isBlank(siteUrl)) {
+      return null;
+    }
+    if (item != null && collection != null) {
+      return siteUrl + "/items/" + collection.getUniqueId() + "/" + item.getUniqueId();
+    }
+    if (collection != null) {
+      return siteUrl + "/items/" + collection.getUniqueId();
+    }
+    if (webPage != null && StringUtils.isNotBlank(webPage.getLink())) {
+      return siteUrl + webPage.getLink();
+    }
+    if (StringUtils.isNotBlank(pagePath)) {
+      return siteUrl + pagePath;
+    }
+    return null;
   }
 
   /**
