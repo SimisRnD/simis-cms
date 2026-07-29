@@ -415,6 +415,17 @@
     </section>
   </page>
 
+  <page name="/admin/newsletter-send" role="admin,content-manager,community-manager" title="Send Newsletter">
+    <section>
+      <column class="small-12 large-10 cell">
+        <widget name="newsletterSend">
+          <icon>fa-paper-plane</icon>
+          <title>Send Newsletter</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
   <page name="/admin/mail-properties" role="admin" title="Mail Server Settings">
     <!--<section>-->
       <!--<column class="small-12 cell">-->
