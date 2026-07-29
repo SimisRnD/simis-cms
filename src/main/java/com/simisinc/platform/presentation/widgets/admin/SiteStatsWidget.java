@@ -31,6 +31,7 @@ import com.simisinc.platform.infrastructure.persistence.cms.ContentRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.FormDataRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.FormSubmissionFailureRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageHitRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.SearchAnalyticsRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebSearchRepository;
 import com.simisinc.platform.infrastructure.persistence.mailinglists.MailingListMemberRepository;
@@ -304,6 +305,18 @@ public class SiteStatsWidget extends GenericWidget {
       context.getRequest().setAttribute("statisticsDataList", statisticsDataList);
       context.getRequest().setAttribute("label", context.getPreferences().getOrDefault("label", "Search Term"));
       context.getRequest().setAttribute("value", context.getPreferences().getOrDefault("value", "Searches"));
+      return TABLE_JSP;
+    } else if ("zero-result-terms".equalsIgnoreCase(report)) {
+      List<StatisticsData> statisticsDataList = SearchAnalyticsRepository.findZeroResultTerms(intervalValue, limit);
+      context.getRequest().setAttribute("statisticsDataList", statisticsDataList);
+      context.getRequest().setAttribute("label", context.getPreferences().getOrDefault("label", "Search Term"));
+      context.getRequest().setAttribute("value", context.getPreferences().getOrDefault("value", "Zero-Result Searches"));
+      return TABLE_JSP;
+    } else if ("trending-search-terms".equalsIgnoreCase(report)) {
+      List<StatisticsData> statisticsDataList = SearchAnalyticsRepository.findTrendingTerms(limit);
+      context.getRequest().setAttribute("statisticsDataList", statisticsDataList);
+      context.getRequest().setAttribute("label", context.getPreferences().getOrDefault("label", "Search Term"));
+      context.getRequest().setAttribute("value", context.getPreferences().getOrDefault("value", "Searches This Week"));
       return TABLE_JSP;
     } else if ("total-form-submissions".equalsIgnoreCase(report)) {
       Long count = FormDataRepository.countTotalSubmissions();

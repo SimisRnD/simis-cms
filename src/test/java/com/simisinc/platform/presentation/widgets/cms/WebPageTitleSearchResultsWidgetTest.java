@@ -31,6 +31,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
 import com.simisinc.platform.WidgetBase;
+import com.simisinc.platform.application.cms.SearchAnalyticsCommand;
 import com.simisinc.platform.application.cms.ValidateUserAccessToWebPageCommand;
 import com.simisinc.platform.domain.model.cms.SearchResult;
 import com.simisinc.platform.domain.model.cms.WebPage;
@@ -55,7 +56,8 @@ class WebPageTitleSearchResultsWidgetTest extends WidgetBase {
     webPageList.add(found);
 
     try (MockedStatic<WebPageRepository> repository = mockStatic(WebPageRepository.class);
-        MockedStatic<ValidateUserAccessToWebPageCommand> access = mockStatic(ValidateUserAccessToWebPageCommand.class)) {
+        MockedStatic<ValidateUserAccessToWebPageCommand> access = mockStatic(ValidateUserAccessToWebPageCommand.class);
+        MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
       repository.when(() -> WebPageRepository.search(eq("widgets"), any())).thenReturn(webPageList);
       access.when(() -> ValidateUserAccessToWebPageCommand.hasAccess(eq("/about"), any())).thenReturn(true);
 
@@ -82,7 +84,8 @@ class WebPageTitleSearchResultsWidgetTest extends WidgetBase {
     webPageList.add(restricted);
 
     try (MockedStatic<WebPageRepository> repository = mockStatic(WebPageRepository.class);
-        MockedStatic<ValidateUserAccessToWebPageCommand> access = mockStatic(ValidateUserAccessToWebPageCommand.class)) {
+        MockedStatic<ValidateUserAccessToWebPageCommand> access = mockStatic(ValidateUserAccessToWebPageCommand.class);
+        MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
       repository.when(() -> WebPageRepository.search(eq("widgets"), any())).thenReturn(webPageList);
       access.when(() -> ValidateUserAccessToWebPageCommand.hasAccess(eq("/staff-only"), any())).thenReturn(false);
 
@@ -105,7 +108,8 @@ class WebPageTitleSearchResultsWidgetTest extends WidgetBase {
     addQueryParameter(widgetContext, "query", "xylophone");
     preferences.put("showWhenEmpty", "false");
 
-    try (MockedStatic<WebPageRepository> repository = mockStatic(WebPageRepository.class)) {
+    try (MockedStatic<WebPageRepository> repository = mockStatic(WebPageRepository.class);
+        MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
       repository.when(() -> WebPageRepository.search(anyString(), any())).thenReturn(new ArrayList<>());
 
       WidgetContext result = new WebPageTitleSearchResultsWidget().execute(widgetContext);

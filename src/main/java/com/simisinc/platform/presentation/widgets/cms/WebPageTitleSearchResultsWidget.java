@@ -16,6 +16,7 @@
 
 package com.simisinc.platform.presentation.widgets.cms;
 
+import com.simisinc.platform.application.cms.SearchAnalyticsCommand;
 import com.simisinc.platform.application.cms.ValidateUserAccessToWebPageCommand;
 import com.simisinc.platform.domain.model.cms.SearchResult;
 import com.simisinc.platform.domain.model.cms.WebPage;
@@ -67,6 +68,7 @@ public class WebPageTitleSearchResultsWidget extends GenericWidget {
     // Search web pages using PostgreSQL tsvector for efficient full-text search
     // (searches page_title, page_keywords, page_description with relevance ranking)
     List<WebPage> webPageList = WebPageRepository.search(query, constraints);
+    SearchAnalyticsCommand.record(context, query, "pages", webPageList.size());
 
     for (WebPage webPage : webPageList) {
       // Check user access to the web page

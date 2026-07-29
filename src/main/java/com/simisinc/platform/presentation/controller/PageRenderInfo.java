@@ -17,6 +17,7 @@
 package com.simisinc.platform.presentation.controller;
 
 import java.io.Serializable;
+import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
@@ -48,6 +49,15 @@ public class PageRenderInfo implements ContainerRenderInfo, Serializable {
   private String cssClass = null;
   private String jsonLdData;
 
+  // Product schema fields (issue #403), bridged from an ecommerce widget like ProductNameWidget
+  private String productName;
+  private String productDescription;
+  private String productImageUrl;
+  private BigDecimal productPrice;
+  private BigDecimal productLowPrice;
+  private String productCurrency;
+  private String productAvailability;
+  private Integer productOfferCount;
   // Article schema fields (issue #403), bridged from a content widget like BlogPostWidget --
   // kept separate from title/description since those carry a browser-tab suffix that doesn't
   // belong in a JSON-LD headline
@@ -174,6 +184,70 @@ public class PageRenderInfo implements ContainerRenderInfo, Serializable {
 
   public void setJsonLdData(String jsonLdData) {
     this.jsonLdData = jsonLdData;
+  }
+
+  public String getProductName() {
+    return productName;
+  }
+
+  public void setProductName(String productName) {
+    this.productName = productName;
+  }
+
+  public String getProductDescription() {
+    return productDescription;
+  }
+
+  public void setProductDescription(String productDescription) {
+    this.productDescription = productDescription;
+  }
+
+  public String getProductImageUrl() {
+    return productImageUrl;
+  }
+
+  public void setProductImageUrl(String productImageUrl) {
+    this.productImageUrl = productImageUrl;
+  }
+
+  public BigDecimal getProductPrice() {
+    return productPrice;
+  }
+
+  public void setProductPrice(BigDecimal productPrice) {
+    this.productPrice = productPrice;
+  }
+
+  public BigDecimal getProductLowPrice() {
+    return productLowPrice;
+  }
+
+  public void setProductLowPrice(BigDecimal productLowPrice) {
+    this.productLowPrice = productLowPrice;
+  }
+
+  public String getProductCurrency() {
+    return productCurrency;
+  }
+
+  public void setProductCurrency(String productCurrency) {
+    this.productCurrency = productCurrency;
+  }
+
+  public String getProductAvailability() {
+    return productAvailability;
+  }
+
+  public void setProductAvailability(String productAvailability) {
+    this.productAvailability = productAvailability;
+  }
+
+  public Integer getProductOfferCount() {
+    return productOfferCount;
+  }
+
+  public void setProductOfferCount(Integer productOfferCount) {
+    this.productOfferCount = productOfferCount;
   }
 
   public String getArticleHeadline() {

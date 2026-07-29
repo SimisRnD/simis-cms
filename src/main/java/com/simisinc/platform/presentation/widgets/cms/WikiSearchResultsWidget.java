@@ -24,6 +24,7 @@ import java.util.Map;
 import org.apache.commons.lang3.StringUtils;
 
 import com.simisinc.platform.application.cms.HtmlCommand;
+import com.simisinc.platform.application.cms.SearchAnalyticsCommand;
 import com.simisinc.platform.domain.model.cms.SearchResult;
 import com.simisinc.platform.domain.model.cms.Wiki;
 import com.simisinc.platform.domain.model.cms.WikiPage;
@@ -69,6 +70,7 @@ public class WikiSearchResultsWidget extends GenericWidget {
 
     // Query the data
     List<WikiPage> wikiPageList = WikiPageRepository.findAll(specification, constraints);
+    SearchAnalyticsCommand.record(context, query, "wiki", wikiPageList == null ? 0 : wikiPageList.size());
     if (wikiPageList == null || wikiPageList.isEmpty()) {
       return context;
     }
