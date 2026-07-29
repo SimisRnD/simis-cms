@@ -86,11 +86,20 @@ public class RobotsServlet extends HttpServlet {
     sb.append("Disallow: /action/\n");
     sb.append("Disallow: /admin\n");
 
-    // AI training crawler opt-outs (configurable via site properties)
+    // AI crawler opt-outs (configurable via site properties). Each vendor runs separate,
+    // independently-controllable crawlers for training versus real-time citation/retrieval --
+    // disallowing the training bot has no effect on the citation bot, so each gets its own rule.
+    // Google has no separate citation crawler here: AI Overviews/AI Mode ride on standard Search
+    // indexing (Googlebot) per Google's own docs, so Google-Extended (training) stands alone.
     addAiCrawlerRules(sb, robotsPropertyMap, "gptbot", "GPTBot");
+    addAiCrawlerRules(sb, robotsPropertyMap, "oai-searchbot", "OAI-SearchBot");
+    addAiCrawlerRules(sb, robotsPropertyMap, "chatgpt-user", "ChatGPT-User");
     addAiCrawlerRules(sb, robotsPropertyMap, "claudebot", "ClaudeBot");
+    addAiCrawlerRules(sb, robotsPropertyMap, "claude-searchbot", "Claude-SearchBot");
+    addAiCrawlerRules(sb, robotsPropertyMap, "claude-user", "Claude-User");
     addAiCrawlerRules(sb, robotsPropertyMap, "google-extended", "Google-Extended");
     addAiCrawlerRules(sb, robotsPropertyMap, "perplexitybot", "PerplexityBot");
+    addAiCrawlerRules(sb, robotsPropertyMap, "perplexity-user", "Perplexity-User");
     addAiCrawlerRules(sb, robotsPropertyMap, "ccbot", "CCBot");
 
     sb.append("\n");

@@ -90,9 +90,14 @@ class RobotsServletTest {
 
     assertTrue(body.contains("Disallow: /admin/"));
     assertFalse(body.contains("User-Agent: GPTBot"));
+    assertFalse(body.contains("User-Agent: OAI-SearchBot"));
+    assertFalse(body.contains("User-Agent: ChatGPT-User"));
     assertFalse(body.contains("User-Agent: ClaudeBot"));
+    assertFalse(body.contains("User-Agent: Claude-SearchBot"));
+    assertFalse(body.contains("User-Agent: Claude-User"));
     assertFalse(body.contains("User-Agent: Google-Extended"));
     assertFalse(body.contains("User-Agent: PerplexityBot"));
+    assertFalse(body.contains("User-Agent: Perplexity-User"));
     assertFalse(body.contains("User-Agent: CCBot"));
   }
 
@@ -106,6 +111,29 @@ class RobotsServletTest {
     assertTrue(body.contains("User-Agent: ClaudeBot\nDisallow: /\n"));
     // Only the one crawler named false should be blocked
     assertFalse(body.contains("User-Agent: GPTBot"));
+  }
+
+  @Test
+  void doGetControlsTrainingAndCitationBotsIndependentlyPerVendor() throws Exception {
+    // Disallowing a vendor's training crawler must not also disallow its separate
+    // citation/retrieval crawler, and vice versa -- each vendor's bots are controlled
+    // independently, matching how the vendors themselves document these as distinct crawlers.
+    Map<String, String> siteProperties = new HashMap<>();
+    siteProperties.put("robots.ai.gptbot", "false");
+    siteProperties.put("robots.ai.claude-user", "false");
+    siteProperties.put("robots.ai.perplexity-user", "false");
+
+    String body = runDoGet(siteProperties);
+
+    assertTrue(body.contains("User-Agent: GPTBot\nDisallow: /\n"));
+    assertTrue(body.contains("User-Agent: Claude-User\nDisallow: /\n"));
+    assertTrue(body.contains("User-Agent: Perplexity-User\nDisallow: /\n"));
+    // The sibling bots for each vendor were not disallowed, so they must not appear
+    assertFalse(body.contains("User-Agent: OAI-SearchBot"));
+    assertFalse(body.contains("User-Agent: ChatGPT-User"));
+    assertFalse(body.contains("User-Agent: ClaudeBot"));
+    assertFalse(body.contains("User-Agent: Claude-SearchBot"));
+    assertFalse(body.contains("User-Agent: PerplexityBot"));
   }
 
   @Test
