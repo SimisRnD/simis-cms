@@ -248,6 +248,123 @@ class SitemapServletTest {
     assertFalse(body.contains("/item/widget"));
   }
 
+  private static List<WebPage> manyWebPages(int count) {
+    List<WebPage> pages = new ArrayList<>();
+    for (int i = 0; i < count; i++) {
+      pages.add(webPage("/page-" + i, null, null));
+    }
+    return pages;
+  }
+
+  private String runDoGetWithPage(String page, List<WebPage> webPageList) throws Exception {
+    HttpServletRequest request = mock(HttpServletRequest.class);
+    when(request.getParameter("page")).thenReturn(page);
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    StringWriter body = new StringWriter();
+    when(response.getWriter()).thenReturn(new PrintWriter(body));
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class);
+        MockedStatic<ItemRepository> itemRepository = mockStatic(ItemRepository.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadAsMap("site")).thenReturn(siteProperties(true, true));
+      webPageRepository.when(() -> WebPageRepository.findAll(any(), any())).thenReturn(webPageList);
+      itemRepository.when(() -> ItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+
+      new SitemapServlet().doGet(request, response);
+    }
+
+    return body.toString();
+  }
+
+  private HttpServletResponse runDoGetForResponseWithPage(String page, List<WebPage> webPageList) throws Exception {
+    HttpServletRequest request = mock(HttpServletRequest.class);
+    when(request.getParameter("page")).thenReturn(page);
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    when(response.getWriter()).thenReturn(new PrintWriter(new StringWriter()));
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class);
+        MockedStatic<ItemRepository> itemRepository = mockStatic(ItemRepository.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadAsMap("site")).thenReturn(siteProperties(true, true));
+      webPageRepository.when(() -> WebPageRepository.findAll(any(), any())).thenReturn(webPageList);
+      itemRepository.when(() -> ItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+
+      new SitemapServlet().doGet(request, response);
+    }
+    return response;
+  }
+
+  @Test
+  void doGetDoesNotPaginateWhenAtExactlyTheLimit() throws Exception {
+    // MAX_URLS_PER_SITEMAP - 1 web pages + the homepage = exactly the limit
+    List<WebPage> pages = manyWebPages(SitemapServlet.MAX_URLS_PER_SITEMAP - 1);
+    String body = runDoGet(siteProperties(true, true), pages, new ArrayList<>());
+
+    assertTrue(body.contains("<urlset"), "at exactly the limit, a single file is still enough: " + body.substring(0, 200));
+    assertFalse(body.contains("<sitemapindex"));
+  }
+
+  @Test
+  void doGetWritesASitemapIndexWhenTotalUrlsExceedsTheLimit() throws Exception {
+    // MAX_URLS_PER_SITEMAP web pages + the homepage = one over the limit, needs exactly 2 pages
+    List<WebPage> pages = manyWebPages(SitemapServlet.MAX_URLS_PER_SITEMAP);
+    String body = runDoGet(siteProperties(true, true), pages, new ArrayList<>());
+
+    assertTrue(body.contains("<sitemapindex"), "must switch to a sitemap index once over the limit: " + body.substring(0, 200));
+    assertFalse(body.contains("<urlset"), "must not also emit a flat urlset: " + body.substring(0, 200));
+    assertTrue(body.contains("<loc>https://example.org/sitemap.xml?page=1</loc>"));
+    assertTrue(body.contains("<loc>https://example.org/sitemap.xml?page=2</loc>"));
+    assertFalse(body.contains("page=3"), "one URL over the limit needs exactly 2 pages, not 3: " + body);
+  }
+
+  @Test
+  void doGetServesEachChunkAsAUrlsetWithTheRequestedPage() throws Exception {
+    List<WebPage> pages = manyWebPages(SitemapServlet.MAX_URLS_PER_SITEMAP);
+    int last = SitemapServlet.MAX_URLS_PER_SITEMAP - 1;
+
+    String firstPage = runDoGetWithPage("1", pages);
+    assertTrue(firstPage.contains("<urlset"));
+    assertTrue(firstPage.contains("<loc>https://example.org/</loc>"), "the homepage is entry #1, so it belongs on page 1");
+    assertTrue(firstPage.contains("<loc>https://example.org/page-" + (last - 1) + "</loc>"));
+    assertFalse(firstPage.contains("<loc>https://example.org/page-" + last + "</loc>"),
+        "the last web page must roll over onto page 2, not stay on page 1");
+
+    String secondPage = runDoGetWithPage("2", pages);
+    assertTrue(secondPage.contains("<urlset"));
+    assertTrue(secondPage.contains("<loc>https://example.org/page-" + last + "</loc>"));
+    assertFalse(secondPage.contains("<loc>https://example.org/</loc>"), "the homepage belongs on page 1 only");
+  }
+
+  @Test
+  void doGetReturns404ForAnOutOfRangePageParameter() throws Exception {
+    List<WebPage> pages = manyWebPages(SitemapServlet.MAX_URLS_PER_SITEMAP); // exactly 2 pages
+    HttpServletResponse response = runDoGetForResponseWithPage("3", pages);
+    verify(response).setStatus(HttpServletResponse.SC_NOT_FOUND);
+  }
+
+  @Test
+  void doGetReturns404ForPageZero() throws Exception {
+    List<WebPage> pages = manyWebPages(SitemapServlet.MAX_URLS_PER_SITEMAP);
+    HttpServletResponse response = runDoGetForResponseWithPage("0", pages);
+    verify(response).setStatus(HttpServletResponse.SC_NOT_FOUND);
+  }
+
+  @Test
+  void doGetReturns404ForANonNumericPageParameter() throws Exception {
+    List<WebPage> pages = manyWebPages(SitemapServlet.MAX_URLS_PER_SITEMAP);
+    HttpServletResponse response = runDoGetForResponseWithPage("not-a-number", pages);
+    verify(response).setStatus(HttpServletResponse.SC_NOT_FOUND);
+  }
+
+  @Test
+  void doGetReturns404ForAPageParameterWhenNoPaginationIsNeeded() throws Exception {
+    // Well under the limit -- ?page=1 doesn't exist as its own resource when unpaginated
+    List<WebPage> pages = new ArrayList<>();
+    pages.add(webPage("/about", null, null));
+    HttpServletResponse response = runDoGetForResponseWithPage("1", pages);
+    verify(response).setStatus(HttpServletResponse.SC_NOT_FOUND);
+  }
+
   @Test
   void doGetReturns500AndDoesNotThrowWhenSitePropertiesFail() throws Exception {
     HttpServletRequest request = mock(HttpServletRequest.class);
