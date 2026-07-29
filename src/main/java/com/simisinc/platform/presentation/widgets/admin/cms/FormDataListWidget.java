@@ -16,21 +16,28 @@
 
 package com.simisinc.platform.presentation.widgets.admin.cms;
 
+import java.io.File;
+import java.lang.reflect.InvocationTargetException;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
+import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 
 import org.apache.commons.lang3.StringUtils;
 
+import com.simisinc.platform.application.filesystem.FileSystemCommand;
 import com.simisinc.platform.domain.model.cms.FormData;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.persistence.cms.FormDataRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.FormDataSpecification;
+import com.simisinc.platform.presentation.controller.AuditEventCommand;
+import com.simisinc.platform.presentation.controller.MultipartFileSender;
 import com.simisinc.platform.presentation.controller.RequestConstants;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -135,7 +142,17 @@ public class FormDataListWidget extends GenericWidget {
     }
   }
 
-  public WidgetContext post(WidgetContext context) {
+  public WidgetContext post(WidgetContext context) throws InvocationTargetException, IllegalAccessException {
+    // CSV export (issue #483). Permission is required -- this streams a raw file response,
+    // bypassing normal template rendering, so it gets its own explicit role check rather than
+    // relying solely on the page-level access control that gates this widget in the first place.
+    if ("downloadCSVFile".equals(context.getParameter("command"))) {
+      if (!(context.hasRole("admin") || context.hasRole("community-manager"))) {
+        return context;
+      }
+      return downloadCSVFile(context);
+    }
+
     // These are submitted via a real POST (issue #358 moved state-changing admin actions off
     // GET query strings), so they arrive here rather than in action() below. Dispatch through
     // the same table action() uses for a GET caller.
@@ -179,6 +196,34 @@ public class FormDataListWidget extends GenericWidget {
 
   private WidgetContext markAsProcessed(WidgetContext context, FormData formData) {
     FormDataRepository.markAsProcessed(formData, context.getUserId());
+    return context;
+  }
+
+  private WidgetContext downloadCSVFile(WidgetContext context) {
+    String extension = "csv";
+    String displayFilename = "form-data-" + new SimpleDateFormat("yyyyMMdd-HHmm").format(new Date()) + "." + extension;
+    File tempFile = FileSystemCommand.generateTempFile("exports", context.getUserId(), extension);
+    try {
+      FormDataRepository.export(null, tempFile);
+      String mimeType = "text/csv";
+      MultipartFileSender.fromFile(tempFile)
+          .with(context.getRequest())
+          .with(context.getResponse())
+          .withMimeType(mimeType)
+          .withFilename(displayFilename)
+          .serveResource();
+      AuditEventCommand.record(context, AuditEventCommand.DATA_ACCESS, "data.export", AuditEventCommand.SUCCESS,
+          "form_data", "all", displayFilename, "format=" + extension);
+    } catch (Exception e) {
+      LOG.error("Download CSV Error", e);
+      AuditEventCommand.record(context, AuditEventCommand.DATA_ACCESS, "data.export", AuditEventCommand.FAILURE,
+          "form_data", "all", displayFilename, "format=" + extension);
+    } finally {
+      if (tempFile.exists()) {
+        tempFile.delete();
+      }
+    }
+    context.setHandledResponse(true);
     return context;
   }
 }
