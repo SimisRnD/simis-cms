@@ -49,6 +49,8 @@ public class ItemSpecification {
   private boolean unapprovedOnly = false;
   private long datasetId = -1L;
   private Timestamp datasetSyncTimestampThreshold = null;
+  private Timestamp dateRangeStart = null;
+  private Timestamp dateRangeEnd = null;
 
   public ItemSpecification() {
   }
@@ -231,6 +233,22 @@ public class ItemSpecification {
 
   public void setDatasetSyncTimestampThreshold(Timestamp datasetSyncTimestampThreshold) {
     this.datasetSyncTimestampThreshold = datasetSyncTimestampThreshold;
+  }
+
+  public Timestamp getDateRangeStart() {
+    return dateRangeStart;
+  }
+
+  public void setDateRangeStart(Timestamp dateRangeStart) {
+    this.dateRangeStart = dateRangeStart;
+  }
+
+  public Timestamp getDateRangeEnd() {
+    return dateRangeEnd;
+  }
+
+  public void setDateRangeEnd(Timestamp dateRangeEnd) {
+    this.dateRangeEnd = dateRangeEnd;
   }
 
 }

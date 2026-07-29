@@ -16,39 +16,34 @@
 
 package com.simisinc.platform.presentation.widgets.admin;
 
-import com.simisinc.platform.application.admin.ProcessBlockListCSVFileCommand;
-import com.simisinc.platform.application.cms.DeleteBlockedIPListCommand;
+import com.simisinc.platform.application.admin.ProcessAllowListCSVFileCommand;
+import com.simisinc.platform.application.cms.DeleteAllowedIPListCommand;
 import com.simisinc.platform.application.filesystem.FileSystemCommand;
-import com.simisinc.platform.domain.model.BlockedIP;
+import com.simisinc.platform.domain.model.AllowedIP;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
-import com.simisinc.platform.infrastructure.persistence.BlockedIPRepository;
-import com.simisinc.platform.infrastructure.persistence.BlockedIPSpecification;
+import com.simisinc.platform.infrastructure.persistence.AllowedIPRepository;
 import com.simisinc.platform.presentation.controller.MultipartFileSender;
 import com.simisinc.platform.presentation.controller.RequestConstants;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
-import org.apache.commons.lang3.StringUtils;
 
 import java.io.File;
 import java.lang.reflect.InvocationTargetException;
-import java.net.URLEncoder;
-import java.nio.charset.StandardCharsets;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 
 /**
- * Description
+ * Manages the admin-facing, database-backed IP allow list
  *
- * @author matt rajkowski
- * @created 4/30/18 8:30 AM
+ * @author elizabeth houser
  */
-public class BlockedIPListWidget extends GenericWidget {
+public class AllowedIPListWidget extends GenericWidget {
 
-  static final long serialVersionUID = -8484048371911908893L;
+  static final long serialVersionUID = -8484048371911908894L;
 
-  static String JSP = "/admin/blocked-ip-list.jsp";
+  static String JSP = "/admin/allowed-ip-list.jsp";
 
   public WidgetContext execute(WidgetContext context) {
 
@@ -59,26 +54,10 @@ public class BlockedIPListWidget extends GenericWidget {
     DataConstraints constraints = new DataConstraints(page, itemsPerPage);
     context.getRequest().setAttribute(RequestConstants.RECORD_PAGING, constraints);
 
-    // Determine the search
-    String query = context.getParameter("query");
-    context.getRequest().setAttribute("query", query);
-
-    // Determine criteria
-    BlockedIPSpecification specification = new BlockedIPSpecification();
-    if (StringUtils.isNotBlank(query)) {
-      specification.setQuery(query);
-    }
-
     // Load the list
     constraints.setColumnToSortBy("created", "desc");
-    List<BlockedIP> blockedIPList = BlockedIPRepository.findAll(specification, constraints);
-    context.getRequest().setAttribute("blockedIPList", blockedIPList);
-
-    // Carry the search through pagination (paging_control.jspf appends this to each page link).
-    // URL-encoded so a free-text query cannot break the query string or the href.
-    StringBuilder pagingParams = new StringBuilder();
-    appendParam(pagingParams, "query", query);
-    context.getRequest().setAttribute("recordPagingParams", pagingParams.toString());
+    List<AllowedIP> allowedIPList = AllowedIPRepository.findAll(constraints);
+    context.getRequest().setAttribute("allowedIPList", allowedIPList);
 
     // Standard request items
     context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));
@@ -89,33 +68,23 @@ public class BlockedIPListWidget extends GenericWidget {
     return context;
   }
 
-  private void appendParam(StringBuilder sb, String name, String value) {
-    if (StringUtils.isBlank(value)) {
-      return;
-    }
-    if (sb.length() > 0) {
-      sb.append("&");
-    }
-    sb.append(name).append("=").append(URLEncoder.encode(value, StandardCharsets.UTF_8));
-  }
-
   public WidgetContext delete(WidgetContext context) {
     // Determine what's being deleted
-    long recordId = context.getParameterAsLong("blockedIPListId");
+    long recordId = context.getParameterAsLong("allowedIPListId");
     if (recordId > -1) {
-      BlockedIP blockedIP = BlockedIPRepository.findById(recordId);
-      // Capture the address before removal; removing a block un-blocks that IP (a security control change)
-      String targetLabel = blockedIP != null ? blockedIP.getIpAddress() : null;
+      AllowedIP allowedIP = AllowedIPRepository.findById(recordId);
+      // Capture the address before removal
+      String targetLabel = allowedIP != null ? allowedIP.getIpAddress() : null;
       try {
-        boolean removed = DeleteBlockedIPListCommand.delete(blockedIP);
-        AuditEventCommand.record(context, AuditEventCommand.CONFIGURATION, "blocked_ip.remove",
+        boolean removed = DeleteAllowedIPListCommand.delete(allowedIP);
+        AuditEventCommand.record(context, AuditEventCommand.CONFIGURATION, "allowed_ip.remove",
             removed ? AuditEventCommand.SUCCESS : AuditEventCommand.FAILURE,
-            "blocked_ip", String.valueOf(recordId), targetLabel, null);
+            "allowed_ip", String.valueOf(recordId), targetLabel, null);
         context.setSuccessMessage("Record deleted");
         return context;
       } catch (Exception e) {
-        AuditEventCommand.record(context, AuditEventCommand.CONFIGURATION, "blocked_ip.remove",
-            AuditEventCommand.FAILURE, "blocked_ip", String.valueOf(recordId), targetLabel, e.getMessage());
+        AuditEventCommand.record(context, AuditEventCommand.CONFIGURATION, "allowed_ip.remove",
+            AuditEventCommand.FAILURE, "allowed_ip", String.valueOf(recordId), targetLabel, e.getMessage());
         context.setErrorMessage("Error. Record could not be deleted.");
         return context;
       }
@@ -142,11 +111,11 @@ public class BlockedIPListWidget extends GenericWidget {
   private WidgetContext downloadCSVFile(WidgetContext context) {
     // Prepare to save the temporary file
     String extension = "csv";
-    String displayFilename = "blocked-ip-list-" + new SimpleDateFormat("yyyyMMdd-HHmm").format(new Date()) + "." + extension;
+    String displayFilename = "allowed-ip-list-" + new SimpleDateFormat("yyyyMMdd-HHmm").format(new Date()) + "." + extension;
     File tempFile = FileSystemCommand.generateTempFile("exports", context.getUserId(), extension);
     try {
       // Export the data to the file
-      BlockedIPRepository.export(null, tempFile);
+      AllowedIPRepository.export(null, tempFile);
       // Send it
       String mimeType = "text/csv";
       MultipartFileSender.fromFile(tempFile)
@@ -155,13 +124,13 @@ public class BlockedIPListWidget extends GenericWidget {
           .withMimeType(mimeType)
           .withFilename(displayFilename)
           .serveResource();
-      // Record the export of the security block list
+      // Record the export of the security allow list
       AuditEventCommand.record(context, AuditEventCommand.DATA_ACCESS, "data.export", AuditEventCommand.SUCCESS,
-          "blocked_ip_list", "all", displayFilename, "format=" + extension);
+          "allowed_ip_list", "all", displayFilename, "format=" + extension);
     } catch (Exception e) {
       LOG.error("Download CSV Error", e);
       AuditEventCommand.record(context, AuditEventCommand.DATA_ACCESS, "data.export", AuditEventCommand.FAILURE,
-          "blocked_ip_list", "all", displayFilename, "format=" + extension);
+          "allowed_ip_list", "all", displayFilename, "format=" + extension);
     } finally {
       if (tempFile.exists()) {
         LOG.warn("Deleting a temporary file: " + tempFile.getAbsolutePath());
@@ -173,15 +142,15 @@ public class BlockedIPListWidget extends GenericWidget {
   }
 
   private WidgetContext uploadCSVFileAction(WidgetContext context) {
-    LOG.info("User is uploading a CSV file...");
+    LOG.info("User is uploading an allow-list CSV file...");
     try {
-      int recordCount = ProcessBlockListCSVFileCommand.processCSV(context);
-      AuditEventCommand.record(context, AuditEventCommand.CONFIGURATION, "blocked_ip.import", AuditEventCommand.SUCCESS,
-          "blocked_ip", null, null, "records=" + recordCount);
+      int recordCount = ProcessAllowListCSVFileCommand.processCSV(context);
+      AuditEventCommand.record(context, AuditEventCommand.CONFIGURATION, "allowed_ip.import", AuditEventCommand.SUCCESS,
+          "allowed_ip", null, null, "records=" + recordCount);
       context.setSuccessMessage(recordCount + " record" + (recordCount != 1 ? "s" : "") + " added");
     } catch (Exception e) {
-      AuditEventCommand.record(context, AuditEventCommand.CONFIGURATION, "blocked_ip.import", AuditEventCommand.FAILURE,
-          "blocked_ip", null, null, e.getMessage());
+      AuditEventCommand.record(context, AuditEventCommand.CONFIGURATION, "allowed_ip.import", AuditEventCommand.FAILURE,
+          "allowed_ip", null, null, e.getMessage());
       context.setErrorMessage(e.getMessage());
     }
     return context;

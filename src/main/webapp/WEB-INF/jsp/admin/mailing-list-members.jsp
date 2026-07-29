@@ -59,6 +59,7 @@
       <th>Name</th>
       <th>Email</th>
       <th>Location</th>
+      <th width="120">IP Address</th>
       <th width="200">Added</th>
       <th width="100">Action</th>
     </tr>
@@ -77,6 +78,7 @@
         </c:if>
       </td>
       <td><small><c:out value="${geoip:location(email.ipAddress, '--')}"/></small></td>
+      <td><small><c:out value="${empty email.ipAddress ? '--' : email.ipAddress}" /></small></td>
       <td><fmt:formatDate pattern="yyyy-MM-dd hh:mm a" value="${email.created}" /></td>
       <td>
         <a href="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&mailingListId=${mailingList.id}&emailId=${email.id}" onclick="return confirm('Are you sure you want to remove <c:out value="${js:escape(email.email)}" />?');"><i class="fa fa-remove"></i></a>
@@ -85,7 +87,7 @@
     </c:forEach>
     <c:if test="${empty emailList}">
       <tr>
-        <td colspan="5">No members were found</td>
+        <td colspan="6">No members were found</td>
       </tr>
     </c:if>
   </tbody>

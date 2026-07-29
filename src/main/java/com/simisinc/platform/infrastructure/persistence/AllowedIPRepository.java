@@ -16,7 +16,7 @@
 
 package com.simisinc.platform.infrastructure.persistence;
 
-import com.simisinc.platform.domain.model.BlockedIP;
+import com.simisinc.platform.domain.model.AllowedIP;
 import com.simisinc.platform.infrastructure.database.*;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
@@ -29,82 +29,62 @@ import java.sql.SQLException;
 import java.util.List;
 
 /**
- * Persists and retrieves blocked IP objects
+ * Persists and retrieves allowed IP objects
  *
- * @author matt rajkowski
- * @created 3/25/20 10:10 AM
+ * @author elizabeth houser
  */
-public class BlockedIPRepository {
+public class AllowedIPRepository {
 
-  private static Log LOG = LogFactory.getLog(BlockedIPRepository.class);
+  private static Log LOG = LogFactory.getLog(AllowedIPRepository.class);
 
-  private static String TABLE_NAME = "block_list";
-  private static String[] PRIMARY_KEY = new String[]{"block_list_id"};
+  private static String TABLE_NAME = "allow_list";
+  private static String[] PRIMARY_KEY = new String[]{"allow_list_id"};
 
   private static DataResult query(DataConstraints constraints) {
-    return DB.selectAllFrom(TABLE_NAME, null, constraints, BlockedIPRepository::buildRecord);
+    return DB.selectAllFrom(TABLE_NAME, null, constraints, AllowedIPRepository::buildRecord);
   }
 
-  public static List<BlockedIP> findAll() {
+  public static List<AllowedIP> findAll() {
     return findAll(null);
   }
 
-  public static List<BlockedIP> findAll(DataConstraints constraints) {
+  public static List<AllowedIP> findAll(DataConstraints constraints) {
     if (constraints == null) {
       constraints = new DataConstraints();
     }
     constraints.setDefaultColumnToSortBy("created DESC");
     DataResult result = query(constraints);
-    return (List<BlockedIP>) result.getRecords();
+    return (List<AllowedIP>) result.getRecords();
   }
 
-  private static SqlUtils createWhereStatement(BlockedIPSpecification specification) {
-    SqlUtils where = new SqlUtils();
-    if (specification != null && StringUtils.isNotBlank(specification.getQuery())) {
-      String likeValue = "%" + specification.getQuery().toLowerCase() + "%";
-      where.add("(LOWER(ip_address) LIKE ? OR LOWER(reason) LIKE ?)", new String[]{likeValue, likeValue});
-    }
-    return where;
-  }
-
-  public static List<BlockedIP> findAll(BlockedIPSpecification specification, DataConstraints constraints) {
-    if (constraints == null) {
-      constraints = new DataConstraints();
-    }
-    constraints.setDefaultColumnToSortBy("created DESC");
-    SqlUtils where = createWhereStatement(specification);
-    DataResult result = DB.selectAllFrom(TABLE_NAME, where, constraints, BlockedIPRepository::buildRecord);
-    return (List<BlockedIP>) result.getRecords();
-  }
-
-  public static BlockedIP findById(long id) {
+  public static AllowedIP findById(long id) {
     if (id == -1) {
       return null;
     }
-    return (BlockedIP) DB.selectRecordFrom(
+    return (AllowedIP) DB.selectRecordFrom(
         TABLE_NAME,
-        new SqlUtils().add("block_list_id = ?", id),
-        BlockedIPRepository::buildRecord);
+        new SqlUtils().add("allow_list_id = ?", id),
+        AllowedIPRepository::buildRecord);
   }
 
-  public static BlockedIP findByIpAddress(String ipAddress) {
+  public static AllowedIP findByIpAddress(String ipAddress) {
     if (StringUtils.isBlank(ipAddress)) {
       return null;
     }
-    return (BlockedIP) DB.selectRecordFrom(
+    return (AllowedIP) DB.selectRecordFrom(
         TABLE_NAME,
         new SqlUtils().add("ip_address = ?", ipAddress),
-        BlockedIPRepository::buildRecord);
+        AllowedIPRepository::buildRecord);
   }
 
-  public static BlockedIP save(BlockedIP record) {
+  public static AllowedIP save(AllowedIP record) {
     if (record.getId() > -1) {
       return update(record);
     }
     return add(record);
   }
 
-  public static BlockedIP add(BlockedIP record) {
+  public static AllowedIP add(AllowedIP record) {
     SqlUtils insertValues = new SqlUtils()
         .add("ip_address", StringUtils.trimToNull(record.getIpAddress()))
         .addIfExists("reason", StringUtils.trimToNull(record.getReason()))
@@ -117,32 +97,25 @@ public class BlockedIPRepository {
     return record;
   }
 
-  public static BlockedIP update(BlockedIP record) {
+  public static AllowedIP update(AllowedIP record) {
     SqlUtils updateValues = new SqlUtils()
         .add("ip_address", StringUtils.trimToNull(record.getIpAddress()))
         .addIfExists("reason", StringUtils.trimToNull(record.getReason()));
     SqlUtils where = new SqlUtils()
-        .add("block_list_id = ?", record.getId());
+        .add("allow_list_id = ?", record.getId());
     if (DB.update(TABLE_NAME, updateValues, where)) {
-//      CacheManager.invalidateKey(CacheManager.CONTENT_UNIQUE_ID_CACHE, record.getUniqueId());
       return record;
     }
     LOG.error("The update failed!");
     return null;
   }
 
-  public static boolean remove(BlockedIP record) {
+  public static boolean remove(AllowedIP record) {
     try {
       try (Connection connection = DB.getConnection();
            AutoStartTransaction a = new AutoStartTransaction(connection);
            AutoRollback transaction = new AutoRollback(connection)) {
-        // Delete the references
-//        ItemCategoryRepository.removeAll(connection, record);
-//        CollectionRepository.updateItemCount(connection, record.getCollectionId(), -1);
-//        CategoryRepository.updateItemCount(connection, record.getCategoryId(), -1);
-        // Delete the record
-        DB.deleteFrom(connection, TABLE_NAME, new SqlUtils().add("block_list_id = ?", record.getId()));
-        // Finish transaction
+        DB.deleteFrom(connection, TABLE_NAME, new SqlUtils().add("allow_list_id = ?", record.getId()));
         transaction.commit();
         return true;
       }
@@ -152,10 +125,10 @@ public class BlockedIPRepository {
     return false;
   }
 
-  private static BlockedIP buildRecord(ResultSet rs) {
+  private static AllowedIP buildRecord(ResultSet rs) {
     try {
-      BlockedIP record = new BlockedIP();
-      record.setId(rs.getLong("block_list_id"));
+      AllowedIP record = new AllowedIP();
+      record.setId(rs.getLong("allow_list_id"));
       record.setIpAddress(rs.getString("ip_address"));
       record.setCreated(rs.getTimestamp("created"));
       record.setReason(rs.getString("reason"));
@@ -173,11 +146,10 @@ public class BlockedIPRepository {
             "created AS \"Date\"",
             "reason AS \"Reason\""
         );
-    // Use the specification to filter results
     if (constraints == null) {
       constraints = new DataConstraints();
     }
-    constraints.setDefaultColumnToSortBy("block_list_id");
+    constraints.setDefaultColumnToSortBy("allow_list_id");
     DB.exportToCsvAllFrom(TABLE_NAME, selectFields, null, null, null, constraints, file);
   }
 }
