@@ -393,6 +393,8 @@ class SitemapServletTest {
     String body = runDoGetWithBlogAndWiki(new ArrayList<>(), new HashMap<>(), pages, wikiById);
 
     assertFalse(body.contains("internal-only"), "pages in a disabled wiki must not appear in the sitemap: " + body);
+  }
+
   private HttpServletResponse runDoGetForResponse(Map<String, String> properties, List<WebPage> webPageList,
       List<Item> itemList, HttpServletRequest request) throws Exception {
     HttpServletResponse response = mock(HttpServletResponse.class);

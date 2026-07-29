@@ -105,10 +105,13 @@ public class SitemapServlet extends HttpServlet {
       xml.append("    <priority>1.0</priority>\n");
       xml.append("  </url>\n");
 
-      // Add published web pages and items (products/catalog entries), tracking the most recent
-      // modification across all of them for the Last-Modified/If-Modified-Since check below
+      // Add published web pages, items (products/catalog entries), blog posts, and wiki pages,
+      // tracking the most recent modification across all of them for the
+      // Last-Modified/If-Modified-Since check below
       long mostRecentTimestamp = addWebPagesToSitemap(xml, siteUrl);
       mostRecentTimestamp = Math.max(mostRecentTimestamp, addItemsToSitemap(xml, siteUrl));
+      mostRecentTimestamp = Math.max(mostRecentTimestamp, addBlogPostsToSitemap(xml, siteUrl));
+      mostRecentTimestamp = Math.max(mostRecentTimestamp, addWikiPagesToSitemap(xml, siteUrl));
 
       xml.append("</urlset>");
       String content = xml.toString();
@@ -130,13 +133,6 @@ public class SitemapServlet extends HttpServlet {
         return;
       }
 
-      // Add published blog posts
-      addBlogPostsToSitemap(writer, siteUrl);
-
-      // Add wiki pages (from enabled wikis)
-      addWikiPagesToSitemap(writer, siteUrl);
-
-      writer.println("</urlset>");
       response.setStatus(HttpServletResponse.SC_OK);
       if (gzipSupported(request)) {
         byte[] gzipped = gzip(content);
@@ -262,13 +258,16 @@ public class SitemapServlet extends HttpServlet {
   }
 
   /**
-   * Adds each published blog post's &lt;url&gt; entry. Mirrors BlogPostSearchResultsWidget's own
-   * definition of "publicly findable" (setPublishedOnly(true) -- published IS NOT NULL) so the
-   * sitemap never disagrees with the app's own search results about what's public. No
-   * &lt;changefreq&gt;/&lt;priority&gt; is emitted since, unlike WebPage, BlogPost has no
-   * per-post override for either -- inventing a value here would be a guess, not real data.
+   * Appends each published blog post's &lt;url&gt; entry and returns the latest modified
+   * timestamp among them (0 if there are none), for the caller's Last-Modified calculation.
+   * Mirrors BlogPostSearchResultsWidget's own definition of "publicly findable"
+   * (setPublishedOnly(true) -- published IS NOT NULL) so the sitemap never disagrees with the
+   * app's own search results about what's public. No &lt;changefreq&gt;/&lt;priority&gt; is
+   * emitted since, unlike WebPage, BlogPost has no per-post override for either -- inventing a
+   * value here would be a guess, not real data.
    */
-  private void addBlogPostsToSitemap(PrintWriter writer, String siteUrl) {
+  private long addBlogPostsToSitemap(StringBuilder xml, String siteUrl) {
+    long mostRecentTimestamp = 0L;
     try {
       BlogPostSpecification spec = new BlogPostSpecification();
       spec.setPublishedOnly(true);
@@ -286,26 +285,31 @@ public class SitemapServlet extends HttpServlet {
           if (blog == null) {
             continue;
           }
-          writer.println("  <url>");
-          writer.println("    <loc>" + escapeXml(siteUrl + "/" + blog.getUniqueId() + "/" + post.getUniqueId()) + "</loc>");
+          xml.append("  <url>\n");
+          xml.append("    <loc>").append(escapeXml(siteUrl + "/" + blog.getUniqueId() + "/" + post.getUniqueId())).append("</loc>\n");
           if (post.getModified() != null) {
-            writer.println("    <lastmod>" + formatDate(post.getModified()) + "</lastmod>");
+            xml.append("    <lastmod>").append(formatDate(post.getModified())).append("</lastmod>\n");
+            mostRecentTimestamp = Math.max(mostRecentTimestamp, post.getModified().getTime());
           }
-          writer.println("  </url>");
+          xml.append("  </url>\n");
         }
       }
     } catch (Exception e) {
       LOG.warn("Error adding blog posts to sitemap: " + e.getMessage());
     }
+    return mostRecentTimestamp;
   }
 
   /**
-   * Adds each wiki page's &lt;url&gt; entry, for pages belonging to an enabled wiki. Wiki pages
-   * have no draft/published concept of their own (see WikiPage/WikiPageSpecification) -- the
-   * parent Wiki's enabled flag is the only visibility signal that exists, so it's the only one
-   * enforced here, matching what WikiSearchResultsWidget itself checks.
+   * Appends each wiki page's &lt;url&gt; entry, for pages belonging to an enabled wiki, and
+   * returns the latest modified timestamp among them (0 if there are none), for the caller's
+   * Last-Modified calculation. Wiki pages have no draft/published concept of their own (see
+   * WikiPage/WikiPageSpecification) -- the parent Wiki's enabled flag is the only visibility
+   * signal that exists, so it's the only one enforced here, matching what WikiSearchResultsWidget
+   * itself checks.
    */
-  private void addWikiPagesToSitemap(PrintWriter writer, String siteUrl) {
+  private long addWikiPagesToSitemap(StringBuilder xml, String siteUrl) {
+    long mostRecentTimestamp = 0L;
     try {
       List<WikiPage> pages = WikiPageRepository.findAll(new WikiPageSpecification(), null);
 
@@ -319,17 +323,19 @@ public class SitemapServlet extends HttpServlet {
           if (wiki == null || !wiki.getEnabled()) {
             continue;
           }
-          writer.println("  <url>");
-          writer.println("    <loc>" + escapeXml(siteUrl + "/" + wiki.getUniqueId() + "/" + page.getUniqueId()) + "</loc>");
+          xml.append("  <url>\n");
+          xml.append("    <loc>").append(escapeXml(siteUrl + "/" + wiki.getUniqueId() + "/" + page.getUniqueId())).append("</loc>\n");
           if (page.getModified() != null) {
-            writer.println("    <lastmod>" + formatDate(page.getModified()) + "</lastmod>");
+            xml.append("    <lastmod>").append(formatDate(page.getModified())).append("</lastmod>\n");
+            mostRecentTimestamp = Math.max(mostRecentTimestamp, page.getModified().getTime());
           }
-          writer.println("  </url>");
+          xml.append("  </url>\n");
         }
       }
     } catch (Exception e) {
       LOG.warn("Error adding wiki pages to sitemap: " + e.getMessage());
     }
+    return mostRecentTimestamp;
   }
 
   /**
