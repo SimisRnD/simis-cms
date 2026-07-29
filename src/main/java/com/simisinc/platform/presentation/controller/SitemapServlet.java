@@ -34,6 +34,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
@@ -43,6 +45,12 @@ import java.util.Map;
 public class SitemapServlet extends HttpServlet {
 
   private static final Log LOG = LogFactory.getLog(SitemapServlet.class);
+
+  // The sitemap protocol's own documented default -- omitted from output (see formatPriority)
+  // rather than emitted, both because stating it explicitly is redundant and because it lets a
+  // genuinely-unset priority (which now reads back as this same value, see WebPage's field default)
+  // render identically to an explicit admin choice of 0.5
+  private static final BigDecimal DEFAULT_PRIORITY = new BigDecimal("0.5");
 
   protected void doGet(HttpServletRequest request, HttpServletResponse response)
       throws ServletException, IOException {
@@ -58,6 +66,18 @@ public class SitemapServlet extends HttpServlet {
         response.setStatus(HttpServletResponse.SC_NOT_FOUND);
         response.getWriter().print("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
         response.getWriter().print("<!-- Site URL not configured -->\n");
+        return;
+      }
+
+      // Same "not yet public" gate PageServlet uses for anonymous visitors -- a site an admin
+      // hasn't taken online shouldn't be discoverable via its sitemap either
+      if (!"true".equals(sitePropertyMap.getOrDefault("site.online", "false"))) {
+        response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+        return;
+      }
+
+      if (!"true".equals(sitePropertyMap.getOrDefault("site.sitemap.xml", "false"))) {
+        response.setStatus(HttpServletResponse.SC_NOT_FOUND);
         return;
       }
 
@@ -94,6 +114,7 @@ public class SitemapServlet extends HttpServlet {
       WebPageSpecification spec = new WebPageSpecification();
       spec.setEnabled(1);
       spec.setDraft(0);
+      spec.setInSitemap(true);
       List<WebPage> pages = WebPageRepository.findAll(spec, null);
 
       if (pages != null) {
@@ -105,8 +126,13 @@ public class SitemapServlet extends HttpServlet {
             if (page.getModified() != null) {
               writer.println("    <lastmod>" + formatDate(page.getModified()) + "</lastmod>");
             }
-            writer.println("    <changefreq>weekly</changefreq>");
-            writer.println("    <priority>0.8</priority>");
+            if (StringUtils.isNotBlank(page.getSitemapChangeFrequency())) {
+              writer.println("    <changefreq>" + escapeXml(page.getSitemapChangeFrequency()) + "</changefreq>");
+            }
+            String priority = formatPriority(page.getSitemapPriority());
+            if (priority != null) {
+              writer.println("    <priority>" + priority + "</priority>");
+            }
             writer.println("  </url>");
           }
         }
@@ -125,7 +151,7 @@ public class SitemapServlet extends HttpServlet {
       if (items != null) {
         for (Item item : items) {
           if (item != null && item.getId() != null && StringUtils.isNotBlank(item.getUniqueId())) {
-            String itemLink = "/item/" + item.getUniqueId();
+            String itemLink = "/show/" + item.getUniqueId();
             writer.println("  <url>");
             writer.println("    <loc>" + escapeXml(siteUrl + itemLink) + "</loc>");
 
@@ -141,6 +167,25 @@ public class SitemapServlet extends HttpServlet {
     } catch (Exception e) {
       LOG.warn("Error adding items to sitemap: " + e.getMessage());
     }
+  }
+
+  /**
+   * Returns the priority formatted to one decimal place, or null when it should be omitted from
+   * the output entirely -- either because it's genuinely unset, because it's the sitemap
+   * protocol's own documented default of 0.5 (redundant to state explicitly), or because it's
+   * exactly 0. WebPage's sitemapPriority field used to default to a bare `new BigDecimal(0)`
+   * instead of the intended 0.5, so any page saved before that default was fixed has 0 stored even
+   * though no admin ever deliberately chose the sitemap's lowest possible priority for their page.
+   * Treating a stored 0 the same as "unset" for rendering avoids a data migration that couldn't
+   * reliably tell that apart from a genuine (if unlikely) admin choice of exactly 0.0.
+   */
+  static String formatPriority(BigDecimal priority) {
+    if (priority == null
+        || priority.compareTo(BigDecimal.ZERO) == 0
+        || priority.compareTo(DEFAULT_PRIORITY) == 0) {
+      return null;
+    }
+    return priority.setScale(1, RoundingMode.HALF_UP).toPlainString();
   }
 
   private String formatDate(Date date) {
