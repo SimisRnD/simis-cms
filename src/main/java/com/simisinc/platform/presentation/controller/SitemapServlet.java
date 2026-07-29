@@ -23,6 +23,7 @@ import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageSpecification;
 import com.simisinc.platform.infrastructure.persistence.items.ItemRepository;
 import com.simisinc.platform.infrastructure.persistence.items.ItemSpecification;
+import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -32,14 +33,16 @@ import jakarta.servlet.annotation.WebServlet;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.PrintWriter;
+import java.io.OutputStream;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.zip.GZIPOutputStream;
 
 @WebServlet(name = "SitemapServlet", urlPatterns = {"/sitemap.xml"})
 public class SitemapServlet extends HttpServlet {
@@ -56,7 +59,6 @@ public class SitemapServlet extends HttpServlet {
       throws ServletException, IOException {
 
     response.setContentType("application/xml;charset=UTF-8");
-    response.setHeader("Cache-Control", "public, max-age=3600");
 
     try {
       Map<String, String> sitePropertyMap = LoadSitePropertyCommand.loadAsMap("site");
@@ -81,26 +83,53 @@ public class SitemapServlet extends HttpServlet {
         return;
       }
 
-      response.setStatus(HttpServletResponse.SC_OK);
-      PrintWriter writer = response.getWriter();
-
-      writer.println("<?xml version=\"1.0\" encoding=\"UTF-8\"?>");
-      writer.println("<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">");
+      StringBuilder xml = new StringBuilder();
+      xml.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+      xml.append("<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n");
 
       // Add homepage
-      writer.println("  <url>");
-      writer.println("    <loc>" + escapeXml(siteUrl) + "/</loc>");
-      writer.println("    <changefreq>daily</changefreq>");
-      writer.println("    <priority>1.0</priority>");
-      writer.println("  </url>");
+      xml.append("  <url>\n");
+      xml.append("    <loc>").append(escapeXml(siteUrl)).append("/</loc>\n");
+      xml.append("    <changefreq>daily</changefreq>\n");
+      xml.append("    <priority>1.0</priority>\n");
+      xml.append("  </url>\n");
 
-      // Add published web pages
-      addWebPagesToSitemap(writer, siteUrl);
+      // Add published web pages and items (products/catalog entries), tracking the most recent
+      // modification across all of them for the Last-Modified/If-Modified-Since check below
+      long mostRecentTimestamp = addWebPagesToSitemap(xml, siteUrl);
+      mostRecentTimestamp = Math.max(mostRecentTimestamp, addItemsToSitemap(xml, siteUrl));
 
-      // Add published items (products/catalog entries)
-      addItemsToSitemap(writer, siteUrl);
+      xml.append("</urlset>");
+      String content = xml.toString();
 
-      writer.println("</urlset>");
+      // Conditional-request support (issue #619): a sitemap is re-fetched periodically by
+      // crawlers, almost always unchanged -- avoid resending the full body (and, via
+      // If-Modified-Since, avoid even the DB queries above on a future request a reverse proxy
+      // short-circuits) when nothing has changed since the client's last fetch. Per RFC 7232
+      // section 3.3, If-None-Match takes precedence over If-Modified-Since when both are present.
+      String etag = "\"" + DigestUtils.md5Hex(content) + "\"";
+      response.setHeader("ETag", etag);
+      if (mostRecentTimestamp > 0) {
+        response.setDateHeader("Last-Modified", mostRecentTimestamp);
+      }
+      response.setHeader("Cache-Control", "public, max-age=3600");
+
+      if (isNotModified(request, mostRecentTimestamp, etag)) {
+        response.setStatus(HttpServletResponse.SC_NOT_MODIFIED);
+        return;
+      }
+
+      response.setStatus(HttpServletResponse.SC_OK);
+      if (gzipSupported(request)) {
+        byte[] gzipped = gzip(content);
+        response.setHeader("Content-Encoding", "gzip");
+        response.setContentLength(gzipped.length);
+        try (OutputStream os = response.getOutputStream()) {
+          os.write(gzipped);
+        }
+      } else {
+        response.getWriter().print(content);
+      }
     } catch (Exception e) {
       LOG.error("Error generating sitemap.xml: " + e.getMessage(), e);
       response.setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
@@ -109,7 +138,43 @@ public class SitemapServlet extends HttpServlet {
     }
   }
 
-  private void addWebPagesToSitemap(PrintWriter writer, String siteUrl) {
+  /**
+   * True when the request's conditional headers show the client's cached copy is still current.
+   * If-None-Match is authoritative when present (RFC 7232 section 3.3); otherwise falls back to
+   * If-Modified-Since, rounded up a second since HTTP dates truncate sub-second precision.
+   */
+  private boolean isNotModified(HttpServletRequest request, long mostRecentTimestamp, String etag) {
+    String ifNoneMatch = request.getHeader("If-None-Match");
+    if (StringUtils.isNotBlank(ifNoneMatch)) {
+      return "*".equals(ifNoneMatch) || ifNoneMatch.contains(etag);
+    }
+    if (mostRecentTimestamp > 0) {
+      long ifModifiedSince = request.getDateHeader("If-Modified-Since");
+      return ifModifiedSince >= 0 && mostRecentTimestamp <= ifModifiedSince + 1000;
+    }
+    return false;
+  }
+
+  private boolean gzipSupported(HttpServletRequest request) {
+    String acceptEncoding = request.getHeader("Accept-Encoding");
+    return acceptEncoding != null && acceptEncoding.contains("gzip");
+  }
+
+  private byte[] gzip(String text) throws IOException {
+    ByteArrayOutputStream bos = new ByteArrayOutputStream();
+    try (GZIPOutputStream gzipStream = new GZIPOutputStream(bos)) {
+      gzipStream.write(text.getBytes("UTF-8"));
+      gzipStream.flush();
+    }
+    return bos.toByteArray();
+  }
+
+  /**
+   * Appends each published web page's &lt;url&gt; entry and returns the latest modified
+   * timestamp among them (0 if there are none), for the caller's Last-Modified calculation.
+   */
+  private long addWebPagesToSitemap(StringBuilder xml, String siteUrl) {
+    long mostRecentTimestamp = 0L;
     try {
       WebPageSpecification spec = new WebPageSpecification();
       spec.setEnabled(1);
@@ -120,29 +185,36 @@ public class SitemapServlet extends HttpServlet {
       if (pages != null) {
         for (WebPage page : pages) {
           if (page != null && StringUtils.isNotBlank(page.getLink())) {
-            writer.println("  <url>");
-            writer.println("    <loc>" + escapeXml(siteUrl + page.getLink()) + "</loc>");
+            xml.append("  <url>\n");
+            xml.append("    <loc>").append(escapeXml(siteUrl + page.getLink())).append("</loc>\n");
 
             if (page.getModified() != null) {
-              writer.println("    <lastmod>" + formatDate(page.getModified()) + "</lastmod>");
+              xml.append("    <lastmod>").append(formatDate(page.getModified())).append("</lastmod>\n");
+              mostRecentTimestamp = Math.max(mostRecentTimestamp, page.getModified().getTime());
             }
             if (StringUtils.isNotBlank(page.getSitemapChangeFrequency())) {
-              writer.println("    <changefreq>" + escapeXml(page.getSitemapChangeFrequency()) + "</changefreq>");
+              xml.append("    <changefreq>").append(escapeXml(page.getSitemapChangeFrequency())).append("</changefreq>\n");
             }
             String priority = formatPriority(page.getSitemapPriority());
             if (priority != null) {
-              writer.println("    <priority>" + priority + "</priority>");
+              xml.append("    <priority>").append(priority).append("</priority>\n");
             }
-            writer.println("  </url>");
+            xml.append("  </url>\n");
           }
         }
       }
     } catch (Exception e) {
       LOG.warn("Error adding web pages to sitemap: " + e.getMessage());
     }
+    return mostRecentTimestamp;
   }
 
-  private void addItemsToSitemap(PrintWriter writer, String siteUrl) {
+  /**
+   * Appends each published item's &lt;url&gt; entry and returns the latest modified timestamp
+   * among them (0 if there are none), for the caller's Last-Modified calculation.
+   */
+  private long addItemsToSitemap(StringBuilder xml, String siteUrl) {
+    long mostRecentTimestamp = 0L;
     try {
       ItemSpecification spec = new ItemSpecification();
       spec.setApprovedOnly(true);
@@ -152,21 +224,23 @@ public class SitemapServlet extends HttpServlet {
         for (Item item : items) {
           if (item != null && item.getId() != null && StringUtils.isNotBlank(item.getUniqueId())) {
             String itemLink = "/show/" + item.getUniqueId();
-            writer.println("  <url>");
-            writer.println("    <loc>" + escapeXml(siteUrl + itemLink) + "</loc>");
+            xml.append("  <url>\n");
+            xml.append("    <loc>").append(escapeXml(siteUrl + itemLink)).append("</loc>\n");
 
             if (item.getModified() != null) {
-              writer.println("    <lastmod>" + formatDate(item.getModified()) + "</lastmod>");
+              xml.append("    <lastmod>").append(formatDate(item.getModified())).append("</lastmod>\n");
+              mostRecentTimestamp = Math.max(mostRecentTimestamp, item.getModified().getTime());
             }
-            writer.println("    <changefreq>monthly</changefreq>");
-            writer.println("    <priority>0.6</priority>");
-            writer.println("  </url>");
+            xml.append("    <changefreq>monthly</changefreq>\n");
+            xml.append("    <priority>0.6</priority>\n");
+            xml.append("  </url>\n");
           }
         }
       }
     } catch (Exception e) {
       LOG.warn("Error adding items to sitemap: " + e.getMessage());
     }
+    return mostRecentTimestamp;
   }
 
   /**
