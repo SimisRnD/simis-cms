@@ -50,7 +50,13 @@ public class WebPage extends Entity {
   private boolean searchable = true;
   private boolean showInSitemap = true;
   private String sitemapChangeFrequency = null;
-  private BigDecimal sitemapPriority = new BigDecimal(0);
+  // sitemapPriority is the same bug in a field the 726dfe3d fix above didn't cover (it only
+  // audited booleans): the column declares DEFAULT 0.5, but every save path writes this field
+  // explicitly, so a brand-new page's first save got the Java default -- 0, not 0.5, the sitemap's
+  // documented "unset" priority -- with no admin ever having deliberately chosen it. SitemapServlet
+  // treats a stored 0 the same as "unset" for the same reason: fixing the default here only helps
+  // pages saved after this fix, not ones that already have 0 stored.
+  private BigDecimal sitemapPriority = new BigDecimal("0.5");
   //  private boolean showPageHeader = false;
   //  private boolean showPageFooter = false;
   //  private long popupId = -1;
