@@ -50,6 +50,7 @@ public class WidgetContext implements Serializable {
   private boolean embedded = false;
 
   private String pageTitle = null;
+  private boolean pageTitleComposed = false;
   private String pageDescription = null;
   private String pageKeywords = null;
 
@@ -159,6 +160,17 @@ public class WidgetContext implements Serializable {
 
   public void setPageTitle(String pageTitle) {
     this.pageTitle = pageTitle;
+  }
+
+  // Use when pageTitle already includes its own section/suffix context (e.g. a blog name) so
+  // the container knows not to append the WebPage's own title on top of it
+  public void setComposedPageTitle(String pageTitle) {
+    this.pageTitle = pageTitle;
+    this.pageTitleComposed = true;
+  }
+
+  public boolean isPageTitleComposed() {
+    return pageTitleComposed;
   }
 
   public String getPageDescription() {
