@@ -95,18 +95,32 @@
     <c:when test="${!empty masterWebPage.description}"><meta name="description" content="<c:out value="${masterWebPage.description}"/>"></c:when>
     <c:otherwise><meta name="description" content="<c:out value="${sitePropertyMap['site.description']}"/>"></c:otherwise>
   </c:choose>
-  <%-- Open Graph metadata for social sharing (issue #402) --%>
+  <%-- Open Graph + Twitter Card metadata (issue #402). Title/description use the same
+       widget-provided -> web page -> site-default cascade as the <title>/description tags above,
+       instead of only checking pageRenderInfo directly -- otherwise any page without a widget that
+       explicitly sets a page title/description (i.e. most pages that aren't a blog post or similar)
+       got no og:title/og:description at all, even though the primary tags rendered fine. --%>
+  <c:choose>
+    <c:when test="${!empty pageRenderInfo.title}"><c:set var="socialTitle" value="${pageRenderInfo.title}"/></c:when>
+    <c:when test="${!empty masterWebPage.title}"><c:set var="socialTitle" value="${masterWebPage.title}"/></c:when>
+    <c:otherwise><c:set var="socialTitle" value="${sitePropertyMap['site.name']}"/></c:otherwise>
+  </c:choose>
+  <c:choose>
+    <c:when test="${!empty pageRenderInfo.description}"><c:set var="socialDescription" value="${pageRenderInfo.description}"/></c:when>
+    <c:when test="${!empty masterWebPage.description}"><c:set var="socialDescription" value="${masterWebPage.description}"/></c:when>
+    <c:otherwise><c:set var="socialDescription" value="${sitePropertyMap['site.description']}"/></c:otherwise>
+  </c:choose>
   <c:if test="${!empty pageRenderInfo.pageType}">
     <meta name="og:type" content="<c:out value="${pageRenderInfo.pageType}"/>" />
   </c:if>
   <c:if test="${!empty pageRenderInfo.pageUrl}">
     <meta name="og:url" content="<c:out value="${pageRenderInfo.pageUrl}"/>" />
   </c:if>
-  <c:if test="${!empty pageRenderInfo.title}">
-    <meta name="og:title" content="<c:out value="${pageRenderInfo.title}"/>" />
+  <c:if test="${!empty socialTitle}">
+    <meta name="og:title" content="<c:out value="${socialTitle}"/>" />
   </c:if>
-  <c:if test="${!empty pageRenderInfo.description}">
-    <meta name="og:description" content="<c:out value="${pageRenderInfo.description}"/>" />
+  <c:if test="${!empty socialDescription}">
+    <meta name="og:description" content="<c:out value="${socialDescription}"/>" />
   </c:if>
   <c:choose>
     <c:when test="${!empty pageRenderInfo.imageUrl && fn:startsWith(pageRenderInfo.imageUrl, '/')}">
@@ -119,13 +133,12 @@
   <c:if test="${!empty sitePropertyMap['site.name']}">
     <meta name="og:site_name" content="<c:out value="${sitePropertyMap['site.name']}" />" />
   </c:if>
-  <%-- Twitter Card metadata (issue #402) --%>
   <meta name="twitter:card" content="summary_large_image" />
-  <c:if test="${!empty pageRenderInfo.title}">
-    <meta name="twitter:title" content="<c:out value="${pageRenderInfo.title}"/>" />
+  <c:if test="${!empty socialTitle}">
+    <meta name="twitter:title" content="<c:out value="${socialTitle}"/>" />
   </c:if>
-  <c:if test="${!empty pageRenderInfo.description}">
-    <meta name="twitter:description" content="<c:out value="${pageRenderInfo.description}"/>" />
+  <c:if test="${!empty socialDescription}">
+    <meta name="twitter:description" content="<c:out value="${socialDescription}"/>" />
   </c:if>
   <c:choose>
     <c:when test="${!empty pageRenderInfo.imageUrl && fn:startsWith(pageRenderInfo.imageUrl, '/')}">
@@ -489,6 +502,7 @@
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/social')}"> class="is-active"</c:if>><a href="${ctx}/admin/social-media-settings"><i class="${font:far()} fa-thumbs-up fa-fw"></i> <span>Social Media</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/configure-analytics')}"> class="is-active"</c:if>><a href="${ctx}/admin/configure-analytics"><i class="${font:far()} fa-chart-line fa-fw"></i> <span>Analytics Settings</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/captcha')}"> class="is-active"</c:if>><a href="${ctx}/admin/captcha-properties"><i class="${font:far()} fa-key fa-fw"></i> <span>Captcha Settings</span></a></li>
+              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/robots')}"> class="is-active"</c:if>><a href="${ctx}/admin/robots-properties"><i class="${font:far()} fa-robot fa-fw"></i> <span>Robots &amp; Crawlers</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/bi')}"> class="is-active"</c:if>><a href="${ctx}/admin/bi-properties"><i class="${font:far()} fa-table-columns fa-fw"></i> <span>BI Settings</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/ecommerce')}"> class="is-active"</c:if>><a href="${ctx}/admin/ecommerce-properties"><i class="${font:far()} fa-shopping-cart fa-fw"></i> <span>E-commerce Settings</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/elearning')}"> class="is-active"</c:if>><a href="${ctx}/admin/elearning-properties"><i class="${font:far()} fa-chalkboard-teacher fa-fw"></i> <span>E-learning Settings</span></a></li>

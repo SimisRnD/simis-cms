@@ -825,20 +825,9 @@ public class PageServlet extends HttpServlet {
 
       // Set canonical URL for SEO (issue #401)
       String siteUrl = (String) sitePropertyMap.get("site.url");
-      if (StringUtils.isNotBlank(siteUrl)) {
-        String canonicalUrl = null;
-        if (thisItem != null) {
-          canonicalUrl = siteUrl + "/items/" + thisCollection.getUniqueId() + "/" + thisItem.getUniqueId();
-        } else if (thisCollection != null) {
-          canonicalUrl = siteUrl + "/items/" + thisCollection.getUniqueId();
-        } else if (webPage != null && StringUtils.isNotBlank(webPage.getLink())) {
-          canonicalUrl = siteUrl + webPage.getLink();
-        } else if (StringUtils.isNotBlank(pagePath) && !pagePath.equals("/")) {
-          canonicalUrl = siteUrl + pagePath;
-        }
-        if (StringUtils.isNotBlank(canonicalUrl)) {
-          pageRenderInfo.setCanonicalUrl(canonicalUrl);
-        }
+      String canonicalUrl = computeCanonicalUrl(siteUrl, pagePath, webPage, thisItem, thisCollection);
+      if (StringUtils.isNotBlank(canonicalUrl)) {
+        pageRenderInfo.setCanonicalUrl(canonicalUrl);
       }
 
       // Set Open Graph metadata for social sharing (issue #402)
@@ -1130,6 +1119,31 @@ public class PageServlet extends HttpServlet {
       return null;
     }
     return json.replace("<", "\\u003c").replace(">", "\\u003e").replace("&", "\\u0026");
+  }
+
+  /**
+   * Computes the canonical URL for a page response (issue #401), or null when there's nothing to
+   * canonicalize (blank site.url, or no page-identity source matched). pagePath is always safe to
+   * append as-is: it comes from request.getRequestURI(), which never carries the query string, so
+   * this can't reflect attacker-controlled query parameters into the tag.
+   */
+  static String computeCanonicalUrl(String siteUrl, String pagePath, WebPage webPage, Item item, Collection collection) {
+    if (StringUtils.isBlank(siteUrl)) {
+      return null;
+    }
+    if (item != null && collection != null) {
+      return siteUrl + "/items/" + collection.getUniqueId() + "/" + item.getUniqueId();
+    }
+    if (collection != null) {
+      return siteUrl + "/items/" + collection.getUniqueId();
+    }
+    if (webPage != null && StringUtils.isNotBlank(webPage.getLink())) {
+      return siteUrl + webPage.getLink();
+    }
+    if (StringUtils.isNotBlank(pagePath)) {
+      return siteUrl + pagePath;
+    }
+    return null;
   }
 
   /**
