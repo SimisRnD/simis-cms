@@ -21,9 +21,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.mockStatic;
 
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -33,10 +35,11 @@ import org.mockito.MockedStatic;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.simisinc.platform.application.cms.LoadWebPageCommand;
+import com.simisinc.platform.domain.model.SocialMediaLink;
 import com.simisinc.platform.domain.model.cms.WebPage;
 import com.simisinc.platform.domain.model.items.Collection;
 import com.simisinc.platform.domain.model.items.Item;
+import com.simisinc.platform.infrastructure.persistence.SocialMediaLinkRepository;
 
 /**
  * The JSON-LD block is rendered into main.jsp with
@@ -84,9 +87,9 @@ class PageServletTest {
     item.setDescription("Also \"quoted\" and <b>bold</b>");
 
     String jsonLd;
-    try (MockedStatic<LoadWebPageCommand> webPages = mockStatic(LoadWebPageCommand.class)) {
-      webPages.when(() -> LoadWebPageCommand.loadByLink("/products")).thenReturn(null);
-      jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", sitePropertyMap, item, null, "/products/widget");
+    try (MockedStatic<SocialMediaLinkRepository> socialLinks = mockStatic(SocialMediaLinkRepository.class)) {
+      socialLinks.when(SocialMediaLinkRepository::findAll).thenReturn(Collections.emptyList());
+      jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", sitePropertyMap, item, null, null);
     }
 
     assertFalse(jsonLd.toLowerCase().contains("</script"),
@@ -102,150 +105,127 @@ class PageServletTest {
   }
 
   @Test
-  void generateJsonLdDataIncludesBreadcrumbListForANestedPage() {
+  void generateJsonLdDataIncludesSameAsForEachSocialMediaLink() {
     PageRenderInfo pageRenderInfo = new PageRenderInfo();
-    pageRenderInfo.setPageUrl("https://example.org/legal/privacy");
+    pageRenderInfo.setPageUrl("https://example.org/");
 
     Map<String, String> sitePropertyMap = new HashMap<>();
     sitePropertyMap.put("site.name", "Example Co");
 
-    WebPage legalPage = new WebPage();
-    legalPage.setTitle("Legal");
+    SocialMediaLink linkedIn = new SocialMediaLink();
+    linkedIn.setPlatformName("LinkedIn");
+    linkedIn.setUrl("https://www.linkedin.com/company/example-co");
+    SocialMediaLink twitter = new SocialMediaLink();
+    twitter.setPlatformName("Twitter");
+    twitter.setUrl("https://twitter.com/examplenco");
+    List<SocialMediaLink> links = new ArrayList<>();
+    links.add(linkedIn);
+    links.add(twitter);
 
     String jsonLd;
-    try (MockedStatic<LoadWebPageCommand> webPages = mockStatic(LoadWebPageCommand.class)) {
-      webPages.when(() -> LoadWebPageCommand.loadByLink("/legal")).thenReturn(legalPage);
-      jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", sitePropertyMap, null, null, "/legal/privacy");
+    try (MockedStatic<SocialMediaLinkRepository> socialLinks = mockStatic(SocialMediaLinkRepository.class)) {
+      socialLinks.when(SocialMediaLinkRepository::findAll).thenReturn(links);
+      jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", sitePropertyMap, null, null, null);
     }
 
     JsonNode parsed = assertDoesNotThrow(() -> MAPPER.readTree(jsonLd));
-    JsonNode breadcrumbList = parsed.get("@graph").get(2);
-    assertEquals("BreadcrumbList", breadcrumbList.get("@type").asText());
-    JsonNode items = breadcrumbList.get("itemListElement");
-    assertEquals(3, items.size());
-    assertEquals("Home", items.get(0).get("name").asText());
-    assertEquals("Legal", items.get(1).get("name").asText());
+    JsonNode organization = parsed.get("@graph").get(0);
+    assertEquals("Organization", organization.get("@type").asText());
+    JsonNode sameAs = organization.get("sameAs");
+    assertEquals(2, sameAs.size());
+    assertEquals("https://www.linkedin.com/company/example-co", sameAs.get(0).asText());
+    assertEquals("https://twitter.com/examplenco", sameAs.get(1).asText());
   }
 
   @Test
-  void generateJsonLdDataOmitsBreadcrumbListForATopLevelPage() {
+  void generateJsonLdDataOmitsSameAsWhenThereAreNoSocialMediaLinks() {
+    PageRenderInfo pageRenderInfo = new PageRenderInfo();
+    pageRenderInfo.setPageUrl("https://example.org/");
+
+    Map<String, String> sitePropertyMap = new HashMap<>();
+    sitePropertyMap.put("site.name", "Example Co");
+
+    String jsonLd;
+    try (MockedStatic<SocialMediaLinkRepository> socialLinks = mockStatic(SocialMediaLinkRepository.class)) {
+      socialLinks.when(SocialMediaLinkRepository::findAll).thenReturn(Collections.emptyList());
+      jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", sitePropertyMap, null, null, null);
+    }
+
+    JsonNode parsed = assertDoesNotThrow(() -> MAPPER.readTree(jsonLd));
+    JsonNode organization = parsed.get("@graph").get(0);
+    assertNull(organization.get("sameAs"));
+  }
+
+  @Test
+  void generateJsonLdDataIncludesDateModifiedAndDatePublishedFromWebPage() {
     PageRenderInfo pageRenderInfo = new PageRenderInfo();
     pageRenderInfo.setPageUrl("https://example.org/about");
 
     Map<String, String> sitePropertyMap = new HashMap<>();
     sitePropertyMap.put("site.name", "Example Co");
 
-    String jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", sitePropertyMap, null, null, "/about");
+    WebPage webPage = new WebPage();
+    webPage.setCreated(Timestamp.from(java.time.Instant.parse("2026-01-01T00:00:00Z")));
+    webPage.setPublishAt(Timestamp.from(java.time.Instant.parse("2026-02-01T00:00:00Z")));
+    webPage.setModified(Timestamp.from(java.time.Instant.parse("2026-03-15T12:30:00Z")));
+
+    String jsonLd;
+    try (MockedStatic<SocialMediaLinkRepository> socialLinks = mockStatic(SocialMediaLinkRepository.class)) {
+      socialLinks.when(SocialMediaLinkRepository::findAll).thenReturn(Collections.emptyList());
+      jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", sitePropertyMap, null, null, webPage);
+    }
 
     JsonNode parsed = assertDoesNotThrow(() -> MAPPER.readTree(jsonLd));
-    for (JsonNode node : parsed.get("@graph")) {
-      assertFalse("BreadcrumbList".equals(node.get("@type").asText()),
-          "a single-level page should not get a breadcrumb trail: " + jsonLd);
-    }
+    JsonNode webPageNode = parsed.get("@graph").get(1);
+    assertEquals("WebPage", webPageNode.get("@type").asText());
+    assertEquals("2026-03-15T12:30:00Z", webPageNode.get("dateModified").asText());
+    // datePublished prefers publishAt over created when both are present
+    assertEquals("2026-02-01T00:00:00Z", webPageNode.get("datePublished").asText());
   }
 
   @Test
-  void computeBreadcrumbListReturnsNullForTheHomepage() {
-    assertNull(PageServlet.computeBreadcrumbList("https://example.org", "/", null, null));
-  }
+  void generateJsonLdDataFallsBackToCreatedForDatePublishedWhenPublishAtIsMissing() {
+    PageRenderInfo pageRenderInfo = new PageRenderInfo();
+    pageRenderInfo.setPageUrl("https://example.org/about");
 
-  @Test
-  void computeBreadcrumbListReturnsNullForATopLevelPage() {
-    assertNull(PageServlet.computeBreadcrumbList("https://example.org", "/about", null, null));
-  }
+    Map<String, String> sitePropertyMap = new HashMap<>();
+    sitePropertyMap.put("site.name", "Example Co");
 
-  @Test
-  void computeBreadcrumbListReturnsNullWhenSiteUrlIsBlank() {
-    assertNull(PageServlet.computeBreadcrumbList("", "/legal/privacy", null, null));
-    assertNull(PageServlet.computeBreadcrumbList(null, "/legal/privacy", null, null));
-  }
+    WebPage webPage = new WebPage();
+    webPage.setCreated(Timestamp.from(java.time.Instant.parse("2026-01-01T00:00:00Z")));
 
-  @Test
-  void computeBreadcrumbListUsesPageTitlesForEachAncestorSegment() {
-    WebPage legalPage = new WebPage();
-    legalPage.setTitle("Legal");
-    WebPage privacyPage = new WebPage();
-    privacyPage.setTitle("Privacy Policy");
-
-    List<Map<String, Object>> items;
-    try (MockedStatic<LoadWebPageCommand> webPages = mockStatic(LoadWebPageCommand.class)) {
-      webPages.when(() -> LoadWebPageCommand.loadByLink("/legal")).thenReturn(legalPage);
-      webPages.when(() -> LoadWebPageCommand.loadByLink("/legal/privacy")).thenReturn(privacyPage);
-      items = PageServlet.computeBreadcrumbList("https://example.org", "/legal/privacy", null, null);
+    String jsonLd;
+    try (MockedStatic<SocialMediaLinkRepository> socialLinks = mockStatic(SocialMediaLinkRepository.class)) {
+      socialLinks.when(SocialMediaLinkRepository::findAll).thenReturn(Collections.emptyList());
+      jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", sitePropertyMap, null, null, webPage);
     }
 
-    assertEquals(3, items.size());
-
-    assertEquals(1, items.get(0).get("position"));
-    assertEquals("Home", items.get(0).get("name"));
-    assertEquals("https://example.org", items.get(0).get("item"));
-
-    assertEquals(2, items.get(1).get("position"));
-    assertEquals("Legal", items.get(1).get("name"));
-    assertEquals("https://example.org/legal", items.get(1).get("item"));
-
-    assertEquals(3, items.get(2).get("position"));
-    assertEquals("Privacy Policy", items.get(2).get("name"));
-    assertEquals("https://example.org/legal/privacy", items.get(2).get("item"));
+    JsonNode parsed = assertDoesNotThrow(() -> MAPPER.readTree(jsonLd));
+    JsonNode webPageNode = parsed.get("@graph").get(1);
+    assertEquals("2026-01-01T00:00:00Z", webPageNode.get("datePublished").asText());
+    assertNull(webPageNode.get("dateModified"));
   }
 
   @Test
-  void computeBreadcrumbListHumanizesASegmentWithNoMatchingPage() {
-    List<Map<String, Object>> items;
-    try (MockedStatic<LoadWebPageCommand> webPages = mockStatic(LoadWebPageCommand.class)) {
-      webPages.when(() -> LoadWebPageCommand.loadByLink(org.mockito.ArgumentMatchers.anyString())).thenReturn(null);
-      items = PageServlet.computeBreadcrumbList("https://example.org", "/docs/getting-started", null, null);
+  void generateJsonLdDataOmitsDatesWhenWebPageIsNull() {
+    PageRenderInfo pageRenderInfo = new PageRenderInfo();
+    pageRenderInfo.setPageUrl("https://example.org/items/staff/jane-doe");
+
+    Map<String, String> sitePropertyMap = new HashMap<>();
+    sitePropertyMap.put("site.name", "Example Co");
+
+    // Item detail pages have no WebPage at all -- this must not throw or fabricate dates
+    String jsonLd;
+    try (MockedStatic<SocialMediaLinkRepository> socialLinks = mockStatic(SocialMediaLinkRepository.class)) {
+      socialLinks.when(SocialMediaLinkRepository::findAll).thenReturn(Collections.emptyList());
+      jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", sitePropertyMap, null, null, null);
     }
 
-    assertEquals("Docs", items.get(1).get("name"));
-    assertEquals("Getting Started", items.get(2).get("name"));
-  }
-
-  @Test
-  void computeBreadcrumbListUsesItemAndCollectionNamesForAnItemDetailPageWithoutLookingThemUp() {
-    Collection collection = new Collection();
-    collection.setUniqueId("staff");
-    collection.setName("Staff");
-    Item item = new Item();
-    item.setName("Jane Doe");
-
-    List<Map<String, Object>> items;
-    try (MockedStatic<LoadWebPageCommand> webPages = mockStatic(LoadWebPageCommand.class)) {
-      webPages.when(() -> LoadWebPageCommand.loadByLink("/items")).thenReturn(null);
-      items = PageServlet.computeBreadcrumbList("https://example.org", "/items/staff/jane-doe", item, collection);
-
-      webPages.verify(() -> LoadWebPageCommand.loadByLink("/items/staff"), never());
-      webPages.verify(() -> LoadWebPageCommand.loadByLink("/items/staff/jane-doe"), never());
-    }
-
-    assertEquals(4, items.size());
-    assertEquals("Items", items.get(1).get("name"));
-    assertEquals("Staff", items.get(2).get("name"));
-    assertEquals("Jane Doe", items.get(3).get("name"));
-  }
-
-  @Test
-  void computeBreadcrumbListUsesCollectionNameForACollectionListingPage() {
-    Collection collection = new Collection();
-    collection.setUniqueId("staff");
-    collection.setName("Staff");
-
-    List<Map<String, Object>> items;
-    try (MockedStatic<LoadWebPageCommand> webPages = mockStatic(LoadWebPageCommand.class)) {
-      webPages.when(() -> LoadWebPageCommand.loadByLink("/items")).thenReturn(null);
-      items = PageServlet.computeBreadcrumbList("https://example.org", "/items/staff", null, collection);
-    }
-
-    assertEquals(3, items.size());
-    assertEquals("Items", items.get(1).get("name"));
-    assertEquals("Staff", items.get(2).get("name"));
-  }
-
-  @Test
-  void humanizeUrlSegmentTitleCasesHyphenatedAndUnderscoredWords() {
-    assertEquals("Getting Started", PageServlet.humanizeUrlSegment("getting-started"));
-    assertEquals("Getting Started", PageServlet.humanizeUrlSegment("getting_started"));
-    assertEquals("Faq", PageServlet.humanizeUrlSegment("faq"));
+    JsonNode parsed = assertDoesNotThrow(() -> MAPPER.readTree(jsonLd));
+    JsonNode webPageNode = parsed.get("@graph").get(1);
+    assertEquals("WebPage", webPageNode.get("@type").asText());
+    assertNull(webPageNode.get("dateModified"));
+    assertNull(webPageNode.get("datePublished"));
   }
 
   @Test
@@ -267,5 +247,57 @@ class PageServletTest {
   @Test
   void isFormTokenValidRejectsANullSessionToken() {
     assertFalse(PageServlet.isFormTokenValid("abc-123", null));
+  }
+
+  @Test
+  void computeCanonicalUrlReturnsNullWhenSiteUrlIsBlank() {
+    assertNull(PageServlet.computeCanonicalUrl("", "/legal/privacy", null, null, null));
+    assertNull(PageServlet.computeCanonicalUrl(null, "/legal/privacy", null, null, null));
+  }
+
+  @Test
+  void computeCanonicalUrlCoversTheHomepage() {
+    // Regression test for issue #401: the homepage previously fell through every branch (an
+    // explicit !pagePath.equals("/") check excluded it, and there's no WebPage/Item/Collection
+    // for a plain root request), so it was the one page that never got a canonical tag at all.
+    assertEquals("https://example.org/", PageServlet.computeCanonicalUrl("https://example.org", "/", null, null, null));
+  }
+
+  @Test
+  void computeCanonicalUrlUsesThePagePathWhenNothingElseIdentifiesThePage() {
+    assertEquals("https://example.org/legal/privacy",
+        PageServlet.computeCanonicalUrl("https://example.org", "/legal/privacy", null, null, null));
+  }
+
+  @Test
+  void computeCanonicalUrlPrefersTheWebPageLinkOverTheRequestPath() {
+    // A page can be reached by more than one path (aliases, trailing-slash variants); the
+    // canonical URL should point at the page's own configured link, not whichever path this
+    // particular request happened to use.
+    WebPage webPage = new WebPage();
+    webPage.setLink("/about-us");
+
+    assertEquals("https://example.org/about-us",
+        PageServlet.computeCanonicalUrl("https://example.org", "/about", webPage, null, null));
+  }
+
+  @Test
+  void computeCanonicalUrlUsesTheCollectionPathForACollectionPage() {
+    Collection collection = new Collection();
+    collection.setUniqueId("staff");
+
+    assertEquals("https://example.org/items/staff",
+        PageServlet.computeCanonicalUrl("https://example.org", "/items/staff", null, null, collection));
+  }
+
+  @Test
+  void computeCanonicalUrlUsesTheItemAndCollectionPathForAnItemDetailPage() {
+    Collection collection = new Collection();
+    collection.setUniqueId("staff");
+    Item item = new Item();
+    item.setUniqueId("jane-doe");
+
+    assertEquals("https://example.org/items/staff/jane-doe",
+        PageServlet.computeCanonicalUrl("https://example.org", "/items/staff/jane-doe", null, item, collection));
   }
 }

@@ -18,21 +18,27 @@ package com.simisinc.platform.presentation.widgets.admin.cms;
 
 import com.simisinc.platform.WidgetBase;
 import com.simisinc.platform.domain.model.cms.FormData;
+import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.persistence.cms.FormDataRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.FormDataSpecification;
 import com.simisinc.platform.presentation.controller.DataConstants;
+import com.simisinc.platform.presentation.controller.WidgetContext;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
+import java.io.File;
+import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 
 /**
@@ -250,5 +256,26 @@ class FormDataListWidgetTest extends WidgetBase {
     String pagingParams = (String) request.getAttribute("recordPagingParams");
     Assertions.assertNotNull(pagingParams);
     Assertions.assertTrue(pagingParams.contains("formUniqueId=contact-us"));
+  }
+
+  @Test
+  void postRejectsCallersWithoutTheRequiredRole() {
+    // Logged in by default (WidgetBase.login()), but no admin/community-manager role granted
+    addQueryParameter(widgetContext, "command", "downloadCSVFile");
+
+    try {
+      try (MockedStatic<FormDataRepository> formDataRepositoryMockedStatic = mockStatic(FormDataRepository.class)) {
+        FormDataListWidget widget = new FormDataListWidget();
+        WidgetContext result = widget.post(widgetContext);
+
+        // The role gate must return before export() (and therefore any file download) is reached
+        formDataRepositoryMockedStatic.verify(
+            () -> FormDataRepository.export(any(DataConstraints.class), any(File.class)), never());
+        Assertions.assertFalse(widgetContext.handledResponse(), "no file should be streamed back");
+        Assertions.assertSame(widgetContext, result);
+      }
+    } catch (InvocationTargetException | IllegalAccessException e) {
+      fail(e.getMessage());
+    }
   }
 }
