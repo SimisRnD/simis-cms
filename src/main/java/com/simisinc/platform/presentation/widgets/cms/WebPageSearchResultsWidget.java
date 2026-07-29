@@ -19,6 +19,7 @@ package com.simisinc.platform.presentation.widgets.cms;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.cms.HtmlCommand;
 import com.simisinc.platform.application.cms.LoadMenuTabsCommand;
+import com.simisinc.platform.application.cms.SearchAnalyticsCommand;
 import com.simisinc.platform.application.cms.WebPageXmlLayoutCommand;
 import com.simisinc.platform.domain.model.cms.*;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
@@ -72,6 +73,7 @@ public class WebPageSearchResultsWidget extends GenericWidget {
     ContentSpecification contentSpecification = new ContentSpecification();
     contentSpecification.setSearchTerm(query);
     List<Content> contentList = ContentRepository.findAll(contentSpecification, constraints);
+    SearchAnalyticsCommand.record(context, query, "content", contentList == null ? 0 : contentList.size());
 
     // Prepare the response
     Map<String, SearchResult> resultsMap = new LinkedHashMap<>();

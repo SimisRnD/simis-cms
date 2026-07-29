@@ -17,8 +17,10 @@
 package com.simisinc.platform.presentation.controller;
 
 import java.io.Serializable;
+import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -26,6 +28,7 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import org.apache.commons.lang3.StringUtils;
 
+import com.simisinc.platform.domain.model.cms.FaqQuestion;
 import com.simisinc.platform.presentation.widgets.cms.PreferenceEntriesList;
 
 /**
@@ -54,6 +57,18 @@ public class WidgetContext implements Serializable {
   private String pageDescription = null;
   private String pageKeywords = null;
 
+  // Product schema fields (issue #403), bridged from an ecommerce widget like ProductNameWidget --
+  // there's no URL routing to a specific Product the way there is for an Item/Collection, so a
+  // product page's identity only ever exists inside whichever widget resolved it from its own
+  // "product" preference
+  private String productName = null;
+  private String productDescription = null;
+  private String productImageUrl = null;
+  private BigDecimal productPrice = null;
+  private BigDecimal productLowPrice = null;
+  private String productCurrency = null;
+  private String productAvailability = null;
+  private Integer productOfferCount = null;
   // Article schema fields (issue #403) -- separate from pageTitle/pageDescription above since
   // those get a " - Site/Section Name" suffix applied for the browser tab, which would be wrong
   // inside a JSON-LD headline
@@ -61,6 +76,9 @@ public class WidgetContext implements Serializable {
   private Timestamp articlePublishedDate = null;
   private Timestamp articleModifiedDate = null;
   private String articleAuthorName = null;
+
+  // FAQPage schema fields (issue #416), bridged from FaqWidget
+  private List<FaqQuestion> faqQuestions = null;
 
   private String jsp = null;
   private String html = null;
@@ -184,6 +202,70 @@ public class WidgetContext implements Serializable {
     this.pageKeywords = pageKeywords;
   }
 
+  public String getProductName() {
+    return productName;
+  }
+
+  public void setProductName(String productName) {
+    this.productName = productName;
+  }
+
+  public String getProductDescription() {
+    return productDescription;
+  }
+
+  public void setProductDescription(String productDescription) {
+    this.productDescription = productDescription;
+  }
+
+  public String getProductImageUrl() {
+    return productImageUrl;
+  }
+
+  public void setProductImageUrl(String productImageUrl) {
+    this.productImageUrl = productImageUrl;
+  }
+
+  public BigDecimal getProductPrice() {
+    return productPrice;
+  }
+
+  public void setProductPrice(BigDecimal productPrice) {
+    this.productPrice = productPrice;
+  }
+
+  public BigDecimal getProductLowPrice() {
+    return productLowPrice;
+  }
+
+  public void setProductLowPrice(BigDecimal productLowPrice) {
+    this.productLowPrice = productLowPrice;
+  }
+
+  public String getProductCurrency() {
+    return productCurrency;
+  }
+
+  public void setProductCurrency(String productCurrency) {
+    this.productCurrency = productCurrency;
+  }
+
+  public String getProductAvailability() {
+    return productAvailability;
+  }
+
+  public void setProductAvailability(String productAvailability) {
+    this.productAvailability = productAvailability;
+  }
+
+  public Integer getProductOfferCount() {
+    return productOfferCount;
+  }
+
+  public void setProductOfferCount(Integer productOfferCount) {
+    this.productOfferCount = productOfferCount;
+  }
+
   public String getArticleHeadline() {
     return articleHeadline;
   }
@@ -214,6 +296,14 @@ public class WidgetContext implements Serializable {
 
   public void setArticleAuthorName(String articleAuthorName) {
     this.articleAuthorName = articleAuthorName;
+  }
+
+  public List<FaqQuestion> getFaqQuestions() {
+    return faqQuestions;
+  }
+
+  public void setFaqQuestions(List<FaqQuestion> faqQuestions) {
+    this.faqQuestions = faqQuestions;
   }
 
   public String getJsp() {

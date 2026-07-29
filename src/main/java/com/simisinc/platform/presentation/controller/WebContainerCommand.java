@@ -333,6 +333,31 @@ public class WebContainerCommand implements Serializable {
             if (StringUtils.isNotBlank(widgetContext.getPageKeywords())) {
               pageRenderInfo.setKeywords(widgetContext.getPageKeywords());
             }
+            // Product schema fields (issue #403), e.g. from ProductNameWidget
+            if (StringUtils.isNotBlank(widgetContext.getProductName())) {
+              pageRenderInfo.setProductName(widgetContext.getProductName());
+            }
+            if (StringUtils.isNotBlank(widgetContext.getProductDescription())) {
+              pageRenderInfo.setProductDescription(widgetContext.getProductDescription());
+            }
+            if (StringUtils.isNotBlank(widgetContext.getProductImageUrl())) {
+              pageRenderInfo.setProductImageUrl(widgetContext.getProductImageUrl());
+            }
+            if (widgetContext.getProductPrice() != null) {
+              pageRenderInfo.setProductPrice(widgetContext.getProductPrice());
+            }
+            if (widgetContext.getProductLowPrice() != null) {
+              pageRenderInfo.setProductLowPrice(widgetContext.getProductLowPrice());
+            }
+            if (StringUtils.isNotBlank(widgetContext.getProductCurrency())) {
+              pageRenderInfo.setProductCurrency(widgetContext.getProductCurrency());
+            }
+            if (StringUtils.isNotBlank(widgetContext.getProductAvailability())) {
+              pageRenderInfo.setProductAvailability(widgetContext.getProductAvailability());
+            }
+            if (widgetContext.getProductOfferCount() != null) {
+              pageRenderInfo.setProductOfferCount(widgetContext.getProductOfferCount());
+            }
             // Article schema fields (issue #403), e.g. from BlogPostWidget
             if (StringUtils.isNotBlank(widgetContext.getArticleHeadline())) {
               pageRenderInfo.setArticleHeadline(widgetContext.getArticleHeadline());
@@ -345,6 +370,11 @@ public class WebContainerCommand implements Serializable {
             }
             if (StringUtils.isNotBlank(widgetContext.getArticleAuthorName())) {
               pageRenderInfo.setArticleAuthorName(widgetContext.getArticleAuthorName());
+            }
+            // FAQPage schema (issue #416), e.g. from FaqWidget -- additive since more than one
+            // FaqWidget on the same page should combine into one FAQPage, not overwrite
+            if (widgetContext.getFaqQuestions() != null && !widgetContext.getFaqQuestions().isEmpty()) {
+              pageRenderInfo.addFaqQuestions(widgetContext.getFaqQuestions());
             }
           }
 

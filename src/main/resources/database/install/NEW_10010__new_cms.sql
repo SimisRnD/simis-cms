@@ -281,6 +281,19 @@ CREATE TABLE web_searches (
   is_logged_in BOOLEAN DEFAULT FALSE
 );
 
+-- Search analytics: zero-result queries and trending search terms (#424). Deliberately separate
+-- from web_searches above -- see search_analytics's own upgrade migration for why.
+CREATE TABLE search_analytics (
+  search_analytics_id BIGSERIAL PRIMARY KEY,
+  query VARCHAR(255) NOT NULL,
+  search_type VARCHAR(50) NOT NULL,
+  result_count INTEGER NOT NULL DEFAULT 0,
+  page_path VARCHAR(255),
+  created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX search_analytics_created_idx ON search_analytics(created);
+CREATE INDEX search_analytics_query_idx ON search_analytics(query);
+
 --
 -- CREATE TABLE content_hits (
 --   hit_id BIGSERIAL PRIMARY KEY,
