@@ -158,6 +158,20 @@
     </div>
   </div>
   <input id="enabled" type="checkbox" name="enabled" value="true" <c:if test="${blogPost.id == -1 || !empty blogPost.published}">checked</c:if>/><label for="enabled">Publish it?</label>
+  <c:if test="${!empty mailingLists}">
+    <div class="full-container" style="margin-top:10px">
+      <input id="notifySubscribers" type="checkbox" name="notifySubscribers" value="true"
+          onchange="document.getElementById('notifyMailingListId').disabled = !this.checked;" />
+      <label for="notifySubscribers">Notify subscribers of a mailing list about this post?</label>
+      <small>Only sent the moment this post is first published -- editing an already-published post won't re-notify anyone.</small>
+      <select id="notifyMailingListId" name="notifyMailingListId" disabled>
+        <option value="">Choose a mailing list...</option>
+        <c:forEach items="${mailingLists}" var="mailingList">
+          <option value="${mailingList.id}"><c:out value="${mailingList.title}" /></option>
+        </c:forEach>
+      </select>
+    </div>
+  </c:if>
   <div class="full-container">
     <div class="grid-x grid-margin-x">
       <div class="medium-6 cell">
