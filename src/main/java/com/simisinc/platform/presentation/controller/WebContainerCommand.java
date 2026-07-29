@@ -357,6 +357,18 @@ public class WebContainerCommand implements Serializable {
             }
             if (widgetContext.getProductOfferCount() != null) {
               pageRenderInfo.setProductOfferCount(widgetContext.getProductOfferCount());
+            // Article schema fields (issue #403), e.g. from BlogPostWidget
+            if (StringUtils.isNotBlank(widgetContext.getArticleHeadline())) {
+              pageRenderInfo.setArticleHeadline(widgetContext.getArticleHeadline());
+            }
+            if (widgetContext.getArticlePublishedDate() != null) {
+              pageRenderInfo.setArticlePublishedDate(widgetContext.getArticlePublishedDate());
+            }
+            if (widgetContext.getArticleModifiedDate() != null) {
+              pageRenderInfo.setArticleModifiedDate(widgetContext.getArticleModifiedDate());
+            }
+            if (StringUtils.isNotBlank(widgetContext.getArticleAuthorName())) {
+              pageRenderInfo.setArticleAuthorName(widgetContext.getArticleAuthorName());
             }
           }
 

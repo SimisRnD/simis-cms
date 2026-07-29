@@ -18,6 +18,7 @@ package com.simisinc.platform.presentation.controller;
 
 import java.io.Serializable;
 import java.math.BigDecimal;
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -57,6 +58,13 @@ public class PageRenderInfo implements ContainerRenderInfo, Serializable {
   private String productCurrency;
   private String productAvailability;
   private Integer productOfferCount;
+  // Article schema fields (issue #403), bridged from a content widget like BlogPostWidget --
+  // kept separate from title/description since those carry a browser-tab suffix that doesn't
+  // belong in a JSON-LD headline
+  private String articleHeadline;
+  private Timestamp articlePublishedDate;
+  private Timestamp articleModifiedDate;
+  private String articleAuthorName;
 
   public PageRenderInfo() {
   }
@@ -240,6 +248,36 @@ public class PageRenderInfo implements ContainerRenderInfo, Serializable {
 
   public void setProductOfferCount(Integer productOfferCount) {
     this.productOfferCount = productOfferCount;
+  public String getArticleHeadline() {
+    return articleHeadline;
+  }
+
+  public void setArticleHeadline(String articleHeadline) {
+    this.articleHeadline = articleHeadline;
+  }
+
+  public Timestamp getArticlePublishedDate() {
+    return articlePublishedDate;
+  }
+
+  public void setArticlePublishedDate(Timestamp articlePublishedDate) {
+    this.articlePublishedDate = articlePublishedDate;
+  }
+
+  public Timestamp getArticleModifiedDate() {
+    return articleModifiedDate;
+  }
+
+  public void setArticleModifiedDate(Timestamp articleModifiedDate) {
+    this.articleModifiedDate = articleModifiedDate;
+  }
+
+  public String getArticleAuthorName() {
+    return articleAuthorName;
+  }
+
+  public void setArticleAuthorName(String articleAuthorName) {
+    this.articleAuthorName = articleAuthorName;
   }
 
 }

@@ -882,6 +882,9 @@ public class PageServlet extends HttpServlet {
       // ever see the generic item/collection/webPage title & description, never a widget-specific
       // one, and real ecommerce product data (unlike an Item/Collection) is ONLY ever available
       // this way -- there's no URL routing to a specific Product for PageServlet to resolve itself.
+      // processWidgets so it can see page metadata a content widget (e.g. BlogPostWidget) bridged
+      // into pageRenderInfo during its own execute() -- generating it earlier would only ever see
+      // the generic item/collection/webPage title & description, never a widget-specific one.
       if (StringUtils.isNotBlank(siteUrl) && StringUtils.isNotBlank(sitePropertyMap.get("site.name"))) {
         String jsonLd = generateJsonLdData(pageRenderInfo, siteUrl, pagePath, sitePropertyMap, thisItem, thisCollection, webPage);
         if (StringUtils.isNotBlank(jsonLd)) {
