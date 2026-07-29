@@ -1482,6 +1482,21 @@
     </section>
   </page>
 
+  <page name="/admin/allowed-ip-list" role="admin" title="Allowed IP list">
+    <section>
+      <column class="small-12 medium-9 large-8 small-order-2 medium-order-1 small-margin-top-10 cell">
+        <widget name="allowedIP">
+          <title>Allowed IP List</title>
+        </widget>
+      </column>
+      <column class="small-12 medium-3 large-4 small-order-1 medium-order-2 cell">
+        <widget name="allowedIPListForm" class="callout radius primary" sticky="true">
+          <title>Add to List</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
   <page name="/admin/activity" role="admin,content-manager,community-manager,ecommerce-manager" title="Activity">
     <section>
       <column class="small-12 cell">
