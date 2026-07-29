@@ -202,16 +202,31 @@
             <p class="help-text" id="captchaGoogleSecretkeyHelpText">The private key the server uses to verify captcha responses with Google. Never share it or commit it to source control. Google generates it together with the Site Key above, on the same reCAPTCHA admin console page; it's a similar-length alphanumeric string. This value is stored encrypted and always appears blank here after saving. Leave it blank to keep the current key, or enter a new value to replace it.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'robots.ai.gptbot'}">
-            <p class="help-text">OpenAI's crawler for collecting training data for GPT models. Turning this off opts out of GPT model training only -- it does not affect OpenAI's separate live-browsing crawler that fetches a page when a ChatGPT user asks about it directly.</p>
+            <p class="help-text">OpenAI's crawler for collecting training data for GPT models. Turning this off opts out of GPT model training only -- OpenAI's separate live-citation crawler (OAI-SearchBot, below) and on-demand user fetcher (ChatGPT-User, below) are controlled independently.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'robots.ai.oai-searchbot'}">
+            <p class="help-text">OpenAI's crawler for real-time ChatGPT search results and citations. Unlike GPTBot above, this doesn't train future models -- it fetches pages to help answer live user queries, so turning this off is closer to an "exclude from ChatGPT answers" opt-out than a training opt-out.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'robots.ai.chatgpt-user'}">
+            <p class="help-text">OpenAI's on-demand fetcher, triggered when a specific ChatGPT user's query causes the assistant to visit this page directly (for example, via browsing or a GPT Action). Per OpenAI's own documentation, because these fetches are initiated by a live user, this crawler may not always honor this opt-out.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'robots.ai.claudebot'}">
-            <p class="help-text">Anthropic's crawler for collecting training data for Claude models. Turning this off opts out of Claude model training only -- it does not affect Anthropic's separate crawler for live, user-triggered page fetches.</p>
+            <p class="help-text">Anthropic's crawler for collecting training data for Claude models. Turning this off opts out of Claude model training only -- Anthropic's separate search-indexing crawler (Claude-SearchBot, below) and on-demand user fetcher (Claude-User, below) are controlled independently.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'robots.ai.claude-searchbot'}">
+            <p class="help-text">Anthropic's crawler for indexing pages so Claude can find and cite them in real-time answers -- separate from ClaudeBot's model-training use above.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'robots.ai.claude-user'}">
+            <p class="help-text">Anthropic's on-demand fetcher, triggered when a specific Claude user's query causes the assistant to visit this page directly. Per Anthropic's own documentation, because these fetches are initiated by a live user, this crawler may not always honor this opt-out.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'robots.ai.google-extended'}">
-            <p class="help-text">Controls whether Google may use this site's content to train Gemini and other generative AI features. Distinct from Google's regular search crawler (Googlebot) -- turning this off does not remove the site from Google Search results, only from AI training use.</p>
+            <p class="help-text">Controls whether Google may use this site's content to train Gemini and other generative AI features. Distinct from Google's regular search crawler (Googlebot) -- turning this off does not remove the site from Google Search results, only from AI training use. Google states no separate crawler or markup governs appearing in AI Overviews/AI Mode; that rides on standard Search indexing.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'robots.ai.perplexitybot'}">
-            <p class="help-text">Perplexity's crawler for its AI answer engine, which reads pages to compose direct answers rather than just training a model. Turning this off is closer to an "exclude from AI-generated answers" opt-out than a training-data opt-out.</p>
+            <p class="help-text">Perplexity's crawler that discovers and indexes pages for its AI answer engine. Perplexity states this crawler is not used for AI model training, though that specific claim is less independently verifiable than the equivalent OpenAI/Anthropic training-crawler distinctions above.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'robots.ai.perplexity-user'}">
+            <p class="help-text">Perplexity's on-demand fetcher, triggered when a specific user's query causes Perplexity to visit this page directly to help answer it. Per Perplexity's own documentation, this crawler generally does not honor robots.txt rules at all, so this opt-out is more of a stated preference than an enforceable block.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'robots.ai.ccbot'}">
             <p class="help-text">Common Crawl's general-purpose crawler. Its dataset is reused by many different research labs and companies to train a wide range of models, not just one -- turning this off is the broadest of these opt-outs, but doesn't name a specific model or company.</p>

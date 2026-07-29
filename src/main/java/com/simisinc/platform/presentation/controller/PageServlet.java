@@ -26,6 +26,7 @@ import com.simisinc.platform.application.items.LoadItemCommand;
 import com.simisinc.platform.application.items.SaveItemCommand;
 import com.simisinc.platform.domain.model.SocialMediaLink;
 import com.simisinc.platform.infrastructure.persistence.SocialMediaLinkRepository;
+import com.simisinc.platform.domain.model.cms.FaqQuestion;
 import com.simisinc.platform.domain.model.cms.MenuTab;
 import com.simisinc.platform.domain.model.cms.Stylesheet;
 import com.simisinc.platform.domain.model.cms.TableOfContents;
@@ -1087,6 +1088,12 @@ public class PageServlet extends HttpServlet {
         graph.add(breadcrumbList);
       }
 
+      // Add FAQPage schema if this page has a FaqWidget (issue #416)
+      Map<String, Object> faqPage = computeFaqSchema(pageRenderInfo);
+      if (faqPage != null) {
+        graph.add(faqPage);
+      }
+
       // Add Product schema for a real ecommerce product page (issue #403); bridged from
       // pageRenderInfo the same way Article is, since a product's identity is never resolvable
       // from the URL the way an Item/Collection's is (see computeProductSchema)
@@ -1217,6 +1224,33 @@ public class PageServlet extends HttpServlet {
   }
 
   /**
+   * Builds the FAQPage schema for a page with one or more FaqWidgets (issue #416). Uses
+   * FaqQuestion's pre-stripped answerText, not the widget's own rendered HTML, since Google's FAQ
+   * rich result requires the acceptedAnswer text to contain no markup.
+   */
+  static Map<String, Object> computeFaqSchema(PageRenderInfo pageRenderInfo) {
+    List<FaqQuestion> faqQuestionList = pageRenderInfo.getFaqQuestions();
+    if (faqQuestionList == null || faqQuestionList.isEmpty()) {
+      return null;
+    }
+    List<Map<String, Object>> mainEntity = new ArrayList<>();
+    for (FaqQuestion faqQuestion : faqQuestionList) {
+      Map<String, Object> question = new LinkedHashMap<>();
+      question.put("@type", "Question");
+      question.put("name", faqQuestion.getQuestion());
+      Map<String, Object> acceptedAnswer = new LinkedHashMap<>();
+      acceptedAnswer.put("@type", "Answer");
+      acceptedAnswer.put("text", faqQuestion.getAnswerText());
+      question.put("acceptedAnswer", acceptedAnswer);
+      mainEntity.add(question);
+    }
+    Map<String, Object> faqPage = new LinkedHashMap<>();
+    faqPage.put("@type", "FAQPage");
+    faqPage.put("mainEntity", mainEntity);
+    return faqPage;
+  }
+
+  /**
    * Turns a URL segment like "getting-started" into "Getting Started" for use as a breadcrumb
    * label when no page title is available to describe that part of the path.
    */
@@ -1265,7 +1299,9 @@ public class PageServlet extends HttpServlet {
    * Computes the canonical URL for a page response (issue #401), or null when there's nothing to
    * canonicalize (blank site.url, or no page-identity source matched). pagePath is always safe to
    * append as-is: it comes from request.getRequestURI(), which never carries the query string, so
-   * this can't reflect attacker-controlled query parameters into the tag.
+   * this can't reflect attacker-controlled query parameters into the tag. A wildcard/dynamic-page
+   * match (see LoadWebPageCommand#loadByLink) returns the template's own link (e.g. "/news/*"),
+   * not a real URL, so that case is excluded in favor of the actual pagePath.
    */
   static String computeCanonicalUrl(String siteUrl, String pagePath, WebPage webPage, Item item, Collection collection) {
     if (StringUtils.isBlank(siteUrl)) {
@@ -1277,7 +1313,7 @@ public class PageServlet extends HttpServlet {
     if (collection != null) {
       return siteUrl + "/items/" + collection.getUniqueId();
     }
-    if (webPage != null && StringUtils.isNotBlank(webPage.getLink())) {
+    if (webPage != null && StringUtils.isNotBlank(webPage.getLink()) && !webPage.getLink().endsWith("/*")) {
       return siteUrl + webPage.getLink();
     }
     if (StringUtils.isNotBlank(pagePath)) {

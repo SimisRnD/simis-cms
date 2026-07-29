@@ -47,6 +47,7 @@
   <widget name="contentTabs" class="com.simisinc.platform.presentation.widgets.cms.ContentTabsWidget" />
   <widget name="contentCards" class="com.simisinc.platform.presentation.widgets.cms.ContentCardsWidget" />
   <widget name="contentAccordion" class="com.simisinc.platform.presentation.widgets.cms.ContentAccordionWidget" />
+  <widget name="faq" class="com.simisinc.platform.presentation.widgets.cms.FaqWidget" />
   <widget name="contentSlider" class="com.simisinc.platform.presentation.widgets.cms.ContentSliderWidget" />
   <widget name="contentReveal" class="com.simisinc.platform.presentation.widgets.cms.ContentRevealWidget" />
   <widget name="contentGallery" class="com.simisinc.platform.presentation.widgets.cms.ContentGalleryWidget" />
