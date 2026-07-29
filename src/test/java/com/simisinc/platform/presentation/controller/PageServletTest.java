@@ -23,6 +23,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mockStatic;
 
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -88,7 +89,7 @@ class PageServletTest {
     String jsonLd;
     try (MockedStatic<SocialMediaLinkRepository> socialLinks = mockStatic(SocialMediaLinkRepository.class)) {
       socialLinks.when(SocialMediaLinkRepository::findAll).thenReturn(Collections.emptyList());
-      jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", sitePropertyMap, item, null);
+      jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", sitePropertyMap, item, null, null);
     }
 
     assertFalse(jsonLd.toLowerCase().contains("</script"),
@@ -123,7 +124,7 @@ class PageServletTest {
     String jsonLd;
     try (MockedStatic<SocialMediaLinkRepository> socialLinks = mockStatic(SocialMediaLinkRepository.class)) {
       socialLinks.when(SocialMediaLinkRepository::findAll).thenReturn(links);
-      jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", sitePropertyMap, null, null);
+      jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", sitePropertyMap, null, null, null);
     }
 
     JsonNode parsed = assertDoesNotThrow(() -> MAPPER.readTree(jsonLd));
@@ -146,12 +147,84 @@ class PageServletTest {
     String jsonLd;
     try (MockedStatic<SocialMediaLinkRepository> socialLinks = mockStatic(SocialMediaLinkRepository.class)) {
       socialLinks.when(SocialMediaLinkRepository::findAll).thenReturn(Collections.emptyList());
-      jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", sitePropertyMap, null, null);
+      jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", sitePropertyMap, null, null, null);
     }
 
     JsonNode parsed = assertDoesNotThrow(() -> MAPPER.readTree(jsonLd));
     JsonNode organization = parsed.get("@graph").get(0);
     assertNull(organization.get("sameAs"));
+  }
+
+  @Test
+  void generateJsonLdDataIncludesDateModifiedAndDatePublishedFromWebPage() {
+    PageRenderInfo pageRenderInfo = new PageRenderInfo();
+    pageRenderInfo.setPageUrl("https://example.org/about");
+
+    Map<String, String> sitePropertyMap = new HashMap<>();
+    sitePropertyMap.put("site.name", "Example Co");
+
+    WebPage webPage = new WebPage();
+    webPage.setCreated(Timestamp.from(java.time.Instant.parse("2026-01-01T00:00:00Z")));
+    webPage.setPublishAt(Timestamp.from(java.time.Instant.parse("2026-02-01T00:00:00Z")));
+    webPage.setModified(Timestamp.from(java.time.Instant.parse("2026-03-15T12:30:00Z")));
+
+    String jsonLd;
+    try (MockedStatic<SocialMediaLinkRepository> socialLinks = mockStatic(SocialMediaLinkRepository.class)) {
+      socialLinks.when(SocialMediaLinkRepository::findAll).thenReturn(Collections.emptyList());
+      jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", sitePropertyMap, null, null, webPage);
+    }
+
+    JsonNode parsed = assertDoesNotThrow(() -> MAPPER.readTree(jsonLd));
+    JsonNode webPageNode = parsed.get("@graph").get(1);
+    assertEquals("WebPage", webPageNode.get("@type").asText());
+    assertEquals("2026-03-15T12:30:00Z", webPageNode.get("dateModified").asText());
+    // datePublished prefers publishAt over created when both are present
+    assertEquals("2026-02-01T00:00:00Z", webPageNode.get("datePublished").asText());
+  }
+
+  @Test
+  void generateJsonLdDataFallsBackToCreatedForDatePublishedWhenPublishAtIsMissing() {
+    PageRenderInfo pageRenderInfo = new PageRenderInfo();
+    pageRenderInfo.setPageUrl("https://example.org/about");
+
+    Map<String, String> sitePropertyMap = new HashMap<>();
+    sitePropertyMap.put("site.name", "Example Co");
+
+    WebPage webPage = new WebPage();
+    webPage.setCreated(Timestamp.from(java.time.Instant.parse("2026-01-01T00:00:00Z")));
+
+    String jsonLd;
+    try (MockedStatic<SocialMediaLinkRepository> socialLinks = mockStatic(SocialMediaLinkRepository.class)) {
+      socialLinks.when(SocialMediaLinkRepository::findAll).thenReturn(Collections.emptyList());
+      jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", sitePropertyMap, null, null, webPage);
+    }
+
+    JsonNode parsed = assertDoesNotThrow(() -> MAPPER.readTree(jsonLd));
+    JsonNode webPageNode = parsed.get("@graph").get(1);
+    assertEquals("2026-01-01T00:00:00Z", webPageNode.get("datePublished").asText());
+    assertNull(webPageNode.get("dateModified"));
+  }
+
+  @Test
+  void generateJsonLdDataOmitsDatesWhenWebPageIsNull() {
+    PageRenderInfo pageRenderInfo = new PageRenderInfo();
+    pageRenderInfo.setPageUrl("https://example.org/items/staff/jane-doe");
+
+    Map<String, String> sitePropertyMap = new HashMap<>();
+    sitePropertyMap.put("site.name", "Example Co");
+
+    // Item detail pages have no WebPage at all -- this must not throw or fabricate dates
+    String jsonLd;
+    try (MockedStatic<SocialMediaLinkRepository> socialLinks = mockStatic(SocialMediaLinkRepository.class)) {
+      socialLinks.when(SocialMediaLinkRepository::findAll).thenReturn(Collections.emptyList());
+      jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", sitePropertyMap, null, null, null);
+    }
+
+    JsonNode parsed = assertDoesNotThrow(() -> MAPPER.readTree(jsonLd));
+    JsonNode webPageNode = parsed.get("@graph").get(1);
+    assertEquals("WebPage", webPageNode.get("@type").asText());
+    assertNull(webPageNode.get("dateModified"));
+    assertNull(webPageNode.get("datePublished"));
   }
 
   @Test
