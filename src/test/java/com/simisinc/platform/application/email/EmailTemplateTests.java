@@ -162,6 +162,14 @@ class EmailTemplateTests {
       Map<String, Object> shippingMethod = new HashMap<>();
       shippingMethod.put("title", "Standard Delivery");
       ctx.setVariable("shippingMethod", shippingMethod);
+    } else if ("mailinglists".equals(parent)) {
+      // Newsletter blog post notification
+      Map<String, Object> blogPost = new HashMap<>();
+      blogPost.put("title", "A Blog Post Title");
+      blogPost.put("summary", "A short summary of the post.");
+      ctx.setVariable("blogPost", blogPost);
+      ctx.setVariable("blogPostUrl", "http://site.example.com/blog/a-post");
+      ctx.setVariable("unsubscribeUrl", "http://site.example.com/unsubscribe?token=TEST");
     }
 
     String html = templateEngine.process(template, ctx);

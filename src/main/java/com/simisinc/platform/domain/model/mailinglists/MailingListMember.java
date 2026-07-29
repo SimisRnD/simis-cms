@@ -43,6 +43,10 @@ public class MailingListMember extends Entity {
   private boolean isValid = false;
   private Timestamp quarantined = null;
   private String quarantineReason = null;
+  private String unsubscribeToken = null;
+
+  /** Only populated by queries that join to emails -- not a mailing_list_members column. */
+  private String emailAddress = null;
 
   public MailingListMember() {
   }
@@ -157,5 +161,21 @@ public class MailingListMember extends Entity {
 
   public void setQuarantineReason(String quarantineReason) {
     this.quarantineReason = quarantineReason;
+  }
+
+  public String getUnsubscribeToken() {
+    return unsubscribeToken;
+  }
+
+  public void setUnsubscribeToken(String unsubscribeToken) {
+    this.unsubscribeToken = unsubscribeToken;
+  }
+
+  public String getEmailAddress() {
+    return emailAddress;
+  }
+
+  public void setEmailAddress(String emailAddress) {
+    this.emailAddress = emailAddress;
   }
 }

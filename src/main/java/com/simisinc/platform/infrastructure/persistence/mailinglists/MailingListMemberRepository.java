@@ -20,6 +20,7 @@ import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.dashboard.StatisticsData;
 import com.simisinc.platform.domain.model.mailinglists.Email;
 import com.simisinc.platform.domain.model.mailinglists.MailingList;
+import com.simisinc.platform.domain.model.mailinglists.MailingListMember;
 import com.simisinc.platform.infrastructure.database.*;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
@@ -33,6 +34,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 /**
  * Persists and retrieves mailing list member objects
@@ -115,6 +117,114 @@ public class MailingListMemberRepository {
         .add("list_id = ?", mailingList.getId())
         .add("email_id = ?", email.getId());
     DB.update(TABLE_NAME, updateValues, where);
+  }
+
+  /**
+   * Every currently-subscribed, valid member of a list, for enqueueing a send. Generates and
+   * persists an unsubscribe_token for any member who doesn't already have one -- a token is only
+   * ever needed once a member is actually about to be emailed.
+   */
+  public static List<MailingListMember> findActiveMembersForList(long listId) {
+    SqlUtils select = new SqlUtils().addNames("emails.email AS email_address");
+    SqlJoins joins = new SqlJoins().add(JOIN);
+    SqlUtils where = new SqlUtils()
+        .add("mailing_list_members.list_id = ?", listId)
+        .add("mailing_list_members.is_valid = ?", true)
+        .add("mailing_list_members.unsubscribed IS NULL");
+    DataResult result = DB.selectAllFrom(TABLE_NAME, select, joins, where, null,
+        new DataConstraints().setUseCount(false), MailingListMemberRepository::buildRecordWithEmail);
+    List<MailingListMember> members = (List<MailingListMember>) result.getRecords();
+    if (members == null) {
+      return new ArrayList<>();
+    }
+    for (MailingListMember member : members) {
+      ensureUnsubscribeToken(member);
+    }
+    return members;
+  }
+
+  /** Looks up a member by their single-use unsubscribe link token. */
+  public static MailingListMember findByUnsubscribeToken(String token) {
+    if (StringUtils.isBlank(token)) {
+      return null;
+    }
+    SqlUtils select = new SqlUtils().addNames("emails.email AS email_address");
+    SqlJoins joins = new SqlJoins().add(JOIN);
+    SqlUtils where = new SqlUtils().add("mailing_list_members.unsubscribe_token = ?", token);
+    return (MailingListMember) DB.selectRecordFrom(TABLE_NAME, select, joins, where,
+        MailingListMemberRepository::buildRecordWithEmail);
+  }
+
+  /**
+   * Looks up a member by (list, email), for the send job to re-check current subscription status
+   * and unsubscribe token immediately before sending -- the member may have unsubscribed, or never
+   * had a token generated, since the row was enqueued.
+   */
+  public static MailingListMember findByListAndEmail(long listId, long emailId) {
+    SqlUtils select = new SqlUtils().addNames("emails.email AS email_address");
+    SqlJoins joins = new SqlJoins().add(JOIN);
+    SqlUtils where = new SqlUtils()
+        .add("mailing_list_members.list_id = ?", listId)
+        .add("mailing_list_members.email_id = ?", emailId);
+    MailingListMember member = (MailingListMember) DB.selectRecordFrom(TABLE_NAME, select, joins, where,
+        MailingListMemberRepository::buildRecordWithEmail);
+    if (member != null) {
+      ensureUnsubscribeToken(member);
+    }
+    return member;
+  }
+
+  private static void ensureUnsubscribeToken(MailingListMember member) {
+    if (StringUtils.isNotBlank(member.getUnsubscribeToken())) {
+      return;
+    }
+    String token = UUID.randomUUID().toString();
+    SqlUtils updateValues = new SqlUtils().add("unsubscribe_token", token);
+    SqlUtils memberWhere = new SqlUtils().add("member_id = ?", member.getId());
+    DB.update(TABLE_NAME, updateValues, memberWhere);
+    member.setUnsubscribeToken(token);
+  }
+
+  /**
+   * Unsubscribes an anonymous recipient by their token (no logged-in User -- the token itself is
+   * the authorization). Single-use: clears the token so a re-clicked link lands on a graceful
+   * already-unsubscribed state instead of erroring, matching UserRepository's account-token flow.
+   */
+  public static void unsubscribeByToken(MailingListMember member) {
+    Timestamp now = new Timestamp(System.currentTimeMillis());
+    SqlUtils updateValues = new SqlUtils()
+        .add("unsubscribed", now)
+        .add("unsubscribed_by", -1, -1)
+        .add("modified", now)
+        .add("modified_by", -1, -1)
+        .add("is_valid", false)
+        .add("unsubscribe_token", (String) null);
+    SqlUtils where = new SqlUtils().add("member_id = ?", member.getId());
+    DB.update(TABLE_NAME, updateValues, where);
+  }
+
+  private static MailingListMember buildRecordWithEmail(ResultSet rs) {
+    try {
+      MailingListMember record = new MailingListMember();
+      record.setId(rs.getLong("member_id"));
+      record.setListId(rs.getLong("list_id"));
+      record.setEmailId(rs.getLong("email_id"));
+      record.setCreatedBy(rs.getLong("created_by"));
+      record.setModifiedBy(rs.getLong("modified_by"));
+      record.setCreated(rs.getTimestamp("created"));
+      record.setModified(rs.getTimestamp("modified"));
+      record.setLastEmailed(rs.getTimestamp("last_emailed"));
+      record.setUnsubscribed(rs.getTimestamp("unsubscribed"));
+      record.setUnsubscribedBy(rs.getLong("unsubscribed_by"));
+      record.setUnsubscribeReason(rs.getString("unsubscribe_reason"));
+      record.setIsValid(rs.getBoolean("is_valid"));
+      record.setUnsubscribeToken(rs.getString("unsubscribe_token"));
+      record.setEmailAddress(rs.getString("email_address"));
+      return record;
+    } catch (SQLException se) {
+      LOG.error("buildRecordWithEmail", se);
+      return null;
+    }
   }
 
   /**
