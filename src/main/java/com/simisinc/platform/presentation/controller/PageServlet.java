@@ -839,6 +839,14 @@ public class PageServlet extends HttpServlet {
         }
       }
 
+      // Generate JSON-LD structured data for search engines and AI (issue #403)
+      if (StringUtils.isNotBlank(siteUrl) && StringUtils.isNotBlank(sitePropertyMap.get("site.name"))) {
+        String jsonLd = generateJsonLdData(pageRenderInfo, siteUrl, pagePath, sitePropertyMap, thisItem, thisCollection, webPage);
+        if (StringUtils.isNotBlank(jsonLd)) {
+          pageRenderInfo.setJsonLdData(jsonLd);
+        }
+      }
+
       // Finally... we have a page ready to be processed...
       if (LOG.isDebugEnabled()) {
         LOG.debug(request.getMethod() + " page " + pageRef.getName());
@@ -991,7 +999,7 @@ public class PageServlet extends HttpServlet {
     }
   }
 
-  static String generateJsonLdData(PageRenderInfo pageRenderInfo, String siteUrl,
+  static String generateJsonLdData(PageRenderInfo pageRenderInfo, String siteUrl, String pagePath,
                                     Map<String, String> sitePropertyMap,
                                     Item item, Collection collection, WebPage webPage) {
     try {
@@ -1073,10 +1081,13 @@ public class PageServlet extends HttpServlet {
 
       graph.add(webPageSchema);
 
-      // Add Article schema for blog post pages (issue #403)
-      Map<String, Object> article = computeArticleSchema(pageRenderInfo);
-      if (article != null) {
-        graph.add(article);
+      // Add BreadcrumbList schema for pages more than one level deep (issue #403)
+      List<Map<String, Object>> breadcrumbItemList = computeBreadcrumbList(siteUrl, pagePath, item, collection);
+      if (breadcrumbItemList != null && !breadcrumbItemList.isEmpty()) {
+        Map<String, Object> breadcrumbList = new LinkedHashMap<>();
+        breadcrumbList.put("@type", "BreadcrumbList");
+        breadcrumbList.put("itemListElement", breadcrumbItemList);
+        graph.add(breadcrumbList);
       }
 
       // Add Product schema if this is an item (catalog product)
@@ -1106,30 +1117,94 @@ public class PageServlet extends HttpServlet {
   }
 
   /**
-   * Builds the Article schema for a blog post page (issue #403). Gated on articleHeadline since
-   * that's only set by a content widget (BlogPostWidget) for a post that's actually published --
-   * every other page type leaves it blank, so this doubles as the "is this a blog post" check.
+   * Builds the BreadcrumbList itemListElement array for pages at a URL depth of two or more
+   * (issue #403); shallower pages return null since a single-level trail is redundant with the
+   * site nav. Each ancestor segment's name is resolved the same way the page itself would be
+   * resolved (LoadWebPageCommand, including wildcard/template pages) so a breadcrumb never shows
+   * a path segment that the app wouldn't actually route to; a segment with no matching page falls
+   * back to a humanized version of the URL segment rather than leaving a gap in the trail.
    */
-  static Map<String, Object> computeArticleSchema(PageRenderInfo pageRenderInfo) {
-    if (StringUtils.isBlank(pageRenderInfo.getArticleHeadline())) {
+  static List<Map<String, Object>> computeBreadcrumbList(String siteUrl, String pagePath, Item item, Collection collection) {
+    if (StringUtils.isBlank(siteUrl) || StringUtils.isBlank(pagePath)) {
       return null;
     }
-    Map<String, Object> article = new LinkedHashMap<>();
-    article.put("@type", "Article");
-    article.put("headline", pageRenderInfo.getArticleHeadline());
-    if (pageRenderInfo.getArticlePublishedDate() != null) {
-      article.put("datePublished", pageRenderInfo.getArticlePublishedDate().toInstant().toString());
+    List<String> segments = new ArrayList<>();
+    for (String segment : pagePath.split("/")) {
+      if (StringUtils.isNotBlank(segment)) {
+        segments.add(segment);
+      }
     }
-    if (pageRenderInfo.getArticleModifiedDate() != null) {
-      article.put("dateModified", pageRenderInfo.getArticleModifiedDate().toInstant().toString());
+    if (segments.size() < 2) {
+      return null;
     }
-    if (StringUtils.isNotBlank(pageRenderInfo.getArticleAuthorName())) {
-      Map<String, Object> author = new LinkedHashMap<>();
-      author.put("@type", "Person");
-      author.put("name", pageRenderInfo.getArticleAuthorName());
-      article.put("author", author);
+
+    List<Map<String, Object>> itemListElement = new ArrayList<>();
+    itemListElement.add(breadcrumbListItem(1, "Home", siteUrl));
+
+    StringBuilder pathSoFar = new StringBuilder();
+    for (int i = 0; i < segments.size(); i++) {
+      String segment = segments.get(i);
+      pathSoFar.append('/').append(segment);
+      boolean isLeaf = (i == segments.size() - 1);
+
+      String name = null;
+      if (isLeaf && item != null && StringUtils.isNotBlank(item.getName())) {
+        name = item.getName();
+      } else if (collection != null && segment.equalsIgnoreCase(collection.getUniqueId())) {
+        // The collection's own segment, whether it's the leaf (collection listing page) or an
+        // ancestor of the leaf (an item detail page nested under it)
+        name = collection.getName();
+      }
+      if (StringUtils.isBlank(name)) {
+        WebPage segmentPage = LoadWebPageCommand.loadByLink(pathSoFar.toString());
+        if (segmentPage != null && StringUtils.isNotBlank(segmentPage.getTitle())) {
+          name = segmentPage.getTitle();
+        }
+      }
+      if (StringUtils.isBlank(name)) {
+        name = humanizeUrlSegment(segment);
+      }
+
+      itemListElement.add(breadcrumbListItem(i + 2, name, siteUrl + pathSoFar));
     }
-    return article;
+    return itemListElement;
+  }
+
+  private static Map<String, Object> breadcrumbListItem(int position, String name, String url) {
+    Map<String, Object> listItem = new LinkedHashMap<>();
+    listItem.put("@type", "ListItem");
+    listItem.put("position", position);
+    listItem.put("name", name);
+    listItem.put("item", url);
+    return listItem;
+  }
+
+  /**
+   * Turns a URL segment like "getting-started" into "Getting Started" for use as a breadcrumb
+   * label when no page title is available to describe that part of the path.
+   */
+  static String humanizeUrlSegment(String segment) {
+    String decoded;
+    try {
+      decoded = java.net.URLDecoder.decode(segment, java.nio.charset.StandardCharsets.UTF_8);
+    } catch (Exception e) {
+      decoded = segment;
+    }
+    String[] words = decoded.replace('-', ' ').replace('_', ' ').split(" ");
+    StringBuilder result = new StringBuilder();
+    for (String word : words) {
+      if (word.isEmpty()) {
+        continue;
+      }
+      if (result.length() > 0) {
+        result.append(' ');
+      }
+      result.append(Character.toUpperCase(word.charAt(0)));
+      if (word.length() > 1) {
+        result.append(word.substring(1));
+      }
+    }
+    return result.length() > 0 ? result.toString() : segment;
   }
 
   /**
