@@ -74,9 +74,15 @@ public class BlockedIPListCommand {
 
     LOG.debug("Checking IP: " + ipAddress);
 
-    // If allowed, return quickly
+    // If allowed via the server-side file list, return quickly
     List<String> ipAllowList = listMap.get(IP_ALLOW_LIST);
     if (ipAllowList != null && ipAllowList.contains(ipAddress)) {
+      LOG.debug("Allowed IP: " + ipAddress);
+      return true;
+    }
+
+    // If allowed via the admin-managed, database-backed allow list, return quickly
+    if (LoadAllowedIPListCommand.retrieveCachedIpAddressList().contains(ipAddress)) {
       LOG.debug("Allowed IP: " + ipAddress);
       return true;
     }
