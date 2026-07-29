@@ -66,6 +66,25 @@
       ]
     },
 
+    "faq": {
+      "label": "FAQ",
+      "category": "Content",
+      "icon": "fa-question-circle",
+      "preferences": [
+        {"name": "title", "label": "Section Title", "type": "text"},
+        {"name": "icon",  "label": "Icon (FA class)", "type": "text"},
+        {
+          "name": "questions",
+          "label": "Questions",
+          "type": "array",
+          "items": [
+            {"name": "question", "label": "Question", "type": "text"},
+            {"name": "answer",   "label": "Answer",    "type": "html"}
+          ]
+        }
+      ]
+    },
+
     "contentTabs": {
       "label": "Content Tabs",
       "category": "Content",

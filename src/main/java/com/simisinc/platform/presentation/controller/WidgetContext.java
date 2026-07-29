@@ -20,6 +20,7 @@ import java.io.Serializable;
 import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -27,6 +28,7 @@ import jakarta.servlet.http.HttpServletResponse;
 
 import org.apache.commons.lang3.StringUtils;
 
+import com.simisinc.platform.domain.model.cms.FaqQuestion;
 import com.simisinc.platform.presentation.widgets.cms.PreferenceEntriesList;
 
 /**
@@ -74,6 +76,9 @@ public class WidgetContext implements Serializable {
   private Timestamp articlePublishedDate = null;
   private Timestamp articleModifiedDate = null;
   private String articleAuthorName = null;
+
+  // FAQPage schema fields (issue #416), bridged from FaqWidget
+  private List<FaqQuestion> faqQuestions = null;
 
   private String jsp = null;
   private String html = null;
@@ -291,6 +296,14 @@ public class WidgetContext implements Serializable {
 
   public void setArticleAuthorName(String articleAuthorName) {
     this.articleAuthorName = articleAuthorName;
+  }
+
+  public List<FaqQuestion> getFaqQuestions() {
+    return faqQuestions;
+  }
+
+  public void setFaqQuestions(List<FaqQuestion> faqQuestions) {
+    this.faqQuestions = faqQuestions;
   }
 
   public String getJsp() {
