@@ -74,6 +74,10 @@
     <servlet-class>com.simisinc.platform.presentation.controller.StylesheetServlet</servlet-class>
     <load-on-startup>1</load-on-startup>
   </servlet>
+  <servlet>
+    <servlet-name>RobotsServlet</servlet-name>
+    <servlet-class>com.simisinc.platform.presentation.controller.RobotsServlet</servlet-class>
+  </servlet>
   <!--
   <servlet>
     <servlet-name>SitemapXmlServlet</servlet-name>
@@ -85,7 +89,6 @@
   <servlet-mapping>
     <servlet-name>default</servlet-name>
     <!--<url-pattern>/favicon.*</url-pattern>-->
-    <url-pattern>/robots.txt</url-pattern>
     <!-- For Letsencrypt.org -->
     <url-pattern>/.well-known/acme-challenge/*</url-pattern>
     <!-- For BingBot Webmaster -->
@@ -96,6 +99,10 @@
     <url-pattern>/html/*</url-pattern>
     <url-pattern>/images/*</url-pattern>
     <url-pattern>/javascript/*</url-pattern>
+  </servlet-mapping>
+  <servlet-mapping>
+    <servlet-name>RobotsServlet</servlet-name>
+    <url-pattern>/robots.txt</url-pattern>
   </servlet-mapping>
   <servlet-mapping>
     <servlet-name>PageServlet</servlet-name>

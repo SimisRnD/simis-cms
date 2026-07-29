@@ -84,10 +84,19 @@
 <c:if test="${!empty formDataList}">
   <p><small>Forms found: <fmt:formatNumber value="${recordPaging.totalRecordCount}" /></small></p>
 </c:if>
+<form method="post" action="${widgetContext.uri}">
+  <%-- Required by controller --%>
+  <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
+  <input type="hidden" name="token" value="${userSession.formToken}"/>
+  <%-- Form --%>
+  <input type="hidden" name="command" value="downloadCSVFile"/>
+  <button type="submit" class="button small secondary radius"><i class="fa fa-download"></i> Download CSV</button>
+</form>
 <table>
   <thead>
   <tr>
     <th colspan="2">Form Values</th>
+    <th>IP Address</th>
     <th>Form</th>
     <th>Action</th>
   </tr>
@@ -115,14 +124,6 @@
               <fmt:formatDate pattern="hh:mm a" value="${formData.created}"/>
             </small>
             <c:if test="${formData.flaggedAsSpam}"><span class="alert label">spam likely</span></c:if>
-          </div>
-        </div>
-        <div class="grid-x grid-padding-x">
-          <div class="small-4 text-right cell">
-            <small>IP Address</small>
-          </div>
-          <div class="small-8 cell">
-            <small><c:out value="${formData.ipAddress}"/></small>
           </div>
         </div>
         <div class="grid-x grid-padding-x">
@@ -184,6 +185,7 @@
           </c:otherwise>
         </c:choose>
       </td>
+      <td nowrap valign="top"><c:out value="${formData.ipAddress}"/></td>
       <td nowrap valign="top"><c:out value="${formData.formUniqueId}"/></td>
       <td nowrap valign="top">
         <a class="button radius small primary" href="javascript:claimForm(${formData.id});">Claim</a>
