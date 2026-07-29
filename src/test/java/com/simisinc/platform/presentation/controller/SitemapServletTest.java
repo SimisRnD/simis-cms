@@ -21,11 +21,14 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.math.BigDecimal;
@@ -34,6 +37,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.zip.GZIPInputStream;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -46,6 +50,8 @@ import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageSpecification;
 import com.simisinc.platform.infrastructure.persistence.items.ItemRepository;
 
+import jakarta.servlet.ServletOutputStream;
+import jakarta.servlet.WriteListener;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -246,6 +252,140 @@ class SitemapServletTest {
     assertTrue(body.contains("<loc>https://example.org/show/widget</loc>"),
         "items must use /show/{uniqueId}, matching every other item link in the app: " + body);
     assertFalse(body.contains("/item/widget"));
+  }
+
+  private HttpServletResponse runDoGetForResponse(Map<String, String> properties, List<WebPage> webPageList,
+      List<Item> itemList, HttpServletRequest request) throws Exception {
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    when(response.getWriter()).thenReturn(new PrintWriter(new StringWriter()));
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class);
+        MockedStatic<ItemRepository> itemRepository = mockStatic(ItemRepository.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadAsMap("site")).thenReturn(properties);
+      webPageRepository.when(() -> WebPageRepository.findAll(any(), any())).thenReturn(webPageList);
+      itemRepository.when(() -> ItemRepository.findAll(any(), any())).thenReturn(itemList);
+
+      new SitemapServlet().doGet(request, response);
+    }
+    return response;
+  }
+
+  @Test
+  void doGetSetsETagAndLastModifiedForCachingClients() throws Exception {
+    List<WebPage> pages = new ArrayList<>();
+    pages.add(webPage("/about", null, null));
+
+    HttpServletRequest request = mock(HttpServletRequest.class);
+    HttpServletResponse response = runDoGetForResponse(siteProperties(true, true), pages, new ArrayList<>(), request);
+
+    ArgumentCaptor<String> etagCaptor = ArgumentCaptor.forClass(String.class);
+    verify(response).setHeader(eq("ETag"), etagCaptor.capture());
+    assertTrue(etagCaptor.getValue().startsWith("\"") && etagCaptor.getValue().endsWith("\""),
+        "ETag should be a quoted entity tag: " + etagCaptor.getValue());
+    verify(response).setDateHeader("Last-Modified", Timestamp.valueOf("2026-03-15 12:30:00").getTime());
+  }
+
+  @Test
+  void doGetReturns304WhenIfNoneMatchMatchesTheCurrentETag() throws Exception {
+    List<WebPage> pages = new ArrayList<>();
+    pages.add(webPage("/about", null, null));
+
+    // First request captures the real ETag computed for this exact content
+    HttpServletRequest firstRequest = mock(HttpServletRequest.class);
+    HttpServletResponse firstResponse = runDoGetForResponse(siteProperties(true, true), pages, new ArrayList<>(), firstRequest);
+    ArgumentCaptor<String> etagCaptor = ArgumentCaptor.forClass(String.class);
+    verify(firstResponse).setHeader(eq("ETag"), etagCaptor.capture());
+
+    // A second request presents that ETag back via If-None-Match
+    HttpServletRequest secondRequest = mock(HttpServletRequest.class);
+    when(secondRequest.getHeader("If-None-Match")).thenReturn(etagCaptor.getValue());
+    HttpServletResponse secondResponse = runDoGetForResponse(siteProperties(true, true), pages, new ArrayList<>(), secondRequest);
+
+    verify(secondResponse).setStatus(HttpServletResponse.SC_NOT_MODIFIED);
+  }
+
+  @Test
+  void doGetReturns200WhenIfNoneMatchIsAStaleETag() throws Exception {
+    List<WebPage> pages = new ArrayList<>();
+    pages.add(webPage("/about", null, null));
+
+    HttpServletRequest request = mock(HttpServletRequest.class);
+    when(request.getHeader("If-None-Match")).thenReturn("\"stale-value-from-a-previous-version\"");
+    HttpServletResponse response = runDoGetForResponse(siteProperties(true, true), pages, new ArrayList<>(), request);
+
+    verify(response).setStatus(HttpServletResponse.SC_OK);
+  }
+
+  @Test
+  void doGetReturns304WhenIfModifiedSinceIsAtOrAfterTheMostRecentModification() throws Exception {
+    List<WebPage> pages = new ArrayList<>();
+    pages.add(webPage("/about", null, null)); // modified = 2026-03-15 12:30:00
+
+    HttpServletRequest request = mock(HttpServletRequest.class);
+    when(request.getDateHeader("If-Modified-Since")).thenReturn(Timestamp.valueOf("2026-03-15 12:30:00").getTime());
+    HttpServletResponse response = runDoGetForResponse(siteProperties(true, true), pages, new ArrayList<>(), request);
+
+    verify(response).setStatus(HttpServletResponse.SC_NOT_MODIFIED);
+  }
+
+  @Test
+  void doGetReturns200WhenIfModifiedSinceIsBeforeTheMostRecentModification() throws Exception {
+    List<WebPage> pages = new ArrayList<>();
+    pages.add(webPage("/about", null, null)); // modified = 2026-03-15 12:30:00
+
+    HttpServletRequest request = mock(HttpServletRequest.class);
+    when(request.getDateHeader("If-Modified-Since")).thenReturn(Timestamp.valueOf("2026-01-01 00:00:00").getTime());
+    HttpServletResponse response = runDoGetForResponse(siteProperties(true, true), pages, new ArrayList<>(), request);
+
+    verify(response).setStatus(HttpServletResponse.SC_OK);
+  }
+
+  @Test
+  void doGetGzipsTheResponseWhenTheClientAcceptsGzipEncoding() throws Exception {
+    List<WebPage> pages = new ArrayList<>();
+    pages.add(webPage("/about", null, null));
+
+    HttpServletRequest request = mock(HttpServletRequest.class);
+    when(request.getHeader("Accept-Encoding")).thenReturn("gzip, deflate, br");
+
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    ByteArrayOutputStream capturedOutput = new ByteArrayOutputStream();
+    ServletOutputStream servletOutputStream = new ServletOutputStream() {
+      @Override
+      public boolean isReady() {
+        return true;
+      }
+
+      @Override
+      public void setWriteListener(WriteListener writeListener) {
+      }
+
+      @Override
+      public void write(int b) {
+        capturedOutput.write(b);
+      }
+    };
+    when(response.getOutputStream()).thenReturn(servletOutputStream);
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class);
+        MockedStatic<ItemRepository> itemRepository = mockStatic(ItemRepository.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadAsMap("site")).thenReturn(siteProperties(true, true));
+      webPageRepository.when(() -> WebPageRepository.findAll(any(), any())).thenReturn(pages);
+      itemRepository.when(() -> ItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+
+      new SitemapServlet().doGet(request, response);
+    }
+
+    verify(response).setHeader("Content-Encoding", "gzip");
+
+    ByteArrayOutputStream decompressed = new ByteArrayOutputStream();
+    try (GZIPInputStream gis = new GZIPInputStream(new ByteArrayInputStream(capturedOutput.toByteArray()))) {
+      gis.transferTo(decompressed);
+    }
+    assertTrue(decompressed.toString("UTF-8").contains("<loc>https://example.org/about</loc>"),
+        "the decompressed body must still be the real sitemap content");
   }
 
   @Test
