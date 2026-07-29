@@ -24,6 +24,7 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="blockedIPList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="recordPaging" class="com.simisinc.platform.infrastructure.database.DataConstraints" scope="request"/>
+<jsp:useBean id="query" class="java.lang.String" scope="request"/>
 <c:if test="${!empty title}">
   <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
@@ -52,6 +53,16 @@
   <button class="button small secondary radius float-left margin-left-10"><i class="fa fa-download"></i> Download CSV File</button>
 </form>
 <p class="help-text">Upload requires an "IP Address" column, plus optional "Reason", "Date", and "Remove" columns; set Remove to "true" on a row to unblock that IP instead of adding it. Matching existing IPs with the same reason are skipped. Download includes IP Address, Date, and Reason.</p>
+<%-- Search (GET so the query lives in the URL and paging preserves it) --%>
+<form method="get" autocomplete="off" class="margin-bottom-10">
+  <div class="input-group">
+    <label for="blockedIpQuery" class="show-for-sr">Search by IP address or reason</label>
+    <input id="blockedIpQuery" class="input-group-field" type="search" name="query" placeholder="Search by IP address or reason..."<c:if test="${!empty query}"> value="<c:out value="${query}"/>"</c:if>>
+    <div class="input-group-button">
+      <button type="submit" class="button">Search</button>
+    </div>
+  </div>
+</form>
 <table class="unstriped stack">
   <thead>
     <tr>
@@ -75,7 +86,7 @@
     </c:forEach>
     <c:if test="${empty blockedIPList}">
       <tr>
-        <td colspan="4">No records were found</td>
+        <td colspan="4"><c:choose><c:when test="${!empty query}">No records matched your search</c:when><c:otherwise>No records were found</c:otherwise></c:choose></td>
       </tr>
     </c:if>
   </tbody>

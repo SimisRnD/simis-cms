@@ -486,6 +486,17 @@
     </section>
   </page>
 
+  <page name="/admin/seo-sitemap" role="admin,content-manager" title="SEO Sitemap">
+    <section>
+      <column class="small-12 large-10 cell">
+        <widget name="seoSitemap">
+          <icon>fa-map</icon>
+          <title>SEO Sitemap</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
   <page name="/admin/bi-properties" role="admin" title="BI Settings">
     <section>
       <column class="small-12 large-10 cell">
