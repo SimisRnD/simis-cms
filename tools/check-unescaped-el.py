@@ -270,6 +270,8 @@ ALLOWLIST: dict[str, str] = {
         "SaveMenuTabCommand.updateMenuItemLink() enforces a leading '/' prefix on save -- all stored links are relative internal paths.",
     "${webPage.link}":
         "SaveWebPageCommand rejects all external URLs via UrlCommand.isUrlValid() check (error if external) -- all stored web-page links are relative internal paths with no HTML metacharacters.",
+    "${webPage.showInSitemap}":
+        "WebPage.showInSitemap is a Java primitive `boolean` (domain/model/cms/WebPage.java:51, getter `public boolean getShowInSitemap()` at :173/:177) -- EL can only render it as the literal 'true' or 'false', never HTML metacharacters.",
     "${masterWebPage.link}":
         "Same as ${webPage.link}: SaveWebPageCommand enforces relative-only links; WebPage.link is always a site-internal path.",
     "${searchResult.link}":

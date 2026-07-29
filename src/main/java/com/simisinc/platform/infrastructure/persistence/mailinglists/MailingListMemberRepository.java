@@ -176,6 +176,62 @@ public class MailingListMemberRepository {
     return records;
   }
 
+  /**
+   * Distinct subscribers grouped by deliverability classification (issue #562, feeds off #574's
+   * emails.validation_status). NULL means never validated -- ZeroBounce is optional and the
+   * classification job only works through a backlog over time, so an unconfigured or
+   * still-classifying install legitimately shows most/all subscribers as "unclassified" rather
+   * than omitting them from the breakdown.
+   */
+  public static List<StatisticsData> findClassificationBreakdown() {
+    String SQL_QUERY =
+        "SELECT COALESCE(emails.validation_status, 'unclassified') AS status, " +
+            "COUNT(DISTINCT mailing_list_members.email_id) AS status_count " +
+            "FROM " + TABLE_NAME + " " +
+            JOIN + " " +
+            "GROUP BY COALESCE(emails.validation_status, 'unclassified') " +
+            "ORDER BY status_count DESC";
+    List<StatisticsData> records = null;
+    try (Connection connection = DB.getConnection();
+         PreparedStatement pst = connection.prepareStatement(SQL_QUERY);
+         ResultSet rs = pst.executeQuery()) {
+      records = new ArrayList<>();
+      while (rs.next()) {
+        StatisticsData data = new StatisticsData();
+        data.setLabel(rs.getString("status"));
+        data.setValue(String.valueOf(rs.getLong("status_count")));
+        records.add(data);
+      }
+    } catch (SQLException se) {
+      LOG.error("SQLException: " + se.getMessage());
+    }
+    return records;
+  }
+
+  /**
+   * When the most recently-checked current subscriber was last run through deliverability
+   * validation, or null if no subscriber has been classified yet. Scoped to subscribers (not a
+   * plain MAX(validated_at) over all of emails) so it reflects the freshness of what
+   * findClassificationBreakdown() actually shows, not unrelated non-subscriber addresses (emails
+   * also serves ecommerce customers) the classification job's backlog happens to include.
+   */
+  public static Timestamp findLastClassifiedAt() {
+    String SQL_QUERY =
+        "SELECT MAX(emails.validated_at) AS last_validated " +
+            "FROM " + TABLE_NAME + " " +
+            JOIN;
+    try (Connection connection = DB.getConnection();
+         PreparedStatement pst = connection.prepareStatement(SQL_QUERY);
+         ResultSet rs = pst.executeQuery()) {
+      if (rs.next()) {
+        return rs.getTimestamp("last_validated");
+      }
+    } catch (SQLException se) {
+      LOG.error("SQLException: " + se.getMessage());
+    }
+    return null;
+  }
+
   public static void export(MailingListMemberSpecification specification, DataConstraints constraints, File file) {
     SqlUtils selectFields = new SqlUtils()
         .addNames(
