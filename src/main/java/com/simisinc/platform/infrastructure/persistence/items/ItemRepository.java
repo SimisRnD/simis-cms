@@ -329,6 +329,111 @@ public class ItemRepository {
     DB.deleteFrom(connection, TABLE_NAME, new SqlUtils().add("collection_id = ?", record.getId()));
   }
 
+  /**
+   * The subset of ItemSpecification conditions that back an item search result: access control,
+   * keyword match, category, date range, and (the presence of) a location filter. query() and the
+   * facet count methods below all build from this shared method so a facet's count can never
+   * drift from what query() itself would return for the same specification.
+   */
+  private static SqlUtils createSearchWhereStatement(ItemSpecification specification) {
+    SqlUtils where = new SqlUtils();
+
+    if (specification.getApprovedOnly()) {
+      where.add("approved is not null");
+    } else if (specification.getUnapprovedOnly()) {
+      where.add("approved is null");
+    }
+    if (specification.getCategoryId() > -1) {
+      where.add("EXISTS (SELECT 1 FROM item_categories WHERE item_id = items.item_id AND category_id = ?)",
+          specification.getCategoryId());
+    }
+    where.addIfExists("items.created >= ?", specification.getDateRangeStart());
+    where.addIfExists("items.created < ?", specification.getDateRangeEnd());
+
+    // A location search restricts results to items that have a geocoded location at all (the
+    // zip/city radius clauses in query()'s own "Use the location geo data" block are commented
+    // out there today, i.e. not live behavior yet -- only this condition currently narrows
+    // anything), so facet counts must apply the same restriction or they'll overcount relative to
+    // what selecting them actually returns.
+    if (StringUtils.isNotBlank(specification.getSearchLocation())) {
+      where.add("geom IS NOT NULL");
+    }
+
+    // For user id
+    // User must be in a user group with collection access, or be a member of the item
+    // AND (user_id EXISTS in user group for related collection ... OR user_id EXISTS in members...) (item_id) (collection_id...)
+    if (specification.getForUserId() != DataConstants.UNDEFINED) {
+      if (specification.getForUserId() == UserSession.GUEST_ID) {
+        // For logged out users
+        where.add("collections.allows_guests = true");
+      } else {
+        // For logged out and logged in users
+        where.add(
+            "(collections.allows_guests = true " +
+                "OR (has_allowed_groups = true " +
+                "AND EXISTS (SELECT 1 FROM collection_groups WHERE collection_groups.collection_id = collections.collection_id AND view_all = true "
+                +
+                "AND EXISTS (SELECT 1 FROM user_groups WHERE user_groups.group_id = collection_groups.group_id AND user_id = ?))"
+                +
+                ") " +
+                "OR EXISTS (SELECT 1 FROM members WHERE items.item_id = members.item_id AND user_id = ? AND approved IS NOT NULL)"
+                +
+                ")",
+            new Long[] { specification.getForUserId(), specification.getForUserId() });
+      }
+    }
+
+    if (StringUtils.isNotBlank(specification.getSearchName())) {
+      where.add("tsv @@ PLAINTO_TSQUERY('title_stem', ?)", specification.getSearchName().trim());
+    }
+
+    return where;
+  }
+
+  /**
+   * Table name (with the collections join every search-relevant WHERE clause depends on) for
+   * facet-count queries via DB.selectFunction(), which takes a raw FROM-clause string.
+   */
+  private static final String FACET_COUNT_FROM = "items LEFT JOIN collections ON (items.collection_id = collections.collection_id)";
+
+  /**
+   * Facet count for a candidate category: every other active filter (keyword, date range, access
+   * control) from the given specification is applied, but its own categoryId is ignored in favor
+   * of the candidate -- so a category facet's counts reflect what selecting THAT category would
+   * produce, not what's already selected. Per issue #421's "excluding the selected dimension"
+   * requirement.
+   */
+  public static long countByCategory(ItemSpecification specification, long categoryId) {
+    ItemSpecification facetSpec = new ItemSpecification();
+    facetSpec.setApprovedOnly(specification.getApprovedOnly());
+    facetSpec.setUnapprovedOnly(specification.getUnapprovedOnly());
+    facetSpec.setForUserId(specification.getForUserId());
+    facetSpec.setSearchName(specification.getSearchName());
+    facetSpec.setSearchLocation(specification.getSearchLocation());
+    facetSpec.setDateRangeStart(specification.getDateRangeStart());
+    facetSpec.setDateRangeEnd(specification.getDateRangeEnd());
+    facetSpec.setCategoryId(categoryId);
+    return DB.selectFunction("COUNT(*)", FACET_COUNT_FROM, createSearchWhereStatement(facetSpec));
+  }
+
+  /**
+   * Facet count for a candidate date bucket: every other active filter (keyword, category, access
+   * control) from the given specification is applied, but its own date range is ignored in favor
+   * of the candidate bucket's bounds. See countByCategory.
+   */
+  public static long countByDateRange(ItemSpecification specification, Timestamp start, Timestamp end) {
+    ItemSpecification facetSpec = new ItemSpecification();
+    facetSpec.setApprovedOnly(specification.getApprovedOnly());
+    facetSpec.setUnapprovedOnly(specification.getUnapprovedOnly());
+    facetSpec.setForUserId(specification.getForUserId());
+    facetSpec.setSearchName(specification.getSearchName());
+    facetSpec.setSearchLocation(specification.getSearchLocation());
+    facetSpec.setCategoryId(specification.getCategoryId());
+    facetSpec.setDateRangeStart(start);
+    facetSpec.setDateRangeEnd(end);
+    return DB.selectFunction("COUNT(*)", FACET_COUNT_FROM, createSearchWhereStatement(facetSpec));
+  }
+
   private static DataResult query(ItemSpecification specification, DataConstraints constraints) {
     SqlUtils select = new SqlUtils();
     SqlJoins joins = new SqlJoins();
@@ -338,6 +443,7 @@ public class ItemRepository {
 
       joins.add("LEFT JOIN collections ON (items.collection_id = collections.collection_id)");
 
+      where = createSearchWhereStatement(specification);
       where
           .addIfExists("item_id = ?", specification.getId(), -1)
           .addIfExists("item_id <> ?", specification.getExcludeId(), -1)
@@ -347,11 +453,6 @@ public class ItemRepository {
           .addIfExists("dataset_id = ?", specification.getDatasetId(), -1)
           .addIfExists("sync_date < ?", specification.getDatasetSyncTimestampThreshold());
 
-      if (specification.getApprovedOnly()) {
-        where.add("approved is not null");
-      } else if (specification.getUnapprovedOnly()) {
-        where.add("approved is null");
-      }
       if (specification.getName() != null) {
         where.add("LOWER(items.name) = ?", specification.getName().trim().toLowerCase());
       }
@@ -362,35 +463,6 @@ public class ItemRepository {
             .replace("_", "!_")
             .replace("[", "![");
         where.add("LOWER(items.name) LIKE LOWER(?) ESCAPE '!'", likeValue + "%");
-      }
-      if (specification.getCategoryId() > -1) {
-        //where.add("category_id = ?", specification.getCategoryId(), -1);
-        where.add("EXISTS (SELECT 1 FROM item_categories WHERE item_id = items.item_id AND category_id = ?)",
-            specification.getCategoryId());
-      }
-
-      // For user id
-      // User must be in a user group with collection access, or be a member of the item
-      // AND (user_id EXISTS in user group for related collection ... OR user_id EXISTS in members...) (item_id) (collection_id...)
-      if (specification.getForUserId() != DataConstants.UNDEFINED) {
-        if (specification.getForUserId() == UserSession.GUEST_ID) {
-          // For logged out users
-          where.add("collections.allows_guests = true");
-        } else {
-          // For logged out and logged in users
-          where.add(
-              "(collections.allows_guests = true " +
-                  "OR (has_allowed_groups = true " +
-                  "AND EXISTS (SELECT 1 FROM collection_groups WHERE collection_groups.collection_id = collections.collection_id AND view_all = true "
-                  +
-                  "AND EXISTS (SELECT 1 FROM user_groups WHERE user_groups.group_id = collection_groups.group_id AND user_id = ?))"
-                  +
-                  ") " +
-                  "OR EXISTS (SELECT 1 FROM members WHERE items.item_id = members.item_id AND user_id = ? AND approved IS NOT NULL)"
-                  +
-                  ")",
-              new Long[] { specification.getForUserId(), specification.getForUserId() });
-        }
       }
 
       // User must be a member of the item
@@ -405,8 +477,8 @@ public class ItemRepository {
       if (StringUtils.isNotBlank(specification.getSearchLocation())) {
         // Skip the SELECT COUNT(*), it causes slowdowns due to coordinate issue
         constraints.setUseCount(false);
-        // Skip items without a location
-        where.add("geom IS NOT NULL");
+        // Skip items without a location -- the WHERE condition itself is already applied by
+        // createSearchWhereStatement() above
         // Determine if there is a region to search within
         String value = specification.getSearchLocation();
         if (StringUtils.isNumeric(value) && value.length() == 5) {
@@ -453,7 +525,7 @@ public class ItemRepository {
             "ts_headline('english', items.name || ' ' || coalesce(keywords,'') || ' ' || coalesce(summary,''), PLAINTO_TSQUERY('title_stem', ?), 'StartSel=${b}, StopSel=${/b}, MaxWords=30, MinWords=15, ShortWord=3, HighlightAll=FALSE, MaxFragments=2, FragmentDelimiter=\" ... \"') AS highlight",
             specification.getSearchName().trim());
         select.add("TS_RANK_CD(tsv, PLAINTO_TSQUERY('title_stem', ?)) AS rank", specification.getSearchName().trim());
-        where.add("tsv @@ PLAINTO_TSQUERY('title_stem', ?)", specification.getSearchName().trim());
+        // The WHERE condition itself is already applied by createSearchWhereStatement() above
         // Override the order by for rank first
         orderBy.add("rank DESC, item_id");
       }
