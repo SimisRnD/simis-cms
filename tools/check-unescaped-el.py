@@ -160,6 +160,8 @@ ALLOWLIST: dict[str, str] = {
         "SupersetWidget.java:56-59 sets this from a Java boolean via a ternary, so it is one of the two literals true/false and the operator's preference text is discarded after a 'true'.equals() comparison",
     "${hideChartTitle}":
         "Both attributes are set from a Java boolean via the ternary `hideChartTitle ? 'true' : 'false'` (and likewise for hideChartControls), so the request attribute is one of exactly two",
+    "${historyUrl}":
+        "Built by <c:url> tag with <c:param> elements (targetType, targetLabel=record.ipAddress) in blocked-ip-list.jsp/allowed-ip-list.jsp; <c:url> percent-encodes every <c:param> value, so record.ipAddress cannot inject markup into the href attribute even though it is operator/attacker-influenced data.",
     "${html}":
         "SAFE — the value is HTML by design and is run through HtmlCommand.cleanContent (jsoup Safelist.relaxed, which strips script/style tags and all on* handler attributes) before being",
     "${initialView}":

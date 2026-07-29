@@ -471,6 +471,7 @@ CREATE TABLE audit_log (
 CREATE INDEX audit_log_occurred_idx ON audit_log(occurred);
 CREATE INDEX audit_log_category_type_idx ON audit_log(event_category, event_type);
 CREATE INDEX audit_log_actor_idx ON audit_log(actor_user_id);
+CREATE INDEX audit_log_target_idx ON audit_log(target_type, target_label);
 
 -- Audit log prefix-deletion watermark (#296, AU-9; mirrored by UPGRADE_20260725.1002 for existing
 -- installs). Left empty on a fresh install -- there is no audit history yet to backfill from, and
