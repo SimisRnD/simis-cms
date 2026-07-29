@@ -320,13 +320,11 @@ public class WebContainerCommand implements Serializable {
             PageRenderInfo pageRenderInfo = (PageRenderInfo) containerRenderInfo;
             if (StringUtils.isNotBlank(widgetContext.getPageTitle())) {
               if (webContainerContext.getWebPage() != null) {
-                pageRenderInfo.setTitle(
-                    widgetContext.getPageTitle() +
-                        (StringUtils.isNotBlank(webContainerContext.getWebPage().getTitle()) ? " - " + webContainerContext.getWebPage().getTitle() : ""));
+                pageRenderInfo.setTitle(composePageTitle(widgetContext.getPageTitle(), widgetContext.isPageTitleComposed(),
+                    webContainerContext.getWebPage().getTitle()));
               } else if (webContainerContext.getPage() != null) {
-                pageRenderInfo.setTitle(
-                    widgetContext.getPageTitle() +
-                        (StringUtils.isNotBlank(webContainerContext.getPage().getTitle()) ? " - " + webContainerContext.getPage().getTitle() : ""));
+                pageRenderInfo.setTitle(composePageTitle(widgetContext.getPageTitle(), widgetContext.isPageTitleComposed(),
+                    webContainerContext.getPage().getTitle()));
               }
             }
             if (StringUtils.isNotBlank(widgetContext.getPageDescription())) {
@@ -335,10 +333,18 @@ public class WebContainerCommand implements Serializable {
             if (StringUtils.isNotBlank(widgetContext.getPageKeywords())) {
               pageRenderInfo.setKeywords(widgetContext.getPageKeywords());
             }
-            // FAQPage schema (issue #416), e.g. from FaqWidget -- additive since more than one
-            // FaqWidget on the same page should combine into one FAQPage, not overwrite
-            if (widgetContext.getFaqQuestions() != null && !widgetContext.getFaqQuestions().isEmpty()) {
-              pageRenderInfo.addFaqQuestions(widgetContext.getFaqQuestions());
+            // Article schema fields (issue #403), e.g. from BlogPostWidget
+            if (StringUtils.isNotBlank(widgetContext.getArticleHeadline())) {
+              pageRenderInfo.setArticleHeadline(widgetContext.getArticleHeadline());
+            }
+            if (widgetContext.getArticlePublishedDate() != null) {
+              pageRenderInfo.setArticlePublishedDate(widgetContext.getArticlePublishedDate());
+            }
+            if (widgetContext.getArticleModifiedDate() != null) {
+              pageRenderInfo.setArticleModifiedDate(widgetContext.getArticleModifiedDate());
+            }
+            if (StringUtils.isNotBlank(widgetContext.getArticleAuthorName())) {
+              pageRenderInfo.setArticleAuthorName(widgetContext.getArticleAuthorName());
             }
           }
 
@@ -592,5 +598,23 @@ public class WebContainerCommand implements Serializable {
       LOG.error("Malformed widget JSP path, skipping include: " + jspPath);
       return false;
     }
+  }
+
+  /**
+   * Combines a widget's page title with the container's (WebPage or Page) own title. A widget
+   * that has already composed its title in full (e.g. a blog post title with its blog name
+   * appended, via {@link WidgetContext#setComposedPageTitle}) opts out of this so the container's
+   * title is not appended a second time on top of it.
+   *
+   * @param widgetPageTitle    the widget's page title, expected non-blank
+   * @param pageTitleComposed  true if the widget already composed its title in full
+   * @param containerTitle     the WebPage's or Page's own title, may be blank
+   * @return the title to render
+   */
+  protected static String composePageTitle(String widgetPageTitle, boolean pageTitleComposed, String containerTitle) {
+    if (pageTitleComposed || StringUtils.isBlank(containerTitle)) {
+      return widgetPageTitle;
+    }
+    return widgetPageTitle + " - " + containerTitle;
   }
 }

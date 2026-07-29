@@ -17,6 +17,7 @@
 package com.simisinc.platform.presentation.controller;
 
 import java.io.Serializable;
+import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -51,11 +52,17 @@ public class WidgetContext implements Serializable {
   private boolean embedded = false;
 
   private String pageTitle = null;
+  private boolean pageTitleComposed = false;
   private String pageDescription = null;
   private String pageKeywords = null;
 
-  // FAQPage schema fields (issue #416), bridged from FaqWidget
-  private List<FaqQuestion> faqQuestions = null;
+  // Article schema fields (issue #403) -- separate from pageTitle/pageDescription above since
+  // those get a " - Site/Section Name" suffix applied for the browser tab, which would be wrong
+  // inside a JSON-LD headline
+  private String articleHeadline = null;
+  private Timestamp articlePublishedDate = null;
+  private Timestamp articleModifiedDate = null;
+  private String articleAuthorName = null;
 
   private String jsp = null;
   private String html = null;
@@ -152,6 +159,17 @@ public class WidgetContext implements Serializable {
     this.pageTitle = pageTitle;
   }
 
+  // Use when pageTitle already includes its own section/suffix context (e.g. a blog name) so
+  // the container knows not to append the WebPage's own title on top of it
+  public void setComposedPageTitle(String pageTitle) {
+    this.pageTitle = pageTitle;
+    this.pageTitleComposed = true;
+  }
+
+  public boolean isPageTitleComposed() {
+    return pageTitleComposed;
+  }
+
   public String getPageDescription() {
     return pageDescription;
   }
@@ -168,12 +186,36 @@ public class WidgetContext implements Serializable {
     this.pageKeywords = pageKeywords;
   }
 
-  public List<FaqQuestion> getFaqQuestions() {
-    return faqQuestions;
+  public String getArticleHeadline() {
+    return articleHeadline;
   }
 
-  public void setFaqQuestions(List<FaqQuestion> faqQuestions) {
-    this.faqQuestions = faqQuestions;
+  public void setArticleHeadline(String articleHeadline) {
+    this.articleHeadline = articleHeadline;
+  }
+
+  public Timestamp getArticlePublishedDate() {
+    return articlePublishedDate;
+  }
+
+  public void setArticlePublishedDate(Timestamp articlePublishedDate) {
+    this.articlePublishedDate = articlePublishedDate;
+  }
+
+  public Timestamp getArticleModifiedDate() {
+    return articleModifiedDate;
+  }
+
+  public void setArticleModifiedDate(Timestamp articleModifiedDate) {
+    this.articleModifiedDate = articleModifiedDate;
+  }
+
+  public String getArticleAuthorName() {
+    return articleAuthorName;
+  }
+
+  public void setArticleAuthorName(String articleAuthorName) {
+    this.articleAuthorName = articleAuthorName;
   }
 
   public String getJsp() {
