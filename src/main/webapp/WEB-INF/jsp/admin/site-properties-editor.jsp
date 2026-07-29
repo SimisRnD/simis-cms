@@ -151,7 +151,7 @@
             <c:when test="${siteProperty.type eq 'url'}">
               <div class="input-group">
                 <span class="input-group-label"><i class="fa fa-link"></i></span>
-                <input class="input-group-field" id="${siteProperty.id}" type="text" name="${siteProperty.name}" placeholder="http://..." value="<c:out value="${siteProperty.value}"/>">
+                <input class="input-group-field" id="${siteProperty.id}" type="text" name="${siteProperty.name}" placeholder="http://..." value="<c:out value="${siteProperty.value}"/>"<c:if test="${siteProperty.name eq 'elearning.lrs.url'}"> aria-describedby="elearningLrsUrlHelpText"</c:if><c:if test="${siteProperty.name eq 'elearning.moodle.url'}"> aria-describedby="elearningMoodleUrlHelpText"</c:if><c:if test="${siteProperty.name eq 'elearning.perls.url'}"> aria-describedby="elearningPerlsUrlHelpText"</c:if>>
               </div>
             </c:when>
             <c:when test="${siteProperty.type eq 'image'}">
@@ -230,6 +230,15 @@
           </c:if>
           <c:if test="${siteProperty.name eq 'robots.ai.ccbot'}">
             <p class="help-text">Common Crawl's general-purpose crawler. Its dataset is reused by many different research labs and companies to train a wide range of models, not just one -- turning this off is the broadest of these opt-outs, but doesn't name a specific model or company.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'elearning.lrs.url'}">
+            <p class="help-text" id="elearningLrsUrlHelpText">This connects to a Learning Record Store (LRS) using xAPI, a learning-data standard created by the DoD's Advanced Distributed Learning (ADL) Initiative and encouraged for DoD systems under DoD Instruction 1322.26. ADL's own reference LRS (<a href="https://github.com/adlnet/ADL_LRS" target="_blank" rel="noreferrer">adlnet/ADL_LRS</a>) is now archived following the Initiative's 2025 shutdown. <a href="https://github.com/yetanalytics/lrsql" target="_blank" rel="noreferrer">Yet Analytics' SQL LRS</a> -- built by the first vendor to pass the DoD's full ADL LRS Test Suite -- is an actively maintained open-source alternative.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'elearning.moodle.url'}">
+            <p class="help-text" id="elearningMoodleUrlHelpText">Moodle is the world's most widely used open-source learning management system, created in 1999 by Martin Dougiamas and first released in 2002 -- now with an estimated 200+ million users and still under active development (<a href="https://github.com/moodle/moodle" target="_blank" rel="noreferrer">moodle/moodle</a>). Other actively maintained open-source LMS options include Open edX, Canvas LMS, Sakai, and Chamilo, though Moodle remains the largest by installed base.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'elearning.perls.url'}">
+            <p class="help-text" id="elearningPerlsUrlHelpText">PERLS (PERvasive Learning System) is a mobile, personalized microlearning app for informal and on-the-job training, developed and funded by the DoD's Advanced Distributed Learning (ADL) Initiative. Like ADL's LRS above, it's now archived following the Initiative's 2025 shutdown (<a href="https://github.com/adlnet/perls" target="_blank" rel="noreferrer">adlnet/perls</a>). Unlike LRS, no actively maintained open-source equivalent was found -- the closest comparisons are commercial microlearning platforms (e.g. Axonify, TalentCards), not open-source projects.</p>
           </c:if>
         </td>
       </tr>

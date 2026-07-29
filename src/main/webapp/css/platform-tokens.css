@@ -361,6 +361,15 @@ summary:focus-visible,
   color: var(--sc-text-muted);
 }
 
+/* Foundation's default .help-text uses a negative margin-top to tuck it
+   under a plain <input>. That collapses to no visible gap (or worse) after
+   an .input-group wrapper (the icon + input used by type="url" fields), so
+   help text reads as jammed against the field above it. A small positive
+   gap reads correctly after both a plain input and an .input-group. */
+.help-text {
+  margin-top: var(--sc-space-1);
+}
+
 /* Foundation renders the select arrow as an embedded SVG data URI in a
    dark ink that disappears on a dark field. */
 :root[data-theme="dark"] select {
