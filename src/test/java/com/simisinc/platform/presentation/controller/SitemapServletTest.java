@@ -21,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
@@ -40,10 +41,19 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.domain.model.cms.Blog;
+import com.simisinc.platform.domain.model.cms.BlogPost;
 import com.simisinc.platform.domain.model.cms.WebPage;
+import com.simisinc.platform.domain.model.cms.Wiki;
+import com.simisinc.platform.domain.model.cms.WikiPage;
 import com.simisinc.platform.domain.model.items.Item;
+import com.simisinc.platform.infrastructure.persistence.cms.BlogPostRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.BlogPostSpecification;
+import com.simisinc.platform.infrastructure.persistence.cms.BlogRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageSpecification;
+import com.simisinc.platform.infrastructure.persistence.cms.WikiPageRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.WikiRepository;
 import com.simisinc.platform.infrastructure.persistence.items.ItemRepository;
 
 import jakarta.servlet.http.HttpServletRequest;
@@ -246,6 +256,137 @@ class SitemapServletTest {
     assertTrue(body.contains("<loc>https://example.org/show/widget</loc>"),
         "items must use /show/{uniqueId}, matching every other item link in the app: " + body);
     assertFalse(body.contains("/item/widget"));
+  }
+
+  private static BlogPost blogPost(long blogId, String uniqueId, Timestamp modified) {
+    BlogPost post = new BlogPost();
+    post.setBlogId(blogId);
+    post.setUniqueId(uniqueId);
+    post.setModified(modified);
+    return post;
+  }
+
+  private static Blog blog(String uniqueId) {
+    Blog blog = new Blog();
+    blog.setUniqueId(uniqueId);
+    return blog;
+  }
+
+  private static WikiPage wikiPage(long wikiId, String uniqueId, Timestamp modified) {
+    WikiPage page = new WikiPage();
+    page.setWikiId(wikiId);
+    page.setUniqueId(uniqueId);
+    page.setModified(modified);
+    return page;
+  }
+
+  private static Wiki wiki(String uniqueId, boolean enabled) {
+    Wiki wiki = new Wiki();
+    wiki.setUniqueId(uniqueId);
+    wiki.setEnabled(enabled);
+    return wiki;
+  }
+
+  private String runDoGetWithBlogAndWiki(List<BlogPost> blogPostList, Map<Long, Blog> blogById,
+      List<WikiPage> wikiPageList, Map<Long, Wiki> wikiById) throws Exception {
+    HttpServletRequest request = mock(HttpServletRequest.class);
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    StringWriter body = new StringWriter();
+    when(response.getWriter()).thenReturn(new PrintWriter(body));
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class);
+        MockedStatic<ItemRepository> itemRepository = mockStatic(ItemRepository.class);
+        MockedStatic<BlogPostRepository> blogPostRepository = mockStatic(BlogPostRepository.class);
+        MockedStatic<BlogRepository> blogRepository = mockStatic(BlogRepository.class);
+        MockedStatic<WikiPageRepository> wikiPageRepository = mockStatic(WikiPageRepository.class);
+        MockedStatic<WikiRepository> wikiRepository = mockStatic(WikiRepository.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadAsMap("site")).thenReturn(siteProperties(true, true));
+      webPageRepository.when(() -> WebPageRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+      itemRepository.when(() -> ItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+      blogPostRepository.when(() -> BlogPostRepository.findAll(any(), any())).thenReturn(blogPostList);
+      blogRepository.when(() -> BlogRepository.findById(anyLong())).thenAnswer(invocation -> blogById.get((Long) invocation.getArgument(0)));
+      wikiPageRepository.when(() -> WikiPageRepository.findAll(any(), any())).thenReturn(wikiPageList);
+      wikiRepository.when(() -> WikiRepository.findById(anyLong())).thenAnswer(invocation -> wikiById.get((Long) invocation.getArgument(0)));
+
+      new SitemapServlet().doGet(request, response);
+    }
+
+    return body.toString();
+  }
+
+  @Test
+  void doGetOnlyQueriesPublishedBlogPosts() throws Exception {
+    ArgumentCaptor<BlogPostSpecification> captor = ArgumentCaptor.forClass(BlogPostSpecification.class);
+    HttpServletRequest request = mock(HttpServletRequest.class);
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    when(response.getWriter()).thenReturn(new PrintWriter(new StringWriter()));
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class);
+        MockedStatic<ItemRepository> itemRepository = mockStatic(ItemRepository.class);
+        MockedStatic<BlogPostRepository> blogPostRepository = mockStatic(BlogPostRepository.class);
+        MockedStatic<WikiPageRepository> wikiPageRepository = mockStatic(WikiPageRepository.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadAsMap("site")).thenReturn(siteProperties(true, true));
+      webPageRepository.when(() -> WebPageRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+      itemRepository.when(() -> ItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+      blogPostRepository.when(() -> BlogPostRepository.findAll(captor.capture(), any())).thenReturn(new ArrayList<>());
+      wikiPageRepository.when(() -> WikiPageRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+
+      new SitemapServlet().doGet(request, response);
+    }
+
+    assertEquals(DataConstants.TRUE, captor.getValue().getPublishedOnly());
+  }
+
+  @Test
+  void doGetIncludesPublishedBlogPostsUsingTheBlogAndPostUniqueIds() throws Exception {
+    List<BlogPost> posts = new ArrayList<>();
+    posts.add(blogPost(1L, "welcome-post", Timestamp.valueOf("2026-03-15 12:30:00")));
+    Map<Long, Blog> blogById = new HashMap<>();
+    blogById.put(1L, blog("news"));
+
+    String body = runDoGetWithBlogAndWiki(posts, blogById, new ArrayList<>(), new HashMap<>());
+
+    assertTrue(body.contains("<loc>https://example.org/news/welcome-post</loc>"),
+        "blog post URL must be /{blogUniqueId}/{postUniqueId}: " + body);
+    assertTrue(body.contains("<lastmod>2026-03-15</lastmod>"));
+  }
+
+  @Test
+  void doGetOmitsABlogPostWhoseBlogNoLongerExists() throws Exception {
+    List<BlogPost> posts = new ArrayList<>();
+    posts.add(blogPost(99L, "orphaned-post", Timestamp.valueOf("2026-03-15 12:30:00")));
+
+    String body = runDoGetWithBlogAndWiki(posts, new HashMap<>(), new ArrayList<>(), new HashMap<>());
+
+    assertFalse(body.contains("orphaned-post"), "a post whose Blog can't be resolved must not be linked: " + body);
+  }
+
+  @Test
+  void doGetIncludesWikiPagesFromAnEnabledWiki() throws Exception {
+    List<WikiPage> pages = new ArrayList<>();
+    pages.add(wikiPage(1L, "getting-started", Timestamp.valueOf("2026-04-01 09:00:00")));
+    Map<Long, Wiki> wikiById = new HashMap<>();
+    wikiById.put(1L, wiki("docs", true));
+
+    String body = runDoGetWithBlogAndWiki(new ArrayList<>(), new HashMap<>(), pages, wikiById);
+
+    assertTrue(body.contains("<loc>https://example.org/docs/getting-started</loc>"),
+        "wiki page URL must be /{wikiUniqueId}/{pageUniqueId}: " + body);
+    assertTrue(body.contains("<lastmod>2026-04-01</lastmod>"));
+  }
+
+  @Test
+  void doGetOmitsWikiPagesFromADisabledWiki() throws Exception {
+    List<WikiPage> pages = new ArrayList<>();
+    pages.add(wikiPage(1L, "internal-only", Timestamp.valueOf("2026-04-01 09:00:00")));
+    Map<Long, Wiki> wikiById = new HashMap<>();
+    wikiById.put(1L, wiki("archive", false));
+
+    String body = runDoGetWithBlogAndWiki(new ArrayList<>(), new HashMap<>(), pages, wikiById);
+
+    assertFalse(body.contains("internal-only"), "pages in a disabled wiki must not appear in the sitemap: " + body);
   }
 
   @Test
