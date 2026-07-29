@@ -13,20 +13,27 @@ Every request's IP is checked in `WebRequestFilter`, before authentication, rout
 
 ## Check order
 
-Four lists are consulted, in this order, and the first match decides the outcome:
+Five lists are consulted, in this order, and the first match decides the outcome:
 
-1. **Allow list** — `config/cms/ip-allow-list.csv`. A match here always passes, short-circuiting the remaining checks.
-2. **Deny list** — `config/cms/ip-deny-list.csv`. A match here always blocks.
-3. **Blocked IP list** — the database-backed list managed at `/admin/blocked-ip-list` (this is the only one of the four with an admin UI). A match blocks.
-4. **URL probe list** — `config/cms/url-block-list.csv`, a list of request paths associated with known scanning/attack tools (e.g. common admin-panel or vulnerability-scanner probe paths). If the *requested path* — not the IP — matches an entry here, the requesting IP is added to the database-backed blocked IP list immediately and blocks going forward.
+1. **Allow list (file)** — `config/cms/ip-allow-list.csv`. A match here always passes, short-circuiting the remaining checks.
+2. **Allow list (admin UI)** — the database-backed list managed at `/admin/allowed-ip-list`. A match also always passes.
+3. **Deny list** — `config/cms/ip-deny-list.csv`. A match here always blocks.
+4. **Blocked IP list** — the database-backed list managed at `/admin/blocked-ip-list`. A match blocks.
+5. **URL probe list** — `config/cms/url-block-list.csv`, a list of request paths associated with known scanning/attack tools (e.g. common admin-panel or vulnerability-scanner probe paths). If the *requested path* — not the IP — matches an entry here, the requesting IP is added to the database-backed blocked IP list immediately and blocks going forward.
 
-The two file-based lists (1 and 2) and the probe-path list (4) are **not editable from any admin screen** — they're deployment-time files on the server, polled for changes every 5 minutes by a background job (and loaded once at startup), so edits take effect without a restart, just not instantly.
+The two file-based lists (1 and 3) and the probe-path list (5) are **not editable from any admin screen** — they're deployment-time files on the server, polled for changes every 5 minutes by a background job (and loaded once at startup), so edits take effect without a restart, just not instantly. The two database-backed lists (2 and 4) take effect immediately.
 
-There is no automatic blocking tied to failed logins, rate limiting, or form submissions today — the only automatic path onto the blocked IP list is #4 above (hitting a known probe path).
+There is no automatic blocking tied to failed logins, rate limiting, or form submissions today — the only automatic path onto the blocked IP list is #5 above (hitting a known probe path).
 
 ## Matching and validation
 
-All four lists match by **exact IP address string** — there is no CIDR/subnet range support anywhere in this path. An entry added through `/admin/blocked-ip-list` (manually or via CSV) must be a valid IPv4 or IPv6 address; invalid or blank input is rejected.
+All five lists match by **exact IP address string** — there is no CIDR/subnet range support anywhere in this path. An entry added through `/admin/blocked-ip-list` or `/admin/allowed-ip-list` (manually or via CSV) must be a valid IPv4 or IPv6 address; invalid or blank input is rejected.
+
+## Managing the allow list (`/admin/allowed-ip-list`)
+
+Same shape as the blocked IP list below (add form, per-row delete, CSV upload/download with the same column conventions), but a match here passes the request instead of blocking it. There's no self-add guard here — unlike the blocked list, allowing your own current IP isn't a lockout risk, so it's not restricted.
+
+Note this UI manages the database-backed allow list only (check #2 above). The file-based allow list (`config/cms/ip-allow-list.csv`, check #1) still exists, is still checked first, and still requires server file access to edit — this UI doesn't replace it, it adds a second, admin-manageable allow path alongside it.
 
 ## Managing the blocked IP list (`/admin/blocked-ip-list`)
 
@@ -43,14 +50,14 @@ All four lists match by **exact IP address string** — there is no CIDR/subnet 
 
 ## Audit trail
 
-Every add, delete, CSV import, and CSV export on `/admin/blocked-ip-list` is recorded through the platform's audit logging (`blocked_ip.remove`, `blocked_ip.import`, `data.export` events). These do not appear inline on the page — view them from the **Audit Log** admin screen.
+Every add, delete, CSV import, and CSV export on `/admin/blocked-ip-list` and `/admin/allowed-ip-list` is recorded through the platform's audit logging (`blocked_ip.*`/`allowed_ip.*`, `data.export` events). These do not appear inline on either page — view them from the **Audit Log** admin screen.
 
 ## Known limitations
 
-- No admin UI for the allow list or deny list — they're server-file-only today, so exempting an IP (e.g. your own office network) requires file access to `config/cms/ip-allow-list.csv` on the deployment, not just admin-panel access.
-- No CIDR/subnet blocking — blocking a range means adding every address individually.
+- No admin UI for the deny list — it's server-file-only today (`config/cms/ip-deny-list.csv`), requiring file access to the deployment, not just admin-panel access. (The allow list has an admin UI as of `/admin/allowed-ip-list`, though its underlying file counterpart is still file-only too — see above.)
+- No CIDR/subnet blocking — blocking or allowing a range means adding every address individually.
 - No expiration — a manually or automatically blocked IP stays blocked until someone deletes it; there's no time-limited or graduated blocking.
-- No search/filter on the blocked IP list UI beyond pagination.
+- No search/filter on either list's UI beyond pagination.
 
 ## Related
 
