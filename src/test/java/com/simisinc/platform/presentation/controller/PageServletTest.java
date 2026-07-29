@@ -29,6 +29,8 @@ import org.junit.jupiter.api.Test;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.simisinc.platform.domain.model.cms.WebPage;
+import com.simisinc.platform.domain.model.items.Collection;
 import com.simisinc.platform.domain.model.items.Item;
 
 /**
@@ -108,5 +110,57 @@ class PageServletTest {
   @Test
   void isFormTokenValidRejectsANullSessionToken() {
     assertFalse(PageServlet.isFormTokenValid("abc-123", null));
+  }
+
+  @Test
+  void computeCanonicalUrlReturnsNullWhenSiteUrlIsBlank() {
+    assertNull(PageServlet.computeCanonicalUrl("", "/legal/privacy", null, null, null));
+    assertNull(PageServlet.computeCanonicalUrl(null, "/legal/privacy", null, null, null));
+  }
+
+  @Test
+  void computeCanonicalUrlCoversTheHomepage() {
+    // Regression test for issue #401: the homepage previously fell through every branch (an
+    // explicit !pagePath.equals("/") check excluded it, and there's no WebPage/Item/Collection
+    // for a plain root request), so it was the one page that never got a canonical tag at all.
+    assertEquals("https://example.org/", PageServlet.computeCanonicalUrl("https://example.org", "/", null, null, null));
+  }
+
+  @Test
+  void computeCanonicalUrlUsesThePagePathWhenNothingElseIdentifiesThePage() {
+    assertEquals("https://example.org/legal/privacy",
+        PageServlet.computeCanonicalUrl("https://example.org", "/legal/privacy", null, null, null));
+  }
+
+  @Test
+  void computeCanonicalUrlPrefersTheWebPageLinkOverTheRequestPath() {
+    // A page can be reached by more than one path (aliases, trailing-slash variants); the
+    // canonical URL should point at the page's own configured link, not whichever path this
+    // particular request happened to use.
+    WebPage webPage = new WebPage();
+    webPage.setLink("/about-us");
+
+    assertEquals("https://example.org/about-us",
+        PageServlet.computeCanonicalUrl("https://example.org", "/about", webPage, null, null));
+  }
+
+  @Test
+  void computeCanonicalUrlUsesTheCollectionPathForACollectionPage() {
+    Collection collection = new Collection();
+    collection.setUniqueId("staff");
+
+    assertEquals("https://example.org/items/staff",
+        PageServlet.computeCanonicalUrl("https://example.org", "/items/staff", null, null, collection));
+  }
+
+  @Test
+  void computeCanonicalUrlUsesTheItemAndCollectionPathForAnItemDetailPage() {
+    Collection collection = new Collection();
+    collection.setUniqueId("staff");
+    Item item = new Item();
+    item.setUniqueId("jane-doe");
+
+    assertEquals("https://example.org/items/staff/jane-doe",
+        PageServlet.computeCanonicalUrl("https://example.org", "/items/staff/jane-doe", null, item, collection));
   }
 }
