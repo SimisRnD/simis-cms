@@ -237,6 +237,31 @@ public class SiteStatsWidget extends GenericWidget {
       Long count = SessionRepository.countOnlineNow();
       context.getRequest().setAttribute("numberValue", String.valueOf(count));
       return CARD_JSP;
+    } else if ("real-sessions-today".equalsIgnoreCase(report)) {
+      long count = SessionRepository.countDistinctSessions(startOfToday(), now());
+      context.getRequest().setAttribute("numberValue", String.valueOf(count));
+      return CARD_JSP;
+    } else if ("bot-sessions-today-total".equalsIgnoreCase(report)) {
+      long count = SessionRepository.countBotSessions(startOfToday(), now());
+      context.getRequest().setAttribute("numberValue", String.valueOf(count));
+      return CARD_JSP;
+    } else if ("bot-traffic-percentage".equalsIgnoreCase(report)) {
+      Timestamp start = startOfToday();
+      Timestamp end = now();
+      long real = SessionRepository.countDistinctSessions(start, end);
+      long bot = SessionRepository.countBotSessions(start, end);
+      long total = real + bot;
+      long percentage = total == 0 ? 0 : Math.round((bot * 100.0) / total);
+      context.getRequest().setAttribute("numberValue", String.valueOf(percentage));
+      return CARD_JSP;
+    } else if ("daily-real-sessions".equalsIgnoreCase(report)) {
+      List<StatisticsData> statisticsDataList = SessionRepository.findDailySessionsByBotStatus(30, false);
+      context.getRequest().setAttribute("statisticsDataList", statisticsDataList);
+      return JSP;
+    } else if ("daily-bot-sessions".equalsIgnoreCase(report)) {
+      List<StatisticsData> statisticsDataList = SessionRepository.findDailySessionsByBotStatus(30, true);
+      context.getRequest().setAttribute("statisticsDataList", statisticsDataList);
+      return JSP;
     } else if ("locations-list".equalsIgnoreCase(report)) {
       List<Session> sessionList = SessionRepository.findDailyUniqueLocations(intervalValue);
       context.getRequest().setAttribute("sessionList", sessionList);
@@ -311,8 +336,7 @@ public class SiteStatsWidget extends GenericWidget {
       context.getRequest().setAttribute("severity", count > 0 ? "warning" : "ok");
       return ALERT_CARD_JSP;
     } else if ("bot-sessions-today".equalsIgnoreCase(report)) {
-      Timestamp startOfToday = Timestamp.valueOf(java.time.LocalDate.now().atStartOfDay());
-      long count = SessionRepository.countDistinctBotSessions(startOfToday, new Timestamp(System.currentTimeMillis()));
+      long count = SessionRepository.countDistinctBotSessions(startOfToday(), now());
       context.getRequest().setAttribute("numberValue", String.valueOf(count));
       context.getRequest().setAttribute("severity", "ok");
       return ALERT_CARD_JSP;
@@ -322,6 +346,14 @@ public class SiteStatsWidget extends GenericWidget {
     } else {
       return null;
     }
+  }
+
+  private static Timestamp startOfToday() {
+    return Timestamp.valueOf(java.time.LocalDate.now().atStartOfDay());
+  }
+
+  private static Timestamp now() {
+    return new Timestamp(System.currentTimeMillis());
   }
 
   private static Timestamp last24Hours() {

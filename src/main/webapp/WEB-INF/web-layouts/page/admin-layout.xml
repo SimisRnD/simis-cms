@@ -192,9 +192,21 @@
       <!--</column>-->
     <!--</section>-->
     <section>
+      <column class="small-12 medium-9 large-8 small-order-2 medium-order-1 small-margin-top-10 cell">
+        <widget name="socialMediaLinkList">
+          <title>Social Profile Links</title>
+        </widget>
+      </column>
+      <column class="small-12 medium-3 large-4 small-order-1 medium-order-2 cell">
+        <widget name="socialMediaLinkForm" class="callout radius primary" sticky="true">
+          <title>Add a Platform</title>
+        </widget>
+      </column>
+    </section>
+    <section>
       <column class="small-12 large-10 cell">
         <widget name="sitePropertiesEditor">
-          <title>Social Media Settings</title>
+          <title>Contact &amp; Integration Settings</title>
           <prefix>social</prefix>
         </widget>
       </column>
@@ -637,6 +649,22 @@
           <title>Monthly Sessions</title>
           <label>Sessions</label>
           <report>monthly-sessions</report>
+          <type>line</type>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 cell">
+        <widget name="siteStats" class="stats card">
+          <title>Daily Real Sessions</title>
+          <label>Real Sessions</label>
+          <report>daily-real-sessions</report>
+          <type>line</type>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 cell">
+        <widget name="siteStats" class="stats card">
+          <title>Daily Bot Sessions</title>
+          <label>Bot Sessions</label>
+          <report>daily-bot-sessions</report>
           <type>line</type>
         </widget>
       </column>

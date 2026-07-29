@@ -212,6 +212,8 @@
   <widget name="appForm" class="com.simisinc.platform.presentation.widgets.admin.AppFormWidget" />
   <widget name="blockedIP" class="com.simisinc.platform.presentation.widgets.admin.BlockedIPListWidget" />
   <widget name="blockedIPListForm" class="com.simisinc.platform.presentation.widgets.admin.BlockedIPFormWidget" />
+  <widget name="socialMediaLinkList" class="com.simisinc.platform.presentation.widgets.admin.SocialMediaLinkListWidget" />
+  <widget name="socialMediaLinkForm" class="com.simisinc.platform.presentation.widgets.admin.SocialMediaLinkFormWidget" />
   <widget name="formDataList" class="com.simisinc.platform.presentation.widgets.admin.cms.FormDataListWidget" />
   <widget name="datasets" class="com.simisinc.platform.presentation.widgets.admin.datasets.DatasetsWidget" />
   <widget name="datasetName" class="com.simisinc.platform.presentation.widgets.datasets.DatasetNameWidget" />
