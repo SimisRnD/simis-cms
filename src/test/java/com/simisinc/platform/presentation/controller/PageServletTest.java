@@ -35,6 +35,7 @@ import org.mockito.MockedStatic;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.simisinc.platform.application.cms.LoadWebPageCommand;
 import com.simisinc.platform.domain.model.SocialMediaLink;
 import com.simisinc.platform.domain.model.cms.WebPage;
 import com.simisinc.platform.domain.model.items.Collection;
@@ -87,9 +88,13 @@ class PageServletTest {
     item.setDescription("Also \"quoted\" and <b>bold</b>");
 
     String jsonLd;
-    try (MockedStatic<SocialMediaLinkRepository> socialLinks = mockStatic(SocialMediaLinkRepository.class)) {
+    try (MockedStatic<SocialMediaLinkRepository> socialLinks = mockStatic(SocialMediaLinkRepository.class);
+        MockedStatic<LoadWebPageCommand> loadWebPage = mockStatic(LoadWebPageCommand.class)) {
       socialLinks.when(SocialMediaLinkRepository::findAll).thenReturn(Collections.emptyList());
-      jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", sitePropertyMap, item, null, null);
+      // "/products" isn't a real WebPage link (it's the collection's own segment, with no
+      // Collection given here) -- computeBreadcrumbList falls back to loadByLink for it
+      loadWebPage.when(() -> LoadWebPageCommand.loadByLink(org.mockito.ArgumentMatchers.anyString())).thenReturn(null);
+      jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", "/products/widget", sitePropertyMap, item, null, null);
     }
 
     assertFalse(jsonLd.toLowerCase().contains("</script"),
@@ -125,7 +130,7 @@ class PageServletTest {
     String jsonLd;
     try (MockedStatic<SocialMediaLinkRepository> socialLinks = mockStatic(SocialMediaLinkRepository.class)) {
       socialLinks.when(SocialMediaLinkRepository::findAll).thenReturn(links);
-      jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", sitePropertyMap, null, null, null);
+      jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", "/", sitePropertyMap, null, null, null);
     }
 
     JsonNode parsed = assertDoesNotThrow(() -> MAPPER.readTree(jsonLd));
@@ -148,7 +153,7 @@ class PageServletTest {
     String jsonLd;
     try (MockedStatic<SocialMediaLinkRepository> socialLinks = mockStatic(SocialMediaLinkRepository.class)) {
       socialLinks.when(SocialMediaLinkRepository::findAll).thenReturn(Collections.emptyList());
-      jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", sitePropertyMap, null, null, null);
+      jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", "/", sitePropertyMap, null, null, null);
     }
 
     JsonNode parsed = assertDoesNotThrow(() -> MAPPER.readTree(jsonLd));
@@ -172,7 +177,7 @@ class PageServletTest {
     String jsonLd;
     try (MockedStatic<SocialMediaLinkRepository> socialLinks = mockStatic(SocialMediaLinkRepository.class)) {
       socialLinks.when(SocialMediaLinkRepository::findAll).thenReturn(Collections.emptyList());
-      jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", sitePropertyMap, null, null, webPage);
+      jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", "/about", sitePropertyMap, null, null, webPage);
     }
 
     JsonNode parsed = assertDoesNotThrow(() -> MAPPER.readTree(jsonLd));
@@ -197,7 +202,7 @@ class PageServletTest {
     String jsonLd;
     try (MockedStatic<SocialMediaLinkRepository> socialLinks = mockStatic(SocialMediaLinkRepository.class)) {
       socialLinks.when(SocialMediaLinkRepository::findAll).thenReturn(Collections.emptyList());
-      jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", sitePropertyMap, null, null, webPage);
+      jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", "/about", sitePropertyMap, null, null, webPage);
     }
 
     JsonNode parsed = assertDoesNotThrow(() -> MAPPER.readTree(jsonLd));
@@ -216,9 +221,11 @@ class PageServletTest {
 
     // Item detail pages have no WebPage at all -- this must not throw or fabricate dates
     String jsonLd;
-    try (MockedStatic<SocialMediaLinkRepository> socialLinks = mockStatic(SocialMediaLinkRepository.class)) {
+    try (MockedStatic<SocialMediaLinkRepository> socialLinks = mockStatic(SocialMediaLinkRepository.class);
+        MockedStatic<LoadWebPageCommand> loadWebPage = mockStatic(LoadWebPageCommand.class)) {
       socialLinks.when(SocialMediaLinkRepository::findAll).thenReturn(Collections.emptyList());
-      jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", sitePropertyMap, null, null, null);
+      loadWebPage.when(() -> LoadWebPageCommand.loadByLink(org.mockito.ArgumentMatchers.anyString())).thenReturn(null);
+      jsonLd = PageServlet.generateJsonLdData(pageRenderInfo, "https://example.org", "/items/staff/jane-doe", sitePropertyMap, null, null, null);
     }
 
     JsonNode parsed = assertDoesNotThrow(() -> MAPPER.readTree(jsonLd));

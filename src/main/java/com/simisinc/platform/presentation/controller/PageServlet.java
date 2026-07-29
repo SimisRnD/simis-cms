@@ -841,7 +841,7 @@ public class PageServlet extends HttpServlet {
 
       // Generate JSON-LD structured data for search engines and AI (issue #403)
       if (StringUtils.isNotBlank(siteUrl) && StringUtils.isNotBlank(sitePropertyMap.get("site.name"))) {
-        String jsonLd = generateJsonLdData(pageRenderInfo, siteUrl, sitePropertyMap, thisItem, thisCollection, webPage);
+        String jsonLd = generateJsonLdData(pageRenderInfo, siteUrl, pagePath, sitePropertyMap, thisItem, thisCollection, webPage);
         if (StringUtils.isNotBlank(jsonLd)) {
           pageRenderInfo.setJsonLdData(jsonLd);
         }
@@ -988,7 +988,7 @@ public class PageServlet extends HttpServlet {
     }
   }
 
-  static String generateJsonLdData(PageRenderInfo pageRenderInfo, String siteUrl,
+  static String generateJsonLdData(PageRenderInfo pageRenderInfo, String siteUrl, String pagePath,
                                     Map<String, String> sitePropertyMap,
                                     Item item, Collection collection, WebPage webPage) {
     try {
