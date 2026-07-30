@@ -20,6 +20,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import java.io.Serializable;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -34,8 +35,12 @@ public class WebComponentCommand implements Serializable {
   private static Log LOG = LogFactory.getLog(WebComponentCommand.class);
 
   // Open-by-default: CMS pages/sections/columns/widgets are public unless roles/groups are declared.
+  // Pages (only) additionally accept a capability= list (issue #701's hasPermission() system,
+  // issue #733) -- a user satisfies the role/capability side of the check by holding EITHER a
+  // listed role OR a listed capability, so existing role="..." pages are unaffected until a
+  // capability="..." attribute is deliberately added alongside them.
   public static boolean allowsUser(Page page, UserSession userSession) {
-    return allowsUser(page.getRoles(), page.getGroups(), userSession, false);
+    return allowsUser(page.getRoles(), page.getGroups(), page.getCapabilities(), userSession, false);
   }
 
   public static boolean allowsUser(Section section, UserSession userSession) {
@@ -63,12 +68,21 @@ public class WebComponentCommand implements Serializable {
    *                      New resources that require explicit authorisation should pass {@code true}.
    */
   public static boolean allowsUser(List<String> roles, List<String> groups, UserSession userSession, boolean denyWhenEmpty) {
-    if (roles.isEmpty() && groups.isEmpty()) {
+    return allowsUser(roles, groups, Collections.emptyList(), userSession, denyWhenEmpty);
+  }
+
+  /**
+   * As above, plus an optional capability= list (issue #733): the role side of the check is
+   * satisfied by holding EITHER a listed role OR a listed capability (hasPermission()), not both.
+   */
+  public static boolean allowsUser(List<String> roles, List<String> groups, List<String> capabilities,
+      UserSession userSession, boolean denyWhenEmpty) {
+    if (roles.isEmpty() && groups.isEmpty() && capabilities.isEmpty()) {
       return !denyWhenEmpty;
     }
 
     // Roles can be for a user that is either logged in/out
-    boolean roleAllowed = roles.isEmpty();
+    boolean roleAllowed = roles.isEmpty() && capabilities.isEmpty();
     for (String role : roles) {
       if ("guest".equals(role) && !userSession.isLoggedIn()) {
         roleAllowed = true;
@@ -77,6 +91,11 @@ public class WebComponentCommand implements Serializable {
         roleAllowed = true;
       }
       if (userSession.hasRole(role)) {
+        roleAllowed = true;
+      }
+    }
+    for (String capability : capabilities) {
+      if (userSession.hasPermission(capability)) {
         roleAllowed = true;
       }
     }

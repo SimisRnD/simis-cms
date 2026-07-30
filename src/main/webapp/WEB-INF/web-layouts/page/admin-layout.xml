@@ -1587,7 +1587,7 @@
     </section>
   </page>
 
-  <page name="/admin/role-capabilities" role="admin" title="Role Capabilities">
+  <page name="/admin/role-capabilities" role="admin" capability="admin:manage" title="Role Capabilities">
     <section>
       <column class="small-12 cell">
         <widget name="roleCapabilitiesList">
@@ -1597,7 +1597,7 @@
     </section>
   </page>
 
-  <page name="/admin/role-capabilities-form" role="admin" title="Edit Role Capabilities">
+  <page name="/admin/role-capabilities-form" role="admin" capability="admin:manage" title="Edit Role Capabilities">
     <section>
       <column class="small-12 medium-8 large-6 cell">
         <widget name="roleCapabilitiesForm">
@@ -1669,7 +1669,7 @@
     </section>
   </page>
 
-  <page name="/admin/analytics-retention" role="admin" title="Analytics Retention">
+  <page name="/admin/analytics-retention" role="admin" capability="admin:manage" title="Analytics Retention">
     <section>
       <column class="small-12 cell">
         <widget name="analyticsRetention">
