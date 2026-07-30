@@ -404,6 +404,11 @@ public class SiteStatsWidget extends GenericWidget {
       context.getRequest().setAttribute("numberValue", String.valueOf(count));
       context.getRequest().setAttribute("severity", count > 0 ? "warning" : "ok");
       return ALERT_CARD_JSP;
+    } else if ("expiring-soon".equalsIgnoreCase(report)) {
+      long count = WebPageRepository.countExpiringSoon();
+      context.getRequest().setAttribute("numberValue", String.valueOf(count));
+      context.getRequest().setAttribute("severity", count > 0 ? "warning" : "ok");
+      return ALERT_CARD_JSP;
     } else if ("submissions-awaiting-review".equalsIgnoreCase(report)) {
       long count = FormDataRepository.countAwaitingReview();
       context.getRequest().setAttribute("numberValue", String.valueOf(count));
