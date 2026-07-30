@@ -189,8 +189,11 @@ public class UserFormWidget extends GenericWidget {
    * The highest role level the acting user holds, found by matching their session role codes against
    * the authoritative role list (which carries the levels). Returns 0 when nothing matches, which
    * fails closed -- no role above 0 can then be granted.
+   *
+   * Package-private so UsersListWidget's bulk role-assignment actions can reuse the identical
+   * escalation-level logic instead of duplicating it.
    */
-  private static int highestRoleLevel(UserSession userSession, List<Role> allRoles) {
+  static int highestRoleLevel(UserSession userSession, List<Role> allRoles) {
     int max = 0;
     if (userSession == null) {
       return max;
