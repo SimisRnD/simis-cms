@@ -287,6 +287,12 @@ public class PageServlet extends HttpServlet {
       boolean pageEditMode = "true".equals(request.getSession().getAttribute(SessionConstants.PAGE_EDIT_MODE))
           && EditorPermissionCommand.canEditContent(userSession);
       boolean pageLayoutMode = pageEditMode && EditorPermissionCommand.canBuildLayout(userSession);
+      // "pageEditMode"/"pageLayoutMode"/"hasDraft"/"widgetLibraryJson" (below) are page-level
+      // request attributes read via JSP EL (main.jsp, content.jsp) and directly by widgets
+      // (ItemsListWidget) throughout the rest of this request, including inside
+      // WebContainerCommand.processWidgets()'s per-widget loop -- their names must stay in sync
+      // with WebContainerCommand.PAGE_LEVEL_ATTRIBUTE_NAMES, which exempts them from that loop's
+      // per-widget request attribute reset.
       if (pageEditMode) {
         request.setAttribute("pageEditMode", "true");
       }

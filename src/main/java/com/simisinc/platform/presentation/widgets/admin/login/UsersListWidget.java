@@ -20,9 +20,12 @@ import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.LoadUserCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.admin.ProcessUserCSVFileCommand;
+import com.simisinc.platform.application.audit.SaveAuditEventCommand;
 import com.simisinc.platform.application.cms.UrlCommand;
+import com.simisinc.platform.application.login.StepUpAuthCommand;
 import com.simisinc.platform.application.register.SaveUserCommand;
 import com.simisinc.platform.domain.events.cms.UserInvitedEvent;
+import com.simisinc.platform.domain.events.cms.UserPasswordResetEvent;
 import com.simisinc.platform.domain.model.Group;
 import com.simisinc.platform.domain.model.Role;
 import com.simisinc.platform.domain.model.User;
@@ -36,6 +39,7 @@ import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
 import com.simisinc.platform.presentation.controller.RequestConstants;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
+import com.simisinc.platform.presentation.controller.UserSession;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -66,6 +70,12 @@ public class UsersListWidget extends GenericWidget {
   static final String MFA_FILTER_ANY = "any";
   static final String MFA_FILTER_ENABLED = "enabled";
   static final String MFA_FILTER_DISABLED = "disabled";
+
+  // A crafted POST is the only thing this bounds -- normal usage never approaches it, since
+  // selection is scoped to the current page (default page size 20). An id list over this cap is
+  // rejected outright, never silently truncated, so a bulk action can never touch a different set
+  // of accounts than the one the admin reviewed in the confirmation modal.
+  static final int MAX_BULK_SELECTION = 100;
 
   public WidgetContext execute(WidgetContext context) {
 
@@ -164,9 +174,11 @@ public class UsersListWidget extends GenericWidget {
     context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));
     context.getRequest().setAttribute("title", context.getPreferences().get("title"));
 
-    // Set some form values
+    // Set some form values -- the New User form only offers roles the editor is allowed to grant
     List<Role> roleList = RoleRepository.findAll();
     context.getRequest().setAttribute("roleList", roleList);
+    context.getRequest().setAttribute("actingRoleLevel",
+        UserFormWidget.highestRoleLevel(context.getUserSession(), roleList != null ? roleList : new ArrayList<>()));
 
     // Set some form values
     List<Group> groupList = GroupRepository.findAll();
@@ -194,6 +206,20 @@ public class UsersListWidget extends GenericWidget {
       return uploadCSVFileAction(context);
     }
 
+    // Bulk actions, selected from /admin/users' checkbox + action-bar UI
+    if ("bulkSuspend".equals(command)) {
+      return bulkSuspendAction(context);
+    }
+    if ("bulkUnsuspend".equals(command)) {
+      return bulkUnsuspendAction(context);
+    }
+    if ("bulkResetPassword".equals(command)) {
+      return bulkResetPasswordAction(context);
+    }
+    if ("bulkAssignRoles".equals(command)) {
+      return bulkAssignRolesAction(context);
+    }
+
     // Default to adding a user
     return addUserAction(context);
   }
@@ -216,6 +242,11 @@ public class UsersListWidget extends GenericWidget {
     // Populate the fields
     User userBean = new User();
     BeanUtils.populate(userBean, context.getParameterMap());
+    // This action only ever creates a new user -- the New User form never renders an id field, but
+    // populate() maps ANY request parameter matching a bean property, so a crafted "id" parameter would
+    // otherwise be mass-assigned here and route SaveUserCommand.saveUser() into overwriting an existing
+    // account (by id) instead of creating one. Force create semantics regardless of what was submitted.
+    userBean.setId(-1L);
     userBean.setCreatedBy(context.getUserId());
     userBean.setModifiedBy(context.getUserId());
 
@@ -224,15 +255,24 @@ public class UsersListWidget extends GenericWidget {
       userBean.setUsername(userBean.getEmail());
     }
 
-    // Populate the roles
+    // Populate the roles -- an editor may only grant roles at or below their own highest role level,
+    // the same rule UserFormWidget.post() enforces when editing an existing user (see its
+    // highestRoleLevel() for details). This is a new user, so there is no prior role to preserve.
     List<Role> roleList = RoleRepository.findAll();
     if (roleList != null) {
+      int actingLevel = UserFormWidget.highestRoleLevel(context.getUserSession(), roleList);
       List<Role> userRoleList = new ArrayList<>();
       for (Role role : roleList) {
         String roleValue = context.getParameter("roleId" + role.getId());
-        if (roleValue != null && roleValue.equals(String.valueOf(role.getId()))) {
+        if (roleValue == null || !roleValue.equals(String.valueOf(role.getId()))) {
+          continue;
+        }
+        if (role.getLevel() <= actingLevel) {
           LOG.debug("Adding user to role: " + role.getCode());
           userRoleList.add(role);
+        } else {
+          LOG.warn("Blocked role escalation: user " + context.getUserId() + " (level " + actingLevel
+              + ") attempted to grant '" + role.getCode() + "' (level " + role.getLevel() + ") to a new user");
         }
       }
       userBean.setRoleList(userRoleList);
@@ -286,5 +326,359 @@ public class UsersListWidget extends GenericWidget {
     context.setSuccessMessage("User was added, and an email invitation was sent with further instructions");
     context.setRedirect("/admin/users");
     return context;
+  }
+
+  private WidgetContext bulkSuspendAction(WidgetContext context) {
+    List<Long> userIds = resolveSelectedUserIds(context);
+    if (userIds == null) {
+      return rejectBulkSelection(context);
+    }
+    if (userIds.isEmpty()) {
+      return rejectEmptySelection(context);
+    }
+    String reason = context.getParameter("reason");
+
+    BulkActor actor = new BulkActor(context);
+    int succeeded = 0;
+    int skippedSelf = 0;
+    int notFound = 0;
+    int failed = 0;
+    for (Long userId : userIds) {
+      // Re-checked here regardless of what the client's checkbox UI shows -- the guard must live
+      // in this loop, since UserRepository.suspendAccount() itself has no self-suspend guard.
+      if (context.getUserId() == userId) {
+        ++skippedSelf;
+        continue;
+      }
+      User user = LoadUserCommand.loadUser(userId);
+      if (user == null) {
+        ++notFound;
+        continue;
+      }
+      User result = UserRepository.suspendAccount(user, reason);
+      String outcome = result != null ? AuditEventCommand.SUCCESS : AuditEventCommand.FAILURE;
+      if (result != null) {
+        ++succeeded;
+      } else {
+        ++failed;
+      }
+      SaveAuditEventCommand.recordAdminEvent(AuditEventCommand.USER_MANAGEMENT, "user.disable", outcome,
+          actor.userId, actor.username, actor.ip, actor.sessionId,
+          "user", String.valueOf(user.getId()), user.getEmail(), reason + " (bulk)");
+    }
+    SaveAuditEventCommand.recordAdminEvent(AuditEventCommand.USER_MANAGEMENT, "user.bulk_disable",
+        succeeded > 0 ? AuditEventCommand.SUCCESS : AuditEventCommand.FAILURE,
+        actor.userId, actor.username, actor.ip, actor.sessionId, "user", null, null,
+        "suspended=" + succeeded + "; skippedSelf=" + skippedSelf + "; notFound=" + notFound
+            + "; failed=" + failed + "; reason=" + reason);
+
+    setBulkResultMessage(context, "suspended", succeeded, 0, userIds.size(), skippedSelf, notFound, failed);
+    context.setRedirect("/admin/users");
+    return context;
+  }
+
+  private WidgetContext bulkUnsuspendAction(WidgetContext context) {
+    List<Long> userIds = resolveSelectedUserIds(context);
+    if (userIds == null) {
+      return rejectBulkSelection(context);
+    }
+    if (userIds.isEmpty()) {
+      return rejectEmptySelection(context);
+    }
+
+    BulkActor actor = new BulkActor(context);
+    int succeeded = 0;
+    int notFound = 0;
+    int failed = 0;
+    for (Long userId : userIds) {
+      User user = LoadUserCommand.loadUser(userId);
+      if (user == null) {
+        ++notFound;
+        continue;
+      }
+      User result = UserRepository.restoreAccount(user);
+      String outcome = result != null ? AuditEventCommand.SUCCESS : AuditEventCommand.FAILURE;
+      if (result != null) {
+        ++succeeded;
+      } else {
+        ++failed;
+      }
+      SaveAuditEventCommand.recordAdminEvent(AuditEventCommand.USER_MANAGEMENT, "user.enable", outcome,
+          actor.userId, actor.username, actor.ip, actor.sessionId,
+          "user", String.valueOf(user.getId()), user.getEmail(), "(bulk)");
+    }
+    SaveAuditEventCommand.recordAdminEvent(AuditEventCommand.USER_MANAGEMENT, "user.bulk_enable",
+        succeeded > 0 ? AuditEventCommand.SUCCESS : AuditEventCommand.FAILURE,
+        actor.userId, actor.username, actor.ip, actor.sessionId, "user", null, null,
+        "restored=" + succeeded + "; notFound=" + notFound + "; failed=" + failed);
+
+    setBulkResultMessage(context, "restored", succeeded, 0, userIds.size(), 0, notFound, failed);
+    context.setRedirect("/admin/users");
+    return context;
+  }
+
+  private WidgetContext bulkResetPasswordAction(WidgetContext context) {
+    if (!requireStepUp(context)) {
+      return context;
+    }
+    List<Long> userIds = resolveSelectedUserIds(context);
+    if (userIds == null) {
+      return rejectBulkSelection(context);
+    }
+    if (userIds.isEmpty()) {
+      return rejectEmptySelection(context);
+    }
+
+    BulkActor actor = new BulkActor(context);
+    User actingUser = context.getUserSession() != null ? context.getUserSession().getUser() : null;
+    int succeeded = 0;
+    int notFound = 0;
+    int failed = 0;
+    for (Long userId : userIds) {
+      User user = LoadUserCommand.loadUser(userId);
+      if (user == null) {
+        ++notFound;
+        continue;
+      }
+      User result = UserRepository.createAccountToken(user);
+      String outcome = result != null ? AuditEventCommand.SUCCESS : AuditEventCommand.FAILURE;
+      if (result != null) {
+        ++succeeded;
+        WorkflowManager.triggerWorkflowForEvent(new UserPasswordResetEvent(result, actingUser));
+      } else {
+        ++failed;
+      }
+      SaveAuditEventCommand.recordAdminEvent(AuditEventCommand.USER_MANAGEMENT, "user.password.reset", outcome,
+          actor.userId, actor.username, actor.ip, actor.sessionId,
+          "user", String.valueOf(user.getId()), user.getEmail(), "(bulk)");
+    }
+    SaveAuditEventCommand.recordAdminEvent(AuditEventCommand.USER_MANAGEMENT, "user.bulk_password_reset",
+        succeeded > 0 ? AuditEventCommand.SUCCESS : AuditEventCommand.FAILURE,
+        actor.userId, actor.username, actor.ip, actor.sessionId, "user", null, null,
+        "reset=" + succeeded + "; notFound=" + notFound + "; failed=" + failed);
+
+    setBulkResultMessage(context, "sent a password reset email", succeeded, 0, userIds.size(), 0, notFound, failed);
+    context.setRedirect("/admin/users");
+    return context;
+  }
+
+  private WidgetContext bulkAssignRolesAction(WidgetContext context) {
+    if (!requireStepUp(context)) {
+      return context;
+    }
+
+    Role role = RoleRepository.findById((int) context.getParameterAsLong("roleId"));
+    if (role == null) {
+      context.setErrorMessage("The selected role was not found");
+      context.setRedirect("/admin/users");
+      return context;
+    }
+    // The requested role's level is always resolved server-side and compared against the actor's
+    // own highest role level -- reusing UserFormWidget's exact escalation-level logic -- and the
+    // WHOLE batch is rejected up front if it's above that level, never silently downgraded and
+    // never applied to some accounts but not others.
+    int actingLevel = UserFormWidget.highestRoleLevel(context.getUserSession(), RoleRepository.findAll());
+    if (role.getLevel() > actingLevel) {
+      LOG.warn("Blocked bulk role escalation: user " + context.getUserId() + " (level " + actingLevel
+          + ") attempted to bulk-grant '" + role.getCode() + "' (level " + role.getLevel() + ")");
+      context.setErrorMessage("You cannot grant a role above your own level");
+      context.setRedirect("/admin/users");
+      return context;
+    }
+
+    List<Long> userIds = resolveSelectedUserIds(context);
+    if (userIds == null) {
+      return rejectBulkSelection(context);
+    }
+    if (userIds.isEmpty()) {
+      return rejectEmptySelection(context);
+    }
+
+    BulkActor actor = new BulkActor(context);
+    int succeeded = 0;
+    int alreadyHadRole = 0;
+    int notFound = 0;
+    int failed = 0;
+    for (Long userId : userIds) {
+      User user = LoadUserCommand.loadUser(userId);
+      if (user == null) {
+        ++notFound;
+        continue;
+      }
+      if (user.hasRole(role.getCode())) {
+        // Additive-only: a target that already holds the role is a no-op success, not a failure.
+        ++alreadyHadRole;
+        continue;
+      }
+      // Add the role to the target's REAL current role list (never a thin bean) -- additive-only,
+      // so this can never strip a role the admin wasn't even thinking about, and structurally
+      // cannot trigger SaveUserCommand.saveUser()'s self-admin-removal guard since nothing is
+      // ever removed.
+      List<Role> userRoleList = new ArrayList<>(user.getRoleList() != null ? user.getRoleList() : new ArrayList<>());
+      userRoleList.add(role);
+      user.setRoleList(userRoleList);
+      user.setModifiedBy(context.getUserId());
+      User result = null;
+      try {
+        result = SaveUserCommand.saveUser(user);
+      } catch (DataException | AccountException e) {
+        LOG.error("Bulk role assignment error for user " + userId + ": " + e.getMessage(), e);
+      }
+      String outcome = result != null ? AuditEventCommand.SUCCESS : AuditEventCommand.FAILURE;
+      if (result != null) {
+        ++succeeded;
+      } else {
+        ++failed;
+      }
+      SaveAuditEventCommand.recordAdminEvent(AuditEventCommand.USER_MANAGEMENT, "user.update", outcome,
+          actor.userId, actor.username, actor.ip, actor.sessionId,
+          "user", String.valueOf(user.getId()), user.getEmail(),
+          AuditEventCommand.describeRolesAndGroups(result != null ? result : user) + " (bulk)");
+    }
+    SaveAuditEventCommand.recordAdminEvent(AuditEventCommand.USER_MANAGEMENT, "user.bulk_role_assign",
+        succeeded > 0 ? AuditEventCommand.SUCCESS : AuditEventCommand.FAILURE,
+        actor.userId, actor.username, actor.ip, actor.sessionId, "user", null, null,
+        "role=" + role.getCode() + "; granted=" + succeeded + "; alreadyHadRole=" + alreadyHadRole
+            + "; notFound=" + notFound + "; failed=" + failed);
+
+    setBulkResultMessage(context, "granted the " + role.getTitle() + " role", succeeded, alreadyHadRole,
+        userIds.size(), 0, notFound, failed);
+    context.setRedirect("/admin/users");
+    return context;
+  }
+
+  /**
+   * Requires a recent step-up re-authentication before a bulk action proceeds, checked once for
+   * the whole batch (the 5-minute validity window is session-scoped, not per-target). Unlike the
+   * single-user forms, a failure here rejects the whole request rather than re-rendering the same
+   * page with the prior selection preserved -- reconstructing "which modal was open, with which
+   * accounts checked" on a list page is materially more state to carry than this rare failure path
+   * is worth; the admin re-selects and retries.
+   */
+  private boolean requireStepUp(WidgetContext context) {
+    if (StepUpAuthCommand.isValid(context.getUserSession())) {
+      return true;
+    }
+    String stepUpCredential = context.getParameter("stepUpCredential");
+    if (StringUtils.isNotBlank(stepUpCredential)) {
+      User actingUser = LoadUserCommand.loadUser(context.getUserId());
+      if (StepUpAuthCommand.verify(context.getUserSession(), actingUser, stepUpCredential)) {
+        return true;
+      }
+      context.setErrorMessage("Re-authentication failed. Enter your password or authenticator code.");
+    } else {
+      context.setErrorMessage("Re-authentication is required for this action. Enter your password or authenticator code.");
+    }
+    context.setRedirect("/admin/users");
+    return false;
+  }
+
+  /**
+   * Parses and dedupes the selected user ids from the repeated {@code userId} hidden inputs the
+   * bulk modals inject, silently dropping any non-numeric entry (a tampered value is not a
+   * batch-ending error). Returns {@code null} when the list exceeds {@link #MAX_BULK_SELECTION} --
+   * the whole request is then rejected rather than silently truncated, since truncation could apply
+   * the action to a different subset of accounts than the one the admin reviewed and confirmed.
+   */
+  private List<Long> resolveSelectedUserIds(WidgetContext context) {
+    String[] rawIds = context.getParameterMap().get("userId");
+    List<Long> ids = new ArrayList<>();
+    if (rawIds != null) {
+      for (String rawId : rawIds) {
+        try {
+          long id = Long.parseLong(rawId.trim());
+          if (!ids.contains(id)) {
+            ids.add(id);
+          }
+        } catch (NumberFormatException e) {
+          // Dropped, not treated as a batch-ending error
+        }
+      }
+    }
+    if (ids.size() > MAX_BULK_SELECTION) {
+      LOG.warn("Bulk user action rejected: " + ids.size() + " ids exceeds MAX_BULK_SELECTION ("
+          + MAX_BULK_SELECTION + ")");
+      return null;
+    }
+    return ids;
+  }
+
+  private WidgetContext rejectBulkSelection(WidgetContext context) {
+    context.setErrorMessage("Too many accounts were selected (maximum " + MAX_BULK_SELECTION
+        + "). Select fewer accounts and try again.");
+    context.setRedirect("/admin/users");
+    return context;
+  }
+
+  private WidgetContext rejectEmptySelection(WidgetContext context) {
+    context.setErrorMessage("No accounts were selected");
+    context.setRedirect("/admin/users");
+    return context;
+  }
+
+  /**
+   * Sets the single aggregate result message every other action on this page already relies on
+   * (page_messages.jspf renders exactly one of success/warning/error). Full per-account detail of
+   * which accounts failed, and why, is not reconstructable from this string by design -- it lives
+   * in the audit log instead, where every account gets its own event regardless of outcome.
+   */
+  private void setBulkResultMessage(WidgetContext context, String verb, int succeeded, int alreadyDone,
+      int totalSelected, int skippedSelf, int notFound, int failed) {
+    StringBuilder sb = new StringBuilder();
+    sb.append(succeeded).append(" of ").append(totalSelected).append(" selected account")
+        .append(totalSelected == 1 ? "" : "s").append(" ").append(verb).append(".");
+    if (alreadyDone > 0) {
+      sb.append(" Already had it: ").append(alreadyDone).append(".");
+    }
+    if (skippedSelf > 0) {
+      sb.append(" Skipped: your own account.");
+    }
+    if (notFound > 0) {
+      sb.append(" Not found: ").append(notFound).append(".");
+    }
+    if (failed > 0) {
+      sb.append(" Failed: ").append(failed).append(".");
+    }
+    boolean allAccountedFor = (succeeded + alreadyDone) == totalSelected;
+    if (succeeded == 0 && alreadyDone == 0) {
+      context.setErrorMessage(sb.toString());
+    } else if (!allAccountedFor) {
+      context.setWarningMessage(sb.toString());
+    } else {
+      context.setSuccessMessage(sb.toString());
+    }
+  }
+
+  /**
+   * The acting admin's audit identity, resolved once per bulk request so the per-account audit
+   * calls inside the loop don't re-derive it on every iteration -- mirrors the pattern
+   * ProcessUserCSVFileCommand already established for this exact widget's CSV-import bulk path.
+   */
+  private static final class BulkActor {
+    final long userId;
+    final String username;
+    final String ip;
+    final String sessionId;
+
+    BulkActor(WidgetContext context) {
+      this.userId = context.getUserId();
+      String resolvedUsername = null;
+      String resolvedIp = null;
+      String resolvedSessionId = null;
+      UserSession userSession = context.getUserSession();
+      if (userSession != null) {
+        resolvedSessionId = userSession.getSessionId();
+        resolvedIp = userSession.getIpAddress();
+        if (userSession.getUserId() > -1L && userSession.getUser() != null) {
+          resolvedUsername = userSession.getUser().getEmail();
+        }
+      }
+      if (context.getRequest() != null && context.getRequest().getRemoteAddr() != null) {
+        resolvedIp = context.getRequest().getRemoteAddr();
+      }
+      this.username = resolvedUsername;
+      this.ip = resolvedIp;
+      this.sessionId = resolvedSessionId;
+    }
   }
 }
