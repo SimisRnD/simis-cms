@@ -58,7 +58,14 @@ def _commit_all(root: Path, message: str) -> None:
     _git(root, "commit", "-q", "-m", message)
 
 
-def test_destructive_migration_with_matching_java_removal_is_flagged(repo):
+def test_destructive_migration_with_matching_java_removal_is_flagged(repo, monkeypatch):
+    # These three tests exercise the HEAD~1..HEAD fallback path (no PR base ref),
+    # which is only reached when GITHUB_BASE_REF is unset. GitHub Actions sets it
+    # for every job in a pull_request-triggered run -- including this test suite's
+    # own tools-tests.yml job -- so without clearing it here, running these tests
+    # in CI silently exercises the origin/<base>...HEAD path instead (and fails,
+    # since these synthetic repos have no "origin" remote at all).
+    monkeypatch.delenv("GITHUB_BASE_REF", raising=False)
     _init_repo(repo)
     write(repo, JAVA_FILE, JAVA_BEFORE)
     _commit_all(repo, "initial state")
@@ -77,7 +84,8 @@ def test_destructive_migration_with_matching_java_removal_is_flagged(repo):
     assert "DROP COLUMN" in r.stderr
 
 
-def test_destructive_migration_without_java_removal_is_not_flagged(repo):
+def test_destructive_migration_without_java_removal_is_not_flagged(repo, monkeypatch):
+    monkeypatch.delenv("GITHUB_BASE_REF", raising=False)
     _init_repo(repo)
     write(repo, JAVA_FILE, JAVA_BEFORE)
     _commit_all(repo, "initial state")
@@ -93,7 +101,8 @@ def test_destructive_migration_without_java_removal_is_not_flagged(repo):
     assert r.returncode == 0, r.stdout + r.stderr
 
 
-def test_java_removal_without_destructive_migration_is_not_flagged(repo):
+def test_java_removal_without_destructive_migration_is_not_flagged(repo, monkeypatch):
+    monkeypatch.delenv("GITHUB_BASE_REF", raising=False)
     _init_repo(repo)
     write(repo, JAVA_FILE, JAVA_BEFORE)
     write(
