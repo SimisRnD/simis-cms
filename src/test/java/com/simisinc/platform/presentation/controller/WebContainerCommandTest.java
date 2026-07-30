@@ -323,6 +323,15 @@ class WebContainerCommandTest {
     }
   }
 
+  // Mirrors ContentWidget.execute() when it has no "uniqueId" preference yet (e.g. immediately
+  // after being added via the composition canvas's "+Widget" control, before any preferences have
+  // been set): it returns null rather than setting a JSP or any HTML.
+  public static class StubWidgetWithNoContent {
+    public WidgetContext execute(WidgetContext context) {
+      return null;
+    }
+  }
+
   @Test
   void emptyColumnOmittedFromRenderInfoOutsideLayoutMode() throws Exception {
     Section section = sectionWith(new Column());
@@ -392,6 +401,84 @@ class WebContainerCommandTest {
     Assertions.assertEquals(1, pageRenderInfo.getSectionRenderInfoList().size(),
         "unchanged pre-existing behavior -- a column with real content renders with or without layout mode");
     Assertions.assertEquals(1, pageRenderInfo.getSectionRenderInfoList().get(0).getColumnRenderInfoList().size());
+  }
+
+  // Regression coverage for a widget-granularity sibling of the column/section bug above, found
+  // live-verifying #745: a widget that's been added to the layout but produces no output yet (e.g.
+  // a "content" widget added via "+Widget", which has no uniqueId preference until the admin sets
+  // one) was omitted from its column's render info entirely, in both public rendering and
+  // pageLayoutMode. Correct for public rendering, but it meant the widget never got a rendered
+  // [data-editor-widget] element, so it had no "+Widget after"/"✕ Widget"/"⚙ Prefs" trigger to
+  // configure or remove it -- invisible and stuck (and blocking "✕ Column", which refuses to
+  // remove a column that still contains a widget) even though it was really in draft_page_xml.
+
+  @Test
+  void widgetWithNoContentOmittedFromRenderInfoOutsideLayoutMode() throws Exception {
+    Column column = new Column();
+    column.setWidgets(List.of(new Widget("exampleWidget")));
+    Section section = sectionWith(column);
+
+    Map<String, Object> widgetInstances = new HashMap<>();
+    widgetInstances.put("exampleWidget", new StubWidgetWithNoContent());
+
+    PageRenderInfo pageRenderInfo = new PageRenderInfo();
+
+    WebContainerCommand.processWidgets(newGetContext(widgetInstances), List.of(section), pageRenderInfo,
+        new HashMap<>(), "", "/test", mock(UserSession.class), new HashMap<>(), false);
+
+    Assertions.assertTrue(pageRenderInfo.getSectionRenderInfoList().isEmpty(),
+        "a widget with no content must not appear on a real page outside layout mode");
+  }
+
+  @Test
+  void widgetWithNoContentGetsPlaceholderInLayoutMode() throws Exception {
+    Column column = new Column();
+    column.setWidgets(List.of(new Widget("exampleWidget")));
+    Section section = sectionWith(column);
+
+    Map<String, Object> widgetInstances = new HashMap<>();
+    widgetInstances.put("exampleWidget", new StubWidgetWithNoContent());
+
+    PageRenderInfo pageRenderInfo = new PageRenderInfo();
+
+    WebContainerCommand.processWidgets(newGetContext(widgetInstances), List.of(section), pageRenderInfo,
+        new HashMap<>(), "", "/test", mock(UserSession.class), new HashMap<>(), true);
+
+    Assertions.assertEquals(1, pageRenderInfo.getSectionRenderInfoList().size(),
+        "a freshly-added widget's section must still render in layout mode, or the column/section "
+            + "controls around it are unreachable");
+    SectionRenderInfo sectionRenderInfo = pageRenderInfo.getSectionRenderInfoList().get(0);
+    Assertions.assertEquals(1, sectionRenderInfo.getColumnRenderInfoList().size());
+    List<WidgetRenderInfo> widgets = sectionRenderInfo.getColumnRenderInfoList().get(0).getWidgetRenderInfoList();
+    Assertions.assertEquals(1, widgets.size(),
+        "the widget itself must still render, or its own \"⚙ Prefs\"/\"✕ Widget\" controls are unreachable");
+    Assertions.assertEquals("", widgets.get(0).getContent());
+  }
+
+  @Test
+  void widgetWithNoContentAlongsideAPopulatedOneBothRenderInLayoutModeInOrder() throws Exception {
+    // The reported repro's shape: a column with a real widget and a freshly-added, not-yet-configured
+    // one -- both must survive the reload, in document order (platform-editor.js's "+Widget" trigger
+    // counts existing [data-editor-widget] DOM elements to compute where the next one goes, so a
+    // silently-dropped or reordered placeholder would misplace the next insert).
+    Column column = new Column();
+    column.setWidgets(List.of(new Widget("exampleWidget"), new Widget("blankWidget")));
+    Section section = sectionWith(column);
+
+    Map<String, Object> widgetInstances = new HashMap<>();
+    widgetInstances.put("exampleWidget", new StubWidget());
+    widgetInstances.put("blankWidget", new StubWidgetWithNoContent());
+
+    PageRenderInfo pageRenderInfo = new PageRenderInfo();
+
+    WebContainerCommand.processWidgets(newGetContext(widgetInstances), List.of(section), pageRenderInfo,
+        new HashMap<>(), "", "/test", mock(UserSession.class), new HashMap<>(), true);
+
+    List<WidgetRenderInfo> widgets = pageRenderInfo.getSectionRenderInfoList().get(0)
+        .getColumnRenderInfoList().get(0).getWidgetRenderInfoList();
+    Assertions.assertEquals(2, widgets.size(), "both the populated and the blank widget must render");
+    Assertions.assertEquals("<p>stub</p>", widgets.get(0).getContent());
+    Assertions.assertEquals("", widgets.get(1).getContent());
   }
 
 }
