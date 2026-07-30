@@ -41,10 +41,10 @@ import java.util.UUID;
 /**
  * P5.2: Media Library API endpoints for the visual editor panel
  *
- * GET /api/media?search=query&limit=20&offset=0 - List media assets with pagination and search
- * POST /api/media - Create stub asset record
- * POST /api/media/upload - Handle file upload from drag-and-drop or file picker (not yet implemented)
- * POST /api/media/widget-update - Apply a selected asset to a widget's preference on a page's draft
+ * GET /visual-editor/media?search=query&limit=20&offset=0 - List media assets with pagination and search
+ * POST /visual-editor/media - Create stub asset record
+ * POST /visual-editor/media/upload - Handle file upload from drag-and-drop or file picker (not yet implemented)
+ * POST /visual-editor/media/widget-update - Apply a selected asset to a widget's preference on a page's draft
  * layout. Requires builder-tier permission and the session CSRF token, and identifies the target
  * widget the same way {@link PageServlet}'s {@code mutateDraftLayout} action does -- by structural
  * position, not by a render-time {@code widgetContext.uniqueId} -- so it can safely delegate to
@@ -54,7 +54,7 @@ import java.util.UUID;
  * @author claude
  * @created 7/26/26
  */
-@WebServlet(name = "MediaApi", urlPatterns = {"/api/media", "/api/media/*"})
+@WebServlet(name = "MediaApi", urlPatterns = {"/visual-editor/media", "/visual-editor/media/*"})
 public class MediaApiController extends HttpServlet {
 
   private static Log LOG = LogFactory.getLog(MediaApiController.class);
