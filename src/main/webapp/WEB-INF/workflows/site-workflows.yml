@@ -55,3 +55,40 @@
       to-user: '{{ user.id }}'
       subject: '{{ site.name }} - Password reset request'
       template: 'cms/site-user-password-reset'
+
+- id: unsuspend-requested
+  vars:
+    target: '{{ event.target }}'
+    requestedBy: '{{ event.requestedBy }}'
+    reason: '{{ event.reason }}'
+  workflow:
+    - email:
+      to-role: 'community-manager'
+      subject: '{{ site.name }} - An unsuspend request needs your review'
+      template: 'cms/admin-unsuspend-requested'
+    - email:
+      to-role: 'admin'
+      subject: '{{ site.name }} - An unsuspend request needs your review'
+      template: 'cms/admin-unsuspend-requested'
+    - history:
+      message: '_{{ requestedBy.fullName }}_ **requested** unsuspending _{{ target.fullName }}_'
+      actor-id: '{{ requestedBy.id }}'
+      verb: requested
+      object: user
+      object-id: '{{ target.id }}'
+
+- id: user-account-restored
+  vars:
+    user: '{{ event.user }}'
+    approvedBy: '{{ event.approvedBy }}'
+  workflow:
+    - email:
+      to-user: '{{ user.id }}'
+      subject: '{{ site.name }} - Your account has been restored'
+      template: 'cms/site-account-restored'
+    - history:
+      message: '_{{ approvedBy.fullName }}_ **approved** unsuspending _{{ user.fullName }}_'
+      actor-id: '{{ approvedBy.id }}'
+      verb: approved
+      object: user
+      object-id: '{{ user.id }}'
