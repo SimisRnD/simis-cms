@@ -49,6 +49,7 @@
 </script>
 <div style="margin-top: 6px;background-color:<c:out value="${themePropertyMap['theme.body.backgroundColor']}" />;">
   <div class="button-container float-right">
+    <a class="button small radius float-right" href="${ctx}/admin/capability-grants?userId=${user.id}">Capability Grants</a>
     <a class="button small radius float-right" href="${ctx}/admin/modify-user?userId=${user.id}">Modify User</a>
     <ul class="dropdown menu" style="padding-right: 15px;" data-dropdown-menu>
       <li>

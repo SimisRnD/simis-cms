@@ -66,6 +66,36 @@ public class HttpPostCommand {
   }
 
   public static String execute(String url, Map<String, String> headers, String data, int httpMethod) {
+    HttpResponse<String> response = sendRequest(url, headers, data, httpMethod);
+    if (response == null) {
+      return null;
+    }
+    int status = response.statusCode();
+    if (status < 200 || status >= 300) {
+      LOG.debug("Received status: " + status);
+      return null;
+    }
+    String content = response.body();
+    if (content == null || content.length() <= 0) {
+      return null;
+    }
+    return content;
+  }
+
+  /**
+   * Like execute(), but returns the raw HTTP status code instead of the response body. Some
+   * endpoints (e.g. MailChimp's campaign send/schedule actions) return 2xx with an empty body on
+   * success -- indistinguishable from a real failure via the body-returning overloads above, which
+   * treat "no content" and "request failed" the same way. Returns -1 if the url is blank/invalid or
+   * the request could not be sent at all (caller should treat that as failure, same as a bad status).
+   */
+  public static int executeForStatusCode(String url, Map<String, String> headers, String data, int httpMethod) {
+    HttpResponse<String> response = sendRequest(url, headers, data, httpMethod);
+    return response != null ? response.statusCode() : -1;
+  }
+
+  private static HttpResponse<String> sendRequest(String url, Map<String, String> headers, String data,
+      int httpMethod) {
     // Validate the url
     if (StringUtils.isBlank(url)) {
       LOG.debug("No url");
@@ -78,7 +108,6 @@ public class HttpPostCommand {
       return null;
     }
 
-    // Post the parameters
     try {
       LOG.debug("Posting to: " + url);
       // Build the request
@@ -104,25 +133,7 @@ public class HttpPostCommand {
 
       // Create the HTTP client
       HttpClient client = HttpClient.newBuilder().build();
-      var response = client.send(request, HttpResponse.BodyHandlers.ofString());
-      if (response == null) {
-        LOG.debug("No response");
-        return null;
-      }
-
-      // Check the status code
-      int status = response.statusCode();
-      if (status < 200 || status >= 300) {
-        LOG.debug("Received status: " + status);
-        return null;
-      }
-
-      // Verify the content
-      String content = response.body();
-      if (content == null || content.length() <= 0) {
-        return null;
-      }
-      return content;
+      return client.send(request, HttpResponse.BodyHandlers.ofString());
     } catch (Exception e) {
       LOG.error("Http client exception", e);
       return null;

@@ -21,7 +21,9 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 
 import java.util.Map;
 
@@ -99,10 +101,13 @@ class MutateLayoutCommandTest {
   }
 
   // Helper: run a mutation with mocked repository/cache, then return the resulting draftPageXml.
+  // WebPageRepository.save() answers with the same record it was given, mirroring the real
+  // repository's success return (the record, or null on failure) -- see
+  // mutationThrowsWhenSaveFails below for the null/failure path.
   private static String mutate(WebPage page, ThrowingRunnable mutation) throws DataException {
     try (MockedStatic<WebPageRepository> repo = mockStatic(WebPageRepository.class);
          MockedStatic<WebPageXmlLayoutCommand> cmd = mockStatic(WebPageXmlLayoutCommand.class)) {
-      repo.when(() -> WebPageRepository.save(any(WebPage.class))).thenAnswer(i -> null);
+      repo.when(() -> WebPageRepository.save(any(WebPage.class))).thenAnswer(i -> i.getArgument(0));
       cmd.when(() -> WebPageXmlLayoutCommand.removeCustomPage(anyString())).thenAnswer(i -> null);
       cmd.when(WebPageXmlLayoutCommand::getWidgetLibrary)
           .thenReturn(Map.of("content", "ContentWidget", "menu", "MenuWidget", "dataTable", "TableWidget"));
@@ -121,7 +126,7 @@ class MutateLayoutCommandTest {
   @Test
   void addSectionAppendsAtEnd() throws DataException {
     WebPage page = pageWithXml(TWO_SECTION_XML);
-    String result = mutate(page, () -> MutateLayoutCommand.addSection(page, 1, "new-section"));
+    String result = mutate(page, () -> MutateLayoutCommand.addSection(page, 1, "new-section", 42L));
     // Three sections after the operation; new one is last.
     long sectionCount = result.chars().filter(c -> c == '<').mapToObj(c -> "").count();
     assertTrue(result.contains("class=\"new-section\""), "new class should be present");
@@ -135,7 +140,7 @@ class MutateLayoutCommandTest {
   @Test
   void addSectionPrependsWhenAfterMinusOne() throws DataException {
     WebPage page = pageWithXml(TWO_SECTION_XML);
-    String result = mutate(page, () -> MutateLayoutCommand.addSection(page, -1, "prepended"));
+    String result = mutate(page, () -> MutateLayoutCommand.addSection(page, -1, "prepended", 42L));
     int prependedIdx = result.indexOf("class=\"prepended\"");
     int firstIdx = result.indexOf("class=\"first\"");
     assertTrue(prependedIdx < firstIdx, "prepended section should come before existing sections");
@@ -144,7 +149,7 @@ class MutateLayoutCommandTest {
   @Test
   void addSectionWithoutClassHasNoClassAttribute() throws DataException {
     WebPage page = pageWithXml(EMPTY_SECTION_XML);
-    String result = mutate(page, () -> MutateLayoutCommand.addSection(page, 0, null));
+    String result = mutate(page, () -> MutateLayoutCommand.addSection(page, 0, null, 42L));
     // The new section element should appear; it may or may not have a class.
     // Verify the existing section's class is unchanged and the result is valid XML.
     assertTrue(result.contains("class=\"empty\""));
@@ -153,7 +158,7 @@ class MutateLayoutCommandTest {
   @Test
   void addSectionDefaultColumnHasSmall12CellClass() throws DataException {
     WebPage page = pageWithXml(EMPTY_SECTION_XML);
-    String result = mutate(page, () -> MutateLayoutCommand.addSection(page, 0, "new"));
+    String result = mutate(page, () -> MutateLayoutCommand.addSection(page, 0, "new", 42L));
     // The new section's auto-generated column should be small-12 cell.
     // Both sections are in the result, so count occurrences of the default class.
     int count = 0;
@@ -169,18 +174,18 @@ class MutateLayoutCommandTest {
   void addSectionRejectsInvalidIndex() {
     WebPage page = pageWithXml(ONE_SECTION_XML);
     assertThrows(DataException.class,
-        () -> mutate(page, () -> MutateLayoutCommand.addSection(page, 5, "x")));
+        () -> mutate(page, () -> MutateLayoutCommand.addSection(page, 5, "x", 42L)));
     assertThrows(DataException.class,
-        () -> mutate(page, () -> MutateLayoutCommand.addSection(page, -2, "x")));
+        () -> mutate(page, () -> MutateLayoutCommand.addSection(page, -2, "x", 42L)));
   }
 
   @Test
   void addSectionRejectsInvalidCssClass() {
     WebPage page = pageWithXml(ONE_SECTION_XML);
     assertThrows(DataException.class,
-        () -> mutate(page, () -> MutateLayoutCommand.addSection(page, 0, "x\"><script>alert(1)</script>")));
+        () -> mutate(page, () -> MutateLayoutCommand.addSection(page, 0, "x\"><script>alert(1)</script>", 42L)));
     assertThrows(DataException.class,
-        () -> mutate(page, () -> MutateLayoutCommand.addSection(page, 0, "bad'class")));
+        () -> mutate(page, () -> MutateLayoutCommand.addSection(page, 0, "bad'class", 42L)));
   }
 
   // ── removeSection ────────────────────────────────────────────────────────
@@ -188,7 +193,7 @@ class MutateLayoutCommandTest {
   @Test
   void removeSectionDeletesEmptySection() throws DataException {
     WebPage page = pageWithXml(TWO_SECTION_XML);
-    String result = mutate(page, () -> MutateLayoutCommand.removeSection(page, 1));
+    String result = mutate(page, () -> MutateLayoutCommand.removeSection(page, 1, 42L));
     assertTrue(result.contains("class=\"first\""), "first section should survive");
     assertTrue(!result.contains("class=\"second\""), "second section should be removed");
   }
@@ -197,16 +202,16 @@ class MutateLayoutCommandTest {
   void removeSectionFailsWhenSectionHasWidgets() {
     WebPage page = pageWithXml(ONE_SECTION_XML);
     assertThrows(DataException.class,
-        () -> mutate(page, () -> MutateLayoutCommand.removeSection(page, 0)));
+        () -> mutate(page, () -> MutateLayoutCommand.removeSection(page, 0, 42L)));
   }
 
   @Test
   void removeSectionRejectsInvalidIndex() {
     WebPage page = pageWithXml(ONE_SECTION_XML);
     assertThrows(DataException.class,
-        () -> mutate(page, () -> MutateLayoutCommand.removeSection(page, 99)));
+        () -> mutate(page, () -> MutateLayoutCommand.removeSection(page, 99, 42L)));
     assertThrows(DataException.class,
-        () -> mutate(page, () -> MutateLayoutCommand.removeSection(page, -1)));
+        () -> mutate(page, () -> MutateLayoutCommand.removeSection(page, -1, 42L)));
   }
 
   // ── setSectionClass ──────────────────────────────────────────────────────
@@ -214,7 +219,7 @@ class MutateLayoutCommandTest {
   @Test
   void setSectionClassUpdatesTheAttribute() throws DataException {
     WebPage page = pageWithXml(ONE_SECTION_XML);
-    String result = mutate(page, () -> MutateLayoutCommand.setSectionClass(page, 0, "updated-class"));
+    String result = mutate(page, () -> MutateLayoutCommand.setSectionClass(page, 0, "updated-class", 42L));
     assertTrue(result.contains("class=\"updated-class\""), "class should be updated");
     assertTrue(!result.contains("class=\"first\""), "old class should be gone");
   }
@@ -223,9 +228,9 @@ class MutateLayoutCommandTest {
   void setSectionClassRejectsBlank() {
     WebPage page = pageWithXml(ONE_SECTION_XML);
     assertThrows(DataException.class,
-        () -> mutate(page, () -> MutateLayoutCommand.setSectionClass(page, 0, "")));
+        () -> mutate(page, () -> MutateLayoutCommand.setSectionClass(page, 0, "", 42L)));
     assertThrows(DataException.class,
-        () -> mutate(page, () -> MutateLayoutCommand.setSectionClass(page, 0, null)));
+        () -> mutate(page, () -> MutateLayoutCommand.setSectionClass(page, 0, null, 42L)));
   }
 
   // ── addColumn ────────────────────────────────────────────────────────────
@@ -233,7 +238,7 @@ class MutateLayoutCommandTest {
   @Test
   void addColumnAppendsToSection() throws DataException {
     WebPage page = pageWithXml(ONE_SECTION_XML);
-    String result = mutate(page, () -> MutateLayoutCommand.addColumn(page, 0, 0, "medium-6 cell"));
+    String result = mutate(page, () -> MutateLayoutCommand.addColumn(page, 0, 0, "medium-6 cell", 42L));
     assertTrue(result.contains("class=\"medium-6 cell\""), "new column class should be present");
     assertTrue(result.contains("class=\"small-12 cell\""), "original column should survive");
   }
@@ -241,7 +246,7 @@ class MutateLayoutCommandTest {
   @Test
   void addColumnUsesDefaultClassWhenBlank() throws DataException {
     WebPage page = pageWithXml(ONE_SECTION_XML);
-    String result = mutate(page, () -> MutateLayoutCommand.addColumn(page, 0, 0, null));
+    String result = mutate(page, () -> MutateLayoutCommand.addColumn(page, 0, 0, null, 42L));
     // Should still add a column with default class
     int count = 0;
     int idx = 0;
@@ -256,7 +261,7 @@ class MutateLayoutCommandTest {
   void addColumnRejectsInvalidSectionIndex() {
     WebPage page = pageWithXml(ONE_SECTION_XML);
     assertThrows(DataException.class,
-        () -> mutate(page, () -> MutateLayoutCommand.addColumn(page, 99, 0, null)));
+        () -> mutate(page, () -> MutateLayoutCommand.addColumn(page, 99, 0, null, 42L)));
   }
 
   // ── removeColumn ─────────────────────────────────────────────────────────
@@ -265,7 +270,7 @@ class MutateLayoutCommandTest {
   void removeColumnFailsWhenColumnHasWidgets() {
     WebPage page = pageWithXml(ONE_SECTION_XML);
     assertThrows(DataException.class,
-        () -> mutate(page, () -> MutateLayoutCommand.removeColumn(page, 0, 0)));
+        () -> mutate(page, () -> MutateLayoutCommand.removeColumn(page, 0, 0, 42L)));
   }
 
   // ── setColumnClass ───────────────────────────────────────────────────────
@@ -273,7 +278,7 @@ class MutateLayoutCommandTest {
   @Test
   void setColumnClassUpdatesTheAttribute() throws DataException {
     WebPage page = pageWithXml(ONE_SECTION_XML);
-    String result = mutate(page, () -> MutateLayoutCommand.setColumnClass(page, 0, 0, "medium-4 cell"));
+    String result = mutate(page, () -> MutateLayoutCommand.setColumnClass(page, 0, 0, "medium-4 cell", 42L));
     assertTrue(result.contains("class=\"medium-4 cell\""), "class should be updated");
     assertTrue(!result.contains("class=\"small-12 cell\""), "old class should be gone");
   }
@@ -282,7 +287,7 @@ class MutateLayoutCommandTest {
   void setColumnClassRejectsScriptInjection() {
     WebPage page = pageWithXml(ONE_SECTION_XML);
     assertThrows(DataException.class,
-        () -> mutate(page, () -> MutateLayoutCommand.setColumnClass(page, 0, 0, "x\" onload=\"evil()")));
+        () -> mutate(page, () -> MutateLayoutCommand.setColumnClass(page, 0, 0, "x\" onload=\"evil()", 42L)));
   }
 
   // ── addWidget ────────────────────────────────────────────────────────────
@@ -290,7 +295,7 @@ class MutateLayoutCommandTest {
   @Test
   void addWidgetInsertsWidgetAtEnd() throws DataException {
     WebPage page = pageWithXml(ONE_SECTION_XML);
-    String result = mutate(page, () -> MutateLayoutCommand.addWidget(page, 0, 0, 0, "menu", null));
+    String result = mutate(page, () -> MutateLayoutCommand.addWidget(page, 0, 0, 0, "menu", null, 42L));
     assertTrue(result.contains("name=\"menu\""), "new widget should be present");
     assertTrue(result.contains("name=\"content\""), "original widget should survive");
     // menu should come after content (afterWidgetIdx=0 means after index 0)
@@ -304,7 +309,7 @@ class MutateLayoutCommandTest {
     WebPage page = pageWithXml(ONE_SECTION_XML);
     String result = mutate(page, () ->
         MutateLayoutCommand.addWidget(page, 0, 0, -1, "menu",
-            "{\"title\":\"My Menu\",\"class\":\"vertical\"}"));
+            "{\"title\":\"My Menu\",\"class\":\"vertical\"}", 42L));
     assertTrue(result.contains("<title>My Menu</title>"), "title pref should be present");
     assertTrue(result.contains("<class>vertical</class>"), "class pref should be present");
   }
@@ -313,7 +318,7 @@ class MutateLayoutCommandTest {
   void addWidgetRejectsUnknownWidgetName() {
     WebPage page = pageWithXml(ONE_SECTION_XML);
     assertThrows(DataException.class,
-        () -> mutate(page, () -> MutateLayoutCommand.addWidget(page, 0, 0, 0, "notAWidget", null)));
+        () -> mutate(page, () -> MutateLayoutCommand.addWidget(page, 0, 0, 0, "notAWidget", null, 42L)));
   }
 
   @Test
@@ -322,19 +327,19 @@ class MutateLayoutCommandTest {
     // A key with angle brackets would inject a tag name into the XML element.
     assertThrows(DataException.class,
         () -> mutate(page, () ->
-            MutateLayoutCommand.addWidget(page, 0, 0, 0, "content", "{\"bad<key>\":\"val\"}")));
+            MutateLayoutCommand.addWidget(page, 0, 0, 0, "content", "{\"bad<key>\":\"val\"}", 42L)));
     assertThrows(DataException.class,
         () -> mutate(page, () ->
-            MutateLayoutCommand.addWidget(page, 0, 0, 0, "content", "{\"0startsWithDigit\":\"val\"}")));
+            MutateLayoutCommand.addWidget(page, 0, 0, 0, "content", "{\"0startsWithDigit\":\"val\"}", 42L)));
   }
 
   @Test
   void addWidgetRejectsBlankWidgetName() {
     WebPage page = pageWithXml(ONE_SECTION_XML);
     assertThrows(DataException.class,
-        () -> mutate(page, () -> MutateLayoutCommand.addWidget(page, 0, 0, 0, "", null)));
+        () -> mutate(page, () -> MutateLayoutCommand.addWidget(page, 0, 0, 0, "", null, 42L)));
     assertThrows(DataException.class,
-        () -> mutate(page, () -> MutateLayoutCommand.addWidget(page, 0, 0, 0, null, null)));
+        () -> mutate(page, () -> MutateLayoutCommand.addWidget(page, 0, 0, 0, null, null, 42L)));
   }
 
   // ── removeWidget ─────────────────────────────────────────────────────────
@@ -342,7 +347,7 @@ class MutateLayoutCommandTest {
   @Test
   void removeWidgetDeletesTheWidget() throws DataException {
     WebPage page = pageWithXml(ONE_SECTION_XML);
-    String result = mutate(page, () -> MutateLayoutCommand.removeWidget(page, 0, 0, 0));
+    String result = mutate(page, () -> MutateLayoutCommand.removeWidget(page, 0, 0, 0, 42L));
     assertTrue(!result.contains("name=\"content\""), "widget should be removed");
   }
 
@@ -350,9 +355,9 @@ class MutateLayoutCommandTest {
   void removeWidgetRejectsInvalidIndex() {
     WebPage page = pageWithXml(ONE_SECTION_XML);
     assertThrows(DataException.class,
-        () -> mutate(page, () -> MutateLayoutCommand.removeWidget(page, 0, 0, 5)));
+        () -> mutate(page, () -> MutateLayoutCommand.removeWidget(page, 0, 0, 5, 42L)));
     assertThrows(DataException.class,
-        () -> mutate(page, () -> MutateLayoutCommand.removeWidget(page, 0, 0, -1)));
+        () -> mutate(page, () -> MutateLayoutCommand.removeWidget(page, 0, 0, -1, 42L)));
   }
 
   // ── setWidgetPreferences ─────────────────────────────────────────────────
@@ -361,7 +366,7 @@ class MutateLayoutCommandTest {
   void setWidgetPreferencesUpdatesExistingKey() throws DataException {
     WebPage page = pageWithXml(ONE_SECTION_XML);
     String result = mutate(page, () ->
-        MutateLayoutCommand.setWidgetPreferences(page, 0, 0, 0, "{\"uniqueId\":\"new-id\"}"));
+        MutateLayoutCommand.setWidgetPreferences(page, 0, 0, 0, "{\"uniqueId\":\"new-id\"}", 42L));
     assertTrue(result.contains("<uniqueId>new-id</uniqueId>"), "uniqueId should be updated");
     assertTrue(!result.contains("<uniqueId>my-content</uniqueId>"), "old value should be gone");
   }
@@ -370,7 +375,7 @@ class MutateLayoutCommandTest {
   void setWidgetPreferencesAddsNewKey() throws DataException {
     WebPage page = pageWithXml(ONE_SECTION_XML);
     String result = mutate(page, () ->
-        MutateLayoutCommand.setWidgetPreferences(page, 0, 0, 0, "{\"title\":\"New Title\"}"));
+        MutateLayoutCommand.setWidgetPreferences(page, 0, 0, 0, "{\"title\":\"New Title\"}", 42L));
     assertTrue(result.contains("<title>New Title</title>"), "new pref element should be added");
     assertTrue(result.contains("<uniqueId>my-content</uniqueId>"), "existing pref should be preserved");
   }
@@ -379,9 +384,9 @@ class MutateLayoutCommandTest {
   void setWidgetPreferencesRejectsEmptyPrefs() {
     WebPage page = pageWithXml(ONE_SECTION_XML);
     assertThrows(DataException.class,
-        () -> mutate(page, () -> MutateLayoutCommand.setWidgetPreferences(page, 0, 0, 0, "{}")));
+        () -> mutate(page, () -> MutateLayoutCommand.setWidgetPreferences(page, 0, 0, 0, "{}", 42L)));
     assertThrows(DataException.class,
-        () -> mutate(page, () -> MutateLayoutCommand.setWidgetPreferences(page, 0, 0, 0, null)));
+        () -> mutate(page, () -> MutateLayoutCommand.setWidgetPreferences(page, 0, 0, 0, null, 42L)));
   }
 
   @Test
@@ -389,7 +394,7 @@ class MutateLayoutCommandTest {
     WebPage page = pageWithXml(ONE_SECTION_XML);
     assertThrows(DataException.class,
         () -> mutate(page, () ->
-            MutateLayoutCommand.setWidgetPreferences(page, 0, 0, 0, "{\"</injection>\":\"val\"}")));
+            MutateLayoutCommand.setWidgetPreferences(page, 0, 0, 0, "{\"</injection>\":\"val\"}", 42L)));
   }
 
   // ── setWidgetPreferences / addWidget: TableWidget's tableData is validated at this boundary ─────
@@ -398,7 +403,7 @@ class MutateLayoutCommandTest {
   void setWidgetPreferencesAcceptsWellFormedTableData() throws DataException {
     WebPage page = pageWithXml(TABLE_WIDGET_XML);
     String result = mutate(page, () -> MutateLayoutCommand.setWidgetPreferences(page, 0, 0, 0,
-        "{\"tableData\":\"{\\\"headers\\\":[\\\"Name\\\",\\\"Age\\\"],\\\"rows\\\":[[\\\"Alice\\\",\\\"30\\\"]]}\"}"));
+        "{\"tableData\":\"{\\\"headers\\\":[\\\"Name\\\",\\\"Age\\\"],\\\"rows\\\":[[\\\"Alice\\\",\\\"30\\\"]]}\"}", 42L));
     assertTrue(result.contains("Alice"), "the new table data should be written");
   }
 
@@ -407,7 +412,7 @@ class MutateLayoutCommandTest {
     WebPage page = pageWithXml(TABLE_WIDGET_XML);
     assertThrows(DataException.class,
         () -> mutate(page, () -> MutateLayoutCommand.setWidgetPreferences(page, 0, 0, 0,
-            "{\"tableData\":\"{\\\"headers\\\":[\\\"A\\\"]}\"}")),
+            "{\"tableData\":\"{\\\"headers\\\":[\\\"A\\\"]}\"}", 42L)),
         "tableData without a 'rows' array must be rejected before it is persisted");
   }
 
@@ -416,7 +421,7 @@ class MutateLayoutCommandTest {
     WebPage page = pageWithXml(TABLE_WIDGET_XML);
     assertThrows(DataException.class,
         () -> mutate(page, () -> MutateLayoutCommand.setWidgetPreferences(page, 0, 0, 0,
-            "{\"tableData\":\"{\\\"headers\\\":\\\"not-an-array\\\",\\\"rows\\\":[]}\"}")));
+            "{\"tableData\":\"{\\\"headers\\\":\\\"not-an-array\\\",\\\"rows\\\":[]}\"}", 42L)));
   }
 
   @Test
@@ -431,7 +436,7 @@ class MutateLayoutCommandTest {
     }
     String prefsJson = "{\"tableData\":\"{\\\"headers\\\":[\\\"A\\\"],\\\"rows\\\":[" + rows + "]}\"}";
     assertThrows(DataException.class,
-        () -> mutate(page, () -> MutateLayoutCommand.setWidgetPreferences(page, 0, 0, 0, prefsJson)),
+        () -> mutate(page, () -> MutateLayoutCommand.setWidgetPreferences(page, 0, 0, 0, prefsJson, 42L)),
         "a row count over MAX_ROWS must be rejected before it is persisted");
   }
 
@@ -441,7 +446,7 @@ class MutateLayoutCommandTest {
     // class -- only the dataTable widget's value gets structurally validated.
     WebPage page = pageWithXml(ONE_SECTION_XML);
     String result = mutate(page, () ->
-        MutateLayoutCommand.setWidgetPreferences(page, 0, 0, 0, "{\"tableData\":\"not-json-at-all\"}"));
+        MutateLayoutCommand.setWidgetPreferences(page, 0, 0, 0, "{\"tableData\":\"not-json-at-all\"}", 42L));
     assertTrue(result.contains("<tableData>not-json-at-all</tableData>"));
   }
 
@@ -449,7 +454,7 @@ class MutateLayoutCommandTest {
   void addWidgetAcceptsWellFormedTableData() throws DataException {
     WebPage page = pageWithXml(ONE_SECTION_XML);
     String result = mutate(page, () -> MutateLayoutCommand.addWidget(page, 0, 0, -1, "dataTable",
-        "{\"tableData\":\"{\\\"headers\\\":[\\\"A\\\"],\\\"rows\\\":[[\\\"1\\\"]]}\"}"));
+        "{\"tableData\":\"{\\\"headers\\\":[\\\"A\\\"],\\\"rows\\\":[[\\\"1\\\"]]}\"}", 42L));
     assertTrue(result.contains("name=\"dataTable\""));
   }
 
@@ -458,8 +463,47 @@ class MutateLayoutCommandTest {
     WebPage page = pageWithXml(ONE_SECTION_XML);
     assertThrows(DataException.class,
         () -> mutate(page, () -> MutateLayoutCommand.addWidget(page, 0, 0, -1, "dataTable",
-            "{\"tableData\":\"{\\\"rows\\\":[]}\"}")),
+            "{\"tableData\":\"{\\\"rows\\\":[]}\"}", 42L)),
         "tableData missing 'headers' must be rejected before the widget is ever added");
+  }
+
+  // ── modifiedBy / persistence-failure propagation ─────────────────────────
+  // A structural mutation must record who made it and must not report success when the
+  // underlying save silently fails (e.g. a stale modified_by value tripping the
+  // web_pages_modified_by_fkey foreign key). See MutateLayoutCommandIntegrationTest for the same
+  // two properties proven against a real database instead of a mock.
+
+  @Test
+  void mutationSetsModifiedByBeforeSaving() throws DataException {
+    WebPage page = pageWithXml(ONE_SECTION_XML);
+    try (MockedStatic<WebPageRepository> repo = mockStatic(WebPageRepository.class);
+         MockedStatic<WebPageXmlLayoutCommand> cmd = mockStatic(WebPageXmlLayoutCommand.class)) {
+      repo.when(() -> WebPageRepository.save(any(WebPage.class))).thenAnswer(i -> i.getArgument(0));
+      cmd.when(() -> WebPageXmlLayoutCommand.removeCustomPage(anyString())).thenAnswer(i -> null);
+
+      MutateLayoutCommand.addSection(page, 0, "new-section", 42L);
+
+      repo.verify(() -> WebPageRepository.save(argThat(p -> p.getModifiedBy() == 42L)));
+    }
+  }
+
+  @Test
+  void mutationThrowsWhenSaveFails() {
+    WebPage page = pageWithXml(ONE_SECTION_XML);
+    try (MockedStatic<WebPageRepository> repo = mockStatic(WebPageRepository.class);
+         MockedStatic<WebPageXmlLayoutCommand> cmd = mockStatic(WebPageXmlLayoutCommand.class)) {
+      // A null return simulates WebPageRepository.update() failing (e.g. the FK violation logged
+      // by DB.update() when modified_by isn't a real user id) -- mutate() must not treat that as
+      // success.
+      repo.when(() -> WebPageRepository.save(any(WebPage.class))).thenAnswer(i -> null);
+      cmd.when(() -> WebPageXmlLayoutCommand.removeCustomPage(anyString())).thenAnswer(i -> null);
+
+      assertThrows(DataException.class,
+          () -> MutateLayoutCommand.addSection(page, 0, "new-section", 42L),
+          "a null return from WebPageRepository.save() means persistence failed and must not be swallowed");
+
+      cmd.verify(() -> WebPageXmlLayoutCommand.removeCustomPage(anyString()), never());
+    }
   }
 
   // ── Allowlist pattern constants are stable ───────────────────────────────
