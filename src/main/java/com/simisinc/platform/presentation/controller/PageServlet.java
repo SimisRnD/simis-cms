@@ -599,32 +599,32 @@ public class PageServlet extends HttpServlet {
           int after = intParam(request, "after", -1);
           switch (mutateAction) {
             case "addSection":
-              MutateLayoutCommand.addSection(webPage, after, request.getParameter("class"));
+              MutateLayoutCommand.addSection(webPage, after, request.getParameter("class"), userSession.getUserId());
               break;
             case "removeSection":
-              MutateLayoutCommand.removeSection(webPage, s);
+              MutateLayoutCommand.removeSection(webPage, s, userSession.getUserId());
               break;
             case "setSectionClass":
-              MutateLayoutCommand.setSectionClass(webPage, s, request.getParameter("class"));
+              MutateLayoutCommand.setSectionClass(webPage, s, request.getParameter("class"), userSession.getUserId());
               break;
             case "addColumn":
-              MutateLayoutCommand.addColumn(webPage, s, after, request.getParameter("class"));
+              MutateLayoutCommand.addColumn(webPage, s, after, request.getParameter("class"), userSession.getUserId());
               break;
             case "removeColumn":
-              MutateLayoutCommand.removeColumn(webPage, s, c);
+              MutateLayoutCommand.removeColumn(webPage, s, c, userSession.getUserId());
               break;
             case "setColumnClass":
-              MutateLayoutCommand.setColumnClass(webPage, s, c, request.getParameter("class"));
+              MutateLayoutCommand.setColumnClass(webPage, s, c, request.getParameter("class"), userSession.getUserId());
               break;
             case "addWidget":
               MutateLayoutCommand.addWidget(webPage, s, c, after,
-                  request.getParameter("widgetName"), request.getParameter("prefs"));
+                  request.getParameter("widgetName"), request.getParameter("prefs"), userSession.getUserId());
               break;
             case "removeWidget":
-              MutateLayoutCommand.removeWidget(webPage, s, c, w);
+              MutateLayoutCommand.removeWidget(webPage, s, c, w, userSession.getUserId());
               break;
             case "setWidgetPreferences":
-              MutateLayoutCommand.setWidgetPreferences(webPage, s, c, w, request.getParameter("prefs"));
+              MutateLayoutCommand.setWidgetPreferences(webPage, s, c, w, request.getParameter("prefs"), userSession.getUserId());
               break;
             default:
               response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
