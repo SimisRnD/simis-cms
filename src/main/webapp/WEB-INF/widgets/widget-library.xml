@@ -42,7 +42,6 @@
   <widget name="button" class="com.simisinc.platform.presentation.widgets.cms.ButtonWidget" />
   <widget name="menu" class="com.simisinc.platform.presentation.widgets.cms.MenuWidget" />
   <widget name="card" class="com.simisinc.platform.presentation.widgets.cms.CardWidget" />
-  <widget name="systemMessages" class="com.simisinc.platform.presentation.widgets.cms.SystemMessagesWidget" />
   <widget name="content" class="com.simisinc.platform.presentation.widgets.cms.ContentWidget" />
   <widget name="contentTabs" class="com.simisinc.platform.presentation.widgets.cms.ContentTabsWidget" />
   <widget name="contentCards" class="com.simisinc.platform.presentation.widgets.cms.ContentCardsWidget" />
