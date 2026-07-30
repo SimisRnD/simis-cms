@@ -182,6 +182,9 @@ public class LoginWidget extends GenericWidget {
     // Rotate the servlet session id now that the user has authenticated: any session id an
     // attacker may have fixed on the browser before login is invalidated (session-fixation defense).
     context.getRequest().changeSessionId();
+    // A per-user toggle (e.g. the visual editor's edit mode) set earlier on this same HttpSession
+    // by whichever identity was logged in before must not carry over to the new identity.
+    context.getRequest().getSession().removeAttribute(SessionConstants.PAGE_EDIT_MODE);
     userSession.login(user);
 
     // Track the login

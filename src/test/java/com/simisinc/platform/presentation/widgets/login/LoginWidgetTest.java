@@ -223,6 +223,37 @@ class LoginWidgetTest extends WidgetBase {
   }
 
   @Test
+  void finalizingLoginClearsAStalePageEditModeFlagLeftByAPreviousUser() {
+    // Simulates a previously-authenticated, more-privileged user (e.g. an admin who turned on the
+    // visual editor) leaving this flag set on the HttpSession, then logging out without an
+    // explicit editMode=false -- or simply a second, different user authenticating on top of the
+    // same session without an intervening /logout call at all.
+    session.setAttribute(SessionConstants.PAGE_EDIT_MODE, "true");
+    session.setAttribute(SessionConstants.USER, new UserSession());
+    addQueryParameter(widgetContext, "email", "user@example.com");
+    addQueryParameter(widgetContext, "password", "hunter2hunter2");
+    when(request.getRemoteAddr()).thenReturn("127.0.0.1");
+
+    User user = new User();
+    user.setId(7L);
+    user.setMfaEnabled(false);
+
+    LoginWidget widget = new LoginWidget();
+    try (MockedStatic<AuthenticateLoginCommand> auth = mockStatic(AuthenticateLoginCommand.class);
+        MockedStatic<UserLoginRepository> userLoginRepo = mockStatic(UserLoginRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<SaveAuditEventCommand> audit = mockStatic(SaveAuditEventCommand.class)) {
+      auth.when(() -> AuthenticateLoginCommand.getAuthenticatedUser(anyString(), anyString(), anyString()))
+          .thenReturn(user);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean("site.online")).thenReturn(true);
+      widget.post(widgetContext);
+    }
+
+    // Whichever user now owns this session, a previous user's edit-mode toggle must not carry over.
+    verify(session).removeAttribute(SessionConstants.PAGE_EDIT_MODE);
+  }
+
+  @Test
   void badPasswordShowsAnErrorAndDoesNotAuthenticate() {
     addQueryParameter(widgetContext, "email", "user@example.com");
     addQueryParameter(widgetContext, "password", "wrong");

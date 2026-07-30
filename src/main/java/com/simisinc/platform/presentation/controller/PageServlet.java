@@ -293,9 +293,12 @@ public class PageServlet extends HttpServlet {
       // WebContainerCommand.processWidgets()'s per-widget loop -- their names must stay in sync
       // with WebContainerCommand.PAGE_LEVEL_ATTRIBUTE_NAMES, which exempts them from that loop's
       // per-widget request attribute reset.
-      if (pageEditMode) {
-        request.setAttribute("pageEditMode", "true");
-      }
+      //
+      // pageEditMode must be published unconditionally, like pageLayoutMode below -- leaving it
+      // unset on the false path lets JSP EL's implicit page/request/session/application scope
+      // search fall through to the raw session attribute read above, which can still be "true"
+      // from a previously-authenticated, more-privileged user on this same HttpSession.
+      request.setAttribute("pageEditMode", pageEditMode ? "true" : "false");
       boolean hasDraft = pageLayoutMode && webPage != null && StringUtils.isNotBlank(webPage.getDraftPageXml());
       request.setAttribute("pageLayoutMode", pageLayoutMode ? "true" : "false");
       request.setAttribute("hasDraft", hasDraft ? "true" : "false");
