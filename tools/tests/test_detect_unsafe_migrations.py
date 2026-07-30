@@ -4,11 +4,10 @@ Unlike the other five tools/tests/*.py files, this one is git-based (issue #399)
 it exercises the tool through real commits in a synthetic tmp_path repo, since the
 Java-removal side of the check reads `git diff`, not the working tree.
 
-Migration files below are written directly under
-src/main/resources/database/upgrade/ (not a dated subdirectory like the real repo's
-upgrade/2026/) to match check_migrations()'s current glob, which is not recursive.
-Real migrations one level deeper are a separate, pre-existing bug from the one this
-file covers (the shallow-clone / git-diff fix) and are out of scope here.
+Migration files below are written under a dated subdirectory
+(src/main/resources/database/upgrade/2026/), matching how real migrations are laid
+out in this repo, to exercise check_migrations()'s recursive discovery
+(migrations_dir.rglob(...)) rather than a synthetic top-level-only placement.
 """
 
 import subprocess
@@ -18,7 +17,7 @@ from conftest import run_tool, write
 
 TOOL = "detect_unsafe_migrations.py"
 
-MIGRATION_DIR = "src/main/resources/database/upgrade"
+MIGRATION_DIR = "src/main/resources/database/upgrade/2026"
 JAVA_FILE = "src/main/java/com/simisinc/platform/domain/model/Order.java"
 
 JAVA_BEFORE = (
@@ -59,6 +58,8 @@ def _commit_all(root: Path, message: str) -> None:
 
 
 def test_destructive_migration_with_matching_java_removal_is_flagged(repo):
+    """Also covers recursive discovery: MIGRATION_DIR is a dated subdirectory,
+    like real migrations, not the top-level upgrade/ directory."""
     _init_repo(repo)
     write(repo, JAVA_FILE, JAVA_BEFORE)
     _commit_all(repo, "initial state")

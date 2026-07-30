@@ -119,7 +119,7 @@ def check_migrations(repo_root):
         print(f"Migrations directory not found: {migrations_dir}", file=sys.stderr)
         return violations
 
-    sql_files = sorted(migrations_dir.glob('UPGRADE_*.sql'))
+    sql_files = sorted(migrations_dir.rglob('UPGRADE_*.sql'))
 
     # Group by version (date.time)
     migrations_by_version = defaultdict(list)
