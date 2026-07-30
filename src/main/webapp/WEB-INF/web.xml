@@ -112,8 +112,8 @@
   </servlet-mapping>
   <servlet-mapping>
     <servlet-name>MediaApi</servlet-name>
-    <url-pattern>/api/media</url-pattern>
-    <url-pattern>/api/media/*</url-pattern>
+    <url-pattern>/visual-editor/media</url-pattern>
+    <url-pattern>/visual-editor/media/*</url-pattern>
   </servlet-mapping>
   <servlet-mapping>
     <servlet-name>StylesheetServlet</servlet-name>
