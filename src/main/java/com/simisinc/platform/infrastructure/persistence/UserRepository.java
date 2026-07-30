@@ -23,6 +23,7 @@ import com.simisinc.platform.domain.model.dashboard.StatisticsData;
 import com.simisinc.platform.infrastructure.cache.CacheManager;
 import com.simisinc.platform.infrastructure.database.*;
 import com.simisinc.platform.infrastructure.persistence.ecommerce.OrderRepository;
+import com.simisinc.platform.infrastructure.persistence.login.UnsuspendRequestRepository;
 import com.simisinc.platform.infrastructure.persistence.login.UserGroupRepository;
 import com.simisinc.platform.infrastructure.persistence.login.UserLoginRepository;
 import com.simisinc.platform.infrastructure.persistence.login.UserRoleRepository;
@@ -541,6 +542,9 @@ public class UserRepository {
     SqlUtils where = new SqlUtils()
         .add("user_id = ?", record.getId());
     if (DB.update(TABLE_NAME, updateValues, where)) {
+      // A fresh suspension moots any in-flight unsuspend-approval request/decision for this
+      // account (issue #492 Phase 3) -- a later unsuspend starts a brand-new governance cycle.
+      UnsuspendRequestRepository.supersedePendingForTarget(record.getId(), "Account was suspended again");
       return record;
     }
     LOG.error("suspendAccount failed!");

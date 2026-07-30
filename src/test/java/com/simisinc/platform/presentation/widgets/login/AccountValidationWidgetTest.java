@@ -17,6 +17,7 @@
 package com.simisinc.platform.presentation.widgets.login;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
@@ -31,6 +32,7 @@ import com.simisinc.platform.WidgetBase;
 import com.simisinc.platform.application.login.LogoutCommand;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.infrastructure.persistence.UserRepository;
+import com.simisinc.platform.infrastructure.persistence.login.UnsuspendRequestRepository;
 import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
 
@@ -92,14 +94,19 @@ class AccountValidationWidgetTest extends WidgetBase {
     try (MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
         MockedStatic<WorkflowManager> workflow = mockStatic(WorkflowManager.class);
         MockedStatic<LogoutCommand> logoutCommand = mockStatic(LogoutCommand.class);
+        MockedStatic<UnsuspendRequestRepository> requestRepo = mockStatic(UnsuspendRequestRepository.class);
         MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
       userRepo.when(() -> UserRepository.findByAccountToken("a-real-token")).thenReturn(target);
+      // #492 Phase 3: this completion is also checked against a pending maker-checker
+      // reverification -- none exists for this plain self-service reset.
+      requestRepo.when(() -> UnsuspendRequestRepository.findApprovedByTargetUserId(21L)).thenReturn(null);
 
       new AccountValidationWidget().post(widgetContext);
 
       audit.verify(() -> AuditEventCommand.record(any(), eq(AuditEventCommand.USER_MANAGEMENT),
           eq("user.password.reset.completed"), eq(AuditEventCommand.SUCCESS), eq("user"), eq("21"),
           eq("target@example.com"), any()), times(1));
+      requestRepo.verify(() -> UnsuspendRequestRepository.markReverified(anyLong()), never());
       audit.verify(() -> AuditEventCommand.record(any(), any(), eq("user.registered"),
           any(), any(), any(), any(), any()), never());
       userRepo.verify(() -> UserRepository.updateValidated(any()), never());

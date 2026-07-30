@@ -141,12 +141,16 @@ class UsersListWidgetBulkActionsTest extends WidgetBase {
     addQueryParameter(widgetContext, "command", "bulkUnsuspend");
 
     User found = userWithId(5L);
+    found.setEnabled(false); // a genuinely suspended (and non-elevated) account, restorable directly
 
     try (MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
         MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
+        MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
         MockedStatic<SaveAuditEventCommand> audit = mockStatic(SaveAuditEventCommand.class)) {
       loadCmd.when(() -> LoadUserCommand.loadUser(5L)).thenReturn(found);
       loadCmd.when(() -> LoadUserCommand.loadUser(6L)).thenReturn(null); // deleted concurrently / tampered id
+      loadCmd.when(() -> LoadUserCommand.loadUser(1L)).thenReturn(userWithId(1L));
+      roleRepo.when(() -> RoleRepository.findByCode("community-manager")).thenReturn(role(3, 90, "community-manager"));
       userRepo.when(() -> UserRepository.restoreAccount(found)).thenReturn(found);
 
       WidgetContext result = new UsersListWidget().post(widgetContext);
