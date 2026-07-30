@@ -30,7 +30,7 @@
   </ul>
   <div class="tabs-content">
   <c:forEach items="${contentTabList}" var="contentTab" varStatus="tabStatus">
-    <div class="tabs-panel<c:if test="${contentTab.isActive}"> is-active</c:if>">
+    <div class="tabs-panel<c:if test="${contentTab.isActive}"> is-active</c:if>"<c:if test="${showEditor eq 'true' && !empty contentTab.contentUniqueId}"> data-simis-content-id="${contentTab.contentUniqueId}"</c:if>>
       <c:if test="${showEditor eq 'true'}">
         <div class="platform-content-editor"><a class="hollow button small secondary" href="${ctx}/content-editor?uniqueId=${contentTab.contentUniqueId}&returnPage=${returnPage}"><i class="${font:fas()} fa-edit"></i></a></div>
       </c:if>
