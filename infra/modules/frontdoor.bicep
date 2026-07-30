@@ -118,6 +118,30 @@ resource originGroup 'Microsoft.Cdn/profiles/originGroups@2024-02-01' = {
       probeProtocol: 'Https'
       probeIntervalInSeconds: 30
     }
+    // Session affinity: pin authenticated users to the same backend instance
+    // for the duration of their session. In multi-instance deployments, Tomcat
+    // stores sessions in JVM-local memory; without affinity, a user routed to
+    // a different instance loses their session and must re-authenticate. AFD
+    // affinity solves this via a routing cookie.
+    //
+    // This is an origin-group-level property (AFDOriginGroupProperties), not a
+    // route-level one -- there is no per-route session-affinity setting in the
+    // Microsoft.Cdn resource schema. It is also a plain Enabled/Disabled toggle;
+    // Azure manages the cookie's characteristics (name, SameSite attribute) and
+    // TTL internally, and neither is Bicep-configurable for Standard/Premium
+    // Front Door. (An earlier version of this file set sessionAffinitySettings
+    // on the route resource with a cookie characteristic and a timeout field --
+    // that property does not exist on RouteProperties in any API version and
+    // was a no-op; see issue #397.)
+    //
+    // NOTE: the App Service plan backing this origin is currently pinned to
+    // capacity: 1 (single instance, pilot posture -- decision #8, see
+    // infra/modules/appservice.bicep). With only one instance there is only
+    // one place a session can live, so this setting has no observable effect
+    // today. It's here so multi-instance routing works correctly once the plan
+    // is actually scaled out; until then "it deploys cleanly" should not be
+    // read as "verified against a real multi-instance deployment."
+    sessionAffinityState: 'Enabled'
   }
 }
 
@@ -179,16 +203,6 @@ resource route 'Microsoft.Cdn/profiles/afdEndpoints/routes@2024-02-01' = {
         id: customDomain.id
       }
     ]
-    // Session affinity: pin authenticated users to the same backend instance
-    // for the duration of their session (default 24 hours). In multi-instance
-    // deployments, Tomcat stores sessions in JVM-local memory; without affinity,
-    // a user routed to a different instance loses their session and must
-    // re-authenticate. AFD affinity solves this via a routing cookie.
-    sessionAffinitySettings: {
-      affinityEnabled: 'Enabled'
-      affinityCookieCharacteristic: 'SameSite=Lax'
-      affintiyTimeoutInMinutes: 1440
-    }
     // Caching: honor application Cache-Control headers. Public pages (no session
     // context) return "public, max-age=300, stale-while-revalidate=3600" and are
     // cached at the edge. Authenticated/session pages return "no-cache, no-store"
