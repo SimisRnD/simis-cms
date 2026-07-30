@@ -23,6 +23,7 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="sitePropertyMap" class="java.util.HashMap" scope="request"/>
 <jsp:useBean id="useCaptcha" class="java.lang.String" scope="request"/>
+<jsp:useBean id="onlineMailingLists" class="java.util.ArrayList" scope="request"/>
 <%-- issue #484: this form previously submitted straight to EmailSubscribeAjax with no CAPTCHA or
      rate limiting at all -- the sibling EmailSubscribeWidget/FormWidget paths already had both.
      Mirrors the same three-way captcha branch form.jsp already uses (Google invisible reCAPTCHA,
@@ -35,6 +36,18 @@
         var re = /\S+@\S+\.\S+/;
         return re.test(email);
     }
+    // Issue #598: one mailingListId param per list the visitor kept checked -- a hidden input
+    // (always included) when there's exactly one public list, so today's single-list signup
+    // looks and behaves exactly as it did before this feature existed.
+    function selectedMailingListParams${widgetContext.uniqueId}() {
+        var params = "";
+        document.querySelectorAll(".mailingListCheckbox${widgetContext.uniqueId}").forEach(function(el) {
+            if (el.type !== "checkbox" || el.checked) {
+                params += "&mailingListId=" + encodeURIComponent(el.value);
+            }
+        });
+        return params;
+    }
     function submitEmailSignUp${widgetContext.uniqueId}(extraParams) {
         var email = document.getElementById("email${widgetContext.uniqueId}").value;
         if (email === undefined || email.length === 0) {
@@ -45,6 +58,7 @@
             document.getElementById('emailHelpText${widgetContext.uniqueId}').innerHTML = "Please re-enter your email address using a proper format.";
             return;
         }
+        extraParams += selectedMailingListParams${widgetContext.uniqueId}();
         $.getJSON("${ctx}/json/emailSubscribe?token=${userSession.formToken}&email=" + encodeURIComponent(email) + extraParams, function(data) {
             if (data.status === undefined || data.status !== '0') {
                 document.getElementById('emailHelpText${widgetContext.uniqueId}').innerHTML =
@@ -109,5 +123,20 @@
       <input type="text" id="captcha${widgetContext.uniqueId}" required/>
     </p>
   </c:if>
+  <c:choose>
+    <c:when test="${fn:length(onlineMailingLists) > 1}">
+      <p class="help-text">
+        <c:forEach items="${onlineMailingLists}" var="list">
+          <label class="inline-list-checkbox">
+            <input type="checkbox" class="mailingListCheckbox${widgetContext.uniqueId}" value="${list.id}" checked>
+            <c:out value="${list.title}" />
+          </label>
+        </c:forEach>
+      </p>
+    </c:when>
+    <c:when test="${fn:length(onlineMailingLists) == 1}">
+      <input type="hidden" class="mailingListCheckbox${widgetContext.uniqueId}" value="${onlineMailingLists[0].id}">
+    </c:when>
+  </c:choose>
   <p class="help-text" id="emailHelpText${widgetContext.uniqueId}"></p>
 </form>
