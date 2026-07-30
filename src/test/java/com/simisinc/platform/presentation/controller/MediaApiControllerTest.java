@@ -21,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
@@ -243,7 +244,7 @@ class MediaApiControllerTest {
 
       ArgumentCaptor<String> prefsJsonCaptor = ArgumentCaptor.forClass(String.class);
       mutate.verify(() -> MutateLayoutCommand.setWidgetPreferences(
-          eq(webPage), eq(0), eq(1), eq(2), prefsJsonCaptor.capture()));
+          eq(webPage), eq(0), eq(1), eq(2), prefsJsonCaptor.capture(), eq(userSession.getUserId())));
       JsonNode prefs = MAPPER.readTree(prefsJsonCaptor.getValue());
       assertEquals("/assets/photo.jpg", prefs.get("url").asText());
     }
@@ -265,7 +266,8 @@ class MediaApiControllerTest {
          MockedStatic<MutateLayoutCommand> mutate = mockStatic(MutateLayoutCommand.class)) {
       assets.when(() -> MediaAssetRepository.findByAssetId("asset-123")).thenReturn(asset);
       pages.when(() -> LoadWebPageCommand.loadByLink("/about")).thenReturn(webPage);
-      mutate.when(() -> MutateLayoutCommand.setWidgetPreferences(any(), anyInt(), anyInt(), anyInt(), anyString()))
+      mutate.when(() -> MutateLayoutCommand.setWidgetPreferences(
+          any(), anyInt(), anyInt(), anyInt(), anyString(), anyLong()))
           .thenThrow(new DataException("Widget index 2 at 0:1 out of range (1 widget(s))"));
 
       Recorded result = runWidgetUpdate(request);

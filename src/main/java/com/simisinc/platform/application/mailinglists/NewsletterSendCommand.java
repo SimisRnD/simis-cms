@@ -34,20 +34,28 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 /**
- * Queues a newsletter send: one batch header (mailing_list_history) plus one queued row
- * (mailing_list_sent) per currently-subscribed member of the list. The actual sending happens
- * later, asynchronously, via NewsletterQueueJob -- this only enqueues.
+ * Sends (or queues, depending on the configured mailing-list service) a blog-post newsletter
+ * notification to a mailing list's current subscribers, and records one mailing_list_history
+ * batch header row either way.
+ *
+ * <p>
+ * When MailChimp is the configured service (issue #600 rework), the notification goes out as a
+ * real MailChimp Campaign targeting the members tagged with this list -- MailChimp fans out
+ * delivery on its own infrastructure, so there is no local per-recipient queue for this path.
+ * Otherwise, this falls back to the original local mechanism: one queued row (mailing_list_sent)
+ * per currently-subscribed member, sent later, asynchronously, via NewsletterQueueJob.
+ * </p>
  *
  * <p>
  * Shared by both the manual admin page (issue #600) and the blog editor's "Notify subscribers"
- * checkbox (issue #500), so both paths enqueue identically.
+ * checkbox (issue #500), so both paths behave identically.
  * </p>
  *
  * @author SimIS Inc.
  */
 public class NewsletterSendCommand {
 
-  public static int enqueueBlogPostNotification(MailingList mailingList, BlogPost blogPost, long actorUserId)
+  public static int sendBlogPostNotification(MailingList mailingList, BlogPost blogPost, long actorUserId)
       throws DataException {
     if (mailingList == null) {
       throw new DataException("Mailing list was not found");
@@ -56,6 +64,54 @@ public class NewsletterSendCommand {
       throw new DataException("Blog post was not found");
     }
 
+    if (MailChimpCommand.isEnabled()) {
+      return sendViaMailChimp(mailingList, blogPost, actorUserId);
+    }
+    return enqueueViaSmtp(mailingList, blogPost, actorUserId);
+  }
+
+  private static int sendViaMailChimp(MailingList mailingList, BlogPost blogPost, long actorUserId)
+      throws DataException {
+    int recipientCount = MailChimpCommand.getTagMemberCount(mailingList);
+    if (recipientCount <= 0) {
+      return 0;
+    }
+
+    String html = NewsletterEmailCommand.renderBlogPostHtml(blogPost, "*|UNSUB|*");
+
+    String campaignId = MailChimpCommand.createCampaign(mailingList, blogPost.getTitle());
+    if (campaignId == null) {
+      throw new DataException("Could not create the MailChimp campaign");
+    }
+    if (!MailChimpCommand.setCampaignContent(campaignId, html)) {
+      throw new DataException("Could not set the MailChimp campaign content");
+    }
+    if (!MailChimpCommand.sendCampaign(campaignId)) {
+      throw new DataException("Could not send the MailChimp campaign");
+    }
+
+    MailingListHistory history = new MailingListHistory();
+    history.setListId(mailingList.getId());
+    history.setCreatedBy(actorUserId);
+    history.setService("mailchimp");
+    history.setEmailCount(recipientCount);
+    history.setSubject(blogPost.getTitle());
+    history.setBlogPostId(blogPost.getId());
+    history.setMailchimpCampaignId(campaignId);
+
+    try (Connection connection = DB.getConnection()) {
+      if (MailingListHistoryRepository.add(connection, history) == null) {
+        throw new DataException("Could not create the send batch record");
+      }
+    } catch (SQLException se) {
+      throw new DataException("Could not record the newsletter send: " + se.getMessage());
+    }
+
+    return recipientCount;
+  }
+
+  private static int enqueueViaSmtp(MailingList mailingList, BlogPost blogPost, long actorUserId)
+      throws DataException {
     List<MailingListMember> members = MailingListMemberRepository.findActiveMembersForList(mailingList.getId());
     if (members.isEmpty()) {
       return 0;

@@ -245,4 +245,39 @@ class WebContainerCommandTest {
     Assertions.assertEquals("Launch Announcement - News", result);
   }
 
+  // Regression coverage for issue #259: the composition-canvas editor toolbar and
+  // ItemsListWidget's edit-mode UI both read page-level request attributes that PageServlet sets
+  // once, before WebContainerCommand.processWidgets()'s per-widget loop begins. That loop wipes
+  // request attributes between each widget's turn so one widget's leftovers can't bleed into the
+  // next widget's render -- but it must not wipe page-level attributes that need to survive for
+  // the whole request, or a real page's own first widget kills them before anything ever reads
+  // them back. See PageServlet.java's request.setAttribute("pageEditMode"/"pageLayoutMode"/
+  // "hasDraft"/"widgetLibraryJson", ...) calls, and ItemsListWidget.java:84-85.
+
+  @Test
+  void pageLevelAttributesSurviveThePerWidgetReset() {
+    Assertions.assertTrue(WebContainerCommand.isPreservedAcrossWidgetReset("pageEditMode"));
+    Assertions.assertTrue(WebContainerCommand.isPreservedAcrossWidgetReset("pageLayoutMode"));
+    Assertions.assertTrue(WebContainerCommand.isPreservedAcrossWidgetReset("hasDraft"));
+    Assertions.assertTrue(WebContainerCommand.isPreservedAcrossWidgetReset("widgetLibraryJson"));
+  }
+
+  @Test
+  void existingControllerMasterAndRequestPrefixedAttributesStillSurvive() {
+    // Unchanged pre-existing behavior -- must not regress with the new exemption added alongside it.
+    Assertions.assertTrue(WebContainerCommand.isPreservedAcrossWidgetReset("controllerShowMainMenu"));
+    Assertions.assertTrue(WebContainerCommand.isPreservedAcrossWidgetReset("masterWebPage"));
+    Assertions.assertTrue(WebContainerCommand.isPreservedAcrossWidgetReset("requestObject"));
+  }
+
+  @Test
+  void ordinaryPerWidgetAttributesAreStillWiped() {
+    // Unchanged pre-existing behavior -- an ordinary widget-scoped attribute (e.g. a widget's own
+    // rendering data) must still be reset between widgets so it can't leak into the next widget's
+    // JSP, even though its name happens to be page-related in spirit.
+    Assertions.assertFalse(WebContainerCommand.isPreservedAcrossWidgetReset("contentHtml"));
+    Assertions.assertFalse(WebContainerCommand.isPreservedAcrossWidgetReset("collection"));
+    Assertions.assertFalse(WebContainerCommand.isPreservedAcrossWidgetReset("isEditMode"));
+  }
+
 }

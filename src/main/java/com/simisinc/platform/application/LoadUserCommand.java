@@ -17,9 +17,11 @@
 package com.simisinc.platform.application;
 
 import com.simisinc.platform.domain.model.Capability;
+import com.simisinc.platform.domain.model.CapabilityGrant;
 import com.simisinc.platform.domain.model.Group;
 import com.simisinc.platform.domain.model.Role;
 import com.simisinc.platform.domain.model.User;
+import com.simisinc.platform.infrastructure.persistence.CapabilityGrantRepository;
 import com.simisinc.platform.infrastructure.persistence.CapabilityRepository;
 import com.simisinc.platform.infrastructure.persistence.GroupRepository;
 import com.simisinc.platform.infrastructure.persistence.RoleRepository;
@@ -29,7 +31,10 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Loads a user object and related information
@@ -78,13 +83,41 @@ public class LoadUserCommand {
     // Get the list of roles the user has
     List<Role> roleList = RoleRepository.findAllByUserId(user.getId());
     user.setRoleList(roleList);
-    // Get the capabilities granted by those roles (issue #701 walking skeleton)
-    List<Capability> capabilityList = CapabilityRepository.findAllByUserId(user.getId());
-    user.setCapabilityList(capabilityList);
+    // Get the capabilities granted by those roles (issue #701), plus any active direct grants
+    // (issue #702) - a capability can be held either way, so merge them into one effective list.
+    user.setCapabilityList(loadEffectiveCapabilityList(user.getId()));
     // Get the list of user groups the user belongs to
     List<Group> groupList = GroupRepository.findAllByUserId(user.getId());
     user.setGroupList(groupList);
     // Retrieve the last login
     user.setLastLogin(UserLoginRepository.queryLastLogin(user.getId()));
+  }
+
+  private static List<Capability> loadEffectiveCapabilityList(long userId) {
+    List<Capability> capabilityList = CapabilityRepository.findAllByUserId(userId);
+    List<CapabilityGrant> activeGrantList = CapabilityGrantRepository.findActiveByUserId(userId);
+    if (activeGrantList == null || activeGrantList.isEmpty()) {
+      return capabilityList;
+    }
+    Map<String, Capability> capabilityByCode = new HashMap<>();
+    if (capabilityList != null) {
+      for (Capability capability : capabilityList) {
+        capabilityByCode.put(capability.getCode(), capability);
+      }
+    }
+    List<Capability> allCapabilityList = CapabilityRepository.findAll();
+    Map<Long, Capability> capabilityById = new HashMap<>();
+    if (allCapabilityList != null) {
+      for (Capability capability : allCapabilityList) {
+        capabilityById.put(capability.getId(), capability);
+      }
+    }
+    for (CapabilityGrant capabilityGrant : activeGrantList) {
+      Capability capability = capabilityById.get(capabilityGrant.getCapabilityId());
+      if (capability != null) {
+        capabilityByCode.putIfAbsent(capability.getCode(), capability);
+      }
+    }
+    return new ArrayList<>(capabilityByCode.values());
   }
 }

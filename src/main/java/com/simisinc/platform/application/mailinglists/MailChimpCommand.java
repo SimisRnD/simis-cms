@@ -104,6 +104,12 @@ public class MailChimpCommand {
     }
   }
 
+  /** Whether MailChimp is the configured mailing-list service with usable API credentials. */
+  public static boolean isEnabled() {
+    String service = LoadSitePropertyCommand.loadByName("mailing-list.service");
+    return "mailchimp".equalsIgnoreCase(service) && getApiSettings() != null;
+  }
+
   private static String[] getApiSettings() {
     // Load the API settings
     String apiKey = LoadSitePropertyCommand.loadByName("mailing-list.mailchimp.apiKey");
@@ -113,6 +119,15 @@ public class MailChimpCommand {
       return null;
     }
     return new String[] { apiKey, listId };
+  }
+
+  private static Map<String, String> buildAuthHeaders(String apiKey) {
+    Map<String, String> headers = new HashMap<>();
+    headers.put("Accept", "application/json");
+    headers.put("Content-type", "application/json");
+    String valueToEncode = "user" + ":" + apiKey;
+    headers.put("Authorization", "Basic " + Base64.getEncoder().encodeToString(valueToEncode.getBytes()));
+    return headers;
   }
 
   // MailingList: Newsletter/Mailing List/Product Interest (these will be tags in MailChimp)
@@ -375,5 +390,135 @@ public class MailChimpCommand {
       LOG.error("validateRequest", e);
     }
     return false;
+  }
+
+  // --- Campaigns API (issue #600 rework: send a real MailChimp Campaign, rather than just sync
+  // subscribers) -- distinct from the Members-API helpers above, none of which apply here: a
+  // campaign send has no single associated Email record to mark synced, and its own success
+  // signal for the "send" action is a 2xx with an empty body, not a JSON object with an id/status. ---
+
+  /**
+   * Finds the MailChimp tag for this mailing list, as a segment (MailChimp represents tags as
+   * static segments internally). Returns null if MailChimp isn't configured, or if nobody has
+   * ever been tagged with this list's name yet (the tag/segment doesn't exist until then).
+   */
+  private static JsonNode findTagSegment(String tagName) {
+    String[] apiSettings = getApiSettings();
+    if (apiSettings == null) {
+      return null;
+    }
+    try {
+      String dc = apiSettings[0].substring(apiSettings[0].indexOf("-") + 1);
+      String url = "https://" + dc + BASE_URL + "/lists/" + apiSettings[1] + "/segments?type=static&count=1000";
+      String remoteContent = HttpGetCommand.execute(url, buildAuthHeaders(apiSettings[0]));
+      if (StringUtils.isBlank(remoteContent)) {
+        return null;
+      }
+      JsonNode json = JsonLoader.fromString(remoteContent);
+      if (!json.has("segments")) {
+        return null;
+      }
+      for (JsonNode segment : json.get("segments")) {
+        if (segment.has("name") && tagName.equals(segment.get("name").asText())) {
+          return segment;
+        }
+      }
+    } catch (Exception e) {
+      LOG.warn("HttpGet MailChimp list/segments issues: " + e.getMessage());
+    }
+    return null;
+  }
+
+  /**
+   * The number of MailChimp members currently tagged with this mailing list's name, or -1 if
+   * MailChimp isn't configured or the tag doesn't exist yet (nobody has ever been added to it).
+   */
+  public static int getTagMemberCount(MailingList mailingList) {
+    JsonNode segment = findTagSegment(mailingList.getName().trim());
+    if (segment == null || !segment.has("member_count")) {
+      return -1;
+    }
+    return segment.get("member_count").asInt();
+  }
+
+  /**
+   * Creates a draft MailChimp Campaign targeting the members tagged with this mailing list's
+   * name. Returns the new campaign's id, or null if MailChimp isn't configured, the list has no
+   * matching tag/segment yet, or the call failed.
+   */
+  public static String createCampaign(MailingList mailingList, String subjectLine) {
+    String[] apiSettings = getApiSettings();
+    if (apiSettings == null) {
+      return null;
+    }
+    JsonNode segment = findTagSegment(mailingList.getName().trim());
+    if (segment == null || !segment.has("id")) {
+      LOG.warn("No MailChimp tag/segment found for mailing list: " + mailingList.getName());
+      return null;
+    }
+
+    String fromName = LoadSitePropertyCommand.loadByName("mail.from_name");
+    String replyTo = LoadSitePropertyCommand.loadByName("mail.from_address");
+
+    StringBuilder sb = new StringBuilder();
+    sb.append("\"type\":\"regular\"");
+    sb.append(", \"recipients\":{\"list_id\":\"").append(apiSettings[1]).append("\"")
+        .append(", \"segment_opts\":{\"saved_segment_id\":").append(segment.get("id").asLong()).append("}}");
+    sb.append(", \"settings\":{\"subject_line\":\"").append(JsonCommand.toJson(subjectLine)).append("\"");
+    if (StringUtils.isNotBlank(fromName)) {
+      sb.append(", \"from_name\":\"").append(JsonCommand.toJson(fromName)).append("\"");
+    }
+    if (StringUtils.isNotBlank(replyTo)) {
+      sb.append(", \"reply_to\":\"").append(JsonCommand.toJson(replyTo)).append("\"");
+    }
+    sb.append("}");
+    String jsonString = "{" + sb + "}";
+    LOG.debug("createCampaign JSON STRING: " + jsonString);
+
+    String dc = apiSettings[0].substring(apiSettings[0].indexOf("-") + 1);
+    String url = "https://" + dc + BASE_URL + "/campaigns";
+    String remoteContent = HttpPostCommand.execute(url, buildAuthHeaders(apiSettings[0]), jsonString);
+    if (StringUtils.isBlank(remoteContent)) {
+      return null;
+    }
+    try {
+      JsonNode json = JsonLoader.fromString(remoteContent);
+      if (json.has("id")) {
+        return json.get("id").asText();
+      }
+    } catch (Exception e) {
+      LOG.error("createCampaign", e);
+    }
+    return null;
+  }
+
+  /** Sets a campaign's HTML content. Must be called before sendCampaign(). */
+  public static boolean setCampaignContent(String campaignId, String html) {
+    String[] apiSettings = getApiSettings();
+    if (apiSettings == null) {
+      return false;
+    }
+    String jsonString = "{\"html\":\"" + JsonCommand.toJson(html) + "\"}";
+    String dc = apiSettings[0].substring(apiSettings[0].indexOf("-") + 1);
+    String url = "https://" + dc + BASE_URL + "/campaigns/" + campaignId + "/content";
+    String remoteContent = HttpPostCommand.execute(url, buildAuthHeaders(apiSettings[0]), jsonString, HttpPostCommand.PUT);
+    return StringUtils.isNotBlank(remoteContent);
+  }
+
+  /**
+   * Sends a campaign immediately. MailChimp fans out delivery to every matched recipient on its
+   * own infrastructure -- there is no per-recipient work left for this application to do. The
+   * send action responds 204 No Content on success, so success is read from the status code
+   * (executeForStatusCode), not the (always-empty) response body.
+   */
+  public static boolean sendCampaign(String campaignId) {
+    String[] apiSettings = getApiSettings();
+    if (apiSettings == null) {
+      return false;
+    }
+    String dc = apiSettings[0].substring(apiSettings[0].indexOf("-") + 1);
+    String url = "https://" + dc + BASE_URL + "/campaigns/" + campaignId + "/actions/send";
+    int status = HttpPostCommand.executeForStatusCode(url, buildAuthHeaders(apiSettings[0]), "", HttpPostCommand.POST);
+    return status >= 200 && status < 300;
   }
 }
