@@ -114,9 +114,13 @@ public class XMLPageLoader implements Serializable {
   }
 
   public synchronized void load(ServletContext context) {
-    try {
-      for (XMLPageLoaderFiles file : files) {
+    for (XMLPageLoaderFiles file : files) {
+      try {
         URL url = context.getResource(file.getFile());
+        if (url == null) {
+          LOG.warn("Skipping page layout, resource not found: " + file.getFile());
+          continue;
+        }
         long lastModified = url.openConnection().getLastModified();
         if (file.getLastModified() == -1 || (lastModified > 0 && lastModified > file.getLastModified())) {
           LOG.info("Loading page layout: " + file.getFile());
@@ -124,9 +128,9 @@ public class XMLPageLoader implements Serializable {
           loadAllPages(document);
           file.setLastModified(lastModified);
         }
+      } catch (Exception e) {
+        LOG.error("Error loading page layout: " + file.getFile(), e);
       }
-    } catch (Exception e) {
-      e.printStackTrace();
     }
   }
 
