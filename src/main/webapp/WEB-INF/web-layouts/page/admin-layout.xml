@@ -1310,6 +1310,24 @@
     </section>
   </page>
 
+  <page name="/admin/calendar-event{?calendarEventId}" role="admin,content-manager,community-manager" title="Calendar Event Details">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Calendars" value="/admin/calendars" />
+            <link name="Calendar Event Details" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="calendarEventForm" />
+      </column>
+    </section>
+  </page>
+
   <page name="/admin/folders" role="admin,content-manager,community-manager" title="Files and Folders">
     <!--<section>-->
       <!--<column class="small-12 cell">-->
