@@ -193,6 +193,9 @@
               if (data.hasOwnProperty('signUpUrl')) {
                 document.getElementById('signUpUrl').value = data.signUpUrl;
               }
+              if (data.hasOwnProperty('videoUrl')) {
+                document.getElementById('videoUrl').value = data.videoUrl;
+              }
               document.getElementById('title').value = data.title;
 
               // Show the form dialog
@@ -370,6 +373,10 @@
           </label>
         </div>
       </div>
+      <label>Video / Meeting Link
+        <input type="text" placeholder="https://..." name="videoUrl" id="videoUrl" value="">
+      </label>
+      <p class="help-text">Paste a link to a video or live meeting (Teams, Zoom, Google Meet, a YouTube stream, etc). Shown as a "Join" button on the event's page.</p>
       <div class="button-container">
         <input type="submit" class="button radius success expanded" value="Save" />
         <input id="duplicateButton" style="display:none" type="submit" class="button radius primary expanded" name="duplicate" value="Duplicate" />
