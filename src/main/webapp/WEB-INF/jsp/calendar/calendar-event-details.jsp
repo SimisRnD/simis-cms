@@ -129,9 +129,19 @@
     <c:if test="${!empty calendarEvent.summary}">
       <p class="platform-calendar-event-summary"><c:out value="${calendarEvent.summary}" /></p>
     </c:if>
-    <c:if test="${!empty calendarEvent.detailsUrl || !empty calendarEvent.signUpUrl}">
+    <c:if test="${!empty calendarEvent.detailsUrl || !empty calendarEvent.signUpUrl || !empty calendarEvent.videoUrl}">
       <p class="platform-calendar-event-buttons">
         <i class="fa fa-fw"></i>
+        <c:if test="${!empty calendarEvent.videoUrl}">
+          <c:choose>
+            <c:when test="${fn:startsWith(calendarEvent.videoUrl, 'http://') || fn:startsWith(calendarEvent.videoUrl, 'https://')}">
+              <a class="button primary" target="_blank" href="<c:out value="${calendarEvent.videoUrl}" />">Join Meeting</a>
+            </c:when>
+            <c:otherwise>
+              <a class="button primary" href="<c:out value="${ctx}${calendarEvent.videoUrl}" />">Join Meeting</a>
+            </c:otherwise>
+          </c:choose>
+        </c:if>
         <c:if test="${!empty calendarEvent.detailsUrl}">
           <c:choose>
             <c:when test="${fn:startsWith(calendarEvent.detailsUrl, 'http://') || fn:startsWith(calendarEvent.detailsUrl, 'https://')}">
