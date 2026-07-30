@@ -376,7 +376,7 @@
       params.append('search', search);
     }
 
-    fetch('/api/media?' + params)
+    fetch('/visual-editor/media?' + params)
       .then(r => r.json())
       .then(data => {
         filteredAssets = data.assets || [];
