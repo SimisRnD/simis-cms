@@ -18,7 +18,9 @@ package com.simisinc.platform.application.cms;
 
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.domain.model.cms.Blog;
+import com.simisinc.platform.domain.model.mailinglists.MailingList;
 import com.simisinc.platform.infrastructure.persistence.cms.BlogRepository;
+import com.simisinc.platform.infrastructure.persistence.mailinglists.MailingListRepository;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -50,6 +52,16 @@ public class SaveBlogCommand {
       errorMessages.append("A name is required");
     }
 
+    // A mailing list association is optional, but if one was submitted, it must be real -- a
+    // stale or forged id must never silently attach to a random list (issue #599).
+    long mailingListId = blogBean.getMailingListId();
+    if (mailingListId > -1) {
+      MailingList mailingList = MailingListRepository.findById(mailingListId);
+      if (mailingList == null) {
+        errorMessages.append("The selected mailing list could not be found");
+      }
+    }
+
     if (errorMessages.length() > 0) {
       throw new DataException("Please check the form and try again:\n" + errorMessages.toString());
     }
@@ -73,6 +85,7 @@ public class SaveBlogCommand {
     blog.setCreatedBy(blogBean.getCreatedBy());
     blog.setModifiedBy(blogBean.getModifiedBy());
     blog.setEnabled(blogBean.getEnabled());
+    blog.setMailingListId(mailingListId);
     return BlogRepository.save(blog);
   }
 }

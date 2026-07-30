@@ -45,6 +45,13 @@
           <report>total-orders</report>
         </widget>
       </column>
+      <column class="small-12 medium-4 cell callout">
+        <widget name="ecommerceStats">
+          <icon>fa-cash-register</icon>
+          <title>Orders Today</title>
+          <report>total-orders-today</report>
+        </widget>
+      </column>
     </section>
     <section>
       <column class="small-12 medium-12 large-4 cell">
@@ -87,6 +94,13 @@
           <report>top-locations</report>
           <days>90</days>
           <limit>6</limit>
+        </widget>
+      </column>
+      <column class="small-12 medium-12 large-4 cell">
+        <widget name="ecommerceStats" class="stats card">
+          <title>Locations</title>
+          <report>locations-list</report>
+          <days>90</days>
         </widget>
       </column>
     </section>

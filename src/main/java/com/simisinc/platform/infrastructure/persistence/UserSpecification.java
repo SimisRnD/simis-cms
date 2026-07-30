@@ -33,6 +33,9 @@ public class UserSpecification {
   private long groupId = -1;
   private int isEnabled = DataConstants.UNDEFINED;
   private int isVerified = DataConstants.UNDEFINED;
+  private int isLocked = DataConstants.UNDEFINED;
+  private int isMfaEnabled = DataConstants.UNDEFINED;
+  private int passwordOlderThanDays = -1;
   private String matchesName = null;
 
   public UserSpecification() {
@@ -108,5 +111,38 @@ public class UserSpecification {
 
   public void setMatchesName(String matchesName) {
     this.matchesName = matchesName;
+  }
+
+  public int getIsLocked() {
+    return isLocked;
+  }
+
+  public void setIsLocked(boolean isLocked) {
+    this.isLocked = (isLocked ? DataConstants.TRUE : DataConstants.FALSE);
+  }
+
+  public void setIsLocked(int isLocked) {
+    this.isLocked = isLocked;
+  }
+
+  public int getIsMfaEnabled() {
+    return isMfaEnabled;
+  }
+
+  public void setIsMfaEnabled(boolean isMfaEnabled) {
+    this.isMfaEnabled = (isMfaEnabled ? DataConstants.TRUE : DataConstants.FALSE);
+  }
+
+  public void setIsMfaEnabled(int isMfaEnabled) {
+    this.isMfaEnabled = isMfaEnabled;
+  }
+
+  /** -1 (the default) means unset; a real value filters to accounts whose password is at least this old, or never tracked. */
+  public int getPasswordOlderThanDays() {
+    return passwordOlderThanDays;
+  }
+
+  public void setPasswordOlderThanDays(int passwordOlderThanDays) {
+    this.passwordOlderThanDays = passwordOlderThanDays;
   }
 }
