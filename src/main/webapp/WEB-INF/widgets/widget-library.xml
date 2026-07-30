@@ -160,6 +160,7 @@
   <widget name="usersList" class="com.simisinc.platform.presentation.widgets.admin.login.UsersListWidget" />
   <widget name="userDetails" class="com.simisinc.platform.presentation.widgets.admin.login.UserDetailsWidget" />
   <widget name="userForm" class="com.simisinc.platform.presentation.widgets.admin.login.UserFormWidget" />
+  <widget name="unsuspendRequestsList" class="com.simisinc.platform.presentation.widgets.admin.login.UnsuspendRequestsWidget" />
   <widget name="groupsList" class="com.simisinc.platform.presentation.widgets.admin.GroupsListWidget" />
   <widget name="groupForm" class="com.simisinc.platform.presentation.widgets.admin.GroupFormWidget" />
   <widget name="siteMap" class="com.simisinc.platform.presentation.widgets.cms.SiteMapWidget" />

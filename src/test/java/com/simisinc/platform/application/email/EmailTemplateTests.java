@@ -107,6 +107,15 @@ class EmailTemplateTests {
       invitedBy.put("lastName", "Last");
       invitedBy.put("fullName", "First Last");
       ctx.setVariable("invitedBy", invitedBy);
+      // Issue #492 Phase 3: maker-checker unsuspend request/approval notifications
+      Map<String, String> target = new HashMap<>();
+      target.put("fullName", "Target User");
+      target.put("email", "target@example.com");
+      ctx.setVariable("target", target);
+      Map<String, String> requestedBy = new HashMap<>();
+      requestedBy.put("fullName", "Requesting Admin");
+      ctx.setVariable("requestedBy", requestedBy);
+      ctx.setVariable("reason", "Cleared by incident response");
       // Form Data
       Map<String, String> formData = new HashMap<>();
       formData.put("formUniqueId", "contact-us");

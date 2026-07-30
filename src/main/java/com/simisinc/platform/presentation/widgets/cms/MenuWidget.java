@@ -40,6 +40,7 @@ import com.simisinc.platform.domain.model.cms.TableOfContentsLink;
 import com.simisinc.platform.domain.model.items.Collection;
 import com.simisinc.platform.domain.model.items.Item;
 import com.simisinc.platform.presentation.controller.RequestConstants;
+import com.simisinc.platform.presentation.controller.UserSession;
 import com.simisinc.platform.presentation.controller.WebComponentCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
@@ -181,7 +182,7 @@ public class MenuWidget extends GenericWidget {
         // menu.jsp renders this straight into href="${ctx}${link['link']}" without escaping.
         // LinkWidget already runs its equivalent through sanitizeUrl (LinkWidget.java:64); this
         // path did not, so a link attribute in the page-layout XML reached the page verbatim.
-        addProperty(context, properties, "link", UrlCommand.sanitizeUrl(link));
+        addProperty(context, properties, "link", withLogoutToken(context, UrlCommand.sanitizeUrl(link)));
         addProperty(context, properties, "class", menuItemClass);
         addProperty(context, properties, "container", container);
         addProperty(context, properties, "icon", icon);
@@ -363,11 +364,28 @@ public class MenuWidget extends GenericWidget {
     // Prepare the link
     Map<String, String> properties = new HashMap<>();
     addProperty(context, properties, "name", name);
-    addProperty(context, properties, "link", link);
+    addProperty(context, properties, "link", withLogoutToken(context, link));
     addProperty(context, properties, "container", container);
     addProperty(context, properties, "icon", icon);
     //addProperty(context, properties, "icon-only", valueMap.get("icon-only"));
     linkList.add(properties);
+  }
+
+  /**
+   * WebRequestFilter requires a matching CSRF token on /logout (GH-359); the standard header
+   * JSP appends it inline, but menu.jsp renders link['link'] as-is, so any "/logout" entry
+   * reaching this widget (site-configured header links, the admin-dropdown Logout item) needs
+   * the current session's token appended here or it silently fails to log the user out.
+   */
+  private static String withLogoutToken(WidgetContext context, String link) {
+    if (!"/logout".equals(link)) {
+      return link;
+    }
+    UserSession userSession = context.getUserSession();
+    if (userSession == null) {
+      return link;
+    }
+    return link + "?token=" + userSession.getFormToken();
   }
 
   private static void addDivider(WidgetContext context, List<Map<String, String>> linkList, String container, String roleValue) {

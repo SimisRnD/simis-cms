@@ -43,6 +43,7 @@ import com.simisinc.platform.infrastructure.persistence.GroupRepository;
 import com.simisinc.platform.infrastructure.persistence.RoleRepository;
 import com.simisinc.platform.infrastructure.persistence.UserRepository;
 import com.simisinc.platform.infrastructure.persistence.UserSpecification;
+import com.simisinc.platform.infrastructure.persistence.login.UnsuspendRequestRepository;
 import com.simisinc.platform.infrastructure.persistence.login.UserLoginRepository;
 import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
@@ -193,10 +194,12 @@ class UsersListWidgetTest extends WidgetBase {
     setRoles(widgetContext, COMMUNITY_MANAGER);
     try (MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
         MockedStatic<GroupRepository> groupRepo = mockStatic(GroupRepository.class);
-        MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class)) {
+        MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<UnsuspendRequestRepository> requestRepo = mockStatic(UnsuspendRequestRepository.class)) {
       roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
       groupRepo.when(GroupRepository::findAll).thenReturn(new ArrayList<>());
       userRepo.when(() -> UserRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+      requestRepo.when(UnsuspendRequestRepository::countPending).thenReturn(0L);
 
       new UsersListWidget().execute(widgetContext);
 
@@ -213,10 +216,12 @@ class UsersListWidgetTest extends WidgetBase {
     setRoles(widgetContext, ADMIN);
     try (MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
         MockedStatic<GroupRepository> groupRepo = mockStatic(GroupRepository.class);
-        MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class)) {
+        MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<UnsuspendRequestRepository> requestRepo = mockStatic(UnsuspendRequestRepository.class)) {
       roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
       groupRepo.when(GroupRepository::findAll).thenReturn(new ArrayList<>());
       userRepo.when(() -> UserRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+      requestRepo.when(UnsuspendRequestRepository::countPending).thenReturn(0L);
 
       new UsersListWidget().execute(widgetContext);
 
@@ -273,9 +278,12 @@ class UsersListWidgetTest extends WidgetBase {
     try (MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
         MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
         MockedStatic<GroupRepository> groupRepo = mockStatic(GroupRepository.class);
-        MockedStatic<UserLoginRepository> loginRepo = mockStatic(UserLoginRepository.class)) {
+        MockedStatic<UserLoginRepository> loginRepo = mockStatic(UserLoginRepository.class);
+        MockedStatic<UnsuspendRequestRepository> requestRepo = mockStatic(UnsuspendRequestRepository.class)) {
       roleRepo.when(RoleRepository::findAll).thenReturn(Collections.emptyList());
       groupRepo.when(GroupRepository::findAll).thenReturn(Collections.emptyList());
+      // #492 Phase 3: execute() also queries the pending-unsuspend-request count unconditionally.
+      requestRepo.when(UnsuspendRequestRepository::countPending).thenReturn(0L);
       // mockStatic(UserRepository.class) stubs every static method, including this pure helper --
       // without this, Mockito's default int answer (0) would silently override the real threshold
       // parsing for every test here, not just the one that cares about it.

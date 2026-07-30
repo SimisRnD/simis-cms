@@ -934,6 +934,16 @@
     </section>
   </page>
 
+  <page name="/admin/unsuspend-requests" role="admin,community-manager" title="Unsuspend Requests">
+    <section>
+      <column class="small-12 cell">
+        <widget name="unsuspendRequestsList">
+          <title>Unsuspend Requests</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
   <page name="/admin/modify-user{?userId}" role="admin,community-manager" title="Edit User">
     <section>
       <column class="small-12 cell">

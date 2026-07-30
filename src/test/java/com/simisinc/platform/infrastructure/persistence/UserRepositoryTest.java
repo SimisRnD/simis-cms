@@ -31,6 +31,7 @@ import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.infrastructure.cache.CacheManager;
 import com.simisinc.platform.infrastructure.database.DB;
 import com.simisinc.platform.infrastructure.database.SqlUtils;
+import com.simisinc.platform.infrastructure.persistence.login.UnsuspendRequestRepository;
 import com.simisinc.platform.infrastructure.persistence.login.UserTokenRepository;
 
 /**
@@ -88,10 +89,16 @@ class UserRepositoryTest {
     user.setId(9L);
 
     ArgumentCaptor<SqlUtils> valuesCaptor = ArgumentCaptor.forClass(SqlUtils.class);
-    try (MockedStatic<DB> db = mockStatic(DB.class)) {
+    try (MockedStatic<DB> db = mockStatic(DB.class);
+        MockedStatic<UnsuspendRequestRepository> requestRepo = mockStatic(UnsuspendRequestRepository.class)) {
       db.when(() -> DB.update(anyString(), valuesCaptor.capture(), any(SqlUtils.class))).thenReturn(true);
 
       UserRepository.suspendAccount(user, "Reported phishing attempt from this account");
+
+      // #492 Phase 3: suspendAccount() also supersedes any in-flight unsuspend request/decision
+      // for this target -- verified separately; not the captured call this test cares about.
+      requestRepo.verify(() -> UnsuspendRequestRepository.supersedePendingForTarget(9L,
+          "Account was suspended again"));
 
       assertEquals("Reported phishing attempt from this account", fieldValue(valuesCaptor.getValue(), "suspension_reason"));
     }
