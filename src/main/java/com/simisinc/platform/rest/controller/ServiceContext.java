@@ -123,6 +123,17 @@ public class ServiceContext implements Serializable {
     return user.hasRole(role);
   }
 
+  /**
+   * See User.hasPermission() - added alongside hasRole() (issue #701's walking skeleton),
+   * hasRole() call sites are unaffected and unmigrated.
+   */
+  public boolean hasPermission(String code) {
+    if (getUserId() == -1) {
+      return false;
+    }
+    return user.hasPermission(code);
+  }
+
   public String getParameter(String name) {
     String[] values = parameterMap.get(name);
     if (values != null) {
