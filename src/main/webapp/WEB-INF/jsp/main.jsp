@@ -335,7 +335,6 @@
   <c:if test="${pageEditMode eq 'true'}">
     <link rel="stylesheet" type="text/css" href="${ctx}/css/platform-editor.css?v=<%= VERSION %>" />
     <link rel="stylesheet" type="text/css" href="${ctx}/css/quill-2.0.3-snow.css" />
-    <link rel="stylesheet" type="text/css" href="${ctx}/css/overlay-editor-pane.css" />
   </c:if>
   <c:if test="${!empty pageCollection}">
     <style>
@@ -501,6 +500,7 @@
               <li class="section-title">Settings</li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/theme')}"> class="is-active"</c:if>><a href="${ctx}/admin/theme-properties"><i class="${font:far()} fa-palette fa-fw"></i> <span>Theme</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/site-properties')}"> class="is-active"</c:if>><a href="${ctx}/admin/site-properties"><i class="${font:far()} fa-rocket fa-fw"></i> <span>Site Settings</span></a></li>
+              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/mfa')}"> class="is-active"</c:if>><a href="${ctx}/admin/mfa-properties"><i class="${font:far()} fa-lock fa-fw"></i> <span>MFA Settings</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/social')}"> class="is-active"</c:if>><a href="${ctx}/admin/social-media-settings"><i class="${font:far()} fa-thumbs-up fa-fw"></i> <span>Social Media</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/configure-analytics')}"> class="is-active"</c:if>><a href="${ctx}/admin/configure-analytics"><i class="${font:far()} fa-chart-line fa-fw"></i> <span>Analytics Settings</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/captcha')}"> class="is-active"</c:if>><a href="${ctx}/admin/captcha-properties"><i class="${font:far()} fa-key fa-fw"></i> <span>Captcha Settings</span></a></li>
@@ -883,7 +883,6 @@
   <c:if test="${pageEditMode eq 'true'}">
     <script src="${ctx}/javascript/quill-2.0.3/quill.js"></script>
     <script src="${ctx}/javascript/platform-editor.js?v=<%= VERSION %>"></script>
-    <script src="${ctx}/javascript/overlay-editor-pane.js"></script>
     <%@include file="visual-editor/media-library-panel.jsp" %>
   </c:if>
 </body>

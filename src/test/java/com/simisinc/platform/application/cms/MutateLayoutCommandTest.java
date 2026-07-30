@@ -78,6 +78,18 @@ class MutateLayoutCommandTest {
       "  </section>\n" +
       "</page>";
 
+  // A page with a dataTable (TableWidget) instance, for the table-data validation tests.
+  private static final String TABLE_WIDGET_XML =
+      "<page>\n" +
+      "  <section class=\"first\">\n" +
+      "    <column class=\"small-12 cell\">\n" +
+      "      <widget name=\"dataTable\">\n" +
+      "        <tableData>{&quot;headers&quot;:[&quot;A&quot;],&quot;rows&quot;:[[&quot;1&quot;]]}</tableData>\n" +
+      "      </widget>\n" +
+      "    </column>\n" +
+      "  </section>\n" +
+      "</page>";
+
   private static WebPage pageWithXml(String xml) {
     WebPage p = new WebPage();
     p.setId(99);
@@ -93,7 +105,7 @@ class MutateLayoutCommandTest {
       repo.when(() -> WebPageRepository.save(any(WebPage.class))).thenAnswer(i -> null);
       cmd.when(() -> WebPageXmlLayoutCommand.removeCustomPage(anyString())).thenAnswer(i -> null);
       cmd.when(WebPageXmlLayoutCommand::getWidgetLibrary)
-          .thenReturn(Map.of("content", "ContentWidget", "menu", "MenuWidget"));
+          .thenReturn(Map.of("content", "ContentWidget", "menu", "MenuWidget", "dataTable", "TableWidget"));
       mutation.run();
     }
     return page.getDraftPageXml();
@@ -378,6 +390,76 @@ class MutateLayoutCommandTest {
     assertThrows(DataException.class,
         () -> mutate(page, () ->
             MutateLayoutCommand.setWidgetPreferences(page, 0, 0, 0, "{\"</injection>\":\"val\"}")));
+  }
+
+  // ── setWidgetPreferences / addWidget: TableWidget's tableData is validated at this boundary ─────
+
+  @Test
+  void setWidgetPreferencesAcceptsWellFormedTableData() throws DataException {
+    WebPage page = pageWithXml(TABLE_WIDGET_XML);
+    String result = mutate(page, () -> MutateLayoutCommand.setWidgetPreferences(page, 0, 0, 0,
+        "{\"tableData\":\"{\\\"headers\\\":[\\\"Name\\\",\\\"Age\\\"],\\\"rows\\\":[[\\\"Alice\\\",\\\"30\\\"]]}\"}"));
+    assertTrue(result.contains("Alice"), "the new table data should be written");
+  }
+
+  @Test
+  void setWidgetPreferencesRejectsTableDataMissingRows() {
+    WebPage page = pageWithXml(TABLE_WIDGET_XML);
+    assertThrows(DataException.class,
+        () -> mutate(page, () -> MutateLayoutCommand.setWidgetPreferences(page, 0, 0, 0,
+            "{\"tableData\":\"{\\\"headers\\\":[\\\"A\\\"]}\"}")),
+        "tableData without a 'rows' array must be rejected before it is persisted");
+  }
+
+  @Test
+  void setWidgetPreferencesRejectsTableDataWithWrongTypedHeaders() {
+    WebPage page = pageWithXml(TABLE_WIDGET_XML);
+    assertThrows(DataException.class,
+        () -> mutate(page, () -> MutateLayoutCommand.setWidgetPreferences(page, 0, 0, 0,
+            "{\"tableData\":\"{\\\"headers\\\":\\\"not-an-array\\\",\\\"rows\\\":[]}\"}")));
+  }
+
+  @Test
+  void setWidgetPreferencesRejectsOversizedTableData() {
+    WebPage page = pageWithXml(TABLE_WIDGET_XML);
+    StringBuilder rows = new StringBuilder();
+    for (int i = 0; i <= com.simisinc.platform.presentation.widgets.cms.TableWidget.MAX_ROWS; i++) {
+      if (i > 0) {
+        rows.append(",");
+      }
+      rows.append("[\\\"x\\\"]");
+    }
+    String prefsJson = "{\"tableData\":\"{\\\"headers\\\":[\\\"A\\\"],\\\"rows\\\":[" + rows + "]}\"}";
+    assertThrows(DataException.class,
+        () -> mutate(page, () -> MutateLayoutCommand.setWidgetPreferences(page, 0, 0, 0, prefsJson)),
+        "a row count over MAX_ROWS must be rejected before it is persisted");
+  }
+
+  @Test
+  void setWidgetPreferencesIgnoresTableDataValidationForOtherWidgets() throws DataException {
+    // A "tableData"-named preference on some other widget type is just an opaque string to this
+    // class -- only the dataTable widget's value gets structurally validated.
+    WebPage page = pageWithXml(ONE_SECTION_XML);
+    String result = mutate(page, () ->
+        MutateLayoutCommand.setWidgetPreferences(page, 0, 0, 0, "{\"tableData\":\"not-json-at-all\"}"));
+    assertTrue(result.contains("<tableData>not-json-at-all</tableData>"));
+  }
+
+  @Test
+  void addWidgetAcceptsWellFormedTableData() throws DataException {
+    WebPage page = pageWithXml(ONE_SECTION_XML);
+    String result = mutate(page, () -> MutateLayoutCommand.addWidget(page, 0, 0, -1, "dataTable",
+        "{\"tableData\":\"{\\\"headers\\\":[\\\"A\\\"],\\\"rows\\\":[[\\\"1\\\"]]}\"}"));
+    assertTrue(result.contains("name=\"dataTable\""));
+  }
+
+  @Test
+  void addWidgetRejectsMalformedTableData() {
+    WebPage page = pageWithXml(ONE_SECTION_XML);
+    assertThrows(DataException.class,
+        () -> mutate(page, () -> MutateLayoutCommand.addWidget(page, 0, 0, -1, "dataTable",
+            "{\"tableData\":\"{\\\"rows\\\":[]}\"}")),
+        "tableData missing 'headers' must be rejected before the widget is ever added");
   }
 
   // ── Allowlist pattern constants are stable ───────────────────────────────

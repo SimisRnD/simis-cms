@@ -56,6 +56,7 @@ public class UpcomingCalendarEventsWidget extends GenericWidget {
   private static void insertPastEvent(List<CalendarEvent> calendarEventList, CalendarEventSpecification calSpec) {
     // Find the last event
     CalendarEventSpecification eventSpecification = new CalendarEventSpecification();
+    eventSpecification.setPublishedOnly(true);
     eventSpecification.setCalendarId(calSpec.getCalendarId());
     eventSpecification.setEndingDateRange(calSpec.getStartingDateRange());
     DataConstraints constraints = new DataConstraints(1, 1);
@@ -118,6 +119,7 @@ public class UpcomingCalendarEventsWidget extends GenericWidget {
 
     // Build the list of upcoming events with the given specification
     CalendarEventSpecification eventSpecification = new CalendarEventSpecification();
+    eventSpecification.setPublishedOnly(true);
     if (calendarId > -1) {
       eventSpecification.setCalendarId(calendarId);
     }
