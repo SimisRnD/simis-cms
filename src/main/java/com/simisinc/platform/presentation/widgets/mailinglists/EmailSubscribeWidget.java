@@ -39,6 +39,7 @@ import com.simisinc.platform.application.cms.LoadBlogCommand;
 import com.simisinc.platform.application.mailinglists.SaveEmailCommand;
 import com.simisinc.platform.domain.model.cms.Blog;
 import com.simisinc.platform.domain.model.mailinglists.Email;
+import com.simisinc.platform.domain.model.mailinglists.MailingList;
 import com.simisinc.platform.infrastructure.persistence.mailinglists.MailingListRepository;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
