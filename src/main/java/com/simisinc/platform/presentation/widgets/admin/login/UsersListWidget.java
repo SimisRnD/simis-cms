@@ -177,9 +177,11 @@ public class UsersListWidget extends GenericWidget {
     context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));
     context.getRequest().setAttribute("title", context.getPreferences().get("title"));
 
-    // Set some form values
+    // Set some form values -- the New User form only offers roles the editor is allowed to grant
     List<Role> roleList = RoleRepository.findAll();
     context.getRequest().setAttribute("roleList", roleList);
+    context.getRequest().setAttribute("actingRoleLevel",
+        UserFormWidget.highestRoleLevel(context.getUserSession(), roleList != null ? roleList : new ArrayList<>()));
 
     // Set some form values
     List<Group> groupList = GroupRepository.findAll();
@@ -247,6 +249,11 @@ public class UsersListWidget extends GenericWidget {
     // Populate the fields
     User userBean = new User();
     BeanUtils.populate(userBean, context.getParameterMap());
+    // This action only ever creates a new user -- the New User form never renders an id field, but
+    // populate() maps ANY request parameter matching a bean property, so a crafted "id" parameter would
+    // otherwise be mass-assigned here and route SaveUserCommand.saveUser() into overwriting an existing
+    // account (by id) instead of creating one. Force create semantics regardless of what was submitted.
+    userBean.setId(-1L);
     userBean.setCreatedBy(context.getUserId());
     userBean.setModifiedBy(context.getUserId());
 
@@ -255,15 +262,24 @@ public class UsersListWidget extends GenericWidget {
       userBean.setUsername(userBean.getEmail());
     }
 
-    // Populate the roles
+    // Populate the roles -- an editor may only grant roles at or below their own highest role level,
+    // the same rule UserFormWidget.post() enforces when editing an existing user (see its
+    // highestRoleLevel() for details). This is a new user, so there is no prior role to preserve.
     List<Role> roleList = RoleRepository.findAll();
     if (roleList != null) {
+      int actingLevel = UserFormWidget.highestRoleLevel(context.getUserSession(), roleList);
       List<Role> userRoleList = new ArrayList<>();
       for (Role role : roleList) {
         String roleValue = context.getParameter("roleId" + role.getId());
-        if (roleValue != null && roleValue.equals(String.valueOf(role.getId()))) {
+        if (roleValue == null || !roleValue.equals(String.valueOf(role.getId()))) {
+          continue;
+        }
+        if (role.getLevel() <= actingLevel) {
           LOG.debug("Adding user to role: " + role.getCode());
           userRoleList.add(role);
+        } else {
+          LOG.warn("Blocked role escalation: user " + context.getUserId() + " (level " + actingLevel
+              + ") attempted to grant '" + role.getCode() + "' (level " + role.getLevel() + ") to a new user");
         }
       }
       userBean.setRoleList(userRoleList);
