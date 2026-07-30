@@ -16,6 +16,8 @@
 
 package com.simisinc.platform.application.mailinglists;
 
+import java.util.List;
+
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -61,6 +63,14 @@ public class SaveEmailCommand {
   }
 
   public static Email saveEmail(Email emailBean, MailingList mailingList) throws DataException {
+    return saveEmail(emailBean, List.of(mailingList));
+  }
+
+  /** Subscribes to every list in mailingLists (issue #598 -- a signup can choose more than one). */
+  public static Email saveEmail(Email emailBean, List<MailingList> mailingLists) throws DataException {
+    if (mailingLists == null || mailingLists.isEmpty()) {
+      throw new DataException("Please choose at least one list to subscribe to");
+    }
 
     // Validate the required fields
     if (!JMail.isValid(emailBean.getEmail())) {
@@ -98,10 +108,11 @@ public class SaveEmailCommand {
     if (email == null) {
       throw new DataException("Please check the email address and try again");
     }
-    // Add email to this list (even if user is already on it)
-    MailingListMemberRepository.addEmailToList(email, mailingList);
-    // Send to mailing list integration
-    MailingListMemberCommand.triggerEmailSubscriptionProcess(email, mailingList, true);
+    // Add email to each list (even if user is already on it), and send to mailing list integration
+    for (MailingList mailingList : mailingLists) {
+      MailingListMemberRepository.addEmailToList(email, mailingList);
+      MailingListMemberCommand.triggerEmailSubscriptionProcess(email, mailingList, true);
+    }
     return email;
   }
 }
