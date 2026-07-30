@@ -98,6 +98,18 @@ class UserDetailsWidgetUnsuspendTest extends WidgetBase {
         MockedStatic<WorkflowManager> workflow = mockStatic(WorkflowManager.class)) {
       loadCmd.when(() -> LoadUserCommand.loadUser(5L)).thenReturn(target);
       loadCmd.when(() -> LoadUserCommand.loadUser(1L)).thenReturn(userWithId(1L, true));
+      // UserDetailsWidget.restoreAccount() checks targetOutranksActor() BEFORE the maker-checker
+      // logic below -- that check separately calls RoleRepository.findAll() (not findByCode) to
+      // resolve the acting admin's own level via the session's "admin" role. Leaving this
+      // unstubbed makes the acting level default to 0, so the elevated (level 100) target always
+      // looks like it outranks the actor and the request is blocked before ever reaching
+      // UnsuspendAccountCommand.
+      com.simisinc.platform.domain.model.Role adminRole = new com.simisinc.platform.domain.model.Role();
+      adminRole.setId(4);
+      adminRole.setLevel(100);
+      adminRole.setCode("admin");
+      adminRole.setTitle("System Administrator");
+      roleRepo.when(RoleRepository::findAll).thenReturn(java.util.Collections.singletonList(adminRole));
       roleRepo.when(() -> RoleRepository.findByCode("community-manager")).thenReturn(roleWithLevel(90));
       requestRepo.when(() -> UnsuspendRequestRepository.findPendingByTargetUserId(5L)).thenReturn(null);
       requestRepo.when(() -> UnsuspendRequestRepository.add(any())).thenAnswer(inv -> inv.getArgument(0));

@@ -206,14 +206,29 @@ class UserDetailsWidgetTest extends WidgetBase {
     addQueryParameter(widgetContext, "userId", "5");
     addQueryParameter(widgetContext, "action", "restoreAccount");
 
-    User target = adminUser();
+    // Below the maker-checker elevated-role threshold (community-manager, level 90) -- this test
+    // is exercising the direct-restore path, not the #492 approval-request path (see
+    // UserDetailsWidgetUnsuspendTest for that).
+    User target = activeUser();
+    List<Role> held = new ArrayList<>();
+    held.add(role(2, 80, "content-manager", "Content Manager"));
+    target.setRoleList(held);
     target.setEnabled(false);
 
     try (MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
         MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
         MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
         MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
-      loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(target);
+      loadCmd.when(() -> LoadUserCommand.loadUser(5L)).thenReturn(target);
+      // restoreAccount() resolves the acting admin via UserSession.getUser(), a separate
+      // LoadUserCommand.loadUser(1L) call (see WidgetBase#login) -- must not collapse onto the
+      // target stub above, or UnsuspendAccountCommand's self-check ("you cannot request the
+      // unsuspension of your own account") wrongly fires since actingAdmin.getId() would equal
+      // target.getId().
+      User actingAdmin = new User();
+      actingAdmin.setId(1L);
+      actingAdmin.setEmail("admin@example.com");
+      loadCmd.when(() -> LoadUserCommand.loadUser(1L)).thenReturn(actingAdmin);
       roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
       userRepo.when(() -> UserRepository.restoreAccount(target)).thenReturn(target);
 
@@ -412,7 +427,12 @@ class UserDetailsWidgetTest extends WidgetBase {
         MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
         MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
         MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
-      loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(target);
+      loadCmd.when(() -> LoadUserCommand.loadUser(5L)).thenReturn(target);
+      // See the identical comment in restoreAccountViaPostCallsRepositoryAndAudits above.
+      User actingAdmin = new User();
+      actingAdmin.setId(1L);
+      actingAdmin.setEmail("admin@example.com");
+      loadCmd.when(() -> LoadUserCommand.loadUser(1L)).thenReturn(actingAdmin);
       roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
       userRepo.when(() -> UserRepository.restoreAccount(target)).thenReturn(target);
 

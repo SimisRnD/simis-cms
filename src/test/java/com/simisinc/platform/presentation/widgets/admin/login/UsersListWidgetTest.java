@@ -194,10 +194,12 @@ class UsersListWidgetTest extends WidgetBase {
     setRoles(widgetContext, COMMUNITY_MANAGER);
     try (MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
         MockedStatic<GroupRepository> groupRepo = mockStatic(GroupRepository.class);
-        MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class)) {
+        MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<UnsuspendRequestRepository> requestRepo = mockStatic(UnsuspendRequestRepository.class)) {
       roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
       groupRepo.when(GroupRepository::findAll).thenReturn(new ArrayList<>());
       userRepo.when(() -> UserRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+      requestRepo.when(UnsuspendRequestRepository::countPending).thenReturn(0L);
 
       new UsersListWidget().execute(widgetContext);
 
@@ -214,10 +216,12 @@ class UsersListWidgetTest extends WidgetBase {
     setRoles(widgetContext, ADMIN);
     try (MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
         MockedStatic<GroupRepository> groupRepo = mockStatic(GroupRepository.class);
-        MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class)) {
+        MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<UnsuspendRequestRepository> requestRepo = mockStatic(UnsuspendRequestRepository.class)) {
       roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
       groupRepo.when(GroupRepository::findAll).thenReturn(new ArrayList<>());
       userRepo.when(() -> UserRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+      requestRepo.when(UnsuspendRequestRepository::countPending).thenReturn(0L);
 
       new UsersListWidget().execute(widgetContext);
 

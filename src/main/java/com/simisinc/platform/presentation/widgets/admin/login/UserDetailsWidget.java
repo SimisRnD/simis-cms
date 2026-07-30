@@ -252,11 +252,83 @@ public class UserDetailsWidget extends GenericWidget {
       context.setErrorMessage("You cannot restore an account with a higher role level than your own");
       return context;
     }
-    User result = UserRepository.restoreAccount(user);
-    AuditEventCommand.record(context, AuditEventCommand.USER_MANAGEMENT, "user.enable",
-        result != null ? AuditEventCommand.SUCCESS : AuditEventCommand.FAILURE,
-        "user", String.valueOf(user.getId()), user.getEmail(), null);
-    context.setSuccessMessage("Account restored");
+    // Elevated-role accounts (#492 Phase 3) can't be reactivated by one admin acting alone --
+    // UnsuspendAccountCommand decides whether this is a direct restore (unchanged behavior for a
+    // non-elevated target) or files a request for a second admin to review.
+    String reason = context.getParameter("reason");
+    User actingAdmin = context.getUserSession() != null ? context.getUserSession().getUser() : null;
+    try {
+      UnsuspendAccountCommand.Outcome outcome = UnsuspendAccountCommand.requestOrRestore(user, actingAdmin, reason);
+      switch (outcome) {
+        case RESTORED:
+          AuditEventCommand.record(context, AuditEventCommand.USER_MANAGEMENT, "user.enable",
+              AuditEventCommand.SUCCESS, "user", String.valueOf(user.getId()), user.getEmail(), null);
+          context.setSuccessMessage("Account restored");
+          break;
+        case REQUESTED:
+          AuditEventCommand.record(context, AuditEventCommand.USER_MANAGEMENT, "user.unsuspend.requested",
+              AuditEventCommand.SUCCESS, "user", String.valueOf(user.getId()), user.getEmail(), reason);
+          WorkflowManager.triggerWorkflowForEvent(new UnsuspendRequestedEvent(user, actingAdmin, reason));
+          context.setSuccessMessage("This account requires a second administrator's review to unsuspend. "
+              + "A request was created and eligible admins have been notified.");
+          break;
+        case ALREADY_PENDING:
+          context.setWarningMessage("An unsuspend request is already pending for this account.");
+          break;
+        case NOT_SUSPENDED:
+        default:
+          context.setWarningMessage("This account is not currently suspended.");
+          break;
+      }
+    } catch (DataException e) {
+      AuditEventCommand.record(context, AuditEventCommand.USER_MANAGEMENT, "user.enable",
+          AuditEventCommand.FAILURE, "user", String.valueOf(user.getId()), user.getEmail(), e.getMessage());
+      context.setErrorMessage(e.getMessage());
+    }
+    return context;
+  }
+
+  private WidgetContext approveUnsuspend(WidgetContext context) {
+    long requestId = context.getParameterAsLong("requestId");
+    try {
+      UnsuspendRequest request = UnsuspendAccountCommand.approve(requestId, context.getUserId());
+      String targetId = String.valueOf(request.getTargetUserId());
+      AuditEventCommand.record(context, AuditEventCommand.USER_MANAGEMENT, "user.unsuspend.approved",
+          AuditEventCommand.SUCCESS, "user", targetId, request.getTargetEmail(),
+          "requestedBy=" + request.getRequestedByEmail() + "; reason=" + request.getReason());
+      AuditEventCommand.record(context, AuditEventCommand.USER_MANAGEMENT, "user.password.invalidated",
+          AuditEventCommand.SUCCESS, "user", targetId, request.getTargetEmail(), null);
+      AuditEventCommand.record(context, AuditEventCommand.USER_MANAGEMENT, "user.enable",
+          AuditEventCommand.SUCCESS, "user", targetId, request.getTargetEmail(), "via unsuspend approval");
+
+      User target = LoadUserCommand.loadUser(request.getTargetUserId());
+      User approvedBy = context.getUserSession() != null ? context.getUserSession().getUser() : null;
+      WorkflowManager.triggerWorkflowForEvent(new UserAccountRestoredEvent(target, approvedBy));
+
+      context.setSuccessMessage("Account restored. " + request.getTargetEmail()
+          + " must set a new password before they can sign in again.");
+    } catch (DataException e) {
+      AuditEventCommand.record(context, AuditEventCommand.USER_MANAGEMENT, "user.unsuspend.approved",
+          AuditEventCommand.FAILURE, "user", null, null, e.getMessage());
+      context.setErrorMessage(e.getMessage());
+    }
+    return context;
+  }
+
+  private WidgetContext denyUnsuspend(WidgetContext context) {
+    long requestId = context.getParameterAsLong("requestId");
+    String denialReason = context.getParameter("denialReason");
+    try {
+      UnsuspendRequest request = UnsuspendAccountCommand.deny(requestId, context.getUserId(), denialReason);
+      AuditEventCommand.record(context, AuditEventCommand.USER_MANAGEMENT, "user.unsuspend.denied",
+          AuditEventCommand.SUCCESS, "user", String.valueOf(request.getTargetUserId()), request.getTargetEmail(),
+          "requestedBy=" + request.getRequestedByEmail() + "; denialReason=" + denialReason);
+      context.setSuccessMessage("The unsuspend request was denied");
+    } catch (DataException e) {
+      AuditEventCommand.record(context, AuditEventCommand.USER_MANAGEMENT, "user.unsuspend.denied",
+          AuditEventCommand.FAILURE, "user", null, null, e.getMessage());
+      context.setErrorMessage(e.getMessage());
+    }
     return context;
   }
 
