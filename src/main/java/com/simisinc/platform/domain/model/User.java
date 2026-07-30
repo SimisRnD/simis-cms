@@ -59,6 +59,8 @@ public class User extends Entity {
   private Timestamp validated = null;
   private int failedAttemptCount = 0;
   private Timestamp lockedUntil = null;
+  private Timestamp lastPasswordChangedAt = null;
+  private String suspensionReason = null;
   private long createdBy = -1;
   private long modifiedBy = -1;
   private Timestamp created = null;
@@ -307,6 +309,51 @@ public class User extends Entity {
 
   public boolean isNotValidated() {
     return validated == null;
+  }
+
+  public Timestamp getLastPasswordChangedAt() {
+    return lastPasswordChangedAt;
+  }
+
+  public void setLastPasswordChangedAt(Timestamp lastPasswordChangedAt) {
+    this.lastPasswordChangedAt = lastPasswordChangedAt;
+  }
+
+  public String getSuspensionReason() {
+    return suspensionReason;
+  }
+
+  public void setSuspensionReason(String suspensionReason) {
+    this.suspensionReason = suspensionReason;
+  }
+
+  // A unified account-status vocabulary (#492) -- enabled/isLocked()/validated are three
+  // independent signals with no shared status field; this derives one from all three so the
+  // admin UI (and its filters) have a single, consistent value to key off of, rather than
+  // rendering 3 separate ad hoc conditionals per page as it did before.
+  public static final String STATUS_ACTIVE = "active";
+  public static final String STATUS_SUSPENDED = "suspended";
+  public static final String STATUS_LOCKED = "locked";
+  public static final String STATUS_INACTIVE = "inactive";
+
+  /**
+   * The account's single, unified status, in priority order: an explicit admin suspension always
+   * wins (it is the strongest, most deliberate signal), then a failed-login lockout, then an
+   * account that has never completed email verification, else active. A suspended account can
+   * also be locked at the same time -- {@link #STATUS_SUSPENDED} is what's shown, since restoring
+   * it is the action that actually matters; the lock clears on its own once it expires.
+   */
+  public String getAccountStatus() {
+    if (!enabled) {
+      return STATUS_SUSPENDED;
+    }
+    if (isLocked()) {
+      return STATUS_LOCKED;
+    }
+    if (isNotValidated()) {
+      return STATUS_INACTIVE;
+    }
+    return STATUS_ACTIVE;
   }
 
   public long getCreatedBy() {

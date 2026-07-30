@@ -48,6 +48,7 @@ public class CalendarEventFormWidget extends GenericWidget {
     if (context.getRequestObject() != null) {
       context.getRequest().setAttribute("calendarEvent", context.getRequestObject());
     } else {
+      // Create-only for now; loading an existing event for editing is not yet implemented
 //      int calendarEventId = context.getParameterAsInt("calendarEventId");
 //      CalendarEvent calendarEvent = CalendarEventRepository.findById(calendarEventId);
 //      context.getRequest().setAttribute("calendarEvent", calendarEvent);
@@ -81,7 +82,7 @@ public class CalendarEventFormWidget extends GenericWidget {
 
     // Determine the page to return to
     context.setSuccessMessage("Event was saved");
-    context.setRedirect("/admin/calendar-events");
+    context.setRedirect("/admin/calendars");
     return context;
 
   }

@@ -16,6 +16,7 @@
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="date" uri="/WEB-INF/tlds/date-functions.tld" %>
+<%@ taglib prefix="font" uri="/WEB-INF/tlds/font-functions.tld" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
@@ -31,6 +32,7 @@
       <th width="100" class="text-center">Devices</th>
       <th width="100" class="text-center">Enabled?</th>
       <th width="200">Created</th>
+      <th width="60">Action</th>
     </tr>
   </thead>
   <tbody>
@@ -53,11 +55,14 @@
         </c:choose>
       </td>
       <td class="text-center"><fmt:formatDate pattern="yyyy-MM-dd hh:mm a" value="${app.created}" /></td>
+      <td>
+        <a href="${ctx}/admin/app?appId=${app.id}"><i class="${font:fas()} fa-edit"></i></a>
+      </td>
     </tr>
     </c:forEach>
     <c:if test="${empty appList}">
       <tr>
-        <td colspan="4">No apps were found</td>
+        <td colspan="5">No apps were found</td>
       </tr>
     </c:if>
   </tbody>
