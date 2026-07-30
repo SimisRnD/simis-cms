@@ -24,6 +24,7 @@
   <input type="hidden" name="token" value="${userSession.formToken}"/>
   <%-- Form values --%>
   <input type="hidden" name="id" value="${calendarEvent.id}"/>
+  <input type="hidden" name="calendarId" value="${calendarEvent.calendarId}"/>
   <c:if test="${!empty returnPage}">
     <input type="hidden" name="returnPage" value="<c:out value="${returnPage}"/>"/>
   </c:if>
@@ -37,7 +38,7 @@
     <input type="text" placeholder="Name of event" name="title" value="<c:out value="${calendarEvent.title}"/>">
   </label>
   <label>Description
-    <input type="text" placeholder="Describe it..." name="description" value="<c:out value="${calendarEvent.description}"/>">
+    <input type="text" placeholder="Describe it..." name="summary" value="<c:out value="${calendarEvent.summary}"/>">
   </label>
   <label>All day?
     <div class="switch large">

@@ -19,10 +19,12 @@ package com.simisinc.platform.presentation.widgets.admin.cms;
 import com.simisinc.platform.application.AppException;
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.cms.SaveCalendarEventCommand;
+import com.simisinc.platform.application.cms.UrlCommand;
 import com.simisinc.platform.domain.model.cms.CalendarEvent;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import org.apache.commons.beanutils.BeanUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import java.lang.reflect.InvocationTargetException;
 
@@ -44,6 +46,13 @@ public class CalendarEventFormWidget extends GenericWidget {
     context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));
     context.getRequest().setAttribute("title", context.getPreferences().get("title"));
 
+    // This page can return to different places
+    String returnPage = context.getSharedRequestValue("returnPage");
+    if (returnPage == null) {
+      returnPage = UrlCommand.getValidReturnPage(context.getParameter("returnPage"));
+    }
+    context.getRequest().setAttribute("returnPage", returnPage);
+
     // Form bean
     if (context.getRequestObject() != null) {
       context.getRequest().setAttribute("calendarEvent", context.getRequestObject());
@@ -52,6 +61,12 @@ public class CalendarEventFormWidget extends GenericWidget {
 //      int calendarEventId = context.getParameterAsInt("calendarEventId");
 //      CalendarEvent calendarEvent = CalendarEventRepository.findById(calendarEventId);
 //      context.getRequest().setAttribute("calendarEvent", calendarEvent);
+      long calendarId = context.getParameterAsLong("calendarId");
+      if (calendarId > -1) {
+        CalendarEvent calendarEvent = new CalendarEvent();
+        calendarEvent.setCalendarId(calendarId);
+        context.getRequest().setAttribute("calendarEvent", calendarEvent);
+      }
     }
 
     // Show the editor
@@ -67,6 +82,9 @@ public class CalendarEventFormWidget extends GenericWidget {
     calendarEventBean.setCreatedBy(context.getUserId());
     calendarEventBean.setModifiedBy(context.getUserId());
 
+    // Determine additional settings
+    String returnPage = UrlCommand.getValidReturnPage(context.getParameter("returnPage"));
+
     // Save the record
     CalendarEvent calendarEvent = null;
     try {
@@ -77,12 +95,17 @@ public class CalendarEventFormWidget extends GenericWidget {
     } catch (DataException | AppException e) {
       context.setErrorMessage(e.getMessage());
       context.setRequestObject(calendarEventBean);
+      context.addSharedRequestValue("returnPage", returnPage);
       return context;
     }
 
     // Determine the page to return to
     context.setSuccessMessage("Event was saved");
-    context.setRedirect("/admin/calendars");
+    if (StringUtils.isNotBlank(returnPage)) {
+      context.setRedirect(returnPage);
+    } else {
+      context.setRedirect("/admin/calendars");
+    }
     return context;
 
   }
