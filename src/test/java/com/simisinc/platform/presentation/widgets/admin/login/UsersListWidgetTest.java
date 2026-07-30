@@ -16,48 +16,60 @@
 
 package com.simisinc.platform.presentation.widgets.admin.login;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mockStatic;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
 import org.junit.jupiter.api.Assertions;
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.mockStatic;
-
-import java.util.Collections;
-import java.util.List;
-
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
 import com.simisinc.platform.WidgetBase;
 import com.simisinc.platform.application.LoadUserCommand;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.register.SaveUserCommand;
 import com.simisinc.platform.domain.model.Role;
 import com.simisinc.platform.domain.model.User;
+import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.persistence.GroupRepository;
 import com.simisinc.platform.infrastructure.persistence.RoleRepository;
 import com.simisinc.platform.infrastructure.persistence.UserRepository;
+import com.simisinc.platform.infrastructure.persistence.UserSpecification;
+import com.simisinc.platform.infrastructure.persistence.login.UserLoginRepository;
 import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
+import com.simisinc.platform.presentation.controller.DataConstants;
 
 /**
- * The New User form (the "reveal" modal on /admin/users) is reachable by both admin and
- * community-manager (admin-layout.xml), the same audience as the user-edit form. Unlike the edit
- * form, addUserAction() had no level check at all -- every checked role box was added to the new
- * account, so a community-manager (level 90) could create a user with Data Manager (93) or
- * E-commerce Manager (95), both above their own level. These verify addUserAction() now enforces
- * the same at-or-below-own-level rule UserFormWidget.post() already enforces when editing an
- * existing user (see UserFormWidget.highestRoleLevel(), reused here).
+ * Covers two independent aspects of UsersListWidget on /admin/users:
+ *
+ * <p>
+ * 1) The New User form (the "reveal" modal, reachable by both admin and community-manager per
+ * admin-layout.xml). Unlike the edit form, addUserAction() had no level check at all -- every
+ * checked role box was added to the new account, so a community-manager (level 90) could create a
+ * user with Data Manager (93) or E-commerce Manager (95), both above their own level. These verify
+ * addUserAction() now enforces the same at-or-below-own-level rule UserFormWidget.post() already
+ * enforces when editing an existing user (see UserFormWidget.highestRoleLevel(), reused here).
+ * </p>
+ *
+ * <p>
+ * 2) Each statusFilter/mfaFilter/agingPasswordFilter value (issue #492) translates into the same
+ * compound UserSpecification conditions User.getAccountStatus() itself derives from -- so the
+ * filter and the badge can never disagree about which bucket an account is in.
+ * RoleRepository/GroupRepository/UserLoginRepository are stubbed to empty since execute() always
+ * loads them regardless of the filter under test.
+ * </p>
  *
  * @author Elizabeth Houser
+ * @author SimIS Inc.
  */
 class UsersListWidgetTest extends WidgetBase {
 
@@ -210,26 +222,45 @@ class UsersListWidgetTest extends WidgetBase {
 
       Assertions.assertEquals(100, widgetContext.getRequest().getAttribute("actingRoleLevel"),
           "an admin must still be offered every role, including admin itself");
-import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
-import com.simisinc.platform.domain.model.User;
-import com.simisinc.platform.infrastructure.database.DataConstraints;
-import com.simisinc.platform.infrastructure.persistence.GroupRepository;
-import com.simisinc.platform.infrastructure.persistence.RoleRepository;
-import com.simisinc.platform.infrastructure.persistence.UserRepository;
-import com.simisinc.platform.infrastructure.persistence.UserSpecification;
-import com.simisinc.platform.infrastructure.persistence.login.UserLoginRepository;
-import com.simisinc.platform.presentation.controller.DataConstants;
+    }
+  }
 
-/**
- * Verifies each statusFilter/mfaFilter/agingPasswordFilter value on /admin/users (issue #492)
- * translates into the same compound UserSpecification conditions User.getAccountStatus() itself
- * derives from -- so the filter and the badge can never disagree about which bucket an account is
- * in. RoleRepository/GroupRepository/UserLoginRepository are stubbed to empty since execute()
- * always loads them regardless of the filter under test.
- *
- * @author SimIS Inc.
- */
-class UsersListWidgetTest extends WidgetBase {
+  @Test
+  void unrecognizedActingRoleGrantsNothingViaNewUserForm() throws Exception {
+    // A caller can pass post()'s hasRole("admin")||hasRole("community-manager") gate yet still fail
+    // closed here if their session role code isn't in the authoritative RoleRepository.findAll() list
+    // (e.g. a stale/renamed role) -- highestRoleLevel() then returns 0, and every real role has a
+    // level above that, so nothing should be grantable. Model that by having RoleRepository.findAll()
+    // no longer carry "community-manager" (renamed/removed), while the session's cached role claim
+    // still says "community-manager" -- enough to pass post()'s own hasRole() gate, which checks the
+    // session directly rather than the authoritative list.
+    setRoles(widgetContext, COMMUNITY_MANAGER);
+    List<Role> rolesWithoutCommunityManager = new ArrayList<>(allRoles());
+    rolesWithoutCommunityManager.removeIf(r -> "community-manager".equals(r.getCode()));
+    addQueryParameter(widgetContext, "firstName", "New");
+    addQueryParameter(widgetContext, "lastName", "User");
+    addQueryParameter(widgetContext, "email", "new-user@example.com");
+    addQueryParameter(widgetContext, "roleId1", "1"); // content-editor (70) -- must still be refused
+
+    ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+    try (MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
+        MockedStatic<GroupRepository> groupRepo = mockStatic(GroupRepository.class);
+        MockedStatic<SaveUserCommand> saveCmd = mockStatic(SaveUserCommand.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class);
+        MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
+        MockedStatic<WorkflowManager> workflow = mockStatic(WorkflowManager.class)) {
+      roleRepo.when(RoleRepository::findAll).thenReturn(rolesWithoutCommunityManager);
+      groupRepo.when(GroupRepository::findAll).thenReturn(new ArrayList<>());
+      saveCmd.when(() -> SaveUserCommand.saveUser(any())).thenReturn(savedUser());
+      loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(savedUser());
+
+      new UsersListWidget().post(widgetContext);
+
+      saveCmd.verify(() -> SaveUserCommand.saveUser(captor.capture()));
+      Assertions.assertTrue(captor.getValue().getRoleList().isEmpty(),
+          "a session whose role code isn't in the authoritative role list must fail closed and grant nothing");
+    }
+  }
 
   private UserSpecification runWithStatusFilter(String statusFilterValue) {
     return captureSpecification(() -> addQueryParameter(widgetContext, "statusFilter", statusFilterValue));
@@ -333,40 +364,6 @@ class UsersListWidgetTest extends WidgetBase {
   }
 
   @Test
-  void unrecognizedActingRoleGrantsNothingViaNewUserForm() throws Exception {
-    // A caller can pass post()'s hasRole("admin")||hasRole("community-manager") gate yet still fail
-    // closed here if their session role code isn't in the authoritative RoleRepository.findAll() list
-    // (e.g. a stale/renamed role) -- highestRoleLevel() then returns 0, and every real role has a
-    // level above that, so nothing should be grantable. Model that by having RoleRepository.findAll()
-    // no longer carry "community-manager" (renamed/removed), while the session's cached role claim
-    // still says "community-manager" -- enough to pass post()'s own hasRole() gate, which checks the
-    // session directly rather than the authoritative list.
-    setRoles(widgetContext, COMMUNITY_MANAGER);
-    List<Role> rolesWithoutCommunityManager = new ArrayList<>(allRoles());
-    rolesWithoutCommunityManager.removeIf(r -> "community-manager".equals(r.getCode()));
-    addQueryParameter(widgetContext, "firstName", "New");
-    addQueryParameter(widgetContext, "lastName", "User");
-    addQueryParameter(widgetContext, "email", "new-user@example.com");
-    addQueryParameter(widgetContext, "roleId1", "1"); // content-editor (70) -- must still be refused
-
-    ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
-    try (MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
-        MockedStatic<GroupRepository> groupRepo = mockStatic(GroupRepository.class);
-        MockedStatic<SaveUserCommand> saveCmd = mockStatic(SaveUserCommand.class);
-        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class);
-        MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
-        MockedStatic<WorkflowManager> workflow = mockStatic(WorkflowManager.class)) {
-      roleRepo.when(RoleRepository::findAll).thenReturn(rolesWithoutCommunityManager);
-      groupRepo.when(GroupRepository::findAll).thenReturn(new ArrayList<>());
-      saveCmd.when(() -> SaveUserCommand.saveUser(any())).thenReturn(savedUser());
-      loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(savedUser());
-
-      new UsersListWidget().post(widgetContext);
-
-      saveCmd.verify(() -> SaveUserCommand.saveUser(captor.capture()));
-      Assertions.assertTrue(captor.getValue().getRoleList().isEmpty(),
-          "a session whose role code isn't in the authoritative role list must fail closed and grant nothing");
-    }
   void agingPasswordFilterIsUnsetByDefault() {
     UserSpecification spec = captureSpecification(() -> { });
     assertEquals(-1, spec.getPasswordOlderThanDays());
