@@ -37,29 +37,6 @@ public class ContentWidget extends GenericWidget {
 
   public WidgetContext execute(WidgetContext context) {
 
-    String view = context.getPreferences().get("view");
-
-    // These views have been extracted to new widgets
-    if ("accordion".equals(view)) {
-      context.setWidgetName("contentAccordion");
-      return context;
-    } else if ("cards".equals(view)) {
-      context.setWidgetName("contentCards");
-      return context;
-    } else if ("cardSlider".equals(view)) {
-      context.setWidgetName("contentSlider");
-      return context;
-    } else if ("carousel".equals(view)) {
-      context.setWidgetName("contentCarousel");
-      return context;
-    } else if ("gallery".equals(view)) {
-      context.setWidgetName("contentGallery");
-      return context;
-    } else if ("reveal".equals(view)) {
-      context.setWidgetName("contentReveal");
-      return context;
-    }
-
     // Common attributes
     context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));
     context.getRequest().setAttribute("title", context.getPreferences().get("title"));

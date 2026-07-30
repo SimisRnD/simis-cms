@@ -18,6 +18,7 @@
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="blog" class="com.simisinc.platform.domain.model.cms.Blog" scope="request"/>
+<jsp:useBean id="mailingLists" class="java.util.ArrayList" scope="request"/>
 <c:choose>
   <c:when test="${blog.id eq -1}"><h4>New Blog</h4></c:when>
   <c:otherwise><h4>Update Blog</h4></c:otherwise>
@@ -42,6 +43,15 @@
   </label>
   <label>Description
     <input type="text" placeholder="Describe it..." name="description" value="<c:out value="${blog.description}"/>">
+  </label>
+  <label>Mailing List
+    <select name="mailingListId">
+      <option value="-1">None</option>
+      <c:forEach items="${mailingLists}" var="mailingList">
+        <option value="${mailingList.id}" <c:if test="${mailingList.id == blog.mailingListId}">selected</c:if>><c:out value="${mailingList.title}" /></option>
+      </c:forEach>
+    </select>
+    <small>When set, this blog's post editor defaults to notifying this list on publish.</small>
   </label>
   <input id="enabled" type="checkbox" name="enabled" value="true" <c:if test="${blog.id == -1 || blog.enabled}">checked</c:if>/><label for="enabled">Online?</label>
   <div class="button-container">

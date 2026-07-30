@@ -196,6 +196,11 @@
               if (data.hasOwnProperty('videoUrl')) {
                 document.getElementById('videoUrl').value = data.videoUrl;
               }
+              if (data.hasOwnProperty('published')) {
+                $('#enabled')[0].checked = true;
+              } else {
+                $('#enabled')[0].checked = false;
+              }
               document.getElementById('title').value = data.title;
 
               // Show the form dialog
@@ -377,6 +382,8 @@
         <input type="text" placeholder="https://..." name="videoUrl" id="videoUrl" value="">
       </label>
       <p class="help-text">Paste a link to a video or live meeting (Teams, Zoom, Google Meet, a YouTube stream, etc). Shown as a "Join" button on the event's page.</p>
+      <input id="enabled" type="checkbox" name="enabled" value="true" checked/><label for="enabled">Publish it?</label>
+      <p class="help-text">Unchecked saves this event as a draft, hidden from the public calendar.</p>
       <div class="button-container">
         <input type="submit" class="button radius success expanded" value="Save" />
         <input id="duplicateButton" style="display:none" type="submit" class="button radius primary expanded" name="duplicate" value="Duplicate" />

@@ -60,7 +60,9 @@ public class CalendarAjax extends GenericWidget {
       Date endDate = end.contains("T") ? parseISO8601(end) : parseSimpleDateFormat(end);
 
       if (showEvents) {
-        addCalendarEvents(context.getUserId(), calendarUniqueId, startDate, endDate, sb);
+        boolean canSeeUnpublished = context.getUserSession() != null
+            && (context.getUserSession().hasRole("admin") || context.getUserSession().hasRole("content-manager"));
+        addCalendarEvents(context.getUserId(), calendarUniqueId, startDate, endDate, sb, !canSeeUnpublished);
       }
 
       if (showHolidays) {
