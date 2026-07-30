@@ -16,11 +16,20 @@ jobs:
       contents: read
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+      with:
+        # detect_unsafe_migrations.py (next step) diffs origin/<base>...HEAD to find
+        # Java field removals across the whole PR. That needs the base branch ref
+        # and full commit history, which the default depth-1 shallow clone doesn't
+        # provide -- fetch-depth: 0 fetches everything. See issue #399: under the
+        # old shallow clone, the diff command failed and was silently swallowed,
+        # so the gate always reported "no unsafe migrations" regardless of the PR.
+        fetch-depth: 0
     - name: Check for unsafe migrations
       # Gate destructive schema changes (DROP COLUMN/TABLE, RENAME) that appear
       # in the same version as Java field removals. The expand/contract pattern
       # requires these to be split: expand migration, code release, then contract
-      # migration. See docs/expand-contract-migrations.md.
+      # migration. See the "Expand/Contract Migrations" runbook in the private
+      # simis-cms-runbooks repo (SimisRnD/simis-cms-runbooks).
       run: python3 tools/detect_unsafe_migrations.py
     - name: Set up JDK
       uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5

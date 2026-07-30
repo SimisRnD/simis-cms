@@ -13,11 +13,12 @@ Exit codes:
   2 = Script error
 """
 
-import re
-import sys
 import os
-from pathlib import Path
+import re
+import subprocess
+import sys
 from collections import defaultdict
+from pathlib import Path
 
 # Migration version pattern: UPGRADE_20260726.1015__description.sql
 MIGRATION_VERSION_PATTERN = re.compile(r'UPGRADE_(\d{8})\.(\d{4})__')
@@ -67,6 +68,47 @@ def find_java_removals_in_diff(diff_content):
     return findings
 
 
+def get_java_diff(repo_root):
+    """Return the src/main/java portion of the diff under review.
+
+    Prefers a merge-base diff against the PR's base branch (``GITHUB_BASE_REF``,
+    which GitHub Actions sets on ``pull_request`` events) so the WHOLE PR is
+    covered -- not just its last commit, which matters for multi-commit PRs.
+    Falls back to ``HEAD~1..HEAD`` when ``GITHUB_BASE_REF`` isn't set (e.g. a
+    direct push event, or a local run outside CI).
+
+    For the ``GITHUB_BASE_REF`` path to find anything, ``origin/<base>`` and
+    enough history to compute a merge-base must actually be present locally --
+    in CI that means the checkout step must not use the default shallow,
+    single-ref clone. See .github/workflows/ant.yml's `fetch-depth: 0`.
+
+    Any failure (shallow clone, unknown ref, git not installed, no prior
+    commit to diff against, ...) is caught and treated as "no Java changes
+    found" rather than crashing the gate -- that's the safe direction for a
+    detector to fail in. A warning is still printed so a broken diff doesn't
+    go completely unnoticed the way it did before (see issue #399): silently
+    treating every run as "no changes" is exactly the failure mode this
+    function exists to avoid repeating.
+    """
+    base_ref = os.environ.get('GITHUB_BASE_REF')
+    diff_range = f'origin/{base_ref}...HEAD' if base_ref else 'HEAD~1..HEAD'
+
+    try:
+        return subprocess.check_output(
+            ['git', 'diff', diff_range, '--', 'src/main/java'],
+            cwd=repo_root,
+            text=True,
+            stderr=subprocess.DEVNULL,
+        )
+    except (subprocess.CalledProcessError, FileNotFoundError, OSError) as exc:
+        print(
+            f"warning: could not compute git diff for {diff_range}: {exc}; "
+            "treating as no Java changes for this run",
+            file=sys.stderr,
+        )
+        return ""
+
+
 def check_migrations(repo_root):
     """Check all migrations for unsafe patterns. Returns list of violations."""
     violations = []
@@ -87,17 +129,7 @@ def check_migrations(repo_root):
             migrations_by_version[version].append(sql_file)
 
     # Get git diff to find Java removals
-    try:
-        import subprocess
-        git_diff = subprocess.check_output(
-            ['git', 'diff', 'HEAD~1..HEAD', '--', 'src/main/java'],
-            cwd=repo_root,
-            text=True,
-            stderr=subprocess.DEVNULL
-        )
-    except (subprocess.CalledProcessError, FileNotFoundError):
-        git_diff = ""
-
+    git_diff = get_java_diff(repo_root)
     java_removals = find_java_removals_in_diff(git_diff)
 
     # Check each version's migrations
@@ -125,7 +157,14 @@ def check_migrations(repo_root):
 
 
 def main():
-    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    # Optional positional repo-root argument, matching every other tool in tools/
+    # (see conftest.py's run_tool helper). Defaults to this script's own repo when
+    # omitted, so the existing `python3 tools/detect_unsafe_migrations.py` call in
+    # ant.yml keeps working unchanged.
+    if len(sys.argv) > 1:
+        repo_root = sys.argv[1]
+    else:
+        repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
     violations = check_migrations(repo_root)
 
