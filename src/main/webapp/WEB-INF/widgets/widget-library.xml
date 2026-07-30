@@ -84,6 +84,7 @@
   <widget name="progressCard" class="com.simisinc.platform.presentation.widgets.dashboard.ProgressCardWidget" />
   <widget name="statisticCard" class="com.simisinc.platform.presentation.widgets.dashboard.StatisticCardWidget" />
   <widget name="superset" class="com.simisinc.platform.presentation.widgets.dashboard.SupersetWidget" />
+  <widget name="metabase" class="com.simisinc.platform.presentation.widgets.dashboard.MetabaseWidget" />
   <!-- User Profile and Management -->
   <widget name="emailSubscribe" class="com.simisinc.platform.presentation.widgets.mailinglists.EmailSubscribeWidget" />
   <widget name="myInfo" class="com.simisinc.platform.presentation.widgets.userProfile.MyInfoWidget" />
