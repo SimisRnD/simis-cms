@@ -25,6 +25,7 @@ import com.simisinc.platform.domain.events.cms.UserPasswordResetEvent;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.infrastructure.persistence.UserRepository;
 import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
+import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 
@@ -110,6 +111,12 @@ public class ForgotPasswordWidget extends GenericWidget {
 
     // Create an account token and send email
     user = UserRepository.createAccountToken(user);
+
+    // Record the self-service request (#492) -- distinct event type from the admin-initiated
+    // "user.password.reset" so the audit trail shows who actually asked, not just that a reset
+    // happened. The actor resolves to unauthenticated/anonymous since nobody is signed in yet.
+    AuditEventCommand.record(context, AuditEventCommand.USER_MANAGEMENT, "user.password.reset.requested",
+        AuditEventCommand.SUCCESS, "user", String.valueOf(user.getId()), user.getEmail(), "self-service");
 
     // Trigger events
     WorkflowManager.triggerWorkflowForEvent(new UserPasswordResetEvent(user, null));

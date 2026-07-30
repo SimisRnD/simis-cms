@@ -21,12 +21,16 @@ import com.simisinc.platform.application.cms.LoadBlogCommand;
 import com.simisinc.platform.application.cms.SaveBlogCommand;
 import com.simisinc.platform.application.cms.UrlCommand;
 import com.simisinc.platform.domain.model.cms.Blog;
+import com.simisinc.platform.domain.model.mailinglists.MailingList;
+import com.simisinc.platform.infrastructure.persistence.mailinglists.MailingListRepository;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Widget for displaying a system administration form to add/update blogs
@@ -65,6 +69,18 @@ public class BlogFormWidget extends GenericWidget {
         context.getRequest().setAttribute("blog", blog);
       }
     }
+
+    // For the mailing list association picker (issue #599)
+    List<MailingList> allLists = MailingListRepository.findAll();
+    List<MailingList> enabledLists = new ArrayList<>();
+    if (allLists != null) {
+      for (MailingList mailingList : allLists) {
+        if (mailingList.getEnabled()) {
+          enabledLists.add(mailingList);
+        }
+      }
+    }
+    context.getRequest().setAttribute("mailingLists", enabledLists);
 
     // Show the editor
     context.setJsp(JSP);

@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import org.apache.commons.beanutils.BeanUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -34,8 +35,11 @@ import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.RateLimitCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.cms.CaptchaCommand;
+import com.simisinc.platform.application.cms.LoadBlogCommand;
 import com.simisinc.platform.application.mailinglists.SaveEmailCommand;
+import com.simisinc.platform.domain.model.cms.Blog;
 import com.simisinc.platform.domain.model.mailinglists.Email;
+import com.simisinc.platform.domain.model.mailinglists.MailingList;
 import com.simisinc.platform.infrastructure.persistence.mailinglists.MailingListRepository;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
@@ -58,6 +62,17 @@ public class EmailSubscribeWidget extends GenericWidget {
   static String SUCCESS_JSP = "/mailinglists/email-subscribe-success.jsp";
 
   public WidgetContext execute(WidgetContext context) {
+
+    // Issue #601: a blogUniqueId preference scopes this signup to that blog's associated
+    // mailing list (a contextual CTA, e.g. placed on the blog's own page) instead of the
+    // mailingList (name) preference. Don't render a form that can only ever fail if the blog
+    // has no list configured yet -- that's a site configuration gap for an admin to fix, not
+    // something a public visitor should hit.
+    String blogUniqueId = context.getPreferences().get("blogUniqueId");
+    if (StringUtils.isNotBlank(blogUniqueId) && resolveBlogMailingList(blogUniqueId) == null) {
+      LOG.warn("emailSubscribe widget's blogUniqueId '" + blogUniqueId + "' has no associated mailing list to subscribe to");
+      return null;
+    }
 
     String isSuccess = context.getSharedRequestValue(context.getUniqueId() + "emailSubscribeWidgetSuccess");
     if ("true".equals(isSuccess)) {
@@ -117,6 +132,7 @@ public class EmailSubscribeWidget extends GenericWidget {
   public WidgetContext post(WidgetContext context) throws InvocationTargetException, IllegalAccessException {
 
     // Determine preferences
+    String blogUniqueId = context.getPreferences().get("blogUniqueId");
     String mailingListName = context.getPreferences().get("mailingList");
     String tags = context.getPreferences().get("tags");
 
@@ -174,7 +190,16 @@ public class EmailSubscribeWidget extends GenericWidget {
 
     // Save the record
     try {
-      SaveEmailCommand.saveEmail(emailBean, mailingListName);
+      if (StringUtils.isNotBlank(blogUniqueId)) {
+        MailingList mailingList = resolveBlogMailingList(blogUniqueId);
+        if (mailingList == null) {
+          // The blog's association was removed between this form rendering and being submitted
+          throw new DataException("Sorry, this signup isn't available right now.");
+        }
+        SaveEmailCommand.saveEmail(emailBean, mailingList);
+      } else {
+        SaveEmailCommand.saveEmail(emailBean, mailingListName);
+      }
     } catch (DataException e) {
       context.setWarningMessage(e.getMessage());
       context.setRequestObject(emailBean);
@@ -184,5 +209,14 @@ public class EmailSubscribeWidget extends GenericWidget {
     // Redirect back so the message can be displayed
     context.addSharedRequestValue(context.getUniqueId() + "emailSubscribeWidgetSuccess", "true");
     return context;
+  }
+
+  /** The blog's associated mailing list (issue #601), or null if the blog or association doesn't exist. */
+  private MailingList resolveBlogMailingList(String blogUniqueId) {
+    Blog blog = LoadBlogCommand.loadBlogByUniqueId(blogUniqueId);
+    if (blog == null || blog.getMailingListId() == -1) {
+      return null;
+    }
+    return MailingListRepository.findById(blog.getMailingListId());
   }
 }
