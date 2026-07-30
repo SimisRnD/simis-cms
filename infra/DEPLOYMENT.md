@@ -246,10 +246,9 @@ az webapp config appsettings set \
 Azure Front Door uses session affinity to pin authenticated users to the same backend instance. Without affinity, a multi-instance deployment (scale-out or rolling update) would log out users mid-session because Tomcat stores sessions in JVM-local memory.
 
 **Affinity behavior:**
-- AFD sets a routing cookie on the first request
-- Subsequent requests from the same browser are routed to the same backend
-- Cookie duration: 24 hours (default; non-configurable per route in Bicep)
-- SameSite=Lax: cookie sent on same-site navigation and external links; protects against cross-site request forgery
+- Session affinity is a property of the **origin group** (not the route) — a plain `Enabled`/`Disabled` toggle. There is no route-level session-affinity setting in the Azure Front Door schema.
+- When enabled, AFD sets a routing cookie on the first request and routes subsequent requests from the same browser to the same backend.
+- Azure manages the cookie's characteristics (name, attributes like `SameSite`) and its duration internally. Neither is exposed as a Bicep-configurable setting for Standard/Premium Front Door, so this document does not state specific values for them — check the current [Azure Front Door documentation](https://learn.microsoft.com/azure/frontdoor/) if the exact cookie behavior matters for a given investigation.
 
 **Failover behavior (when a pinned backend becomes unhealthy):**
 - AFD health checks detect the instance is DOWN (probes fail 3× in a row)
@@ -261,9 +260,11 @@ Azure Front Door uses session affinity to pin authenticated users to the same ba
 **Expected frequency:** Rare. Health probes every 30 seconds; instance must fail 3× to be marked unhealthy. Transient blips don't trigger failover.
 
 **Configuration:**
-- Enabled in `infra/modules/frontdoor.bicep` (route resource, `sessionAffinitySettings`)
-- Applied to all routes (/*) — affects the whole site
-- Cannot be tuned per route in Azure Portal (Bicep is source of truth)
+- Enabled in `infra/modules/frontdoor.bicep` (`originGroup` resource, `sessionAffinityState: 'Enabled'`)
+- Applies to all traffic routed through that origin group — affects the whole site
+- Cannot be tuned in the Azure Portal outside of Bicep (Bicep is source of truth)
+
+**Current impact:** The App Service plan behind this origin group is currently pinned to a single instance (`capacity: 1`, pilot posture — see `infra/modules/appservice.bicep`). With one instance there is nowhere else a session could be routed, so this setting has no observable effect until the plan is actually scaled to multiple instances. It's configured now so multi-instance routing behaves correctly once that happens.
 
 ---
 
