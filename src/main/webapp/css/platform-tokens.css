@@ -368,6 +368,13 @@ summary:focus-visible,
    gap reads correctly after both a plain input and an .input-group. */
 .help-text {
   margin-top: var(--sc-space-1);
+  /* site-properties-editor.jsp's Value column is a <td nowrap>, which forces
+     white-space: nowrap onto every descendant, including this paragraph. A
+     help-text longer than a couple of words runs off the right edge instead
+     of wrapping, forcing a horizontal scrollbar to read it. The nowrap is
+     only meant for the input controls themselves, not their help text. */
+  white-space: normal;
+  max-width: 60ch;
 }
 
 /* Foundation renders the select arrow as an embedded SVG data URI in a
