@@ -24,6 +24,8 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 
 import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -31,7 +33,9 @@ import org.mockito.MockedStatic;
 
 import com.simisinc.platform.WidgetBase;
 import com.simisinc.platform.application.LoadUserCommand;
+import com.simisinc.platform.domain.model.Role;
 import com.simisinc.platform.domain.model.User;
+import com.simisinc.platform.infrastructure.persistence.RoleRepository;
 import com.simisinc.platform.infrastructure.persistence.UserRepository;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
@@ -50,9 +54,33 @@ import com.simisinc.platform.presentation.controller.WidgetContext;
  * (redirect back to the same page, no error, no repository call). These tests call post() directly, the same
  * method a real request now reaches, so they fail if that dispatch gap reopens.
  *
+ * communityManagerCannotSuspendAccountThatOutranksThem / communityManagerCannotRestoreAccountThatOutranksThem
+ * guard a separate, pre-existing gap (predates issue #358, unrelated to it): suspendAccount()/restoreAccount()
+ * only ever checked "is this my own account" -- neither checked the target's role level against the acting
+ * admin's, even though both /admin/users and /admin/user-details are reachable by community-manager (level 90,
+ * admin-layout.xml), one level below admin (level 100). Without this guard a community-manager could suspend or
+ * restore an admin account outright. Mirrors the escalation guard UserFormWidget already applies to role grants
+ * (see UserFormWidgetTest).
+ *
  * @author Elizabeth Houser
  */
 class UserDetailsWidgetTest extends WidgetBase {
+
+  private static Role role(int id, int level, String code, String title) {
+    Role role = new Role(title, code);
+    role.setId(id);
+    role.setLevel(level);
+    return role;
+  }
+
+  private static List<Role> allRoles() {
+    List<Role> roles = new ArrayList<>();
+    roles.add(role(1, 70, "content-editor", "Content Editor"));
+    roles.add(role(2, 80, "content-manager", "Content Manager"));
+    roles.add(role(3, 90, "community-manager", "Community Manager"));
+    roles.add(role(4, 100, "admin", "System Administrator"));
+    return roles;
+  }
 
   private static User lockedUser() {
     User user = new User();
@@ -68,6 +96,14 @@ class UserDetailsWidgetTest extends WidgetBase {
     user.setId(5L);
     user.setEmail("active@example.com");
     user.setEnabled(true);
+    return user;
+  }
+
+  private static User adminUser() {
+    User user = activeUser();
+    List<Role> held = new ArrayList<>();
+    held.add(role(4, 100, "admin", "System Administrator"));
+    user.setRoleList(held);
     return user;
   }
 
@@ -140,12 +176,16 @@ class UserDetailsWidgetTest extends WidgetBase {
     addQueryParameter(widgetContext, "userId", "5");
     addQueryParameter(widgetContext, "action", "suspendAccount");
 
-    User target = activeUser();
+    // An admin (level 100) acting on another admin (level 100): equal level is not "outranks" and
+    // must still be permitted.
+    User target = adminUser();
 
     try (MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
         MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
         MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
       loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(target);
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
       userRepo.when(() -> UserRepository.suspendAccount(target)).thenReturn(target);
 
       WidgetContext result = new UserDetailsWidget().post(widgetContext);
@@ -163,13 +203,15 @@ class UserDetailsWidgetTest extends WidgetBase {
     addQueryParameter(widgetContext, "userId", "5");
     addQueryParameter(widgetContext, "action", "restoreAccount");
 
-    User target = activeUser();
+    User target = adminUser();
     target.setEnabled(false);
 
     try (MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
         MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
         MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
       loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(target);
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
       userRepo.when(() -> UserRepository.restoreAccount(target)).thenReturn(target);
 
       WidgetContext result = new UserDetailsWidget().post(widgetContext);
@@ -178,6 +220,84 @@ class UserDetailsWidgetTest extends WidgetBase {
       audit.verify(() -> AuditEventCommand.record(any(), eq(AuditEventCommand.USER_MANAGEMENT), eq("user.enable"),
           eq(AuditEventCommand.SUCCESS), eq("user"), eq("5"), eq("active@example.com"), any()), times(1));
       Assertions.assertEquals("Account restored", result.getSuccessMessage());
+    }
+  }
+
+  @Test
+  void communityManagerCannotSuspendAccountThatOutranksThem() throws Exception {
+    setRoles(widgetContext, COMMUNITY_MANAGER);
+    addQueryParameter(widgetContext, "userId", "5");
+    addQueryParameter(widgetContext, "action", "suspendAccount");
+
+    // The target holds admin (level 100), above the acting community-manager (level 90).
+    User target = adminUser();
+
+    try (MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
+        MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(target);
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
+
+      WidgetContext result = new UserDetailsWidget().post(widgetContext);
+
+      userRepo.verify(() -> UserRepository.suspendAccount(any()), never());
+      audit.verifyNoInteractions();
+      Assertions.assertEquals("You cannot suspend an account with a higher role level than your own",
+          result.getErrorMessage());
+    }
+  }
+
+  @Test
+  void communityManagerCannotRestoreAccountThatOutranksThem() throws Exception {
+    setRoles(widgetContext, COMMUNITY_MANAGER);
+    addQueryParameter(widgetContext, "userId", "5");
+    addQueryParameter(widgetContext, "action", "restoreAccount");
+
+    // The target holds admin (level 100), above the acting community-manager (level 90).
+    User target = adminUser();
+    target.setEnabled(false);
+
+    try (MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
+        MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(target);
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
+
+      WidgetContext result = new UserDetailsWidget().post(widgetContext);
+
+      userRepo.verify(() -> UserRepository.restoreAccount(any()), never());
+      audit.verifyNoInteractions();
+      Assertions.assertEquals("You cannot restore an account with a higher role level than your own",
+          result.getErrorMessage());
+    }
+  }
+
+  @Test
+  void communityManagerCanSuspendAccountAtOrBelowTheirOwnLevel() throws Exception {
+    setRoles(widgetContext, COMMUNITY_MANAGER);
+    addQueryParameter(widgetContext, "userId", "5");
+    addQueryParameter(widgetContext, "action", "suspendAccount");
+
+    // The target holds community-manager (level 90), at the acting user's own level -- not "outranks".
+    User target = activeUser();
+    List<Role> held = new ArrayList<>();
+    held.add(role(3, 90, "community-manager", "Community Manager"));
+    target.setRoleList(held);
+
+    try (MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
+        MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(target);
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
+      userRepo.when(() -> UserRepository.suspendAccount(target)).thenReturn(target);
+
+      WidgetContext result = new UserDetailsWidget().post(widgetContext);
+
+      userRepo.verify(() -> UserRepository.suspendAccount(target), times(1));
+      Assertions.assertEquals("Account suspended", result.getSuccessMessage());
     }
   }
 
@@ -287,8 +407,10 @@ class UserDetailsWidgetTest extends WidgetBase {
 
     try (MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
         MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
         MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
       loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(target);
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
       userRepo.when(() -> UserRepository.restoreAccount(target)).thenReturn(target);
 
       setRoles(widgetContext, ADMIN);
