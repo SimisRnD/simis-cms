@@ -182,7 +182,6 @@
   <widget name="collectionForm" class="com.simisinc.platform.presentation.widgets.admin.items.CollectionFormWidget" />
   <widget name="collectionDetails" class="com.simisinc.platform.presentation.widgets.admin.items.CollectionDetailsWidget" />
   <widget name="collectionThemeEditor" class="com.simisinc.platform.presentation.widgets.admin.items.CollectionThemeEditorWidget" />
-  <widget name="collectionTabsList" class="com.simisinc.platform.presentation.widgets.admin.items.CollectionTabsListWidget" />
   <widget name="collectionTabsEditor" class="com.simisinc.platform.presentation.widgets.admin.items.CollectionTabsEditorWidget" />
   <widget name="collectionCategoriesList" class="com.simisinc.platform.presentation.widgets.admin.items.CollectionCategoriesListWidget" />
   <widget name="collectionCategoryForm" class="com.simisinc.platform.presentation.widgets.admin.items.CollectionCategoryFormWidget" />
