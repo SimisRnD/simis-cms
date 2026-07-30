@@ -16,7 +16,10 @@
 
 package com.simisinc.platform.domain.model.cms;
 
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
+import java.sql.Timestamp;
 
 import org.junit.jupiter.api.Test;
 
@@ -44,5 +47,43 @@ class WebPageTest {
   @Test
   void aNewPageDefaultsToShownInTheSitemap() {
     assertTrue(new WebPage().isShowInSitemap());
+  }
+
+  @Test
+  void aPageWithAFuturePublishAtIsScheduled() {
+    WebPage webPage = new WebPage();
+    webPage.setPublishAt(new Timestamp(System.currentTimeMillis() + 60_000));
+    assertTrue(webPage.isScheduled());
+  }
+
+  @Test
+  void aPageWithAPastPublishAtIsNotScheduled() {
+    WebPage webPage = new WebPage();
+    webPage.setPublishAt(new Timestamp(System.currentTimeMillis() - 60_000));
+    assertFalse(webPage.isScheduled());
+  }
+
+  @Test
+  void aPageWithNoPublishAtIsNotScheduled() {
+    assertFalse(new WebPage().isScheduled());
+  }
+
+  @Test
+  void aPageWithAFutureExpiresAtIsExpiringSoon() {
+    WebPage webPage = new WebPage();
+    webPage.setExpiresAt(new Timestamp(System.currentTimeMillis() + 60_000));
+    assertTrue(webPage.isExpiringSoon());
+  }
+
+  @Test
+  void aPageWithAPastExpiresAtIsNotExpiringSoon() {
+    WebPage webPage = new WebPage();
+    webPage.setExpiresAt(new Timestamp(System.currentTimeMillis() - 60_000));
+    assertFalse(webPage.isExpiringSoon());
+  }
+
+  @Test
+  void aPageWithNoExpiresAtIsNotExpiringSoon() {
+    assertFalse(new WebPage().isExpiringSoon());
   }
 }

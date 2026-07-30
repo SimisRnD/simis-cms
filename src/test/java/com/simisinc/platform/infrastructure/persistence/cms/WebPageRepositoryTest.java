@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.time.Duration;
 import java.util.List;
 import java.util.Properties;
@@ -175,6 +176,27 @@ class WebPageRepositoryTest {
     assertTrue(results.isEmpty());
   }
 
+  @Test
+  void countExpiringSoonCountsAPageWithAFutureExpiresAt() {
+    addWebPageWithExpiresAt("/soon-to-expire", new Timestamp(System.currentTimeMillis() + Duration.ofDays(1).toMillis()));
+
+    assertEquals(1, WebPageRepository.countExpiringSoon());
+  }
+
+  @Test
+  void countExpiringSoonExcludesAPageWithNoExpiresAtSet() {
+    addWebPage("/no-expiry", "No Expiry", null, null, true, true, false);
+
+    assertEquals(0, WebPageRepository.countExpiringSoon());
+  }
+
+  @Test
+  void countExpiringSoonExcludesAPageWhoseExpiresAtHasAlreadyPassed() {
+    addWebPageWithExpiresAt("/already-expired", new Timestamp(System.currentTimeMillis() - Duration.ofDays(1).toMillis()));
+
+    assertEquals(0, WebPageRepository.countExpiringSoon());
+  }
+
   private static boolean isDockerAvailable() {
     try {
       return DockerClientFactory.instance().isDockerAvailable();
@@ -254,6 +276,17 @@ class WebPageRepositoryTest {
     webPage.setSearchable(searchable);
     webPage.setDraft(draft);
     webPage.setCreatedBy(1L);
+    return WebPageRepository.save(webPage);
+  }
+
+  private static WebPage addWebPageWithExpiresAt(String link, Timestamp expiresAt) {
+    WebPage webPage = new WebPage();
+    webPage.setLink(link);
+    webPage.setTitle(link);
+    webPage.setEnabled(true);
+    webPage.setSearchable(true);
+    webPage.setCreatedBy(1L);
+    webPage.setExpiresAt(expiresAt);
     return WebPageRepository.save(webPage);
   }
 }
