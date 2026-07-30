@@ -47,6 +47,7 @@ public class SecretSitePropertiesCommand {
       "mailing-list.mailchimp.apiKey",
       "mailing-list.zerobounce.apiKey",
       "bi.superset.secret",
+      "bi.metabase.secret",
       "social.instagram.accessToken",
       "elearning.lrs.key",
       "elearning.lrs.secret",
