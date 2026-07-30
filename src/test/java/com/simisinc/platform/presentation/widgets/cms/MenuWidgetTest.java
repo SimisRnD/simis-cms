@@ -94,4 +94,54 @@ class MenuWidgetTest extends WidgetBase {
       }
     }
   }
+
+  @Test
+  void logoutLinkFromTheHeaderLayoutXmlIncludesTheCsrfToken() {
+    // WebRequestFilter requires a "token" query param matching the session's formToken before it
+    // will process /logout (GH-359). menu.jsp renders link['link'] verbatim into href, so a plain
+    // "/logout" reaching the page here would silently fail to log anyone out.
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"menu\">\n" +
+            "  <links>\n" +
+            "    <link name=\"Log Out\" link=\"/logout\" role=\"users\" />\n" +
+            "  </links>\n" +
+            "</widget>");
+
+    request.setAttribute(RequestConstants.WEB_PAGE_PATH, "/");
+    String expectedToken = widgetContext.getUserSession().getFormToken();
+
+    MenuWidget widget = new MenuWidget();
+    widget.execute(widgetContext);
+    List<Map<String, String>> linkList = (List) widgetContext.getRequest().getAttribute("linkList");
+
+    Assertions.assertEquals(1, linkList.size());
+    Assertions.assertEquals("/logout?token=" + expectedToken, linkList.get(0).get("link"));
+  }
+
+  @Test
+  void adminDropdownLogoutLinkAlsoIncludesTheCsrfToken() {
+    // The Admin dropdown's Logout entry is injected internally (MenuWidget.execute(), the
+    // "type=admin" branch) rather than read from widget preferences -- it needs the same token.
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"menu\">\n" +
+            "  <links>\n" +
+            "    <link name=\"Settings\" icon=\"fa-cog\" icon-only=\"true\" type=\"admin\" />\n" +
+            "  </links>\n" +
+            "</widget>");
+
+    request.setAttribute(RequestConstants.WEB_PAGE_PATH, "/");
+    setRoles(widgetContext, ADMIN);
+    String expectedToken = widgetContext.getUserSession().getFormToken();
+
+    MenuWidget widget = new MenuWidget();
+    widget.execute(widgetContext);
+    List<Map<String, String>> linkList = (List) widgetContext.getRequest().getAttribute("linkList");
+
+    Map<String, String> logoutLink = linkList.stream()
+        .filter(link -> "Logout".equals(link.get("name")))
+        .findFirst()
+        .orElse(null);
+    Assertions.assertNotNull(logoutLink, "Logout link missing from the admin dropdown");
+    Assertions.assertEquals("/logout?token=" + expectedToken, logoutLink.get("link"));
+  }
 }
