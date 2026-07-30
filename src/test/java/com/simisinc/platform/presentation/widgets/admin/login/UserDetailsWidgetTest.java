@@ -186,6 +186,7 @@ class UserDetailsWidgetTest extends WidgetBase {
         MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
         MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
       loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(target);
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
       userRepo.when(() -> UserRepository.suspendAccount(target, "Reported phishing attempt from this account"))
           .thenReturn(target);
 
@@ -243,7 +244,7 @@ class UserDetailsWidgetTest extends WidgetBase {
 
       WidgetContext result = new UserDetailsWidget().post(widgetContext);
 
-      userRepo.verify(() -> UserRepository.suspendAccount(any()), never());
+      userRepo.verify(() -> UserRepository.suspendAccount(any(), any()), never());
       audit.verifyNoInteractions();
       Assertions.assertEquals("You cannot suspend an account with a higher role level than your own",
           result.getErrorMessage());
@@ -294,11 +295,11 @@ class UserDetailsWidgetTest extends WidgetBase {
         MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
       loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(target);
       roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
-      userRepo.when(() -> UserRepository.suspendAccount(target)).thenReturn(target);
+      userRepo.when(() -> UserRepository.suspendAccount(eq(target), any())).thenReturn(target);
 
       WidgetContext result = new UserDetailsWidget().post(widgetContext);
 
-      userRepo.verify(() -> UserRepository.suspendAccount(target), times(1));
+      userRepo.verify(() -> UserRepository.suspendAccount(eq(target), any()), times(1));
       Assertions.assertEquals("Account suspended", result.getSuccessMessage());
     }
   }

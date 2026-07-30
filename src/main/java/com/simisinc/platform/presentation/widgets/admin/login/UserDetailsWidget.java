@@ -193,6 +193,11 @@ public class UserDetailsWidget extends GenericWidget {
       context.setErrorMessage("You cannot suspend your own account");
       return context;
     }
+    // Nor one that outranks the acting admin -- see targetOutranksActor()
+    if (targetOutranksActor(context, user)) {
+      context.setErrorMessage("You cannot suspend an account with a higher role level than your own");
+      return context;
+    }
     String reason = context.getParameter("reason");
     User result = UserRepository.suspendAccount(user, reason);
     AuditEventCommand.record(context, AuditEventCommand.USER_MANAGEMENT, "user.disable",
