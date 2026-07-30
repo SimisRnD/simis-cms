@@ -42,6 +42,8 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (24, 'Allow registrations?', 'site.registrations', 'false', 'boolean');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (26, 'Show login?', 'site.login', 'false', 'boolean');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (27, 'Require review approval before publishing content', 'content.review.required', 'false', 'boolean');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (28, 'Roles that must enrol in MFA (comma-separated)', 'mfa.required.roles', '', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (29, 'MFA enrollment URL', 'mfa.enrollment.url', '/my-profile', 'web-page');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (30, 'Header line 1', 'site.header.line1', '');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (31, 'Header link name', 'site.header.link', '');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (32, 'Header details page', 'site.header.page', '', 'web-page');
