@@ -297,7 +297,8 @@ public class MediaApiController extends HttpServlet {
       Map<String, String> prefs = new HashMap<>();
       prefs.put(prefKey, asset.getStoragePath());
       String prefsJson = objectMapper.writeValueAsString(prefs);
-      MutateLayoutCommand.setWidgetPreferences(webPage, sectionIdx, columnIdx, widgetIdx, prefsJson);
+      MutateLayoutCommand.setWidgetPreferences(webPage, sectionIdx, columnIdx, widgetIdx, prefsJson,
+          userSession.getUserId());
     } catch (DataException e) {
       LOG.warn("widget-update failed for " + pagePath + " " + sectionIdx + ":" + columnIdx + ":" + widgetIdx
           + ": " + e.getMessage());
