@@ -74,11 +74,11 @@ class BlogEditorWidgetTest extends WidgetBase {
       loadPost.when(() -> LoadBlogPostCommand.loadBlogPostById(5L)).thenReturn(existing);
       savePost.when(() -> SaveBlogPostCommand.saveBlogPost(any())).thenReturn(saved);
       listRepo.when(() -> MailingListRepository.findById(9L)).thenReturn(mailingList);
-      sendCommand.when(() -> NewsletterSendCommand.enqueueBlogPostNotification(mailingList, saved, 1L)).thenReturn(7);
+      sendCommand.when(() -> NewsletterSendCommand.sendBlogPostNotification(mailingList, saved, 1L)).thenReturn(7);
 
       WidgetContext result = new BlogEditorWidget().post(widgetContext);
 
-      sendCommand.verify(() -> NewsletterSendCommand.enqueueBlogPostNotification(mailingList, saved, 1L));
+      sendCommand.verify(() -> NewsletterSendCommand.sendBlogPostNotification(mailingList, saved, 1L));
       assertTrue(result.getSuccessMessage().contains("7 subscribers will be notified"), result.getSuccessMessage());
     }
   }
@@ -101,7 +101,7 @@ class BlogEditorWidgetTest extends WidgetBase {
 
       WidgetContext result = new BlogEditorWidget().post(widgetContext);
 
-      sendCommand.verify(() -> NewsletterSendCommand.enqueueBlogPostNotification(any(), any(), anyLong()), never());
+      sendCommand.verify(() -> NewsletterSendCommand.sendBlogPostNotification(any(), any(), anyLong()), never());
       assertEquals("Blog post was saved", result.getSuccessMessage());
     }
   }
@@ -122,11 +122,11 @@ class BlogEditorWidgetTest extends WidgetBase {
         MockedStatic<NewsletterSendCommand> sendCommand = mockStatic(NewsletterSendCommand.class)) {
       savePost.when(() -> SaveBlogPostCommand.saveBlogPost(any())).thenReturn(saved);
       listRepo.when(() -> MailingListRepository.findById(9L)).thenReturn(mailingList);
-      sendCommand.when(() -> NewsletterSendCommand.enqueueBlogPostNotification(mailingList, saved, 1L)).thenReturn(3);
+      sendCommand.when(() -> NewsletterSendCommand.sendBlogPostNotification(mailingList, saved, 1L)).thenReturn(3);
 
       new BlogEditorWidget().post(widgetContext);
 
-      sendCommand.verify(() -> NewsletterSendCommand.enqueueBlogPostNotification(mailingList, saved, 1L));
+      sendCommand.verify(() -> NewsletterSendCommand.sendBlogPostNotification(mailingList, saved, 1L));
       loadPost.verify(() -> LoadBlogPostCommand.loadBlogPostById(anyLong()), never());
     }
   }
@@ -147,7 +147,7 @@ class BlogEditorWidgetTest extends WidgetBase {
 
       WidgetContext result = new BlogEditorWidget().post(widgetContext);
 
-      sendCommand.verify(() -> NewsletterSendCommand.enqueueBlogPostNotification(any(), any(), anyLong()), never());
+      sendCommand.verify(() -> NewsletterSendCommand.sendBlogPostNotification(any(), any(), anyLong()), never());
       assertEquals("Blog post was saved", result.getSuccessMessage());
     }
   }
@@ -169,7 +169,7 @@ class BlogEditorWidgetTest extends WidgetBase {
 
       new BlogEditorWidget().post(widgetContext);
 
-      sendCommand.verify(() -> NewsletterSendCommand.enqueueBlogPostNotification(any(), any(), anyLong()), never());
+      sendCommand.verify(() -> NewsletterSendCommand.sendBlogPostNotification(any(), any(), anyLong()), never());
     }
   }
 }

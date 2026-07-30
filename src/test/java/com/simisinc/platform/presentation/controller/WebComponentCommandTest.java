@@ -16,6 +16,7 @@
 
 package com.simisinc.platform.presentation.controller;
 
+import com.simisinc.platform.domain.model.Capability;
 import com.simisinc.platform.domain.model.Group;
 import com.simisinc.platform.domain.model.Role;
 import com.simisinc.platform.domain.model.User;
@@ -23,6 +24,7 @@ import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 /**
@@ -361,5 +363,101 @@ class WebComponentCommandTest {
     // Any of these: testers, researchers
     groups.add("researchers");
     Assertions.assertFalse(WebComponentCommand.allowsUser(roles, groups, userSession));
+  }
+
+  // --- capability= (issue #733: a page-level role="..." gate previously had no hasPermission()
+  // path at all, so a user granted a capability directly -- but holding no matching legacy role --
+  // was blocked by the page container before the widget's own hasPermission() check ever ran) ---
+
+  private static UserSession sessionWithCapability(String code) {
+    Capability capability = new Capability();
+    capability.setCode(code);
+    User user = new User();
+    user.setId(1L);
+    user.setRoleList(new ArrayList<>());
+    user.setGroupList(new ArrayList<>());
+    user.setCapabilityList(List.of(capability));
+    UserSession userSession = new UserSession();
+    userSession.login(user);
+    return userSession;
+  }
+
+  @Test
+  void userWithCapabilityButNoMatchingRoleIsAllowed() {
+    UserSession userSession = sessionWithCapability("admin:manage");
+
+    List<String> roles = List.of("admin");
+    List<String> groups = Collections.emptyList();
+    List<String> capabilities = List.of("admin:manage");
+
+    Assertions.assertFalse(WebComponentCommand.allowsUser(roles, groups, userSession),
+        "the 3-arg overload has no capability path -- confirms this user genuinely lacks the role");
+    Assertions.assertTrue(WebComponentCommand.allowsUser(roles, groups, capabilities, userSession, false),
+        "a listed capability the user holds must satisfy the check even without a matching role");
+  }
+
+  @Test
+  void userWithNeitherRoleNorMatchingCapabilityIsDenied() {
+    UserSession userSession = sessionWithCapability("some-other:capability");
+
+    List<String> roles = List.of("admin");
+    List<String> groups = Collections.emptyList();
+    List<String> capabilities = List.of("admin:manage");
+
+    Assertions.assertFalse(WebComponentCommand.allowsUser(roles, groups, capabilities, userSession, false));
+  }
+
+  @Test
+  void userWithTheRoleIsStillAllowedWhenACapabilityIsAlsoListed() {
+    List<Role> roleList = new ArrayList<>();
+    roleList.add(new Role("System Administrator", "admin"));
+    User user = new User();
+    user.setId(1L);
+    user.setRoleList(roleList);
+    user.setGroupList(new ArrayList<>());
+    UserSession userSession = new UserSession();
+    userSession.login(user);
+
+    List<String> roles = List.of("admin");
+    List<String> groups = Collections.emptyList();
+    List<String> capabilities = List.of("admin:manage");
+
+    Assertions.assertTrue(WebComponentCommand.allowsUser(roles, groups, capabilities, userSession, false),
+        "adding a capability= list must not break the existing role-only path");
+  }
+
+  @Test
+  void capabilityOnlyPageDeniesAUserWithoutIt() {
+    UserSession userSession = sessionWithCapability("some-other:capability");
+
+    // No role= or group= at all -- capability= alone must still gate access (not open-by-default).
+    List<String> roles = Collections.emptyList();
+    List<String> groups = Collections.emptyList();
+    List<String> capabilities = List.of("admin:manage");
+
+    Assertions.assertFalse(WebComponentCommand.allowsUser(roles, groups, capabilities, userSession, false));
+  }
+
+  @Test
+  void capabilityOnlyPageAllowsAUserWithIt() {
+    UserSession userSession = sessionWithCapability("admin:manage");
+
+    List<String> roles = Collections.emptyList();
+    List<String> groups = Collections.emptyList();
+    List<String> capabilities = List.of("admin:manage");
+
+    Assertions.assertTrue(WebComponentCommand.allowsUser(roles, groups, capabilities, userSession, false));
+  }
+
+  @Test
+  void pageOverloadReadsCapabilitiesFromThePageItself() {
+    UserSession userSession = sessionWithCapability("admin:manage");
+
+    Page page = new Page("/admin/role-capabilities", null, null);
+    page.setRoles(List.of("admin"));
+    page.setCapabilities(List.of("admin:manage"));
+
+    Assertions.assertTrue(WebComponentCommand.allowsUser(page, userSession),
+        "the Page-specific overload must read page.getCapabilities(), not just page.getRoles()");
   }
 }

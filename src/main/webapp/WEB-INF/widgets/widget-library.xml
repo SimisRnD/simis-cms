@@ -219,6 +219,7 @@
   <widget name="allowedIPListForm" class="com.simisinc.platform.presentation.widgets.admin.AllowedIPFormWidget" />
   <widget name="roleCapabilitiesList" class="com.simisinc.platform.presentation.widgets.admin.RoleCapabilitiesListWidget" />
   <widget name="roleCapabilitiesForm" class="com.simisinc.platform.presentation.widgets.admin.RoleCapabilitiesFormWidget" />
+  <widget name="capabilityGrants" class="com.simisinc.platform.presentation.widgets.admin.CapabilityGrantsWidget" />
   <widget name="socialMediaLinkList" class="com.simisinc.platform.presentation.widgets.admin.SocialMediaLinkListWidget" />
   <widget name="socialMediaLinkForm" class="com.simisinc.platform.presentation.widgets.admin.SocialMediaLinkFormWidget" />
   <widget name="formDataList" class="com.simisinc.platform.presentation.widgets.admin.cms.FormDataListWidget" />

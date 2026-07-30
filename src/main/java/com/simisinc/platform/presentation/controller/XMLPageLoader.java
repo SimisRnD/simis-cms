@@ -234,6 +234,15 @@ public class XMLPageLoader implements Serializable {
         page.setGroups(groups);
       }
     }
+    if (e.hasAttribute("capability")) {
+      String aCapabilities = e.getAttribute("capability");
+      if (aCapabilities.length() > 0) {
+        List<String> capabilities = Stream.of(aCapabilities.split(","))
+            .map(String::trim)
+            .collect(toList());
+        page.setCapabilities(capabilities);
+      }
+    }
     if (e.hasAttribute("class")) {
       if (e.hasAttribute("endpoint")) {
         /* @deprecated */
