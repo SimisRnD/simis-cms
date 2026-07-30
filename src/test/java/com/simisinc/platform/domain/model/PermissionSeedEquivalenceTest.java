@@ -28,7 +28,7 @@ import org.junit.jupiter.api.Test;
 
 /**
  * Issue #701's walking skeleton adds hasPermission() alongside the existing hasRole(), backed by
- * a role_capabilities table seeded (in UPGRADE_20260729.2001__capabilities_walking_skeleton.sql /
+ * a role_capabilities table seeded (in UPGRADE_20260729.2003__capabilities_walking_skeleton.sql /
  * NEW_10000__new_database.sql) directly from the hasRole()-OR-chain survey done for #701. This
  * test hand-encodes that same seed mapping and proves hasRole()/hasPermission() agree on it for
  * every existing role, so the migration is provably a read model over the status quo, not a
