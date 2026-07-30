@@ -54,6 +54,9 @@ public class LogoutCommand {
         userId = userSession.getUserId();
       }
       request.getSession().removeAttribute(SessionConstants.USER);
+      // A per-user toggle (e.g. the visual editor's edit mode) must not survive to whichever
+      // identity, if any, authenticates next on this same HttpSession.
+      request.getSession().removeAttribute(SessionConstants.PAGE_EDIT_MODE);
       // Prevent other sessions
       UserTokenRepository.removeAll(userId);
     }
