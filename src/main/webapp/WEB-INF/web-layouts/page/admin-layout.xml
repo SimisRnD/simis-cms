@@ -1597,6 +1597,16 @@
     </section>
   </page>
 
+  <page name="/admin/capability-grants{?userId}" role="admin" title="Capability Grants">
+    <section>
+      <column class="small-12 medium-8 large-6 cell">
+        <widget name="capabilityGrants">
+          <title>Capability Grants</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
   <page name="/admin/activity" role="admin,content-manager,community-manager,ecommerce-manager" title="Activity">
     <section>
       <column class="small-12 cell">
