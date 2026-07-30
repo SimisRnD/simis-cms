@@ -16,7 +16,9 @@
 
 package com.simisinc.platform.application;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mock;
@@ -25,6 +27,7 @@ import static org.mockito.Mockito.when;
 
 import java.sql.Connection;
 import java.sql.SQLException;
+import java.util.List;
 
 import jakarta.servlet.ServletContext;
 
@@ -105,6 +108,56 @@ class HealthCommandTest {
       assertTrue(HealthCommand.isReady(contextWithStartup("true")));
       // A single failing check (here: startup not complete) makes the whole probe report DOWN
       assertFalse(HealthCommand.isReady(contextWithStartup(null)));
+    }
+  }
+
+  @Test
+  void checkDatabaseReportsUpWithNoErrorMessage() throws SQLException {
+    Connection connection = mock(Connection.class);
+    when(connection.isValid(anyInt())).thenReturn(true);
+    try (MockedStatic<DB> db = mockStatic(DB.class)) {
+      db.when(DB::getConnection).thenReturn(connection);
+      HealthCommand.CheckResult result = HealthCommand.checkDatabase();
+      assertEquals(HealthCommand.DATABASE_SERVICE, result.getServiceName());
+      assertTrue(result.isUp());
+      assertNull(result.getErrorMessage());
+      assertTrue(result.getResponseTimeMs() >= 0);
+    }
+  }
+
+  @Test
+  void checkDatabaseReportsDownWithTheExceptionMessage() throws SQLException {
+    try (MockedStatic<DB> db = mockStatic(DB.class)) {
+      db.when(DB::getConnection).thenThrow(new SQLException("db is gone"));
+      HealthCommand.CheckResult result = HealthCommand.checkDatabase();
+      assertFalse(result.isUp());
+      assertEquals("db is gone", result.getErrorMessage());
+    }
+  }
+
+  @Test
+  void checkFileStoreReportsDownWithAReasonWhenUnconfigured() {
+    try (MockedStatic<FileSystemCommand> fs = mockStatic(FileSystemCommand.class)) {
+      fs.when(FileSystemCommand::getFileServerRootPath).thenReturn("");
+      HealthCommand.CheckResult result = HealthCommand.checkFileStore();
+      assertEquals(HealthCommand.FILESYSTEM_SERVICE, result.getServiceName());
+      assertFalse(result.isUp());
+      assertEquals("File store root path is not configured", result.getErrorMessage());
+    }
+  }
+
+  @Test
+  void runAllChecksReturnsOneResultPerService() throws SQLException {
+    Connection connection = mock(Connection.class);
+    when(connection.isValid(anyInt())).thenReturn(true);
+    try (MockedStatic<DB> db = mockStatic(DB.class);
+        MockedStatic<FileSystemCommand> fs = mockStatic(FileSystemCommand.class)) {
+      db.when(DB::getConnection).thenReturn(connection);
+      fs.when(FileSystemCommand::getFileServerRootPath).thenReturn(System.getProperty("java.io.tmpdir"));
+
+      List<HealthCommand.CheckResult> results = HealthCommand.runAllChecks();
+      assertEquals(2, results.size());
+      assertTrue(results.stream().allMatch(HealthCommand.CheckResult::isUp));
     }
   }
 }

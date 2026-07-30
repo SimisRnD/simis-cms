@@ -1690,6 +1690,17 @@
     </section>
   </page>
 
+  <page name="/admin/health-dashboard" role="admin" title="System Health">
+    <section>
+      <column class="small-12 cell">
+        <widget name="healthDashboard">
+          <icon>fa-heart-pulse</icon>
+          <title>System Health</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
   <page name="/admin/analytics-retention" role="admin" capability="admin:manage" title="Analytics Retention">
     <section>
       <column class="small-12 cell">
