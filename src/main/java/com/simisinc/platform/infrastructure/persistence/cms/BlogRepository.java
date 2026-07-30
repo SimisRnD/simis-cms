@@ -100,7 +100,8 @@ public class BlogRepository {
         .add("description", StringUtils.trimToNull(record.getDescription()))
         .add("created_by", record.getCreatedBy())
         .add("modified_by", record.getModifiedBy())
-        .add("enabled", record.getEnabled());
+        .add("enabled", record.getEnabled())
+        .add("mailing_list_id", record.getMailingListId(), -1);
     record.setId(DB.insertInto(TABLE_NAME, insertValues, PRIMARY_KEY));
     if (record.getId() == -1) {
       LOG.error("An id was not set!");
@@ -115,6 +116,7 @@ public class BlogRepository {
         .add("name", StringUtils.trimToNull(record.getName()))
         .add("description", StringUtils.trimToNull(record.getDescription()))
         .add("enabled", record.getEnabled())
+        .add("mailing_list_id", record.getMailingListId(), -1)
         .add("modified_by", record.getModifiedBy())
         .add("modified", new Timestamp(System.currentTimeMillis()));
     SqlUtils where = new SqlUtils()
@@ -158,6 +160,7 @@ public class BlogRepository {
       record.setModifiedBy(rs.getLong("modified_by"));
       record.setModified(rs.getTimestamp("modified"));
       record.setEnabled(rs.getBoolean("enabled"));
+      record.setMailingListId(DB.getLong(rs, "mailing_list_id", -1));
       return record;
     } catch (SQLException se) {
       LOG.error("buildRecord", se);
