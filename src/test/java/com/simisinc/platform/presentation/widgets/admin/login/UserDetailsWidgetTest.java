@@ -31,7 +31,9 @@ import org.mockito.MockedStatic;
 
 import com.simisinc.platform.WidgetBase;
 import com.simisinc.platform.application.LoadUserCommand;
+import com.simisinc.platform.domain.model.Role;
 import com.simisinc.platform.domain.model.User;
+import com.simisinc.platform.infrastructure.persistence.RoleRepository;
 import com.simisinc.platform.infrastructure.persistence.UserRepository;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
@@ -69,6 +71,24 @@ class UserDetailsWidgetTest extends WidgetBase {
     user.setEmail("active@example.com");
     user.setEnabled(true);
     return user;
+  }
+
+  // The logged-in test user's own id is 1L, see WidgetBase#login
+  private static User actingAdmin() {
+    User user = new User();
+    user.setId(1L);
+    user.setEmail("admin@example.com");
+    user.setEnabled(true);
+    return user;
+  }
+
+  private static Role communityManagerRole() {
+    Role role = new Role();
+    role.setId(3);
+    role.setLevel(90);
+    role.setCode("community-manager");
+    role.setTitle("Community Manager");
+    return role;
   }
 
   @Test
@@ -171,8 +191,11 @@ class UserDetailsWidgetTest extends WidgetBase {
 
     try (MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
         MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
         MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
-      loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(target);
+      loadCmd.when(() -> LoadUserCommand.loadUser(5L)).thenReturn(target);
+      loadCmd.when(() -> LoadUserCommand.loadUser(1L)).thenReturn(actingAdmin());
+      roleRepo.when(() -> RoleRepository.findByCode("community-manager")).thenReturn(communityManagerRole());
       userRepo.when(() -> UserRepository.restoreAccount(target)).thenReturn(target);
 
       WidgetContext result = new UserDetailsWidget().post(widgetContext);
@@ -290,8 +313,11 @@ class UserDetailsWidgetTest extends WidgetBase {
 
     try (MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
         MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
         MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
-      loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(target);
+      loadCmd.when(() -> LoadUserCommand.loadUser(5L)).thenReturn(target);
+      loadCmd.when(() -> LoadUserCommand.loadUser(1L)).thenReturn(actingAdmin());
+      roleRepo.when(() -> RoleRepository.findByCode("community-manager")).thenReturn(communityManagerRole());
       userRepo.when(() -> UserRepository.restoreAccount(target)).thenReturn(target);
 
       setRoles(widgetContext, ADMIN);

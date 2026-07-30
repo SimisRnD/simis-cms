@@ -58,8 +58,17 @@
             <li><a href="#" data-open="resetPasswordReveal">Reset Password</a></li>
             <li><a href="#" data-open="suspendAccountReveal">Suspend Account</a></li>
           </c:if>
-          <c:if test="${!user.enabled}">
+          <%-- #492 Phase 3: an elevated-role account can't be reactivated by one admin acting
+               alone -- Restore stays a direct one-click action for everyone else. --%>
+          <c:if test="${!user.enabled && !isElevatedTarget}">
             <li><a href="javascript:restoreAccount()">Restore Account</a></li>
+          </c:if>
+          <c:if test="${!user.enabled && isElevatedTarget && empty pendingUnsuspendRequest}">
+            <li><a href="#" data-open="requestUnsuspendReveal">Request Unsuspend&hellip;</a></li>
+          </c:if>
+          <c:if test="${!user.enabled && isElevatedTarget && !empty pendingUnsuspendRequest && pendingUnsuspendRequest.requestedBy ne currentUserId}">
+            <li><a href="#" data-open="approveUnsuspendReveal">Approve Unsuspend Request</a></li>
+            <li><a href="#" data-open="denyUnsuspendReveal">Deny Unsuspend Request</a></li>
           </c:if>
           <c:if test="${user.locked}">
             <li><a href="javascript:unlockAccount()">Unlock Account</a></li>
@@ -81,6 +90,17 @@
       <span class="label round success" title="MFA enabled"><i class="fa fa-shield-halved"></i> MFA</span>
     </c:if>
   </h3>
+  <c:if test="${!user.enabled && isElevatedTarget && !empty pendingUnsuspendRequest}">
+    <p>
+      <span class="label warning">Unsuspend requested</span>
+      by <c:out value="${pendingUnsuspendRequest.requestedByEmail}" />
+      on <fmt:formatDate pattern="yyyy-MM-dd hh:mm a" value="${pendingUnsuspendRequest.requestedAt}" />
+      &mdash; reason: <c:out value="${pendingUnsuspendRequest.reason}" />.
+      <c:if test="${pendingUnsuspendRequest.requestedBy eq currentUserId}">
+        Awaiting another administrator's review (separation of duties -- you can't approve your own request).
+      </c:if>
+    </p>
+  </c:if>
   <c:if test="${!empty user.title || !empty user.city || !empty user.state}">
     <p>
       <c:if test="${!empty user.title}">
@@ -433,3 +453,75 @@
     <span aria-hidden="true">&times;</span>
   </button>
 </div>
+<div class="reveal" id="requestUnsuspendReveal" role="dialog" aria-modal="true" aria-labelledby="requestUnsuspendRevealTitle"
+     data-reveal data-close-on-click="true">
+  <h4 id="requestUnsuspendRevealTitle">Request Unsuspend</h4>
+  <p>
+    <strong><c:out value="${user.email}" /></strong> holds a role that requires a second
+    administrator's review before it can be reactivated. This creates a request; eligible
+    admins/community-managers (other than you) will be notified and can approve or deny it.
+  </p>
+  <form method="post">
+    <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
+    <input type="hidden" name="token" value="${userSession.formToken}"/>
+    <input type="hidden" name="action" value="restoreAccount"/>
+    <input type="hidden" name="userId" value="${user.id}"/>
+    <label for="requestUnsuspendReason">Reason <span class="required">*</span>
+      <textarea id="requestUnsuspendReason" name="reason" maxlength="255" required
+                placeholder="Why should this account be unsuspended?"></textarea>
+    </label>
+    <input type="submit" class="button warning radius" value="Request Unsuspend"/>
+    <button class="button secondary radius" type="button" data-close>Cancel</button>
+  </form>
+  <button class="close-button" data-close aria-label="Close reveal" type="button">
+    <span aria-hidden="true">&times;</span>
+  </button>
+</div>
+<c:if test="${!empty pendingUnsuspendRequest}">
+<div class="reveal" id="approveUnsuspendReveal" role="dialog" aria-modal="true" aria-labelledby="approveUnsuspendRevealTitle"
+     data-reveal data-close-on-click="true">
+  <h4 id="approveUnsuspendRevealTitle">Approve Unsuspend Request</h4>
+  <p>
+    <strong><c:out value="${user.email}" /></strong> will be restored, and its current password will
+    stop working immediately -- an email will be sent asking the account holder to set a new one
+    before they can sign in again.
+  </p>
+  <form method="post">
+    <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
+    <input type="hidden" name="token" value="${userSession.formToken}"/>
+    <input type="hidden" name="action" value="approveUnsuspend"/>
+    <input type="hidden" name="userId" value="${user.id}"/>
+    <input type="hidden" name="requestId" value="${pendingUnsuspendRequest.id}"/>
+    <label for="approveUnsuspendStepUpCredential">Your password or authenticator code <span class="required">*</span>
+      <input type="password" id="approveUnsuspendStepUpCredential" name="stepUpCredential" maxlength="255"
+             placeholder="Password or 6-digit code" required
+             title="Re-authentication required to approve an unsuspend request"/>
+    </label>
+    <input type="submit" class="button warning radius" value="Approve"/>
+    <button class="button secondary radius" type="button" data-close>Cancel</button>
+  </form>
+  <button class="close-button" data-close aria-label="Close reveal" type="button">
+    <span aria-hidden="true">&times;</span>
+  </button>
+</div>
+<div class="reveal" id="denyUnsuspendReveal" role="dialog" aria-modal="true" aria-labelledby="denyUnsuspendRevealTitle"
+     data-reveal data-close-on-click="true">
+  <h4 id="denyUnsuspendRevealTitle">Deny Unsuspend Request</h4>
+  <form method="post">
+    <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
+    <input type="hidden" name="token" value="${userSession.formToken}"/>
+    <input type="hidden" name="action" value="denyUnsuspend"/>
+    <input type="hidden" name="userId" value="${user.id}"/>
+    <input type="hidden" name="requestId" value="${pendingUnsuspendRequest.id}"/>
+    <label for="denyUnsuspendReason">Reason <span class="required">*</span>
+      <textarea id="denyUnsuspendReason" name="denialReason" maxlength="255" required
+                placeholder="Why is this request being denied?"></textarea>
+    </label>
+    <input type="submit" class="button alert radius" value="Deny"/>
+    <button class="button secondary radius" type="button" data-close>Cancel</button>
+  </form>
+  <button class="close-button" data-close aria-label="Close reveal" type="button">
+    <span aria-hidden="true">&times;</span>
+  </button>
+</div>
+</c:if>

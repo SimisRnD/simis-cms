@@ -23,7 +23,9 @@ import com.simisinc.platform.application.admin.ProcessUserCSVFileCommand;
 import com.simisinc.platform.application.audit.SaveAuditEventCommand;
 import com.simisinc.platform.application.cms.UrlCommand;
 import com.simisinc.platform.application.login.StepUpAuthCommand;
+import com.simisinc.platform.application.login.UnsuspendAccountCommand;
 import com.simisinc.platform.application.register.SaveUserCommand;
+import com.simisinc.platform.domain.events.cms.UnsuspendRequestedEvent;
 import com.simisinc.platform.domain.events.cms.UserInvitedEvent;
 import com.simisinc.platform.domain.events.cms.UserPasswordResetEvent;
 import com.simisinc.platform.domain.model.Group;
@@ -34,6 +36,7 @@ import com.simisinc.platform.infrastructure.persistence.GroupRepository;
 import com.simisinc.platform.infrastructure.persistence.RoleRepository;
 import com.simisinc.platform.infrastructure.persistence.UserRepository;
 import com.simisinc.platform.infrastructure.persistence.UserSpecification;
+import com.simisinc.platform.infrastructure.persistence.login.UnsuspendRequestRepository;
 import com.simisinc.platform.infrastructure.persistence.login.UserLoginRepository;
 import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
 import com.simisinc.platform.presentation.controller.RequestConstants;
@@ -181,6 +184,10 @@ public class UsersListWidget extends GenericWidget {
     // Set some form values
     List<Group> groupList = GroupRepository.findAll();
     context.getRequest().setAttribute("groupList", groupList);
+
+    // #492 Phase 3: a lightweight discoverability aid for the maker-checker unsuspend queue --
+    // a cheap COUNT, not a full nav-badge system.
+    context.getRequest().setAttribute("pendingUnsuspendRequestCount", UnsuspendRequestRepository.countPending());
 
     // Show the editor
     context.setJsp(JSP);
@@ -370,8 +377,17 @@ public class UsersListWidget extends GenericWidget {
       return rejectEmptySelection(context);
     }
 
+    // Elevated-role accounts (#492 Phase 3) route through the same maker-checker gate the
+    // single-user restoreAccount() action uses -- UnsuspendAccountCommand is the one shared
+    // enforcement point, so bulk can never bypass what the single-user path requires.
+    String reason = context.getParameter("reason");
+    User actingAdmin = context.getUserSession() != null ? context.getUserSession().getUser() : null;
+
     BulkActor actor = new BulkActor(context);
     int succeeded = 0;
+    int requested = 0;
+    int alreadyPendingOrNotSuspended = 0;
+    int reasonRequired = 0;
     int notFound = 0;
     int failed = 0;
     for (Long userId : userIds) {
@@ -380,25 +396,82 @@ public class UsersListWidget extends GenericWidget {
         ++notFound;
         continue;
       }
-      User result = UserRepository.restoreAccount(user);
-      String outcome = result != null ? AuditEventCommand.SUCCESS : AuditEventCommand.FAILURE;
-      if (result != null) {
-        ++succeeded;
-      } else {
-        ++failed;
+      if (UnsuspendAccountCommand.requiresApproval(user) && StringUtils.isBlank(reason)) {
+        ++reasonRequired;
+        continue;
       }
-      SaveAuditEventCommand.recordAdminEvent(AuditEventCommand.USER_MANAGEMENT, "user.enable", outcome,
-          actor.userId, actor.username, actor.ip, actor.sessionId,
-          "user", String.valueOf(user.getId()), user.getEmail(), "(bulk)");
+      try {
+        UnsuspendAccountCommand.Outcome outcome = UnsuspendAccountCommand.requestOrRestore(user, actingAdmin, reason);
+        if (outcome == UnsuspendAccountCommand.Outcome.RESTORED) {
+          ++succeeded;
+          SaveAuditEventCommand.recordAdminEvent(AuditEventCommand.USER_MANAGEMENT, "user.enable",
+              AuditEventCommand.SUCCESS, actor.userId, actor.username, actor.ip, actor.sessionId,
+              "user", String.valueOf(user.getId()), user.getEmail(), "(bulk)");
+        } else if (outcome == UnsuspendAccountCommand.Outcome.REQUESTED) {
+          ++requested;
+          SaveAuditEventCommand.recordAdminEvent(AuditEventCommand.USER_MANAGEMENT, "user.unsuspend.requested",
+              AuditEventCommand.SUCCESS, actor.userId, actor.username, actor.ip, actor.sessionId,
+              "user", String.valueOf(user.getId()), user.getEmail(), reason + " (bulk)");
+          WorkflowManager.triggerWorkflowForEvent(new UnsuspendRequestedEvent(user, actingAdmin, reason));
+        } else {
+          // ALREADY_PENDING or NOT_SUSPENDED -- a no-op, not a failure
+          ++alreadyPendingOrNotSuspended;
+        }
+      } catch (DataException e) {
+        ++failed;
+        SaveAuditEventCommand.recordAdminEvent(AuditEventCommand.USER_MANAGEMENT, "user.enable",
+            AuditEventCommand.FAILURE, actor.userId, actor.username, actor.ip, actor.sessionId,
+            "user", String.valueOf(user.getId()), user.getEmail(), e.getMessage() + " (bulk)");
+      }
     }
     SaveAuditEventCommand.recordAdminEvent(AuditEventCommand.USER_MANAGEMENT, "user.bulk_enable",
-        succeeded > 0 ? AuditEventCommand.SUCCESS : AuditEventCommand.FAILURE,
+        (succeeded + requested) > 0 ? AuditEventCommand.SUCCESS : AuditEventCommand.FAILURE,
         actor.userId, actor.username, actor.ip, actor.sessionId, "user", null, null,
-        "restored=" + succeeded + "; notFound=" + notFound + "; failed=" + failed);
+        "restored=" + succeeded + "; requested=" + requested + "; alreadyPendingOrNotSuspended="
+            + alreadyPendingOrNotSuspended + "; reasonRequired=" + reasonRequired + "; notFound=" + notFound
+            + "; failed=" + failed);
 
-    setBulkResultMessage(context, "restored", succeeded, 0, userIds.size(), 0, notFound, failed);
+    setBulkUnsuspendResultMessage(context, succeeded, requested, alreadyPendingOrNotSuspended, reasonRequired,
+        userIds.size(), notFound, failed);
     context.setRedirect("/admin/users");
     return context;
+  }
+
+  /**
+   * Bulk unsuspend has a richer outcome space than the other 3 bulk actions (a target can be
+   * restored directly OR filed as a pending request), so it builds its own aggregate message
+   * rather than forcing that shape into {@link #setBulkResultMessage}.
+   */
+  private void setBulkUnsuspendResultMessage(WidgetContext context, int succeeded, int requested,
+      int alreadyPendingOrNotSuspended, int reasonRequired, int totalSelected, int notFound, int failed) {
+    StringBuilder sb = new StringBuilder();
+    sb.append(succeeded).append(" of ").append(totalSelected).append(" selected account")
+        .append(totalSelected == 1 ? "" : "s").append(" restored.");
+    if (requested > 0) {
+      sb.append(" ").append(requested).append(" require").append(requested == 1 ? "s" : "")
+          .append(" a second administrator's review and ").append(requested == 1 ? "was" : "were")
+          .append(" submitted for approval.");
+    }
+    if (alreadyPendingOrNotSuspended > 0) {
+      sb.append(" Already pending review or not suspended: ").append(alreadyPendingOrNotSuspended).append(".");
+    }
+    if (reasonRequired > 0) {
+      sb.append(" Needs a reason (elevated account): ").append(reasonRequired).append(".");
+    }
+    if (notFound > 0) {
+      sb.append(" Not found: ").append(notFound).append(".");
+    }
+    if (failed > 0) {
+      sb.append(" Failed: ").append(failed).append(".");
+    }
+    boolean allAccountedFor = (succeeded + requested) == totalSelected;
+    if (succeeded == 0 && requested == 0) {
+      context.setErrorMessage(sb.toString());
+    } else if (!allAccountedFor) {
+      context.setWarningMessage(sb.toString());
+    } else {
+      context.setSuccessMessage(sb.toString());
+    }
   }
 
   private WidgetContext bulkResetPasswordAction(WidgetContext context) {

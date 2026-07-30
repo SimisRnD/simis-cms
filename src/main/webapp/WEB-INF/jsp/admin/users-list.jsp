@@ -31,6 +31,14 @@
   <h1><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h1>
 </c:if>
 <%@include file="../page_messages.jspf" %>
+<c:if test="${pendingUnsuspendRequestCount gt 0}">
+  <div class="callout warning radius">
+    <a href="${ctx}/admin/unsuspend-requests">
+      <c:out value="${pendingUnsuspendRequestCount}" />
+      unsuspend request<c:if test="${pendingUnsuspendRequestCount ne 1}">s</c:if> awaiting review &rarr;
+    </a>
+  </div>
+</c:if>
 <button class="button small primary radius float-left" data-open="formReveal"><i class="fa fa-plus"></i> New User</button>
 <form id="fileForm" method="post" enctype="multipart/form-data" class="float-left">
   <%-- Required by controller --%>
@@ -173,11 +181,20 @@
 <div class="reveal" id="bulkUnsuspendReveal" role="dialog" aria-modal="true" aria-labelledby="bulkUnsuspendRevealTitle"
      data-reveal data-close-on-click="true">
   <h4 id="bulkUnsuspendRevealTitle">Unsuspend <span id="bulkUnsuspendCount">0</span> Account(s)</h4>
+  <p class="help-text">
+    Accounts holding an elevated role (community-manager and above) can't be reactivated by one
+    admin acting alone -- those will be filed as requests for a second administrator to review
+    instead of being restored directly. A reason is only required if any selected account is elevated.
+  </p>
   <ul id="bulkUnsuspendList"></ul>
   <form method="post">
     <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
     <input type="hidden" name="token" value="${userSession.formToken}"/>
     <input type="hidden" name="command" value="bulkUnsuspend"/>
+    <label for="bulkUnsuspendReason">Reason (required only if any selected account is elevated)
+      <textarea id="bulkUnsuspendReason" name="reason" maxlength="255"
+                placeholder="Why should these accounts be unsuspended?"></textarea>
+    </label>
     <input type="submit" class="button radius" value="Unsuspend Accounts"/>
     <button class="button secondary radius" type="button" data-close>Cancel</button>
   </form>
