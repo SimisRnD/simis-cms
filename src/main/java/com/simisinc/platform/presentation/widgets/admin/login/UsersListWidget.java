@@ -216,6 +216,11 @@ public class UsersListWidget extends GenericWidget {
     // Populate the fields
     User userBean = new User();
     BeanUtils.populate(userBean, context.getParameterMap());
+    // This action only ever creates a new user -- the New User form never renders an id field, but
+    // populate() maps ANY request parameter matching a bean property, so a crafted "id" parameter would
+    // otherwise be mass-assigned here and route SaveUserCommand.saveUser() into overwriting an existing
+    // account (by id) instead of creating one. Force create semantics regardless of what was submitted.
+    userBean.setId(-1L);
     userBean.setCreatedBy(context.getUserId());
     userBean.setModifiedBy(context.getUserId());
 

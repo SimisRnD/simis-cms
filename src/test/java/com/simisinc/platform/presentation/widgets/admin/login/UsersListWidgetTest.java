@@ -18,6 +18,7 @@ package com.simisinc.platform.presentation.widgets.admin.login;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mockStatic;
 
 import java.util.Collections;
@@ -28,7 +29,9 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
 import com.simisinc.platform.WidgetBase;
+import com.simisinc.platform.application.LoadUserCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.register.SaveUserCommand;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.persistence.GroupRepository;
@@ -36,6 +39,8 @@ import com.simisinc.platform.infrastructure.persistence.RoleRepository;
 import com.simisinc.platform.infrastructure.persistence.UserRepository;
 import com.simisinc.platform.infrastructure.persistence.UserSpecification;
 import com.simisinc.platform.infrastructure.persistence.login.UserLoginRepository;
+import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
+import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.DataConstants;
 
 /**
@@ -154,5 +159,42 @@ class UsersListWidgetTest extends WidgetBase {
   void agingPasswordFilterIsUnsetByDefault() {
     UserSpecification spec = captureSpecification(() -> { });
     assertEquals(-1, spec.getPasswordOlderThanDays());
+  }
+
+  @Test
+  void addUserActionForcesCreateEvenWithClientSuppliedId() throws Exception {
+    // The New User form (users-list.jsp) never renders an id field, but addUserAction() populates
+    // userBean via BeanUtils.populate() against the raw, unfiltered parameter map -- so a crafted "id"
+    // targeting an existing user would otherwise be mass-assigned and route SaveUserCommand.saveUser()
+    // into overwriting that account (email/username/roles) instead of creating a new one.
+    setRoles(widgetContext, COMMUNITY_MANAGER);
+    addQueryParameter(widgetContext, "id", "5");
+    addQueryParameter(widgetContext, "firstName", "Attacker");
+    addQueryParameter(widgetContext, "lastName", "Controlled");
+    addQueryParameter(widgetContext, "email", "attacker@example.com");
+
+    User saved = new User();
+    saved.setId(42L);
+    saved.setEmail("attacker@example.com");
+
+    ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+    try (MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
+        MockedStatic<GroupRepository> groupRepo = mockStatic(GroupRepository.class);
+        MockedStatic<SaveUserCommand> saveCmd = mockStatic(SaveUserCommand.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class);
+        MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
+        MockedStatic<WorkflowManager> workflow = mockStatic(WorkflowManager.class)) {
+      roleRepo.when(RoleRepository::findAll).thenReturn(Collections.emptyList());
+      groupRepo.when(GroupRepository::findAll).thenReturn(Collections.emptyList());
+      saveCmd.when(() -> SaveUserCommand.saveUser(any())).thenReturn(saved);
+      loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(null);
+
+      new UsersListWidget().post(widgetContext);
+
+      saveCmd.verify(() -> SaveUserCommand.saveUser(captor.capture()));
+      assertEquals(-1L, captor.getValue().getId(),
+          "a client-supplied id must never reach SaveUserCommand as a positive id from the New User action");
+      assertEquals("attacker@example.com", captor.getValue().getEmail());
+    }
   }
 }
