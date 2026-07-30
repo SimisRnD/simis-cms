@@ -85,9 +85,9 @@ public class NewsletterSendWidget extends GenericWidget {
       return execute(context);
     }
 
-    int queuedCount;
+    int recipientCount;
     try {
-      queuedCount = NewsletterSendCommand.enqueueBlogPostNotification(mailingList, blogPost, context.getUserId());
+      recipientCount = NewsletterSendCommand.sendBlogPostNotification(mailingList, blogPost, context.getUserId());
     } catch (DataException e) {
       AuditEventCommand.record(context, AuditEventCommand.CONTENT, "newsletter.enqueue", AuditEventCommand.FAILURE,
           "mailing_list", String.valueOf(mailingList.getId()), mailingList.getName(), e.getMessage());
@@ -97,11 +97,11 @@ public class NewsletterSendWidget extends GenericWidget {
 
     AuditEventCommand.record(context, AuditEventCommand.CONTENT, "newsletter.enqueue", AuditEventCommand.SUCCESS,
         "mailing_list", String.valueOf(mailingList.getId()), mailingList.getName(),
-        queuedCount + " recipient(s) queued for \"" + blogPost.getTitle() + "\"");
+        recipientCount + " recipient(s) for \"" + blogPost.getTitle() + "\"");
 
-    context.setSuccessMessage(queuedCount == 0
+    context.setSuccessMessage(recipientCount == 0
         ? "No active subscribers were found on that list."
-        : queuedCount + " subscriber" + (queuedCount == 1 ? "" : "s") + " queued. Emails will go out shortly.");
+        : recipientCount + " subscriber" + (recipientCount == 1 ? "" : "s") + " will be notified.");
     context.setRedirect("/admin/newsletter-send");
     return context;
   }
