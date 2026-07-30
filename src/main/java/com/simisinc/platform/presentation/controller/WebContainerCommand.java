@@ -42,6 +42,7 @@ import java.util.Enumeration;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static com.simisinc.platform.presentation.controller.RequestConstants.*;
 
@@ -62,6 +63,15 @@ public class WebContainerCommand implements Serializable {
   private static final String WARNING_MESSAGE = "WARNING_MESSAGE";
   private static final String ERROR_MESSAGE = "ERROR_MESSAGE";
   private static final String REQUEST_OBJECT = "REQUEST_OBJECT";
+
+  // Page-level attributes that PageServlet computes once (before the section/column/widget walk
+  // below even starts) and that must stay visible for the *entire* request -- to every widget's
+  // own execute()/JSP turn below, and to main.jsp's EL after the walk finishes -- unlike ordinary
+  // per-widget request attributes, which are intentionally wiped between widgets so one widget's
+  // leftovers can't bleed into the next widget's render. These names must be kept in sync with the
+  // request.setAttribute(...) calls in PageServlet.java that set them.
+  private static final Set<String> PAGE_LEVEL_ATTRIBUTE_NAMES = Set.of(
+      "pageEditMode", "pageLayoutMode", "hasDraft", "widgetLibraryJson");
 
 
   public static boolean processWidgets(WebContainerContext webContainerContext, List<Section> sections,
@@ -125,7 +135,7 @@ public class WebContainerCommand implements Serializable {
           while (attributeNames.hasMoreElements()) {
             String name = (String) attributeNames.nextElement();
 //              LOG.debug("Found attribute: " + name);
-            if (!name.startsWith("controller") && !name.startsWith("master") && !name.startsWith("request")) {
+            if (!isPreservedAcrossWidgetReset(name)) {
               request.removeAttribute(name);
             }
           }
@@ -628,6 +638,25 @@ public class WebContainerCommand implements Serializable {
       LOG.error("Malformed widget JSP path, skipping include: " + jspPath);
       return false;
     }
+  }
+
+  /**
+   * Returns true when a request attribute must survive the per-widget reset above. That reset
+   * exists so one widget's leftover request attributes can't bleed into the next widget's JSP
+   * render, but it must not sweep up attributes that are computed once for the whole page --
+   * those need to still be present both for every later widget's own execute()/JSP turn, and
+   * for main.jsp's EL after the entire section/column/widget walk (across page, header, and
+   * footer) is done. The controller/master/request prefixes are the codebase's existing
+   * convention for that (see e.g. {@link RequestConstants#MASTER_WEB_PAGE},
+   * {@link RequestConstants#SHOW_MAIN_MENU}); {@link #PAGE_LEVEL_ATTRIBUTE_NAMES} covers the
+   * page-level attributes PageServlet sets under names that don't happen to follow it.
+   *
+   * @param name the request attribute name
+   * @return true if the attribute must not be removed
+   */
+  protected static boolean isPreservedAcrossWidgetReset(String name) {
+    return name.startsWith("controller") || name.startsWith("master") || name.startsWith("request")
+        || PAGE_LEVEL_ATTRIBUTE_NAMES.contains(name);
   }
 
   /**

@@ -18,6 +18,7 @@ package com.simisinc.platform.infrastructure.scheduler;
 
 import com.simisinc.platform.infrastructure.database.DataSource;
 import com.simisinc.platform.infrastructure.instance.InstanceManager;
+import com.simisinc.platform.infrastructure.scheduler.admin.CapabilityGrantExpirationJob;
 import com.simisinc.platform.infrastructure.scheduler.admin.DatasetsDownloadAndSyncJob;
 import com.simisinc.platform.infrastructure.scheduler.audit.AuditLogIntegrityJob;
 import com.simisinc.platform.infrastructure.scheduler.audit.AuditLogRetentionJob;
@@ -88,6 +89,7 @@ public class SchedulerManager {
   public static final String SESSIONS_PII_SCRUB_JOB = "SessionsPiiScrub";
   public static final String AUDIT_LOG_RETENTION_JOB = "AuditLogRetention";
   public static final String AUDIT_LOG_INTEGRITY_JOB = "AuditLogIntegrity";
+  public static final String CAPABILITY_GRANT_EXPIRATION_JOB = "CapabilityGrantExpiration";
   public static final String EMAIL_CLASSIFICATION_JOB = "EmailClassification";
   public static final String MAILING_LIST_QUARANTINE_JOB = "MailingListQuarantine";
   public static final String FORM_SUBMISSION_FAILURE_RETENTION_JOB = "FormSubmissionFailureRetention";
@@ -175,6 +177,8 @@ public class SchedulerManager {
         BackgroundJob.scheduleRecurrently(SESSIONS_PII_SCRUB_JOB, Cron.daily(4, 45), SessionsPiiScrubJob::execute);
         BackgroundJob.scheduleRecurrently(AUDIT_LOG_RETENTION_JOB, Cron.daily(4, 15), AuditLogRetentionJob::execute);
         BackgroundJob.scheduleRecurrently(AUDIT_LOG_INTEGRITY_JOB, Cron.daily(4, 30), AuditLogIntegrityJob::execute);
+        BackgroundJob.scheduleRecurrently(CAPABILITY_GRANT_EXPIRATION_JOB, Cron.hourly(),
+            CapabilityGrantExpirationJob::execute);
         // Once daily is plenty for a backlog job, and keeps it off ZeroBounce's real per-lookup API
         // billing except when there's actually unvalidated backlog; runs ahead of the 4am cluster above
         // so it isn't competing with those jobs for DB/API time.
