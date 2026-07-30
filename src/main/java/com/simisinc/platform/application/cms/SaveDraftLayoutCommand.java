@@ -100,6 +100,13 @@ public class SaveDraftLayoutCommand {
         List<Element> columns = childElements(sectionEl, "column");
         JsonNode colsNode = sNode.get("columns");
         if (colsNode == null) continue;
+        // A client that misreports its current layout (e.g. a stale/buggy column query) must not
+        // be allowed to silently wipe out a section that actually has columns -- reject instead.
+        int newColumnCount = colsNode.isArray() ? colsNode.size() : 0;
+        if (!columns.isEmpty() && newColumnCount == 0) {
+          throw new DataException("Invalid layout: section " + sIdx + " would lose all "
+              + columns.size() + " existing column(s); rejecting save to avoid data loss");
+        }
         for (JsonNode cNode : colsNode) {
           int cIdx = cNode.path("c").asInt(-1);
           if (cIdx < 0 || cIdx >= columns.size()) {
