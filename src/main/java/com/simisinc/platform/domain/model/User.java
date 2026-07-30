@@ -65,6 +65,7 @@ public class User extends Entity {
   private Timestamp modified = null;
 
   private List<Role> roleList = null;
+  private List<Capability> capabilityList = null;
   private List<Group> groupList = null;
   private UserLogin lastLogin = null;
 
@@ -371,6 +372,31 @@ public class User extends Entity {
       }
     }
     return null;
+  }
+
+  public List<Capability> getCapabilityList() {
+    return capabilityList;
+  }
+
+  public void setCapabilityList(List<Capability> capabilityList) {
+    this.capabilityList = capabilityList;
+  }
+
+  /**
+   * Checks the capability set resolved from this user's roles at load time (see
+   * LoadUserCommand.populateUserRecord). Added alongside hasRole() (issue #701's walking
+   * skeleton) - existing hasRole() call sites are unaffected and unmigrated.
+   */
+  public boolean hasPermission(String code) {
+    if (capabilityList == null) {
+      return false;
+    }
+    for (Capability capability : capabilityList) {
+      if (capability.getCode().equals(code)) {
+        return true;
+      }
+    }
+    return false;
   }
 
   public void removeRole(String code) {

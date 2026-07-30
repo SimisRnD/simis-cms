@@ -41,7 +41,7 @@ public class AnalyticsRetentionWidget extends GenericWidget {
 
   public WidgetContext execute(WidgetContext context) {
 
-    if (!context.hasRole("admin")) {
+    if (!context.hasPermission("admin:manage")) {
       LOG.warn("No access to analytics retention dashboard");
       return null;
     }
@@ -57,7 +57,7 @@ public class AnalyticsRetentionWidget extends GenericWidget {
 
   public WidgetContext post(WidgetContext context) throws InvocationTargetException, IllegalAccessException {
 
-    if (!context.hasRole("admin")) {
+    if (!context.hasPermission("admin:manage")) {
       LOG.warn("No access to trigger analytics retention purge");
       return null;
     }
