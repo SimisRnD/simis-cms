@@ -40,6 +40,9 @@ public class Page {
   private List<Section> sections = new ArrayList<Section>();
   private List<String> roles = new ArrayList<String>();
   private List<String> groups = new ArrayList<String>();
+  // Capability codes (issue #701's hasPermission() system) that also satisfy this page's access
+  // check, alongside roles -- see WebComponentCommand.allowsUser(). Optional; most pages only use role=.
+  private List<String> capabilities = new ArrayList<String>();
 
   public Page() {
   }
@@ -104,6 +107,14 @@ public class Page {
 
   public void setGroups(List<String> groups) {
     this.groups = groups;
+  }
+
+  public List<String> getCapabilities() {
+    return capabilities;
+  }
+
+  public void setCapabilities(List<String> capabilities) {
+    this.capabilities = capabilities;
   }
 
   public String getCollectionUniqueId() {
