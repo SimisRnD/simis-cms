@@ -96,6 +96,13 @@
     <c:if test="${!empty calendarEvent.location}">
       <p class="platform-calendar-event-location"><i class="fa fa-map-marker fa-fw"></i> <c:out value="${calendarEvent.location}" /></p>
     </c:if>
+    <c:if test="${!empty calendarEvent.tagsList}">
+      <div class="cell auto">
+        <c:forEach items="${calendarEvent.tagsList}" var="tag">
+          <span class="label secondary"><c:out value="${tag}"/></span>
+        </c:forEach>
+      </div>
+    </c:if>
     <div class="add-to-calendar" style="margin-left: 24px">
       <span class="icon">far fa-calendar-plus</span>
       <span class="timezone"><c:out value="${timezone}"/></span>

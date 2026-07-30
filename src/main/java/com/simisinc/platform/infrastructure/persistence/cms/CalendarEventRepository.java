@@ -28,6 +28,7 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -42,6 +43,15 @@ public class CalendarEventRepository {
 
   private static String TABLE_NAME = "calendar_events";
   private static String[] PRIMARY_KEY = new String[]{"event_id"};
+
+  // tags_list is stored as a single comma-joined VARCHAR(255) column with no escaping of
+  // embedded commas. The only writer today (CalendarWidget.post()) pre-splits user input on
+  // comma, so a comma inside a "tag" simply becomes two tags before it ever gets here. Any
+  // future writer of CalendarEvent.setTagsList(String[]) (bulk import, API, data fix) must not
+  // put a literal comma inside a single tag, or it will be silently split into two tags on the
+  // next read. The joined value is also truncated to TAGS_LIST_MAX_LENGTH to avoid the whole
+  // event save failing on a VARCHAR(255) overflow.
+  private static int TAGS_LIST_MAX_LENGTH = 255;
 
   private static SqlUtils createWhereStatement(CalendarEventSpecification specification) {
     SqlUtils where = new SqlUtils();
@@ -169,6 +179,7 @@ public class CalendarEventRepository {
         .add("location_name", StringUtils.trimToNull(record.getLocation()))
         .add("image_url", StringUtils.trimToNull(record.getImageUrl()))
         .add("video_url", StringUtils.trimToNull(record.getVideoUrl()))
+        .add("tags_list", record.getTagsList() == null || record.getTagsList().length == 0 ? null : String.join(",", record.getTagsList()), TAGS_LIST_MAX_LENGTH)
         .add("created_by", record.getCreatedBy())
         .add("modified_by", record.getModifiedBy())
         .add("published", record.getPublished())
@@ -196,6 +207,7 @@ public class CalendarEventRepository {
         .add("location_name", StringUtils.trimToNull(record.getLocation()))
         .add("image_url", StringUtils.trimToNull(record.getImageUrl()))
         .add("video_url", StringUtils.trimToNull(record.getVideoUrl()))
+        .add("tags_list", record.getTagsList() == null || record.getTagsList().length == 0 ? null : String.join(",", record.getTagsList()), TAGS_LIST_MAX_LENGTH)
         .add("modified_by", record.getModifiedBy())
         .add("modified", new Timestamp(System.currentTimeMillis()))
         .add("published", record.getPublished())
@@ -272,6 +284,15 @@ public class CalendarEventRepository {
       record.setVideoUrl(rs.getString("video_url"));
       record.setVideoEmbed(rs.getString("video_embed"));
       record.setScriptEmbed(rs.getString("script_embed"));
+      String tagsListRaw = rs.getString("tags_list");
+      if (StringUtils.isNotBlank(tagsListRaw)) {
+        String[] tagsList = Arrays.stream(StringUtils.stripAll(tagsListRaw.split(",")))
+            .filter(StringUtils::isNotBlank)
+            .toArray(String[]::new);
+        if (tagsList.length > 0) {
+          record.setTagsList(tagsList);
+        }
+      }
       return record;
     } catch (SQLException se) {
       LOG.error("buildRecord", se);
