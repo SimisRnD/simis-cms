@@ -76,7 +76,8 @@ public class WebContainerCommand implements Serializable {
 
   public static boolean processWidgets(WebContainerContext webContainerContext, List<Section> sections,
                                        ContainerRenderInfo containerRenderInfo, Map<String, String> coreData,
-                                       String contextPath, String pagePath, UserSession userSession, Map<String, String> themePropertyMap) throws Exception {
+                                       String contextPath, String pagePath, UserSession userSession, Map<String, String> themePropertyMap,
+                                       boolean pageLayoutMode) throws Exception {
 
     LOG.debug("Processing container... " + containerRenderInfo.getName() + ": " + sections.size());
 
@@ -522,6 +523,24 @@ public class WebContainerCommand implements Serializable {
             }
             columnRenderInfo.addWidget(widgetRenderInfo);
           }
+        }
+
+        // A column normally only enters render info once one of its widgets produces content
+        // (above) -- correct for public rendering, since an empty grid cell shouldn't take up
+        // space on a real page. But it means a column with zero widgets (e.g. one just created
+        // by the composition canvas's "+Column"/"+Section" controls, before anything has been
+        // added to it) is otherwise omitted from render info entirely, so it never gets a
+        // rendered [data-editor-column]/[data-editor-section] element -- leaving it with no
+        // "+Widget" trigger to populate it and no "✕ Column" trigger to remove it, invisible and
+        // stuck until the whole draft is discarded. In pageLayoutMode, add it anyway so an admin
+        // building a layout can see, populate, and remove it like any other column/section.
+        if (pageLayoutMode && !columnAdded) {
+          columnAdded = true;
+          if (!sectionAdded) {
+            sectionAdded = true;
+            containerRenderInfo.addSection(sectionRenderInfo);
+          }
+          sectionRenderInfo.addColumn(columnRenderInfo);
         }
       }
     }
