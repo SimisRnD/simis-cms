@@ -624,6 +624,10 @@
   // Attach HTML5 drag events to a draggable element (section or widget)
   function makeDraggable(el, type) {
     el.addEventListener('dragstart', function (e) {
+      // dragstart bubbles: a widget's dragstart also reaches its enclosing section's
+      // listener. Ignore any dragstart that didn't originate on this exact element, or
+      // the bubbled event overwrites dragSrcEl/dragSrcType with the wrong element/type.
+      if (e.target !== el) return;
       dragSrcEl = el;
       dragSrcType = type;
       e.dataTransfer.effectAllowed = 'move';
