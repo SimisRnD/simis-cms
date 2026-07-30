@@ -143,7 +143,7 @@ class NewsletterSendQueueRepositoryTest {
   }
 
   @Test
-  void enqueueBlogPostNotificationCreatesABatchAndOneQueuedRowPerActiveMember() throws DataException {
+  void sendBlogPostNotificationCreatesABatchAndOneQueuedRowPerActiveMember() throws DataException {
     long listId = seedList("News");
     seedMembership(listId, seedEmail("active1@example.com"), true, null, null);
     seedMembership(listId, seedEmail("active2@example.com"), true, null, null);
@@ -154,7 +154,7 @@ class NewsletterSendQueueRepositoryTest {
     blogPost.setId(99L);
     blogPost.setTitle("A New Post");
 
-    int queuedCount = NewsletterSendCommand.enqueueBlogPostNotification(mailingList, blogPost, 1L);
+    int queuedCount = NewsletterSendCommand.sendBlogPostNotification(mailingList, blogPost, 1L);
 
     assertEquals(2, queuedCount, "only active, non-unsubscribed members should be queued");
     List<MailingListSent> claimed = MailingListSentRepository.claimBatch(10);
@@ -162,14 +162,14 @@ class NewsletterSendQueueRepositoryTest {
   }
 
   @Test
-  void enqueueBlogPostNotificationReturnsZeroForAListWithNoActiveMembers() throws DataException {
+  void sendBlogPostNotificationReturnsZeroForAListWithNoActiveMembers() throws DataException {
     long listId = seedList("Empty List");
     MailingList mailingList = MailingListRepository.findById(listId);
     BlogPost blogPost = new BlogPost();
     blogPost.setId(99L);
     blogPost.setTitle("A New Post");
 
-    int queuedCount = NewsletterSendCommand.enqueueBlogPostNotification(mailingList, blogPost, 1L);
+    int queuedCount = NewsletterSendCommand.sendBlogPostNotification(mailingList, blogPost, 1L);
 
     assertEquals(0, queuedCount);
     assertTrue(MailingListSentRepository.claimBatch(10).isEmpty());
@@ -414,6 +414,15 @@ class NewsletterSendQueueRepositoryTest {
   private static void createSchema() {
     try (Connection connection = DB.getConnection();
         Statement statement = connection.createStatement()) {
+      // Empty on purpose: NewsletterSendCommand.sendBlogPostNotification checks
+      // MailChimpCommand.isEnabled(), which reads this table via LoadSitePropertyCommand. With no
+      // rows, "mailing-list.service" resolves to null, isEnabled() is false, and the send falls
+      // through to the SMTP path this test suite actually exercises.
+      statement.execute("CREATE TABLE site_properties ("
+          + "property_id BIGSERIAL PRIMARY KEY, "
+          + "property_order INTEGER DEFAULT 100, "
+          + "property_name VARCHAR(50) UNIQUE NOT NULL, "
+          + "property_value TEXT NOT NULL)");
       statement.execute("CREATE TABLE emails ("
           + "email_id BIGSERIAL PRIMARY KEY, "
           + "email VARCHAR(255) UNIQUE NOT NULL, "
@@ -456,7 +465,8 @@ class NewsletterSendQueueRepositoryTest {
           + "service VARCHAR(20), "
           + "email_count INTEGER DEFAULT 0, "
           + "subject VARCHAR(255), "
-          + "blog_post_id BIGINT)");
+          + "blog_post_id BIGINT, "
+          + "mailchimp_campaign_id VARCHAR(50))");
       statement.execute("CREATE TABLE mailing_list_sent ("
           + "item_id BIGSERIAL PRIMARY KEY, "
           + "email_id BIGINT REFERENCES emails(email_id), "

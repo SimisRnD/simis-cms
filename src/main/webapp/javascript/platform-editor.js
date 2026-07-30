@@ -636,6 +636,10 @@
   // Attach HTML5 drag events to a draggable element (section or widget)
   function makeDraggable(el, type) {
     el.addEventListener('dragstart', function (e) {
+      // dragstart bubbles: a widget's dragstart also reaches its enclosing section's
+      // listener. Ignore any dragstart that didn't originate on this exact element, or
+      // the bubbled event overwrites dragSrcEl/dragSrcType with the wrong element/type.
+      if (e.target !== el) return;
       dragSrcEl = el;
       dragSrcType = type;
       e.dataTransfer.effectAllowed = 'move';
@@ -655,6 +659,11 @@
     el.addEventListener('dragover', function (e) {
       if (!dragSrcEl || dragSrcType !== type) return;
       if (dragSrcEl === el) return;
+      // A widget's drop is persisted by indexing into its *original* column's widget list at its
+      // *original* own-column index (see SaveDraftLayoutCommand.saveDraftLayout) -- that is only
+      // valid for a same-column reorder. Reject cross-column drops here rather than accept a drop
+      // that would error or silently attach the wrong widget.
+      if (type === 'widget' && dragSrcEl.closest('[data-editor-column]') !== el.closest('[data-editor-column]')) return;
       e.preventDefault();
       e.dataTransfer.dropEffect = 'move';
 
@@ -681,6 +690,8 @@
 
     el.addEventListener('drop', function (e) {
       if (!dragSrcEl || dragSrcType !== type || dragSrcEl === el) return;
+      // Same-column-only guard, mirrored from dragover above.
+      if (type === 'widget' && dragSrcEl.closest('[data-editor-column]') !== el.closest('[data-editor-column]')) return;
       e.preventDefault();
       e.stopPropagation();
 

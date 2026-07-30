@@ -51,6 +51,24 @@ public class NewsletterEmailCommand {
   public static void sendBlogPostNotification(String toEmail, BlogPost blogPost, String unsubscribeUrl)
       throws EmailException, DataException {
 
+    String siteUrl = LoadSitePropertyCommand.loadByName("site.url");
+    String html = renderBlogPostHtml(blogPost, unsubscribeUrl);
+
+    ImageHtmlEmail email = EmailCommand.prepareNewEmail(siteUrl);
+    email.addTo(toEmail);
+    email.setSubject(blogPost.getTitle());
+    email.setHtmlMsg(html);
+    email.setTextMsg(HtmlCommand.text(html));
+    email.send();
+  }
+
+  /**
+   * Renders the blog-post notification template to an HTML string, without sending anything. Used
+   * for a direct per-recipient SMTP send (unsubscribeUrl is a real per-member token link) as well
+   * as for a MailChimp Campaign's content (unsubscribeUrl is MailChimp's own "*|UNSUB|*" merge
+   * tag, so MailChimp substitutes a personalized link per recipient at delivery).
+   */
+  public static String renderBlogPostHtml(BlogPost blogPost, String unsubscribeUrl) throws DataException {
     ServletContext servletContext = SchedulerManager.getServletContext();
     if (servletContext == null) {
       throw new DataException("Servlet context is not available");
@@ -78,12 +96,6 @@ public class NewsletterEmailCommand {
     if (StringUtils.isBlank(html)) {
       throw new DataException("Newsletter email template did not render: " + BLOG_POST_TEMPLATE);
     }
-
-    ImageHtmlEmail email = EmailCommand.prepareNewEmail(siteUrl);
-    email.addTo(toEmail);
-    email.setSubject(blogPost.getTitle());
-    email.setHtmlMsg(html);
-    email.setTextMsg(HtmlCommand.text(html));
-    email.send();
+    return html;
   }
 }
