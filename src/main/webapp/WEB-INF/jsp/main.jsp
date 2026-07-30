@@ -485,15 +485,19 @@
             </c:if>
           </c:if>
           <%-- API, Apps, etc. --%>
-          <c:if test="${userSession.hasRole('admin')}">
+          <c:if test="${userSession.hasRole('admin') || userSession.hasPermission('admin:manage')}">
             <ul class="vertical menu">
               <li class="section-title">Access</li>
-              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/api')}"> class="is-active"</c:if>><a href="${ctx}/admin/apis"><i class="${font:far()} fa-paper-plane fa-fw"></i> <span>APIs</span></a></li>
-              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/app')}"> class="is-active"</c:if>><a href="${ctx}/admin/apps"><i class="${font:far()} fa-mobile fa-fw"></i> <span>Apps</span></a></li>
-              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/blocked-ip-list')}"> class="is-active"</c:if>><a href="${ctx}/admin/blocked-ip-list"><i class="${font:far()} fa-shield-halved fa-fw"></i> <span>Blocked IPs</span></a></li>
-              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/allowed-ip-list')}"> class="is-active"</c:if>><a href="${ctx}/admin/allowed-ip-list"><i class="${font:far()} fa-shield fa-fw"></i> <span>Allowed IPs</span></a></li>
+              <c:if test="${userSession.hasRole('admin')}">
+                <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/api')}"> class="is-active"</c:if>><a href="${ctx}/admin/apis"><i class="${font:far()} fa-paper-plane fa-fw"></i> <span>APIs</span></a></li>
+                <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/app')}"> class="is-active"</c:if>><a href="${ctx}/admin/apps"><i class="${font:far()} fa-mobile fa-fw"></i> <span>Apps</span></a></li>
+                <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/blocked-ip-list')}"> class="is-active"</c:if>><a href="${ctx}/admin/blocked-ip-list"><i class="${font:far()} fa-shield-halved fa-fw"></i> <span>Blocked IPs</span></a></li>
+                <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/allowed-ip-list')}"> class="is-active"</c:if>><a href="${ctx}/admin/allowed-ip-list"><i class="${font:far()} fa-shield fa-fw"></i> <span>Allowed IPs</span></a></li>
+              </c:if>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/role-capabilities')}"> class="is-active"</c:if>><a href="${ctx}/admin/role-capabilities"><i class="${font:far()} fa-user-lock fa-fw"></i> <span>Role Capabilities</span></a></li>
-              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/audit-log')}"> class="is-active"</c:if>><a href="${ctx}/admin/audit-log"><i class="${font:far()} fa-clipboard-list fa-fw"></i> <span>Audit Log</span></a></li>
+              <c:if test="${userSession.hasRole('admin')}">
+                <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/audit-log')}"> class="is-active"</c:if>><a href="${ctx}/admin/audit-log"><i class="${font:far()} fa-clipboard-list fa-fw"></i> <span>Audit Log</span></a></li>
+              </c:if>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/analytics-retention')}"> class="is-active"</c:if>><a href="${ctx}/admin/analytics-retention"><i class="${font:far()} fa-trash-can fa-fw"></i> <span>Analytics Retention</span></a></li>
             </ul>
           </c:if>
