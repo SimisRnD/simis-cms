@@ -167,7 +167,7 @@ public class MailingListMembersWidget extends GenericWidget {
       context.setErrorMessage(e.getMessage());
     }
     // Determine the page to return to
-    context.setRedirect("/admin/users");
+    context.setRedirect("/admin/mailing-list-members?mailingListId=" + mailingList.getId());
     return context;
   }
 

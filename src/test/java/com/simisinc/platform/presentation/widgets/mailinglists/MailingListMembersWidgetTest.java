@@ -28,7 +28,9 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
 import com.simisinc.platform.WidgetBase;
+import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.cms.SaveBlockedIPCommand;
+import com.simisinc.platform.application.mailinglists.ProcessEmailCSVFileCommand;
 import com.simisinc.platform.domain.model.BlockedIP;
 import com.simisinc.platform.domain.model.mailinglists.Email;
 import com.simisinc.platform.domain.model.mailinglists.MailingList;
@@ -191,6 +193,43 @@ class MailingListMembersWidgetTest extends WidgetBase {
       new MailingListMembersWidget().post(widgetContext);
 
       memberRepo.verify(() -> MailingListMemberRepository.remove(any(), any()), never());
+    }
+  }
+
+  @Test
+  void uploadCSVFileRedirectsBackToTheMailingListMembersPage() throws Exception {
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "command", "uploadCSVFile");
+    addQueryParameter(widgetContext, "mailingListId", "1");
+
+    try (MockedStatic<MailingListRepository> mailingListRepo = mockStatic(MailingListRepository.class);
+        MockedStatic<ProcessEmailCSVFileCommand> processCsv = mockStatic(ProcessEmailCSVFileCommand.class)) {
+      mailingListRepo.when(() -> MailingListRepository.findById(1L)).thenReturn(mailingList());
+      processCsv.when(() -> ProcessEmailCSVFileCommand.processCSV(any(), any())).thenReturn(3);
+
+      WidgetContext result = new MailingListMembersWidget().post(widgetContext);
+
+      assertEquals("/admin/mailing-list-members?mailingListId=1", result.getRedirect());
+      assertEquals("3 emails added", result.getSuccessMessage());
+    }
+  }
+
+  @Test
+  void uploadCSVFileRedirectsBackToTheMailingListMembersPageEvenWhenProcessingFails() throws Exception {
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "command", "uploadCSVFile");
+    addQueryParameter(widgetContext, "mailingListId", "1");
+
+    try (MockedStatic<MailingListRepository> mailingListRepo = mockStatic(MailingListRepository.class);
+        MockedStatic<ProcessEmailCSVFileCommand> processCsv = mockStatic(ProcessEmailCSVFileCommand.class)) {
+      mailingListRepo.when(() -> MailingListRepository.findById(1L)).thenReturn(mailingList());
+      processCsv.when(() -> ProcessEmailCSVFileCommand.processCSV(any(), any()))
+          .thenThrow(new DataException("Valid file not found"));
+
+      WidgetContext result = new MailingListMembersWidget().post(widgetContext);
+
+      assertEquals("/admin/mailing-list-members?mailingListId=1", result.getRedirect());
+      assertEquals("Valid file not found", result.getErrorMessage());
     }
   }
 
