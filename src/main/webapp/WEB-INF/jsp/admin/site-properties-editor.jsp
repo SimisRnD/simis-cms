@@ -80,7 +80,7 @@
                   <input type="password" class="no-gap" value="" placeholder="<c:out value="${empty siteProperty.value ? 'not set' : 'value hidden'}"/>" disabled />
                 </c:when>
                 <c:otherwise>
-                  <input type="password" class="no-gap" name="${siteProperty.name}" value="" autocomplete="new-password" placeholder="<c:out value="${empty siteProperty.value ? 'not set' : 'value hidden; leave blank to keep it'}"/>"<c:if test="${siteProperty.name eq 'captcha.google.secretkey'}"> aria-describedby="captchaGoogleSecretkeyHelpText"</c:if><c:if test="${siteProperty.name eq 'bi.superset.secret'}"> aria-describedby="biSupersetSecretHelpText"</c:if> />
+                  <input type="password" class="no-gap" name="${siteProperty.name}" value="" autocomplete="new-password" placeholder="<c:out value="${empty siteProperty.value ? 'not set' : 'value hidden; leave blank to keep it'}"/>"<c:if test="${siteProperty.name eq 'captcha.google.secretkey'}"> aria-describedby="captchaGoogleSecretkeyHelpText"</c:if><c:if test="${siteProperty.name eq 'bi.superset.secret'}"> aria-describedby="biSupersetSecretHelpText"</c:if><c:if test="${siteProperty.name eq 'bi.metabase.secret'}"> aria-describedby="biMetabaseSecretHelpText"</c:if> />
                 </c:otherwise>
               </c:choose>
             </c:when>
@@ -151,7 +151,7 @@
             <c:when test="${siteProperty.type eq 'url'}">
               <div class="input-group">
                 <span class="input-group-label"><i class="fa fa-link"></i></span>
-                <input class="input-group-field" id="${siteProperty.id}" type="text" name="${siteProperty.name}" placeholder="http://..." value="<c:out value="${siteProperty.value}"/>"<c:if test="${siteProperty.name eq 'elearning.lrs.url'}"> aria-describedby="elearningLrsUrlHelpText"</c:if><c:if test="${siteProperty.name eq 'elearning.moodle.url'}"> aria-describedby="elearningMoodleUrlHelpText"</c:if><c:if test="${siteProperty.name eq 'elearning.perls.url'}"> aria-describedby="elearningPerlsUrlHelpText"</c:if><c:if test="${siteProperty.name eq 'bi.superset.url'}"> aria-describedby="biSupersetUrlHelpText"</c:if>>
+                <input class="input-group-field" id="${siteProperty.id}" type="text" name="${siteProperty.name}" placeholder="http://..." value="<c:out value="${siteProperty.value}"/>"<c:if test="${siteProperty.name eq 'elearning.lrs.url'}"> aria-describedby="elearningLrsUrlHelpText"</c:if><c:if test="${siteProperty.name eq 'elearning.moodle.url'}"> aria-describedby="elearningMoodleUrlHelpText"</c:if><c:if test="${siteProperty.name eq 'elearning.perls.url'}"> aria-describedby="elearningPerlsUrlHelpText"</c:if><c:if test="${siteProperty.name eq 'bi.superset.url'}"> aria-describedby="biSupersetUrlHelpText"</c:if><c:if test="${siteProperty.name eq 'bi.metabase.url'}"> aria-describedby="biMetabaseUrlHelpText"</c:if>>
               </div>
             </c:when>
             <c:when test="${siteProperty.type eq 'image'}">
@@ -171,7 +171,7 @@
             </c:when>
             <c:when test="${siteProperty.type eq 'boolean'}">
               <div class="switch large">
-                <input class="switch-input" id="${siteProperty.name}-yes-no" type="checkbox" name="${siteProperty.name}" value="true"<c:if test="${siteProperty.value eq 'true'}"> checked</c:if><c:if test="${siteProperty.name eq 'bi.enabled'}"> aria-describedby="biEnabledHelpText"</c:if>>
+                <input class="switch-input" id="${siteProperty.name}-yes-no" type="checkbox" name="${siteProperty.name}" value="true"<c:if test="${siteProperty.value eq 'true'}"> checked</c:if><c:if test="${siteProperty.name eq 'bi.enabled'}"> aria-describedby="biEnabledHelpText"</c:if><c:if test="${siteProperty.name eq 'bi.metabase.enabled'}"> aria-describedby="biMetabaseEnabledHelpText"</c:if>>
                 <label class="switch-paddle" for="${siteProperty.name}-yes-no">
                 <span class="switch-active" aria-hidden="true">Yes</span>
                 <span class="switch-inactive" aria-hidden="true">No</span>
@@ -251,6 +251,15 @@
           </c:if>
           <c:if test="${siteProperty.name eq 'bi.superset.secret'}">
             <p class="help-text" id="biSupersetSecretHelpText">Despite the label, this is not a static API secret -- it's the <strong>password</strong> for the Superset account named above. This value is stored encrypted and always appears blank here after saving; leave it blank to keep the current password, or enter a new value to replace it.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'bi.metabase.enabled'}">
+            <p class="help-text" id="biMetabaseEnabledHelpText">Turns on embedding dashboards from a separately hosted Metabase instance (this does not install or host Metabase itself), independent of the Superset setting above -- both can be enabled at once if you have dashboards in each. As with Superset, there is currently no admin screen for placing a dashboard on a page -- a developer adds one by hand-editing that page's XML template with a <code>dashboardValue</code> (the Metabase dashboard ID).</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'bi.metabase.url'}">
+            <p class="help-text" id="biMetabaseUrlHelpText">The base URL of your organization's Metabase instance, for example <code>https://metabase.example.com</code>. Unlike Superset, no feature flag needs to be enabled on the Metabase side -- static embedding is available out of the box. In Metabase, go to Admin settings &gt; Embedding and turn on embedding, then Share &gt; Embed on each dashboard you want to make embeddable here.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'bi.metabase.secret'}">
+            <p class="help-text" id="biMetabaseSecretHelpText">The embedding secret key from Metabase's Admin settings &gt; Embedding page. Unlike Superset, this is a single shared key (not a username/password pair) used to sign embed requests directly -- anyone with this value can view any dashboard you've published for embedding, so treat it like a password. This value is stored encrypted and always appears blank here after saving; leave it blank to keep the current key, or enter a new value to replace it.</p>
           </c:if>
         </td>
       </tr>

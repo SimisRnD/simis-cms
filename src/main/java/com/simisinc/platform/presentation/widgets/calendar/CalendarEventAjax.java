@@ -98,6 +98,16 @@ public class CalendarEventAjax extends GenericWidget {
       if (calendarEvent.getVideoUrl() != null) {
         sb.append("\"videoUrl\":\"").append(JsonCommand.toJson(calendarEvent.getVideoUrl())).append("\",");
       }
+      if (calendarEvent.getTagsList() != null && calendarEvent.getTagsList().length > 0) {
+        sb.append("\"tagsList\":[");
+        for (int i = 0; i < calendarEvent.getTagsList().length; i++) {
+          if (i > 0) {
+            sb.append(",");
+          }
+          sb.append("\"").append(JsonCommand.toJson(calendarEvent.getTagsList()[i])).append("\"");
+        }
+        sb.append("],");
+      }
       if (StringUtils.isNotEmpty(calendarEvent.getSummary())) {
         sb.append("\"description\":\"").append(JsonCommand.toJson(calendarEvent.getSummary())).append("\",");
       }

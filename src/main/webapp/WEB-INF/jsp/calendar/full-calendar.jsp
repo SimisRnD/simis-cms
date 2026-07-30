@@ -196,6 +196,11 @@
               if (data.hasOwnProperty('videoUrl')) {
                 document.getElementById('videoUrl').value = data.videoUrl;
               }
+              if (data.hasOwnProperty('tagsList')) {
+                document.getElementById('tagsList').value = data.tagsList.join(', ');
+              } else {
+                document.getElementById('tagsList').value = '';
+              }
               if (data.hasOwnProperty('published')) {
                 $('#enabled')[0].checked = true;
               } else {
@@ -382,6 +387,10 @@
         <input type="text" placeholder="https://..." name="videoUrl" id="videoUrl" value="">
       </label>
       <p class="help-text">Paste a link to a video or live meeting (Teams, Zoom, Google Meet, a YouTube stream, etc). Shown as a "Join" button on the event's page.</p>
+      <label>Tags
+        <input type="text" placeholder="conference, quarterly, all-hands" name="tagsList" id="tagsList" value="" maxlength="255">
+      </label>
+      <p class="help-text">Comma-separated list of tags for this event (e.g. "conference, quarterly, all-hands"). Limited to 255 characters total.</p>
       <input id="enabled" type="checkbox" name="enabled" value="true" checked/><label for="enabled">Publish it?</label>
       <p class="help-text">Unchecked saves this event as a draft, hidden from the public calendar.</p>
       <div class="button-container">

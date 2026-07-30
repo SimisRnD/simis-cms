@@ -111,6 +111,20 @@ public class CalendarWidget extends GenericWidget {
     } else {
       calendarEventBean.setPublished(null);
     }
+    String tagsListParam = context.getParameter("tagsList");
+    if (StringUtils.isNotBlank(tagsListParam)) {
+      String[] parsedTags = tagsListParam.split(",");
+      java.util.List<String> tagsList = new java.util.ArrayList<>();
+      for (String tag : parsedTags) {
+        String trimmed = tag.trim();
+        if (!trimmed.isEmpty()) {
+          tagsList.add(trimmed);
+        }
+      }
+      calendarEventBean.setTagsList(tagsList.isEmpty() ? null : tagsList.toArray(new String[0]));
+    } else {
+      calendarEventBean.setTagsList(null);
+    }
     calendarEventBean.setCreatedBy(context.getUserId());
     calendarEventBean.setModifiedBy(context.getUserId());
 
