@@ -528,16 +528,25 @@
 
   // Build the layout JSON from current DOM order.
   // Uses the data-editor-* original indices stored on each element.
+  //
+  // Column/widget lookups can't assume a fixed nesting depth under their section/column:
+  // layout-body-renderer.jspf only puts columns directly under the data-editor-section element
+  // for grid/platform-no-margin/admin sections -- a default (no cssClass) section on a normal
+  // page nests them two levels deeper (.full-container > .grid-container > .grid-x > column), so
+  // a ':scope >' query silently matched zero columns there and Save Layout persisted an empty
+  // section. closest() ties each candidate back to its true nearest ancestor instead.
   function buildLayoutJson() {
     var sections = [];
     document.querySelectorAll('[data-editor-section]').forEach(function (sectionEl) {
       var sIdx = parseInt(sectionEl.dataset.editorSection, 10);
       var columns = [];
-      sectionEl.querySelectorAll(':scope > [data-editor-column]').forEach(function (colEl) {
+      sectionEl.querySelectorAll('[data-editor-column]').forEach(function (colEl) {
+        if (colEl.closest('[data-editor-section]') !== sectionEl) return;
         var parts = colEl.dataset.editorColumn.split('-');
         var cIdx = parseInt(parts[1], 10);
         var widgets = [];
-        colEl.querySelectorAll(':scope > [data-editor-widget]').forEach(function (widgetEl) {
+        colEl.querySelectorAll('[data-editor-widget]').forEach(function (widgetEl) {
+          if (widgetEl.closest('[data-editor-column]') !== colEl) return;
           var wParts = widgetEl.dataset.editorWidget.split('-');
           widgets.push(parseInt(wParts[2], 10));
         });
