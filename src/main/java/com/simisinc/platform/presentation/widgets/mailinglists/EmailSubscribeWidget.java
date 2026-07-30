@@ -36,6 +36,7 @@ import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.cms.CaptchaCommand;
 import com.simisinc.platform.application.mailinglists.SaveEmailCommand;
 import com.simisinc.platform.domain.model.mailinglists.Email;
+import com.simisinc.platform.infrastructure.persistence.mailinglists.MailingListRepository;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 
@@ -69,6 +70,10 @@ public class EmailSubscribeWidget extends GenericWidget {
 
     if ("inline".equals(context.getPreferences().get("view"))) {
       context.setJsp(INLINE_FORM_JSP);
+      // Issue #598: let a visitor choose which public list(s) to join. Omitted entirely (no
+      // checkboxes rendered) when nothing is marked show_online, so a default/fresh install's
+      // single-list signup behaves exactly as it did before this feature existed.
+      context.getRequest().setAttribute("onlineMailingLists", MailingListRepository.findOnlineLists());
     } else if ("vertical".equals(context.getPreferences().get("view"))) {
       context.setJsp(VERTICAL_FORM_JSP);
     } else {
