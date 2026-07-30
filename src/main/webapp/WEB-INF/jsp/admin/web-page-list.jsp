@@ -36,6 +36,7 @@
       <th>Link</th>
       <th>Keywords, Description</th>
       <th>Modified</th>
+      <th>Scheduled/Expires</th>
     </tr>
   </thead>
   <tbody>
@@ -67,6 +68,12 @@
               </c:when>
               <c:otherwise><span class="success label">live</span></c:otherwise>
             </c:choose>
+            <c:if test="${webPageMap[menuTab.link].scheduled}">
+              <br /><span class="secondary label"><i class="fa fa-clock"></i> scheduled</span>
+            </c:if>
+            <c:if test="${webPageMap[menuTab.link].expiringSoon}">
+              <br /><span class="secondary label"><i class="fa fa-hourglass-end"></i> expiring</span>
+            </c:if>
           </td>
         </c:when>
         <c:otherwise>
@@ -98,8 +105,18 @@
           <td>
             <small><fmt:formatDate pattern="yyyy-MM-dd hh:mm a" value="${webPageMap[menuTab.link].modified}" /></small>
           </td>
+          <td>
+            <c:if test="${!empty webPageMap[menuTab.link].publishAt}">
+              <small>Publishes: <fmt:formatDate pattern="yyyy-MM-dd hh:mm a" value="${webPageMap[menuTab.link].publishAt}" /></small>
+            </c:if>
+            <c:if test="${!empty webPageMap[menuTab.link].publishAt && !empty webPageMap[menuTab.link].expiresAt}"><br /></c:if>
+            <c:if test="${!empty webPageMap[menuTab.link].expiresAt}">
+              <small>Expires: <fmt:formatDate pattern="yyyy-MM-dd hh:mm a" value="${webPageMap[menuTab.link].expiresAt}" /></small>
+            </c:if>
+          </td>
         </c:when>
         <c:otherwise>
+          <td></td>
           <td></td>
           <td></td>
         </c:otherwise>
@@ -127,6 +144,12 @@
               <c:when test="${empty webPageMap[menuItem.link].pageXml}"><span class="alert label">404</span></c:when>
               <c:otherwise><span class="success label">live</span></c:otherwise>
             </c:choose>
+            <c:if test="${webPageMap[menuItem.link].scheduled}">
+              <br /><span class="secondary label"><i class="fa fa-clock"></i> scheduled</span>
+            </c:if>
+            <c:if test="${webPageMap[menuItem.link].expiringSoon}">
+              <br /><span class="secondary label"><i class="fa fa-hourglass-end"></i> expiring</span>
+            </c:if>
             </td>
           </c:when>
           <c:when test='${fn:contains(menuItem.link, "#")}'>
@@ -163,8 +186,18 @@
             <td>
               <small><fmt:formatDate pattern="yyyy-MM-dd hh:mm a" value="${webPageMap[menuItem.link].modified}" /></small>
             </td>
+            <td>
+              <c:if test="${!empty webPageMap[menuItem.link].publishAt}">
+                <small>Publishes: <fmt:formatDate pattern="yyyy-MM-dd hh:mm a" value="${webPageMap[menuItem.link].publishAt}" /></small>
+              </c:if>
+              <c:if test="${!empty webPageMap[menuItem.link].publishAt && !empty webPageMap[menuItem.link].expiresAt}"><br /></c:if>
+              <c:if test="${!empty webPageMap[menuItem.link].expiresAt}">
+                <small>Expires: <fmt:formatDate pattern="yyyy-MM-dd hh:mm a" value="${webPageMap[menuItem.link].expiresAt}" /></small>
+              </c:if>
+            </td>
           </c:when>
           <c:otherwise>
+            <td></td>
             <td></td>
             <td></td>
           </c:otherwise>
@@ -173,7 +206,7 @@
     </c:forEach>
   </c:forEach>
   <tr>
-    <td colspan="6">
+    <td colspan="7">
       <strong>All Web Pages</strong>
     </td>
   </tr>
@@ -197,6 +230,12 @@
           <c:when test="${empty webPage.pageXml}"><span class="alert label">404</span></c:when>
           <c:otherwise><span class="success label">live</span></c:otherwise>
         </c:choose>
+        <c:if test="${webPage.scheduled}">
+          <br /><span class="secondary label"><i class="fa fa-clock"></i> scheduled</span>
+        </c:if>
+        <c:if test="${webPage.expiringSoon}">
+          <br /><span class="secondary label"><i class="fa fa-hourglass-end"></i> expiring</span>
+        </c:if>
       </td>
       <td>
         <c:out value="${webPage.title}" />
@@ -218,11 +257,20 @@
       <td>
         <small><fmt:formatDate pattern="yyyy-MM-dd hh:mm a" value="${webPage.modified}" /></small>
       </td>
+      <td>
+        <c:if test="${!empty webPage.publishAt}">
+          <small>Publishes: <fmt:formatDate pattern="yyyy-MM-dd hh:mm a" value="${webPage.publishAt}" /></small>
+        </c:if>
+        <c:if test="${!empty webPage.publishAt && !empty webPage.expiresAt}"><br /></c:if>
+        <c:if test="${!empty webPage.expiresAt}">
+          <small>Expires: <fmt:formatDate pattern="yyyy-MM-dd hh:mm a" value="${webPage.expiresAt}" /></small>
+        </c:if>
+      </td>
     </tr>
   </c:forEach>
   <c:if test="${empty webPageList}">
       <tr>
-        <td colspan="6">No web pages were found</td>
+        <td colspan="7">No web pages were found</td>
       </tr>
   </c:if>
   </tbody>
