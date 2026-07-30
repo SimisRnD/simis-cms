@@ -167,7 +167,7 @@
       <select id="notifyMailingListId" name="notifyMailingListId" disabled>
         <option value="">Choose a mailing list...</option>
         <c:forEach items="${mailingLists}" var="mailingList">
-          <option value="${mailingList.id}"><c:out value="${mailingList.title}" /></option>
+          <option value="${mailingList.id}" <c:if test="${mailingList.id == blog.mailingListId}">selected</c:if>><c:out value="${mailingList.title}" /></option>
         </c:forEach>
       </select>
     </div>

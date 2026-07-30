@@ -457,6 +457,17 @@ public class WidgetContext implements Serializable {
     return getUserSession().hasRole(role);
   }
 
+  /**
+   * See UserSession.hasPermission() - added alongside hasRole() (issue #701's walking skeleton),
+   * hasRole() call sites are unaffected and unmigrated.
+   */
+  public boolean hasPermission(String code) {
+    if (getUserId() == -1) {
+      return false;
+    }
+    return getUserSession().hasPermission(code);
+  }
+
   public String getParameter(String name) {
     return getParameter(name, null);
   }

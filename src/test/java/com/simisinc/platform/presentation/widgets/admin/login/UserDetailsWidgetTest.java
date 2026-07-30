@@ -175,6 +175,7 @@ class UserDetailsWidgetTest extends WidgetBase {
     setRoles(widgetContext, ADMIN);
     addQueryParameter(widgetContext, "userId", "5");
     addQueryParameter(widgetContext, "action", "suspendAccount");
+    addQueryParameter(widgetContext, "reason", "Reported phishing attempt from this account");
 
     // An admin (level 100) acting on another admin (level 100): equal level is not "outranks" and
     // must still be permitted.
@@ -185,14 +186,15 @@ class UserDetailsWidgetTest extends WidgetBase {
         MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
         MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
       loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(target);
-      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
-      userRepo.when(() -> UserRepository.suspendAccount(target)).thenReturn(target);
+      userRepo.when(() -> UserRepository.suspendAccount(target, "Reported phishing attempt from this account"))
+          .thenReturn(target);
 
       WidgetContext result = new UserDetailsWidget().post(widgetContext);
 
-      userRepo.verify(() -> UserRepository.suspendAccount(target), times(1));
+      userRepo.verify(() -> UserRepository.suspendAccount(target, "Reported phishing attempt from this account"), times(1));
       audit.verify(() -> AuditEventCommand.record(any(), eq(AuditEventCommand.USER_MANAGEMENT), eq("user.disable"),
-          eq(AuditEventCommand.SUCCESS), eq("user"), eq("5"), eq("active@example.com"), any()), times(1));
+          eq(AuditEventCommand.SUCCESS), eq("user"), eq("5"), eq("active@example.com"),
+          eq("Reported phishing attempt from this account")), times(1));
       Assertions.assertEquals("Account suspended", result.getSuccessMessage());
     }
   }
@@ -366,7 +368,7 @@ class UserDetailsWidgetTest extends WidgetBase {
 
       WidgetContext result = new UserDetailsWidget().post(widgetContext);
 
-      userRepo.verify(() -> UserRepository.suspendAccount(any()), never());
+      userRepo.verify(() -> UserRepository.suspendAccount(any(), any()), never());
       audit.verifyNoInteractions();
       Assertions.assertEquals("You cannot suspend your own account", result.getErrorMessage());
     }

@@ -17,6 +17,7 @@
 package com.simisinc.platform.presentation.controller;
 
 import com.simisinc.platform.application.LoadUserCommand;
+import com.simisinc.platform.domain.model.Capability;
 import com.simisinc.platform.domain.model.Group;
 import com.simisinc.platform.domain.model.Role;
 import com.simisinc.platform.domain.model.User;
@@ -57,6 +58,7 @@ public class UserSession implements Serializable {
   private long visitorId = -1;
   private long userId = GUEST_ID;
   private List<Role> roleList = null;
+  private List<Capability> capabilityList = null;
   private List<Group> groupList = null;
   private long loginTime = -1;
   private long stepUpExpiresAt = 0L;
@@ -79,12 +81,17 @@ public class UserSession implements Serializable {
   public void login(User user) {
     userId = user.getId();
     roleList = user.getRoleList();
+    capabilityList = user.getCapabilityList();
     groupList = user.getGroupList();
     loginTime = System.currentTimeMillis();
   }
 
   public void setRoleList(List<Role> roleList) {
     this.roleList = roleList;
+  }
+
+  public void setCapabilityList(List<Capability> capabilityList) {
+    this.capabilityList = capabilityList;
   }
 
   public void setGroupList(List<Group> groupList) {
@@ -175,6 +182,27 @@ public class UserSession implements Serializable {
     }
     for (Role role : roleList) {
       if (role.getCode().equals(code)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * Checks the capability set resolved from this session's roles at login (see
+   * LoadUserCommand.populateUserRecord). Added alongside hasRole() (issue #701's walking
+   * skeleton) - like roleList, capabilityList is cached for the session lifetime and does not
+   * refresh until re-login.
+   */
+  public boolean hasPermission(String code) {
+    if (capabilityList == null) {
+      return false;
+    }
+    if (StringUtils.isBlank(code)) {
+      return false;
+    }
+    for (Capability capability : capabilityList) {
+      if (capability.getCode().equals(code)) {
         return true;
       }
     }
