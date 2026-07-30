@@ -50,6 +50,11 @@ public class CalendarEventAjax extends GenericWidget {
     List<CalendarEvent> calendarEventList = null;
     CalendarEventSpecification specification = new CalendarEventSpecification();
     specification.setId(id);
+    boolean canSeeUnpublished = context.getUserSession() != null
+        && (context.getUserSession().hasRole("admin") || context.getUserSession().hasRole("content-manager"));
+    if (!canSeeUnpublished) {
+      specification.setPublishedOnly(true);
+    }
     calendarEventList = CalendarEventRepository.findAll(specification, null);
     if (calendarEventList == null || calendarEventList.isEmpty()) {
       context.setJson("[]");
@@ -73,6 +78,9 @@ public class CalendarEventAjax extends GenericWidget {
       sb.append("\"calendarId\":").append(calendarEvent.getCalendarId()).append(",");
       if (calendarEvent.getAllDay()) {
         sb.append("\"allDay\":").append("true").append(",");
+      }
+      if (calendarEvent.getPublished() != null) {
+        sb.append("\"published\":").append("true").append(",");
       }
       String startDate = new SimpleDateFormat("yyyy-MM-dd").format(calendarEvent.getStartDate());
       String endDate = new SimpleDateFormat("yyyy-MM-dd").format(calendarEvent.getEndDate());
