@@ -59,7 +59,7 @@ class CalendarAjaxEventsTest {
       calendars.when(CalendarRepository::findAll).thenReturn(new ArrayList<>());
       events.when(() -> CalendarEventRepository.findAll(any(), any())).thenReturn(List.of(event));
 
-      CalendarAjaxEvents.addCalendarEvents(1L, null, new Date(0L), new Date(86400000L), sb);
+      CalendarAjaxEvents.addCalendarEvents(1L, null, new Date(0L), new Date(86400000L), sb, false);
 
       String json = sb.toString();
       Assertions.assertFalse(json.contains("<img"), "raw markup must not appear: " + json);
