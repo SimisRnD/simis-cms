@@ -83,6 +83,75 @@ class CalendarEventAjaxTest extends WidgetBase {
   }
 
   @Test
+  void jsonIncludesTagsListWhenSet() {
+    addQueryParameter(widgetContext, "id", "1");
+
+    CalendarEvent event = new CalendarEvent();
+    event.setId(1L);
+    event.setCalendarId(1L);
+    event.setTitle("Team Sync");
+    event.setStartDate(new Timestamp(0L));
+    event.setEndDate(new Timestamp(3600000L));
+    event.setTagsList(new String[] { "conference", "quarterly" });
+
+    try (MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class)) {
+      events.when(() -> CalendarEventRepository.findAll(any(CalendarEventSpecification.class), any())).thenReturn(List.of(event));
+
+      CalendarEventAjax widget = new CalendarEventAjax();
+      widget.execute(widgetContext);
+    }
+
+    String json = widgetContext.getJson();
+    Assertions.assertTrue(json.contains("\"tagsList\":[\"conference\",\"quarterly\"]"),
+        "tagsList must be present as a JSON array in the JSON: " + json);
+  }
+
+  @Test
+  void jsonOmitsTagsListWhenNull() {
+    addQueryParameter(widgetContext, "id", "1");
+
+    CalendarEvent event = new CalendarEvent();
+    event.setId(1L);
+    event.setCalendarId(1L);
+    event.setTitle("Team Sync");
+    event.setStartDate(new Timestamp(0L));
+    event.setEndDate(new Timestamp(3600000L));
+
+    try (MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class)) {
+      events.when(() -> CalendarEventRepository.findAll(any(CalendarEventSpecification.class), any())).thenReturn(List.of(event));
+
+      CalendarEventAjax widget = new CalendarEventAjax();
+      widget.execute(widgetContext);
+    }
+
+    String json = widgetContext.getJson();
+    Assertions.assertFalse(json.contains("tagsList"), "tagsList must be omitted when not set: " + json);
+  }
+
+  @Test
+  void jsonOmitsTagsListWhenEmpty() {
+    addQueryParameter(widgetContext, "id", "1");
+
+    CalendarEvent event = new CalendarEvent();
+    event.setId(1L);
+    event.setCalendarId(1L);
+    event.setTitle("Team Sync");
+    event.setStartDate(new Timestamp(0L));
+    event.setEndDate(new Timestamp(3600000L));
+    event.setTagsList(new String[0]);
+
+    try (MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class)) {
+      events.when(() -> CalendarEventRepository.findAll(any(CalendarEventSpecification.class), any())).thenReturn(List.of(event));
+
+      CalendarEventAjax widget = new CalendarEventAjax();
+      widget.execute(widgetContext);
+    }
+
+    String json = widgetContext.getJson();
+    Assertions.assertFalse(json.contains("tagsList"), "tagsList must be omitted when empty: " + json);
+  }
+
+  @Test
   void jsonIncludesPublishedWhenSet() {
     addQueryParameter(widgetContext, "id", "1");
 
