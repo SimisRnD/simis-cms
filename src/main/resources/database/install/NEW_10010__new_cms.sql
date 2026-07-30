@@ -294,6 +294,21 @@ CREATE TABLE search_analytics (
 CREATE INDEX search_analytics_created_idx ON search_analytics(created);
 CREATE INDEX search_analytics_query_idx ON search_analytics(query);
 
+-- System health check history: one row per (service, check run), populated by SystemHealthJob
+-- (issue #466). service_name is currently 'database' or 'filesystem' -- the two HealthCommand
+-- checks that can flip from healthy to unhealthy after startup; see system_health_checks's own
+-- upgrade migration for why 'startup' isn't tracked here.
+CREATE TABLE system_health_checks (
+  system_health_check_id BIGSERIAL PRIMARY KEY,
+  service_name VARCHAR(50) NOT NULL,
+  status VARCHAR(10) NOT NULL,
+  response_time_ms INTEGER,
+  error_message VARCHAR(500),
+  checked_at TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX system_health_checks_checked_at_idx ON system_health_checks(checked_at);
+CREATE INDEX system_health_checks_service_name_idx ON system_health_checks(service_name);
+
 --
 -- CREATE TABLE content_hits (
 --   hit_id BIGSERIAL PRIMARY KEY,
