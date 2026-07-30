@@ -24,12 +24,14 @@ import java.util.List;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
 import com.simisinc.platform.WidgetBase;
 import com.simisinc.platform.domain.model.cms.CalendarEvent;
 import com.simisinc.platform.infrastructure.persistence.cms.CalendarEventRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.CalendarEventSpecification;
+import com.simisinc.platform.presentation.controller.DataConstants;
 
 class CalendarEventAjaxTest extends WidgetBase {
 
@@ -78,5 +80,102 @@ class CalendarEventAjaxTest extends WidgetBase {
 
     String json = widgetContext.getJson();
     Assertions.assertFalse(json.contains("videoUrl"), "videoUrl must be omitted when not set: " + json);
+  }
+
+  @Test
+  void jsonIncludesPublishedWhenSet() {
+    addQueryParameter(widgetContext, "id", "1");
+
+    CalendarEvent event = new CalendarEvent();
+    event.setId(1L);
+    event.setCalendarId(1L);
+    event.setTitle("Team Sync");
+    event.setStartDate(new Timestamp(0L));
+    event.setEndDate(new Timestamp(3600000L));
+    event.setPublished(new Timestamp(System.currentTimeMillis()));
+
+    try (MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class)) {
+      events.when(() -> CalendarEventRepository.findAll(any(CalendarEventSpecification.class), any())).thenReturn(List.of(event));
+
+      CalendarEventAjax widget = new CalendarEventAjax();
+      widget.execute(widgetContext);
+    }
+
+    String json = widgetContext.getJson();
+    Assertions.assertTrue(json.contains("\"published\":true"), "published must be present in the JSON: " + json);
+  }
+
+  @Test
+  void jsonOmitsPublishedWhenNotSet() {
+    addQueryParameter(widgetContext, "id", "1");
+
+    CalendarEvent event = new CalendarEvent();
+    event.setId(1L);
+    event.setCalendarId(1L);
+    event.setTitle("Team Sync");
+    event.setStartDate(new Timestamp(0L));
+    event.setEndDate(new Timestamp(3600000L));
+
+    try (MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class)) {
+      events.when(() -> CalendarEventRepository.findAll(any(CalendarEventSpecification.class), any())).thenReturn(List.of(event));
+
+      CalendarEventAjax widget = new CalendarEventAjax();
+      widget.execute(widgetContext);
+    }
+
+    String json = widgetContext.getJson();
+    Assertions.assertFalse(json.contains("published"), "published must be omitted when not set: " + json);
+  }
+
+  @Test
+  void nonPrivilegedCallerIsRestrictedToPublishedEvents() {
+    // Default login() grants no roles, i.e. an unprivileged/logged-in-only caller.
+    addQueryParameter(widgetContext, "id", "1");
+
+    CalendarEvent event = new CalendarEvent();
+    event.setId(1L);
+    event.setCalendarId(1L);
+    event.setTitle("Draft Event");
+    event.setStartDate(new Timestamp(0L));
+    event.setEndDate(new Timestamp(3600000L));
+
+    ArgumentCaptor<CalendarEventSpecification> specCaptor = ArgumentCaptor.forClass(CalendarEventSpecification.class);
+    try (MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class)) {
+      events.when(() -> CalendarEventRepository.findAll(any(CalendarEventSpecification.class), any())).thenReturn(List.of(event));
+
+      CalendarEventAjax widget = new CalendarEventAjax();
+      widget.execute(widgetContext);
+
+      events.verify(() -> CalendarEventRepository.findAll(specCaptor.capture(), any()));
+    }
+
+    Assertions.assertEquals(DataConstants.TRUE, specCaptor.getValue().getPublishedOnly(),
+        "a non-admin/content-manager caller must only be able to look up published events");
+  }
+
+  @Test
+  void adminCallerCanSeeUnpublishedEvents() {
+    addQueryParameter(widgetContext, "id", "1");
+    setRoles(widgetContext, ADMIN);
+
+    CalendarEvent event = new CalendarEvent();
+    event.setId(1L);
+    event.setCalendarId(1L);
+    event.setTitle("Draft Event");
+    event.setStartDate(new Timestamp(0L));
+    event.setEndDate(new Timestamp(3600000L));
+
+    ArgumentCaptor<CalendarEventSpecification> specCaptor = ArgumentCaptor.forClass(CalendarEventSpecification.class);
+    try (MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class)) {
+      events.when(() -> CalendarEventRepository.findAll(any(CalendarEventSpecification.class), any())).thenReturn(List.of(event));
+
+      CalendarEventAjax widget = new CalendarEventAjax();
+      widget.execute(widgetContext);
+
+      events.verify(() -> CalendarEventRepository.findAll(specCaptor.capture(), any()));
+    }
+
+    Assertions.assertEquals(DataConstants.UNDEFINED, specCaptor.getValue().getPublishedOnly(),
+        "an admin/content-manager caller must not be filtered to published-only events");
   }
 }

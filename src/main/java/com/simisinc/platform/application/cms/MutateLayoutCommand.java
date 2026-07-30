@@ -48,6 +48,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.domain.model.cms.WebPage;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
+import com.simisinc.platform.presentation.widgets.cms.TableWidget;
 
 /**
  * Structural mutations for the visual editor (Project #6, Phase 4): add, remove, and configure
@@ -238,6 +239,7 @@ public class MutateLayoutCommand {
       throw new DataException("Unknown widget: " + widgetName);
     }
     Map<String, String> prefs = parsePrefsJson(prefsJson);
+    validateWidgetPreferenceValues(widgetName, prefs);
     mutate(webPage, doc -> {
       List<Element> sections = childElements(doc.getDocumentElement(), "section");
       checkSectionIdx(sections, sectionIdx);
@@ -298,6 +300,7 @@ public class MutateLayoutCommand {
       List<Element> widgets = childElements(colEl, "widget");
       checkWidgetIdx(widgets, widgetIdx, sectionIdx, columnIdx);
       Element widgetEl = widgets.get(widgetIdx);
+      validateWidgetPreferenceValues(widgetEl.getAttribute("name"), prefs);
       for (Map.Entry<String, String> e : prefs.entrySet()) {
         List<Element> existing = childElements(widgetEl, e.getKey());
         if (!existing.isEmpty()) {
@@ -454,6 +457,30 @@ public class MutateLayoutCommand {
   private static void validatePrefKey(String key) throws DataException {
     if (!PREF_KEY_PATTERN.matcher(key).matches()) {
       throw new DataException("Invalid preference key '" + key + "': must start with a letter and contain only alphanumeric characters");
+    }
+  }
+
+  /**
+   * Widget-specific value validation, layered on top of the generic key-allowlist in
+   * {@link #parsePrefsJson}. Most preference values are opaque strings this class has no business
+   * inspecting, but a few widgets store structured data whose shape/size matters for safe rendering
+   * downstream -- this is the boundary where that gets enforced, so no caller (addWidget,
+   * setWidgetPreferences, or anything added later) can persist it unchecked.
+   *
+   * <p>Called before any DOM mutation, so a rejected value never reaches {@code draftPageXml}.
+   *
+   * @param widgetName the widget's registered name (widget-library.xml {@code name} attribute)
+   * @param prefs      the preference key/value pairs about to be written
+   */
+  private static void validateWidgetPreferenceValues(String widgetName, Map<String, String> prefs)
+      throws DataException {
+    if (TableWidget.WIDGET_NAME.equals(widgetName) && prefs.containsKey("tableData")) {
+      String tableDataJson = prefs.get("tableData");
+      if (!TableWidget.isValidTableData(tableDataJson)) {
+        throw new DataException("Invalid table data: expected a JSON object with 'headers' and 'rows' arrays, "
+            + "at most " + TableWidget.MAX_ROWS + " rows, " + TableWidget.MAX_COLUMNS + " columns, and "
+            + TableWidget.MAX_CELL_LENGTH + " characters per header/cell");
+      }
     }
   }
 }

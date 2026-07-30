@@ -18,7 +18,10 @@ package com.simisinc.platform.presentation.widgets.admin.login;
 
 import org.apache.commons.lang3.StringUtils;
 
+import java.sql.Timestamp;
+
 import com.simisinc.platform.application.LoadUserCommand;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.login.StepUpAuthCommand;
 import com.simisinc.platform.domain.events.cms.UserPasswordResetEvent;
 import com.simisinc.platform.domain.model.Group;
@@ -73,9 +76,29 @@ public class UserDetailsWidget extends GenericWidget {
     // Show Last Login Record
     context.getRequest().setAttribute("userLogin", user.getLastLogin());
 
+    // Password-age warning tier (#492): "warning" past the configurable threshold, "critical" at
+    // 2x it (not separately configurable), "ok" otherwise. A never-tracked password (existing
+    // account predating this column) is treated as maximally stale, not silently skipped.
+    int maxAgeDays = UserRepository.resolvePasswordMaxAgeDays(LoadSitePropertyCommand.loadByName("password.maxAgeDays"));
+    context.getRequest().setAttribute("passwordAgeSeverity", passwordAgeSeverity(user.getLastPasswordChangedAt(), maxAgeDays));
+
     // Show the editor
     context.setJsp(JSP);
     return context;
+  }
+
+  private static String passwordAgeSeverity(Timestamp lastChanged, int maxAgeDays) {
+    if (lastChanged == null) {
+      return "critical";
+    }
+    long ageDays = (System.currentTimeMillis() - lastChanged.getTime()) / 86_400_000L;
+    if (ageDays > (long) maxAgeDays * 2) {
+      return "critical";
+    }
+    if (ageDays > maxAgeDays) {
+      return "warning";
+    }
+    return "ok";
   }
 
   public WidgetContext post(WidgetContext context) {
@@ -169,10 +192,11 @@ public class UserDetailsWidget extends GenericWidget {
       context.setErrorMessage("You cannot suspend your own account");
       return context;
     }
-    User result = UserRepository.suspendAccount(user);
+    String reason = context.getParameter("reason");
+    User result = UserRepository.suspendAccount(user, reason);
     AuditEventCommand.record(context, AuditEventCommand.USER_MANAGEMENT, "user.disable",
         result != null ? AuditEventCommand.SUCCESS : AuditEventCommand.FAILURE,
-        "user", String.valueOf(user.getId()), user.getEmail(), null);
+        "user", String.valueOf(user.getId()), user.getEmail(), reason);
     context.setSuccessMessage("Account suspended");
     return context;
   }

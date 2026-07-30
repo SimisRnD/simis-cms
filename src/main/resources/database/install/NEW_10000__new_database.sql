@@ -42,6 +42,8 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (24, 'Allow registrations?', 'site.registrations', 'false', 'boolean');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (26, 'Show login?', 'site.login', 'false', 'boolean');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (27, 'Require review approval before publishing content', 'content.review.required', 'false', 'boolean');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (28, 'Roles that must enrol in MFA (comma-separated)', 'mfa.required.roles', '', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (29, 'MFA enrollment URL', 'mfa.enrollment.url', '/my-profile', 'web-page');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (30, 'Header line 1', 'site.header.line1', '');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (31, 'Header link name', 'site.header.link', '');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (32, 'Header details page', 'site.header.page', '', 'web-page');
@@ -159,6 +161,7 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (6, 'Anonymize analytics IP addresses?', 'analytics.anonymizeIp', 'false', 'boolean');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (8, 'Analytics data retention (days)', 'analytics.retentionDays', '365');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (1, 'Audit log retention (days)', 'audit.retentionDays', '2555');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (2, 'Password Age Warning Threshold (days)', 'password.maxAgeDays', '90', 'text');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (11, 'Form submission failure retention (days)', 'formData.failureRetentionDays', '90');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (10, 'Analytics Service', 'analytics.service', 'google');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (7, 'Honor Do-Not-Track / Global Privacy Control?', 'analytics.honorDnt', 'false', 'boolean');
@@ -388,7 +391,9 @@ CREATE TABLE users (
   mfa_secret VARCHAR(64),
   mfa_enabled BOOLEAN DEFAULT false,
   failed_attempt_count INTEGER DEFAULT 0,
-  locked_until TIMESTAMP(3)
+  locked_until TIMESTAMP(3),
+  last_password_changed_at TIMESTAMP(3),
+  suspension_reason VARCHAR(255)
 );
 CREATE UNIQUE INDEX users_lc_email ON users (LOWER(email));
 CREATE UNIQUE INDEX users_lc_username ON users (LOWER(username));
