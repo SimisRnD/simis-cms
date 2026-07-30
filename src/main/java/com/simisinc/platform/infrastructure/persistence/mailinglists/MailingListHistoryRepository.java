@@ -45,7 +45,8 @@ public class MailingListHistoryRepository {
         .add("service", record.getService())
         .add("email_count", record.getEmailCount())
         .addIfExists("subject", record.getSubject())
-        .add("blog_post_id", record.getBlogPostId(), -1);
+        .add("blog_post_id", record.getBlogPostId(), -1)
+        .addIfExists("mailchimp_campaign_id", record.getMailchimpCampaignId());
     record.setId(DB.insertInto(connection, TABLE_NAME, insertValues, PRIMARY_KEY));
     if (record.getId() == -1) {
       LOG.error("An id was not set!");
@@ -75,6 +76,7 @@ public class MailingListHistoryRepository {
       record.setEmailCount(rs.getInt("email_count"));
       record.setSubject(rs.getString("subject"));
       record.setBlogPostId(DB.getLong(rs, "blog_post_id", -1));
+      record.setMailchimpCampaignId(rs.getString("mailchimp_campaign_id"));
       return record;
     } catch (SQLException se) {
       LOG.error("buildRecord", se);

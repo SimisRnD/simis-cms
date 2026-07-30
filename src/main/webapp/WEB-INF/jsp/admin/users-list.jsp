@@ -347,7 +347,7 @@
       <legend>Roles</legend>
       <c:forEach items="${roleList}" var="role">
         <c:choose>
-          <c:when test="${role.code eq 'admin' && !userSession.hasRole('admin')}"><%-- --%></c:when>
+          <c:when test="${role.level > actingRoleLevel}"><%-- --%></c:when>
           <c:otherwise>
             <input id="roleId${role.id}" type="checkbox" name="roleId${role.id}" value="${role.id}" /><label for="roleId${role.id}"><c:out value="${role.title}" /></label>
           </c:otherwise>

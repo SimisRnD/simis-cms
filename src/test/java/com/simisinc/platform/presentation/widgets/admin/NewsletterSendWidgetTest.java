@@ -91,12 +91,12 @@ class NewsletterSendWidgetTest extends WidgetBase {
         MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
       listRepo.when(() -> MailingListRepository.findById(1L)).thenReturn(mailingList);
       blogRepo.when(() -> BlogPostRepository.findById(2L)).thenReturn(blogPost);
-      sendCommand.when(() -> NewsletterSendCommand.enqueueBlogPostNotification(mailingList, blogPost, 1L))
+      sendCommand.when(() -> NewsletterSendCommand.sendBlogPostNotification(mailingList, blogPost, 1L))
           .thenReturn(42);
 
       WidgetContext result = new NewsletterSendWidget().post(widgetContext);
 
-      assertEquals("42 subscribers queued. Emails will go out shortly.", result.getSuccessMessage());
+      assertEquals("42 subscribers will be notified.", result.getSuccessMessage());
       assertEquals("/admin/newsletter-send", result.getRedirect());
       audit.verify(() -> AuditEventCommand.record(any(), eq(AuditEventCommand.CONTENT), eq("newsletter.enqueue"),
           eq(AuditEventCommand.SUCCESS), eq("mailing_list"), any(), any(), any()));
@@ -117,7 +117,7 @@ class NewsletterSendWidgetTest extends WidgetBase {
         MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
       listRepo.when(() -> MailingListRepository.findById(1L)).thenReturn(mailingList);
       blogRepo.when(() -> BlogPostRepository.findById(2L)).thenReturn(blogPost);
-      sendCommand.when(() -> NewsletterSendCommand.enqueueBlogPostNotification(mailingList, blogPost, 1L))
+      sendCommand.when(() -> NewsletterSendCommand.sendBlogPostNotification(mailingList, blogPost, 1L))
           .thenReturn(0);
 
       WidgetContext result = new NewsletterSendWidget().post(widgetContext);
@@ -140,7 +140,7 @@ class NewsletterSendWidgetTest extends WidgetBase {
       WidgetContext result = new NewsletterSendWidget().post(widgetContext);
 
       assertEquals("Choose a mailing list and a blog post", result.getWarningMessage());
-      sendCommand.verify(() -> NewsletterSendCommand.enqueueBlogPostNotification(any(), any(), anyLong()), never());
+      sendCommand.verify(() -> NewsletterSendCommand.sendBlogPostNotification(any(), any(), anyLong()), never());
     }
   }
 
@@ -158,7 +158,7 @@ class NewsletterSendWidgetTest extends WidgetBase {
 
       new NewsletterSendWidget().post(widgetContext);
 
-      sendCommand.verify(() -> NewsletterSendCommand.enqueueBlogPostNotification(any(), any(), anyLong()), never());
+      sendCommand.verify(() -> NewsletterSendCommand.sendBlogPostNotification(any(), any(), anyLong()), never());
     }
   }
 
@@ -176,12 +176,12 @@ class NewsletterSendWidgetTest extends WidgetBase {
         MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
       listRepo.when(() -> MailingListRepository.findById(1L)).thenReturn(mailingList);
       blogRepo.when(() -> BlogPostRepository.findById(2L)).thenReturn(blogPost);
-      sendCommand.when(() -> NewsletterSendCommand.enqueueBlogPostNotification(mailingList, blogPost, 1L))
+      sendCommand.when(() -> NewsletterSendCommand.sendBlogPostNotification(mailingList, blogPost, 1L))
           .thenReturn(5);
 
       WidgetContext result = new NewsletterSendWidget().post(widgetContext);
 
-      assertEquals("5 subscribers queued. Emails will go out shortly.", result.getSuccessMessage());
+      assertEquals("5 subscribers will be notified.", result.getSuccessMessage());
     }
   }
 }
