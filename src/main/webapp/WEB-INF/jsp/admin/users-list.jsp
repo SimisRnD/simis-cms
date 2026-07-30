@@ -25,6 +25,8 @@
 <jsp:useBean id="recordPagingUri" class="java.lang.String" scope="request"/>
 <jsp:useBean id="query" class="java.lang.String" scope="request"/>
 <jsp:useBean id="statusFilter" class="java.lang.String" scope="request"/>
+<jsp:useBean id="mfaFilter" class="java.lang.String" scope="request"/>
+<jsp:useBean id="agingPasswordFilter" class="java.lang.String" scope="request"/>
 <c:if test="${!empty title}">
   <h1><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h1>
 </c:if>
@@ -48,9 +50,21 @@
   <label for="statusFilter" class="show-for-sr">Status</label>
   <select id="statusFilter" name="statusFilter" class="float-left width-auto margin-right-10">
     <option value="any"<c:if test="${statusFilter eq 'any'}"> selected</c:if>>Any Status</option>
-    <option value="active"<c:if test="${statusFilter eq 'active'}"> selected</c:if>>Active List</option>
-    <option value="inactive"<c:if test="${statusFilter eq 'inactive'}"> selected</c:if>>Inactive List</option>
+    <option value="active"<c:if test="${statusFilter eq 'active'}"> selected</c:if>>Active</option>
+    <option value="suspended"<c:if test="${statusFilter eq 'suspended'}"> selected</c:if>>Suspended</option>
+    <option value="locked"<c:if test="${statusFilter eq 'locked'}"> selected</c:if>>Locked</option>
+    <option value="inactive"<c:if test="${statusFilter eq 'inactive'}"> selected</c:if>>Inactive (not yet verified)</option>
   </select>
+  <label for="mfaFilter" class="show-for-sr">MFA</label>
+  <select id="mfaFilter" name="mfaFilter" class="float-left width-auto margin-right-10">
+    <option value="any"<c:if test="${mfaFilter eq 'any'}"> selected</c:if>>Any MFA</option>
+    <option value="enabled"<c:if test="${mfaFilter eq 'enabled'}"> selected</c:if>>MFA Enabled</option>
+    <option value="disabled"<c:if test="${mfaFilter eq 'disabled'}"> selected</c:if>>MFA Not Enabled</option>
+  </select>
+  <label class="float-left width-auto margin-right-10" style="line-height: 2.4375rem;">
+    <input id="agingPasswordFilter" type="checkbox" name="agingPasswordFilter" value="1"<c:if test="${agingPasswordFilter eq '1'}"> checked</c:if> />
+    Aging passwords
+  </label>
   <div class="input-group no-gap width-auto">
     <input class="input-group-field" type="search" name="query" aria-label="Search users" placeholder="<c:if test="${empty query}">Search...</c:if>"<c:if test="${!empty query}"> value="<c:out value="${query}"/>"</c:if> autocomplete="off">
     <div class="input-group-button">
@@ -62,6 +76,12 @@
   document.getElementById("statusFilter").onchange = function() {
     document.getElementById("tableOptionsForm").submit();
   }
+  document.getElementById("mfaFilter").onchange = function() {
+    document.getElementById("tableOptionsForm").submit();
+  }
+  document.getElementById("agingPasswordFilter").onchange = function() {
+    document.getElementById("tableOptionsForm").submit();
+  }
 </script>
 <table class="unstriped">
   <thead>
@@ -69,7 +89,8 @@
       <th>Name</th>
       <th>Email</th>
       <th>Role</th>
-      <th width="60">Validated?</th>
+      <th width="90">Status</th>
+      <th width="50">MFA</th>
       <th width="200">Last Login</th>
     </tr>
   </thead>
@@ -90,9 +111,16 @@
       </td>
       <td class="text-center">
         <c:choose>
-          <c:when test="${!user.enabled}"><span class="label alert">Suspended</span></c:when>
-          <c:when test="${!empty user.validated}"><span class="label success">Yes</span></c:when>
-          <c:otherwise><span class="label warning">No</span></c:otherwise>
+          <c:when test="${user.accountStatus eq 'suspended'}"><span class="label alert" title="${fn:escapeXml(user.suspensionReason)}">Suspended</span></c:when>
+          <c:when test="${user.accountStatus eq 'locked'}"><span class="label warning">Locked</span></c:when>
+          <c:when test="${user.accountStatus eq 'inactive'}"><span class="label secondary">Inactive</span></c:when>
+          <c:otherwise><span class="label success">Active</span></c:otherwise>
+        </c:choose>
+      </td>
+      <td class="text-center">
+        <c:choose>
+          <c:when test="${user.mfaEnabled}"><span class="label round success" title="MFA enabled"><i class="fa fa-check"></i></span></c:when>
+          <c:otherwise><span class="label round secondary" title="MFA not enabled"><i class="fa fa-times"></i></span></c:otherwise>
         </c:choose>
       </td>
       <td class="text-center">
@@ -102,15 +130,14 @@
     </c:forEach>
     <c:if test="${empty userList}">
       <tr>
-        <td colspan="5">No users were found</td>
+        <td colspan="6">No users were found</td>
       </tr>
     </c:if>
   </tbody>
 </table>
 <%-- Paging Control --%>
-<c:if test="${!empty statusFilter}">
-  <c:set var="recordPagingParams" scope="request" value="statusFilter=${statusFilter}"/>
-</c:if>
+<c:set var="recordPagingParams" scope="request"
+       value="statusFilter=${statusFilter}&mfaFilter=${mfaFilter}&agingPasswordFilter=${agingPasswordFilter}"/>
 <%@include file="../paging_control.jspf" %>
 <%--<div class="reveal small" id="formReveal" data-reveal data-close-on-esc="false" data-close-on-click="false" data-animation-in="slide-in-down fast">--%>
 <div class="reveal small" id="formReveal" data-reveal data-close-on-click="false" data-animation-in="slide-in-down fast" role="dialog" aria-modal="true" aria-labelledby="userFormRevealTitle">
@@ -159,7 +186,7 @@
       <legend>Roles</legend>
       <c:forEach items="${roleList}" var="role">
         <c:choose>
-          <c:when test="${role.code eq 'admin' && !userSession.hasRole('admin')}"><%-- --%></c:when>
+          <c:when test="${role.level > actingRoleLevel}"><%-- --%></c:when>
           <c:otherwise>
             <input id="roleId${role.id}" type="checkbox" name="roleId${role.id}" value="${role.id}" /><label for="roleId${role.id}"><c:out value="${role.title}" /></label>
           </c:otherwise>

@@ -718,6 +718,14 @@
 <!--          <mapHeight>200</mapHeight>-->
         </widget>
       </column>
+      <column class="small-12 cell">
+        <widget name="siteStats" class="stats card">
+          <icon>fa-map-marker</icon>
+          <title>Locations List</title>
+          <report>locations-list</report>
+          <days>14</days>
+        </widget>
+      </column>
     </section>
     <section>
       <column class="small-12 medium-6 cell">
@@ -1310,6 +1318,24 @@
     </section>
   </page>
 
+  <page name="/admin/calendar-event{?calendarEventId}" role="admin,content-manager,community-manager" title="Calendar Event Details">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Calendars" value="/admin/calendars" />
+            <link name="Calendar Event Details" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="calendarEventForm" />
+      </column>
+    </section>
+  </page>
+
   <page name="/admin/folders" role="admin,content-manager,community-manager" title="Files and Folders">
     <!--<section>-->
       <!--<column class="small-12 cell">-->
@@ -1551,6 +1577,26 @@
     </section>
   </page>
 
+  <page name="/admin/role-capabilities" role="admin" title="Role Capabilities">
+    <section>
+      <column class="small-12 cell">
+        <widget name="roleCapabilitiesList">
+          <title>Role Capabilities</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/role-capabilities-form" role="admin" title="Edit Role Capabilities">
+    <section>
+      <column class="small-12 medium-8 large-6 cell">
+        <widget name="roleCapabilitiesForm">
+          <title>Edit Role Capabilities</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
   <page name="/admin/activity" role="admin,content-manager,community-manager,ecommerce-manager" title="Activity">
     <section>
       <column class="small-12 cell">
@@ -1598,6 +1644,17 @@
       <column class="small-12 cell">
         <widget name="auditLogList">
           <title>Security Audit Log</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/analytics-retention" role="admin" title="Analytics Retention">
+    <section>
+      <column class="small-12 cell">
+        <widget name="analyticsRetention">
+          <icon>fa-trash-can</icon>
+          <title>Analytics Retention</title>
         </widget>
       </column>
     </section>

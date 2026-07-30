@@ -18,6 +18,7 @@ package com.simisinc.platform.presentation.widgets.admin.login;
 
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.LoadUserCommand;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.admin.ProcessUserCSVFileCommand;
 import com.simisinc.platform.application.cms.UrlCommand;
 import com.simisinc.platform.application.register.SaveUserCommand;
@@ -57,8 +58,14 @@ public class UsersListWidget extends GenericWidget {
   static String JSP = "/admin/users-list.jsp";
 
   static final String STATUS_FILTER_ANY = "any";
-  static final String STATUS_FILTER_ACTIVE = "active";
-  static final String STATUS_FILTER_INACTIVE = "inactive";
+  static final String STATUS_FILTER_ACTIVE = User.STATUS_ACTIVE;
+  static final String STATUS_FILTER_SUSPENDED = User.STATUS_SUSPENDED;
+  static final String STATUS_FILTER_LOCKED = User.STATUS_LOCKED;
+  static final String STATUS_FILTER_INACTIVE = User.STATUS_INACTIVE;
+
+  static final String MFA_FILTER_ANY = "any";
+  static final String MFA_FILTER_ENABLED = "enabled";
+  static final String MFA_FILTER_DISABLED = "disabled";
 
   public WidgetContext execute(WidgetContext context) {
 
@@ -82,14 +89,21 @@ public class UsersListWidget extends GenericWidget {
     // Determine the filters
     String statusFilterValue = context.getParameter("statusFilter", STATUS_FILTER_ANY);
     String statusFilter = STATUS_FILTER_ANY;
-    if (StringUtils.isNotBlank(statusFilterValue)) {
-      if (STATUS_FILTER_ACTIVE.equals(statusFilterValue)) {
-        statusFilter = STATUS_FILTER_ACTIVE;
-      } else if (STATUS_FILTER_INACTIVE.equals(statusFilterValue)) {
-        statusFilter = STATUS_FILTER_INACTIVE;
-      }
+    if (STATUS_FILTER_ACTIVE.equals(statusFilterValue) || STATUS_FILTER_SUSPENDED.equals(statusFilterValue)
+        || STATUS_FILTER_LOCKED.equals(statusFilterValue) || STATUS_FILTER_INACTIVE.equals(statusFilterValue)) {
+      statusFilter = statusFilterValue;
     }
     context.getRequest().setAttribute("statusFilter", statusFilter);
+
+    String mfaFilterValue = context.getParameter("mfaFilter", MFA_FILTER_ANY);
+    String mfaFilter = (MFA_FILTER_ENABLED.equals(mfaFilterValue) || MFA_FILTER_DISABLED.equals(mfaFilterValue))
+        ? mfaFilterValue : MFA_FILTER_ANY;
+    context.getRequest().setAttribute("mfaFilter", mfaFilter);
+
+    // "1" is the only supported value today (a simple on/off toggle); the threshold itself comes
+    // from the configurable password.maxAgeDays site property, not a request parameter.
+    boolean agingPasswordFilter = "1".equals(context.getParameter("agingPasswordFilter"));
+    context.getRequest().setAttribute("agingPasswordFilter", agingPasswordFilter ? "1" : "");
 
     // Configure the paging uri
     String pagingUri = "";
@@ -99,6 +113,12 @@ public class UsersListWidget extends GenericWidget {
     if (StringUtils.isNotBlank(statusFilter)) {
       pagingUri = pagingUri + "&statusFilter=" + UrlCommand.encodeUri(statusFilter);
     }
+    if (StringUtils.isNotBlank(mfaFilter)) {
+      pagingUri = pagingUri + "&mfaFilter=" + UrlCommand.encodeUri(mfaFilter);
+    }
+    if (agingPasswordFilter) {
+      pagingUri = pagingUri + "&agingPasswordFilter=1";
+    }
     context.getRequest().setAttribute(RequestConstants.RECORD_PAGING_URI, pagingUri);
 
     // Determine criteria
@@ -106,12 +126,30 @@ public class UsersListWidget extends GenericWidget {
     if (StringUtils.isNotBlank(query)) {
       specification.setMatchesName(query);
     }
-    if (!STATUS_FILTER_ANY.equals(statusFilter)) {
-      if (STATUS_FILTER_ACTIVE.equals(statusFilter)) {
-        specification.setIsEnabled(true);
-      } else if (STATUS_FILTER_INACTIVE.equals(statusFilter)) {
-        specification.setIsEnabled(false);
-      }
+    // Each status bucket is the same compound condition User.getAccountStatus() derives from, so
+    // the filter always matches what the badge actually shows.
+    if (STATUS_FILTER_ACTIVE.equals(statusFilter)) {
+      specification.setIsEnabled(true);
+      specification.setIsLocked(false);
+      specification.setIsVerified(true);
+    } else if (STATUS_FILTER_SUSPENDED.equals(statusFilter)) {
+      specification.setIsEnabled(false);
+    } else if (STATUS_FILTER_LOCKED.equals(statusFilter)) {
+      specification.setIsEnabled(true);
+      specification.setIsLocked(true);
+    } else if (STATUS_FILTER_INACTIVE.equals(statusFilter)) {
+      specification.setIsEnabled(true);
+      specification.setIsLocked(false);
+      specification.setIsVerified(false);
+    }
+    if (MFA_FILTER_ENABLED.equals(mfaFilter)) {
+      specification.setIsMfaEnabled(true);
+    } else if (MFA_FILTER_DISABLED.equals(mfaFilter)) {
+      specification.setIsMfaEnabled(false);
+    }
+    if (agingPasswordFilter) {
+      int maxAgeDays = UserRepository.resolvePasswordMaxAgeDays(LoadSitePropertyCommand.loadByName("password.maxAgeDays"));
+      specification.setPasswordOlderThanDays(maxAgeDays);
     }
 
     // Load the users
@@ -126,9 +164,11 @@ public class UsersListWidget extends GenericWidget {
     context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));
     context.getRequest().setAttribute("title", context.getPreferences().get("title"));
 
-    // Set some form values
+    // Set some form values -- the New User form only offers roles the editor is allowed to grant
     List<Role> roleList = RoleRepository.findAll();
     context.getRequest().setAttribute("roleList", roleList);
+    context.getRequest().setAttribute("actingRoleLevel",
+        UserFormWidget.highestRoleLevel(context.getUserSession(), roleList != null ? roleList : new ArrayList<>()));
 
     // Set some form values
     List<Group> groupList = GroupRepository.findAll();
@@ -186,15 +226,24 @@ public class UsersListWidget extends GenericWidget {
       userBean.setUsername(userBean.getEmail());
     }
 
-    // Populate the roles
+    // Populate the roles -- an editor may only grant roles at or below their own highest role level,
+    // the same rule UserFormWidget.post() enforces when editing an existing user (see its
+    // highestRoleLevel() for details). This is a new user, so there is no prior role to preserve.
     List<Role> roleList = RoleRepository.findAll();
     if (roleList != null) {
+      int actingLevel = UserFormWidget.highestRoleLevel(context.getUserSession(), roleList);
       List<Role> userRoleList = new ArrayList<>();
       for (Role role : roleList) {
         String roleValue = context.getParameter("roleId" + role.getId());
-        if (roleValue != null && roleValue.equals(String.valueOf(role.getId()))) {
+        if (roleValue == null || !roleValue.equals(String.valueOf(role.getId()))) {
+          continue;
+        }
+        if (role.getLevel() <= actingLevel) {
           LOG.debug("Adding user to role: " + role.getCode());
           userRoleList.add(role);
+        } else {
+          LOG.warn("Blocked role escalation: user " + context.getUserId() + " (level " + actingLevel
+              + ") attempted to grant '" + role.getCode() + "' (level " + role.getLevel() + ") to a new user");
         }
       }
       userBean.setRoleList(userRoleList);
