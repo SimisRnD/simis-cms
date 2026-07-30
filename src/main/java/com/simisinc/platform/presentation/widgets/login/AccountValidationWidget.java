@@ -24,6 +24,7 @@ import com.simisinc.platform.domain.events.cms.UserRegisteredEvent;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.infrastructure.persistence.UserRepository;
 import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
+import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 
@@ -121,16 +122,27 @@ public class AccountValidationWidget extends GenericWidget {
         return context;
       }
 
+      // Capture before either update mutates state, so the audit event below reflects what this
+      // completion actually was: a first-time activation, or a returning user's password reset.
+      boolean wasNotValidated = (user.getValidated() == null);
+
       // Hash the password
       user.setPassword(UserPasswordCommand.hash(password));
       UserRepository.updatePassword(user);
 
       // Make an update
-      if (user.getValidated() == null) {
+      if (wasNotValidated) {
         UserRepository.updateValidated(user);
         LOG.debug("User was validated... " + user.getEmail());
         // Trigger Events
         WorkflowManager.triggerWorkflowForEvent(new UserRegisteredEvent(user, context.getRequest().getRemoteAddr()));
+        AuditEventCommand.record(context, AuditEventCommand.USER_MANAGEMENT, "user.registered",
+            AuditEventCommand.SUCCESS, "user", String.valueOf(user.getId()), user.getEmail(), "self-service");
+      } else {
+        // #492: closes the gap where only the admin's *request* to reset a password was audited,
+        // never the user's completion of it (self-service ForgotPasswordWidget flow).
+        AuditEventCommand.record(context, AuditEventCommand.USER_MANAGEMENT, "user.password.reset.completed",
+            AuditEventCommand.SUCCESS, "user", String.valueOf(user.getId()), user.getEmail(), "self-service");
       }
     }
 

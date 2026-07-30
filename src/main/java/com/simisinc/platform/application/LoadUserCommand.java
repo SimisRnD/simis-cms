@@ -16,9 +16,11 @@
 
 package com.simisinc.platform.application;
 
+import com.simisinc.platform.domain.model.Capability;
 import com.simisinc.platform.domain.model.Group;
 import com.simisinc.platform.domain.model.Role;
 import com.simisinc.platform.domain.model.User;
+import com.simisinc.platform.infrastructure.persistence.CapabilityRepository;
 import com.simisinc.platform.infrastructure.persistence.GroupRepository;
 import com.simisinc.platform.infrastructure.persistence.RoleRepository;
 import com.simisinc.platform.infrastructure.persistence.UserRepository;
@@ -76,6 +78,9 @@ public class LoadUserCommand {
     // Get the list of roles the user has
     List<Role> roleList = RoleRepository.findAllByUserId(user.getId());
     user.setRoleList(roleList);
+    // Get the capabilities granted by those roles (issue #701 walking skeleton)
+    List<Capability> capabilityList = CapabilityRepository.findAllByUserId(user.getId());
+    user.setCapabilityList(capabilityList);
     // Get the list of user groups the user belongs to
     List<Group> groupList = GroupRepository.findAllByUserId(user.getId());
     user.setGroupList(groupList);
