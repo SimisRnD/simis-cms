@@ -22,7 +22,10 @@
 <script src="${ctx}/javascript/spectrum-1.8.1/spectrum.js"></script>
 <c:choose>
   <c:when test="${calendar.id eq -1}"><h4>New Calendar</h4></c:when>
-  <c:otherwise><h4>Update Calendar</h4></c:otherwise>
+  <c:otherwise>
+    <h4>Update Calendar</h4>
+    <a class="button small radius primary" href="${ctx}/admin/calendar-event?calendarId=${calendar.id}&returnPage=/admin/calendar?calendarId=${calendar.id}">Add Event <i class="fa fa-arrow-circle-right"></i></a>
+  </c:otherwise>
 </c:choose>
 <form method="post">
   <%-- Required by controller --%>
