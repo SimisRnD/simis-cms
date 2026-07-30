@@ -72,6 +72,7 @@ public class CalendarSearchResultsWidget extends GenericWidget {
 
     // Search the calendar events
     CalendarEventSpecification eventSpecification = new CalendarEventSpecification();
+    eventSpecification.setPublishedOnly(true);
     eventSpecification.setSearchTerm(query);
     eventSpecification.setStartingDateRange(Timestamp.valueOf(zdtStart.toLocalDateTime()));
     List<CalendarEvent> calendarEventList = CalendarEventRepository.findAll(eventSpecification, constraints);
