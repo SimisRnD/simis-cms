@@ -110,7 +110,8 @@ CREATE TABLE mailing_list_history (
   service VARCHAR(20),
   email_count INTEGER DEFAULT 0,
   subject VARCHAR(255),
-  blog_post_id BIGINT REFERENCES blog_posts(post_id)
+  blog_post_id BIGINT REFERENCES blog_posts(post_id),
+  mailchimp_campaign_id VARCHAR(50)
 );
 CREATE INDEX mail_lis_his_lid_idx ON mailing_list_history(list_id);
 CREATE INDEX mail_lis_his_cre_idx ON mailing_list_history(created);
