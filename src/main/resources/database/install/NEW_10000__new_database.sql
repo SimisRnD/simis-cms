@@ -587,7 +587,7 @@ CREATE TABLE audit_log_watermark (
 );
 
 -- Issue #492 Phase 3: maker-checker approval for unsuspending elevated-role accounts (mirrored by
--- UPGRADE_20260730.1000 for existing installs). No foreign key on target_user_id/requested_by/
+-- UPGRADE_20260730.1001 for existing installs). No foreign key on target_user_id/requested_by/
 -- decided_by, matching audit_log's own precedent above -- a request row is a governance/audit
 -- record and must survive the deletion of any user it references, not block it. The partial
 -- unique index enforces "at most one pending request per target" at the database level.
