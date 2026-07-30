@@ -17,6 +17,7 @@
 package com.simisinc.platform.presentation.controller;
 
 import static com.simisinc.platform.application.cms.HostnameCommand.HOSTNAME_ALLOW_LIST;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -336,6 +337,101 @@ class WebRequestFilterTest {
 
       logout.verify(() -> LogoutCommand.logout(request, response));
       verify(response).setHeader("Location", "/login");
+      verify(chain, never()).doFilter(request, response);
+    }
+  }
+
+  // --- /logout CSRF token check (GH-359) ---
+  // MenuWidget renders the "Log Out" link (see MenuWidgetTest) with "?token=" + the session's
+  // formToken; these prove the filter side of that contract: the exact link the page now renders
+  // actually logs the user out, and a request missing/forging that token does not.
+
+  private HttpServletRequest logoutRequest(HttpSession session, String token) {
+    ServletContext servletContext = mock(ServletContext.class);
+    when(servletContext.getContextPath()).thenReturn("");
+
+    HttpServletRequest request = mock(HttpServletRequest.class);
+    when(request.getScheme()).thenReturn("http");
+    when(request.getMethod()).thenReturn("GET");
+    when(request.getServletContext()).thenReturn(servletContext);
+    when(request.getRequestURI()).thenReturn("/logout");
+    when(request.getRemoteAddr()).thenReturn("203.0.113.9");
+    when(request.getServerName()).thenReturn("www.example.com");
+    when(request.getRequestURL()).thenReturn(new StringBuffer("http://www.example.com/logout"));
+    when(request.getSession(false)).thenReturn(session);
+    when(request.getParameter("token")).thenReturn(token);
+    when(request.getHeaderNames()).thenReturn(Collections.emptyEnumeration());
+    return request;
+  }
+
+  @Test
+  void logoutWithTheTokenTheRenderedLinkCarriesActuallyInvalidatesTheSession() throws Exception {
+    User user = new User();
+    user.setId(30L);
+    UserSession userSession = new UserSession();
+    userSession.login(user);
+    // This is exactly what MenuWidget now appends to the rendered "Log Out" link
+    String renderedToken = userSession.getFormToken();
+
+    HttpSession session = mock(HttpSession.class);
+    when(session.getAttribute(SessionConstants.USER)).thenReturn(userSession);
+
+    HttpServletRequest request = logoutRequest(session, renderedToken);
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    FilterChain chain = mock(FilterChain.class);
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProperties = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<LoadRedirectsCommand> redirects = mockStatic(LoadRedirectsCommand.class);
+        MockedStatic<LoadBlockedIPListCommand> blockedIPList = mockStatic(LoadBlockedIPListCommand.class);
+        MockedStatic<BlockedIPListCommand> blockedIPs = mockStatic(BlockedIPListCommand.class);
+        MockedStatic<OAuthRequestCommand> oauth = mockStatic(OAuthRequestCommand.class);
+        MockedStatic<LogoutCommand> logout = mockStatic(LogoutCommand.class)) {
+
+      redirects.when(LoadRedirectsCommand::load).thenReturn(null);
+      blockedIPs.when(() -> BlockedIPListCommand.passesCheck(anyString(), anyString())).thenReturn(true);
+      // Force an early return right after the logout call (the SSL redirect below it) so this
+      // test doesn't have to stub the rest of the per-request pipeline (cookies, visitor
+      // tracking, etc.) that has nothing to do with the CSRF token check being verified here.
+      siteProperties.when(() -> LoadSitePropertyCommand.loadByName("site.url")).thenReturn(SITE_URL);
+
+      WebRequestFilter filter = filterRequiringSSL(siteProperties);
+      filter.doFilter(request, response, chain);
+
+      logout.verify(() -> LogoutCommand.logout(request, response));
+    }
+  }
+
+  @Test
+  void logoutWithAMissingOrWrongTokenDoesNotInvalidateTheSession() throws Exception {
+    // The behavior this whole check exists to prevent: a forged/tokenless /logout (the CSRF
+    // attack GH-359 fixed) must NOT log the user out -- it should just bounce to "/" and leave
+    // the session alone.
+    User user = new User();
+    user.setId(31L);
+    UserSession userSession = new UserSession();
+    userSession.login(user);
+
+    HttpSession session = mock(HttpSession.class);
+    when(session.getAttribute(SessionConstants.USER)).thenReturn(userSession);
+
+    HttpServletRequest request = logoutRequest(session, null);
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    FilterChain chain = mock(FilterChain.class);
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProperties = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<LoadRedirectsCommand> redirects = mockStatic(LoadRedirectsCommand.class);
+        MockedStatic<LoadBlockedIPListCommand> blockedIPList = mockStatic(LoadBlockedIPListCommand.class);
+        MockedStatic<BlockedIPListCommand> blockedIPs = mockStatic(BlockedIPListCommand.class);
+        MockedStatic<LogoutCommand> logout = mockStatic(LogoutCommand.class)) {
+
+      redirects.when(LoadRedirectsCommand::load).thenReturn(null);
+      blockedIPs.when(() -> BlockedIPListCommand.passesCheck(anyString(), anyString())).thenReturn(true);
+
+      WebRequestFilter filter = filterWithoutSSL(siteProperties);
+      filter.doFilter(request, response, chain);
+
+      logout.verify(() -> LogoutCommand.logout(any(), any()), never());
+      verify(response).setHeader("Location", "/");
       verify(chain, never()).doFilter(request, response);
     }
   }
