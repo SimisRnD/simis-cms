@@ -18,6 +18,7 @@ package com.simisinc.platform.presentation.widgets.cms;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.simisinc.platform.application.cms.EditorPermissionCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import org.apache.commons.logging.Log;
@@ -88,8 +89,11 @@ public class TableWidget extends GenericWidget {
 
   public WidgetContext execute(WidgetContext context) {
 
-    // Check if in edit mode
-    boolean isEditMode = "true".equals(context.getPreferences().get("editMode"));
+    // Check if in edit mode -- the layout preference alone is not sufficient, since a stored page
+    // could carry editMode=true and would otherwise serve the editable toolbar to any visitor,
+    // including anonymous ones. Match every other content widget's gate (see ContentWidget).
+    boolean isEditMode = "true".equals(context.getPreferences().get("editMode")) &&
+        EditorPermissionCommand.canEditContent(context.getUserSession());
 
     try {
       // Parse table data from content or create default
