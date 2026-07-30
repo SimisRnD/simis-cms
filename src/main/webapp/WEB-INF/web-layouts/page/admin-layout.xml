@@ -718,6 +718,14 @@
 <!--          <mapHeight>200</mapHeight>-->
         </widget>
       </column>
+      <column class="small-12 cell">
+        <widget name="siteStats" class="stats card">
+          <icon>fa-map-marker</icon>
+          <title>Locations List</title>
+          <report>locations-list</report>
+          <days>14</days>
+        </widget>
+      </column>
     </section>
     <section>
       <column class="small-12 medium-6 cell">
@@ -1598,6 +1606,17 @@
       <column class="small-12 cell">
         <widget name="auditLogList">
           <title>Security Audit Log</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/analytics-retention" role="admin" title="Analytics Retention">
+    <section>
+      <column class="small-12 cell">
+        <widget name="analyticsRetention">
+          <icon>fa-trash-can</icon>
+          <title>Analytics Retention</title>
         </widget>
       </column>
     </section>
