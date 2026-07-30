@@ -73,6 +73,29 @@ public class CapabilityRepository {
     return null;
   }
 
+  /**
+   * All capabilities granted directly to a role (role_capabilities), for editing/diffing - not
+   * to be confused with findAllByUserId, which resolves through a user's roles.
+   */
+  public static List<Capability> findAllByRoleId(long roleId) {
+    if (roleId == -1) {
+      return null;
+    }
+    SqlUtils where = new SqlUtils()
+        .add("EXISTS (" +
+            "SELECT 1 FROM role_capabilities rc " +
+            "WHERE rc.capability_id = capabilities.capability_id AND rc.role_id = ?)", roleId);
+    DataResult result = DB.selectAllFrom(
+        TABLE_NAME,
+        where,
+        new DataConstraints().setDefaultColumnToSortBy("code").setUseCount(false),
+        CapabilityRepository::buildRecord);
+    if (result.hasRecords()) {
+      return (List<Capability>) result.getRecords();
+    }
+    return null;
+  }
+
   public static List<Capability> findAll() {
     DataResult result = DB.selectAllFrom(
         TABLE_NAME,
