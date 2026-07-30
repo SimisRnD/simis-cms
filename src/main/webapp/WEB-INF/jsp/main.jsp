@@ -335,7 +335,6 @@
   <c:if test="${pageEditMode eq 'true'}">
     <link rel="stylesheet" type="text/css" href="${ctx}/css/platform-editor.css?v=<%= VERSION %>" />
     <link rel="stylesheet" type="text/css" href="${ctx}/css/quill-2.0.3-snow.css" />
-    <link rel="stylesheet" type="text/css" href="${ctx}/css/overlay-editor-pane.css" />
   </c:if>
   <c:if test="${!empty pageCollection}">
     <style>
@@ -883,7 +882,6 @@
   <c:if test="${pageEditMode eq 'true'}">
     <script src="${ctx}/javascript/quill-2.0.3/quill.js"></script>
     <script src="${ctx}/javascript/platform-editor.js?v=<%= VERSION %>"></script>
-    <script src="${ctx}/javascript/overlay-editor-pane.js"></script>
     <%@include file="visual-editor/media-library-panel.jsp" %>
   </c:if>
 </body>
