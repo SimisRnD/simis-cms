@@ -365,6 +365,45 @@ class SiteStatsWidgetTest extends WidgetBase {
   }
 
   @Test
+  void executeExpiringSoon() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\">\n" +
+            "  <title>Expiring Soon</title>\n" +
+            "  <report>expiring-soon</report>\n" +
+            "</widget>");
+
+    try (MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class)) {
+      webPageRepository.when(WebPageRepository::countExpiringSoon).thenReturn(2L);
+
+      setRoles(widgetContext, ADMIN);
+      new SiteStatsWidget().execute(widgetContext);
+    }
+
+    Assertions.assertEquals(SiteStatsWidget.ALERT_CARD_JSP, widgetContext.getJsp());
+    Assertions.assertEquals("2", request.getAttribute("numberValue"));
+    Assertions.assertEquals("warning", request.getAttribute("severity"));
+  }
+
+  @Test
+  void executeExpiringSoonIsOkWhenNoneAreExpiring() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\">\n" +
+            "  <title>Expiring Soon</title>\n" +
+            "  <report>expiring-soon</report>\n" +
+            "</widget>");
+
+    try (MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class)) {
+      webPageRepository.when(WebPageRepository::countExpiringSoon).thenReturn(0L);
+
+      setRoles(widgetContext, ADMIN);
+      new SiteStatsWidget().execute(widgetContext);
+    }
+
+    Assertions.assertEquals("0", request.getAttribute("numberValue"));
+    Assertions.assertEquals("ok", request.getAttribute("severity"));
+  }
+
+  @Test
   void executeSubmissionsAwaitingReview() {
     addPreferencesFromWidgetXml(widgetContext,
         "<widget name=\"siteStats\">\n" +

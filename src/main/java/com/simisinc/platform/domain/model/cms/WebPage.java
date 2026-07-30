@@ -284,4 +284,20 @@ public class WebPage extends Entity {
   public void setExpiresAt(Timestamp expiresAt) {
     this.expiresAt = expiresAt;
   }
+
+  /**
+   * True when this page has a publishAt date set in the future (matches the "not yet live"
+   * semantics used by WebPageRepository.countScheduledNotYetLive())
+   */
+  public boolean isScheduled() {
+    return publishAt != null && publishAt.getTime() > System.currentTimeMillis();
+  }
+
+  /**
+   * True when this page has an expiresAt date set in the future (matches the "not yet happened"
+   * semantics used by WebPageRepository.countExpiringSoon())
+   */
+  public boolean isExpiringSoon() {
+    return expiresAt != null && expiresAt.getTime() > System.currentTimeMillis();
+  }
 }
