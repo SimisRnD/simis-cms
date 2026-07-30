@@ -33,6 +33,7 @@ import com.simisinc.platform.application.cms.NumberCommand;
 import org.apache.commons.lang3.StringUtils;
 
 import java.lang.reflect.InvocationTargetException;
+import java.sql.Timestamp;
 import java.util.List;
 
 /**
@@ -103,6 +104,13 @@ public class CalendarWidget extends GenericWidget {
     // Populate the fields
     CalendarEvent calendarEventBean = new CalendarEvent();
     BeanUtils.populate(calendarEventBean, context.getParameterMap());
+    String enabled = context.getParameter("enabled");
+    boolean isPublished = StringUtils.isNotBlank(enabled);
+    if (isPublished) {
+      calendarEventBean.setPublished(new Timestamp(System.currentTimeMillis()));
+    } else {
+      calendarEventBean.setPublished(null);
+    }
     calendarEventBean.setCreatedBy(context.getUserId());
     calendarEventBean.setModifiedBy(context.getUserId());
 

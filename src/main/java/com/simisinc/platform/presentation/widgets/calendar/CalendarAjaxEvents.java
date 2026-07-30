@@ -42,7 +42,8 @@ public class CalendarAjaxEvents {
 
   private static Log LOG = LogFactory.getLog(CalendarAjaxEvents.class);
 
-  protected static void addCalendarEvents(long userId, String calendarUniqueId, Date startDate, Date endDate, StringBuilder sb) {
+  protected static void addCalendarEvents(long userId, String calendarUniqueId, Date startDate, Date endDate, StringBuilder sb,
+      boolean publishedOnly) {
 
     // Determine which calendar(s) to show
     List<Calendar> calendarList = CalendarRepository.findAll();
@@ -58,6 +59,9 @@ public class CalendarAjaxEvents {
 
     // Load the events
     CalendarEventSpecification specification = new CalendarEventSpecification();
+    if (publishedOnly) {
+      specification.setPublishedOnly(true);
+    }
     if (calendarId > -1) {
       specification.setCalendarId(calendarId);
     }
