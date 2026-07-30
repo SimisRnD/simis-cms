@@ -125,10 +125,22 @@
   function deactivateQuill(keepChanges) {
     if (!activeQuill) return;
     var container = activeQuill.container && activeQuill.container.closest('.sc-quill-editor-container');
-    if (!keepChanges && quillContentEl) {
+    // Always restore visibility -- keepChanges only reflects whether the caller already wrote
+    // new content into quillContentEl (save) or left it untouched (discard); either way the
+    // editor session is ending and the underlying element must reappear.
+    if (quillContentEl) {
       quillContentEl.style.display = '';
     }
-    if (container && container.parentNode) container.parentNode.removeChild(container);
+    if (container) {
+      // Quill auto-creates its own .ql-toolbar as container's previous sibling when the
+      // toolbar module is configured as an array rather than a container element; it isn't
+      // inside container, so removing container alone leaves it orphaned in the page.
+      var toolbarEl = container.previousElementSibling;
+      if (toolbarEl && toolbarEl.classList.contains('ql-toolbar') && toolbarEl.parentNode) {
+        toolbarEl.parentNode.removeChild(toolbarEl);
+      }
+      if (container.parentNode) container.parentNode.removeChild(container);
+    }
     if (quillActionsBar && quillActionsBar.parentNode) quillActionsBar.parentNode.removeChild(quillActionsBar);
     if (quillHost) quillHost.classList.remove('sc-quill-editing');
     activeQuill = null;
