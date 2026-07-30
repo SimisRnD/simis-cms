@@ -50,7 +50,8 @@ class TableWidgetTest extends WidgetBase {
   }
 
   @Test
-  void executeInEditModeSelectsTheEditJsp() {
+  void executeInEditModeSelectsTheEditJspForAUserWithEditPermission() {
+    setRoles(widgetContext, CONTENT_MANAGER);
     preferences.put("editMode", "true");
     preferences.put("tableData", "{\"headers\": [\"A\"], \"rows\": [[\"1\"]]}");
 
@@ -58,6 +59,32 @@ class TableWidgetTest extends WidgetBase {
 
     assertEquals(TableWidget.EDIT_JSP, result.getJsp());
     assertEquals("true", result.getRequest().getAttribute("isEditMode"));
+  }
+
+  @Test
+  void executeIgnoresTheEditModePreferenceForAUserWithoutEditPermission() {
+    // The default logged-in test user (see WidgetBase.login) has no roles at all -- the layout
+    // preference alone must not be sufficient to serve the editable toolbar, or any visitor to a
+    // page with editMode=true stored in its layout would get it, including anonymous ones.
+    preferences.put("editMode", "true");
+    preferences.put("tableData", "{\"headers\": [\"A\"], \"rows\": [[\"1\"]]}");
+
+    WidgetContext result = new TableWidget().execute(widgetContext);
+
+    assertEquals(TableWidget.JSP, result.getJsp(), "without edit permission, editMode=true must still render the read-only JSP");
+    assertEquals("false", result.getRequest().getAttribute("isEditMode"));
+  }
+
+  @Test
+  void executeIgnoresTheEditModePreferenceWhenNotLoggedIn() {
+    logout(widgetContext);
+    preferences.put("editMode", "true");
+    preferences.put("tableData", "{\"headers\": [\"A\"], \"rows\": [[\"1\"]]}");
+
+    WidgetContext result = new TableWidget().execute(widgetContext);
+
+    assertEquals(TableWidget.JSP, result.getJsp());
+    assertEquals("false", result.getRequest().getAttribute("isEditMode"));
   }
 
   @Test
