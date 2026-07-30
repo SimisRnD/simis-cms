@@ -460,7 +460,10 @@ public class PageServlet extends HttpServlet {
         }
         try {
           long itemId = Long.parseLong(request.getParameter("itemId"));
-          int newOrder = Integer.parseInt(request.getParameter("newOrder"));
+          // newOrder is validated here (fails fast with 400 on non-numeric input, matching the
+          // pre-existing request contract) but is intentionally not persisted below -- see the
+          // NOT_IMPLEMENTED response for why.
+          Integer.parseInt(request.getParameter("newOrder"));
           Item item = ItemRepository.findById(itemId);
           if (item == null) {
             response.setContentType("application/json");
@@ -468,8 +471,14 @@ public class PageServlet extends HttpServlet {
             response.getWriter().print("{\"success\":false,\"error\":\"Item not found\"}");
             return;
           }
+          // Items have no stored order/position: the items table (and the Item domain model /
+          // ItemRepository backing it) has no order column, unlike e.g. mailing_lists.list_order
+          // or menu_items.item_order. Adding one is a schema change (new column + migration) that
+          // this fix does not make unilaterally, so report the gap honestly instead of lying about
+          // success -- mirrors MediaApiController#handleUpload's "not yet implemented" response.
           response.setContentType("application/json");
-          response.getWriter().print("{\"success\":true,\"message\":\"Item reordered\"}");
+          response.setStatus(HttpServletResponse.SC_NOT_IMPLEMENTED);
+          response.getWriter().print("{\"success\":false,\"error\":\"Reordering items is not implemented: items have no stored order\"}");
         } catch (Exception e) {
           response.setContentType("application/json");
           response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
