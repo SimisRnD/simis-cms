@@ -196,13 +196,13 @@ public class BlogEditorWidget extends GenericWidget {
       MailingList mailingList = mailingListId > -1 ? MailingListRepository.findById(mailingListId) : null;
       if (mailingList != null) {
         try {
-          int queuedCount = NewsletterSendCommand.enqueueBlogPostNotification(mailingList, blogPost, context.getUserId());
+          int recipientCount = NewsletterSendCommand.sendBlogPostNotification(mailingList, blogPost, context.getUserId());
           AuditEventCommand.record(context, AuditEventCommand.CONTENT, "newsletter.enqueue", AuditEventCommand.SUCCESS,
               "mailing_list", String.valueOf(mailingList.getId()), mailingList.getName(),
-              queuedCount + " recipient(s) queued for \"" + blogPost.getTitle() + "\"");
-          notifiedSuffix = queuedCount == 0
+              recipientCount + " recipient(s) for \"" + blogPost.getTitle() + "\"");
+          notifiedSuffix = recipientCount == 0
               ? " No active subscribers were found on that list."
-              : " " + queuedCount + " subscriber" + (queuedCount == 1 ? "" : "s") + " will be notified.";
+              : " " + recipientCount + " subscriber" + (recipientCount == 1 ? "" : "s") + " will be notified.";
         } catch (DataException e) {
           AuditEventCommand.record(context, AuditEventCommand.CONTENT, "newsletter.enqueue", AuditEventCommand.FAILURE,
               "mailing_list", String.valueOf(mailingList.getId()), mailingList.getName(), e.getMessage());

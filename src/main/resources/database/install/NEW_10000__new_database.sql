@@ -161,6 +161,7 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (6, 'Anonymize analytics IP addresses?', 'analytics.anonymizeIp', 'false', 'boolean');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (8, 'Analytics data retention (days)', 'analytics.retentionDays', '365');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (1, 'Audit log retention (days)', 'audit.retentionDays', '2555');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (2, 'Password Age Warning Threshold (days)', 'password.maxAgeDays', '90', 'text');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (11, 'Form submission failure retention (days)', 'formData.failureRetentionDays', '90');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (10, 'Analytics Service', 'analytics.service', 'google');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (7, 'Honor Do-Not-Track / Global Privacy Control?', 'analytics.honorDnt', 'false', 'boolean');
@@ -285,6 +286,75 @@ INSERT INTO lookup_role (level, code, title) VALUES (93, 'data-manager', 'Data M
 INSERT INTO lookup_role (level, code, title) VALUES (95, 'ecommerce-manager', 'E-commerce Manager');
 INSERT INTO lookup_role (level, code, title) VALUES (100, 'admin', 'System Administrator');
 
+CREATE TABLE capabilities (
+  capability_id BIGSERIAL PRIMARY KEY,
+  code VARCHAR(100) UNIQUE NOT NULL,
+  category VARCHAR(50),
+  description VARCHAR(500),
+  created TIMESTAMP DEFAULT NOW()
+);
+
+CREATE TABLE role_capabilities (
+  role_id INTEGER NOT NULL REFERENCES lookup_role (role_id),
+  capability_id BIGINT NOT NULL REFERENCES capabilities (capability_id),
+  PRIMARY KEY (role_id, capability_id)
+);
+
+CREATE INDEX idx_role_capabilities_capability_id ON role_capabilities (capability_id);
+
+-- Seeded mechanically from the existing hasRole()/hasRole()-OR-chain survey (issue #701) --
+-- one capability per (module, verb) actually observed, mapped onto the role(s) that already --
+-- pass that check today. This is a read model over the status quo, not a policy change: no --
+-- role gains or loses access to anything as a result of this migration.
+--
+-- Note: 'content-editor' is not referenced by any hasRole() call site yet, so there is no
+-- observed behavior to derive a capability set from. Seeding it here would invent access it
+-- doesn't currently grant.
+
+INSERT INTO capabilities (code, category, description) VALUES
+  ('content:manage', 'content', 'Create, edit, and publish web pages, blog posts, and wiki content'),
+  ('community:manage', 'community', 'Manage mailing lists, users, and community/forum content'),
+  ('data:manage', 'data', 'Manage structured data items and collections'),
+  ('ecommerce:manage', 'ecommerce', 'Manage products and orders'),
+  ('admin:manage', 'admin', 'Full administrative access to all site settings and configuration');
+
+-- admin: the existing "admin OR X" pattern found at every one of the 191 hasRole() call sites
+-- means admin implicitly has every capability - expressed here as explicit rows so the table
+-- stays a complete, queryable matrix (nothing is implied at query time).
+INSERT INTO role_capabilities (role_id, capability_id)
+SELECT lr.role_id, c.capability_id
+FROM lookup_role lr, capabilities c
+WHERE lr.code = 'admin';
+
+INSERT INTO role_capabilities (role_id, capability_id)
+SELECT lr.role_id, c.capability_id
+FROM lookup_role lr, capabilities c
+WHERE lr.code = 'content-manager' AND c.code = 'content:manage';
+
+INSERT INTO role_capabilities (role_id, capability_id)
+SELECT lr.role_id, c.capability_id
+FROM lookup_role lr, capabilities c
+WHERE lr.code = 'community-manager' AND c.code = 'community:manage';
+
+INSERT INTO role_capabilities (role_id, capability_id)
+SELECT lr.role_id, c.capability_id
+FROM lookup_role lr, capabilities c
+WHERE lr.code = 'data-manager' AND c.code = 'data:manage';
+
+INSERT INTO role_capabilities (role_id, capability_id)
+SELECT lr.role_id, c.capability_id
+FROM lookup_role lr, capabilities c
+WHERE lr.code = 'ecommerce-manager' AND c.code = 'ecommerce:manage';
+
+-- The wiki widget's 3-way admin/content-manager/community-manager OR-check (issue #701 survey)
+-- means content-manager and community-manager both also need content:manage's wiki slice.
+-- Kept coarse (whole content:manage) rather than splitting out a wiki-only capability in this
+-- walking-skeleton PR - narrowing that is future work once a widget actually needs it.
+INSERT INTO role_capabilities (role_id, capability_id)
+SELECT lr.role_id, c.capability_id
+FROM lookup_role lr, capabilities c
+WHERE lr.code = 'community-manager' AND c.code = 'content:manage';
+
 CREATE TABLE users (
   user_id BIGSERIAL PRIMARY KEY,
   unique_id VARCHAR(255) UNIQUE NOT NULL,
@@ -321,7 +391,9 @@ CREATE TABLE users (
   mfa_secret VARCHAR(64),
   mfa_enabled BOOLEAN DEFAULT false,
   failed_attempt_count INTEGER DEFAULT 0,
-  locked_until TIMESTAMP(3)
+  locked_until TIMESTAMP(3),
+  last_password_changed_at TIMESTAMP(3),
+  suspension_reason VARCHAR(255)
 );
 CREATE UNIQUE INDEX users_lc_email ON users (LOWER(email));
 CREATE UNIQUE INDEX users_lc_username ON users (LOWER(username));
@@ -338,6 +410,33 @@ CREATE TABLE user_roles (
 );
 CREATE INDEX user_roles_rol_idx ON user_roles(role_id);
 CREATE INDEX user_roles_usr_idx ON user_roles(user_id);
+
+-- Direct, individually-trackable capability grants (issue #702) - independent of role_capabilities.
+-- A user can hold a capability two ways: through a role (role_capabilities, #701) or through a
+-- direct grant here (e.g. a temporary contractor who shouldn't get a whole role). expires_at is
+-- nullable - null means permanent, matching a direct grant with no time limit.
+CREATE TABLE capability_grants (
+  capability_grant_id BIGSERIAL PRIMARY KEY,
+  user_id BIGINT NOT NULL REFERENCES users (user_id),
+  capability_id BIGINT NOT NULL REFERENCES capabilities (capability_id),
+  granted_by BIGINT REFERENCES users (user_id),
+  granted TIMESTAMP DEFAULT NOW(),
+  reason VARCHAR(500),
+  expires_at TIMESTAMP,
+  revoked_at TIMESTAMP,
+  expiration_notified_at TIMESTAMP
+);
+
+CREATE INDEX idx_capability_grants_user_id ON capability_grants (user_id);
+CREATE INDEX idx_capability_grants_capability_id ON capability_grants (capability_id);
+
+-- Only one *active* grant of a given capability per user at a time - prevents silently stacking
+-- duplicate grants; revoke (or let expire) the existing one before granting again.
+CREATE UNIQUE INDEX idx_capability_grants_active_unique ON capability_grants (user_id, capability_id)
+  WHERE revoked_at IS NULL;
+
+-- Sweep queries (CapabilityGrantExpirationJob) filter on both columns together.
+CREATE INDEX idx_capability_grants_expires_at ON capability_grants (expires_at) WHERE revoked_at IS NULL;
 
 
 CREATE TABLE groups (

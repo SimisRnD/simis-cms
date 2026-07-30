@@ -26,13 +26,8 @@
 <jsp:useBean id="roleList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="groupList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="userLogin" class="com.simisinc.platform.domain.model.login.UserLogin" scope="request"/>
+<jsp:useBean id="passwordAgeSeverity" class="java.lang.String" scope="request"/>
 <script nonce="${cspNonce}">
-  function suspendAccount() {
-    if (!confirm("Are you sure you want to SUSPEND this user account?")) {
-      return;
-    }
-    postAction('${widgetContext.uri}?action=suspendAccount&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&userId=${user.id}');
-  }
   function restoreAccount() {
     if (!confirm("Are you sure you want to RESTORE this user account?")) {
       return;
@@ -54,6 +49,7 @@
 </script>
 <div style="margin-top: 6px;background-color:<c:out value="${themePropertyMap['theme.body.backgroundColor']}" />;">
   <div class="button-container float-right">
+    <a class="button small radius float-right" href="${ctx}/admin/capability-grants?userId=${user.id}">Capability Grants</a>
     <a class="button small radius float-right" href="${ctx}/admin/modify-user?userId=${user.id}">Modify User</a>
     <ul class="dropdown menu" style="padding-right: 15px;" data-dropdown-menu>
       <li>
@@ -61,7 +57,7 @@
         <ul class="menu">
           <c:if test="${user.enabled}">
             <li><a href="#" data-open="resetPasswordReveal">Reset Password</a></li>
-            <li><a href="javascript:suspendAccount()">Suspend Account</a></li>
+            <li><a href="#" data-open="suspendAccountReveal">Suspend Account</a></li>
           </c:if>
           <c:if test="${!user.enabled}">
             <li><a href="javascript:restoreAccount()">Restore Account</a></li>
@@ -76,11 +72,14 @@
   </div>
   <h3>
     <c:out value="${user.fullName}" />
-    <c:if test="${!user.enabled}">
-      <span class="label alert">Suspended</span>
-    </c:if>
-    <c:if test="${user.locked}">
-      <span class="label warning">Locked</span>
+    <c:choose>
+      <c:when test="${user.accountStatus eq 'suspended'}"><span class="label alert">Suspended</span></c:when>
+      <c:when test="${user.accountStatus eq 'locked'}"><span class="label warning">Locked</span></c:when>
+      <c:when test="${user.accountStatus eq 'inactive'}"><span class="label secondary">Inactive</span></c:when>
+      <c:otherwise><span class="label success">Active</span></c:otherwise>
+    </c:choose>
+    <c:if test="${user.mfaEnabled}">
+      <span class="label round success" title="MFA enabled"><i class="fa fa-shield-halved"></i> MFA</span>
     </c:if>
   </h3>
   <c:if test="${!empty user.title || !empty user.city || !empty user.state}">
@@ -273,10 +272,56 @@
           <small>Locked Until</small>
         </div>
         <div class="small-8 align-self-middle cell">
-          <fmt:formatDate pattern="yyyy-MM-dd hh:mm a" value="${user.lockedUntil}" />
+          <fmt:formatDate pattern="yyyy-MM-dd hh:mm a" value="${user.lockedUntil}" /> (${user.failedAttemptCount} failed attempts)
         </div>
       </div>
     </c:if>
+    <c:if test="${!user.locked && user.failedAttemptCount gt 0}">
+      <div class="grid-x grid-padding-x">
+        <div class="small-4 text-right cell">
+          <small>Failed Logins</small>
+        </div>
+        <div class="small-8 align-self-middle cell">
+          ${user.failedAttemptCount}
+        </div>
+      </div>
+    </c:if>
+    <c:if test="${!user.enabled && !empty user.suspensionReason}">
+      <div class="grid-x grid-padding-x">
+        <div class="small-4 text-right cell">
+          <small>Suspension Reason</small>
+        </div>
+        <div class="small-8 align-self-middle cell">
+          <c:out value="${user.suspensionReason}" />
+        </div>
+      </div>
+    </c:if>
+    <div class="grid-x grid-padding-x">
+      <div class="small-4 text-right cell">
+        <small>MFA</small>
+      </div>
+      <div class="small-8 align-self-middle cell">
+        <c:choose>
+          <c:when test="${user.mfaEnabled}"><span class="label success">Enabled</span></c:when>
+          <c:otherwise><span class="label secondary">Not Enabled</span></c:otherwise>
+        </c:choose>
+      </div>
+    </div>
+    <div class="grid-x grid-padding-x">
+      <div class="small-4 text-right cell">
+        <small>Password Changed</small>
+      </div>
+      <div class="small-8 align-self-middle cell">
+        <c:choose>
+          <c:when test="${!empty user.lastPasswordChangedAt}">
+            <fmt:formatDate pattern="yyyy-MM-dd hh:mm a" value="${user.lastPasswordChangedAt}" />
+          </c:when>
+          <c:otherwise>Never tracked</c:otherwise>
+        </c:choose>
+        <c:if test="${passwordAgeSeverity eq 'warning'}"> <span class="label warning">Aging</span></c:if>
+        <c:if test="${passwordAgeSeverity eq 'critical'}"> <span class="label alert">Overdue</span></c:if>
+      </div>
+    </div>
     <div class="grid-x grid-padding-x">
       <div class="small-4 text-right cell">
         <small>Created</small>
@@ -363,6 +408,26 @@
       </div>
     </div>
     <input type="submit" class="button warning radius" value="Send Reset Email"/>
+    <button class="button secondary radius" type="button" data-close>Cancel</button>
+  </form>
+  <button class="close-button" data-close aria-label="Close reveal" type="button">
+    <span aria-hidden="true">&times;</span>
+  </button>
+</div>
+<div class="reveal" id="suspendAccountReveal" role="dialog" aria-modal="true" aria-labelledby="suspendAccountRevealTitle"
+     data-reveal data-close-on-click="true">
+  <h4 id="suspendAccountRevealTitle">Suspend Account</h4>
+  <p><strong><c:out value="${user.email}" /></strong> will no longer be able to sign in.</p>
+  <form method="post">
+    <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
+    <input type="hidden" name="token" value="${userSession.formToken}"/>
+    <input type="hidden" name="action" value="suspendAccount"/>
+    <input type="hidden" name="userId" value="${user.id}"/>
+    <label for="suspendReason">Reason <span class="required">*</span>
+      <textarea id="suspendReason" name="reason" maxlength="255" required
+                placeholder="Why is this account being suspended?"></textarea>
+    </label>
+    <input type="submit" class="button alert radius" value="Suspend Account"/>
     <button class="button secondary radius" type="button" data-close>Cancel</button>
   </form>
   <button class="close-button" data-close aria-label="Close reveal" type="button">

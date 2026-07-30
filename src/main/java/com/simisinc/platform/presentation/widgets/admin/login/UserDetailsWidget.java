@@ -18,7 +18,10 @@ package com.simisinc.platform.presentation.widgets.admin.login;
 
 import org.apache.commons.lang3.StringUtils;
 
+import java.sql.Timestamp;
+
 import com.simisinc.platform.application.LoadUserCommand;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.login.StepUpAuthCommand;
 import com.simisinc.platform.domain.events.cms.UserPasswordResetEvent;
 import com.simisinc.platform.domain.model.Group;
@@ -30,6 +33,7 @@ import com.simisinc.platform.infrastructure.persistence.UserRepository;
 import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
+import com.simisinc.platform.presentation.controller.UserSession;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 
 import java.util.List;
@@ -73,9 +77,29 @@ public class UserDetailsWidget extends GenericWidget {
     // Show Last Login Record
     context.getRequest().setAttribute("userLogin", user.getLastLogin());
 
+    // Password-age warning tier (#492): "warning" past the configurable threshold, "critical" at
+    // 2x it (not separately configurable), "ok" otherwise. A never-tracked password (existing
+    // account predating this column) is treated as maximally stale, not silently skipped.
+    int maxAgeDays = UserRepository.resolvePasswordMaxAgeDays(LoadSitePropertyCommand.loadByName("password.maxAgeDays"));
+    context.getRequest().setAttribute("passwordAgeSeverity", passwordAgeSeverity(user.getLastPasswordChangedAt(), maxAgeDays));
+
     // Show the editor
     context.setJsp(JSP);
     return context;
+  }
+
+  private static String passwordAgeSeverity(Timestamp lastChanged, int maxAgeDays) {
+    if (lastChanged == null) {
+      return "critical";
+    }
+    long ageDays = (System.currentTimeMillis() - lastChanged.getTime()) / 86_400_000L;
+    if (ageDays > (long) maxAgeDays * 2) {
+      return "critical";
+    }
+    if (ageDays > maxAgeDays) {
+      return "warning";
+    }
+    return "ok";
   }
 
   public WidgetContext post(WidgetContext context) {
@@ -169,22 +193,73 @@ public class UserDetailsWidget extends GenericWidget {
       context.setErrorMessage("You cannot suspend your own account");
       return context;
     }
-    User result = UserRepository.suspendAccount(user);
+    // Nor one that outranks the acting admin -- see targetOutranksActor()
+    if (targetOutranksActor(context, user)) {
+      context.setErrorMessage("You cannot suspend an account with a higher role level than your own");
+      return context;
+    }
+    String reason = context.getParameter("reason");
+    User result = UserRepository.suspendAccount(user, reason);
     AuditEventCommand.record(context, AuditEventCommand.USER_MANAGEMENT, "user.disable",
         result != null ? AuditEventCommand.SUCCESS : AuditEventCommand.FAILURE,
-        "user", String.valueOf(user.getId()), user.getEmail(), null);
+        "user", String.valueOf(user.getId()), user.getEmail(), reason);
     context.setSuccessMessage("Account suspended");
     return context;
   }
 
   private WidgetContext restoreAccount(WidgetContext context, User user) {
-    // Restore the account
+    // Restore the account (but not one that outranks the acting admin)
+    if (targetOutranksActor(context, user)) {
+      context.setErrorMessage("You cannot restore an account with a higher role level than your own");
+      return context;
+    }
     User result = UserRepository.restoreAccount(user);
     AuditEventCommand.record(context, AuditEventCommand.USER_MANAGEMENT, "user.enable",
         result != null ? AuditEventCommand.SUCCESS : AuditEventCommand.FAILURE,
         "user", String.valueOf(user.getId()), user.getEmail(), null);
     context.setSuccessMessage("Account restored");
     return context;
+  }
+
+  /**
+   * True when the target account's highest role level exceeds the acting user's highest role level --
+   * mirrors UserFormWidget's role-grant escalation guard so a lower-privileged admin (e.g.
+   * community-manager, level 90, who reaches this page via admin-layout.xml's
+   * role="admin,community-manager") cannot suspend or restore an account that outranks them (e.g.
+   * admin, level 100). Both /admin/users and /admin/user-details are open to community-manager, and
+   * this is the only check standing between that role and acting on an admin account.
+   */
+  private static boolean targetOutranksActor(WidgetContext context, User user) {
+    List<Role> allRoles = RoleRepository.findAll();
+    int actingLevel = highestRoleLevel(context.getUserSession(), allRoles);
+    int targetLevel = highestRoleLevel(user.getRoleList());
+    return targetLevel > actingLevel;
+  }
+
+  private static int highestRoleLevel(UserSession userSession, List<Role> allRoles) {
+    int max = 0;
+    if (userSession == null || allRoles == null) {
+      return max;
+    }
+    for (Role role : allRoles) {
+      if (userSession.hasRole(role.getCode()) && role.getLevel() > max) {
+        max = role.getLevel();
+      }
+    }
+    return max;
+  }
+
+  private static int highestRoleLevel(List<Role> roleList) {
+    int max = 0;
+    if (roleList == null) {
+      return max;
+    }
+    for (Role role : roleList) {
+      if (role.getLevel() > max) {
+        max = role.getLevel();
+      }
+    }
+    return max;
   }
 
   private WidgetContext deleteAccount(WidgetContext context, User user) {

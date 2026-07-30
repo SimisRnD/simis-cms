@@ -110,7 +110,8 @@ CREATE TABLE mailing_list_history (
   service VARCHAR(20),
   email_count INTEGER DEFAULT 0,
   subject VARCHAR(255),
-  blog_post_id BIGINT REFERENCES blog_posts(post_id)
+  blog_post_id BIGINT REFERENCES blog_posts(post_id),
+  mailchimp_campaign_id VARCHAR(50)
 );
 CREATE INDEX mail_lis_his_lid_idx ON mailing_list_history(list_id);
 CREATE INDEX mail_lis_his_cre_idx ON mailing_list_history(created);
@@ -134,4 +135,11 @@ CREATE INDEX mail_list_sent_li_idx ON mailing_list_sent(list_id);
 CREATE INDEX mail_list_sent_hi_idx ON mailing_list_sent(history_id);
 CREATE INDEX mail_list_sent_cr_idx ON mailing_list_sent(created);
 CREATE INDEX mail_list_sent_status_idx ON mailing_list_sent(status);
+
+-- Optional blog-to-mailing-list association (issue #599), added here (not in NEW_10010__new_cms.sql,
+-- which creates blogs) because mailing_lists doesn't exist yet at that point in a fresh install.
+-- ON DELETE SET NULL: deleting a mailing list must not be blocked by, or cascade into deleting, an
+-- unrelated blog that happens to be associated with it.
+ALTER TABLE blogs ADD COLUMN mailing_list_id BIGINT REFERENCES mailing_lists(list_id) ON DELETE SET NULL;
+CREATE INDEX blogs_mailing_list_idx ON blogs(mailing_list_id);
 

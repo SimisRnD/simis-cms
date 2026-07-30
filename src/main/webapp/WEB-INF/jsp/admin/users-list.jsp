@@ -25,6 +25,8 @@
 <jsp:useBean id="recordPagingUri" class="java.lang.String" scope="request"/>
 <jsp:useBean id="query" class="java.lang.String" scope="request"/>
 <jsp:useBean id="statusFilter" class="java.lang.String" scope="request"/>
+<jsp:useBean id="mfaFilter" class="java.lang.String" scope="request"/>
+<jsp:useBean id="agingPasswordFilter" class="java.lang.String" scope="request"/>
 <c:if test="${!empty title}">
   <h1><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h1>
 </c:if>
@@ -48,9 +50,21 @@
   <label for="statusFilter" class="show-for-sr">Status</label>
   <select id="statusFilter" name="statusFilter" class="float-left width-auto margin-right-10">
     <option value="any"<c:if test="${statusFilter eq 'any'}"> selected</c:if>>Any Status</option>
-    <option value="active"<c:if test="${statusFilter eq 'active'}"> selected</c:if>>Active List</option>
-    <option value="inactive"<c:if test="${statusFilter eq 'inactive'}"> selected</c:if>>Inactive List</option>
+    <option value="active"<c:if test="${statusFilter eq 'active'}"> selected</c:if>>Active</option>
+    <option value="suspended"<c:if test="${statusFilter eq 'suspended'}"> selected</c:if>>Suspended</option>
+    <option value="locked"<c:if test="${statusFilter eq 'locked'}"> selected</c:if>>Locked</option>
+    <option value="inactive"<c:if test="${statusFilter eq 'inactive'}"> selected</c:if>>Inactive (not yet verified)</option>
   </select>
+  <label for="mfaFilter" class="show-for-sr">MFA</label>
+  <select id="mfaFilter" name="mfaFilter" class="float-left width-auto margin-right-10">
+    <option value="any"<c:if test="${mfaFilter eq 'any'}"> selected</c:if>>Any MFA</option>
+    <option value="enabled"<c:if test="${mfaFilter eq 'enabled'}"> selected</c:if>>MFA Enabled</option>
+    <option value="disabled"<c:if test="${mfaFilter eq 'disabled'}"> selected</c:if>>MFA Not Enabled</option>
+  </select>
+  <label class="float-left width-auto margin-right-10" style="line-height: 2.4375rem;">
+    <input id="agingPasswordFilter" type="checkbox" name="agingPasswordFilter" value="1"<c:if test="${agingPasswordFilter eq '1'}"> checked</c:if> />
+    Aging passwords
+  </label>
   <div class="input-group no-gap width-auto">
     <input class="input-group-field" type="search" name="query" aria-label="Search users" placeholder="<c:if test="${empty query}">Search...</c:if>"<c:if test="${!empty query}"> value="<c:out value="${query}"/>"</c:if> autocomplete="off">
     <div class="input-group-button">
@@ -62,20 +76,36 @@
   document.getElementById("statusFilter").onchange = function() {
     document.getElementById("tableOptionsForm").submit();
   }
+  document.getElementById("mfaFilter").onchange = function() {
+    document.getElementById("tableOptionsForm").submit();
+  }
+  document.getElementById("agingPasswordFilter").onchange = function() {
+    document.getElementById("tableOptionsForm").submit();
+  }
 </script>
+<div id="bulkActionsBar" class="callout radius" style="display:none;padding:10px 15px;margin-bottom:10px;">
+  <span id="bulkSelectedCount"></span>
+  <button type="button" class="button tiny radius" id="bulkAssignRolesBtn">Assign Roles</button>
+  <button type="button" class="button tiny radius" id="bulkResetPasswordBtn">Reset Password</button>
+  <button type="button" class="button tiny alert radius" id="bulkSuspendBtn">Suspend</button>
+  <button type="button" class="button tiny radius" id="bulkUnsuspendBtn">Unsuspend</button>
+</div>
 <table class="unstriped">
   <thead>
     <tr>
+      <th width="24"><input type="checkbox" id="selectAllUsers" aria-label="Select all users on this page"></th>
       <th>Name</th>
       <th>Email</th>
       <th>Role</th>
-      <th width="60">Validated?</th>
+      <th width="90">Status</th>
+      <th width="50">MFA</th>
       <th width="200">Last Login</th>
     </tr>
   </thead>
   <tbody>
     <c:forEach items="${userList}" var="user">
     <tr>
+      <td><input type="checkbox" class="userRowCheckbox" value="${user.id}" data-name="${fn:escapeXml(user.fullName)}" data-email="${fn:escapeXml(user.email)}" aria-label="Select ${fn:escapeXml(user.fullName)}"></td>
       <td>
         <a href="${ctx}/admin/user-details?userId=${user.id}"><c:out value="${user.fullName}" /></a>
         <c:if test="${!empty user.organization}">
@@ -90,9 +120,16 @@
       </td>
       <td class="text-center">
         <c:choose>
-          <c:when test="${!user.enabled}"><span class="label alert">Suspended</span></c:when>
-          <c:when test="${!empty user.validated}"><span class="label success">Yes</span></c:when>
-          <c:otherwise><span class="label warning">No</span></c:otherwise>
+          <c:when test="${user.accountStatus eq 'suspended'}"><span class="label alert" title="${fn:escapeXml(user.suspensionReason)}">Suspended</span></c:when>
+          <c:when test="${user.accountStatus eq 'locked'}"><span class="label warning">Locked</span></c:when>
+          <c:when test="${user.accountStatus eq 'inactive'}"><span class="label secondary">Inactive</span></c:when>
+          <c:otherwise><span class="label success">Active</span></c:otherwise>
+        </c:choose>
+      </td>
+      <td class="text-center">
+        <c:choose>
+          <c:when test="${user.mfaEnabled}"><span class="label round success" title="MFA enabled"><i class="fa fa-check"></i></span></c:when>
+          <c:otherwise><span class="label round secondary" title="MFA not enabled"><i class="fa fa-times"></i></span></c:otherwise>
         </c:choose>
       </td>
       <td class="text-center">
@@ -102,16 +139,167 @@
     </c:forEach>
     <c:if test="${empty userList}">
       <tr>
-        <td colspan="5">No users were found</td>
+        <td colspan="7">No users were found</td>
       </tr>
     </c:if>
   </tbody>
 </table>
 <%-- Paging Control --%>
-<c:if test="${!empty statusFilter}">
-  <c:set var="recordPagingParams" scope="request" value="statusFilter=${statusFilter}"/>
-</c:if>
+<c:set var="recordPagingParams" scope="request"
+       value="statusFilter=${statusFilter}&mfaFilter=${mfaFilter}&agingPasswordFilter=${agingPasswordFilter}"/>
 <%@include file="../paging_control.jspf" %>
+<%-- Bulk action reveal modals -- selection is scoped to the current page only (see the JS below);
+     each is populated at open time with the live selection (see the JS below), not just a count. --%>
+<div class="reveal" id="bulkSuspendReveal" role="dialog" aria-modal="true" aria-labelledby="bulkSuspendRevealTitle"
+     data-reveal data-close-on-click="true">
+  <h4 id="bulkSuspendRevealTitle">Suspend <span id="bulkSuspendCount">0</span> Account(s)</h4>
+  <p id="bulkSuspendSelfNotice" style="display:none;"><em>Your own account is selected and will be skipped.</em></p>
+  <ul id="bulkSuspendList"></ul>
+  <form method="post">
+    <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
+    <input type="hidden" name="token" value="${userSession.formToken}"/>
+    <input type="hidden" name="command" value="bulkSuspend"/>
+    <label for="bulkSuspendReason">Reason <span class="required">*</span>
+      <textarea id="bulkSuspendReason" name="reason" maxlength="255" required
+                placeholder="Why are these accounts being suspended?"></textarea>
+    </label>
+    <input type="submit" class="button alert radius" value="Suspend Accounts"/>
+    <button class="button secondary radius" type="button" data-close>Cancel</button>
+  </form>
+  <button class="close-button" data-close aria-label="Close reveal" type="button">
+    <span aria-hidden="true">&times;</span>
+  </button>
+</div>
+<div class="reveal" id="bulkUnsuspendReveal" role="dialog" aria-modal="true" aria-labelledby="bulkUnsuspendRevealTitle"
+     data-reveal data-close-on-click="true">
+  <h4 id="bulkUnsuspendRevealTitle">Unsuspend <span id="bulkUnsuspendCount">0</span> Account(s)</h4>
+  <ul id="bulkUnsuspendList"></ul>
+  <form method="post">
+    <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
+    <input type="hidden" name="token" value="${userSession.formToken}"/>
+    <input type="hidden" name="command" value="bulkUnsuspend"/>
+    <input type="submit" class="button radius" value="Unsuspend Accounts"/>
+    <button class="button secondary radius" type="button" data-close>Cancel</button>
+  </form>
+  <button class="close-button" data-close aria-label="Close reveal" type="button">
+    <span aria-hidden="true">&times;</span>
+  </button>
+</div>
+<div class="reveal" id="bulkResetPasswordReveal" role="dialog" aria-modal="true" aria-labelledby="bulkResetPasswordRevealTitle"
+     data-reveal data-close-on-click="true">
+  <h4 id="bulkResetPasswordRevealTitle">Reset Password for <span id="bulkResetPasswordCount">0</span> Account(s)</h4>
+  <p>An email with password reset instructions will be sent to every listed account.</p>
+  <ul id="bulkResetPasswordList"></ul>
+  <form method="post">
+    <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
+    <input type="hidden" name="token" value="${userSession.formToken}"/>
+    <input type="hidden" name="command" value="bulkResetPassword"/>
+    <label for="bulkResetPasswordStepUpCredential">Your password or authenticator code <span class="required">*</span>
+      <input type="password" id="bulkResetPasswordStepUpCredential" name="stepUpCredential" maxlength="255"
+             placeholder="Password or 6-digit code" required
+             title="Re-authentication required to reset another user's password"/>
+    </label>
+    <input type="submit" class="button warning radius" value="Send Reset Emails"/>
+    <button class="button secondary radius" type="button" data-close>Cancel</button>
+  </form>
+  <button class="close-button" data-close aria-label="Close reveal" type="button">
+    <span aria-hidden="true">&times;</span>
+  </button>
+</div>
+<div class="reveal" id="bulkAssignRolesReveal" role="dialog" aria-modal="true" aria-labelledby="bulkAssignRolesRevealTitle"
+     data-reveal data-close-on-click="true">
+  <h4 id="bulkAssignRolesRevealTitle">Assign Role to <span id="bulkAssignRolesCount">0</span> Account(s)</h4>
+  <p class="help-text">This role is added to every selected account; existing roles are left alone.</p>
+  <ul id="bulkAssignRolesList"></ul>
+  <form method="post">
+    <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
+    <input type="hidden" name="token" value="${userSession.formToken}"/>
+    <input type="hidden" name="command" value="bulkAssignRoles"/>
+    <label for="bulkRoleId">Role <span class="required">*</span>
+      <select id="bulkRoleId" name="roleId" required>
+        <c:forEach items="${roleList}" var="role">
+          <c:choose>
+            <c:when test="${role.code eq 'admin' && !userSession.hasRole('admin')}"><%-- not offered --%></c:when>
+            <c:otherwise>
+              <option value="${role.id}"><c:out value="${role.title}" /></option>
+            </c:otherwise>
+          </c:choose>
+        </c:forEach>
+      </select>
+    </label>
+    <label for="bulkAssignRolesStepUpCredential">Your password or authenticator code <span class="required">*</span>
+      <input type="password" id="bulkAssignRolesStepUpCredential" name="stepUpCredential" maxlength="255"
+             placeholder="Password or 6-digit code" required
+             title="Re-authentication required to change account roles"/>
+    </label>
+    <input type="submit" class="button warning radius" value="Assign Role"/>
+    <button class="button secondary radius" type="button" data-close>Cancel</button>
+  </form>
+  <button class="close-button" data-close aria-label="Close reveal" type="button">
+    <span aria-hidden="true">&times;</span>
+  </button>
+</div>
+<script nonce="${cspNonce}">
+  (function () {
+    var currentUserId = ${userSession.userId};
+    var $selectAll = $('#selectAllUsers');
+    var $rows = $('.userRowCheckbox');
+    var $bar = $('#bulkActionsBar');
+    var $count = $('#bulkSelectedCount');
+
+    function selected() {
+      return $rows.filter(':checked');
+    }
+
+    function refresh() {
+      var n = selected().length;
+      $count.text(n + (n === 1 ? ' account selected  ' : ' accounts selected  '));
+      $bar.toggle(n > 0);
+      $selectAll.prop('indeterminate', n > 0 && n < $rows.length);
+      $selectAll.prop('checked', n > 0 && n === $rows.length);
+    }
+
+    // Populates one bulk modal's hidden userId fields and visible name/email list from the
+    // currently-checked rows, so the admin sees exactly who is about to be affected before
+    // confirming -- not just a count. checkSelf additionally toggles a non-blocking notice when
+    // the acting admin's own account is among the selection (Suspend only -- the real guard is
+    // server-side regardless of what this shows).
+    function populateBulkModal(revealId, listId, checkSelf) {
+      var $reveal = $('#' + revealId);
+      var $form = $reveal.find('form');
+      var $list = $('#' + listId);
+      $form.find('input[name="userId"]').remove();
+      $list.empty();
+      var includesSelf = false;
+      selected().each(function () {
+        var $checkbox = $(this);
+        $form.append($('<input type="hidden" name="userId">').val($checkbox.val()));
+        $list.append($('<li>').text($checkbox.data('name') + ' <' + $checkbox.data('email') + '>'));
+        if (checkSelf && String($checkbox.val()) === String(currentUserId)) {
+          includesSelf = true;
+        }
+      });
+      $('#' + revealId + 'Count').text(selected().length);
+      if (checkSelf) {
+        $('#bulkSuspendSelfNotice').toggle(includesSelf);
+      }
+      $reveal.foundation('open');
+    }
+
+    $selectAll.on('change', function () {
+      $rows.prop('checked', this.checked);
+      refresh();
+    });
+    $rows.on('change', refresh);
+
+    $('#bulkAssignRolesBtn').on('click', function () { populateBulkModal('bulkAssignRolesReveal', 'bulkAssignRolesList', false); });
+    $('#bulkResetPasswordBtn').on('click', function () { populateBulkModal('bulkResetPasswordReveal', 'bulkResetPasswordList', false); });
+    $('#bulkSuspendBtn').on('click', function () { populateBulkModal('bulkSuspendReveal', 'bulkSuspendList', true); });
+    $('#bulkUnsuspendBtn').on('click', function () { populateBulkModal('bulkUnsuspendReveal', 'bulkUnsuspendList', false); });
+
+    refresh();
+  })();
+</script>
 <%--<div class="reveal small" id="formReveal" data-reveal data-close-on-esc="false" data-close-on-click="false" data-animation-in="slide-in-down fast">--%>
 <div class="reveal small" id="formReveal" data-reveal data-close-on-click="false" data-animation-in="slide-in-down fast" role="dialog" aria-modal="true" aria-labelledby="userFormRevealTitle">
   <button class="close-button" data-close aria-label="Close modal" type="button">
@@ -159,7 +347,7 @@
       <legend>Roles</legend>
       <c:forEach items="${roleList}" var="role">
         <c:choose>
-          <c:when test="${role.code eq 'admin' && !userSession.hasRole('admin')}"><%-- --%></c:when>
+          <c:when test="${role.level > actingRoleLevel}"><%-- --%></c:when>
           <c:otherwise>
             <input id="roleId${role.id}" type="checkbox" name="roleId${role.id}" value="${role.id}" /><label for="roleId${role.id}"><c:out value="${role.title}" /></label>
           </c:otherwise>

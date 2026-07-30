@@ -38,6 +38,7 @@ public class Blog extends Entity {
   private Timestamp created = null;
   private Timestamp modified = null;
   private boolean enabled = false;
+  private long mailingListId = -1;
 
   public Blog() {
   }
@@ -116,5 +117,14 @@ public class Blog extends Entity {
 
   public String getLink() {
     return "/" + uniqueId;
+  }
+
+  /** The mailing list this blog's posts notify on publish, or -1 if not associated (issue #599). */
+  public long getMailingListId() {
+    return mailingListId;
+  }
+
+  public void setMailingListId(long mailingListId) {
+    this.mailingListId = mailingListId;
   }
 }
