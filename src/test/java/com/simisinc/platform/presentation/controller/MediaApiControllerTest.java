@@ -16,8 +16,10 @@
 
 package com.simisinc.platform.presentation.controller;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -31,31 +33,43 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.cms.LoadWebPageCommand;
 import com.simisinc.platform.application.cms.MutateLayoutCommand;
+import com.simisinc.platform.application.filesystem.FileSystemCommand;
 import com.simisinc.platform.domain.model.MediaAsset;
 import com.simisinc.platform.domain.model.Role;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.cms.WebPage;
 import com.simisinc.platform.infrastructure.persistence.MediaAssetRepository;
 
+import jakarta.servlet.ServletOutputStream;
+import jakarta.servlet.WriteListener;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
+import jakarta.servlet.http.Part;
 
 /**
  * Covers the real {@code handleWidgetUpdate} logic added to fix the no-op "Widget update
@@ -397,6 +411,7 @@ class MediaApiControllerTest {
     when(request.getParameter("assetName")).thenReturn("photo.jpg");
     when(request.getParameter("assetType")).thenReturn("image");
     when(request.getParameter("mimeType")).thenReturn("image/jpeg");
+    when(request.getParameter("storagePath")).thenReturn("media-library/2026/07/26/photo.jpg");
 
     try (MockedStatic<MediaAssetRepository> assets = mockStatic(MediaAssetRepository.class)) {
       assets.when(() -> MediaAssetRepository.save(any())).thenAnswer(inv -> {
@@ -410,6 +425,54 @@ class MediaApiControllerTest {
       assertEquals(200, result.status);
       assertTrue(result.body.contains("\"success\":true"));
       assertFalse(result.body.contains("Failed to process request"));
+    }
+  }
+
+  // ── handleCreateAsset's storagePath NOT NULL fix (issue #773) ─────────────────────────────
+
+  @Test
+  void createAssetRejectsAMissingStoragePath() throws Exception {
+    // media_assets.storage_path is NOT NULL; before the #773 fix this endpoint never set it at all,
+    // so any real call would have failed the insert with a generic 500 instead of a clear 400.
+    UserSession userSession = loggedInSession("admin");
+    HttpServletRequest request = mock(HttpServletRequest.class);
+    HttpSession session = mock(HttpSession.class);
+    when(session.getAttribute(SessionConstants.USER)).thenReturn(userSession);
+    when(request.getSession()).thenReturn(session);
+    when(request.getPathInfo()).thenReturn(null);
+    when(request.getParameter("assetName")).thenReturn("photo.jpg");
+
+    Recorded result = runWidgetUpdate(request);
+
+    assertEquals(400, result.status);
+    assertTrue(result.body.contains("storagePath is required"));
+  }
+
+  @Test
+  void createAssetDefaultsAltTextToTheAssetNameWhenNotProvided() throws Exception {
+    // alt_text is also NOT NULL; rather than adding a second required param, default it.
+    UserSession userSession = loggedInSession("admin");
+    HttpServletRequest request = mock(HttpServletRequest.class);
+    HttpSession session = mock(HttpSession.class);
+    when(session.getAttribute(SessionConstants.USER)).thenReturn(userSession);
+    when(request.getSession()).thenReturn(session);
+    when(request.getPathInfo()).thenReturn(null);
+    when(request.getParameter("assetName")).thenReturn("photo.jpg");
+    when(request.getParameter("storagePath")).thenReturn("media-library/2026/07/26/photo.jpg");
+
+    ArgumentCaptor<MediaAsset> savedCaptor = ArgumentCaptor.forClass(MediaAsset.class);
+    try (MockedStatic<MediaAssetRepository> assets = mockStatic(MediaAssetRepository.class)) {
+      assets.when(() -> MediaAssetRepository.save(savedCaptor.capture())).thenAnswer(inv -> {
+        MediaAsset saved = inv.getArgument(0);
+        saved.setId(42);
+        return saved;
+      });
+
+      Recorded result = runWidgetUpdate(request);
+
+      assertEquals(200, result.status);
+      assertEquals("media-library/2026/07/26/photo.jpg", savedCaptor.getValue().getStoragePath());
+      assertEquals("photo.jpg", savedCaptor.getValue().getAltText());
     }
   }
 
@@ -431,5 +494,350 @@ class MediaApiControllerTest {
 
     assertEquals(401, result.status);
     assertFalse(result.body.contains("success\":true"));
+  }
+
+  // ── handleUpload (issue #773) ──────────────────────────────────────────────────────────────
+  //
+  // FileSystemCommand and LoadSitePropertyCommand are mocked statically so these tests are
+  // hermetic (no real CMS_PATH/site-property/DB dependency) while still exercising the real
+  // disk write through a JUnit @TempDir, matching this file's existing convention of mocking the
+  // static collaborators (MediaAssetRepository, LoadWebPageCommand, MutateLayoutCommand) above.
+
+  private static Part mockFilePart(String filename, byte[] content) throws Exception {
+    Part part = mock(Part.class);
+    when(part.getSubmittedFileName()).thenReturn(filename);
+    when(part.getSize()).thenReturn((long) content.length);
+    doAnswer(inv -> {
+      String path = inv.getArgument(0);
+      Files.write(Paths.get(path), content);
+      return null;
+    }).when(part).write(anyString());
+    return part;
+  }
+
+  private static HttpServletRequest uploadRequestWithSession(UserSession userSession, String token, Part filePart)
+      throws Exception {
+    HttpServletRequest request = mock(HttpServletRequest.class);
+    HttpSession session = mock(HttpSession.class);
+    when(session.getAttribute(SessionConstants.USER)).thenReturn(userSession);
+    when(request.getSession()).thenReturn(session);
+    when(request.getPathInfo()).thenReturn("/upload");
+    when(request.getParameter("token")).thenReturn(token);
+    when(request.getRemoteAddr()).thenReturn("127.0.0.1");
+    if (filePart != null) {
+      when(request.getPart("file")).thenReturn(filePart);
+    }
+    return request;
+  }
+
+  private static void stubFileSystemCommand(MockedStatic<FileSystemCommand> fsc, Path tempDir) {
+    fsc.when(FileSystemCommand::getFileServerRootPath).thenReturn(tempDir.toString() + "/");
+    fsc.when(() -> FileSystemCommand.generateFileServerSubPath(anyString())).thenReturn("media-library/2026/07/31/");
+    fsc.when(() -> FileSystemCommand.generateUniqueFilename(anyLong())).thenReturn("unique-name");
+    fsc.when(() -> FileSystemCommand.cleanExtension(anyString())).thenAnswer(inv -> inv.getArgument(0));
+    fsc.when(() -> FileSystemCommand.resolveWithinRoot(anyString(), anyString())).thenAnswer(inv -> {
+      String root = inv.getArgument(0);
+      String rel = inv.getArgument(1);
+      File f = new File(root, rel);
+      f.getParentFile().mkdirs();
+      return f;
+    });
+  }
+
+  @Test
+  void uploadRejectsWhenNotAuthenticated() throws Exception {
+    HttpServletRequest request = uploadRequestWithSession(null, "whatever", null);
+
+    Recorded result = runWidgetUpdate(request);
+
+    assertEquals(401, result.status);
+    assertTrue(result.body.contains("Not authenticated"));
+  }
+
+  @Test
+  void uploadRejectsWhenUserLacksEditPermission() throws Exception {
+    // No session role at all is below even the content-editor tier canEditContent requires.
+    UserSession userSession = loggedInSession();
+    HttpServletRequest request = uploadRequestWithSession(userSession, userSession.getFormToken(), null);
+
+    Recorded result = runWidgetUpdate(request);
+
+    assertEquals(403, result.status);
+    assertTrue(result.body.contains("Insufficient permission"));
+  }
+
+  @Test
+  void uploadRejectsCsrfTokenMismatch() throws Exception {
+    UserSession userSession = loggedInSession("content-editor");
+    HttpServletRequest request = uploadRequestWithSession(userSession, "not-the-real-token", null);
+
+    Recorded result = runWidgetUpdate(request);
+
+    assertEquals(403, result.status);
+    assertTrue(result.body.contains("Session expired"));
+  }
+
+  @Test
+  void uploadRejectsWhenNoFilePartPresent() throws Exception {
+    UserSession userSession = loggedInSession("content-editor");
+    HttpServletRequest request = uploadRequestWithSession(userSession, userSession.getFormToken(), null);
+
+    try (MockedStatic<LoadSitePropertyCommand> props = mockStatic(LoadSitePropertyCommand.class)) {
+      props.when(() -> LoadSitePropertyCommand.loadByName(anyString())).thenReturn(null);
+
+      Recorded result = runWidgetUpdate(request);
+
+      assertEquals(400, result.status);
+      assertTrue(result.body.contains("A file is required"));
+    }
+  }
+
+  @Test
+  void uploadRejectsABlockedDangerousExtension() throws Exception {
+    // Reaches ValidateFileCommand.checkFileExtension before any FileSystemCommand call is made.
+    UserSession userSession = loggedInSession("content-editor");
+    Part filePart = mockFilePart("payload.exe", "not really an executable".getBytes());
+    HttpServletRequest request = uploadRequestWithSession(userSession, userSession.getFormToken(), filePart);
+
+    try (MockedStatic<LoadSitePropertyCommand> props = mockStatic(LoadSitePropertyCommand.class)) {
+      props.when(() -> LoadSitePropertyCommand.loadByName(anyString())).thenReturn(null);
+
+      Recorded result = runWidgetUpdate(request);
+
+      assertEquals(400, result.status);
+      assertTrue(result.body.contains("not allowed"));
+    }
+  }
+
+  @Test
+  void uploadRejectsAnOversizedFile() throws Exception {
+    UserSession userSession = loggedInSession("content-editor");
+    Part filePart = mock(Part.class);
+    when(filePart.getSubmittedFileName()).thenReturn("huge.jpg");
+    when(filePart.getSize()).thenReturn(11_000_000L); // over the 10MB default
+    HttpServletRequest request = uploadRequestWithSession(userSession, userSession.getFormToken(), filePart);
+
+    try (MockedStatic<LoadSitePropertyCommand> props = mockStatic(LoadSitePropertyCommand.class)) {
+      props.when(() -> LoadSitePropertyCommand.loadByName(anyString())).thenReturn(null);
+
+      Recorded result = runWidgetUpdate(request);
+
+      assertEquals(400, result.status);
+      assertTrue(result.body.contains("exceeds the maximum"));
+      verify(filePart, never()).write(anyString());
+    }
+  }
+
+  @Test
+  void uploadRejectsAFileWhoseDetectedTypeIsNotImageOrPdf(@TempDir Path tempDir) throws Exception {
+    UserSession userSession = loggedInSession("content-editor");
+    Part filePart = mockFilePart("notes.txt", "just plain text".getBytes());
+    HttpServletRequest request = uploadRequestWithSession(userSession, userSession.getFormToken(), filePart);
+
+    try (MockedStatic<LoadSitePropertyCommand> props = mockStatic(LoadSitePropertyCommand.class);
+         MockedStatic<FileSystemCommand> fsc = mockStatic(FileSystemCommand.class)) {
+      props.when(() -> LoadSitePropertyCommand.loadByName(anyString())).thenReturn(null);
+      stubFileSystemCommand(fsc, tempDir);
+
+      Recorded result = runWidgetUpdate(request);
+
+      assertEquals(400, result.status);
+      assertTrue(result.body.contains("Only image and PDF files are supported"));
+      assertFalse(Files.exists(tempDir.resolve("media-library/2026/07/31/unique-name.txt")),
+          "the rejected file should not be left on disk");
+    }
+  }
+
+  @Test
+  void uploadSavesTheFileAndCreatesARealMediaAssetRecord(@TempDir Path tempDir) throws Exception {
+    UserSession userSession = loggedInSession("content-editor");
+    byte[] content = "fake-jpeg-bytes".getBytes();
+    Part filePart = mockFilePart("photo.jpg", content);
+    HttpServletRequest request = uploadRequestWithSession(userSession, userSession.getFormToken(), filePart);
+
+    ArgumentCaptor<MediaAsset> savedCaptor = ArgumentCaptor.forClass(MediaAsset.class);
+    try (MockedStatic<LoadSitePropertyCommand> props = mockStatic(LoadSitePropertyCommand.class);
+         MockedStatic<FileSystemCommand> fsc = mockStatic(FileSystemCommand.class);
+         MockedStatic<MediaAssetRepository> assets = mockStatic(MediaAssetRepository.class)) {
+      props.when(() -> LoadSitePropertyCommand.loadByName(anyString())).thenReturn(null);
+      stubFileSystemCommand(fsc, tempDir);
+      assets.when(() -> MediaAssetRepository.save(savedCaptor.capture())).thenAnswer(inv -> {
+        MediaAsset saved = inv.getArgument(0);
+        saved.setId(99);
+        return saved;
+      });
+
+      Recorded result = runWidgetUpdate(request);
+
+      assertEquals(200, result.status);
+      assertTrue(result.body.contains("\"success\":true"));
+
+      MediaAsset saved = savedCaptor.getValue();
+      assertEquals("photo.jpg", saved.getAssetName());
+      assertEquals("image", saved.getAssetType());
+      assertEquals((long) content.length, saved.getFileSizeBytes());
+      assertEquals("media-library/2026/07/31/unique-name.jpg", saved.getStoragePath());
+      assertEquals(userSession.getUserId(), saved.getCreatedBy());
+      assertTrue(Files.exists(tempDir.resolve("media-library/2026/07/31/unique-name.jpg")),
+          "the uploaded bytes should actually be on disk at the stored path");
+    }
+  }
+
+  @Test
+  void uploadCleansUpTheDiskFileWhenTheDatabaseSaveFails(@TempDir Path tempDir) throws Exception {
+    UserSession userSession = loggedInSession("content-editor");
+    Part filePart = mockFilePart("photo.png", "fake-png-bytes".getBytes());
+    HttpServletRequest request = uploadRequestWithSession(userSession, userSession.getFormToken(), filePart);
+
+    try (MockedStatic<LoadSitePropertyCommand> props = mockStatic(LoadSitePropertyCommand.class);
+         MockedStatic<FileSystemCommand> fsc = mockStatic(FileSystemCommand.class);
+         MockedStatic<MediaAssetRepository> assets = mockStatic(MediaAssetRepository.class)) {
+      props.when(() -> LoadSitePropertyCommand.loadByName(anyString())).thenReturn(null);
+      stubFileSystemCommand(fsc, tempDir);
+      // Simulates a DB-write failure after the disk write already succeeded.
+      assets.when(() -> MediaAssetRepository.save(any())).thenReturn(null);
+
+      Recorded result = runWidgetUpdate(request);
+
+      assertEquals(500, result.status);
+      assertTrue(result.body.contains("Failed to save media asset"));
+      assertFalse(Files.exists(tempDir.resolve("media-library/2026/07/31/unique-name.png")),
+          "an orphaned file with no discoverable DB row should be cleaned up, not left behind");
+    }
+  }
+
+  @Test
+  void uploadReturns500AndDoesNotAttemptASaveWhenTheDiskWriteFails(@TempDir Path tempDir) throws Exception {
+    UserSession userSession = loggedInSession("content-editor");
+    Part filePart = mock(Part.class);
+    when(filePart.getSubmittedFileName()).thenReturn("photo.jpg");
+    when(filePart.getSize()).thenReturn(1024L);
+    doAnswer(inv -> {
+      throw new IOException("simulated disk-full error");
+    }).when(filePart).write(anyString());
+    HttpServletRequest request = uploadRequestWithSession(userSession, userSession.getFormToken(), filePart);
+
+    try (MockedStatic<LoadSitePropertyCommand> props = mockStatic(LoadSitePropertyCommand.class);
+         MockedStatic<FileSystemCommand> fsc = mockStatic(FileSystemCommand.class);
+         MockedStatic<MediaAssetRepository> assets = mockStatic(MediaAssetRepository.class)) {
+      props.when(() -> LoadSitePropertyCommand.loadByName(anyString())).thenReturn(null);
+      stubFileSystemCommand(fsc, tempDir);
+
+      Recorded result = runWidgetUpdate(request);
+
+      assertEquals(500, result.status);
+      assertTrue(result.body.contains("The file could not be saved"));
+      assets.verify(() -> MediaAssetRepository.save(any()), never());
+    }
+  }
+
+  // ── GET /visual-editor/media/file/{assetId} (handleServeFile, issue #773) ──────────────────
+
+  private static class CapturingOutputStream extends ServletOutputStream {
+    private final ByteArrayOutputStream buffer = new ByteArrayOutputStream();
+
+    @Override
+    public boolean isReady() {
+      return true;
+    }
+
+    @Override
+    public void setWriteListener(WriteListener writeListener) {
+      // not needed for this synchronous test double
+    }
+
+    @Override
+    public void write(int b) {
+      buffer.write(b);
+    }
+
+    byte[] toByteArray() {
+      return buffer.toByteArray();
+    }
+  }
+
+  @Test
+  void serveFileReturns404WhenAssetDoesNotExist() throws Exception {
+    HttpServletRequest request = mock(HttpServletRequest.class);
+    when(request.getPathInfo()).thenReturn("/file/missing-asset");
+
+    try (MockedStatic<MediaAssetRepository> assets = mockStatic(MediaAssetRepository.class)) {
+      assets.when(() -> MediaAssetRepository.findByAssetId("missing-asset")).thenReturn(null);
+
+      Recorded result = runGet(request);
+
+      assertEquals(404, result.status);
+      assertTrue(result.body.contains("Media file not found"));
+    }
+  }
+
+  @Test
+  void serveFileReturns404WhenFileMissingFromDisk(@TempDir Path tempDir) throws Exception {
+    MediaAsset asset = new MediaAsset();
+    asset.setAssetId("asset-123");
+    asset.setStoragePath("media-library/2026/07/31/does-not-exist.jpg");
+
+    HttpServletRequest request = mock(HttpServletRequest.class);
+    when(request.getPathInfo()).thenReturn("/file/asset-123");
+
+    try (MockedStatic<MediaAssetRepository> assets = mockStatic(MediaAssetRepository.class);
+         MockedStatic<FileSystemCommand> fsc = mockStatic(FileSystemCommand.class)) {
+      assets.when(() -> MediaAssetRepository.findByAssetId("asset-123")).thenReturn(asset);
+      fsc.when(FileSystemCommand::getFileServerRootPath).thenReturn(tempDir.toString() + "/");
+      fsc.when(() -> FileSystemCommand.resolveWithinRoot(anyString(), anyString()))
+          .thenAnswer(inv -> new File((String) inv.getArgument(0), (String) inv.getArgument(1)));
+
+      Recorded result = runGet(request);
+
+      assertEquals(404, result.status);
+      assertTrue(result.body.contains("Media file not found"));
+    }
+  }
+
+  @Test
+  void serveFileStreamsTheAssetWithInlineHeadersAndRequiresNoLogin(@TempDir Path tempDir) throws Exception {
+    byte[] fileBytes = "fake-image-bytes".getBytes();
+    Path assetFile = tempDir.resolve("media-library/2026/07/31/unique-name.jpg");
+    Files.createDirectories(assetFile.getParent());
+    Files.write(assetFile, fileBytes);
+
+    MediaAsset asset = new MediaAsset();
+    asset.setAssetId("asset-123");
+    asset.setStoragePath("media-library/2026/07/31/unique-name.jpg");
+    asset.setMimeType("image/jpeg");
+
+    // Deliberately no session/getSession() stubbing at all -- this route must not require login.
+    HttpServletRequest request = mock(HttpServletRequest.class);
+    when(request.getPathInfo()).thenReturn("/file/asset-123");
+
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    CapturingOutputStream out = new CapturingOutputStream();
+    when(response.getOutputStream()).thenReturn(out);
+    Map<String, String> headers = new HashMap<>();
+    doAnswer(inv -> {
+      headers.put(inv.getArgument(0), inv.getArgument(1));
+      return null;
+    }).when(response).setHeader(anyString(), anyString());
+    String[] contentType = new String[1];
+    doAnswer(inv -> {
+      contentType[0] = inv.getArgument(0);
+      return null;
+    }).when(response).setContentType(anyString());
+
+    try (MockedStatic<MediaAssetRepository> assets = mockStatic(MediaAssetRepository.class);
+         MockedStatic<FileSystemCommand> fsc = mockStatic(FileSystemCommand.class)) {
+      assets.when(() -> MediaAssetRepository.findByAssetId("asset-123")).thenReturn(asset);
+      fsc.when(FileSystemCommand::getFileServerRootPath).thenReturn(tempDir.toString() + "/");
+      fsc.when(() -> FileSystemCommand.resolveWithinRoot(anyString(), anyString()))
+          .thenAnswer(inv -> new File((String) inv.getArgument(0), (String) inv.getArgument(1)));
+
+      new MediaApiController().doGet(request, response);
+    }
+
+    assertEquals("image/jpeg", contentType[0]);
+    assertEquals("nosniff", headers.get("X-Content-Type-Options"));
+    assertNull(headers.get("Content-Disposition"), "inline media headers never force a download");
+    assertArrayEquals(fileBytes, out.toByteArray());
+    verify(response, never()).setStatus(anyInt());
   }
 }
