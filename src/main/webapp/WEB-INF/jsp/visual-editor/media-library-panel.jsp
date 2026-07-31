@@ -676,6 +676,13 @@
       lastFocusedElement.focus();
     }
     lastFocusedElement = null;
+    // Tell any listener outside this panel (platform-editor.js's click-to-replace arming) that the
+    // panel just closed, whether or not a file was picked. Without this, closing the panel via this
+    // button/the toolbar toggle (as opposed to Escape or a successful selection, which already clear
+    // the armed widget) leaves a stale "this widget is the target" state around, and the next
+    // unrelated file click -- next time the panel is reopened for any reason -- silently overwrites
+    // that stale widget's image (issue #772 review finding).
+    document.dispatchEvent(new CustomEvent('media-library-closed'));
   }
 
   // Expose panel control functions to global scope

@@ -678,8 +678,13 @@ public class MediaApiController extends HttpServlet {
             "prefKey must be '" + ImageWidget.IMAGE_URL_PREF_KEY + "' when targeting an image widget");
       }
 
+      // asset.getStoragePath() is the internal FileSystemCommand-relative disk path, not a
+      // browser URL (see handleServeFile's javadoc) -- persisting it directly regressed to a
+      // broken <img src> the moment issue #773 introduced the dedicated serving route. The site-
+      // relative serving URL is what ImageWidget's imageUrl preference actually needs, matching
+      // the exact path convention the browse grid's own thumbnails already use.
       Map<String, String> prefs = new HashMap<>();
-      prefs.put(prefKey, asset.getStoragePath());
+      prefs.put(prefKey, "/visual-editor/media/file/" + asset.getAssetId());
       String prefsJson = objectMapper.writeValueAsString(prefs);
       MutateLayoutCommand.setWidgetPreferences(webPage, sectionIdx, columnIdx, widgetIdx, prefsJson,
           userSession.getUserId());
