@@ -40,9 +40,12 @@ import static org.mockito.Mockito.mockStatic;
  * <p>
  * The role/group primitive this gate leans on ({@code WebComponentCommand.allowsUser}) is covered by
  * WebComponentCommandTest. These tests cover what {@code hasAccess} adds on top of it: the privileged-role
- * bypass, and the checks that a page is loadable, published (not draft), non-empty, and reachable. The
- * data-loading boundary ({@code LoadWebPageCommand}, {@code WebPageXmlLayoutCommand}) is mocked so the real
- * authorization logic runs against controlled page structures.
+ * bypass, and the checks that a page is loadable, has published content, and is reachable. Note that
+ * "has published content" means non-blank {@code pageXml} -- NOT {@code draft == false}. A page can be
+ * published (non-blank {@code pageXml}) while also having an unrelated pending draft layout edit
+ * ({@code draft == true}); that combination must still be accessible. The data-loading boundary
+ * ({@code LoadWebPageCommand}, {@code WebPageXmlLayoutCommand}) is mocked so the real authorization logic
+ * runs against controlled page structures.
  * </p>
  *
  * @author Elizabeth Houser
@@ -115,13 +118,33 @@ class ValidateUserAccessToWebPageCommandTest {
   }
 
   @Test
-  void deniedWhenPageIsDraft() {
-    // Security property: an unpublished draft must never be served to a non-privileged user.
-    WebPage draft = publishedPage("<page/>");
-    draft.setDraft(true);
+  void deniedWhenPageHasNeverBeenPublished() {
+    // Security property: a page with no published content must never be served to a
+    // non-privileged user, even though a draft layout exists for it (draftPageXml is set, but
+    // pageXml -- the only thing ever shown to a non-editor -- is blank).
+    WebPage unpublishedDraft = new WebPage();
+    unpublishedDraft.setDraft(true);
+    unpublishedDraft.setDraftPageXml("<page/>");
     try (MockedStatic<LoadWebPageCommand> load = mockStatic(LoadWebPageCommand.class)) {
-      load.when(() -> LoadWebPageCommand.loadByLink(LINK)).thenReturn(draft);
+      load.when(() -> LoadWebPageCommand.loadByLink(LINK)).thenReturn(unpublishedDraft);
       Assertions.assertFalse(ValidateUserAccessToWebPageCommand.hasAccess(LINK, guestSession()));
+    }
+  }
+
+  @Test
+  void grantedWhenPublishedPageHasAPendingDraftEdit() {
+    // A page that is already published (non-blank pageXml) must stay reachable even while an
+    // editor has an unrelated draft layout change pending. SaveDraftLayoutCommand and
+    // MutateLayoutCommand both set draft=true for this case without ever touching the
+    // already-published pageXml, so draft=true here does NOT mean "unpublished."
+    WebPage webPage = publishedPage("<page/>");
+    webPage.setDraft(true);
+    Page structure = pageStructure(new ArrayList<>()); // no roles required -> public
+    try (MockedStatic<LoadWebPageCommand> load = mockStatic(LoadWebPageCommand.class);
+         MockedStatic<WebPageXmlLayoutCommand> layout = mockStatic(WebPageXmlLayoutCommand.class)) {
+      load.when(() -> LoadWebPageCommand.loadByLink(LINK)).thenReturn(webPage);
+      layout.when(() -> WebPageXmlLayoutCommand.retrievePageForRequest(webPage, LINK)).thenReturn(structure);
+      Assertions.assertTrue(ValidateUserAccessToWebPageCommand.hasAccess(LINK, guestSession()));
     }
   }
 
