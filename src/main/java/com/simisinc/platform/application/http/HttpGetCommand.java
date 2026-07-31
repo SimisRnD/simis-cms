@@ -46,7 +46,7 @@ import com.simisinc.platform.provided.net.ConnectAddressPin;
  */
 public class HttpGetCommand {
 
-  private static Log LOG = LogFactory.getLog(HttpDownloadFileCommand.class);
+  private static Log LOG = LogFactory.getLog(HttpGetCommand.class);
 
   public static final int GET = 1;
   public static final int DELETE = 2;
