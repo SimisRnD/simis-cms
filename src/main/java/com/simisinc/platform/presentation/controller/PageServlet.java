@@ -225,13 +225,11 @@ public class PageServlet extends HttpServlet {
       WebPage webPage = LoadWebPageCommand.loadByLink(pagePath);
       if (webPage != null) {
         // Determine if this is a draft page
-        if (webPage.getDraft()) {
-          if (!userSession.hasRole("admin") && !userSession.hasRole("content-manager")) {
-            LOG.error("DRAFT FOUND, no access: " + pagePath + " " + request.getRemoteAddr());
-            controllerSession.clearAllWidgetData();
-            response.sendError(HttpServletResponse.SC_NOT_FOUND);
-            return;
-          }
+        if (isDraftBlockedFromPublicAccess(webPage, userSession)) {
+          LOG.error("DRAFT FOUND, no access: " + pagePath + " " + request.getRemoteAddr());
+          controllerSession.clearAllWidgetData();
+          response.sendError(HttpServletResponse.SC_NOT_FOUND);
+          return;
         }
         // Enforce publish schedule and expiry for non-editors
         if (!userSession.hasRole("admin") && !userSession.hasRole("content-manager")) {
@@ -1351,6 +1349,21 @@ public class PageServlet extends HttpServlet {
    */
   static boolean isFormTokenValid(String requestToken, String sessionToken) {
     return StringUtils.isNotEmpty(requestToken) && sessionToken != null && sessionToken.equals(requestToken);
+  }
+
+  /**
+   * A pending draft (draftPageXml) must not take an already-published page offline for the
+   * public: retrievePageForRequest() below always renders from pageXml, and draftPageXml is only
+   * ever substituted in for a layout builder previewing in edit mode (see the pageEditMode block
+   * further down) -- so a non-blank pageXml means there is still valid, unaffected published
+   * content to serve. Only a page that has never been published (pageXml blank) should 404 here
+   * for a non-editor while draft is true.
+   */
+  static boolean isDraftBlockedFromPublicAccess(WebPage webPage, UserSession userSession) {
+    if (!webPage.getDraft() || StringUtils.isNotBlank(webPage.getPageXml())) {
+      return false;
+    }
+    return !userSession.hasRole("admin") && !userSession.hasRole("content-manager");
   }
 
   private static int intParam(HttpServletRequest request, String name, int defaultValue) {
