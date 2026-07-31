@@ -77,6 +77,15 @@ ALLOWLIST: dict[str, str] = {
     "org.apache.catalina": "Tomcat internals, provided by the container",
     "org.apache.jasper": "Tomcat JSP engine, provided by the container",
     "org.apache.tomcat": "Tomcat internals, provided by the container",
+    "com.simisinc.platform.provided.net": (
+        "the SSRF connect-time DNS pin resolver (issue #760, ssrf-pin-resolver/) -- "
+        "compiled against by HttpGetCommand but deliberately excluded from the WAR and "
+        "supplied instead on Tomcat's shared classloader (CATALINA_HOME/lib, wired in "
+        "docker/app/Dockerfile), the same provided-scope treatment jakarta.servlet gets "
+        "above. It MUST be absent from WEB-INF/lib/classes -- see "
+        "ssrf-pin-resolver/README.md for why a duplicated copy would silently break the "
+        "pin instead of merely being redundant."
+    ),
     # --- optional integrations the app never configures ---
     "android": "okhttp's optional Android platform support; server-side only here",
     "org.conscrypt": "okhttp optional TLS provider; the JDK provider is used",
