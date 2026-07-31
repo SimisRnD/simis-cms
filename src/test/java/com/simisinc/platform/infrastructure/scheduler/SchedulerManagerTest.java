@@ -17,15 +17,22 @@
 package com.simisinc.platform.infrastructure.scheduler;
 
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 
+import java.lang.reflect.Field;
+
+import org.jobrunr.storage.InMemoryStorageProvider;
+import org.jobrunr.storage.StorageProvider;
 import org.junit.jupiter.api.Test;
 
 /**
- * Covers only the {@link SchedulerManager#getStorageProvider()} accessor added for the Job Queue
+ * Covers the {@link SchedulerManager#getStorageProvider()} accessor added for the Job Queue
  * Dashboard (issue #464). {@link SchedulerManager#startup} itself is not exercised here -- it reads
  * a real ServletContext resource stream and stands up a live JobRunr configuration (storage
  * provider, background job server, recurring job schedules), which is integration-test territory,
- * not something worth mocking piece by piece for a single field assignment.
+ * not something worth mocking piece by piece for a single field assignment. The non-null round trip
+ * is exercised instead by setting the backing field directly via reflection, which covers the real
+ * shutdown() code path (clearing an actually-set field) without needing full JobRunr startup.
  *
  * @author SimIS
  * @created 7/30/2026
@@ -38,6 +45,20 @@ class SchedulerManagerTest {
     // startup() nor shutdown() have run in this JVM in a way that would leave storageProvider set to
     // anything else, but shutdown() first makes the assertion deterministic regardless of test order.
     SchedulerManager.shutdown();
+    assertNull(SchedulerManager.getStorageProvider());
+  }
+
+  @Test
+  void getStorageProviderReturnsWhateverStartupAssignedUntilShutdownClearsIt() throws Exception {
+    StorageProvider realProvider = new InMemoryStorageProvider();
+    Field field = SchedulerManager.class.getDeclaredField("storageProvider");
+    field.setAccessible(true);
+    field.set(null, realProvider);
+    try {
+      assertSame(realProvider, SchedulerManager.getStorageProvider());
+    } finally {
+      SchedulerManager.shutdown();
+    }
     assertNull(SchedulerManager.getStorageProvider());
   }
 }

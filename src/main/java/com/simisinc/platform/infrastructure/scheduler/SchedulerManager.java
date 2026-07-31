@@ -68,7 +68,7 @@ import static org.jobrunr.server.BackgroundJobServerConfiguration.usingStandardB
 public class SchedulerManager {
 
   private static ServletContext servletContext = null;
-  private static StorageProvider storageProvider = null;
+  private static volatile StorageProvider storageProvider = null;
   private static Log LOG = LogFactory.getLog(SchedulerManager.class);
 
   // Jobs for every replica
@@ -202,9 +202,15 @@ public class SchedulerManager {
   }
 
   public static void shutdown() {
+    // Null the field before JobRunr.destroy() closes the underlying provider, not after: a reader
+    // that observes null gets the correct "unavailable" signal, rather than a reference to a
+    // provider that JobRunr.destroy() is concurrently closing underneath it. This narrows, but
+    // doesn't fully eliminate, the shutdown race for a request already mid-call when destroy()
+    // runs -- accepted as low-risk for an admin-only diagnostic path exercised only around
+    // container shutdown, not a sustained concurrency guarantee.
+    storageProvider = null;
     JobRunr.destroy();
     servletContext = null;
-    storageProvider = null;
   }
 
   public static ServletContext getServletContext() {
