@@ -93,7 +93,7 @@ public class DatasetDownloadRemoteFileCommand {
           }
         } else {
           // Download a single JSON file
-          if (!HttpDownloadFileCommand.execute(dataset.getSourceUrl(), tempFile)) {
+          if (!HttpDownloadFileCommand.executeUserUrl(dataset.getSourceUrl(), tempFile)) {
             throw new DataException("File download error from: " + dataset.getSourceUrl());
           }
         }
@@ -173,7 +173,9 @@ public class DatasetDownloadRemoteFileCommand {
   public static boolean downloadPagedFile(String url, String jsonPagingPath, String jsonRecordsPath, File tempFile) {
 
     // Download the first file, as a string
-    String content = HttpGetCommand.execute(url);
+    // [SSRF] executeUserUrl() validates url before fetching, so this method is safe to call
+    // directly rather than depending on the caller having already checked it.
+    String content = HttpGetCommand.executeUserUrl(url);
     if (StringUtils.isBlank(content)) {
       return false;
     }
@@ -242,14 +244,11 @@ public class DatasetDownloadRemoteFileCommand {
       LOG.debug("Next url: " + nextUrl);
 
       // [SSRF] nextUrl comes from the fetched response, so it is fully controlled by whoever
-      // runs the source server -- validate it before following, exactly like the source url.
-      if (!RemoteUrlValidationCommand.isFetchAllowed(nextUrl)) {
-        throw new IOException("Blocked a paging url that is not permitted: " + nextUrl);
-      }
-
-      String content = HttpGetCommand.execute(nextUrl);
+      // runs the source server -- executeUserUrl() validates it before following, exactly
+      // like the source url.
+      String content = HttpGetCommand.executeUserUrl(nextUrl);
       if (StringUtils.isBlank(content)) {
-        throw new IOException("Content is blank");
+        throw new IOException("Blocked or empty content for paging url: " + nextUrl);
       }
 
       JsonNode nextJson = JsonLoader.fromString(content);
