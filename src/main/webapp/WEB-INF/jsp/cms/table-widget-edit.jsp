@@ -196,6 +196,11 @@
   const deleteColBtn = document.querySelector('.delete-col');
 
   let selectedCell = null;
+  const cellOriginalValues = new WeakMap();
+
+  function handleCellFocus(e) {
+    cellOriginalValues.set(e.target, e.target.textContent);
+  }
 
   // Keyboard navigation
   function handleCellKeydown(e) {
@@ -222,7 +227,11 @@
         break;
       case 'Escape':
         e.preventDefault();
+        if (cellOriginalValues.has(cellDiv)) {
+          cellDiv.textContent = cellOriginalValues.get(cellDiv);
+        }
         cellDiv.blur();
+        saveTableData();
         break;
     }
   }
@@ -249,6 +258,7 @@
   // Add event listeners to all editable cells
   function attachCellListeners() {
     table.querySelectorAll('[contenteditable]').forEach(cell => {
+      cell.addEventListener('focus', handleCellFocus);
       cell.addEventListener('keydown', handleCellKeydown);
       cell.addEventListener('click', () => {
         selectedCell = cell.closest('td') || cell.closest('th');
@@ -265,6 +275,7 @@
 
     for (let i = 0; i < colCount; i++) {
       const td = document.createElement('td');
+      td.setAttribute('role', 'cell');
       td.setAttribute('data-col', i);
       td.innerHTML = '<div class="cell-content" contenteditable="true" role="textbox" tabindex="0"></div>';
       newRow.appendChild(td);
@@ -280,12 +291,15 @@
     const headerRow = table.querySelector('thead tr');
     const colIndex = headerRow.children.length;
     const headerCell = document.createElement('th');
+    headerCell.setAttribute('scope', 'col');
+    headerCell.setAttribute('role', 'columnheader');
     headerCell.setAttribute('data-col', colIndex);
     headerCell.innerHTML = '<div class="header-cell" contenteditable="true" role="textbox" tabindex="0">New</div>';
     headerRow.appendChild(headerCell);
 
     table.querySelectorAll('tbody tr').forEach((row, rowIndex) => {
       const td = document.createElement('td');
+      td.setAttribute('role', 'cell');
       td.setAttribute('data-row', rowIndex);
       td.setAttribute('data-col', colIndex);
       td.innerHTML = '<div class="cell-content" contenteditable="true" role="textbox" tabindex="0"></div>';
