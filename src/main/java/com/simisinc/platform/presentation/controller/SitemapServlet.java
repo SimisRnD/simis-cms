@@ -277,13 +277,16 @@ public class SitemapServlet extends HttpServlet {
     try {
       WebPageSpecification spec = new WebPageSpecification();
       spec.setEnabled(1);
-      spec.setDraft(0);
       spec.setInSitemap(true);
       List<WebPage> pages = WebPageRepository.findAll(spec, null);
 
       if (pages != null) {
         for (WebPage page : pages) {
-          if (page != null && StringUtils.isNotBlank(page.getLink())) {
+          // Draft is deliberately not filtered here: a page keeps its published page_xml when
+          // draft=true (draft only means it also has a pending edit -- see WebPageRepository.publish(),
+          // the only place that clears page_xml, which always flips draft back to false in the same
+          // statement). Blank pageXml is what correctly excludes a page that has never been published.
+          if (page != null && StringUtils.isNotBlank(page.getLink()) && StringUtils.isNotBlank(page.getPageXml())) {
             String lastmod = page.getModified() != null ? formatDate(page.getModified()) : null;
             long modifiedTimestamp = page.getModified() != null ? page.getModified().getTime() : 0L;
             String changefreq = StringUtils.isNotBlank(page.getSitemapChangeFrequency())
