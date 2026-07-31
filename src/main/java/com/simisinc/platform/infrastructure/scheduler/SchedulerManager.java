@@ -68,6 +68,7 @@ import static org.jobrunr.server.BackgroundJobServerConfiguration.usingStandardB
 public class SchedulerManager {
 
   private static ServletContext servletContext = null;
+  private static StorageProvider storageProvider = null;
   private static Log LOG = LogFactory.getLog(SchedulerManager.class);
 
   // Jobs for every replica
@@ -133,6 +134,7 @@ public class SchedulerManager {
 
       // Configure the storage
       StorageProvider jobStorageProvider = (inMemoryStorage ? new InMemoryStorageProvider() : SqlStorageProviderFactory.using(DataSource.getDataSource(), null, StorageProviderUtils.DatabaseOptions.CREATE));
+      storageProvider = jobStorageProvider;
 
       // Initialize the scheduler
       JobRunr.configure()
@@ -202,9 +204,17 @@ public class SchedulerManager {
   public static void shutdown() {
     JobRunr.destroy();
     servletContext = null;
+    storageProvider = null;
   }
 
   public static ServletContext getServletContext() {
     return servletContext;
+  }
+
+  /** The JobRunr StorageProvider backing the scheduler, so admin tooling (e.g. the Job Queue
+   * Dashboard, issue #464) can query job counts and lists directly. Null until {@link #startup}
+   * has run. */
+  public static StorageProvider getStorageProvider() {
+    return storageProvider;
   }
 }

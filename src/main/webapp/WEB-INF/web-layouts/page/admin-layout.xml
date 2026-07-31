@@ -1709,6 +1709,17 @@
     </section>
   </page>
 
+  <page name="/admin/job-queue-dashboard" role="admin" title="Job Queue Dashboard">
+    <section>
+      <column class="small-12 cell">
+        <widget name="jobQueueDashboard">
+          <icon>fa-list-check</icon>
+          <title>Job Queue Dashboard</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
   <page name="/admin/analytics-retention" role="admin" capability="admin:manage" title="Analytics Retention">
     <section>
       <column class="small-12 cell">
