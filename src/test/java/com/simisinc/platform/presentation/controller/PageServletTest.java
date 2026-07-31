@@ -37,7 +37,9 @@ import org.mockito.MockedStatic;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.simisinc.platform.application.cms.LoadWebPageCommand;
+import com.simisinc.platform.domain.model.Role;
 import com.simisinc.platform.domain.model.SocialMediaLink;
+import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.cms.FaqQuestion;
 import com.simisinc.platform.domain.model.cms.WebPage;
 import com.simisinc.platform.domain.model.items.Collection;
@@ -456,5 +458,84 @@ class PageServletTest {
 
     assertEquals("https://example.org/items/staff/jane-doe",
         PageServlet.computeCanonicalUrl("https://example.org", "/items/staff/jane-doe", null, item, collection));
+  }
+
+  /** A logged-in session whose user holds exactly the given role codes. */
+  private UserSession sessionWithRoles(String... roleCodes) {
+    List<Role> roles = new ArrayList<>();
+    for (String code : roleCodes) {
+      roles.add(new Role(code, code));
+    }
+    User user = new User();
+    user.setId(1L);
+    user.setRoleList(roles);
+    user.setGroupList(new ArrayList<>());
+    UserSession session = new UserSession();
+    session.login(user);
+    return session;
+  }
+
+  /** A not-logged-in (guest) session. */
+  private UserSession guestSession() {
+    return new UserSession();
+  }
+
+  @Test
+  void isDraftBlockedFromPublicAccessAllowsAGuestToKeepSeeingAnAlreadyPublishedPageWithAPendingDraft() {
+    // Regression test: an editor drafting layout changes on a live page (SaveDraftLayoutCommand /
+    // MutateLayoutCommand) sets draft=true on the SAME row that still holds the published pageXml.
+    // That pending draft must not take the live page offline for the public.
+    WebPage webPage = new WebPage();
+    webPage.setDraft(true);
+    webPage.setPageXml("<page><section/></page>");
+
+    assertFalse(PageServlet.isDraftBlockedFromPublicAccess(webPage, guestSession()));
+  }
+
+  @Test
+  void isDraftBlockedFromPublicAccessBlocksAGuestFromABrandNewNeverPublishedPage() {
+    // A page that has never been published (no pageXml yet) has nothing valid to serve publicly,
+    // so it must still 404 for a non-editor while it's draft-only.
+    WebPage webPage = new WebPage();
+    webPage.setDraft(true);
+    webPage.setPageXml(null);
+
+    assertTrue(PageServlet.isDraftBlockedFromPublicAccess(webPage, guestSession()));
+  }
+
+  @Test
+  void isDraftBlockedFromPublicAccessBlocksAGuestFromABrandNewPageWithBlankPageXml() {
+    WebPage webPage = new WebPage();
+    webPage.setDraft(true);
+    webPage.setPageXml("   ");
+
+    assertTrue(PageServlet.isDraftBlockedFromPublicAccess(webPage, guestSession()));
+  }
+
+  @Test
+  void isDraftBlockedFromPublicAccessNeverBlocksAnAdminRegardlessOfPageXml() {
+    WebPage neverPublished = new WebPage();
+    neverPublished.setDraft(true);
+    neverPublished.setPageXml(null);
+
+    assertFalse(PageServlet.isDraftBlockedFromPublicAccess(neverPublished, sessionWithRoles("admin")));
+  }
+
+  @Test
+  void isDraftBlockedFromPublicAccessNeverBlocksAContentManagerRegardlessOfPageXml() {
+    WebPage neverPublished = new WebPage();
+    neverPublished.setDraft(true);
+    neverPublished.setPageXml(null);
+
+    assertFalse(PageServlet.isDraftBlockedFromPublicAccess(neverPublished, sessionWithRoles("content-manager")));
+  }
+
+  @Test
+  void isDraftBlockedFromPublicAccessReturnsFalseWhenThePageIsNotADraft() {
+    WebPage webPage = new WebPage();
+    webPage.setDraft(false);
+    webPage.setPageXml(null);
+
+    assertFalse(PageServlet.isDraftBlockedFromPublicAccess(webPage, guestSession()));
   }
 }
