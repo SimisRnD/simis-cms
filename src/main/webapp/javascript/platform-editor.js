@@ -1496,6 +1496,19 @@
     applyImageToWidget(activeImageWidget, asset);
   });
 
+  // The panel dispatches this from hideMediaLibrary() whenever it closes -- via its own close
+  // button, the toolbar's open/close toggle, or Escape -- not only on a successful file pick.
+  // Without this, closing the panel without choosing a file left activeImageWidget armed, so the
+  // *next* time the panel was opened for any unrelated reason, the next file clicked would silently
+  // overwrite that stale widget's image (issue #772 review finding). applyImageToWidget's own
+  // success path already disarms before the panel would typically close, so this is a no-op then.
+  document.addEventListener('media-library-closed', function () {
+    if (activeImageWidget) {
+      disarmImageWidget();
+      setToolbarStatus('');
+    }
+  });
+
   // ── Widget picker ─────────────────────────────────────────────────────────
 
   function buildWidgetPicker() {
