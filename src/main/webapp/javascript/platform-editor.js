@@ -1475,7 +1475,7 @@
     if (!list) return;
     var q = query.trim().toLowerCase();
     list.querySelectorAll('li').forEach(function (li) {
-      li.style.display = (!q || li.dataset.name.indexOf(q) !== -1) ? '' : 'none';
+      li.style.display = (!q || li.dataset.name.toLowerCase().indexOf(q) !== -1) ? '' : 'none';
     });
   }
 
