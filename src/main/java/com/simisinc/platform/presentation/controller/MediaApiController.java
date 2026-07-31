@@ -43,6 +43,7 @@ import org.apache.commons.logging.LogFactory;
 
 import java.io.File;
 import java.io.IOException;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.LocalDateTime;
@@ -195,6 +196,18 @@ public class MediaApiController extends HttpServlet {
 
   private void handleCreateAsset(HttpServletRequest request, HttpServletResponse response, UserSession userSession)
       throws IOException {
+    // This is the same class of content-authoring action as handleUpload (it creates a media_assets
+    // row directly), so it requires the same tier of permission -- without this check, any logged-in
+    // user of any role could create arbitrary media asset records once the id-routing bug above stopped
+    // masking every call here as a 500.
+    if (!EditorPermissionCommand.canEditContent(userSession)) {
+      response.setStatus(403);
+      Map<String, Object> result = new HashMap<>();
+      result.put("error", "Insufficient permission to create media assets");
+      response.getWriter().write(objectMapper.writeValueAsString(result));
+      return;
+    }
+
     String assetName = request.getParameter("assetName");
     String assetType = request.getParameter("assetType");
     String mimeType = request.getParameter("mimeType");
@@ -266,39 +279,69 @@ public class MediaApiController extends HttpServlet {
     return maxBytes;
   }
 
-  // Extension -> mime type, used only when Files.probeContentType (below) comes back blank. That
-  // happens on some runtimes/containers that lack a FileTypeDetector for common types -- a known
-  // JDK gap -- so relying on it alone would make this endpoint reject legitimate images depending
-  // on the deployment environment. Mirrors ValidateFileCommand.getMimeType's existing fallback
-  // pattern for its own (different) set of extensions.
-  private static String fallbackMimeTypeForExtension(String extension) {
-    if (extension == null) {
+  // Real format signatures ("magic bytes") for the file types this endpoint accepts (images + PDF,
+  // per the isImage/isPdf check below). Files.probeContentType() alone is not trustworthy here: on a
+  // minimal JDK/container with no mime-magic database it silently falls back to guessing from the
+  // extension, so a plain-text file renamed to "malware.png" would be accepted, stored, and served
+  // back as "image/png" -- identical in effect to trusting the filename with no real verification.
+  // These signatures are checked directly against the uploaded bytes on disk instead.
+  private static final byte[] PNG_SIGNATURE = {(byte) 0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A};
+  private static final byte[] JPEG_SIGNATURE = {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF};
+  private static final byte[] GIF87A_SIGNATURE = {'G', 'I', 'F', '8', '7', 'a'};
+  private static final byte[] GIF89A_SIGNATURE = {'G', 'I', 'F', '8', '9', 'a'};
+  private static final byte[] PDF_SIGNATURE = {'%', 'P', 'D', 'F', '-'};
+  // WebP is a RIFF container: bytes 0-3 are "RIFF", bytes 4-7 are a little-endian chunk size specific
+  // to each file (not checked here), bytes 8-11 are "WEBP".
+  private static final byte[] RIFF_SIGNATURE = {'R', 'I', 'F', 'F'};
+  private static final byte[] WEBP_SIGNATURE = {'W', 'E', 'B', 'P'};
+  private static final int SNIFF_HEADER_BYTES = 12;
+
+  private static boolean headerStartsWith(byte[] header, int headerLength, byte[] signature) {
+    if (headerLength < signature.length) {
+      return false;
+    }
+    for (int i = 0; i < signature.length; i++) {
+      if (header[i] != signature[i]) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Detects a file's real content type by inspecting its actual header bytes on disk -- never the
+   * submitted filename, its extension, or the client-declared {@code Part} content type. Only the
+   * formats this endpoint supports are recognized; anything else (including a disguised file whose
+   * extension claims one of these types but whose bytes don't match, e.g. a script renamed to
+   * ".png") returns {@code null} so the caller rejects it.
+   */
+  private static String sniffContentType(File file) {
+    byte[] header = new byte[SNIFF_HEADER_BYTES];
+    int headerLength;
+    try (InputStream in = Files.newInputStream(file.toPath())) {
+      headerLength = in.readNBytes(header, 0, header.length);
+    } catch (Exception e) {
+      LOG.warn("Could not read the uploaded file's header bytes: " + e.getMessage());
       return null;
     }
-    switch (extension.toLowerCase()) {
-      case "jpg":
-      case "jpeg":
-        return "image/jpeg";
-      case "png":
-        return "image/png";
-      case "gif":
-        return "image/gif";
-      case "webp":
-        return "image/webp";
-      case "bmp":
-        return "image/bmp";
-      case "tif":
-      case "tiff":
-        return "image/tiff";
-      case "ico":
-        return "image/x-icon";
-      case "svg":
-        return "image/svg+xml";
-      case "pdf":
-        return "application/pdf";
-      default:
-        return null;
+    if (headerStartsWith(header, headerLength, PNG_SIGNATURE)) {
+      return "image/png";
     }
+    if (headerStartsWith(header, headerLength, JPEG_SIGNATURE)) {
+      return "image/jpeg";
+    }
+    if (headerStartsWith(header, headerLength, GIF87A_SIGNATURE) || headerStartsWith(header, headerLength, GIF89A_SIGNATURE)) {
+      return "image/gif";
+    }
+    if (headerStartsWith(header, headerLength, PDF_SIGNATURE)) {
+      return "application/pdf";
+    }
+    if (headerLength >= SNIFF_HEADER_BYTES && headerStartsWith(header, headerLength, RIFF_SIGNATURE)
+        && header[8] == WEBP_SIGNATURE[0] && header[9] == WEBP_SIGNATURE[1]
+        && header[10] == WEBP_SIGNATURE[2] && header[11] == WEBP_SIGNATURE[3]) {
+      return "image/webp";
+    }
+    return null;
   }
 
   /**
@@ -418,17 +461,10 @@ public class MediaApiController extends HttpServlet {
       return;
     }
 
-    // Never trust the client-declared Part content type or the file extension alone -- sniff the
-    // real bytes, matching ValidateImageCommand's approach for the existing image-upload path.
-    String sniffedMimeType = null;
-    try {
-      sniffedMimeType = Files.probeContentType(targetFile.toPath());
-    } catch (Exception e) {
-      LOG.warn("Could not determine the uploaded file's mime type: " + e.getMessage());
-    }
-    if (StringUtils.isBlank(sniffedMimeType)) {
-      sniffedMimeType = fallbackMimeTypeForExtension(extension);
-    }
+    // Never trust the client-declared Part content type or the file extension alone -- inspect the
+    // actual bytes written to disk. See sniffContentType's javadoc for why Files.probeContentType()
+    // alone is not sufficient here.
+    String sniffedMimeType = sniffContentType(targetFile);
     boolean isImage = sniffedMimeType != null && sniffedMimeType.startsWith("image/");
     boolean isPdf = "application/pdf".equals(sniffedMimeType);
     if (!isImage && !isPdf) {

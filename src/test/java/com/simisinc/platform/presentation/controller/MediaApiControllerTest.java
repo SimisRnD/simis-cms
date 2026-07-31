@@ -477,6 +477,31 @@ class MediaApiControllerTest {
   }
 
   @Test
+  void createAssetRejectsAUserWithNoEditPermission() throws Exception {
+    // Regression test for the missing permission check (issue #773 follow-up): handleCreateAsset is
+    // reached from doPost for any path other than /upload or /widget-update -- unlike those two, it
+    // never checked EditorPermissionCommand.canEditContent, so any logged-in user of any role could
+    // create arbitrary media_assets rows. A session with no granting role must be rejected with a 403
+    // before any parameter validation or repository call.
+    UserSession userSession = loggedInSession(); // no roles at all
+    HttpServletRequest request = mock(HttpServletRequest.class);
+    HttpSession session = mock(HttpSession.class);
+    when(session.getAttribute(SessionConstants.USER)).thenReturn(userSession);
+    when(request.getSession()).thenReturn(session);
+    when(request.getPathInfo()).thenReturn(null);
+    when(request.getParameter("assetName")).thenReturn("photo.jpg");
+    when(request.getParameter("storagePath")).thenReturn("media-library/2026/07/26/photo.jpg");
+
+    try (MockedStatic<MediaAssetRepository> assets = mockStatic(MediaAssetRepository.class)) {
+      Recorded result = runWidgetUpdate(request);
+
+      assertEquals(403, result.status);
+      assertTrue(result.body.contains("Insufficient permission"));
+      assets.verify(() -> MediaAssetRepository.save(any()), never());
+    }
+  }
+
+  @Test
   void doesNotAuthenticateAgainstALiteralUserSessionAttribute() throws Exception {
     // Regression guard for the fixed auth bug: the session attribute holds a UserSession under
     // SessionConstants.USER ("userSession"), never a User under the literal string "user".
@@ -502,6 +527,26 @@ class MediaApiControllerTest {
   // hermetic (no real CMS_PATH/site-property/DB dependency) while still exercising the real
   // disk write through a JUnit @TempDir, matching this file's existing convention of mocking the
   // static collaborators (MediaAssetRepository, LoadWebPageCommand, MutateLayoutCommand) above.
+
+  // Real format signatures ("magic bytes"), used to build fixture payloads that the content-sniffing
+  // fix (issue #773) will actually recognize, mirroring the constants in MediaApiController itself.
+
+  private static byte[] concat(byte[] prefix, byte[] rest) {
+    byte[] all = new byte[prefix.length + rest.length];
+    System.arraycopy(prefix, 0, all, 0, prefix.length);
+    System.arraycopy(rest, 0, all, prefix.length, rest.length);
+    return all;
+  }
+
+  private static byte[] pngBytes(String payload) {
+    byte[] signature = {(byte) 0x89, 'P', 'N', 'G', 0x0D, 0x0A, 0x1A, 0x0A};
+    return concat(signature, payload.getBytes());
+  }
+
+  private static byte[] jpegBytes(String payload) {
+    byte[] signature = {(byte) 0xFF, (byte) 0xD8, (byte) 0xFF};
+    return concat(signature, payload.getBytes());
+  }
 
   private static Part mockFilePart(String filename, byte[] content) throws Exception {
     Part part = mock(Part.class);
@@ -649,9 +694,39 @@ class MediaApiControllerTest {
   }
 
   @Test
+  void uploadRejectsAFileRenamedToMatchAnAllowedExtensionButWhoseBytesAreNotThatFormat(@TempDir Path tempDir)
+      throws Exception {
+    // Regression test for the content-type-validation bypass (issue #773 follow-up): a plain-text
+    // file renamed to ".png" must be rejected based on its real header bytes, not accepted because
+    // the extension is on the image allowlist and Files.probeContentType falls back to guessing from
+    // the extension on a minimal-JDK/container deployment with no mime-magic database.
+    UserSession userSession = loggedInSession("content-editor");
+    byte[] notActuallyPng = "#!/bin/sh\necho not a real png".getBytes();
+    Part filePart = mockFilePart("totally-a-real.png", notActuallyPng);
+    HttpServletRequest request = uploadRequestWithSession(userSession, userSession.getFormToken(), filePart);
+
+    try (MockedStatic<LoadSitePropertyCommand> props = mockStatic(LoadSitePropertyCommand.class);
+         MockedStatic<FileSystemCommand> fsc = mockStatic(FileSystemCommand.class);
+         MockedStatic<MediaAssetRepository> assets = mockStatic(MediaAssetRepository.class)) {
+      props.when(() -> LoadSitePropertyCommand.loadByName(anyString())).thenReturn(null);
+      stubFileSystemCommand(fsc, tempDir);
+
+      Recorded result = runWidgetUpdate(request);
+
+      assertEquals(400, result.status);
+      assertTrue(result.body.contains("Only image and PDF files are supported"));
+      assertFalse(Files.exists(tempDir.resolve("media-library/2026/07/31/unique-name.png")),
+          "the disguised file should not be left on disk");
+      assets.verify(() -> MediaAssetRepository.save(any()), never());
+    }
+  }
+
+  @Test
   void uploadSavesTheFileAndCreatesARealMediaAssetRecord(@TempDir Path tempDir) throws Exception {
     UserSession userSession = loggedInSession("content-editor");
-    byte[] content = "fake-jpeg-bytes".getBytes();
+    // Real JPEG magic bytes (0xFF 0xD8 0xFF) -- the content-sniffing fix inspects actual bytes, so a
+    // fake payload like "fake-jpeg-bytes" would now be correctly rejected as not a real JPEG.
+    byte[] content = jpegBytes("real jpeg payload");
     Part filePart = mockFilePart("photo.jpg", content);
     HttpServletRequest request = uploadRequestWithSession(userSession, userSession.getFormToken(), filePart);
 
@@ -686,7 +761,8 @@ class MediaApiControllerTest {
   @Test
   void uploadCleansUpTheDiskFileWhenTheDatabaseSaveFails(@TempDir Path tempDir) throws Exception {
     UserSession userSession = loggedInSession("content-editor");
-    Part filePart = mockFilePart("photo.png", "fake-png-bytes".getBytes());
+    // Real PNG magic bytes -- see uploadSavesTheFileAndCreatesARealMediaAssetRecord for why.
+    Part filePart = mockFilePart("photo.png", pngBytes("real png payload"));
     HttpServletRequest request = uploadRequestWithSession(userSession, userSession.getFormToken(), filePart);
 
     try (MockedStatic<LoadSitePropertyCommand> props = mockStatic(LoadSitePropertyCommand.class);
