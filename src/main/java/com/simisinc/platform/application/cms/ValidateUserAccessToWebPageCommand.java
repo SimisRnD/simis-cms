@@ -45,11 +45,10 @@ public class ValidateUserAccessToWebPageCommand {
     if (webPage == null) {
       return false;
     }
-    // The page is a draft
-    if (webPage.getDraft()) {
-      return false;
-    }
-    // The page is empty
+    // The page has no published content -- either it has never been published, or its content
+    // was cleared. The draft flag alone doesn't mean this: a published page can have draft=true
+    // while pageXml still holds its last-published, still-valid content (see
+    // SaveDraftLayoutCommand/MutateLayoutCommand, which set draft=true without touching pageXml).
     if (StringUtils.isBlank(webPage.getPageXml())) {
       return false;
     }
