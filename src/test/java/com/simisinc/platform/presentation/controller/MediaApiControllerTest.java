@@ -33,6 +33,7 @@ import static org.mockito.Mockito.when;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -122,6 +123,32 @@ class MediaApiControllerTest {
     }).when(response).setStatus(anyInt());
 
     new MediaApiController().doPost(request, response);
+    recorded.body = body.toString();
+    return recorded;
+  }
+
+  private static HttpServletRequest getRequestWithSession(UserSession userSession, Map<String, String> params) {
+    HttpServletRequest request = mock(HttpServletRequest.class);
+    HttpSession session = mock(HttpSession.class);
+    when(session.getAttribute(SessionConstants.USER)).thenReturn(userSession);
+    when(request.getSession()).thenReturn(session);
+    for (Map.Entry<String, String> e : params.entrySet()) {
+      when(request.getParameter(e.getKey())).thenReturn(e.getValue());
+    }
+    return request;
+  }
+
+  private static Recorded runGet(HttpServletRequest request) throws Exception {
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    StringWriter body = new StringWriter();
+    when(response.getWriter()).thenReturn(new PrintWriter(body));
+    Recorded recorded = new Recorded();
+    doAnswer(inv -> {
+      recorded.status = inv.getArgument(0);
+      return null;
+    }).when(response).setStatus(anyInt());
+
+    new MediaApiController().doGet(request, response);
     recorded.body = body.toString();
     return recorded;
   }
@@ -298,6 +325,91 @@ class MediaApiControllerTest {
       new MediaApiController().doPost(request, response);
 
       verify(response, never()).setStatus(anyInt());
+    }
+  }
+
+  // ── Jackson JSR-310 regression coverage (issue #771) ───────────────────────────────────────
+  //
+  // None of the tests above ever set createdAt on a MediaAsset, so they never exercised Jackson
+  // actually serializing a LocalDateTime -- without the jsr310 module registered on the shared
+  // ObjectMapper, that throws InvalidDefinitionException the instant a non-null LocalDateTime
+  // hits the wire, which the surrounding catch(Exception) turns into a generic 500. These three
+  // cover every response path in this controller that can serialize a MediaAsset.
+
+  @Test
+  void listEndpointSerializesAssetsWithNonNullTimestampsWithoutThrowing() throws Exception {
+    UserSession userSession = loggedInSession("admin");
+    HttpServletRequest request = getRequestWithSession(userSession, new HashMap<>());
+
+    MediaAsset asset = new MediaAsset();
+    asset.setAssetId("asset-123");
+    asset.setAssetName("photo.jpg");
+    asset.setCreatedAt(LocalDateTime.now());
+
+    try (MockedStatic<MediaAssetRepository> assets = mockStatic(MediaAssetRepository.class)) {
+      assets.when(() -> MediaAssetRepository.findAll(null)).thenReturn(List.of(asset));
+
+      Recorded result = runGet(request);
+
+      assertEquals(200, result.status);
+      assertTrue(result.body.contains("\"success\":true"));
+      assertFalse(result.body.contains("Failed to retrieve media assets"));
+    }
+  }
+
+  @Test
+  void widgetUpdateSerializesAnAssetWithNonNullTimestampsWithoutThrowing() throws Exception {
+    UserSession userSession = loggedInSession("admin");
+    HttpServletRequest request = requestWithSession(userSession, baseParams(userSession.getFormToken()));
+    MediaAsset asset = new MediaAsset();
+    asset.setAssetId("asset-123");
+    asset.setStoragePath("/assets/photo.jpg");
+    asset.setCreatedAt(LocalDateTime.now());
+    WebPage webPage = new WebPage();
+    webPage.setId(55);
+    webPage.setLink("/about");
+
+    try (MockedStatic<MediaAssetRepository> assets = mockStatic(MediaAssetRepository.class);
+         MockedStatic<LoadWebPageCommand> pages = mockStatic(LoadWebPageCommand.class);
+         MockedStatic<MutateLayoutCommand> mutate = mockStatic(MutateLayoutCommand.class)) {
+      assets.when(() -> MediaAssetRepository.findByAssetId("asset-123")).thenReturn(asset);
+      pages.when(() -> LoadWebPageCommand.loadByLink("/about")).thenReturn(webPage);
+
+      Recorded result = runWidgetUpdate(request);
+
+      assertEquals(200, result.status);
+      assertTrue(result.body.contains("\"success\":true"));
+      assertFalse(result.body.contains("Failed to process request"));
+    }
+  }
+
+  @Test
+  void createAssetEndpointSerializesTheStampedCreatedAtWithoutThrowing() throws Exception {
+    // handleCreateAsset always stamps createdAt = LocalDateTime.now() on the new asset before
+    // saving, then echoes that same object back in the response -- so this path always hits the
+    // Jackson gap, with no test setup required to force a non-null timestamp.
+    UserSession userSession = loggedInSession("admin");
+    HttpServletRequest request = mock(HttpServletRequest.class);
+    HttpSession session = mock(HttpSession.class);
+    when(session.getAttribute(SessionConstants.USER)).thenReturn(userSession);
+    when(request.getSession()).thenReturn(session);
+    when(request.getPathInfo()).thenReturn(null);
+    when(request.getParameter("assetName")).thenReturn("photo.jpg");
+    when(request.getParameter("assetType")).thenReturn("image");
+    when(request.getParameter("mimeType")).thenReturn("image/jpeg");
+
+    try (MockedStatic<MediaAssetRepository> assets = mockStatic(MediaAssetRepository.class)) {
+      assets.when(() -> MediaAssetRepository.save(any())).thenAnswer(inv -> {
+        MediaAsset saved = inv.getArgument(0);
+        saved.setId(42);
+        return saved;
+      });
+
+      Recorded result = runWidgetUpdate(request);
+
+      assertEquals(200, result.status);
+      assertTrue(result.body.contains("\"success\":true"));
+      assertFalse(result.body.contains("Failed to process request"));
     }
   }
 

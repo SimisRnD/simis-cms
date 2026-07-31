@@ -217,6 +217,21 @@ class DatabaseMigrationTest {
             + "will fail on a fresh install");
   }
 
+  @Test
+  void tablesThatOnlyExistedInUpgradeMigrationsAreOnTheInstallPath() throws SQLException {
+    // Same class of gap as columnsThatOnlyExistedInUpgradeMigrationsAreOnTheInstallPath above,
+    // but for whole tables instead of columns: media_assets/media_asset_usage
+    // (UPGRADE_20260726.1004__create_media_assets_table.sql) were never mirrored into install/, so
+    // a fresh install had no media_assets table at all -- MediaAssetRepository's queries threw a
+    // SQLException that DB.java logs and swallows, silently returning an empty result that looks
+    // identical to "no files yet" (issue #771).
+    assertTrue(tableExists("media_assets"),
+        "media_assets is missing - MediaAssetRepository queries will silently fail on a fresh "
+            + "install (DB.java swallows the SQLException and returns an empty result)");
+    assertTrue(tableExists("media_asset_usage"),
+        "media_asset_usage is missing on a fresh install");
+  }
+
   private static boolean tableExists(String name) throws SQLException {
     try (Connection connection = DB.getConnection();
         Statement statement = connection.createStatement();
