@@ -337,6 +337,7 @@
   const panel = document.getElementById('sc-media-panel');
   const grid = document.getElementById('media-grid');
   const searchInput = document.getElementById('media-search-input');
+  const searchClearBtn = document.getElementById('media-search-clear');
   const closeBtn = document.querySelector('.media-panel-close');
   const uploadArea = document.getElementById('media-upload-area');
   const fileInput = document.getElementById('media-file-input');
@@ -368,8 +369,16 @@
   }
 
   searchInput.addEventListener('input', (e) => {
+    searchClearBtn.style.display = e.target.value ? '' : 'none';
     currentPage = 0;
     loadFiles(e.target.value);
+  });
+
+  searchClearBtn.addEventListener('click', () => {
+    searchInput.value = '';
+    searchClearBtn.style.display = 'none';
+    currentPage = 0;
+    loadFiles();
   });
 
   uploadArea.addEventListener('click', () => fileInput.click());
