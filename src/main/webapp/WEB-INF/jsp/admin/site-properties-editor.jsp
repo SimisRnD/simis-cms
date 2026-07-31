@@ -80,7 +80,7 @@
                   <input type="password" class="no-gap" value="" placeholder="<c:out value="${empty siteProperty.value ? 'not set' : 'value hidden'}"/>" disabled />
                 </c:when>
                 <c:otherwise>
-                  <input type="password" class="no-gap" name="${siteProperty.name}" value="" autocomplete="new-password" placeholder="<c:out value="${empty siteProperty.value ? 'not set' : 'value hidden; leave blank to keep it'}"/>"<c:if test="${siteProperty.name eq 'captcha.google.secretkey'}"> aria-describedby="captchaGoogleSecretkeyHelpText"</c:if><c:if test="${siteProperty.name eq 'bi.superset.secret'}"> aria-describedby="biSupersetSecretHelpText"</c:if><c:if test="${siteProperty.name eq 'bi.metabase.secret'}"> aria-describedby="biMetabaseSecretHelpText"</c:if> />
+                  <input type="password" class="no-gap" name="${siteProperty.name}" value="" autocomplete="new-password" placeholder="<c:out value="${empty siteProperty.value ? 'not set' : 'value hidden; leave blank to keep it'}"/>"<c:if test="${siteProperty.name eq 'captcha.google.secretkey'}"> aria-describedby="captchaGoogleSecretkeyHelpText"</c:if><c:if test="${siteProperty.name eq 'bi.superset.secret'}"> aria-describedby="biSupersetSecretHelpText"</c:if><c:if test="${siteProperty.name eq 'bi.metabase.secret'}"> aria-describedby="biMetabaseSecretHelpText"</c:if><c:if test="${siteProperty.name eq 'mail.password'}"> aria-describedby="mailPasswordHelpText"</c:if> />
                 </c:otherwise>
               </c:choose>
             </c:when>
@@ -171,7 +171,7 @@
             </c:when>
             <c:when test="${siteProperty.type eq 'boolean'}">
               <div class="switch large">
-                <input class="switch-input" id="${siteProperty.name}-yes-no" type="checkbox" name="${siteProperty.name}" value="true"<c:if test="${siteProperty.value eq 'true'}"> checked</c:if><c:if test="${siteProperty.name eq 'bi.enabled'}"> aria-describedby="biEnabledHelpText"</c:if><c:if test="${siteProperty.name eq 'bi.metabase.enabled'}"> aria-describedby="biMetabaseEnabledHelpText"</c:if>>
+                <input class="switch-input" id="${siteProperty.name}-yes-no" type="checkbox" name="${siteProperty.name}" value="true"<c:if test="${siteProperty.value eq 'true'}"> checked</c:if><c:if test="${siteProperty.name eq 'bi.enabled'}"> aria-describedby="biEnabledHelpText"</c:if><c:if test="${siteProperty.name eq 'bi.metabase.enabled'}"> aria-describedby="biMetabaseEnabledHelpText"</c:if><c:if test="${siteProperty.name eq 'mail.ssl'}"> aria-describedby="mailSslHelpText"</c:if>>
                 <label class="switch-paddle" for="${siteProperty.name}-yes-no">
                 <span class="switch-active" aria-hidden="true">Yes</span>
                 <span class="switch-inactive" aria-hidden="true">No</span>
@@ -189,7 +189,7 @@
               <input type="text" class="no-gap" name="${siteProperty.name}" value="${html:toHtml(siteProperty.value)}" disabled />
             </c:when>
             <c:otherwise>
-              <input type="text" class="no-gap" name="${siteProperty.name}" value="${html:toHtml(siteProperty.value)}"<c:if test="${siteProperty.name eq 'captcha.service'}"> aria-describedby="captchaServiceHelpText"</c:if><c:if test="${siteProperty.name eq 'captcha.google.sitekey'}"> aria-describedby="captchaGoogleSitekeyHelpText"</c:if><c:if test="${siteProperty.name eq 'bi.superset.id'}"> aria-describedby="biSupersetIdHelpText"</c:if> />
+              <input type="text" class="no-gap" name="${siteProperty.name}" value="${html:toHtml(siteProperty.value)}"<c:if test="${siteProperty.name eq 'captcha.service'}"> aria-describedby="captchaServiceHelpText"</c:if><c:if test="${siteProperty.name eq 'captcha.google.sitekey'}"> aria-describedby="captchaGoogleSitekeyHelpText"</c:if><c:if test="${siteProperty.name eq 'bi.superset.id'}"> aria-describedby="biSupersetIdHelpText"</c:if><c:if test="${siteProperty.name eq 'mail.from_address'}"> aria-describedby="mailFromAddressHelpText"</c:if><c:if test="${siteProperty.name eq 'mail.from_name'}"> aria-describedby="mailFromNameHelpText"</c:if><c:if test="${siteProperty.name eq 'mail.host_name'}"> aria-describedby="mailHostNameHelpText"</c:if><c:if test="${siteProperty.name eq 'mail.port'}"> aria-describedby="mailPortHelpText"</c:if><c:if test="${siteProperty.name eq 'mail.username'}"> aria-describedby="mailUsernameHelpText"</c:if> />
             </c:otherwise>
           </c:choose>
           <c:if test="${siteProperty.name eq 'captcha.service'}">
@@ -261,6 +261,27 @@
           <c:if test="${siteProperty.name eq 'bi.metabase.secret'}">
             <p class="help-text" id="biMetabaseSecretHelpText">The embedding secret key from Metabase's Admin settings &gt; Embedding page. Unlike Superset, this is a single shared key (not a username/password pair) used to sign embed requests directly -- anyone with this value can view any dashboard you've published for embedding, so treat it like a password. This value is stored encrypted and always appears blank here after saving; leave it blank to keep the current key, or enter a new value to replace it.</p>
           </c:if>
+          <c:if test="${siteProperty.name eq 'mail.from_address'}">
+            <p class="help-text" id="mailFromAddressHelpText">The address that appears in the "From" field of every email SimIS sends -- form submissions, newsletters, and other notifications all go out from here. Must be an address your mail server or provider is actually authorized to send as; most providers (Microsoft 365, SendGrid, etc.) reject or bounce messages from an unrecognized From address. Example: noreply@yourdomain.com.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'mail.from_name'}">
+            <p class="help-text" id="mailFromNameHelpText">The display name shown next to the From address above, so recipients see something like "Your Organization &lt;noreply@yourdomain.com&gt;" instead of the bare address. Leave blank to send with only the address and no display name.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'mail.host_name'}">
+            <p class="help-text" id="mailHostNameHelpText">The hostname of the SMTP server SimIS connects to for sending mail. Get this from whoever manages your organization's email. Common examples: <a href="https://support.google.com/a/answer/176600" target="_blank" rel="noreferrer">smtp.gmail.com for Google Workspace/Gmail</a>, <a href="https://docs.sendgrid.com/for-developers/sending-email/getting-started-smtp" target="_blank" rel="noreferrer">smtp.sendgrid.net for SendGrid</a>, and <a href="https://learn.microsoft.com/en-us/exchange/mail-flow-best-practices/how-to-set-up-a-multifunction-device-or-application-to-send-email-using-microsoft-365-or-office-365" target="_blank" rel="noreferrer">smtp.office365.com for Microsoft 365</a> -- but see the SSL note below before assuming any of these will connect, since not every provider supports the encryption method this platform uses.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'mail.port'}">
+            <p class="help-text" id="mailPortHelpText">The TCP port SimIS connects to on the SMTP server above. There's no universal default -- it depends on your provider and the SSL toggle below. Common values are 25 or 587 for a plain (unencrypted) connection, and 465 for implicit SSL/TLS paired with the SSL toggle turned on. Check your provider's SMTP documentation for the exact port to use.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'mail.username'}">
+            <p class="help-text" id="mailUsernameHelpText">The username SimIS authenticates with on the SMTP server above -- typically a full mailbox address (e.g. your Gmail address) or an API key ID (SendGrid uses the literal username "apikey"). Leave this and the password below blank if your server accepts unauthenticated connections, which is uncommon outside a local or internal mail relay.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'mail.password'}">
+            <p class="help-text" id="mailPasswordHelpText">The password or API key SimIS authenticates with, paired with the username above -- for SendGrid this is your API key, not your account password. This value is stored encrypted and always appears blank here after saving; leave it blank to keep the current password, or enter a new value to replace it.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'mail.ssl'}">
+            <p class="help-text" id="mailSslHelpText">When on, SimIS connects to the SMTP server above using implicit SSL/TLS -- the connection is encrypted from the moment it opens, traditionally on port 465. When off, the connection starts unencrypted. This platform does not support STARTTLS (the scheme where a connection starts in plain text, commonly on port 587, and is only upgraded to encryption afterward), which some providers require and offer no alternative to. Per each provider's own documentation: Gmail's smtp.gmail.com supports both port 465 (SSL) and port 587 (STARTTLS), so port 465 with this toggle on works. SendGrid's current setup guide documents only STARTTLS on port 587, with no implicit-SSL port listed. Microsoft 365 explicitly documents that its client SMTP submission does not support port 465 at all and requires STARTTLS on port 587 -- which this platform cannot do, so Microsoft 365 cannot be used here. When unsure, ask your provider whether they offer an explicit "SSL" or "implicit TLS" port as an alternative to their default STARTTLS port.</p>
+          </c:if>
         </td>
       </tr>
     </c:forEach>
@@ -272,6 +293,9 @@
   </c:if>
   <c:if test="${prefix eq 'robots'}">
     <p class="help-text">Controls what <a href="${ctx}/robots.txt" target="_blank" rel="noreferrer">/robots.txt</a> tells web crawlers. Admin pages are always excluded regardless of these settings. Each toggle below opts a specific AI crawler out of reading this site -- on by default, matching how the site behaved before these controls existed. A crawler being "off" here is a request, not an enforcement mechanism: well-behaved crawlers honor robots.txt, but nothing stops a crawler from ignoring it.</p>
+  </c:if>
+  <c:if test="${prefix eq 'mail'}">
+    <p class="help-text">If emails aren't sending, these settings are usually the first place to check -- especially the host, port, username/password, and SSL toggle above. Form submissions, newsletters, and every other outgoing email all go through this same configuration, so a mistake here is site-wide. After making a change, use the Mail Test panel to send yourself a confirmation email before relying on it for real traffic.</p>
   </c:if>
   <div class="button-container">
     <input type="submit" class="button radius success" value="Save" />
