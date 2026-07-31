@@ -41,6 +41,18 @@
     <format property="val" pattern="yyyy-MM-dd h:mm aa" />
   </tstamp>
 
+  <!-- Fails fast if Ant is not running on the JDK this build requires. Must run before the
+       Lombok-dependent compile step: lib/compile/lombok's annotation processor does not hook
+       into javac under other JDKs, so a JAVA_HOME mismatch here would otherwise surface many
+       steps later as a confusing "cannot find symbol" on Lombok-generated accessors instead
+       of as an immediate, legible error. -->
+  <target name="check-jdk-version">
+    <condition property="jdk.version.ok">
+      <equals arg1="${ant.java.version}" arg2="${jdk}"/>
+    </condition>
+    <fail unless="jdk.version.ok">This build requires JDK ${jdk} (found ${ant.java.version} at ${java.home}). Export JAVA_HOME to your JDK ${jdk} install before running ant.</fail>
+  </target>
+
   <!-- Version for scripts to use -->
   <target name="version">
     <echo message="Project: ${ant.project.name}"/>
@@ -69,6 +81,16 @@
 
   <!-- Creates build directories -->
   <target name="prepare" depends="version">
+    <condition property="jdk.version.ok">
+      <equals arg1="${java.specification.version}" arg2="${jdk}"/>
+    </condition>
+    <fail unless="jdk.version.ok">
+This build requires JDK ${jdk} (found JDK ${java.specification.version} at ${java.home}).
+lib/compile/lombok/lombok-1.18.30.jar does not generate annotation-based methods (@Getter/@Setter/etc.)
+on other JDK versions in this Ant/javac setup -- it fails silently, so a JDK mismatch shows up later
+as a misleading "cannot find symbol" compile error instead of a clear version error. Point JAVA_HOME
+at a JDK ${jdk} installation and retry.
+    </fail>
     <mkdir dir="${build.dir}"/>
     <mkdir dir="${target.dir}"/>
     <tstamp />
@@ -92,7 +114,7 @@
   </target>
 
   <!-- Compiles the source code -->
-  <target name="compile" depends="prepare">
+  <target name="compile" depends="check-jdk-version,prepare">
     <javac srcdir="${src.dir}" source="${jdk}" target="${jdk}"
            destdir="${build.dir}"
            debug="on" debuglevel="lines,source"
@@ -390,7 +412,7 @@
     </checkstyle>
   </target>
 
-  <target name="compile-test" depends="jar">
+  <target name="compile-test" depends="check-jdk-version,jar">
     <!-- Stage ONLY the SQL migrations onto the test classpath. The package target copies them
          into the WAR, but compile does not stage them, so build.dir has no database/ directory
          and the migration test resolves "classpath:database/install" to nothing - finding just

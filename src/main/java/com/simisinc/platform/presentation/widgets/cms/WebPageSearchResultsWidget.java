@@ -85,7 +85,7 @@ public class WebPageSearchResultsWidget extends GenericWidget {
     // Determine the web pages that can be searched
     UserSession userSession = context.getUserSession();
     WebPageSpecification webPageSpecification = new WebPageSpecification();
-    if (!context.hasRole("admin") || context.hasRole("content-manager")) {
+    if (shouldRestrictToPublishedSearchableWebPages(context)) {
       webPageSpecification.setSearchable(true);
       webPageSpecification.setDraft(false);
     }
@@ -164,6 +164,11 @@ public class WebPageSearchResultsWidget extends GenericWidget {
     }
     context.getRequest().setAttribute("searchResultList", resultsMap.values());
     return finishRequest(context, resultsMap);
+  }
+
+  // Mirrors isPageInTheNavigation's privileged bypass below.
+  static boolean shouldRestrictToPublishedSearchableWebPages(WidgetContext context) {
+    return !context.hasRole("admin") && !context.hasRole("content-manager");
   }
 
   private boolean isPageInTheNavigation(WidgetContext context, String link, List<MenuTab> menuTabList, List<TableOfContents> tableOfContentsList) {

@@ -116,6 +116,9 @@ class SitemapServletTest {
       webPage.setSitemapPriority(priority);
     }
     webPage.setModified(Timestamp.valueOf("2026-03-15 12:30:00"));
+    // Every fixture defaults to published/live content -- tests that specifically need an
+    // unpublished page (blank page_xml) override this explicitly rather than relying on the default.
+    webPage.setPageXml("<page/>");
     return webPage;
   }
 
@@ -216,6 +219,68 @@ class SitemapServletTest {
     }
 
     assertEquals(DataConstants.TRUE, captor.getValue().getInSitemap());
+  }
+
+  // --- draft must never be filtered at the specification level: a page keeps its published
+  // page_xml when draft=true (draft only means it also has a pending edit -- see
+  // WebPageRepository.publish(), the only place that clears page_xml, which always flips draft
+  // back to false in the same statement). Filtering draft=false silently dropped an
+  // already-published page from the sitemap the instant an editor made any layout tweak to it.
+  // Same conflation already fixed for PageServlet (#768), nav/search visibility (#770), and
+  // content search (#776) -- here the specification-level filter has no downstream pageXml check
+  // to fall back on, so one is added below instead of simply deleting the filter. ---
+
+  @Test
+  void doGetDoesNotFilterBySpecificationLevelDraft() throws Exception {
+    List<WebPage> pages = new ArrayList<>();
+    pages.add(webPage("/about", null, null));
+
+    ArgumentCaptor<WebPageSpecification> captor = ArgumentCaptor.forClass(WebPageSpecification.class);
+    HttpServletRequest request = mock(HttpServletRequest.class);
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    when(response.getWriter()).thenReturn(new PrintWriter(new StringWriter()));
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class);
+        MockedStatic<ItemRepository> itemRepository = mockStatic(ItemRepository.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadAsMap("site")).thenReturn(siteProperties(true, true));
+      webPageRepository.when(() -> WebPageRepository.findAll(captor.capture(), any())).thenReturn(pages);
+      itemRepository.when(() -> ItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+
+      new SitemapServlet().doGet(request, response);
+    }
+
+    assertEquals(DataConstants.UNDEFINED, captor.getValue().getDraft(),
+        "a published page can have draft=true (a pending edit) and must still appear in the sitemap");
+  }
+
+  @Test
+  void doGetIncludesAPublishedPageThatHasAPendingDraftEdit() throws Exception {
+    WebPage publishedWithPendingDraft = webPage("/about", null, null);
+    publishedWithPendingDraft.setDraft(true);
+    List<WebPage> pages = new ArrayList<>();
+    pages.add(publishedWithPendingDraft);
+
+    String body = runDoGet(siteProperties(true, true), pages, new ArrayList<>());
+
+    assertTrue(body.contains("<loc>https://example.org/about</loc>"),
+        "an already-published page with a pending draft edit must still appear in the sitemap: " + body);
+  }
+
+  @Test
+  void doGetExcludesAWebPageThatHasNeverBeenPublished() throws Exception {
+    // draft=true with a BLANK page_xml is the one case that must still be excluded: it means the
+    // page has never been published, unlike a live page with a merely-pending draft edit.
+    WebPage neverPublished = webPage("/coming-soon", null, null);
+    neverPublished.setDraft(true);
+    neverPublished.setPageXml(null);
+    List<WebPage> pages = new ArrayList<>();
+    pages.add(neverPublished);
+
+    String body = runDoGet(siteProperties(true, true), pages, new ArrayList<>());
+
+    assertFalse(body.contains("coming-soon"),
+        "a page that has never been published must not be linked from the public sitemap: " + body);
   }
 
   @Test

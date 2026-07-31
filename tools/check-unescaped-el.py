@@ -308,6 +308,8 @@ ALLOWLIST: dict[str, str] = {
         "EditMyProfileFormWidget calls UrlCommand.getValidReturnPage() before setAttribute; that method rejects non-relative paths and any char outside [A-Za-z0-9/?&=#%._~+,;-].",
     "items/approve-item-button.jsp:${approveUrl}":
         "Built by <c:url> tag with <c:param> elements for each query parameter (action, widget, token, itemUniqueId, returnPage); <c:url> handles percent-encoding of parameter values and assembly of the URL.",
+    "admin/job-queue-dashboard.jsp:${stateFilterUrl}":
+        "Built by <c:url> tag with a <c:param name='state' value='${entry.key}'/> (job-queue-dashboard.jsp); entry.key only ever iterates over JobQueueDashboardWidget.loadStateCounts()'s fixed StateName.name() literals (SCHEDULED/ENQUEUED/PROCESSING/FAILED/SUCCEEDED), never request input, and <c:url>/<c:param> percent-encode the value regardless.",
 
     # <fmt:formatDate> output with a fixed, all-numeric pattern: the JSTL tag renders a real
     # Date/Timestamp through that pattern, so the output can only ever contain digits, '-',
