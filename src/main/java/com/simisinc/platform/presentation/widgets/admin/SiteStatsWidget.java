@@ -208,6 +208,19 @@ public class SiteStatsWidget extends GenericWidget {
         context.getRequest().setAttribute("asOfDate", new SimpleDateFormat("MMM d, yyyy h:mm a").format(lastClassifiedAt));
       }
       return TABLE_JSP;
+    } else if ("mailing-list-quality-score".equalsIgnoreCase(report)) {
+      double score = MailingListMemberRepository.findQualityScorePercent();
+      context.getRequest().setAttribute("numberValue", String.format("%.1f", score));
+      return CARD_JSP;
+    } else if ("mailing-list-spam-rate-alert".equalsIgnoreCase(report)) {
+      // Same underlying metric as mailing-list-quality-score, just its complement -- one query,
+      // two presentations, so the two tiles can never drift out of sync with each other.
+      double spamRatePercent = 100 - MailingListMemberRepository.findQualityScorePercent();
+      int thresholdPercent = MailingListMemberRepository.resolveQuarantineAlertThresholdPercent(
+          LoadSitePropertyCommand.loadByName("mailing-list.quarantine.alertThresholdPercent"));
+      context.getRequest().setAttribute("numberValue", String.format("%.1f", spamRatePercent));
+      context.getRequest().setAttribute("severity", spamRatePercent > thresholdPercent ? "warning" : "ok");
+      return ALERT_CARD_JSP;
     } else if ("enabled-accounts".equalsIgnoreCase(report)) {
       long count = UserRepository.countEnabledAccounts();
       context.getRequest().setAttribute("numberValue", String.valueOf(count));
