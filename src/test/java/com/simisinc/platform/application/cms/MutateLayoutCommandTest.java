@@ -92,6 +92,18 @@ class MutateLayoutCommandTest {
       "  </section>\n" +
       "</page>";
 
+  // A page with an image (ImageWidget) instance, for the imageUrl validation tests.
+  private static final String IMAGE_WIDGET_XML =
+      "<page>\n" +
+      "  <section class=\"first\">\n" +
+      "    <column class=\"small-12 cell\">\n" +
+      "      <widget name=\"image\">\n" +
+      "        <imageUrl>/media/original.png</imageUrl>\n" +
+      "      </widget>\n" +
+      "    </column>\n" +
+      "  </section>\n" +
+      "</page>";
+
   private static WebPage pageWithXml(String xml) {
     WebPage p = new WebPage();
     p.setId(99);
@@ -110,7 +122,8 @@ class MutateLayoutCommandTest {
       repo.when(() -> WebPageRepository.save(any(WebPage.class))).thenAnswer(i -> i.getArgument(0));
       cmd.when(() -> WebPageXmlLayoutCommand.removeCustomPage(anyString())).thenAnswer(i -> null);
       cmd.when(WebPageXmlLayoutCommand::getWidgetLibrary)
-          .thenReturn(Map.of("content", "ContentWidget", "menu", "MenuWidget", "dataTable", "TableWidget"));
+          .thenReturn(Map.of("content", "ContentWidget", "menu", "MenuWidget", "dataTable", "TableWidget",
+              "image", "ImageWidget"));
       mutation.run();
     }
     return page.getDraftPageXml();
@@ -465,6 +478,55 @@ class MutateLayoutCommandTest {
         () -> mutate(page, () -> MutateLayoutCommand.addWidget(page, 0, 0, -1, "dataTable",
             "{\"tableData\":\"{\\\"rows\\\":[]}\"}", 42L)),
         "tableData missing 'headers' must be rejected before the widget is ever added");
+  }
+
+  // ── setWidgetPreferences / addWidget: ImageWidget's imageUrl is validated at this boundary ──────
+  // (issue #772: this preference is rendered straight into an <img src>, so an unsafe value must
+  // be rejected here rather than merely dropped at render time.)
+
+  @Test
+  void setWidgetPreferencesAcceptsSiteRelativeImageUrl() throws DataException {
+    WebPage page = pageWithXml(IMAGE_WIDGET_XML);
+    String result = mutate(page, () ->
+        MutateLayoutCommand.setWidgetPreferences(page, 0, 0, 0, "{\"imageUrl\":\"/media/new.png\"}", 42L));
+    assertTrue(result.contains("<imageUrl>/media/new.png</imageUrl>"), "the new image url should be written");
+  }
+
+  @Test
+  void setWidgetPreferencesAcceptsBlankImageUrlToClearIt() throws DataException {
+    WebPage page = pageWithXml(IMAGE_WIDGET_XML);
+    String result = mutate(page, () ->
+        MutateLayoutCommand.setWidgetPreferences(page, 0, 0, 0, "{\"imageUrl\":\"\"}", 42L));
+    assertTrue(result.contains("<imageUrl/>") || result.contains("<imageUrl></imageUrl>"),
+        "a blank value is valid -- it clears the image back to the placeholder");
+  }
+
+  @Test
+  void setWidgetPreferencesRejectsJavascriptSchemeImageUrl() {
+    WebPage page = pageWithXml(IMAGE_WIDGET_XML);
+    assertThrows(DataException.class,
+        () -> mutate(page, () -> MutateLayoutCommand.setWidgetPreferences(page, 0, 0, 0,
+            "{\"imageUrl\":\"javascript:alert(1)\"}", 42L)),
+        "an active scheme must be rejected before it is persisted");
+  }
+
+  @Test
+  void setWidgetPreferencesRejectsAttributeBreakoutImageUrl() {
+    WebPage page = pageWithXml(IMAGE_WIDGET_XML);
+    assertThrows(DataException.class,
+        () -> mutate(page, () -> MutateLayoutCommand.setWidgetPreferences(page, 0, 0, 0,
+            "{\"imageUrl\":\"/media/x.png\\\" onerror=\\\"alert(1)\"}", 42L)),
+        "a value that could break out of the src attribute must be rejected before it is persisted");
+  }
+
+  @Test
+  void setWidgetPreferencesIgnoresImageUrlValidationForOtherWidgets() throws DataException {
+    // An "imageUrl"-named preference on some other widget type is just an opaque string to this
+    // class -- only the image widget's value gets validated as a safe url.
+    WebPage page = pageWithXml(ONE_SECTION_XML);
+    String result = mutate(page, () ->
+        MutateLayoutCommand.setWidgetPreferences(page, 0, 0, 0, "{\"imageUrl\":\"javascript:alert(1)\"}", 42L));
+    assertTrue(result.contains("<imageUrl>javascript:alert(1)</imageUrl>"));
   }
 
   // ── modifiedBy / persistence-failure propagation ─────────────────────────

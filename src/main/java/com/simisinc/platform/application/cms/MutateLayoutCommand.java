@@ -48,6 +48,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.domain.model.cms.WebPage;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
+import com.simisinc.platform.presentation.widgets.cms.ImageWidget;
 import com.simisinc.platform.presentation.widgets.cms.TableWidget;
 
 /**
@@ -489,6 +490,10 @@ public class MutateLayoutCommand {
             + "at most " + TableWidget.MAX_ROWS + " rows, " + TableWidget.MAX_COLUMNS + " columns, and "
             + TableWidget.MAX_CELL_LENGTH + " characters per header/cell");
       }
+    }
+    if (ImageWidget.WIDGET_NAME.equals(widgetName) && prefs.containsKey("imageUrl")
+        && !ImageWidget.isValidImageUrl(prefs.get("imageUrl"))) {
+      throw new DataException("Invalid image url: expected a site-relative path or an http(s)/mailto/tel address");
     }
   }
 }

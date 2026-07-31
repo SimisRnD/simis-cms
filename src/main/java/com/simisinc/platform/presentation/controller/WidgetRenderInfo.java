@@ -37,6 +37,7 @@ public class WidgetRenderInfo implements Serializable {
   private boolean hr = false;
   private String content = null;
   private String prefsJson = "{}";
+  private String widgetName = null;
 
   public WidgetRenderInfo() {
   }
@@ -48,6 +49,7 @@ public class WidgetRenderInfo implements Serializable {
     this.sticky = widget.isSticky();
     this.hr = widget.hasHr();
     this.content = content;
+    this.widgetName = widget.getWidgetName();
     Map<String, String> prefs = widget.getPreferences();
     if (prefs != null && !prefs.isEmpty()) {
       this.prefsJson = prefsToJson(prefs);
@@ -96,5 +98,9 @@ public class WidgetRenderInfo implements Serializable {
 
   public String getPrefsJson() {
     return prefsJson;
+  }
+
+  public String getWidgetName() {
+    return widgetName;
   }
 }

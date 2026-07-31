@@ -1065,28 +1065,25 @@
       });
       btns.appendChild(prefsTriggerBtn);
       // Image trigger — arms this widget as the target for the next Media Library file click.
-      // Click again to disarm; only lights up when this widget actually has an image preference
-      // to target (see detectImagePrefKey), matching the "no image preference" failure mode.
-      var imageTriggerBtn = document.createElement('button');
-      imageTriggerBtn.type = 'button';
-      imageTriggerBtn.className = 'sc-mutate-btn-image sc-image-trigger';
-      imageTriggerBtn.title = 'Choose image from Media Library';
-      imageTriggerBtn.textContent = '🖼 Image';
-      imageTriggerBtn.addEventListener('click', function (e) {
-        e.stopPropagation();
-        if (activeImageWidget && activeImageWidget.el === el) {
-          disarmImageWidget();
-          setToolbarStatus('');
-          return;
-        }
-        var prefKey = detectImagePrefKey(el);
-        if (!prefKey) {
-          setToolbarStatus('This widget has no image preference to target.');
-          return;
-        }
-        armImageWidget(el, s, c, w, prefKey);
-      });
-      btns.appendChild(imageTriggerBtn);
+      // Only rendered for an actual "image" widget (see IMAGE_WIDGET_TYPE below): that widget's
+      // one editable image preference is its render source, so there is nothing to guess here.
+      if (el.dataset.editorWidgetName === IMAGE_WIDGET_TYPE) {
+        var imageTriggerBtn = document.createElement('button');
+        imageTriggerBtn.type = 'button';
+        imageTriggerBtn.className = 'sc-mutate-btn-image sc-image-trigger';
+        imageTriggerBtn.title = 'Choose image from Media Library';
+        imageTriggerBtn.textContent = '🖼 Image';
+        imageTriggerBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          if (activeImageWidget && activeImageWidget.el === el) {
+            disarmImageWidget();
+            setToolbarStatus('');
+            return;
+          }
+          armImageWidget(el, s, c, w, IMAGE_WIDGET_PREF_KEY);
+        });
+        btns.appendChild(imageTriggerBtn);
+      }
       // Add-widget-after trigger for this widget position
       var addWidgetAfterBtn = document.createElement('button');
       addWidgetAfterBtn.type = 'button';
@@ -1331,49 +1328,14 @@
 
   // ── Active image widget (media library click-to-replace, issue #772) ────────
   //
-  // A widget doesn't declare "this preference holds an image" anywhere machine-readable at
-  // runtime today -- widget-schema.json has that shape but is deliberately not wired up (see its
-  // own header comment / P5.2 audit), and no widget type in this codebase currently exposes a
-  // single canonical "image src" preference the way e.g. `link` is the canonical URL preference
-  // on the button/link widgets. So instead of a hardcoded widget-type→prefKey table (which would
-  // either be fiction for types that have no such field, or wrong the moment a real one is added),
-  // this infers the target preference key from the widget's OWN current preferences JSON already
-  // sitting in data-editor-widget-prefs (the same attribute openPrefsPanel already reads): a
-  // stored value that already looks like an image file wins outright, otherwise a conventional
-  // image-ish key name if the widget has one set (even blank -- e.g. a freshly added widget).
-  // Returns null when neither signal is present, which is the expected, handled case for the many
-  // widget types that simply have no image preference (point 5 of the issue's failure modes).
-  var IMAGE_PREF_KEY_CANDIDATES = [
-    'image', 'imageUrl', 'imageSrc', 'imagePath', 'img',
-    'photo', 'photoUrl', 'picture', 'pictureUrl',
-    'poster', 'posterUrl', 'thumbnail', 'thumbnailUrl',
-    'backgroundImage', 'backgroundImageUrl', 'bgImage', 'url'
-  ];
-  var IMAGE_EXT_RE = /\.(png|jpe?g|gif|svg|webp|avif)(\?.*)?$/i;
-
-  function detectImagePrefKey(widgetEl) {
-    var prefs;
-    try {
-      prefs = JSON.parse(widgetEl.dataset.editorWidgetPrefs || '{}');
-    } catch (e) {
-      return null;
-    }
-    if (!prefs || typeof prefs !== 'object') return null;
-
-    var keys = Object.keys(prefs);
-    // Strongest signal: an existing value that already looks like an image file.
-    for (var i = 0; i < keys.length; i++) {
-      var v = prefs[keys[i]];
-      if (typeof v === 'string' && IMAGE_EXT_RE.test(v)) return keys[i];
-    }
-    // Fall back to a conventional image-ish key name, in priority order.
-    for (var j = 0; j < IMAGE_PREF_KEY_CANDIDATES.length; j++) {
-      if (Object.prototype.hasOwnProperty.call(prefs, IMAGE_PREF_KEY_CANDIDATES[j])) {
-        return IMAGE_PREF_KEY_CANDIDATES[j];
-      }
-    }
-    return null;
-  }
+  // The "image" widget (ImageWidget/widget-library.xml) is the one widget type in this codebase
+  // whose rendered <img> is driven directly by an editable preference rather than a
+  // domain-entity reference (product/item/blog post, etc.) -- so the target widget type and its
+  // preference key are both known constants, not something to infer from arbitrary widgets'
+  // preference JSON (the prior heuristic here false-positived on e.g. the remoteContent widget's
+  // unrelated "url" preference and silently corrupted it).
+  var IMAGE_WIDGET_TYPE = 'image';
+  var IMAGE_WIDGET_PREF_KEY = 'imageUrl';
 
   function armImageWidget(el, s, c, w, prefKey) {
     if (activeImageWidget && activeImageWidget.el) {
@@ -1443,8 +1405,8 @@
             img.src = newUrl;
             updatedInPlace = true;
           }
-          // Keep the cached prefs JSON in sync so a subsequent detectImagePrefKey/openPrefsPanel
-          // call on this same widget sees the value that was just applied.
+          // Keep the cached prefs JSON in sync so a subsequent openPrefsPanel call on this same
+          // widget sees the value that was just applied.
           try {
             var prefs = JSON.parse(target.el.dataset.editorWidgetPrefs || '{}');
             prefs[target.prefKey] = newUrl;
