@@ -43,12 +43,14 @@ import org.apache.commons.validator.routines.UrlValidator;
  * the host itself when it connects, so a hostname that returns a public address here could
  * return an internal one at fetch time. {@link #validate(String)} exists for callers that need
  * to close that window: it returns the exact address(es) validated so the caller can pin the
- * connection to them (see {@code com.simisinc.platform.provided.net.ConnectAddressPin} and
- * {@code HttpGetCommand.executeUserUrl}, the one caller wired up to do this so far). Callers
- * that only call {@link #isFetchAllowed(String)} -- {@code HttpDownloadFileCommand} and
- * {@code DatasetDownloadRemoteFileCommand} as of this writing -- still resolve twice and remain
- * exposed to rebinding; blocking literal-IP and stable-DNS targets still covers the common
- * metadata-endpoint attack for them.
+ * connection to them (see {@code com.simisinc.platform.provided.net.ConnectAddressPin},
+ * {@code HttpGetCommand.executeUserUrl}, and {@code HttpDownloadFileCommand.executeUserUrl},
+ * both wired up to do this). {@code DatasetDownloadRemoteFileCommand} reaches every remote fetch
+ * through one of those two guarded wrappers, so it inherits the pin transitively; its own direct
+ * {@link #isFetchAllowed(String)} call is only an early, user-facing rejection before it does
+ * any filesystem prep, not a separate fetch path. A caller that only calls
+ * {@link #isFetchAllowed(String)} and then fetches independently, without going through a
+ * pinning wrapper, would still resolve twice and remain exposed to rebinding.
  *
  * @author Liz Houser
  * @created 7/23/2026
