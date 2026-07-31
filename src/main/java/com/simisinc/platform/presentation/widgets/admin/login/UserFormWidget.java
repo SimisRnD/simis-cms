@@ -65,6 +65,10 @@ public class UserFormWidget extends GenericWidget {
     } else {
       long userId = context.getParameterAsLong("userId");
       user = LoadUserCommand.loadUser(userId);
+      if (user == null) {
+        // No userId, or it didn't match an existing record -- treat this as the New User form
+        user = new User();
+      }
     }
 
     // Set the request items
