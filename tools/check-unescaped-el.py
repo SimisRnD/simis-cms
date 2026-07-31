@@ -192,6 +192,17 @@ ALLOWLIST: dict[str, str] = {
         "No application-level escaping or filtering on this path.",
     "${pageValue}":
         "pageValue is the loop variable over recordPaging.pageList, and DataConstraints.getPageList() (DataConstraints.java:176-202) only ever adds String.valueOf-style decimal renderings o",
+    "${point.p50Value}":
+        "WebVitalsAggregate.p50Value (domain/model/cms/WebVitalsAggregate.java) is a Java primitive "
+        "double, populated from a NUMERIC column via ResultSet.getBigDecimal(...).doubleValue() in "
+        "WebVitalsAggregateRepository -- same reasoning as ${data.value}/${summary.lcpP75 ...} "
+        "above, a primitive cannot carry markup.",
+    "${point.p75Value}":
+        "Same as ${point.p50Value} -- WebVitalsAggregate.p75Value is the identical primitive double, "
+        "populated the same way.",
+    "${point.p95Value}":
+        "Same as ${point.p50Value} -- WebVitalsAggregate.p95Value is the identical primitive double, "
+        "populated the same way.",
     "${pricingRule.buyXItems}":
         "PricingRule.buyXItems is a Java primitive `int` (domain/model/ecommerce/PricingRule.java:57, getter `public int getBuyXItems()` at PricingRule.java:257) loaded via `DB.getInt(rs, .",
     "${pricingRule.getYItemsFree}":
