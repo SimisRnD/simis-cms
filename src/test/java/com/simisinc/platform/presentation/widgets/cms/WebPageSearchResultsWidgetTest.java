@@ -42,4 +42,38 @@ class WebPageSearchResultsWidgetTest extends WidgetBase {
     // Mock the results
 //    Assertions.assertEquals(JSP, widgetContext.getJsp());
   }
+
+  // --- shouldRestrictToPublishedSearchableWebPages: mirrors isPageInTheNavigation's privileged
+  // bypass (hasRole("admin") || hasRole("content-manager") means "skip restrictions") ---
+
+  @Test
+  void restrictsAPlainLoggedInUser() {
+    Assertions.assertTrue(WebPageSearchResultsWidget.shouldRestrictToPublishedSearchableWebPages(widgetContext));
+  }
+
+  @Test
+  void restrictsAGuest() {
+    logout(widgetContext);
+    Assertions.assertTrue(WebPageSearchResultsWidget.shouldRestrictToPublishedSearchableWebPages(widgetContext));
+  }
+
+  @Test
+  void doesNotRestrictAnAdmin() {
+    setRoles(widgetContext, ADMIN);
+    Assertions.assertFalse(WebPageSearchResultsWidget.shouldRestrictToPublishedSearchableWebPages(widgetContext));
+  }
+
+  @Test
+  void doesNotRestrictAContentManager() {
+    setRoles(widgetContext, CONTENT_MANAGER);
+    Assertions.assertFalse(WebPageSearchResultsWidget.shouldRestrictToPublishedSearchableWebPages(widgetContext),
+        "a content-manager is privileged, like isPageInTheNavigation treats it, and must not be restricted");
+  }
+
+  @Test
+  void doesNotRestrictAnAdminWhoIsAlsoAContentManager() {
+    setRoles(widgetContext, ADMIN, CONTENT_MANAGER);
+    Assertions.assertFalse(WebPageSearchResultsWidget.shouldRestrictToPublishedSearchableWebPages(widgetContext),
+        "an admin+content-manager combination is still privileged");
+  }
 }
