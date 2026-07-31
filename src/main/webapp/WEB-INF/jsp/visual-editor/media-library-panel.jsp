@@ -48,6 +48,10 @@
     <div class="empty" style="display: none;">
       <p>No files found</p>
     </div>
+    <div class="error" style="display: none;" role="alert">
+      <i class="fa fa-exclamation-triangle"></i>
+      <p></p>
+    </div>
     <div class="files" role="presentation"></div>
   </div>
 
@@ -76,10 +80,15 @@
     border: 1px solid #ddd;
     border-radius: 8px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-    display: flex;
+    display: none;
     flex-direction: column;
     z-index: 1000;
     font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+
+  /* Closed by default (above); the toolbar's Media Library button toggles this class to open it. */
+  .media-library-panel.open {
+    display: flex;
   }
 
   .media-panel-header {
@@ -279,7 +288,7 @@
     cursor: not-allowed;
   }
 
-  .loading, .empty {
+  .loading, .empty, .error {
     text-align: center;
     padding: 32px 16px;
     color: #999;
@@ -291,6 +300,16 @@
     font-size: 24px;
     margin-bottom: 12px;
     animation: spin 1s linear infinite;
+  }
+
+  .error {
+    color: #c0392b;
+  }
+
+  .error i {
+    display: block;
+    font-size: 24px;
+    margin-bottom: 12px;
   }
 
   @keyframes spin {
@@ -322,19 +341,31 @@
   const uploadArea = document.getElementById('media-upload-area');
   const fileInput = document.getElementById('media-file-input');
   const pagination = document.getElementById('media-pagination');
+  const toggleBtn = document.getElementById('sc-editor-media-library');
 
   let currentPage = 0;
   const pageSize = 12;
   let allAssets = [];
   let filteredAssets = [];
+  let lastFocusedElement = null;
 
   // Load initial files
   loadFiles();
 
   // Event listeners
   closeBtn.addEventListener('click', () => {
-    panel.style.display = 'none';
+    hideMediaLibrary();
   });
+
+  if (toggleBtn) {
+    toggleBtn.addEventListener('click', () => {
+      if (isOpen()) {
+        hideMediaLibrary();
+      } else {
+        showMediaLibrary();
+      }
+    });
+  }
 
   searchInput.addEventListener('input', (e) => {
     currentPage = 0;
@@ -367,6 +398,7 @@
     loading.style.display = '';
     gridContent.style.display = 'none';
     empty.style.display = 'none';
+    hideErrorState();
 
     const params = new URLSearchParams({
       limit: pageSize,
@@ -377,7 +409,12 @@
     }
 
     fetch('/visual-editor/media?' + params)
-      .then(r => r.json())
+      .then(r => {
+        if (!r.ok) {
+          throw new Error('Request failed with status ' + r.status);
+        }
+        return r.json();
+      })
       .then(data => {
         filteredAssets = data.assets || [];
         allAssets = data.assets || [];
@@ -391,10 +428,22 @@
         }
       })
       .catch(err => {
-        console.error('Error loading files:', err);
+        console.error('Error loading media library files:', err);
         loading.style.display = 'none';
-        empty.style.display = '';
+        gridContent.style.display = 'none';
+        empty.style.display = 'none';
+        showErrorState('Unable to load files. Please try again.');
       });
+  }
+
+  function showErrorState(message) {
+    const errorEl = grid.querySelector('.error');
+    errorEl.querySelector('p').textContent = message;
+    errorEl.style.display = '';
+  }
+
+  function hideErrorState() {
+    grid.querySelector('.error').style.display = 'none';
   }
 
   function renderFiles() {
@@ -474,14 +523,66 @@
     }
   }
 
-  // Expose panel control functions to global scope
-  window.showMediaLibrary = function() {
-    panel.style.display = 'flex';
-    searchInput.focus();
-  };
+  function isOpen() {
+    return panel.classList.contains('open');
+  }
 
-  window.hideMediaLibrary = function() {
-    panel.style.display = 'none';
-  };
+  function showMediaLibrary() {
+    lastFocusedElement = document.activeElement;
+    panel.classList.add('open');
+    searchInput.focus();
+  }
+
+  function hideMediaLibrary() {
+    panel.classList.remove('open');
+    if (lastFocusedElement && typeof lastFocusedElement.focus === 'function') {
+      lastFocusedElement.focus();
+    }
+    lastFocusedElement = null;
+  }
+
+  // Expose panel control functions to global scope
+  window.showMediaLibrary = showMediaLibrary;
+  window.hideMediaLibrary = hideMediaLibrary;
+
+  // ── Keyboard operability: Escape closes the panel, Tab/Shift+Tab stay trapped inside it while
+  // open. Follows the same convention as platform-editor.js's width/widget pickers (document-level
+  // keydown, gated on the picker's own open state).
+  function getFocusableElements() {
+    const nodes = panel.querySelectorAll(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+    return Array.prototype.filter.call(nodes, el => !el.disabled && el.offsetParent !== null);
+  }
+
+  document.addEventListener('keydown', (e) => {
+    if (!isOpen()) return;
+
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      hideMediaLibrary();
+      return;
+    }
+
+    if (e.key !== 'Tab') return;
+
+    const focusable = getFocusableElements();
+    if (focusable.length === 0) return;
+
+    const first = focusable[0];
+    const last = focusable[focusable.length - 1];
+    const active = document.activeElement;
+
+    if (e.shiftKey) {
+      if (active === first || !panel.contains(active)) {
+        e.preventDefault();
+        last.focus();
+      }
+    } else {
+      if (active === last || !panel.contains(active)) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+  });
 })();
 </script>

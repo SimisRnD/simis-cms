@@ -401,6 +401,7 @@
          data-widget-names="<c:out value="${widgetLibraryJson}"/>">
       <span id="sc-editor-toolbar-title">Visual Editor</span>
       <a href="${ctx}/admin/web-page-designer?webPage=<c:out value="${pageRenderInfo.pagePath}"/>" class="button small hollow secondary"><i class="fa fa-fw fa-code"></i> XML</a>
+      <button type="button" id="sc-editor-media-library" class="button small hollow secondary"><i class="fa fa-fw fa-image"></i> Media Library</button>
       <a href="?editMode=false" id="sc-editor-exit" class="button small hollow secondary"><i class="fa fa-fw fa-times"></i> Exit</a>
       <span id="sc-editor-status" aria-live="polite"></span>
     </div>

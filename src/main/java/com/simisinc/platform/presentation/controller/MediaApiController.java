@@ -17,6 +17,8 @@
 package com.simisinc.platform.presentation.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.cms.EditorPermissionCommand;
 import com.simisinc.platform.application.cms.LoadWebPageCommand;
@@ -58,7 +60,14 @@ import java.util.UUID;
 public class MediaApiController extends HttpServlet {
 
   private static Log LOG = LogFactory.getLog(MediaApiController.class);
-  private static ObjectMapper objectMapper = new ObjectMapper();
+  // MediaAsset.createdAt/updatedAt/deletedAt are LocalDateTime; without the JSR-310 module
+  // registered, Jackson has no serializer for that type and throws InvalidDefinitionException
+  // the instant a response includes a MediaAsset with a non-null timestamp -- every list/create/
+  // widget-update response path below. WRITE_DATES_AS_TIMESTAMPS is disabled so the field comes
+  // out as a normal ISO-8601 string instead of a [year,month,day,...] array.
+  private static ObjectMapper objectMapper = new ObjectMapper()
+      .registerModule(new JavaTimeModule())
+      .disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 
   @Override
   protected void doGet(HttpServletRequest request, HttpServletResponse response)
