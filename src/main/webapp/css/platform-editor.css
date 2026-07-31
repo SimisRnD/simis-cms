@@ -431,8 +431,11 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-move-btns {
   padding: 2px;
 }
 
-body.page-edit-mode [data-editor-section]:hover > .sc-mutate-btns,
-body.page-edit-mode [data-editor-column]:hover > .sc-mutate-btns,
+/* An ancestor's toolbar defers to a nested descendant's own toolbar so the two
+   never compete for the same click when a widget/column nearly fills its parent
+   (issue #783). */
+body.page-edit-mode [data-editor-section]:hover:not(:has([data-editor-column]:hover)) > .sc-mutate-btns,
+body.page-edit-mode [data-editor-column]:hover:not(:has([data-editor-widget]:hover)) > .sc-mutate-btns,
 body.page-edit-mode [data-editor-widget]:hover > .sc-mutate-btns {
   display: flex;
 }

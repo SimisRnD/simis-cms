@@ -16,6 +16,7 @@
 
 package com.simisinc.platform.infrastructure.scheduler;
 
+import com.simisinc.platform.domain.events.Event;
 import com.simisinc.platform.infrastructure.database.DataSource;
 import com.simisinc.platform.infrastructure.instance.InstanceManager;
 import com.simisinc.platform.infrastructure.scheduler.admin.CapabilityGrantExpirationJob;
@@ -51,6 +52,8 @@ import org.jobrunr.storage.InMemoryStorageProvider;
 import org.jobrunr.storage.StorageProvider;
 import org.jobrunr.storage.StorageProviderUtils;
 import org.jobrunr.storage.sql.common.SqlStorageProviderFactory;
+import org.jobrunr.utils.mapper.jackson3.Jackson3JsonMapper;
+import tools.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 
 import jakarta.servlet.ServletContext;
 import java.io.InputStream;
@@ -137,7 +140,15 @@ public class SchedulerManager {
       storageProvider = jobStorageProvider;
 
       // Initialize the scheduler
+      // WorkflowEngineJob carries a polymorphic Event field (UserRegisteredEvent, FormSubmittedEvent,
+      // etc.), so JobRunr's default JsonMapper -- whose PolymorphicTypeValidator trusts nothing by
+      // default -- can serialize it but then refuses to deserialize it back (JobParameterNotDeserializableException
+      // wrapping InvalidTypeIdException), permanently failing every workflow-triggering job. Explicitly
+      // trusting the Event hierarchy here covers all current and future subclasses.
       JobRunr.configure()
+          .useJsonMapper(new Jackson3JsonMapper(
+              BasicPolymorphicTypeValidator.builder()
+                  .allowIfSubType(Event.class)))
           .useStorageProvider(jobStorageProvider)
 //          .useJobActivator(new JobActivator() {
 //            public <T> T activateJob(Class<T> aClass) {

@@ -349,6 +349,7 @@
   let allAssets = [];
   let filteredAssets = [];
   let lastFocusedElement = null;
+  let lastTotal = 0; // tracked from the most recent loadFiles() response; kept in sync after an upload
 
   // Load initial files
   loadFiles();
@@ -427,8 +428,9 @@
       .then(data => {
         filteredAssets = data.assets || [];
         allAssets = data.assets || [];
+        lastTotal = data.total || 0;
         renderFiles();
-        updatePagination(data.total || 0);
+        updatePagination(lastTotal);
         loading.style.display = 'none';
         if (filteredAssets.length === 0) {
           empty.style.display = '';
@@ -468,7 +470,9 @@
 
       if (asset.mimeType && asset.mimeType.startsWith('image/')) {
         const img = document.createElement('img');
-        img.src = asset.storagePath || '';
+        // storagePath is the internal FileSystemCommand-relative disk path, not a browser URL (issue
+        // #773) -- the file is served through the new /visual-editor/media/file/{assetId} route.
+        img.src = asset.assetId ? ('/visual-editor/media/file/' + encodeURIComponent(asset.assetId)) : '';
         img.className = 'media-file-thumbnail';
         img.alt = asset.altText || asset.assetName;
         item.appendChild(img);
@@ -498,9 +502,133 @@
     document.dispatchEvent(event);
   }
 
+  // 10MB default, matching the server's own default (MediaApiController.resolveMaxUploadBytes,
+  // which mirrors ImageUploadWidget/SaveFilePartCommand's existing "system.upload.maxBytes"
+  // convention) -- this is only a fast client-side rejection so the user isn't left waiting on a
+  // network round trip for an obviously-too-big file; the server enforces its own limit regardless.
+  const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+
+  function isAllowedFileType(file) {
+    const type = (file.type || '').toLowerCase();
+    if (type) {
+      return type.indexOf('image/') === 0 || type === 'application/pdf';
+    }
+    // Some browsers/drag sources omit type for certain files (e.g. some SVGs); fall back to the
+    // extension, matching the file input's own accept list.
+    return /\.(png|jpe?g|gif|webp|bmp|svg|pdf)$/i.test(file.name || '');
+  }
+
+  function validateFileClientSide(file) {
+    if (!isAllowedFileType(file)) {
+      return file.name + ': only images and PDF files are supported';
+    }
+    if (file.size <= 0) {
+      return file.name + ': the file is empty';
+    }
+    if (file.size > MAX_UPLOAD_BYTES) {
+      return file.name + ': exceeds the maximum upload size (' + Math.floor(MAX_UPLOAD_BYTES / (1024 * 1024)) + 'MB)';
+    }
+    return null;
+  }
+
   function handleFiles(files) {
-    // File upload implementation - to be completed in next task
-    console.log('Files selected:', files.length);
+    if (!files || files.length === 0) {
+      return;
+    }
+    const fileList = Array.prototype.slice.call(files);
+    const errors = [];
+    const toUpload = [];
+    fileList.forEach(function (file) {
+      const validationError = validateFileClientSide(file);
+      if (validationError) {
+        errors.push(validationError);
+      } else {
+        toUpload.push(file);
+      }
+    });
+
+    if (toUpload.length === 0) {
+      showErrorState(errors.join('; '));
+      fileInput.value = '';
+      return;
+    }
+
+    hideErrorState();
+    uploadNext(toUpload, 0, errors);
+  }
+
+  function uploadNext(files, index, errors) {
+    if (index >= files.length) {
+      hideUploadingState();
+      fileInput.value = '';
+      if (errors.length > 0) {
+        showErrorState(errors.join('; '));
+      }
+      return;
+    }
+
+    const file = files[index];
+    showUploadingState(index + 1, files.length, file.name);
+
+    const formData = new FormData();
+    formData.append('file', file);
+    const token = (typeof mainToken !== 'undefined') ? mainToken : '';
+
+    fetch('/visual-editor/media/upload?token=' + encodeURIComponent(token), {
+      method: 'POST',
+      body: formData
+    })
+      .then(function (resp) {
+        return resp.json().catch(function () {
+          return {};
+        }).then(function (data) {
+          if (!resp.ok || !data.success) {
+            throw new Error((data && data.error) || ('Upload failed with status ' + resp.status));
+          }
+          return data;
+        });
+      })
+      .then(function (data) {
+        if (data.asset) {
+          addUploadedAssetToGrid(data.asset);
+        }
+      })
+      .catch(function (err) {
+        console.error('Error uploading file:', file.name, err);
+        errors.push(file.name + ': ' + err.message);
+      })
+      .then(function () {
+        uploadNext(files, index + 1, errors);
+      });
+  }
+
+  // Optimistically inserts the newly uploaded asset at the front of the currently displayed page
+  // instead of re-fetching -- the list endpoint sorts oldest-first, so a re-fetch of the current
+  // page would not actually surface a brand new upload without also jumping to the last page.
+  function addUploadedAssetToGrid(asset) {
+    filteredAssets.unshift(asset);
+    allAssets.unshift(asset);
+    lastTotal += 1;
+
+    const gridContent = grid.querySelector('.files');
+    grid.querySelector('.empty').style.display = 'none';
+    gridContent.style.display = '';
+    renderFiles();
+    updatePagination(lastTotal);
+  }
+
+  function showUploadingState(current, total, filename) {
+    const loading = grid.querySelector('.loading');
+    loading.querySelector('p').textContent = total > 1
+      ? ('Uploading ' + current + ' of ' + total + '…')
+      : ('Uploading ' + filename + '…');
+    loading.style.display = '';
+  }
+
+  function hideUploadingState() {
+    const loading = grid.querySelector('.loading');
+    loading.style.display = 'none';
+    loading.querySelector('p').textContent = 'Loading files...';
   }
 
   function updatePagination(total) {

@@ -28,6 +28,8 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.apache.commons.validator.routines.UrlValidator;
 
+import com.simisinc.platform.provided.net.ConnectAddressPin;
+
 /**
  * Functions for working with http requests.
  *
@@ -44,21 +46,77 @@ import org.apache.commons.validator.routines.UrlValidator;
  */
 public class HttpGetCommand {
 
-  private static Log LOG = LogFactory.getLog(HttpDownloadFileCommand.class);
+  private static Log LOG = LogFactory.getLog(HttpGetCommand.class);
 
   public static final int GET = 1;
   public static final int DELETE = 2;
 
   /**
+   * True when {@link ConnectAddressPin} (issue #760's connect-time DNS pin resolver, built from
+   * {@code ssrf-pin-resolver/} and normally supplied on the servlet container's shared
+   * classpath -- {@code CATALINA_HOME/lib} for Tomcat) actually links on this JVM. This
+   * project's own Docker image ({@code docker/app/Dockerfile}) adds it automatically. It is NOT
+   * automatically present for any OTHER way of running this application -- notably, deploying
+   * the plain {@code .war} to a self-managed servlet container, which is this project's own
+   * README's documented deployment path and is not Docker-specific. Probed once at class-init
+   * rather than per-call: whether the jar is on the classpath is a deployment-wide fact fixed
+   * for the life of the JVM, not something that can change between two calls.
+   */
+  private static final boolean PIN_RESOLVER_AVAILABLE = isPinResolverAvailable();
+
+  private static boolean isPinResolverAvailable() {
+    try {
+      // A real call, not just Class.forName: proves ConnectAddressPin actually LINKS (its own
+      // dependencies resolve too), the same resolution executeUserUrl's set/clear calls below
+      // depend on. Harmless: clear() is idempotent and nothing is pinned yet at class-init.
+      ConnectAddressPin.clear();
+      return true;
+    } catch (Throwable t) {
+      LOG.warn("SSRF connect-time DNS pinning (issue #760) is unavailable: "
+          + "com.simisinc.platform.provided.net.ConnectAddressPin was not found on this JVM's "
+          + "classpath. executeUserUrl(...) will still run the SSRF guard and fetch normally, "
+          + "but without pinning the validated address, so the DNS-rebinding gap "
+          + "RemoteUrlValidationCommand's javadoc describes is NOT closed in this deployment "
+          + "(no worse than before issue #760, just not improved). This project's own Docker "
+          + "image adds the required jar automatically; a servlet container run outside that "
+          + "image must also place target/simis-cms-ssrf-pin-resolver.jar on the container's "
+          + "shared classpath (CATALINA_HOME/lib for Tomcat) -- see ssrf-pin-resolver/README.md.",
+          t);
+      return false;
+    }
+  }
+
+  /**
    * Validates that {@code url} is SSRF-safe, then fetches it. Returns null and logs a
    * warning if the guard rejects the URL. Use this for any URL derived from untrusted input.
+   *
+   * <p>Closes the DNS-rebinding gap {@code RemoteUrlValidationCommand} documents (issue #760):
+   * the address(es) validated are pinned via {@link ConnectAddressPin} for the duration of the
+   * actual connect below, so the JDK HttpClient's own re-resolution of {@code url}'s host
+   * returns exactly those bytes rather than asking DNS again. The pin is scoped to this thread
+   * and always cleared in {@code finally} -- Tomcat reuses worker threads across requests, so a
+   * pin left set would otherwise leak into whatever that thread handles next. The request URI
+   * itself is never rewritten to an IP literal, so TLS SNI and certificate hostname
+   * verification see the original hostname unchanged.
+   *
+   * <p>Degrades gracefully -- guard still enforced, just not pinned -- rather than failing the
+   * fetch outright, when {@link #PIN_RESOLVER_AVAILABLE} is false (see its javadoc).
    */
   public static String executeUserUrl(String url) {
-    if (!RemoteUrlValidationCommand.isFetchAllowed(url)) {
+    RemoteUrlValidationCommand.ValidationResult validation = RemoteUrlValidationCommand.validate(url);
+    if (!validation.isAllowed()) {
       LOG.warn("Blocked an SSRF-unsafe user-supplied url: " + url);
       return null;
     }
-    return execute(url, GET);
+    if (!PIN_RESOLVER_AVAILABLE) {
+      return execute(url, GET);
+    }
+    ConnectAddressPin.set(validation.getHost(), validation.getAddresses());
+    try {
+      return execute(url, GET);
+    } finally {
+      ConnectAddressPin.clear();
+    }
   }
 
   public static String execute(String url) {

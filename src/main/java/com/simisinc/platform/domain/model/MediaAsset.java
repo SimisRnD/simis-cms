@@ -12,7 +12,7 @@ import java.time.LocalDateTime;
  */
 public class MediaAsset extends Entity {
 
-  private long id;
+  private long id = -1;
   private String assetId;
   private String assetName;
   private String assetType; // 'image' or 'pdf'

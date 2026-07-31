@@ -41,8 +41,10 @@ import com.simisinc.platform.presentation.controller.AuditEventCommand;
  * The user-edit form is reachable by both admin and community-manager (admin-layout.xml). Without a
  * check, the role checkboxes let a lower-privileged editor grant themselves or anyone else a higher
  * role -- e.g. a community-manager (level 90) granting admin (level 100), a full privilege escalation.
- * These verify the editor can only set roles at or below their own level, admins are unaffected, and a
- * higher role the target already holds is neither grantable nor strippable by a lower editor.
+ * Most of these verify the editor can only set roles at or below their own level, admins are
+ * unaffected, and a higher role the target already holds is neither grantable nor strippable by a
+ * lower editor. One covers a separate regression: execute() with no userId (the New User form) must
+ * not pass LoadUserCommand's not-found null straight to the JSP.
  *
  * @author Elizabeth Houser
  */
@@ -69,6 +71,25 @@ class UserFormWidgetTest extends WidgetBase {
     user.setId(5L);
     user.setEmail("saved@example.com");
     return user;
+  }
+
+  @Test
+  void executeWithoutUserIdBuildsBlankUserForNewUserForm() {
+    // GET /admin/modify-user with no userId (and no requestObject from a prior post()) is the New
+    // User form. LoadUserCommand.loadUser(-1) intentionally returns null for a not-found id -- the
+    // widget must not pass that null straight to the JSP.
+    setRoles(widgetContext, ADMIN);
+    try (MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
+        MockedStatic<GroupRepository> groupRepo = mockStatic(GroupRepository.class)) {
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
+      groupRepo.when(GroupRepository::findAll).thenReturn(new ArrayList<>());
+
+      Assertions.assertDoesNotThrow(() -> new UserFormWidget().execute(widgetContext));
+
+      User user = (User) widgetContext.getRequest().getAttribute("user");
+      Assertions.assertNotNull(user, "a blank User must be set so the New User form can render");
+      Assertions.assertEquals(-1L, user.getId().longValue(), "a blank User must keep the 'new record' id sentinel");
+    }
   }
 
   @Test
