@@ -68,6 +68,7 @@ import static org.jobrunr.server.BackgroundJobServerConfiguration.usingStandardB
 public class SchedulerManager {
 
   private static ServletContext servletContext = null;
+  private static volatile StorageProvider storageProvider = null;
   private static Log LOG = LogFactory.getLog(SchedulerManager.class);
 
   // Jobs for every replica
@@ -133,6 +134,7 @@ public class SchedulerManager {
 
       // Configure the storage
       StorageProvider jobStorageProvider = (inMemoryStorage ? new InMemoryStorageProvider() : SqlStorageProviderFactory.using(DataSource.getDataSource(), null, StorageProviderUtils.DatabaseOptions.CREATE));
+      storageProvider = jobStorageProvider;
 
       // Initialize the scheduler
       JobRunr.configure()
@@ -200,11 +202,25 @@ public class SchedulerManager {
   }
 
   public static void shutdown() {
+    // Null the field before JobRunr.destroy() closes the underlying provider, not after: a reader
+    // that observes null gets the correct "unavailable" signal, rather than a reference to a
+    // provider that JobRunr.destroy() is concurrently closing underneath it. This narrows, but
+    // doesn't fully eliminate, the shutdown race for a request already mid-call when destroy()
+    // runs -- accepted as low-risk for an admin-only diagnostic path exercised only around
+    // container shutdown, not a sustained concurrency guarantee.
+    storageProvider = null;
     JobRunr.destroy();
     servletContext = null;
   }
 
   public static ServletContext getServletContext() {
     return servletContext;
+  }
+
+  /** The JobRunr StorageProvider backing the scheduler, so admin tooling (e.g. the Job Queue
+   * Dashboard, issue #464) can query job counts and lists directly. Null until {@link #startup}
+   * has run. */
+  public static StorageProvider getStorageProvider() {
+    return storageProvider;
   }
 }
