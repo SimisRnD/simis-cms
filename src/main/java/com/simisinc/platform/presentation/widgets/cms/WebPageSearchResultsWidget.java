@@ -84,12 +84,7 @@ public class WebPageSearchResultsWidget extends GenericWidget {
 
     // Determine the web pages that can be searched
     UserSession userSession = context.getUserSession();
-    WebPageSpecification webPageSpecification = new WebPageSpecification();
-    if (!context.hasRole("admin") || context.hasRole("content-manager")) {
-      webPageSpecification.setSearchable(true);
-      webPageSpecification.setDraft(false);
-    }
-    webPageSpecification.setHasRedirect(false);
+    WebPageSpecification webPageSpecification = buildWebPageSearchSpecification(context);
     List<WebPage> webPageList = WebPageRepository.findAll(webPageSpecification, null);
 
     // Now search the web pages for a matching unique id
@@ -164,6 +159,19 @@ public class WebPageSearchResultsWidget extends GenericWidget {
     }
     context.getRequest().setAttribute("searchResultList", resultsMap.values());
     return finishRequest(context, resultsMap);
+  }
+
+  // Draft is deliberately not filtered here: a page keeps its published page_xml when draft=true
+  // (draft only means it also has a pending edit -- see WebPageRepository.publish(), the only place
+  // that clears page_xml, which always flips draft back to false in the same statement). The
+  // blank-pageXml check later in execute() is what correctly excludes a page that was never published.
+  static WebPageSpecification buildWebPageSearchSpecification(WidgetContext context) {
+    WebPageSpecification webPageSpecification = new WebPageSpecification();
+    if (!context.hasRole("admin") || context.hasRole("content-manager")) {
+      webPageSpecification.setSearchable(true);
+    }
+    webPageSpecification.setHasRedirect(false);
+    return webPageSpecification;
   }
 
   private boolean isPageInTheNavigation(WidgetContext context, String link, List<MenuTab> menuTabList, List<TableOfContents> tableOfContentsList) {
