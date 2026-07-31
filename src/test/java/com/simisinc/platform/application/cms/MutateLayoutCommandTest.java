@@ -529,6 +529,71 @@ class MutateLayoutCommandTest {
     assertTrue(result.contains("<imageUrl>javascript:alert(1)</imageUrl>"));
   }
 
+  // ── getWidgetName ─────────────────────────────────────────────────────────
+  // Read-only resolver added for issue #772's follow-up: MediaApiController's widget-update
+  // endpoint must confirm the *real* widget at a position -- resolved the same way
+  // setWidgetPreferences resolves it internally -- before honoring a client-supplied prefKey.
+
+  @Test
+  void getWidgetNameReturnsTheRegisteredNameOfTheWidgetAtThePosition() throws DataException {
+    WebPage page = pageWithXml(IMAGE_WIDGET_XML);
+    assertEquals("image", MutateLayoutCommand.getWidgetName(page, 0, 0, 0));
+  }
+
+  @Test
+  void getWidgetNameResolvesEachWidgetInAMultiWidgetColumnIndependently() throws DataException {
+    WebPage page = pageWithXml(
+        "<page>\n" +
+        "  <section>\n" +
+        "    <column class=\"small-12 cell\">\n" +
+        "      <widget name=\"content\"><uniqueId>a</uniqueId></widget>\n" +
+        "      <widget name=\"image\"><imageUrl>/media/x.png</imageUrl></widget>\n" +
+        "    </column>\n" +
+        "  </section>\n" +
+        "</page>");
+    assertEquals("content", MutateLayoutCommand.getWidgetName(page, 0, 0, 0));
+    assertEquals("image", MutateLayoutCommand.getWidgetName(page, 0, 0, 1));
+  }
+
+  @Test
+  void getWidgetNamePrefersTheDraftLayoutOverThePublishedOne() throws DataException {
+    // Mirrors mutate()'s own source resolution: a pending, unpublished edit must be what gets
+    // checked, not the stale published version -- otherwise this check could pass or fail against a
+    // widget arrangement that's no longer accurate.
+    WebPage page = pageWithXml(IMAGE_WIDGET_XML);
+    page.setDraftPageXml(
+        "<page>\n" +
+        "  <section>\n" +
+        "    <column class=\"small-12 cell\">\n" +
+        "      <widget name=\"remoteContent\"><url>https://example.com</url></widget>\n" +
+        "    </column>\n" +
+        "  </section>\n" +
+        "</page>");
+    assertEquals("remoteContent", MutateLayoutCommand.getWidgetName(page, 0, 0, 0));
+  }
+
+  @Test
+  void getWidgetNameRejectsOutOfRangeIndices() {
+    WebPage page = pageWithXml(ONE_SECTION_XML);
+    assertThrows(DataException.class, () -> MutateLayoutCommand.getWidgetName(page, 5, 0, 0));
+    assertThrows(DataException.class, () -> MutateLayoutCommand.getWidgetName(page, 0, 5, 0));
+    assertThrows(DataException.class, () -> MutateLayoutCommand.getWidgetName(page, 0, 0, 5));
+  }
+
+  @Test
+  void getWidgetNameRejectsAPageWithNoXmlLayout() {
+    WebPage page = new WebPage();
+    page.setId(99);
+    page.setLink("/no-xml");
+    assertThrows(DataException.class, () -> MutateLayoutCommand.getWidgetName(page, 0, 0, 0));
+  }
+
+  @Test
+  void getWidgetNameRejectsAMissingPage() {
+    WebPage missing = new WebPage(); // id defaults to -1: not a real, persisted page
+    assertThrows(DataException.class, () -> MutateLayoutCommand.getWidgetName(missing, 0, 0, 0));
+  }
+
   // ── modifiedBy / persistence-failure propagation ─────────────────────────
   // A structural mutation must record who made it and must not report success when the
   // underlying save silently fails (e.g. a stale modified_by value tripping the

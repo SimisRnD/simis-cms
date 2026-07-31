@@ -46,9 +46,19 @@ public class ImageWidget extends GenericWidget {
 
   /**
    * This widget's registered name in widget-library.xml. Used by MutateLayoutCommand to know when
-   * an "imageUrl" preference value belongs to this widget and needs {@link #isValidImageUrl}.
+   * an "imageUrl" preference value belongs to this widget and needs {@link #isValidImageUrl}, and by
+   * MediaApiController to confirm a widget-update request's target is really an image widget before
+   * honoring the client-supplied prefKey (issue #772 follow-up).
    */
   public static final String WIDGET_NAME = "image";
+
+  /**
+   * The name of this widget's sole render-source preference. MediaApiController's widget-update
+   * endpoint (the Media Library's click-to-replace) exists only to set this preference on a widget
+   * confirmed to be {@link #WIDGET_NAME} -- it rejects any other prefKey, since nothing else this
+   * widget owns should ever be reachable through that path.
+   */
+  public static final String IMAGE_URL_PREF_KEY = "imageUrl";
 
   /**
    * {@code imageUrl} is rendered straight into an &lt;img src&gt; attribute (see {@link #execute}),
@@ -71,7 +81,7 @@ public class ImageWidget extends GenericWidget {
     // scheme other than http(s)/mailto/tel, while still allowing an ordinary site-relative path
     // (e.g. a Media Library asset's storage path). An unset or unsafe value simply falls through
     // to the placeholder rendering in the JSP -- never a broken <img> tag.
-    String imageUrl = UrlCommand.sanitizeUrl(context.getPreferences().get("imageUrl"));
+    String imageUrl = UrlCommand.sanitizeUrl(context.getPreferences().get(IMAGE_URL_PREF_KEY));
     context.getRequest().setAttribute("imageUrl", imageUrl);
 
     // Always provide a String (never null) so the placeholder branch can tell an intentionally

@@ -52,6 +52,8 @@ import com.simisinc.platform.domain.model.Role;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.cms.WebPage;
 import com.simisinc.platform.infrastructure.persistence.MediaAssetRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
+import com.simisinc.platform.presentation.widgets.cms.ImageWidget;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -98,7 +100,10 @@ class MediaApiControllerTest {
     Map<String, String> params = new HashMap<>();
     params.put("assetId", "asset-123");
     params.put("pagePath", "/about");
-    params.put("prefKey", "url");
+    // The endpoint's real contract (post-#772 follow-up): the only prefKey it will ever honor is
+    // the image widget's own imageUrl preference. Individual tests below that need to exercise the
+    // rejection path (wrong prefKey / wrong widget type) override this explicitly.
+    params.put("prefKey", ImageWidget.IMAGE_URL_PREF_KEY);
     params.put("sectionIdx", "0");
     params.put("columnIdx", "1");
     params.put("widgetIdx", "2");
@@ -263,6 +268,8 @@ class MediaApiControllerTest {
          MockedStatic<MutateLayoutCommand> mutate = mockStatic(MutateLayoutCommand.class)) {
       assets.when(() -> MediaAssetRepository.findByAssetId("asset-123")).thenReturn(asset);
       pages.when(() -> LoadWebPageCommand.loadByLink("/about")).thenReturn(webPage);
+      mutate.when(() -> MutateLayoutCommand.getWidgetName(webPage, 0, 1, 2))
+          .thenReturn(ImageWidget.WIDGET_NAME);
 
       Recorded result = runWidgetUpdate(request);
 
@@ -273,7 +280,124 @@ class MediaApiControllerTest {
       mutate.verify(() -> MutateLayoutCommand.setWidgetPreferences(
           eq(webPage), eq(0), eq(1), eq(2), prefsJsonCaptor.capture(), eq(userSession.getUserId())));
       JsonNode prefs = MAPPER.readTree(prefsJsonCaptor.getValue());
-      assertEquals("/assets/photo.jpg", prefs.get("url").asText());
+      assertEquals("/assets/photo.jpg", prefs.get(ImageWidget.IMAGE_URL_PREF_KEY).asText());
+    }
+  }
+
+  // ── issue #772 follow-up: the server must independently verify the target is an image widget ──
+  //
+  // The visual editor's "Choose image from Media Library" trigger only renders client-side for a
+  // widget whose data-editor-widget-name is "image" (platform-editor.js) -- that gate is UI-only.
+  // A prior live-verify pass crafted the identical request shape the JS sends (valid session, valid
+  // CSRF token, a real assetId/pagePath) but aimed at a *different* widget's structural position with
+  // that widget's own real preference key, and the server accepted it (200) and silently overwrote
+  // that widget's real preference with an image path. These two tests recreate that attack and its
+  // sibling (right widget, wrong prefKey), and deliberately do NOT mock MutateLayoutCommand or
+  // WebPageRepository as no-ops -- they must prove the *real* getWidgetName resolution against real
+  // page XML rejects the request, not merely that some mock was configured to reject it.
+
+  @Test
+  void rejectsWidgetUpdateTargetingANonImageWidgetAndLeavesItsRealPreferenceUntouched() throws Exception {
+    UserSession userSession = loggedInSession("admin");
+    Map<String, String> params = baseParams(userSession.getFormToken());
+    // The attacker reuses a real, non-image widget's own real preference key ("url" on a
+    // remoteContent widget) at the structural position that widget actually occupies.
+    params.put("prefKey", "url");
+    params.put("sectionIdx", "0");
+    params.put("columnIdx", "0");
+    params.put("widgetIdx", "0");
+    HttpServletRequest request = requestWithSession(userSession, params);
+
+    MediaAsset asset = new MediaAsset();
+    asset.setAssetId("asset-123");
+    asset.setStoragePath("/assets/photo.jpg");
+
+    WebPage webPage = new WebPage();
+    webPage.setId(55);
+    webPage.setLink("/about");
+    webPage.setPageXml(
+        "<page>\n" +
+        "  <section>\n" +
+        "    <column class=\"small-12 cell\">\n" +
+        "      <widget name=\"remoteContent\">\n" +
+        "        <url>https://legit.example.com/feed.json</url>\n" +
+        "      </widget>\n" +
+        "    </column>\n" +
+        "  </section>\n" +
+        "</page>");
+
+    try (MockedStatic<MediaAssetRepository> assets = mockStatic(MediaAssetRepository.class);
+         MockedStatic<LoadWebPageCommand> pages = mockStatic(LoadWebPageCommand.class);
+         MockedStatic<WebPageRepository> repo = mockStatic(WebPageRepository.class)) {
+      assets.when(() -> MediaAssetRepository.findByAssetId("asset-123")).thenReturn(asset);
+      pages.when(() -> LoadWebPageCommand.loadByLink("/about")).thenReturn(webPage);
+
+      Recorded result = runWidgetUpdate(request);
+
+      assertEquals(400, result.status);
+      assertTrue(result.body.contains("not an image widget"),
+          "must be rejected for targeting the wrong widget type, not silently applied");
+
+      // The real setWidgetPreferences -- and the WebPageRepository.save it would call to persist --
+      // must never be reached: rejection has to happen before any write is attempted.
+      repo.verify(() -> WebPageRepository.save(any()), never());
+
+      // The widget actually on the page, as it would really render, is completely unchanged: no
+      // draft was created, and the published XML still holds the original url.
+      assertTrue(webPage.getDraftPageXml() == null || webPage.getDraftPageXml().isEmpty(),
+          "no draft mutation should have been written");
+      assertTrue(webPage.getPageXml().contains("<url>https://legit.example.com/feed.json</url>"),
+          "the remoteContent widget's real url preference must be completely unchanged");
+    }
+  }
+
+  @Test
+  void rejectsWidgetUpdateWithAPrefKeyOtherThanImageUrlEvenAgainstARealImageWidget() throws Exception {
+    // Sibling of the above: even when the target genuinely is an image widget, this endpoint must
+    // only ever be able to touch its imageUrl -- never some other preference of that same widget
+    // (e.g. altText) via the same request shape.
+    UserSession userSession = loggedInSession("admin");
+    Map<String, String> params = baseParams(userSession.getFormToken());
+    params.put("prefKey", "altText");
+    params.put("sectionIdx", "0");
+    params.put("columnIdx", "0");
+    params.put("widgetIdx", "0");
+    HttpServletRequest request = requestWithSession(userSession, params);
+
+    MediaAsset asset = new MediaAsset();
+    asset.setAssetId("asset-123");
+    asset.setStoragePath("/assets/photo.jpg");
+
+    WebPage webPage = new WebPage();
+    webPage.setId(55);
+    webPage.setLink("/about");
+    webPage.setPageXml(
+        "<page>\n" +
+        "  <section>\n" +
+        "    <column class=\"small-12 cell\">\n" +
+        "      <widget name=\"image\">\n" +
+        "        <imageUrl>/media/original.png</imageUrl>\n" +
+        "        <altText>A real, curated description</altText>\n" +
+        "      </widget>\n" +
+        "    </column>\n" +
+        "  </section>\n" +
+        "</page>");
+
+    try (MockedStatic<MediaAssetRepository> assets = mockStatic(MediaAssetRepository.class);
+         MockedStatic<LoadWebPageCommand> pages = mockStatic(LoadWebPageCommand.class);
+         MockedStatic<WebPageRepository> repo = mockStatic(WebPageRepository.class)) {
+      assets.when(() -> MediaAssetRepository.findByAssetId("asset-123")).thenReturn(asset);
+      pages.when(() -> LoadWebPageCommand.loadByLink("/about")).thenReturn(webPage);
+
+      Recorded result = runWidgetUpdate(request);
+
+      assertEquals(400, result.status);
+      assertTrue(result.body.contains(ImageWidget.IMAGE_URL_PREF_KEY),
+          "must be rejected for using the wrong prefKey, not silently applied to altText");
+
+      repo.verify(() -> WebPageRepository.save(any()), never());
+      assertTrue(webPage.getPageXml().contains("<altText>A real, curated description</altText>"),
+          "the widget's real altText must be completely unchanged");
     }
   }
 
@@ -293,6 +417,8 @@ class MediaApiControllerTest {
          MockedStatic<MutateLayoutCommand> mutate = mockStatic(MutateLayoutCommand.class)) {
       assets.when(() -> MediaAssetRepository.findByAssetId("asset-123")).thenReturn(asset);
       pages.when(() -> LoadWebPageCommand.loadByLink("/about")).thenReturn(webPage);
+      mutate.when(() -> MutateLayoutCommand.getWidgetName(webPage, 0, 1, 2))
+          .thenReturn(ImageWidget.WIDGET_NAME);
       mutate.when(() -> MutateLayoutCommand.setWidgetPreferences(
           any(), anyInt(), anyInt(), anyInt(), anyString(), anyLong()))
           .thenThrow(new DataException("Widget index 2 at 0:1 out of range (1 widget(s))"));
@@ -321,6 +447,8 @@ class MediaApiControllerTest {
          MockedStatic<MutateLayoutCommand> mutate = mockStatic(MutateLayoutCommand.class)) {
       assets.when(() -> MediaAssetRepository.findByAssetId("asset-123")).thenReturn(asset);
       pages.when(() -> LoadWebPageCommand.loadByLink("/about")).thenReturn(webPage);
+      mutate.when(() -> MutateLayoutCommand.getWidgetName(webPage, 0, 1, 2))
+          .thenReturn(ImageWidget.WIDGET_NAME);
 
       new MediaApiController().doPost(request, response);
 
@@ -374,6 +502,8 @@ class MediaApiControllerTest {
          MockedStatic<MutateLayoutCommand> mutate = mockStatic(MutateLayoutCommand.class)) {
       assets.when(() -> MediaAssetRepository.findByAssetId("asset-123")).thenReturn(asset);
       pages.when(() -> LoadWebPageCommand.loadByLink("/about")).thenReturn(webPage);
+      mutate.when(() -> MutateLayoutCommand.getWidgetName(webPage, 0, 1, 2))
+          .thenReturn(ImageWidget.WIDGET_NAME);
 
       Recorded result = runWidgetUpdate(request);
 

@@ -491,9 +491,62 @@ public class MutateLayoutCommand {
             + TableWidget.MAX_CELL_LENGTH + " characters per header/cell");
       }
     }
-    if (ImageWidget.WIDGET_NAME.equals(widgetName) && prefs.containsKey("imageUrl")
-        && !ImageWidget.isValidImageUrl(prefs.get("imageUrl"))) {
+    if (ImageWidget.WIDGET_NAME.equals(widgetName) && prefs.containsKey(ImageWidget.IMAGE_URL_PREF_KEY)
+        && !ImageWidget.isValidImageUrl(prefs.get(ImageWidget.IMAGE_URL_PREF_KEY))) {
       throw new DataException("Invalid image url: expected a site-relative path or an http(s)/mailto/tel address");
+    }
+  }
+
+  // ── Read-only queries ─────────────────────────────────────────────────────
+
+  /**
+   * Returns the widget-library {@code name} of the widget at {@code sectionIdx}:{@code columnIdx}:
+   * {@code widgetIdx} in the page's current draft layout (or its published layout when there is no
+   * draft) -- resolved from the same source XML, and by the same structural traversal, that
+   * {@link #setWidgetPreferences} uses internally. That means the answer can never drift from what
+   * a subsequent mutation at the same position would actually touch, unlike a second, independently
+   * written traversal that might parse or resolve pages slightly differently.
+   *
+   * <p>This exists so a caller that must authorize *which* widget a mutation is about to touch --
+   * before honoring a client-supplied preference key -- can check it against the real, structurally
+   * resolved widget rather than trusting anything the client claims about it. (For example,
+   * {@code MediaApiController}'s widget-update endpoint: its client-side "this is an image widget"
+   * gate is UI-only, so the server must independently confirm the target widget really is one before
+   * applying a client-chosen asset to it.) Read-only: never touches {@code draftPageXml}.
+   *
+   * @return the widget's {@code name} attribute (may be blank if the widget element has none)
+   * @throws DataException if the page has no XML layout, or the position is out of range
+   */
+  public static String getWidgetName(WebPage webPage, int sectionIdx, int columnIdx, int widgetIdx)
+      throws DataException {
+    if (webPage == null || webPage.getId() == -1) {
+      throw new DataException("Page not found");
+    }
+    String sourceXml = StringUtils.isNotBlank(webPage.getDraftPageXml())
+        ? webPage.getDraftPageXml()
+        : webPage.getPageXml();
+    if (StringUtils.isBlank(sourceXml)) {
+      throw new DataException("Page has no XML layout");
+    }
+    try {
+      DocumentBuilderFactory dbf = DocumentBuilderFactory.newInstance();
+      dbf.setFeature(XMLConstants.FEATURE_SECURE_PROCESSING, true);
+      dbf.setExpandEntityReferences(false);
+      DocumentBuilder builder = dbf.newDocumentBuilder();
+      Document doc = builder.parse(new InputSource(new StringReader(sourceXml)));
+
+      List<Element> sections = childElements(doc.getDocumentElement(), "section");
+      checkSectionIdx(sections, sectionIdx);
+      List<Element> columns = childElements(sections.get(sectionIdx), "column");
+      checkColumnIdx(columns, columnIdx, sectionIdx);
+      List<Element> widgets = childElements(columns.get(columnIdx), "widget");
+      checkWidgetIdx(widgets, widgetIdx, sectionIdx, columnIdx);
+      return widgets.get(widgetIdx).getAttribute("name");
+    } catch (DataException e) {
+      throw e;
+    } catch (Exception e) {
+      LOG.error("MutateLayoutCommand.getWidgetName failed for " + webPage.getLink(), e);
+      throw new DataException("Could not resolve widget: " + e.getMessage());
     }
   }
 }
