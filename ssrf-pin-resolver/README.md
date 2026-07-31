@@ -73,9 +73,16 @@ Tomcat's webapp classloaders are child-first. If a copy of `ConnectAddressPin` o
 `ConnectAddressResolverProvider` ever ends up in `WEB-INF/lib` or `WEB-INF/classes` as well as
 `CATALINA_HOME/lib`, the webapp loads its own copy, and `HttpGetCommand` would write a pin
 that the resolver (bound to the `CATALINA_HOME/lib` copy) never reads -- silently reopening the
-DNS-rebinding gap this module exists to close. Nothing in the automated build gates would flag
-that on its own (`check-war-completeness.py` only reports classes that are *missing*, not
-extras that were never supposed to be there), which is why `build.xml`'s `package`/`webapp`
-targets assemble `WEB-INF/lib` only from `lib/build` -- this module's jar is never written
-there -- and it is worth re-confirming by hand (`jar tf target/simis-cms.war | grep -i
-provided/net`) after any change to the build script that touches either target.
+DNS-rebinding gap this module exists to close. `build.xml`'s `package`/`webapp` targets assemble
+`WEB-INF/lib` only from `lib/build`, so this module's jar is never written there by the current
+build script -- but a future, unrelated change to those filesets (broadening a `<fileset dir>`
+include, or moving `pin.resolver.build.dir` back under `build.dir` as an early draft of this
+change did) could silently reintroduce it.
+
+`tools/check-war-completeness.py` gates this directly: its `FORBIDDEN` dict asserts
+`com.simisinc.platform.provided.net` is positively absent from the exploded WAR class tree (not
+just "not reported missing" -- the opposite check from the rest of that script), and fails
+under `--strict`, which `war-completeness.yml` already runs on every push and PR to `main`. It
+is still worth re-confirming by hand (`jar tf target/simis-cms.war | grep -i provided/net`)
+right after hand-editing `build.xml` and before relying on CI to catch it, but a regression no
+longer depends on someone remembering to do that.
