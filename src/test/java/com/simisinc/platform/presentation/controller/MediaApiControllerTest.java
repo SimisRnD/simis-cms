@@ -267,7 +267,12 @@ class MediaApiControllerTest {
   }
 
   @Test
-  void appliesTheAssetStoragePathToTheTargetWidgetPreference() throws Exception {
+  void appliesTheAssetServingUrlToTheTargetWidgetPreference() throws Exception {
+    // asset.getStoragePath() ("/assets/photo.jpg" here) is the internal FileSystemCommand-relative
+    // disk path, not a browser URL (see MediaApiController#handleServeFile's javadoc) -- the
+    // persisted preference must be the real serving route built from the asset's id, matching the
+    // exact path convention the browse grid's own thumbnails already use, or the widget's <img>
+    // renders broken the moment a client actually loads it.
     UserSession userSession = loggedInSession("content-manager");
     HttpServletRequest request = requestWithSession(userSession, baseParams(userSession.getFormToken()));
     MediaAsset asset = new MediaAsset();
@@ -294,7 +299,7 @@ class MediaApiControllerTest {
       mutate.verify(() -> MutateLayoutCommand.setWidgetPreferences(
           eq(webPage), eq(0), eq(1), eq(2), prefsJsonCaptor.capture(), eq(userSession.getUserId())));
       JsonNode prefs = MAPPER.readTree(prefsJsonCaptor.getValue());
-      assertEquals("/assets/photo.jpg", prefs.get(ImageWidget.IMAGE_URL_PREF_KEY).asText());
+      assertEquals("/visual-editor/media/file/asset-123", prefs.get(ImageWidget.IMAGE_URL_PREF_KEY).asText());
     }
   }
 

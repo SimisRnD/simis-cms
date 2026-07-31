@@ -1397,7 +1397,11 @@
         });
       })
       .then(function (data) {
-        var newUrl = data.asset && data.asset.storagePath;
+        // data.asset.storagePath is the internal FileSystemCommand-relative disk path, not a
+        // browser URL (see mediaAssetUrl above) -- the widget's persisted imageUrl preference is
+        // now the real serving route too (MediaApiController#handleWidgetUpdate), so the in-place
+        // DOM update must match what was actually saved rather than reverting to the broken path.
+        var newUrl = data.asset && data.asset.assetId ? mediaAssetUrl(data.asset) : null;
         var updatedInPlace = false;
         if (newUrl && target.el && document.body.contains(target.el)) {
           var img = target.el.querySelector('img');
@@ -1427,18 +1431,82 @@
       });
   }
 
+  // Builds the same public, browser-servable URL the media panel's own thumbnails use
+  // (GET /visual-editor/media/file/{assetId} -- storagePath is an internal disk-relative path,
+  // not a URL, per MediaApiController's handleServeFile), absolutized so it's meaningful once
+  // pasted somewhere other than this page.
+  function mediaAssetUrl(asset) {
+    return window.location.origin + '/visual-editor/media/file/' + encodeURIComponent(asset.assetId);
+  }
+
+  // Copies text to the clipboard, following the same async-clipboard-with-execCommand-fallback
+  // pattern already established by mfa-qrcode.js's copyToClipboard (that file is scoped to the MFA
+  // settings page and not loaded here, so the technique is replicated rather than shared).
+  function copyTextToClipboard(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text);
+    }
+    return new Promise(function (resolve, reject) {
+      var textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      try {
+        if (document.execCommand('copy')) {
+          resolve();
+        } else {
+          reject(new Error('execCommand returned false'));
+        }
+      } catch (e) {
+        reject(e);
+      } finally {
+        document.body.removeChild(textarea);
+      }
+    });
+  }
+
+  // No-selection click path (#772/#431): with no widget armed, clicking a file is not a replace
+  // action -- copy its URL and confirm via this editor's existing transient-status convention
+  // (the same aria-live #sc-editor-status element applyImageToWidget already uses above for
+  // "Image updated" etc.), rather than introducing a new floating-toast component.
+  function copyAssetUrlToClipboard(asset) {
+    var url = mediaAssetUrl(asset);
+    copyTextToClipboard(url).then(function () {
+      setToolbarStatus('Copied image URL to clipboard');
+    }, function () {
+      setToolbarStatus('Could not copy URL — ' + url);
+    });
+  }
+
   // The media library panel dispatches this on every file click, whether or not a widget is
-  // currently armed. When nothing is armed there is intentionally nothing to do here: issue #431's
-  // "copy URL to clipboard + toast" behavior for that case doesn't exist in this codebase yet (no
-  // listener anywhere), and building it is that issue's job, not this one's.
+  // currently armed. With a widget armed this is a replace action; with nothing armed, clicking a
+  // file copies its URL instead (issue #772/#431's "no context" behavior).
   document.addEventListener('media-selected', function (e) {
-    if (!activeImageWidget) return;
     var asset = e.detail && e.detail.asset;
     if (!asset || !asset.assetId) {
       setToolbarStatus('Selected file is missing an asset id.');
       return;
     }
+    if (!activeImageWidget) {
+      copyAssetUrlToClipboard(asset);
+      return;
+    }
     applyImageToWidget(activeImageWidget, asset);
+  });
+
+  // The panel dispatches this from hideMediaLibrary() whenever it closes -- via its own close
+  // button, the toolbar's open/close toggle, or Escape -- not only on a successful file pick.
+  // Without this, closing the panel without choosing a file left activeImageWidget armed, so the
+  // *next* time the panel was opened for any unrelated reason, the next file clicked would silently
+  // overwrite that stale widget's image (issue #772 review finding). applyImageToWidget's own
+  // success path already disarms before the panel would typically close, so this is a no-op then.
+  document.addEventListener('media-library-closed', function () {
+    if (activeImageWidget) {
+      disarmImageWidget();
+      setToolbarStatus('');
+    }
   });
 
   // ── Widget picker ─────────────────────────────────────────────────────────
