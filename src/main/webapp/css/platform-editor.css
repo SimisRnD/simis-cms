@@ -577,6 +577,20 @@ body.page-edit-mode [data-editor-widget]:hover > .sc-mutate-btns {
   background: #6c757d;
 }
 
+.sc-mutate-btn-image {
+  background: rgba(111, 66, 193, 0.75);
+}
+
+.sc-mutate-btn-image:hover {
+  background: #6f42c1;
+}
+
+/* Widget armed as the target for the next Media Library file click (issue #772) */
+body.page-edit-mode [data-editor-widget].sc-image-armed {
+  outline: 2px dashed #6f42c1;
+  outline-offset: -2px;
+}
+
 /* ── Widget preferences panel ── */
 
 #sc-prefs-panel {

@@ -81,12 +81,12 @@
               ${widget.content}
             </c:when>
             <c:when test="${!empty widget.cssClass}">
-              <div <c:if test="${!empty widget.htmlId}">id="<c:out value="${widget.htmlId}"/>" </c:if>class="<c:out value="${widget.cssClass}"/>"<c:if test="${!empty widget.cssStyle}"> style="<c:out value="${widget.cssStyle}" />"</c:if><c:if test="${widget.sticky}"> data-sticky data-margin-top="<c:out value="${stickyMarginTop}"/>" data-top-anchor="<c:out value="${columnId}"/>" data-btm-anchor="platform-footer"</c:if><c:if test="${pageEditMode eq 'true'}"> data-editor-widget="${sectionStatus.index}-${columnStatus.index}-${widgetStatus.index}" data-editor-widget-prefs="<c:out value="${widget.prefsJson}"/>"</c:if>>
+              <div <c:if test="${!empty widget.htmlId}">id="<c:out value="${widget.htmlId}"/>" </c:if>class="<c:out value="${widget.cssClass}"/>"<c:if test="${!empty widget.cssStyle}"> style="<c:out value="${widget.cssStyle}" />"</c:if><c:if test="${widget.sticky}"> data-sticky data-margin-top="<c:out value="${stickyMarginTop}"/>" data-top-anchor="<c:out value="${columnId}"/>" data-btm-anchor="platform-footer"</c:if><c:if test="${pageEditMode eq 'true'}"> data-editor-widget="${sectionStatus.index}-${columnStatus.index}-${widgetStatus.index}" data-editor-widget-prefs="<c:out value="${widget.prefsJson}"/>" data-editor-widget-name="<c:out value="${widget.widgetName}"/>"</c:if>>
                 ${widget.content}
               </div>
             </c:when>
             <c:otherwise>
-              <div<c:if test="${!empty widget.htmlId}"> id="<c:out value="${widget.htmlId}"/>"</c:if><c:if test="${!empty widget.cssStyle}"> style="<c:out value="${widget.cssStyle}" />"</c:if><c:if test="${widget.sticky}"> data-sticky data-margin-top="<c:out value="${stickyMarginTop}"/>" data-top-anchor="<c:out value="${columnId}"/>" data-btm-anchor="platform-footer"</c:if><c:if test="${pageEditMode eq 'true'}"> data-editor-widget="${sectionStatus.index}-${columnStatus.index}-${widgetStatus.index}" data-editor-widget-prefs="<c:out value="${widget.prefsJson}"/>"</c:if>>
+              <div<c:if test="${!empty widget.htmlId}"> id="<c:out value="${widget.htmlId}"/>"</c:if><c:if test="${!empty widget.cssStyle}"> style="<c:out value="${widget.cssStyle}" />"</c:if><c:if test="${widget.sticky}"> data-sticky data-margin-top="<c:out value="${stickyMarginTop}"/>" data-top-anchor="<c:out value="${columnId}"/>" data-btm-anchor="platform-footer"</c:if><c:if test="${pageEditMode eq 'true'}"> data-editor-widget="${sectionStatus.index}-${columnStatus.index}-${widgetStatus.index}" data-editor-widget-prefs="<c:out value="${widget.prefsJson}"/>" data-editor-widget-name="<c:out value="${widget.widgetName}"/>"</c:if>>
                 ${widget.content}
               </div>
             </c:otherwise>

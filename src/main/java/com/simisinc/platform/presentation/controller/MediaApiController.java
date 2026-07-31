@@ -29,6 +29,7 @@ import com.simisinc.platform.application.filesystem.FileSystemCommand;
 import com.simisinc.platform.domain.model.MediaAsset;
 import com.simisinc.platform.domain.model.cms.WebPage;
 import com.simisinc.platform.infrastructure.persistence.MediaAssetRepository;
+import com.simisinc.platform.presentation.widgets.cms.ImageWidget;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.MultipartConfig;
 import jakarta.servlet.annotation.WebServlet;
@@ -66,8 +67,13 @@ import java.util.UUID;
  * layout. Requires builder-tier permission and the session CSRF token, and identifies the target
  * widget the same way {@link PageServlet}'s {@code mutateDraftLayout} action does -- by structural
  * position, not by a render-time {@code widgetContext.uniqueId} -- so it can safely delegate to
- * {@link MutateLayoutCommand#setWidgetPreferences}. Params: assetId, pagePath, sectionIdx,
- * columnIdx, widgetIdx, prefKey, token.
+ * {@link MutateLayoutCommand#setWidgetPreferences}. Before delegating, it independently re-resolves
+ * the widget actually at that position via {@link MutateLayoutCommand#getWidgetName} and confirms it
+ * is really an {@link ImageWidget#WIDGET_NAME} and that {@code prefKey} is really
+ * {@link ImageWidget#IMAGE_URL_PREF_KEY} -- the visual editor's client-side "this is an image
+ * widget" gate is UI-only, so this is the check that actually stops a crafted request from
+ * overwriting some other widget's unrelated preference (issue #772 follow-up). Params: assetId,
+ * pagePath, sectionIdx, columnIdx, widgetIdx, prefKey, token.
  *
  * @author claude
  * @created 7/26/26
@@ -570,6 +576,19 @@ public class MediaApiController extends HttpServlet {
    * traversal logic to drift out of sync with the real renderer) and it is what
    * {@link MutateLayoutCommand#setWidgetPreferences} already requires. Requires the builder-tier
    * permission and the session's CSRF form token, matching every other draft-layout mutation.
+   *
+   * <p>Unlike every other {@code setWidgetPreferences} caller, this endpoint's entire contract is
+   * narrow: it only ever sets an image widget's {@code imageUrl}. platform-editor.js's "Choose image
+   * from Media Library" trigger only renders for a widget whose {@code data-editor-widget-name} is
+   * {@code "image"}, but that is a client-side heuristic an attacker simply need not honor -- nothing
+   * stops a request naming any {@code widgetIdx} with any {@code prefKey}. So before delegating, this
+   * method independently resolves the real widget at {@code sectionIdx}/{@code columnIdx}/
+   * {@code widgetIdx} from the page's own XML (via {@link MutateLayoutCommand#getWidgetName}, the
+   * same structural resolution {@code setWidgetPreferences} itself uses) and refuses to proceed
+   * unless that widget really is {@link ImageWidget#WIDGET_NAME} and {@code prefKey} really is
+   * {@link ImageWidget#IMAGE_URL_PREF_KEY} -- otherwise a crafted request could silently overwrite an
+   * unrelated widget's real preference (e.g. a remoteContent widget's own {@code url} preference)
+   * with an image path.
    */
   private void handleWidgetUpdate(HttpServletRequest request, HttpServletResponse response, UserSession userSession)
       throws IOException {
@@ -642,13 +661,30 @@ public class MediaApiController extends HttpServlet {
     }
 
     try {
+      // The "Choose image from Media Library" trigger is only rendered client-side for a widget
+      // whose data-editor-widget-name is "image" (platform-editor.js) -- that is a UI convenience,
+      // not an authorization check, and a request naming any sectionIdx/columnIdx/widgetIdx with any
+      // prefKey reaches this far regardless. Re-resolve the widget that is *actually* at this
+      // position from the page's own XML -- not from anything the client sent -- and refuse to
+      // proceed unless it really is an image widget and prefKey really is its imageUrl preference.
+      // Without this, a crafted request could silently overwrite an unrelated widget's real
+      // preference (e.g. a remoteContent widget's own "url") with an image path.
+      String targetWidgetName = MutateLayoutCommand.getWidgetName(webPage, sectionIdx, columnIdx, widgetIdx);
+      if (!ImageWidget.WIDGET_NAME.equals(targetWidgetName)) {
+        throw new DataException("Target widget is not an image widget (found '" + targetWidgetName + "')");
+      }
+      if (!ImageWidget.IMAGE_URL_PREF_KEY.equals(prefKey)) {
+        throw new DataException(
+            "prefKey must be '" + ImageWidget.IMAGE_URL_PREF_KEY + "' when targeting an image widget");
+      }
+
       Map<String, String> prefs = new HashMap<>();
       prefs.put(prefKey, asset.getStoragePath());
       String prefsJson = objectMapper.writeValueAsString(prefs);
       MutateLayoutCommand.setWidgetPreferences(webPage, sectionIdx, columnIdx, widgetIdx, prefsJson,
           userSession.getUserId());
     } catch (DataException e) {
-      LOG.warn("widget-update failed for " + pagePath + " " + sectionIdx + ":" + columnIdx + ":" + widgetIdx
+      LOG.warn("widget-update rejected for " + pagePath + " " + sectionIdx + ":" + columnIdx + ":" + widgetIdx
           + ": " + e.getMessage());
       response.setStatus(400);
       Map<String, Object> result = new HashMap<>();

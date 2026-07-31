@@ -26,6 +26,7 @@
   var savedSelection = null;    // Selection saved before link prompt opens
   var originalHtml = null;      // snapshot before editing begins (for Discard)
   var actionsBar = null;        // Save/Discard bar for the active widget
+  var activeImageWidget = null; // {s, c, w, el, prefKey} widget armed for the next Media Library file click (#772)
 
   // Quill inline editor state
   var activeQuill = null;         // active Quill instance
@@ -1063,6 +1064,26 @@
         openPrefsPanel(prefsTriggerBtn, s, c, w, el.dataset.editorWidgetPrefs || '{}');
       });
       btns.appendChild(prefsTriggerBtn);
+      // Image trigger — arms this widget as the target for the next Media Library file click.
+      // Only rendered for an actual "image" widget (see IMAGE_WIDGET_TYPE below): that widget's
+      // one editable image preference is its render source, so there is nothing to guess here.
+      if (el.dataset.editorWidgetName === IMAGE_WIDGET_TYPE) {
+        var imageTriggerBtn = document.createElement('button');
+        imageTriggerBtn.type = 'button';
+        imageTriggerBtn.className = 'sc-mutate-btn-image sc-image-trigger';
+        imageTriggerBtn.title = 'Choose image from Media Library';
+        imageTriggerBtn.textContent = '🖼 Image';
+        imageTriggerBtn.addEventListener('click', function (e) {
+          e.stopPropagation();
+          if (activeImageWidget && activeImageWidget.el === el) {
+            disarmImageWidget();
+            setToolbarStatus('');
+            return;
+          }
+          armImageWidget(el, s, c, w, IMAGE_WIDGET_PREF_KEY);
+        });
+        btns.appendChild(imageTriggerBtn);
+      }
       // Add-widget-after trigger for this widget position
       var addWidgetAfterBtn = document.createElement('button');
       addWidgetAfterBtn.type = 'button';
@@ -1305,6 +1326,121 @@
     }).catch(function (err) { setToolbarStatus('Error: ' + err.message); });
   }
 
+  // ── Active image widget (media library click-to-replace, issue #772) ────────
+  //
+  // The "image" widget (ImageWidget/widget-library.xml) is the one widget type in this codebase
+  // whose rendered <img> is driven directly by an editable preference rather than a
+  // domain-entity reference (product/item/blog post, etc.) -- so the target widget type and its
+  // preference key are both known constants, not something to infer from arbitrary widgets'
+  // preference JSON (the prior heuristic here false-positived on e.g. the remoteContent widget's
+  // unrelated "url" preference and silently corrupted it).
+  var IMAGE_WIDGET_TYPE = 'image';
+  var IMAGE_WIDGET_PREF_KEY = 'imageUrl';
+
+  function armImageWidget(el, s, c, w, prefKey) {
+    if (activeImageWidget && activeImageWidget.el) {
+      activeImageWidget.el.classList.remove('sc-image-armed');
+    }
+    activeImageWidget = {s: s, c: c, w: w, el: el, prefKey: prefKey};
+    el.classList.add('sc-image-armed');
+    setToolbarStatus('Choose a file in the Media Library to set this widget\'s "' + prefKey + '" image.');
+    if (typeof window.showMediaLibrary === 'function') {
+      window.showMediaLibrary();
+    }
+  }
+
+  function disarmImageWidget() {
+    if (activeImageWidget && activeImageWidget.el) {
+      activeImageWidget.el.classList.remove('sc-image-armed');
+    }
+    activeImageWidget = null;
+  }
+
+  // Applies the selected media asset to the armed widget's preference via the already-tested
+  // POST /visual-editor/media/widget-update (MediaApiController#handleWidgetUpdate), then updates
+  // the widget's rendered <img> in place when one is found, falling back to this file's usual
+  // reload-on-mutation pattern otherwise.
+  function applyImageToWidget(target, asset) {
+    if (!target.el || !document.body.contains(target.el)) {
+      setToolbarStatus('That widget is no longer on the page.');
+      disarmImageWidget();
+      return;
+    }
+    var token = getToken();
+    if (!token) {
+      setToolbarStatus('No session token');
+      return;
+    }
+
+    setToolbarStatus('Applying image…');
+
+    var body = new URLSearchParams();
+    body.append('assetId', asset.assetId);
+    body.append('pagePath', pagePath);
+    body.append('prefKey', target.prefKey);
+    body.append('sectionIdx', String(target.s));
+    body.append('columnIdx', String(target.c));
+    body.append('widgetIdx', String(target.w));
+    body.append('token', token);
+
+    fetch('/visual-editor/media/widget-update', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'},
+      body: body.toString()
+    })
+      .then(function (resp) {
+        return resp.json().catch(function () { return {}; }).then(function (data) {
+          if (!resp.ok || !data.success) {
+            throw new Error((data && data.error) || ('HTTP ' + resp.status));
+          }
+          return data;
+        });
+      })
+      .then(function (data) {
+        var newUrl = data.asset && data.asset.storagePath;
+        var updatedInPlace = false;
+        if (newUrl && target.el && document.body.contains(target.el)) {
+          var img = target.el.querySelector('img');
+          if (img) {
+            img.src = newUrl;
+            updatedInPlace = true;
+          }
+          // Keep the cached prefs JSON in sync so a subsequent openPrefsPanel call on this same
+          // widget sees the value that was just applied.
+          try {
+            var prefs = JSON.parse(target.el.dataset.editorWidgetPrefs || '{}');
+            prefs[target.prefKey] = newUrl;
+            target.el.dataset.editorWidgetPrefs = JSON.stringify(prefs);
+          } catch (ex) { /* ignore -- cosmetic cache only */ }
+        }
+        markHasDraft();
+        disarmImageWidget();
+        if (updatedInPlace) {
+          setToolbarStatus('Image updated');
+        } else {
+          setToolbarStatus('Image updated — reloading…');
+          window.location.reload();
+        }
+      })
+      .catch(function (err) {
+        setToolbarStatus('Error: ' + err.message);
+      });
+  }
+
+  // The media library panel dispatches this on every file click, whether or not a widget is
+  // currently armed. When nothing is armed there is intentionally nothing to do here: issue #431's
+  // "copy URL to clipboard + toast" behavior for that case doesn't exist in this codebase yet (no
+  // listener anywhere), and building it is that issue's job, not this one's.
+  document.addEventListener('media-selected', function (e) {
+    if (!activeImageWidget) return;
+    var asset = e.detail && e.detail.asset;
+    if (!asset || !asset.assetId) {
+      setToolbarStatus('Selected file is missing an asset id.');
+      return;
+    }
+    applyImageToWidget(activeImageWidget, asset);
+  });
+
   // ── Widget picker ─────────────────────────────────────────────────────────
 
   function buildWidgetPicker() {
@@ -1526,7 +1662,8 @@
         deactivateQuill(false);
         return;
       }
-      if (activeContent) deactivateEdit(true);
+      if (activeContent) { deactivateEdit(true); return; }
+      if (activeImageWidget) { disarmImageWidget(); setToolbarStatus(''); }
     }
     // Ctrl+S (or Cmd+S) saves the active Quill editor
     if ((e.ctrlKey || e.metaKey) && e.key === 's' && activeQuill && quillActionsBar) {
