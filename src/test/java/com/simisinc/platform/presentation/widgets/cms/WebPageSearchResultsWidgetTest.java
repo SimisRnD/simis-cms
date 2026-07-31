@@ -17,6 +17,8 @@
 package com.simisinc.platform.presentation.widgets.cms;
 
 import com.simisinc.platform.WidgetBase;
+import com.simisinc.platform.infrastructure.persistence.cms.WebPageSpecification;
+import com.simisinc.platform.presentation.controller.DataConstants;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 
