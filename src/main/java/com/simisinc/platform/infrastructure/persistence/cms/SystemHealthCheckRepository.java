@@ -60,10 +60,14 @@ public class SystemHealthCheckRepository {
   /** The single most recent check for each service that has ever been checked, most recently
    * checked first. Uses Postgres' DISTINCT ON rather than a self-join or per-service query. */
   public static List<SystemHealthCheck> findLatestPerService() {
+    // checked_at is millisecond precision (TIMESTAMP(3)) and DB-assigned, so two checks for the
+    // same service can tie on it -- without a deterministic tie-breaker, DISTINCT ON can pick
+    // either tied row arbitrarily, not necessarily the one actually inserted last. Break ties by
+    // the auto-incrementing id, which is strictly ordered by insertion.
     String SQL_QUERY =
         "SELECT DISTINCT ON (service_name) * " +
             "FROM " + TABLE_NAME + " " +
-            "ORDER BY service_name, checked_at DESC";
+            "ORDER BY service_name, checked_at DESC, system_health_check_id DESC";
     List<SystemHealthCheck> records = new ArrayList<>();
     try (Connection connection = DB.getConnection();
          PreparedStatement pst = connection.prepareStatement(SQL_QUERY);
