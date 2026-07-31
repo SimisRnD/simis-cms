@@ -522,6 +522,26 @@ public class WebContainerCommand implements Serializable {
               sectionRenderInfo.addColumn(columnRenderInfo);
             }
             columnRenderInfo.addWidget(widgetRenderInfo);
+          } else if (pageLayoutMode) {
+            // Same gap as the column/section fallback below, one level deeper: a widget that's been
+            // added but not configured yet (e.g. a "content" widget added via the composition
+            // canvas's "+Widget" control, which has no uniqueId preference until the admin sets one)
+            // produces no output at all, so without this it never gets a WidgetRenderInfo and
+            // therefore no [data-editor-widget] wrapper -- invisible and unremovable even though
+            // it's really in draft_page_xml. Give it a placeholder entry so an admin can see,
+            // configure via the prefs panel, and remove it like any other widget. Public rendering
+            // (pageLayoutMode false) is untouched -- a genuinely empty widget still renders nothing
+            // on a real page.
+            WidgetRenderInfo widgetRenderInfo = new WidgetRenderInfo(widget, "");
+            if (!sectionAdded) {
+              sectionAdded = true;
+              containerRenderInfo.addSection(sectionRenderInfo);
+            }
+            if (!columnAdded) {
+              columnAdded = true;
+              sectionRenderInfo.addColumn(columnRenderInfo);
+            }
+            columnRenderInfo.addWidget(widgetRenderInfo);
           }
         }
 
