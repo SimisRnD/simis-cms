@@ -26,6 +26,15 @@ runs ``jdeps --missing-deps`` over it. Anything reported is a class that
 something in the WAR references and that is present neither in the WAR nor in
 the JDK.
 
+It also checks the opposite failure: FORBIDDEN below lists packages that must
+be supplied only by the servlet container and must NEVER be bundled into the
+WAR at all (see that dict for why -- for the SSRF connect-time DNS pin
+resolver specifically, a duplicated copy inside WEB-INF/lib silently breaks
+the pin instead of merely being redundant, because Tomcat's webapp
+classloader is child-first). This is a positive presence check against the
+exploded class tree itself, independent of jdeps and the ALLOWLIST/missing-
+class logic above.
+
 Most such references are legitimate. Java libraries routinely reference optional
 integrations they never load (jobrunr names MongoDB, okhttp names Android), and
 a servlet container supplies ``jakarta.servlet`` at runtime rather than the WAR.
@@ -77,6 +86,15 @@ ALLOWLIST: dict[str, str] = {
     "org.apache.catalina": "Tomcat internals, provided by the container",
     "org.apache.jasper": "Tomcat JSP engine, provided by the container",
     "org.apache.tomcat": "Tomcat internals, provided by the container",
+    "com.simisinc.platform.provided.net": (
+        "the SSRF connect-time DNS pin resolver (issue #760, ssrf-pin-resolver/) -- "
+        "compiled against by HttpGetCommand and HttpDownloadFileCommand but deliberately "
+        "excluded from the WAR and supplied instead on Tomcat's shared classloader "
+        "(CATALINA_HOME/lib, wired in docker/app/Dockerfile), the same provided-scope "
+        "treatment jakarta.servlet gets above. It MUST be absent from WEB-INF/lib/classes "
+        "-- see ssrf-pin-resolver/README.md for why a duplicated copy would silently "
+        "break the pin instead of merely being redundant."
+    ),
     # --- optional integrations the app never configures ---
     "android": "okhttp's optional Android platform support; server-side only here",
     "org.conscrypt": "okhttp optional TLS provider; the JDK provider is used",
@@ -149,6 +167,42 @@ ALLOWLIST: dict[str, str] = {
     # reached). If such a reference reappears it must surface as UNEXPECTED; add a
     # jar-scoped entry then, keyed on the jar that legitimately provides it.
 }
+
+# Package prefixes that must NEVER be present inside the WAR at all -- the mirror image of
+# ALLOWLIST above. ALLOWLIST excuses a class being ABSENT (still reachable, just supplied by the
+# container); FORBIDDEN flags the opposite failure, a class that is supposed to be
+# container-supplied showing up bundled into WEB-INF/lib anyway. jdeps has nothing to say about
+# this -- it never runs on classes that ARE present -- so this is checked directly against the
+# exploded class tree's `owner` index instead.
+#
+# Before adding an entry here, make sure the reason it must be absent is a genuine deployment
+# hazard (like the classloader-identity trap below), not just tidiness.
+FORBIDDEN: dict[str, str] = {
+    "com.simisinc.platform.provided.net": (
+        "the SSRF connect-time DNS pin resolver (issue #760, ssrf-pin-resolver/) -- must be "
+        "supplied ONLY from Tomcat's shared classloader (CATALINA_HOME/lib, wired in "
+        "docker/app/Dockerfile), never from WEB-INF/lib. Tomcat's webapp classloader is "
+        "child-first, so a duplicate copy here would not be merely redundant: the webapp would "
+        "load and read/write ITS OWN copy of ConnectAddressPin, a different class-identity "
+        "object from the one the CATALINA_HOME/lib-bound ConnectAddressResolverProvider "
+        "actually reads, silently reopening the DNS-rebinding gap this module exists to close. "
+        "See ssrf-pin-resolver/README.md's 'Do not duplicate these classes into the WAR'."
+    ),
+}
+
+
+def forbidden_present(owner: dict[str, str]) -> dict[str, list[str]]:
+    """Classes present in the exploded WAR that must never ship there, grouped by FORBIDDEN prefix."""
+    hits: dict[str, list[str]] = collections.defaultdict(list)
+    for name in owner:
+        best = ""
+        for prefix in FORBIDDEN:
+            if (name == prefix or name.startswith(prefix + ".")) and len(prefix) > len(best):
+                best = prefix
+        if best:
+            hits[best].append(name)
+    return hits
+
 
 # Allowlist entries that apply to ONE library only.
 #
@@ -286,6 +340,7 @@ def main() -> int:
     try:
         owner, jars = explode(args.war, tree)
         out = run_jdeps(tree)
+        forbidden = forbidden_present(owner)
 
         allowed: collections.Counter = collections.Counter()
         scoped: collections.Counter = collections.Counter()
@@ -320,6 +375,19 @@ def main() -> int:
               % (args.war, jars, len(owner)))
         print("=" * 72)
         print()
+
+        if forbidden:
+            print("FORBIDDEN -- provided-scope classes bundled into the WAR (%d package(s), %d classes):"
+                  % (len(forbidden), sum(len(v) for v in forbidden.values())))
+            for prefix, names in sorted(forbidden.items()):
+                jars_hit = sorted({owner[n] for n in names})
+                print("  %-40s %5d classes in %s" % (prefix, len(names), ", ".join(jars_hit)))
+                print("       %s" % FORBIDDEN[prefix])
+                for n in sorted(names)[:3]:
+                    print("       e.g. %s (in %s)" % (n, owner[n]))
+        else:
+            print("FORBIDDEN: (none present -- provided-scope classes correctly excluded)")
+        print()
         print("Classes referenced but not present in the WAR or the JDK.")
         print()
 
@@ -345,14 +413,19 @@ def main() -> int:
         for pkg, count in sorted(allowed.items()):
             print("  %-32s %5d  %s" % (pkg, count, allowed_for(pkg)))
         print()
-        print("Summary: %d unexpected, %d allowlisted packages."
-              % (len(unexpected), len(allowed)))
+        print("Summary: %d unexpected, %d forbidden, %d allowlisted packages."
+              % (len(unexpected), len(forbidden), len(allowed)))
 
-        if unexpected and args.strict:
+        if (unexpected or forbidden) and args.strict:
             print()
-            print("FAIL: the WAR is missing classes it can reach at runtime.")
-            print("Vendor the missing jar into lib/build, or add an ALLOWLIST")
-            print("entry in this script explaining why the reference is optional.")
+            if unexpected:
+                print("FAIL: the WAR is missing classes it can reach at runtime.")
+                print("Vendor the missing jar into lib/build, or add an ALLOWLIST")
+                print("entry in this script explaining why the reference is optional.")
+            if forbidden:
+                print("FAIL: the WAR bundles class(es) that must be provided-scope only.")
+                print("Check build.xml's jar/package/webapp filesets for a change that")
+                print("pulled these back into WEB-INF/lib -- see the FORBIDDEN section above.")
             return 1
         return 0
     finally:

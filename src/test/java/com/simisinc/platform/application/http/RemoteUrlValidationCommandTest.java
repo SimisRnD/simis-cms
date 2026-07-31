@@ -16,7 +16,10 @@
 
 package com.simisinc.platform.application.http;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.net.InetAddress;
@@ -70,6 +73,39 @@ class RemoteUrlValidationCommandTest {
     assertFalse(RemoteUrlValidationCommand.isFetchAllowed("not-a-url"));
     assertFalse(RemoteUrlValidationCommand.isFetchAllowed(""));
     assertFalse(RemoteUrlValidationCommand.isFetchAllowed(null));
+  }
+
+  // --- validate: the issue #760 pinning API, exposing the exact address(es) checked ---
+
+  @Test
+  void validateReturnsTheHostAndExactAddressesForAnAllowedUrl() throws Exception {
+    RemoteUrlValidationCommand.ValidationResult result = RemoteUrlValidationCommand.validate("https://8.8.8.8/dataset.json");
+    assertTrue(result.isAllowed());
+    assertEquals("8.8.8.8", result.getHost());
+    assertArrayEquals(new InetAddress[] { InetAddress.getByName("8.8.8.8") }, result.getAddresses());
+  }
+
+  @Test
+  void validateReportsNotAllowedForABlockedAddressAndWithholdsAddresses() {
+    RemoteUrlValidationCommand.ValidationResult result = RemoteUrlValidationCommand.validate("http://169.254.169.254/metadata");
+    assertFalse(result.isAllowed());
+    // The host is still reported (useful for logging/diagnostics); the addresses are not, since
+    // isAllowed() is false and a caller must never pin to an address that failed validation.
+    assertEquals("169.254.169.254", result.getHost());
+    assertNull(result.getAddresses());
+  }
+
+  @Test
+  void validateAgreesWithIsFetchAllowedOnEveryCase() {
+    // isFetchAllowed is now a thin wrapper over validate(...).isAllowed() -- this pins that
+    // relationship so the two can never silently diverge.
+    for (String url : new String[] {
+        "https://8.8.8.8/dataset.json", "http://169.254.169.254/", "http://127.0.0.1:8080/admin",
+        "ftp://8.8.8.8/file", "not-a-url", "", null
+    }) {
+      assertEquals(RemoteUrlValidationCommand.isFetchAllowed(url), RemoteUrlValidationCommand.validate(url).isAllowed(),
+          "isFetchAllowed/validate disagreed for: " + url);
+    }
   }
 
   // --- isBlockedAddress: the address classifier, exercised directly on IP literals ---

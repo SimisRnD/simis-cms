@@ -42,6 +42,34 @@ RUN curl -fsSL -o /opt/applicationinsights-agent.jar \
     && echo "${APPLICATIONINSIGHTS_SHA256}  /opt/applicationinsights-agent.jar" | sha256sum -c -
 COPY ./docker/app/applicationinsights.json /opt/applicationinsights.json
 
+# SSRF connect-time DNS pin resolver (issue #760). Closes the DNS-rebinding gap
+# RemoteUrlValidationCommand's javadoc documents: it validates a URL's host once, but the JDK
+# HttpClient re-resolves that same hostname itself when it connects, so a hostname that
+# resolved to a public address at validation time could resolve to an internal one moments
+# later. HttpGetCommand.executeUserUrl() now pins the exact address(es) already validated via
+# this jar's java.net.spi.InetAddressResolverProvider, so the connect-time lookup returns
+# those bytes instead of asking DNS again.
+#
+# This jar MUST live on Tomcat's own shared/Common classloader (CATALINA_HOME/lib) and must
+# NEVER be bundled into the WAR's WEB-INF/lib -- verified empirically against a real Tomcat 11
+# container, not assumed. The JDK's InetAddress machinery discovers an
+# InetAddressResolverProvider via ServiceLoader exactly once, on whichever classloader
+# performs the very first DNS lookup of the JVM's life (Tomcat's own bootstrap, before any
+# webapp classloader exists), and then holds that decision for the rest of the JVM's life. A
+# copy of this jar bundled into the WAR as well would be worse than redundant: Tomcat's
+# webapp classloaders are child-first, so the webapp would load its own copy of the pin-holder
+# class instead of delegating to this one, and the pin the webapp writes would never reach the
+# resolver instance the JVM actually installed. See ssrf-pin-resolver/README.md for the full
+# rationale and ant target `pin-resolver-jar` (a dependency of `compile`/`package`) for how the
+# jar is produced.
+#
+# Unlike the Application Insights agent above, this is NOT a fetched third-party artifact --
+# it is built from this repository's own source (ssrf-pin-resolver/) by the same `ant package`
+# that produces target/simis-cms.war, so it carries no separate supply-chain risk and needs no
+# SHA-256 pin: the jar's provenance is exactly the git commit this image was built from,
+# verifiable by rebuilding.
+COPY ./target/simis-cms-ssrf-pin-resolver.jar /usr/local/tomcat/lib/simis-cms-ssrf-pin-resolver.jar
+
 # [STIG] Pre-extract the WAR at build time instead of letting Tomcat unpack it at startup.
 # With a read-only root filesystem, Tomcat cannot write the exploded ROOT/ into webapps/ at
 # boot -- so the app is exploded here, once, and server.xml sets unpackWARs="false". The

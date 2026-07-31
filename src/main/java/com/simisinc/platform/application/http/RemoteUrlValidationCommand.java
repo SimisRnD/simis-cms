@@ -38,11 +38,19 @@ import org.apache.commons.validator.routines.UrlValidator;
  * inspects the resulting address, numeric-encoding tricks (e.g. http://2130706433/) are
  * caught too: they resolve to a loopback/private address and are rejected.
  * <p>
- * Residual: this does not by itself defeat DNS rebinding (the JDK HttpClient re-resolves the
- * host when it connects, so a hostname that returns a public address here could return an
- * internal one at fetch time). Blocking literal-IP and stable-DNS targets covers the common
- * metadata-endpoint attack; pinning the validated address at connect time is the stronger
- * follow-up.
+ * Residual (issue #760): resolving the host here and connecting later with a plain hostname
+ * still leaves a DNS-rebinding TOCTOU window open by default -- the JDK HttpClient re-resolves
+ * the host itself when it connects, so a hostname that returns a public address here could
+ * return an internal one at fetch time. {@link #validate(String)} exists for callers that need
+ * to close that window: it returns the exact address(es) validated so the caller can pin the
+ * connection to them (see {@code com.simisinc.platform.provided.net.ConnectAddressPin},
+ * {@code HttpGetCommand.executeUserUrl}, and {@code HttpDownloadFileCommand.executeUserUrl},
+ * both wired up to do this). {@code DatasetDownloadRemoteFileCommand} reaches every remote fetch
+ * through one of those two guarded wrappers, so it inherits the pin transitively; its own direct
+ * {@link #isFetchAllowed(String)} call is only an early, user-facing rejection before it does
+ * any filesystem prep, not a separate fetch path. A caller that only calls
+ * {@link #isFetchAllowed(String)} and then fetches independently, without going through a
+ * pinning wrapper, would still resolve twice and remain exposed to rebinding.
  *
  * @author Liz Houser
  * @created 7/23/2026
@@ -54,6 +62,44 @@ public class RemoteUrlValidationCommand {
   private static final String[] ALLOWED_SCHEMES = { "http", "https" };
 
   /**
+   * The result of validating a URL: whether the fetch is allowed, and -- when it is -- the
+   * exact host and address(es) that were checked, so a caller can pin a subsequent connection
+   * to precisely those bytes instead of letting it re-resolve the host (see issue #760).
+   */
+  public static final class ValidationResult {
+    private final boolean allowed;
+    private final String host;
+    private final InetAddress[] addresses;
+
+    // Package-private rather than private: lets same-package tests build a fixed
+    // ValidationResult to stub RemoteUrlValidationCommand.validate(...) with (see
+    // HttpGetCommandExecuteUserUrlPinTest), without opening construction to other packages.
+    ValidationResult(boolean allowed, String host, InetAddress[] addresses) {
+      this.allowed = allowed;
+      this.host = host;
+      this.addresses = addresses;
+    }
+
+    public boolean isAllowed() {
+      return allowed;
+    }
+
+    /** The URL's host, when it could be extracted -- regardless of whether it was allowed. */
+    public String getHost() {
+      return host;
+    }
+
+    /**
+     * The exact addresses {@code host} resolved to at validation time, already confirmed
+     * public/routable. Only meaningful when {@link #isAllowed()} is true; callers must check
+     * that first.
+     */
+    public InetAddress[] getAddresses() {
+      return addresses;
+    }
+  }
+
+  /**
    * Determines whether a server-side fetch of the given URL is permitted. Fails closed:
    * a blank, malformed, non-http(s), unresolvable, or internally-routed URL returns false.
    *
@@ -61,36 +107,49 @@ public class RemoteUrlValidationCommand {
    * @return true only if the URL is safe to fetch
    */
   public static boolean isFetchAllowed(String url) {
+    return validate(url).isAllowed();
+  }
+
+  /**
+   * Same check as {@link #isFetchAllowed(String)}, but also returns the host and exact
+   * address(es) that were validated, so a caller can pin a subsequent connection to them (see
+   * issue #760). Fails closed identically: a blank, malformed, non-http(s), unresolvable, or
+   * internally-routed URL yields a result with {@code isAllowed() == false}.
+   *
+   * @param url the caller-supplied URL to be fetched
+   * @return the validation result; check {@link ValidationResult#isAllowed()} first
+   */
+  public static ValidationResult validate(String url) {
     if (StringUtils.isBlank(url)) {
-      return false;
+      return new ValidationResult(false, null, null);
     }
     if (!new UrlValidator(ALLOWED_SCHEMES).isValid(url)) {
       LOG.debug("Blocked a non-http(s) or malformed url: " + url);
-      return false;
+      return new ValidationResult(false, null, null);
     }
     try {
       String host = URI.create(url).getHost();
       if (StringUtils.isBlank(host)) {
         LOG.debug("Blocked a url with no resolvable host: " + url);
-        return false;
+        return new ValidationResult(false, null, null);
       }
       InetAddress[] addresses = InetAddress.getAllByName(host);
       if (addresses == null || addresses.length == 0) {
-        return false;
+        return new ValidationResult(false, host, null);
       }
       // Every address the host resolves to must be public/routable; if any is internal,
       // reject -- a host that resolves to both a public and a private address is not safe.
       for (InetAddress address : addresses) {
         if (isBlockedAddress(address)) {
           LOG.warn("Blocked an SSRF-unsafe address for host " + host + ": " + address.getHostAddress());
-          return false;
+          return new ValidationResult(false, host, null);
         }
       }
-      return true;
+      return new ValidationResult(true, host, addresses);
     } catch (Exception e) {
       // Unresolvable host, malformed authority, etc. -- fail closed.
       LOG.warn("Blocked a url that could not be validated: " + url);
-      return false;
+      return new ValidationResult(false, null, null);
     }
   }
 
