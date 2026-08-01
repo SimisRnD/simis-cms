@@ -4,6 +4,7 @@
 CREATE TABLE items (
   item_id BIGSERIAL PRIMARY KEY,
   collection_id BIGINT REFERENCES collections(collection_id) NOT NULL,
+  item_order INTEGER DEFAULT 100,
   unique_id VARCHAR(255) UNIQUE NOT NULL,
   name VARCHAR(255) NOT NULL,
   summary TEXT,
@@ -52,6 +53,7 @@ CREATE TABLE items (
   dataset_key_value VARCHAR(255)
 );
 CREATE INDEX items_col_id_idx ON items(collection_id);
+CREATE INDEX items_ord_idx ON items(item_order);
 CREATE INDEX items_uni_id_idx ON items(unique_id);
 CREATE INDEX items_archived_idx ON items(archived);
 CREATE INDEX items_lname_idx ON items(LOWER(name));

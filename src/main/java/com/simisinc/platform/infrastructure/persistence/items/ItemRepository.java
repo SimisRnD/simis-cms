@@ -35,6 +35,7 @@ import org.apache.commons.logging.LogFactory;
 
 import java.io.File;
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -65,6 +66,7 @@ public class ItemRepository {
   private static Item add(Item record) {
     SqlUtils insertValues = new SqlUtils()
         .add("collection_id", record.getCollectionId())
+        .add("item_order", record.getItemOrder())
         .add("category_id", record.getCategoryId(), -1)
         .add("dataset_id", record.getDatasetId(), -1)
         .add("unique_id", StringUtils.trimToNull(record.getUniqueId()))
@@ -140,6 +142,7 @@ public class ItemRepository {
   private static Item update(Item record) {
     SqlUtils updateValues = new SqlUtils()
         .add("collection_id", record.getCollectionId())
+        .add("item_order", record.getItemOrder())
         .add("category_id", record.getCategoryId(), -1)
         //        .add("dataset_id", record.getDatasetId(), -1)
         .add("unique_id", StringUtils.trimToNull(record.getUniqueId()))
@@ -662,9 +665,86 @@ public class ItemRepository {
     if (constraints == null) {
       constraints = new DataConstraints();
     }
-    constraints.setDefaultColumnToSortBy("LOWER(items.name)");
+    // Issue #815: item_order is backfilled (by the upgrade/install migrations) to match today's
+    // LOWER(name) order, so a collection that has never been manually reordered renders
+    // identically to before -- LOWER(items.name) remains as the tie-breaker for items that share
+    // an item_order value (e.g. every item created before a collection's first reorder).
+    constraints.setDefaultColumnToSortBy("items.item_order, LOWER(items.name)");
     DataResult result = query(specification, constraints);
     return (List<Item>) result.getRecords();
+  }
+
+  /**
+   * Returns the next append-at-the-end item_order value for a collection, mirroring
+   * MenuItemRepository.getNextTabOrder. Used when creating a new item so it lands after every
+   * existing item instead of at the Item domain model's static default (which would otherwise
+   * collide with, or be sorted ahead of, existing manually-ordered items).
+   */
+  public static int getNextItemOrder(long collectionId) {
+    int nextOrder = 0;
+    String SQL_QUERY = "SELECT max(item_order) FROM items WHERE collection_id = ?";
+    try (Connection connection = DB.getConnection();
+        PreparedStatement pst = connection.prepareStatement(SQL_QUERY)) {
+      pst.setLong(1, collectionId);
+      try (ResultSet rs = pst.executeQuery()) {
+        if (rs.next()) {
+          nextOrder = rs.getInt(1) + 1;
+        }
+      }
+    } catch (SQLException se) {
+      LOG.error("SQLException: " + se.getMessage());
+    }
+    return nextOrder;
+  }
+
+  /**
+   * Moves itemId to the given 1-based position among its collection's items (ordered by their
+   * current item_order, then item_id), then renumbers every item in the collection sequentially
+   * from 1 so item_order stays gap-free. newPosition is clamped to the collection's actual size,
+   * so a stale or out-of-range value (e.g. from a client that only knows about one paginated page)
+   * moves the item to the nearest valid end rather than failing. Returns false if itemId does not
+   * belong to collectionId.
+   */
+  public static boolean reorderItem(long collectionId, long itemId, int newPosition) {
+    try (Connection connection = DB.getConnection();
+        AutoStartTransaction a = new AutoStartTransaction(connection);
+        AutoRollback transaction = new AutoRollback(connection)) {
+
+      List<Long> orderedItemIds = findItemIdsOrderedByCollection(connection, collectionId);
+      if (!orderedItemIds.remove(Long.valueOf(itemId))) {
+        LOG.warn("reorderItem: item " + itemId + " is not in collection " + collectionId);
+        return false;
+      }
+
+      int clampedPosition = Math.max(1, Math.min(newPosition, orderedItemIds.size() + 1));
+      orderedItemIds.add(clampedPosition - 1, itemId);
+
+      for (int i = 0; i < orderedItemIds.size(); i++) {
+        SqlUtils updateValues = new SqlUtils().add("item_order", i + 1);
+        SqlUtils where = new SqlUtils().add("item_id = ?", orderedItemIds.get(i));
+        DB.update(connection, TABLE_NAME, updateValues, where);
+      }
+
+      transaction.commit();
+      return true;
+    } catch (SQLException se) {
+      LOG.error("SQLException: " + se.getMessage());
+      return false;
+    }
+  }
+
+  private static List<Long> findItemIdsOrderedByCollection(Connection connection, long collectionId) throws SQLException {
+    List<Long> ids = new ArrayList<>();
+    String SQL_QUERY = "SELECT item_id FROM items WHERE collection_id = ? ORDER BY item_order, item_id";
+    try (PreparedStatement pst = connection.prepareStatement(SQL_QUERY)) {
+      pst.setLong(1, collectionId);
+      try (ResultSet rs = pst.executeQuery()) {
+        while (rs.next()) {
+          ids.add(rs.getLong("item_id"));
+        }
+      }
+    }
+    return ids;
   }
 
   private static Item buildRecord(ResultSet rs) {
@@ -672,6 +752,7 @@ public class ItemRepository {
       Item record = new Item();
       record.setId(rs.getLong("item_id"));
       record.setCollectionId(rs.getLong("collection_id"));
+      record.setItemOrder(DB.getInt(rs, "item_order", 100));
       record.setUniqueId(rs.getString("unique_id"));
       record.setName(rs.getString("name"));
       record.setSummary(rs.getString("summary"));

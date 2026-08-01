@@ -469,10 +469,7 @@ public class PageServlet extends HttpServlet {
         }
         try {
           long itemId = Long.parseLong(request.getParameter("itemId"));
-          // newOrder is validated here (fails fast with 400 on non-numeric input, matching the
-          // pre-existing request contract) but is intentionally not persisted below -- see the
-          // NOT_IMPLEMENTED response for why.
-          Integer.parseInt(request.getParameter("newOrder"));
+          int newOrder = Integer.parseInt(request.getParameter("newOrder"));
           Item item = ItemRepository.findById(itemId);
           if (item == null) {
             response.setContentType("application/json");
@@ -480,14 +477,17 @@ public class PageServlet extends HttpServlet {
             response.getWriter().print("{\"success\":false,\"error\":\"Item not found\"}");
             return;
           }
-          // Items have no stored order/position: the items table (and the Item domain model /
-          // ItemRepository backing it) has no order column, unlike e.g. mailing_lists.list_order
-          // or menu_items.item_order. Adding one is a schema change (new column + migration) that
-          // this fix does not make unilaterally, so report the gap honestly instead of lying about
-          // success -- mirrors MediaApiController#handleUpload's "not yet implemented" response.
+          // Issue #815: items.item_order now exists, so persist the new position (renumbering the
+          // rest of the collection) instead of the previous NOT_IMPLEMENTED/501 response.
+          boolean reordered = ItemRepository.reorderItem(item.getCollectionId(), itemId, newOrder);
+          if (!reordered) {
+            response.setContentType("application/json");
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            response.getWriter().print("{\"success\":false,\"error\":\"Item could not be reordered\"}");
+            return;
+          }
           response.setContentType("application/json");
-          response.setStatus(HttpServletResponse.SC_NOT_IMPLEMENTED);
-          response.getWriter().print("{\"success\":false,\"error\":\"Reordering items is not implemented: items have no stored order\"}");
+          response.getWriter().print("{\"success\":true,\"message\":\"Item order updated\"}");
         } catch (Exception e) {
           response.setContentType("application/json");
           response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
@@ -551,6 +551,10 @@ public class PageServlet extends HttpServlet {
 
           Item newItem = new Item();
           newItem.setCollectionId(collectionId);
+          // Issue #815: append at the end of the collection's current order rather than leaving
+          // the domain model's static default, which would otherwise collide with (or sort ahead
+          // of) items that have already been manually reordered.
+          newItem.setItemOrder(ItemRepository.getNextItemOrder(collectionId));
           newItem.setName(itemName);
           newItem.setSummary(itemSummary);
           newItem.setCreatedBy(userSession.getUserId());
@@ -798,8 +802,12 @@ public class PageServlet extends HttpServlet {
           subTab = "/_" + itemUniqueId.substring(itemUniqueId.indexOf("/") + 1) + "_";
           itemUniqueId = itemUniqueId.substring(0, itemUniqueId.indexOf("/"));
         }
-        // User must be authorized here...
-        thisItem = LoadItemCommand.loadItemByUniqueIdForAuthorizedUser(itemUniqueId, userSession.getUserId());
+        // User must be authorized here... Issue #827: a deactivated item must not stay reachable
+        // on a genuinely public item route (no role/group/capability restriction on the matched
+        // page) just because the caller knows its uniqueId -- but an admin-gated route (e.g.
+        // /edit/{uniqueId}, /show/*/settings) still needs to resolve it so it can be managed.
+        thisItem = LoadItemCommand.loadItemByUniqueIdForAuthorizedUser(itemUniqueId, userSession.getUserId(),
+            isPubliclyUnrestrictedPage(pageRef));
         if (thisItem == null) {
           LOG.error("ITEM NOT ALLOWED: " + pagePath + " [roles=" + pageRef.getRoles().toString() + "]");
           controllerSession.clearAllWidgetData();
@@ -1376,6 +1384,18 @@ public class PageServlet extends HttpServlet {
       return false;
     }
     return !userSession.hasRole("admin") && !userSession.hasRole("content-manager");
+  }
+
+  /**
+   * Issue #827: a matched page with no role/group/capability restriction at all is reachable by
+   * any guest (see WebComponentCommand.allowsUser -- an unrestricted page always passes), so it's
+   * a genuinely public route (e.g. an item detail page like /show/{uniqueId}) and must not still
+   * resolve a deactivated item. A page gated by any of the three is an admin/management route
+   * (e.g. /edit/{uniqueId}, /show/*&#47;settings) and must keep resolving one so it can still be
+   * managed once deactivated.
+   */
+  static boolean isPubliclyUnrestrictedPage(Page pageRef) {
+    return pageRef.getRoles().isEmpty() && pageRef.getGroups().isEmpty() && pageRef.getCapabilities().isEmpty();
   }
 
   private static int intParam(HttpServletRequest request, String name, int defaultValue) {

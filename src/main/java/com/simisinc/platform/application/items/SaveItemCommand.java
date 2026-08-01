@@ -168,6 +168,13 @@ public class SaveItemCommand {
       item.setSource(itemBean.getSource());
       item.setCollectionId(itemBean.getCollectionId());
       item.setCreatedBy(itemBean.getCreatedBy());
+      // Issue #815: the caller (e.g. PageServlet#saveCollectionItem) is responsible for computing
+      // an append-at-the-end value via ItemRepository.getNextItemOrder() before calling this
+      // command -- carry it through here, since the newly-created `item` above starts from the
+      // Item domain model's static default (100) otherwise. Insert-only like the fields above: an
+      // update's `item` was already loaded from the DB, so its existing item_order is preserved
+      // simply by never being touched below, without needing an explicit copy on that path.
+      item.setItemOrder(itemBean.getItemOrder());
     }
     // @note set the uniqueId before setting the name
     item.setUniqueId(generateUniqueId(item, itemBean));
