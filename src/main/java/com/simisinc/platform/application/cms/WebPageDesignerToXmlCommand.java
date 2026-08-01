@@ -16,6 +16,7 @@
 
 package com.simisinc.platform.application.cms;
 
+import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.domain.model.cms.WebPage;
 import com.simisinc.platform.presentation.controller.Column;
 import com.simisinc.platform.presentation.controller.Page;
@@ -40,7 +41,7 @@ public class WebPageDesignerToXmlCommand {
 
   private static Log LOG = LogFactory.getLog(WebPageDesignerToXmlCommand.class);
 
-  public static String convertFromBootstrapHtml(WebPage webPage, String content) {
+  public static String convertFromBootstrapHtml(WebPage webPage, String content) throws DataException {
 
     Page page = new Page();
     String uniqueIdPrefix = webPage.getLink().substring(1);
@@ -125,7 +126,7 @@ public class WebPageDesignerToXmlCommand {
     return WebPageDesignerToXmlCommand.toXml(page);
   }
 
-  private static Widget createWidget(String uniqueIdPrefix, int widgetCount, String thisWidget) {
+  private static Widget createWidget(String uniqueIdPrefix, int widgetCount, String thisWidget) throws DataException {
     Widget widget = new Widget();
     widget.setWidgetName("content");
     int widgetDataIdx = thisWidget.indexOf("data-widget=\"");
@@ -134,6 +135,13 @@ public class WebPageDesignerToXmlCommand {
       if (StringUtils.isNotBlank(widgetName)) {
         widget.setWidgetName(widgetName);
       }
+    }
+    // The client only offers registered widget types, but never trust it -- an unrecognized name
+    // would otherwise save successfully here and then vanish silently at render time with no error
+    // anywhere (XMLContainerCommands.appendWidgets() drops unknown widgets), which is exactly the
+    // kind of failure this legacy designer's save path (no draft/publish safety net) can't afford.
+    if (!WebPageXmlLayoutCommand.getWidgetLibrary().containsKey(widget.getWidgetName())) {
+      throw new DataException("Unknown widget type: " + widget.getWidgetName());
     }
     // Determine the widget preferences // ideally have a library of widgets and their preferences...
     String htmlContent = thisWidget.substring(25, thisWidget.indexOf("<!--/gm-editable-region-->"));

@@ -253,6 +253,7 @@
         <include name="**/*.tld"/>
         <include name="**/*.mmdb"/>
         <include name="**/*.properties"/>
+        <include name="**/*.json"/>
       </fileset>
     </copy>
     <copy todir="${target.dir}/${project}/WEB-INF/classes">
