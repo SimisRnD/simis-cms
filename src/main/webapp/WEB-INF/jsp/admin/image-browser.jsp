@@ -174,6 +174,8 @@
           var message = 'Delete "' + filename + '"?';
           if (data.orphaned === false && data.usages.length > 0) {
             message = 'This image is used on ' + describeUsage(data) + '. Delete anyway?';
+          } else if (data.orphaned === null) {
+            message = 'Usage could not be verified for "' + filename + '" (the check failed). Delete anyway?';
           }
           if (confirm(message)) {
             postAction('${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&imageId=' + id);
