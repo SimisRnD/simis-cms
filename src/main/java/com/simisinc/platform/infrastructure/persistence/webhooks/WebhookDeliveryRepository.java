@@ -93,20 +93,36 @@ public class WebhookDeliveryRepository {
    * Persists the outcome of a delivery attempt: attempt count, status, timestamps, and the
    * response recorded for this attempt. Called by {@code AttemptWebhookDeliveryCommand} after
    * every attempt, success or failure.
+   *
+   * <p>
+   * {@code response_code} is always written, including as {@code NULL} when {@code record}
+   * carries none -- an attempt that never got a real HTTP response (SSRF-blocked, unreachable,
+   * timed out) must not leave a prior attempt's response code looking current.
+   * </p>
+   *
+   * <p>
+   * {@code expectedAttemptCount} is an optimistic-concurrency guard: the write is only applied
+   * if the row's {@code attempt_count} in the database still matches the value the caller read
+   * before making any local changes. This protects against two concurrent executions of the
+   * same non-terminal delivery (e.g. JobRunr recovery re-running a job that appears crashed but
+   * is still finishing) silently clobbering each other's recorded outcome -- whichever write
+   * commits first wins, and the other one is rejected (this method returns {@code false}, and
+   * the caller must not act as though its outcome was persisted).
+   * </p>
    */
-  public static boolean recordAttempt(WebhookDelivery record) {
+  public static boolean recordAttempt(WebhookDelivery record, int expectedAttemptCount) {
     SqlUtils updateValues = new SqlUtils()
         .add("attempt_count", record.getAttemptCount())
         .add("status", record.getStatus())
         .add("last_attempted_at", record.getLastAttemptedAt())
-        .add("next_retry_at", record.getNextRetryAt());
-    if (record.getResponseCode() != null) {
-      updateValues.add("response_code", record.getResponseCode());
-    }
+        .add("next_retry_at", record.getNextRetryAt())
+        .add("response_code", record.getResponseCode() != null ? record.getResponseCode() : -1, -1);
     if (record.getResponseSnippet() != null) {
       updateValues.add("response_snippet", record.getResponseSnippet(), 1000);
     }
-    SqlUtils where = new SqlUtils().add("webhook_delivery_id = ?", record.getId());
+    SqlUtils where = new SqlUtils()
+        .add("webhook_delivery_id = ?", record.getId())
+        .add("attempt_count = ?", expectedAttemptCount);
     return DB.update(TABLE_NAME, updateValues, where);
   }
 

@@ -17,6 +17,7 @@
 package com.simisinc.platform.infrastructure.persistence.webhooks;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -170,7 +171,7 @@ class WebhookDeliveryRepositoryTest {
     delivery.setResponseCode(503);
     delivery.setResponseSnippet("Service Unavailable");
 
-    assertTrue(WebhookDeliveryRepository.recordAttempt(delivery));
+    assertTrue(WebhookDeliveryRepository.recordAttempt(delivery, 0));
 
     WebhookDelivery found = WebhookDeliveryRepository.findById(delivery.getId());
     assertEquals(1, found.getAttemptCount());
@@ -189,11 +190,69 @@ class WebhookDeliveryRepositoryTest {
     delivery.setAttemptCount(5);
     delivery.setStatus(WebhookDelivery.EXHAUSTED);
     delivery.setNextRetryAt(null);
-    WebhookDeliveryRepository.recordAttempt(delivery);
+    WebhookDeliveryRepository.recordAttempt(delivery, 0);
 
     WebhookDelivery found = WebhookDeliveryRepository.findById(delivery.getId());
     assertEquals(WebhookDelivery.EXHAUSTED, found.getStatus());
     assertNull(found.getNextRetryAt());
+  }
+
+  @Test
+  void recordAttemptFailsAndLeavesTheRowUntouchedWhenTheExpectedAttemptCountIsStale() {
+    long subscriptionId = seedSubscription();
+    WebhookDelivery delivery = seedDelivery(subscriptionId, "88888888-8888-8888-8888-888888888888");
+
+    delivery.setAttemptCount(1);
+    delivery.setStatus(WebhookDelivery.FAILED);
+    delivery.setNextRetryAt(new Timestamp(System.currentTimeMillis() + 5000));
+
+    // The row's real attempt_count in the database is still 0 (freshly seeded, untouched).
+    // Passing an expected value of 1 simulates a concurrent execution that read the row after
+    // some other execution had already advanced it -- the optimistic-lock guard must reject
+    // this write rather than silently overwrite whatever the other execution recorded.
+    assertFalse(WebhookDeliveryRepository.recordAttempt(delivery, 1));
+
+    WebhookDelivery found = WebhookDeliveryRepository.findById(delivery.getId());
+    assertEquals(0, found.getAttemptCount(), "a rejected write must leave the row untouched");
+    assertEquals(WebhookDelivery.PENDING, found.getStatus());
+  }
+
+  @Test
+  void recordAttemptSucceedsAndPersistsWhenTheExpectedAttemptCountStillMatches() {
+    long subscriptionId = seedSubscription();
+    WebhookDelivery delivery = seedDelivery(subscriptionId, "89898989-8989-8989-8989-898989898989");
+
+    delivery.setAttemptCount(1);
+    delivery.setStatus(WebhookDelivery.FAILED);
+    delivery.setNextRetryAt(new Timestamp(System.currentTimeMillis() + 5000));
+
+    assertTrue(WebhookDeliveryRepository.recordAttempt(delivery, 0));
+
+    WebhookDelivery found = WebhookDeliveryRepository.findById(delivery.getId());
+    assertEquals(1, found.getAttemptCount());
+    assertEquals(WebhookDelivery.FAILED, found.getStatus());
+  }
+
+  @Test
+  void recordAttemptClearsAPreviouslyPersistedResponseCodeWhenTheNewRecordHasNone() {
+    long subscriptionId = seedSubscription();
+    WebhookDelivery delivery = seedDelivery(subscriptionId, "99999999-9999-9999-9999-999999999999");
+
+    delivery.setAttemptCount(1);
+    delivery.setStatus(WebhookDelivery.FAILED);
+    delivery.setResponseCode(500);
+    delivery.setResponseSnippet("server error");
+    assertTrue(WebhookDeliveryRepository.recordAttempt(delivery, 0));
+    assertEquals(500, WebhookDeliveryRepository.findById(delivery.getId()).getResponseCode());
+
+    // A second attempt that never actually got a response (e.g. SSRF-blocked or a timeout) must
+    // clear response_code, not leave the first attempt's real HTTP status looking current.
+    delivery.setAttemptCount(2);
+    delivery.setResponseCode(null);
+    delivery.setResponseSnippet("blocked by the SSRF guard");
+    assertTrue(WebhookDeliveryRepository.recordAttempt(delivery, 1));
+
+    assertNull(WebhookDeliveryRepository.findById(delivery.getId()).getResponseCode());
   }
 
   private long seedSubscription() {

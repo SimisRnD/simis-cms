@@ -26,6 +26,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyMap;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.CALLS_REAL_METHODS;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -259,6 +260,51 @@ class AttemptWebhookDeliveryCommandTest {
     // Must not throw -- a duplicate/late-firing job for a delivery that was somehow removed.
     AttemptWebhookDeliveryCommand.attempt(999999L);
     assertTrue(scheduledRetryInstants.isEmpty());
+  }
+
+  @Test
+  void aConnectionFailureClearsAResponseCodeLeftOverFromAPriorRealHttpResponse() {
+    long subscriptionId = seedSubscription("https://example.com/hooks", "secret-abc");
+    WebhookDelivery delivery = seedDelivery(subscriptionId);
+
+    // Attempt 1: a real HTTP 500 is recorded.
+    attemptWithStatus(delivery.getId(), 500, "server error");
+    assertEquals(500, WebhookDeliveryRepository.findById(delivery.getId()).getResponseCode());
+
+    // Attempt 2: the endpoint never actually responds (simulates an SSRF-guard block or any
+    // other network failure) -- sendAttempt() catches the exception and treats it as no result.
+    try (MockedStatic<HttpPostCommand> httpPostCommand = mockStatic(HttpPostCommand.class)) {
+      httpPostCommand.when(() -> HttpPostCommand.executeUserUrlWithResponse(anyString(), anyMap(), anyString(), anyInt()))
+          .thenThrow(new RuntimeException("blocked by SSRF guard"));
+      AttemptWebhookDeliveryCommand.attempt(delivery.getId());
+    }
+
+    WebhookDelivery found = WebhookDeliveryRepository.findById(delivery.getId());
+    assertEquals(2, found.getAttemptCount());
+    assertNull(found.getResponseCode(),
+        "a response_code from a prior attempt must not survive an attempt that never connected");
+  }
+
+  @Test
+  void losingAnOptimisticConcurrencyRaceDoesNotScheduleADuplicateRetry() {
+    long subscriptionId = seedSubscription("https://example.com/hooks", "secret-abc");
+    WebhookDelivery delivery = seedDelivery(subscriptionId);
+
+    try (MockedStatic<HttpPostCommand> httpPostCommand = mockStatic(HttpPostCommand.class);
+        MockedStatic<WebhookDeliveryRepository> webhookDeliveryRepository = mockStatic(WebhookDeliveryRepository.class,
+            CALLS_REAL_METHODS)) {
+      httpPostCommand.when(() -> HttpPostCommand.executeUserUrlWithResponse(anyString(), anyMap(), anyString(), anyInt()))
+          .thenReturn(new HttpPostCommand.HttpPostResult(500, "err"));
+      // Simulate a concurrent execution that already recorded its own outcome for this row
+      // between our findById() and our own write -- findById() and every other repository
+      // method still run for real (CALLS_REAL_METHODS), only recordAttempt is overridden.
+      webhookDeliveryRepository.when(() -> WebhookDeliveryRepository.recordAttempt(any(WebhookDelivery.class), anyInt()))
+          .thenReturn(false);
+
+      AttemptWebhookDeliveryCommand.attempt(delivery.getId());
+    }
+
+    assertTrue(scheduledRetryInstants.isEmpty(), "losing the concurrency race must not schedule a retry");
   }
 
   private void attemptWithStatus(long deliveryId, int statusCode, String body) {

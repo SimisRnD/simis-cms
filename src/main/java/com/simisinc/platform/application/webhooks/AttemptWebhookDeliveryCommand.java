@@ -62,6 +62,17 @@ import com.simisinc.platform.infrastructure.scheduler.webhooks.WebhookDeliveryAt
  * processed an earlier attempt of this delivery can recognize and ignore a retry.
  * </p>
  *
+ * <p>
+ * That terminal-state check alone does not protect against two concurrent executions of the
+ * <em>same</em> non-terminal ({@code pending}/{@code failed}) delivery -- e.g. JobRunr recovery
+ * re-running a job that appears crashed but is still finishing its HTTP call. Both would read
+ * the same starting state and, without a lock, whichever wrote last would silently overwrite
+ * the other's outcome. {@link WebhookDeliveryRepository#recordAttempt} guards against this with
+ * an optimistic-concurrency check on {@code attempt_count}; when it reports that this
+ * execution's write lost the race, {@link #attempt} logs and stops rather than acting on a
+ * result that was never actually persisted.
+ * </p>
+ *
  * @author SimIS Inc.
  */
 public class AttemptWebhookDeliveryCommand {
@@ -96,13 +107,17 @@ public class AttemptWebhookDeliveryCommand {
       return;
     }
 
+    // The attempt_count read here, before any local mutation, doubles as an optimistic-lock
+    // guard on the eventual write -- see WebhookDeliveryRepository#recordAttempt.
+    int expectedAttemptCount = delivery.getAttemptCount();
+
     WebhookSubscription subscription = WebhookSubscriptionRepository.findById(delivery.getWebhookSubscriptionId());
     if (subscription == null || !subscription.getEnabled()) {
       delivery.setLastAttemptedAt(now());
       delivery.setStatus(WebhookDelivery.EXHAUSTED);
       delivery.setNextRetryAt(null);
       delivery.setResponseSnippet("Subscription disabled or removed before delivery completed");
-      WebhookDeliveryRepository.recordAttempt(delivery);
+      recordAttempt(delivery, expectedAttemptCount, webhookDeliveryId);
       return;
     }
 
@@ -116,6 +131,11 @@ public class AttemptWebhookDeliveryCommand {
       delivery.setResponseCode(result.getStatusCode());
       delivery.setResponseSnippet(truncate(result.getBody()));
     } else {
+      // No response was actually received on this attempt (SSRF-blocked, unreachable, timed
+      // out). Clear any response_code still sitting on this in-memory object from findById()
+      // loading a prior attempt's result -- otherwise recordAttempt would persist a stale,
+      // real-looking status code for an attempt that never reached the network.
+      delivery.setResponseCode(null);
       delivery.setResponseSnippet(
           "Request failed -- blocked by the SSRF guard, or the endpoint was unreachable/timed out");
     }
@@ -123,14 +143,14 @@ public class AttemptWebhookDeliveryCommand {
     if (success) {
       delivery.setStatus(WebhookDelivery.DELIVERED);
       delivery.setNextRetryAt(null);
-      WebhookDeliveryRepository.recordAttempt(delivery);
+      recordAttempt(delivery, expectedAttemptCount, webhookDeliveryId);
       return;
     }
 
     if (delivery.getAttemptCount() >= MAX_ATTEMPTS) {
       delivery.setStatus(WebhookDelivery.EXHAUSTED);
       delivery.setNextRetryAt(null);
-      WebhookDeliveryRepository.recordAttempt(delivery);
+      recordAttempt(delivery, expectedAttemptCount, webhookDeliveryId);
       LOG.warn("Webhook delivery " + webhookDeliveryId + " exhausted after " + delivery.getAttemptCount()
           + " attempts to subscription " + subscription.getId());
       return;
@@ -140,9 +160,30 @@ public class AttemptWebhookDeliveryCommand {
     Instant nextAttemptAt = Instant.now().plusSeconds(delaySeconds);
     delivery.setStatus(WebhookDelivery.FAILED);
     delivery.setNextRetryAt(Timestamp.from(nextAttemptAt));
-    WebhookDeliveryRepository.recordAttempt(delivery);
+    if (!recordAttempt(delivery, expectedAttemptCount, webhookDeliveryId)) {
+      // Lost the race to a concurrent execution of this same delivery -- our failed-attempt
+      // outcome was not persisted, so scheduling a retry here would risk a duplicate job on top
+      // of whatever the winning execution already scheduled (or didn't need to).
+      return;
+    }
 
     scheduleRetry.accept(nextAttemptAt, webhookDeliveryId);
+  }
+
+  /**
+   * Wraps {@link WebhookDeliveryRepository#recordAttempt} with the logging every call site
+   * needs: a {@code false} return means this execution lost an optimistic-concurrency race to
+   * another concurrent execution of the same delivery, and whatever outcome was computed here
+   * was not persisted.
+   */
+  private static boolean recordAttempt(WebhookDelivery delivery, int expectedAttemptCount, long webhookDeliveryId) {
+    boolean recorded = WebhookDeliveryRepository.recordAttempt(delivery, expectedAttemptCount);
+    if (!recorded) {
+      LOG.warn("Webhook delivery " + webhookDeliveryId
+          + " lost a race with a concurrent execution of the same delivery (attempt_count no longer "
+          + expectedAttemptCount + " in the database) -- this attempt's outcome was not persisted");
+    }
+    return recorded;
   }
 
   private static HttpPostCommand.HttpPostResult sendAttempt(WebhookSubscription subscription, WebhookDelivery delivery) {
