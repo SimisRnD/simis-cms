@@ -19,6 +19,8 @@ package com.simisinc.platform.application.cms;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 
@@ -89,7 +91,7 @@ class SaveDraftLayoutCommandTest {
 
     try (MockedStatic<WebPageRepository> repo = mockStatic(WebPageRepository.class)) {
       DataException ex = assertThrows(DataException.class,
-          () -> SaveDraftLayoutCommand.saveDraftLayout(page, buggyLayoutJson),
+          () -> SaveDraftLayoutCommand.saveDraftLayout(page, buggyLayoutJson, 42L),
           "a section reporting zero columns when it actually has some must be rejected");
       assertTrue(ex.getMessage().contains("data loss"), "the rejection reason should be clear: " + ex.getMessage());
 
@@ -109,7 +111,7 @@ class SaveDraftLayoutCommandTest {
          MockedStatic<WebPageXmlLayoutCommand> cmd = mockStatic(WebPageXmlLayoutCommand.class)) {
       repo.when(() -> WebPageRepository.save(any(WebPage.class))).thenAnswer(i -> i.getArgument(0));
 
-      SaveDraftLayoutCommand.saveDraftLayout(page, layoutJson);
+      SaveDraftLayoutCommand.saveDraftLayout(page, layoutJson, 42L);
 
       repo.verify(() -> WebPageRepository.save(any(WebPage.class)));
     }
@@ -130,7 +132,7 @@ class SaveDraftLayoutCommandTest {
          MockedStatic<WebPageXmlLayoutCommand> cmd = mockStatic(WebPageXmlLayoutCommand.class)) {
       repo.when(() -> WebPageRepository.save(any(WebPage.class))).thenAnswer(i -> i.getArgument(0));
 
-      SaveDraftLayoutCommand.saveDraftLayout(page, reorderJson);
+      SaveDraftLayoutCommand.saveDraftLayout(page, reorderJson, 42L);
     }
 
     String result = page.getDraftPageXml();
@@ -150,11 +152,54 @@ class SaveDraftLayoutCommandTest {
          MockedStatic<WebPageXmlLayoutCommand> cmd = mockStatic(WebPageXmlLayoutCommand.class)) {
       repo.when(() -> WebPageRepository.save(any(WebPage.class))).thenAnswer(i -> i.getArgument(0));
 
-      SaveDraftLayoutCommand.saveDraftLayout(page, layoutJson);
+      SaveDraftLayoutCommand.saveDraftLayout(page, layoutJson, 42L);
     }
 
     String result = page.getDraftPageXml();
     assertTrue(result.contains("<uniqueId>left</uniqueId>") && result.contains("<uniqueId>right</uniqueId>"),
         "both columns/widgets should be preserved when the columns key is absent");
+  }
+
+  // ── modifiedBy / persistence-failure propagation ─────────────────────────
+  // A draft-layout reorder must record who made it and must not report success when the
+  // underlying save silently fails (e.g. a stale modified_by value tripping the
+  // web_pages_modified_by_fkey foreign key). See SaveDraftLayoutCommandIntegrationTest for the
+  // same two properties proven against a real database instead of a mock.
+
+  @Test
+  void saveDraftLayoutSetsModifiedByBeforeSaving() throws DataException {
+    WebPage page = pageWithXml(EMPTY_SECTION_XML);
+    String layoutJson = "{\"sections\":[{\"s\":0,\"columns\":[]}]}";
+
+    try (MockedStatic<WebPageRepository> repo = mockStatic(WebPageRepository.class);
+         MockedStatic<WebPageXmlLayoutCommand> cmd = mockStatic(WebPageXmlLayoutCommand.class)) {
+      repo.when(() -> WebPageRepository.save(any(WebPage.class))).thenAnswer(i -> i.getArgument(0));
+      cmd.when(() -> WebPageXmlLayoutCommand.removeCustomPage(anyString())).thenAnswer(i -> null);
+
+      SaveDraftLayoutCommand.saveDraftLayout(page, layoutJson, 42L);
+
+      repo.verify(() -> WebPageRepository.save(argThat(p -> p.getModifiedBy() == 42L)));
+    }
+  }
+
+  @Test
+  void saveDraftLayoutThrowsWhenSaveFails() {
+    WebPage page = pageWithXml(EMPTY_SECTION_XML);
+    String layoutJson = "{\"sections\":[{\"s\":0,\"columns\":[]}]}";
+
+    try (MockedStatic<WebPageRepository> repo = mockStatic(WebPageRepository.class);
+         MockedStatic<WebPageXmlLayoutCommand> cmd = mockStatic(WebPageXmlLayoutCommand.class)) {
+      // A null return simulates WebPageRepository.update() failing (e.g. the FK violation logged
+      // by DB.update() when modified_by isn't a real user id) -- saveDraftLayout() must not treat
+      // that as success.
+      repo.when(() -> WebPageRepository.save(any(WebPage.class))).thenAnswer(i -> null);
+      cmd.when(() -> WebPageXmlLayoutCommand.removeCustomPage(anyString())).thenAnswer(i -> null);
+
+      assertThrows(DataException.class,
+          () -> SaveDraftLayoutCommand.saveDraftLayout(page, layoutJson, 42L),
+          "a null return from WebPageRepository.save() means persistence failed and must not be swallowed");
+
+      cmd.verify(() -> WebPageXmlLayoutCommand.removeCustomPage(anyString()), never());
+    }
   }
 }
