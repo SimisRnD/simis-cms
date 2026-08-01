@@ -45,9 +45,14 @@
 <%--</c:choose>--%>
 <c:choose>
   <c:when test="${!empty itemList}">
-    <ul<c:if test="${showBullets eq 'false'}"> class="no-bullet"</c:if> id="itemList">
+    <%-- Issue #815 follow-up: itemList only ever holds the current page's rows, so a page-relative
+         DOM index is not a collection-wide item_order. Expose the offset of this page's first row
+         within the full (unpaginated) collection ordering so the drag-and-drop script below can
+         translate a page-relative drop position into the absolute position the server expects. --%>
+    <c:set var="pageOffset" value="${recordPaging.pageSize gt 0 ? (recordPaging.pageNumber - 1) * recordPaging.pageSize : 0}"/>
+    <ul<c:if test="${showBullets eq 'false'}"> class="no-bullet"</c:if> id="itemList" data-page-offset="${pageOffset}">
       <c:forEach items="${itemList}" var="item" varStatus="itemStatus">
-        <li class="item-row" data-item-id="${item.id}" data-item-order="${itemStatus.index}">
+        <li class="item-row" data-item-id="${item.id}" data-item-order="${pageOffset + itemStatus.index + 1}">
           <c:if test="${isEditMode eq 'true'}">
             <span class="drag-handle" title="Drag to reorder" aria-label="Drag handle for ${fn:escapeXml(item.name)}">
               <i class="fa fa-grip-vertical"></i>
@@ -184,6 +189,11 @@
   var collectionId = '${collection.id}';
   var itemList = document.getElementById('itemList');
   var formToken = (typeof mainToken !== 'undefined') ? mainToken : '';
+  // Issue #815 follow-up: itemList's DOM children are only the current page's items, so their
+  // index within itemList is relative to this page, not the collection as a whole. The server
+  // (ItemRepository.reorderItem) expects an absolute 1-based position across the full collection,
+  // so the page's starting offset must be added back in before it's sent.
+  var pageOffset = parseInt(itemList ? itemList.getAttribute('data-page-offset') : '0', 10) || 0;
 
   if (!itemList) return;
 
@@ -196,7 +206,7 @@
       onEnd: function(evt) {
         var itemRow = evt.item;
         var itemId = itemRow.getAttribute('data-item-id');
-        var newOrder = Array.from(itemList.children).indexOf(itemRow) + 1;
+        var newOrder = pageOffset + Array.from(itemList.children).indexOf(itemRow) + 1;
 
         // Send reorder mutation to server (form-encoded)
         var params = new URLSearchParams();
