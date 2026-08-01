@@ -21,6 +21,7 @@ import com.simisinc.platform.domain.events.cms.WebPagePublishedEvent;
 import com.simisinc.platform.domain.events.cms.WebPageUpdatedEvent;
 import com.simisinc.platform.domain.model.cms.SitemapChangeFrequencyOptions;
 import com.simisinc.platform.domain.model.cms.WebPage;
+import com.simisinc.platform.infrastructure.cache.PublishEventCachePurgeHandler;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
 import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
 import org.apache.commons.lang3.StringUtils;
@@ -135,11 +136,18 @@ public class SaveWebPageCommand {
       boolean justUpdatedInTheLastDay = !isNewWebPage &&
           webPage.getModified() != null &&
           DateCommand.isHoursOld(webPage.getModified(), 10);
-      // Trigger events
+      // Trigger events (the "just updated in the last day" debounce below is specific to the
+      // activity-feed workflow event, not cache correctness -- the AFD purge is deliberately NOT
+      // gated by it, since every save changes the live page and needs its cached response
+      // invalidated, whether or not this is the first save of the day)
       if (isNewWebPage) {
         WorkflowManager.triggerWorkflowForEvent(new WebPagePublishedEvent(result));
-      } else if (justUpdatedInTheLastDay) {
-        WorkflowManager.triggerWorkflowForEvent(new WebPageUpdatedEvent(result));
+        PublishEventCachePurgeHandler.onPagePublished(result);
+      } else {
+        if (justUpdatedInTheLastDay) {
+          WorkflowManager.triggerWorkflowForEvent(new WebPageUpdatedEvent(result));
+        }
+        PublishEventCachePurgeHandler.onPageUpdated(result);
       }
     }
     return result;
