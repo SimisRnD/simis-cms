@@ -17,12 +17,15 @@
 package com.simisinc.platform.application.cms;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.LoadUserCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
@@ -31,6 +34,8 @@ import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.cms.Blog;
 import com.simisinc.platform.domain.model.cms.BlogPost;
 import com.simisinc.platform.domain.model.cms.Content;
+import com.simisinc.platform.domain.model.cms.WebPage;
+import com.simisinc.platform.infrastructure.cache.PublishEventCachePurgeHandler;
 import com.simisinc.platform.infrastructure.persistence.cms.ContentRepository;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
@@ -45,6 +50,7 @@ import com.simisinc.platform.presentation.widgets.cms.BlogPostWidget;
 public class ContentHtmlCommand {
 
   private static Log LOG = LogFactory.getLog(ContentHtmlCommand.class);
+  private static final ObjectMapper MAPPER = new ObjectMapper();
 
   static String HTML_JSP = "/cms/content-html.jsp";
 
@@ -451,15 +457,47 @@ public class ContentHtmlCommand {
       return context;
     }
     try {
-      SaveContentCommand.saveSafeContent(content.getUniqueId(), html, context.getUserId(), false);
+      Content savedContent = SaveContentCommand.saveSafeContent(content.getUniqueId(), html, context.getUserId(), false);
       AuditEventCommand.record(context, AuditEventCommand.CONTENT, "content.saveDraft", AuditEventCommand.SUCCESS,
           "content", String.valueOf(content.getId()), content.getUniqueId(), null);
+      // The save above has already succeeded -- everything from here is a non-blocking, purely
+      // additive author-facing notice (#258). It must never turn a successful save into a reported
+      // failure, so the baseline response is set first and only replaced if the enrichment fully
+      // succeeds.
       context.setJson("{\"success\":true}");
+      try {
+        String savedHtml = savedContent != null && savedContent.getDraftContent() != null
+            ? savedContent.getDraftContent()
+            : html;
+        List<ContentAccessibilityCommand.Finding> findings = ContentAccessibilityCommand.check(savedHtml);
+        if (!findings.isEmpty()) {
+          Map<String, Object> response = new LinkedHashMap<>();
+          response.put("success", true);
+          response.put("a11yFindings", toA11yFindingList(findings));
+          context.setJson(MAPPER.writeValueAsString(response));
+        }
+      } catch (Exception a11yException) {
+        LOG.warn("Accessibility check failed for uniqueId " + content.getUniqueId(), a11yException);
+      }
     } catch (Exception e) {
       LOG.error("saveDraft failed for uniqueId " + content.getUniqueId(), e);
       context.setJson("{\"success\":false,\"error\":\"Save failed\"}");
     }
     return context;
+  }
+
+  /** Converts a11y findings to plain maps for JSON serialization, in document order. */
+  private static List<Map<String, String>> toA11yFindingList(List<ContentAccessibilityCommand.Finding> findings) {
+    List<Map<String, String>> result = new ArrayList<>();
+    for (ContentAccessibilityCommand.Finding finding : findings) {
+      Map<String, String> map = new LinkedHashMap<>();
+      map.put("rule", finding.getRule());
+      map.put("criterion", finding.getCriterion());
+      map.put("message", finding.getMessage());
+      map.put("context", finding.getContext());
+      result.add(map);
+    }
+    return result;
   }
 
   private static WidgetContext publishContent(WidgetContext context, Content content, boolean reviewRequired) {
@@ -477,6 +515,7 @@ public class ContentHtmlCommand {
     ContentRepository.publish(content);
     AuditEventCommand.record(context, AuditEventCommand.CONTENT, "content.publish", AuditEventCommand.SUCCESS,
         "content", String.valueOf(content.getId()), content.getUniqueId(), null);
+    purgeCacheForCurrentPage(context);
     return context;
   }
 
@@ -537,6 +576,7 @@ public class ContentHtmlCommand {
       AuditEventCommand.record(context, AuditEventCommand.CONTENT, "content.approve", AuditEventCommand.SUCCESS,
           "content", String.valueOf(content.getId()), content.getUniqueId(),
           StringUtils.isNotBlank(releaseReference) ? "release authority: " + releaseReference : null);
+      purgeCacheForCurrentPage(context);
       context.setSuccessMessage("The content was approved and published");
     } catch (DataException e) {
       AuditEventCommand.record(context, AuditEventCommand.CONTENT, "content.approve", AuditEventCommand.FAILURE,
@@ -544,6 +584,35 @@ public class ContentHtmlCommand {
       context.setErrorMessage(e.getMessage());
     }
     return context;
+  }
+
+  /**
+   * Triggers an AFD cache purge (#420) for the page a Content publish/approve action was just
+   * performed on. ContentWidget and its six siblings (gallery/slider/cards/accordion/reveal/carousel)
+   * all submit their publish/approve actions back to {@code widgetContext.uri} -- see content.jsp's
+   * publish/submit/approve/reject links and form, which all target {@code ${widgetContext.uri}} --
+   * so the current request URI is exactly the live page whose rendered HTML just changed. This is the
+   * same "the page this action happened on" convention ContentEditorWidget's own purge already uses
+   * for its returnPage parameter.
+   * <p>
+   * A Content record can be embedded on more than one page (a shared uniqueId placed on multiple
+   * pages, or nested via the {@code ${uniqueId:...}} inline-embed syntax in embedInlineContent()
+   * above) -- only the page this action was invoked on is purged here. There is no reverse index
+   * from a Content record to every page/widget instance that renders it (WebPageRepository has no
+   * lookup by embedded content uniqueId), so enumerating every embed would require new indexing
+   * infrastructure this codebase does not have; out of scope for this fix. Any other page embedding
+   * the same content keeps serving its cached response until that page's own natural cache expiry
+   * (max-age) or its own next publish/update, exactly as it already does today without this handler.
+   * <p>
+   * Never throws and never blocks the publish/approve that already succeeded by the time this runs
+   * -- purgeUrls() (reached via onPageUpdated()) is fully self-contained try/catch, same as every
+   * other call site.
+   */
+  private static void purgeCacheForCurrentPage(WidgetContext context) {
+    WebPage webPage = LoadWebPageCommand.loadByLink(context.getUri());
+    if (webPage != null) {
+      PublishEventCachePurgeHandler.onPageUpdated(webPage);
+    }
   }
 
   private static WidgetContext rejectContent(WidgetContext context, Content content) {

@@ -215,6 +215,29 @@ class DatabaseMigrationTest {
     assertTrue(columnExists("sessions", "is_anonymous"),
         "sessions.is_anonymous is missing - SessionRepository.findDailyUniqueLocations() "
             + "will fail on a fresh install");
+    // items.item_order (issue #815) is mirrored directly into NEW_10024__new_items.sql rather than
+    // added by a separate upgrade-only migration, but this is exactly the class of gap that
+    // mirroring is meant to prevent -- ItemRepository.buildRecord() reads this column
+    // unconditionally too, so asserting it here guards against the same regression shape.
+    assertTrue(columnExists("items", "item_order"),
+        "items.item_order is missing - ItemRepository.buildRecord()/findAll() read/sort by this "
+            + "column unconditionally, and reorderCollectionItem has nowhere to persist a reorder "
+            + "without it (issue #815)");
+  }
+
+  @Test
+  void webhookTablesExistOnAFreshInstall() throws SQLException {
+    // Issue #418: webhook_subscription/webhook_delivery are added in BOTH
+    // NEW_10130__new_webhooks.sql (install/) and UPGRADE_20260801.1001__create_webhook_tables.sql
+    // (upgrade/) -- this is the same install/upgrade mirroring gap class as
+    // tablesThatOnlyExistedInUpgradeMigrationsAreOnTheInstallPath() below (issue #431 precedent),
+    // checked directly here for the tables this PR actually adds.
+    assertTrue(tableExists("webhook_subscription"), "webhook_subscription is missing on a fresh install");
+    assertTrue(tableExists("webhook_delivery"), "webhook_delivery is missing on a fresh install");
+    assertTrue(columnExists("webhook_delivery", "delivery_uuid"),
+        "webhook_delivery.delivery_uuid is missing -- issue #456's idempotency id has nowhere to live");
+    assertTrue(columnExists("webhook_delivery", "next_retry_at"),
+        "webhook_delivery.next_retry_at is missing -- AttemptWebhookDeliveryCommand's backoff schedule cannot be persisted");
   }
 
   @Test

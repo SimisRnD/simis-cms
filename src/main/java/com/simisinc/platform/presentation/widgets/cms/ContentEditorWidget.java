@@ -18,8 +18,13 @@ package com.simisinc.platform.presentation.widgets.cms;
 
 import org.apache.commons.lang3.StringUtils;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.util.List;
+
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.cms.ContentAccessibilityCommand;
 import com.simisinc.platform.application.cms.ContentReviewCommand;
 import com.simisinc.platform.application.cms.DateCommand;
 import com.simisinc.platform.application.cms.LoadContentCommand;
@@ -30,6 +35,7 @@ import com.simisinc.platform.application.cms.UrlCommand;
 import com.simisinc.platform.domain.events.cms.WebPageUpdatedEvent;
 import com.simisinc.platform.domain.model.cms.Content;
 import com.simisinc.platform.domain.model.cms.WebPage;
+import com.simisinc.platform.infrastructure.cache.PublishEventCachePurgeHandler;
 import com.simisinc.platform.infrastructure.persistence.cms.ContentRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
 import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
@@ -174,11 +180,38 @@ public class ContentEditorWidget extends GenericWidget {
             // Update the related page
             WebPageRepository.markAsModified(webPage, context.getUserId());
 
-            // Trigger events
+            // Trigger events (the "just updated in the last day" debounce is specific to the
+            // activity-feed workflow event, not cache correctness -- the embedded content on this
+            // page just changed for real visitors, so the AFD purge below always fires)
             if (justUpdatedInTheLastDay) {
               WorkflowManager.triggerWorkflowForEvent(new WebPageUpdatedEvent(webPage));
             }
+            PublishEventCachePurgeHandler.onPageUpdated(webPage);
           }
+        }
+        // Non-blocking author-facing a11y notice (#258): the save above has already succeeded, so
+        // this only ever adds information -- it never prevents or delays the save. Checked against
+        // whatever actually persisted (the live content if this was a publish, the draft otherwise).
+        try {
+          String savedHtml = publish ? content.getContent() : content.getDraftContent();
+          List<ContentAccessibilityCommand.Finding> findings =
+              ContentAccessibilityCommand.check(savedHtml != null ? savedHtml : contentHtml);
+          if (!findings.isEmpty()) {
+            context.setWarningMessage(ContentAccessibilityCommand.summarize(findings));
+            // The flash-message mechanism only re-surfaces a message when a widget with this same
+            // uniqueId renders on the *next* page (see WebContainerCommand/ControllerSession).
+            // returnPage is the live page the content lives on, which never includes the
+            // content-editor widget, so a warning set here would otherwise be silently dropped
+            // (issue #826). Send the author back to the editor itself instead, where this widget
+            // instance actually renders and can pick the message back up -- returnPage is passed
+            // through so the reloaded editor's own "back to page" link/hidden field, and any
+            // subsequent save, are unaffected. Only overrides the redirect in this warning branch;
+            // a clean save keeps the original returnPage redirect set above, unchanged.
+            context.setRedirect("/content-editor?uniqueId=" + URLEncoder.encode(uniqueId, StandardCharsets.UTF_8)
+                + "&returnPage=" + URLEncoder.encode(returnPage, StandardCharsets.UTF_8));
+          }
+        } catch (Exception a11yException) {
+          LOG.warn("Accessibility check failed for uniqueId " + uniqueId, a11yException);
         }
       }
     } catch (DataException e) {

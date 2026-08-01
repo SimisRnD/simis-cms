@@ -25,10 +25,16 @@ import java.util.Calendar;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
+import com.simisinc.platform.application.items.SaveItemCommand;
 import com.simisinc.platform.domain.model.User;
+import com.simisinc.platform.domain.model.datasets.Dataset;
+import com.simisinc.platform.domain.model.items.Collection;
+import com.simisinc.platform.domain.model.items.Item;
 import com.simisinc.platform.infrastructure.persistence.UserRepository;
+import com.simisinc.platform.infrastructure.persistence.items.ItemRepository;
 
 /**
  * Verifies that dataset-import field mappings for the date fields and assignedTo are
@@ -105,6 +111,50 @@ class SaveDatasetRowCommandTest {
       repo.when(() -> UserRepository.findByUsername(any())).thenReturn(null);
 
       Assertions.assertEquals(-1L, SaveDatasetRowCommand.resolveAssignedToUserId("ghost"));
+    }
+  }
+
+  /**
+   * Regression test for a bug found reviewing issue #815's fix: a brand-new item (one the
+   * dataset's unique-column lookup did not match to an existing row) goes straight from {@link
+   * SaveDatasetRowCommand#saveRecord} to {@link SaveItemCommand#saveBatchItem} to {@code
+   * ItemRepository.save}, bypassing {@code SaveItemCommand#saveItem}'s insert-only itemOrder
+   * copy entirely. Without setting it explicitly first, the new item would persist at the
+   * {@link Item} domain model's static default order (100) instead of appending after the
+   * collection's existing items -- and a batch sync adding several new rows would collide all
+   * of them at the same value.
+   */
+  @Test
+  void saveRecordAppendsANewItemAtTheEndOfTheCollectionRatherThanTheDomainModelsStaticDefault() {
+    Collection collection = new Collection();
+    collection.setId(5L);
+
+    Dataset dataset = new Dataset();
+    dataset.setId(10L);
+    dataset.setModifiedBy(1L);
+    // No unique column configured, so the row is always treated as a new item rather than an
+    // update to a previously-synced one.
+    dataset.setColumnNames(new String[]{"Name"});
+    dataset.setFieldTitles(new String[]{""});
+    dataset.setFieldMappings(new String[]{"name"});
+    dataset.setFieldOptions(new String[]{""});
+
+    String[] row = new String[]{"Widget A"};
+
+    try (MockedStatic<ItemRepository> itemRepository = mockStatic(ItemRepository.class);
+        MockedStatic<SaveItemCommand> saveItemCommand = mockStatic(SaveItemCommand.class)) {
+      // A collection that has already been reordered past the domain model's static default.
+      itemRepository.when(() -> ItemRepository.getNextItemOrder(5L)).thenReturn(12);
+      saveItemCommand.when(() -> SaveItemCommand.saveBatchItem(any(), any(Item.class))).thenReturn(true);
+
+      boolean saved = SaveDatasetRowCommand.saveRecord(row, dataset, collection);
+
+      Assertions.assertTrue(saved, "sanity check that the save itself was reported as successful");
+      ArgumentCaptor<Item> itemCaptor = ArgumentCaptor.forClass(Item.class);
+      saveItemCommand.verify(() -> SaveItemCommand.saveBatchItem(any(), itemCaptor.capture()));
+      Assertions.assertEquals(12, itemCaptor.getValue().getItemOrder(),
+          "a newly synced item must append after the collection's existing items "
+              + "(getNextItemOrder), not silently fall back to the domain model's static default");
     }
   }
 }

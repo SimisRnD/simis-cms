@@ -85,6 +85,12 @@ public class SaveDatasetRowCommand {
     if (item == null) {
       item = new Item();
       item.setDatasetKeyValue(datasetKeyValue);
+      // Issue #815 follow-up: this path (a brand new item, not matched to an existing one by the
+      // dataset's unique column) calls SaveItemCommand.saveBatchItem -> ItemRepository.save()
+      // directly, bypassing saveItem()'s insert-only itemOrder copy. Without this, every new row
+      // a dataset sync inserts would fall back to the Item domain model's static default (100),
+      // colliding with (or sorting ahead of) real, already-ordered items.
+      item.setItemOrder(ItemRepository.getNextItemOrder(collection.getId()));
     }
     item = constructItem(item, row, dataset, collection, columnNames, fieldTitles, fieldMappings, fieldOptions);
     if (item != null) {

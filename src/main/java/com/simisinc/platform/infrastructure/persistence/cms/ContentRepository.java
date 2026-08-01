@@ -52,13 +52,25 @@ public class ContentRepository {
           .addIfExists("content_id = ?", specification.getId(), -1)
           .addIfExists("content_unique_id = ?", specification.getUniqueId());
       if (StringUtils.isNotBlank(specification.getSearchTerm())) {
-        select.add("ts_headline('english', content_text, PLAINTO_TSQUERY('content_stem', ?), 'StartSel=${b}, StopSel=${/b}, MaxWords=30, MinWords=15, ShortWord=3, HighlightAll=FALSE, MaxFragments=2, FragmentDelimiter=\" ... \"') AS highlight", specification.getSearchTerm().trim());
-        select.add("TS_RANK_CD(tsv, PLAINTO_TSQUERY('content_stem', ?)) AS rank", specification.getSearchTerm().trim());
-        where.add("tsv @@ PLAINTO_TSQUERY('content_stem', ?)", specification.getSearchTerm().trim());
-        // Override the order by for rank first
+        String term = specification.getSearchTerm().trim();
+        select.add("ts_headline('english', content_text, PLAINTO_TSQUERY('content_stem', ?), 'StartSel=${b}, StopSel=${/b}, MaxWords=30, MinWords=15, ShortWord=3, HighlightAll=FALSE, MaxFragments=2, FragmentDelimiter=\" ... \"') AS highlight", term);
+        select.add("TS_RANK_CD(tsv, PLAINTO_TSQUERY('content_stem', ?)) AS rank", term);
+        // A single search box matches EITHER the unique id (substring) OR the body text
+        // (full-text) -- SqlUtils.addIfExists chains are ANDed, so this needs to be one raw
+        // parameterized OR fragment rather than two separate where.add() calls. Fully
+        // parameterized (placeholders only) to avoid SQL injection.
+        where.add("(content_unique_id ILIKE ? OR tsv @@ PLAINTO_TSQUERY('content_stem', ?))",
+            new Object[]{"%" + term + "%", term});
+        // Override the order by for rank first (an id-substring-only match ranks 0 and sorts last)
         orderBy = new SqlUtils();
         orderBy.add("rank DESC, content_id");
       }
+      where.addIfExists("modified >= ?", specification.getDateModifiedAfter());
+      where.addIfExists("modified < ?", specification.getDateModifiedBefore());
+      // Character count is measured against content_text (HTML-stripped plain text), the same
+      // column the full-text search indexes -- not the raw HTML in the content column.
+      where.addIfExists("LENGTH(content_text) >= ?", specification.getMinLength(), -1);
+      where.addIfExists("LENGTH(content_text) <= ?", specification.getMaxLength(), -1);
     }
     return DB.selectAllFrom(TABLE_NAME, select, where, orderBy, constraints, ContentRepository::buildRecord);
   }

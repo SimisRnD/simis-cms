@@ -17,9 +17,12 @@
 package com.simisinc.platform.application.cms;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.jsoup.Jsoup;
@@ -122,6 +125,47 @@ public class ContentAccessibilityCommand {
   /** @return true if the content has no accessibility findings. */
   public static boolean isClean(String html) {
     return check(html).isEmpty();
+  }
+
+  /**
+   * Turns a list of findings into a terse, human-readable summary for a non-blocking author-facing
+   * notice -- e.g. "3 accessibility issues found: missing alt text (2), skipped heading level (1)".
+   * Shared by every caller that surfaces {@link #check(String)}'s results directly to an author (a
+   * JSON response, a warning banner) so the phrasing stays consistent rather than being
+   * reformatted ad hoc at each call site.
+   *
+   * @return the summary, or null if there is nothing to report.
+   */
+  public static String summarize(List<Finding> findings) {
+    if (findings == null || findings.isEmpty()) {
+      return null;
+    }
+    // Group by rule, preserving the order rules first appear in.
+    Map<String, Long> countByRule = findings.stream()
+        .collect(Collectors.groupingBy(Finding::getRule, LinkedHashMap::new, Collectors.counting()));
+
+    String noun = findings.size() == 1 ? "issue" : "issues";
+    String breakdown = countByRule.size() == 1
+        ? readableRule(countByRule.keySet().iterator().next())
+        : countByRule.entrySet().stream()
+            .map(entry -> readableRule(entry.getKey()) + " (" + entry.getValue() + ")")
+            .collect(Collectors.joining(", "));
+
+    return findings.size() + " accessibility " + noun + " found: " + breakdown;
+  }
+
+  /** @return a short author-facing label for a rule constant, falling back to the rule name itself. */
+  private static String readableRule(String rule) {
+    if (RULE_IMAGE_MISSING_ALT.equals(rule)) {
+      return "missing alt text";
+    } else if (RULE_HEADING_SKIPPED.equals(rule)) {
+      return "skipped heading level";
+    } else if (RULE_LINK_TEXT_UNCLEAR.equals(rule)) {
+      return "unclear link text";
+    } else if (RULE_LINK_NO_TEXT.equals(rule)) {
+      return "link without text";
+    }
+    return rule;
   }
 
   private static String describe(Element element, String detail) {

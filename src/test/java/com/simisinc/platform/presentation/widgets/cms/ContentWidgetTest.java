@@ -16,6 +16,8 @@
 
 package com.simisinc.platform.presentation.widgets.cms;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -25,16 +27,23 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
 import com.simisinc.platform.WidgetBase;
+import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.cms.ContentHtmlCommand;
 import com.simisinc.platform.application.cms.ContentReviewCommand;
 import com.simisinc.platform.application.cms.EditorPermissionCommand;
 import com.simisinc.platform.application.cms.LoadContentCommand;
+import com.simisinc.platform.application.cms.LoadWebPageCommand;
 import com.simisinc.platform.application.cms.SaveContentCommand;
+import com.simisinc.platform.application.login.StepUpAuthCommand;
 import com.simisinc.platform.domain.model.cms.Content;
+import com.simisinc.platform.domain.model.cms.WebPage;
+import com.simisinc.platform.infrastructure.cache.PublishEventCachePurgeHandler;
 import com.simisinc.platform.infrastructure.persistence.cms.ContentRepository;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
 
@@ -124,7 +133,11 @@ class ContentWidgetTest extends WidgetBase {
         MockedStatic<EditorPermissionCommand> editorPermission = mockStatic(EditorPermissionCommand.class);
         MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
         MockedStatic<ContentRepository> contentRepository = mockStatic(ContentRepository.class);
-        MockedStatic<AuditEventCommand> auditEvent = mockStatic(AuditEventCommand.class)) {
+        MockedStatic<AuditEventCommand> auditEvent = mockStatic(AuditEventCommand.class);
+        // #420: publishContent() now also looks up the current page (to purge its AFD cache) after
+        // a successful publish -- isolate that lookup here too, same reasoning as every other
+        // collaborator in this list: otherwise it falls through to a real, unmocked DB call.
+        MockedStatic<LoadWebPageCommand> loadWebPage = mockStatic(LoadWebPageCommand.class)) {
       loadContent.when(() -> LoadContentCommand.loadContentByUniqueId(eq("hello-content"))).thenReturn(content);
       editorPermission.when(() -> EditorPermissionCommand.canEditContent(any())).thenReturn(true);
       // Governed publishing off: a draft may be published directly, as it always could.
@@ -134,6 +147,157 @@ class ContentWidgetTest extends WidgetBase {
       widgetContext = contentWidget.action(widgetContext);
 
       contentRepository.verify(() -> ContentRepository.publish(content));
+    }
+  }
+
+  @Test
+  void actionPublishTriggersCachePurgeForTheCurrentPage() {
+    // #420: ContentHtmlCommand.publishContent() is the actual "Publish" handler reached from
+    // ContentWidget (and its six siblings) through the standard editor UI -- unlike the WebPage-level
+    // hooks already wired for #420, this path never triggered an AFD purge. The widget submits its
+    // publish action back to widgetContext.uri (see content.jsp), which WidgetBase stubs to
+    // "/example/path" by default -- that's the page whose cache must be invalidated.
+    preferences.put("uniqueId", "hello-content");
+    widgetContext.getParameterMap().put("action", new String[] { "publish" });
+
+    Content content = new Content();
+    content.setId(11L);
+    content.setUniqueId("hello-content");
+    content.setContent("<p>Card 1</p><hr><p>Card 2</p>");
+    content.setDraftContent("<p>This is Card 1</p><hr><p>This is Card 2</p>");
+
+    WebPage webPage = new WebPage();
+    webPage.setId(9L);
+    webPage.setLink("/example/path");
+
+    try (MockedStatic<LoadContentCommand> loadContent = mockStatic(LoadContentCommand.class);
+        MockedStatic<EditorPermissionCommand> editorPermission = mockStatic(EditorPermissionCommand.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<ContentRepository> contentRepository = mockStatic(ContentRepository.class);
+        MockedStatic<AuditEventCommand> auditEvent = mockStatic(AuditEventCommand.class);
+        MockedStatic<LoadWebPageCommand> loadWebPage = mockStatic(LoadWebPageCommand.class);
+        MockedStatic<PublishEventCachePurgeHandler> purge = mockStatic(PublishEventCachePurgeHandler.class)) {
+      loadContent.when(() -> LoadContentCommand.loadContentByUniqueId(eq("hello-content"))).thenReturn(content);
+      editorPermission.when(() -> EditorPermissionCommand.canEditContent(any())).thenReturn(true);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean(anyString())).thenReturn(false);
+      loadWebPage.when(() -> LoadWebPageCommand.loadByLink("/example/path")).thenReturn(webPage);
+
+      ContentWidget contentWidget = new ContentWidget();
+      widgetContext = contentWidget.action(widgetContext);
+
+      contentRepository.verify(() -> ContentRepository.publish(content));
+      purge.verify(() -> PublishEventCachePurgeHandler.onPageUpdated(webPage));
+    }
+  }
+
+  @Test
+  void actionPublishSkipsThePurgeWhenTheCurrentUriIsNotAKnownPage() {
+    // Defensive: if the current page can't be resolved to a WebPage record (shouldn't normally
+    // happen for a widget action, but must not NPE or otherwise blow up the publish), no purge call
+    // is attempted.
+    preferences.put("uniqueId", "hello-content");
+    widgetContext.getParameterMap().put("action", new String[] { "publish" });
+
+    Content content = new Content();
+    content.setId(11L);
+    content.setUniqueId("hello-content");
+    content.setContent("<p>Card 1</p>");
+    content.setDraftContent("<p>This is Card 1</p>");
+
+    try (MockedStatic<LoadContentCommand> loadContent = mockStatic(LoadContentCommand.class);
+        MockedStatic<EditorPermissionCommand> editorPermission = mockStatic(EditorPermissionCommand.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<ContentRepository> contentRepository = mockStatic(ContentRepository.class);
+        MockedStatic<AuditEventCommand> auditEvent = mockStatic(AuditEventCommand.class);
+        MockedStatic<LoadWebPageCommand> loadWebPage = mockStatic(LoadWebPageCommand.class);
+        MockedStatic<PublishEventCachePurgeHandler> purge = mockStatic(PublishEventCachePurgeHandler.class)) {
+      loadContent.when(() -> LoadContentCommand.loadContentByUniqueId(eq("hello-content"))).thenReturn(content);
+      editorPermission.when(() -> EditorPermissionCommand.canEditContent(any())).thenReturn(true);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean(anyString())).thenReturn(false);
+      loadWebPage.when(() -> LoadWebPageCommand.loadByLink("/example/path")).thenReturn(null);
+
+      ContentWidget contentWidget = new ContentWidget();
+      assertDoesNotThrow(() -> contentWidget.action(widgetContext));
+
+      purge.verifyNoInteractions();
+    }
+  }
+
+  @Test
+  void gatedPublishNeverTriggersAPurge() {
+    // With governed publishing on, an unapproved draft is blocked before ContentRepository.publish()
+    // is ever reached -- nothing changed on the live page, so no purge should fire either.
+    preferences.put("uniqueId", "hello-content");
+    widgetContext.getParameterMap().put("action", new String[] { "publish" });
+
+    Content content = new Content();
+    content.setId(11L);
+    content.setUniqueId("hello-content");
+    content.setDraftContent("<p>This is Card 1</p>");
+
+    try (MockedStatic<LoadContentCommand> loadContent = mockStatic(LoadContentCommand.class);
+        MockedStatic<EditorPermissionCommand> editorPermission = mockStatic(EditorPermissionCommand.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<ContentReviewCommand> contentReview = mockStatic(ContentReviewCommand.class);
+        MockedStatic<AuditEventCommand> auditEvent = mockStatic(AuditEventCommand.class);
+        MockedStatic<PublishEventCachePurgeHandler> purge = mockStatic(PublishEventCachePurgeHandler.class)) {
+      loadContent.when(() -> LoadContentCommand.loadContentByUniqueId(eq("hello-content"))).thenReturn(content);
+      editorPermission.when(() -> EditorPermissionCommand.canEditContent(any())).thenReturn(true);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean(anyString())).thenReturn(true);
+      contentReview.when(() -> ContentReviewCommand.mayPublish(eq(content), eq(true))).thenReturn(false);
+
+      ContentWidget contentWidget = new ContentWidget();
+      widgetContext = contentWidget.action(widgetContext);
+
+      purge.verifyNoInteractions();
+    }
+  }
+
+  @Test
+  void publishingContentDoesNotBlockWhenAfdIsUnconfigured() {
+    // #420: PublishEventCachePurgeHandlerTest already proves the "AFD not configured" skip path
+    // never throws and returns fast, in isolation. This proves that same real (unmocked) handler
+    // code is safely reachable end-to-end from ContentWidget's publish action -- LoadWebPageCommand
+    // is mocked only to keep this a unit test (no live DB), PublishEventCachePurgeHandler itself is
+    // deliberately left unmocked so its real skip-gracefully/non-blocking behavior actually runs.
+    Assumptions.assumeTrue(System.getenv("AZURE_FRONTDOOR_PROFILE_NAME") == null
+        && System.getenv("AZURE_FRONTDOOR_RESOURCE_GROUP") == null
+        && System.getenv("AZURE_FRONTDOOR_ENDPOINT_NAME") == null
+        && System.getenv("AZURE_SUBSCRIPTION_ID") == null,
+        "AFD env vars are set in this environment; the unconfigured-skip path can't be exercised here");
+
+    preferences.put("uniqueId", "hello-content");
+    widgetContext.getParameterMap().put("action", new String[] { "publish" });
+
+    Content content = new Content();
+    content.setId(11L);
+    content.setUniqueId("hello-content");
+    content.setContent("<p>Card 1</p>");
+    content.setDraftContent("<p>This is Card 1</p>");
+
+    WebPage webPage = new WebPage();
+    webPage.setId(9L);
+    webPage.setLink("/example/path");
+
+    try (MockedStatic<LoadContentCommand> loadContent = mockStatic(LoadContentCommand.class);
+        MockedStatic<EditorPermissionCommand> editorPermission = mockStatic(EditorPermissionCommand.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<ContentRepository> contentRepository = mockStatic(ContentRepository.class);
+        MockedStatic<AuditEventCommand> auditEvent = mockStatic(AuditEventCommand.class);
+        MockedStatic<LoadWebPageCommand> loadWebPage = mockStatic(LoadWebPageCommand.class)) {
+      loadContent.when(() -> LoadContentCommand.loadContentByUniqueId(eq("hello-content"))).thenReturn(content);
+      editorPermission.when(() -> EditorPermissionCommand.canEditContent(any())).thenReturn(true);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean(anyString())).thenReturn(false);
+      loadWebPage.when(() -> LoadWebPageCommand.loadByLink("/example/path")).thenReturn(webPage);
+
+      ContentWidget contentWidget = new ContentWidget();
+      long start = System.currentTimeMillis();
+      assertDoesNotThrow(() -> contentWidget.action(widgetContext));
+      long elapsed = System.currentTimeMillis() - start;
+
+      contentRepository.verify(() -> ContentRepository.publish(content));
+      assertTrue(elapsed < 2000L,
+          "Expected the unconfigured AFD purge path to return fast, took " + elapsed + "ms");
     }
   }
 
@@ -162,6 +326,108 @@ class ContentWidgetTest extends WidgetBase {
       new ContentWidget().action(widgetContext);
 
       contentReview.verify(() -> ContentReviewCommand.approve(any(), anyLong(), anyString()), never());
+    }
+  }
+
+  @Test
+  void approvingContentTriggersCachePurgeForTheCurrentPage() {
+    // #420: ContentHtmlCommand.approveContent() (reached via performContentApproval(), the step-up
+    // gated "Approve" handler ContentWidget.post() routes to) is the other content-level publish
+    // path that never triggered an AFD purge. Exercised directly through the public entry point
+    // rather than ContentWidget.post(), which also needs execute() to have already put a JSP on the
+    // context -- performContentApproval()'s own contract (see its Javadoc).
+    preferences.put("uniqueId", "hello-content");
+    addQueryParameter(widgetContext, "releaseReference", "CR-1234");
+
+    Content content = new Content();
+    content.setId(21L);
+    content.setUniqueId("hello-content");
+    content.setDraftContent("<p>Approved content</p>");
+
+    WebPage webPage = new WebPage();
+    webPage.setId(9L);
+    webPage.setLink("/example/path");
+
+    try (MockedStatic<LoadContentCommand> loadContent = mockStatic(LoadContentCommand.class);
+        MockedStatic<EditorPermissionCommand> editorPermission = mockStatic(EditorPermissionCommand.class);
+        MockedStatic<StepUpAuthCommand> stepUpAuth = mockStatic(StepUpAuthCommand.class);
+        MockedStatic<ContentReviewCommand> contentReview = mockStatic(ContentReviewCommand.class);
+        MockedStatic<ContentRepository> contentRepository = mockStatic(ContentRepository.class);
+        MockedStatic<AuditEventCommand> auditEvent = mockStatic(AuditEventCommand.class);
+        MockedStatic<LoadWebPageCommand> loadWebPage = mockStatic(LoadWebPageCommand.class);
+        MockedStatic<PublishEventCachePurgeHandler> purge = mockStatic(PublishEventCachePurgeHandler.class)) {
+      loadContent.when(() -> LoadContentCommand.loadContentByUniqueId(eq("hello-content"))).thenReturn(content);
+      editorPermission.when(() -> EditorPermissionCommand.canEditContent(any())).thenReturn(true);
+      // Step-up already satisfied for this session -- the approval itself is what's under test here.
+      stepUpAuth.when(() -> StepUpAuthCommand.isValid(any())).thenReturn(true);
+      loadWebPage.when(() -> LoadWebPageCommand.loadByLink("/example/path")).thenReturn(webPage);
+
+      ContentHtmlCommand.performContentApproval(widgetContext);
+
+      contentReview.verify(() -> ContentReviewCommand.approve(content, widgetContext.getUserId(), "CR-1234"));
+      contentRepository.verify(() -> ContentRepository.publish(content));
+      purge.verify(() -> PublishEventCachePurgeHandler.onPageUpdated(webPage));
+      Assertions.assertEquals("The content was approved and published", widgetContext.getSuccessMessage());
+    }
+  }
+
+  @Test
+  void approvalRequiringStepUpNeverTriggersAPurge() {
+    // No step-up credential supplied yet -- approveContent() must not run at all, so nothing was
+    // published and there is nothing to purge.
+    preferences.put("uniqueId", "hello-content");
+
+    Content content = new Content();
+    content.setId(21L);
+    content.setUniqueId("hello-content");
+    content.setDraftContent("<p>Approved content</p>");
+
+    try (MockedStatic<LoadContentCommand> loadContent = mockStatic(LoadContentCommand.class);
+        MockedStatic<EditorPermissionCommand> editorPermission = mockStatic(EditorPermissionCommand.class);
+        MockedStatic<StepUpAuthCommand> stepUpAuth = mockStatic(StepUpAuthCommand.class);
+        MockedStatic<ContentRepository> contentRepository = mockStatic(ContentRepository.class);
+        MockedStatic<PublishEventCachePurgeHandler> purge = mockStatic(PublishEventCachePurgeHandler.class)) {
+      loadContent.when(() -> LoadContentCommand.loadContentByUniqueId(eq("hello-content"))).thenReturn(content);
+      editorPermission.when(() -> EditorPermissionCommand.canEditContent(any())).thenReturn(true);
+      stepUpAuth.when(() -> StepUpAuthCommand.isValid(any())).thenReturn(false);
+
+      ContentHtmlCommand.performContentApproval(widgetContext);
+
+      contentRepository.verify(() -> ContentRepository.publish(any()), never());
+      purge.verifyNoInteractions();
+    }
+  }
+
+  @Test
+  void failedApprovalNeverTriggersAPurge() {
+    // ContentReviewCommand.approve() enforces separation of duties and can reject the approval (e.g.
+    // the approver was also the submitter) -- when it throws, ContentRepository.publish() is never
+    // reached, so nothing changed on the live page and no purge should fire.
+    preferences.put("uniqueId", "hello-content");
+
+    Content content = new Content();
+    content.setId(21L);
+    content.setUniqueId("hello-content");
+    content.setDraftContent("<p>Approved content</p>");
+
+    try (MockedStatic<LoadContentCommand> loadContent = mockStatic(LoadContentCommand.class);
+        MockedStatic<EditorPermissionCommand> editorPermission = mockStatic(EditorPermissionCommand.class);
+        MockedStatic<StepUpAuthCommand> stepUpAuth = mockStatic(StepUpAuthCommand.class);
+        MockedStatic<ContentReviewCommand> contentReview = mockStatic(ContentReviewCommand.class);
+        MockedStatic<ContentRepository> contentRepository = mockStatic(ContentRepository.class);
+        MockedStatic<AuditEventCommand> auditEvent = mockStatic(AuditEventCommand.class);
+        MockedStatic<PublishEventCachePurgeHandler> purge = mockStatic(PublishEventCachePurgeHandler.class)) {
+      loadContent.when(() -> LoadContentCommand.loadContentByUniqueId(eq("hello-content"))).thenReturn(content);
+      editorPermission.when(() -> EditorPermissionCommand.canEditContent(any())).thenReturn(true);
+      stepUpAuth.when(() -> StepUpAuthCommand.isValid(any())).thenReturn(true);
+      contentReview.when(() -> ContentReviewCommand.approve(eq(content), anyLong(), any()))
+          .thenThrow(new DataException("You cannot approve your own submission"));
+
+      ContentHtmlCommand.performContentApproval(widgetContext);
+
+      contentRepository.verify(() -> ContentRepository.publish(any()), never());
+      purge.verifyNoInteractions();
+      Assertions.assertEquals("You cannot approve your own submission", widgetContext.getErrorMessage());
     }
   }
 
@@ -206,6 +472,74 @@ class ContentWidgetTest extends WidgetBase {
           eq(AuditEventCommand.SUCCESS), eq("content"), eq("42"), eq("hello-content"), any()), times(1));
       Assertions.assertTrue(widgetContext.hasJson());
       Assertions.assertTrue(widgetContext.getJson().contains("\"success\":true"));
+    }
+  }
+
+  @Test
+  void postSaveDraftSurfacesAccessibilityFindingsWhenPresent() {
+    // #258: ContentAccessibilityCommand is wired into this save path as a non-blocking, purely
+    // additive author-facing notice. The save itself (verified above by the other saveDraft test)
+    // is unaffected either way -- this only proves the JSON response gets enriched when the saved
+    // content has a real, checkable violation.
+    preferences.put("uniqueId", "hello-content");
+    addQueryParameter(widgetContext, "action", "saveDraft");
+    addQueryParameter(widgetContext, "html", "<p>Text</p><img src=\"/assets/foo.jpg\">");
+
+    Content content = new Content();
+    content.setId(42L);
+    content.setUniqueId("hello-content");
+    content.setContent("<p>Original content</p>");
+
+    try (MockedStatic<LoadContentCommand> loadContent = mockStatic(LoadContentCommand.class);
+        MockedStatic<EditorPermissionCommand> editorPermission = mockStatic(EditorPermissionCommand.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<SaveContentCommand> saveContent = mockStatic(SaveContentCommand.class);
+        MockedStatic<AuditEventCommand> auditEvent = mockStatic(AuditEventCommand.class)) {
+      loadContent.when(() -> LoadContentCommand.loadContentByUniqueId(eq("hello-content"))).thenReturn(content);
+      editorPermission.when(() -> EditorPermissionCommand.canEditContent(any())).thenReturn(true);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean(anyString())).thenReturn(false);
+
+      ContentWidget contentWidget = new ContentWidget();
+      widgetContext = contentWidget.post(widgetContext);
+
+      Assertions.assertTrue(widgetContext.hasJson());
+      String json = widgetContext.getJson();
+      Assertions.assertTrue(json.contains("\"success\":true"), json);
+      Assertions.assertTrue(json.contains("\"a11yFindings\""), json);
+      Assertions.assertTrue(json.contains("image-missing-alt"), json);
+      Assertions.assertTrue(json.contains("WCAG 1.1.1"), json);
+    }
+  }
+
+  @Test
+  void postSaveDraftOmitsAccessibilityFindingsWhenContentIsClean() {
+    // The flip side of the above: a clean save must not add the field at all. Existing clients
+    // (platform-editor.js) only read success/error and must keep working unchanged.
+    preferences.put("uniqueId", "hello-content");
+    addQueryParameter(widgetContext, "action", "saveDraft");
+    addQueryParameter(widgetContext, "html", "<p>Edited content</p>");
+
+    Content content = new Content();
+    content.setId(42L);
+    content.setUniqueId("hello-content");
+    content.setContent("<p>Original content</p>");
+
+    try (MockedStatic<LoadContentCommand> loadContent = mockStatic(LoadContentCommand.class);
+        MockedStatic<EditorPermissionCommand> editorPermission = mockStatic(EditorPermissionCommand.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<SaveContentCommand> saveContent = mockStatic(SaveContentCommand.class);
+        MockedStatic<AuditEventCommand> auditEvent = mockStatic(AuditEventCommand.class)) {
+      loadContent.when(() -> LoadContentCommand.loadContentByUniqueId(eq("hello-content"))).thenReturn(content);
+      editorPermission.when(() -> EditorPermissionCommand.canEditContent(any())).thenReturn(true);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean(anyString())).thenReturn(false);
+
+      ContentWidget contentWidget = new ContentWidget();
+      widgetContext = contentWidget.post(widgetContext);
+
+      Assertions.assertTrue(widgetContext.hasJson());
+      String json = widgetContext.getJson();
+      Assertions.assertEquals("{\"success\":true}", json);
+      Assertions.assertFalse(json.contains("a11yFindings"), json);
     }
   }
 }
