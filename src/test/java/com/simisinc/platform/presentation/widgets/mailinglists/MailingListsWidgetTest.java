@@ -19,6 +19,7 @@ package com.simisinc.platform.presentation.widgets.mailinglists;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -29,6 +30,7 @@ import org.mockito.MockedStatic;
 import com.simisinc.platform.WidgetBase;
 import com.simisinc.platform.domain.model.mailinglists.MailingList;
 import com.simisinc.platform.infrastructure.persistence.mailinglists.MailingListRepository;
+import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 
 /**
@@ -59,7 +61,8 @@ class MailingListsWidgetTest extends WidgetBase {
 
     MailingList list = mailingList(0);
 
-    try (MockedStatic<MailingListRepository> repository = mockStatic(MailingListRepository.class)) {
+    try (MockedStatic<MailingListRepository> repository = mockStatic(MailingListRepository.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
       repository.when(() -> MailingListRepository.findById(1L)).thenReturn(list);
       repository.when(() -> MailingListRepository.remove(list)).thenReturn(true);
 
@@ -68,6 +71,9 @@ class MailingListsWidgetTest extends WidgetBase {
       repository.verify(() -> MailingListRepository.remove(list), times(1));
       assertEquals("Mailing list deleted", result.getSuccessMessage());
       assertEquals("/admin/mailing-lists", result.getRedirect());
+      // #753: mailing-list entity CRUD was completely unaudited before this
+      audit.verify(() -> AuditEventCommand.record(any(), any(), eq("mailing_list.delete"), eq(AuditEventCommand.SUCCESS),
+          eq("mailing_list"), eq("1"), eq("newsletter"), any()));
     }
   }
 
@@ -93,13 +99,16 @@ class MailingListsWidgetTest extends WidgetBase {
 
     MailingList list = mailingList(11);
 
-    try (MockedStatic<MailingListRepository> repository = mockStatic(MailingListRepository.class)) {
+    try (MockedStatic<MailingListRepository> repository = mockStatic(MailingListRepository.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
       repository.when(() -> MailingListRepository.findById(1L)).thenReturn(list);
 
       WidgetContext result = new MailingListsWidget().post(widgetContext);
 
       repository.verify(() -> MailingListRepository.remove(any()), never());
       assertEquals("Mailing list cannot be deleted, there are related records", result.getWarningMessage());
+      audit.verify(() -> AuditEventCommand.record(any(), any(), eq("mailing_list.delete"), eq(AuditEventCommand.FAILURE),
+          eq("mailing_list"), eq("1"), eq("newsletter"), any()));
     }
   }
 }
