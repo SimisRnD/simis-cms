@@ -17,10 +17,8 @@
 package com.simisinc.platform.presentation.widgets.admin;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.never;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
@@ -33,13 +31,13 @@ import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 
 /**
- * The row delete link on /admin/blocked-ip-list submits via confirmPostAction() - a real HTTP POST -
- * so WebContainerCommand's dispatch (isPost() checked before isDelete()) always routes it to post(),
- * never to delete() directly. post() previously had no "delete" command branch at all, so every click
- * silently no-opped: a 302 redirect back to the same page, no error, no repository call, the row still
- * there on reload (confirmed live via a docker rehearsal + direct curl repro before this fix). These
- * tests call post(), the method a real request actually reaches, so they fail if that gap reopens - a
- * test calling delete() directly would pass either way and prove nothing about the real path.
+ * The row delete link on /admin/blocked-ip-list submits via confirmPostAction() - a real HTTP POST.
+ * WebContainerContext now checks command=delete before the HTTP method (see #799), so this request
+ * correctly resolves to delete(WidgetContext) regardless of GET vs POST - this test calls delete()
+ * directly, the method a real request now reaches. (Earlier, before #799's root-cause fix, a POST
+ * always won and post() needed its own "delete" command branch forwarding to delete() - see #658/#659;
+ * that branch is gone now that the dispatcher itself routes correctly, and post() is left handling
+ * only its other commands, downloadCSVFile/uploadCSVFile.)
  *
  * @author elizabeth houser
  */
@@ -53,9 +51,8 @@ class BlockedIPListWidgetTest extends WidgetBase {
   }
 
   @Test
-  void deleteCommandViaPostActuallyDeletesTheRecord() throws Exception {
+  void deleteActuallyDeletesTheRecord() throws Exception {
     setRoles(widgetContext, ADMIN);
-    addQueryParameter(widgetContext, "command", "delete");
     addQueryParameter(widgetContext, "blockedIPListId", "5");
 
     BlockedIP target = blockedIp();
@@ -66,26 +63,12 @@ class BlockedIPListWidgetTest extends WidgetBase {
       repository.when(() -> BlockedIPRepository.findById(5L)).thenReturn(target);
       deleteCommand.when(() -> DeleteBlockedIPListCommand.delete(target)).thenReturn(true);
 
-      WidgetContext result = new BlockedIPListWidget().post(widgetContext);
+      WidgetContext result = new BlockedIPListWidget().delete(widgetContext);
 
       deleteCommand.verify(() -> DeleteBlockedIPListCommand.delete(target));
       audit.verify(() -> AuditEventCommand.record(any(), any(), org.mockito.ArgumentMatchers.eq("blocked_ip.remove"),
           any(), any(), any(), any(), any()));
       assertEquals("Record deleted", result.getSuccessMessage());
-    }
-  }
-
-  @Test
-  void deleteCommandIsRefusedWithoutAdminRole() throws Exception {
-    setRoles(widgetContext); // logged in, but no admin role
-    addQueryParameter(widgetContext, "command", "delete");
-    addQueryParameter(widgetContext, "blockedIPListId", "5");
-
-    try (MockedStatic<DeleteBlockedIPListCommand> deleteCommand = mockStatic(DeleteBlockedIPListCommand.class)) {
-      WidgetContext result = new BlockedIPListWidget().post(widgetContext);
-
-      deleteCommand.verify(() -> DeleteBlockedIPListCommand.delete(any()), never());
-      assertNull(result.getSuccessMessage());
     }
   }
 }
