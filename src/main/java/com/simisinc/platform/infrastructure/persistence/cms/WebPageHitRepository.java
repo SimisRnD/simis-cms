@@ -229,7 +229,7 @@ public class WebPageHitRepository {
             "FROM web_pages " +
             "LEFT JOIN web_page_hits wph ON (wph.web_page_id = web_pages.web_page_id) " +
             "WHERE hit_date > NOW() - INTERVAL '" + daysToLimit + " days' " +
-            "AND NOT EXISTS (SELECT 1 FROM sessions WHERE session_id = web_page_hits.session_id AND is_bot = TRUE) " +
+            "AND NOT EXISTS (SELECT 1 FROM sessions WHERE session_id = wph.session_id AND is_bot = TRUE) " +
             "GROUP BY link " +
             "ORDER BY link_count desc " +
             "LIMIT " + recordLimit;
