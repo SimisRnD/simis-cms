@@ -460,4 +460,45 @@ class WebComponentCommandTest {
     Assertions.assertTrue(WebComponentCommand.allowsUser(page, userSession),
         "the Page-specific overload must read page.getCapabilities(), not just page.getRoles()");
   }
+
+  // PageServlet's page-level access check (the "PAGE NOT ALLOWED" 404 gate, checked once per
+  // request before any widget's execute()/post()/delete() runs) calls this exact Page overload.
+  // #799/#800 removed several widgets' own redundant in-code hasRole("admin") checks on the theory
+  // that this page-level gate already covers admin-only pages like /admin/allowed-ip-list and
+  // /admin/blocked-ip-list on its own -- these two tests prove that for the Page overload
+  // specifically, not just the underlying List<String> overload userDoesNotHaveRoleTest covers.
+
+  @Test
+  void pageOverloadDeniesAUserWithoutTheRequiredRole() {
+    UserSession userSession = sessionWithRoles("content-manager"); // logged in, but not admin
+
+    Page page = new Page("/admin/allowed-ip-list", null, null);
+    page.setRoles(List.of("admin"));
+
+    Assertions.assertFalse(WebComponentCommand.allowsUser(page, userSession));
+  }
+
+  @Test
+  void pageOverloadAllowsAUserWithTheRequiredRole() {
+    UserSession userSession = sessionWithRoles("admin");
+
+    Page page = new Page("/admin/allowed-ip-list", null, null);
+    page.setRoles(List.of("admin"));
+
+    Assertions.assertTrue(WebComponentCommand.allowsUser(page, userSession));
+  }
+
+  private static UserSession sessionWithRoles(String... roleCodes) {
+    List<Role> roleList = new ArrayList<>();
+    for (String code : roleCodes) {
+      roleList.add(new Role(code, code));
+    }
+    User user = new User();
+    user.setId(1L);
+    user.setRoleList(roleList);
+    user.setGroupList(new ArrayList<>());
+    UserSession userSession = new UserSession();
+    userSession.login(user);
+    return userSession;
+  }
 }
