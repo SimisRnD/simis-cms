@@ -24,6 +24,7 @@ import com.simisinc.platform.infrastructure.persistence.mailinglists.EmailReposi
 import com.simisinc.platform.infrastructure.persistence.mailinglists.EmailSpecification;
 import com.simisinc.platform.infrastructure.persistence.mailinglists.MailingListRepository;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
+import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import org.apache.commons.lang3.StringUtils;
 
@@ -100,10 +101,17 @@ public class MailingListsWidget extends GenericWidget {
       } else {
         if (mailingList.getMemberCount() > 10) {
           context.setWarningMessage("Mailing list cannot be deleted, there are related records");
+          AuditEventCommand.record(context, AuditEventCommand.CONFIGURATION, "mailing_list.delete", AuditEventCommand.FAILURE,
+              "mailing_list", String.valueOf(mailingList.getId()), mailingList.getName(),
+              "refused: memberCount=" + mailingList.getMemberCount());
         } else if (DeleteMailingListCommand.delete(mailingList)) {
           context.setSuccessMessage("Mailing list deleted");
+          AuditEventCommand.record(context, AuditEventCommand.CONFIGURATION, "mailing_list.delete", AuditEventCommand.SUCCESS,
+              "mailing_list", String.valueOf(mailingList.getId()), mailingList.getName(), null);
         } else {
           context.setWarningMessage("Mailing list could not be deleted, there are dependencies");
+          AuditEventCommand.record(context, AuditEventCommand.CONFIGURATION, "mailing_list.delete", AuditEventCommand.FAILURE,
+              "mailing_list", String.valueOf(mailingList.getId()), mailingList.getName(), "refused: dependencies");
         }
       }
     }
