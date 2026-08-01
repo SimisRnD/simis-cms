@@ -15,6 +15,10 @@
  */
 package com.simisinc.platform.infrastructure.distributedlock;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.time.Duration;
 import java.util.UUID;
 
@@ -60,6 +64,30 @@ public class LockManager {
       return uuid;
     }
     return null;
+  }
+
+  /**
+   * Reports whether the {@code distributed_lock} table itself exists yet. On a never-installed
+   * database this table doesn't exist -- it's created by the same Flyway install migration that
+   * {@link #lock} would otherwise be guarding -- so {@link #lock} returning {@code null} is
+   * ambiguous between "another node holds this lock" and "this table doesn't exist yet". Callers
+   * that need to tell those apart (see DatabaseCommand) should check this first.
+   *
+   * @return true if the table exists, false if it does not (or its existence could not be
+   *         determined)
+   */
+  public static boolean lockTableExists() {
+    String sql = "SELECT 1 FROM information_schema.tables WHERE table_name = ?";
+    try (Connection connection = DB.getConnection();
+        PreparedStatement pst = connection.prepareStatement(sql)) {
+      pst.setString(1, TABLE_NAME);
+      try (ResultSet rs = pst.executeQuery()) {
+        return rs.next();
+      }
+    } catch (SQLException se) {
+      LOG.error("Could not determine if the lock table exists: " + se.getMessage());
+      return false;
+    }
   }
 
   public static boolean unlock(String name, String uuid) {

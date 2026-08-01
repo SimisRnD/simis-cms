@@ -43,7 +43,30 @@ public class DatabaseCommand {
 
   private static Log LOG = LogFactory.getLog(DatabaseCommand.class);
 
+  private static final String MIGRATION_LOCK_NAME = "flyway_migration";
+
+  // How long this node's own lock claim is valid for before it's considered stale. Matches the
+  // duration passed to LockManager.lock(); the finally block below releases it explicitly as soon
+  // as migrations finish, so this is just the upper bound if the process dies mid-migration.
+  private static final Duration LOCK_DURATION = Duration.ofMinutes(5);
+
+  // Total time to keep retrying lock acquisition before giving up. Deliberately longer than
+  // LOCK_DURATION so that even if the node holding the lock dies without releasing it, this node
+  // will still see the lock as expired and successfully re-acquire it before timing out.
+  private static final Duration LOCK_ACQUIRE_TIMEOUT = Duration.ofMinutes(6);
+
+  private static final Duration LOCK_RETRY_INTERVAL = Duration.ofSeconds(5);
+
   public static boolean initialize(Properties databaseProperties) {
+    return initialize(databaseProperties, LOCK_DURATION, LOCK_ACQUIRE_TIMEOUT, LOCK_RETRY_INTERVAL);
+  }
+
+  /**
+   * Package-private overload so tests can exercise the lock-acquisition-failure path (including
+   * the timeout) with small durations instead of the real multi-minute production values.
+   */
+  static boolean initialize(Properties databaseProperties, Duration lockDuration, Duration lockAcquireTimeout,
+      Duration lockRetryInterval) {
 
     // V (One-Time Version files)
     // R (Repeatable every upgrade)
@@ -63,21 +86,27 @@ public class DatabaseCommand {
     boolean acquired = false;
 
     if (!isWebNode) {
-      // Primary node: acquire distributed lock before migrations
-      lockUuid = LockManager.lock("flyway_migration", Duration.ofMinutes(5));
-      if (lockUuid == null) {
-        LOG.warn("Could not acquire migration lock; another node is migrating. Waiting for completion...");
-        // Poll for lock release (another node completed)
-        for (int attempt = 0; attempt < 30; attempt++) {
-          try {
-            Thread.sleep(1000);
-          } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            return false;
-          }
-        }
-        LOG.info("Migration lock released by another node; proceeding without lock");
+      if (!LockManager.lockTableExists()) {
+        // The distributed_lock table itself doesn't exist yet, which only happens on a database
+        // that has never completed a first install -- that table is created by the very install
+        // migration this lock would otherwise be guarding, so there is nothing to have raced with
+        // yet. Proceed straight to migrations, which will create the table so that this and every
+        // other node are properly guarded from here on.
+        LOG.info("Distributed lock table does not exist yet (first-time install); proceeding without a migration lock.");
       } else {
+        // Primary node, and the lock table exists: acquire the distributed lock before migrations,
+        // retrying until either this node gets it or lockAcquireTimeout elapses. An uncontended
+        // node acquires it on the very first attempt, so this adds no delay to the common
+        // single-node boot path.
+        lockUuid = acquireMigrationLock(MIGRATION_LOCK_NAME, lockDuration, lockAcquireTimeout, lockRetryInterval);
+        if (lockUuid == null) {
+          // Never got the lock within the timeout: another node may be stuck mid-migration. Running
+          // migrations without the lock here would defeat the entire point of serializing them, so
+          // refuse to start rather than risk two nodes migrating concurrently.
+          LOG.error("Could not acquire migration lock '" + MIGRATION_LOCK_NAME + "' within " + lockAcquireTimeout
+              + "; refusing to run migrations without it. This node will not start.");
+          return false;
+        }
         LOG.info("Acquired migration lock: " + lockUuid);
         acquired = true;
       }
@@ -105,13 +134,46 @@ public class DatabaseCommand {
     } finally {
       // Release lock on success or failure
       if (acquired && lockUuid != null) {
-        if (LockManager.unlock("flyway_migration", lockUuid)) {
+        if (LockManager.unlock(MIGRATION_LOCK_NAME, lockUuid)) {
           LOG.info("Released migration lock: " + lockUuid);
         } else {
           LOG.warn("Failed to release migration lock: " + lockUuid);
         }
       }
     }
+  }
+
+  /**
+   * Attempts to acquire the named distributed lock, retrying at {@code retryInterval} until either
+   * the lock is acquired or {@code totalTimeout} elapses. {@link LockManager#lock} is a single
+   * non-blocking try (it returns immediately whether or not the lock was free), so this loop is
+   * what turns it into a bounded blocking acquire.
+   *
+   * @return the acquired lock's uuid, or {@code null} if the lock could not be acquired within
+   *         {@code totalTimeout}
+   */
+  static String acquireMigrationLock(String lockName, Duration lockDuration, Duration totalTimeout, Duration retryInterval) {
+    long deadline = System.currentTimeMillis() + totalTimeout.toMillis();
+    String lockUuid = LockManager.lock(lockName, lockDuration);
+    boolean firstAttempt = true;
+    while (lockUuid == null) {
+      if (System.currentTimeMillis() >= deadline) {
+        return null;
+      }
+      if (firstAttempt) {
+        LOG.warn("Could not acquire migration lock '" + lockName + "'; another node is migrating. Retrying every "
+            + retryInterval.getSeconds() + "s (timeout " + totalTimeout.getSeconds() + "s)...");
+        firstAttempt = false;
+      }
+      try {
+        Thread.sleep(retryInterval.toMillis());
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        return null;
+      }
+      lockUuid = LockManager.lock(lockName, lockDuration);
+    }
+    return lockUuid;
   }
 
   private static boolean installDatabase(String jdbcUrl, Properties databaseProperties) {
