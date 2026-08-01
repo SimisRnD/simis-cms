@@ -38,8 +38,10 @@
     <!-- AFD purge (issue #420): auth-only. azure-core-http-netty (azure-identity's default HTTP
          client) is excluded below in favor of azure-core-http-okhttp, which reuses the okhttp/okio
          jars already vendored for Stripe/Square rather than pulling in a whole Netty stack. The
-         actual purge REST call reuses the existing HttpPostCommand (java.net.http), not a generated
-         management-plane client. See PublishEventCachePurgeHandler. -->
+         actual purge REST call builds its own java.net.http HttpClient/HttpRequest directly
+         (rather than reusing HttpPostCommand) so it can read both the response status code and
+         body for logging; HttpPostCommand.execute() collapses those into a single null on
+         failure. Not a generated management-plane client. See PublishEventCachePurgeHandler. -->
     <azure-identity.version>1.13.0</azure-identity.version>
     <azure-core-http-okhttp.version>1.13.5</azure-core-http-okhttp.version>
     <bucket4j.version>8.10.1</bucket4j.version>

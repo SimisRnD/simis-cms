@@ -79,7 +79,6 @@ import org.apache.commons.logging.LogFactory;
  * follow-up -- not built here to avoid introducing this codebase's first JobRunr-dependent test
  * for a path that cannot be exercised against a real endpoint yet.
  *
- * @author claude
  * @created 7/26/26
  */
 public class PublishEventCachePurgeHandler {
