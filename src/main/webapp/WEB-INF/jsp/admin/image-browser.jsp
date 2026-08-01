@@ -180,7 +180,11 @@
             message = 'Usage could not be verified for "' + filename + '" (the check failed). Delete anyway?';
           }
           if (confirm(message)) {
-            postAction('${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&imageId=' + id);
+            // Carries the current page (issue #498 slice 2) so the post-delete redirect returns
+            // here instead of resetting to page 1 -- see AdminImageBrowserWidget#redirectWithQuery.
+            // This URL is built fresh in JS rather than reusing window.location.search, so the page
+            // number has to be baked in explicitly or postAction() has nothing to forward.
+            postAction('${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&imageId=' + id + '&page=${recordPaging.pageNumber}');
           }
         });
       });

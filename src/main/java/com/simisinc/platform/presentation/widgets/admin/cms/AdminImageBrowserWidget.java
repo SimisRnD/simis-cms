@@ -283,11 +283,24 @@ public class AdminImageBrowserWidget extends GenericWidget {
     return new ArrayList<>(ids);
   }
 
+  /**
+   * Builds the post-delete redirect back to the image grid, preserving both the search term and
+   * the page the admin was on (issue #498 slice 2) -- otherwise every delete bounces back to page 1
+   * of the (optionally search-filtered) grid instead of the page the admin was triaging.
+   */
   private String redirectWithQuery(WidgetContext context) {
     String query = StringUtils.trimToNull(context.getParameter("query"));
-    if (query == null) {
-      return "/admin/images";
+    int page = context.getParameterAsInt("page", 1);
+
+    StringBuilder redirect = new StringBuilder("/admin/images");
+    String separator = "?";
+    if (query != null) {
+      redirect.append(separator).append("query=").append(URLEncoder.encode(query, StandardCharsets.UTF_8));
+      separator = "&";
     }
-    return "/admin/images?query=" + URLEncoder.encode(query, StandardCharsets.UTF_8);
+    if (page > 1) {
+      redirect.append(separator).append("page=").append(page);
+    }
+    return redirect.toString();
   }
 }

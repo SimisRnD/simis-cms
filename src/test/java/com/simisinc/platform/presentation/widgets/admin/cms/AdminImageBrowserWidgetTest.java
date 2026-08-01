@@ -246,6 +246,85 @@ class AdminImageBrowserWidgetTest extends WidgetBase {
   }
 
   @Test
+  void deleteWithAdminRolePreservesThePageParamOnRedirect() {
+    // Regression test for issue #498 slice 2: deleting from page 2+ must redirect back to that
+    // page instead of resetting to page 1. See redirectWithQuery().
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "imageId", "42");
+    addQueryParameter(widgetContext, "page", "3");
+
+    Image image = new Image();
+    image.setId(42L);
+    image.setFilename("old-banner.png");
+
+    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class);
+        MockedStatic<DeleteImageCommand> deleteMockedStatic = mockStatic(DeleteImageCommand.class);
+        MockedStatic<AuditEventCommand> auditMockedStatic = mockStatic(AuditEventCommand.class)) {
+      imageRepositoryMockedStatic.when(() -> ImageRepository.findById(42L)).thenReturn(image);
+      deleteMockedStatic.when(() -> DeleteImageCommand.deleteImage(image)).thenReturn(true);
+
+      AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
+      widget.delete(widgetContext);
+    }
+
+    Assertions.assertEquals("/admin/images?page=3", widgetContext.getRedirect());
+  }
+
+  @Test
+  void deleteWithAdminRolePreservesQueryAndPageTogetherOnRedirect() {
+    // Regression test for issue #498 slice 2: a delete from a search-filtered, paged view must
+    // carry both the search term and the page number back into the redirect.
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "imageId", "42");
+    addQueryParameter(widgetContext, "query", "3d");
+    addQueryParameter(widgetContext, "page", "2");
+
+    Image image = new Image();
+    image.setId(42L);
+    image.setFilename("old-banner.png");
+
+    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class);
+        MockedStatic<DeleteImageCommand> deleteMockedStatic = mockStatic(DeleteImageCommand.class);
+        MockedStatic<AuditEventCommand> auditMockedStatic = mockStatic(AuditEventCommand.class)) {
+      imageRepositoryMockedStatic.when(() -> ImageRepository.findById(42L)).thenReturn(image);
+      deleteMockedStatic.when(() -> DeleteImageCommand.deleteImage(image)).thenReturn(true);
+
+      AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
+      widget.delete(widgetContext);
+    }
+
+    Assertions.assertEquals("/admin/images?query=3d&page=2", widgetContext.getRedirect());
+  }
+
+  @Test
+  void deleteWithoutAPageParamDoesNotAddOneToTheRedirect() {
+    // Page 1 is the implicit default -- the redirect should stay bare rather than growing a
+    // redundant "?page=1", matching the pre-pagination redirect shape.
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "imageId", "42");
+    addQueryParameter(widgetContext, "page", "1");
+
+    Image image = new Image();
+    image.setId(42L);
+    image.setFilename("old-banner.png");
+
+    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class);
+        MockedStatic<DeleteImageCommand> deleteMockedStatic = mockStatic(DeleteImageCommand.class);
+        MockedStatic<AuditEventCommand> auditMockedStatic = mockStatic(AuditEventCommand.class)) {
+      imageRepositoryMockedStatic.when(() -> ImageRepository.findById(42L)).thenReturn(image);
+      deleteMockedStatic.when(() -> DeleteImageCommand.deleteImage(image)).thenReturn(true);
+
+      AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
+      widget.delete(widgetContext);
+    }
+
+    Assertions.assertEquals("/admin/images", widgetContext.getRedirect());
+  }
+
+  @Test
   void bulkDeletePostRemovesOnlyTheSelectedImageIds() {
     addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
     setRoles(widgetContext, ADMIN);
@@ -274,6 +353,39 @@ class AdminImageBrowserWidgetTest extends WidgetBase {
     }
 
     Assertions.assertEquals("2 of 2 selected images deleted.", widgetContext.getSuccessMessage());
+  }
+
+  @Test
+  void bulkDeletePreservesTheQueryAndPageParamsOnRedirect() {
+    // Regression test for issue #498 slice 2: bulk-deleting from a search-filtered, paged view
+    // must redirect back to that same page/search combination instead of resetting to page 1.
+    // Unlike single delete, the bulk-delete <form> in image-browser.jsp has no action attribute,
+    // so the browser submits it to the current document address (with its query string) -- these
+    // params arrive as ordinary request parameters, exactly like addQueryParameter simulates here.
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
+    setRoles(widgetContext, ADMIN);
+    widgetContext.getParameterMap().put("command", new String[] { "bulkDelete" });
+    widgetContext.getParameterMap().put("imageId", new String[] { "1", "3" });
+    addQueryParameter(widgetContext, "query", "3d");
+    addQueryParameter(widgetContext, "page", "4");
+
+    Image image1 = new Image();
+    image1.setId(1L);
+    Image image3 = new Image();
+    image3.setId(3L);
+
+    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class);
+        MockedStatic<DeleteImageCommand> deleteMockedStatic = mockStatic(DeleteImageCommand.class);
+        MockedStatic<AuditEventCommand> auditMockedStatic = mockStatic(AuditEventCommand.class)) {
+      imageRepositoryMockedStatic.when(() -> ImageRepository.findById(1L)).thenReturn(image1);
+      imageRepositoryMockedStatic.when(() -> ImageRepository.findById(3L)).thenReturn(image3);
+      deleteMockedStatic.when(() -> DeleteImageCommand.deleteImage(any(Image.class))).thenReturn(true);
+
+      AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
+      widget.post(widgetContext);
+    }
+
+    Assertions.assertEquals("/admin/images?query=3d&page=4", widgetContext.getRedirect());
   }
 
   @Test
