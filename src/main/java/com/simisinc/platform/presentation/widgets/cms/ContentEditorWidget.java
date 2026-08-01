@@ -165,7 +165,7 @@ public class ContentEditorWidget extends GenericWidget {
         context.setErrorMessage("An error occurred");
       } else {
         if (publish) {
-          // Record the publish (draft saves are routine and intentionally not audited)
+          // Record the publish
           AuditEventCommand.record(context, AuditEventCommand.CONTENT, "content.publish", AuditEventCommand.SUCCESS,
               "content", String.valueOf(content.getId()), uniqueId, null);
           // The web page has content which was just updated
@@ -182,6 +182,11 @@ public class ContentEditorWidget extends GenericWidget {
               WorkflowManager.triggerWorkflowForEvent(new WebPageUpdatedEvent(webPage));
             }
           }
+        } else {
+          // Record the draft save, matching ContentHtmlCommand.saveDraft() (the inline overlay's
+          // save path) so both entry points to this governed content/draft_content record are audited.
+          AuditEventCommand.record(context, AuditEventCommand.CONTENT, "content.saveDraft", AuditEventCommand.SUCCESS,
+              "content", String.valueOf(content.getId()), uniqueId, null);
         }
         // Non-blocking author-facing a11y notice (#258): the save above has already succeeded, so
         // this only ever adds information -- it never prevents or delays the save. Checked against
