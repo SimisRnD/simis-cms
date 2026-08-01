@@ -95,12 +95,14 @@ public class TableWidget extends GenericWidget {
   public WidgetContext execute(WidgetContext context) {
 
     // Check if in edit mode. The gate is two parts, deliberately: "pageEditMode" is the real,
-    // established page-level flag every other in-place-editable widget gates on (see
-    // ItemsListWidget, and PageServlet.java where it is computed from the session's
-    // pageEditMode flag AND EditorPermissionCommand.canEditContent, then published as a request
-    // attribute for every widget on the page to read) -- unlike a per-widget preference, nothing
-    // ever needs to "set" it for this widget specifically, so the editable toolbar is actually
-    // reachable through the normal "Edit" toggle every other widget uses.
+    // established page-level flag PageServlet.java computes from the session's pageEditMode flag
+    // AND EditorPermissionCommand.canEditContent, then publishes as a request attribute for every
+    // widget on the page to read -- unlike a per-widget preference, nothing ever needs to "set" it
+    // for this widget specifically, so the editable toolbar is actually reachable through the
+    // normal "Edit" toggle every other widget uses. (ItemsListWidget also reads this same
+    // "pageEditMode" attribute, but is not a permission-parity precedent to follow: its isEditMode
+    // ORs in a raw, unchecked "editMode" request parameter with no permission check at all, a
+    // separate pre-existing gap in that widget, not replicated here.)
     //
     // The permission check is repeated here on top of that rather than trusted to have already
     // been applied: relying solely on the page-level flag would mean a stored/cached response, or
@@ -108,8 +110,22 @@ public class TableWidget extends GenericWidget {
     // editable toolbar -- including its structural add/remove controls -- to a visitor without
     // edit rights. Checking again here costs nothing and closes that gap the same way every other
     // content widget's render path does.
+    //
+    // This must check canBuildLayout(), not canEditContent(): the editable UI below includes a
+    // Save button that POSTs PageServlet's "setWidgetPreferences" action, and that action (see
+    // PageServlet's mutateDraftLayout dispatch) is itself gated on
+    // pageEditMode && EditorPermissionCommand.canBuildLayout(userSession) -- content-editor holds
+    // canEditContent but is deliberately excluded from canBuildLayout (see that method's javadoc:
+    // "authors get content guardrails, designers get the canvas"). Gating on canEditContent here
+    // would show a content-editor the full editable Save UI, but every Save click would then be
+    // silently dropped server-side (PageServlet falls through to a normal page render instead of
+    // the JSON response the client expects), discarding the user's edits with a confusing
+    // "Error: HTTP 200" instead of ever persisting them. canBuildLayout keeps this widget's
+    // reachable-editor tier the same as the tier that can actually save it, matching the
+    // "⚙ Prefs" panel this Save button follows the pattern of -- platform-editor.js only ever
+    // inserts that panel's controls when layoutMode (its own canBuildLayout-derived flag) is true.
     boolean pageEditMode = "true".equals(context.getRequest().getAttribute("pageEditMode"));
-    boolean isEditMode = pageEditMode && EditorPermissionCommand.canEditContent(context.getUserSession());
+    boolean isEditMode = pageEditMode && EditorPermissionCommand.canBuildLayout(context.getUserSession());
 
     try {
       // Parse table data from content or create default

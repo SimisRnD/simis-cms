@@ -23,9 +23,15 @@
     <c:if test="${not empty tableData.headers}">
       <thead>
         <tr role="row">
-          <c:forEach items="${tableData.headers}" var="header" varStatus="headerStatus">
+          <%-- The loop variable is deliberately NOT named "header": JSP EL reserves that identifier
+               for the implicit request-header Map (JSP.2.9), so a same-named <c:forEach> variable is
+               silently ignored -- ${header} always resolves to the implicit object, never the loop
+               value, regardless of scope. That previously rendered the viewer's own request headers
+               (including the JSESSIONID/userToken session cookies) into every <th>, changing per
+               request, instead of the actual column header text. --%>
+          <c:forEach items="${tableData.headers}" var="headerCell" varStatus="headerStatus">
             <th role="columnheader" scope="col">
-              <c:out value="${header}"/>
+              <c:out value="${headerCell}"/>
             </th>
           </c:forEach>
         </tr>

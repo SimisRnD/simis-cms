@@ -91,6 +91,24 @@ class TableWidgetTest extends WidgetBase {
   }
 
   @Test
+  void executeIgnoresPageEditModeForAContentEditorBecauseTheyCannotReachTheSaveEndpoint() {
+    // content-editor holds EditorPermissionCommand.canEditContent() but is deliberately excluded
+    // from canBuildLayout() -- and the Save button in table-widget-edit.jsp POSTs PageServlet's
+    // "setWidgetPreferences" action, which is itself gated on canBuildLayout (see PageServlet's
+    // mutateDraftLayout dispatch). Serving the editable Save UI to a content-editor here would let
+    // them edit and click Save, only to have the server silently drop the request every time --
+    // regression check for that permission-tier mismatch.
+    setRoles(widgetContext, CONTENT_EDITOR);
+    request.setAttribute("pageEditMode", "true");
+    preferences.put("tableData", "{\"headers\": [\"A\"], \"rows\": [[\"1\"]]}");
+
+    WidgetContext result = new TableWidget().execute(widgetContext);
+
+    assertEquals(TableWidget.JSP, result.getJsp(), "content-editor cannot save this widget, so must not receive the editable Save UI");
+    assertEquals("false", result.getRequest().getAttribute("isEditMode"));
+  }
+
+  @Test
   void executeIgnoresPageEditModeForAUserWithoutEditPermission() {
     // "off" case #1: the default logged-in test user (see WidgetBase.login) has no roles at all --
     // the page-level flag alone must not be sufficient to serve the editable toolbar, matching
