@@ -882,7 +882,6 @@
           <report>daily-user-registrations</report>
         </widget>
       </column>
-<!--
       <column class="small-12 medium-6 cell">
         <widget name="siteStats" class="stats card">
           <title>Daily Mailing List Subscriptions</title>
@@ -890,8 +889,6 @@
           <report>daily-mailing-list-subscriptions</report>
         </widget>
       </column>
--->
-<!--
       <column class="small-12 medium-6 cell">
         <widget name="siteStats" class="stats card">
           <title>Daily Active Users</title>
@@ -899,7 +896,6 @@
           <report>dau</report>
         </widget>
       </column>
--->
       <column class="small-12 medium-6 cell">
         <widget name="siteStats" class="stats card">
           <title>Monthly Active Users</title>
@@ -1068,7 +1064,6 @@
           <limit>10</limit>
         </widget>
       </column>
-      <!--
       <column class="small-12 medium-12 large-6 cell">
         <widget name="siteStats" class="stats card">
           <icon>fa-sticky-note-o</icon>
@@ -1079,7 +1074,6 @@
           <limit>10</limit>
         </widget>
       </column>
-      -->
     </section>
   </page>
 
