@@ -469,10 +469,7 @@ public class PageServlet extends HttpServlet {
         }
         try {
           long itemId = Long.parseLong(request.getParameter("itemId"));
-          // newOrder is validated here (fails fast with 400 on non-numeric input, matching the
-          // pre-existing request contract) but is intentionally not persisted below -- see the
-          // NOT_IMPLEMENTED response for why.
-          Integer.parseInt(request.getParameter("newOrder"));
+          int newOrder = Integer.parseInt(request.getParameter("newOrder"));
           Item item = ItemRepository.findById(itemId);
           if (item == null) {
             response.setContentType("application/json");
@@ -480,14 +477,17 @@ public class PageServlet extends HttpServlet {
             response.getWriter().print("{\"success\":false,\"error\":\"Item not found\"}");
             return;
           }
-          // Items have no stored order/position: the items table (and the Item domain model /
-          // ItemRepository backing it) has no order column, unlike e.g. mailing_lists.list_order
-          // or menu_items.item_order. Adding one is a schema change (new column + migration) that
-          // this fix does not make unilaterally, so report the gap honestly instead of lying about
-          // success -- mirrors MediaApiController#handleUpload's "not yet implemented" response.
+          // Issue #815: items.item_order now exists, so persist the new position (renumbering the
+          // rest of the collection) instead of the previous NOT_IMPLEMENTED/501 response.
+          boolean reordered = ItemRepository.reorderItem(item.getCollectionId(), itemId, newOrder);
+          if (!reordered) {
+            response.setContentType("application/json");
+            response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+            response.getWriter().print("{\"success\":false,\"error\":\"Item could not be reordered\"}");
+            return;
+          }
           response.setContentType("application/json");
-          response.setStatus(HttpServletResponse.SC_NOT_IMPLEMENTED);
-          response.getWriter().print("{\"success\":false,\"error\":\"Reordering items is not implemented: items have no stored order\"}");
+          response.getWriter().print("{\"success\":true,\"message\":\"Item order updated\"}");
         } catch (Exception e) {
           response.setContentType("application/json");
           response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
@@ -551,6 +551,10 @@ public class PageServlet extends HttpServlet {
 
           Item newItem = new Item();
           newItem.setCollectionId(collectionId);
+          // Issue #815: append at the end of the collection's current order rather than leaving
+          // the domain model's static default, which would otherwise collide with (or sort ahead
+          // of) items that have already been manually reordered.
+          newItem.setItemOrder(ItemRepository.getNextItemOrder(collectionId));
           newItem.setName(itemName);
           newItem.setSummary(itemSummary);
           newItem.setCreatedBy(userSession.getUserId());
