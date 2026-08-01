@@ -106,6 +106,12 @@ public class ContentWidget extends GenericWidget {
       }
       return ContentHtmlCommand.performContentApproval(context);
     }
+    // The inline editor's Save Draft button submits via a real POST (platform-editor.js
+    // saveContentDraft()), so it arrives here rather than in action() below -- forward it through
+    // the same dispatch action() uses for a GET caller (issue #812).
+    if ("saveDraft".equals(action)) {
+      return action(context);
+    }
     return context;
   }
 }
