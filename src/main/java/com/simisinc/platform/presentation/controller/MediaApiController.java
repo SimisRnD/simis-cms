@@ -688,9 +688,17 @@ public class MediaApiController extends HttpServlet {
       String prefsJson = objectMapper.writeValueAsString(prefs);
       MutateLayoutCommand.setWidgetPreferences(webPage, sectionIdx, columnIdx, widgetIdx, prefsJson,
           userSession.getUserId());
+      AuditEventCommand.record(request, userSession, AuditEventCommand.CONTENT, "page_layout.setWidgetPreferences",
+          AuditEventCommand.SUCCESS, "web_page", String.valueOf(webPage.getId()), webPage.getLink(),
+          "via media library: assetId=" + assetId + " widget=" + targetWidgetName
+              + " s=" + sectionIdx + " c=" + columnIdx + " w=" + widgetIdx);
     } catch (DataException e) {
       LOG.warn("widget-update rejected for " + pagePath + " " + sectionIdx + ":" + columnIdx + ":" + widgetIdx
           + ": " + e.getMessage());
+      AuditEventCommand.record(request, userSession, AuditEventCommand.CONTENT, "page_layout.setWidgetPreferences",
+          AuditEventCommand.FAILURE, "web_page", String.valueOf(webPage.getId()), webPage.getLink(),
+          "via media library: assetId=" + assetId + " s=" + sectionIdx + " c=" + columnIdx + " w=" + widgetIdx
+              + " error=" + e.getMessage());
       response.setStatus(400);
       Map<String, Object> result = new HashMap<>();
       result.put("error", e.getMessage());

@@ -330,6 +330,8 @@ public class PageServlet extends HttpServlet {
           LOG.error("saveDraftLayout failed for " + pagePath, e);
           response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
           String msg = e.getMessage() != null ? e.getMessage().replace("\"", "'") : "Save failed";
+          AuditEventCommand.record(request, userSession, AuditEventCommand.CONTENT, "page_layout.reorder",
+              AuditEventCommand.FAILURE, "web_page", String.valueOf(webPage.getId()), webPage.getLink(), msg);
           response.getWriter().print("{\"success\":false,\"error\":\"" + msg + "\"}");
         }
         return;
@@ -574,6 +576,10 @@ public class PageServlet extends HttpServlet {
       // mutateDraftLayout: structural add/remove/set operations on sections, columns, and widgets.
       // All mutations write only to draftPageXml and require the layout-builder capability.
       String mutateAction = request.getParameter("action");
+      // Built from the raw parameters (not the parsed s/c/w/after locals below, which are scoped to the
+      // try block) so the exact same summary is available to both the success and failure audit calls.
+      String mutateDetails = "s=" + request.getParameter("s") + " c=" + request.getParameter("c")
+          + " w=" + request.getParameter("w") + " after=" + request.getParameter("after");
       if (request.getParameter("widget") == null
           && pageEditMode
           && EditorPermissionCommand.canBuildLayout(userSession)
@@ -638,11 +644,17 @@ public class PageServlet extends HttpServlet {
               response.getWriter().print("{\"success\":false,\"error\":\"Unknown action\"}");
               return;
           }
+          AuditEventCommand.record(request, userSession, AuditEventCommand.CONTENT, "page_layout." + mutateAction,
+              AuditEventCommand.SUCCESS, "web_page", String.valueOf(webPage.getId()), webPage.getLink(),
+              mutateDetails);
           response.getWriter().print("{\"success\":true}");
         } catch (Exception e) {
           LOG.warn("mutateDraftLayout '" + mutateAction + "' failed for " + pagePath + ": " + e.getMessage());
           response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
           String msg = e.getMessage() != null ? e.getMessage().replace("\"", "'") : "Mutation failed";
+          AuditEventCommand.record(request, userSession, AuditEventCommand.CONTENT, "page_layout." + mutateAction,
+              AuditEventCommand.FAILURE, "web_page", String.valueOf(webPage.getId()), webPage.getLink(),
+              mutateDetails + " error=" + msg);
           response.getWriter().print("{\"success\":false,\"error\":\"" + msg + "\"}");
         }
         return;
