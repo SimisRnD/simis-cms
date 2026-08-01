@@ -32,6 +32,7 @@ import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Properties;
+import java.util.function.BooleanSupplier;
 
 /**
  * Installs and upgrades the database
@@ -78,9 +79,10 @@ public class DatabaseCommand {
             databaseProperties.getProperty("dataSource.portNumber") + "/" +
             databaseProperties.getProperty("dataSource.databaseName");
 
-    // Multi-instance deployment: web-only nodes (CMS_NODE_TYPE=web) skip migrations
-    // and wait for the primary node to complete. Primary nodes acquire a distributed
-    // lock to serialize Flyway execution and prevent concurrent migrations.
+    // Multi-instance deployment: web-only nodes (CMS_NODE_TYPE=web) never run migrations
+    // themselves -- not even unprotected -- they wait for the primary node to finish instead.
+    // Primary nodes acquire a distributed lock to serialize Flyway execution and prevent
+    // concurrent migrations.
     boolean isWebNode = InstanceManager.isWebNodeOnly();
     String lockUuid = null;
     boolean acquired = false;
@@ -94,10 +96,11 @@ public class DatabaseCommand {
         // other node are properly guarded from here on.
         LOG.info("Distributed lock table does not exist yet (first-time install); proceeding without a migration lock.");
       } else {
-        // Primary node, and the lock table exists: acquire the distributed lock before migrations,
-        // retrying until either this node gets it or lockAcquireTimeout elapses. An uncontended
-        // node acquires it on the very first attempt, so this adds no delay to the common
-        // single-node boot path.
+        // Primary node, and the lock table exists (or its existence could not be confirmed --
+        // LockManager#lockTableExists fails closed in that case): acquire the distributed lock
+        // before migrations, retrying until either this node gets it or lockAcquireTimeout
+        // elapses. An uncontended node acquires it on the very first attempt, so this adds no
+        // delay to the common single-node boot path.
         lockUuid = acquireMigrationLock(MIGRATION_LOCK_NAME, lockDuration, lockAcquireTimeout, lockRetryInterval);
         if (lockUuid == null) {
           // Never got the lock within the timeout: another node may be stuck mid-migration. Running
@@ -115,6 +118,24 @@ public class DatabaseCommand {
     }
 
     try {
+      if (isWebNode) {
+        // A true web-only node must not call isInstalled()/installDatabase()/upgrade() at all --
+        // doing so unconditionally (regardless of isWebNode) was the pre-existing bug: it let a
+        // web node run Flyway itself with zero lock protection, not even an attempt, which both
+        // violated issue #396's own acceptance criterion and made the deployment runbook's "web
+        // nodes skip migrations" claim false. Wait for the primary node's migrations to reach a
+        // fully-applied state instead, bounded by the same timeout/retry budget used for lock
+        // acquisition above.
+        LOG.info("Waiting for the primary node to complete migrations...");
+        if (!waitForPrimaryMigration(jdbcUrl, databaseProperties, lockAcquireTimeout, lockRetryInterval)) {
+          LOG.error("Primary node did not complete migrations within " + lockAcquireTimeout
+              + "; refusing to start against a schema that may not be ready. This node will not start.");
+          return false;
+        }
+        LOG.info("Primary node's migrations are complete.");
+        return true;
+      }
+
       if (!isInstalled()) {
         LOG.info("New system detected, installing the database... " + ApplicationInfo.VERSION);
         boolean installResult = installDatabase(jdbcUrl, databaseProperties);
@@ -174,6 +195,68 @@ public class DatabaseCommand {
       lockUuid = LockManager.lock(lockName, lockDuration);
     }
     return lockUuid;
+  }
+
+  /**
+   * Polls, at {@code retryInterval}, until the primary node's migrations are confirmed complete or
+   * {@code timeout} elapses. Used by web-only nodes (CMS_NODE_TYPE=web), which never call {@link
+   * #isInstalled()}/{@link #installDatabase}/{@link #upgrade} themselves -- only the primary node
+   * does, under the distributed lock acquired earlier in {@link #initialize}.
+   *
+   * @return true once migrations are confirmed complete, false if {@code timeout} elapses first
+   */
+  static boolean waitForPrimaryMigration(String jdbcUrl, Properties databaseProperties, Duration timeout,
+      Duration retryInterval) {
+    return waitForPrimaryMigration(() -> isMigrationUpToDate(jdbcUrl, databaseProperties), timeout, retryInterval);
+  }
+
+  /**
+   * Package-private so the retry/timeout behavior itself can be tested against a fake {@code
+   * migrationComplete} check instead of a real Flyway/database round trip -- the same way {@link
+   * #acquireMigrationLock} is tested against a mocked {@link LockManager} rather than a real one.
+   */
+  static boolean waitForPrimaryMigration(BooleanSupplier migrationComplete, Duration timeout, Duration retryInterval) {
+    long deadline = System.currentTimeMillis() + timeout.toMillis();
+    boolean firstAttempt = true;
+    while (true) {
+      if (migrationComplete.getAsBoolean()) {
+        return true;
+      }
+      if (System.currentTimeMillis() >= deadline) {
+        return false;
+      }
+      if (firstAttempt) {
+        LOG.info("Primary node's migrations are not yet complete; retrying every " + retryInterval.getSeconds()
+            + "s (timeout " + timeout.getSeconds() + "s)...");
+        firstAttempt = false;
+      }
+      try {
+        Thread.sleep(retryInterval.toMillis());
+      } catch (InterruptedException e) {
+        Thread.currentThread().interrupt();
+        return false;
+      }
+    }
+  }
+
+  /**
+   * Reports whether the primary node's migrations have already been fully applied, using Flyway's
+   * own read-only {@code info()} against the identical upgrade migration set/table that {@link
+   * #upgrade} applies -- built from the same {@link #buildUpgradeFlyway}, so a web node's notion of
+   * "done" can never drift from what the primary actually runs. Also covers the fresh-install case:
+   * before the primary has installed anything, the flyway_history table (and possibly the schema
+   * itself) doesn't exist yet, so Flyway reports every migration as pending and this returns false,
+   * same as a real in-progress upgrade.
+   */
+  private static boolean isMigrationUpToDate(String jdbcUrl, Properties databaseProperties) {
+    try {
+      return buildUpgradeFlyway(jdbcUrl, databaseProperties).info().pending().length == 0;
+    } catch (Exception e) {
+      // A transient connectivity issue while reading migration state is not evidence either way --
+      // keep waiting/retrying rather than treating it as "up to date".
+      LOG.warn("Could not determine migration status while waiting for the primary node: " + e.getMessage());
+      return false;
+    }
   }
 
   private static boolean installDatabase(String jdbcUrl, Properties databaseProperties) {
@@ -247,7 +330,23 @@ public class DatabaseCommand {
 
   private static boolean upgrade(String jdbcUrl, Properties databaseProperties) {
     // Process the versions
-    Flyway flyway = Flyway.configure()
+    Flyway flyway = buildUpgradeFlyway(jdbcUrl, databaseProperties);
+    MigrateResult result = flyway.migrate();
+    if (!result.success) {
+      LOG.error("Database migration error occurred: " + result.warnings.toString());
+      return false;
+    }
+    return true;
+  }
+
+  /**
+   * Builds the Flyway config used both to actually run upgrade migrations ({@link #upgrade}) and,
+   * read-only via {@code info()}, to check whether they have already been fully applied ({@link
+   * #isMigrationUpToDate}) -- kept as a single definition so the two can never disagree about what
+   * "up to date" means.
+   */
+  private static Flyway buildUpgradeFlyway(String jdbcUrl, Properties databaseProperties) {
+    return Flyway.configure()
         .table("flyway_history")
         .validateOnMigrate(false)
         .sqlMigrationPrefix("UPGRADE_")
@@ -258,12 +357,6 @@ public class DatabaseCommand {
         .outOfOrder(true)
         .cleanDisabled(true)
         .load();
-    MigrateResult result = flyway.migrate();
-    if (!result.success) {
-      LOG.error("Database migration error occurred: " + result.warnings.toString());
-      return false;
-    }
-    return true;
   }
 
   private static boolean isInstalled() {

@@ -45,6 +45,13 @@ import com.simisinc.platform.infrastructure.database.DataSource;
  * this lock" apart from "the distributed_lock table doesn't exist yet" (a never-installed
  * database), since {@link LockManager#lock} returns {@code null} for both.
  *
+ * <p>
+ * Also covers a round-2 review finding: {@code lockTableExists()} used to return {@code false} --
+ * "table doesn't exist, proceed with no lock" -- for ANY {@link java.sql.SQLException}, including
+ * transient ones unrelated to the table's existence. It must fail closed on those instead, only
+ * returning {@code false} for a genuinely missing relation.
+ * </p>
+ *
  * @author SimIS
  * @created 8/1/2026
  */
@@ -69,11 +76,7 @@ class LockManagerTest {
         .waitingFor(Wait.forLogMessage(".*database system is ready to accept connections.*\\n", 2));
     postgres.start();
 
-    Properties dataSourceProperties = new Properties();
-    dataSourceProperties.setProperty("jdbcUrl", jdbcUrl());
-    dataSourceProperties.setProperty("username", DB_USER);
-    dataSourceProperties.setProperty("password", DB_PASSWORD);
-    DataSource.init(dataSourceProperties);
+    reinitDataSourcePointingAtTheRealContainer();
   }
 
   @AfterAll
@@ -91,8 +94,28 @@ class LockManagerTest {
   @Test
   void lockTableExistsIsFalseOnASchemaWithNoTablesAtAll() {
     // This is the exact state of a database that has never completed a first install: nothing
-    // has run any migrations yet, so distributed_lock does not exist.
+    // has run any migrations yet, so distributed_lock does not exist. No SQLException is thrown
+    // for this case at all -- the query is against information_schema.tables, which always
+    // exists, so a missing target table just yields zero rows.
     assertFalse(LockManager.lockTableExists());
+  }
+
+  @Test
+  void lockTableExistsFailsClosedOnATransientConnectionErrorInsteadOfReportingMissing() {
+    // Contrast with lockTableExistsIsFalseOnASchemaWithNoTablesAtAll above: a connection-level
+    // SQLException (pool exhaustion, a network blip, the database restarting) says nothing about
+    // whether distributed_lock exists, and must NOT be treated the same as "table doesn't exist".
+    // Doing so was the round-2 regression: DatabaseCommand read a false return as "first-time
+    // install, proceed with no lock at all, no retry" -- exactly the kind of DB contention that
+    // simultaneous multi-node boot (what this lock exists to protect) is most likely to produce.
+    reinitDataSourcePointingAtNothing();
+    try {
+      assertTrue(LockManager.lockTableExists(),
+          "a connection-level SQLException must fail closed (report the table as present) so the "
+              + "caller takes the safe acquireMigrationLock() retry path, not the skip-locking path");
+    } finally {
+      reinitDataSourcePointingAtTheRealContainer();
+    }
   }
 
   @Test
@@ -153,6 +176,35 @@ class LockManagerTest {
 
   private static String jdbcUrl() {
     return "jdbc:postgresql://" + postgres.getHost() + ":" + postgres.getMappedPort(POSTGRES_PORT) + "/" + DB_NAME;
+  }
+
+  private static void reinitDataSourcePointingAtTheRealContainer() {
+    DataSource.shutdown();
+    Properties dataSourceProperties = new Properties();
+    dataSourceProperties.setProperty("jdbcUrl", jdbcUrl());
+    dataSourceProperties.setProperty("username", DB_USER);
+    dataSourceProperties.setProperty("password", DB_PASSWORD);
+    DataSource.init(dataSourceProperties);
+  }
+
+  /**
+   * Points the DataSource at a port nothing is listening on, with a short connection timeout and
+   * no synchronous startup connection check, so {@code DB.getConnection()} inside {@link
+   * LockManager#lockTableExists()} fails fast with a connection-level {@link java.sql.SQLException}
+   * that carries no "undefined_table" SQLState -- simulating a transient DB-connectivity error
+   * rather than a genuinely missing relation.
+   */
+  private static void reinitDataSourcePointingAtNothing() {
+    DataSource.shutdown();
+    Properties dataSourceProperties = new Properties();
+    dataSourceProperties.setProperty("jdbcUrl", "jdbc:postgresql://127.0.0.1:1/" + DB_NAME);
+    dataSourceProperties.setProperty("username", DB_USER);
+    dataSourceProperties.setProperty("password", DB_PASSWORD);
+    dataSourceProperties.setProperty("connectionTimeout", "500");
+    // Don't let pool construction itself block/throw trying to validate a connection eagerly --
+    // the failure needs to happen inside lockTableExists()'s own getConnection() call.
+    dataSourceProperties.setProperty("initializationFailTimeout", "-1");
+    DataSource.init(dataSourceProperties);
   }
 
   private static boolean isDockerAvailable() {

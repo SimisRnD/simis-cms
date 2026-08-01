@@ -28,6 +28,7 @@ import static org.mockito.Mockito.times;
 import java.time.Duration;
 import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BooleanSupplier;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
@@ -41,6 +42,14 @@ import com.simisinc.platform.infrastructure.persistence.DatabaseVersionRepositor
  * Flyway migrations unprotected -- without ever re-acquiring the lock -- after a single failed
  * lock attempt and a fixed 30-second sleep. That defeated the lock's entire purpose: two nodes
  * booting at the same time could both end up migrating concurrently.
+ *
+ * <p>
+ * Also covers a round-2 review finding on that same fix: {@code isWebNode} only gated lock
+ * <em>acquisition</em> -- the subsequent {@code isInstalled()}/{@code installDatabase()}/{@code
+ * upgrade()} call ran unconditionally for every node, so a web-only node still migrated with zero
+ * lock protection, not even an attempt. Web nodes must skip running migrations entirely and
+ * instead wait for the primary node to finish.
+ * </p>
  *
  * <p>
  * {@link LockManager} and {@link InstanceManager} are statically mocked throughout, so nothing
@@ -167,14 +176,88 @@ class DatabaseCommandLockTest {
       instanceManager.when(InstanceManager::isWebNodeOnly).thenReturn(true);
 
       try {
-        // Past the lock phase, isInstalled() runs for real against no configured DataSource and
-        // will fail -- irrelevant here, only the lock phase (before that point) is under test.
+        // Past the lock phase, waitForPrimaryMigration() attempts a real (fast-failing) Flyway
+        // call against no configured DataSource -- isMigrationUpToDate() catches that internally
+        // and just keeps retrying, so this returns false rather than throwing; irrelevant here,
+        // only the lock phase (before that point) is under test.
         DatabaseCommand.initialize(new Properties(), LOCK_DURATION, TOTAL_TIMEOUT, RETRY_INTERVAL);
-      } catch (Throwable expected) {
-        // ignored: no real database is configured in this unit test
+      } catch (Throwable unexpected) {
+        // tolerated: environment-dependent Flyway/driver behavior against a bogus URL
       }
 
       lockManager.verifyNoInteractions();
     }
+  }
+
+  // -- initialize: a web-only node must skip migration EXECUTION, not just lock acquisition ----
+
+  @Test
+  void webOnlyNodeNeverCallsIsInstalledInstallOrUpgrade() {
+    // This is the round-2 defect: isWebNode previously only gated lock acquisition, so a web node
+    // still ran isInstalled()/installDatabase()/upgrade() -- unprotected Flyway migration on every
+    // web node. DatabaseVersionRepository is the only thing isInstalled()/installDatabase() ever
+    // touch, so zero interactions with it is direct proof that path was never entered; the node
+    // must go through waitForPrimaryMigration() instead.
+    try (MockedStatic<InstanceManager> instanceManager = mockStatic(InstanceManager.class);
+        MockedStatic<LockManager> lockManager = mockStatic(LockManager.class);
+        MockedStatic<DatabaseVersionRepository> repository = mockStatic(DatabaseVersionRepository.class)) {
+      instanceManager.when(InstanceManager::isWebNodeOnly).thenReturn(true);
+
+      // No real primary is migrating in this test, so waiting for one to finish times out against
+      // the small TOTAL_TIMEOUT/RETRY_INTERVAL budget; that's the expected outcome here -- what's
+      // under test is which code path ran, not whether it succeeded.
+      boolean result = DatabaseCommand.initialize(new Properties(), LOCK_DURATION, TOTAL_TIMEOUT, RETRY_INTERVAL);
+
+      assertFalse(result, "should refuse to start rather than fall through to running migrations itself");
+      repository.verifyNoInteractions();
+      lockManager.verifyNoInteractions();
+    }
+  }
+
+  // -- waitForPrimaryMigration: the extracted retry loop (BooleanSupplier overload) ------------
+
+  @Test
+  void waitForPrimaryMigrationReturnsTrueImmediatelyWhenAlreadyComplete() {
+    AtomicInteger callCount = new AtomicInteger(0);
+    BooleanSupplier migrationComplete = () -> {
+      callCount.incrementAndGet();
+      return true;
+    };
+
+    boolean result = DatabaseCommand.waitForPrimaryMigration(migrationComplete, TOTAL_TIMEOUT, RETRY_INTERVAL);
+
+    assertTrue(result);
+    assertEquals(1, callCount.get(), "no contention: exactly one check, no retries needed");
+  }
+
+  @Test
+  void waitForPrimaryMigrationRetriesAndSucceedsOnceThePrimaryFinishes() {
+    // Simulates the real deployment scenario: the primary is still migrating when the web node
+    // first checks, and finishes partway through the web node's retry window.
+    AtomicInteger callCount = new AtomicInteger(0);
+    BooleanSupplier migrationComplete = () -> callCount.incrementAndGet() >= 3;
+
+    boolean result = DatabaseCommand.waitForPrimaryMigration(migrationComplete, TOTAL_TIMEOUT, RETRY_INTERVAL);
+
+    assertTrue(result, "should succeed once the primary's migrations actually complete, not just after waiting");
+    assertEquals(3, callCount.get());
+  }
+
+  @Test
+  void waitForPrimaryMigrationGivesUpAndReturnsFalseWhenThePrimaryNeverFinishes() {
+    // The primary is stuck or never started. The web node must give up after timeout rather than
+    // waiting forever, and must not proceed as if migrations were complete.
+    AtomicInteger callCount = new AtomicInteger(0);
+    BooleanSupplier migrationComplete = () -> {
+      callCount.incrementAndGet();
+      return false;
+    };
+
+    boolean result = DatabaseCommand.waitForPrimaryMigration(migrationComplete, TOTAL_TIMEOUT, RETRY_INTERVAL);
+
+    assertFalse(result);
+    // Bounded: with a 150ms timeout and a 20ms retry interval, this must not spin forever, but it
+    // must have actually retried (more than the single initial check).
+    assertTrue(callCount.get() >= 2, "should have retried at least once before giving up");
   }
 }
