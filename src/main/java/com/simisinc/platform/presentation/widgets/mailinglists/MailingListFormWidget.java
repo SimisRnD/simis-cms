@@ -22,6 +22,7 @@ import com.simisinc.platform.application.mailinglists.SaveMailingListCommand;
 import com.simisinc.platform.domain.model.mailinglists.MailingList;
 import com.simisinc.platform.infrastructure.persistence.mailinglists.MailingListRepository;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
+import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import org.apache.commons.beanutils.BeanUtils;
 
@@ -66,6 +67,9 @@ public class MailingListFormWidget extends GenericWidget {
     BeanUtils.populate(mailingListBean, context.getParameterMap());
     mailingListBean.setCreatedBy(context.getUserId());
 
+    // An existing id means an edit; a new record is a create
+    String eventType = mailingListBean.getId() > -1 ? "mailing_list.update" : "mailing_list.create";
+
     // Save the record
     MailingList mailingList = null;
     try {
@@ -74,10 +78,15 @@ public class MailingListFormWidget extends GenericWidget {
         throw new AppException("Your information could not be saved due to a system error. Please try again.");
       }
     } catch (DataException | AppException e) {
+      AuditEventCommand.record(context, AuditEventCommand.CONFIGURATION, eventType, AuditEventCommand.FAILURE,
+          "mailing_list", String.valueOf(mailingListBean.getId()), mailingListBean.getName(), e.getMessage());
       context.setErrorMessage(e.getMessage());
       context.setRequestObject(mailingListBean);
       return context;
     }
+
+    AuditEventCommand.record(context, AuditEventCommand.CONFIGURATION, eventType, AuditEventCommand.SUCCESS,
+        "mailing_list", String.valueOf(mailingList.getId()), mailingList.getName(), null);
 
     // Determine the page to return to
     context.setSuccessMessage("Mailing list was saved");
