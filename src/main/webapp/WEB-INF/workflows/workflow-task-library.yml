@@ -8,3 +8,6 @@
 - id: email
   name: Sends an email using a template
   class: com.simisinc.platform.infrastructure.workflow.EmailTask
+- id: webhook
+  name: Dispatches the event to matching webhook subscriptions
+  class: com.simisinc.platform.infrastructure.workflow.WebhookTask
