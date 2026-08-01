@@ -80,9 +80,7 @@ public class ItemsListWidget extends GenericWidget {
     context.getRequest().setAttribute("collection", collection);
 
     // P5.3: Pass edit mode flag to enable collection item management UI
-    boolean isEditMode = "true".equals(context.getRequest().getParameter("editMode")) ||
-                        "true".equals(context.getRequest().getAttribute("pageEditMode") != null ?
-                        context.getRequest().getAttribute("pageEditMode").toString() : "false");
+    boolean isEditMode = "true".equals(context.getRequest().getAttribute("pageEditMode"));
     context.getRequest().setAttribute("isEditMode", String.valueOf(isEditMode));
 
     // Determine the record paging
