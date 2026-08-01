@@ -15,6 +15,10 @@
  */
 package com.simisinc.platform.infrastructure.distributedlock;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
 import java.time.Duration;
 import java.util.UUID;
 
@@ -36,6 +40,13 @@ public class LockManager {
   private static Log LOG = LogFactory.getLog(LockManager.class);
 
   private static String TABLE_NAME = "distributed_lock";
+
+  // PostgreSQL's SQLState for "undefined_table" -- the one condition that actually means "this
+  // relation does not exist". information_schema.tables always exists, so a missing target table
+  // in lockTableExists() below normally surfaces as zero rows (see the rs.next() check), never as
+  // this SQLState; it is still checked defensively, in case that query is ever rewritten to hit
+  // the target table directly.
+  private static final String UNDEFINED_TABLE_SQLSTATE = "42P01";
 
   public static String lock(String name, Duration duration) {
 
@@ -60,6 +71,48 @@ public class LockManager {
       return uuid;
     }
     return null;
+  }
+
+  /**
+   * Reports whether the {@code distributed_lock} table itself exists yet. On a never-installed
+   * database this table doesn't exist -- it's created by the same Flyway install migration that
+   * {@link #lock} would otherwise be guarding -- so {@link #lock} returning {@code null} is
+   * ambiguous between "another node holds this lock" and "this table doesn't exist yet". Callers
+   * that need to tell those apart (see DatabaseCommand) should check this first.
+   *
+   * <p>
+   * Fails CLOSED, not open: a {@link SQLException} that isn't clearly "relation does not exist"
+   * (connection-pool exhaustion, a network blip, the database restarting, etc.) says nothing about
+   * whether the table exists, and simultaneous multi-node boot -- the exact scenario this lock
+   * exists to protect -- is precisely when that kind of contention is most likely. Returning {@code
+   * false} for those errors would make the caller take the no-lock first-install path, silently
+   * reintroducing the race issue #396 exists to close. Only a genuine "relation does not exist"
+   * condition (PostgreSQL SQLState {@value #UNDEFINED_TABLE_SQLSTATE}) is treated as "doesn't exist
+   * yet"; every other error is treated as "assume it exists" so the caller goes through the normal
+   * {@code acquireMigrationLock()} retry path instead.
+   * </p>
+   *
+   * @return true if the table exists, or if its existence could not be determined for a reason
+   *         other than the relation genuinely not existing; false only when the relation is
+   *         confirmed absent
+   */
+  public static boolean lockTableExists() {
+    String sql = "SELECT 1 FROM information_schema.tables WHERE table_name = ?";
+    try (Connection connection = DB.getConnection();
+        PreparedStatement pst = connection.prepareStatement(sql)) {
+      pst.setString(1, TABLE_NAME);
+      try (ResultSet rs = pst.executeQuery()) {
+        return rs.next();
+      }
+    } catch (SQLException se) {
+      if (UNDEFINED_TABLE_SQLSTATE.equals(se.getSQLState())) {
+        LOG.info("Lock table lookup reports the relation does not exist yet: " + se.getMessage());
+        return false;
+      }
+      LOG.error("Could not determine if the lock table exists; treating it as present so migration "
+          + "locking is not silently skipped: " + se.getMessage(), se);
+      return true;
+    }
   }
 
   public static boolean unlock(String name, String uuid) {
