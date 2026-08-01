@@ -17,6 +17,7 @@
 package com.simisinc.platform.presentation.widgets.admin.cms;
 
 import com.simisinc.platform.WidgetBase;
+import com.simisinc.platform.domain.model.cms.SolutionTypeOptions;
 import com.simisinc.platform.domain.model.cms.WebPage;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
@@ -66,6 +67,33 @@ class WebPageFormWidgetTest extends WidgetBase {
       audit.verify(() -> AuditEventCommand.record(any(), eq(AuditEventCommand.CONTENT), eq("content.delete"),
           eq(AuditEventCommand.SUCCESS), eq("web_page"), eq("7"), eq("About Us"), any()), times(1));
       Assertions.assertEquals("Page was deleted", result.getSuccessMessage());
+    }
+  }
+
+  /**
+   * Guards issue #570's admin form dropdown: execute() (the GET path) must publish
+   * SolutionTypeOptions.map as the "solutionTypeMap" request attribute, which
+   * web-page-form.jsp reads to populate the Solution Type select. This was previously only
+   * exercised by manual live-verification captures, not by an automated test -- if a future
+   * refactor of execute() drops or renames the attribute, the dropdown would silently render
+   * empty and CI would not catch it.
+   */
+  @Test
+  void executeSetsSolutionTypeMapForAdminFormDropdown() {
+    WebPage webPage = new WebPage();
+    webPage.setId(42L);
+    webPage.setLink("/solutions/widget-management");
+    webPage.setTitle("Widget Management");
+
+    addQueryParameter(widgetContext, "webPageId", "42");
+
+    try (MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class)) {
+      webPageRepository.when(() -> WebPageRepository.findById(42L)).thenReturn(webPage);
+
+      WidgetContext result = new WebPageFormWidget().execute(widgetContext);
+
+      Assertions.assertSame(SolutionTypeOptions.map, result.getRequest().getAttribute("solutionTypeMap"));
+      Assertions.assertEquals(webPage, result.getRequest().getAttribute("webPage"));
     }
   }
 }
