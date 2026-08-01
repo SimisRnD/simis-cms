@@ -28,6 +28,9 @@ public class ImageSpecification extends Entity {
 
   private Long id = -1L;
   private String filename = null;
+  // Case-insensitive substring match on filename (LIKE), distinct from filename's exact match above --
+  // used by the /admin/images search box (issue #498) so "3d" finds "3-D Printing.png".
+  private String matchesName = null;
   private long createdBy = -1;
   private String fileType = null;
 
@@ -48,6 +51,14 @@ public class ImageSpecification extends Entity {
 
   public void setFilename(String filename) {
     this.filename = filename;
+  }
+
+  public String getMatchesName() {
+    return matchesName;
+  }
+
+  public void setMatchesName(String matchesName) {
+    this.matchesName = matchesName;
   }
 
   public long getCreatedBy() {
