@@ -14,7 +14,9 @@
   ~ limitations under the License.
   --%>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
-<%-- tableData is a JsonNode set by TableWidget in request scope --%>
+<%-- tableData is a Map<String,Object> set by TableWidget in request scope: "headers" is a
+     List<String>, "rows" is a List<List<String>> -- plain Java collections, not the raw Jackson
+     JsonNode, because JSTL's <c:forEach> cannot iterate a JsonNode/ArrayNode. --%>
 
 <div class="table-widget-edit-container">
   <!-- Toolbar -->
@@ -32,6 +34,11 @@
     <button class="toolbar-btn delete-col" title="Delete column" aria-label="Delete selected column">
       <i class="fa fa-trash"></i> Column
     </button>
+    <div class="toolbar-separator"></div>
+    <button class="toolbar-btn save-table" title="Save table" aria-label="Save table changes">
+      <i class="fa fa-save"></i> Save
+    </button>
+    <span class="table-save-status" aria-live="polite"></span>
   </div>
 
   <!-- Table -->
@@ -40,11 +47,11 @@
       <thead>
         <tr role="row" class="header-row">
           <c:choose>
-            <c:when test="${tableData.has('headers') && tableData.get('headers').size() > 0}">
-              <c:forEach items="${tableData.get('headers')}" var="header" varStatus="headerStatus">
+            <c:when test="${not empty tableData.headers}">
+              <c:forEach items="${tableData.headers}" var="header" varStatus="headerStatus">
                 <th role="columnheader" scope="col" data-col="${headerStatus.index}">
                   <div class="header-cell" contenteditable="true" role="textbox" tabindex="0">
-                    <c:out value="${header.asText()}"/>
+                    <c:out value="${header}"/>
                   </div>
                 </th>
               </c:forEach>
@@ -58,13 +65,13 @@
       </thead>
       <tbody>
         <c:choose>
-          <c:when test="${tableData.has('rows') && tableData.get('rows').size() > 0}">
-            <c:forEach items="${tableData.get('rows')}" var="row" varStatus="rowStatus">
+          <c:when test="${not empty tableData.rows}">
+            <c:forEach items="${tableData.rows}" var="row" varStatus="rowStatus">
               <tr role="row" data-row="${rowStatus.index}">
                 <c:forEach items="${row}" var="cell" varStatus="cellStatus">
                   <td role="cell" data-row="${rowStatus.index}" data-col="${cellStatus.index}">
                     <div class="cell-content" contenteditable="true" role="textbox" tabindex="0">
-                      <c:out value="${cell.asText()}"/>
+                      <c:out value="${cell}"/>
                     </div>
                   </td>
                 </c:forEach>
@@ -128,6 +135,28 @@
   .toolbar-separator {
     width: 1px;
     background: #ddd;
+  }
+
+  .toolbar-btn.save-table {
+    background: #0066cc;
+    border-color: #0066cc;
+    color: white;
+  }
+
+  .toolbar-btn.save-table:hover {
+    background: #0052a3;
+    color: white;
+  }
+
+  .toolbar-btn.save-table:disabled {
+    opacity: 0.6;
+    cursor: default;
+  }
+
+  .table-save-status {
+    align-self: center;
+    font-size: 13px;
+    color: #666;
   }
 
   .table-edit-wrapper {
@@ -194,6 +223,8 @@
   const addColBtn = document.querySelector('.add-col');
   const deleteRowBtn = document.querySelector('.delete-row');
   const deleteColBtn = document.querySelector('.delete-col');
+  const saveBtn = document.querySelector('.save-table');
+  const saveStatus = document.querySelector('.table-save-status');
 
   let selectedCell = null;
   const cellOriginalValues = new WeakMap();
@@ -363,11 +394,83 @@
     const tableData = JSON.stringify({ headers, rows });
     tableDataInput.value = tableData;
 
-    // Trigger data update event
+    // Trigger data update event -- carries the latest serialized table data on every edit so any
+    // listener has it available. The actual server save (below) is deliberately explicit, fired
+    // from the Save button rather than on every keystroke/table-changed event, to avoid a network
+    // request per character typed.
     const event = new CustomEvent('table-changed', {
       detail: { tableData: tableData }
     });
     document.dispatchEvent(event);
+  }
+
+  // ── Persist to the server ─────────────────────────────────────────────────
+  //
+  // Table data is stored as an ordinary widget preference in the page's draft layout XML, saved
+  // through the same generic, already-tested mechanism every other widget's preferences go
+  // through: PageServlet's "setWidgetPreferences" action, which calls
+  // MutateLayoutCommand.setWidgetPreferences (itself gated by TableWidget.isValidTableData for
+  // this widget's "tableData" preference specifically). platform-editor.js's own applyPrefs()/
+  // mutatePage() use the identical action/params for the "⚙ Prefs" panel available on every
+  // widget -- this widget's toolbar runs in its own script, outside that file's closure, so the
+  // same request is built directly here rather than calling into it.
+  function getWidgetPosition() {
+    const container = table.closest('[data-editor-widget]');
+    if (!container) return null;
+    const parts = (container.dataset.editorWidget || '').split('-');
+    if (parts.length !== 3) return null;
+    return { s: parts[0], c: parts[1], w: parts[2] };
+  }
+
+  function saveToServer() {
+    const position = getWidgetPosition();
+    if (!position) {
+      if (saveStatus) saveStatus.textContent = 'Unable to save: widget position not found';
+      return;
+    }
+    // "mainToken" is the CSRF form token, declared as a page-global by main.jsp -- the same
+    // source platform-editor.js's own getToken() reads.
+    const token = (typeof mainToken !== 'undefined') ? mainToken : '';
+
+    saveBtn.disabled = true;
+    if (saveStatus) saveStatus.textContent = 'Saving…';
+
+    const body = new URLSearchParams();
+    body.append('action', 'setWidgetPreferences');
+    body.append('token', token);
+    body.append('s', position.s);
+    body.append('c', position.c);
+    body.append('w', position.w);
+    body.append('prefs', JSON.stringify({ tableData: tableDataInput.value }));
+
+    fetch(window.location.pathname, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      body: body.toString()
+    })
+      .then(resp => resp.json().catch(() => ({})).then(data => {
+        if (!resp.ok || !data.success) {
+          throw new Error((data && data.error) || ('HTTP ' + resp.status));
+        }
+        return data;
+      }))
+      .then(() => {
+        if (saveStatus) saveStatus.textContent = 'Saved';
+        // Reload to confirm the change persisted and to pick up the freshly saved draft, matching
+        // every other in-canvas mutation's success behavior (see platform-editor.js).
+        window.location.reload();
+      })
+      .catch(err => {
+        saveBtn.disabled = false;
+        if (saveStatus) saveStatus.textContent = 'Error: ' + err.message;
+      });
+  }
+
+  if (saveBtn) {
+    saveBtn.addEventListener('click', () => {
+      saveTableData();
+      saveToServer();
+    });
   }
 
   // Initial setup

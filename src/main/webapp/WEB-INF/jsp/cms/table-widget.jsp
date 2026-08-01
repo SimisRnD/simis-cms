@@ -14,34 +14,36 @@
   ~ limitations under the License.
   --%>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
-<%-- tableData is a JsonNode set by TableWidget in request scope --%>
+<%-- tableData is a Map<String,Object> set by TableWidget in request scope: "headers" is a
+     List<String>, "rows" is a List<List<String>> -- plain Java collections, not the raw Jackson
+     JsonNode, because JSTL's <c:forEach> cannot iterate a JsonNode/ArrayNode. --%>
 
 <div class="table-widget-container">
   <table class="data-table" role="table">
-    <c:if test="${tableData.has('headers') && tableData.get('headers').size() > 0}">
+    <c:if test="${not empty tableData.headers}">
       <thead>
         <tr role="row">
-          <c:forEach items="${tableData.get('headers')}" var="header" varStatus="headerStatus">
+          <c:forEach items="${tableData.headers}" var="header" varStatus="headerStatus">
             <th role="columnheader" scope="col">
-              <c:out value="${header.asText()}"/>
+              <c:out value="${header}"/>
             </th>
           </c:forEach>
         </tr>
       </thead>
     </c:if>
     <tbody>
-      <c:if test="${tableData.has('rows') && tableData.get('rows').size() > 0}">
-        <c:forEach items="${tableData.get('rows')}" var="row" varStatus="rowStatus">
+      <c:if test="${not empty tableData.rows}">
+        <c:forEach items="${tableData.rows}" var="row" varStatus="rowStatus">
           <tr role="row">
             <c:forEach items="${row}" var="cell">
               <td role="cell">
-                <c:out value="${cell.asText()}"/>
+                <c:out value="${cell}"/>
               </td>
             </c:forEach>
           </tr>
         </c:forEach>
       </c:if>
-      <c:if test="${tableData.get('rows').size() == 0}">
+      <c:if test="${empty tableData.rows}">
         <tr>
           <td colspan="100" style="text-align: center; padding: 20px; color: #999;">
             No data

@@ -25,11 +25,15 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 
+import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.domain.model.cms.WebPage;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
@@ -418,6 +422,53 @@ class MutateLayoutCommandTest {
     String result = mutate(page, () -> MutateLayoutCommand.setWidgetPreferences(page, 0, 0, 0,
         "{\"tableData\":\"{\\\"headers\\\":[\\\"Name\\\",\\\"Age\\\"],\\\"rows\\\":[[\\\"Alice\\\",\\\"30\\\"]]}\"}", 42L));
     assertTrue(result.contains("Alice"), "the new table data should be written");
+  }
+
+  @Test
+  void setWidgetPreferencesPersistsARealisticEditedTableRoundTrip() throws Exception {
+    // Reproduces exactly what table-widget-edit.jsp's Save button now sends (issue #433): the
+    // client serializes the edited table once to get the "tableData" string, then wraps that
+    // string as the value of a "tableData" key in the outer prefs object -- i.e.
+    // JSON.stringify({tableData: JSON.stringify({headers, rows})}). Building the request the same
+    // way here (via Jackson, not hand-escaped literals) is the most direct proof that this
+    // widget's save wiring reaches this method with real edited data and that the data survives
+    // the round trip intact, not just that some JSON containing "Alice" shows up somewhere.
+    ObjectMapper mapper = new ObjectMapper();
+    Map<String, Object> editedTable = new LinkedHashMap<>();
+    editedTable.put("headers", List.of("Name", "Age", "City"));
+    editedTable.put("rows", List.of(
+        List.of("Alice", "30", "Portland"),
+        List.of("Bob", "25", "Austin")));
+    String tableDataJson = mapper.writeValueAsString(editedTable);
+    String prefsJson = mapper.writeValueAsString(Map.of("tableData", tableDataJson));
+
+    WebPage page = pageWithXml(TABLE_WIDGET_XML);
+    String result = mutate(page, () -> MutateLayoutCommand.setWidgetPreferences(page, 0, 0, 0, prefsJson, 42L));
+
+    // The old single-cell fixture data must be gone, replaced by the edit.
+    assertTrue(!result.contains("\\u0022rows\\u0022:[[\\u00221\\u0022]]") && !result.contains(">1<"),
+        "the original placeholder row should not survive the edit");
+
+    // Extract the persisted <tableData> element's text content and parse it back to prove the
+    // edited data round-trips intact, not just that a substring happens to match.
+    int start = result.indexOf("<tableData>") + "<tableData>".length();
+    int end = result.indexOf("</tableData>", start);
+    String persistedRaw = result.substring(start, end)
+        .replace("&quot;", "\"")
+        .replace("&amp;", "&")
+        .replace("&lt;", "<")
+        .replace("&gt;", ">");
+    JsonNode persisted = mapper.readTree(persistedRaw);
+
+    assertEquals(3, persisted.get("headers").size());
+    assertEquals("Name", persisted.get("headers").get(0).asText());
+    assertEquals("Age", persisted.get("headers").get(1).asText());
+    assertEquals("City", persisted.get("headers").get(2).asText());
+    assertEquals(2, persisted.get("rows").size());
+    assertEquals("Alice", persisted.get("rows").get(0).get(0).asText());
+    assertEquals("Portland", persisted.get("rows").get(0).get(2).asText());
+    assertEquals("Bob", persisted.get("rows").get(1).get(0).asText());
+    assertEquals("Austin", persisted.get("rows").get(1).get(2).asText());
   }
 
   @Test
