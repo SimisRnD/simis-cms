@@ -22,6 +22,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -197,6 +198,12 @@ class ContentWidgetTest extends WidgetBase {
 
       saveContent.verify(
           () -> SaveContentCommand.saveSafeContent(eq("hello-content"), eq("<p>Edited content</p>"), anyLong(), eq(false)));
+      // The mocked AuditEventCommand above only prevents the real static method from running during
+      // the test -- it doesn't prove saveDraft() actually recorded an event. Verify the call
+      // ContentHtmlCommand.saveDraft() makes, same shape as the delete-path checks in
+      // BlogPostWidgetTest/WebPageFormWidgetTest.
+      auditEvent.verify(() -> AuditEventCommand.record(any(), eq(AuditEventCommand.CONTENT), eq("content.saveDraft"),
+          eq(AuditEventCommand.SUCCESS), eq("content"), eq("42"), eq("hello-content"), any()), times(1));
       Assertions.assertTrue(widgetContext.hasJson());
       Assertions.assertTrue(widgetContext.getJson().contains("\"success\":true"));
     }
