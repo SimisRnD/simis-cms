@@ -146,19 +146,19 @@
               </select> <a href="https://fonts.google.com" target="_blank" rel="noreferrer"><i class="fa fa-external-link-square"></i></a>
             </c:when>
             <c:when test="${siteProperty.type eq 'color'}">
-              <input id="${siteProperty.name}" type="text" name="${siteProperty.name}" value="<c:out value="${siteProperty.value}"/>">
+              <input id="${siteProperty.name}" type="text" name="${siteProperty.name}" value="<c:out value="${siteProperty.value}"/>"<c:if test="${siteProperty.name eq 'site.newsletter.color'}"> aria-describedby="siteNewsletterColorHelpText"</c:if><c:if test="${siteProperty.name eq 'site.newsletter.backgroundColor'}"> aria-describedby="siteNewsletterBackgroundColorHelpText"</c:if>>
             </c:when>
             <c:when test="${siteProperty.type eq 'url'}">
               <div class="input-group">
                 <span class="input-group-label"><i class="fa fa-link"></i></span>
-                <input class="input-group-field" id="${siteProperty.id}" type="text" name="${siteProperty.name}" placeholder="http://..." value="<c:out value="${siteProperty.value}"/>"<c:if test="${siteProperty.name eq 'elearning.lrs.url'}"> aria-describedby="elearningLrsUrlHelpText"</c:if><c:if test="${siteProperty.name eq 'elearning.moodle.url'}"> aria-describedby="elearningMoodleUrlHelpText"</c:if><c:if test="${siteProperty.name eq 'elearning.perls.url'}"> aria-describedby="elearningPerlsUrlHelpText"</c:if><c:if test="${siteProperty.name eq 'bi.superset.url'}"> aria-describedby="biSupersetUrlHelpText"</c:if><c:if test="${siteProperty.name eq 'bi.metabase.url'}"> aria-describedby="biMetabaseUrlHelpText"</c:if>>
+                <input class="input-group-field" id="${siteProperty.id}" type="text" name="${siteProperty.name}" placeholder="http://..." value="<c:out value="${siteProperty.value}"/>"<c:if test="${siteProperty.name eq 'elearning.lrs.url'}"> aria-describedby="elearningLrsUrlHelpText"</c:if><c:if test="${siteProperty.name eq 'elearning.moodle.url'}"> aria-describedby="elearningMoodleUrlHelpText"</c:if><c:if test="${siteProperty.name eq 'elearning.perls.url'}"> aria-describedby="elearningPerlsUrlHelpText"</c:if><c:if test="${siteProperty.name eq 'bi.superset.url'}"> aria-describedby="biSupersetUrlHelpText"</c:if><c:if test="${siteProperty.name eq 'bi.metabase.url'}"> aria-describedby="biMetabaseUrlHelpText"</c:if><c:if test="${siteProperty.name eq 'site.url'}"> aria-describedby="siteUrlHelpText"</c:if>>
               </div>
             </c:when>
             <c:when test="${siteProperty.type eq 'image'}">
               <div class="grid-x grid-margin-x">
                 <div class="small-8 cell">
                   <div class="input-group">
-                    <input class="input-group-field" type="text" placeholder="Local Image URL" id="imageUrl${siteProperty.id}" name="${siteProperty.name}" value="<c:out value="${siteProperty.value}"/>">
+                    <input class="input-group-field" type="text" placeholder="Local Image URL" id="imageUrl${siteProperty.id}" name="${siteProperty.name}" value="<c:out value="${siteProperty.value}"/>"<c:if test="${siteProperty.name eq 'site.image'}"> aria-describedby="siteImageHelpText"</c:if><c:if test="${siteProperty.name eq 'site.logo'}"> aria-describedby="siteLogoHelpText"</c:if><c:if test="${siteProperty.name eq 'site.logo.white'}"> aria-describedby="siteLogoWhiteHelpText"</c:if><c:if test="${siteProperty.name eq 'site.logo.mixed'}"> aria-describedby="siteLogoMixedHelpText"</c:if>>
                     <span class="input-group-label" style="padding: 0;"><a class="button small primary expanded no-gap" data-open="imageBrowserReveal" onclick="SetPhotoId(${siteProperty.id});">Browse Images</a></span>
                   </div>
                   <label for="imageFile${siteProperty.id}" class="button">Upload Image File...</label>
@@ -171,7 +171,7 @@
             </c:when>
             <c:when test="${siteProperty.type eq 'boolean'}">
               <div class="switch large">
-                <input class="switch-input" id="${siteProperty.name}-yes-no" type="checkbox" name="${siteProperty.name}" value="true"<c:if test="${siteProperty.value eq 'true'}"> checked</c:if><c:if test="${siteProperty.name eq 'bi.enabled'}"> aria-describedby="biEnabledHelpText"</c:if><c:if test="${siteProperty.name eq 'bi.metabase.enabled'}"> aria-describedby="biMetabaseEnabledHelpText"</c:if><c:if test="${siteProperty.name eq 'mail.ssl'}"> aria-describedby="mailSslHelpText"</c:if>>
+                <input class="switch-input" id="${siteProperty.name}-yes-no" type="checkbox" name="${siteProperty.name}" value="true"<c:if test="${siteProperty.value eq 'true'}"> checked</c:if><c:if test="${siteProperty.name eq 'bi.enabled'}"> aria-describedby="biEnabledHelpText"</c:if><c:if test="${siteProperty.name eq 'bi.metabase.enabled'}"> aria-describedby="biMetabaseEnabledHelpText"</c:if><c:if test="${siteProperty.name eq 'mail.ssl'}"> aria-describedby="mailSslHelpText"</c:if><c:if test="${siteProperty.name eq 'site.online'}"> aria-describedby="siteOnlineHelpText"</c:if><c:if test="${siteProperty.name eq 'site.api'}"> aria-describedby="siteApiHelpText"</c:if><c:if test="${siteProperty.name eq 'site.sitemap.xml'}"> aria-describedby="siteSitemapXmlHelpText"</c:if><c:if test="${siteProperty.name eq 'site.cart'}"> aria-describedby="siteCartHelpText"</c:if><c:if test="${siteProperty.name eq 'site.registrations'}"> aria-describedby="siteRegistrationsHelpText"</c:if><c:if test="${siteProperty.name eq 'site.login'}"> aria-describedby="siteLoginHelpText"</c:if><c:if test="${siteProperty.name eq 'site.confirmation'}"> aria-describedby="siteConfirmationHelpText"</c:if><c:if test="${siteProperty.name eq 'site.newsletter.overlay'}"> aria-describedby="siteNewsletterOverlayHelpText"</c:if>>
                 <label class="switch-paddle" for="${siteProperty.name}-yes-no">
                 <span class="switch-active" aria-hidden="true">Yes</span>
                 <span class="switch-inactive" aria-hidden="true">No</span>
@@ -179,7 +179,7 @@
               </div>
             </c:when>
             <c:when test="${siteProperty.name eq 'site.timezone'}">
-              <select name="${siteProperty.name}">
+              <select name="${siteProperty.name}" aria-describedby="siteTimezoneHelpText">
                 <c:forEach items="<%= TimeZone.getAvailableIDs() %>" var="timezone">
                   <option value="${timezone}"<c:if test="${siteProperty.value eq timezone}"> selected</c:if>><c:out value="${timezone}" /></option>
                 </c:forEach>
@@ -189,7 +189,7 @@
               <input type="text" class="no-gap" name="${siteProperty.name}" value="${html:toHtml(siteProperty.value)}" disabled />
             </c:when>
             <c:otherwise>
-              <input type="text" class="no-gap" name="${siteProperty.name}" value="${html:toHtml(siteProperty.value)}"<c:if test="${siteProperty.name eq 'captcha.service'}"> aria-describedby="captchaServiceHelpText"</c:if><c:if test="${siteProperty.name eq 'captcha.google.sitekey'}"> aria-describedby="captchaGoogleSitekeyHelpText"</c:if><c:if test="${siteProperty.name eq 'bi.superset.id'}"> aria-describedby="biSupersetIdHelpText"</c:if><c:if test="${siteProperty.name eq 'mail.from_address'}"> aria-describedby="mailFromAddressHelpText"</c:if><c:if test="${siteProperty.name eq 'mail.from_name'}"> aria-describedby="mailFromNameHelpText"</c:if><c:if test="${siteProperty.name eq 'mail.host_name'}"> aria-describedby="mailHostNameHelpText"</c:if><c:if test="${siteProperty.name eq 'mail.port'}"> aria-describedby="mailPortHelpText"</c:if><c:if test="${siteProperty.name eq 'mail.username'}"> aria-describedby="mailUsernameHelpText"</c:if> />
+              <input type="text" class="no-gap" name="${siteProperty.name}" value="${html:toHtml(siteProperty.value)}"<c:if test="${siteProperty.name eq 'captcha.service'}"> aria-describedby="captchaServiceHelpText"</c:if><c:if test="${siteProperty.name eq 'captcha.google.sitekey'}"> aria-describedby="captchaGoogleSitekeyHelpText"</c:if><c:if test="${siteProperty.name eq 'bi.superset.id'}"> aria-describedby="biSupersetIdHelpText"</c:if><c:if test="${siteProperty.name eq 'mail.from_address'}"> aria-describedby="mailFromAddressHelpText"</c:if><c:if test="${siteProperty.name eq 'mail.from_name'}"> aria-describedby="mailFromNameHelpText"</c:if><c:if test="${siteProperty.name eq 'mail.host_name'}"> aria-describedby="mailHostNameHelpText"</c:if><c:if test="${siteProperty.name eq 'mail.port'}"> aria-describedby="mailPortHelpText"</c:if><c:if test="${siteProperty.name eq 'mail.username'}"> aria-describedby="mailUsernameHelpText"</c:if><c:if test="${siteProperty.name eq 'site.name'}"> aria-describedby="siteNameHelpText"</c:if><c:if test="${siteProperty.name eq 'site.name.keyword'}"> aria-describedby="siteNameKeywordHelpText"</c:if><c:if test="${siteProperty.name eq 'site.description'}"> aria-describedby="siteDescriptionHelpText"</c:if><c:if test="${siteProperty.name eq 'site.keywords'}"> aria-describedby="siteKeywordsHelpText"</c:if><c:if test="${siteProperty.name eq 'site.confirmation.line1'}"> aria-describedby="siteConfirmationLine1HelpText"</c:if><c:if test="${siteProperty.name eq 'site.confirmation.line2'}"> aria-describedby="siteConfirmationLine2HelpText"</c:if><c:if test="${siteProperty.name eq 'site.confirmation.declined.text'}"> aria-describedby="siteConfirmationDeclinedTextHelpText"</c:if><c:if test="${siteProperty.name eq 'site.newsletter.headline'}"> aria-describedby="siteNewsletterHeadlineHelpText"</c:if><c:if test="${siteProperty.name eq 'site.newsletter.message'}"> aria-describedby="siteNewsletterMessageHelpText"</c:if> />
             </c:otherwise>
           </c:choose>
           <c:if test="${siteProperty.name eq 'captcha.service'}">
@@ -282,6 +282,81 @@
           <c:if test="${siteProperty.name eq 'mail.ssl'}">
             <p class="help-text" id="mailSslHelpText">When on, SimIS connects to the SMTP server above using implicit SSL/TLS -- the connection is encrypted from the moment it opens, traditionally on port 465. When off, the connection starts unencrypted. This platform does not support STARTTLS (the scheme where a connection starts in plain text, commonly on port 587, and is only upgraded to encryption afterward), which some providers require and offer no alternative to. Per each provider's own documentation: Gmail's smtp.gmail.com supports both port 465 (SSL) and port 587 (STARTTLS), so port 465 with this toggle on works. SendGrid's current setup guide documents only STARTTLS on port 587, with no implicit-SSL port listed. Microsoft 365 explicitly documents that its client SMTP submission does not support port 465 at all and requires STARTTLS on port 587 -- which this platform cannot do, so Microsoft 365 cannot be used here. When unsure, ask your provider whether they offer an explicit "SSL" or "implicit TLS" port as an alternative to their default STARTTLS port.</p>
           </c:if>
+          <c:if test="${siteProperty.name eq 'site.name'}">
+            <p class="help-text" id="siteNameHelpText">The site's name -- used as the email sender's display-name fallback, the authenticator app issuer name shown when a user sets up multi-factor login, and in outgoing order and workflow notification emails.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'site.url'}">
+            <p class="help-text" id="siteUrlHelpText">The site's public base address (for example https://example.com, no trailing slash). Used to build absolute links in emails and to complete the Open Graph/Twitter image address below, since that field holds a site-relative path rather than a full URL.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'site.name.keyword'}">
+            <p class="help-text" id="siteNameKeywordHelpText">An optional second identifier sent alongside the site name in outgoing emails and workflow notifications -- for example a product or division name distinct from the overall site name. Leave blank if the site name alone is enough.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'site.description'}">
+            <p class="help-text" id="siteDescriptionHelpText">The default page-description meta tag search engines show under this site's listing, used on any page that doesn't set its own.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'site.keywords'}">
+            <p class="help-text" id="siteKeywordsHelpText">The default keywords meta tag, used on any page that doesn't set its own. Most modern search engines no longer use this tag for ranking, but it's still included on the page.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'site.image'}">
+            <p class="help-text" id="siteImageHelpText">The default image shown when a page is shared on social media (Open Graph and Twitter Card), used on any page without its own. Enter a site-relative path (for example /images/share.png) rather than a full URL -- it's combined with the Site Url above to form the complete address.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'site.online'}">
+            <p class="help-text" id="siteOnlineHelpText">When off, anonymous visitors are blocked from viewing the site -- logged-in users, including admins, can still get in, so this is safe to use for maintenance without locking yourself out. The XML sitemap also stops generating while offline, independent of the Sitemap toggle below (both must be on for the sitemap to work).</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'site.api'}">
+            <p class="help-text" id="siteApiHelpText">Turns the REST API (/api/*) on or off site-wide. When off, all API requests are rejected regardless of authentication -- this also blocks OAuth2 app integrations, since they authenticate through the same API.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'site.sitemap.xml'}">
+            <p class="help-text" id="siteSitemapXmlHelpText">Turns /sitemap.xml on or off. Also requires "Is online?" above to be on -- both toggles are checked, and either one being off stops the sitemap from generating.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'site.cart'}">
+            <p class="help-text" id="siteCartHelpText">Shows or hides the shopping cart across the site -- the cart link in the menu, add-to-cart buttons, and the cart page itself all check this independently, so it's enforced everywhere it appears, not just in navigation.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'site.registrations'}">
+            <p class="help-text" id="siteRegistrationsHelpText">Turns the public account-registration form on or off. When off, new users cannot self-register; existing accounts are unaffected.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'site.login'}">
+            <p class="help-text" id="siteLoginHelpText">Shows or hides the Login link in the site header. This only hides the link -- it doesn't disable the /login page itself, so a direct link still works for anyone who has it.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'site.confirmation'}">
+            <p class="help-text" id="siteConfirmationHelpText">Shows an age/content confirmation dialog to visitors, with Yes/No buttons and the message lines below. Turning this on without also filling in Confirmation Line 1 below can show a mostly-blank dialog.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'site.confirmation.line1'}">
+            <p class="help-text" id="siteConfirmationLine1HelpText">The first line of text shown inside the confirmation dialog (see "Show site confirmation?" above). Has no effect while that toggle is off.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'site.confirmation.line2'}">
+            <p class="help-text" id="siteConfirmationLine2HelpText">An optional second line shown below Confirmation Line 1 inside the confirmation dialog. Has no effect while "Show site confirmation?" above is off.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'site.confirmation.declined.text'}">
+            <p class="help-text" id="siteConfirmationDeclinedTextHelpText">The message shown when a visitor clicks "No" on the confirmation dialog. Has no effect while "Show site confirmation?" above is off.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'site.newsletter.overlay'}">
+            <p class="help-text" id="siteNewsletterOverlayHelpText">Shows a dismissible newsletter sign-up popup to visitors, using the headline, message, and colors below.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'site.newsletter.headline'}">
+            <p class="help-text" id="siteNewsletterHeadlineHelpText">The headline shown in the newsletter sign-up popup. Has no effect while "Show subscribe to newsletter overlay?" above is off.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'site.newsletter.message'}">
+            <p class="help-text" id="siteNewsletterMessageHelpText">The body text shown in the newsletter sign-up popup, below the headline. Has no effect while "Show subscribe to newsletter overlay?" above is off.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'site.newsletter.color'}">
+            <p class="help-text" id="siteNewsletterColorHelpText">The text color used in the newsletter sign-up popup. Has no effect while "Show subscribe to newsletter overlay?" above is off.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'site.newsletter.backgroundColor'}">
+            <p class="help-text" id="siteNewsletterBackgroundColorHelpText">The background color of the newsletter sign-up popup. Has no effect while "Show subscribe to newsletter overlay?" above is off.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'site.logo'}">
+            <p class="help-text" id="siteLogoHelpText">The site's primary, full-color logo -- shown in the header, the confirmation dialog (if enabled), and used as the logo image in outgoing emails. Which of the three logo variants on this page actually appears in the header and menu depends on the Logo Color Scheme setting on the Theme Settings page.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'site.logo.white'}">
+            <p class="help-text" id="siteLogoWhiteHelpText">An all-white version of the logo, for use against dark backgrounds. Shown instead of the full-color logo depending on the Logo Color Scheme setting on the Theme Settings page.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'site.logo.mixed'}">
+            <p class="help-text" id="siteLogoMixedHelpText">A mixed-color logo variant. Shown instead of the full-color logo depending on the Logo Color Scheme setting on the Theme Settings page.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'site.timezone'}">
+            <p class="help-text" id="siteTimezoneHelpText">The site's default timezone, used wherever the platform displays or schedules something by time without a more specific timezone already available.</p>
+          </c:if>
         </td>
       </tr>
     </c:forEach>
@@ -296,6 +371,9 @@
   </c:if>
   <c:if test="${prefix eq 'mail'}">
     <p class="help-text">If emails aren't sending, these settings are usually the first place to check -- especially the host, port, username/password, and SSL toggle above. Form submissions, newsletters, and every other outgoing email all go through this same configuration, so a mistake here is site-wide. After making a change, use the Mail Test panel to send yourself a confirmation email before relying on it for real traffic.</p>
+  </c:if>
+  <c:if test="${prefix eq 'site'}">
+    <p class="help-text">Header text and links have their own settings page (Utility Bar Settings); logo colors, fonts, and site-wide colors have their own (Theme Settings). Some of these fields only take effect together with another one above or below them -- the description for each notes when that's the case.</p>
   </c:if>
   <div class="button-container">
     <input type="submit" class="button radius success" value="Save" />
