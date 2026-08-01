@@ -62,6 +62,11 @@ public class LoadItemCommand {
     ItemSpecification specification = new ItemSpecification();
     specification.setUniqueId(uniqueId);
     specification.setForUserId(userId);
+    // This resolves a single, already-known item (item detail page, edit form) rather than
+    // browsing/listing a collection, so a deactivated item must still be reachable here -- issue
+    // #814 only hides archived items from listing/search results, not from direct access by a
+    // known id/uniqueId. See ItemSpecification#includeArchived javadoc.
+    specification.setIncludeArchived(true);
     List<Item> itemList = ItemRepository.findAll(specification, null);
     if (itemList.size() == 1) {
       return itemList.get(0);
@@ -73,6 +78,9 @@ public class LoadItemCommand {
     ItemSpecification specification = new ItemSpecification();
     specification.setId(item.getId());
     specification.setForUserId(user.getId());
+    // See loadItemByUniqueIdForAuthorizedUser above: a known item must remain reachable here even
+    // once archived (issue #814).
+    specification.setIncludeArchived(true);
     List<Item> itemList = ItemRepository.findAll(specification, null);
     if (itemList.size() == 1) {
       return itemList.get(0);
