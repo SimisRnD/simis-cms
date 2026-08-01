@@ -21,17 +21,91 @@
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="webPage" class="com.simisinc.platform.domain.model.cms.WebPage" scope="request"/>
+<jsp:useBean id="widgetSchemaJson" class="java.lang.String" scope="request"/>
 <link href="${ctx}/css/jquery-gridmanager-0.3.1/bootstrap.css" rel="stylesheet">
 <link href="${ctx}/css/jquery-gridmanager-0.3.1/jquery.gridmanager.css" rel="stylesheet">
 <script src="${ctx}/javascript/jquery-gridmanager-0.3.1/jquery-ui.js"></script>
 <script src="${ctx}/javascript/jquery-gridmanager-0.3.1/bootstrap.js"></script>
 <script src="${ctx}/javascript/jquery-gridmanager-0.3.1/jquery.gridmanager.js"></script>
+<%-- Static, developer-authored file (not user input) -- safe to embed unescaped as a JSON script body.
+     HTML-escaping it here would corrupt the JSON, since script content isn't entity-decoded. --%>
+<script type="application/json" id="widget-schema-json"><c:out value="${widgetSchemaJson}" escapeXml="false"/></script>
 <style>
   #designer-container {
     margin: auto;
     max-width: 1170px;
   }
   .margin-bottom-30 { margin-bottom: 30px !important; }
+
+  .widget-picker-overlay {
+    display: none;
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 2000;
+  }
+  .widget-picker-panel {
+    background: #fff;
+    max-width: 420px;
+    max-height: 70vh;
+    margin: 8vh auto;
+    border-radius: 4px;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  .widget-picker-header {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem;
+    border-bottom: 1px solid #ddd;
+  }
+  .widget-picker-header input {
+    flex: 1;
+    margin: 0;
+  }
+  .widget-picker-close {
+    margin-left: 0.5rem;
+    font-size: 1.5rem;
+    line-height: 1;
+    color: #666;
+    text-decoration: none;
+  }
+  .widget-picker-list {
+    overflow-y: auto;
+    padding: 0.5rem 0.75rem 0.75rem;
+  }
+  .widget-picker-category {
+    margin: 0.75rem 0 0.25rem;
+    color: #666;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+  }
+  .widget-picker-items {
+    list-style: none;
+    margin: 0;
+  }
+  .widget-picker-items li a {
+    display: block;
+    padding: 0.4rem 0.5rem;
+    border-radius: 3px;
+    color: inherit;
+    text-decoration: none;
+  }
+  .widget-picker-items li a:hover,
+  .widget-picker-items li a:focus {
+    background: #f0f0f0;
+  }
+  .widget-picker-items li a i {
+    width: 1.25rem;
+    display: inline-block;
+    text-align: center;
+  }
+  .widget-picker-empty {
+    color: #666;
+    padding: 0.5rem;
+  }
 </style>
 <div id="designer-container">
   <c:if test="${!empty title}">
@@ -62,18 +136,128 @@
 </div>
 <script nonce="${cspNonce}">
 
-  function widget_callback(container, btnElem) {
-    // alert("The widget chooser is unavailable");
-    // alert('custom control: ' + btnElem.toString());
+  // The widget-type picker (issue #532). Widget metadata (label/category/icon) comes from
+  // widget-schema.json -- a curated, human-labeled catalog built for exactly this purpose but never
+  // wired to anything until now (the modern composition-canvas "+Widget" picker lists raw internal
+  // widget-library.xml names instead, with no icons/labels/categories -- this picker is deliberately
+  // NOT mirroring that rougher UX, since the schema gives a strictly better one for the same intent).
+  var widgetSchema = {};
+  try {
+    var schemaText = document.getElementById('widget-schema-json').textContent;
+    widgetSchema = (JSON.parse(schemaText || '{}').widgets) || {};
+  } catch (e) {
+    widgetSchema = {};
+  }
+
+  var widgetPickerContainer = null;
+
+  function buildWidgetPickerDom() {
+    var overlay = $('<div>', {id: 'widget-picker-overlay', 'class': 'widget-picker-overlay'});
+    var panel = $('<div>', {'class': 'widget-picker-panel'});
+    var searchInput = $('<input>', {type: 'text', id: 'widget-picker-search', placeholder: 'Search widget types…'});
+    var closeLink = $('<a>', {href: '#', 'class': 'widget-picker-close', 'aria-label': 'Close'}).html('&times;');
+    closeLink.on('click', function (e) {
+      e.preventDefault();
+      closeWidgetPicker();
+    });
+    var header = $('<div>', {'class': 'widget-picker-header'}).append(searchInput).append(closeLink);
+    var list = $('<div>', {id: 'widget-picker-list', 'class': 'widget-picker-list'});
+    panel.append(header).append(list);
+    overlay.append(panel);
+    overlay.on('click', function (e) {
+      if (e.target === overlay[0]) {
+        closeWidgetPicker();
+      }
+    });
+    $('body').append(overlay);
+    searchInput.on('input', function () {
+      renderWidgetPickerList($(this).val());
+    });
+    return overlay;
+  }
+
+  function renderWidgetPickerList(filterText) {
+    var list = $('#widget-picker-list');
+    list.empty();
+    var filter = (filterText || '').toLowerCase();
+    var byCategory = {};
+    Object.keys(widgetSchema).sort().forEach(function (name) {
+      var w = widgetSchema[name] || {};
+      var label = w.label || name;
+      if (filter && label.toLowerCase().indexOf(filter) === -1 && name.toLowerCase().indexOf(filter) === -1) {
+        return;
+      }
+      var category = w.category || 'Other';
+      if (!byCategory[category]) {
+        byCategory[category] = [];
+      }
+      byCategory[category].push({name: name, label: label, icon: w.icon});
+    });
+    var categories = Object.keys(byCategory).sort();
+    categories.forEach(function (category) {
+      list.append($('<h6>', {'class': 'widget-picker-category'}).text(category));
+      var ul = $('<ul>', {'class': 'widget-picker-items'});
+      byCategory[category].forEach(function (item) {
+        var link = $('<a>', {href: '#'})
+          .append($('<i>', {'class': '${font:far()} ' + (item.icon || 'fa-cube')}))
+          .append(' ' + item.label);
+        link.on('click', function (e) {
+          e.preventDefault();
+          insertWidget(item.name, item.label);
+          closeWidgetPicker();
+        });
+        ul.append($('<li>').append(link));
+      });
+      list.append(ul);
+    });
+    if (categories.length === 0) {
+      list.append($('<p>', {'class': 'widget-picker-empty'}).text('No matching widget types.'));
+    }
+  }
+
+  function openWidgetPicker(container) {
+    widgetPickerContainer = container;
+    if ($('#widget-picker-overlay').length === 0) {
+      buildWidgetPickerDom();
+    }
+    renderWidgetPickerList('');
+    $('#widget-picker-overlay').show();
+    $('#widget-picker-search').val('').trigger('focus');
+  }
+
+  function closeWidgetPicker() {
+    $('#widget-picker-overlay').hide();
+    widgetPickerContainer = null;
+  }
+
+  $(document).on('keydown', function (e) {
+    if (e.key === 'Escape' && $('#widget-picker-overlay').is(':visible')) {
+      closeWidgetPicker();
+    }
+  });
+
+  function insertWidget(widgetName, widgetLabel) {
+    var container = widgetPickerContainer;
+    if (!container) {
+      return;
+    }
     var gm = $("#mycanvas").data("gridmanager");
-    // gm.addEditableAreaClick(container, btnElem);
     var cTagOpen = '<!--' + gm.options.gmEditRegion + '-->',
       cTagClose = '<!--\/' + gm.options.gmEditRegion + '-->',
       elem = null;
+    // The data-widget attribute must be on the <h4>, not (only) on the wrapping gm-content div:
+    // gm.deinitCanvas() (called on Save) unwraps that div entirely, keeping only its children -- an
+    // attribute placed solely on the wrapper is silently lost before the server ever sees it. Confirmed
+    // live: the original hardcoded "prototype" insertion carried this same attribute on both the div and
+    // the <h4> for exactly this reason; it looked redundant and wasn't.
     $(('.' + gm.options.gmToolClass + ':last'), container)
       .before(elem = $('<div>').addClass(gm.options.gmEditRegion + ' ' + gm.options.contentDraggableClass)
-        .append(gm.options.controlContentElem + '<div class="' + gm.options.gmContentRegion + ' callout prototype" data-widget="prototype"><h4 data-widget="prototype">Headline</h4><p>Write a description</p></div>')).before(cTagClose).prev().before(cTagOpen);
+        .append(gm.options.controlContentElem + '<div class="' + gm.options.gmContentRegion + ' callout prototype" data-widget="' + widgetName + '"><h4 data-widget="' + widgetName + '">' + widgetLabel + '</h4><p>Write a description</p></div>')).before(cTagClose).prev().before(cTagOpen);
     gm.initNewContentElem(elem);
+  }
+
+  function widget_callback(container, btnElem) {
+    openWidgetPicker(container);
   }
 
   $(document).ready(function () {
@@ -85,7 +269,7 @@
         redirectURL: "${ctx}${js:escape(webPage.link)}",
         controlButtons: [[12], [7, 5], [8, 4], [9, 3], [3, 3, 3, 3], [4, 4, 4], [6, 6], [2, 8, 2], [3, 6, 3], [3, 9], [4, 8]],
         customControls: {
-          global_col: [{callback: 'widget_callback', loc: 'top', iconClass: '${font:far()} fa-bars'}]
+          global_col: [{callback: 'widget_callback', loc: 'top', iconClass: '${font:far()} fa-bars', title: 'Choose a Widget Type'}]
         },
         rowButtonsPrepend: [
           {
