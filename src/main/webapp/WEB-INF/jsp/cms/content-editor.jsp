@@ -15,10 +15,12 @@
   --%>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="font" uri="/WEB-INF/tlds/font-functions.tld" %>
+<%@ taglib prefix="js" uri="/WEB-INF/tlds/javascript-escape.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="content" class="com.simisinc.platform.domain.model.cms.Content" scope="request"/>
 <jsp:useBean id="isDraft" class="java.lang.String" scope="request"/>
+<jsp:useBean id="reusabilityWarning" class="java.lang.String" scope="request"/>
 <script src="${ctx}/javascript/tinymce-7.9.3/tinymce.min.js"></script>
 <script nonce="${cspNonce}">
   $(window).on('resize', function () {
@@ -148,3 +150,41 @@
     <a href="${returnPage}" class="button radius secondary">Cancel</a>
   </div>
 </form>
+<c:if test="${!empty reusabilityWarning}">
+  <%-- #499 slice 2: this content is used on more than one page/template. Warn before "Publish
+       Immediately" takes effect, without gating the other submit buttons in the same form (Save
+       as Draft / Remove this Draft never affect other pages). Scoped to that one button via the
+       submit event's submitter (falling back to a click listener on the button itself for older
+       browsers), not a blanket form-level onsubmit.
+
+       Found the button via a page-wide selector, then its owning form via the .form IDL property
+       -- NOT document.querySelector('form'). The full page chrome this JSP renders inside (header
+       search box, footer widgets, etc.) can and does contain other <form> elements earlier in the
+       DOM (e.g. the header search form), so "the first form on the page" is not reliably this
+       editor's form; .form always resolves to the control's own owning form regardless of how
+       many other forms precede it. --%>
+  <script nonce="${cspNonce}">
+    (function () {
+      var reusabilityWarning = '${js:escape(reusabilityWarning)}';
+      var publishButton = document.querySelector('input[type="submit"][name="save"][value="Publish Immediately"]');
+      var form = publishButton ? publishButton.form : null;
+      if (!form || !publishButton) {
+        return;
+      }
+      var lastClickedButton = null;
+      publishButton.addEventListener('click', function () {
+        lastClickedButton = publishButton;
+      });
+      form.addEventListener('submit', function (event) {
+        var submitter = event.submitter || lastClickedButton;
+        lastClickedButton = null;
+        if (submitter !== publishButton) {
+          return;
+        }
+        if (!confirm(reusabilityWarning + ' Continue publishing?')) {
+          event.preventDefault();
+        }
+      });
+    })();
+  </script>
+</c:if>
