@@ -54,6 +54,14 @@ import jakarta.servlet.ServletContext;
  * on a nested {@code <tab>} element instead.
  *
  * <p>
+ * The ecommerce {@code cart} widget (see CartWidget#execute) is not part of that cms-package
+ * "content family" by class, but it genuinely embeds up to two content blocks of its own, via
+ * {@code card1uniqueId}/{@code card2uniqueId} preferences instead of the family's plain
+ * {@code <uniqueId>} convention -- e.g. the real ecommerce-layout.xml {@code /cart} page. It is
+ * therefore also tracked, via {@link #CONTENT_WIDGET_NAMES} plus {@link #EXTRA_CONTENT_REFERENCE_CHILD_TAGS}.
+ * </p>
+ *
+ * <p>
  * {@code <uniqueId>} is a generic tag name reused by unrelated widgets (item/collection/table-of-
  * contents widgets also use it), so matching MUST be scoped to widgets whose {@code name} is in the
  * content family -- a bare text/regex scan for {@code <uniqueId>} anywhere in the page XML would
@@ -83,7 +91,17 @@ public class ContentUsageCommand {
 
   static final Set<String> CONTENT_WIDGET_NAMES = Set.of(
       "content", "contentTabs", "contentCards", "contentAccordion", "contentSlider",
-      "contentReveal", "contentGallery", "contentCarousel", "contentEditor");
+      "contentReveal", "contentGallery", "contentCarousel", "contentEditor",
+      "cart");
+
+  /** Direct child tag names that reference a content block's uniqueId, for widgets in {@link
+   * #CONTENT_WIDGET_NAMES} whose preference shape doesn't match the family's plain {@code
+   * <uniqueId>} convention. {@code cart} can embed up to two content blocks via {@code
+   * card1uniqueId}/{@code card2uniqueId} preferences (see CartWidget#execute); contentTabs's own
+   * outlier shape (a {@code contentUniqueId} attribute on each nested {@code <tab>}) is handled
+   * separately below since it isn't a direct child element at all. */
+  private static final Map<String, List<String>> EXTRA_CONTENT_REFERENCE_CHILD_TAGS = Map.of(
+      "cart", List.of("card1uniqueId", "card2uniqueId"));
 
   private static final String WEB_LAYOUTS_PATH = "/WEB-INF/web-layouts";
 
@@ -143,6 +161,15 @@ public class ContentUsageCommand {
       String uniqueId = directChildText(widgetElement, "uniqueId");
       if (StringUtils.isNotBlank(uniqueId)) {
         addLocation(usageMap, uniqueId.trim(), location);
+      }
+      List<String> extraChildTags = EXTRA_CONTENT_REFERENCE_CHILD_TAGS.get(widgetName);
+      if (extraChildTags != null) {
+        for (String childTag : extraChildTags) {
+          String extraUniqueId = directChildText(widgetElement, childTag);
+          if (StringUtils.isNotBlank(extraUniqueId)) {
+            addLocation(usageMap, extraUniqueId.trim(), location);
+          }
+        }
       }
       if ("contentTabs".equals(widgetName)) {
         // Each tab references its own content block via a contentUniqueId attribute on a nested

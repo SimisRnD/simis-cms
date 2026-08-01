@@ -104,9 +104,60 @@ class ContentUsageCommandTest {
   void everyWidgetInTheDocumentedContentFamilyIsRecognizedByName() {
     // Regression guard for the family list itself (content, contentTabs, contentCards,
     // contentAccordion, contentSlider, contentReveal, contentGallery, contentCarousel,
-    // contentEditor -- per widget-library.xml), independent of the XML-scanning mechanics above.
+    // contentEditor -- per widget-library.xml), plus the ecommerce "cart" widget, which is not in
+    // that cms-package class family but genuinely embeds up to two content blocks of its own (see
+    // CartWidget#execute and the aCartWidgetsCardPreferences... tests below).
     assertEquals(Set.of("content", "contentTabs", "contentCards", "contentAccordion", "contentSlider",
-        "contentReveal", "contentGallery", "contentCarousel", "contentEditor"), ContentUsageCommand.CONTENT_WIDGET_NAMES);
+        "contentReveal", "contentGallery", "contentCarousel", "contentEditor", "cart"), ContentUsageCommand.CONTENT_WIDGET_NAMES);
+  }
+
+  @Test
+  void aCartWidgetsCardPreferencesAreDetectedAsUsageNotTheGenericUniqueIdTag() {
+    // The real ecommerce-layout.xml /cart page: the cart widget embeds two content blocks via
+    // card1uniqueId/card2uniqueId preferences, not a plain <uniqueId> child (see CartWidget#execute).
+    String pageXml = "<page name=\"/cart\">"
+        + "  <section><column>"
+        + "    <widget name=\"cart\">"
+        + "      <title>Your bag</title>"
+        + "      <card1uniqueId>cart-card1</card1uniqueId>"
+        + "      <card2uniqueId>cart-card2</card2uniqueId>"
+        + "    </widget>"
+        + "  </column></section>"
+        + "</page>";
+    WebPage cartPage = new WebPage();
+    cartPage.setLink("/cart");
+    cartPage.setPageXml(pageXml);
+
+    try (MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class)) {
+      webPageRepository.when(WebPageRepository::findAll).thenReturn(List.of(cartPage));
+
+      Map<String, List<String>> usageMap = ContentUsageCommand.findUsageMap(null);
+
+      assertEquals(List.of("/cart"), usageMap.get("cart-card1"));
+      assertEquals(List.of("/cart"), usageMap.get("cart-card2"));
+    }
+  }
+
+  @Test
+  void aCartWidgetWithNoCardPreferencesRegistersNoUsage() {
+    // The /checkout-style "summary" and "items" cart views don't set card1uniqueId/card2uniqueId at
+    // all; this must not throw or register a spurious usage entry.
+    String pageXml = "<page name=\"/checkout\">"
+        + "  <section><column>"
+        + "    <widget name=\"cart\" class=\"callout box checkout-summary-callout\"><view>summary</view></widget>"
+        + "  </column></section>"
+        + "</page>";
+    WebPage checkoutPage = new WebPage();
+    checkoutPage.setLink("/checkout");
+    checkoutPage.setPageXml(pageXml);
+
+    try (MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class)) {
+      webPageRepository.when(WebPageRepository::findAll).thenReturn(List.of(checkoutPage));
+
+      Map<String, List<String>> usageMap = ContentUsageCommand.findUsageMap(null);
+
+      assertTrue(usageMap.isEmpty());
+    }
   }
 
   @Test
