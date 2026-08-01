@@ -18,12 +18,14 @@ package com.simisinc.platform.presentation.widgets.cms;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.simisinc.platform.WidgetBase;
 import com.simisinc.platform.presentation.controller.WidgetContext;
+import java.util.List;
+import java.util.Map;
 import org.junit.jupiter.api.Test;
 
 /**
@@ -34,25 +36,52 @@ class TableWidgetTest extends WidgetBase {
 
   // ── execute() / rendering ─────────────────────────────────────────────────
 
-  @Test
-  void executeWithValidTableDataRendersTheParsedTable() {
-    preferences.put("tableData", "{\"headers\": [\"Name\", \"Age\"], \"rows\": [[\"Alice\", \"30\"], [\"Bob\", \"25\"]]}");
+  @SuppressWarnings("unchecked")
+  private static Map<String, Object> tableDataOf(WidgetContext result) {
+    Object attr = result.getRequest().getAttribute("tableData");
+    // The fix under test: JSTL's <c:forEach> cannot iterate a Jackson JsonNode/ArrayNode, so the
+    // request attribute must be a plain Map of Lists, never the raw parsed JsonNode -- asserting
+    // the concrete type here is the regression check for that crash.
+    assertInstanceOf(Map.class, attr, "tableData request attribute must be a java.util.Map, not a JsonNode");
+    return (Map<String, Object>) attr;
+  }
 
-    WidgetContext result = new TableWidget().execute(widgetContext);
+  @Test
+  void executeWithRealisticMultiRowMultiColumnDataDoesNotThrowAndProducesJstlIterableAttributes() {
+    // Genuinely non-empty, realistic data -- not the empty placeholder -- exercising the exact
+    // shape that used to crash JSTL's <c:forEach> in both table-widget.jsp and
+    // table-widget-edit.jsp (tableData.get('headers') being a Jackson ArrayNode).
+    preferences.put("tableData", "{\"headers\": [\"Name\", \"Age\", \"City\"], "
+        + "\"rows\": [[\"Alice\", \"30\", \"Portland\"], [\"Bob\", \"25\", \"Austin\"], [\"Cara\", \"41\", \"Reno\"]]}");
+
+    WidgetContext result = assertDoesNotThrow(() -> new TableWidget().execute(widgetContext));
 
     assertEquals(TableWidget.JSP, result.getJsp(), "non-edit mode should render the plain table JSP");
-    JsonNode tableData = (JsonNode) result.getRequest().getAttribute("tableData");
-    assertEquals(2, tableData.get("headers").size());
-    assertEquals("Name", tableData.get("headers").get(0).asText());
-    assertEquals(2, tableData.get("rows").size());
-    assertEquals("Bob", tableData.get("rows").get(1).get(0).asText());
+    Map<String, Object> tableData = tableDataOf(result);
+
+    Object headersAttr = tableData.get("headers");
+    assertInstanceOf(List.class, headersAttr, "headers must be a List<String> that <c:forEach> can iterate");
+    List<String> headers = (List<String>) headersAttr;
+    assertEquals(List.of("Name", "Age", "City"), headers);
+
+    Object rowsAttr = tableData.get("rows");
+    assertInstanceOf(List.class, rowsAttr, "rows must be a List<List<String>> that <c:forEach> can iterate");
+    List<List<String>> rows = (List<List<String>>) rowsAttr;
+    assertEquals(3, rows.size());
+    assertEquals(List.of("Alice", "30", "Portland"), rows.get(0));
+    assertEquals(List.of("Bob", "25", "Austin"), rows.get(1));
+    assertEquals(List.of("Cara", "41", "Reno"), rows.get(2));
+    // Every row must itself be a real List too, not left as a nested ArrayNode.
+    rows.forEach(row -> assertInstanceOf(List.class, row));
+
     assertEquals("false", result.getRequest().getAttribute("isEditMode"));
   }
 
   @Test
-  void executeInEditModeSelectsTheEditJspForAUserWithEditPermission() {
+  void executeInEditModeSelectsTheEditJspWhenPageEditModeAndPermissionBothHold() {
+    // "on" case: the real page-level flag PageServlet publishes, plus edit permission.
     setRoles(widgetContext, CONTENT_MANAGER);
-    preferences.put("editMode", "true");
+    request.setAttribute("pageEditMode", "true");
     preferences.put("tableData", "{\"headers\": [\"A\"], \"rows\": [[\"1\"]]}");
 
     WidgetContext result = new TableWidget().execute(widgetContext);
@@ -62,28 +91,75 @@ class TableWidgetTest extends WidgetBase {
   }
 
   @Test
-  void executeIgnoresTheEditModePreferenceForAUserWithoutEditPermission() {
-    // The default logged-in test user (see WidgetBase.login) has no roles at all -- the layout
-    // preference alone must not be sufficient to serve the editable toolbar, or any visitor to a
-    // page with editMode=true stored in its layout would get it, including anonymous ones.
-    preferences.put("editMode", "true");
+  void executeIgnoresPageEditModeForAContentEditorBecauseTheyCannotReachTheSaveEndpoint() {
+    // content-editor holds EditorPermissionCommand.canEditContent() but is deliberately excluded
+    // from canBuildLayout() -- and the Save button in table-widget-edit.jsp POSTs PageServlet's
+    // "setWidgetPreferences" action, which is itself gated on canBuildLayout (see PageServlet's
+    // mutateDraftLayout dispatch). Serving the editable Save UI to a content-editor here would let
+    // them edit and click Save, only to have the server silently drop the request every time --
+    // regression check for that permission-tier mismatch.
+    setRoles(widgetContext, CONTENT_EDITOR);
+    request.setAttribute("pageEditMode", "true");
     preferences.put("tableData", "{\"headers\": [\"A\"], \"rows\": [[\"1\"]]}");
 
     WidgetContext result = new TableWidget().execute(widgetContext);
 
-    assertEquals(TableWidget.JSP, result.getJsp(), "without edit permission, editMode=true must still render the read-only JSP");
+    assertEquals(TableWidget.JSP, result.getJsp(), "content-editor cannot save this widget, so must not receive the editable Save UI");
     assertEquals("false", result.getRequest().getAttribute("isEditMode"));
   }
 
   @Test
-  void executeIgnoresTheEditModePreferenceWhenNotLoggedIn() {
+  void executeIgnoresPageEditModeForAUserWithoutEditPermission() {
+    // "off" case #1: the default logged-in test user (see WidgetBase.login) has no roles at all --
+    // the page-level flag alone must not be sufficient to serve the editable toolbar, matching
+    // every other in-place-editable widget's permission check.
+    request.setAttribute("pageEditMode", "true");
+    preferences.put("tableData", "{\"headers\": [\"A\"], \"rows\": [[\"1\"]]}");
+
+    WidgetContext result = new TableWidget().execute(widgetContext);
+
+    assertEquals(TableWidget.JSP, result.getJsp(), "without edit permission, pageEditMode=true must still render the read-only JSP");
+    assertEquals("false", result.getRequest().getAttribute("isEditMode"));
+  }
+
+  @Test
+  void executeIgnoresPageEditModeWhenNotLoggedIn() {
+    // "off" case #2: an anonymous visitor, even if pageEditMode were somehow still set.
     logout(widgetContext);
-    preferences.put("editMode", "true");
+    request.setAttribute("pageEditMode", "true");
     preferences.put("tableData", "{\"headers\": [\"A\"], \"rows\": [[\"1\"]]}");
 
     WidgetContext result = new TableWidget().execute(widgetContext);
 
     assertEquals(TableWidget.JSP, result.getJsp());
+    assertEquals("false", result.getRequest().getAttribute("isEditMode"));
+  }
+
+  @Test
+  void executeStaysInReadOnlyModeWhenPageEditModeRequestAttributeIsNotSet() {
+    // "off" case #3: the ordinary render path -- no visual editor session at all.
+    setRoles(widgetContext, CONTENT_MANAGER);
+    preferences.put("tableData", "{\"headers\": [\"A\"], \"rows\": [[\"1\"]]}");
+
+    WidgetContext result = new TableWidget().execute(widgetContext);
+
+    assertEquals(TableWidget.JSP, result.getJsp());
+    assertEquals("false", result.getRequest().getAttribute("isEditMode"));
+  }
+
+  @Test
+  void executeNoLongerHonorsTheOldPerWidgetEditModePreference() {
+    // Regression check for the actual bug: this widget used to gate on its own per-widget
+    // "editMode" preference, which nothing in the codebase ever set, making the edit UI
+    // unreachable. Even with permission, that preference alone (without the real pageEditMode
+    // request attribute) must NOT select the edit JSP.
+    setRoles(widgetContext, CONTENT_MANAGER);
+    preferences.put("editMode", "true");
+    preferences.put("tableData", "{\"headers\": [\"A\"], \"rows\": [[\"1\"]]}");
+
+    WidgetContext result = new TableWidget().execute(widgetContext);
+
+    assertEquals(TableWidget.JSP, result.getJsp(), "the stale per-widget editMode preference must have no effect");
     assertEquals("false", result.getRequest().getAttribute("isEditMode"));
   }
 
@@ -95,8 +171,9 @@ class TableWidgetTest extends WidgetBase {
 
     WidgetContext result = new TableWidget().execute(widgetContext);
 
-    JsonNode tableData = (JsonNode) result.getRequest().getAttribute("tableData");
-    assertEquals("FromRequest", tableData.get("headers").get(0).asText());
+    Map<String, Object> tableData = tableDataOf(result);
+    List<String> headers = (List<String>) tableData.get("headers");
+    assertEquals("FromRequest", headers.get(0));
   }
 
   @Test
@@ -105,9 +182,9 @@ class TableWidgetTest extends WidgetBase {
     WidgetContext result = assertDoesNotThrow(() -> new TableWidget().execute(widgetContext));
 
     assertEquals(TableWidget.JSP, result.getJsp());
-    JsonNode tableData = (JsonNode) result.getRequest().getAttribute("tableData");
-    assertTrue(tableData.get("headers").isEmpty());
-    assertTrue(tableData.get("rows").isEmpty());
+    Map<String, Object> tableData = tableDataOf(result);
+    assertTrue(((List<?>) tableData.get("headers")).isEmpty());
+    assertTrue(((List<?>) tableData.get("rows")).isEmpty());
   }
 
   @Test
@@ -117,9 +194,9 @@ class TableWidgetTest extends WidgetBase {
     WidgetContext result = assertDoesNotThrow(() -> new TableWidget().execute(widgetContext));
 
     assertEquals(TableWidget.JSP, result.getJsp());
-    JsonNode tableData = (JsonNode) result.getRequest().getAttribute("tableData");
-    assertTrue(tableData.get("headers").isEmpty());
-    assertTrue(tableData.get("rows").isEmpty());
+    Map<String, Object> tableData = tableDataOf(result);
+    assertTrue(((List<?>) tableData.get("headers")).isEmpty());
+    assertTrue(((List<?>) tableData.get("rows")).isEmpty());
   }
 
   @Test
@@ -131,9 +208,9 @@ class TableWidgetTest extends WidgetBase {
     WidgetContext result = assertDoesNotThrow(() -> new TableWidget().execute(widgetContext));
 
     assertEquals(TableWidget.JSP, result.getJsp());
-    JsonNode tableData = (JsonNode) result.getRequest().getAttribute("tableData");
-    assertTrue(tableData.get("headers").isEmpty());
-    assertTrue(tableData.get("rows").isEmpty());
+    Map<String, Object> tableData = tableDataOf(result);
+    assertTrue(((List<?>) tableData.get("headers")).isEmpty());
+    assertTrue(((List<?>) tableData.get("rows")).isEmpty());
   }
 
   @Test
@@ -149,8 +226,8 @@ class TableWidgetTest extends WidgetBase {
 
     WidgetContext result = assertDoesNotThrow(() -> new TableWidget().execute(widgetContext));
 
-    JsonNode tableData = (JsonNode) result.getRequest().getAttribute("tableData");
-    assertTrue(tableData.get("rows").isEmpty(), "oversized stored data should render as an empty table, not the raw rows");
+    Map<String, Object> tableData = tableDataOf(result);
+    assertTrue(((List<?>) tableData.get("rows")).isEmpty(), "oversized stored data should render as an empty table, not the raw rows");
   }
 
   // ── isValidTableData(): shape ─────────────────────────────────────────────

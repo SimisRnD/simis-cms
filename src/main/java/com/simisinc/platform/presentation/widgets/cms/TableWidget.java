@@ -24,6 +24,11 @@ import com.simisinc.platform.presentation.widgets.GenericWidget;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
 /**
  * P5.4: Data Table Widget — Inline-editable table for structured data
  *
@@ -89,11 +94,38 @@ public class TableWidget extends GenericWidget {
 
   public WidgetContext execute(WidgetContext context) {
 
-    // Check if in edit mode -- the layout preference alone is not sufficient, since a stored page
-    // could carry editMode=true and would otherwise serve the editable toolbar to any visitor,
-    // including anonymous ones. Match every other content widget's gate (see ContentWidget).
-    boolean isEditMode = "true".equals(context.getPreferences().get("editMode")) &&
-        EditorPermissionCommand.canEditContent(context.getUserSession());
+    // Check if in edit mode. The gate is two parts, deliberately: "pageEditMode" is the real,
+    // established page-level flag PageServlet.java computes from the session's pageEditMode flag
+    // AND EditorPermissionCommand.canEditContent, then publishes as a request attribute for every
+    // widget on the page to read -- unlike a per-widget preference, nothing ever needs to "set" it
+    // for this widget specifically, so the editable toolbar is actually reachable through the
+    // normal "Edit" toggle every other widget uses. (ItemsListWidget also reads this same
+    // "pageEditMode" attribute, but is not a permission-parity precedent to follow: its isEditMode
+    // ORs in a raw, unchecked "editMode" request parameter with no permission check at all, a
+    // separate pre-existing gap in that widget, not replicated here.)
+    //
+    // The permission check is repeated here on top of that rather than trusted to have already
+    // been applied: relying solely on the page-level flag would mean a stored/cached response, or
+    // any future caller of this widget that forgets to route through PageServlet, could serve the
+    // editable toolbar -- including its structural add/remove controls -- to a visitor without
+    // edit rights. Checking again here costs nothing and closes that gap the same way every other
+    // content widget's render path does.
+    //
+    // This must check canBuildLayout(), not canEditContent(): the editable UI below includes a
+    // Save button that POSTs PageServlet's "setWidgetPreferences" action, and that action (see
+    // PageServlet's mutateDraftLayout dispatch) is itself gated on
+    // pageEditMode && EditorPermissionCommand.canBuildLayout(userSession) -- content-editor holds
+    // canEditContent but is deliberately excluded from canBuildLayout (see that method's javadoc:
+    // "authors get content guardrails, designers get the canvas"). Gating on canEditContent here
+    // would show a content-editor the full editable Save UI, but every Save click would then be
+    // silently dropped server-side (PageServlet falls through to a normal page render instead of
+    // the JSON response the client expects), discarding the user's edits with a confusing
+    // "Error: HTTP 200" instead of ever persisting them. canBuildLayout keeps this widget's
+    // reachable-editor tier the same as the tier that can actually save it, matching the
+    // "⚙ Prefs" panel this Save button follows the pattern of -- platform-editor.js only ever
+    // inserts that panel's controls when layoutMode (its own canBuildLayout-derived flag) is true.
+    boolean pageEditMode = "true".equals(context.getRequest().getAttribute("pageEditMode"));
+    boolean isEditMode = pageEditMode && EditorPermissionCommand.canBuildLayout(context.getUserSession());
 
     try {
       // Parse table data from content or create default
@@ -115,8 +147,15 @@ public class TableWidget extends GenericWidget {
         tableData = objectMapper.readTree("{\"headers\": [], \"rows\": []}");
       }
 
-      // Store parsed data for JSP rendering
-      context.getRequest().setAttribute("tableData", tableData);
+      // Store parsed data for JSP rendering as plain Java collections, never as the raw Jackson
+      // JsonNode/ArrayNode -- JSTL's <c:forEach> only knows how to iterate a Collection, array,
+      // java.util.Iterator, Map, or String (see jakarta's ForEachSupport). JsonNode/ArrayNode is
+      // none of those -- it implements Iterable<JsonNode>, which looks iterable in plain Java but
+      // is not one of the types JSTL's tag actually dispatches on -- so handing it to <c:forEach>
+      // throws JspTagException("Don't know how to iterate over supplied \"items\"") for any
+      // non-empty table, a crash PageServlet's outer catch silently turns into an empty HTTP 200.
+      Map<String, Object> tableViewModel = toViewModel(tableData);
+      context.getRequest().setAttribute("tableData", tableViewModel);
       context.getRequest().setAttribute("isEditMode", String.valueOf(isEditMode));
 
       // Select appropriate JSP
@@ -132,6 +171,31 @@ public class TableWidget extends GenericWidget {
     }
 
     return context;
+  }
+
+  /**
+   * Converts the parsed table JSON into plain Java collections that JSTL's {@code <c:forEach>} can
+   * actually iterate: {@code headers} becomes a {@code List<String>}, {@code rows} becomes a
+   * {@code List<List<String>>}. See the comment at the {@link #execute} call site for why the raw
+   * {@link JsonNode} must never reach the JSP directly.
+   */
+  private static Map<String, Object> toViewModel(JsonNode tableData) {
+    List<String> headers = new ArrayList<>();
+    for (JsonNode header : tableData.path("headers")) {
+      headers.add(header.asText());
+    }
+    List<List<String>> rows = new ArrayList<>();
+    for (JsonNode row : tableData.path("rows")) {
+      List<String> rowValues = new ArrayList<>();
+      for (JsonNode cell : row) {
+        rowValues.add(cell.asText());
+      }
+      rows.add(rowValues);
+    }
+    Map<String, Object> viewModel = new LinkedHashMap<>();
+    viewModel.put("headers", headers);
+    viewModel.put("rows", rows);
+    return viewModel;
   }
 
   /**
