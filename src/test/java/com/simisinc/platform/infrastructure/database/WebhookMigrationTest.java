@@ -34,7 +34,7 @@ import org.junit.jupiter.api.Test;
  * {@code WebVitalsMigrationTest#installSchemaMatchesUpgradeSchemaColumns}). Both
  * {@code webhook_subscription} and {@code webhook_delivery} are meant to be defined identically
  * in {@code NEW_10130__new_webhooks.sql} (fresh installs) and
- * {@code UPGRADE_20260801.1000__create_webhook_tables.sql} (existing databases) -- this fails
+ * {@code UPGRADE_20260801.1001__create_webhook_tables.sql} (existing databases) -- this fails
  * loudly if a future edit touches one file and not the other, the exact bug shape issue #431
  * already hit once in this codebase.
  */
@@ -42,7 +42,7 @@ class WebhookMigrationTest {
 
   private static final String INSTALL_PATH = "src/main/resources/database/install/NEW_10130__new_webhooks.sql";
   private static final String UPGRADE_PATH =
-      "src/main/resources/database/upgrade/2026/UPGRADE_20260801.1000__create_webhook_tables.sql";
+      "src/main/resources/database/upgrade/2026/UPGRADE_20260801.1001__create_webhook_tables.sql";
 
   @Test
   void installAndUpgradeDefineTheSameTablesWithTheSameColumns() throws IOException {

@@ -228,7 +228,7 @@ class DatabaseMigrationTest {
   @Test
   void webhookTablesExistOnAFreshInstall() throws SQLException {
     // Issue #418: webhook_subscription/webhook_delivery are added in BOTH
-    // NEW_10130__new_webhooks.sql (install/) and UPGRADE_20260801.1000__create_webhook_tables.sql
+    // NEW_10130__new_webhooks.sql (install/) and UPGRADE_20260801.1001__create_webhook_tables.sql
     // (upgrade/) -- this is the same install/upgrade mirroring gap class as
     // tablesThatOnlyExistedInUpgradeMigrationsAreOnTheInstallPath() below (issue #431 precedent),
     // checked directly here for the tables this PR actually adds.
