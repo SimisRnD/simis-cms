@@ -17,6 +17,7 @@
 package com.simisinc.platform.presentation.widgets.cms;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -25,6 +26,8 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
+
+import java.util.List;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Assumptions;
@@ -45,6 +48,7 @@ import com.simisinc.platform.domain.model.cms.Content;
 import com.simisinc.platform.domain.model.cms.WebPage;
 import com.simisinc.platform.infrastructure.cache.PublishEventCachePurgeHandler;
 import com.simisinc.platform.infrastructure.persistence.cms.ContentRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
 
 /**
@@ -107,6 +111,110 @@ class ContentWidgetTest extends WidgetBase {
     String contentHtml = (String) request.getAttribute("contentHtml");
     Assertions.assertTrue(contentHtml.contains("Hello"));
     Assertions.assertTrue(contentHtml.contains("This is additional content"));
+  }
+
+  @Test
+  void executeExposesAReusabilityWarningWhenTheDraftPublishConfirmIsShownForASharedBlock() {
+    // #499 slice 2: the DRAFT badge's "Publish this content?" confirm (reviewOffer == 'publish',
+    // ungoverned direct publish) affects every page/template that references this uniqueId --
+    // warn with the real list before it happens.
+    preferences.put("uniqueId", "cmmc-header");
+
+    Content content = new Content();
+    content.setUniqueId("cmmc-header");
+    content.setContent("<p>Live</p>");
+    content.setDraftContent("<p>Draft</p>");
+
+    WebPage careers = new WebPage();
+    careers.setLink("/careers");
+    careers.setPageXml(
+        "<page><section><column><widget name=\"content\"><uniqueId>cmmc-header</uniqueId></widget></column></section></page>");
+    WebPage aboutUs = new WebPage();
+    aboutUs.setLink("/about-us");
+    aboutUs.setPageXml(
+        "<page><section><column><widget name=\"content\"><uniqueId>cmmc-header</uniqueId></widget></column></section></page>");
+
+    try (MockedStatic<LoadContentCommand> loadContent = mockStatic(LoadContentCommand.class);
+        MockedStatic<EditorPermissionCommand> editorPermission = mockStatic(EditorPermissionCommand.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class)) {
+      loadContent.when(() -> LoadContentCommand.loadContentByUniqueId(eq("cmmc-header"))).thenReturn(content);
+      editorPermission.when(() -> EditorPermissionCommand.canEditContent(any())).thenReturn(true);
+      // Governed publishing off -> offerFor() returns OFFER_PUBLISH, the state that actually
+      // renders the DRAFT badge's confirm in content.jsp.
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean(anyString())).thenReturn(false);
+      webPageRepository.when(WebPageRepository::findAll).thenReturn(List.of(careers, aboutUs));
+
+      ContentWidget contentWidget = new ContentWidget();
+      widgetContext = contentWidget.execute(widgetContext);
+
+      Assertions.assertEquals(ContentReviewCommand.OFFER_PUBLISH, request.getAttribute("reviewOffer"));
+      String warning = (String) request.getAttribute("reusabilityWarning");
+      Assertions.assertNotNull(warning, "a block used on 2 pages must produce a warning");
+      Assertions.assertTrue(warning.contains("2 pages"), warning);
+      Assertions.assertTrue(warning.contains("/careers"), warning);
+      Assertions.assertTrue(warning.contains("/about-us"), warning);
+    }
+  }
+
+  @Test
+  void executeDoesNotExposeAWarningWhenTheSharedBlockIsUsedOnAtMostOnePage() {
+    preferences.put("uniqueId", "solo-header");
+
+    Content content = new Content();
+    content.setUniqueId("solo-header");
+    content.setContent("<p>Live</p>");
+    content.setDraftContent("<p>Draft</p>");
+
+    WebPage careers = new WebPage();
+    careers.setLink("/careers");
+    careers.setPageXml(
+        "<page><section><column><widget name=\"content\"><uniqueId>solo-header</uniqueId></widget></column></section></page>");
+
+    try (MockedStatic<LoadContentCommand> loadContent = mockStatic(LoadContentCommand.class);
+        MockedStatic<EditorPermissionCommand> editorPermission = mockStatic(EditorPermissionCommand.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class)) {
+      loadContent.when(() -> LoadContentCommand.loadContentByUniqueId(eq("solo-header"))).thenReturn(content);
+      editorPermission.when(() -> EditorPermissionCommand.canEditContent(any())).thenReturn(true);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean(anyString())).thenReturn(false);
+      webPageRepository.when(WebPageRepository::findAll).thenReturn(List.of(careers));
+
+      ContentWidget contentWidget = new ContentWidget();
+      widgetContext = contentWidget.execute(widgetContext);
+
+      Assertions.assertEquals(ContentReviewCommand.OFFER_PUBLISH, request.getAttribute("reviewOffer"));
+      assertNull(request.getAttribute("reusabilityWarning"));
+    }
+  }
+
+  @Test
+  void executeSkipsTheUsageScanWhenNoPublishConfirmWillBeShown() {
+    // Cost containment: ContentUsageCommand#findUsageMap is a bulk scan of every page and
+    // filesystem template (#499 slice 1). It must only run for the one reviewOffer state that
+    // actually renders the confirm it feeds (OFFER_PUBLISH) -- not on every content-widget render
+    // on every page view. Here there is no draft at all, so offerFor() returns OFFER_NONE.
+    preferences.put("uniqueId", "hello-content");
+
+    Content content = new Content();
+    content.setUniqueId("hello-content");
+    content.setContent("<p>Hello</p>");
+
+    try (MockedStatic<LoadContentCommand> loadContent = mockStatic(LoadContentCommand.class);
+        MockedStatic<EditorPermissionCommand> editorPermission = mockStatic(EditorPermissionCommand.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class)) {
+      loadContent.when(() -> LoadContentCommand.loadContentByUniqueId(eq("hello-content"))).thenReturn(content);
+      editorPermission.when(() -> EditorPermissionCommand.canEditContent(any())).thenReturn(true);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean(anyString())).thenReturn(false);
+
+      ContentWidget contentWidget = new ContentWidget();
+      widgetContext = contentWidget.execute(widgetContext);
+
+      webPageRepository.verify(WebPageRepository::findAll, never());
+      Assertions.assertEquals(ContentReviewCommand.OFFER_NONE, request.getAttribute("reviewOffer"));
+      assertNull(request.getAttribute("reusabilityWarning"));
+    }
   }
 
   @Test

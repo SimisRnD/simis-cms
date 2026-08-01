@@ -138,6 +138,39 @@ public class ContentUsageCommand {
     return usageMap;
   }
 
+  /**
+   * Builds the "this will affect other pages" warning shown before a shared content block is
+   * republished (issue #499 slice 2), or {@code null} when there is nothing to warn about. A
+   * block used on 0 or 1 locations isn't "shared" -- publishing it only ever affects the page the
+   * author is already looking at, so no warning is needed.
+   *
+   * <p>
+   * Shared by the two real publish surfaces that can affect other pages: {@code
+   * ContentEditorWidget}'s "Publish Immediately" button on the full {@code /content-editor} page,
+   * and the DRAFT-badge "Publish this content?" confirm in {@code content.jsp}. Both describe the
+   * same locations the same way rather than duplicating the message-building logic. (A third
+   * publish surface, the step-up APPROVE flow reached from {@code content.jsp}, is a different UI
+   * shape -- a full re-authentication form, not a single confirm-on-click -- and is intentionally
+   * out of scope for this slice.)
+   * </p>
+   *
+   * @param uniqueId the content block being published
+   * @param usageMap the result of {@link #findUsageMap(ServletContext)}
+   * @return a warning message with the affected page/template locations, or {@code null} if the
+   *     block is not shared
+   */
+  public static String buildReusabilityWarning(String uniqueId, Map<String, List<String>> usageMap) {
+    if (uniqueId == null || usageMap == null) {
+      return null;
+    }
+    List<String> locations = usageMap.get(uniqueId);
+    if (locations == null || locations.size() <= 1) {
+      return null;
+    }
+    return "This content appears on " + locations.size() + " pages. Update will affect: "
+        + String.join(", ", locations) + ".";
+  }
+
   private static void addUsageFromXml(Map<String, List<String>> usageMap, String xml, String location) {
     if (StringUtils.isBlank(xml) || StringUtils.isBlank(location)) {
       return;

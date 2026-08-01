@@ -21,6 +21,7 @@
 <jsp:useBean id="contentHtml" class="java.lang.String" scope="request"/>
 <jsp:useBean id="videoBackgroundUrl" class="java.lang.String" scope="request"/>
 <jsp:useBean id="isDraft" class="java.lang.String" scope="request"/>
+<jsp:useBean id="reusabilityWarning" class="java.lang.String" scope="request"/>
 <c:if test="${!empty title}">
   <h4><c:if test="${!empty icon}"><i class="fa <c:out value="${icon}"/>"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
@@ -32,7 +33,11 @@
       <c:choose>
         <c:when test="${reviewOffer eq 'publish'}">
           <c:if test="${isDraft eq 'true'}">
-            <a class="hollow button small warning" href="${widgetContext.uri}?action=publish&widget=${widgetContext.uniqueId}&token=${userSession.formToken}" onclick="return confirm('Publish this content?');">DRAFT</a>
+            <%-- #499 slice 2: when this content is used on more than one page/template,
+                 reusabilityWarning carries the real affected-page list (see
+                 ContentUsageCommand#buildReusabilityWarning); the confirm is enriched with it. The
+                 non-shared case renders the exact same 'Publish this content?' confirm as before. --%>
+            <a class="hollow button small warning" href="${widgetContext.uri}?action=publish&widget=${widgetContext.uniqueId}&token=${userSession.formToken}" onclick="return confirm('<c:if test="${!empty reusabilityWarning}"><c:out value="${js:escape(reusabilityWarning)}"/> </c:if>Publish this content?');">DRAFT</a>
           </c:if>
         </c:when>
         <c:when test="${reviewOffer eq 'submit'}">
