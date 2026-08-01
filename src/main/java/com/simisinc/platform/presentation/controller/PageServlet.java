@@ -324,7 +324,7 @@ public class PageServlet extends HttpServlet {
         String layoutJson = request.getParameter("layout");
         response.setContentType("application/json");
         try {
-          SaveDraftLayoutCommand.saveDraftLayout(webPage, layoutJson);
+          SaveDraftLayoutCommand.saveDraftLayout(webPage, layoutJson, userSession.getUserId());
           response.getWriter().print("{\"success\":true}");
         } catch (Exception e) {
           LOG.error("saveDraftLayout failed for " + pagePath, e);

@@ -56,8 +56,9 @@ public class SaveDraftLayoutCommand {
   /**
    * @param webPage    the page whose layout is being changed
    * @param layoutJson JSON string: {"sections":[{"s":origIdx,"columns":[{"c":origIdx,"widgets":[origIdx,...]},...]},...]}
+   * @param modifiedBy user id of the person making this change
    */
-  public static void saveDraftLayout(WebPage webPage, String layoutJson) throws DataException {
+  public static void saveDraftLayout(WebPage webPage, String layoutJson, long modifiedBy) throws DataException {
     if (webPage == null || webPage.getId() == -1) {
       throw new DataException("Page not found");
     }
@@ -174,7 +175,10 @@ public class SaveDraftLayoutCommand {
       // Persist
       webPage.setDraftPageXml(newXml);
       webPage.setDraft(true);
-      WebPageRepository.save(webPage);
+      webPage.setModifiedBy(modifiedBy);
+      if (WebPageRepository.save(webPage) == null) {
+        throw new DataException("Could not save draft layout for " + webPage.getLink());
+      }
       WebPageXmlLayoutCommand.removeCustomPage(webPage.getLink());
       LOG.debug("Draft layout saved for: " + webPage.getLink());
 
