@@ -175,6 +175,10 @@
   }
 </style>
 
+<%-- Issue #815: the drag handles above and the Sortable.create() call below have always been
+     present, but nothing ever vendored the library that guards them (typeof Sortable), so they
+     were dead code. --%>
+<script src="${ctx}/javascript/sortablejs-1.15.2/Sortable.min.js"></script>
 <script>
 (function() {
   var collectionId = '${collection.id}';
