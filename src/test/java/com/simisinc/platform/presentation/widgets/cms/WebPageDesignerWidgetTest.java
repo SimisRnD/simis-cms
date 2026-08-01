@@ -19,6 +19,7 @@ package com.simisinc.platform.presentation.widgets.cms;
 import com.simisinc.platform.WidgetBase;
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.cms.SaveWebPageCommand;
+import com.simisinc.platform.application.cms.WebPageXmlLayoutCommand;
 import com.simisinc.platform.domain.model.cms.WebPage;
 import com.simisinc.platform.domain.model.cms.WebPageTemplate;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
@@ -31,6 +32,7 @@ import org.mockito.MockedStatic;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mockStatic;
@@ -159,6 +161,67 @@ class WebPageDesignerWidgetTest extends WidgetBase {
         Assertions.assertNotNull(widgetContext.getErrorMessage());
         Assertions.assertNull(widgetContext.getRedirect());
       }
+    }
+  }
+
+  // Regression coverage for issue #532: post()'s gridmanager-designer branch (triggered by the "content"
+  // parameter, distinct from the raw-XML "pageXmlValue" branch the tests above exercise) used to call
+  // WebPageDesignerToXmlCommand.convertFromBootstrapHtml() OUTSIDE the try/catch that wraps the save --
+  // an exception from conversion itself (which #532's fix makes possible, via the new widget-name
+  // validation) would have propagated up uncaught instead of producing the same clean error response a
+  // save failure gets. These two tests exercise that branch directly, the one no existing test above did.
+
+  private static final Map<String, String> REGISTERED_WIDGETS = Map.of(
+      "content", "com.simisinc.platform.presentation.widgets.cms.ContentWidget",
+      "map", "com.simisinc.platform.presentation.widgets.maps.MapWidget");
+
+  @Test
+  void postDesignerContentWithARealWidgetTypeSaves() {
+    addQueryParameter(widgetContext, "widget", widgetContext.getUniqueId());
+    addQueryParameter(widgetContext, "token", "12345");
+    addQueryParameter(widgetContext, "webPage", "/web-page");
+    addQueryParameter(widgetContext, "content",
+        "<div class=\"row\"><div class=\"column col-sm-12 col-md-12 col-xs-12\">"
+            + "<!--gm-editable-region--><h3 data-widget=\"map\">Map</h3><p>Write a description</p><!--/gm-editable-region-->"
+            + "</div></div>");
+
+    try (MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class);
+        MockedStatic<SaveWebPageCommand> saveWebPageCommand = mockStatic(SaveWebPageCommand.class);
+        MockedStatic<WebPageXmlLayoutCommand> widgetLibrary = mockStatic(WebPageXmlLayoutCommand.class)) {
+      webPageRepository.when(() -> WebPageRepository.findByLink("/web-page")).thenReturn(null);
+      saveWebPageCommand.when(() -> SaveWebPageCommand.saveWebPage(any())).thenReturn(new WebPage());
+      widgetLibrary.when(WebPageXmlLayoutCommand::getWidgetLibrary).thenReturn(REGISTERED_WIDGETS);
+
+      WebPageDesignerWidget widget = new WebPageDesignerWidget();
+      widget.post(widgetContext);
+
+      Assertions.assertEquals("[{\"status\":\"0\"}]", widgetContext.getJson());
+      saveWebPageCommand.verify(() -> SaveWebPageCommand.saveWebPage(any()));
+    }
+  }
+
+  @Test
+  void postDesignerContentWithAnUnregisteredWidgetTypeFailsCleanly() {
+    addQueryParameter(widgetContext, "widget", widgetContext.getUniqueId());
+    addQueryParameter(widgetContext, "token", "12345");
+    addQueryParameter(widgetContext, "webPage", "/web-page");
+    addQueryParameter(widgetContext, "content",
+        "<div class=\"row\"><div class=\"column col-sm-12 col-md-12 col-xs-12\">"
+            + "<!--gm-editable-region--><h3 data-widget=\"not-a-real-widget\">Headline</h3><p>Write a description</p><!--/gm-editable-region-->"
+            + "</div></div>");
+
+    try (MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class);
+        MockedStatic<SaveWebPageCommand> saveWebPageCommand = mockStatic(SaveWebPageCommand.class);
+        MockedStatic<WebPageXmlLayoutCommand> widgetLibrary = mockStatic(WebPageXmlLayoutCommand.class)) {
+      webPageRepository.when(() -> WebPageRepository.findByLink("/web-page")).thenReturn(null);
+      widgetLibrary.when(WebPageXmlLayoutCommand::getWidgetLibrary).thenReturn(REGISTERED_WIDGETS);
+
+      WebPageDesignerWidget widget = new WebPageDesignerWidget();
+      widget.post(widgetContext);
+
+      // Must fail the same clean way a save failure does -- not throw uncaught, not silently succeed.
+      Assertions.assertTrue(widgetContext.getJson().contains("could not be saved"), widgetContext.getJson());
+      saveWebPageCommand.verifyNoInteractions();
     }
   }
 }

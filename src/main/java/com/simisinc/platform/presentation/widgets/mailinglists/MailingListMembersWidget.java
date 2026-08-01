@@ -26,6 +26,7 @@ import com.simisinc.platform.application.mailinglists.SaveEmailCommand;
 import com.simisinc.platform.domain.model.BlockedIP;
 import com.simisinc.platform.domain.model.mailinglists.Email;
 import com.simisinc.platform.domain.model.mailinglists.MailingList;
+import com.simisinc.platform.domain.model.mailinglists.MailingListMember;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.persistence.BlockedIPRepository;
 import com.simisinc.platform.infrastructure.persistence.mailinglists.*;
@@ -74,13 +75,31 @@ public class MailingListMembersWidget extends GenericWidget {
     }
     context.getRequest().setAttribute("mailingList", mailingList);
 
-    // Determine criteria
-    EmailSpecification specification = new EmailSpecification();
-    specification.setMailingListId(mailingList.getId());
+    // Determine the search/filter criteria (GET, so it's bookmarkable and survives paging --
+    // see recordPagingParams below, which must carry these or they'd silently reset on page 2+)
+    String searchName = context.getParameter("searchName");
+    String searchEmail = context.getParameter("searchEmail");
+    String status = context.getParameter("status");
+    context.getRequest().setAttribute("searchName", searchName);
+    context.getRequest().setAttribute("searchEmail", searchEmail);
+    context.getRequest().setAttribute("status", status);
 
-    // Load the email addresses
-    List<Email> emailList = EmailRepository.findAll(specification, constraints);
-    context.getRequest().setAttribute("emailList", emailList);
+    // Determine criteria
+    MailingListMemberSpecification specification = new MailingListMemberSpecification();
+    specification.setMailingListId(mailingList.getId());
+    if (StringUtils.isNotBlank(searchName)) {
+      specification.setMatchesName(searchName);
+    }
+    if (StringUtils.isNotBlank(searchEmail)) {
+      specification.setMatchesEmail(searchEmail);
+    }
+    if (StringUtils.isNotBlank(status)) {
+      specification.setStatus(status);
+    }
+
+    // Load the list's members
+    List<MailingListMember> memberList = MailingListMemberRepository.findAll(specification, constraints);
+    context.getRequest().setAttribute("memberList", memberList);
 
     // Standard request items
     context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));
@@ -163,8 +182,14 @@ public class MailingListMembersWidget extends GenericWidget {
     try {
       int memberCount = ProcessEmailCSVFileCommand.processCSV(context, mailingList);
       context.setSuccessMessage(memberCount + " email" + (memberCount != 1 ? "s" : "") + " added");
+      // Record the import of mailing-list member PII (email, name), mirroring downloadCSVFile's
+      // data.export below -- data.import didn't exist anywhere in the codebase before this
+      AuditEventCommand.record(context, AuditEventCommand.DATA_ACCESS, "data.import", AuditEventCommand.SUCCESS,
+          "mailing_list_members", String.valueOf(mailingList.getId()), mailingList.getName(), "memberCount=" + memberCount);
     } catch (Exception e) {
       context.setErrorMessage(e.getMessage());
+      AuditEventCommand.record(context, AuditEventCommand.DATA_ACCESS, "data.import", AuditEventCommand.FAILURE,
+          "mailing_list_members", String.valueOf(mailingList.getId()), mailingList.getName(), e.getMessage());
     }
     // Determine the page to return to
     context.setRedirect("/admin/mailing-list-members?mailingListId=" + mailingList.getId());

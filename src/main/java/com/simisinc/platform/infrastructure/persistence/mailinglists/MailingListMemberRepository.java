@@ -218,6 +218,8 @@ public class MailingListMemberRepository {
       record.setUnsubscribedBy(rs.getLong("unsubscribed_by"));
       record.setUnsubscribeReason(rs.getString("unsubscribe_reason"));
       record.setIsValid(rs.getBoolean("is_valid"));
+      record.setQuarantined(rs.getTimestamp("quarantined"));
+      record.setQuarantineReason(rs.getString("quarantine_reason"));
       record.setUnsubscribeToken(rs.getString("unsubscribe_token"));
       record.setEmailAddress(rs.getString("email_address"));
       return record;
@@ -225,6 +227,73 @@ public class MailingListMemberRepository {
       LOG.error("buildRecordWithEmail", se);
       return null;
     }
+  }
+
+  /** Like {@link #buildRecordWithEmail}, plus the emails-table display/classification columns
+   *  needed to render a per-list member table (name, organization, IP, deliverability status). */
+  private static MailingListMember buildRecordWithEmailDetails(ResultSet rs) {
+    try {
+      MailingListMember record = buildRecordWithEmail(rs);
+      if (record == null) {
+        return null;
+      }
+      record.setFirstName(rs.getString("first_name"));
+      record.setLastName(rs.getString("last_name"));
+      record.setOrganization(rs.getString("organization"));
+      record.setIpAddress(rs.getString("ip_address"));
+      record.setValidationStatus(rs.getString("validation_status"));
+      return record;
+    } catch (SQLException se) {
+      LOG.error("buildRecordWithEmailDetails", se);
+      return null;
+    }
+  }
+
+  /**
+   * Members of a list for the admin member-management table (issue #763): supports the same
+   * name/email search {@link com.simisinc.platform.infrastructure.persistence.mailinglists.EmailRepository}
+   * offers on the cross-list search flow, plus a status filter over this table's own
+   * quarantined/unsubscribed columns (a property of this one list membership, not of the email
+   * address globally -- see the quarantine migration's own comment on why that distinction matters).
+   */
+  public static List<MailingListMember> findAll(MailingListMemberSpecification specification, DataConstraints constraints) {
+    SqlUtils select = new SqlUtils().addNames(
+        "emails.email AS email_address", "first_name", "last_name", "organization", "ip_address", "validation_status");
+    SqlJoins joins = new SqlJoins().add(JOIN);
+    SqlUtils where = new SqlUtils();
+    if (specification != null) {
+      if (specification.getMailingListId() > -1) {
+        where.add("mailing_list_members.list_id = ?", specification.getMailingListId());
+      }
+      if (StringUtils.isNotBlank(specification.getMatchesEmail())) {
+        where.add("LOWER(emails.email) = LOWER(?)", specification.getMatchesEmail().trim());
+      }
+      if (StringUtils.isNotBlank(specification.getMatchesName())) {
+        // Same escaped LIKE pattern as EmailRepository's cross-list name search
+        String likeValue = specification.getMatchesName().trim()
+            .replace("!", "!!")
+            .replace("%", "!%")
+            .replace("_", "!_")
+            .replace("[", "![");
+        where.add("LOWER(concat_ws(' ', first_name, last_name)) LIKE LOWER(?) ESCAPE '!'", "%" + likeValue + "%");
+      }
+      if ("quarantined".equals(specification.getStatus())) {
+        where.add("mailing_list_members.quarantined IS NOT NULL");
+      } else if ("unsubscribed".equals(specification.getStatus())) {
+        where.add("mailing_list_members.unsubscribed IS NOT NULL");
+      } else if ("active".equals(specification.getStatus())) {
+        where.add("mailing_list_members.quarantined IS NULL");
+        where.add("mailing_list_members.unsubscribed IS NULL");
+      }
+    }
+    if (constraints == null) {
+      constraints = new DataConstraints();
+    }
+    constraints.setDefaultColumnToSortBy("mailing_list_members.created desc");
+    DataResult result = DB.selectAllFrom(TABLE_NAME, select, joins, where, null, constraints,
+        MailingListMemberRepository::buildRecordWithEmailDetails);
+    List<MailingListMember> members = (List<MailingListMember>) result.getRecords();
+    return members != null ? members : new ArrayList<>();
   }
 
   /**

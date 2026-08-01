@@ -17,11 +17,41 @@
 package com.simisinc.platform.infrastructure.persistence.cms;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 
+import java.sql.Connection;
+import java.sql.SQLException;
+import java.sql.Statement;
+import java.time.Duration;
+import java.util.List;
+import java.util.Properties;
+
+import org.junit.jupiter.api.AfterAll;
+import org.junit.jupiter.api.Assumptions;
+import org.junit.jupiter.api.BeforeAll;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.testcontainers.DockerClientFactory;
+import org.testcontainers.containers.GenericContainer;
+import org.testcontainers.containers.wait.strategy.Wait;
+import org.testcontainers.utility.DockerImageName;
+
+import com.simisinc.platform.domain.model.dashboard.StatisticsData;
+import com.simisinc.platform.infrastructure.database.DB;
+import com.simisinc.platform.infrastructure.database.DataSource;
 
 /**
- * Tests parsing of the configurable analytics retention window
+ * Tests parsing of the configurable analytics retention window, plus (for {@link #findTopWebPages}
+ * specifically) a real-Postgres integration test.
+ *
+ * <p>
+ * {@code findTopWebPages()} joins {@code web_page_hits} with the alias {@code wph} but its
+ * bot-exclusion subquery referred to the table by its pre-alias name ({@code web_page_hits.session_id}),
+ * which Postgres rejects once an alias is assigned ("invalid reference to FROM-clause entry for table
+ * \"web_page_hits\""). Every call threw, was caught, and returned {@code null} -- silently, since the
+ * caller (SiteStatsWidget's "web-pages"/"Top Modules" report) treats a null result the same as a
+ * legitimately empty one. See issue #804.
+ * </p>
  *
  * @author elizabeth houser
  */
@@ -41,5 +71,164 @@ class WebPageHitRepositoryTest {
     assertEquals(1, WebPageHitRepository.resolveRetentionDays("0"));
     assertEquals(1, WebPageHitRepository.resolveRetentionDays("-5"));
     assertEquals(3650, WebPageHitRepository.resolveRetentionDays("999999"));
+  }
+
+  // --- findTopWebPages() integration coverage (issue #804) ---
+
+  private static final String DEFAULT_IMAGE = "postgres:15-alpine";
+  private static final int POSTGRES_PORT = 5432;
+  private static final String DB_NAME = "simis_cms_test";
+  private static final String DB_USER = "simis";
+  private static final String DB_PASSWORD = "simis";
+
+  private static GenericContainer<?> postgres;
+
+  @BeforeAll
+  static void startDatabase() {
+    Assumptions.assumeTrue(isDockerAvailable(),
+        "Docker is not available - skipping WebPageHitRepository integration test");
+
+    postgres = new GenericContainer<>(DockerImageName.parse(resolveImage()))
+        .withEnv("POSTGRES_USER", DB_USER)
+        .withEnv("POSTGRES_PASSWORD", DB_PASSWORD)
+        .withEnv("POSTGRES_DB", DB_NAME)
+        .withExposedPorts(POSTGRES_PORT)
+        .waitingFor(Wait.forLogMessage(".*database system is ready to accept connections.*", 2)
+            .withStartupTimeout(Duration.ofSeconds(120)));
+    try {
+      postgres.start();
+    } catch (Throwable t) {
+      Assumptions.abort("Unable to start PostgreSQL test container: " + t.getMessage());
+    }
+
+    String jdbcUrl = "jdbc:postgresql://" + postgres.getHost() + ":" + postgres.getMappedPort(POSTGRES_PORT)
+        + "/" + DB_NAME;
+    Properties properties = new Properties();
+    properties.setProperty("jdbcUrl", jdbcUrl);
+    properties.setProperty("username", DB_USER);
+    properties.setProperty("password", DB_PASSWORD);
+    DataSource.init(properties);
+
+    createSchema();
+  }
+
+  @AfterAll
+  static void stopDatabase() {
+    try {
+      DataSource.shutdown();
+    } catch (Exception e) {
+      // The DataSource is never initialized when Docker is unavailable
+    }
+    if (postgres != null) {
+      postgres.stop();
+    }
+  }
+
+  @BeforeEach
+  void resetTables() {
+    if (postgres == null || !postgres.isRunning()) {
+      return;
+    }
+    try (Connection connection = DB.getConnection();
+        Statement statement = connection.createStatement()) {
+      statement.execute("TRUNCATE TABLE web_page_hits, web_pages, sessions RESTART IDENTITY");
+    } catch (SQLException se) {
+      throw new IllegalStateException("Could not reset tables", se);
+    }
+  }
+
+  @Test
+  void findTopWebPagesRunsWithoutThrowingAndCountsRealSessionHits() {
+    seedSession("real-session", false);
+    seedSession("bot-session", true);
+    long pageId = seedPage("/contact-us");
+    seedHit(pageId, "real-session");
+    seedHit(pageId, "real-session");
+    seedHit(pageId, "bot-session");
+
+    List<StatisticsData> results = WebPageHitRepository.findTopWebPages(30, 10);
+
+    // Before the fix (issue #804), the query threw on every call and this was always null.
+    assertNotNull(results, "the query must run instead of throwing on the aliased table reference");
+    assertEquals(1, results.size());
+    assertEquals("/contact-us", results.get(0).getLabel());
+    assertEquals("2", results.get(0).getValue(), "only the two real-session hits should count, not the bot's");
+  }
+
+  @Test
+  void findTopWebPagesReturnsEmptyListWhenThereIsNoData() {
+    List<StatisticsData> results = WebPageHitRepository.findTopWebPages(30, 10);
+
+    assertNotNull(results);
+    assertEquals(0, results.size());
+  }
+
+  private static void seedSession(String sessionId, boolean isBot) {
+    try (Connection connection = DB.getConnection();
+        Statement statement = connection.createStatement()) {
+      statement.execute("INSERT INTO sessions (session_id, is_bot) VALUES ('" + sessionId + "', " + isBot + ")");
+    } catch (SQLException se) {
+      throw new IllegalStateException("Could not seed session", se);
+    }
+  }
+
+  private static long seedPage(String link) {
+    try (Connection connection = DB.getConnection();
+        Statement statement = connection.createStatement()) {
+      statement.execute("INSERT INTO web_pages (link) VALUES ('" + link + "')");
+      var rs = statement.executeQuery("SELECT web_page_id FROM web_pages WHERE link = '" + link + "'");
+      rs.next();
+      return rs.getLong("web_page_id");
+    } catch (SQLException se) {
+      throw new IllegalStateException("Could not seed web page", se);
+    }
+  }
+
+  private static void seedHit(long webPageId, String sessionId) {
+    try (Connection connection = DB.getConnection();
+        Statement statement = connection.createStatement()) {
+      statement.execute("INSERT INTO web_page_hits (web_page_id, session_id, hit_date) VALUES ("
+          + webPageId + ", '" + sessionId + "', CURRENT_TIMESTAMP)");
+    } catch (SQLException se) {
+      throw new IllegalStateException("Could not seed web page hit", se);
+    }
+  }
+
+  private static boolean isDockerAvailable() {
+    try {
+      return DockerClientFactory.instance().isDockerAvailable();
+    } catch (Throwable t) {
+      return false;
+    }
+  }
+
+  private static String resolveImage() {
+    String image = System.getenv("TEST_POSTGRES_IMAGE");
+    return (image != null && !image.isBlank()) ? image : DEFAULT_IMAGE;
+  }
+
+  private static void createSchema() {
+    // A focused subset of the real schema (issue #804's 3 tables) - enough for findTopWebPages'
+    // join + bot-exclusion subquery. FK constraints to unrelated tables (users, etc.) are omitted.
+    try (Connection connection = DB.getConnection();
+        Statement statement = connection.createStatement()) {
+      statement.execute("DROP TABLE IF EXISTS web_page_hits CASCADE");
+      statement.execute("DROP TABLE IF EXISTS web_pages CASCADE");
+      statement.execute("DROP TABLE IF EXISTS sessions CASCADE");
+      statement.execute("CREATE TABLE web_pages ("
+          + "web_page_id BIGSERIAL PRIMARY KEY, "
+          + "link VARCHAR(255) UNIQUE NOT NULL)");
+      statement.execute("CREATE TABLE sessions ("
+          + "id BIGSERIAL PRIMARY KEY, "
+          + "session_id VARCHAR(255), "
+          + "is_bot BOOLEAN DEFAULT false)");
+      statement.execute("CREATE TABLE web_page_hits ("
+          + "hit_id BIGSERIAL PRIMARY KEY, "
+          + "web_page_id BIGINT, "
+          + "session_id VARCHAR(255), "
+          + "hit_date TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP)");
+    } catch (SQLException se) {
+      throw new IllegalStateException("Could not create the schema", se);
+    }
   }
 }

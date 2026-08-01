@@ -35,6 +35,7 @@ import org.apache.commons.logging.LogFactory;
 import org.w3c.dom.Document;
 import org.w3c.dom.NodeList;
 
+import jakarta.servlet.ServletContext;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import java.io.InputStream;
@@ -58,6 +59,10 @@ public class WebPageDesignerWidget extends GenericWidget {
   static String RAW_XML_JSP = "/cms/web-page-editor.jsp";
   static String ACE_XML_EDITOR_JSP = "/cms/web-page-xml-editor.jsp";
   static String CODE_MIRROR_XML_EDITOR_JSP = "/cms/web-page-code-mirror-xml-editor.jsp";
+  static String WIDGET_SCHEMA_RESOURCE = "/WEB-INF/widgets/widget-schema.json";
+
+  // Loaded once and cached; the file is static content shipped with the app, not per-request data.
+  private static String widgetSchemaJson = null;
 
   public WidgetContext execute(WidgetContext context) {
 
@@ -152,7 +157,22 @@ public class WebPageDesignerWidget extends GenericWidget {
       }
     }
     context.getRequest().setAttribute("webPage", webPage);
+    if (DESIGNER_JSP.equals(context.getJsp())) {
+      context.getRequest().setAttribute("widgetSchemaJson", loadWidgetSchemaJson(context.getRequest().getServletContext()));
+    }
     return context;
+  }
+
+  private static synchronized String loadWidgetSchemaJson(ServletContext servletContext) {
+    if (widgetSchemaJson == null) {
+      try (InputStream is = servletContext.getResourceAsStream(WIDGET_SCHEMA_RESOURCE)) {
+        widgetSchemaJson = IOUtils.toString(is, "UTF-8");
+      } catch (Exception e) {
+        LOG.error("Could not load " + WIDGET_SCHEMA_RESOURCE, e);
+        widgetSchemaJson = "{}";
+      }
+    }
+    return widgetSchemaJson;
   }
 
   public WidgetContext post(WidgetContext context) {
@@ -218,10 +238,10 @@ public class WebPageDesignerWidget extends GenericWidget {
         LOG.debug("Found designer content...");
         LOG.debug("Content found: " + pageDesignHtml);
       }
-      String pageXml = WebPageDesignerToXmlCommand.convertFromBootstrapHtml(webPage, pageDesignHtml);
-      LOG.debug("Converted to: " + pageXml);
-      webPage.setPageXml(pageXml);
       try {
+        String pageXml = WebPageDesignerToXmlCommand.convertFromBootstrapHtml(webPage, pageDesignHtml);
+        LOG.debug("Converted to: " + pageXml);
+        webPage.setPageXml(pageXml);
         SaveWebPageCommand.saveWebPage(webPage);
         context.setJson("[{\"status\":\"0\"}]");
       } catch (Exception e) {

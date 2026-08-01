@@ -24,10 +24,10 @@ import com.simisinc.platform.infrastructure.persistence.mailinglists.EmailReposi
 import com.simisinc.platform.infrastructure.persistence.mailinglists.EmailSpecification;
 import com.simisinc.platform.infrastructure.persistence.mailinglists.MailingListRepository;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
+import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import org.apache.commons.lang3.StringUtils;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 
 /**
@@ -91,16 +91,6 @@ public class MailingListsWidget extends GenericWidget {
     return context;
   }
 
-  public WidgetContext post(WidgetContext context) throws InvocationTargetException, IllegalAccessException {
-    // The row's delete link submits via confirmPostAction(), a real POST -- WebContainerContext
-    // checks isPost() before isDelete(), so this always reaches post(), never delete() directly.
-    // Forward to it explicitly (same fix shape as #658/PR #659).
-    if ("delete".equals(context.getParameter("command"))) {
-      return delete(context);
-    }
-    return null;
-  }
-
   public WidgetContext delete(WidgetContext context) {
     // Determine what's being deleted
     long mailingListId = context.getParameterAsLong("mailingListId");
@@ -111,10 +101,17 @@ public class MailingListsWidget extends GenericWidget {
       } else {
         if (mailingList.getMemberCount() > 10) {
           context.setWarningMessage("Mailing list cannot be deleted, there are related records");
+          AuditEventCommand.record(context, AuditEventCommand.CONFIGURATION, "mailing_list.delete", AuditEventCommand.FAILURE,
+              "mailing_list", String.valueOf(mailingList.getId()), mailingList.getName(),
+              "refused: memberCount=" + mailingList.getMemberCount());
         } else if (DeleteMailingListCommand.delete(mailingList)) {
           context.setSuccessMessage("Mailing list deleted");
+          AuditEventCommand.record(context, AuditEventCommand.CONFIGURATION, "mailing_list.delete", AuditEventCommand.SUCCESS,
+              "mailing_list", String.valueOf(mailingList.getId()), mailingList.getName(), null);
         } else {
           context.setWarningMessage("Mailing list could not be deleted, there are dependencies");
+          AuditEventCommand.record(context, AuditEventCommand.CONFIGURATION, "mailing_list.delete", AuditEventCommand.FAILURE,
+              "mailing_list", String.valueOf(mailingList.getId()), mailingList.getName(), "refused: dependencies");
         }
       }
     }
