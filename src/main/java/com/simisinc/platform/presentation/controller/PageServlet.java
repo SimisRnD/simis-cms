@@ -31,6 +31,7 @@ import com.simisinc.platform.domain.model.cms.MenuTab;
 import com.simisinc.platform.domain.model.cms.Stylesheet;
 import com.simisinc.platform.domain.model.cms.TableOfContents;
 import com.simisinc.platform.domain.model.cms.WebPage;
+import com.simisinc.platform.infrastructure.cache.PublishEventCachePurgeHandler;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
 import com.simisinc.platform.domain.model.items.Category;
 import com.simisinc.platform.domain.model.items.Collection;
@@ -363,6 +364,7 @@ public class PageServlet extends HttpServlet {
         }
         response.setContentType("application/json");
         WebPageRepository.publish(webPage);
+        PublishEventCachePurgeHandler.onPageUpdated(webPage);
         LOG.info("Draft published for " + pagePath + " by user " + userSession.getUserId());
         response.getWriter().print("{\"success\":true}");
         return;

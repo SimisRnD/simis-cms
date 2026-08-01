@@ -30,6 +30,7 @@ import com.simisinc.platform.application.cms.UrlCommand;
 import com.simisinc.platform.domain.events.cms.WebPageUpdatedEvent;
 import com.simisinc.platform.domain.model.cms.Content;
 import com.simisinc.platform.domain.model.cms.WebPage;
+import com.simisinc.platform.infrastructure.cache.PublishEventCachePurgeHandler;
 import com.simisinc.platform.infrastructure.persistence.cms.ContentRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
 import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
@@ -174,10 +175,13 @@ public class ContentEditorWidget extends GenericWidget {
             // Update the related page
             WebPageRepository.markAsModified(webPage, context.getUserId());
 
-            // Trigger events
+            // Trigger events (the "just updated in the last day" debounce is specific to the
+            // activity-feed workflow event, not cache correctness -- the embedded content on this
+            // page just changed for real visitors, so the AFD purge below always fires)
             if (justUpdatedInTheLastDay) {
               WorkflowManager.triggerWorkflowForEvent(new WebPageUpdatedEvent(webPage));
             }
+            PublishEventCachePurgeHandler.onPageUpdated(webPage);
           }
         }
       }
