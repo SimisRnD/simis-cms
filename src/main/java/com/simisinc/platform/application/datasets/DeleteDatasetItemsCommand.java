@@ -47,6 +47,11 @@ public class DeleteDatasetItemsCommand {
     if (optionalSyncTimestamp != null) {
       specification.setDatasetSyncTimestampThreshold(optionalSyncTimestamp);
     }
+    // This must remove every item tied to the dataset, including ones a user deactivated (issue
+    // #814's default query filter excludes those) -- otherwise they'd never be found by the loop
+    // below, constraints.getTotalRecordCount() would already read 0 on entry, and they'd be
+    // orphaned in the items table instead of deleted with the rest of the dataset.
+    specification.setIncludeArchived(true);
 
     // Limit to the record count
     long maxRuns = (constraints.getTotalRecordCount() / 100);
