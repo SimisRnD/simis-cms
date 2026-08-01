@@ -224,6 +224,11 @@ public class CreateAnItemWidget extends GenericWidget {
       itemBean.setModifiedBy(1);
     }
     itemBean.setCollectionId(collection.getId());
+    // Issue #815 follow-up: this is always a new item (itemBean is a fresh Item, never loaded by
+    // id), so without this it would fall back to the Item domain model's static default (100)
+    // instead of appending after the collection's existing items -- see
+    // PageServlet#saveCollectionItem, which computes this the same way for the admin-side add form.
+    itemBean.setItemOrder(ItemRepository.getNextItemOrder(collection.getId()));
     itemBean.setCategoryId(mainCategoryId);
     itemBean.setCategoryIdList(categoryIdList.toArray(new Long[0]));
     itemBean.setSource(context.getUri());

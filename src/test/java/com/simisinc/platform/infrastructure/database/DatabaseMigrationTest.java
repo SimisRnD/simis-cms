@@ -215,6 +215,14 @@ class DatabaseMigrationTest {
     assertTrue(columnExists("sessions", "is_anonymous"),
         "sessions.is_anonymous is missing - SessionRepository.findDailyUniqueLocations() "
             + "will fail on a fresh install");
+    // items.item_order (issue #815) is mirrored directly into NEW_10024__new_items.sql rather than
+    // added by a separate upgrade-only migration, but this is exactly the class of gap that
+    // mirroring is meant to prevent -- ItemRepository.buildRecord() reads this column
+    // unconditionally too, so asserting it here guards against the same regression shape.
+    assertTrue(columnExists("items", "item_order"),
+        "items.item_order is missing - ItemRepository.buildRecord()/findAll() read/sort by this "
+            + "column unconditionally, and reorderCollectionItem has nowhere to persist a reorder "
+            + "without it (issue #815)");
   }
 
   @Test
