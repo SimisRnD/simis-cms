@@ -18,6 +18,7 @@ package com.simisinc.platform.presentation.widgets.admin.cms;
 
 import com.simisinc.platform.WidgetBase;
 import com.simisinc.platform.domain.model.cms.WebPage;
+import com.simisinc.platform.infrastructure.cache.PublishEventCachePurgeHandler;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
@@ -57,7 +58,8 @@ class WebPageFormWidgetTest extends WidgetBase {
     addQueryParameter(widgetContext, "action", "deletePage");
 
     try (MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class);
-        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class);
+        MockedStatic<PublishEventCachePurgeHandler> purge = mockStatic(PublishEventCachePurgeHandler.class)) {
       webPageRepository.when(() -> WebPageRepository.findById(anyLong())).thenReturn(webPage);
 
       WidgetContext result = new WebPageFormWidget().post(widgetContext);
@@ -66,6 +68,8 @@ class WebPageFormWidgetTest extends WidgetBase {
       audit.verify(() -> AuditEventCommand.record(any(), eq(AuditEventCommand.CONTENT), eq("content.delete"),
           eq(AuditEventCommand.SUCCESS), eq("web_page"), eq("7"), eq("About Us"), any()), times(1));
       Assertions.assertEquals("Page was deleted", result.getSuccessMessage());
+      // #420: a deleted page must also drop out of the AFD edge cache, not just the DB
+      purge.verify(() -> PublishEventCachePurgeHandler.onPageDeleted("/about"), times(1));
     }
   }
 }

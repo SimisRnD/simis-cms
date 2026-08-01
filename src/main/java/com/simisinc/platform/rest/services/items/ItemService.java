@@ -40,8 +40,10 @@ public class ItemService {
   public ServiceResponse get(ServiceContext context) {
 
     // Determine the item
+    // Issue #827: unlike PageServlet's item routes, this REST endpoint has no "admin edit" use
+    // case that needs to see a deactivated item's full data, so excludeArchived is unconditional.
     String itemUniqueId = context.getPathParam();
-    Item item = LoadItemCommand.loadItemByUniqueIdForAuthorizedUser(itemUniqueId, context.getUserId());
+    Item item = LoadItemCommand.loadItemByUniqueIdForAuthorizedUser(itemUniqueId, context.getUserId(), true);
     if (item == null) {
       ServiceResponse response = new ServiceResponse(404);
       response.getError().put("title", "Item was not found");

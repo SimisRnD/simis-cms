@@ -16,6 +16,8 @@
 
 package com.simisinc.platform.infrastructure.persistence.cms;
 
+import java.sql.Timestamp;
+
 /**
  * Properties for querying objects from the content repository
  *
@@ -26,7 +28,15 @@ public class ContentSpecification {
 
   private long id = -1L;
   private String uniqueId = null;
+  // Matches EITHER the unique id (substring) OR the body text (full-text) -- a single combined
+  // search box, see ContentRepository#query for how this becomes one OR'd SQL fragment.
   private String searchTerm = null;
+  private Timestamp dateModifiedAfter = null;  // modified >= this
+  private Timestamp dateModifiedBefore = null; // modified < this (half-open; use the start of the day after the "to" date)
+  // Character-count range, measured against LENGTH(content_text) (HTML-stripped plain text), not
+  // the raw HTML -- see ContentRepository#query. -1 means "not set", matching this class's id style.
+  private int minLength = -1;
+  private int maxLength = -1;
 
   public ContentSpecification() {
   }
@@ -61,5 +71,37 @@ public class ContentSpecification {
 
   public void setSearchTerm(String searchTerm) {
     this.searchTerm = searchTerm;
+  }
+
+  public Timestamp getDateModifiedAfter() {
+    return dateModifiedAfter;
+  }
+
+  public void setDateModifiedAfter(Timestamp dateModifiedAfter) {
+    this.dateModifiedAfter = dateModifiedAfter;
+  }
+
+  public Timestamp getDateModifiedBefore() {
+    return dateModifiedBefore;
+  }
+
+  public void setDateModifiedBefore(Timestamp dateModifiedBefore) {
+    this.dateModifiedBefore = dateModifiedBefore;
+  }
+
+  public int getMinLength() {
+    return minLength;
+  }
+
+  public void setMinLength(int minLength) {
+    this.minLength = minLength;
+  }
+
+  public int getMaxLength() {
+    return maxLength;
+  }
+
+  public void setMaxLength(int maxLength) {
+    this.maxLength = maxLength;
   }
 }
