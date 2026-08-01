@@ -1328,7 +1328,7 @@
     <section>
       <column class="small-12 cell">
         <widget name="calendar">
-          <!--<view>small</view>-->
+          <view>small</view>
         </widget>
       </column>
     </section>
