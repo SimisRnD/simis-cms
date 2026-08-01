@@ -16,6 +16,7 @@
 
 package com.simisinc.platform.presentation.widgets.items;
 
+import com.simisinc.platform.application.cms.EditorPermissionCommand;
 import com.simisinc.platform.application.items.LoadCollectionCommand;
 import com.simisinc.platform.domain.model.items.Category;
 import com.simisinc.platform.domain.model.items.Collection;
@@ -47,6 +48,7 @@ public class ItemsListWidget extends GenericWidget {
   static String TABLE_VIEW_JSP = "/items/items-table.jsp";
   static String JOBS_LIST_JSP = "/items/items-jobs-list.jsp";
   static String SEARCH_RESULTS_JSP = "/items/items-search-results-list.jsp";
+  static String NO_COLLECTION_JSP = "/items/items-list-no-collection.jsp";
 
   public WidgetContext execute(WidgetContext context) {
 
@@ -75,6 +77,26 @@ public class ItemsListWidget extends GenericWidget {
     Collection collection = LoadCollectionCommand.loadCollectionByUniqueIdForAuthorizedUser(collectionUniqueId, context.getUserId());
     if (collection == null) {
       LOG.warn("Set a collection or collectionUniqueId preference, or user does not have access");
+      // A freshly-added widget (or one pointed at a collection the viewer can no longer reach) has
+      // nothing else to render -- without a visible placeholder here, there is zero markup in the
+      // canvas to hover, so the per-widget "Prefs" affordance that would let someone fix this is
+      // itself unreachable (issue #817). Mirrors ContentWidget/ContentHtmlCommand's "Add Content
+      // Here" empty state: show a configure prompt instead of silently rendering nothing.
+      //
+      // Gate on pageEditMode AND canBuildLayout, not pageEditMode alone -- matching the precedent
+      // set by TableWidget.execute() for this exact widget-level decision. pageEditMode (published
+      // by PageServlet) already implies EditorPermissionCommand.canEditContent, but the "+Widget"
+      // picker and "Prefs" panel that make this placeholder useful are layout-builder-tier
+      // (canBuildLayout), not just content-editor-tier -- see EditorPermissionCommand's javadoc
+      // ("authors get content guardrails, designers get the canvas"). A content-editor in edit mode
+      // without layout-build rights, and any real site visitor, must still see nothing.
+      boolean pageEditMode = "true".equals(context.getRequest().getAttribute("pageEditMode"));
+      if (pageEditMode && EditorPermissionCommand.canBuildLayout(context.getUserSession())) {
+        context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));
+        context.getRequest().setAttribute("title", context.getPreferences().get("title"));
+        context.setJsp(NO_COLLECTION_JSP);
+        return context;
+      }
       return null;
     }
     context.getRequest().setAttribute("collection", collection);
