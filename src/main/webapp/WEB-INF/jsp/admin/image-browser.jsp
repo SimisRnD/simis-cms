@@ -23,14 +23,42 @@
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="imageList" class="java.util.ArrayList" scope="request"/>
-<div class="grid-container">
+<jsp:useBean id="query" class="java.lang.String" scope="request"/>
+<c:if test="${!empty title}">
+  <h1><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h1>
+</c:if>
+<%@include file="../page_messages.jspf" %>
+<form id="imageSearchForm" method="get" autocomplete="off" class="float-right">
+  <div class="input-group no-gap width-auto">
+    <input class="input-group-field" type="search" name="query" aria-label="Search images by filename"
+           placeholder="<c:if test="${empty query}">Search filenames...</c:if>"<c:if test="${!empty query}"> value="<c:out value="${query}"/>"</c:if> autocomplete="off">
+    <div class="input-group-button">
+      <button type="submit" class="button search" aria-label="Search"><i class="fa fa-search" aria-hidden="true"></i></button>
+    </div>
+  </div>
+</form>
+<div style="clear: both;"></div>
+<div id="bulkActionsBar" class="callout radius" style="display:none;padding:10px 15px;margin-bottom:10px;">
+  <span id="bulkSelectedCount"></span>
+  <button type="button" class="button tiny alert radius" id="bulkDeleteBtn">Delete Selected</button>
+</div>
+<div class="grid-container" style="padding: 0;">
   <c:if test="${empty imageList}">
     <p>No images were found.</p>
+  </c:if>
+  <c:if test="${!empty imageList}">
+    <label class="margin-bottom-10">
+      <input type="checkbox" id="selectAllImages" aria-label="Select all images"> Select All
+    </label>
   </c:if>
   <div class="grid-x grid-margin-x small-up-2 medium-up-3 large-up-5">
     <c:forEach items="${imageList}" var="image" varStatus="status">
       <div class="cell card">
-        <div class="image-browser">
+        <div class="image-browser" style="position: relative;">
+          <input type="checkbox" class="imageRowCheckbox" value="${image.id}"
+                 data-filename="${fn:escapeXml(image.filename)}"
+                 aria-label="Select <c:out value="${image.filename}"/>"
+                 style="position:absolute; top: 5px; left: 5px; z-index: 1;">
           <img src="${ctx}/assets/img/${image.url}">
         </div>
         <div class="card-section">
@@ -39,10 +67,192 @@
             <small style="color: #999999">${image.width}x${image.height}</small>
             <small style="color: #999999"><c:out value="${number:suffix(image.fileLength)}"/></small><br />
             <small style="color: #999999"><fmt:formatDate pattern="yyyy-MM-dd" value="${image.created}" /></small><br />
-            <small><a target="_blank" href="${ctx}/assets/img/${image.url}">Image Link</a></small>
+            <small><a target="_blank" href="${ctx}/assets/img/${image.url}">Image Link</a></small><br />
+            <small><span class="usage-badge label secondary" data-image-id="${image.id}">Checking usage&hellip;</span></small><br />
+            <button type="button" class="deleteImageBtn button tiny alert radius margin-top-5"
+                    data-id="${image.id}" data-filename="${fn:escapeXml(image.filename)}">
+              <i class="fa fa-remove"></i> Delete
+            </button>
           </div>
         </div>
       </div>
     </c:forEach>
   </div>
 </div>
+<%-- Bulk delete confirmation -- selection is scoped to the images currently checked; the list below
+     is populated at open time (see the JS) with each selected image's real, freshly-checked usage,
+     not just a filename, so the admin sees what deleting an in-use image will break before confirming. --%>
+<div class="reveal" id="bulkDeleteReveal" role="dialog" aria-modal="true" aria-labelledby="bulkDeleteRevealTitle"
+     data-reveal data-close-on-click="true">
+  <h4 id="bulkDeleteRevealTitle">Delete <span id="bulkDeleteCount">0</span> Image(s)</h4>
+  <p id="bulkDeleteUsageNotice" class="callout warning radius" style="display:none;padding:8px 12px;">
+    One or more selected images are still in use -- see the list below.
+  </p>
+  <ul id="bulkDeleteList"></ul>
+  <form method="post">
+    <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
+    <input type="hidden" name="token" value="${userSession.formToken}"/>
+    <input type="hidden" name="command" value="bulkDelete"/>
+    <input type="submit" class="button alert radius" value="Delete Images"/>
+    <button class="button secondary radius" type="button" data-close>Cancel</button>
+  </form>
+  <button class="close-button" data-close aria-label="Close reveal" type="button">
+    <span aria-hidden="true">&times;</span>
+  </button>
+</div>
+<script nonce="${cspNonce}">
+  (function () {
+    // Per-image usage lookups are cached client-side for the life of the page and computed on
+    // demand -- never eagerly for the whole list -- see ImageUsageCommand's class docs for why.
+    var usageCache = {};
+
+    function checkImageUsage(imageId) {
+      if (usageCache[imageId]) {
+        return usageCache[imageId];
+      }
+      var promise = fetch('${widgetContext.uri}?checkUsage=true&imageId=' + encodeURIComponent(imageId), {
+        credentials: 'same-origin'
+      }).then(function (response) {
+        return response.json();
+      }).catch(function () {
+        // Unknown on error -- never claim "orphaned" when the check itself failed
+        return { orphaned: null, usages: [] };
+      });
+      usageCache[imageId] = promise;
+      return promise;
+    }
+
+    function describeUsage(data) {
+      return data.usages.map(function (u) {
+        return u.label + ' (' + u.type + ')';
+      }).join(', ');
+    }
+
+    function renderBadge(imageId, data) {
+      var el = document.querySelector('.usage-badge[data-image-id="' + imageId + '"]');
+      if (!el) {
+        return;
+      }
+      if (data.orphaned === null) {
+        el.textContent = 'Usage unknown';
+        el.className = 'usage-badge label secondary';
+      } else if (data.orphaned) {
+        el.textContent = 'Orphaned';
+        el.className = 'usage-badge label warning';
+        el.removeAttribute('title');
+      } else {
+        el.textContent = 'Used (' + data.usages.length + ')';
+        el.className = 'usage-badge label success';
+        el.title = describeUsage(data);
+      }
+    }
+
+    // Populate each row's badge lazily, one request at a time, after the page has already
+    // rendered -- not blocking the initial page load and not run as part of the server-side
+    // response for a 200+ image list.
+    var badgeIds = Array.prototype.map.call(document.querySelectorAll('.usage-badge'), function (el) {
+      return el.getAttribute('data-image-id');
+    });
+    (function next(i) {
+      if (i >= badgeIds.length) {
+        return;
+      }
+      var id = badgeIds[i];
+      checkImageUsage(id).then(function (data) {
+        renderBadge(id, data);
+        next(i + 1);
+      });
+    })(0);
+
+    // Single delete -- an AJAX usage pre-check builds the real confirmation message before
+    // confirm() fires (falls back to the cached lazy-badge result when it already resolved).
+    document.querySelectorAll('.deleteImageBtn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        var id = btn.getAttribute('data-id');
+        var filename = btn.getAttribute('data-filename');
+        checkImageUsage(id).then(function (data) {
+          var message = 'Delete "' + filename + '"?';
+          if (data.orphaned === false && data.usages.length > 0) {
+            message = 'This image is used on ' + describeUsage(data) + '. Delete anyway?';
+          }
+          if (confirm(message)) {
+            postAction('${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&imageId=' + id);
+          }
+        });
+      });
+    });
+
+    // Bulk select + delete
+    var $selectAll = document.getElementById('selectAllImages');
+    var rowCheckboxes = document.querySelectorAll('.imageRowCheckbox');
+    var $bar = document.getElementById('bulkActionsBar');
+    var $count = document.getElementById('bulkSelectedCount');
+
+    function selected() {
+      return Array.prototype.filter.call(rowCheckboxes, function (cb) {
+        return cb.checked;
+      });
+    }
+
+    function refresh() {
+      var n = selected().length;
+      $count.textContent = n + (n === 1 ? ' image selected  ' : ' images selected  ');
+      $bar.style.display = n > 0 ? '' : 'none';
+      if ($selectAll) {
+        $selectAll.indeterminate = n > 0 && n < rowCheckboxes.length;
+        $selectAll.checked = n > 0 && n === rowCheckboxes.length;
+      }
+    }
+
+    if ($selectAll) {
+      $selectAll.addEventListener('change', function () {
+        rowCheckboxes.forEach(function (cb) {
+          cb.checked = $selectAll.checked;
+        });
+        refresh();
+      });
+    }
+    rowCheckboxes.forEach(function (cb) {
+      cb.addEventListener('change', refresh);
+    });
+
+    var bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
+    if (bulkDeleteBtn) {
+      bulkDeleteBtn.addEventListener('click', function () {
+        var checked = selected();
+        var ids = checked.map(function (cb) {
+          return cb.value;
+        });
+        Promise.all(ids.map(checkImageUsage)).then(function (results) {
+          var $reveal = $('#bulkDeleteReveal');
+          var $form = $reveal.find('form');
+          var $list = $('#bulkDeleteList');
+          var $notice = $('#bulkDeleteUsageNotice');
+          $form.find('input[name="imageId"]').remove();
+          $list.empty();
+          var anyInUse = false;
+          checked.forEach(function (cb, idx) {
+            $form.append($('<input type="hidden" name="imageId">').val(cb.value));
+            var data = results[idx];
+            var filename = cb.getAttribute('data-filename');
+            var text = filename;
+            if (data.orphaned === false) {
+              anyInUse = true;
+              text += ' -- used on ' + describeUsage(data);
+            } else if (data.orphaned === null) {
+              text += ' -- usage unknown';
+            } else {
+              text += ' -- orphaned';
+            }
+            $list.append($('<li>').text(text));
+          });
+          $('#bulkDeleteCount').text(ids.length);
+          $notice.toggle(anyInUse);
+          $reveal.foundation('open');
+        });
+      });
+    }
+
+    refresh();
+  })();
+</script>
