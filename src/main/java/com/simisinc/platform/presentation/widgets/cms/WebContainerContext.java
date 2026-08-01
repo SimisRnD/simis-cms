@@ -58,10 +58,15 @@ public class WebContainerContext implements Serializable {
     this.webPage = webPage;
     this.page = page;
 
-    if ("post".equalsIgnoreCase(request.getMethod())) {
-      method = METHOD_POST;
-    } else if ("delete".equals(request.getParameter("command"))) {
+    // command=delete is checked before the HTTP method: a delete control that submits via a real
+    // POST (confirmPostAction()/postAction() in main.jsp, or a literal <form method="post">) must
+    // still reach delete(), not post() -- checking isPost() first silently routed every such POST
+    // to post() instead, which broke Delete on every widget that defines delete() but not a matching
+    // post() (see #799 for the full list; #796/PR #798 was the first instance found).
+    if ("delete".equals(request.getParameter("command"))) {
       method = METHOD_DELETE;
+    } else if ("post".equalsIgnoreCase(request.getMethod())) {
+      method = METHOD_POST;
     } else if (request.getParameter("action") != null) {
       method = METHOD_ACTION;
     }

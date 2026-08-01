@@ -27,7 +27,6 @@ import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import org.apache.commons.lang3.StringUtils;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 
 /**
@@ -89,16 +88,6 @@ public class MailingListsWidget extends GenericWidget {
     // Show the list
     context.setJsp(jsp);
     return context;
-  }
-
-  public WidgetContext post(WidgetContext context) throws InvocationTargetException, IllegalAccessException {
-    // The row's delete link submits via confirmPostAction(), a real POST -- WebContainerContext
-    // checks isPost() before isDelete(), so this always reaches post(), never delete() directly.
-    // Forward to it explicitly (same fix shape as #658/PR #659).
-    if ("delete".equals(context.getParameter("command"))) {
-      return delete(context);
-    }
-    return null;
   }
 
   public WidgetContext delete(WidgetContext context) {

@@ -481,4 +481,56 @@ class WebContainerCommandTest {
     Assertions.assertEquals("", widgets.get(1).getContent());
   }
 
+  // Regression coverage for #799: a delete control that submits via a real HTTP POST (confirmPostAction()/
+  // postAction() in main.jsp, or a literal <form method="post">) must still resolve to METHOD_DELETE, not
+  // METHOD_POST -- checking isPost() before command=delete silently routed every such click to a widget's
+  // post(WidgetContext) instead of delete(WidgetContext), which broke Delete on every widget that defines
+  // delete() but not a matching post() (see #796/#798 for the first instance found, #799 for the full list).
+  // These tests exercise WebContainerContext's constructor directly, the exact logic that made that
+  // decision, so they fail if the precedence regresses.
+
+  private static WebContainerContext contextWith(String httpMethod, String command) {
+    HttpServletRequest request = mock(HttpServletRequest.class);
+    when(request.getMethod()).thenReturn(httpMethod);
+    when(request.getParameter("command")).thenReturn(command);
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    return new WebContainerContext(request, response, new ControllerSession(), new HashMap<>(), null, null);
+  }
+
+  @Test
+  void postWithDeleteCommandResolvesToDeleteNotPost() {
+    WebContainerContext context = contextWith("POST", "delete");
+
+    Assertions.assertTrue(context.isDelete(), "a POST carrying command=delete must resolve to delete()");
+    Assertions.assertFalse(context.isPost(), "must not also resolve as a plain post()");
+  }
+
+  @Test
+  void getWithDeleteCommandStillResolvesToDelete() {
+    // Unchanged pre-existing behavior -- a plain GET delete link (no confirmPostAction) already worked.
+    WebContainerContext context = contextWith("GET", "delete");
+
+    Assertions.assertTrue(context.isDelete());
+    Assertions.assertFalse(context.isPost());
+  }
+
+  @Test
+  void plainPostWithoutDeleteCommandStillResolvesToPost() {
+    // The common case -- an ordinary form save POST, no command parameter at all -- must be unaffected.
+    WebContainerContext context = contextWith("POST", null);
+
+    Assertions.assertTrue(context.isPost());
+    Assertions.assertFalse(context.isDelete());
+  }
+
+  @Test
+  void postWithNonDeleteCommandStillResolvesToPost() {
+    // A POST whose command is something other than "delete" (e.g. BlockedIPListWidget's
+    // downloadCSVFile/uploadCSVFile) must still reach post(), which does its own command dispatch.
+    WebContainerContext context = contextWith("POST", "uploadCSVFile");
+
+    Assertions.assertTrue(context.isPost());
+    Assertions.assertFalse(context.isDelete());
+  }
+
 }
