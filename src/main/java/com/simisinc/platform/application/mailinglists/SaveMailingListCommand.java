@@ -53,12 +53,14 @@ public class SaveMailingListCommand {
       if (mailingList == null) {
         throw new DataException("The existing record could not be found");
       }
+      // createdBy is set once, below, only for a genuinely new record -- an edit must not
+      // reassign the original creator to whoever happens to be editing it today
     } else {
       LOG.debug("Saving a new record... ");
       mailingList = new MailingList();
       mailingList.setEnabled(true);
+      mailingList.setCreatedBy(mailingListBean.getCreatedBy());
     }
-    mailingList.setCreatedBy(mailingListBean.getCreatedBy());
     mailingList.setModifiedBy(mailingListBean.getCreatedBy());
     mailingList.setName(mailingListBean.getName());
     mailingList.setTitle(mailingListBean.getTitle());
