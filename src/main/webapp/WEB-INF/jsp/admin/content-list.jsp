@@ -21,10 +21,46 @@
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="contentList" class="java.util.ArrayList" scope="request"/>
+<jsp:useBean id="contentUsageMap" class="java.util.LinkedHashMap" scope="request"/>
+<jsp:useBean id="recordPaging" class="com.simisinc.platform.infrastructure.database.DataConstraints" scope="request"/>
 <c:if test="${!empty title}">
   <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
 <%@include file="../page_messages.jspf" %>
+<%-- Filters (GET so the criteria live in the URL and paging preserves them) --%>
+<form method="get" autocomplete="off" class="margin-bottom-10">
+  <div class="grid-x grid-margin-x">
+    <div class="cell medium-4">
+      <label>Search
+        <input type="text" name="q" placeholder="unique id or content text" value="<c:out value='${q}'/>">
+      </label>
+    </div>
+    <div class="cell medium-2">
+      <label>Modified from
+        <input type="date" name="fromDate" value="<c:out value='${fromDate}'/>">
+      </label>
+    </div>
+    <div class="cell medium-2">
+      <label>Modified to
+        <input type="date" name="toDate" value="<c:out value='${toDate}'/>">
+      </label>
+    </div>
+    <div class="cell medium-2">
+      <label>Characters
+        <div class="input-group">
+          <input type="number" min="0" name="minLength" placeholder="min" class="input-group-field" value="<c:out value='${minLength}'/>">
+          <span class="input-group-label">&ndash;</span>
+          <input type="number" min="0" name="maxLength" placeholder="max" class="input-group-field" value="<c:out value='${maxLength}'/>">
+        </div>
+      </label>
+    </div>
+    <div class="cell medium-2">
+      <label>&nbsp;</label>
+      <button type="submit" class="button small primary radius"><i class="fa fa-filter"></i> Filter</button>
+      <a href="${widgetContext.uri}" class="button small secondary radius">Clear</a>
+    </div>
+  </div>
+</form>
 <table class="unstriped">
   <thead>
     <tr>
@@ -40,23 +76,42 @@
       <th width="200" class="text-center">
         Last Modified
       </th>
+      <th>
+        Usage
+      </th>
     </tr>
   </thead>
   <tbody>
     <c:forEach items="${contentList}" var="content">
+    <c:set var="plainText" value="${html:text(content.content)}" />
+    <c:set var="usageList" value="${contentUsageMap[content.uniqueId]}" />
     <tr>
       <td>
         <a href="${ctx}/content-editor?uniqueId=${content.uniqueId}&returnPage=/admin/content-list"><c:out value="${content.uniqueId}" /></a>
       </td>
-      <td><span class="subheader"><c:out value="${text:trim(html:text(content.content), 50, true)}" /></span></td>
-      <td class="text-center"><fmt:formatNumber value="${fn:length(content.content)}" /></td>
+      <td><span class="subheader"><c:out value="${text:trim(plainText, 50, true)}" /></span></td>
+      <td class="text-center"><fmt:formatNumber value="${fn:length(plainText)}" /></td>
       <td class="text-center"><fmt:formatDate pattern="yyyy-MM-dd hh:mm a" value="${content.modified}" /></td>
+      <td>
+        <c:choose>
+          <c:when test="${empty usageList}">
+            <span class="label alert radius">Orphaned</span>
+          </c:when>
+          <c:otherwise>
+            <c:if test="${fn:length(usageList) > 1}"><span class="label secondary radius">Shared</span> </c:if>
+            <small class="subheader">Used on:
+              <c:forEach items="${usageList}" var="location" varStatus="locStatus"><c:out value="${location}" /><c:if test="${!locStatus.last}">, </c:if></c:forEach>
+            </small>
+          </c:otherwise>
+        </c:choose>
+      </td>
     </tr>
     </c:forEach>
     <c:if test="${empty contentList}">
       <tr>
-        <td colspan="4">No content records were found</td>
+        <td colspan="5">No content records were found</td>
       </tr>
     </c:if>
   </tbody>
 </table>
+<%@include file="../paging_control.jspf" %>
