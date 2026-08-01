@@ -25,6 +25,10 @@ package com.simisinc.platform.infrastructure.persistence.mailinglists;
 public class MailingListMemberSpecification {
 
   private long mailingListId = -1;
+  private String matchesEmail = null;
+  private String matchesName = null;
+  /** One of "quarantined" / "unsubscribed" / "active", or null/blank for no status filter. */
+  private String status = null;
 
   public MailingListMemberSpecification() {
   }
@@ -35,5 +39,29 @@ public class MailingListMemberSpecification {
 
   public void setMailingListId(long mailingListId) {
     this.mailingListId = mailingListId;
+  }
+
+  public String getMatchesEmail() {
+    return matchesEmail;
+  }
+
+  public void setMatchesEmail(String matchesEmail) {
+    this.matchesEmail = matchesEmail;
+  }
+
+  public String getMatchesName() {
+    return matchesName;
+  }
+
+  public void setMatchesName(String matchesName) {
+    this.matchesName = matchesName;
+  }
+
+  public String getStatus() {
+    return status;
+  }
+
+  public void setStatus(String status) {
+    this.status = status;
   }
 }

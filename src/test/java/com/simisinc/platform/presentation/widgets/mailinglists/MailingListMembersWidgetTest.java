@@ -25,6 +25,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.when;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
 import com.simisinc.platform.WidgetBase;
@@ -37,6 +38,7 @@ import com.simisinc.platform.domain.model.mailinglists.MailingList;
 import com.simisinc.platform.infrastructure.persistence.BlockedIPRepository;
 import com.simisinc.platform.infrastructure.persistence.mailinglists.EmailRepository;
 import com.simisinc.platform.infrastructure.persistence.mailinglists.MailingListMemberRepository;
+import com.simisinc.platform.infrastructure.persistence.mailinglists.MailingListMemberSpecification;
 import com.simisinc.platform.infrastructure.persistence.mailinglists.MailingListRepository;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
@@ -203,7 +205,8 @@ class MailingListMembersWidgetTest extends WidgetBase {
     addQueryParameter(widgetContext, "mailingListId", "1");
 
     try (MockedStatic<MailingListRepository> mailingListRepo = mockStatic(MailingListRepository.class);
-        MockedStatic<ProcessEmailCSVFileCommand> processCsv = mockStatic(ProcessEmailCSVFileCommand.class)) {
+        MockedStatic<ProcessEmailCSVFileCommand> processCsv = mockStatic(ProcessEmailCSVFileCommand.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
       mailingListRepo.when(() -> MailingListRepository.findById(1L)).thenReturn(mailingList());
       processCsv.when(() -> ProcessEmailCSVFileCommand.processCSV(any(), any())).thenReturn(3);
 
@@ -211,6 +214,10 @@ class MailingListMembersWidgetTest extends WidgetBase {
 
       assertEquals("/admin/mailing-list-members?mailingListId=1", result.getRedirect());
       assertEquals("3 emails added", result.getSuccessMessage());
+      // #763: data.import didn't exist anywhere in the codebase before this -- CSV imports of
+      // member PII must be as traceable as the existing data.export download already is.
+      audit.verify(() -> AuditEventCommand.record(any(), any(), eq("data.import"), eq(AuditEventCommand.SUCCESS),
+          eq("mailing_list_members"), eq("1"), eq("Newsletter"), eq("memberCount=3")));
     }
   }
 
@@ -221,7 +228,8 @@ class MailingListMembersWidgetTest extends WidgetBase {
     addQueryParameter(widgetContext, "mailingListId", "1");
 
     try (MockedStatic<MailingListRepository> mailingListRepo = mockStatic(MailingListRepository.class);
-        MockedStatic<ProcessEmailCSVFileCommand> processCsv = mockStatic(ProcessEmailCSVFileCommand.class)) {
+        MockedStatic<ProcessEmailCSVFileCommand> processCsv = mockStatic(ProcessEmailCSVFileCommand.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
       mailingListRepo.when(() -> MailingListRepository.findById(1L)).thenReturn(mailingList());
       processCsv.when(() -> ProcessEmailCSVFileCommand.processCSV(any(), any()))
           .thenThrow(new DataException("Valid file not found"));
@@ -230,6 +238,56 @@ class MailingListMembersWidgetTest extends WidgetBase {
 
       assertEquals("/admin/mailing-list-members?mailingListId=1", result.getRedirect());
       assertEquals("Valid file not found", result.getErrorMessage());
+      audit.verify(() -> AuditEventCommand.record(any(), any(), eq("data.import"), eq(AuditEventCommand.FAILURE),
+          eq("mailing_list_members"), eq("1"), eq("Newsletter"), eq("Valid file not found")));
+    }
+  }
+
+  // #763: search/filter on the per-list member table, reusing the same matchesEmail/matchesName
+  // shape EmailSpecification already offered on the cross-list search flow (MailingListsWidget),
+  // plus a status filter over this table's own quarantined/unsubscribed columns.
+
+  @Test
+  void executePassesSearchAndStatusParamsToTheSpecification() {
+    addQueryParameter(widgetContext, "mailingListId", "1");
+    addQueryParameter(widgetContext, "searchName", "Jane Doe");
+    addQueryParameter(widgetContext, "searchEmail", "jane@example.com");
+    addQueryParameter(widgetContext, "status", "quarantined");
+
+    try (MockedStatic<MailingListRepository> mailingListRepo = mockStatic(MailingListRepository.class);
+        MockedStatic<MailingListMemberRepository> memberRepo = mockStatic(MailingListMemberRepository.class)) {
+      mailingListRepo.when(() -> MailingListRepository.findById(1L)).thenReturn(mailingList());
+      memberRepo.when(() -> MailingListMemberRepository.findAll(any(), any())).thenReturn(new java.util.ArrayList<>());
+
+      new MailingListMembersWidget().execute(widgetContext);
+
+      ArgumentCaptor<MailingListMemberSpecification> captor = ArgumentCaptor.forClass(MailingListMemberSpecification.class);
+      memberRepo.verify(() -> MailingListMemberRepository.findAll(captor.capture(), any()));
+      MailingListMemberSpecification specification = captor.getValue();
+      assertEquals(1L, specification.getMailingListId());
+      assertEquals("Jane Doe", specification.getMatchesName());
+      assertEquals("jane@example.com", specification.getMatchesEmail());
+      assertEquals("quarantined", specification.getStatus());
+    }
+  }
+
+  @Test
+  void executeLeavesFiltersUnsetWhenNoSearchParamsAreGiven() {
+    addQueryParameter(widgetContext, "mailingListId", "1");
+
+    try (MockedStatic<MailingListRepository> mailingListRepo = mockStatic(MailingListRepository.class);
+        MockedStatic<MailingListMemberRepository> memberRepo = mockStatic(MailingListMemberRepository.class)) {
+      mailingListRepo.when(() -> MailingListRepository.findById(1L)).thenReturn(mailingList());
+      memberRepo.when(() -> MailingListMemberRepository.findAll(any(), any())).thenReturn(new java.util.ArrayList<>());
+
+      new MailingListMembersWidget().execute(widgetContext);
+
+      ArgumentCaptor<MailingListMemberSpecification> captor = ArgumentCaptor.forClass(MailingListMemberSpecification.class);
+      memberRepo.verify(() -> MailingListMemberRepository.findAll(captor.capture(), any()));
+      MailingListMemberSpecification specification = captor.getValue();
+      assertNull(specification.getMatchesName());
+      assertNull(specification.getMatchesEmail());
+      assertNull(specification.getStatus());
     }
   }
 

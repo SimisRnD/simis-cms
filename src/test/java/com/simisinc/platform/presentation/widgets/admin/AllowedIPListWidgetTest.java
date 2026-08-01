@@ -17,10 +17,8 @@
 package com.simisinc.platform.presentation.widgets.admin;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.never;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
@@ -33,9 +31,10 @@ import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 
 /**
- * Same dispatch gap as BlockedIPListWidgetTest, on the allow-list side - this widget's delete link
- * copied the same confirmPostAction()-submits-a-real-POST pattern when it was written, and post() had
- * the same missing "delete" branch. These tests call post(), not delete() directly, for the same reason.
+ * Same dispatch shape as BlockedIPListWidgetTest, on the allow-list side. WebContainerContext now
+ * checks command=delete before the HTTP method (see #799), so this request correctly resolves to
+ * delete(WidgetContext) regardless of GET vs POST - this test calls delete() directly, the method a
+ * real request now reaches.
  *
  * @author elizabeth houser
  */
@@ -49,9 +48,8 @@ class AllowedIPListWidgetTest extends WidgetBase {
   }
 
   @Test
-  void deleteCommandViaPostActuallyDeletesTheRecord() throws Exception {
+  void deleteActuallyDeletesTheRecord() throws Exception {
     setRoles(widgetContext, ADMIN);
-    addQueryParameter(widgetContext, "command", "delete");
     addQueryParameter(widgetContext, "allowedIPListId", "9");
 
     AllowedIP target = allowedIp();
@@ -62,26 +60,12 @@ class AllowedIPListWidgetTest extends WidgetBase {
       repository.when(() -> AllowedIPRepository.findById(9L)).thenReturn(target);
       deleteCommand.when(() -> DeleteAllowedIPListCommand.delete(target)).thenReturn(true);
 
-      WidgetContext result = new AllowedIPListWidget().post(widgetContext);
+      WidgetContext result = new AllowedIPListWidget().delete(widgetContext);
 
       deleteCommand.verify(() -> DeleteAllowedIPListCommand.delete(target));
       audit.verify(() -> AuditEventCommand.record(any(), any(), org.mockito.ArgumentMatchers.eq("allowed_ip.remove"),
           any(), any(), any(), any(), any()));
       assertEquals("Record deleted", result.getSuccessMessage());
-    }
-  }
-
-  @Test
-  void deleteCommandIsRefusedWithoutAdminRole() throws Exception {
-    setRoles(widgetContext); // logged in, but no admin role
-    addQueryParameter(widgetContext, "command", "delete");
-    addQueryParameter(widgetContext, "allowedIPListId", "9");
-
-    try (MockedStatic<DeleteAllowedIPListCommand> deleteCommand = mockStatic(DeleteAllowedIPListCommand.class)) {
-      WidgetContext result = new AllowedIPListWidget().post(widgetContext);
-
-      deleteCommand.verify(() -> DeleteAllowedIPListCommand.delete(any()), never());
-      assertNull(result.getSuccessMessage());
     }
   }
 }

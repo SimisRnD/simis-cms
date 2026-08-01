@@ -17,7 +17,6 @@
 package com.simisinc.platform.presentation.widgets.mailinglists;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
@@ -34,13 +33,12 @@ import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 
 /**
- * The "Delete" row action on /admin/mailing-lists submits via confirmPostAction(), a real POST --
- * WebContainerContext checks isPost() before isDelete(), so this always reaches post(), never
- * delete() directly. This widget had no post() override, so every click fell through to
- * GenericWidget's default (a no-op that just logs "MUST OVERRIDE THE DEFAULT POST METHOD"), and the
- * row was never removed. Same dispatch-gap shape as #658/PR #659 (blocked/allowed IP lists) and
- * #562/#646 (MailingListMembersWidget). These tests call post() directly, the method a real request
- * actually reaches, so they fail if this dispatch gap reopens.
+ * The "Delete" row action on /admin/mailing-lists submits via confirmPostAction(), a real POST.
+ * WebContainerContext now checks command=delete before the HTTP method (see #799), so this request
+ * correctly resolves to delete(WidgetContext) regardless of GET vs POST -- these tests call delete()
+ * directly, the method a real request now reaches. (Earlier, before #799's root-cause fix, a POST
+ * always won and this widget needed its own post() override forwarding to delete() -- see #796/#798;
+ * that override is gone now that the dispatcher itself routes correctly.)
  */
 class MailingListsWidgetTest extends WidgetBase {
 
@@ -54,9 +52,8 @@ class MailingListsWidgetTest extends WidgetBase {
   }
 
   @Test
-  void deleteMailingListViaPostRemovesItAndRedirects() throws Exception {
+  void deleteMailingListRemovesItAndRedirects() throws Exception {
     setRoles(widgetContext, ADMIN);
-    addQueryParameter(widgetContext, "command", "delete");
     addQueryParameter(widgetContext, "mailingListId", "1");
 
     MailingList list = mailingList(0);
@@ -66,7 +63,7 @@ class MailingListsWidgetTest extends WidgetBase {
       repository.when(() -> MailingListRepository.findById(1L)).thenReturn(list);
       repository.when(() -> MailingListRepository.remove(list)).thenReturn(true);
 
-      WidgetContext result = new MailingListsWidget().post(widgetContext);
+      WidgetContext result = new MailingListsWidget().delete(widgetContext);
 
       repository.verify(() -> MailingListRepository.remove(list), times(1));
       assertEquals("Mailing list deleted", result.getSuccessMessage());
@@ -78,23 +75,8 @@ class MailingListsWidgetTest extends WidgetBase {
   }
 
   @Test
-  void postWithoutDeleteCommandDoesNotTouchTheRepository() throws Exception {
+  void deleteLeavesRecordsWithTooManyMembers() throws Exception {
     setRoles(widgetContext, ADMIN);
-    addQueryParameter(widgetContext, "mailingListId", "1");
-    // No "command" parameter -- not a delete request.
-
-    try (MockedStatic<MailingListRepository> repository = mockStatic(MailingListRepository.class)) {
-      WidgetContext result = new MailingListsWidget().post(widgetContext);
-
-      repository.verify(() -> MailingListRepository.remove(any()), never());
-      assertNull(result);
-    }
-  }
-
-  @Test
-  void deleteMailingListViaPostLeavesRecordsWithTooManyMembers() throws Exception {
-    setRoles(widgetContext, ADMIN);
-    addQueryParameter(widgetContext, "command", "delete");
     addQueryParameter(widgetContext, "mailingListId", "1");
 
     MailingList list = mailingList(11);
@@ -103,7 +85,7 @@ class MailingListsWidgetTest extends WidgetBase {
         MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
       repository.when(() -> MailingListRepository.findById(1L)).thenReturn(list);
 
-      WidgetContext result = new MailingListsWidget().post(widgetContext);
+      WidgetContext result = new MailingListsWidget().delete(widgetContext);
 
       repository.verify(() -> MailingListRepository.remove(any()), never());
       assertEquals("Mailing list cannot be deleted, there are related records", result.getWarningMessage());
