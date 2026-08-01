@@ -41,6 +41,10 @@ public class Item extends Entity {
 
   private long datasetId = -1L;
   private long collectionId = -1L;
+  // Issue #815: an item's position within its collection's default (non-search, non-geo) listing
+  // order. Mirrors the menu_items.item_order / mailing_lists.list_order convention -- see
+  // ItemRepository.getNextItemOrder/reorderItem.
+  private Integer itemOrder = 100;
   private long categoryId = -1L;
   private Long[] categoryIdList = null;
   private String uniqueId = null;
@@ -113,6 +117,14 @@ public class Item extends Entity {
 
   public void setCollectionId(long collectionId) {
     this.collectionId = collectionId;
+  }
+
+  public Integer getItemOrder() {
+    return itemOrder;
+  }
+
+  public void setItemOrder(Integer itemOrder) {
+    this.itemOrder = itemOrder;
   }
 
   public long getCategoryId() {

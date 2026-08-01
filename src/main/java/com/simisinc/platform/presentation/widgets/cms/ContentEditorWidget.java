@@ -18,6 +18,8 @@ package com.simisinc.platform.presentation.widgets.cms;
 
 import org.apache.commons.lang3.StringUtils;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 import com.simisinc.platform.application.DataException;
@@ -196,6 +198,17 @@ public class ContentEditorWidget extends GenericWidget {
               ContentAccessibilityCommand.check(savedHtml != null ? savedHtml : contentHtml);
           if (!findings.isEmpty()) {
             context.setWarningMessage(ContentAccessibilityCommand.summarize(findings));
+            // The flash-message mechanism only re-surfaces a message when a widget with this same
+            // uniqueId renders on the *next* page (see WebContainerCommand/ControllerSession).
+            // returnPage is the live page the content lives on, which never includes the
+            // content-editor widget, so a warning set here would otherwise be silently dropped
+            // (issue #826). Send the author back to the editor itself instead, where this widget
+            // instance actually renders and can pick the message back up -- returnPage is passed
+            // through so the reloaded editor's own "back to page" link/hidden field, and any
+            // subsequent save, are unaffected. Only overrides the redirect in this warning branch;
+            // a clean save keeps the original returnPage redirect set above, unchanged.
+            context.setRedirect("/content-editor?uniqueId=" + URLEncoder.encode(uniqueId, StandardCharsets.UTF_8)
+                + "&returnPage=" + URLEncoder.encode(returnPage, StandardCharsets.UTF_8));
           }
         } catch (Exception a11yException) {
           LOG.warn("Accessibility check failed for uniqueId " + uniqueId, a11yException);

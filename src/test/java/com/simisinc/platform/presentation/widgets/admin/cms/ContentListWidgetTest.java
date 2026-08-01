@@ -16,21 +16,39 @@
 
 package com.simisinc.platform.presentation.widgets.admin.cms;
 
-import com.simisinc.platform.WidgetBase;
-import com.simisinc.platform.domain.model.cms.Content;
-import com.simisinc.platform.infrastructure.persistence.cms.ContentRepository;
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-import org.mockito.MockedStatic;
-
-import java.util.ArrayList;
-import java.util.List;
-
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mockStatic;
 
+import java.sql.Timestamp;
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.MockedStatic;
+
+import com.simisinc.platform.WidgetBase;
+import com.simisinc.platform.application.cms.ContentUsageCommand;
+import com.simisinc.platform.domain.model.cms.Content;
+import com.simisinc.platform.infrastructure.database.DataConstraints;
+import com.simisinc.platform.infrastructure.persistence.cms.ContentRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.ContentSpecification;
+
 /**
- * @author matt rajkowski
- * @created 5/8/2022 7:00 AM
+ * Tests the /admin/content-list widget (issue #499): search/filter request parameters map onto the
+ * query specification, pagination carries the filters forward, and the usage map (the "Used on:" /
+ * "Orphaned" display) is built and exposed to the JSP. The usage-detection scanning logic itself
+ * (widget-family scoping, filesystem-template detection) is covered separately in
+ * {@code ContentUsageCommandTest}.
+ *
+ * @author SimIS Inc.
  */
 class ContentListWidgetTest extends WidgetBase {
 
@@ -46,8 +64,11 @@ class ContentListWidgetTest extends WidgetBase {
     content.setId(1L);
     contentList.add(content);
 
-    try (MockedStatic<ContentRepository> contentRepositoryMockedStatic = mockStatic(ContentRepository.class)) {
-      contentRepositoryMockedStatic.when(ContentRepository::findAll).thenReturn(contentList);
+    try (MockedStatic<ContentRepository> repository = mockStatic(ContentRepository.class);
+        MockedStatic<ContentUsageCommand> usageCommand = mockStatic(ContentUsageCommand.class)) {
+      repository.when(() -> ContentRepository.findAll(any(ContentSpecification.class), any(DataConstraints.class)))
+          .thenReturn(contentList);
+      usageCommand.when(() -> ContentUsageCommand.findUsageMap(any())).thenReturn(new LinkedHashMap<>());
 
       // Execute the widget
       ContentListWidget widget = new ContentListWidget();
@@ -55,9 +76,107 @@ class ContentListWidgetTest extends WidgetBase {
     }
 
     // Verify
-    Assertions.assertEquals(ContentListWidget.JSP, widgetContext.getJsp());
-    Assertions.assertEquals("Content", request.getAttribute("title"));
+    assertEquals(ContentListWidget.JSP, widgetContext.getJsp());
+    assertEquals("Content", request.getAttribute("title"));
     List<Content> contentListRequest = (List) request.getAttribute("contentList");
-    Assertions.assertEquals(content.getId(), contentListRequest.get(0).getId());
+    assertEquals(content.getId(), contentListRequest.get(0).getId());
+  }
+
+  @Test
+  void searchAndFilterParametersMapOntoTheSpecification() {
+    addQueryParameter(widgetContext, "q", "cmmc header");
+    addQueryParameter(widgetContext, "fromDate", "2026-07-01");
+    addQueryParameter(widgetContext, "toDate", "2026-07-20");
+    addQueryParameter(widgetContext, "minLength", "100");
+    addQueryParameter(widgetContext, "maxLength", "5000");
+
+    try (MockedStatic<ContentRepository> repository = mockStatic(ContentRepository.class);
+        MockedStatic<ContentUsageCommand> usageCommand = mockStatic(ContentUsageCommand.class)) {
+      repository.when(() -> ContentRepository.findAll(any(ContentSpecification.class), any(DataConstraints.class)))
+          .thenReturn(new ArrayList<>());
+      usageCommand.when(() -> ContentUsageCommand.findUsageMap(any())).thenReturn(new LinkedHashMap<>());
+
+      new ContentListWidget().execute(widgetContext);
+
+      ArgumentCaptor<ContentSpecification> captor = ArgumentCaptor.forClass(ContentSpecification.class);
+      repository.verify(() -> ContentRepository.findAll(captor.capture(), any(DataConstraints.class)));
+      ContentSpecification spec = captor.getValue();
+
+      assertEquals("cmmc header", spec.getSearchTerm());
+      assertEquals(Timestamp.valueOf(LocalDate.parse("2026-07-01").atStartOfDay()), spec.getDateModifiedAfter());
+      // The "to" bound is half-open: the start of the day AFTER the picked date, so that whole day is included
+      assertEquals(Timestamp.valueOf(LocalDate.parse("2026-07-21").atStartOfDay()), spec.getDateModifiedBefore());
+      assertEquals(100, spec.getMinLength());
+      assertEquals(5000, spec.getMaxLength());
+
+      // Pagination must carry the filters forward (URL-encoded) so page 2+ stays filtered
+      String pagingParams = (String) widgetContext.getRequest().getAttribute("recordPagingParams");
+      assertTrue(pagingParams.contains("q=cmmc+header")); // space is URL-encoded
+      assertTrue(pagingParams.contains("fromDate=2026-07-01"));
+      assertTrue(pagingParams.contains("toDate=2026-07-20"));
+      assertTrue(pagingParams.contains("minLength=100"));
+      assertTrue(pagingParams.contains("maxLength=5000"));
+    }
+  }
+
+  @Test
+  void blankFiltersLeaveTheSpecificationUnset() {
+    // No query parameters at all -- every ContentSpecification field should stay at its default,
+    // and the "empty search" case must not accidentally apply a filter.
+    try (MockedStatic<ContentRepository> repository = mockStatic(ContentRepository.class);
+        MockedStatic<ContentUsageCommand> usageCommand = mockStatic(ContentUsageCommand.class)) {
+      repository.when(() -> ContentRepository.findAll(any(ContentSpecification.class), any(DataConstraints.class)))
+          .thenReturn(new ArrayList<>());
+      usageCommand.when(() -> ContentUsageCommand.findUsageMap(any())).thenReturn(new LinkedHashMap<>());
+
+      new ContentListWidget().execute(widgetContext);
+
+      ArgumentCaptor<ContentSpecification> captor = ArgumentCaptor.forClass(ContentSpecification.class);
+      repository.verify(() -> ContentRepository.findAll(captor.capture(), any(DataConstraints.class)));
+      ContentSpecification spec = captor.getValue();
+
+      assertNull(spec.getSearchTerm());
+      assertNull(spec.getDateModifiedAfter());
+      assertNull(spec.getDateModifiedBefore());
+      assertEquals(-1, spec.getMinLength());
+      assertEquals(-1, spec.getMaxLength());
+    }
+  }
+
+  @Test
+  void anInvalidDateIsIgnoredRatherThanBreakingTheQuery() {
+    addQueryParameter(widgetContext, "fromDate", "not-a-date");
+
+    try (MockedStatic<ContentRepository> repository = mockStatic(ContentRepository.class);
+        MockedStatic<ContentUsageCommand> usageCommand = mockStatic(ContentUsageCommand.class)) {
+      repository.when(() -> ContentRepository.findAll(any(ContentSpecification.class), any(DataConstraints.class)))
+          .thenReturn(new ArrayList<>());
+      usageCommand.when(() -> ContentUsageCommand.findUsageMap(any())).thenReturn(new LinkedHashMap<>());
+
+      new ContentListWidget().execute(widgetContext);
+
+      ArgumentCaptor<ContentSpecification> captor = ArgumentCaptor.forClass(ContentSpecification.class);
+      repository.verify(() -> ContentRepository.findAll(captor.capture(), any(DataConstraints.class)));
+      assertNull(captor.getValue().getDateModifiedAfter());
+    }
+  }
+
+  @Test
+  void theUsageMapIsBuiltAndExposedToTheRequest() {
+    Map<String, List<String>> usageMap = new LinkedHashMap<>();
+    usageMap.put("site-footer", List.of("/WEB-INF/web-layouts/footer/footer-layout.xml"));
+    usageMap.put("cmmc-header", List.of("/careers", "/about-us"));
+
+    try (MockedStatic<ContentRepository> repository = mockStatic(ContentRepository.class);
+        MockedStatic<ContentUsageCommand> usageCommand = mockStatic(ContentUsageCommand.class)) {
+      repository.when(() -> ContentRepository.findAll(any(ContentSpecification.class), any(DataConstraints.class)))
+          .thenReturn(new ArrayList<>());
+      usageCommand.when(() -> ContentUsageCommand.findUsageMap(any())).thenReturn(usageMap);
+
+      new ContentListWidget().execute(widgetContext);
+
+      Object exposed = widgetContext.getRequest().getAttribute("contentUsageMap");
+      assertSame(usageMap, exposed, "the widget must expose exactly the map ContentUsageCommand built, for the JSP's Used-on/Orphaned display");
+    }
   }
 }

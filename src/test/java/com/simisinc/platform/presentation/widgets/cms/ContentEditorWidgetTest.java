@@ -62,6 +62,7 @@ class ContentEditorWidgetTest extends WidgetBase {
     addQueryParameter(widgetContext, "uniqueId", "hello-content");
     addQueryParameter(widgetContext, "content", "<p>Text</p><img src=\"/assets/foo.jpg\">");
     addQueryParameter(widgetContext, "save", "Save as Draft");
+    addQueryParameter(widgetContext, "returnPage", "/about-us");
 
     Content savedContent = new Content();
     savedContent.setId(42L);
@@ -83,6 +84,16 @@ class ContentEditorWidgetTest extends WidgetBase {
           widgetContext.getWarningMessage());
       Assertions.assertTrue(widgetContext.getWarningMessage().contains("missing alt text"),
           widgetContext.getWarningMessage());
+
+      // #826: setting the warning was never the bug -- it silently never reached the user because
+      // the redirect went to returnPage, a page that doesn't include the content-editor widget, so
+      // the flash-message mechanism (keyed on this widget's uniqueId re-rendering on the very next
+      // page) never got a chance to pick it back up. When there's a warning to show, the redirect
+      // must go back to the editor itself instead, with the content's uniqueId and the original
+      // returnPage preserved (a full round-trip proof that the message is actually retrievable
+      // there lives in WebContainerCommandTest#a11yWarningSurvivesARedirectBackToTheContentEditor).
+      Assertions.assertEquals("/content-editor?uniqueId=hello-content&returnPage=%2Fabout-us",
+          widgetContext.getRedirect());
     }
   }
 
@@ -93,6 +104,7 @@ class ContentEditorWidgetTest extends WidgetBase {
     addQueryParameter(widgetContext, "uniqueId", "hello-content");
     addQueryParameter(widgetContext, "content", "<p>Edited content</p>");
     addQueryParameter(widgetContext, "save", "Save as Draft");
+    addQueryParameter(widgetContext, "returnPage", "/about-us");
 
     Content savedContent = new Content();
     savedContent.setId(42L);
@@ -110,6 +122,10 @@ class ContentEditorWidgetTest extends WidgetBase {
 
       Assertions.assertNull(widgetContext.getErrorMessage());
       Assertions.assertNull(widgetContext.getWarningMessage());
+
+      // #826: a clean save must be completely unaffected by the fix above -- still redirect to the
+      // live page (returnPage), exactly as before.
+      Assertions.assertEquals("/about-us", widgetContext.getRedirect());
     }
   }
 

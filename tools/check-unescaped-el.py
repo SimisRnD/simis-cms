@@ -77,6 +77,14 @@ NUMERIC = re.compile(
 # cover every occurrence. Add an entry only after tracing the value to its
 # source and confirming it is sanitized, validated, or structurally safe.
 ALLOWLIST: dict[str, str] = {
+    "${pageOffset}":
+        "items-list.jsp sets this via <c:set> from "
+        "(recordPaging.pageNumber - 1) * recordPaging.pageSize -- both DataConstraints fields "
+        "are Java ints derived from server-side pagination state, not request input. The "
+        "computed value is always a non-negative integer and cannot carry markup.",
+    "${pageOffset + itemStatus.index + 1}":
+        "Same reasoning as ${pageOffset} -- itemStatus.index is a JSTL forEach loop counter "
+        "(int), so the sum of three ints is always a plain integer.",
     "${cspNonce}":
         "The CSP nonce is generated per-request in PageServlet.java via SecureRandom bytes "
         "through Base64.getUrlEncoder().withoutPadding() -- the URL-safe alphabet contains only "

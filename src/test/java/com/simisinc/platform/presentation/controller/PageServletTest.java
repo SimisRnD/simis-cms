@@ -538,4 +538,56 @@ class PageServletTest {
 
     assertFalse(PageServlet.isDraftBlockedFromPublicAccess(webPage, guestSession()));
   }
+
+  // Issue #827: this is what decides the excludeArchived argument PageServlet passes to
+  // LoadItemCommand.loadItemByUniqueIdForAuthorizedUser for the matched page's item route --
+  // true only for a page with no role/group/capability restriction at all (a genuinely public
+  // route, e.g. an item's /show/{uniqueId} detail page), matching WebComponentCommand.allowsUser's
+  // own open-by-default semantics for an unrestricted Page (roles/groups/capabilities all empty ->
+  // denyWhenEmpty=false -> any guest passes).
+
+  @Test
+  void isPubliclyUnrestrictedPageIsTrueForAPageWithNoRoleGroupOrCapabilityRestriction() {
+    // e.g. a plain item detail page like /show/{uniqueId} -- any guest can reach it, so a
+    // deactivated item must not still resolve there.
+    Page pageRef = new Page();
+
+    assertTrue(PageServlet.isPubliclyUnrestrictedPage(pageRef));
+  }
+
+  @Test
+  void isPubliclyUnrestrictedPageIsFalseWhenRolesAreRestricted() {
+    // e.g. an admin-only edit route like /edit/{uniqueId} -- a deactivated item must still
+    // resolve there so it can be managed.
+    Page pageRef = new Page();
+    pageRef.setRoles(List.of("admin"));
+
+    assertFalse(PageServlet.isPubliclyUnrestrictedPage(pageRef));
+  }
+
+  @Test
+  void isPubliclyUnrestrictedPageIsFalseWhenGroupsAreRestricted() {
+    Page pageRef = new Page();
+    pageRef.setGroups(List.of("staff"));
+
+    assertFalse(PageServlet.isPubliclyUnrestrictedPage(pageRef));
+  }
+
+  @Test
+  void isPubliclyUnrestrictedPageIsFalseWhenCapabilitiesAreRestricted() {
+    // Issue #701's hasPermission()-based capability= restriction, alongside role=
+    Page pageRef = new Page();
+    pageRef.setCapabilities(List.of("items.manage"));
+
+    assertFalse(PageServlet.isPubliclyUnrestrictedPage(pageRef));
+  }
+
+  @Test
+  void isPubliclyUnrestrictedPageIsFalseWhenBothRolesAndGroupsAreRestricted() {
+    Page pageRef = new Page();
+    pageRef.setRoles(List.of("admin"));
+    pageRef.setGroups(List.of("staff"));
+
+    assertFalse(PageServlet.isPubliclyUnrestrictedPage(pageRef));
+  }
 }
