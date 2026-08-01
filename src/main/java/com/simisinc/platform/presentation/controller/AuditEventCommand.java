@@ -21,15 +21,23 @@ import com.simisinc.platform.domain.model.Group;
 import com.simisinc.platform.domain.model.Role;
 import com.simisinc.platform.domain.model.User;
 
+import jakarta.servlet.http.HttpServletRequest;
+
 /**
- * Bridges a widget request to the security audit log (see {@link SaveAuditEventCommand}). It pulls the
- * acting administrator's identity -- user id, username, source IP and session id -- from the
- * {@link WidgetContext} and records an administrative or data-change event.
+ * Bridges a widget or servlet request to the security audit log (see {@link SaveAuditEventCommand}). It
+ * pulls the acting administrator's identity -- user id, username, source IP and session id -- from either
+ * a {@link WidgetContext} or a raw {@link HttpServletRequest}/{@link UserSession} pair, and records an
+ * administrative or data-change event.
  *
  * <p>Presentation code (widgets, and the small number of application commands that already receive a
- * WidgetContext) should call this rather than building an {@code AuditLog} by hand, so the actor is
- * resolved consistently. Auditing is a side effect: extracting the actor and writing the record are both
- * guarded so a failure here can never break the admin action being observed.
+ * WidgetContext) should call the {@code WidgetContext} overload rather than building an {@code AuditLog}
+ * by hand, so the actor is resolved consistently. A servlet that is not part of the widget-rendering
+ * pipeline (e.g. {@code PageServlet}, {@code MediaApiController}) has no {@code WidgetContext} to build
+ * one from -- constructing one just for this would need to reach into {@code WidgetContext}'s
+ * page-render-only {@code coreData} map, which is a rendering concern, not an auditing one -- so it should
+ * call the {@code HttpServletRequest}/{@code UserSession} overload instead. Auditing is a side effect:
+ * extracting the actor and writing the record are both guarded so a failure here can never break the
+ * action being observed.
  *
  * @author SimIS Inc.
  */
@@ -79,6 +87,42 @@ public class AuditEventCommand {
       // Prefer the live request address, matching the Phase 1 authentication events
       if (context.getRequest() != null && context.getRequest().getRemoteAddr() != null) {
         sourceIp = context.getRequest().getRemoteAddr();
+      }
+    } catch (Exception e) {
+      // Never let actor extraction break the caller; record with whatever was resolved
+    }
+    SaveAuditEventCommand.recordAdminEvent(eventCategory, eventType, outcome, actorUserId, actorUsername,
+        sourceIp, sessionId, targetType, targetId, targetLabel, details);
+  }
+
+  /**
+   * Records an admin/data-change audit event for a caller that has a raw servlet request and user session
+   * but no {@link WidgetContext} -- see the class javadoc for why that's a distinct case rather than one
+   * that should just build a WidgetContext. Never throws.
+   */
+  public static void record(HttpServletRequest request, UserSession userSession, String eventCategory,
+      String eventType, String outcome, String targetType, String targetId, String targetLabel,
+      String details) {
+    long actorUserId = -1L;
+    String actorUsername = null;
+    String sourceIp = null;
+    String sessionId = null;
+    try {
+      if (userSession != null) {
+        actorUserId = userSession.getUserId();
+        sessionId = userSession.getSessionId();
+        sourceIp = userSession.getIpAddress();
+        // getUser() lazily loads the acting user; skip it for an unauthenticated/unknown actor
+        if (actorUserId > -1L) {
+          User actor = userSession.getUser();
+          if (actor != null) {
+            actorUsername = actor.getEmail();
+          }
+        }
+      }
+      // Prefer the live request address, matching the WidgetContext overload
+      if (request != null && request.getRemoteAddr() != null) {
+        sourceIp = request.getRemoteAddr();
       }
     } catch (Exception e) {
       // Never let actor extraction break the caller; record with whatever was resolved

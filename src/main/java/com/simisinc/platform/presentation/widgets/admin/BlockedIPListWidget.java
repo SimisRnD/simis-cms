@@ -134,11 +134,6 @@ public class BlockedIPListWidget extends GenericWidget {
       return downloadCSVFile(context);
     } else if ("uploadCSVFile".equals(command)) {
       return uploadCSVFileAction(context);
-    } else if ("delete".equals(command)) {
-      // The row's delete link submits via confirmPostAction(), a real POST -- WebContainerCommand
-      // checks isPost() before isDelete(), so this always reaches post(), never delete() directly.
-      // Forward to it explicitly (same fix shape as PR #577's UserDetailsWidget dispatch gap).
-      return delete(context);
     }
     // Default to nothing
     return null;
