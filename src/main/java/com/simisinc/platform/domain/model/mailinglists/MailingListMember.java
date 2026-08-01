@@ -47,6 +47,14 @@ public class MailingListMember extends Entity {
 
   /** Only populated by queries that join to emails -- not a mailing_list_members column. */
   private String emailAddress = null;
+  private String firstName = null;
+  private String lastName = null;
+  private String organization = null;
+  private String ipAddress = null;
+  /** The vendor's deliverability classification for this email address (e.g. ZeroBounce); see
+   *  emails.validation_status. A property of the address itself, not of this one membership --
+   *  quarantineReason above is the list-membership-specific consequence of a bad classification. */
+  private String validationStatus = null;
 
   public MailingListMember() {
   }
@@ -177,5 +185,45 @@ public class MailingListMember extends Entity {
 
   public void setEmailAddress(String emailAddress) {
     this.emailAddress = emailAddress;
+  }
+
+  public String getFirstName() {
+    return firstName;
+  }
+
+  public void setFirstName(String firstName) {
+    this.firstName = firstName;
+  }
+
+  public String getLastName() {
+    return lastName;
+  }
+
+  public void setLastName(String lastName) {
+    this.lastName = lastName;
+  }
+
+  public String getOrganization() {
+    return organization;
+  }
+
+  public void setOrganization(String organization) {
+    this.organization = organization;
+  }
+
+  public String getIpAddress() {
+    return ipAddress;
+  }
+
+  public void setIpAddress(String ipAddress) {
+    this.ipAddress = ipAddress;
+  }
+
+  public String getValidationStatus() {
+    return validationStatus;
+  }
+
+  public void setValidationStatus(String validationStatus) {
+    this.validationStatus = validationStatus;
   }
 }
