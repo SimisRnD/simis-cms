@@ -59,6 +59,7 @@ public class WidgetBase {
 
   public static final String ADMIN = "admin";
   public static final String CONTENT_MANAGER = "content-manager";
+  public static final String CONTENT_EDITOR = "content-editor";
   public static final String COMMUNITY_MANAGER = "community-manager";
 
   public ServletContext servletContext = mock(ServletContext.class);
@@ -174,6 +175,9 @@ public class WidgetBase {
           roleList.add(role);
         } else if (CONTENT_MANAGER.equals(roleValue)) {
           Role role = new Role("Content Manager", CONTENT_MANAGER);
+          roleList.add(role);
+        } else if (CONTENT_EDITOR.equals(roleValue)) {
+          Role role = new Role("Content Editor", CONTENT_EDITOR);
           roleList.add(role);
         } else if (COMMUNITY_MANAGER.equals(roleValue)) {
           Role role = new Role("Content Manager", COMMUNITY_MANAGER);
