@@ -18,6 +18,7 @@ package com.simisinc.platform.application.cms;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.List;
@@ -132,5 +133,40 @@ class ContentAccessibilityCommandTest {
     assertTrue(found.contains(ContentAccessibilityCommand.RULE_IMAGE_MISSING_ALT));
     assertTrue(found.contains(ContentAccessibilityCommand.RULE_LINK_TEXT_UNCLEAR));
     assertFalse(ContentAccessibilityCommand.isClean(html));
+  }
+
+  // ── summarize() -- shared by both #258 author-facing notice call sites ────────────────────────
+
+  @Test
+  void summarizeReturnsNullForNoFindings() {
+    assertNull(ContentAccessibilityCommand.summarize(List.of()));
+    assertNull(ContentAccessibilityCommand.summarize(null));
+  }
+
+  @Test
+  void summarizeSingleFindingIsSingularAndNamesTheRule() {
+    List<Finding> findings = ContentAccessibilityCommand.check("<img src=\"/a.png\">");
+    String summary = ContentAccessibilityCommand.summarize(findings);
+    assertEquals("1 accessibility issue found: missing alt text", summary);
+  }
+
+  @Test
+  void summarizeMultipleFindingsOfOneRuleDoesNotRepeatTheBreakdown() {
+    String html = "<img src=\"/a.png\"><img src=\"/b.png\">";
+    List<Finding> findings = ContentAccessibilityCommand.check(html);
+    assertEquals("2 accessibility issues found: missing alt text", ContentAccessibilityCommand.summarize(findings));
+  }
+
+  @Test
+  void summarizeGroupsMultipleRulesWithCounts() {
+    // check() runs its three passes -- image, then heading, then link -- in that order, so the
+    // summary's rule breakdown follows that same first-seen order.
+    String html = "<h2>Title</h2><h5>Skipped</h5>"
+        + "<img src=\"/a.png\">"
+        + "<a href=\"/b\">click here</a>";
+    List<Finding> findings = ContentAccessibilityCommand.check(html);
+    assertEquals(
+        "3 accessibility issues found: missing alt text (1), skipped heading level (1), unclear link text (1)",
+        ContentAccessibilityCommand.summarize(findings));
   }
 }

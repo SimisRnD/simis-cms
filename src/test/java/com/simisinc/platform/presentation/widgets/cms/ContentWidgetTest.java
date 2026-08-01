@@ -208,4 +208,72 @@ class ContentWidgetTest extends WidgetBase {
       Assertions.assertTrue(widgetContext.getJson().contains("\"success\":true"));
     }
   }
+
+  @Test
+  void postSaveDraftSurfacesAccessibilityFindingsWhenPresent() {
+    // #258: ContentAccessibilityCommand is wired into this save path as a non-blocking, purely
+    // additive author-facing notice. The save itself (verified above by the other saveDraft test)
+    // is unaffected either way -- this only proves the JSON response gets enriched when the saved
+    // content has a real, checkable violation.
+    preferences.put("uniqueId", "hello-content");
+    addQueryParameter(widgetContext, "action", "saveDraft");
+    addQueryParameter(widgetContext, "html", "<p>Text</p><img src=\"/assets/foo.jpg\">");
+
+    Content content = new Content();
+    content.setId(42L);
+    content.setUniqueId("hello-content");
+    content.setContent("<p>Original content</p>");
+
+    try (MockedStatic<LoadContentCommand> loadContent = mockStatic(LoadContentCommand.class);
+        MockedStatic<EditorPermissionCommand> editorPermission = mockStatic(EditorPermissionCommand.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<SaveContentCommand> saveContent = mockStatic(SaveContentCommand.class);
+        MockedStatic<AuditEventCommand> auditEvent = mockStatic(AuditEventCommand.class)) {
+      loadContent.when(() -> LoadContentCommand.loadContentByUniqueId(eq("hello-content"))).thenReturn(content);
+      editorPermission.when(() -> EditorPermissionCommand.canEditContent(any())).thenReturn(true);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean(anyString())).thenReturn(false);
+
+      ContentWidget contentWidget = new ContentWidget();
+      widgetContext = contentWidget.post(widgetContext);
+
+      Assertions.assertTrue(widgetContext.hasJson());
+      String json = widgetContext.getJson();
+      Assertions.assertTrue(json.contains("\"success\":true"), json);
+      Assertions.assertTrue(json.contains("\"a11yFindings\""), json);
+      Assertions.assertTrue(json.contains("image-missing-alt"), json);
+      Assertions.assertTrue(json.contains("WCAG 1.1.1"), json);
+    }
+  }
+
+  @Test
+  void postSaveDraftOmitsAccessibilityFindingsWhenContentIsClean() {
+    // The flip side of the above: a clean save must not add the field at all. Existing clients
+    // (platform-editor.js) only read success/error and must keep working unchanged.
+    preferences.put("uniqueId", "hello-content");
+    addQueryParameter(widgetContext, "action", "saveDraft");
+    addQueryParameter(widgetContext, "html", "<p>Edited content</p>");
+
+    Content content = new Content();
+    content.setId(42L);
+    content.setUniqueId("hello-content");
+    content.setContent("<p>Original content</p>");
+
+    try (MockedStatic<LoadContentCommand> loadContent = mockStatic(LoadContentCommand.class);
+        MockedStatic<EditorPermissionCommand> editorPermission = mockStatic(EditorPermissionCommand.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<SaveContentCommand> saveContent = mockStatic(SaveContentCommand.class);
+        MockedStatic<AuditEventCommand> auditEvent = mockStatic(AuditEventCommand.class)) {
+      loadContent.when(() -> LoadContentCommand.loadContentByUniqueId(eq("hello-content"))).thenReturn(content);
+      editorPermission.when(() -> EditorPermissionCommand.canEditContent(any())).thenReturn(true);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean(anyString())).thenReturn(false);
+
+      ContentWidget contentWidget = new ContentWidget();
+      widgetContext = contentWidget.post(widgetContext);
+
+      Assertions.assertTrue(widgetContext.hasJson());
+      String json = widgetContext.getJson();
+      Assertions.assertEquals("{\"success\":true}", json);
+      Assertions.assertFalse(json.contains("a11yFindings"), json);
+    }
+  }
 }
