@@ -280,6 +280,74 @@ class ItemRepositoryTest {
     assertEquals(1, count, "a guest-visible collection's category count must still come through for a guest requester");
   }
 
+  @Test
+  void countByCategoryExcludesArchivedItemsByDefault() {
+    // Issue #814: PageServlet's deactivateCollectionItem sets Item.archived, but nothing ever
+    // filtered query results on it, so a deactivated item never actually left the collection's
+    // listing. createSearchWhereStatement (shared by query() and the facet-count methods below)
+    // is where that filter now lives; verified here through countByCategory since it exercises
+    // the exact same WHERE-building path as a real listing query without needing the full items
+    // column set that ItemRepository.buildRecord expects.
+    long collectionId = addCollection();
+    long categoryA = 10;
+    long activeItem = addItem(collectionId, null, Timestamp.valueOf("2026-01-01 00:00:00"));
+    linkCategory(activeItem, categoryA, collectionId);
+    long archivedItem = addItem(collectionId, null, Timestamp.valueOf("2026-01-02 00:00:00"));
+    linkCategory(archivedItem, categoryA, collectionId);
+    archiveItem(archivedItem);
+
+    ItemSpecification specification = new ItemSpecification();
+
+    assertEquals(1, ItemRepository.countByCategory(specification, categoryA),
+        "a deactivated item must not be counted by a normal (non-includeArchived) query");
+  }
+
+  @Test
+  void countByCategoryIncludesArchivedItemsWhenIncludeArchivedIsSet() {
+    long collectionId = addCollection();
+    long categoryA = 10;
+    long activeItem = addItem(collectionId, null, Timestamp.valueOf("2026-01-01 00:00:00"));
+    linkCategory(activeItem, categoryA, collectionId);
+    long archivedItem = addItem(collectionId, null, Timestamp.valueOf("2026-01-02 00:00:00"));
+    linkCategory(archivedItem, categoryA, collectionId);
+    archiveItem(archivedItem);
+
+    ItemSpecification specification = new ItemSpecification();
+    specification.setIncludeArchived(true);
+
+    assertEquals(2, ItemRepository.countByCategory(specification, categoryA),
+        "a caller that explicitly opts in (e.g. dataset cleanup, single-item access checks) must still see archived items");
+  }
+
+  @Test
+  void countByDateRangeExcludesArchivedItemsByDefault() {
+    long collectionId = addCollection();
+    addItem(collectionId, null, Timestamp.valueOf("2026-06-01 00:00:00"));
+    long archivedItem = addItem(collectionId, null, Timestamp.valueOf("2026-06-15 00:00:00"));
+    archiveItem(archivedItem);
+
+    ItemSpecification specification = new ItemSpecification();
+    long count = ItemRepository.countByDateRange(specification,
+        Timestamp.valueOf("2026-01-01 00:00:00"), Timestamp.valueOf("2027-01-01 00:00:00"));
+
+    assertEquals(1, count, "the archived-exclusion filter must apply to date-facet counts too, not just the main listing");
+  }
+
+  @Test
+  void countByDateRangeIncludesArchivedItemsWhenIncludeArchivedIsSet() {
+    long collectionId = addCollection();
+    addItem(collectionId, null, Timestamp.valueOf("2026-06-01 00:00:00"));
+    long archivedItem = addItem(collectionId, null, Timestamp.valueOf("2026-06-15 00:00:00"));
+    archiveItem(archivedItem);
+
+    ItemSpecification specification = new ItemSpecification();
+    specification.setIncludeArchived(true);
+    long count = ItemRepository.countByDateRange(specification,
+        Timestamp.valueOf("2026-01-01 00:00:00"), Timestamp.valueOf("2027-01-01 00:00:00"));
+
+    assertEquals(2, count, "facet counts must not drift from what a real includeArchived(true) listing query would return");
+  }
+
   private static boolean isDockerAvailable() {
     try {
       return DockerClientFactory.instance().isDockerAvailable();
@@ -308,6 +376,7 @@ class ItemRepositoryTest {
           + "collection_id BIGINT, "
           + "approved TIMESTAMP, "
           + "created TIMESTAMP DEFAULT CURRENT_TIMESTAMP, "
+          + "archived TIMESTAMP, "
           + "geom TEXT)"); // placeholder column: only IS NOT NULL is exercised here, real
                            // geometry semantics (PostGIS) aren't available in the plain
                            // postgres:15-alpine test image
@@ -364,6 +433,18 @@ class ItemRepositoryTest {
       }
     } catch (SQLException se) {
       throw new IllegalStateException("Could not insert an item", se);
+    }
+  }
+
+  private static void archiveItem(long itemId) {
+    try (Connection connection = DB.getConnection();
+        PreparedStatement pst = connection.prepareStatement(
+            "UPDATE items SET archived = ? WHERE item_id = ?")) {
+      pst.setTimestamp(1, Timestamp.valueOf("2026-01-01 00:00:00"));
+      pst.setLong(2, itemId);
+      pst.executeUpdate();
+    } catch (SQLException se) {
+      throw new IllegalStateException("Could not archive an item", se);
     }
   }
 
