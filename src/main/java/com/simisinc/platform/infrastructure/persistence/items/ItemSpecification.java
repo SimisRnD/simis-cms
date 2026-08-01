@@ -47,6 +47,17 @@ public class ItemSpecification {
   private int hasCoordinates = DataConstants.UNDEFINED;
   private boolean approvedOnly = false;
   private boolean unapprovedOnly = false;
+  // Issue #814: items have no separate active/enabled flag -- archivedBy/archived (set by
+  // PageServlet's deactivateCollectionItem action) is how an item is soft-hidden. Unlike the
+  // opt-out-per-caller convention used for WebPageSpecification.enabled/draft,
+  // MedicineSpecification.archivedOnly, and FormDataSpecification.dismissed (all default to no
+  // filtering, relying on each caller to opt out), this defaults to excluding archived items: no
+  // current caller of ItemRepository's query path ever wants to browse/list archived items, so an
+  // opt-out-per-caller default would just leave the door open for the next listing call site to
+  // reintroduce this same bug. The few call sites that do need to reach an archived item by a
+  // known id/uniqueId (single-item access checks backing edit/detail pages, and dataset cleanup
+  // that must remove archived items too) opt IN explicitly via setIncludeArchived(true).
+  private boolean includeArchived = false;
   private long datasetId = -1L;
   private Timestamp datasetSyncTimestampThreshold = null;
   private Timestamp dateRangeStart = null;
@@ -205,6 +216,14 @@ public class ItemSpecification {
 
   public void setUnapprovedOnly(boolean unapprovedOnly) {
     this.unapprovedOnly = unapprovedOnly;
+  }
+
+  public boolean getIncludeArchived() {
+    return includeArchived;
+  }
+
+  public void setIncludeArchived(boolean includeArchived) {
+    this.includeArchived = includeArchived;
   }
 
   public int getHasCoordinates() {

@@ -338,6 +338,15 @@ public class ItemRepository {
   private static SqlUtils createSearchWhereStatement(ItemSpecification specification) {
     SqlUtils where = new SqlUtils();
 
+    // Issue #814: exclude deactivated items from normal listing/search queries by default. Callers
+    // that must still reach a specific archived item (single-item access checks, dataset cleanup)
+    // opt in via ItemSpecification#setIncludeArchived(true); see the field javadoc there for why
+    // this defaults to excluding rather than mirroring the opt-out-per-caller convention used
+    // elsewhere (WebPage/Medicine/FormData).
+    if (!specification.getIncludeArchived()) {
+      where.add("items.archived IS NULL");
+    }
+
     if (specification.getApprovedOnly()) {
       where.add("approved is not null");
     } else if (specification.getUnapprovedOnly()) {
@@ -407,6 +416,7 @@ public class ItemRepository {
     ItemSpecification facetSpec = new ItemSpecification();
     facetSpec.setApprovedOnly(specification.getApprovedOnly());
     facetSpec.setUnapprovedOnly(specification.getUnapprovedOnly());
+    facetSpec.setIncludeArchived(specification.getIncludeArchived());
     facetSpec.setForUserId(specification.getForUserId());
     facetSpec.setSearchName(specification.getSearchName());
     facetSpec.setSearchLocation(specification.getSearchLocation());
@@ -425,6 +435,7 @@ public class ItemRepository {
     ItemSpecification facetSpec = new ItemSpecification();
     facetSpec.setApprovedOnly(specification.getApprovedOnly());
     facetSpec.setUnapprovedOnly(specification.getUnapprovedOnly());
+    facetSpec.setIncludeArchived(specification.getIncludeArchived());
     facetSpec.setForUserId(specification.getForUserId());
     facetSpec.setSearchName(specification.getSearchName());
     facetSpec.setSearchLocation(specification.getSearchLocation());
