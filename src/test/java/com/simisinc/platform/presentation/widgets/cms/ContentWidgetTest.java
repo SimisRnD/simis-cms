@@ -32,6 +32,7 @@ import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.cms.ContentReviewCommand;
 import com.simisinc.platform.application.cms.EditorPermissionCommand;
 import com.simisinc.platform.application.cms.LoadContentCommand;
+import com.simisinc.platform.application.cms.SaveContentCommand;
 import com.simisinc.platform.domain.model.cms.Content;
 import com.simisinc.platform.infrastructure.persistence.cms.ContentRepository;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
@@ -160,6 +161,44 @@ class ContentWidgetTest extends WidgetBase {
       new ContentWidget().action(widgetContext);
 
       contentReview.verify(() -> ContentReviewCommand.approve(any(), anyLong(), anyString()), never());
+    }
+  }
+
+  @Test
+  void postSaveDraftForwardsToActionAndPersistsContent() {
+    // The inline visual editor's Save Draft button (platform-editor.js saveContentDraft()) submits
+    // action=saveDraft via a real POST, so WebContainerContext routes the request to post(), not
+    // action() above. Before issue #812 was fixed, post() only recognized "approve" and silently
+    // fell through to `return context` for everything else -- the draft was never persisted and no
+    // error was shown. This test calls post() directly, the same method a real request now reaches,
+    // so it fails if that forwarding gap reopens.
+    preferences.put("uniqueId", "hello-content");
+    addQueryParameter(widgetContext, "action", "saveDraft");
+    addQueryParameter(widgetContext, "html", "<p>Edited content</p>");
+
+    Content content = new Content();
+    content.setId(42L);
+    content.setUniqueId("hello-content");
+    content.setContent("<p>Original content</p>");
+
+    try (MockedStatic<LoadContentCommand> loadContent = mockStatic(LoadContentCommand.class);
+        MockedStatic<EditorPermissionCommand> editorPermission = mockStatic(EditorPermissionCommand.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<SaveContentCommand> saveContent = mockStatic(SaveContentCommand.class);
+        MockedStatic<AuditEventCommand> auditEvent = mockStatic(AuditEventCommand.class)) {
+      loadContent.when(() -> LoadContentCommand.loadContentByUniqueId(eq("hello-content"))).thenReturn(content);
+      editorPermission.when(() -> EditorPermissionCommand.canEditContent(any())).thenReturn(true);
+      // performWebAction() unconditionally reads this site property before branching on the action
+      // name, even though saveDraft never uses it -- must be stubbed regardless, same as action().
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean(anyString())).thenReturn(false);
+
+      ContentWidget contentWidget = new ContentWidget();
+      widgetContext = contentWidget.post(widgetContext);
+
+      saveContent.verify(
+          () -> SaveContentCommand.saveSafeContent(eq("hello-content"), eq("<p>Edited content</p>"), anyLong(), eq(false)));
+      Assertions.assertTrue(widgetContext.hasJson());
+      Assertions.assertTrue(widgetContext.getJson().contains("\"success\":true"));
     }
   }
 }
