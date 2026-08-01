@@ -929,6 +929,26 @@
           <report>mailing-list-classification-breakdown</report>
         </widget>
       </column>
+      <column class="small-12 medium-6 cell">
+        <widget name="siteStats" class="stats card">
+          <icon>fa-briefcase</icon>
+          <title>Traffic by Solution Type</title>
+          <label>Page Views</label>
+          <report>solution-type-traffic</report>
+          <type>bar</type>
+          <days>30</days>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 cell">
+        <widget name="siteStats" class="stats card">
+          <icon>fa-briefcase</icon>
+          <title>Engagement by Solution Type</title>
+          <label>Solution Type</label>
+          <value>Avg Page Views / Session</value>
+          <report>solution-type-engagement</report>
+          <days>30</days>
+        </widget>
+      </column>
     </section>
   </page>
 

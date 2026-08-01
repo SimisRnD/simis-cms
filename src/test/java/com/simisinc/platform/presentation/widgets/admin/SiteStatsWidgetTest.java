@@ -792,6 +792,80 @@ class SiteStatsWidgetTest extends WidgetBase {
     Assertions.assertNull(widgetContext.getJsp());
   }
 
+  @Test
+  void executeSolutionTypeTraffic() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <title>Traffic by Solution Type</title>\n" +
+            "  <report>solution-type-traffic</report>\n" +
+            "  <type>bar</type>\n" +
+            "  <days>30</days>\n" +
+            "</widget>");
+
+    List<StatisticsData> data = List.of(statistic("government-solution", "120"), statistic("careers", "40"));
+    try (MockedStatic<WebPageHitRepository> repository = mockStatic(WebPageHitRepository.class)) {
+      repository.when(() -> WebPageHitRepository.findTrafficBySolutionType(30)).thenReturn(data);
+
+      setRoles(widgetContext, ADMIN);
+      SiteStatsWidget widget = new SiteStatsWidget();
+      widget.execute(widgetContext);
+
+      repository.verify(() -> WebPageHitRepository.findTrafficBySolutionType(30));
+    }
+
+    Assertions.assertEquals(SiteStatsWidget.BAR_CHART_JSP, widgetContext.getJsp());
+    Assertions.assertEquals(data, request.getAttribute("statisticsDataList"));
+  }
+
+  @Test
+  void executeSolutionTypeEngagement() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <title>Engagement by Solution Type</title>\n" +
+            "  <report>solution-type-engagement</report>\n" +
+            "  <days>30</days>\n" +
+            "</widget>");
+
+    List<StatisticsData> data = List.of(statistic("government-solution", "2.50"));
+    try (MockedStatic<WebPageHitRepository> repository = mockStatic(WebPageHitRepository.class)) {
+      repository.when(() -> WebPageHitRepository.findEngagementBySolutionType(30)).thenReturn(data);
+
+      setRoles(widgetContext, ADMIN);
+      SiteStatsWidget widget = new SiteStatsWidget();
+      widget.execute(widgetContext);
+
+      repository.verify(() -> WebPageHitRepository.findEngagementBySolutionType(30));
+    }
+
+    Assertions.assertEquals(SiteStatsWidget.TABLE_JSP, widgetContext.getJsp());
+    Assertions.assertEquals(data, request.getAttribute("statisticsDataList"));
+    Assertions.assertEquals("Solution Type", request.getAttribute("label"));
+    Assertions.assertEquals("Avg Page Views / Session", request.getAttribute("value"));
+  }
+
+  @Test
+  void executeSolutionTypeEngagementHonorsConfiguredLabelAndValue() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <title>Engagement by Solution Type</title>\n" +
+            "  <report>solution-type-engagement</report>\n" +
+            "  <label>Solution</label>\n" +
+            "  <value>Depth</value>\n" +
+            "  <days>30</days>\n" +
+            "</widget>");
+
+    try (MockedStatic<WebPageHitRepository> repository = mockStatic(WebPageHitRepository.class)) {
+      repository.when(() -> WebPageHitRepository.findEngagementBySolutionType(30)).thenReturn(List.of());
+
+      setRoles(widgetContext, ADMIN);
+      SiteStatsWidget widget = new SiteStatsWidget();
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals("Solution", request.getAttribute("label"));
+    Assertions.assertEquals("Depth", request.getAttribute("value"));
+  }
+
   private static StatisticsData statistic(String label, String value) {
     StatisticsData data = new StatisticsData();
     data.setLabel(label);

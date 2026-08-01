@@ -218,6 +218,17 @@ class DatabaseMigrationTest {
   }
 
   @Test
+  void webPagesHasTheSolutionTypeColumnOnAFreshInstall() throws SQLException {
+    // issue #570: web_pages.solution_type is added directly in NEW_10010__new_cms.sql (the install
+    // path) as well as via UPGRADE_20260801.1000__web_pages_solution_type.sql (the upgrade path,
+    // exercised separately by SolutionTypeMigrationTest). This confirms the install side actually
+    // shipped, not just the upgrade migration.
+    assertTrue(columnExists("web_pages", "solution_type"),
+        "web_pages.solution_type is missing after a fresh install - the solution-page tagging "
+            + "admin field and site-stats reports both depend on it");
+  }
+
+  @Test
   void tablesThatOnlyExistedInUpgradeMigrationsAreOnTheInstallPath() throws SQLException {
     // Same class of gap as columnsThatOnlyExistedInUpgradeMigrationsAreOnTheInstallPath above,
     // but for whole tables instead of columns: media_assets/media_asset_usage
