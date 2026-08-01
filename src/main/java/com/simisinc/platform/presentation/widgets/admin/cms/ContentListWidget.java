@@ -16,15 +16,28 @@
 
 package com.simisinc.platform.presentation.widgets.admin.cms;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.sql.Timestamp;
+import java.time.LocalDate;
 import java.util.List;
+import java.util.Map;
 
+import org.apache.commons.lang3.StringUtils;
+
+import com.simisinc.platform.application.cms.ContentUsageCommand;
 import com.simisinc.platform.domain.model.cms.Content;
+import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.persistence.cms.ContentRepository;
-import com.simisinc.platform.presentation.widgets.GenericWidget;
+import com.simisinc.platform.infrastructure.persistence.cms.ContentSpecification;
+import com.simisinc.platform.presentation.controller.RequestConstants;
 import com.simisinc.platform.presentation.controller.WidgetContext;
+import com.simisinc.platform.presentation.widgets.GenericWidget;
 
 /**
- * Description
+ * The /admin/content-list admin page (issue #499): search (unique id substring OR body full-text,
+ * combined into one box), last-modified date range and character-count range filters, and usage
+ * detection (which page(s) reference each content block, "Orphaned" when none do).
  *
  * @author matt rajkowski
  * @created 4/20/18 10:04 AM
@@ -37,9 +50,37 @@ public class ContentListWidget extends GenericWidget {
 
   public WidgetContext execute(WidgetContext context) {
 
-    // Load the categories
-    List<Content> contentList = ContentRepository.findAll();
+    // Determine the record paging
+    int limit = Integer.parseInt(context.getPreferences().getOrDefault("limit", "25"));
+    int page = context.getParameterAsInt("page", 1);
+    int itemsPerPage = context.getParameterAsInt("items", limit);
+    DataConstraints constraints = new DataConstraints(page, itemsPerPage);
+    constraints.setDefaultColumnToSortBy("content_unique_id");
+    context.getRequest().setAttribute(RequestConstants.RECORD_PAGING, constraints);
+
+    ContentSpecification specification = buildSpecification(context);
+
+    // Load the list
+    List<Content> contentList = ContentRepository.findAll(specification, constraints);
     context.getRequest().setAttribute("contentList", contentList);
+
+    // For each content block, which page(s) (or filesystem templates) reference it -- drives the
+    // "Used on: ..." display and the "Orphaned" badge (a block with no entry here is unreferenced).
+    Map<String, List<String>> contentUsageMap = ContentUsageCommand.findUsageMap(context.getRequest().getServletContext());
+    context.getRequest().setAttribute("contentUsageMap", contentUsageMap);
+
+    // Echo the filter values back so the form keeps its state
+    echoFilterParameters(context);
+
+    // Carry the filters through pagination (paging_control.jspf appends this to each page link).
+    // URL-encoded here so the free-text search term cannot break the query string or the href.
+    StringBuilder pagingParams = new StringBuilder();
+    appendParam(pagingParams, "q", context.getParameter("q"));
+    appendParam(pagingParams, "fromDate", context.getParameter("fromDate"));
+    appendParam(pagingParams, "toDate", context.getParameter("toDate"));
+    appendParam(pagingParams, "minLength", context.getParameter("minLength"));
+    appendParam(pagingParams, "maxLength", context.getParameter("maxLength"));
+    context.getRequest().setAttribute("recordPagingParams", pagingParams.toString());
 
     // Standard request items
     context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));
@@ -48,6 +89,71 @@ public class ContentListWidget extends GenericWidget {
     // Show the JSP
     context.setJsp(JSP);
     return context;
+  }
+
+  /** Builds the filter specification from request parameters. */
+  private ContentSpecification buildSpecification(WidgetContext context) {
+    String q = context.getParameter("q");
+    String fromDate = context.getParameter("fromDate");
+    String toDate = context.getParameter("toDate");
+    int minLength = context.getParameterAsInt("minLength", -1);
+    int maxLength = context.getParameterAsInt("maxLength", -1);
+
+    ContentSpecification specification = new ContentSpecification();
+    if (StringUtils.isNotBlank(q)) {
+      specification.setSearchTerm(q.trim());
+    }
+
+    // Parse the yyyy-MM-dd date range: from = start of that day, to = start of the day AFTER (half-open)
+    Timestamp from = parseDate(fromDate, 0);
+    Timestamp to = parseDate(toDate, 1);
+    if (from != null) {
+      specification.setDateModifiedAfter(from);
+    }
+    if (to != null) {
+      specification.setDateModifiedBefore(to);
+    }
+
+    if (minLength >= 0) {
+      specification.setMinLength(minLength);
+    }
+    if (maxLength >= 0) {
+      specification.setMaxLength(maxLength);
+    }
+    return specification;
+  }
+
+  /** Echoes the raw filter parameters back to the request so the filter form keeps its state. */
+  private void echoFilterParameters(WidgetContext context) {
+    context.getRequest().setAttribute("q", context.getParameter("q"));
+    context.getRequest().setAttribute("fromDate", context.getParameter("fromDate"));
+    context.getRequest().setAttribute("toDate", context.getParameter("toDate"));
+    context.getRequest().setAttribute("minLength", context.getParameter("minLength"));
+    context.getRequest().setAttribute("maxLength", context.getParameter("maxLength"));
+  }
+
+  /** Appends {@code name=urlEncoded(value)} to the paging query string when the value is present. */
+  private void appendParam(StringBuilder sb, String name, String value) {
+    if (StringUtils.isBlank(value)) {
+      return;
+    }
+    if (sb.length() > 0) {
+      sb.append("&");
+    }
+    sb.append(name).append("=").append(URLEncoder.encode(value, StandardCharsets.UTF_8));
+  }
+
+  /** Parses a yyyy-MM-dd string to a start-of-day Timestamp plus {@code plusDays}; null when blank/invalid. */
+  private Timestamp parseDate(String value, int plusDays) {
+    if (StringUtils.isBlank(value)) {
+      return null;
+    }
+    try {
+      LocalDate date = LocalDate.parse(value.trim()).plusDays(plusDays);
+      return Timestamp.valueOf(date.atStartOfDay());
+    } catch (Exception e) {
+      return null;
+    }
   }
 
 }

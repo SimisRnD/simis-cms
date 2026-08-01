@@ -233,6 +233,43 @@ JAR_SCOPED_ALLOWLIST: dict[tuple[str, str], str] = {
         "reference from any OTHER jar is a real missing-dependency bug and must "
         "still be reported, not waved through by a bare prefix."
     ),
+    # AFD purge (issue #420): azure-identity's DefaultAzureCredential pulls in msal4j, which uses
+    # nimbus-jose-jwt/oauth2-oidc-sdk for its OAuth2/OIDC client message classes only -- the
+    # confidential/managed-identity token flows this app actually calls. Each entry below is an
+    # optional algorithm or integration inside those two jars that path never reaches.
+    ("nimbus-jose-jwt-", "com.google.crypto"): (
+        "Google Tink, used only by nimbus-jose-jwt's EdDSA (Ed25519) signer/verifier. Azure AD "
+        "access/ID tokens are RS256-signed, so msal4j's token parsing never reaches this signer; "
+        "Tink itself is not vendored."
+    ),
+    ("oauth2-oidc-sdk-", "javax.servlet"): (
+        "legacy javax.servlet request/response helpers for framework integration; this app is "
+        "Jakarta EE (jakarta.servlet), and msal4j's OAuth2 client flows never touch oauth2-oidc-sdk's "
+        "servlet-binding helpers (same shape as the thymeleaf entry above)."
+    ),
+    ("oauth2-oidc-sdk-", "net.shibboleth"): (
+        "Shibboleth utilities backing oauth2-oidc-sdk's SAML 2.0 federation support; msal4j only "
+        "uses this library's plain OAuth2/OIDC client message classes (authorization requests, "
+        "token responses), never its SAML assertion path."
+    ),
+    ("oauth2-oidc-sdk-", "org.opensaml"): (
+        "OpenSAML, likewise only reachable via oauth2-oidc-sdk's SAML 2.0 support -- see the "
+        "net.shibboleth entry above; not vendored."
+    ),
+    ("oauth2-oidc-sdk-", "org.cryptomator"): (
+        "AES-SIV support for oauth2-oidc-sdk's JWE encryption helpers; msal4j's token requests/"
+        "responses are JWS-signed, not JWE-encrypted, so this path is never reached."
+    ),
+    ("oauth2-oidc-sdk-", "org.joda"): (
+        "legacy Joda-Time date handling in a few oauth2-oidc-sdk helper classes, superseded by "
+        "java.time elsewhere in the library; not reached by the OAuth2 client message classes "
+        "msal4j uses."
+    ),
+    ("reactor-core-", "reactor.blockhound"): (
+        "opt-in blocking-call detector for Reactor debugging (same shape as the io.micrometer/"
+        "io.opentelemetry entries above) -- never added to the classpath, so this integration is "
+        "inert."
+    ),
 }
 
 _CLASS_RE = re.compile(r"^\s*(\S+)\s+->\s+(\S+)\s+not found\s*$")

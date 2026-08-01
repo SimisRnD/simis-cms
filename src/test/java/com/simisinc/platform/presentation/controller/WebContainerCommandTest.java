@@ -16,10 +16,15 @@
 
 package com.simisinc.platform.presentation.controller;
 
+import com.simisinc.platform.application.cms.SaveContentCommand;
 import com.simisinc.platform.domain.model.User;
+import com.simisinc.platform.domain.model.cms.Content;
+import com.simisinc.platform.presentation.widgets.cms.ContentEditorWidget;
 import com.simisinc.platform.presentation.widgets.cms.WebContainerContext;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.MockedStatic;
 
 import jakarta.servlet.ServletContext;
 import jakarta.servlet.http.HttpServletRequest;
@@ -33,7 +38,11 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
@@ -531,6 +540,104 @@ class WebContainerCommandTest {
 
     Assertions.assertTrue(context.isPost());
     Assertions.assertFalse(context.isDelete());
+  }
+
+  // Regression coverage for #826: a violation-triggering /content-editor save's warning message
+  // must actually survive to the redirect target's render, not merely be set on the WidgetContext
+  // (that part already worked -- #258/PR #822). The flash mechanism exercised above (widgetWarning
+  // Message / WARNING_MESSAGE, read back per-widget at the top of this method) only re-surfaces a
+  // message when a widget with the SAME computed per-page uniqueId (widget.getWidgetName() + its
+  // position on the page) renders on the very next page. returnPage is the live page the content
+  // lives on and never contains the content-editor widget, so a warning sent there was silently
+  // dropped. ContentEditorWidget.post() now redirects back to /content-editor itself -- where this
+  // same widget instance renders again -- whenever there's a warning to show. Proven end-to-end here
+  // through the real processWidgets() flash mechanism, across two separate simulated requests
+  // sharing one ControllerSession (as a redirect + follow-up GET would).
+
+  @Test
+  void a11yWarningSurvivesARedirectBackToTheContentEditor() throws Exception {
+    UserSession userSession = new UserSession();
+    String formToken = userSession.getFormToken();
+
+    ControllerSession controllerSession = new ControllerSession();
+
+    // Mirrors cms-layout.xml's /content-editor page: exactly one widget on the page, so its
+    // computed per-page uniqueId is deterministically "contentEditor1" on both requests below.
+    Column column = new Column();
+    column.setWidgets(List.of(new Widget("contentEditor")));
+    Section section = sectionWith(column);
+
+    Map<String, String> coreData = new HashMap<>();
+    coreData.put("userId", "1");
+
+    Content savedContent = new Content();
+    savedContent.setId(42L);
+    savedContent.setUniqueId("hello-content");
+    savedContent.setDraftContent("<p>Text</p><img src=\"/assets/foo.jpg\">");
+
+    // Phase 1: the save POST that finds an accessibility violation.
+    HttpServletRequest postRequest = mock(HttpServletRequest.class);
+    when(postRequest.getMethod()).thenReturn("POST");
+    when(postRequest.getAttributeNames()).thenReturn(Collections.emptyEnumeration());
+    Map<String, String[]> postParams = new HashMap<>();
+    postParams.put("uniqueId", new String[] { "hello-content" });
+    postParams.put("content", new String[] { "<p>Text</p><img src=\"/assets/foo.jpg\">" });
+    postParams.put("save", new String[] { "Save as Draft" });
+    postParams.put("returnPage", new String[] { "/about-us" });
+    when(postRequest.getParameterMap()).thenReturn(postParams);
+    when(postRequest.getParameter("token")).thenReturn(formToken);
+    HttpServletResponse postResponse = mock(HttpServletResponse.class);
+
+    Map<String, Object> postWidgetInstances = new HashMap<>();
+    postWidgetInstances.put("contentEditor", new ContentEditorWidget());
+
+    WebContainerContext postContext = new WebContainerContext(postRequest, postResponse, controllerSession,
+        postWidgetInstances, null, null);
+    PageRenderInfo postRenderInfo = new PageRenderInfo();
+    postRenderInfo.setTargetWidget("contentEditor1");
+
+    try (MockedStatic<SaveContentCommand> saveContent = mockStatic(SaveContentCommand.class)) {
+      saveContent
+          .when(() -> SaveContentCommand.saveSafeContent(eq("hello-content"),
+              eq("<p>Text</p><img src=\"/assets/foo.jpg\">"), anyLong(), eq(false)))
+          .thenReturn(savedContent);
+
+      boolean handled = WebContainerCommand.processWidgets(postContext, List.of(section), postRenderInfo, coreData,
+          "", "/content-editor", userSession, new HashMap<>(), false);
+      Assertions.assertTrue(handled, "a targeted POST that issues a redirect must short-circuit further rendering");
+    }
+
+    // The redirect goes back to the editor itself, carrying the saved content's uniqueId and the
+    // original returnPage, instead of straight out to returnPage -- that is the fix.
+    verify(postResponse).sendRedirect("/content-editor?uniqueId=hello-content&returnPage=%2Fabout-us");
+
+    // Phase 2: the browser follows that redirect with a plain GET to the same page. A stub stands in
+    // for ContentEditorWidget here since its own execute() hits the database -- the mechanism under
+    // test is WebContainerCommand's flash-message pickup, which runs before any widget method is
+    // invoked, so which class actually implements the widget does not matter.
+    HttpServletRequest getRequest = mock(HttpServletRequest.class);
+    when(getRequest.getMethod()).thenReturn("GET");
+    when(getRequest.getAttributeNames()).thenReturn(Collections.emptyEnumeration());
+    when(getRequest.getParameterMap()).thenReturn(Map.of("uniqueId", new String[] { "hello-content" }));
+    HttpServletResponse getResponse = mock(HttpServletResponse.class);
+
+    Map<String, Object> getWidgetInstances = new HashMap<>();
+    getWidgetInstances.put("contentEditor", new StubWidget());
+
+    WebContainerContext getContext = new WebContainerContext(getRequest, getResponse, controllerSession,
+        getWidgetInstances, null, null);
+    PageRenderInfo getRenderInfo = new PageRenderInfo();
+
+    WebContainerCommand.processWidgets(getContext, List.of(section), getRenderInfo, coreData, "", "/content-editor",
+        userSession, new HashMap<>(), false);
+
+    // This is the exact request attribute page_messages.jspf reads (${warningMessage}) -- genuine
+    // end-to-end proof the warning reaches the redirect target's render, not just that
+    // setWarningMessage() was called on the WidgetContext during the save itself.
+    ArgumentCaptor<String> warningCaptor = ArgumentCaptor.forClass(String.class);
+    verify(getRequest).setAttribute(eq(RequestConstants.WARNING_MESSAGE_TEXT), warningCaptor.capture());
+    Assertions.assertTrue(warningCaptor.getValue().contains("accessibility"), warningCaptor.getValue());
+    Assertions.assertTrue(warningCaptor.getValue().contains("missing alt text"), warningCaptor.getValue());
   }
 
 }

@@ -48,6 +48,12 @@ public class ImageRepository {
       if (specification.getFilename() != null) {
         where.add("LOWER(filename) = ?", specification.getFilename().toLowerCase());
       }
+      if (StringUtils.isNotBlank(specification.getMatchesName())) {
+        // Parameterized substring search (issue #498) -- the search term is only ever bound as a
+        // placeholder value, never concatenated into the SQL text, so it cannot alter the query.
+        String likeValue = "%" + specification.getMatchesName().toLowerCase() + "%";
+        where.add("LOWER(filename) LIKE ?", likeValue);
+      }
       if (specification.getFileType() != null) {
         where.add("LOWER(file_type) = ?", specification.getFileType().toLowerCase());
       }
@@ -128,8 +134,16 @@ public class ImageRepository {
     return null;
   }
 
-  public static void remove(Image record) {
-    DB.deleteFrom(TABLE_NAME, new SqlUtils().add("image_id = ?", record.getId()));
+  /**
+   * Removes the image's database row only -- the caller (see {@code DeleteImageCommand}) is
+   * responsible for removing the physical file, and only after this returns {@code true}.
+   *
+   * @return true when a row was actually deleted, false when there was nothing to delete or the
+   *         delete failed -- callers must not delete the on-disk file unless this is true.
+   */
+  public static boolean remove(Image record) {
+    int rowsDeleted = DB.deleteFrom(TABLE_NAME, new SqlUtils().add("image_id = ?", record.getId()));
+    return rowsDeleted > 0;
   }
 
   private static Image buildRecord(ResultSet rs) {

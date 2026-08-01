@@ -38,6 +38,10 @@ class DomainModelTest {
     // ProductSku setter enforces changes for BeanUtils usage
     complexClasses.add("com.simisinc.platform.domain.model.ecommerce.ProductSku");
 
+    // WebhookSubscription.eventTypes/eventTypeList are two views of the same backing field
+    // (a CSV string and its parsed List<String>), so setting one is expected to change the other
+    complexClasses.add("com.simisinc.platform.domain.model.webhooks.WebhookSubscription");
+
     // Test getters and setters for the domain model
     Class<?>[] beanClasses = ClassPathUtils.findClassesIn("com.simisinc.platform.domain.model");
     for (Class<?> k : beanClasses) {
