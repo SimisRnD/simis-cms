@@ -24,6 +24,16 @@
   <service method="get" endpoint="items/{collectionUniqueId}?category=${categoryUniqueId}&amp;query=value" class="com.simisinc.platform.rest.services.items.ItemListService" />
   <service method="get" endpoint="item/{itemUniqueId}" class="com.simisinc.platform.rest.services.items.ItemService" />
   <!--
+  audit-log?category=&eventType=&outcome=&actor=&sourceIp=&targetType=&targetLabel=&range=&fromDate=&toDate=&page=&size=
+  NOTE: XMLServiceLoader only strips a query string when it follows a "/{pathParam}" segment (see
+  addServices()); a plain endpoint like this one must NOT have "?..." appended to the endpoint
+  attribute itself, or the literal query string becomes part of the registered lookup key and the
+  route silently 404s. Keep this comment free of two consecutive hyphens: that sequence inside an
+  XML comment fails Tomcat's strict parser at deploy time, same landmine as PR #178's context.xml
+  incident.
+  -->
+  <service method="get" endpoint="audit-log" class="com.simisinc.platform.rest.services.audit.AuditLogListService" />
+  <!--
   /item-blog/unique-id
   /item-blog-post/unique-id/post-id
   /item-gallery/unique-id
