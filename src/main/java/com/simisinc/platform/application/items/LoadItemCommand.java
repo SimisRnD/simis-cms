@@ -56,17 +56,29 @@ public class LoadItemCommand {
   }
 
   public static Item loadItemByUniqueIdForAuthorizedUser(String uniqueId, long userId) {
+    // Default preserves the historical behavior for every existing call site (admin edit forms,
+    // widgets rendered within an already-resolved item page, etc.): a deactivated item must still
+    // be reachable here -- issue #814 only hides archived items from listing/search results, not
+    // from direct access by a known id/uniqueId. See ItemSpecification#includeArchived javadoc.
+    return loadItemByUniqueIdForAuthorizedUser(uniqueId, userId, false);
+  }
+
+  /**
+   * @param excludeArchived when true, a deactivated item resolves to null just like a
+   *        non-existent one. Issue #827: PageServlet uses this for item routes that have no
+   *        role/group/capability restriction (genuinely public pages) and ItemService's REST GET
+   *        uses it unconditionally, so a deactivated item stops being reachable by uniqueId alone
+   *        for those callers. Admin-gated routes keep passing false (via the 2-arg overload) so
+   *        management UIs can still reach a deactivated item.
+   */
+  public static Item loadItemByUniqueIdForAuthorizedUser(String uniqueId, long userId, boolean excludeArchived) {
     if (StringUtils.isBlank(uniqueId) || userId == -1) {
       return null;
     }
     ItemSpecification specification = new ItemSpecification();
     specification.setUniqueId(uniqueId);
     specification.setForUserId(userId);
-    // This resolves a single, already-known item (item detail page, edit form) rather than
-    // browsing/listing a collection, so a deactivated item must still be reachable here -- issue
-    // #814 only hides archived items from listing/search results, not from direct access by a
-    // known id/uniqueId. See ItemSpecification#includeArchived javadoc.
-    specification.setIncludeArchived(true);
+    specification.setIncludeArchived(!excludeArchived);
     List<Item> itemList = ItemRepository.findAll(specification, null);
     if (itemList.size() == 1) {
       return itemList.get(0);

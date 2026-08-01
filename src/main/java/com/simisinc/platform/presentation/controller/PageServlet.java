@@ -798,8 +798,12 @@ public class PageServlet extends HttpServlet {
           subTab = "/_" + itemUniqueId.substring(itemUniqueId.indexOf("/") + 1) + "_";
           itemUniqueId = itemUniqueId.substring(0, itemUniqueId.indexOf("/"));
         }
-        // User must be authorized here...
-        thisItem = LoadItemCommand.loadItemByUniqueIdForAuthorizedUser(itemUniqueId, userSession.getUserId());
+        // User must be authorized here... Issue #827: a deactivated item must not stay reachable
+        // on a genuinely public item route (no role/group/capability restriction on the matched
+        // page) just because the caller knows its uniqueId -- but an admin-gated route (e.g.
+        // /edit/{uniqueId}, /show/*/settings) still needs to resolve it so it can be managed.
+        thisItem = LoadItemCommand.loadItemByUniqueIdForAuthorizedUser(itemUniqueId, userSession.getUserId(),
+            isPubliclyUnrestrictedPage(pageRef));
         if (thisItem == null) {
           LOG.error("ITEM NOT ALLOWED: " + pagePath + " [roles=" + pageRef.getRoles().toString() + "]");
           controllerSession.clearAllWidgetData();
@@ -1376,6 +1380,18 @@ public class PageServlet extends HttpServlet {
       return false;
     }
     return !userSession.hasRole("admin") && !userSession.hasRole("content-manager");
+  }
+
+  /**
+   * Issue #827: a matched page with no role/group/capability restriction at all is reachable by
+   * any guest (see WebComponentCommand.allowsUser -- an unrestricted page always passes), so it's
+   * a genuinely public route (e.g. an item detail page like /show/{uniqueId}) and must not still
+   * resolve a deactivated item. A page gated by any of the three is an admin/management route
+   * (e.g. /edit/{uniqueId}, /show/*&#47;settings) and must keep resolving one so it can still be
+   * managed once deactivated.
+   */
+  static boolean isPubliclyUnrestrictedPage(Page pageRef) {
+    return pageRef.getRoles().isEmpty() && pageRef.getGroups().isEmpty() && pageRef.getCapabilities().isEmpty();
   }
 
   private static int intParam(HttpServletRequest request, String name, int defaultValue) {
