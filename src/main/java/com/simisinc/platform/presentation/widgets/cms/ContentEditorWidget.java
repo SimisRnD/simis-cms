@@ -18,8 +18,11 @@ package com.simisinc.platform.presentation.widgets.cms;
 
 import org.apache.commons.lang3.StringUtils;
 
+import java.util.List;
+
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.cms.ContentAccessibilityCommand;
 import com.simisinc.platform.application.cms.ContentReviewCommand;
 import com.simisinc.platform.application.cms.DateCommand;
 import com.simisinc.platform.application.cms.LoadContentCommand;
@@ -183,6 +186,19 @@ public class ContentEditorWidget extends GenericWidget {
             }
             PublishEventCachePurgeHandler.onPageUpdated(webPage);
           }
+        }
+        // Non-blocking author-facing a11y notice (#258): the save above has already succeeded, so
+        // this only ever adds information -- it never prevents or delays the save. Checked against
+        // whatever actually persisted (the live content if this was a publish, the draft otherwise).
+        try {
+          String savedHtml = publish ? content.getContent() : content.getDraftContent();
+          List<ContentAccessibilityCommand.Finding> findings =
+              ContentAccessibilityCommand.check(savedHtml != null ? savedHtml : contentHtml);
+          if (!findings.isEmpty()) {
+            context.setWarningMessage(ContentAccessibilityCommand.summarize(findings));
+          }
+        } catch (Exception a11yException) {
+          LOG.warn("Accessibility check failed for uniqueId " + uniqueId, a11yException);
         }
       }
     } catch (DataException e) {

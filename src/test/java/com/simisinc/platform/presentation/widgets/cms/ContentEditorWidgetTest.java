@@ -26,6 +26,7 @@ import static org.mockito.Mockito.never;
 
 import java.sql.Timestamp;
 
+import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
@@ -40,18 +41,84 @@ import com.simisinc.platform.infrastructure.cache.PublishEventCachePurgeHandler;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
 import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
-import com.simisinc.platform.presentation.controller.WidgetContext;
 
 /**
- * #420: the inline content editor's "Save Draft"/publish flow (post()) is a real path that changes
- * a live page's rendered HTML but never triggered any AFD cache purge -- these tests confirm the
- * widget's own post() method calls the purge hook, not just PublishEventCachePurgeHandler in
- * isolation.
+ * Covers two independent concerns on the classic /content-editor page's save path:
+ * <p>
+ * - Wiring ContentAccessibilityCommand (#258) in as a non-blocking author-facing notice.
+ * <p>
+ * - Wiring PublishEventCachePurgeHandler (#420) so the widget's own post() method triggers an AFD
+ * cache purge on publish, and correctly skips it for a plain "Save as Draft".
+ *
+ * @author elizabeth houser
  */
 class ContentEditorWidgetTest extends WidgetBase {
 
   @Test
+  void postSurfacesAccessibilityFindingsAsAWarningWhenPresent() {
+    // #258: a11y-lint is wired in as a non-blocking, purely additive notice -- it must never
+    // prevent or delay the save, which SaveContentCommand.saveSafeContent (mocked here) already
+    // completed successfully by the time the check runs.
+    addQueryParameter(widgetContext, "uniqueId", "hello-content");
+    addQueryParameter(widgetContext, "content", "<p>Text</p><img src=\"/assets/foo.jpg\">");
+    addQueryParameter(widgetContext, "save", "Save as Draft");
+
+    Content savedContent = new Content();
+    savedContent.setId(42L);
+    savedContent.setUniqueId("hello-content");
+    savedContent.setDraftContent("<p>Text</p><img src=\"/assets/foo.jpg\">");
+
+    try (MockedStatic<SaveContentCommand> saveContent = mockStatic(SaveContentCommand.class)) {
+      saveContent
+          .when(() -> SaveContentCommand.saveSafeContent(eq("hello-content"),
+              eq("<p>Text</p><img src=\"/assets/foo.jpg\">"), anyLong(), eq(false)))
+          .thenReturn(savedContent);
+
+      ContentEditorWidget widget = new ContentEditorWidget();
+      widgetContext = widget.post(widgetContext);
+
+      Assertions.assertNull(widgetContext.getErrorMessage());
+      Assertions.assertNotNull(widgetContext.getWarningMessage());
+      Assertions.assertTrue(widgetContext.getWarningMessage().contains("accessibility"),
+          widgetContext.getWarningMessage());
+      Assertions.assertTrue(widgetContext.getWarningMessage().contains("missing alt text"),
+          widgetContext.getWarningMessage());
+    }
+  }
+
+  @Test
+  void postDoesNotSetAWarningWhenContentIsClean() {
+    // The flip side: a clean save must not set warningMessage at all. page_messages.jspf only
+    // renders the warning callout when the field is non-empty, so an unset field is the contract.
+    addQueryParameter(widgetContext, "uniqueId", "hello-content");
+    addQueryParameter(widgetContext, "content", "<p>Edited content</p>");
+    addQueryParameter(widgetContext, "save", "Save as Draft");
+
+    Content savedContent = new Content();
+    savedContent.setId(42L);
+    savedContent.setUniqueId("hello-content");
+    savedContent.setDraftContent("<p>Edited content</p>");
+
+    try (MockedStatic<SaveContentCommand> saveContent = mockStatic(SaveContentCommand.class)) {
+      saveContent
+          .when(() -> SaveContentCommand.saveSafeContent(eq("hello-content"), eq("<p>Edited content</p>"), anyLong(),
+              eq(false)))
+          .thenReturn(savedContent);
+
+      ContentEditorWidget widget = new ContentEditorWidget();
+      widgetContext = widget.post(widgetContext);
+
+      Assertions.assertNull(widgetContext.getErrorMessage());
+      Assertions.assertNull(widgetContext.getWarningMessage());
+    }
+  }
+
+  @Test
   void publishingContentTriggersOnPageUpdated() throws Exception {
+    // #420: the inline content editor's "Save Draft"/publish flow (post()) is a real path that
+    // changes a live page's rendered HTML but never triggered any AFD cache purge -- this confirms
+    // the widget's own post() method calls the purge hook, not just PublishEventCachePurgeHandler
+    // in isolation.
     addQueryParameter(widgetContext, "uniqueId", "hello-content");
     addQueryParameter(widgetContext, "content", "<p>Hello</p>");
     addQueryParameter(widgetContext, "returnPage", "/about");

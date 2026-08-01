@@ -453,8 +453,17 @@
     })
     .then(function (data) {
       if (data.success) {
-        setStatus(bar, 'Saved');
-        setToolbarStatus('Draft saved');
+        // Purely informational (#258) -- never blocks or delays the save above, which already
+        // succeeded. Reuse the existing transient-status convention (setStatus/#sc-editor-status)
+        // rather than adding a new floating-toast component.
+        if (data.a11yFindings && data.a11yFindings.length) {
+          var count = data.a11yFindings.length;
+          setStatus(bar, 'Draft saved — ' + count + ' accessibility issue' + (count === 1 ? '' : 's') + ' found');
+          setToolbarStatus('Draft saved — ' + count + ' accessibility issue' + (count === 1 ? '' : 's') + ' found');
+        } else {
+          setStatus(bar, 'Saved');
+          setToolbarStatus('Draft saved');
+        }
         originalHtml = activeContent.innerHTML;
         saveBtn.disabled = false;
         saveBtn.textContent = 'Save Draft';

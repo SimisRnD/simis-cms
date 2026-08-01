@@ -17,12 +17,15 @@
 package com.simisinc.platform.application.cms;
 
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.LoadUserCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
@@ -45,6 +48,7 @@ import com.simisinc.platform.presentation.widgets.cms.BlogPostWidget;
 public class ContentHtmlCommand {
 
   private static Log LOG = LogFactory.getLog(ContentHtmlCommand.class);
+  private static final ObjectMapper MAPPER = new ObjectMapper();
 
   static String HTML_JSP = "/cms/content-html.jsp";
 
@@ -451,15 +455,47 @@ public class ContentHtmlCommand {
       return context;
     }
     try {
-      SaveContentCommand.saveSafeContent(content.getUniqueId(), html, context.getUserId(), false);
+      Content savedContent = SaveContentCommand.saveSafeContent(content.getUniqueId(), html, context.getUserId(), false);
       AuditEventCommand.record(context, AuditEventCommand.CONTENT, "content.saveDraft", AuditEventCommand.SUCCESS,
           "content", String.valueOf(content.getId()), content.getUniqueId(), null);
+      // The save above has already succeeded -- everything from here is a non-blocking, purely
+      // additive author-facing notice (#258). It must never turn a successful save into a reported
+      // failure, so the baseline response is set first and only replaced if the enrichment fully
+      // succeeds.
       context.setJson("{\"success\":true}");
+      try {
+        String savedHtml = savedContent != null && savedContent.getDraftContent() != null
+            ? savedContent.getDraftContent()
+            : html;
+        List<ContentAccessibilityCommand.Finding> findings = ContentAccessibilityCommand.check(savedHtml);
+        if (!findings.isEmpty()) {
+          Map<String, Object> response = new LinkedHashMap<>();
+          response.put("success", true);
+          response.put("a11yFindings", toA11yFindingList(findings));
+          context.setJson(MAPPER.writeValueAsString(response));
+        }
+      } catch (Exception a11yException) {
+        LOG.warn("Accessibility check failed for uniqueId " + content.getUniqueId(), a11yException);
+      }
     } catch (Exception e) {
       LOG.error("saveDraft failed for uniqueId " + content.getUniqueId(), e);
       context.setJson("{\"success\":false,\"error\":\"Save failed\"}");
     }
     return context;
+  }
+
+  /** Converts a11y findings to plain maps for JSON serialization, in document order. */
+  private static List<Map<String, String>> toA11yFindingList(List<ContentAccessibilityCommand.Finding> findings) {
+    List<Map<String, String>> result = new ArrayList<>();
+    for (ContentAccessibilityCommand.Finding finding : findings) {
+      Map<String, String> map = new LinkedHashMap<>();
+      map.put("rule", finding.getRule());
+      map.put("criterion", finding.getCriterion());
+      map.put("message", finding.getMessage());
+      map.put("context", finding.getContext());
+      result.add(map);
+    }
+    return result;
   }
 
   private static WidgetContext publishContent(WidgetContext context, Content content, boolean reviewRequired) {
