@@ -24,6 +24,7 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="imageList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="query" class="java.lang.String" scope="request"/>
+<jsp:useBean id="recordPaging" class="com.simisinc.platform.infrastructure.database.DataConstraints" scope="request"/>
 <c:if test="${!empty title}">
   <h1><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h1>
 </c:if>
@@ -79,6 +80,7 @@
     </c:forEach>
   </div>
 </div>
+<%@include file="../paging_control.jspf" %>
 <%-- Bulk delete confirmation -- selection is scoped to the images currently checked; the list below
      is populated at open time (see the JS) with each selected image's real, freshly-checked usage,
      not just a filename, so the admin sees what deleting an in-use image will break before confirming. --%>

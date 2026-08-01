@@ -29,9 +29,11 @@ import com.simisinc.platform.application.cms.DeleteImageCommand;
 import com.simisinc.platform.application.cms.ImageUsageCommand;
 import com.simisinc.platform.application.json.JsonCommand;
 import com.simisinc.platform.domain.model.cms.Image;
+import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.persistence.cms.ImageRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.ImageSpecification;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
+import com.simisinc.platform.presentation.controller.RequestConstants;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import org.apache.commons.logging.Log;
@@ -56,6 +58,15 @@ public class AdminImageBrowserWidget extends GenericWidget {
   // and confirmed. Mirrors UsersListWidget's MAX_BULK_SELECTION.
   static final int MAX_BULK_SELECTION = 100;
 
+  // Default page size for the image grid (issue #498 slice 2). Most admin list widgets in this
+  // codebase default their "limit" preference to 20 (UsersListWidget, AllowedIPListWidget,
+  // BlockedIPListWidget, CollectionItemsListWidget, ecommerce lists, etc.) -- there is no
+  // site-wide page-size property to defer to. But those are dense text tables, and this page
+  // renders actual <img> thumbnails in a grid (small-up-2 medium-up-3 large-up-5, see
+  // image-browser.jsp), so a text-list-sized page would be an unusually short/wide grid. 40
+  // gives a clean 8 rows at the widest (5-column) breakpoint.
+  static final int DEFAULT_PAGE_SIZE = 40;
+
   public WidgetContext execute(WidgetContext context) {
 
     // AJAX usage pre-check for a single image, used by the delete-confirmation UI and the
@@ -73,13 +84,29 @@ public class AdminImageBrowserWidget extends GenericWidget {
     String query = StringUtils.trimToNull(context.getParameter("query"));
     context.getRequest().setAttribute("query", query);
 
+    // Determine the record paging (issue #498 slice 2) -- at most one page's worth of images is
+    // loaded per request, not all 200+. Follows the same page/items request-param convention as
+    // ContentListWidget/AllowedIPListWidget/etc.
+    int limit = Integer.parseInt(context.getPreferences().getOrDefault("limit", String.valueOf(DEFAULT_PAGE_SIZE)));
+    int page = context.getParameterAsInt("page", 1);
+    int itemsPerPage = context.getParameterAsInt("items", limit);
+    DataConstraints constraints = new DataConstraints(page, itemsPerPage);
+    context.getRequest().setAttribute(RequestConstants.RECORD_PAGING, constraints);
+
+    // Carry the current search term through pagination links (paging_control.jspf appends this
+    // to each page link's query string) so paging forward/back doesn't lose the search. URL-encoded
+    // so the free-text search term cannot break the query string or the href.
+    if (query != null) {
+      context.getRequest().setAttribute("recordPagingParams", "query=" + URLEncoder.encode(query, StandardCharsets.UTF_8));
+    }
+
     List<Image> imageList;
     if (query != null) {
       ImageSpecification specification = new ImageSpecification();
       specification.setMatchesName(query);
-      imageList = ImageRepository.findAll(specification, null);
+      imageList = ImageRepository.findAll(specification, constraints);
     } else {
-      imageList = ImageRepository.findAll();
+      imageList = ImageRepository.findAll(null, constraints);
     }
     context.getRequest().setAttribute("imageList", imageList);
 
