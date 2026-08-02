@@ -49,10 +49,6 @@ public class WikiPageRepository {
           .addIfExists("wiki_page_id = ?", specification.getId(), -1)
           .addIfExists("wiki_id = ?", specification.getWikiId(), -1)
           .addIfExists("page_unique_id = ?", specification.getUniqueId());
-      if (specification.getStartingDateRange() != null && specification.getEndingDateRange() != null) {
-        where.add("((start_date >= ? AND start_date < ?) OR (end_date >= ? AND end_date < ?))",
-            new Timestamp[]{specification.getStartingDateRange(), specification.getEndingDateRange(), specification.getStartingDateRange(), specification.getEndingDateRange()});
-      }
       if (StringUtils.isNotBlank(specification.getSearchTerm())) {
         where.add("tsv @@ PLAINTO_TSQUERY('title_stem', ?)", specification.getSearchTerm().trim());
       }
