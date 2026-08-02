@@ -22,14 +22,14 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
 
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -95,8 +95,11 @@ class ItemsSearchResultsWidgetTest extends WidgetBase {
       repository.when(() -> ItemRepository.findAll(specCaptor.capture(), any())).thenReturn(itemList);
       categoryRepository.when(CategoryRepository::findAll).thenReturn(categories(category(5, "Widgets"), category(6, "Gadgets")));
       categoryRepository.when(() -> CategoryRepository.findById(5L)).thenReturn(category(5, "Widgets"));
-      repository.when(() -> ItemRepository.countByCategory(any(), eq(5L))).thenReturn(3L);
-      repository.when(() -> ItemRepository.countByCategory(any(), eq(6L))).thenReturn(0L);
+      Map<Long, Long> categoryCounts = new HashMap<>();
+      categoryCounts.put(5L, 3L);
+      // category 6 is intentionally absent -- countGroupedByCategory omits zero-count categories
+      // entirely, the same as countByCategory returning 0 for one
+      repository.when(() -> ItemRepository.countGroupedByCategory(any())).thenReturn(categoryCounts);
       repository.when(() -> ItemRepository.countByDateRange(any(), any(), any())).thenReturn(0L);
 
       WidgetContext result = new ItemsSearchResultsWidget().execute(widgetContext);
@@ -157,7 +160,7 @@ class ItemsSearchResultsWidgetTest extends WidgetBase {
       repository.when(() -> ItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
       categoryRepository.when(CategoryRepository::findAll).thenReturn(categories(category(5, "Widgets")));
       categoryRepository.when(() -> CategoryRepository.findById(5L)).thenReturn(category(5, "Widgets"));
-      repository.when(() -> ItemRepository.countByCategory(any(), anyLong())).thenReturn(0L);
+      repository.when(() -> ItemRepository.countGroupedByCategory(any())).thenReturn(new HashMap<>());
       repository.when(() -> ItemRepository.countByDateRange(any(), any(), any())).thenReturn(0L);
 
       WidgetContext result = new ItemsSearchResultsWidget().execute(widgetContext);
@@ -196,7 +199,7 @@ class ItemsSearchResultsWidgetTest extends WidgetBase {
       // findById is stubbed to return the real name deliberately, to prove the widget does NOT
       // trust/render it once the count check below has failed
       categoryRepository.when(() -> CategoryRepository.findById(99L)).thenReturn(category(99, "Confidential HR Records"));
-      repository.when(() -> ItemRepository.countByCategory(any(), eq(99L))).thenReturn(0L);
+      repository.when(() -> ItemRepository.countGroupedByCategory(any())).thenReturn(new HashMap<>());
       repository.when(() -> ItemRepository.countByDateRange(any(), any(), any())).thenReturn(0L);
 
       WidgetContext result = new ItemsSearchResultsWidget().execute(widgetContext);

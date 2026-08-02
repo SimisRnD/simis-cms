@@ -21,6 +21,7 @@ import com.simisinc.platform.application.filesystem.FileSystemCommand;
 import com.simisinc.platform.application.CustomFieldListJSONCommand;
 import com.simisinc.platform.application.maps.ValidateGeoRegion;
 import com.simisinc.platform.domain.model.User;
+import com.simisinc.platform.domain.model.dashboard.StatisticsData;
 import com.simisinc.platform.domain.model.items.Collection;
 import com.simisinc.platform.domain.model.items.Item;
 import com.simisinc.platform.domain.model.items.ItemCategory;
@@ -41,7 +42,9 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Persists and retrieves item objects
@@ -464,6 +467,48 @@ public class ItemRepository {
     }
     facetSpec.setCategoryIds(candidateSelection);
     return DB.selectFunction("COUNT(*)", FACET_COUNT_FROM, createSearchWhereStatement(facetSpec));
+  }
+
+  /**
+   * FACET_COUNT_FROM plus the item_categories join countGroupedByCategory needs to group by
+   * category_id in a single query.
+   */
+  private static final String FACET_COUNT_GROUPED_FROM = "items " +
+      "JOIN item_categories ON (item_categories.item_id = items.item_id) " +
+      "LEFT JOIN collections ON (items.collection_id = collections.collection_id)";
+
+  /**
+   * Facet counts for every category in one query: every other active filter (keyword, date range,
+   * access control) from the given specification is applied, but its own categoryId is ignored --
+   * so, like countByCategory, each returned category's count reflects what selecting THAT category
+   * would produce, not what's already selected (per issue #421's "excluding the selected
+   * dimension" requirement). Unlike countByCategory, which issues one query per candidate category
+   * -- fine while the category list is small, but not for a future high-cardinality facet such as
+   * a tag cloud (#632) -- this issues a single GROUP BY query across every category with at least
+   * one matching item; a category with zero matches is simply absent from the returned map, same
+   * as countByCategory returning 0 for it. Added for issue #637 to replace the per-category
+   * round-trip loop in ItemsSearchResultsWidget, the motivating case #637's scope called out.
+   */
+  public static Map<Long, Long> countGroupedByCategory(ItemSpecification specification) {
+    ItemSpecification facetSpec = new ItemSpecification();
+    facetSpec.setApprovedOnly(specification.getApprovedOnly());
+    facetSpec.setUnapprovedOnly(specification.getUnapprovedOnly());
+    facetSpec.setIncludeArchived(specification.getIncludeArchived());
+    facetSpec.setForUserId(specification.getForUserId());
+    facetSpec.setSearchName(specification.getSearchName());
+    facetSpec.setSearchLocation(specification.getSearchLocation());
+    facetSpec.setDateRangeStart(specification.getDateRangeStart());
+    facetSpec.setDateRangeEnd(specification.getDateRangeEnd());
+    // categoryId intentionally left unset (-1): grouping by every category supersedes filtering
+    // to one candidate at a time, the way the per-candidate countByCategory loop used to.
+    SqlUtils where = createSearchWhereStatement(facetSpec);
+    List<StatisticsData> rows = DB.selectGroupedFrom(FACET_COUNT_GROUPED_FROM, "item_categories.category_id",
+        "item_count", where, null, -1);
+    Map<Long, Long> counts = new HashMap<>();
+    for (StatisticsData row : rows) {
+      counts.put(Long.valueOf(row.getLabel()), Long.valueOf(row.getValue()));
+    }
+    return counts;
   }
 
   /**

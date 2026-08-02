@@ -25,6 +25,7 @@ import java.util.List;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import com.simisinc.platform.application.SecretCryptoCommand;
 import com.simisinc.platform.domain.model.webhooks.WebhookSubscription;
 import com.simisinc.platform.infrastructure.database.DB;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
@@ -34,6 +35,16 @@ import com.simisinc.platform.infrastructure.database.SqlUtils;
 /**
  * Persists and retrieves webhook subscriptions (issue #418). CRUD only -- the admin UI is issue
  * #453.
+ *
+ * <p>
+ * {@code secret} is encrypted at rest via {@link SecretCryptoCommand} -- the same
+ * encrypt-on-write/decrypt-on-read pattern {@code UserRepository#saveMfaSecret}/{@code
+ * #buildRecord} use for the TOTP seed -- so a database dump alone does not yield a usable HMAC
+ * secret. This is transparent to every caller: {@link #add}/{@link #update} encrypt on the way
+ * in, {@link #buildRecord} decrypts on the way out, so {@link WebhookSubscription#getSecret()}
+ * always returns plaintext to callers such as {@code AttemptWebhookDeliveryCommand} and {@code
+ * SignWebhookPayloadCommand}.
+ * </p>
  *
  * @author SimIS Inc.
  */
@@ -98,7 +109,7 @@ public class WebhookSubscriptionRepository {
     SqlUtils insertValues = new SqlUtils()
         .add("url", record.getUrl())
         .add("event_types", record.getEventTypes())
-        .add("secret", record.getSecret())
+        .add("secret", SecretCryptoCommand.encrypt(record.getSecret()))
         .add("enabled", record.getEnabled())
         .add("created_by", record.getCreatedBy(), -1)
         .add("modified_by", record.getModifiedBy(), -1);
@@ -114,7 +125,7 @@ public class WebhookSubscriptionRepository {
     SqlUtils updateValues = new SqlUtils()
         .add("url", record.getUrl())
         .add("event_types", record.getEventTypes())
-        .add("secret", record.getSecret())
+        .add("secret", SecretCryptoCommand.encrypt(record.getSecret()))
         .add("enabled", record.getEnabled())
         .add("modified_by", record.getModifiedBy())
         .add("modified", new Timestamp(System.currentTimeMillis()));
@@ -136,7 +147,7 @@ public class WebhookSubscriptionRepository {
       record.setId(rs.getLong("webhook_subscription_id"));
       record.setUrl(rs.getString("url"));
       record.setEventTypes(rs.getString("event_types"));
-      record.setSecret(rs.getString("secret"));
+      record.setSecret(SecretCryptoCommand.decrypt(rs.getString("secret")));
       record.setEnabled(rs.getBoolean("enabled"));
       record.setCreated(rs.getTimestamp("created"));
       record.setCreatedBy(rs.getLong("created_by"));

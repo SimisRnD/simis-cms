@@ -136,31 +136,26 @@ public class ItemsSearchResultsWidget extends GenericWidget {
     String categoryFacetLabel = context.getPreferences().getOrDefault("categoryFacetLabel", "Category");
     String dateFacetLabel = context.getPreferences().getOrDefault("dateFacetLabel", "Date");
 
-    // Resolve the combined current selection's own count once, up front (issue #636 generalizes
-    // this from a single selected category to however many are selected): countByCategory unions
-    // its candidate into whatever's already selected on `specification`, so passing any ALREADY-
-    // selected id back in as the "candidate" is a no-op union that just returns the full combined
-    // selection's count. Also applies the same access-control WHERE as the real query, so a 0 here
-    // is indistinguishable between "genuinely no matches" and "this categoryId belongs to a
-    // collection the requester can't see at all" -- categoryId is a guessable sequential id, so
-    // neither case may disclose a category's name below without its own standalone check (see the
-    // active-filter chip loop, which checks each selected category individually for this reason).
-    Long combinedSelectedCount = null;
-    if (!selectedCategoryIds.isEmpty()) {
-      combinedSelectedCount = ItemRepository.countByCategory(specification, selectedCategoryIds.get(0));
+    // Resolve every category's count in a single grouped query, up front (issue #637 -- replaces
+    // what used to be one ItemRepository.countByCategory round trip per candidate category).
+    // countGroupedByCategory already applies the same access-control WHERE as the real query, so a
+    // missing/0 entry here is indistinguishable between "genuinely no matches" and "this
+    // categoryId belongs to a collection the requester can't see at all". categoryId is a
+    // guessable sequential id, so neither case may disclose the category's name below -- only a
+    // verified non-zero, access-safe count may.
+    Map<Long, Long> categoryCounts = null;
+    if (categoryId != null || showCategoryFacet) {
+      categoryCounts = ItemRepository.countGroupedByCategory(specification);
     }
+    Long selectedCategoryCount = categoryId != null ? categoryCounts.getOrDefault(categoryId, 0L) : null;
 
     if (showCategoryFacet) {
       List<ItemFacetOption> categoryFacets = new ArrayList<>();
       List<Category> allCategories = CategoryRepository.findAll();
       if (allCategories != null) {
         for (Category category : allCategories) {
-          boolean selected = selectedCategoryIds.contains(category.getId());
-          // A checked category doesn't need its own candidate count -- it's already reflected in
-          // combinedSelectedCount (all checked categories in one OR-dimension share that count).
-          // An unchecked category's count is "current selection PLUS this candidate" (standard
-          // faceted-search convention), not "as if this were the only one selected".
-          long count = selected ? combinedSelectedCount : ItemRepository.countByCategory(specification, category.getId());
+          boolean selected = categoryId != null && categoryId.equals(category.getId());
+          long count = categoryCounts.getOrDefault(category.getId(), 0L);
           // Categories with a 0 count here are omitted entirely, selected or not -- see the
           // access-control note above for why "selected" alone must not be enough to reveal a
           // category that turns out to be empty or inaccessible.
