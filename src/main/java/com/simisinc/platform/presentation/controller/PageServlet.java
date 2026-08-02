@@ -363,7 +363,9 @@ public class PageServlet extends HttpServlet {
           return;
         }
         response.setContentType("application/json");
-        WebPageRepository.publish(webPage);
+        int versionHistoryLimit = WebPageRepository.resolveVersionHistoryLimit(
+            LoadSitePropertyCommand.loadByName("webPage.versionHistoryLimit"));
+        WebPageRepository.publish(webPage, userSession.getUserId(), versionHistoryLimit);
         PublishEventCachePurgeHandler.onPageUpdated(webPage);
         LOG.info("Draft published for " + pagePath + " by user " + userSession.getUserId());
         response.getWriter().print("{\"success\":true}");
