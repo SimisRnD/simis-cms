@@ -57,8 +57,14 @@ public class CaptchaCommand {
 
     // Determine the service
     String service = LoadSitePropertyCommand.loadByName("captcha.service");
+
+    // Use Cloudflare Turnstile if it's configured (checked first: a Turnstile-only install has
+    // no reason to have captcha.google.sitekey set, so that value must not gate this branch)
+    if ("turnstile".equals(service)) {
+      return validateTurnstileRequest(context);
+    }
+
     String siteKey = LoadSitePropertyCommand.loadByName("captcha.google.sitekey");
-    String secretKey = LoadSitePropertyCommand.loadByName("captcha.google.secretkey");
 
     // Use the default service
     if (StringUtils.isBlank(service) || StringUtils.isBlank(siteKey)) {
@@ -69,6 +75,8 @@ public class CaptchaCommand {
       }
       return (captcha.trim().equalsIgnoreCase(checkValue));
     }
+
+    String secretKey = LoadSitePropertyCommand.loadByName("captcha.google.secretkey");
 
     // Use Google Recaptcha if it's configured
     if (!"google".equals(service) || StringUtils.isBlank(siteKey) || StringUtils.isBlank(secretKey)) {
@@ -120,6 +128,88 @@ public class CaptchaCommand {
       LOG.error("validateRequest json error", e);
     }
     return false;
+  }
+
+  /**
+   * Validates a Cloudflare Turnstile response, mirroring the Google reCAPTCHA branch above:
+   * same secret+response POST shape, same {"success": true|false} response shape.
+   * https://developers.cloudflare.com/turnstile/get-started/server-side-validation/
+   */
+  private static boolean validateTurnstileRequest(WidgetContext context) {
+
+    String siteKey = LoadSitePropertyCommand.loadByName("captcha.turnstile.sitekey");
+    String secretKey = LoadSitePropertyCommand.loadByName("captcha.turnstile.secretkey");
+    if (StringUtils.isBlank(siteKey) || StringUtils.isBlank(secretKey)) {
+      LOG.warn("Cloudflare Turnstile is not configured, so skipping check");
+      return true;
+    }
+
+    // Check for the required parameter (Turnstile's widget submits this field name)
+    String turnstileResponse = context.getParameter("cf-turnstile-response");
+    if (StringUtils.isBlank(turnstileResponse)) {
+      LOG.error("Request is missing cf-turnstile-response: " + context.getRequest().getRemoteAddr());
+      return false;
+    }
+
+    // Send the value to Cloudflare for confirmation
+    String url = "https://challenges.cloudflare.com/turnstile/v0/siteverify";
+    Map<String, String> parameters = new HashMap<>();
+    parameters.put("secret", secretKey);
+    parameters.put("response", turnstileResponse);
+    if (context.getUserSession() != null && StringUtils.isNotBlank(context.getUserSession().getIpAddress())) {
+      parameters.put("remoteip", context.getUserSession().getIpAddress());
+    }
+    String remoteContent = HttpPostCommand.execute(url, parameters);
+    if (StringUtils.isBlank(remoteContent)) {
+      LOG.error("Remote content is empty");
+      return false;
+    }
+
+    // {
+    // "success": true|false,
+    // "challenge_ts": timestamp,
+    // "hostname": string,
+    // "error-codes": [...],
+    // "action": string,
+    // "cdata": string
+    // }
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("REMOTE TEXT: " + remoteContent);
+    }
+    try {
+      JsonNode json = JsonLoader.fromString(remoteContent);
+      if (json.has("success")) {
+        String success = json.get("success").asText();
+        if ("true".equals(success)) {
+          return true;
+        }
+      }
+    } catch (Exception e) {
+      LOG.error("validateTurnstileRequest json error", e);
+    }
+    return false;
+  }
+
+  /**
+   * Sets the request attributes a widget's JSP needs to render the configured CAPTCHA challenge
+   * (Google reCAPTCHA, Cloudflare Turnstile, or -- when neither is configured -- the drawn-image
+   * fallback). Callers keep their own useCaptcha widget-preference check exactly as before and
+   * only call this when that preference is true; this method does not re-check it.
+   *
+   * Always sets useCaptcha=true and captchaService (the raw captcha.service value, so JSPs don't
+   * need to look it up themselves). Sets googleSiteKey or turnstileSiteKey only when captcha.service
+   * names that provider -- keeping the client-rendered widget in sync with which provider
+   * validateRequest() will actually check the response against.
+   */
+  public static void populateWidgetAttributes(WidgetContext context) {
+    context.getRequest().setAttribute("useCaptcha", "true");
+    String service = LoadSitePropertyCommand.loadByName("captcha.service");
+    context.getRequest().setAttribute("captchaService", service);
+    if ("turnstile".equals(service)) {
+      context.getRequest().setAttribute("turnstileSiteKey", LoadSitePropertyCommand.loadByName("captcha.turnstile.sitekey"));
+    } else if ("google".equals(service)) {
+      context.getRequest().setAttribute("googleSiteKey", LoadSitePropertyCommand.loadByName("captcha.google.sitekey"));
+    }
   }
 
   /**
