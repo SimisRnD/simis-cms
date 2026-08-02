@@ -349,6 +349,16 @@ class WebPageHitRepositoryTest {
     }
   }
 
+  private static void seedHit(String pagePath, String sessionId, Timestamp hitDate) {
+    try (Connection connection = DB.getConnection();
+        Statement statement = connection.createStatement()) {
+      statement.execute("INSERT INTO web_page_hits (page_path, session_id, hit_date) VALUES ("
+          + "'" + pagePath + "', '" + sessionId + "', '" + hitDate + "')");
+    } catch (SQLException se) {
+      throw new IllegalStateException("Could not seed web page hit", se);
+    }
+  }
+
   private static void seedPageHitByPath(String pagePath, String sessionId) {
     try (Connection connection = DB.getConnection();
         Statement statement = connection.createStatement()) {
@@ -391,7 +401,6 @@ class WebPageHitRepositoryTest {
           + "is_bot BOOLEAN DEFAULT false)");
       statement.execute("CREATE TABLE web_page_hits ("
           + "hit_id BIGSERIAL PRIMARY KEY, "
-          + "page_path VARCHAR(255), "
           + "web_page_id BIGINT, "
           + "page_path VARCHAR(255), "
           + "session_id VARCHAR(255), "
