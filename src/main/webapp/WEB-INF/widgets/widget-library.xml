@@ -274,6 +274,7 @@
   <widget name="xapiStatementList" class="com.simisinc.platform.presentation.widgets.admin.xapi.XapiStatementListWidget" />
   <widget name="auditLogList" class="com.simisinc.platform.presentation.widgets.admin.audit.AuditLogListWidget" />
   <widget name="healthDashboard" class="com.simisinc.platform.presentation.widgets.admin.HealthDashboardWidget" />
+  <widget name="databaseMaintenance" class="com.simisinc.platform.presentation.widgets.admin.DatabaseMaintenanceWidget" />
   <widget name="jobQueueDashboard" class="com.simisinc.platform.presentation.widgets.admin.JobQueueDashboardWidget" />
   <!-- Not implemented -->
   <widget name="profilePhoto" class="com.simisinc.platform.presentation.widgets.GenericWidget" />
