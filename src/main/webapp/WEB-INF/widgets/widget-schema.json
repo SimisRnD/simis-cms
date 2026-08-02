@@ -349,6 +349,41 @@
         {"name": "includeTags","label": "Include Tags",      "type": "boolean", "default": "true"},
         {"name": "clean",      "label": "Clean HTML",        "type": "boolean", "default": "true"}
       ]
+    },
+
+    "superset": {
+      "label": "Superset Dashboard",
+      "category": "Data",
+      "icon": "fa-chart-pie",
+      "preferences": [
+        {"name": "dashboardValue",      "label": "Dashboard UUID",             "type": "text"},
+        {"name": "dashboardEmbeddedId", "label": "Embedded Dashboard Id",      "type": "text"},
+        {"name": "height",              "label": "Height (CSS length)",        "type": "text", "default": "300px"},
+        {"name": "hideChartTitle",      "label": "Hide Chart Title",           "type": "boolean", "default": "true"},
+        {"name": "hideChartControls",   "label": "Hide Chart Controls",        "type": "boolean", "default": "true"},
+        {"name": "clause",              "label": "Row-Level Security Clause",  "type": "text"}
+      ]
+    },
+
+    "metabase": {
+      "label": "Metabase Dashboard",
+      "category": "Data",
+      "icon": "fa-chart-pie",
+      "preferences": [
+        {"name": "dashboardValue", "label": "Dashboard Id",         "type": "text"},
+        {"name": "height",         "label": "Height (CSS length)",  "type": "text", "default": "300px"},
+        {"name": "hideChartTitle", "label": "Hide Chart Title",     "type": "boolean", "default": "false"}
+      ]
+    },
+
+    "powerBi": {
+      "label": "Power BI Report",
+      "category": "Data",
+      "icon": "fa-chart-pie",
+      "preferences": [
+        {"name": "embedUrl", "label": "Embed URL",           "type": "url"},
+        {"name": "height",   "label": "Height (CSS length)", "type": "text", "default": "300px"}
+      ]
     }
 
   }

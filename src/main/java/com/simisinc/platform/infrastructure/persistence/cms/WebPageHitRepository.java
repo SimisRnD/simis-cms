@@ -103,6 +103,7 @@ public class WebPageHitRepository {
         .add("page_path NOT LIKE ?", "/assets%")
         .add("page_path NOT LIKE ?", "/json%")
         .add("page_path NOT LIKE ?", "%/*")
+        .add("page_path <> ?", "/login")
         .add("NOT EXISTS (SELECT 1 FROM sessions WHERE session_id = web_page_hits.session_id AND is_bot = TRUE)");
     long webPageHitCount = DB.selectCountFrom(TABLE_NAME, where);
 
@@ -265,6 +266,147 @@ public class WebPageHitRepository {
     return DB.selectCountFrom(TABLE_NAME, where);
   }
 
+  /**
+   * Average number of page hits per session over the trailing window, for the "pages-per-session"
+   * engagement report (issue #568). Mirrors findTopWebPages'/findTopPaths' bot-session exclusion so
+   * a crawler binge doesn't skew the reported average. Uses a CASE guard (rather than dividing and
+   * catching the error) because Postgres raises "division by zero" on float division same as integer
+   * division -- it does not return NaN/Infinity. Returns 0.0 when there are no real sessions in
+   * range.
+   */
+  public static double findAvgPagesPerSession(int daysToLimit) {
+    String SQL_QUERY =
+        "SELECT CASE WHEN COUNT(DISTINCT session_id) = 0 THEN 0.0 " +
+            "ELSE COUNT(*)::float8 / COUNT(DISTINCT session_id) END AS avg_pages_per_session " +
+            "FROM web_page_hits " +
+            "WHERE hit_date > NOW() - INTERVAL '" + daysToLimit + " days' " +
+            "AND NOT EXISTS (SELECT 1 FROM sessions WHERE session_id = web_page_hits.session_id AND is_bot = TRUE)";
+    try (Connection connection = DB.getConnection();
+         PreparedStatement pst = connection.prepareStatement(SQL_QUERY);
+         ResultSet rs = pst.executeQuery()) {
+      if (rs.next()) {
+        return rs.getDouble("avg_pages_per_session");
+      }
+    } catch (SQLException se) {
+      LOG.error("SQLException: " + se.getMessage());
+    }
+    return 0.0;
+  }
+
+  /**
+   * Average dwell time on each page, derived from the gap between consecutive hits in the same
+   * session (issue #568's "avg-time-on-page" engagement report). This doesn't fit DB.java's simple
+   * where-clause helpers -- it needs the LEAD() window function -- so it uses a raw
+   * PreparedStatement, mirroring createSnapshot's style for the same reason. Within each session,
+   * hits are ordered by hit_date and each hit is diffed against the next hit in that same session;
+   * a session's last hit has no "next" hit to diff against and is excluded (its delta is NULL) the
+   * same way findAvgPagesPerSession excludes bot sessions -- both keep a single artifact of the data
+   * from skewing the metric. Bot sessions are excluded per findTopWebPages'/findTopPaths' convention.
+   */
+  public static List<StatisticsData> findAvgTimeOnPageByPath(int daysToLimit, int recordLimit) {
+    String SQL_QUERY =
+        "SELECT page_path, AVG(seconds_to_next) AS avg_seconds " +
+            "FROM (" +
+            "SELECT page_path, " +
+            "EXTRACT(EPOCH FROM (LEAD(hit_date) OVER (PARTITION BY session_id ORDER BY hit_date) - hit_date)) AS seconds_to_next " +
+            "FROM web_page_hits " +
+            "WHERE hit_date > NOW() - INTERVAL '" + daysToLimit + " days' " +
+            "AND NOT EXISTS (SELECT 1 FROM sessions WHERE session_id = web_page_hits.session_id AND is_bot = TRUE)" +
+            ") hit_deltas " +
+            "WHERE seconds_to_next IS NOT NULL " +
+            "GROUP BY page_path " +
+            "ORDER BY avg_seconds DESC " +
+            "LIMIT " + recordLimit;
+    List<StatisticsData> records = null;
+    try (Connection connection = DB.getConnection();
+         PreparedStatement pst = connection.prepareStatement(SQL_QUERY);
+         ResultSet rs = pst.executeQuery()) {
+      records = new ArrayList<>();
+      while (rs.next()) {
+        StatisticsData data = new StatisticsData();
+        data.setLabel(rs.getString("page_path"));
+        // Locale.US pins the decimal separator to '.' regardless of JVM default locale -- not
+        // present in the original pre-merge version, added back here since a comma-decimal
+        // locale would otherwise corrupt this into an unparseable value downstream.
+        data.setValue(String.format(java.util.Locale.US, "%.1fs", rs.getDouble("avg_seconds")));
+        records.add(data);
+      }
+    } catch (SQLException se) {
+      LOG.error("SQLException: " + se.getMessage());
+    }
+    return records;
+  }
+
+  /**
+   * Total page views (real, non-bot) in the last {@code daysToLimit} days, grouped by the
+   * web_pages.solution_type tag (issue #570). Pages with no tag set are excluded rather than
+   * grouped under a catch-all label -- mirrors findTopWebPages' join/bot-exclusion shape, grouping
+   * by solution_type instead of link.
+   */
+  public static List<StatisticsData> findTrafficBySolutionType(int daysToLimit) {
+    String SQL_QUERY =
+        "SELECT solution_type, count(wph.hit_id) AS hit_count " +
+            "FROM web_pages " +
+            "LEFT JOIN web_page_hits wph ON (wph.web_page_id = web_pages.web_page_id) " +
+            "WHERE solution_type IS NOT NULL " +
+            "AND hit_date > NOW() - INTERVAL '" + daysToLimit + " days' " +
+            "AND NOT EXISTS (SELECT 1 FROM sessions WHERE session_id = wph.session_id AND is_bot = TRUE) " +
+            "GROUP BY solution_type " +
+            "ORDER BY hit_count DESC";
+    List<StatisticsData> records = null;
+    try (Connection connection = DB.getConnection();
+         PreparedStatement pst = connection.prepareStatement(SQL_QUERY);
+         ResultSet rs = pst.executeQuery()) {
+      records = new ArrayList<>();
+      while (rs.next()) {
+        StatisticsData data = new StatisticsData();
+        data.setLabel(rs.getString("solution_type"));
+        data.setValue(String.valueOf(rs.getLong("hit_count")));
+        records.add(data);
+      }
+    } catch (SQLException se) {
+      LOG.error("SQLException: " + se.getMessage());
+    }
+    return records;
+  }
+
+  /**
+   * Engagement depth (real, non-bot) in the last {@code daysToLimit} days, grouped by
+   * web_pages.solution_type: average page views per session among sessions that viewed at least
+   * one page of that solution type. Reuses the page-view/session data web_page_hits already
+   * collects rather than adding new tracking -- no session-duration or bounce column exists in
+   * this schema to reuse instead (see issue #570's scoping notes).
+   */
+  public static List<StatisticsData> findEngagementBySolutionType(int daysToLimit) {
+    String SQL_QUERY =
+        "SELECT solution_type, count(wph.hit_id) AS hit_count, count(DISTINCT wph.session_id) AS session_count " +
+            "FROM web_pages " +
+            "LEFT JOIN web_page_hits wph ON (wph.web_page_id = web_pages.web_page_id) " +
+            "WHERE solution_type IS NOT NULL " +
+            "AND hit_date > NOW() - INTERVAL '" + daysToLimit + " days' " +
+            "AND NOT EXISTS (SELECT 1 FROM sessions WHERE session_id = wph.session_id AND is_bot = TRUE) " +
+            "GROUP BY solution_type " +
+            "ORDER BY solution_type";
+    List<StatisticsData> records = null;
+    try (Connection connection = DB.getConnection();
+         PreparedStatement pst = connection.prepareStatement(SQL_QUERY);
+         ResultSet rs = pst.executeQuery()) {
+      records = new ArrayList<>();
+      while (rs.next()) {
+        long hitCount = rs.getLong("hit_count");
+        long sessionCount = rs.getLong("session_count");
+        double averageViewsPerSession = sessionCount == 0 ? 0 : (double) hitCount / sessionCount;
+        StatisticsData data = new StatisticsData();
+        data.setLabel(rs.getString("solution_type"));
+        data.setValue(String.format("%.2f", averageViewsPerSession));
+        records.add(data);
+      }
+    } catch (SQLException se) {
+      LOG.error("SQLException: " + se.getMessage());
+    }
+    return records;
+  }
+
   public static List<StatisticsData> findTopPaths(int value, char intervalType, int recordLimit) {
     String SQL_QUERY =
         "SELECT page_path, count(page_path) AS path_count " +
@@ -281,6 +423,7 @@ public class WebPageHitRepository {
             "AND page_path NOT LIKE '/json/%' " +
             "AND page_path NOT LIKE '%/*' " +
             "AND page_path <> '/content-editor' " +
+            "AND page_path <> '/login' " +
             "AND NOT EXISTS (SELECT 1 FROM sessions WHERE session_id = web_page_hits.session_id AND is_bot = TRUE) " +
             "GROUP BY page_path " +
             "ORDER BY path_count desc " +

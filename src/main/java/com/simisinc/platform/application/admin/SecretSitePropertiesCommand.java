@@ -54,8 +54,7 @@ public class SecretSitePropertiesCommand {
       "elearning.lrs.authHeader",
       "elearning.moodle.token",
       "elearning.perls.clientId",
-      "elearning.perls.secret",
-      "conferencing.bbb.secret");
+      "elearning.perls.secret");
 
   private SecretSitePropertiesCommand() {
   }

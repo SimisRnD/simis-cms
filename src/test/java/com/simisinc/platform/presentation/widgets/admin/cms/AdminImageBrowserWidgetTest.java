@@ -20,6 +20,7 @@ import com.simisinc.platform.WidgetBase;
 import com.simisinc.platform.application.cms.DeleteImageCommand;
 import com.simisinc.platform.application.cms.ImageUsageCommand;
 import com.simisinc.platform.domain.model.cms.Image;
+import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.persistence.cms.ImageRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.ImageSpecification;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
@@ -56,7 +57,8 @@ class AdminImageBrowserWidgetTest extends WidgetBase {
     imageList.add(image);
 
     try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class)) {
-      imageRepositoryMockedStatic.when(ImageRepository::findAll).thenReturn(imageList);
+      imageRepositoryMockedStatic.when(() -> ImageRepository.findAll(isNull(), any(DataConstraints.class)))
+          .thenReturn(imageList);
 
       // Execute the widget
       AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
@@ -76,20 +78,103 @@ class AdminImageBrowserWidgetTest extends WidgetBase {
     addQueryParameter(widgetContext, "query", "3d");
 
     try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class)) {
-      imageRepositoryMockedStatic.when(() -> ImageRepository.findAll(any(ImageSpecification.class), isNull()))
+      imageRepositoryMockedStatic.when(() -> ImageRepository.findAll(any(ImageSpecification.class), any(DataConstraints.class)))
           .thenReturn(Collections.emptyList());
 
       AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
       widget.execute(widgetContext);
 
       ArgumentCaptor<ImageSpecification> specCaptor = ArgumentCaptor.forClass(ImageSpecification.class);
-      imageRepositoryMockedStatic.verify(() -> ImageRepository.findAll(specCaptor.capture(), isNull()));
+      imageRepositoryMockedStatic.verify(() -> ImageRepository.findAll(specCaptor.capture(), any(DataConstraints.class)));
       Assertions.assertEquals("3d", specCaptor.getValue().getMatchesName());
-      // findAll() (no-arg, "everything") must not also be called on the search path
+      // findAll() (no-arg, "everything, unpaginated") must not also be called on the search path
       imageRepositoryMockedStatic.verify(ImageRepository::findAll, org.mockito.Mockito.never());
     }
 
     Assertions.assertEquals("3d", request.getAttribute("query"));
+  }
+
+  @Test
+  void executeDefaultsPagingToPageOneAtTheDefaultPageSizeWhenNoPagingParamsAreGiven() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
+
+    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class)) {
+      imageRepositoryMockedStatic.when(() -> ImageRepository.findAll(isNull(), any(DataConstraints.class)))
+          .thenReturn(Collections.emptyList());
+
+      AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
+      widget.execute(widgetContext);
+
+      ArgumentCaptor<DataConstraints> constraintsCaptor = ArgumentCaptor.forClass(DataConstraints.class);
+      imageRepositoryMockedStatic.verify(() -> ImageRepository.findAll(isNull(), constraintsCaptor.capture()));
+      Assertions.assertEquals(1, constraintsCaptor.getValue().getPageNumber());
+      Assertions.assertEquals(AdminImageBrowserWidget.DEFAULT_PAGE_SIZE, constraintsCaptor.getValue().getPageSize());
+    }
+  }
+
+  @Test
+  void executeWithAPageParamPassesThatPageNumberInTheDataConstraintsOnTheUnfilteredBranch() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
+    addQueryParameter(widgetContext, "page", "3");
+
+    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class)) {
+      imageRepositoryMockedStatic.when(() -> ImageRepository.findAll(isNull(), any(DataConstraints.class)))
+          .thenReturn(Collections.emptyList());
+
+      AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
+      widget.execute(widgetContext);
+
+      ArgumentCaptor<DataConstraints> constraintsCaptor = ArgumentCaptor.forClass(DataConstraints.class);
+      imageRepositoryMockedStatic.verify(() -> ImageRepository.findAll(isNull(), constraintsCaptor.capture()));
+      Assertions.assertEquals(3, constraintsCaptor.getValue().getPageNumber());
+    }
+  }
+
+  @Test
+  void executeWithASearchQueryAndAPageParamPassesBothTheSpecificationAndThePageNumber() {
+    // Proves the search-filtered branch also respects pagination, not just the unfiltered branch.
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
+    addQueryParameter(widgetContext, "query", "3d");
+    addQueryParameter(widgetContext, "page", "2");
+
+    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class)) {
+      imageRepositoryMockedStatic.when(() -> ImageRepository.findAll(any(ImageSpecification.class), any(DataConstraints.class)))
+          .thenReturn(Collections.emptyList());
+
+      AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
+      widget.execute(widgetContext);
+
+      ArgumentCaptor<ImageSpecification> specCaptor = ArgumentCaptor.forClass(ImageSpecification.class);
+      ArgumentCaptor<DataConstraints> constraintsCaptor = ArgumentCaptor.forClass(DataConstraints.class);
+      imageRepositoryMockedStatic.verify(() -> ImageRepository.findAll(specCaptor.capture(), constraintsCaptor.capture()));
+      Assertions.assertEquals("3d", specCaptor.getValue().getMatchesName());
+      Assertions.assertEquals(2, constraintsCaptor.getValue().getPageNumber());
+    }
+
+    // The search term must be echoed into the paging-links param so page-forward/back preserves it
+    Assertions.assertEquals("query=3d", request.getAttribute("recordPagingParams"));
+  }
+
+  @Test
+  void executeWithAnOutOfRangePageStillRendersTheJspWithAnEmptyListInsteadOfAnError() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
+    addQueryParameter(widgetContext, "page", "999");
+
+    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class)) {
+      // A real out-of-range OFFSET returns zero rows rather than erroring (see
+      // ImageRepositorySearchTest's pagination tests for the real-DB proof); the widget must
+      // simply pass that empty list through to the JSP, not treat it as a failure.
+      imageRepositoryMockedStatic.when(() -> ImageRepository.findAll(isNull(), any(DataConstraints.class)))
+          .thenReturn(Collections.emptyList());
+
+      AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals(AdminImageBrowserWidget.JSP, widgetContext.getJsp());
+    List<Image> imageListRequest = (List) request.getAttribute("imageList");
+    Assertions.assertNotNull(imageListRequest);
+    Assertions.assertTrue(imageListRequest.isEmpty());
   }
 
   @Test
@@ -161,6 +246,85 @@ class AdminImageBrowserWidgetTest extends WidgetBase {
   }
 
   @Test
+  void deleteWithAdminRolePreservesThePageParamOnRedirect() {
+    // Regression test for issue #498 slice 2: deleting from page 2+ must redirect back to that
+    // page instead of resetting to page 1. See redirectWithQuery().
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "imageId", "42");
+    addQueryParameter(widgetContext, "page", "3");
+
+    Image image = new Image();
+    image.setId(42L);
+    image.setFilename("old-banner.png");
+
+    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class);
+        MockedStatic<DeleteImageCommand> deleteMockedStatic = mockStatic(DeleteImageCommand.class);
+        MockedStatic<AuditEventCommand> auditMockedStatic = mockStatic(AuditEventCommand.class)) {
+      imageRepositoryMockedStatic.when(() -> ImageRepository.findById(42L)).thenReturn(image);
+      deleteMockedStatic.when(() -> DeleteImageCommand.deleteImage(image)).thenReturn(true);
+
+      AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
+      widget.delete(widgetContext);
+    }
+
+    Assertions.assertEquals("/admin/images?page=3", widgetContext.getRedirect());
+  }
+
+  @Test
+  void deleteWithAdminRolePreservesQueryAndPageTogetherOnRedirect() {
+    // Regression test for issue #498 slice 2: a delete from a search-filtered, paged view must
+    // carry both the search term and the page number back into the redirect.
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "imageId", "42");
+    addQueryParameter(widgetContext, "query", "3d");
+    addQueryParameter(widgetContext, "page", "2");
+
+    Image image = new Image();
+    image.setId(42L);
+    image.setFilename("old-banner.png");
+
+    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class);
+        MockedStatic<DeleteImageCommand> deleteMockedStatic = mockStatic(DeleteImageCommand.class);
+        MockedStatic<AuditEventCommand> auditMockedStatic = mockStatic(AuditEventCommand.class)) {
+      imageRepositoryMockedStatic.when(() -> ImageRepository.findById(42L)).thenReturn(image);
+      deleteMockedStatic.when(() -> DeleteImageCommand.deleteImage(image)).thenReturn(true);
+
+      AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
+      widget.delete(widgetContext);
+    }
+
+    Assertions.assertEquals("/admin/images?query=3d&page=2", widgetContext.getRedirect());
+  }
+
+  @Test
+  void deleteWithoutAPageParamDoesNotAddOneToTheRedirect() {
+    // Page 1 is the implicit default -- the redirect should stay bare rather than growing a
+    // redundant "?page=1", matching the pre-pagination redirect shape.
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "imageId", "42");
+    addQueryParameter(widgetContext, "page", "1");
+
+    Image image = new Image();
+    image.setId(42L);
+    image.setFilename("old-banner.png");
+
+    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class);
+        MockedStatic<DeleteImageCommand> deleteMockedStatic = mockStatic(DeleteImageCommand.class);
+        MockedStatic<AuditEventCommand> auditMockedStatic = mockStatic(AuditEventCommand.class)) {
+      imageRepositoryMockedStatic.when(() -> ImageRepository.findById(42L)).thenReturn(image);
+      deleteMockedStatic.when(() -> DeleteImageCommand.deleteImage(image)).thenReturn(true);
+
+      AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
+      widget.delete(widgetContext);
+    }
+
+    Assertions.assertEquals("/admin/images", widgetContext.getRedirect());
+  }
+
+  @Test
   void bulkDeletePostRemovesOnlyTheSelectedImageIds() {
     addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
     setRoles(widgetContext, ADMIN);
@@ -189,6 +353,39 @@ class AdminImageBrowserWidgetTest extends WidgetBase {
     }
 
     Assertions.assertEquals("2 of 2 selected images deleted.", widgetContext.getSuccessMessage());
+  }
+
+  @Test
+  void bulkDeletePreservesTheQueryAndPageParamsOnRedirect() {
+    // Regression test for issue #498 slice 2: bulk-deleting from a search-filtered, paged view
+    // must redirect back to that same page/search combination instead of resetting to page 1.
+    // Unlike single delete, the bulk-delete <form> in image-browser.jsp has no action attribute,
+    // so the browser submits it to the current document address (with its query string) -- these
+    // params arrive as ordinary request parameters, exactly like addQueryParameter simulates here.
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
+    setRoles(widgetContext, ADMIN);
+    widgetContext.getParameterMap().put("command", new String[] { "bulkDelete" });
+    widgetContext.getParameterMap().put("imageId", new String[] { "1", "3" });
+    addQueryParameter(widgetContext, "query", "3d");
+    addQueryParameter(widgetContext, "page", "4");
+
+    Image image1 = new Image();
+    image1.setId(1L);
+    Image image3 = new Image();
+    image3.setId(3L);
+
+    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class);
+        MockedStatic<DeleteImageCommand> deleteMockedStatic = mockStatic(DeleteImageCommand.class);
+        MockedStatic<AuditEventCommand> auditMockedStatic = mockStatic(AuditEventCommand.class)) {
+      imageRepositoryMockedStatic.when(() -> ImageRepository.findById(1L)).thenReturn(image1);
+      imageRepositoryMockedStatic.when(() -> ImageRepository.findById(3L)).thenReturn(image3);
+      deleteMockedStatic.when(() -> DeleteImageCommand.deleteImage(any(Image.class))).thenReturn(true);
+
+      AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
+      widget.post(widgetContext);
+    }
+
+    Assertions.assertEquals("/admin/images?query=3d&page=4", widgetContext.getRedirect());
   }
 
   @Test

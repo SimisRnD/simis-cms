@@ -45,11 +45,13 @@ import com.simisinc.platform.domain.model.audit.AuditLog;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.persistence.SessionRepository;
 import com.simisinc.platform.infrastructure.persistence.UserRepository;
+import com.simisinc.platform.infrastructure.persistence.VisitorRepository;
 import com.simisinc.platform.infrastructure.persistence.audit.AuditLogRepository;
 import com.simisinc.platform.infrastructure.persistence.audit.AuditLogSpecification;
 import com.simisinc.platform.infrastructure.persistence.cms.ContentRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.FormDataRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.FormSubmissionFailureRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.SearchAnalyticsRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageHitRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
 
@@ -748,6 +750,56 @@ class SiteStatsWidgetTest extends WidgetBase {
   }
 
   @Test
+  void executeZeroResultSearchAlertIsOkBelowThreshold() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <title>Zero-Result Searches (24h)</title>\n" +
+            "  <report>zero-result-search-alert</report>\n" +
+            "</widget>");
+
+    try (MockedStatic<SearchAnalyticsRepository> repository = mockStatic(SearchAnalyticsRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      repository.when(() -> SearchAnalyticsRepository.countZeroResultSearches(1)).thenReturn(5L);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("search.zeroResultAlertThreshold"))
+          .thenReturn("20");
+      repository.when(() -> SearchAnalyticsRepository.resolveZeroResultAlertThreshold("20")).thenReturn(20);
+
+      setRoles(widgetContext, ADMIN);
+      SiteStatsWidget widget = new SiteStatsWidget();
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals(SiteStatsWidget.ALERT_CARD_JSP, widgetContext.getJsp());
+    Assertions.assertEquals("5", request.getAttribute("numberValue"));
+    Assertions.assertEquals("ok", request.getAttribute("severity"));
+  }
+
+  @Test
+  void executeZeroResultSearchAlertIsWarningAboveThreshold() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <title>Zero-Result Searches (24h)</title>\n" +
+            "  <report>zero-result-search-alert</report>\n" +
+            "</widget>");
+
+    try (MockedStatic<SearchAnalyticsRepository> repository = mockStatic(SearchAnalyticsRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      repository.when(() -> SearchAnalyticsRepository.countZeroResultSearches(1)).thenReturn(35L);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("search.zeroResultAlertThreshold"))
+          .thenReturn("20");
+      repository.when(() -> SearchAnalyticsRepository.resolveZeroResultAlertThreshold("20")).thenReturn(20);
+
+      setRoles(widgetContext, ADMIN);
+      SiteStatsWidget widget = new SiteStatsWidget();
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals(SiteStatsWidget.ALERT_CARD_JSP, widgetContext.getJsp());
+    Assertions.assertEquals("35", request.getAttribute("numberValue"));
+    Assertions.assertEquals("warning", request.getAttribute("severity"));
+  }
+
+  @Test
   void executeConversionRate() {
     addPreferencesFromWidgetXml(widgetContext,
         "<widget name=\"siteStats\" class=\"stats card\">\n" +
@@ -790,6 +842,147 @@ class SiteStatsWidgetTest extends WidgetBase {
     widget.execute(widgetContext);
 
     Assertions.assertNull(widgetContext.getJsp());
+  }
+
+  @Test
+  void executeSolutionTypeTraffic() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <title>Traffic by Solution Type</title>\n" +
+            "  <report>solution-type-traffic</report>\n" +
+            "  <type>bar</type>\n" +
+            "  <days>30</days>\n" +
+            "</widget>");
+
+    List<StatisticsData> data = List.of(statistic("government-solution", "120"), statistic("careers", "40"));
+    try (MockedStatic<WebPageHitRepository> repository = mockStatic(WebPageHitRepository.class)) {
+      repository.when(() -> WebPageHitRepository.findTrafficBySolutionType(30)).thenReturn(data);
+
+      setRoles(widgetContext, ADMIN);
+      SiteStatsWidget widget = new SiteStatsWidget();
+      widget.execute(widgetContext);
+
+      repository.verify(() -> WebPageHitRepository.findTrafficBySolutionType(30));
+    }
+
+    Assertions.assertEquals(SiteStatsWidget.BAR_CHART_JSP, widgetContext.getJsp());
+    Assertions.assertEquals(data, request.getAttribute("statisticsDataList"));
+  }
+
+  @Test
+  void executeSolutionTypeEngagement() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <title>Engagement by Solution Type</title>\n" +
+            "  <report>solution-type-engagement</report>\n" +
+            "  <days>30</days>\n" +
+            "</widget>");
+
+    List<StatisticsData> data = List.of(statistic("government-solution", "2.50"));
+    try (MockedStatic<WebPageHitRepository> repository = mockStatic(WebPageHitRepository.class)) {
+      repository.when(() -> WebPageHitRepository.findEngagementBySolutionType(30)).thenReturn(data);
+
+      setRoles(widgetContext, ADMIN);
+      SiteStatsWidget widget = new SiteStatsWidget();
+      widget.execute(widgetContext);
+
+      repository.verify(() -> WebPageHitRepository.findEngagementBySolutionType(30));
+    }
+
+    Assertions.assertEquals(SiteStatsWidget.TABLE_JSP, widgetContext.getJsp());
+    Assertions.assertEquals(data, request.getAttribute("statisticsDataList"));
+    Assertions.assertEquals("Solution Type", request.getAttribute("label"));
+    Assertions.assertEquals("Avg Page Views / Session", request.getAttribute("value"));
+  }
+
+  @Test
+  void executeSolutionTypeEngagementHonorsConfiguredLabelAndValue() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <title>Engagement by Solution Type</title>\n" +
+            "  <report>solution-type-engagement</report>\n" +
+            "  <label>Solution</label>\n" +
+            "  <value>Depth</value>\n" +
+            "  <days>30</days>\n" +
+            "</widget>");
+
+    try (MockedStatic<WebPageHitRepository> repository = mockStatic(WebPageHitRepository.class)) {
+      repository.when(() -> WebPageHitRepository.findEngagementBySolutionType(30)).thenReturn(List.of());
+
+      setRoles(widgetContext, ADMIN);
+      SiteStatsWidget widget = new SiteStatsWidget();
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals("Solution", request.getAttribute("label"));
+    Assertions.assertEquals("Depth", request.getAttribute("value"));
+  }
+
+  @Test
+  void executePagesPerSession() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <title>Pages per Session</title>\n" +
+            "  <report>pages-per-session</report>\n" +
+            "  <days>30</days>\n" +
+            "</widget>");
+
+    try (MockedStatic<WebPageHitRepository> webPageHitRepositoryMockedStatic = mockStatic(WebPageHitRepository.class)) {
+      webPageHitRepositoryMockedStatic.when(() -> WebPageHitRepository.findAvgPagesPerSession(30)).thenReturn(2.375);
+
+      setRoles(widgetContext, ADMIN);
+      SiteStatsWidget widget = new SiteStatsWidget();
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals(SiteStatsWidget.CARD_JSP, widgetContext.getJsp());
+    Assertions.assertEquals("2.4", request.getAttribute("numberValue"));
+  }
+
+  @Test
+  void executeReturnVisitorRate() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <title>Return Visitor Rate</title>\n" +
+            "  <report>return-visitor-rate</report>\n" +
+            "  <days>30</days>\n" +
+            "</widget>");
+
+    try (MockedStatic<VisitorRepository> visitorRepositoryMockedStatic = mockStatic(VisitorRepository.class)) {
+      visitorRepositoryMockedStatic.when(() -> VisitorRepository.findReturnVisitorRatePercent(30)).thenReturn(33.333);
+
+      setRoles(widgetContext, ADMIN);
+      SiteStatsWidget widget = new SiteStatsWidget();
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals(SiteStatsWidget.CARD_JSP, widgetContext.getJsp());
+    Assertions.assertEquals("33.3", request.getAttribute("numberValue"));
+  }
+
+  @Test
+  void executeAvgTimeOnPage() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <title>Avg Time on Page</title>\n" +
+            "  <report>avg-time-on-page</report>\n" +
+            "  <days>30</days>\n" +
+            "  <limit>10</limit>\n" +
+            "</widget>");
+
+    List<StatisticsData> data = List.of(statistic("/contact-us", "42.3s"));
+    try (MockedStatic<WebPageHitRepository> webPageHitRepositoryMockedStatic = mockStatic(WebPageHitRepository.class)) {
+      webPageHitRepositoryMockedStatic.when(() -> WebPageHitRepository.findAvgTimeOnPageByPath(30, 10)).thenReturn(data);
+
+      setRoles(widgetContext, ADMIN);
+      SiteStatsWidget widget = new SiteStatsWidget();
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals(SiteStatsWidget.TABLE_JSP, widgetContext.getJsp());
+    Assertions.assertEquals(data, request.getAttribute("statisticsDataList"));
+    Assertions.assertEquals("Page", request.getAttribute("label"));
+    Assertions.assertEquals("Avg Time", request.getAttribute("value"));
   }
 
   private static StatisticsData statistic(String label, String value) {

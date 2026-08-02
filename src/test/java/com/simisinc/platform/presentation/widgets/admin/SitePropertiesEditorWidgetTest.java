@@ -32,6 +32,7 @@ import org.mockito.MockedStatic;
 import com.simisinc.platform.WidgetBase;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.admin.SecretSitePropertiesCommand;
+import com.simisinc.platform.application.mailinglists.MailChimpCommand;
 import com.simisinc.platform.domain.model.SiteProperty;
 import com.simisinc.platform.infrastructure.persistence.SitePropertyRepository;
 
@@ -132,6 +133,44 @@ class SitePropertiesEditorWidgetTest extends WidgetBase {
 
       // Pre-existing behavior for normal fields is unchanged
       assertEquals("", stored.get(0).getValue());
+    }
+  }
+
+  @Test
+  void testMailChimpConnectionActionDoesNotSaveAndShowsTheResult() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"sitePropertiesEditor\">\n" +
+        "  <prefix>mailing-list</prefix>\n" +
+        "</widget>");
+
+    List<SiteProperty> stored = new ArrayList<>();
+    stored.add(property("mailing-list.service", "mailchimp", null));
+
+    addQueryParameter(widgetContext, "action", "testMailChimpConnection");
+    // If the action branch fell through to the generic save logic, this bogus value would end up
+    // stored -- asserting it doesn't is how this test proves the save path was skipped.
+    addQueryParameter(widgetContext, "mailing-list.service", "should-not-be-saved");
+
+    // A real (not mocked) ConnectionTestResult, obtained deterministically without any network
+    // call -- blank credentials always short-circuit to a fixed failure result. Its constructor
+    // is private, so this is the only way to get a real instance to stub with.
+    MailChimpCommand.ConnectionTestResult result;
+    try (MockedStatic<LoadSitePropertyCommand> blankSiteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      blankSiteProperty.when(() -> LoadSitePropertyCommand.loadByName(anyString())).thenReturn("");
+      result = MailChimpCommand.testConnection();
+    }
+
+    try (MockedStatic<SitePropertyRepository> repository = mockStatic(SitePropertyRepository.class);
+        MockedStatic<MailChimpCommand> mailChimp = mockStatic(MailChimpCommand.class)) {
+      repository.when(() -> SitePropertyRepository.findAllByPrefix(anyString())).thenReturn(stored);
+      mailChimp.when(MailChimpCommand::testConnection).thenReturn(result);
+
+      SitePropertiesEditorWidget widget = new SitePropertiesEditorWidget();
+      widget.post(widgetContext);
+
+      repository.verify(() -> SitePropertyRepository.saveAll(anyString(), org.mockito.ArgumentMatchers.anyList()),
+          org.mockito.Mockito.never());
+      assertEquals("mailchimp", stored.get(0).getValue(), "the action must not fall through to the save logic");
+      assertEquals(SitePropertiesEditorWidget.JSP, widgetContext.getJsp());
     }
   }
 }

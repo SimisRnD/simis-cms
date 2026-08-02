@@ -130,6 +130,19 @@ public class WidgetBase {
       }
     }).when(session).setAttribute(anyString(), any());
 
+    // Mock Session removeAttribute -- unstubbed, a mock's void methods are no-ops by default, so
+    // without this a widget under test that calls session.removeAttribute(...) (e.g. to consume a
+    // one-time flash) would appear to succeed while silently leaving the value in place, and a
+    // test asserting the flash is gone on the next request would see stale state instead.
+    doAnswer(new Answer<Void>() {
+      @Override
+      public Void answer(InvocationOnMock invocation) throws Throwable {
+        String key = invocation.getArgument(0, String.class);
+        sessionAttributes.remove(key);
+        return null;
+      }
+    }).when(session).removeAttribute(anyString());
+
     // Mock Session getAttribute
     Mockito.doAnswer(new Answer<Object>() {
       @Override
