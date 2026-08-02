@@ -20,6 +20,7 @@ import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.cms.SaveWebPageCommand;
 import com.simisinc.platform.application.cms.UrlCommand;
 import com.simisinc.platform.domain.model.cms.SitemapChangeFrequencyOptions;
+import com.simisinc.platform.domain.model.cms.SolutionTypeOptions;
 import com.simisinc.platform.domain.model.cms.WebPage;
 import com.simisinc.platform.infrastructure.cache.PublishEventCachePurgeHandler;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
@@ -77,6 +78,7 @@ public class WebPageFormWidget extends GenericWidget {
     }
 
     context.getRequest().setAttribute("sitemapChangeFrequencyMap", SitemapChangeFrequencyOptions.map);
+    context.getRequest().setAttribute("solutionTypeMap", SolutionTypeOptions.map);
 
     // Show the editor
     context.setJsp(JSP);
