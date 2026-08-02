@@ -17,6 +17,7 @@
 package com.simisinc.platform.infrastructure.persistence.cms;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.Connection;
@@ -197,6 +198,52 @@ class WebPageRepositoryTest {
     assertEquals(0, WebPageRepository.countExpiringSoon());
   }
 
+  // --- solution_type persistence (issue #570) ---
+
+  @Test
+  void savingANewPageWithASolutionTypePersistsAndReloadsIt() {
+    WebPage webPage = new WebPage();
+    webPage.setLink("/solutions/cmmc");
+    webPage.setTitle("CMMC Compliance");
+    webPage.setEnabled(true);
+    webPage.setSearchable(true);
+    webPage.setCreatedBy(1L);
+    webPage.setSolutionType("government-solution");
+    WebPage saved = WebPageRepository.save(webPage);
+
+    assertEquals("government-solution", saved.getSolutionType());
+    WebPage reloaded = WebPageRepository.findById(saved.getId());
+    assertEquals("government-solution", reloaded.getSolutionType());
+  }
+
+  @Test
+  void savingAPageWithNoSolutionTypeLeavesItNull() {
+    WebPage webPage = addWebPage("/about", "About", null, null, true, true, false);
+
+    WebPage reloaded = WebPageRepository.findById(webPage.getId());
+
+    assertNull(reloaded.getSolutionType());
+  }
+
+  @Test
+  void updatingAPageCanClearAPreviouslySetSolutionType() {
+    WebPage webPage = new WebPage();
+    webPage.setLink("/careers/engineering");
+    webPage.setTitle("Engineering Careers");
+    webPage.setEnabled(true);
+    webPage.setSearchable(true);
+    webPage.setCreatedBy(1L);
+    webPage.setSolutionType("careers");
+    WebPage saved = WebPageRepository.save(webPage);
+    assertEquals("careers", WebPageRepository.findById(saved.getId()).getSolutionType());
+
+    saved.setSolutionType(null);
+    saved.setModifiedBy(1L);
+    WebPageRepository.save(saved);
+
+    assertNull(WebPageRepository.findById(saved.getId()).getSolutionType());
+  }
+
   private static boolean isDockerAvailable() {
     try {
       return DockerClientFactory.instance().isDockerAvailable();
@@ -242,6 +289,7 @@ class WebPageRepositoryTest {
           + "sitemap_changefreq VARCHAR(20), "
           + "publish_at TIMESTAMP, "
           + "expires_at TIMESTAMP, "
+          + "solution_type VARCHAR(255), "
           + "tsv tsvector)");
 
       statement.execute("CREATE TEXT SEARCH DICTIONARY title_stem (TEMPLATE = snowball, Language = english)");

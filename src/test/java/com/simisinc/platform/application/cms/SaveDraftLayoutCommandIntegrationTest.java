@@ -215,7 +215,8 @@ class SaveDraftLayoutCommandIntegrationTest {
           + "sitemap_priority NUMERIC(2,1) DEFAULT 0.5, "
           + "sitemap_changefreq VARCHAR(20), "
           + "publish_at TIMESTAMP, "
-          + "expires_at TIMESTAMP)");
+          + "expires_at TIMESTAMP, "
+          + "solution_type VARCHAR(255))");
     } catch (SQLException se) {
       throw new IllegalStateException("Could not create the web_pages/users schema", se);
     }
