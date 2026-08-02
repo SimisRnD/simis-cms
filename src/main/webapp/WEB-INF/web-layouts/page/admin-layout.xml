@@ -676,6 +676,22 @@
           <report>total-users</report>
         </widget>
       </column>
+      <column class="small-12 medium-6 large-3 cell callout">
+        <widget name="siteStats">
+          <icon>fa-book-open</icon>
+          <title>Pages per Session</title>
+          <report>pages-per-session</report>
+          <days>30</days>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 large-3 cell callout">
+        <widget name="siteStats">
+          <icon>fa-user-clock</icon>
+          <title>Return Visitor Rate</title>
+          <report>return-visitor-rate</report>
+          <days>30</days>
+        </widget>
+      </column>
     </section>
     <section class="grid-container grid-x grid-margin-x">
       <column class="small-12 medium-6 large-3 cell callout">
@@ -794,6 +810,17 @@
           <label>Bot Sessions</label>
           <report>daily-bot-sessions</report>
           <type>line</type>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 cell">
+        <widget name="siteStats" class="stats card">
+          <icon>fa-hourglass-half</icon>
+          <title>Avg Time on Page</title>
+          <report>avg-time-on-page</report>
+          <label>Page</label>
+          <value>Avg Time</value>
+          <days>30</days>
+          <limit>10</limit>
         </widget>
       </column>
       <column class="small-12 medium-6 cell">

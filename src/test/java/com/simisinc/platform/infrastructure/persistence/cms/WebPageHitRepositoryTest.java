@@ -26,6 +26,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.time.Duration;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Properties;
 
@@ -166,6 +167,81 @@ class WebPageHitRepositoryTest {
     assertEquals(0, results.size());
   }
 
+  // --- findAvgPagesPerSession() integration coverage (issue #568) ---
+
+  @Test
+  void findAvgPagesPerSessionComputesAverageAcrossRealSessionsOnly() {
+    seedSession("session-a", false);
+    seedSession("session-b", false);
+    seedSession("bot-session", true);
+    long pageId = seedPage("/contact-us");
+    // session-a: 3 hits, session-b: 1 hit -- real average is (3 + 1) / 2 = 2.0
+    seedHit(pageId, "session-a");
+    seedHit(pageId, "session-a");
+    seedHit(pageId, "session-a");
+    seedHit(pageId, "session-b");
+    // The bot session's 5 hits must not be counted, in either the numerator or the denominator
+    for (int i = 0; i < 5; i++) {
+      seedHit(pageId, "bot-session");
+    }
+
+    double avg = WebPageHitRepository.findAvgPagesPerSession(30);
+
+    assertEquals(2.0, avg, 0.0001);
+  }
+
+  @Test
+  void findAvgPagesPerSessionReturnsZeroWhenNoSessionsAreInRange() {
+    double avg = WebPageHitRepository.findAvgPagesPerSession(30);
+
+    // Must not throw a divide-by-zero error, and must not misreport as some positive average
+    assertEquals(0.0, avg, 0.0001);
+  }
+
+  // --- findAvgTimeOnPageByPath() integration coverage (issue #568) ---
+
+  @Test
+  void findAvgTimeOnPageByPathComputesTheGapToTheNextHitInEachSession() {
+    seedSession("s1", false);
+    seedSession("s2", false);
+    seedSession("bot-session", true);
+
+    Timestamp t0 = Timestamp.valueOf(LocalDateTime.now().minusHours(1));
+    // s1: /a -> /b (10s later) -> /x (25s after that, last hit of s1 -- no next, contributes nothing)
+    seedHit("/a", "s1", t0);
+    seedHit("/b", "s1", plusSeconds(t0, 10));
+    seedHit("/x", "s1", plusSeconds(t0, 35));
+    // s2: /a -> /c (30s later, last hit of s2 -- no next, contributes nothing)
+    seedHit("/a", "s2", t0);
+    seedHit("/c", "s2", plusSeconds(t0, 30));
+    // bot session's hits must not contribute a sample at all
+    seedHit("/a", "bot-session", t0);
+    seedHit("/a", "bot-session", plusSeconds(t0, 1));
+
+    List<StatisticsData> results = WebPageHitRepository.findAvgTimeOnPageByPath(30, 10);
+
+    assertNotNull(results);
+    assertEquals(2, results.size(), "only /a and /b have a next hit to diff against: " + results);
+    // /b: single sample of 25s -- ranks first (ORDER BY avg desc)
+    assertEquals("/b", results.get(0).getLabel());
+    assertEquals("25.0s", results.get(0).getValue());
+    // /a: samples of 10s (s1) and 30s (s2) -- averages to 20s
+    assertEquals("/a", results.get(1).getLabel());
+    assertEquals("20.0s", results.get(1).getValue());
+  }
+
+  @Test
+  void findAvgTimeOnPageByPathReturnsEmptyListWhenThereIsNoData() {
+    List<StatisticsData> results = WebPageHitRepository.findAvgTimeOnPageByPath(30, 10);
+
+    assertNotNull(results);
+    assertEquals(0, results.size());
+  }
+
+  private static Timestamp plusSeconds(Timestamp base, int seconds) {
+    return new Timestamp(base.getTime() + (seconds * 1000L));
+  }
+
   // --- findTrafficBySolutionType() / findEngagementBySolutionType() integration coverage (issue #570) ---
 
   @Test
@@ -273,6 +349,16 @@ class WebPageHitRepositoryTest {
     }
   }
 
+  private static void seedHit(String pagePath, String sessionId, Timestamp hitDate) {
+    try (Connection connection = DB.getConnection();
+        Statement statement = connection.createStatement()) {
+      statement.execute("INSERT INTO web_page_hits (page_path, session_id, hit_date) VALUES ("
+          + "'" + pagePath + "', '" + sessionId + "', '" + hitDate + "')");
+    } catch (SQLException se) {
+      throw new IllegalStateException("Could not seed web page hit", se);
+    }
+  }
+
   private static void seedPageHitByPath(String pagePath, String sessionId) {
     try (Connection connection = DB.getConnection();
         Statement statement = connection.createStatement()) {
@@ -315,8 +401,8 @@ class WebPageHitRepositoryTest {
           + "is_bot BOOLEAN DEFAULT false)");
       statement.execute("CREATE TABLE web_page_hits ("
           + "hit_id BIGSERIAL PRIMARY KEY, "
-          + "page_path VARCHAR(255), "
           + "web_page_id BIGINT, "
+          + "page_path VARCHAR(255), "
           + "session_id VARCHAR(255), "
           + "hit_date TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP)");
       statement.execute("CREATE TABLE web_page_hit_snapshots ("
