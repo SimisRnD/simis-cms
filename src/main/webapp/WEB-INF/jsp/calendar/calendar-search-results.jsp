@@ -22,16 +22,61 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="calendarEventList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="showMonthName" class="java.lang.String" scope="request"/>
+<jsp:useBean id="activeFilters" class="java.util.ArrayList" scope="request"/>
 <%@include file="../page_messages.jspf" %>
-<c:choose>
-  <c:when test="${empty calendarEventList}">
-    <p>No calendar events were found</p>
-  </c:when>
-  <c:otherwise>
+<c:if test="${!empty title}">
+  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
+</c:if>
+<c:if test="${!empty activeFilters}">
+  <div class="margin-bottom-10">
+    <c:forEach items="${activeFilters}" var="activeFilter">
+      <span class="label secondary" style="margin-right:5px">
+        <c:out value="${activeFilter.facetLabel}"/>: <c:out value="${activeFilter.valueLabel}"/>
+        <%-- clearUrl is server-built from the request path + UrlCommand.encodeUri()'d params, so it cannot carry HTML metacharacters --%>
+        <a href="${activeFilter.clearUrl}" style="color:inherit" title="Remove this filter"><i class="fa fa-times"></i></a>
+      </span>
+    </c:forEach>
+  </div>
+</c:if>
+<div class="grid-x grid-margin-x">
+  <c:if test="${!empty calendarFacets}">
+    <div class="cell medium-3">
+      <h6><c:out value="${calendarFacetLabel}"/></h6>
+      <ul class="no-bullet" style="text-indent: -11px; margin-left: 21px !important;">
+        <c:forEach items="${calendarFacets}" var="facet">
+          <li>
+            <%-- facet.url is server-built from the request path + UrlCommand.encodeUri()'d params, so it cannot carry HTML metacharacters --%>
+            <a href="${facet.url}">
+              <c:choose>
+                <c:when test="${facet.selected}"><i class="fa fa-circle-check"></i></c:when>
+                <c:otherwise><i class="fa fa-circle-o"></i></c:otherwise>
+              </c:choose>
+              <c:out value="${facet.label}"/>
+            </a>&nbsp;<small class="subheader"><fmt:formatNumber value="${facet.count}"/></small>
+          </li>
+        </c:forEach>
+      </ul>
+    </div>
+  </c:if>
+  <div class="cell ${!empty calendarFacets ? 'medium-9' : 'medium-12'}">
+    <c:choose>
+      <c:when test="${empty calendarEventList}">
+        <c:choose>
+          <c:when test="${!empty activeFilters}">
+            <p>No calendar events match the current filters.</p>
+            <ul class="no-bullet">
+              <c:forEach items="${activeFilters}" var="activeFilter">
+                <li><a href="${activeFilter.clearUrl}">Remove "<c:out value="${activeFilter.valueLabel}"/>"</a></li>
+              </c:forEach>
+            </ul>
+          </c:when>
+          <c:otherwise>
+            <p>No calendar events were found</p>
+          </c:otherwise>
+        </c:choose>
+      </c:when>
+      <c:otherwise>
     <div class="platform-calendar-list-container">
-      <c:if test="${!empty title}">
-        <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
-      </c:if>
       <c:set var="lastMonth" scope="request" value="---"/>
       <c:set var="lastDay" scope="request" value="---"/>
       <c:forEach items="${calendarEventList}" var="calendarEvent">
@@ -117,5 +162,7 @@
         </div>
       </c:forEach>
     </div>
-  </c:otherwise>
-</c:choose>
+      </c:otherwise>
+    </c:choose>
+  </div>
+</div>
