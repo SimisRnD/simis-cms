@@ -171,7 +171,6 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (25, 'SimpliFi Tag Value', 'analytics.simplifi.value', '');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (26, 'Brand CDN Path Value', 'analytics.brandcdn.value', '');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (27, 'Brand CDN Path Value 2', 'analytics.brandcdn.value2', '');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (50, 'Image Pixel URL', 'analytics.pixel.url', '', 'url');
 
 -- Captcha
 
