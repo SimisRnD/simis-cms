@@ -261,6 +261,54 @@ class WebPageHitRepositoryTest {
     return new Timestamp(base.getTime() + (seconds * 1000L));
   }
 
+  // --- findHighTrafficLowEngagementPages() / findLowTrafficHighEngagementPages() coverage (issue #568) ---
+
+  @Test
+  void trafficEngagementRankingsOrderPagesOppositelyAndEnforceTheMinimumHitFloor() {
+    Timestamp t0 = Timestamp.valueOf(LocalDateTime.now().minusHours(1));
+    // /popular: 8 sessions, each bounces to /other after 2s -- high traffic, low engagement
+    for (int i = 0; i < 8; i++) {
+      String session = "popular-" + i;
+      seedSession(session, false);
+      seedHit("/popular", session, t0);
+      seedHit("/other", session, plusSeconds(t0, 2));
+    }
+    // /deep-dive: 5 sessions (right at the floor), each stays 120s -- low traffic, high engagement
+    for (int i = 0; i < 5; i++) {
+      String session = "deep-dive-" + i;
+      seedSession(session, false);
+      seedHit("/deep-dive", session, t0);
+      seedHit("/other2", session, plusSeconds(t0, 120));
+    }
+    // /rare: only 2 sessions -- below the floor, must be excluded from both rankings entirely
+    for (int i = 0; i < 2; i++) {
+      String session = "rare-" + i;
+      seedSession(session, false);
+      seedHit("/rare", session, t0);
+      seedHit("/other3", session, plusSeconds(t0, 50));
+    }
+
+    List<StatisticsData> highTrafficLowEngagement = WebPageHitRepository.findHighTrafficLowEngagementPages(30, 10);
+    assertNotNull(highTrafficLowEngagement);
+    assertEquals(2, highTrafficLowEngagement.size(), "/rare must be excluded (below the min-hit floor): " + highTrafficLowEngagement);
+    assertEquals("/popular", highTrafficLowEngagement.get(0).getLabel(), "highest hit count, lowest engagement ranks first");
+    assertEquals("8 hits, 2.0s avg", highTrafficLowEngagement.get(0).getValue());
+    assertEquals("/deep-dive", highTrafficLowEngagement.get(1).getLabel());
+
+    List<StatisticsData> lowTrafficHighEngagement = WebPageHitRepository.findLowTrafficHighEngagementPages(30, 10);
+    assertNotNull(lowTrafficHighEngagement);
+    assertEquals(2, lowTrafficHighEngagement.size(), "/rare must be excluded (below the min-hit floor): " + lowTrafficHighEngagement);
+    assertEquals("/deep-dive", lowTrafficHighEngagement.get(0).getLabel(), "lowest hit count, highest engagement ranks first");
+    assertEquals("5 hits, 120.0s avg", lowTrafficHighEngagement.get(0).getValue());
+    assertEquals("/popular", lowTrafficHighEngagement.get(1).getLabel());
+  }
+
+  @Test
+  void trafficEngagementRankingsReturnEmptyListsWhenThereIsNoData() {
+    assertEquals(0, WebPageHitRepository.findHighTrafficLowEngagementPages(30, 10).size());
+    assertEquals(0, WebPageHitRepository.findLowTrafficHighEngagementPages(30, 10).size());
+  }
+
   // --- findTrafficBySolutionType() / findEngagementBySolutionType() integration coverage (issue #570) ---
 
   @Test

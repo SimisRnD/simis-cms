@@ -1105,6 +1105,56 @@ class SiteStatsWidgetTest extends WidgetBase {
     Assertions.assertEquals("Avg Time", request.getAttribute("value"));
   }
 
+  @Test
+  void executeHighTrafficLowEngagement() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <title>High Traffic, Low Engagement</title>\n" +
+            "  <report>high-traffic-low-engagement</report>\n" +
+            "  <days>30</days>\n" +
+            "  <limit>10</limit>\n" +
+            "</widget>");
+
+    List<StatisticsData> data = List.of(statistic("/popular", "8 hits, 2.0s avg"));
+    try (MockedStatic<WebPageHitRepository> webPageHitRepositoryMockedStatic = mockStatic(WebPageHitRepository.class)) {
+      webPageHitRepositoryMockedStatic.when(() -> WebPageHitRepository.findHighTrafficLowEngagementPages(30, 10)).thenReturn(data);
+
+      setRoles(widgetContext, ADMIN);
+      SiteStatsWidget widget = new SiteStatsWidget();
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals(SiteStatsWidget.TABLE_JSP, widgetContext.getJsp());
+    Assertions.assertEquals(data, request.getAttribute("statisticsDataList"));
+    Assertions.assertEquals("Page", request.getAttribute("label"));
+    Assertions.assertEquals("Hits / Avg Time", request.getAttribute("value"));
+  }
+
+  @Test
+  void executeLowTrafficHighEngagement() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <title>Low Traffic, High Engagement</title>\n" +
+            "  <report>low-traffic-high-engagement</report>\n" +
+            "  <days>30</days>\n" +
+            "  <limit>10</limit>\n" +
+            "</widget>");
+
+    List<StatisticsData> data = List.of(statistic("/deep-dive", "5 hits, 120.0s avg"));
+    try (MockedStatic<WebPageHitRepository> webPageHitRepositoryMockedStatic = mockStatic(WebPageHitRepository.class)) {
+      webPageHitRepositoryMockedStatic.when(() -> WebPageHitRepository.findLowTrafficHighEngagementPages(30, 10)).thenReturn(data);
+
+      setRoles(widgetContext, ADMIN);
+      SiteStatsWidget widget = new SiteStatsWidget();
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals(SiteStatsWidget.TABLE_JSP, widgetContext.getJsp());
+    Assertions.assertEquals(data, request.getAttribute("statisticsDataList"));
+    Assertions.assertEquals("Page", request.getAttribute("label"));
+    Assertions.assertEquals("Hits / Avg Time", request.getAttribute("value"));
+  }
+
   private static StatisticsData statistic(String label, String value) {
     StatisticsData data = new StatisticsData();
     data.setLabel(label);
