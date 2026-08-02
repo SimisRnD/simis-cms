@@ -38,6 +38,7 @@ import java.sql.Statement;
 import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
@@ -78,6 +79,7 @@ class AttemptWebhookDeliveryCommandTest {
   private static final String DB_NAME = "simis_cms_test";
   private static final String DB_USER = "simis";
   private static final String DB_PASSWORD = "simis";
+  private static final String SECRET_KEY_PROPERTY = "cms.secret.key";
 
   private static GenericContainer<?> postgres;
 
@@ -87,6 +89,13 @@ class AttemptWebhookDeliveryCommandTest {
   @BeforeAll
   static void startDatabase() {
     Assumptions.assumeTrue(isDockerAvailable(), "Docker is not available - skipping webhook delivery attempt test");
+
+    // seedSubscription() below writes a webhook_subscription row (issue #453's
+    // WebhookSubscriptionRepository now encrypts secret on write) -- configure a key so that
+    // encryption doesn't fail closed; this test only cares about the attempt/backoff behavior.
+    byte[] key = new byte[32];
+    key[0] = 42;
+    System.setProperty(SECRET_KEY_PROPERTY, Base64.getEncoder().encodeToString(key));
 
     postgres = new GenericContainer<>(DockerImageName.parse(resolveImage()))
         .withEnv("POSTGRES_USER", DB_USER)
@@ -114,6 +123,7 @@ class AttemptWebhookDeliveryCommandTest {
 
   @AfterAll
   static void stopDatabase() {
+    System.clearProperty(SECRET_KEY_PROPERTY);
     try {
       DataSource.shutdown();
     } catch (Exception e) {
