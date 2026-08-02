@@ -94,6 +94,14 @@
           <report>zero-result-search-alert</report>
         </widget>
       </column>
+      <column class="small-6 medium-4 large-3 cell">
+        <widget name="siteStats">
+          <icon>fa-filter</icon>
+          <title>Faceted Search Adoption % (7d)</title>
+          <report>facet-adoption-rate</report>
+          <days>7</days>
+        </widget>
+      </column>
       <column class="small-12 cell">
         <widget name="siteStats">
           <title>Recent Admin Activity</title>
@@ -906,6 +914,17 @@
           <report>trending-search-terms</report>
           <label>Search Term</label>
           <value>Searches This Week</value>
+          <limit>10</limit>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 cell">
+        <widget name="siteStats" class="stats card">
+          <icon>fa-filter</icon>
+          <title>Facet Usage Breakdown</title>
+          <report>facet-usage-breakdown</report>
+          <label>Facet</label>
+          <value>Searches</value>
+          <days>30</days>
           <limit>10</limit>
         </widget>
       </column>

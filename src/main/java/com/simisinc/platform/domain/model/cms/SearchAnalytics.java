@@ -34,6 +34,7 @@ public class SearchAnalytics extends Entity {
   private String searchType = null;
   private int resultCount = 0;
   private String pagePath = null;
+  private String facetKey = null;
   private Timestamp created = null;
 
   public SearchAnalytics() {
@@ -77,6 +78,14 @@ public class SearchAnalytics extends Entity {
 
   public void setPagePath(String pagePath) {
     this.pagePath = pagePath;
+  }
+
+  public String getFacetKey() {
+    return facetKey;
+  }
+
+  public void setFacetKey(String facetKey) {
+    this.facetKey = facetKey;
   }
 
   public Timestamp getCreated() {

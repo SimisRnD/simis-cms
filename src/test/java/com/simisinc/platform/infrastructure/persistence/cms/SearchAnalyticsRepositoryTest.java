@@ -218,6 +218,56 @@ class SearchAnalyticsRepositoryTest {
   }
 
   @Test
+  void countSearchesCountsEveryEventInTheWindowRegardlessOfFacet() {
+    addEvent("widgets", "pages", 3);
+    addEvent("gadgets", "items", 5, "categoryId");
+    backdate(addEvent("ancient", "pages", 1).getId(), 40);
+
+    long count = SearchAnalyticsRepository.countSearches(30);
+
+    assertEquals(2, count);
+  }
+
+  @Test
+  void countSearchesWithFacetAppliedCountsOnlyEventsThatCarryAFacetKey() {
+    addEvent("widgets", "pages", 3);
+    addEvent("gadgets", "items", 5, "categoryId");
+    addEvent("gizmos", "items", 2, "dateFacet");
+    backdate(addEvent("ancient", "items", 1, "categoryId").getId(), 40);
+
+    long count = SearchAnalyticsRepository.countSearchesWithFacetApplied(30);
+
+    assertEquals(2, count);
+  }
+
+  @Test
+  void findFacetUsageBreakdownGroupsByFacetKeyAndExcludesUnfaceted() {
+    addEvent("widgets", "pages", 3);
+    addEvent("a", "items", 5, "categoryId");
+    addEvent("b", "items", 5, "categoryId");
+    addEvent("c", "items", 5, "categoryId,dateFacet");
+
+    List<StatisticsData> results = SearchAnalyticsRepository.findFacetUsageBreakdown(30, 10);
+
+    assertEquals(2, results.size());
+    assertEquals("categoryId", results.get(0).getLabel());
+    assertEquals("2", results.get(0).getValue());
+    assertEquals("categoryId,dateFacet", results.get(1).getLabel());
+    assertEquals("1", results.get(1).getValue());
+  }
+
+  @Test
+  void findFacetUsageBreakdownExcludesEventsOutsideTheWindow() {
+    backdate(addEvent("old", "items", 1, "categoryId").getId(), 40);
+    addEvent("recent", "items", 1, "dateFacet");
+
+    List<StatisticsData> results = SearchAnalyticsRepository.findFacetUsageBreakdown(30, 10);
+
+    assertEquals(1, results.size());
+    assertEquals("dateFacet", results.get(0).getLabel());
+  }
+
+  @Test
   void resolveZeroResultAlertThresholdFallsBackToDefaultWhenBlankOrUnparseable() {
     assertEquals(20, SearchAnalyticsRepository.resolveZeroResultAlertThreshold(null));
     assertEquals(20, SearchAnalyticsRepository.resolveZeroResultAlertThreshold(""));
@@ -253,6 +303,7 @@ class SearchAnalyticsRepositoryTest {
           + "search_type VARCHAR(50) NOT NULL, "
           + "result_count INTEGER NOT NULL DEFAULT 0, "
           + "page_path VARCHAR(255), "
+          + "facet_key VARCHAR(100), "
           + "created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP)");
     } catch (SQLException se) {
       throw new IllegalStateException("Could not create the search_analytics schema", se);
@@ -260,10 +311,15 @@ class SearchAnalyticsRepositoryTest {
   }
 
   private static SearchAnalytics addEvent(String query, String searchType, int resultCount) {
+    return addEvent(query, searchType, resultCount, null);
+  }
+
+  private static SearchAnalytics addEvent(String query, String searchType, int resultCount, String facetKey) {
     SearchAnalytics searchAnalytics = new SearchAnalytics();
     searchAnalytics.setQuery(query);
     searchAnalytics.setSearchType(searchType);
     searchAnalytics.setResultCount(resultCount);
+    searchAnalytics.setFacetKey(facetKey);
     return SearchAnalyticsRepository.save(searchAnalytics);
   }
 
