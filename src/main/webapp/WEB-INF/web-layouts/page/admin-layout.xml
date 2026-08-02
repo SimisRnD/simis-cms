@@ -1148,6 +1148,35 @@
         </widget>
       </column>
     </section>
+    <section>
+      <column class="small-12 medium-6 large-3 cell callout">
+        <widget name="siteStats">
+          <icon>fa-book-open</icon>
+          <title>Pages per Session</title>
+          <report>pages-per-session</report>
+          <days>30</days>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 large-3 cell callout">
+        <widget name="siteStats">
+          <icon>fa-user-clock</icon>
+          <title>Return Visitor Rate</title>
+          <report>return-visitor-rate</report>
+          <days>30</days>
+        </widget>
+      </column>
+      <column class="small-12 large-6 cell">
+        <widget name="siteStats" class="stats card">
+          <icon>fa-hourglass-half</icon>
+          <title>Avg Time on Page</title>
+          <report>avg-time-on-page</report>
+          <label>Page</label>
+          <value>Avg Time</value>
+          <days>30</days>
+          <limit>10</limit>
+        </widget>
+      </column>
+    </section>
   </page>
 
   <page name="/admin/sitemap" role="admin,content-manager" title="Navigation Menu Editor">
@@ -1402,6 +1431,13 @@
     <section>
       <column class="small-12 medium-6 large-5 cell">
         <widget name="calendarList" />
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="calendarEventList">
+          <title>Events</title>
+        </widget>
       </column>
     </section>
   </page>
