@@ -20,12 +20,21 @@
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="folderList" class="java.util.ArrayList" scope="request"/>
+<jsp:useBean id="query" class="java.lang.String" scope="request"/>
 <c:if test="${!empty title}">
   <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
 <c:if test="${userSession.hasRole('admin')}">
   <a class="button small radius primary" href="${ctx}/admin/folder?returnPage=/admin/folders">Add a Folder <i class="fa fa-arrow-circle-right"></i></a>
 </c:if>
+<form method="get" autocomplete="off" class="float-right">
+  <div class="input-group no-gap width-auto">
+    <input class="input-group-field" type="search" name="query" aria-label="Search folders" placeholder="<c:if test="${empty query}">Search folders...</c:if>"<c:if test="${!empty query}"> value="<c:out value="${query}"/>"</c:if> autocomplete="off">
+    <div class="input-group-button">
+      <button type="submit" class="button search" aria-label="Search"><i class="fa fa-search" aria-hidden="true"></i></button>
+    </div>
+  </div>
+</form>
 <%@include file="../page_messages.jspf" %>
 <table class="unstriped">
   <thead>
@@ -94,7 +103,12 @@
     </c:forEach>
     <c:if test="${empty folderList}">
       <tr>
-        <td colspan="3">No folders were found</td>
+        <td colspan="3">
+          <c:choose>
+            <c:when test="${!empty query}">No folders match "<c:out value="${query}" />"</c:when>
+            <c:otherwise>No folders were found</c:otherwise>
+          </c:choose>
+        </td>
       </tr>
     </c:if>
   </tbody>

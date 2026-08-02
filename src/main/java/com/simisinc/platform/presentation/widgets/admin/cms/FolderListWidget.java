@@ -16,11 +16,16 @@
 
 package com.simisinc.platform.presentation.widgets.admin.cms;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
+
+import org.apache.commons.lang3.StringUtils;
 
 import com.simisinc.platform.application.cms.LoadFolderCommand;
 import com.simisinc.platform.domain.model.cms.Folder;
 import com.simisinc.platform.infrastructure.persistence.cms.FolderRepository;
+import com.simisinc.platform.presentation.controller.RequestConstants;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 
@@ -48,6 +53,22 @@ public class FolderListWidget extends GenericWidget {
       folderList = FolderRepository.findAll();
     } else {
       folderList = LoadFolderCommand.findAllAuthorizedForUser(context.getUserId());
+    }
+
+    // Optionally filter by name -- the list is admin-curated and small (dozens, not
+    // pages, of folders), so an in-memory filter here avoids touching the two
+    // different data-access paths above (each with its own authorization logic)
+    String query = context.getParameter("query");
+    context.getRequest().setAttribute(RequestConstants.RECORD_QUERY, query);
+    if (StringUtils.isNotBlank(query)) {
+      String needle = query.trim().toLowerCase(Locale.ROOT);
+      List<Folder> matchingFolderList = new ArrayList<>();
+      for (Folder folder : folderList) {
+        if (folder.getName() != null && folder.getName().toLowerCase(Locale.ROOT).contains(needle)) {
+          matchingFolderList.add(folder);
+        }
+      }
+      folderList = matchingFolderList;
     }
     context.getRequest().setAttribute("folderList", folderList);
 
