@@ -212,6 +212,14 @@
     <td colspan="7">
       <strong>All Web Pages</strong>
       <small class="subheader">Every page record in the system, including the ones already shown above in the navigation menu.</small>
+      <br />
+      <small class="subheader">
+        <fmt:formatNumber value="${webPageTotalCount}" /> total &ndash;
+        <fmt:formatNumber value="${webPageLiveCount}" /> live,
+        <fmt:formatNumber value="${webPageDraftCount}" /> draft,
+        <fmt:formatNumber value="${webPageRedirectCount}" /> redirects,
+        <fmt:formatNumber value="${webPageBrokenCount}" /> broken
+      </small>
     </td>
   </tr>
   <tr>

@@ -63,8 +63,7 @@ public class RegisterWidget extends GenericWidget {
     // Determine the captcha service
     boolean useCaptcha = "true".equals(context.getPreferences().getOrDefault("useCaptcha", "false"));
     if (useCaptcha) {
-      context.getRequest().setAttribute("useCaptcha", "true");
-      context.getRequest().setAttribute("googleSiteKey", LoadSitePropertyCommand.loadByName("captcha.google.sitekey"));
+      CaptchaCommand.populateWidgetAttributes(context);
     }
 
     // Form bean

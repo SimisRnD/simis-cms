@@ -55,9 +55,13 @@ class SitePropertiesEditorWidgetTest extends WidgetBase {
   void secretListMatchesKnownProperties() {
     assertTrue(SecretSitePropertiesCommand.isSecret("mail.password"));
     assertTrue(SecretSitePropertiesCommand.isSecret("ecommerce.stripe.production.secret"));
+    assertTrue(SecretSitePropertiesCommand.isSecret("captcha.google.secretkey"));
+    // Issue #519: Cloudflare Turnstile's secret key gets the same treatment as Google's above
+    assertTrue(SecretSitePropertiesCommand.isSecret("captcha.turnstile.secretkey"));
     // Browser-bound publishable values must never be masked
     assertFalse(SecretSitePropertiesCommand.isSecret("ecommerce.stripe.production.key"));
     assertFalse(SecretSitePropertiesCommand.isSecret("captcha.google.sitekey"));
+    assertFalse(SecretSitePropertiesCommand.isSecret("captcha.turnstile.sitekey"));
     assertFalse(SecretSitePropertiesCommand.isSecret(null));
   }
 

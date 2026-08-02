@@ -113,6 +113,7 @@ class AuditLogChainIntegrationTest {
       return;
     }
     execute("TRUNCATE TABLE audit_log RESTART IDENTITY");
+    execute("TRUNCATE TABLE audit_log_archive");
   }
 
   @Test
@@ -209,6 +210,60 @@ class AuditLogChainIntegrationTest {
     assertTrue(AuditLogIntegrityCommand.verify().isIntact(), "no false tamper alarm from retention");
   }
 
+  @Test
+  void deleteOlderThanArchivesThePurgedRowVerbatimBeforeDeletingIt() {
+    // Issue #558: the purged row must survive in audit_log_archive with every column -- including the
+    // hash-chain columns -- copied unchanged, not re-hashed or re-anchored.
+    AuditLog aged = nanosecondEvent(1);
+    aged.setOccurred(Timestamp.from(Instant.now().minus(200, ChronoUnit.DAYS)));
+    save(aged);
+    save(nanosecondEvent(2));
+
+    List<AuditLog> beforePurge = AuditLogRepository.findChainPage(0, 100);
+    AuditLog purgedRecord = beforePurge.get(0);
+    assertEquals(1L, purgedRecord.getId());
+
+    int deleted = AuditLogRepository.deleteOlderThan(90);
+    assertEquals(1, deleted);
+    assertEquals(1, DB.selectCountFrom("audit_log_archive"), "the purged row lands in the archive");
+
+    try (Connection connection = DB.getConnection();
+        Statement statement = connection.createStatement();
+        java.sql.ResultSet rs = statement.executeQuery(
+            "SELECT occurred, event_category, event_type, outcome, actor_user_id, actor_username, source_ip,"
+                + " session_id, schema_version, previous_hash, record_hash FROM audit_log_archive WHERE audit_id = 1")) {
+      assertTrue(rs.next(), "the archived row must exist");
+      assertEquals(purgedRecord.getOccurred(), rs.getTimestamp("occurred"));
+      assertEquals(purgedRecord.getEventCategory(), rs.getString("event_category"));
+      assertEquals(purgedRecord.getEventType(), rs.getString("event_type"));
+      assertEquals(purgedRecord.getOutcome(), rs.getString("outcome"));
+      assertEquals(purgedRecord.getActorUserId(), rs.getLong("actor_user_id"));
+      assertEquals(purgedRecord.getActorUsername(), rs.getString("actor_username"));
+      assertEquals(purgedRecord.getSourceIp(), rs.getString("source_ip"));
+      assertEquals(purgedRecord.getSessionId(), rs.getString("session_id"));
+      assertEquals(purgedRecord.getSchemaVersion(), rs.getInt("schema_version"));
+      assertEquals(purgedRecord.getPreviousHash(), rs.getString("previous_hash"),
+          "previous_hash must be copied verbatim, never re-anchored");
+      assertEquals(purgedRecord.getRecordHash(), rs.getString("record_hash"),
+          "record_hash must be copied verbatim, never re-hashed");
+    } catch (SQLException se) {
+      throw new IllegalStateException(se);
+    }
+  }
+
+  @Test
+  void deleteOlderThanArchivesNothingWhenNothingIsPurged() {
+    // The mid-chain-gap-avoidance case: deleted == 0 must mean the archive insert also affected nothing.
+    save(nanosecondEvent(1));
+    AuditLog agedBehind = nanosecondEvent(2);
+    agedBehind.setOccurred(Timestamp.from(Instant.now().minus(200, ChronoUnit.DAYS)));
+    save(agedBehind);
+
+    int deleted = AuditLogRepository.deleteOlderThan(90);
+    assertEquals(0, deleted);
+    assertEquals(0, DB.selectCountFrom("audit_log_archive"));
+  }
+
   private static AuditLog nanosecondEvent(long seed) {
     AuditLog event = new AuditLog();
     event.setOccurred(Timestamp.from(Instant.now().plusNanos(123456 + seed)));
@@ -274,5 +329,24 @@ class AuditLogChainIntegrationTest {
         + "lowest_hashed_audit_id BIGINT NOT NULL DEFAULT 0)");
     // Matches the fixed migration: left empty here (audit_log is empty at this point), so the
     // application's own first hashed insert sets the true watermark -- see AuditLogRepository.add().
+    execute("DROP TABLE IF EXISTS audit_log_archive");
+    execute("CREATE TABLE audit_log_archive ("
+        + "audit_id BIGINT PRIMARY KEY, "
+        + "occurred TIMESTAMP(3) NOT NULL, "
+        + "event_category VARCHAR(50) NOT NULL, "
+        + "event_type VARCHAR(100) NOT NULL, "
+        + "outcome VARCHAR(20) NOT NULL, "
+        + "actor_user_id BIGINT, "
+        + "actor_username VARCHAR(255), "
+        + "source_ip VARCHAR(200), "
+        + "target_type VARCHAR(50), "
+        + "target_id VARCHAR(255), "
+        + "target_label VARCHAR(255), "
+        + "details TEXT, "
+        + "session_id VARCHAR(255), "
+        + "schema_version INTEGER NOT NULL, "
+        + "previous_hash VARCHAR(64), "
+        + "record_hash VARCHAR(64), "
+        + "archived TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP NOT NULL)");
   }
 }

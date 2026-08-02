@@ -26,6 +26,9 @@
 <c:if test="${useCaptcha eq 'true' && !empty googleSiteKey}">
 <script src='https://www.google.com/recaptcha/api.js' nonce="${cspNonce}"></script>
 </c:if>
+<c:if test="${useCaptcha eq 'true' && !empty turnstileSiteKey}">
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer nonce="${cspNonce}"></script>
+</c:if>
 <style>
   .form-field-error {
     border-left: 4px solid #cc4c28 !important;
@@ -173,6 +176,12 @@
                 data-sitekey="<c:out value="${googleSiteKey}" />"
                 data-callback='onSubmit'
                 data-action='submit'><c:out value="${buttonName}" /></button>
+      </p>
+    </c:when>
+    <c:when test="${useCaptcha eq 'true' && !empty turnstileSiteKey}">
+      <div class="cf-turnstile" data-sitekey="<c:out value="${turnstileSiteKey}" />"></div>
+      <p>
+        <input type="submit" class="button radius large success expanded" value="<c:out value="${buttonName}" />"/>
       </p>
     </c:when>
     <c:when test="${useCaptcha eq 'true'}">

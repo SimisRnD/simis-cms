@@ -133,6 +133,8 @@ public class WebPageHitRepository {
 
   private static final int DEFAULT_RETENTION_DAYS = 365;
 
+  private static final int DEFAULT_IP_REQUEST_RATE_ALERT_THRESHOLD = 300;
+
   /** Parses the configured retention window to a bounded positive integer, defaulting to 365 days. */
   static int resolveRetentionDays(String value) {
     if (StringUtils.isBlank(value)) {
@@ -337,6 +339,64 @@ public class WebPageHitRepository {
     return records;
   }
 
+  // A floor so a page with only 1-4 hits (whose "average" dwell time is based on almost no
+  // samples) cannot dominate either ranking below as noise -- see findTrafficEngagementRanking.
+  private static final int MIN_HITS_FOR_ENGAGEMENT_RANKING = 5;
+
+  /**
+   * Pages with disproportionately high traffic but low engagement (issue #568) -- candidates for a
+   * content/UX review, since visitors are arriving but not staying. Ranked by hit count descending,
+   * then average dwell time ascending, using the exact same LEAD()-window dwell-time derivation as
+   * {@link #findAvgTimeOnPageByPath}, including its same trade-off: a session's last hit on a page
+   * has no "next" hit to diff against, so it counts toward neither this method's hit_count nor its
+   * average -- both are counts of hits that had a following page view in the same session, not raw
+   * total traffic.
+   */
+  public static List<StatisticsData> findHighTrafficLowEngagementPages(int daysToLimit, int recordLimit) {
+    return findTrafficEngagementRanking(daysToLimit, recordLimit, "hit_count DESC, avg_seconds ASC");
+  }
+
+  /**
+   * The inverse of {@link #findHighTrafficLowEngagementPages}: pages with low traffic but high
+   * engagement per visit -- worth promoting, since the visitors who do find them stay a long time.
+   */
+  public static List<StatisticsData> findLowTrafficHighEngagementPages(int daysToLimit, int recordLimit) {
+    return findTrafficEngagementRanking(daysToLimit, recordLimit, "hit_count ASC, avg_seconds DESC");
+  }
+
+  private static List<StatisticsData> findTrafficEngagementRanking(int daysToLimit, int recordLimit, String orderBy) {
+    String SQL_QUERY =
+        "SELECT page_path, COUNT(*) AS hit_count, AVG(seconds_to_next) AS avg_seconds " +
+            "FROM (" +
+            "SELECT page_path, " +
+            "EXTRACT(EPOCH FROM (LEAD(hit_date) OVER (PARTITION BY session_id ORDER BY hit_date) - hit_date)) AS seconds_to_next " +
+            "FROM web_page_hits " +
+            "WHERE hit_date > NOW() - INTERVAL '" + daysToLimit + " days' " +
+            "AND NOT EXISTS (SELECT 1 FROM sessions WHERE session_id = web_page_hits.session_id AND is_bot = TRUE)" +
+            ") hit_deltas " +
+            "WHERE seconds_to_next IS NOT NULL " +
+            "GROUP BY page_path " +
+            "HAVING COUNT(*) >= " + MIN_HITS_FOR_ENGAGEMENT_RANKING + " " +
+            "ORDER BY " + orderBy + " " +
+            "LIMIT " + recordLimit;
+    List<StatisticsData> records = null;
+    try (Connection connection = DB.getConnection();
+         PreparedStatement pst = connection.prepareStatement(SQL_QUERY);
+         ResultSet rs = pst.executeQuery()) {
+      records = new ArrayList<>();
+      while (rs.next()) {
+        StatisticsData data = new StatisticsData();
+        data.setLabel(rs.getString("page_path"));
+        data.setValue(rs.getLong("hit_count") + " hits, "
+            + String.format(java.util.Locale.US, "%.1fs", rs.getDouble("avg_seconds")) + " avg");
+        records.add(data);
+      }
+    } catch (SQLException se) {
+      LOG.error("SQLException: " + se.getMessage());
+    }
+    return records;
+  }
+
   /**
    * Total page views (real, non-bot) in the last {@code daysToLimit} days, grouped by the
    * web_pages.solution_type tag (issue #570). Pages with no tag set are excluded rather than
@@ -405,6 +465,54 @@ public class WebPageHitRepository {
       LOG.error("SQLException: " + se.getMessage());
     }
     return records;
+  }
+
+  /**
+   * Highest number of hits recorded from a single non-bot IP address in the last
+   * {@code hoursToLimit} hours -- the request-rate-per-IP spike alert tile (issue #569 slice 1:
+   * the admin alert-delivery mechanism, demonstrated with one concrete traffic-quality signal
+   * rather than speculative infrastructure with nothing real to alert on yet). Mirrors
+   * findTopWebPages'/findAvgPagesPerSession's bot-session exclusion so a known crawler's burst
+   * doesn't trip the alert. Rows with no ip_address are excluded since they can't be attributed to
+   * a single source. hoursToLimit is an int, so placing it in the interval cannot inject SQL.
+   * Returns 0 when there is no attributable hit data in the window.
+   */
+  public static long findMaxHitsFromSingleIp(int hoursToLimit) {
+    String SQL_QUERY =
+        "SELECT count(*) AS hit_count " +
+            "FROM " + TABLE_NAME + " " +
+            "WHERE hit_date > NOW() - INTERVAL '" + hoursToLimit + " hours' " +
+            "AND ip_address IS NOT NULL " +
+            "AND NOT EXISTS (SELECT 1 FROM sessions WHERE session_id = web_page_hits.session_id AND is_bot = TRUE) " +
+            "GROUP BY ip_address " +
+            "ORDER BY hit_count DESC " +
+            "LIMIT 1";
+    try (Connection connection = DB.getConnection();
+         PreparedStatement pst = connection.prepareStatement(SQL_QUERY);
+         ResultSet rs = pst.executeQuery()) {
+      if (rs.next()) {
+        return rs.getLong("hit_count");
+      }
+    } catch (SQLException se) {
+      LOG.error("SQLException: " + se.getMessage());
+    }
+    return 0;
+  }
+
+  /** Resolves the configurable IP request-rate alert threshold (security.ipRequestRateAlertThreshold),
+   * falling back to the default when unset or unparseable, matching
+   * SearchAnalyticsRepository.resolveZeroResultAlertThreshold's precedent. */
+  public static int resolveIpRequestRateAlertThreshold(String value) {
+    if (StringUtils.isBlank(value)) {
+      return DEFAULT_IP_REQUEST_RATE_ALERT_THRESHOLD;
+    }
+    int threshold;
+    try {
+      threshold = Integer.parseInt(value.trim());
+    } catch (NumberFormatException e) {
+      return DEFAULT_IP_REQUEST_RATE_ALERT_THRESHOLD;
+    }
+    return Math.max(threshold, 0);
   }
 
   public static List<StatisticsData> findTopPaths(int value, char intervalType, int recordLimit) {
