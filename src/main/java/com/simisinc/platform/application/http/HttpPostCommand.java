@@ -50,7 +50,7 @@ import com.simisinc.platform.provided.net.ConnectAddressPin;
  */
 public class HttpPostCommand {
 
-  private static Log LOG = LogFactory.getLog(HttpDownloadFileCommand.class);
+  private static Log LOG = LogFactory.getLog(HttpPostCommand.class);
 
   public static final int POST = 1;
   public static final int PATCH = 2;
