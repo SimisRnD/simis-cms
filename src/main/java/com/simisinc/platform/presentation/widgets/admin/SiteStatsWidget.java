@@ -26,6 +26,7 @@ import com.simisinc.platform.domain.model.maps.MapCredentials;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.persistence.SessionRepository;
 import com.simisinc.platform.infrastructure.persistence.UserRepository;
+import com.simisinc.platform.infrastructure.persistence.VisitorRepository;
 import com.simisinc.platform.infrastructure.persistence.audit.AuditLogRepository;
 import com.simisinc.platform.infrastructure.persistence.audit.AuditLogSpecification;
 import com.simisinc.platform.infrastructure.persistence.cms.ContentRepository;
@@ -318,6 +319,20 @@ public class SiteStatsWidget extends GenericWidget {
       context.getRequest().setAttribute("statisticsDataList", statisticsDataList);
       context.getRequest().setAttribute("label", context.getPreferences().getOrDefault("label", "Page"));
       context.getRequest().setAttribute("value", context.getPreferences().getOrDefault("value", "Hits"));
+      return TABLE_JSP;
+    } else if ("pages-per-session".equalsIgnoreCase(report)) {
+      double avgPagesPerSession = WebPageHitRepository.findAvgPagesPerSession(intervalValue);
+      context.getRequest().setAttribute("numberValue", String.format("%.1f", avgPagesPerSession));
+      return CARD_JSP;
+    } else if ("return-visitor-rate".equalsIgnoreCase(report)) {
+      double returnVisitorRatePercent = VisitorRepository.findReturnVisitorRatePercent(intervalValue);
+      context.getRequest().setAttribute("numberValue", String.format("%.1f", returnVisitorRatePercent));
+      return CARD_JSP;
+    } else if ("avg-time-on-page".equalsIgnoreCase(report)) {
+      List<StatisticsData> statisticsDataList = WebPageHitRepository.findAvgTimeOnPageByPath(intervalValue, limit);
+      context.getRequest().setAttribute("statisticsDataList", statisticsDataList);
+      context.getRequest().setAttribute("label", context.getPreferences().getOrDefault("label", "Page"));
+      context.getRequest().setAttribute("value", context.getPreferences().getOrDefault("value", "Avg Time"));
       return TABLE_JSP;
     } else if ("web-urls".equalsIgnoreCase(report)) {
       List<StatisticsData> statisticsDataList = WebPageHitRepository.findTopPaths(intervalValue, intervalType, limit);

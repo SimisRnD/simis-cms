@@ -249,6 +249,18 @@
           <c:if test="${siteProperty.name eq 'robots.ai.ccbot'}">
             <p class="help-text">Common Crawl's general-purpose crawler. Its dataset is reused by many different research labs and companies to train a wide range of models, not just one -- turning this off is the broadest of these opt-outs, but doesn't name a specific model or company.</p>
           </c:if>
+          <c:if test="${siteProperty.name eq 'security.rateLimit.ipMaxAttempts'}">
+            <p class="help-text" id="securityRateLimitIpMaxAttemptsHelpText">The maximum number of form submissions, login attempts, or API calls allowed from a single IP address within the time window below, before that IP is temporarily blocked. Applies to public forms, login, "forgot password," newsletter unsubscribe, and the REST API. Lower this during a spam or brute-force wave (e.g. 2-3); the default of 10 is loose enough for normal use.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'security.rateLimit.ipWindowMinutes'}">
+            <p class="help-text" id="securityRateLimitIpWindowMinutesHelpText">The rolling time window, in minutes, the per-IP attempt count above is measured over. Default is 30 minutes.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'security.rateLimit.usernameMaxAttempts'}">
+            <p class="help-text" id="securityRateLimitUsernameMaxAttemptsHelpText">The maximum number of login or "forgot password" attempts allowed for a single username within the time window below, regardless of which IP they come from -- protects a specific account from a distributed brute-force attempt. Default is 5.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'security.rateLimit.usernameWindowMinutes'}">
+            <p class="help-text" id="securityRateLimitUsernameWindowMinutesHelpText">The rolling time window, in minutes, the per-username attempt count above is measured over. Default is 30 minutes.</p>
+          </c:if>
           <c:if test="${siteProperty.name eq 'elearning.lrs.url'}">
             <p class="help-text" id="elearningLrsUrlHelpText">This connects to a Learning Record Store (LRS) using xAPI, a learning-data standard created by the DoD's Advanced Distributed Learning (ADL) Initiative and encouraged for DoD systems under DoD Instruction 1322.26. ADL's own reference LRS (<a href="https://github.com/adlnet/ADL_LRS" target="_blank" rel="noreferrer">adlnet/ADL_LRS</a>) is now archived following the Initiative's 2025 shutdown. <a href="https://github.com/yetanalytics/lrsql" target="_blank" rel="noreferrer">Yet Analytics' SQL LRS</a> -- built by the first vendor to pass the DoD's full ADL LRS Test Suite -- is an actively maintained open-source alternative.</p>
           </c:if>
@@ -386,6 +398,9 @@
   </c:if>
   <c:if test="${prefix eq 'robots'}">
     <p class="help-text">Controls what <a href="${ctx}/robots.txt" target="_blank" rel="noreferrer">/robots.txt</a> tells web crawlers. Admin pages are always excluded regardless of these settings. Each toggle below opts a specific AI crawler out of reading this site -- on by default, matching how the site behaved before these controls existed. A crawler being "off" here is a request, not an enforcement mechanism: well-behaved crawlers honor robots.txt, but nothing stops a crawler from ignoring it.</p>
+  </c:if>
+  <c:if test="${prefix eq 'security'}">
+    <p class="help-text">Rate limiting blocks repeated automated attempts (spam form submissions, login brute-forcing) without needing a code change. Changes take effect for new attempts immediately; an IP or username already being watched keeps its previous limit until that tracking window expires.</p>
   </c:if>
   <c:if test="${prefix eq 'mail'}">
     <p class="help-text">If emails aren't sending, these settings are usually the first place to check -- especially the host, port, username/password, and SSL toggle above. Form submissions, newsletters, and every other outgoing email all go through this same configuration, so a mistake here is site-wide. After making a change, use the Mail Test panel to send yourself a confirmation email before relying on it for real traffic.</p>

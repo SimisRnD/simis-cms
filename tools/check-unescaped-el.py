@@ -77,6 +77,19 @@ NUMERIC = re.compile(
 # cover every occurrence. Add an entry only after tracing the value to its
 # source and confirming it is sanitized, validated, or structurally safe.
 ALLOWLIST: dict[str, str] = {
+    "${empty status ? 'selected' : ''}":
+        "web-page-list.jsp's status filter <select>: status is read as a plain query-string "
+        "value and only ever compared with eq against fixed literals ('draft'/'redirect'/"
+        "'broken'/'live') -- the ternary's only possible outputs are 'selected' or the empty "
+        "string, neither of which can carry markup.",
+    "${status eq 'draft' ? 'selected' : ''}":
+        "Same reasoning as ${empty status ? 'selected' : ''} -- fixed two-literal ternary.",
+    "${status eq 'redirect' ? 'selected' : ''}":
+        "Same reasoning as ${empty status ? 'selected' : ''} -- fixed two-literal ternary.",
+    "${status eq 'broken' ? 'selected' : ''}":
+        "Same reasoning as ${empty status ? 'selected' : ''} -- fixed two-literal ternary.",
+    "${status eq 'live' ? 'selected' : ''}":
+        "Same reasoning as ${empty status ? 'selected' : ''} -- fixed two-literal ternary.",
     "${pageOffset}":
         "items-list.jsp sets this via <c:set> from "
         "(recordPaging.pageNumber - 1) * recordPaging.pageSize -- both DataConstraints fields "

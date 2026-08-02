@@ -28,6 +28,7 @@ import com.simisinc.platform.presentation.controller.DataConstants;
 public class WebPageSpecification extends Entity {
 
   private String link = null;
+  private String searchTerm = null;
   private int enabled = DataConstants.UNDEFINED;
   private int draft = DataConstants.UNDEFINED;
   private int searchable = DataConstants.UNDEFINED;
@@ -43,6 +44,17 @@ public class WebPageSpecification extends Entity {
 
   public void setLink(String link) {
     this.link = link;
+  }
+
+  /** A free-text substring match across link, title, and keywords -- distinct from {@link #getLink()}
+   * (exact match) and from {@link WebPageRepository#search} (tsvector full-text, restricted to
+   * enabled+searchable pages). This is for the admin list, which must find a page in any state. */
+  public String getSearchTerm() {
+    return searchTerm;
+  }
+
+  public void setSearchTerm(String searchTerm) {
+    this.searchTerm = searchTerm;
   }
 
   public int getEnabled() {

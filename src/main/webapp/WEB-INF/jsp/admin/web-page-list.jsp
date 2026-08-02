@@ -30,6 +30,9 @@
 <table class="unstriped">
   <thead>
     <tr>
+      <th colspan="7"><strong>In Navigation Menu</strong></th>
+    </tr>
+    <tr>
       <th width="45"></th>
       <th width="60"></th>
       <th>Title</th>
@@ -208,6 +211,35 @@
   <tr>
     <td colspan="7">
       <strong>All Web Pages</strong>
+      <small class="subheader">Every page record in the system, including the ones already shown above in the navigation menu.</small>
+    </td>
+  </tr>
+  <tr>
+    <td colspan="7">
+      <form method="get" autocomplete="off" class="grid-x grid-margin-x align-bottom">
+        <div class="cell medium-5">
+          <label>Search
+            <input type="text" name="q" value="<c:out value='${q}'/>" placeholder="Title, link, or keywords" />
+          </label>
+        </div>
+        <div class="cell medium-4">
+          <label>Status
+            <select name="status">
+              <option value="" ${empty status ? 'selected' : ''}>All</option>
+              <option value="draft" ${status eq 'draft' ? 'selected' : ''}>Draft</option>
+              <option value="redirect" ${status eq 'redirect' ? 'selected' : ''}>Redirect (301)</option>
+              <option value="broken" ${status eq 'broken' ? 'selected' : ''}>Broken (no content)</option>
+              <option value="live" ${status eq 'live' ? 'selected' : ''}>Live</option>
+            </select>
+          </label>
+        </div>
+        <div class="cell medium-3">
+          <input type="submit" class="button radius" value="Filter" />
+          <c:if test="${!empty q || !empty status}">
+            <a href="${widgetContext.uri}" class="button radius secondary">Clear</a>
+          </c:if>
+        </div>
+      </form>
     </td>
   </tr>
   <c:forEach items="${webPageList}" var="webPage">
