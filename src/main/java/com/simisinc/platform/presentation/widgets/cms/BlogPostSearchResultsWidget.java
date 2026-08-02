@@ -22,7 +22,9 @@ import java.util.List;
 import org.apache.commons.lang3.StringUtils;
 
 import com.simisinc.platform.application.cms.HtmlCommand;
+import com.simisinc.platform.application.cms.LoadBlogCommand;
 import com.simisinc.platform.application.cms.SearchAnalyticsCommand;
+import com.simisinc.platform.domain.model.cms.Blog;
 import com.simisinc.platform.domain.model.cms.BlogPost;
 import com.simisinc.platform.domain.model.cms.SearchResult;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
@@ -67,6 +69,17 @@ public class BlogPostSearchResultsWidget extends GenericWidget {
     BlogPostSpecification specification = new BlogPostSpecification();
     specification.setPublishedOnly(true);
     specification.setSearchTerm(query);
+
+    // Issue #633: optionally scope results to a single blog. Unlike BlogPostListWidget's
+    // required blogUniqueId preference, this one is opt-in -- a site-wide search-results widget
+    // instance must still work (searching across every blog) when no preference is set.
+    String blogUniqueId = context.getPreferences().get("blogUniqueId");
+    if (StringUtils.isNotBlank(blogUniqueId)) {
+      Blog blog = LoadBlogCommand.loadBlogByUniqueId(blogUniqueId);
+      if (blog != null) {
+        specification.setBlogId(blog.getId());
+      }
+    }
 
     // Query the data
     List<BlogPost> blogPostList = BlogPostRepository.findAll(specification, constraints);
