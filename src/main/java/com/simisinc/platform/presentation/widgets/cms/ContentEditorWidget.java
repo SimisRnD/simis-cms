@@ -21,11 +21,13 @@ import org.apache.commons.lang3.StringUtils;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.cms.ContentAccessibilityCommand;
 import com.simisinc.platform.application.cms.ContentReviewCommand;
+import com.simisinc.platform.application.cms.ContentUsageCommand;
 import com.simisinc.platform.application.cms.DateCommand;
 import com.simisinc.platform.application.cms.LoadContentCommand;
 import com.simisinc.platform.application.cms.LoadWebPageCommand;
@@ -95,6 +97,17 @@ public class ContentEditorWidget extends GenericWidget {
       contentHtml = TinyMceCommand.prepareContentForEditor(contentHtml);
     }
     context.getRequest().setAttribute("contentHtml", contentHtml);
+
+    // Determine if this content is shared across multiple pages/templates -- if so, the
+    // client-side confirm on "Publish Immediately" (content-editor.jsp) needs to warn with the
+    // real list of affected pages before the publish takes effect (issue #499 slice 2). Only the
+    // existing-content case renders that button at all (a brand-new, never-yet-saved block has no
+    // "Publish Immediately" to guard, just "Save"), so the usage scan is skipped otherwise.
+    if (content.getId() != -1) {
+      Map<String, List<String>> usageMap = ContentUsageCommand.findUsageMap(context.getRequest().getServletContext());
+      context.getRequest().setAttribute("reusabilityWarning",
+          ContentUsageCommand.buildReusabilityWarning(uniqueId, usageMap));
+    }
 
     // Determine the return page
     String returnPage = UrlCommand.getValidReturnPage(context.getParameter("returnPage"));

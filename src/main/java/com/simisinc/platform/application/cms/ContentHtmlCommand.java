@@ -99,8 +99,19 @@ public class ContentHtmlCommand {
             context.getRequest().setAttribute("isDraft", "true");
           }
           // Which review affordance to render, decided here rather than in a JSP expression
-          context.getRequest().setAttribute("reviewOffer", ContentReviewCommand.offerFor(content,
-              context.getUserId(), LoadSitePropertyCommand.loadByNameAsBoolean("content.review.required")));
+          String reviewOffer = ContentReviewCommand.offerFor(content,
+              context.getUserId(), LoadSitePropertyCommand.loadByNameAsBoolean("content.review.required"));
+          context.getRequest().setAttribute("reviewOffer", reviewOffer);
+          // The DRAFT badge's "Publish this content?" confirm (content.jsp) is only rendered for
+          // OFFER_PUBLISH (ungoverned direct publish); warn there with the real list of affected
+          // pages when this block is shared (issue #499 slice 2). Scoped to that one state so the
+          // bulk usage scan (ContentUsageCommand#findUsageMap) only runs for the content managers
+          // who will actually see the confirm, not on every content-widget render on every page.
+          if (ContentReviewCommand.OFFER_PUBLISH.equals(reviewOffer)) {
+            Map<String, List<String>> usageMap = ContentUsageCommand.findUsageMap(context.getRequest().getServletContext());
+            context.getRequest().setAttribute("reusabilityWarning",
+                ContentUsageCommand.buildReusabilityWarning(uniqueId, usageMap));
+          }
         }
       }
     }

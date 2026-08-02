@@ -16,6 +16,7 @@
 
 package com.simisinc.platform.presentation.widgets.cms;
 
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -25,6 +26,8 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 
 import java.sql.Timestamp;
+
+import java.util.List;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -38,92 +41,135 @@ import com.simisinc.platform.application.cms.SaveContentCommand;
 import com.simisinc.platform.domain.model.cms.Content;
 import com.simisinc.platform.domain.model.cms.WebPage;
 import com.simisinc.platform.infrastructure.cache.PublishEventCachePurgeHandler;
+import com.simisinc.platform.infrastructure.persistence.cms.ContentRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
 import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
 
 /**
- * Covers two independent concerns on the classic /content-editor page's save path:
+ * Covers three independent concerns on the classic /content-editor page's save path:
  * <p>
  * - Wiring ContentAccessibilityCommand (#258) in as a non-blocking author-facing notice.
  * <p>
  * - Wiring PublishEventCachePurgeHandler (#420) so the widget's own post() method triggers an AFD
  * cache purge on publish, and correctly skips it for a plain "Save as Draft".
+ * <p>
+ * - The reusability warning (#499 slice 2) shown before "Publish Immediately" affects other pages.
  *
  * @author elizabeth houser
  */
 class ContentEditorWidgetTest extends WidgetBase {
 
   @Test
-  void postSaveAsDraftRecordsAContentSaveDraftAuditEvent() {
-    // #833: before this fix, the draft-save branch here had no AuditEventCommand.record() call at
-    // all -- the inline overlay's ContentHtmlCommand.saveDraft() audited every draft save, but this
-    // classic /content-editor page silently did not, even though both write to the same governed
-    // content/draft_content record. Verify the same call shape (category/action/outcome/target) the
-    // overlay's own test (ContentWidgetTest#postSaveDraftForwardsToActionAndPersistsContent) checks.
-    addQueryParameter(widgetContext, "uniqueId", "hello-content");
-    addQueryParameter(widgetContext, "content", "<p>Edited content</p>");
-    addQueryParameter(widgetContext, "save", "Save as Draft");
+  void executeExposesAReusabilityWarningWhenContentIsUsedOnMultiplePages() {
+    // "Publish Immediately" affects every page/template that references this uniqueId -- warn
+    // with the real list before it happens (#499 slice 2).
+    addQueryParameter(widgetContext, "uniqueId", "cmmc-header");
 
-    Content savedContent = new Content();
-    savedContent.setId(42L);
-    savedContent.setUniqueId("hello-content");
-    savedContent.setDraftContent("<p>Edited content</p>");
+    Content content = new Content();
+    content.setId(1L);
+    content.setUniqueId("cmmc-header");
+    content.setContent("<p>Header</p>");
 
-    try (MockedStatic<SaveContentCommand> saveContent = mockStatic(SaveContentCommand.class);
-        MockedStatic<AuditEventCommand> auditEvent = mockStatic(AuditEventCommand.class)) {
-      saveContent
-          .when(() -> SaveContentCommand.saveSafeContent(eq("hello-content"), eq("<p>Edited content</p>"), anyLong(),
-              eq(false)))
-          .thenReturn(savedContent);
+    WebPage careers = new WebPage();
+    careers.setLink("/careers");
+    careers.setPageXml(
+        "<page><section><column><widget name=\"content\"><uniqueId>cmmc-header</uniqueId></widget></column></section></page>");
+    WebPage aboutUs = new WebPage();
+    aboutUs.setLink("/about-us");
+    aboutUs.setPageXml(
+        "<page><section><column><widget name=\"content\"><uniqueId>cmmc-header</uniqueId></widget></column></section></page>");
+
+    try (MockedStatic<ContentRepository> contentRepository = mockStatic(ContentRepository.class);
+        MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class)) {
+      contentRepository.when(() -> ContentRepository.findByUniqueId("cmmc-header")).thenReturn(content);
+      webPageRepository.when(WebPageRepository::findAll).thenReturn(List.of(careers, aboutUs));
 
       ContentEditorWidget widget = new ContentEditorWidget();
-      widgetContext = widget.post(widgetContext);
+      widgetContext = widget.execute(widgetContext);
 
-      auditEvent.verify(() -> AuditEventCommand.record(any(), eq(AuditEventCommand.CONTENT), eq("content.saveDraft"),
-          eq(AuditEventCommand.SUCCESS), eq("content"), eq("42"), eq("hello-content"), any()), times(1));
-      // Only the draft event should fire -- no publish event on this path.
-      auditEvent.verify(() -> AuditEventCommand.record(any(), any(), eq("content.publish"), any(), any(), any(),
-          any(), any()), never());
-      Assertions.assertNull(widgetContext.getErrorMessage());
+      String warning = (String) request.getAttribute("reusabilityWarning");
+      Assertions.assertNotNull(warning, "a block used on 2 pages must produce a warning");
+      Assertions.assertTrue(warning.contains("2 pages"), warning);
+      Assertions.assertTrue(warning.contains("/careers"), warning);
+      Assertions.assertTrue(warning.contains("/about-us"), warning);
     }
   }
 
   @Test
-  void postGatedPublishRecordsOnlyOneContentPublishFailureEventAndNoSaveDraftEvent() {
-    // #833 round 2: a publish attempt that gets gated by "content.review.required" falls through to
-    // the same else-branch as a genuine "Save as Draft" click (both end up with publish == false), so
-    // round 1's new content.saveDraft audit call fired there too -- double-auditing a single user
-    // action alongside the pre-existing content.publish FAILURE event. Before round 1, this scenario
-    // correctly produced exactly one audit event; this test locks that back in.
-    addQueryParameter(widgetContext, "uniqueId", "hello-content");
-    addQueryParameter(widgetContext, "content", "<p>Edited content</p>");
-    addQueryParameter(widgetContext, "save", "Publish Immediately");
+  void executeDoesNotExposeAWarningWhenContentIsUsedOnAtMostOnePage() {
+    // Used on exactly one page (the page being edited itself, in practice) -- nothing to warn
+    // about since nothing else is affected.
+    addQueryParameter(widgetContext, "uniqueId", "solo-block");
+
+    Content content = new Content();
+    content.setId(2L);
+    content.setUniqueId("solo-block");
+    content.setContent("<p>Solo</p>");
+
+    WebPage onlyPage = new WebPage();
+    onlyPage.setLink("/careers");
+    onlyPage.setPageXml(
+        "<page><section><column><widget name=\"content\"><uniqueId>solo-block</uniqueId></widget></column></section></page>");
+
+    try (MockedStatic<ContentRepository> contentRepository = mockStatic(ContentRepository.class);
+        MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class)) {
+      contentRepository.when(() -> ContentRepository.findByUniqueId("solo-block")).thenReturn(content);
+      webPageRepository.when(WebPageRepository::findAll).thenReturn(List.of(onlyPage));
+
+      ContentEditorWidget widget = new ContentEditorWidget();
+      widgetContext = widget.execute(widgetContext);
+
+      assertNull(request.getAttribute("reusabilityWarning"));
+    }
+  }
+
+  @Test
+  void executeDoesNotExposeAWarningWhenContentIsUsedNowhere() {
+    // Orphaned content (0 locations) -- also nothing to warn about.
+    addQueryParameter(widgetContext, "uniqueId", "orphaned-block");
+
+    Content content = new Content();
+    content.setId(3L);
+    content.setUniqueId("orphaned-block");
+    content.setContent("<p>Nobody links to me</p>");
+
+    try (MockedStatic<ContentRepository> contentRepository = mockStatic(ContentRepository.class);
+        MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class)) {
+      contentRepository.when(() -> ContentRepository.findByUniqueId("orphaned-block")).thenReturn(content);
+      webPageRepository.when(WebPageRepository::findAll).thenReturn(List.of());
+
+      ContentEditorWidget widget = new ContentEditorWidget();
+      widgetContext = widget.execute(widgetContext);
+
+      assertNull(request.getAttribute("reusabilityWarning"));
+    }
+  }
+
+  @Test
+  void postNeverSetsAReusabilityWarningRegardlessOfSaveAction() {
+    // The warning is a pre-submit client-side confirm built by execute() and rendered into
+    // content-editor.jsp's "Publish Immediately" onsubmit handler -- post() (the actual save,
+    // reached for Save as Draft/Remove this Draft too) must not also compute or expose it. That
+    // would be a wasted usage-map scan on every save, including the two actions that never affect
+    // other pages at all.
+    addQueryParameter(widgetContext, "uniqueId", "cmmc-header");
+    addQueryParameter(widgetContext, "content", "<p>Text</p>");
+    addQueryParameter(widgetContext, "save", "Save as Draft");
 
     Content savedContent = new Content();
-    savedContent.setId(42L);
-    savedContent.setUniqueId("hello-content");
-    savedContent.setDraftContent("<p>Edited content</p>");
+    savedContent.setId(1L);
+    savedContent.setUniqueId("cmmc-header");
+    savedContent.setDraftContent("<p>Text</p>");
 
-    try (MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
-        MockedStatic<SaveContentCommand> saveContent = mockStatic(SaveContentCommand.class);
-        MockedStatic<AuditEventCommand> auditEvent = mockStatic(AuditEventCommand.class)) {
-      siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean("content.review.required"))
-          .thenReturn(true);
-      // The gate forces the actual save to a draft, exactly as SaveContentCommand itself would enforce.
-      saveContent
-          .when(() -> SaveContentCommand.saveSafeContent(eq("hello-content"), eq("<p>Edited content</p>"), anyLong(),
-              eq(false)))
+    try (MockedStatic<SaveContentCommand> saveContent = mockStatic(SaveContentCommand.class)) {
+      saveContent.when(() -> SaveContentCommand.saveSafeContent(eq("cmmc-header"), eq("<p>Text</p>"), anyLong(), eq(false)))
           .thenReturn(savedContent);
 
       ContentEditorWidget widget = new ContentEditorWidget();
       widgetContext = widget.post(widgetContext);
 
-      auditEvent.verify(() -> AuditEventCommand.record(any(), eq(AuditEventCommand.CONTENT), eq("content.publish"),
-          eq(AuditEventCommand.FAILURE), eq("content"), eq("42"), eq("hello-content"), any()), times(1));
-      auditEvent.verify(() -> AuditEventCommand.record(any(), any(), eq("content.saveDraft"), any(), any(), any(),
-          any(), any()), never());
-      Assertions.assertNull(widgetContext.getErrorMessage());
+      assertNull(request.getAttribute("reusabilityWarning"));
     }
   }
 
