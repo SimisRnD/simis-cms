@@ -16,6 +16,7 @@
 
 package com.simisinc.platform.infrastructure.persistence.cms;
 
+import com.simisinc.platform.application.cms.ContentReviewCommand;
 import com.simisinc.platform.application.cms.HtmlCommand;
 import com.simisinc.platform.domain.model.cms.Content;
 import com.simisinc.platform.infrastructure.cache.CacheManager;
@@ -71,8 +72,44 @@ public class ContentRepository {
       // column the full-text search indexes -- not the raw HTML in the content column.
       where.addIfExists("LENGTH(content_text) >= ?", specification.getMinLength(), -1);
       where.addIfExists("LENGTH(content_text) <= ?", specification.getMaxLength(), -1);
+      // Applied in the WHERE clause (not filtered client-side after fetch) so DB.selectAllFrom's
+      // paired COUNT(*) query -- and therefore pagination -- stays correct.
+      addStatusFilter(where, specification.getStatus());
     }
     return DB.selectAllFrom(TABLE_NAME, select, where, orderBy, constraints, ContentRepository::buildRecord);
+  }
+
+  /**
+   * Translates a {@code ContentReviewCommand.LIST_STATUS_*} label into the SQL WHERE fragment that
+   * selects exactly the rows in that state, mirroring {@link ContentReviewCommand#listStatusLabel}'s
+   * derivation column-by-column so the two can't silently drift apart. An unrecognized or blank
+   * status applies no filter (equivalent to "All"), matching this query's existing leniency toward
+   * malformed filter input (e.g. an unparsable date is likewise just ignored).
+   */
+  private static void addStatusFilter(SqlUtils where, String status) {
+    if (StringUtils.isBlank(status)) {
+      return;
+    }
+    // "No draft" -- ContentRepository#add/#update always normalize draft_content through
+    // StringUtils.trimToNull before writing, but TRIM(...) = '' is matched too so this mirrors
+    // StringUtils.isBlank(content.getDraftContent()) exactly rather than assuming that invariant.
+    String hasDraft = "draft_content IS NOT NULL AND TRIM(draft_content) <> ''";
+    if (ContentReviewCommand.LIST_STATUS_LIVE.equals(status)) {
+      where.add("(draft_content IS NULL OR TRIM(draft_content) = '')");
+    } else if (ContentReviewCommand.LIST_STATUS_APPROVED.equals(status)) {
+      // isPendingReview(content) && content.getApprovedBy() > 0
+      where.add("(" + hasDraft + " AND draft_status = ? AND approved_by > 0)",
+          ContentReviewCommand.STATUS_SUBMITTED);
+    } else if (ContentReviewCommand.LIST_STATUS_PENDING_REVIEW.equals(status)) {
+      // isPendingReview(content) && !(approvedBy > 0)
+      where.add("(" + hasDraft + " AND draft_status = ? AND (approved_by IS NULL OR approved_by <= 0))",
+          ContentReviewCommand.STATUS_SUBMITTED);
+    } else if (ContentReviewCommand.LIST_STATUS_DRAFT.equals(status)) {
+      // Has a draft, but draftStatus is null or STATUS_DRAFT (not submitted) -- includes a
+      // rejected-and-not-yet-resubmitted draft, which reject() resets to STATUS_DRAFT.
+      where.add("(" + hasDraft + " AND (draft_status IS NULL OR draft_status <> ?))",
+          ContentReviewCommand.STATUS_SUBMITTED);
+    }
   }
 
   public static Content findByUniqueId(String contentUniqueId) {
