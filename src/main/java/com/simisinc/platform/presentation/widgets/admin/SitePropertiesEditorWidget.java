@@ -21,6 +21,7 @@ import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.admin.SecretSitePropertiesCommand;
 import com.simisinc.platform.application.cms.ColorCommand;
 import com.simisinc.platform.application.login.StepUpAuthCommand;
+import com.simisinc.platform.application.mailinglists.MailChimpCommand;
 import com.simisinc.platform.domain.model.SiteProperty;
 import com.simisinc.platform.infrastructure.persistence.SitePropertyRepository;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
@@ -97,6 +98,14 @@ public class SitePropertiesEditorWidget extends GenericWidget {
     if (isSecuritySensitivePrefix(prefix) && !StepUpAuthCommand.isValid(context.getUserSession())) {
       context.setRedirect("/step-up-auth?return=" + context.getUri());
       return context;
+    }
+
+    // One-off action, specific to the mailing-list settings page only (issue #523) -- a read-only
+    // credential check, not a properties save, so it's handled before (and instead of) the generic
+    // save logic below. This widget stays generic for every other settings page; only the JSP and
+    // this one action branch know about mailing-list specifically.
+    if ("testMailChimpConnection".equals(context.getParameter("action"))) {
+      return handleTestMailChimpConnection(context, prefix);
     }
 
     // Load the properties
@@ -202,6 +211,29 @@ public class SitePropertiesEditorWidget extends GenericWidget {
     } else {
       context.setErrorMessage("Values could not be saved");
     }
+    return context;
+  }
+
+  /** Re-loads the current (saved, not submitted) properties and re-renders the editor with the
+   * MailChimp connection test result attached, mirroring what execute() shows on a normal page load. */
+  private WidgetContext handleTestMailChimpConnection(WidgetContext context, String prefix) {
+    List<SiteProperty> siteProperties = new ArrayList<>();
+    String[] prefixList = prefix.split(",");
+    for (String thisPrefix : prefixList) {
+      List<SiteProperty> sitePropertiesList = SitePropertyRepository.findAllByPrefix(thisPrefix);
+      if (sitePropertiesList != null) {
+        siteProperties.addAll(sitePropertiesList);
+      }
+    }
+    context.getRequest().setAttribute("sitePropertyList", siteProperties);
+    context.getRequest().setAttribute("secretPropertyNames", SecretSitePropertiesCommand.getSecretPropertyNames());
+    context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));
+    context.getRequest().setAttribute("title", context.getPreferences().get("title"));
+    context.getRequest().setAttribute("prefix", prefix);
+
+    context.getRequest().setAttribute("mailChimpTestResult", MailChimpCommand.testConnection());
+
+    context.setJsp(JSP);
     return context;
   }
 
