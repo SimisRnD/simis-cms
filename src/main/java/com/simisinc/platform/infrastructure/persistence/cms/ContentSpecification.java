@@ -37,6 +37,10 @@ public class ContentSpecification {
   // the raw HTML -- see ContentRepository#query. -1 means "not set", matching this class's id style.
   private int minLength = -1;
   private int maxLength = -1;
+  // One of ContentReviewCommand.LIST_STATUS_* (Live/Draft/Pending Review/Approved), or null for no
+  // filter. Translated into a SQL WHERE fragment against draft_content/draft_status/approved_by by
+  // ContentRepository#query, mirroring ContentReviewCommand#listStatusLabel's derivation.
+  private String status = null;
 
   public ContentSpecification() {
   }
@@ -103,5 +107,13 @@ public class ContentSpecification {
 
   public void setMaxLength(int maxLength) {
     this.maxLength = maxLength;
+  }
+
+  public String getStatus() {
+    return status;
+  }
+
+  public void setStatus(String status) {
+    this.status = status;
   }
 }

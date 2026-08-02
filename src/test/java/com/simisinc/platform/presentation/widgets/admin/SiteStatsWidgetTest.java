@@ -50,6 +50,7 @@ import com.simisinc.platform.infrastructure.persistence.audit.AuditLogSpecificat
 import com.simisinc.platform.infrastructure.persistence.cms.ContentRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.FormDataRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.FormSubmissionFailureRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.SearchAnalyticsRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageHitRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
 
@@ -744,6 +745,56 @@ class SiteStatsWidgetTest extends WidgetBase {
 
     Assertions.assertEquals(SiteStatsWidget.ALERT_CARD_JSP, widgetContext.getJsp());
     Assertions.assertEquals("30.0", request.getAttribute("numberValue"));
+    Assertions.assertEquals("warning", request.getAttribute("severity"));
+  }
+
+  @Test
+  void executeZeroResultSearchAlertIsOkBelowThreshold() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <title>Zero-Result Searches (24h)</title>\n" +
+            "  <report>zero-result-search-alert</report>\n" +
+            "</widget>");
+
+    try (MockedStatic<SearchAnalyticsRepository> repository = mockStatic(SearchAnalyticsRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      repository.when(() -> SearchAnalyticsRepository.countZeroResultSearches(1)).thenReturn(5L);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("search.zeroResultAlertThreshold"))
+          .thenReturn("20");
+      repository.when(() -> SearchAnalyticsRepository.resolveZeroResultAlertThreshold("20")).thenReturn(20);
+
+      setRoles(widgetContext, ADMIN);
+      SiteStatsWidget widget = new SiteStatsWidget();
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals(SiteStatsWidget.ALERT_CARD_JSP, widgetContext.getJsp());
+    Assertions.assertEquals("5", request.getAttribute("numberValue"));
+    Assertions.assertEquals("ok", request.getAttribute("severity"));
+  }
+
+  @Test
+  void executeZeroResultSearchAlertIsWarningAboveThreshold() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <title>Zero-Result Searches (24h)</title>\n" +
+            "  <report>zero-result-search-alert</report>\n" +
+            "</widget>");
+
+    try (MockedStatic<SearchAnalyticsRepository> repository = mockStatic(SearchAnalyticsRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      repository.when(() -> SearchAnalyticsRepository.countZeroResultSearches(1)).thenReturn(35L);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("search.zeroResultAlertThreshold"))
+          .thenReturn("20");
+      repository.when(() -> SearchAnalyticsRepository.resolveZeroResultAlertThreshold("20")).thenReturn(20);
+
+      setRoles(widgetContext, ADMIN);
+      SiteStatsWidget widget = new SiteStatsWidget();
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals(SiteStatsWidget.ALERT_CARD_JSP, widgetContext.getJsp());
+    Assertions.assertEquals("35", request.getAttribute("numberValue"));
     Assertions.assertEquals("warning", request.getAttribute("severity"));
   }
 
