@@ -702,18 +702,6 @@ public class PageServlet extends HttpServlet {
       AnalyticsTrackingIdCommand.sanitize(analyticsPropertyMap);
       Map<String, String> ecommercePropertyMap = LoadSitePropertyCommand.loadAsMap("ecommerce");
 
-      // Web Page Hits
-      if (pageRef != null) {
-        // Skip tracking for monitoring apps, and for requests that ask not to be tracked (DNT / GPC)
-        if (request.getHeader("X-Monitor") == null
-            && !DoNotTrackCommand.isDoNotTrack(request.getHeader("DNT"), request.getHeader("Sec-GPC"))) {
-          SaveWebPageHitCommand.saveHit(request.getRemoteAddr(), request.getMethod(), pagePath, webPage, userSession);
-          // Conversion funnel tracking (issue #565, phase 1) -- a no-op unless this pagePath is the
-          // site's admin-configured contact-form page
-          FunnelEventCommand.recordContactFormPageView(pagePath, userSession != null ? userSession.getSessionId() : null);
-        }
-      }
-
       // Allow content admins to see a page
       if (pageRef == null &&
           (userSession.hasRole("admin") ||
@@ -962,6 +950,18 @@ public class PageServlet extends HttpServlet {
         LOG.warn("NO WIDGETS - PAGE WILL NOT RENDER");
         response.sendError(HttpServletResponse.SC_NOT_FOUND);
         return;
+      }
+
+      // Web Page Hits -- recorded here, not at request entry, so a request that never actually
+      // renders (access denied, collection/item not found, missing widget param, invalid form
+      // token, or a wildcard-matched page whose item later 404s) doesn't over-count (issue #856).
+      // Skip tracking for monitoring apps, and for requests that ask not to be tracked (DNT / GPC).
+      if (request.getHeader("X-Monitor") == null
+          && !DoNotTrackCommand.isDoNotTrack(request.getHeader("DNT"), request.getHeader("Sec-GPC"))) {
+        SaveWebPageHitCommand.saveHit(request.getRemoteAddr(), request.getMethod(), pagePath, webPage, userSession);
+        // Conversion funnel tracking (issue #565, phase 1) -- a no-op unless this pagePath is the
+        // site's admin-configured contact-form page
+        FunnelEventCommand.recordContactFormPageView(pagePath, userSession != null ? userSession.getSessionId() : null);
       }
 
       // Allow the layout to use the properties
