@@ -22,6 +22,7 @@ import com.simisinc.platform.domain.model.dashboard.StatisticsData;
 import com.simisinc.platform.infrastructure.database.DB;
 import com.simisinc.platform.infrastructure.database.SqlUtils;
 import com.simisinc.platform.infrastructure.persistence.SessionRepository;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -45,6 +46,8 @@ public class SearchAnalyticsRepository {
 
   private static String TABLE_NAME = "search_analytics";
   private static String[] PRIMARY_KEY = new String[]{"search_analytics_id"};
+
+  private static final int DEFAULT_ZERO_RESULT_ALERT_THRESHOLD = 20;
 
   public static SearchAnalytics save(SearchAnalytics record) {
     return add(record);
@@ -129,6 +132,42 @@ public class SearchAnalyticsRepository {
       LOG.error("SQLException: " + se.getMessage());
     }
     return records;
+  }
+
+  /** Count of zero-result searches over the last {@code daysToLimit} days, for the zero-result-search-
+   * spike alert tile (issue #566). daysToLimit is an int, so placing it in the interval cannot inject SQL. */
+  public static long countZeroResultSearches(int daysToLimit) {
+    String SQL_QUERY =
+        "SELECT count(*) AS record_count " +
+            "FROM " + TABLE_NAME + " " +
+            "WHERE created > NOW() - INTERVAL '" + daysToLimit + " days' " +
+            "AND result_count = 0";
+    try (Connection connection = DB.getConnection();
+         PreparedStatement pst = connection.prepareStatement(SQL_QUERY);
+         ResultSet rs = pst.executeQuery()) {
+      if (rs.next()) {
+        return rs.getLong("record_count");
+      }
+    } catch (SQLException se) {
+      LOG.error("SQLException: " + se.getMessage());
+    }
+    return 0;
+  }
+
+  /** Resolves the configurable zero-result-search alert threshold (search.zeroResultAlertThreshold),
+   * falling back to the default when unset or unparseable, matching
+   * MailingListMemberRepository.resolveQuarantineAlertThresholdPercent's precedent. */
+  public static int resolveZeroResultAlertThreshold(String value) {
+    if (StringUtils.isBlank(value)) {
+      return DEFAULT_ZERO_RESULT_ALERT_THRESHOLD;
+    }
+    int threshold;
+    try {
+      threshold = Integer.parseInt(value.trim());
+    } catch (NumberFormatException e) {
+      return DEFAULT_ZERO_RESULT_ALERT_THRESHOLD;
+    }
+    return Math.max(threshold, 0);
   }
 
   /** Prunes events older than the configured retention window (analytics.retentionDays, shared with
