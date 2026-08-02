@@ -30,7 +30,6 @@ import org.apache.commons.logging.LogFactory;
 
 import com.simisinc.platform.application.CustomFieldListMergeCommand;
 import com.simisinc.platform.application.DataException;
-import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.cms.CaptchaCommand;
 import com.simisinc.platform.application.cms.UrlCommand;
 import com.simisinc.platform.application.items.CategoryException;
@@ -94,8 +93,7 @@ public class CreateAnItemWidget extends GenericWidget {
 
     // Use a captcha when not logged in
     if (!requiresPermission && !context.getUserSession().isLoggedIn()) {
-      context.getRequest().setAttribute("useCaptcha", "true");
-      context.getRequest().setAttribute("googleSiteKey", LoadSitePropertyCommand.loadByName("captcha.google.sitekey"));
+      CaptchaCommand.populateWidgetAttributes(context);
     }
 
     // Provide a category drop-down

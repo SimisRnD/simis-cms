@@ -181,6 +181,9 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (10, 'Captcha Service', 'captcha.service', 'google');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (20, 'Google reCAPTCHA Site Key', 'captcha.google.sitekey', '');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (30, 'Google reCAPTCHA Secret Key', 'captcha.google.secretkey', '');
+-- Issue #519: Cloudflare Turnstile, a second captcha.service option alongside Google reCAPTCHA above.
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (40, 'Cloudflare Turnstile Site Key', 'captcha.turnstile.sitekey', '');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (50, 'Cloudflare Turnstile Secret Key', 'captcha.turnstile.secretkey', '');
 
 -- Social Media
 -- issue #516: platform link fields (Facebook/Instagram/LinkedIn/Twitter/Flickr/YouTube) moved to the
@@ -245,15 +248,18 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (1, 'Enable e-learning?', 'elearning.enabled', 'true', 'boolean');
 
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (10, 'Enable LRS xAPI?', 'elearning.xapi.enabled', 'false', 'boolean');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (12, 'LRS URL', 'elearning.lrs.url', '', 'url');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (13, 'LRS Key', 'elearning.lrs.key', '', 'text');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (14, 'LRS Secret', 'elearning.lrs.secret', '', 'text');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (16, 'LRS Auth Header', 'elearning.lrs.authHeader', '', 'text');
+-- Moodle sorts first (issue #521) -- it's the only one of the three with a real, working
+-- integration (RemoteCourseListWidget, CalendarAjaxMoodleEvents); LRS/PERLS are kept for
+-- historical/future purposes but sort after it.
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (10, 'Enable Moodle?', 'elearning.moodle.enabled', 'false', 'boolean');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (12, 'Moodle URL', 'elearning.moodle.url', '', 'url');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (14, 'Moodle Token', 'elearning.moodle.token', '', 'text');
 
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (20, 'Enable Moodle?', 'elearning.moodle.enabled', 'false', 'boolean');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (22, 'Moodle URL', 'elearning.moodle.url', '', 'url');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (24, 'Moodle Token', 'elearning.moodle.token', '', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (20, 'Enable LRS xAPI?', 'elearning.xapi.enabled', 'false', 'boolean');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (22, 'LRS URL', 'elearning.lrs.url', '', 'url');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (23, 'LRS Key', 'elearning.lrs.key', '', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (24, 'LRS Secret', 'elearning.lrs.secret', '', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (26, 'LRS Auth Header', 'elearning.lrs.authHeader', '', 'text');
 
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (30, 'Enable PERLS?', 'elearning.perls.enabled', 'false', 'boolean');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (32, 'PERLS URL', 'elearning.perls.url', '', 'url');
