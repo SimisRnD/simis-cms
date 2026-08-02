@@ -198,4 +198,42 @@ public class ContentReviewCommand {
           "The approver must be different from the person who submitted the content (separation of duties)");
     }
   }
+
+  /** No draft in progress: {@code content.getContent()} is exactly what visitors see. */
+  public static final String LIST_STATUS_LIVE = "Live";
+  /** A draft was submitted and approved, but has not yet been promoted to live (publish is a separate action). */
+  public static final String LIST_STATUS_APPROVED = "Approved";
+  /** A draft was submitted for review and awaits an approver's decision. */
+  public static final String LIST_STATUS_PENDING_REVIEW = "Pending Review";
+  /** A draft is being edited, not yet submitted -- or was sent back by {@link #reject}. */
+  public static final String LIST_STATUS_DRAFT = "Draft";
+
+  /**
+   * The record's own workflow state, for a bird's-eye list (e.g. {@code /admin/content-list}) that
+   * needs to show many blocks' status at a glance. One of the {@code LIST_STATUS_*} constants.
+   *
+   * <p>Unlike {@link #offerFor}, this is <b>viewer-independent</b> -- it says what state the record
+   * is in, not which action one particular viewer should be offered -- and it deliberately ignores
+   * the {@code content.review.required} site property, so a list label reflects the record's actual
+   * state regardless of whether governed publishing happens to be toggled on right now.
+   *
+   * <p>There is no separate "Rejected" label: {@link #reject} resets {@code draftStatus} back to
+   * {@link #STATUS_DRAFT}, so a rejected-and-not-yet-fixed draft correctly reports as {@link
+   * #LIST_STATUS_DRAFT} here too -- per this class's javadoc on {@code STATUS_DRAFT}, it is "the
+   * author's to change" either way.
+   */
+  public static String listStatusLabel(Content content) {
+    if (content == null || StringUtils.isBlank(content.getDraftContent())) {
+      return LIST_STATUS_LIVE;
+    }
+    if (isApproved(content)) {
+      // Cleared for publish, but publish is a separate, subsequent action -- surface that gap.
+      return LIST_STATUS_APPROVED;
+    }
+    if (isPendingReview(content)) {
+      return LIST_STATUS_PENDING_REVIEW;
+    }
+    // draftStatus is null or STATUS_DRAFT: being edited, or sent back by reject().
+    return LIST_STATUS_DRAFT;
+  }
 }
