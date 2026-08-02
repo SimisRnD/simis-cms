@@ -171,6 +171,8 @@ ALLOWLIST: dict[str, str] = {
         "Same reasoning as ${(!empty categoryFacets || !empty dateFacets) ? 'medium-9' : 'medium-12'} above (issue #634) -- ternary between two fixed CSS class literals, no other value is possible.",
     "${!empty wikiFacets ? 'medium-9' : 'medium-12'}":
         "Same reasoning as ${(!empty categoryFacets || !empty dateFacets) ? 'medium-9' : 'medium-12'} above (issue #634) -- ternary between two fixed CSS class literals, no other value is possible.",
+    "${!empty dateFacets ? 'medium-9' : 'medium-12'}":
+        "Same reasoning as ${(!empty categoryFacets || !empty dateFacets) ? 'medium-9' : 'medium-12'} above (issue #634, web-page-search-results.jsp) -- ternary between two fixed CSS class literals, no other value is possible.",
     "${faqQuestion.answerHtml}":
         "Same trust boundary as ${widget.content} below: an admin/content-manager-authored widget preference (FaqWidget.java), not user input. The question text is rendered via <c:out> in the same JSP; only the answer is intentionally raw, since it's meant to render as HTML.",
     "${file.baseUrl}":

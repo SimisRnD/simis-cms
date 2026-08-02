@@ -143,6 +143,28 @@ public class ContentRepository {
     return DB.selectCountFrom(TABLE_NAME, new SqlUtils().add("draft_status = ?", draftStatus));
   }
 
+  /**
+   * Count of content rows matching searchTerm whose modified timestamp falls in [start, end)
+   * (either bound may be null for open-ended), for the WebPage search date facet (issue #634).
+   * This is a content-match count, not the final displayed web page count -- WebPageSearchResultsWidget
+   * cross-references each matching content item against which pages embed it and are visible/
+   * navigable to the current user, so the true result count can be slightly lower than this in the
+   * rare case a matched content item turns out to live only on an unlisted or permission-restricted
+   * page. Exact parity would require re-running that whole cross-reference per bucket; this
+   * approximation was chosen instead, mirroring the same search-term matching query() uses.
+   */
+  public static long countByDateRange(String searchTerm, Timestamp start, Timestamp end) {
+    SqlUtils where = new SqlUtils();
+    if (StringUtils.isNotBlank(searchTerm)) {
+      String term = searchTerm.trim();
+      where.add("(content_unique_id ILIKE ? OR tsv @@ PLAINTO_TSQUERY('content_stem', ?))",
+          new Object[]{"%" + term + "%", term});
+    }
+    where.addIfExists("modified >= ?", start);
+    where.addIfExists("modified < ?", end);
+    return DB.selectCountFrom(TABLE_NAME, where);
+  }
+
   public static Content save(Content record) {
     if (record.getId() > -1) {
       return update(record);
