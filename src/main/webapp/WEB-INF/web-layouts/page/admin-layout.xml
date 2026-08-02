@@ -87,6 +87,13 @@
           <link>/admin/mailing-list-members</link>
         </widget>
       </column>
+      <column class="small-6 medium-4 large-3 cell">
+        <widget name="siteStats">
+          <icon>fa-magnifying-glass-minus</icon>
+          <title>Zero-Result Searches (24h)</title>
+          <report>zero-result-search-alert</report>
+        </widget>
+      </column>
       <column class="small-12 cell">
         <widget name="siteStats">
           <title>Recent Admin Activity</title>
