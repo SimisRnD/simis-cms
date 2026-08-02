@@ -63,4 +63,55 @@ class FolderListWidgetTest extends WidgetBase {
     List<Folder> folderListRequest = (List) request.getAttribute("folderList");
     Assertions.assertEquals(folder.getId(), folderListRequest.get(0).getId());
   }
+
+  @Test
+  void executeFiltersByQueryCaseInsensitively() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"folderList\">\n" +
+        "  <title>Folders</title>\n" +
+        "</widget>");
+
+    Folder hrForms = new Folder();
+    hrForms.setId(1L);
+    hrForms.setName("HR Forms");
+    Folder laborLaws = new Folder();
+    laborLaws.setId(2L);
+    laborLaws.setName("Alabama Labor Laws");
+    List<Folder> folderList = new ArrayList<>();
+    folderList.add(hrForms);
+    folderList.add(laborLaws);
+
+    addQueryParameter(widgetContext, "query", "labor");
+
+    try (MockedStatic<FolderRepository> folderRepositoryMockedStatic = mockStatic(FolderRepository.class)) {
+      folderRepositoryMockedStatic.when(FolderRepository::findAll).thenReturn(folderList);
+      setRoles(widgetContext, ADMIN);
+      new FolderListWidget().execute(widgetContext);
+    }
+
+    List<Folder> folderListRequest = (List) request.getAttribute("folderList");
+    Assertions.assertEquals(1, folderListRequest.size());
+    Assertions.assertEquals(laborLaws.getId(), folderListRequest.get(0).getId());
+  }
+
+  @Test
+  void executeReturnsAllFoldersWhenQueryIsBlank() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"folderList\">\n" +
+        "  <title>Folders</title>\n" +
+        "</widget>");
+
+    List<Folder> folderList = new ArrayList<>();
+    Folder folder = new Folder();
+    folder.setId(1L);
+    folder.setName("HR Forms");
+    folderList.add(folder);
+
+    try (MockedStatic<FolderRepository> folderRepositoryMockedStatic = mockStatic(FolderRepository.class)) {
+      folderRepositoryMockedStatic.when(FolderRepository::findAll).thenReturn(folderList);
+      setRoles(widgetContext, ADMIN);
+      new FolderListWidget().execute(widgetContext);
+    }
+
+    List<Folder> folderListRequest = (List) request.getAttribute("folderList");
+    Assertions.assertEquals(1, folderListRequest.size());
+  }
 }

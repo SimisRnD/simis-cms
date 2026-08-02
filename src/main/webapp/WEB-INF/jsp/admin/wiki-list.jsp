@@ -36,6 +36,7 @@
 </c:if>
 <a class="button small radius primary" href="${ctx}/admin/wiki?returnPage=/admin/wikis">Add a Wiki <i class="fa fa-arrow-circle-right"></i></a>
 <%@include file="../page_messages.jspf" %>
+<p class="help-text">A wiki is a flat collection of markdown pages with a built-in search and a server-rendered live preview in the editor -- there's no parent/child page hierarchy, each wiki is just a named set of pages with one designated starting page. You can create as many separate wikis as you need (e.g. one per department or topic); each is added to the site as its own set of pages, and which users can reach them is controlled the same way as any other page (via the page's own role/group restrictions), not a per-wiki setting here.</p>
 <table class="unstriped">
   <thead>
     <tr>
