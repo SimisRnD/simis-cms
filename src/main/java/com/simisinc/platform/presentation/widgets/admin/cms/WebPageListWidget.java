@@ -81,6 +81,33 @@ public class WebPageListWidget extends GenericWidget {
     }
     context.getRequest().setAttribute("webPageMap", webPageMap);
 
+    // Status-count summary (issue #497): always computed over the full, unfiltered list so it
+    // stays a stable "at a glance" total regardless of the active search/status filter below.
+    // Every page falls into exactly one bucket, using the same live/broken/draft/redirect
+    // derivation as the status filters further down.
+    int webPageDraftCount = 0;
+    int webPageRedirectCount = 0;
+    int webPageLiveCount = 0;
+    int webPageBrokenCount = 0;
+    for (WebPage webPage : webPageList) {
+      if (webPage.getDraft()) {
+        webPageDraftCount++;
+      } else if (StringUtils.isNotBlank(webPage.getRedirectUrl())) {
+        webPageRedirectCount++;
+      } else if (standardPages.containsKey(webPage.getLink())
+          || webPage.getLink().startsWith("/directory/")
+          || StringUtils.isNotBlank(webPage.getPageXml())) {
+        webPageLiveCount++;
+      } else {
+        webPageBrokenCount++;
+      }
+    }
+    context.getRequest().setAttribute("webPageTotalCount", webPageList.size());
+    context.getRequest().setAttribute("webPageLiveCount", webPageLiveCount);
+    context.getRequest().setAttribute("webPageDraftCount", webPageDraftCount);
+    context.getRequest().setAttribute("webPageRedirectCount", webPageRedirectCount);
+    context.getRequest().setAttribute("webPageBrokenCount", webPageBrokenCount);
+
     // Filter the "All Web Pages" list (search box + status dropdown)
     String searchTerm = context.getParameter("q");
     String status = context.getParameter("status");
