@@ -575,6 +575,31 @@ CREATE INDEX audit_log_category_type_idx ON audit_log(event_category, event_type
 CREATE INDEX audit_log_actor_idx ON audit_log(actor_user_id);
 CREATE INDEX audit_log_target_idx ON audit_log(target_type, target_label);
 
+-- Issue #558: cold storage for audit_log rows purged by AuditLogRepository.deleteOlderThan(). Rows are
+-- copied verbatim (including previous_hash/record_hash, never re-hashed or re-anchored) in the same
+-- transaction as the delete, so a failed archive copy cannot lose rows. Strictly cold storage: never read
+-- by AuditLogIntegrityCommand or the audit log viewer. audit_id is not a SERIAL here -- values are always
+-- copied from the live table, never generated.
+CREATE TABLE audit_log_archive (
+  audit_id BIGINT PRIMARY KEY,
+  occurred TIMESTAMP(3) NOT NULL,
+  event_category VARCHAR(50) NOT NULL,
+  event_type VARCHAR(100) NOT NULL,
+  outcome VARCHAR(20) NOT NULL,
+  actor_user_id BIGINT,
+  actor_username VARCHAR(255),
+  source_ip VARCHAR(200),
+  target_type VARCHAR(50),
+  target_id VARCHAR(255),
+  target_label VARCHAR(255),
+  details TEXT,
+  session_id VARCHAR(255),
+  schema_version INTEGER NOT NULL,
+  previous_hash VARCHAR(64),
+  record_hash VARCHAR(64),
+  archived TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+
 -- Audit log prefix-deletion watermark (#296, AU-9; mirrored by UPGRADE_20260725.1002 for existing
 -- installs). Left empty on a fresh install -- there is no audit history yet to backfill from, and
 -- the application sets row id=1 atomically on the very first hashed insert (see
