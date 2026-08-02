@@ -25,6 +25,7 @@
   <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
 <%@include file="../page_messages.jspf" %>
+<p class="help-text">A collection is a structured data container built into the CMS -- custom fields, categories, access controls, and a set of widgets (item lists, search, add/edit forms) for displaying and managing its records on the public site. Think of it as a small database with a web UI, useful for things like staff directories, resource libraries, or catalogs that don't fit the page/content-block model. A Dataset (see the Datasets page) can bulk-populate a collection's items from a CSV/Excel file instead of adding them one at a time.</p>
 <table class="unstriped">
   <thead>
     <tr>
