@@ -66,6 +66,7 @@ public class AuditLogRepository {
   private static String TABLE_NAME = "audit_log";
   private static String[] PRIMARY_KEY = new String[]{"audit_id"};
   private static String WATERMARK_TABLE = "audit_log_watermark";
+  private static String ARCHIVE_TABLE_NAME = "audit_log_archive";
 
   // A fixed key so every audit append contends on the same advisory lock (and nothing else does).
   private static final long AUDIT_CHAIN_LOCK_KEY = 872025601L;
@@ -396,6 +397,11 @@ public class AuditLogRepository {
    * no mid-chain gap can open -- even if occurred is not perfectly monotonic with audit_id (a backward clock
    * step or a concurrent-append inversion). The trade-off is that an aged record sitting behind a younger one
    * is retained a little longer rather than deleted out of order; over-retention is the safe direction.
+   *
+   * <p>Before deleting, the purged rows are copied verbatim (including previous_hash/record_hash -- no
+   * re-hashing or re-anchoring) into {@code audit_log_archive} in the same transaction as the delete, so a
+   * failed archive copy cannot lose rows (issue #558). The archive is strictly cold storage: it is never
+   * read by {@link com.simisinc.platform.application.audit.AuditLogIntegrityCommand} or the audit log viewer.
    */
   public static int deleteOlderThan(int days) {
     if (days < 1) {
@@ -408,14 +414,46 @@ public class AuditLogRepository {
     String firstInWindow = "COALESCE("
         + "(SELECT MIN(audit_id) FROM " + TABLE_NAME + " WHERE occurred >= " + threshold + "), "
         + "(SELECT COALESCE(MAX(audit_id), 0) + 1 FROM " + TABLE_NAME + "))";
-    int deleted = DB.deleteFrom(TABLE_NAME, new SqlUtils().add("audit_id < " + firstInWindow));
-    if (deleted > 0) {
-      // Advance the watermark so verify() knows the lower bound moved due to a legitimate purge.
-      DB.update(WATERMARK_TABLE,
-          "lowest_hashed_audit_id = (SELECT COALESCE(MIN(audit_id), 0) FROM " + TABLE_NAME + " WHERE record_hash IS NOT NULL)",
-          new SqlUtils().add("id = 1"));
+
+    Connection connection = null;
+    boolean priorAutoCommit = true;
+    try {
+      connection = DB.getConnection();
+      priorAutoCommit = connection.getAutoCommit();
+      connection.setAutoCommit(false);
+
+      try (PreparedStatement archive = connection.prepareStatement(
+          "INSERT INTO " + ARCHIVE_TABLE_NAME
+              + " (audit_id, occurred, event_category, event_type, outcome, actor_user_id, actor_username,"
+              + " source_ip, target_type, target_id, target_label, details, session_id, schema_version,"
+              + " previous_hash, record_hash)"
+              + " SELECT audit_id, occurred, event_category, event_type, outcome, actor_user_id, actor_username,"
+              + " source_ip, target_type, target_id, target_label, details, session_id, schema_version,"
+              + " previous_hash, record_hash"
+              + " FROM " + TABLE_NAME + " WHERE audit_id < " + firstInWindow
+              + " ON CONFLICT (audit_id) DO NOTHING")) {
+        archive.executeUpdate();
+      }
+
+      int deleted = DB.deleteFrom(connection, TABLE_NAME, new SqlUtils().add("audit_id < " + firstInWindow));
+      if (deleted > 0) {
+        // Advance the watermark so verify() knows the lower bound moved due to a legitimate purge.
+        try (PreparedStatement wm = connection.prepareStatement(
+            "UPDATE " + WATERMARK_TABLE + " SET lowest_hashed_audit_id = "
+                + "(SELECT COALESCE(MIN(audit_id), 0) FROM " + TABLE_NAME + " WHERE record_hash IS NOT NULL) "
+                + "WHERE id = 1")) {
+          wm.executeUpdate();
+        }
+      }
+      connection.commit();
+      return deleted;
+    } catch (SQLException se) {
+      rollbackQuietly(connection);
+      LOG.error("Archive-then-delete failed: " + se.getMessage(), se);
+      return 0;
+    } finally {
+      closeQuietly(connection, priorAutoCommit);
     }
-    return deleted;
   }
 
   /**

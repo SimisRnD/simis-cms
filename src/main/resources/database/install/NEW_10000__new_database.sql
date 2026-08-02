@@ -181,6 +181,9 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (10, 'Captcha Service', 'captcha.service', 'google');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (20, 'Google reCAPTCHA Site Key', 'captcha.google.sitekey', '');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (30, 'Google reCAPTCHA Secret Key', 'captcha.google.secretkey', '');
+-- Issue #519: Cloudflare Turnstile, a second captcha.service option alongside Google reCAPTCHA above.
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (40, 'Cloudflare Turnstile Site Key', 'captcha.turnstile.sitekey', '');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (50, 'Cloudflare Turnstile Secret Key', 'captcha.turnstile.secretkey', '');
 
 -- Social Media
 -- issue #516: platform link fields (Facebook/Instagram/LinkedIn/Twitter/Flickr/YouTube) moved to the
@@ -245,15 +248,18 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (1, 'Enable e-learning?', 'elearning.enabled', 'true', 'boolean');
 
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (10, 'Enable LRS xAPI?', 'elearning.xapi.enabled', 'false', 'boolean');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (12, 'LRS URL', 'elearning.lrs.url', '', 'url');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (13, 'LRS Key', 'elearning.lrs.key', '', 'text');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (14, 'LRS Secret', 'elearning.lrs.secret', '', 'text');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (16, 'LRS Auth Header', 'elearning.lrs.authHeader', '', 'text');
+-- Moodle sorts first (issue #521) -- it's the only one of the three with a real, working
+-- integration (RemoteCourseListWidget, CalendarAjaxMoodleEvents); LRS/PERLS are kept for
+-- historical/future purposes but sort after it.
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (10, 'Enable Moodle?', 'elearning.moodle.enabled', 'false', 'boolean');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (12, 'Moodle URL', 'elearning.moodle.url', '', 'url');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (14, 'Moodle Token', 'elearning.moodle.token', '', 'text');
 
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (20, 'Enable Moodle?', 'elearning.moodle.enabled', 'false', 'boolean');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (22, 'Moodle URL', 'elearning.moodle.url', '', 'url');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (24, 'Moodle Token', 'elearning.moodle.token', '', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (20, 'Enable LRS xAPI?', 'elearning.xapi.enabled', 'false', 'boolean');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (22, 'LRS URL', 'elearning.lrs.url', '', 'url');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (23, 'LRS Key', 'elearning.lrs.key', '', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (24, 'LRS Secret', 'elearning.lrs.secret', '', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (26, 'LRS Auth Header', 'elearning.lrs.authHeader', '', 'text');
 
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (30, 'Enable PERLS?', 'elearning.perls.enabled', 'false', 'boolean');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (32, 'PERLS URL', 'elearning.perls.url', '', 'url');
@@ -574,6 +580,31 @@ CREATE INDEX audit_log_occurred_idx ON audit_log(occurred);
 CREATE INDEX audit_log_category_type_idx ON audit_log(event_category, event_type);
 CREATE INDEX audit_log_actor_idx ON audit_log(actor_user_id);
 CREATE INDEX audit_log_target_idx ON audit_log(target_type, target_label);
+
+-- Issue #558: cold storage for audit_log rows purged by AuditLogRepository.deleteOlderThan(). Rows are
+-- copied verbatim (including previous_hash/record_hash, never re-hashed or re-anchored) in the same
+-- transaction as the delete, so a failed archive copy cannot lose rows. Strictly cold storage: never read
+-- by AuditLogIntegrityCommand or the audit log viewer. audit_id is not a SERIAL here -- values are always
+-- copied from the live table, never generated.
+CREATE TABLE audit_log_archive (
+  audit_id BIGINT PRIMARY KEY,
+  occurred TIMESTAMP(3) NOT NULL,
+  event_category VARCHAR(50) NOT NULL,
+  event_type VARCHAR(100) NOT NULL,
+  outcome VARCHAR(20) NOT NULL,
+  actor_user_id BIGINT,
+  actor_username VARCHAR(255),
+  source_ip VARCHAR(200),
+  target_type VARCHAR(50),
+  target_id VARCHAR(255),
+  target_label VARCHAR(255),
+  details TEXT,
+  session_id VARCHAR(255),
+  schema_version INTEGER NOT NULL,
+  previous_hash VARCHAR(64),
+  record_hash VARCHAR(64),
+  archived TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
 
 -- Audit log prefix-deletion watermark (#296, AU-9; mirrored by UPGRADE_20260725.1002 for existing
 -- installs). Left empty on a fresh install -- there is no audit history yet to backfill from, and

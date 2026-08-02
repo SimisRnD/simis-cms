@@ -26,10 +26,14 @@
 <jsp:useBean id="onlineMailingLists" class="java.util.ArrayList" scope="request"/>
 <%-- issue #484: this form previously submitted straight to EmailSubscribeAjax with no CAPTCHA or
      rate limiting at all -- the sibling EmailSubscribeWidget/FormWidget paths already had both.
-     Mirrors the same three-way captcha branch form.jsp already uses (Google invisible reCAPTCHA,
-     the image+text fallback, or none), adapted for this widget's AJAX (not native POST) submit. --%>
+     Mirrors the same captcha branches form.jsp already uses (Google invisible reCAPTCHA, Cloudflare
+     Turnstile, the image+text fallback, or none -- issue #519 added Turnstile), adapted for this
+     widget's AJAX (not native POST) submit. --%>
 <c:if test="${useCaptcha eq 'true' && !empty googleSiteKey}">
 <script src='https://www.google.com/recaptcha/api.js' nonce="${cspNonce}"></script>
+</c:if>
+<c:if test="${useCaptcha eq 'true' && !empty turnstileSiteKey}">
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer nonce="${cspNonce}"></script>
 </c:if>
 <script type="text/javascript" nonce="${cspNonce}">
     function validateEmail${widgetContext.uniqueId}(email) {
@@ -81,6 +85,20 @@
         submitEmailSignUp${widgetContext.uniqueId}("&g-recaptcha-response=" + encodeURIComponent(token));
     }
     </c:when>
+    <c:when test="${useCaptcha eq 'true' && !empty turnstileSiteKey}">
+    // Turnstile renders an inline widget (not a button-replacement like Google's g-recaptcha
+    // class above), so the challenge is solved before submit -- its own hidden input is read here.
+    function emailSignUp${widgetContext.uniqueId}() {
+        var turnstileField = document.querySelector("#turnstile${widgetContext.uniqueId} input[name='cf-turnstile-response']");
+        var turnstileToken = turnstileField ? turnstileField.value : "";
+        if (!turnstileToken) {
+            document.getElementById('emailHelpText${widgetContext.uniqueId}').innerHTML = "Please complete the verification challenge";
+            return false;
+        }
+        submitEmailSignUp${widgetContext.uniqueId}("&cf-turnstile-response=" + encodeURIComponent(turnstileToken));
+        return false;
+    }
+    </c:when>
     <c:when test="${useCaptcha eq 'true'}">
     function emailSignUp${widgetContext.uniqueId}() {
         var captchaValue = document.getElementById("captcha${widgetContext.uniqueId}").value;
@@ -117,7 +135,10 @@
       </c:choose>
     </div>
   </div>
-  <c:if test="${useCaptcha eq 'true' && empty googleSiteKey}">
+  <c:if test="${useCaptcha eq 'true' && !empty turnstileSiteKey}">
+    <div class="cf-turnstile" id="turnstile${widgetContext.uniqueId}" data-sitekey="<c:out value="${turnstileSiteKey}" />"></div>
+  </c:if>
+  <c:if test="${useCaptcha eq 'true' && empty googleSiteKey && empty turnstileSiteKey}">
     <p class="help-text">
       Enter the text shown: <img src="/assets/captcha" alt="captcha" style="vertical-align: middle;" />
       <input type="text" id="captcha${widgetContext.uniqueId}" required/>
