@@ -800,6 +800,56 @@ class SiteStatsWidgetTest extends WidgetBase {
   }
 
   @Test
+  void executeRequestRateSpikeAlertIsOkBelowThreshold() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <title>Peak Requests / IP (1h)</title>\n" +
+            "  <report>request-rate-spike-alert</report>\n" +
+            "</widget>");
+
+    try (MockedStatic<WebPageHitRepository> repository = mockStatic(WebPageHitRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      repository.when(() -> WebPageHitRepository.findMaxHitsFromSingleIp(1)).thenReturn(120L);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("security.ipRequestRateAlertThreshold"))
+          .thenReturn("300");
+      repository.when(() -> WebPageHitRepository.resolveIpRequestRateAlertThreshold("300")).thenReturn(300);
+
+      setRoles(widgetContext, ADMIN);
+      SiteStatsWidget widget = new SiteStatsWidget();
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals(SiteStatsWidget.ALERT_CARD_JSP, widgetContext.getJsp());
+    Assertions.assertEquals("120", request.getAttribute("numberValue"));
+    Assertions.assertEquals("ok", request.getAttribute("severity"));
+  }
+
+  @Test
+  void executeRequestRateSpikeAlertIsWarningAboveThreshold() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <title>Peak Requests / IP (1h)</title>\n" +
+            "  <report>request-rate-spike-alert</report>\n" +
+            "</widget>");
+
+    try (MockedStatic<WebPageHitRepository> repository = mockStatic(WebPageHitRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      repository.when(() -> WebPageHitRepository.findMaxHitsFromSingleIp(1)).thenReturn(450L);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("security.ipRequestRateAlertThreshold"))
+          .thenReturn("300");
+      repository.when(() -> WebPageHitRepository.resolveIpRequestRateAlertThreshold("300")).thenReturn(300);
+
+      setRoles(widgetContext, ADMIN);
+      SiteStatsWidget widget = new SiteStatsWidget();
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals(SiteStatsWidget.ALERT_CARD_JSP, widgetContext.getJsp());
+    Assertions.assertEquals("450", request.getAttribute("numberValue"));
+    Assertions.assertEquals("warning", request.getAttribute("severity"));
+  }
+
+  @Test
   void executeFacetAdoptionRateComputesAPercentage() {
     addPreferencesFromWidgetXml(widgetContext,
         "<widget name=\"siteStats\">\n" +
