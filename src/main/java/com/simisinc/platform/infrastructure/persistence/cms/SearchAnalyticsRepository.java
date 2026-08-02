@@ -65,32 +65,17 @@ public class SearchAnalyticsRepository {
   }
 
   /** Terms searched over the last {@code daysToLimit} days which never returned a result, most-searched
-   * first. daysToLimit and recordLimit are ints, so placing them in the interval/limit cannot inject SQL. */
+   * first. daysToLimit and recordLimit are ints, so placing them in the interval/limit cannot inject SQL.
+   * Uses DB.selectGroupedFrom (issue #637) -- the first migration of a hand-written GROUP BY report to
+   * the generic helper; see the class javadoc there for why the remaining reports in this file and in
+   * WebPageHitRepository are left as follow-up. */
   public static List<StatisticsData> findZeroResultTerms(int daysToLimit, int recordLimit) {
-    String SQL_QUERY =
-        "SELECT query, count(query) AS query_count " +
-            "FROM " + TABLE_NAME + " " +
-            "WHERE created > NOW() - INTERVAL '" + daysToLimit + " days' " +
-            "AND result_count = 0 " +
-            "AND query IS NOT NULL AND query <> '' " +
-            "GROUP BY query " +
-            "ORDER BY query_count DESC " +
-            "LIMIT " + recordLimit;
-    List<StatisticsData> records = null;
-    try (Connection connection = DB.getConnection();
-         PreparedStatement pst = connection.prepareStatement(SQL_QUERY);
-         ResultSet rs = pst.executeQuery()) {
-      records = new ArrayList<>();
-      while (rs.next()) {
-        StatisticsData data = new StatisticsData();
-        data.setLabel(rs.getString("query"));
-        data.setValue(String.valueOf(rs.getLong("query_count")));
-        records.add(data);
-      }
-    } catch (SQLException se) {
-      LOG.error("SQLException: " + se.getMessage());
-    }
-    return records;
+    SqlUtils where = new SqlUtils()
+        .add("created > NOW() - INTERVAL '" + daysToLimit + " days'")
+        .add("result_count = 0")
+        .add("query IS NOT NULL AND query <> ''");
+    SqlUtils orderBy = new SqlUtils().add("query_count DESC");
+    return DB.selectGroupedFrom(TABLE_NAME, "query", "query_count", where, orderBy, recordLimit);
   }
 
   /** Terms whose search volume grew the most from the prior 7 days to the last 7 days, biggest jump
