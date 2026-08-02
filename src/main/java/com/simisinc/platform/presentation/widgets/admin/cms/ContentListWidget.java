@@ -20,11 +20,13 @@ import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.time.LocalDate;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
 
+import com.simisinc.platform.application.cms.ContentReviewCommand;
 import com.simisinc.platform.application.cms.ContentUsageCommand;
 import com.simisinc.platform.domain.model.cms.Content;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
@@ -36,8 +38,11 @@ import com.simisinc.platform.presentation.widgets.GenericWidget;
 
 /**
  * The /admin/content-list admin page (issue #499): search (unique id substring OR body full-text,
- * combined into one box), last-modified date range and character-count range filters, and usage
- * detection (which page(s) reference each content block, "Orphaned" when none do).
+ * combined into one box), last-modified date range and character-count range filters, usage
+ * detection (which page(s) reference each content block, "Orphaned" when none do), and the governed
+ * publish workflow's state (Live/Draft/Pending Review/Approved -- see {@link ContentReviewCommand})
+ * per row, filterable server-side. This is read-only surfacing of that workflow's existing state,
+ * not a new place to submit/approve/reject -- those actions stay in the individual content editor.
  *
  * @author matt rajkowski
  * @created 4/20/18 10:04 AM
@@ -69,6 +74,17 @@ public class ContentListWidget extends GenericWidget {
     Map<String, List<String>> contentUsageMap = ContentUsageCommand.findUsageMap(context.getRequest().getServletContext());
     context.getRequest().setAttribute("contentUsageMap", contentUsageMap);
 
+    // For each content block, its governed-publish-workflow status label -- drives the Status
+    // column. The derivation lives in one place (ContentReviewCommand.listStatusLabel) so the JSP
+    // never re-derives it, matching how contentUsageMap above is computed here and just displayed there.
+    Map<String, String> contentStatusMap = new LinkedHashMap<>();
+    if (contentList != null) {
+      for (Content content : contentList) {
+        contentStatusMap.put(content.getUniqueId(), ContentReviewCommand.listStatusLabel(content));
+      }
+    }
+    context.getRequest().setAttribute("contentStatusMap", contentStatusMap);
+
     // Echo the filter values back so the form keeps its state
     echoFilterParameters(context);
 
@@ -80,6 +96,7 @@ public class ContentListWidget extends GenericWidget {
     appendParam(pagingParams, "toDate", context.getParameter("toDate"));
     appendParam(pagingParams, "minLength", context.getParameter("minLength"));
     appendParam(pagingParams, "maxLength", context.getParameter("maxLength"));
+    appendParam(pagingParams, "status", context.getParameter("status"));
     context.getRequest().setAttribute("recordPagingParams", pagingParams.toString());
 
     // Standard request items
@@ -98,10 +115,14 @@ public class ContentListWidget extends GenericWidget {
     String toDate = context.getParameter("toDate");
     int minLength = context.getParameterAsInt("minLength", -1);
     int maxLength = context.getParameterAsInt("maxLength", -1);
+    String status = context.getParameter("status");
 
     ContentSpecification specification = new ContentSpecification();
     if (StringUtils.isNotBlank(q)) {
       specification.setSearchTerm(q.trim());
+    }
+    if (StringUtils.isNotBlank(status)) {
+      specification.setStatus(status.trim());
     }
 
     // Parse the yyyy-MM-dd date range: from = start of that day, to = start of the day AFTER (half-open)
@@ -130,6 +151,7 @@ public class ContentListWidget extends GenericWidget {
     context.getRequest().setAttribute("toDate", context.getParameter("toDate"));
     context.getRequest().setAttribute("minLength", context.getParameter("minLength"));
     context.getRequest().setAttribute("maxLength", context.getParameter("maxLength"));
+    context.getRequest().setAttribute("status", context.getParameter("status"));
   }
 
   /** Appends {@code name=urlEncoded(value)} to the paging query string when the value is present. */

@@ -2,9 +2,11 @@
 -- more of this application's existing domain events (see src/main/java/.../domain/events/) and is
 -- delivered a signed HTTP POST when a matching event fires. The admin UI for managing
 -- subscriptions is issue #453 -- this migration only adds the tables the delivery engine itself
--- needs. The signing secret is stored as a plain column, matching how this codebase already
--- stores comparable secrets (see site_properties rows such as 'bi.metabase.secret',
--- 'ecommerce.stripe.production.secret') -- a secrets-manager abstraction is issue #454.
+-- needs. The secret column holds an application-layer-encrypted value (see SecretCryptoCommand),
+-- the same encrypt-at-rest treatment already used for site_properties rows such as
+-- 'bi.metabase.secret' and 'ecommerce.stripe.production.secret' (see
+-- SecretSitePropertiesCommand.SECRET_PROPERTY_NAMES) -- WebhookSubscriptionRepository encrypts on
+-- write and decrypts on read (issue #453), so this column is never plaintext at rest.
 
 CREATE TABLE webhook_subscription (
   webhook_subscription_id BIGSERIAL PRIMARY KEY,
