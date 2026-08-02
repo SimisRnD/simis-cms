@@ -54,6 +54,14 @@ public class WebPageRepository {
           .addIfDataConstantExists("searchable = ?", specification.getSearchable())
           .addIfDataConstantExists("show_in_sitemap = ?", specification.getInSitemap())
           .addIfDataConstantExists("has_redirect = ?", specification.getHasRedirect());
+      if (StringUtils.isNotBlank(specification.getSearchTerm())) {
+        // A substring match across link/title/keywords, distinct from search() (tsvector full-text,
+        // restricted to enabled+searchable pages) -- the admin list must find a page in any state
+        // (draft, disabled, redirected), so it can't use the public-search path.
+        String term = "%" + specification.getSearchTerm().trim().toLowerCase() + "%";
+        where.add("(LOWER(link) LIKE ? OR LOWER(page_title) LIKE ? OR LOWER(page_keywords) LIKE ?)",
+            new String[]{term, term, term});
+      }
     }
     return where;
   }
