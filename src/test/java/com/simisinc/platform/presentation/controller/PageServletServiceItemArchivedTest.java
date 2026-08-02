@@ -17,6 +17,8 @@
 package com.simisinc.platform.presentation.controller;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -246,9 +248,89 @@ class PageServletServiceItemArchivedTest {
    */
   @Test
   void serviceRecordsAContactFormPageViewOnAPageRender() throws Exception {
+    // Issue #856 moved hit recording from request entry to right after the hasWidgets() success
+    // check, so unlike the other tests in this class, this one must actually reach a fully
+    // successful render (item found, page processed, header/footer rendered, at least one widget)
+    // rather than short-circuiting on a 404 -- an earlier version of this test mistakenly reused
+    // the archived-item test's loadItem-returns-null setup, which happened to still pass before
+    // #856 only because hit recording used to run before the item-resolution guard at all.
     UserSession userSession = new UserSession();
     userSession.setSessionId("visitor-session-1");
     HttpServletRequest request = mockPageViewRequest(mockSession(userSession));
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    Page pageRef = unrestrictedShowPage();
+
+    Item item = new Item();
+    item.setId(42L);
+    item.setUniqueId(ITEM_UNIQUE_ID);
+    item.setName("A Real, Active Item");
+    item.setCollectionId(7L);
+
+    Collection collection = new Collection();
+    collection.setId(7L);
+    collection.setUniqueId("staff");
+    collection.setName("Staff");
+
+    try (MockedStatic<LoadWebPageCommand> loadWebPage = mockStatic(LoadWebPageCommand.class);
+        MockedStatic<WebPageXmlLayoutCommand> webPageXmlLayout = mockStatic(WebPageXmlLayoutCommand.class);
+        MockedStatic<WebContainerLayoutCommand> webContainerLayout = mockStatic(WebContainerLayoutCommand.class);
+        MockedStatic<WebContainerCommand> webContainerCommand = mockStatic(WebContainerCommand.class);
+        MockedStatic<LoadSitePropertyCommand> loadSiteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<SocialMediaLinkRepository> socialLinks = mockStatic(SocialMediaLinkRepository.class);
+        MockedStatic<LoadItemCommand> loadItem = mockStatic(LoadItemCommand.class);
+        MockedStatic<LoadCollectionCommand> loadCollection = mockStatic(LoadCollectionCommand.class);
+        MockedStatic<LoadCategoryCommand> loadCategory = mockStatic(LoadCategoryCommand.class);
+        MockedStatic<SaveWebPageHitCommand> saveWebPageHit = mockStatic(SaveWebPageHitCommand.class);
+        MockedStatic<FunnelEventCommand> funnelEvent = mockStatic(FunnelEventCommand.class)) {
+
+      loadWebPage.when(() -> LoadWebPageCommand.loadByLink(anyString())).thenReturn(null);
+      webPageXmlLayout.when(() -> WebPageXmlLayoutCommand.retrievePageForRequest(any(), anyString())).thenReturn(pageRef);
+      webPageXmlLayout.when(WebPageXmlLayoutCommand::getWidgetLibrary).thenReturn(new HashMap<>());
+      // Real, non-null Header/Footer (empty sections) so HeaderRenderInfo/FooterRenderInfo
+      // construction and the processWidgets(...) calls below don't NPE.
+      webContainerLayout.when(() -> WebContainerLayoutCommand.retrieveHeader(any(), any())).thenReturn(new Header());
+      webContainerLayout.when(() -> WebContainerLayoutCommand.retrieveFooter(any(), any())).thenReturn(new Footer());
+      // Stubbed rather than exercised for real: WebContainerCommand.processWidgets() is a large,
+      // registry-driven method unrelated to this test's concern. The page-render call is the one
+      // that must flip hasWidgets() true, mirroring what a real widget section would do, so the
+      // "no widgets" 404 branch is skipped and execution reaches the new hit-recording point.
+      webContainerCommand.when(() -> WebContainerCommand.processWidgets(any(), any(), any(), any(), anyString(), anyString(), any(), any(), anyBoolean()))
+          .thenAnswer(invocation -> {
+            Object containerRenderInfo = invocation.getArgument(2);
+            if (containerRenderInfo instanceof PageRenderInfo) {
+              ((PageRenderInfo) containerRenderInfo).setHasWidgets(true);
+            }
+            return false;
+          });
+      loadSiteProperty.when(() -> LoadSitePropertyCommand.loadByName(anyString())).thenReturn(null);
+      loadSiteProperty.when(() -> LoadSitePropertyCommand.loadAsMap(anyString())).thenAnswer(inv -> new HashMap<String, String>());
+      socialLinks.when(SocialMediaLinkRepository::findAll).thenReturn(Collections.emptyList());
+      loadItem.when(() -> LoadItemCommand.loadItemByUniqueIdForAuthorizedUser(eq(ITEM_UNIQUE_ID), anyLong(), eq(true)))
+          .thenReturn(item);
+      loadCollection.when(() -> LoadCollectionCommand.loadCollectionById(7L)).thenReturn(collection);
+      loadCategory.when(() -> LoadCategoryCommand.loadCategoryById(anyLong())).thenReturn(null);
+
+      new PageServlet().service(request, response);
+
+      saveWebPageHit.verify(() -> SaveWebPageHitCommand.saveHit(eq("203.0.113.5"), eq("GET"), eq(REQUEST_URI), any(), eq(userSession)));
+      funnelEvent.verify(() -> FunnelEventCommand.recordContactFormPageView(REQUEST_URI, "visitor-session-1"));
+      verify(response, never()).sendError(anyInt());
+    }
+  }
+
+  /**
+   * Issue #856: a wildcard-matched page (e.g. {@code /show/*}) whose item resolves to null 404s,
+   * but before this fix the hit (and, since #565, the funnel event) had already been recorded at
+   * request entry -- over-counting a page view for a request that never actually rendered
+   * anything. Same request/response setup as
+   * {@link #serviceReturns404WhenTheMatchedItemIsArchivedOnAPubliclyUnrestrictedRoute} (item not
+   * found -&gt; 404), but using {@link #mockPageViewRequest} so a pre-#856 regression -- recording
+   * happening before the item-resolution guard -- would actually be caught here instead of being
+   * silently skipped by the X-Monitor header.
+   */
+  @Test
+  void serviceDoesNotRecordAHitOrFunnelEventWhenTheMatchedItemIs404() throws Exception {
+    HttpServletRequest request = mockPageViewRequest(mockSession(new UserSession()));
     HttpServletResponse response = mock(HttpServletResponse.class);
     Page pageRef = unrestrictedShowPage();
 
@@ -271,8 +353,9 @@ class PageServletServiceItemArchivedTest {
 
       new PageServlet().service(request, response);
 
-      saveWebPageHit.verify(() -> SaveWebPageHitCommand.saveHit(eq("203.0.113.5"), eq("GET"), eq(REQUEST_URI), any(), eq(userSession)));
-      funnelEvent.verify(() -> FunnelEventCommand.recordContactFormPageView(REQUEST_URI, "visitor-session-1"));
+      verify(response).sendError(HttpServletResponse.SC_NOT_FOUND);
+      saveWebPageHit.verifyNoInteractions();
+      funnelEvent.verifyNoInteractions();
     }
   }
 }
