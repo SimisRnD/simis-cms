@@ -42,7 +42,7 @@ import org.testcontainers.utility.DockerImageName;
 
 /**
  * Covers both halves of issue #570's schema change: web_pages.solution_type is added directly in
- * NEW_10010__new_cms.sql for fresh installs AND via UPGRADE_20260801.1000__web_pages_solution_type.sql
+ * NEW_10010__new_cms.sql for fresh installs AND via UPGRADE_20260801.1007__web_pages_solution_type.sql
  * for existing databases. This repo has hit the "only mirrored into one path" bug shape multiple
  * times (e.g. issue #431's media_assets table), so both halves get their own coverage here rather
  * than trusting a fresh-install-only check (see also
@@ -68,7 +68,7 @@ class SolutionTypeMigrationTest {
   @Test
   void upgradeMigrationAddsTheSameColumn() throws IOException {
     String upgradeSql = Files.readString(Path.of(
-        "src/main/resources/database/upgrade/2026/UPGRADE_20260801.1000__web_pages_solution_type.sql"));
+        "src/main/resources/database/upgrade/2026/UPGRADE_20260801.1007__web_pages_solution_type.sql"));
     assertTrue(addedColumns(upgradeSql, "web_pages").contains("solution_type"),
         "the upgrade migration must ALTER TABLE web_pages ADD COLUMN solution_type "
             + "so existing (already-installed) databases get the same column");
@@ -161,14 +161,18 @@ class SolutionTypeMigrationTest {
   private static final String DB_USER = "simis";
   private static final String DB_PASSWORD = "simis";
 
-  // Just below our migration's version, so baseline() marks nothing as pre-applied and the
-  // migration executes for real, matching an existing (upgrade-path) database that predates it.
-  private static final String BASELINE_BEFORE_MIGRATION = "20260801.0999";
+  // Just below our migration's version, so baseline() marks every earlier upgrade migration
+  // (including 20260801.1000/.1001, which alter tables this test's minimal stand-in schema
+  // doesn't have) as already-applied, and only THIS_MIGRATION actually executes against the
+  // stand-in web_pages table, matching an existing (upgrade-path) database that predates it.
+  private static final String BASELINE_BEFORE_MIGRATION = "20260801.1006";
 
   // The migration under test, passed to Flyway as an upper bound (target()). Without this,
   // outOfOrder(true) plus no ceiling would let migrate() apply any later-dated migration too (see
   // WebVitalsMigrationTest's LAST_WEB_VITALS_MIGRATION for the precedent and why this matters).
-  private static final String THIS_MIGRATION = "20260801.1000";
+  // Renamed from 20260801.1000 after a version collision with an already-merged migration
+  // (items_order_column.sql) that independently claimed the same version number.
+  private static final String THIS_MIGRATION = "20260801.1007";
 
   private static GenericContainer<?> postgres;
   private static MigrateResult migrateResult;
