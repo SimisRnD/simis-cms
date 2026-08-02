@@ -24,6 +24,7 @@ import com.simisinc.platform.infrastructure.scheduler.admin.DatasetsDownloadAndS
 import com.simisinc.platform.infrastructure.scheduler.audit.AuditLogIntegrityJob;
 import com.simisinc.platform.infrastructure.scheduler.audit.AuditLogRetentionJob;
 import com.simisinc.platform.infrastructure.scheduler.cms.FormSubmissionFailureRetentionJob;
+import com.simisinc.platform.infrastructure.scheduler.cms.FunnelEventRetentionJob;
 import com.simisinc.platform.infrastructure.scheduler.cms.LoadSystemFilesJob;
 import com.simisinc.platform.infrastructure.scheduler.cms.RecordWebPageHitJob;
 import com.simisinc.platform.infrastructure.scheduler.cms.SearchAnalyticsCleanupJob;
@@ -99,6 +100,7 @@ public class SchedulerManager {
   public static final String EMAIL_CLASSIFICATION_JOB = "EmailClassification";
   public static final String MAILING_LIST_QUARANTINE_JOB = "MailingListQuarantine";
   public static final String FORM_SUBMISSION_FAILURE_RETENTION_JOB = "FormSubmissionFailureRetention";
+  public static final String FUNNEL_EVENT_RETENTION_JOB = "FunnelEventRetention";
   public static final String NEWSLETTER_QUEUE_JOB = "NewsletterQueue";
 
   // Jobs which can be run by multiple clients
@@ -205,6 +207,7 @@ public class SchedulerManager {
         // night, not a full day later.
         BackgroundJob.scheduleRecurrently(MAILING_LIST_QUARANTINE_JOB, Cron.daily(3, 30), MailingListQuarantineJob::execute);
         BackgroundJob.scheduleRecurrently(FORM_SUBMISSION_FAILURE_RETENTION_JOB, Cron.daily(5), FormSubmissionFailureRetentionJob::execute);
+        BackgroundJob.scheduleRecurrently(FUNNEL_EVENT_RETENTION_JOB, Cron.daily(5, 30), FunnelEventRetentionJob::execute);
         BackgroundJob.scheduleRecurrently(NEWSLETTER_QUEUE_JOB, Cron.minutely(), NewsletterQueueJob::execute);
       }
     } catch (Exception se) {

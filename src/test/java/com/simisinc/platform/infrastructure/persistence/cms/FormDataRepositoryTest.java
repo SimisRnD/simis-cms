@@ -231,6 +231,17 @@ class FormDataRepositoryTest {
   }
 
   @Test
+  void markAsProcessedIsOneShotSoARepeatCallReturnsFalse() {
+    FormData formData = addSubmission("contact-us", false);
+
+    boolean firstCall = FormDataRepository.markAsProcessed(formData, 1L);
+    boolean secondCall = FormDataRepository.markAsProcessed(formData, 1L);
+
+    assertTrue(firstCall, "the first call transitions the row from unprocessed to processed");
+    assertTrue(!secondCall, "a repeat call on an already-processed row must not report a fresh transition");
+  }
+
+  @Test
   void exportProducesOnlyAHeaderRowWhenThereAreNoRecords(@TempDir File tempDir) throws IOException {
     File file = new File(tempDir, "empty-export.csv");
     FormDataRepository.export(null, file);

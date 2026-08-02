@@ -31,6 +31,7 @@ import com.simisinc.platform.WidgetBase;
 import com.simisinc.platform.application.RateLimitCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.cms.CaptchaCommand;
+import com.simisinc.platform.application.cms.FunnelEventCommand;
 import com.simisinc.platform.domain.model.cms.FormData;
 import com.simisinc.platform.domain.model.cms.FormField;
 import com.simisinc.platform.infrastructure.persistence.cms.FormDataRepository;
@@ -166,7 +167,8 @@ class FormWidgetTest extends WidgetBase {
       try (MockedStatic<FormDataRepository> formDataRepositoryMockedStatic = mockStatic(FormDataRepository.class)) {
         formDataRepositoryMockedStatic.when(() -> FormDataRepository.save(any())).thenReturn(new FormData());
 
-        try (MockedStatic<WorkflowManager> workflowManagerMockedStatic = mockStatic(WorkflowManager.class)) {
+        try (MockedStatic<WorkflowManager> workflowManagerMockedStatic = mockStatic(WorkflowManager.class);
+            MockedStatic<FunnelEventCommand> funnelEventCommand = mockStatic(FunnelEventCommand.class)) {
 
           // Execute
           FormWidget widget = new FormWidget();
@@ -178,6 +180,9 @@ class FormWidgetTest extends WidgetBase {
           Assertions.assertNull(widgetContext.getErrorMessage());
           workflowManagerMockedStatic.verify(() -> WorkflowManager.triggerWorkflowForEvent(any()));
           Assertions.assertEquals("true", widgetContext.getSharedRequestValue(widgetContext.getUniqueId() + "formWidgetSuccess"));
+          // issue #565 phase 1 -- a successful submission must be offered to the funnel tracker; the
+          // tracker itself decides (via site properties) whether "contact" is the configured funnel
+          funnelEventCommand.verify(() -> FunnelEventCommand.recordContactFormSubmitted(eq("contact"), any()));
         }
       }
     }

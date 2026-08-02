@@ -38,7 +38,9 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.cms.FunnelEventCommand;
 import com.simisinc.platform.application.cms.LoadWebPageCommand;
+import com.simisinc.platform.application.cms.SaveWebPageHitCommand;
 import com.simisinc.platform.application.cms.WebContainerLayoutCommand;
 import com.simisinc.platform.application.cms.WebPageXmlLayoutCommand;
 import com.simisinc.platform.application.items.LoadCategoryCommand;
@@ -135,6 +137,23 @@ class PageServletServiceItemArchivedTest {
     return session;
   }
 
+  /**
+   * Like {@link #mockRequest}, but leaves the X-Monitor header unstubbed (null) so the page-hit
+   * tracking block -- and with it, {@code FunnelEventCommand.recordContactFormPageView} (issue
+   * #565) -- actually executes instead of being skipped.
+   */
+  private HttpServletRequest mockPageViewRequest(HttpSession session) {
+    HttpServletRequest request = mock(HttpServletRequest.class);
+    ServletContext servletContext = mock(ServletContext.class);
+    when(request.getServletContext()).thenReturn(servletContext);
+    when(servletContext.getContextPath()).thenReturn("");
+    when(request.getRequestURI()).thenReturn(REQUEST_URI);
+    when(request.getSession()).thenReturn(session);
+    when(request.getRemoteAddr()).thenReturn("203.0.113.5");
+    when(request.getMethod()).thenReturn("GET");
+    return request;
+  }
+
   @Test
   void serviceReturns404WhenTheMatchedItemIsArchivedOnAPubliclyUnrestrictedRoute() throws Exception {
     HttpServletRequest request = mockRequest(mockSession(new UserSession()));
@@ -214,5 +233,46 @@ class PageServletServiceItemArchivedTest {
     }
 
     verify(response, never()).sendError(HttpServletResponse.SC_NOT_FOUND);
+  }
+
+  /**
+   * Closes a gap flagged during review of issue #565: unlike FormWidget's and
+   * FormDataListWidget's call sites, PageServlet's
+   * {@code FunnelEventCommand.recordContactFormPageView} call (added right alongside the
+   * pre-existing {@code SaveWebPageHitCommand.saveHit} call) had no test proving it is actually
+   * reached on a real page render, or that it is passed the request's own pagePath and session id.
+   * If that line were ever deleted, reordered outside the DNT/X-Monitor guard, or passed the wrong
+   * arguments, no test would have caught it.
+   */
+  @Test
+  void serviceRecordsAContactFormPageViewOnAPageRender() throws Exception {
+    UserSession userSession = new UserSession();
+    userSession.setSessionId("visitor-session-1");
+    HttpServletRequest request = mockPageViewRequest(mockSession(userSession));
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    Page pageRef = unrestrictedShowPage();
+
+    try (MockedStatic<LoadWebPageCommand> loadWebPage = mockStatic(LoadWebPageCommand.class);
+        MockedStatic<WebPageXmlLayoutCommand> webPageXmlLayout = mockStatic(WebPageXmlLayoutCommand.class);
+        MockedStatic<LoadSitePropertyCommand> loadSiteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<SocialMediaLinkRepository> socialLinks = mockStatic(SocialMediaLinkRepository.class);
+        MockedStatic<LoadItemCommand> loadItem = mockStatic(LoadItemCommand.class);
+        MockedStatic<SaveWebPageHitCommand> saveWebPageHit = mockStatic(SaveWebPageHitCommand.class);
+        MockedStatic<FunnelEventCommand> funnelEvent = mockStatic(FunnelEventCommand.class)) {
+
+      loadWebPage.when(() -> LoadWebPageCommand.loadByLink(anyString())).thenReturn(null);
+      webPageXmlLayout.when(() -> WebPageXmlLayoutCommand.retrievePageForRequest(any(), anyString())).thenReturn(pageRef);
+      webPageXmlLayout.when(WebPageXmlLayoutCommand::getWidgetLibrary).thenReturn(new HashMap<>());
+      loadSiteProperty.when(() -> LoadSitePropertyCommand.loadByName(anyString())).thenReturn(null);
+      loadSiteProperty.when(() -> LoadSitePropertyCommand.loadAsMap(anyString())).thenAnswer(inv -> new HashMap<String, String>());
+      socialLinks.when(SocialMediaLinkRepository::findAll).thenReturn(Collections.emptyList());
+      loadItem.when(() -> LoadItemCommand.loadItemByUniqueIdForAuthorizedUser(eq(ITEM_UNIQUE_ID), anyLong(), eq(true)))
+          .thenReturn(null);
+
+      new PageServlet().service(request, response);
+
+      saveWebPageHit.verify(() -> SaveWebPageHitCommand.saveHit(eq("203.0.113.5"), eq("GET"), eq(REQUEST_URI), any(), eq(userSession)));
+      funnelEvent.verify(() -> FunnelEventCommand.recordContactFormPageView(REQUEST_URI, "visitor-session-1"));
+    }
   }
 }

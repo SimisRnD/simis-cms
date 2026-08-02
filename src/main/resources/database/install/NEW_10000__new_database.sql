@@ -176,6 +176,14 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (26, 'Brand CDN Path Value', 'analytics.brandcdn.value', '');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (27, 'Brand CDN Path Value 2', 'analytics.brandcdn.value2', '');
 
+-- Conversion funnel (issue #565, phase 1): pairs a page path and a formUniqueId to instrument as the
+-- contact-form funnel (view -> submitted -> processed). Blank by default -- every site names its
+-- contact page/form differently, so recording must stay off until an admin opts in with real values,
+-- the same way the pre-existing #563 conversion-rate tile ships commented out until configured.
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (1, 'Contact Form Funnel: Page Path', 'funnel.contactForm.pagePath', '', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (2, 'Contact Form Funnel: Form Unique ID', 'funnel.contactForm.formUniqueId', '', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (3, 'Funnel Event Retention (days)', 'funnel.retentionDays', '90', 'text');
+
 -- Captcha
 
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (10, 'Captcha Service', 'captcha.service', 'google');

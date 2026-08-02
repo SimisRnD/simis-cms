@@ -1032,6 +1032,21 @@
           <days>30</days>
         </widget>
       </column>
+      <!--
+      Requires the funnel.contactForm.pagePath / funnel.contactForm.formUniqueId site properties to be
+      configured (issue #565, phase 1); otherwise every stage reports zero, since nothing is being
+      recorded yet. Uncommented once a site opts in, the same way the conversion-rate tile above does.
+      <column class="small-12 medium-6 cell">
+        <widget name="siteStats" class="stats card">
+          <icon>fa-filter</icon>
+          <title>Contact Form Funnel (30d)</title>
+          <label>Stage</label>
+          <value>Count</value>
+          <report>contact-form-funnel</report>
+          <days>30</days>
+        </widget>
+      </column>
+      -->
     </section>
   </page>
 

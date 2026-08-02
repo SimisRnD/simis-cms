@@ -298,7 +298,8 @@ public class FormDataRepository {
         .add("processed_by", userId)
         .addIfExists("processed_system", system);
     SqlUtils where = new SqlUtils()
-        .add("form_data_id = ?", record.getId());
+        .add("form_data_id = ?", record.getId())
+        .add("processed IS NULL");
     boolean updated = DB.update(TABLE_NAME, updateValues, where);
     if (updated) {
       // Update the record for additional workflows

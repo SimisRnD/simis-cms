@@ -48,12 +48,16 @@ import com.simisinc.platform.infrastructure.persistence.UserRepository;
 import com.simisinc.platform.infrastructure.persistence.VisitorRepository;
 import com.simisinc.platform.infrastructure.persistence.audit.AuditLogRepository;
 import com.simisinc.platform.infrastructure.persistence.audit.AuditLogSpecification;
+import com.simisinc.platform.application.cms.FunnelEventCommand;
 import com.simisinc.platform.infrastructure.persistence.cms.ContentRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.FormDataRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.FormSubmissionFailureRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.FunnelEventRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.SearchAnalyticsRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageHitRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 /**
  * @author matt rajkowski
@@ -962,6 +966,74 @@ class SiteStatsWidgetTest extends WidgetBase {
     widget.execute(widgetContext);
 
     Assertions.assertNull(widgetContext.getJsp());
+  }
+
+  @Test
+  void executeContactFormFunnel() {
+    // Issue #565 phase 1: per-stage counts with drop-off shown as a percentage of the previous stage
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <title>Contact Form Funnel (30d)</title>\n" +
+            "  <report>contact-form-funnel</report>\n" +
+            "  <days>30</days>\n" +
+            "</widget>");
+
+    Map<String, Long> stageCounts = new LinkedHashMap<>();
+    stageCounts.put(FunnelEventCommand.STAGE_VIEW, 100L);
+    stageCounts.put(FunnelEventCommand.STAGE_SUBMITTED, 40L);
+    stageCounts.put(FunnelEventCommand.STAGE_PROCESSED, 30L);
+
+    try (MockedStatic<FunnelEventRepository> repository = mockStatic(FunnelEventRepository.class)) {
+      repository.when(() -> FunnelEventRepository.countStagesInRange(
+          Mockito.eq(FunnelEventCommand.CONTACT_FORM_FUNNEL_KEY), Mockito.any(Timestamp.class), Mockito.any(Timestamp.class)))
+          .thenReturn(stageCounts);
+
+      setRoles(widgetContext, ADMIN);
+      SiteStatsWidget widget = new SiteStatsWidget();
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals(SiteStatsWidget.TABLE_JSP, widgetContext.getJsp());
+    List<StatisticsData> statisticsDataList = (List<StatisticsData>) request.getAttribute("statisticsDataList");
+    Assertions.assertEquals(3, statisticsDataList.size());
+    Assertions.assertEquals("Page Views", statisticsDataList.get(0).getLabel());
+    Assertions.assertEquals("100", statisticsDataList.get(0).getValue());
+    // 40 / 100 = 40.0% of views
+    Assertions.assertEquals("Form Submitted (40.0% of views)", statisticsDataList.get(1).getLabel());
+    Assertions.assertEquals("40", statisticsDataList.get(1).getValue());
+    // 30 / 40 = 75.0% of submitted
+    Assertions.assertEquals("Processed (75.0% of submitted)", statisticsDataList.get(2).getLabel());
+    Assertions.assertEquals("30", statisticsDataList.get(2).getValue());
+  }
+
+  @Test
+  void executeContactFormFunnelWithNoEventsYetShowsZeroesWithoutPercentages() {
+    // Funnel tracking not yet configured/no traffic yet -- must render a valid all-zero table, not
+    // divide by zero or otherwise blow up
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <title>Contact Form Funnel (30d)</title>\n" +
+            "  <report>contact-form-funnel</report>\n" +
+            "</widget>");
+
+    try (MockedStatic<FunnelEventRepository> repository = mockStatic(FunnelEventRepository.class)) {
+      repository.when(() -> FunnelEventRepository.countStagesInRange(
+          Mockito.eq(FunnelEventCommand.CONTACT_FORM_FUNNEL_KEY), Mockito.any(Timestamp.class), Mockito.any(Timestamp.class)))
+          .thenReturn(new LinkedHashMap<>());
+
+      setRoles(widgetContext, ADMIN);
+      SiteStatsWidget widget = new SiteStatsWidget();
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals(SiteStatsWidget.TABLE_JSP, widgetContext.getJsp());
+    List<StatisticsData> statisticsDataList = (List<StatisticsData>) request.getAttribute("statisticsDataList");
+    Assertions.assertEquals("Page Views", statisticsDataList.get(0).getLabel());
+    Assertions.assertEquals("0", statisticsDataList.get(0).getValue());
+    Assertions.assertEquals("Form Submitted", statisticsDataList.get(1).getLabel());
+    Assertions.assertEquals("0", statisticsDataList.get(1).getValue());
+    Assertions.assertEquals("Processed", statisticsDataList.get(2).getLabel());
+    Assertions.assertEquals("0", statisticsDataList.get(2).getValue());
   }
 
   @Test
