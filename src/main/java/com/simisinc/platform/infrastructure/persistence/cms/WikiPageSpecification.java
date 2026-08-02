@@ -16,8 +16,6 @@
 
 package com.simisinc.platform.infrastructure.persistence.cms;
 
-import java.sql.Timestamp;
-
 /**
  * Properties for querying objects from the wiki page repository
  *
@@ -30,8 +28,6 @@ public class WikiPageSpecification {
   private long wikiId = -1L;
   private String uniqueId = null;
   private String searchTerm = null;
-  private Timestamp startingDateRange = null;
-  private Timestamp endingDateRange = null;
 
   public WikiPageSpecification() {
   }
@@ -74,21 +70,5 @@ public class WikiPageSpecification {
 
   public void setSearchTerm(String searchTerm) {
     this.searchTerm = searchTerm;
-  }
-
-  public Timestamp getStartingDateRange() {
-    return startingDateRange;
-  }
-
-  public void setStartingDateRange(Timestamp startingDateRange) {
-    this.startingDateRange = startingDateRange;
-  }
-
-  public Timestamp getEndingDateRange() {
-    return endingDateRange;
-  }
-
-  public void setEndingDateRange(Timestamp endingDateRange) {
-    this.endingDateRange = endingDateRange;
   }
 }

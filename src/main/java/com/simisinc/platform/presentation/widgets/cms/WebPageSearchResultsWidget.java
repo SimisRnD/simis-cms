@@ -16,11 +16,13 @@
 
 package com.simisinc.platform.presentation.widgets.cms;
 
+import com.simisinc.platform.application.FacetUrlCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.cms.HtmlCommand;
 import com.simisinc.platform.application.cms.LoadMenuTabsCommand;
 import com.simisinc.platform.application.cms.SearchAnalyticsCommand;
 import com.simisinc.platform.application.cms.WebPageXmlLayoutCommand;
+import com.simisinc.platform.application.items.ItemDateFacetCommand;
 import com.simisinc.platform.domain.model.cms.*;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.persistence.cms.*;
@@ -28,6 +30,7 @@ import com.simisinc.platform.presentation.controller.*;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import org.apache.commons.lang3.StringUtils;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -43,6 +46,7 @@ public class WebPageSearchResultsWidget extends GenericWidget {
   static final long serialVersionUID = -8484048371911908893L;
 
   static String JSP = "/cms/web-page-search-results.jsp";
+  static String DATE_FACET_LABEL = "Last Updated";
 
   public WidgetContext execute(WidgetContext context) {
 
@@ -63,6 +67,38 @@ public class WebPageSearchResultsWidget extends GenericWidget {
       return null;
     }
 
+    // Determine the active facet filter (issue #634). Filters on Content.modified rather than
+    // WebPage's own created/publishAt, since the actual search is content-driven (see the
+    // cross-reference loop below) and ContentSpecification's dateModifiedAfter/Before are already
+    // fully wired end-to-end -- a WebPage-side date filter would need much more invasive changes
+    // for comparatively little semantic gain.
+    String dateFacetParam = context.getParameter("dateFacet");
+    ItemDateFacetCommand.DateFacetBucket selectedDateBucket = ItemDateFacetCommand.findByKey(dateFacetParam);
+
+    // Facet panel: one option per fixed date bucket with a non-zero count (or the currently
+    // selected one). Counts are content-match counts, not the final cross-referenced page count
+    // (see ContentRepository.countByDateRange's javadoc for why) -- an approximation chosen over
+    // re-running the expensive page cross-reference below once per bucket.
+    List<FacetUrlCommand.FacetOption> dateFacets = new ArrayList<>();
+    for (ItemDateFacetCommand.DateFacetBucket bucket : ItemDateFacetCommand.buckets()) {
+      boolean selected = selectedDateBucket != null && selectedDateBucket.getKey().equals(bucket.getKey());
+      long count = ContentRepository.countByDateRange(query, bucket.getStart(), bucket.getEnd());
+      if (count > 0 || selected) {
+        String url = FacetUrlCommand.buildFacetLinkUrl(context, "dateFacet", bucket.getKey());
+        dateFacets.add(new FacetUrlCommand.FacetOption(bucket.getKey(), bucket.getLabel(), count, selected, url));
+      }
+    }
+    context.getRequest().setAttribute("dateFacets", dateFacets);
+    context.getRequest().setAttribute("dateFacetLabel", DATE_FACET_LABEL);
+
+    // Active filter chip, with a URL that clears just the dateFacet filter (issue #634)
+    List<FacetUrlCommand.ActiveFacetFilter> activeFilters = new ArrayList<>();
+    if (selectedDateBucket != null) {
+      activeFilters.add(new FacetUrlCommand.ActiveFacetFilter(DATE_FACET_LABEL, selectedDateBucket.getLabel(),
+          FacetUrlCommand.buildClearFilterUrl(context, "dateFacet")));
+    }
+    context.getRequest().setAttribute("activeFilters", activeFilters);
+
     // Load the menu tabs, these are the directly linkable web pages
     List<MenuTab> menuTabList = LoadMenuTabsCommand.findAllActiveIncludeMenuItemList();
 
@@ -72,6 +108,10 @@ public class WebPageSearchResultsWidget extends GenericWidget {
     // Search the content and figure out the matching web pages
     ContentSpecification contentSpecification = new ContentSpecification();
     contentSpecification.setSearchTerm(query);
+    if (selectedDateBucket != null) {
+      contentSpecification.setDateModifiedAfter(selectedDateBucket.getStart());
+      contentSpecification.setDateModifiedBefore(selectedDateBucket.getEnd());
+    }
     List<Content> contentList = ContentRepository.findAll(contentSpecification, constraints);
     SearchAnalyticsCommand.record(context, query, "content", contentList == null ? 0 : contentList.size());
 
@@ -79,6 +119,7 @@ public class WebPageSearchResultsWidget extends GenericWidget {
     Map<String, SearchResult> resultsMap = new LinkedHashMap<>();
     if (contentList == null) {
       // No content was found, return early
+      context.getRequest().setAttribute("searchResultList", resultsMap.values());
       return finishRequest(context, resultsMap);
     }
 
