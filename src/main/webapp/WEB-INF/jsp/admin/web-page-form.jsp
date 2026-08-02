@@ -80,6 +80,14 @@
       <label>Description
         <input type="text" placeholder="Describe it..." name="description" value="<c:out value="${webPage.description}"/>">
       </label>
+      <label>Solution Type
+        <select name="solutionType">
+          <option value=""></option>
+          <c:forEach items="${solutionTypeMap}" var="option">
+            <option value="<c:out value="${option.key}" />"<c:if test="${webPage.solutionType eq option.key}"> selected</c:if>><c:out value="${option.value}" /></option>
+          </c:forEach>
+        </select>
+      </label>
     </div>
     <div class="small-12 medium-6 cell">
       <label>Publish?

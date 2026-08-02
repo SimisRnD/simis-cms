@@ -195,4 +195,68 @@ class ContentReviewCommandTest {
     ContentReviewCommand.approve(content, APPROVER, null);
     assertTrue(ContentReviewCommand.mayPublish(content, true));
   }
+
+  // --- listStatusLabel (issue #499: the /admin/content-list bird's-eye status column) ---
+
+  @Test
+  void listStatusIsLiveWhenThereIsNoDraft() {
+    Content published = new Content();
+    published.setContent("<p>live</p>");
+    assertEquals(ContentReviewCommand.LIST_STATUS_LIVE, ContentReviewCommand.listStatusLabel(published));
+    // A null content record and blank/whitespace-only draft content are also "no draft in progress".
+    assertEquals(ContentReviewCommand.LIST_STATUS_LIVE, ContentReviewCommand.listStatusLabel(null));
+    Content blankDraft = new Content();
+    blankDraft.setDraftContent("   ");
+    assertEquals(ContentReviewCommand.LIST_STATUS_LIVE, ContentReviewCommand.listStatusLabel(blankDraft));
+  }
+
+  @Test
+  void listStatusIsDraftForAnUnsubmittedDraft() {
+    assertEquals(ContentReviewCommand.LIST_STATUS_DRAFT, ContentReviewCommand.listStatusLabel(draft()));
+  }
+
+  @Test
+  void listStatusIsPendingReviewWhenSubmittedButNotYetApproved() throws DataException {
+    Content content = draft();
+    ContentReviewCommand.submitForReview(content, AUTHOR);
+    assertEquals(ContentReviewCommand.LIST_STATUS_PENDING_REVIEW, ContentReviewCommand.listStatusLabel(content));
+  }
+
+  @Test
+  void listStatusIsApprovedWhenClearedButNotYetPublished() throws DataException {
+    // The easy-to-get-wrong case: approved is a distinct, later state than pending review, and
+    // publish is still a separate action after this -- the list must say so, not just "Live".
+    Content content = draft();
+    content.setContent("<p>old live content</p>"); // publish (a separate action) has not run
+    ContentReviewCommand.submitForReview(content, AUTHOR);
+    ContentReviewCommand.approve(content, APPROVER, "cleared per PA case 2026-114");
+    assertEquals(ContentReviewCommand.LIST_STATUS_APPROVED, ContentReviewCommand.listStatusLabel(content));
+    // Still not "Live": the draft has not been promoted into content yet -- they remain distinct.
+    assertFalse(content.getContent().equals(content.getDraftContent()));
+  }
+
+  @Test
+  void listStatusRevertsToDraftAfterRejection() throws DataException {
+    // The other easy-to-get-wrong case: reject() resets draftStatus to STATUS_DRAFT and there is no
+    // separate "Rejected" label by design (see the class javadoc on STATUS_DRAFT) -- a
+    // rejected-and-not-yet-fixed block must show as Draft, not Pending Review or Approved.
+    Content content = draft();
+    ContentReviewCommand.submitForReview(content, AUTHOR);
+    assertEquals(ContentReviewCommand.LIST_STATUS_PENDING_REVIEW, ContentReviewCommand.listStatusLabel(content));
+
+    ContentReviewCommand.reject(content, APPROVER);
+
+    assertEquals(ContentReviewCommand.LIST_STATUS_DRAFT, ContentReviewCommand.listStatusLabel(content));
+  }
+
+  @Test
+  void listStatusIgnoresTheReviewRequiredSiteProperty() throws DataException {
+    // Unlike offerFor(), listStatusLabel() has no reviewRequired parameter at all -- it reflects the
+    // record's persisted fields only, regardless of whether governed publishing currently happens to
+    // be toggled on. Submitted+approved is "Approved" no matter what the site property would say.
+    Content content = draft();
+    ContentReviewCommand.submitForReview(content, AUTHOR);
+    ContentReviewCommand.approve(content, APPROVER, null);
+    assertEquals(ContentReviewCommand.LIST_STATUS_APPROVED, ContentReviewCommand.listStatusLabel(content));
+  }
 }

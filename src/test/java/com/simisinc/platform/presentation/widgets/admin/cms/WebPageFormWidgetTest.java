@@ -17,6 +17,7 @@
 package com.simisinc.platform.presentation.widgets.admin.cms;
 
 import com.simisinc.platform.WidgetBase;
+import com.simisinc.platform.domain.model.cms.SolutionTypeOptions;
 import com.simisinc.platform.domain.model.cms.WebPage;
 import com.simisinc.platform.infrastructure.cache.PublishEventCachePurgeHandler;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
@@ -70,6 +71,33 @@ class WebPageFormWidgetTest extends WidgetBase {
       Assertions.assertEquals("Page was deleted", result.getSuccessMessage());
       // #420: a deleted page must also drop out of the AFD edge cache, not just the DB
       purge.verify(() -> PublishEventCachePurgeHandler.onPageDeleted("/about"), times(1));
+    }
+  }
+
+  /**
+   * Guards issue #570's admin form dropdown: execute() (the GET path) must publish
+   * SolutionTypeOptions.map as the "solutionTypeMap" request attribute, which
+   * web-page-form.jsp reads to populate the Solution Type select. This was previously only
+   * exercised by manual live-verification captures, not by an automated test -- if a future
+   * refactor of execute() drops or renames the attribute, the dropdown would silently render
+   * empty and CI would not catch it.
+   */
+  @Test
+  void executeSetsSolutionTypeMapForAdminFormDropdown() {
+    WebPage webPage = new WebPage();
+    webPage.setId(42L);
+    webPage.setLink("/solutions/widget-management");
+    webPage.setTitle("Widget Management");
+
+    addQueryParameter(widgetContext, "webPageId", "42");
+
+    try (MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class)) {
+      webPageRepository.when(() -> WebPageRepository.findById(42L)).thenReturn(webPage);
+
+      WidgetContext result = new WebPageFormWidget().execute(widgetContext);
+
+      Assertions.assertSame(SolutionTypeOptions.map, result.getRequest().getAttribute("solutionTypeMap"));
+      Assertions.assertEquals(webPage, result.getRequest().getAttribute("webPage"));
     }
   }
 }

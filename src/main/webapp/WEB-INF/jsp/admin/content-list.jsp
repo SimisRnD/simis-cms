@@ -22,6 +22,7 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="contentList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="contentUsageMap" class="java.util.LinkedHashMap" scope="request"/>
+<jsp:useBean id="contentStatusMap" class="java.util.LinkedHashMap" scope="request"/>
 <jsp:useBean id="recordPaging" class="com.simisinc.platform.infrastructure.database.DataConstraints" scope="request"/>
 <c:if test="${!empty title}">
   <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
@@ -30,7 +31,7 @@
 <%-- Filters (GET so the criteria live in the URL and paging preserves them) --%>
 <form method="get" autocomplete="off" class="margin-bottom-10">
   <div class="grid-x grid-margin-x">
-    <div class="cell medium-4">
+    <div class="cell medium-3">
       <label>Search
         <input type="text" name="q" placeholder="unique id or content text" value="<c:out value='${q}'/>">
       </label>
@@ -55,6 +56,18 @@
       </label>
     </div>
     <div class="cell medium-2">
+      <%-- Option values must match ContentReviewCommand.LIST_STATUS_* exactly (see ContentReviewCommand.listStatusLabel / ContentRepository#addStatusFilter) --%>
+      <label>Status
+        <select name="status">
+          <option value="">All</option>
+          <option value="Draft" <c:if test="${status == 'Draft'}">selected</c:if>>Draft</option>
+          <option value="Pending Review" <c:if test="${status == 'Pending Review'}">selected</c:if>>Pending Review</option>
+          <option value="Approved" <c:if test="${status == 'Approved'}">selected</c:if>>Approved</option>
+          <option value="Live" <c:if test="${status == 'Live'}">selected</c:if>>Live</option>
+        </select>
+      </label>
+    </div>
+    <div class="cell medium-1">
       <label>&nbsp;</label>
       <button type="submit" class="button small primary radius"><i class="fa fa-filter"></i> Filter</button>
       <a href="${widgetContext.uri}" class="button small secondary radius">Clear</a>
@@ -66,6 +79,9 @@
     <tr>
       <th>
         Unique Id
+      </th>
+      <th width="130" class="text-center">
+        Status
       </th>
       <th>
         Sample
@@ -85,9 +101,27 @@
     <c:forEach items="${contentList}" var="content">
     <c:set var="plainText" value="${html:text(content.content)}" />
     <c:set var="usageList" value="${contentUsageMap[content.uniqueId]}" />
+    <c:set var="contentStatus" value="${contentStatusMap[content.uniqueId]}" />
     <tr>
       <td>
         <a href="${ctx}/content-editor?uniqueId=${content.uniqueId}&returnPage=/admin/content-list"><c:out value="${content.uniqueId}" /></a>
+      </td>
+      <td class="text-center">
+        <%-- Read-only surfacing of the governed publish workflow's existing state (ContentReviewCommand); no submit/approve/reject actions here, those stay in the content editor --%>
+        <c:choose>
+          <c:when test="${contentStatus == 'Live'}">
+            <span class="label success radius"><c:out value="${contentStatus}" /></span>
+          </c:when>
+          <c:when test="${contentStatus == 'Approved'}">
+            <span class="label primary radius"><c:out value="${contentStatus}" /></span>
+          </c:when>
+          <c:when test="${contentStatus == 'Pending Review'}">
+            <span class="label warning radius"><c:out value="${contentStatus}" /></span>
+          </c:when>
+          <c:otherwise>
+            <span class="label radius"><c:out value="${contentStatus}" /></span>
+          </c:otherwise>
+        </c:choose>
       </td>
       <td><span class="subheader"><c:out value="${text:trim(plainText, 50, true)}" /></span></td>
       <td class="text-center"><fmt:formatNumber value="${fn:length(plainText)}" /></td>
@@ -109,7 +143,7 @@
     </c:forEach>
     <c:if test="${empty contentList}">
       <tr>
-        <td colspan="5">No content records were found</td>
+        <td colspan="6">No content records were found</td>
       </tr>
     </c:if>
   </tbody>

@@ -181,7 +181,7 @@ public class ContentEditorWidget extends GenericWidget {
         context.setErrorMessage("An error occurred");
       } else {
         if (publish) {
-          // Record the publish (draft saves are routine and intentionally not audited)
+          // Record the publish
           AuditEventCommand.record(context, AuditEventCommand.CONTENT, "content.publish", AuditEventCommand.SUCCESS,
               "content", String.valueOf(content.getId()), uniqueId, null);
           // The web page has content which was just updated
@@ -201,6 +201,16 @@ public class ContentEditorWidget extends GenericWidget {
             }
             PublishEventCachePurgeHandler.onPageUpdated(webPage);
           }
+        } else if (!publishWasGated) {
+          // Record the draft save, matching ContentHtmlCommand.saveDraft() (the inline overlay's
+          // save path) so both entry points to this governed content/draft_content record are audited.
+          // A gated publish attempt also lands here with publish == false, but that single user action
+          // was already fully recorded above as a content.publish FAILURE with its own gated-reason
+          // detail -- adding a second event for the same action would double-audit it and doesn't match
+          // ContentHtmlCommand.publishContent() (the inline overlay's equivalent gate), which emits
+          // exactly one event for the same scenario.
+          AuditEventCommand.record(context, AuditEventCommand.CONTENT, "content.saveDraft", AuditEventCommand.SUCCESS,
+              "content", String.valueOf(content.getId()), uniqueId, null);
         }
         // Non-blocking author-facing a11y notice (#258): the save above has already succeeded, so
         // this only ever adds information -- it never prevents or delays the save. Checked against
