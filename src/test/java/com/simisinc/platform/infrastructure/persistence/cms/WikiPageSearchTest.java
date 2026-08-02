@@ -150,6 +150,14 @@ class WikiPageSearchTest {
     assertEquals(3, results.size());
   }
 
+  @Test
+  void findCountMatchesTheNumberOfPagesInTheWiki() {
+    WikiPageSpecification spec = new WikiPageSpecification();
+    spec.setWikiId(wikiId);
+
+    assertEquals(3, WikiPageRepository.findCount(spec));
+  }
+
   private static void createSchemaAndSeedPages() {
     try (Connection connection = DB.getConnection();
         Statement statement = connection.createStatement()) {
