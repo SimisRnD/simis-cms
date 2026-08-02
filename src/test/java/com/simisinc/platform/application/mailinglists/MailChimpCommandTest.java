@@ -320,6 +320,70 @@ class MailChimpCommandTest {
     }
   }
 
+  // --- testConnection ---
+
+  @Test
+  void testConnectionReturnsFailureWhenCredentialsAreNotSet() {
+    try (MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<HttpGetCommand> httpGet = mockStatic(HttpGetCommand.class)) {
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("mailing-list.mailchimp.apiKey")).thenReturn("");
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("mailing-list.mailchimp.listId")).thenReturn("");
+
+      MailChimpCommand.ConnectionTestResult result = MailChimpCommand.testConnection();
+
+      assertFalse(result.isSuccess());
+      httpGet.verify(() -> HttpGetCommand.execute(anyString(), anyMap()), never());
+    }
+  }
+
+  @Test
+  void testConnectionReturnsSuccessAndTheListNameOnA200() {
+    try (MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<HttpGetCommand> httpGet = mockStatic(HttpGetCommand.class)) {
+      stubConfigured(siteProperty);
+      httpGet.when(() -> HttpGetCommand.execute(anyString(), anyMap()))
+          .thenReturn("{\"id\": \"abc123\", \"name\": \"Newsletter Audience\"}");
+
+      MailChimpCommand.ConnectionTestResult result = MailChimpCommand.testConnection();
+
+      assertTrue(result.isSuccess());
+      assertTrue(result.getMessage().contains("Newsletter Audience"), "unexpected message: " + result.getMessage());
+
+      ArgumentCaptor<String> urlCaptor = ArgumentCaptor.forClass(String.class);
+      httpGet.verify(() -> HttpGetCommand.execute(urlCaptor.capture(), anyMap()));
+      assertTrue(urlCaptor.getValue().endsWith("/lists/" + LIST_ID));
+      assertTrue(urlCaptor.getValue().startsWith("https://us6."), "datacenter should come from the api key suffix");
+    }
+  }
+
+  @Test
+  void testConnectionReturnsFailureAndTheDetailOnAMailChimpErrorResponse() {
+    try (MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<HttpGetCommand> httpGet = mockStatic(HttpGetCommand.class)) {
+      stubConfigured(siteProperty);
+      httpGet.when(() -> HttpGetCommand.execute(anyString(), anyMap()))
+          .thenReturn("{\"title\": \"Resource Not Found\", \"detail\": \"The requested resource could not be found.\"}");
+
+      MailChimpCommand.ConnectionTestResult result = MailChimpCommand.testConnection();
+
+      assertFalse(result.isSuccess());
+      assertEquals("The requested resource could not be found.", result.getMessage());
+    }
+  }
+
+  @Test
+  void testConnectionReturnsFailureWhenNoResponseComesBack() {
+    try (MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<HttpGetCommand> httpGet = mockStatic(HttpGetCommand.class)) {
+      stubConfigured(siteProperty);
+      httpGet.when(() -> HttpGetCommand.execute(anyString(), anyMap())).thenReturn(null);
+
+      MailChimpCommand.ConnectionTestResult result = MailChimpCommand.testConnection();
+
+      assertFalse(result.isSuccess());
+    }
+  }
+
   @Test
   void sendCampaignReturnsFalseWhenNotConfigured() {
     try (MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
