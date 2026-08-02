@@ -325,6 +325,16 @@ public class SiteStatsWidget extends GenericWidget {
       context.getRequest().setAttribute("label", context.getPreferences().getOrDefault("label", "Link"));
       context.getRequest().setAttribute("value", context.getPreferences().getOrDefault("value", "Hits"));
       return TABLE_JSP;
+    } else if ("solution-type-traffic".equalsIgnoreCase(report)) {
+      List<StatisticsData> statisticsDataList = WebPageHitRepository.findTrafficBySolutionType(intervalValue);
+      context.getRequest().setAttribute("statisticsDataList", statisticsDataList);
+      return JSP;
+    } else if ("solution-type-engagement".equalsIgnoreCase(report)) {
+      List<StatisticsData> statisticsDataList = WebPageHitRepository.findEngagementBySolutionType(intervalValue);
+      context.getRequest().setAttribute("statisticsDataList", statisticsDataList);
+      context.getRequest().setAttribute("label", context.getPreferences().getOrDefault("label", "Solution Type"));
+      context.getRequest().setAttribute("value", context.getPreferences().getOrDefault("value", "Avg Page Views / Session"));
+      return TABLE_JSP;
     } else if ("search-terms".equalsIgnoreCase(report)) {
       List<StatisticsData> statisticsDataList = WebSearchRepository.findTopSearchTerms(intervalValue, limit);
       context.getRequest().setAttribute("statisticsDataList", statisticsDataList);
