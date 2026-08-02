@@ -26,6 +26,7 @@ import java.time.LocalDate;
 
 import org.apache.commons.lang3.StringUtils;
 
+import com.simisinc.platform.application.cms.FunnelEventCommand;
 import com.simisinc.platform.application.filesystem.FileSystemCommand;
 import com.simisinc.platform.domain.model.cms.FormData;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
@@ -195,7 +196,12 @@ public class FormDataListWidget extends GenericWidget {
   }
 
   private WidgetContext markAsProcessed(WidgetContext context, FormData formData) {
-    FormDataRepository.markAsProcessed(formData, context.getUserId());
+    if (FormDataRepository.markAsProcessed(formData, context.getUserId())) {
+      // Conversion funnel tracking (issue #565, phase 1) -- a no-op unless this formUniqueId is the
+      // site's admin-configured contact form. This fires from the admin's own session, days after the
+      // original submission, so it must reuse the submission's own stored session_id, not the admin's.
+      FunnelEventCommand.recordContactFormProcessed(formData.getFormUniqueId(), formData.getSessionId());
+    }
     return context;
   }
 

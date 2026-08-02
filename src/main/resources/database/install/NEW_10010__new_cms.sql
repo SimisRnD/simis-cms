@@ -296,6 +296,24 @@ CREATE TABLE search_analytics (
 CREATE INDEX search_analytics_created_idx ON search_analytics(created);
 CREATE INDEX search_analytics_query_idx ON search_analytics(query);
 
+-- Conversion funnel events (issue #565, phase 1): one row per stage event, e.g. a contact-form page
+-- view, a successful submission, or an admin marking a submission processed. funnel_key names the
+-- logical funnel ('contact-form' for this phase) so later phases (newsletter signup, solution-page
+-- engagement) can reuse this same table with a different funnel_key/stage set -- no schema change.
+-- Deliberately a raw event log, not a pre-aggregated daily-counts table: recording is a single-row
+-- insert (mirrors search_analytics/form_submission_failures), and session_id is kept so a later phase
+-- can attempt same-session stage correlation without a migration, even though phase 1's own report
+-- only needs simple per-stage COUNT(*) totals, not per-visitor stitching.
+CREATE TABLE funnel_events (
+  funnel_event_id BIGSERIAL PRIMARY KEY,
+  funnel_key VARCHAR(50) NOT NULL,
+  stage VARCHAR(30) NOT NULL,
+  session_id VARCHAR(255),
+  occurred TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP NOT NULL
+);
+CREATE INDEX funnel_events_key_stage_idx ON funnel_events(funnel_key, stage);
+CREATE INDEX funnel_events_occurred_idx ON funnel_events(occurred);
+
 -- System health check history: one row per (service, check run), populated by SystemHealthJob
 -- (issue #466). service_name is currently 'database' or 'filesystem' -- the two HealthCommand
 -- checks that can flip from healthy to unhealthy after startup; see system_health_checks's own

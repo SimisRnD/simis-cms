@@ -708,6 +708,9 @@ public class PageServlet extends HttpServlet {
         if (request.getHeader("X-Monitor") == null
             && !DoNotTrackCommand.isDoNotTrack(request.getHeader("DNT"), request.getHeader("Sec-GPC"))) {
           SaveWebPageHitCommand.saveHit(request.getRemoteAddr(), request.getMethod(), pagePath, webPage, userSession);
+          // Conversion funnel tracking (issue #565, phase 1) -- a no-op unless this pagePath is the
+          // site's admin-configured contact-form page
+          FunnelEventCommand.recordContactFormPageView(pagePath, userSession != null ? userSession.getSessionId() : null);
         }
       }
 

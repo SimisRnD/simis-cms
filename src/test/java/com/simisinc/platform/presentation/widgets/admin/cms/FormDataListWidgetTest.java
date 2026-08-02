@@ -17,6 +17,7 @@
 package com.simisinc.platform.presentation.widgets.admin.cms;
 
 import com.simisinc.platform.WidgetBase;
+import com.simisinc.platform.application.cms.FunnelEventCommand;
 import com.simisinc.platform.domain.model.cms.FormData;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.persistence.cms.FormDataRepository;
@@ -129,7 +130,11 @@ class FormDataListWidgetTest extends WidgetBase {
     addQueryParameter(widgetContext, "dataId", String.valueOf(formData.getId()));
     addQueryParameter(widgetContext, "action", "markAsProcessed");
 
-    try (MockedStatic<FormDataRepository> formDataRepositoryMockedStatic = mockStatic(FormDataRepository.class)) {
+    try (MockedStatic<FormDataRepository> formDataRepositoryMockedStatic = mockStatic(FormDataRepository.class);
+        // issue #565 phase 1 -- markAsProcessed() now also offers the record to FunnelEventCommand;
+        // mocked here (this test isn't about funnel tracking) so it never falls through to a real,
+        // unmocked LoadSitePropertyCommand -> CacheManager -> DB round trip
+        MockedStatic<FunnelEventCommand> funnelEventCommand = mockStatic(FunnelEventCommand.class)) {
       formDataRepositoryMockedStatic.when(() -> FormDataRepository.findById(anyLong())).thenReturn(formData);
       formDataRepositoryMockedStatic.when(() -> FormDataRepository.markAsProcessed(formData, widgetContext.getUserId())).thenReturn(true);
 
@@ -139,6 +144,59 @@ class FormDataListWidgetTest extends WidgetBase {
       widget.post(widgetContext);
 
       formDataRepositoryMockedStatic.verify(() -> FormDataRepository.markAsProcessed(formData, widgetContext.getUserId()), times(1));
+    }
+  }
+
+  @Test
+  void markAsProcessedRecordsAFunnelEventUsingTheOriginalSubmissionsOwnSessionId() throws Exception {
+    // issue #565 phase 1 -- "processed" must be attributed to the ORIGINAL submitter's session, not
+    // the admin's own (this handler runs from an admin's session, often days after the submission).
+    FormData formData = new FormData();
+    formData.setId(1L);
+    formData.setFormUniqueId("contact-us");
+    formData.setSessionId("original-submitter-session");
+
+    addQueryParameter(widgetContext, "dataId", String.valueOf(formData.getId()));
+    addQueryParameter(widgetContext, "action", "markAsProcessed");
+
+    try (MockedStatic<FormDataRepository> formDataRepositoryMockedStatic = mockStatic(FormDataRepository.class);
+        MockedStatic<FunnelEventCommand> funnelEventCommand = mockStatic(FunnelEventCommand.class)) {
+      formDataRepositoryMockedStatic.when(() -> FormDataRepository.findById(anyLong())).thenReturn(formData);
+      formDataRepositoryMockedStatic.when(() -> FormDataRepository.markAsProcessed(formData, widgetContext.getUserId())).thenReturn(true);
+
+      setRoles(widgetContext, ADMIN);
+
+      FormDataListWidget widget = new FormDataListWidget();
+      widget.post(widgetContext);
+
+      funnelEventCommand.verify(() -> FunnelEventCommand.recordContactFormProcessed("contact-us", "original-submitter-session"));
+    }
+  }
+
+  @Test
+  void markAsProcessedDoesNotRecordAFunnelEventWhenTheUpdateFails() throws Exception {
+    // Guards against double-counting/incorrect stage recording if the repository update didn't
+    // actually take (e.g. a concurrent modification) -- FormDataRepository.markAsProcessed() returning
+    // false must not still fire the funnel event.
+    FormData formData = new FormData();
+    formData.setId(1L);
+    formData.setFormUniqueId("contact-us");
+    formData.setSessionId("original-submitter-session");
+
+    addQueryParameter(widgetContext, "dataId", String.valueOf(formData.getId()));
+    addQueryParameter(widgetContext, "action", "markAsProcessed");
+
+    try (MockedStatic<FormDataRepository> formDataRepositoryMockedStatic = mockStatic(FormDataRepository.class);
+        MockedStatic<FunnelEventCommand> funnelEventCommand = mockStatic(FunnelEventCommand.class)) {
+      formDataRepositoryMockedStatic.when(() -> FormDataRepository.findById(anyLong())).thenReturn(formData);
+      formDataRepositoryMockedStatic.when(() -> FormDataRepository.markAsProcessed(formData, widgetContext.getUserId())).thenReturn(false);
+
+      setRoles(widgetContext, ADMIN);
+
+      FormDataListWidget widget = new FormDataListWidget();
+      widget.post(widgetContext);
+
+      funnelEventCommand.verifyNoInteractions();
     }
   }
 

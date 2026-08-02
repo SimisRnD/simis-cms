@@ -28,6 +28,7 @@ import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.cms.CaptchaCommand;
 import com.simisinc.platform.application.cms.FormCommand;
 import com.simisinc.platform.application.cms.FormFieldCommand;
+import com.simisinc.platform.application.cms.FunnelEventCommand;
 import com.simisinc.platform.domain.events.cms.FormSubmittedEvent;
 import com.simisinc.platform.domain.model.cms.FormData;
 import com.simisinc.platform.domain.model.cms.FormField;
@@ -223,6 +224,10 @@ public class FormWidget extends GenericWidget {
       context.setRequestObject(formData);
       return context;
     }
+
+    // Conversion funnel tracking (issue #565, phase 1) -- a no-op unless this formUniqueId is the
+    // site's admin-configured contact form
+    FunnelEventCommand.recordContactFormSubmitted(formUniqueId, formData.getSessionId());
 
     // Send an alert based on the preferences (or transform for another system)
     String emailAddresses = context.getPreferences().get("emailTo");

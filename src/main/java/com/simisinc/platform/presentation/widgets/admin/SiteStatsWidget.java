@@ -18,6 +18,7 @@ package com.simisinc.platform.presentation.widgets.admin;
 
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.cms.ContentReviewCommand;
+import com.simisinc.platform.application.cms.FunnelEventCommand;
 import com.simisinc.platform.application.maps.FindMapTilesCredentialsCommand;
 import com.simisinc.platform.domain.model.Session;
 import com.simisinc.platform.domain.model.audit.AuditLog;
@@ -32,6 +33,7 @@ import com.simisinc.platform.infrastructure.persistence.audit.AuditLogSpecificat
 import com.simisinc.platform.infrastructure.persistence.cms.ContentRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.FormDataRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.FormSubmissionFailureRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.FunnelEventRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageHitRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.SearchAnalyticsRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
@@ -439,6 +441,38 @@ public class SiteStatsWidget extends GenericWidget {
       // parseable number (no "%" suffix, no "N/A" fallback); the "%" is conveyed via the tile's label instead.
       context.getRequest().setAttribute("numberValue", String.format("%.1f", rate));
       return CARD_JSP;
+    } else if ("contact-form-funnel".equalsIgnoreCase(report)) {
+      // Issue #565 phase 1: view -> submitted -> processed, with per-stage counts and drop-off
+      // between consecutive stages. Stage order is a property of this funnel definition, not the
+      // funnel_events table, so it's fixed here rather than driven by a stored column.
+      Timestamp startDate = new Timestamp(System.currentTimeMillis() - (long) intervalValue * 24 * 60 * 60 * 1000);
+      Timestamp endDate = new Timestamp(System.currentTimeMillis());
+      Map<String, Long> stageCounts = FunnelEventRepository.countStagesInRange(
+          FunnelEventCommand.CONTACT_FORM_FUNNEL_KEY, startDate, endDate);
+      long viewed = stageCounts.getOrDefault(FunnelEventCommand.STAGE_VIEW, 0L);
+      long submitted = stageCounts.getOrDefault(FunnelEventCommand.STAGE_SUBMITTED, 0L);
+      long processed = stageCounts.getOrDefault(FunnelEventCommand.STAGE_PROCESSED, 0L);
+
+      List<StatisticsData> statisticsDataList = new ArrayList<>();
+      StatisticsData viewedData = new StatisticsData();
+      viewedData.setLabel("Page Views");
+      viewedData.setValue(String.valueOf(viewed));
+      statisticsDataList.add(viewedData);
+
+      StatisticsData submittedData = new StatisticsData();
+      submittedData.setLabel(withDropOffPercent("Form Submitted", submitted, viewed, "of views"));
+      submittedData.setValue(String.valueOf(submitted));
+      statisticsDataList.add(submittedData);
+
+      StatisticsData processedData = new StatisticsData();
+      processedData.setLabel(withDropOffPercent("Processed", processed, submitted, "of submitted"));
+      processedData.setValue(String.valueOf(processed));
+      statisticsDataList.add(processedData);
+
+      context.getRequest().setAttribute("statisticsDataList", statisticsDataList);
+      context.getRequest().setAttribute("label", context.getPreferences().getOrDefault("label", "Stage"));
+      context.getRequest().setAttribute("value", context.getPreferences().getOrDefault("value", "Count"));
+      return TABLE_JSP;
     } else if ("failed-logins-24h".equalsIgnoreCase(report)) {
       AuditLogSpecification spec = new AuditLogSpecification();
       spec.setEventType("authentication.login.failure");
@@ -486,6 +520,18 @@ public class SiteStatsWidget extends GenericWidget {
     } else {
       return null;
     }
+  }
+
+  /**
+   * "Form Submitted (40.0% of views)" -- omits the percentage entirely rather than showing 0.0% or
+   * dividing by zero when the previous stage has no events yet (e.g. funnel tracking was just turned on).
+   */
+  static String withDropOffPercent(String stageName, long stageCount, long previousStageCount, String ofWhat) {
+    if (previousStageCount <= 0) {
+      return stageName;
+    }
+    double percent = (stageCount * 100.0) / previousStageCount;
+    return String.format(java.util.Locale.US, "%s (%.1f%% %s)", stageName, percent, ofWhat);
   }
 
   private static Timestamp startOfToday() {
