@@ -42,8 +42,10 @@ import com.simisinc.platform.domain.model.CustomField;
 import com.simisinc.platform.domain.model.items.Category;
 import com.simisinc.platform.domain.model.items.Collection;
 import com.simisinc.platform.domain.model.items.Item;
+import com.simisinc.platform.domain.model.items.Tag;
 import com.simisinc.platform.infrastructure.persistence.items.CategoryRepository;
 import com.simisinc.platform.infrastructure.persistence.items.ItemRepository;
+import com.simisinc.platform.infrastructure.persistence.items.TagRepository;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 
@@ -111,6 +113,10 @@ public class CreateAnItemWidget extends GenericWidget {
         }
       }
     }
+
+    // Provide the tag checklist (issue #632)
+    List<Tag> tagList = TagRepository.findAllByCollectionId(collection.getId());
+    context.getRequest().setAttribute("tagList", tagList);
 
     // Form bean
     Item item = null;
@@ -231,6 +237,21 @@ public class CreateAnItemWidget extends GenericWidget {
     itemBean.setItemOrder(ItemRepository.getNextItemOrder(collection.getId()));
     itemBean.setCategoryId(mainCategoryId);
     itemBean.setCategoryIdList(categoryIdList.toArray(new Long[0]));
+
+    // Handle the tags (issue #632) -- a single shared-name checkbox group
+    List<Long> tagIdList = new ArrayList<>();
+    String[] tagIdParams = context.getParameterMap().get("tagId");
+    if (tagIdParams != null) {
+      for (String rawTagId : tagIdParams) {
+        if (StringUtils.isNumeric(rawTagId)) {
+          Long parsedTagId = Long.valueOf(rawTagId);
+          if (!tagIdList.contains(parsedTagId)) {
+            tagIdList.add(parsedTagId);
+          }
+        }
+      }
+    }
+    itemBean.setTagIdList(tagIdList.toArray(new Long[0]));
     itemBean.setSource(context.getUri());
     itemBean.setIpAddress(context.getRequest().getRemoteAddr());
 

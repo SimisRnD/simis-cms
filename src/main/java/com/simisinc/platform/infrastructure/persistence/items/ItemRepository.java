@@ -26,6 +26,7 @@ import com.simisinc.platform.domain.model.items.Collection;
 import com.simisinc.platform.domain.model.items.Item;
 import com.simisinc.platform.domain.model.items.ItemCategory;
 import com.simisinc.platform.domain.model.items.ItemFileVersion;
+import com.simisinc.platform.domain.model.items.ItemTag;
 import com.simisinc.platform.infrastructure.database.*;
 import com.simisinc.platform.infrastructure.persistence.medicine.MedicineRepository;
 import com.simisinc.platform.presentation.controller.DataConstants;
@@ -42,6 +43,7 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -128,6 +130,14 @@ public class ItemRepository {
         record.setId(DB.insertInto(connection, TABLE_NAME, insertValues, PRIMARY_KEY));
         // Manage the categories
         ItemCategoryRepository.insertItemCategoryList(connection, record);
+        // Manage the tags (issue #632) -- unlike category, there's no "primary" tag, so every
+        // tag in the list gets its item_count incremented, not just one
+        ItemTagRepository.insertItemTagList(connection, record);
+        if (record.getTagIdList() != null) {
+          for (Long tagId : record.getTagIdList()) {
+            TagRepository.updateItemCount(connection, tagId, 1);
+          }
+        }
         // Manage a few related tables
         CollectionRepository.updateItemCount(connection, record.getCollectionId(), 1);
         CategoryRepository.updateItemCount(connection, record.getCategoryId(), 1);
@@ -205,6 +215,8 @@ public class ItemRepository {
     Item previousRecord = ItemRepository.findById(record.getId());
     List<ItemCategory> existingCategoryList = ItemCategoryRepository.findAllByItemId(record.getId());
     List<Long> newCategoryList = Arrays.asList(record.getCategoryIdList());
+    List<ItemTag> existingTagList = ItemTagRepository.findAllByItemId(record.getId());
+    List<Long> newTagList = record.getTagIdList() != null ? Arrays.asList(record.getTagIdList()) : Collections.emptyList();
 
     // Use a transaction
     try {
@@ -252,6 +264,34 @@ public class ItemRepository {
           }
         }
 
+        // Compare the existing and changed tag lists (issue #632) -- unlike category, there's no
+        // "primary" tag to special-case, so every tag that's removed or added gets its own
+        // item_count adjustment.
+        if (existingTagList != null) {
+          for (ItemTag existingTag : existingTagList) {
+            if (!newTagList.contains(existingTag.getTagId())) {
+              ItemTagRepository.removeItemTagId(connection, record, existingTag.getTagId());
+              TagRepository.updateItemCount(connection, existingTag.getTagId(), -1);
+            }
+          }
+        }
+
+        for (Long newTagId : newTagList) {
+          boolean hasTag = false;
+          if (existingTagList != null) {
+            for (ItemTag existingTag : existingTagList) {
+              if (existingTag.getTagId() == newTagId) {
+                hasTag = true;
+                break;
+              }
+            }
+          }
+          if (!hasTag) {
+            ItemTagRepository.insertItemTagId(connection, record, newTagId);
+            TagRepository.updateItemCount(connection, newTagId, 1);
+          }
+        }
+
         // Finish the transaction
         transaction.commit();
         // Expire the cache
@@ -277,6 +317,7 @@ public class ItemRepository {
         // Delete the references
         ActivityRepository.removeAll(connection, record);
         ItemCategoryRepository.removeAll(connection, record);
+        ItemTagRepository.removeAll(connection, record);
         MemberRoleRepository.removeAll(connection, record);
         MemberRepository.removeAll(connection, record);
         ItemRelationshipRepository.removeAll(connection, record);

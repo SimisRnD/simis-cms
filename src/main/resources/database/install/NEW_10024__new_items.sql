@@ -103,6 +103,31 @@ CREATE INDEX item_cat_item_idx ON item_categories(item_id);
 CREATE INDEX item_cat_cat_idx ON item_categories(category_id);
 
 
+-- Tags (issue #632): a lighter-weight, flat classification than Category -- no icon/color/URL
+-- text, no "primary" tag, an item can carry any number of them.
+CREATE TABLE tags (
+  tag_id BIGSERIAL PRIMARY KEY,
+  collection_id BIGINT REFERENCES collections(collection_id) NOT NULL,
+  name VARCHAR(255) NOT NULL,
+  created_by BIGINT REFERENCES users(user_id),
+  created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
+  modified TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
+  item_count BIGINT NOT NULL DEFAULT 0
+);
+CREATE UNIQUE INDEX tags_uni_idx ON tags(collection_id, name);
+CREATE INDEX tags_col_idx ON tags(collection_id);
+
+CREATE TABLE item_tags (
+  id BIGSERIAL PRIMARY KEY,
+  item_id BIGINT REFERENCES items(item_id) NOT NULL,
+  tag_id BIGINT REFERENCES tags(tag_id) NOT NULL,
+  collection_id BIGINT REFERENCES collections(collection_id) NOT NULL
+);
+CREATE UNIQUE INDEX item_tags_uidx ON item_tags(item_id, collection_id, tag_id);
+CREATE INDEX item_tag_item_idx ON item_tags(item_id);
+CREATE INDEX item_tag_tag_idx ON item_tags(tag_id);
+
+
 CREATE TABLE lookup_relationship_types (
   type_id SERIAL PRIMARY KEY,
   collection_id BIGINT NOT NULL,

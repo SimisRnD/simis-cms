@@ -122,7 +122,7 @@ class SaveItemCommandTest {
     }
     try (Connection connection = DB.getConnection();
         Statement statement = connection.createStatement()) {
-      statement.execute("TRUNCATE TABLE item_categories, items, categories, collections RESTART IDENTITY CASCADE");
+      statement.execute("TRUNCATE TABLE item_categories, item_tags, items, categories, collections RESTART IDENTITY CASCADE");
     } catch (SQLException se) {
       throw new IllegalStateException("Could not reset tables", se);
     }
@@ -201,6 +201,7 @@ class SaveItemCommandTest {
     try (Connection connection = DB.getConnection();
         Statement statement = connection.createStatement()) {
       statement.execute("DROP TABLE IF EXISTS item_categories CASCADE");
+      statement.execute("DROP TABLE IF EXISTS item_tags CASCADE");
       statement.execute("DROP TABLE IF EXISTS items CASCADE");
       statement.execute("DROP TABLE IF EXISTS categories CASCADE");
       statement.execute("DROP TABLE IF EXISTS collections CASCADE");
@@ -304,6 +305,13 @@ class SaveItemCommandTest {
           + "category_id BIGINT NOT NULL, "
           + "collection_id BIGINT NOT NULL, "
           + "dataset_id BIGINT)");
+      // ItemRepository.update() unconditionally queries item_tags too (issue #632's tag
+      // reconciliation, mirroring the item_categories reconciliation above).
+      statement.execute("CREATE TABLE item_tags ("
+          + "id BIGSERIAL PRIMARY KEY, "
+          + "item_id BIGINT NOT NULL, "
+          + "tag_id BIGINT NOT NULL, "
+          + "collection_id BIGINT NOT NULL)");
     } catch (SQLException se) {
       throw new IllegalStateException("Could not create the test schema", se);
     }

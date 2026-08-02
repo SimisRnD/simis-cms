@@ -91,6 +91,7 @@
   <li class="tabs-title"><a href="/admin/collection-theme?collectionId=${request.collectionId}">Theme</a></li>
   <li class="tabs-title"><a href="/admin/collection-tabs?collectionId=${request.collectionId}">Tabs</a></li>
   <li class="tabs-title"><a href="/admin/collection-categories?collectionId=${request.collectionId}">Categories</a></li>
+  <li class="tabs-title"><a href="/admin/collection-tags?collectionId=${request.collectionId}">Tags</a></li>
   <li class="tabs-title"><a href="/admin/collection-custom-fields?collectionId=${request.collectionId}">Custom Fields</a></li>
   <li class="tabs-title"><a href="/admin/collection-relationships?collectionId=${request.collectionId}">Relationships</a></li>
   <li class="tabs-title"><a href="/admin/collection-records?collectionId=${request.collectionId}">Records</a></li>
@@ -148,6 +149,7 @@
   <li class="tabs-title is-active"><a aria-selected="true" href="/admin/collection-theme?collectionId=${request.collectionId}">Theme</a></li>
   <li class="tabs-title"><a href="/admin/collection-tabs?collectionId=${request.collectionId}">Tabs</a></li>
   <li class="tabs-title"><a href="/admin/collection-categories?collectionId=${request.collectionId}">Categories</a></li>
+  <li class="tabs-title"><a href="/admin/collection-tags?collectionId=${request.collectionId}">Tags</a></li>
   <li class="tabs-title"><a href="/admin/collection-custom-fields?collectionId=${request.collectionId}">Custom Fields</a></li>
   <li class="tabs-title"><a href="/admin/collection-relationships?collectionId=${request.collectionId}">Relationships</a></li>
   <li class="tabs-title"><a href="/admin/collection-records?collectionId=${request.collectionId}">Records</a></li>
@@ -192,6 +194,7 @@
   <li class="tabs-title"><a href="/admin/collection-theme?collectionId=${request.collectionId}">Theme</a></li>
   <li class="tabs-title is-active"><a aria-selected="true" href="/admin/collection-tabs?collectionId=${request.collectionId}">Tabs</a></li>
   <li class="tabs-title"><a href="/admin/collection-categories?collectionId=${request.collectionId}">Categories</a></li>
+  <li class="tabs-title"><a href="/admin/collection-tags?collectionId=${request.collectionId}">Tags</a></li>
   <li class="tabs-title"><a href="/admin/collection-custom-fields?collectionId=${request.collectionId}">Custom Fields</a></li>
   <li class="tabs-title"><a href="/admin/collection-relationships?collectionId=${request.collectionId}">Relationships</a></li>
   <li class="tabs-title"><a href="/admin/collection-records?collectionId=${request.collectionId}">Records</a></li>
@@ -236,6 +239,7 @@
   <li class="tabs-title"><a href="/admin/collection-theme?collectionId=${request.collectionId}">Theme</a></li>
   <li class="tabs-title"><a href="/admin/collection-tabs?collectionId=${request.collectionId}">Tabs</a></li>
   <li class="tabs-title is-active"><a aria-selected="true" href="/admin/collection-categories?collectionId=${request.collectionId}">Categories</a></li>
+  <li class="tabs-title"><a href="/admin/collection-tags?collectionId=${request.collectionId}">Tags</a></li>
   <li class="tabs-title"><a href="/admin/collection-custom-fields?collectionId=${request.collectionId}">Custom Fields</a></li>
   <li class="tabs-title"><a href="/admin/collection-relationships?collectionId=${request.collectionId}">Relationships</a></li>
   <li class="tabs-title"><a href="/admin/collection-records?collectionId=${request.collectionId}">Records</a></li>
@@ -272,6 +276,75 @@
       <column class="small-12 medium-11 large-10 cell">
         <widget name="collectionCategoryForm">
           <title>Edit this category</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/collection-tags{?collectionId}" collectionUniqueId="?collectionId" role="admin,data-manager" title="Collection Tags">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Data Collections" value="/admin/collections" />
+            <link name="Configuration" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="itemMenu" class="margin-bottom-15">
+          <adminMode>true</adminMode>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="content">
+          <html><![CDATA[
+<ul class="tabs margin-bottom-2">
+  <li class="tabs-title"><a href="/admin/collection-details?collectionId=${request.collectionId}">Details</a></li>
+  <li class="tabs-title"><a href="/admin/collection-theme?collectionId=${request.collectionId}">Theme</a></li>
+  <li class="tabs-title"><a href="/admin/collection-tabs?collectionId=${request.collectionId}">Tabs</a></li>
+  <li class="tabs-title"><a href="/admin/collection-categories?collectionId=${request.collectionId}">Categories</a></li>
+  <li class="tabs-title is-active"><a aria-selected="true" href="/admin/collection-tags?collectionId=${request.collectionId}">Tags</a></li>
+  <li class="tabs-title"><a href="/admin/collection-custom-fields?collectionId=${request.collectionId}">Custom Fields</a></li>
+  <li class="tabs-title"><a href="/admin/collection-relationships?collectionId=${request.collectionId}">Relationships</a></li>
+  <li class="tabs-title"><a href="/admin/collection-records?collectionId=${request.collectionId}">Records</a></li>
+</ul>
+]]></html>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 medium-10 large-8 cell">
+        <widget name="collectionTagsList" />
+      </column>
+      <column class="small-12 medium-2 large-4 cell">
+        <widget name="collectionTagForm" class="callout radius primary">
+          <title>Add a tag</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/tag{?tagId}" role="admin,data-manager" title="Edit Tag">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Collections" value="/admin/collections" />
+            <link name="Collection Details" value="/admin/collection-details?collectionId=${request.collectionId}" />
+            <link name="Tag" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 medium-11 large-10 cell">
+        <widget name="collectionTagForm">
+          <title>Edit this tag</title>
         </widget>
       </column>
     </section>
@@ -346,6 +419,7 @@
   <li class="tabs-title"><a href="/admin/collection-theme?collectionId=${request.collectionId}">Theme</a></li>
   <li class="tabs-title"><a href="/admin/collection-tabs?collectionId=${request.collectionId}">Tabs</a></li>
   <li class="tabs-title"><a href="/admin/collection-categories?collectionId=${request.collectionId}">Categories</a></li>
+  <li class="tabs-title"><a href="/admin/collection-tags?collectionId=${request.collectionId}">Tags</a></li>
   <li class="tabs-title"><a href="/admin/collection-custom-fields?collectionId=${request.collectionId}">Custom Fields</a></li>
   <li class="tabs-title is-active"><a aria-selected="true" href="/admin/collection-relationships?collectionId=${request.collectionId}">Relationships</a></li>
   <li class="tabs-title"><a href="/admin/collection-records?collectionId=${request.collectionId}">Records</a></li>
@@ -393,6 +467,7 @@
   <li class="tabs-title"><a href="/admin/collection-theme?collectionId=${request.collectionId}">Theme</a></li>
   <li class="tabs-title"><a href="/admin/collection-tabs?collectionId=${request.collectionId}">Tabs</a></li>
   <li class="tabs-title"><a href="/admin/collection-categories?collectionId=${request.collectionId}">Categories</a></li>
+  <li class="tabs-title"><a href="/admin/collection-tags?collectionId=${request.collectionId}">Tags</a></li>
   <li class="tabs-title"><a href="/admin/collection-custom-fields?collectionId=${request.collectionId}">Custom Fields</a></li>
   <li class="tabs-title"><a href="/admin/collection-relationships?collectionId=${request.collectionId}">Relationships</a></li>
   <li class="tabs-title is-active"><a aria-selected="true" href="/admin/collection-records?collectionId=${request.collectionId}">Records</a></li>

@@ -16,6 +16,7 @@
 
 package com.simisinc.platform.presentation.widgets.items;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -88,6 +89,37 @@ class CreateAnItemWidgetTest extends WidgetBase {
       assertEquals(7, itemCaptor.getValue().getItemOrder(),
           "a newly submitted item must append after the collection's existing items "
               + "(getNextItemOrder), not silently fall back to the domain model's static default");
+    }
+  }
+
+  @Test
+  void postParsesTheSharedTagIdCheckboxGroupOntoTheItem() throws Exception {
+    preferences.put("collectionUniqueId", "widgets");
+    preferences.put("requiresPermission", "false");
+    addQueryParameter(widgetContext, "name", "New Widget");
+    widgetContext.getParameterMap().put("tagId", new String[] { "10", "20", "10" });
+
+    try (MockedStatic<LoadCollectionCommand> loadCollection = mockStatic(LoadCollectionCommand.class);
+        MockedStatic<CategoryRepository> categoryRepository = mockStatic(CategoryRepository.class);
+        MockedStatic<ItemRepository> itemRepository = mockStatic(ItemRepository.class);
+        MockedStatic<SaveItemCommand> saveItemCommand = mockStatic(SaveItemCommand.class);
+        MockedStatic<ItemCommand> itemCommand = mockStatic(ItemCommand.class)) {
+
+      loadCollection.when(() -> LoadCollectionCommand.loadCollectionByUniqueIdForAuthorizedUser(eq("widgets"), anyLong()))
+          .thenReturn(collection(5L));
+      categoryRepository.when(() -> CategoryRepository.findAllByCollectionId(5L)).thenReturn(new ArrayList<>());
+      itemRepository.when(() -> ItemRepository.getNextItemOrder(5L)).thenReturn(1);
+
+      Item savedItem = new Item();
+      savedItem.setId(99L);
+      saveItemCommand.when(() -> SaveItemCommand.saveItem(any(Item.class))).thenReturn(savedItem);
+
+      new CreateAnItemWidget().post(widgetContext);
+
+      ArgumentCaptor<Item> itemCaptor = ArgumentCaptor.forClass(Item.class);
+      saveItemCommand.verify(() -> SaveItemCommand.saveItem(itemCaptor.capture()));
+      assertArrayEquals(new Long[] { 10L, 20L }, itemCaptor.getValue().getTagIdList(),
+          "duplicate tagId values in the submitted checkbox group must be de-duplicated");
     }
   }
 }
