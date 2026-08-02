@@ -101,7 +101,8 @@ class ItemsSearchResultsWidgetTest extends WidgetBase {
 
       WidgetContext result = new ItemsSearchResultsWidget().execute(widgetContext);
 
-      assertEquals(5L, specCaptor.getValue().getCategoryId(), "the categoryId param must reach the query, closing the gap the research found");
+      assertEquals(List.of(5L), specCaptor.getValue().getCategoryIds(),
+          "the categoryId param must reach the query (via the issue #636 multi-select list), closing the gap the research found");
 
       List<ItemFacetOption> categoryFacets = (List<ItemFacetOption>) result.getRequest().getAttribute("categoryFacets");
       assertEquals(1, categoryFacets.size(), "category 6 has a 0 count and is not selected, so it must not be listed");
@@ -261,5 +262,154 @@ class ItemsSearchResultsWidgetTest extends WidgetBase {
   void executeReturnsNullWhenNoQueryIsProvided() {
     WidgetContext result = new ItemsSearchResultsWidget().execute(widgetContext);
     assertNull(result);
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  void executeParsesRepeatedCategoryIdParamsIntoTheMultiSelectList() {
+    // Issue #636: categoryId=5&categoryId=7 is how a checkbox group with a shared name naturally
+    // serializes in a GET form submit -- read via getParameterMap() as a String[], same pattern as
+    // the eventType checkbox group in the webhook admin panel's WebhookSubscriptionFormWidget.
+    addQueryParameter(widgetContext, "query", "widgets");
+    widgetContext.getParameterMap().put("categoryId", new String[] { "5", "7" });
+
+    ArgumentCaptor<ItemSpecification> specCaptor = ArgumentCaptor.forClass(ItemSpecification.class);
+
+    try (MockedStatic<ItemRepository> repository = mockStatic(ItemRepository.class);
+        MockedStatic<CategoryRepository> categoryRepository = mockStatic(CategoryRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.timezone")).thenReturn("America/New_York");
+      repository.when(() -> ItemRepository.findAll(specCaptor.capture(), any())).thenReturn(new ArrayList<>());
+      categoryRepository.when(CategoryRepository::findAll).thenReturn(new ArrayList<>());
+      repository.when(() -> ItemRepository.countByCategory(any(), anyLong())).thenReturn(1L);
+      repository.when(() -> ItemRepository.countByDateRange(any(), any(), any())).thenReturn(0L);
+
+      new ItemsSearchResultsWidget().execute(widgetContext);
+
+      assertEquals(List.of(5L, 7L), specCaptor.getValue().getCategoryIds(),
+          "both repeated categoryId values must be parsed, in order, and reach the query");
+    }
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  void executeDropsANonNumericCategoryIdAndDedupesRepeatedValues() {
+    addQueryParameter(widgetContext, "query", "widgets");
+    widgetContext.getParameterMap().put("categoryId", new String[] { "5", "not-a-number", "5", "7" });
+
+    ArgumentCaptor<ItemSpecification> specCaptor = ArgumentCaptor.forClass(ItemSpecification.class);
+
+    try (MockedStatic<ItemRepository> repository = mockStatic(ItemRepository.class);
+        MockedStatic<CategoryRepository> categoryRepository = mockStatic(CategoryRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.timezone")).thenReturn("America/New_York");
+      repository.when(() -> ItemRepository.findAll(specCaptor.capture(), any())).thenReturn(new ArrayList<>());
+      categoryRepository.when(CategoryRepository::findAll).thenReturn(new ArrayList<>());
+      repository.when(() -> ItemRepository.countByCategory(any(), anyLong())).thenReturn(1L);
+      repository.when(() -> ItemRepository.countByDateRange(any(), any(), any())).thenReturn(0L);
+
+      new ItemsSearchResultsWidget().execute(widgetContext);
+
+      assertEquals(List.of(5L, 7L), specCaptor.getValue().getCategoryIds());
+    }
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  void executeBuildsAnAddToSelectionUrlForAnUncheckedCategoryAndARemoveUrlForAChecked() {
+    // Issue #636: an unchecked category's facet link must ADD it to the current selection (keeping
+    // whatever's already checked); an already-checked category's own facet link must REMOVE just
+    // it.
+    addQueryParameter(widgetContext, "query", "widgets");
+    widgetContext.getParameterMap().put("categoryId", new String[] { "5" });
+
+    try (MockedStatic<ItemRepository> repository = mockStatic(ItemRepository.class);
+        MockedStatic<CategoryRepository> categoryRepository = mockStatic(CategoryRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.timezone")).thenReturn("America/New_York");
+      repository.when(() -> ItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+      categoryRepository.when(CategoryRepository::findAll).thenReturn(categories(category(5, "Widgets"), category(7, "Doohickeys")));
+      categoryRepository.when(() -> CategoryRepository.findById(5L)).thenReturn(category(5, "Widgets"));
+      repository.when(() -> ItemRepository.countByCategory(any(), anyLong())).thenReturn(1L);
+      repository.when(() -> ItemRepository.countByDateRange(any(), any(), any())).thenReturn(0L);
+
+      WidgetContext result = new ItemsSearchResultsWidget().execute(widgetContext);
+
+      List<ItemFacetOption> categoryFacets = (List<ItemFacetOption>) result.getRequest().getAttribute("categoryFacets");
+
+      ItemFacetOption uncheckedFacet = categoryFacets.stream().filter(f -> "7".equals(f.getKey())).findFirst().orElseThrow();
+      assertFalse(uncheckedFacet.isSelected());
+      assertTrue(uncheckedFacet.getUrl().contains("categoryId=5") && uncheckedFacet.getUrl().contains("categoryId=7"),
+          "checking an unchecked category must ADD it, keeping the already-selected categoryId=5: " + uncheckedFacet.getUrl());
+
+      ItemFacetOption checkedFacet = categoryFacets.stream().filter(f -> "5".equals(f.getKey())).findFirst().orElseThrow();
+      assertTrue(checkedFacet.isSelected());
+      assertFalse(checkedFacet.getUrl().contains("categoryId="),
+          "unchecking the only selected category must drop categoryId from the URL entirely: " + checkedFacet.getUrl());
+    }
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  void executeGivesEachSelectedCategoryItsOwnRemoveChipPlusAClearAllChipWhenMultipleAreSelected() {
+    addQueryParameter(widgetContext, "query", "widgets");
+    widgetContext.getParameterMap().put("categoryId", new String[] { "5", "7" });
+
+    try (MockedStatic<ItemRepository> repository = mockStatic(ItemRepository.class);
+        MockedStatic<CategoryRepository> categoryRepository = mockStatic(CategoryRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.timezone")).thenReturn("America/New_York");
+      repository.when(() -> ItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+      categoryRepository.when(CategoryRepository::findAll).thenReturn(categories(category(5, "Widgets"), category(7, "Doohickeys")));
+      categoryRepository.when(() -> CategoryRepository.findById(5L)).thenReturn(category(5, "Widgets"));
+      categoryRepository.when(() -> CategoryRepository.findById(7L)).thenReturn(category(7, "Doohickeys"));
+      repository.when(() -> ItemRepository.countByCategory(any(), anyLong())).thenReturn(1L);
+      repository.when(() -> ItemRepository.countByDateRange(any(), any(), any())).thenReturn(0L);
+
+      WidgetContext result = new ItemsSearchResultsWidget().execute(widgetContext);
+
+      List<ItemActiveFilter> activeFilters = (List<ItemActiveFilter>) result.getRequest().getAttribute("activeFilters");
+      // one chip per selected category, plus one "clear all categories" chip
+      assertEquals(3, activeFilters.size());
+
+      ItemActiveFilter widgetsChip = activeFilters.stream().filter(f -> "Widgets".equals(f.getValueLabel())).findFirst().orElseThrow();
+      assertTrue(widgetsChip.getClearUrl().contains("categoryId=7"), "removing just Widgets must leave categoryId=7 selected: " + widgetsChip.getClearUrl());
+      assertFalse(widgetsChip.getClearUrl().contains("categoryId=5"), "removing Widgets must drop its own id: " + widgetsChip.getClearUrl());
+
+      ItemActiveFilter doohickeysChip = activeFilters.stream().filter(f -> "Doohickeys".equals(f.getValueLabel())).findFirst().orElseThrow();
+      assertTrue(doohickeysChip.getClearUrl().contains("categoryId=5"), "removing just Doohickeys must leave categoryId=5 selected: " + doohickeysChip.getClearUrl());
+      assertFalse(doohickeysChip.getClearUrl().contains("categoryId=7"), "removing Doohickeys must drop its own id: " + doohickeysChip.getClearUrl());
+
+      boolean hasClearAllChip = activeFilters.stream().anyMatch(f -> !f.getClearUrl().contains("categoryId="));
+      assertTrue(hasClearAllChip, "when 2+ categories are selected, one chip should clear the whole dimension");
+    }
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  void executeGivesASingleSelectedCategoryOnlyOneChipNoClearAll() {
+    addQueryParameter(widgetContext, "query", "widgets");
+    addQueryParameter(widgetContext, "categoryId", "5");
+
+    try (MockedStatic<ItemRepository> repository = mockStatic(ItemRepository.class);
+        MockedStatic<CategoryRepository> categoryRepository = mockStatic(CategoryRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.timezone")).thenReturn("America/New_York");
+      repository.when(() -> ItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+      categoryRepository.when(CategoryRepository::findAll).thenReturn(categories(category(5, "Widgets")));
+      categoryRepository.when(() -> CategoryRepository.findById(5L)).thenReturn(category(5, "Widgets"));
+      repository.when(() -> ItemRepository.countByCategory(any(), anyLong())).thenReturn(1L);
+      repository.when(() -> ItemRepository.countByDateRange(any(), any(), any())).thenReturn(0L);
+
+      WidgetContext result = new ItemsSearchResultsWidget().execute(widgetContext);
+
+      List<ItemActiveFilter> activeFilters = (List<ItemActiveFilter>) result.getRequest().getAttribute("activeFilters");
+      assertEquals(1, activeFilters.size(), "a single selection keeps the original one-chip-clears-it behavior, no separate 'clear all' chip");
+    }
   }
 }

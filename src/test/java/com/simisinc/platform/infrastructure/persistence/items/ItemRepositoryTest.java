@@ -25,6 +25,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.time.Duration;
+import java.util.Arrays;
 import java.util.Properties;
 
 import org.junit.jupiter.api.AfterAll;
@@ -43,12 +44,12 @@ import com.simisinc.platform.presentation.controller.UserSession;
 
 /**
  * Verifies {@link ItemRepository#countByCategory} and {@link ItemRepository#countByDateRange}
- * (issue #421's facet counts) against a real PostgreSQL instance, since the EXISTS subquery
- * against item_categories and the collections LEFT JOIN cannot be exercised meaningfully with a
- * mock. The schema here is a minimal subset covering only what these two methods' shared WHERE
- * clause (ItemRepository.createSearchWhereStatement) touches -- items, collections,
- * item_categories -- not the full production items table, since these methods use
- * DB.selectFunction (a scalar COUNT) rather than ItemRepository.buildRecord.
+ * (issue #421's facet counts, generalized to multi-select category by issue #636) against a real
+ * PostgreSQL instance, since the EXISTS subquery against item_categories and the collections LEFT
+ * JOIN cannot be exercised meaningfully with a mock. The schema here is a minimal subset covering
+ * only what these two methods' shared WHERE clause (ItemRepository.createSearchWhereStatement)
+ * touches -- items, collections, item_categories -- not the full production items table, since
+ * these methods use DB.selectFunction (a scalar COUNT) rather than ItemRepository.buildRecord.
  *
  * <p>Integration test: starts a throwaway PostgreSQL container (Testcontainers) and is skipped
  * automatically when Docker is not available.</p>
@@ -151,7 +152,31 @@ class ItemRepositoryTest {
   }
 
   @Test
-  void countByCategoryAppliesTheSpecificationsDateRangeButIgnoresItsOwnCategoryId() {
+  void countByCategoryUnionsTheSpecificationsCurrentSelectionWithTheCandidate() {
+    // Issue #636 generalizes countByCategory's semantics from #421's single-select "ignore the
+    // specification's own categoryId, count only the candidate" to "count the candidate PLUS
+    // whatever the specification already has selected" (OR-within-dimension), so an unchecked
+    // facet's displayed count reflects "what if this were ALSO selected" rather than "as if this
+    // were the only one selected". Prove the union with a case where the specification's own
+    // preselected category genuinely has matching items -- under the old semantics this would be
+    // 1 (categoryA alone); the union is 2 (categoryA plus the already-selected categoryB).
+    long collectionId = addCollection();
+    long categoryA = 10;
+    long categoryB = 20;
+    long itemInA = addItem(collectionId, null, Timestamp.valueOf("2026-06-15 00:00:00"));
+    linkCategory(itemInA, categoryA, collectionId);
+    long itemInB = addItem(collectionId, null, Timestamp.valueOf("2026-06-16 00:00:00"));
+    linkCategory(itemInB, categoryB, collectionId);
+
+    ItemSpecification specification = new ItemSpecification();
+    specification.setCategoryId(categoryB); // already selected, via the legacy single-value field
+
+    assertEquals(2, ItemRepository.countByCategory(specification, categoryA),
+        "the candidate (categoryA) must be unioned with what's already selected (categoryB), not replace it");
+  }
+
+  @Test
+  void countByCategoryStillAppliesTheDateRangeToTheUnion() {
     long collectionId = addCollection();
     long categoryA = 10;
     long inRange = addItem(collectionId, null, Timestamp.valueOf("2026-06-15 00:00:00"));
@@ -160,11 +185,55 @@ class ItemRepositoryTest {
     linkCategory(outOfRange, categoryA, collectionId);
 
     ItemSpecification specification = new ItemSpecification();
-    specification.setCategoryId(999); // a different category -- must be ignored by countByCategory
     specification.setDateRangeStart(Timestamp.valueOf("2026-06-01 00:00:00"));
 
     assertEquals(1, ItemRepository.countByCategory(specification, categoryA),
-        "the date range should still narrow the count, but the specification's own categoryId must not");
+        "the date range must still narrow the candidate's count");
+  }
+
+  @Test
+  void countByCategoryWithMultipleSelectedCategoriesOrsWithinTheDimension() {
+    // A specification with 2+ categoryIds selected must OR them together -- any item in category A
+    // OR category B matches, category C (not selected) does not. Passing one of the already-
+    // selected ids back in as the "candidate" is a no-op union (it's already in the set), so this
+    // yields exactly the combined multi-selection's count -- the same trick
+    // ItemsSearchResultsWidget uses to compute its "combined selected count" for the UI.
+    long collectionId = addCollection();
+    long categoryA = 10;
+    long categoryB = 20;
+    long categoryC = 30;
+    long itemInA = addItem(collectionId, null, Timestamp.valueOf("2026-06-15 00:00:00"));
+    linkCategory(itemInA, categoryA, collectionId);
+    long itemInB = addItem(collectionId, null, Timestamp.valueOf("2026-06-16 00:00:00"));
+    linkCategory(itemInB, categoryB, collectionId);
+    long itemInC = addItem(collectionId, null, Timestamp.valueOf("2026-06-17 00:00:00"));
+    linkCategory(itemInC, categoryC, collectionId);
+
+    ItemSpecification specification = new ItemSpecification();
+    specification.setCategoryIds(Arrays.asList(categoryA, categoryB));
+
+    assertEquals(2, ItemRepository.countByCategory(specification, categoryA),
+        "categories A and B are both selected (OR-within-dimension) -- C must not be counted");
+  }
+
+  @Test
+  void countByCategoryWithMultipleSelectedCategoriesStillAndsWithAnActiveDateRange() {
+    // AND-across-dimensions: the category OR-selection and the date range must combine with AND,
+    // not each independently override the other.
+    long collectionId = addCollection();
+    long categoryA = 10;
+    long categoryB = 20;
+    long inRangeA = addItem(collectionId, null, Timestamp.valueOf("2026-06-15 00:00:00"));
+    linkCategory(inRangeA, categoryA, collectionId);
+    long outOfRangeB = addItem(collectionId, null, Timestamp.valueOf("2026-01-01 00:00:00"));
+    linkCategory(outOfRangeB, categoryB, collectionId);
+
+    ItemSpecification specification = new ItemSpecification();
+    specification.setCategoryIds(Arrays.asList(categoryA, categoryB));
+    specification.setDateRangeStart(Timestamp.valueOf("2026-06-01 00:00:00"));
+
+    assertEquals(1, ItemRepository.countByCategory(specification, categoryA),
+        "categoryB matches the OR-selection but its item is outside the date range, so AND-across-dimensions must exclude it");
   }
 
   @Test
