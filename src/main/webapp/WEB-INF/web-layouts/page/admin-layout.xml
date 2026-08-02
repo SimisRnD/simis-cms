@@ -502,6 +502,17 @@
     </section>
   </page>
 
+  <page name="/admin/security-properties" role="admin" title="Security Settings">
+    <section>
+      <column class="small-12 large-10 cell">
+        <widget name="sitePropertiesEditor">
+          <title>Security Settings</title>
+          <prefix>security</prefix>
+        </widget>
+      </column>
+    </section>
+  </page>
+
   <page name="/admin/seo-overview" role="admin" title="SEO &amp; AI Visibility">
     <section>
       <column class="small-12 large-10 cell">
