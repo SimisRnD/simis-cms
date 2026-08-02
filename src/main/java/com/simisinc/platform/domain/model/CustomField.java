@@ -37,6 +37,7 @@ public class CustomField extends Entity {
   private String property = null;
   private String defaultValue = null;
   private String value = null;
+  private boolean filterable = false;
 
   public CustomField() {
   }
@@ -124,5 +125,16 @@ public class CustomField extends Entity {
 
   public void setDefaultValue(String defaultValue) {
     this.defaultValue = defaultValue;
+  }
+
+  /** Whether this field should be offered as a filter/facet dimension wherever its items are
+   * searched (issue #635). Persisted through the same JSON round-trip as the other field
+   * properties; not yet consumed by any search widget -- that wiring is separately scoped. */
+  public boolean isFilterable() {
+    return filterable;
+  }
+
+  public void setFilterable(boolean filterable) {
+    this.filterable = filterable;
   }
 }

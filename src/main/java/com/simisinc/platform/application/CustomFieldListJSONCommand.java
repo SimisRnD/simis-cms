@@ -109,6 +109,13 @@ public class CustomFieldListJSONCommand {
           entryAdded = true;
         }
       }
+      if (customField.isFilterable()) {
+        if (entryAdded) {
+          sb.append(",");
+        }
+        sb.append("\"filterable\":true");
+        entryAdded = true;
+      }
       sb.append("}");
     }
     if (sb.length() == 0) {
@@ -167,6 +174,9 @@ public class CustomFieldListJSONCommand {
             optionsMap.put(FormFieldCommand.generateHtmlName(option.trim(), null), option.trim());
           }
           customField.setListOfOptions(optionsMap);
+        }
+        if (node.has("filterable")) {
+          customField.setFilterable(node.get("filterable").asBoolean());
         }
         customFieldList.put(customField.getName(), customField);
       }
