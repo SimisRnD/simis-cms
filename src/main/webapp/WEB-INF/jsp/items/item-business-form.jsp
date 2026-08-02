@@ -32,6 +32,9 @@
     }
   </script>
 </c:if>
+<c:if test="${useCaptcha eq 'true' && !empty turnstileSiteKey}">
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer nonce="${cspNonce}"></script>
+</c:if>
 <form id="form${widgetContext.uniqueId}" method="post" autocomplete="off">
   <%-- Required by controller --%>
   <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
@@ -230,6 +233,10 @@
               data-callback="onSubmit">
             Submit
           </button>
+        </c:when>
+        <c:when test="${useCaptcha eq 'true' && !empty turnstileSiteKey}">
+          <div class="cf-turnstile" data-sitekey="<c:out value="${turnstileSiteKey}" />"></div>
+          <input type="submit" class="button radius success" value="Submit"/>
         </c:when>
         <c:when test="${useCaptcha eq 'true'}">
           Please enter the text value you see in the image:<br />

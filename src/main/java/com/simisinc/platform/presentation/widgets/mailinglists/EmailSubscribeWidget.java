@@ -33,7 +33,6 @@ import org.apache.commons.logging.LogFactory;
 import com.sanctionco.jmail.JMail;
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.RateLimitCommand;
-import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.cms.CaptchaCommand;
 import com.simisinc.platform.application.cms.LoadBlogCommand;
 import com.simisinc.platform.application.mailinglists.SaveEmailCommand;
@@ -118,8 +117,7 @@ public class EmailSubscribeWidget extends GenericWidget {
     // Determine the captcha service (enabled by default for spam prevention)
     boolean useCaptcha = "true".equals(context.getPreferences().getOrDefault("useCaptcha", "true"));
     if (useCaptcha) {
-      context.getRequest().setAttribute("useCaptcha", "true");
-      context.getRequest().setAttribute("googleSiteKey", LoadSitePropertyCommand.loadByName("captcha.google.sitekey"));
+      CaptchaCommand.populateWidgetAttributes(context);
     }
 
     // Previous post had error
