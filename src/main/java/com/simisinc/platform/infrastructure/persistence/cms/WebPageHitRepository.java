@@ -265,6 +265,74 @@ public class WebPageHitRepository {
     return DB.selectCountFrom(TABLE_NAME, where);
   }
 
+  /**
+   * Average number of page hits per session over the trailing window, for the "pages-per-session"
+   * engagement report (issue #568). Mirrors findTopWebPages'/findTopPaths' bot-session exclusion so
+   * a crawler binge doesn't skew the reported average. Uses a CASE guard (rather than dividing and
+   * catching the error) because Postgres raises "division by zero" on float division same as integer
+   * division -- it does not return NaN/Infinity. Returns 0.0 when there are no real sessions in
+   * range.
+   */
+  public static double findAvgPagesPerSession(int daysToLimit) {
+    String SQL_QUERY =
+        "SELECT CASE WHEN COUNT(DISTINCT session_id) = 0 THEN 0.0 " +
+            "ELSE COUNT(*)::float8 / COUNT(DISTINCT session_id) END AS avg_pages_per_session " +
+            "FROM web_page_hits " +
+            "WHERE hit_date > NOW() - INTERVAL '" + daysToLimit + " days' " +
+            "AND NOT EXISTS (SELECT 1 FROM sessions WHERE session_id = web_page_hits.session_id AND is_bot = TRUE)";
+    try (Connection connection = DB.getConnection();
+         PreparedStatement pst = connection.prepareStatement(SQL_QUERY);
+         ResultSet rs = pst.executeQuery()) {
+      if (rs.next()) {
+        return rs.getDouble("avg_pages_per_session");
+      }
+    } catch (SQLException se) {
+      LOG.error("SQLException: " + se.getMessage());
+    }
+    return 0.0;
+  }
+
+  /**
+   * Average dwell time on each page, derived from the gap between consecutive hits in the same
+   * session (issue #568's "avg-time-on-page" engagement report). This doesn't fit DB.java's simple
+   * where-clause helpers -- it needs the LEAD() window function -- so it uses a raw
+   * PreparedStatement, mirroring createSnapshot's style for the same reason. Within each session,
+   * hits are ordered by hit_date and each hit is diffed against the next hit in that same session;
+   * a session's last hit has no "next" hit to diff against and is excluded (its delta is NULL) the
+   * same way findAvgPagesPerSession excludes bot sessions -- both keep a single artifact of the data
+   * from skewing the metric. Bot sessions are excluded per findTopWebPages'/findTopPaths' convention.
+   */
+  public static List<StatisticsData> findAvgTimeOnPageByPath(int daysToLimit, int recordLimit) {
+    String SQL_QUERY =
+        "SELECT page_path, AVG(seconds_to_next) AS avg_seconds " +
+            "FROM (" +
+            "SELECT page_path, " +
+            "EXTRACT(EPOCH FROM (LEAD(hit_date) OVER (PARTITION BY session_id ORDER BY hit_date) - hit_date)) AS seconds_to_next " +
+            "FROM web_page_hits " +
+            "WHERE hit_date > NOW() - INTERVAL '" + daysToLimit + " days' " +
+            "AND NOT EXISTS (SELECT 1 FROM sessions WHERE session_id = web_page_hits.session_id AND is_bot = TRUE)" +
+            ") hit_deltas " +
+            "WHERE seconds_to_next IS NOT NULL " +
+            "GROUP BY page_path " +
+            "ORDER BY avg_seconds DESC " +
+            "LIMIT " + recordLimit;
+    List<StatisticsData> records = null;
+    try (Connection connection = DB.getConnection();
+         PreparedStatement pst = connection.prepareStatement(SQL_QUERY);
+         ResultSet rs = pst.executeQuery()) {
+      records = new ArrayList<>();
+      while (rs.next()) {
+        StatisticsData data = new StatisticsData();
+        data.setLabel(rs.getString("page_path"));
+        data.setValue(String.format("%.1fs", rs.getDouble("avg_seconds")));
+        records.add(data);
+      }
+    } catch (SQLException se) {
+      LOG.error("SQLException: " + se.getMessage());
+    }
+    return records;
+  }
+
   public static List<StatisticsData> findTopPaths(int value, char intervalType, int recordLimit) {
     String SQL_QUERY =
         "SELECT page_path, count(page_path) AS path_count " +
