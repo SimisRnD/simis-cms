@@ -266,6 +266,76 @@ public class WebPageHitRepository {
     return DB.selectCountFrom(TABLE_NAME, where);
   }
 
+  /**
+   * Total page views (real, non-bot) in the last {@code daysToLimit} days, grouped by the
+   * web_pages.solution_type tag (issue #570). Pages with no tag set are excluded rather than
+   * grouped under a catch-all label -- mirrors findTopWebPages' join/bot-exclusion shape, grouping
+   * by solution_type instead of link.
+   */
+  public static List<StatisticsData> findTrafficBySolutionType(int daysToLimit) {
+    String SQL_QUERY =
+        "SELECT solution_type, count(wph.hit_id) AS hit_count " +
+            "FROM web_pages " +
+            "LEFT JOIN web_page_hits wph ON (wph.web_page_id = web_pages.web_page_id) " +
+            "WHERE solution_type IS NOT NULL " +
+            "AND hit_date > NOW() - INTERVAL '" + daysToLimit + " days' " +
+            "AND NOT EXISTS (SELECT 1 FROM sessions WHERE session_id = wph.session_id AND is_bot = TRUE) " +
+            "GROUP BY solution_type " +
+            "ORDER BY hit_count DESC";
+    List<StatisticsData> records = null;
+    try (Connection connection = DB.getConnection();
+         PreparedStatement pst = connection.prepareStatement(SQL_QUERY);
+         ResultSet rs = pst.executeQuery()) {
+      records = new ArrayList<>();
+      while (rs.next()) {
+        StatisticsData data = new StatisticsData();
+        data.setLabel(rs.getString("solution_type"));
+        data.setValue(String.valueOf(rs.getLong("hit_count")));
+        records.add(data);
+      }
+    } catch (SQLException se) {
+      LOG.error("SQLException: " + se.getMessage());
+    }
+    return records;
+  }
+
+  /**
+   * Engagement depth (real, non-bot) in the last {@code daysToLimit} days, grouped by
+   * web_pages.solution_type: average page views per session among sessions that viewed at least
+   * one page of that solution type. Reuses the page-view/session data web_page_hits already
+   * collects rather than adding new tracking -- no session-duration or bounce column exists in
+   * this schema to reuse instead (see issue #570's scoping notes).
+   */
+  public static List<StatisticsData> findEngagementBySolutionType(int daysToLimit) {
+    String SQL_QUERY =
+        "SELECT solution_type, count(wph.hit_id) AS hit_count, count(DISTINCT wph.session_id) AS session_count " +
+            "FROM web_pages " +
+            "LEFT JOIN web_page_hits wph ON (wph.web_page_id = web_pages.web_page_id) " +
+            "WHERE solution_type IS NOT NULL " +
+            "AND hit_date > NOW() - INTERVAL '" + daysToLimit + " days' " +
+            "AND NOT EXISTS (SELECT 1 FROM sessions WHERE session_id = wph.session_id AND is_bot = TRUE) " +
+            "GROUP BY solution_type " +
+            "ORDER BY solution_type";
+    List<StatisticsData> records = null;
+    try (Connection connection = DB.getConnection();
+         PreparedStatement pst = connection.prepareStatement(SQL_QUERY);
+         ResultSet rs = pst.executeQuery()) {
+      records = new ArrayList<>();
+      while (rs.next()) {
+        long hitCount = rs.getLong("hit_count");
+        long sessionCount = rs.getLong("session_count");
+        double averageViewsPerSession = sessionCount == 0 ? 0 : (double) hitCount / sessionCount;
+        StatisticsData data = new StatisticsData();
+        data.setLabel(rs.getString("solution_type"));
+        data.setValue(String.format("%.2f", averageViewsPerSession));
+        records.add(data);
+      }
+    } catch (SQLException se) {
+      LOG.error("SQLException: " + se.getMessage());
+    }
+    return records;
+  }
+
   public static List<StatisticsData> findTopPaths(int value, char intervalType, int recordLimit) {
     String SQL_QUERY =
         "SELECT page_path, count(page_path) AS path_count " +

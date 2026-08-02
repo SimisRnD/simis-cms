@@ -35,6 +35,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
 import com.simisinc.platform.WidgetBase;
+import com.simisinc.platform.application.cms.ContentReviewCommand;
 import com.simisinc.platform.application.cms.ContentUsageCommand;
 import com.simisinc.platform.domain.model.cms.Content;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
@@ -177,6 +178,70 @@ class ContentListWidgetTest extends WidgetBase {
 
       Object exposed = widgetContext.getRequest().getAttribute("contentUsageMap");
       assertSame(usageMap, exposed, "the widget must expose exactly the map ContentUsageCommand built, for the JSP's Used-on/Orphaned display");
+    }
+  }
+
+  @Test
+  void statusParameterMapsOntoTheSpecificationAndPagingParams() {
+    addQueryParameter(widgetContext, "status", ContentReviewCommand.LIST_STATUS_PENDING_REVIEW);
+
+    try (MockedStatic<ContentRepository> repository = mockStatic(ContentRepository.class);
+        MockedStatic<ContentUsageCommand> usageCommand = mockStatic(ContentUsageCommand.class)) {
+      repository.when(() -> ContentRepository.findAll(any(ContentSpecification.class), any(DataConstraints.class)))
+          .thenReturn(new ArrayList<>());
+      usageCommand.when(() -> ContentUsageCommand.findUsageMap(any())).thenReturn(new LinkedHashMap<>());
+
+      new ContentListWidget().execute(widgetContext);
+
+      ArgumentCaptor<ContentSpecification> captor = ArgumentCaptor.forClass(ContentSpecification.class);
+      repository.verify(() -> ContentRepository.findAll(captor.capture(), any(DataConstraints.class)));
+      assertEquals(ContentReviewCommand.LIST_STATUS_PENDING_REVIEW, captor.getValue().getStatus());
+
+      // Carried through pagination, URL-encoded (the space in "Pending Review" becomes '+')
+      String pagingParams = (String) widgetContext.getRequest().getAttribute("recordPagingParams");
+      assertTrue(pagingParams.contains("status=Pending+Review"));
+    }
+  }
+
+  @Test
+  void blankStatusParameterLeavesTheSpecificationUnset() {
+    try (MockedStatic<ContentRepository> repository = mockStatic(ContentRepository.class);
+        MockedStatic<ContentUsageCommand> usageCommand = mockStatic(ContentUsageCommand.class)) {
+      repository.when(() -> ContentRepository.findAll(any(ContentSpecification.class), any(DataConstraints.class)))
+          .thenReturn(new ArrayList<>());
+      usageCommand.when(() -> ContentUsageCommand.findUsageMap(any())).thenReturn(new LinkedHashMap<>());
+
+      new ContentListWidget().execute(widgetContext);
+
+      ArgumentCaptor<ContentSpecification> captor = ArgumentCaptor.forClass(ContentSpecification.class);
+      repository.verify(() -> ContentRepository.findAll(captor.capture(), any(DataConstraints.class)));
+      assertNull(captor.getValue().getStatus());
+    }
+  }
+
+  @Test
+  void theStatusMapIsBuiltFromEachContentRecordAndExposedToTheRequest() {
+    // A Live block (no draft) and a Draft block (a draft, never submitted) -- exercises
+    // ContentReviewCommand.listStatusLabel through the widget rather than mocking it away, so this
+    // also catches a regression that stops calling it.
+    Content live = new Content();
+    live.setUniqueId("block-live");
+    Content draft = new Content();
+    draft.setUniqueId("block-draft");
+    draft.setDraftContent("<p>editing</p>");
+    List<Content> contentList = new ArrayList<>(List.of(live, draft));
+
+    try (MockedStatic<ContentRepository> repository = mockStatic(ContentRepository.class);
+        MockedStatic<ContentUsageCommand> usageCommand = mockStatic(ContentUsageCommand.class)) {
+      repository.when(() -> ContentRepository.findAll(any(ContentSpecification.class), any(DataConstraints.class)))
+          .thenReturn(contentList);
+      usageCommand.when(() -> ContentUsageCommand.findUsageMap(any())).thenReturn(new LinkedHashMap<>());
+
+      new ContentListWidget().execute(widgetContext);
+
+      Map<String, String> statusMap = (Map<String, String>) widgetContext.getRequest().getAttribute("contentStatusMap");
+      assertEquals(ContentReviewCommand.LIST_STATUS_LIVE, statusMap.get("block-live"));
+      assertEquals(ContentReviewCommand.LIST_STATUS_DRAFT, statusMap.get("block-draft"));
     }
   }
 }

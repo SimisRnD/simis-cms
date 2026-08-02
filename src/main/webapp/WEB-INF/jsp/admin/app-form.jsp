@@ -29,6 +29,12 @@
     <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
   </c:if>
   <%@include file="../page_messages.jspf" %>
+  <c:if test="${app.id ne -1}">
+    <label>Client ID
+      <input type="text" class="no-gap" readonly value="<c:out value="${app.publicKey}"/>" aria-describedby="appClientIdHelpText" onclick="this.select();">
+    </label>
+    <p class="help-text" id="appClientIdHelpText">Send this as the <code>X-API-Key</code> request header (or a <code>key</code> query parameter) when calling this application's REST API. It identifies which app is calling, but isn't itself proof of identity -- most endpoints also require an authenticated user via Basic or Bearer auth on top of it. Not sensitive on its own; safe to share with anyone building against this app's API.</p>
+  </c:if>
   <%-- Form Content --%>
   <label>Name <span class="required">*</span>
     <input type="text" placeholder="Give it a name..." name="name" value="<c:out value="${app.name}"/>" required>
