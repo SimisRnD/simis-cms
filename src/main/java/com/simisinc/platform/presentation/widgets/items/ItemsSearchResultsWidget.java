@@ -127,7 +127,16 @@ public class ItemsSearchResultsWidget extends GenericWidget {
 
     // Query the data
     List<Item> itemList = ItemRepository.findAll(specification, constraints);
-    SearchAnalyticsCommand.record(context, query, "items", itemList == null ? 0 : itemList.size());
+    // Which facet dimension(s) narrowed this search, for the facet-adoption-rate report (issue #638)
+    List<String> appliedFacetKeys = new ArrayList<>();
+    if (!selectedCategoryIds.isEmpty()) {
+      appliedFacetKeys.add("categoryId");
+    }
+    if (selectedDateBucket != null) {
+      appliedFacetKeys.add("dateFacet");
+    }
+    String facetKey = appliedFacetKeys.isEmpty() ? null : String.join(",", appliedFacetKeys);
+    SearchAnalyticsCommand.record(context, query, "items", itemList == null ? 0 : itemList.size(), facetKey);
 
     // Facet panels + active filter chips (issue #421)
     boolean showCategoryFacet = !"false".equals(context.getPreferences().get("showCategoryFacet"));

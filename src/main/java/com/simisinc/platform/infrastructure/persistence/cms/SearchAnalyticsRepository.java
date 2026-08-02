@@ -58,7 +58,8 @@ public class SearchAnalyticsRepository {
         .add("query", record.getQuery(), 255)
         .add("search_type", record.getSearchType(), 50)
         .add("result_count", record.getResultCount())
-        .add("page_path", record.getPagePath(), 255);
+        .add("page_path", record.getPagePath(), 255)
+        .add("facet_key", record.getFacetKey(), 100);
     record.setId(DB.insertInto(TABLE_NAME, insertValues, PRIMARY_KEY));
     if (record.getId() == -1) {
       LOG.error("An id was not set!");
@@ -137,6 +138,57 @@ public class SearchAnalyticsRepository {
       LOG.error("SQLException: " + se.getMessage());
     }
     return 0;
+  }
+
+  /** Count of all searches over the last {@code daysToLimit} days, the denominator for the facet-
+   * adoption-rate tile (issue #638). daysToLimit is an int, so placing it in the interval cannot
+   * inject SQL. */
+  public static long countSearches(int daysToLimit) {
+    String SQL_QUERY =
+        "SELECT count(*) AS record_count " +
+            "FROM " + TABLE_NAME + " " +
+            "WHERE created > NOW() - INTERVAL '" + daysToLimit + " days'";
+    try (Connection connection = DB.getConnection();
+         PreparedStatement pst = connection.prepareStatement(SQL_QUERY);
+         ResultSet rs = pst.executeQuery()) {
+      if (rs.next()) {
+        return rs.getLong("record_count");
+      }
+    } catch (SQLException se) {
+      LOG.error("SQLException: " + se.getMessage());
+    }
+    return 0;
+  }
+
+  /** Count of searches over the last {@code daysToLimit} days that had at least one facet/filter
+   * applied (facet_key is set), the numerator for the facet-adoption-rate tile (issue #638). */
+  public static long countSearchesWithFacetApplied(int daysToLimit) {
+    String SQL_QUERY =
+        "SELECT count(*) AS record_count " +
+            "FROM " + TABLE_NAME + " " +
+            "WHERE created > NOW() - INTERVAL '" + daysToLimit + " days' " +
+            "AND facet_key IS NOT NULL";
+    try (Connection connection = DB.getConnection();
+         PreparedStatement pst = connection.prepareStatement(SQL_QUERY);
+         ResultSet rs = pst.executeQuery()) {
+      if (rs.next()) {
+        return rs.getLong("record_count");
+      }
+    } catch (SQLException se) {
+      LOG.error("SQLException: " + se.getMessage());
+    }
+    return 0;
+  }
+
+  /** Breakdown of which facet dimension(s) were applied over the last {@code daysToLimit} days,
+   * most-used first (issue #638). Searches with no facet applied (facet_key IS NULL) are excluded --
+   * this is a breakdown of facet usage, not of all searches. */
+  public static List<StatisticsData> findFacetUsageBreakdown(int daysToLimit, int recordLimit) {
+    SqlUtils where = new SqlUtils()
+        .add("created > NOW() - INTERVAL '" + daysToLimit + " days'")
+        .add("facet_key IS NOT NULL");
+    SqlUtils orderBy = new SqlUtils().add("facet_key_count DESC");
+    return DB.selectGroupedFrom(TABLE_NAME, "facet_key", "facet_key_count", where, orderBy, recordLimit);
   }
 
   /** Resolves the configurable zero-result-search alert threshold (search.zeroResultAlertThreshold),

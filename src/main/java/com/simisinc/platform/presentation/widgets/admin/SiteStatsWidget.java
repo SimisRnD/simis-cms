@@ -375,6 +375,22 @@ public class SiteStatsWidget extends GenericWidget {
       context.getRequest().setAttribute("label", context.getPreferences().getOrDefault("label", "Search Term"));
       context.getRequest().setAttribute("value", context.getPreferences().getOrDefault("value", "Searches This Week"));
       return TABLE_JSP;
+    } else if ("facet-adoption-rate".equalsIgnoreCase(report)) {
+      // issue #638: what fraction of searches were narrowed by a facet/filter. Only ItemsSearchResultsWidget
+      // sets facet_key today -- the other five search-results widgets have no facet concept yet, so this
+      // is necessarily a rate over all searches, not just faceted-capable ones.
+      long totalSearches = SearchAnalyticsRepository.countSearches(intervalValue);
+      long facetedSearches = SearchAnalyticsRepository.countSearchesWithFacetApplied(intervalValue);
+      double adoptionRate = totalSearches == 0 ? 0.0 : (100.0 * facetedSearches / totalSearches);
+      context.getRequest().setAttribute("numberValue", String.valueOf(Math.round(adoptionRate * 10) / 10.0));
+      context.getRequest().setAttribute("severity", "ok");
+      return ALERT_CARD_JSP;
+    } else if ("facet-usage-breakdown".equalsIgnoreCase(report)) {
+      List<StatisticsData> statisticsDataList = SearchAnalyticsRepository.findFacetUsageBreakdown(intervalValue, limit);
+      context.getRequest().setAttribute("statisticsDataList", statisticsDataList);
+      context.getRequest().setAttribute("label", context.getPreferences().getOrDefault("label", "Facet"));
+      context.getRequest().setAttribute("value", context.getPreferences().getOrDefault("value", "Searches"));
+      return TABLE_JSP;
     } else if ("total-form-submissions".equalsIgnoreCase(report)) {
       Long count = FormDataRepository.countTotalSubmissions();
       context.getRequest().setAttribute("numberValue", String.valueOf(count));

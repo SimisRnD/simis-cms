@@ -21,6 +21,7 @@
 <jsp:useBean id="collection" class="com.simisinc.platform.domain.model.items.Collection" scope="request"/>
 <jsp:useBean id="item" class="com.simisinc.platform.domain.model.items.Item" scope="request"/>
 <jsp:useBean id="categoryList" class="java.util.ArrayList" scope="request"/>
+<jsp:useBean id="tagList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="cancelUrl" class="java.lang.String" scope="request"/>
 <script src="${ctx}/javascript/tinymce-7.9.3/tinymce.min.js"></script>
 <script nonce="${cspNonce}">
@@ -211,6 +212,27 @@
                   </c:if>
                 </c:forEach>
                 <input id="categoryId${category.id}" type="checkbox" name="categoryId${category.id}" value="${category.id}"<c:if test="${contains eq 'true'}"> checked</c:if> /><label for="categoryId${category.id}"><c:out value="${category.name}" /></label>
+              </c:forEach>
+            </div>
+          </div>
+        </div>
+      </div>
+    </c:if>
+
+    <c:if test="${!empty tagList}">
+      <h3 class="margin-top-30 margin-bottom-20">Tags</h3>
+      <div class="grid-container margin-top-20">
+        <div class="grid-x grid-padding-x">
+          <div class="small-12 cell">
+            <div class="input-container">
+              <c:forEach items="${tagList}" var="tag">
+                <c:set var="contains" value="false" />
+                <c:forEach var="thisTagId" items="${item.tagIdList}">
+                  <c:if test="${thisTagId eq tag.id}">
+                    <c:set var="contains" value="true" />
+                  </c:if>
+                </c:forEach>
+                <input id="tagId${tag.id}" type="checkbox" name="tagId" value="${tag.id}"<c:if test="${contains eq 'true'}"> checked</c:if> /><label for="tagId${tag.id}"><c:out value="${tag.name}" /></label>
               </c:forEach>
             </div>
           </div>
