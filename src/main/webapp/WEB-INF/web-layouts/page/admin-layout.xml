@@ -87,6 +87,13 @@
           <link>/admin/mailing-list-members</link>
         </widget>
       </column>
+      <column class="small-6 medium-4 large-3 cell">
+        <widget name="siteStats">
+          <icon>fa-magnifying-glass-minus</icon>
+          <title>Zero-Result Searches (24h)</title>
+          <report>zero-result-search-alert</report>
+        </widget>
+      </column>
       <column class="small-12 cell">
         <widget name="siteStats">
           <title>Recent Admin Activity</title>
@@ -1656,6 +1663,52 @@
         <widget name="capabilityGrants">
           <title>Capability Grants</title>
         </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/webhooks" role="admin" title="Webhooks">
+    <section>
+      <column class="small-12 cell">
+        <widget name="webhookSubscriptionList">
+          <title>Webhooks</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/webhook-subscription{?webhookSubscriptionId}" role="admin" title="Webhook Subscription">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Webhooks" value="/admin/webhooks" />
+            <link name="Webhook Subscription" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 medium-10 large-8 cell">
+        <widget name="webhookSubscriptionForm" />
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/webhook-deliveries{?webhookSubscriptionId}" role="admin" title="Webhook Delivery Log">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Webhooks" value="/admin/webhooks" />
+            <link name="Delivery Log" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="webhookDeliveryList" />
       </column>
     </section>
   </page>

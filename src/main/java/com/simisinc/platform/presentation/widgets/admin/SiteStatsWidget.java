@@ -347,6 +347,13 @@ public class SiteStatsWidget extends GenericWidget {
       context.getRequest().setAttribute("label", context.getPreferences().getOrDefault("label", "Search Term"));
       context.getRequest().setAttribute("value", context.getPreferences().getOrDefault("value", "Zero-Result Searches"));
       return TABLE_JSP;
+    } else if ("zero-result-search-alert".equalsIgnoreCase(report)) {
+      long count = SearchAnalyticsRepository.countZeroResultSearches(1);
+      int threshold = SearchAnalyticsRepository.resolveZeroResultAlertThreshold(
+          LoadSitePropertyCommand.loadByName("search.zeroResultAlertThreshold"));
+      context.getRequest().setAttribute("numberValue", String.valueOf(count));
+      context.getRequest().setAttribute("severity", count > threshold ? "warning" : "ok");
+      return ALERT_CARD_JSP;
     } else if ("trending-search-terms".equalsIgnoreCase(report)) {
       List<StatisticsData> statisticsDataList = SearchAnalyticsRepository.findTrendingTerms(limit);
       context.getRequest().setAttribute("statisticsDataList", statisticsDataList);
