@@ -133,6 +133,8 @@ public class WebPageHitRepository {
 
   private static final int DEFAULT_RETENTION_DAYS = 365;
 
+  private static final int DEFAULT_IP_REQUEST_RATE_ALERT_THRESHOLD = 300;
+
   /** Parses the configured retention window to a bounded positive integer, defaulting to 365 days. */
   static int resolveRetentionDays(String value) {
     if (StringUtils.isBlank(value)) {
@@ -405,6 +407,54 @@ public class WebPageHitRepository {
       LOG.error("SQLException: " + se.getMessage());
     }
     return records;
+  }
+
+  /**
+   * Highest number of hits recorded from a single non-bot IP address in the last
+   * {@code hoursToLimit} hours -- the request-rate-per-IP spike alert tile (issue #569 slice 1:
+   * the admin alert-delivery mechanism, demonstrated with one concrete traffic-quality signal
+   * rather than speculative infrastructure with nothing real to alert on yet). Mirrors
+   * findTopWebPages'/findAvgPagesPerSession's bot-session exclusion so a known crawler's burst
+   * doesn't trip the alert. Rows with no ip_address are excluded since they can't be attributed to
+   * a single source. hoursToLimit is an int, so placing it in the interval cannot inject SQL.
+   * Returns 0 when there is no attributable hit data in the window.
+   */
+  public static long findMaxHitsFromSingleIp(int hoursToLimit) {
+    String SQL_QUERY =
+        "SELECT count(*) AS hit_count " +
+            "FROM " + TABLE_NAME + " " +
+            "WHERE hit_date > NOW() - INTERVAL '" + hoursToLimit + " hours' " +
+            "AND ip_address IS NOT NULL " +
+            "AND NOT EXISTS (SELECT 1 FROM sessions WHERE session_id = web_page_hits.session_id AND is_bot = TRUE) " +
+            "GROUP BY ip_address " +
+            "ORDER BY hit_count DESC " +
+            "LIMIT 1";
+    try (Connection connection = DB.getConnection();
+         PreparedStatement pst = connection.prepareStatement(SQL_QUERY);
+         ResultSet rs = pst.executeQuery()) {
+      if (rs.next()) {
+        return rs.getLong("hit_count");
+      }
+    } catch (SQLException se) {
+      LOG.error("SQLException: " + se.getMessage());
+    }
+    return 0;
+  }
+
+  /** Resolves the configurable IP request-rate alert threshold (security.ipRequestRateAlertThreshold),
+   * falling back to the default when unset or unparseable, matching
+   * SearchAnalyticsRepository.resolveZeroResultAlertThreshold's precedent. */
+  public static int resolveIpRequestRateAlertThreshold(String value) {
+    if (StringUtils.isBlank(value)) {
+      return DEFAULT_IP_REQUEST_RATE_ALERT_THRESHOLD;
+    }
+    int threshold;
+    try {
+      threshold = Integer.parseInt(value.trim());
+    } catch (NumberFormatException e) {
+      return DEFAULT_IP_REQUEST_RATE_ALERT_THRESHOLD;
+    }
+    return Math.max(threshold, 0);
   }
 
   public static List<StatisticsData> findTopPaths(int value, char intervalType, int recordLimit) {
