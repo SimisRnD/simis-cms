@@ -366,6 +366,52 @@ class ContentRepositoryTest {
   }
 
   @Test
+  void countByDateRangeCountsOnlyRowsInTheOpenClosedWindow() {
+    // Same open-closed semantics as dateModifiedRangeFiltersCorrectly above (issue #634's
+    // WebPage search date facet) -- exercised here as a count rather than a fetch.
+    addContent("count-early", "<p>Early</p>");
+    addContent("count-middle", "<p>Middle</p>");
+    addContent("count-late", "<p>Late</p>");
+    setModified("count-early", Timestamp.valueOf(LocalDateTime.of(2026, 1, 1, 9, 0)));
+    setModified("count-middle", Timestamp.valueOf(LocalDateTime.of(2026, 6, 15, 9, 0)));
+    setModified("count-late", Timestamp.valueOf(LocalDateTime.of(2026, 12, 31, 9, 0)));
+
+    long count = ContentRepository.countByDateRange(null,
+        Timestamp.valueOf(LocalDateTime.of(2026, 6, 1, 0, 0)),
+        Timestamp.valueOf(LocalDateTime.of(2026, 7, 1, 0, 0)));
+
+    assertEquals(1, count);
+  }
+
+  @Test
+  void countByDateRangeWithAnOpenEndedStartCountsEverythingFromThatPointOn() {
+    addContent("open-early", "<p>Early</p>");
+    addContent("open-late", "<p>Late</p>");
+    setModified("open-early", Timestamp.valueOf(LocalDateTime.of(2020, 1, 1, 9, 0)));
+    setModified("open-late", Timestamp.valueOf(LocalDateTime.of(2026, 12, 31, 9, 0)));
+
+    long count = ContentRepository.countByDateRange(null,
+        Timestamp.valueOf(LocalDateTime.of(2026, 1, 1, 0, 0)), null);
+
+    assertEquals(1, count);
+  }
+
+  @Test
+  void countByDateRangeCombinesWithTheSearchTermAsAnd() {
+    addContent("term-match-in-range", "<p>career opportunities await</p>");
+    addContent("term-match-out-of-range", "<p>career opportunities await</p>");
+    addContent("no-term-in-range", "<p>unrelated content</p>");
+    setModified("term-match-in-range", Timestamp.valueOf(LocalDateTime.of(2026, 6, 15, 9, 0)));
+    setModified("term-match-out-of-range", Timestamp.valueOf(LocalDateTime.of(2020, 1, 1, 9, 0)));
+    setModified("no-term-in-range", Timestamp.valueOf(LocalDateTime.of(2026, 6, 15, 9, 0)));
+
+    long count = ContentRepository.countByDateRange("career",
+        Timestamp.valueOf(LocalDateTime.of(2026, 1, 1, 0, 0)), null);
+
+    assertEquals(1, count);
+  }
+
+  @Test
   void characterCountRangeFiltersCorrectly() {
     addContent("chars-short", "<p>short</p>");
     addContent("chars-medium", "<p>medium</p>");
