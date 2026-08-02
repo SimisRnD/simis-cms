@@ -20,6 +20,7 @@ import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.domain.events.cms.WebPagePublishedEvent;
 import com.simisinc.platform.domain.events.cms.WebPageUpdatedEvent;
 import com.simisinc.platform.domain.model.cms.SitemapChangeFrequencyOptions;
+import com.simisinc.platform.domain.model.cms.SolutionTypeOptions;
 import com.simisinc.platform.domain.model.cms.WebPage;
 import com.simisinc.platform.infrastructure.cache.PublishEventCachePurgeHandler;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
@@ -95,6 +96,13 @@ public class SaveWebPageCommand {
       errorMessages.append("Sitemap change frequency choice is unavailable");
     }
 
+    // Solution type (issue #570) -- same validation shape as sitemap change frequency above: the
+    // admin form offers a fixed dropdown, so a non-blank value must be one of the real options
+    if (StringUtils.isNotBlank(webPageBean.getSolutionType())
+        && !SolutionTypeOptions.map.containsKey(webPageBean.getSolutionType())) {
+      errorMessages.append("Solution type choice is unavailable");
+    }
+
     if (errorMessages.length() > 0) {
       throw new DataException("Please check the form and try again:\n" + errorMessages.toString());
     }
@@ -128,6 +136,7 @@ public class SaveWebPageCommand {
     webPage.setSitemapChangeFrequency(webPageBean.getSitemapChangeFrequency());
     webPage.setPublishAt(webPageBean.getPublishAt());
     webPage.setExpiresAt(webPageBean.getExpiresAt());
+    webPage.setSolutionType(webPageBean.getSolutionType());
     WebPage result = WebPageRepository.save(webPage);
 
     if (result != null) {

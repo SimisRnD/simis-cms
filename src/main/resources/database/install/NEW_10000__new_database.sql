@@ -145,6 +145,10 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (24, 'ZeroBounce API Key', 'mailing-list.zerobounce.apiKey', '', 'text');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (26, 'Mailing List Quarantine Alert Threshold (%)', 'mailing-list.quarantine.alertThresholdPercent', '10', 'text');
 
+-- Search
+
+INSERT INTO site_properties (property_label, property_name, property_value, property_type) VALUES ('Zero-Result Search Alert Threshold (count/24h)', 'search.zeroResultAlertThreshold', '20', 'text');
+
 -- Maps
 
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (10, 'Map Tiles Service', 'maps.service.tiles', 'openstreetmap');
@@ -255,12 +259,6 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (32, 'PERLS URL', 'elearning.perls.url', '', 'url');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (34, 'PERLS Client Id', 'elearning.perls.clientId', '', 'text');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (36, 'PERLS Secret', 'elearning.perls.secret', '', 'text');
-
--- Web Conferencing
-
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (1, 'Enable web conferencing?', 'conferencing.enabled', 'true', 'boolean');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (10, 'BBB URL', 'conferencing.bbb.url', '', 'url');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (12, 'BBB Secret', 'conferencing.bbb.secret', '', 'text');
 
 -- Authentication
 

@@ -33,6 +33,7 @@ import org.apache.commons.logging.LogFactory;
 import org.postgresql.util.PGInterval;
 
 import com.simisinc.platform.domain.model.Entity;
+import com.simisinc.platform.domain.model.dashboard.StatisticsData;
 import com.univocity.parsers.common.NormalizedString;
 import com.univocity.parsers.common.processor.RowWriterProcessor;
 import com.univocity.parsers.csv.CsvRoutines;
@@ -269,6 +270,74 @@ public class DB {
     } catch (SQLException se) {
       LOG.error(sql);
       LOG.error("selectFunctionAsLongList SQLException: " + se.getMessage());
+    }
+    return records;
+  }
+
+  /**
+   * Groups rows by a single column and returns (label, count) pairs -- a generic version of the
+   * hand-written "SELECT x, COUNT(x) ... GROUP BY x" reports scattered across the persistence layer
+   * (e.g. SearchAnalyticsRepository#findZeroResultTerms, WebPageHitRepository#findTopWebPages), for
+   * single-table/no-join cases. Composes:
+   * {@code SELECT <groupByColumn>, COUNT(<groupByColumn>) AS <countAlias> FROM <tableName> <where>
+   * GROUP BY <groupByColumn> <orderBy> <limit>}, reusing the same where-clause/parameter-binding
+   * helpers as every other method here, so filter values in {@code where} are genuinely
+   * parameterized rather than concatenated. {@code groupByColumn}/{@code countAlias}, like the
+   * {@code sql} argument to {@link #selectFunction}, are trusted, application-supplied identifiers,
+   * not user input. If {@code orderBy} references the count, use {@code countAlias} (e.g.
+   * {@code new SqlUtils().add("query_count DESC")}). {@code recordLimit} is a primitive int, so --
+   * matching how {@link #selectAllFrom} appends {@code DataConstraints#getPageSize()} -- it is safe
+   * to append directly into the SQL text rather than bind as a parameter; pass {@code <= 0} for no
+   * limit.
+   */
+  public static List<StatisticsData> selectGroupedFrom(String tableName, String groupByColumn, String countAlias,
+      SqlUtils where, SqlUtils orderBy, int recordLimit) {
+
+    // Construct the where clause
+    StringBuilder whereSb = createWhereClause(where);
+
+    // Prepare the query
+    StringBuilder sb = new StringBuilder();
+    sb.append("SELECT ").append(groupByColumn).append(", COUNT(").append(groupByColumn).append(") AS ")
+        .append(countAlias);
+    sb.append(" FROM ").append(tableName);
+    sb.append(whereSb);
+    sb.append(" GROUP BY ").append(groupByColumn);
+
+    // Apply sorting
+    if (orderBy != null) {
+      sb.append(appendSortClause(orderBy, null));
+    }
+
+    // Apply the row limit (a primitive int, not string-concatenated external input)
+    if (recordLimit > 0) {
+      sb.append(" LIMIT ").append(recordLimit);
+    }
+    String sql = sb.toString();
+
+    // Get a connection, execute the query, return the data
+    List<StatisticsData> records = new ArrayList<>();
+    long startQueryTime = System.currentTimeMillis();
+    try (Connection connection = getConnection();
+        PreparedStatement pst = createPreparedStatement(connection, sql, where);
+        ResultSet rs = pst.executeQuery()) {
+      while (rs.next()) {
+        StatisticsData data = new StatisticsData();
+        data.setLabel(rs.getString(1));
+        data.setValue(String.valueOf(rs.getLong(2)));
+        records.add(data);
+      }
+    } catch (SQLException se) {
+      LOG.error(sql);
+      LOG.error("selectGroupedFrom SQLException: " + se.getMessage());
+    }
+    if (LOG.isDebugEnabled()) {
+      long endQueryTime = System.currentTimeMillis();
+      long totalTime = endQueryTime - startQueryTime;
+      if (totalTime > LONG_QUERY_MS) {
+        LOG.debug(sql);
+        LOG.debug("Query took " + totalTime + "ms");
+      }
     }
     return records;
   }
