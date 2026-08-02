@@ -20,17 +20,24 @@ import com.simisinc.platform.application.cms.LoadMenuTabsCommand;
 import com.simisinc.platform.domain.model.cms.MenuTab;
 import com.simisinc.platform.domain.model.cms.WebPage;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.WebPageSpecification;
 import com.simisinc.platform.presentation.controller.XMLPageLoader;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.controller.Page;
 import com.simisinc.platform.presentation.controller.WidgetContext;
+import org.apache.commons.lang3.StringUtils;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 /**
- * Description
+ * The full /admin/web-pages list is split into two sections: pages currently in the site
+ * navigation menu (top), and the complete list of every {@link WebPage} record (bottom, labeled
+ * "All Web Pages"). Only the bottom section supports search/status filtering (issue #497) -- the
+ * nav-menu section is already organized by its own hierarchy and every page shown there also
+ * appears again in the full list below, so filtering it separately would just be confusing.
  *
  * @author matt rajkowski
  * @created 4/25/18 5:45 PM
@@ -51,18 +58,9 @@ public class WebPageListWidget extends GenericWidget {
     List<MenuTab> menuTabList = LoadMenuTabsCommand.findAllIncludeMenuItemList();
     context.getRequest().setAttribute("menuTabList", menuTabList);
 
-    // Load the web pages
-    List<WebPage> webPageList = WebPageRepository.findAll();
-    context.getRequest().setAttribute("webPageList", webPageList);
-
-    // Create a map of links to pages
-    Map<String, WebPage> webPageMap = new HashMap<>();
-    for (WebPage webPage : webPageList) {
-      webPageMap.put(webPage.getLink(), webPage);
-    }
-    context.getRequest().setAttribute("webPageMap", webPageMap);
-
-    // Load the built in pages (just the ones which the pages use)
+    // Load the built in pages (just the ones which the pages use) -- needed before filtering the
+    // "All Web Pages" list below, since a standard/built-in page is always "live" regardless of
+    // whether it has stored page_xml.
     Map<String, Page> standardPages = new HashMap<String, Page>();
     XMLPageLoader xmlPageConfig = new XMLPageLoader(standardPages);
     xmlPageConfig.loadWidgetLibrary(context.getRequest().getServletContext(), "/WEB-INF/widgets/widget-library.xml");
@@ -72,6 +70,65 @@ public class WebPageListWidget extends GenericWidget {
 
     LOG.debug("Widgets: " + xmlPageConfig.getWidgetLibrary().size());
     LOG.debug("Standard pages: " + standardPages.size());
+
+    // Load every web page (used to resolve nav-menu items to their record, e.g. draft/301 status)
+    List<WebPage> webPageList = WebPageRepository.findAll();
+
+    // Create a map of links to pages
+    Map<String, WebPage> webPageMap = new HashMap<>();
+    for (WebPage webPage : webPageList) {
+      webPageMap.put(webPage.getLink(), webPage);
+    }
+    context.getRequest().setAttribute("webPageMap", webPageMap);
+
+    // Filter the "All Web Pages" list (search box + status dropdown)
+    String searchTerm = context.getParameter("q");
+    String status = context.getParameter("status");
+
+    WebPageSpecification specification = new WebPageSpecification();
+    if (StringUtils.isNotBlank(searchTerm)) {
+      specification.setSearchTerm(searchTerm);
+    }
+    if ("draft".equals(status)) {
+      specification.setDraft(true);
+    } else if ("redirect".equals(status)) {
+      specification.setHasRedirect(true);
+    }
+    List<WebPage> filteredWebPageList = (StringUtils.isNotBlank(searchTerm) || StringUtils.isNotBlank(status))
+        ? WebPageRepository.findAll(specification, null)
+        : webPageList;
+
+    // "live"/"broken" aren't stored columns -- they're derived the same way the JSP derives them
+    // (draft/redirect already excluded a page from reaching here; a standard/built-in page or a
+    // page under /directory/ is always live regardless of its stored page_xml).
+    if ("broken".equals(status)) {
+      List<WebPage> brokenList = new ArrayList<>();
+      for (WebPage webPage : filteredWebPageList) {
+        if (!webPage.getDraft() && StringUtils.isBlank(webPage.getRedirectUrl())
+            && !standardPages.containsKey(webPage.getLink())
+            && !webPage.getLink().startsWith("/directory/")
+            && StringUtils.isBlank(webPage.getPageXml())) {
+          brokenList.add(webPage);
+        }
+      }
+      filteredWebPageList = brokenList;
+    } else if ("live".equals(status)) {
+      List<WebPage> liveList = new ArrayList<>();
+      for (WebPage webPage : filteredWebPageList) {
+        if (!webPage.getDraft() && StringUtils.isBlank(webPage.getRedirectUrl())
+            && (standardPages.containsKey(webPage.getLink())
+                || webPage.getLink().startsWith("/directory/")
+                || StringUtils.isNotBlank(webPage.getPageXml()))) {
+          liveList.add(webPage);
+        }
+      }
+      filteredWebPageList = liveList;
+    }
+    context.getRequest().setAttribute("webPageList", filteredWebPageList);
+
+    // Echo the filter values back so the form keeps its state
+    context.getRequest().setAttribute("q", searchTerm);
+    context.getRequest().setAttribute("status", status);
 
     // Show the JSP
     context.setJsp(JSP);

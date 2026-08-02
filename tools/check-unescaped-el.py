@@ -251,6 +251,16 @@ ALLOWLIST: dict[str, str] = {
     # Numeric expressions whose names don't match the NUMERIC word-suffix list.
     "${status.first ? 0 : menuTab.id}":
         "EL ternary: evaluates to either the literal 0 or menuTab.id (a long DB primary key) -- both branches are purely numeric, cannot carry markup.",
+    "${empty status ? 'selected' : ''}":
+        "EL ternary between two fixed literals ('selected'/'') -- same pattern as the medium-9/medium-12 entry elsewhere in this file. No other value is possible.",
+    "${status eq 'draft' ? 'selected' : ''}":
+        "EL ternary between two fixed literals ('selected'/'') -- same pattern as the medium-9/medium-12 entry elsewhere in this file. No other value is possible.",
+    "${status eq 'redirect' ? 'selected' : ''}":
+        "EL ternary between two fixed literals ('selected'/'') -- same pattern as the medium-9/medium-12 entry elsewhere in this file. No other value is possible.",
+    "${status eq 'broken' ? 'selected' : ''}":
+        "EL ternary between two fixed literals ('selected'/'') -- same pattern as the medium-9/medium-12 entry elsewhere in this file. No other value is possible.",
+    "${status eq 'live' ? 'selected' : ''}":
+        "EL ternary between two fixed literals ('selected'/'') -- same pattern as the medium-9/medium-12 entry elsewhere in this file. No other value is possible.",
     "${includeStylesheet}":
         "PageServlet sets this to pageStylesheet.getWebPageId(), a long DB primary key; only decimal digits, cannot carry markup.",
     "${includeStylesheetLastModified}":
