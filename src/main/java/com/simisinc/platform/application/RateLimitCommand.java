@@ -17,10 +17,12 @@
 package com.simisinc.platform.application;
 
 import com.github.benmanes.caffeine.cache.Cache;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.domain.model.App;
 import com.simisinc.platform.infrastructure.cache.CacheManager;
 import io.github.bucket4j.Bandwidth;
 import io.github.bucket4j.Bucket;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -37,6 +39,31 @@ public class RateLimitCommand {
   public static final String INVALID_ATTEMPTS = "Too many attempts. Please try again later.";
   private static Log LOG = LogFactory.getLog(RateLimitCommand.class);
 
+  static final int DEFAULT_IP_MAX_ATTEMPTS = 10;
+  static final int DEFAULT_IP_WINDOW_MINUTES = 30;
+  static final int DEFAULT_USERNAME_MAX_ATTEMPTS = 5;
+  static final int DEFAULT_USERNAME_WINDOW_MINUTES = 30;
+
+  /**
+   * Parses a rate-limit site property to a bounded positive integer -- the value comes from an
+   * admin-editable site property, so it must not be able to produce a zero/negative bucket
+   * (accidentally disabling rate limiting entirely) or an absurdly large one.
+   */
+  static int resolveLimitValue(String value, int defaultValue, int max) {
+    if (StringUtils.isBlank(value)) {
+      return defaultValue;
+    }
+    try {
+      int parsed = Integer.parseInt(value.trim());
+      if (parsed < 1) {
+        return defaultValue;
+      }
+      return Math.min(parsed, max);
+    } catch (NumberFormatException nfe) {
+      return defaultValue;
+    }
+  }
+
   /**
    * Rate limiting on a login page can be applied according to the user's username.
    *
@@ -51,7 +78,11 @@ public class RateLimitCommand {
       bucket = (Bucket) cache.getIfPresent(username);
       if (bucket == null) {
         if (startWatching) {
-          Bandwidth limit = Bandwidth.simple(5, Duration.ofMinutes(30));
+          int maxAttempts = resolveLimitValue(
+              LoadSitePropertyCommand.loadByName("security.rateLimit.usernameMaxAttempts"), DEFAULT_USERNAME_MAX_ATTEMPTS, 1000);
+          int windowMinutes = resolveLimitValue(
+              LoadSitePropertyCommand.loadByName("security.rateLimit.usernameWindowMinutes"), DEFAULT_USERNAME_WINDOW_MINUTES, 1440);
+          Bandwidth limit = Bandwidth.simple(maxAttempts, Duration.ofMinutes(windowMinutes));
           bucket = Bucket.builder().addLimit(limit).build();
           cache.put(username, bucket);
         }
@@ -75,7 +106,11 @@ public class RateLimitCommand {
       bucket = (Bucket) cache.getIfPresent(ipAddress);
       if (bucket == null) {
         if (startWatching) {
-          Bandwidth limit = Bandwidth.simple(10, Duration.ofMinutes(30));
+          int maxAttempts = resolveLimitValue(
+              LoadSitePropertyCommand.loadByName("security.rateLimit.ipMaxAttempts"), DEFAULT_IP_MAX_ATTEMPTS, 1000);
+          int windowMinutes = resolveLimitValue(
+              LoadSitePropertyCommand.loadByName("security.rateLimit.ipWindowMinutes"), DEFAULT_IP_WINDOW_MINUTES, 1440);
+          Bandwidth limit = Bandwidth.simple(maxAttempts, Duration.ofMinutes(windowMinutes));
           bucket = Bucket.builder().addLimit(limit).build();
           cache.put(ipAddress, bucket);
         }

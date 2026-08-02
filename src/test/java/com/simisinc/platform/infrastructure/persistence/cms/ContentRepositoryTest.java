@@ -42,6 +42,8 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
 
+import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.cms.ContentReviewCommand;
 import com.simisinc.platform.domain.model.cms.Content;
 import com.simisinc.platform.infrastructure.database.DB;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
@@ -282,6 +284,17 @@ class ContentRepositoryTest {
     return ContentRepository.save(content);
   }
 
+  /** Runs the status filter and returns the matching unique ids (empty list, never null, when there are none). */
+  private static List<String> uniqueIdsForStatus(String status) {
+    ContentSpecification specification = new ContentSpecification();
+    specification.setStatus(status);
+    List<Content> results = ContentRepository.findAll(specification, new DataConstraints());
+    if (results == null) {
+      return List.of();
+    }
+    return results.stream().map(Content::getUniqueId).toList();
+  }
+
   /** Directly sets the modified timestamp (bypassing ContentRepository.update()'s "now" stamp) so date-range tests can pin known values. */
   private static void setModified(String uniqueId, Timestamp modified) {
     try (Connection connection = DB.getConnection();
@@ -391,5 +404,99 @@ class ContentRepositoryTest {
     assertNotNull(results);
     List<String> uniqueIds = results.stream().map(Content::getUniqueId).toList();
     assertEquals(List.of("combo-in-range"), uniqueIds);
+  }
+
+  // --- Status filter (issue #499: the /admin/content-list status column and dropdown) ---
+
+  @Test
+  void statusFilterReturnsOnlyTheMatchingRowForEachOfTheFourStates() {
+    // Live: no draft in progress.
+    addContent("status-live", "<p>live</p>");
+
+    // Draft: a draft in progress, never submitted.
+    Content draftBlock = addContent("status-draft", "<p>live</p>");
+    draftBlock.setDraftContent("<p>editing</p>");
+    ContentRepository.save(draftBlock);
+
+    // Pending Review: submitted, not yet approved.
+    Content pending = addContent("status-pending", "<p>live</p>");
+    pending.setDraftContent("<p>proposed</p>");
+    pending.setDraftStatus(ContentReviewCommand.STATUS_SUBMITTED);
+    pending.setSubmittedBy(10L);
+    ContentRepository.save(pending);
+
+    // Approved: submitted AND approved, but not yet published (still a distinct, later state).
+    Content approved = addContent("status-approved", "<p>live</p>");
+    approved.setDraftContent("<p>proposed</p>");
+    approved.setDraftStatus(ContentReviewCommand.STATUS_SUBMITTED);
+    approved.setSubmittedBy(10L);
+    approved.setApprovedBy(20L);
+    ContentRepository.save(approved);
+
+    // Each filter returns exactly its own row -- this also proves the other three rows are
+    // correctly excluded, not just that the target row is included.
+    assertEquals(List.of("status-live"), uniqueIdsForStatus(ContentReviewCommand.LIST_STATUS_LIVE));
+    assertEquals(List.of("status-draft"), uniqueIdsForStatus(ContentReviewCommand.LIST_STATUS_DRAFT));
+    assertEquals(List.of("status-pending"), uniqueIdsForStatus(ContentReviewCommand.LIST_STATUS_PENDING_REVIEW));
+    assertEquals(List.of("status-approved"), uniqueIdsForStatus(ContentReviewCommand.LIST_STATUS_APPROVED));
+  }
+
+  @Test
+  void noStatusFilterReturnsEveryRowRegardlessOfWorkflowState() {
+    addContent("nofilter-live", "<p>live</p>");
+    Content draftBlock = addContent("nofilter-draft", "<p>live</p>");
+    draftBlock.setDraftContent("<p>editing</p>");
+    ContentRepository.save(draftBlock);
+
+    List<String> uniqueIds = uniqueIdsForStatus(null);
+
+    assertTrue(uniqueIds.contains("nofilter-live"));
+    assertTrue(uniqueIds.contains("nofilter-draft"));
+  }
+
+  @Test
+  void aRejectedDraftFiltersAsDraftNotPendingOrApproved() throws DataException {
+    // Exercises the real ContentReviewCommand transitions (submit -> reject), not hand-seeded
+    // columns, so this proves the SQL filter matches what the actual workflow produces: reject()
+    // resets draft_status back to STATUS_DRAFT, and there is no separate "Rejected" state.
+    Content content = addContent("status-rejected", "<p>live</p>");
+    content.setDraftContent("<p>revise me</p>");
+    ContentReviewCommand.submitForReview(content, 10L);
+    ContentRepository.save(content);
+
+    assertEquals(List.of("status-rejected"), uniqueIdsForStatus(ContentReviewCommand.LIST_STATUS_PENDING_REVIEW));
+    assertTrue(uniqueIdsForStatus(ContentReviewCommand.LIST_STATUS_DRAFT).isEmpty());
+
+    ContentReviewCommand.reject(content, 20L);
+    ContentRepository.save(content);
+
+    assertEquals(List.of("status-rejected"), uniqueIdsForStatus(ContentReviewCommand.LIST_STATUS_DRAFT));
+    assertTrue(uniqueIdsForStatus(ContentReviewCommand.LIST_STATUS_PENDING_REVIEW).isEmpty());
+    assertTrue(uniqueIdsForStatus(ContentReviewCommand.LIST_STATUS_APPROVED).isEmpty());
+  }
+
+  @Test
+  void statusFilterCombinesWithOtherFiltersAsAnd() {
+    // The status filter must AND with the other filters (same convention as combinedFiltersAreAnded
+    // above), not silently override or ignore them.
+    Content matches = addContent("combo-status-match", "<p>career opportunities await</p>");
+    matches.setDraftContent("<p>revised career copy</p>");
+    ContentRepository.save(matches);
+
+    Content wrongTerm = addContent("combo-status-wrong-term", "<p>unrelated</p>");
+    wrongTerm.setDraftContent("<p>also unrelated</p>");
+    ContentRepository.save(wrongTerm);
+
+    addContent("combo-status-live-only", "<p>career opportunities await</p>"); // no draft -- wrong status
+
+    ContentSpecification specification = new ContentSpecification();
+    specification.setSearchTerm("career");
+    specification.setStatus(ContentReviewCommand.LIST_STATUS_DRAFT);
+
+    List<Content> results = ContentRepository.findAll(specification, new DataConstraints());
+
+    assertNotNull(results);
+    List<String> uniqueIds = results.stream().map(Content::getUniqueId).toList();
+    assertEquals(List.of("combo-status-match"), uniqueIds);
   }
 }

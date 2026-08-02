@@ -17,6 +17,8 @@
 package com.simisinc.platform.infrastructure.persistence.items;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -25,6 +27,8 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.time.Duration;
+import java.util.Arrays;
+import java.util.Map;
 import java.util.Properties;
 
 import org.junit.jupiter.api.AfterAll;
@@ -42,13 +46,14 @@ import com.simisinc.platform.infrastructure.database.DataSource;
 import com.simisinc.platform.presentation.controller.UserSession;
 
 /**
- * Verifies {@link ItemRepository#countByCategory} and {@link ItemRepository#countByDateRange}
- * (issue #421's facet counts) against a real PostgreSQL instance, since the EXISTS subquery
- * against item_categories and the collections LEFT JOIN cannot be exercised meaningfully with a
- * mock. The schema here is a minimal subset covering only what these two methods' shared WHERE
- * clause (ItemRepository.createSearchWhereStatement) touches -- items, collections,
- * item_categories -- not the full production items table, since these methods use
- * DB.selectFunction (a scalar COUNT) rather than ItemRepository.buildRecord.
+ * Verifies {@link ItemRepository#countByCategory}, {@link ItemRepository#countByDateRange}
+ * (issue #421's facet counts), and {@link ItemRepository#countGroupedByCategory} (issue #637's
+ * batched replacement for the per-candidate countByCategory loop) against a real PostgreSQL
+ * instance, since the EXISTS subquery / JOIN against item_categories and the collections LEFT
+ * JOIN cannot be exercised meaningfully with a mock. The schema here is a minimal subset covering
+ * only what these methods' shared WHERE clause (ItemRepository.createSearchWhereStatement)
+ * touches -- items, collections, item_categories -- not the full production items table, since
+ * these methods use DB.selectFunction/DB.selectGroupedFrom rather than ItemRepository.buildRecord.
  *
  * <p>Integration test: starts a throwaway PostgreSQL container (Testcontainers) and is skipped
  * automatically when Docker is not available.</p>
@@ -151,7 +156,31 @@ class ItemRepositoryTest {
   }
 
   @Test
-  void countByCategoryAppliesTheSpecificationsDateRangeButIgnoresItsOwnCategoryId() {
+  void countByCategoryUnionsTheSpecificationsCurrentSelectionWithTheCandidate() {
+    // Issue #636 generalizes countByCategory's semantics from #421's single-select "ignore the
+    // specification's own categoryId, count only the candidate" to "count the candidate PLUS
+    // whatever the specification already has selected" (OR-within-dimension), so an unchecked
+    // facet's displayed count reflects "what if this were ALSO selected" rather than "as if this
+    // were the only one selected". Prove the union with a case where the specification's own
+    // preselected category genuinely has matching items -- under the old semantics this would be
+    // 1 (categoryA alone); the union is 2 (categoryA plus the already-selected categoryB).
+    long collectionId = addCollection();
+    long categoryA = 10;
+    long categoryB = 20;
+    long itemInA = addItem(collectionId, null, Timestamp.valueOf("2026-06-15 00:00:00"));
+    linkCategory(itemInA, categoryA, collectionId);
+    long itemInB = addItem(collectionId, null, Timestamp.valueOf("2026-06-16 00:00:00"));
+    linkCategory(itemInB, categoryB, collectionId);
+
+    ItemSpecification specification = new ItemSpecification();
+    specification.setCategoryId(categoryB); // already selected, via the legacy single-value field
+
+    assertEquals(2, ItemRepository.countByCategory(specification, categoryA),
+        "the candidate (categoryA) must be unioned with what's already selected (categoryB), not replace it");
+  }
+
+  @Test
+  void countByCategoryStillAppliesTheDateRangeToTheUnion() {
     long collectionId = addCollection();
     long categoryA = 10;
     long inRange = addItem(collectionId, null, Timestamp.valueOf("2026-06-15 00:00:00"));
@@ -160,11 +189,55 @@ class ItemRepositoryTest {
     linkCategory(outOfRange, categoryA, collectionId);
 
     ItemSpecification specification = new ItemSpecification();
-    specification.setCategoryId(999); // a different category -- must be ignored by countByCategory
     specification.setDateRangeStart(Timestamp.valueOf("2026-06-01 00:00:00"));
 
     assertEquals(1, ItemRepository.countByCategory(specification, categoryA),
-        "the date range should still narrow the count, but the specification's own categoryId must not");
+        "the date range must still narrow the candidate's count");
+  }
+
+  @Test
+  void countByCategoryWithMultipleSelectedCategoriesOrsWithinTheDimension() {
+    // A specification with 2+ categoryIds selected must OR them together -- any item in category A
+    // OR category B matches, category C (not selected) does not. Passing one of the already-
+    // selected ids back in as the "candidate" is a no-op union (it's already in the set), so this
+    // yields exactly the combined multi-selection's count -- the same trick
+    // ItemsSearchResultsWidget uses to compute its "combined selected count" for the UI.
+    long collectionId = addCollection();
+    long categoryA = 10;
+    long categoryB = 20;
+    long categoryC = 30;
+    long itemInA = addItem(collectionId, null, Timestamp.valueOf("2026-06-15 00:00:00"));
+    linkCategory(itemInA, categoryA, collectionId);
+    long itemInB = addItem(collectionId, null, Timestamp.valueOf("2026-06-16 00:00:00"));
+    linkCategory(itemInB, categoryB, collectionId);
+    long itemInC = addItem(collectionId, null, Timestamp.valueOf("2026-06-17 00:00:00"));
+    linkCategory(itemInC, categoryC, collectionId);
+
+    ItemSpecification specification = new ItemSpecification();
+    specification.setCategoryIds(Arrays.asList(categoryA, categoryB));
+
+    assertEquals(2, ItemRepository.countByCategory(specification, categoryA),
+        "categories A and B are both selected (OR-within-dimension) -- C must not be counted");
+  }
+
+  @Test
+  void countByCategoryWithMultipleSelectedCategoriesStillAndsWithAnActiveDateRange() {
+    // AND-across-dimensions: the category OR-selection and the date range must combine with AND,
+    // not each independently override the other.
+    long collectionId = addCollection();
+    long categoryA = 10;
+    long categoryB = 20;
+    long inRangeA = addItem(collectionId, null, Timestamp.valueOf("2026-06-15 00:00:00"));
+    linkCategory(inRangeA, categoryA, collectionId);
+    long outOfRangeB = addItem(collectionId, null, Timestamp.valueOf("2026-01-01 00:00:00"));
+    linkCategory(outOfRangeB, categoryB, collectionId);
+
+    ItemSpecification specification = new ItemSpecification();
+    specification.setCategoryIds(Arrays.asList(categoryA, categoryB));
+    specification.setDateRangeStart(Timestamp.valueOf("2026-06-01 00:00:00"));
+
+    assertEquals(1, ItemRepository.countByCategory(specification, categoryA),
+        "categoryB matches the OR-selection but its item is outside the date range, so AND-across-dimensions must exclude it");
   }
 
   @Test
@@ -346,6 +419,120 @@ class ItemRepositoryTest {
         Timestamp.valueOf("2026-01-01 00:00:00"), Timestamp.valueOf("2027-01-01 00:00:00"));
 
     assertEquals(2, count, "facet counts must not drift from what a real includeArchived(true) listing query would return");
+  }
+
+  @Test
+  void countGroupedByCategoryReturnsEachCategorysOwnCountInOneQuery() {
+    // Issue #637: countGroupedByCategory replaces what used to be one countByCategory round trip
+    // per candidate category with a single grouped query -- this is the direct equivalent of
+    // countByCategoryCountsOnlyItemsInThatCategory above, for the batched method.
+    long collectionId = addCollection();
+    long categoryA = 10;
+    long categoryB = 20;
+    addItem(collectionId, null, Timestamp.valueOf("2026-01-01 00:00:00"));
+    long itemInA = addItem(collectionId, null, Timestamp.valueOf("2026-01-02 00:00:00"));
+    linkCategory(itemInA, categoryA, collectionId);
+    long itemInB = addItem(collectionId, null, Timestamp.valueOf("2026-01-03 00:00:00"));
+    linkCategory(itemInB, categoryB, collectionId);
+
+    ItemSpecification specification = new ItemSpecification();
+    Map<Long, Long> counts = ItemRepository.countGroupedByCategory(specification);
+
+    assertEquals(1L, counts.get(categoryA));
+    assertEquals(1L, counts.get(categoryB));
+    assertFalse(counts.containsKey(999L), "a category with no matching items must be absent, not present with a 0");
+  }
+
+  @Test
+  void countGroupedByCategoryOmitsUncategorizedItemsAndCategoriesWithNoMatches() {
+    long collectionId = addCollection();
+    long categoryA = 10;
+    // An item with no category link at all -- must not surface as a phantom entry (e.g. a null
+    // key) in the grouped result.
+    addItem(collectionId, null, Timestamp.valueOf("2026-01-01 00:00:00"));
+    linkCategory(addItem(collectionId, null, Timestamp.valueOf("2026-01-02 00:00:00")), categoryA, collectionId);
+
+    ItemSpecification specification = new ItemSpecification();
+    Map<Long, Long> counts = ItemRepository.countGroupedByCategory(specification);
+
+    assertEquals(1, counts.size(), "only categories with matching items may appear in the map: " + counts);
+    assertEquals(1L, counts.get(categoryA));
+  }
+
+  @Test
+  void countGroupedByCategoryAppliesTheSpecificationsDateRangeButIgnoresItsOwnCategoryId() {
+    long collectionId = addCollection();
+    long categoryA = 10;
+    long inRange = addItem(collectionId, null, Timestamp.valueOf("2026-06-15 00:00:00"));
+    linkCategory(inRange, categoryA, collectionId);
+    long outOfRange = addItem(collectionId, null, Timestamp.valueOf("2026-01-01 00:00:00"));
+    linkCategory(outOfRange, categoryA, collectionId);
+
+    ItemSpecification specification = new ItemSpecification();
+    specification.setCategoryId(999); // a different category -- must be ignored, same as countByCategory
+    specification.setDateRangeStart(Timestamp.valueOf("2026-06-01 00:00:00"));
+
+    Map<Long, Long> counts = ItemRepository.countGroupedByCategory(specification);
+
+    assertEquals(1L, counts.get(categoryA),
+        "the date range should still narrow the count, but the specification's own categoryId must not");
+  }
+
+  @Test
+  void countGroupedByCategoryReturnsZeroCollectionsForAGuestWhenTheCollectionDoesNotAllowGuests() {
+    long collectionId = addPrivateCollection();
+    long categoryA = 10;
+    long item = addItem(collectionId, null, Timestamp.valueOf("2026-06-15 00:00:00"));
+    linkCategory(item, categoryA, collectionId);
+
+    ItemSpecification specification = new ItemSpecification();
+    specification.setForUserId(UserSession.GUEST_ID);
+
+    Map<Long, Long> counts = ItemRepository.countGroupedByCategory(specification);
+
+    assertTrue(counts.isEmpty(),
+        "the same access-control restriction countByCategory applies must carry into the grouped form -- "
+            + "otherwise an unauthenticated requester could learn a private category has items via its count");
+  }
+
+  @Test
+  void countGroupedByCategoryExcludesArchivedItemsByDefaultAndIncludesThemWhenOptedIn() {
+    long collectionId = addCollection();
+    long categoryA = 10;
+    long activeItem = addItem(collectionId, null, Timestamp.valueOf("2026-01-01 00:00:00"));
+    linkCategory(activeItem, categoryA, collectionId);
+    long archivedItem = addItem(collectionId, null, Timestamp.valueOf("2026-01-02 00:00:00"));
+    linkCategory(archivedItem, categoryA, collectionId);
+    archiveItem(archivedItem);
+
+    ItemSpecification specification = new ItemSpecification();
+    assertEquals(1L, ItemRepository.countGroupedByCategory(specification).get(categoryA),
+        "a deactivated item must not be counted by a normal (non-includeArchived) query");
+
+    specification.setIncludeArchived(true);
+    assertEquals(2L, ItemRepository.countGroupedByCategory(specification).get(categoryA),
+        "a caller that explicitly opts in must still see archived items, same as countByCategory");
+  }
+
+  @Test
+  void countGroupedByCategoryMatchesCountByCategoryForEveryCategory() {
+    // Ties the new batched method to the existing single-value one it replaces in
+    // ItemsSearchResultsWidget's facet loop: for every category, the grouped map's value must
+    // equal what the per-candidate countByCategory call would have returned for that candidate.
+    long collectionId = addCollection();
+    long categoryA = 10;
+    long categoryB = 20;
+    long categoryC = 30; // never linked to an item -- must be absent from both forms
+    linkCategory(addItem(collectionId, null, Timestamp.valueOf("2026-01-01 00:00:00")), categoryA, collectionId);
+    linkCategory(addItem(collectionId, null, Timestamp.valueOf("2026-01-02 00:00:00")), categoryA, collectionId);
+    linkCategory(addItem(collectionId, null, Timestamp.valueOf("2026-01-03 00:00:00")), categoryB, collectionId);
+
+    ItemSpecification specification = new ItemSpecification();
+    Map<Long, Long> counts = ItemRepository.countGroupedByCategory(specification);
+
+    assertEquals(ItemRepository.countByCategory(specification, categoryA), counts.getOrDefault(categoryA, 0L));
+    assertEquals(ItemRepository.countByCategory(specification, categoryB), counts.getOrDefault(categoryB, 0L));
+    assertEquals(ItemRepository.countByCategory(specification, categoryC), counts.getOrDefault(categoryC, 0L));
   }
 
   private static boolean isDockerAvailable() {

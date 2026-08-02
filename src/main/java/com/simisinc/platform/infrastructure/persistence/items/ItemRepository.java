@@ -21,6 +21,7 @@ import com.simisinc.platform.application.filesystem.FileSystemCommand;
 import com.simisinc.platform.application.CustomFieldListJSONCommand;
 import com.simisinc.platform.application.maps.ValidateGeoRegion;
 import com.simisinc.platform.domain.model.User;
+import com.simisinc.platform.domain.model.dashboard.StatisticsData;
 import com.simisinc.platform.domain.model.items.Collection;
 import com.simisinc.platform.domain.model.items.Item;
 import com.simisinc.platform.domain.model.items.ItemCategory;
@@ -41,7 +42,9 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Persists and retrieves item objects
@@ -337,8 +340,14 @@ public class ItemRepository {
    * keyword match, category, date range, and (the presence of) a location filter. query() and the
    * facet count methods below all build from this shared method so a facet's count can never
    * drift from what query() itself would return for the same specification.
+   *
+   * <p>Package-private (not private) so ItemRepositoryTest can inspect the SqlUtils it returns
+   * directly -- verifying the multi-category IN-list below is genuinely parameterized (one `?`
+   * per id, values bound as real PreparedStatement parameters) needs to see the built SQL text and
+   * SqlValue list, which a DB-integration test can't distinguish from string concatenation for
+   * valid longs.</p>
    */
-  private static SqlUtils createSearchWhereStatement(ItemSpecification specification) {
+  static SqlUtils createSearchWhereStatement(ItemSpecification specification) {
     SqlUtils where = new SqlUtils();
 
     // Issue #814: exclude deactivated items from normal listing/search queries by default. Callers
@@ -355,9 +364,25 @@ public class ItemRepository {
     } else if (specification.getUnapprovedOnly()) {
       where.add("approved is null");
     }
-    if (specification.getCategoryId() > -1) {
-      where.add("EXISTS (SELECT 1 FROM item_categories WHERE item_id = items.item_id AND category_id = ?)",
-          specification.getCategoryId());
+    // Issue #636: multi-select within the category facet dimension (OR-within-dimension) --
+    // any item belonging to at least one of the selected categories matches. A single selected
+    // category (the #421 single-select case, or a legacy caller that only ever set categoryId)
+    // produces a one-placeholder IN list, functionally identical to the old `category_id = ?`.
+    // The IN-list is built with one `?` per id and the ids bound as real parameters (SqlUtils'
+    // Long[] overload) -- never string-concatenated into the SQL text, even though these are
+    // validated longs, matching this codebase's parameterization discipline everywhere else.
+    List<Long> categoryIds = specification.getEffectiveCategoryIds();
+    if (!categoryIds.isEmpty()) {
+      StringBuilder placeholders = new StringBuilder();
+      for (int i = 0; i < categoryIds.size(); i++) {
+        if (i > 0) {
+          placeholders.append(",");
+        }
+        placeholders.append("?");
+      }
+      where.add(
+          "EXISTS (SELECT 1 FROM item_categories WHERE item_id = items.item_id AND category_id IN (" + placeholders + "))",
+          categoryIds.toArray(new Long[0]));
     }
     where.addIfExists("items.created >= ?", specification.getDateRangeStart());
     where.addIfExists("items.created < ?", specification.getDateRangeEnd());
@@ -410,10 +435,20 @@ public class ItemRepository {
 
   /**
    * Facet count for a candidate category: every other active filter (keyword, date range, access
-   * control) from the given specification is applied, but its own categoryId is ignored in favor
-   * of the candidate -- so a category facet's counts reflect what selecting THAT category would
-   * produce, not what's already selected. Per issue #421's "excluding the selected dimension"
-   * requirement.
+   * control) from the given specification is applied, and the candidate categoryId is combined
+   * with whatever categories are ALREADY selected on the specification (OR-within-dimension,
+   * issue #636) -- so an unchecked category's displayed count reflects "how many results if this
+   * were ALSO selected," not "as if this were the only one selected." This is the standard
+   * faceted-search convention. When the specification has no category selected at all (the
+   * original #421 single-select shape, or a facet-list render with nothing checked yet), the
+   * union degenerates to just the candidate, so this generalizes the old behavior rather than
+   * replacing it.
+   *
+   * <p>An already-selected category doesn't need a separate candidate count of its own -- it's
+   * already reflected in the main result count. To get a "this category alone" count instead (e.g.
+   * to verify one specific selected category is itself non-empty/access-safe before disclosing its
+   * name -- see ItemsSearchResultsWidget's active-filter chips), pass a specification whose own
+   * selection does not include categoryId.</p>
    */
   public static long countByCategory(ItemSpecification specification, long categoryId) {
     ItemSpecification facetSpec = new ItemSpecification();
@@ -425,14 +460,63 @@ public class ItemRepository {
     facetSpec.setSearchLocation(specification.getSearchLocation());
     facetSpec.setDateRangeStart(specification.getDateRangeStart());
     facetSpec.setDateRangeEnd(specification.getDateRangeEnd());
-    facetSpec.setCategoryId(categoryId);
+
+    List<Long> candidateSelection = new ArrayList<>(specification.getEffectiveCategoryIds());
+    if (!candidateSelection.contains(categoryId)) {
+      candidateSelection.add(categoryId);
+    }
+    facetSpec.setCategoryIds(candidateSelection);
     return DB.selectFunction("COUNT(*)", FACET_COUNT_FROM, createSearchWhereStatement(facetSpec));
   }
 
   /**
+   * FACET_COUNT_FROM plus the item_categories join countGroupedByCategory needs to group by
+   * category_id in a single query.
+   */
+  private static final String FACET_COUNT_GROUPED_FROM = "items " +
+      "JOIN item_categories ON (item_categories.item_id = items.item_id) " +
+      "LEFT JOIN collections ON (items.collection_id = collections.collection_id)";
+
+  /**
+   * Facet counts for every category in one query: every other active filter (keyword, date range,
+   * access control) from the given specification is applied, but its own categoryId is ignored --
+   * so, like countByCategory, each returned category's count reflects what selecting THAT category
+   * would produce, not what's already selected (per issue #421's "excluding the selected
+   * dimension" requirement). Unlike countByCategory, which issues one query per candidate category
+   * -- fine while the category list is small, but not for a future high-cardinality facet such as
+   * a tag cloud (#632) -- this issues a single GROUP BY query across every category with at least
+   * one matching item; a category with zero matches is simply absent from the returned map, same
+   * as countByCategory returning 0 for it. Added for issue #637 to replace the per-category
+   * round-trip loop in ItemsSearchResultsWidget, the motivating case #637's scope called out.
+   */
+  public static Map<Long, Long> countGroupedByCategory(ItemSpecification specification) {
+    ItemSpecification facetSpec = new ItemSpecification();
+    facetSpec.setApprovedOnly(specification.getApprovedOnly());
+    facetSpec.setUnapprovedOnly(specification.getUnapprovedOnly());
+    facetSpec.setIncludeArchived(specification.getIncludeArchived());
+    facetSpec.setForUserId(specification.getForUserId());
+    facetSpec.setSearchName(specification.getSearchName());
+    facetSpec.setSearchLocation(specification.getSearchLocation());
+    facetSpec.setDateRangeStart(specification.getDateRangeStart());
+    facetSpec.setDateRangeEnd(specification.getDateRangeEnd());
+    // categoryId intentionally left unset (-1): grouping by every category supersedes filtering
+    // to one candidate at a time, the way the per-candidate countByCategory loop used to.
+    SqlUtils where = createSearchWhereStatement(facetSpec);
+    List<StatisticsData> rows = DB.selectGroupedFrom(FACET_COUNT_GROUPED_FROM, "item_categories.category_id",
+        "item_count", where, null, -1);
+    Map<Long, Long> counts = new HashMap<>();
+    for (StatisticsData row : rows) {
+      counts.put(Long.valueOf(row.getLabel()), Long.valueOf(row.getValue()));
+    }
+    return counts;
+  }
+
+  /**
    * Facet count for a candidate date bucket: every other active filter (keyword, category, access
-   * control) from the given specification is applied, but its own date range is ignored in favor
-   * of the candidate bucket's bounds. See countByCategory.
+   * control) from the given specification is applied -- including the FULL category multi-select
+   * (issue #636's AND-across-dimensions requirement: a date bucket's count must still narrow to
+   * whatever categories are currently selected) -- but its own date range is ignored in favor of
+   * the candidate bucket's bounds. See countByCategory.
    */
   public static long countByDateRange(ItemSpecification specification, Timestamp start, Timestamp end) {
     ItemSpecification facetSpec = new ItemSpecification();
@@ -442,7 +526,7 @@ public class ItemRepository {
     facetSpec.setForUserId(specification.getForUserId());
     facetSpec.setSearchName(specification.getSearchName());
     facetSpec.setSearchLocation(specification.getSearchLocation());
-    facetSpec.setCategoryId(specification.getCategoryId());
+    facetSpec.setCategoryIds(specification.getEffectiveCategoryIds());
     facetSpec.setDateRangeStart(start);
     facetSpec.setDateRangeEnd(end);
     return DB.selectFunction("COUNT(*)", FACET_COUNT_FROM, createSearchWhereStatement(facetSpec));

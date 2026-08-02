@@ -53,7 +53,9 @@
           <dt>type</dt>
           <dd>text, textarea, html, list</dd>
           <dt>list</dt>
-          <dt>comma-separated values or name=value</dt>
+          <dd>comma-separated values or name=value</dd>
+          <dt>filterable</dt>
+          <dd>true to offer this field as a search filter (not yet used by any search page)</dd>
         </dl>
       </div>
     </div>
