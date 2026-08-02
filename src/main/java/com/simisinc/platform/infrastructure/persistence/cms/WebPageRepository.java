@@ -151,7 +151,11 @@ public class WebPageRepository {
         .add("sitemap_changefreq", StringUtils.trimToNull(record.getSitemapChangeFrequency()))
         .add("publish_at", record.getPublishAt())
         .add("expires_at", record.getExpiresAt())
-        .add("solution_type", StringUtils.trimToNull(record.getSolutionType()));
+        .add("solution_type", StringUtils.trimToNull(record.getSolutionType()))
+        .add("draft_status", StringUtils.trimToNull(record.getDraftStatus()))
+        .add("submitted_by", record.getSubmittedBy())
+        .add("approved_by", record.getApprovedBy())
+        .add("release_reference", StringUtils.trimToNull(record.getReleaseReference()));
     record.setId(DB.insertInto(TABLE_NAME, insertValues, PRIMARY_KEY));
     if (record.getId() == -1) {
       LOG.error("An id was not set!");
@@ -190,7 +194,11 @@ public class WebPageRepository {
         .add("sitemap_changefreq", StringUtils.trimToNull(record.getSitemapChangeFrequency()))
         .add("publish_at", record.getPublishAt())
         .add("expires_at", record.getExpiresAt())
-        .add("solution_type", StringUtils.trimToNull(record.getSolutionType()));
+        .add("solution_type", StringUtils.trimToNull(record.getSolutionType()))
+        .add("draft_status", StringUtils.trimToNull(record.getDraftStatus()))
+        .add("submitted_by", record.getSubmittedBy())
+        .add("approved_by", record.getApprovedBy())
+        .add("release_reference", StringUtils.trimToNull(record.getReleaseReference()));
     SqlUtils where = new SqlUtils()
         .add("web_page_id = ?", record.getId());
     if (DB.update(TABLE_NAME, updateValues, where)) {
@@ -209,8 +217,12 @@ public class WebPageRepository {
     if (record.getId() == -1) {
       return;
     }
-    // Handle publishing and making sure there is content to publish
-    String set = "page_xml = draft_page_xml, draft_page_xml = null, draft = false";
+    // Handle publishing and making sure there is content to publish. The draft is consumed, so its
+    // review workflow (#407) is cleared too -- the durable record of who submitted and approved, and
+    // under what release authority, lives in the append-only audit trail, not here. Mirrors
+    // ContentRepository.publish()'s identical reset of content's own review fields.
+    String set = "page_xml = draft_page_xml, draft_page_xml = null, draft = false, "
+        + "draft_status = null, submitted_by = -1, approved_by = -1, release_reference = null";
     SqlUtils where = new SqlUtils().add("draft_page_xml IS NOT NULL AND web_page_id = ?", record.getId());
     if (DB.update(TABLE_NAME, set, where)) {
       // Force the page to re-cache
@@ -293,6 +305,12 @@ public class WebPageRepository {
       record.setPublishAt(rs.getTimestamp("publish_at"));
       record.setExpiresAt(rs.getTimestamp("expires_at"));
       record.setSolutionType(rs.getString("solution_type"));
+      if (DB.hasColumn(rs, "draft_status")) {
+        record.setDraftStatus(rs.getString("draft_status"));
+        record.setSubmittedBy(rs.getLong("submitted_by"));
+        record.setApprovedBy(rs.getLong("approved_by"));
+        record.setReleaseReference(rs.getString("release_reference"));
+      }
       return record;
     } catch (SQLException se) {
       LOG.error("buildRecord", se);

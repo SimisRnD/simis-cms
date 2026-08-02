@@ -38,6 +38,7 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
 
+import com.simisinc.platform.application.cms.ContentReviewCommand;
 import com.simisinc.platform.domain.model.cms.WebPage;
 import com.simisinc.platform.infrastructure.database.DB;
 import com.simisinc.platform.infrastructure.database.DataSource;
@@ -244,6 +245,74 @@ class WebPageRepositoryTest {
     assertNull(WebPageRepository.findById(saved.getId()).getSolutionType());
   }
 
+  // --- governed publish workflow persistence (issue #407) ---
+
+  @Test
+  void savingAPageMidReviewPersistsAndReloadsAllFourFields() {
+    WebPage webPage = new WebPage();
+    webPage.setLink("/solutions/mid-review");
+    webPage.setTitle("Mid Review");
+    webPage.setEnabled(true);
+    webPage.setSearchable(true);
+    webPage.setCreatedBy(1L);
+    webPage.setDraftStatus(ContentReviewCommand.STATUS_SUBMITTED);
+    webPage.setSubmittedBy(5L);
+    webPage.setApprovedBy(-1L);
+    webPage.setReleaseReference(null);
+    WebPage saved = WebPageRepository.save(webPage);
+
+    WebPage reloaded = WebPageRepository.findById(saved.getId());
+    assertEquals(ContentReviewCommand.STATUS_SUBMITTED, reloaded.getDraftStatus());
+    assertEquals(5L, reloaded.getSubmittedBy());
+    assertEquals(-1L, reloaded.getApprovedBy());
+    assertNull(reloaded.getReleaseReference());
+  }
+
+  @Test
+  void savingAnApprovalPersistsTheApproverAndReleaseReference() {
+    WebPage webPage = addWebPage("/solutions/approved-page", "Approved Page", null, null, true, true, false);
+    webPage.setDraftStatus(ContentReviewCommand.STATUS_SUBMITTED);
+    webPage.setSubmittedBy(5L);
+    webPage.setModifiedBy(1L);
+    WebPageRepository.save(webPage);
+
+    webPage.setApprovedBy(9L);
+    webPage.setReleaseReference("cleared per PA case 2026-114");
+    webPage.setModifiedBy(1L);
+    WebPageRepository.save(webPage);
+
+    WebPage reloaded = WebPageRepository.findById(webPage.getId());
+    assertEquals(9L, reloaded.getApprovedBy());
+    assertEquals("cleared per PA case 2026-114", reloaded.getReleaseReference());
+  }
+
+  @Test
+  void publishResetsTheReviewWorkflowFields() {
+    WebPage webPage = new WebPage();
+    webPage.setLink("/solutions/publish-resets-review");
+    webPage.setTitle("Publish Resets Review");
+    webPage.setEnabled(true);
+    webPage.setSearchable(true);
+    webPage.setCreatedBy(1L);
+    webPage.setPageXml("<xml>live</xml>");
+    webPage.setDraftPageXml("<xml>draft</xml>");
+    webPage.setDraftStatus(ContentReviewCommand.STATUS_SUBMITTED);
+    webPage.setSubmittedBy(5L);
+    webPage.setApprovedBy(9L);
+    webPage.setReleaseReference("cleared per PA case 2026-114");
+    WebPage saved = WebPageRepository.save(webPage);
+
+    WebPageRepository.publish(saved);
+
+    WebPage reloaded = WebPageRepository.findById(saved.getId());
+    assertEquals("<xml>draft</xml>", reloaded.getPageXml());
+    assertNull(reloaded.getDraftPageXml());
+    assertNull(reloaded.getDraftStatus());
+    assertEquals(-1L, reloaded.getSubmittedBy());
+    assertEquals(-1L, reloaded.getApprovedBy());
+    assertNull(reloaded.getReleaseReference());
+  }
+
   private static boolean isDockerAvailable() {
     try {
       return DockerClientFactory.instance().isDockerAvailable();
@@ -290,6 +359,10 @@ class WebPageRepositoryTest {
           + "publish_at TIMESTAMP, "
           + "expires_at TIMESTAMP, "
           + "solution_type VARCHAR(255), "
+          + "draft_status VARCHAR(20), "
+          + "submitted_by BIGINT DEFAULT -1, "
+          + "approved_by BIGINT DEFAULT -1, "
+          + "release_reference VARCHAR(255), "
           + "tsv tsvector)");
 
       statement.execute("CREATE TEXT SEARCH DICTIONARY title_stem (TEMPLATE = snowball, Language = english)");

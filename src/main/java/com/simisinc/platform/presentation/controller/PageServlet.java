@@ -362,6 +362,20 @@ public class PageServlet extends HttpServlet {
           response.getWriter().print("{\"success\":false,\"error\":\"No draft to publish\"}");
           return;
         }
+        // Governed publish workflow (#407): with webPage.review.required on, an unapproved draft
+        // cannot be published directly -- the only path to live is submit -> approve via
+        // WebPageReviewWidget. Mirrors ContentHtmlCommand.publishContent()'s identical gate.
+        boolean webPageReviewRequired = LoadSitePropertyCommand.loadByNameAsBoolean("webPage.review.required");
+        if (!ContentReviewCommand.mayPublish(webPage, webPageReviewRequired)) {
+          response.setContentType("application/json");
+          response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+          AuditEventCommand.record(request, userSession, AuditEventCommand.CONTENT, "content.publish",
+              AuditEventCommand.FAILURE, "web_page", String.valueOf(webPage.getId()), webPage.getLink(),
+              "blocked: draft not approved for release");
+          response.getWriter().print(
+              "{\"success\":false,\"error\":\"This page must be submitted for review and approved before it can be published\"}");
+          return;
+        }
         response.setContentType("application/json");
         WebPageRepository.publish(webPage);
         PublishEventCachePurgeHandler.onPageUpdated(webPage);
