@@ -18,10 +18,13 @@ package com.simisinc.platform.infrastructure.persistence.cms;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.time.Duration;
 import java.util.List;
 import java.util.Properties;
@@ -270,6 +273,16 @@ class WebPageHitRepositoryTest {
     }
   }
 
+  private static void seedPageHitByPath(String pagePath, String sessionId) {
+    try (Connection connection = DB.getConnection();
+        Statement statement = connection.createStatement()) {
+      statement.execute("INSERT INTO web_page_hits (page_path, session_id, hit_date) VALUES ('"
+          + pagePath + "', '" + sessionId + "', CURRENT_TIMESTAMP)");
+    } catch (SQLException se) {
+      throw new IllegalStateException("Could not seed web page hit", se);
+    }
+  }
+
   private static boolean isDockerAvailable() {
     try {
       return DockerClientFactory.instance().isDockerAvailable();
@@ -289,6 +302,7 @@ class WebPageHitRepositoryTest {
     try (Connection connection = DB.getConnection();
         Statement statement = connection.createStatement()) {
       statement.execute("DROP TABLE IF EXISTS web_page_hits CASCADE");
+      statement.execute("DROP TABLE IF EXISTS web_page_hit_snapshots CASCADE");
       statement.execute("DROP TABLE IF EXISTS web_pages CASCADE");
       statement.execute("DROP TABLE IF EXISTS sessions CASCADE");
       statement.execute("CREATE TABLE web_pages ("
@@ -301,9 +315,16 @@ class WebPageHitRepositoryTest {
           + "is_bot BOOLEAN DEFAULT false)");
       statement.execute("CREATE TABLE web_page_hits ("
           + "hit_id BIGSERIAL PRIMARY KEY, "
+          + "page_path VARCHAR(255), "
           + "web_page_id BIGINT, "
           + "session_id VARCHAR(255), "
           + "hit_date TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP)");
+      statement.execute("CREATE TABLE web_page_hit_snapshots ("
+          + "snapshot_id BIGSERIAL PRIMARY KEY, "
+          + "snapshot_date TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP, "
+          + "date_value VARCHAR(10) UNIQUE NOT NULL, "
+          + "unique_sessions BIGINT DEFAULT 0, "
+          + "web_page_hits BIGINT DEFAULT 0)");
     } catch (SQLException se) {
       throw new IllegalStateException("Could not create the schema", se);
     }
