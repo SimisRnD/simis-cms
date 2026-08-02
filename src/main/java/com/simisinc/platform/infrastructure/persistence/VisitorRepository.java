@@ -89,25 +89,47 @@ public class VisitorRepository {
   }
 
   /**
-   * Percent of the visitor tokens active (created) in the last daysToLimit that have MORE than one
-   * row in this table across all of history, for the "return-visitor-rate" engagement report
-   * (issue #568). A token's very first-ever session doesn't make it "returning", but any later one
-   * does -- regardless of when that later session happened -- so the total-row count per token is
-   * all-time, not restricted to the window; only which tokens count toward the denominator is
-   * windowed. Returns 0.0 when nothing is active in the window, to avoid a division by zero.
+   * Percent of the visitors active (had a session) in the last daysToLimit who have MORE than one
+   * session in the {@code sessions} table across all of history, for the "return-visitor-rate"
+   * engagement report (issue #568).
+   *
+   * <p>
+   * This deliberately queries {@code sessions.visitor_id} rather than counting rows in this table
+   * ({@code visitors}). {@link com.simisinc.platform.presentation.controller.WebRequestFilter} only
+   * inserts a new {@code visitors} row when a request's token is NOT already recognized
+   * ({@code LoadVisitorCommand.loadVisitorByToken} returns null); a returning visitor is recognized
+   * by that same lookup and reuses their existing {@code visitors} row -- a new {@code sessions} row
+   * is created instead, carrying forward the same {@code visitor_id}. So a token's row count in
+   * {@code visitors} is 1 for the visitor's entire lifetime, and a query keyed on that count would
+   * always see ~0% "returning". {@code sessions}, by contrast, gets a new row per browser session
+   * while linking back to the same {@code visitor_id}, so it is the table that actually holds the
+   * "returned before" signal.
+   * </p>
+   *
+   * <p>
+   * A visitor's very first-ever session doesn't make them "returning", but any later one does --
+   * regardless of when that later session happened -- so the total-session count per visitor is
+   * all-time, not restricted to the window; only which visitors count toward the denominator is
+   * windowed. Bot sessions are excluded (is_bot lives directly on sessions here, unlike
+   * web_page_hits' NOT EXISTS join). Returns 0.0 when nothing is active in the window, to avoid a
+   * division by zero.
+   * </p>
    */
   public static double findReturnVisitorRatePercent(int daysToLimit) {
     String SQL_QUERY =
-        "WITH active_tokens AS (" +
-            "SELECT DISTINCT token FROM " + TABLE_NAME + " WHERE created > NOW() - INTERVAL '" + daysToLimit + " days'" +
-            "), token_totals AS (" +
-            "SELECT v.token, COUNT(*) AS total_rows " +
-            "FROM " + TABLE_NAME + " v " +
-            "JOIN active_tokens a ON v.token = a.token " +
-            "GROUP BY v.token" +
+        "WITH active_visitors AS (" +
+            "SELECT DISTINCT visitor_id FROM sessions " +
+            "WHERE created > NOW() - INTERVAL '" + daysToLimit + " days' " +
+            "AND visitor_id IS NOT NULL AND is_bot = false" +
+            "), visitor_totals AS (" +
+            "SELECT s.visitor_id, COUNT(*) AS total_sessions " +
+            "FROM sessions s " +
+            "JOIN active_visitors a ON s.visitor_id = a.visitor_id " +
+            "WHERE s.is_bot = false " +
+            "GROUP BY s.visitor_id" +
             ") " +
-            "SELECT COUNT(*) FILTER (WHERE total_rows >= 2) AS returning_count, COUNT(*) AS active_count " +
-            "FROM token_totals";
+            "SELECT COUNT(*) FILTER (WHERE total_sessions >= 2) AS returning_count, COUNT(*) AS active_count " +
+            "FROM visitor_totals";
     try (Connection connection = DB.getConnection();
          PreparedStatement pst = connection.prepareStatement(SQL_QUERY);
          ResultSet rs = pst.executeQuery()) {

@@ -43,6 +43,15 @@ import com.simisinc.platform.infrastructure.database.DataSource;
  * Real-Postgres integration coverage for {@link VisitorRepository#findReturnVisitorRatePercent}
  * (issue #568's "return-visitor-rate" engagement report).
  *
+ * <p>
+ * The metric is keyed on {@code sessions.visitor_id}, not on row counts in the {@code visitors}
+ * table: {@code WebRequestFilter} only inserts a new {@code visitors} row for a token it doesn't
+ * already recognize, so a real returning visitor reuses their one-and-only {@code visitors} row and
+ * instead gets a new {@code sessions} row that carries forward the same {@code visitor_id}. These
+ * tests seed {@code sessions} accordingly, standing in for repeat browser sessions from the same
+ * visitor_id.
+ * </p>
+ *
  * @author elizabeth houser
  */
 class VisitorRepositoryTest {
@@ -102,32 +111,37 @@ class VisitorRepositoryTest {
     }
     try (Connection connection = DB.getConnection();
         Statement statement = connection.createStatement()) {
-      statement.execute("TRUNCATE TABLE visitors RESTART IDENTITY");
+      statement.execute("TRUNCATE TABLE sessions RESTART IDENTITY");
     } catch (SQLException se) {
-      throw new IllegalStateException("Could not reset the visitors table", se);
+      throw new IllegalStateException("Could not reset the sessions table", se);
     }
   }
 
   @Test
-  void findReturnVisitorRatePercentCountsTokensWithMoreThanOneRowAllTime() {
+  void findReturnVisitorRatePercentCountsVisitorsWithMoreThanOneSessionAllTime() {
     Timestamp now = Timestamp.valueOf(LocalDateTime.now());
     Timestamp ninetyDaysAgo = minusDays(now, 90);
     Timestamp oneDayAgo = minusDays(now, 1);
 
-    // token-1: 1 row in the window -- a first-ever visit, not "returning"
-    seedVisitor("token-1", now);
-    // token-2: 1 row in the window, but a 2nd row from long before the window -- returning
-    seedVisitor("token-2", ninetyDaysAgo);
-    seedVisitor("token-2", now);
-    // token-3: 2 rows, both inside the window -- returning
-    seedVisitor("token-3", oneDayAgo);
-    seedVisitor("token-3", now);
-    // token-4: 1 row, but outside the window entirely -- not part of the active denominator at all
-    seedVisitor("token-4", ninetyDaysAgo);
+    // visitor-1: 1 session in the window -- a first-ever visit, not "returning"
+    seedSession("visitor-1", 1L, now, false);
+    // visitor-2: 1 session in the window, but a 2nd session from long before the window -- returning
+    seedSession("visitor-2a", 2L, ninetyDaysAgo, false);
+    seedSession("visitor-2b", 2L, now, false);
+    // visitor-3: 2 sessions, both inside the window -- returning
+    seedSession("visitor-3a", 3L, oneDayAgo, false);
+    seedSession("visitor-3b", 3L, now, false);
+    // visitor-4: 1 session, but outside the window entirely -- not part of the active denominator at all
+    seedSession("visitor-4", 4L, ninetyDaysAgo, false);
+    // visitor-5: 2 sessions in the window, but flagged as a bot -- must not count in either bucket
+    seedSession("bot-5a", 5L, now, true);
+    seedSession("bot-5b", 5L, now, true);
+    // A session with no visitor_id (DNT/GPC, never identified) -- must not count in either bucket
+    seedSessionWithoutVisitor("anon-session", now);
 
-    // Active in the last 30 days: token-1, token-2, token-3 (token-4 is not active in range)
-    // Returning (>= 2 total rows, all-time): token-2, token-3
-    // 2 of 3 active tokens are returning = 66.7%
+    // Active in the last 30 days: visitor-1, visitor-2, visitor-3 (visitor-4 is not active in range)
+    // Returning (>= 2 total sessions, all-time): visitor-2, visitor-3
+    // 2 of 3 active visitors are returning = 66.7%
     double percent = VisitorRepository.findReturnVisitorRatePercent(30);
 
     assertEquals(66.7, percent, 0.05);
@@ -145,26 +159,38 @@ class VisitorRepositoryTest {
     return new Timestamp(base.getTime() - Duration.ofDays(days).toMillis());
   }
 
-  private static void seedVisitor(String token, Timestamp created) {
+  private static void seedSession(String sessionId, long visitorId, Timestamp created, boolean isBot) {
     try (Connection connection = DB.getConnection();
         Statement statement = connection.createStatement()) {
-      statement.execute("INSERT INTO visitors (token, created) VALUES ('" + token + "', '" + created + "')");
+      statement.execute("INSERT INTO sessions (session_id, visitor_id, created, is_bot) VALUES ('"
+          + sessionId + "', " + visitorId + ", '" + created + "', " + isBot + ")");
     } catch (SQLException se) {
-      throw new IllegalStateException("Could not seed visitor", se);
+      throw new IllegalStateException("Could not seed session", se);
+    }
+  }
+
+  private static void seedSessionWithoutVisitor(String sessionId, Timestamp created) {
+    try (Connection connection = DB.getConnection();
+        Statement statement = connection.createStatement()) {
+      statement.execute("INSERT INTO sessions (session_id, visitor_id, created, is_bot) VALUES ('"
+          + sessionId + "', NULL, '" + created + "', false)");
+    } catch (SQLException se) {
+      throw new IllegalStateException("Could not seed session", se);
     }
   }
 
   private static void createSchema() {
-    // A focused subset of the real schema (NEW_10000__new_database.sql) -- just the visitors table,
-    // enough for findReturnVisitorRatePercent's self-join.
+    // A focused subset of the real schema (NEW_10000__new_database.sql) -- just the sessions table,
+    // enough for findReturnVisitorRatePercent's self-join on visitor_id.
     try (Connection connection = DB.getConnection();
         Statement statement = connection.createStatement()) {
-      statement.execute("DROP TABLE IF EXISTS visitors CASCADE");
-      statement.execute("CREATE TABLE visitors ("
-          + "visitor_id BIGSERIAL PRIMARY KEY, "
-          + "token VARCHAR(255), "
+      statement.execute("DROP TABLE IF EXISTS sessions CASCADE");
+      statement.execute("CREATE TABLE sessions ("
+          + "id BIGSERIAL PRIMARY KEY, "
           + "session_id VARCHAR(255), "
-          + "created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP)");
+          + "created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP, "
+          + "visitor_id BIGINT, "
+          + "is_bot BOOLEAN DEFAULT false)");
     } catch (SQLException se) {
       throw new IllegalStateException("Could not create the schema", se);
     }
