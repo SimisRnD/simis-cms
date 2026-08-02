@@ -123,15 +123,18 @@ public class ItemsSearchResultsWidget extends GenericWidget {
     String categoryFacetLabel = context.getPreferences().getOrDefault("categoryFacetLabel", "Category");
     String dateFacetLabel = context.getPreferences().getOrDefault("dateFacetLabel", "Date");
 
-    // Resolve the selected category's own count once, up front: countByCategory already applies
-    // the same access-control WHERE as the real query, so a 0 here is indistinguishable between
-    // "genuinely no matches" and "this categoryId belongs to a collection the requester can't see
-    // at all". categoryId is a guessable sequential id, so neither case may disclose the
-    // category's name below -- only a verified non-zero, access-safe count may.
-    Long selectedCategoryCount = null;
-    if (categoryId != null) {
-      selectedCategoryCount = ItemRepository.countByCategory(specification, categoryId);
+    // Resolve every category's count in a single grouped query, up front (issue #637 -- replaces
+    // what used to be one ItemRepository.countByCategory round trip per candidate category).
+    // countGroupedByCategory already applies the same access-control WHERE as the real query, so a
+    // missing/0 entry here is indistinguishable between "genuinely no matches" and "this
+    // categoryId belongs to a collection the requester can't see at all". categoryId is a
+    // guessable sequential id, so neither case may disclose the category's name below -- only a
+    // verified non-zero, access-safe count may.
+    Map<Long, Long> categoryCounts = null;
+    if (categoryId != null || showCategoryFacet) {
+      categoryCounts = ItemRepository.countGroupedByCategory(specification);
     }
+    Long selectedCategoryCount = categoryId != null ? categoryCounts.getOrDefault(categoryId, 0L) : null;
 
     if (showCategoryFacet) {
       List<ItemFacetOption> categoryFacets = new ArrayList<>();
@@ -139,7 +142,7 @@ public class ItemsSearchResultsWidget extends GenericWidget {
       if (allCategories != null) {
         for (Category category : allCategories) {
           boolean selected = categoryId != null && categoryId.equals(category.getId());
-          long count = selected ? selectedCategoryCount : ItemRepository.countByCategory(specification, category.getId());
+          long count = categoryCounts.getOrDefault(category.getId(), 0L);
           // Categories with a 0 count here are omitted entirely, selected or not -- see the
           // access-control note on selectedCategoryCount above for why "selected" alone must not
           // be enough to reveal a category that turns out to be empty or inaccessible.

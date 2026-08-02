@@ -15,7 +15,6 @@
   --%>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
-<%@ taglib prefix="date" uri="/WEB-INF/tlds/date-functions.tld" %>
 <%@ taglib prefix="font" uri="/WEB-INF/tlds/font-functions.tld" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
@@ -42,9 +41,6 @@
         <c:out value="${app.name}" />
         <c:if test="${!empty app.summary}">
           <br /><small class="subheader"><c:out value="${app.summary}" /></small>
-        </c:if>
-        <c:if test="${!empty app.publicKey && !date:isMinutesOld(app.created, 10)}">
-          <br /><small>New secret key: <c:out value="${app.publicKey}" /></small>
         </c:if>
       </td>
       <td class="text-center"><fmt:formatNumber value="0" /></td>

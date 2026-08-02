@@ -163,6 +163,77 @@ class WebPageHitRepositoryTest {
     assertEquals(0, results.size());
   }
 
+  // --- findTrafficBySolutionType() / findEngagementBySolutionType() integration coverage (issue #570) ---
+
+  @Test
+  void findTrafficBySolutionTypeGroupsRealSessionHitsByTag() {
+    seedSession("real-session-1", false);
+    seedSession("real-session-2", false);
+    seedSession("bot-session", true);
+    long govPage = seedPage("/solutions/cmmc", "government-solution");
+    long careersPage = seedPage("/careers/engineering", "careers");
+    long untaggedPage = seedPage("/about", null);
+    seedHit(govPage, "real-session-1");
+    seedHit(govPage, "real-session-2");
+    seedHit(govPage, "bot-session");
+    seedHit(careersPage, "real-session-1");
+    seedHit(untaggedPage, "real-session-1");
+
+    List<StatisticsData> results = WebPageHitRepository.findTrafficBySolutionType(30);
+
+    assertNotNull(results);
+    assertEquals(2, results.size(), "the untagged page must not appear as its own group");
+    StatisticsData government = results.stream().filter(d -> "government-solution".equals(d.getLabel())).findFirst().orElseThrow();
+    assertEquals("2", government.getValue(), "only the two real-session hits should count, not the bot's");
+    StatisticsData careers = results.stream().filter(d -> "careers".equals(d.getLabel())).findFirst().orElseThrow();
+    assertEquals("1", careers.getValue());
+  }
+
+  @Test
+  void findTrafficBySolutionTypeReturnsEmptyListWhenNoPagesAreTagged() {
+    seedSession("real-session", false);
+    long page = seedPage("/about", null);
+    seedHit(page, "real-session");
+
+    List<StatisticsData> results = WebPageHitRepository.findTrafficBySolutionType(30);
+
+    assertNotNull(results);
+    assertEquals(0, results.size());
+  }
+
+  @Test
+  void findEngagementBySolutionTypeComputesAverageViewsPerSession() {
+    seedSession("session-a", false);
+    seedSession("session-b", false);
+    long govPage = seedPage("/solutions/cmmc", "government-solution");
+    long govPage2 = seedPage("/solutions/cui", "government-solution");
+    // session-a views 2 government-solution pages, session-b views 1 -- average is 1.5
+    seedHit(govPage, "session-a");
+    seedHit(govPage2, "session-a");
+    seedHit(govPage, "session-b");
+
+    List<StatisticsData> results = WebPageHitRepository.findEngagementBySolutionType(30);
+
+    assertEquals(1, results.size());
+    assertEquals("government-solution", results.get(0).getLabel());
+    assertEquals("1.50", results.get(0).getValue());
+  }
+
+  @Test
+  void findEngagementBySolutionTypeExcludesBotSessions() {
+    seedSession("real-session", false);
+    seedSession("bot-session", true);
+    long govPage = seedPage("/solutions/cmmc", "government-solution");
+    seedHit(govPage, "real-session");
+    seedHit(govPage, "bot-session");
+    seedHit(govPage, "bot-session");
+
+    List<StatisticsData> results = WebPageHitRepository.findEngagementBySolutionType(30);
+
+    assertEquals(1, results.size());
+    assertEquals("1.00", results.get(0).getValue(), "the bot session's extra views must not count");
+  }
+
   private static void seedSession(String sessionId, boolean isBot) {
     try (Connection connection = DB.getConnection();
         Statement statement = connection.createStatement()) {
@@ -173,9 +244,14 @@ class WebPageHitRepositoryTest {
   }
 
   private static long seedPage(String link) {
+    return seedPage(link, null);
+  }
+
+  private static long seedPage(String link, String solutionType) {
     try (Connection connection = DB.getConnection();
         Statement statement = connection.createStatement()) {
-      statement.execute("INSERT INTO web_pages (link) VALUES ('" + link + "')");
+      String solutionTypeValue = solutionType == null ? "NULL" : "'" + solutionType + "'";
+      statement.execute("INSERT INTO web_pages (link, solution_type) VALUES ('" + link + "', " + solutionTypeValue + ")");
       var rs = statement.executeQuery("SELECT web_page_id FROM web_pages WHERE link = '" + link + "'");
       rs.next();
       return rs.getLong("web_page_id");
@@ -217,7 +293,8 @@ class WebPageHitRepositoryTest {
       statement.execute("DROP TABLE IF EXISTS sessions CASCADE");
       statement.execute("CREATE TABLE web_pages ("
           + "web_page_id BIGSERIAL PRIMARY KEY, "
-          + "link VARCHAR(255) UNIQUE NOT NULL)");
+          + "link VARCHAR(255) UNIQUE NOT NULL, "
+          + "solution_type VARCHAR(255))");
       statement.execute("CREATE TABLE sessions ("
           + "id BIGSERIAL PRIMARY KEY, "
           + "session_id VARCHAR(255), "

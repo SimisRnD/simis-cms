@@ -24,6 +24,7 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="imageList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="query" class="java.lang.String" scope="request"/>
+<jsp:useBean id="recordPaging" class="com.simisinc.platform.infrastructure.database.DataConstraints" scope="request"/>
 <c:if test="${!empty title}">
   <h1><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h1>
 </c:if>
@@ -79,6 +80,7 @@
     </c:forEach>
   </div>
 </div>
+<%@include file="../paging_control.jspf" %>
 <%-- Bulk delete confirmation -- selection is scoped to the images currently checked; the list below
      is populated at open time (see the JS) with each selected image's real, freshly-checked usage,
      not just a filename, so the admin sees what deleting an in-use image will break before confirming. --%>
@@ -178,7 +180,11 @@
             message = 'Usage could not be verified for "' + filename + '" (the check failed). Delete anyway?';
           }
           if (confirm(message)) {
-            postAction('${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&imageId=' + id);
+            // Carries the current page (issue #498 slice 2) so the post-delete redirect returns
+            // here instead of resetting to page 1 -- see AdminImageBrowserWidget#redirectWithQuery.
+            // This URL is built fresh in JS rather than reusing window.location.search, so the page
+            // number has to be baked in explicitly or postAction() has nothing to forward.
+            postAction('${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&imageId=' + id + '&page=${recordPaging.pageNumber}');
           }
         });
       });

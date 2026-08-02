@@ -196,6 +196,40 @@ class SearchAnalyticsRepositoryTest {
     assertTrue(results.isEmpty());
   }
 
+  @Test
+  void countZeroResultSearchesCountsOnlyZeroResultEventsInWindow() {
+    addEvent("widgets", "pages", 3);
+    addEvent("xylophone", "pages", 0);
+    addEvent("zither", "pages", 0);
+    backdate(addEvent("ancient", "pages", 0).getId(), 40);
+
+    long count = SearchAnalyticsRepository.countZeroResultSearches(30);
+
+    assertEquals(2, count);
+  }
+
+  @Test
+  void countZeroResultSearchesReturnsZeroWhenNoneInWindow() {
+    addEvent("widgets", "pages", 3);
+
+    long count = SearchAnalyticsRepository.countZeroResultSearches(30);
+
+    assertEquals(0, count);
+  }
+
+  @Test
+  void resolveZeroResultAlertThresholdFallsBackToDefaultWhenBlankOrUnparseable() {
+    assertEquals(20, SearchAnalyticsRepository.resolveZeroResultAlertThreshold(null));
+    assertEquals(20, SearchAnalyticsRepository.resolveZeroResultAlertThreshold(""));
+    assertEquals(20, SearchAnalyticsRepository.resolveZeroResultAlertThreshold("not-a-number"));
+  }
+
+  @Test
+  void resolveZeroResultAlertThresholdUsesConfiguredValueAndFloorsAtZero() {
+    assertEquals(50, SearchAnalyticsRepository.resolveZeroResultAlertThreshold("50"));
+    assertEquals(0, SearchAnalyticsRepository.resolveZeroResultAlertThreshold("-5"));
+  }
+
   private static boolean isDockerAvailable() {
     try {
       return DockerClientFactory.instance().isDockerAvailable();
