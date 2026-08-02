@@ -47,6 +47,7 @@ public class Item extends Entity {
   private Integer itemOrder = 100;
   private long categoryId = -1L;
   private Long[] categoryIdList = null;
+  private Long[] tagIdList = null;
   private String uniqueId = null;
   private String name = null;
   private String summary = null;
@@ -141,6 +142,14 @@ public class Item extends Entity {
 
   public void setCategoryIdList(Long[] categoryIdList) {
     this.categoryIdList = categoryIdList;
+  }
+
+  public Long[] getTagIdList() {
+    return tagIdList;
+  }
+
+  public void setTagIdList(Long[] tagIdList) {
+    this.tagIdList = tagIdList;
   }
 
   public String getUniqueId() {
