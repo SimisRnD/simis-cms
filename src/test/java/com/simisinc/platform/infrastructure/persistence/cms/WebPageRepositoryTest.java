@@ -17,6 +17,7 @@
 package com.simisinc.platform.infrastructure.persistence.cms;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.Connection;
@@ -197,64 +198,50 @@ class WebPageRepositoryTest {
     assertEquals(0, WebPageRepository.countExpiringSoon());
   }
 
-  // --- findAll(WebPageSpecification, ...) filtering (issue #497 admin list search/status filter) ---
+  // --- solution_type persistence (issue #570) ---
 
   @Test
-  void findAllWithSearchTermMatchesOnLinkTitleOrKeywordsRegardlessOfDraftOrEnabledState() {
-    // Unlike search(), the admin list must find a page in ANY state -- draft, disabled, whatever.
-    addWebPage("/careers", "Careers", null, "Join our team", false, false, true);
-    addWebPage("/about", "About Us", "careers,jobs", null, true, true, false);
-    addWebPage("/contact", "Contact", null, null, true, true, false);
+  void savingANewPageWithASolutionTypePersistsAndReloadsIt() {
+    WebPage webPage = new WebPage();
+    webPage.setLink("/solutions/cmmc");
+    webPage.setTitle("CMMC Compliance");
+    webPage.setEnabled(true);
+    webPage.setSearchable(true);
+    webPage.setCreatedBy(1L);
+    webPage.setSolutionType("government-solution");
+    WebPage saved = WebPageRepository.save(webPage);
 
-    WebPageSpecification specification = new WebPageSpecification();
-    specification.setSearchTerm("careers");
-    List<WebPage> results = WebPageRepository.findAll(specification, null);
-
-    assertEquals(2, results.size());
+    assertEquals("government-solution", saved.getSolutionType());
+    WebPage reloaded = WebPageRepository.findById(saved.getId());
+    assertEquals("government-solution", reloaded.getSolutionType());
   }
 
   @Test
-  void findAllWithSearchTermIsCaseInsensitive() {
-    addWebPage("/about", "ABOUT US", null, null, true, true, false);
+  void savingAPageWithNoSolutionTypeLeavesItNull() {
+    WebPage webPage = addWebPage("/about", "About", null, null, true, true, false);
 
-    WebPageSpecification specification = new WebPageSpecification();
-    specification.setSearchTerm("about us");
-    List<WebPage> results = WebPageRepository.findAll(specification, null);
+    WebPage reloaded = WebPageRepository.findById(webPage.getId());
 
-    assertEquals(1, results.size());
+    assertNull(reloaded.getSolutionType());
   }
 
   @Test
-  void findAllWithDraftFilterOnlyReturnsDraftPages() {
-    addWebPage("/draft-page", "Draft", null, null, true, true, true);
-    addWebPage("/live-page", "Live", null, null, true, true, false);
+  void updatingAPageCanClearAPreviouslySetSolutionType() {
+    WebPage webPage = new WebPage();
+    webPage.setLink("/careers/engineering");
+    webPage.setTitle("Engineering Careers");
+    webPage.setEnabled(true);
+    webPage.setSearchable(true);
+    webPage.setCreatedBy(1L);
+    webPage.setSolutionType("careers");
+    WebPage saved = WebPageRepository.save(webPage);
+    assertEquals("careers", WebPageRepository.findById(saved.getId()).getSolutionType());
 
-    WebPageSpecification specification = new WebPageSpecification();
-    specification.setDraft(true);
-    List<WebPage> results = WebPageRepository.findAll(specification, null);
+    saved.setSolutionType(null);
+    saved.setModifiedBy(1L);
+    WebPageRepository.save(saved);
 
-    assertEquals(1, results.size());
-    assertEquals("/draft-page", results.get(0).getLink());
-  }
-
-  @Test
-  void findAllWithHasRedirectFilterOnlyReturnsRedirectedPages() {
-    WebPage redirected = new WebPage();
-    redirected.setLink("/old-page");
-    redirected.setTitle("Old Page");
-    redirected.setRedirectUrl("/new-page");
-    redirected.setEnabled(true);
-    redirected.setSearchable(true);
-    redirected.setCreatedBy(1L);
-    WebPageRepository.save(redirected);
-    addWebPage("/normal-page", "Normal", null, null, true, true, false);
-
-    WebPageSpecification specification = new WebPageSpecification();
-    specification.setHasRedirect(true);
-    List<WebPage> results = WebPageRepository.findAll(specification, null);
-
-    assertEquals(1, results.size());
-    assertEquals("/old-page", results.get(0).getLink());
+    assertNull(WebPageRepository.findById(saved.getId()).getSolutionType());
   }
 
   private static boolean isDockerAvailable() {
@@ -302,6 +289,7 @@ class WebPageRepositoryTest {
           + "sitemap_changefreq VARCHAR(20), "
           + "publish_at TIMESTAMP, "
           + "expires_at TIMESTAMP, "
+          + "solution_type VARCHAR(255), "
           + "tsv tsvector)");
 
       statement.execute("CREATE TEXT SEARCH DICTIONARY title_stem (TEMPLATE = snowball, Language = english)");

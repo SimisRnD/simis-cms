@@ -18,6 +18,7 @@ package com.simisinc.platform.infrastructure.persistence.webhooks;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -26,6 +27,7 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.Duration;
+import java.util.Base64;
 import java.util.List;
 import java.util.Properties;
 
@@ -39,6 +41,7 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
 
+import com.simisinc.platform.application.SecretCryptoCommand;
 import com.simisinc.platform.domain.model.webhooks.WebhookSubscription;
 import com.simisinc.platform.infrastructure.database.DB;
 import com.simisinc.platform.infrastructure.database.DataSource;
@@ -48,6 +51,14 @@ import com.simisinc.platform.infrastructure.database.DataSource;
  * against a real PostgreSQL instance. Minimal schema replicated from
  * NEW_10130__new_webhooks.sql, without the users(user_id) FK on created_by/modified_by (not
  * needed here -- same simplification NewsletterSendQueueRepositoryTest makes for mailing_lists).
+ *
+ * <p>
+ * A {@code cms.secret.key} system property is configured for the whole class (issue #453) so
+ * {@link SecretCryptoCommand#encrypt} does not fail closed -- every test here writes a secret,
+ * and {@code add()}/{@code update()} now always encrypt it. The pre-existing round-trip tests
+ * below are otherwise unchanged: {@code findById(...).getSecret()} must keep returning plaintext
+ * to every caller, encryption is purely an at-rest concern.
+ * </p>
  */
 class WebhookSubscriptionRepositoryTest {
 
@@ -56,12 +67,17 @@ class WebhookSubscriptionRepositoryTest {
   private static final String DB_NAME = "simis_cms_test";
   private static final String DB_USER = "simis";
   private static final String DB_PASSWORD = "simis";
+  private static final String SECRET_KEY_PROPERTY = "cms.secret.key";
 
   private static GenericContainer<?> postgres;
 
   @BeforeAll
   static void startDatabase() {
     Assumptions.assumeTrue(isDockerAvailable(), "Docker is not available - skipping webhook subscription integration test");
+
+    byte[] key = new byte[32]; // AES-256, deterministic content doesn't matter for this test
+    key[0] = 42;
+    System.setProperty(SECRET_KEY_PROPERTY, Base64.getEncoder().encodeToString(key));
 
     postgres = new GenericContainer<>(DockerImageName.parse(resolveImage()))
         .withEnv("POSTGRES_USER", DB_USER)
@@ -89,6 +105,7 @@ class WebhookSubscriptionRepositoryTest {
 
   @AfterAll
   static void stopDatabase() {
+    System.clearProperty(SECRET_KEY_PROPERTY);
     try {
       DataSource.shutdown();
     } catch (Exception e) {
@@ -171,6 +188,49 @@ class WebhookSubscriptionRepositoryTest {
     List<WebhookSubscription> matches = WebhookSubscriptionRepository.findEnabledBySubscribedEventType("web-page-published");
 
     assertTrue(matches.isEmpty());
+  }
+
+  @Test
+  void theSecretIsStoredEncryptedAtRestNotAsPlaintext() throws SQLException {
+    WebhookSubscription subscription = seed("https://example.com/a", "web-page-published", true);
+    subscription.setSecret("shh-its-a-secret");
+    // Overwrite with a known plaintext via update() too, so both write paths are covered here.
+    WebhookSubscriptionRepository.update(subscription);
+
+    String rawColumnValue = readRawSecretColumn(subscription.getId());
+
+    assertNotEquals("shh-its-a-secret", rawColumnValue, "the secret column must never hold plaintext");
+    assertTrue(SecretCryptoCommand.isEncrypted(rawColumnValue), "expected an enc:-prefixed ciphertext");
+    // The read path must still transparently decrypt back to the original plaintext for every caller.
+    assertEquals("shh-its-a-secret", WebhookSubscriptionRepository.findById(subscription.getId()).getSecret());
+  }
+
+  @Test
+  void addAlsoEncryptsTheSecretAtRest() throws SQLException {
+    WebhookSubscription subscription = new WebhookSubscription();
+    subscription.setUrl("https://example.com/new");
+    subscription.setEventTypeList(List.of("web-page-published"));
+    subscription.setSecret("brand-new-secret");
+    subscription.setEnabled(true);
+    subscription.setCreatedBy(1L);
+    subscription.setModifiedBy(1L);
+    WebhookSubscription saved = WebhookSubscriptionRepository.add(subscription);
+
+    String rawColumnValue = readRawSecretColumn(saved.getId());
+
+    assertNotEquals("brand-new-secret", rawColumnValue);
+    assertTrue(SecretCryptoCommand.isEncrypted(rawColumnValue));
+    assertEquals("brand-new-secret", WebhookSubscriptionRepository.findById(saved.getId()).getSecret());
+  }
+
+  private String readRawSecretColumn(long webhookSubscriptionId) throws SQLException {
+    try (Connection connection = DB.getConnection();
+        Statement statement = connection.createStatement();
+        java.sql.ResultSet rs = statement
+            .executeQuery("SELECT secret FROM webhook_subscription WHERE webhook_subscription_id = " + webhookSubscriptionId)) {
+      assertTrue(rs.next(), "expected a row for id " + webhookSubscriptionId);
+      return rs.getString("secret");
+    }
   }
 
   private WebhookSubscription seed(String url, String eventTypesCsv, boolean enabled) {

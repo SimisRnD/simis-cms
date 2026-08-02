@@ -72,6 +72,10 @@ public class WebPage extends Entity {
   private String comments = null;
   private Timestamp publishAt = null;
   private Timestamp expiresAt = null;
+  // Free-text solution-page tag for business-KPI reporting (issue #570), e.g. "government-solution",
+  // "contract-past-performance", "careers" -- mirrors template's simplicity: nullable, not a foreign
+  // key to a taxonomy table. See SolutionTypeOptions for the common values offered in the admin UI.
+  private String solutionType = null;
 
   public WebPage() {
   }
@@ -283,6 +287,14 @@ public class WebPage extends Entity {
 
   public void setExpiresAt(Timestamp expiresAt) {
     this.expiresAt = expiresAt;
+  }
+
+  public String getSolutionType() {
+    return solutionType;
+  }
+
+  public void setSolutionType(String solutionType) {
+    this.solutionType = solutionType;
   }
 
   /**
