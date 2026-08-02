@@ -103,6 +103,7 @@ public class WebPageHitRepository {
         .add("page_path NOT LIKE ?", "/assets%")
         .add("page_path NOT LIKE ?", "/json%")
         .add("page_path NOT LIKE ?", "%/*")
+        .add("page_path <> ?", "/login")
         .add("NOT EXISTS (SELECT 1 FROM sessions WHERE session_id = web_page_hits.session_id AND is_bot = TRUE)");
     long webPageHitCount = DB.selectCountFrom(TABLE_NAME, where);
 
@@ -281,6 +282,7 @@ public class WebPageHitRepository {
             "AND page_path NOT LIKE '/json/%' " +
             "AND page_path NOT LIKE '%/*' " +
             "AND page_path <> '/content-editor' " +
+            "AND page_path <> '/login' " +
             "AND NOT EXISTS (SELECT 1 FROM sessions WHERE session_id = web_page_hits.session_id AND is_bot = TRUE) " +
             "GROUP BY page_path " +
             "ORDER BY path_count desc " +

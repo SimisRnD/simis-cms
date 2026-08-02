@@ -18,10 +18,13 @@ package com.simisinc.platform.infrastructure.persistence.cms;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.Connection;
+import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.time.Duration;
 import java.util.List;
 import java.util.Properties;
@@ -163,6 +166,42 @@ class WebPageHitRepositoryTest {
     assertEquals(0, results.size());
   }
 
+  // --- findTopPaths()/createSnapshot() /login exclusion (issue #495) ---
+
+  @Test
+  void findTopPathsExcludesLoginAlongsideTheOtherSystemNoisePaths() {
+    seedSession("real-session", false);
+    seedPageHitByPath("/login", "real-session");
+    seedPageHitByPath("/login", "real-session");
+    seedPageHitByPath("/contact-us", "real-session");
+
+    List<StatisticsData> results = WebPageHitRepository.findTopPaths(30, 'd', 10);
+
+    assertNotNull(results);
+    assertEquals(1, results.size());
+    assertEquals("/contact-us", results.get(0).getLabel(), "/login should be excluded the same way /admin, /assets, /json, and /content-editor already are");
+  }
+
+  @Test
+  void createSnapshotDoesNotCountLoginHits() {
+    seedSession("real-session", false);
+    seedPageHitByPath("/login", "real-session");
+    seedPageHitByPath("/contact-us", "real-session");
+
+    Timestamp start = new Timestamp(System.currentTimeMillis() - 60_000);
+    Timestamp end = new Timestamp(System.currentTimeMillis() + 60_000);
+    WebPageHitRepository.createSnapshot(start, end);
+
+    try (Connection connection = DB.getConnection();
+        Statement statement = connection.createStatement();
+        ResultSet rs = statement.executeQuery("SELECT web_page_hits FROM web_page_hit_snapshots")) {
+      assertTrue(rs.next(), "a snapshot row should have been inserted");
+      assertEquals(1, rs.getLong("web_page_hits"), "only the /contact-us hit should count, not /login");
+    } catch (SQLException se) {
+      throw new IllegalStateException("Could not read the snapshot", se);
+    }
+  }
+
   private static void seedSession(String sessionId, boolean isBot) {
     try (Connection connection = DB.getConnection();
         Statement statement = connection.createStatement()) {
@@ -194,6 +233,16 @@ class WebPageHitRepositoryTest {
     }
   }
 
+  private static void seedPageHitByPath(String pagePath, String sessionId) {
+    try (Connection connection = DB.getConnection();
+        Statement statement = connection.createStatement()) {
+      statement.execute("INSERT INTO web_page_hits (page_path, session_id, hit_date) VALUES ('"
+          + pagePath + "', '" + sessionId + "', CURRENT_TIMESTAMP)");
+    } catch (SQLException se) {
+      throw new IllegalStateException("Could not seed web page hit", se);
+    }
+  }
+
   private static boolean isDockerAvailable() {
     try {
       return DockerClientFactory.instance().isDockerAvailable();
@@ -213,6 +262,7 @@ class WebPageHitRepositoryTest {
     try (Connection connection = DB.getConnection();
         Statement statement = connection.createStatement()) {
       statement.execute("DROP TABLE IF EXISTS web_page_hits CASCADE");
+      statement.execute("DROP TABLE IF EXISTS web_page_hit_snapshots CASCADE");
       statement.execute("DROP TABLE IF EXISTS web_pages CASCADE");
       statement.execute("DROP TABLE IF EXISTS sessions CASCADE");
       statement.execute("CREATE TABLE web_pages ("
@@ -224,9 +274,16 @@ class WebPageHitRepositoryTest {
           + "is_bot BOOLEAN DEFAULT false)");
       statement.execute("CREATE TABLE web_page_hits ("
           + "hit_id BIGSERIAL PRIMARY KEY, "
+          + "page_path VARCHAR(255), "
           + "web_page_id BIGINT, "
           + "session_id VARCHAR(255), "
           + "hit_date TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP)");
+      statement.execute("CREATE TABLE web_page_hit_snapshots ("
+          + "snapshot_id BIGSERIAL PRIMARY KEY, "
+          + "snapshot_date TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP, "
+          + "date_value VARCHAR(10) UNIQUE NOT NULL, "
+          + "unique_sessions BIGINT DEFAULT 0, "
+          + "web_page_hits BIGINT DEFAULT 0)");
     } catch (SQLException se) {
       throw new IllegalStateException("Could not create the schema", se);
     }
