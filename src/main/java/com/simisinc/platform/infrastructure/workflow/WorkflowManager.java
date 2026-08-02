@@ -17,8 +17,10 @@
 package com.simisinc.platform.infrastructure.workflow;
 
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.webhooks.DispatchWebhookDeliveriesCommand;
 import com.simisinc.platform.domain.events.Event;
 import com.simisinc.platform.infrastructure.scheduler.WorkflowEngineJob;
+import com.simisinc.platform.infrastructure.scheduler.webhooks.WebhookDispatchJob;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
@@ -95,10 +97,26 @@ public class WorkflowManager {
   }
 
   public static void triggerWorkflowForEvent(Event domainEvent) {
-    // Start the background job
+    // Start the background job that runs this event's playbook (email/history/etc steps), if
+    // one exists for its domainEventType
     JobId jobId = BackgroundJobRequest.enqueue(new WorkflowEngineJob(domainEvent));
     if (LOG.isDebugEnabled()) {
       LOG.debug("WorkflowEngineJob Enqueue jobId: " + jobId.toString() + " at " + domainEvent.getOccurred() + ": " + domainEvent.getDomainEventType());
+    }
+
+    // Also fan this event out to matching webhook subscriptions (issue #418) -- unconditionally,
+    // for every event that reaches this method, independent of whether a playbook exists for
+    // domainEvent.getDomainEventType() or what steps it lists. A playbook is looked up by exact
+    // event-type id and findAndRunWorkflow() bails out entirely with just a warning log when none
+    // is found (see below), so making webhook delivery depend on that same lookup -- e.g. by only
+    // wiring a `- webhook:` step into each *-workflows.yml playbook -- would silently exclude any
+    // event that doesn't happen to have a playbook today, and any future event whose author didn't
+    // think to add one. See DispatchWebhookDeliveriesCommand's and WebhookTask's javadoc for the
+    // full rationale, and WebhookTask's javadoc specifically for why that class exists but is not
+    // wired into any playbook YAML.
+    JobId webhookJobId = BackgroundJobRequest.enqueue(new WebhookDispatchJob(domainEvent));
+    if (LOG.isDebugEnabled()) {
+      LOG.debug("WebhookDispatchJob Enqueue jobId: " + webhookJobId.toString() + " at " + domainEvent.getOccurred() + ": " + domainEvent.getDomainEventType());
     }
   }
 

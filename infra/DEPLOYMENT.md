@@ -169,18 +169,21 @@ The app uses Flyway for database schema management. In a multi-instance deployme
 **Migration Lock Behavior:**
 - Primary instances (`CMS_NODE_TYPE` not set or `= primary`) acquire a distributed lock before running migrations
 - Lock is held for up to 5 minutes; prevents concurrent Flyway execution on multiple instances
-- Web-only instances (`CMS_NODE_TYPE=web`) skip migration lock and wait for primary to complete
+- Web-only instances (`CMS_NODE_TYPE=web`) never run migrations themselves (not even unprotected) -- they skip the lock and instead poll until the primary's migrations are confirmed complete, bounded by the same ~6 minute timeout used for lock acquisition
 - Lock is released after migrations complete or on failure (no lock leak)
 
 **Log markers:**
 - `Acquired migration lock: «uuid»` → This instance is running migrations
 - `Released migration lock: «uuid»` → Migrations complete, lock released
-- `Web-only node detected; skipping migration lock acquisition` → This instance skipped migrations
-- `Could not acquire migration lock; another node is migrating` → Waiting for other node to finish
+- `Web-only node detected (CMS_NODE_TYPE=web); skipping migration lock acquisition` → This instance will not run migrations
+- `Waiting for the primary node to complete migrations...` → Web-only instance polling for the primary to finish
+- `Primary node's migrations are complete.` → Web-only instance confirmed the schema is ready and continued startup
+- `Could not acquire migration lock; another node is migrating` → Primary instance waiting for another primary to finish
+- `Primary node did not complete migrations within «timeout»; refusing to start` → Web-only instance timed out waiting; check the primary instance's logs for a stuck/failed migration
 
 If startup fails:
 - Check logs for the specific error (database, secrets, file store)
-- Common: missing Key Vault secret, DB password mismatch, connectivity, lock timeout
+- Common: missing Key Vault secret, DB password mismatch, connectivity, lock timeout, primary migration taking longer than the wait timeout
 - Redeploy with corrected parameter and wait for container restart
 
 ### 4.1 Background Job Storage (Multi-Instance)

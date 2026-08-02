@@ -23,9 +23,13 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.time.Duration;
+import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Properties;
 
 import org.junit.jupiter.api.AfterAll;
@@ -40,6 +44,7 @@ import org.testcontainers.utility.DockerImageName;
 
 import com.simisinc.platform.domain.model.cms.Content;
 import com.simisinc.platform.infrastructure.database.DB;
+import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.database.DataSource;
 
 /**
@@ -185,9 +190,11 @@ class ContentRepositoryTest {
   }
 
   private static void createSchema() {
-    // A focused subset of the real content table - enough for the add/find/remove path.
-    // The tsvector column/trigger and the created_by/modified_by foreign keys are intentionally
-    // omitted; the delete path only needs the primary key, and nothing references content.
+    // A focused subset of the real content table - enough for the add/find/remove path, plus the
+    // real tsv column/trigger/text-search config (mirrored from NEW_10010__new_cms.sql) so the
+    // search-OR-match tests below exercise the actual PLAINTO_TSQUERY('content_stem', ...) clause,
+    // not a stand-in. The created_by/modified_by foreign keys are intentionally omitted; nothing
+    // references content.
     try (Connection connection = DB.getConnection();
         Statement statement = connection.createStatement()) {
       statement.execute("DROP TABLE IF EXISTS content CASCADE");
@@ -206,7 +213,19 @@ class ContentRepositoryTest {
           + "created_by BIGINT, "
           + "modified_by BIGINT, "
           + "created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP, "
-          + "modified TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP)");
+          + "modified TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP, "
+          + "tsv TSVECTOR)");
+
+      statement.execute("CREATE TEXT SEARCH DICTIONARY content_stem (TEMPLATE = snowball, Language = english)");
+      statement.execute("CREATE TEXT SEARCH CONFIGURATION content_stem (copy = english)");
+      statement.execute("ALTER TEXT SEARCH CONFIGURATION content_stem "
+          + "ALTER MAPPING FOR asciihword, asciiword, hword, hword_asciipart, hword_part, word WITH content_stem");
+
+      statement.execute("CREATE OR REPLACE FUNCTION content_tsv_trigger() RETURNS trigger AS $$ "
+          + "begin new.tsv := setweight(to_tsvector('content_stem', new.content_text), 'A'); return new; end "
+          + "$$ LANGUAGE plpgsql");
+      statement.execute("CREATE TRIGGER tsvectorupdate BEFORE INSERT OR UPDATE "
+          + "ON content FOR EACH ROW EXECUTE PROCEDURE content_tsv_trigger()");
     } catch (SQLException se) {
       throw new IllegalStateException("Could not create the content schema", se);
     }
@@ -261,5 +280,116 @@ class ContentRepositoryTest {
     content.setUniqueId(uniqueId);
     content.setContent(html);
     return ContentRepository.save(content);
+  }
+
+  /** Directly sets the modified timestamp (bypassing ContentRepository.update()'s "now" stamp) so date-range tests can pin known values. */
+  private static void setModified(String uniqueId, Timestamp modified) {
+    try (Connection connection = DB.getConnection();
+        PreparedStatement pst = connection.prepareStatement(
+            "UPDATE content SET modified = ? WHERE content_unique_id = ?")) {
+      pst.setTimestamp(1, modified);
+      pst.setString(2, uniqueId);
+      pst.executeUpdate();
+    } catch (SQLException se) {
+      throw new IllegalStateException("Could not set modified", se);
+    }
+  }
+
+  /**
+   * Directly overwrites content_text via raw SQL (bypassing HtmlCommand.text's HTML-stripping) so
+   * character-count tests can pin an exact known length. The tsvectorupdate trigger still fires on
+   * this UPDATE and regenerates tsv from the new content_text, so full-text search stays consistent.
+   */
+  private static void setContentText(String uniqueId, String text) {
+    try (Connection connection = DB.getConnection();
+        PreparedStatement pst = connection.prepareStatement(
+            "UPDATE content SET content_text = ? WHERE content_unique_id = ?")) {
+      pst.setString(1, text);
+      pst.setString(2, uniqueId);
+      pst.executeUpdate();
+    } catch (SQLException se) {
+      throw new IllegalStateException("Could not set content_text", se);
+    }
+  }
+
+  @Test
+  void searchMatchesEitherUniqueIdSubstringOrBodyFullText() {
+    // Assumptions.assumeTrue in startDatabase() already skipped this class when Docker/postgres isn't running
+    addContent("careers-page-header", "<p>Welcome to our team</p>");
+    addContent("generic-block", "<p>We are hiring for many career paths across the company</p>");
+    addContent("unrelated-block", "<p>Nothing relevant here at all</p>");
+
+    ContentSpecification specification = new ContentSpecification();
+    specification.setSearchTerm("career");
+
+    List<Content> results = ContentRepository.findAll(specification, new DataConstraints());
+
+    assertNotNull(results);
+    List<String> uniqueIds = results.stream().map(Content::getUniqueId).toList();
+    assertTrue(uniqueIds.contains("careers-page-header"), "should match by unique-id substring ('career' in 'careers-page-header')");
+    assertTrue(uniqueIds.contains("generic-block"), "should match by body full-text ('career' stems from 'career paths' in the body)");
+    assertFalse(uniqueIds.contains("unrelated-block"), "should not match a block whose id and body both lack the term");
+    assertEquals(2, uniqueIds.size());
+  }
+
+  @Test
+  void dateModifiedRangeFiltersCorrectly() {
+    addContent("modified-early", "<p>Early</p>");
+    addContent("modified-middle", "<p>Middle</p>");
+    addContent("modified-late", "<p>Late</p>");
+    setModified("modified-early", Timestamp.valueOf(LocalDateTime.of(2026, 1, 1, 9, 0)));
+    setModified("modified-middle", Timestamp.valueOf(LocalDateTime.of(2026, 6, 15, 9, 0)));
+    setModified("modified-late", Timestamp.valueOf(LocalDateTime.of(2026, 12, 31, 9, 0)));
+
+    ContentSpecification specification = new ContentSpecification();
+    specification.setDateModifiedAfter(Timestamp.valueOf(LocalDateTime.of(2026, 6, 1, 0, 0)));
+    specification.setDateModifiedBefore(Timestamp.valueOf(LocalDateTime.of(2026, 7, 1, 0, 0)));
+
+    List<Content> results = ContentRepository.findAll(specification, new DataConstraints());
+
+    assertNotNull(results);
+    List<String> uniqueIds = results.stream().map(Content::getUniqueId).toList();
+    assertEquals(List.of("modified-middle"), uniqueIds);
+  }
+
+  @Test
+  void characterCountRangeFiltersCorrectly() {
+    addContent("chars-short", "<p>short</p>");
+    addContent("chars-medium", "<p>medium</p>");
+    addContent("chars-long", "<p>long</p>");
+    setContentText("chars-short", "x".repeat(10));
+    setContentText("chars-medium", "x".repeat(500));
+    setContentText("chars-long", "x".repeat(5000));
+
+    ContentSpecification specification = new ContentSpecification();
+    specification.setMinLength(100);
+    specification.setMaxLength(1000);
+
+    List<Content> results = ContentRepository.findAll(specification, new DataConstraints());
+
+    assertNotNull(results);
+    List<String> uniqueIds = results.stream().map(Content::getUniqueId).toList();
+    assertEquals(List.of("chars-medium"), uniqueIds);
+  }
+
+  @Test
+  void combinedFiltersAreAnded() {
+    // The search term ORs id-vs-body internally, but combines with the date/length filters as AND
+    // (SqlUtils.addIfExists chains are ANDed) -- a block matching the search but outside the date
+    // range must not appear.
+    addContent("combo-in-range", "<p>career opportunities await</p>");
+    addContent("combo-out-of-range", "<p>career opportunities await</p>");
+    setModified("combo-in-range", Timestamp.valueOf(LocalDateTime.of(2026, 6, 15, 9, 0)));
+    setModified("combo-out-of-range", Timestamp.valueOf(LocalDateTime.of(2020, 1, 1, 9, 0)));
+
+    ContentSpecification specification = new ContentSpecification();
+    specification.setSearchTerm("career");
+    specification.setDateModifiedAfter(Timestamp.valueOf(LocalDateTime.of(2026, 1, 1, 0, 0)));
+
+    List<Content> results = ContentRepository.findAll(specification, new DataConstraints());
+
+    assertNotNull(results);
+    List<String> uniqueIds = results.stream().map(Content::getUniqueId).toList();
+    assertEquals(List.of("combo-in-range"), uniqueIds);
   }
 }

@@ -18,12 +18,16 @@ package com.simisinc.platform.presentation.widgets.cms;
 
 import org.apache.commons.lang3.StringUtils;
 
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.cms.ContentAccessibilityCommand;
 import com.simisinc.platform.application.cms.ContentReviewCommand;
+import com.simisinc.platform.application.cms.ContentUsageCommand;
 import com.simisinc.platform.application.cms.DateCommand;
 import com.simisinc.platform.application.cms.LoadContentCommand;
 import com.simisinc.platform.application.cms.LoadWebPageCommand;
@@ -33,6 +37,7 @@ import com.simisinc.platform.application.cms.UrlCommand;
 import com.simisinc.platform.domain.events.cms.WebPageUpdatedEvent;
 import com.simisinc.platform.domain.model.cms.Content;
 import com.simisinc.platform.domain.model.cms.WebPage;
+import com.simisinc.platform.infrastructure.cache.PublishEventCachePurgeHandler;
 import com.simisinc.platform.infrastructure.persistence.cms.ContentRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
 import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
@@ -92,6 +97,17 @@ public class ContentEditorWidget extends GenericWidget {
       contentHtml = TinyMceCommand.prepareContentForEditor(contentHtml);
     }
     context.getRequest().setAttribute("contentHtml", contentHtml);
+
+    // Determine if this content is shared across multiple pages/templates -- if so, the
+    // client-side confirm on "Publish Immediately" (content-editor.jsp) needs to warn with the
+    // real list of affected pages before the publish takes effect (issue #499 slice 2). Only the
+    // existing-content case renders that button at all (a brand-new, never-yet-saved block has no
+    // "Publish Immediately" to guard, just "Save"), so the usage scan is skipped otherwise.
+    if (content.getId() != -1) {
+      Map<String, List<String>> usageMap = ContentUsageCommand.findUsageMap(context.getRequest().getServletContext());
+      context.getRequest().setAttribute("reusabilityWarning",
+          ContentUsageCommand.buildReusabilityWarning(uniqueId, usageMap));
+    }
 
     // Determine the return page
     String returnPage = UrlCommand.getValidReturnPage(context.getParameter("returnPage"));
@@ -177,10 +193,13 @@ public class ContentEditorWidget extends GenericWidget {
             // Update the related page
             WebPageRepository.markAsModified(webPage, context.getUserId());
 
-            // Trigger events
+            // Trigger events (the "just updated in the last day" debounce is specific to the
+            // activity-feed workflow event, not cache correctness -- the embedded content on this
+            // page just changed for real visitors, so the AFD purge below always fires)
             if (justUpdatedInTheLastDay) {
               WorkflowManager.triggerWorkflowForEvent(new WebPageUpdatedEvent(webPage));
             }
+            PublishEventCachePurgeHandler.onPageUpdated(webPage);
           }
         }
         // Non-blocking author-facing a11y notice (#258): the save above has already succeeded, so
@@ -192,6 +211,17 @@ public class ContentEditorWidget extends GenericWidget {
               ContentAccessibilityCommand.check(savedHtml != null ? savedHtml : contentHtml);
           if (!findings.isEmpty()) {
             context.setWarningMessage(ContentAccessibilityCommand.summarize(findings));
+            // The flash-message mechanism only re-surfaces a message when a widget with this same
+            // uniqueId renders on the *next* page (see WebContainerCommand/ControllerSession).
+            // returnPage is the live page the content lives on, which never includes the
+            // content-editor widget, so a warning set here would otherwise be silently dropped
+            // (issue #826). Send the author back to the editor itself instead, where this widget
+            // instance actually renders and can pick the message back up -- returnPage is passed
+            // through so the reloaded editor's own "back to page" link/hidden field, and any
+            // subsequent save, are unaffected. Only overrides the redirect in this warning branch;
+            // a clean save keeps the original returnPage redirect set above, unchanged.
+            context.setRedirect("/content-editor?uniqueId=" + URLEncoder.encode(uniqueId, StandardCharsets.UTF_8)
+                + "&returnPage=" + URLEncoder.encode(returnPage, StandardCharsets.UTF_8));
           }
         } catch (Exception a11yException) {
           LOG.warn("Accessibility check failed for uniqueId " + uniqueId, a11yException);

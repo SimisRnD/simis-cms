@@ -35,6 +35,15 @@
     <junit.version>6.1.2</junit.version>
     <mockito.version>5.23.0</mockito.version>
     <argon2.version>2.12</argon2.version>
+    <!-- AFD purge (issue #420): auth-only. azure-core-http-netty (azure-identity's default HTTP
+         client) is excluded below in favor of azure-core-http-okhttp, which reuses the okhttp/okio
+         jars already vendored for Stripe/Square rather than pulling in a whole Netty stack. The
+         actual purge REST call builds its own java.net.http HttpClient/HttpRequest directly
+         (rather than reusing HttpPostCommand) so it can read both the response status code and
+         body for logging; HttpPostCommand.execute() collapses those into a single null on
+         failure. Not a generated management-plane client. See PublishEventCachePurgeHandler. -->
+    <azure-identity.version>1.13.0</azure-identity.version>
+    <azure-core-http-okhttp.version>1.13.5</azure-core-http-okhttp.version>
     <bucket4j.version>8.10.1</bucket4j.version>
     <caffeine.version>3.2.4</caffeine.version>
     <apache-http.version>5.4.3</apache-http.version>
@@ -118,6 +127,23 @@
       <groupId>net.java.dev.jna</groupId>
       <artifactId>jna</artifactId>
       <version>${jna.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.azure</groupId>
+      <artifactId>azure-identity</artifactId>
+      <version>${azure-identity.version}</version>
+      <exclusions>
+        <!-- Swapped for azure-core-http-okhttp below; see the azure-identity.version comment. -->
+        <exclusion>
+          <groupId>com.azure</groupId>
+          <artifactId>azure-core-http-netty</artifactId>
+        </exclusion>
+      </exclusions>
+    </dependency>
+    <dependency>
+      <groupId>com.azure</groupId>
+      <artifactId>azure-core-http-okhttp</artifactId>
+      <version>${azure-core-http-okhttp.version}</version>
     </dependency>
     <dependency>
       <groupId>com.bucket4j</groupId>

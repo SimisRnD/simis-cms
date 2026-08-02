@@ -226,14 +226,18 @@ class DatabaseMigrationTest {
   }
 
   @Test
-  void webPagesHasTheSolutionTypeColumnOnAFreshInstall() throws SQLException {
-    // issue #570: web_pages.solution_type is added directly in NEW_10010__new_cms.sql (the install
-    // path) as well as via UPGRADE_20260801.1000__web_pages_solution_type.sql (the upgrade path,
-    // exercised separately by SolutionTypeMigrationTest). This confirms the install side actually
-    // shipped, not just the upgrade migration.
-    assertTrue(columnExists("web_pages", "solution_type"),
-        "web_pages.solution_type is missing after a fresh install - the solution-page tagging "
-            + "admin field and site-stats reports both depend on it");
+  void webhookTablesExistOnAFreshInstall() throws SQLException {
+    // Issue #418: webhook_subscription/webhook_delivery are added in BOTH
+    // NEW_10130__new_webhooks.sql (install/) and UPGRADE_20260801.1001__create_webhook_tables.sql
+    // (upgrade/) -- this is the same install/upgrade mirroring gap class as
+    // tablesThatOnlyExistedInUpgradeMigrationsAreOnTheInstallPath() below (issue #431 precedent),
+    // checked directly here for the tables this PR actually adds.
+    assertTrue(tableExists("webhook_subscription"), "webhook_subscription is missing on a fresh install");
+    assertTrue(tableExists("webhook_delivery"), "webhook_delivery is missing on a fresh install");
+    assertTrue(columnExists("webhook_delivery", "delivery_uuid"),
+        "webhook_delivery.delivery_uuid is missing -- issue #456's idempotency id has nowhere to live");
+    assertTrue(columnExists("webhook_delivery", "next_retry_at"),
+        "webhook_delivery.next_retry_at is missing -- AttemptWebhookDeliveryCommand's backoff schedule cannot be persisted");
   }
 
   @Test

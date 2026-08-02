@@ -22,6 +22,7 @@ import com.simisinc.platform.application.cms.UrlCommand;
 import com.simisinc.platform.domain.model.cms.SitemapChangeFrequencyOptions;
 import com.simisinc.platform.domain.model.cms.SolutionTypeOptions;
 import com.simisinc.platform.domain.model.cms.WebPage;
+import com.simisinc.platform.infrastructure.cache.PublishEventCachePurgeHandler;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
@@ -206,6 +207,7 @@ public class WebPageFormWidget extends GenericWidget {
       String targetLabel = webPage.getTitle();
       try {
         WebPageRepository.remove(webPage);
+        PublishEventCachePurgeHandler.onPageDeleted(webPage.getLink());
         AuditEventCommand.record(context, AuditEventCommand.CONTENT, "content.delete", AuditEventCommand.SUCCESS,
             "web_page", targetId, targetLabel, null);
         context.setSuccessMessage("Page was deleted");

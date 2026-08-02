@@ -16,70 +16,103 @@
 
 package com.simisinc.platform.application.cms;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
+
+import java.sql.Timestamp;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.domain.model.cms.WebPage;
+import com.simisinc.platform.infrastructure.cache.PublishEventCachePurgeHandler;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
 import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
 
 /**
- * Issue #570 -- solution-page tagging's validation and persistence through SaveWebPageCommand.
+ * #420: publishing or updating a web page never triggered any AFD cache purge -- these tests
+ * confirm SaveWebPageCommand, the real command a page save/publish reaches, actually calls the
+ * purge hooks (as opposed to unit-testing PublishEventCachePurgeHandler in isolation).
  */
 class SaveWebPageCommandTest {
 
-  private static WebPage webPageBean(String link, String solutionType) {
+  private static WebPage newPageBean(String link) {
     WebPage bean = new WebPage();
     bean.setLink(link);
     bean.setCreatedBy(1L);
-    bean.setSolutionType(solutionType);
     return bean;
   }
 
   @Test
-  void savesANewPageWithARecognizedSolutionType() throws DataException {
-    WebPage bean = webPageBean("/solutions/cmmc", "government-solution");
+  void savingABrandNewPageTriggersOnPagePublished() throws Exception {
+    WebPage bean = newPageBean("/about");
+    // id == -1 and no modified date -- SaveWebPageCommand's own isNewWebPage check
+
+    WebPage saved = new WebPage();
+    saved.setId(5L);
+    saved.setLink("/about");
 
     try (MockedStatic<WebPageRepository> repository = mockStatic(WebPageRepository.class);
-        MockedStatic<WorkflowManager> workflow = mockStatic(WorkflowManager.class)) {
-      repository.when(() -> WebPageRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        MockedStatic<WorkflowManager> workflow = mockStatic(WorkflowManager.class);
+        MockedStatic<PublishEventCachePurgeHandler> purge = mockStatic(PublishEventCachePurgeHandler.class)) {
+      repository.when(() -> WebPageRepository.save(any())).thenReturn(saved);
 
-      WebPage saved = SaveWebPageCommand.saveWebPage(bean);
+      WebPage result = SaveWebPageCommand.saveWebPage(bean);
 
-      assertEquals("government-solution", saved.getSolutionType());
+      org.junit.jupiter.api.Assertions.assertEquals(5L, result.getId());
+      purge.verify(() -> PublishEventCachePurgeHandler.onPagePublished(saved));
+      purge.verify(() -> PublishEventCachePurgeHandler.onPageUpdated(any()), never());
+      workflow.verify(() -> WorkflowManager.triggerWorkflowForEvent(any()));
     }
   }
 
   @Test
-  void savesANewPageWithNoSolutionType() throws DataException {
-    WebPage bean = webPageBean("/about", null);
+  void savingAnExistingPageTriggersOnPageUpdatedEvenWhenRecentlyModified() throws Exception {
+    // An existing record, modified moments ago -- SaveWebPageCommand's activity-feed debounce
+    // (DateCommand.isHoursOld(modified, 10)) means the WorkflowManager "updated" event does NOT
+    // fire for this case, but the AFD purge must fire regardless: the live page changed either
+    // way, and a stale edge/browser cache doesn't care how recently the page was last touched.
+    WebPage bean = newPageBean("/about");
+    bean.setId(5L);
+    bean.setModified(new Timestamp(System.currentTimeMillis()));
+
+    WebPage existing = new WebPage();
+    existing.setId(5L);
+    existing.setLink("/about");
+    existing.setModified(new Timestamp(System.currentTimeMillis()));
+
+    WebPage saved = new WebPage();
+    saved.setId(5L);
+    saved.setLink("/about");
 
     try (MockedStatic<WebPageRepository> repository = mockStatic(WebPageRepository.class);
-        MockedStatic<WorkflowManager> workflow = mockStatic(WorkflowManager.class)) {
-      repository.when(() -> WebPageRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        MockedStatic<WorkflowManager> workflow = mockStatic(WorkflowManager.class);
+        MockedStatic<PublishEventCachePurgeHandler> purge = mockStatic(PublishEventCachePurgeHandler.class)) {
+      repository.when(() -> WebPageRepository.findById(5L)).thenReturn(existing);
+      repository.when(() -> WebPageRepository.save(any())).thenReturn(saved);
 
-      WebPage saved = SaveWebPageCommand.saveWebPage(bean);
+      SaveWebPageCommand.saveWebPage(bean);
 
-      assertNull(saved.getSolutionType());
+      purge.verify(() -> PublishEventCachePurgeHandler.onPageUpdated(saved));
+      purge.verify(() -> PublishEventCachePurgeHandler.onPagePublished(any()), never());
+      // The debounce that intentionally suppresses the activity-feed event must NOT suppress the purge
+      workflow.verify(() -> WorkflowManager.triggerWorkflowForEvent(any()), never());
     }
   }
 
   @Test
-  void rejectsAnUnrecognizedSolutionType() {
-    WebPage bean = webPageBean("/solutions/cmmc", "not-a-real-option");
+  void failedValidationNeverTriggersAPurge() {
+    // No link -- SaveWebPageCommand rejects this before WebPageRepository or the purge handler
+    // are ever touched.
+    WebPage bean = new WebPage();
 
-    try (MockedStatic<WebPageRepository> repository = mockStatic(WebPageRepository.class)) {
-      DataException exception = assertThrows(DataException.class, () -> SaveWebPageCommand.saveWebPage(bean));
+    try (MockedStatic<PublishEventCachePurgeHandler> purge = mockStatic(PublishEventCachePurgeHandler.class)) {
+      assertThrows(DataException.class, () -> SaveWebPageCommand.saveWebPage(bean));
 
-      assertEquals(true, exception.getMessage().contains("Solution type choice is unavailable"));
-      repository.verify(() -> WebPageRepository.save(any()), org.mockito.Mockito.never());
+      purge.verifyNoInteractions();
     }
   }
 }
