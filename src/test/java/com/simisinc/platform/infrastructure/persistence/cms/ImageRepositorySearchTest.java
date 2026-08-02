@@ -17,6 +17,7 @@
 package com.simisinc.platform.infrastructure.persistence.cms;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.Connection;
@@ -25,6 +26,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.Duration;
+import java.util.Collections;
 import java.util.List;
 import java.util.Properties;
 import java.util.Set;
@@ -42,13 +44,20 @@ import org.testcontainers.utility.DockerImageName;
 
 import com.simisinc.platform.domain.model.cms.Image;
 import com.simisinc.platform.infrastructure.database.DB;
+import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.database.DataSource;
 
 /**
- * Verifies the filename substring search added to {@link ImageRepository} for issue #498 against a
- * real PostgreSQL instance: {@code ImageSpecification.matchesName} must find partial, case-insensitive
- * filename matches (the browse page's search box), and the search term must be bound as a query
- * parameter, never concatenated into the SQL text.
+ * Verifies the filename substring search added to {@link ImageRepository} for issue #498 slice 1
+ * against a real PostgreSQL instance: {@code ImageSpecification.matchesName} must find partial,
+ * case-insensitive filename matches (the browse page's search box), and the search term must be
+ * bound as a query parameter, never concatenated into the SQL text.
+ *
+ * <p>Also verifies the {@link DataConstraints} paging added for issue #498 slice 2: a page number
+ * and page size must actually limit and offset the rows returned, on both the unfiltered {@code
+ * findAll(null, constraints)} path and the search-filtered {@code findAll(specification,
+ * constraints)} path, and a page number past the last page must degrade to an empty list rather
+ * than error.
  *
  * @author SimIS Inc.
  */
@@ -182,6 +191,93 @@ class ImageRepositorySearchTest {
     List<Image> results = ImageRepository.findAll(spec, null);
 
     assertTrue(results.size() <= 5);
+  }
+
+  @Test
+  void paginationLimitsResultsPerPageOnTheUnfilteredList() {
+    List<Image> results = ImageRepository.findAll(null, pageConstraints(1, 2));
+
+    assertEquals(2, results.size(), "a page size of 2 must return exactly 2 of the 5 seeded images");
+  }
+
+  @Test
+  void paginationOffsetsToASecondPageOnTheUnfilteredListWithoutRepeatingRows() {
+    List<Image> firstPage = ImageRepository.findAll(null, pageConstraints(1, 2));
+    List<Image> secondPage = ImageRepository.findAll(null, pageConstraints(2, 2));
+
+    assertEquals(2, firstPage.size());
+    assertEquals(2, secondPage.size());
+    Set<String> firstPageFilenames = firstPage.stream().map(Image::getFilename).collect(Collectors.toSet());
+    Set<String> secondPageFilenames = secondPage.stream().map(Image::getFilename).collect(Collectors.toSet());
+    // If OFFSET were not actually applied, the second page would just repeat the first
+    assertTrue(Collections.disjoint(firstPageFilenames, secondPageFilenames),
+        "the second page must not repeat any image from the first page");
+  }
+
+  @Test
+  void paginationOnTheUnfilteredListsLastPageReturnsOnlyTheRemainder() {
+    // 5 seeded images at a page size of 2 -> page 3 holds only the 1 remaining image
+    List<Image> lastPage = ImageRepository.findAll(null, pageConstraints(3, 2));
+
+    assertEquals(1, lastPage.size());
+  }
+
+  @Test
+  void paginationAnOutOfRangePageNumberOnTheUnfilteredListReturnsAnEmptyListNotAnError() {
+    List<Image> results = ImageRepository.findAll(null, pageConstraints(50, 2));
+
+    assertTrue(results.isEmpty(), "a page far past the last page must degrade to an empty list");
+  }
+
+  @Test
+  void paginationAppliesToTheSearchFilteredBranchNotJustTheUnfilteredList() {
+    // "3-D Printing.png" and "3-D Prints.png" both match "3-d" -- constraining to 1 per page must
+    // return exactly 1 of the 2 matches, proving paging composes with the search filter instead of
+    // being ignored on the filtered branch.
+    ImageSpecification spec = new ImageSpecification();
+    spec.setMatchesName("3-d");
+
+    List<Image> results = ImageRepository.findAll(spec, pageConstraints(1, 1));
+
+    assertEquals(1, results.size());
+  }
+
+  @Test
+  void paginationOnASearchFilteredSecondPageReturnsTheRemainingMatchNotTheSameOne() {
+    ImageSpecification spec = new ImageSpecification();
+    spec.setMatchesName("3-d");
+
+    List<Image> firstPage = ImageRepository.findAll(spec, pageConstraints(1, 1));
+    List<Image> secondPage = ImageRepository.findAll(spec, pageConstraints(2, 1));
+
+    assertEquals(1, firstPage.size());
+    assertEquals(1, secondPage.size());
+    assertNotEquals(firstPage.get(0).getFilename(), secondPage.get(0).getFilename(),
+        "the second page of a search-filtered query must not repeat the first page's match");
+  }
+
+  @Test
+  void paginationAnOutOfRangePageNumberOnTheSearchFilteredBranchReturnsAnEmptyListNotAnError() {
+    ImageSpecification spec = new ImageSpecification();
+    spec.setMatchesName("3-d");
+
+    List<Image> results = ImageRepository.findAll(spec, pageConstraints(50, 1));
+
+    assertTrue(results.isEmpty());
+  }
+
+  /**
+   * Builds paging constraints with an explicit, unique sort column (the primary key) instead of
+   * relying on {@code ImageRepository.findAll}'s internal "created DESC" default -- the seed
+   * images are inserted back-to-back and may land on the same millisecond timestamp, which would
+   * make cross-page ordering (and therefore these pagination assertions) nondeterministic.
+   * {@link DataConstraints#setColumnToSortBy(String)} is an explicit override that takes priority
+   * over the repository's default, so this sort is what actually runs.
+   */
+  private static DataConstraints pageConstraints(int pageNumber, int pageSize) {
+    DataConstraints constraints = new DataConstraints(pageNumber, pageSize);
+    constraints.setColumnToSortBy("image_id");
+    return constraints;
   }
 
   private static boolean isDockerAvailable() {

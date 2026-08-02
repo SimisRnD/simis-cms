@@ -19,6 +19,8 @@ package com.simisinc.platform.infrastructure.persistence.items;
 import com.simisinc.platform.presentation.controller.DataConstants;
 
 import java.sql.Timestamp;
+import java.util.Collections;
+import java.util.List;
 
 /**
  * Properties for querying objects from the item repository
@@ -32,6 +34,15 @@ public class ItemSpecification {
   private long excludeId = -1L;
   private long collectionId = -1L;
   private long categoryId = -1L;
+  // Issue #636: multi-select within the category facet dimension. categoryId (above) is kept as
+  // the single-value field every pre-#636 caller already uses -- adding a second, list-shaped
+  // field alongside it (rather than replacing categoryId) mirrors the dual-representation shape
+  // WebhookSubscription.eventTypes/eventTypeList uses for the same kind of "one value historically,
+  // now possibly several" change. Unlike WebhookSubscription's CSV-string-backed field, there's no
+  // DB column to serialize to here -- this is an in-memory query specification -- so the list is
+  // just its own field. Callers should generally not read categoryId/categoryIds directly when
+  // building a WHERE clause; use getEffectiveCategoryIds() so both representations are honored.
+  private List<Long> categoryIds = null;
   private String uniqueId = null;
   private String name = null;
   private String barcode = null;
@@ -100,6 +111,32 @@ public class ItemSpecification {
 
   public void setCategoryId(long categoryId) {
     this.categoryId = categoryId;
+  }
+
+  public List<Long> getCategoryIds() {
+    return categoryIds;
+  }
+
+  public void setCategoryIds(List<Long> categoryIds) {
+    this.categoryIds = categoryIds;
+  }
+
+  /**
+   * The effective set of category ids a WHERE-clause builder should filter on (issue #636): the
+   * multi-select {@code categoryIds} list when it's set and non-empty, otherwise the single legacy
+   * {@code categoryId} (issue #421) when it's set, otherwise empty. This is the one method
+   * ItemRepository's search WHERE clause and facet-count methods consult, so a caller that only
+   * ever used the single-value setCategoryId() -- every caller that existed before #636 -- keeps
+   * working unchanged.
+   */
+  public List<Long> getEffectiveCategoryIds() {
+    if (categoryIds != null && !categoryIds.isEmpty()) {
+      return categoryIds;
+    }
+    if (categoryId > -1) {
+      return Collections.singletonList(categoryId);
+    }
+    return Collections.emptyList();
   }
 
   public String getUniqueId() {

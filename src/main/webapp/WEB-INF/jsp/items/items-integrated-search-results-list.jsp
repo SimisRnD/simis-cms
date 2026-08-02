@@ -48,14 +48,19 @@
     <div class="cell medium-3">
       <c:if test="${!empty categoryFacets}">
         <h6><c:out value="${categoryFacetLabel}"/></h6>
+        <%-- Checkbox-style multi-select (issue #636): each option's link toggles it in/out of the
+             current categoryId selection -- clicking a checked one unchecks just it, clicking an
+             unchecked one adds it alongside whatever else is already checked. Plain <a> links, not
+             <input type="checkbox"> in a <form>, since a normal navigation (no JS, no AJAX library
+             vendored in this codebase) already produces the right multi-value URL on its own. --%>
         <ul class="no-bullet" style="text-indent: -11px; margin-left: 21px !important;">
           <c:forEach items="${categoryFacets}" var="facet">
             <li>
               <%-- facet.url is server-built from the request path + UrlCommand.encodeUri()'d params, so it cannot carry HTML metacharacters --%>
               <a href="${facet.url}">
                 <c:choose>
-                  <c:when test="${facet.selected}"><i class="${font:fas()} fa-circle-check"></i></c:when>
-                  <c:otherwise><i class="${font:far()} fa-circle"></i></c:otherwise>
+                  <c:when test="${facet.selected}"><i class="${font:fas()} fa-square-check"></i></c:when>
+                  <c:otherwise><i class="${font:far()} fa-square"></i></c:otherwise>
                 </c:choose>
                 <c:out value="${facet.label}"/>
               </a>&nbsp;<small class="subheader"><fmt:formatNumber value="${facet.count}"/></small>
