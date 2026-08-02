@@ -130,6 +130,58 @@ public class MailChimpCommand {
     return headers;
   }
 
+  /** The outcome of a {@link #testConnection()} call -- a plain, immutable result so the admin UI
+   * can show a specific reason rather than a bare pass/fail (issue #523). */
+  public static class ConnectionTestResult {
+    private final boolean success;
+    private final String message;
+
+    private ConnectionTestResult(boolean success, String message) {
+      this.success = success;
+      this.message = message;
+    }
+
+    public boolean isSuccess() {
+      return success;
+    }
+
+    public String getMessage() {
+      return message;
+    }
+  }
+
+  /** Verifies the configured API key/list id actually work by fetching the list itself, without
+   * mutating any data. Distinct from {@link #isEnabled()}, which only checks that a service name and
+   * non-blank credentials are present -- this makes a real API call to confirm they're valid. */
+  public static ConnectionTestResult testConnection() {
+    String[] apiSettings = getApiSettings();
+    if (apiSettings == null) {
+      return new ConnectionTestResult(false, "API Key and Audience/List Id must both be set first.");
+    }
+
+    try {
+      String dc = apiSettings[0].substring(apiSettings[0].indexOf("-") + 1);
+      String url = "https://" + dc + BASE_URL + "/lists/" + apiSettings[1];
+      String remoteContent = HttpGetCommand.execute(url, buildAuthHeaders(apiSettings[0]));
+      if (remoteContent == null) {
+        return new ConnectionTestResult(false, "No response from MailChimp -- check the API Key's datacenter suffix.");
+      }
+      JsonNode json = JsonLoader.fromString(remoteContent);
+      if (json.has("name")) {
+        return new ConnectionTestResult(true, "Connected to \"" + json.get("name").asText() + "\".");
+      }
+      if (json.has("detail")) {
+        // MailChimp error responses use {"title":..., "detail":...}; surface the detail verbatim,
+        // it's already written for a human (e.g. "The requested resource could not be found.")
+        return new ConnectionTestResult(false, json.get("detail").asText());
+      }
+      return new ConnectionTestResult(false, "Unexpected response from MailChimp.");
+    } catch (Exception e) {
+      LOG.warn("HttpGet MailChimp connection test issue: " + e.getMessage());
+      return new ConnectionTestResult(false, "Could not reach MailChimp: " + e.getMessage());
+    }
+  }
+
   // MailingList: Newsletter/Mailing List/Product Interest (these will be tags in MailChimp)
   // Consider: Abandoned carts, First purchases, Specific product follow-ups, Any product follow-ups, Category follow-ups
   //    Best customers
