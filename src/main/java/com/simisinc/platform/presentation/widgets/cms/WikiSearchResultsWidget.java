@@ -23,6 +23,7 @@ import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
 
+import com.simisinc.platform.application.FacetUrlCommand;
 import com.simisinc.platform.application.cms.HtmlCommand;
 import com.simisinc.platform.application.cms.SearchAnalyticsCommand;
 import com.simisinc.platform.domain.model.cms.SearchResult;
@@ -48,6 +49,7 @@ public class WikiSearchResultsWidget extends GenericWidget {
   static final long serialVersionUID = -8484048371911908895L;
 
   static String JSP = "/cms/wiki-search-results-list.jsp";
+  static String WIKI_FACET_LABEL = "Wiki";
 
   public WidgetContext execute(WidgetContext context) {
 
@@ -64,14 +66,65 @@ public class WikiSearchResultsWidget extends GenericWidget {
       return null;
     }
 
+    // Determine the active facet filter (issue #634; wikiId is fully supported by
+    // WikiPageRepository, single-select since a page belongs to exactly one wiki)
+    long selectedWikiId = context.getParameterAsLong("wikiId", -1);
+
     // Determine criteria
     WikiPageSpecification specification = new WikiPageSpecification();
     specification.setSearchTerm(query);
+    if (selectedWikiId != -1) {
+      specification.setWikiId(selectedWikiId);
+    }
 
     // Query the data
     List<WikiPage> wikiPageList = WikiPageRepository.findAll(specification, constraints);
+    // Not yet passing a facetKey here (issue #638's SearchAnalyticsCommand.record() overload isn't
+    // on main at the time of this PR) -- a trivial follow-up once #638 merges.
     SearchAnalyticsCommand.record(context, query, "wiki", wikiPageList == null ? 0 : wikiPageList.size());
+
+    // Facet panel: one option per wiki with a non-zero count (or the currently selected one), each
+    // counted standalone (ignoring the current wikiId selection) so switching wikis shows every
+    // wiki's own count, not just the selected one's (issue #634)
+    List<FacetUrlCommand.FacetOption> wikiFacets = new ArrayList<>();
+    List<Wiki> wikiList = WikiRepository.findAll();
+    if (wikiList != null) {
+      for (Wiki wiki : wikiList) {
+        boolean selected = selectedWikiId == wiki.getId();
+        WikiPageSpecification countSpecification = new WikiPageSpecification();
+        countSpecification.setSearchTerm(query);
+        countSpecification.setWikiId(wiki.getId());
+        long count = WikiPageRepository.findCount(countSpecification);
+        if (count > 0 || selected) {
+          String url = FacetUrlCommand.buildFacetLinkUrl(context, "wikiId", String.valueOf(wiki.getId()));
+          wikiFacets.add(new FacetUrlCommand.FacetOption(String.valueOf(wiki.getId()), wiki.getName(), count, selected, url));
+        }
+      }
+    }
+    context.getRequest().setAttribute("wikiFacets", wikiFacets);
+    context.getRequest().setAttribute("wikiFacetLabel", WIKI_FACET_LABEL);
+
+    // Active filter chip, with a URL that clears just the wikiId filter (issue #634)
+    List<FacetUrlCommand.ActiveFacetFilter> activeFilters = new ArrayList<>();
+    if (selectedWikiId != -1) {
+      Wiki selectedWiki = WikiRepository.findById(selectedWikiId);
+      String valueLabel = selectedWiki != null ? selectedWiki.getName() : "Selected wiki";
+      activeFilters.add(new FacetUrlCommand.ActiveFacetFilter(WIKI_FACET_LABEL, valueLabel,
+          FacetUrlCommand.buildClearFilterUrl(context, "wikiId")));
+    }
+    context.getRequest().setAttribute("activeFilters", activeFilters);
+
+    // Standard request items -- set even when the result list is empty (issue #634 fix: this used
+    // to bail out before these were set, so the JSP never even rendered a zero-result message,
+    // let alone one that could offer to clear an active filter)
+    context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));
+    context.getRequest().setAttribute("title", context.getPreferences().get("title"));
+    context.getRequest().setAttribute("showPaging", context.getPreferences().getOrDefault("showPaging", "true"));
+    context.getRequest().setAttribute("returnPage", context.getRequest().getRequestURI());
+
     if (wikiPageList == null || wikiPageList.isEmpty()) {
+      context.getRequest().setAttribute("searchResultList", new ArrayList<SearchResult>());
+      context.setJsp(JSP);
       return context;
     }
 
@@ -102,12 +155,6 @@ public class WikiSearchResultsWidget extends GenericWidget {
       searchResultList.add(searchResult);
     }
     context.getRequest().setAttribute("searchResultList", searchResultList);
-
-    // Standard request items
-    context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));
-    context.getRequest().setAttribute("title", context.getPreferences().get("title"));
-    context.getRequest().setAttribute("showPaging", context.getPreferences().getOrDefault("showPaging", "true"));
-    context.getRequest().setAttribute("returnPage", context.getRequest().getRequestURI());
 
     // Show the JSP
     context.setJsp(JSP);

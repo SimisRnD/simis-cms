@@ -16,9 +16,9 @@
 
 package com.simisinc.platform.presentation.widgets.items;
 
+import com.simisinc.platform.application.FacetUrlCommand;
 import com.simisinc.platform.application.cms.HtmlCommand;
 import com.simisinc.platform.application.cms.SearchAnalyticsCommand;
-import com.simisinc.platform.application.cms.UrlCommand;
 import com.simisinc.platform.application.items.ItemDateFacetCommand;
 import com.simisinc.platform.domain.model.cms.SearchResult;
 import com.simisinc.platform.domain.model.items.Category;
@@ -33,7 +33,6 @@ import com.simisinc.platform.presentation.widgets.GenericWidget;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -174,7 +173,7 @@ public class ItemsSearchResultsWidget extends GenericWidget {
         boolean selected = selectedDateBucket != null && selectedDateBucket.getKey().equals(bucket.getKey());
         long count = ItemRepository.countByDateRange(specification, bucket.getStart(), bucket.getEnd());
         if (count > 0 || selected) {
-          String url = buildFacetLinkUrl(context, "dateFacet", bucket.getKey());
+          String url = FacetUrlCommand.buildFacetLinkUrl(context, "dateFacet", bucket.getKey());
           dateFacets.add(new ItemFacetOption(bucket.getKey(), bucket.getLabel(), count, selected, url));
         }
       }
@@ -220,11 +219,11 @@ public class ItemsSearchResultsWidget extends GenericWidget {
         activeFilters.add(new ItemActiveFilter(categoryFacetLabel, valueLabel, clearUrl));
       }
       if (selectedCategoryIds.size() > 1) {
-        activeFilters.add(new ItemActiveFilter(categoryFacetLabel, "All categories", buildClearFilterUrl(context, "categoryId")));
+        activeFilters.add(new ItemActiveFilter(categoryFacetLabel, "All categories", FacetUrlCommand.buildClearFilterUrl(context, "categoryId")));
       }
     }
     if (selectedDateBucket != null) {
-      activeFilters.add(new ItemActiveFilter(dateFacetLabel, selectedDateBucket.getLabel(), buildClearFilterUrl(context, "dateFacet")));
+      activeFilters.add(new ItemActiveFilter(dateFacetLabel, selectedDateBucket.getLabel(), FacetUrlCommand.buildClearFilterUrl(context, "dateFacet")));
     }
     context.getRequest().setAttribute("activeFilters", activeFilters);
 
@@ -277,29 +276,14 @@ public class ItemsSearchResultsWidget extends GenericWidget {
   }
 
   /**
-   * The current request's URL with the given single-value param set to the given value, all other
-   * current params preserved, and paging reset to page 1 (a facet selection changes the result
-   * set, so whatever page the user was on may no longer exist). Used by the (single-select)
-   * dateFacet link; the category facet uses buildCategoryToggleUrl instead (issue #636).
-   */
-  private static String buildFacetLinkUrl(WidgetContext context, String paramName, String paramValue) {
-    Map<String, List<String>> overrides = new LinkedHashMap<>();
-    overrides.put(paramName, Collections.singletonList(paramValue));
-    return buildUrl(context, overrides, paramName);
-  }
-
-  /** The current request's URL with the given param removed entirely, all other current params preserved. */
-  private static String buildClearFilterUrl(WidgetContext context, String paramName) {
-    return buildUrl(context, new LinkedHashMap<>(), paramName);
-  }
-
-  /**
    * The current request's URL with candidateCategoryId toggled in or out of the categoryId
    * selection (issue #636): added if it's not in currentSelection, removed if it is, every OTHER
    * currently selected categoryId preserved. This one method backs both the facet checkbox links
    * (toggling an unchecked category on, or an already-checked one off) and each active-filter
    * chip's "remove just this one" link -- removing a selected category via its chip is exactly the
-   * same toggle-off operation as unchecking its facet checkbox.
+   * same toggle-off operation as unchecking its facet checkbox. Category is the only multi-select
+   * facet in this codebase, so this stays private here rather than in the shared FacetUrlCommand
+   * (issue #634) alongside the single-select buildFacetLinkUrl/buildClearFilterUrl it still uses.
    */
   private static String buildCategoryToggleUrl(WidgetContext context, List<Long> currentSelection, long candidateCategoryId) {
     List<String> newSelection = new ArrayList<>();
@@ -320,48 +304,8 @@ public class ItemsSearchResultsWidget extends GenericWidget {
     }
     // When newSelection ends up empty, categoryId is simply absent from overrides -- combined with
     // excludeParam below dropping the current categoryId values, the result is the same as
-    // buildClearFilterUrl: the param disappears from the URL entirely.
-    return buildUrl(context, overrides, "categoryId");
-  }
-
-  /**
-   * The current request's URL with excludeParam's current value(s) dropped and replaced by
-   * overrides (if any), every OTHER param preserved with EVERY one of its repeated values (not
-   * just the first) -- so, for example, clicking a dateFacet link doesn't silently drop all but
-   * one of the currently selected categoryId values -- and paging reset to page 1.
-   */
-  private static String buildUrl(WidgetContext context, Map<String, List<String>> overrides, String excludeParam) {
-    LinkedHashMap<String, List<String>> params = new LinkedHashMap<>();
-    for (Map.Entry<String, String[]> entry : context.getParameterMap().entrySet()) {
-      String name = entry.getKey();
-      if (name.equals(excludeParam) || "page".equals(name)) {
-        continue;
-      }
-      if (entry.getValue() == null) {
-        continue;
-      }
-      List<String> values = new ArrayList<>();
-      for (String value : entry.getValue()) {
-        if (StringUtils.isNotBlank(value)) {
-          values.add(value);
-        }
-      }
-      if (!values.isEmpty()) {
-        params.put(name, values);
-      }
-    }
-    params.putAll(overrides);
-
-    StringBuilder url = new StringBuilder(context.getUri());
-    boolean first = true;
-    for (Map.Entry<String, List<String>> entry : params.entrySet()) {
-      for (String value : entry.getValue()) {
-        url.append(first ? '?' : '&');
-        first = false;
-        url.append(UrlCommand.encodeUri(entry.getKey())).append('=').append(UrlCommand.encodeUri(value));
-      }
-    }
-    return url.toString();
+    // FacetUrlCommand.buildClearFilterUrl: the param disappears from the URL entirely.
+    return FacetUrlCommand.buildUrl(context, overrides, "categoryId");
   }
 
   /** One facet's rendered option: display label, result count, whether it's currently selected, and its link. */
