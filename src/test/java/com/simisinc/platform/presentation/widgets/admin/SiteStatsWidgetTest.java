@@ -918,6 +918,73 @@ class SiteStatsWidgetTest extends WidgetBase {
     Assertions.assertEquals("Depth", request.getAttribute("value"));
   }
 
+  @Test
+  void executePagesPerSession() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <title>Pages per Session</title>\n" +
+            "  <report>pages-per-session</report>\n" +
+            "  <days>30</days>\n" +
+            "</widget>");
+
+    try (MockedStatic<WebPageHitRepository> webPageHitRepositoryMockedStatic = mockStatic(WebPageHitRepository.class)) {
+      webPageHitRepositoryMockedStatic.when(() -> WebPageHitRepository.findAvgPagesPerSession(30)).thenReturn(2.375);
+
+      setRoles(widgetContext, ADMIN);
+      SiteStatsWidget widget = new SiteStatsWidget();
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals(SiteStatsWidget.CARD_JSP, widgetContext.getJsp());
+    Assertions.assertEquals("2.4", request.getAttribute("numberValue"));
+  }
+
+  @Test
+  void executeReturnVisitorRate() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <title>Return Visitor Rate</title>\n" +
+            "  <report>return-visitor-rate</report>\n" +
+            "  <days>30</days>\n" +
+            "</widget>");
+
+    try (MockedStatic<VisitorRepository> visitorRepositoryMockedStatic = mockStatic(VisitorRepository.class)) {
+      visitorRepositoryMockedStatic.when(() -> VisitorRepository.findReturnVisitorRatePercent(30)).thenReturn(33.333);
+
+      setRoles(widgetContext, ADMIN);
+      SiteStatsWidget widget = new SiteStatsWidget();
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals(SiteStatsWidget.CARD_JSP, widgetContext.getJsp());
+    Assertions.assertEquals("33.3", request.getAttribute("numberValue"));
+  }
+
+  @Test
+  void executeAvgTimeOnPage() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <title>Avg Time on Page</title>\n" +
+            "  <report>avg-time-on-page</report>\n" +
+            "  <days>30</days>\n" +
+            "  <limit>10</limit>\n" +
+            "</widget>");
+
+    List<StatisticsData> data = List.of(statistic("/contact-us", "42.3s"));
+    try (MockedStatic<WebPageHitRepository> webPageHitRepositoryMockedStatic = mockStatic(WebPageHitRepository.class)) {
+      webPageHitRepositoryMockedStatic.when(() -> WebPageHitRepository.findAvgTimeOnPageByPath(30, 10)).thenReturn(data);
+
+      setRoles(widgetContext, ADMIN);
+      SiteStatsWidget widget = new SiteStatsWidget();
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals(SiteStatsWidget.TABLE_JSP, widgetContext.getJsp());
+    Assertions.assertEquals(data, request.getAttribute("statisticsDataList"));
+    Assertions.assertEquals("Page", request.getAttribute("label"));
+    Assertions.assertEquals("Avg Time", request.getAttribute("value"));
+  }
+
   private static StatisticsData statistic(String label, String value) {
     StatisticsData data = new StatisticsData();
     data.setLabel(label);
