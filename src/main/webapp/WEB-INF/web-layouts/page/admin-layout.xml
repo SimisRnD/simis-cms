@@ -1647,6 +1647,52 @@
     </section>
   </page>
 
+  <page name="/admin/webhooks" role="admin" title="Webhooks">
+    <section>
+      <column class="small-12 cell">
+        <widget name="webhookSubscriptionList">
+          <title>Webhooks</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/webhook-subscription{?webhookSubscriptionId}" role="admin" title="Webhook Subscription">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Webhooks" value="/admin/webhooks" />
+            <link name="Webhook Subscription" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 medium-10 large-8 cell">
+        <widget name="webhookSubscriptionForm" />
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/webhook-deliveries{?webhookSubscriptionId}" role="admin" title="Webhook Delivery Log">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Webhooks" value="/admin/webhooks" />
+            <link name="Delivery Log" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="webhookDeliveryList" />
+      </column>
+    </section>
+  </page>
+
   <page name="/admin/activity" role="admin,content-manager,community-manager,ecommerce-manager" title="Activity">
     <section>
       <column class="small-12 cell">
