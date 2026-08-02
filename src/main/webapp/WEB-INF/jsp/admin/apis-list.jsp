@@ -22,6 +22,7 @@
   <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
 <%@include file="../page_messages.jspf" %>
+<p class="help-text">This is a read-only listing of every REST endpoint currently registered under <code>/api/</code> -- it's generated from the actual service registrations, so it always reflects what's really there, not something you edit here. Every call is IP-rate-limited and (outside local requests) requires an app key, managed on the <a href="${ctx}/admin/apps">Apps</a> page. The "medicine" endpoints are a real, working feature -- data for a companion mobile app's medication tracking -- not leftover or orphaned code; they simply have no admin UI of their own since nothing about them is meant to be managed from this console.</p>
 <table class="unstriped">
   <thead>
     <tr>
