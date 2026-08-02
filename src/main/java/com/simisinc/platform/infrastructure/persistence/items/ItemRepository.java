@@ -214,7 +214,7 @@ public class ItemRepository {
     // Use the previous records for updates
     Item previousRecord = ItemRepository.findById(record.getId());
     List<ItemCategory> existingCategoryList = ItemCategoryRepository.findAllByItemId(record.getId());
-    List<Long> newCategoryList = Arrays.asList(record.getCategoryIdList());
+    List<Long> newCategoryList = record.getCategoryIdList() != null ? Arrays.asList(record.getCategoryIdList()) : Collections.emptyList();
     List<ItemTag> existingTagList = ItemTagRepository.findAllByItemId(record.getId());
     List<Long> newTagList = record.getTagIdList() != null ? Arrays.asList(record.getTagIdList()) : Collections.emptyList();
 
