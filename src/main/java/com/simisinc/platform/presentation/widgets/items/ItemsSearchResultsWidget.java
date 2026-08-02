@@ -33,6 +33,7 @@ import com.simisinc.platform.presentation.widgets.GenericWidget;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -71,11 +72,23 @@ public class ItemsSearchResultsWidget extends GenericWidget {
     // Determine the location
     String location = context.getParameter("location");
 
-    // Determine the active facet filters (issue #421)
-    Long categoryId = null;
-    String categoryIdParam = context.getParameter("categoryId");
-    if (StringUtils.isNumeric(categoryIdParam)) {
-      categoryId = Long.valueOf(categoryIdParam);
+    // Determine the active facet filters (issue #421; multi-select within categoryId is #636)
+    // Repeated categoryId params (categoryId=1&categoryId=2) are how a checkbox group with a
+    // shared name naturally serializes in a GET form submit -- read via getParameterMap() as a
+    // String[], the same pattern already used for the eventType checkbox group in the webhook
+    // admin panel's WebhookSubscriptionFormWidget (issue #453). Order is preserved and duplicates
+    // are dropped.
+    List<Long> selectedCategoryIds = new ArrayList<>();
+    String[] categoryIdParams = context.getParameterMap().get("categoryId");
+    if (categoryIdParams != null) {
+      for (String rawCategoryId : categoryIdParams) {
+        if (StringUtils.isNumeric(rawCategoryId)) {
+          Long parsedCategoryId = Long.valueOf(rawCategoryId);
+          if (!selectedCategoryIds.contains(parsedCategoryId)) {
+            selectedCategoryIds.add(parsedCategoryId);
+          }
+        }
+      }
     }
     // Computed once and reused below for both filtering and facet-count rendering, so the date
     // boundaries used to narrow the query and the ones used to report that same bucket's count
@@ -102,8 +115,8 @@ public class ItemsSearchResultsWidget extends GenericWidget {
       specification.setSearchLocation(location);
       specification.setWithinMeters(48281);
     }
-    if (categoryId != null) {
-      specification.setCategoryId(categoryId);
+    if (!selectedCategoryIds.isEmpty()) {
+      specification.setCategoryIds(selectedCategoryIds);
     }
     if (selectedDateBucket != null) {
       specification.setDateRangeStart(selectedDateBucket.getStart());
@@ -131,23 +144,22 @@ public class ItemsSearchResultsWidget extends GenericWidget {
     // guessable sequential id, so neither case may disclose the category's name below -- only a
     // verified non-zero, access-safe count may.
     Map<Long, Long> categoryCounts = null;
-    if (categoryId != null || showCategoryFacet) {
+    if (!selectedCategoryIds.isEmpty() || showCategoryFacet) {
       categoryCounts = ItemRepository.countGroupedByCategory(specification);
     }
-    Long selectedCategoryCount = categoryId != null ? categoryCounts.getOrDefault(categoryId, 0L) : null;
 
     if (showCategoryFacet) {
       List<ItemFacetOption> categoryFacets = new ArrayList<>();
       List<Category> allCategories = CategoryRepository.findAll();
       if (allCategories != null) {
         for (Category category : allCategories) {
-          boolean selected = categoryId != null && categoryId.equals(category.getId());
+          boolean selected = selectedCategoryIds.contains(category.getId());
           long count = categoryCounts.getOrDefault(category.getId(), 0L);
           // Categories with a 0 count here are omitted entirely, selected or not -- see the
-          // access-control note on selectedCategoryCount above for why "selected" alone must not
-          // be enough to reveal a category that turns out to be empty or inaccessible.
+          // access-control note above for why "selected" alone must not be enough to reveal a
+          // category that turns out to be empty or inaccessible.
           if (count > 0) {
-            String url = buildFacetLinkUrl(context, "categoryId", String.valueOf(category.getId()));
+            String url = buildCategoryToggleUrl(context, selectedCategoryIds, category.getId());
             categoryFacets.add(new ItemFacetOption(String.valueOf(category.getId()), category.getName(), count, selected, url));
           }
         }
@@ -170,21 +182,46 @@ public class ItemsSearchResultsWidget extends GenericWidget {
       context.getRequest().setAttribute("dateFacetLabel", dateFacetLabel);
     }
 
-    // Active filter chips, each with a URL that clears just that one filter
+    // Active filter chips, each with a URL that clears just that one filter (issue #636: with
+    // multiple categories selected, that's one chip per selected category -- removing one via its
+    // own chip leaves the others active -- plus, once 2+ are selected, one "clear all categories"
+    // chip; a single selection keeps the original one-chip-clears-it behavior).
     List<ItemActiveFilter> activeFilters = new ArrayList<>();
-    if (categoryId != null) {
-      // Only resolve and show the real category name once selectedCategoryCount has confirmed it
-      // is a non-empty, access-safe category (see the note above) -- otherwise fall back to a
-      // generic label rather than disclosing the name of a category the requester may not have
-      // access to, or that doesn't exist.
-      String valueLabel = "Selected category";
-      if (selectedCategoryCount != null && selectedCategoryCount > 0) {
-        Category selectedCategory = CategoryRepository.findById(categoryId);
-        if (selectedCategory != null) {
-          valueLabel = selectedCategory.getName();
+    if (!selectedCategoryIds.isEmpty()) {
+      // A specification with no category selection at all, used to verify each selected category
+      // STANDALONE (ignoring the rest of the current selection) before disclosing its name --
+      // countByCategory unions its candidate into whatever's selected on the specification passed
+      // in, so passing one with nothing selected yields "this category alone"'s count, the same
+      // access-control-safe check the original single-select code performed.
+      ItemSpecification noCategorySelectionSpec = new ItemSpecification();
+      noCategorySelectionSpec.setApprovedOnly(specification.getApprovedOnly());
+      noCategorySelectionSpec.setUnapprovedOnly(specification.getUnapprovedOnly());
+      noCategorySelectionSpec.setIncludeArchived(specification.getIncludeArchived());
+      noCategorySelectionSpec.setForUserId(specification.getForUserId());
+      noCategorySelectionSpec.setSearchName(specification.getSearchName());
+      noCategorySelectionSpec.setSearchLocation(specification.getSearchLocation());
+      noCategorySelectionSpec.setDateRangeStart(specification.getDateRangeStart());
+      noCategorySelectionSpec.setDateRangeEnd(specification.getDateRangeEnd());
+
+      for (Long selectedCategoryId : selectedCategoryIds) {
+        // Only resolve and show the real category name once its own standalone count has
+        // confirmed it is a non-empty, access-safe category (see the note above) -- otherwise fall
+        // back to a generic label rather than disclosing the name of a category the requester may
+        // not have access to, or that doesn't exist.
+        String valueLabel = "Selected category";
+        long standaloneCount = ItemRepository.countByCategory(noCategorySelectionSpec, selectedCategoryId);
+        if (standaloneCount > 0) {
+          Category selectedCategory = CategoryRepository.findById(selectedCategoryId);
+          if (selectedCategory != null) {
+            valueLabel = selectedCategory.getName();
+          }
         }
+        String clearUrl = buildCategoryToggleUrl(context, selectedCategoryIds, selectedCategoryId);
+        activeFilters.add(new ItemActiveFilter(categoryFacetLabel, valueLabel, clearUrl));
       }
-      activeFilters.add(new ItemActiveFilter(categoryFacetLabel, valueLabel, buildClearFilterUrl(context, "categoryId")));
+      if (selectedCategoryIds.size() > 1) {
+        activeFilters.add(new ItemActiveFilter(categoryFacetLabel, "All categories", buildClearFilterUrl(context, "categoryId")));
+      }
     }
     if (selectedDateBucket != null) {
       activeFilters.add(new ItemActiveFilter(dateFacetLabel, selectedDateBucket.getLabel(), buildClearFilterUrl(context, "dateFacet")));
@@ -240,40 +277,89 @@ public class ItemsSearchResultsWidget extends GenericWidget {
   }
 
   /**
-   * The current request's URL with the given param set to the given value, all other current
-   * params preserved, and paging reset to page 1 (a facet selection changes the result set, so
-   * whatever page the user was on may no longer exist).
+   * The current request's URL with the given single-value param set to the given value, all other
+   * current params preserved, and paging reset to page 1 (a facet selection changes the result
+   * set, so whatever page the user was on may no longer exist). Used by the (single-select)
+   * dateFacet link; the category facet uses buildCategoryToggleUrl instead (issue #636).
    */
   private static String buildFacetLinkUrl(WidgetContext context, String paramName, String paramValue) {
-    Map<String, String> overrides = new LinkedHashMap<>();
-    overrides.put(paramName, paramValue);
+    Map<String, List<String>> overrides = new LinkedHashMap<>();
+    overrides.put(paramName, Collections.singletonList(paramValue));
     return buildUrl(context, overrides, paramName);
   }
 
-  /** The current request's URL with the given param removed, all other current params preserved. */
+  /** The current request's URL with the given param removed entirely, all other current params preserved. */
   private static String buildClearFilterUrl(WidgetContext context, String paramName) {
     return buildUrl(context, new LinkedHashMap<>(), paramName);
   }
 
-  private static String buildUrl(WidgetContext context, Map<String, String> overrides, String excludeParam) {
-    LinkedHashMap<String, String> params = new LinkedHashMap<>();
+  /**
+   * The current request's URL with candidateCategoryId toggled in or out of the categoryId
+   * selection (issue #636): added if it's not in currentSelection, removed if it is, every OTHER
+   * currently selected categoryId preserved. This one method backs both the facet checkbox links
+   * (toggling an unchecked category on, or an already-checked one off) and each active-filter
+   * chip's "remove just this one" link -- removing a selected category via its chip is exactly the
+   * same toggle-off operation as unchecking its facet checkbox.
+   */
+  private static String buildCategoryToggleUrl(WidgetContext context, List<Long> currentSelection, long candidateCategoryId) {
+    List<String> newSelection = new ArrayList<>();
+    boolean removed = false;
+    for (Long selectedId : currentSelection) {
+      if (selectedId == candidateCategoryId) {
+        removed = true; // omitting it from newSelection toggles it off
+        continue;
+      }
+      newSelection.add(String.valueOf(selectedId));
+    }
+    if (!removed) {
+      newSelection.add(String.valueOf(candidateCategoryId)); // toggles it on
+    }
+    Map<String, List<String>> overrides = new LinkedHashMap<>();
+    if (!newSelection.isEmpty()) {
+      overrides.put("categoryId", newSelection);
+    }
+    // When newSelection ends up empty, categoryId is simply absent from overrides -- combined with
+    // excludeParam below dropping the current categoryId values, the result is the same as
+    // buildClearFilterUrl: the param disappears from the URL entirely.
+    return buildUrl(context, overrides, "categoryId");
+  }
+
+  /**
+   * The current request's URL with excludeParam's current value(s) dropped and replaced by
+   * overrides (if any), every OTHER param preserved with EVERY one of its repeated values (not
+   * just the first) -- so, for example, clicking a dateFacet link doesn't silently drop all but
+   * one of the currently selected categoryId values -- and paging reset to page 1.
+   */
+  private static String buildUrl(WidgetContext context, Map<String, List<String>> overrides, String excludeParam) {
+    LinkedHashMap<String, List<String>> params = new LinkedHashMap<>();
     for (Map.Entry<String, String[]> entry : context.getParameterMap().entrySet()) {
       String name = entry.getKey();
       if (name.equals(excludeParam) || "page".equals(name)) {
         continue;
       }
-      if (entry.getValue() != null && entry.getValue().length > 0 && StringUtils.isNotBlank(entry.getValue()[0])) {
-        params.put(name, entry.getValue()[0]);
+      if (entry.getValue() == null) {
+        continue;
+      }
+      List<String> values = new ArrayList<>();
+      for (String value : entry.getValue()) {
+        if (StringUtils.isNotBlank(value)) {
+          values.add(value);
+        }
+      }
+      if (!values.isEmpty()) {
+        params.put(name, values);
       }
     }
     params.putAll(overrides);
 
     StringBuilder url = new StringBuilder(context.getUri());
     boolean first = true;
-    for (Map.Entry<String, String> entry : params.entrySet()) {
-      url.append(first ? '?' : '&');
-      first = false;
-      url.append(UrlCommand.encodeUri(entry.getKey())).append('=').append(UrlCommand.encodeUri(entry.getValue()));
+    for (Map.Entry<String, List<String>> entry : params.entrySet()) {
+      for (String value : entry.getValue()) {
+        url.append(first ? '?' : '&');
+        first = false;
+        url.append(UrlCommand.encodeUri(entry.getKey())).append('=').append(UrlCommand.encodeUri(value));
+      }
     }
     return url.toString();
   }
