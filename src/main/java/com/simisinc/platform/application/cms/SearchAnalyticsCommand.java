@@ -35,6 +35,18 @@ import org.apache.commons.lang3.StringUtils;
 public class SearchAnalyticsCommand {
 
   public static void record(WidgetContext context, String query, String searchType, int resultCount) {
+    record(context, query, searchType, resultCount, null);
+  }
+
+  /**
+   * @param facetKey which facet dimension(s) were applied to this search, e.g. "categoryId",
+   *                 "dateFacet", or "categoryId,dateFacet" when more than one is active -- or null
+   *                 when no facet was applied, or the widget has no facet concept (issue #638). A
+   *                 facet click re-runs this same search with the facet param set, so there's no
+   *                 separate "facet selected" event to fire -- the search event that included the
+   *                 facet param already is that event.
+   */
+  public static void record(WidgetContext context, String query, String searchType, int resultCount, String facetKey) {
     if (StringUtils.isBlank(query)) {
       return;
     }
@@ -58,6 +70,7 @@ public class SearchAnalyticsCommand {
     searchAnalytics.setSearchType(searchType);
     searchAnalytics.setResultCount(Math.max(resultCount, 0));
     searchAnalytics.setPagePath(context.getRequest().getRequestURI());
+    searchAnalytics.setFacetKey(facetKey);
     SearchAnalyticsRepository.save(searchAnalytics);
   }
 }

@@ -800,6 +800,76 @@ class SiteStatsWidgetTest extends WidgetBase {
   }
 
   @Test
+  void executeFacetAdoptionRateComputesAPercentage() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\">\n" +
+            "  <title>Faceted Search Adoption % (7d)</title>\n" +
+            "  <report>facet-adoption-rate</report>\n" +
+            "  <days>7</days>\n" +
+            "</widget>");
+
+    try (MockedStatic<SearchAnalyticsRepository> repository = mockStatic(SearchAnalyticsRepository.class)) {
+      repository.when(() -> SearchAnalyticsRepository.countSearches(7)).thenReturn(200L);
+      repository.when(() -> SearchAnalyticsRepository.countSearchesWithFacetApplied(7)).thenReturn(50L);
+
+      setRoles(widgetContext, ADMIN);
+      SiteStatsWidget widget = new SiteStatsWidget();
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals(SiteStatsWidget.ALERT_CARD_JSP, widgetContext.getJsp());
+    Assertions.assertEquals("25.0", request.getAttribute("numberValue"));
+    Assertions.assertEquals("ok", request.getAttribute("severity"));
+  }
+
+  @Test
+  void executeFacetAdoptionRateIsZeroWhenThereAreNoSearches() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\">\n" +
+            "  <title>Faceted Search Adoption % (7d)</title>\n" +
+            "  <report>facet-adoption-rate</report>\n" +
+            "  <days>7</days>\n" +
+            "</widget>");
+
+    try (MockedStatic<SearchAnalyticsRepository> repository = mockStatic(SearchAnalyticsRepository.class)) {
+      repository.when(() -> SearchAnalyticsRepository.countSearches(7)).thenReturn(0L);
+      repository.when(() -> SearchAnalyticsRepository.countSearchesWithFacetApplied(7)).thenReturn(0L);
+
+      setRoles(widgetContext, ADMIN);
+      SiteStatsWidget widget = new SiteStatsWidget();
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals("0.0", request.getAttribute("numberValue"),
+        "a zero-search denominator must not divide by zero");
+  }
+
+  @Test
+  void executeFacetUsageBreakdown() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <title>Facet Usage Breakdown</title>\n" +
+            "  <report>facet-usage-breakdown</report>\n" +
+            "  <days>30</days>\n" +
+            "  <limit>10</limit>\n" +
+            "</widget>");
+
+    List<StatisticsData> data = List.of(statistic("categoryId", "12"));
+    try (MockedStatic<SearchAnalyticsRepository> repository = mockStatic(SearchAnalyticsRepository.class)) {
+      repository.when(() -> SearchAnalyticsRepository.findFacetUsageBreakdown(30, 10)).thenReturn(data);
+
+      setRoles(widgetContext, ADMIN);
+      SiteStatsWidget widget = new SiteStatsWidget();
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals(SiteStatsWidget.TABLE_JSP, widgetContext.getJsp());
+    Assertions.assertEquals(data, request.getAttribute("statisticsDataList"));
+    Assertions.assertEquals("Facet", request.getAttribute("label"));
+    Assertions.assertEquals("Searches", request.getAttribute("value"));
+  }
+
+  @Test
   void executeConversionRate() {
     addPreferencesFromWidgetXml(widgetContext,
         "<widget name=\"siteStats\" class=\"stats card\">\n" +

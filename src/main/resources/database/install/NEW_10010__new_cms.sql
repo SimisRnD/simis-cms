@@ -290,6 +290,7 @@ CREATE TABLE search_analytics (
   search_type VARCHAR(50) NOT NULL,
   result_count INTEGER NOT NULL DEFAULT 0,
   page_path VARCHAR(255),
+  facet_key VARCHAR(100),
   created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX search_analytics_created_idx ON search_analytics(created);

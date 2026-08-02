@@ -125,6 +125,43 @@ class SearchAnalyticsCommandTest extends WidgetBase {
     }
   }
 
+  @Test
+  void recordWithNoFacetKeyArgumentLeavesItNull() {
+    try (MockedStatic<SearchAnalyticsRepository> repository = mockStatic(SearchAnalyticsRepository.class);
+        MockedStatic<DoNotTrackCommand> dnt = mockStatic(DoNotTrackCommand.class)) {
+      dnt.when(() -> DoNotTrackCommand.isDoNotTrack(any(), any())).thenReturn(false);
+
+      SearchAnalyticsCommand.record(widgetContext, "widgets", "pages", 3);
+
+      ArgumentCaptor<SearchAnalytics> captor = ArgumentCaptor.forClass(SearchAnalytics.class);
+      repository.verify(() -> SearchAnalyticsRepository.save(captor.capture()));
+      assertEquals(null, captor.getValue().getFacetKey());
+    }
+  }
+
+  @Test
+  void recordWithAFacetKeySavesIt() {
+    try (MockedStatic<SearchAnalyticsRepository> repository = mockStatic(SearchAnalyticsRepository.class);
+        MockedStatic<DoNotTrackCommand> dnt = mockStatic(DoNotTrackCommand.class)) {
+      dnt.when(() -> DoNotTrackCommand.isDoNotTrack(any(), any())).thenReturn(false);
+
+      SearchAnalyticsCommand.record(widgetContext, "widgets", "items", 3, "categoryId,dateFacet");
+
+      ArgumentCaptor<SearchAnalytics> captor = ArgumentCaptor.forClass(SearchAnalytics.class);
+      repository.verify(() -> SearchAnalyticsRepository.save(captor.capture()));
+      assertEquals("categoryId,dateFacet", captor.getValue().getFacetKey());
+    }
+  }
+
+  @Test
+  void recordWithAFacetKeyStillSkipsABlankQuery() {
+    try (MockedStatic<SearchAnalyticsRepository> repository = mockStatic(SearchAnalyticsRepository.class)) {
+      SearchAnalyticsCommand.record(widgetContext, "   ", "items", 3, "categoryId");
+
+      repository.verify(() -> SearchAnalyticsRepository.save(any()), never());
+    }
+  }
+
   private static void assertEqualsAll(SearchAnalytics saved, String query, String searchType, int resultCount, String pagePath) {
     assertEquals(query, saved.getQuery());
     assertEquals(searchType, saved.getSearchType());

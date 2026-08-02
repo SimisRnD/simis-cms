@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
@@ -416,6 +417,54 @@ class ItemsSearchResultsWidgetTest extends WidgetBase {
 
       List<ItemActiveFilter> activeFilters = (List<ItemActiveFilter>) result.getRequest().getAttribute("activeFilters");
       assertEquals(1, activeFilters.size(), "a single selection keeps the original one-chip-clears-it behavior, no separate 'clear all' chip");
+    }
+  }
+
+  @Test
+  void executeRecordsWhichFacetsWereAppliedForTheAdoptionRateReport() {
+    addQueryParameter(widgetContext, "query", "widgets");
+    addQueryParameter(widgetContext, "categoryId", "5");
+    addQueryParameter(widgetContext, "dateFacet", "last7");
+
+    ArgumentCaptor<String> facetKeyCaptor = ArgumentCaptor.forClass(String.class);
+
+    try (MockedStatic<ItemRepository> repository = mockStatic(ItemRepository.class);
+        MockedStatic<CategoryRepository> categoryRepository = mockStatic(CategoryRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.timezone")).thenReturn("America/New_York");
+      repository.when(() -> ItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+      categoryRepository.when(CategoryRepository::findAll).thenReturn(categories(category(5, "Widgets")));
+      categoryRepository.when(() -> CategoryRepository.findById(5L)).thenReturn(category(5, "Widgets"));
+      repository.when(() -> ItemRepository.countByCategory(any(), anyLong())).thenReturn(1L);
+      repository.when(() -> ItemRepository.countByDateRange(any(), any(), any())).thenReturn(1L);
+
+      new ItemsSearchResultsWidget().execute(widgetContext);
+
+      analytics.verify(() -> SearchAnalyticsCommand.record(any(), any(), any(), anyInt(), facetKeyCaptor.capture()));
+      assertEquals("categoryId,dateFacet", facetKeyCaptor.getValue());
+    }
+  }
+
+  @Test
+  void executeRecordsNoFacetKeyWhenNoFacetWasSelected() {
+    addQueryParameter(widgetContext, "query", "widgets");
+
+    ArgumentCaptor<String> facetKeyCaptor = ArgumentCaptor.forClass(String.class);
+
+    try (MockedStatic<ItemRepository> repository = mockStatic(ItemRepository.class);
+        MockedStatic<CategoryRepository> categoryRepository = mockStatic(CategoryRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.timezone")).thenReturn("America/New_York");
+      repository.when(() -> ItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+      categoryRepository.when(CategoryRepository::findAll).thenReturn(new ArrayList<>());
+      repository.when(() -> ItemRepository.countByDateRange(any(), any(), any())).thenReturn(0L);
+
+      new ItemsSearchResultsWidget().execute(widgetContext);
+
+      analytics.verify(() -> SearchAnalyticsCommand.record(any(), any(), any(), anyInt(), facetKeyCaptor.capture()));
+      assertNull(facetKeyCaptor.getValue());
     }
   }
 }
