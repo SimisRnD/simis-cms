@@ -1404,6 +1404,13 @@
         <widget name="calendarList" />
       </column>
     </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="calendarEventList">
+          <title>Events</title>
+        </widget>
+      </column>
+    </section>
   </page>
 
   <page name="/admin/calendar{?calendarId}" role="admin,content-manager,community-manager" title="Calendar Details">
