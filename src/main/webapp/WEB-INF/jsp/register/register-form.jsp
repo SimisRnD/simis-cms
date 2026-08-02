@@ -27,6 +27,9 @@
     }
   </script>
 </c:if>
+<c:if test="${useCaptcha eq 'true' && !empty turnstileSiteKey}">
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer nonce="${cspNonce}"></script>
+</c:if>
 <form id="form${widgetContext.uniqueId}" method="post">
   <%-- Required by controller --%>
   <input type="hidden" name="widget" value="${widgetContext.uniqueId}" />
@@ -57,27 +60,37 @@
       <label>Re-Enter Password
         <input name="password2" type="password" placeholder="Re-Enter Password" autocomplete="off" required>
       </label>
-      <p>
-        <c:choose>
-          <c:when test="${useCaptcha eq 'true' && !empty googleSiteKey}">
+      <c:choose>
+        <c:when test="${useCaptcha eq 'true' && !empty googleSiteKey}">
+          <p>
             <button
                 class="g-recaptcha button radius expanded"
                 data-sitekey="<c:out value="${googleSiteKey}" />"
                 data-callback="onSubmit">
               Create Account
             </button>
-          </c:when>
-          <c:when test="${useCaptcha eq 'true'}">
+          </p>
+        </c:when>
+        <c:when test="${useCaptcha eq 'true' && !empty turnstileSiteKey}">
+          <div class="cf-turnstile" data-sitekey="<c:out value="${turnstileSiteKey}" />"></div>
+          <p>
+            <input type="submit" class="button radius primary" value="Create Account"/>
+          </p>
+        </c:when>
+        <c:when test="${useCaptcha eq 'true'}">
+          <p>
             Please enter the text value you see in the image:<br />
             <img src="/assets/captcha" class="margin-bottom-10" /><br />
             <input type="text" name="captcha" value="" required/>
             <input type="submit" class="button radius primary" value="Create Account"/>
-          </c:when>
-          <c:otherwise>
+          </p>
+        </c:when>
+        <c:otherwise>
+          <p>
             <input type="submit" class="button primary radius expanded" value="Create Account"/>
-          </c:otherwise>
-        </c:choose>
-      </p>
+          </p>
+        </c:otherwise>
+      </c:choose>
       <c:if test="${showLegalLinks eq 'true'}">
         <p><small>By signing up, you agree to the <a href="${ctx}/legal/terms" target="_blank">Terms of Use</a> and <a href="${ctx}/legal/privacy" target="_blank">Privacy Policy</a></small></p>
       </c:if>

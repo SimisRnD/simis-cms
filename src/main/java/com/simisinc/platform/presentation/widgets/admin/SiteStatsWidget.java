@@ -336,6 +336,18 @@ public class SiteStatsWidget extends GenericWidget {
       context.getRequest().setAttribute("label", context.getPreferences().getOrDefault("label", "Page"));
       context.getRequest().setAttribute("value", context.getPreferences().getOrDefault("value", "Avg Time"));
       return TABLE_JSP;
+    } else if ("high-traffic-low-engagement".equalsIgnoreCase(report)) {
+      List<StatisticsData> statisticsDataList = WebPageHitRepository.findHighTrafficLowEngagementPages(intervalValue, limit);
+      context.getRequest().setAttribute("statisticsDataList", statisticsDataList);
+      context.getRequest().setAttribute("label", context.getPreferences().getOrDefault("label", "Page"));
+      context.getRequest().setAttribute("value", context.getPreferences().getOrDefault("value", "Hits / Avg Time"));
+      return TABLE_JSP;
+    } else if ("low-traffic-high-engagement".equalsIgnoreCase(report)) {
+      List<StatisticsData> statisticsDataList = WebPageHitRepository.findLowTrafficHighEngagementPages(intervalValue, limit);
+      context.getRequest().setAttribute("statisticsDataList", statisticsDataList);
+      context.getRequest().setAttribute("label", context.getPreferences().getOrDefault("label", "Page"));
+      context.getRequest().setAttribute("value", context.getPreferences().getOrDefault("value", "Hits / Avg Time"));
+      return TABLE_JSP;
     } else if ("web-urls".equalsIgnoreCase(report)) {
       List<StatisticsData> statisticsDataList = WebPageHitRepository.findTopPaths(intervalValue, intervalType, limit);
       context.getRequest().setAttribute("statisticsDataList", statisticsDataList);
@@ -513,6 +525,18 @@ public class SiteStatsWidget extends GenericWidget {
       long count = SessionRepository.countDistinctBotSessions(startOfToday(), now());
       context.getRequest().setAttribute("numberValue", String.valueOf(count));
       context.getRequest().setAttribute("severity", "ok");
+      return ALERT_CARD_JSP;
+    } else if ("request-rate-spike-alert".equalsIgnoreCase(report)) {
+      // Issue #569 slice 1: the admin alert-delivery mechanism, demonstrated with one concrete
+      // traffic-quality signal (peak hits from a single non-bot IP in the last hour) reusing the
+      // existing alert-card pattern, rather than speculative infrastructure with nothing real to
+      // alert on. Geographic/referrer-abuse/behavioral/VPN detection are deliberately deferred --
+      // see the issue.
+      long peakHitsPerIp = WebPageHitRepository.findMaxHitsFromSingleIp(1);
+      int threshold = WebPageHitRepository.resolveIpRequestRateAlertThreshold(
+          LoadSitePropertyCommand.loadByName("security.ipRequestRateAlertThreshold"));
+      context.getRequest().setAttribute("numberValue", String.valueOf(peakHitsPerIp));
+      context.getRequest().setAttribute("severity", peakHitsPerIp > threshold ? "warning" : "ok");
       return ALERT_CARD_JSP;
     } else if ("recent-admin-actions".equalsIgnoreCase(report)) {
       context.getRequest().setAttribute("recentActionsList", findRecentAdminActions(5));

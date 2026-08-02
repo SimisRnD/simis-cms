@@ -24,7 +24,6 @@ import org.apache.commons.logging.LogFactory;
 
 import com.sanctionco.jmail.JMail;
 import com.simisinc.platform.application.RateLimitCommand;
-import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.cms.CaptchaCommand;
 import com.simisinc.platform.application.cms.FormCommand;
 import com.simisinc.platform.application.cms.FormFieldCommand;
@@ -81,8 +80,7 @@ public class FormWidget extends GenericWidget {
     // Determine the captcha service
     boolean useCaptcha = "true".equals(context.getPreferences().getOrDefault("useCaptcha", "false"));
     if (useCaptcha) {
-      context.getRequest().setAttribute("useCaptcha", "true");
-      context.getRequest().setAttribute("googleSiteKey", LoadSitePropertyCommand.loadByName("captcha.google.sitekey"));
+      CaptchaCommand.populateWidgetAttributes(context);
     }
 
     // Previous post had error

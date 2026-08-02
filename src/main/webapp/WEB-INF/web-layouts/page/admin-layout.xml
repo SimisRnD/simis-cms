@@ -33,6 +33,14 @@
       </column>
       <column class="small-6 medium-4 large-3 cell">
         <widget name="siteStats">
+          <icon>fa-bolt</icon>
+          <title>Peak Requests / IP (1h)</title>
+          <report>request-rate-spike-alert</report>
+          <link>/admin/blocked-ip-list</link>
+        </widget>
+      </column>
+      <column class="small-6 medium-4 large-3 cell">
+        <widget name="siteStats">
           <icon>fa-exclamation-triangle</icon>
           <title>Failed Logins (24h)</title>
           <report>failed-logins-24h</report>
@@ -833,6 +841,28 @@
       </column>
       <column class="small-12 medium-6 cell">
         <widget name="siteStats" class="stats card">
+          <icon>fa-exclamation-triangle</icon>
+          <title>High Traffic, Low Engagement</title>
+          <report>high-traffic-low-engagement</report>
+          <label>Page</label>
+          <value>Hits / Avg Time</value>
+          <days>30</days>
+          <limit>10</limit>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 cell">
+        <widget name="siteStats" class="stats card">
+          <icon>fa-star</icon>
+          <title>Low Traffic, High Engagement</title>
+          <report>low-traffic-high-engagement</report>
+          <label>Page</label>
+          <value>Hits / Avg Time</value>
+          <days>30</days>
+          <limit>10</limit>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 cell">
+        <widget name="siteStats" class="stats card">
           <title>Daily Form Submissions</title>
           <label>Submissions</label>
           <report>daily-form-submissions</report>
@@ -1159,6 +1189,35 @@
           <report>web-pages</report>
           <label>Module</label>
           <value>Hits</value>
+          <limit>10</limit>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 medium-6 large-3 cell callout">
+        <widget name="siteStats">
+          <icon>fa-book-open</icon>
+          <title>Pages per Session</title>
+          <report>pages-per-session</report>
+          <days>30</days>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 large-3 cell callout">
+        <widget name="siteStats">
+          <icon>fa-user-clock</icon>
+          <title>Return Visitor Rate</title>
+          <report>return-visitor-rate</report>
+          <days>30</days>
+        </widget>
+      </column>
+      <column class="small-12 large-6 cell">
+        <widget name="siteStats" class="stats card">
+          <icon>fa-hourglass-half</icon>
+          <title>Avg Time on Page</title>
+          <report>avg-time-on-page</report>
+          <label>Page</label>
+          <value>Avg Time</value>
+          <days>30</days>
           <limit>10</limit>
         </widget>
       </column>

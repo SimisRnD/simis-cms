@@ -804,6 +804,56 @@ class SiteStatsWidgetTest extends WidgetBase {
   }
 
   @Test
+  void executeRequestRateSpikeAlertIsOkBelowThreshold() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <title>Peak Requests / IP (1h)</title>\n" +
+            "  <report>request-rate-spike-alert</report>\n" +
+            "</widget>");
+
+    try (MockedStatic<WebPageHitRepository> repository = mockStatic(WebPageHitRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      repository.when(() -> WebPageHitRepository.findMaxHitsFromSingleIp(1)).thenReturn(120L);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("security.ipRequestRateAlertThreshold"))
+          .thenReturn("300");
+      repository.when(() -> WebPageHitRepository.resolveIpRequestRateAlertThreshold("300")).thenReturn(300);
+
+      setRoles(widgetContext, ADMIN);
+      SiteStatsWidget widget = new SiteStatsWidget();
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals(SiteStatsWidget.ALERT_CARD_JSP, widgetContext.getJsp());
+    Assertions.assertEquals("120", request.getAttribute("numberValue"));
+    Assertions.assertEquals("ok", request.getAttribute("severity"));
+  }
+
+  @Test
+  void executeRequestRateSpikeAlertIsWarningAboveThreshold() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <title>Peak Requests / IP (1h)</title>\n" +
+            "  <report>request-rate-spike-alert</report>\n" +
+            "</widget>");
+
+    try (MockedStatic<WebPageHitRepository> repository = mockStatic(WebPageHitRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      repository.when(() -> WebPageHitRepository.findMaxHitsFromSingleIp(1)).thenReturn(450L);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("security.ipRequestRateAlertThreshold"))
+          .thenReturn("300");
+      repository.when(() -> WebPageHitRepository.resolveIpRequestRateAlertThreshold("300")).thenReturn(300);
+
+      setRoles(widgetContext, ADMIN);
+      SiteStatsWidget widget = new SiteStatsWidget();
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals(SiteStatsWidget.ALERT_CARD_JSP, widgetContext.getJsp());
+    Assertions.assertEquals("450", request.getAttribute("numberValue"));
+    Assertions.assertEquals("warning", request.getAttribute("severity"));
+  }
+
+  @Test
   void executeFacetAdoptionRateComputesAPercentage() {
     addPreferencesFromWidgetXml(widgetContext,
         "<widget name=\"siteStats\">\n" +
@@ -1125,6 +1175,56 @@ class SiteStatsWidgetTest extends WidgetBase {
     Assertions.assertEquals(data, request.getAttribute("statisticsDataList"));
     Assertions.assertEquals("Page", request.getAttribute("label"));
     Assertions.assertEquals("Avg Time", request.getAttribute("value"));
+  }
+
+  @Test
+  void executeHighTrafficLowEngagement() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <title>High Traffic, Low Engagement</title>\n" +
+            "  <report>high-traffic-low-engagement</report>\n" +
+            "  <days>30</days>\n" +
+            "  <limit>10</limit>\n" +
+            "</widget>");
+
+    List<StatisticsData> data = List.of(statistic("/popular", "8 hits, 2.0s avg"));
+    try (MockedStatic<WebPageHitRepository> webPageHitRepositoryMockedStatic = mockStatic(WebPageHitRepository.class)) {
+      webPageHitRepositoryMockedStatic.when(() -> WebPageHitRepository.findHighTrafficLowEngagementPages(30, 10)).thenReturn(data);
+
+      setRoles(widgetContext, ADMIN);
+      SiteStatsWidget widget = new SiteStatsWidget();
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals(SiteStatsWidget.TABLE_JSP, widgetContext.getJsp());
+    Assertions.assertEquals(data, request.getAttribute("statisticsDataList"));
+    Assertions.assertEquals("Page", request.getAttribute("label"));
+    Assertions.assertEquals("Hits / Avg Time", request.getAttribute("value"));
+  }
+
+  @Test
+  void executeLowTrafficHighEngagement() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <title>Low Traffic, High Engagement</title>\n" +
+            "  <report>low-traffic-high-engagement</report>\n" +
+            "  <days>30</days>\n" +
+            "  <limit>10</limit>\n" +
+            "</widget>");
+
+    List<StatisticsData> data = List.of(statistic("/deep-dive", "5 hits, 120.0s avg"));
+    try (MockedStatic<WebPageHitRepository> webPageHitRepositoryMockedStatic = mockStatic(WebPageHitRepository.class)) {
+      webPageHitRepositoryMockedStatic.when(() -> WebPageHitRepository.findLowTrafficHighEngagementPages(30, 10)).thenReturn(data);
+
+      setRoles(widgetContext, ADMIN);
+      SiteStatsWidget widget = new SiteStatsWidget();
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals(SiteStatsWidget.TABLE_JSP, widgetContext.getJsp());
+    Assertions.assertEquals(data, request.getAttribute("statisticsDataList"));
+    Assertions.assertEquals("Page", request.getAttribute("label"));
+    Assertions.assertEquals("Hits / Avg Time", request.getAttribute("value"));
   }
 
   private static StatisticsData statistic(String label, String value) {

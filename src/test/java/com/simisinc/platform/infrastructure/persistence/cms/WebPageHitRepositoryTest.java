@@ -57,6 +57,11 @@ import com.simisinc.platform.infrastructure.database.DataSource;
  * legitimately empty one. See issue #804.
  * </p>
  *
+ * <p>
+ * Also covers {@link #findMaxHitsFromSingleIp} and {@link #resolveIpRequestRateAlertThreshold},
+ * the request-rate-per-IP spike alert added for issue #569 slice 1.
+ * </p>
+ *
  * @author elizabeth houser
  */
 class WebPageHitRepositoryTest {
@@ -75,6 +80,20 @@ class WebPageHitRepositoryTest {
     assertEquals(1, WebPageHitRepository.resolveRetentionDays("0"));
     assertEquals(1, WebPageHitRepository.resolveRetentionDays("-5"));
     assertEquals(3650, WebPageHitRepository.resolveRetentionDays("999999"));
+  }
+
+  @Test
+  void resolveIpRequestRateAlertThresholdFallsBackToDefaultWhenBlankOrUnparseable() {
+    assertEquals(300, WebPageHitRepository.resolveIpRequestRateAlertThreshold(null));
+    assertEquals(300, WebPageHitRepository.resolveIpRequestRateAlertThreshold(""));
+    assertEquals(300, WebPageHitRepository.resolveIpRequestRateAlertThreshold("not-a-number"));
+    assertEquals(300, WebPageHitRepository.resolveIpRequestRateAlertThreshold("30; DROP TABLE web_page_hits"));
+  }
+
+  @Test
+  void resolveIpRequestRateAlertThresholdUsesConfiguredValueAndFloorsAtZero() {
+    assertEquals(500, WebPageHitRepository.resolveIpRequestRateAlertThreshold("500"));
+    assertEquals(0, WebPageHitRepository.resolveIpRequestRateAlertThreshold("-5"));
   }
 
   // --- findTopWebPages() integration coverage (issue #804) ---
@@ -242,6 +261,54 @@ class WebPageHitRepositoryTest {
     return new Timestamp(base.getTime() + (seconds * 1000L));
   }
 
+  // --- findHighTrafficLowEngagementPages() / findLowTrafficHighEngagementPages() coverage (issue #568) ---
+
+  @Test
+  void trafficEngagementRankingsOrderPagesOppositelyAndEnforceTheMinimumHitFloor() {
+    Timestamp t0 = Timestamp.valueOf(LocalDateTime.now().minusHours(1));
+    // /popular: 8 sessions, each bounces to /other after 2s -- high traffic, low engagement
+    for (int i = 0; i < 8; i++) {
+      String session = "popular-" + i;
+      seedSession(session, false);
+      seedHit("/popular", session, t0);
+      seedHit("/other", session, plusSeconds(t0, 2));
+    }
+    // /deep-dive: 5 sessions (right at the floor), each stays 120s -- low traffic, high engagement
+    for (int i = 0; i < 5; i++) {
+      String session = "deep-dive-" + i;
+      seedSession(session, false);
+      seedHit("/deep-dive", session, t0);
+      seedHit("/other2", session, plusSeconds(t0, 120));
+    }
+    // /rare: only 2 sessions -- below the floor, must be excluded from both rankings entirely
+    for (int i = 0; i < 2; i++) {
+      String session = "rare-" + i;
+      seedSession(session, false);
+      seedHit("/rare", session, t0);
+      seedHit("/other3", session, plusSeconds(t0, 50));
+    }
+
+    List<StatisticsData> highTrafficLowEngagement = WebPageHitRepository.findHighTrafficLowEngagementPages(30, 10);
+    assertNotNull(highTrafficLowEngagement);
+    assertEquals(2, highTrafficLowEngagement.size(), "/rare must be excluded (below the min-hit floor): " + highTrafficLowEngagement);
+    assertEquals("/popular", highTrafficLowEngagement.get(0).getLabel(), "highest hit count, lowest engagement ranks first");
+    assertEquals("8 hits, 2.0s avg", highTrafficLowEngagement.get(0).getValue());
+    assertEquals("/deep-dive", highTrafficLowEngagement.get(1).getLabel());
+
+    List<StatisticsData> lowTrafficHighEngagement = WebPageHitRepository.findLowTrafficHighEngagementPages(30, 10);
+    assertNotNull(lowTrafficHighEngagement);
+    assertEquals(2, lowTrafficHighEngagement.size(), "/rare must be excluded (below the min-hit floor): " + lowTrafficHighEngagement);
+    assertEquals("/deep-dive", lowTrafficHighEngagement.get(0).getLabel(), "lowest hit count, highest engagement ranks first");
+    assertEquals("5 hits, 120.0s avg", lowTrafficHighEngagement.get(0).getValue());
+    assertEquals("/popular", lowTrafficHighEngagement.get(1).getLabel());
+  }
+
+  @Test
+  void trafficEngagementRankingsReturnEmptyListsWhenThereIsNoData() {
+    assertEquals(0, WebPageHitRepository.findHighTrafficLowEngagementPages(30, 10).size());
+    assertEquals(0, WebPageHitRepository.findLowTrafficHighEngagementPages(30, 10).size());
+  }
+
   // --- findTrafficBySolutionType() / findEngagementBySolutionType() integration coverage (issue #570) ---
 
   @Test
@@ -311,6 +378,87 @@ class WebPageHitRepositoryTest {
 
     assertEquals(1, results.size());
     assertEquals("1.00", results.get(0).getValue(), "the bot session's extra views must not count");
+  }
+
+  // --- findMaxHitsFromSingleIp() integration coverage (issue #569 slice 1) ---
+
+  @Test
+  void findMaxHitsFromSingleIpReturnsTheHighestCountAcrossIps() {
+    seedSession("session-a", false);
+    seedSession("session-b", false);
+    // 1.1.1.1: 5 hits, 2.2.2.2: 2 hits -- the max across IPs is 5, not the total hit count
+    for (int i = 0; i < 5; i++) {
+      seedHitWithIp("1.1.1.1", "session-a");
+    }
+    seedHitWithIp("2.2.2.2", "session-b");
+    seedHitWithIp("2.2.2.2", "session-b");
+
+    long max = WebPageHitRepository.findMaxHitsFromSingleIp(1);
+
+    assertEquals(5, max);
+  }
+
+  @Test
+  void findMaxHitsFromSingleIpExcludesBotSessionHits() {
+    seedSession("bot-session", true);
+    seedSession("real-session", false);
+    // The bot IP has far more hits, but must not count -- the max should come from the real session
+    for (int i = 0; i < 50; i++) {
+      seedHitWithIp("9.9.9.9", "bot-session");
+    }
+    seedHitWithIp("8.8.8.8", "real-session");
+    seedHitWithIp("8.8.8.8", "real-session");
+
+    long max = WebPageHitRepository.findMaxHitsFromSingleIp(1);
+
+    assertEquals(2, max, "the bot session's 50 hits from 9.9.9.9 must not count toward the spike");
+  }
+
+  @Test
+  void findMaxHitsFromSingleIpExcludesHitsOutsideTheWindow() {
+    seedSession("real-session", false);
+    Timestamp twoHoursAgo = Timestamp.from(java.time.Instant.now().minus(Duration.ofHours(2)));
+    // 10 old hits from the same IP, outside the 1-hour window, plus 1 recent hit from a different IP
+    for (int i = 0; i < 10; i++) {
+      seedHitWithIp("3.3.3.3", "real-session", twoHoursAgo);
+    }
+    seedHitWithIp("4.4.4.4", "real-session");
+
+    long max = WebPageHitRepository.findMaxHitsFromSingleIp(1);
+
+    assertEquals(1, max, "hits older than the window must not contribute to the spike count");
+  }
+
+  @Test
+  void findMaxHitsFromSingleIpExcludesHitsWithNoIpAddress() {
+    seedSession("real-session", false);
+    // A hit with no ip_address can't be attributed to a single source and must not count
+    seedHit("/about", "real-session", new Timestamp(System.currentTimeMillis()));
+
+    long max = WebPageHitRepository.findMaxHitsFromSingleIp(1);
+
+    assertEquals(0, max);
+  }
+
+  @Test
+  void findMaxHitsFromSingleIpReturnsZeroWhenThereIsNoData() {
+    long max = WebPageHitRepository.findMaxHitsFromSingleIp(1);
+
+    assertEquals(0, max);
+  }
+
+  private static void seedHitWithIp(String ipAddress, String sessionId) {
+    seedHitWithIp(ipAddress, sessionId, new Timestamp(System.currentTimeMillis()));
+  }
+
+  private static void seedHitWithIp(String ipAddress, String sessionId, Timestamp hitDate) {
+    try (Connection connection = DB.getConnection();
+        Statement statement = connection.createStatement()) {
+      statement.execute("INSERT INTO web_page_hits (ip_address, session_id, hit_date) VALUES ('"
+          + ipAddress + "', '" + sessionId + "', '" + hitDate + "')");
+    } catch (SQLException se) {
+      throw new IllegalStateException("Could not seed web page hit", se);
+    }
   }
 
   private static void seedSession(String sessionId, boolean isBot) {
@@ -403,6 +551,7 @@ class WebPageHitRepositoryTest {
           + "hit_id BIGSERIAL PRIMARY KEY, "
           + "web_page_id BIGINT, "
           + "page_path VARCHAR(255), "
+          + "ip_address VARCHAR(200), "
           + "session_id VARCHAR(255), "
           + "hit_date TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP)");
       statement.execute("CREATE TABLE web_page_hit_snapshots ("
