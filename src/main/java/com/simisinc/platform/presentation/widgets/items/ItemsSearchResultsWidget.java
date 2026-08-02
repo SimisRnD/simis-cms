@@ -144,17 +144,16 @@ public class ItemsSearchResultsWidget extends GenericWidget {
     // guessable sequential id, so neither case may disclose the category's name below -- only a
     // verified non-zero, access-safe count may.
     Map<Long, Long> categoryCounts = null;
-    if (categoryId != null || showCategoryFacet) {
+    if (!selectedCategoryIds.isEmpty() || showCategoryFacet) {
       categoryCounts = ItemRepository.countGroupedByCategory(specification);
     }
-    Long selectedCategoryCount = categoryId != null ? categoryCounts.getOrDefault(categoryId, 0L) : null;
 
     if (showCategoryFacet) {
       List<ItemFacetOption> categoryFacets = new ArrayList<>();
       List<Category> allCategories = CategoryRepository.findAll();
       if (allCategories != null) {
         for (Category category : allCategories) {
-          boolean selected = categoryId != null && categoryId.equals(category.getId());
+          boolean selected = selectedCategoryIds.contains(category.getId());
           long count = categoryCounts.getOrDefault(category.getId(), 0L);
           // Categories with a 0 count here are omitted entirely, selected or not -- see the
           // access-control note above for why "selected" alone must not be enough to reveal a

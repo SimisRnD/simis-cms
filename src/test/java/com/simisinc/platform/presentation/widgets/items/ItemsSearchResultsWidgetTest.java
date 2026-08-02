@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
 
@@ -100,6 +101,7 @@ class ItemsSearchResultsWidgetTest extends WidgetBase {
       // category 6 is intentionally absent -- countGroupedByCategory omits zero-count categories
       // entirely, the same as countByCategory returning 0 for one
       repository.when(() -> ItemRepository.countGroupedByCategory(any())).thenReturn(categoryCounts);
+      repository.when(() -> ItemRepository.countByCategory(any(), anyLong())).thenReturn(1L);
       repository.when(() -> ItemRepository.countByDateRange(any(), any(), any())).thenReturn(0L);
 
       WidgetContext result = new ItemsSearchResultsWidget().execute(widgetContext);
@@ -336,6 +338,7 @@ class ItemsSearchResultsWidgetTest extends WidgetBase {
       repository.when(() -> ItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
       categoryRepository.when(CategoryRepository::findAll).thenReturn(categories(category(5, "Widgets"), category(7, "Doohickeys")));
       categoryRepository.when(() -> CategoryRepository.findById(5L)).thenReturn(category(5, "Widgets"));
+      repository.when(() -> ItemRepository.countGroupedByCategory(any())).thenReturn(Map.of(5L, 1L, 7L, 1L));
       repository.when(() -> ItemRepository.countByCategory(any(), anyLong())).thenReturn(1L);
       repository.when(() -> ItemRepository.countByDateRange(any(), any(), any())).thenReturn(0L);
 
