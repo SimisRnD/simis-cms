@@ -17,6 +17,7 @@
 package com.simisinc.platform.presentation.widgets.admin.cms;
 
 import java.lang.reflect.InvocationTargetException;
+import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -230,6 +231,7 @@ public class FolderFilesListWidget extends GenericWidget {
         fileItemBean.setVersion(context.getParameter("version"));
         fileItemBean.setTitle(context.getParameter("title"));
         fileItemBean.setSummary(context.getParameter("summary"));
+        fileItemBean.setExpirationDate(parseExpirationDate(context));
         fileItemBean.setCreatedBy(context.getUserId());
         fileItemBean.setModifiedBy(context.getUserId());
         // Validate the file
@@ -246,6 +248,10 @@ public class FolderFilesListWidget extends GenericWidget {
         // Populate the fields
         fileItemBean = new FileItem();
         BeanUtils.populate(fileItemBean, context.getParameterMap());
+        // BeanUtils cannot reliably convert a raw datetime-local string ("expirationDate") to a
+        // java.sql.Timestamp, so parse it explicitly and overwrite whatever BeanUtils did with it
+        // (mirrors WebPageFormWidget.post()'s handling of publishAt/expiresAt)
+        fileItemBean.setExpirationDate(parseExpirationDate(context));
         fileItemBean.setCreatedBy(context.getUserId());
         fileItemBean.setModifiedBy(context.getUserId());
         // Update the file item
@@ -276,6 +282,27 @@ public class FolderFilesListWidget extends GenericWidget {
       context.setRedirect("/admin/folder-details?folderId=" + currentFolderId);
     }
     return context;
+  }
+
+  /**
+   * Parses the optional "expirationDate" form field (a datetime-local input, e.g.
+   * "2026-09-01T14:30") into a Timestamp. Mirrors WebPageFormWidget.post()'s handling of
+   * publishAt/expiresAt.
+   *
+   * @param context
+   * @return the parsed Timestamp, or null when the field was left blank
+   * @throws DataException when the value is present but not a valid date/time
+   */
+  private static Timestamp parseExpirationDate(WidgetContext context) throws DataException {
+    String expirationDateValue = context.getParameter("expirationDate");
+    if (StringUtils.isBlank(expirationDateValue)) {
+      return null;
+    }
+    try {
+      return Timestamp.valueOf(expirationDateValue.replace("T", " ") + ":00");
+    } catch (IllegalArgumentException e) {
+      throw new DataException("Expiration date format is not valid");
+    }
   }
 
   /**
