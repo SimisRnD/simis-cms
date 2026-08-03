@@ -260,7 +260,7 @@ public class HttpPostCommand {
 
       // Create the HTTP client
       HttpClient client = HttpClient.newBuilder().build();
-      return client.send(request, HttpResponse.BodyHandlers.ofString());
+      return HttpRetryCommand.send(client, request, HttpResponse.BodyHandlers.ofString());
     } catch (Exception e) {
       LOG.error("Http client exception", e);
       return null;
