@@ -20,6 +20,9 @@ import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
@@ -29,6 +32,8 @@ import org.apache.commons.logging.LogFactory;
 import com.simisinc.platform.application.cms.HtmlCommand;
 import com.simisinc.platform.domain.model.cms.Blog;
 import com.simisinc.platform.domain.model.cms.BlogPost;
+import com.simisinc.platform.domain.model.cms.BlogPostTag;
+import com.simisinc.platform.domain.model.cms.BlogTag;
 import com.simisinc.platform.infrastructure.database.AutoRollback;
 import com.simisinc.platform.infrastructure.database.AutoStartTransaction;
 import com.simisinc.platform.infrastructure.database.DB;
@@ -163,12 +168,26 @@ public class BlogPostRepository {
         .add("archived", record.getArchived())
         .add("start_date", record.getStartDate())
         .add("end_date", record.getEndDate());
-    record.setId(DB.insertInto(TABLE_NAME, insertValues, PRIMARY_KEY));
-    if (record.getId() == -1) {
-      LOG.error("An id was not set!");
-      return null;
+    // Use a transaction so the post row and its tag assignments (issue #633) commit together
+    try {
+      try (Connection connection = DB.getConnection();
+          AutoStartTransaction a = new AutoStartTransaction(connection);
+          AutoRollback transaction = new AutoRollback(connection)) {
+        record.setId(DB.insertInto(connection, TABLE_NAME, insertValues, PRIMARY_KEY));
+        if (record.getId() == -1) {
+          LOG.error("An id was not set!");
+          return null;
+        }
+        // Manage the tags (issue #633)
+        BlogPostTagRepository.insertBlogPostTagList(connection, record);
+        // Finish the transaction
+        transaction.commit();
+        return record;
+      }
+    } catch (SQLException se) {
+      LOG.error("SQLException: " + se.getMessage());
     }
-    return record;
+    return null;
   }
 
   public static BlogPost update(BlogPost record) {
@@ -188,11 +207,56 @@ public class BlogPostRepository {
         .add("end_date", record.getEndDate());
     SqlUtils where = new SqlUtils()
         .add("post_id = ?", record.getId());
-    if (DB.update(TABLE_NAME, updateValues, where)) {
-      //      CacheManager.invalidateKey(CacheManager.CONTENT_UNIQUE_ID_CACHE, record.getUniqueId());
-      return record;
+
+    // Use the previous tag assignments for reconciliation (issue #633), mirroring
+    // ItemRepository's diff-based approach so a repeat call with the same tag set is a no-op --
+    // it recomputes existingTagList == newTagList and neither inserts nor deletes anything.
+    List<BlogPostTag> existingTagList = BlogPostTagRepository.findAllByPostId(record.getId());
+    List<Long> newTagList = record.getTagIdList() != null ? Arrays.asList(record.getTagIdList()) : Collections.emptyList();
+
+    // Use a transaction so the post row and its tag assignments commit together
+    try {
+      try (Connection connection = DB.getConnection();
+          AutoStartTransaction a = new AutoStartTransaction(connection);
+          AutoRollback transaction = new AutoRollback(connection)) {
+        if (!DB.update(connection, TABLE_NAME, updateValues, where)) {
+          LOG.error("The update failed!");
+          return null;
+        }
+
+        // Remove tags that are no longer assigned
+        if (existingTagList != null) {
+          for (BlogPostTag existingTag : existingTagList) {
+            if (!newTagList.contains(existingTag.getTagId())) {
+              BlogPostTagRepository.removeBlogPostTagId(connection, record, existingTag.getTagId());
+            }
+          }
+        }
+
+        // Add newly-assigned tags
+        for (Long newTagId : newTagList) {
+          boolean hasTag = false;
+          if (existingTagList != null) {
+            for (BlogPostTag existingTag : existingTagList) {
+              if (existingTag.getTagId() == newTagId) {
+                hasTag = true;
+                break;
+              }
+            }
+          }
+          if (!hasTag) {
+            BlogPostTagRepository.insertBlogPostTagId(connection, record, newTagId);
+          }
+        }
+
+        // Finish the transaction
+        transaction.commit();
+        //      CacheManager.invalidateKey(CacheManager.CONTENT_UNIQUE_ID_CACHE, record.getUniqueId());
+        return record;
+      }
+    } catch (SQLException se) {
+      LOG.error("SQLException: " + se.getMessage(), se);
     }
-    LOG.error("The update failed!");
     return null;
   }
 
@@ -201,7 +265,9 @@ public class BlogPostRepository {
       try (Connection connection = DB.getConnection();
           AutoStartTransaction a = new AutoStartTransaction(connection);
           AutoRollback transaction = new AutoRollback(connection)) {
-        // Delete the references
+        // Delete the references (issue #633) -- blog_post_tags.post_id has no ON DELETE CASCADE,
+        // so its rows must be removed before the post itself
+        BlogPostTagRepository.removeAll(connection, record);
         //        ItemCategoryRepository.removeAll(connection, record);
         //        CollectionRepository.updateItemCount(connection, record.getCollectionId(), -1);
         //        CategoryRepository.updateItemCount(connection, record.getCategoryId(), -1);
@@ -218,6 +284,9 @@ public class BlogPostRepository {
   }
 
   public static void removeAll(Connection connection, Blog blog) throws SQLException {
+    // Delete the references (issue #633) -- blog_post_tags.post_id has no ON DELETE CASCADE, so
+    // its rows for every post in this blog must be removed before the posts themselves
+    BlogPostTagRepository.removeAllByBlogId(connection, blog.getId());
     SqlUtils where = new SqlUtils();
     where.add("blog_id = ?", blog.getId());
     DB.deleteFrom(connection, TABLE_NAME, where);
@@ -245,6 +314,20 @@ public class BlogPostRepository {
       // Additional fields
       if (DB.hasColumn(rs, "highlight")) {
         record.setHighlight(rs.getString("highlight"));
+      }
+      // Populate the assigned tags (issue #633) -- both the display-name array that
+      // blog-post-list.jsp/blog-post-details.jsp already render, and the id array used to
+      // pre-check the assignment checkboxes in the post editor
+      List<BlogTag> tagList = BlogTagRepository.findAllByPostId(record.getId());
+      if (tagList != null && !tagList.isEmpty()) {
+        List<String> tagNameList = new ArrayList<>();
+        List<Long> tagIdList = new ArrayList<>();
+        for (BlogTag tag : tagList) {
+          tagNameList.add(tag.getName());
+          tagIdList.add(tag.getId());
+        }
+        record.setTagsList(tagNameList.toArray(new String[0]));
+        record.setTagIdList(tagIdList.toArray(new Long[0]));
       }
       return record;
     } catch (SQLException se) {

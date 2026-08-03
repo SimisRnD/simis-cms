@@ -179,6 +179,8 @@
   <widget name="adminImageBrowser" class="com.simisinc.platform.presentation.widgets.admin.cms.AdminImageBrowserWidget" />
   <widget name="blogList" class="com.simisinc.platform.presentation.widgets.admin.cms.BlogListWidget" />
   <widget name="blogForm" class="com.simisinc.platform.presentation.widgets.admin.cms.BlogFormWidget" />
+  <widget name="blogTagsList" class="com.simisinc.platform.presentation.widgets.admin.cms.BlogTagsListWidget" />
+  <widget name="blogTagForm" class="com.simisinc.platform.presentation.widgets.admin.cms.BlogTagFormWidget" />
   <widget name="calendarList" class="com.simisinc.platform.presentation.widgets.admin.cms.CalendarListWidget" />
   <widget name="calendarEventList" class="com.simisinc.platform.presentation.widgets.admin.cms.CalendarEventListWidget" />
   <widget name="calendarForm" class="com.simisinc.platform.presentation.widgets.admin.cms.CalendarFormWidget" />

@@ -1,0 +1,41 @@
+<%--
+  ~ Copyright 2026 SimIS Inc.
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  --%>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
+<jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
+<jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
+<jsp:useBean id="tag" class="com.simisinc.platform.domain.model.cms.BlogTag" scope="request"/>
+<jsp:useBean id="blog" class="com.simisinc.platform.domain.model.cms.Blog" scope="request"/>
+<form method="post">
+  <%-- Required by controller --%>
+  <input type="hidden" name="widget" value="${widgetContext.uniqueId}" />
+  <input type="hidden" name="token" value="${userSession.formToken}" />
+  <%-- Form specific --%>
+  <input type="hidden" name="id" value="${tag.id}" />
+  <input type="hidden" name="blogId" value="${blog.id}" />
+  <%-- Title and Message block --%>
+  <c:if test="${!empty title}">
+    <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
+  </c:if>
+  <%@include file="../page_messages.jspf" %>
+  <%-- Form Content --%>
+  <label>Name
+    <input type="text" placeholder="Give it a name..." name="name" value="<c:out value="${tag.name}"/>">
+  </label>
+  <div class="button-container">
+    <input type="submit" class="button radius primary" value="Save" />
+  </div>
+</form>

@@ -54,6 +54,9 @@
     <small>When set, this blog's post editor defaults to notifying this list on publish.</small>
   </label>
   <input id="enabled" type="checkbox" name="enabled" value="true" <c:if test="${blog.id == -1 || blog.enabled}">checked</c:if>/><label for="enabled">Online?</label>
+  <c:if test="${blog.id != -1}">
+    <p><a href="${ctx}/admin/blog-tags?blogId=${blog.id}">Manage this blog's tags...</a></p>
+  </c:if>
   <div class="button-container">
     <c:choose>
       <c:when test="${!empty returnPage}">

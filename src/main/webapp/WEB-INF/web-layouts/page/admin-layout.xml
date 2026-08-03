@@ -1487,6 +1487,51 @@
     </section>
   </page>
 
+  <page name="/admin/blog-tags{?blogId}" role="admin,content-manager" title="Blog Tags">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Blogs" value="/admin/blogs" />
+            <link name="Blog Details" value="/admin/blog?blogId=${request.blogId}" />
+            <link name="Tags" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 medium-10 large-8 cell">
+        <widget name="blogTagsList" />
+      </column>
+      <column class="small-12 medium-2 large-4 cell">
+        <widget name="blogTagForm" class="callout radius primary">
+          <title>Add a tag</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/blog-tag{?tagId}" role="admin,content-manager" title="Edit Blog Tag">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Blogs" value="/admin/blogs" />
+            <link name="Blog Details" value="/admin/blog?blogId=${request.blogId}" />
+            <link name="Tag" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 medium-11 large-10 cell">
+        <widget name="blogTagForm">
+          <title>Edit this tag</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
   <page name="/admin/calendars" role="admin,content-manager,community-manager" title="Calendars">
     <!--<section>-->
       <!--<column class="small-12 cell">-->

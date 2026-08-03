@@ -21,6 +21,7 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="blog" class="com.simisinc.platform.domain.model.cms.Blog" scope="request"/>
 <jsp:useBean id="blogPost" class="com.simisinc.platform.domain.model.cms.BlogPost" scope="request"/>
+<jsp:useBean id="tagList" class="java.util.ArrayList" scope="request"/>
 <script src="${ctx}/javascript/tinymce-7.9.3/tinymce.min.js"></script>
 <script nonce="${cspNonce}">
   tinymce.init({
@@ -139,6 +140,26 @@
     <small>Write the post...</small>
     <textarea name="body"><c:out value="${blogPost.body}"/></textarea>
   </p>
+  <c:if test="${!empty tagList}">
+    <h3 class="margin-top-30 margin-bottom-20">Tags</h3>
+    <div class="grid-container margin-top-20">
+      <div class="grid-x grid-padding-x">
+        <div class="small-12 cell">
+          <div class="input-container">
+            <c:forEach items="${tagList}" var="tag">
+              <c:set var="contains" value="false" />
+              <c:forEach var="thisTagId" items="${blogPost.tagIdList}">
+                <c:if test="${thisTagId eq tag.id}">
+                  <c:set var="contains" value="true" />
+                </c:if>
+              </c:forEach>
+              <input id="tagId${tag.id}" type="checkbox" name="tagId" value="${tag.id}"<c:if test="${contains eq 'true'}"> checked</c:if> /><label for="tagId${tag.id}"><c:out value="${tag.name}" /></label>
+            </c:forEach>
+          </div>
+        </div>
+      </div>
+    </div>
+  </c:if>
   <div class="full-container">
     <div class="grid-x grid-margin-x callout box">
       <div class="auto cell text-right">

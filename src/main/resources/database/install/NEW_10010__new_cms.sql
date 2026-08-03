@@ -453,6 +453,9 @@ CREATE TABLE blog_post_tags (
   post_id BIGINT REFERENCES blog_posts(post_id),
   tag_id BIGINT REFERENCES lookup_blog_post_tags(tag_id)
 );
+-- Mirrors UPGRADE_20260802.1010__blog_post_tags_unique_index.sql (issue #633) so a fresh install
+-- gets the same guarantee against duplicate (post_id, tag_id) rows as an upgraded database.
+CREATE UNIQUE INDEX IF NOT EXISTS blog_post_tags_uidx ON blog_post_tags(post_id, tag_id);
 
 
 -- Calendars (Events, Training, etc.)

@@ -63,6 +63,7 @@ public class BlogPost extends Entity {
   //  private String fileUrl = null;
 
   private String[] tagsList = null;
+  private Long[] tagIdList = null;
 
   private String highlight = null;
 
@@ -315,6 +316,14 @@ public class BlogPost extends Entity {
 
   public void setTagsList(String[] tagsList) {
     this.tagsList = tagsList;
+  }
+
+  public Long[] getTagIdList() {
+    return tagIdList;
+  }
+
+  public void setTagIdList(Long[] tagIdList) {
+    this.tagIdList = tagIdList;
   }
 
   public String getLink() {
