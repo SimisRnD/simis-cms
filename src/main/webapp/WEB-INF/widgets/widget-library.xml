@@ -206,6 +206,7 @@
   <widget name="folderForm" class="com.simisinc.platform.presentation.widgets.admin.cms.FolderFormWidget" />
   <widget name="folderSubFoldersList" class="com.simisinc.platform.presentation.widgets.admin.cms.FolderSubFoldersListWidget" />
   <widget name="folderFilesList" class="com.simisinc.platform.presentation.widgets.admin.cms.FolderFilesListWidget" />
+  <widget name="folderZipDownload" class="com.simisinc.platform.presentation.widgets.admin.cms.FolderZipDownloadWidget" />
   <widget name="fileVersionsList" class="com.simisinc.platform.presentation.widgets.admin.cms.FileVersionsListWidget" />
   <widget name="subFolderDetails" class="com.simisinc.platform.presentation.widgets.admin.cms.SubFolderDetailsWidget" />
   <widget name="subFolderForm" class="com.simisinc.platform.presentation.widgets.admin.cms.SubFolderFormWidget" />
