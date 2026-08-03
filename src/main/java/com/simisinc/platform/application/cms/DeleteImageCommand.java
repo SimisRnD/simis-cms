@@ -17,6 +17,7 @@
 package com.simisinc.platform.application.cms;
 
 import java.io.File;
+import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
@@ -24,7 +25,9 @@ import org.apache.commons.logging.LogFactory;
 
 import com.simisinc.platform.application.filesystem.FileSystemCommand;
 import com.simisinc.platform.domain.model.cms.Image;
+import com.simisinc.platform.domain.model.cms.ImageVariant;
 import com.simisinc.platform.infrastructure.persistence.cms.ImageRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.ImageVariantRepository;
 
 /**
  * Deletes an image record and its physical file (issue #498).
@@ -34,6 +37,12 @@ import com.simisinc.platform.infrastructure.persistence.cms.ImageRepository;
  * database row is removed first, and the physical file is only removed once that succeeds --
  * never the other way around, so a failed database delete can never leave an orphaned DB row
  * pointing at a file that no longer exists.
+ *
+ * <p>
+ * Issue #411: any resized variants are looked up before the delete (their rows cascade-delete
+ * with the parent {@code images} row via the {@code image_variants} FK) and their physical files
+ * are removed alongside the original's, so a variant file never outlives its source.
+ * </p>
  *
  * @author SimIS Inc.
  */
@@ -59,19 +68,25 @@ public class DeleteImageCommand {
       return false;
     }
 
+    // Look up variants before the delete -- their rows cascade-delete with the images row, so
+    // this is the last point their paths are still queryable
+    List<ImageVariant> variants = ImageVariantRepository.findByImageId(image.getId());
+
     // Remove the database row first
     if (!ImageRepository.remove(image)) {
       LOG.warn("Image database row could not be removed: " + image.getId());
       return false;
     }
 
-    // Only now remove the physical file -- a failure here does not undo the DB delete
-    deletePhysicalFileQuietly(image);
+    // Only now remove the physical files -- a failure here does not undo the DB delete
+    deletePhysicalFileQuietly(image.getId(), image.getFileServerPath());
+    for (ImageVariant variant : variants) {
+      deletePhysicalFileQuietly(image.getId(), variant.getFileServerPath());
+    }
     return true;
   }
 
-  private static void deletePhysicalFileQuietly(Image image) {
-    String fileServerPath = image.getFileServerPath();
+  private static void deletePhysicalFileQuietly(long imageId, String fileServerPath) {
     if (StringUtils.isBlank(fileServerPath)) {
       return;
     }
@@ -93,7 +108,7 @@ public class DeleteImageCommand {
       }
     } catch (Exception e) {
       // Never let a file system problem look like the delete failed -- the DB row is already gone.
-      LOG.warn("Error deleting image file for image " + image.getId() + ": " + e.getMessage());
+      LOG.warn("Error deleting image file for image " + imageId + ": " + e.getMessage());
     }
   }
 

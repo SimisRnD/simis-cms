@@ -49,9 +49,11 @@ import org.testcontainers.utility.DockerImageName;
 
 import com.simisinc.platform.application.filesystem.FileSystemCommand;
 import com.simisinc.platform.domain.model.cms.Image;
+import com.simisinc.platform.domain.model.cms.ImageVariant;
 import com.simisinc.platform.infrastructure.database.DB;
 import com.simisinc.platform.infrastructure.database.DataSource;
 import com.simisinc.platform.infrastructure.persistence.cms.ImageRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.ImageVariantRepository;
 
 /**
  * Verifies {@link DeleteImageCommand} against a real PostgreSQL instance and a real file system
@@ -128,9 +130,9 @@ class DeleteImageCommandTest {
     }
     try (Connection connection = DB.getConnection();
         Statement statement = connection.createStatement()) {
-      statement.execute("TRUNCATE TABLE images RESTART IDENTITY");
+      statement.execute("TRUNCATE TABLE image_variants, images RESTART IDENTITY CASCADE");
     } catch (SQLException se) {
-      throw new IllegalStateException("Could not reset images table", se);
+      throw new IllegalStateException("Could not reset images/image_variants tables", se);
     }
   }
 
@@ -177,6 +179,42 @@ class DeleteImageCommandTest {
 
     assertTrue(removed, "a missing physical file must not fail the delete");
     assertNull(ImageRepository.findById(image.getId()), "the database row must still be removed");
+  }
+
+  @Test
+  void deleteImageAlsoRemovesEachVariantsPhysicalFileAndCascadeDeletesTheirRows(@TempDir Path tempDir)
+      throws Exception {
+    Path originalFile = Path.of("2026", "08", "photo.png");
+    Path thumbnailFile = Path.of("2026", "08", "photo-thumbnail.png");
+    Path mediumFile = Path.of("2026", "08", "photo-medium.png");
+    writeRealFile(tempDir, originalFile, "original bytes");
+    writeRealFile(tempDir, thumbnailFile, "thumbnail bytes");
+    writeRealFile(tempDir, mediumFile, "medium bytes");
+
+    Image image = insertImage("photo.png", originalFile.toString());
+    ImageVariantRepository.save(newVariant(image.getId(), "thumbnail", thumbnailFile.toString()));
+    ImageVariantRepository.save(newVariant(image.getId(), "medium", mediumFile.toString()));
+
+    boolean removed = withStubbedRoot(tempDir, () -> DeleteImageCommand.deleteImage(image));
+
+    assertTrue(removed);
+    assertFalse(Files.exists(tempDir.resolve(originalFile)), "the original file must be gone");
+    assertFalse(Files.exists(tempDir.resolve(thumbnailFile)), "the thumbnail variant's file must be gone");
+    assertFalse(Files.exists(tempDir.resolve(mediumFile)), "the medium variant's file must be gone");
+    assertTrue(ImageVariantRepository.findByImageId(image.getId()).isEmpty(),
+        "image_variants rows must be gone (FK ON DELETE CASCADE)");
+  }
+
+  private static ImageVariant newVariant(long imageId, String variantType, String path) {
+    ImageVariant variant = new ImageVariant();
+    variant.setImageId(imageId);
+    variant.setVariantType(variantType);
+    variant.setFileServerPath(path);
+    variant.setFileLength(100);
+    variant.setFileType("image/png");
+    variant.setWidth(200);
+    variant.setHeight(150);
+    return variant;
   }
 
   @Test
@@ -267,9 +305,11 @@ class DeleteImageCommandTest {
 
   private static void createSchema() {
     // Mirrors NEW_10010__new_cms.sql's `images` table exactly (minus the users FK's real geom-heavy
-    // shape, which this test has no need for -- same pattern as MediaAssetRepositoryTest).
+    // shape, which this test has no need for -- same pattern as MediaAssetRepositoryTest) plus
+    // NEW_10160__new_image_variants.sql's `image_variants` table (issue #411).
     try (Connection connection = DB.getConnection();
         Statement statement = connection.createStatement()) {
+      statement.execute("DROP TABLE IF EXISTS image_variants CASCADE");
       statement.execute("DROP TABLE IF EXISTS images CASCADE");
       statement.execute("DROP TABLE IF EXISTS users CASCADE");
       statement.execute("CREATE TABLE users ("
@@ -294,8 +334,21 @@ class DeleteImageCommandTest {
           + "processed_width INTEGER NOT NULL DEFAULT 0, "
           + "processed_height INTEGER NOT NULL DEFAULT 0, "
           + "web_path VARCHAR(50) NOT NULL)");
+      statement.execute("CREATE TABLE image_variants ("
+          + "image_variant_id BIGSERIAL PRIMARY KEY, "
+          + "image_id BIGINT NOT NULL REFERENCES images(image_id) ON DELETE CASCADE, "
+          + "variant_type VARCHAR(20) NOT NULL, "
+          + "path VARCHAR(255) NOT NULL, "
+          + "file_length BIGINT DEFAULT 0, "
+          + "file_type VARCHAR(20), "
+          + "width INTEGER NOT NULL, "
+          + "height INTEGER NOT NULL, "
+          + "created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP, "
+          + "modified TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP)");
+      statement.execute(
+          "CREATE UNIQUE INDEX image_variants_image_id_variant_type_idx ON image_variants(image_id, variant_type)");
     } catch (SQLException se) {
-      throw new IllegalStateException("Could not create the images/users schema", se);
+      throw new IllegalStateException("Could not create the images/image_variants/users schema", se);
     }
   }
 
