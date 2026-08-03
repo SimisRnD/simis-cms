@@ -123,9 +123,15 @@ public class SitePropertiesEditorWidget extends GenericWidget {
     // Track which secret properties actually received a new value, to audit the rotation by name only
     // (never the value). Non-secret names are audited as a count; no secret value is ever recorded.
     List<String> secretsRotated = new ArrayList<>();
+    // issue #454 review: modified/modified_by must only be stamped for a property whose value
+    // actually changed -- every property on a saved page reaches SitePropertyRepository.save(),
+    // including ones the admin never touched, so this can't be inferred from "was it saved."
+    Set<String> changedPropertyNames = new HashSet<>();
 
     // Populate the entries from the request and Validate the values
     for (SiteProperty siteProperty : siteProperties) {
+
+      String originalValue = siteProperty.getValue();
 
       // Determine the value
       String newValue = context.getParameter(siteProperty.getName());
@@ -170,6 +176,9 @@ public class SitePropertiesEditorWidget extends GenericWidget {
 
       // Validate the values based on type
       siteProperty.setValue(newValue);
+      if (!java.util.Objects.equals(originalValue, newValue)) {
+        changedPropertyNames.add(siteProperty.getName());
+      }
       if (StringUtils.isBlank(newValue)) {
         continue;
       }
@@ -200,7 +209,7 @@ public class SitePropertiesEditorWidget extends GenericWidget {
     }
 
     // Save the entries
-    boolean saved = SitePropertyRepository.saveAll(prefix, siteProperties, context.getUserId());
+    boolean saved = SitePropertyRepository.saveAll(prefix, siteProperties, context.getUserId(), changedPropertyNames);
 
     // Record the settings change -- property names and any rotated secret names only, never values
     String settingDetails = "properties=" + siteProperties.size()

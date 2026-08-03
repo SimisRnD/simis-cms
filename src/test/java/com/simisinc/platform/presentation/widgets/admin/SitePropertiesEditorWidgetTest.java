@@ -90,7 +90,7 @@ class SitePropertiesEditorWidgetTest extends WidgetBase {
     try (MockedStatic<SitePropertyRepository> repository = mockStatic(SitePropertyRepository.class);
         MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
       repository.when(() -> SitePropertyRepository.findAllByPrefix(anyString())).thenReturn(stored);
-      repository.when(() -> SitePropertyRepository.saveAll(eq("mail"), eq(stored), anyLong())).thenReturn(true);
+      repository.when(() -> SitePropertyRepository.saveAll(eq("mail"), eq(stored), eq(1L), any())).thenReturn(true);
 
       SitePropertiesEditorWidget widget = new SitePropertiesEditorWidget();
       widget.post(widgetContext);
@@ -115,7 +115,7 @@ class SitePropertiesEditorWidgetTest extends WidgetBase {
     try (MockedStatic<SitePropertyRepository> repository = mockStatic(SitePropertyRepository.class);
         MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
       repository.when(() -> SitePropertyRepository.findAllByPrefix(anyString())).thenReturn(stored);
-      repository.when(() -> SitePropertyRepository.saveAll(eq("mail"), eq(stored), anyLong())).thenReturn(true);
+      repository.when(() -> SitePropertyRepository.saveAll(eq("mail"), eq(stored), eq(1L), any())).thenReturn(true);
 
       SitePropertiesEditorWidget widget = new SitePropertiesEditorWidget();
       widget.post(widgetContext);
@@ -138,7 +138,7 @@ class SitePropertiesEditorWidgetTest extends WidgetBase {
     try (MockedStatic<SitePropertyRepository> repository = mockStatic(SitePropertyRepository.class);
         MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
       repository.when(() -> SitePropertyRepository.findAllByPrefix(anyString())).thenReturn(stored);
-      repository.when(() -> SitePropertyRepository.saveAll(eq("site"), eq(stored), anyLong())).thenReturn(true);
+      repository.when(() -> SitePropertyRepository.saveAll(eq("site"), eq(stored), eq(1L), any())).thenReturn(true);
 
       SitePropertiesEditorWidget widget = new SitePropertiesEditorWidget();
       widget.post(widgetContext);
@@ -180,7 +180,7 @@ class SitePropertiesEditorWidgetTest extends WidgetBase {
       widget.post(widgetContext);
 
       repository.verify(
-          () -> SitePropertyRepository.saveAll(anyString(), org.mockito.ArgumentMatchers.anyList(), anyLong()),
+          () -> SitePropertyRepository.saveAll(anyString(), org.mockito.ArgumentMatchers.anyList(), anyLong(), any()),
           never());
       assertEquals("mailchimp", stored.get(0).getValue(), "the action must not fall through to the save logic");
       assertEquals(SitePropertiesEditorWidget.JSP, widgetContext.getJsp());
@@ -204,7 +204,7 @@ class SitePropertiesEditorWidgetTest extends WidgetBase {
         MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
         MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
       repository.when(() -> SitePropertyRepository.findAllByPrefix(anyString())).thenReturn(stored);
-      repository.when(() -> SitePropertyRepository.saveAll(eq("mail"), eq(stored), anyLong())).thenReturn(true);
+      repository.when(() -> SitePropertyRepository.saveAll(eq("mail"), eq(stored), eq(1L), any())).thenReturn(true);
 
       new SitePropertiesEditorWidget().post(widgetContext);
 
@@ -232,7 +232,7 @@ class SitePropertiesEditorWidgetTest extends WidgetBase {
     try (MockedStatic<SitePropertyRepository> repository = mockStatic(SitePropertyRepository.class);
         MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
       repository.when(() -> SitePropertyRepository.findAllByPrefix(anyString())).thenReturn(stored);
-      repository.when(() -> SitePropertyRepository.saveAll(eq("mail"), eq(stored), anyLong())).thenReturn(true);
+      repository.when(() -> SitePropertyRepository.saveAll(eq("mail"), eq(stored), eq(1L), any())).thenReturn(true);
 
       new SitePropertiesEditorWidget().post(widgetContext);
 
@@ -261,7 +261,61 @@ class SitePropertiesEditorWidgetTest extends WidgetBase {
       new SitePropertiesEditorWidget().post(widgetContext);
 
       assertEquals("SMTP Password has an invalid expiration date", widgetContext.getErrorMessage());
-      repository.verify(() -> SitePropertyRepository.saveAll(anyString(), any(), anyLong()), never());
+      repository.verify(() -> SitePropertyRepository.saveAll(anyString(), any(), anyLong(), any()), never());
+    }
+  }
+
+  @Test
+  void savesWithTheLoggedInUsersIdAsTheActor() {
+    // issue #454 review: nothing previously proved the real userId flows through rather than some
+    // other value -- every prior stub/verify used anyLong(). WidgetBase.login() deterministically
+    // logs in as user id 1L.
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"sitePropertiesEditor\">\n" +
+        "  <prefix>mail</prefix>\n" +
+        "</widget>");
+
+    List<SiteProperty> stored = new ArrayList<>();
+    stored.add(property("mail.host.name", "smtp.example.com", null));
+    addQueryParameter(widgetContext, "mail.host.name", "smtp2.example.com");
+
+    try (MockedStatic<SitePropertyRepository> repository = mockStatic(SitePropertyRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      repository.when(() -> SitePropertyRepository.findAllByPrefix(anyString())).thenReturn(stored);
+      repository.when(() -> SitePropertyRepository.saveAll(eq("mail"), eq(stored), eq(1L), any())).thenReturn(true);
+
+      new SitePropertiesEditorWidget().post(widgetContext);
+
+      repository.verify(() -> SitePropertyRepository.saveAll(eq("mail"), eq(stored), eq(1L), any()));
+    }
+  }
+
+  @Test
+  void onlyThePropertyWhoseValueActuallyChangedIsMarkedChangedForModifiedStamping() {
+    // issue #454 review: modified/modified_by must only be stamped for a property whose value
+    // actually changed -- SitePropertyRepository.saveAll skips stamping for every OTHER name not
+    // in this set, so its exact contents matter, not just that the call happened
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"sitePropertiesEditor\">\n" +
+        "  <prefix>mail</prefix>\n" +
+        "</widget>");
+
+    List<SiteProperty> stored = new ArrayList<>();
+    stored.add(property("mail.host.name", "smtp.example.com", null));
+    stored.add(property("mail.password", "existing-smtp-password", null));
+
+    // Only the host name is actually changed; the masked password field is left blank (unchanged)
+    addQueryParameter(widgetContext, "mail.host.name", "smtp2.example.com");
+    addQueryParameter(widgetContext, "mail.password", "");
+
+    try (MockedStatic<SitePropertyRepository> repository = mockStatic(SitePropertyRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      repository.when(() -> SitePropertyRepository.findAllByPrefix(anyString())).thenReturn(stored);
+      repository.when(() -> SitePropertyRepository.saveAll(eq("mail"), eq(stored), eq(1L), any())).thenReturn(true);
+
+      new SitePropertiesEditorWidget().post(widgetContext);
+
+      org.mockito.ArgumentCaptor<java.util.Set<String>> captor = org.mockito.ArgumentCaptor.forClass(java.util.Set.class);
+      repository.verify(() -> SitePropertyRepository.saveAll(eq("mail"), eq(stored), eq(1L), captor.capture()));
+      assertEquals(java.util.Set.of("mail.host.name"), captor.getValue());
     }
   }
 
@@ -282,7 +336,7 @@ class SitePropertiesEditorWidgetTest extends WidgetBase {
         MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
         MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
       repository.when(() -> SitePropertyRepository.findAllByPrefix(anyString())).thenReturn(stored);
-      repository.when(() -> SitePropertyRepository.saveAll(eq("mail"), eq(stored), anyLong())).thenReturn(true);
+      repository.when(() -> SitePropertyRepository.saveAll(eq("mail"), eq(stored), eq(1L), any())).thenReturn(true);
 
       new SitePropertiesEditorWidget().post(widgetContext);
 
@@ -312,7 +366,7 @@ class SitePropertiesEditorWidgetTest extends WidgetBase {
         MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
         MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
       repository.when(() -> SitePropertyRepository.findAllByPrefix(anyString())).thenReturn(stored);
-      repository.when(() -> SitePropertyRepository.saveAll(eq("mail"), eq(stored), anyLong())).thenReturn(true);
+      repository.when(() -> SitePropertyRepository.saveAll(eq("mail"), eq(stored), eq(1L), any())).thenReturn(true);
 
       new SitePropertiesEditorWidget().post(widgetContext);
 

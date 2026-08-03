@@ -80,6 +80,34 @@ class SecretSitePropertiesCommandTest {
   }
 
   @Test
+  void extractsEveryRowFromAMultiRowInsert() {
+    // issue #454 review: the original parser only captured the first VALUES tuple per INSERT
+    // statement, silently dropping the rest of a multi-row seed
+    String sql = "INSERT INTO site_properties (property_label, property_name, property_value) VALUES\n"
+        + "  ('First', 'multirow.first', ''),\n"
+        + "  ('Second (with parens)', 'multirow.second', ''),\n"
+        + "  ('Third', 'multirow.third', '');\n";
+
+    Set<String> names = extractInsertedPropertyNames(sql);
+
+    assertTrue(names.containsAll(Set.of("multirow.first", "multirow.second", "multirow.third")), names.toString());
+  }
+
+  @Test
+  void looksSecretLikeCatchesCompoundNamesNotJustExactWords() {
+    // issue #454 review: an exact-match-only check on the last dot-segment missed these
+    assertTrue(looksSecretLike("sso.refreshToken"));
+    assertTrue(looksSecretLike("webhook.signingSecret"));
+    assertTrue(looksSecretLike("vendor.privateKey"));
+  }
+
+  @Test
+  void looksSecretLikeStillExcludesAmbiguousBareKey() {
+    // A bare ".key" stays excluded -- e.g. Stripe/Square/captcha site keys are meant to be public
+    assertFalse(looksSecretLike("ecommerce.stripe.production.key"));
+  }
+
+  @Test
   void theScanItselfFindsAtLeastTheKnownSecretNames() throws IOException {
     // A sanity check on the scanner, not the allowlist: if this ever finds zero rows, the
     // regex/paths broke silently and the drift-guard above would pass for the wrong reason
@@ -99,15 +127,24 @@ class SecretSitePropertiesCommandTest {
       Pattern.CASE_INSENSITIVE | Pattern.DOTALL);
   private static final Pattern QUOTED_LITERAL = Pattern.compile("'([^']*)'");
 
-  // Suffixes (the last dot-segment, lowercased) that indicate a genuine secret. ".key" is
-  // intentionally absent -- see the javadoc above.
-  private static final Set<String> SECRET_LIKE_SUFFIXES = Set.of(
-      "secret", "secretkey", "apikey", "token", "password", "accesstoken", "clientsecret", "authheader");
+  // Substrings (checked with contains(), not equals()) of the last dot-segment that indicate a
+  // genuine secret -- e.g. "refreshToken" and "signingSecret" must match just as readily as the
+  // exact words "token"/"secret" do (issue #454 review: an exact-match-only check missed these
+  // realistic compound names entirely). "privatekey" is a deliberate, narrow exception to the
+  // general ".key" exclusion below: unlike "site"/"publishable"/"client" (which qualify a key as
+  // PUBLIC), "private" unambiguously qualifies it as secret.
+  //
+  // Bare ".key" is intentionally NOT matched here, matching SecretSitePropertiesCommand's own
+  // documented caveat: it is ambiguous (a secret for some services, a public browser-facing key
+  // for others such as Stripe/Square/captcha site keys), so a blanket match on it would
+  // false-positive on properties that must stay unencrypted and visible to the browser.
+  private static final Set<String> SECRET_LIKE_SUBSTRINGS = Set.of(
+      "secret", "token", "password", "apikey", "authheader", "privatekey");
 
   private static boolean looksSecretLike(String propertyName) {
     int dot = propertyName.lastIndexOf('.');
     String lastSegment = (dot >= 0 ? propertyName.substring(dot + 1) : propertyName).toLowerCase();
-    return SECRET_LIKE_SUFFIXES.contains(lastSegment);
+    return SECRET_LIKE_SUBSTRINGS.stream().anyMatch(lastSegment::contains);
   }
 
   /**
@@ -135,50 +172,87 @@ class SecretSitePropertiesCommandTest {
       String content = String.join("\n", Files.readAllLines(sqlFile).stream()
           .map(line -> line.trim().startsWith("--") ? "" : line)
           .collect(Collectors.toList()));
-
-      Matcher insertMatcher = INSERT_START_PATTERN.matcher(content);
-      while (insertMatcher.find()) {
-        int columnsOpen = insertMatcher.end() - 1;
-        int columnsClose = findMatchingParen(content, columnsOpen);
-        if (columnsClose < 0) {
-          continue;
-        }
-        List<String> columns = splitUnquoted(content.substring(columnsOpen + 1, columnsClose)).stream()
-            .map(String::trim).collect(Collectors.toList());
-
-        Matcher valuesMatcher = VALUES_START_PATTERN.matcher(content);
-        if (!valuesMatcher.find(columnsClose)) {
-          continue;
-        }
-        int valuesOpen = valuesMatcher.end() - 1;
-        int valuesClose = findMatchingParen(content, valuesOpen);
-        if (valuesClose < 0) {
-          continue;
-        }
-        List<String> values = splitUnquoted(content.substring(valuesOpen + 1, valuesClose));
-
-        int nameIndex = columns.indexOf("property_name");
-        if (nameIndex < 0 || nameIndex >= values.size()) {
-          continue;
-        }
-        names.add(unquote(values.get(nameIndex).trim()));
-      }
-
-      Matcher deleteMatcher = DELETE_PATTERN.matcher(content);
-      while (deleteMatcher.find()) {
-        String single = deleteMatcher.group(1);
-        if (single != null) {
-          deleted.add(single);
-          continue;
-        }
-        Matcher literals = QUOTED_LITERAL.matcher(deleteMatcher.group(2));
-        while (literals.find()) {
-          deleted.add(literals.group(1));
-        }
-      }
+      names.addAll(extractInsertedPropertyNames(content));
+      deleted.addAll(extractDeletedPropertyNames(content));
     }
     names.removeAll(deleted);
     return names;
+  }
+
+  /** Extracts every {@code property_name} inserted by {@code INSERT INTO site_properties} statements in the text. */
+  private static Set<String> extractInsertedPropertyNames(String content) {
+    Set<String> names = new HashSet<>();
+    Matcher insertMatcher = INSERT_START_PATTERN.matcher(content);
+    while (insertMatcher.find()) {
+      int columnsOpen = insertMatcher.end() - 1;
+      int columnsClose = findMatchingParen(content, columnsOpen);
+      if (columnsClose < 0) {
+        continue;
+      }
+      List<String> columns = splitUnquoted(content.substring(columnsOpen + 1, columnsClose)).stream()
+          .map(String::trim).collect(Collectors.toList());
+      int nameIndex = columns.indexOf("property_name");
+
+      Matcher valuesMatcher = VALUES_START_PATTERN.matcher(content);
+      if (!valuesMatcher.find(columnsClose)) {
+        continue;
+      }
+      int valuesOpen = valuesMatcher.end() - 1;
+      // A single INSERT can seed multiple rows via PostgreSQL's multi-row VALUES syntax --
+      // VALUES (...), (...), (...) -- so keep consuming comma-separated tuples until the next
+      // non-whitespace character after a closing paren isn't a comma (issue #454 review: the
+      // original version parsed only the first tuple and silently dropped the rest).
+      while (valuesOpen >= 0) {
+        int valuesClose = findMatchingParen(content, valuesOpen);
+        if (valuesClose < 0) {
+          break;
+        }
+        List<String> values = splitUnquoted(content.substring(valuesOpen + 1, valuesClose));
+        if (nameIndex >= 0 && nameIndex < values.size()) {
+          names.add(unquote(values.get(nameIndex).trim()));
+        }
+        valuesOpen = nextValuesTupleStart(content, valuesClose);
+      }
+    }
+    return names;
+  }
+
+  /** Extracts every {@code property_name} removed by {@code DELETE FROM site_properties} statements in the text. */
+  private static Set<String> extractDeletedPropertyNames(String content) {
+    Set<String> deleted = new HashSet<>();
+    Matcher deleteMatcher = DELETE_PATTERN.matcher(content);
+    while (deleteMatcher.find()) {
+      String single = deleteMatcher.group(1);
+      if (single != null) {
+        deleted.add(single);
+        continue;
+      }
+      Matcher literals = QUOTED_LITERAL.matcher(deleteMatcher.group(2));
+      while (literals.find()) {
+        deleted.add(literals.group(1));
+      }
+    }
+    return deleted;
+  }
+
+  /**
+   * @return the index of the {@code (} opening the next VALUES tuple in a multi-row {@code INSERT
+   *     ... VALUES (...), (...)}, or -1 if the tuple that just closed at valuesCloseIndex was the
+   *     last one (the next non-whitespace character isn't a comma)
+   */
+  private static int nextValuesTupleStart(String s, int valuesCloseIndex) {
+    int i = valuesCloseIndex + 1;
+    while (i < s.length() && Character.isWhitespace(s.charAt(i))) {
+      i++;
+    }
+    if (i >= s.length() || s.charAt(i) != ',') {
+      return -1;
+    }
+    i++;
+    while (i < s.length() && Character.isWhitespace(s.charAt(i))) {
+      i++;
+    }
+    return (i < s.length() && s.charAt(i) == '(') ? i : -1;
   }
 
   /** @return the index of the {@code )} matching the {@code (} at openParenIndex, or -1 if unbalanced */

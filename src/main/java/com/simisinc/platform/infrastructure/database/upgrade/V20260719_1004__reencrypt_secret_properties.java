@@ -16,6 +16,9 @@
 
 package com.simisinc.platform.infrastructure.database.upgrade;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -29,6 +32,7 @@ import com.simisinc.platform.application.SecretCryptoCommand;
 import com.simisinc.platform.application.admin.SecretSitePropertiesCommand;
 import com.simisinc.platform.domain.model.SiteProperty;
 import com.simisinc.platform.infrastructure.cache.CacheManager;
+import com.simisinc.platform.infrastructure.database.DB;
 import com.simisinc.platform.infrastructure.persistence.SitePropertyRepository;
 
 /**
@@ -45,11 +49,16 @@ import com.simisinc.platform.infrastructure.persistence.SitePropertyRepository;
  * renders them read-only and {@link SitePropertyRepository#saveAll} skips them by design. They are provisioned
  * directly in the database via SQL and would therefore remain plaintext at rest forever.
  *
- * <p>This upgrade closes that gap. For every configured secret name it re-saves the current value through the
- * per-row {@link SitePropertyRepository#save} write funnel &mdash; never {@code saveAll}, because {@code saveAll}
- * skips the {@code disabled} rows that are the whole reason this step exists. It is idempotent: a value that is
- * blank, or that comes back already encrypted, is left untouched, and {@link SecretCryptoCommand#encrypt} refuses
- * to double-wrap an {@code enc:} value, so a re-run is safe.
+ * <p>This upgrade closes that gap. For every configured secret name it re-encrypts the current value with a raw,
+ * single-column {@code UPDATE ... SET property_value = ?} (see {@link #reencryptInPlace}) &mdash; NOT
+ * {@link SitePropertyRepository#save}: a Java-based Flyway migration runs with whatever repository code is
+ * currently compiled into the app, not a snapshot from when the migration was written, so calling into a shared
+ * repository method whose SQL shape keeps evolving (e.g. issue #454 added modified/modified_by/expires_at columns
+ * this migration predates) risks a "column does not exist" failure on any database that reaches this migration
+ * before the migration that adds those columns, since Flyway applies pending migrations in version order and this
+ * one is dated earlier. It is idempotent: a value that is blank, or that comes back already encrypted, is left
+ * untouched, and {@link SecretCryptoCommand#encrypt} refuses to double-wrap an {@code enc:} value, so a re-run is
+ * safe.
  *
  * <p>When {@code CMS_SECRET_KEY} is not configured, {@link SecretCryptoCommand#encrypt} is a pass-through no-op:
  * this upgrade re-saves the values unchanged (still plaintext) and logs a warning. Because the {@code disabled}
@@ -96,9 +105,10 @@ public class V20260719_1004__reencrypt_secret_properties extends BaseJavaMigrati
       if (StringUtils.isBlank(value) || SecretCryptoCommand.isEncrypted(value)) {
         continue;
       }
-      // Re-save through the single encrypting write funnel. Unlike saveAll(), save() does NOT skip
-      // property_type='disabled' rows -- which is the entire point: it catches the production payment secrets.
-      if (SitePropertyRepository.save(record) != null) {
+      // Re-encrypt directly (see class javadoc for why this doesn't call SitePropertyRepository.save).
+      // This intentionally does NOT skip property_type='disabled' rows -- catching those is the
+      // entire point, since they have no other in-app write path.
+      if (reencryptInPlace(record)) {
         reEncryptedCount++;
         affectedRootPrefixes.add(rootPrefixOf(name));
       } else {
@@ -121,5 +131,22 @@ public class V20260719_1004__reencrypt_secret_properties extends BaseJavaMigrati
   private static String rootPrefixOf(String propertyName) {
     int dot = propertyName.indexOf('.');
     return dot > 0 ? propertyName.substring(0, dot) : propertyName;
+  }
+
+  /**
+   * Encrypts and writes just {@code property_value}, deliberately not going through {@link
+   * SitePropertyRepository#save} -- see the class javadoc.
+   */
+  private static boolean reencryptInPlace(SiteProperty record) {
+    try (Connection connection = DB.getConnection();
+        PreparedStatement pst = connection.prepareStatement(
+            "UPDATE site_properties SET property_value = ? WHERE property_id = ?")) {
+      pst.setString(1, SecretCryptoCommand.encrypt(StringUtils.trimToEmpty(record.getValue())));
+      pst.setInt(2, record.getId());
+      return pst.executeUpdate() > 0;
+    } catch (SQLException se) {
+      LOG.error("SQLException while re-encrypting a secret site property", se);
+      return false;
+    }
   }
 }

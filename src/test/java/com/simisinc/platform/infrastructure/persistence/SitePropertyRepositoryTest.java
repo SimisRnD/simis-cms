@@ -144,6 +144,37 @@ class SitePropertyRepositoryTest {
   }
 
   @Test
+  void saveDoesNotStampModifiedOrModifiedByWhenTheValueDidNotActuallyChange() throws SQLException {
+    // issue #454 review: a settings page save re-submits every property on it, including ones the
+    // admin never touched (e.g. a masked-blank secret field left as-is) -- modified/modified_by
+    // must reflect a real change, not just "this row was present on a saved page"
+    seedProperty("site.timezone", "Timezone", "UTC");
+    SiteProperty record = SitePropertyRepository.findByName("site.timezone");
+    // Value is left exactly as loaded -- nothing changed
+
+    SitePropertyRepository.save(record, 42L, false);
+
+    SiteProperty updated = SitePropertyRepository.findByName("site.timezone");
+    assertEquals("UTC", updated.getValue());
+    assertEquals(-1L, updated.getModifiedBy(), "unchanged value must not attribute a rotation to this actor");
+    assertNull(updated.getModified(), "unchanged value must not bump the modified timestamp");
+  }
+
+  @Test
+  void saveStampsModifiedAndModifiedByWhenValueChangedIsTrueEvenIfCallerPassedTheSameText() throws SQLException {
+    // valueChanged is caller-asserted, not independently verified by the repository -- this test
+    // documents that contract rather than re-deriving "did it change" itself
+    seedProperty("site.timezone", "Timezone", "UTC");
+    SiteProperty record = SitePropertyRepository.findByName("site.timezone");
+
+    SitePropertyRepository.save(record, 42L, true);
+
+    SiteProperty updated = SitePropertyRepository.findByName("site.timezone");
+    assertEquals(42L, updated.getModifiedBy());
+    assertNotNull(updated.getModified());
+  }
+
+  @Test
   void saveStoresAnExpiryDate() throws SQLException {
     seedProperty("oauth.clientSecret", "OAuth Client Secret", "");
     SiteProperty record = SitePropertyRepository.findByName("oauth.clientSecret");
