@@ -241,6 +241,9 @@ public class FileVersion extends Entity {
   }
 
   public String getUrl() {
-    return webPath + "-" + id + "/" + UrlCommand.encodeUri(filename);
+    // DownloadFileWidget parses the URL's trailing number as a file id (see FileItem#getBaseUrl,
+    // which uses the file's own id for the same purpose) -- use fileId here, not this version's own
+    // (version_id-backed) id, or the widget resolves an unrelated record.
+    return webPath + "-" + fileId + "/" + UrlCommand.encodeUri(filename);
   }
 }

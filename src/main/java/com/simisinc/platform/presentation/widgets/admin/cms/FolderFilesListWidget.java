@@ -17,9 +17,13 @@
 package com.simisinc.platform.presentation.widgets.admin.cms;
 
 import java.lang.reflect.InvocationTargetException;
+import java.sql.Timestamp;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import com.simisinc.platform.application.AppException;
 import com.simisinc.platform.application.DataException;
@@ -61,6 +65,12 @@ public class FolderFilesListWidget extends GenericWidget {
   static final long serialVersionUID = -8484048371911908893L;
 
   static String JSP = "/admin/folder-files-list.jsp";
+
+  // A bulk delete request is rejected outright above this many ids, rather than silently
+  // truncated -- truncation could apply the delete to a different subset than the admin reviewed
+  // and confirmed. Mirrors AdminImageBrowserWidget's MAX_BULK_SELECTION (see image-browser.jsp's
+  // bulk delete, PR #834).
+  static final int MAX_BULK_SELECTION = 100;
 
   public WidgetContext execute(WidgetContext context) {
 
@@ -195,6 +205,16 @@ public class FolderFilesListWidget extends GenericWidget {
    */
   public WidgetContext post(WidgetContext context) throws InvocationTargetException, IllegalAccessException {
 
+    // Bulk delete (multi-select checkboxes + bulk actions bar, see folder-files-list.jsp) has its
+    // own per-folder delete-permission check below, deliberately not gated by the admin/content-manager
+    // role check that follows -- it must stay reachable by any user the folder's own delete_permission
+    // group grants delete access to, the same authorization the JSP already uses to decide whether to
+    // render the bulk-delete controls at all (see the canDelete computation in execute()).
+    String command = context.getParameter("command");
+    if ("bulkDelete".equals(command)) {
+      return bulkDeleteAction(context);
+    }
+
     // Permission is required
     if (!(context.hasRole("admin") || context.hasRole("content-manager"))) {
       LOG.warn("No permission to update the file");
@@ -230,6 +250,7 @@ public class FolderFilesListWidget extends GenericWidget {
         fileItemBean.setVersion(context.getParameter("version"));
         fileItemBean.setTitle(context.getParameter("title"));
         fileItemBean.setSummary(context.getParameter("summary"));
+        fileItemBean.setExpirationDate(parseExpirationDate(context));
         fileItemBean.setCreatedBy(context.getUserId());
         fileItemBean.setModifiedBy(context.getUserId());
         // Validate the file
@@ -246,6 +267,10 @@ public class FolderFilesListWidget extends GenericWidget {
         // Populate the fields
         fileItemBean = new FileItem();
         BeanUtils.populate(fileItemBean, context.getParameterMap());
+        // BeanUtils cannot reliably convert a raw datetime-local string ("expirationDate") to a
+        // java.sql.Timestamp, so parse it explicitly and overwrite whatever BeanUtils did with it
+        // (mirrors WebPageFormWidget.post()'s handling of publishAt/expiresAt)
+        fileItemBean.setExpirationDate(parseExpirationDate(context));
         fileItemBean.setCreatedBy(context.getUserId());
         fileItemBean.setModifiedBy(context.getUserId());
         // Update the file item
@@ -279,6 +304,27 @@ public class FolderFilesListWidget extends GenericWidget {
   }
 
   /**
+   * Parses the optional "expirationDate" form field (a datetime-local input, e.g.
+   * "2026-09-01T14:30") into a Timestamp. Mirrors WebPageFormWidget.post()'s handling of
+   * publishAt/expiresAt.
+   *
+   * @param context
+   * @return the parsed Timestamp, or null when the field was left blank
+   * @throws DataException when the value is present but not a valid date/time
+   */
+  private static Timestamp parseExpirationDate(WidgetContext context) throws DataException {
+    String expirationDateValue = context.getParameter("expirationDate");
+    if (StringUtils.isBlank(expirationDateValue)) {
+      return null;
+    }
+    try {
+      return Timestamp.valueOf(expirationDateValue.replace("T", " ") + ":00");
+    } catch (IllegalArgumentException e) {
+      throw new DataException("Expiration date format is not valid");
+    }
+  }
+
+  /**
    * A file is being deleted
    *
    * @param context
@@ -306,17 +352,18 @@ public class FolderFilesListWidget extends GenericWidget {
     String targetId = String.valueOf(record.getId());
     String targetLabel = record.getFilename();
     try {
-      // NOTE: the pre-existing "File deleted" success message/redirect below does not check
-      // DeleteFileCommand.deleteFile()'s boolean return value (a latent bug, out of scope here); the
-      // audit record below uses the real return value so it reflects what actually happened.
       boolean removed = DeleteFileCommand.deleteFile(record);
       AuditEventCommand.record(context, AuditEventCommand.CONTENT, "folder_file.delete",
           removed ? AuditEventCommand.SUCCESS : AuditEventCommand.FAILURE, "folder_file", targetId, targetLabel, null);
-      context.setSuccessMessage("File deleted");
-      if (record.getSubFolderId() > -1) {
-        context.setRedirect("/admin/sub-folder-details?folderId=" + record.getFolderId() + "&subFolderId=" + record.getSubFolderId());
+      if (removed) {
+        context.setSuccessMessage("File deleted");
+        if (record.getSubFolderId() > -1) {
+          context.setRedirect("/admin/sub-folder-details?folderId=" + record.getFolderId() + "&subFolderId=" + record.getSubFolderId());
+        } else {
+          context.setRedirect("/admin/folder-details?folderId=" + record.getFolderId());
+        }
       } else {
-        context.setRedirect("/admin/folder-details?folderId=" + record.getFolderId());
+        context.setErrorMessage("Error. File could not be deleted.");
       }
       return context;
     } catch (Exception e) {
@@ -327,5 +374,123 @@ public class FolderFilesListWidget extends GenericWidget {
     }
 
     return context;
+  }
+
+  /**
+   * Bulk delete (multi-select checkboxes + bulk actions bar + confirmation reveal, see
+   * folder-files-list.jsp), following the same command=bulkDelete convention and per-file-loop
+   * shape as AdminImageBrowserWidget#bulkDeleteAction (image-browser.jsp, PR #834).
+   */
+  private WidgetContext bulkDeleteAction(WidgetContext context) {
+
+    context.getUserSession().renewFormToken();
+
+    long currentFolderId = context.getParameterAsLong("currentFolderId", -1);
+    long currentSubFolderId = context.getParameterAsLong("currentSubFolderId", -1);
+
+    Folder folder;
+    if (context.hasRole("admin")) {
+      folder = FolderRepository.findById(currentFolderId);
+    } else {
+      folder = LoadFolderCommand.loadFolderByIdForAuthorizedUser(currentFolderId, context.getUserId());
+    }
+    if (folder == null) {
+      context.setErrorMessage("Error. Folder was not found.");
+      return context;
+    }
+
+    boolean canDelete = context.hasRole("admin")
+        || CheckFolderPermissionCommand.userHasDeletePermission(folder.getId(), context.getUserId());
+    if (!canDelete) {
+      LOG.warn("No permission to bulk delete files in folder " + folder.getId());
+      context.setErrorMessage("Error. You do not have permission to delete these files.");
+      context.setRedirect(redirectTo(currentFolderId, currentSubFolderId));
+      return context;
+    }
+
+    List<Long> fileIds = resolveSelectedFileIds(context);
+    if (fileIds == null) {
+      context.setErrorMessage("Too many files were selected (maximum " + MAX_BULK_SELECTION
+          + "). Select fewer files and try again.");
+      context.setRedirect(redirectTo(currentFolderId, currentSubFolderId));
+      return context;
+    }
+    if (fileIds.isEmpty()) {
+      context.setErrorMessage("No files were selected");
+      context.setRedirect(redirectTo(currentFolderId, currentSubFolderId));
+      return context;
+    }
+
+    int succeeded = 0;
+    int notFound = 0;
+    int failed = 0;
+    for (Long fileId : fileIds) {
+      // Scoped to this folder/sub-folder -- a file id belonging to a different folder (even one the
+      // user can otherwise access) must not be reachable through this batch
+      FileItem record = LoadFileCommand.loadItemById(fileId);
+      if (record == null || record.getFolderId() != folder.getId()
+          || (currentSubFolderId > 0 && record.getSubFolderId() != currentSubFolderId)) {
+        ++notFound;
+        continue;
+      }
+      try {
+        if (DeleteFileCommand.deleteFile(record)) {
+          ++succeeded;
+        } else {
+          ++failed;
+        }
+      } catch (Exception e) {
+        LOG.error("Error deleting file " + fileId, e);
+        ++failed;
+      }
+    }
+
+    StringBuilder message = new StringBuilder();
+    message.append(succeeded).append(" of ").append(fileIds.size()).append(" selected file")
+        .append(fileIds.size() == 1 ? "" : "s").append(" deleted.");
+    if (notFound > 0) {
+      message.append(" ").append(notFound).append(" were already gone.");
+    }
+    if (failed > 0) {
+      message.append(" ").append(failed).append(" could not be deleted.");
+    }
+    if (succeeded > 0) {
+      context.setSuccessMessage(message.toString());
+    } else {
+      context.setErrorMessage(message.toString());
+    }
+    context.setRedirect(redirectTo(currentFolderId, currentSubFolderId));
+    return context;
+  }
+
+  /**
+   * Parses and dedupes the selected file ids from the repeated {@code fileId} checkbox inputs,
+   * silently dropping any non-numeric entry. Returns {@code null} when the selection exceeds
+   * {@link #MAX_BULK_SELECTION} -- see that field's comment for why this rejects rather than truncates.
+   */
+  private List<Long> resolveSelectedFileIds(WidgetContext context) {
+    String[] rawIds = context.getParameterMap().get("fileId");
+    Set<Long> ids = new LinkedHashSet<>();
+    if (rawIds != null) {
+      for (String rawId : rawIds) {
+        try {
+          ids.add(Long.parseLong(rawId.trim()));
+        } catch (NumberFormatException e) {
+          // Dropped, not treated as a batch-ending error
+        }
+      }
+    }
+    if (ids.size() > MAX_BULK_SELECTION) {
+      LOG.warn("Bulk file delete rejected: " + ids.size() + " ids exceeds MAX_BULK_SELECTION (" + MAX_BULK_SELECTION + ")");
+      return null;
+    }
+    return new ArrayList<>(ids);
+  }
+
+  private String redirectTo(long folderId, long subFolderId) {
+    if (subFolderId > 0) {
+      return "/admin/sub-folder-details?folderId=" + folderId + "&subFolderId=" + subFolderId;
+    }
+    return "/admin/folder-details?folderId=" + folderId;
   }
 }

@@ -19,6 +19,8 @@ package com.simisinc.platform.presentation.widgets.cms;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.OutputStream;
+import java.sql.Timestamp;
+import java.util.List;
 
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -29,7 +31,10 @@ import org.apache.commons.logging.LogFactory;
 import com.simisinc.platform.application.cms.LoadFileCommand;
 import com.simisinc.platform.application.filesystem.FileSystemCommand;
 import com.simisinc.platform.domain.model.cms.FileItem;
+import com.simisinc.platform.domain.model.cms.FileVersion;
 import com.simisinc.platform.infrastructure.persistence.cms.FileItemRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.FileVersionRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.FileVersionSpecification;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.FileDownloadCommand;
 import com.simisinc.platform.presentation.controller.MultipartFileSender;
@@ -92,6 +97,30 @@ public class DownloadFileWidget extends GenericWidget {
       return null;
     }
 
+    // A web path that doesn't match the file's current one belongs to a specific archived version
+    // (see FileVersion#getUrl()) -- resolve that version so its own bytes are streamed, rather than
+    // whatever is currently live. The access check above already used this web path (matched either
+    // to the live record or to a file_versions row for this file id) to authorize the request, so a
+    // failed lookup here means the version was removed after that check, not a permissions gap.
+    FileVersion versionRecord = null;
+    if (!webPath.equals(record.getWebPath())) {
+      FileVersionSpecification versionSpecification = new FileVersionSpecification();
+      versionSpecification.setFileId(fileId);
+      versionSpecification.setWebPath(webPath);
+      List<FileVersion> versionList = FileVersionRepository.findAll(versionSpecification, null);
+      if (versionList.size() != 1) {
+        LOG.warn("File version does not exist for web path: " + webPath);
+        AuditEventCommand.record(context, AuditEventCommand.DATA_ACCESS, accessEventType, AuditEventCommand.FAILURE,
+            "folder_file", String.valueOf(fileId), null, "version not found");
+        return null;
+      }
+      versionRecord = versionList.get(0);
+    }
+    String fileServerPath = versionRecord != null ? versionRecord.getFileServerPath() : record.getFileServerPath();
+    String mimeType = versionRecord != null ? versionRecord.getMimeType() : record.getMimeType();
+    String filename = versionRecord != null ? versionRecord.getFilename() : record.getFilename();
+    Timestamp lastModifiedTimestamp = versionRecord != null ? versionRecord.getCreated() : record.getModified();
+
     // Determine if this file is a remote URL
     if (record.getFileType() != null && record.getFileType().equals("URL")) {
       String url = record.getFilename();
@@ -107,17 +136,16 @@ public class DownloadFileWidget extends GenericWidget {
     }
 
     // Make sure it exists
-    File file = new File(FileSystemCommand.getFileServerRootPath() + record.getFileServerPath());
+    File file = new File(FileSystemCommand.getFileServerRootPath() + fileServerPath);
     if (!file.isFile()) {
-      LOG.warn("Server file does not exist: " + record.getFileServerPath());
+      LOG.warn("Server file does not exist: " + fileServerPath);
       AuditEventCommand.record(context, AuditEventCommand.DATA_ACCESS, accessEventType, AuditEventCommand.FAILURE,
-          "folder_file", String.valueOf(record.getId()), record.getFilename(), "server file missing");
+          "folder_file", String.valueOf(record.getId()), filename, "server file missing");
       return null;
     }
 
     // Determine if the file is being viewed or downloaded
-    String mimeType = record.getMimeType();
-    long lastModified = record.getModified().getTime();
+    long lastModified = lastModifiedTimestamp.getTime();
     if (doView && StringUtils.isNotBlank(mimeType)) {
 
       // @todo go through this and use for all downloads so pause/resume works on large files
@@ -128,14 +156,14 @@ public class DownloadFileWidget extends GenericWidget {
               .with(context.getRequest())
               .with(context.getResponse())
               .withMimeType(mimeType)
-              .withFilename(record.getFilename())
+              .withFilename(filename)
               .serveResource();
           AuditEventCommand.record(context, AuditEventCommand.DATA_ACCESS, accessEventType, AuditEventCommand.SUCCESS,
-              "folder_file", String.valueOf(record.getId()), record.getFilename(), "video stream");
+              "folder_file", String.valueOf(record.getId()), filename, "video stream");
         } catch (Exception e) {
           LOG.debug("Video aborted");
           AuditEventCommand.record(context, AuditEventCommand.DATA_ACCESS, accessEventType, AuditEventCommand.FAILURE,
-              "folder_file", String.valueOf(record.getId()), record.getFilename(), e.getMessage());
+              "folder_file", String.valueOf(record.getId()), filename, e.getMessage());
         } finally {
           context.setHandledResponse(true);
           // @todo determine if whole range or end was viewed to register a download count
@@ -160,7 +188,7 @@ public class DownloadFileWidget extends GenericWidget {
     // Set header info: nosniff, a safe inline/attachment disposition, and the content type. An uploaded
     // HTML or SVG file is served as a download (never rendered inline), so it cannot execute in this origin.
     context.getResponse().setDateHeader("Last-Modified", lastModified);
-    FileDownloadCommand.applyContentHeaders(context.getResponse(), record.getMimeType(), record.getFilename(), doView);
+    FileDownloadCommand.applyContentHeaders(context.getResponse(), mimeType, filename, doView);
     context.getResponse().setContentLength((int) file.length());
 
     // Check for head method
@@ -189,7 +217,7 @@ public class DownloadFileWidget extends GenericWidget {
     // Update the download counter
     FileItemRepository.incrementDownloadCount(record);
     AuditEventCommand.record(context, AuditEventCommand.DATA_ACCESS, accessEventType, AuditEventCommand.SUCCESS,
-        "folder_file", String.valueOf(record.getId()), record.getFilename(), null);
+        "folder_file", String.valueOf(record.getId()), filename, null);
 
     // Return success
     context.setHandledResponse(true);

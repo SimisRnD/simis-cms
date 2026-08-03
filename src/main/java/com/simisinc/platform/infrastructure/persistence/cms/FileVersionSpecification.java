@@ -30,6 +30,7 @@ public class FileVersionSpecification extends Entity {
   private long fileId = -1L;
   private long folderId = -1L;
   private long subFolderId = -1L;
+  private String webPath = null;
 
   public FileVersionSpecification() {
   }
@@ -64,5 +65,13 @@ public class FileVersionSpecification extends Entity {
 
   public void setSubFolderId(long subFolderId) {
     this.subFolderId = subFolderId;
+  }
+
+  public String getWebPath() {
+    return webPath;
+  }
+
+  public void setWebPath(String webPath) {
+    this.webPath = webPath;
   }
 }
