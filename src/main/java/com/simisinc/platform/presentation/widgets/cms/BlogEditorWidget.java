@@ -39,7 +39,9 @@ import org.apache.commons.lang3.StringUtils;
 import java.lang.reflect.InvocationTargetException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 /**
  * Description
@@ -168,10 +170,19 @@ public class BlogEditorWidget extends GenericWidget {
     List<Long> tagIdList = new ArrayList<>();
     String[] tagIdParams = context.getParameterMap().get("tagId");
     if (tagIdParams != null) {
+      // Only accept tagIds that actually belong to this post's own blog, so a crafted tagId
+      // for another blog's tag can't be attached to this post
+      Set<Long> blogOwnTagIdSet = new HashSet<>();
+      List<BlogTag> blogOwnTagList = BlogTagRepository.findAllByBlogId(blogPostBean.getBlogId());
+      if (blogOwnTagList != null) {
+        for (BlogTag blogOwnTag : blogOwnTagList) {
+          blogOwnTagIdSet.add(blogOwnTag.getId());
+        }
+      }
       for (String rawTagId : tagIdParams) {
         if (StringUtils.isNumeric(rawTagId)) {
           Long parsedTagId = Long.valueOf(rawTagId);
-          if (!tagIdList.contains(parsedTagId)) {
+          if (blogOwnTagIdSet.contains(parsedTagId) && !tagIdList.contains(parsedTagId)) {
             tagIdList.add(parsedTagId);
           }
         }

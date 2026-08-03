@@ -47,11 +47,6 @@ public class SaveBlogTagCommand {
       throw new DataException("The user creating this tag was not set");
     }
 
-    if (tagBean.getId() == -1
-        && BlogTagRepository.findByNameWithinBlog(tagBean.getName(), tagBean.getBlogId()) != null) {
-      throw new DataException("A unique name is required");
-    }
-
     // Transform the fields and store...
     BlogTag tag;
     if (tagBean.getId() > -1) {
@@ -60,10 +55,24 @@ public class SaveBlogTagCommand {
       if (tag == null) {
         throw new DataException("The existing record could not be found");
       }
+      // Always scope to the tag's own existing blog, never a client-submitted value, so a
+      // tampered blogId field can't move a tag into (or borrow the uniqueness scope of)
+      // another blog's tag vocabulary
+      tagBean.setBlogId(tag.getBlogId());
     } else {
       LOG.debug("Saving a new record... ");
       tag = new BlogTag();
     }
+
+    // A duplicate name is rejected on both create and rename, excluding the tag's own record
+    // (unlike SaveTagCommand's #632 item-tag equivalent, this can't rely on a database-level
+    // unique index on name alone -- lookup_blog_post_tags is only uniquely indexed on
+    // (blog_id, tag_unique_id))
+    BlogTag existingWithName = BlogTagRepository.findByNameWithinBlog(tagBean.getName(), tagBean.getBlogId());
+    if (existingWithName != null && !existingWithName.getId().equals(tagBean.getId())) {
+      throw new DataException("A unique name is required");
+    }
+
     // @note set the uniqueId before setting the name
     tag.setUniqueId(GenerateBlogPostTagUniqueIdCommand.generateUniqueId(tag, tagBean));
     tag.setBlogId(tagBean.getBlogId());
