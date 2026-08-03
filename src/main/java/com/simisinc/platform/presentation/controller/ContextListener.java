@@ -37,6 +37,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import com.simisinc.platform.ApplicationInfo;
+import com.simisinc.platform.application.FeatureFlagCommand;
 import com.simisinc.platform.application.SecretCryptoCommand;
 import com.simisinc.platform.application.admin.DatabaseCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
@@ -171,6 +172,10 @@ public class ContextListener implements ServletContextListener {
     Instant timeStamp = Instant.now();
     ZonedDateTime displayDateTime = timeStamp.atZone(ZoneId.of(timezone));
     LOG.info("Display Time: " + displayDateTime);
+
+    // Log the active feature posture (issue #410) so the log reflects which features.* flags are on
+    List<String> activeFeatureFlags = FeatureFlagCommand.getActiveFlagNames();
+    LOG.info("Active feature flags: " + (activeFeatureFlags.isEmpty() ? "(none)" : String.join(", ", activeFeatureFlags)));
 
     // Start up the GeoIP
     GeoIPCommand.setConfig(servletContextEvent.getServletContext());

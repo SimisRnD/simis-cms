@@ -43,6 +43,15 @@ public class ItemSpecification {
   // just its own field. Callers should generally not read categoryId/categoryIds directly when
   // building a WHERE clause; use getEffectiveCategoryIds() so both representations are honored.
   private List<Long> categoryIds = null;
+  private long tagId = -1L;
+  // Issue #632: multi-select within the tag facet dimension, mirroring categoryId/categoryIds
+  // above exactly -- tagId is kept as a single-value field for any caller that only ever needs
+  // one, tagIds is the list-shaped field a checkbox-group facet actually populates. Unlike
+  // category, no pre-#632 caller ever set a single tagId (tags didn't exist before PR #863), but
+  // the same dual-representation shape is kept for consistency with categoryId/categoryIds and in
+  // case a future single-value caller appears. Use getEffectiveTagIds() when building a WHERE
+  // clause so both representations are honored.
+  private List<Long> tagIds = null;
   private String uniqueId = null;
   private String name = null;
   private String barcode = null;
@@ -135,6 +144,37 @@ public class ItemSpecification {
     }
     if (categoryId > -1) {
       return Collections.singletonList(categoryId);
+    }
+    return Collections.emptyList();
+  }
+
+  public long getTagId() {
+    return tagId;
+  }
+
+  public void setTagId(long tagId) {
+    this.tagId = tagId;
+  }
+
+  public List<Long> getTagIds() {
+    return tagIds;
+  }
+
+  public void setTagIds(List<Long> tagIds) {
+    this.tagIds = tagIds;
+  }
+
+  /**
+   * The effective set of tag ids a WHERE-clause builder should filter on (issue #632), mirroring
+   * getEffectiveCategoryIds() exactly: the multi-select {@code tagIds} list when it's set and
+   * non-empty, otherwise the single {@code tagId} when it's set, otherwise empty.
+   */
+  public List<Long> getEffectiveTagIds() {
+    if (tagIds != null && !tagIds.isEmpty()) {
+      return tagIds;
+    }
+    if (tagId > -1) {
+      return Collections.singletonList(tagId);
     }
     return Collections.emptyList();
   }
