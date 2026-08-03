@@ -53,7 +53,9 @@ public class CalendarEventRepository {
   // event save failing on a VARCHAR(255) overflow.
   private static int TAGS_LIST_MAX_LENGTH = 255;
 
-  private static SqlUtils createWhereStatement(CalendarEventSpecification specification) {
+  // Package-private (not private) so CalendarEventRepositoryWhereClauseTest can exercise the built
+  // SqlUtils/SqlValue output directly, mirroring ItemRepository.createSearchWhereStatement's visibility.
+  static SqlUtils createWhereStatement(CalendarEventSpecification specification) {
     SqlUtils where = new SqlUtils();
     if (specification != null) {
       where
@@ -66,6 +68,13 @@ public class CalendarEventRepository {
         } else {
           where.add("published IS NULL");
         }
+      }
+      // issue #882: mirrors MedicineRepository's archived filtering shape. UNDEFINED (the default
+      // for every pre-#882 caller) includes archived rows, so this is purely additive.
+      if (specification.getArchivedOnly() == DataConstants.TRUE) {
+        where.add("archived IS NOT NULL");
+      } else if (specification.getArchivedOnly() == DataConstants.FALSE) {
+        where.add("archived IS NULL");
       }
       if (specification.getStartingDateRange() != null && specification.getEndingDateRange() != null) {
         where.add("((start_date >= ? AND start_date < ?) OR (end_date >= ? AND end_date < ?))",

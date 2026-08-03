@@ -62,6 +62,10 @@ public class CalendarAjaxEvents {
     if (publishedOnly) {
       specification.setPublishedOnly(true);
     }
+    // issue #882: archived events are never shown on the public calendar, regardless of the
+    // viewer's publishedOnly/preview permission -- archived is a distinct "no longer relevant"
+    // state, not a preview-gate concern.
+    specification.setArchivedOnly(false);
     if (calendarId > -1) {
       specification.setCalendarId(calendarId);
     }
