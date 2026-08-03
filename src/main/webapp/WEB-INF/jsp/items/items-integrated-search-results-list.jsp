@@ -44,7 +44,7 @@
 </c:if>
 
 <div class="grid-x grid-margin-x">
-  <c:if test="${!empty categoryFacets || !empty dateFacets}">
+  <c:if test="${!empty categoryFacets || !empty tagFacets || !empty dateFacets}">
     <div class="cell medium-3">
       <c:if test="${!empty categoryFacets}">
         <h6><c:out value="${categoryFacetLabel}"/></h6>
@@ -55,6 +55,25 @@
              vendored in this codebase) already produces the right multi-value URL on its own. --%>
         <ul class="no-bullet" style="text-indent: -11px; margin-left: 21px !important;">
           <c:forEach items="${categoryFacets}" var="facet">
+            <li>
+              <%-- facet.url is server-built from the request path + UrlCommand.encodeUri()'d params, so it cannot carry HTML metacharacters --%>
+              <a href="${facet.url}">
+                <c:choose>
+                  <c:when test="${facet.selected}"><i class="${font:fas()} fa-square-check"></i></c:when>
+                  <c:otherwise><i class="${font:far()} fa-square"></i></c:otherwise>
+                </c:choose>
+                <c:out value="${facet.label}"/>
+              </a>&nbsp;<small class="subheader"><fmt:formatNumber value="${facet.count}"/></small>
+            </li>
+          </c:forEach>
+        </ul>
+      </c:if>
+      <c:if test="${!empty tagFacets}">
+        <h6><c:out value="${tagFacetLabel}"/></h6>
+        <%-- Checkbox-style multi-select (issue #632), same toggle-link pattern as the category
+             facet above -- each option's link toggles it in/out of the current tagId selection. --%>
+        <ul class="no-bullet" style="text-indent: -11px; margin-left: 21px !important;">
+          <c:forEach items="${tagFacets}" var="facet">
             <li>
               <%-- facet.url is server-built from the request path + UrlCommand.encodeUri()'d params, so it cannot carry HTML metacharacters --%>
               <a href="${facet.url}">
@@ -86,7 +105,7 @@
       </c:if>
     </div>
   </c:if>
-  <div class="cell ${(!empty categoryFacets || !empty dateFacets) ? 'medium-9' : 'medium-12'}">
+  <div class="cell ${(!empty categoryFacets || !empty tagFacets || !empty dateFacets) ? 'medium-9' : 'medium-12'}">
     <c:choose>
       <c:when test="${empty searchResultList}">
         <c:choose>

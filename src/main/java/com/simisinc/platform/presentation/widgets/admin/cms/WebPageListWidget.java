@@ -16,6 +16,7 @@
 
 package com.simisinc.platform.presentation.widgets.admin.cms;
 
+import com.simisinc.platform.application.cms.ContentReviewCommand;
 import com.simisinc.platform.application.cms.LoadMenuTabsCommand;
 import com.simisinc.platform.domain.model.cms.MenuTab;
 import com.simisinc.platform.domain.model.cms.WebPage;
@@ -152,6 +153,17 @@ public class WebPageListWidget extends GenericWidget {
       filteredWebPageList = liveList;
     }
     context.getRequest().setAttribute("webPageList", filteredWebPageList);
+
+    // Governed publish workflow status per page (#407), keyed by web_page_id -- only pages with a
+    // pending draft carry an interesting label; a page with no draft is left out of the map and the
+    // JSP falls back to its existing draft/live/redirect/broken derivation for those rows.
+    Map<Long, String> webPageReviewStatusMap = new HashMap<>();
+    for (WebPage webPage : filteredWebPageList) {
+      if (webPage.hasDraftContent()) {
+        webPageReviewStatusMap.put(webPage.getId(), ContentReviewCommand.listStatusLabel(webPage));
+      }
+    }
+    context.getRequest().setAttribute("webPageReviewStatusMap", webPageReviewStatusMap);
 
     // Echo the filter values back so the form keeps its state
     context.getRequest().setAttribute("q", searchTerm);

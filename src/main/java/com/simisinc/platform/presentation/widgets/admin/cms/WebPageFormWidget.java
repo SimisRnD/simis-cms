@@ -103,8 +103,24 @@ public class WebPageFormWidget extends GenericWidget {
       webPageBean = new WebPage();
     }
 
+    // Governed publish workflow fields (#407) must never be settable via this generic form save --
+    // only WebPageReviewWidget's explicit submit/approve/reject actions may change them. Captured
+    // here, before BeanUtils.populate() below walks the entire raw parameter map: without this, a
+    // crafted POST (e.g. approvedBy=<any user id>) would bypass separation-of-duties and step-up
+    // re-authentication entirely, the same class of mass-assignment gap fixed for #492/#730.
+    String existingDraftStatus = webPageBean.getDraftStatus();
+    long existingSubmittedBy = webPageBean.getSubmittedBy();
+    long existingApprovedBy = webPageBean.getApprovedBy();
+    String existingReleaseReference = webPageBean.getReleaseReference();
+
     // Populate the form fields
     BeanUtils.populate(webPageBean, context.getParameterMap());
+
+    // Restore the governed publish workflow fields captured above
+    webPageBean.setDraftStatus(existingDraftStatus);
+    webPageBean.setSubmittedBy(existingSubmittedBy);
+    webPageBean.setApprovedBy(existingApprovedBy);
+    webPageBean.setReleaseReference(existingReleaseReference);
 
     // Handle publish/draft choice
     String publish = context.getParameter("publish");

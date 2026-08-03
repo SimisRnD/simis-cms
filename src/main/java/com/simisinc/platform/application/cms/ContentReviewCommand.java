@@ -19,11 +19,14 @@ package com.simisinc.platform.application.cms;
 import org.apache.commons.lang3.StringUtils;
 
 import com.simisinc.platform.application.DataException;
-import com.simisinc.platform.domain.model.cms.Content;
+import com.simisinc.platform.domain.model.cms.Reviewable;
 
 /**
- * The governed publish path (Project #6, Phase 1): the state machine that takes a content draft through
- * <b>draft → submitted → (approved &amp; published | rejected)</b> with a named approver.
+ * The governed publish path (Project #6, Phase 1; generalized beyond content blocks to web pages in
+ * #407): the state machine that takes a draft through
+ * <b>draft → submitted → (approved &amp; published | rejected)</b> with a named approver. Operates on
+ * any {@link Reviewable} -- originally written for {@code Content} alone, generalized rather than
+ * duplicated so every content type gets the same enforcement, including separation of duties.
  *
  * <p>This is the compliance mechanism for CMMC AC.L1-b.1.iv / NIST 800-171 3.1.22 (control of what is
  * posted to publicly accessible systems). It enforces the rules; the caller persists the result and
@@ -35,7 +38,7 @@ import com.simisinc.platform.domain.model.cms.Content;
  * content. This is a data rule, not merely a role rule, so it holds even between two users who both
  * hold the approver role.</li>
  * <li><b>Publish is gated on approval.</b> Only a submitted draft can be approved, and only an
- * approved draft should be published — {@link #isApproved(Content)} is the gate the publish path
+ * approved draft should be published — {@link #isApproved(Reviewable)} is the gate the publish path
  * checks, so hot-editing a live page cannot skip review.</li>
  * </ul>
  *
@@ -58,8 +61,8 @@ public class ContentReviewCommand {
   /**
    * The author submits the current draft for review. There must be a draft to submit.
    */
-  public static void submitForReview(Content content, long submitterId) throws DataException {
-    if (content == null || StringUtils.isBlank(content.getDraftContent())) {
+  public static void submitForReview(Reviewable content, long submitterId) throws DataException {
+    if (content == null || !content.hasDraftContent()) {
       throw new DataException("There is no draft to submit for review");
     }
     if (submitterId <= 0) {
@@ -74,10 +77,10 @@ public class ContentReviewCommand {
 
   /**
    * An approver approves a submitted draft, recording the release-authority reference. Enforces
-   * separation of duties. After this returns, {@link #isApproved(Content)} is true and the publish
+   * separation of duties. After this returns, {@link #isApproved(Reviewable)} is true and the publish
    * path may promote the draft to live.
    */
-  public static void approve(Content content, long approverId, String releaseReference) throws DataException {
+  public static void approve(Reviewable content, long approverId, String releaseReference) throws DataException {
     requireSubmitted(content);
     requireApproverIsNotSubmitter(content, approverId);
     String reference = StringUtils.trimToNull(releaseReference);
@@ -98,7 +101,7 @@ public class ContentReviewCommand {
    * An approver rejects a submitted draft, sending it back to the author to revise and resubmit.
    * Enforces separation of duties.
    */
-  public static void reject(Content content, long approverId) throws DataException {
+  public static void reject(Reviewable content, long approverId) throws DataException {
     requireSubmitted(content);
     requireApproverIsNotSubmitter(content, approverId);
     content.setDraftStatus(STATUS_DRAFT);
@@ -106,7 +109,7 @@ public class ContentReviewCommand {
   }
 
   /** @return true if the content has a draft awaiting an approver's decision. */
-  public static boolean isPendingReview(Content content) {
+  public static boolean isPendingReview(Reviewable content) {
     return content != null && STATUS_SUBMITTED.equals(content.getDraftStatus());
   }
 
@@ -114,7 +117,7 @@ public class ContentReviewCommand {
    * @return true if the submitted draft has been approved and may be published. The publish path must
    *         check this so an unreviewed change can never reach the live page.
    */
-  public static boolean isApproved(Content content) {
+  public static boolean isApproved(Reviewable content) {
     return isPendingReview(content) && content.getApprovedBy() > 0;
   }
 
@@ -127,7 +130,7 @@ public class ContentReviewCommand {
    * @param reviewRequired the {@code content.review.required} site setting
    * @return whether this content may be published now
    */
-  public static boolean mayPublish(Content content, boolean reviewRequired) {
+  public static boolean mayPublish(Reviewable content, boolean reviewRequired) {
     if (!reviewRequired) {
       return true;
     }
@@ -143,8 +146,8 @@ public class ContentReviewCommand {
    * approve button. Offering a button the action would reject is a worse experience and a worse control
    * story than not offering it.
    */
-  public static String offerFor(Content content, long viewerId, boolean reviewRequired) {
-    if (content == null || StringUtils.isBlank(content.getDraftContent())) {
+  public static String offerFor(Reviewable content, long viewerId, boolean reviewRequired) {
+    if (content == null || !content.hasDraftContent()) {
       return OFFER_NONE;
     }
     if (!reviewRequired) {
@@ -183,13 +186,13 @@ public class ContentReviewCommand {
   /** Pending review, viewed by someone else: offer approve / reject. */
   public static final String OFFER_DECIDE = "decide";
 
-  private static void requireSubmitted(Content content) throws DataException {
+  private static void requireSubmitted(Reviewable content) throws DataException {
     if (!isPendingReview(content)) {
       throw new DataException("Only a draft submitted for review can be approved or rejected");
     }
   }
 
-  private static void requireApproverIsNotSubmitter(Content content, long approverId) throws DataException {
+  private static void requireApproverIsNotSubmitter(Reviewable content, long approverId) throws DataException {
     if (approverId <= 0) {
       throw new DataException("A valid approver is required");
     }
@@ -222,8 +225,8 @@ public class ContentReviewCommand {
    * #LIST_STATUS_DRAFT} here too -- per this class's javadoc on {@code STATUS_DRAFT}, it is "the
    * author's to change" either way.
    */
-  public static String listStatusLabel(Content content) {
-    if (content == null || StringUtils.isBlank(content.getDraftContent())) {
+  public static String listStatusLabel(Reviewable content) {
+    if (content == null || !content.hasDraftContent()) {
       return LIST_STATUS_LIVE;
     }
     if (isApproved(content)) {

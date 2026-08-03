@@ -23,17 +23,18 @@ import com.simisinc.platform.application.items.ItemDateFacetCommand;
 import com.simisinc.platform.domain.model.cms.SearchResult;
 import com.simisinc.platform.domain.model.items.Category;
 import com.simisinc.platform.domain.model.items.Item;
+import com.simisinc.platform.domain.model.items.Tag;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.persistence.items.CategoryRepository;
 import com.simisinc.platform.infrastructure.persistence.items.ItemRepository;
 import com.simisinc.platform.infrastructure.persistence.items.ItemSpecification;
+import com.simisinc.platform.infrastructure.persistence.items.TagRepository;
 import com.simisinc.platform.presentation.controller.RequestConstants;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -89,6 +90,20 @@ public class ItemsSearchResultsWidget extends GenericWidget {
         }
       }
     }
+    // Determine the active tag filters (issue #632), same repeated-param checkbox-group pattern
+    // as categoryId above.
+    List<Long> selectedTagIds = new ArrayList<>();
+    String[] tagIdParams = context.getParameterMap().get("tagId");
+    if (tagIdParams != null) {
+      for (String rawTagId : tagIdParams) {
+        if (StringUtils.isNumeric(rawTagId)) {
+          Long parsedTagId = Long.valueOf(rawTagId);
+          if (!selectedTagIds.contains(parsedTagId)) {
+            selectedTagIds.add(parsedTagId);
+          }
+        }
+      }
+    }
     // Computed once and reused below for both filtering and facet-count rendering, so the date
     // boundaries used to narrow the query and the ones used to report that same bucket's count
     // can never drift apart by the few milliseconds between two separate "now" calls
@@ -117,6 +132,9 @@ public class ItemsSearchResultsWidget extends GenericWidget {
     if (!selectedCategoryIds.isEmpty()) {
       specification.setCategoryIds(selectedCategoryIds);
     }
+    if (!selectedTagIds.isEmpty()) {
+      specification.setTagIds(selectedTagIds);
+    }
     if (selectedDateBucket != null) {
       specification.setDateRangeStart(selectedDateBucket.getStart());
       specification.setDateRangeEnd(selectedDateBucket.getEnd());
@@ -132,16 +150,21 @@ public class ItemsSearchResultsWidget extends GenericWidget {
     if (!selectedCategoryIds.isEmpty()) {
       appliedFacetKeys.add("categoryId");
     }
+    if (!selectedTagIds.isEmpty()) {
+      appliedFacetKeys.add("tagId");
+    }
     if (selectedDateBucket != null) {
       appliedFacetKeys.add("dateFacet");
     }
     String facetKey = appliedFacetKeys.isEmpty() ? null : String.join(",", appliedFacetKeys);
     SearchAnalyticsCommand.record(context, query, "items", itemList == null ? 0 : itemList.size(), facetKey);
 
-    // Facet panels + active filter chips (issue #421)
+    // Facet panels + active filter chips (issue #421; tag facet is #632)
     boolean showCategoryFacet = !"false".equals(context.getPreferences().get("showCategoryFacet"));
+    boolean showTagFacet = !"false".equals(context.getPreferences().get("showTagFacet"));
     boolean showDateFacet = !"false".equals(context.getPreferences().get("showDateFacet"));
     String categoryFacetLabel = context.getPreferences().getOrDefault("categoryFacetLabel", "Category");
+    String tagFacetLabel = context.getPreferences().getOrDefault("tagFacetLabel", "Tag");
     String dateFacetLabel = context.getPreferences().getOrDefault("dateFacetLabel", "Date");
 
     // Resolve every category's count in a single grouped query, up front (issue #637 -- replaces
@@ -167,13 +190,45 @@ public class ItemsSearchResultsWidget extends GenericWidget {
           // access-control note above for why "selected" alone must not be enough to reveal a
           // category that turns out to be empty or inaccessible.
           if (count > 0) {
-            String url = buildCategoryToggleUrl(context, selectedCategoryIds, category.getId());
+            String url = FacetUrlCommand.buildMultiSelectToggleUrl(context, "categoryId", selectedCategoryIds, category.getId());
             categoryFacets.add(new ItemFacetOption(String.valueOf(category.getId()), category.getName(), count, selected, url));
           }
         }
       }
       context.getRequest().setAttribute("categoryFacets", categoryFacets);
       context.getRequest().setAttribute("categoryFacetLabel", categoryFacetLabel);
+    }
+
+    // Resolve every tag's count in a single grouped query, up front -- same shape as
+    // categoryCounts above (issue #632 mirrors issue #637's countGroupedByCategory exactly).
+    // Unlike countGroupedByCategory, this map is not affected by the specification's own tag
+    // selection at all (countGroupedByTag never reads it), so this single computation safely
+    // backs both the facet list below AND the active-filter chip disclosure check further down --
+    // no separate "no tag selection" specification is needed the way category's chip logic needs
+    // one (see noCategorySelectionSpec below), because there is nothing to neutralize.
+    Map<Long, Long> tagCounts = null;
+    if (!selectedTagIds.isEmpty() || showTagFacet) {
+      tagCounts = ItemRepository.countGroupedByTag(specification);
+    }
+
+    if (showTagFacet) {
+      List<ItemFacetOption> tagFacets = new ArrayList<>();
+      List<Tag> allTags = TagRepository.findAll();
+      if (allTags != null) {
+        for (Tag tag : allTags) {
+          boolean selected = selectedTagIds.contains(tag.getId());
+          long count = tagCounts.getOrDefault(tag.getId(), 0L);
+          // Tags with a 0 count here are omitted entirely, selected or not -- same
+          // access-control-non-disclosure reasoning as the category facet above: tagId is a
+          // guessable sequential id, so an inaccessible or empty tag's name must not leak.
+          if (count > 0) {
+            String url = FacetUrlCommand.buildMultiSelectToggleUrl(context, "tagId", selectedTagIds, tag.getId());
+            tagFacets.add(new ItemFacetOption(String.valueOf(tag.getId()), tag.getName(), count, selected, url));
+          }
+        }
+      }
+      context.getRequest().setAttribute("tagFacets", tagFacets);
+      context.getRequest().setAttribute("tagFacetLabel", tagFacetLabel);
     }
 
     if (showDateFacet) {
@@ -224,11 +279,36 @@ public class ItemsSearchResultsWidget extends GenericWidget {
             valueLabel = selectedCategory.getName();
           }
         }
-        String clearUrl = buildCategoryToggleUrl(context, selectedCategoryIds, selectedCategoryId);
+        String clearUrl = FacetUrlCommand.buildMultiSelectToggleUrl(context, "categoryId", selectedCategoryIds, selectedCategoryId);
         activeFilters.add(new ItemActiveFilter(categoryFacetLabel, valueLabel, clearUrl));
       }
       if (selectedCategoryIds.size() > 1) {
         activeFilters.add(new ItemActiveFilter(categoryFacetLabel, "All categories", FacetUrlCommand.buildClearFilterUrl(context, "categoryId")));
+      }
+    }
+    if (!selectedTagIds.isEmpty()) {
+      // Unlike the category chip logic above, no separate "no selection" specification is needed
+      // here: tagCounts (computed once, above, from countGroupedByTag) already ignores the
+      // specification's own tag selection entirely -- see the comment on its computation -- so
+      // it's already exactly the "this tag alone" standalone count the disclosure check needs.
+      for (Long selectedTagId : selectedTagIds) {
+        // Only resolve and show the real tag name once its own standalone count has confirmed it
+        // is a non-empty, access-safe tag -- otherwise fall back to a generic label rather than
+        // disclosing the name of a tag the requester may not have access to, or that doesn't
+        // exist. Same reasoning as the category chip above.
+        String valueLabel = "Selected tag";
+        long standaloneCount = tagCounts.getOrDefault(selectedTagId, 0L);
+        if (standaloneCount > 0) {
+          Tag selectedTag = TagRepository.findById(selectedTagId);
+          if (selectedTag != null) {
+            valueLabel = selectedTag.getName();
+          }
+        }
+        String clearUrl = FacetUrlCommand.buildMultiSelectToggleUrl(context, "tagId", selectedTagIds, selectedTagId);
+        activeFilters.add(new ItemActiveFilter(tagFacetLabel, valueLabel, clearUrl));
+      }
+      if (selectedTagIds.size() > 1) {
+        activeFilters.add(new ItemActiveFilter(tagFacetLabel, "All tags", FacetUrlCommand.buildClearFilterUrl(context, "tagId")));
       }
     }
     if (selectedDateBucket != null) {
@@ -282,39 +362,6 @@ public class ItemsSearchResultsWidget extends GenericWidget {
     // Show the JSP
     context.setJsp(JSP);
     return context;
-  }
-
-  /**
-   * The current request's URL with candidateCategoryId toggled in or out of the categoryId
-   * selection (issue #636): added if it's not in currentSelection, removed if it is, every OTHER
-   * currently selected categoryId preserved. This one method backs both the facet checkbox links
-   * (toggling an unchecked category on, or an already-checked one off) and each active-filter
-   * chip's "remove just this one" link -- removing a selected category via its chip is exactly the
-   * same toggle-off operation as unchecking its facet checkbox. Category is the only multi-select
-   * facet in this codebase, so this stays private here rather than in the shared FacetUrlCommand
-   * (issue #634) alongside the single-select buildFacetLinkUrl/buildClearFilterUrl it still uses.
-   */
-  private static String buildCategoryToggleUrl(WidgetContext context, List<Long> currentSelection, long candidateCategoryId) {
-    List<String> newSelection = new ArrayList<>();
-    boolean removed = false;
-    for (Long selectedId : currentSelection) {
-      if (selectedId == candidateCategoryId) {
-        removed = true; // omitting it from newSelection toggles it off
-        continue;
-      }
-      newSelection.add(String.valueOf(selectedId));
-    }
-    if (!removed) {
-      newSelection.add(String.valueOf(candidateCategoryId)); // toggles it on
-    }
-    Map<String, List<String>> overrides = new LinkedHashMap<>();
-    if (!newSelection.isEmpty()) {
-      overrides.put("categoryId", newSelection);
-    }
-    // When newSelection ends up empty, categoryId is simply absent from overrides -- combined with
-    // excludeParam below dropping the current categoryId values, the result is the same as
-    // FacetUrlCommand.buildClearFilterUrl: the param disappears from the URL entirely.
-    return FacetUrlCommand.buildUrl(context, overrides, "categoryId");
   }
 
   /** One facet's rendered option: display label, result count, whether it's currently selected, and its link. */

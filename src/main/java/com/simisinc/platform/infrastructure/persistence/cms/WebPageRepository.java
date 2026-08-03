@@ -156,7 +156,11 @@ public class WebPageRepository {
         .add("sitemap_changefreq", StringUtils.trimToNull(record.getSitemapChangeFrequency()))
         .add("publish_at", record.getPublishAt())
         .add("expires_at", record.getExpiresAt())
-        .add("solution_type", StringUtils.trimToNull(record.getSolutionType()));
+        .add("solution_type", StringUtils.trimToNull(record.getSolutionType()))
+        .add("draft_status", StringUtils.trimToNull(record.getDraftStatus()))
+        .add("submitted_by", record.getSubmittedBy())
+        .add("approved_by", record.getApprovedBy())
+        .add("release_reference", StringUtils.trimToNull(record.getReleaseReference()));
     record.setId(DB.insertInto(TABLE_NAME, insertValues, PRIMARY_KEY));
     if (record.getId() == -1) {
       LOG.error("An id was not set!");
@@ -195,7 +199,11 @@ public class WebPageRepository {
         .add("sitemap_changefreq", StringUtils.trimToNull(record.getSitemapChangeFrequency()))
         .add("publish_at", record.getPublishAt())
         .add("expires_at", record.getExpiresAt())
-        .add("solution_type", StringUtils.trimToNull(record.getSolutionType()));
+        .add("solution_type", StringUtils.trimToNull(record.getSolutionType()))
+        .add("draft_status", StringUtils.trimToNull(record.getDraftStatus()))
+        .add("submitted_by", record.getSubmittedBy())
+        .add("approved_by", record.getApprovedBy())
+        .add("release_reference", StringUtils.trimToNull(record.getReleaseReference()));
     SqlUtils where = new SqlUtils()
         .add("web_page_id = ?", record.getId());
     if (DB.update(TABLE_NAME, updateValues, where)) {
@@ -368,6 +376,12 @@ public class WebPageRepository {
       record.setPublishAt(rs.getTimestamp("publish_at"));
       record.setExpiresAt(rs.getTimestamp("expires_at"));
       record.setSolutionType(rs.getString("solution_type"));
+      if (DB.hasColumn(rs, "draft_status")) {
+        record.setDraftStatus(rs.getString("draft_status"));
+        record.setSubmittedBy(rs.getLong("submitted_by"));
+        record.setApprovedBy(rs.getLong("approved_by"));
+        record.setReleaseReference(rs.getString("release_reference"));
+      }
       return record;
     } catch (SQLException se) {
       LOG.error("buildRecord", se);
