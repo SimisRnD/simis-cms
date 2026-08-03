@@ -23,13 +23,16 @@ import com.simisinc.platform.application.cms.SaveBlockedIPCommand;
 import com.simisinc.platform.application.filesystem.FileSystemCommand;
 import com.simisinc.platform.application.mailinglists.ProcessEmailCSVFileCommand;
 import com.simisinc.platform.application.mailinglists.SaveEmailCommand;
+import com.simisinc.platform.domain.events.mailinglists.MailingListMemberDeletedEvent;
 import com.simisinc.platform.domain.model.BlockedIP;
+import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.mailinglists.Email;
 import com.simisinc.platform.domain.model.mailinglists.MailingList;
 import com.simisinc.platform.domain.model.mailinglists.MailingListMember;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.persistence.BlockedIPRepository;
 import com.simisinc.platform.infrastructure.persistence.mailinglists.*;
+import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
 import com.simisinc.platform.presentation.controller.MultipartFileSender;
 import com.simisinc.platform.presentation.controller.RequestConstants;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
@@ -289,7 +292,13 @@ public class MailingListMembersWidget extends GenericWidget {
       if (email == null) {
         context.setErrorMessage("Email address was not found");
       }
+      // issue #452: capture a snapshot before removal -- the row won't exist to look up afterward
+      MailingListMember member = MailingListMemberRepository.findByListAndEmail(mailingListId, emailId);
       MailingListMemberRepository.remove(email, mailingList);
+      if (member != null && mailingList != null) {
+        User actingUser = context.getUserSession() != null ? context.getUserSession().getUser() : null;
+        WorkflowManager.triggerWorkflowForEvent(new MailingListMemberDeletedEvent(member, mailingList, actingUser));
+      }
     }
     context.setRedirect("/admin/mailing-list-members?mailingListId=" + mailingListId);
     return context;

@@ -33,10 +33,15 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.simisinc.platform.domain.events.cms.FormSubmittedEvent;
 import com.simisinc.platform.domain.events.cms.WebPagePublishedEvent;
+import com.simisinc.platform.domain.events.mailinglists.MailingListMemberCreatedEvent;
+import com.simisinc.platform.domain.events.mailinglists.MailingListMemberDeletedEvent;
+import com.simisinc.platform.domain.events.mailinglists.MailingListMemberUpdatedEvent;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.cms.FormData;
 import com.simisinc.platform.domain.model.cms.FormField;
 import com.simisinc.platform.domain.model.cms.WebPage;
+import com.simisinc.platform.domain.model.mailinglists.MailingList;
+import com.simisinc.platform.domain.model.mailinglists.MailingListMember;
 import com.simisinc.platform.infrastructure.persistence.UserRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.FormDataRepository;
 
@@ -120,6 +125,80 @@ class BuildWebhookPayloadCommandTest {
     assertEquals(1, fields.size());
     assertEquals("Name", fields.get(0).get("label"));
     assertEquals("Jane Doe", fields.get(0).get("value"));
+  }
+
+  private static MailingListMember member(long id, String emailAddress, boolean subscribed) {
+    MailingListMember member = new MailingListMember();
+    member.setId(id);
+    member.setEmailAddress(emailAddress);
+    member.setIsValid(subscribed);
+    return member;
+  }
+
+  private static MailingList mailingList(long id, String name) {
+    MailingList mailingList = new MailingList();
+    mailingList.setId(id);
+    mailingList.setName(name);
+    return mailingList;
+  }
+
+  @Test
+  void mailingListMemberCreatedEventProducesTheExpectedShapeAndData() {
+    MailingListMember member = member(10L, "new@example.com", true);
+    MailingList mailingList = mailingList(1L, "News");
+    User user = new User();
+    user.setId(3L);
+    user.setEmail("signup-page@example.com");
+
+    Map<String, Object> data = BuildWebhookPayloadCommand
+        .buildData(new MailingListMemberCreatedEvent(member, mailingList, user));
+
+    assertEquals(10L, data.get("memberId"));
+    assertEquals("new@example.com", data.get("email"));
+    assertEquals(true, data.get("subscribed"));
+    assertEquals(1L, data.get("mailingListId"));
+    assertEquals("News", data.get("mailingListName"));
+    assertNotNull(data.get("user"));
+  }
+
+  @Test
+  void mailingListMemberCreatedEventOmitsUserWhenTheSignupWasAnonymous() {
+    Map<String, Object> data = BuildWebhookPayloadCommand
+        .buildData(new MailingListMemberCreatedEvent(member(10L, "new@example.com", true), mailingList(1L, "News"), null));
+
+    assertTrue(data.containsKey("user"), "the key must be present");
+    assertEquals(null, data.get("user"), "value must be null for an anonymous signup, not omitted or a bogus summary");
+  }
+
+  @Test
+  void mailingListMemberUpdatedEventCarriesChangeTypeAndPreviousState() {
+    MailingListMember member = member(11L, "returning@example.com", false);
+    MailingList mailingList = mailingList(1L, "News");
+
+    Map<String, Object> data = BuildWebhookPayloadCommand.buildData(
+        new MailingListMemberUpdatedEvent(member, mailingList, null, "unsubscribed", true));
+
+    assertEquals("unsubscribed", data.get("changeType"));
+    assertEquals(false, data.get("subscribed"), "reflects the member's current (post-change) state");
+    @SuppressWarnings("unchecked")
+    Map<String, Object> previousState = (Map<String, Object>) data.get("previousState");
+    assertEquals(true, previousState.get("subscribed"), "previousState must reflect the state before this change");
+  }
+
+  @Test
+  void mailingListMemberDeletedEventProducesTheExpectedShapeAndData() {
+    MailingListMember member = member(12L, "gone@example.com", false);
+    MailingList mailingList = mailingList(1L, "News");
+    User admin = new User();
+    admin.setId(2L);
+    admin.setUsername("admin2");
+
+    Map<String, Object> data = BuildWebhookPayloadCommand
+        .buildData(new MailingListMemberDeletedEvent(member, mailingList, admin));
+
+    assertEquals(12L, data.get("memberId"));
+    assertEquals("gone@example.com", data.get("email"));
+    assertEquals("admin2", ((Map<?, ?>) data.get("user")).get("username"));
   }
 
   @Test

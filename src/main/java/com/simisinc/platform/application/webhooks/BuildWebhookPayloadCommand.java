@@ -24,6 +24,11 @@ import org.apache.commons.logging.LogFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.simisinc.platform.domain.events.Event;
+import com.simisinc.platform.domain.events.mailinglists.MailingListMemberCreatedEvent;
+import com.simisinc.platform.domain.events.mailinglists.MailingListMemberDeletedEvent;
+import com.simisinc.platform.domain.events.mailinglists.MailingListMemberUpdatedEvent;
+import com.simisinc.platform.domain.model.mailinglists.MailingList;
+import com.simisinc.platform.domain.model.mailinglists.MailingListMember;
 import com.simisinc.platform.domain.events.cms.BlogPostPublishedEvent;
 import com.simisinc.platform.domain.events.cms.CalendarEventRemovedEvent;
 import com.simisinc.platform.domain.events.cms.CalendarEventRescheduledEvent;
@@ -154,6 +159,18 @@ public class BuildWebhookPayloadCommand {
     } else if (event instanceof UserAccountRestoredEvent userAccountRestoredEvent) {
       data.put("user", userSummary(userAccountRestoredEvent.getUser()));
       data.put("approvedBy", userSummary(userAccountRestoredEvent.getApprovedBy()));
+    } else if (event instanceof MailingListMemberCreatedEvent mailingListMemberCreatedEvent) {
+      putMailingListMember(data, mailingListMemberCreatedEvent.getMember(), mailingListMemberCreatedEvent.getMailingList());
+      data.put("user", userSummary(mailingListMemberCreatedEvent.getUser()));
+    } else if (event instanceof MailingListMemberUpdatedEvent mailingListMemberUpdatedEvent) {
+      putMailingListMember(data, mailingListMemberUpdatedEvent.getMember(), mailingListMemberUpdatedEvent.getMailingList());
+      data.put("changeType", mailingListMemberUpdatedEvent.getChangeType());
+      data.put("previousState",
+          java.util.Collections.singletonMap("subscribed", mailingListMemberUpdatedEvent.isPreviouslySubscribed()));
+      data.put("user", userSummary(mailingListMemberUpdatedEvent.getUser()));
+    } else if (event instanceof MailingListMemberDeletedEvent mailingListMemberDeletedEvent) {
+      putMailingListMember(data, mailingListMemberDeletedEvent.getMember(), mailingListMemberDeletedEvent.getMailingList());
+      data.put("user", userSummary(mailingListMemberDeletedEvent.getUser()));
     } else {
       LOG.warn("No webhook payload mapping for event type: " + event.getClass().getName()
           + " -- delivering with an empty data object rather than failing the dispatch");
@@ -170,6 +187,20 @@ public class BuildWebhookPayloadCommand {
     data.put("startDate", calendarEvent.getStartDate());
     data.put("endDate", calendarEvent.getEndDate());
     data.put("location", calendarEvent.getLocation());
+  }
+
+  private static void putMailingListMember(Map<String, Object> data, MailingListMember member,
+      MailingList mailingList) {
+    if (member == null) {
+      return;
+    }
+    data.put("memberId", member.getId());
+    data.put("email", member.getEmailAddress());
+    data.put("subscribed", member.getIsValid());
+    if (mailingList != null) {
+      data.put("mailingListId", mailingList.getId());
+      data.put("mailingListName", mailingList.getName());
+    }
   }
 
   private static void putWebPage(Map<String, Object> data,
