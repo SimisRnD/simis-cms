@@ -32,17 +32,20 @@ import com.simisinc.platform.domain.model.cms.FileItem;
 import com.simisinc.platform.domain.model.cms.Folder;
 import com.simisinc.platform.domain.model.cms.FolderCategory;
 import com.simisinc.platform.domain.model.cms.SubFolder;
+import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.persistence.cms.FileItemRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.FileSpecification;
 import com.simisinc.platform.infrastructure.persistence.cms.FolderCategoryRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.FolderRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.SubFolderRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.SubFolderSpecification;
+import com.simisinc.platform.presentation.controller.RequestConstants;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 
 import org.apache.commons.beanutils.BeanUtils;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * Description
@@ -126,8 +129,38 @@ public class FolderFilesListWidget extends GenericWidget {
       specification.setInASubFolder(false);
     }
 
+    // Search by filename/title (issue #502)
+    String query = context.getParameter(RequestConstants.RECORD_QUERY);
+    context.getRequest().setAttribute(RequestConstants.RECORD_QUERY, query);
+    if (StringUtils.isNotBlank(query)) {
+      specification.setSearchTerm(query.trim());
+    }
+
+    // Sort by name/date/size/downloads (issue #502) -- an invalid or missing value falls back to
+    // "date", which maps to the same "created DESC" order this list used before sorting existed,
+    // so a plain page load (no sortBy param) keeps its prior ordering.
+    String sortBy = context.getParameter(RequestConstants.RECORD_SORT_BY, "date");
+    DataConstraints constraints = new DataConstraints();
+    switch (sortBy) {
+      case "name":
+        constraints.setColumnToSortBy("title");
+        break;
+      case "size":
+        constraints.setColumnToSortBy("file_length", "desc");
+        break;
+      case "downloads":
+        constraints.setColumnToSortBy("download_count", "desc");
+        break;
+      case "date":
+      default:
+        sortBy = "date";
+        constraints.setColumnToSortBy("created", "desc");
+        break;
+    }
+    context.getRequest().setAttribute(RequestConstants.RECORD_SORT_BY, sortBy);
+
     // Load the files
-    List<FileItem> fileList = FileItemRepository.findAll(specification, null);
+    List<FileItem> fileList = FileItemRepository.findAll(specification, constraints);
     context.getRequest().setAttribute("fileList", fileList);
 
     // Standard request items

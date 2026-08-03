@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 SimIS Inc. (https://www.simiscms.com)
+ * Copyright 2026 SimIS Inc. (https://www.simiscms.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,209 +16,244 @@
 
 package com.simisinc.platform.presentation.widgets.admin.cms;
 
-import com.simisinc.platform.WidgetBase;
-import com.simisinc.platform.application.DataException;
-import com.simisinc.platform.application.cms.DeleteFileCommand;
-import com.simisinc.platform.application.cms.LoadFileCommand;
-import com.simisinc.platform.application.cms.SaveFileCommand;
-import com.simisinc.platform.application.cms.SaveFilePartCommand;
-import com.simisinc.platform.application.cms.ValidateFileCommand;
-import com.simisinc.platform.domain.model.cms.FileItem;
-import com.simisinc.platform.presentation.controller.AuditEventCommand;
-import com.simisinc.platform.presentation.controller.WidgetContext;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.mockStatic;
+
+import java.util.ArrayList;
+import java.util.List;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.times;
+import com.simisinc.platform.WidgetBase;
+import com.simisinc.platform.application.cms.CheckFolderPermissionCommand;
+import com.simisinc.platform.domain.model.cms.Folder;
+import com.simisinc.platform.domain.model.cms.FolderCategory;
+import com.simisinc.platform.domain.model.cms.SubFolder;
+import com.simisinc.platform.infrastructure.database.DataConstraints;
+import com.simisinc.platform.infrastructure.persistence.cms.FileItemRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.FileSpecification;
+import com.simisinc.platform.infrastructure.persistence.cms.FolderCategoryRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.FolderRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.SubFolderRepository;
 
 /**
- * Proves FolderFilesListWidget -- the admin widget that uploads new file versions, edits file metadata,
- * and deletes folder files -- now writes an AuditEventCommand.record(...) call for each of those
- * mutations, closing the CMMC AU-2 gap where none of these paths had any audit trail (issue #502).
+ * Verifies the search-by-filename/title and sort-by-name/date/size/downloads behavior added to the
+ * per-folder file list (issue #502). Before this, the widget always loaded every file in the
+ * folder with the repository's default "created DESC" order and no way to filter it.
  *
- * <p>Note: {@code context.getRequest().getParameter(...)} (used by post() for currentFolderId /
- * currentSubFolderId) reads from WidgetBase's mocked request "attributes" map, populated via
- * request.setAttribute(...) -- NOT from WidgetContext's own parameterMap, which is what
- * addQueryParameter() populates and what context.getParameter()/getParameterAsLong() read. Both are set
- * below where needed, matching what each call site actually reads.
+ * @author Liz Houser
+ * @created 8/2/2026
  */
 class FolderFilesListWidgetTest extends WidgetBase {
 
-  private void setRawRequestParameter(String name, String value) {
-    request.setAttribute(name, value);
+  private static Folder folderWithId(long id) {
+    Folder folder = new Folder();
+    folder.setId(id);
+    return folder;
+  }
+
+  /** Stubs every collaborator the widget's execute() touches besides FileItemRepository.findAll. */
+  private void stubCommonCollaborators(MockedStatic<FolderRepository> folderRepo,
+      MockedStatic<CheckFolderPermissionCommand> perm, MockedStatic<SubFolderRepository> subFolderRepo,
+      MockedStatic<FolderCategoryRepository> categoryRepo, long folderId) {
+    folderRepo.when(() -> FolderRepository.findById(folderId)).thenReturn(folderWithId(folderId));
+    folderRepo.when(FolderRepository::findAll).thenReturn(new ArrayList<>());
+    perm.when(() -> CheckFolderPermissionCommand.userHasEditPermission(anyLong(), anyLong())).thenReturn(false);
+    perm.when(() -> CheckFolderPermissionCommand.userHasDeletePermission(anyLong(), anyLong())).thenReturn(false);
+    subFolderRepo.when(() -> SubFolderRepository.findAll(any(), any())).thenReturn(new ArrayList<SubFolder>());
+    categoryRepo.when(() -> FolderCategoryRepository.findAllByFolderId(folderId)).thenReturn(new ArrayList<FolderCategory>());
   }
 
   @Test
-  void postWithANewFileVersionRecordsAFolderFileVersionSuccessEvent() throws Exception {
-    setRoles(widgetContext, ADMIN);
-    setRawRequestParameter("currentFolderId", "1");
-    setRawRequestParameter("currentSubFolderId", "-1");
-    addQueryParameter(widgetContext, "id", "20");
-    addQueryParameter(widgetContext, "folderId", "1");
-    addQueryParameter(widgetContext, "subFolderId", "-1");
-    addQueryParameter(widgetContext, "categoryId", "-1");
-    addQueryParameter(widgetContext, "version", "2.0");
-    addQueryParameter(widgetContext, "title", "Report");
+  void executeWithNoParamsDefaultsToDateDescendingAndNoSearchTerm() {
+    addQueryParameter(widgetContext, "folderId", "5");
 
-    FileItem newVersionPart = new FileItem();
-    newVersionPart.setFilename("report.pdf");
+    ArgumentCaptor<FileSpecification> specCaptor = ArgumentCaptor.forClass(FileSpecification.class);
+    ArgumentCaptor<DataConstraints> constraintsCaptor = ArgumentCaptor.forClass(DataConstraints.class);
 
-    FileItem savedFileItem = new FileItem();
-    savedFileItem.setId(20L);
-    savedFileItem.setFilename("report.pdf");
-    savedFileItem.setVersion("2.0");
+    try (MockedStatic<FolderRepository> folderRepo = mockStatic(FolderRepository.class);
+        MockedStatic<CheckFolderPermissionCommand> perm = mockStatic(CheckFolderPermissionCommand.class);
+        MockedStatic<SubFolderRepository> subFolderRepo = mockStatic(SubFolderRepository.class);
+        MockedStatic<FolderCategoryRepository> categoryRepo = mockStatic(FolderCategoryRepository.class);
+        MockedStatic<FileItemRepository> fileItemRepo = mockStatic(FileItemRepository.class)) {
+      stubCommonCollaborators(folderRepo, perm, subFolderRepo, categoryRepo, 5L);
+      fileItemRepo.when(() -> FileItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
 
-    try (MockedStatic<SaveFilePartCommand> saveFilePart = mockStatic(SaveFilePartCommand.class);
-        MockedStatic<SaveFileCommand> saveFileCommand = mockStatic(SaveFileCommand.class);
-        // checkFile() reaches into FileSystemCommand.getFileServerRootPath(), which falls back to a
-        // site-property DB lookup when unset -- not available in this unit test, so it's stubbed out
-        MockedStatic<ValidateFileCommand> validateFile = mockStatic(ValidateFileCommand.class);
-        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
-      saveFilePart.when(() -> SaveFilePartCommand.saveFile(widgetContext)).thenReturn(newVersionPart);
-      saveFileCommand.when(() -> SaveFileCommand.saveNewVersionOfFile(newVersionPart)).thenReturn(savedFileItem);
+      setRoles(widgetContext, ADMIN);
+      new FolderFilesListWidget().execute(widgetContext);
 
-      FolderFilesListWidget widget = new FolderFilesListWidget();
-      widget.post(widgetContext);
-
-      audit.verify(() -> AuditEventCommand.record(any(WidgetContext.class), eq(AuditEventCommand.CONTENT),
-          eq("folder_file.version"), eq(AuditEventCommand.SUCCESS), eq("folder_file"), eq("20"),
-          eq("report.pdf"), any()), times(1));
+      fileItemRepo.verify(() -> FileItemRepository.findAll(specCaptor.capture(), constraintsCaptor.capture()));
     }
+
+    FileSpecification spec = specCaptor.getValue();
+    Assertions.assertEquals(5L, spec.getFolderId());
+    Assertions.assertNull(spec.getSearchTerm());
+
+    DataConstraints constraints = constraintsCaptor.getValue();
+    Assertions.assertArrayEquals(new String[] { "created" }, constraints.getColumnsToSortBy());
+    Assertions.assertArrayEquals(new String[] { "desc" }, constraints.getSortOrder());
+
+    Assertions.assertEquals("date", request.getAttribute("sortBy"));
   }
 
   @Test
-  void postWithAMetadataOnlyUpdateRecordsAFolderFileUpdateSuccessEvent() throws Exception {
-    setRoles(widgetContext, ADMIN);
-    setRawRequestParameter("currentFolderId", "1");
-    setRawRequestParameter("currentSubFolderId", "-1");
-    addQueryParameter(widgetContext, "id", "21");
-    addQueryParameter(widgetContext, "folderId", "1");
-    addQueryParameter(widgetContext, "title", "Renamed Report");
-    addQueryParameter(widgetContext, "filename", "report.pdf");
+  void executeAppliesSearchTermToTheSpecification() {
+    addQueryParameter(widgetContext, "folderId", "5");
+    addQueryParameter(widgetContext, "query", "invoice");
 
-    FileItem savedFileItem = new FileItem();
-    savedFileItem.setId(21L);
-    savedFileItem.setFilename("report.pdf");
+    ArgumentCaptor<FileSpecification> specCaptor = ArgumentCaptor.forClass(FileSpecification.class);
 
-    try (MockedStatic<SaveFilePartCommand> saveFilePart = mockStatic(SaveFilePartCommand.class);
-        MockedStatic<SaveFileCommand> saveFileCommand = mockStatic(SaveFileCommand.class);
-        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
-      // No "file" part in the request -- this is a plain metadata edit of an existing version
-      saveFilePart.when(() -> SaveFilePartCommand.saveFile(widgetContext)).thenReturn(null);
-      saveFileCommand.when(() -> SaveFileCommand.saveFile(any(FileItem.class))).thenReturn(savedFileItem);
+    try (MockedStatic<FolderRepository> folderRepo = mockStatic(FolderRepository.class);
+        MockedStatic<CheckFolderPermissionCommand> perm = mockStatic(CheckFolderPermissionCommand.class);
+        MockedStatic<SubFolderRepository> subFolderRepo = mockStatic(SubFolderRepository.class);
+        MockedStatic<FolderCategoryRepository> categoryRepo = mockStatic(FolderCategoryRepository.class);
+        MockedStatic<FileItemRepository> fileItemRepo = mockStatic(FileItemRepository.class)) {
+      stubCommonCollaborators(folderRepo, perm, subFolderRepo, categoryRepo, 5L);
+      fileItemRepo.when(() -> FileItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
 
-      FolderFilesListWidget widget = new FolderFilesListWidget();
-      widget.post(widgetContext);
+      setRoles(widgetContext, ADMIN);
+      new FolderFilesListWidget().execute(widgetContext);
 
-      audit.verify(() -> AuditEventCommand.record(any(WidgetContext.class), eq(AuditEventCommand.CONTENT),
-          eq("folder_file.update"), eq(AuditEventCommand.SUCCESS), eq("folder_file"), eq("21"),
-          eq("report.pdf"), any()), times(1));
+      fileItemRepo.verify(() -> FileItemRepository.findAll(specCaptor.capture(), any()));
     }
+
+    Assertions.assertEquals("invoice", specCaptor.getValue().getSearchTerm());
+    Assertions.assertEquals("invoice", request.getAttribute("query"));
   }
 
   @Test
-  void postWhereSavingTheNewVersionFailsRecordsAFolderFileVersionFailureEvent() throws Exception {
-    setRoles(widgetContext, ADMIN);
-    setRawRequestParameter("currentFolderId", "1");
-    setRawRequestParameter("currentSubFolderId", "-1");
-    addQueryParameter(widgetContext, "id", "22");
-    addQueryParameter(widgetContext, "folderId", "1");
+  void executeSortsByNameAscending() {
+    addQueryParameter(widgetContext, "folderId", "5");
+    addQueryParameter(widgetContext, "sortBy", "name");
 
-    FileItem newVersionPart = new FileItem();
-    newVersionPart.setFilename("bad.pdf");
+    ArgumentCaptor<DataConstraints> constraintsCaptor = ArgumentCaptor.forClass(DataConstraints.class);
 
-    try (MockedStatic<SaveFilePartCommand> saveFilePart = mockStatic(SaveFilePartCommand.class);
-        MockedStatic<SaveFileCommand> saveFileCommand = mockStatic(SaveFileCommand.class);
-        MockedStatic<ValidateFileCommand> validateFile = mockStatic(ValidateFileCommand.class);
-        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
-      saveFilePart.when(() -> SaveFilePartCommand.saveFile(widgetContext)).thenReturn(newVersionPart);
-      // A null return is treated as a system-error failure by the widget
-      saveFileCommand.when(() -> SaveFileCommand.saveNewVersionOfFile(newVersionPart)).thenReturn(null);
+    try (MockedStatic<FolderRepository> folderRepo = mockStatic(FolderRepository.class);
+        MockedStatic<CheckFolderPermissionCommand> perm = mockStatic(CheckFolderPermissionCommand.class);
+        MockedStatic<SubFolderRepository> subFolderRepo = mockStatic(SubFolderRepository.class);
+        MockedStatic<FolderCategoryRepository> categoryRepo = mockStatic(FolderCategoryRepository.class);
+        MockedStatic<FileItemRepository> fileItemRepo = mockStatic(FileItemRepository.class)) {
+      stubCommonCollaborators(folderRepo, perm, subFolderRepo, categoryRepo, 5L);
+      fileItemRepo.when(() -> FileItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
 
-      FolderFilesListWidget widget = new FolderFilesListWidget();
-      widget.post(widgetContext);
+      setRoles(widgetContext, ADMIN);
+      new FolderFilesListWidget().execute(widgetContext);
 
-      audit.verify(() -> AuditEventCommand.record(any(WidgetContext.class), eq(AuditEventCommand.CONTENT),
-          eq("folder_file.version"), eq(AuditEventCommand.FAILURE), eq("folder_file"), any(), eq("bad.pdf"),
-          any()), times(1));
+      fileItemRepo.verify(() -> FileItemRepository.findAll(any(), constraintsCaptor.capture()));
     }
+
+    Assertions.assertArrayEquals(new String[] { "title" }, constraintsCaptor.getValue().getColumnsToSortBy());
+    Assertions.assertEquals("name", request.getAttribute("sortBy"));
   }
 
   @Test
-  void deleteRecordsAFolderFileDeleteSuccessEvent() throws Exception {
-    setRoles(widgetContext, ADMIN);
-    addQueryParameter(widgetContext, "fileId", "30");
+  void executeSortsBySizeDescending() {
+    addQueryParameter(widgetContext, "folderId", "5");
+    addQueryParameter(widgetContext, "sortBy", "size");
 
-    FileItem record = new FileItem();
-    record.setId(30L);
-    record.setFilename("old-report.pdf");
-    record.setFolderId(1L);
+    ArgumentCaptor<DataConstraints> constraintsCaptor = ArgumentCaptor.forClass(DataConstraints.class);
 
-    try (MockedStatic<LoadFileCommand> loadFile = mockStatic(LoadFileCommand.class);
-        MockedStatic<DeleteFileCommand> deleteFile = mockStatic(DeleteFileCommand.class);
-        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
-      loadFile.when(() -> LoadFileCommand.loadItemById(30L)).thenReturn(record);
-      deleteFile.when(() -> DeleteFileCommand.deleteFile(record)).thenReturn(true);
+    try (MockedStatic<FolderRepository> folderRepo = mockStatic(FolderRepository.class);
+        MockedStatic<CheckFolderPermissionCommand> perm = mockStatic(CheckFolderPermissionCommand.class);
+        MockedStatic<SubFolderRepository> subFolderRepo = mockStatic(SubFolderRepository.class);
+        MockedStatic<FolderCategoryRepository> categoryRepo = mockStatic(FolderCategoryRepository.class);
+        MockedStatic<FileItemRepository> fileItemRepo = mockStatic(FileItemRepository.class)) {
+      stubCommonCollaborators(folderRepo, perm, subFolderRepo, categoryRepo, 5L);
+      fileItemRepo.when(() -> FileItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
 
-      FolderFilesListWidget widget = new FolderFilesListWidget();
-      WidgetContext result = widget.delete(widgetContext);
+      setRoles(widgetContext, ADMIN);
+      new FolderFilesListWidget().execute(widgetContext);
 
-      audit.verify(() -> AuditEventCommand.record(any(WidgetContext.class), eq(AuditEventCommand.CONTENT),
-          eq("folder_file.delete"), eq(AuditEventCommand.SUCCESS), eq("folder_file"), eq("30"),
-          eq("old-report.pdf"), any()), times(1));
-      Assertions.assertEquals("File deleted", result.getSuccessMessage());
+      fileItemRepo.verify(() -> FileItemRepository.findAll(any(), constraintsCaptor.capture()));
     }
+
+    Assertions.assertArrayEquals(new String[] { "file_length" }, constraintsCaptor.getValue().getColumnsToSortBy());
+    Assertions.assertArrayEquals(new String[] { "desc" }, constraintsCaptor.getValue().getSortOrder());
   }
 
   @Test
-  void deleteWhenTheRepositoryRemoveFailsRecordsAFolderFileDeleteFailureEvent() throws Exception {
-    // DeleteFileCommand.deleteFile() returning false (as opposed to throwing) is a real, if obscure,
-    // failure path -- the audit record must reflect it even though the pre-existing (unrelated,
-    // out-of-scope-here) "File deleted" success message does not check this return value.
-    setRoles(widgetContext, ADMIN);
-    addQueryParameter(widgetContext, "fileId", "31");
+  void executeSortsByDownloadsDescending() {
+    addQueryParameter(widgetContext, "folderId", "5");
+    addQueryParameter(widgetContext, "sortBy", "downloads");
 
-    FileItem record = new FileItem();
-    record.setId(31L);
-    record.setFilename("stubborn.pdf");
-    record.setFolderId(1L);
+    ArgumentCaptor<DataConstraints> constraintsCaptor = ArgumentCaptor.forClass(DataConstraints.class);
 
-    try (MockedStatic<LoadFileCommand> loadFile = mockStatic(LoadFileCommand.class);
-        MockedStatic<DeleteFileCommand> deleteFile = mockStatic(DeleteFileCommand.class);
-        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
-      loadFile.when(() -> LoadFileCommand.loadItemById(31L)).thenReturn(record);
-      deleteFile.when(() -> DeleteFileCommand.deleteFile(record)).thenReturn(false);
+    try (MockedStatic<FolderRepository> folderRepo = mockStatic(FolderRepository.class);
+        MockedStatic<CheckFolderPermissionCommand> perm = mockStatic(CheckFolderPermissionCommand.class);
+        MockedStatic<SubFolderRepository> subFolderRepo = mockStatic(SubFolderRepository.class);
+        MockedStatic<FolderCategoryRepository> categoryRepo = mockStatic(FolderCategoryRepository.class);
+        MockedStatic<FileItemRepository> fileItemRepo = mockStatic(FileItemRepository.class)) {
+      stubCommonCollaborators(folderRepo, perm, subFolderRepo, categoryRepo, 5L);
+      fileItemRepo.when(() -> FileItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
 
-      FolderFilesListWidget widget = new FolderFilesListWidget();
-      widget.delete(widgetContext);
+      setRoles(widgetContext, ADMIN);
+      new FolderFilesListWidget().execute(widgetContext);
 
-      audit.verify(() -> AuditEventCommand.record(any(WidgetContext.class), eq(AuditEventCommand.CONTENT),
-          eq("folder_file.delete"), eq(AuditEventCommand.FAILURE), eq("folder_file"), eq("31"),
-          eq("stubborn.pdf"), any()), times(1));
+      fileItemRepo.verify(() -> FileItemRepository.findAll(any(), constraintsCaptor.capture()));
     }
+
+    Assertions.assertArrayEquals(new String[] { "download_count" }, constraintsCaptor.getValue().getColumnsToSortBy());
+    Assertions.assertArrayEquals(new String[] { "desc" }, constraintsCaptor.getValue().getSortOrder());
   }
 
   @Test
-  void deleteWhenTheFileIsNotFoundRecordsAFailureEventAndReturnsNull() {
-    setRoles(widgetContext, ADMIN);
-    addQueryParameter(widgetContext, "fileId", "99");
+  void executeFallsBackToDateSortForAnUnrecognizedValue() {
+    addQueryParameter(widgetContext, "folderId", "5");
+    addQueryParameter(widgetContext, "sortBy", "not-a-real-column");
 
-    try (MockedStatic<LoadFileCommand> loadFile = mockStatic(LoadFileCommand.class);
-        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
-      loadFile.when(() -> LoadFileCommand.loadItemById(99L)).thenReturn(null);
+    ArgumentCaptor<DataConstraints> constraintsCaptor = ArgumentCaptor.forClass(DataConstraints.class);
 
-      FolderFilesListWidget widget = new FolderFilesListWidget();
-      WidgetContext result = widget.delete(widgetContext);
+    try (MockedStatic<FolderRepository> folderRepo = mockStatic(FolderRepository.class);
+        MockedStatic<CheckFolderPermissionCommand> perm = mockStatic(CheckFolderPermissionCommand.class);
+        MockedStatic<SubFolderRepository> subFolderRepo = mockStatic(SubFolderRepository.class);
+        MockedStatic<FolderCategoryRepository> categoryRepo = mockStatic(FolderCategoryRepository.class);
+        MockedStatic<FileItemRepository> fileItemRepo = mockStatic(FileItemRepository.class)) {
+      stubCommonCollaborators(folderRepo, perm, subFolderRepo, categoryRepo, 5L);
+      fileItemRepo.when(() -> FileItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
 
-      Assertions.assertNull(result);
-      audit.verify(() -> AuditEventCommand.record(any(WidgetContext.class), eq(AuditEventCommand.CONTENT),
-          eq("folder_file.delete"), eq(AuditEventCommand.FAILURE), eq("folder_file"), eq("99"), eq(null),
-          any()), times(1));
+      setRoles(widgetContext, ADMIN);
+      new FolderFilesListWidget().execute(widgetContext);
+
+      fileItemRepo.verify(() -> FileItemRepository.findAll(any(), constraintsCaptor.capture()));
     }
+
+    Assertions.assertArrayEquals(new String[] { "created" }, constraintsCaptor.getValue().getColumnsToSortBy());
+    // The echoed value must be the normalized "date", not the unrecognized input -- otherwise the
+    // sort <select> in the JSP would have no matching <option> to mark selected.
+    Assertions.assertEquals("date", request.getAttribute("sortBy"));
+  }
+
+  @Test
+  void executeSearchAndSortComposeTogether() {
+    addQueryParameter(widgetContext, "folderId", "5");
+    addQueryParameter(widgetContext, "query", "report");
+    addQueryParameter(widgetContext, "sortBy", "size");
+
+    ArgumentCaptor<FileSpecification> specCaptor = ArgumentCaptor.forClass(FileSpecification.class);
+    ArgumentCaptor<DataConstraints> constraintsCaptor = ArgumentCaptor.forClass(DataConstraints.class);
+
+    try (MockedStatic<FolderRepository> folderRepo = mockStatic(FolderRepository.class);
+        MockedStatic<CheckFolderPermissionCommand> perm = mockStatic(CheckFolderPermissionCommand.class);
+        MockedStatic<SubFolderRepository> subFolderRepo = mockStatic(SubFolderRepository.class);
+        MockedStatic<FolderCategoryRepository> categoryRepo = mockStatic(FolderCategoryRepository.class);
+        MockedStatic<FileItemRepository> fileItemRepo = mockStatic(FileItemRepository.class)) {
+      stubCommonCollaborators(folderRepo, perm, subFolderRepo, categoryRepo, 5L);
+      fileItemRepo.when(() -> FileItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+
+      setRoles(widgetContext, ADMIN);
+      new FolderFilesListWidget().execute(widgetContext);
+
+      fileItemRepo.verify(() -> FileItemRepository.findAll(specCaptor.capture(), constraintsCaptor.capture()));
+    }
+
+    // A tsvector search (searchName) would force its own "rank DESC" ORDER BY and silently discard
+    // the caller's column sort -- this proves the plain substring search (searchTerm) is used
+    // instead, since the explicit "size" sort survives alongside it.
+    Assertions.assertEquals("report", specCaptor.getValue().getSearchTerm());
+    Assertions.assertArrayEquals(new String[] { "file_length" }, constraintsCaptor.getValue().getColumnsToSortBy());
   }
 }
