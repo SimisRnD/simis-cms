@@ -20,6 +20,7 @@ import com.simisinc.platform.application.cms.ContentReviewCommand;
 import com.simisinc.platform.application.cms.LoadMenuTabsCommand;
 import com.simisinc.platform.domain.model.cms.MenuTab;
 import com.simisinc.platform.domain.model.cms.WebPage;
+import com.simisinc.platform.infrastructure.persistence.cms.WebPageHitRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageSpecification;
 import com.simisinc.platform.presentation.controller.XMLPageLoader;
@@ -164,6 +165,20 @@ public class WebPageListWidget extends GenericWidget {
       }
     }
     context.getRequest().setAttribute("webPageReviewStatusMap", webPageReviewStatusMap);
+
+    // Trailing 30-day view count per page (#497), keyed by web_page_id -- one bulk query for the
+    // whole page set rather than a per-row lookup. This must cover every page in webPageList, not
+    // just filteredWebPageList: the "In Navigation Menu" section above always renders from the
+    // unfiltered webPageMap regardless of the active search/status filter, so scoping this query to
+    // the filtered subset would silently show 0 views for a nav-menu page excluded by the filter. A
+    // page absent from the map (no hits in the window, or a WebPage with a null/unset id) has zero
+    // views; the JSP must treat a missing key as zero rather than blank.
+    List<Long> webPageIdList = new ArrayList<>();
+    for (WebPage webPage : webPageList) {
+      webPageIdList.add(webPage.getId());
+    }
+    Map<Long, Long> webPageViewCountMap = WebPageHitRepository.countViewsByWebPageId(webPageIdList, 30);
+    context.getRequest().setAttribute("webPageViewCountMap", webPageViewCountMap);
 
     // Echo the filter values back so the form keeps its state
     context.getRequest().setAttribute("q", searchTerm);

@@ -28,6 +28,7 @@ import java.sql.Timestamp;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 import org.junit.jupiter.api.AfterAll;
@@ -184,6 +185,78 @@ class WebPageHitRepositoryTest {
 
     assertNotNull(results);
     assertEquals(0, results.size());
+  }
+
+  // --- countViewsByWebPageId() integration coverage (issue #497) ---
+
+  @Test
+  void countViewsByWebPageIdCountsRealSessionHitsPerRequestedPage() {
+    seedSession("real-session", false);
+    seedSession("bot-session", true);
+    long pageA = seedPage("/a");
+    long pageB = seedPage("/b");
+    seedHit(pageA, "real-session");
+    seedHit(pageA, "real-session");
+    seedHit(pageA, "bot-session");
+    seedHit(pageB, "real-session");
+
+    Map<Long, Long> counts = WebPageHitRepository.countViewsByWebPageId(List.of(pageA, pageB), 30);
+
+    assertEquals(2L, counts.get(pageA), "only the two real-session hits should count, not the bot's");
+    assertEquals(1L, counts.get(pageB));
+  }
+
+  @Test
+  void countViewsByWebPageIdOmitsPagesWithNoHitsRatherThanReturningZero() {
+    long pageWithNoHits = seedPage("/never-viewed");
+
+    Map<Long, Long> counts = WebPageHitRepository.countViewsByWebPageId(List.of(pageWithNoHits), 30);
+
+    assertTrue(counts.isEmpty(), "a page with no hits in range must be absent from the map, not present with 0");
+  }
+
+  @Test
+  void countViewsByWebPageIdOnlyCountsRequestedPagesNotEveryPageInTheDatabase() {
+    seedSession("real-session", false);
+    long requestedPage = seedPage("/requested");
+    long otherPage = seedPage("/not-requested");
+    seedHit(requestedPage, "real-session");
+    seedHit(otherPage, "real-session");
+    seedHit(otherPage, "real-session");
+
+    Map<Long, Long> counts = WebPageHitRepository.countViewsByWebPageId(List.of(requestedPage), 30);
+
+    assertEquals(1, counts.size());
+    assertEquals(1L, counts.get(requestedPage));
+  }
+
+  @Test
+  void countViewsByWebPageIdReturnsEmptyMapForNullOrEmptyInputWithoutQuerying() {
+    assertTrue(WebPageHitRepository.countViewsByWebPageId(null, 30).isEmpty());
+    assertTrue(WebPageHitRepository.countViewsByWebPageId(List.of(), 30).isEmpty());
+  }
+
+  @Test
+  void countViewsByWebPageIdExcludesHitsOutsideTheWindow() {
+    seedSession("real-session", false);
+    long page = seedPage("/boundary");
+    Timestamp thirtyOneDaysAgo = Timestamp.from(java.time.Instant.now().minus(Duration.ofDays(31)));
+    seedHit(page, "real-session", thirtyOneDaysAgo);
+    seedHit(page, "real-session", new Timestamp(System.currentTimeMillis()));
+
+    Map<Long, Long> counts = WebPageHitRepository.countViewsByWebPageId(List.of(page), 30);
+
+    assertEquals(1L, counts.get(page), "the hit older than the 30-day window must not count");
+  }
+
+  private static void seedHit(long webPageId, String sessionId, Timestamp hitDate) {
+    try (Connection connection = DB.getConnection();
+        Statement statement = connection.createStatement()) {
+      statement.execute("INSERT INTO web_page_hits (web_page_id, session_id, hit_date) VALUES ("
+          + webPageId + ", '" + sessionId + "', '" + hitDate + "')");
+    } catch (SQLException se) {
+      throw new IllegalStateException("Could not seed web page hit", se);
+    }
   }
 
   // --- findAvgPagesPerSession() integration coverage (issue #568) ---
