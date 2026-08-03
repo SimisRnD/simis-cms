@@ -34,11 +34,43 @@
 <jsp:useBean id="fileList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="canEdit" class="java.lang.String" scope="request"/>
 <jsp:useBean id="canDelete" class="java.lang.String" scope="request"/>
+<jsp:useBean id="query" class="java.lang.String" scope="request"/>
+<jsp:useBean id="sortBy" class="java.lang.String" scope="request"/>
 <script src="${ctx}/javascript/clipboard-2.0.11/clipboard.min.js"></script>
 <%@include file="../page_messages.jspf" %>
 <c:if test="${(userSession.hasRole('admin') || userSession.hasRole('content-manager'))}">
   <a href="${ctx}/admin/file-form?subFolderId=${subFolder.id}&folderId=${folder.id}&returnPage=${widgetContext.uri}%3FsubFolderId=${subFolder.id}%26folderId=${folder.id}" class="button small primary radius float-left"><i class="fa fa-plus"></i> Add File Link</a>
 </c:if>
+<%-- Search/sort (GET so the criteria live in the URL); folderId/subFolderId are carried as hidden
+     fields since a GET form with no action= replaces the current query string with only its own
+     fields --%>
+<form method="get" autocomplete="off" class="clear-float margin-bottom-10">
+  <input type="hidden" name="folderId" value="${folder.id}"/>
+  <c:if test="${subFolder.id gt 0}">
+    <input type="hidden" name="subFolderId" value="${subFolder.id}"/>
+  </c:if>
+  <div class="grid-x grid-margin-x">
+    <div class="cell medium-5">
+      <label for="fileSearchQuery" class="show-for-sr">Search by filename or title</label>
+      <input id="fileSearchQuery" type="search" name="query" placeholder="Search by filename or title..."<c:if test="${!empty query}"> value="<c:out value="${query}"/>"</c:if>>
+    </div>
+    <div class="cell medium-4">
+      <label for="fileSortBy" class="show-for-sr">Sort by</label>
+      <select id="fileSortBy" name="sortBy">
+        <option value="date" <c:if test="${sortBy eq 'date'}">selected</c:if>>Date (Newest First)</option>
+        <option value="name" <c:if test="${sortBy eq 'name'}">selected</c:if>>Name (A-Z)</option>
+        <option value="size" <c:if test="${sortBy eq 'size'}">selected</c:if>>Size (Largest First)</option>
+        <option value="downloads" <c:if test="${sortBy eq 'downloads'}">selected</c:if>>Downloads (Most First)</option>
+      </select>
+    </div>
+    <div class="cell medium-3">
+      <button type="submit" class="button small primary radius"><i class="fa fa-filter"></i> Apply</button>
+      <c:if test="${!empty query || sortBy ne 'date'}">
+        <a href="${widgetContext.uri}?folderId=${folder.id}<c:if test="${subFolder.id gt 0}">&subFolderId=${subFolder.id}</c:if>" class="button small secondary radius">Clear</a>
+      </c:if>
+    </div>
+  </div>
+</form>
 <table class="unstriped">
   <thead>
     <tr>
@@ -54,7 +86,12 @@
   <tbody>
     <c:if test="${empty fileList}">
       <tr>
-        <td colspan="5">No files were found</td>
+        <td colspan="5">
+          <c:choose>
+            <c:when test="${!empty query}">No files match "<c:out value="${query}" />"</c:when>
+            <c:otherwise>No files were found</c:otherwise>
+          </c:choose>
+        </td>
       </tr>
     </c:if>
     <c:forEach items="${fileList}" var="file">
@@ -74,6 +111,12 @@
             </c:when>
           </c:choose>
           <c:if test="${file.version ne '1.0'}">(<c:out value="${file.version}" />)</c:if>
+          <c:if test="${file.expired}">
+            <span class="label small round alert">expired</span>
+          </c:if>
+          <c:if test="${file.expiringSoon}">
+            <span class="label small round warning">expiring soon</span>
+          </c:if>
         </small>
         <c:if test="${file.categoryId gt 0}">
           <span class="label"><c:out value="${folderCategory:name(file.categoryId)}" /></span>
@@ -91,6 +134,9 @@
         </c:if>
         <c:if test="${!empty file.summary}">
           <br /><small><c:out value="${file.summary}" /></small>
+        </c:if>
+        <c:if test="${!empty file.expirationDate}">
+          <br /><small>Expires: <fmt:formatDate pattern="yyyy-MM-dd hh:mm a" value="${file.expirationDate}" /></small>
         </c:if>
       </td>
       <td nowrap>
@@ -110,6 +156,9 @@
         </c:if>
         <c:if test="${fn:toLowerCase(file.fileType) ne 'url'}">
           <a title="Download file" href="${ctx}/assets/file/${file.url}"><i class="fa fa-download"></i></a>
+        </c:if>
+        <c:if test="${versionCountMap[file.id] gt 1}">
+          <a title="Version history" href="${ctx}/admin/file-versions?fileId=${file.id}"><i class="fa fa-history"></i></a>
         </c:if>
         <c:if test="${canDelete eq 'true'}">
           <a title="Delete file" href="#" onclick="return confirmPostAction('Are you sure you want to delete <c:out value="${js:escape(file.filename)}" />?', '${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&fileId=${file.id}');"><i class="fa fa-remove"></i></a>
@@ -183,6 +232,9 @@
       }
       if (data.hasOwnProperty('filename')) {
         document.getElementById('filename').value = data.filename;
+      }
+      if (data.hasOwnProperty('expirationDate')) {
+        document.getElementById('expirationDate').value = data.expirationDate;
       }
       document.getElementById('title').value = data.title;
 
@@ -270,6 +322,9 @@
       </label>
       <label>Version
         <input type="text" placeholder="Version" name="version" id="version" value="">
+      </label>
+      <label>Expiration date (optional)
+        <input type="datetime-local" name="expirationDate" id="expirationDate" value="">
       </label>
       <div class="button-container">
         <input type="submit" class="button radius success expanded" value="Save" />

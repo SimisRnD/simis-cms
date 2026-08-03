@@ -32,6 +32,10 @@ public class CalendarEventSpecification {
   private long calendarId = -1L;
   private String uniqueId = null;
   private int publishedOnly = DataConstants.UNDEFINED;
+  // Mirrors MedicineSpecification's archivedOnly (issue #882): UNDEFINED includes archived rows
+  // (the pre-#882 behavior, unchanged for any caller that never sets this), TRUE returns only
+  // archived rows, FALSE excludes them.
+  private int archivedOnly = DataConstants.UNDEFINED;
   private Timestamp startingDateRange = null;
   private Timestamp endingDateRange = null;
   private String searchTerm = null;
@@ -81,6 +85,18 @@ public class CalendarEventSpecification {
 
   public void setPublishedOnly(int publishedOnly) {
     this.publishedOnly = publishedOnly;
+  }
+
+  public int getArchivedOnly() {
+    return archivedOnly;
+  }
+
+  public void setArchivedOnly(boolean archivedOnly) {
+    this.archivedOnly = (archivedOnly ? DataConstants.TRUE : DataConstants.FALSE);
+  }
+
+  public void setArchivedOnly(int archivedOnly) {
+    this.archivedOnly = archivedOnly;
   }
 
   public Timestamp getStartingDateRange() {

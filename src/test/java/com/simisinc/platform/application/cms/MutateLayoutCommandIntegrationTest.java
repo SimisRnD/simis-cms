@@ -216,7 +216,11 @@ class MutateLayoutCommandIntegrationTest {
           + "sitemap_changefreq VARCHAR(20), "
           + "publish_at TIMESTAMP, "
           + "expires_at TIMESTAMP, "
-          + "solution_type VARCHAR(255))");
+          + "solution_type VARCHAR(255), "
+          + "draft_status VARCHAR(20), "
+          + "submitted_by BIGINT DEFAULT -1, "
+          + "approved_by BIGINT DEFAULT -1, "
+          + "release_reference VARCHAR(255))");
     } catch (SQLException se) {
       throw new IllegalStateException("Could not create the web_pages/users schema", se);
     }

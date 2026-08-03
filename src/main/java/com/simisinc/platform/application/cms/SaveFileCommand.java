@@ -17,7 +17,10 @@
 package com.simisinc.platform.application.cms;
 
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
@@ -25,7 +28,9 @@ import org.apache.commons.logging.LogFactory;
 
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.domain.model.cms.FileItem;
+import com.simisinc.platform.domain.model.cms.Folder;
 import com.simisinc.platform.infrastructure.persistence.cms.FileItemRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.FolderRepository;
 
 /**
  * Validates and saves file item objects
@@ -60,6 +65,27 @@ public class SaveFileCommand {
       if (fileItemBean.getCreatedBy() == -1) {
         throw new DataException("The user creating this record was not set");
       }
+    }
+  }
+
+  /**
+   * Rejects a new file body whose extension isn't on its destination folder's configured allowlist
+   * (issue #370). Only called for paths that write new file bytes (a new record, or a new version
+   * of an existing one) -- not for renaming an existing record, which can't change the extension.
+   * A blank/unset allowlist means unrestricted, matching every folder's default.
+   */
+  private static void validateAllowedExtension(FileItem fileItemBean) throws DataException {
+    Folder folder = FolderRepository.findById(fileItemBean.getFolderId());
+    if (folder == null || StringUtils.isBlank(folder.getAllowedExtensions())) {
+      return;
+    }
+    Set<String> allowed = Arrays.stream(folder.getAllowedExtensions().split("[,\\s]+"))
+        .map(String::toLowerCase)
+        .filter(StringUtils::isNotBlank)
+        .collect(Collectors.toSet());
+    String ext = StringUtils.lowerCase(fileItemBean.getExtension());
+    if (!allowed.contains(ext)) {
+      throw new DataException("File type '." + ext + "' is not allowed in this folder");
     }
   }
 
@@ -103,6 +129,7 @@ public class SaveFileCommand {
       LOG.debug("FolderId: " + fileItemBean.getFolderId());
     } else {
       LOG.debug("Saving a new record... ");
+      validateAllowedExtension(fileItemBean);
       fileItem = new FileItem();
       fileItem.setFilename(fileItemBean.getFilename());
       fileItem.setFileServerPath(fileItemBean.getFileServerPath());
@@ -125,6 +152,7 @@ public class SaveFileCommand {
     fileItem.setTitle(fileItemBean.getTitle());
     fileItem.setVersion(fileItemBean.getVersion());
     fileItem.setSummary(fileItemBean.getSummary());
+    fileItem.setExpirationDate(fileItemBean.getExpirationDate());
     fileItem.setModifiedBy(fileItemBean.getModifiedBy());
     return FileItemRepository.save(fileItem);
   }
@@ -132,6 +160,8 @@ public class SaveFileCommand {
   public static FileItem saveNewVersionOfFile(FileItem fileItemBean) throws DataException {
     // Check the fields
     validateFile(fileItemBean);
+    // A new version is new file bytes, so it's subject to the destination folder's allowlist too
+    validateAllowedExtension(fileItemBean);
 
     // Transform the fields and store...
     FileItem fileItem = FileItemRepository.findById(fileItemBean.getId());
@@ -144,7 +174,6 @@ public class SaveFileCommand {
     fileItem.setCategoryId(fileItemBean.getCategoryId());
     fileItem.setFilename(fileItemBean.getFilename());
     fileItem.setTitle(fileItemBean.getTitle());
-    fileItem.setBarcode(fileItemBean.getBarcode());
     fileItem.setVersion(fileItemBean.getVersion());
     fileItem.setExtension(fileItemBean.getExtension());
     fileItem.setFileServerPath(fileItemBean.getFileServerPath());
@@ -158,9 +187,12 @@ public class SaveFileCommand {
     fileItem.setCreatedBy(fileItemBean.getCreatedBy());
     fileItem.setModifiedBy(fileItemBean.getModifiedBy());
     fileItem.setProcessed(null);
-    fileItem.setExpirationDate(fileItemBean.getExpirationDate());
-    fileItem.setPrivacyType(fileItemBean.getPrivacyType());
-    fileItem.setDefaultToken(fileItemBean.getDefaultToken());
+    // barcode/expirationDate/privacyType/defaultToken are deliberately NOT overwritten here --
+    // fileItem (loaded above via findById) already holds the file's current values for these, and
+    // fileItemBean (built by SaveFilePartCommand.saveFile() from the uploaded part) never populates
+    // them, so copying from fileItemBean silently wiped them back to null/UNDEFINED on every new
+    // version. A version upload changes the file's bytes/version label, not its expiration,
+    // sensitivity, or access token.
     // Determine the web path for downloads, can randomize, etc.
     Date created = new Date(System.currentTimeMillis());
     SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");

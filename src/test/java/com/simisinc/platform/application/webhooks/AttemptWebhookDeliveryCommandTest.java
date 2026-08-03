@@ -68,9 +68,10 @@ import com.simisinc.platform.infrastructure.persistence.webhooks.WebhookSubscrip
 /**
  * Verifies {@link AttemptWebhookDeliveryCommand}'s retry/backoff schedule and idempotency
  * (issue #418 / #456): a failed attempt is rescheduled at roughly the right backoff interval
- * (5s, 30s, 5m, 30m), and the 5th failed attempt is marked {@code exhausted} rather than
- * retried forever. {@link AttemptWebhookDeliveryCommand#scheduleRetry} is swapped out so this
- * never touches the real JobRunr scheduler (which is not configured in a plain unit test).
+ * (10m, 50m, 3h, 20h -- cumulative offsets of 10m, 1h, 4h, 24h from the first attempt), and the
+ * 5th failed attempt is marked {@code exhausted} rather than retried forever.
+ * {@link AttemptWebhookDeliveryCommand#scheduleRetry} is swapped out so this never touches the
+ * real JobRunr scheduler (which is not configured in a plain unit test).
  */
 class AttemptWebhookDeliveryCommandTest {
 
@@ -204,7 +205,7 @@ class AttemptWebhookDeliveryCommandTest {
     assertEquals(WebhookDelivery.FAILED, found.getStatus());
     assertEquals(1, found.getAttemptCount());
     assertEquals(1, scheduledRetryInstants.size());
-    assertWithinTolerance(scheduledRetryInstants.get(0), Duration.ofSeconds(5));
+    assertWithinTolerance(scheduledRetryInstants.get(0), Duration.ofMinutes(10));
   }
 
   @Test
@@ -212,21 +213,21 @@ class AttemptWebhookDeliveryCommandTest {
     long subscriptionId = seedSubscription("https://example.com/hooks", "secret-abc");
     WebhookDelivery delivery = seedDelivery(subscriptionId);
 
-    // Attempt 1 -> failed, retry in ~5s
+    // Attempt 1 -> failed, retry in ~10m
     attemptWithStatus(delivery.getId(), 500, "err");
-    assertWithinTolerance(scheduledRetryInstants.get(0), Duration.ofSeconds(5));
+    assertWithinTolerance(scheduledRetryInstants.get(0), Duration.ofMinutes(10));
 
-    // Attempt 2 -> failed, retry in ~30s
+    // Attempt 2 -> failed, retry in ~50m
     attemptWithStatus(delivery.getId(), 500, "err");
-    assertWithinTolerance(scheduledRetryInstants.get(1), Duration.ofSeconds(30));
+    assertWithinTolerance(scheduledRetryInstants.get(1), Duration.ofMinutes(50));
 
-    // Attempt 3 -> failed, retry in ~5m
+    // Attempt 3 -> failed, retry in ~3h
     attemptWithStatus(delivery.getId(), 500, "err");
-    assertWithinTolerance(scheduledRetryInstants.get(2), Duration.ofMinutes(5));
+    assertWithinTolerance(scheduledRetryInstants.get(2), Duration.ofHours(3));
 
-    // Attempt 4 -> failed, retry in ~30m
+    // Attempt 4 -> failed, retry in ~20h -- the final scheduled retry lands ~24h after attempt 1
     attemptWithStatus(delivery.getId(), 500, "err");
-    assertWithinTolerance(scheduledRetryInstants.get(3), Duration.ofMinutes(30));
+    assertWithinTolerance(scheduledRetryInstants.get(3), Duration.ofHours(20));
 
     // Attempt 5 -> failed, exhausted -- no 6th retry scheduled
     attemptWithStatus(delivery.getId(), 500, "err");

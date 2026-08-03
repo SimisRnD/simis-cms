@@ -17,6 +17,7 @@
 package com.simisinc.platform.domain.model.cms;
 
 import com.simisinc.platform.domain.model.Entity;
+import org.apache.commons.lang3.StringUtils;
 
 import java.math.BigDecimal;
 import java.sql.Timestamp;
@@ -27,7 +28,7 @@ import java.sql.Timestamp;
  * @author matt rajkowski
  * @created 5/4/18 5:38 PM
  */
-public class WebPage extends Entity {
+public class WebPage extends Entity implements Reviewable {
 
   private long id = -1;
   private String link = null;
@@ -76,6 +77,14 @@ public class WebPage extends Entity {
   // "contract-past-performance", "careers" -- mirrors template's simplicity: nullable, not a foreign
   // key to a taxonomy table. See SolutionTypeOptions for the common values offered in the admin UI.
   private String solutionType = null;
+  // Governed publish workflow (issue #407): a draft moves draft -> submitted -> (approved+published |
+  // rejected), mirroring Content's own fields exactly -- see ContentReviewCommand/Reviewable. Never
+  // reachable through WebPageFormWidget's BeanUtils.populate() form save (mass-assignment risk); only
+  // WebPageReviewWidget's explicit submit/approve/reject actions may change these.
+  private String draftStatus = null;
+  private long submittedBy = -1;
+  private long approvedBy = -1;
+  private String releaseReference = null;
 
   public WebPage() {
   }
@@ -295,6 +304,51 @@ public class WebPage extends Entity {
 
   public void setSolutionType(String solutionType) {
     this.solutionType = solutionType;
+  }
+
+  @Override
+  public String getDraftStatus() {
+    return draftStatus;
+  }
+
+  @Override
+  public void setDraftStatus(String draftStatus) {
+    this.draftStatus = draftStatus;
+  }
+
+  @Override
+  public long getSubmittedBy() {
+    return submittedBy;
+  }
+
+  @Override
+  public void setSubmittedBy(long submittedBy) {
+    this.submittedBy = submittedBy;
+  }
+
+  @Override
+  public long getApprovedBy() {
+    return approvedBy;
+  }
+
+  @Override
+  public void setApprovedBy(long approvedBy) {
+    this.approvedBy = approvedBy;
+  }
+
+  @Override
+  public String getReleaseReference() {
+    return releaseReference;
+  }
+
+  @Override
+  public void setReleaseReference(String releaseReference) {
+    this.releaseReference = releaseReference;
+  }
+
+  @Override
+  public boolean hasDraftContent() {
+    return StringUtils.isNotBlank(draftPageXml);
   }
 
   /**
