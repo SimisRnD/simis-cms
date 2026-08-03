@@ -105,27 +105,33 @@ class FolderFileDropZoneWidgetTest extends WidgetBase {
     addQueryParameter(widgetContext, "folderId", "1");
     addQueryParameter(widgetContext, "subFolderId", "-1");
 
-    com.simisinc.platform.domain.model.cms.Folder folder = new com.simisinc.platform.domain.model.cms.Folder();
-    folder.setId(1L);
-    folder.setAllowedExtensions("pdf,docx");
-
+    // Deliberately not ".exe"/.dll/etc: those are rejected earlier by ValidateFileCommand's
+    // global dangerous-extension blocklist (see MediaApiControllerTest#uploadRejectsABlockedDangerousExtension),
+    // which would short-circuit before ever reaching the folder-specific allowlist this test
+    // targets -- SaveFileCommand.saveFile()'s validateAllowedExtension() (issue #370).
     FileItem uploadedPart = new FileItem();
-    uploadedPart.setFilename("virus.exe");
-    uploadedPart.setExtension("exe");
+    uploadedPart.setFilename("diagram.png");
+    uploadedPart.setExtension("png");
     uploadedPart.setFileLength(1024);
 
-    try (MockedStatic<FolderRepository> folderRepository = mockStatic(FolderRepository.class);
-        MockedStatic<SaveFilePartCommand> saveFilePart = mockStatic(SaveFilePartCommand.class);
+    // ValidateFileCommand is mocked out (same as the success-path test above) so its real
+    // checkFile() never runs -- unmocked, it resolves the file server root path via
+    // LoadSitePropertyCommand, which falls through to a real DB lookup with no DataSource
+    // configured in this unit test.
+    try (MockedStatic<SaveFilePartCommand> saveFilePart = mockStatic(SaveFilePartCommand.class);
+        MockedStatic<ValidateFileCommand> validateFile = mockStatic(ValidateFileCommand.class);
+        MockedStatic<SaveFileCommand> saveFileCommand = mockStatic(SaveFileCommand.class);
         MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
-      folderRepository.when(() -> FolderRepository.findById(1L)).thenReturn(folder);
       saveFilePart.when(() -> SaveFilePartCommand.saveFile(widgetContext)).thenReturn(uploadedPart);
+      saveFileCommand.when(() -> SaveFileCommand.saveFile(uploadedPart))
+          .thenThrow(new DataException("File type '.png' is not allowed in this folder"));
 
       FolderFileDropZoneWidget widget = new FolderFileDropZoneWidget();
       widget.post(widgetContext);
 
       audit.verify(() -> AuditEventCommand.record(any(WidgetContext.class), eq(AuditEventCommand.CONTENT),
           eq("folder_file.create"), eq(AuditEventCommand.FAILURE), eq("folder_file"), any(),
-          eq("virus.exe"), eq("File type '.exe' is not allowed in this folder")), times(1));
+          eq("diagram.png"), eq("File type '.png' is not allowed in this folder")), times(1));
     }
   }
 }
