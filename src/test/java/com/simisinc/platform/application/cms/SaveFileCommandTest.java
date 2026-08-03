@@ -25,9 +25,12 @@ import static org.mockito.Mockito.mockStatic;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
+import java.sql.Timestamp;
+
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.domain.model.cms.FileItem;
 import com.simisinc.platform.domain.model.cms.Folder;
+import com.simisinc.platform.domain.model.items.PrivacyType;
 import com.simisinc.platform.infrastructure.persistence.cms.FileItemRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.FolderRepository;
 
@@ -132,6 +135,44 @@ class SaveFileCommandTest {
       newVersion.setId(42L);
       DataException thrown = assertThrows(DataException.class, () -> SaveFileCommand.saveNewVersionOfFile(newVersion));
       assertEquals("File type '.svg' is not allowed in this folder", thrown.getMessage());
+    }
+  }
+
+  @Test
+  void saveNewVersionOfFilePreservesExpirationPrivacyTokenAndBarcodeFromTheExistingRecord() throws DataException {
+    // Regression test: saveNewVersionOfFile used to unconditionally overwrite these four fields
+    // from fileItemBean, which SaveFilePartCommand.saveFile() never populates on a version-upload
+    // bean -- so every new version silently wiped the file's expiration date, privacy setting,
+    // access token, and barcode back to null/UNDEFINED.
+    Folder folder = new Folder();
+    folder.setId(5L);
+    folder.setAllowedExtensions(null);
+
+    try (MockedStatic<FolderRepository> folderRepository = mockStatic(FolderRepository.class);
+        MockedStatic<FileItemRepository> fileItemRepository = mockStatic(FileItemRepository.class)) {
+      folderRepository.when(() -> FolderRepository.findById(5L)).thenReturn(folder);
+
+      FileItem existing = newFileBean(5, "pdf");
+      existing.setId(42L);
+      Timestamp expiration = new Timestamp(System.currentTimeMillis() + 1_000_000L);
+      existing.setExpirationDate(expiration);
+      existing.setPrivacyType(PrivacyType.PRIVATE);
+      existing.setDefaultToken("existing-token-abc123");
+      existing.setBarcode("BC-99887766");
+      fileItemRepository.when(() -> FileItemRepository.findById(42L)).thenReturn(existing);
+      fileItemRepository.when(() -> FileItemRepository.saveVersion(any())).thenAnswer(inv -> inv.getArgument(0));
+
+      // Mirrors what FolderFilesListWidget.post() actually builds from SaveFilePartCommand.saveFile()
+      // for a new-version upload: no expirationDate/privacyType/defaultToken/barcode are ever set.
+      FileItem newVersion = newFileBean(5, "pdf");
+      newVersion.setId(42L);
+
+      FileItem saved = SaveFileCommand.saveNewVersionOfFile(newVersion);
+
+      assertEquals(expiration, saved.getExpirationDate());
+      assertEquals(PrivacyType.PRIVATE, saved.getPrivacyType());
+      assertEquals("existing-token-abc123", saved.getDefaultToken());
+      assertEquals("BC-99887766", saved.getBarcode());
     }
   }
 
