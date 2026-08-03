@@ -17,6 +17,7 @@
 package com.simisinc.platform.presentation.widgets.cms;
 
 import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.FeatureFlagCommand;
 import com.simisinc.platform.application.cms.MakeContentUniqueIdCommand;
 import com.simisinc.platform.application.cms.SaveWebPageCommand;
 import com.simisinc.platform.application.cms.UrlCommand;
@@ -61,6 +62,12 @@ public class WebPageDesignerWidget extends GenericWidget {
   static String CODE_MIRROR_XML_EDITOR_JSP = "/cms/web-page-code-mirror-xml-editor.jsp";
   static String WIDGET_SCHEMA_RESOURCE = "/WEB-INF/widgets/widget-schema.json";
 
+  // Issue #410: gates offering the P4 composition-canvas designer. Defaults to true (see
+  // NEW_10150__new_feature_flag_properties.sql) so upgrading installs keep today's always-on
+  // behavior; turning it off stops *offering* the designer going forward without touching any
+  // page's already-persisted XML -- see the isEnabled() call sites below.
+  static final String LAYOUT_EDITOR_FLAG = "layout-editor";
+
   // Loaded once and cached; the file is static content shipped with the app, not per-request data.
   private static String widgetSchemaJson = null;
 
@@ -71,9 +78,15 @@ public class WebPageDesignerWidget extends GenericWidget {
     context.setJsp(ACE_XML_EDITOR_JSP);
 //    context.setJsp(CODE_MIRROR_XML_EDITOR_JSP);
 
-    // See if an editor is specified
+    // See if an editor is specified. The flag is checked second so a normal request (no "editor"
+    // param, the overwhelming common case) never pays for a site-property lookup. When the flag is
+    // off, a "designer" request simply falls back to the default (raw XML) JSP above instead of
+    // opening the composition canvas -- this is the "offer no more" branch point; it never rewrites
+    // webPage.getPageXml(), so a page that already has editor="designer" stored keeps that XML
+    // exactly as-is.
     String editor = context.getParameter("editor");
-    if ("designer".equals(editor)) {
+    boolean useDesigner = "designer".equals(editor) && FeatureFlagCommand.isEnabled(LAYOUT_EDITOR_FLAG);
+    if (useDesigner) {
       context.setJsp(DESIGNER_JSP);
     }
 
@@ -88,11 +101,12 @@ public class WebPageDesignerWidget extends GenericWidget {
       // Determine the reason...
       webPage = (WebPage) context.getRequestObject();
       context.getRequest().setAttribute("webPage", webPage);
-      if (webPage.getPageXml().contains("editor=\"designer\"")) {
+      if (webPage.getPageXml().contains("editor=\"designer\"") && FeatureFlagCommand.isEnabled(LAYOUT_EDITOR_FLAG)) {
         // An editor was specified, so use it
         context.setJsp(DESIGNER_JSP);
       } else {
-        // There was a post error
+        // There was a post error (or the flag is off, in which case this falls back to the default
+        // ACE_XML_EDITOR_JSP set above, showing the same content for correction instead of the canvas)
         return context;
       }
     }
@@ -116,7 +130,7 @@ public class WebPageDesignerWidget extends GenericWidget {
     // Show some templates
     if (StringUtils.isBlank(webPage.getPageXml())) {
 
-      if ("designer".equals(editor)) {
+      if (useDesigner) {
         // @todo use WebPageDesignerCommand.convertFromPageLayoutToBootstrap();
         // Default to a single column template
         webPage.setPageXml("<page>\n" +
@@ -144,6 +158,19 @@ public class WebPageDesignerWidget extends GenericWidget {
           List<WebPageTemplate> webPageTemplateList2 = WebPageTemplateRepository.findAll();
           if (!webPageTemplateList2.isEmpty()) {
             webPageTemplateList.addAll(webPageTemplateList2);
+          }
+
+          // Issue #410: stop *offering* the designer template ("Webpage Designer.xml", which tags
+          // new pages with editor="designer") from the picker when the flag is off. Filtering the
+          // combined list (rather than special-casing the filesystem template) also covers any
+          // database-authored template that happens to carry the same marker. The flag is only
+          // consulted when a designer-tagged template is actually present, so a page whose template
+          // list has none of these stays a no-op.
+          boolean hasDesignerTemplate = webPageTemplateList.stream()
+              .anyMatch(template -> template.getPageXml() != null && template.getPageXml().contains("editor=\"designer\""));
+          if (hasDesignerTemplate && !FeatureFlagCommand.isEnabled(LAYOUT_EDITOR_FLAG)) {
+            webPageTemplateList.removeIf(template -> template.getPageXml() != null
+                && template.getPageXml().contains("editor=\"designer\""));
           }
 
           // Sort the list
@@ -287,8 +314,11 @@ public class WebPageDesignerWidget extends GenericWidget {
         return context;
       }
 
-      // If the designer is specified in the template, no need to save...
-      if (webPage.getPageXml().contains("editor=\"designer\"")) {
+      // If the designer is specified in the template, no need to save... unless the flag is off, in
+      // which case fall through to the normal save below instead of bouncing to the canvas -- the
+      // editor="designer" text in the XML is preserved verbatim either way, this only decides
+      // whether the redirect opens the canvas or the page just saves and returns normally.
+      if (webPage.getPageXml().contains("editor=\"designer\"") && FeatureFlagCommand.isEnabled(LAYOUT_EDITOR_FLAG)) {
         context.setRequestObject(webPage);
         context.setRedirect("/admin/web-page-designer?editor=designer&webPage=" + webPage.getLink());
         return context;
