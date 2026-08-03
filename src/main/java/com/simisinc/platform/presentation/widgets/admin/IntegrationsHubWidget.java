@@ -21,10 +21,9 @@ import java.time.Instant;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
-import java.util.TreeMap;
 
 import com.simisinc.platform.application.admin.SecretSitePropertiesCommand;
+import com.simisinc.platform.application.admin.SitePropertySettingsPageCommand;
 import com.simisinc.platform.domain.model.SiteProperty;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.infrastructure.persistence.SitePropertyRepository;
@@ -57,20 +56,6 @@ public class IntegrationsHubWidget extends GenericWidget {
 
   /** How many days out an expiry counts as "expiring soon" rather than just "ok". */
   static final long EXPIRING_SOON_DAYS = 30;
-
-  // The settings page that owns each editable integration prefix -- derived from
-  // admin-layout.xml's sitePropertiesEditor prefix registrations. A prefix with no entry here
-  // (currently just "oauth") has no admin editor at all.
-  private static final Map<String, String> PREFIX_TO_PAGE = new TreeMap<>();
-  static {
-    PREFIX_TO_PAGE.put("ecommerce", "/admin/ecommerce-properties");
-    PREFIX_TO_PAGE.put("mail", "/admin/mail-properties");
-    PREFIX_TO_PAGE.put("captcha", "/admin/captcha-properties");
-    PREFIX_TO_PAGE.put("mailing-list", "/admin/mailing-list-properties");
-    PREFIX_TO_PAGE.put("bi", "/admin/bi-properties");
-    PREFIX_TO_PAGE.put("social", "/admin/social-media-settings");
-    PREFIX_TO_PAGE.put("elearning", "/admin/elearning-properties");
-  }
 
   public static class SecretStatus {
     private final String name;
@@ -159,11 +144,11 @@ public class IntegrationsHubWidget extends GenericWidget {
   }
 
   private SecretStatus toSecretStatus(String name, SiteProperty siteProperty) {
-    String prefix = rootPrefixOf(name);
+    String prefix = SitePropertySettingsPageCommand.rootPrefixOf(name);
     String label = siteProperty != null && siteProperty.getLabel() != null ? siteProperty.getLabel() : name;
     boolean set = siteProperty != null && siteProperty.getValue() != null && !siteProperty.getValue().isEmpty();
     boolean disabled = siteProperty != null && "disabled".equals(siteProperty.getType());
-    String pageUrl = disabled ? null : PREFIX_TO_PAGE.get(prefix);
+    String pageUrl = disabled ? null : SitePropertySettingsPageCommand.findPageUrl(prefix);
 
     String modifiedByName = null;
     long modifiedBy = siteProperty != null ? siteProperty.getModifiedBy() : -1;
@@ -193,11 +178,5 @@ public class IntegrationsHubWidget extends GenericWidget {
       return "expiring-soon";
     }
     return "ok";
-  }
-
-  /** @return the segment before the first dot, matching SitePropertyRepository.saveAll's cache-key convention */
-  private static String rootPrefixOf(String propertyName) {
-    int dot = propertyName.indexOf('.');
-    return dot > 0 ? propertyName.substring(0, dot) : propertyName;
   }
 }

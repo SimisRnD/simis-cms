@@ -37,21 +37,36 @@ import org.junit.jupiter.api.Test;
  * {@code UPGRADE_20260801.1001__create_webhook_tables.sql} (existing databases) -- this fails
  * loudly if a future edit touches one file and not the other, the exact bug shape issue #431
  * already hit once in this codebase.
+ *
+ * <p>
+ * {@code webhook_subscription} later gained {@code integration_id} (issue #455) via a separate,
+ * additive {@code ALTER TABLE ... ADD COLUMN} upgrade migration rather than by editing the
+ * already-shipped creation migration above -- an already-numbered Flyway migration must never be
+ * edited after the fact, the same principle {@code V20260719_1004}'s javadoc documents for the
+ * same reason. That additive migration's added columns are unioned into the upgrade-path column
+ * set below before comparing against the install path, so this test's real intent (catch a column
+ * added to one path and not the other) still holds without demanding every schema change land in
+ * the original creation migration.
+ * </p>
  */
 class WebhookMigrationTest {
 
   private static final String INSTALL_PATH = "src/main/resources/database/install/NEW_10130__new_webhooks.sql";
   private static final String UPGRADE_PATH =
       "src/main/resources/database/upgrade/2026/UPGRADE_20260801.1001__create_webhook_tables.sql";
+  private static final String UPGRADE_ADDITIVE_PATH =
+      "src/main/resources/database/upgrade/2026/UPGRADE_20260803.1001__integration_registry.sql";
 
   @Test
   void installAndUpgradeDefineTheSameTablesWithTheSameColumns() throws IOException {
     String installSql = Files.readString(Path.of(INSTALL_PATH));
     String upgradeSql = Files.readString(Path.of(UPGRADE_PATH));
+    String upgradeAdditiveSql = Files.readString(Path.of(UPGRADE_ADDITIVE_PATH));
 
     for (String table : new String[] { "webhook_subscription", "webhook_delivery" }) {
       Set<String> installColumns = createTableColumns(installSql, table);
-      Set<String> upgradeColumns = createTableColumns(upgradeSql, table);
+      Set<String> upgradeColumns = new HashSet<>(createTableColumns(upgradeSql, table));
+      upgradeColumns.addAll(addedColumns(upgradeAdditiveSql, table));
       assertEquals(installColumns, upgradeColumns,
           table + " columns differ between the install and upgrade paths");
       assertTrue(installColumns.size() > 3, "sanity check: " + table + " should have several columns");
@@ -67,6 +82,18 @@ class WebhookMigrationTest {
     String upgradeSql = Files.readString(Path.of(UPGRADE_PATH));
     assertTrue(upgradeSql.contains("CREATE TABLE IF NOT EXISTS webhook_subscription"));
     assertTrue(upgradeSql.contains("CREATE TABLE IF NOT EXISTS webhook_delivery"));
+  }
+
+  /** Column names added to {@code tableName} by any {@code ALTER TABLE ... ADD COLUMN} statement in {@code sql}. */
+  private static Set<String> addedColumns(String sql, String tableName) {
+    Set<String> columns = new HashSet<>();
+    Matcher matcher = Pattern
+        .compile("ALTER TABLE " + Pattern.quote(tableName) + "\\s+ADD COLUMN\\s+(\\w+)", Pattern.CASE_INSENSITIVE)
+        .matcher(stripLineComments(sql));
+    while (matcher.find()) {
+      columns.add(matcher.group(1).toLowerCase());
+    }
+    return columns;
   }
 
   /** Extracts column names from a {@code CREATE TABLE <name> ( ... )} block. */

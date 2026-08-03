@@ -233,10 +233,11 @@ class WebhookTaskTest {
         Statement statement = connection.createStatement()) {
       statement.execute("CREATE TABLE webhook_subscription ("
           + "webhook_subscription_id BIGSERIAL PRIMARY KEY, "
-          + "url VARCHAR(2000) NOT NULL, "
+          + "url TEXT NOT NULL, "
           + "event_types VARCHAR(2000) NOT NULL, "
           + "secret VARCHAR(255) NOT NULL, "
           + "enabled BOOLEAN DEFAULT true, "
+          + "integration_id VARCHAR(100), "
           + "created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP, "
           + "created_by BIGINT, "
           + "modified TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP, "

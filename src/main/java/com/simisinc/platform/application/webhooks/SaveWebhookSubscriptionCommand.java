@@ -84,13 +84,19 @@ public class SaveWebhookSubscriptionCommand {
       subscription = new WebhookSubscription();
       subscription.setSecret(GenerateWebhookSecretCommand.generate());
       subscription.setCreatedBy(bean.getCreatedBy());
+      // Issue #455: only meaningful at creation, e.g. when the integration registry's one-click
+      // install builds this bean. A bean from the standalone webhook-subscription admin form never
+      // sets this, so it's simply null there, same as always.
+      subscription.setIntegrationId(bean.getIntegrationId());
     } else {
       LOG.debug("Saving an existing webhook subscription...");
       subscription = WebhookSubscriptionRepository.findById(bean.getId());
       if (subscription == null) {
         throw new DataException("The existing subscription could not be found");
       }
-      // Deliberately not touching subscription.secret -- see RotateWebhookSecretCommand
+      // Deliberately not touching subscription.secret or subscription.integrationId -- see
+      // RotateWebhookSecretCommand, and see issue #455: an admin editing a registry-installed
+      // subscription's url/events through the generic form must not silently un-tag it.
     }
 
     subscription.setUrl(bean.getUrl().trim());
