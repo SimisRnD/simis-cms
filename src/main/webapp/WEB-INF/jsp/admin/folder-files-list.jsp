@@ -34,6 +34,7 @@
 <jsp:useBean id="fileList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="canEdit" class="java.lang.String" scope="request"/>
 <jsp:useBean id="canDelete" class="java.lang.String" scope="request"/>
+<jsp:useBean id="versionCountMap" class="java.util.HashMap" scope="request"/>
 <script src="${ctx}/javascript/clipboard-2.0.11/clipboard.min.js"></script>
 <%@include file="../page_messages.jspf" %>
 <c:if test="${(userSession.hasRole('admin') || userSession.hasRole('content-manager'))}">
@@ -110,6 +111,9 @@
         </c:if>
         <c:if test="${fn:toLowerCase(file.fileType) ne 'url'}">
           <a title="Download file" href="${ctx}/assets/file/${file.url}"><i class="fa fa-download"></i></a>
+        </c:if>
+        <c:if test="${versionCountMap[file.id] gt 1}">
+          <a title="Version history" href="${ctx}/admin/file-versions?fileId=${file.id}"><i class="fa fa-history"></i></a>
         </c:if>
         <c:if test="${canDelete eq 'true'}">
           <a title="Delete file" href="#" onclick="return confirmPostAction('Are you sure you want to delete <c:out value="${js:escape(file.filename)}" />?', '${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&fileId=${file.id}');"><i class="fa fa-remove"></i></a>
