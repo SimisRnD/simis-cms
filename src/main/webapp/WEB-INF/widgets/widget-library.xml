@@ -63,6 +63,7 @@
   <widget name="form" class="com.simisinc.platform.presentation.widgets.cms.FormWidget" />
   <widget name="albumGallery" class="com.simisinc.platform.presentation.widgets.cms.AlbumGalleryWidget" />
   <widget name="photoGallery" class="com.simisinc.platform.presentation.widgets.cms.PhotoGalleryWidget" />
+  <widget name="video" class="com.simisinc.platform.presentation.widgets.cms.VideoWidget" />
   <widget name="fileList" class="com.simisinc.platform.presentation.widgets.cms.FileListWidget" />
   <widget name="fileListByFolder" class="com.simisinc.platform.presentation.widgets.cms.FileListByFolderWidget" />
   <widget name="fileListByYear" class="com.simisinc.platform.presentation.widgets.cms.FileListByYearWidget" />
