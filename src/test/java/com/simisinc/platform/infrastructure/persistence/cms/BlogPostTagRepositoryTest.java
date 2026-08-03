@@ -246,7 +246,7 @@ class BlogPostTagRepositoryTest {
 
   /**
    * Proves the database-level backstop (blog_post_tags_uidx, added by
-   * UPGRADE_20260802.1007__blog_post_tags_unique_index.sql) actually exists and rejects a
+   * UPGRADE_20260802.1010__blog_post_tags_unique_index.sql) actually exists and rejects a
    * duplicate (post_id, tag_id) pair -- the gap a prior build of issue #633 was flagged for
    * shipping without. The application-level idempotency guarantee (a repeat save with the same
    * tag set inserts nothing new) is proven separately in BlogPostRepositoryTest, since

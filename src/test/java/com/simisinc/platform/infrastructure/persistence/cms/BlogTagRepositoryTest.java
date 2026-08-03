@@ -251,7 +251,7 @@ class BlogTagRepositoryTest {
    * Column names/types for blogs, lookup_blog_post_tags, blog_posts and blog_post_tags mirror
    * src/main/resources/database/install/NEW_10010__new_cms.sql exactly for every column these
    * repositories read or write, including the blog_post_tags_uidx unique index added by
-   * UPGRADE_20260802.1007__blog_post_tags_unique_index.sql (issue #633). Columns unrelated to tag
+   * UPGRADE_20260802.1010__blog_post_tags_unique_index.sql (issue #633). Columns unrelated to tag
    * persistence (geom/tsv full-text search, location fields, etc.) are omitted, matching the
    * simplification TagRepositoryTest/ItemTagRepositoryTest already apply to collections/items.
    */
