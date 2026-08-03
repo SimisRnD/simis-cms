@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
@@ -241,6 +242,20 @@ class DatabaseMigrationTest {
   }
 
   @Test
+  void featureFlagPropertiesSeedOnAFreshInstall() throws SQLException {
+    // Issue #410: NEW_10150__new_feature_flag_properties.sql seeds the features.* site properties
+    // that FeatureFlagCommand reads (through the cached/invalidated LoadSitePropertyCommand path --
+    // see FeatureFlagCommand's own class javadoc). features.layout-editor must default to 'true' so
+    // an install picks up the same always-on composition-canvas behavior that shipped before this
+    // flag existed.
+    assertEquals("true", sitePropertyValue("features.layout-editor"),
+        "features.layout-editor is missing or not defaulted to true on a fresh install");
+    assertEquals("boolean", sitePropertyType("features.layout-editor"));
+    assertEquals("false", sitePropertyValue("features.item-tags-facet-search"),
+        "features.item-tags-facet-search is missing or not defaulted to false on a fresh install");
+  }
+
+  @Test
   void tablesThatOnlyExistedInUpgradeMigrationsAreOnTheInstallPath() throws SQLException {
     // Same class of gap as columnsThatOnlyExistedInUpgradeMigrationsAreOnTheInstallPath above,
     // but for whole tables instead of columns: media_assets/media_asset_usage
@@ -262,6 +277,25 @@ class DatabaseMigrationTest {
             "SELECT to_regclass('public." + name + "') IS NOT NULL AS present")) {
       assertNotNull(rs);
       return rs.next() && rs.getBoolean("present");
+    }
+  }
+
+  private static String sitePropertyValue(String propertyName) throws SQLException {
+    return sitePropertyColumn(propertyName, "property_value");
+  }
+
+  private static String sitePropertyType(String propertyName) throws SQLException {
+    return sitePropertyColumn(propertyName, "property_type");
+  }
+
+  private static String sitePropertyColumn(String propertyName, String column) throws SQLException {
+    try (Connection connection = DB.getConnection();
+        PreparedStatement pst = connection.prepareStatement(
+            "SELECT " + column + " FROM site_properties WHERE property_name = ?")) {
+      pst.setString(1, propertyName);
+      try (ResultSet rs = pst.executeQuery()) {
+        return rs.next() ? rs.getString(column) : null;
+      }
     }
   }
 
