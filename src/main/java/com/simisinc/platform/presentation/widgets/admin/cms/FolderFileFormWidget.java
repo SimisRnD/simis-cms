@@ -29,6 +29,7 @@ import com.simisinc.platform.infrastructure.persistence.cms.FolderCategoryReposi
 import com.simisinc.platform.infrastructure.persistence.cms.FolderRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.SubFolderRepository;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
+import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang3.StringUtils;
@@ -167,11 +168,16 @@ public class FolderFileFormWidget extends GenericWidget {
         throw new FolderException("Your information could not be saved due to a system error. Please try again.");
       }
     } catch (DataException | FolderException e) {
+      AuditEventCommand.record(context, AuditEventCommand.CONTENT, "folder_file.create", AuditEventCommand.FAILURE,
+          "folder_file", String.valueOf(fileItemBean.getId()), fileItemBean.getFilename(), e.getMessage());
       context.setErrorMessage(e.getMessage());
       context.setRequestObject(fileItemBean);
 //      context.addSharedRequestValue("returnPage", returnPage);
       return context;
     }
+
+    AuditEventCommand.record(context, AuditEventCommand.CONTENT, "folder_file.create", AuditEventCommand.SUCCESS,
+        "folder_file", String.valueOf(fileItem.getId()), fileItem.getFilename(), null);
 
     context.setSuccessMessage("File was saved");
     return context;

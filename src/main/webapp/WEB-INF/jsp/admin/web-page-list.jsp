@@ -276,6 +276,9 @@
         <c:if test="${webPage.expiringSoon}">
           <br /><span class="secondary label"><i class="fa fa-hourglass-end"></i> expiring</span>
         </c:if>
+        <c:if test="${!empty webPageReviewStatusMap[webPage.id]}">
+          <br /><span class="secondary label"><i class="fa fa-clipboard-check"></i> <c:out value="${webPageReviewStatusMap[webPage.id]}" /></span>
+        </c:if>
       </td>
       <td>
         <c:out value="${webPage.title}" />

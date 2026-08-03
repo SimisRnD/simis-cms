@@ -251,6 +251,36 @@
       "preferences": []
     },
 
+    "video": {
+      "label": "Video",
+      "category": "Media",
+      "icon": "fa-video",
+      "preferences": [
+        {
+          "name": "videoUrl",
+          "label": "Video URL (YouTube or Vimeo)",
+          "type": "url"
+        },
+        {
+          "name": "title",
+          "label": "Title",
+          "type": "text"
+        },
+        {
+          "name": "aspectRatio",
+          "label": "Aspect Ratio",
+          "type": "select",
+          "options": [
+            "16:9",
+            "4:3",
+            "1:1",
+            "9:16"
+          ],
+          "default": "16:9"
+        }
+      ]
+    },
+
     "form": {
       "label": "Form",
       "category": "Forms",

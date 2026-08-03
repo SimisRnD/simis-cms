@@ -83,6 +83,8 @@ public class CalendarSearchResultsWidget extends GenericWidget {
     // Search the calendar events
     CalendarEventSpecification eventSpecification = new CalendarEventSpecification();
     eventSpecification.setPublishedOnly(true);
+    // issue #882: archived events are excluded from every public-facing calendar surface
+    eventSpecification.setArchivedOnly(false);
     eventSpecification.setSearchTerm(query);
     eventSpecification.setStartingDateRange(startingDateRange);
     if (selectedCalendarId != -1) {
@@ -103,6 +105,7 @@ public class CalendarSearchResultsWidget extends GenericWidget {
         boolean selected = selectedCalendarId == calendar.getId();
         CalendarEventSpecification countSpecification = new CalendarEventSpecification();
         countSpecification.setPublishedOnly(true);
+        countSpecification.setArchivedOnly(false);
         countSpecification.setSearchTerm(query);
         countSpecification.setStartingDateRange(startingDateRange);
         countSpecification.setCalendarId(calendar.getId());

@@ -123,7 +123,13 @@ CREATE TABLE web_pages (
   sitemap_changefreq VARCHAR(20),
   publish_at TIMESTAMP,
   expires_at TIMESTAMP,
-  solution_type VARCHAR(255)
+  solution_type VARCHAR(255),
+  -- Governed publish workflow (issue #407), mirroring content's own draft_status/submitted_by/
+  -- approved_by/release_reference exactly -- see ContentReviewCommand/Reviewable.
+  draft_status VARCHAR(20),
+  submitted_by BIGINT DEFAULT -1,
+  approved_by BIGINT DEFAULT -1,
+  release_reference VARCHAR(255)
 );
 CREATE INDEX web_pages_link_idx ON web_pages(link);
 CREATE INDEX web_pages_search_idx ON web_pages(searchable);
