@@ -18,6 +18,7 @@ package com.simisinc.platform.presentation.widgets.admin.cms;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
 
 import java.util.ArrayList;
@@ -30,6 +31,9 @@ import org.mockito.MockedStatic;
 
 import com.simisinc.platform.WidgetBase;
 import com.simisinc.platform.application.cms.CheckFolderPermissionCommand;
+import com.simisinc.platform.application.cms.DeleteFileCommand;
+import com.simisinc.platform.application.cms.LoadFileCommand;
+import com.simisinc.platform.domain.model.cms.FileItem;
 import com.simisinc.platform.domain.model.cms.Folder;
 import com.simisinc.platform.domain.model.cms.FolderCategory;
 import com.simisinc.platform.domain.model.cms.SubFolder;
@@ -39,6 +43,7 @@ import com.simisinc.platform.infrastructure.persistence.cms.FileSpecification;
 import com.simisinc.platform.infrastructure.persistence.cms.FolderCategoryRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.FolderRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.SubFolderRepository;
+import com.simisinc.platform.presentation.controller.AuditEventCommand;
 
 /**
  * Verifies the search-by-filename/title and sort-by-name/date/size/downloads behavior added to the
@@ -255,5 +260,34 @@ class FolderFilesListWidgetTest extends WidgetBase {
     // instead, since the explicit "size" sort survives alongside it.
     Assertions.assertEquals("report", specCaptor.getValue().getSearchTerm());
     Assertions.assertArrayEquals(new String[] { "file_length" }, constraintsCaptor.getValue().getColumnsToSortBy());
+  }
+
+  @Test
+  void deleteWhenTheRepositoryRemoveFailsDoesNotClaimSuccess() {
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "fileId", "7");
+
+    FileItem record = new FileItem();
+    record.setId(7L);
+    record.setFilename("policy.pdf");
+    record.setFolderId(5L);
+
+    try (MockedStatic<LoadFileCommand> loadFileCommand = mockStatic(LoadFileCommand.class);
+        MockedStatic<DeleteFileCommand> deleteFileCommand = mockStatic(DeleteFileCommand.class);
+        MockedStatic<AuditEventCommand> auditEventCommand = mockStatic(AuditEventCommand.class)) {
+      loadFileCommand.when(() -> LoadFileCommand.loadItemById(7L)).thenReturn(record);
+      // A false return (no exception) models a DB-level failure, e.g. FileItemRepository.remove()
+      // failing -- the widget must not tell the admin the file was deleted when it was not.
+      deleteFileCommand.when(() -> DeleteFileCommand.deleteFile(record)).thenReturn(false);
+
+      new FolderFilesListWidget().delete(widgetContext);
+
+      auditEventCommand.verify(() -> AuditEventCommand.record(any(), any(), any(),
+          eq(AuditEventCommand.FAILURE), any(), any(), any(), any()));
+    }
+
+    Assertions.assertNull(widgetContext.getSuccessMessage());
+    Assertions.assertNotNull(widgetContext.getErrorMessage());
+    Assertions.assertNull(widgetContext.getRedirect());
   }
 }
