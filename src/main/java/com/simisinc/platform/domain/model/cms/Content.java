@@ -17,6 +17,7 @@
 package com.simisinc.platform.domain.model.cms;
 
 import com.simisinc.platform.domain.model.Entity;
+import org.apache.commons.lang3.StringUtils;
 
 import java.sql.Timestamp;
 
@@ -26,7 +27,7 @@ import java.sql.Timestamp;
  * @author matt rajkowski
  * @created 4/8/18 4:18 PM
  */
-public class Content extends Entity {
+public class Content extends Entity implements Reviewable {
 
   private Long id = -1L;
 
@@ -132,6 +133,11 @@ public class Content extends Entity {
 
   public void setReleaseReference(String releaseReference) {
     this.releaseReference = releaseReference;
+  }
+
+  @Override
+  public boolean hasDraftContent() {
+    return StringUtils.isNotBlank(draftContent);
   }
 
   public long getCreatedBy() {
