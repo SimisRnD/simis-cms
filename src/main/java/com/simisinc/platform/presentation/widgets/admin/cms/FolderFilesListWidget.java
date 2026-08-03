@@ -17,7 +17,9 @@
 package com.simisinc.platform.presentation.widgets.admin.cms;
 
 import java.lang.reflect.InvocationTargetException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import com.simisinc.platform.application.AppException;
 import com.simisinc.platform.application.DataException;
@@ -32,16 +34,20 @@ import com.simisinc.platform.domain.model.cms.FileItem;
 import com.simisinc.platform.domain.model.cms.Folder;
 import com.simisinc.platform.domain.model.cms.FolderCategory;
 import com.simisinc.platform.domain.model.cms.SubFolder;
+import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.persistence.cms.FileItemRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.FileSpecification;
+import com.simisinc.platform.infrastructure.persistence.cms.FileVersionRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.FolderCategoryRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.FolderRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.SubFolderRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.SubFolderSpecification;
+import com.simisinc.platform.presentation.controller.RequestConstants;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 
 import org.apache.commons.beanutils.BeanUtils;
+import org.apache.commons.lang3.StringUtils;
 
 /**
  * Description
@@ -125,9 +131,49 @@ public class FolderFilesListWidget extends GenericWidget {
       specification.setInASubFolder(false);
     }
 
+    // Search by filename/title (issue #502)
+    String query = context.getParameter(RequestConstants.RECORD_QUERY);
+    context.getRequest().setAttribute(RequestConstants.RECORD_QUERY, query);
+    if (StringUtils.isNotBlank(query)) {
+      specification.setSearchTerm(query.trim());
+    }
+
+    // Sort by name/date/size/downloads (issue #502) -- an invalid or missing value falls back to
+    // "date", which maps to the same "created DESC" order this list used before sorting existed,
+    // so a plain page load (no sortBy param) keeps its prior ordering.
+    String sortBy = context.getParameter(RequestConstants.RECORD_SORT_BY, "date");
+    DataConstraints constraints = new DataConstraints();
+    switch (sortBy) {
+      case "name":
+        constraints.setColumnToSortBy("title");
+        break;
+      case "size":
+        constraints.setColumnToSortBy("file_length", "desc");
+        break;
+      case "downloads":
+        constraints.setColumnToSortBy("download_count", "desc");
+        break;
+      case "date":
+      default:
+        sortBy = "date";
+        constraints.setColumnToSortBy("created", "desc");
+        break;
+    }
+    context.getRequest().setAttribute(RequestConstants.RECORD_SORT_BY, sortBy);
+
     // Load the files
-    List<FileItem> fileList = FileItemRepository.findAll(specification, null);
+    List<FileItem> fileList = FileItemRepository.findAll(specification, constraints);
     context.getRequest().setAttribute("fileList", fileList);
+
+    // Determine how many versions each file has on record, so the UI only offers a "Version
+    // History" link when there's actually a prior version to show/restore (issue #502). The
+    // files.version_count column exists but is never populated by any writer, so it can't be
+    // trusted for this -- count file_versions directly instead.
+    Map<Long, Long> versionCountMap = new HashMap<>();
+    for (FileItem fileItem : fileList) {
+      versionCountMap.put(fileItem.getId(), FileVersionRepository.countByFileId(fileItem.getId()));
+    }
+    context.getRequest().setAttribute("versionCountMap", versionCountMap);
 
     // Standard request items
     context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));
