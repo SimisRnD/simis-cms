@@ -429,6 +429,7 @@
             <c:if test="${userSession.hasRole('admin')}">
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/health-dashboard')}"> class="is-active"</c:if>><a href="${ctx}/admin/health-dashboard"><i class="${font:far()} fa-heart-pulse fa-fw"></i> <span>System Health</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/job-queue-dashboard')}"> class="is-active"</c:if>><a href="${ctx}/admin/job-queue-dashboard"><i class="${font:far()} fa-list-check fa-fw"></i> <span>Job Queue</span></a></li>
+              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/database-maintenance')}"> class="is-active"</c:if>><a href="${ctx}/admin/database-maintenance"><i class="${font:far()} fa-database fa-fw"></i> <span>Database Maintenance</span></a></li>
             </c:if>
           </ul>
           <%-- Community menu --%>
@@ -514,6 +515,7 @@
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/captcha')}"> class="is-active"</c:if>><a href="${ctx}/admin/captcha-properties"><i class="${font:far()} fa-key fa-fw"></i> <span>Captcha Settings</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/robots')}"> class="is-active"</c:if>><a href="${ctx}/admin/robots-properties"><i class="${font:far()} fa-robot fa-fw"></i> <span>Robots &amp; Crawlers</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/security-properties')}"> class="is-active"</c:if>><a href="${ctx}/admin/security-properties"><i class="${font:far()} fa-shield fa-fw"></i> <span>Security</span></a></li>
+              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/feature-flags')}"> class="is-active"</c:if>><a href="${ctx}/admin/feature-flags"><i class="${font:far()} fa-flag fa-fw"></i> <span>Feature Flags</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/seo-overview')}"> class="is-active"</c:if>><a href="${ctx}/admin/seo-overview"><i class="${font:far()} fa-magnifying-glass-chart fa-fw"></i> <span>SEO &amp; AI Visibility</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/seo-sitemap')}"> class="is-active"</c:if>><a href="${ctx}/admin/seo-sitemap"><i class="${font:far()} fa-map fa-fw"></i> <span>SEO Sitemap</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/bi')}"> class="is-active"</c:if>><a href="${ctx}/admin/bi-properties"><i class="${font:far()} fa-table-columns fa-fw"></i> <span>BI Settings</span></a></li>

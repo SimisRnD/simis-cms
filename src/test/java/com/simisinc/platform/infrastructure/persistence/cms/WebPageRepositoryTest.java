@@ -17,6 +17,7 @@
 package com.simisinc.platform.infrastructure.persistence.cms;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -38,7 +39,9 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
 
+import com.simisinc.platform.application.cms.ContentReviewCommand;
 import com.simisinc.platform.domain.model.cms.WebPage;
+import com.simisinc.platform.domain.model.cms.WebPageVersion;
 import com.simisinc.platform.infrastructure.database.DB;
 import com.simisinc.platform.infrastructure.database.DataSource;
 
@@ -113,7 +116,7 @@ class WebPageRepositoryTest {
     }
     try (Connection connection = DB.getConnection();
         Statement statement = connection.createStatement()) {
-      statement.execute("TRUNCATE TABLE web_pages RESTART IDENTITY");
+      statement.execute("TRUNCATE TABLE web_pages RESTART IDENTITY CASCADE");
     } catch (SQLException se) {
       throw new IllegalStateException("Could not reset web_pages table", se);
     }
@@ -244,6 +247,117 @@ class WebPageRepositoryTest {
     assertNull(WebPageRepository.findById(saved.getId()).getSolutionType());
   }
 
+  // --- publish() version history (#405) ---
+
+  @Test
+  void publishSnapshotsTheOutgoingPageXmlAndPromotesTheDraft() {
+    WebPage webPage = new WebPage();
+    webPage.setLink("/versioned");
+    webPage.setTitle("Versioned Page");
+    webPage.setEnabled(true);
+    webPage.setSearchable(true);
+    webPage.setCreatedBy(1L);
+    webPage.setPageXml("<xml>v1</xml>");
+    webPage.setDraftPageXml("<xml>v2</xml>");
+    webPage.setDraft(true);
+    WebPage saved = WebPageRepository.save(webPage);
+
+    WebPageRepository.publish(saved, 42L, 20);
+
+    WebPage reloaded = WebPageRepository.findById(saved.getId());
+    assertEquals("<xml>v2</xml>", reloaded.getPageXml());
+    assertNull(reloaded.getDraftPageXml());
+    assertFalse(reloaded.getDraft());
+
+    List<WebPageVersion> versions = WebPageVersionRepository.findByWebPageId(saved.getId(), null);
+    assertEquals(1, versions.size());
+    assertEquals("<xml>v1</xml>", versions.get(0).getPageXml(), "the outgoing (pre-publish) xml must be snapshotted, not the incoming one");
+    assertEquals(42L, versions.get(0).getPublishedBy());
+  }
+
+  @Test
+  void publishIsANoOpWhenThereIsNoPendingDraft() {
+    WebPage webPage = new WebPage();
+    webPage.setLink("/no-draft");
+    webPage.setTitle("No Draft");
+    webPage.setEnabled(true);
+    webPage.setSearchable(true);
+    webPage.setCreatedBy(1L);
+    webPage.setPageXml("<xml>live</xml>");
+    WebPage saved = WebPageRepository.save(webPage);
+
+    WebPageRepository.publish(saved, 42L, 20);
+
+    WebPage reloaded = WebPageRepository.findById(saved.getId());
+    assertEquals("<xml>live</xml>", reloaded.getPageXml());
+    assertNull(WebPageVersionRepository.findByWebPageId(saved.getId(), null),
+        "no version should be recorded when there was nothing to publish");
+  }
+
+  @Test
+  void publishDoesNotSnapshotOnTheFirstEverPublish() {
+    WebPage webPage = new WebPage();
+    webPage.setLink("/first-publish");
+    webPage.setTitle("First Publish");
+    webPage.setEnabled(true);
+    webPage.setSearchable(true);
+    webPage.setCreatedBy(1L);
+    webPage.setDraftPageXml("<xml>v1</xml>");
+    webPage.setDraft(true);
+    WebPage saved = WebPageRepository.save(webPage);
+
+    WebPageRepository.publish(saved, 42L, 20);
+
+    WebPage reloaded = WebPageRepository.findById(saved.getId());
+    assertEquals("<xml>v1</xml>", reloaded.getPageXml());
+    assertNull(WebPageVersionRepository.findByWebPageId(saved.getId(), null),
+        "a page with no prior live content has nothing to snapshot");
+  }
+
+  @Test
+  void publishPrunesVersionsBeyondTheConfiguredLimit() {
+    WebPage webPage = new WebPage();
+    webPage.setLink("/many-versions");
+    webPage.setTitle("Many Versions");
+    webPage.setEnabled(true);
+    webPage.setSearchable(true);
+    webPage.setCreatedBy(1L);
+    webPage.setPageXml("<xml>v0</xml>");
+    WebPage saved = WebPageRepository.save(webPage);
+
+    for (int i = 1; i <= 5; i++) {
+      saved.setDraftPageXml("<xml>v" + i + "</xml>");
+      saved.setDraft(true);
+      saved.setModifiedBy(1L);
+      WebPageRepository.save(saved);
+      WebPageRepository.publish(saved, 1L, 3);
+      saved = WebPageRepository.findById(saved.getId());
+    }
+
+    List<WebPageVersion> versions = WebPageVersionRepository.findByWebPageId(saved.getId(), null);
+    assertEquals(3, versions.size(), "only the configured limit of prior versions should be retained");
+  }
+
+  @Test
+  void restoreDraftFromVersionLoadsXmlIntoTheDraftSlotWithoutTouchingTheLivePage() {
+    WebPage webPage = new WebPage();
+    webPage.setLink("/restore-me");
+    webPage.setTitle("Restore Me");
+    webPage.setEnabled(true);
+    webPage.setSearchable(true);
+    webPage.setCreatedBy(1L);
+    webPage.setPageXml("<xml>live</xml>");
+    WebPage saved = WebPageRepository.save(webPage);
+
+    boolean result = WebPageRepository.restoreDraftFromVersion(saved.getId(), "<xml>restored</xml>");
+
+    assertTrue(result);
+    WebPage reloaded = WebPageRepository.findById(saved.getId());
+    assertEquals("<xml>live</xml>", reloaded.getPageXml(), "restoring must not touch the live page_xml");
+    assertEquals("<xml>restored</xml>", reloaded.getDraftPageXml());
+    assertTrue(reloaded.getDraft());
+  }
+
   private static boolean isDockerAvailable() {
     try {
       return DockerClientFactory.instance().isDockerAvailable();
@@ -290,6 +404,10 @@ class WebPageRepositoryTest {
           + "publish_at TIMESTAMP, "
           + "expires_at TIMESTAMP, "
           + "solution_type VARCHAR(255), "
+          + "draft_status VARCHAR(20), "
+          + "submitted_by BIGINT DEFAULT -1, "
+          + "approved_by BIGINT DEFAULT -1, "
+          + "release_reference VARCHAR(255), "
           + "tsv tsvector)");
 
       statement.execute("CREATE TEXT SEARCH DICTIONARY title_stem (TEMPLATE = snowball, Language = english)");
@@ -308,6 +426,17 @@ class WebPageRepositoryTest {
       statement.execute("CREATE TRIGGER web_pages_tsv_trigger BEFORE INSERT OR UPDATE "
           + "ON web_pages FOR EACH ROW EXECUTE PROCEDURE web_pages_tsv_trigger()");
       statement.execute("CREATE INDEX web_pages_tsv_idx ON web_pages USING gin(tsv)");
+
+      // Version history (#405) -- no users table in this focused schema, so published_by is left
+      // as a plain column rather than an FK
+      statement.execute("DROP TABLE IF EXISTS web_page_versions CASCADE");
+      statement.execute("CREATE TABLE web_page_versions ("
+          + "web_page_version_id BIGSERIAL PRIMARY KEY, "
+          + "web_page_id BIGINT REFERENCES web_pages(web_page_id) ON DELETE CASCADE, "
+          + "page_xml TEXT, "
+          + "published_by BIGINT, "
+          + "published_at TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP NOT NULL, "
+          + "label VARCHAR(255))");
     } catch (SQLException se) {
       throw new IllegalStateException("Could not create the web_pages schema", se);
     }

@@ -74,6 +74,16 @@ public class FileVersionRepository {
     return (List<FileVersion>) result.getRecords();
   }
 
+  /**
+   * Counts every recorded version of a file, including the one that is currently live (a row is
+   * added here on the initial upload and again on every subsequent version, see
+   * FileItemRepository#add/#saveVersion) -- so a count greater than 1 means there is at least one
+   * prior version available to restore.
+   */
+  public static long countByFileId(long fileId) {
+    return DB.selectCountFrom(TABLE_NAME, new SqlUtils().add("file_id = ?", fileId));
+  }
+
   public static FileVersion save(FileVersion record) {
     if (record.getId() > -1) {
       return update(record);

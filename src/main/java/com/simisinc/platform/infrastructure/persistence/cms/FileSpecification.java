@@ -38,6 +38,7 @@ public class FileSpecification extends Entity {
   private String matchesName = null;
   private String searchName = null;
   private String searchContent = null;
+  private String searchTerm = null;
   private int withinLastDays = -1;
   private int inASubFolder = DataConstants.UNDEFINED;
   private String versionWebPath = null;
@@ -139,6 +140,22 @@ public class FileSpecification extends Entity {
 
   public void setSearchContent(String searchContent) {
     this.searchContent = searchContent;
+  }
+
+  /**
+   * A plain case-insensitive substring match against filename/title (issue #502 -- adds search to
+   * the per-folder file list). Deliberately separate from {@link #getSearchName()}, which drives a
+   * tsvector-ranked full-text search: that path forces its own "rank DESC" ORDER BY (see
+   * FileItemRepository#query), which would silently override an explicit column sort requested by
+   * the caller. This field's WHERE-only match leaves ORDER BY entirely under the caller's control,
+   * so search and sort compose correctly together.
+   */
+  public String getSearchTerm() {
+    return searchTerm;
+  }
+
+  public void setSearchTerm(String searchTerm) {
+    this.searchTerm = searchTerm;
   }
 
   public int getWithinLastDays() {

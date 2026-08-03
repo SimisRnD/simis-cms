@@ -17,7 +17,10 @@
 package com.simisinc.platform.application.cms;
 
 import java.text.SimpleDateFormat;
+import java.util.Arrays;
 import java.util.Date;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
@@ -25,7 +28,9 @@ import org.apache.commons.logging.LogFactory;
 
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.domain.model.cms.FileItem;
+import com.simisinc.platform.domain.model.cms.Folder;
 import com.simisinc.platform.infrastructure.persistence.cms.FileItemRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.FolderRepository;
 
 /**
  * Validates and saves file item objects
@@ -60,6 +65,27 @@ public class SaveFileCommand {
       if (fileItemBean.getCreatedBy() == -1) {
         throw new DataException("The user creating this record was not set");
       }
+    }
+  }
+
+  /**
+   * Rejects a new file body whose extension isn't on its destination folder's configured allowlist
+   * (issue #370). Only called for paths that write new file bytes (a new record, or a new version
+   * of an existing one) -- not for renaming an existing record, which can't change the extension.
+   * A blank/unset allowlist means unrestricted, matching every folder's default.
+   */
+  private static void validateAllowedExtension(FileItem fileItemBean) throws DataException {
+    Folder folder = FolderRepository.findById(fileItemBean.getFolderId());
+    if (folder == null || StringUtils.isBlank(folder.getAllowedExtensions())) {
+      return;
+    }
+    Set<String> allowed = Arrays.stream(folder.getAllowedExtensions().split("[,\\s]+"))
+        .map(String::toLowerCase)
+        .filter(StringUtils::isNotBlank)
+        .collect(Collectors.toSet());
+    String ext = StringUtils.lowerCase(fileItemBean.getExtension());
+    if (!allowed.contains(ext)) {
+      throw new DataException("File type '." + ext + "' is not allowed in this folder");
     }
   }
 
@@ -103,6 +129,7 @@ public class SaveFileCommand {
       LOG.debug("FolderId: " + fileItemBean.getFolderId());
     } else {
       LOG.debug("Saving a new record... ");
+      validateAllowedExtension(fileItemBean);
       fileItem = new FileItem();
       fileItem.setFilename(fileItemBean.getFilename());
       fileItem.setFileServerPath(fileItemBean.getFileServerPath());
@@ -132,6 +159,8 @@ public class SaveFileCommand {
   public static FileItem saveNewVersionOfFile(FileItem fileItemBean) throws DataException {
     // Check the fields
     validateFile(fileItemBean);
+    // A new version is new file bytes, so it's subject to the destination folder's allowlist too
+    validateAllowedExtension(fileItemBean);
 
     // Transform the fields and store...
     FileItem fileItem = FileItemRepository.findById(fileItemBean.getId());
