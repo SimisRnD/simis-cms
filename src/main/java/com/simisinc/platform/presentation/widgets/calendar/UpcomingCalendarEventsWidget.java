@@ -57,6 +57,8 @@ public class UpcomingCalendarEventsWidget extends GenericWidget {
     // Find the last event
     CalendarEventSpecification eventSpecification = new CalendarEventSpecification();
     eventSpecification.setPublishedOnly(true);
+    // issue #882: archived events are excluded from every public-facing calendar surface
+    eventSpecification.setArchivedOnly(false);
     eventSpecification.setCalendarId(calSpec.getCalendarId());
     eventSpecification.setEndingDateRange(calSpec.getStartingDateRange());
     DataConstraints constraints = new DataConstraints(1, 1);
@@ -120,6 +122,8 @@ public class UpcomingCalendarEventsWidget extends GenericWidget {
     // Build the list of upcoming events with the given specification
     CalendarEventSpecification eventSpecification = new CalendarEventSpecification();
     eventSpecification.setPublishedOnly(true);
+    // issue #882: archived events are excluded from every public-facing calendar surface
+    eventSpecification.setArchivedOnly(false);
     if (calendarId > -1) {
       eventSpecification.setCalendarId(calendarId);
     }

@@ -17,7 +17,7 @@
 package com.simisinc.platform.presentation.widgets.admin.cms;
 
 import java.lang.reflect.InvocationTargetException;
-import java.util.ArrayList;
+import java.sql.Timestamp;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -47,6 +47,7 @@ import com.simisinc.platform.infrastructure.persistence.cms.SubFolderRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.SubFolderSpecification;
 import com.simisinc.platform.presentation.controller.RequestConstants;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
+import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 
 import org.apache.commons.beanutils.BeanUtils;
@@ -234,10 +235,12 @@ public class FolderFilesListWidget extends GenericWidget {
 
     // Determine if there is a new file version
     FileItem fileItemBean = null;
+    boolean isNewVersion = false;
     try {
       // Check for a file
       fileItemBean = SaveFilePartCommand.saveFile(context);
-      if (fileItemBean != null) {
+      isNewVersion = (fileItemBean != null);
+      if (isNewVersion) {
         // There's a new document version
         fileItemBean.setId(context.getParameterAsLong("id"));
         fileItemBean.setFolderId(context.getParameterAsLong("folderId"));
@@ -246,6 +249,7 @@ public class FolderFilesListWidget extends GenericWidget {
         fileItemBean.setVersion(context.getParameter("version"));
         fileItemBean.setTitle(context.getParameter("title"));
         fileItemBean.setSummary(context.getParameter("summary"));
+        fileItemBean.setExpirationDate(parseExpirationDate(context));
         fileItemBean.setCreatedBy(context.getUserId());
         fileItemBean.setModifiedBy(context.getUserId());
         // Validate the file
@@ -255,11 +259,17 @@ public class FolderFilesListWidget extends GenericWidget {
         if (fileItem == null) {
           throw new DataException("Your information could not be saved due to a system error. Please try again.");
         }
+        AuditEventCommand.record(context, AuditEventCommand.CONTENT, "folder_file.version", AuditEventCommand.SUCCESS,
+            "folder_file", String.valueOf(fileItem.getId()), fileItem.getFilename(), "version=" + fileItem.getVersion());
       } else {
         // It's a form update of an old version
         // Populate the fields
         fileItemBean = new FileItem();
         BeanUtils.populate(fileItemBean, context.getParameterMap());
+        // BeanUtils cannot reliably convert a raw datetime-local string ("expirationDate") to a
+        // java.sql.Timestamp, so parse it explicitly and overwrite whatever BeanUtils did with it
+        // (mirrors WebPageFormWidget.post()'s handling of publishAt/expiresAt)
+        fileItemBean.setExpirationDate(parseExpirationDate(context));
         fileItemBean.setCreatedBy(context.getUserId());
         fileItemBean.setModifiedBy(context.getUserId());
         // Update the file item
@@ -267,6 +277,8 @@ public class FolderFilesListWidget extends GenericWidget {
         if (fileItem == null) {
           throw new AppException("The information could not be saved due to a system error. Please try again.");
         }
+        AuditEventCommand.record(context, AuditEventCommand.CONTENT, "folder_file.update", AuditEventCommand.SUCCESS,
+            "folder_file", String.valueOf(fileItem.getId()), fileItem.getFilename(), null);
       }
     } catch (AppException | DataException data) {
       LOG.debug("An exception occurred: " + data.getMessage());
@@ -275,6 +287,10 @@ public class FolderFilesListWidget extends GenericWidget {
       // Let the user know
       context.setErrorMessage(data.getMessage());
       context.setRequestObject(fileItemBean);
+      AuditEventCommand.record(context, AuditEventCommand.CONTENT,
+          isNewVersion ? "folder_file.version" : "folder_file.update", AuditEventCommand.FAILURE,
+          "folder_file", fileItemBean != null ? String.valueOf(fileItemBean.getId()) : "-1",
+          fileItemBean != null ? fileItemBean.getFilename() : null, data.getMessage());
     }
 
     // Determine the page to return to
@@ -284,6 +300,27 @@ public class FolderFilesListWidget extends GenericWidget {
       context.setRedirect("/admin/folder-details?folderId=" + currentFolderId);
     }
     return context;
+  }
+
+  /**
+   * Parses the optional "expirationDate" form field (a datetime-local input, e.g.
+   * "2026-09-01T14:30") into a Timestamp. Mirrors WebPageFormWidget.post()'s handling of
+   * publishAt/expiresAt.
+   *
+   * @param context
+   * @return the parsed Timestamp, or null when the field was left blank
+   * @throws DataException when the value is present but not a valid date/time
+   */
+  private static Timestamp parseExpirationDate(WidgetContext context) throws DataException {
+    String expirationDateValue = context.getParameter("expirationDate");
+    if (StringUtils.isBlank(expirationDateValue)) {
+      return null;
+    }
+    try {
+      return Timestamp.valueOf(expirationDateValue.replace("T", " ") + ":00");
+    } catch (IllegalArgumentException e) {
+      throw new DataException("Expiration date format is not valid");
+    }
   }
 
   /**
@@ -304,13 +341,22 @@ public class FolderFilesListWidget extends GenericWidget {
     }
     if (record == null) {
       LOG.warn("File record does not exist or no access: " + fileId);
+      AuditEventCommand.record(context, AuditEventCommand.CONTENT, "folder_file.delete", AuditEventCommand.FAILURE,
+          "folder_file", String.valueOf(fileId), null, "not found or access denied");
       return null;
     }
 
     // @todo make sure the folder's user group can delete
 
+    String targetId = String.valueOf(record.getId());
+    String targetLabel = record.getFilename();
     try {
-      DeleteFileCommand.deleteFile(record);
+      // NOTE: the pre-existing "File deleted" success message/redirect below does not check
+      // DeleteFileCommand.deleteFile()'s boolean return value (a latent bug, out of scope here); the
+      // audit record below uses the real return value so it reflects what actually happened.
+      boolean removed = DeleteFileCommand.deleteFile(record);
+      AuditEventCommand.record(context, AuditEventCommand.CONTENT, "folder_file.delete",
+          removed ? AuditEventCommand.SUCCESS : AuditEventCommand.FAILURE, "folder_file", targetId, targetLabel, null);
       context.setSuccessMessage("File deleted");
       if (record.getSubFolderId() > -1) {
         context.setRedirect("/admin/sub-folder-details?folderId=" + record.getFolderId() + "&subFolderId=" + record.getSubFolderId());
@@ -319,6 +365,8 @@ public class FolderFilesListWidget extends GenericWidget {
       }
       return context;
     } catch (Exception e) {
+      AuditEventCommand.record(context, AuditEventCommand.CONTENT, "folder_file.delete", AuditEventCommand.FAILURE,
+          "folder_file", targetId, targetLabel, e.getMessage());
       context.setErrorMessage("Error. File could not be deleted.");
 //        context.setRedirect("/admin/collections");
     }

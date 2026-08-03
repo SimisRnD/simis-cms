@@ -39,6 +39,7 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
 
+import com.simisinc.platform.application.cms.ContentReviewCommand;
 import com.simisinc.platform.domain.model.cms.WebPage;
 import com.simisinc.platform.domain.model.cms.WebPageVersion;
 import com.simisinc.platform.infrastructure.database.DB;
@@ -403,6 +404,10 @@ class WebPageRepositoryTest {
           + "publish_at TIMESTAMP, "
           + "expires_at TIMESTAMP, "
           + "solution_type VARCHAR(255), "
+          + "draft_status VARCHAR(20), "
+          + "submitted_by BIGINT DEFAULT -1, "
+          + "approved_by BIGINT DEFAULT -1, "
+          + "release_reference VARCHAR(255), "
           + "tsv tsvector)");
 
       statement.execute("CREATE TEXT SEARCH DICTIONARY title_stem (TEMPLATE = snowball, Language = english)");
