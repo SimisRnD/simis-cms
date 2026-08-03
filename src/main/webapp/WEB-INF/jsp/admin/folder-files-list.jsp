@@ -34,12 +34,43 @@
 <jsp:useBean id="fileList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="canEdit" class="java.lang.String" scope="request"/>
 <jsp:useBean id="canDelete" class="java.lang.String" scope="request"/>
-<jsp:useBean id="versionCountMap" class="java.util.HashMap" scope="request"/>
+<jsp:useBean id="query" class="java.lang.String" scope="request"/>
+<jsp:useBean id="sortBy" class="java.lang.String" scope="request"/>
 <script src="${ctx}/javascript/clipboard-2.0.11/clipboard.min.js"></script>
 <%@include file="../page_messages.jspf" %>
 <c:if test="${(userSession.hasRole('admin') || userSession.hasRole('content-manager'))}">
   <a href="${ctx}/admin/file-form?subFolderId=${subFolder.id}&folderId=${folder.id}&returnPage=${widgetContext.uri}%3FsubFolderId=${subFolder.id}%26folderId=${folder.id}" class="button small primary radius float-left"><i class="fa fa-plus"></i> Add File Link</a>
 </c:if>
+<%-- Search/sort (GET so the criteria live in the URL); folderId/subFolderId are carried as hidden
+     fields since a GET form with no action= replaces the current query string with only its own
+     fields --%>
+<form method="get" autocomplete="off" class="clear-float margin-bottom-10">
+  <input type="hidden" name="folderId" value="${folder.id}"/>
+  <c:if test="${subFolder.id gt 0}">
+    <input type="hidden" name="subFolderId" value="${subFolder.id}"/>
+  </c:if>
+  <div class="grid-x grid-margin-x">
+    <div class="cell medium-5">
+      <label for="fileSearchQuery" class="show-for-sr">Search by filename or title</label>
+      <input id="fileSearchQuery" type="search" name="query" placeholder="Search by filename or title..."<c:if test="${!empty query}"> value="<c:out value="${query}"/>"</c:if>>
+    </div>
+    <div class="cell medium-4">
+      <label for="fileSortBy" class="show-for-sr">Sort by</label>
+      <select id="fileSortBy" name="sortBy">
+        <option value="date" <c:if test="${sortBy eq 'date'}">selected</c:if>>Date (Newest First)</option>
+        <option value="name" <c:if test="${sortBy eq 'name'}">selected</c:if>>Name (A-Z)</option>
+        <option value="size" <c:if test="${sortBy eq 'size'}">selected</c:if>>Size (Largest First)</option>
+        <option value="downloads" <c:if test="${sortBy eq 'downloads'}">selected</c:if>>Downloads (Most First)</option>
+      </select>
+    </div>
+    <div class="cell medium-3">
+      <button type="submit" class="button small primary radius"><i class="fa fa-filter"></i> Apply</button>
+      <c:if test="${!empty query || sortBy ne 'date'}">
+        <a href="${widgetContext.uri}?folderId=${folder.id}<c:if test="${subFolder.id gt 0}">&subFolderId=${subFolder.id}</c:if>" class="button small secondary radius">Clear</a>
+      </c:if>
+    </div>
+  </div>
+</form>
 <table class="unstriped">
   <thead>
     <tr>
@@ -55,7 +86,12 @@
   <tbody>
     <c:if test="${empty fileList}">
       <tr>
-        <td colspan="5">No files were found</td>
+        <td colspan="5">
+          <c:choose>
+            <c:when test="${!empty query}">No files match "<c:out value="${query}" />"</c:when>
+            <c:otherwise>No files were found</c:otherwise>
+          </c:choose>
+        </td>
       </tr>
     </c:if>
     <c:forEach items="${fileList}" var="file">
