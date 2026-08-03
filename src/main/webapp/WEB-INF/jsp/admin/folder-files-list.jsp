@@ -74,6 +74,12 @@
             </c:when>
           </c:choose>
           <c:if test="${file.version ne '1.0'}">(<c:out value="${file.version}" />)</c:if>
+          <c:if test="${file.expired}">
+            <span class="label small round alert">expired</span>
+          </c:if>
+          <c:if test="${file.expiringSoon}">
+            <span class="label small round warning">expiring soon</span>
+          </c:if>
         </small>
         <c:if test="${file.categoryId gt 0}">
           <span class="label"><c:out value="${folderCategory:name(file.categoryId)}" /></span>
@@ -91,6 +97,9 @@
         </c:if>
         <c:if test="${!empty file.summary}">
           <br /><small><c:out value="${file.summary}" /></small>
+        </c:if>
+        <c:if test="${!empty file.expirationDate}">
+          <br /><small>Expires: <fmt:formatDate pattern="yyyy-MM-dd hh:mm a" value="${file.expirationDate}" /></small>
         </c:if>
       </td>
       <td nowrap>
@@ -184,6 +193,9 @@
       if (data.hasOwnProperty('filename')) {
         document.getElementById('filename').value = data.filename;
       }
+      if (data.hasOwnProperty('expirationDate')) {
+        document.getElementById('expirationDate').value = data.expirationDate;
+      }
       document.getElementById('title').value = data.title;
 
       // Show the form
@@ -270,6 +282,9 @@
       </label>
       <label>Version
         <input type="text" placeholder="Version" name="version" id="version" value="">
+      </label>
+      <label>Expiration date (optional)
+        <input type="datetime-local" name="expirationDate" id="expirationDate" value="">
       </label>
       <div class="button-container">
         <input type="submit" class="button radius success expanded" value="Save" />

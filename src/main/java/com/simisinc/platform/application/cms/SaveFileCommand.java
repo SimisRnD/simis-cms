@@ -125,6 +125,7 @@ public class SaveFileCommand {
     fileItem.setTitle(fileItemBean.getTitle());
     fileItem.setVersion(fileItemBean.getVersion());
     fileItem.setSummary(fileItemBean.getSummary());
+    fileItem.setExpirationDate(fileItemBean.getExpirationDate());
     fileItem.setModifiedBy(fileItemBean.getModifiedBy());
     return FileItemRepository.save(fileItem);
   }
