@@ -1658,6 +1658,12 @@
     </section>
   </page>
 
+  <!-- Mirrors the /assets/file -> downloadFile route shape: a dedicated page whose widget writes
+       raw bytes to the response and calls setHandledResponse(true), no JSP involved. -->
+  <page name="/admin/folder-zip-download" role="admin,content-manager,community-manager" title="Download Folder Files">
+    <widget name="folderZipDownload" />
+  </page>
+
   <page name="/admin/sub-folder{?subFolderId}" role="admin,content-manager,community-manager" title="Sub-Folder Details">
     <section>
       <column class="small-12 cell">

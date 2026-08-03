@@ -509,6 +509,11 @@ public class ItemRepository {
    * to verify one specific selected category is itself non-empty/access-safe before disclosing its
    * name -- see ItemsSearchResultsWidget's active-filter chips), pass a specification whose own
    * selection does not include categoryId.</p>
+   *
+   * <p>Issue #916: also forwards the specification's tag selection (AND-across-dimensions,
+   * mirroring how countByDateRange already forwards category) -- a category's displayed count
+   * must still narrow to whatever tags are currently active, not just ignore that facet
+   * dimension.</p>
    */
   public static long countByCategory(ItemSpecification specification, long categoryId) {
     ItemSpecification facetSpec = new ItemSpecification();
@@ -520,6 +525,7 @@ public class ItemRepository {
     facetSpec.setSearchLocation(specification.getSearchLocation());
     facetSpec.setDateRangeStart(specification.getDateRangeStart());
     facetSpec.setDateRangeEnd(specification.getDateRangeEnd());
+    facetSpec.setTagIds(specification.getEffectiveTagIds());
 
     List<Long> candidateSelection = new ArrayList<>(specification.getEffectiveCategoryIds());
     if (!candidateSelection.contains(categoryId)) {
@@ -548,6 +554,10 @@ public class ItemRepository {
    * one matching item; a category with zero matches is simply absent from the returned map, same
    * as countByCategory returning 0 for it. Added for issue #637 to replace the per-category
    * round-trip loop in ItemsSearchResultsWidget, the motivating case #637's scope called out.
+   *
+   * <p>Issue #916: also forwards the specification's tag selection (AND-across-dimensions), same
+   * reason as countByCategory above -- a selected tag must still narrow every category's grouped
+   * count.</p>
    */
   public static Map<Long, Long> countGroupedByCategory(ItemSpecification specification) {
     ItemSpecification facetSpec = new ItemSpecification();
@@ -559,6 +569,7 @@ public class ItemRepository {
     facetSpec.setSearchLocation(specification.getSearchLocation());
     facetSpec.setDateRangeStart(specification.getDateRangeStart());
     facetSpec.setDateRangeEnd(specification.getDateRangeEnd());
+    facetSpec.setTagIds(specification.getEffectiveTagIds());
     // categoryId intentionally left unset (-1): grouping by every category supersedes filtering
     // to one candidate at a time, the way the per-candidate countByCategory loop used to.
     SqlUtils where = createSearchWhereStatement(facetSpec);
@@ -588,6 +599,10 @@ public class ItemRepository {
    * produce, not what's already selected. A tag with zero matches is simply absent from the
    * returned map. High-cardinality-friendly by design (one grouped query rather than one round
    * trip per candidate tag), the same motivation issue #637 called out for a future tag cloud.
+   *
+   * <p>Issue #916: also forwards the specification's category selection (AND-across-dimensions,
+   * the vice versa of countGroupedByCategory's tag forwarding above) -- the currently active
+   * category selection must still narrow every tag's grouped count.</p>
    */
   public static Map<Long, Long> countGroupedByTag(ItemSpecification specification) {
     ItemSpecification facetSpec = new ItemSpecification();
@@ -599,6 +614,7 @@ public class ItemRepository {
     facetSpec.setSearchLocation(specification.getSearchLocation());
     facetSpec.setDateRangeStart(specification.getDateRangeStart());
     facetSpec.setDateRangeEnd(specification.getDateRangeEnd());
+    facetSpec.setCategoryIds(specification.getEffectiveCategoryIds());
     // tagId/tagIds intentionally left unset: grouping by every tag supersedes filtering to one
     // candidate at a time, same as countGroupedByCategory leaves categoryId/categoryIds unset.
     SqlUtils where = createSearchWhereStatement(facetSpec);
@@ -617,6 +633,10 @@ public class ItemRepository {
    * (issue #636's AND-across-dimensions requirement: a date bucket's count must still narrow to
    * whatever categories are currently selected) -- but its own date range is ignored in favor of
    * the candidate bucket's bounds. See countByCategory.
+   *
+   * <p>Issue #916: also forwards the specification's tag selection, same AND-across-dimensions
+   * requirement applied to the tag facet -- a date bucket's count must still narrow to whatever
+   * tags are currently selected too.</p>
    */
   public static long countByDateRange(ItemSpecification specification, Timestamp start, Timestamp end) {
     ItemSpecification facetSpec = new ItemSpecification();
@@ -627,6 +647,7 @@ public class ItemRepository {
     facetSpec.setSearchName(specification.getSearchName());
     facetSpec.setSearchLocation(specification.getSearchLocation());
     facetSpec.setCategoryIds(specification.getEffectiveCategoryIds());
+    facetSpec.setTagIds(specification.getEffectiveTagIds());
     facetSpec.setDateRangeStart(start);
     facetSpec.setDateRangeEnd(end);
     return DB.selectFunction("COUNT(*)", FACET_COUNT_FROM, createSearchWhereStatement(facetSpec));

@@ -205,7 +205,10 @@ public class ItemsSearchResultsWidget extends GenericWidget {
     // selection at all (countGroupedByTag never reads it), so this single computation safely
     // backs both the facet list below AND the active-filter chip disclosure check further down --
     // no separate "no tag selection" specification is needed the way category's chip logic needs
-    // one (see noCategorySelectionSpec below), because there is nothing to neutralize.
+    // one (see noCategorySelectionSpec below), because there is nothing to neutralize. It IS
+    // affected by the specification's active category selection (issue #916, AND-across-dimensions)
+    // -- exactly the standalone-but-combined-with-category count the chip disclosure check below
+    // wants, so that forwarding doesn't change any of the reasoning above.
     Map<Long, Long> tagCounts = null;
     if (!selectedTagIds.isEmpty() || showTagFacet) {
       tagCounts = ItemRepository.countGroupedByTag(specification);
@@ -265,6 +268,12 @@ public class ItemsSearchResultsWidget extends GenericWidget {
       noCategorySelectionSpec.setSearchLocation(specification.getSearchLocation());
       noCategorySelectionSpec.setDateRangeStart(specification.getDateRangeStart());
       noCategorySelectionSpec.setDateRangeEnd(specification.getDateRangeEnd());
+      // Issue #916: forward the active tag selection too (AND-across-dimensions) -- countByCategory
+      // now folds the passed-in specification's own tag selection into its facet-count query, so
+      // this standalone check must carry the real active tagIds, not leave them empty, or a
+      // category's chip would keep disclosing a name that no longer has any results once combined
+      // with the active tag filter.
+      noCategorySelectionSpec.setTagIds(specification.getEffectiveTagIds());
 
       for (Long selectedCategoryId : selectedCategoryIds) {
         // Only resolve and show the real category name once its own standalone count has
