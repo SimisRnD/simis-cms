@@ -49,6 +49,9 @@
           <option value="">All</option>
           <option value="published" <c:if test="${status == 'published'}">selected</c:if>>Published</option>
           <option value="draft" <c:if test="${status == 'draft'}">selected</c:if>>Draft</option>
+          <%-- Archived events are excluded from every other option above by default (issue #882);
+               this is the only way to see them in the admin list. --%>
+          <option value="archived" <c:if test="${status == 'archived'}">selected</c:if>>Archived</option>
         </select>
       </label>
     </div>
@@ -66,9 +69,16 @@
   <button type="submit" class="button small primary radius"><i class="fa fa-filter"></i> Filter</button>
   <a href="${widgetContext.uri}" class="button small secondary radius">Clear</a>
 </form>
+<div id="bulkActionsBar" class="callout radius" style="display:none;padding:10px 15px;margin-bottom:10px;">
+  <span id="bulkSelectedCount"></span>
+  <button type="button" class="button tiny radius" id="bulkArchiveBtn">Archive</button>
+  <button type="button" class="button tiny radius" id="bulkMoveBtn">Move</button>
+  <button type="button" class="button tiny alert radius" id="bulkDeleteBtn">Delete</button>
+</div>
 <table class="unstriped">
   <thead>
     <tr>
+      <th width="24"><input type="checkbox" id="selectAllEvents" aria-label="Select all events on this page"></th>
       <th>Title</th>
       <th width="160" class="text-center">Date</th>
       <th width="160">Calendar</th>
@@ -83,6 +93,7 @@
         <c:if test="${calendar.id == event.calendarId}"><c:set var="eventCalendar" value="${calendar}" /></c:if>
       </c:forEach>
       <tr>
+        <td><input type="checkbox" class="eventRowCheckbox" value="${event.id}" data-title="${fn:escapeXml(event.title)}" aria-label="Select ${fn:escapeXml(event.title)}"></td>
         <td>
           <a href="${ctx}/admin/calendar-event?calendarEventId=${event.id}&returnPage=/admin/calendars"><c:out value="${event.title}" /></a>
         </td>
@@ -95,6 +106,9 @@
         </td>
         <td class="text-center">
           <c:choose>
+            <c:when test="${!empty event.archived}">
+              <span class="label secondary radius">Archived</span>
+            </c:when>
             <c:when test="${!empty event.published}">
               <span class="label success radius">Published</span>
             </c:when>
@@ -110,9 +124,116 @@
     </c:forEach>
     <c:if test="${empty calendarEventList}">
       <tr>
-        <td colspan="5">No events match the current filters</td>
+        <td colspan="6">No events match the current filters</td>
       </tr>
     </c:if>
   </tbody>
 </table>
 <%@include file="../paging_control.jspf" %>
+<%-- Bulk action reveal modals -- selection is scoped to the events currently checked on this page
+     (see the JS below); each is populated at open time with the live selection, not just a count.
+     Mirrors users-list.jsp's bulk reveal modals (issue #882/PR #731 pattern) and image-browser.jsp's
+     bulkDelete convention. --%>
+<div class="reveal" id="bulkArchiveReveal" role="dialog" aria-modal="true" aria-labelledby="bulkArchiveRevealTitle"
+     data-reveal data-close-on-click="true">
+  <h4 id="bulkArchiveRevealTitle">Archive <span id="bulkArchiveCount">0</span> Event(s)</h4>
+  <p class="help-text">Archived events are removed from the public calendar and hidden from this list by default. They can still be found with the Archived status filter.</p>
+  <ul id="bulkArchiveList"></ul>
+  <form method="post">
+    <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
+    <input type="hidden" name="token" value="${userSession.formToken}"/>
+    <input type="hidden" name="command" value="bulkArchive"/>
+    <input type="submit" class="button radius" value="Archive Events"/>
+    <button class="button secondary radius" type="button" data-close>Cancel</button>
+  </form>
+  <button class="close-button" data-close aria-label="Close reveal" type="button">
+    <span aria-hidden="true">&times;</span>
+  </button>
+</div>
+<div class="reveal" id="bulkMoveReveal" role="dialog" aria-modal="true" aria-labelledby="bulkMoveRevealTitle"
+     data-reveal data-close-on-click="true">
+  <h4 id="bulkMoveRevealTitle">Move <span id="bulkMoveCount">0</span> Event(s)</h4>
+  <ul id="bulkMoveList"></ul>
+  <form method="post">
+    <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
+    <input type="hidden" name="token" value="${userSession.formToken}"/>
+    <input type="hidden" name="command" value="bulkMove"/>
+    <label for="bulkMoveCalendarId">Destination calendar <span class="required">*</span>
+      <select id="bulkMoveCalendarId" name="calendarId" required>
+        <c:forEach items="${calendarList}" var="calendar">
+          <option value="${calendar.id}"><c:out value="${calendar.name}" /></option>
+        </c:forEach>
+      </select>
+    </label>
+    <input type="submit" class="button radius" value="Move Events"/>
+    <button class="button secondary radius" type="button" data-close>Cancel</button>
+  </form>
+  <button class="close-button" data-close aria-label="Close reveal" type="button">
+    <span aria-hidden="true">&times;</span>
+  </button>
+</div>
+<div class="reveal" id="bulkDeleteReveal" role="dialog" aria-modal="true" aria-labelledby="bulkDeleteRevealTitle"
+     data-reveal data-close-on-click="true">
+  <h4 id="bulkDeleteRevealTitle">Delete <span id="bulkDeleteCount">0</span> Event(s)</h4>
+  <p class="help-text">This permanently removes the selected events. This cannot be undone.</p>
+  <ul id="bulkDeleteList"></ul>
+  <form method="post">
+    <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
+    <input type="hidden" name="token" value="${userSession.formToken}"/>
+    <input type="hidden" name="command" value="bulkDelete"/>
+    <input type="submit" class="button alert radius" value="Delete Events"/>
+    <button class="button secondary radius" type="button" data-close>Cancel</button>
+  </form>
+  <button class="close-button" data-close aria-label="Close reveal" type="button">
+    <span aria-hidden="true">&times;</span>
+  </button>
+</div>
+<script nonce="${cspNonce}">
+  (function () {
+    var $selectAll = $('#selectAllEvents');
+    var $rows = $('.eventRowCheckbox');
+    var $bar = $('#bulkActionsBar');
+    var $count = $('#bulkSelectedCount');
+
+    function selected() {
+      return $rows.filter(':checked');
+    }
+
+    function refresh() {
+      var n = selected().length;
+      $count.text(n + (n === 1 ? ' event selected  ' : ' events selected  '));
+      $bar.toggle(n > 0);
+      $selectAll.prop('indeterminate', n > 0 && n < $rows.length);
+      $selectAll.prop('checked', n > 0 && n === $rows.length);
+    }
+
+    // Populates one bulk modal's hidden eventId fields and visible title list from the currently
+    // checked rows, so the admin sees exactly what is about to be affected before confirming.
+    function populateBulkModal(revealId, listId) {
+      var $reveal = $('#' + revealId);
+      var $form = $reveal.find('form');
+      var $list = $('#' + listId);
+      $form.find('input[name="eventId"]').remove();
+      $list.empty();
+      selected().each(function () {
+        var $checkbox = $(this);
+        $form.append($('<input type="hidden" name="eventId">').val($checkbox.val()));
+        $list.append($('<li>').text($checkbox.data('title')));
+      });
+      $('#' + revealId + 'Count').text(selected().length);
+      $reveal.foundation('open');
+    }
+
+    $selectAll.on('change', function () {
+      $rows.prop('checked', this.checked);
+      refresh();
+    });
+    $rows.on('change', refresh);
+
+    $('#bulkArchiveBtn').on('click', function () { populateBulkModal('bulkArchiveReveal', 'bulkArchiveList'); });
+    $('#bulkMoveBtn').on('click', function () { populateBulkModal('bulkMoveReveal', 'bulkMoveList'); });
+    $('#bulkDeleteBtn').on('click', function () { populateBulkModal('bulkDeleteReveal', 'bulkDeleteList'); });
+
+    refresh();
+  })();
+</script>

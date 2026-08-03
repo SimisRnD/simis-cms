@@ -55,6 +55,10 @@ public class CalendarEventAjax extends GenericWidget {
     if (!canSeeUnpublished) {
       specification.setPublishedOnly(true);
     }
+    // issue #882: archived is a distinct "no longer relevant" state from the published/draft
+    // preview permission above, so this event lookup (used by full-calendar.jsp's click handler)
+    // excludes archived events unconditionally, even for an admin/content-manager viewer.
+    specification.setArchivedOnly(false);
     calendarEventList = CalendarEventRepository.findAll(specification, null);
     if (calendarEventList == null || calendarEventList.isEmpty()) {
       context.setJson("[]");
