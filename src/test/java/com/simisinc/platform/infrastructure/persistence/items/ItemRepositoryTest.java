@@ -241,6 +241,28 @@ class ItemRepositoryTest {
   }
 
   @Test
+  void countByCategoryStillAppliesTheSpecificationsTagSelection() {
+    // Issue #916: category and tag facet counts must AND against each other -- a candidate
+    // category's count must still narrow to whatever tags are currently selected, the same way it
+    // already narrows to an active date range above.
+    long collectionId = addCollection();
+    long categoryA = 10;
+    long tagX = 100;
+    long matches = addItem(collectionId, null, Timestamp.valueOf("2026-06-15 00:00:00"));
+    linkCategory(matches, categoryA, collectionId);
+    linkTag(matches, tagX, collectionId);
+    long wrongTag = addItem(collectionId, null, Timestamp.valueOf("2026-06-16 00:00:00"));
+    linkCategory(wrongTag, categoryA, collectionId);
+    linkTag(wrongTag, 999, collectionId);
+
+    ItemSpecification specification = new ItemSpecification();
+    specification.setTagId(tagX);
+
+    assertEquals(1, ItemRepository.countByCategory(specification, categoryA),
+        "the active tag selection must still narrow the candidate category's count");
+  }
+
+  @Test
   void countByDateRangeCountsItemsWithinTheBounds() {
     long collectionId = addCollection();
     addItem(collectionId, null, Timestamp.valueOf("2026-03-01 00:00:00"));
@@ -285,6 +307,26 @@ class ItemRepositoryTest {
 
     assertEquals(1, count,
         "the specification's own categoryId should still narrow the count, but its own date range must not");
+  }
+
+  @Test
+  void countByDateRangeAppliesTheSpecificationsTagSelection() {
+    // Issue #916: a date bucket's count must still narrow to whatever tags are currently
+    // selected, the same way it already narrows to an active category selection above.
+    long collectionId = addCollection();
+    long tagX = 100;
+    long matchingItem = addItem(collectionId, null, Timestamp.valueOf("2026-06-15 00:00:00"));
+    linkTag(matchingItem, tagX, collectionId);
+    long wrongTagItem = addItem(collectionId, null, Timestamp.valueOf("2026-06-15 00:00:00"));
+    linkTag(wrongTagItem, 999, collectionId);
+
+    ItemSpecification specification = new ItemSpecification();
+    specification.setTagId(tagX);
+
+    long count = ItemRepository.countByDateRange(specification,
+        Timestamp.valueOf("2026-01-01 00:00:00"), Timestamp.valueOf("2027-01-01 00:00:00"));
+
+    assertEquals(1, count, "the active tag selection must still narrow the date bucket's count");
   }
 
   @Test
@@ -535,6 +577,29 @@ class ItemRepositoryTest {
     assertEquals(ItemRepository.countByCategory(specification, categoryC), counts.getOrDefault(categoryC, 0L));
   }
 
+  @Test
+  void countGroupedByCategoryAppliesTheSpecificationsTagSelection() {
+    // Issue #916: every category's grouped count must still narrow to whatever tags are currently
+    // selected, the same way it already narrows to an active date range.
+    long collectionId = addCollection();
+    long categoryA = 10;
+    long tagX = 100;
+    long matches = addItem(collectionId, null, Timestamp.valueOf("2026-01-01 00:00:00"));
+    linkCategory(matches, categoryA, collectionId);
+    linkTag(matches, tagX, collectionId);
+    long wrongTag = addItem(collectionId, null, Timestamp.valueOf("2026-01-02 00:00:00"));
+    linkCategory(wrongTag, categoryA, collectionId);
+    linkTag(wrongTag, 999, collectionId);
+
+    ItemSpecification specification = new ItemSpecification();
+    specification.setTagId(tagX);
+
+    Map<Long, Long> counts = ItemRepository.countGroupedByCategory(specification);
+
+    assertEquals(1L, counts.get(categoryA),
+        "the active tag selection must still narrow every category's grouped count");
+  }
+
   // Issue #632: the tag WHERE-clause (createSearchWhereStatement's item_tags EXISTS/IN-list),
   // exercised here via whereClauseCount since there is no per-candidate countByTag -- mirrors the
   // countByCategory tests above, one dimension over.
@@ -689,6 +754,29 @@ class ItemRepositoryTest {
 
     assertEquals(1L, counts.get(tagA),
         "the date range should still narrow the count, but the specification's own tag selection must not");
+  }
+
+  @Test
+  void countGroupedByTagAppliesTheSpecificationsCategorySelection() {
+    // Issue #916: every tag's grouped count must still narrow to whatever categories are
+    // currently selected -- the vice versa of countGroupedByCategoryAppliesTheSpecificationsTagSelection.
+    long collectionId = addCollection();
+    long tagA = 10;
+    long categoryX = 100;
+    long matches = addItem(collectionId, null, Timestamp.valueOf("2026-06-15 00:00:00"));
+    linkTag(matches, tagA, collectionId);
+    linkCategory(matches, categoryX, collectionId);
+    long wrongCategory = addItem(collectionId, null, Timestamp.valueOf("2026-06-16 00:00:00"));
+    linkTag(wrongCategory, tagA, collectionId);
+    linkCategory(wrongCategory, 999, collectionId);
+
+    ItemSpecification specification = new ItemSpecification();
+    specification.setCategoryId(categoryX);
+
+    Map<Long, Long> counts = ItemRepository.countGroupedByTag(specification);
+
+    assertEquals(1L, counts.get(tagA),
+        "the active category selection must still narrow every tag's grouped count");
   }
 
   @Test
