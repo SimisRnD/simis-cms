@@ -293,4 +293,32 @@ public class FileItem extends Entity {
   public String getUrl() {
     return getBaseUrl() + "/" + UrlCommand.encodeUri(filename);
   }
+
+  // Lead time before an unexpired expirationDate is flagged as "expiring soon" (issue #502).
+  // WebPage.isExpiringSoon()/isScheduled() (WebPage.java) just test whether a timestamp is in the
+  // future, with no window -- that's fine for scheduling a live-content swap, but not useful here:
+  // a document expiring 5 years out would trip that same flag forever, and there'd be no way to
+  // distinguish "still valid" from "outdated, needs replacing." A fixed window plus a separate
+  // isExpired() gives admins the two signals the issue actually asks for: advance warning, and a
+  // clear flag once a document (e.g. a state labor law form) is actually out of date.
+  private static final long EXPIRING_SOON_WINDOW_MILLIS = 30L * 24 * 60 * 60 * 1000;
+
+  /**
+   * True when this file has an expirationDate that has already passed
+   */
+  public boolean isExpired() {
+    return expirationDate != null && expirationDate.getTime() <= System.currentTimeMillis();
+  }
+
+  /**
+   * True when this file has an expirationDate set within the next 30 days (and not already expired)
+   */
+  public boolean isExpiringSoon() {
+    if (expirationDate == null) {
+      return false;
+    }
+    long now = System.currentTimeMillis();
+    long expiresAt = expirationDate.getTime();
+    return expiresAt > now && expiresAt <= now + EXPIRING_SOON_WINDOW_MILLIS;
+  }
 }

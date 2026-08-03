@@ -152,6 +152,7 @@ public class SaveFileCommand {
     fileItem.setTitle(fileItemBean.getTitle());
     fileItem.setVersion(fileItemBean.getVersion());
     fileItem.setSummary(fileItemBean.getSummary());
+    fileItem.setExpirationDate(fileItemBean.getExpirationDate());
     fileItem.setModifiedBy(fileItemBean.getModifiedBy());
     return FileItemRepository.save(fileItem);
   }
@@ -173,7 +174,6 @@ public class SaveFileCommand {
     fileItem.setCategoryId(fileItemBean.getCategoryId());
     fileItem.setFilename(fileItemBean.getFilename());
     fileItem.setTitle(fileItemBean.getTitle());
-    fileItem.setBarcode(fileItemBean.getBarcode());
     fileItem.setVersion(fileItemBean.getVersion());
     fileItem.setExtension(fileItemBean.getExtension());
     fileItem.setFileServerPath(fileItemBean.getFileServerPath());
@@ -187,9 +187,12 @@ public class SaveFileCommand {
     fileItem.setCreatedBy(fileItemBean.getCreatedBy());
     fileItem.setModifiedBy(fileItemBean.getModifiedBy());
     fileItem.setProcessed(null);
-    fileItem.setExpirationDate(fileItemBean.getExpirationDate());
-    fileItem.setPrivacyType(fileItemBean.getPrivacyType());
-    fileItem.setDefaultToken(fileItemBean.getDefaultToken());
+    // barcode/expirationDate/privacyType/defaultToken are deliberately NOT overwritten here --
+    // fileItem (loaded above via findById) already holds the file's current values for these, and
+    // fileItemBean (built by SaveFilePartCommand.saveFile() from the uploaded part) never populates
+    // them, so copying from fileItemBean silently wiped them back to null/UNDEFINED on every new
+    // version. A version upload changes the file's bytes/version label, not its expiration,
+    // sensitivity, or access token.
     // Determine the web path for downloads, can randomize, etc.
     Date created = new Date(System.currentTimeMillis());
     SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
