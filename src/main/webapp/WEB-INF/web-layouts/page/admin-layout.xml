@@ -1330,22 +1330,21 @@
     </section>
   </page>
 
-  <page name="/admin/web-page-review" role="admin,content-manager" title="Web Page Review">
+  <page name="/admin/web-page-versions" role="admin,content-manager" title="Web Page Version History">
     <section>
       <column class="small-12 cell">
         <widget name="breadcrumbs">
           <links>
             <link name="Web Pages" value="/admin/web-pages" />
-            <link name="Review" value="" />
+            <link name="Version History" value="" />
           </links>
         </widget>
       </column>
     </section>
     <section>
       <column class="small-12 cell">
-        <widget name="webPageReview">
-          <icon>fa-clipboard-check</icon>
-          <title>Web Page Review</title>
+        <widget name="webPageVersionsList">
+          <title>Version History</title>
         </widget>
       </column>
     </section>
@@ -1919,6 +1918,17 @@
         <widget name="healthDashboard">
           <icon>fa-heart-pulse</icon>
           <title>System Health</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/database-maintenance" role="admin" title="Database Maintenance">
+    <section>
+      <column class="small-12 cell">
+        <widget name="databaseMaintenance">
+          <icon>fa-database</icon>
+          <title>Database Maintenance</title>
         </widget>
       </column>
     </section>

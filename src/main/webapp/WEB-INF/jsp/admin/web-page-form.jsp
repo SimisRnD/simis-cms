@@ -178,7 +178,7 @@
       <button type="button" class="button radius alert" onclick="deletePage()"><i class="fa fa-trash-o"></i> Delete Page</button>
     </c:if>
     <c:if test="${webPage.id > -1}">
-      <a href="${ctx}/admin/web-page-review?webPageId=${webPage.id}" class="button radius secondary"><i class="fa fa-clipboard-check"></i> Review Workflow</a>
+      <a href="${ctx}/admin/web-page-versions?webPageId=${webPage.id}" class="button radius secondary"><i class="fa fa-history"></i> Version History</a>
     </c:if>
   </div>
 </form>

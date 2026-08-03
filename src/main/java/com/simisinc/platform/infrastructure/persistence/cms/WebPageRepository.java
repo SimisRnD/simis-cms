@@ -18,6 +18,9 @@ package com.simisinc.platform.infrastructure.persistence.cms;
 
 import com.simisinc.platform.application.cms.WebPageXmlLayoutCommand;
 import com.simisinc.platform.domain.model.cms.WebPage;
+import com.simisinc.platform.domain.model.cms.WebPageVersion;
+import com.simisinc.platform.infrastructure.database.AutoRollback;
+import com.simisinc.platform.infrastructure.database.AutoStartTransaction;
 import com.simisinc.platform.infrastructure.database.DB;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.database.DataResult;
@@ -26,6 +29,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -213,21 +218,87 @@ public class WebPageRepository {
     return null;
   }
 
-  public static void publish(WebPage record) {
+  private static final int DEFAULT_VERSION_HISTORY_LIMIT = 20;
+
+  /** Parses the configured version-history cap to a bounded positive integer, defaulting to 20. */
+  public static int resolveVersionHistoryLimit(String value) {
+    if (StringUtils.isBlank(value)) {
+      return DEFAULT_VERSION_HISTORY_LIMIT;
+    }
+    try {
+      int limit = Integer.parseInt(value.trim());
+      return Math.max(limit, 1);
+    } catch (NumberFormatException e) {
+      return DEFAULT_VERSION_HISTORY_LIMIT;
+    }
+  }
+
+  /**
+   * Promotes draftPageXml to the live pageXml (#405). Before overwriting it, the outgoing pageXml
+   * is snapshotted into web_page_versions -- within the same transaction as the publish itself, so
+   * a failed snapshot can't silently leave a publish with no recoverable prior state -- then pruned
+   * to versionHistoryLimit. A page with no live pageXml yet (first-ever publish) has nothing to
+   * snapshot.
+   */
+  public static void publish(WebPage record, long publishedBy, int versionHistoryLimit) {
     if (record.getId() == -1) {
       return;
     }
-    // Handle publishing and making sure there is content to publish. The draft is consumed, so its
-    // review workflow (#407) is cleared too -- the durable record of who submitted and approved, and
-    // under what release authority, lives in the append-only audit trail, not here. Mirrors
-    // ContentRepository.publish()'s identical reset of content's own review fields.
-    String set = "page_xml = draft_page_xml, draft_page_xml = null, draft = false, "
-        + "draft_status = null, submitted_by = -1, approved_by = -1, release_reference = null";
-    SqlUtils where = new SqlUtils().add("draft_page_xml IS NOT NULL AND web_page_id = ?", record.getId());
-    if (DB.update(TABLE_NAME, set, where)) {
-      // Force the page to re-cache
-      WebPageXmlLayoutCommand.removeCustomPage(record.getLink());
+    try (Connection connection = DB.getConnection();
+        AutoStartTransaction ignored = new AutoStartTransaction(connection);
+        AutoRollback transaction = new AutoRollback(connection)) {
+
+      String outgoingPageXml = null;
+      try (PreparedStatement pst = connection.prepareStatement(
+          "SELECT page_xml FROM " + TABLE_NAME + " WHERE web_page_id = ? AND draft_page_xml IS NOT NULL")) {
+        pst.setLong(1, record.getId());
+        try (ResultSet rs = pst.executeQuery()) {
+          if (!rs.next()) {
+            // Nothing to publish (no pending draft) -- matches the prior no-op behavior
+            return;
+          }
+          outgoingPageXml = rs.getString("page_xml");
+        }
+      }
+
+      if (StringUtils.isNotBlank(outgoingPageXml)) {
+        WebPageVersion version = new WebPageVersion();
+        version.setWebPageId(record.getId());
+        version.setPageXml(outgoingPageXml);
+        version.setPublishedBy(publishedBy);
+        if (WebPageVersionRepository.insert(connection, version) == -1) {
+          throw new SQLException("The prior page version was not saved");
+        }
+        WebPageVersionRepository.pruneOldest(connection, record.getId(), versionHistoryLimit);
+      }
+
+      int updated;
+      try (PreparedStatement pst = connection.prepareStatement(
+          "UPDATE " + TABLE_NAME + " SET page_xml = draft_page_xml, draft_page_xml = null, draft = false "
+              + "WHERE draft_page_xml IS NOT NULL AND web_page_id = ?")) {
+        pst.setLong(1, record.getId());
+        updated = pst.executeUpdate();
+      }
+      if (updated > 0) {
+        transaction.commit();
+        // Force the page to re-cache
+        WebPageXmlLayoutCommand.removeCustomPage(record.getLink());
+      }
+    } catch (SQLException se) {
+      LOG.error("SQLException: " + se.getMessage());
     }
+  }
+
+  /**
+   * Loads a prior version's XML into the draft slot (#405) -- never touches the live pageXml, so a
+   * subsequent publish is required to make the restored content live again.
+   */
+  public static boolean restoreDraftFromVersion(long webPageId, String pageXml) {
+    SqlUtils updateValues = new SqlUtils()
+        .add("draft_page_xml", pageXml)
+        .add("draft", true);
+    SqlUtils where = new SqlUtils().add("web_page_id = ?", webPageId);
+    return DB.update(TABLE_NAME, updateValues, where);
   }
 
   public static void markAsModified(WebPage record, long userId) {
