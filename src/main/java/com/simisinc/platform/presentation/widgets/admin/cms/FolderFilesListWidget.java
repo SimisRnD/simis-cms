@@ -333,17 +333,18 @@ public class FolderFilesListWidget extends GenericWidget {
     String targetId = String.valueOf(record.getId());
     String targetLabel = record.getFilename();
     try {
-      // NOTE: the pre-existing "File deleted" success message/redirect below does not check
-      // DeleteFileCommand.deleteFile()'s boolean return value (a latent bug, out of scope here); the
-      // audit record below uses the real return value so it reflects what actually happened.
       boolean removed = DeleteFileCommand.deleteFile(record);
       AuditEventCommand.record(context, AuditEventCommand.CONTENT, "folder_file.delete",
           removed ? AuditEventCommand.SUCCESS : AuditEventCommand.FAILURE, "folder_file", targetId, targetLabel, null);
-      context.setSuccessMessage("File deleted");
-      if (record.getSubFolderId() > -1) {
-        context.setRedirect("/admin/sub-folder-details?folderId=" + record.getFolderId() + "&subFolderId=" + record.getSubFolderId());
+      if (removed) {
+        context.setSuccessMessage("File deleted");
+        if (record.getSubFolderId() > -1) {
+          context.setRedirect("/admin/sub-folder-details?folderId=" + record.getFolderId() + "&subFolderId=" + record.getSubFolderId());
+        } else {
+          context.setRedirect("/admin/folder-details?folderId=" + record.getFolderId());
+        }
       } else {
-        context.setRedirect("/admin/folder-details?folderId=" + record.getFolderId());
+        context.setErrorMessage("Error. File could not be deleted.");
       }
       return context;
     } catch (Exception e) {
