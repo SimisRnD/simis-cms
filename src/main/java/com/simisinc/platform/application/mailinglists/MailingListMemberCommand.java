@@ -17,12 +17,15 @@
 package com.simisinc.platform.application.mailinglists;
 
 import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.domain.events.mailinglists.MailingListMemberUpdatedEvent;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.mailinglists.Email;
 import com.simisinc.platform.domain.model.mailinglists.MailingList;
+import com.simisinc.platform.domain.model.mailinglists.MailingListMember;
 import com.simisinc.platform.infrastructure.persistence.mailinglists.EmailRepository;
 import com.simisinc.platform.infrastructure.persistence.mailinglists.MailingListMemberRepository;
 import com.simisinc.platform.infrastructure.scheduler.mailinglists.ProcessEmailSubscriptionJob;
+import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
 import com.simisinc.platform.presentation.controller.UserSession;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -77,9 +80,22 @@ public class MailingListMemberCommand {
     // Use the email to remove from the list
     Email email = EmailRepository.findByEmailAddress(user.getEmail());
     if (email != null) {
+      // issue #452: capture prior state before mutating, so a duplicate/retried unsubscribe
+      // (already unsubscribed) doesn't fire a misleading "just transitioned from subscribed" event
+      MailingListMember existingBefore = MailingListMemberRepository.findByListAndEmail(mailingList.getId(),
+          email.getId());
+      boolean wasSubscribed = existingBefore != null && existingBefore.getUnsubscribed() == null;
+
       email.setUnsubscribed(new Timestamp(System.currentTimeMillis()));
       MailingListMemberRepository.unsubscribe(mailingList, email, user);
       triggerEmailSubscriptionProcess(email, mailingList, false);
+      if (wasSubscribed) {
+        MailingListMember member = MailingListMemberRepository.findByListAndEmail(mailingList.getId(), email.getId());
+        if (member != null) {
+          WorkflowManager.triggerWorkflowForEvent(
+              new MailingListMemberUpdatedEvent(member, mailingList, user, "unsubscribed", true));
+        }
+      }
     }
   }
 

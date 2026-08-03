@@ -25,12 +25,17 @@ import org.apache.commons.logging.LogFactory;
 import com.sanctionco.jmail.JMail;
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.maps.GeoIPCommand;
+import com.simisinc.platform.domain.events.mailinglists.MailingListMemberCreatedEvent;
+import com.simisinc.platform.domain.events.mailinglists.MailingListMemberUpdatedEvent;
+import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.mailinglists.Email;
 import com.simisinc.platform.domain.model.mailinglists.MailingList;
 import com.simisinc.platform.domain.model.maps.GeoIP;
+import com.simisinc.platform.infrastructure.persistence.UserRepository;
 import com.simisinc.platform.infrastructure.persistence.mailinglists.EmailRepository;
 import com.simisinc.platform.infrastructure.persistence.mailinglists.MailingListMemberRepository;
 import com.simisinc.platform.infrastructure.persistence.mailinglists.MailingListRepository;
+import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
 
 /**
  * Validates and saves an email address to a mailing list
@@ -109,9 +114,28 @@ public class SaveEmailCommand {
       throw new DataException("Please check the email address and try again");
     }
     // Add email to each list (even if user is already on it), and send to mailing list integration
+    // issue #452: resolve the acting user from the submitted bean, not the persisted/re-fetched
+    // `email` record -- EmailRepository.update() deliberately never overwrites created_by (the
+    // #810 fix), so on the duplicate-email/update branch above, email.getCreatedBy() would still
+    // be whoever originally created that address, not who is submitting this request
+    User actingUser = emailBean.getCreatedBy() > -1 ? UserRepository.findByUserId(emailBean.getCreatedBy()) : null;
     for (MailingList mailingList : mailingLists) {
-      MailingListMemberRepository.addEmailToList(email, mailingList);
+      MailingListMemberRepository.AddToListResult result = MailingListMemberRepository.addEmailToList(email,
+          mailingList);
       MailingListMemberCommand.triggerEmailSubscriptionProcess(email, mailingList, true);
+      if (result != null && result.getMember() != null) {
+        // issue #452: webhook/workflow event for the mailing-list-member lifecycle. A "not
+        // created" result also covers a harmless re-add of an already-active member (the (list,
+        // email) unique constraint just rejected a duplicate insert) -- only a genuine
+        // reactivation of a previously-unsubscribed member is a real state change worth an event
+        if (result.isCreated()) {
+          WorkflowManager.triggerWorkflowForEvent(
+              new MailingListMemberCreatedEvent(result.getMember(), mailingList, actingUser));
+        } else if (result.wasPreviouslyUnsubscribed()) {
+          WorkflowManager.triggerWorkflowForEvent(
+              new MailingListMemberUpdatedEvent(result.getMember(), mailingList, actingUser, "resubscribed", false));
+        }
+      }
     }
     return email;
   }
