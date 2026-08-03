@@ -97,6 +97,7 @@ class CalendarEventListWidgetTest extends WidgetBase {
       assertEquals("town hall", spec.getSearchTerm());
       assertEquals(7L, spec.getCalendarId());
       assertEquals(1, spec.getPublishedOnly()); // DataConstants.TRUE
+      assertEquals(0, spec.getArchivedOnly()); // DataConstants.FALSE -- excluded whenever status isn't "archived"
       assertEquals(Timestamp.valueOf(LocalDate.parse("2026-08-01").atStartOfDay()), spec.getStartingDateRange());
       // The "to" bound is half-open: the start of the day AFTER the picked date, so that whole day is included
       assertEquals(Timestamp.valueOf(LocalDate.parse("2026-08-21").atStartOfDay()), spec.getEndingDateRange());
@@ -126,11 +127,36 @@ class CalendarEventListWidgetTest extends WidgetBase {
       ArgumentCaptor<CalendarEventSpecification> captor = ArgumentCaptor.forClass(CalendarEventSpecification.class);
       repository.verify(() -> CalendarEventRepository.findAll(captor.capture(), any(DataConstraints.class)));
       assertEquals(0, captor.getValue().getPublishedOnly()); // DataConstants.FALSE
+      assertEquals(0, captor.getValue().getArchivedOnly()); // DataConstants.FALSE
     }
   }
 
   @Test
-  void blankFiltersLeaveTheSpecificationUnset() {
+  void archivedStatusMapsToArchivedOnlyTrueAndIgnoresPublishedOnly() {
+    // issue #882: "Archived" is its own status option, orthogonal to published/draft -- selecting
+    // it must not also constrain publishedOnly, since an archived event may have been published or
+    // still a draft before it was archived.
+    addQueryParameter(widgetContext, "status", "archived");
+
+    try (MockedStatic<CalendarEventRepository> repository = mockStatic(CalendarEventRepository.class);
+        MockedStatic<CalendarRepository> calendarRepository = mockStatic(CalendarRepository.class)) {
+      repository.when(() -> CalendarEventRepository.findAll(any(CalendarEventSpecification.class), any(DataConstraints.class)))
+          .thenReturn(new ArrayList<>());
+      calendarRepository.when(CalendarRepository::findAll).thenReturn(new ArrayList<>());
+
+      new CalendarEventListWidget().execute(widgetContext);
+
+      ArgumentCaptor<CalendarEventSpecification> captor = ArgumentCaptor.forClass(CalendarEventSpecification.class);
+      repository.verify(() -> CalendarEventRepository.findAll(captor.capture(), any(DataConstraints.class)));
+      CalendarEventSpecification spec = captor.getValue();
+
+      assertEquals(1, spec.getArchivedOnly()); // DataConstants.TRUE
+      assertEquals(-1, spec.getPublishedOnly()); // DataConstants.UNDEFINED -- left alone
+    }
+  }
+
+  @Test
+  void blankFiltersLeaveTheSpecificationUnsetExceptArchivedOnlyWhichDefaultsToExcluded() {
     try (MockedStatic<CalendarEventRepository> repository = mockStatic(CalendarEventRepository.class);
         MockedStatic<CalendarRepository> calendarRepository = mockStatic(CalendarRepository.class)) {
       repository.when(() -> CalendarEventRepository.findAll(any(CalendarEventSpecification.class), any(DataConstraints.class)))
@@ -146,6 +172,9 @@ class CalendarEventListWidgetTest extends WidgetBase {
       assertNull(spec.getSearchTerm());
       assertEquals(-1L, spec.getCalendarId());
       assertEquals(-1, spec.getPublishedOnly()); // DataConstants.UNDEFINED
+      // issue #882: archived events are hidden from the admin list by default, unlike every other
+      // filter above which stays UNDEFINED (no-op) when nothing was requested.
+      assertEquals(0, spec.getArchivedOnly()); // DataConstants.FALSE
       assertNull(spec.getStartingDateRange());
       assertNull(spec.getEndingDateRange());
     }

@@ -64,13 +64,18 @@ The `AZURE_*` variables are already configured for ACR login. Reuse them for the
 
 ## Process: Behind the Scenes
 
-### Step 1: Identify slots
+### Step 1: Ensure the staging slot exists
 
-The script checks which slot is currently active:
-- If staging exists and is healthy → production is next (deploy to production, then swap)
-- If staging is absent or old → staging is next (deploy to staging, then swap)
+`production` is the App Service's implicit default slot: it always exists, is never returned by `az webapp deployment slot list`, and can't be created or deleted — only swapped into. `staging` is the only extra slot this workflow uses, and new code always lands there first; production is only ever reached through the health-checked swap in Step 4. There is no path in the routine deploy flow that writes to production directly.
 
-**Idempotency:** Re-running after a partial failure picks up the correct target slot based on current state.
+The staging slot does not persist between deploys — Step 6 deletes it after every successful swap — so this step (re)creates it unconditionally, cloning settings from production:
+```bash
+az webapp deployment slot create \
+  --slot staging \
+  --configuration-source "$APP_SERVICE_NAME"
+```
+
+**Idempotency:** this is safe to run every time regardless of current state — whether staging is missing (first-ever run, or after a normal cleanup) or already present (a prior cleanup failed and left it behind, in which case it's reused as-is and its content is about to be overwritten in Step 2 anyway).
 
 ### Step 2: Deploy image
 
@@ -188,17 +193,18 @@ For combined app + infrastructure deploys, update Bicep first, then push code.
 
 ### Re-running a partial deploy is safe
 
-**Scenario:** Slot swap succeeded, but cleanup script crashed.
+The workflow never tries to auto-detect "which slot is active" — that question doesn't need answering. `production` is always the stable slot bound to the public hostname; `staging` is always the deploy target, unconditionally (re)created in Step 1 if it isn't already there. This holds regardless of how the previous run ended:
 
-**Result:** Old slot still exists. Re-running the workflow:
-1. Detects old slot is now "staging"
-2. Treats it as the current active slot
-3. Deploys to "production" (which is now staging's contents)
-4. Health check passes
-5. Swaps back to "staging" (old → new)
-6. Deletes the new slot (which is really the old one)
+**Scenario: previous run completed cleanly.**
+Staging was deleted in its Step 6. This run's Step 1 recreates it from production's current config, deploys the new image, health-checks it, swaps, and deletes it again.
 
-**Net effect:** Correct slot is active; orphaned slots cleaned up.
+**Scenario: previous run's slot swap succeeded, but cleanup (Step 6) crashed or was killed.**
+Staging is still sitting there holding the pre-swap (old) build. This run's Step 1 finds it already exists and reuses it as-is — its stale content is irrelevant, since Step 2 immediately overwrites it with the new image before anything reads from it.
+
+**Scenario: previous run's health check failed and rollback deleted staging, then the run exited.**
+Same as a clean completion — staging is absent, Step 1 recreates it.
+
+In every case, staging is the only slot ever written to before a swap, staging is always health-checked before the swap happens, and production is only ever changed by the swap itself — never by a direct write. There is no fallback path where a routine deploy pushes new code straight onto production; a swap-then-health-check failure is handled by the rollback block deleting/recreating staging, not by mutating production in place.
 
 ### Connection drain is sufficient
 

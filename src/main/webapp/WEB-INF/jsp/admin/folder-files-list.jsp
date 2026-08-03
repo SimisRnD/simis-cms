@@ -34,14 +34,49 @@
 <jsp:useBean id="fileList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="canEdit" class="java.lang.String" scope="request"/>
 <jsp:useBean id="canDelete" class="java.lang.String" scope="request"/>
+<jsp:useBean id="query" class="java.lang.String" scope="request"/>
+<jsp:useBean id="sortBy" class="java.lang.String" scope="request"/>
 <script src="${ctx}/javascript/clipboard-2.0.11/clipboard.min.js"></script>
 <%@include file="../page_messages.jspf" %>
 <c:if test="${(userSession.hasRole('admin') || userSession.hasRole('content-manager'))}">
   <a href="${ctx}/admin/file-form?subFolderId=${subFolder.id}&folderId=${folder.id}&returnPage=${widgetContext.uri}%3FsubFolderId=${subFolder.id}%26folderId=${folder.id}" class="button small primary radius float-left"><i class="fa fa-plus"></i> Add File Link</a>
 </c:if>
+<%-- Search/sort (GET so the criteria live in the URL); folderId/subFolderId are carried as hidden
+     fields since a GET form with no action= replaces the current query string with only its own
+     fields --%>
+<form method="get" autocomplete="off" class="clear-float margin-bottom-10">
+  <input type="hidden" name="folderId" value="${folder.id}"/>
+  <c:if test="${subFolder.id gt 0}">
+    <input type="hidden" name="subFolderId" value="${subFolder.id}"/>
+  </c:if>
+  <div class="grid-x grid-margin-x">
+    <div class="cell medium-5">
+      <label for="fileSearchQuery" class="show-for-sr">Search by filename or title</label>
+      <input id="fileSearchQuery" type="search" name="query" placeholder="Search by filename or title..."<c:if test="${!empty query}"> value="<c:out value="${query}"/>"</c:if>>
+    </div>
+    <div class="cell medium-4">
+      <label for="fileSortBy" class="show-for-sr">Sort by</label>
+      <select id="fileSortBy" name="sortBy">
+        <option value="date" <c:if test="${sortBy eq 'date'}">selected</c:if>>Date (Newest First)</option>
+        <option value="name" <c:if test="${sortBy eq 'name'}">selected</c:if>>Name (A-Z)</option>
+        <option value="size" <c:if test="${sortBy eq 'size'}">selected</c:if>>Size (Largest First)</option>
+        <option value="downloads" <c:if test="${sortBy eq 'downloads'}">selected</c:if>>Downloads (Most First)</option>
+      </select>
+    </div>
+    <div class="cell medium-3">
+      <button type="submit" class="button small primary radius"><i class="fa fa-filter"></i> Apply</button>
+      <c:if test="${!empty query || sortBy ne 'date'}">
+        <a href="${widgetContext.uri}?folderId=${folder.id}<c:if test="${subFolder.id gt 0}">&subFolderId=${subFolder.id}</c:if>" class="button small secondary radius">Clear</a>
+      </c:if>
+    </div>
+  </div>
+</form>
 <table class="unstriped">
   <thead>
     <tr>
+      <c:if test="${canDelete eq 'true' && !empty fileList}">
+        <th width="30"><input type="checkbox" id="selectAllFiles" aria-label="Select all files"></th>
+      </c:if>
       <th>
         Filename
       </th>
@@ -54,11 +89,19 @@
   <tbody>
     <c:if test="${empty fileList}">
       <tr>
-        <td colspan="5">No files were found</td>
+        <td colspan="5">
+          <c:choose>
+            <c:when test="${!empty query}">No files match "<c:out value="${query}" />"</c:when>
+            <c:otherwise>No files were found</c:otherwise>
+          </c:choose>
+        </td>
       </tr>
     </c:if>
     <c:forEach items="${fileList}" var="file">
     <tr>
+      <c:if test="${canDelete eq 'true'}">
+        <td><input type="checkbox" class="fileRowCheckbox" value="${file.id}" data-filename="${fn:escapeXml(file.title)}" aria-label="Select <c:out value="${file.title}"/>"></td>
+      </c:if>
       <td>
         <c:if test="${fn:toLowerCase(file.fileType) eq 'image'}">
           <img class="image-left" width="200" src="${ctx}/assets/view/${file.url}" />
@@ -74,6 +117,12 @@
             </c:when>
           </c:choose>
           <c:if test="${file.version ne '1.0'}">(<c:out value="${file.version}" />)</c:if>
+          <c:if test="${file.expired}">
+            <span class="label small round alert">expired</span>
+          </c:if>
+          <c:if test="${file.expiringSoon}">
+            <span class="label small round warning">expiring soon</span>
+          </c:if>
         </small>
         <c:if test="${file.categoryId gt 0}">
           <span class="label"><c:out value="${folderCategory:name(file.categoryId)}" /></span>
@@ -91,6 +140,9 @@
         </c:if>
         <c:if test="${!empty file.summary}">
           <br /><small><c:out value="${file.summary}" /></small>
+        </c:if>
+        <c:if test="${!empty file.expirationDate}">
+          <br /><small>Expires: <fmt:formatDate pattern="yyyy-MM-dd hh:mm a" value="${file.expirationDate}" /></small>
         </c:if>
       </td>
       <td nowrap>
@@ -110,6 +162,9 @@
         </c:if>
         <c:if test="${fn:toLowerCase(file.fileType) ne 'url'}">
           <a title="Download file" href="${ctx}/assets/file/${file.url}"><i class="fa fa-download"></i></a>
+        </c:if>
+        <c:if test="${versionCountMap[file.id] gt 1}">
+          <a title="Version history" href="${ctx}/admin/file-versions?fileId=${file.id}"><i class="fa fa-history"></i></a>
         </c:if>
         <c:if test="${canDelete eq 'true'}">
           <a title="Delete file" href="#" onclick="return confirmPostAction('Are you sure you want to delete <c:out value="${js:escape(file.filename)}" />?', '${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&fileId=${file.id}');"><i class="fa fa-remove"></i></a>
@@ -184,6 +239,9 @@
       if (data.hasOwnProperty('filename')) {
         document.getElementById('filename').value = data.filename;
       }
+      if (data.hasOwnProperty('expirationDate')) {
+        document.getElementById('expirationDate').value = data.expirationDate;
+      }
       document.getElementById('title').value = data.title;
 
       // Show the form
@@ -191,6 +249,66 @@
       $modal.foundation('open');
     });
   }
+
+  // Bulk select + delete (mirrors image-browser.jsp's bulk delete, PR #834)
+  (function () {
+    var $selectAll = document.getElementById('selectAllFiles');
+    var rowCheckboxes = document.querySelectorAll('.fileRowCheckbox');
+    var $bar = document.getElementById('bulkActionsBar');
+    var $count = document.getElementById('bulkSelectedCount');
+
+    function selected() {
+      return Array.prototype.filter.call(rowCheckboxes, function (cb) {
+        return cb.checked;
+      });
+    }
+
+    function refresh() {
+      var n = selected().length;
+      if ($count) {
+        $count.textContent = n + (n === 1 ? ' file selected  ' : ' files selected  ');
+      }
+      if ($bar) {
+        $bar.style.display = n > 0 ? '' : 'none';
+      }
+      if ($selectAll) {
+        $selectAll.indeterminate = n > 0 && n < rowCheckboxes.length;
+        $selectAll.checked = n > 0 && n === rowCheckboxes.length;
+      }
+    }
+
+    if ($selectAll) {
+      $selectAll.addEventListener('change', function () {
+        rowCheckboxes.forEach(function (cb) {
+          cb.checked = $selectAll.checked;
+        });
+        refresh();
+      });
+    }
+    rowCheckboxes.forEach(function (cb) {
+      cb.addEventListener('change', refresh);
+    });
+
+    var bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
+    if (bulkDeleteBtn) {
+      bulkDeleteBtn.addEventListener('click', function () {
+        var checked = selected();
+        var $reveal = $('#bulkDeleteReveal');
+        var $form = $reveal.find('form');
+        var $list = $('#bulkDeleteList');
+        $form.find('input[name="fileId"]').remove();
+        $list.empty();
+        checked.forEach(function (cb) {
+          $form.append($('<input type="hidden" name="fileId">').val(cb.value));
+          $list.append($('<li>').text(cb.getAttribute('data-filename')));
+        });
+        $('#bulkDeleteCount').text(checked.length);
+        $reveal.foundation('open');
+      });
+    }
+
+    refresh();
+  })();
 </script>
 <c:if test="${(userSession.hasRole('admin') || userSession.hasRole('content-manager'))}">
   <div class="reveal small" id="fileFormReveal" data-reveal data-close-on-esc="false" data-close-on-click="false" data-animation-in="slide-in-down fast" role="dialog" aria-modal="true" aria-labelledby="formTitle">
@@ -271,9 +389,33 @@
       <label>Version
         <input type="text" placeholder="Version" name="version" id="version" value="">
       </label>
+      <label>Expiration date (optional)
+        <input type="datetime-local" name="expirationDate" id="expirationDate" value="">
+      </label>
       <div class="button-container">
         <input type="submit" class="button radius success expanded" value="Save" />
       </div>
     </form>
+  </div>
+</c:if>
+<c:if test="${canDelete eq 'true' && !empty fileList}">
+  <%-- Bulk delete confirmation -- the list below is populated at open time (see the JS) from the
+       checked rows' data-filename attributes, so the admin sees exactly what will be deleted. --%>
+  <div class="reveal" id="bulkDeleteReveal" role="dialog" aria-modal="true" aria-labelledby="bulkDeleteRevealTitle"
+       data-reveal data-close-on-click="true">
+    <h4 id="bulkDeleteRevealTitle">Delete <span id="bulkDeleteCount">0</span> File(s)</h4>
+    <ul id="bulkDeleteList"></ul>
+    <form method="post" action="${widgetContext.uri}">
+      <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
+      <input type="hidden" name="token" value="${userSession.formToken}"/>
+      <input type="hidden" name="command" value="bulkDelete"/>
+      <input type="hidden" name="currentFolderId" value="${folder.id}"/>
+      <input type="hidden" name="currentSubFolderId" value="${subFolder.id}"/>
+      <input type="submit" class="button alert radius" value="Delete Files"/>
+      <button class="button secondary radius" type="button" data-close>Cancel</button>
+    </form>
+    <button class="close-button" data-close aria-label="Close reveal" type="button">
+      <span aria-hidden="true">&times;</span>
+    </button>
   </div>
 </c:if>

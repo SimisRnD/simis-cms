@@ -23,6 +23,8 @@ import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import org.apache.commons.lang3.StringUtils;
 
+import java.text.SimpleDateFormat;
+
 /**
  * Returns the specified file
  *
@@ -62,6 +64,12 @@ public class FileAjax extends GenericWidget {
     sb.append("\"folderId\":").append(fileItem.getFolderId()).append(",");
     sb.append("\"subFolderId\":").append(fileItem.getSubFolderId()).append(",");
     sb.append("\"categoryId\":").append(fileItem.getCategoryId()).append(",");
+    if (fileItem.getExpirationDate() != null) {
+      // Matches the datetime-local input format used by folder-files-list.jsp's edit form
+      sb.append("\"expirationDate\":\"")
+          .append(new SimpleDateFormat("yyyy-MM-dd'T'HH:mm").format(fileItem.getExpirationDate()))
+          .append("\",");
+    }
     if (StringUtils.isNotEmpty(fileItem.getSummary())) {
       sb.append("\"summary\":\"").append(JsonCommand.toJson(fileItem.getSummary())).append("\",");
     }

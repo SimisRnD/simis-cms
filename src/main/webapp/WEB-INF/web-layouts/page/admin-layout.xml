@@ -536,6 +536,17 @@
     </section>
   </page>
 
+  <page name="/admin/feature-flags" role="admin" title="Feature Flags">
+    <section>
+      <column class="small-12 large-10 cell">
+        <widget name="sitePropertiesEditor">
+          <title>Feature Flags</title>
+          <prefix>features</prefix>
+        </widget>
+      </column>
+    </section>
+  </page>
+
   <page name="/admin/seo-overview" role="admin" title="SEO &amp; AI Visibility">
     <section>
       <column class="small-12 large-10 cell">
@@ -1602,6 +1613,12 @@
     </section>
   </page>
 
+  <!-- Mirrors the /assets/file -> downloadFile route shape: a dedicated page whose widget writes
+       raw bytes to the response and calls setHandledResponse(true), no JSP involved. -->
+  <page name="/admin/folder-zip-download" role="admin,content-manager,community-manager" title="Download Folder Files">
+    <widget name="folderZipDownload" />
+  </page>
+
   <page name="/admin/sub-folder{?subFolderId}" role="admin,content-manager,community-manager" title="Sub-Folder Details">
     <section>
       <column class="small-12 cell">
@@ -1632,6 +1649,26 @@
       <column class="small-12 medium-2 large-4 cell">
         <widget name="folderFileDropZone" class="callout radius primary">
           <title>Add Files To Sub-Folder</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/file-versions{?fileId}" role="admin,content-manager,community-manager" title="File Version History">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Folders" value="/admin/folders" />
+            <link name="Version History" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 medium-10 large-8 cell">
+        <widget name="fileVersionsList">
+          <title>Version History</title>
         </widget>
       </column>
     </section>
