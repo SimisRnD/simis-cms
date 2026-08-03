@@ -17,6 +17,8 @@
 package com.simisinc.platform.presentation.widgets.admin.cms;
 
 import com.simisinc.platform.WidgetBase;
+import com.simisinc.platform.application.cms.ContentReviewCommand;
+import com.simisinc.platform.application.cms.SaveWebPageCommand;
 import com.simisinc.platform.domain.model.cms.SolutionTypeOptions;
 import com.simisinc.platform.domain.model.cms.WebPage;
 import com.simisinc.platform.infrastructure.cache.PublishEventCachePurgeHandler;
@@ -29,6 +31,7 @@ import org.mockito.MockedStatic;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
@@ -98,6 +101,55 @@ class WebPageFormWidgetTest extends WidgetBase {
 
       Assertions.assertSame(SolutionTypeOptions.map, result.getRequest().getAttribute("solutionTypeMap"));
       Assertions.assertEquals(webPage, result.getRequest().getAttribute("webPage"));
+    }
+  }
+
+  /**
+   * The governed publish workflow (#407) fields must never be settable through this generic form
+   * save: post() calls BeanUtils.populate(webPageBean, context.getParameterMap()) against the
+   * entire raw request map, so without an explicit guard a crafted POST could set e.g.
+   * approvedBy=&lt;attacker's own id&gt; directly and bypass separation-of-duties and step-up
+   * re-authentication entirely -- the same class of mass-assignment gap fixed for #492/#730. This
+   * proves the guard: a page mid-review (submitted, awaiting a named approver) keeps its exact
+   * review state through a save that also tries to inject different values for every one of those
+   * fields.
+   */
+  @Test
+  void postCannotInjectGovernedWorkflowFieldsViaFormSave() throws Exception {
+    setRoles(widgetContext, ADMIN);
+
+    WebPage existing = new WebPage();
+    existing.setId(7L);
+    existing.setLink("/about");
+    existing.setTitle("About Us");
+    existing.setDraftStatus(ContentReviewCommand.STATUS_SUBMITTED);
+    existing.setSubmittedBy(5L);
+    existing.setApprovedBy(-1L);
+    existing.setReleaseReference(null);
+
+    addQueryParameter(widgetContext, "id", "7");
+    addQueryParameter(widgetContext, "link", "/about");
+    addQueryParameter(widgetContext, "title", "About Us");
+    // The attack: try to self-approve by injecting every governed-workflow field directly.
+    addQueryParameter(widgetContext, "draftStatus", "approved");
+    addQueryParameter(widgetContext, "submittedBy", "999");
+    addQueryParameter(widgetContext, "approvedBy", "999");
+    addQueryParameter(widgetContext, "releaseReference", "forged");
+
+    try (MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class);
+        MockedStatic<SaveWebPageCommand> saveCommand = mockStatic(SaveWebPageCommand.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      webPageRepository.when(() -> WebPageRepository.findById(7L)).thenReturn(existing);
+      saveCommand.when(() -> SaveWebPageCommand.saveWebPage(any(WebPage.class)))
+          .thenAnswer(invocation -> invocation.getArgument(0));
+
+      new WebPageFormWidget().post(widgetContext);
+
+      saveCommand.verify(() -> SaveWebPageCommand.saveWebPage(argThat(bean ->
+          ContentReviewCommand.STATUS_SUBMITTED.equals(bean.getDraftStatus())
+              && bean.getSubmittedBy() == 5L
+              && bean.getApprovedBy() == -1L
+              && bean.getReleaseReference() == null)));
     }
   }
 }

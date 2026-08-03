@@ -17,7 +17,9 @@
 package com.simisinc.platform.presentation.widgets.admin.cms;
 
 import java.lang.reflect.InvocationTargetException;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import com.simisinc.platform.application.AppException;
 import com.simisinc.platform.application.DataException;
@@ -35,12 +37,14 @@ import com.simisinc.platform.domain.model.cms.SubFolder;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.persistence.cms.FileItemRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.FileSpecification;
+import com.simisinc.platform.infrastructure.persistence.cms.FileVersionRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.FolderCategoryRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.FolderRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.SubFolderRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.SubFolderSpecification;
 import com.simisinc.platform.presentation.controller.RequestConstants;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
+import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 
 import org.apache.commons.beanutils.BeanUtils;
@@ -162,6 +166,16 @@ public class FolderFilesListWidget extends GenericWidget {
     List<FileItem> fileList = FileItemRepository.findAll(specification, constraints);
     context.getRequest().setAttribute("fileList", fileList);
 
+    // Determine how many versions each file has on record, so the UI only offers a "Version
+    // History" link when there's actually a prior version to show/restore (issue #502). The
+    // files.version_count column exists but is never populated by any writer, so it can't be
+    // trusted for this -- count file_versions directly instead.
+    Map<Long, Long> versionCountMap = new HashMap<>();
+    for (FileItem fileItem : fileList) {
+      versionCountMap.put(fileItem.getId(), FileVersionRepository.countByFileId(fileItem.getId()));
+    }
+    context.getRequest().setAttribute("versionCountMap", versionCountMap);
+
     // Standard request items
     context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));
     context.getRequest().setAttribute("title", context.getPreferences().get("title"));
@@ -202,10 +216,12 @@ public class FolderFilesListWidget extends GenericWidget {
 
     // Determine if there is a new file version
     FileItem fileItemBean = null;
+    boolean isNewVersion = false;
     try {
       // Check for a file
       fileItemBean = SaveFilePartCommand.saveFile(context);
-      if (fileItemBean != null) {
+      isNewVersion = (fileItemBean != null);
+      if (isNewVersion) {
         // There's a new document version
         fileItemBean.setId(context.getParameterAsLong("id"));
         fileItemBean.setFolderId(context.getParameterAsLong("folderId"));
@@ -223,6 +239,8 @@ public class FolderFilesListWidget extends GenericWidget {
         if (fileItem == null) {
           throw new DataException("Your information could not be saved due to a system error. Please try again.");
         }
+        AuditEventCommand.record(context, AuditEventCommand.CONTENT, "folder_file.version", AuditEventCommand.SUCCESS,
+            "folder_file", String.valueOf(fileItem.getId()), fileItem.getFilename(), "version=" + fileItem.getVersion());
       } else {
         // It's a form update of an old version
         // Populate the fields
@@ -235,6 +253,8 @@ public class FolderFilesListWidget extends GenericWidget {
         if (fileItem == null) {
           throw new AppException("The information could not be saved due to a system error. Please try again.");
         }
+        AuditEventCommand.record(context, AuditEventCommand.CONTENT, "folder_file.update", AuditEventCommand.SUCCESS,
+            "folder_file", String.valueOf(fileItem.getId()), fileItem.getFilename(), null);
       }
     } catch (AppException | DataException data) {
       LOG.debug("An exception occurred: " + data.getMessage());
@@ -243,6 +263,10 @@ public class FolderFilesListWidget extends GenericWidget {
       // Let the user know
       context.setErrorMessage(data.getMessage());
       context.setRequestObject(fileItemBean);
+      AuditEventCommand.record(context, AuditEventCommand.CONTENT,
+          isNewVersion ? "folder_file.version" : "folder_file.update", AuditEventCommand.FAILURE,
+          "folder_file", fileItemBean != null ? String.valueOf(fileItemBean.getId()) : "-1",
+          fileItemBean != null ? fileItemBean.getFilename() : null, data.getMessage());
     }
 
     // Determine the page to return to
@@ -272,13 +296,22 @@ public class FolderFilesListWidget extends GenericWidget {
     }
     if (record == null) {
       LOG.warn("File record does not exist or no access: " + fileId);
+      AuditEventCommand.record(context, AuditEventCommand.CONTENT, "folder_file.delete", AuditEventCommand.FAILURE,
+          "folder_file", String.valueOf(fileId), null, "not found or access denied");
       return null;
     }
 
     // @todo make sure the folder's user group can delete
 
+    String targetId = String.valueOf(record.getId());
+    String targetLabel = record.getFilename();
     try {
-      DeleteFileCommand.deleteFile(record);
+      // NOTE: the pre-existing "File deleted" success message/redirect below does not check
+      // DeleteFileCommand.deleteFile()'s boolean return value (a latent bug, out of scope here); the
+      // audit record below uses the real return value so it reflects what actually happened.
+      boolean removed = DeleteFileCommand.deleteFile(record);
+      AuditEventCommand.record(context, AuditEventCommand.CONTENT, "folder_file.delete",
+          removed ? AuditEventCommand.SUCCESS : AuditEventCommand.FAILURE, "folder_file", targetId, targetLabel, null);
       context.setSuccessMessage("File deleted");
       if (record.getSubFolderId() > -1) {
         context.setRedirect("/admin/sub-folder-details?folderId=" + record.getFolderId() + "&subFolderId=" + record.getSubFolderId());
@@ -287,6 +320,8 @@ public class FolderFilesListWidget extends GenericWidget {
       }
       return context;
     } catch (Exception e) {
+      AuditEventCommand.record(context, AuditEventCommand.CONTENT, "folder_file.delete", AuditEventCommand.FAILURE,
+          "folder_file", targetId, targetLabel, e.getMessage());
       context.setErrorMessage("Error. File could not be deleted.");
 //        context.setRedirect("/admin/collections");
     }

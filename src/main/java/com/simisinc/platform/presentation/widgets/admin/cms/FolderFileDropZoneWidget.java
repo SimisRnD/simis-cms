@@ -32,6 +32,7 @@ import com.simisinc.platform.domain.model.cms.Folder;
 import com.simisinc.platform.domain.model.cms.SubFolder;
 import com.simisinc.platform.infrastructure.persistence.cms.FolderRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.SubFolderRepository;
+import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 
@@ -142,12 +143,17 @@ public class FolderFileDropZoneWidget extends GenericWidget {
       // yyyyMMddHHmmss
       // Return Json
       LOG.debug("Finished!");
+      AuditEventCommand.record(context, AuditEventCommand.CONTENT, "folder_file.create", AuditEventCommand.SUCCESS,
+          "folder_file", String.valueOf(fileItem.getId()), fileItem.getFilename(), "bytes=" + fileItem.getFileLength());
       context.setJson("{\"location\": \"" + "/assets/file/" + fileItem.getUrl() + "\"}");
       return context;
     } catch (DataException data) {
       // Clean up the file if it exists
       SaveFilePartCommand.cleanupFile(fileItemBean);
       // Let the user know
+      AuditEventCommand.record(context, AuditEventCommand.CONTENT, "folder_file.create", AuditEventCommand.FAILURE,
+          "folder_file", fileItemBean != null ? String.valueOf(fileItemBean.getId()) : "-1",
+          fileItemBean != null ? fileItemBean.getFilename() : null, data.getMessage());
       context.setErrorMessage(data.getMessage());
       return context;
     }

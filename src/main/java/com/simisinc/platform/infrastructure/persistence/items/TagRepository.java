@@ -80,6 +80,23 @@ public class TagRepository {
     return (List<Tag>) result.getRecords();
   }
 
+  /**
+   * Every tag across every collection, sorted by name (issue #632) -- mirrors
+   * CategoryRepository.findAll() exactly. Used by ItemsSearchResultsWidget to enumerate tag facet
+   * candidates the same way it enumerates category facet candidates.
+   */
+  public static List<Tag> findAll() {
+    DataResult result = DB.selectAllFrom(
+        TABLE_NAME,
+        null,
+        new DataConstraints().setDefaultColumnToSortBy("name"),
+        TagRepository::buildRecord);
+    if (result.hasRecords()) {
+      return (List<Tag>) result.getRecords();
+    }
+    return null;
+  }
+
   public static List<Tag> findAllByCollectionId(long collectionId) {
     if (collectionId == -1) {
       return null;

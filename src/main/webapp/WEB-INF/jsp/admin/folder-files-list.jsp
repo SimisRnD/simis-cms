@@ -148,6 +148,9 @@
         <c:if test="${fn:toLowerCase(file.fileType) ne 'url'}">
           <a title="Download file" href="${ctx}/assets/file/${file.url}"><i class="fa fa-download"></i></a>
         </c:if>
+        <c:if test="${versionCountMap[file.id] gt 1}">
+          <a title="Version history" href="${ctx}/admin/file-versions?fileId=${file.id}"><i class="fa fa-history"></i></a>
+        </c:if>
         <c:if test="${canDelete eq 'true'}">
           <a title="Delete file" href="#" onclick="return confirmPostAction('Are you sure you want to delete <c:out value="${js:escape(file.filename)}" />?', '${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&fileId=${file.id}');"><i class="fa fa-remove"></i></a>
         </c:if>
