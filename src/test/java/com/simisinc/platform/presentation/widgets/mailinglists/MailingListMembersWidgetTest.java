@@ -19,7 +19,6 @@ package com.simisinc.platform.presentation.widgets.mailinglists;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
@@ -313,16 +312,21 @@ class MailingListMembersWidgetTest extends WidgetBase {
     MailingListMember member = new MailingListMember();
     member.setId(9L);
     member.setEmailAddress("spammer@example.com");
+    MailingList mailingList = mailingList();
+    // UserSession.getUser() (called by delete()'s context.getUserSession().getUser()) always
+    // re-loads via LoadUserCommand.loadUser(userId) rather than returning a cached User -- this
+    // must be mocked or the real, unconfigured DataSource NPEs
+    User loadedUser = adminUser();
 
     try (MockedStatic<MailingListRepository> mailingListRepo = mockStatic(MailingListRepository.class);
         MockedStatic<EmailRepository> emailRepo = mockStatic(EmailRepository.class);
         MockedStatic<MailingListMemberRepository> memberRepo = mockStatic(MailingListMemberRepository.class);
         MockedStatic<WorkflowManager> workflowManager = mockStatic(WorkflowManager.class);
         MockedStatic<LoadUserCommand> loadUser = mockStatic(LoadUserCommand.class)) {
-      mailingListRepo.when(() -> MailingListRepository.findById(1L)).thenReturn(mailingList());
+      mailingListRepo.when(() -> MailingListRepository.findById(1L)).thenReturn(mailingList);
       emailRepo.when(() -> EmailRepository.findById(2L)).thenReturn(emailWithIp("203.0.113.20"));
       memberRepo.when(() -> MailingListMemberRepository.findByListAndEmail(1L, 2L)).thenReturn(member);
-      loadUser.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(adminUser());
+      loadUser.when(() -> LoadUserCommand.loadUser(1L)).thenReturn(loadedUser);
 
       new MailingListMembersWidget().delete(widgetContext);
 
@@ -331,7 +335,13 @@ class MailingListMembersWidgetTest extends WidgetBase {
       ArgumentCaptor<MailingListMemberDeletedEvent> eventCaptor = ArgumentCaptor.forClass(
           MailingListMemberDeletedEvent.class);
       workflowManager.verify(() -> WorkflowManager.triggerWorkflowForEvent(eventCaptor.capture()));
-      assertEquals(member, eventCaptor.getValue().getMember());
+      MailingListMemberDeletedEvent fired = eventCaptor.getValue();
+      assertEquals(member, fired.getMember());
+      assertEquals(mailingList, fired.getMailingList(),
+          "the deleted mailing list, not the deleted member's list, must be attached to the event");
+      assertEquals(loadedUser, fired.getUser(),
+          "actingUser must be the real User loaded via context.getUserSession().getUser(), "
+              + "not left null or some other value");
     }
   }
 

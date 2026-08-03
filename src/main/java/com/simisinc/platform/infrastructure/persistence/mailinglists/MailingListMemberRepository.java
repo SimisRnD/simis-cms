@@ -61,18 +61,28 @@ public class MailingListMemberRepository {
 
   /** Whether {@link #addEmailToList} inserted a new member row or reactivated an existing one
    *  (issue #452 -- the caller needs this to fire a created vs. updated lifecycle event), plus the
-   *  persisted row so the caller doesn't have to look it up separately. */
+   *  persisted row so the caller doesn't have to look it up separately. {@code
+   *  previouslyUnsubscribed} distinguishes a genuine reactivation (the row existed and was
+   *  unsubscribed) from a harmless re-add of an already-active member (the row existed and was
+   *  never unsubscribed) -- both land in the {@code created == false} branch, but only the former
+   *  is a real state change worth an event. */
   public static final class AddToListResult {
     private final boolean created;
+    private final boolean previouslyUnsubscribed;
     private final MailingListMember member;
 
-    public AddToListResult(boolean created, MailingListMember member) {
+    public AddToListResult(boolean created, boolean previouslyUnsubscribed, MailingListMember member) {
       this.created = created;
+      this.previouslyUnsubscribed = previouslyUnsubscribed;
       this.member = member;
     }
 
     public boolean isCreated() {
       return created;
+    }
+
+    public boolean wasPreviouslyUnsubscribed() {
+      return previouslyUnsubscribed;
     }
 
     public MailingListMember getMember() {
@@ -81,6 +91,11 @@ public class MailingListMemberRepository {
   }
 
   public static AddToListResult addEmailToList(Email email, MailingList mailingList) {
+    // Capture prior state before mutating, so the caller can tell a genuine reactivation (was
+    // unsubscribed) from a harmless re-add of an already-active member (issue #452)
+    MailingListMember existingBefore = findByListAndEmail(mailingList.getId(), email.getId());
+    boolean previouslyUnsubscribed = existingBefore != null && existingBefore.getUnsubscribed() != null;
+
     // Determine if the email is already listed
     SqlUtils insertValues = new SqlUtils()
         .add("list_id", mailingList.getId())
@@ -106,7 +121,7 @@ public class MailingListMemberRepository {
           .add("email_id = ?", email.getId());
       DB.update(TABLE_NAME, updateValues, where);
     }
-    return new AddToListResult(created, findByListAndEmail(mailingList.getId(), email.getId()));
+    return new AddToListResult(created, previouslyUnsubscribed, findByListAndEmail(mailingList.getId(), email.getId()));
   }
 
   public static void remove(Email email, MailingList mailingList) {

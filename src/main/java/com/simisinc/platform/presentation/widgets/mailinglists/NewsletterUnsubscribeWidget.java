@@ -69,11 +69,17 @@ public class NewsletterUnsubscribeWidget extends GenericWidget {
     if (member.getUnsubscribed() == null) {
       MailingListMemberRepository.unsubscribeByToken(member);
       // issue #452: webhook/workflow event for the mailing-list-member lifecycle -- no acting
-      // User for this anonymous, token-authorized self-service action
+      // User for this anonymous, token-authorized self-service action. unsubscribeByToken()
+      // mutates the DB row but not this in-memory `member` object, so re-fetch the post-mutation
+      // state rather than passing the stale (still-subscribed-looking) snapshot into the event.
       MailingList mailingList = MailingListRepository.findById(member.getListId());
       if (mailingList != null) {
-        WorkflowManager.triggerWorkflowForEvent(
-            new MailingListMemberUpdatedEvent(member, mailingList, null, "unsubscribed", true));
+        MailingListMember updatedMember = MailingListMemberRepository.findByListAndEmail(mailingList.getId(),
+            member.getEmailId());
+        if (updatedMember != null) {
+          WorkflowManager.triggerWorkflowForEvent(
+              new MailingListMemberUpdatedEvent(updatedMember, mailingList, null, "unsubscribed", true));
+        }
       }
     }
 

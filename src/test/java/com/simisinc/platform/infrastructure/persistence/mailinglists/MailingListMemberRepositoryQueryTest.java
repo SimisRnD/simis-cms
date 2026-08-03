@@ -251,6 +251,7 @@ class MailingListMemberRepositoryQueryTest {
         mailingList);
 
     assertTrue(result.isCreated(), "issue #452 -- must report created=true for a brand-new membership");
+    assertTrue(!result.wasPreviouslyUnsubscribed(), "there was no prior row at all, so it was never unsubscribed");
     assertNotNull(result.getMember());
     assertEquals("new@example.com", result.getMember().getEmailAddress());
     assertTrue(result.getMember().getIsValid());
@@ -270,9 +271,30 @@ class MailingListMemberRepositoryQueryTest {
         mailingList);
 
     assertTrue(!result.isCreated(), "issue #452 -- re-adding an existing (list, email) pair must report created=false");
+    assertTrue(result.wasPreviouslyUnsubscribed(),
+        "issue #452 -- a genuine reactivation must be reported so the caller can fire the right event");
     assertNotNull(result.getMember());
     assertNull(result.getMember().getUnsubscribed(), "reactivating must clear the prior unsubscribe timestamp");
     assertTrue(result.getMember().getIsValid());
+  }
+
+  @Test
+  void addEmailToListDoesNotReportAnAlreadyActiveMemberAsReactivated() throws SQLException {
+    long listId = seedList("List A");
+    long emailId = seedEmail("already-subscribed@example.com");
+    seedMembership(listId, emailId, true, null); // already active, never unsubscribed
+    MailingList mailingList = new MailingList();
+    mailingList.setId(listId);
+    Email email = new Email();
+    email.setId(emailId);
+
+    MailingListMemberRepository.AddToListResult result = MailingListMemberRepository.addEmailToList(email,
+        mailingList);
+
+    assertTrue(!result.isCreated(), "the row already existed");
+    assertTrue(!result.wasPreviouslyUnsubscribed(),
+        "issue #452 -- re-adding an already-active member is a no-op, not a reactivation; the caller must not "
+            + "fire a misleading \"resubscribed\" event for someone who never left");
   }
 
   @Test
@@ -350,6 +372,10 @@ class MailingListMemberRepositoryQueryTest {
           + "email_id BIGSERIAL PRIMARY KEY, "
           + "email VARCHAR(255) UNIQUE NOT NULL, "
           + "created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP, "
+          + "first_name VARCHAR(100), "
+          + "last_name VARCHAR(100), "
+          + "organization VARCHAR(200), "
+          + "ip_address VARCHAR(45), "
           + "validation_status VARCHAR(20), "
           + "validation_sub_status VARCHAR(50), "
           + "validated_at TIMESTAMP(3))");

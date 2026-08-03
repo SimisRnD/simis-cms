@@ -20,12 +20,17 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.lang.reflect.Field;
 import java.util.HashSet;
 import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 
 import com.simisinc.platform.application.webhooks.WebhookEventTypeCommand.WebhookEventType;
+
+import io.github.classgraph.ClassGraph;
+import io.github.classgraph.ClassInfo;
+import io.github.classgraph.ScanResult;
 
 /**
  * Guards the hand-maintained event type list against silently drifting from {@code
@@ -45,21 +50,39 @@ class WebhookEventTypeCommandTest {
     }
   }
 
+  /**
+   * A genuine, automated version of the cross-check both this class's javadoc and {@code
+   * WebhookEventTypeCommand}'s own javadoc describe (issue #452 review finding) -- scans every
+   * real {@code Event} subclass under {@code com.simisinc.platform.domain.events.**} via
+   * ClassGraph (already a project dependency) and reads each one's {@code ID} field via
+   * reflection, rather than comparing two independently hand-maintained literal lists that could
+   * silently drift together. {@code item-file-uploaded} is deliberately excluded from the
+   * comparison since (by design) no Event subclass declares it.
+   */
   @Test
-  void matchesTheRealSeventeenEventTypesBuildWebhookPayloadCommandHandles() {
-    Set<String> expected = Set.of(
-        "web-page-published", "web-page-updated", "blog-post-published",
-        "calendar-event-scheduled", "calendar-event-rescheduled", "calendar-event-removed",
-        "form-submitted", "order-submitted",
-        "user-signed-up", "user-registered", "user-invited", "user-password-reset",
-        "unsuspend-requested", "user-account-restored",
-        "mailing-list-member-created", "mailing-list-member-updated", "mailing-list-member-deleted");
-
-    Set<String> actual = new HashSet<>();
-    for (WebhookEventType type : WebhookEventTypeCommand.getAll()) {
-      actual.add(type.getId());
+  void matchesEveryRealEventTypeIdReflectedFromTheDomainEventsPackage() throws Exception {
+    Set<String> realEventIds = new HashSet<>();
+    try (ScanResult scanResult = new ClassGraph()
+        .enableClassInfo()
+        .acceptPackages("com.simisinc.platform.domain.events")
+        .scan()) {
+      for (ClassInfo classInfo : scanResult.getSubclasses("com.simisinc.platform.domain.events.Event")) {
+        if (classInfo.isAbstract()) {
+          continue;
+        }
+        Field idField = classInfo.loadClass().getField("ID");
+        realEventIds.add((String) idField.get(null));
+      }
     }
-    assertEquals(expected, actual);
+    assertFalse(realEventIds.isEmpty(), "the scan itself found nothing -- likely a broken package name, not zero events");
+
+    Set<String> registeredIds = new HashSet<>();
+    for (WebhookEventType type : WebhookEventTypeCommand.getAll()) {
+      registeredIds.add(type.getId());
+    }
+    assertEquals(realEventIds, registeredIds,
+        "WebhookEventTypeCommand.EVENT_TYPES must list exactly the real Event subclasses' ids, or a new "
+            + "event type silently becomes payload-buildable but never selectable in the admin subscription UI");
   }
 
   @Test

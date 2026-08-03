@@ -80,14 +80,21 @@ public class MailingListMemberCommand {
     // Use the email to remove from the list
     Email email = EmailRepository.findByEmailAddress(user.getEmail());
     if (email != null) {
+      // issue #452: capture prior state before mutating, so a duplicate/retried unsubscribe
+      // (already unsubscribed) doesn't fire a misleading "just transitioned from subscribed" event
+      MailingListMember existingBefore = MailingListMemberRepository.findByListAndEmail(mailingList.getId(),
+          email.getId());
+      boolean wasSubscribed = existingBefore != null && existingBefore.getUnsubscribed() == null;
+
       email.setUnsubscribed(new Timestamp(System.currentTimeMillis()));
       MailingListMemberRepository.unsubscribe(mailingList, email, user);
       triggerEmailSubscriptionProcess(email, mailingList, false);
-      // issue #452: webhook/workflow event for the mailing-list-member lifecycle
-      MailingListMember member = MailingListMemberRepository.findByListAndEmail(mailingList.getId(), email.getId());
-      if (member != null) {
-        WorkflowManager.triggerWorkflowForEvent(
-            new MailingListMemberUpdatedEvent(member, mailingList, user, "unsubscribed", true));
+      if (wasSubscribed) {
+        MailingListMember member = MailingListMemberRepository.findByListAndEmail(mailingList.getId(), email.getId());
+        if (member != null) {
+          WorkflowManager.triggerWorkflowForEvent(
+              new MailingListMemberUpdatedEvent(member, mailingList, user, "unsubscribed", true));
+        }
       }
     }
   }
