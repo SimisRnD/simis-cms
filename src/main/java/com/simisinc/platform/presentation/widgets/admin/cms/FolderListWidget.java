@@ -17,6 +17,7 @@
 package com.simisinc.platform.presentation.widgets.admin.cms;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 
@@ -70,7 +71,33 @@ public class FolderListWidget extends GenericWidget {
       }
       folderList = matchingFolderList;
     }
-    context.getRequest().setAttribute("folderList", folderList);
+
+    // Sort by name or # of files (issue #502) -- date/size sort isn't meaningful at the folder
+    // level (a folder has no single date or size of its own), so only these two are offered.
+    // Applied in-memory for the same reason the search filter above is: the list is small and
+    // admin-curated, and re-sorting here avoids touching either findAll() data-access path.
+    String sort = context.getParameter("sort", "name");
+    Comparator<Folder> comparator;
+    switch (sort) {
+      case "name_desc":
+        comparator = Comparator.comparing(Folder::getName, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER)).reversed();
+        break;
+      case "files_desc":
+        comparator = Comparator.comparingInt(Folder::getFileCount).reversed();
+        break;
+      case "files_asc":
+        comparator = Comparator.comparingInt(Folder::getFileCount);
+        break;
+      case "name":
+      default:
+        sort = "name";
+        comparator = Comparator.comparing(Folder::getName, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
+        break;
+    }
+    List<Folder> sortedFolderList = new ArrayList<>(folderList);
+    sortedFolderList.sort(comparator);
+    context.getRequest().setAttribute("sort", sort);
+    context.getRequest().setAttribute("folderList", sortedFolderList);
 
     // Show the editor
     context.setJsp(JSP);
