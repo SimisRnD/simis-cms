@@ -30,6 +30,7 @@ import com.simisinc.platform.application.cms.LoadFileCommand;
 import com.simisinc.platform.application.filesystem.FileSystemCommand;
 import com.simisinc.platform.domain.model.cms.FileItem;
 import com.simisinc.platform.infrastructure.persistence.cms.FileItemRepository;
+import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.FileDownloadCommand;
 import com.simisinc.platform.presentation.controller.MultipartFileSender;
 import com.simisinc.platform.presentation.controller.WidgetContext;
@@ -70,6 +71,11 @@ public class DownloadFileWidget extends GenericWidget {
       return null;
     }
 
+    // Determine if the file should be sent with the mime type (used below, and to label the audit
+    // event for every outcome, including the access-denied/not-found case which has no FileItem yet)
+    boolean doView = "true".equals(context.getPreferences().get("view"));
+    String accessEventType = doView ? "folder_file.view" : "folder_file.download";
+
     // Determine the file and access permissions
     FileItem record;
     if (context.hasRole("admin")) {
@@ -81,6 +87,8 @@ public class DownloadFileWidget extends GenericWidget {
     }
     if (record == null) {
       LOG.warn("File record does not exist or no access: " + fileId);
+      AuditEventCommand.record(context, AuditEventCommand.DATA_ACCESS, accessEventType, AuditEventCommand.FAILURE,
+          "folder_file", String.valueOf(fileId), null, "not found or access denied");
       return null;
     }
 
@@ -90,6 +98,8 @@ public class DownloadFileWidget extends GenericWidget {
       if (url.startsWith("http://") || url.startsWith("https://")) {
         // Update the download counter
         FileItemRepository.incrementDownloadCount(record);
+        AuditEventCommand.record(context, AuditEventCommand.DATA_ACCESS, accessEventType, AuditEventCommand.SUCCESS,
+            "folder_file", String.valueOf(record.getId()), record.getFilename(), "redirect to external URL");
         // Redirect to the URL
         context.setRedirect(url);
         return context;
@@ -100,11 +110,10 @@ public class DownloadFileWidget extends GenericWidget {
     File file = new File(FileSystemCommand.getFileServerRootPath() + record.getFileServerPath());
     if (!file.isFile()) {
       LOG.warn("Server file does not exist: " + record.getFileServerPath());
+      AuditEventCommand.record(context, AuditEventCommand.DATA_ACCESS, accessEventType, AuditEventCommand.FAILURE,
+          "folder_file", String.valueOf(record.getId()), record.getFilename(), "server file missing");
       return null;
     }
-
-    // Determine if the file should be sent with the mime type
-    boolean doView = "true".equals(context.getPreferences().get("view"));
 
     // Determine if the file is being viewed or downloaded
     String mimeType = record.getMimeType();
@@ -121,8 +130,12 @@ public class DownloadFileWidget extends GenericWidget {
               .withMimeType(mimeType)
               .withFilename(record.getFilename())
               .serveResource();
+          AuditEventCommand.record(context, AuditEventCommand.DATA_ACCESS, accessEventType, AuditEventCommand.SUCCESS,
+              "folder_file", String.valueOf(record.getId()), record.getFilename(), "video stream");
         } catch (Exception e) {
           LOG.debug("Video aborted");
+          AuditEventCommand.record(context, AuditEventCommand.DATA_ACCESS, accessEventType, AuditEventCommand.FAILURE,
+              "folder_file", String.valueOf(record.getId()), record.getFilename(), e.getMessage());
         } finally {
           context.setHandledResponse(true);
           // @todo determine if whole range or end was viewed to register a download count
@@ -175,6 +188,8 @@ public class DownloadFileWidget extends GenericWidget {
 
     // Update the download counter
     FileItemRepository.incrementDownloadCount(record);
+    AuditEventCommand.record(context, AuditEventCommand.DATA_ACCESS, accessEventType, AuditEventCommand.SUCCESS,
+        "folder_file", String.valueOf(record.getId()), record.getFilename(), null);
 
     // Return success
     context.setHandledResponse(true);
