@@ -42,6 +42,12 @@ class DomainModelTest {
     // (a CSV string and its parsed List<String>), so setting one is expected to change the other
     complexClasses.add("com.simisinc.platform.domain.model.webhooks.WebhookSubscription");
 
+    // Immutable value objects (all-final fields, no setters, no no-arg constructor) for the
+    // issue #455 integration registry -- same shape as WebhookEventTypeCommand.WebhookEventType,
+    // deliberately not a mutable JavaBean, so MeanBean cannot reflectively instantiate/verify them.
+    complexClasses.add("com.simisinc.platform.domain.model.integrations.IntegrationDefinition");
+    complexClasses.add("com.simisinc.platform.domain.model.integrations.CredentialField");
+
     // Test getters and setters for the domain model
     Class<?>[] beanClasses = ClassPathUtils.findClassesIn("com.simisinc.platform.domain.model");
     for (Class<?> k : beanClasses) {

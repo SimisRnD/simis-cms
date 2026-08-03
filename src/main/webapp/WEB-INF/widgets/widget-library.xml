@@ -236,6 +236,7 @@
   <widget name="webhookSubscriptionForm" class="com.simisinc.platform.presentation.widgets.admin.webhooks.WebhookSubscriptionFormWidget" />
   <widget name="webhookDeliveryList" class="com.simisinc.platform.presentation.widgets.admin.webhooks.WebhookDeliveryListWidget" />
   <widget name="integrationsHub" class="com.simisinc.platform.presentation.widgets.admin.IntegrationsHubWidget" />
+  <widget name="integrationRegistry" class="com.simisinc.platform.presentation.widgets.admin.IntegrationRegistryWidget" />
   <widget name="socialMediaLinkList" class="com.simisinc.platform.presentation.widgets.admin.SocialMediaLinkListWidget" />
   <widget name="socialMediaLinkForm" class="com.simisinc.platform.presentation.widgets.admin.SocialMediaLinkFormWidget" />
   <widget name="formDataList" class="com.simisinc.platform.presentation.widgets.admin.cms.FormDataListWidget" />

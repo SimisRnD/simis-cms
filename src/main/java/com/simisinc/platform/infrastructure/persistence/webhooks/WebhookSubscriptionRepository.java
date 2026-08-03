@@ -107,10 +107,11 @@ public class WebhookSubscriptionRepository {
 
   public static WebhookSubscription add(WebhookSubscription record) {
     SqlUtils insertValues = new SqlUtils()
-        .add("url", record.getUrl())
+        .add("url", SecretCryptoCommand.encrypt(record.getUrl()))
         .add("event_types", record.getEventTypes())
         .add("secret", SecretCryptoCommand.encrypt(record.getSecret()))
         .add("enabled", record.getEnabled())
+        .add("integration_id", record.getIntegrationId())
         .add("created_by", record.getCreatedBy(), -1)
         .add("modified_by", record.getModifiedBy(), -1);
     record.setId(DB.insertInto(TABLE_NAME, insertValues, PRIMARY_KEY));
@@ -123,10 +124,11 @@ public class WebhookSubscriptionRepository {
 
   public static WebhookSubscription update(WebhookSubscription record) {
     SqlUtils updateValues = new SqlUtils()
-        .add("url", record.getUrl())
+        .add("url", SecretCryptoCommand.encrypt(record.getUrl()))
         .add("event_types", record.getEventTypes())
         .add("secret", SecretCryptoCommand.encrypt(record.getSecret()))
         .add("enabled", record.getEnabled())
+        .add("integration_id", record.getIntegrationId())
         .add("modified_by", record.getModifiedBy())
         .add("modified", new Timestamp(System.currentTimeMillis()));
     SqlUtils where = new SqlUtils().add("webhook_subscription_id = ?", record.getId());
@@ -141,14 +143,27 @@ public class WebhookSubscriptionRepository {
     return DB.deleteFrom(TABLE_NAME, new SqlUtils().add("webhook_subscription_id = ?", record.getId())) > 0;
   }
 
+  /** Every subscription tagged as created by the given registry integration id (issue #455's one-click install). */
+  public static List<WebhookSubscription> findByIntegrationId(String integrationId) {
+    DataResult result = DB.selectAllFrom(
+        TABLE_NAME, new SqlUtils().add("integration_id = ?", integrationId),
+        new DataConstraints().setDefaultColumnToSortBy("webhook_subscription_id").setUseCount(false),
+        WebhookSubscriptionRepository::buildRecord);
+    if (result.hasRecords()) {
+      return (List<WebhookSubscription>) result.getRecords();
+    }
+    return new ArrayList<>();
+  }
+
   private static WebhookSubscription buildRecord(ResultSet rs) {
     try {
       WebhookSubscription record = new WebhookSubscription();
       record.setId(rs.getLong("webhook_subscription_id"));
-      record.setUrl(rs.getString("url"));
+      record.setUrl(SecretCryptoCommand.decrypt(rs.getString("url")));
       record.setEventTypes(rs.getString("event_types"));
       record.setSecret(SecretCryptoCommand.decrypt(rs.getString("secret")));
       record.setEnabled(rs.getBoolean("enabled"));
+      record.setIntegrationId(rs.getString("integration_id"));
       record.setCreated(rs.getTimestamp("created"));
       record.setCreatedBy(rs.getLong("created_by"));
       record.setModified(rs.getTimestamp("modified"));
