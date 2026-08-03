@@ -17,12 +17,15 @@
 package com.simisinc.platform.application.mailinglists;
 
 import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.domain.events.mailinglists.MailingListMemberUpdatedEvent;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.mailinglists.Email;
 import com.simisinc.platform.domain.model.mailinglists.MailingList;
+import com.simisinc.platform.domain.model.mailinglists.MailingListMember;
 import com.simisinc.platform.infrastructure.persistence.mailinglists.EmailRepository;
 import com.simisinc.platform.infrastructure.persistence.mailinglists.MailingListMemberRepository;
 import com.simisinc.platform.infrastructure.scheduler.mailinglists.ProcessEmailSubscriptionJob;
+import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
 import com.simisinc.platform.presentation.controller.UserSession;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -80,6 +83,12 @@ public class MailingListMemberCommand {
       email.setUnsubscribed(new Timestamp(System.currentTimeMillis()));
       MailingListMemberRepository.unsubscribe(mailingList, email, user);
       triggerEmailSubscriptionProcess(email, mailingList, false);
+      // issue #452: webhook/workflow event for the mailing-list-member lifecycle
+      MailingListMember member = MailingListMemberRepository.findByListAndEmail(mailingList.getId(), email.getId());
+      if (member != null) {
+        WorkflowManager.triggerWorkflowForEvent(
+            new MailingListMemberUpdatedEvent(member, mailingList, user, "unsubscribed", true));
+      }
     }
   }
 

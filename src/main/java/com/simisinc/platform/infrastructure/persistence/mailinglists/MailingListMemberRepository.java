@@ -59,7 +59,28 @@ public class MailingListMemberRepository {
 
   private static final int DEFAULT_QUARANTINE_ALERT_THRESHOLD_PERCENT = 10;
 
-  public static void addEmailToList(Email email, MailingList mailingList) {
+  /** Whether {@link #addEmailToList} inserted a new member row or reactivated an existing one
+   *  (issue #452 -- the caller needs this to fire a created vs. updated lifecycle event), plus the
+   *  persisted row so the caller doesn't have to look it up separately. */
+  public static final class AddToListResult {
+    private final boolean created;
+    private final MailingListMember member;
+
+    public AddToListResult(boolean created, MailingListMember member) {
+      this.created = created;
+      this.member = member;
+    }
+
+    public boolean isCreated() {
+      return created;
+    }
+
+    public MailingListMember getMember() {
+      return member;
+    }
+  }
+
+  public static AddToListResult addEmailToList(Email email, MailingList mailingList) {
     // Determine if the email is already listed
     SqlUtils insertValues = new SqlUtils()
         .add("list_id", mailingList.getId())
@@ -67,7 +88,8 @@ public class MailingListMemberRepository {
         .addIfExists("created_by", email.getCreatedBy(), -1)
         .addIfExists("modified_by", email.getCreatedBy(), -1);
     long memberId = DB.insertInto(TABLE_NAME, insertValues, PRIMARY_KEY);
-    if (memberId > -1) {
+    boolean created = memberId > -1;
+    if (created) {
       // New member - Update the related count
       String set = "member_count = member_count + 1";
       SqlUtils where = new SqlUtils().add("list_id = ?", mailingList.getId());
@@ -84,6 +106,7 @@ public class MailingListMemberRepository {
           .add("email_id = ?", email.getId());
       DB.update(TABLE_NAME, updateValues, where);
     }
+    return new AddToListResult(created, findByListAndEmail(mailingList.getId(), email.getId()));
   }
 
   public static void remove(Email email, MailingList mailingList) {

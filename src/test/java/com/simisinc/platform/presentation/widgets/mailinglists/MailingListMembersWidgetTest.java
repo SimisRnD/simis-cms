@@ -19,6 +19,7 @@ package com.simisinc.platform.presentation.widgets.mailinglists;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
@@ -30,16 +31,21 @@ import org.mockito.MockedStatic;
 
 import com.simisinc.platform.WidgetBase;
 import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.LoadUserCommand;
 import com.simisinc.platform.application.cms.SaveBlockedIPCommand;
 import com.simisinc.platform.application.mailinglists.ProcessEmailCSVFileCommand;
+import com.simisinc.platform.domain.events.mailinglists.MailingListMemberDeletedEvent;
 import com.simisinc.platform.domain.model.BlockedIP;
+import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.mailinglists.Email;
 import com.simisinc.platform.domain.model.mailinglists.MailingList;
+import com.simisinc.platform.domain.model.mailinglists.MailingListMember;
 import com.simisinc.platform.infrastructure.persistence.BlockedIPRepository;
 import com.simisinc.platform.infrastructure.persistence.mailinglists.EmailRepository;
 import com.simisinc.platform.infrastructure.persistence.mailinglists.MailingListMemberRepository;
 import com.simisinc.platform.infrastructure.persistence.mailinglists.MailingListMemberSpecification;
 import com.simisinc.platform.infrastructure.persistence.mailinglists.MailingListRepository;
+import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 
@@ -68,6 +74,13 @@ class MailingListMembersWidgetTest extends WidgetBase {
     email.setEmail("spammer@example.com");
     email.setIpAddress(ip);
     return email;
+  }
+
+  private static User adminUser() {
+    User user = new User();
+    user.setId(1L);
+    user.setUsername("admin");
+    return user;
   }
 
   @Test
@@ -288,6 +301,57 @@ class MailingListMembersWidgetTest extends WidgetBase {
       assertNull(specification.getMatchesName());
       assertNull(specification.getMatchesEmail());
       assertNull(specification.getStatus());
+    }
+  }
+
+  @Test
+  void deleteFiresAMailingListMemberDeletedEventWithASnapshotTakenBeforeRemoval() {
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "mailingListId", "1");
+    addQueryParameter(widgetContext, "emailId", "2");
+
+    MailingListMember member = new MailingListMember();
+    member.setId(9L);
+    member.setEmailAddress("spammer@example.com");
+
+    try (MockedStatic<MailingListRepository> mailingListRepo = mockStatic(MailingListRepository.class);
+        MockedStatic<EmailRepository> emailRepo = mockStatic(EmailRepository.class);
+        MockedStatic<MailingListMemberRepository> memberRepo = mockStatic(MailingListMemberRepository.class);
+        MockedStatic<WorkflowManager> workflowManager = mockStatic(WorkflowManager.class);
+        MockedStatic<LoadUserCommand> loadUser = mockStatic(LoadUserCommand.class)) {
+      mailingListRepo.when(() -> MailingListRepository.findById(1L)).thenReturn(mailingList());
+      emailRepo.when(() -> EmailRepository.findById(2L)).thenReturn(emailWithIp("203.0.113.20"));
+      memberRepo.when(() -> MailingListMemberRepository.findByListAndEmail(1L, 2L)).thenReturn(member);
+      loadUser.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(adminUser());
+
+      new MailingListMembersWidget().delete(widgetContext);
+
+      memberRepo.verify(() -> MailingListMemberRepository.findByListAndEmail(1L, 2L));
+      memberRepo.verify(() -> MailingListMemberRepository.remove(any(), any()));
+      ArgumentCaptor<MailingListMemberDeletedEvent> eventCaptor = ArgumentCaptor.forClass(
+          MailingListMemberDeletedEvent.class);
+      workflowManager.verify(() -> WorkflowManager.triggerWorkflowForEvent(eventCaptor.capture()));
+      assertEquals(member, eventCaptor.getValue().getMember());
+    }
+  }
+
+  @Test
+  void deleteDoesNotFireAnEventWhenTheMemberWasAlreadyGone() {
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "mailingListId", "1");
+    addQueryParameter(widgetContext, "emailId", "2");
+
+    try (MockedStatic<MailingListRepository> mailingListRepo = mockStatic(MailingListRepository.class);
+        MockedStatic<EmailRepository> emailRepo = mockStatic(EmailRepository.class);
+        MockedStatic<MailingListMemberRepository> memberRepo = mockStatic(MailingListMemberRepository.class);
+        MockedStatic<WorkflowManager> workflowManager = mockStatic(WorkflowManager.class)) {
+      mailingListRepo.when(() -> MailingListRepository.findById(1L)).thenReturn(mailingList());
+      emailRepo.when(() -> EmailRepository.findById(2L)).thenReturn(emailWithIp("203.0.113.20"));
+      // findByListAndEmail left unstubbed -- default null, as if the row was already gone
+
+      new MailingListMembersWidget().delete(widgetContext);
+
+      workflowManager.verify(() -> WorkflowManager.triggerWorkflowForEvent(any()), never());
     }
   }
 

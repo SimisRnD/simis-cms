@@ -42,6 +42,8 @@ import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
 
 import com.simisinc.platform.domain.model.dashboard.StatisticsData;
+import com.simisinc.platform.domain.model.mailinglists.Email;
+import com.simisinc.platform.domain.model.mailinglists.MailingList;
 import com.simisinc.platform.infrastructure.database.DB;
 import com.simisinc.platform.infrastructure.database.DataSource;
 
@@ -237,6 +239,43 @@ class MailingListMemberRepositoryQueryTest {
   }
 
   @Test
+  void addEmailToListReportsCreatedForABrandNewMembership() throws SQLException {
+    long listId = seedList("List A");
+    long emailId = seedEmail("new@example.com");
+    MailingList mailingList = new MailingList();
+    mailingList.setId(listId);
+    Email email = new Email();
+    email.setId(emailId);
+
+    MailingListMemberRepository.AddToListResult result = MailingListMemberRepository.addEmailToList(email,
+        mailingList);
+
+    assertTrue(result.isCreated(), "issue #452 -- must report created=true for a brand-new membership");
+    assertNotNull(result.getMember());
+    assertEquals("new@example.com", result.getMember().getEmailAddress());
+    assertTrue(result.getMember().getIsValid());
+  }
+
+  @Test
+  void addEmailToListReportsNotCreatedForAReactivatedMembership() throws SQLException {
+    long listId = seedList("List A");
+    long emailId = seedEmail("returning@example.com");
+    seedMembership(listId, emailId, false, "2026-07-01 00:00:00"); // previously unsubscribed
+    MailingList mailingList = new MailingList();
+    mailingList.setId(listId);
+    Email email = new Email();
+    email.setId(emailId);
+
+    MailingListMemberRepository.AddToListResult result = MailingListMemberRepository.addEmailToList(email,
+        mailingList);
+
+    assertTrue(!result.isCreated(), "issue #452 -- re-adding an existing (list, email) pair must report created=false");
+    assertNotNull(result.getMember());
+    assertNull(result.getMember().getUnsubscribed(), "reactivating must clear the prior unsubscribe timestamp");
+    assertTrue(result.getMember().getIsValid());
+  }
+
+  @Test
   void findLastClassifiedAtReturnsNullWhenNoSubscriberHasBeenClassified() throws SQLException {
     long list = seedList("List A");
     seedMembership(list, seedEmail("unchecked@example.com"), true, null);
@@ -326,8 +365,14 @@ class MailingListMemberRepositoryQueryTest {
           + "list_id BIGINT REFERENCES mailing_lists(list_id), "
           + "email_id BIGINT REFERENCES emails(email_id), "
           + "created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP, "
+          + "created_by BIGINT DEFAULT -1, "
+          + "modified TIMESTAMP(3), "
+          + "modified_by BIGINT DEFAULT -1, "
+          + "last_emailed TIMESTAMP(3), "
           + "unsubscribed TIMESTAMP(3), "
+          + "unsubscribed_by BIGINT DEFAULT -1, "
           + "unsubscribe_reason VARCHAR(100), "
+          + "unsubscribe_token VARCHAR(255), "
           + "is_valid BOOLEAN DEFAULT true, "
           + "quarantined TIMESTAMP(3), "
           + "quarantine_reason VARCHAR(50))");

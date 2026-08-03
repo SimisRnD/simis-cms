@@ -17,8 +17,12 @@
 package com.simisinc.platform.presentation.widgets.mailinglists;
 
 import com.simisinc.platform.application.RateLimitCommand;
+import com.simisinc.platform.domain.events.mailinglists.MailingListMemberUpdatedEvent;
+import com.simisinc.platform.domain.model.mailinglists.MailingList;
 import com.simisinc.platform.domain.model.mailinglists.MailingListMember;
 import com.simisinc.platform.infrastructure.persistence.mailinglists.MailingListMemberRepository;
+import com.simisinc.platform.infrastructure.persistence.mailinglists.MailingListRepository;
+import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import org.apache.commons.lang3.StringUtils;
@@ -64,6 +68,13 @@ public class NewsletterUnsubscribeWidget extends GenericWidget {
 
     if (member.getUnsubscribed() == null) {
       MailingListMemberRepository.unsubscribeByToken(member);
+      // issue #452: webhook/workflow event for the mailing-list-member lifecycle -- no acting
+      // User for this anonymous, token-authorized self-service action
+      MailingList mailingList = MailingListRepository.findById(member.getListId());
+      if (mailingList != null) {
+        WorkflowManager.triggerWorkflowForEvent(
+            new MailingListMemberUpdatedEvent(member, mailingList, null, "unsubscribed", true));
+      }
     }
 
     context.setJsp(JSP);

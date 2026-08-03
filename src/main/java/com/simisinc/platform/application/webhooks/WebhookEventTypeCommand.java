@@ -27,7 +27,7 @@ import java.util.List;
  * Event} subclass just declares its own {@code public static final String ID}). This list was
  * built by enumerating every class under {@code com.simisinc.platform.domain.events.**} and
  * cross-checked against {@code BuildWebhookPayloadCommand}'s {@code instanceof} chain, which
- * handles the identical 14 types (any addition/removal there means this list is stale too).
+ * handles the identical 17 types (any addition/removal there means this list is stale too).
  *
  * <p>
  * Deliberately excludes {@code item-file-uploaded}: it is referenced in {@code
@@ -73,7 +73,10 @@ public class WebhookEventTypeCommand {
       new WebhookEventType("user-invited", "User invited by an admin"),
       new WebhookEventType("user-password-reset", "User password reset"),
       new WebhookEventType("unsuspend-requested", "Account unsuspend requested"),
-      new WebhookEventType("user-account-restored", "User account restored"))));
+      new WebhookEventType("user-account-restored", "User account restored"),
+      new WebhookEventType("mailing-list-member-created", "Mailing list member subscribed"),
+      new WebhookEventType("mailing-list-member-updated", "Mailing list member subscription changed"),
+      new WebhookEventType("mailing-list-member-deleted", "Mailing list member removed"))));
 
   private WebhookEventTypeCommand() {
     // Static utility, not instantiated

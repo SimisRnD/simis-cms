@@ -46,13 +46,14 @@ class WebhookEventTypeCommandTest {
   }
 
   @Test
-  void matchesTheRealFourteenEventTypesBuildWebhookPayloadCommandHandles() {
+  void matchesTheRealSeventeenEventTypesBuildWebhookPayloadCommandHandles() {
     Set<String> expected = Set.of(
         "web-page-published", "web-page-updated", "blog-post-published",
         "calendar-event-scheduled", "calendar-event-rescheduled", "calendar-event-removed",
         "form-submitted", "order-submitted",
         "user-signed-up", "user-registered", "user-invited", "user-password-reset",
-        "unsuspend-requested", "user-account-restored");
+        "unsuspend-requested", "user-account-restored",
+        "mailing-list-member-created", "mailing-list-member-updated", "mailing-list-member-deleted");
 
     Set<String> actual = new HashSet<>();
     for (WebhookEventType type : WebhookEventTypeCommand.getAll()) {

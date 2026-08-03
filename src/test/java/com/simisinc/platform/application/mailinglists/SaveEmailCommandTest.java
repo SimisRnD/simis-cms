@@ -28,14 +28,21 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.maps.GeoIPCommand;
+import com.simisinc.platform.domain.events.Event;
+import com.simisinc.platform.domain.events.mailinglists.MailingListMemberCreatedEvent;
+import com.simisinc.platform.domain.events.mailinglists.MailingListMemberUpdatedEvent;
 import com.simisinc.platform.domain.model.mailinglists.Email;
 import com.simisinc.platform.domain.model.mailinglists.MailingList;
+import com.simisinc.platform.domain.model.mailinglists.MailingListMember;
+import com.simisinc.platform.infrastructure.persistence.UserRepository;
 import com.simisinc.platform.infrastructure.persistence.mailinglists.EmailRepository;
 import com.simisinc.platform.infrastructure.persistence.mailinglists.MailingListMemberRepository;
+import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
 
 class SaveEmailCommandTest {
 
@@ -118,6 +125,87 @@ class SaveEmailCommandTest {
 
       memberRepo.verify(() -> MailingListMemberRepository.addEmailToList(saved, mailingList), times(1));
       memberRepo.verify(() -> MailingListMemberRepository.addEmailToList(any(), any()), times(1));
+    }
+  }
+
+  @Test
+  void firesACreatedEventWhenAddEmailToListReportsANewMember() throws DataException {
+    Email emailBean = email("subscriber@example.com");
+    Email saved = email("subscriber@example.com");
+    saved.setId(5L);
+    MailingList mailingList = mailingList(1L, "News");
+    MailingListMember member = new MailingListMember();
+    member.setId(10L);
+    member.setEmailAddress("subscriber@example.com");
+
+    try (MockedStatic<EmailRepository> emailRepo = mockStatic(EmailRepository.class);
+        MockedStatic<MailingListMemberRepository> memberRepo = mockStatic(MailingListMemberRepository.class);
+        MockedStatic<MailingListMemberCommand> memberCommand = mockStatic(MailingListMemberCommand.class);
+        MockedStatic<WorkflowManager> workflowManager = mockStatic(WorkflowManager.class);
+        MockedStatic<GeoIPCommand> geoIp = mockStatic(GeoIPCommand.class)) {
+      emailRepo.when(() -> EmailRepository.add(emailBean)).thenReturn(saved);
+      memberRepo.when(() -> MailingListMemberRepository.addEmailToList(saved, mailingList))
+          .thenReturn(new MailingListMemberRepository.AddToListResult(true, member));
+
+      SaveEmailCommand.saveEmail(emailBean, mailingList);
+
+      ArgumentCaptor<Event> eventCaptor = ArgumentCaptor.forClass(Event.class);
+      workflowManager.verify(() -> WorkflowManager.triggerWorkflowForEvent(eventCaptor.capture()));
+      assertEquals(MailingListMemberCreatedEvent.class, eventCaptor.getValue().getClass());
+      MailingListMemberCreatedEvent fired = (MailingListMemberCreatedEvent) eventCaptor.getValue();
+      assertEquals(member, fired.getMember());
+      assertEquals(mailingList, fired.getMailingList());
+    }
+  }
+
+  @Test
+  void firesAnUpdatedResubscribedEventWhenAddEmailToListReportsAReactivation() throws DataException {
+    Email emailBean = email("returning@example.com");
+    Email saved = email("returning@example.com");
+    saved.setId(5L);
+    MailingList mailingList = mailingList(1L, "News");
+    MailingListMember member = new MailingListMember();
+    member.setId(11L);
+    member.setEmailAddress("returning@example.com");
+
+    try (MockedStatic<EmailRepository> emailRepo = mockStatic(EmailRepository.class);
+        MockedStatic<MailingListMemberRepository> memberRepo = mockStatic(MailingListMemberRepository.class);
+        MockedStatic<MailingListMemberCommand> memberCommand = mockStatic(MailingListMemberCommand.class);
+        MockedStatic<WorkflowManager> workflowManager = mockStatic(WorkflowManager.class);
+        MockedStatic<GeoIPCommand> geoIp = mockStatic(GeoIPCommand.class)) {
+      emailRepo.when(() -> EmailRepository.add(emailBean)).thenReturn(saved);
+      memberRepo.when(() -> MailingListMemberRepository.addEmailToList(saved, mailingList))
+          .thenReturn(new MailingListMemberRepository.AddToListResult(false, member));
+
+      SaveEmailCommand.saveEmail(emailBean, mailingList);
+
+      ArgumentCaptor<Event> eventCaptor = ArgumentCaptor.forClass(Event.class);
+      workflowManager.verify(() -> WorkflowManager.triggerWorkflowForEvent(eventCaptor.capture()));
+      assertEquals(MailingListMemberUpdatedEvent.class, eventCaptor.getValue().getClass());
+      MailingListMemberUpdatedEvent fired = (MailingListMemberUpdatedEvent) eventCaptor.getValue();
+      assertEquals("resubscribed", fired.getChangeType());
+    }
+  }
+
+  @Test
+  void doesNotFireAnEventWhenAddEmailToListReturnsNoMember() throws DataException {
+    Email emailBean = email("subscriber@example.com");
+    Email saved = email("subscriber@example.com");
+    saved.setId(5L);
+    MailingList mailingList = mailingList(1L, "News");
+
+    try (MockedStatic<EmailRepository> emailRepo = mockStatic(EmailRepository.class);
+        MockedStatic<MailingListMemberRepository> memberRepo = mockStatic(MailingListMemberRepository.class);
+        MockedStatic<MailingListMemberCommand> memberCommand = mockStatic(MailingListMemberCommand.class);
+        MockedStatic<WorkflowManager> workflowManager = mockStatic(WorkflowManager.class);
+        MockedStatic<GeoIPCommand> geoIp = mockStatic(GeoIPCommand.class)) {
+      emailRepo.when(() -> EmailRepository.add(emailBean)).thenReturn(saved);
+      // addEmailToList left unstubbed -- default Mockito return is null, matching every other
+      // test in this file that never stubs it either
+
+      SaveEmailCommand.saveEmail(emailBean, mailingList);
+
+      workflowManager.verify(() -> WorkflowManager.triggerWorkflowForEvent(any()), never());
     }
   }
 

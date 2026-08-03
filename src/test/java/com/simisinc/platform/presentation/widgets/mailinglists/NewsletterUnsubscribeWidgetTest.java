@@ -29,20 +29,33 @@ import org.mockito.MockedStatic;
 
 import com.simisinc.platform.WidgetBase;
 import com.simisinc.platform.application.RateLimitCommand;
+import com.simisinc.platform.domain.events.mailinglists.MailingListMemberUpdatedEvent;
+import com.simisinc.platform.domain.model.mailinglists.MailingList;
 import com.simisinc.platform.domain.model.mailinglists.MailingListMember;
 import com.simisinc.platform.infrastructure.persistence.mailinglists.MailingListMemberRepository;
+import com.simisinc.platform.infrastructure.persistence.mailinglists.MailingListRepository;
+import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
 import com.simisinc.platform.presentation.controller.WidgetContext;
+import org.mockito.ArgumentCaptor;
 
 class NewsletterUnsubscribeWidgetTest extends WidgetBase {
 
   private static MailingListMember member(long id, boolean alreadyUnsubscribed) {
     MailingListMember member = new MailingListMember();
     member.setId(id);
+    member.setListId(3L);
     member.setUnsubscribeToken("tok-123");
     if (alreadyUnsubscribed) {
       member.setUnsubscribed(new Timestamp(System.currentTimeMillis()));
     }
     return member;
+  }
+
+  private static MailingList mailingList() {
+    MailingList mailingList = new MailingList();
+    mailingList.setId(3L);
+    mailingList.setName("Newsletter");
+    return mailingList;
   }
 
   @Test
@@ -51,14 +64,42 @@ class NewsletterUnsubscribeWidgetTest extends WidgetBase {
     addQueryParameter(widgetContext, "token", "tok-123");
 
     try (MockedStatic<RateLimitCommand> rateLimit = mockStatic(RateLimitCommand.class);
-        MockedStatic<MailingListMemberRepository> repository = mockStatic(MailingListMemberRepository.class)) {
+        MockedStatic<MailingListMemberRepository> repository = mockStatic(MailingListMemberRepository.class);
+        MockedStatic<MailingListRepository> mailingListRepo = mockStatic(MailingListRepository.class);
+        MockedStatic<WorkflowManager> workflowManager = mockStatic(WorkflowManager.class)) {
       rateLimit.when(() -> RateLimitCommand.isIpAllowedRightNow(any(), eq(false))).thenReturn(true);
       repository.when(() -> MailingListMemberRepository.findByUnsubscribeToken("tok-123")).thenReturn(member);
+      mailingListRepo.when(() -> MailingListRepository.findById(3L)).thenReturn(mailingList());
 
       WidgetContext result = new NewsletterUnsubscribeWidget().execute(widgetContext);
 
       assertEquals("/mailinglists/newsletter-unsubscribed.jsp", result.getJsp());
       repository.verify(() -> MailingListMemberRepository.unsubscribeByToken(member));
+
+      ArgumentCaptor<MailingListMemberUpdatedEvent> eventCaptor = ArgumentCaptor
+          .forClass(MailingListMemberUpdatedEvent.class);
+      workflowManager.verify(() -> WorkflowManager.triggerWorkflowForEvent(eventCaptor.capture()));
+      assertEquals("unsubscribed", eventCaptor.getValue().getChangeType());
+      assertEquals(null, eventCaptor.getValue().getUser(), "self-service, token-authorized -- no acting User");
+    }
+  }
+
+  @Test
+  void executeDoesNotFireAnEventWhenTheMailingListNoLongerExists() {
+    MailingListMember member = member(1L, false);
+    addQueryParameter(widgetContext, "token", "tok-123");
+
+    try (MockedStatic<RateLimitCommand> rateLimit = mockStatic(RateLimitCommand.class);
+        MockedStatic<MailingListMemberRepository> repository = mockStatic(MailingListMemberRepository.class);
+        MockedStatic<MailingListRepository> mailingListRepo = mockStatic(MailingListRepository.class);
+        MockedStatic<WorkflowManager> workflowManager = mockStatic(WorkflowManager.class)) {
+      rateLimit.when(() -> RateLimitCommand.isIpAllowedRightNow(any(), eq(false))).thenReturn(true);
+      repository.when(() -> MailingListMemberRepository.findByUnsubscribeToken("tok-123")).thenReturn(member);
+      // mailingListRepo left unstubbed -- default null
+
+      new NewsletterUnsubscribeWidget().execute(widgetContext);
+
+      workflowManager.verify(() -> WorkflowManager.triggerWorkflowForEvent(any()), never());
     }
   }
 

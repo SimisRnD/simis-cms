@@ -25,12 +25,17 @@ import org.apache.commons.logging.LogFactory;
 import com.sanctionco.jmail.JMail;
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.maps.GeoIPCommand;
+import com.simisinc.platform.domain.events.mailinglists.MailingListMemberCreatedEvent;
+import com.simisinc.platform.domain.events.mailinglists.MailingListMemberUpdatedEvent;
+import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.mailinglists.Email;
 import com.simisinc.platform.domain.model.mailinglists.MailingList;
 import com.simisinc.platform.domain.model.maps.GeoIP;
+import com.simisinc.platform.infrastructure.persistence.UserRepository;
 import com.simisinc.platform.infrastructure.persistence.mailinglists.EmailRepository;
 import com.simisinc.platform.infrastructure.persistence.mailinglists.MailingListMemberRepository;
 import com.simisinc.platform.infrastructure.persistence.mailinglists.MailingListRepository;
+import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
 
 /**
  * Validates and saves an email address to a mailing list
@@ -109,9 +114,21 @@ public class SaveEmailCommand {
       throw new DataException("Please check the email address and try again");
     }
     // Add email to each list (even if user is already on it), and send to mailing list integration
+    User actingUser = email.getCreatedBy() > -1 ? UserRepository.findByUserId(email.getCreatedBy()) : null;
     for (MailingList mailingList : mailingLists) {
-      MailingListMemberRepository.addEmailToList(email, mailingList);
+      MailingListMemberRepository.AddToListResult result = MailingListMemberRepository.addEmailToList(email,
+          mailingList);
       MailingListMemberCommand.triggerEmailSubscriptionProcess(email, mailingList, true);
+      if (result != null && result.getMember() != null) {
+        // issue #452: webhook/workflow event for the mailing-list-member lifecycle
+        if (result.isCreated()) {
+          WorkflowManager.triggerWorkflowForEvent(
+              new MailingListMemberCreatedEvent(result.getMember(), mailingList, actingUser));
+        } else {
+          WorkflowManager.triggerWorkflowForEvent(
+              new MailingListMemberUpdatedEvent(result.getMember(), mailingList, actingUser, "resubscribed", false));
+        }
+      }
     }
     return email;
   }
