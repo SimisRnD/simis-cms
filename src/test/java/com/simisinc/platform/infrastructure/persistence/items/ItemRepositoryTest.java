@@ -118,7 +118,7 @@ class ItemRepositoryTest {
     }
     try (Connection connection = DB.getConnection();
         Statement statement = connection.createStatement()) {
-      statement.execute("TRUNCATE TABLE item_categories, items, collections RESTART IDENTITY CASCADE");
+      statement.execute("TRUNCATE TABLE item_categories, item_tags, items, collections RESTART IDENTITY CASCADE");
     } catch (SQLException se) {
       throw new IllegalStateException("Could not reset tables", se);
     }
@@ -535,6 +535,198 @@ class ItemRepositoryTest {
     assertEquals(ItemRepository.countByCategory(specification, categoryC), counts.getOrDefault(categoryC, 0L));
   }
 
+  // Issue #632: the tag WHERE-clause (createSearchWhereStatement's item_tags EXISTS/IN-list),
+  // exercised here via whereClauseCount since there is no per-candidate countByTag -- mirrors the
+  // countByCategory tests above, one dimension over.
+
+  @Test
+  void tagWhereClauseCountsOnlyItemsWithThatTag() {
+    long collectionId = addCollection();
+    long tagA = 10;
+    long tagB = 20;
+    addItem(collectionId, null, Timestamp.valueOf("2026-01-01 00:00:00"));
+    long itemWithA = addItem(collectionId, null, Timestamp.valueOf("2026-01-02 00:00:00"));
+    linkTag(itemWithA, tagA, collectionId);
+    long itemWithB = addItem(collectionId, null, Timestamp.valueOf("2026-01-03 00:00:00"));
+    linkTag(itemWithB, tagB, collectionId);
+
+    ItemSpecification specification = new ItemSpecification();
+    specification.setTagId(tagA);
+    assertEquals(1, whereClauseCount(specification));
+
+    specification = new ItemSpecification();
+    specification.setTagId(999);
+    assertEquals(0, whereClauseCount(specification));
+  }
+
+  @Test
+  void tagWhereClauseOrsMultipleSelectedTagsWithinTheDimension() {
+    long collectionId = addCollection();
+    long tagA = 10;
+    long tagB = 20;
+    long tagC = 30;
+    long itemWithA = addItem(collectionId, null, Timestamp.valueOf("2026-06-15 00:00:00"));
+    linkTag(itemWithA, tagA, collectionId);
+    long itemWithB = addItem(collectionId, null, Timestamp.valueOf("2026-06-16 00:00:00"));
+    linkTag(itemWithB, tagB, collectionId);
+    long itemWithC = addItem(collectionId, null, Timestamp.valueOf("2026-06-17 00:00:00"));
+    linkTag(itemWithC, tagC, collectionId);
+
+    ItemSpecification specification = new ItemSpecification();
+    specification.setTagIds(Arrays.asList(tagA, tagB));
+
+    assertEquals(2, whereClauseCount(specification),
+        "tags A and B are both selected (OR-within-dimension) -- C must not be counted");
+  }
+
+  @Test
+  void tagWhereClauseCombinesWithCategoryAndDateRangeAcrossDimensions() {
+    // AND-across-dimensions, same as category-vs-date: a tag selection must still narrow
+    // alongside an active category selection and date range, not override them.
+    long collectionId = addCollection();
+    long tagA = 10;
+    long categoryX = 100;
+    long matches = addItem(collectionId, null, Timestamp.valueOf("2026-06-15 00:00:00"));
+    linkTag(matches, tagA, collectionId);
+    linkCategory(matches, categoryX, collectionId);
+    long wrongCategory = addItem(collectionId, null, Timestamp.valueOf("2026-06-15 00:00:00"));
+    linkTag(wrongCategory, tagA, collectionId);
+    linkCategory(wrongCategory, 999, collectionId);
+    long outOfRange = addItem(collectionId, null, Timestamp.valueOf("2026-01-01 00:00:00"));
+    linkTag(outOfRange, tagA, collectionId);
+    linkCategory(outOfRange, categoryX, collectionId);
+
+    ItemSpecification specification = new ItemSpecification();
+    specification.setTagId(tagA);
+    specification.setCategoryId(categoryX);
+    specification.setDateRangeStart(Timestamp.valueOf("2026-06-01 00:00:00"));
+
+    assertEquals(1, whereClauseCount(specification));
+  }
+
+  @Test
+  void tagWhereClauseExcludesArchivedItemsByDefaultAndIncludesThemWhenOptedIn() {
+    long collectionId = addCollection();
+    long tagA = 10;
+    long activeItem = addItem(collectionId, null, Timestamp.valueOf("2026-01-01 00:00:00"));
+    linkTag(activeItem, tagA, collectionId);
+    long archivedItem = addItem(collectionId, null, Timestamp.valueOf("2026-01-02 00:00:00"));
+    linkTag(archivedItem, tagA, collectionId);
+    archiveItem(archivedItem);
+
+    ItemSpecification specification = new ItemSpecification();
+    specification.setTagId(tagA);
+    assertEquals(1, whereClauseCount(specification));
+
+    specification.setIncludeArchived(true);
+    assertEquals(2, whereClauseCount(specification));
+  }
+
+  @Test
+  void tagWhereClauseReturnsZeroForAGuestWhenTheCollectionDoesNotAllowGuests() {
+    long collectionId = addPrivateCollection();
+    long tagA = 10;
+    long item = addItem(collectionId, null, Timestamp.valueOf("2026-06-15 00:00:00"));
+    linkTag(item, tagA, collectionId);
+
+    ItemSpecification specification = new ItemSpecification();
+    specification.setTagId(tagA);
+    specification.setForUserId(UserSession.GUEST_ID);
+
+    assertEquals(0, whereClauseCount(specification),
+        "the tag clause must still be gated by the same guest access-control restriction as every other filter");
+  }
+
+  // Issue #632: countGroupedByTag, mirroring the countGroupedByCategory tests above exactly.
+
+  @Test
+  void countGroupedByTagReturnsEachTagsOwnCountInOneQuery() {
+    long collectionId = addCollection();
+    long tagA = 10;
+    long tagB = 20;
+    addItem(collectionId, null, Timestamp.valueOf("2026-01-01 00:00:00"));
+    long itemInA = addItem(collectionId, null, Timestamp.valueOf("2026-01-02 00:00:00"));
+    linkTag(itemInA, tagA, collectionId);
+    long itemInB = addItem(collectionId, null, Timestamp.valueOf("2026-01-03 00:00:00"));
+    linkTag(itemInB, tagB, collectionId);
+
+    ItemSpecification specification = new ItemSpecification();
+    Map<Long, Long> counts = ItemRepository.countGroupedByTag(specification);
+
+    assertEquals(1L, counts.get(tagA));
+    assertEquals(1L, counts.get(tagB));
+    assertFalse(counts.containsKey(999L), "a tag with no matching items must be absent, not present with a 0");
+  }
+
+  @Test
+  void countGroupedByTagOmitsUntaggedItemsAndTagsWithNoMatches() {
+    long collectionId = addCollection();
+    long tagA = 10;
+    addItem(collectionId, null, Timestamp.valueOf("2026-01-01 00:00:00"));
+    linkTag(addItem(collectionId, null, Timestamp.valueOf("2026-01-02 00:00:00")), tagA, collectionId);
+
+    ItemSpecification specification = new ItemSpecification();
+    Map<Long, Long> counts = ItemRepository.countGroupedByTag(specification);
+
+    assertEquals(1, counts.size(), "only tags with matching items may appear in the map: " + counts);
+    assertEquals(1L, counts.get(tagA));
+  }
+
+  @Test
+  void countGroupedByTagAppliesTheSpecificationsDateRangeButIgnoresItsOwnTagSelection() {
+    long collectionId = addCollection();
+    long tagA = 10;
+    long inRange = addItem(collectionId, null, Timestamp.valueOf("2026-06-15 00:00:00"));
+    linkTag(inRange, tagA, collectionId);
+    long outOfRange = addItem(collectionId, null, Timestamp.valueOf("2026-01-01 00:00:00"));
+    linkTag(outOfRange, tagA, collectionId);
+
+    ItemSpecification specification = new ItemSpecification();
+    specification.setTagId(999); // a different tag -- must be ignored, same as countGroupedByCategory
+    specification.setDateRangeStart(Timestamp.valueOf("2026-06-01 00:00:00"));
+
+    Map<Long, Long> counts = ItemRepository.countGroupedByTag(specification);
+
+    assertEquals(1L, counts.get(tagA),
+        "the date range should still narrow the count, but the specification's own tag selection must not");
+  }
+
+  @Test
+  void countGroupedByTagReturnsZeroTagsForAGuestWhenTheCollectionDoesNotAllowGuests() {
+    long collectionId = addPrivateCollection();
+    long tagA = 10;
+    long item = addItem(collectionId, null, Timestamp.valueOf("2026-06-15 00:00:00"));
+    linkTag(item, tagA, collectionId);
+
+    ItemSpecification specification = new ItemSpecification();
+    specification.setForUserId(UserSession.GUEST_ID);
+
+    Map<Long, Long> counts = ItemRepository.countGroupedByTag(specification);
+
+    assertTrue(counts.isEmpty(),
+        "the same access-control restriction the tag WHERE-clause applies must carry into the grouped form -- "
+            + "otherwise an unauthenticated requester could learn a private tag has items via its count");
+  }
+
+  @Test
+  void countGroupedByTagExcludesArchivedItemsByDefaultAndIncludesThemWhenOptedIn() {
+    long collectionId = addCollection();
+    long tagA = 10;
+    long activeItem = addItem(collectionId, null, Timestamp.valueOf("2026-01-01 00:00:00"));
+    linkTag(activeItem, tagA, collectionId);
+    long archivedItem = addItem(collectionId, null, Timestamp.valueOf("2026-01-02 00:00:00"));
+    linkTag(archivedItem, tagA, collectionId);
+    archiveItem(archivedItem);
+
+    ItemSpecification specification = new ItemSpecification();
+    assertEquals(1L, ItemRepository.countGroupedByTag(specification).get(tagA),
+        "a deactivated item must not be counted by a normal (non-includeArchived) query");
+
+    specification.setIncludeArchived(true);
+    assertEquals(2L, ItemRepository.countGroupedByTag(specification).get(tagA),
+        "a caller that explicitly opts in must still see archived items, same as countGroupedByCategory");
+  }
+
   private static boolean isDockerAvailable() {
     try {
       return DockerClientFactory.instance().isDockerAvailable();
@@ -552,6 +744,7 @@ class ItemRepositoryTest {
     try (Connection connection = DB.getConnection();
         Statement statement = connection.createStatement()) {
       statement.execute("DROP TABLE IF EXISTS item_categories CASCADE");
+      statement.execute("DROP TABLE IF EXISTS item_tags CASCADE");
       statement.execute("DROP TABLE IF EXISTS items CASCADE");
       statement.execute("DROP TABLE IF EXISTS collections CASCADE");
       statement.execute("CREATE TABLE collections ("
@@ -570,6 +763,12 @@ class ItemRepositoryTest {
       statement.execute("CREATE TABLE item_categories ("
           + "item_id BIGINT, "
           + "category_id BIGINT, "
+          + "collection_id BIGINT)");
+      // Issue #632: minimal item_tags shape, same as item_categories above -- just enough for the
+      // tag EXISTS/IN clause and countGroupedByTag's GROUP BY item_tags.tag_id.
+      statement.execute("CREATE TABLE item_tags ("
+          + "item_id BIGINT, "
+          + "tag_id BIGINT, "
           + "collection_id BIGINT)");
     } catch (SQLException se) {
       throw new IllegalStateException("Could not create the test schema", se);
@@ -646,5 +845,32 @@ class ItemRepositoryTest {
     } catch (SQLException se) {
       throw new IllegalStateException("Could not link a category", se);
     }
+  }
+
+  private static void linkTag(long itemId, long tagId, long collectionId) {
+    try (Connection connection = DB.getConnection();
+        PreparedStatement pst = connection.prepareStatement(
+            "INSERT INTO item_tags (item_id, tag_id, collection_id) VALUES (?, ?, ?)")) {
+      pst.setLong(1, itemId);
+      pst.setLong(2, tagId);
+      pst.setLong(3, collectionId);
+      pst.executeUpdate();
+    } catch (SQLException se) {
+      throw new IllegalStateException("Could not link a tag", se);
+    }
+  }
+
+  /**
+   * Runs specification's WHERE clause (via the same createSearchWhereStatement path
+   * countByCategory/countGroupedByCategory/query() all share) against real Postgres, mirroring
+   * exactly what countByCategory does internally -- used here since there is no per-candidate
+   * countByTag (issue #632's countGroupedByTag intentionally ignores its own tag selection, so it
+   * cannot exercise the tag WHERE-clause itself; this proves that clause directly against real
+   * data instead of only checking its generated SQL text, as ItemRepositoryWhereClauseTest does).
+   */
+  private static long whereClauseCount(ItemSpecification specification) {
+    return DB.selectFunction("COUNT(*)",
+        "items LEFT JOIN collections ON (items.collection_id = collections.collection_id)",
+        ItemRepository.createSearchWhereStatement(specification));
   }
 }

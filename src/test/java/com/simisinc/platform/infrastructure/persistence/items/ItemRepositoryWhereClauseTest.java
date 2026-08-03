@@ -52,6 +52,15 @@ class ItemRepositoryWhereClauseTest {
     return null;
   }
 
+  private static SqlValue findTagClause(SqlUtils where) {
+    for (SqlValue value : where.getValues()) {
+      if (value.getFieldOrClause() != null && value.getFieldOrClause().contains("item_tags")) {
+        return value;
+      }
+    }
+    return null;
+  }
+
   @Test
   void categoryInClauseIsParameterizedNotStringConcatenated() {
     // The candidate ids must never be baked into the SQL text itself -- one `?` placeholder per
@@ -96,5 +105,60 @@ class ItemRepositoryWhereClauseTest {
     SqlUtils where = ItemRepository.createSearchWhereStatement(specification);
 
     assertNull(findCategoryClause(where), "no category filter should be added when nothing is selected");
+  }
+
+  @Test
+  void tagInClauseIsParameterizedNotStringConcatenated() {
+    // Issue #632: mirrors categoryInClauseIsParameterizedNotStringConcatenated exactly, for the
+    // new item_tags EXISTS clause.
+    ItemSpecification specification = new ItemSpecification();
+    specification.setTagIds(Arrays.asList(11L, 22L, 33L));
+
+    SqlUtils where = ItemRepository.createSearchWhereStatement(specification);
+
+    SqlValue tagClause = findTagClause(where);
+    assertNotNull(tagClause, "expected an item_tags EXISTS clause to be present");
+    String clauseText = tagClause.getFieldOrClause();
+    assertFalse(clauseText.contains("11") || clauseText.contains("22") || clauseText.contains("33"),
+        "the candidate ids must never be concatenated into the SQL text itself: " + clauseText);
+    assertEquals(3, StringUtils.countMatches(clauseText, "?"), "one ? placeholder per selected tag id: " + clauseText);
+    assertArrayEquals(new Long[] { 11L, 22L, 33L }, tagClause.getLongValues(),
+        "the ids must be bound as real PreparedStatement parameters, in order");
+  }
+
+  @Test
+  void tagInClauseHasOnePlaceholderForASingleTagId() {
+    ItemSpecification specification = new ItemSpecification();
+    specification.setTagId(7L);
+
+    SqlUtils where = ItemRepository.createSearchWhereStatement(specification);
+
+    SqlValue tagClause = findTagClause(where);
+    assertNotNull(tagClause);
+    assertEquals(1, StringUtils.countMatches(tagClause.getFieldOrClause(), "?"));
+    assertArrayEquals(new Long[] { 7L }, tagClause.getLongValues());
+  }
+
+  @Test
+  void noTagClauseWhenNothingIsSelected() {
+    ItemSpecification specification = new ItemSpecification();
+
+    SqlUtils where = ItemRepository.createSearchWhereStatement(specification);
+
+    assertNull(findTagClause(where), "no tag filter should be added when nothing is selected");
+  }
+
+  @Test
+  void categoryAndTagClausesCoexistWhenBothAreSelected() {
+    // The two facet dimensions are independent EXISTS clauses that both apply (AND-across-
+    // dimensions) -- proves adding the tag clause didn't clobber or replace the category one.
+    ItemSpecification specification = new ItemSpecification();
+    specification.setCategoryId(5L);
+    specification.setTagId(9L);
+
+    SqlUtils where = ItemRepository.createSearchWhereStatement(specification);
+
+    assertNotNull(findCategoryClause(where));
+    assertNotNull(findTagClause(where));
   }
 }
