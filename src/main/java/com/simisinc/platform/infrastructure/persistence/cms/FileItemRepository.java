@@ -113,6 +113,14 @@ public class FileItemRepository {
         // Override the order by for rank first
         orderBy.add("rank DESC, file_id");
       }
+
+      // Plain substring search across filename/title (issue #502, folder-files-list.jsp) -- a
+      // WHERE-only match, distinct from searchName's tsvector rank ordering above, so it composes
+      // with an explicit column sort from the caller's DataConstraints instead of overriding it.
+      if (StringUtils.isNotBlank(specification.getSearchTerm())) {
+        String term = "%" + specification.getSearchTerm().trim().toLowerCase() + "%";
+        where.add("(LOWER(files.filename) LIKE ? OR LOWER(files.title) LIKE ?)", new String[] { term, term });
+      }
     }
     return DB.selectAllFrom(
         TABLE_NAME, select, joins, where, orderBy, constraints, FileItemRepository::buildRecord);

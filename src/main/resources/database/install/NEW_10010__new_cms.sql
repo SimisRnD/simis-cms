@@ -123,7 +123,13 @@ CREATE TABLE web_pages (
   sitemap_changefreq VARCHAR(20),
   publish_at TIMESTAMP,
   expires_at TIMESTAMP,
-  solution_type VARCHAR(255)
+  solution_type VARCHAR(255),
+  -- Governed publish workflow (issue #407), mirroring content's own draft_status/submitted_by/
+  -- approved_by/release_reference exactly -- see ContentReviewCommand/Reviewable.
+  draft_status VARCHAR(20),
+  submitted_by BIGINT DEFAULT -1,
+  approved_by BIGINT DEFAULT -1,
+  release_reference VARCHAR(255)
 );
 CREATE INDEX web_pages_link_idx ON web_pages(link);
 CREATE INDEX web_pages_search_idx ON web_pages(searchable);
@@ -713,6 +719,19 @@ CREATE TABLE stylesheets (
   modified TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP
 );
 CREATE INDEX stylesheets_web_idx ON stylesheets(web_page_id);
+
+-- Web page version history (#405): one row per publish, holding the outgoing page_xml that was
+-- just overwritten -- so a prior published state can be viewed, compared, or restored. Rows are
+-- pruned to a configurable cap (webPage.versionHistoryLimit) on insert; cascades on page deletion.
+CREATE TABLE web_page_versions (
+  web_page_version_id BIGSERIAL PRIMARY KEY,
+  web_page_id BIGINT REFERENCES web_pages(web_page_id) ON DELETE CASCADE,
+  page_xml TEXT,
+  published_by BIGINT REFERENCES users(user_id),
+  published_at TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  label VARCHAR(255)
+);
+CREATE INDEX web_page_versions_web_idx ON web_page_versions(web_page_id, published_at DESC);
 
 -- Core Web Vitals RUM (Real User Monitoring, #429)
 -- Raw metrics collected from real page loads, one row per metric per page load

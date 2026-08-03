@@ -17,9 +17,6 @@
 package com.simisinc.platform.presentation.widgets.admin.cms;
 
 import java.lang.reflect.InvocationTargetException;
-import java.util.Arrays;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
@@ -35,6 +32,7 @@ import com.simisinc.platform.domain.model.cms.Folder;
 import com.simisinc.platform.domain.model.cms.SubFolder;
 import com.simisinc.platform.infrastructure.persistence.cms.FolderRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.SubFolderRepository;
+import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 
@@ -119,9 +117,6 @@ public class FolderFileDropZoneWidget extends GenericWidget {
     // Check for a sub-folder
     long subFolderId = context.getParameterAsLong("subFolderId", -1);
 
-    // Load folder to check allowed extensions
-    Folder folder = FolderRepository.findById(folderId);
-
     FileItem fileItemBean = null;
     try {
       // Check for a file
@@ -135,18 +130,8 @@ public class FolderFileDropZoneWidget extends GenericWidget {
       fileItemBean.setVersion("1.0");
       fileItemBean.setCreatedBy(context.getUserId());
       fileItemBean.setModifiedBy(context.getUserId());
-      // Enforce the folder's extension allowlist when one is configured
-      if (folder != null && StringUtils.isNotBlank(folder.getAllowedExtensions())) {
-        Set<String> allowed = Arrays.stream(folder.getAllowedExtensions().split("[,\\s]+"))
-            .map(String::toLowerCase)
-            .filter(StringUtils::isNotBlank)
-            .collect(Collectors.toSet());
-        String ext = StringUtils.lowerCase(fileItemBean.getExtension());
-        if (!allowed.contains(ext)) {
-          throw new DataException("File type '." + ext + "' is not allowed in this folder");
-        }
-      }
-      // Validate the file
+      // Validate the file (SaveFileCommand.saveFile() below enforces the folder's extension
+      // allowlist, issue #370 -- centralized there so every upload path gets it, not just this one)
       ValidateFileCommand.checkFileExtension(fileItemBean.getExtension());
       ValidateFileCommand.checkFile(fileItemBean);
       // Save it
@@ -158,12 +143,17 @@ public class FolderFileDropZoneWidget extends GenericWidget {
       // yyyyMMddHHmmss
       // Return Json
       LOG.debug("Finished!");
+      AuditEventCommand.record(context, AuditEventCommand.CONTENT, "folder_file.create", AuditEventCommand.SUCCESS,
+          "folder_file", String.valueOf(fileItem.getId()), fileItem.getFilename(), "bytes=" + fileItem.getFileLength());
       context.setJson("{\"location\": \"" + "/assets/file/" + fileItem.getUrl() + "\"}");
       return context;
     } catch (DataException data) {
       // Clean up the file if it exists
       SaveFilePartCommand.cleanupFile(fileItemBean);
       // Let the user know
+      AuditEventCommand.record(context, AuditEventCommand.CONTENT, "folder_file.create", AuditEventCommand.FAILURE,
+          "folder_file", fileItemBean != null ? String.valueOf(fileItemBean.getId()) : "-1",
+          fileItemBean != null ? fileItemBean.getFilename() : null, data.getMessage());
       context.setErrorMessage(data.getMessage());
       return context;
     }
