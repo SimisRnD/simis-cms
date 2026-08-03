@@ -18,11 +18,18 @@ package com.simisinc.platform.presentation.widgets.admin;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 
+import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -35,6 +42,7 @@ import com.simisinc.platform.application.admin.SecretSitePropertiesCommand;
 import com.simisinc.platform.application.mailinglists.MailChimpCommand;
 import com.simisinc.platform.domain.model.SiteProperty;
 import com.simisinc.platform.infrastructure.persistence.SitePropertyRepository;
+import com.simisinc.platform.presentation.controller.AuditEventCommand;
 
 /**
  * Tests the site properties editor, including that masked secret fields do not wipe stored values
@@ -82,7 +90,7 @@ class SitePropertiesEditorWidgetTest extends WidgetBase {
     try (MockedStatic<SitePropertyRepository> repository = mockStatic(SitePropertyRepository.class);
         MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
       repository.when(() -> SitePropertyRepository.findAllByPrefix(anyString())).thenReturn(stored);
-      repository.when(() -> SitePropertyRepository.saveAll(eq("mail"), eq(stored))).thenReturn(true);
+      repository.when(() -> SitePropertyRepository.saveAll(eq("mail"), eq(stored), anyLong())).thenReturn(true);
 
       SitePropertiesEditorWidget widget = new SitePropertiesEditorWidget();
       widget.post(widgetContext);
@@ -107,7 +115,7 @@ class SitePropertiesEditorWidgetTest extends WidgetBase {
     try (MockedStatic<SitePropertyRepository> repository = mockStatic(SitePropertyRepository.class);
         MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
       repository.when(() -> SitePropertyRepository.findAllByPrefix(anyString())).thenReturn(stored);
-      repository.when(() -> SitePropertyRepository.saveAll(eq("mail"), eq(stored))).thenReturn(true);
+      repository.when(() -> SitePropertyRepository.saveAll(eq("mail"), eq(stored), anyLong())).thenReturn(true);
 
       SitePropertiesEditorWidget widget = new SitePropertiesEditorWidget();
       widget.post(widgetContext);
@@ -130,7 +138,7 @@ class SitePropertiesEditorWidgetTest extends WidgetBase {
     try (MockedStatic<SitePropertyRepository> repository = mockStatic(SitePropertyRepository.class);
         MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
       repository.when(() -> SitePropertyRepository.findAllByPrefix(anyString())).thenReturn(stored);
-      repository.when(() -> SitePropertyRepository.saveAll(eq("site"), eq(stored))).thenReturn(true);
+      repository.when(() -> SitePropertyRepository.saveAll(eq("site"), eq(stored), anyLong())).thenReturn(true);
 
       SitePropertiesEditorWidget widget = new SitePropertiesEditorWidget();
       widget.post(widgetContext);
@@ -171,10 +179,145 @@ class SitePropertiesEditorWidgetTest extends WidgetBase {
       SitePropertiesEditorWidget widget = new SitePropertiesEditorWidget();
       widget.post(widgetContext);
 
-      repository.verify(() -> SitePropertyRepository.saveAll(anyString(), org.mockito.ArgumentMatchers.anyList()),
-          org.mockito.Mockito.never());
+      repository.verify(
+          () -> SitePropertyRepository.saveAll(anyString(), org.mockito.ArgumentMatchers.anyList(), anyLong()),
+          never());
       assertEquals("mailchimp", stored.get(0).getValue(), "the action must not fall through to the save logic");
       assertEquals(SitePropertiesEditorWidget.JSP, widgetContext.getJsp());
+    }
+  }
+
+  @Test
+  void anExpiryDateIsParsedAndStoredForASecretProperty() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"sitePropertiesEditor\">\n" +
+        "  <prefix>mail</prefix>\n" +
+        "</widget>");
+
+    List<SiteProperty> stored = new ArrayList<>();
+    stored.add(property("mail.password", "existing-smtp-password", null));
+
+    // A blank value submission (unchanged secret) with a newly-set expiry
+    addQueryParameter(widgetContext, "mail.password", "");
+    addQueryParameter(widgetContext, "mail.password__expiresAt", "2026-12-31");
+
+    try (MockedStatic<SitePropertyRepository> repository = mockStatic(SitePropertyRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      repository.when(() -> SitePropertyRepository.findAllByPrefix(anyString())).thenReturn(stored);
+      repository.when(() -> SitePropertyRepository.saveAll(eq("mail"), eq(stored), anyLong())).thenReturn(true);
+
+      new SitePropertiesEditorWidget().post(widgetContext);
+
+      assertEquals(Timestamp.valueOf("2026-12-31 00:00:00"), stored.get(0).getExpiresAt());
+      // The value itself is unchanged (blank submission), so this is not a rotation
+      audit.verify(() -> AuditEventCommand.record(any(), any(), eq("secret.rotate"), any(), any(), any(), any(), any()),
+          never());
+    }
+  }
+
+  @Test
+  void aBlankExpiryDateClearsAPreviouslySetExpiry() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"sitePropertiesEditor\">\n" +
+        "  <prefix>mail</prefix>\n" +
+        "</widget>");
+
+    List<SiteProperty> stored = new ArrayList<>();
+    SiteProperty mailPassword = property("mail.password", "existing-smtp-password", null);
+    mailPassword.setExpiresAt(Timestamp.valueOf("2026-06-01 00:00:00"));
+    stored.add(mailPassword);
+
+    addQueryParameter(widgetContext, "mail.password", "");
+    // No mail.password__expiresAt param at all -- the field was cleared in the form
+
+    try (MockedStatic<SitePropertyRepository> repository = mockStatic(SitePropertyRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      repository.when(() -> SitePropertyRepository.findAllByPrefix(anyString())).thenReturn(stored);
+      repository.when(() -> SitePropertyRepository.saveAll(eq("mail"), eq(stored), anyLong())).thenReturn(true);
+
+      new SitePropertiesEditorWidget().post(widgetContext);
+
+      assertNull(stored.get(0).getExpiresAt());
+    }
+  }
+
+  @Test
+  void anInvalidExpiryDateProducesAnErrorMessageAndDoesNotSave() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"sitePropertiesEditor\">\n" +
+        "  <prefix>mail</prefix>\n" +
+        "</widget>");
+
+    List<SiteProperty> stored = new ArrayList<>();
+    SiteProperty mailPassword = property("mail.password", "existing-smtp-password", null);
+    mailPassword.setLabel("SMTP Password");
+    stored.add(mailPassword);
+
+    addQueryParameter(widgetContext, "mail.password", "");
+    addQueryParameter(widgetContext, "mail.password__expiresAt", "not-a-date");
+
+    try (MockedStatic<SitePropertyRepository> repository = mockStatic(SitePropertyRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      repository.when(() -> SitePropertyRepository.findAllByPrefix(anyString())).thenReturn(stored);
+
+      new SitePropertiesEditorWidget().post(widgetContext);
+
+      assertEquals("SMTP Password has an invalid expiration date", widgetContext.getErrorMessage());
+      repository.verify(() -> SitePropertyRepository.saveAll(anyString(), any(), anyLong()), never());
+    }
+  }
+
+  @Test
+  void rotatingASecretFiresADedicatedPerSecretAuditEvent() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"sitePropertiesEditor\">\n" +
+        "  <prefix>mail</prefix>\n" +
+        "</widget>");
+
+    List<SiteProperty> stored = new ArrayList<>();
+    stored.add(property("mail.host.name", "smtp.example.com", null));
+    stored.add(property("mail.password", "old-password", null));
+
+    addQueryParameter(widgetContext, "mail.host.name", "smtp.example.com");
+    addQueryParameter(widgetContext, "mail.password", "new-password");
+
+    try (MockedStatic<SitePropertyRepository> repository = mockStatic(SitePropertyRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      repository.when(() -> SitePropertyRepository.findAllByPrefix(anyString())).thenReturn(stored);
+      repository.when(() -> SitePropertyRepository.saveAll(eq("mail"), eq(stored), anyLong())).thenReturn(true);
+
+      new SitePropertiesEditorWidget().post(widgetContext);
+
+      // Fired once, by name only -- never the rotated value, never the non-rotated mail.host.name
+      audit.verify(() -> AuditEventCommand.record(eq(widgetContext), eq(AuditEventCommand.CONFIGURATION),
+          eq("secret.rotate"), eq(AuditEventCommand.SUCCESS), eq("site_property"), eq("mail.password"),
+          eq("mail.password"), isNull()), times(1));
+      audit.verify(() -> AuditEventCommand.record(any(), any(), eq("secret.rotate"), any(), any(), any(), any(), any()),
+          times(1));
+    }
+  }
+
+  @Test
+  void noSecretRotateEventFiresWhenNoSecretValueChanges() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"sitePropertiesEditor\">\n" +
+        "  <prefix>mail</prefix>\n" +
+        "</widget>");
+
+    List<SiteProperty> stored = new ArrayList<>();
+    stored.add(property("mail.host.name", "smtp.example.com", null));
+    stored.add(property("mail.password", "existing-password", null));
+
+    addQueryParameter(widgetContext, "mail.host.name", "smtp2.example.com");
+    addQueryParameter(widgetContext, "mail.password", "");
+
+    try (MockedStatic<SitePropertyRepository> repository = mockStatic(SitePropertyRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      repository.when(() -> SitePropertyRepository.findAllByPrefix(anyString())).thenReturn(stored);
+      repository.when(() -> SitePropertyRepository.saveAll(eq("mail"), eq(stored), anyLong())).thenReturn(true);
+
+      new SitePropertiesEditorWidget().post(widgetContext);
+
+      audit.verify(() -> AuditEventCommand.record(any(), any(), eq("secret.rotate"), any(), any(), any(), any(), any()),
+          never());
     }
   }
 }

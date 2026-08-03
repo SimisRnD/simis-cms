@@ -79,10 +79,11 @@ public class SitePropertyRepository {
     return null;
   }
 
-  private static PreparedStatement createPreparedStatementForUpdate(Connection connection, SiteProperty record) throws SQLException {
+  private static PreparedStatement createPreparedStatementForUpdate(Connection connection, SiteProperty record,
+      long modifiedBy) throws SQLException {
     String SQL_QUERY =
         "UPDATE site_properties " +
-            "SET property_value = ? " +
+            "SET property_value = ?, modified = CURRENT_TIMESTAMP, modified_by = ?, expires_at = ? " +
             "WHERE property_id = ?";
     int i = 0;
     PreparedStatement pst = connection.prepareStatement(SQL_QUERY);
@@ -93,14 +94,29 @@ public class SitePropertyRepository {
       value = SecretCryptoCommand.encrypt(value);
     }
     pst.setString(++i, value);
+    if (modifiedBy > -1) {
+      pst.setLong(++i, modifiedBy);
+    } else {
+      pst.setNull(++i, java.sql.Types.BIGINT);
+    }
+    if (record.getExpiresAt() != null) {
+      pst.setTimestamp(++i, record.getExpiresAt());
+    } else {
+      pst.setNull(++i, java.sql.Types.TIMESTAMP);
+    }
     pst.setInt(++i, record.getId());
     return pst;
   }
 
   public static SiteProperty save(SiteProperty record) {
+    return save(record, -1);
+  }
+
+  /** @param modifiedBy the acting user's id, or -1 for a system/unattended save (e.g. a Flyway migration) */
+  public static SiteProperty save(SiteProperty record, long modifiedBy) {
     try {
       try (Connection connection = DB.getConnection();
-           PreparedStatement pst = createPreparedStatementForUpdate(connection, record)) {
+           PreparedStatement pst = createPreparedStatementForUpdate(connection, record, modifiedBy)) {
         if (pst.executeUpdate() > 0) {
           return record;
         }
@@ -112,6 +128,11 @@ public class SitePropertyRepository {
   }
 
   public static boolean saveAll(String prefix, List<SiteProperty> sitePropertyList) {
+    return saveAll(prefix, sitePropertyList, -1);
+  }
+
+  /** @param modifiedBy the acting user's id, or -1 for a system/unattended save */
+  public static boolean saveAll(String prefix, List<SiteProperty> sitePropertyList, long modifiedBy) {
     // Save the validated entries
     for (SiteProperty siteProperty : sitePropertyList) {
       // Check the property type
@@ -120,7 +141,7 @@ public class SitePropertyRepository {
         continue;
       }
       // Update the property
-      SiteProperty updated = SitePropertyRepository.save(siteProperty);
+      SiteProperty updated = SitePropertyRepository.save(siteProperty, modifiedBy);
       if (updated == null) {
         return false;
       }
@@ -148,6 +169,10 @@ public class SitePropertyRepository {
       // every property; a secret that cannot be decrypted (wrong/absent key) fails safe to null.
       record.setValue(SecretCryptoCommand.decrypt(rs.getString("property_value")));
       record.setType(rs.getString("property_type"));
+      record.setModified(rs.getTimestamp("modified"));
+      long modifiedBy = rs.getLong("modified_by");
+      record.setModifiedBy(rs.wasNull() ? -1 : modifiedBy);
+      record.setExpiresAt(rs.getTimestamp("expires_at"));
       return record;
     } catch (SQLException se) {
       LOG.error("buildRecord", se);

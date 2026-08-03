@@ -16,6 +16,8 @@
 
 package com.simisinc.platform.domain.model;
 
+import java.sql.Timestamp;
+
 /**
  * A name/value pairs - properties of the web application for displaying in the UI and values for consuming
  *
@@ -30,6 +32,10 @@ public class SiteProperty extends Entity {
   private String name = null;
   private String value = null;
   private String type = null;
+  private Timestamp modified = null;
+  private long modifiedBy = -1;
+  // Issue #454: only meaningful for secret properties (e.g. OAuth tokens); null means "does not expire"
+  private Timestamp expiresAt = null;
 
   public SiteProperty() {
   }
@@ -72,6 +78,30 @@ public class SiteProperty extends Entity {
 
   public void setType(String type) {
     this.type = type;
+  }
+
+  public Timestamp getModified() {
+    return modified;
+  }
+
+  public void setModified(Timestamp modified) {
+    this.modified = modified;
+  }
+
+  public long getModifiedBy() {
+    return modifiedBy;
+  }
+
+  public void setModifiedBy(long modifiedBy) {
+    this.modifiedBy = modifiedBy;
+  }
+
+  public Timestamp getExpiresAt() {
+    return expiresAt;
+  }
+
+  public void setExpiresAt(Timestamp expiresAt) {
+    this.expiresAt = expiresAt;
   }
 
 }

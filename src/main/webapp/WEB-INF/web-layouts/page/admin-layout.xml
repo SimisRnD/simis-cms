@@ -1906,6 +1906,17 @@
     </section>
   </page>
 
+  <page name="/admin/integrations" role="admin" title="Integrations">
+    <section>
+      <column class="small-12 cell">
+        <widget name="integrationsHub">
+          <icon>fa-key</icon>
+          <title>Integrations</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
   <page name="/admin/webhook-subscription{?webhookSubscriptionId}" role="admin" title="Webhook Subscription">
     <section>
       <column class="small-12 cell">
