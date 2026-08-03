@@ -37,7 +37,6 @@ import com.simisinc.platform.domain.model.items.Category;
 import com.simisinc.platform.domain.model.items.Collection;
 import com.simisinc.platform.domain.model.items.Item;
 import com.simisinc.platform.infrastructure.persistence.items.ItemRepository;
-import com.simisinc.platform.infrastructure.persistence.items.CollectionRepository;
 import com.simisinc.platform.presentation.widgets.cms.WebContainerContext;
 import org.apache.commons.beanutils.ConvertUtils;
 import org.apache.commons.beanutils.converters.BigDecimalConverter;
@@ -479,6 +478,19 @@ public class PageServlet extends HttpServlet {
             response.getWriter().print("{\"success\":false,\"error\":\"Item not found\"}");
             return;
           }
+          // Issue #903: pageEditMode is a generic sitewide capability with no collection scoping,
+          // so confirm the current user is actually authorized for this item's collection before
+          // mutating it -- otherwise any content-editor could reorder items in a private/restricted
+          // collection they were never granted access to. Mirrors the ForAuthorizedUser resolution
+          // already used for the page-level collection/item lookups above (~line 762/775/802).
+          if (LoadCollectionCommand.loadCollectionByIdForAuthorizedUser(item.getCollectionId(), userSession.getUserId()) == null) {
+            LOG.warn("reorderCollectionItem COLLECTION NOT ALLOWED for user " + userSession.getUserId()
+                + " collectionId=" + item.getCollectionId() + " itemId=" + itemId + " from " + request.getRemoteAddr());
+            response.setContentType("application/json");
+            response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+            response.getWriter().print("{\"success\":false,\"error\":\"Item not found\"}");
+            return;
+          }
           // Issue #815: items.item_order now exists, so persist the new position (renumbering the
           // rest of the collection) instead of the previous NOT_IMPLEMENTED/501 response.
           boolean reordered = ItemRepository.reorderItem(item.getCollectionId(), itemId, newOrder);
@@ -516,6 +528,15 @@ public class PageServlet extends HttpServlet {
             response.getWriter().print("{\"success\":false,\"error\":\"Item not found\"}");
             return;
           }
+          // Issue #903: see reorderCollectionItem above -- confirm collection access before mutating.
+          if (LoadCollectionCommand.loadCollectionByIdForAuthorizedUser(item.getCollectionId(), userSession.getUserId()) == null) {
+            LOG.warn("deactivateCollectionItem COLLECTION NOT ALLOWED for user " + userSession.getUserId()
+                + " collectionId=" + item.getCollectionId() + " itemId=" + itemId + " from " + request.getRemoteAddr());
+            response.setContentType("application/json");
+            response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+            response.getWriter().print("{\"success\":false,\"error\":\"Item not found\"}");
+            return;
+          }
           item.setArchivedBy(userSession.getUserId());
           item.setArchived(new java.sql.Timestamp(System.currentTimeMillis()));
           ItemRepository.save(item);
@@ -543,8 +564,14 @@ public class PageServlet extends HttpServlet {
           String itemName = request.getParameter("itemName");
           String itemSummary = request.getParameter("itemSummary");
 
-          Collection collection = CollectionRepository.findById(collectionId);
+          // Issue #903: resolve the collection through the same ForAuthorizedUser lookup used
+          // elsewhere in this file (see loadCollectionByIdForAuthorizedUser above, ~line 762) rather
+          // than a raw findById -- otherwise any content-editor in pageEditMode could inject an item
+          // into a private/restricted collection they were never granted access to.
+          Collection collection = LoadCollectionCommand.loadCollectionByIdForAuthorizedUser(collectionId, userSession.getUserId());
           if (collection == null) {
+            LOG.warn("saveCollectionItem COLLECTION NOT ALLOWED for user " + userSession.getUserId()
+                + " collectionId=" + collectionId + " from " + request.getRemoteAddr());
             response.setContentType("application/json");
             response.setStatus(HttpServletResponse.SC_NOT_FOUND);
             response.getWriter().print("{\"success\":false,\"error\":\"Collection not found\"}");
