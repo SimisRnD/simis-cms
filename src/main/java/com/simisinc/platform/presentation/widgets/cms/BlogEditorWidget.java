@@ -21,10 +21,12 @@ import com.simisinc.platform.application.cms.*;
 import com.simisinc.platform.application.mailinglists.NewsletterSendCommand;
 import com.simisinc.platform.domain.model.cms.Blog;
 import com.simisinc.platform.domain.model.cms.BlogPost;
+import com.simisinc.platform.domain.model.cms.BlogTag;
 import com.simisinc.platform.domain.model.cms.WebPage;
 import com.simisinc.platform.domain.model.cms.WebPageTemplate;
 import com.simisinc.platform.domain.model.mailinglists.MailingList;
 import com.simisinc.platform.infrastructure.persistence.cms.BlogRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.BlogTagRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageTemplateRepository;
 import com.simisinc.platform.infrastructure.persistence.mailinglists.MailingListRepository;
@@ -123,6 +125,10 @@ public class BlogEditorWidget extends GenericWidget {
     }
     context.getRequest().setAttribute("blog", blog);
 
+    // Provide the tag checklist (issue #633)
+    List<BlogTag> tagList = BlogTagRepository.findAllByBlogId(blog.getId());
+    context.getRequest().setAttribute("tagList", tagList);
+
     // For the "Notify subscribers" mailing list picker (issue #500)
     List<MailingList> allLists = MailingListRepository.findAll();
     List<MailingList> enabledLists = new ArrayList<>();
@@ -156,6 +162,22 @@ public class BlogEditorWidget extends GenericWidget {
       blogPostBean.setPublished(null);
     }
     String eventType = isPublished ? "content.publish" : "content.unpublish";
+
+    // Handle the tags (issue #633) -- a single shared-name checkbox group, mirroring how
+    // EditItemFormWidget parses "tagId" for items (issue #632)
+    List<Long> tagIdList = new ArrayList<>();
+    String[] tagIdParams = context.getParameterMap().get("tagId");
+    if (tagIdParams != null) {
+      for (String rawTagId : tagIdParams) {
+        if (StringUtils.isNumeric(rawTagId)) {
+          Long parsedTagId = Long.valueOf(rawTagId);
+          if (!tagIdList.contains(parsedTagId)) {
+            tagIdList.add(parsedTagId);
+          }
+        }
+      }
+    }
+    blogPostBean.setTagIdList(tagIdList.toArray(new Long[0]));
 
     String returnPage = UrlCommand.getValidReturnPage(context.getParameter("returnPage"));
 

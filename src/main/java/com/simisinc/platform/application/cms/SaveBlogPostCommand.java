@@ -112,6 +112,8 @@ public class SaveBlogPostCommand {
     blogPost.setPublished(blogPostBean.getPublished());
     blogPost.setStartDate(blogPostBean.getStartDate());
     blogPost.setEndDate(blogPostBean.getEndDate());
+    // Tag assignments (issue #633)
+    blogPost.setTagIdList(blogPostBean.getTagIdList());
     if (blogPost.getStartDate() == null && blogPost.getPublished() != null) {
       blogPost.setStartDate(blogPost.getPublished());
     }

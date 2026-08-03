@@ -134,8 +134,13 @@ public class BlogRepository {
       try (Connection connection = DB.getConnection();
            AutoStartTransaction a = new AutoStartTransaction(connection);
            AutoRollback transaction = new AutoRollback(connection)) {
-        // Delete the references
+        // Delete the references -- BlogPostRepository.removeAll clears blog_post_tags for this
+        // blog's posts first (post_id has no ON DELETE CASCADE), then the posts themselves.
         BlogPostRepository.removeAll(connection, record);
+        // Delete this blog's own tag vocabulary (issue #633) -- lookup_blog_post_tags.blog_id
+        // has no ON DELETE CASCADE either, and by this point every blog_post_tags row that
+        // referenced one of these tag_ids has already been removed above.
+        BlogTagRepository.removeAll(connection, record);
         // Delete the record
         DB.deleteFrom(connection, TABLE_NAME, new SqlUtils().add("blog_id = ?", record.getId()));
         // Finish transaction

@@ -16,6 +16,7 @@
 
 package com.simisinc.platform.presentation.widgets.cms;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
@@ -25,16 +26,21 @@ import static org.mockito.Mockito.never;
 
 import java.sql.Timestamp;
 import java.lang.reflect.InvocationTargetException;
+import java.util.ArrayList;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
 import com.simisinc.platform.WidgetBase;
+import com.simisinc.platform.application.cms.LoadBlogCommand;
 import com.simisinc.platform.application.cms.LoadBlogPostCommand;
 import com.simisinc.platform.application.cms.SaveBlogPostCommand;
 import com.simisinc.platform.application.mailinglists.NewsletterSendCommand;
+import com.simisinc.platform.domain.model.cms.Blog;
 import com.simisinc.platform.domain.model.cms.BlogPost;
 import com.simisinc.platform.domain.model.mailinglists.MailingList;
+import com.simisinc.platform.infrastructure.persistence.cms.BlogTagRepository;
 import com.simisinc.platform.infrastructure.persistence.mailinglists.MailingListRepository;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 
@@ -54,6 +60,14 @@ class BlogEditorWidgetTest extends WidgetBase {
     mailingList.setTitle("News");
     mailingList.setName("news");
     return mailingList;
+  }
+
+  private static Blog blog(long id) {
+    Blog blog = new Blog();
+    blog.setId(id);
+    blog.setUniqueId("news");
+    blog.setName("News");
+    return blog;
   }
 
   @Test
@@ -170,6 +184,71 @@ class BlogEditorWidgetTest extends WidgetBase {
       new BlogEditorWidget().post(widgetContext);
 
       sendCommand.verify(() -> NewsletterSendCommand.sendBlogPostNotification(any(), any(), anyLong()), never());
+    }
+  }
+
+  @Test
+  void executeProvidesTheTagListForTheCheckboxGroup() {
+    addQueryParameter(widgetContext, "blogUniqueId", "news");
+    Blog blog = blog(5L);
+
+    try (MockedStatic<LoadBlogCommand> loadBlogCommand = mockStatic(LoadBlogCommand.class);
+        MockedStatic<MailingListRepository> listRepo = mockStatic(MailingListRepository.class);
+        MockedStatic<BlogTagRepository> tagRepository = mockStatic(BlogTagRepository.class)) {
+      loadBlogCommand.when(() -> LoadBlogCommand.loadBlogByUniqueId("news")).thenReturn(blog);
+      listRepo.when(MailingListRepository::findAll).thenReturn(new ArrayList<>());
+      tagRepository.when(() -> BlogTagRepository.findAllByBlogId(5L)).thenReturn(new ArrayList<>());
+
+      new BlogEditorWidget().execute(widgetContext);
+
+      tagRepository.verify(() -> BlogTagRepository.findAllByBlogId(5L));
+    }
+  }
+
+  @Test
+  void postParsesTheSharedTagIdCheckboxGroupOntoTheBlogPost()
+      throws InvocationTargetException, IllegalAccessException {
+    addQueryParameter(widgetContext, "id", "5");
+    addQueryParameter(widgetContext, "title", "A Post");
+    widgetContext.getParameterMap().put("tagId", new String[] { "10", "20", "10" });
+
+    BlogPost existing = blogPost(5L, null);
+    BlogPost saved = blogPost(5L, null);
+
+    try (MockedStatic<LoadBlogPostCommand> loadPost = mockStatic(LoadBlogPostCommand.class);
+        MockedStatic<SaveBlogPostCommand> savePost = mockStatic(SaveBlogPostCommand.class)) {
+      loadPost.when(() -> LoadBlogPostCommand.loadBlogPostById(5L)).thenReturn(existing);
+      savePost.when(() -> SaveBlogPostCommand.saveBlogPost(any())).thenReturn(saved);
+
+      new BlogEditorWidget().post(widgetContext);
+
+      ArgumentCaptor<BlogPost> blogPostCaptor = ArgumentCaptor.forClass(BlogPost.class);
+      savePost.verify(() -> SaveBlogPostCommand.saveBlogPost(blogPostCaptor.capture()));
+      assertArrayEquals(new Long[] { 10L, 20L }, blogPostCaptor.getValue().getTagIdList(),
+          "duplicate tagId values in the submitted checkbox group must be de-duplicated");
+    }
+  }
+
+  @Test
+  void postSetsAnEmptyTagIdListWhenNoTagCheckboxesAreSubmitted()
+      throws InvocationTargetException, IllegalAccessException {
+    addQueryParameter(widgetContext, "id", "5");
+    addQueryParameter(widgetContext, "title", "A Post");
+    // No "tagId" params at all -- every checkbox left unchecked
+
+    BlogPost existing = blogPost(5L, null);
+    BlogPost saved = blogPost(5L, null);
+
+    try (MockedStatic<LoadBlogPostCommand> loadPost = mockStatic(LoadBlogPostCommand.class);
+        MockedStatic<SaveBlogPostCommand> savePost = mockStatic(SaveBlogPostCommand.class)) {
+      loadPost.when(() -> LoadBlogPostCommand.loadBlogPostById(5L)).thenReturn(existing);
+      savePost.when(() -> SaveBlogPostCommand.saveBlogPost(any())).thenReturn(saved);
+
+      new BlogEditorWidget().post(widgetContext);
+
+      ArgumentCaptor<BlogPost> blogPostCaptor = ArgumentCaptor.forClass(BlogPost.class);
+      savePost.verify(() -> SaveBlogPostCommand.saveBlogPost(blogPostCaptor.capture()));
+      assertArrayEquals(new Long[0], blogPostCaptor.getValue().getTagIdList());
     }
   }
 }
