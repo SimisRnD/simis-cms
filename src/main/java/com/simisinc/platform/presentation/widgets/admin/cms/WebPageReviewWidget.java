@@ -154,7 +154,9 @@ public class WebPageReviewWidget extends GenericWidget {
       context.setErrorMessage("This page must be submitted for review and approved before it can be published");
       return context;
     }
-    WebPageRepository.publish(webPage);
+    int versionHistoryLimit = WebPageRepository.resolveVersionHistoryLimit(
+        LoadSitePropertyCommand.loadByName("webPage.versionHistoryLimit"));
+    WebPageRepository.publish(webPage, context.getUserId(), versionHistoryLimit);
     AuditEventCommand.record(context, AuditEventCommand.CONTENT, "content.publish", AuditEventCommand.SUCCESS,
         "web_page", String.valueOf(webPage.getId()), webPage.getLink(), null);
     PublishEventCachePurgeHandler.onPageUpdated(webPage);
@@ -192,7 +194,9 @@ public class WebPageReviewWidget extends GenericWidget {
       // then promotes the draft to live and records the named approver + release authority in the
       // audit trail.
       ContentReviewCommand.approve(webPage, context.getUserId(), releaseReference);
-      WebPageRepository.publish(webPage);
+      int versionHistoryLimit = WebPageRepository.resolveVersionHistoryLimit(
+          LoadSitePropertyCommand.loadByName("webPage.versionHistoryLimit"));
+      WebPageRepository.publish(webPage, context.getUserId(), versionHistoryLimit);
       AuditEventCommand.record(context, AuditEventCommand.CONTENT, "content.approve", AuditEventCommand.SUCCESS,
           "web_page", String.valueOf(webPage.getId()), webPage.getLink(),
           StringUtils.isNotBlank(releaseReference) ? "release authority: " + releaseReference : null);

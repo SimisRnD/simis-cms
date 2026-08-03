@@ -19,6 +19,7 @@ package com.simisinc.platform.presentation.widgets.admin.cms;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
@@ -147,10 +148,12 @@ class WebPageReviewWidgetTest extends WidgetBase {
       editorPermission.when(() -> EditorPermissionCommand.canEditContent(any())).thenReturn(true);
       pageRepo.when(() -> WebPageRepository.findById(9L)).thenReturn(page);
       siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean("webPage.review.required")).thenReturn(false);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("webPage.versionHistoryLimit")).thenReturn("20");
+      pageRepo.when(() -> WebPageRepository.resolveVersionHistoryLimit("20")).thenReturn(20);
 
       WidgetContext result = new WebPageReviewWidget().action(widgetContext);
 
-      pageRepo.verify(() -> WebPageRepository.publish(page));
+      pageRepo.verify(() -> WebPageRepository.publish(page, widgetContext.getUserId(), 20));
       purge.verify(() -> PublishEventCachePurgeHandler.onPageUpdated(page));
       assertEquals("The page was published", result.getSuccessMessage());
     }
@@ -171,7 +174,7 @@ class WebPageReviewWidgetTest extends WidgetBase {
 
       WidgetContext result = new WebPageReviewWidget().action(widgetContext);
 
-      pageRepo.verify(() -> WebPageRepository.publish(any()), never());
+      pageRepo.verify(() -> WebPageRepository.publish(any(), anyLong(), anyInt()), never());
       assertEquals("This page must be submitted for review and approved before it can be published",
           result.getErrorMessage());
     }
@@ -194,6 +197,8 @@ class WebPageReviewWidgetTest extends WidgetBase {
       editorPermission.when(() -> EditorPermissionCommand.canEditContent(any())).thenReturn(true);
       pageRepo.when(() -> WebPageRepository.findById(9L)).thenReturn(page);
       siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean("webPage.review.required")).thenReturn(true);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("webPage.versionHistoryLimit")).thenReturn("20");
+      pageRepo.when(() -> WebPageRepository.resolveVersionHistoryLimit("20")).thenReturn(20);
       stepUpAuth.when(() -> StepUpAuthCommand.isValid(any())).thenReturn(true);
       contentReview.when(() -> ContentReviewCommand.offerFor(any(), anyLong(), eq(true)))
           .thenReturn(ContentReviewCommand.OFFER_DECIDE);
@@ -201,7 +206,7 @@ class WebPageReviewWidgetTest extends WidgetBase {
       WidgetContext result = new WebPageReviewWidget().post(widgetContext);
 
       contentReview.verify(() -> ContentReviewCommand.approve(page, widgetContext.getUserId(), "CR-1234"));
-      pageRepo.verify(() -> WebPageRepository.publish(page));
+      pageRepo.verify(() -> WebPageRepository.publish(page, widgetContext.getUserId(), 20));
       purge.verify(() -> PublishEventCachePurgeHandler.onPageUpdated(page));
       assertEquals("The page was approved and published", result.getSuccessMessage());
     }
@@ -229,7 +234,7 @@ class WebPageReviewWidgetTest extends WidgetBase {
       new WebPageReviewWidget().post(widgetContext);
 
       contentReview.verify(() -> ContentReviewCommand.approve(any(), anyLong(), any()), never());
-      pageRepo.verify(() -> WebPageRepository.publish(any()), never());
+      pageRepo.verify(() -> WebPageRepository.publish(any(), anyLong(), anyInt()), never());
       purge.verifyNoInteractions();
     }
   }
@@ -258,7 +263,7 @@ class WebPageReviewWidgetTest extends WidgetBase {
 
       WidgetContext result = new WebPageReviewWidget().post(widgetContext);
 
-      pageRepo.verify(() -> WebPageRepository.publish(any()), never());
+      pageRepo.verify(() -> WebPageRepository.publish(any(), anyLong(), anyInt()), never());
       purge.verifyNoInteractions();
       assertEquals("The approver must be different from the person who submitted the content (separation of duties)",
           result.getErrorMessage());
@@ -304,7 +309,7 @@ class WebPageReviewWidgetTest extends WidgetBase {
 
       WidgetContext result = new WebPageReviewWidget().post(widgetContext);
 
-      pageRepo.verify(() -> WebPageRepository.publish(any()), never());
+      pageRepo.verify(() -> WebPageRepository.publish(any(), anyLong(), anyInt()), never());
       assertEquals("The approver must be different from the person who submitted the content (separation of duties)",
           result.getErrorMessage());
     }
