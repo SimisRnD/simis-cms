@@ -17,6 +17,7 @@
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="html" uri="/WEB-INF/tlds/html-functions.tld" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
+<%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="sitePropertyList" class="java.util.ArrayList" scope="request"/>
@@ -81,6 +82,11 @@
                 </c:when>
                 <c:otherwise>
                   <input type="password" class="no-gap" name="${siteProperty.name}" value="" autocomplete="new-password" placeholder="<c:out value="${empty siteProperty.value ? 'not set' : 'value hidden; leave blank to keep it'}"/>"<c:if test="${siteProperty.name eq 'captcha.google.secretkey'}"> aria-describedby="captchaGoogleSecretkeyHelpText"</c:if><c:if test="${siteProperty.name eq 'captcha.turnstile.secretkey'}"> aria-describedby="captchaTurnstileSecretkeyHelpText"</c:if><c:if test="${siteProperty.name eq 'bi.superset.secret'}"> aria-describedby="biSupersetSecretHelpText"</c:if><c:if test="${siteProperty.name eq 'bi.metabase.secret'}"> aria-describedby="biMetabaseSecretHelpText"</c:if><c:if test="${siteProperty.name eq 'mail.password'}"> aria-describedby="mailPasswordHelpText"</c:if> />
+                  <%-- issue #454: optional expiry, so a credential that's known to expire (e.g. an
+                       OAuth token) shows up on the /admin/integrations hub before it lapses --%>
+                  <label class="no-gap"><small>Expires (optional)</small>
+                    <input type="date" class="no-gap" name="${siteProperty.name}__expiresAt" value="<c:if test="${!empty siteProperty.expiresAt}"><fmt:formatDate pattern="yyyy-MM-dd" value="${siteProperty.expiresAt}" /></c:if>" />
+                  </label>
                 </c:otherwise>
               </c:choose>
             </c:when>

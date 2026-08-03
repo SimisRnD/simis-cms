@@ -16,7 +16,10 @@ CREATE TABLE site_properties (
   property_label VARCHAR(50),
   property_name VARCHAR(50) UNIQUE NOT NULL,
   property_value TEXT NOT NULL,
-  property_type VARCHAR(100)
+  property_type VARCHAR(100),
+  modified TIMESTAMP,
+  modified_by BIGINT,
+  expires_at TIMESTAMP
 );
 
 -- System

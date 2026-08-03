@@ -34,7 +34,9 @@ import org.apache.commons.validator.routines.UrlValidator;
 
 import jakarta.servlet.jsp.jstl.core.Config;
 import java.sql.Timestamp;
+import java.time.LocalDate;
 import java.time.ZoneId;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -121,9 +123,15 @@ public class SitePropertiesEditorWidget extends GenericWidget {
     // Track which secret properties actually received a new value, to audit the rotation by name only
     // (never the value). Non-secret names are audited as a count; no secret value is ever recorded.
     List<String> secretsRotated = new ArrayList<>();
+    // issue #454 review: modified/modified_by must only be stamped for a property whose value
+    // actually changed -- every property on a saved page reaches SitePropertyRepository.save(),
+    // including ones the admin never touched, so this can't be inferred from "was it saved."
+    Set<String> changedPropertyNames = new HashSet<>();
 
     // Populate the entries from the request and Validate the values
     for (SiteProperty siteProperty : siteProperties) {
+
+      String originalValue = siteProperty.getValue();
 
       // Determine the value
       String newValue = context.getParameter(siteProperty.getName());
@@ -136,6 +144,18 @@ public class SitePropertiesEditorWidget extends GenericWidget {
       // Secret values are rendered as empty masked fields; a blank submission means unchanged,
       // so keep the stored value instead of wiping it
       if (SecretSitePropertiesCommand.isSecret(siteProperty.getName())) {
+        // issue #454: an optional expiry date travels alongside the value, submitted every time
+        // (not just on rotation) so it can be cleared or changed independently of the secret value
+        String expiresAtParam = context.getParameter(siteProperty.getName() + "__expiresAt");
+        if (StringUtils.isNotBlank(expiresAtParam)) {
+          try {
+            siteProperty.setExpiresAt(Timestamp.valueOf(LocalDate.parse(expiresAtParam).atStartOfDay()));
+          } catch (DateTimeParseException e) {
+            context.setErrorMessage(siteProperty.getLabel() + " has an invalid expiration date");
+          }
+        } else {
+          siteProperty.setExpiresAt(null);
+        }
         if (StringUtils.isBlank(newValue)) {
           continue;
         }
@@ -156,6 +176,9 @@ public class SitePropertiesEditorWidget extends GenericWidget {
 
       // Validate the values based on type
       siteProperty.setValue(newValue);
+      if (!java.util.Objects.equals(originalValue, newValue)) {
+        changedPropertyNames.add(siteProperty.getName());
+      }
       if (StringUtils.isBlank(newValue)) {
         continue;
       }
@@ -186,7 +209,7 @@ public class SitePropertiesEditorWidget extends GenericWidget {
     }
 
     // Save the entries
-    boolean saved = SitePropertyRepository.saveAll(prefix, siteProperties);
+    boolean saved = SitePropertyRepository.saveAll(prefix, siteProperties, context.getUserId(), changedPropertyNames);
 
     // Record the settings change -- property names and any rotated secret names only, never values
     String settingDetails = "properties=" + siteProperties.size()
@@ -194,6 +217,16 @@ public class SitePropertiesEditorWidget extends GenericWidget {
     AuditEventCommand.record(context, AuditEventCommand.CONFIGURATION, "setting.update",
         saved ? AuditEventCommand.SUCCESS : AuditEventCommand.FAILURE,
         "site_property", prefix, prefix, settingDetails);
+
+    // issue #454: a dedicated, per-secret audit event -- lets the Integrations hub (and anyone
+    // auditing) find "when was THIS secret last rotated" directly, instead of parsing the
+    // whole-page setting.update details string above
+    if (saved) {
+      for (String rotatedName : secretsRotated) {
+        AuditEventCommand.record(context, AuditEventCommand.CONFIGURATION, "secret.rotate",
+            AuditEventCommand.SUCCESS, "site_property", rotatedName, rotatedName, null);
+      }
+    }
 
     if (saved) {
       // Update global cached settings
