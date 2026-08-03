@@ -168,7 +168,7 @@ public class HttpGetCommand {
 
       // Send the request and handle the response
       HttpClient client = HttpClient.newHttpClient();
-      var response = client.send(request, HttpResponse.BodyHandlers.ofString());
+      var response = HttpRetryCommand.send(client, request, HttpResponse.BodyHandlers.ofString());
       if (response == null) {
         LOG.debug("No response");
         return null;
