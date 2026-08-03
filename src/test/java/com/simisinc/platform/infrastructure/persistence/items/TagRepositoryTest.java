@@ -162,6 +162,27 @@ class TagRepositoryTest {
   }
 
   @Test
+  void findAllReturnsEveryTagAcrossCollectionsSortedByName() {
+    // Issue #632: mirrors CategoryRepository.findAll() exactly -- ItemsSearchResultsWidget needs
+    // this to enumerate every tag facet candidate, the same way it enumerates category candidates
+    // via CategoryRepository.findAll(), regardless of which collection a tag belongs to.
+    long collectionA = addCollection();
+    long collectionB = addCollection();
+    addTag(collectionA, "Zebra");
+    addTag(collectionB, "Apple");
+
+    List<Tag> tagList = TagRepository.findAll();
+    assertEquals(2, tagList.size());
+    assertEquals("Apple", tagList.get(0).getName());
+    assertEquals("Zebra", tagList.get(1).getName());
+  }
+
+  @Test
+  void findAllReturnsNullWhenNoTagsExist() {
+    assertNull(TagRepository.findAll(), "mirrors CategoryRepository.findAll()'s null-when-empty shape");
+  }
+
+  @Test
   void saveUpdatesAnExistingTagsName() {
     long collectionId = addCollection();
     long tagId = addTag(collectionId, "Fiction");

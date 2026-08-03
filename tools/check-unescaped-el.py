@@ -165,14 +165,14 @@ ALLOWLIST: dict[str, str] = {
         "ItemsSearchResultsWidget.buildFacetLinkUrl/buildUrl (ItemsSearchResultsWidget.java) build this from context.getUri() (the request path, which per HTTP semantics cannot legally contain a raw '\"') plus every param run through UrlCommand.encodeUri(), which percent-encodes all HTML metacharacters -- same reasoning as ${wikiLinkPrefix} below.",
     "${activeFilter.clearUrl}":
         "Same construction and reasoning as ${facet.url} above -- built by ItemsSearchResultsWidget.buildClearFilterUrl/buildUrl from context.getUri() + UrlCommand.encodeUri()'d params.",
-    "${(!empty categoryFacets || !empty dateFacets) ? 'medium-9' : 'medium-12'}":
+    "${(!empty categoryFacets || !empty tagFacets || !empty dateFacets) ? 'medium-9' : 'medium-12'}":
         "Ternary between two fixed CSS class literals -- same pattern as ${hideChartControls}/${hideChartTitle} below. No other value is possible.",
     "${!empty calendarFacets ? 'medium-9' : 'medium-12'}":
-        "Same reasoning as ${(!empty categoryFacets || !empty dateFacets) ? 'medium-9' : 'medium-12'} above (issue #634) -- ternary between two fixed CSS class literals, no other value is possible.",
+        "Same reasoning as ${(!empty categoryFacets || !empty tagFacets || !empty dateFacets) ? 'medium-9' : 'medium-12'} above (issue #634) -- ternary between two fixed CSS class literals, no other value is possible.",
     "${!empty wikiFacets ? 'medium-9' : 'medium-12'}":
-        "Same reasoning as ${(!empty categoryFacets || !empty dateFacets) ? 'medium-9' : 'medium-12'} above (issue #634) -- ternary between two fixed CSS class literals, no other value is possible.",
+        "Same reasoning as ${(!empty categoryFacets || !empty tagFacets || !empty dateFacets) ? 'medium-9' : 'medium-12'} above (issue #634) -- ternary between two fixed CSS class literals, no other value is possible.",
     "${!empty dateFacets ? 'medium-9' : 'medium-12'}":
-        "Same reasoning as ${(!empty categoryFacets || !empty dateFacets) ? 'medium-9' : 'medium-12'} above (issue #634, web-page-search-results.jsp) -- ternary between two fixed CSS class literals, no other value is possible.",
+        "Same reasoning as ${(!empty categoryFacets || !empty tagFacets || !empty dateFacets) ? 'medium-9' : 'medium-12'} above (issue #634, web-page-search-results.jsp) -- ternary between two fixed CSS class literals, no other value is possible.",
     "${faqQuestion.answerHtml}":
         "Same trust boundary as ${widget.content} below: an admin/content-manager-authored widget preference (FaqWidget.java), not user input. The question text is rendered via <c:out> in the same JSP; only the answer is intentionally raw, since it's meant to render as HTML.",
     "${file.baseUrl}":

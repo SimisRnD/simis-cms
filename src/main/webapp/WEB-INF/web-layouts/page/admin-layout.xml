@@ -1341,6 +1341,26 @@
     </section>
   </page>
 
+  <page name="/admin/web-page-versions" role="admin,content-manager" title="Web Page Version History">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Web Pages" value="/admin/web-pages" />
+            <link name="Version History" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="webPageVersionsList">
+          <title>Version History</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
   <page name="/admin/web-page-designer" role="admin,content-manager" title="Web Page Designer">
     <section>
       <column class="small-12 cell">
@@ -1628,6 +1648,26 @@
     </section>
   </page>
 
+  <page name="/admin/file-versions{?fileId}" role="admin,content-manager,community-manager" title="File Version History">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Folders" value="/admin/folders" />
+            <link name="Version History" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 medium-10 large-8 cell">
+        <widget name="fileVersionsList">
+          <title>Version History</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
   <page name="/admin/file-form{?subFolderId}" role="admin,content-manager,community-manager" title="File Form">
     <section>
       <column class="small-12 cell">
@@ -1909,6 +1949,17 @@
         <widget name="healthDashboard">
           <icon>fa-heart-pulse</icon>
           <title>System Health</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/database-maintenance" role="admin" title="Database Maintenance">
+    <section>
+      <column class="small-12 cell">
+        <widget name="databaseMaintenance">
+          <icon>fa-database</icon>
+          <title>Database Maintenance</title>
         </widget>
       </column>
     </section>

@@ -42,11 +42,14 @@ import com.simisinc.platform.infrastructure.scheduler.webhooks.WebhookDeliveryAt
  * #418).
  *
  * <p>
- * The backoff schedule -- 5s, 30s, 5m, 30m before attempts 2 through 5, then exhausted -- is
- * genuinely new scheduling in this codebase: nothing else here does multi-attempt backoff for
- * outbound HTTP (checked {@code ZeroBounceApiClientCommand}, {@code MailChimpCommand} -- both
- * single-attempt), and JobRunr's own {@code retries=N} job annotation is a single fixed
- * whole-job retry count, not a backoff schedule. Each retry is instead a fresh
+ * The backoff schedule -- 10m, 50m, 3h, 20h before attempts 2 through 5, then exhausted, spanning
+ * ~24 hours from the first attempt to the fifth and final one (issue #418's Scope section calls
+ * for "max 5 attempts over ~24 hours" so a receiver down for a deploy window or a brief outage
+ * still gets retried after it recovers) -- is genuinely new scheduling in this codebase: nothing
+ * else here does multi-attempt backoff for outbound HTTP (checked {@code
+ * ZeroBounceApiClientCommand}, {@code MailChimpCommand} -- both single-attempt), and JobRunr's
+ * own {@code retries=N} job annotation is a single fixed whole-job retry count, not a backoff
+ * schedule. Each retry is instead a fresh
  * {@link WebhookDeliveryAttemptJob} scheduled via {@code BackgroundJobRequest.schedule(Instant,
  * ...)} at the row's own {@code next_retry_at} -- this job's {@code @Job(retries = 1)} means
  * JobRunr itself never auto-retries; every retry decision is made here, once, from the
@@ -81,8 +84,13 @@ public class AttemptWebhookDeliveryCommand {
 
   public static final int MAX_ATTEMPTS = 5;
 
-  /** Delay, in seconds, before attempts 2 through 5 -- 5s, 30s, 5m, 30m (issue #418 / #456). */
-  static final long[] BACKOFF_SECONDS = { 5, 30, 300, 1800 };
+  /**
+   * Delay, in seconds, before attempts 2 through 5 -- 10m, 50m, 3h, 20h, i.e. cumulative offsets
+   * of 10m, 1h, 4h, 24h from the first attempt -- so the fifth and final attempt lands roughly a
+   * full day after the first, per issue #418's "max 5 attempts over ~24 hours" (issue #418 /
+   * #456).
+   */
+  static final long[] BACKOFF_SECONDS = { 600, 3000, 10800, 72000 };
 
   private static final int RESPONSE_SNIPPET_MAX_LENGTH = 500;
 

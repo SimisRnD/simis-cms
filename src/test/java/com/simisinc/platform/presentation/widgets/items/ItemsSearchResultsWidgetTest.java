@@ -43,9 +43,11 @@ import com.simisinc.platform.application.cms.SearchAnalyticsCommand;
 import com.simisinc.platform.application.items.ItemDateFacetCommand;
 import com.simisinc.platform.domain.model.items.Category;
 import com.simisinc.platform.domain.model.items.Item;
+import com.simisinc.platform.domain.model.items.Tag;
 import com.simisinc.platform.infrastructure.persistence.items.CategoryRepository;
 import com.simisinc.platform.infrastructure.persistence.items.ItemRepository;
 import com.simisinc.platform.infrastructure.persistence.items.ItemSpecification;
+import com.simisinc.platform.infrastructure.persistence.items.TagRepository;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.items.ItemsSearchResultsWidget.ItemActiveFilter;
 import com.simisinc.platform.presentation.widgets.items.ItemsSearchResultsWidget.ItemFacetOption;
@@ -78,6 +80,21 @@ class ItemsSearchResultsWidgetTest extends WidgetBase {
     return categoryList;
   }
 
+  private static Tag tag(long id, String name) {
+    Tag tag = new Tag();
+    tag.setId(id);
+    tag.setName(name);
+    return tag;
+  }
+
+  private static List<Tag> tags(Tag... tagArray) {
+    List<Tag> tagList = new ArrayList<>();
+    for (Tag tag : tagArray) {
+      tagList.add(tag);
+    }
+    return tagList;
+  }
+
   @Test
   @SuppressWarnings("unchecked")
   void executeAppliesTheCategoryIdParamAndOnlyListsCategoriesWithResultsOrSelected() {
@@ -91,11 +108,13 @@ class ItemsSearchResultsWidgetTest extends WidgetBase {
 
     try (MockedStatic<ItemRepository> repository = mockStatic(ItemRepository.class);
         MockedStatic<CategoryRepository> categoryRepository = mockStatic(CategoryRepository.class);
+        MockedStatic<TagRepository> tagRepository = mockStatic(TagRepository.class);
         MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
         MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
       siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.timezone")).thenReturn("America/New_York");
       repository.when(() -> ItemRepository.findAll(specCaptor.capture(), any())).thenReturn(itemList);
       categoryRepository.when(CategoryRepository::findAll).thenReturn(categories(category(5, "Widgets"), category(6, "Gadgets")));
+      tagRepository.when(TagRepository::findAll).thenReturn(new ArrayList<>());
       categoryRepository.when(() -> CategoryRepository.findById(5L)).thenReturn(category(5, "Widgets"));
       Map<Long, Long> categoryCounts = new HashMap<>();
       categoryCounts.put(5L, 3L);
@@ -135,11 +154,13 @@ class ItemsSearchResultsWidgetTest extends WidgetBase {
 
     try (MockedStatic<ItemRepository> repository = mockStatic(ItemRepository.class);
         MockedStatic<CategoryRepository> categoryRepository = mockStatic(CategoryRepository.class);
+        MockedStatic<TagRepository> tagRepository = mockStatic(TagRepository.class);
         MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
         MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
       siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.timezone")).thenReturn("America/New_York");
       repository.when(() -> ItemRepository.findAll(specCaptor.capture(), any())).thenReturn(new ArrayList<>());
       categoryRepository.when(CategoryRepository::findAll).thenReturn(new ArrayList<>());
+      tagRepository.when(TagRepository::findAll).thenReturn(new ArrayList<>());
       repository.when(() -> ItemRepository.countByDateRange(any(), any(), any())).thenReturn(0L);
 
       new ItemsSearchResultsWidget().execute(widgetContext);
@@ -157,12 +178,14 @@ class ItemsSearchResultsWidgetTest extends WidgetBase {
 
     try (MockedStatic<ItemRepository> repository = mockStatic(ItemRepository.class);
         MockedStatic<CategoryRepository> categoryRepository = mockStatic(CategoryRepository.class);
+        MockedStatic<TagRepository> tagRepository = mockStatic(TagRepository.class);
         MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
         MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
       siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.timezone")).thenReturn("America/New_York");
       repository.when(() -> ItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
       categoryRepository.when(CategoryRepository::findAll).thenReturn(categories(category(5, "Widgets")));
       categoryRepository.when(() -> CategoryRepository.findById(5L)).thenReturn(category(5, "Widgets"));
+      tagRepository.when(TagRepository::findAll).thenReturn(new ArrayList<>());
       repository.when(() -> ItemRepository.countGroupedByCategory(any())).thenReturn(new HashMap<>());
       repository.when(() -> ItemRepository.countByDateRange(any(), any(), any())).thenReturn(0L);
 
@@ -194,6 +217,7 @@ class ItemsSearchResultsWidgetTest extends WidgetBase {
 
     try (MockedStatic<ItemRepository> repository = mockStatic(ItemRepository.class);
         MockedStatic<CategoryRepository> categoryRepository = mockStatic(CategoryRepository.class);
+        MockedStatic<TagRepository> tagRepository = mockStatic(TagRepository.class);
         MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
         MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
       siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.timezone")).thenReturn("America/New_York");
@@ -202,6 +226,7 @@ class ItemsSearchResultsWidgetTest extends WidgetBase {
       // findById is stubbed to return the real name deliberately, to prove the widget does NOT
       // trust/render it once the count check below has failed
       categoryRepository.when(() -> CategoryRepository.findById(99L)).thenReturn(category(99, "Confidential HR Records"));
+      tagRepository.when(TagRepository::findAll).thenReturn(new ArrayList<>());
       repository.when(() -> ItemRepository.countGroupedByCategory(any())).thenReturn(new HashMap<>());
       repository.when(() -> ItemRepository.countByDateRange(any(), any(), any())).thenReturn(0L);
 
@@ -233,11 +258,13 @@ class ItemsSearchResultsWidgetTest extends WidgetBase {
 
     try (MockedStatic<ItemRepository> repository = mockStatic(ItemRepository.class);
         MockedStatic<CategoryRepository> categoryRepository = mockStatic(CategoryRepository.class);
+        MockedStatic<TagRepository> tagRepository = mockStatic(TagRepository.class);
         MockedStatic<ItemDateFacetCommand> dateFacetCommand = mockStatic(ItemDateFacetCommand.class);
         MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
       dateFacetCommand.when(ItemDateFacetCommand::buckets).thenReturn(fixedBuckets);
       repository.when(() -> ItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
       categoryRepository.when(CategoryRepository::findAll).thenReturn(new ArrayList<>());
+      tagRepository.when(TagRepository::findAll).thenReturn(new ArrayList<>());
       repository.when(() -> ItemRepository.countByDateRange(any(), any(), any())).thenReturn(0L);
 
       new ItemsSearchResultsWidget().execute(widgetContext);
@@ -252,10 +279,13 @@ class ItemsSearchResultsWidgetTest extends WidgetBase {
     preferences.put("showCategoryFacet", "false");
 
     try (MockedStatic<ItemRepository> repository = mockStatic(ItemRepository.class);
+        MockedStatic<TagRepository> tagRepository = mockStatic(TagRepository.class);
         MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
         MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
       siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.timezone")).thenReturn("America/New_York");
       repository.when(() -> ItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+      tagRepository.when(TagRepository::findAll).thenReturn(new ArrayList<>());
+      repository.when(() -> ItemRepository.countGroupedByTag(any())).thenReturn(new HashMap<>());
       repository.when(() -> ItemRepository.countByDateRange(any(), any(), any())).thenReturn(0L);
 
       WidgetContext result = new ItemsSearchResultsWidget().execute(widgetContext);
@@ -283,11 +313,13 @@ class ItemsSearchResultsWidgetTest extends WidgetBase {
 
     try (MockedStatic<ItemRepository> repository = mockStatic(ItemRepository.class);
         MockedStatic<CategoryRepository> categoryRepository = mockStatic(CategoryRepository.class);
+        MockedStatic<TagRepository> tagRepository = mockStatic(TagRepository.class);
         MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
         MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
       siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.timezone")).thenReturn("America/New_York");
       repository.when(() -> ItemRepository.findAll(specCaptor.capture(), any())).thenReturn(new ArrayList<>());
       categoryRepository.when(CategoryRepository::findAll).thenReturn(new ArrayList<>());
+      tagRepository.when(TagRepository::findAll).thenReturn(new ArrayList<>());
       repository.when(() -> ItemRepository.countByCategory(any(), anyLong())).thenReturn(1L);
       repository.when(() -> ItemRepository.countByDateRange(any(), any(), any())).thenReturn(0L);
 
@@ -308,11 +340,13 @@ class ItemsSearchResultsWidgetTest extends WidgetBase {
 
     try (MockedStatic<ItemRepository> repository = mockStatic(ItemRepository.class);
         MockedStatic<CategoryRepository> categoryRepository = mockStatic(CategoryRepository.class);
+        MockedStatic<TagRepository> tagRepository = mockStatic(TagRepository.class);
         MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
         MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
       siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.timezone")).thenReturn("America/New_York");
       repository.when(() -> ItemRepository.findAll(specCaptor.capture(), any())).thenReturn(new ArrayList<>());
       categoryRepository.when(CategoryRepository::findAll).thenReturn(new ArrayList<>());
+      tagRepository.when(TagRepository::findAll).thenReturn(new ArrayList<>());
       repository.when(() -> ItemRepository.countByCategory(any(), anyLong())).thenReturn(1L);
       repository.when(() -> ItemRepository.countByDateRange(any(), any(), any())).thenReturn(0L);
 
@@ -333,12 +367,14 @@ class ItemsSearchResultsWidgetTest extends WidgetBase {
 
     try (MockedStatic<ItemRepository> repository = mockStatic(ItemRepository.class);
         MockedStatic<CategoryRepository> categoryRepository = mockStatic(CategoryRepository.class);
+        MockedStatic<TagRepository> tagRepository = mockStatic(TagRepository.class);
         MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
         MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
       siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.timezone")).thenReturn("America/New_York");
       repository.when(() -> ItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
       categoryRepository.when(CategoryRepository::findAll).thenReturn(categories(category(5, "Widgets"), category(7, "Doohickeys")));
       categoryRepository.when(() -> CategoryRepository.findById(5L)).thenReturn(category(5, "Widgets"));
+      tagRepository.when(TagRepository::findAll).thenReturn(new ArrayList<>());
       repository.when(() -> ItemRepository.countGroupedByCategory(any())).thenReturn(Map.of(5L, 1L, 7L, 1L));
       repository.when(() -> ItemRepository.countByCategory(any(), anyLong())).thenReturn(1L);
       repository.when(() -> ItemRepository.countByDateRange(any(), any(), any())).thenReturn(0L);
@@ -367,6 +403,7 @@ class ItemsSearchResultsWidgetTest extends WidgetBase {
 
     try (MockedStatic<ItemRepository> repository = mockStatic(ItemRepository.class);
         MockedStatic<CategoryRepository> categoryRepository = mockStatic(CategoryRepository.class);
+        MockedStatic<TagRepository> tagRepository = mockStatic(TagRepository.class);
         MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
         MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
       siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.timezone")).thenReturn("America/New_York");
@@ -374,6 +411,7 @@ class ItemsSearchResultsWidgetTest extends WidgetBase {
       categoryRepository.when(CategoryRepository::findAll).thenReturn(categories(category(5, "Widgets"), category(7, "Doohickeys")));
       categoryRepository.when(() -> CategoryRepository.findById(5L)).thenReturn(category(5, "Widgets"));
       categoryRepository.when(() -> CategoryRepository.findById(7L)).thenReturn(category(7, "Doohickeys"));
+      tagRepository.when(TagRepository::findAll).thenReturn(new ArrayList<>());
       repository.when(() -> ItemRepository.countByCategory(any(), anyLong())).thenReturn(1L);
       repository.when(() -> ItemRepository.countByDateRange(any(), any(), any())).thenReturn(0L);
 
@@ -404,12 +442,14 @@ class ItemsSearchResultsWidgetTest extends WidgetBase {
 
     try (MockedStatic<ItemRepository> repository = mockStatic(ItemRepository.class);
         MockedStatic<CategoryRepository> categoryRepository = mockStatic(CategoryRepository.class);
+        MockedStatic<TagRepository> tagRepository = mockStatic(TagRepository.class);
         MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
         MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
       siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.timezone")).thenReturn("America/New_York");
       repository.when(() -> ItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
       categoryRepository.when(CategoryRepository::findAll).thenReturn(categories(category(5, "Widgets")));
       categoryRepository.when(() -> CategoryRepository.findById(5L)).thenReturn(category(5, "Widgets"));
+      tagRepository.when(TagRepository::findAll).thenReturn(new ArrayList<>());
       repository.when(() -> ItemRepository.countByCategory(any(), anyLong())).thenReturn(1L);
       repository.when(() -> ItemRepository.countByDateRange(any(), any(), any())).thenReturn(0L);
 
@@ -430,12 +470,14 @@ class ItemsSearchResultsWidgetTest extends WidgetBase {
 
     try (MockedStatic<ItemRepository> repository = mockStatic(ItemRepository.class);
         MockedStatic<CategoryRepository> categoryRepository = mockStatic(CategoryRepository.class);
+        MockedStatic<TagRepository> tagRepository = mockStatic(TagRepository.class);
         MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
         MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
       siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.timezone")).thenReturn("America/New_York");
       repository.when(() -> ItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
       categoryRepository.when(CategoryRepository::findAll).thenReturn(categories(category(5, "Widgets")));
       categoryRepository.when(() -> CategoryRepository.findById(5L)).thenReturn(category(5, "Widgets"));
+      tagRepository.when(TagRepository::findAll).thenReturn(new ArrayList<>());
       repository.when(() -> ItemRepository.countByCategory(any(), anyLong())).thenReturn(1L);
       repository.when(() -> ItemRepository.countByDateRange(any(), any(), any())).thenReturn(1L);
 
@@ -454,17 +496,283 @@ class ItemsSearchResultsWidgetTest extends WidgetBase {
 
     try (MockedStatic<ItemRepository> repository = mockStatic(ItemRepository.class);
         MockedStatic<CategoryRepository> categoryRepository = mockStatic(CategoryRepository.class);
+        MockedStatic<TagRepository> tagRepository = mockStatic(TagRepository.class);
         MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
         MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
       siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.timezone")).thenReturn("America/New_York");
       repository.when(() -> ItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
       categoryRepository.when(CategoryRepository::findAll).thenReturn(new ArrayList<>());
+      tagRepository.when(TagRepository::findAll).thenReturn(new ArrayList<>());
       repository.when(() -> ItemRepository.countByDateRange(any(), any(), any())).thenReturn(0L);
 
       new ItemsSearchResultsWidget().execute(widgetContext);
 
       analytics.verify(() -> SearchAnalyticsCommand.record(any(), any(), any(), anyInt(), facetKeyCaptor.capture()));
       assertNull(facetKeyCaptor.getValue());
+    }
+  }
+
+  // Issue #632: the tag facet, mirroring the category facet tests above one dimension over.
+
+  @Test
+  @SuppressWarnings("unchecked")
+  void executeAppliesTheTagIdParamAndOnlyListsTagsWithResultsOrSelected() {
+    addQueryParameter(widgetContext, "query", "widgets");
+    addQueryParameter(widgetContext, "tagId", "5");
+
+    List<Item> itemList = new ArrayList<>();
+    itemList.add(item(1L, "widget-1", "Widget One"));
+
+    ArgumentCaptor<ItemSpecification> specCaptor = ArgumentCaptor.forClass(ItemSpecification.class);
+
+    try (MockedStatic<ItemRepository> repository = mockStatic(ItemRepository.class);
+        MockedStatic<CategoryRepository> categoryRepository = mockStatic(CategoryRepository.class);
+        MockedStatic<TagRepository> tagRepository = mockStatic(TagRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.timezone")).thenReturn("America/New_York");
+      repository.when(() -> ItemRepository.findAll(specCaptor.capture(), any())).thenReturn(itemList);
+      tagRepository.when(TagRepository::findAll).thenReturn(tags(tag(5, "Fiction"), tag(6, "History")));
+      tagRepository.when(() -> TagRepository.findById(5L)).thenReturn(tag(5, "Fiction"));
+      Map<Long, Long> tagCounts = new HashMap<>();
+      tagCounts.put(5L, 3L);
+      // tag 6 is intentionally absent -- countGroupedByTag omits zero-count tags entirely, the
+      // same as countGroupedByCategory
+      repository.when(() -> ItemRepository.countGroupedByTag(any())).thenReturn(tagCounts);
+      repository.when(() -> ItemRepository.countByDateRange(any(), any(), any())).thenReturn(0L);
+
+      WidgetContext result = new ItemsSearchResultsWidget().execute(widgetContext);
+
+      assertEquals(List.of(5L), specCaptor.getValue().getTagIds(),
+          "the tagId param must reach the query, via the issue #632 multi-select list");
+
+      List<ItemFacetOption> tagFacets = (List<ItemFacetOption>) result.getRequest().getAttribute("tagFacets");
+      assertEquals(1, tagFacets.size(), "tag 6 has a 0 count and is not selected, so it must not be listed");
+      assertEquals("Fiction", tagFacets.get(0).getLabel());
+      assertEquals(3L, tagFacets.get(0).getCount());
+      assertTrue(tagFacets.get(0).isSelected());
+
+      List<ItemActiveFilter> activeFilters = (List<ItemActiveFilter>) result.getRequest().getAttribute("activeFilters");
+      assertEquals(1, activeFilters.size());
+      assertEquals("Tag", activeFilters.get(0).getFacetLabel());
+      assertEquals("Fiction", activeFilters.get(0).getValueLabel());
+      assertFalse(activeFilters.get(0).getClearUrl().contains("tagId="),
+          "the clear link must drop the tagId param entirely: " + activeFilters.get(0).getClearUrl());
+    }
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  void executeParsesRepeatedTagIdParamsIntoTheMultiSelectList() {
+    // Same repeated-param checkbox-group parsing as categoryId (issue #636's pattern, reused here
+    // for #632): tagId=5&tagId=7 read via getParameterMap() as a String[].
+    addQueryParameter(widgetContext, "query", "widgets");
+    widgetContext.getParameterMap().put("tagId", new String[] { "5", "7" });
+
+    ArgumentCaptor<ItemSpecification> specCaptor = ArgumentCaptor.forClass(ItemSpecification.class);
+
+    try (MockedStatic<ItemRepository> repository = mockStatic(ItemRepository.class);
+        MockedStatic<CategoryRepository> categoryRepository = mockStatic(CategoryRepository.class);
+        MockedStatic<TagRepository> tagRepository = mockStatic(TagRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.timezone")).thenReturn("America/New_York");
+      repository.when(() -> ItemRepository.findAll(specCaptor.capture(), any())).thenReturn(new ArrayList<>());
+      tagRepository.when(TagRepository::findAll).thenReturn(new ArrayList<>());
+      repository.when(() -> ItemRepository.countGroupedByTag(any())).thenReturn(Map.of(5L, 1L, 7L, 1L));
+      repository.when(() -> ItemRepository.countByDateRange(any(), any(), any())).thenReturn(0L);
+
+      new ItemsSearchResultsWidget().execute(widgetContext);
+
+      assertEquals(List.of(5L, 7L), specCaptor.getValue().getTagIds(),
+          "both repeated tagId values must be parsed, in order, and reach the query");
+    }
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  void executeBuildsAnAddToSelectionUrlForAnUncheckedTagAndARemoveUrlForAChecked() {
+    // Issue #632: an unchecked tag's facet link must ADD it to the current selection (keeping
+    // whatever's already checked); an already-checked tag's own facet link must REMOVE just it --
+    // proves both add-to-selection and remove-from-selection toggling through the generalized
+    // FacetUrlCommand.buildMultiSelectToggleUrl.
+    addQueryParameter(widgetContext, "query", "widgets");
+    widgetContext.getParameterMap().put("tagId", new String[] { "5" });
+
+    try (MockedStatic<ItemRepository> repository = mockStatic(ItemRepository.class);
+        MockedStatic<CategoryRepository> categoryRepository = mockStatic(CategoryRepository.class);
+        MockedStatic<TagRepository> tagRepository = mockStatic(TagRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.timezone")).thenReturn("America/New_York");
+      repository.when(() -> ItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+      tagRepository.when(TagRepository::findAll).thenReturn(tags(tag(5, "Fiction"), tag(7, "History")));
+      tagRepository.when(() -> TagRepository.findById(5L)).thenReturn(tag(5, "Fiction"));
+      repository.when(() -> ItemRepository.countGroupedByTag(any())).thenReturn(Map.of(5L, 1L, 7L, 1L));
+      repository.when(() -> ItemRepository.countByDateRange(any(), any(), any())).thenReturn(0L);
+
+      WidgetContext result = new ItemsSearchResultsWidget().execute(widgetContext);
+
+      List<ItemFacetOption> tagFacets = (List<ItemFacetOption>) result.getRequest().getAttribute("tagFacets");
+
+      ItemFacetOption uncheckedFacet = tagFacets.stream().filter(f -> "7".equals(f.getKey())).findFirst().orElseThrow();
+      assertFalse(uncheckedFacet.isSelected());
+      assertTrue(uncheckedFacet.getUrl().contains("tagId=5") && uncheckedFacet.getUrl().contains("tagId=7"),
+          "checking an unchecked tag must ADD it, keeping the already-selected tagId=5: " + uncheckedFacet.getUrl());
+
+      ItemFacetOption checkedFacet = tagFacets.stream().filter(f -> "5".equals(f.getKey())).findFirst().orElseThrow();
+      assertTrue(checkedFacet.isSelected());
+      assertFalse(checkedFacet.getUrl().contains("tagId="),
+          "unchecking the only selected tag must drop tagId from the URL entirely: " + checkedFacet.getUrl());
+    }
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  void executeGivesEachSelectedTagItsOwnRemoveChipPlusAClearAllChipWhenMultipleAreSelected() {
+    addQueryParameter(widgetContext, "query", "widgets");
+    widgetContext.getParameterMap().put("tagId", new String[] { "5", "7" });
+
+    try (MockedStatic<ItemRepository> repository = mockStatic(ItemRepository.class);
+        MockedStatic<CategoryRepository> categoryRepository = mockStatic(CategoryRepository.class);
+        MockedStatic<TagRepository> tagRepository = mockStatic(TagRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.timezone")).thenReturn("America/New_York");
+      repository.when(() -> ItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+      tagRepository.when(TagRepository::findAll).thenReturn(tags(tag(5, "Fiction"), tag(7, "History")));
+      tagRepository.when(() -> TagRepository.findById(5L)).thenReturn(tag(5, "Fiction"));
+      tagRepository.when(() -> TagRepository.findById(7L)).thenReturn(tag(7, "History"));
+      repository.when(() -> ItemRepository.countGroupedByTag(any())).thenReturn(Map.of(5L, 1L, 7L, 1L));
+      repository.when(() -> ItemRepository.countByDateRange(any(), any(), any())).thenReturn(0L);
+
+      WidgetContext result = new ItemsSearchResultsWidget().execute(widgetContext);
+
+      List<ItemActiveFilter> activeFilters = (List<ItemActiveFilter>) result.getRequest().getAttribute("activeFilters");
+      // one chip per selected tag, plus one "clear all tags" chip
+      assertEquals(3, activeFilters.size());
+
+      ItemActiveFilter fictionChip = activeFilters.stream().filter(f -> "Fiction".equals(f.getValueLabel())).findFirst().orElseThrow();
+      assertTrue(fictionChip.getClearUrl().contains("tagId=7"), "removing just Fiction must leave tagId=7 selected: " + fictionChip.getClearUrl());
+      assertFalse(fictionChip.getClearUrl().contains("tagId=5"), "removing Fiction must drop its own id: " + fictionChip.getClearUrl());
+
+      ItemActiveFilter historyChip = activeFilters.stream().filter(f -> "History".equals(f.getValueLabel())).findFirst().orElseThrow();
+      assertTrue(historyChip.getClearUrl().contains("tagId=5"), "removing just History must leave tagId=5 selected: " + historyChip.getClearUrl());
+      assertFalse(historyChip.getClearUrl().contains("tagId=7"), "removing History must drop its own id: " + historyChip.getClearUrl());
+
+      boolean hasClearAllChip = activeFilters.stream().anyMatch(f -> !f.getClearUrl().contains("tagId="));
+      assertTrue(hasClearAllChip, "when 2+ tags are selected, one chip should clear the whole dimension");
+    }
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  void executeGivesASingleSelectedTagOnlyOneChipNoClearAll() {
+    addQueryParameter(widgetContext, "query", "widgets");
+    addQueryParameter(widgetContext, "tagId", "5");
+
+    try (MockedStatic<ItemRepository> repository = mockStatic(ItemRepository.class);
+        MockedStatic<CategoryRepository> categoryRepository = mockStatic(CategoryRepository.class);
+        MockedStatic<TagRepository> tagRepository = mockStatic(TagRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.timezone")).thenReturn("America/New_York");
+      repository.when(() -> ItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+      tagRepository.when(TagRepository::findAll).thenReturn(tags(tag(5, "Fiction")));
+      tagRepository.when(() -> TagRepository.findById(5L)).thenReturn(tag(5, "Fiction"));
+      repository.when(() -> ItemRepository.countGroupedByTag(any())).thenReturn(Map.of(5L, 1L));
+      repository.when(() -> ItemRepository.countByDateRange(any(), any(), any())).thenReturn(0L);
+
+      WidgetContext result = new ItemsSearchResultsWidget().execute(widgetContext);
+
+      List<ItemActiveFilter> activeFilters = (List<ItemActiveFilter>) result.getRequest().getAttribute("activeFilters");
+      assertEquals(1, activeFilters.size(), "a single selection keeps the original one-chip-clears-it behavior, no separate 'clear all' chip");
+    }
+  }
+
+  @Test
+  void executeOmitsTheTagFacetWhenThePreferenceIsFalse() {
+    addQueryParameter(widgetContext, "query", "widgets");
+    preferences.put("showTagFacet", "false");
+
+    try (MockedStatic<ItemRepository> repository = mockStatic(ItemRepository.class);
+        MockedStatic<CategoryRepository> categoryRepository = mockStatic(CategoryRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.timezone")).thenReturn("America/New_York");
+      repository.when(() -> ItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+      repository.when(() -> ItemRepository.countByDateRange(any(), any(), any())).thenReturn(0L);
+
+      WidgetContext result = new ItemsSearchResultsWidget().execute(widgetContext);
+
+      // TagRepository is never stubbed above -- with showTagFacet=false and no tagId param
+      // selected, the widget must never even call TagRepository.findAll()/countGroupedByTag(),
+      // the same "don't touch it at all" contract executeOmitsTheCategoryFacetWhenThePreferenceIsFalse
+      // proves for the category facet.
+      assertNull(result.getRequest().getAttribute("tagFacets"));
+    }
+  }
+
+  @Test
+  @SuppressWarnings("unchecked")
+  void executeDoesNotLeakAnInaccessibleOrEmptyTagsNameInTheFacetListOrActiveFilterChip() {
+    // tagId=99 stands in for either a tag with zero matching items, or one belonging to a
+    // collection the requester has no access to -- countGroupedByTag applies the same
+    // access-control WHERE as the real query, so the two are indistinguishable and neither may
+    // disclose the tag's name (issue: tagId is a guessable sequential id). Mirrors
+    // executeDoesNotLeakAnInaccessibleOrEmptyCategorysNameInTheFacetListOrActiveFilterChip.
+    addQueryParameter(widgetContext, "query", "widgets");
+    addQueryParameter(widgetContext, "tagId", "99");
+
+    try (MockedStatic<ItemRepository> repository = mockStatic(ItemRepository.class);
+        MockedStatic<CategoryRepository> categoryRepository = mockStatic(CategoryRepository.class);
+        MockedStatic<TagRepository> tagRepository = mockStatic(TagRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.timezone")).thenReturn("America/New_York");
+      repository.when(() -> ItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+      tagRepository.when(TagRepository::findAll).thenReturn(tags(tag(99, "Confidential Research Notes")));
+      // findById is stubbed to return the real name deliberately, to prove the widget does NOT
+      // trust/render it once the count check below has failed
+      tagRepository.when(() -> TagRepository.findById(99L)).thenReturn(tag(99, "Confidential Research Notes"));
+      repository.when(() -> ItemRepository.countGroupedByTag(any())).thenReturn(new HashMap<>());
+      repository.when(() -> ItemRepository.countByDateRange(any(), any(), any())).thenReturn(0L);
+
+      WidgetContext result = new ItemsSearchResultsWidget().execute(widgetContext);
+
+      List<ItemFacetOption> tagFacets = (List<ItemFacetOption>) result.getRequest().getAttribute("tagFacets");
+      assertTrue(tagFacets.isEmpty(), "a 0-count tag must not appear in the facet list even though it's selected");
+
+      List<ItemActiveFilter> activeFilters = (List<ItemActiveFilter>) result.getRequest().getAttribute("activeFilters");
+      assertEquals(1, activeFilters.size());
+      assertEquals("Selected tag", activeFilters.get(0).getValueLabel(),
+          "must not render \"Confidential Research Notes\" -- that would disclose the tag's name to a requester with no verified access to it");
+    }
+  }
+
+  @Test
+  void executeRecordsTagIdAsAnAppliedFacetKeyForTheAdoptionRateReport() {
+    addQueryParameter(widgetContext, "query", "widgets");
+    addQueryParameter(widgetContext, "tagId", "5");
+
+    ArgumentCaptor<String> facetKeyCaptor = ArgumentCaptor.forClass(String.class);
+
+    try (MockedStatic<ItemRepository> repository = mockStatic(ItemRepository.class);
+        MockedStatic<CategoryRepository> categoryRepository = mockStatic(CategoryRepository.class);
+        MockedStatic<TagRepository> tagRepository = mockStatic(TagRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.timezone")).thenReturn("America/New_York");
+      repository.when(() -> ItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+      tagRepository.when(TagRepository::findAll).thenReturn(tags(tag(5, "Fiction")));
+      tagRepository.when(() -> TagRepository.findById(5L)).thenReturn(tag(5, "Fiction"));
+      repository.when(() -> ItemRepository.countGroupedByTag(any())).thenReturn(Map.of(5L, 1L));
+      repository.when(() -> ItemRepository.countByDateRange(any(), any(), any())).thenReturn(0L);
+
+      new ItemsSearchResultsWidget().execute(widgetContext);
+
+      analytics.verify(() -> SearchAnalyticsCommand.record(any(), any(), any(), anyInt(), facetKeyCaptor.capture()));
+      assertEquals("tagId", facetKeyCaptor.getValue());
     }
   }
 }

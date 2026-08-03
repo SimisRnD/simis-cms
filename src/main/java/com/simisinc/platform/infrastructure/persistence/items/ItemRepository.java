@@ -425,6 +425,25 @@ public class ItemRepository {
           "EXISTS (SELECT 1 FROM item_categories WHERE item_id = items.item_id AND category_id IN (" + placeholders + "))",
           categoryIds.toArray(new Long[0]));
     }
+    // Issue #632: tag facet, mirroring the category multi-select IN-list immediately above
+    // (issue #636) exactly -- any item tagged with at least one of the selected tags matches
+    // (OR-within-dimension). Tags have no "primary" concept (unlike category's legacy single
+    // categoryId column on items itself), but getEffectiveTagIds() still gives a single-value
+    // caller a one-placeholder IN list. Same parameterization discipline: one `?` per id, ids
+    // bound as real PreparedStatement parameters, never concatenated into the SQL text.
+    List<Long> tagIds = specification.getEffectiveTagIds();
+    if (!tagIds.isEmpty()) {
+      StringBuilder tagPlaceholders = new StringBuilder();
+      for (int i = 0; i < tagIds.size(); i++) {
+        if (i > 0) {
+          tagPlaceholders.append(",");
+        }
+        tagPlaceholders.append("?");
+      }
+      where.add(
+          "EXISTS (SELECT 1 FROM item_tags WHERE item_id = items.item_id AND tag_id IN (" + tagPlaceholders + "))",
+          tagIds.toArray(new Long[0]));
+    }
     where.addIfExists("items.created >= ?", specification.getDateRangeStart());
     where.addIfExists("items.created < ?", specification.getDateRangeEnd());
 
@@ -544,6 +563,46 @@ public class ItemRepository {
     // to one candidate at a time, the way the per-candidate countByCategory loop used to.
     SqlUtils where = createSearchWhereStatement(facetSpec);
     List<StatisticsData> rows = DB.selectGroupedFrom(FACET_COUNT_GROUPED_FROM, "item_categories.category_id",
+        "item_count", where, null, -1);
+    Map<Long, Long> counts = new HashMap<>();
+    for (StatisticsData row : rows) {
+      counts.put(Long.valueOf(row.getLabel()), Long.valueOf(row.getValue()));
+    }
+    return counts;
+  }
+
+  /**
+   * FACET_COUNT_FROM plus the item_tags join countGroupedByTag needs to group by tag_id in a
+   * single query. Mirrors FACET_COUNT_GROUPED_FROM above exactly, joined against item_tags
+   * instead of item_categories.
+   */
+  private static final String FACET_COUNT_GROUPED_FROM_TAG = "items " +
+      "JOIN item_tags ON (item_tags.item_id = items.item_id) " +
+      "LEFT JOIN collections ON (items.collection_id = collections.collection_id)";
+
+  /**
+   * Facet counts for every tag in one query (issue #632), mirroring countGroupedByCategory's
+   * exact shape: every other active filter (keyword, date range, access control) from the given
+   * specification is applied, but the specification's own tag selection is ignored -- so, like
+   * countGroupedByCategory, each returned tag's count reflects what selecting THAT tag would
+   * produce, not what's already selected. A tag with zero matches is simply absent from the
+   * returned map. High-cardinality-friendly by design (one grouped query rather than one round
+   * trip per candidate tag), the same motivation issue #637 called out for a future tag cloud.
+   */
+  public static Map<Long, Long> countGroupedByTag(ItemSpecification specification) {
+    ItemSpecification facetSpec = new ItemSpecification();
+    facetSpec.setApprovedOnly(specification.getApprovedOnly());
+    facetSpec.setUnapprovedOnly(specification.getUnapprovedOnly());
+    facetSpec.setIncludeArchived(specification.getIncludeArchived());
+    facetSpec.setForUserId(specification.getForUserId());
+    facetSpec.setSearchName(specification.getSearchName());
+    facetSpec.setSearchLocation(specification.getSearchLocation());
+    facetSpec.setDateRangeStart(specification.getDateRangeStart());
+    facetSpec.setDateRangeEnd(specification.getDateRangeEnd());
+    // tagId/tagIds intentionally left unset: grouping by every tag supersedes filtering to one
+    // candidate at a time, same as countGroupedByCategory leaves categoryId/categoryIds unset.
+    SqlUtils where = createSearchWhereStatement(facetSpec);
+    List<StatisticsData> rows = DB.selectGroupedFrom(FACET_COUNT_GROUPED_FROM_TAG, "item_tags.tag_id",
         "item_count", where, null, -1);
     Map<Long, Long> counts = new HashMap<>();
     for (StatisticsData row : rows) {
