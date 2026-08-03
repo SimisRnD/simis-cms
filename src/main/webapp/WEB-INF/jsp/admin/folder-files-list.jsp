@@ -74,6 +74,9 @@
 <table class="unstriped">
   <thead>
     <tr>
+      <c:if test="${canDelete eq 'true' && !empty fileList}">
+        <th width="30"><input type="checkbox" id="selectAllFiles" aria-label="Select all files"></th>
+      </c:if>
       <th>
         Filename
       </th>
@@ -96,6 +99,9 @@
     </c:if>
     <c:forEach items="${fileList}" var="file">
     <tr>
+      <c:if test="${canDelete eq 'true'}">
+        <td><input type="checkbox" class="fileRowCheckbox" value="${file.id}" data-filename="${fn:escapeXml(file.title)}" aria-label="Select <c:out value="${file.title}"/>"></td>
+      </c:if>
       <td>
         <c:if test="${fn:toLowerCase(file.fileType) eq 'image'}">
           <img class="image-left" width="200" src="${ctx}/assets/view/${file.url}" />
@@ -243,6 +249,66 @@
       $modal.foundation('open');
     });
   }
+
+  // Bulk select + delete (mirrors image-browser.jsp's bulk delete, PR #834)
+  (function () {
+    var $selectAll = document.getElementById('selectAllFiles');
+    var rowCheckboxes = document.querySelectorAll('.fileRowCheckbox');
+    var $bar = document.getElementById('bulkActionsBar');
+    var $count = document.getElementById('bulkSelectedCount');
+
+    function selected() {
+      return Array.prototype.filter.call(rowCheckboxes, function (cb) {
+        return cb.checked;
+      });
+    }
+
+    function refresh() {
+      var n = selected().length;
+      if ($count) {
+        $count.textContent = n + (n === 1 ? ' file selected  ' : ' files selected  ');
+      }
+      if ($bar) {
+        $bar.style.display = n > 0 ? '' : 'none';
+      }
+      if ($selectAll) {
+        $selectAll.indeterminate = n > 0 && n < rowCheckboxes.length;
+        $selectAll.checked = n > 0 && n === rowCheckboxes.length;
+      }
+    }
+
+    if ($selectAll) {
+      $selectAll.addEventListener('change', function () {
+        rowCheckboxes.forEach(function (cb) {
+          cb.checked = $selectAll.checked;
+        });
+        refresh();
+      });
+    }
+    rowCheckboxes.forEach(function (cb) {
+      cb.addEventListener('change', refresh);
+    });
+
+    var bulkDeleteBtn = document.getElementById('bulkDeleteBtn');
+    if (bulkDeleteBtn) {
+      bulkDeleteBtn.addEventListener('click', function () {
+        var checked = selected();
+        var $reveal = $('#bulkDeleteReveal');
+        var $form = $reveal.find('form');
+        var $list = $('#bulkDeleteList');
+        $form.find('input[name="fileId"]').remove();
+        $list.empty();
+        checked.forEach(function (cb) {
+          $form.append($('<input type="hidden" name="fileId">').val(cb.value));
+          $list.append($('<li>').text(cb.getAttribute('data-filename')));
+        });
+        $('#bulkDeleteCount').text(checked.length);
+        $reveal.foundation('open');
+      });
+    }
+
+    refresh();
+  })();
 </script>
 <c:if test="${(userSession.hasRole('admin') || userSession.hasRole('content-manager'))}">
   <div class="reveal small" id="fileFormReveal" data-reveal data-close-on-esc="false" data-close-on-click="false" data-animation-in="slide-in-down fast" role="dialog" aria-modal="true" aria-labelledby="formTitle">
@@ -330,5 +396,26 @@
         <input type="submit" class="button radius success expanded" value="Save" />
       </div>
     </form>
+  </div>
+</c:if>
+<c:if test="${canDelete eq 'true' && !empty fileList}">
+  <%-- Bulk delete confirmation -- the list below is populated at open time (see the JS) from the
+       checked rows' data-filename attributes, so the admin sees exactly what will be deleted. --%>
+  <div class="reveal" id="bulkDeleteReveal" role="dialog" aria-modal="true" aria-labelledby="bulkDeleteRevealTitle"
+       data-reveal data-close-on-click="true">
+    <h4 id="bulkDeleteRevealTitle">Delete <span id="bulkDeleteCount">0</span> File(s)</h4>
+    <ul id="bulkDeleteList"></ul>
+    <form method="post" action="${widgetContext.uri}">
+      <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
+      <input type="hidden" name="token" value="${userSession.formToken}"/>
+      <input type="hidden" name="command" value="bulkDelete"/>
+      <input type="hidden" name="currentFolderId" value="${folder.id}"/>
+      <input type="hidden" name="currentSubFolderId" value="${subFolder.id}"/>
+      <input type="submit" class="button alert radius" value="Delete Files"/>
+      <button class="button secondary radius" type="button" data-close>Cancel</button>
+    </form>
+    <button class="close-button" data-close aria-label="Close reveal" type="button">
+      <span aria-hidden="true">&times;</span>
+    </button>
   </div>
 </c:if>

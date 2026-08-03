@@ -461,6 +461,41 @@ class ItemsSearchResultsWidgetTest extends WidgetBase {
   }
 
   @Test
+  @SuppressWarnings("unchecked")
+  void executeForwardsTheActiveTagSelectionIntoTheCategoryChipsStandaloneCheck() {
+    // Issue #916: category and tag facet counts must AND against each other. The category
+    // active-filter chip's standalone-count check (noCategorySelectionSpec in the widget) must
+    // still carry the currently active tag selection, or an emptied-out-by-the-tag-filter category
+    // would keep disclosing its name via the chip.
+    addQueryParameter(widgetContext, "query", "widgets");
+    widgetContext.getParameterMap().put("categoryId", new String[] { "5" });
+    widgetContext.getParameterMap().put("tagId", new String[] { "100" });
+
+    ArgumentCaptor<ItemSpecification> categorySpecCaptor = ArgumentCaptor.forClass(ItemSpecification.class);
+
+    try (MockedStatic<ItemRepository> repository = mockStatic(ItemRepository.class);
+        MockedStatic<CategoryRepository> categoryRepository = mockStatic(CategoryRepository.class);
+        MockedStatic<TagRepository> tagRepository = mockStatic(TagRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.timezone")).thenReturn("America/New_York");
+      repository.when(() -> ItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+      categoryRepository.when(CategoryRepository::findAll).thenReturn(categories(category(5, "Widgets")));
+      categoryRepository.when(() -> CategoryRepository.findById(5L)).thenReturn(category(5, "Widgets"));
+      tagRepository.when(TagRepository::findAll).thenReturn(new ArrayList<>());
+      repository.when(() -> ItemRepository.countGroupedByCategory(any())).thenReturn(Map.of(5L, 1L));
+      repository.when(() -> ItemRepository.countGroupedByTag(any())).thenReturn(Map.of(100L, 1L));
+      repository.when(() -> ItemRepository.countByCategory(categorySpecCaptor.capture(), anyLong())).thenReturn(1L);
+      repository.when(() -> ItemRepository.countByDateRange(any(), any(), any())).thenReturn(0L);
+
+      new ItemsSearchResultsWidget().execute(widgetContext);
+
+      assertEquals(List.of(100L), categorySpecCaptor.getValue().getEffectiveTagIds(),
+          "the category chip's standalone check must forward the active tag selection");
+    }
+  }
+
+  @Test
   void executeRecordsWhichFacetsWereAppliedForTheAdoptionRateReport() {
     addQueryParameter(widgetContext, "query", "widgets");
     addQueryParameter(widgetContext, "categoryId", "5");
