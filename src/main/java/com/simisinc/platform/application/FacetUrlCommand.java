@@ -30,8 +30,11 @@ import java.util.Map;
  * Shared URL-building helpers for search-results facet links (issue #634), extracted from
  * ItemsSearchResultsWidget's original issue #421 implementation once a second widget needed the
  * same single-select facet-link/clear-filter behavior, per that issue's own suggestion rather than
- * copy-pasting a third time. Multi-select toggle behavior (issue #636's categoryId checkbox group)
- * stays private to ItemsSearchResultsWidget, since it's the only widget with a multi-select facet.
+ * copy-pasting a third time. Multi-select toggle behavior (buildMultiSelectToggleUrl, issue #636's
+ * categoryId checkbox group) was originally kept private to ItemsSearchResultsWidget as
+ * buildCategoryToggleUrl, on the reasoning that category was the only multi-select facet in this
+ * codebase; generalized here for issue #632's tag facet, its second multi-select consumer, per the
+ * same extract-on-the-second-user precedent this class itself was created under.
  *
  * @author SimIS
  * @created 8/2/2026
@@ -93,6 +96,39 @@ public class FacetUrlCommand {
       }
     }
     return url.toString();
+  }
+
+  /**
+   * The current request's URL with candidateValue toggled in or out of paramName's current
+   * multi-select selection (issue #636, generalized for #632): added if it's not in
+   * currentSelection, removed if it is, every OTHER currently selected value for paramName
+   * preserved. This one method backs both a multi-select facet's checkbox links (toggling an
+   * unchecked option on, or an already-checked one off) and each of its active-filter chips'
+   * "remove just this one" link -- removing a selected value via its chip is exactly the same
+   * toggle-off operation as unchecking its facet checkbox.
+   */
+  public static String buildMultiSelectToggleUrl(WidgetContext context, String paramName, List<Long> currentSelection,
+      long candidateValue) {
+    List<String> newSelection = new ArrayList<>();
+    boolean removed = false;
+    for (Long selectedId : currentSelection) {
+      if (selectedId == candidateValue) {
+        removed = true; // omitting it from newSelection toggles it off
+        continue;
+      }
+      newSelection.add(String.valueOf(selectedId));
+    }
+    if (!removed) {
+      newSelection.add(String.valueOf(candidateValue)); // toggles it on
+    }
+    Map<String, List<String>> overrides = new LinkedHashMap<>();
+    if (!newSelection.isEmpty()) {
+      overrides.put(paramName, newSelection);
+    }
+    // When newSelection ends up empty, paramName is simply absent from overrides -- combined with
+    // excludeParam below dropping the current values, the result is the same as
+    // buildClearFilterUrl: the param disappears from the URL entirely.
+    return buildUrl(context, overrides, paramName);
   }
 
   /** One facet's rendered option: display label, result count, whether it's currently selected, and its link. */
