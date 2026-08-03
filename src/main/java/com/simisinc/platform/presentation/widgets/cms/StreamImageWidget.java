@@ -22,12 +22,15 @@ import java.io.OutputStream;
 
 import jakarta.servlet.http.HttpServletResponse;
 
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import com.simisinc.platform.application.filesystem.FileSystemCommand;
 import com.simisinc.platform.domain.model.cms.Image;
+import com.simisinc.platform.domain.model.cms.ImageVariant;
 import com.simisinc.platform.infrastructure.persistence.cms.ImageRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.ImageVariantRepository;
 import com.simisinc.platform.presentation.controller.FileDownloadCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
@@ -72,14 +75,39 @@ public class StreamImageWidget extends GenericWidget {
       LOG.warn("Server image record does not exist: " + fileId);
       return null;
     }
-    File file = new File(FileSystemCommand.getFileServerRootPath() + record.getFileServerPath());
+
+    // Issue #411: ?variant=thumbnail|medium|large serves a resized rendition instead of the
+    // original -- falls back to the original when no variant param is given, the requested
+    // variant doesn't exist (e.g. the background job hasn't finished yet, or this size didn't
+    // make sense for this image), or its file is missing on disk.
+    String serverRootPath = FileSystemCommand.getFileServerRootPath();
+    String variantType = context.getParameter("variant");
+    File file = null;
+    String fileType = record.getFileType();
+    long lastModified = record.getCreated().getTime();
+    if (StringUtils.isNotBlank(variantType)) {
+      ImageVariant variant = ImageVariantRepository.findByImageIdAndVariantType(record.getId(), variantType);
+      if (variant != null) {
+        File variantFile = new File(serverRootPath + variant.getFileServerPath());
+        if (variantFile.isFile()) {
+          file = variantFile;
+          fileType = variant.getFileType();
+          // `modified` (not `created`) so a regenerated-in-place variant (see
+          // ImageVariantRepository.save()) reports a fresh Last-Modified instead of a client
+          // serving a stale cached copy forever off a 304.
+          lastModified = variant.getModified().getTime();
+        }
+      }
+    }
+    if (file == null) {
+      file = new File(serverRootPath + record.getFileServerPath());
+    }
     if (!file.isFile()) {
-      LOG.warn("Server file does not exist: " + record.getFileServerPath());
+      LOG.warn("Server file does not exist: " + file.getPath());
       return null;
     }
 
     // Check for a last-modified header and return 304 if possible
-    long lastModified = record.getCreated().getTime();
     long headerValue = context.getRequest().getDateHeader("If-Modified-Since");
     if (lastModified <= headerValue + 1000) {
       context.getResponse().setStatus(HttpServletResponse.SC_NOT_MODIFIED);
@@ -90,7 +118,7 @@ public class StreamImageWidget extends GenericWidget {
     // Set header info: nosniff + a sandbox CSP so an uploaded SVG/HTML served here (an image source) still
     // renders but cannot run script in this origin; the image content type is preserved for embedding.
     context.getResponse().setDateHeader("Last-Modified", lastModified);
-    FileDownloadCommand.applyInlineMediaHeaders(context.getResponse(), record.getFileType());
+    FileDownloadCommand.applyInlineMediaHeaders(context.getResponse(), fileType);
     context.getResponse().setContentLength((int) file.length());
 
     // Check for head method

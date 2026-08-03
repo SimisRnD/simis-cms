@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Issue #411 adversarial review follow-up: the imagemagick package's own default policy.xml
+  (verified by actually installing it into this image's exact pinned base, tomcat:11.0-jdk21 /
+  Ubuntu 24.04 "noble") already disables the delegate coders ImageTragick-class CVEs rely on, and
+  sets width/height/area/memory/map/disk ceilings. This file makes that posture explicit and
+  repo-owned instead of implicit and version-drift-prone, and adds the one ceiling the package
+  default leaves unset: `time`, so a single convert invocation can't tie up a background worker
+  indefinitely regardless of what future imagemagick package versions ship.
+
+  Only jpeg/png/gif/webp need to decode here -- GenerateImageVariantsCommand's own allowlist
+  already restricts to those, but denying every other coder at the ImageMagick level too means a
+  bug in that allowlist isn't the only thing standing between an uploaded file and, e.g., MSL/PDF
+  delegate processing.
+-->
+<policymap>
+  <!-- Resource ceilings: bound a single `convert` invocation's cost regardless of input. -->
+  <policy domain="resource" name="width" value="16KP"/>
+  <policy domain="resource" name="height" value="16KP"/>
+  <policy domain="resource" name="area" value="128MP"/>
+  <policy domain="resource" name="memory" value="512MiB"/>
+  <policy domain="resource" name="map" value="1GiB"/>
+  <policy domain="resource" name="disk" value="1GiB"/>
+  <policy domain="resource" name="time" value="30"/>
+  <policy domain="resource" name="thread" value="2"/>
+
+  <!-- Coder allowlist-by-denial: only the raster formats GenerateImageVariantsCommand actually
+       resizes need to be enabled. Everything else -- and specifically every delegate coder an
+       ImageTragick-class exploit needs (MSL/MVG/EPHEMERAL/URL/HTTPS/text-as-code, plus the
+       PostScript/PDF/XPS family) -- is denied outright. -->
+  <policy domain="coder" rights="none" pattern="*"/>
+  <policy domain="coder" rights="read|write" pattern="{JPEG,JPG,PNG,GIF,WEBP}"/>
+
+  <!-- Delegate processes are how ImageTragick-class exploits actually execute a shell command;
+       deny them unconditionally rather than relying solely on the coder denials above. -->
+  <policy domain="delegate" rights="none" pattern="*"/>
+
+  <!-- Filesystem/path policies: the coder denial above already blocks the MSL/EPHEMERAL/URL
+       coders that would otherwise let a crafted file read or write arbitrary paths. -->
+  <policy domain="path" rights="none" pattern="@*"/>
+</policymap>
