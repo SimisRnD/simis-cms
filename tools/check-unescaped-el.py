@@ -90,6 +90,11 @@ ALLOWLIST: dict[str, str] = {
         "Same reasoning as ${empty status ? 'selected' : ''} -- fixed two-literal ternary.",
     "${status eq 'live' ? 'selected' : ''}":
         "Same reasoning as ${empty status ? 'selected' : ''} -- fixed two-literal ternary.",
+    "${field.secret ? 'password' : 'text'}":
+        "integration-registry.jsp's install-form field type: field.secret is a Java primitive "
+        "boolean (CredentialField.isSecret()), so the ternary's only possible outputs are the "
+        "fixed literals 'password' or 'text' -- same reasoning as ${empty status ? 'selected' "
+        ": ''} -- fixed two-literal ternary.",
     "${pageOffset}":
         "items-list.jsp sets this via <c:set> from "
         "(recordPaging.pageNumber - 1) * recordPaging.pageSize -- both DataConstraints fields "

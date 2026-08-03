@@ -138,6 +138,47 @@ class SaveWebhookSubscriptionCommandTest {
   }
 
   @Test
+  void aNewSubscriptionCarriesTheBeansIntegrationId() throws DataException {
+    WebhookSubscription bean = bean(-1L, "https://hooks.slack.com/services/T00/B00/xyz", List.of("form-submitted"), true);
+    bean.setIntegrationId("slack");
+
+    try (MockedStatic<WebhookSubscriptionRepository> repository = mockStatic(WebhookSubscriptionRepository.class)) {
+      repository.when(() -> WebhookSubscriptionRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+      WebhookSubscription saved = SaveWebhookSubscriptionCommand.save(bean);
+
+      assertEquals("slack", saved.getIntegrationId());
+    }
+  }
+
+  @Test
+  void editingAnExistingRegistryInstalledSubscriptionThroughTheGenericFormDoesNotUntagIt() throws DataException {
+    // Issue #455: the standalone webhook-subscription admin form has no integrationId field, so a
+    // form-submitted bean always carries integrationId=null. An admin editing a Slack-installed
+    // subscription's url/events through that generic form must not silently strip its tag --
+    // otherwise uninstalling Slack later would no longer find this row.
+    WebhookSubscription existing = new WebhookSubscription();
+    existing.setId(5L);
+    existing.setUrl("https://hooks.slack.com/services/T00/B00/xyz");
+    existing.setEventTypeList(List.of("form-submitted"));
+    existing.setSecret("original-secret-value");
+    existing.setEnabled(true);
+    existing.setIntegrationId("slack");
+
+    WebhookSubscription editBean = bean(5L, "https://hooks.slack.com/services/T00/B00/new", List.of("order-submitted"), true);
+    // editBean.getIntegrationId() is null here, exactly as a real form-populated bean would be.
+
+    try (MockedStatic<WebhookSubscriptionRepository> repository = mockStatic(WebhookSubscriptionRepository.class)) {
+      repository.when(() -> WebhookSubscriptionRepository.findById(5L)).thenReturn(existing);
+      repository.when(() -> WebhookSubscriptionRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+      WebhookSubscription saved = SaveWebhookSubscriptionCommand.save(editBean);
+
+      assertEquals("slack", saved.getIntegrationId());
+    }
+  }
+
+  @Test
   void editingAMissingSubscriptionThrows() {
     WebhookSubscription bean = bean(999L, "https://example.com/hooks", List.of("web-page-published"), true);
     try (MockedStatic<WebhookSubscriptionRepository> repository = mockStatic(WebhookSubscriptionRepository.class)) {

@@ -49,6 +49,10 @@ public class WebhookSubscription extends Entity {
   private long modifiedBy = -1;
   private Timestamp created = null;
   private Timestamp modified = null;
+  // Issue #455: set when this subscription was created by the integration registry's one-click
+  // install (e.g. "slack") rather than the standalone webhook-subscription admin form, so
+  // uninstalling that integration can find and remove exactly the rows it created and no others.
+  private String integrationId = null;
 
   public WebhookSubscription() {
   }
@@ -156,5 +160,14 @@ public class WebhookSubscription extends Entity {
 
   public void setModified(Timestamp modified) {
     this.modified = modified;
+  }
+
+  /** @return the registry integration id that created this subscription (e.g. "slack"), or null for a manual one */
+  public String getIntegrationId() {
+    return integrationId;
+  }
+
+  public void setIntegrationId(String integrationId) {
+    this.integrationId = integrationId;
   }
 }
