@@ -76,77 +76,66 @@ log "  Health check timeout: ${HEALTH_CHECK_TIMEOUT}s"
 log "  Drain timeout: ${DRAIN_TIMEOUT}s"
 
 # ============================================================================
-# Step 1: Identify current and next slots
+# Step 1: Ensure the staging slot exists
 # ============================================================================
 
-log "Step 1: Identifying current slots..."
+log "Step 1: Ensuring staging slot exists..."
 
-# Get all slots
+# "production" is the App Service's implicit default slot: it is never
+# listed by `deployment slot list` and can't be created or deleted, only
+# swapped into. "staging" is the only extra slot this workflow uses, and
+# it does not persist between deploys -- Step 6 deletes it after every
+# successful swap (cost control), so on a normal run it needs to be
+# (re)created here. This is intentionally unconditional and idempotent:
+# safe whether staging is missing (first run, or after cleanup) or already
+# present (a prior cleanup failed and left it behind).
 SLOTS=$(az webapp deployment slot list \
   --resource-group "$RESOURCE_GROUP" \
   --name "$APP_SERVICE_NAME" \
   --query "[].name" \
   --output tsv 2>/dev/null || echo "")
 
-# Slots are: production (implicit), staging (explicit)
-# If staging exists and is active, production must be old
-STAGING_EXISTS=0
-if echo "$SLOTS" | grep -q "staging"; then
-  STAGING_EXISTS=1
-fi
-
-if [[ $STAGING_EXISTS -eq 1 ]]; then
-  ACTIVE_SLOT="staging"
-  NEXT_SLOT="production"
-  log "  Current active: staging (swap target: production)"
+if echo "$SLOTS" | grep -qx "staging"; then
+  log "  staging slot already exists"
 else
-  ACTIVE_SLOT="production"
-  NEXT_SLOT="staging"
-  log "  Current active: production (swap target: staging)"
-fi
-
-# Get the FQDN for health checks
-if [[ "$NEXT_SLOT" == "staging" ]]; then
-  NEXT_FQDN=$(az webapp show \
+  log "  staging slot not found; creating it (cloning settings from production)..."
+  az webapp deployment slot create \
     --resource-group "$RESOURCE_GROUP" \
     --name "$APP_SERVICE_NAME" \
     --slot staging \
-    --query "defaultHostName" \
-    --output tsv)
-  OLD_SLOT="production"
-else
-  NEXT_FQDN=$(az webapp show \
-    --resource-group "$RESOURCE_GROUP" \
-    --name "$APP_SERVICE_NAME" \
-    --query "defaultHostName" \
-    --output tsv)
-  OLD_SLOT="staging"
+    --configuration-source "$APP_SERVICE_NAME" \
+    2>/dev/null || die "Failed to create staging slot"
+  log "  ✓ staging slot created"
 fi
 
-log "  Deploying to: $NEXT_SLOT (FQDN: $NEXT_FQDN)"
+NEXT_FQDN=$(az webapp show \
+  --resource-group "$RESOURCE_GROUP" \
+  --name "$APP_SERVICE_NAME" \
+  --slot staging \
+  --query "defaultHostName" \
+  --output tsv)
+
+log "  Deploying to: staging (FQDN: $NEXT_FQDN)"
 
 # ============================================================================
-# Step 2: Deploy new image to staging/next slot
+# Step 2: Deploy new image to the staging slot
 # ============================================================================
+#
+# New code always lands on staging first, and only ever reaches production
+# via the health-checked swap in Step 4. There is no direct-to-production
+# path in the routine deploy flow: that would skip the health check and the
+# rollback safety net entirely, which is exactly the stop-replace-restart
+# failure mode this script exists to eliminate.
 
-log "Step 2: Deploying new image to $NEXT_SLOT..."
+log "Step 2: Deploying new image to staging..."
 
-if [[ "$NEXT_SLOT" == "staging" ]]; then
-  az webapp config container set \
-    --resource-group "$RESOURCE_GROUP" \
-    --name "$APP_SERVICE_NAME" \
-    --slot staging \
-    --docker-custom-image-name "$IMAGE_URI" \
-    --docker-registry-server-url "https://$(echo "$IMAGE_URI" | cut -d'/' -f1)" \
-    2>/dev/null || die "Failed to deploy image to staging slot"
-else
-  az webapp config container set \
-    --resource-group "$RESOURCE_GROUP" \
-    --name "$APP_SERVICE_NAME" \
-    --docker-custom-image-name "$IMAGE_URI" \
-    --docker-registry-server-url "https://$(echo "$IMAGE_URI" | cut -d'/' -f1)" \
-    2>/dev/null || die "Failed to deploy image to production slot"
-fi
+az webapp config container set \
+  --resource-group "$RESOURCE_GROUP" \
+  --name "$APP_SERVICE_NAME" \
+  --slot staging \
+  --docker-custom-image-name "$IMAGE_URI" \
+  --docker-registry-server-url "https://$(echo "$IMAGE_URI" | cut -d'/' -f1)" \
+  2>/dev/null || die "Failed to deploy image to staging slot"
 
 log "  Deployment queued. Container pulling..."
 
@@ -179,38 +168,36 @@ done
 
 if [[ $HEALTH_CHECK_PASSED -eq 0 ]]; then
   log "❌ Health check FAILED (timeout after ${HEALTH_CHECK_TIMEOUT}s)"
-  log "Initiating rollback: deleting $NEXT_SLOT slot..."
+  log "Initiating rollback: deleting staging slot (production was never touched)..."
 
-  if [[ "$NEXT_SLOT" == "staging" ]]; then
-    az webapp deployment slot delete \
-      --resource-group "$RESOURCE_GROUP" \
-      --name "$APP_SERVICE_NAME" \
-      --slot staging \
-      --yes 2>/dev/null || log "  Warning: failed to delete staging slot"
-  fi
+  az webapp deployment slot delete \
+    --resource-group "$RESOURCE_GROUP" \
+    --name "$APP_SERVICE_NAME" \
+    --slot staging \
+    --yes 2>/dev/null || log "  Warning: failed to delete staging slot"
 
-  die "Health check failed; rolled back $NEXT_SLOT deployment"
+  die "Health check failed; rolled back staging deployment"
 fi
 
 # ============================================================================
 # Step 4: Swap slots (traffic redirect)
 # ============================================================================
 
-log "Step 4: Swapping slots ($OLD_SLOT ↔ $NEXT_SLOT)..."
+log "Step 4: Swapping slots (production ↔ staging)..."
 
 az webapp deployment slot swap \
   --resource-group "$RESOURCE_GROUP" \
   --name "$APP_SERVICE_NAME" \
-  --slot "$NEXT_SLOT" \
+  --slot staging \
   2>/dev/null || die "Failed to swap slots"
 
-log "  ✓ Slot swap complete (traffic now on $NEXT_SLOT)"
+log "  ✓ Slot swap complete (traffic now on production; staging holds the previous build)"
 
 # ============================================================================
 # Step 5: Connection drain window
 # ============================================================================
 
-log "Step 5: Draining old instance ($OLD_SLOT) for ${DRAIN_TIMEOUT}s..."
+log "Step 5: Draining old instance (now sitting in staging) for ${DRAIN_TIMEOUT}s..."
 
 sleep "$DRAIN_TIMEOUT"
 
@@ -220,27 +207,28 @@ log "  ✓ Drain window complete"
 # Step 6: Clean up old slot
 # ============================================================================
 
-if [[ "$OLD_SLOT" == "staging" ]]; then
-  log "Step 6: Deleting old $OLD_SLOT slot (cleanup)..."
+# After a successful swap, staging unconditionally holds the pre-swap
+# (now old) build -- Azure swap semantics move content between slot
+# objects, not hostnames, so this is never in doubt and never needs
+# detection. Delete it so the next run starts from a clean, idempotent
+# Step 1 (recreate staging, deploy, health-check, swap).
+log "Step 6: Deleting staging slot (now holds the pre-swap build; cleanup)..."
 
-  az webapp deployment slot delete \
-    --resource-group "$RESOURCE_GROUP" \
-    --name "$APP_SERVICE_NAME" \
-    --slot staging \
-    --yes \
-    2>/dev/null || log "  Warning: failed to delete $OLD_SLOT slot (manual cleanup may be needed)"
+az webapp deployment slot delete \
+  --resource-group "$RESOURCE_GROUP" \
+  --name "$APP_SERVICE_NAME" \
+  --slot staging \
+  --yes \
+  2>/dev/null || log "  Warning: failed to delete staging slot (manual cleanup may be needed; next run will reuse and overwrite it either way)"
 
-  log "  ✓ Old slot deleted"
-else
-  log "Step 6: Old slot is production (cannot delete; will be staging for next deploy)"
-fi
+log "  ✓ Old slot deleted"
 
 # ============================================================================
 # Success
 # ============================================================================
 
 log "✓ Rolling deploy complete ($(date))"
-log "  Active instance: $NEXT_SLOT"
+log "  Active instance: production"
 log "  Image: $IMAGE_URI"
 
 exit 0
