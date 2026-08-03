@@ -51,6 +51,9 @@ public class FileVersionRepository {
           .addIfExists("file_id = ?", specification.getFileId(), -1)
           .addIfExists("folder_id = ?", specification.getFolderId(), -1)
           .addIfExists("sub_folder_id = ?", specification.getSubFolderId(), -1);
+      if (specification.getWebPath() != null) {
+        where.add("web_path = ?", specification.getWebPath());
+      }
     }
     return DB.selectAllFrom(TABLE_NAME, where, constraints, FileVersionRepository::buildRecord);
   }
