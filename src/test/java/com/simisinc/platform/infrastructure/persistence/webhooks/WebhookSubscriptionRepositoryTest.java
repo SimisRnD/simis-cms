@@ -223,14 +223,98 @@ class WebhookSubscriptionRepositoryTest {
     assertEquals("brand-new-secret", WebhookSubscriptionRepository.findById(saved.getId()).getSecret());
   }
 
-  private String readRawSecretColumn(long webhookSubscriptionId) throws SQLException {
+  @Test
+  void theUrlIsStoredEncryptedAtRestNotAsPlaintext() throws SQLException {
+    WebhookSubscription subscription = seed("https://hooks.slack.com/services/T00/B00/xyz", "web-page-published", true);
+
+    String rawColumnValue = readRawColumn("url", subscription.getId());
+
+    assertNotEquals("https://hooks.slack.com/services/T00/B00/xyz", rawColumnValue,
+        "a webhook url is itself a bearer credential for some integrations (e.g. Slack) and must never be plaintext at rest");
+    assertTrue(SecretCryptoCommand.isEncrypted(rawColumnValue), "expected an enc:-prefixed ciphertext");
+    assertEquals("https://hooks.slack.com/services/T00/B00/xyz",
+        WebhookSubscriptionRepository.findById(subscription.getId()).getUrl());
+  }
+
+  @Test
+  void updateAlsoReEncryptsTheUrlAtRest() throws SQLException {
+    WebhookSubscription subscription = seed("https://example.com/a", "web-page-published", true);
+
+    subscription.setUrl("https://hooks.slack.com/services/T00/B00/xyz");
+    WebhookSubscriptionRepository.update(subscription);
+
+    String rawColumnValue = readRawColumn("url", subscription.getId());
+    assertNotEquals("https://hooks.slack.com/services/T00/B00/xyz", rawColumnValue);
+    assertTrue(SecretCryptoCommand.isEncrypted(rawColumnValue));
+    assertEquals("https://hooks.slack.com/services/T00/B00/xyz",
+        WebhookSubscriptionRepository.findById(subscription.getId()).getUrl());
+  }
+
+  @Test
+  void integrationIdRoundTripsThroughAddAndFindById() {
+    WebhookSubscription subscription = new WebhookSubscription();
+    subscription.setUrl("https://hooks.slack.com/services/T00/B00/xyz");
+    subscription.setEventTypeList(List.of("form-submitted"));
+    subscription.setSecret("secret");
+    subscription.setEnabled(true);
+    subscription.setIntegrationId("slack");
+    subscription.setCreatedBy(1L);
+    subscription.setModifiedBy(1L);
+
+    WebhookSubscription saved = WebhookSubscriptionRepository.add(subscription);
+
+    assertEquals("slack", WebhookSubscriptionRepository.findById(saved.getId()).getIntegrationId());
+  }
+
+  @Test
+  void aManuallyCreatedSubscriptionHasNoIntegrationId() {
+    WebhookSubscription subscription = seed("https://example.com/manual", "web-page-published", true);
+
+    assertNull(WebhookSubscriptionRepository.findById(subscription.getId()).getIntegrationId());
+  }
+
+  @Test
+  void findByIntegrationIdReturnsOnlyRowsTaggedWithThatIntegration() {
+    WebhookSubscription slack = new WebhookSubscription();
+    slack.setUrl("https://hooks.slack.com/services/T00/B00/xyz");
+    slack.setEventTypeList(List.of("form-submitted"));
+    slack.setSecret("secret");
+    slack.setEnabled(true);
+    slack.setIntegrationId("slack");
+    slack.setCreatedBy(1L);
+    slack.setModifiedBy(1L);
+    WebhookSubscription savedSlack = WebhookSubscriptionRepository.add(slack);
+    // A manually-created subscription to a similarly-shaped url, and a different registry integration --
+    // neither should be returned for "slack".
+    seed("https://example.com/manual", "web-page-published", true);
+    WebhookSubscription other = new WebhookSubscription();
+    other.setUrl("https://example.com/other-integration");
+    other.setEventTypeList(List.of("order-submitted"));
+    other.setSecret("secret");
+    other.setEnabled(true);
+    other.setIntegrationId("some-other-integration");
+    other.setCreatedBy(1L);
+    other.setModifiedBy(1L);
+    WebhookSubscriptionRepository.add(other);
+
+    List<WebhookSubscription> found = WebhookSubscriptionRepository.findByIntegrationId("slack");
+
+    assertEquals(1, found.size());
+    assertEquals(savedSlack.getId(), found.get(0).getId());
+  }
+
+  private String readRawColumn(String column, long webhookSubscriptionId) throws SQLException {
     try (Connection connection = DB.getConnection();
         Statement statement = connection.createStatement();
         java.sql.ResultSet rs = statement
-            .executeQuery("SELECT secret FROM webhook_subscription WHERE webhook_subscription_id = " + webhookSubscriptionId)) {
+            .executeQuery("SELECT " + column + " FROM webhook_subscription WHERE webhook_subscription_id = " + webhookSubscriptionId)) {
       assertTrue(rs.next(), "expected a row for id " + webhookSubscriptionId);
-      return rs.getString("secret");
+      return rs.getString(column);
     }
+  }
+
+  private String readRawSecretColumn(long webhookSubscriptionId) throws SQLException {
+    return readRawColumn("secret", webhookSubscriptionId);
   }
 
   private WebhookSubscription seed(String url, String eventTypesCsv, boolean enabled) {
@@ -249,10 +333,11 @@ class WebhookSubscriptionRepositoryTest {
         Statement statement = connection.createStatement()) {
       statement.execute("CREATE TABLE webhook_subscription ("
           + "webhook_subscription_id BIGSERIAL PRIMARY KEY, "
-          + "url VARCHAR(2000) NOT NULL, "
+          + "url TEXT NOT NULL, "
           + "event_types VARCHAR(2000) NOT NULL, "
           + "secret VARCHAR(255) NOT NULL, "
           + "enabled BOOLEAN DEFAULT true, "
+          + "integration_id VARCHAR(100), "
           + "created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP, "
           + "created_by BIGINT, "
           + "modified TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP, "
