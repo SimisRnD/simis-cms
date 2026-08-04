@@ -226,7 +226,6 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (3, 'Enable real orders?', 'ecommerce.production', 'false', 'boolean');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (7, 'Last Order Date', 'ecommerce.lastOrderDate', 'None', 'disabled');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (10, 'Payment Processor API', 'ecommerce.paymentProcessor', 'None', 'disabled');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (12, 'Address Validation API', 'ecommerce.addressValidation', 'None', 'disabled');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (15, 'Sales Tax API', 'ecommerce.salesTaxService', 'None', 'disabled');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (20, 'Order Fulfillment API', 'ecommerce.orderFulfillment', 'None', 'disabled');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (25, 'Order Number Format', 'ecommerce.orderNumberFormat', 'yymmdd-####-****', 'disabled');
@@ -242,7 +241,6 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (47, 'Order From Address Country Code', 'ecommerce.from.countryCode', '');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (48, 'Order From Address Postal Code', 'ecommerce.from.postalCode', '');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (50, 'Default Currency', 'ecommerce.defaultCurrency', 'USD', 'disabled');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (100, 'USPS Web Tools User Id', 'ecommerce.usps.webtools.userid', '', 'text');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (200, 'Stripe Test Key', 'ecommerce.stripe.test.key', '', 'text');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (205, 'Stripe Test Secret', 'ecommerce.stripe.test.secret', '', 'text');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (210, 'Stripe Production Key', 'ecommerce.stripe.production.key', '', 'disabled');
