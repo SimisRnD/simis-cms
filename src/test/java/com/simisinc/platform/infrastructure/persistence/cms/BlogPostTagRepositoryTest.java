@@ -314,7 +314,16 @@ class BlogPostTagRepositoryTest {
           + "created_by BIGINT, "
           + "created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP, "
           + "modified_by BIGINT, "
-          + "modified TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP)");
+          + "modified TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP, "
+          // Governed publish workflow (issue #407, phase 2) -- this test never exercises
+          // BlogPostRepository itself (only BlogPostTagRepository, with blog_posts used solely as
+          // an FK target), so these columns aren't functionally required here, but are added for
+          // parity with BlogPostRepositoryTest's throwaway schema and to future-proof against a
+          // later test in this class touching review state.
+          + "draft_status VARCHAR(20), "
+          + "submitted_by BIGINT DEFAULT -1, "
+          + "approved_by BIGINT DEFAULT -1, "
+          + "release_reference VARCHAR(255))");
       statement.execute("CREATE UNIQUE INDEX blog_posts_unique_idx ON blog_posts(blog_id, post_unique_id)");
       statement.execute("CREATE TABLE blog_post_tags ("
           + "post_tag_id BIGSERIAL PRIMARY KEY, "

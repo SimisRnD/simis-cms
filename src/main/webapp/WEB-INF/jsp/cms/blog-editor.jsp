@@ -114,6 +114,15 @@
     <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
   </c:if>
   <%@include file="../page_messages.jspf" %>
+  <%-- Governed publish workflow status (issue #407, phase 2) -- only present when this post has a
+       pending draft awaiting review; links to BlogPostReviewWidget's submit/approve/reject page. --%>
+  <c:if test="${!empty blogPostReviewStatus}">
+    <p>
+      Review status: <a href="${ctx}/admin/blog-post-review?blogPostId=${blogPost.id}" class="secondary label">
+        <i class="fa fa-clipboard-check"></i> <c:out value="${blogPostReviewStatus}" />
+      </a>
+    </p>
+  </c:if>
   <%-- Form Content --%>
   <ul class="breadcrumbs">
     <li><a href="${ctx}/${blog.uniqueId}"><c:out value="${blog.name}"/></a></li>
