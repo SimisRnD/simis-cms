@@ -250,7 +250,7 @@
     // Populates one bulk modal's hidden blogPostId fields and visible title list from the
     // currently checked rows, so the admin sees exactly what is about to be affected before
     // confirming.
-    function populateBulkModal(revealId, listId) {
+    function populateBulkModal(revealId, listId, countId) {
       var $reveal = $('#' + revealId);
       var $form = $reveal.find('form');
       var $list = $('#' + listId);
@@ -261,7 +261,7 @@
         $form.append($('<input type="hidden" name="blogPostId">').val($checkbox.val()));
         $list.append($('<li>').text($checkbox.data('title')));
       });
-      $('#' + revealId + 'Count').text(selected().length);
+      $('#' + countId).text(selected().length);
       $reveal.foundation('open');
     }
 
@@ -271,11 +271,11 @@
     });
     $rows.on('change', refresh);
 
-    $('#bulkPublishBtn').on('click', function () { populateBulkModal('bulkPublishReveal', 'bulkPublishList'); });
-    $('#bulkUnpublishBtn').on('click', function () { populateBulkModal('bulkUnpublishReveal', 'bulkUnpublishList'); });
-    $('#bulkArchiveBtn').on('click', function () { populateBulkModal('bulkArchiveReveal', 'bulkArchiveList'); });
-    $('#bulkMoveBtn').on('click', function () { populateBulkModal('bulkMoveReveal', 'bulkMoveList'); });
-    $('#bulkDeleteBtn').on('click', function () { populateBulkModal('bulkDeleteReveal', 'bulkDeleteList'); });
+    $('#bulkPublishBtn').on('click', function () { populateBulkModal('bulkPublishReveal', 'bulkPublishList', 'bulkPublishCount'); });
+    $('#bulkUnpublishBtn').on('click', function () { populateBulkModal('bulkUnpublishReveal', 'bulkUnpublishList', 'bulkUnpublishCount'); });
+    $('#bulkArchiveBtn').on('click', function () { populateBulkModal('bulkArchiveReveal', 'bulkArchiveList', 'bulkArchiveCount'); });
+    $('#bulkMoveBtn').on('click', function () { populateBulkModal('bulkMoveReveal', 'bulkMoveList', 'bulkMoveCount'); });
+    $('#bulkDeleteBtn').on('click', function () { populateBulkModal('bulkDeleteReveal', 'bulkDeleteList', 'bulkDeleteCount'); });
 
     refresh();
   })();
