@@ -57,7 +57,7 @@
     </div>
   </form>
 </div>
-<script>
+<script nonce="${cspNonce}">
   function issueRefund() {
     if (document.getElementById("issueRefundButton").disabled === true) {
       return false;
