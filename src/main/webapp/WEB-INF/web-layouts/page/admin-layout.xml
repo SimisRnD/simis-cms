@@ -2038,6 +2038,17 @@
     </section>
   </page>
 
+  <page name="/admin/cache-management" role="admin" title="Cache Management">
+    <section>
+      <column class="small-12 cell">
+        <widget name="cacheManagement">
+          <icon>fa-bolt</icon>
+          <title>Cache Management</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
   <page name="/admin/job-queue-dashboard" role="admin" title="Job Queue Dashboard">
     <section>
       <column class="small-12 cell">

@@ -32,8 +32,11 @@ import com.simisinc.platform.infrastructure.persistence.cms.StylesheetRepository
 import com.simisinc.platform.infrastructure.persistence.cms.TableOfContentsRepository;
 import com.simisinc.platform.infrastructure.persistence.items.CollectionRepository;
 
+import java.time.Instant;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 
@@ -67,6 +70,11 @@ public class CacheManager {
 
   private static final Map<String, Cache> cacheManager = new ConcurrentHashMap<>();
 
+  // Tracks the last time each cache was explicitly cleared via #invalidateAll/#invalidateAllCaches,
+  // for the admin cache management dashboard's "last cleared" column (issue #463). Intentionally
+  // in-memory only and not persisted -- it resets on restart, same as the caches themselves.
+  private static final Map<String, Instant> lastClearedAt = new ConcurrentHashMap<>();
+
   private CacheManager() {
   }
 
@@ -85,6 +93,7 @@ public class CacheManager {
     // System Property Cache (prefix = map)
     LoadingCache<String, List<SiteProperty>> sitePropertyListCache = Caffeine.newBuilder()
         .maximumSize(10_000)
+        .recordStats()
 //        .expireAfterWrite(5, TimeUnit.MINUTES)
 //        .refreshAfterWrite(1, TimeUnit.MINUTES)
         .build(SitePropertyRepository::findAllByPrefix);
@@ -93,6 +102,7 @@ public class CacheManager {
     // App Cache (publicKey = app)
     LoadingCache<String, App> appCache = Caffeine.newBuilder()
         .maximumSize(1_000)
+        .recordStats()
 //        .expireAfterWrite(5, TimeUnit.MINUTES)
 //        .refreshAfterWrite(1, TimeUnit.MINUTES)
         .build(AppRepository::findByPublicKey);
@@ -102,12 +112,14 @@ public class CacheManager {
     Cache<Long, String> userCredentialsCache = Caffeine.newBuilder()
         .maximumSize(1_000_000)
         .expireAfterAccess(20, TimeUnit.HOURS)
+        .recordStats()
         .build();
     cacheManager.put(USER_CREDENTIALS_CACHE, userCredentialsCache);
 
     // Stylesheet Cache (webPageId = stylesheet)
     LoadingCache<Long, Stylesheet> stylesheetCache = Caffeine.newBuilder()
         .maximumSize(100)
+        .recordStats()
 //        .expireAfterWrite(5, TimeUnit.MINUTES)
 //        .refreshAfterWrite(1, TimeUnit.MINUTES)
         .build(StylesheetRepository::findByWebPageId);
@@ -116,6 +128,7 @@ public class CacheManager {
     // Content Cache (contentUniqueId = content)
     LoadingCache<String, Content> contentCache = Caffeine.newBuilder()
         .maximumSize(10_000)
+        .recordStats()
 //        .expireAfterWrite(5, TimeUnit.MINUTES)
 //        .refreshAfterWrite(1, TimeUnit.MINUTES)
         .build(ContentRepository::findByUniqueId);
@@ -125,12 +138,14 @@ public class CacheManager {
     Cache<String, Content> remoteContentCache = Caffeine.newBuilder()
         .maximumSize(100)
         .expireAfterAccess(5, TimeUnit.MINUTES)
+        .recordStats()
         .build();
     cacheManager.put(CONTENT_REMOTE_URL_CACHE, remoteContentCache);
 
     // Collection Unique Id Cache (collectionUniqueId = collection)
     LoadingCache<String, Collection> collectionCache = Caffeine.newBuilder()
         .maximumSize(100)
+        .recordStats()
 //        .expireAfterWrite(5, TimeUnit.MINUTES)
 //        .refreshAfterWrite(1, TimeUnit.MINUTES)
         .build(CollectionRepository::findByUniqueId);
@@ -139,6 +154,7 @@ public class CacheManager {
     // Collection Unique Id Cache (collectionUniqueId = collection)
     LoadingCache<String, TableOfContents> tableOfContentsCache = Caffeine.newBuilder()
         .maximumSize(100)
+        .recordStats()
 //        .expireAfterWrite(5, TimeUnit.MINUTES)
 //        .refreshAfterWrite(1, TimeUnit.MINUTES)
         .build(TableOfContentsRepository::findByUniqueId);
@@ -148,6 +164,7 @@ public class CacheManager {
     Cache<String, Object> loginAttemptByUsernameCache = Caffeine.newBuilder()
         .maximumSize(100_000)
         .expireAfterAccess(30, TimeUnit.MINUTES)
+        .recordStats()
         .build();
     cacheManager.put(RATE_LIMIT_LOGIN_ATTEMPT_BY_USERNAME_CACHE, loginAttemptByUsernameCache);
 
@@ -155,12 +172,14 @@ public class CacheManager {
     Cache<String, Object> accessAttemptByIpCache = Caffeine.newBuilder()
         .maximumSize(1_000_000)
         .expireAfterAccess(30, TimeUnit.MINUTES)
+        .recordStats()
         .build();
     cacheManager.put(RATE_LIMIT_ATTEMPT_BY_IP_CACHE, accessAttemptByIpCache);
 
     // Rate limit by app cache
     Cache<String, Object> rateLimitByAppCache = Caffeine.newBuilder()
         .expireAfterAccess(15, TimeUnit.MINUTES)
+        .recordStats()
         .build();
     cacheManager.put(RATE_LIMIT_BY_APP_CACHE, rateLimitByAppCache);
 
@@ -168,6 +187,7 @@ public class CacheManager {
     Cache<String, Object> rateLimitByAppUserCache = Caffeine.newBuilder()
         .maximumSize(1_000_000)
         .expireAfterAccess(15, TimeUnit.MINUTES)
+        .recordStats()
         .build();
     cacheManager.put(RATE_LIMIT_BY_APP_USER_CACHE, rateLimitByAppUserCache);
 
@@ -175,6 +195,7 @@ public class CacheManager {
     Cache<String, Object> objectCache = Caffeine.newBuilder()
         .maximumSize(100)
         .expireAfterAccess(24, TimeUnit.HOURS)
+        .recordStats()
         .build();
     cacheManager.put(OBJECT_CACHE, objectCache);
   }
@@ -206,6 +227,49 @@ public class CacheManager {
     if (cache != null) {
       cache.invalidate(key);
     }
+  }
+
+  /**
+   * Returns the registry's cache names (issue #463 admin dashboard's inventory). Callers -- notably
+   * a mutating admin action -- should validate any user-supplied cache name against this set before
+   * acting on it, the same way {@code DatabaseMaintenanceWidget} validates a table name against
+   * {@code DatabaseMaintenanceRepository.findTableNames()} before it reaches raw SQL.
+   */
+  public static Set<String> getCacheNames() {
+    ensureStarted();
+    return Collections.unmodifiableSet(cacheManager.keySet());
+  }
+
+  /**
+   * Clears every entry in the named cache without an application restart (issue #463). A no-op if
+   * the name isn't registered. Records the clear time for the dashboard's "last cleared" column.
+   */
+  public static void invalidateAll(String cacheName) {
+    Cache cache = getCache(cacheName);
+    if (cache == null) {
+      return;
+    }
+    cache.invalidateAll();
+    lastClearedAt.put(cacheName, Instant.now());
+  }
+
+  /**
+   * Clears every entry in every registered cache without an application restart (issue #463).
+   */
+  public static void invalidateAllCaches() {
+    ensureStarted();
+    for (String cacheName : cacheManager.keySet()) {
+      invalidateAll(cacheName);
+    }
+  }
+
+  /**
+   * The last time {@link #invalidateAll(String)} (directly, or via {@link #invalidateAllCaches()})
+   * cleared this cache, or {@code null} if it hasn't been explicitly cleared since this JVM started.
+   * In-memory only -- resets on restart along with the caches themselves.
+   */
+  public static Instant getLastClearedAt(String cacheName) {
+    return lastClearedAt.get(cacheName);
   }
 
   public static void addToObjectCache(String key, Object value) {
