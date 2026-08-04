@@ -18,9 +18,11 @@ package com.simisinc.platform.presentation.widgets.cms;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 
@@ -34,6 +36,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
 import com.simisinc.platform.WidgetBase;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.cms.ContentReviewCommand;
 import com.simisinc.platform.application.cms.LoadBlogCommand;
 import com.simisinc.platform.application.cms.LoadBlogPostCommand;
 import com.simisinc.platform.application.cms.SaveBlogPostCommand;
@@ -44,6 +48,7 @@ import com.simisinc.platform.domain.model.cms.BlogTag;
 import com.simisinc.platform.domain.model.mailinglists.MailingList;
 import com.simisinc.platform.infrastructure.persistence.cms.BlogTagRepository;
 import com.simisinc.platform.infrastructure.persistence.mailinglists.MailingListRepository;
+import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 
 class BlogEditorWidgetTest extends WidgetBase {
@@ -94,11 +99,13 @@ class BlogEditorWidgetTest extends WidgetBase {
     try (MockedStatic<LoadBlogPostCommand> loadPost = mockStatic(LoadBlogPostCommand.class);
         MockedStatic<SaveBlogPostCommand> savePost = mockStatic(SaveBlogPostCommand.class);
         MockedStatic<MailingListRepository> listRepo = mockStatic(MailingListRepository.class);
-        MockedStatic<NewsletterSendCommand> sendCommand = mockStatic(NewsletterSendCommand.class)) {
+        MockedStatic<NewsletterSendCommand> sendCommand = mockStatic(NewsletterSendCommand.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
       loadPost.when(() -> LoadBlogPostCommand.loadBlogPostById(5L)).thenReturn(existing);
       savePost.when(() -> SaveBlogPostCommand.saveBlogPost(any())).thenReturn(saved);
       listRepo.when(() -> MailingListRepository.findById(9L)).thenReturn(mailingList);
       sendCommand.when(() -> NewsletterSendCommand.sendBlogPostNotification(mailingList, saved, 1L)).thenReturn(7);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean("blogPost.review.required")).thenReturn(false);
 
       WidgetContext result = new BlogEditorWidget().post(widgetContext);
 
@@ -143,10 +150,12 @@ class BlogEditorWidgetTest extends WidgetBase {
     try (MockedStatic<LoadBlogPostCommand> loadPost = mockStatic(LoadBlogPostCommand.class);
         MockedStatic<SaveBlogPostCommand> savePost = mockStatic(SaveBlogPostCommand.class);
         MockedStatic<MailingListRepository> listRepo = mockStatic(MailingListRepository.class);
-        MockedStatic<NewsletterSendCommand> sendCommand = mockStatic(NewsletterSendCommand.class)) {
+        MockedStatic<NewsletterSendCommand> sendCommand = mockStatic(NewsletterSendCommand.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
       savePost.when(() -> SaveBlogPostCommand.saveBlogPost(any())).thenReturn(saved);
       listRepo.when(() -> MailingListRepository.findById(9L)).thenReturn(mailingList);
       sendCommand.when(() -> NewsletterSendCommand.sendBlogPostNotification(mailingList, saved, 1L)).thenReturn(3);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean("blogPost.review.required")).thenReturn(false);
 
       new BlogEditorWidget().post(widgetContext);
 
@@ -165,9 +174,11 @@ class BlogEditorWidgetTest extends WidgetBase {
 
     try (MockedStatic<LoadBlogPostCommand> loadPost = mockStatic(LoadBlogPostCommand.class);
         MockedStatic<SaveBlogPostCommand> savePost = mockStatic(SaveBlogPostCommand.class);
-        MockedStatic<NewsletterSendCommand> sendCommand = mockStatic(NewsletterSendCommand.class)) {
+        MockedStatic<NewsletterSendCommand> sendCommand = mockStatic(NewsletterSendCommand.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
       loadPost.when(() -> LoadBlogPostCommand.loadBlogPostById(5L)).thenReturn(existing);
       savePost.when(() -> SaveBlogPostCommand.saveBlogPost(any())).thenReturn(saved);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean("blogPost.review.required")).thenReturn(false);
 
       WidgetContext result = new BlogEditorWidget().post(widgetContext);
 
@@ -294,6 +305,154 @@ class BlogEditorWidgetTest extends WidgetBase {
       ArgumentCaptor<BlogPost> blogPostCaptor = ArgumentCaptor.forClass(BlogPost.class);
       savePost.verify(() -> SaveBlogPostCommand.saveBlogPost(blogPostCaptor.capture()));
       assertArrayEquals(new Long[0], blogPostCaptor.getValue().getTagIdList());
+    }
+  }
+
+  /**
+   * Regression test for the mass-assignment guard (issue #407, phase 2), mirroring
+   * WebPageFormWidgetTest's {@code postCannotInjectGovernedWorkflowFieldsViaFormSave}: the governed
+   * publish workflow fields must never be settable through this generic form save, only through
+   * BlogPostReviewWidget's explicit submit/approve/reject actions.
+   */
+  @Test
+  void postCannotInjectGovernedWorkflowFieldsViaFormSave() throws InvocationTargetException, IllegalAccessException {
+    BlogPost existing = blogPost(5L, null);
+    existing.setDraftStatus(ContentReviewCommand.STATUS_SUBMITTED);
+    existing.setSubmittedBy(5L);
+    existing.setApprovedBy(-1L);
+    existing.setReleaseReference(null);
+    BlogPost saved = blogPost(5L, null);
+
+    addQueryParameter(widgetContext, "id", "5");
+    addQueryParameter(widgetContext, "title", "A Post");
+    // The attack: try to self-approve by injecting every governed-workflow field directly.
+    addQueryParameter(widgetContext, "draftStatus", "approved");
+    addQueryParameter(widgetContext, "submittedBy", "999");
+    addQueryParameter(widgetContext, "approvedBy", "999");
+    addQueryParameter(widgetContext, "releaseReference", "forged");
+
+    try (MockedStatic<LoadBlogPostCommand> loadPost = mockStatic(LoadBlogPostCommand.class);
+        MockedStatic<SaveBlogPostCommand> savePost = mockStatic(SaveBlogPostCommand.class)) {
+      loadPost.when(() -> LoadBlogPostCommand.loadBlogPostById(5L)).thenReturn(existing);
+      savePost.when(() -> SaveBlogPostCommand.saveBlogPost(any())).thenReturn(saved);
+
+      new BlogEditorWidget().post(widgetContext);
+
+      ArgumentCaptor<BlogPost> blogPostCaptor = ArgumentCaptor.forClass(BlogPost.class);
+      savePost.verify(() -> SaveBlogPostCommand.saveBlogPost(blogPostCaptor.capture()));
+      BlogPost saveArgument = blogPostCaptor.getValue();
+      assertEquals(ContentReviewCommand.STATUS_SUBMITTED, saveArgument.getDraftStatus());
+      assertEquals(5L, saveArgument.getSubmittedBy());
+      assertEquals(-1L, saveArgument.getApprovedBy());
+      assertNull(saveArgument.getReleaseReference());
+    }
+  }
+
+  /**
+   * Regression test for the review-bypass finding raised on issue #407 phase 2: nothing previously
+   * reset draftStatus/submittedBy/approvedBy/releaseReference when a post was unpublished, so a
+   * single editor could unpublish an already-approved post, edit the body to arbitrary new content,
+   * and republish it via BlogPostReviewWidget.publishDirectly() -- which reads mayPublish() purely
+   * from those stale fields -- without the new content ever having been submitted or reviewed by
+   * anyone. Unpublishing must invalidate the prior approval so the post has to go through
+   * submit -&gt; approve again before it can be published a second time.
+   */
+  @Test
+  void postResetsGovernedWorkflowFieldsWhenUnpublishingAnAlreadyApprovedPost()
+      throws InvocationTargetException, IllegalAccessException {
+    BlogPost existing = blogPost(5L, new Timestamp(System.currentTimeMillis()));
+    existing.setDraftStatus(ContentReviewCommand.STATUS_SUBMITTED);
+    existing.setSubmittedBy(3L);
+    existing.setApprovedBy(7L);
+    existing.setReleaseReference("CR-OLD");
+    BlogPost saved = blogPost(5L, null);
+
+    addQueryParameter(widgetContext, "id", "5");
+    addQueryParameter(widgetContext, "title", "A Post");
+    // "enabled" checkbox absent -- unpublishing an already-published, already-approved post
+
+    try (MockedStatic<LoadBlogPostCommand> loadPost = mockStatic(LoadBlogPostCommand.class);
+        MockedStatic<SaveBlogPostCommand> savePost = mockStatic(SaveBlogPostCommand.class)) {
+      loadPost.when(() -> LoadBlogPostCommand.loadBlogPostById(5L)).thenReturn(existing);
+      savePost.when(() -> SaveBlogPostCommand.saveBlogPost(any())).thenReturn(saved);
+
+      new BlogEditorWidget().post(widgetContext);
+
+      ArgumentCaptor<BlogPost> blogPostCaptor = ArgumentCaptor.forClass(BlogPost.class);
+      savePost.verify(() -> SaveBlogPostCommand.saveBlogPost(blogPostCaptor.capture()));
+      BlogPost saveArgument = blogPostCaptor.getValue();
+      assertNull(saveArgument.getDraftStatus(), "an unpublish must clear the stale approval, not carry it forward");
+      assertEquals(-1L, saveArgument.getSubmittedBy());
+      assertEquals(-1L, saveArgument.getApprovedBy());
+      assertNull(saveArgument.getReleaseReference());
+    }
+  }
+
+  /**
+   * Companion to the reset above: a post that is saved while it is ALREADY unpublished (e.g. an
+   * in-progress edit to a draft still awaiting review) must not have its pending
+   * submit/reject state wiped just because "enabled" happens to be unchecked on this particular
+   * save -- the reset above is keyed on the published-&gt;unpublished transition specifically
+   * (wasAlreadyPublished), not on "isPublished is currently false".
+   */
+  @Test
+  void postDoesNotResetGovernedWorkflowFieldsWhenAlreadyUnpublishedPostIsSavedAgain()
+      throws InvocationTargetException, IllegalAccessException {
+    BlogPost existing = blogPost(5L, null);
+    existing.setDraftStatus(ContentReviewCommand.STATUS_SUBMITTED);
+    existing.setSubmittedBy(3L);
+    BlogPost saved = blogPost(5L, null);
+
+    addQueryParameter(widgetContext, "id", "5");
+    addQueryParameter(widgetContext, "title", "A Post");
+    // "enabled" checkbox absent -- but the post was already unpublished, not transitioning
+
+    try (MockedStatic<LoadBlogPostCommand> loadPost = mockStatic(LoadBlogPostCommand.class);
+        MockedStatic<SaveBlogPostCommand> savePost = mockStatic(SaveBlogPostCommand.class)) {
+      loadPost.when(() -> LoadBlogPostCommand.loadBlogPostById(5L)).thenReturn(existing);
+      savePost.when(() -> SaveBlogPostCommand.saveBlogPost(any())).thenReturn(saved);
+
+      new BlogEditorWidget().post(widgetContext);
+
+      ArgumentCaptor<BlogPost> blogPostCaptor = ArgumentCaptor.forClass(BlogPost.class);
+      savePost.verify(() -> SaveBlogPostCommand.saveBlogPost(blogPostCaptor.capture()));
+      BlogPost saveArgument = blogPostCaptor.getValue();
+      assertEquals(ContentReviewCommand.STATUS_SUBMITTED, saveArgument.getDraftStatus(),
+          "a post already awaiting review must not lose that state on an ordinary intermediate save");
+      assertEquals(3L, saveArgument.getSubmittedBy());
+    }
+  }
+
+  /**
+   * Governed publish workflow gate (issue #407, phase 2): under blogPost.review.required, checking
+   * "Publish it?" on a post that has never been published can no longer take it live directly --
+   * the save degrades to a draft save (mirrors ContentReviewCommand.mayPublishDirectly()'s own
+   * javadoc), and the block is recorded in the audit trail the same way
+   * PageServlet.publishDraft records a blocked web-page publish attempt.
+   */
+  @Test
+  void postDegradesToADraftSaveWhenReviewIsRequiredAndBlockedPublishIsAudited()
+      throws InvocationTargetException, IllegalAccessException {
+    BlogPost saved = blogPost(6L, null);
+    addQueryParameter(widgetContext, "title", "A New Post");
+    addQueryParameter(widgetContext, "enabled", "true");
+    // No "id" param -- a brand new, never-published post
+
+    try (MockedStatic<SaveBlogPostCommand> savePost = mockStatic(SaveBlogPostCommand.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      savePost.when(() -> SaveBlogPostCommand.saveBlogPost(any())).thenReturn(saved);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean("blogPost.review.required")).thenReturn(true);
+
+      WidgetContext result = new BlogEditorWidget().post(widgetContext);
+
+      ArgumentCaptor<BlogPost> blogPostCaptor = ArgumentCaptor.forClass(BlogPost.class);
+      savePost.verify(() -> SaveBlogPostCommand.saveBlogPost(blogPostCaptor.capture()));
+      assertNull(blogPostCaptor.getValue().getPublished(),
+          "a blocked direct-publish attempt must degrade to a draft save, not go live");
+      audit.verify(() -> AuditEventCommand.record(any(), eq(AuditEventCommand.CONTENT), eq("content.publish"),
+          eq(AuditEventCommand.FAILURE), eq("blog_post"), any(), any(), eq("blocked: draft not approved for release")));
+      assertTrue(result.getSuccessMessage().contains("requires review"), result.getSuccessMessage());
     }
   }
 }

@@ -287,7 +287,14 @@ class BlogTagRepositoryTest {
           + "created_by BIGINT, "
           + "created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP, "
           + "modified_by BIGINT, "
-          + "modified TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP)");
+          + "modified TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP, "
+          // Governed publish workflow (issue #407, phase 2) -- added for parity with the other
+          // throwaway blog_posts schemas, even though this test doesn't exercise
+          // BlogPostRepository's add/update directly.
+          + "draft_status VARCHAR(20), "
+          + "submitted_by BIGINT DEFAULT -1, "
+          + "approved_by BIGINT DEFAULT -1, "
+          + "release_reference VARCHAR(255))");
       statement.execute("CREATE UNIQUE INDEX blog_posts_unique_idx ON blog_posts(blog_id, post_unique_id)");
       statement.execute("CREATE TABLE blog_post_tags ("
           + "post_tag_id BIGSERIAL PRIMARY KEY, "
