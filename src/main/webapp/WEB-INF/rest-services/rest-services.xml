@@ -34,6 +34,19 @@
   -->
   <service method="get" endpoint="audit-log" class="com.simisinc.platform.rest.services.audit.AuditLogListService" />
   <!--
+  Issue #412: read endpoints for web pages, blog posts, and folder files. "blog-posts/{id}" and
+  "post/{blogId}/{postId}" deviate from the issue's originally-specced "blog/{id}/posts" and
+  "post/{postId}" -- RestServlet's router only supports up to 2 raw path params with no literal
+  segment between them, and BlogPostRepository.findByUniqueId is keyed by (blogId, postUniqueId),
+  not a globally-unique post id. See each service class's javadoc for the full rationale.
+  -->
+  <service method="get" endpoint="pages" class="com.simisinc.platform.rest.services.cms.PagesListService" />
+  <service method="get" endpoint="page/{pagePath}" class="com.simisinc.platform.rest.services.cms.PageService" />
+  <service method="get" endpoint="blog-posts/{blogUniqueId}" class="com.simisinc.platform.rest.services.cms.BlogPostListService" />
+  <service method="get" endpoint="post/{blogUniqueId}/{postUniqueId}" class="com.simisinc.platform.rest.services.cms.BlogPostService" />
+  <service method="get" endpoint="files/{folderUniqueId}" class="com.simisinc.platform.rest.services.cms.FolderFilesListService" />
+  <service method="get" endpoint="file/{fileId}" class="com.simisinc.platform.rest.services.cms.FileService" />
+  <!--
   /item-blog/unique-id
   /item-blog-post/unique-id/post-id
   /item-gallery/unique-id
