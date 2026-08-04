@@ -17,6 +17,7 @@
 package com.simisinc.platform.presentation.widgets.cms;
 
 import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.cms.*;
 import com.simisinc.platform.application.mailinglists.NewsletterSendCommand;
 import com.simisinc.platform.domain.model.cms.Blog;
@@ -79,6 +80,13 @@ public class BlogEditorWidget extends GenericWidget {
         blogPost = LoadBlogPostCommand.loadBlogPostById(blogPostId);
         context.getRequest().setAttribute("blogPost", blogPost);
       }
+    }
+
+    // Governed publish workflow status (issue #407, phase 2): surfaced here so the editor links to
+    // BlogPostReviewWidget's submit/approve/reject actions whenever there's a pending draft to act
+    // on -- mirrors the status label WebPageListWidget/web-page-list.jsp show for web pages.
+    if (blogPost != null && blogPost.hasDraftContent()) {
+      context.getRequest().setAttribute("blogPostReviewStatus", ContentReviewCommand.listStatusLabel(blogPost));
     }
 
     // Determine the blog for this post
@@ -150,18 +158,82 @@ public class BlogEditorWidget extends GenericWidget {
 
   public WidgetContext post(WidgetContext context) throws InvocationTargetException, IllegalAccessException {
 
+    // Load the record to get all the fields (mirrors WebPageFormWidget.post()) -- this also gives
+    // us wasAlreadyPublished below without a second lookup, and is the basis for the
+    // mass-assignment guard immediately following.
+    long blogPostId = context.getParameterAsLong("id");
+    BlogPost blogPostBean = blogPostId > -1 ? LoadBlogPostCommand.loadBlogPostById(blogPostId) : null;
+    boolean wasAlreadyPublished = blogPostBean != null && blogPostBean.getPublished() != null;
+    if (blogPostBean == null) {
+      blogPostBean = new BlogPost();
+    }
+
+    // Governed publish workflow fields (#407) must never be settable via this generic form save --
+    // only BlogPostReviewWidget's explicit submit/approve/reject actions may change them. Captured
+    // here, before BeanUtils.populate() below walks the entire raw parameter map, mirroring
+    // WebPageFormWidget's identical guard for the same class of mass-assignment gap (#492/#730).
+    // The gate just below reads mayPublishDirectly(reviewRequired) rather than this bean's own
+    // approval state, so it isn't itself bypassable by a forged approvedBy/draftStatus parameter --
+    // but this restore is still required: SaveBlogPostCommand.saveBlogPost() persists these four
+    // fields straight off of blogPostBean (needed so the reset-on-unpublish below actually reaches
+    // the database), so without this guard a forged approvedBy/draftStatus/submittedBy/
+    // releaseReference parameter would be written to the record as-is.
+    String existingDraftStatus = blogPostBean.getDraftStatus();
+    long existingSubmittedBy = blogPostBean.getSubmittedBy();
+    long existingApprovedBy = blogPostBean.getApprovedBy();
+    String existingReleaseReference = blogPostBean.getReleaseReference();
+
     // Populate the fields
-    BlogPost blogPostBean = new BlogPost();
     BeanUtils.populate(blogPostBean, context.getParameterMap());
+
+    // Restore the governed publish workflow fields captured above
+    blogPostBean.setDraftStatus(existingDraftStatus);
+    blogPostBean.setSubmittedBy(existingSubmittedBy);
+    blogPostBean.setApprovedBy(existingApprovedBy);
+    blogPostBean.setReleaseReference(existingReleaseReference);
+
     blogPostBean.setCreatedBy(context.getUserId());
     blogPostBean.setModifiedBy(context.getUserId());
 
     String enabled = context.getParameter("enabled");
     boolean isPublished = StringUtils.isNotBlank(enabled);
+    boolean justPublished = isPublished && !wasAlreadyPublished;
+
+    // Governed publish workflow gate (#407, phase 2): under blogPost.review.required, the
+    // "Publish it?" checkbox can no longer take a post live on its own -- only the
+    // submit -> approve path (BlogPostReviewWidget) can. This only gates the transition INTO being
+    // published; an edit to an already-published post is not gated here, since a blog post has no
+    // separate draft/live content split for an already-live post to stage a review against (see
+    // issue #407 phase 2 research).
+    boolean publishBlockedByReview = false;
+    if (justPublished) {
+      boolean blogPostReviewRequired = LoadSitePropertyCommand.loadByNameAsBoolean("blogPost.review.required");
+      if (!ContentReviewCommand.mayPublishDirectly(blogPostReviewRequired)) {
+        AuditEventCommand.record(context, AuditEventCommand.CONTENT, "content.publish", AuditEventCommand.FAILURE,
+            "blog_post", String.valueOf(blogPostBean.getId()), blogPostBean.getTitle(),
+            "blocked: draft not approved for release");
+        isPublished = false;
+        justPublished = false;
+        publishBlockedByReview = true;
+      }
+    }
     if (isPublished) {
       blogPostBean.setPublished(new Timestamp(System.currentTimeMillis()));
     } else {
       blogPostBean.setPublished(null);
+      if (wasAlreadyPublished) {
+        // Issue #407 phase 2 review finding: unpublishing a post must invalidate any prior
+        // approval, or a single editor could unpublish, edit the body to arbitrary new content,
+        // and republish via BlogPostReviewWidget.publishDirectly() -- which reads mayPublish()
+        // purely from these fields, with no correlation to what content was actually reviewed --
+        // without the new content ever having been submitted or reviewed by anyone. Resetting to
+        // the same "never submitted" defaults BlogPost itself starts with means the post must go
+        // through submit -> approve again before it can be published a second time.
+        blogPostBean.setDraftStatus(null);
+        blogPostBean.setSubmittedBy(-1);
+        blogPostBean.setApprovedBy(-1);
+        blogPostBean.setReleaseReference(null);
+      }
     }
     String eventType = isPublished ? "content.publish" : "content.unpublish";
 
@@ -192,15 +264,9 @@ public class BlogEditorWidget extends GenericWidget {
 
     String returnPage = UrlCommand.getValidReturnPage(context.getParameter("returnPage"));
 
-    // Determine (independently of SaveBlogPostCommand's own identical check) whether this save is
-    // the transition into being published, for the "Notify subscribers" option below -- an edit to
-    // an already-published post, or unpublishing, must never (re-)send a notification.
-    boolean wasAlreadyPublished = false;
-    if (blogPostBean.getId() > -1) {
-      BlogPost existingPost = LoadBlogPostCommand.loadBlogPostById(blogPostBean.getId());
-      wasAlreadyPublished = existingPost != null && existingPost.getPublished() != null;
-    }
-    boolean justPublished = isPublished && !wasAlreadyPublished;
+    // wasAlreadyPublished/justPublished were already determined above (from the record loaded
+    // before BeanUtils.populate()), and reused here for the "Notify subscribers" option below --
+    // an edit to an already-published post, or unpublishing, must never (re-)send a notification.
 
     // Save the blog post
     BlogPost blogPost = null;
@@ -245,7 +311,10 @@ public class BlogEditorWidget extends GenericWidget {
     }
 
     // Determine the page to return to
-    context.setSuccessMessage("Blog post was saved" + notifiedSuffix);
+    String reviewNotice = publishBlockedByReview
+        ? " This post requires review before it can go live; it was saved as a draft -- use \"Submit for Review\" to send it for approval."
+        : "";
+    context.setSuccessMessage("Blog post was saved" + notifiedSuffix + reviewNotice);
     if (StringUtils.isNotBlank(returnPage)) {
       context.setRedirect(returnPage);
     } else {

@@ -167,7 +167,11 @@ public class BlogPostRepository {
         .add("published", record.getPublished())
         .add("archived", record.getArchived())
         .add("start_date", record.getStartDate())
-        .add("end_date", record.getEndDate());
+        .add("end_date", record.getEndDate())
+        .add("draft_status", StringUtils.trimToNull(record.getDraftStatus()))
+        .add("submitted_by", record.getSubmittedBy())
+        .add("approved_by", record.getApprovedBy())
+        .add("release_reference", StringUtils.trimToNull(record.getReleaseReference()));
     // Use a transaction so the post row and its tag assignments (issue #633) commit together
     try {
       try (Connection connection = DB.getConnection();
@@ -204,7 +208,11 @@ public class BlogPostRepository {
         .add("published", record.getPublished())
         .add("archived", record.getArchived())
         .add("start_date", record.getStartDate())
-        .add("end_date", record.getEndDate());
+        .add("end_date", record.getEndDate())
+        .add("draft_status", StringUtils.trimToNull(record.getDraftStatus()))
+        .add("submitted_by", record.getSubmittedBy())
+        .add("approved_by", record.getApprovedBy())
+        .add("release_reference", StringUtils.trimToNull(record.getReleaseReference()));
     SqlUtils where = new SqlUtils()
         .add("post_id = ?", record.getId());
 
@@ -311,6 +319,15 @@ public class BlogPostRepository {
       record.setStartDate(rs.getTimestamp("start_date"));
       record.setEndDate(rs.getTimestamp("end_date"));
       record.setKeywords(rs.getString("keywords"));
+      // Governed publish workflow (issue #407, phase 2) -- guarded so a throwaway/minimal test
+      // schema without these columns still builds a valid record, mirroring
+      // WebPageRepository.buildRecord()'s identical guard.
+      if (DB.hasColumn(rs, "draft_status")) {
+        record.setDraftStatus(rs.getString("draft_status"));
+        record.setSubmittedBy(rs.getLong("submitted_by"));
+        record.setApprovedBy(rs.getLong("approved_by"));
+        record.setReleaseReference(rs.getString("release_reference"));
+      }
       // Additional fields
       if (DB.hasColumn(rs, "highlight")) {
         record.setHighlight(rs.getString("highlight"));

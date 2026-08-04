@@ -25,7 +25,10 @@
                 <div class="top-logo"><a href="${ctx}/cart"><img src="<c:out value="${sitePropertyMap['site.logo']}"/>"/></a></div>
               </c:when>
               <c:otherwise>
-                <div class="top-logo"><a href="${ctx}/cart"><img src="${systemPropertyMap['system.www.context']}/images/logo-header.png"/></a></div>
+                <div class="top-logo"><a href="${ctx}/cart"><img id="logo-header-checkout" src="${ctx}/images/logo-header.png"/></a></div>
+                <%-- Defaults to the bundled logo; upgrades to the admin-configured one only once an
+                     Image() probe confirms it actually loads, so a fresh install never 404s here. --%>
+                <script nonce="${cspNonce}">(function(){var u='${js:escape(systemPropertyMap['system.www.context'])}/images/logo-header.png';var i=new Image();i.onload=function(){document.getElementById('logo-header-checkout').src=u;};i.src=u;})();</script>
               </c:otherwise>
             </c:choose>
             <c:if test="${!empty analyticsPropertyMap['analytics.pixel.url'] && !fn:startsWith(pageRenderInfo.name, '/admin')}">
