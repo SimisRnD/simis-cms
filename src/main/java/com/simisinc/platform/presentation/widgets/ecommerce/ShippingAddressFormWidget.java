@@ -42,8 +42,6 @@ public class ShippingAddressFormWidget extends GenericWidget {
   static final long serialVersionUID = -8484048371911908893L;
 
   static String SHIPPING_ADDRESS_FORM_JSP = "/ecommerce/shipping-address-form.jsp";
-  static String SHIPPING_ADDRESS_VERIFICATION_CHOICE_JSP = "/ecommerce/shipping-address-choice.jsp";
-  static String SHIPPING_ADDRESS_VERIFICATION_ERROR_JSP = "/ecommerce/shipping-address-error.jsp";
 
   /**
    * Presents the shipping address form to the user
@@ -82,19 +80,6 @@ public class ShippingAddressFormWidget extends GenericWidget {
     }
     customer.setCartId(cart.getId());
     context.getRequest().setAttribute("address", customer.getShippingAddress());
-
-    // See if the customer is choosing an address
-    if (customer.getSuggestedShippingAddress() != null) {
-      if (context.getErrorMessage() != null) {
-        // The address was not found
-        context.setJsp(SHIPPING_ADDRESS_VERIFICATION_ERROR_JSP);
-        return context;
-      }
-      // A suggested address was found
-      context.getRequest().setAttribute("suggestedAddress", customer.getSuggestedShippingAddress());
-      context.setJsp(SHIPPING_ADDRESS_VERIFICATION_CHOICE_JSP);
-      return context;
-    }
 
     // Display the available shipping countries
     List<ShippingCountry> shippingCountryList = ShippingCountryRepository.findAll();
@@ -162,16 +147,6 @@ public class ShippingAddressFormWidget extends GenericWidget {
       customerBean.setModifiedBy(context.getUserId());
     }
 
-    // Determine the post action
-    String submitButton = context.getParameter("button");
-
-    // The user is choosing to edit the address
-    if ("edit".equals(submitButton)) {
-      context.setRequestObject(customerBean);
-      context.setRedirect("/checkout");
-      return context;
-    }
-
     // Validate the required fields
     StringBuilder errorMessages = new StringBuilder();
     ValidateCustomerCommand.validateCustomerShippingAddress(addressBean, errorMessages);
@@ -180,32 +155,6 @@ public class ShippingAddressFormWidget extends GenericWidget {
       context.addSharedRequestValue("orderError", "Please check the form and try again:\n" + errorMessages.toString());
       context.setRequestObject(customerBean);
       return context;
-    }
-
-    // Determine if the address was just set by the address verification service
-    if (submitButton == null || (!"original".equals(submitButton) && !"suggested".equals(submitButton))) {
-      // A new address was added
-      LOG.debug("Verifying address...");
-      Address suggestedAddress = AddressCommand.verifyAddress(customerBean.getShippingAddress(), errorMessages);
-      if (errorMessages.length() > 0) {
-        // The address could not be found (but let the user use it or correct it)
-        // @todo If the address is completely wrong, there should be an Edit Address button
-        customerBean.setSuggestedShippingAddress(customerBean.getShippingAddress());
-        context.addSharedRequestValue("orderError", "Address validation:\n" + errorMessages.toString());
-        context.setRequestObject(customerBean);
-        return context;
-      }
-      // If the addresses are not the same, let the user choose which address to use
-      if (suggestedAddress != null) {
-        LOG.debug("Address was verified...");
-        if (!AddressCommand.isMostlyTheSame(customerBean.getShippingAddress(), suggestedAddress)) {
-          LOG.debug("An address suggestion was made");
-          customerBean.setSuggestedShippingAddress(suggestedAddress);
-          context.setRequestObject(customerBean);
-          return context;
-        }
-        customerBean.setShippingAddress(suggestedAddress);
-      }
     }
 
     // Save the record

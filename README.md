@@ -66,7 +66,7 @@ Larger teams can hand off further: built-in Community, Data, and E-commerce Mana
 * **E-commerce**: Products, SKUs, categories, customers, orders, account management, shipping methods, carriers, tracking numbers, pricing rules (constraints, discounts, and promos)
 * **CRM**: Forms, leads & customers, orders
 * **Settings**: Theme, site SEO, social media, mail server, maps, captcha, analytics, e-commerce, mailing lists
-* **Integrations**: Google Analytics, OpenStreetMap, Square, Stripe, TaxJar, USPS, Boxzooka
+* **Integrations**: Google Analytics, OpenStreetMap, Square, Stripe, TaxJar, Boxzooka
 * **API**: REST API
 * **Platform**: Micro-widgets, connection pool, cache, scheduler, workflow, expression engine, upgrades, migrations, record paging
 

@@ -58,7 +58,6 @@ public class Customer extends Entity {
 
   // Helper
   private long cartId = -1L;
-  private Address suggestedShippingAddress = null;
 
   public Customer() {
   }
@@ -246,13 +245,5 @@ public class Customer extends Entity {
 
   public void setShippingAddress(Address shippingAddress) {
     this.shippingAddress = shippingAddress;
-  }
-
-  public Address getSuggestedShippingAddress() {
-    return suggestedShippingAddress;
-  }
-
-  public void setSuggestedShippingAddress(Address suggestedShippingAddress) {
-    this.suggestedShippingAddress = suggestedShippingAddress;
   }
 }
