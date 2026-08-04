@@ -20,8 +20,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -36,10 +38,12 @@ import java.util.Map;
 
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.cms.LoadMenuTabsCommand;
+import com.simisinc.platform.application.cms.ValidateUserAccessToWebPageCommand;
 import com.simisinc.platform.domain.model.cms.Blog;
 import com.simisinc.platform.domain.model.cms.MenuItem;
 import com.simisinc.platform.domain.model.cms.MenuTab;
@@ -48,6 +52,7 @@ import com.simisinc.platform.domain.model.cms.Wiki;
 import com.simisinc.platform.domain.model.items.Collection;
 import com.simisinc.platform.infrastructure.persistence.cms.BlogRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.WebPageSpecification;
 import com.simisinc.platform.infrastructure.persistence.cms.WikiRepository;
 import com.simisinc.platform.infrastructure.persistence.items.CollectionRepository;
 
@@ -72,6 +77,9 @@ class LlmsTxtServletTest {
 
   private static Map<String, String> siteProperties(String name, String description, String url) {
     Map<String, String> properties = new HashMap<>();
+    // The tests using this helper are exercising content generation, not the site.online gate
+    // itself -- doGetReturns404WhenSiteIsNotOnline overrides this explicitly.
+    properties.put("site.online", "true");
     if (name != null) {
       properties.put("site.name", name);
     }
@@ -131,7 +139,8 @@ class LlmsTxtServletTest {
         MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class);
         MockedStatic<CollectionRepository> collectionRepository = mockStatic(CollectionRepository.class);
         MockedStatic<BlogRepository> blogRepository = mockStatic(BlogRepository.class);
-        MockedStatic<WikiRepository> wikiRepository = mockStatic(WikiRepository.class)) {
+        MockedStatic<WikiRepository> wikiRepository = mockStatic(WikiRepository.class);
+        MockedStatic<ValidateUserAccessToWebPageCommand> accessCommand = mockStatic(ValidateUserAccessToWebPageCommand.class)) {
       siteProps.when(() -> LoadSitePropertyCommand.loadAsMap("site")).thenReturn(siteProperties);
       siteProps.when(() -> LoadSitePropertyCommand.loadAsMap("llms")).thenReturn(llmsProperties);
       menuTabsCommand.when(LoadMenuTabsCommand::loadActiveIncludeMenuItemList).thenReturn(menuTabList);
@@ -139,6 +148,9 @@ class LlmsTxtServletTest {
       collectionRepository.when(CollectionRepository::findAll).thenReturn(collectionList);
       blogRepository.when(BlogRepository::findAll).thenReturn(blogList);
       wikiRepository.when(WikiRepository::findAll).thenReturn(wikiList);
+      // Every fixture is reachable by an anonymous visitor by default -- the dedicated ACL tests
+      // below stub this themselves instead of using this shared helper.
+      accessCommand.when(() -> ValidateUserAccessToWebPageCommand.hasAccess(any(), any())).thenReturn(true);
 
       new LlmsTxtServlet().doGet(request, response);
     }
@@ -162,7 +174,8 @@ class LlmsTxtServletTest {
         MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class);
         MockedStatic<CollectionRepository> collectionRepository = mockStatic(CollectionRepository.class);
         MockedStatic<BlogRepository> blogRepository = mockStatic(BlogRepository.class);
-        MockedStatic<WikiRepository> wikiRepository = mockStatic(WikiRepository.class)) {
+        MockedStatic<WikiRepository> wikiRepository = mockStatic(WikiRepository.class);
+        MockedStatic<ValidateUserAccessToWebPageCommand> accessCommand = mockStatic(ValidateUserAccessToWebPageCommand.class)) {
       siteProps.when(() -> LoadSitePropertyCommand.loadAsMap("site")).thenReturn(siteProperties("Acme", null, null));
       siteProps.when(() -> LoadSitePropertyCommand.loadAsMap("llms")).thenReturn(new HashMap<>());
       menuTabsCommand.when(LoadMenuTabsCommand::loadActiveIncludeMenuItemList).thenReturn(new ArrayList<>());
@@ -170,12 +183,14 @@ class LlmsTxtServletTest {
       collectionRepository.when(CollectionRepository::findAll).thenReturn(new ArrayList<>());
       blogRepository.when(BlogRepository::findAll).thenReturn(new ArrayList<>());
       wikiRepository.when(WikiRepository::findAll).thenReturn(new ArrayList<>());
+      accessCommand.when(() -> ValidateUserAccessToWebPageCommand.hasAccess(any(), any())).thenReturn(true);
 
       new LlmsTxtServlet().doGet(request, response);
     }
 
     verify(response).setStatus(HttpServletResponse.SC_OK);
     verify(response).setContentType("text/markdown;charset=UTF-8");
+    verify(response).setHeader("Cache-Control", "public, max-age=86400");
   }
 
   @Test
@@ -186,7 +201,7 @@ class LlmsTxtServletTest {
 
   @Test
   void doGetFallsBackToAGenericTitleWhenSiteNameIsBlank() throws Exception {
-    String body = runDoGetMinimal(new HashMap<>(), new HashMap<>());
+    String body = runDoGetMinimal(siteProperties(null, null, null), new HashMap<>());
     assertTrue(body.startsWith("# Site\n"), "an H1 is required by the llmstxt.org format even with no site.name set: " + body);
   }
 
@@ -229,6 +244,9 @@ class LlmsTxtServletTest {
     }
 
     verify(response).setStatus(HttpServletResponse.SC_NOT_FOUND);
+    // A disabled/offline 404 must not be cached -- an admin re-enabling this must take effect on
+    // the very next request, not be masked by a stale cached negative response for up to a day.
+    verify(response, never()).setHeader(eq("Cache-Control"), any());
   }
 
   @Test
@@ -354,6 +372,281 @@ class LlmsTxtServletTest {
 
     assertEquals(customContent, body.toString());
     verify(response).setStatus(HttpServletResponse.SC_OK);
+    verify(response).setContentType("text/markdown;charset=UTF-8");
+  }
+
+  @Test
+  void doGetServesTheStaticOverrideWithoutConsultingLlmsEnabledOrSiteOnline() throws Exception {
+    File tempCmsPath = Files.createTempDirectory("llms-txt-test").toFile();
+    File configDir = new File(tempCmsPath, "config/cms");
+    configDir.mkdirs();
+    File customLlmsTxt = new File(configDir, "llms.txt");
+    String customContent = "# Custom Site\n\n> A hand-written summary.\n";
+    Files.write(customLlmsTxt.toPath(), customContent.getBytes());
+    System.setProperty("cms.path", tempCmsPath.getAbsolutePath());
+
+    HttpServletRequest request = mock(HttpServletRequest.class);
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    StringWriter body = new StringWriter();
+    when(response.getWriter()).thenReturn(new PrintWriter(body));
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class)) {
+      // Stubbed to values that would 404 the generated path (llms.enabled=false, site offline) --
+      // the assertions below (and the verifyNoInteractions) prove the override wins unconditionally
+      // and neither property map is even consulted, matching loadLlmsTxt()'s doc comment.
+      Map<String, String> llmsProperties = new HashMap<>();
+      llmsProperties.put("llms.enabled", "false");
+      Map<String, String> siteProperties = new HashMap<>();
+      siteProperties.put("site.online", "false");
+      siteProps.when(() -> LoadSitePropertyCommand.loadAsMap("llms")).thenReturn(llmsProperties);
+      siteProps.when(() -> LoadSitePropertyCommand.loadAsMap("site")).thenReturn(siteProperties);
+
+      new LlmsTxtServlet().doGet(request, response);
+
+      siteProps.verifyNoInteractions();
+    }
+
+    assertEquals(customContent, body.toString());
+    verify(response).setStatus(HttpServletResponse.SC_OK);
+  }
+
+  @Test
+  void doGetReturns404WhenSiteIsNotOnline() throws Exception {
+    Map<String, String> properties = siteProperties("Acme", null, null);
+    properties.put("site.online", "false");
+
+    HttpServletRequest request = mock(HttpServletRequest.class);
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    when(response.getWriter()).thenReturn(new PrintWriter(new StringWriter()));
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadAsMap("site")).thenReturn(properties);
+      siteProps.when(() -> LoadSitePropertyCommand.loadAsMap("llms")).thenReturn(new HashMap<>());
+      new LlmsTxtServlet().doGet(request, response);
+    }
+
+    // Same "not yet public" gate as SitemapServlet -- a pre-launch/offline site shouldn't have its
+    // live navigation/pages/collections structure disclosed to an anonymous requester here either.
+    verify(response).setStatus(HttpServletResponse.SC_NOT_FOUND);
+    // Must not be cached -- an admin taking the site online must see it reflected on the very next
+    // request, not be masked by a stale cached negative response for up to a day.
+    verify(response, never()).setHeader(eq("Cache-Control"), any());
+  }
+
+  @Test
+  void doGetTreatsAnExplicitLlmsEnabledTrueTheSameAsUnset() throws Exception {
+    Map<String, String> llmsProperties = new HashMap<>();
+    llmsProperties.put("llms.enabled", "true");
+
+    String body = runDoGetMinimal(siteProperties("Acme", null, null), llmsProperties);
+    assertTrue(body.startsWith("# Acme\n"), "an explicit llms.enabled=true must generate content, not 404: " + body);
+  }
+
+  @Test
+  void doGetOmitsAllSectionsWhenThereIsNoContentAtAll() throws Exception {
+    String body = runDoGetMinimal(siteProperties("Acme", null, null), new HashMap<>());
+
+    assertFalse(body.contains("## Navigation"), body);
+    assertFalse(body.contains("## Pages"), body);
+    assertFalse(body.contains("## Collections"), body);
+    assertFalse(body.contains("## Blogs"), body);
+    assertFalse(body.contains("## Wikis"), body);
+  }
+
+  @Test
+  void doGetDoesNotEmitAStrayParagraphWhenLlmsDescriptionIsBlank() throws Exception {
+    String body = runDoGetMinimal(siteProperties("Acme", "We build widgets.", null), new HashMap<>());
+
+    assertEquals("# Acme\n\n> We build widgets.\n", body,
+        "no extra paragraph should appear between the blockquote and the (absent) sections: " + body);
+  }
+
+  @Test
+  void doGetEscapesAClosingParenInAPageLink() throws Exception {
+    List<WebPage> pages = new ArrayList<>();
+    pages.add(webPage("/a)b", "Test", null));
+
+    String body = runDoGet(siteProperties("Acme", null, "https://example.org"), new HashMap<>(), new ArrayList<>(),
+        pages, new ArrayList<>(), new ArrayList<>(), new ArrayList<>());
+
+    assertTrue(body.contains("(https://example.org/a%29b)"),
+        "an unescaped ')' in the URL would prematurely close the markdown link segment: " + body);
+  }
+
+  @Test
+  void doGetFallsBackToLinkWhenAPageTitleIsBlank() throws Exception {
+    List<WebPage> pages = new ArrayList<>();
+    pages.add(webPage("/about", null, null));
+
+    String body = runDoGet(siteProperties("Acme", null, "https://example.org"), new HashMap<>(), new ArrayList<>(),
+        pages, new ArrayList<>(), new ArrayList<>(), new ArrayList<>());
+
+    assertTrue(body.contains("- [/about](https://example.org/about)"),
+        "a blank title should fall back to the page's own link: " + body);
+  }
+
+  @Test
+  void doGetFallsBackToUniqueIdWhenABlogOrWikiNameIsBlank() throws Exception {
+    List<Blog> blogs = new ArrayList<>();
+    blogs.add(blog("news", null, true));
+    List<Wiki> wikis = new ArrayList<>();
+    wikis.add(wiki("docs", null, true));
+
+    String body = runDoGet(siteProperties("Acme", null, "https://example.org"), new HashMap<>(), new ArrayList<>(),
+        new ArrayList<>(), new ArrayList<>(), blogs, wikis);
+
+    assertTrue(body.contains("- [news](https://example.org/news)"),
+        "a blank blog name should fall back to its uniqueId: " + body);
+    assertTrue(body.contains("- [docs](https://example.org/docs)"),
+        "a blank wiki name should fall back to its uniqueId: " + body);
+  }
+
+  @Test
+  void doGetSkipsACollectionWithABlankName() throws Exception {
+    List<Collection> collections = new ArrayList<>();
+    Collection blankName = collection("no-name", null, true);
+    collections.add(blankName);
+    collections.add(collection("has-name", "Has A Name", true));
+
+    String body = runDoGet(siteProperties("Acme", null, "https://example.org"), new HashMap<>(), new ArrayList<>(),
+        new ArrayList<>(), collections, new ArrayList<>(), new ArrayList<>());
+
+    assertTrue(body.contains("Has A Name"), body);
+    assertFalse(body.contains("no-name"), "a collection with a blank name must be skipped entirely: " + body);
+  }
+
+  @Test
+  void doGetFiltersWebPagesUsingTheEnabledAndInSitemapSpecificationFlags() throws Exception {
+    HttpServletRequest request = mock(HttpServletRequest.class);
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    when(response.getWriter()).thenReturn(new PrintWriter(new StringWriter()));
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<LoadMenuTabsCommand> menuTabsCommand = mockStatic(LoadMenuTabsCommand.class);
+        MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class);
+        MockedStatic<CollectionRepository> collectionRepository = mockStatic(CollectionRepository.class);
+        MockedStatic<BlogRepository> blogRepository = mockStatic(BlogRepository.class);
+        MockedStatic<WikiRepository> wikiRepository = mockStatic(WikiRepository.class);
+        MockedStatic<ValidateUserAccessToWebPageCommand> accessCommand = mockStatic(ValidateUserAccessToWebPageCommand.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadAsMap("site")).thenReturn(siteProperties("Acme", null, "https://example.org"));
+      siteProps.when(() -> LoadSitePropertyCommand.loadAsMap("llms")).thenReturn(new HashMap<>());
+      menuTabsCommand.when(LoadMenuTabsCommand::loadActiveIncludeMenuItemList).thenReturn(new ArrayList<>());
+      webPageRepository.when(() -> WebPageRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+      collectionRepository.when(CollectionRepository::findAll).thenReturn(new ArrayList<>());
+      blogRepository.when(BlogRepository::findAll).thenReturn(new ArrayList<>());
+      wikiRepository.when(WikiRepository::findAll).thenReturn(new ArrayList<>());
+      accessCommand.when(() -> ValidateUserAccessToWebPageCommand.hasAccess(any(), any())).thenReturn(true);
+
+      new LlmsTxtServlet().doGet(request, response);
+
+      ArgumentCaptor<WebPageSpecification> specCaptor = ArgumentCaptor.forClass(WebPageSpecification.class);
+      webPageRepository.verify(() -> WebPageRepository.findAll(specCaptor.capture(), eq(null)));
+      assertEquals(DataConstants.TRUE, specCaptor.getValue().getEnabled(), "expected only enabled pages to be requested");
+      assertEquals(DataConstants.TRUE, specCaptor.getValue().getInSitemap(), "expected only in-sitemap pages to be requested");
+    }
+  }
+
+  @Test
+  void doGetExcludesANavigationLinkAndAPageTheAnonymousVisitorCannotAccess() throws Exception {
+    MenuTab restrictedTab = new MenuTab();
+    restrictedTab.setName("Internal");
+    restrictedTab.setLink("/internal");
+    MenuTab publicTab = new MenuTab();
+    publicTab.setName("Products");
+    publicTab.setLink("/products");
+    List<MenuTab> tabs = new ArrayList<>();
+    tabs.add(restrictedTab);
+    tabs.add(publicTab);
+
+    List<WebPage> pages = new ArrayList<>();
+    pages.add(webPage("/internal-page", "Internal Page", null));
+    pages.add(webPage("/about", "About Us", null));
+
+    HttpServletRequest request = mock(HttpServletRequest.class);
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    StringWriter body = new StringWriter();
+    when(response.getWriter()).thenReturn(new PrintWriter(body));
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<LoadMenuTabsCommand> menuTabsCommand = mockStatic(LoadMenuTabsCommand.class);
+        MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class);
+        MockedStatic<CollectionRepository> collectionRepository = mockStatic(CollectionRepository.class);
+        MockedStatic<BlogRepository> blogRepository = mockStatic(BlogRepository.class);
+        MockedStatic<WikiRepository> wikiRepository = mockStatic(WikiRepository.class);
+        MockedStatic<ValidateUserAccessToWebPageCommand> accessCommand = mockStatic(ValidateUserAccessToWebPageCommand.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadAsMap("site")).thenReturn(siteProperties("Acme", null, "https://example.org"));
+      siteProps.when(() -> LoadSitePropertyCommand.loadAsMap("llms")).thenReturn(new HashMap<>());
+      menuTabsCommand.when(LoadMenuTabsCommand::loadActiveIncludeMenuItemList).thenReturn(tabs);
+      webPageRepository.when(() -> WebPageRepository.findAll(any(), any())).thenReturn(pages);
+      collectionRepository.when(CollectionRepository::findAll).thenReturn(new ArrayList<>());
+      blogRepository.when(BlogRepository::findAll).thenReturn(new ArrayList<>());
+      wikiRepository.when(WikiRepository::findAll).thenReturn(new ArrayList<>());
+      // A real anonymous visitor's menu hides role/group-restricted tabs and pages -- so should
+      // llms.txt, via the same ValidateUserAccessToWebPageCommand.hasAccess check.
+      accessCommand.when(() -> ValidateUserAccessToWebPageCommand.hasAccess(eq("/internal"), any())).thenReturn(false);
+      accessCommand.when(() -> ValidateUserAccessToWebPageCommand.hasAccess(eq("/internal-page"), any())).thenReturn(false);
+      accessCommand.when(() -> ValidateUserAccessToWebPageCommand.hasAccess(eq("/products"), any())).thenReturn(true);
+      accessCommand.when(() -> ValidateUserAccessToWebPageCommand.hasAccess(eq("/about"), any())).thenReturn(true);
+
+      new LlmsTxtServlet().doGet(request, response);
+    }
+
+    String result = body.toString();
+    assertFalse(result.contains("Internal"), "a role-restricted menu tab must not be named/linked: " + result);
+    assertFalse(result.contains("Internal Page"), "a role-restricted page must not be named/linked: " + result);
+    assertTrue(result.contains("- [Products](https://example.org/products)"), result);
+    assertTrue(result.contains("- [About Us](https://example.org/about)"), result);
+  }
+
+  @Test
+  void doGetEscapesTheCustomLlmsDescriptionSoItCannotForgeAHeading() throws Exception {
+    Map<String, String> llmsProperties = new HashMap<>();
+    llmsProperties.put("llms.description", "Real prose.\n## Fake Heading\n- [Evil](https://evil.example)");
+
+    String body = runDoGetMinimal(siteProperties("Acme", null, null), llmsProperties);
+
+    assertFalse(body.contains("\n## Fake Heading"),
+        "an embedded newline in llms.description must not be able to forge a new '## ' section: " + body);
+    assertTrue(body.contains("Real prose. ## Fake Heading - \\[Evil\\](https://evil.example)"),
+        "the flattened, escaped text should still be present as inert prose: " + body);
+  }
+
+  @Test
+  void doGetIsResilientWhenOneSectionRepositoryThrowsButOthersSucceed() throws Exception {
+    List<WebPage> pages = new ArrayList<>();
+    pages.add(webPage("/about", "About Us", null));
+
+    HttpServletRequest request = mock(HttpServletRequest.class);
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    StringWriter body = new StringWriter();
+    when(response.getWriter()).thenReturn(new PrintWriter(body));
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<LoadMenuTabsCommand> menuTabsCommand = mockStatic(LoadMenuTabsCommand.class);
+        MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class);
+        MockedStatic<CollectionRepository> collectionRepository = mockStatic(CollectionRepository.class);
+        MockedStatic<BlogRepository> blogRepository = mockStatic(BlogRepository.class);
+        MockedStatic<WikiRepository> wikiRepository = mockStatic(WikiRepository.class);
+        MockedStatic<ValidateUserAccessToWebPageCommand> accessCommand = mockStatic(ValidateUserAccessToWebPageCommand.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadAsMap("site")).thenReturn(siteProperties("Acme", null, "https://example.org"));
+      siteProps.when(() -> LoadSitePropertyCommand.loadAsMap("llms")).thenReturn(new HashMap<>());
+      menuTabsCommand.when(LoadMenuTabsCommand::loadActiveIncludeMenuItemList).thenReturn(new ArrayList<>());
+      webPageRepository.when(() -> WebPageRepository.findAll(any(), any())).thenReturn(pages);
+      // Simulates one section's dependency failing -- buildCollectionsSection's own try/catch
+      // should log and continue rather than letting the exception propagate out of doGet().
+      collectionRepository.when(CollectionRepository::findAll).thenThrow(new RuntimeException("db unavailable"));
+      blogRepository.when(BlogRepository::findAll).thenReturn(new ArrayList<>());
+      wikiRepository.when(WikiRepository::findAll).thenReturn(new ArrayList<>());
+      accessCommand.when(() -> ValidateUserAccessToWebPageCommand.hasAccess(any(), any())).thenReturn(true);
+
+      new LlmsTxtServlet().doGet(request, response);
+    }
+
+    verify(response).setStatus(HttpServletResponse.SC_OK);
+    String result = body.toString();
+    assertTrue(result.contains("## Pages"), "an unrelated section must still render: " + result);
+    assertTrue(result.contains("About Us"), result);
+    assertFalse(result.contains("## Collections"), "the failed section should be omitted, not break the whole page: " + result);
   }
 
   @Test

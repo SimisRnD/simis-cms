@@ -18,6 +18,7 @@ package com.simisinc.platform.presentation.controller;
 
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.cms.LoadMenuTabsCommand;
+import com.simisinc.platform.application.cms.ValidateUserAccessToWebPageCommand;
 import com.simisinc.platform.domain.model.cms.Blog;
 import com.simisinc.platform.domain.model.cms.MenuItem;
 import com.simisinc.platform.domain.model.cms.MenuTab;
@@ -73,23 +74,39 @@ public class LlmsTxtServlet extends HttpServlet {
       throws ServletException, IOException {
 
     response.setContentType("text/markdown;charset=UTF-8");
-    response.setHeader("Cache-Control", "public, max-age=86400");
 
     try {
       String llmsTxtContent = loadLlmsTxt();
       if (StringUtils.isBlank(llmsTxtContent)) {
-        // A static override file always wins, unconditionally, matching RobotsServlet -- the
-        // llms.enabled feature toggle below only ever gates the *generated* default, the same way
-        // site.sitemap.xml only gates SitemapServlet's own generation, never a static override.
+        // A static override file always wins, unconditionally, matching RobotsServlet -- neither
+        // the llms.enabled toggle nor the site.online gate below apply to it, since a hand-authored
+        // override contains no live repository content for either one to protect.
         Map<String, String> llmsPropertyMap = LoadSitePropertyCommand.loadAsMap("llms");
         if (!isEnabled(llmsPropertyMap)) {
+          // Not cached -- an admin flipping this toggle back on must take effect immediately, not
+          // be masked by a stale cached 404 in a browser or CDN for up to a day.
           response.setStatus(HttpServletResponse.SC_NOT_FOUND);
           response.getWriter().print("<!-- llms.txt is disabled (llms.enabled) -->\n");
           return;
         }
-        llmsTxtContent = generateDefaultLlmsTxt(llmsPropertyMap);
+
+        Map<String, String> sitePropertyMap = LoadSitePropertyCommand.loadAsMap("site");
+        // Same "not yet public" gate SitemapServlet applies (site.online) -- a site an admin hasn't
+        // taken online shouldn't have its live navigation/pages/collections structure disclosed to
+        // an anonymous requester here either.
+        if (!"true".equals(sitePropertyMap.getOrDefault("site.online", "false"))) {
+          // Not cached, for the same reason as the llms.enabled branch above -- taking the site
+          // online must be reflected on the very next request.
+          response.setStatus(HttpServletResponse.SC_NOT_FOUND);
+          response.getWriter().print("<!-- Site is not yet online -->\n");
+          return;
+        }
+
+        llmsTxtContent = generateDefaultLlmsTxt(sitePropertyMap, llmsPropertyMap);
       }
 
+      // Only a real, successfully generated (or statically overridden) body is cacheable.
+      response.setHeader("Cache-Control", "public, max-age=86400");
       response.setStatus(HttpServletResponse.SC_OK);
       response.getWriter().print(llmsTxtContent);
     } catch (Exception e) {
@@ -131,13 +148,17 @@ public class LlmsTxtServlet extends HttpServlet {
     return StringUtils.isBlank(value) || !"false".equalsIgnoreCase(value.trim());
   }
 
-  private String generateDefaultLlmsTxt(Map<String, String> llmsPropertyMap) {
-    Map<String, String> sitePropertyMap = LoadSitePropertyCommand.loadAsMap("site");
-
+  private String generateDefaultLlmsTxt(Map<String, String> sitePropertyMap, Map<String, String> llmsPropertyMap) {
     String siteUrl = StringUtils.trimToEmpty(sitePropertyMap.get("site.url"));
     String siteName = sitePropertyMap.get("site.name");
     String siteDescription = sitePropertyMap.get("site.description");
     String llmsDescription = llmsPropertyMap.get("llms.description");
+
+    // An anonymous, unauthenticated stand-in for whoever is requesting this public file -- used to
+    // apply the same per-tab/page role-and-group access check MainMenuWidget applies to a real
+    // anonymous visitor's menu, so a role-restricted tab or page isn't named and linked here even
+    // though a real anonymous visitor would never see it rendered or be able to load it directly.
+    UserSession anonymousSession = new UserSession();
 
     StringBuilder sb = new StringBuilder();
 
@@ -155,11 +176,14 @@ public class LlmsTxtServlet extends HttpServlet {
     // directly (this issue's acceptance criteria) -- rendered as plain prose directly after the
     // blockquote, matching the llmstxt.org spec's optional additional-context paragraph(s).
     if (StringUtils.isNotBlank(llmsDescription)) {
-      sb.append("\n").append(llmsDescription.trim()).append("\n");
+      // Escaped like every other dynamic string below -- this field is free text an admin can
+      // enter without going through markdown-safe rendering, and an embedded newline could
+      // otherwise forge a fake "## Heading" that reads as part of the auto-generated structure.
+      sb.append("\n").append(escapeMarkdownText(llmsDescription)).append("\n");
     }
 
-    appendSection(sb, "Navigation", buildNavigationSection(siteUrl));
-    appendSection(sb, "Pages", buildPagesSection(siteUrl));
+    appendSection(sb, "Navigation", buildNavigationSection(siteUrl, anonymousSession));
+    appendSection(sb, "Pages", buildPagesSection(siteUrl, anonymousSession));
     appendSection(sb, "Collections", buildCollectionsSection(siteUrl));
     appendSection(sb, "Blogs", buildBlogsSection(siteUrl));
     appendSection(sb, "Wikis", buildWikisSection(siteUrl));
@@ -176,15 +200,20 @@ public class LlmsTxtServlet extends HttpServlet {
   /**
    * One bullet per active (enabled, non-draft -- already filtered by
    * {@code MenuTabRepository.findAllActive()}) top-level menu tab, with its own menu items nested
-   * beneath it -- the same structure rendered in the public site header today.
+   * beneath it -- the same structure rendered in the public site header today. Each tab/item is
+   * additionally required to pass {@link ValidateUserAccessToWebPageCommand#hasAccess}, exactly the
+   * per-page role/group check {@code MainMenuWidget} applies before showing a tab or item to a real
+   * anonymous visitor -- otherwise a role-restricted tab would be named and linked here even though
+   * no anonymous visitor could ever see or reach it.
    */
-  private String buildNavigationSection(String siteUrl) {
+  private String buildNavigationSection(String siteUrl, UserSession anonymousSession) {
     StringBuilder sb = new StringBuilder();
     try {
       List<MenuTab> menuTabList = LoadMenuTabsCommand.loadActiveIncludeMenuItemList();
       if (menuTabList != null) {
         for (MenuTab menuTab : menuTabList) {
-          if (menuTab == null || StringUtils.isBlank(menuTab.getLink())) {
+          if (menuTab == null || StringUtils.isBlank(menuTab.getLink())
+              || !ValidateUserAccessToWebPageCommand.hasAccess(menuTab.getLink(), anonymousSession)) {
             continue;
           }
           String name = StringUtils.isNotBlank(menuTab.getName()) ? menuTab.getName() : menuTab.getLink();
@@ -192,7 +221,8 @@ public class LlmsTxtServlet extends HttpServlet {
               .append(escapeMarkdownUrl(siteUrl + menuTab.getLink())).append(")\n");
           if (menuTab.getMenuItemList() != null) {
             for (MenuItem menuItem : menuTab.getMenuItemList()) {
-              if (menuItem == null || StringUtils.isBlank(menuItem.getLink())) {
+              if (menuItem == null || StringUtils.isBlank(menuItem.getLink())
+                  || !ValidateUserAccessToWebPageCommand.hasAccess(menuItem.getLink(), anonymousSession)) {
                 continue;
               }
               String itemName = StringUtils.isNotBlank(menuItem.getName()) ? menuItem.getName() : menuItem.getLink();
@@ -213,9 +243,11 @@ public class LlmsTxtServlet extends HttpServlet {
    * and actually published -- draft is deliberately not filtered at the specification level; see
    * that method's own comment for why a published page can still have draft=true). Unlike
    * sitemap.xml's bare {@code <loc>}, llms.txt's markdown link-list format wants the page's own
-   * title and description, so both are read here.
+   * title and description, so both are read here. Also requires
+   * {@link ValidateUserAccessToWebPageCommand#hasAccess}, the same per-page role/group check
+   * applied to the Navigation section, so a role-restricted page isn't named and described here.
    */
-  private String buildPagesSection(String siteUrl) {
+  private String buildPagesSection(String siteUrl, UserSession anonymousSession) {
     StringBuilder sb = new StringBuilder();
     try {
       WebPageSpecification spec = new WebPageSpecification();
@@ -225,7 +257,8 @@ public class LlmsTxtServlet extends HttpServlet {
 
       if (pages != null) {
         for (WebPage page : pages) {
-          if (page == null || StringUtils.isBlank(page.getLink()) || StringUtils.isBlank(page.getPageXml())) {
+          if (page == null || StringUtils.isBlank(page.getLink()) || StringUtils.isBlank(page.getPageXml())
+              || !ValidateUserAccessToWebPageCommand.hasAccess(page.getLink(), anonymousSession)) {
             continue;
           }
           String title = StringUtils.isNotBlank(page.getTitle()) ? page.getTitle() : page.getLink();
