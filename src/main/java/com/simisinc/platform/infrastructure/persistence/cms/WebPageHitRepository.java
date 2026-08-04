@@ -29,7 +29,9 @@ import org.apache.commons.logging.LogFactory;
 import java.sql.*;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Persists and retrieves web page hit objects
@@ -251,6 +253,51 @@ public class WebPageHitRepository {
       LOG.error("SQLException: " + se.getMessage());
     }
     return records;
+  }
+
+  /**
+   * View counts for a specific set of pages over a trailing window, excluding bot sessions (issue
+   * #497 -- the /admin/web-pages traffic column). findTopWebPages is the closest existing bulk
+   * query but is a ranked, LIMIT-capped "top N" report; this returns every requested page's count
+   * (including 0 for pages with no hits in range, by simply being absent from the map -- callers
+   * must treat a missing key as zero) in one query, keyed by web_page_id to avoid an N+1 query per
+   * table row. Returns an empty map for a null/empty input rather than querying with an empty
+   * IN () clause (invalid SQL).
+   */
+  public static Map<Long, Long> countViewsByWebPageId(List<Long> webPageIds, int daysToLimit) {
+    Map<Long, Long> countsByWebPageId = new HashMap<>();
+    if (webPageIds == null || webPageIds.isEmpty()) {
+      return countsByWebPageId;
+    }
+    StringBuilder placeholders = new StringBuilder();
+    for (int i = 0; i < webPageIds.size(); i++) {
+      if (i > 0) {
+        placeholders.append(",");
+      }
+      placeholders.append("?");
+    }
+    String SQL_QUERY =
+        "SELECT web_page_id, COUNT(*) AS hit_count " +
+            "FROM web_page_hits " +
+            "WHERE web_page_id IN (" + placeholders + ") " +
+            "AND hit_date > NOW() - INTERVAL '" + daysToLimit + " days' " +
+            "AND NOT EXISTS (SELECT 1 FROM sessions WHERE session_id = web_page_hits.session_id AND is_bot = TRUE) " +
+            "GROUP BY web_page_id";
+    try (Connection connection = DB.getConnection();
+         PreparedStatement pst = connection.prepareStatement(SQL_QUERY)) {
+      int parameterIndex = 1;
+      for (Long webPageId : webPageIds) {
+        pst.setLong(parameterIndex++, webPageId);
+      }
+      try (ResultSet rs = pst.executeQuery()) {
+        while (rs.next()) {
+          countsByWebPageId.put(rs.getLong("web_page_id"), rs.getLong("hit_count"));
+        }
+      }
+    } catch (SQLException se) {
+      LOG.error("SQLException: " + se.getMessage());
+    }
+    return countsByWebPageId;
   }
 
   /**

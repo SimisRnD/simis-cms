@@ -18,10 +18,13 @@ package com.simisinc.platform.presentation.widgets.admin.cms;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.mockStatic;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
@@ -29,6 +32,7 @@ import org.mockito.MockedStatic;
 import com.simisinc.platform.WidgetBase;
 import com.simisinc.platform.application.cms.LoadMenuTabsCommand;
 import com.simisinc.platform.domain.model.cms.WebPage;
+import com.simisinc.platform.infrastructure.persistence.cms.WebPageHitRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageSpecification;
 
@@ -84,9 +88,11 @@ class WebPageListWidgetTest extends WidgetBase {
     webPageList.add(brokenPage());
 
     try (MockedStatic<WebPageRepository> repository = mockStatic(WebPageRepository.class);
-        MockedStatic<LoadMenuTabsCommand> menuTabsCommand = mockStatic(LoadMenuTabsCommand.class)) {
+        MockedStatic<LoadMenuTabsCommand> menuTabsCommand = mockStatic(LoadMenuTabsCommand.class);
+        MockedStatic<WebPageHitRepository> hitRepository = mockStatic(WebPageHitRepository.class)) {
       repository.when(WebPageRepository::findAll).thenReturn(webPageList);
       menuTabsCommand.when(LoadMenuTabsCommand::findAllIncludeMenuItemList).thenReturn(new ArrayList<>());
+      hitRepository.when(() -> WebPageHitRepository.countViewsByWebPageId(any(), anyInt())).thenReturn(new HashMap<>());
 
       new WebPageListWidget().execute(widgetContext);
     }
@@ -109,10 +115,12 @@ class WebPageListWidgetTest extends WidgetBase {
     List<WebPage> draftOnly = new ArrayList<>(List.of(draftPage()));
 
     try (MockedStatic<WebPageRepository> repository = mockStatic(WebPageRepository.class);
-        MockedStatic<LoadMenuTabsCommand> menuTabsCommand = mockStatic(LoadMenuTabsCommand.class)) {
+        MockedStatic<LoadMenuTabsCommand> menuTabsCommand = mockStatic(LoadMenuTabsCommand.class);
+        MockedStatic<WebPageHitRepository> hitRepository = mockStatic(WebPageHitRepository.class)) {
       repository.when(WebPageRepository::findAll).thenReturn(webPageList);
       repository.when(() -> WebPageRepository.findAll(any(WebPageSpecification.class), any())).thenReturn(draftOnly);
       menuTabsCommand.when(LoadMenuTabsCommand::findAllIncludeMenuItemList).thenReturn(new ArrayList<>());
+      hitRepository.when(() -> WebPageHitRepository.countViewsByWebPageId(any(), anyInt())).thenReturn(new HashMap<>());
 
       new WebPageListWidget().execute(widgetContext);
 
@@ -132,9 +140,11 @@ class WebPageListWidgetTest extends WidgetBase {
   @Test
   void emptyPageListProducesAllZeroCounts() {
     try (MockedStatic<WebPageRepository> repository = mockStatic(WebPageRepository.class);
-        MockedStatic<LoadMenuTabsCommand> menuTabsCommand = mockStatic(LoadMenuTabsCommand.class)) {
+        MockedStatic<LoadMenuTabsCommand> menuTabsCommand = mockStatic(LoadMenuTabsCommand.class);
+        MockedStatic<WebPageHitRepository> hitRepository = mockStatic(WebPageHitRepository.class)) {
       repository.when(WebPageRepository::findAll).thenReturn(new ArrayList<>());
       menuTabsCommand.when(LoadMenuTabsCommand::findAllIncludeMenuItemList).thenReturn(new ArrayList<>());
+      hitRepository.when(() -> WebPageHitRepository.countViewsByWebPageId(any(), anyInt())).thenReturn(new HashMap<>());
 
       new WebPageListWidget().execute(widgetContext);
     }
@@ -144,5 +154,67 @@ class WebPageListWidgetTest extends WidgetBase {
     assertEquals(0, request.getAttribute("webPageDraftCount"));
     assertEquals(0, request.getAttribute("webPageRedirectCount"));
     assertEquals(0, request.getAttribute("webPageBrokenCount"));
+  }
+
+  @Test
+  void viewCountMapIsPassedThroughFromTheRepositoryKeyedByWebPageId() {
+    WebPage webPage = livePage();
+    webPage.setId(42L);
+    List<WebPage> webPageList = new ArrayList<>(List.of(webPage));
+    Map<Long, Long> viewCounts = new HashMap<>();
+    viewCounts.put(42L, 17L);
+
+    try (MockedStatic<WebPageRepository> repository = mockStatic(WebPageRepository.class);
+        MockedStatic<LoadMenuTabsCommand> menuTabsCommand = mockStatic(LoadMenuTabsCommand.class);
+        MockedStatic<WebPageHitRepository> hitRepository = mockStatic(WebPageHitRepository.class)) {
+      repository.when(WebPageRepository::findAll).thenReturn(webPageList);
+      menuTabsCommand.when(LoadMenuTabsCommand::findAllIncludeMenuItemList).thenReturn(new ArrayList<>());
+      hitRepository.when(() -> WebPageHitRepository.countViewsByWebPageId(List.of(42L), 30)).thenReturn(viewCounts);
+
+      new WebPageListWidget().execute(widgetContext);
+    }
+
+    Map<Long, Long> viewCountMap = (Map<Long, Long>) request.getAttribute("webPageViewCountMap");
+    assertEquals(17L, viewCountMap.get(42L));
+  }
+
+  @Test
+  void viewCountMapCoversTheFullPageSetNotJustTheActiveFilterResults() {
+    // The "In Navigation Menu" section always renders from the unfiltered webPageMap, independent
+    // of the active search/status filter -- so a page excluded from the filtered "All Web Pages"
+    // list below must still get a real view count, not a silent 0. Regression test for a review
+    // finding: the count query was originally scoped to just the filtered list.
+    WebPage draftPage = draftPage();
+    draftPage.setId(1L);
+    WebPage livePageExcludedByFilter = livePage();
+    livePageExcludedByFilter.setId(2L);
+    List<WebPage> webPageList = new ArrayList<>(List.of(draftPage, livePageExcludedByFilter));
+
+    addQueryParameter(widgetContext, "status", "draft");
+    List<WebPage> draftOnly = new ArrayList<>(List.of(draftPage));
+
+    Map<Long, Long> viewCounts = new HashMap<>();
+    viewCounts.put(1L, 3L);
+    viewCounts.put(2L, 99L);
+
+    try (MockedStatic<WebPageRepository> repository = mockStatic(WebPageRepository.class);
+        MockedStatic<LoadMenuTabsCommand> menuTabsCommand = mockStatic(LoadMenuTabsCommand.class);
+        MockedStatic<WebPageHitRepository> hitRepository = mockStatic(WebPageHitRepository.class)) {
+      repository.when(WebPageRepository::findAll).thenReturn(webPageList);
+      repository.when(() -> WebPageRepository.findAll(any(WebPageSpecification.class), any())).thenReturn(draftOnly);
+      menuTabsCommand.when(LoadMenuTabsCommand::findAllIncludeMenuItemList).thenReturn(new ArrayList<>());
+      hitRepository.when(() -> WebPageHitRepository.countViewsByWebPageId(List.of(1L, 2L), 30)).thenReturn(viewCounts);
+
+      new WebPageListWidget().execute(widgetContext);
+
+      // The "All Web Pages" list narrows to just the draft page...
+      List<WebPage> filtered = (List) request.getAttribute("webPageList");
+      assertEquals(1, filtered.size());
+    }
+
+    // ...but the view-count map must still carry the excluded page's real count, since the
+    // nav-menu section can still reference it via the unfiltered webPageMap
+    Map<Long, Long> viewCountMap = (Map<Long, Long>) request.getAttribute("webPageViewCountMap");
+    assertEquals(99L, viewCountMap.get(2L), "a page excluded by the active filter must not silently show 0 views");
   }
 }

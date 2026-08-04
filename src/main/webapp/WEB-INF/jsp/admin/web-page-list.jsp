@@ -30,7 +30,7 @@
 <table class="unstriped">
   <thead>
     <tr>
-      <th colspan="7"><strong>In Navigation Menu</strong></th>
+      <th colspan="8"><strong>In Navigation Menu</strong></th>
     </tr>
     <tr>
       <th width="45"></th>
@@ -40,6 +40,7 @@
       <th>Keywords, Description</th>
       <th>Modified</th>
       <th>Scheduled/Expires</th>
+      <th>Views (30d)</th>
     </tr>
   </thead>
   <tbody>
@@ -124,6 +125,11 @@
           <td></td>
         </c:otherwise>
       </c:choose>
+      <td>
+        <c:if test="${fn:contains(webPageMap, menuTab.link)}">
+          <fmt:formatNumber value="${empty webPageViewCountMap[webPageMap[menuTab.link].id] ? 0 : webPageViewCountMap[webPageMap[menuTab.link].id]}" />
+        </c:if>
+      </td>
     </tr>
     <c:forEach items="${menuTab.menuItemList}" var="menuItem">
       <tr>
@@ -205,11 +211,16 @@
             <td></td>
           </c:otherwise>
         </c:choose>
+        <td>
+          <c:if test="${fn:contains(webPageMap, menuItem.link)}">
+            <fmt:formatNumber value="${empty webPageViewCountMap[webPageMap[menuItem.link].id] ? 0 : webPageViewCountMap[webPageMap[menuItem.link].id]}" />
+          </c:if>
+        </td>
       </tr>
     </c:forEach>
   </c:forEach>
   <tr>
-    <td colspan="7">
+    <td colspan="8">
       <strong>All Web Pages</strong>
       <small class="subheader">Every page record in the system, including the ones already shown above in the navigation menu.</small>
       <br />
@@ -223,7 +234,7 @@
     </td>
   </tr>
   <tr>
-    <td colspan="7">
+    <td colspan="8">
       <form method="get" autocomplete="off" class="grid-x grid-margin-x align-bottom">
         <div class="cell medium-5">
           <label>Search
@@ -309,11 +320,14 @@
           <small>Expires: <fmt:formatDate pattern="yyyy-MM-dd hh:mm a" value="${webPage.expiresAt}" /></small>
         </c:if>
       </td>
+      <td>
+        <fmt:formatNumber value="${empty webPageViewCountMap[webPage.id] ? 0 : webPageViewCountMap[webPage.id]}" />
+      </td>
     </tr>
   </c:forEach>
   <c:if test="${empty webPageList}">
       <tr>
-        <td colspan="7">No web pages were found</td>
+        <td colspan="8">No web pages were found</td>
       </tr>
   </c:if>
   </tbody>

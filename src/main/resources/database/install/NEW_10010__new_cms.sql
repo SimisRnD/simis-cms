@@ -259,6 +259,7 @@ CREATE TABLE web_page_hits (
 
 CREATE INDEX web_pg_hits_dt_idx ON web_page_hits(hit_date);
 CREATE INDEX web_pg_hits_ss_idx ON web_page_hits(session_id);
+CREATE INDEX web_pg_hits_wpid_idx ON web_page_hits(web_page_id);
 
 CREATE TABLE web_page_hit_snapshots (
   snapshot_id BIGSERIAL PRIMARY KEY,
