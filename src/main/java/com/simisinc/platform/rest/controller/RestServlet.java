@@ -29,6 +29,7 @@ import org.apache.commons.logging.LogFactory;
 
 import javax.json.bind.Jsonb;
 import javax.json.bind.JsonbBuilder;
+import javax.json.bind.JsonbConfig;
 import jakarta.servlet.ServletConfig;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.annotation.MultipartConfig;
@@ -55,6 +56,13 @@ import static jakarta.servlet.http.HttpServletResponse.SC_NOT_FOUND;
 public class RestServlet extends HttpServlet {
 
   private static Log LOG = LogFactory.getLog(RestServlet.class);
+
+  // Shared binding context for response serialization -- building one per request (as this used
+  // to) re-runs JSON-B's reflection scan on every call, and the default reflection strategy alone
+  // can't reach java.sql.Timestamp's private fields under the JDK module system, so a Timestamp
+  // adapter is required here too (see TimestampJsonbAdapter). Package-private so tests can verify
+  // the actual configured instance rather than a duplicate.
+  static final Jsonb JSONB = JsonbBuilder.create(new JsonbConfig().withAdapters(new TimestampJsonbAdapter()));
 
   // Services Cache
   private Map<String, Object> serviceInstances = new HashMap<String, Object>();
@@ -91,7 +99,11 @@ public class RestServlet extends HttpServlet {
 
   @Override
   public void destroy() {
-
+    try {
+      JSONB.close();
+    } catch (Exception e) {
+      LOG.warn("Error closing Jsonb: " + e.getMessage());
+    }
   }
 
   @Override
@@ -214,57 +226,55 @@ public class RestServlet extends HttpServlet {
       // Aspire to, but not quite there:
       // https://google.github.io/styleguide/jsoncstyleguide.xml
       LOG.debug("Returning JSON...");
-      try (Jsonb jsonb = JsonbBuilder.create()) {
-        StringBuilder sb = new StringBuilder();
-        sb.append("{");
-        boolean hasValues = false;
-        if (!result.getMeta().isEmpty()) {
+      StringBuilder sb = new StringBuilder();
+      sb.append("{");
+      boolean hasValues = false;
+      if (!result.getMeta().isEmpty()) {
+        hasValues = true;
+        String meta = JSONB.toJson(result.getMeta());
+        sb.append("\"meta\": ").append(meta);
+      }
+      if (!result.getError().isEmpty()) {
+        if (hasValues) {
+          sb.append(",");
+        } else {
           hasValues = true;
-          String meta = jsonb.toJson(result.getMeta());
-          sb.append("\"meta\": ").append(meta);
         }
-        if (!result.getError().isEmpty()) {
-          if (hasValues) {
-            sb.append(",");
-          } else {
-            hasValues = true;
-          }
-          sb.append("\"error\": ")
-              .append("{")
-              .append("\"code\": ").append(result.getStatus()).append(",")
-              .append("\"message\": \"").append(JsonCommand.toJson(result.getError().get("title"))).append("\"")
-              .append("}");
+        sb.append("\"error\": ")
+            .append("{")
+            .append("\"code\": ").append(result.getStatus()).append(",")
+            .append("\"message\": \"").append(JsonCommand.toJson(result.getError().get("title"))).append("\"")
+            .append("}");
+      }
+      if (result.getData() != null) {
+        if (hasValues) {
+          sb.append(",");
+        } else {
+          hasValues = true;
         }
-        if (result.getData() != null) {
-          if (hasValues) {
-            sb.append(",");
-          } else {
-            hasValues = true;
-          }
-          String data = jsonb.toJson(result.getData());
-          sb.append("\"data\": ").append(data);
+        String data = JSONB.toJson(result.getData());
+        sb.append("\"data\": ").append(data);
+      }
+      if (!result.getLinks().isEmpty()) {
+        if (hasValues) {
+          sb.append(",");
         }
-        if (!result.getLinks().isEmpty()) {
-          if (hasValues) {
-            sb.append(",");
-          }
-          String links = jsonb.toJson(result.getLinks());
-          sb.append("\"links\": ").append(links);
-        }
-        sb.append("}");
-        String json = sb.toString();
+        String links = JSONB.toJson(result.getLinks());
+        sb.append("\"links\": ").append(links);
+      }
+      sb.append("}");
+      String json = sb.toString();
 
-        long endRequestTime = System.currentTimeMillis();
-        long totalTime = endRequestTime - startRequestTime;
-        LOG.debug("REST total time: " + totalTime + "ms");
+      long endRequestTime = System.currentTimeMillis();
+      long totalTime = endRequestTime - startRequestTime;
+      LOG.debug("REST total time: " + totalTime + "ms");
 
-        response.setContentLength(json.length());
-        PrintWriter out = response.getWriter();
-        out.print(json);
-        out.flush();
-        if (LOG.isDebugEnabled()) {
-          LOG.debug("Response sent: " + json);
-        }
+      response.setContentLength(json.length());
+      PrintWriter out = response.getWriter();
+      out.print(json);
+      out.flush();
+      if (LOG.isDebugEnabled()) {
+        LOG.debug("Response sent: " + json);
       }
     } catch (Exception e) {
       LOG.error("Could not render: " + e.getMessage());
