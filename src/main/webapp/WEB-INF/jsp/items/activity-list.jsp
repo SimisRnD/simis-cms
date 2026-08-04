@@ -61,7 +61,7 @@
     <c:set var="lastDate" scope="request" value="${date:formatMonthDayYear(activity.created)}"/>
     <li class="clear-float">
       <p class="platform-activity-image">
-        <img src="${systemPropertyMap['system.www.context']}/images/apple-touch-icon.png" />
+        <img class="platform-activity-icon" src="${ctx}/images/apple-touch-icon.png" />
       </p>
       <p class="platform-activity-content">
         <c:if test="${activity.createdBy gt 0}">
@@ -87,6 +87,22 @@
 </ul>
 </div>
 <script nonce="${cspNonce}">
+  <%-- This reuses the site touch icon as a generic activity avatar. Defaults to the bundled icon
+       so a fresh install never 404s here; upgrades to the configured system.www.context icon only
+       once an Image() probe confirms it actually loads, then swaps any already-rendered avatars
+       and remembers the winning URL for icons rendered later (notifications, polled activity). --%>
+  var platformActivityIconUrl = '${ctx}/images/apple-touch-icon.png';
+  (function(){
+    var u='${js:escape(systemPropertyMap['system.www.context'])}/images/apple-touch-icon.png';
+    var i=new Image();
+    i.onload=function(){
+      platformActivityIconUrl=u;
+      document.querySelectorAll('.platform-activity-icon').forEach(function(el){el.src=u;});
+    };
+    i.src=u;
+  })();
+</script>
+<script nonce="${cspNonce}">
   // Enable notifications
   if ("Notification" in window) {
     if (Notification.permission !== 'denied') {
@@ -97,7 +113,7 @@
     if (!("Notification" in window)) {
       return;
     }
-    var img = '${systemPropertyMap['system.www.context']}/images/apple-touch-icon.png';
+    var img = platformActivityIconUrl;
     if (Notification.permission === "granted") {
       var notification = new Notification('${js:escape(item.name)}', { body: text, icon: img });
     } else if (Notification.permission !== 'denied') {
@@ -209,7 +225,7 @@
               var content =
 
                 "<p class=\"platform-activity-image\">" +
-                "<img src=\"${systemPropertyMap['system.www.context']}/images/apple-touch-icon.png\" />\n" +
+                "<img class=\"platform-activity-icon\" src=\"" + platformActivityIconUrl + "\" />\n" +
                 "</p>" +
                 "<p class=\"platform-activity-content\">" +
                 (activity.user ? "<span class=\"platform-activity-content-name\">" + activity.user.toHtmlEntities() + "</span> " : "") +

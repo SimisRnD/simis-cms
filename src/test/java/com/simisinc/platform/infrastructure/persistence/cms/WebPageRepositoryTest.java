@@ -39,6 +39,7 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
 
+import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.cms.ContentReviewCommand;
 import com.simisinc.platform.domain.model.cms.WebPage;
 import com.simisinc.platform.domain.model.cms.WebPageVersion;
@@ -336,6 +337,45 @@ class WebPageRepositoryTest {
 
     List<WebPageVersion> versions = WebPageVersionRepository.findByWebPageId(saved.getId(), null);
     assertEquals(3, versions.size(), "only the configured limit of prior versions should be retained");
+  }
+
+  // --- publish() clears the review workflow (#948) ---
+
+  @Test
+  void publishClearsTheReviewWorkflowSoAFreshDraftMustBeReapproved() throws DataException {
+    WebPage webPage = new WebPage();
+    webPage.setLink("/governed");
+    webPage.setTitle("Governed Page");
+    webPage.setEnabled(true);
+    webPage.setSearchable(true);
+    webPage.setCreatedBy(1L);
+    webPage.setDraftPageXml("<xml>v1</xml>");
+    webPage.setDraft(true);
+    WebPage saved = WebPageRepository.save(webPage);
+
+    // Cycle 1: an ordinary submit -> approve -> publish.
+    ContentReviewCommand.submitForReview(saved, 10L);
+    WebPageRepository.save(saved);
+    ContentReviewCommand.approve(saved, 20L, "CAB-123");
+    WebPageRepository.publish(saved, 20L, 20);
+
+    WebPage afterFirstPublish = WebPageRepository.findById(saved.getId());
+    assertNull(afterFirstPublish.getDraftStatus(),
+        "the consumed draft's review workflow must be cleared, not left \"submitted\"");
+    assertEquals(-1L, afterFirstPublish.getSubmittedBy());
+    assertEquals(-1L, afterFirstPublish.getApprovedBy());
+    assertNull(afterFirstPublish.getReleaseReference());
+
+    // Cycle 2: an entirely new, never-reviewed draft is staged on the same page (e.g. via the
+    // layout builder's SaveDraftLayoutCommand) -- the exact scenario reported in #948.
+    afterFirstPublish.setDraftPageXml("<xml>v2 -- never reviewed</xml>");
+    afterFirstPublish.setDraft(true);
+    afterFirstPublish.setModifiedBy(10L);
+    WebPageRepository.save(afterFirstPublish);
+
+    WebPage beforeSecondPublish = WebPageRepository.findById(saved.getId());
+    assertFalse(ContentReviewCommand.mayPublish(beforeSecondPublish, true),
+        "a fresh draft must not inherit the prior cycle's approval -- it has to be resubmitted and reapproved");
   }
 
   @Test

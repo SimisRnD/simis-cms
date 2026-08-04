@@ -19,6 +19,7 @@
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <%@ taglib prefix="font" uri="/WEB-INF/tlds/font-functions.tld" %>
+<%@ taglib prefix="js" uri="/WEB-INF/tlds/javascript-escape.tld" %>
 <jsp:useBean id="masterWebPage" class="com.simisinc.platform.domain.model.cms.WebPage" scope="request"/>
 <jsp:useBean id="pageRenderInfo" class="com.simisinc.platform.presentation.controller.PageRenderInfo" scope="request"/>
 <jsp:useBean id="systemPropertyMap" class="java.util.HashMap" scope="request"/>
@@ -40,7 +41,12 @@
   <meta http-equiv="x-ua-compatible" content="ie=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <link rel="apple-touch-icon" type="image/png" href="${systemPropertyMap['system.www.context']}/images/apple-touch-icon.png">
-  <link rel="icon" type="image/png" href="${systemPropertyMap['system.www.context']}/images/favicon.png">
+  <link rel="icon" type="image/png" id="favicon-link" href="${ctx}/images/favicon.png">
+  <%-- Prefers an admin-uploaded favicon at system.www.context when one actually loads; otherwise
+       stays on the bundled default above, so a fresh install (nothing uploaded yet) never 404s
+       on this request. A <link rel="icon">'s own load/error events are not reliably dispatched
+       across browsers, so existence is probed with an Image() object instead, whose events are. --%>
+  <script nonce="${cspNonce}">(function(){var u='${js:escape(systemPropertyMap['system.www.context'])}/images/favicon.png';var i=new Image();i.onload=function(){document.getElementById('favicon-link').href=u;};i.src=u;})();</script>
   <c:choose>
     <c:when test="${!empty masterWebPage.title}"><title><c:out value="${masterWebPage.title}"/> | <c:out value="${sitePropertyMap['site.name']}"/><c:if test="${!empty sitePropertyMap['site.name.keyword']}"> - <c:out value="${sitePropertyMap['site.name.keyword']}"/></c:if></title></c:when>
     <c:when test="${!empty pageRenderInfo.title}"><title><c:out value="${pageRenderInfo.title}"/> | <c:out value="${sitePropertyMap['site.name']}"/><c:if test="${!empty sitePropertyMap['site.name.keyword']}"> - <c:out value="${sitePropertyMap['site.name.keyword']}"/></c:if></title></c:when>
@@ -64,7 +70,6 @@
     </c:if>
     <link rel="stylesheet" type="text/css" href="${ctx}/css/${font:fontawesome()}/css/all.min.css" />
     <link rel="stylesheet" type="text/css" href="${ctx}/css/${font:fontawesome()}/css/v4-shims.min.css" />
-    <link rel="stylesheet" type="text/css" href="${ctx}/css/${font:fontawesome()}/css/v5-font-face.min.css" />
     <link rel="stylesheet" type="text/css" href="${ctx}/css/foundation-6.8.1/foundation.min.css" />
     <link rel="stylesheet" type="text/css" href="${ctx}/css/foundation-6.8.1/motion-ui.min.css" />
     <link rel="stylesheet" type="text/css" href="${ctx}/css/animate-3.7.2/animate.min.css" />
