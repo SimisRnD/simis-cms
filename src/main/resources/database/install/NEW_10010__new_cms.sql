@@ -741,6 +741,22 @@ CREATE TABLE web_page_versions (
 );
 CREATE INDEX web_page_versions_web_idx ON web_page_versions(web_page_id, published_at DESC);
 
+-- Content block version history (#406): the same pattern as web_page_versions above, but for
+-- governed content blocks. One row per ContentRepository.publish() call, holding the outgoing
+-- content -- rendered to plain HTML (DeltaContentCommand-aware) at snapshot time, so a block that
+-- was published as Quill Delta on one cycle and legacy HTML on another still has a uniformly
+-- diffable history, with no format stamp needed on this table. Rows are pruned to a configurable
+-- cap (content.versionHistoryLimit) on insert; cascades on content deletion.
+CREATE TABLE content_versions (
+  content_version_id BIGSERIAL PRIMARY KEY,
+  content_id BIGINT REFERENCES content(content_id) ON DELETE CASCADE,
+  content TEXT,
+  approved_by BIGINT REFERENCES users(user_id),
+  published_at TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP NOT NULL,
+  release_reference VARCHAR(255)
+);
+CREATE INDEX content_versions_content_idx ON content_versions(content_id, published_at DESC);
+
 -- Core Web Vitals RUM (Real User Monitoring, #429)
 -- Raw metrics collected from real page loads, one row per metric per page load
 CREATE TABLE web_vitals (

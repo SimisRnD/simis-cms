@@ -16,9 +16,11 @@
 
 package com.simisinc.platform.infrastructure.persistence.cms;
 
+import com.simisinc.platform.application.cms.ContentHtmlCommand;
 import com.simisinc.platform.application.cms.ContentReviewCommand;
 import com.simisinc.platform.application.cms.HtmlCommand;
 import com.simisinc.platform.domain.model.cms.Content;
+import com.simisinc.platform.domain.model.cms.ContentVersion;
 import com.simisinc.platform.infrastructure.cache.CacheManager;
 import com.simisinc.platform.infrastructure.database.*;
 import org.apache.commons.lang3.StringUtils;
@@ -26,6 +28,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
@@ -217,27 +220,92 @@ public class ContentRepository {
     return null;
   }
 
-  public static void publish(Content record) {
+  private static final int DEFAULT_VERSION_HISTORY_LIMIT = 20;
+
+  /** Parses the configured version-history cap to a bounded positive integer, defaulting to 20. */
+  public static int resolveVersionHistoryLimit(String value) {
+    if (StringUtils.isBlank(value)) {
+      return DEFAULT_VERSION_HISTORY_LIMIT;
+    }
+    try {
+      int limit = Integer.parseInt(value.trim());
+      return Math.max(limit, 1);
+    } catch (NumberFormatException e) {
+      return DEFAULT_VERSION_HISTORY_LIMIT;
+    }
+  }
+
+  /**
+   * Promotes draftContent to the live content (#406). Before overwriting it, the outgoing content is
+   * rendered to plain HTML (format-aware, matching {@link ContentHtmlCommand#toHtml}) and snapshotted
+   * into content_versions -- within the same transaction as the publish itself, so a failed snapshot
+   * can't silently leave a publish with no recoverable prior state -- then pruned to
+   * versionHistoryLimit. The approver and release authority recorded on the version row come straight
+   * off {@code record}, which the caller (ContentHtmlCommand) has already stamped via
+   * ContentReviewCommand before reaching here; an ungoverned direct publish leaves them at their -1/
+   * null defaults, same as the live row itself. A content block with no live content yet (first-ever
+   * publish) has nothing to snapshot.
+   */
+  public static void publish(Content record, int versionHistoryLimit) {
     if (StringUtils.isBlank(record.getUniqueId())) {
       return;
     }
-    // Handle publishing and making sure there is content to publish
-    SqlUtils updateValues = new SqlUtils();
-    updateValues.add("content = draft_content");
-    updateValues.add("draft_content = null");
-    // Promote the draft's format stamp with its content, then clear it alongside the emptied draft.
-    updateValues.add("content_format = draft_content_format");
-    updateValues.add("draft_content_format = 0");
-    // The draft is consumed, so clear its review workflow. The durable record of who submitted and
-    // approved, and under what release authority, lives in the append-only audit trail, not here.
-    updateValues.add("draft_status = null");
-    updateValues.add("submitted_by = -1");
-    updateValues.add("approved_by = -1");
-    updateValues.add("release_reference = null");
-    updateValues.add("content_text", HtmlCommand.text(StringUtils.trimToNull(record.getContent())));
-    SqlUtils where = new SqlUtils().add("draft_content IS NOT NULL AND content_unique_id = ?", record.getUniqueId());
-    if (DB.update(TABLE_NAME, updateValues, where)) {
-      CacheManager.invalidateKey(CacheManager.CONTENT_UNIQUE_ID_CACHE, record.getUniqueId());
+    try (Connection connection = DB.getConnection();
+        AutoStartTransaction ignored = new AutoStartTransaction(connection);
+        AutoRollback transaction = new AutoRollback(connection)) {
+
+      long contentId = -1;
+      String outgoingContent = null;
+      int outgoingContentFormat = 0;
+      try (PreparedStatement pst = connection.prepareStatement(
+          "SELECT content_id, content, content_format FROM " + TABLE_NAME
+              + " WHERE content_unique_id = ? AND draft_content IS NOT NULL")) {
+        pst.setString(1, record.getUniqueId());
+        try (ResultSet rs = pst.executeQuery()) {
+          if (!rs.next()) {
+            // Nothing to publish (no pending draft) -- matches the prior no-op behavior
+            return;
+          }
+          contentId = rs.getLong("content_id");
+          outgoingContent = rs.getString("content");
+          outgoingContentFormat = rs.getInt("content_format");
+        }
+      }
+
+      if (StringUtils.isNotBlank(outgoingContent)) {
+        ContentVersion version = new ContentVersion();
+        version.setContentId(contentId);
+        version.setContent(ContentHtmlCommand.toHtml(outgoingContent, outgoingContentFormat));
+        version.setApprovedBy(record.getApprovedBy());
+        version.setReleaseReference(record.getReleaseReference());
+        if (ContentVersionRepository.insert(connection, version) == -1) {
+          throw new SQLException("The prior content version was not saved");
+        }
+        ContentVersionRepository.pruneOldest(connection, contentId, versionHistoryLimit);
+      }
+
+      // Handle publishing and making sure there is content to publish
+      SqlUtils updateValues = new SqlUtils();
+      updateValues.add("content = draft_content");
+      updateValues.add("draft_content = null");
+      // Promote the draft's format stamp with its content, then clear it alongside the emptied draft.
+      updateValues.add("content_format = draft_content_format");
+      updateValues.add("draft_content_format = 0");
+      // The draft is consumed, so clear its review workflow. The durable record of who submitted and
+      // approved, and under what release authority, lives in the append-only audit trail (and now
+      // content_versions above), not here.
+      updateValues.add("draft_status = null");
+      updateValues.add("submitted_by = -1");
+      updateValues.add("approved_by = -1");
+      updateValues.add("release_reference = null");
+      updateValues.add("content_text", HtmlCommand.text(StringUtils.trimToNull(record.getContent())));
+      SqlUtils where = new SqlUtils().add("draft_content IS NOT NULL AND content_unique_id = ?", record.getUniqueId());
+      if (DB.update(connection, TABLE_NAME, updateValues, where)) {
+        transaction.commit();
+        CacheManager.invalidateKey(CacheManager.CONTENT_UNIQUE_ID_CACHE, record.getUniqueId());
+      }
+    } catch (SQLException se) {
+      LOG.error("SQLException: " + se.getMessage());
     }
   }
 
@@ -251,6 +319,27 @@ public class ContentRepository {
     if (DB.update(TABLE_NAME, set, where)) {
       CacheManager.invalidateKey(CacheManager.CONTENT_UNIQUE_ID_CACHE, record.getUniqueId());
     }
+  }
+
+  /**
+   * Loads a prior version's content into the draft slot (#406) -- never touches the live content, so
+   * a subsequent publish is required to make the restored content live again. Also resets the
+   * governed-review fields unconditionally: unlike WebPageRepository#restoreDraftFromVersion (its
+   * #405 precedent, which leaves them untouched), a restore here always clears any
+   * draftStatus/submittedBy/approvedBy left over from whatever draft cycle was in progress before the
+   * restore -- otherwise a pending approval on the *old* draft could be inherited by the *restored*
+   * content, publishing it without ever actually being reviewed (the #957/#958 bypass shape).
+   */
+  public static boolean restoreDraftFromVersion(long contentId, String content) {
+    SqlUtils updateValues = new SqlUtils()
+        .add("draft_content", content)
+        .add("draft_content_format", 0)
+        .add("draft_status = null")
+        .add("submitted_by = -1")
+        .add("approved_by = -1")
+        .add("release_reference = null");
+    SqlUtils where = new SqlUtils().add("content_id = ?", contentId);
+    return DB.update(TABLE_NAME, updateValues, where);
   }
 
   public static boolean remove(Content record) {
