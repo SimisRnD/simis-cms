@@ -31,8 +31,10 @@ import com.simisinc.platform.domain.model.cms.MenuTab;
 import com.simisinc.platform.domain.model.cms.Stylesheet;
 import com.simisinc.platform.domain.model.cms.TableOfContents;
 import com.simisinc.platform.domain.model.cms.WebPage;
+import com.simisinc.platform.domain.model.cms.WebPagePreviewToken;
 import com.simisinc.platform.infrastructure.cache.PublishEventCachePurgeHandler;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.WebPagePreviewTokenRepository;
 import com.simisinc.platform.domain.model.items.Category;
 import com.simisinc.platform.domain.model.items.Collection;
 import com.simisinc.platform.domain.model.items.Item;
@@ -216,9 +218,21 @@ public class PageServlet extends HttpServlet {
 
       // Always access the webPage record so it can be used downstream
       WebPage webPage = LoadWebPageCommand.loadByLink(pagePath);
+
+      // Draft preview links (#419): a valid, unexpired bearer token lets an anonymous visitor
+      // view this page's current draft content at its real URL, before it's reviewed or
+      // published. Checked here, ahead of the draft-blocking and layout-resolution logic below,
+      // so both can be bypassed for exactly this one request.
+      boolean validPreviewToken = webPage != null
+          && WebPagePreviewTokenRepository.findValidToken(request.getParameter("previewToken"), webPage.getId(), pagePath) != null;
+      if (validPreviewToken) {
+        // A preview link renders unreviewed content -- never let it leak into a search index.
+        response.setHeader("X-Robots-Tag", "noindex");
+      }
+
       if (webPage != null) {
         // Determine if this is a draft page
-        if (isDraftBlockedFromPublicAccess(webPage, userSession)) {
+        if (!validPreviewToken && isDraftBlockedFromPublicAccess(webPage, userSession)) {
           LOG.error("DRAFT FOUND, no access: " + pagePath + " " + request.getRemoteAddr());
           controllerSession.clearAllWidgetData();
           response.sendError(HttpServletResponse.SC_NOT_FOUND);
@@ -400,6 +414,47 @@ public class PageServlet extends HttpServlet {
         WebPageRepository.removeDraft(webPage);
         LOG.info("Draft discarded for " + pagePath + " by user " + userSession.getUserId());
         response.getWriter().print("{\"success\":true}");
+        return;
+      }
+
+      // generatePreviewLink: issue a bearer token (#419) that lets an anonymous visitor view this
+      // page's current draft at its real URL, without publishing it
+      if ("generatePreviewLink".equals(request.getParameter("action"))
+          && request.getParameter("widget") == null
+          && pageLayoutMode) {
+        String formToken = request.getParameter("token");
+        if (!userSession.getFormToken().equals(formToken)) {
+          LOG.warn("generatePreviewLink CSRF token mismatch from " + request.getRemoteAddr());
+          response.setContentType("application/json");
+          response.setStatus(HttpServletResponse.SC_FORBIDDEN);
+          response.getWriter().print("{\"success\":false,\"error\":\"Session expired\"}");
+          return;
+        }
+        if (webPage == null || webPage.getId() == -1) {
+          response.setContentType("application/json");
+          response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+          response.getWriter().print("{\"success\":false,\"error\":\"Page not found\"}");
+          return;
+        }
+        if (StringUtils.isBlank(webPage.getDraftPageXml())) {
+          response.setContentType("application/json");
+          response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+          response.getWriter().print("{\"success\":false,\"error\":\"No draft to preview\"}");
+          return;
+        }
+        response.setContentType("application/json");
+        try {
+          WebPagePreviewToken previewToken = GeneratePreviewLinkCommand.generateFor(webPage, pagePath, userSession.getUserId());
+          ObjectMapper mapper = new ObjectMapper();
+          String link = buildPreviewLink(pagePath, request.getParameter("originalQuery"), previewToken.getToken());
+          response.getWriter().print("{\"success\":true,\"link\":" + mapper.writeValueAsString(link)
+              + ",\"expiresAt\":" + mapper.writeValueAsString(previewToken.getExpiresAt().toInstant().toString()) + "}");
+        } catch (Exception e) {
+          LOG.warn("generatePreviewLink failed for " + pagePath + ": " + e.getMessage());
+          response.setStatus(HttpServletResponse.SC_BAD_REQUEST);
+          String msg = e.getMessage() != null ? e.getMessage().replace("\"", "'") : "Could not create the preview link";
+          response.getWriter().print("{\"success\":false,\"error\":\"" + msg + "\"}");
+        }
         return;
       }
 
@@ -718,13 +773,27 @@ public class PageServlet extends HttpServlet {
       }
 
       // In edit mode, layout builders preview the draft layout (bypasses cache)
+      boolean previewingDraft = false;
       if (pageEditMode && EditorPermissionCommand.canBuildLayout(userSession)
           && webPage != null && StringUtils.isNotBlank(webPage.getDraftPageXml())) {
         Page draftRef = WebPageXmlLayoutCommand.parseFreshDraft(webPage, pagePath);
         if (draftRef != null) {
           pageRef = draftRef;
         }
+      } else if (validPreviewToken && webPage != null && StringUtils.isNotBlank(webPage.getDraftPageXml())) {
+        // Draft preview links (#419): the same live-updating draft render an editor gets above,
+        // for an anonymous visitor holding a valid token instead. A token that has outlived its
+        // draft (published or discarded since the link was generated) simply falls back to
+        // whatever pageRef already resolved to -- the current live page.
+        Page draftRef = WebPageXmlLayoutCommand.parseFreshDraft(webPage, pagePath);
+        if (draftRef != null) {
+          pageRef = draftRef;
+          previewingDraft = true;
+        }
       }
+      // Page-level request attribute read via JSP EL (main.jsp) -- must stay in sync with
+      // WebContainerCommand.PAGE_LEVEL_ATTRIBUTE_NAMES, like pageEditMode/hasDraft above.
+      request.setAttribute("previewingDraft", previewingDraft ? "true" : "false");
 
       // Load the properties
       Map<String, String> systemPropertyMap = LoadSitePropertyCommand.loadAsMap("system");
@@ -1414,6 +1483,30 @@ public class PageServlet extends HttpServlet {
    */
   static boolean isFormTokenValid(String requestToken, String sessionToken) {
     return StringUtils.isNotEmpty(requestToken) && sessionToken != null && sessionToken.equals(requestToken);
+  }
+
+  /**
+   * Builds a shareable preview link (#419) from the page path plus the caller's original query
+   * string (already percent-encoded by the client's own URLSearchParams), so a page addressed by a
+   * query parameter (e.g. {@code ?collectionId=5}) previews the same content the editor was
+   * looking at, not just the bare path. Any {@code previewToken} pair already present in {@code
+   * originalQuery} is dropped so the caller cannot smuggle in a second, conflicting token value.
+   */
+  static String buildPreviewLink(String pagePath, String originalQuery, String token) {
+    StringBuilder link = new StringBuilder(pagePath).append('?');
+    if (StringUtils.isNotBlank(originalQuery)) {
+      for (String pair : originalQuery.split("&")) {
+        if (pair.isEmpty()) {
+          continue;
+        }
+        String key = pair.contains("=") ? pair.substring(0, pair.indexOf('=')) : pair;
+        if ("previewToken".equals(key)) {
+          continue;
+        }
+        link.append(pair).append('&');
+      }
+    }
+    return link.append("previewToken=").append(token).toString();
   }
 
   /**

@@ -741,21 +741,29 @@ CREATE TABLE web_page_versions (
 );
 CREATE INDEX web_page_versions_web_idx ON web_page_versions(web_page_id, published_at DESC);
 
--- Content block version history (#406): the same pattern as web_page_versions above, but for
--- governed content blocks. One row per ContentRepository.publish() call, holding the outgoing
--- content -- rendered to plain HTML (DeltaContentCommand-aware) at snapshot time, so a block that
--- was published as Quill Delta on one cycle and legacy HTML on another still has a uniformly
--- diffable history, with no format stamp needed on this table. Rows are pruned to a configurable
--- cap (content.versionHistoryLimit) on insert; cascades on content deletion.
-CREATE TABLE content_versions (
-  content_version_id BIGSERIAL PRIMARY KEY,
-  content_id BIGINT REFERENCES content(content_id) ON DELETE CASCADE,
-  content TEXT,
-  approved_by BIGINT REFERENCES users(user_id),
-  published_at TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP NOT NULL,
-  release_reference VARCHAR(255)
+-- Draft preview links (#419): a time-limited bearer token that lets an anonymous visitor holding
+-- the link view a page's current draftPageXml at its real URL, before it's reviewed or published.
+-- Deliberately NOT tied to a specific web_page_versions row -- the preview always reflects
+-- whatever is currently in draftPageXml, the same live-updating view an editor already gets in
+-- pageEditMode (see PageServlet's parseFreshDraft usage). Expiry is enforced SQL-side by every
+-- lookup, so an expired row is simply inert rather than requiring a cleanup job to be correct.
+-- page_path pins the token to the exact URL it was minted for -- web_page_id alone is not enough
+-- because a wildcard page (link ending "/*", e.g. "/news/*") backs many distinct URLs from one row,
+-- and a token scoped only to web_page_id would validate against every one of them, not just the
+-- single URL the link recipient was shown (review finding on this issue). Every outstanding token
+-- for a page is also deleted the moment its draft is published or discarded (see
+-- WebPageRepository.publish()/removeDraft()), so a still-unexpired link can never later resurface
+-- a different, unrelated draft than the one it was generated for.
+CREATE TABLE web_page_preview_tokens (
+  web_page_preview_token_id BIGSERIAL PRIMARY KEY,
+  web_page_id BIGINT REFERENCES web_pages(web_page_id) ON DELETE CASCADE,
+  page_path VARCHAR(255) NOT NULL,
+  token VARCHAR(255) UNIQUE NOT NULL,
+  expires_at TIMESTAMP(3) NOT NULL,
+  created_by BIGINT REFERENCES users(user_id),
+  created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP NOT NULL
 );
-CREATE INDEX content_versions_content_idx ON content_versions(content_id, published_at DESC);
+CREATE INDEX web_page_preview_tokens_token_idx ON web_page_preview_tokens(token);
 
 -- Core Web Vitals RUM (Real User Monitoring, #429)
 -- Raw metrics collected from real page loads, one row per metric per page load

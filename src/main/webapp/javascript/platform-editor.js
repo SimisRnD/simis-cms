@@ -813,6 +813,67 @@
     return btn;
   }
 
+  // ── Preview link (#419) ──────────────────────────────────────────────────
+
+  function buildPreviewLinkButton() {
+    var btn = document.createElement('button');
+    btn.type = 'button';
+    btn.id = 'sc-preview-link-btn';
+    btn.className = 'button small hollow secondary';
+    btn.textContent = 'Get Preview Link';
+    if (toolbar.dataset.hasDraft !== 'true') btn.style.display = 'none';
+    btn.addEventListener('click', doGeneratePreviewLink);
+    var exitBtn = document.getElementById('sc-editor-exit');
+    if (exitBtn) toolbar.insertBefore(btn, exitBtn);
+    else toolbar.appendChild(btn);
+    return btn;
+  }
+
+  function doGeneratePreviewLink() {
+    var btn = document.getElementById('sc-preview-link-btn');
+    btn.disabled = true;
+    var originalLabel = btn.textContent;
+    btn.textContent = 'Generating…';
+    setToolbarStatus('Generating preview link…');
+
+    // Preserve the page's current query string (e.g. ?collectionId=5) so the generated link shows
+    // the reviewer the same content the editor was looking at, not just the bare path -- pagePath
+    // alone never carries it server-side. previewToken is stripped so a caller can't smuggle in a
+    // second, conflicting token value.
+    var originalQuery = new URLSearchParams(window.location.search);
+    originalQuery.delete('previewToken');
+
+    var qs = new URLSearchParams();
+    qs.append('action', 'generatePreviewLink');
+    qs.append('token', getToken());
+    qs.append('originalQuery', originalQuery.toString());
+
+    fetch(window.location.pathname + '?' + qs.toString(), {
+      method: 'POST',
+      headers: {'Content-Type': 'application/x-www-form-urlencoded'}
+    })
+    .then(function (resp) {
+      if (!resp.ok) throw new Error('HTTP ' + resp.status);
+      return resp.json();
+    })
+    .then(function (data) {
+      if (!data.success) throw new Error(data.error || 'Could not create the preview link');
+      var url = window.location.origin + data.link;
+      copyTextToClipboard(url).then(function () {
+        setToolbarStatus('Preview link copied to clipboard (expires ' + new Date(data.expiresAt).toLocaleString() + ')');
+      }, function () {
+        setToolbarStatus('Preview link: ' + url);
+      });
+      btn.disabled = false;
+      btn.textContent = originalLabel;
+    })
+    .catch(function (err) {
+      setToolbarStatus('Could not create preview link: ' + err.message);
+      btn.disabled = false;
+      btn.textContent = originalLabel;
+    });
+  }
+
   function doPublishDraft() {
     var btn = document.getElementById('sc-publish-btn');
     btn.disabled = true;
@@ -1628,7 +1689,8 @@
 
   if (layoutMode) {
     buildSaveLayoutButton();      // inserts before Exit
-    buildPublishButton();         // inserts before Exit (right of Save Layout)
+    buildPreviewLinkButton();     // inserts before Exit (right of Save Layout)
+    buildPublishButton();         // inserts before Exit (right of Preview Link)
     buildDiscardDraftButton();    // inserts before Exit (between Save Layout and Publish)
   }
 

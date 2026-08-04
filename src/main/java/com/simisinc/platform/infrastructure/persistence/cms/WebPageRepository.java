@@ -287,6 +287,12 @@ public class WebPageRepository {
         updated = pst.executeUpdate();
       }
       if (updated > 0) {
+        // Issue #419 review finding: a preview link is a standing credential to view this page's
+        // draft. Once the draft is consumed by publish, any outstanding token for it must stop
+        // working -- otherwise a still-unexpired link could later resurface a completely different,
+        // unrelated draft staged on this page afterward, which its holder was never shown or
+        // authorized to see.
+        WebPagePreviewTokenRepository.removeAllForPage(connection, record.getId());
         transaction.commit();
         // Force the page to re-cache
         WebPageXmlLayoutCommand.removeCustomPage(record.getLink());
@@ -331,6 +337,10 @@ public class WebPageRepository {
         + "draft_status = null, submitted_by = -1, approved_by = -1, release_reference = null";
     SqlUtils where = new SqlUtils().add("web_page_id = ?", record.getId());
     if (DB.update(TABLE_NAME, set, where)) {
+      // Issue #419 review finding: same reasoning as publish() above -- a discarded draft's
+      // preview links must stop working, or a still-unexpired one could later resurface a
+      // different draft staged on this page before it expires.
+      WebPagePreviewTokenRepository.removeAllForPage(record.getId());
       // Force the page to re-cache
       WebPageXmlLayoutCommand.removeCustomPage(record.getLink());
     }

@@ -19,6 +19,7 @@ package com.simisinc.platform.infrastructure.persistence.cms;
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -27,6 +28,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.sql.Timestamp;
 import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
 import java.util.Properties;
 
@@ -43,6 +45,7 @@ import org.testcontainers.utility.DockerImageName;
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.cms.ContentReviewCommand;
 import com.simisinc.platform.domain.model.cms.WebPage;
+import com.simisinc.platform.domain.model.cms.WebPagePreviewToken;
 import com.simisinc.platform.domain.model.cms.WebPageVersion;
 import com.simisinc.platform.infrastructure.database.DB;
 import com.simisinc.platform.infrastructure.database.DataSource;
@@ -379,6 +382,57 @@ class WebPageRepositoryTest {
         "a fresh draft must not inherit the prior cycle's approval -- it has to be resubmitted and reapproved");
   }
 
+  // --- publish() invalidates outstanding preview links (#419 review finding) ---
+
+  @Test
+  void publishInvalidatesAnyOutstandingPreviewTokenForThePage() {
+    // Without this, a still-unexpired preview link generated for the draft that was just published
+    // would keep validating afterward and could later resurface a completely different, unrelated
+    // draft staged on this page before the token expires -- the review finding on issue #419.
+    WebPage webPage = new WebPage();
+    webPage.setLink("/preview-then-publish");
+    webPage.setTitle("Preview Then Publish");
+    webPage.setEnabled(true);
+    webPage.setSearchable(true);
+    webPage.setCreatedBy(1L);
+    webPage.setDraftPageXml("<xml>v1</xml>");
+    webPage.setDraft(true);
+    WebPage saved = WebPageRepository.save(webPage);
+    String token = addPreviewToken(saved.getId(), "/preview-then-publish");
+
+    WebPageRepository.publish(saved, 42L, 20);
+
+    assertNull(WebPagePreviewTokenRepository.findValidToken(token, saved.getId(), "/preview-then-publish"),
+        "a preview token must stop working once its draft has been published");
+  }
+
+  @Test
+  void publishLeavesOtherPagesPreviewTokensAlone() {
+    WebPage published = new WebPage();
+    published.setLink("/gets-published");
+    published.setEnabled(true);
+    published.setSearchable(true);
+    published.setCreatedBy(1L);
+    published.setDraftPageXml("<xml>v1</xml>");
+    published.setDraft(true);
+    WebPage savedPublished = WebPageRepository.save(published);
+
+    WebPage untouched = new WebPage();
+    untouched.setLink("/stays-in-draft");
+    untouched.setEnabled(true);
+    untouched.setSearchable(true);
+    untouched.setCreatedBy(1L);
+    untouched.setDraftPageXml("<xml>still pending</xml>");
+    untouched.setDraft(true);
+    WebPage savedUntouched = WebPageRepository.save(untouched);
+    String untouchedToken = addPreviewToken(savedUntouched.getId(), "/stays-in-draft");
+
+    WebPageRepository.publish(savedPublished, 42L, 20);
+
+    assertNotNull(WebPagePreviewTokenRepository.findValidToken(untouchedToken, savedUntouched.getId(), "/stays-in-draft"),
+        "publishing one page must not invalidate an unrelated page's preview token");
+  }
+
   // --- removeDraft() clears the review workflow (#958) ---
 
   @Test
@@ -428,6 +482,27 @@ class WebPageRepositoryTest {
   }
 
   @Test
+  void removeDraftInvalidatesAnyOutstandingPreviewTokenForThePage() {
+    // Same reasoning as publish() above (#419 review finding): a preview link for a discarded
+    // draft must stop working immediately, or it could later resurface a different, unrelated
+    // draft staged on this page before the token expires.
+    WebPage webPage = new WebPage();
+    webPage.setLink("/preview-then-discard");
+    webPage.setEnabled(true);
+    webPage.setSearchable(true);
+    webPage.setCreatedBy(1L);
+    webPage.setDraftPageXml("<xml>pending</xml>");
+    webPage.setDraft(true);
+    WebPage saved = WebPageRepository.save(webPage);
+    String token = addPreviewToken(saved.getId(), "/preview-then-discard");
+
+    WebPageRepository.removeDraft(saved);
+
+    assertNull(WebPagePreviewTokenRepository.findValidToken(token, saved.getId(), "/preview-then-discard"),
+        "a preview token must stop working once its draft has been discarded");
+  }
+
+  @Test
   void restoreDraftFromVersionLoadsXmlIntoTheDraftSlotWithoutTouchingTheLivePage() {
     WebPage webPage = new WebPage();
     webPage.setLink("/restore-me");
@@ -445,6 +520,17 @@ class WebPageRepositoryTest {
     assertEquals("<xml>live</xml>", reloaded.getPageXml(), "restoring must not touch the live page_xml");
     assertEquals("<xml>restored</xml>", reloaded.getDraftPageXml());
     assertTrue(reloaded.getDraft());
+  }
+
+  private static String addPreviewToken(long webPageId, String pagePath) {
+    WebPagePreviewToken record = new WebPagePreviewToken();
+    record.setWebPageId(webPageId);
+    record.setPagePath(pagePath);
+    record.setToken(java.util.UUID.randomUUID().toString());
+    record.setExpiresAt(Timestamp.from(Instant.now().plusSeconds(3600)));
+    record.setCreatedBy(1L);
+    WebPagePreviewToken saved = WebPagePreviewTokenRepository.add(record);
+    return saved.getToken();
   }
 
   private static boolean isDockerAvailable() {
@@ -526,6 +612,18 @@ class WebPageRepositoryTest {
           + "published_by BIGINT, "
           + "published_at TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP NOT NULL, "
           + "label VARCHAR(255))");
+
+      // Draft preview links (#419) -- publish()/removeDraft() both delete a page's outstanding
+      // tokens, so this table must exist here even though this test never populates it directly.
+      statement.execute("DROP TABLE IF EXISTS web_page_preview_tokens CASCADE");
+      statement.execute("CREATE TABLE web_page_preview_tokens ("
+          + "web_page_preview_token_id BIGSERIAL PRIMARY KEY, "
+          + "web_page_id BIGINT REFERENCES web_pages(web_page_id) ON DELETE CASCADE, "
+          + "page_path VARCHAR(255) NOT NULL, "
+          + "token VARCHAR(255) UNIQUE NOT NULL, "
+          + "expires_at TIMESTAMP(3) NOT NULL, "
+          + "created_by BIGINT, "
+          + "created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP NOT NULL)");
     } catch (SQLException se) {
       throw new IllegalStateException("Could not create the web_pages schema", se);
     }

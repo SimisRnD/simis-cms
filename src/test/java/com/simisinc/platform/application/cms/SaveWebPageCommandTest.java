@@ -16,8 +16,10 @@
 
 package com.simisinc.platform.application.cms;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 
@@ -100,6 +102,35 @@ class SaveWebPageCommandTest {
       purge.verify(() -> PublishEventCachePurgeHandler.onPagePublished(any()), never());
       // The debounce that intentionally suppresses the activity-feed event must NOT suppress the purge
       workflow.verify(() -> WorkflowManager.triggerWorkflowForEvent(any()), never());
+    }
+  }
+
+  @Test
+  void savePersistsModifiedByFromTheBeanNotCreatedBy() throws Exception {
+    // createdBy and modifiedBy are set to different users -- e.g. an admin editing a page someone
+    // else originally created -- so a save that conflates the two (persisting createdBy's value
+    // into modifiedBy) is caught even though every current caller happens to set both to the same
+    // value, which would otherwise mask the bug.
+    WebPage bean = newPageBean("/about");
+    bean.setCreatedBy(1L);
+    bean.setModifiedBy(2L);
+
+    WebPage saved = new WebPage();
+    saved.setId(5L);
+    saved.setLink("/about");
+
+    try (MockedStatic<WebPageRepository> repository = mockStatic(WebPageRepository.class);
+        MockedStatic<WorkflowManager> workflow = mockStatic(WorkflowManager.class);
+        MockedStatic<PublishEventCachePurgeHandler> purge = mockStatic(PublishEventCachePurgeHandler.class)) {
+      repository.when(() -> WebPageRepository.save(any())).thenReturn(saved);
+
+      SaveWebPageCommand.saveWebPage(bean);
+
+      repository.verify(() -> WebPageRepository.save(argThat(page -> {
+        assertEquals(1L, page.getCreatedBy());
+        assertEquals(2L, page.getModifiedBy());
+        return true;
+      })));
     }
   }
 

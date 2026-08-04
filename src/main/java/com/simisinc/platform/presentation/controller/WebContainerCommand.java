@@ -71,7 +71,7 @@ public class WebContainerCommand implements Serializable {
   // leftovers can't bleed into the next widget's render. These names must be kept in sync with the
   // request.setAttribute(...) calls in PageServlet.java that set them.
   private static final Set<String> PAGE_LEVEL_ATTRIBUTE_NAMES = Set.of(
-      "pageEditMode", "pageLayoutMode", "hasDraft", "widgetLibraryJson", "cspNonce",
+      "pageEditMode", "pageLayoutMode", "hasDraft", "previewingDraft", "widgetLibraryJson", "cspNonce",
       "systemPropertyMap", "sitePropertyMap", "themePropertyMap", "socialPropertyMap",
       "socialMediaLinkList", "analyticsPropertyMap", "ecommercePropertyMap");
 
