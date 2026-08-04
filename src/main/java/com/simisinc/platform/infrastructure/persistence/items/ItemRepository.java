@@ -1013,6 +1013,15 @@ public class ItemRepository {
         }
         record.setCategoryIdList(categoryIdList.toArray(new Long[0]));
       }
+      // Populate tagIdList
+      List<ItemTag> tagList = ItemTagRepository.findAllByItemId(record.getId());
+      if (tagList != null) {
+        List<Long> tagIdList = new ArrayList<>();
+        for (ItemTag itemTag : tagList) {
+          tagIdList.add(itemTag.getTagId());
+        }
+        record.setTagIdList(tagIdList.toArray(new Long[0]));
+      }
       return record;
     } catch (SQLException se) {
       LOG.error("buildRecord", se);
