@@ -14,8 +14,8 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 -- rate-limit properties above.
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (30, 'IP Request Rate Alert Threshold (hits/hour)', 'security.ipRequestRateAlertThreshold', '300', 'text');
 
--- Issue #419: how long a generated draft-preview link stays valid before it stops showing the
--- draft and silently falls back to the live page. Under the "security" prefix (same as the
--- properties above) since it's a bearer-token TTL -- changing it requires step-up auth like
--- every other security-sensitive setting on this page.
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (40, 'Draft Preview Link Expiry (hours)', 'security.previewLinkTtlHours', '24', 'text');
+-- Issue #569 slice 2: configurable windows for the geographic-anomaly dashboard tile (a country
+-- newly appearing in the top 5 by session count). Same "security" prefix / step-up-auth placement
+-- as the properties above.
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (40, 'Geo Anomaly Baseline Window (days)', 'security.geoAnomalyBaselineDays', '30', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (41, 'Geo Anomaly Recent Window (hours)', 'security.geoAnomalyRecentHours', '24', 'text');

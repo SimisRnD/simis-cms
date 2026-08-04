@@ -52,9 +52,11 @@ import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import static com.simisinc.platform.presentation.widgets.dashboard.StatisticCardWidget.valueForColor;
 
@@ -537,6 +539,33 @@ public class SiteStatsWidget extends GenericWidget {
           LoadSitePropertyCommand.loadByName("security.ipRequestRateAlertThreshold"));
       context.getRequest().setAttribute("numberValue", String.valueOf(peakHitsPerIp));
       context.getRequest().setAttribute("severity", peakHitsPerIp > threshold ? "warning" : "ok");
+      return ALERT_CARD_JSP;
+    } else if ("geo-anomaly-alert".equalsIgnoreCase(report)) {
+      // Issue #569 slice 2: a geographic-anomaly signal -- a country appearing in the top 5 by
+      // session count during a short recent window that was NOT in the top 5 during a longer
+      // baseline window immediately preceding it. The baseline is non-overlapping with the recent
+      // window on purpose: if it were the same "last N days including today" window, a real recent
+      // spike would already be counted in its own baseline and could never look anomalous. Windows
+      // are configurable via security.geoAnomalyBaselineDays/security.geoAnomalyRecentHours.
+      int baselineDays = SessionRepository.resolveGeoAnomalyBaselineDays(
+          LoadSitePropertyCommand.loadByName("security.geoAnomalyBaselineDays"));
+      int recentHours = SessionRepository.resolveGeoAnomalyRecentHours(
+          LoadSitePropertyCommand.loadByName("security.geoAnomalyRecentHours"));
+      java.time.Instant nowInstant = java.time.Instant.now();
+      Timestamp recentStart = Timestamp.from(nowInstant.minus(Duration.ofHours(recentHours)));
+      Timestamp baselineStart = Timestamp.from(
+          nowInstant.minus(Duration.ofHours(recentHours)).minus(Duration.ofDays(baselineDays)));
+      List<StatisticsData> recentTopCountries = SessionRepository.findTopCountriesByCount(recentStart, Timestamp.from(nowInstant), 5);
+      List<StatisticsData> baselineTopCountries = SessionRepository.findTopCountriesByCount(baselineStart, recentStart, 5);
+      Set<String> baselineCountryNames = new HashSet<>();
+      for (StatisticsData data : baselineTopCountries) {
+        baselineCountryNames.add(data.getLabel());
+      }
+      long newCountryCount = recentTopCountries.stream()
+          .filter(data -> !baselineCountryNames.contains(data.getLabel()))
+          .count();
+      context.getRequest().setAttribute("numberValue", String.valueOf(newCountryCount));
+      context.getRequest().setAttribute("severity", newCountryCount > 0 ? "warning" : "ok");
       return ALERT_CARD_JSP;
     } else if ("recent-admin-actions".equalsIgnoreCase(report)) {
       context.getRequest().setAttribute("recentActionsList", findRecentAdminActions(5));
