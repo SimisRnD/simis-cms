@@ -242,6 +242,19 @@ class DatabaseMigrationTest {
   }
 
   @Test
+  void imageVariantsTableExistsOnAFreshInstall() throws SQLException {
+    // Issue #411: image_variants is added in BOTH NEW_10160__new_image_variants.sql (install/)
+    // and UPGRADE_20260803.1003__image_variants.sql (upgrade/) -- same install/upgrade mirroring
+    // gap class as webhookTablesExistOnAFreshInstall() above.
+    assertTrue(tableExists("image_variants"), "image_variants is missing on a fresh install");
+    assertTrue(columnExists("image_variants", "image_id"),
+        "image_variants.image_id is missing -- ImageVariantRepository queries will fail on a fresh install");
+    assertTrue(columnExists("image_variants", "variant_type"),
+        "image_variants.variant_type is missing -- ImageVariantRepository.findByImageIdAndVariantType() "
+            + "will fail on a fresh install");
+  }
+
+  @Test
   void featureFlagPropertiesSeedOnAFreshInstall() throws SQLException {
     // Issue #410: NEW_10150__new_feature_flag_properties.sql seeds the features.* site properties
     // that FeatureFlagCommand reads (through the cached/invalidated LoadSitePropertyCommand path --
