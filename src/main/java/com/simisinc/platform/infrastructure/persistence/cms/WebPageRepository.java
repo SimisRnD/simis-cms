@@ -274,7 +274,14 @@ public class WebPageRepository {
 
       int updated;
       try (PreparedStatement pst = connection.prepareStatement(
-          "UPDATE " + TABLE_NAME + " SET page_xml = draft_page_xml, draft_page_xml = null, draft = false "
+          "UPDATE " + TABLE_NAME + " SET page_xml = draft_page_xml, draft_page_xml = null, draft = false, "
+              // The draft is consumed, so clear its review workflow -- otherwise a stale
+              // draft_status="submitted"/approved_by from this cycle would let the *next* draft
+              // staged on this page (via SaveDraftLayoutCommand or a widget mutation) publish
+              // without ever being resubmitted or re-approved. Mirrors ContentRepository.publish()'s
+              // identical reset exactly; the durable record of who submitted and approved lives in
+              // the append-only audit trail, not here.
+              + "draft_status = null, submitted_by = -1, approved_by = -1, release_reference = null "
               + "WHERE draft_page_xml IS NOT NULL AND web_page_id = ?")) {
         pst.setLong(1, record.getId());
         updated = pst.executeUpdate();
