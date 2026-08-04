@@ -420,7 +420,16 @@ CREATE TABLE blog_posts (
   script_embed VARCHAR(512),
   tags_list VARCHAR(255),
   keywords VARCHAR(255),
-  body_text TEXT
+  body_text TEXT,
+  -- Governed publish workflow (issue #407, phase 2), mirroring web_pages'/content's own
+  -- draft_status/submitted_by/approved_by/release_reference exactly -- see
+  -- ContentReviewCommand/Reviewable. A blog post has no separate draft/live content split (unlike
+  -- web_pages' page_xml/draft_page_xml), so these columns govern only the initial
+  -- unpublished -> published transition.
+  draft_status VARCHAR(20),
+  submitted_by BIGINT DEFAULT -1,
+  approved_by BIGINT DEFAULT -1,
+  release_reference VARCHAR(255)
 );
 CREATE UNIQUE INDEX blog_posts_unique_idx ON blog_posts(blog_id, post_unique_id);
 CREATE INDEX blog_posts_geom_gix ON blog_posts USING GIST (geom);

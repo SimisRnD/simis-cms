@@ -1543,6 +1543,26 @@
     </section>
   </page>
 
+  <page name="/admin/blog-post-review{?blogPostId}" role="admin,content-manager" title="Blog Post Review">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Blogs" value="/admin/blogs" />
+            <link name="Post Review" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 medium-11 large-10 cell">
+        <widget name="blogPostReview">
+          <title>Review Blog Post</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
   <page name="/admin/calendars" role="admin,content-manager,community-manager" title="Calendars">
     <!--<section>-->
       <!--<column class="small-12 cell">-->

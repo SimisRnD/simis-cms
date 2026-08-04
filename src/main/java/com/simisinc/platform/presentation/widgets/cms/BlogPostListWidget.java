@@ -16,6 +16,7 @@
 
 package com.simisinc.platform.presentation.widgets.cms;
 
+import com.simisinc.platform.application.cms.ContentReviewCommand;
 import com.simisinc.platform.application.cms.NumberCommand;
 
 import com.simisinc.platform.application.cms.LoadBlogCommand;
@@ -30,7 +31,9 @@ import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import org.apache.commons.lang3.StringUtils;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Description
@@ -137,6 +140,20 @@ public class BlogPostListWidget extends GenericWidget {
     // Load the blog posts
     List<BlogPost> blogPostList = BlogPostRepository.findAll(blogPostSpecification, constraints);
     context.getRequest().setAttribute("blogPostList", blogPostList);
+
+    // Governed publish workflow status per post (#407, phase 2), keyed by post id -- only shown to
+    // admin/content-manager viewers (the same audience already shown unpublished posts here at all,
+    // see the specification.setPublishedOnly() gate above), and only for posts with a pending draft
+    // -- mirrors WebPageListWidget's identical webPageReviewStatusMap pattern.
+    Map<Long, String> blogPostReviewStatusMap = new HashMap<>();
+    if (context.hasRole("admin") || context.hasRole("content-manager")) {
+      for (BlogPost blogPost : blogPostList) {
+        if (blogPost.hasDraftContent()) {
+          blogPostReviewStatusMap.put(blogPost.getId(), ContentReviewCommand.listStatusLabel(blogPost));
+        }
+      }
+    }
+    context.getRequest().setAttribute("blogPostReviewStatusMap", blogPostReviewStatusMap);
 
     // See if an empty widget can be shown
     if (blogPostList.isEmpty()) {

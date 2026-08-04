@@ -112,6 +112,14 @@ public class SaveBlogPostCommand {
     blogPost.setPublished(blogPostBean.getPublished());
     blogPost.setStartDate(blogPostBean.getStartDate());
     blogPost.setEndDate(blogPostBean.getEndDate());
+    // Governed publish workflow fields (issue #407 phase 2) -- must be copied through so
+    // BlogEditorWidget's reset-on-unpublish (and its restore-existing-value mass-assignment guard)
+    // actually reaches the persisted record, rather than being silently discarded in favor of
+    // whatever this freshly-reloaded blogPost already had.
+    blogPost.setDraftStatus(blogPostBean.getDraftStatus());
+    blogPost.setSubmittedBy(blogPostBean.getSubmittedBy());
+    blogPost.setApprovedBy(blogPostBean.getApprovedBy());
+    blogPost.setReleaseReference(blogPostBean.getReleaseReference());
     // Tag assignments (issue #633)
     blogPost.setTagIdList(blogPostBean.getTagIdList());
     if (blogPost.getStartDate() == null && blogPost.getPublished() != null) {

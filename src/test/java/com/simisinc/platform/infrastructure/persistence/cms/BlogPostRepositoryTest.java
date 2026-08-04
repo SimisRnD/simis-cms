@@ -317,7 +317,15 @@ class BlogPostRepositoryTest {
           + "script_embed VARCHAR(512), "
           + "tags_list VARCHAR(255), "
           + "keywords VARCHAR(255), "
-          + "body_text TEXT)");
+          + "body_text TEXT, "
+          // Governed publish workflow (issue #407, phase 2) -- add/update write these
+          // unconditionally (no DB.hasColumn guard on writes, only on buildRecord's reads), so this
+          // throwaway schema needs them too, mirroring the same treatment web_pages' throwaway
+          // schemas got in MutateLayoutCommandIntegrationTest/SaveDraftLayoutCommandIntegrationTest.
+          + "draft_status VARCHAR(20), "
+          + "submitted_by BIGINT DEFAULT -1, "
+          + "approved_by BIGINT DEFAULT -1, "
+          + "release_reference VARCHAR(255))");
       statement.execute("CREATE UNIQUE INDEX blog_posts_unique_idx ON blog_posts(blog_id, post_unique_id)");
       statement.execute("CREATE TABLE blog_post_tags ("
           + "post_tag_id BIGSERIAL PRIMARY KEY, "
