@@ -152,4 +152,48 @@ class WebPageFormWidgetTest extends WidgetBase {
               && bean.getReleaseReference() == null)));
     }
   }
+
+  /**
+   * Issue #957: this widget has no content field of its own (web-page-form.jsp is metadata only --
+   * title, keywords, sitemap settings, publish/expire dates), but BeanUtils.populate() walks the
+   * *raw* HTTP parameter map, not the JSP's actual field set. Without capturing/restoring
+   * pageXml/draftPageXml the same way the four governed-workflow fields above are guarded, a crafted
+   * "pageXml" POST parameter would write straight to the live page through this widget's
+   * unconditional SaveWebPageCommand.saveWebPage() call -- the same review bypass #957 closes in
+   * WebPageDesignerWidget, reachable here too since this widget never even checks
+   * webPage.review.required. This proves the guard: a save that tries to inject new content for both
+   * fields leaves an existing page's real content completely untouched.
+   */
+  @Test
+  void postCannotInjectPageContentViaFormSave() throws Exception {
+    setRoles(widgetContext, ADMIN);
+
+    WebPage existing = new WebPage();
+    existing.setId(7L);
+    existing.setLink("/about");
+    existing.setTitle("About Us");
+    existing.setPageXml("<page><section><column><widget name=\"content\"><uniqueId>reviewed-and-live</uniqueId></widget></column></section></page>");
+    existing.setDraftPageXml(null);
+
+    addQueryParameter(widgetContext, "id", "7");
+    addQueryParameter(widgetContext, "link", "/about");
+    addQueryParameter(widgetContext, "title", "About Us");
+    // The attack: forge the content fields directly, bypassing WebPageDesignerWidget entirely.
+    addQueryParameter(widgetContext, "pageXml", "<page><section><column><widget name=\"content\"><uniqueId>injected</uniqueId></widget></column></section></page>");
+    addQueryParameter(widgetContext, "draftPageXml", "<page><section><column><widget name=\"content\"><uniqueId>injected-draft</uniqueId></widget></column></section></page>");
+
+    try (MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class);
+        MockedStatic<SaveWebPageCommand> saveCommand = mockStatic(SaveWebPageCommand.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      webPageRepository.when(() -> WebPageRepository.findById(7L)).thenReturn(existing);
+      saveCommand.when(() -> SaveWebPageCommand.saveWebPage(any(WebPage.class)))
+          .thenAnswer(invocation -> invocation.getArgument(0));
+
+      new WebPageFormWidget().post(widgetContext);
+
+      saveCommand.verify(() -> SaveWebPageCommand.saveWebPage(argThat(bean ->
+          bean.getPageXml().contains("reviewed-and-live")
+              && bean.getDraftPageXml() == null)));
+    }
+  }
 }
