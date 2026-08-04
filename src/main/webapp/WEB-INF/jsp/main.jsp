@@ -430,6 +430,7 @@
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/health-dashboard')}"> class="is-active"</c:if>><a href="${ctx}/admin/health-dashboard"><i class="${font:far()} fa-heart-pulse fa-fw"></i> <span>System Health</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/job-queue-dashboard')}"> class="is-active"</c:if>><a href="${ctx}/admin/job-queue-dashboard"><i class="${font:far()} fa-list-check fa-fw"></i> <span>Job Queue</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/database-maintenance')}"> class="is-active"</c:if>><a href="${ctx}/admin/database-maintenance"><i class="${font:far()} fa-database fa-fw"></i> <span>Database Maintenance</span></a></li>
+              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/cache-management')}"> class="is-active"</c:if>><a href="${ctx}/admin/cache-management"><i class="${font:far()} fa-bolt fa-fw"></i> <span>Cache Management</span></a></li>
             </c:if>
           </ul>
           <%-- Community menu --%>
