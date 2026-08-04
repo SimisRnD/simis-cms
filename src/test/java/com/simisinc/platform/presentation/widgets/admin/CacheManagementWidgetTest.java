@@ -95,7 +95,56 @@ class CacheManagementWidgetTest extends WidgetBase {
       assertEquals(5, objectCacheSummary.getEstimatedSize());
       assertEquals(10, objectCacheSummary.getHitCount());
       assertEquals(2, objectCacheSummary.getMissCount());
+      // 10 hits / 12 requests = 0.8333..., 2 misses / 12 requests = 0.1666...; asserted with a
+      // tolerance since CacheStats computes these as doubles. A transposed constructor argument
+      // (e.g. hitRate/missRate swapped, or evictionCount fed from the wrong stat) would otherwise
+      // ship undetected -- the earlier version of this test never checked these three fields at all.
+      assertEquals(10.0 / 12.0, objectCacheSummary.getHitRate(), 0.0001);
+      assertEquals(2.0 / 12.0, objectCacheSummary.getMissRate(), 0.0001);
+      assertEquals(0, objectCacheSummary.getEvictionCount());
       assertFalse(objectCacheSummary.isNeverCleared());
+
+      // appCacheMock was built with 0 evictions and mockCache(3, 0, 0, 0) -- assert the
+      // eviction-count wiring on a second, differently-shaped cache too.
+      assertEquals(0, appCacheSummary.getEvictionCount());
+    }
+  }
+
+  @Test
+  void executeReportsAnEmptyListWhenNoCachesAreRegistered() {
+    setRoles(widgetContext, ADMIN);
+
+    try (MockedStatic<CacheManager> cacheManager = mockStatic(CacheManager.class)) {
+      cacheManager.when(CacheManager::getCacheNames).thenReturn(Set.of());
+
+      WidgetContext result = new CacheManagementWidget().execute(widgetContext);
+
+      @SuppressWarnings("unchecked")
+      List<CacheManagementWidget.CacheSummary> cacheSummaryList =
+          (List<CacheManagementWidget.CacheSummary>) result.getRequest().getAttribute("cacheSummaryList");
+      assertTrue(cacheSummaryList.isEmpty());
+    }
+  }
+
+  @Test
+  void executeSkipsARegisteredNameWhoseCacheHasGoneMissing() {
+    // getCacheNames() and getCache(name) are two separate reads of the same underlying
+    // ConcurrentHashMap -- a name present in one snapshot could be absent by the time the other is
+    // read. buildCacheSummaryList()'s `if (cache == null) { continue; }` guard exists for exactly
+    // this race; this asserts it skips the row rather than throwing a NullPointerException trying
+    // to call .stats() on a null Cache.
+    setRoles(widgetContext, ADMIN);
+
+    try (MockedStatic<CacheManager> cacheManager = mockStatic(CacheManager.class)) {
+      cacheManager.when(CacheManager::getCacheNames).thenReturn(Set.of(CacheManager.OBJECT_CACHE));
+      cacheManager.when(() -> CacheManager.getCache(CacheManager.OBJECT_CACHE)).thenReturn(null);
+
+      WidgetContext result = new CacheManagementWidget().execute(widgetContext);
+
+      @SuppressWarnings("unchecked")
+      List<CacheManagementWidget.CacheSummary> cacheSummaryList =
+          (List<CacheManagementWidget.CacheSummary>) result.getRequest().getAttribute("cacheSummaryList");
+      assertTrue(cacheSummaryList.isEmpty());
     }
   }
 

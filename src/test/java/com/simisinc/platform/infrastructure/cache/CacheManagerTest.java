@@ -97,6 +97,31 @@ class CacheManagerTest {
   }
 
   @Test
+  void recordStatsIsActuallyEnabledSoHitAndMissCountsMoveOffZero() {
+    // The core of issue #463's CacheManager change is adding .recordStats() to every Caffeine
+    // builder in startup() -- without it, Cache.stats() always returns CacheStats.empty() (all
+    // zeros) regardless of how many times a cache is actually used. This drives a real
+    // miss-then-hit cycle and asserts both counters move, rather than trusting that the
+    // .recordStats() call site was wired up correctly. Uses deltas, not absolute counts, since
+    // OBJECT_CACHE is real JVM-wide static state other test classes may also be touching (see the
+    // class-level note above).
+    @SuppressWarnings("unchecked")
+    Cache<String, Object> objectCache = CacheManager.getCache(CacheManager.OBJECT_CACHE);
+    long hitsBefore = objectCache.stats().hitCount();
+    long missesBefore = objectCache.stats().missCount();
+
+    String key = "cache-manager-test-recordstats-key";
+    assertNull(objectCache.getIfPresent(key), "test setup: this key must not already be cached");
+    objectCache.put(key, "value");
+    assertNotNull(objectCache.getIfPresent(key));
+
+    assertTrue(objectCache.stats().missCount() > missesBefore,
+        "the first getIfPresent (a miss) must be recorded now that .recordStats() is enabled");
+    assertTrue(objectCache.stats().hitCount() > hitsBefore,
+        "the second getIfPresent (a hit) must be recorded now that .recordStats() is enabled");
+  }
+
+  @Test
   void invalidateAllCachesClearsEveryRegisteredCacheAndRecordsWhenEachWasCleared() {
     @SuppressWarnings("unchecked")
     Cache<String, Object> objectCache = CacheManager.getCache(CacheManager.OBJECT_CACHE);
