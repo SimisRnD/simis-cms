@@ -338,6 +338,7 @@ public class SitemapServlet extends HttpServlet {
     try {
       BlogPostSpecification spec = new BlogPostSpecification();
       spec.setPublishedOnly(true);
+      spec.setArchivedOnly(false);
       List<BlogPost> posts = BlogPostRepository.findAll(spec, null);
 
       if (posts != null) {

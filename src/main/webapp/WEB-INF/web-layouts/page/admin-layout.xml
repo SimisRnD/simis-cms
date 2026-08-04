@@ -1591,6 +1591,26 @@
     </section>
   </page>
 
+  <page name="/admin/blog-posts{?blogId}" role="admin,content-manager" title="Blog Posts">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Blogs" value="/admin/blogs" />
+            <link name="Blog Posts" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="adminBlogPostList">
+          <title>Blog Posts</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
   <page name="/admin/calendars" role="admin,content-manager,community-manager" title="Calendars">
     <!--<section>-->
       <!--<column class="small-12 cell">-->

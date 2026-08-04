@@ -183,6 +183,7 @@
   <widget name="blogTagsList" class="com.simisinc.platform.presentation.widgets.admin.cms.BlogTagsListWidget" />
   <widget name="blogTagForm" class="com.simisinc.platform.presentation.widgets.admin.cms.BlogTagFormWidget" />
   <widget name="blogPostReview" class="com.simisinc.platform.presentation.widgets.admin.cms.BlogPostReviewWidget" />
+  <widget name="adminBlogPostList" class="com.simisinc.platform.presentation.widgets.admin.cms.AdminBlogPostListWidget" />
   <widget name="calendarList" class="com.simisinc.platform.presentation.widgets.admin.cms.CalendarListWidget" />
   <widget name="calendarEventList" class="com.simisinc.platform.presentation.widgets.admin.cms.CalendarEventListWidget" />
   <widget name="calendarForm" class="com.simisinc.platform.presentation.widgets.admin.cms.CalendarFormWidget" />
