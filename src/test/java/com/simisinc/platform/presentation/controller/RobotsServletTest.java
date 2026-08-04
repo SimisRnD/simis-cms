@@ -19,8 +19,12 @@ package com.simisinc.platform.presentation.controller;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
@@ -175,5 +179,8 @@ class RobotsServletTest {
     }
 
     org.mockito.Mockito.verify(response).setStatus(HttpServletResponse.SC_INTERNAL_SERVER_ERROR);
+    // A 500 error response must not be cached -- a transient failure would otherwise get replayed
+    // to every visitor/CDN for up to a day instead of retried on the next request.
+    verify(response, never()).setHeader(eq("Cache-Control"), any());
   }
 }
