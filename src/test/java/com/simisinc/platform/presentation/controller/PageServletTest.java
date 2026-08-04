@@ -590,4 +590,33 @@ class PageServletTest {
 
     assertFalse(PageServlet.isPubliclyUnrestrictedPage(pageRef));
   }
+
+  // Issue #419 review finding: generatePreviewLink previously built the shareable link from
+  // pagePath alone, which never carries a query string (request.getRequestURI() never does), so a
+  // page addressed by a query parameter (e.g. a "?collectionId=5" collection page) silently lost
+  // that parameter in the generated link.
+
+  @Test
+  void buildPreviewLinkAppendsTheTokenWhenThereIsNoOriginalQuery() {
+    assertEquals("/some-page?previewToken=abc123", PageServlet.buildPreviewLink("/some-page", null, "abc123"));
+    assertEquals("/some-page?previewToken=abc123", PageServlet.buildPreviewLink("/some-page", "", "abc123"));
+  }
+
+  @Test
+  void buildPreviewLinkPreservesTheOriginalQueryString() {
+    assertEquals("/some-collection-page?collectionId=5&previewToken=abc123",
+        PageServlet.buildPreviewLink("/some-collection-page", "collectionId=5", "abc123"));
+  }
+
+  @Test
+  void buildPreviewLinkPreservesMultipleOriginalQueryParameters() {
+    assertEquals("/page?a=1&b=2&previewToken=abc123", PageServlet.buildPreviewLink("/page", "a=1&b=2", "abc123"));
+  }
+
+  @Test
+  void buildPreviewLinkDropsAPreviewTokenAlreadyPresentInTheOriginalQuery() {
+    // A caller cannot smuggle in a second, conflicting token value via originalQuery.
+    assertEquals("/page?a=1&previewToken=abc123",
+        PageServlet.buildPreviewLink("/page", "a=1&previewToken=SMUGGLED", "abc123"));
+  }
 }
