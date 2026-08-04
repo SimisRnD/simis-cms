@@ -155,7 +155,11 @@ class SessionRepositoryTest {
     seedSession("Canada", false, false, now);
     seedSession("Mexico", false, false, now);
 
-    List<StatisticsData> results = SessionRepository.findTopCountriesByCount(hoursAgo(1), now(), 5);
+    // Use a comfortably-future upper bound, not a freshly-computed now() -- otherwise this is flaky:
+    // findTopCountriesByCount's upper bound is exclusive (created < endDate), so if a second
+    // System.currentTimeMillis() call happens to land in the same millisecond as the seeded rows'
+    // "now" (or earlier, under scheduling jitter), they'd be excluded by their own query's boundary.
+    List<StatisticsData> results = SessionRepository.findTopCountriesByCount(hoursAgo(1), future(), 5);
 
     assertEquals(3, results.size());
     assertEquals("Brazil", results.get(0).getLabel());
@@ -172,7 +176,8 @@ class SessionRepositoryTest {
     seedSession("Brazil", true, false, now);
     seedSession("Canada", false, false, now);
 
-    List<StatisticsData> results = SessionRepository.findTopCountriesByCount(hoursAgo(1), now(), 5);
+    // Use a comfortably-future upper bound -- see findTopCountriesByCountOrdersByDescendingSessionCount for why.
+    List<StatisticsData> results = SessionRepository.findTopCountriesByCount(hoursAgo(1), future(), 5);
 
     assertEquals(1, results.size(), "Brazil's bot sessions must not count at all: " + results);
     assertEquals("Canada", results.get(0).getLabel());
@@ -185,7 +190,8 @@ class SessionRepositoryTest {
     seedSession(null, false, false, now);
     seedSession("Canada", false, false, now);
 
-    List<StatisticsData> results = SessionRepository.findTopCountriesByCount(hoursAgo(1), now(), 5);
+    // Use a comfortably-future upper bound -- see findTopCountriesByCountOrdersByDescendingSessionCount for why.
+    List<StatisticsData> results = SessionRepository.findTopCountriesByCount(hoursAgo(1), future(), 5);
 
     assertEquals(1, results.size(), "sessions with no resolved country can't be attributed to any country: " + results);
     assertEquals("Canada", results.get(0).getLabel());
@@ -199,7 +205,8 @@ class SessionRepositoryTest {
     Timestamp now = new Timestamp(System.currentTimeMillis());
     seedSession("Brazil", false, true, now);
 
-    List<StatisticsData> results = SessionRepository.findTopCountriesByCount(hoursAgo(1), now(), 5);
+    // Use a comfortably-future upper bound -- see findTopCountriesByCountOrdersByDescendingSessionCount for why.
+    List<StatisticsData> results = SessionRepository.findTopCountriesByCount(hoursAgo(1), future(), 5);
 
     assertEquals(1, results.size(), "an anonymous session's country must still count: " + results);
     assertEquals("Brazil", results.get(0).getLabel());
@@ -212,7 +219,8 @@ class SessionRepositoryTest {
     seedSession("Brazil", false, false, twoHoursAgo);
     seedSession("Canada", false, false, now);
 
-    List<StatisticsData> results = SessionRepository.findTopCountriesByCount(hoursAgo(1), now(), 5);
+    // Use a comfortably-future upper bound -- see findTopCountriesByCountOrdersByDescendingSessionCount for why.
+    List<StatisticsData> results = SessionRepository.findTopCountriesByCount(hoursAgo(1), future(), 5);
 
     assertEquals(1, results.size(), "the session outside the 1-hour window must not count: " + results);
     assertEquals("Canada", results.get(0).getLabel());
@@ -232,7 +240,8 @@ class SessionRepositoryTest {
     seedSession("Canada", false, false, now);
     seedSession("Mexico", false, false, now);
 
-    List<StatisticsData> results = SessionRepository.findTopCountriesByCount(hoursAgo(1), now(), 2);
+    // Use a comfortably-future upper bound -- see findTopCountriesByCountOrdersByDescendingSessionCount for why.
+    List<StatisticsData> results = SessionRepository.findTopCountriesByCount(hoursAgo(1), future(), 2);
 
     assertEquals(2, results.size());
   }
@@ -243,6 +252,17 @@ class SessionRepositoryTest {
 
   private static Timestamp now() {
     return new Timestamp(System.currentTimeMillis());
+  }
+
+  /**
+   * A query upper bound guaranteed to be strictly after anything seeded with {@code now()} in this
+   * test class, without relying on two separate {@code System.currentTimeMillis()} calls landing in
+   * different milliseconds. findTopCountriesByCount's upper bound is exclusive, so an upper bound
+   * that isn't comfortably ahead of the seeded data is a real source of flakiness, not just a
+   * theoretical one.
+   */
+  private static Timestamp future() {
+    return Timestamp.from(Instant.now().plusSeconds(60));
   }
 
   private static void seedSession(String country, boolean isBot, boolean isAnonymous, Timestamp created) {
