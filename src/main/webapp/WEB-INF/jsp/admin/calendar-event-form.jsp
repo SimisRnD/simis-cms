@@ -60,7 +60,7 @@
         </div>
       </label>
       <small class="help-text"><i class="fa fa-info-circle"></i> Format: mm-dd-yyyy hh:ii (e.g., 07-26-2026 14:30)</small>
-      <script>
+      <script nonce="${cspNonce}">
         $(function () {
           $('#startDate').fdatepicker({
             format: 'mm-dd-yyyy hh:ii',
@@ -80,7 +80,7 @@
         </div>
       </label>
       <small class="help-text"><i class="fa fa-info-circle"></i> Must be after start time</small>
-      <script>
+      <script nonce="${cspNonce}">
         $(function () {
           $('#endDate').fdatepicker({
             format: 'mm-dd-yyyy hh:ii',
