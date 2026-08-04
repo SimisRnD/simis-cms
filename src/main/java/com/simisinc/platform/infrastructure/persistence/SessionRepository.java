@@ -380,6 +380,70 @@ public class SessionRepository {
     return days;
   }
 
+  /**
+   * Top {@code recordLimit} countries by non-bot session count within the given window -- backs the
+   * geographic-anomaly alert (issue #569 slice 2): a country appearing in a short recent window's
+   * top list that was not in a longer baseline window's top list. Sessions with no resolved country
+   * (country IS NULL) are excluded, since they can't be attributed to any country's count.
+   *
+   * <p>Deliberately does NOT filter on is_anonymous, unlike {@link #findDailyUniqueLocations(int)}:
+   * SaveSessionCommand populates country/continent for every session, anonymous or not -- only
+   * city/postal/lat/long are anonymous-restricted. Filtering on is_anonymous here would silently
+   * undercount and could hide a real anomaly made up mostly of anonymous traffic.
+   */
+  public static List<StatisticsData> findTopCountriesByCount(Timestamp startDate, Timestamp endDate, int recordLimit) {
+    SqlUtils where = new SqlUtils()
+        .add("created >= ?", startDate)
+        .add("created < ?", endDate)
+        .add("is_bot = ?", false)
+        .add("country IS NOT NULL");
+    SqlUtils orderBy = new SqlUtils().add("country_count DESC");
+    return DB.selectGroupedFrom(TABLE_NAME, "country", "country_count", where, orderBy, recordLimit);
+  }
+
+  private static final int DEFAULT_GEO_ANOMALY_BASELINE_DAYS = 30;
+  private static final int DEFAULT_GEO_ANOMALY_RECENT_HOURS = 24;
+
+  /** Parses the configured geo-anomaly baseline window (days), defaulting to 30, matching resolveRetentionDays's precedent. */
+  public static int resolveGeoAnomalyBaselineDays(String value) {
+    if (StringUtils.isBlank(value)) {
+      return DEFAULT_GEO_ANOMALY_BASELINE_DAYS;
+    }
+    int days;
+    try {
+      days = Integer.parseInt(value.trim());
+    } catch (NumberFormatException e) {
+      return DEFAULT_GEO_ANOMALY_BASELINE_DAYS;
+    }
+    if (days < 1) {
+      return 1;
+    }
+    if (days > 365) {
+      return 365;
+    }
+    return days;
+  }
+
+  /** Parses the configured geo-anomaly recent window (hours), defaulting to 24, capped at one week. */
+  public static int resolveGeoAnomalyRecentHours(String value) {
+    if (StringUtils.isBlank(value)) {
+      return DEFAULT_GEO_ANOMALY_RECENT_HOURS;
+    }
+    int hours;
+    try {
+      hours = Integer.parseInt(value.trim());
+    } catch (NumberFormatException e) {
+      return DEFAULT_GEO_ANOMALY_RECENT_HOURS;
+    }
+    if (hours < 1) {
+      return 1;
+    }
+    if (hours > 168) {
+      return 168;
+    }
+    return hours;
+  }
+
   private static Session buildRecord(ResultSet rs) {
     try {
       Session record = new Session();
