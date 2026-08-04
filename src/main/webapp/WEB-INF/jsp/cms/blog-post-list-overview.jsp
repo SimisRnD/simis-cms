@@ -27,6 +27,7 @@
 <jsp:useBean id="blogPostList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="recordPaging" class="com.simisinc.platform.infrastructure.database.DataConstraints" scope="request"/>
 <jsp:useBean id="showReadMore" class="java.lang.String" scope="request"/>
+<jsp:useBean id="blogPostReviewStatusMap" class="java.util.HashMap" scope="request"/>
 <c:if test="${!empty title}">
   <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
   <hr />
@@ -42,6 +43,14 @@
         <a href="${ctx}/${blog.uniqueId}/${blogPost.uniqueId}">${html:toHtml(blogPost.title)}</a>
         <c:if test="${empty blogPost.published}"><span class="label warning">not published</span></c:if>
         <c:if test="${date:isAfterNow(blogPost.startDate)}"><span class="label success">Set to display <c:out value="${date:relative(blogPost.startDate)}"/></span></c:if>
+        <%-- Governed publish workflow status (issue #407, phase 2) -- only present in the map for
+             admin/content-manager viewers, and only when the post has a pending draft awaiting
+             review; mirrors WebPageListWidget/web-page-list.jsp's identical status label. --%>
+        <c:if test="${!empty blogPostReviewStatusMap[blogPost.id]}">
+          <a href="${ctx}/admin/blog-post-review?blogPostId=${blogPost.id}" class="secondary label">
+            <i class="fa fa-clipboard-check"></i> <c:out value="${blogPostReviewStatusMap[blogPost.id]}" />
+          </a>
+        </c:if>
       </h5>
       <c:if test="${!empty blogPost.startDate}">
         <small>

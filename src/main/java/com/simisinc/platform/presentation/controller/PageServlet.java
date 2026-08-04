@@ -738,6 +738,19 @@ public class PageServlet extends HttpServlet {
       AnalyticsTrackingIdCommand.sanitize(analyticsPropertyMap);
       Map<String, String> ecommercePropertyMap = LoadSitePropertyCommand.loadAsMap("ecommerce");
 
+      // Publish these before any widget renders (below), not just for main.jsp/layout.jsp
+      // afterward -- a widget JSP (e.g. ActivityListWidget's activity-list.jsp) that reads
+      // systemPropertyMap/etc directly needs them during its own JSP turn, not just once the
+      // whole page/header/footer walk is done. WebContainerCommand.PAGE_LEVEL_ATTRIBUTE_NAMES
+      // must keep exempting these names from that walk's per-widget request attribute reset.
+      request.setAttribute("systemPropertyMap", systemPropertyMap);
+      request.setAttribute("sitePropertyMap", sitePropertyMap);
+      request.setAttribute("themePropertyMap", themePropertyMap);
+      request.setAttribute("socialPropertyMap", socialPropertyMap);
+      request.setAttribute("socialMediaLinkList", socialMediaLinkList);
+      request.setAttribute("analyticsPropertyMap", analyticsPropertyMap);
+      request.setAttribute("ecommercePropertyMap", ecommercePropertyMap);
+
       // Allow content admins to see a page
       if (pageRef == null &&
           (userSession.hasRole("admin") ||
@@ -999,15 +1012,6 @@ public class PageServlet extends HttpServlet {
         // site's admin-configured contact-form page
         FunnelEventCommand.recordContactFormPageView(pagePath, userSession != null ? userSession.getSessionId() : null);
       }
-
-      // Allow the layout to use the properties
-      request.setAttribute("systemPropertyMap", systemPropertyMap);
-      request.setAttribute("sitePropertyMap", sitePropertyMap);
-      request.setAttribute("themePropertyMap", themePropertyMap);
-      request.setAttribute("socialPropertyMap", socialPropertyMap);
-      request.setAttribute("socialMediaLinkList", socialMediaLinkList);
-      request.setAttribute("analyticsPropertyMap", analyticsPropertyMap);
-      request.setAttribute("ecommercePropertyMap", ecommercePropertyMap);
 
       // Determine global items
       if (userSession.isLoggedIn() || "true".equals(sitePropertyMap.getOrDefault("site.online", "false"))) {

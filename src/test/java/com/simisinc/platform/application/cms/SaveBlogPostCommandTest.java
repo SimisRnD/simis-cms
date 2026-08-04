@@ -14,17 +14,18 @@
  * limitations under the License.
  */
 
-package com.simisinc.platform.infrastructure.persistence.cms;
+package com.simisinc.platform.application.cms;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.time.Duration;
 import java.util.Properties;
 
@@ -38,24 +39,28 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.containers.wait.strategy.Wait;
 import org.testcontainers.utility.DockerImageName;
 
-import com.simisinc.platform.domain.model.cms.Blog;
 import com.simisinc.platform.domain.model.cms.BlogPost;
 import com.simisinc.platform.infrastructure.database.DB;
 import com.simisinc.platform.infrastructure.database.DataSource;
+import com.simisinc.platform.infrastructure.persistence.cms.BlogPostRepository;
 
 /**
- * Verifies {@link BlogRepository#remove}'s cascading cleanup against a real PostgreSQL instance
- * (issue #633): deleting a blog must remove its posts' blog_post_tags rows, its own
- * lookup_blog_post_tags vocabulary, and the posts, in an order that never violates a foreign key
- * -- none of blog_post_tags.post_id, blog_post_tags.tag_id, or lookup_blog_post_tags.blog_id have
- * ON DELETE CASCADE (confirmed by reading NEW_10010__new_cms.sql).
+ * Verifies {@link SaveBlogPostCommand#saveBlogPost}, in particular that it actually persists the
+ * governed publish workflow fields (issue #407 phase 2: draftStatus/submittedBy/approvedBy/
+ * releaseReference) from the bean it is given.
+ *
+ * <p>This command previously loaded a fresh copy of the existing record from the repository and
+ * copied over only an explicit allow-list of business fields, silently dropping those four --
+ * which made {@code BlogEditorWidget}'s reset-on-unpublish (added for #407 phase 2, to close the
+ * unpublish -> edit -> republish review bypass) inert: the widget computed the correct reset
+ * values on its bean, but they never reached the persisted record.</p>
  *
  * <p>Integration test: starts a throwaway PostgreSQL container (Testcontainers) and is skipped
  * automatically when Docker is not available.</p>
  *
  * @author SimIS Inc.
  */
-class BlogRepositoryTest {
+class SaveBlogPostCommandTest {
 
   private static final String DEFAULT_IMAGE = "postgres:15-alpine";
   private static final int POSTGRES_PORT = 5432;
@@ -68,7 +73,7 @@ class BlogRepositoryTest {
   @BeforeAll
   static void startDatabase() {
     Assumptions.assumeTrue(isDockerAvailable(),
-        "Docker is not available - skipping BlogRepository integration test");
+        "Docker is not available - skipping SaveBlogPostCommand integration test");
 
     postgres = new GenericContainer<>(DockerImageName.parse(resolveImage()))
         .withEnv("POSTGRES_USER", DB_USER)
@@ -113,75 +118,98 @@ class BlogRepositoryTest {
     }
     try (Connection connection = DB.getConnection();
         Statement statement = connection.createStatement()) {
-      statement.execute("TRUNCATE TABLE blog_post_tags, lookup_blog_post_tags, blog_posts, blogs RESTART IDENTITY CASCADE");
+      statement.execute("TRUNCATE TABLE blog_posts, blogs RESTART IDENTITY CASCADE");
     } catch (SQLException se) {
       throw new IllegalStateException("Could not reset tables", se);
     }
   }
 
   @Test
-  void removeDeletesTheBlogItsPostsItsTagVocabularyAndTheirJoinRowsWithoutAForeignKeyViolation() {
-    Blog blog = new Blog();
-    blog.setUniqueId("news-" + System.nanoTime());
-    blog.setName("News");
-    blog.setCreatedBy(1);
-    blog.setModifiedBy(1);
-    blog.setEnabled(true);
-    Blog savedBlog = BlogRepository.add(blog);
-    assertTrue(savedBlog.getId() > -1);
+  void updateCopiesTheGovernedWorkflowFieldsFromTheBeanOntoThePersistedRecord() throws Exception {
+    long blogId = addBlog();
 
-    long tagId = addTag(savedBlog.getId(), "fiction");
+    // Seed a post that already went through submit -> approve -> publish, as if a prior editing
+    // session had legitimately done so
+    BlogPost existing = new BlogPost();
+    existing.setBlogId(blogId);
+    existing.setUniqueId("a-post");
+    existing.setTitle("Original Title");
+    existing.setBody("Original body");
+    existing.setCreatedBy(1);
+    existing.setModifiedBy(1);
+    existing.setPublished(new Timestamp(System.currentTimeMillis()));
+    existing.setDraftStatus("SUBMITTED");
+    existing.setSubmittedBy(3L);
+    existing.setApprovedBy(7L);
+    existing.setReleaseReference("CR-1234");
+    BlogPost saved = BlogPostRepository.add(existing);
+    assertNotNull(saved);
 
-    BlogPost post = new BlogPost();
-    post.setBlogId(savedBlog.getId());
-    post.setUniqueId("a-post");
-    post.setTitle("A Post");
-    post.setBody("Some body content");
-    post.setCreatedBy(1);
-    post.setModifiedBy(1);
-    post.setTagIdList(new Long[] { tagId });
-    BlogPost savedPost = BlogPostRepository.add(post);
-    assertEquals(1, countBlogPostTags());
+    // This mirrors what BlogEditorWidget.post() builds after unpublishing an already-approved
+    // post (issue #407 phase 2's fix): same id, published cleared, and the four governance
+    // fields reset back to their "never submitted" defaults
+    BlogPost unpublishBean = new BlogPost();
+    unpublishBean.setId(saved.getId());
+    unpublishBean.setBlogId(blogId);
+    unpublishBean.setUniqueId("a-post");
+    unpublishBean.setTitle("Original Title, edited");
+    unpublishBean.setBody("New body, never reviewed");
+    unpublishBean.setCreatedBy(1);
+    unpublishBean.setModifiedBy(1);
+    unpublishBean.setPublished(null);
+    unpublishBean.setDraftStatus(null);
+    unpublishBean.setSubmittedBy(-1);
+    unpublishBean.setApprovedBy(-1);
+    unpublishBean.setReleaseReference(null);
 
-    assertTrue(BlogRepository.remove(savedBlog));
+    BlogPost result = SaveBlogPostCommand.saveBlogPost(unpublishBean);
+    assertNotNull(result);
 
-    assertNull(BlogRepository.findById(savedBlog.getId()));
-    assertNull(BlogPostRepository.findById(savedPost.getId()));
-    assertNull(BlogTagRepository.findById(tagId));
-    assertEquals(0, countBlogPostTags());
+    BlogPost reloaded = BlogPostRepository.findById(saved.getId());
+    assertNotNull(reloaded);
+    assertNull(reloaded.getPublished(), "the post must actually be unpublished");
+    assertNull(reloaded.getDraftStatus(),
+        "draftStatus must be reset on the persisted record, not just on the in-memory bean");
+    assertEquals(-1L, reloaded.getSubmittedBy());
+    assertEquals(-1L, reloaded.getApprovedBy());
+    assertNull(reloaded.getReleaseReference());
   }
 
   @Test
-  void removeDoesNotTouchAnotherBlogsTagsOrPosts() {
-    Blog blogA = addBlogViaRepository();
-    Blog blogB = addBlogViaRepository();
-    long tagOnB = addTag(blogB.getId(), "history");
-    BlogPost postOnB = new BlogPost();
-    postOnB.setBlogId(blogB.getId());
-    postOnB.setUniqueId("post-on-b");
-    postOnB.setTitle("Post On B");
-    postOnB.setBody("Body");
-    postOnB.setCreatedBy(1);
-    postOnB.setModifiedBy(1);
-    postOnB.setTagIdList(new Long[] { tagOnB });
-    BlogPost savedPostOnB = BlogPostRepository.add(postOnB);
+  void updatePersistsNewlySubmittedApprovalStateOntoTheRecord() throws Exception {
+    long blogId = addBlog();
 
-    assertTrue(BlogRepository.remove(blogA));
+    BlogPost existing = new BlogPost();
+    existing.setBlogId(blogId);
+    existing.setUniqueId("a-post");
+    existing.setTitle("Title");
+    existing.setBody("Body");
+    existing.setCreatedBy(1);
+    existing.setModifiedBy(1);
+    BlogPost saved = BlogPostRepository.add(existing);
 
-    assertNull(BlogRepository.findById(blogA.getId()));
-    assertEquals(blogB.getId(), BlogRepository.findById(blogB.getId()).getId());
-    assertEquals(tagOnB, BlogTagRepository.findById(tagOnB).getId());
-    assertEquals(savedPostOnB.getId(), BlogPostRepository.findById(savedPostOnB.getId()).getId());
-  }
+    // Mirrors BlogPostReviewWidget's approve action: draftStatus/approvedBy/releaseReference are
+    // now meant to be persisted from the bean, not silently dropped
+    BlogPost approveBean = new BlogPost();
+    approveBean.setId(saved.getId());
+    approveBean.setBlogId(blogId);
+    approveBean.setUniqueId("a-post");
+    approveBean.setTitle("Title");
+    approveBean.setBody("Body");
+    approveBean.setCreatedBy(1);
+    approveBean.setModifiedBy(1);
+    approveBean.setDraftStatus("APPROVED");
+    approveBean.setSubmittedBy(3L);
+    approveBean.setApprovedBy(9L);
+    approveBean.setReleaseReference("CR-5678");
 
-  private static Blog addBlogViaRepository() {
-    Blog blog = new Blog();
-    blog.setUniqueId("blog-" + System.nanoTime());
-    blog.setName("A Blog");
-    blog.setCreatedBy(1);
-    blog.setModifiedBy(1);
-    blog.setEnabled(true);
-    return BlogRepository.add(blog);
+    SaveBlogPostCommand.saveBlogPost(approveBean);
+
+    BlogPost reloaded = BlogPostRepository.findById(saved.getId());
+    assertEquals("APPROVED", reloaded.getDraftStatus());
+    assertEquals(3L, reloaded.getSubmittedBy());
+    assertEquals(9L, reloaded.getApprovedBy());
+    assertEquals("CR-5678", reloaded.getReleaseReference());
   }
 
   private static boolean isDockerAvailable() {
@@ -208,21 +236,15 @@ class BlogRepositoryTest {
           + "blog_id BIGSERIAL PRIMARY KEY, "
           + "blog_unique_id VARCHAR(255) UNIQUE NOT NULL, "
           + "name VARCHAR(255) NOT NULL, "
-          + "description TEXT, "
           + "created_by BIGINT, "
           + "created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP, "
           + "modified_by BIGINT, "
           + "modified TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP, "
-          + "enabled BOOLEAN DEFAULT true, "
-          + "mailing_list_id BIGINT)");
-      statement.execute("CREATE TABLE lookup_blog_post_tags ("
-          + "tag_id BIGSERIAL PRIMARY KEY, "
-          + "blog_id BIGINT REFERENCES blogs(blog_id) NOT NULL, "
-          + "tag_unique_id VARCHAR(255) NOT NULL, "
-          + "name VARCHAR(255) NOT NULL, "
-          + "created_by BIGINT, "
-          + "created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP)");
-      statement.execute("CREATE UNIQUE INDEX lookup_bl_po_tag_uidx ON lookup_blog_post_tags (blog_id, tag_unique_id)");
+          + "enabled BOOLEAN DEFAULT true)");
+      // Columns match NEW_10010__new_cms.sql's blog_posts for everything
+      // SaveBlogPostCommand/BlogPostRepository's add/update/buildRecord touch; geom/tsv (and the
+      // tsv trigger, which needs the 'title_stem' text search configuration created elsewhere and
+      // PostGIS) are intentionally omitted since neither is read or written by this test.
       statement.execute("CREATE TABLE blog_posts ("
           + "post_id BIGSERIAL PRIMARY KEY, "
           + "blog_id BIGINT REFERENCES blogs(blog_id) NOT NULL, "
@@ -245,48 +267,41 @@ class BlogRepositoryTest {
           + "tags_list VARCHAR(255), "
           + "keywords VARCHAR(255), "
           + "body_text TEXT, "
-          // Governed publish workflow (issue #407, phase 2) -- BlogPostRepository.add() below
-          // writes these columns unconditionally, so this throwaway schema needs them too.
           + "draft_status VARCHAR(20), "
           + "submitted_by BIGINT DEFAULT -1, "
           + "approved_by BIGINT DEFAULT -1, "
           + "release_reference VARCHAR(255))");
       statement.execute("CREATE UNIQUE INDEX blog_posts_unique_idx ON blog_posts(blog_id, post_unique_id)");
+      // BlogPostRepository.findById() also loads tags; these are otherwise-unused by this test
+      // but avoid it logging "relation does not exist" noise for every reload.
+      statement.execute("CREATE TABLE lookup_blog_post_tags ("
+          + "tag_id BIGSERIAL PRIMARY KEY, "
+          + "blog_id BIGINT REFERENCES blogs(blog_id) NOT NULL, "
+          + "tag_unique_id VARCHAR(255) NOT NULL, "
+          + "name VARCHAR(255) NOT NULL, "
+          + "created_by BIGINT, "
+          + "created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP)");
       statement.execute("CREATE TABLE blog_post_tags ("
           + "post_tag_id BIGSERIAL PRIMARY KEY, "
           + "post_id BIGINT REFERENCES blog_posts(post_id), "
           + "tag_id BIGINT REFERENCES lookup_blog_post_tags(tag_id))");
-      statement.execute("CREATE UNIQUE INDEX blog_post_tags_uidx ON blog_post_tags(post_id, tag_id)");
     } catch (SQLException se) {
       throw new IllegalStateException("Could not create the test schema", se);
     }
   }
 
-  private static long addTag(long blogId, String uniqueId) {
-    String name = Character.toUpperCase(uniqueId.charAt(0)) + uniqueId.substring(1);
+  private static long addBlog() {
     try (Connection connection = DB.getConnection();
         PreparedStatement pst = connection.prepareStatement(
-            "INSERT INTO lookup_blog_post_tags (blog_id, tag_unique_id, name, created_by) VALUES (?, ?, ?, 1) RETURNING tag_id")) {
-      pst.setLong(1, blogId);
-      pst.setString(2, uniqueId);
-      pst.setString(3, name);
+            "INSERT INTO blogs (blog_unique_id, name, created_by, modified_by) VALUES (?, ?, 1, 1) RETURNING blog_id")) {
+      pst.setString(1, "blog-" + System.nanoTime());
+      pst.setString(2, "A Blog");
       try (ResultSet rs = pst.executeQuery()) {
         rs.next();
         return rs.getLong(1);
       }
     } catch (SQLException se) {
-      throw new IllegalStateException("Could not insert a blog tag", se);
-    }
-  }
-
-  private static long countBlogPostTags() {
-    try (Connection connection = DB.getConnection();
-        PreparedStatement pst = connection.prepareStatement("SELECT COUNT(*) FROM blog_post_tags");
-        ResultSet rs = pst.executeQuery()) {
-      rs.next();
-      return rs.getLong(1);
-    } catch (SQLException se) {
-      throw new IllegalStateException("Could not count blog_post_tags", se);
+      throw new IllegalStateException("Could not insert a blog", se);
     }
   }
 }
