@@ -1360,6 +1360,26 @@
     </section>
   </page>
 
+  <page name="/admin/content-versions" role="admin,content-manager" title="Content Version History">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Content" value="/admin/content-list" />
+            <link name="Version History" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="contentVersionsList">
+          <title>Version History</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
   <page name="/admin/web-page-versions" role="admin,content-manager" title="Web Page Version History">
     <section>
       <column class="small-12 cell">

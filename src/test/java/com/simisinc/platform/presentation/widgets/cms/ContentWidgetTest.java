@@ -20,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
@@ -254,7 +255,7 @@ class ContentWidgetTest extends WidgetBase {
       ContentWidget contentWidget = new ContentWidget();
       widgetContext = contentWidget.action(widgetContext);
 
-      contentRepository.verify(() -> ContentRepository.publish(content));
+      contentRepository.verify(() -> ContentRepository.publish(eq(content), anyInt()));
     }
   }
 
@@ -293,7 +294,7 @@ class ContentWidgetTest extends WidgetBase {
       ContentWidget contentWidget = new ContentWidget();
       widgetContext = contentWidget.action(widgetContext);
 
-      contentRepository.verify(() -> ContentRepository.publish(content));
+      contentRepository.verify(() -> ContentRepository.publish(eq(content), anyInt()));
       purge.verify(() -> PublishEventCachePurgeHandler.onPageUpdated(webPage));
     }
   }
@@ -403,7 +404,7 @@ class ContentWidgetTest extends WidgetBase {
       assertDoesNotThrow(() -> contentWidget.action(widgetContext));
       long elapsed = System.currentTimeMillis() - start;
 
-      contentRepository.verify(() -> ContentRepository.publish(content));
+      contentRepository.verify(() -> ContentRepository.publish(eq(content), anyInt()));
       assertTrue(elapsed < 2000L,
           "Expected the unconfigured AFD purge path to return fast, took " + elapsed + "ms");
     }
@@ -462,6 +463,7 @@ class ContentWidgetTest extends WidgetBase {
         MockedStatic<ContentReviewCommand> contentReview = mockStatic(ContentReviewCommand.class);
         MockedStatic<ContentRepository> contentRepository = mockStatic(ContentRepository.class);
         MockedStatic<AuditEventCommand> auditEvent = mockStatic(AuditEventCommand.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
         MockedStatic<LoadWebPageCommand> loadWebPage = mockStatic(LoadWebPageCommand.class);
         MockedStatic<PublishEventCachePurgeHandler> purge = mockStatic(PublishEventCachePurgeHandler.class)) {
       loadContent.when(() -> LoadContentCommand.loadContentByUniqueId(eq("hello-content"))).thenReturn(content);
@@ -469,11 +471,13 @@ class ContentWidgetTest extends WidgetBase {
       // Step-up already satisfied for this session -- the approval itself is what's under test here.
       stepUpAuth.when(() -> StepUpAuthCommand.isValid(any())).thenReturn(true);
       loadWebPage.when(() -> LoadWebPageCommand.loadByLink("/example/path")).thenReturn(webPage);
+      // #406: approveContent() now resolves content.versionHistoryLimit before publishing.
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName(anyString())).thenReturn(null);
 
       ContentHtmlCommand.performContentApproval(widgetContext);
 
       contentReview.verify(() -> ContentReviewCommand.approve(content, widgetContext.getUserId(), "CR-1234"));
-      contentRepository.verify(() -> ContentRepository.publish(content));
+      contentRepository.verify(() -> ContentRepository.publish(eq(content), anyInt()));
       purge.verify(() -> PublishEventCachePurgeHandler.onPageUpdated(webPage));
       Assertions.assertEquals("The content was approved and published", widgetContext.getSuccessMessage());
     }
@@ -501,7 +505,7 @@ class ContentWidgetTest extends WidgetBase {
 
       ContentHtmlCommand.performContentApproval(widgetContext);
 
-      contentRepository.verify(() -> ContentRepository.publish(any()), never());
+      contentRepository.verify(() -> ContentRepository.publish(any(), anyInt()), never());
       purge.verifyNoInteractions();
     }
   }
@@ -533,7 +537,7 @@ class ContentWidgetTest extends WidgetBase {
 
       ContentHtmlCommand.performContentApproval(widgetContext);
 
-      contentRepository.verify(() -> ContentRepository.publish(any()), never());
+      contentRepository.verify(() -> ContentRepository.publish(any(), anyInt()), never());
       purge.verifyNoInteractions();
       Assertions.assertEquals("You cannot approve your own submission", widgetContext.getErrorMessage());
     }

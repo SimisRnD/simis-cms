@@ -173,6 +173,7 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (2, 'Password Age Warning Threshold (days)', 'password.maxAgeDays', '90', 'text');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (11, 'Form submission failure retention (days)', 'formData.failureRetentionDays', '90');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (12, 'Web page version history limit (per page)', 'webPage.versionHistoryLimit', '20', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (13, 'Content block version history limit (per block)', 'content.versionHistoryLimit', '20', 'text');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (10, 'Analytics Service', 'analytics.service', 'google');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (7, 'Honor Do-Not-Track / Global Privacy Control?', 'analytics.honorDnt', 'false', 'boolean');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (9, 'Require visitor consent before loading analytics?', 'analytics.consentRequired', 'false', 'boolean');
