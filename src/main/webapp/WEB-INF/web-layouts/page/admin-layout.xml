@@ -525,6 +525,17 @@
     </section>
   </page>
 
+  <page name="/admin/llms-properties" role="admin" title="LLM/AI Visibility (llms.txt) Settings">
+    <section>
+      <column class="small-12 large-10 cell">
+        <widget name="sitePropertiesEditor">
+          <title>LLM/AI Visibility (llms.txt) Settings</title>
+          <prefix>llms</prefix>
+        </widget>
+      </column>
+    </section>
+  </page>
+
   <page name="/admin/security-properties" role="admin" title="Security Settings">
     <section>
       <column class="small-12 large-10 cell">
