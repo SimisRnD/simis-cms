@@ -17,6 +17,7 @@
 package com.simisinc.platform.presentation.widgets.admin;
 
 import java.sql.Timestamp;
+import java.time.Duration;
 import java.util.List;
 
 import com.simisinc.platform.WidgetBase;
@@ -26,6 +27,7 @@ import com.simisinc.platform.infrastructure.persistence.SessionRepository;
 import com.simisinc.platform.infrastructure.persistence.mailinglists.MailingListMemberRepository;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
 
 import java.sql.Timestamp;
@@ -850,6 +852,92 @@ class SiteStatsWidgetTest extends WidgetBase {
 
     Assertions.assertEquals(SiteStatsWidget.ALERT_CARD_JSP, widgetContext.getJsp());
     Assertions.assertEquals("450", request.getAttribute("numberValue"));
+    Assertions.assertEquals("warning", request.getAttribute("severity"));
+  }
+
+  /** The recent window's startDate is always much closer to "now" than the baseline window's. */
+  private static boolean isRecentWindowStart(Timestamp startDate) {
+    return startDate.after(new Timestamp(System.currentTimeMillis() - Duration.ofDays(2).toMillis()));
+  }
+
+  @Test
+  void executeGeoAnomalyAlertIsOkWhenNoNewCountryAppears() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <title>New Countries in Top 5</title>\n" +
+            "  <report>geo-anomaly-alert</report>\n" +
+            "</widget>");
+
+    StatisticsData canada = new StatisticsData();
+    canada.setLabel("Canada");
+    canada.setValue("10");
+    StatisticsData mexico = new StatisticsData();
+    mexico.setLabel("Mexico");
+    mexico.setValue("5");
+
+    try (MockedStatic<SessionRepository> sessionRepository = mockStatic(SessionRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("security.geoAnomalyBaselineDays")).thenReturn("30");
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("security.geoAnomalyRecentHours")).thenReturn("24");
+      sessionRepository.when(() -> SessionRepository.resolveGeoAnomalyBaselineDays("30")).thenReturn(30);
+      sessionRepository.when(() -> SessionRepository.resolveGeoAnomalyRecentHours("24")).thenReturn(24);
+      // The recent window's top 5 (Canada) is a subset of the baseline's (Canada, Mexico) -- no new country.
+      sessionRepository.when(() -> SessionRepository.findTopCountriesByCount(
+          argThat(SiteStatsWidgetTest::isRecentWindowStart), any(Timestamp.class), eq(5)))
+          .thenReturn(List.of(canada));
+      sessionRepository.when(() -> SessionRepository.findTopCountriesByCount(
+          argThat(startDate -> !isRecentWindowStart(startDate)), any(Timestamp.class), eq(5)))
+          .thenReturn(List.of(canada, mexico));
+
+      setRoles(widgetContext, ADMIN);
+      SiteStatsWidget widget = new SiteStatsWidget();
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals(SiteStatsWidget.ALERT_CARD_JSP, widgetContext.getJsp());
+    Assertions.assertEquals("0", request.getAttribute("numberValue"));
+    Assertions.assertEquals("ok", request.getAttribute("severity"));
+  }
+
+  @Test
+  void executeGeoAnomalyAlertIsWarningWhenANewCountryAppearsInTheTop5() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <title>New Countries in Top 5</title>\n" +
+            "  <report>geo-anomaly-alert</report>\n" +
+            "</widget>");
+
+    StatisticsData canada = new StatisticsData();
+    canada.setLabel("Canada");
+    canada.setValue("10");
+    StatisticsData newCountry = new StatisticsData();
+    newCountry.setLabel("Elbonia");
+    newCountry.setValue("8");
+    StatisticsData mexico = new StatisticsData();
+    mexico.setLabel("Mexico");
+    mexico.setValue("5");
+
+    try (MockedStatic<SessionRepository> sessionRepository = mockStatic(SessionRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("security.geoAnomalyBaselineDays")).thenReturn("30");
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("security.geoAnomalyRecentHours")).thenReturn("24");
+      sessionRepository.when(() -> SessionRepository.resolveGeoAnomalyBaselineDays("30")).thenReturn(30);
+      sessionRepository.when(() -> SessionRepository.resolveGeoAnomalyRecentHours("24")).thenReturn(24);
+      // Elbonia is in the recent top 5 but never appeared in the baseline top 5 -- one new country.
+      sessionRepository.when(() -> SessionRepository.findTopCountriesByCount(
+          argThat(SiteStatsWidgetTest::isRecentWindowStart), any(Timestamp.class), eq(5)))
+          .thenReturn(List.of(canada, newCountry));
+      sessionRepository.when(() -> SessionRepository.findTopCountriesByCount(
+          argThat(startDate -> !isRecentWindowStart(startDate)), any(Timestamp.class), eq(5)))
+          .thenReturn(List.of(canada, mexico));
+
+      setRoles(widgetContext, ADMIN);
+      SiteStatsWidget widget = new SiteStatsWidget();
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals(SiteStatsWidget.ALERT_CARD_JSP, widgetContext.getJsp());
+    Assertions.assertEquals("1", request.getAttribute("numberValue"));
     Assertions.assertEquals("warning", request.getAttribute("severity"));
   }
 
