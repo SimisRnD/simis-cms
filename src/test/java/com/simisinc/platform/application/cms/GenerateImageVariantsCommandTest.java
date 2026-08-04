@@ -286,6 +286,56 @@ class GenerateImageVariantsCommandTest {
         "resizing an animated GIF must not drop frames -- coalesce before resize, layers optimize after");
   }
 
+  @Test
+  void generateVariantsReadsTheResizedVariantsDimensionsForAWebpOriginal(@TempDir Path tempDir) throws Exception {
+    // Issue #931: readDimension() (used to record each generated variant's width/height) had the
+    // same JDK-ImageIO-only limitation as ValidateImageCommand's upload-time check -- it could
+    // resize a WebP original but then fail to read the resized variant's own dimensions. This
+    // exercises that exact second call site via the shared ImageDimensionCommand fix.
+    Assumptions.assumeTrue(isImageMagickAvailable(), "ImageMagick is not on PATH - skipping WebP variant test");
+
+    Image image = insertImageWithRealWebpFile(tempDir, "large-original.webp", 2000, 1500);
+
+    List<ImageVariant> variants = withStubbedRoot(tempDir, () -> GenerateImageVariantsCommand.generateVariants(image));
+
+    Map<String, ImageVariant> byType = variants.stream()
+        .collect(Collectors.toMap(ImageVariant::getVariantType, v -> v));
+    assertEquals(3, variants.size(), "a 2000x1500 WebP original is larger than all three variant targets");
+    assertEquals(800, byType.get("medium").getWidth(), "the medium variant's own dimensions must be readable");
+    assertEquals(600, byType.get("medium").getHeight());
+  }
+
+  private static Image insertImageWithRealWebpFile(Path tempDir, String filename, int width, int height)
+      throws Exception {
+    String relativePath = "images/2026/08/" + filename;
+    File file = tempDir.resolve(relativePath).toFile();
+    file.getParentFile().mkdirs();
+    File pngSource = File.createTempFile("webp-source", ".png");
+    try {
+      ImageIO.write(new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB), "png", pngSource);
+      Process process = new ProcessBuilder("convert", pngSource.getAbsolutePath(), file.getAbsolutePath())
+          .redirectErrorStream(true).start();
+      String output = new String(process.getInputStream().readAllBytes());
+      int exitCode = process.waitFor();
+      if (exitCode != 0) {
+        throw new IllegalStateException("Could not build the WebP test fixture: " + output);
+      }
+    } finally {
+      pngSource.delete();
+    }
+
+    Image image = new Image();
+    image.setFilename(filename);
+    image.setFileServerPath(relativePath);
+    image.setCreatedBy(userId);
+    image.setFileLength(file.length());
+    image.setFileType("image/webp");
+    image.setWidth(width);
+    image.setHeight(height);
+    image.setWebPath("20260803120300");
+    return ImageRepository.save(image);
+  }
+
   /** Builds a 2-frame animated GIF whose second frame is a sub-rectangle at a nonzero offset. */
   private static void createAnimatedGifWithOffsetFrames(File outputGif, int canvasSize) throws Exception {
     File frame1 = File.createTempFile("frame1", ".png");
