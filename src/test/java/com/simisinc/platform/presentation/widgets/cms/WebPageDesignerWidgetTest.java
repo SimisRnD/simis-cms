@@ -29,6 +29,7 @@ import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.controller.XMLWebPageTemplateLoader;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
 import java.util.ArrayList;
@@ -52,7 +53,8 @@ class WebPageDesignerWidgetTest extends WidgetBase {
     addQueryParameter(widgetContext, "webPage", "web-page");
 
     // Shows the editor
-    try (MockedStatic<WebPageRepository> webPageRepositoryMockedStatic = mockStatic(WebPageRepository.class)) {
+    try (MockedStatic<WebPageRepository> webPageRepositoryMockedStatic = mockStatic(WebPageRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
       webPageRepositoryMockedStatic.when(() -> WebPageRepository.findByLink("web-page")).thenReturn(null);
 
       List<WebPageTemplate> webPageTemplateList = new ArrayList<>();
@@ -102,10 +104,12 @@ class WebPageDesignerWidgetTest extends WidgetBase {
     widgetContext.setRequestObject(webPage);
 
     // Show a form Error
-    WebPageDesignerWidget widget = new WebPageDesignerWidget();
-    widget.execute(widgetContext);
-    Assertions.assertEquals(WebPageDesignerWidget.ACE_XML_EDITOR_JSP, widgetContext.getJsp());
-    Assertions.assertNotNull(request.getAttribute("webPage"));
+    try (MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      WebPageDesignerWidget widget = new WebPageDesignerWidget();
+      widget.execute(widgetContext);
+      Assertions.assertEquals(WebPageDesignerWidget.ACE_XML_EDITOR_JSP, widgetContext.getJsp());
+      Assertions.assertNotNull(request.getAttribute("webPage"));
+    }
   }
 
   @Test
@@ -118,7 +122,8 @@ class WebPageDesignerWidgetTest extends WidgetBase {
     addQueryParameter(widgetContext, "pageXmlValue", "<page><section><column><widget name=\"content\" /></column></section></page>");
 
     // Execute the widget
-    try (MockedStatic<WebPageRepository> webPageRepositoryMockedStatic = mockStatic(WebPageRepository.class)) {
+    try (MockedStatic<WebPageRepository> webPageRepositoryMockedStatic = mockStatic(WebPageRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
       webPageRepositoryMockedStatic.when(() -> WebPageRepository.findByLink("/web-page")).thenReturn(null);
 
       try (MockedStatic<SaveWebPageCommand> saveWebPageCommandMockedStatic = mockStatic(SaveWebPageCommand.class)) {
@@ -147,7 +152,8 @@ class WebPageDesignerWidgetTest extends WidgetBase {
     addQueryParameter(widgetContext, "pageXmlValue", "<page><section><column><widget name=\"content\" /></column></section></page>");
 
     // Execute the widget
-    try (MockedStatic<WebPageRepository> webPageRepositoryMockedStatic = mockStatic(WebPageRepository.class)) {
+    try (MockedStatic<WebPageRepository> webPageRepositoryMockedStatic = mockStatic(WebPageRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
       webPageRepositoryMockedStatic.when(() -> WebPageRepository.findByLink("/web-page")).thenReturn(null);
 
       try (MockedStatic<SaveWebPageCommand> saveWebPageCommandMockedStatic = mockStatic(SaveWebPageCommand.class)) {
@@ -188,7 +194,8 @@ class WebPageDesignerWidgetTest extends WidgetBase {
 
     try (MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class);
         MockedStatic<SaveWebPageCommand> saveWebPageCommand = mockStatic(SaveWebPageCommand.class);
-        MockedStatic<WebPageXmlLayoutCommand> widgetLibrary = mockStatic(WebPageXmlLayoutCommand.class)) {
+        MockedStatic<WebPageXmlLayoutCommand> widgetLibrary = mockStatic(WebPageXmlLayoutCommand.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
       webPageRepository.when(() -> WebPageRepository.findByLink("/web-page")).thenReturn(null);
       saveWebPageCommand.when(() -> SaveWebPageCommand.saveWebPage(any())).thenReturn(new WebPage());
       widgetLibrary.when(WebPageXmlLayoutCommand::getWidgetLibrary).thenReturn(REGISTERED_WIDGETS);
@@ -213,7 +220,8 @@ class WebPageDesignerWidgetTest extends WidgetBase {
 
     try (MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class);
         MockedStatic<SaveWebPageCommand> saveWebPageCommand = mockStatic(SaveWebPageCommand.class);
-        MockedStatic<WebPageXmlLayoutCommand> widgetLibrary = mockStatic(WebPageXmlLayoutCommand.class)) {
+        MockedStatic<WebPageXmlLayoutCommand> widgetLibrary = mockStatic(WebPageXmlLayoutCommand.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
       webPageRepository.when(() -> WebPageRepository.findByLink("/web-page")).thenReturn(null);
       widgetLibrary.when(WebPageXmlLayoutCommand::getWidgetLibrary).thenReturn(REGISTERED_WIDGETS);
 
@@ -331,10 +339,8 @@ class WebPageDesignerWidgetTest extends WidgetBase {
     existing.setPageXml("<page editor=\"designer\"><section><column class=\"small-12 cell\">"
         + "<widget name=\"content\"><uniqueId>hello</uniqueId></widget></column></section></page>");
 
-    // Deliberately not mocking LoadSitePropertyCommand -- this path never consults the flag at all
-    // (no "editor" param means the designer branch short-circuits before any flag lookup), so this
-    // also proves that by construction rather than by stubbing a particular return value.
-    try (MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class)) {
+    try (MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
       webPageRepository.when(() -> WebPageRepository.findByLink("/existing-designer-page")).thenReturn(existing);
 
       WebPageDesignerWidget widget = new WebPageDesignerWidget();
@@ -393,6 +399,341 @@ class WebPageDesignerWidgetTest extends WidgetBase {
 
       Assertions.assertNotNull(result);
       Assertions.assertEquals("/admin/web-page-designer?editor=designer&webPage=/new-designer-page", widgetContext.getRedirect());
+    }
+  }
+
+  // Issue #957: this legacy editor writes page content directly via SaveWebPageCommand, with none of
+  // the draftPageXml/submit/approve machinery the P4 layout builder (PageServlet) goes through --
+  // completely bypassing governed review. These prove that when webPage.review.required is on, new
+  // content lands in draftPageXml (leaving whatever is already live untouched) instead of publishing
+  // straight to pageXml, and that legacy behavior is unchanged when review is not required.
+
+  @Test
+  void postRawXmlSaveRoutesToDraftPageXmlWhenReviewIsRequiredInsteadOfPublishingDirectly() {
+    addQueryParameter(widgetContext, "widget", widgetContext.getUniqueId());
+    addQueryParameter(widgetContext, "token", "12345");
+    addQueryParameter(widgetContext, "webPage", "/existing-live-page");
+    addQueryParameter(widgetContext, "returnPage", "/existing-live-page");
+    addQueryParameter(widgetContext, "pageXml",
+        "<page><section><column><widget name=\"content\"><uniqueId>injected</uniqueId></widget></column></section></page>");
+
+    WebPage existing = new WebPage();
+    existing.setId(42);
+    existing.setLink("/existing-live-page");
+    existing.setPageXml("<page><section><column><widget name=\"content\"><uniqueId>reviewed-and-live</uniqueId></widget></column></section></page>");
+
+    try (MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class);
+        MockedStatic<SaveWebPageCommand> saveWebPageCommand = mockStatic(SaveWebPageCommand.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      webPageRepository.when(() -> WebPageRepository.findByLink("/existing-live-page")).thenReturn(existing);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean("webPage.review.required")).thenReturn(true);
+      webPageRepository.when(() -> WebPageRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+      WebPageDesignerWidget widget = new WebPageDesignerWidget();
+      WidgetContext result = widget.post(widgetContext);
+
+      Assertions.assertNotNull(result);
+      Assertions.assertNull(widgetContext.getErrorMessage());
+      Assertions.assertNull(widgetContext.getWarningMessage());
+
+      ArgumentCaptor<WebPage> saved = ArgumentCaptor.forClass(WebPage.class);
+      webPageRepository.verify(() -> WebPageRepository.save(saved.capture()));
+      Assertions.assertTrue(saved.getValue().getPageXml().contains("reviewed-and-live"),
+          "the live page content must not change until the new content is reviewed and approved");
+      Assertions.assertTrue(saved.getValue().getDraftPageXml().contains("injected"),
+          "the new content must land in draftPageXml pending review");
+
+      // The single save chokepoint that would publish straight to live must never be reached
+      saveWebPageCommand.verifyNoInteractions();
+    }
+  }
+
+  @Test
+  void postRawXmlSavePublishesDirectlyWhenReviewIsNotRequired() {
+    addQueryParameter(widgetContext, "widget", widgetContext.getUniqueId());
+    addQueryParameter(widgetContext, "token", "12345");
+    addQueryParameter(widgetContext, "webPage", "/existing-live-page");
+    addQueryParameter(widgetContext, "returnPage", "/existing-live-page");
+    addQueryParameter(widgetContext, "pageXml",
+        "<page><section><column><widget name=\"content\"><uniqueId>new-content</uniqueId></widget></column></section></page>");
+
+    WebPage existing = new WebPage();
+    existing.setId(42);
+    existing.setLink("/existing-live-page");
+    existing.setPageXml("<page><section><column><widget name=\"content\"><uniqueId>old-content</uniqueId></widget></column></section></page>");
+
+    try (MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class);
+        MockedStatic<SaveWebPageCommand> saveWebPageCommand = mockStatic(SaveWebPageCommand.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      webPageRepository.when(() -> WebPageRepository.findByLink("/existing-live-page")).thenReturn(existing);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean("webPage.review.required")).thenReturn(false);
+      saveWebPageCommand.when(() -> SaveWebPageCommand.saveWebPage(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+      WebPageDesignerWidget widget = new WebPageDesignerWidget();
+      WidgetContext result = widget.post(widgetContext);
+
+      Assertions.assertNotNull(result);
+      Assertions.assertNull(widgetContext.getErrorMessage());
+
+      ArgumentCaptor<WebPage> saved = ArgumentCaptor.forClass(WebPage.class);
+      saveWebPageCommand.verify(() -> SaveWebPageCommand.saveWebPage(saved.capture()));
+      Assertions.assertTrue(saved.getValue().getPageXml().contains("new-content"),
+          "legacy behavior: publishes straight to live when review is not required");
+
+      webPageRepository.verify(() -> WebPageRepository.save(any()), org.mockito.Mockito.never());
+    }
+  }
+
+  @Test
+  void postDesignerCanvasSaveRoutesToDraftPageXmlWhenReviewIsRequired() {
+    addQueryParameter(widgetContext, "widget", widgetContext.getUniqueId());
+    addQueryParameter(widgetContext, "token", "12345");
+    addQueryParameter(widgetContext, "webPage", "/existing-live-page");
+    addQueryParameter(widgetContext, "content",
+        "<div class=\"row\"><div class=\"column col-sm-12 col-md-12 col-xs-12\">"
+            + "<!--gm-editable-region--><h3 data-widget=\"map\">Map</h3><p>Write a description</p><!--/gm-editable-region-->"
+            + "</div></div>");
+
+    WebPage existing = new WebPage();
+    existing.setId(42);
+    existing.setLink("/existing-live-page");
+    existing.setPageXml("<page><section><column><widget name=\"content\"><uniqueId>reviewed-and-live</uniqueId></widget></column></section></page>");
+
+    try (MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class);
+        MockedStatic<SaveWebPageCommand> saveWebPageCommand = mockStatic(SaveWebPageCommand.class);
+        MockedStatic<WebPageXmlLayoutCommand> widgetLibrary = mockStatic(WebPageXmlLayoutCommand.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      webPageRepository.when(() -> WebPageRepository.findByLink("/existing-live-page")).thenReturn(existing);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean("webPage.review.required")).thenReturn(true);
+      widgetLibrary.when(WebPageXmlLayoutCommand::getWidgetLibrary).thenReturn(REGISTERED_WIDGETS);
+      webPageRepository.when(() -> WebPageRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+      WebPageDesignerWidget widget = new WebPageDesignerWidget();
+      widget.post(widgetContext);
+
+      Assertions.assertEquals("[{\"status\":\"0\"}]", widgetContext.getJson());
+
+      ArgumentCaptor<WebPage> saved = ArgumentCaptor.forClass(WebPage.class);
+      webPageRepository.verify(() -> WebPageRepository.save(saved.capture()));
+      Assertions.assertTrue(saved.getValue().getPageXml().contains("reviewed-and-live"),
+          "the live page content must not change until the new content is reviewed and approved");
+      Assertions.assertNotNull(saved.getValue().getDraftPageXml(),
+          "the designer-canvas save must land in draftPageXml pending review");
+      saveWebPageCommand.verifyNoInteractions();
+    }
+  }
+
+  @Test
+  void postDesignerCanvasSavePublishesDirectlyToPageXmlWhenReviewIsNotRequired() {
+    addQueryParameter(widgetContext, "widget", widgetContext.getUniqueId());
+    addQueryParameter(widgetContext, "token", "12345");
+    addQueryParameter(widgetContext, "webPage", "/existing-live-page");
+    addQueryParameter(widgetContext, "content",
+        "<div class=\"row\"><div class=\"column col-sm-12 col-md-12 col-xs-12\">"
+            + "<!--gm-editable-region--><h3 data-widget=\"map\">Map</h3><p>Write a description</p><!--/gm-editable-region-->"
+            + "</div></div>");
+
+    WebPage existing = new WebPage();
+    existing.setId(42);
+    existing.setLink("/existing-live-page");
+    existing.setPageXml("<page><section><column><widget name=\"content\"><uniqueId>old-content</uniqueId></widget></column></section></page>");
+
+    try (MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class);
+        MockedStatic<SaveWebPageCommand> saveWebPageCommand = mockStatic(SaveWebPageCommand.class);
+        MockedStatic<WebPageXmlLayoutCommand> widgetLibrary = mockStatic(WebPageXmlLayoutCommand.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      webPageRepository.when(() -> WebPageRepository.findByLink("/existing-live-page")).thenReturn(existing);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean("webPage.review.required")).thenReturn(false);
+      widgetLibrary.when(WebPageXmlLayoutCommand::getWidgetLibrary).thenReturn(REGISTERED_WIDGETS);
+      saveWebPageCommand.when(() -> SaveWebPageCommand.saveWebPage(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+      WebPageDesignerWidget widget = new WebPageDesignerWidget();
+      widget.post(widgetContext);
+
+      Assertions.assertEquals("[{\"status\":\"0\"}]", widgetContext.getJson());
+
+      ArgumentCaptor<WebPage> saved = ArgumentCaptor.forClass(WebPage.class);
+      saveWebPageCommand.verify(() -> SaveWebPageCommand.saveWebPage(saved.capture()));
+      Assertions.assertFalse(saved.getValue().getPageXml().contains("old-content"),
+          "legacy behavior: the designer-canvas save publishes straight to pageXml when review is not required");
+      Assertions.assertNull(saved.getValue().getDraftPageXml());
+      webPageRepository.verify(() -> WebPageRepository.save(any()), org.mockito.Mockito.never());
+    }
+  }
+
+  @Test
+  void postRemovingContentRoutesToDraftPageXmlWhenReviewIsRequiredLeavingLivePageUntouched() {
+    addQueryParameter(widgetContext, "widget", widgetContext.getUniqueId());
+    addQueryParameter(widgetContext, "token", "12345");
+    addQueryParameter(widgetContext, "webPage", "/existing-live-page");
+    addQueryParameter(widgetContext, "returnPage", "/existing-live-page");
+    // No "pageXml" parameter at all -- the widget's own "content is being removed" branch.
+
+    WebPage existing = new WebPage();
+    existing.setId(42);
+    existing.setLink("/existing-live-page");
+    existing.setPageXml("<page><section><column><widget name=\"content\"><uniqueId>reviewed-and-live</uniqueId></widget></column></section></page>");
+    existing.setDraftPageXml("<page><section><column><widget name=\"content\"><uniqueId>stale-pending-draft</uniqueId></widget></column></section></page>");
+
+    try (MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class);
+        MockedStatic<SaveWebPageCommand> saveWebPageCommand = mockStatic(SaveWebPageCommand.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      webPageRepository.when(() -> WebPageRepository.findByLink("/existing-live-page")).thenReturn(existing);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean("webPage.review.required")).thenReturn(true);
+      webPageRepository.when(() -> WebPageRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+      WebPageDesignerWidget widget = new WebPageDesignerWidget();
+      widget.post(widgetContext);
+
+      ArgumentCaptor<WebPage> saved = ArgumentCaptor.forClass(WebPage.class);
+      webPageRepository.verify(() -> WebPageRepository.save(saved.capture()));
+      Assertions.assertTrue(saved.getValue().getPageXml().contains("reviewed-and-live"),
+          "removing draft content must never touch the live page");
+      Assertions.assertNull(saved.getValue().getDraftPageXml(),
+          "the pending draft is cleared, not silently republished");
+      saveWebPageCommand.verifyNoInteractions();
+    }
+  }
+
+  @Test
+  void postDatabaseTemplateRoutesToDraftPageXmlWhenReviewIsRequired() {
+    addQueryParameter(widgetContext, "widget", widgetContext.getUniqueId());
+    addQueryParameter(widgetContext, "token", "12345");
+    addQueryParameter(widgetContext, "webPage", "/existing-live-page");
+    addQueryParameter(widgetContext, "returnPage", "/existing-live-page");
+    // templateId is read via context.getRequest().getParameter(...), not context.getParameter(...) --
+    // the test harness's mock backs the former with setAttribute(), not the query-parameter map.
+    request.setAttribute("templateId", "5");
+
+    WebPage existing = new WebPage();
+    existing.setId(42);
+    existing.setLink("/existing-live-page");
+    existing.setPageXml("<page><section><column><widget name=\"content\"><uniqueId>reviewed-and-live</uniqueId></widget></column></section></page>");
+
+    WebPageTemplate dbTemplate = new WebPageTemplate();
+    dbTemplate.setId(5L);
+    dbTemplate.setName("From The Database");
+    dbTemplate.setPageXml("<page><section><column><widget name=\"content\"><uniqueId>${webPageName}-from-template</uniqueId></widget></column></section></page>");
+
+    try (MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class);
+        MockedStatic<WebPageTemplateRepository> templateRepository = mockStatic(WebPageTemplateRepository.class);
+        MockedStatic<SaveWebPageCommand> saveWebPageCommand = mockStatic(SaveWebPageCommand.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      webPageRepository.when(() -> WebPageRepository.findByLink("/existing-live-page")).thenReturn(existing);
+      templateRepository.when(() -> WebPageTemplateRepository.findById(5L)).thenReturn(dbTemplate);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean("webPage.review.required")).thenReturn(true);
+      webPageRepository.when(() -> WebPageRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+      WebPageDesignerWidget widget = new WebPageDesignerWidget();
+      widget.post(widgetContext);
+
+      ArgumentCaptor<WebPage> saved = ArgumentCaptor.forClass(WebPage.class);
+      webPageRepository.verify(() -> WebPageRepository.save(saved.capture()));
+      Assertions.assertTrue(saved.getValue().getPageXml().contains("reviewed-and-live"),
+          "picking a template for an existing page must not change what's live until reviewed");
+      Assertions.assertTrue(saved.getValue().getDraftPageXml().contains("from-template"),
+          "the selected template's content must land in draftPageXml pending review");
+      saveWebPageCommand.verifyNoInteractions();
+    }
+  }
+
+  @Test
+  void postDatabaseTemplatePublishesDirectlyWhenReviewIsNotRequired() {
+    addQueryParameter(widgetContext, "widget", widgetContext.getUniqueId());
+    addQueryParameter(widgetContext, "token", "12345");
+    addQueryParameter(widgetContext, "webPage", "/existing-live-page");
+    addQueryParameter(widgetContext, "returnPage", "/existing-live-page");
+    // templateId is read via context.getRequest().getParameter(...), not context.getParameter(...) --
+    // the test harness's mock backs the former with setAttribute(), not the query-parameter map.
+    request.setAttribute("templateId", "5");
+
+    WebPage existing = new WebPage();
+    existing.setId(42);
+    existing.setLink("/existing-live-page");
+    existing.setPageXml("<page><section><column><widget name=\"content\"><uniqueId>old-content</uniqueId></widget></column></section></page>");
+
+    WebPageTemplate dbTemplate = new WebPageTemplate();
+    dbTemplate.setId(5L);
+    dbTemplate.setName("From The Database");
+    dbTemplate.setPageXml("<page><section><column><widget name=\"content\"><uniqueId>${webPageName}-from-template</uniqueId></widget></column></section></page>");
+
+    try (MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class);
+        MockedStatic<WebPageTemplateRepository> templateRepository = mockStatic(WebPageTemplateRepository.class);
+        MockedStatic<SaveWebPageCommand> saveWebPageCommand = mockStatic(SaveWebPageCommand.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      webPageRepository.when(() -> WebPageRepository.findByLink("/existing-live-page")).thenReturn(existing);
+      templateRepository.when(() -> WebPageTemplateRepository.findById(5L)).thenReturn(dbTemplate);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean("webPage.review.required")).thenReturn(false);
+      saveWebPageCommand.when(() -> SaveWebPageCommand.saveWebPage(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+      WebPageDesignerWidget widget = new WebPageDesignerWidget();
+      widget.post(widgetContext);
+
+      ArgumentCaptor<WebPage> saved = ArgumentCaptor.forClass(WebPage.class);
+      saveWebPageCommand.verify(() -> SaveWebPageCommand.saveWebPage(saved.capture()));
+      Assertions.assertTrue(saved.getValue().getPageXml().contains("from-template"),
+          "legacy behavior: a template pick publishes straight to pageXml when review is not required");
+      Assertions.assertNull(saved.getValue().getDraftPageXml());
+      webPageRepository.verify(() -> WebPageRepository.save(any()), org.mockito.Mockito.never());
+    }
+  }
+
+  // Issue #957 review follow-up: execute()'s redisplay of a just-submitted save must not crash or
+  // discard real (gated) content -- see effectiveContent()/mayPublishDirectly() in the production code.
+
+  @Test
+  void executeRedisplayingAGatedBrandNewDesignerPageDoesNotThrowAndKeepsTheRealDraftContent() {
+    addQueryParameter(widgetContext, "webPage", "/brand-new-page");
+
+    WebPage justSaved = new WebPage();
+    justSaved.setLink("/brand-new-page");
+    // Simulates exactly what post() leaves behind for a brand-new page created from a
+    // designer-tagged template while governed review is required: pageXml is still null, the real
+    // selected template's content is in draftPageXml.
+    justSaved.setDraftPageXml("<page editor=\"designer\"><section><column class=\"small-12 cell\">"
+        + "<widget name=\"content\"><uniqueId>hello</uniqueId></widget></column></section></page>");
+    widgetContext.setRequestObject(justSaved);
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean("webPage.review.required")).thenReturn(true);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean("features.layout-editor")).thenReturn(true);
+
+      WebPageDesignerWidget widget = new WebPageDesignerWidget();
+      WidgetContext result = Assertions.assertDoesNotThrow(() -> widget.execute(widgetContext),
+          "must not NPE reading pageXml on a page whose real content is gated into draftPageXml");
+
+      Assertions.assertEquals(WebPageDesignerWidget.DESIGNER_JSP, result.getJsp());
+      WebPage shown = (WebPage) request.getAttribute("webPage");
+      Assertions.assertTrue(shown.getDraftPageXml().contains("hello"),
+          "the real selected-template content must survive redisplay, not get overwritten by the generic blank scaffold");
+    }
+  }
+
+  @Test
+  void executeShowsTheRawXmlEditorForAnExistingLivePageWhenReviewIsRequiredInsteadOfTheTemplatePicker() {
+    // Live-verification catch: an existing page with real live content, no pending draft, opened
+    // normally (not a post-redisplay) while webPage.review.required is on. The blank-page check must
+    // look at both pageXml and draftPageXml -- checking only whichever field a save would target
+    // (draftPageXml, since review is required) would misread this page as blank and show the
+    // template picker instead of the editor with its real content.
+    addQueryParameter(widgetContext, "webPage", "/existing-live-page");
+
+    WebPage existing = new WebPage();
+    existing.setLink("/existing-live-page");
+    existing.setPageXml("<page><section><column><widget name=\"content\"><uniqueId>reviewed-and-live</uniqueId></widget></column></section></page>");
+
+    try (MockedStatic<WebPageRepository> webPageRepository = mockStatic(WebPageRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      webPageRepository.when(() -> WebPageRepository.findByLink("/existing-live-page")).thenReturn(existing);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean("webPage.review.required")).thenReturn(true);
+
+      WebPageDesignerWidget widget = new WebPageDesignerWidget();
+      WidgetContext result = widget.execute(widgetContext);
+
+      Assertions.assertEquals(WebPageDesignerWidget.ACE_XML_EDITOR_JSP, result.getJsp(),
+          "an existing page with real content must show the editor, not the blank-page template picker");
+      WebPage shown = (WebPage) request.getAttribute("webPage");
+      Assertions.assertTrue(shown.getPageXml().contains("reviewed-and-live"), "the live content must be untouched");
     }
   }
 }
