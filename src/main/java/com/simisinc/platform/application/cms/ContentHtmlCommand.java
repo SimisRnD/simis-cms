@@ -523,11 +523,16 @@ public class ContentHtmlCommand {
       context.setErrorMessage("This content must be submitted for review and approved before it can be published");
       return context;
     }
-    ContentRepository.publish(content);
+    ContentRepository.publish(content, resolveVersionHistoryLimit());
     AuditEventCommand.record(context, AuditEventCommand.CONTENT, "content.publish", AuditEventCommand.SUCCESS,
         "content", String.valueOf(content.getId()), content.getUniqueId(), null);
     purgeCacheForCurrentPage(context);
     return context;
+  }
+
+  /** The configured {@code content.versionHistoryLimit} (#406), resolved fresh at each publish call site. */
+  private static int resolveVersionHistoryLimit() {
+    return ContentRepository.resolveVersionHistoryLimit(LoadSitePropertyCommand.loadByName("content.versionHistoryLimit"));
   }
 
   private static WidgetContext submitForReview(WidgetContext context, Content content) {
@@ -583,7 +588,7 @@ public class ContentHtmlCommand {
       // approve() enforces separation of duties (the approver cannot be the submitter); approval then
       // promotes the draft to live and records the named approver + release authority in the audit trail.
       ContentReviewCommand.approve(content, context.getUserId(), releaseReference);
-      ContentRepository.publish(content);
+      ContentRepository.publish(content, resolveVersionHistoryLimit());
       AuditEventCommand.record(context, AuditEventCommand.CONTENT, "content.approve", AuditEventCommand.SUCCESS,
           "content", String.valueOf(content.getId()), content.getUniqueId(),
           StringUtils.isNotBlank(releaseReference) ? "release authority: " + releaseReference : null);

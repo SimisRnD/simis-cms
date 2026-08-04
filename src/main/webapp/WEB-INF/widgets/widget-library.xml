@@ -176,6 +176,7 @@
   <widget name="webPageDesigner" class="com.simisinc.platform.presentation.widgets.cms.WebPageDesignerWidget" />
   <widget name="contentList" class="com.simisinc.platform.presentation.widgets.admin.cms.ContentListWidget" />
   <widget name="contentForm" class="com.simisinc.platform.presentation.widgets.admin.cms.ContentFormWidget" />
+  <widget name="contentVersionsList" class="com.simisinc.platform.presentation.widgets.admin.cms.ContentVersionsListWidget" />
   <widget name="adminImageBrowser" class="com.simisinc.platform.presentation.widgets.admin.cms.AdminImageBrowserWidget" />
   <widget name="blogList" class="com.simisinc.platform.presentation.widgets.admin.cms.BlogListWidget" />
   <widget name="blogForm" class="com.simisinc.platform.presentation.widgets.admin.cms.BlogFormWidget" />

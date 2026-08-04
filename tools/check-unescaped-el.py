@@ -164,6 +164,11 @@ ALLOWLIST: dict[str, str] = {
         "Sanitized on render by jsoup, not by HtmlCommand: RemoteContentWidget.java:122-143 builds Safelist.relaxed() (plus span/style), runs Cleaner.clean() and emits clean.body().html(),",
     "${data.value}":
         "Every report that can reach the bar/line chart JSPs populates StatisticsData.value with `String.valueOf(rs.getLong(...))` over a COUNT/aggregate column, so the field holds only dig",
+    "${diffResult.html}":
+        "content-versions-list.jsp (#406): ContentVersionDiffCommand.diff()/render() builds this string "
+        "itself from two content_versions rows -- every word is run through StringEscapeUtils.escapeHtml4 "
+        "before being appended, and the only unescaped literals concatenated in are the fixed wrapper tags "
+        "<ins>/<del>. No path lets a raw '<' or '>' from either version reach the output.",
     "${extraHTMLContent}":
         "N/A -- the attribute is never set for this JSP, and cross-widget leakage of the attribute is prevented by an explicit per-widget request-attribute reset.",
     "${facet.url}":

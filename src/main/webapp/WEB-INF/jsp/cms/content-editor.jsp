@@ -145,6 +145,7 @@
         <c:if test="${isDraft eq 'true'}">
           <input type="submit" class="button radius alert" name="save" value="Remove this Draft" />
         </c:if>
+        <a href="${ctx}/admin/content-versions?uniqueId=${content.uniqueId}" class="button radius secondary"><i class="fa fa-history"></i> Version History</a>
       </c:otherwise>
     </c:choose>
     <a href="${returnPage}" class="button radius secondary">Cancel</a>
