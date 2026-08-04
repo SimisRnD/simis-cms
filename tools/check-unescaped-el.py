@@ -90,6 +90,10 @@ ALLOWLIST: dict[str, str] = {
         "Same reasoning as ${empty status ? 'selected' : ''} -- fixed two-literal ternary.",
     "${status eq 'live' ? 'selected' : ''}":
         "Same reasoning as ${empty status ? 'selected' : ''} -- fixed two-literal ternary.",
+    "${status eq 'archived' ? 'selected' : ''}":
+        "Same reasoning as ${empty status ? 'selected' : ''} -- fixed two-literal ternary. New "
+        "'archived' option added for issue #427 (WebPageListWidget.java compares the same "
+        "query-string status parameter with eq against the fixed literal 'archived').",
     "${field.secret ? 'password' : 'text'}":
         "integration-registry.jsp's install-form field type: field.secret is a Java primitive "
         "boolean (CredentialField.isSecret()), so the ternary's only possible outputs are the "

@@ -186,6 +186,20 @@ class WebPageRepositoryTest {
   }
 
   @Test
+  void searchExcludesArchivedPages() {
+    // Issue #427: bulk Archive must actually take a page out of the internal search index too --
+    // this was found missing in review (search() built its own raw WHERE clause and never
+    // considered the archived column at all).
+    WebPage webPage = addWebPage("/archived", "Widgets", null, "A page about widgets", true, true, false);
+    webPage.setArchived(new Timestamp(System.currentTimeMillis()));
+    WebPageRepository.save(webPage);
+
+    List<WebPage> results = WebPageRepository.search("widgets", null);
+
+    assertTrue(results.isEmpty(), "an archived page must not appear in search results");
+  }
+
+  @Test
   void countExpiringSoonCountsAPageWithAFutureExpiresAt() {
     addWebPageWithExpiresAt("/soon-to-expire", new Timestamp(System.currentTimeMillis() + Duration.ofDays(1).toMillis()));
 
@@ -566,6 +580,7 @@ class WebPageRepositoryTest {
           + "created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP, "
           + "modified TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP, "
           + "modified_by BIGINT, "
+          + "archived TIMESTAMP(3), "
           + "role_id_list VARCHAR(100), "
           + "page_xml TEXT, "
           + "draft_page_xml TEXT, "

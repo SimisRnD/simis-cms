@@ -25,6 +25,7 @@ import com.simisinc.platform.infrastructure.database.DB;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.database.DataResult;
 import com.simisinc.platform.infrastructure.database.SqlUtils;
+import com.simisinc.platform.presentation.controller.DataConstants;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -49,7 +50,9 @@ public class WebPageRepository {
   private static String TABLE_NAME = "web_pages";
   private static String[] PRIMARY_KEY = new String[]{"web_page_id"};
 
-  private static SqlUtils createWhereStatement(WebPageSpecification specification) {
+  // Package-private (was private) so WebPageRepositoryWhereClauseTest can inspect the built SqlUtils
+  // directly -- mirrors CalendarEventRepository.createWhereStatement (issue #882/PR #911).
+  static SqlUtils createWhereStatement(WebPageSpecification specification) {
     SqlUtils where = null;
     if (specification != null) {
       where = new SqlUtils()
@@ -59,6 +62,13 @@ public class WebPageRepository {
           .addIfDataConstantExists("searchable = ?", specification.getSearchable())
           .addIfDataConstantExists("show_in_sitemap = ?", specification.getInSitemap())
           .addIfDataConstantExists("has_redirect = ?", specification.getHasRedirect());
+      // issue #427: mirrors CalendarEventRepository's archived filtering shape. UNDEFINED (the
+      // default for every pre-#427 caller) includes archived rows, so this is purely additive.
+      if (specification.getArchivedOnly() == DataConstants.TRUE) {
+        where.add("archived IS NOT NULL");
+      } else if (specification.getArchivedOnly() == DataConstants.FALSE) {
+        where.add("archived IS NULL");
+      }
       if (StringUtils.isNotBlank(specification.getSearchTerm())) {
         // A substring match across link/title/keywords, distinct from search() (tsvector full-text,
         // restricted to enabled+searchable pages) -- the admin list must find a page in any state
@@ -160,7 +170,8 @@ public class WebPageRepository {
         .add("draft_status", StringUtils.trimToNull(record.getDraftStatus()))
         .add("submitted_by", record.getSubmittedBy())
         .add("approved_by", record.getApprovedBy())
-        .add("release_reference", StringUtils.trimToNull(record.getReleaseReference()));
+        .add("release_reference", StringUtils.trimToNull(record.getReleaseReference()))
+        .add("archived", record.getArchived());
     record.setId(DB.insertInto(TABLE_NAME, insertValues, PRIMARY_KEY));
     if (record.getId() == -1) {
       LOG.error("An id was not set!");
@@ -203,7 +214,8 @@ public class WebPageRepository {
         .add("draft_status", StringUtils.trimToNull(record.getDraftStatus()))
         .add("submitted_by", record.getSubmittedBy())
         .add("approved_by", record.getApprovedBy())
-        .add("release_reference", StringUtils.trimToNull(record.getReleaseReference()));
+        .add("release_reference", StringUtils.trimToNull(record.getReleaseReference()))
+        .add("archived", record.getArchived());
     SqlUtils where = new SqlUtils()
         .add("web_page_id = ?", record.getId());
     if (DB.update(TABLE_NAME, updateValues, where)) {
@@ -364,6 +376,7 @@ public class WebPageRepository {
     SqlUtils where = new SqlUtils()
         .add("enabled = true")
         .add("searchable = true")
+        .add("archived IS NULL")
         .add("tsv @@ PLAINTO_TSQUERY('title_stem', ?)", searchTerm.trim());
     select.add("TS_RANK_CD(tsv, PLAINTO_TSQUERY('title_stem', ?)) AS rank", searchTerm.trim());
     SqlUtils orderBy = new SqlUtils().add("rank DESC, link");
@@ -403,6 +416,11 @@ public class WebPageRepository {
         record.setSubmittedBy(rs.getLong("submitted_by"));
         record.setApprovedBy(rs.getLong("approved_by"));
         record.setReleaseReference(rs.getString("release_reference"));
+      }
+      // issue #427: guarded like draft_status above, for the same rolling-deploy reason -- this
+      // column may not exist yet on an instance mid-upgrade.
+      if (DB.hasColumn(rs, "archived")) {
+        record.setArchived(rs.getTimestamp("archived"));
       }
       return record;
     } catch (SQLException se) {

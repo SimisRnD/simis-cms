@@ -30,9 +30,14 @@
 <table class="unstriped">
   <thead>
     <tr>
-      <th colspan="8"><strong>In Navigation Menu</strong></th>
+      <th colspan="9"><strong>In Navigation Menu</strong></th>
     </tr>
     <tr>
+      <%-- The bulk-selection checkbox column (issue #427) only applies to the "All Web Pages"
+           rows below -- these rows show the same WebPage records again, so they are not
+           independently selectable (see the class javadoc). A blank leading <td> is added to
+           every row in this section so the table stays column-aligned with the header. --%>
+      <th width="24"><input type="checkbox" id="selectAllPages" aria-label="Select all web pages on this page"></th>
       <th width="45"></th>
       <th width="60"></th>
       <th>Title</th>
@@ -46,6 +51,7 @@
   <tbody>
   <c:forEach items="${menuTabList}" var="menuTab">
     <tr>
+      <td></td>
       <c:choose>
         <c:when test="${menuTab.link eq '/'}">
           <td></td>
@@ -133,6 +139,7 @@
     </tr>
     <c:forEach items="${menuTab.menuItemList}" var="menuItem">
       <tr>
+        <td></td>
         <c:choose>
           <c:when test="${fn:contains(standardPages, menuItem.link)}">
             <td>
@@ -220,7 +227,7 @@
     </c:forEach>
   </c:forEach>
   <tr>
-    <td colspan="8">
+    <td colspan="9">
       <strong>All Web Pages</strong>
       <small class="subheader">Every page record in the system, including the ones already shown above in the navigation menu.</small>
       <br />
@@ -234,7 +241,7 @@
     </td>
   </tr>
   <tr>
-    <td colspan="8">
+    <td colspan="9">
       <form method="get" autocomplete="off" class="grid-x grid-margin-x align-bottom">
         <div class="cell medium-5">
           <label>Search
@@ -249,6 +256,9 @@
               <option value="redirect" ${status eq 'redirect' ? 'selected' : ''}>Redirect (301)</option>
               <option value="broken" ${status eq 'broken' ? 'selected' : ''}>Broken (no content)</option>
               <option value="live" ${status eq 'live' ? 'selected' : ''}>Live</option>
+              <%-- Archived pages are excluded from every other option above by default (issue #427);
+                   this is the only way to see them in the admin list. --%>
+              <option value="archived" ${status eq 'archived' ? 'selected' : ''}>Archived</option>
             </select>
           </label>
         </div>
@@ -261,8 +271,25 @@
       </form>
     </td>
   </tr>
+  <tr>
+    <td colspan="9" style="padding:0;">
+      <div id="bulkActionsBar" class="callout radius" style="display:none;padding:10px 15px;margin:0;">
+        <span id="bulkSelectedCount"></span>
+        <button type="button" class="button tiny radius" id="bulkPublishBtn">Publish</button>
+        <button type="button" class="button tiny radius" id="bulkUnpublishBtn">Unpublish</button>
+        <button type="button" class="button tiny radius" id="bulkArchiveBtn">Archive</button>
+        <%-- Issue #427 review fix: bulkDelete is admin-only server-side (WebPageListWidget#post), same
+             as the single-item "Delete Page" button on web-page-form.jsp -- a content-manager must
+             never even see this affordance, not just have it silently rejected on click. --%>
+        <c:if test="${userSession.hasRole('admin')}">
+          <button type="button" class="button tiny alert radius" id="bulkDeleteBtn">Delete</button>
+        </c:if>
+      </div>
+    </td>
+  </tr>
   <c:forEach items="${webPageList}" var="webPage">
     <tr>
+      <td><input type="checkbox" class="pageRowCheckbox" value="${webPage.id}" data-title="${fn:escapeXml(webPage.title)}" aria-label="Select ${fn:escapeXml(webPage.title)}"></td>
       <td nowrap="true">
         <%--<a href="${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&webPageId=${group.id}" onclick="return confirm('Are you sure you want to delete <c:out value="${js:escape(webPage.link)}" />?');"><i class="fa fa-remove"></i></a>--%>
         <a href="${ctx}/admin/web-page?webPageId=${webPage.id}&returnPage=/admin/web-pages"><i class="fa fa-edit"></i></a>
@@ -272,6 +299,7 @@
       </td>
       <td>
         <c:choose>
+          <c:when test="${!empty webPage.archived}"><span class="label secondary radius">archived</span></c:when>
           <c:when test="${webPage.draft}"><span class="warning label">draft</span></c:when>
           <c:when test="${!empty webPage.redirectUrl}"><span class="primary label">301</span></c:when>
           <c:when test="${fn:contains(standardPages, webPage.link)}">
@@ -327,9 +355,125 @@
   </c:forEach>
   <c:if test="${empty webPageList}">
       <tr>
-        <td colspan="8">No web pages were found</td>
+        <td colspan="9">No web pages were found</td>
       </tr>
   </c:if>
   </tbody>
 </table>
 <a class="button radius primary" href="${ctx}/admin/web-page?returnPage=/admin/web-pages">Add a Web Page <i class="fa fa-arrow-circle-right"></i></a>
+<%-- Bulk action reveal modals -- selection is scoped to the "All Web Pages" rows currently checked
+     on this page (see the JS below); each is populated at open time with the live selection, not
+     just a count. Mirrors calendar-event-list.jsp's bulk reveal modals (issue #427/PR #911 pattern). --%>
+<div class="reveal" id="bulkPublishReveal" role="dialog" aria-modal="true" aria-labelledby="bulkPublishRevealTitle"
+     data-reveal data-close-on-click="true">
+  <h4 id="bulkPublishRevealTitle">Publish <span id="bulkPublishCount">0</span> Web Page(s)</h4>
+  <ul id="bulkPublishList"></ul>
+  <form method="post">
+    <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
+    <input type="hidden" name="token" value="${userSession.formToken}"/>
+    <input type="hidden" name="command" value="bulkPublish"/>
+    <input type="submit" class="button radius" value="Publish Pages"/>
+    <button class="button secondary radius" type="button" data-close>Cancel</button>
+  </form>
+  <button class="close-button" data-close aria-label="Close reveal" type="button">
+    <span aria-hidden="true">&times;</span>
+  </button>
+</div>
+<div class="reveal" id="bulkUnpublishReveal" role="dialog" aria-modal="true" aria-labelledby="bulkUnpublishRevealTitle"
+     data-reveal data-close-on-click="true">
+  <h4 id="bulkUnpublishRevealTitle">Unpublish <span id="bulkUnpublishCount">0</span> Web Page(s)</h4>
+  <p class="help-text">Unpublished pages are taken out of live view and marked as drafts.</p>
+  <ul id="bulkUnpublishList"></ul>
+  <form method="post">
+    <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
+    <input type="hidden" name="token" value="${userSession.formToken}"/>
+    <input type="hidden" name="command" value="bulkUnpublish"/>
+    <input type="submit" class="button radius" value="Unpublish Pages"/>
+    <button class="button secondary radius" type="button" data-close>Cancel</button>
+  </form>
+  <button class="close-button" data-close aria-label="Close reveal" type="button">
+    <span aria-hidden="true">&times;</span>
+  </button>
+</div>
+<div class="reveal" id="bulkArchiveReveal" role="dialog" aria-modal="true" aria-labelledby="bulkArchiveRevealTitle"
+     data-reveal data-close-on-click="true">
+  <h4 id="bulkArchiveRevealTitle">Archive <span id="bulkArchiveCount">0</span> Web Page(s)</h4>
+  <p class="help-text">Archived pages are hidden from this list by default. They can still be found with the Archived status filter.</p>
+  <ul id="bulkArchiveList"></ul>
+  <form method="post">
+    <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
+    <input type="hidden" name="token" value="${userSession.formToken}"/>
+    <input type="hidden" name="command" value="bulkArchive"/>
+    <input type="submit" class="button radius" value="Archive Pages"/>
+    <button class="button secondary radius" type="button" data-close>Cancel</button>
+  </form>
+  <button class="close-button" data-close aria-label="Close reveal" type="button">
+    <span aria-hidden="true">&times;</span>
+  </button>
+</div>
+<div class="reveal" id="bulkDeleteReveal" role="dialog" aria-modal="true" aria-labelledby="bulkDeleteRevealTitle"
+     data-reveal data-close-on-click="true">
+  <h4 id="bulkDeleteRevealTitle">Delete <span id="bulkDeleteCount">0</span> Web Page(s)</h4>
+  <p class="help-text">This permanently removes the selected web pages. This cannot be undone.</p>
+  <ul id="bulkDeleteList"></ul>
+  <form method="post">
+    <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
+    <input type="hidden" name="token" value="${userSession.formToken}"/>
+    <input type="hidden" name="command" value="bulkDelete"/>
+    <input type="submit" class="button alert radius" value="Delete Pages"/>
+    <button class="button secondary radius" type="button" data-close>Cancel</button>
+  </form>
+  <button class="close-button" data-close aria-label="Close reveal" type="button">
+    <span aria-hidden="true">&times;</span>
+  </button>
+</div>
+<script nonce="${cspNonce}">
+  (function () {
+    var $selectAll = $('#selectAllPages');
+    var $rows = $('.pageRowCheckbox');
+    var $bar = $('#bulkActionsBar');
+    var $count = $('#bulkSelectedCount');
+
+    function selected() {
+      return $rows.filter(':checked');
+    }
+
+    function refresh() {
+      var n = selected().length;
+      $count.text(n + (n === 1 ? ' page selected  ' : ' pages selected  '));
+      $bar.toggle(n > 0);
+      $selectAll.prop('indeterminate', n > 0 && n < $rows.length);
+      $selectAll.prop('checked', n > 0 && n === $rows.length);
+    }
+
+    // Populates one bulk modal's hidden webPageId fields and visible title list from the currently
+    // checked rows, so the admin sees exactly what is about to be affected before confirming.
+    function populateBulkModal(revealId, listId) {
+      var $reveal = $('#' + revealId);
+      var $form = $reveal.find('form');
+      var $list = $('#' + listId);
+      $form.find('input[name="webPageId"]').remove();
+      $list.empty();
+      selected().each(function () {
+        var $checkbox = $(this);
+        $form.append($('<input type="hidden" name="webPageId">').val($checkbox.val()));
+        $list.append($('<li>').text($checkbox.data('title')));
+      });
+      $('#' + revealId + 'Count').text(selected().length);
+      $reveal.foundation('open');
+    }
+
+    $selectAll.on('change', function () {
+      $rows.prop('checked', this.checked);
+      refresh();
+    });
+    $rows.on('change', refresh);
+
+    $('#bulkPublishBtn').on('click', function () { populateBulkModal('bulkPublishReveal', 'bulkPublishList'); });
+    $('#bulkUnpublishBtn').on('click', function () { populateBulkModal('bulkUnpublishReveal', 'bulkUnpublishList'); });
+    $('#bulkArchiveBtn').on('click', function () { populateBulkModal('bulkArchiveReveal', 'bulkArchiveList'); });
+    $('#bulkDeleteBtn').on('click', function () { populateBulkModal('bulkDeleteReveal', 'bulkDeleteList'); });
+
+    refresh();
+  })();
+</script>

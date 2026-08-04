@@ -91,6 +91,9 @@ class WebPageListWidgetTest extends WidgetBase {
         MockedStatic<LoadMenuTabsCommand> menuTabsCommand = mockStatic(LoadMenuTabsCommand.class);
         MockedStatic<WebPageHitRepository> hitRepository = mockStatic(WebPageHitRepository.class)) {
       repository.when(WebPageRepository::findAll).thenReturn(webPageList);
+      // issue #427: the "All Web Pages" list is now always fetched through a specification (so the
+      // default archivedOnly=false filter applies even with no search/status filter active).
+      repository.when(() -> WebPageRepository.findAll(any(WebPageSpecification.class), any())).thenReturn(webPageList);
       menuTabsCommand.when(LoadMenuTabsCommand::findAllIncludeMenuItemList).thenReturn(new ArrayList<>());
       hitRepository.when(() -> WebPageHitRepository.countViewsByWebPageId(any(), anyInt())).thenReturn(new HashMap<>());
 
@@ -143,6 +146,7 @@ class WebPageListWidgetTest extends WidgetBase {
         MockedStatic<LoadMenuTabsCommand> menuTabsCommand = mockStatic(LoadMenuTabsCommand.class);
         MockedStatic<WebPageHitRepository> hitRepository = mockStatic(WebPageHitRepository.class)) {
       repository.when(WebPageRepository::findAll).thenReturn(new ArrayList<>());
+      repository.when(() -> WebPageRepository.findAll(any(WebPageSpecification.class), any())).thenReturn(new ArrayList<>());
       menuTabsCommand.when(LoadMenuTabsCommand::findAllIncludeMenuItemList).thenReturn(new ArrayList<>());
       hitRepository.when(() -> WebPageHitRepository.countViewsByWebPageId(any(), anyInt())).thenReturn(new HashMap<>());
 
@@ -168,6 +172,7 @@ class WebPageListWidgetTest extends WidgetBase {
         MockedStatic<LoadMenuTabsCommand> menuTabsCommand = mockStatic(LoadMenuTabsCommand.class);
         MockedStatic<WebPageHitRepository> hitRepository = mockStatic(WebPageHitRepository.class)) {
       repository.when(WebPageRepository::findAll).thenReturn(webPageList);
+      repository.when(() -> WebPageRepository.findAll(any(WebPageSpecification.class), any())).thenReturn(webPageList);
       menuTabsCommand.when(LoadMenuTabsCommand::findAllIncludeMenuItemList).thenReturn(new ArrayList<>());
       hitRepository.when(() -> WebPageHitRepository.countViewsByWebPageId(List.of(42L), 30)).thenReturn(viewCounts);
 
