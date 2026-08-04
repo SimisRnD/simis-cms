@@ -184,7 +184,7 @@
      present, but nothing ever vendored the library that guards them (typeof Sortable), so they
      were dead code. --%>
 <script src="${ctx}/javascript/sortablejs-1.15.2/Sortable.min.js"></script>
-<script>
+<script nonce="${cspNonce}">
 (function() {
   var collectionId = '${collection.id}';
   var itemList = document.getElementById('itemList');

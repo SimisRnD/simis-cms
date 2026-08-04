@@ -278,6 +278,19 @@ class WebContainerCommandTest {
   }
 
   @Test
+  void cspNonceSurvivesThePerWidgetReset() {
+    // Regression test for issue #944: PageServlet.java computes cspNonce once, before the
+    // section/column/widget walk begins, exactly like the other PAGE_LEVEL_ATTRIBUTE_NAMES entries
+    // -- but it was never added to this set when the nonce-based CSP feature shipped (PR #386).
+    // On any page with more than zero widgets, the very first widget's reset wiped it before
+    // main.jsp's EL (or any later widget's own nonce="${cspNonce}" markup) ever got to read it
+    // back, so every nonce="${cspNonce}" in every JSP silently rendered as nonce="" -- never
+    // matching the real per-request nonce actually sent in the Content-Security-Policy header,
+    // regardless of how many widgets a page had after the first.
+    Assertions.assertTrue(WebContainerCommand.isPreservedAcrossWidgetReset("cspNonce"));
+  }
+
+  @Test
   void existingControllerMasterAndRequestPrefixedAttributesStillSurvive() {
     // Unchanged pre-existing behavior -- must not regress with the new exemption added alongside it.
     Assertions.assertTrue(WebContainerCommand.isPreservedAcrossWidgetReset("controllerShowMainMenu"));

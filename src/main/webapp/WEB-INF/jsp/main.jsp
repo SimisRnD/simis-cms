@@ -884,7 +884,7 @@
       <button id="analytics-consent-accept" class="button small success" style="margin:0;">Accept</button>
       <button id="analytics-consent-decline" class="button small secondary" style="margin:0;">Decline</button>
     </div>
-    <script>
+    <script nonce="${cspNonce}">
       var analyticsConsentAccept = document.getElementById('analytics-consent-accept');
       if (analyticsConsentAccept) {
         analyticsConsentAccept.addEventListener('click', function() {
