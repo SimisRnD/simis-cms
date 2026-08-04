@@ -194,11 +194,6 @@ CREATE TABLE images (
   file_type VARCHAR(20),
   width INTEGER NOT NULL,
   height INTEGER NOT NULL,
-  processed_path VARCHAR(255),
-  processed_file_length BIGINT DEFAULT 0,
-  processed_file_type VARCHAR(20),
-  processed_width INTEGER NOT NULL DEFAULT 0,
-  processed_height INTEGER NOT NULL DEFAULT 0,
   web_path VARCHAR(50) NOT NULL
 );
 CREATE INDEX images_created_idx ON images(created);

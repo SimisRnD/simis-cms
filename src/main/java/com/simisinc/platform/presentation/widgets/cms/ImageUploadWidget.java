@@ -27,12 +27,15 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 import org.thymeleaf.util.StringUtils;
 
+import org.jobrunr.scheduling.BackgroundJobRequest;
+
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.cms.SaveImageCommand;
 import com.simisinc.platform.application.cms.ValidateImageCommand;
 import com.simisinc.platform.application.filesystem.FileSystemCommand;
 import com.simisinc.platform.domain.model.cms.Image;
+import com.simisinc.platform.infrastructure.scheduler.cms.ImageVariantJob;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 
@@ -130,6 +133,10 @@ public class ImageUploadWidget extends GenericWidget {
       context.setRequestObject(imageBean);
       return context;
     }
+
+    // Generate srcset-ready variants in the background (issue #411) -- not inline, so upload
+    // response time does not depend on ImageMagick's speed
+    BackgroundJobRequest.enqueue(new ImageVariantJob(image.getId()));
 
     // Return Json with the new image's URL
     context.setJson("{\"location\": \"" + "/assets/img/" + image.getUrl() + "\"}");

@@ -70,6 +70,25 @@ COPY ./docker/app/applicationinsights.json /opt/applicationinsights.json
 # verifiable by rebuilding.
 COPY ./target/simis-cms-ssrf-pin-resolver.jar /usr/local/tomcat/lib/simis-cms-ssrf-pin-resolver.jar
 
+# Issue #411: image variant (thumbnail/medium/large) generation. im4java (a vendored WAR
+# dependency) is only a thin Java wrapper that shells out to ImageMagick's `convert` binary -- it
+# does no image processing itself, so the binary must actually be present in this image.
+# --no-install-recommends keeps this to the imagemagick package and its real dependencies (no
+# X11/ghostscript/etc. pulled in).
+#
+# imagemagick-policy.xml (copied over the package's own default below) is repo-owned rather than
+# left to whatever policy.xml the current imagemagick package version happens to ship: it denies
+# every coder/delegate except the raster formats GenerateImageVariantsCommand's own allowlist
+# resizes (jpeg/png/gif/webp), which closes off the ImageTragick-class delegate coders (PDF/PS/
+# EPS/MSL/MVG/...) regardless of package defaults, and adds an explicit resource ceiling
+# (including `time`, which the package default leaves unset) so one convert invocation can't tie
+# up a background worker indefinitely. An uploaded file that merely claims a supported content
+# type but isn't well-formed is still handled by ImageMagick's normal decode-error path.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends imagemagick \
+    && rm -rf /var/lib/apt/lists/*
+COPY ./docker/app/imagemagick-policy.xml /etc/ImageMagick-6/policy.xml
+
 # [STIG] Pre-extract the WAR at build time instead of letting Tomcat unpack it at startup.
 # With a read-only root filesystem, Tomcat cannot write the exploded ROOT/ into webapps/ at
 # boot -- so the app is exploded here, once, and server.xml sets unpackWARs="false". The
