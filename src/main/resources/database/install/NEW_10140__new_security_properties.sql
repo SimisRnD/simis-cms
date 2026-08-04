@@ -13,3 +13,9 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 -- so it surfaces on this same Security Settings page and requires step-up auth to change, like the
 -- rate-limit properties above.
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (30, 'IP Request Rate Alert Threshold (hits/hour)', 'security.ipRequestRateAlertThreshold', '300', 'text');
+
+-- Issue #419: how long a generated draft-preview link stays valid before it stops showing the
+-- draft and silently falls back to the live page. Under the "security" prefix (same as the
+-- properties above) since it's a bearer-token TTL -- changing it requires step-up auth like
+-- every other security-sensitive setting on this page.
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (40, 'Draft Preview Link Expiry (hours)', 'security.previewLinkTtlHours', '24', 'text');

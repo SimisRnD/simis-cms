@@ -156,6 +156,10 @@
   <c:if test="${!empty pageRenderInfo.canonicalUrl}">
     <link rel="canonical" href="<c:out value="${pageRenderInfo.canonicalUrl}"/>" />
   </c:if>
+  <%-- Issue #419: a draft preview link renders unreviewed content -- keep it out of search indexes --%>
+  <c:if test="${previewingDraft eq 'true'}">
+    <meta name="robots" content="noindex" />
+  </c:if>
   <%-- JSON-LD structured data for search engines and AI (issue #403) --%>
   <c:if test="${!empty pageRenderInfo.jsonLdData}">
     <script type="application/ld+json"><c:out value="${pageRenderInfo.jsonLdData}" escapeXml="false" /></script>
@@ -384,6 +388,7 @@
   <style>
     .platform-skip-link { position: absolute; left: -9999px; top: -9999px; z-index: 9999; }
     .platform-skip-link:focus { left: 0; top: 0; background: #fff; color: #000; padding: 0.5rem 1rem; text-decoration: none; border: 2px solid #000; }
+    .platform-preview-draft-banner { background: #fef6e0; color: #7a5c00; border-bottom: 1px solid #f0d98c; padding: 0.5rem 1rem; text-align: center; font-size: 0.9rem; }
   </style>
 </head>
 <c:set var="bodyClass" value="${pageRenderInfo.cssClass}"/>
@@ -396,6 +401,9 @@
 <body<c:if test="${pageRenderInfo.name eq '/'}"> id="body-home"</c:if><c:if test="${!empty bodyClass}"> class="<c:out value="${bodyClass}" />"</c:if>>
   <!-- Skip link for keyboard navigation (WCAG 2.4.1) -->
   <a href="#main" class="platform-skip-link">Skip to main content</a>
+  <c:if test="${previewingDraft eq 'true'}">
+    <div class="platform-preview-draft-banner"><i class="${font:far()} fa-eye fa-fw"></i> You are previewing an unpublished draft. This page is not visible to the public.</div>
+  </c:if>
   <c:if test="${pageEditMode eq 'true'}">
     <div id="sc-editor-toolbar" role="toolbar" aria-label="Page editor"
          data-page-path="<c:out value="${pageRenderInfo.pagePath}"/>"
