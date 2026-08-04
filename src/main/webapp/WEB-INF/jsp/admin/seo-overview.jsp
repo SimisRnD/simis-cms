@@ -55,6 +55,15 @@
     different jobs, even from the same vendor.
   </li>
   <li>
+    <strong><a href="${ctx}/admin/llms-properties">LLM/AI Visibility (llms.txt)</a></strong>
+    &mdash; a curated, markdown-formatted summary of the site (name, description, navigation, and
+    links to key pages, collections, blogs, and wikis) at
+    <a href="${ctx}/llms.txt" target="_blank" rel="noopener">/llms.txt <i class="fa fa-external-link"></i></a>,
+    the emerging <a href="https://llmstxt.org" target="_blank" rel="noreferrer">llms.txt</a>
+    convention for LLM and agentic-browsing tools -- a different audience from the crawlers robots.txt
+    addresses above. Add a custom description here to supplement what's generated automatically.
+  </li>
+  <li>
     <strong><a href="${ctx}/admin/social-media-settings">Social Media</a></strong> &mdash; the
     profile links entered here also feed the Organization structured-data block above, so answer
     engines can connect this site to its official social accounts.
