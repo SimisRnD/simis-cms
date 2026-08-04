@@ -18,6 +18,8 @@ package com.simisinc.platform.domain.model.cms;
 
 import java.sql.Timestamp;
 
+import org.apache.commons.lang3.StringUtils;
+
 import com.simisinc.platform.application.cms.LoadBlogCommand;
 import com.simisinc.platform.domain.model.Entity;
 
@@ -27,7 +29,7 @@ import com.simisinc.platform.domain.model.Entity;
  * @author matt rajkowski
  * @created 8/7/18 8:51 AM
  */
-public class BlogPost extends Entity {
+public class BlogPost extends Entity implements Reviewable {
 
   private Long id = -1L;
 
@@ -66,6 +68,20 @@ public class BlogPost extends Entity {
   private Long[] tagIdList = null;
 
   private String highlight = null;
+
+  // Governed publish workflow (issue #407, phase 2): mirrors WebPage's own draft_status/
+  // submitted_by/approved_by/release_reference exactly -- see ContentReviewCommand/Reviewable.
+  // Never reachable through BlogEditorWidget's BeanUtils.populate() form save; only
+  // BlogPostReviewWidget's explicit submit/approve/reject actions may change these. Unlike a web
+  // page, a blog post has no separate draft/live content split -- a post's own single body field
+  // *is* what's live once published is non-null -- so hasDraftContent() below treats "has content,
+  // not yet published" as the draft awaiting review; this only gates the initial
+  // unpublished -> published transition, not a subsequent edit to an already-published post (see
+  // issue #407 phase 2 research notes).
+  private String draftStatus = null;
+  private long submittedBy = -1;
+  private long approvedBy = -1;
+  private String releaseReference = null;
 
   public BlogPost() {
   }
@@ -336,6 +352,51 @@ public class BlogPost extends Entity {
 
   public void setHighlight(String highlight) {
     this.highlight = highlight;
+  }
+
+  @Override
+  public String getDraftStatus() {
+    return draftStatus;
+  }
+
+  @Override
+  public void setDraftStatus(String draftStatus) {
+    this.draftStatus = draftStatus;
+  }
+
+  @Override
+  public long getSubmittedBy() {
+    return submittedBy;
+  }
+
+  @Override
+  public void setSubmittedBy(long submittedBy) {
+    this.submittedBy = submittedBy;
+  }
+
+  @Override
+  public long getApprovedBy() {
+    return approvedBy;
+  }
+
+  @Override
+  public void setApprovedBy(long approvedBy) {
+    this.approvedBy = approvedBy;
+  }
+
+  @Override
+  public String getReleaseReference() {
+    return releaseReference;
+  }
+
+  @Override
+  public void setReleaseReference(String releaseReference) {
+    this.releaseReference = releaseReference;
+  }
+
+  @Override
+  public boolean hasDraftContent() {
+    return StringUtils.isNotBlank(body) && published == null;
   }
 
 }
