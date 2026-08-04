@@ -78,7 +78,12 @@
     </c:if>
   </c:otherwise>
 </c:choose>
-  <link rel="apple-touch-icon" type="image/png" href="${systemPropertyMap['system.www.context']}/images/apple-touch-icon.png">
+  <link rel="apple-touch-icon" type="image/png" id="apple-touch-icon-link" href="${ctx}/images/apple-touch-icon.png">
+  <%-- Prefers an admin-uploaded touch icon at system.www.context when one actually loads; otherwise
+       stays on the bundled default above, so a fresh install (nothing uploaded yet) never 404s on
+       this request. Probed with an Image() object rather than the <link> itself, matching the
+       favicon fix below (a <link>'s own load/error events are not reliably dispatched). --%>
+  <script nonce="${cspNonce}">(function(){var u='${js:escape(systemPropertyMap['system.www.context'])}/images/apple-touch-icon.png';var i=new Image();i.onload=function(){document.getElementById('apple-touch-icon-link').href=u;};i.src=u;})();</script>
   <link rel="icon" type="image/png" href="${systemPropertyMap['system.www.context']}/images/favicon.png">
   <c:choose>
     <c:when test="${!empty pageRenderInfo.title}"><title><c:out value="${pageRenderInfo.title}"/> | <c:out value="${sitePropertyMap['site.name']}"/><c:if test="${!empty sitePropertyMap['site.name.keyword']}"> - <c:out value="${sitePropertyMap['site.name.keyword']}"/></c:if></title></c:when>

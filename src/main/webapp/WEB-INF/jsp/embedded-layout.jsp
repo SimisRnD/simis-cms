@@ -19,6 +19,7 @@
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <%@ taglib prefix="font" uri="/WEB-INF/tlds/font-functions.tld" %>
+<%@ taglib prefix="js" uri="/WEB-INF/tlds/javascript-escape.tld" %>
 <jsp:useBean id="masterWebPage" class="com.simisinc.platform.domain.model.cms.WebPage" scope="request"/>
 <jsp:useBean id="pageRenderInfo" class="com.simisinc.platform.presentation.controller.PageRenderInfo" scope="request"/>
 <jsp:useBean id="systemPropertyMap" class="java.util.HashMap" scope="request"/>
@@ -39,7 +40,9 @@
   <meta charset="UTF-8" />
   <meta http-equiv="x-ua-compatible" content="ie=edge">
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <link rel="apple-touch-icon" type="image/png" href="${systemPropertyMap['system.www.context']}/images/apple-touch-icon.png">
+  <link rel="apple-touch-icon" type="image/png" id="apple-touch-icon-link" href="${ctx}/images/apple-touch-icon.png">
+  <%-- See main.jsp for why this defaults to the bundled icon and probes with an Image() object. --%>
+  <script nonce="${cspNonce}">(function(){var u='${js:escape(systemPropertyMap['system.www.context'])}/images/apple-touch-icon.png';var i=new Image();i.onload=function(){document.getElementById('apple-touch-icon-link').href=u;};i.src=u;})();</script>
   <link rel="icon" type="image/png" href="${systemPropertyMap['system.www.context']}/images/favicon.png">
   <c:choose>
     <c:when test="${!empty masterWebPage.title}"><title><c:out value="${masterWebPage.title}"/> | <c:out value="${sitePropertyMap['site.name']}"/><c:if test="${!empty sitePropertyMap['site.name.keyword']}"> - <c:out value="${sitePropertyMap['site.name.keyword']}"/></c:if></title></c:when>
