@@ -108,10 +108,19 @@ public class WebPageFormWidget extends GenericWidget {
     // here, before BeanUtils.populate() below walks the entire raw parameter map: without this, a
     // crafted POST (e.g. approvedBy=<any user id>) would bypass separation-of-duties and step-up
     // re-authentication entirely, the same class of mass-assignment gap fixed for #492/#730.
+    //
+    // pageXml/draftPageXml (#957) are captured and restored the same way, for the same reason: this
+    // form has no content field of its own (web-page-form.jsp is metadata only -- title, keywords,
+    // sitemap settings, publish/expire dates), but BeanUtils.populate() walks the *raw* HTTP parameter
+    // map rather than the JSP's actual field set, so a crafted "pageXml" POST parameter would otherwise
+    // write straight to the live page through this widget's unconditional SaveWebPageCommand.saveWebPage()
+    // call below -- the exact bypass #957 closes in WebPageDesignerWidget, reachable here too.
     String existingDraftStatus = webPageBean.getDraftStatus();
     long existingSubmittedBy = webPageBean.getSubmittedBy();
     long existingApprovedBy = webPageBean.getApprovedBy();
     String existingReleaseReference = webPageBean.getReleaseReference();
+    String existingPageXml = webPageBean.getPageXml();
+    String existingDraftPageXml = webPageBean.getDraftPageXml();
 
     // Populate the form fields
     BeanUtils.populate(webPageBean, context.getParameterMap());
@@ -121,6 +130,8 @@ public class WebPageFormWidget extends GenericWidget {
     webPageBean.setSubmittedBy(existingSubmittedBy);
     webPageBean.setApprovedBy(existingApprovedBy);
     webPageBean.setReleaseReference(existingReleaseReference);
+    webPageBean.setPageXml(existingPageXml);
+    webPageBean.setDraftPageXml(existingDraftPageXml);
 
     // Handle publish/draft choice
     String publish = context.getParameter("publish");

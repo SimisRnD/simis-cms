@@ -323,7 +323,12 @@ public class WebPageRepository {
     if (record == null || record.getId() == -1) {
       return;
     }
-    String set = "draft_page_xml = null, draft = false";
+    // Issue #958: also reset the governed-review fields, mirroring ContentRepository.removeDraft().
+    // Without this, discarding a draft leaves a stale draftStatus/submittedBy/approvedBy behind --
+    // reproducing the #948 bypass shape, since a later draft could inherit an approval it never
+    // actually earned.
+    String set = "draft_page_xml = null, draft = false, "
+        + "draft_status = null, submitted_by = -1, approved_by = -1, release_reference = null";
     SqlUtils where = new SqlUtils().add("web_page_id = ?", record.getId());
     if (DB.update(TABLE_NAME, set, where)) {
       // Force the page to re-cache

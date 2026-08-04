@@ -16,6 +16,7 @@
 
 package com.simisinc.platform.infrastructure.persistence.cms;
 
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -376,6 +377,54 @@ class WebPageRepositoryTest {
     WebPage beforeSecondPublish = WebPageRepository.findById(saved.getId());
     assertFalse(ContentReviewCommand.mayPublish(beforeSecondPublish, true),
         "a fresh draft must not inherit the prior cycle's approval -- it has to be resubmitted and reapproved");
+  }
+
+  // --- removeDraft() clears the review workflow (#958) ---
+
+  @Test
+  void removeDraftIsANoOpForAnUnsavedRecord() {
+    // The only real caller (PageServlet's discardDraft action) already pre-checks id == -1 before
+    // ever reaching this method, leaving the guard itself unexercised by anything -- this proves it
+    // directly, so a future refactor that loosens or reorders the guard, or a new caller that skips
+    // PageServlet's pre-check, fails loudly instead of throwing on an unsaved WebPage's null link.
+    WebPage neverSaved = new WebPage();
+    neverSaved.setLink("/never-saved");
+
+    assertDoesNotThrow(() -> WebPageRepository.removeDraft(neverSaved));
+    assertDoesNotThrow(() -> WebPageRepository.removeDraft(null));
+  }
+
+  @Test
+  void removeDraftClearsTheReviewWorkflowSoADiscardedDraftCannotLeaveAStaleApproval() throws DataException {
+    WebPage webPage = new WebPage();
+    webPage.setLink("/discarded");
+    webPage.setTitle("Discarded Draft Page");
+    webPage.setEnabled(true);
+    webPage.setSearchable(true);
+    webPage.setCreatedBy(1L);
+    webPage.setPageXml("<xml>live</xml>");
+    webPage.setDraftPageXml("<xml>pending review</xml>");
+    webPage.setDraft(true);
+    WebPage saved = WebPageRepository.save(webPage);
+
+    // Submit and approve, then discard instead of publishing -- the exact scenario from #958: the
+    // approval must not survive to be inherited by whatever draft comes next.
+    ContentReviewCommand.submitForReview(saved, 10L);
+    WebPageRepository.save(saved);
+    ContentReviewCommand.approve(saved, 20L, "CAB-456");
+    WebPageRepository.save(saved);
+
+    WebPageRepository.removeDraft(saved);
+
+    WebPage afterDiscard = WebPageRepository.findById(saved.getId());
+    assertEquals("<xml>live</xml>", afterDiscard.getPageXml(), "discarding a draft must not touch the live page");
+    assertNull(afterDiscard.getDraftPageXml());
+    assertFalse(afterDiscard.getDraft());
+    assertNull(afterDiscard.getDraftStatus(),
+        "a discarded draft's review workflow must be cleared, not left \"submitted\"/approved");
+    assertEquals(-1L, afterDiscard.getSubmittedBy());
+    assertEquals(-1L, afterDiscard.getApprovedBy());
+    assertNull(afterDiscard.getReleaseReference());
   }
 
   @Test
