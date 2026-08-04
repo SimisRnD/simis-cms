@@ -17,6 +17,7 @@
 package com.simisinc.platform.presentation.widgets.admin.cms;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -152,7 +153,11 @@ class BlogPostReviewWidgetTest extends WidgetBase {
 
       WidgetContext result = new BlogPostReviewWidget().action(widgetContext);
 
+      assertNotNull(post.getPublished(), "publishDirectly() must actually set the post live, not just save it");
       postRepo.verify(() -> BlogPostRepository.save(post));
+      audit.verify(() -> AuditEventCommand.record(any(), eq(AuditEventCommand.CONTENT), eq("content.publish"),
+          eq(AuditEventCommand.SUCCESS), eq("blog_post"), eq("9"), eq("A Post"), any()));
+      workflowManager.verify(() -> WorkflowManager.triggerWorkflowForEvent(any()));
       assertEquals("The post was published", result.getSuccessMessage());
     }
   }
@@ -202,6 +207,7 @@ class BlogPostReviewWidgetTest extends WidgetBase {
       WidgetContext result = new BlogPostReviewWidget().post(widgetContext);
 
       contentReview.verify(() -> ContentReviewCommand.approve(post, widgetContext.getUserId(), "CR-1234"));
+      assertNotNull(post.getPublished(), "performApproval() must actually set the post live, not just save it");
       postRepo.verify(() -> BlogPostRepository.save(post));
       workflowManager.verify(() -> WorkflowManager.triggerWorkflowForEvent(any()));
       assertEquals("The post was approved and published", result.getSuccessMessage());

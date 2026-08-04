@@ -174,14 +174,10 @@ public class BlogEditorWidget extends GenericWidget {
     // WebPageFormWidget's identical guard for the same class of mass-assignment gap (#492/#730).
     // The gate just below reads mayPublishDirectly(reviewRequired) rather than this bean's own
     // approval state, so it isn't itself bypassable by a forged approvedBy/draftStatus parameter --
-    // but this restore is still required defense-in-depth: SaveBlogPostCommand.saveBlogPost()
-    // currently ignores blogPostBean's governance fields when persisting (it copies an explicit
-    // allow-list of business fields onto its own freshly-reloaded entity), so nothing downstream of
-    // this method currently trusts these four fields off of blogPostBean either -- but that is an
-    // incidental property of SaveBlogPostCommand's current implementation, not a contract, and this
-    // widget should not rely on it silently. Without this guard, any future change to either
-    // SaveBlogPostCommand or this gate that started reading blogPostBean's governance fields would
-    // silently reopen the mass-assignment hole.
+    // but this restore is still required: SaveBlogPostCommand.saveBlogPost() persists these four
+    // fields straight off of blogPostBean (needed so the reset-on-unpublish below actually reaches
+    // the database), so without this guard a forged approvedBy/draftStatus/submittedBy/
+    // releaseReference parameter would be written to the record as-is.
     String existingDraftStatus = blogPostBean.getDraftStatus();
     long existingSubmittedBy = blogPostBean.getSubmittedBy();
     long existingApprovedBy = blogPostBean.getApprovedBy();
@@ -225,6 +221,19 @@ public class BlogEditorWidget extends GenericWidget {
       blogPostBean.setPublished(new Timestamp(System.currentTimeMillis()));
     } else {
       blogPostBean.setPublished(null);
+      if (wasAlreadyPublished) {
+        // Issue #407 phase 2 review finding: unpublishing a post must invalidate any prior
+        // approval, or a single editor could unpublish, edit the body to arbitrary new content,
+        // and republish via BlogPostReviewWidget.publishDirectly() -- which reads mayPublish()
+        // purely from these fields, with no correlation to what content was actually reviewed --
+        // without the new content ever having been submitted or reviewed by anyone. Resetting to
+        // the same "never submitted" defaults BlogPost itself starts with means the post must go
+        // through submit -> approve again before it can be published a second time.
+        blogPostBean.setDraftStatus(null);
+        blogPostBean.setSubmittedBy(-1);
+        blogPostBean.setApprovedBy(-1);
+        blogPostBean.setReleaseReference(null);
+      }
     }
     String eventType = isPublished ? "content.publish" : "content.unpublish";
 

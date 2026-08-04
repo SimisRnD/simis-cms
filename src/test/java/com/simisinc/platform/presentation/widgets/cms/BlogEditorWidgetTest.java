@@ -349,6 +349,81 @@ class BlogEditorWidgetTest extends WidgetBase {
   }
 
   /**
+   * Regression test for the review-bypass finding raised on issue #407 phase 2: nothing previously
+   * reset draftStatus/submittedBy/approvedBy/releaseReference when a post was unpublished, so a
+   * single editor could unpublish an already-approved post, edit the body to arbitrary new content,
+   * and republish it via BlogPostReviewWidget.publishDirectly() -- which reads mayPublish() purely
+   * from those stale fields -- without the new content ever having been submitted or reviewed by
+   * anyone. Unpublishing must invalidate the prior approval so the post has to go through
+   * submit -&gt; approve again before it can be published a second time.
+   */
+  @Test
+  void postResetsGovernedWorkflowFieldsWhenUnpublishingAnAlreadyApprovedPost()
+      throws InvocationTargetException, IllegalAccessException {
+    BlogPost existing = blogPost(5L, new Timestamp(System.currentTimeMillis()));
+    existing.setDraftStatus(ContentReviewCommand.STATUS_SUBMITTED);
+    existing.setSubmittedBy(3L);
+    existing.setApprovedBy(7L);
+    existing.setReleaseReference("CR-OLD");
+    BlogPost saved = blogPost(5L, null);
+
+    addQueryParameter(widgetContext, "id", "5");
+    addQueryParameter(widgetContext, "title", "A Post");
+    // "enabled" checkbox absent -- unpublishing an already-published, already-approved post
+
+    try (MockedStatic<LoadBlogPostCommand> loadPost = mockStatic(LoadBlogPostCommand.class);
+        MockedStatic<SaveBlogPostCommand> savePost = mockStatic(SaveBlogPostCommand.class)) {
+      loadPost.when(() -> LoadBlogPostCommand.loadBlogPostById(5L)).thenReturn(existing);
+      savePost.when(() -> SaveBlogPostCommand.saveBlogPost(any())).thenReturn(saved);
+
+      new BlogEditorWidget().post(widgetContext);
+
+      ArgumentCaptor<BlogPost> blogPostCaptor = ArgumentCaptor.forClass(BlogPost.class);
+      savePost.verify(() -> SaveBlogPostCommand.saveBlogPost(blogPostCaptor.capture()));
+      BlogPost saveArgument = blogPostCaptor.getValue();
+      assertNull(saveArgument.getDraftStatus(), "an unpublish must clear the stale approval, not carry it forward");
+      assertEquals(-1L, saveArgument.getSubmittedBy());
+      assertEquals(-1L, saveArgument.getApprovedBy());
+      assertNull(saveArgument.getReleaseReference());
+    }
+  }
+
+  /**
+   * Companion to the reset above: a post that is saved while it is ALREADY unpublished (e.g. an
+   * in-progress edit to a draft still awaiting review) must not have its pending
+   * submit/reject state wiped just because "enabled" happens to be unchecked on this particular
+   * save -- the reset above is keyed on the published-&gt;unpublished transition specifically
+   * (wasAlreadyPublished), not on "isPublished is currently false".
+   */
+  @Test
+  void postDoesNotResetGovernedWorkflowFieldsWhenAlreadyUnpublishedPostIsSavedAgain()
+      throws InvocationTargetException, IllegalAccessException {
+    BlogPost existing = blogPost(5L, null);
+    existing.setDraftStatus(ContentReviewCommand.STATUS_SUBMITTED);
+    existing.setSubmittedBy(3L);
+    BlogPost saved = blogPost(5L, null);
+
+    addQueryParameter(widgetContext, "id", "5");
+    addQueryParameter(widgetContext, "title", "A Post");
+    // "enabled" checkbox absent -- but the post was already unpublished, not transitioning
+
+    try (MockedStatic<LoadBlogPostCommand> loadPost = mockStatic(LoadBlogPostCommand.class);
+        MockedStatic<SaveBlogPostCommand> savePost = mockStatic(SaveBlogPostCommand.class)) {
+      loadPost.when(() -> LoadBlogPostCommand.loadBlogPostById(5L)).thenReturn(existing);
+      savePost.when(() -> SaveBlogPostCommand.saveBlogPost(any())).thenReturn(saved);
+
+      new BlogEditorWidget().post(widgetContext);
+
+      ArgumentCaptor<BlogPost> blogPostCaptor = ArgumentCaptor.forClass(BlogPost.class);
+      savePost.verify(() -> SaveBlogPostCommand.saveBlogPost(blogPostCaptor.capture()));
+      BlogPost saveArgument = blogPostCaptor.getValue();
+      assertEquals(ContentReviewCommand.STATUS_SUBMITTED, saveArgument.getDraftStatus(),
+          "a post already awaiting review must not lose that state on an ordinary intermediate save");
+      assertEquals(3L, saveArgument.getSubmittedBy());
+    }
+  }
+
+  /**
    * Governed publish workflow gate (issue #407, phase 2): under blogPost.review.required, checking
    * "Publish it?" on a post that has never been published can no longer take it live directly --
    * the save degrades to a draft save (mirrors ContentReviewCommand.mayPublishDirectly()'s own
