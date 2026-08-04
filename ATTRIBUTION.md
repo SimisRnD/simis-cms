@@ -93,5 +93,4 @@ SimIS CMS is built on the work of many open-source projects and data providers. 
    Square                      Payment processing                                         https://squareup.com/us/en
    Stripe                      Payment processing                                         https://stripe.com
    Taxjar                      Taxes                                                      https://www.taxjar.com
-   USPS Address Validation     Address verification                                       https://www.usps.com/business/web-tools-apis/
 ```

@@ -16,7 +16,7 @@ SimIS CMS comes out-of-the-box with modules, easy setup, and powerful developer 
 - **E-commerce**: Products, SKUs, Categories, Customers, Orders, Account Management, Shipping Methods, Carriers, Tracking Numbers, Pricing Rules (Constraints, Discounts, and Promos)
 - **CRM**: Forms, Leads & Customers, Orders
 - **Settings**: Theme, Site SEO, Social Media, Mail Server, Maps, Captcha, Analytics, E-commerce, Mailing Lists
-- **Integration**: Google Analytics, Map Box, Open Street Map, Square, Stripe, Taxjar, USPS, Boxzooka
+- **Integration**: Google Analytics, Map Box, Open Street Map, Square, Stripe, Taxjar, Boxzooka
 - **Security**: Multi-Factor Authentication (TOTP, Recovery Codes), Argon2id Password Hashing, OAuth, Firewall (Integration and Blocked IP Lists), Spam Filter, Geo Filter, Rate Limiting, CSP/HSTS and Session Hardening, Encrypted Secrets at Rest, CodeQL and Snyk Scanning, Signed SBOM with Build-Provenance Attestation
 - **API**: Rest API
 - **Platform**: Micro Widgets, Connection Pool, Cache, Scheduler, Workflow, Expression Engine, Upgrades, Migrations, Record Paging
