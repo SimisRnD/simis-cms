@@ -34,6 +34,21 @@ lenient parsers tolerate.
   * src/main/webapp/META-INF/context.xml
   * src/main/webapp/WEB-INF/web.xml
   * src/main/webapp/WEB-INF/tlds/*.tld
+  * src/main/webapp/WEB-INF/rest-services/*.xml   -- read by XMLServiceLoader
+  * src/main/webapp/WEB-INF/json-services/*.xml   -- read by XMLJSONServiceLoader
+  * src/main/webapp/WEB-INF/widgets/*.xml         -- read by WebPageXmlLayoutCommand
+  * src/main/webapp/WEB-INF/web-layouts/**/*.xml  -- read by WebPageXmlLayoutCommand,
+                                                       XMLFooterLoader, XMLHeaderLoader
+  * src/main/webapp/WEB-INF/web-templates/**/*.xml -- read by WebPageXmlLayoutCommand
+
+The rest-services glob is the file that motivated adding these: issue #412 added a
+comment with a doubled hyphen to rest-services.xml, which made XMLServiceLoader's
+parseDocument() throw on every application startup. That failure is caught and
+swallowed (only a stack trace, no log line) by XMLServiceLoader.addFile(), so the
+entire service list in the affected file silently never registers -- every /api/*
+route it defines 404s with no error naming the cause. None of the newly added
+directories were previously covered by any check, the JSP compile step, or the test
+suite -- the exact gap this file's own module docstring already warns about.
 
 This is a structural well-formedness check, not schema validation. It confirms the
 XML parses; it does not check it against the servlet or taglib schema.
@@ -64,6 +79,11 @@ TARGETS = [
     "src/main/webapp/META-INF/context.xml",
     "src/main/webapp/WEB-INF/web.xml",
     "src/main/webapp/WEB-INF/tlds/*.tld",
+    "src/main/webapp/WEB-INF/rest-services/*.xml",
+    "src/main/webapp/WEB-INF/json-services/*.xml",
+    "src/main/webapp/WEB-INF/widgets/*.xml",
+    "src/main/webapp/WEB-INF/web-layouts/**/*.xml",
+    "src/main/webapp/WEB-INF/web-templates/**/*.xml",
 ]
 
 
@@ -79,7 +99,7 @@ def resolve(root_dir: str) -> list[str]:
     files: list[str] = []
     for target in TARGETS:
         pattern = os.path.join(root_dir, target)
-        matches = sorted(glob.glob(pattern))
+        matches = sorted(glob.glob(pattern, recursive=True))
         is_glob = any(ch in target for ch in "*?[")
         if not matches and not is_glob:
             _fail_usage(f"ERROR: expected file not found: {target}")

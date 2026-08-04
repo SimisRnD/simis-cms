@@ -36,7 +36,7 @@
   <!--
   Issue #412: read endpoints for web pages, blog posts, and folder files. "blog-posts/{id}" and
   "post/{blogId}/{postId}" deviate from the issue's originally-specced "blog/{id}/posts" and
-  "post/{postId}" -- RestServlet's router only supports up to 2 raw path params with no literal
+  "post/{postId}" - RestServlet's router only supports up to 2 raw path params with no literal
   segment between them, and BlogPostRepository.findByUniqueId is keyed by (blogId, postUniqueId),
   not a globally-unique post id. See each service class's javadoc for the full rationale.
   -->
