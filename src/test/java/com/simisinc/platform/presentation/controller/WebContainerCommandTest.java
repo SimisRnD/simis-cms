@@ -291,6 +291,24 @@ class WebContainerCommandTest {
   }
 
   @Test
+  void sitePropertyMapsSurviveThePerWidgetReset() {
+    // Regression test: PageServlet.java now publishes systemPropertyMap/sitePropertyMap/
+    // themePropertyMap/socialPropertyMap/socialMediaLinkList/analyticsPropertyMap/
+    // ecommercePropertyMap before the section/column/widget walk begins (moved there so a
+    // widget JSP like ActivityListWidget's activity-list.jsp -- which reads
+    // systemPropertyMap['system.www.context'] directly -- can see them during its own JSP turn,
+    // not just once main.jsp renders afterward). Without this exemption the very first widget's
+    // reset would wipe them right back out before any later widget, or even main.jsp, read them.
+    Assertions.assertTrue(WebContainerCommand.isPreservedAcrossWidgetReset("systemPropertyMap"));
+    Assertions.assertTrue(WebContainerCommand.isPreservedAcrossWidgetReset("sitePropertyMap"));
+    Assertions.assertTrue(WebContainerCommand.isPreservedAcrossWidgetReset("themePropertyMap"));
+    Assertions.assertTrue(WebContainerCommand.isPreservedAcrossWidgetReset("socialPropertyMap"));
+    Assertions.assertTrue(WebContainerCommand.isPreservedAcrossWidgetReset("socialMediaLinkList"));
+    Assertions.assertTrue(WebContainerCommand.isPreservedAcrossWidgetReset("analyticsPropertyMap"));
+    Assertions.assertTrue(WebContainerCommand.isPreservedAcrossWidgetReset("ecommercePropertyMap"));
+  }
+
+  @Test
   void existingControllerMasterAndRequestPrefixedAttributesStillSurvive() {
     // Unchanged pre-existing behavior -- must not regress with the new exemption added alongside it.
     Assertions.assertTrue(WebContainerCommand.isPreservedAcrossWidgetReset("controllerShowMainMenu"));
