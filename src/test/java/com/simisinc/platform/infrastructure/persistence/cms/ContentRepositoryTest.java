@@ -44,7 +44,9 @@ import org.testcontainers.utility.DockerImageName;
 
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.cms.ContentReviewCommand;
+import com.simisinc.platform.application.cms.DeltaContentCommand;
 import com.simisinc.platform.domain.model.cms.Content;
+import com.simisinc.platform.domain.model.cms.ContentVersion;
 import com.simisinc.platform.infrastructure.database.DB;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.database.DataSource;
@@ -127,7 +129,7 @@ class ContentRepositoryTest {
     }
     try (Connection connection = DB.getConnection();
         Statement statement = connection.createStatement()) {
-      statement.execute("TRUNCATE TABLE content RESTART IDENTITY");
+      statement.execute("TRUNCATE TABLE content_versions, content RESTART IDENTITY CASCADE");
     } catch (SQLException se) {
       throw new IllegalStateException("Could not reset content table", se);
     }
@@ -199,6 +201,7 @@ class ContentRepositoryTest {
     // references content.
     try (Connection connection = DB.getConnection();
         Statement statement = connection.createStatement()) {
+      statement.execute("DROP TABLE IF EXISTS content_versions CASCADE");
       statement.execute("DROP TABLE IF EXISTS content CASCADE");
       statement.execute("CREATE TABLE content ("
           + "content_id BIGSERIAL PRIMARY KEY, "
@@ -228,6 +231,18 @@ class ContentRepositoryTest {
           + "$$ LANGUAGE plpgsql");
       statement.execute("CREATE TRIGGER tsvectorupdate BEFORE INSERT OR UPDATE "
           + "ON content FOR EACH ROW EXECUTE PROCEDURE content_tsv_trigger()");
+
+      // #406: content_versions, mirroring NEW_10010__new_cms.sql. No users table in this fixture, so
+      // approved_by is a plain column rather than an FK -- same simplification WebPageVersionRepositoryTest
+      // uses for published_by.
+      statement.execute("CREATE TABLE content_versions ("
+          + "content_version_id BIGSERIAL PRIMARY KEY, "
+          + "content_id BIGINT REFERENCES content(content_id) ON DELETE CASCADE, "
+          + "content TEXT, "
+          + "approved_by BIGINT, "
+          + "published_at TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP NOT NULL, "
+          + "release_reference VARCHAR(255))");
+      statement.execute("CREATE INDEX content_versions_content_idx ON content_versions(content_id, published_at DESC)");
     } catch (SQLException se) {
       throw new IllegalStateException("Could not create the content schema", se);
     }
@@ -267,7 +282,7 @@ class ContentRepositoryTest {
     content.setReleaseReference("cleared per PA case 2026-115");
     ContentRepository.save(content);
 
-    ContentRepository.publish(content);
+    ContentRepository.publish(content, 20);
 
     Content published = ContentRepository.findByUniqueId("to-publish");
     assertEquals("<p>approved draft</p>", published.getContent(), "the draft became the live content");
@@ -275,6 +290,147 @@ class ContentRepositoryTest {
     assertEquals(-1L, published.getSubmittedBy());
     assertEquals(-1L, published.getApprovedBy());
     assertNull(published.getReleaseReference());
+  }
+
+  // --- Version history on publish (issue #406) ---
+
+  @Test
+  void publishSnapshotsTheOutgoingContentBeforeOverwriting() {
+    Content content = new Content();
+    content.setUniqueId("versioned");
+    content.setContent("<p>original live content</p>");
+    ContentRepository.save(content);
+
+    content.setDraftContent("<p>new content</p>");
+    content.setDraftStatus("submitted");
+    content.setSubmittedBy(10L);
+    content.setApprovedBy(20L);
+    content.setReleaseReference("cleared per PA case 2026-406");
+    ContentRepository.save(content);
+
+    ContentRepository.publish(content, 20);
+
+    List<ContentVersion> versions = ContentVersionRepository.findByContentId(content.getId(), null);
+    assertNotNull(versions);
+    assertEquals(1, versions.size());
+    ContentVersion version = versions.get(0);
+    assertEquals("<p>original live content</p>", version.getContent(), "the OUTGOING content is snapshotted, not the new one");
+    assertEquals(20L, version.getApprovedBy());
+    assertEquals("cleared per PA case 2026-406", version.getReleaseReference());
+
+    Content published = ContentRepository.findByUniqueId("versioned");
+    assertEquals("<p>new content</p>", published.getContent());
+  }
+
+  @Test
+  void publishRendersDeltaContentToHtmlBeforeSnapshotting() {
+    // The outgoing content may itself have been published as Quill Delta JSON on a prior cycle -- the
+    // version row must always hold plain HTML (ContentHtmlCommand#toHtml), so a block that mixes Delta
+    // and legacy-HTML publishes over time still has a uniformly diffable history (#406).
+    Content content = new Content();
+    content.setUniqueId("delta-versioned");
+    content.setContent("{\"ops\":[{\"insert\":\"hi\\n\"}]}");
+    content.setContentFormat(DeltaContentCommand.DELTA_FORMAT_VERSION);
+    ContentRepository.save(content);
+
+    content.setDraftContent("<p>plain html draft</p>");
+    ContentRepository.save(content);
+
+    ContentRepository.publish(content, 20);
+
+    List<ContentVersion> versions = ContentVersionRepository.findByContentId(content.getId(), null);
+    assertNotNull(versions);
+    assertEquals("<p>hi</p>", versions.get(0).getContent(), "the Delta snapshot must be rendered to HTML, not stored raw");
+  }
+
+  @Test
+  void publishWithNoPriorLiveContentCreatesNoVersion() {
+    // A content block's first-ever publish has nothing to snapshot.
+    Content content = new Content();
+    content.setUniqueId("first-publish");
+    content.setDraftContent("<p>brand new</p>");
+    ContentRepository.save(content);
+
+    ContentRepository.publish(content, 20);
+
+    assertNull(ContentVersionRepository.findByContentId(content.getId(), null));
+    assertEquals("<p>brand new</p>", ContentRepository.findByUniqueId("first-publish").getContent());
+  }
+
+  @Test
+  void publishPrunesToTheVersionHistoryLimit() {
+    Content content = new Content();
+    content.setUniqueId("prune-me");
+    content.setContent("<p>v0</p>");
+    ContentRepository.save(content);
+
+    for (int i = 1; i <= 5; i++) {
+      content.setDraftContent("<p>v" + i + "</p>");
+      ContentRepository.save(content);
+      ContentRepository.publish(content, 2);
+    }
+
+    List<ContentVersion> versions = ContentVersionRepository.findByContentId(content.getId(), null);
+    assertNotNull(versions);
+    assertEquals(2, versions.size(), "only the 2 most recent snapshots should survive");
+  }
+
+  @Test
+  void publishIsANoOpWhenThereIsNoDraft() {
+    Content content = new Content();
+    content.setUniqueId("no-draft");
+    content.setContent("<p>live</p>");
+    ContentRepository.save(content);
+
+    ContentRepository.publish(content, 20);
+
+    assertEquals("<p>live</p>", ContentRepository.findByUniqueId("no-draft").getContent());
+    assertNull(ContentVersionRepository.findByContentId(content.getId(), null));
+  }
+
+  // --- Restore (issue #406) ---
+
+  @Test
+  void restoreDraftFromVersionLoadsTheContentIntoTheDraftSlot() {
+    Content content = new Content();
+    content.setUniqueId("to-restore");
+    content.setContent("<p>current live</p>");
+    ContentRepository.save(content);
+
+    boolean restored = ContentRepository.restoreDraftFromVersion(content.getId(), "<p>an older version</p>");
+
+    assertTrue(restored);
+    Content reloaded = ContentRepository.findByUniqueId("to-restore");
+    assertEquals("<p>an older version</p>", reloaded.getDraftContent());
+    assertEquals("<p>current live</p>", reloaded.getContent(), "restore never touches the live content directly");
+    assertEquals(0, reloaded.getDraftContentFormat(), "a restored version is always plain HTML");
+  }
+
+  @Test
+  void restoreDraftFromVersionClearsAnyStaleApprovalOnTheDraftItReplaces() {
+    // A draft already submitted-and-approved must not let its approval carry over to a DIFFERENT
+    // draft swapped in by a restore -- otherwise the restored content could publish without ever
+    // actually being reviewed (the same bypass shape fixed for WebPage by #957/#958). Unlike
+    // WebPageRepository#restoreDraftFromVersion (its #405 precedent, which leaves these fields
+    // untouched), this method resets them unconditionally.
+    Content content = new Content();
+    content.setUniqueId("stale-approval");
+    content.setContent("<p>live</p>");
+    content.setDraftContent("<p>a different, already-approved draft</p>");
+    content.setDraftStatus(ContentReviewCommand.STATUS_SUBMITTED);
+    content.setSubmittedBy(10L);
+    content.setApprovedBy(20L);
+    content.setReleaseReference("cleared per PA case 2026-407");
+    ContentRepository.save(content);
+
+    ContentRepository.restoreDraftFromVersion(content.getId(), "<p>an older version</p>");
+
+    Content reloaded = ContentRepository.findByUniqueId("stale-approval");
+    assertEquals("<p>an older version</p>", reloaded.getDraftContent());
+    assertNull(reloaded.getDraftStatus());
+    assertEquals(-1L, reloaded.getSubmittedBy());
+    assertEquals(-1L, reloaded.getApprovedBy(), "the restored draft must require a fresh approval, not inherit the old one");
+    assertNull(reloaded.getReleaseReference());
   }
 
   private static Content addContent(String uniqueId, String html) {

@@ -120,7 +120,7 @@ public class SaveWebPageCommand {
       webPage = new WebPage();
     }
     webPage.setCreatedBy(webPageBean.getCreatedBy());
-    webPage.setModifiedBy(webPageBean.getCreatedBy());
+    webPage.setModifiedBy(webPageBean.getModifiedBy());
     webPage.setLink(webPageBean.getLink());
     webPage.setRedirectUrl(webPageBean.getRedirectUrl());
     webPage.setTitle(webPageBean.getTitle());
