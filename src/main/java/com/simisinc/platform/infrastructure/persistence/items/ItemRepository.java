@@ -226,8 +226,11 @@ public class ItemRepository {
         // In a transaction (use the existing connection)
         DB.update(connection, TABLE_NAME, updateValues, where);
 
-        // If the master categoryId does not match, then update the category id counts
-        if (previousRecord.getCategoryId() != record.getCategoryId()) {
+        // If the master categoryId does not match, then update the category id counts. Guarded
+        // against a concurrent delete of this item between the findById() above and this update
+        // (previousRecord would then be null) -- matches WebPageRepository.update()'s equivalent
+        // null-check on its own previousRecord.
+        if (previousRecord != null && previousRecord.getCategoryId() != record.getCategoryId()) {
           // This category was removed
           if (previousRecord.getCategoryId() > -1) {
             CategoryRepository.updateItemCount(connection, previousRecord.getCategoryId(), -1);
@@ -354,22 +357,27 @@ public class ItemRepository {
     return false;
   }
 
-  public static void approve(Item record, User user) {
+  // Issue #427: returns DB.update()'s own success signal (rather than discarding it as before) so
+  // a bulk publish/unpublish caller can report a genuine per-row succeeded/failed count, matching
+  // the pattern every other bulk-action target (CalendarEventRepository.update, BlogPostRepository
+  // .save, etc.) already exposes. ApproveItemCommand's existing callers ignore the return value, so
+  // this is source-compatible with every current call site.
+  public static boolean approve(Item record, User user) {
     SqlUtils updateValues = new SqlUtils()
         .add("approved", new Timestamp(System.currentTimeMillis()))
         .add("approved_by", user.getId());
     SqlUtils where = new SqlUtils()
         .add("item_id = ?", record.getId());
-    DB.update(TABLE_NAME, updateValues, where);
+    return DB.update(TABLE_NAME, updateValues, where);
   }
 
-  public static void removeItemApproval(Item record, User user) {
+  public static boolean removeItemApproval(Item record, User user) {
     SqlUtils updateValues = new SqlUtils()
         .add("approved", (Timestamp) null)
         .add("approved_by", -1, -1);
     SqlUtils where = new SqlUtils()
         .add("item_id = ?", record.getId());
-    DB.update(TABLE_NAME, updateValues, where);
+    return DB.update(TABLE_NAME, updateValues, where);
   }
 
   public static void removeAll(Connection connection, Collection record) throws SQLException {

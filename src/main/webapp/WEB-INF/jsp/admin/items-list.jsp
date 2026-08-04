@@ -25,6 +25,7 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="collection" class="com.simisinc.platform.domain.model.items.Collection" scope="request"/>
 <jsp:useBean id="categoryMap" class="java.util.HashMap" scope="request"/>
+<jsp:useBean id="categoryList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="itemList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="recordPaging" class="com.simisinc.platform.infrastructure.database.DataConstraints" scope="request"/>
 <jsp:useBean id="columns" class="java.lang.String" scope="request"/>
@@ -49,9 +50,34 @@
   <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
 <%@include file="../page_messages.jspf" %>
+<%-- The bulk-actions toolbar, filter, edit link, and status column only apply to the full admin
+     list (columns=all, used by /admin/collection-records); the compact "columns=name" preview
+     rendered on /admin/collection-details is a read-only sidebar summary and shouldn't gain
+     checkboxes for records it isn't the primary place to manage (see web-page-list.jsp's
+     "don't duplicate selectable rows across two renderings of the same records" precedent). --%>
+<c:if test="${columns eq 'all'}">
+<form method="get" autocomplete="off" class="margin-bottom-10">
+  <input type="hidden" name="collectionId" value="${collection.id}"/>
+  <label class="inline">
+    <input type="checkbox" name="includeArchived" value="true" onchange="this.form.submit()" <c:if test="${includeArchived}">checked</c:if>>
+    Include archived items
+  </label>
+</form>
+<div id="bulkActionsBar" class="callout radius" style="display:none;padding:10px 15px;margin-bottom:10px;">
+  <span id="bulkSelectedCount"></span>
+  <button type="button" class="button tiny radius" id="bulkPublishBtn">Publish</button>
+  <button type="button" class="button tiny radius" id="bulkUnpublishBtn">Unpublish</button>
+  <button type="button" class="button tiny radius" id="bulkArchiveBtn">Archive</button>
+  <button type="button" class="button tiny radius" id="bulkMoveBtn">Move</button>
+  <button type="button" class="button tiny alert radius" id="bulkDeleteBtn">Delete</button>
+</div>
+</c:if>
 <table class="unstriped admin-item-list">
   <thead>
   <tr>
+    <c:if test="${columns eq 'all'}">
+      <th width="24"><input type="checkbox" id="selectAllItems" aria-label="Select all items on this page"></th>
+    </c:if>
     <th>Name</th>
     <c:if test="${columns eq 'all'}">
       <th>Street</th>
@@ -60,6 +86,8 @@
       <th>Postal</th>
       <th>Country</th>
       <th>Geocode</th>
+      <th width="100" class="text-center">Status</th>
+      <th width="60" class="text-center">Action</th>
     </c:if>
   </tr>
   </thead>
@@ -67,6 +95,9 @@
   <c:forEach items="${itemList}" var="item">
     <c:set var="category" scope="request" value="${categoryMap.get(item.categoryId)}"/>
     <tr>
+      <c:if test="${columns eq 'all'}">
+        <td><input type="checkbox" class="itemRowCheckbox" value="${item.id}" data-name="${fn:escapeXml(item.name)}" aria-label="Select ${fn:escapeXml(item.name)}"></td>
+      </c:if>
       <td>
         <c:choose>
           <c:when test="${!empty item.imageUrl}">
@@ -105,6 +136,22 @@
             <c:out value="${item.latitude}" />, <c:out value="${item.longitude}" />
           </c:if>
         </td>
+        <td class="text-center">
+          <c:choose>
+            <c:when test="${!empty item.archived}">
+              <span class="label secondary radius">Archived</span>
+            </c:when>
+            <c:when test="${!empty item.approved}">
+              <span class="label success radius">Published</span>
+            </c:when>
+            <c:otherwise>
+              <span class="label radius">Draft</span>
+            </c:otherwise>
+          </c:choose>
+        </td>
+        <td class="text-center">
+          <a href="${ctx}/edit/${item.uniqueId}?returnPage=/admin/collection-records%3FcollectionId%3D${collection.id}"><i class="fa fa-edit"></i></a>
+        </td>
       </c:if>
     </tr>
   </c:forEach>
@@ -114,5 +161,152 @@
   No records were found
 </c:if>
 <%-- Paging Control --%>
-<c:set var="recordPagingParams" scope="request" value="collectionId=${collection.id}"/>
 <%@include file="../paging_control.jspf" %>
+<c:if test="${columns eq 'all'}">
+<%-- Bulk action reveal modals -- selection is scoped to the items currently checked on this page
+     (see the JS below); each is populated at open time with the live selection, not just a count.
+     Mirrors calendar-event-list.jsp/blog-post-list.jsp's bulk reveal modals (issue #427 pattern). --%>
+<div class="reveal" id="bulkPublishReveal" role="dialog" aria-modal="true" aria-labelledby="bulkPublishRevealTitle"
+     data-reveal data-close-on-click="true">
+  <h4 id="bulkPublishRevealTitle">Publish <span id="bulkPublishCount">0</span> Item(s)</h4>
+  <p class="help-text">Publishing approves the selected items so they're marked Published.</p>
+  <ul id="bulkPublishList"></ul>
+  <form method="post">
+    <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
+    <input type="hidden" name="token" value="${userSession.formToken}"/>
+    <input type="hidden" name="command" value="bulkPublish"/>
+    <input type="hidden" name="collectionId" value="${collection.id}"/>
+    <input type="submit" class="button radius" value="Publish Items"/>
+    <button class="button secondary radius" type="button" data-close>Cancel</button>
+  </form>
+  <button class="close-button" data-close aria-label="Close reveal" type="button">
+    <span aria-hidden="true">&times;</span>
+  </button>
+</div>
+<div class="reveal" id="bulkUnpublishReveal" role="dialog" aria-modal="true" aria-labelledby="bulkUnpublishRevealTitle"
+     data-reveal data-close-on-click="true">
+  <h4 id="bulkUnpublishRevealTitle">Unpublish <span id="bulkUnpublishCount">0</span> Item(s)</h4>
+  <p class="help-text">Unpublishing removes approval; the selected items revert to Draft.</p>
+  <ul id="bulkUnpublishList"></ul>
+  <form method="post">
+    <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
+    <input type="hidden" name="token" value="${userSession.formToken}"/>
+    <input type="hidden" name="command" value="bulkUnpublish"/>
+    <input type="hidden" name="collectionId" value="${collection.id}"/>
+    <input type="submit" class="button radius" value="Unpublish Items"/>
+    <button class="button secondary radius" type="button" data-close>Cancel</button>
+  </form>
+  <button class="close-button" data-close aria-label="Close reveal" type="button">
+    <span aria-hidden="true">&times;</span>
+  </button>
+</div>
+<div class="reveal" id="bulkArchiveReveal" role="dialog" aria-modal="true" aria-labelledby="bulkArchiveRevealTitle"
+     data-reveal data-close-on-click="true">
+  <h4 id="bulkArchiveRevealTitle">Archive <span id="bulkArchiveCount">0</span> Item(s)</h4>
+  <p class="help-text">Archived items are hidden from this list and the public site by default. Check "Include archived items" above to find them again.</p>
+  <ul id="bulkArchiveList"></ul>
+  <form method="post">
+    <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
+    <input type="hidden" name="token" value="${userSession.formToken}"/>
+    <input type="hidden" name="command" value="bulkArchive"/>
+    <input type="hidden" name="collectionId" value="${collection.id}"/>
+    <input type="submit" class="button radius" value="Archive Items"/>
+    <button class="button secondary radius" type="button" data-close>Cancel</button>
+  </form>
+  <button class="close-button" data-close aria-label="Close reveal" type="button">
+    <span aria-hidden="true">&times;</span>
+  </button>
+</div>
+<div class="reveal" id="bulkMoveReveal" role="dialog" aria-modal="true" aria-labelledby="bulkMoveRevealTitle"
+     data-reveal data-close-on-click="true">
+  <h4 id="bulkMoveRevealTitle">Move <span id="bulkMoveCount">0</span> Item(s)</h4>
+  <p class="help-text">Moves the selected items to a different category within this collection, replacing their current category.</p>
+  <ul id="bulkMoveList"></ul>
+  <form method="post">
+    <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
+    <input type="hidden" name="token" value="${userSession.formToken}"/>
+    <input type="hidden" name="command" value="bulkMove"/>
+    <input type="hidden" name="collectionId" value="${collection.id}"/>
+    <label for="bulkMoveCategoryId">Destination category <span class="required">*</span>
+      <select id="bulkMoveCategoryId" name="categoryId" required>
+        <c:forEach items="${categoryList}" var="categoryOption">
+          <option value="${categoryOption.id}"><c:out value="${categoryOption.name}" /></option>
+        </c:forEach>
+      </select>
+    </label>
+    <input type="submit" class="button radius" value="Move Items"/>
+    <button class="button secondary radius" type="button" data-close>Cancel</button>
+  </form>
+  <button class="close-button" data-close aria-label="Close reveal" type="button">
+    <span aria-hidden="true">&times;</span>
+  </button>
+</div>
+<div class="reveal" id="bulkDeleteReveal" role="dialog" aria-modal="true" aria-labelledby="bulkDeleteRevealTitle"
+     data-reveal data-close-on-click="true">
+  <h4 id="bulkDeleteRevealTitle">Delete <span id="bulkDeleteCount">0</span> Item(s)</h4>
+  <p class="help-text">This permanently removes the selected items. This cannot be undone.</p>
+  <ul id="bulkDeleteList"></ul>
+  <form method="post">
+    <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
+    <input type="hidden" name="token" value="${userSession.formToken}"/>
+    <input type="hidden" name="command" value="bulkDelete"/>
+    <input type="hidden" name="collectionId" value="${collection.id}"/>
+    <input type="submit" class="button alert radius" value="Delete Items"/>
+    <button class="button secondary radius" type="button" data-close>Cancel</button>
+  </form>
+  <button class="close-button" data-close aria-label="Close reveal" type="button">
+    <span aria-hidden="true">&times;</span>
+  </button>
+</div>
+<script nonce="${cspNonce}">
+  (function () {
+    var $selectAll = $('#selectAllItems');
+    var $rows = $('.itemRowCheckbox');
+    var $bar = $('#bulkActionsBar');
+    var $count = $('#bulkSelectedCount');
+
+    function selected() {
+      return $rows.filter(':checked');
+    }
+
+    function refresh() {
+      var n = selected().length;
+      $count.text(n + (n === 1 ? ' item selected  ' : ' items selected  '));
+      $bar.toggle(n > 0);
+      $selectAll.prop('indeterminate', n > 0 && n < $rows.length);
+      $selectAll.prop('checked', n > 0 && n === $rows.length);
+    }
+
+    // Populates one bulk modal's hidden itemId fields and visible name list from the currently
+    // checked rows, so the admin sees exactly what is about to be affected before confirming.
+    function populateBulkModal(revealId, listId) {
+      var $reveal = $('#' + revealId);
+      var $form = $reveal.find('form');
+      var $list = $('#' + listId);
+      $form.find('input[name="itemId"]').remove();
+      $list.empty();
+      selected().each(function () {
+        var $checkbox = $(this);
+        $form.append($('<input type="hidden" name="itemId">').val($checkbox.val()));
+        $list.append($('<li>').text($checkbox.data('name')));
+      });
+      $('#' + revealId + 'Count').text(selected().length);
+      $reveal.foundation('open');
+    }
+
+    $selectAll.on('change', function () {
+      $rows.prop('checked', this.checked);
+      refresh();
+    });
+    $rows.on('change', refresh);
+
+    $('#bulkPublishBtn').on('click', function () { populateBulkModal('bulkPublishReveal', 'bulkPublishList'); });
+    $('#bulkUnpublishBtn').on('click', function () { populateBulkModal('bulkUnpublishReveal', 'bulkUnpublishList'); });
+    $('#bulkArchiveBtn').on('click', function () { populateBulkModal('bulkArchiveReveal', 'bulkArchiveList'); });
+    $('#bulkMoveBtn').on('click', function () { populateBulkModal('bulkMoveReveal', 'bulkMoveList'); });
+    $('#bulkDeleteBtn').on('click', function () { populateBulkModal('bulkDeleteReveal', 'bulkDeleteList'); });
+
+    refresh();
+  })();
+</script>
+</c:if>
