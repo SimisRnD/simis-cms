@@ -22,16 +22,9 @@ import com.simisinc.platform.domain.model.cms.Image;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import javax.imageio.ImageIO;
-import javax.imageio.ImageReader;
-import javax.imageio.stream.FileImageInputStream;
-import javax.imageio.stream.ImageInputStream;
 import java.awt.*;
-import java.awt.image.BufferedImage;
 import java.io.File;
-import java.io.IOException;
 import java.nio.file.Files;
-import java.util.Iterator;
 
 /**
  * Validates image objects
@@ -66,52 +59,17 @@ public class ValidateImageCommand {
     LOG.debug("MimeType: " + mimeType);
     imageBean.setFileType(mimeType);
 
-    // Use a streaming method to get the dimensions
+    // Use a streaming method to get the dimensions -- falls back to ImageMagick's `identify` for
+    // formats the JDK's own ImageIO cannot decode (e.g. WebP), see ImageDimensionCommand.
     try {
-      Dimension dimension = getImageDimension(imageFile);
+      Dimension dimension = ImageDimensionCommand.readDimension(imageFile);
       imageBean.setWidth(dimension.width);
       imageBean.setHeight(dimension.height);
-      LOG.debug("Width: " + imageBean.getWidth());
-      LOG.debug("Height: " + imageBean.getHeight());
-      return;
-    } catch (Exception e) {
-      LOG.warn("Image could not be read for dimensions", e);
-    }
-
-    // Not found? Use an expensive image buffer
-    try {
-      BufferedImage image = ImageIO.read(imageFile);
-      imageBean.setWidth(image.getWidth());
-      imageBean.setHeight(image.getHeight());
       LOG.debug("Width: " + imageBean.getWidth());
       LOG.debug("Height: " + imageBean.getHeight());
     } catch (Exception e) {
       LOG.warn("Image could not be read", e);
       throw new DataException("Image could not be read");
     }
-  }
-
-  private static Dimension getImageDimension(File imgFile) throws IOException {
-    int pos = imgFile.getName().lastIndexOf(".");
-    if (pos == -1)
-      throw new IOException("No extension for file: " + imgFile.getAbsolutePath());
-    String suffix = imgFile.getName().substring(pos + 1);
-    Iterator<ImageReader> iter = ImageIO.getImageReadersBySuffix(suffix);
-    while (iter.hasNext()) {
-      ImageReader reader = iter.next();
-      try {
-        ImageInputStream stream = new FileImageInputStream(imgFile);
-        reader.setInput(stream);
-        int width = reader.getWidth(reader.getMinIndex());
-        int height = reader.getHeight(reader.getMinIndex());
-        return new Dimension(width, height);
-      } catch (IOException e) {
-        LOG.warn("Error reading: " + imgFile.getAbsolutePath(), e);
-      } finally {
-        reader.dispose();
-      }
-    }
-
-    throw new IOException("Not a known image file: " + imgFile.getAbsolutePath());
   }
 }

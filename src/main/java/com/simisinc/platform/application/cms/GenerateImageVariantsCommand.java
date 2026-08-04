@@ -20,16 +20,10 @@ import java.awt.Dimension;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-
-import javax.imageio.ImageIO;
-import javax.imageio.ImageReader;
-import javax.imageio.stream.FileImageInputStream;
-import javax.imageio.stream.ImageInputStream;
 
 import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.logging.Log;
@@ -195,21 +189,7 @@ public class GenerateImageVariantsCommand {
     return ImageVariantRepository.save(record);
   }
 
-  /** Mirrors {@code ValidateImageCommand.getImageDimension} -- a streaming, no-decode read. */
   private static Dimension readDimension(File imageFile) throws IOException {
-    String suffix = FilenameUtils.getExtension(imageFile.getName());
-    Iterator<ImageReader> readers = ImageIO.getImageReadersBySuffix(suffix);
-    while (readers.hasNext()) {
-      ImageReader reader = readers.next();
-      try (ImageInputStream stream = new FileImageInputStream(imageFile)) {
-        reader.setInput(stream);
-        return new Dimension(reader.getWidth(reader.getMinIndex()), reader.getHeight(reader.getMinIndex()));
-      } catch (IOException e) {
-        LOG.warn("Error reading generated variant dimensions: " + imageFile.getAbsolutePath(), e);
-      } finally {
-        reader.dispose();
-      }
-    }
-    throw new IOException("Not a known image file: " + imageFile.getAbsolutePath());
+    return ImageDimensionCommand.readDimension(imageFile);
   }
 }
