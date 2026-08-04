@@ -237,6 +237,12 @@
     <script src="${ctx}/javascript/foundation-6.8.1/foundation.min.js"></script>
     <script nonce="${cspNonce}">
       $(document).foundation();
+      <%-- Foundation's Nest.Feather (foundation.util.nest.js) unconditionally tags every
+           dropdown-menu/drilldown submenu <ul> with role="menubar" -- the same role as the
+           top-level menu bar. role="menubar" is not an allowed owned element of role="menubar",
+           so nested submenus fail WAI-ARIA's required-owned-elements check for their parent
+           menubar. There is no Foundation option to change this; correct it after init. --%>
+      $('[data-submenu]').attr('role', 'menu');
       <%--
       $('.card-profile-stats-more-link').click(function(e){
         e.preventDefault();
