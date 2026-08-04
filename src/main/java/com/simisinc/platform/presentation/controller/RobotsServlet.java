@@ -38,7 +38,6 @@ public class RobotsServlet extends HttpServlet {
       throws ServletException, IOException {
 
     response.setContentType("text/plain;charset=UTF-8");
-    response.setHeader("Cache-Control", "public, max-age=86400");
 
     try {
       String robotsContent = loadRobotsTxt();
@@ -46,6 +45,10 @@ public class RobotsServlet extends HttpServlet {
         robotsContent = generateDefaultRobotsTxt();
       }
 
+      // Only a successfully generated (or statically overridden) body is cacheable -- a 500 error
+      // response must not be cached, or a transient failure gets replayed to every visitor/CDN for
+      // up to a day (matches LlmsTxtServlet's identical fix, issue #417 / PR #935).
+      response.setHeader("Cache-Control", "public, max-age=86400");
       response.setStatus(HttpServletResponse.SC_OK);
       response.getWriter().print(robotsContent);
     } catch (Exception e) {
