@@ -24,6 +24,7 @@ import static jakarta.servlet.http.HttpServletResponse.SC_UNAUTHORIZED;
 
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.time.LocalDate;
 import java.util.Enumeration;
 import java.util.Map;
 
@@ -53,6 +54,7 @@ import com.simisinc.platform.application.SaveSessionCommand;
 import com.simisinc.platform.application.SaveVisitorCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.cms.BlockedIPListCommand;
+import com.simisinc.platform.application.cms.FormatDateCommand;
 import com.simisinc.platform.application.cms.HostnameCommand;
 import com.simisinc.platform.application.cms.LoadBlockedIPListCommand;
 import com.simisinc.platform.application.cms.LoadRedirectsCommand;
@@ -496,14 +498,10 @@ public class WebRequestFilter implements Filter {
           if (user.getTimeZone() != null) {
             Config.set(request, Config.FMT_TIME_ZONE, user.getTimeZone());
           }
-          // Track the login
-          UserLogin userLogin = new UserLogin();
-          userLogin.setSource(WEB_SOURCE);
-          userLogin.setUserId(user.getId());
-          userLogin.setIpAddress(ipAddress);
-          userLogin.setSessionId(userSession.getSessionId());
-          userLogin.setUserAgent(httpServletRequest.getHeader("USER-AGENT"));
-          UserLoginRepository.save(userLogin);
+          // Track the login. This also stamps lastLoginTrackedDate so the daily-activity check
+          // further below does not write a second row for today later in this same request (see
+          // trackDailyLogin).
+          trackDailyLogin(userSession, LocalDate.now(FormatDateCommand.getSiteZoneId()), ipAddress, userAgent);
           // Audit the cookie-token (remember-me) auto-login for the SIEM; source marker "token"
           SaveAuditEventCommand.recordAuthentication("authentication.login.success", "success",
               user.getId(), user.getEmail(), ipAddress, userSession.getSessionId(), "token");
@@ -570,6 +568,19 @@ public class WebRequestFilter implements Filter {
       }
     }
 
+    // Track daily activity for the Daily/Monthly Active Users dashboard tiles (SiteStatsWidget,
+    // via UserLoginRepository.findUniqueDailyLogins/findUniqueMonthlyLogins, which COUNT(DISTINCT
+    // user_id) from user_logins). A row used to be written only once per fresh HttpSession, at the
+    // moment it first became authenticated; since the session timeout (60 min, web.xml) refreshes
+    // on activity, a continuously-active user could stay logged in for days without a new
+    // authentication event, and so was never counted again after their first day. Comparing an
+    // in-memory date on the UserSession (see trackDailyLogin) avoids a DB read on this hot path --
+    // a write only happens on the first request of a new calendar day for an already-logged-in
+    // session.
+    if (userSession.isLoggedIn()) {
+      trackDailyLogin(userSession, LocalDate.now(FormatDateCommand.getSiteZoneId()), ipAddress, userAgent);
+    }
+
     // The home page can show an overlay (a couple of different kinds)
     if ("get".equalsIgnoreCase(httpServletRequest.getMethod())) {
       // See if this request has an instant promo code
@@ -634,6 +645,35 @@ public class WebRequestFilter implements Filter {
    */
   static String safeRedirectPath(String requestURI) {
     return HostnameCommand.safeRedirectPath(requestURI);
+  }
+
+  /**
+   * Writes a user_logins row for {@code userSession} once per calendar day, rather than once per
+   * HttpSession lifetime. Compares {@code today} against the date this session last recorded
+   * activity for (an in-memory field on UserSession, not a database read), so an already-logged-
+   * today session costs nothing on this hot path, while a session whose HttpSession survives past
+   * midnight gets a fresh row -- and is therefore still counted -- on its first request of the new
+   * day. See UserSession.lastLoginTrackedDate for the full rationale.
+   *
+   * @param userSession the current request's (already authenticated) session
+   * @param today the current date, in the site's configured timezone
+   * @param ipAddress the current request's remote address
+   * @param userAgent the current request's USER-AGENT header
+   * @return true if a new row was written (the tracked date had not yet been recorded for today)
+   */
+  static boolean trackDailyLogin(UserSession userSession, LocalDate today, String ipAddress, String userAgent) {
+    if (today.equals(userSession.getLastLoginTrackedDate())) {
+      return false;
+    }
+    UserLogin userLogin = new UserLogin();
+    userLogin.setSource(userSession.getSource());
+    userLogin.setUserId(userSession.getUserId());
+    userLogin.setIpAddress(ipAddress);
+    userLogin.setSessionId(userSession.getSessionId());
+    userLogin.setUserAgent(userAgent);
+    UserLoginRepository.save(userLogin);
+    userSession.setLastLoginTrackedDate(today);
+    return true;
   }
 
   /**
