@@ -16,12 +16,16 @@
 
 package com.simisinc.platform.application.cms;
 
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
+import java.util.Date;
 
 /**
  * Formats dates
@@ -30,6 +34,10 @@ import java.text.SimpleDateFormat;
  * @created 5/25/18 10:00 AM
  */
 public class FormatDateCommand {
+
+  private static final DateTimeFormatter ISO_DATE_FORMAT = DateTimeFormatter.ofPattern("yyyy-MM-dd");
+  private static final DateTimeFormatter ISO_TIME_FORMAT = DateTimeFormatter.ofPattern("HH:mm");
+  private static final DateTimeFormatter ISO_OFFSET_FORMAT = DateTimeFormatter.ofPattern("xxx");
 
   private static String[] suffixes =
       {  "0th",  "1st",  "2nd",  "3rd",  "4th",  "5th",  "6th",  "7th",  "8th",  "9th",
@@ -51,5 +59,33 @@ public class FormatDateCommand {
     // 3:45 pm
     DateFormat timeFormat = new SimpleDateFormat("h:mm a");
     return timeFormat.format(timestamp);
+  }
+
+  /**
+   * The site's configured display timezone (site.timezone), which is what calendar/event dates
+   * are meant to be shown in -- falls back to the JVM's own default only if the property is
+   * unset, since the server's runtime zone is not guaranteed to match the configured site zone.
+   */
+  public static ZoneId getSiteZoneId() {
+    return ZoneId.of(LoadSitePropertyCommand.loadByName("site.timezone", ZoneId.systemDefault().getId()));
+  }
+
+  /**
+   * Formats a date as yyyy-MM-dd in the given zone, so the calendar day shown reflects the
+   * zone the date is meant to be interpreted in rather than whatever zone the JVM defaults to.
+   */
+  public static String formatIsoDate(Date date, ZoneId zoneId) {
+    return ISO_DATE_FORMAT.format(date.toInstant().atZone(zoneId));
+  }
+
+  public static String formatIsoTime(Date date, ZoneId zoneId) {
+    return ISO_TIME_FORMAT.format(date.toInstant().atZone(zoneId));
+  }
+
+  /**
+   * The zone's UTC offset at the given instant (e.g. "-04:00", "+00:00"), accounting for DST.
+   */
+  public static String formatIsoOffset(Date date, ZoneId zoneId) {
+    return ISO_OFFSET_FORMAT.format(date.toInstant().atZone(zoneId));
   }
 }
