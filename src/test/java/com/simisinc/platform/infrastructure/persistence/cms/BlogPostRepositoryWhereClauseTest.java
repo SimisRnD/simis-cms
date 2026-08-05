@@ -151,4 +151,54 @@ class BlogPostRepositoryWhereClauseTest {
 
     assertFalse(whereContains(where, "created_by"));
   }
+
+  // --- undatedOnly (issue #996, editorial calendar "Drafts with no dates" feed) ---
+
+  @Test
+  void undatedOnlyTrueAddsTheStartDateAndEndDateIsNullClause() {
+    BlogPostSpecification specification = new BlogPostSpecification();
+    specification.setUndatedOnly(true);
+
+    SqlUtils where = BlogPostRepository.createWhereStatement(specification);
+
+    assertTrue(whereContains(where, "start_date IS NULL AND end_date IS NULL"));
+  }
+
+  @Test
+  void undatedOnlyFalseByDefaultAddsNoUndatedClauseAtAll() {
+    BlogPostSpecification specification = new BlogPostSpecification();
+
+    SqlUtils where = BlogPostRepository.createWhereStatement(specification);
+
+    assertFalse(whereContains(where, "start_date IS NULL"));
+    assertFalse(whereContains(where, "end_date IS NULL"));
+  }
+
+  @Test
+  void undatedOnlyTakesPrecedenceOverADateRangeSetOnTheSameSpecification() {
+    BlogPostSpecification specification = new BlogPostSpecification();
+    specification.setUndatedOnly(true);
+    specification.setStartingDateRange(Timestamp.valueOf("2026-08-01 00:00:00"));
+    specification.setEndingDateRange(Timestamp.valueOf("2026-09-01 00:00:00"));
+
+    SqlUtils where = BlogPostRepository.createWhereStatement(specification);
+
+    assertTrue(whereContains(where, "start_date IS NULL AND end_date IS NULL"));
+    assertFalse(whereContains(where, "start_date >= ?"));
+  }
+
+  @Test
+  void undatedOnlyCombinesWithArchivedOnlyAndCreatedByAsAnd() {
+    // Mirrors how EditorialCalendarAjax.addUndatedPosts() actually builds this specification.
+    BlogPostSpecification specification = new BlogPostSpecification();
+    specification.setUndatedOnly(true);
+    specification.setArchivedOnly(false);
+    specification.setCreatedBy(7L);
+
+    SqlUtils where = BlogPostRepository.createWhereStatement(specification);
+
+    assertTrue(whereContains(where, "start_date IS NULL AND end_date IS NULL"));
+    assertTrue(whereContains(where, "archived IS NULL"));
+    assertTrue(whereContains(where, "created_by = ?"));
+  }
 }

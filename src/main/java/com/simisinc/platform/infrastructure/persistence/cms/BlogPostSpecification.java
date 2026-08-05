@@ -46,6 +46,11 @@ public class BlogPostSpecification {
   // startingDateRange/endingDateRange naming exactly.
   private Timestamp startingDateRange = null;
   private Timestamp endingDateRange = null;
+  // issue #996 (editorial calendar "Drafts with no dates" feed): when true, matches a post with
+  // NEITHER scheduling field set (start_date IS NULL AND end_date IS NULL) instead of applying
+  // the startingDateRange/endingDateRange filter above. Mirrors WebPageSpecification's identical
+  // undatedOnly field. Defaults to false so every pre-#996 caller is unaffected.
+  private boolean undatedOnly = false;
   // issue #426: the editorial calendar's author filter. -1 (unset) matches every post, mirroring
   // every other *Specification's -1-means-unset long field.
   private long createdBy = -1L;
@@ -164,6 +169,14 @@ public class BlogPostSpecification {
 
   public void setCreatedBy(long createdBy) {
     this.createdBy = createdBy;
+  }
+
+  public boolean isUndatedOnly() {
+    return undatedOnly;
+  }
+
+  public void setUndatedOnly(boolean undatedOnly) {
+    this.undatedOnly = undatedOnly;
   }
 
 }
