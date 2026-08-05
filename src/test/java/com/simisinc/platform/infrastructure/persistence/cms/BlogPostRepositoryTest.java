@@ -27,8 +27,10 @@ import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.sql.Timestamp;
 import java.time.Duration;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Properties;
 
 import org.junit.jupiter.api.AfterAll;
@@ -242,6 +244,90 @@ class BlogPostRepositoryTest {
     assertNull(BlogPostRepository.findById(savedB.getId()));
     assertEquals(0, countBlogPostTagsForPost(savedA.getId()));
     assertEquals(0, countBlogPostTagsForPost(savedB.getId()));
+  }
+
+  // --- date-range and author filters (issue #426, editorial calendar) ---
+
+  @Test
+  void dateRangeFilterMatchesAPostWithAStartDateInsideTheRange() {
+    long blogId = addBlog();
+    BlogPost inRange = newPost(blogId, "in-range");
+    inRange.setStartDate(Timestamp.valueOf("2026-08-15 09:00:00"));
+    BlogPostRepository.add(inRange);
+    BlogPost outsideRange = newPost(blogId, "outside-range");
+    outsideRange.setStartDate(Timestamp.valueOf("2026-10-01 09:00:00"));
+    BlogPostRepository.add(outsideRange);
+
+    BlogPostSpecification specification = new BlogPostSpecification();
+    specification.setStartingDateRange(Timestamp.valueOf("2026-08-01 00:00:00"));
+    specification.setEndingDateRange(Timestamp.valueOf("2026-09-01 00:00:00"));
+
+    List<BlogPost> results = BlogPostRepository.findAll(specification, null);
+
+    assertEquals(1, results.size());
+    assertEquals("in-range", results.get(0).getUniqueId());
+  }
+
+  @Test
+  void dateRangeFilterMatchesAPostWithAnEndDateInsideTheRangeEvenWithNoStartDate() {
+    // Proves the OR: a post can match on end_date alone, with start_date left unset entirely.
+    long blogId = addBlog();
+    BlogPost post = newPost(blogId, "expiring-in-range");
+    post.setEndDate(Timestamp.valueOf("2026-08-20 09:00:00"));
+    BlogPostRepository.add(post);
+
+    BlogPostSpecification specification = new BlogPostSpecification();
+    specification.setStartingDateRange(Timestamp.valueOf("2026-08-01 00:00:00"));
+    specification.setEndingDateRange(Timestamp.valueOf("2026-09-01 00:00:00"));
+
+    List<BlogPost> results = BlogPostRepository.findAll(specification, null);
+
+    assertEquals(1, results.size());
+    assertEquals("expiring-in-range", results.get(0).getUniqueId());
+  }
+
+  @Test
+  void dateRangeFilterExcludesAPostWithNeitherDateSet() {
+    long blogId = addBlog();
+    BlogPostRepository.add(newPost(blogId, "no-schedule"));
+
+    BlogPostSpecification specification = new BlogPostSpecification();
+    specification.setStartingDateRange(Timestamp.valueOf("2026-08-01 00:00:00"));
+    specification.setEndingDateRange(Timestamp.valueOf("2026-09-01 00:00:00"));
+
+    assertTrue(BlogPostRepository.findAll(specification, null).isEmpty());
+  }
+
+  @Test
+  void createdByFilterReturnsOnlyPostsFromThatAuthor() {
+    long blogId = addBlog();
+    BlogPost fromAuthor1 = newPost(blogId, "from-author-1");
+    fromAuthor1.setCreatedBy(1);
+    BlogPostRepository.add(fromAuthor1);
+    BlogPost fromAuthor2 = newPost(blogId, "from-author-2");
+    fromAuthor2.setCreatedBy(2);
+    BlogPostRepository.add(fromAuthor2);
+
+    BlogPostSpecification specification = new BlogPostSpecification();
+    specification.setCreatedBy(2L);
+
+    List<BlogPost> results = BlogPostRepository.findAll(specification, null);
+
+    assertEquals(1, results.size());
+    assertEquals("from-author-2", results.get(0).getUniqueId());
+  }
+
+  @Test
+  void createdByUnsetReturnsPostsFromEveryAuthor() {
+    long blogId = addBlog();
+    BlogPost fromAuthor1 = newPost(blogId, "from-author-1");
+    fromAuthor1.setCreatedBy(1);
+    BlogPostRepository.add(fromAuthor1);
+    BlogPost fromAuthor2 = newPost(blogId, "from-author-2");
+    fromAuthor2.setCreatedBy(2);
+    BlogPostRepository.add(fromAuthor2);
+
+    assertEquals(2, BlogPostRepository.findAll(new BlogPostSpecification(), null).size());
   }
 
   private static BlogPost newPost(long blogId, String uniqueId) {

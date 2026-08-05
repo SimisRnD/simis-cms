@@ -1642,6 +1642,26 @@
     </section>
   </page>
 
+  <page name="/admin/editorial-calendar" role="admin,content-manager,community-manager" title="Editorial Calendar">
+    <!--<section>-->
+      <!--<column class="small-12 cell">-->
+        <!--<widget name="breadcrumbs">-->
+          <!--<links>-->
+            <!--<link name="Editorial Calendar" value="" />-->
+          <!--</links>-->
+        <!--</widget>-->
+      <!--</column>-->
+    <!--</section>-->
+    <section>
+      <column class="small-12 cell">
+        <widget name="editorialCalendar">
+          <title>Editorial Calendar</title>
+          <icon>fa-calendar-check</icon>
+        </widget>
+      </column>
+    </section>
+  </page>
+
   <page name="/admin/calendar{?calendarId}" role="admin,content-manager,community-manager" title="Calendar Details">
     <section>
       <column class="small-12 cell">

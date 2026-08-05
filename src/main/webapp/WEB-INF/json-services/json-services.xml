@@ -21,6 +21,11 @@
   <service endpoint="/json/lookupUser" class="com.simisinc.platform.presentation.widgets.cms.LookupUserAjax" />
   <service endpoint="/json/calendar" class="com.simisinc.platform.presentation.widgets.calendar.CalendarAjax" />
   <service endpoint="/json/calendarEvent" class="com.simisinc.platform.presentation.widgets.calendar.CalendarEventAjax" />
+  <!-- issue #426: unlike every other feed above, this exposes admin-only data (draft pages,
+       unpublished posts, unpublished events), so it is role-gated, matching /admin/calendars' and
+       /admin/calendar-event's own role set exactly. -->
+  <service endpoint="/json/editorialCalendar" role="admin,content-manager,community-manager"
+      class="com.simisinc.platform.presentation.widgets.admin.cms.EditorialCalendarAjax" />
   <service endpoint="/json/file" class="com.simisinc.platform.presentation.widgets.cms.FileAjax" />
   <service endpoint="/json/photoList" class="com.simisinc.platform.presentation.widgets.cms.PhotoListAjax" />
   <service endpoint="/json/emailSubscribe" class="com.simisinc.platform.presentation.widgets.ecommerce.EmailSubscribeAjax" />

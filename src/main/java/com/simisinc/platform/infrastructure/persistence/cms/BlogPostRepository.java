@@ -90,6 +90,22 @@ public class BlogPostRepository {
           where.add("(end_date IS NULL OR end_date >= NOW())");
         }
       }
+      // issue #426 (editorial calendar): mirrors CalendarEventRepository's identical
+      // startingDateRange/endingDateRange OR-across-two-columns shape, applied to start_date/
+      // end_date -- BlogPost has no publishAt/expiresAt columns, so start_date/end_date are this
+      // entity's real scheduling-equivalent fields (see BlogPostSpecification's field comment).
+      if (specification.getStartingDateRange() != null && specification.getEndingDateRange() != null) {
+        where.add("((start_date >= ? AND start_date < ?) OR (end_date >= ? AND end_date < ?))",
+            new Timestamp[]{specification.getStartingDateRange(), specification.getEndingDateRange(),
+                specification.getStartingDateRange(), specification.getEndingDateRange()});
+      } else if (specification.getStartingDateRange() != null) {
+        where.add("(start_date >= ? OR end_date >= ?)",
+            new Timestamp[]{specification.getStartingDateRange(), specification.getStartingDateRange()});
+      } else if (specification.getEndingDateRange() != null) {
+        where.add("(start_date < ? OR end_date < ?)",
+            new Timestamp[]{specification.getEndingDateRange(), specification.getEndingDateRange()});
+      }
+      where.addIfExists("created_by = ?", specification.getCreatedBy(), -1);
       if (StringUtils.isNotBlank(specification.getSearchTerm())) {
         where.add("tsv @@ PLAINTO_TSQUERY('content_stem', ?)", specification.getSearchTerm().trim());
       }

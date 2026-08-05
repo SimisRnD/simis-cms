@@ -305,6 +305,45 @@ class CalendarEventRepositoryTest {
     assertEquals(2, CalendarEventRepository.findCount(nonArchivedOnly));
   }
 
+  // --- author filter (issue #426, editorial calendar) ---
+
+  @Test
+  void createdByFilterReturnsOnlyEventsFromThatAuthor() {
+    Calendar calendar = addCalendar("cal-created-by-filter");
+    CalendarEvent event1 = new CalendarEvent();
+    event1.setCalendarId(calendar.getId());
+    event1.setUniqueId("from-author-1");
+    event1.setTitle("from-author-1");
+    event1.setCreatedBy(1L);
+    event1.setModifiedBy(1L);
+    event1.setStartDate(Timestamp.valueOf("2026-08-01 09:00:00"));
+    event1.setEndDate(Timestamp.valueOf("2026-08-01 10:00:00"));
+    CalendarEventRepository.add(event1);
+
+    CalendarEvent event2 = new CalendarEvent();
+    event2.setCalendarId(calendar.getId());
+    event2.setUniqueId("from-author-2");
+    event2.setTitle("from-author-2");
+    event2.setCreatedBy(2L);
+    event2.setModifiedBy(2L);
+    event2.setStartDate(Timestamp.valueOf("2026-08-01 09:00:00"));
+    event2.setEndDate(Timestamp.valueOf("2026-08-01 10:00:00"));
+    CalendarEventRepository.add(event2);
+
+    CalendarEventSpecification specification = new CalendarEventSpecification();
+    specification.setCreatedBy(2L);
+
+    assertEquals(List.of("from-author-2"), uniqueIdsFor(specification));
+  }
+
+  @Test
+  void createdByUnsetByDefaultReturnsEventsFromEveryAuthor() {
+    Calendar calendar = addCalendar("cal-created-by-undefined");
+    addEvent(calendar.getId(), "live-event", null, null);
+
+    assertEquals(List.of("live-event"), uniqueIdsFor(new CalendarEventSpecification()));
+  }
+
   // --- update()/remove() paths the bulk actions drive ---
 
   @Test
