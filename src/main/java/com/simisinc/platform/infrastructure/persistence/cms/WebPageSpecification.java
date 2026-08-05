@@ -46,6 +46,12 @@ public class WebPageSpecification extends Entity {
   // to publish_at/expires_at instead of a single occurrence window.
   private Timestamp startingDateRange = null;
   private Timestamp endingDateRange = null;
+  // issue #996 (editorial calendar "Drafts with no dates" feed): when true, matches a page with
+  // NEITHER scheduling field set (publish_at IS NULL AND expires_at IS NULL) instead of applying
+  // the startingDateRange/endingDateRange filter above -- a page with no anchor date at all can
+  // never fall inside a date range, so it is otherwise invisible on every calendar view (#996).
+  // Defaults to false so every pre-#996 caller is unaffected.
+  private boolean undatedOnly = false;
   // issue #426: the editorial calendar's author filter. -1 (unset) matches every page, mirroring
   // every other *Specification's -1-means-unset long field (e.g. CalendarEventSpecification.calendarId).
   private long createdBy = -1L;
@@ -166,5 +172,13 @@ public class WebPageSpecification extends Entity {
 
   public void setCreatedBy(long createdBy) {
     this.createdBy = createdBy;
+  }
+
+  public boolean isUndatedOnly() {
+    return undatedOnly;
+  }
+
+  public void setUndatedOnly(boolean undatedOnly) {
+    this.undatedOnly = undatedOnly;
   }
 }

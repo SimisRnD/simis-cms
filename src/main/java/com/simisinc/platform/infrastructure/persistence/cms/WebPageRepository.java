@@ -69,11 +69,17 @@ public class WebPageRepository {
       } else if (specification.getArchivedOnly() == DataConstants.FALSE) {
         where.add("archived IS NULL");
       }
-      // issue #426 (editorial calendar): mirrors CalendarEventRepository's identical
-      // startingDateRange/endingDateRange OR-across-two-columns shape, applied to publish_at/
-      // expires_at instead of a single occurrence window -- a page matches if EITHER its scheduled
-      // go-live date or its expiration date falls within the requested range.
-      if (specification.getStartingDateRange() != null && specification.getEndingDateRange() != null) {
+      // issue #996 (editorial calendar "Drafts with no dates" feed): a page with neither
+      // scheduling field set has no anchor date, so this replaces the date-range filter below
+      // entirely rather than combining with it -- EditorialCalendarAjax never sets both on the
+      // same specification.
+      if (specification.isUndatedOnly()) {
+        where.add("publish_at IS NULL AND expires_at IS NULL");
+      } else if (specification.getStartingDateRange() != null && specification.getEndingDateRange() != null) {
+        // issue #426 (editorial calendar): mirrors CalendarEventRepository's identical
+        // startingDateRange/endingDateRange OR-across-two-columns shape, applied to publish_at/
+        // expires_at instead of a single occurrence window -- a page matches if EITHER its scheduled
+        // go-live date or its expiration date falls within the requested range.
         where.add("((publish_at >= ? AND publish_at < ?) OR (expires_at >= ? AND expires_at < ?))",
             new Timestamp[]{specification.getStartingDateRange(), specification.getEndingDateRange(),
                 specification.getStartingDateRange(), specification.getEndingDateRange()});

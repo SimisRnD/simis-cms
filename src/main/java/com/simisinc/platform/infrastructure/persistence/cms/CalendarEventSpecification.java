@@ -39,6 +39,13 @@ public class CalendarEventSpecification {
   private Timestamp startingDateRange = null;
   private Timestamp endingDateRange = null;
   private String searchTerm = null;
+  // issue #996 (editorial calendar "Drafts with no dates" feed): when true, matches an event with
+  // no startDate set (start_date IS NULL) instead of applying the startingDateRange/
+  // endingDateRange filter above -- an event's startDate IS the event (see EditorialCalendarAjax's
+  // addEvents javadoc), so that is the only anchor field for this type. Mirrors
+  // WebPageSpecification/BlogPostSpecification's identical undatedOnly field. Defaults to false so
+  // every pre-#996 caller is unaffected.
+  private boolean undatedOnly = false;
   // issue #426 (editorial calendar): the author filter. -1 (unset) matches every event, mirroring
   // this class's own calendarId field and WebPageSpecification/BlogPostSpecification's identical
   // new createdBy field.
@@ -133,5 +140,13 @@ public class CalendarEventSpecification {
 
   public void setCreatedBy(long createdBy) {
     this.createdBy = createdBy;
+  }
+
+  public boolean isUndatedOnly() {
+    return undatedOnly;
+  }
+
+  public void setUndatedOnly(boolean undatedOnly) {
+    this.undatedOnly = undatedOnly;
   }
 }

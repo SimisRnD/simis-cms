@@ -67,7 +67,19 @@
     <button type="button" id="editorialCalendarClearFilters" class="button secondary small radius expanded">Clear Filters</button>
   </div>
 </div>
-<div id="editorialCalendar"></div>
+<%-- issue #996: the calendar grid can only ever plot content that has an anchor date -- a pure
+     draft with neither scheduling field set is invisible on it under any date range. This sidebar
+     cell surfaces that content instead, fetched separately from /json/editorialCalendar?undated=true
+     (see the inline script below), reusing the same type/author/status filters above. --%>
+<div class="grid-x grid-margin-x">
+  <div class="cell small-12 large-8">
+    <div id="editorialCalendar"></div>
+  </div>
+  <div class="cell small-12 large-4">
+    <h6>Drafts with no dates</h6>
+    <ul id="editorialCalendarUndatedList" class="no-bullet ec-undated-list"></ul>
+  </div>
+</div>
 <script nonce="${cspNonce}">
   (function () {
     'use strict';
@@ -76,6 +88,7 @@
     var authorFilterEl = document.getElementById('editorialCalendarAuthorFilter');
     var statusFilterEl = document.getElementById('editorialCalendarStatusFilter');
     var clearFiltersEl = document.getElementById('editorialCalendarClearFilters');
+    var undatedListEl = document.getElementById('editorialCalendarUndatedList');
 
     var TYPE_ICONS = {
       page: 'fa-sticky-note',
@@ -115,6 +128,24 @@
       return '${ctx}/json/editorialCalendar?' + params.toString();
     }
 
+    <%-- issue #996: the "Drafts with no dates" sidebar's feed -- same endpoint/filters as
+         buildEventUrl above, minus start/end (this feed has no date range) plus undated=true,
+         which short-circuits EditorialCalendarAjax into the undated-only code path. --%>
+    function buildUndatedUrl() {
+      var params = new URLSearchParams();
+      params.set('undated', 'true');
+      if (typeFilterEl.value) {
+        params.set('type', typeFilterEl.value);
+      }
+      if (authorFilterEl.value) {
+        params.set('authorId', authorFilterEl.value);
+      }
+      if (statusFilterEl.value) {
+        params.set('status', statusFilterEl.value);
+      }
+      return '${ctx}/json/editorialCalendar?' + params.toString();
+    }
+
     function mapEntryToEvent(entry) {
       return {
         id: entry.id,
@@ -130,30 +161,32 @@
       };
     }
 
-    function renderEventContent(arg) {
-      var props = arg.event.extendedProps;
-
+    <%-- Builds the icon + title + status-badge content shared by a calendar-grid entry
+         (renderEventContent below) and a "Drafts with no dates" list entry (renderUndatedEntry
+         below) -- same markup, same TYPE_ICONS/STATUS_LABEL_CLASS/STATUS_ICONS lookups, so the
+         undated list reads as visually consistent with the calendar it sits beside. --%>
+    function buildEntryContent(type, title, status) {
       var wrapper = document.createElement('div');
       wrapper.className = 'ec-event';
 
       var typeIcon = document.createElement('i');
-      typeIcon.className = 'fa fa-fw ' + (TYPE_ICONS[String(props.type).toLowerCase()] || 'fa-file');
+      typeIcon.className = 'fa fa-fw ' + (TYPE_ICONS[String(type).toLowerCase()] || 'fa-file');
       typeIcon.setAttribute('aria-hidden', 'true');
       wrapper.appendChild(typeIcon);
 
       var srType = document.createElement('span');
       srType.className = 'show-for-sr';
-      srType.textContent = props.type + ': ';
+      srType.textContent = type + ': ';
       wrapper.appendChild(srType);
 
       var titleEl = document.createElement('span');
       titleEl.className = 'ec-event-title';
-      titleEl.textContent = arg.event.title;
+      titleEl.textContent = title;
       wrapper.appendChild(titleEl);
 
       var statusEl = document.createElement('span');
-      statusEl.className = 'label ec-status-badge ' + (STATUS_LABEL_CLASS[props.status] || 'secondary');
-      var statusIconClass = STATUS_ICONS[props.status];
+      statusEl.className = 'label ec-status-badge ' + (STATUS_LABEL_CLASS[status] || 'secondary');
+      var statusIconClass = STATUS_ICONS[status];
       if (statusIconClass) {
         var statusIcon = document.createElement('i');
         statusIcon.className = 'fa ' + statusIconClass;
@@ -161,10 +194,64 @@
         statusEl.appendChild(statusIcon);
         statusEl.appendChild(document.createTextNode(' '));
       }
-      statusEl.appendChild(document.createTextNode(props.status));
+      statusEl.appendChild(document.createTextNode(status));
       wrapper.appendChild(statusEl);
 
-      return {domNodes: [wrapper]};
+      return wrapper;
+    }
+
+    function renderEventContent(arg) {
+      var props = arg.event.extendedProps;
+      return {domNodes: [buildEntryContent(props.type, arg.event.title, props.status)]};
+    }
+
+    <%-- issue #996: one "Drafts with no dates" list item -- a plain <a href> (natively focusable
+         and keyboard-operable, unlike the calendar grid's custom-rendered entries, which needed
+         the manual tabindex/keydown handling below) wrapping the same icon/title/badge content a
+         calendar entry renders. --%>
+    function renderUndatedEntry(entry) {
+      var li = document.createElement('li');
+      li.className = 'ec-undated-item';
+
+      var link = document.createElement('a');
+      link.className = 'ec-undated-link';
+      link.href = (entry.editUrl && entry.editUrl.indexOf('/') === 0) ? ('${ctx}' + entry.editUrl) : '#';
+      link.appendChild(buildEntryContent(entry.type, entry.title, entry.status));
+
+      li.appendChild(link);
+      return li;
+    }
+
+    function renderUndatedList(entries) {
+      undatedListEl.innerHTML = '';
+      if (!entries || entries.length === 0) {
+        var emptyEl = document.createElement('li');
+        emptyEl.className = 'ec-undated-empty';
+        emptyEl.textContent = 'Nothing here';
+        undatedListEl.appendChild(emptyEl);
+        return;
+      }
+      entries.forEach(function (entry) {
+        undatedListEl.appendChild(renderUndatedEntry(entry));
+      });
+    }
+
+    function refreshUndatedList() {
+      fetch(buildUndatedUrl(), {credentials: 'same-origin'})
+          .then(function (response) {
+            if (!response.ok) {
+              throw new Error('Request failed: ' + response.status);
+            }
+            return response.json();
+          })
+          .then(renderUndatedList)
+          .catch(function () {
+            undatedListEl.innerHTML = '';
+            var errorEl = document.createElement('li');
+            errorEl.className = 'ec-undated-empty';
+            errorEl.textContent = 'Could not load drafts';
+            undatedListEl.appendChild(errorEl);
+          });
     }
 
     // Opens the edit form for a calendar entry -- shared by mouse click (eventClick) and keyboard
@@ -302,9 +389,14 @@
       });
       calendar.render();
 
+      <%-- issue #996: fetch the undated list once up front, and again on the same filter
+           change/clear events that already refetch the calendar grid, so both stay in sync. --%>
+      refreshUndatedList();
+
       [typeFilterEl, authorFilterEl, statusFilterEl].forEach(function (el) {
         el.addEventListener('change', function () {
           calendar.refetchEvents();
+          refreshUndatedList();
         });
       });
       clearFiltersEl.addEventListener('click', function () {
@@ -312,6 +404,7 @@
         authorFilterEl.value = '';
         statusFilterEl.value = '';
         calendar.refetchEvents();
+        refreshUndatedList();
       });
 
       <%-- Custom keyboard navigation (issue #426): FullCalendar has no built-in per-date keyboard

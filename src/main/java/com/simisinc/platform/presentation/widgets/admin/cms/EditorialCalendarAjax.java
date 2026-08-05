@@ -70,6 +70,20 @@ import com.simisinc.platform.presentation.widgets.GenericWidget;
  * StringBuilder JSON assembly (no Jackson) and its start/end date-parsing (ISO8601 or a plain
  * {@code yyyy-MM-dd} fallback) exactly.</p>
  *
+ * <p>Issue #996: a page/post/event with no scheduling date set at all (neither field, for
+ * whichever pair of fields that type uses) has no anchor date and can never appear in the
+ * date-ranged feed above, under any range. Rather than forcing it onto a specific day, a request
+ * with {@code undated=true} short-circuits {@link #execute(WidgetContext)} into a separate code
+ * path ({@link #executeUndated(WidgetContext)}) that returns every such record instead, still
+ * honoring the same type/authorId/status filters and the same {@link #isAuthorized(WidgetContext)}
+ * gate. This stays a single query-param branch on the existing endpoint/class rather than a
+ * second json-services.xml registration, since every entry still needs the exact same
+ * per-type edit-URL and status logic this class already has -- a second class would either
+ * duplicate that logic or need to call back into this one anyway. Each returned entry omits the
+ * "date" key entirely (see {@link #appendEntry}) rather than inventing a placeholder value for a
+ * field that, by definition, does not exist for this content -- callers must not assume "date" is
+ * always present the way the date-ranged feed above guarantees it.</p>
+ *
  * @author SimIS Inc.
  */
 public class EditorialCalendarAjax extends GenericWidget {
@@ -81,6 +95,12 @@ public class EditorialCalendarAjax extends GenericWidget {
     if (!isAuthorized(context)) {
       context.setJson("[]");
       return context;
+    }
+
+    // issue #996: the "Drafts with no dates" feed -- see the class javadoc. Checked before the
+    // start/end requirement below because this path needs no date range at all.
+    if ("true".equalsIgnoreCase(StringUtils.trimToNull(context.getParameter("undated")))) {
+      return executeUndated(context);
     }
 
     String start = context.getParameter("start");
@@ -128,6 +148,34 @@ public class EditorialCalendarAjax extends GenericWidget {
   }
 
   /**
+   * Issue #996: the "Drafts with no dates" feed -- see the class javadoc. Reuses the same
+   * type/authorId/status filter params and the same per-type status/edit-URL logic as the
+   * date-ranged {@link #execute(WidgetContext)} path, but queries each repository with
+   * {@code undatedOnly} instead of a date range, and emits entries with no "date" key.
+   */
+  private WidgetContext executeUndated(WidgetContext context) {
+    String typeFilter = StringUtils.trimToNull(context.getParameter("type"));
+    long authorId = context.getParameterAsLong("authorId", -1);
+    String statusFilter = StringUtils.trimToNull(context.getParameter("status"));
+
+    Timestamp now = new Timestamp(System.currentTimeMillis());
+
+    StringBuilder sb = new StringBuilder();
+    if (typeFilter == null || "page".equalsIgnoreCase(typeFilter)) {
+      addUndatedPages(authorId, statusFilter, now, sb);
+    }
+    if (typeFilter == null || "post".equalsIgnoreCase(typeFilter)) {
+      addUndatedPosts(authorId, statusFilter, now, sb);
+    }
+    if (typeFilter == null || "event".equalsIgnoreCase(typeFilter)) {
+      addUndatedEvents(authorId, statusFilter, now, sb);
+    }
+
+    context.setJson("[" + sb + "]");
+    return context;
+  }
+
+  /**
    * True when the current caller is allowed to see this admin-only feed. See the class-level
    * javadoc -- this is a defensive re-check, not the primary access control (that's the
    * {@code role=} attribute on this service's json-services.xml registration).
@@ -152,7 +200,7 @@ public class EditorialCalendarAjax extends GenericWidget {
     }
     List<WebPage> pageList = WebPageRepository.findAll(specification, null);
     for (WebPage page : pageList) {
-      String editUrl = "/admin/web-page?webPageId=" + page.getId() + "&returnPage=/admin/editorial-calendar";
+      String editUrl = pageEditUrl(page);
       if (page.getPublishAt() != null && inRange(page.getPublishAt(), rangeStart, rangeEnd)) {
         appendEntry(sb, "page-" + page.getId() + "-publish", "Page", page.getTitle(), pageStatus(page, now),
             page.getPublishAt(), editUrl, statusFilter);
@@ -161,6 +209,26 @@ public class EditorialCalendarAjax extends GenericWidget {
         appendEntry(sb, "page-" + page.getId() + "-expire", "Page", page.getTitle(), "Expiring",
             page.getExpiresAt(), editUrl, statusFilter);
       }
+    }
+  }
+
+  /**
+   * Issue #996: the undated-only counterpart to {@link #addPages}. Unlike the date-ranged path,
+   * a page can never emit more than one entry here (there's no "publish" vs "expire" moment to
+   * split on when neither date is set), so the "Expiring" status this class otherwise derives
+   * from a non-null expiresAt never applies -- {@link #pageStatus} covers every remaining case.
+   */
+  private static void addUndatedPages(long authorId, String statusFilter, Timestamp now, StringBuilder sb) {
+    WebPageSpecification specification = new WebPageSpecification();
+    specification.setUndatedOnly(true);
+    specification.setArchivedOnly(false);
+    if (authorId > -1) {
+      specification.setCreatedBy(authorId);
+    }
+    List<WebPage> pageList = WebPageRepository.findAll(specification, null);
+    for (WebPage page : pageList) {
+      appendEntry(sb, "page-" + page.getId(), "Page", page.getTitle(), pageStatus(page, now),
+          null, pageEditUrl(page), statusFilter);
     }
   }
 
@@ -174,6 +242,11 @@ public class EditorialCalendarAjax extends GenericWidget {
       return "Draft";
     }
     return "Published";
+  }
+
+  /** Reuses the exact admin-edit-form URL pattern {@code web-page-list.jsp} already uses. */
+  private static String pageEditUrl(WebPage page) {
+    return "/admin/web-page?webPageId=" + page.getId() + "&returnPage=/admin/editorial-calendar";
   }
 
   // --- Blog posts ---
@@ -191,17 +264,9 @@ public class EditorialCalendarAjax extends GenericWidget {
     if (postList.isEmpty()) {
       return;
     }
-    // Resolve each post's blog for the blog-editor edit URL (mirrors AdminBlogPostListWidget's
-    // blogList lookup, keyed here for O(1) access per post).
-    Map<Long, Blog> blogMap = new HashMap<>();
-    for (Blog blog : BlogRepository.findAll()) {
-      blogMap.put(blog.getId(), blog);
-    }
+    Map<Long, Blog> blogMap = buildBlogMap();
     for (BlogPost post : postList) {
-      Blog blog = blogMap.get(post.getBlogId());
-      String blogUniqueId = blog != null ? blog.getUniqueId() : "";
-      String editUrl = "/blog-editor?blogUniqueId=" + URLEncoder.encode(blogUniqueId, StandardCharsets.UTF_8)
-          + "&blogPostId=" + post.getId() + "&returnPage=/admin/editorial-calendar";
+      String editUrl = postEditUrl(post, blogMap);
       if (post.getStartDate() != null && inRange(post.getStartDate(), rangeStart, rangeEnd)) {
         appendEntry(sb, "post-" + post.getId() + "-publish", "Post", post.getTitle(), postStatus(post, now),
             post.getStartDate(), editUrl, statusFilter);
@@ -210,6 +275,27 @@ public class EditorialCalendarAjax extends GenericWidget {
         appendEntry(sb, "post-" + post.getId() + "-expire", "Post", post.getTitle(), "Expiring",
             post.getEndDate(), editUrl, statusFilter);
       }
+    }
+  }
+
+  /** Issue #996: the undated-only counterpart to {@link #addPosts}, mirroring
+   * {@link #addUndatedPages}'s reasoning -- no split "publish" vs "expire" entry is possible when
+   * neither date is set, so {@link #postStatus} alone determines the single entry emitted. */
+  private static void addUndatedPosts(long authorId, String statusFilter, Timestamp now, StringBuilder sb) {
+    BlogPostSpecification specification = new BlogPostSpecification();
+    specification.setUndatedOnly(true);
+    specification.setArchivedOnly(false);
+    if (authorId > -1) {
+      specification.setCreatedBy(authorId);
+    }
+    List<BlogPost> postList = BlogPostRepository.findAll(specification, null);
+    if (postList.isEmpty()) {
+      return;
+    }
+    Map<Long, Blog> blogMap = buildBlogMap();
+    for (BlogPost post : postList) {
+      appendEntry(sb, "post-" + post.getId(), "Post", post.getTitle(), postStatus(post, now),
+          null, postEditUrl(post, blogMap), statusFilter);
     }
   }
 
@@ -223,6 +309,23 @@ public class EditorialCalendarAjax extends GenericWidget {
       return "Draft";
     }
     return "Published";
+  }
+
+  /** Resolves every blog up front so each post's blog-editor edit URL is an O(1) lookup, mirroring
+   * AdminBlogPostListWidget's blogList lookup. */
+  private static Map<Long, Blog> buildBlogMap() {
+    Map<Long, Blog> blogMap = new HashMap<>();
+    for (Blog blog : BlogRepository.findAll()) {
+      blogMap.put(blog.getId(), blog);
+    }
+    return blogMap;
+  }
+
+  private static String postEditUrl(BlogPost post, Map<Long, Blog> blogMap) {
+    Blog blog = blogMap.get(post.getBlogId());
+    String blogUniqueId = blog != null ? blog.getUniqueId() : "";
+    return "/blog-editor?blogUniqueId=" + URLEncoder.encode(blogUniqueId, StandardCharsets.UTF_8)
+        + "&blogPostId=" + post.getId() + "&returnPage=/admin/editorial-calendar";
   }
 
   // --- Calendar events ---
@@ -241,10 +344,25 @@ public class EditorialCalendarAjax extends GenericWidget {
       // An event's start/end IS the event -- unlike pages/posts there's no separate
       // publish-schedule field to also emit an "Expiring" entry for.
       if (event.getStartDate() != null && inRange(event.getStartDate(), rangeStart, rangeEnd)) {
-        String editUrl = "/admin/calendar-event?calendarEventId=" + event.getId() + "&returnPage=/admin/editorial-calendar";
         appendEntry(sb, "event-" + event.getId(), "Event", event.getTitle(), eventStatus(event, now),
-            event.getStartDate(), editUrl, statusFilter);
+            event.getStartDate(), eventEditUrl(event), statusFilter);
       }
+    }
+  }
+
+  /** Issue #996: the undated-only counterpart to {@link #addEvents}. An event only has one
+   * scheduling field to begin with (startDate), so this is otherwise a direct mirror. */
+  private static void addUndatedEvents(long authorId, String statusFilter, Timestamp now, StringBuilder sb) {
+    CalendarEventSpecification specification = new CalendarEventSpecification();
+    specification.setUndatedOnly(true);
+    specification.setArchivedOnly(false);
+    if (authorId > -1) {
+      specification.setCreatedBy(authorId);
+    }
+    List<CalendarEvent> eventList = CalendarEventRepository.findAll(specification, null);
+    for (CalendarEvent event : eventList) {
+      appendEntry(sb, "event-" + event.getId(), "Event", event.getTitle(), eventStatus(event, now),
+          null, eventEditUrl(event), statusFilter);
     }
   }
 
@@ -260,12 +378,24 @@ public class EditorialCalendarAjax extends GenericWidget {
     return "Published";
   }
 
+  private static String eventEditUrl(CalendarEvent event) {
+    return "/admin/calendar-event?calendarEventId=" + event.getId() + "&returnPage=/admin/editorial-calendar";
+  }
+
   // --- Shared helpers ---
 
   private static boolean inRange(Timestamp value, Timestamp rangeStart, Timestamp rangeEnd) {
     return !value.before(rangeStart) && value.before(rangeEnd);
   }
 
+  /**
+   * Appends one JSON entry to {@code sb}, or nothing at all if {@code statusFilter} is set and
+   * doesn't match {@code status}. {@code date} is nullable (issue #996): the undated-drafts feed
+   * has no date to anchor an entry to, so the "date" key is omitted entirely for those entries
+   * rather than emitting a placeholder value for a field that, by definition, does not exist --
+   * callers of the undated feed must not assume "date" is present the way the date-ranged feed
+   * above guarantees it.
+   */
   private static void appendEntry(StringBuilder sb, String id, String type, String title, String status,
       Timestamp date, String editUrl, String statusFilter) {
     if (statusFilter != null && !statusFilter.equalsIgnoreCase(status)) {
@@ -278,9 +408,11 @@ public class EditorialCalendarAjax extends GenericWidget {
     sb.append("\"id\":\"").append(JsonCommand.toJson(id)).append("\",");
     sb.append("\"type\":\"").append(type).append("\",");
     sb.append("\"title\":\"").append(JsonCommand.toJson(title)).append("\",");
-    sb.append("\"status\":\"").append(status).append("\",");
-    sb.append("\"date\":\"").append(new SimpleDateFormat("yyyy-MM-dd").format(date)).append("\",");
-    sb.append("\"editUrl\":\"").append(JsonCommand.toJson(editUrl)).append("\"");
+    sb.append("\"status\":\"").append(status).append("\"");
+    if (date != null) {
+      sb.append(",\"date\":\"").append(new SimpleDateFormat("yyyy-MM-dd").format(date)).append("\"");
+    }
+    sb.append(",\"editUrl\":\"").append(JsonCommand.toJson(editUrl)).append("\"");
     sb.append("}");
   }
 
