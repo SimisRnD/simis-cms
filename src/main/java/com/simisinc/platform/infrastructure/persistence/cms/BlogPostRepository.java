@@ -55,7 +55,9 @@ public class BlogPostRepository {
   private static String TABLE_NAME = "blog_posts";
   private static String[] PRIMARY_KEY = new String[] { "post_id" };
 
-  private static SqlUtils createWhereStatement(BlogPostSpecification specification) {
+  // Package-private (was private) so BlogPostRepositoryWhereClauseTest can inspect the built
+  // SqlUtils directly -- mirrors CalendarEventRepository.createWhereStatement (issue #882/PR #911).
+  static SqlUtils createWhereStatement(BlogPostSpecification specification) {
     SqlUtils where = null;
     if (specification != null) {
       where = new SqlUtils()
@@ -68,6 +70,13 @@ public class BlogPostRepository {
         } else {
           where.add("published IS NULL");
         }
+      }
+      // issue #427: mirrors CalendarEventRepository's archived filtering shape. UNDEFINED (the
+      // default for every pre-#427 caller) includes archived rows, so this is purely additive.
+      if (specification.getArchivedOnly() == DataConstants.TRUE) {
+        where.add("archived IS NOT NULL");
+      } else if (specification.getArchivedOnly() == DataConstants.FALSE) {
+        where.add("archived IS NULL");
       }
       if (specification.getStartDateIsBeforeNow() != DataConstants.UNDEFINED) {
         if (specification.getStartDateIsBeforeNow() == DataConstants.TRUE) {

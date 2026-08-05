@@ -30,6 +30,10 @@ public class BlogPostSpecification {
   private long blogId = -1L;
   private String uniqueId = null;
   private int publishedOnly = DataConstants.UNDEFINED;
+  // issue #427: mirrors CalendarEventSpecification's archivedOnly exactly -- UNDEFINED includes
+  // archived rows (the default, unchanged for any caller that never sets this), TRUE returns only
+  // archived rows, FALSE excludes them.
+  private int archivedOnly = DataConstants.UNDEFINED;
   private int startDateIsBeforeNow = DataConstants.UNDEFINED;
   private int isWithinEndDate = DataConstants.UNDEFINED;
   private String searchTerm = null;
@@ -79,6 +83,18 @@ public class BlogPostSpecification {
 
   public void setPublishedOnly(int publishedOnly) {
     this.publishedOnly = publishedOnly;
+  }
+
+  public int getArchivedOnly() {
+    return archivedOnly;
+  }
+
+  public void setArchivedOnly(boolean archivedOnly) {
+    this.archivedOnly = (archivedOnly ? DataConstants.TRUE : DataConstants.FALSE);
+  }
+
+  public void setArchivedOnly(int archivedOnly) {
+    this.archivedOnly = archivedOnly;
   }
 
   public int getStartDateIsBeforeNow() {

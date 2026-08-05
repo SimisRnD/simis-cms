@@ -122,6 +122,13 @@ public class BlogPostWidget extends GenericWidget {
         !(context.hasRole("admin") || context.hasRole("content-manager"))) {
       return null;
     }
+    // Issue #427: an archived post must actually come offline for the public too, same as an
+    // unpublished one -- BlogPostRepository.findByUniqueId doesn't go through createWhereStatement
+    // (and so never considers the archived column at all), so this is the only place left to check.
+    if (blogPost.getArchived() != null &&
+        !(context.hasRole("admin") || context.hasRole("content-manager"))) {
+      return null;
+    }
     return blogPost;
   }
 

@@ -153,4 +153,51 @@ class BlogPostWidgetTest extends WidgetBase {
     Assertions.assertNull(widgetContext.getArticleModifiedDate());
     Assertions.assertNull(widgetContext.getArticleAuthorName());
   }
+
+  // Issue #427: bulk Archive on a blog post must actually take it offline for the public --
+  // review caught that BlogPostRepository.findByUniqueId never considers the archived column, so
+  // retrieveValidatedBlogPostFromUrl is the only remaining place that can enforce it.
+
+  @Test
+  void retrieveValidatedBlogPostFromUrlBlocksAGuestFromAnArchivedPost() {
+    Mockito.when(request.getRequestURI()).thenReturn("/news/launch-announcement");
+
+    Blog blog = new Blog();
+    blog.setId(2L);
+
+    BlogPost blogPost = new BlogPost();
+    blogPost.setId(9L);
+    blogPost.setPublished(Timestamp.valueOf("2026-07-01 09:00:00"));
+    blogPost.setArchived(Timestamp.valueOf("2026-08-01 09:00:00"));
+
+    try (MockedStatic<LoadBlogPostCommand> loadBlogPost = mockStatic(LoadBlogPostCommand.class)) {
+      loadBlogPost.when(() -> LoadBlogPostCommand.loadBlogPostByUniqueId(2L, "launch-announcement")).thenReturn(blogPost);
+
+      BlogPost result = BlogPostWidget.retrieveValidatedBlogPostFromUrl(widgetContext, blog);
+
+      Assertions.assertNull(result, "a guest must not be able to reach an archived post's permalink");
+    }
+  }
+
+  @Test
+  void retrieveValidatedBlogPostFromUrlStillAllowsAContentManagerToSeeAnArchivedPost() {
+    setRoles(widgetContext, CONTENT_MANAGER);
+    Mockito.when(request.getRequestURI()).thenReturn("/news/launch-announcement");
+
+    Blog blog = new Blog();
+    blog.setId(2L);
+
+    BlogPost blogPost = new BlogPost();
+    blogPost.setId(9L);
+    blogPost.setPublished(Timestamp.valueOf("2026-07-01 09:00:00"));
+    blogPost.setArchived(Timestamp.valueOf("2026-08-01 09:00:00"));
+
+    try (MockedStatic<LoadBlogPostCommand> loadBlogPost = mockStatic(LoadBlogPostCommand.class)) {
+      loadBlogPost.when(() -> LoadBlogPostCommand.loadBlogPostByUniqueId(2L, "launch-announcement")).thenReturn(blogPost);
+
+      BlogPost result = BlogPostWidget.retrieveValidatedBlogPostFromUrl(widgetContext, blog);
+
+      Assertions.assertSame(blogPost, result, "a content-manager should still be able to preview an archived post");
+    }
+  }
 }
