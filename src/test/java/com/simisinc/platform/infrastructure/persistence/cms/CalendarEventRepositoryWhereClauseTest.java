@@ -133,4 +133,53 @@ class CalendarEventRepositoryWhereClauseTest {
 
     assertFalse(whereContains(where, "created_by"));
   }
+
+  // --- undatedOnly (issue #996, editorial calendar "Drafts with no dates" feed) ---
+
+  @Test
+  void undatedOnlyTrueAddsTheStartDateIsNullClause() {
+    CalendarEventSpecification specification = new CalendarEventSpecification();
+    specification.setUndatedOnly(true);
+
+    SqlUtils where = CalendarEventRepository.createWhereStatement(specification);
+
+    assertTrue(whereContains(where, "start_date IS NULL"));
+  }
+
+  @Test
+  void undatedOnlyFalseByDefaultAddsNoUndatedClauseAtAll() {
+    CalendarEventSpecification specification = new CalendarEventSpecification();
+
+    SqlUtils where = CalendarEventRepository.createWhereStatement(specification);
+
+    assertFalse(whereContains(where, "start_date IS NULL"));
+  }
+
+  @Test
+  void undatedOnlyTakesPrecedenceOverADateRangeSetOnTheSameSpecification() {
+    CalendarEventSpecification specification = new CalendarEventSpecification();
+    specification.setUndatedOnly(true);
+    specification.setStartingDateRange(Timestamp.valueOf("2026-08-01 00:00:00"));
+    specification.setEndingDateRange(Timestamp.valueOf("2026-09-01 00:00:00"));
+
+    SqlUtils where = CalendarEventRepository.createWhereStatement(specification);
+
+    assertTrue(whereContains(where, "start_date IS NULL"));
+    assertFalse(whereContains(where, "start_date >= ?"));
+  }
+
+  @Test
+  void undatedOnlyCombinesWithArchivedOnlyAndCreatedByAsAnd() {
+    // Mirrors how EditorialCalendarAjax.addUndatedEvents() actually builds this specification.
+    CalendarEventSpecification specification = new CalendarEventSpecification();
+    specification.setUndatedOnly(true);
+    specification.setArchivedOnly(false);
+    specification.setCreatedBy(7L);
+
+    SqlUtils where = CalendarEventRepository.createWhereStatement(specification);
+
+    assertTrue(whereContains(where, "start_date IS NULL"));
+    assertTrue(whereContains(where, "archived IS NULL"));
+    assertTrue(whereContains(where, "created_by = ?"));
+  }
 }

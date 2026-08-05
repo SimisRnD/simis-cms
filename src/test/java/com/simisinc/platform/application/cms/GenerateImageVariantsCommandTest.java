@@ -24,6 +24,7 @@ import static org.mockito.Mockito.mockStatic;
 import java.awt.image.BufferedImage;
 import java.io.File;
 import java.io.IOException;
+import java.math.BigDecimal;
 import java.nio.file.Path;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -305,6 +306,73 @@ class GenerateImageVariantsCommandTest {
     assertEquals(600, byType.get("medium").getHeight());
   }
 
+  @Test
+  void generateSquareVariantCropsAroundTheStoredFocalPointAndProducesASquareFile(@TempDir Path tempDir) throws Exception {
+    // A wide 2000x1000 original with a focal point near the right edge -- the exact crop offset is
+    // covered by FocalPointCropCommandTest; this only needs to prove the wiring produces a real,
+    // square, persisted variant using the image's own stored focal point.
+    Image image = insertImageWithRealFile(tempDir, "wide-original.png", 2000, 1000);
+    image.setFocalX(new BigDecimal("90"));
+    image.setFocalY(new BigDecimal("50"));
+    ImageRepository.save(image);
+
+    ImageVariant variant = withStubbedRoot(tempDir, () -> GenerateImageVariantsCommand.generateSquareVariant(image));
+
+    assertEquals("square", variant.getVariantType());
+    assertEquals(400, variant.getWidth());
+    assertEquals(400, variant.getHeight());
+    File variantFile = tempDir.resolve(variant.getFileServerPath()).toFile();
+    assertTrue(variantFile.isFile(), "the cropped file must actually exist on disk");
+    ImageVariant persisted = ImageVariantRepository.findByImageIdAndVariantType(image.getId(), "square");
+    assertEquals(variant.getId(), persisted.getId());
+  }
+
+  @Test
+  void generateSquareVariantReturnsNullForAnUnsupportedFileType(@TempDir Path tempDir) throws Exception {
+    Image image = insertImageWithRealFile(tempDir, "vector.svg", 2000, 1500);
+    image.setFileType("image/svg+xml");
+
+    ImageVariant variant = withStubbedRoot(tempDir, () -> GenerateImageVariantsCommand.generateSquareVariant(image));
+
+    assertNull(variant, "SVG is resolution-independent and must not be rasterized into a square variant");
+  }
+
+  @Test
+  void generateSquareVariantReturnsNullWhenTheOriginalFileIsMissing(@TempDir Path tempDir) throws Exception {
+    Image image = new Image();
+    image.setFilename("gone.png");
+    image.setFileServerPath("images/2026/08/gone.png");
+    image.setCreatedBy(userId);
+    image.setFileLength(1000);
+    image.setFileType("image/png");
+    image.setWidth(2000);
+    image.setHeight(1500);
+    image.setWebPath("20260804120100");
+    Image saved = ImageRepository.save(image);
+
+    ImageVariant variant = withStubbedRoot(tempDir, () -> GenerateImageVariantsCommand.generateSquareVariant(saved));
+
+    assertNull(variant);
+  }
+
+  @Test
+  void generateSquareVariantOnANullOrUnsavedImageReturnsNullWithoutThrowing() {
+    assertNull(GenerateImageVariantsCommand.generateSquareVariant(null));
+    assertNull(GenerateImageVariantsCommand.generateSquareVariant(new Image()));
+  }
+
+  @Test
+  void generateSquareVariantSkipsWritingOnceTheImageRowIsGone(@TempDir Path tempDir) throws Exception {
+    Image image = insertImageWithRealFile(tempDir, "wide-original.png", 2000, 1000);
+    assertTrue(ImageRepository.remove(image), "test setup: could not remove the image row");
+
+    ImageVariant variant = withStubbedRoot(tempDir, () -> GenerateImageVariantsCommand.generateSquareVariant(image));
+
+    assertNull(variant, "must not generate or persist a variant once the image row is gone");
+    File expectedSquareFile = tempDir.resolve("images/2026/08/wide-original-square.png").toFile();
+    assertTrue(!expectedSquareFile.exists(), "must not have written a variant file for a deleted image");
+  }
+
   private static Image insertImageWithRealWebpFile(Path tempDir, String filename, int width, int height)
       throws Exception {
     String relativePath = "images/2026/08/" + filename;
@@ -457,7 +525,9 @@ class GenerateImageVariantsCommandTest {
           + "processed_file_type VARCHAR(20), "
           + "processed_width INTEGER NOT NULL DEFAULT 0, "
           + "processed_height INTEGER NOT NULL DEFAULT 0, "
-          + "web_path VARCHAR(50) NOT NULL)");
+          + "web_path VARCHAR(50) NOT NULL, "
+          + "focal_x NUMERIC(5,2) NOT NULL DEFAULT 50.00, "
+          + "focal_y NUMERIC(5,2) NOT NULL DEFAULT 50.00)");
       statement.execute("CREATE TABLE image_variants ("
           + "image_variant_id BIGSERIAL PRIMARY KEY, "
           + "image_id BIGINT NOT NULL REFERENCES images(image_id) ON DELETE CASCADE, "

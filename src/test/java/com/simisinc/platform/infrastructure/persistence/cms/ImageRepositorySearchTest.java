@@ -20,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.math.BigDecimal;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -58,6 +59,11 @@ import com.simisinc.platform.infrastructure.database.DataSource;
  * findAll(null, constraints)} path and the search-filtered {@code findAll(specification,
  * constraints)} path, and a page number past the last page must degrade to an empty list rather
  * than error.
+ *
+ * <p>Also verifies the {@code focal_x}/{@code focal_y} columns added for issue #411 PR3: a new
+ * image defaults to a dead-center focal point, and {@link ImageRepository#save} actually persists a
+ * focal-point change on an existing row (previously {@code update()} only ever wrote {@code
+ * processed}).
  *
  * @author SimIS Inc.
  */
@@ -266,6 +272,40 @@ class ImageRepositorySearchTest {
     assertTrue(results.isEmpty());
   }
 
+  @Test
+  void newlySavedImageDefaultsToADeadCenterFocalPoint() {
+    Image saved = ImageRepository.findAll().get(0);
+
+    assertEquals(0, new BigDecimal("50.00").compareTo(saved.getFocalX()),
+        "a freshly-inserted image must default to a dead-center focal point");
+    assertEquals(0, new BigDecimal("50.00").compareTo(saved.getFocalY()));
+  }
+
+  @Test
+  void updatePersistsFocalPointAndOtherMutableFieldsOnAnExistingRecord() {
+    // ImageRepository.update() used to only ever write the `processed` column -- a latent bug
+    // invisible until issue #411 PR3's "set focal point on an existing image" action became the
+    // first caller needing anything else to actually persist on an existing row.
+    Image image = new Image();
+    image.setFilename("focal-point-test.png");
+    image.setFileServerPath("2026/07/focal-point-test.png");
+    image.setCreatedBy(userId);
+    image.setFileLength(2048);
+    image.setFileType("image/png");
+    image.setWidth(200);
+    image.setHeight(200);
+    image.setWebPath("2026/07");
+    Image saved = ImageRepository.save(image);
+
+    saved.setFocalX(new BigDecimal("12.50"));
+    saved.setFocalY(new BigDecimal("87.25"));
+    ImageRepository.save(saved);
+
+    Image reloaded = ImageRepository.findById(saved.getId());
+    assertEquals(0, new BigDecimal("12.50").compareTo(reloaded.getFocalX()));
+    assertEquals(0, new BigDecimal("87.25").compareTo(reloaded.getFocalY()));
+  }
+
   /**
    * Builds paging constraints with an explicit, unique sort column (the primary key) instead of
    * relying on {@code ImageRepository.findAll}'s internal "created DESC" default -- the seed
@@ -314,7 +354,9 @@ class ImageRepositorySearchTest {
           + "file_type VARCHAR(20), "
           + "width INTEGER NOT NULL, "
           + "height INTEGER NOT NULL, "
-          + "web_path VARCHAR(50) NOT NULL)");
+          + "web_path VARCHAR(50) NOT NULL, "
+          + "focal_x NUMERIC(5,2) NOT NULL DEFAULT 50.00, "
+          + "focal_y NUMERIC(5,2) NOT NULL DEFAULT 50.00)");
     } catch (SQLException se) {
       throw new IllegalStateException("Could not create the images/users schema", se);
     }

@@ -43,6 +43,17 @@
                 <c:if test="${not empty productImageSrcset}"> srcset="<c:out value="${productImageSrcset}"/>" sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"</c:if>
                 decoding="async" loading="lazy" /></a>
             </c:when>
+            <c:when test="${!empty product.imageUrl && !empty cardImageClass}">
+              <%-- cardImageClass forces a fixed-aspect CSS crop (object-fit: cover) -- request the
+                   focal-point-aware square variant directly and skip the width-breakpoint srcset
+                   entirely (issue #411 PR3). A srcset's candidates must all be the same crop, only
+                   the resolution may vary; mixing in a differently-cropped square variant would let
+                   the browser silently shift what's visible depending on which candidate a given
+                   viewport resolves to. StreamImageWidget falls back to the original when no square
+                   variant exists yet, so this degrades gracefully for any image without one. --%>
+              <a href="${ctx}<c:out value="${product.productUrl}"/>"><img alt="product image" src="<c:out value="${product.imageUrl}"/>?variant=square"
+                decoding="async" loading="lazy" /></a>
+            </c:when>
             <c:when test="${!empty product.imageUrl}">
               <c:set var="productImageSrcset" value="${image:srcsetBatch(product.imageUrl, imageVariantsByImageId)}"/>
               <a href="${ctx}<c:out value="${product.productUrl}"/>"><img alt="product image" src="<c:out value="${product.imageUrl}"/>"
