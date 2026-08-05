@@ -20,6 +20,7 @@
 <%@ taglib prefix="text" uri="/WEB-INF/tlds/text-functions.tld" %>
 <%@ taglib prefix="url" uri="/WEB-INF/tlds/url-functions.tld" %>
 <%@ taglib prefix="number" uri="/WEB-INF/tlds/number-functions.tld" %>
+<%@ taglib prefix="image" uri="/WEB-INF/tlds/image-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="imageList" class="java.util.ArrayList" scope="request"/>
@@ -60,7 +61,11 @@
                  data-filename="${fn:escapeXml(image.filename)}"
                  aria-label="Select <c:out value="${image.filename}"/>"
                  style="position:absolute; top: 5px; left: 5px; z-index: 1;">
-          <img src="${ctx}/assets/img/${image.url}">
+          <c:set var="imageHref" value="/assets/img/${image.url}"/>
+          <c:set var="mediaImageSrcset" value="${image:srcsetBatch(imageHref, imageVariantsByImageId)}"/>
+          <img src="<c:out value="${ctx}${imageHref}"/>"
+            <c:if test="${not empty mediaImageSrcset}"> srcset="<c:out value="${mediaImageSrcset}"/>" sizes="150px"</c:if>
+            decoding="async"<c:if test="${!status.first}"> loading="lazy"</c:if>>
         </div>
         <div class="card-section">
           <div>

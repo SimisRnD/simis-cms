@@ -80,9 +80,12 @@ public class SaveBlogPostCommand {
       if (blogPost == null) {
         throw new DataException("The existing record could not be found");
       }
+      // createdBy is set once, below, only for a genuinely new record -- an edit must not
+      // reassign the original creator to whoever happens to be editing it today
     } else {
       LOG.debug("Saving a new record... ");
       blogPost = new BlogPost();
+      blogPost.setCreatedBy(blogPostBean.getCreatedBy());
     }
 
     // Check for events
@@ -107,7 +110,6 @@ public class SaveBlogPostCommand {
     blogPost.setSummary(blogPostBean.getSummary());
     blogPost.setKeywords(blogPostBean.getKeywords());
     blogPost.setImageUrl(blogPostBean.getImageUrl());
-    blogPost.setCreatedBy(blogPostBean.getCreatedBy());
     blogPost.setModifiedBy(blogPostBean.getModifiedBy());
     blogPost.setPublished(blogPostBean.getPublished());
     blogPost.setStartDate(blogPostBean.getStartDate());

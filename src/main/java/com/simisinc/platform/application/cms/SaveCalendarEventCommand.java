@@ -75,9 +75,12 @@ public class SaveCalendarEventCommand {
       if (calendarEvent == null) {
         throw new DataException("The existing record could not be found");
       }
+      // createdBy is set once, below, only for a genuinely new record -- an edit must not
+      // reassign the original creator to whoever happens to be editing it today
     } else {
       LOG.debug("Saving a new record... ");
       calendarEvent = new CalendarEvent();
+      calendarEvent.setCreatedBy(calendarEventBean.getCreatedBy());
     }
 
     // Check for events
@@ -106,7 +109,6 @@ public class SaveCalendarEventCommand {
     calendarEvent.setImageUrl(calendarEventBean.getImageUrl());
     calendarEvent.setVideoUrl(calendarEventBean.getVideoUrl());
     calendarEvent.setTagsList(calendarEventBean.getTagsList());
-    calendarEvent.setCreatedBy(calendarEventBean.getCreatedBy());
     calendarEvent.setModifiedBy(calendarEventBean.getModifiedBy());
     calendarEvent.setPublished(calendarEventBean.getPublished());
     calendarEvent.setStartDate(calendarEventBean.getStartDate());

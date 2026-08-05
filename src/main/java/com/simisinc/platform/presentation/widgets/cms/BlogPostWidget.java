@@ -18,6 +18,7 @@ package com.simisinc.platform.presentation.widgets.cms;
 
 import com.simisinc.platform.application.LoadUserCommand;
 import com.simisinc.platform.application.UserCommand;
+import com.simisinc.platform.application.cms.ContentImageSrcsetCommand;
 import com.simisinc.platform.application.cms.LoadBlogCommand;
 import com.simisinc.platform.application.cms.LoadBlogPostCommand;
 import com.simisinc.platform.domain.model.User;
@@ -66,6 +67,9 @@ public class BlogPostWidget extends GenericWidget {
       return null;
     }
     context.getRequest().setAttribute("blogPost", blogPost);
+    // A separate request attribute, not a mutation of blogPost.body itself -- the loaded object is
+    // also read elsewhere (e.g. list widgets) expecting the raw, unprocessed value (issue #411 PR2).
+    context.getRequest().setAttribute("blogPostBodyHtml", ContentImageSrcsetCommand.injectSrcset(blogPost.getBody()));
 
     // Set the HTML page title -- already includes the blog name, so the container must not
     // also append the WebPage's own title (e.g. a wildcard page like /news/*) on top of it

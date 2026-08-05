@@ -24,8 +24,6 @@ import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.util.Date;
 
 /**
  * Formats dates
@@ -68,24 +66,5 @@ public class FormatDateCommand {
    */
   public static ZoneId getSiteZoneId() {
     return ZoneId.of(LoadSitePropertyCommand.loadByName("site.timezone", ZoneId.systemDefault().getId()));
-  }
-
-  /**
-   * Formats a date as yyyy-MM-dd in the given zone, so the calendar day shown reflects the
-   * zone the date is meant to be interpreted in rather than whatever zone the JVM defaults to.
-   */
-  public static String formatIsoDate(Date date, ZoneId zoneId) {
-    return ISO_DATE_FORMAT.format(date.toInstant().atZone(zoneId));
-  }
-
-  public static String formatIsoTime(Date date, ZoneId zoneId) {
-    return ISO_TIME_FORMAT.format(date.toInstant().atZone(zoneId));
-  }
-
-  /**
-   * The zone's UTC offset at the given instant (e.g. "-04:00", "+00:00"), accounting for DST.
-   */
-  public static String formatIsoOffset(Date date, ZoneId zoneId) {
-    return ISO_OFFSET_FORMAT.format(date.toInstant().atZone(zoneId));
   }
 }

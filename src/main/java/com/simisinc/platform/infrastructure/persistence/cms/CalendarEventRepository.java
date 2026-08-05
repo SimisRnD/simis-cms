@@ -86,6 +86,8 @@ public class CalendarEventRepository {
         where.add("(start_date < ? AND end_date < ?)",
             new Timestamp[]{specification.getEndingDateRange(), specification.getEndingDateRange()});
       }
+      // issue #426 (editorial calendar): the author filter, mirroring the calendarId clause above.
+      where.addIfExists("created_by = ?", specification.getCreatedBy(), -1);
     }
     return where;
   }

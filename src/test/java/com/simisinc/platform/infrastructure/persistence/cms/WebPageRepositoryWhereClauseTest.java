@@ -19,6 +19,8 @@ package com.simisinc.platform.infrastructure.persistence.cms;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.sql.Timestamp;
+
 import org.junit.jupiter.api.Test;
 
 import com.simisinc.platform.infrastructure.database.SqlUtils;
@@ -102,5 +104,50 @@ class WebPageRepositoryWhereClauseTest {
 
     assertFalse(whereContains(where, "archived IS NULL"));
     assertFalse(whereContains(where, "archived IS NOT NULL"));
+  }
+
+  // --- date-range and author filters (issue #426, editorial calendar) ---
+
+  @Test
+  void bothDateRangeBoundsSetAddsTheOrAcrossPublishAtAndExpiresAtClause() {
+    WebPageSpecification specification = new WebPageSpecification();
+    specification.setStartingDateRange(Timestamp.valueOf("2026-08-01 00:00:00"));
+    specification.setEndingDateRange(Timestamp.valueOf("2026-09-01 00:00:00"));
+
+    SqlUtils where = WebPageRepository.createWhereStatement(specification);
+
+    assertTrue(whereContains(where, "publish_at >= ? AND publish_at < ?"));
+    assertTrue(whereContains(where, "expires_at >= ? AND expires_at < ?"));
+  }
+
+  @Test
+  void noDateRangeSetAddsNoDateRangeClause() {
+    WebPageSpecification specification = new WebPageSpecification();
+
+    SqlUtils where = WebPageRepository.createWhereStatement(specification);
+
+    assertFalse(whereContains(where, "publish_at"));
+    assertFalse(whereContains(where, "expires_at"));
+  }
+
+  @Test
+  void createdByFilterAddsACreatedByClauseWhenSet() {
+    WebPageSpecification specification = new WebPageSpecification();
+    specification.setCreatedBy(42L);
+
+    SqlUtils where = WebPageRepository.createWhereStatement(specification);
+
+    assertTrue(whereContains(where, "created_by = ?"));
+  }
+
+  @Test
+  void createdByUnsetByDefaultAddsNoCreatedByClauseAtAll() {
+    // -1 is every *Specification's unset sentinel for a long field -- proves the new author filter
+    // is purely additive, matching every pre-#426 caller that never touches this field.
+    WebPageSpecification specification = new WebPageSpecification();
+
+    SqlUtils where = WebPageRepository.createWhereStatement(specification);
+
+    assertFalse(whereContains(where, "created_by"));
   }
 }

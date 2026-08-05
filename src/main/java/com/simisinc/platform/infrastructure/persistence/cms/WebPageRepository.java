@@ -69,6 +69,22 @@ public class WebPageRepository {
       } else if (specification.getArchivedOnly() == DataConstants.FALSE) {
         where.add("archived IS NULL");
       }
+      // issue #426 (editorial calendar): mirrors CalendarEventRepository's identical
+      // startingDateRange/endingDateRange OR-across-two-columns shape, applied to publish_at/
+      // expires_at instead of a single occurrence window -- a page matches if EITHER its scheduled
+      // go-live date or its expiration date falls within the requested range.
+      if (specification.getStartingDateRange() != null && specification.getEndingDateRange() != null) {
+        where.add("((publish_at >= ? AND publish_at < ?) OR (expires_at >= ? AND expires_at < ?))",
+            new Timestamp[]{specification.getStartingDateRange(), specification.getEndingDateRange(),
+                specification.getStartingDateRange(), specification.getEndingDateRange()});
+      } else if (specification.getStartingDateRange() != null) {
+        where.add("(publish_at >= ? OR expires_at >= ?)",
+            new Timestamp[]{specification.getStartingDateRange(), specification.getStartingDateRange()});
+      } else if (specification.getEndingDateRange() != null) {
+        where.add("(publish_at < ? OR expires_at < ?)",
+            new Timestamp[]{specification.getEndingDateRange(), specification.getEndingDateRange()});
+      }
+      where.addIfExists("created_by = ?", specification.getCreatedBy(), -1);
       if (StringUtils.isNotBlank(specification.getSearchTerm())) {
         // A substring match across link/title/keywords, distinct from search() (tsvector full-text,
         // restricted to enabled+searchable pages) -- the admin list must find a page in any state

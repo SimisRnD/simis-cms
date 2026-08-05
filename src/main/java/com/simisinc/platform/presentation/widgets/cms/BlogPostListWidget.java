@@ -17,20 +17,24 @@
 package com.simisinc.platform.presentation.widgets.cms;
 
 import com.simisinc.platform.application.cms.ContentReviewCommand;
+import com.simisinc.platform.application.cms.ImageCommand;
 import com.simisinc.platform.application.cms.NumberCommand;
 
 import com.simisinc.platform.application.cms.LoadBlogCommand;
 import com.simisinc.platform.application.cms.UrlCommand;
 import com.simisinc.platform.domain.model.cms.Blog;
 import com.simisinc.platform.domain.model.cms.BlogPost;
+import com.simisinc.platform.domain.model.cms.ImageVariant;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.persistence.cms.BlogPostRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.BlogPostSpecification;
+import com.simisinc.platform.infrastructure.persistence.cms.ImageVariantRepository;
 import com.simisinc.platform.presentation.controller.RequestConstants;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import org.apache.commons.lang3.StringUtils;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -143,6 +147,19 @@ public class BlogPostListWidget extends GenericWidget {
     // Load the blog posts
     List<BlogPost> blogPostList = BlogPostRepository.findAll(blogPostSpecification, constraints);
     context.getRequest().setAttribute("blogPostList", blogPostList);
+
+    // Batch-fetch existing image variants for every post's image in one query (issue #411 PR2) --
+    // avoids one findByImageId call per row in the JSP loop, mirroring blogPostReviewStatusMap
+    // immediately below.
+    List<Long> blogPostImageIds = new ArrayList<>();
+    for (BlogPost blogPost : blogPostList) {
+      Long imageId = ImageCommand.parseImageId(blogPost.getImageUrl());
+      if (imageId != null) {
+        blogPostImageIds.add(imageId);
+      }
+    }
+    Map<Long, List<ImageVariant>> imageVariantsByImageId = ImageVariantRepository.findByImageIds(blogPostImageIds);
+    context.getRequest().setAttribute("imageVariantsByImageId", imageVariantsByImageId);
 
     // Governed publish workflow status per post (#407, phase 2), keyed by post id -- only shown to
     // admin/content-manager viewers (the same audience already shown unpublished posts here at all,

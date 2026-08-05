@@ -21,6 +21,7 @@
 <%@ taglib prefix="url" uri="/WEB-INF/tlds/url-functions.tld" %>
 <%@ taglib prefix="text" uri="/WEB-INF/tlds/text-functions.tld" %>
 <%@ taglib prefix="product" uri="/WEB-INF/tlds/product-functions.tld" %>
+<%@ taglib prefix="image" uri="/WEB-INF/tlds/image-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="cart" class="com.simisinc.platform.domain.model.ecommerce.Cart" scope="request"/>
@@ -118,7 +119,12 @@
           <div class="checkout-summary-item">
             <div class="grid-x grid-margin-x">
               <div class="small-5 medium-2 cell">
-                <c:if test="${!empty product.imageUrl}"><img src="<c:out value="${product.imageUrl}"/>" alt="<c:out value="${product.name}"/>" loading="lazy" decoding="async"/></c:if>
+                <c:if test="${!empty product.imageUrl}">
+                  <c:set var="lineItemSrcset" value="${image:srcset(product.imageUrl)}"/>
+                  <img src="<c:out value="${product.imageUrl}"/>"
+                    <c:if test="${not empty lineItemSrcset}"> srcset="<c:out value="${lineItemSrcset}"/>" sizes="150px"</c:if>
+                    loading="lazy" decoding="async"/>
+                </c:if>
               </div>
               <div class="small-7 medium-5 cell">
                 <div id="item-${cartEntryStatus.index}-name">

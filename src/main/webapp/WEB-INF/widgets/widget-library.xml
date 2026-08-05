@@ -190,6 +190,7 @@
   <widget name="calendarEventList" class="com.simisinc.platform.presentation.widgets.admin.cms.CalendarEventListWidget" />
   <widget name="calendarForm" class="com.simisinc.platform.presentation.widgets.admin.cms.CalendarFormWidget" />
   <widget name="calendarEventForm" class="com.simisinc.platform.presentation.widgets.admin.cms.CalendarEventFormWidget" />
+  <widget name="editorialCalendar" class="com.simisinc.platform.presentation.widgets.admin.cms.EditorialCalendarWidget" />
   <widget name="collectionsList" class="com.simisinc.platform.presentation.widgets.admin.items.CollectionsListWidget" />
   <widget name="collectionForm" class="com.simisinc.platform.presentation.widgets.admin.items.CollectionFormWidget" />
   <widget name="collectionDetails" class="com.simisinc.platform.presentation.widgets.admin.items.CollectionDetailsWidget" />

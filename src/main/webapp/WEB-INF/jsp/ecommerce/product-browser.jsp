@@ -19,6 +19,7 @@
 <%@ taglib prefix="url" uri="/WEB-INF/tlds/url-functions.tld" %>
 <%@ taglib prefix="text" uri="/WEB-INF/tlds/text-functions.tld" %>
 <%@ taglib prefix="product" uri="/WEB-INF/tlds/product-functions.tld" %>
+<%@ taglib prefix="image" uri="/WEB-INF/tlds/image-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="productList" class="java.util.ArrayList" scope="request"/>
@@ -31,16 +32,22 @@
 <jsp:useBean id="buttonLabel" class="java.lang.String" scope="request"/>
 <jsp:useBean id="buttonClass" class="java.lang.String" scope="request"/>
 <div class="grid-x grid-margin-x align-center small-up-<c:out value="${smallCardCount}" /> medium-up-<c:out value="${mediumCardCount}" /> large-up-<c:out value="${largeCardCount}" />">
-  <c:forEach items="${productList}" var="product">
+  <c:forEach items="${productList}" var="product" varStatus="status">
     <div class="cell">
       <div class="card<c:if test="${!empty cardClass}"> <c:out value="${cardClass}" /></c:if>">
         <div class="card-image<c:if test="${!empty cardImageClass}"> <c:out value="${cardImageClass}" /></c:if>">
           <c:choose>
             <c:when test="${!empty productImageMap[product.uniqueId]}">
-              <a href="${ctx}<c:out value="${product.productUrl}"/>"><img alt="product image" src="<c:out value="${productImageMap[product.uniqueId]}"/>" loading="lazy" decoding="async" /></a>
+              <c:set var="productImageSrcset" value="${image:srcset(productImageMap[product.uniqueId])}"/>
+              <a href="${ctx}<c:out value="${product.productUrl}"/>"><img alt="product image" src="<c:out value="${productImageMap[product.uniqueId]}"/>"
+                <c:if test="${not empty productImageSrcset}"> srcset="<c:out value="${productImageSrcset}"/>" sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"</c:if>
+                decoding="async" loading="lazy" /></a>
             </c:when>
             <c:when test="${!empty product.imageUrl}">
-              <a href="${ctx}<c:out value="${product.productUrl}"/>"><img alt="product image" src="<c:out value="${product.imageUrl}"/>" loading="lazy" decoding="async" /></a>
+              <c:set var="productImageSrcset" value="${image:srcsetBatch(product.imageUrl, imageVariantsByImageId)}"/>
+              <a href="${ctx}<c:out value="${product.productUrl}"/>"><img alt="product image" src="<c:out value="${product.imageUrl}"/>"
+                <c:if test="${not empty productImageSrcset}"> srcset="<c:out value="${productImageSrcset}"/>" sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"</c:if>
+                decoding="async" loading="lazy" /></a>
             </c:when>
             <c:otherwise>
               <a href="${ctx}<c:out value="${product.productUrl}"/>"><img alt="product image placeholder" src="https://placehold.it/500x300" loading="lazy" decoding="async"></a>

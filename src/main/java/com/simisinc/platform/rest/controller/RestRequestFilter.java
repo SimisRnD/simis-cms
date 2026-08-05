@@ -234,6 +234,15 @@ public class RestRequestFilter implements Filter {
         return;
       }
 
+      // A guest may only read (issue #974): this filter has no per-endpoint knowledge of which
+      // write needs which role, so demoting to guest here was previously the same for every HTTP
+      // method -- the /api/session and /api/oauth2/authorize writes above are unaffected, they
+      // already returned before reaching this point regardless of token or method.
+      if (!"get".equals(requestMethod) && !"head".equals(requestMethod)) {
+        doUnauthorized(servletResponse);
+        return;
+      }
+
       // Limit the number of hits per minute based on the successful use of the api key
       if (!isLocal && !RateLimitCommand.isAppAllowedRightNow(thisApp)) {
         do429(servletResponse);

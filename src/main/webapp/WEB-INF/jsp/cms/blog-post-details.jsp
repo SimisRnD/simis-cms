@@ -83,7 +83,7 @@
   <div class="platform-blog-body">
     <div class="grid-x grid-margin-x">
       <div class="small-12 cell">
-        ${blogPost.body}
+        ${blogPostBodyHtml}
       </div>
     </div>
   </div>
