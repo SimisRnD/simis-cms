@@ -43,7 +43,7 @@
               <a href="${ctx}<c:out value="${product.productUrl}"/>"><img alt="product image" src="<c:out value="${product.imageUrl}"/>" /></a>
             </c:when>
             <c:otherwise>
-              <a href="${ctx}<c:out value="${product.productUrl}"/>"><img alt="product image placeholder" src="https://placehold.it/500x300"></a>
+              <a href="${ctx}<c:out value="${product.productUrl}"/>"><img alt="product image placeholder" src="${ctx}/images/ecommerce/product-image-placeholder.png" width="500" height="300"></a>
             </c:otherwise>
           </c:choose>
         </div>
