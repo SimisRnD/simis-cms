@@ -20,6 +20,7 @@
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="font" uri="/WEB-INF/tlds/font-functions.tld" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
+<%@ taglib prefix="image" uri="/WEB-INF/tlds/image-functions.tld" %>
 <%@ taglib prefix="js" uri="/WEB-INF/tlds/javascript-escape.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="masterWebPage" class="com.simisinc.platform.domain.model.cms.WebPage" scope="request"/>
@@ -578,7 +579,10 @@
               <p>
                 <c:choose>
                   <c:when test="${!empty sitePropertyMap['site.logo']}">
-                    <img alt="Logo" style="max-width: 75%" src="<c:out value="${sitePropertyMap['site.logo']}"/>" loading="eager" />
+                    <c:set var="modalLogoSrcset" value="${image:srcset(sitePropertyMap['site.logo'])}"/>
+                    <img alt="Logo" style="max-width: 75%" src="<c:out value="${sitePropertyMap['site.logo']}"/>"
+                      <c:if test="${not empty modalLogoSrcset}"> srcset="<c:out value="${modalLogoSrcset}"/>" sizes="200px"</c:if>
+                      loading="eager" decoding="async" />
                   </c:when>
                   <c:otherwise>
                     <c:out value="${sitePropertyMap['site.name']}"/>

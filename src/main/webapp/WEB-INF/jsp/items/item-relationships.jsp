@@ -19,6 +19,7 @@
 <%@ taglib prefix="font" uri="/WEB-INF/tlds/font-functions.tld" %>
 <%@ taglib prefix="item" uri="/WEB-INF/tlds/item-functions.tld" %>
 <%@ taglib prefix="collection" uri="/WEB-INF/tlds/collection-functions.tld" %>
+<%@ taglib prefix="image" uri="/WEB-INF/tlds/image-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="itemRelationshipList" class="java.util.ArrayList" scope="request"/>
@@ -46,13 +47,16 @@
 </c:if>
 <c:if test="${!empty itemRelationshipList}">
   <ul class="no-bullet">
-    <c:forEach items="${itemRelationshipList}" var="itemRelationship">
+    <c:forEach items="${itemRelationshipList}" var="itemRelationship" varStatus="status">
       <c:set var="item" scope="request" value="${item:itemById(itemRelationship.relatedItemId)}"/>
       <li>
         <c:choose>
           <c:when test="${!empty item.imageUrl}">
+            <c:set var="itemImageSrcset" value="${image:srcset(item.imageUrl)}"/>
             <div class="item-image">
-              <img alt="item image" src="<c:out value="${item.imageUrl}"/>" loading="lazy" decoding="async" />
+              <img alt="item image" src="<c:out value="${item.imageUrl}"/>"
+                <c:if test="${not empty itemImageSrcset}"> srcset="<c:out value="${itemImageSrcset}"/>" sizes="150px"</c:if>
+                decoding="async" loading="lazy" />
             </div>
           </c:when>
           <c:when test="${!empty collection:icon(item.collectionId)}">

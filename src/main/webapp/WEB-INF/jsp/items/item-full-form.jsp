@@ -16,6 +16,7 @@
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
+<%@ taglib prefix="image" uri="/WEB-INF/tlds/image-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="collection" class="com.simisinc.platform.domain.model.items.Collection" scope="request"/>
@@ -288,7 +289,10 @@
           </c:if>
         </div>
         <div class="small-4 cell">
-          <img id="imageUrlPreview" src="<c:out value="${item.imageUrl}"/>" style="max-height: 150px; max-width: 150px"/>
+          <c:set var="itemImageSrcset" value="${image:srcset(item.imageUrl)}"/>
+          <img id="imageUrlPreview" src="<c:out value="${item.imageUrl}"/>" style="max-height: 150px; max-width: 150px"
+            <c:if test="${not empty itemImageSrcset}"> srcset="<c:out value="${itemImageSrcset}"/>" sizes="150px"</c:if>
+            loading="lazy" decoding="async"/>
         </div>
       </div>
     </div>

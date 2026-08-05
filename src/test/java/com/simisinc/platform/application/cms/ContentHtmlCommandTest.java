@@ -19,8 +19,17 @@ package com.simisinc.platform.application.cms;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.mockStatic;
+
+import java.util.List;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
+
+import com.simisinc.platform.domain.model.cms.ImageVariant;
+import com.simisinc.platform.infrastructure.persistence.cms.ImageVariantRepository;
 
 /**
  * Tests the format-aware content render dispatch: legacy HTML passes through, visual-editor Delta is
@@ -66,5 +75,23 @@ class ContentHtmlCommandTest {
     // Callers treat null as "no content" (the add-content button path), so the contract is preserved.
     assertNull(ContentHtmlCommand.toHtml(null, DeltaContentCommand.DELTA_FORMAT_VERSION));
     assertNull(ContentHtmlCommand.toHtml(null, DeltaContentCommand.LEGACY_HTML_FORMAT));
+  }
+
+  @Test
+  void legacyFormatInjectsSrcsetForAQualifyingEmbeddedImage() {
+    // Issue #411 PR2: toHtml() is the single choke point every content-display widget routes
+    // through, so this is where srcset injection for rich-text-embedded images has to happen.
+    String html = "<p><img src=\"/assets/img/20180503171549-5/photo.jpg\" alt=\"Desk\" /></p>";
+    try (MockedStatic<ImageVariantRepository> mocked = mockStatic(ImageVariantRepository.class)) {
+      ImageVariant variant = new ImageVariant();
+      variant.setVariantType("medium");
+      variant.setWidth(800);
+      mocked.when(() -> ImageVariantRepository.findByImageId(anyLong())).thenReturn(List.of(variant));
+
+      String result = ContentHtmlCommand.toHtml(html, DeltaContentCommand.LEGACY_HTML_FORMAT);
+
+      assertTrue(result.contains("srcset=\"/assets/img/20180503171549-5/photo.jpg?variant=medium 800w\""), result);
+      mocked.verify(() -> ImageVariantRepository.findByImageId(5L));
+    }
   }
 }

@@ -19,7 +19,11 @@ package com.simisinc.platform.infrastructure.persistence.cms;
 import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -46,6 +50,36 @@ public class ImageVariantRepository {
         new SqlUtils().add("image_id = ?", imageId),
         null,
         ImageVariantRepository::buildRecord).getRecords();
+  }
+
+  /**
+   * Batch form of {@link #findByImageId} for a widget rendering many images on one page (issue
+   * #411 PR2) -- one query instead of one-per-row. Mirrors the IN-list pattern already used in
+   * {@code ItemRepository}'s category/tag facet filters: one {@code ?} per id, ids bound as real
+   * PreparedStatement parameters via {@code SqlUtils}' {@code Long[]} overload, never
+   * string-concatenated into the SQL text.
+   */
+  public static Map<Long, List<ImageVariant>> findByImageIds(Collection<Long> imageIds) {
+    Map<Long, List<ImageVariant>> variantsByImageId = new LinkedHashMap<>();
+    if (imageIds == null || imageIds.isEmpty()) {
+      return variantsByImageId;
+    }
+    StringBuilder placeholders = new StringBuilder();
+    for (int i = 0; i < imageIds.size(); i++) {
+      if (i > 0) {
+        placeholders.append(",");
+      }
+      placeholders.append("?");
+    }
+    List<ImageVariant> variants = (List<ImageVariant>) DB.selectAllFrom(
+        TABLE_NAME,
+        new SqlUtils().add("image_id IN (" + placeholders + ")", imageIds.toArray(new Long[0])),
+        null,
+        ImageVariantRepository::buildRecord).getRecords();
+    for (ImageVariant variant : variants) {
+      variantsByImageId.computeIfAbsent(variant.getImageId(), k -> new ArrayList<>()).add(variant);
+    }
+    return variantsByImageId;
   }
 
   public static ImageVariant findByImageIdAndVariantType(long imageId, String variantType) {
