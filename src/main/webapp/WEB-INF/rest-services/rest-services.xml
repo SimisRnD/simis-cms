@@ -18,6 +18,12 @@
   <service method="post" endpoint="session" class="com.simisinc.platform.rest.services.session.SessionService" />
   <!--<service endpoint="register" class="com.simisinc.platform.presentation.rest.register.RegisterService" />-->
   <service method="get" endpoint="me" class="com.simisinc.platform.rest.services.userProfile.MeService" />
+  <!-- ContentService also implements post(), for POST /content/{contentUniqueId} (issue #412 PR2).
+       Not listed as its own <service method="post" .../> row: RestServlet dispatches purely by
+       reflecting for a method named after the HTTP verb on whichever class this endpoint maps to,
+       so the "method" attribute here is informational only, not read by the dispatcher. Keep this
+       comment free of a doubled hyphen; see PR #939 for why that already broke this exact file
+       once. -->
   <service method="get" endpoint="content/{contentUniqueId}" class="com.simisinc.platform.rest.services.cms.ContentService" />
   <service method="get" endpoint="collections" class="com.simisinc.platform.rest.services.items.CollectionListService" />
   <service method="get" endpoint="categories/{collectionUniqueId}" class="com.simisinc.platform.rest.services.items.CategoryListService" />

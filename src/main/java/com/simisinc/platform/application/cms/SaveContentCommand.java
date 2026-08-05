@@ -107,6 +107,16 @@ public class SaveContentCommand {
       throw new DataException("Content uses an unsupported legacy editor format");
     }
 
+    // Governed publishing: same enforcement as saveSafeContent's identical check -- this was missing
+    // here, which was harmless only because the sole existing caller (PageServlet's inline editor
+    // save) always passes publish=false. issue #412 PR2's REST write endpoint is the first caller to
+    // ever request publish=true for Delta content, which would otherwise bypass review entirely.
+    if (publish && !ContentReviewCommand
+        .mayPublishDirectly(LoadSitePropertyCommand.loadByNameAsBoolean("content.review.required"))) {
+      LOG.debug("Governed publishing is enabled; saving as a draft for review instead of publishing");
+      publish = false;
+    }
+
     Content content = ContentRepository.findByUniqueId(contentUniqueId);
     if (content == null) {
       LOG.debug("Saving new Delta content record...");

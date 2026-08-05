@@ -61,7 +61,7 @@
           <c:choose>
             <c:when test="${showImage eq 'true' && !empty item.imageUrl}">
               <div class="item-image">
-                <img alt="item image" src="<c:out value="${item.imageUrl}"/>" />
+                <img alt="item image" src="<c:out value="${item.imageUrl}"/>" loading="lazy" decoding="async" />
               </div>
             </c:when>
             <c:when test="${showIcon eq 'true' && !empty collection.icon}">
