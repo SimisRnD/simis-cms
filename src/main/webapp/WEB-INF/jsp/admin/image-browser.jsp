@@ -334,7 +334,13 @@
     document.querySelectorAll('.setFocalPointBtn').forEach(function (btn) {
       btn.addEventListener('click', function () {
         focalImageIdInput.value = btn.getAttribute('data-id');
-        focalImg.src = btn.getAttribute('data-url');
+        // Image.getUrl() (server-side) always produces webPath + "-" + id + "/" + an
+        // application/x-www-form-urlencoded filename, so this can only ever contain the
+        // characters below; reject anything else before it reaches an HTML-interpreting sink.
+        var dataUrl = btn.getAttribute('data-url');
+        if (/^[\w./%!'()~-]+$/.test(dataUrl)) {
+          focalImg.src = dataUrl;
+        }
         setFocalMarker(parseFloat(btn.getAttribute('data-focal-x')) || 50,
                        parseFloat(btn.getAttribute('data-focal-y')) || 50);
         $focalReveal.foundation('open');
