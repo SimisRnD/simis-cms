@@ -150,8 +150,8 @@ ALLOWLIST: dict[str, str] = {
         "Identical path to line 78 — same bean property, same single producer.",
     "${activityDate}":
         "activityDate is machine-generated: ActivityListWidget.java:76-78 sets it to either the literal '---' or FormatDateCommand.formatMonthDayYear(...), which (FormatDateCommand.java:41-",
-    "${blogPost.body}":
-        "SANITIZED ON SAVE by HtmlCommand.cleanContent at SaveBlogPostCommand.java:73, result assigned via setBody at line 106.",
+    "${blogPostBodyHtml}":
+        "blog-post-details.jsp now renders this request attribute instead of the raw ${blogPost.body} bean property (still SANITIZED ON SAVE by HtmlCommand.cleanContent at SaveBlogPostCommand.java:73, assigned via setBody at line 106). BlogPostWidget.execute() sets it to ContentImageSrcsetCommand.injectSrcset(blogPost.getBody()) -- injectSrcset only ever splices fixed srcset=/sizes=/decoding=/loading= attribute syntax into <img> tags already present in that already-sanitized HTML, sourced from ImageCommand.srcset() (system-constructed image paths/widths), and returns its input byte-identical on any parse anomaly. It introduces no new unescaped user-controlled content beyond what this entry already covered.",
     "${calloutHtml}":
         "NONE is applied, and none is needed for the paths that exist: the value is a pure widget preference passed straight through (OrderConfirmationWidget.java:104) with no ${} substitut",
     "${card1}":
@@ -316,6 +316,8 @@ ALLOWLIST: dict[str, str] = {
         "Set exclusively by hardcoded <c:set> literals in container-layout.jsp ('container-body') and layout.jsp ('platform-body') -- never attacker-controlled.",
     "${logoSrc}":
         "Set via <c:set var='logoSrc'><c:out value='${sitePropertyMap[...]}'/></c:set> in toggle-menu.jsp; the <c:out> encodes '\"' to '&quot;' when the variable is written, preventing attribute breakout at the src= sink.",
+    "${itemImageAttrs}":
+        "Set via <c:set var='itemImageAttrs'> in items-card-view.jsp, combining fixed JSP-authored attribute literals (sizes=/decoding=/loading=) with its one dynamic component, ${itemImageSrcset} -- which is itself wrapped in <c:out> at the point it is written into the block, encoding '\"' the same way ${logoSrc} does. Rendered unescaped by design at the <img ...> sink: the value holds pre-built HTML attribute syntax (srcset=\"...\" sizes=\"...\" decoding=\"async\" loading=\"lazy\") that a render-site <c:out> would corrupt by HTML-entity-encoding its own quotes.",
 
     # URL / path values validated or constrained at the write side.
     "${blog.link}":

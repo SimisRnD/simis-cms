@@ -21,6 +21,7 @@ import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.cms.SaveCalendarEventCommand;
 import com.simisinc.platform.application.cms.UrlCommand;
 import com.simisinc.platform.domain.model.cms.CalendarEvent;
+import com.simisinc.platform.infrastructure.persistence.cms.CalendarEventRepository;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import org.apache.commons.beanutils.BeanUtils;
@@ -57,15 +58,21 @@ public class CalendarEventFormWidget extends GenericWidget {
     if (context.getRequestObject() != null) {
       context.getRequest().setAttribute("calendarEvent", context.getRequestObject());
     } else {
-      // Create-only for now; loading an existing event for editing is not yet implemented
-//      int calendarEventId = context.getParameterAsInt("calendarEventId");
-//      CalendarEvent calendarEvent = CalendarEventRepository.findById(calendarEventId);
-//      context.getRequest().setAttribute("calendarEvent", calendarEvent);
-      long calendarId = context.getParameterAsLong("calendarId");
-      if (calendarId > -1) {
-        CalendarEvent calendarEvent = new CalendarEvent();
-        calendarEvent.setCalendarId(calendarId);
-        context.getRequest().setAttribute("calendarEvent", calendarEvent);
+      // Allow either calendarEventId (editing an existing event) or calendarId (pre-selecting the
+      // calendar for a brand-new event)
+      long calendarEventId = context.getParameterAsLong("calendarEventId");
+      if (calendarEventId > -1) {
+        CalendarEvent calendarEvent = CalendarEventRepository.findById(calendarEventId);
+        if (calendarEvent != null) {
+          context.getRequest().setAttribute("calendarEvent", calendarEvent);
+        }
+      } else {
+        long calendarId = context.getParameterAsLong("calendarId");
+        if (calendarId > -1) {
+          CalendarEvent calendarEvent = new CalendarEvent();
+          calendarEvent.setCalendarId(calendarId);
+          context.getRequest().setAttribute("calendarEvent", calendarEvent);
+        }
       }
     }
 

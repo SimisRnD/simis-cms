@@ -16,7 +16,12 @@
 
 package com.simisinc.platform.presentation.widgets.cms;
 
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.StringJoiner;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.math.NumberUtils;
@@ -168,8 +173,13 @@ public class FormWidget extends GenericWidget {
       return null;
     }
     for (FormField formField : formFieldList) {
-      // Determine the user's value
-      String parameterValue = context.getParameter(context.getUniqueId() + formField.getName());
+      // Determine the user's value. A checkbox-group field (type == checkbox with options) can
+      // have several boxes checked, which the browser submits as repeated same-named parameters --
+      // getParameter() only ever returns the first one, silently dropping the rest.
+      boolean isCheckboxGroup = "checkbox".equals(formField.getType()) && formField.getListOfOptions() != null;
+      String parameterValue = isCheckboxGroup
+          ? resolveCheckboxGroupValue(context, formField)
+          : context.getParameter(context.getUniqueId() + formField.getName());
       if (StringUtils.isBlank(parameterValue)) {
         // Check if the field is required
         if (formField.isRequired()) {
@@ -183,7 +193,9 @@ public class FormWidget extends GenericWidget {
         continue;
       }
       parameterValue = parameterValue.trim();
-      if (formField.getListOfOptions() != null) {
+      if (isCheckboxGroup) {
+        formField.setUserValue(parameterValue);
+      } else if (formField.getListOfOptions() != null) {
         formField.setUserValue(formField.getListOfOptions().get(parameterValue));
       } else {
         formField.setUserValue(parameterValue);
@@ -281,101 +293,30 @@ public class FormWidget extends GenericWidget {
   }
 
   /**
-   * Resolves the database-backed form definition for this widget placement (issue #409), or null
-   * when {@code formId} is blank -- the pre-existing, still-default XML-configured case. Logs and
-   * returns null (distinguishable from the "not configured" case only by {@code formIdPref} itself
-   * being non-blank) when {@code formId} is set but does not resolve to a real row, so callers can
-   * hard-fail rather than silently falling back to the XML {@code fields} preference.
-   *
-   * <p>Callers that need to know whether {@code formId} was configured at all (to decide between a
-   * hard failure and the XML fallback) must check {@code formIdPref} themselves; this method alone
-   * cannot distinguish "not configured" from "configured but not found" since both return null.
+   * A checkbox-group field submits one request parameter per checked option, all sharing the same
+   * name. context.getParameter() (a thin wrapper the rest of this loop uses) only ever returns the
+   * first of several same-named values, silently dropping the rest -- read the full array from the
+   * parameter map instead, the same way other multi-checkbox inputs in this codebase already do
+   * (e.g. the "tagId" checkbox group in EditItemFormWidget/CreateAnItemWidget). Values are joined
+   * into a single comma-separated string of display labels -- matching how a single-select field's
+   * chosen option is already translated to its display label via listOfOptions -- so it fits the
+   * existing single-String FormField.userValue / form_data JSON "value" shape without a schema
+   * change. Option order (not submission order) is used so the stored value doesn't depend on
+   * checkbox click order, and duplicate submitted values are de-duplicated.
    */
-  private FormDefinition resolveFormDefinition(WidgetContext context, String formIdPref) {
-    if (StringUtils.isBlank(formIdPref)) {
+  private static String resolveCheckboxGroupValue(WidgetContext context, FormField formField) {
+    String[] values = context.getParameterMap().get(context.getUniqueId() + formField.getName());
+    if (values == null || values.length == 0) {
       return null;
     }
-    long formId = NumberUtils.toLong(formIdPref, -1);
-    FormDefinition formDefinition = FormDefinitionRepository.findById(formId);
-    if (formDefinition == null) {
-      LOG.warn("Form definition was not found for formId: " + formIdPref);
-    }
-    return formDefinition;
-  }
-
-  /**
-   * Whether captcha should be shown/validated for this request (issue #409 follow-up). A
-   * database-backed form's own "Use Captcha?" setting (configured at /admin/forms-editor) is
-   * authoritative once a form has been resolved; only the still-default XML-preference path
-   * (formDefinition null) reads this from the widget placement's own preferences, exactly as before
-   * this feature existed.
-   */
-  private boolean resolveUseCaptcha(WidgetContext context, FormDefinition formDefinition) {
-    if (formDefinition != null) {
-      return formDefinition.getUseCaptcha();
-    }
-    return "true".equals(context.getPreferences().getOrDefault("useCaptcha", "false"));
-  }
-
-  /**
-   * The submit button's label (issue #409 follow-up). A database-backed form's own "Button Label"
-   * (configured at /admin/forms-editor) is authoritative once a form has been resolved, falling back
-   * to "Submit" when left blank -- the same default the still-supported XML-preference path already
-   * applied via getOrDefault().
-   */
-  private String resolveButtonName(WidgetContext context, FormDefinition formDefinition) {
-    String buttonName = formDefinition != null ? formDefinition.getButtonName() : context.getPreferences().get("buttonName");
-    return StringUtils.defaultIfBlank(buttonName, "Submit");
-  }
-
-  /**
-   * The message shown on the success page after a valid submission (issue #409 follow-up). A
-   * database-backed form's own "Success Message" is authoritative once a form has been resolved,
-   * falling back to the same default the still-supported XML-preference path already applied via
-   * getOrDefault() when left blank.
-   */
-  private String resolveSuccessMessage(WidgetContext context, FormDefinition formDefinition) {
-    String successMessage = formDefinition != null ? formDefinition.getSuccessMessage() : context.getPreferences().get("successMessage");
-    return StringUtils.defaultIfBlank(successMessage, "Your information has been submitted.");
-  }
-
-  /**
-   * Resolves this form's field list (issue #409), given the {@code formDefinition} execute()/post()
-   * already resolved via {@link #resolveFormDefinition}. When non-null, fields come from the
-   * database -- FormFieldRepository, already ordered by field_order -- as the admin-managed
-   * alternative to the XML {@code fields} preference. When null (the pre-existing, still-default
-   * configuration, or a {@code formId} that failed to resolve -- callers must have already handled
-   * that case before reaching here), this falls through to exactly the original XML-preference
-   * parsing, unchanged, so a page that has never been touched by the form builder renders and
-   * validates identically to before this feature existed.
-   *
-   * <p>Returns null (after logging a warning) when no fields could be resolved from either source,
-   * matching the pre-existing "not configured" contract both execute() and post() already relied
-   * on -- callers should treat a null return exactly as they did the old inline checks.
-   */
-  private List<FormField> loadFormFieldList(WidgetContext context, FormDefinition formDefinition) {
-    if (formDefinition != null) {
-      List<FormField> formFieldList = FormFieldRepository.findAllByFormDefinitionId(formDefinition.getId());
-      if (formFieldList.isEmpty()) {
-        LOG.warn("No fields were found for formId: " + formDefinition.getId());
-        return null;
+    Set<String> checkedKeys = new HashSet<>(Arrays.asList(values));
+    StringJoiner joiner = new StringJoiner(",");
+    for (Map.Entry<String, String> option : formField.getListOfOptions().entrySet()) {
+      if (checkedKeys.contains(option.getKey())) {
+        joiner.add(option.getValue());
       }
-      return formFieldList;
     }
-
-    // Original XML-preference path (unchanged)
-    PreferenceEntriesList fieldsEntriesList = context.getPreferenceAsDataList("fields");
-    if (fieldsEntriesList.isEmpty()) {
-      LOG.warn("Fields preference was not found");
-      return null;
-    }
-    String formUniqueId = context.getPreferences().get("formUniqueId");
-    List<FormField> formFieldList = FormFieldCommand.parseFieldContent(formUniqueId, fieldsEntriesList);
-    if (formFieldList.isEmpty()) {
-      LOG.warn("No fields were found");
-      return null;
-    }
-    return formFieldList;
+    return joiner.length() == 0 ? null : joiner.toString();
   }
 
   /**

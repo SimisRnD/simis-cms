@@ -21,6 +21,7 @@
 <%@ taglib prefix="collection" uri="/WEB-INF/tlds/collection-functions.tld" %>
 <%@ taglib prefix="category" uri="/WEB-INF/tlds/category-functions.tld" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
+<%@ taglib prefix="image" uri="/WEB-INF/tlds/image-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="collection" class="com.simisinc.platform.domain.model.items.Collection" scope="request"/>
@@ -92,7 +93,7 @@
   </tr>
   </thead>
   <tbody>
-  <c:forEach items="${itemList}" var="item">
+  <c:forEach items="${itemList}" var="item" varStatus="status">
     <c:set var="category" scope="request" value="${categoryMap.get(item.categoryId)}"/>
     <tr>
       <c:if test="${columns eq 'all'}">
@@ -101,8 +102,11 @@
       <td>
         <c:choose>
           <c:when test="${!empty item.imageUrl}">
+            <c:set var="itemImageSrcset" value="${image:srcsetBatch(item.imageUrl, imageVariantsByImageId)}"/>
             <div class="item-image">
-              <img alt="item image" src="<c:out value="${item.imageUrl}"/>" />
+              <img alt="item image" src="<c:out value="${item.imageUrl}"/>"
+                <c:if test="${not empty itemImageSrcset}"> srcset="<c:out value="${itemImageSrcset}"/>" sizes="150px"</c:if>
+                decoding="async"<c:if test="${!status.first}"> loading="lazy"</c:if> />
             </div>
           </c:when>
           <c:when test="${!empty category.headerBgColor && !empty category.headerTextColor}">

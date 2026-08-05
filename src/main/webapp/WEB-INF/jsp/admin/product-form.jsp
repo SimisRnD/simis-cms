@@ -18,6 +18,7 @@
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="html" uri="/WEB-INF/tlds/html-functions.tld" %>
 <%@ taglib prefix="product" uri="/WEB-INF/tlds/product-functions.tld" %>
+<%@ taglib prefix="image" uri="/WEB-INF/tlds/image-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="product" class="com.simisinc.platform.domain.model.ecommerce.Product" scope="request"/>
@@ -129,7 +130,10 @@
             <input type="file" id="imageFile" class="show-for-sr" onchange="SavePhoto(this)">
           </div>
           <div class="small-4 cell">
-            <img id="imageUrlPreview" src="<c:out value="${product.imageUrl}"/>" style="max-height: 150px; max-width: 150px"/>
+            <c:set var="previewSrcset" value="${image:srcset(product.imageUrl)}"/>
+            <img id="imageUrlPreview" src="<c:out value="${product.imageUrl}"/>" style="max-height: 150px; max-width: 150px"
+              <c:if test="${not empty previewSrcset}"> srcset="<c:out value="${previewSrcset}"/>" sizes="150px"</c:if>
+              loading="lazy" decoding="async"/>
           </div>
         </div>
       </fieldset>

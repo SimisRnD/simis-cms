@@ -19,6 +19,8 @@ package com.simisinc.platform.infrastructure.persistence.cms;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import java.sql.Timestamp;
+
 import org.junit.jupiter.api.Test;
 
 import com.simisinc.platform.infrastructure.database.SqlUtils;
@@ -103,5 +105,50 @@ class BlogPostRepositoryWhereClauseTest {
 
     assertFalse(whereContains(where, "archived IS NULL"));
     assertFalse(whereContains(where, "archived IS NOT NULL"));
+  }
+
+  // --- date-range and author filters (issue #426, editorial calendar) ---
+
+  @Test
+  void bothDateRangeBoundsSetAddsTheOrAcrossStartDateAndEndDateClause() {
+    // BlogPost has no publishAt/expiresAt columns -- start_date/end_date are this entity's real
+    // scheduling-equivalent fields (see BlogPostSpecification's field comment).
+    BlogPostSpecification specification = new BlogPostSpecification();
+    specification.setStartingDateRange(Timestamp.valueOf("2026-08-01 00:00:00"));
+    specification.setEndingDateRange(Timestamp.valueOf("2026-09-01 00:00:00"));
+
+    SqlUtils where = BlogPostRepository.createWhereStatement(specification);
+
+    assertTrue(whereContains(where, "start_date >= ? AND start_date < ?"));
+    assertTrue(whereContains(where, "end_date >= ? AND end_date < ?"));
+  }
+
+  @Test
+  void noDateRangeSetAddsNoDateRangeClause() {
+    BlogPostSpecification specification = new BlogPostSpecification();
+
+    SqlUtils where = BlogPostRepository.createWhereStatement(specification);
+
+    assertFalse(whereContains(where, "start_date"));
+    assertFalse(whereContains(where, "end_date"));
+  }
+
+  @Test
+  void createdByFilterAddsACreatedByClauseWhenSet() {
+    BlogPostSpecification specification = new BlogPostSpecification();
+    specification.setCreatedBy(42L);
+
+    SqlUtils where = BlogPostRepository.createWhereStatement(specification);
+
+    assertTrue(whereContains(where, "created_by = ?"));
+  }
+
+  @Test
+  void createdByUnsetByDefaultAddsNoCreatedByClauseAtAll() {
+    BlogPostSpecification specification = new BlogPostSpecification();
+
+    SqlUtils where = BlogPostRepository.createWhereStatement(specification);
+
+    assertFalse(whereContains(where, "created_by"));
   }
 }

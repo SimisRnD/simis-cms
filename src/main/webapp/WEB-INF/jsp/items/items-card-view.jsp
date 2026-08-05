@@ -19,6 +19,7 @@
 <%@ taglib prefix="font" uri="/WEB-INF/tlds/font-functions.tld" %>
 <%@ taglib prefix="collection" uri="/WEB-INF/tlds/collection-functions.tld" %>
 <%@ taglib prefix="category" uri="/WEB-INF/tlds/category-functions.tld" %>
+<%@ taglib prefix="image" uri="/WEB-INF/tlds/image-functions.tld" %>
 <%@ taglib prefix="url" uri="/WEB-INF/tlds/url-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
@@ -115,25 +116,30 @@
 <c:choose>
   <c:when test="${!empty itemList}">
     <div class="grid-x grid-margin-x align-stretch card-catalog">
-      <c:forEach items="${itemList}" var="item">
+      <c:forEach items="${itemList}" var="item" varStatus="status">
         <c:set var="categoryIcon" scope="request" value="${category:icon(item.categoryId)}"/>
         <c:set var="categoryHeaderCSS" scope="request" value="${category:headerColorCSS(item.categoryId)}"/>
         <div class="small-<c:out value="${smallGridCount}" /> medium-<c:out value="${mediumGridCount}" /> large-<c:out value="${largeGridCount}" /> cell card">
           <c:choose>
             <c:when test="${showImage eq 'true' && !empty item.imageUrl}">
+              <c:set var="itemImageSrcset" value="${image:srcsetBatch(item.imageUrl, imageVariantsByImageId)}"/>
+              <c:set var="itemImageAttrs">
+                <c:if test="${not empty itemImageSrcset}"> srcset="<c:out value="${itemImageSrcset}"/>" sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"</c:if>
+                decoding="async" loading="lazy"
+              </c:set>
               <div class="card-top no-gap text-center image-browser" style="<c:out value="${categoryHeaderCSS}" />">
               <c:choose>
                 <c:when test="${showLink eq 'true'}">
-                  <img src="<c:out value="${item.imageUrl}"/>" alt="item image" loading="lazy" decoding="async" />
+                  <img src="<c:out value="${item.imageUrl}"/>" ${itemImageAttrs}/>
                 </c:when>
                 <c:when test="${useItemLink eq 'true' && !empty item.url && (fn:startsWith(item.url, 'http://') || fn:startsWith(item.url, 'https://'))}">
-                  <a target="_blank" href="${item.url}"><img src="<c:out value="${item.imageUrl}"/>" alt="item image" loading="lazy" decoding="async" /></a>
+                  <a target="_blank" href="${item.url}"><img src="<c:out value="${item.imageUrl}"/>" ${itemImageAttrs}/></a>
                 </c:when>
                 <c:when test="${useInfoLink eq 'true'}">
-                  <a href="${ctx}/show/${item.uniqueId}"><img src="<c:out value="${item.imageUrl}"/>" alt="item image" loading="lazy" decoding="async" /></a>
+                  <a href="${ctx}/show/${item.uniqueId}"><img src="<c:out value="${item.imageUrl}"/>" ${itemImageAttrs}/></a>
                 </c:when>
                 <c:otherwise>
-                  <img src="<c:out value="${item.imageUrl}"/>" alt="item image" loading="lazy" decoding="async" />
+                  <img src="<c:out value="${item.imageUrl}"/>" ${itemImageAttrs}/>
                 </c:otherwise>
               </c:choose>
               </div>
