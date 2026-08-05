@@ -28,33 +28,59 @@
 <jsp:useBean id="logoStyle" class="java.lang.String" scope="request"/>
 <jsp:useBean id="view" class="java.lang.String" scope="request"/>
 <jsp:useBean id="text" class="java.lang.String" scope="request"/>
-<c:set var="logoSrc" scope="request" value=""/>
+<c:set var="logoSrcLight" scope="request" value=""/>
 <c:choose>
   <c:when test="${view eq 'white'}">
-    <c:set var="logoSrc" scope="request"><c:out value="${sitePropertyMap['site.logo.white']}"/></c:set>
+    <c:set var="logoSrcLight" scope="request"><c:out value="${sitePropertyMap['site.logo.white']}"/></c:set>
   </c:when>
   <c:when test="${view eq 'color'}">
-    <c:set var="logoSrc" scope="request"><c:out value="${sitePropertyMap['site.logo.mixed']}"/></c:set>
+    <c:set var="logoSrcLight" scope="request"><c:out value="${sitePropertyMap['site.logo.mixed']}"/></c:set>
   </c:when>
   <c:when test="${view eq 'standard'}">
-    <c:set var="logoSrc" scope="request"><c:out value="${sitePropertyMap['site.logo']}"/></c:set>
+    <c:set var="logoSrcLight" scope="request"><c:out value="${sitePropertyMap['site.logo']}"/></c:set>
   </c:when>
   <c:when test="${themePropertyMap['theme.logo.color'] eq 'all-white'}">
-    <c:set var="logoSrc" scope="request"><c:out value="${sitePropertyMap['site.logo.white']}"/></c:set>
+    <c:set var="logoSrcLight" scope="request"><c:out value="${sitePropertyMap['site.logo.white']}"/></c:set>
   </c:when>
   <c:when test="${themePropertyMap['theme.logo.color'] eq 'color-and-white'}">
-    <c:set var="logoSrc" scope="request"><c:out value="${sitePropertyMap['site.logo.mixed']}"/></c:set>
+    <c:set var="logoSrcLight" scope="request"><c:out value="${sitePropertyMap['site.logo.mixed']}"/></c:set>
   </c:when>
   <c:when test="${themePropertyMap['theme.logo.color'] eq 'text-only'}">
   </c:when>
   <c:otherwise>
-    <c:set var="logoSrc" scope="request"><c:out value="${sitePropertyMap['site.logo']}"/></c:set>
+    <c:set var="logoSrcLight" scope="request"><c:out value="${sitePropertyMap['site.logo']}"/></c:set>
   </c:otherwise>
 </c:choose>
-<c:set var="logoSrcset" value="${image:srcset(logoSrc)}"/>
+<%-- Dark-mode source. Only auto-swaps when this widget instance hasn't pinned
+     to one fixed variant via the "view" preference -- a widget that
+     deliberately requests white/color/standard keeps exactly that image in
+     both modes. The white logo is the asset actually made for a dark
+     background, so it's the dark-mode source regardless of which light-mode
+     variant theme.logo.color picked; falls back to the light-mode source
+     when no white logo is uploaded, so there's never a blank logo slot. --%>
+<c:set var="logoSrcDark" scope="request" value=""/>
+<c:if test="${empty view}">
+  <c:set var="logoSrcDark" scope="request"><c:out value="${sitePropertyMap['site.logo.white']}"/></c:set>
+</c:if>
+<c:if test="${empty logoSrcDark}">
+  <c:set var="logoSrcDark" scope="request" value="${logoSrcLight}"/>
+</c:if>
 <c:choose>
-  <c:when test="${!empty logoSrc}">
-    <a href="${ctx}/"><img alt="Logo" <c:if test="${!empty logoClass}">class="<c:out value="${logoClass}"/>" </c:if><c:if test="${!empty logoStyle}">style="<c:out value="${logoStyle}"/>" </c:if>src="<c:out value="${logoSrc}"/>"
+  <c:when test="${!empty logoSrcLight && !empty logoSrcDark && logoSrcLight ne logoSrcDark}">
+    <c:set var="logoSrcsetLight" value="${image:srcset(logoSrcLight)}"/>
+    <c:set var="logoSrcsetDark" value="${image:srcset(logoSrcDark)}"/>
+    <a href="${ctx}/"><img alt="Logo" class="platform-logo-light<c:if test="${!empty logoClass}"> <c:out value="${logoClass}"/></c:if>" <c:if test="${!empty logoStyle}">style="<c:out value="${logoStyle}"/>" </c:if>src="<c:out value="${logoSrcLight}"/>"
+      <c:if test="${not empty logoSrcsetLight}"> srcset="<c:out value="${logoSrcsetLight}"/>" sizes="200px"</c:if>
+      decoding="async" /><img alt="Logo" class="platform-logo-dark<c:if test="${!empty logoClass}"> <c:out value="${logoClass}"/></c:if>" <c:if test="${!empty logoStyle}">style="<c:out value="${logoStyle}"/>" </c:if>src="<c:out value="${logoSrcDark}"/>"
+      <c:if test="${not empty logoSrcsetDark}"> srcset="<c:out value="${logoSrcsetDark}"/>" sizes="200px"</c:if>
+      decoding="async" /></a>
+    <c:if test="${!empty text}">
+      <span class="menu-text" translate="no"><a href="${ctx}/"><c:out value="${text}"/></a></span>
+    </c:if>
+  </c:when>
+  <c:when test="${!empty logoSrcLight}">
+    <c:set var="logoSrcset" value="${image:srcset(logoSrcLight)}"/>
+    <a href="${ctx}/"><img alt="Logo" <c:if test="${!empty logoClass}">class="<c:out value="${logoClass}"/>" </c:if><c:if test="${!empty logoStyle}">style="<c:out value="${logoStyle}"/>" </c:if>src="<c:out value="${logoSrcLight}"/>"
       <c:if test="${not empty logoSrcset}"> srcset="<c:out value="${logoSrcset}"/>" sizes="200px"</c:if>
       decoding="async" /></a>
     <c:if test="${!empty text}">
