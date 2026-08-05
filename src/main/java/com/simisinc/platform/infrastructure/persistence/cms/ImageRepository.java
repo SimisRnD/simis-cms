@@ -113,7 +113,9 @@ public class ImageRepository {
         .add("file_length", record.getFileLength())
         .add("file_type", record.getFileType())
         .add("width", record.getWidth())
-        .add("height", record.getHeight());
+        .add("height", record.getHeight())
+        .add("focal_x", record.getFocalX())
+        .add("focal_y", record.getFocalY());
     record.setId(DB.insertInto(TABLE_NAME, insertValues, PRIMARY_KEY));
     if (record.getId() == -1) {
       LOG.error("An id was not set!");
@@ -124,7 +126,16 @@ public class ImageRepository {
 
   private static Image update(Image record) {
     SqlUtils updateValues = new SqlUtils()
-        .add("processed", record.getProcessed());
+        .add("filename", StringUtils.trimToNull(record.getFilename()))
+        .add("path", StringUtils.trimToNull(record.getFileServerPath()))
+        .add("web_path", StringUtils.trimToNull(record.getWebPath()))
+        .add("file_length", record.getFileLength())
+        .add("file_type", record.getFileType())
+        .add("width", record.getWidth())
+        .add("height", record.getHeight())
+        .add("processed", record.getProcessed())
+        .add("focal_x", record.getFocalX())
+        .add("focal_y", record.getFocalY());
     SqlUtils where = new SqlUtils()
         .add("image_id = ?", record.getId());
     if (DB.update(TABLE_NAME, updateValues, where)) {
@@ -160,6 +171,8 @@ public class ImageRepository {
       record.setWidth(rs.getInt("width"));
       record.setHeight(rs.getInt("height"));
       record.setWebPath(rs.getString("web_path"));
+      record.setFocalX(rs.getBigDecimal("focal_x"));
+      record.setFocalY(rs.getBigDecimal("focal_y"));
       return record;
     } catch (SQLException se) {
       LOG.error("buildRecord", se);

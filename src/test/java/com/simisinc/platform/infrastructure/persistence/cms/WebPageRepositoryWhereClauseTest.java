@@ -150,4 +150,60 @@ class WebPageRepositoryWhereClauseTest {
 
     assertFalse(whereContains(where, "created_by"));
   }
+
+  // --- undatedOnly (issue #996, editorial calendar "Drafts with no dates" feed) ---
+
+  @Test
+  void undatedOnlyTrueAddsThePublishAtAndExpiresAtIsNullClause() {
+    WebPageSpecification specification = new WebPageSpecification();
+    specification.setUndatedOnly(true);
+
+    SqlUtils where = WebPageRepository.createWhereStatement(specification);
+
+    assertTrue(whereContains(where, "publish_at IS NULL AND expires_at IS NULL"));
+  }
+
+  @Test
+  void undatedOnlyFalseByDefaultAddsNoUndatedClauseAtAll() {
+    // false is the default -- proves the new filter is purely additive, matching every pre-#996
+    // caller that never touches this field.
+    WebPageSpecification specification = new WebPageSpecification();
+
+    SqlUtils where = WebPageRepository.createWhereStatement(specification);
+
+    assertFalse(whereContains(where, "publish_at IS NULL"));
+    assertFalse(whereContains(where, "expires_at IS NULL"));
+  }
+
+  @Test
+  void undatedOnlyTakesPrecedenceOverADateRangeSetOnTheSameSpecification() {
+    // EditorialCalendarAjax never sets both on the same specification, but the WHERE-building
+    // itself should still resolve unambiguously if it ever happened: the undated-only clause
+    // entirely replaces the date-range clause rather than combining with it.
+    WebPageSpecification specification = new WebPageSpecification();
+    specification.setUndatedOnly(true);
+    specification.setStartingDateRange(Timestamp.valueOf("2026-08-01 00:00:00"));
+    specification.setEndingDateRange(Timestamp.valueOf("2026-09-01 00:00:00"));
+
+    SqlUtils where = WebPageRepository.createWhereStatement(specification);
+
+    assertTrue(whereContains(where, "publish_at IS NULL AND expires_at IS NULL"));
+    assertFalse(whereContains(where, "publish_at >= ?"));
+  }
+
+  @Test
+  void undatedOnlyCombinesWithArchivedOnlyAndCreatedByAsAnd() {
+    // Mirrors how EditorialCalendarAjax.addUndatedPages() actually builds this specification --
+    // all three clauses must be present together.
+    WebPageSpecification specification = new WebPageSpecification();
+    specification.setUndatedOnly(true);
+    specification.setArchivedOnly(false);
+    specification.setCreatedBy(7L);
+
+    SqlUtils where = WebPageRepository.createWhereStatement(specification);
+
+    assertTrue(whereContains(where, "publish_at IS NULL AND expires_at IS NULL"));
+    assertTrue(whereContains(where, "archived IS NULL"));
+    assertTrue(whereContains(where, "created_by = ?"));
+  }
 }

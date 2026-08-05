@@ -115,11 +115,13 @@ public class SaveWebPageCommand {
       if (webPage == null) {
         throw new DataException("The existing record could not be found");
       }
+      // createdBy is set once, below, only for a genuinely new record -- an edit must not
+      // reassign the original creator to whoever happens to be editing it today
     } else {
       LOG.debug("Saving a new record... ");
       webPage = new WebPage();
+      webPage.setCreatedBy(webPageBean.getCreatedBy());
     }
-    webPage.setCreatedBy(webPageBean.getCreatedBy());
     webPage.setModifiedBy(webPageBean.getModifiedBy());
     webPage.setLink(webPageBean.getLink());
     webPage.setRedirectUrl(webPageBean.getRedirectUrl());

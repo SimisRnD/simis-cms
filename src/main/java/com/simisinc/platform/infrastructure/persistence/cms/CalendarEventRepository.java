@@ -76,7 +76,12 @@ public class CalendarEventRepository {
       } else if (specification.getArchivedOnly() == DataConstants.FALSE) {
         where.add("archived IS NULL");
       }
-      if (specification.getStartingDateRange() != null && specification.getEndingDateRange() != null) {
+      // issue #996 (editorial calendar "Drafts with no dates" feed): an event with no startDate
+      // has no anchor date, so this replaces the date-range filter below entirely rather than
+      // combining with it -- EditorialCalendarAjax never sets both on the same specification.
+      if (specification.isUndatedOnly()) {
+        where.add("start_date IS NULL");
+      } else if (specification.getStartingDateRange() != null && specification.getEndingDateRange() != null) {
         where.add("((start_date >= ? AND start_date < ?) OR (end_date >= ? AND end_date < ?))",
             new Timestamp[]{specification.getStartingDateRange(), specification.getEndingDateRange(), specification.getStartingDateRange(), specification.getEndingDateRange()});
       } else if (specification.getStartingDateRange() != null) {

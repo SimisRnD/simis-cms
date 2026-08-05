@@ -43,6 +43,7 @@ import com.simisinc.platform.infrastructure.persistence.cms.CalendarEventReposit
 import com.simisinc.platform.infrastructure.persistence.cms.CalendarEventSpecification;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.WebPageSpecification;
+import com.simisinc.platform.presentation.controller.DataConstants;
 
 /**
  * Verifies {@link EditorialCalendarAjax}'s aggregation across pages/posts/events and its
@@ -465,5 +466,206 @@ class EditorialCalendarAjaxTest extends WidgetBase {
     }
 
     Assertions.assertEquals("[]", widgetContext.getJson());
+  }
+
+  // --- undated drafts (issue #996) ---
+
+  @Test
+  void undatedFeedRequiresAuthorization() {
+    // Mirrors aCallerWithNoRelevantRoleGetsNoData -- the role gate applies to the undated=true
+    // path exactly like the date-ranged path.
+    addQueryParameter(widgetContext, "undated", "true");
+
+    try (MockedStatic<WebPageRepository> pages = mockStatic(WebPageRepository.class);
+        MockedStatic<BlogPostRepository> posts = mockStatic(BlogPostRepository.class);
+        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class)) {
+      new EditorialCalendarAjax().execute(widgetContext);
+
+      pages.verifyNoInteractions();
+      posts.verifyNoInteractions();
+      events.verifyNoInteractions();
+    }
+
+    Assertions.assertEquals("[]", widgetContext.getJson());
+  }
+
+  @Test
+  void aPageWithNoDatesAppearsInTheUndatedFeedWithNoDateKey() {
+    // No setDateRange()/start/end at all -- proves the undated path doesn't need (or get
+    // short-circuited by) the missing-start/end guard the date-ranged path has.
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "undated", "true");
+
+    WebPage page = new WebPage();
+    page.setId(50L);
+    page.setTitle("Someday Maybe");
+    page.setDraft(true);
+
+    try (MockedStatic<WebPageRepository> pages = mockStatic(WebPageRepository.class);
+        MockedStatic<BlogPostRepository> posts = mockStatic(BlogPostRepository.class);
+        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class)) {
+      pages.when(() -> WebPageRepository.findAll(any(), any())).thenReturn(List.of(page));
+      mockEmptyPostsAndEvents(posts, events);
+
+      new EditorialCalendarAjax().execute(widgetContext);
+    }
+
+    String json = widgetContext.getJson();
+    Assertions.assertTrue(json.contains("\"type\":\"Page\""), json);
+    Assertions.assertTrue(json.contains("\"status\":\"Draft\""), json);
+    Assertions.assertTrue(json.contains("Someday Maybe"), json);
+    Assertions.assertFalse(json.contains("\"date\":"), "an undated entry must not carry a date key: " + json);
+  }
+
+  @Test
+  void aPostWithNoDatesAppearsInTheUndatedFeed() {
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "undated", "true");
+
+    Blog blog = new Blog();
+    blog.setId(5L);
+    blog.setUniqueId("news");
+
+    BlogPost post = new BlogPost();
+    post.setId(51L);
+    post.setBlogId(5L);
+    post.setTitle("Unscheduled Draft Post");
+
+    try (MockedStatic<WebPageRepository> pages = mockStatic(WebPageRepository.class);
+        MockedStatic<BlogPostRepository> posts = mockStatic(BlogPostRepository.class);
+        MockedStatic<BlogRepository> blogs = mockStatic(BlogRepository.class);
+        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class)) {
+      mockEmptyPagesAndEvents(pages, events);
+      posts.when(() -> BlogPostRepository.findAll(any(), any())).thenReturn(List.of(post));
+      blogs.when(BlogRepository::findAll).thenReturn(List.of(blog));
+
+      new EditorialCalendarAjax().execute(widgetContext);
+    }
+
+    String json = widgetContext.getJson();
+    Assertions.assertTrue(json.contains("\"type\":\"Post\""), json);
+    Assertions.assertTrue(json.contains("\"status\":\"Draft\""), json);
+    Assertions.assertTrue(json.contains("\\/blog-editor?blogUniqueId=news&blogPostId=51&returnPage=\\/admin\\/editorial-calendar"), json);
+    Assertions.assertFalse(json.contains("\"date\":"), json);
+  }
+
+  @Test
+  void anEventWithNoDatesAppearsInTheUndatedFeed() {
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "undated", "true");
+
+    CalendarEvent event = new CalendarEvent();
+    event.setId(52L);
+    event.setTitle("Not Yet Scheduled");
+
+    try (MockedStatic<WebPageRepository> pages = mockStatic(WebPageRepository.class);
+        MockedStatic<BlogPostRepository> posts = mockStatic(BlogPostRepository.class);
+        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class)) {
+      mockEmptyPagesAndPosts(pages, posts);
+      events.when(() -> CalendarEventRepository.findAll(any(), any())).thenReturn(List.of(event));
+
+      new EditorialCalendarAjax().execute(widgetContext);
+    }
+
+    String json = widgetContext.getJson();
+    Assertions.assertTrue(json.contains("\"type\":\"Event\""), json);
+    Assertions.assertTrue(json.contains("\"status\":\"Draft\""), json);
+    Assertions.assertTrue(json.contains("\\/admin\\/calendar-event?calendarEventId=52&returnPage=\\/admin\\/editorial-calendar"), json);
+    Assertions.assertFalse(json.contains("\"date\":"), json);
+  }
+
+  @Test
+  void typeFilterOfPageSkipsPostsAndEventsInTheUndatedFeed() {
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "undated", "true");
+    addQueryParameter(widgetContext, "type", "page");
+
+    WebPage page = new WebPage();
+    page.setId(53L);
+    page.setTitle("Only This Undated Page");
+    page.setDraft(true);
+
+    try (MockedStatic<WebPageRepository> pages = mockStatic(WebPageRepository.class);
+        MockedStatic<BlogPostRepository> posts = mockStatic(BlogPostRepository.class);
+        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class)) {
+      pages.when(() -> WebPageRepository.findAll(any(), any())).thenReturn(List.of(page));
+
+      new EditorialCalendarAjax().execute(widgetContext);
+
+      posts.verifyNoInteractions();
+      events.verifyNoInteractions();
+    }
+
+    Assertions.assertTrue(widgetContext.getJson().contains("Only This Undated Page"), widgetContext.getJson());
+  }
+
+  @Test
+  void statusFilterExcludesAnUndatedEntryThatDoesNotMatch() {
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "undated", "true");
+    addQueryParameter(widgetContext, "status", "Published");
+
+    WebPage page = new WebPage();
+    page.setId(54L);
+    page.setTitle("Draft Not Published");
+    page.setDraft(true);
+
+    try (MockedStatic<WebPageRepository> pages = mockStatic(WebPageRepository.class);
+        MockedStatic<BlogPostRepository> posts = mockStatic(BlogPostRepository.class);
+        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class)) {
+      pages.when(() -> WebPageRepository.findAll(any(), any())).thenReturn(List.of(page));
+      mockEmptyPostsAndEvents(posts, events);
+
+      new EditorialCalendarAjax().execute(widgetContext);
+    }
+
+    Assertions.assertEquals("[]", widgetContext.getJson());
+  }
+
+  @Test
+  void authorIdFilterIsPassedThroughToEveryUndatedSpecification() {
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "undated", "true");
+    addQueryParameter(widgetContext, "authorId", "7");
+
+    try (MockedStatic<WebPageRepository> pages = mockStatic(WebPageRepository.class);
+        MockedStatic<BlogPostRepository> posts = mockStatic(BlogPostRepository.class);
+        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class)) {
+      mockEmptyPagesAndPosts(pages, posts);
+      events.when(() -> CalendarEventRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+
+      new EditorialCalendarAjax().execute(widgetContext);
+
+      pages.verify(() -> WebPageRepository.findAll(
+          argThat((WebPageSpecification s) -> s.isUndatedOnly() && s.getCreatedBy() == 7L), any()));
+      posts.verify(() -> BlogPostRepository.findAll(
+          argThat((BlogPostSpecification s) -> s.isUndatedOnly() && s.getCreatedBy() == 7L), any()));
+      events.verify(() -> CalendarEventRepository.findAll(
+          argThat((CalendarEventSpecification s) -> s.isUndatedOnly() && s.getCreatedBy() == 7L), any()));
+    }
+  }
+
+  @Test
+  void undatedQueriesExcludeArchivedContent() {
+    // Issue #996's coverage requirement: archived undated content must not leak into the "Drafts
+    // with no dates" feed, mirroring the date-ranged path's identical archivedOnly(false) call.
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "undated", "true");
+
+    try (MockedStatic<WebPageRepository> pages = mockStatic(WebPageRepository.class);
+        MockedStatic<BlogPostRepository> posts = mockStatic(BlogPostRepository.class);
+        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class)) {
+      mockEmptyPagesAndPosts(pages, posts);
+      events.when(() -> CalendarEventRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+
+      new EditorialCalendarAjax().execute(widgetContext);
+
+      pages.verify(() -> WebPageRepository.findAll(
+          argThat((WebPageSpecification s) -> s.getArchivedOnly() == DataConstants.FALSE), any()));
+      posts.verify(() -> BlogPostRepository.findAll(
+          argThat((BlogPostSpecification s) -> s.getArchivedOnly() == DataConstants.FALSE), any()));
+      events.verify(() -> CalendarEventRepository.findAll(
+          argThat((CalendarEventSpecification s) -> s.getArchivedOnly() == DataConstants.FALSE), any()));
+    }
   }
 }

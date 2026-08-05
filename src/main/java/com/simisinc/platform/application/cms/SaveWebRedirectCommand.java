@@ -194,8 +194,13 @@ public class SaveWebRedirectCommand {
   }
 
   private static boolean isReservedFromPath(String fromPath) {
+    // Case-insensitive: RESERVED_FROM_PATH_PREFIXES are all lowercase literals, but a from_path of
+    // "/ADMIN" or "/Login" would otherwise sail past this check while still reading as a plausible
+    // shadow of the real (case-sensitive, but visually identical) route -- a phishing/confusion
+    // vector even though it can't literally intercept the real route's requests (issue #992).
+    String normalized = fromPath.toLowerCase();
     for (String reserved : RESERVED_FROM_PATH_PREFIXES) {
-      if (fromPath.equals(reserved) || fromPath.startsWith(reserved + "/")) {
+      if (normalized.equals(reserved) || normalized.startsWith(reserved + "/")) {
         return true;
       }
     }
