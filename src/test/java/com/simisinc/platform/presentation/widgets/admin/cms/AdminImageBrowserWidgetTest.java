@@ -23,6 +23,7 @@ import com.simisinc.platform.domain.model.cms.Image;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.persistence.cms.ImageRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.ImageSpecification;
+import com.simisinc.platform.infrastructure.persistence.cms.ImageVariantRepository;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -32,8 +33,10 @@ import org.mockito.MockedStatic;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyCollection;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mockStatic;
@@ -56,9 +59,14 @@ class AdminImageBrowserWidgetTest extends WidgetBase {
     image.setId(1L);
     imageList.add(image);
 
-    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class)) {
+    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class);
+        MockedStatic<ImageVariantRepository> imageVariantRepositoryMockedStatic = mockStatic(ImageVariantRepository.class)) {
       imageRepositoryMockedStatic.when(() -> ImageRepository.findAll(isNull(), any(DataConstraints.class)))
           .thenReturn(imageList);
+      // Issue #411 PR2's batch-prefetch: findAll() returns a non-empty list here, so
+      // findByImageIds() is reached and must be mocked like any other repository call.
+      imageVariantRepositoryMockedStatic.when(() -> ImageVariantRepository.findByImageIds(anyCollection()))
+          .thenReturn(Collections.emptyMap());
 
       // Execute the widget
       AdminImageBrowserWidget widget = new AdminImageBrowserWidget();

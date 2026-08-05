@@ -17,13 +17,17 @@
 package com.simisinc.platform.presentation.widgets.cms;
 
 import com.simisinc.platform.domain.model.cms.Image;
+import com.simisinc.platform.domain.model.cms.ImageVariant;
 import com.simisinc.platform.infrastructure.persistence.cms.ImageRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.ImageVariantRepository;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Description
@@ -47,6 +51,16 @@ public class ImageBrowserWidget extends GenericWidget {
 
     List<Image> imageList = ImageRepository.findAll();
     context.getRequest().setAttribute("imageList", imageList);
+
+    // Batch-fetch existing image variants for every listed image in one query (issue #411 PR2)
+    List<Long> browserImageIds = new ArrayList<>();
+    if (imageList != null) {
+      for (Image listedImage : imageList) {
+        browserImageIds.add(listedImage.getId());
+      }
+    }
+    Map<Long, List<ImageVariant>> imageVariantsByImageId = ImageVariantRepository.findByImageIds(browserImageIds);
+    context.getRequest().setAttribute("imageVariantsByImageId", imageVariantsByImageId);
 
     if ("reveal".equals(context.getRequest().getParameter("view"))) {
       context.setEmbedded(true);

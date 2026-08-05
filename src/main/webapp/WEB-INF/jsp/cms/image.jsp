@@ -14,11 +14,15 @@
   ~ limitations under the License.
   --%>
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ taglib prefix="image" uri="/WEB-INF/tlds/image-functions.tld" %>
 <jsp:useBean id="imageUrl" class="java.lang.String" scope="request"/>
 <jsp:useBean id="altText" class="java.lang.String" scope="request"/>
 <c:choose>
   <c:when test="${!empty imageUrl}">
-    <img class="platform-image-widget" src="<c:out value="${imageUrl}"/>" alt="<c:out value="${altText}"/>" loading="lazy" decoding="async"/>
+    <c:set var="widgetImageSrcset" value="${image:srcset(imageUrl)}"/>
+    <img class="platform-image-widget" src="<c:out value="${imageUrl}"/>" alt="<c:out value="${altText}"/>"
+      <c:if test="${not empty widgetImageSrcset}"> srcset="<c:out value="${widgetImageSrcset}"/>" sizes="100vw"</c:if>
+      decoding="async"/>
   </c:when>
   <c:otherwise>
     <%-- No image configured yet -- a placeholder, never a broken <img> tag --%>
