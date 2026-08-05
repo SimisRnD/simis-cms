@@ -114,7 +114,7 @@
         <c:choose>
           <c:when test="${!empty item.imageUrl}">
             <div class="item-image-large">
-              <img alt="item image" src="<c:out value="${item.imageUrl}"/>"/>
+              <img alt="item image" src="<c:out value="${item.imageUrl}"/>" loading="eager"/>
             </div>
           </c:when>
           <c:when test="${!empty category.icon}">

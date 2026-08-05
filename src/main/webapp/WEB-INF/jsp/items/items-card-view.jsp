@@ -124,16 +124,16 @@
               <div class="card-top no-gap text-center image-browser" style="<c:out value="${categoryHeaderCSS}" />">
               <c:choose>
                 <c:when test="${showLink eq 'true'}">
-                  <img src="<c:out value="${item.imageUrl}"/>" />
+                  <img src="<c:out value="${item.imageUrl}"/>" alt="item image" loading="lazy" decoding="async" />
                 </c:when>
                 <c:when test="${useItemLink eq 'true' && !empty item.url && (fn:startsWith(item.url, 'http://') || fn:startsWith(item.url, 'https://'))}">
-                  <a target="_blank" href="${item.url}"><img src="<c:out value="${item.imageUrl}"/>" /></a>
+                  <a target="_blank" href="${item.url}"><img src="<c:out value="${item.imageUrl}"/>" alt="item image" loading="lazy" decoding="async" /></a>
                 </c:when>
                 <c:when test="${useInfoLink eq 'true'}">
-                  <a href="${ctx}/show/${item.uniqueId}"><img src="<c:out value="${item.imageUrl}"/>" /></a>
+                  <a href="${ctx}/show/${item.uniqueId}"><img src="<c:out value="${item.imageUrl}"/>" alt="item image" loading="lazy" decoding="async" /></a>
                 </c:when>
                 <c:otherwise>
-                  <img src="<c:out value="${item.imageUrl}"/>" />
+                  <img src="<c:out value="${item.imageUrl}"/>" alt="item image" loading="lazy" decoding="async" />
                 </c:otherwise>
               </c:choose>
               </div>
