@@ -287,6 +287,7 @@
       "icon": "fa-wpforms",
       "preferences": [
         {"name": "formUniqueId",  "label": "Form Unique ID", "type": "text"},
+        {"name": "formId",        "label": "Database Form ID (from /admin/forms -- when set, fields are loaded from the database instead of the Form Fields list below)", "type": "text"},
         {"name": "icon",          "label": "Icon (FA)",      "type": "text"},
         {"name": "title",         "label": "Form Title",     "type": "text"},
         {"name": "subtitle",      "label": "Subtitle",       "type": "text"},

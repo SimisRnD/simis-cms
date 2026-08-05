@@ -251,6 +251,58 @@ CREATE INDEX form_sub_fail_form_idx ON form_submission_failures(form_unique_id);
 CREATE INDEX form_sub_fail_occurred_idx ON form_submission_failures(occurred);
 CREATE INDEX form_sub_fail_reason_idx ON form_submission_failures(reason);
 
+-- Form builder (issue #409): database-backed field configuration for FormWidget, as an alternative to
+-- the XML <fields> preference. form_fields.form_definition_id has no ON DELETE CASCADE -- deleting a
+-- form definition explicitly removes its fields first, in a transaction (see
+-- FormDefinitionRepository#remove), mirroring how MenuTabRepository#remove handles menu_items and
+-- MailingListRepository#remove handles mailing_list_members in this same file's neighborhood, rather
+-- than image_variants' DB-level ON DELETE CASCADE. form_data is untouched by this table pair:
+-- submissions are matched to a form by form_unique_id (a plain string), never by a foreign key to
+-- form_definitions, so deleting a form definition never blocks on or orphans prior submissions.
+CREATE TABLE form_definitions (
+  form_definition_id BIGSERIAL PRIMARY KEY,
+  unique_id VARCHAR(255) UNIQUE NOT NULL,
+  name VARCHAR(255) NOT NULL,
+  title VARCHAR(255),
+  subtitle VARCHAR(255),
+  button_name VARCHAR(100),
+  success_title VARCHAR(255),
+  success_message TEXT,
+  email_to VARCHAR(512),
+  use_captcha BOOLEAN DEFAULT FALSE,
+  check_for_spam BOOLEAN DEFAULT TRUE,
+  enabled BOOLEAN DEFAULT TRUE,
+  created_by BIGINT REFERENCES users(user_id),
+  modified_by BIGINT REFERENCES users(user_id),
+  created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
+  modified TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP
+);
+CREATE UNIQUE INDEX form_definitions_unique_id_idx ON form_definitions(unique_id);
+CREATE INDEX form_definitions_enabled_idx ON form_definitions(enabled);
+
+-- field_type is one of: text, email, textarea, select, checkbox, date -- validated in application code,
+-- not a DB CHECK constraint (matching how this file leaves other small admin-defined enums, e.g.
+-- form_submission_failures.reason, unconstrained at the DB level). options stores select/checkbox
+-- choices using the same comma-separated "key=value,key2=value2" string the XML <field list="..."/>
+-- preference already produces (see FormFieldCommand#parseFieldContent), so both configuration sources
+-- share one options format.
+CREATE TABLE form_fields (
+  form_field_id BIGSERIAL PRIMARY KEY,
+  form_definition_id BIGINT NOT NULL REFERENCES form_definitions(form_definition_id),
+  field_order INTEGER DEFAULT 100,
+  name VARCHAR(255) NOT NULL,
+  label VARCHAR(255) NOT NULL,
+  field_type VARCHAR(30) DEFAULT 'text',
+  required BOOLEAN DEFAULT FALSE,
+  placeholder VARCHAR(255),
+  default_value VARCHAR(255),
+  options TEXT,
+  created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
+  modified TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP
+);
+CREATE INDEX form_fields_form_definition_idx ON form_fields(form_definition_id);
+CREATE INDEX form_fields_order_idx ON form_fields(field_order);
+
 -- We want to know popular page_path
 -- We want to know popular web_page_id
 -- We want to know geolocation of ip_address
