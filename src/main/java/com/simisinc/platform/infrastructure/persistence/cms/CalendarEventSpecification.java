@@ -39,6 +39,10 @@ public class CalendarEventSpecification {
   private Timestamp startingDateRange = null;
   private Timestamp endingDateRange = null;
   private String searchTerm = null;
+  // issue #426 (editorial calendar): the author filter. -1 (unset) matches every event, mirroring
+  // this class's own calendarId field and WebPageSpecification/BlogPostSpecification's identical
+  // new createdBy field.
+  private long createdBy = -1L;
 
   public CalendarEventSpecification() {
   }
@@ -121,5 +125,13 @@ public class CalendarEventSpecification {
 
   public void setSearchTerm(String searchTerm) {
     this.searchTerm = searchTerm;
+  }
+
+  public long getCreatedBy() {
+    return createdBy;
+  }
+
+  public void setCreatedBy(long createdBy) {
+    this.createdBy = createdBy;
   }
 }
