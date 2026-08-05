@@ -61,7 +61,10 @@ public class SaveContentCommand {
     }
     // Determine if the content is immediately published
     if (publish) {
-      // Publish it
+      // Publish it -- snapshot the OUTGOING content (#406) before it's overwritten below. This is
+      // the direct-write publish path (distinct from ContentRepository#publish's draft-promotion
+      // path), so it needs its own snapshot call; see snapshotBeforeDirectPublish's javadoc.
+      ContentRepository.snapshotBeforeDirectPublish(content, resolveVersionHistoryLimit());
       content.setContent(cleanedContent);
       content.setDraftContent(null);
     } else {
@@ -72,6 +75,11 @@ public class SaveContentCommand {
     content.setModifiedBy(userId);
     return ContentRepository.save(content);
 
+  }
+
+  /** The configured {@code content.versionHistoryLimit} (#406), resolved fresh at each publish call site. */
+  private static int resolveVersionHistoryLimit() {
+    return ContentRepository.resolveVersionHistoryLimit(LoadSitePropertyCommand.loadByName("content.versionHistoryLimit"));
   }
 
   /**
@@ -106,7 +114,10 @@ public class SaveContentCommand {
       content.setUniqueId(contentUniqueId);
     }
     if (publish) {
-      // Publish: the Delta becomes the live version and the draft is cleared.
+      // Publish: the Delta becomes the live version and the draft is cleared. Snapshot the
+      // OUTGOING content (#406) first -- see saveSafeContent's identical call for why this direct
+      // publish path needs its own snapshot rather than reusing ContentRepository#publish.
+      ContentRepository.snapshotBeforeDirectPublish(content, resolveVersionHistoryLimit());
       content.setContent(deltaJson);
       content.setContentFormat(DeltaContentCommand.DELTA_FORMAT_VERSION);
       content.setDraftContent(null);
