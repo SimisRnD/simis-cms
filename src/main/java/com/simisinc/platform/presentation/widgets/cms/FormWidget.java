@@ -24,6 +24,7 @@ import java.util.Set;
 import java.util.StringJoiner;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -35,8 +36,11 @@ import com.simisinc.platform.application.cms.FormFieldCommand;
 import com.simisinc.platform.application.cms.FunnelEventCommand;
 import com.simisinc.platform.domain.events.cms.FormSubmittedEvent;
 import com.simisinc.platform.domain.model.cms.FormData;
+import com.simisinc.platform.domain.model.cms.FormDefinition;
 import com.simisinc.platform.domain.model.cms.FormField;
 import com.simisinc.platform.infrastructure.persistence.cms.FormDataRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.FormDefinitionRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.FormFieldRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.FormSubmissionFailureRepository;
 import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
 import com.simisinc.platform.presentation.controller.WidgetContext;
@@ -65,25 +69,45 @@ public class FormWidget extends GenericWidget {
       return context;
     }
 
+    // Resolve the database-backed form definition, if any (issue #409) -- a formId configured but
+    // not resolvable is a hard failure (matching loadFormFieldList's pre-existing "not found"
+    // contract below), and a resolved-but-disabled form is not shown to the public. Resolved before
+    // the success-page branch below too, since a database-backed form's own successTitle/
+    // successMessage (issue #409 follow-up) must be authoritative there as well.
+    String formIdPref = context.getPreferences().get("formId");
+    FormDefinition formDefinition = resolveFormDefinition(context, formIdPref);
+    if (StringUtils.isNotBlank(formIdPref) && formDefinition == null) {
+      return null;
+    }
+    if (formDefinition != null && !formDefinition.getEnabled()
+        && !(context.hasRole("admin") || context.hasRole("community-manager"))) {
+      return null;
+    }
+
     String isSuccess = context.getSharedRequestValue(context.getUniqueId() + "formWidgetSuccess");
     if ("true".equals(isSuccess)) {
-      context.getRequest().setAttribute("successTitle", context.getPreferences().get("successTitle"));
-      context.getRequest().setAttribute("successMessage", context.getPreferences().getOrDefault("successMessage", "Your information has been submitted."));
+      context.getRequest().setAttribute("successTitle",
+          formDefinition != null ? formDefinition.getSuccessTitle() : context.getPreferences().get("successTitle"));
+      context.getRequest().setAttribute("successMessage", resolveSuccessMessage(context, formDefinition));
       context.setJsp(SUCCESS_JSP);
       return context;
     }
     context.setJsp(JSP);
 
-    // Preferences
-    context.getRequest().setAttribute("buttonName", context.getPreferences().getOrDefault("buttonName", "Submit"));
+    // Preferences -- a database-backed form's own "Button Label" (issue #409 follow-up) is
+    // authoritative when formId is configured
+    context.getRequest().setAttribute("buttonName", resolveButtonName(context, formDefinition));
 
-    // Standard request items
+    // Standard request items -- a database-backed form's own title/subtitle (issue #409 follow-up)
+    // are authoritative when formId is configured; icon has no database-backed equivalent
     context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));
-    context.getRequest().setAttribute("title", context.getPreferences().get("title"));
-    context.getRequest().setAttribute("subtitle", context.getPreferences().get("subtitle"));
+    context.getRequest().setAttribute("title", formDefinition != null ? formDefinition.getTitle() : context.getPreferences().get("title"));
+    context.getRequest().setAttribute("subtitle", formDefinition != null ? formDefinition.getSubtitle() : context.getPreferences().get("subtitle"));
 
-    // Determine the captcha service
-    boolean useCaptcha = "true".equals(context.getPreferences().getOrDefault("useCaptcha", "false"));
+    // Determine the captcha service -- a database-backed form's own "Use Captcha?" setting is
+    // authoritative when formId is configured; only the XML-preference path (formDefinition null)
+    // still reads this from the widget placement's own preferences
+    boolean useCaptcha = resolveUseCaptcha(context, formDefinition);
     if (useCaptcha) {
       CaptchaCommand.populateWidgetAttributes(context);
     }
@@ -98,16 +122,10 @@ public class FormWidget extends GenericWidget {
       return context;
     }
 
-    // Use the fields preference to determine the item properties to be shown
-    PreferenceEntriesList fieldsEntriesList = context.getPreferenceAsDataList("fields");
-    if (fieldsEntriesList.isEmpty()) {
-      LOG.warn("Fields preference was not found");
-      return null;
-    }
-    String formUniqueId = context.getPreferences().get("formUniqueId");
-    List<FormField> formFieldList = FormFieldCommand.parseFieldContent(formUniqueId, fieldsEntriesList);
-    if (formFieldList.isEmpty()) {
-      LOG.warn("No fields were found");
+    // Use the fields preference (or a database-backed form definition, issue #409) to determine
+    // the item properties to be shown
+    List<FormField> formFieldList = loadFormFieldList(context, formDefinition);
+    if (formFieldList == null) {
       return null;
     }
     context.getRequest().setAttribute("formFieldList", formFieldList);
@@ -130,13 +148,30 @@ public class FormWidget extends GenericWidget {
     // failure in the same submission.
     String rejectionReason = null;
 
-    PreferenceEntriesList fieldsEntriesList = context.getPreferenceAsDataList("fields");
-    if (fieldsEntriesList.isEmpty()) {
-      LOG.warn("Fields preference was not found");
+    // Resolve the database-backed form definition, if any (issue #409) -- see execute() for why a
+    // formId configured but not resolvable, or resolved-but-disabled, must not proceed. Checking
+    // this again here (not just in execute()) matters: a direct POST is not required to have gone
+    // through execute() first.
+    String formIdPref = context.getPreferences().get("formId");
+    FormDefinition formDefinition = resolveFormDefinition(context, formIdPref);
+    if (StringUtils.isNotBlank(formIdPref) && formDefinition == null) {
       return null;
     }
-    String formUniqueId = context.getPreferences().get("formUniqueId");
-    List<FormField> formFieldList = FormFieldCommand.parseFieldContent(formUniqueId, fieldsEntriesList);
+    if (formDefinition != null && !formDefinition.getEnabled()
+        && !(context.hasRole("admin") || context.hasRole("community-manager"))) {
+      return null;
+    }
+
+    // A database-backed form's own generated uniqueId is authoritative when formId is configured
+    // (issue #409 follow-up) -- form_data submissions must be keyed by the collision-checked value
+    // SaveFormDefinitionCommand.generateUniqueId() produced, not a separately hand-typed preference
+    // that could collide with an unrelated form's formUniqueId
+    String formUniqueId = formDefinition != null ? formDefinition.getUniqueId() : context.getPreferences().get("formUniqueId");
+
+    List<FormField> formFieldList = loadFormFieldList(context, formDefinition);
+    if (formFieldList == null) {
+      return null;
+    }
     for (FormField formField : formFieldList) {
       // Determine the user's value. A checkbox-group field (type == checkbox with options) can
       // have several boxes checked, which the browser submits as repeated same-named parameters --
@@ -183,7 +218,7 @@ public class FormWidget extends GenericWidget {
     }
 
     // Validate the captcha
-    boolean useCaptcha = "true".equals(context.getPreferences().getOrDefault("useCaptcha", "false"));
+    boolean useCaptcha = resolveUseCaptcha(context, formDefinition);
     if (useCaptcha) {
       boolean captchaSuccess = CaptchaCommand.validateRequest(context);
       if (!captchaSuccess) {
@@ -223,7 +258,12 @@ public class FormWidget extends GenericWidget {
       return context;
     }
 
-    boolean checkForSpam = Boolean.parseBoolean(context.getPreferences().getOrDefault("checkForSpam", "true"));
+    // A database-backed form's own "Check for spam?" setting is authoritative when formId is
+    // configured (issue #409 follow-up); only the XML-preference path still reads this from the
+    // widget placement's own preferences
+    boolean checkForSpam = formDefinition != null
+        ? formDefinition.getCheckForSpam()
+        : Boolean.parseBoolean(context.getPreferences().getOrDefault("checkForSpam", "true"));
     if (checkForSpam) {
       FormCommand.checkNotificationRules(formData);
     }
@@ -239,8 +279,11 @@ public class FormWidget extends GenericWidget {
     // site's admin-configured contact form
     FunnelEventCommand.recordContactFormSubmitted(formUniqueId, formData.getSessionId());
 
-    // Send an alert based on the preferences (or transform for another system)
-    String emailAddresses = context.getPreferences().get("emailTo");
+    // Send an alert based on the preferences (or transform for another system) -- a database-backed
+    // form's own "Email submissions to" setting is authoritative when formId is configured (issue
+    // #409 follow-up); only the XML-preference path still reads this from the widget placement's
+    // own preferences
+    String emailAddresses = formDefinition != null ? formDefinition.getEmailTo() : context.getPreferences().get("emailTo");
     WorkflowManager.triggerWorkflowForEvent(new FormSubmittedEvent(formData, emailAddresses));
 
     // Redirect back so the message can be displayed
@@ -274,6 +317,104 @@ public class FormWidget extends GenericWidget {
       }
     }
     return joiner.length() == 0 ? null : joiner.toString();
+  }
+
+  /**
+   * Resolves the database-backed form definition for this widget placement (issue #409), or null
+   * when {@code formId} is blank -- the pre-existing, still-default XML-configured case. Logs and
+   * returns null (distinguishable from the "not configured" case only by {@code formIdPref} itself
+   * being non-blank) when {@code formId} is set but does not resolve to a real row, so callers can
+   * hard-fail rather than silently falling back to the XML {@code fields} preference.
+   *
+   * <p>Callers that need to know whether {@code formId} was configured at all (to decide between a
+   * hard failure and the XML fallback) must check {@code formIdPref} themselves; this method alone
+   * cannot distinguish "not configured" from "configured but not found" since both return null.
+   */
+  private FormDefinition resolveFormDefinition(WidgetContext context, String formIdPref) {
+    if (StringUtils.isBlank(formIdPref)) {
+      return null;
+    }
+    long formId = NumberUtils.toLong(formIdPref, -1);
+    FormDefinition formDefinition = FormDefinitionRepository.findById(formId);
+    if (formDefinition == null) {
+      LOG.warn("Form definition was not found for formId: " + formIdPref);
+    }
+    return formDefinition;
+  }
+
+  /**
+   * Whether captcha should be shown/validated for this request (issue #409 follow-up). A
+   * database-backed form's own "Use Captcha?" setting (configured at /admin/forms-editor) is
+   * authoritative once a form has been resolved; only the still-default XML-preference path
+   * (formDefinition null) reads this from the widget placement's own preferences, exactly as before
+   * this feature existed.
+   */
+  private boolean resolveUseCaptcha(WidgetContext context, FormDefinition formDefinition) {
+    if (formDefinition != null) {
+      return formDefinition.getUseCaptcha();
+    }
+    return "true".equals(context.getPreferences().getOrDefault("useCaptcha", "false"));
+  }
+
+  /**
+   * The submit button's label (issue #409 follow-up). A database-backed form's own "Button Label"
+   * (configured at /admin/forms-editor) is authoritative once a form has been resolved, falling back
+   * to "Submit" when left blank -- the same default the still-supported XML-preference path already
+   * applied via getOrDefault().
+   */
+  private String resolveButtonName(WidgetContext context, FormDefinition formDefinition) {
+    String buttonName = formDefinition != null ? formDefinition.getButtonName() : context.getPreferences().get("buttonName");
+    return StringUtils.defaultIfBlank(buttonName, "Submit");
+  }
+
+  /**
+   * The message shown on the success page after a valid submission (issue #409 follow-up). A
+   * database-backed form's own "Success Message" is authoritative once a form has been resolved,
+   * falling back to the same default the still-supported XML-preference path already applied via
+   * getOrDefault() when left blank.
+   */
+  private String resolveSuccessMessage(WidgetContext context, FormDefinition formDefinition) {
+    String successMessage = formDefinition != null ? formDefinition.getSuccessMessage() : context.getPreferences().get("successMessage");
+    return StringUtils.defaultIfBlank(successMessage, "Your information has been submitted.");
+  }
+
+  /**
+   * Resolves this form's field list (issue #409), given the {@code formDefinition} execute()/post()
+   * already resolved via {@link #resolveFormDefinition}. When non-null, fields come from the
+   * database -- FormFieldRepository, already ordered by field_order -- as the admin-managed
+   * alternative to the XML {@code fields} preference. When null (the pre-existing, still-default
+   * configuration, or a {@code formId} that failed to resolve -- callers must have already handled
+   * that case before reaching here), this falls through to exactly the original XML-preference
+   * parsing, unchanged, so a page that has never been touched by the form builder renders and
+   * validates identically to before this feature existed.
+   *
+   * <p>Returns null (after logging a warning) when no fields could be resolved from either source,
+   * matching the pre-existing "not configured" contract both execute() and post() already relied
+   * on -- callers should treat a null return exactly as they did the old inline checks.
+   */
+  private List<FormField> loadFormFieldList(WidgetContext context, FormDefinition formDefinition) {
+    if (formDefinition != null) {
+      List<FormField> formFieldList = FormFieldRepository.findAllByFormDefinitionId(formDefinition.getId());
+      if (formFieldList.isEmpty()) {
+        LOG.warn("No fields were found for formId: " + formDefinition.getId());
+        return null;
+      }
+      return formFieldList;
+    }
+
+    // Original XML-preference path (unchanged)
+    PreferenceEntriesList fieldsEntriesList = context.getPreferenceAsDataList("fields");
+    if (fieldsEntriesList.isEmpty()) {
+      LOG.warn("Fields preference was not found");
+      return null;
+    }
+    String formUniqueId = context.getPreferences().get("formUniqueId");
+    List<FormField> formFieldList = FormFieldCommand.parseFieldContent(formUniqueId, fieldsEntriesList);
+    if (formFieldList.isEmpty()) {
+      LOG.warn("No fields were found");
+      return null;
+    }
+    return formFieldList;
   }
 
   /**

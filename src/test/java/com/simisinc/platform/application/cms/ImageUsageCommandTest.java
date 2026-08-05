@@ -223,7 +223,9 @@ class ImageUsageCommandTest {
           + "file_type VARCHAR(20), "
           + "width INTEGER NOT NULL, "
           + "height INTEGER NOT NULL, "
-          + "web_path VARCHAR(50) NOT NULL)");
+          + "web_path VARCHAR(50) NOT NULL, "
+          + "focal_x NUMERIC(5,2) NOT NULL DEFAULT 50.00, "
+          + "focal_y NUMERIC(5,2) NOT NULL DEFAULT 50.00)");
       // A focused subset of web_pages -- just link + page_image_url, the only columns this scan reads.
       statement.execute("CREATE TABLE web_pages ("
           + "web_page_id BIGSERIAL PRIMARY KEY, "

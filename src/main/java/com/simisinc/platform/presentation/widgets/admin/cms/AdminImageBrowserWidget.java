@@ -16,6 +16,7 @@
 
 package com.simisinc.platform.presentation.widgets.admin.cms;
 
+import java.math.BigDecimal;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -25,6 +26,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
+import org.jobrunr.scheduling.BackgroundJobRequest;
 
 import com.simisinc.platform.application.cms.DeleteImageCommand;
 import com.simisinc.platform.application.cms.ImageUsageCommand;
@@ -35,6 +37,7 @@ import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.persistence.cms.ImageRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.ImageSpecification;
 import com.simisinc.platform.infrastructure.persistence.cms.ImageVariantRepository;
+import com.simisinc.platform.infrastructure.scheduler.cms.FocalPointVariantJob;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.RequestConstants;
 import com.simisinc.platform.presentation.controller.WidgetContext;
@@ -200,6 +203,8 @@ public class AdminImageBrowserWidget extends GenericWidget {
     String command = context.getParameter("command");
     if ("bulkDelete".equals(command)) {
       return bulkDeleteAction(context);
+    } else if ("setFocalPoint".equals(command)) {
+      return setFocalPointAction(context);
     }
     return context;
   }
@@ -250,6 +255,65 @@ public class AdminImageBrowserWidget extends GenericWidget {
     }
     context.setRedirect(redirectWithQuery(context));
     return context;
+  }
+
+  /**
+   * Sets an image's focal point (issue #411 PR3, see the focal-point modal in image-browser.jsp)
+   * and enqueues the background job that regenerates its focal-point-dependent square variant.
+   */
+  private WidgetContext setFocalPointAction(WidgetContext context) {
+    long imageId = context.getParameterAsLong("imageId", -1);
+    Image image = imageId > -1 ? ImageRepository.findById(imageId) : null;
+    if (image == null) {
+      context.setErrorMessage("Error. Image was not found.");
+      context.setRedirect(redirectWithQuery(context));
+      return context;
+    }
+
+    BigDecimal focalX = parsePercent(context.getParameter("focalX"));
+    BigDecimal focalY = parsePercent(context.getParameter("focalY"));
+    if (focalX == null || focalY == null) {
+      context.setErrorMessage("Error. The focal point values were not valid.");
+      context.setRedirect(redirectWithQuery(context));
+      return context;
+    }
+
+    image.setFocalX(focalX);
+    image.setFocalY(focalY);
+    boolean saved = ImageRepository.save(image) != null;
+    AuditEventCommand.record(context, AuditEventCommand.CONTENT, "image.setFocalPoint",
+        saved ? AuditEventCommand.SUCCESS : AuditEventCommand.FAILURE,
+        "image", String.valueOf(image.getId()), image.getFilename(), null);
+    if (!saved) {
+      context.setErrorMessage("Error. The focal point could not be saved.");
+      context.setRedirect(redirectWithQuery(context));
+      return context;
+    }
+
+    BackgroundJobRequest.enqueue(new FocalPointVariantJob(image.getId()));
+    context.setSuccessMessage("Focal point saved");
+    context.setRedirect(redirectWithQuery(context));
+    return context;
+  }
+
+  /**
+   * Parses a 0-100 focal-point percentage, rejecting anything non-numeric or out of range rather
+   * than trusting the client-side picker's own clamping.
+   */
+  private static BigDecimal parsePercent(String raw) {
+    String trimmed = StringUtils.trimToNull(raw);
+    if (trimmed == null) {
+      return null;
+    }
+    try {
+      BigDecimal value = new BigDecimal(trimmed);
+      if (value.compareTo(BigDecimal.ZERO) < 0 || value.compareTo(new BigDecimal("100")) > 0) {
+        return null;
+      }
+      return value;
+    } catch (NumberFormatException e) {
+      return null;
+    }
   }
 
   /**

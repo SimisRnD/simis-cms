@@ -238,26 +238,32 @@
       });
     }
 
-    function moveDayFocus(calendarEl, deltaDays) {
-      if (!focusedDateISO) {
-        return;
-      }
-      var current = new Date(focusedDateISO + 'T00:00:00');
-      current.setDate(current.getDate() + deltaDays);
-      var targetISO = toISODate(current);
+    // Shared by moveDayFocus (keyboard) and the click handler below (issue #994): moves the
+    // single roving-tabindex stop to targetISO and hands DOM focus to it, if that date is
+    // actually part of the currently rendered grid.
+    function focusDayCell(calendarEl, targetISO) {
       var targetCell = dayCell(calendarEl, targetISO);
       if (!targetCell) {
         // Off the edge of the currently rendered grid -- stop rather than silently paging to a
         // different month/week out from under the user.
         return;
       }
-      var previousCell = dayCell(calendarEl, focusedDateISO);
-      if (previousCell) {
+      var previousCell = focusedDateISO ? dayCell(calendarEl, focusedDateISO) : null;
+      if (previousCell && previousCell !== targetCell) {
         previousCell.setAttribute('tabindex', '-1');
       }
       focusedDateISO = targetISO;
       targetCell.setAttribute('tabindex', '0');
       targetCell.focus();
+    }
+
+    function moveDayFocus(calendarEl, deltaDays) {
+      if (!focusedDateISO) {
+        return;
+      }
+      var current = new Date(focusedDateISO + 'T00:00:00');
+      current.setDate(current.getDate() + deltaDays);
+      focusDayCell(calendarEl, toISODate(current));
     }
 
     document.addEventListener('DOMContentLoaded', function () {
@@ -350,6 +356,27 @@
           default:
             break;
         }
+      });
+
+      <%-- Day-cell click-to-focus (issue #994): the FullCalendar.Calendar init above has no
+           dateClick/select callback, and FullCalendar's own mousedown handling on day-grid cells
+           suppresses the browser's normal click-to-focus behavior -- so clicking a day cell never
+           updated focusedDateISO, never flipped its tabindex to 0, and never received DOM focus,
+           leaving the arrow keys above with nothing to move from until the user tabbed to a cell
+           instead. Delegated the same way as the keydown listener (a plain listener on calendarEl
+           matched against the day-cell selector) rather than FullCalendar's own click callbacks,
+           to stay consistent with this file's hand-rolled roving-tabindex approach. closest() is
+           used (not e.target.matches, unlike the keydown check above) so a click that lands on an
+           event chip inside a cell -- which eventClick/activateEvent already separately opens --
+           still resolves to its containing day cell and moves day-cell focus there too; nothing
+           here calls preventDefault or stops propagation, so eventClick keeps firing normally for
+           chip clicks. --%>
+      calendarEl.addEventListener('click', function (e) {
+        var cell = e.target && e.target.closest && e.target.closest('.fc-daygrid-day[data-date]');
+        if (!cell) {
+          return;
+        }
+        focusDayCell(calendarEl, cell.getAttribute('data-date'));
       });
     });
   })();
