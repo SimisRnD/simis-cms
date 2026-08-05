@@ -388,6 +388,93 @@ class ContentRepositoryTest {
     assertNull(ContentVersionRepository.findByContentId(content.getId(), null));
   }
 
+  // --- Version history on the direct-write publish path (issue #406 follow-up) ---
+  //
+  // SaveContentCommand's "publish immediately" branch (the /content-editor "Publish Immediately"
+  // button, and the ungoverned inline-overlay Publish path) never calls ContentRepository#publish --
+  // it writes the new content straight onto the record and calls save(). These tests exercise
+  // ContentRepository#snapshotBeforeDirectPublish directly, the method that path must call before
+  // overwriting, mirroring the equivalent publish() tests above.
+
+  @Test
+  void snapshotBeforeDirectPublishSnapshotsTheCurrentContentBeforeItIsOverwritten() {
+    Content content = new Content();
+    content.setUniqueId("direct-publish-snapshot");
+    content.setContent("<p>original live content</p>");
+    content.setApprovedBy(20L);
+    content.setReleaseReference("cleared per PA case 2026-406b");
+    Content saved = ContentRepository.save(content);
+
+    ContentRepository.snapshotBeforeDirectPublish(saved, 20);
+
+    List<ContentVersion> versions = ContentVersionRepository.findByContentId(saved.getId(), null);
+    assertNotNull(versions);
+    assertEquals(1, versions.size());
+    ContentVersion version = versions.get(0);
+    assertEquals("<p>original live content</p>", version.getContent());
+    assertEquals(20L, version.getApprovedBy());
+    assertEquals("cleared per PA case 2026-406b", version.getReleaseReference());
+  }
+
+  @Test
+  void snapshotBeforeDirectPublishRendersDeltaContentToHtmlBeforeSnapshotting() {
+    Content content = new Content();
+    content.setUniqueId("direct-publish-delta-snapshot");
+    content.setContent("{\"ops\":[{\"insert\":\"hi\\n\"}]}");
+    content.setContentFormat(DeltaContentCommand.DELTA_FORMAT_VERSION);
+    Content saved = ContentRepository.save(content);
+
+    ContentRepository.snapshotBeforeDirectPublish(saved, 20);
+
+    List<ContentVersion> versions = ContentVersionRepository.findByContentId(saved.getId(), null);
+    assertNotNull(versions);
+    assertEquals("<p>hi</p>", versions.get(0).getContent(),
+        "the Delta snapshot must be rendered to HTML, not stored raw, matching publish()'s own behavior");
+  }
+
+  @Test
+  void snapshotBeforeDirectPublishIsANoOpForABrandNewUnsavedRecord() {
+    Content content = new Content();
+    content.setUniqueId("brand-new");
+    content.setContent("<p>about to be saved for the first time</p>");
+    // record.getId() is still -1 -- this is exactly the state SaveContentCommand's own Content is in
+    // when a uniqueId has never been saved before.
+
+    ContentRepository.snapshotBeforeDirectPublish(content, 20);
+
+    assertNull(ContentVersionRepository.findByContentId(content.getId(), null));
+  }
+
+  @Test
+  void snapshotBeforeDirectPublishIsANoOpWhenThereIsNoLiveContentYet() {
+    Content content = new Content();
+    content.setUniqueId("no-live-content-yet");
+    content.setDraftContent("<p>only ever saved as a draft so far</p>");
+    Content saved = ContentRepository.save(content);
+
+    ContentRepository.snapshotBeforeDirectPublish(saved, 20);
+
+    assertNull(ContentVersionRepository.findByContentId(saved.getId(), null));
+  }
+
+  @Test
+  void snapshotBeforeDirectPublishPrunesToTheVersionHistoryLimit() {
+    Content content = new Content();
+    content.setUniqueId("direct-publish-prune-me");
+    content.setContent("<p>v0</p>");
+    Content saved = ContentRepository.save(content);
+
+    for (int i = 1; i <= 5; i++) {
+      ContentRepository.snapshotBeforeDirectPublish(saved, 2);
+      saved.setContent("<p>v" + i + "</p>");
+      ContentRepository.save(saved);
+    }
+
+    List<ContentVersion> versions = ContentVersionRepository.findByContentId(saved.getId(), null);
+    assertNotNull(versions);
+    assertEquals(2, versions.size(), "only the 2 most recent snapshots should survive");
+  }
+
   // --- Restore (issue #406) ---
 
   @Test

@@ -316,12 +316,20 @@ public class WebPageRepository {
 
   /**
    * Loads a prior version's XML into the draft slot (#405) -- never touches the live pageXml, so a
-   * subsequent publish is required to make the restored content live again.
+   * subsequent publish is required to make the restored content live again. Also resets the
+   * governed-review fields unconditionally: without this, a restore over a draft that was already
+   * submitted-and-approved would let the *restored* content inherit the stale approval, publishing
+   * it without ever actually being reviewed -- the same bypass shape #957/#958 fixed elsewhere in
+   * this codebase, mirrored here and in ContentRepository#restoreDraftFromVersion (#406).
    */
   public static boolean restoreDraftFromVersion(long webPageId, String pageXml) {
     SqlUtils updateValues = new SqlUtils()
         .add("draft_page_xml", pageXml)
-        .add("draft", true);
+        .add("draft", true)
+        .add("draft_status = null")
+        .add("submitted_by = -1")
+        .add("approved_by = -1")
+        .add("release_reference = null");
     SqlUtils where = new SqlUtils().add("web_page_id = ?", webPageId);
     return DB.update(TABLE_NAME, updateValues, where);
   }

@@ -536,6 +536,36 @@ class WebPageRepositoryTest {
     assertTrue(reloaded.getDraft());
   }
 
+  @Test
+  void restoreDraftFromVersionClearsAnyStaleApprovalOnTheDraftItReplaces() {
+    // A draft already submitted-and-approved must not let its approval carry over to a DIFFERENT
+    // draft swapped in by a restore -- otherwise the restored content could publish without ever
+    // actually being reviewed (the same bypass shape fixed for #957/#958, and for Content's own
+    // restoreDraftFromVersion in #406).
+    WebPage webPage = new WebPage();
+    webPage.setLink("/restore-clears-approval");
+    webPage.setTitle("Restore Clears Approval");
+    webPage.setEnabled(true);
+    webPage.setSearchable(true);
+    webPage.setCreatedBy(1L);
+    webPage.setPageXml("<xml>live</xml>");
+    webPage.setDraftPageXml("<xml>a different, already-approved draft</xml>");
+    webPage.setDraftStatus(ContentReviewCommand.STATUS_SUBMITTED);
+    webPage.setSubmittedBy(10L);
+    webPage.setApprovedBy(20L);
+    webPage.setReleaseReference("cleared per PA case 2026-405");
+    WebPage saved = WebPageRepository.save(webPage);
+
+    WebPageRepository.restoreDraftFromVersion(saved.getId(), "<xml>an older version</xml>");
+
+    WebPage reloaded = WebPageRepository.findById(saved.getId());
+    assertEquals("<xml>an older version</xml>", reloaded.getDraftPageXml());
+    assertNull(reloaded.getDraftStatus());
+    assertEquals(-1L, reloaded.getSubmittedBy());
+    assertEquals(-1L, reloaded.getApprovedBy(), "the restored draft must require a fresh approval, not inherit the old one");
+    assertNull(reloaded.getReleaseReference());
+  }
+
   private static String addPreviewToken(long webPageId, String pagePath) {
     WebPagePreviewToken record = new WebPagePreviewToken();
     record.setWebPageId(webPageId);

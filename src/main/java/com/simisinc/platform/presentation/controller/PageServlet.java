@@ -834,7 +834,12 @@ public class PageServlet extends HttpServlet {
       }
 
       // See if the site is in setup mode (allow any user?)
-      if (!userSession.hasRole("admin") &&
+      // A valid draft preview token (#419) takes precedence over the setup-mode placeholder,
+      // same as it does over isDraftBlockedFromPublicAccess above -- otherwise a customer
+      // building a pre-launch site (site.online=false) could never preview their own homepage
+      // draft before flipping site.online to true.
+      if (!validPreviewToken &&
+          !userSession.hasRole("admin") &&
           !userSession.hasRole("content-manager") &&
           "false".equals(sitePropertyMap.getOrDefault("site.online", "false"))) {
         if ("/".equals(pagePath)) {
