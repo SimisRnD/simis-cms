@@ -19,6 +19,8 @@ package com.simisinc.platform.infrastructure.persistence.cms;
 import com.simisinc.platform.domain.model.Entity;
 import com.simisinc.platform.presentation.controller.DataConstants;
 
+import java.sql.Timestamp;
+
 /**
  * Properties for querying objects from the web page repository
  *
@@ -38,6 +40,15 @@ public class WebPageSpecification extends Entity {
   // archived rows (the default, unchanged for any caller that never sets this), TRUE returns only
   // archived rows, FALSE excludes them.
   private int archivedOnly = DataConstants.UNDEFINED;
+  // issue #426 (editorial calendar): matches a page whose publishAt OR expiresAt falls within
+  // [startingDateRange, endingDateRange) -- mirrors CalendarEventSpecification's
+  // startingDateRange/endingDateRange naming and OR-across-two-columns shape exactly, applied here
+  // to publish_at/expires_at instead of a single occurrence window.
+  private Timestamp startingDateRange = null;
+  private Timestamp endingDateRange = null;
+  // issue #426: the editorial calendar's author filter. -1 (unset) matches every page, mirroring
+  // every other *Specification's -1-means-unset long field (e.g. CalendarEventSpecification.calendarId).
+  private long createdBy = -1L;
 
   public WebPageSpecification() {
   }
@@ -131,5 +142,29 @@ public class WebPageSpecification extends Entity {
 
   public void setArchivedOnly(boolean archivedOnly) {
     this.archivedOnly = (archivedOnly ? DataConstants.TRUE : DataConstants.FALSE);
+  }
+
+  public Timestamp getStartingDateRange() {
+    return startingDateRange;
+  }
+
+  public void setStartingDateRange(Timestamp startingDateRange) {
+    this.startingDateRange = startingDateRange;
+  }
+
+  public Timestamp getEndingDateRange() {
+    return endingDateRange;
+  }
+
+  public void setEndingDateRange(Timestamp endingDateRange) {
+    this.endingDateRange = endingDateRange;
+  }
+
+  public long getCreatedBy() {
+    return createdBy;
+  }
+
+  public void setCreatedBy(long createdBy) {
+    this.createdBy = createdBy;
   }
 }

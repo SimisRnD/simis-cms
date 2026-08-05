@@ -19,6 +19,7 @@
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <%@ taglib prefix="url" uri="/WEB-INF/tlds/url-functions.tld" %>
 <%@ taglib prefix="text" uri="/WEB-INF/tlds/text-functions.tld" %>
+<%@ taglib prefix="image" uri="/WEB-INF/tlds/image-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="fieldList" class="java.util.ArrayList" scope="request"/>
@@ -35,7 +36,10 @@
       <p>${html:clean(field.value)}</p>
     </c:when>
     <c:when test="${'image' eq field.type}">
-      <p><img src="<c:out value="${field.value}" />" alt="<c:out value="${field.label}" />" loading="lazy" decoding="async" /></p>
+      <c:set var="customFieldSrcset" value="${image:srcset(field.value)}"/>
+      <p><img src="<c:out value="${field.value}" />"
+        <c:if test="${not empty customFieldSrcset}"> srcset="<c:out value="${customFieldSrcset}"/>" sizes="150px"</c:if>
+        loading="lazy" decoding="async"/></p>
     </c:when>
     <c:when test="${'url' eq field.type && (fn:startsWith(field.value, 'http://') || fn:startsWith(field.value, 'https://'))}">
       <p><a class="button small no-gap" href="${url:encode(field.value)}" target="_blank" rel="nofollow"><c:out value="${field.label}" /> <i class="fa fa-external-link"></i></a></p>

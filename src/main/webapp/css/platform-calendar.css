@@ -48,3 +48,38 @@
 .fc-unthemed .fc-highlight-skeleton thead {
   background-color: transparent;
 }
+
+/* Editorial Calendar (issue #426) -- /admin/editorial-calendar's entry rendering */
+#editorialCalendar {
+  margin-bottom: 15px;
+  background-color: #fff;
+}
+.ec-event {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  overflow: hidden;
+  padding: 1px 2px;
+}
+.ec-event-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.ec-status-badge {
+  flex: none;
+  margin-left: auto;
+  padding: 0 4px;
+  font-size: 0.65rem;
+  line-height: 1.4;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+/* Expiring content needs to read as visually distinct at a glance, even inside a packed month
+   cell -- the "alert" label color above is shared with nothing else on this calendar, and the
+   event itself gets a solid accent border so it stands out before a reader even reaches the
+   badge text. */
+.fc-event.ec-status-expiring {
+  border-left: 3px solid #cc4b37;
+  background-color: rgba(204, 75, 55, 0.08);
+}

@@ -24,7 +24,10 @@
               <c:when test="${themePropertyMap['theme.footer.logo.color'] eq 'all-white'}">
                 <c:choose>
                   <c:when test="${!empty sitePropertyMap['site.logo.white']}">
-                    <img src="<c:out value="${sitePropertyMap['site.logo.white']}"/>" width="134" alt="<c:out value="${sitePropertyMap['site.name']}"/>" loading="lazy" decoding="async" />
+                    <c:set var="logoSrcset" value="${image:srcset(sitePropertyMap['site.logo.white'])}"/>
+                    <img src="<c:out value="${sitePropertyMap['site.logo.white']}"/>" width="134" alt="<c:out value="${sitePropertyMap['site.name']}"/>"
+                      <c:if test="${not empty logoSrcset}"> srcset="<c:out value="${logoSrcset}"/>" sizes="200px"</c:if>
+                      loading="lazy" decoding="async" />
                   </c:when>
                   <c:otherwise>
                     <img id="footer-logo-white" src="${ctx}/images/logo-white.png" width="134" alt="<c:out value="${sitePropertyMap['site.name']}"/>" loading="lazy" decoding="async" />
@@ -38,7 +41,10 @@
               <c:when test="${themePropertyMap['theme.footer.logo.color'] eq 'color-and-white'}">
                 <c:choose>
                   <c:when test="${!empty sitePropertyMap['site.logo.mixed']}">
-                    <img src="<c:out value="${sitePropertyMap['site.logo.mixed']}"/>" width="134" alt="<c:out value="${sitePropertyMap['site.name']}"/>" loading="lazy" decoding="async" />
+                    <c:set var="logoSrcset" value="${image:srcset(sitePropertyMap['site.logo.mixed'])}"/>
+                    <img src="<c:out value="${sitePropertyMap['site.logo.mixed']}"/>" width="134" alt="<c:out value="${sitePropertyMap['site.name']}"/>"
+                      <c:if test="${not empty logoSrcset}"> srcset="<c:out value="${logoSrcset}"/>" sizes="200px"</c:if>
+                      loading="lazy" decoding="async" />
                   </c:when>
                   <c:otherwise>
                     <img id="footer-logo-white-color" src="${ctx}/images/logo-white-color.png" width="134" alt="<c:out value="${sitePropertyMap['site.name']}"/>" loading="lazy" decoding="async" />
@@ -52,7 +58,10 @@
               <c:otherwise>
                 <c:choose>
                   <c:when test="${!empty sitePropertyMap['site.logo']}">
-                    <img src="<c:out value="${sitePropertyMap['site.logo']}"/>" width="134" alt="<c:out value="${sitePropertyMap['site.name']}"/>" loading="lazy" decoding="async" />
+                    <c:set var="logoSrcset" value="${image:srcset(sitePropertyMap['site.logo'])}"/>
+                    <img src="<c:out value="${sitePropertyMap['site.logo']}"/>" width="134" alt="<c:out value="${sitePropertyMap['site.name']}"/>"
+                      <c:if test="${not empty logoSrcset}"> srcset="<c:out value="${logoSrcset}"/>" sizes="200px"</c:if>
+                      loading="lazy" decoding="async" />
                   </c:when>
                   <c:otherwise>
                     <img id="footer-logo-default" src="${ctx}/images/logo-footer.png" width="134" alt="<c:out value="${sitePropertyMap['site.name']}"/>" loading="lazy" decoding="async" />

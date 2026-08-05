@@ -28,6 +28,7 @@ import java.sql.SQLException;
 import java.sql.Statement;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 import org.junit.jupiter.api.AfterAll;
@@ -157,6 +158,29 @@ class ImageVariantRepositoryTest {
 
     assertEquals(2, image1Variants.size());
     assertTrue(image1Variants.stream().allMatch(v -> v.getImageId() == image1.getId()));
+  }
+
+  @Test
+  void findByImageIdsGroupsVariantsByImageIdAcrossMultipleImages() {
+    Image image1 = insertImage();
+    Image image2 = insertImage();
+    Image image3 = insertImage(); // no variants -- must not appear in the returned map at all
+    ImageVariantRepository.save(newVariant(image1.getId(), "thumbnail", "images/1-thumb.png", 100, 200, 150));
+    ImageVariantRepository.save(newVariant(image1.getId(), "medium", "images/1-medium.png", 400, 800, 600));
+    ImageVariantRepository.save(newVariant(image2.getId(), "thumbnail", "images/2-thumb.png", 100, 200, 150));
+
+    Map<Long, List<ImageVariant>> byImageId = ImageVariantRepository
+        .findByImageIds(List.of(image1.getId(), image2.getId(), image3.getId()));
+
+    assertEquals(2, byImageId.get(image1.getId()).size());
+    assertEquals(1, byImageId.get(image2.getId()).size());
+    assertNull(byImageId.get(image3.getId()), "an image with zero variants must not get an empty-list entry");
+  }
+
+  @Test
+  void findByImageIdsReturnsAnEmptyMapForNullOrEmptyInputWithoutQuerying() {
+    assertTrue(ImageVariantRepository.findByImageIds(null).isEmpty());
+    assertTrue(ImageVariantRepository.findByImageIds(List.of()).isEmpty());
   }
 
   @Test

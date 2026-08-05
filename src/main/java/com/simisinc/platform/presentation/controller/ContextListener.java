@@ -41,6 +41,7 @@ import com.simisinc.platform.application.FeatureFlagCommand;
 import com.simisinc.platform.application.SecretCryptoCommand;
 import com.simisinc.platform.application.admin.DatabaseCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.cms.ImportLegacyRedirectsCommand;
 import com.simisinc.platform.application.filesystem.FileSystemCommand;
 import com.simisinc.platform.application.maps.GeoIPCommand;
 import com.simisinc.platform.domain.model.cms.Content;
@@ -182,6 +183,11 @@ public class ContextListener implements ServletContextListener {
 
     // Load the filesystem lists (these are also scheduled in SchedulerManager)
     LoadSystemFilesJob.execute();
+
+    // One-time (idempotent) import of any legacy config/cms/redirects.csv rows into the
+    // database-backed web_redirects table (issue #408); see ImportLegacyRedirectsCommand for why
+    // this runs here at startup rather than as a Flyway migration or an admin action
+    ImportLegacyRedirectsCommand.importFromCsv();
 
     // Preload all the content (@todo change to async)
     List<Content> contentList = ContentRepository.findAll();

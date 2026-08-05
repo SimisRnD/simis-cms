@@ -16,10 +16,13 @@
 
 package com.simisinc.platform.presentation.widgets.ecommerce;
 
+import com.simisinc.platform.application.cms.ImageCommand;
 import com.simisinc.platform.application.cms.NumberCommand;
 
 import com.simisinc.platform.application.ecommerce.LoadProductListCommand;
+import com.simisinc.platform.domain.model.cms.ImageVariant;
 import com.simisinc.platform.domain.model.ecommerce.Product;
+import com.simisinc.platform.infrastructure.persistence.cms.ImageVariantRepository;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.widgets.cms.PreferenceEntriesList;
 import com.simisinc.platform.presentation.controller.WidgetContext;
@@ -101,6 +104,17 @@ public class ProductBrowserWidget extends GenericWidget {
     if (!productImageMap.isEmpty()) {
       context.getRequest().setAttribute("productImageMap", productImageMap);
     }
+
+    // Batch-fetch existing image variants for every product's image in one query (issue #411 PR2)
+    List<Long> productImageIds = new ArrayList<>();
+    for (Product product : productList) {
+      Long imageId = ImageCommand.parseImageId(product.getImageUrl());
+      if (imageId != null) {
+        productImageIds.add(imageId);
+      }
+    }
+    Map<Long, List<ImageVariant>> imageVariantsByImageId = ImageVariantRepository.findByImageIds(productImageIds);
+    context.getRequest().setAttribute("imageVariantsByImageId", imageVariantsByImageId);
 
     // Show the JSP
     String view = context.getPreferences().get("view");

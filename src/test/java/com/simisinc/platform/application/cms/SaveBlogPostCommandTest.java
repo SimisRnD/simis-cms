@@ -212,6 +212,66 @@ class SaveBlogPostCommandTest {
     assertEquals("CR-5678", reloaded.getReleaseReference());
   }
 
+  @Test
+  void editingAnExistingPostDoesNotChangeItsOriginalCreatedBy() throws Exception {
+    // createdBy must be set once, at creation -- editing an existing post (e.g. fixing a typo)
+    // must not reassign the original author to whoever happens to be editing it today.
+    long blogId = addBlog();
+
+    BlogPost existing = new BlogPost();
+    existing.setBlogId(blogId);
+    existing.setUniqueId("a-post");
+    existing.setTitle("Original Title");
+    existing.setBody("Original body");
+    existing.setCreatedBy(7); // the original author
+    existing.setModifiedBy(7);
+    BlogPost saved = BlogPostRepository.add(existing);
+    assertNotNull(saved);
+
+    // Mirrors what BlogEditorWidget.post() builds when a different admin edits the post
+    BlogPost editBean = new BlogPost();
+    editBean.setId(saved.getId());
+    editBean.setBlogId(blogId);
+    editBean.setUniqueId("a-post");
+    editBean.setTitle("Original Title, edited");
+    editBean.setBody("Original body, edited");
+    editBean.setCreatedBy(42); // a different user editing it today
+    editBean.setModifiedBy(42);
+
+    // Asserted on the command's own return value, not a reload from BlogPostRepository.findById():
+    // BlogPostRepository.update()'s SQL never includes created_by in the first place (it is
+    // deliberately excluded from that method's SqlUtils, so a DB round-trip can never distinguish
+    // the buggy and fixed command). What this test actually guards is SaveBlogPostCommand's own
+    // in-memory object: with the bug, the object it hands to BlogPostRepository.save() -- and
+    // therefore the object callers/widgets receive back and act on -- carries the editor's id
+    // instead of the original author's, even though the update() SQL happens to make that
+    // particular mistake harmless against the persisted row today.
+    BlogPost result = SaveBlogPostCommand.saveBlogPost(editBean);
+    assertNotNull(result);
+    assertEquals(7L, result.getCreatedBy(), "createdBy must survive an edit by a different user");
+    assertEquals(42L, result.getModifiedBy(), "modifiedBy must still reflect the editor");
+  }
+
+  @Test
+  void newPostGetsCreatedByFromTheSubmitter() throws Exception {
+    long blogId = addBlog();
+
+    BlogPost bean = new BlogPost();
+    bean.setBlogId(blogId);
+    bean.setUniqueId("a-new-post");
+    bean.setTitle("A New Post");
+    bean.setBody("Body");
+    bean.setCreatedBy(42);
+    bean.setModifiedBy(42);
+
+    BlogPost result = SaveBlogPostCommand.saveBlogPost(bean);
+    assertNotNull(result);
+
+    BlogPost reloaded = BlogPostRepository.findById(result.getId());
+    assertNotNull(reloaded);
+    assertEquals(42L, reloaded.getCreatedBy());
+  }
+
   private static boolean isDockerAvailable() {
     try {
       return DockerClientFactory.instance().isDockerAvailable();
