@@ -808,13 +808,19 @@
         <%-- // Add a smooth scroll for anchors --%>
         $(document).on('click', 'a[href^="#"]', function (event) {
           event.preventDefault();
+          <%-- Bare href="#" links (e.g. admin action icons using onclick="return confirmPostAction(...)")
+               have no target to scroll to; $("#") throws a jQuery selector syntax error --%>
+          var hash = $.attr(this, 'href');
+          if (!hash || hash === '#') {
+            return;
+          }
           if ($("#platform-small-menu").is(":visible")) {
             $('html, body').animate({
-              scrollTop: $($.attr(this, 'href')).offset().top - $("#platform-small-menu").height() - 20
+              scrollTop: $(hash).offset().top - $("#platform-small-menu").height() - 20
             }, 500);
           } else {
             $('html, body').animate({
-              scrollTop: $($.attr(this, 'href')).offset().top - $("#platform-menu").height() - 20
+              scrollTop: $(hash).offset().top - $("#platform-menu").height() - 20
             }, 500);
           }
         });
