@@ -242,6 +242,13 @@
                 value="true"
                 <c:if test="${formField.userValue eq 'true'}">checked</c:if>>
           </c:when>
+          <c:when test="${formField.type eq 'date'}">
+            <%-- HTML5 date input always submits/echoes yyyy-MM-dd, so userValue round-trips as-is --%>
+            <input type="date"
+                id="${widgetContext.uniqueId}<c:out value="${formField.name}"/>" name="${widgetContext.uniqueId}<c:out value="${formField.name}"/>"
+                <c:if test="${!empty formField.userValue}">value="<c:out value="${formField.userValue}" />"</c:if>
+                <c:if test="${formField.required}">required</c:if>>
+          </c:when>
           <c:otherwise>
             <input type="text"
                 id="${widgetContext.uniqueId}<c:out value="${formField.name}"/>" name="${widgetContext.uniqueId}<c:out value="${formField.name}"/>"
