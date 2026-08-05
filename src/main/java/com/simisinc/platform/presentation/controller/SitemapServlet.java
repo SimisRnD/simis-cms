@@ -278,6 +278,7 @@ public class SitemapServlet extends HttpServlet {
       WebPageSpecification spec = new WebPageSpecification();
       spec.setEnabled(1);
       spec.setInSitemap(true);
+      spec.setArchivedOnly(false);
       List<WebPage> pages = WebPageRepository.findAll(spec, null);
 
       if (pages != null) {
