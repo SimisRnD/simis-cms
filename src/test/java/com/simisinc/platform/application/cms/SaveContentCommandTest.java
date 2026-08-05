@@ -195,4 +195,26 @@ class SaveContentCommandTest {
       repo.verify(() -> ContentRepository.snapshotBeforeDirectPublish(any(), anyInt()), never());
     }
   }
+
+  @Test
+  void governedPublishingDegradesADeltaPublishRequestToADraftSave() throws DataException {
+    // Regression: saveSafeDeltaContent had no governed-publishing re-check at all (unlike
+    // saveSafeContent's identical guard a few lines above) -- harmless only because its one prior
+    // caller (PageServlet's inline editor save) always passed publish=false. Found live while
+    // verifying issue #412 PR2's REST write endpoint, whose whole point is to let a caller actually
+    // request publish=true.
+    try (MockedStatic<ContentRepository> repo = mockStatic(ContentRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      repo.when(() -> ContentRepository.findByUniqueId("uid")).thenReturn(null);
+      repo.when(() -> ContentRepository.save(any(Content.class))).thenAnswer(i -> i.getArgument(0));
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean("content.review.required")).thenReturn(true);
+
+      Content saved = SaveContentCommand.saveSafeDeltaContent("uid", VALID_DELTA, 7L, true);
+
+      assertEquals(VALID_DELTA, saved.getDraftContent());
+      assertEquals(DeltaContentCommand.DELTA_FORMAT_VERSION, saved.getDraftContentFormat());
+      assertNull(saved.getContent(), "a governed publish request must never reach the live content field");
+      repo.verify(() -> ContentRepository.snapshotBeforeDirectPublish(any(), anyInt()), never());
+    }
+  }
 }
