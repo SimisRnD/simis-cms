@@ -16,7 +16,12 @@
 
 package com.simisinc.platform.presentation.widgets.cms;
 
+import java.util.Arrays;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.StringJoiner;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
@@ -133,8 +138,13 @@ public class FormWidget extends GenericWidget {
     String formUniqueId = context.getPreferences().get("formUniqueId");
     List<FormField> formFieldList = FormFieldCommand.parseFieldContent(formUniqueId, fieldsEntriesList);
     for (FormField formField : formFieldList) {
-      // Determine the user's value
-      String parameterValue = context.getParameter(context.getUniqueId() + formField.getName());
+      // Determine the user's value. A checkbox-group field (type == checkbox with options) can
+      // have several boxes checked, which the browser submits as repeated same-named parameters --
+      // getParameter() only ever returns the first one, silently dropping the rest.
+      boolean isCheckboxGroup = "checkbox".equals(formField.getType()) && formField.getListOfOptions() != null;
+      String parameterValue = isCheckboxGroup
+          ? resolveCheckboxGroupValue(context, formField)
+          : context.getParameter(context.getUniqueId() + formField.getName());
       if (StringUtils.isBlank(parameterValue)) {
         // Check if the field is required
         if (formField.isRequired()) {
@@ -148,7 +158,9 @@ public class FormWidget extends GenericWidget {
         continue;
       }
       parameterValue = parameterValue.trim();
-      if (formField.getListOfOptions() != null) {
+      if (isCheckboxGroup) {
+        formField.setUserValue(parameterValue);
+      } else if (formField.getListOfOptions() != null) {
         formField.setUserValue(formField.getListOfOptions().get(parameterValue));
       } else {
         formField.setUserValue(parameterValue);
@@ -235,6 +247,33 @@ public class FormWidget extends GenericWidget {
     context.addSharedRequestValue(context.getUniqueId() + "formWidgetSuccess", "true");
 
     return null;
+  }
+
+  /**
+   * A checkbox-group field submits one request parameter per checked option, all sharing the same
+   * name. context.getParameter() (a thin wrapper the rest of this loop uses) only ever returns the
+   * first of several same-named values, silently dropping the rest -- read the full array from the
+   * parameter map instead, the same way other multi-checkbox inputs in this codebase already do
+   * (e.g. the "tagId" checkbox group in EditItemFormWidget/CreateAnItemWidget). Values are joined
+   * into a single comma-separated string of display labels -- matching how a single-select field's
+   * chosen option is already translated to its display label via listOfOptions -- so it fits the
+   * existing single-String FormField.userValue / form_data JSON "value" shape without a schema
+   * change. Option order (not submission order) is used so the stored value doesn't depend on
+   * checkbox click order, and duplicate submitted values are de-duplicated.
+   */
+  private static String resolveCheckboxGroupValue(WidgetContext context, FormField formField) {
+    String[] values = context.getParameterMap().get(context.getUniqueId() + formField.getName());
+    if (values == null || values.length == 0) {
+      return null;
+    }
+    Set<String> checkedKeys = new HashSet<>(Arrays.asList(values));
+    StringJoiner joiner = new StringJoiner(",");
+    for (Map.Entry<String, String> option : formField.getListOfOptions().entrySet()) {
+      if (checkedKeys.contains(option.getKey())) {
+        joiner.add(option.getValue());
+      }
+    }
+    return joiner.length() == 0 ? null : joiner.toString();
   }
 
   /**
