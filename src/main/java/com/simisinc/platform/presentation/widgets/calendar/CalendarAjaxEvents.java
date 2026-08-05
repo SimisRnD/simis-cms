@@ -16,6 +16,7 @@
 
 package com.simisinc.platform.presentation.widgets.calendar;
 
+import com.simisinc.platform.application.cms.FormatDateCommand;
 import com.simisinc.platform.application.json.JsonCommand;
 import com.simisinc.platform.domain.model.cms.Calendar;
 import com.simisinc.platform.domain.model.cms.CalendarEvent;
@@ -27,7 +28,6 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import java.sql.Timestamp;
-import java.text.SimpleDateFormat;
 import java.time.ZoneId;
 import java.util.Date;
 import java.util.List;
@@ -74,11 +74,10 @@ public class CalendarAjaxEvents {
     List<CalendarEvent> calendarEventList = CalendarEventRepository.findAll(specification, null);
     LOG.debug("Calendar events: " + startDate + " - " + endDate + " (" + calendarEventList.size() + ")");
 
-    String offset = "";
-    ZoneId serverZoneId = ZoneId.systemDefault();
-    if ("UTC".equals(serverZoneId.getId())) {
-      offset = "+00:00";
-    }
+    // Format dates in the site's configured timezone (not the JVM's default), so an all-day
+    // event's calendar day and a timed event's clock time match what the site is set to show,
+    // regardless of what zone the server happens to be running in.
+    ZoneId siteZoneId = FormatDateCommand.getSiteZoneId();
 
     // Determine the results to be shown
     if (!calendarEventList.isEmpty()) {
@@ -89,17 +88,19 @@ public class CalendarAjaxEvents {
         sb.append("{");
         sb.append("\"id\":").append(calendarEvent.getId()).append(",");
         sb.append("\"uniqueId\":\"").append(JsonCommand.toJson(calendarEvent.getUniqueId())).append("\",");
-        String startDateValue = new SimpleDateFormat("yyyy-MM-dd").format(calendarEvent.getStartDate());
-        String endDateValue = new SimpleDateFormat("yyyy-MM-dd").format(calendarEvent.getEndDate());
+        String startDateValue = FormatDateCommand.formatIsoDate(calendarEvent.getStartDate(), siteZoneId);
+        String endDateValue = FormatDateCommand.formatIsoDate(calendarEvent.getEndDate(), siteZoneId);
         if (calendarEvent.getAllDay()) {
           sb.append("\"allDay\":").append("true").append(",");
           sb.append("\"start\":\"").append(startDateValue).append("\",");
           sb.append("\"end\":\"").append(endDateValue).append("T24:00").append("\",");
         } else {
-          String startDateHours = new SimpleDateFormat("HH:mm").format(calendarEvent.getStartDate());
-          String endDateHours = new SimpleDateFormat("HH:mm").format(calendarEvent.getEndDate());
-          sb.append("\"start\":\"").append(startDateValue).append("T").append(startDateHours).append(":00").append(offset).append("\",");
-          sb.append("\"end\":\"").append(endDateValue).append("T").append(endDateHours).append(":00").append(offset).append("\",");
+          String startDateHours = FormatDateCommand.formatIsoTime(calendarEvent.getStartDate(), siteZoneId);
+          String endDateHours = FormatDateCommand.formatIsoTime(calendarEvent.getEndDate(), siteZoneId);
+          String startOffset = FormatDateCommand.formatIsoOffset(calendarEvent.getStartDate(), siteZoneId);
+          String endOffset = FormatDateCommand.formatIsoOffset(calendarEvent.getEndDate(), siteZoneId);
+          sb.append("\"start\":\"").append(startDateValue).append("T").append(startDateHours).append(":00").append(startOffset).append("\",");
+          sb.append("\"end\":\"").append(endDateValue).append("T").append(endDateHours).append(":00").append(endOffset).append("\",");
         }
         if (calendarEvent.getDetailsUrl() != null) {
           sb.append("\"detailsUrl\":\"").append(JsonCommand.toJson(calendarEvent.getDetailsUrl())).append("\",");

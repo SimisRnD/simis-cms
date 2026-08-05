@@ -17,9 +17,11 @@
 package com.simisinc.platform.presentation.widgets.calendar;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
 
 import java.sql.Timestamp;
+import java.time.Instant;
 import java.util.List;
 
 import org.junit.jupiter.api.Assertions;
@@ -28,6 +30,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
 import com.simisinc.platform.WidgetBase;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.domain.model.cms.CalendarEvent;
 import com.simisinc.platform.infrastructure.persistence.cms.CalendarEventRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.CalendarEventSpecification;
@@ -47,7 +50,9 @@ class CalendarEventAjaxTest extends WidgetBase {
     event.setEndDate(new Timestamp(3600000L));
     event.setVideoUrl("https://teams.microsoft.com/l/meetup-join/abc");
 
-    try (MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class)) {
+    try (MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
       events.when(() -> CalendarEventRepository.findAll(any(CalendarEventSpecification.class), any())).thenReturn(List.of(event));
 
       CalendarEventAjax widget = new CalendarEventAjax();
@@ -71,7 +76,9 @@ class CalendarEventAjaxTest extends WidgetBase {
     event.setStartDate(new Timestamp(0L));
     event.setEndDate(new Timestamp(3600000L));
 
-    try (MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class)) {
+    try (MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
       events.when(() -> CalendarEventRepository.findAll(any(CalendarEventSpecification.class), any())).thenReturn(List.of(event));
 
       CalendarEventAjax widget = new CalendarEventAjax();
@@ -94,7 +101,9 @@ class CalendarEventAjaxTest extends WidgetBase {
     event.setEndDate(new Timestamp(3600000L));
     event.setTagsList(new String[] { "conference", "quarterly" });
 
-    try (MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class)) {
+    try (MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
       events.when(() -> CalendarEventRepository.findAll(any(CalendarEventSpecification.class), any())).thenReturn(List.of(event));
 
       CalendarEventAjax widget = new CalendarEventAjax();
@@ -117,7 +126,9 @@ class CalendarEventAjaxTest extends WidgetBase {
     event.setStartDate(new Timestamp(0L));
     event.setEndDate(new Timestamp(3600000L));
 
-    try (MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class)) {
+    try (MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
       events.when(() -> CalendarEventRepository.findAll(any(CalendarEventSpecification.class), any())).thenReturn(List.of(event));
 
       CalendarEventAjax widget = new CalendarEventAjax();
@@ -140,7 +151,9 @@ class CalendarEventAjaxTest extends WidgetBase {
     event.setEndDate(new Timestamp(3600000L));
     event.setTagsList(new String[0]);
 
-    try (MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class)) {
+    try (MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
       events.when(() -> CalendarEventRepository.findAll(any(CalendarEventSpecification.class), any())).thenReturn(List.of(event));
 
       CalendarEventAjax widget = new CalendarEventAjax();
@@ -163,7 +176,9 @@ class CalendarEventAjaxTest extends WidgetBase {
     event.setEndDate(new Timestamp(3600000L));
     event.setPublished(new Timestamp(System.currentTimeMillis()));
 
-    try (MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class)) {
+    try (MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
       events.when(() -> CalendarEventRepository.findAll(any(CalendarEventSpecification.class), any())).thenReturn(List.of(event));
 
       CalendarEventAjax widget = new CalendarEventAjax();
@@ -185,7 +200,9 @@ class CalendarEventAjaxTest extends WidgetBase {
     event.setStartDate(new Timestamp(0L));
     event.setEndDate(new Timestamp(3600000L));
 
-    try (MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class)) {
+    try (MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
       events.when(() -> CalendarEventRepository.findAll(any(CalendarEventSpecification.class), any())).thenReturn(List.of(event));
 
       CalendarEventAjax widget = new CalendarEventAjax();
@@ -209,7 +226,9 @@ class CalendarEventAjaxTest extends WidgetBase {
     event.setEndDate(new Timestamp(3600000L));
 
     ArgumentCaptor<CalendarEventSpecification> specCaptor = ArgumentCaptor.forClass(CalendarEventSpecification.class);
-    try (MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class)) {
+    try (MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
       events.when(() -> CalendarEventRepository.findAll(any(CalendarEventSpecification.class), any())).thenReturn(List.of(event));
 
       CalendarEventAjax widget = new CalendarEventAjax();
@@ -235,7 +254,9 @@ class CalendarEventAjaxTest extends WidgetBase {
     event.setEndDate(new Timestamp(3600000L));
 
     ArgumentCaptor<CalendarEventSpecification> specCaptor = ArgumentCaptor.forClass(CalendarEventSpecification.class);
-    try (MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class)) {
+    try (MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
       events.when(() -> CalendarEventRepository.findAll(any(CalendarEventSpecification.class), any())).thenReturn(List.of(event));
 
       CalendarEventAjax widget = new CalendarEventAjax();
@@ -246,5 +267,38 @@ class CalendarEventAjaxTest extends WidgetBase {
 
     Assertions.assertEquals(DataConstants.UNDEFINED, specCaptor.getValue().getPublishedOnly(),
         "an admin/content-manager caller must not be filtered to published-only events");
+  }
+
+  /**
+   * Regression test for a bug where a timed (non-allDay) event's date/time was formatted using
+   * the JVM's default timezone instead of the site's configured timezone (site.timezone), so an
+   * event stored near midnight UTC could render on the wrong calendar day for a site configured
+   * in a non-UTC zone. 2026-01-15T02:30:00Z is 2026-01-14 21:30 in America/New_York (EST, UTC-5,
+   * no DST in January) -- the previous calendar day, with a -05:00 offset -- so the JSON must
+   * reflect that, not the UTC day/offset.
+   */
+  @Test
+  void timedEventDateAndOffsetAreFormattedInTheSiteTimezoneNotTheJvmDefault() {
+    addQueryParameter(widgetContext, "id", "1");
+
+    CalendarEvent event = new CalendarEvent();
+    event.setId(1L);
+    event.setCalendarId(1L);
+    event.setTitle("Late Night Meeting");
+    event.setStartDate(Timestamp.from(Instant.parse("2026-01-15T02:30:00Z")));
+    event.setEndDate(Timestamp.from(Instant.parse("2026-01-15T03:30:00Z")));
+
+    try (MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
+      events.when(() -> CalendarEventRepository.findAll(any(CalendarEventSpecification.class), any())).thenReturn(List.of(event));
+
+      CalendarEventAjax widget = new CalendarEventAjax();
+      widget.execute(widgetContext);
+    }
+
+    String json = widgetContext.getJson();
+    Assertions.assertTrue(json.contains("\"start\":\"2026-01-14T21:30:00-05:00\""), "start must be in the site's timezone: " + json);
+    Assertions.assertTrue(json.contains("\"end\":\"2026-01-14T22:30:00-05:00\""), "end must be in the site's timezone: " + json);
   }
 }
