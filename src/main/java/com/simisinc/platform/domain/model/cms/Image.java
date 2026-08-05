@@ -16,6 +16,7 @@
 
 package com.simisinc.platform.domain.model.cms;
 
+import java.math.BigDecimal;
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 
@@ -41,6 +42,8 @@ public class Image extends Entity {
   private String webPath = null;
   private int width = -1;
   private int height = -1;
+  private BigDecimal focalX = new BigDecimal("50.00");
+  private BigDecimal focalY = new BigDecimal("50.00");
 
   public Image() {
   }
@@ -123,6 +126,22 @@ public class Image extends Entity {
 
   public void setHeight(int height) {
     this.height = height;
+  }
+
+  public BigDecimal getFocalX() {
+    return focalX;
+  }
+
+  public void setFocalX(BigDecimal focalX) {
+    this.focalX = focalX;
+  }
+
+  public BigDecimal getFocalY() {
+    return focalY;
+  }
+
+  public void setFocalY(BigDecimal focalY) {
+    this.focalY = focalY;
   }
 
   public String getWebPath() {

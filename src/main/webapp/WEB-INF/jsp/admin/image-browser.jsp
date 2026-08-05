@@ -75,6 +75,12 @@
             <small style="color: #999999"><fmt:formatDate pattern="yyyy-MM-dd" value="${image.created}" /></small><br />
             <small><a target="_blank" href="${ctx}/assets/img/${image.url}">Image Link</a></small><br />
             <small><span class="usage-badge label secondary" data-image-id="${image.id}">Checking usage&hellip;</span></small><br />
+            <button type="button" class="setFocalPointBtn button tiny secondary radius margin-top-5"
+                    data-id="${image.id}" data-filename="${fn:escapeXml(image.filename)}"
+                    data-url="${ctx}/assets/img/${image.url}"
+                    data-focal-x="<c:out value="${image.focalX}"/>" data-focal-y="<c:out value="${image.focalY}"/>">
+              <i class="fa fa-crosshairs"></i> Focal Point
+            </button>
             <button type="button" class="deleteImageBtn button tiny alert radius margin-top-5"
                     data-id="${image.id}" data-filename="${fn:escapeXml(image.filename)}">
               <i class="fa fa-remove"></i> Delete
@@ -101,6 +107,42 @@
     <input type="hidden" name="token" value="${userSession.formToken}"/>
     <input type="hidden" name="command" value="bulkDelete"/>
     <input type="submit" class="button alert radius" value="Delete Images"/>
+    <button class="button secondary radius" type="button" data-close>Cancel</button>
+  </form>
+  <button class="close-button" data-close aria-label="Close reveal" type="button">
+    <span aria-hidden="true">&times;</span>
+  </button>
+</div>
+<%-- Focal point picker (issue #411 PR3) -- lets an admin mark where an image's subject is, so a
+     server-generated square crop can center on it instead of a blind center crop. Populated fresh
+     at open time from the clicked card's data-* attributes, same shared-modal shape as
+     bulkDeleteReveal above. --%>
+<div class="reveal large" id="focalPointReveal" role="dialog" aria-modal="true"
+     aria-labelledby="focalPointRevealTitle" data-reveal data-close-on-click="true">
+  <h4 id="focalPointRevealTitle">Set Focal Point</h4>
+  <p>Click the image where the subject is, so a future square crop keeps it in frame.</p>
+  <div id="focalPointImageWrap" style="position:relative; display:inline-block; max-width:100%;">
+    <img id="focalPointImage" src="" alt="" style="display:block; max-width:100%; height:auto; cursor:crosshair;">
+    <div id="focalPointMarker" style="position:absolute; width:20px; height:20px; margin:-10px 0 0 -10px;
+         border:2px solid #fff; border-radius:50%; box-shadow:0 0 0 1px #000, 0 0 4px rgba(0,0,0,.6);
+         pointer-events:none; left:50%; top:50%;"></div>
+  </div>
+  <div class="grid-x grid-margin-x margin-top-10">
+    <div class="cell small-6">
+      <label>Horizontal <input type="range" id="focalXRange" min="0" max="100" step="1" value="50"></label>
+    </div>
+    <div class="cell small-6">
+      <label>Vertical <input type="range" id="focalYRange" min="0" max="100" step="1" value="50"></label>
+    </div>
+  </div>
+  <form method="post">
+    <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
+    <input type="hidden" name="token" value="${userSession.formToken}"/>
+    <input type="hidden" name="command" value="setFocalPoint"/>
+    <input type="hidden" name="imageId" id="focalPointImageId" value=""/>
+    <input type="hidden" name="focalX" id="focalXInput" value="50"/>
+    <input type="hidden" name="focalY" id="focalYInput" value="50"/>
+    <input type="submit" class="button radius" value="Save Focal Point"/>
     <button class="button secondary radius" type="button" data-close>Cancel</button>
   </form>
   <button class="close-button" data-close aria-label="Close reveal" type="button">
@@ -267,5 +309,52 @@
     }
 
     refresh();
+
+    // Focal point picker
+    var $focalReveal = $('#focalPointReveal');
+    var focalImg = document.getElementById('focalPointImage');
+    var focalMarker = document.getElementById('focalPointMarker');
+    var focalXRange = document.getElementById('focalXRange');
+    var focalYRange = document.getElementById('focalYRange');
+    var focalXInput = document.getElementById('focalXInput');
+    var focalYInput = document.getElementById('focalYInput');
+    var focalImageIdInput = document.getElementById('focalPointImageId');
+
+    function setFocalMarker(px, py) {
+      px = Math.max(0, Math.min(100, px));
+      py = Math.max(0, Math.min(100, py));
+      focalMarker.style.left = px + '%';
+      focalMarker.style.top = py + '%';
+      focalXRange.value = Math.round(px);
+      focalYRange.value = Math.round(py);
+      focalXInput.value = px.toFixed(2);
+      focalYInput.value = py.toFixed(2);
+    }
+
+    document.querySelectorAll('.setFocalPointBtn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        focalImageIdInput.value = btn.getAttribute('data-id');
+        focalImg.src = btn.getAttribute('data-url');
+        setFocalMarker(parseFloat(btn.getAttribute('data-focal-x')) || 50,
+                       parseFloat(btn.getAttribute('data-focal-y')) || 50);
+        $focalReveal.foundation('open');
+      });
+    });
+
+    // getBoundingClientRect() + clientX/clientY, not offsetX/offsetY -- the marker div overlaps
+    // the image, and offsetX/offsetY are relative to whatever element the browser decided was the
+    // actual click target (mitigated by pointer-events:none on the marker regardless, but this is
+    // the more standard, target-independent technique).
+    focalImg.addEventListener('click', function (e) {
+      var rect = focalImg.getBoundingClientRect();
+      setFocalMarker(((e.clientX - rect.left) / rect.width) * 100,
+                     ((e.clientY - rect.top) / rect.height) * 100);
+    });
+
+    [focalXRange, focalYRange].forEach(function (range) {
+      range.addEventListener('input', function () {
+        setFocalMarker(parseFloat(focalXRange.value), parseFloat(focalYRange.value));
+      });
+    });
   })();
 </script>
