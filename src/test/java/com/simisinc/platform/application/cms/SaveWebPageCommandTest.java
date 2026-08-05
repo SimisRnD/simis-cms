@@ -135,6 +135,35 @@ class SaveWebPageCommandTest {
   }
 
   @Test
+  void editingAnExistingPageDoesNotChangeItsOriginalCreatedBy() throws Exception {
+    // createdBy must be set once, at creation -- editing an existing page (e.g. fixing a typo)
+    // must not reassign the original author to whoever happens to be editing it today.
+    WebPage existing = new WebPage();
+    existing.setId(5L);
+    existing.setLink("/about");
+    existing.setCreatedBy(7L); // the original author
+
+    WebPage bean = newPageBean("/about");
+    bean.setId(5L);
+    bean.setCreatedBy(42L); // a different admin editing it today, per WebPageFormWidget.post()
+
+    WebPage saved = new WebPage();
+    saved.setId(5L);
+    saved.setLink("/about");
+
+    try (MockedStatic<WebPageRepository> repository = mockStatic(WebPageRepository.class);
+        MockedStatic<WorkflowManager> workflow = mockStatic(WorkflowManager.class);
+        MockedStatic<PublishEventCachePurgeHandler> purge = mockStatic(PublishEventCachePurgeHandler.class)) {
+      repository.when(() -> WebPageRepository.findById(5L)).thenReturn(existing);
+      repository.when(() -> WebPageRepository.save(any())).thenReturn(saved);
+
+      SaveWebPageCommand.saveWebPage(bean);
+
+      repository.verify(() -> WebPageRepository.save(argThat(page -> page.getCreatedBy() == 7L)));
+    }
+  }
+
+  @Test
   void failedValidationNeverTriggersAPurge() {
     // No link -- SaveWebPageCommand rejects this before WebPageRepository or the purge handler
     // are ever touched.

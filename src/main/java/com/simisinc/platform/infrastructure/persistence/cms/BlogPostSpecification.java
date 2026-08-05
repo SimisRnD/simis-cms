@@ -18,6 +18,8 @@ package com.simisinc.platform.infrastructure.persistence.cms;
 
 import com.simisinc.platform.presentation.controller.DataConstants;
 
+import java.sql.Timestamp;
+
 /**
  * Properties for querying objects from the blog post repository
  *
@@ -36,6 +38,17 @@ public class BlogPostSpecification {
   private int archivedOnly = DataConstants.UNDEFINED;
   private int startDateIsBeforeNow = DataConstants.UNDEFINED;
   private int isWithinEndDate = DataConstants.UNDEFINED;
+  // issue #426 (editorial calendar): matches a post whose startDate OR endDate falls within
+  // [startingDateRange, endingDateRange) -- BlogPost has no publishAt/expiresAt columns (unlike
+  // WebPage); startDate/endDate are this entity's real scheduling-equivalent fields (startDate
+  // gates public visibility via startDateIsBeforeNow above, endDate via isWithinEndDate), so those
+  // are the columns this range targets. Mirrors CalendarEventSpecification's
+  // startingDateRange/endingDateRange naming exactly.
+  private Timestamp startingDateRange = null;
+  private Timestamp endingDateRange = null;
+  // issue #426: the editorial calendar's author filter. -1 (unset) matches every post, mirroring
+  // every other *Specification's -1-means-unset long field.
+  private long createdBy = -1L;
   private String searchTerm = null;
 
   public BlogPostSpecification() {
@@ -127,6 +140,30 @@ public class BlogPostSpecification {
 
   public void setSearchTerm(String searchTerm) {
     this.searchTerm = searchTerm;
+  }
+
+  public Timestamp getStartingDateRange() {
+    return startingDateRange;
+  }
+
+  public void setStartingDateRange(Timestamp startingDateRange) {
+    this.startingDateRange = startingDateRange;
+  }
+
+  public Timestamp getEndingDateRange() {
+    return endingDateRange;
+  }
+
+  public void setEndingDateRange(Timestamp endingDateRange) {
+    this.endingDateRange = endingDateRange;
+  }
+
+  public long getCreatedBy() {
+    return createdBy;
+  }
+
+  public void setCreatedBy(long createdBy) {
+    this.createdBy = createdBy;
   }
 
 }

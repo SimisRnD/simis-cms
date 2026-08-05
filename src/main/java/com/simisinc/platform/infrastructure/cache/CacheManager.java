@@ -24,12 +24,14 @@ import com.simisinc.platform.domain.model.SiteProperty;
 import com.simisinc.platform.domain.model.cms.Content;
 import com.simisinc.platform.domain.model.cms.Stylesheet;
 import com.simisinc.platform.domain.model.cms.TableOfContents;
+import com.simisinc.platform.domain.model.cms.WebRedirect;
 import com.simisinc.platform.domain.model.items.Collection;
 import com.simisinc.platform.infrastructure.persistence.AppRepository;
 import com.simisinc.platform.infrastructure.persistence.SitePropertyRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.ContentRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.StylesheetRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.TableOfContentsRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.WebRedirectRepository;
 import com.simisinc.platform.infrastructure.persistence.items.CollectionRepository;
 
 import java.time.Instant;
@@ -56,6 +58,7 @@ public class CacheManager {
   public static String CONTENT_REMOTE_URL_CACHE = "ContentRemoteUrlCache";
   public static String COLLECTION_UNIQUE_ID_CACHE = "CollectionUniqueIdCache";
   public static String TABLE_OF_CONTENTS_UNIQUE_ID_CACHE = "TableOfContentsUniqueIdCache";
+  public static String WEB_REDIRECT_CACHE = "WebRedirectCache";
   public static String RATE_LIMIT_LOGIN_ATTEMPT_BY_USERNAME_CACHE = "RateLimitLoginAttemptByUsernameCache";
   public static String RATE_LIMIT_ATTEMPT_BY_IP_CACHE = "RateLimitAttemptByIpCache";
   public static String RATE_LIMIT_BY_APP_CACHE = "RateLimitByAppCache";
@@ -159,6 +162,35 @@ public class CacheManager {
 //        .refreshAfterWrite(1, TimeUnit.MINUTES)
         .build(TableOfContentsRepository::findByUniqueId);
     cacheManager.put(TABLE_OF_CONTENTS_UNIQUE_ID_CACHE, tableOfContentsCache);
+
+    // Web Redirect Cache (fromPath = redirect, enabled or not) (issue #408). A short expireAfterWrite
+    // -- rather than the commented-out pattern above -- is used deliberately here: unlike the other
+    // uniqueId caches (which rely entirely on their repository's explicit invalidateKey() calls on
+    // write), an admin edit that goes through WebRedirectRepository will also invalidate this cache
+    // directly, but the TTL is kept as a defense-in-depth backstop (e.g. a direct SQL edit, or a
+    // multi-node deployment where only the writing node's cache gets invalidated).
+    //
+    // The loader is WebRedirectRepository::findByFromPath (not the enabled-only
+    // findEnabledByFromPath) so a disabled row is still cached as itself, rather than as a "miss" --
+    // WebRequestFilter checks getEnabled() and, critically, treats "a row exists but is disabled" as
+    // final (never falls through to the legacy CSV fallback for that path), where treating it as a
+    // plain miss would let a disabled admin-managed redirect that shares a from_path with a legacy
+    // redirects.csv entry be silently resurrected by that fallback.
+    //
+    // A genuine miss (no row at all) is wrapped as WebRedirect.NONE rather than returned as null:
+    // Caffeine's LoadingCache never caches a null loader result, so without this the overwhelmingly
+    // common case -- a request path with no redirect at all -- would hit the database on every single
+    // request instead of being served from cache like every other outcome. LoadWebRedirectCommand
+    // translates NONE back to null for callers.
+    LoadingCache<String, WebRedirect> webRedirectCache = Caffeine.newBuilder()
+        .maximumSize(10_000)
+        .expireAfterWrite(5, TimeUnit.MINUTES)
+        .recordStats()
+        .build(fromPath -> {
+          WebRedirect record = WebRedirectRepository.findByFromPath(fromPath);
+          return record != null ? record : WebRedirect.NONE;
+        });
+    cacheManager.put(WEB_REDIRECT_CACHE, webRedirectCache);
 
     // Login attempt by username cache
     Cache<String, Object> loginAttemptByUsernameCache = Caffeine.newBuilder()

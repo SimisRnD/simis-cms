@@ -220,6 +220,78 @@ class WebPageRepositoryTest {
     assertEquals(0, WebPageRepository.countExpiringSoon());
   }
 
+  // --- date-range and author filters (issue #426, editorial calendar) ---
+
+  @Test
+  void dateRangeFilterMatchesAPageWithAPublishAtInsideTheRange() {
+    addWebPageWithPublishAt("/scheduled-in-range", Timestamp.valueOf("2026-08-15 09:00:00"));
+    addWebPageWithPublishAt("/scheduled-outside-range", Timestamp.valueOf("2026-10-01 09:00:00"));
+
+    WebPageSpecification specification = new WebPageSpecification();
+    specification.setStartingDateRange(Timestamp.valueOf("2026-08-01 00:00:00"));
+    specification.setEndingDateRange(Timestamp.valueOf("2026-09-01 00:00:00"));
+
+    List<WebPage> results = WebPageRepository.findAll(specification, null);
+
+    assertEquals(1, results.size());
+    assertEquals("/scheduled-in-range", results.get(0).getLink());
+  }
+
+  @Test
+  void dateRangeFilterMatchesAPageWithAnExpiresAtInsideTheRangeEvenWithNoPublishAt() {
+    // Proves the OR: a page can match on expires_at alone, with publish_at left unset entirely.
+    WebPage webPage = new WebPage();
+    webPage.setLink("/expiring-in-range");
+    webPage.setTitle("Expiring In Range");
+    webPage.setEnabled(true);
+    webPage.setSearchable(true);
+    webPage.setCreatedBy(1L);
+    webPage.setExpiresAt(Timestamp.valueOf("2026-08-20 09:00:00"));
+    WebPageRepository.save(webPage);
+
+    WebPageSpecification specification = new WebPageSpecification();
+    specification.setStartingDateRange(Timestamp.valueOf("2026-08-01 00:00:00"));
+    specification.setEndingDateRange(Timestamp.valueOf("2026-09-01 00:00:00"));
+
+    List<WebPage> results = WebPageRepository.findAll(specification, null);
+
+    assertEquals(1, results.size());
+    assertEquals("/expiring-in-range", results.get(0).getLink());
+  }
+
+  @Test
+  void dateRangeFilterExcludesAPageWithNeitherDateSet() {
+    addWebPage("/no-schedule", "No Schedule", null, null, true, true, false);
+
+    WebPageSpecification specification = new WebPageSpecification();
+    specification.setStartingDateRange(Timestamp.valueOf("2026-08-01 00:00:00"));
+    specification.setEndingDateRange(Timestamp.valueOf("2026-09-01 00:00:00"));
+
+    assertTrue(WebPageRepository.findAll(specification, null).isEmpty());
+  }
+
+  @Test
+  void createdByFilterReturnsOnlyPagesFromThatAuthor() {
+    addWebPageWithAuthor("/from-author-1", 1L);
+    addWebPageWithAuthor("/from-author-2", 2L);
+
+    WebPageSpecification specification = new WebPageSpecification();
+    specification.setCreatedBy(2L);
+
+    List<WebPage> results = WebPageRepository.findAll(specification, null);
+
+    assertEquals(1, results.size());
+    assertEquals("/from-author-2", results.get(0).getLink());
+  }
+
+  @Test
+  void createdByUnsetReturnsPagesFromEveryAuthor() {
+    addWebPageWithAuthor("/from-author-1", 1L);
+    addWebPageWithAuthor("/from-author-2", 2L);
+
+    assertEquals(2, WebPageRepository.findAll(new WebPageSpecification(), null).size());
+  }
+
   // --- solution_type persistence (issue #570) ---
 
   @Test
@@ -696,6 +768,27 @@ class WebPageRepositoryTest {
     webPage.setSearchable(true);
     webPage.setCreatedBy(1L);
     webPage.setExpiresAt(expiresAt);
+    return WebPageRepository.save(webPage);
+  }
+
+  private static WebPage addWebPageWithPublishAt(String link, Timestamp publishAt) {
+    WebPage webPage = new WebPage();
+    webPage.setLink(link);
+    webPage.setTitle(link);
+    webPage.setEnabled(true);
+    webPage.setSearchable(true);
+    webPage.setCreatedBy(1L);
+    webPage.setPublishAt(publishAt);
+    return WebPageRepository.save(webPage);
+  }
+
+  private static WebPage addWebPageWithAuthor(String link, long createdBy) {
+    WebPage webPage = new WebPage();
+    webPage.setLink(link);
+    webPage.setTitle(link);
+    webPage.setEnabled(true);
+    webPage.setSearchable(true);
+    webPage.setCreatedBy(createdBy);
     return WebPageRepository.save(webPage);
   }
 }
