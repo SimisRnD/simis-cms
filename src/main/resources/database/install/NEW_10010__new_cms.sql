@@ -197,7 +197,13 @@ CREATE TABLE images (
   file_type VARCHAR(20),
   width INTEGER NOT NULL,
   height INTEGER NOT NULL,
-  web_path VARCHAR(50) NOT NULL
+  web_path VARCHAR(50) NOT NULL,
+  -- Focal point as a 0-100 percentage of width/height (issue #411 PR3), so a fixed-aspect crop can
+  -- center on the subject instead of blind-center-cropping. NOT NULL with a dead-center default so
+  -- every row is always valid with no null-handling anywhere downstream. See
+  -- UPGRADE_20260804.1901__image_focal_point.sql for existing databases.
+  focal_x NUMERIC(5,2) NOT NULL DEFAULT 50.00,
+  focal_y NUMERIC(5,2) NOT NULL DEFAULT 50.00
 );
 CREATE INDEX images_created_idx ON images(created);
 CREATE INDEX images_web_path_idx ON images(web_path);

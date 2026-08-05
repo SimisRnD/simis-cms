@@ -17,6 +17,7 @@
 package com.simisinc.platform.application.cms;
 
 import java.awt.Dimension;
+import java.awt.Rectangle;
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
@@ -59,6 +60,11 @@ public class GenerateImageVariantsCommand {
   public static final String THUMBNAIL = "thumbnail";
   public static final String MEDIUM = "medium";
   public static final String LARGE = "large";
+  public static final String SQUARE = "square";
+
+  // A card-thumbnail-ish size; nothing consumes this variant at a specific size yet, so it's an
+  // easy constant to retune once more callers exist.
+  private static final int SQUARE_DIMENSION = 400;
 
   /** Max dimension (the longer side) each variant is resized to fit within, aspect-preserved. */
   private static final Map<String, Integer> VARIANT_MAX_DIMENSION = new LinkedHashMap<>();
@@ -128,26 +134,11 @@ public class GenerateImageVariantsCommand {
 
   private static ImageVariant generateOneVariant(Image image, File originalFile, String variantType, int maxDimension)
       throws Exception {
-    String extension = FileSystemCommand.cleanExtension(FilenameUtils.getExtension(image.getFilename()));
-    String relativeDir = FilenameUtils.getFullPath(image.getFileServerPath());
-    String baseName = FilenameUtils.getBaseName(image.getFileServerPath());
-    String relativeVariantPath = relativeDir + baseName + "-" + variantType
-        + (extension.isEmpty() ? "" : "." + extension);
-
-    String serverRootPath = FileSystemCommand.getFileServerRootPath();
-    File variantFile = FileSystemCommand.resolveWithinRoot(serverRootPath, relativeVariantPath);
-    if (variantFile == null) {
-      LOG.warn("Could not resolve a safe variant path for image " + image.getId() + " (" + variantType + ")");
+    VariantPath variantPath = resolveVariantPath(image, variantType);
+    if (variantPath == null) {
       return null;
     }
-
-    // Re-check the image row still exists immediately before writing: this job runs
-    // asynchronously off the upload's critical path, so an admin can delete the image while a
-    // variant is still being generated. DeleteImageCommand only knows to clean up variant files
-    // that already had a row at the moment it ran -- writing a file for an image that's already
-    // gone would orphan it with no cleanup path.
-    if (ImageRepository.findById(image.getId()) == null) {
-      LOG.warn("Image was deleted before variant generation completed: " + image.getId() + " (" + variantType + ")");
+    if (!imageStillExists(image, variantType)) {
       return null;
     }
 
@@ -168,21 +159,129 @@ public class GenerateImageVariantsCommand {
     if ("image/gif".equals(image.getFileType())) {
       op.layers("optimize");
     }
-    op.addImage(variantFile.getAbsolutePath());
+    op.addImage(variantPath.file().getAbsolutePath());
     convert.run(op);
 
-    if (!variantFile.isFile() || variantFile.length() <= 0) {
+    return finalizeVariant(image, variantType, variantPath);
+  }
+
+  /**
+   * Generates a square variant cropped around the image's stored focal point (issue #411 PR3),
+   * instead of the aspect-preserving resize {@link #generateVariants} produces. Meant to be called
+   * on demand when an admin sets or changes a focal point ({@code FocalPointVariantJob}), not as
+   * part of the upload-time {@link #generateVariants} sweep -- thumbnail/medium/large are
+   * unaffected by focal point, so regenerating them on a focal-point-only change would be wasted
+   * work.
+   *
+   * @param image a previously-saved image record with its focal point already persisted
+   * @return the generated variant, or {@code null} when the image's format is unsupported, the
+   *         original file is missing, or generation failed
+   */
+  public static ImageVariant generateSquareVariant(Image image) {
+    if (image == null || image.getId() == null || image.getId() == -1) {
+      return null;
+    }
+    if (!SUPPORTED_MIME_TYPES.contains(image.getFileType())) {
+      LOG.debug("Skipping square variant generation for unsupported type: " + image.getFileType());
+      return null;
+    }
+
+    String serverRootPath = FileSystemCommand.getFileServerRootPath();
+    File originalFile = FileSystemCommand.resolveWithinRoot(serverRootPath, image.getFileServerPath());
+    if (originalFile == null || !originalFile.isFile()) {
+      LOG.warn("Original image file not found for square variant generation: " + image.getId());
+      return null;
+    }
+
+    try {
+      return generateOneFocalPointVariant(image, originalFile, SQUARE, 1, 1, SQUARE_DIMENSION);
+    } catch (Exception e) {
+      LOG.error("Could not generate the square variant for image " + image.getId(), e);
+      return null;
+    }
+  }
+
+  private static ImageVariant generateOneFocalPointVariant(Image image, File originalFile, String variantType,
+      int targetAspectWidth, int targetAspectHeight, int maxOutputDimension) throws Exception {
+    VariantPath variantPath = resolveVariantPath(image, variantType);
+    if (variantPath == null) {
+      return null;
+    }
+    if (!imageStillExists(image, variantType)) {
+      return null;
+    }
+
+    Rectangle cropRect = FocalPointCropCommand.computeCropRect(
+        image.getWidth(), image.getHeight(), image.getFocalX(), image.getFocalY(),
+        targetAspectWidth, targetAspectHeight);
+
+    ConvertCmd convert = new ConvertCmd();
+    IMOperation op = new IMOperation();
+    op.addImage(originalFile.getAbsolutePath());
+    if ("image/gif".equals(image.getFileType())) {
+      op.coalesce();
+    }
+    // Crop first -- it's the only operation of the two that changes aspect ratio. Never call
+    // .gravity(...) with a non-default value here: it would change the coordinate origin this
+    // crop's (x,y) is measured from, silently shifting the rectangle FocalPointCropCommand just
+    // computed.
+    op.crop(cropRect.width, cropRect.height, cropRect.x, cropRect.y);
+    // "!" forces the exact final pixel size (removing any rounding slop from the crop step), never
+    // upscaling past what the crop actually contains.
+    int outputDimension = Math.min(maxOutputDimension, cropRect.width);
+    op.resize(outputDimension, outputDimension, "!");
+    if ("image/gif".equals(image.getFileType())) {
+      op.layers("optimize");
+    }
+    op.addImage(variantPath.file().getAbsolutePath());
+    convert.run(op);
+
+    return finalizeVariant(image, variantType, variantPath);
+  }
+
+  private static VariantPath resolveVariantPath(Image image, String variantType) {
+    String extension = FileSystemCommand.cleanExtension(FilenameUtils.getExtension(image.getFilename()));
+    String relativeDir = FilenameUtils.getFullPath(image.getFileServerPath());
+    String baseName = FilenameUtils.getBaseName(image.getFileServerPath());
+    String relativeVariantPath = relativeDir + baseName + "-" + variantType
+        + (extension.isEmpty() ? "" : "." + extension);
+
+    String serverRootPath = FileSystemCommand.getFileServerRootPath();
+    File variantFile = FileSystemCommand.resolveWithinRoot(serverRootPath, relativeVariantPath);
+    if (variantFile == null) {
+      LOG.warn("Could not resolve a safe variant path for image " + image.getId() + " (" + variantType + ")");
+      return null;
+    }
+    return new VariantPath(variantFile, relativeVariantPath);
+  }
+
+  private static boolean imageStillExists(Image image, String variantType) {
+    // Re-check the image row still exists immediately before writing: this job runs
+    // asynchronously off the upload's critical path, so an admin can delete the image while a
+    // variant is still being generated. DeleteImageCommand only knows to clean up variant files
+    // that already had a row at the moment it ran -- writing a file for an image that's already
+    // gone would orphan it with no cleanup path.
+    if (ImageRepository.findById(image.getId()) == null) {
+      LOG.warn("Image was deleted before variant generation completed: " + image.getId() + " (" + variantType + ")");
+      return false;
+    }
+    return true;
+  }
+
+  private static ImageVariant finalizeVariant(Image image, String variantType, VariantPath variantPath)
+      throws IOException {
+    if (!variantPath.file().isFile() || variantPath.file().length() <= 0) {
       LOG.warn("Variant file was not written for image " + image.getId() + " (" + variantType + ")");
       return null;
     }
 
-    Dimension dimension = readDimension(variantFile);
+    Dimension dimension = readDimension(variantPath.file());
 
     ImageVariant record = new ImageVariant();
     record.setImageId(image.getId());
     record.setVariantType(variantType);
-    record.setFileServerPath(relativeVariantPath);
-    record.setFileLength(variantFile.length());
+    record.setFileServerPath(variantPath.relativePath());
+    record.setFileLength(variantPath.file().length());
     record.setFileType(image.getFileType());
     record.setWidth(dimension.width);
     record.setHeight(dimension.height);
@@ -191,5 +290,8 @@ public class GenerateImageVariantsCommand {
 
   private static Dimension readDimension(File imageFile) throws IOException {
     return ImageDimensionCommand.readDimension(imageFile);
+  }
+
+  private record VariantPath(File file, String relativePath) {
   }
 }
