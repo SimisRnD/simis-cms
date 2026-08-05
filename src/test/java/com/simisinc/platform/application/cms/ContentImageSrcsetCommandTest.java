@@ -177,6 +177,11 @@ class ContentImageSrcsetCommandTest {
       int imgAttributesStartIdx = injected.indexOf("<img ") + 5;
       int imgAttributesEndIdx = injected.indexOf(">", imgAttributesStartIdx);
       String attributes = injected.substring(imgAttributesStartIdx, imgAttributesEndIdx);
+      // ContentCarouselWidget's own extraction (issue #413/#975) strips loading=/decoding= from the
+      // extracted attributes before re-splicing, since its JSP adds its own position-aware
+      // loading/decoding per-slide -- reproduced here to confirm the two compose without a
+      // duplicate/conflicting loading attribute surviving into the final tag.
+      attributes = attributes.replace(" decoding=\"async\"", "").replace(" loading=\"lazy\"", "");
       if (attributes.endsWith("/")) {
         attributes = attributes.substring(0, attributes.length() - 1);
       }
@@ -185,8 +190,25 @@ class ContentImageSrcsetCommandTest {
       assertTrue(attributes.contains("alt=\"\""), attributes);
       assertTrue(attributes.contains("srcset=\"/assets/img/20190826142844-128/Small%20Business.jpg?variant=medium 800w\""),
           attributes);
-      assertTrue(attributes.contains("loading=\"lazy\""), attributes);
+      assertTrue(!attributes.contains("loading="),
+          "loading must not survive into the extracted attributes -- the JSP's own per-slide choice must be authoritative: "
+              + attributes);
       assertTrue(!attributes.endsWith("/"), "the self-closing slash must have been stripped: " + attributes);
+    }
+  }
+
+  @Test
+  void doesNotDuplicateLoadingOrDecodingWhenTheTagAlreadyDeclaresThem() {
+    // A content author's raw HTML paste (or, per the ContentCarouselWidget test above, any future
+    // upstream source) can already have set one of these -- an existing declaration must win rather
+    // than getting a second, conflicting one appended.
+    String html = "<img src=\"/assets/img/1-1/x.jpg\" loading=\"eager\" decoding=\"sync\" />";
+    try (MockedStatic<ImageVariantRepository> mocked = mockOneVariant()) {
+      String result = ContentImageSrcsetCommand.injectSrcset(html);
+      // Same benign double-space-before-insertion / no-space-before-"/>" quirk as the self-closing
+      // test above -- cosmetic only.
+      assertEquals("<img src=\"/assets/img/1-1/x.jpg\" loading=\"eager\" decoding=\"sync\" "
+          + " srcset=\"/assets/img/1-1/x.jpg?variant=medium 800w\" sizes=\"(max-width: 1200px) 100vw, 1200px\"/>", result);
     }
   }
 }

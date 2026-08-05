@@ -135,7 +135,18 @@ public class ContentImageSrcsetCommand {
     String sizesValue = isPositiveInteger(width)
         ? "(max-width: " + width + "px) 100vw, " + width + "px"
         : "(max-width: 1200px) 100vw, 1200px";
-    String insertion = " srcset=\"" + srcsetValue + "\" sizes=\"" + sizesValue + "\" decoding=\"async\" loading=\"lazy\"";
+    StringBuilder insertion = new StringBuilder(" srcset=\"").append(srcsetValue).append("\" sizes=\"").append(sizesValue)
+        .append("\"");
+    // Don't add loading=/decoding= on top of an already-declared value -- a content author can
+    // paste raw HTML that already sets one, and (issue #413/#975) a JSP consumer of extracted
+    // attributes (ContentCarouselWidget) may add its own position-aware loading logic downstream
+    // of this injection; either way, an existing declaration wins over this generic one.
+    if (!StringUtils.containsIgnoreCase(originalTag, "decoding=")) {
+      insertion.append(" decoding=\"async\"");
+    }
+    if (!StringUtils.containsIgnoreCase(originalTag, "loading=")) {
+      insertion.append(" loading=\"lazy\"");
+    }
     int insertAt = originalTag.endsWith("/>") ? originalTag.length() - 2 : originalTag.length() - 1;
     return originalTag.substring(0, insertAt) + insertion + originalTag.substring(insertAt);
   }
