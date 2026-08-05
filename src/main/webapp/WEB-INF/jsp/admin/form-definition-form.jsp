@@ -1,0 +1,80 @@
+<%--
+  ~ Copyright 2026 SimIS Inc.
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  --%>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
+<jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
+<jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
+<jsp:useBean id="formDefinition" class="com.simisinc.platform.domain.model.cms.FormDefinition" scope="request"/>
+<form method="post">
+  <%-- Required by controller --%>
+  <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
+  <input type="hidden" name="token" value="${userSession.formToken}"/>
+  <%-- Form values --%>
+  <input type="hidden" name="id" value="${formDefinition.id}"/>
+  <%-- Title and Message block --%>
+  <c:if test="${!empty title}">
+    <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
+  </c:if>
+  <%@include file="../page_messages.jspf" %>
+  <%-- Form Content --%>
+  <div class="grid-x grid-margin-x">
+    <div class="small-12 medium-6 cell">
+      <label>Name <span class="required">*</span>
+        <input type="text" placeholder="e.g. Contact Us" name="name" value="<c:out value="${formDefinition.name}"/>" required>
+      </label>
+    </div>
+    <div class="small-12 medium-6 cell">
+      <label>Button Label
+        <input type="text" placeholder="Submit" name="buttonName" value="<c:out value="${formDefinition.buttonName}"/>">
+      </label>
+    </div>
+  </div>
+  <label>Title
+    <input type="text" placeholder="Heading shown above the form..." name="title" value="<c:out value="${formDefinition.title}"/>">
+  </label>
+  <label>Subtitle
+    <input type="text" placeholder="Optional text shown under the title..." name="subtitle" value="<c:out value="${formDefinition.subtitle}"/>">
+  </label>
+  <div class="grid-x grid-margin-x">
+    <div class="small-12 medium-6 cell">
+      <label>Success Title
+        <input type="text" placeholder="Shown after a successful submission..." name="successTitle" value="<c:out value="${formDefinition.successTitle}"/>">
+      </label>
+    </div>
+    <div class="small-12 medium-6 cell">
+      <label>Email submissions to
+        <input type="text" placeholder="name@example.com" name="emailTo" value="<c:out value="${formDefinition.emailTo}"/>">
+      </label>
+    </div>
+  </div>
+  <label>Success Message
+    <input type="text" placeholder="Optional message shown after a successful submission..." name="successMessage" value="<c:out value="${formDefinition.successMessage}"/>">
+  </label>
+  <input id="useCaptcha" type="checkbox" name="useCaptcha" value="true" <c:if test="${formDefinition.useCaptcha}">checked</c:if>/><label for="useCaptcha">Use Captcha?</label>
+  <input id="checkForSpam" type="checkbox" name="checkForSpam" value="true" <c:if test="${formDefinition.checkForSpam}">checked</c:if>/><label for="checkForSpam">Check for spam?</label>
+  <input id="enabled" type="checkbox" name="enabled" value="true" <c:if test="${formDefinition.enabled}">checked</c:if>/><label for="enabled">Enabled?</label>
+  <div class="button-container">
+    <c:choose>
+      <c:when test="${formDefinition.id eq -1}">
+        <input type="submit" class="button radius success expanded" value="Save"/>
+      </c:when>
+      <c:otherwise>
+        <input type="submit" class="button radius success" value="Save"/>
+        <a href="${ctx}/admin/forms" class="button radius secondary">Cancel</a>
+      </c:otherwise>
+    </c:choose>
+  </div>
+</form>

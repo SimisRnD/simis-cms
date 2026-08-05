@@ -1,0 +1,100 @@
+<%--
+  ~ Copyright 2026 SimIS Inc.
+  ~
+  ~ Licensed under the Apache License, Version 2.0 (the "License");
+  ~ you may not use this file except in compliance with the License.
+  ~ You may obtain a copy of the License at
+  ~
+  ~     http://www.apache.org/licenses/LICENSE-2.0
+  ~
+  ~ Unless required by applicable law or agreed to in writing, software
+  ~ distributed under the License is distributed on an "AS IS" BASIS,
+  ~ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+  ~ See the License for the specific language governing permissions and
+  ~ limitations under the License.
+  --%>
+<%@ taglib prefix="c" uri="jakarta.tags.core" %>
+<%@ taglib prefix="font" uri="/WEB-INF/tlds/font-functions.tld" %>
+<%@ taglib prefix="js" uri="/WEB-INF/tlds/javascript-escape.tld" %>
+<%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
+<jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
+<jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
+<jsp:useBean id="formDefinition" class="com.simisinc.platform.domain.model.cms.FormDefinition" scope="request"/>
+<jsp:useBean id="fieldList" class="java.util.ArrayList" scope="request"/>
+<link rel="stylesheet" href="${ctx}/javascript/dragula-3.7.3/dragula.min.css"/>
+<c:if test="${!empty title}">
+  <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
+</c:if>
+<p class="help-text">
+  Drag the <i class="fa fa-arrows"></i> handle to reorder fields, click <i class="${font:fas()} fa-edit"></i> to edit
+  a field, or <i class="fa fa-circle-xmark"></i> to remove it. Reordering is saved when you click
+  <strong>Save Field Order</strong> below.
+</p>
+<%@include file="../page_messages.jspf" %>
+<c:if test="${empty fieldList}">
+  <p class="subheader">No fields were found, add one!</p>
+</c:if>
+<form method="post" onsubmit="return checkFieldOrder()">
+  <%-- Required by controller --%>
+  <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
+  <input type="hidden" name="token" value="${userSession.formToken}"/>
+  <%-- Form values --%>
+  <input type="hidden" name="formDefinitionId" value="${formDefinition.id}"/>
+  <input type="hidden" id="fieldOrder" name="fieldOrder" value=""/>
+  <div id="form-fields-container" class="form-fields-container">
+    <c:forEach items="${fieldList}" var="field">
+      <div id="form-field-row-${field.id}" class="form-field-row">
+        <div style="position: absolute; right: 5px; top: 5px;">
+          <small>
+            <a href="${ctx}/admin/forms-editor?formDefinitionId=${formDefinition.id}&fieldId=${field.id}" title="Edit this field"><i class="${font:fas()} fa-edit"></i></a>
+            <a href="javascript:deleteField(${field.id}, '<c:out value="${js:escape(field.label)}" />');" title="Delete this field"><i class="fa fa-circle-xmark"></i></a>
+          </small>
+        </div>
+        <div>
+          <i class="fa fa-arrows form-field-drag-handle" title="Drag to reorder"></i>
+          <strong><c:out value="${field.label}"/></strong><c:if test="${field.required}"> <span class="required">*</span></c:if>
+        </div>
+        <div>
+          <small class="subheader">
+            <c:out value="${field.name}"/> &middot; <c:out value="${field.type}"/>
+            <c:if test="${!empty field.placeholder}"> &middot; placeholder: "<c:out value="${field.placeholder}"/>"</c:if>
+          </small>
+        </div>
+      </div>
+    </c:forEach>
+  </div>
+  <c:if test="${!empty fieldList}">
+    <div class="button-container">
+      <input type="submit" class="button radius success" value="Save Field Order"/>
+    </div>
+  </c:if>
+</form>
+<script src="${ctx}/javascript/dragula-3.7.3/dragula.min.js"></script>
+<script nonce="${cspNonce}">
+  dragula([document.getElementById('form-fields-container')], {
+    moves: function (el, container, handle) {
+      return handle.classList.contains('form-field-drag-handle');
+    }
+  });
+
+  function deleteField(fieldId, label) {
+    if (!confirm("Delete the field \"" + label + "\"? This cannot be undone.")) {
+      return;
+    }
+    postAction('${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&fieldId=' + fieldId);
+  }
+
+  function checkFieldOrder() {
+    var container = document.getElementById("form-fields-container");
+    var rows = container.querySelectorAll(".form-field-row");
+    var order = "";
+    for (var i = 0; i < rows.length; i++) {
+      if (i > 0) {
+        order += ",";
+      }
+      order += rows[i].id.substring(rows[i].id.lastIndexOf("-") + 1);
+    }
+    document.getElementById("fieldOrder").value = order;
+    return true;
+  }
+</script>

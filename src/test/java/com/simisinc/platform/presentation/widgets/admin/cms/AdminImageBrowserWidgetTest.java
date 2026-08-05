@@ -24,12 +24,15 @@ import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.persistence.cms.ImageRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.ImageSpecification;
 import com.simisinc.platform.infrastructure.persistence.cms.ImageVariantRepository;
+import com.simisinc.platform.infrastructure.scheduler.cms.FocalPointVariantJob;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
+import org.jobrunr.scheduling.BackgroundJobRequest;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
+import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -37,9 +40,11 @@ import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
@@ -414,5 +419,130 @@ class AdminImageBrowserWidgetTest extends WidgetBase {
       deleteMockedStatic.verifyNoInteractions();
     }
     Assertions.assertNotNull(widgetContext.getErrorMessage());
+  }
+
+  @Test
+  void setFocalPointWithAdminRoleSavesAndEnqueuesTheRegenerationJob() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
+    setRoles(widgetContext, ADMIN);
+    widgetContext.getParameterMap().put("command", new String[] { "setFocalPoint" });
+    addQueryParameter(widgetContext, "imageId", "42");
+    addQueryParameter(widgetContext, "focalX", "12.5");
+    addQueryParameter(widgetContext, "focalY", "87.25");
+
+    Image image = new Image();
+    image.setId(42L);
+    image.setFilename("hero.png");
+
+    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class);
+        MockedStatic<AuditEventCommand> auditMockedStatic = mockStatic(AuditEventCommand.class);
+        MockedStatic<BackgroundJobRequest> jobRequest = mockStatic(BackgroundJobRequest.class)) {
+      imageRepositoryMockedStatic.when(() -> ImageRepository.findById(42L)).thenReturn(image);
+      imageRepositoryMockedStatic.when(() -> ImageRepository.save(image)).thenReturn(image);
+
+      AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
+      widget.post(widgetContext);
+
+      Assertions.assertEquals(0, new BigDecimal("12.5").compareTo(image.getFocalX()));
+      Assertions.assertEquals(0, new BigDecimal("87.25").compareTo(image.getFocalY()));
+      jobRequest.verify(() -> BackgroundJobRequest.enqueue(argThat((FocalPointVariantJob job) -> job.getImageId() == 42L)));
+      auditMockedStatic.verify(() -> AuditEventCommand.record(any(), any(), eq("image.setFocalPoint"),
+          any(), any(), any(), any(), any()));
+    }
+
+    Assertions.assertEquals("Focal point saved", widgetContext.getSuccessMessage());
+    Assertions.assertEquals("/admin/images", widgetContext.getRedirect());
+  }
+
+  @Test
+  void setFocalPointWithAnUnknownImageIdProducesAnErrorAndDoesNotEnqueue() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
+    setRoles(widgetContext, ADMIN);
+    widgetContext.getParameterMap().put("command", new String[] { "setFocalPoint" });
+    addQueryParameter(widgetContext, "imageId", "999");
+    addQueryParameter(widgetContext, "focalX", "50");
+    addQueryParameter(widgetContext, "focalY", "50");
+
+    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class);
+        MockedStatic<BackgroundJobRequest> jobRequest = mockStatic(BackgroundJobRequest.class)) {
+      imageRepositoryMockedStatic.when(() -> ImageRepository.findById(999L)).thenReturn(null);
+
+      AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
+      widget.post(widgetContext);
+
+      jobRequest.verifyNoInteractions();
+      imageRepositoryMockedStatic.verify(() -> ImageRepository.save(any()), never());
+    }
+
+    Assertions.assertNotNull(widgetContext.getErrorMessage());
+  }
+
+  @Test
+  void setFocalPointWithAnOutOfRangeValueProducesAnErrorAndDoesNotSaveOrEnqueue() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
+    setRoles(widgetContext, ADMIN);
+    widgetContext.getParameterMap().put("command", new String[] { "setFocalPoint" });
+    addQueryParameter(widgetContext, "imageId", "42");
+    addQueryParameter(widgetContext, "focalX", "150");
+    addQueryParameter(widgetContext, "focalY", "50");
+
+    Image image = new Image();
+    image.setId(42L);
+
+    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class);
+        MockedStatic<BackgroundJobRequest> jobRequest = mockStatic(BackgroundJobRequest.class)) {
+      imageRepositoryMockedStatic.when(() -> ImageRepository.findById(42L)).thenReturn(image);
+
+      AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
+      widget.post(widgetContext);
+
+      jobRequest.verifyNoInteractions();
+      imageRepositoryMockedStatic.verify(() -> ImageRepository.save(any()), never());
+    }
+
+    Assertions.assertNotNull(widgetContext.getErrorMessage());
+  }
+
+  @Test
+  void setFocalPointWithANonNumericValueProducesAnErrorAndDoesNotSaveOrEnqueue() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
+    setRoles(widgetContext, ADMIN);
+    widgetContext.getParameterMap().put("command", new String[] { "setFocalPoint" });
+    addQueryParameter(widgetContext, "imageId", "42");
+    addQueryParameter(widgetContext, "focalX", "not-a-number");
+    addQueryParameter(widgetContext, "focalY", "50");
+
+    Image image = new Image();
+    image.setId(42L);
+
+    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class);
+        MockedStatic<BackgroundJobRequest> jobRequest = mockStatic(BackgroundJobRequest.class)) {
+      imageRepositoryMockedStatic.when(() -> ImageRepository.findById(42L)).thenReturn(image);
+
+      AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
+      widget.post(widgetContext);
+
+      jobRequest.verifyNoInteractions();
+      imageRepositoryMockedStatic.verify(() -> ImageRepository.save(any()), never());
+    }
+
+    Assertions.assertNotNull(widgetContext.getErrorMessage());
+  }
+
+  @Test
+  void setFocalPointWithoutPermissionNeverTouchesTheRepository() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
+    // Default logged-in test user has no roles at all -- neither admin nor content-manager
+    widgetContext.getParameterMap().put("command", new String[] { "setFocalPoint" });
+    addQueryParameter(widgetContext, "imageId", "42");
+    addQueryParameter(widgetContext, "focalX", "50");
+    addQueryParameter(widgetContext, "focalY", "50");
+
+    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class)) {
+      AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
+      widget.post(widgetContext);
+
+      imageRepositoryMockedStatic.verifyNoInteractions();
+    }
   }
 }
