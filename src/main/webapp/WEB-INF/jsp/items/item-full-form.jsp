@@ -266,14 +266,27 @@
             <div class="input-group">
               <span class="input-group-label"><i class="fa fa-link"></i></span>
               <input class="input-group-field" type="text" placeholder="http://" id="imageUrl" name="imageUrl" value="<c:out value="${item.imageUrl}"/>">
-              <span class="input-group-label" style="padding: 0;"><a class="button small primary expanded no-gap" data-open="imageBrowserReveal">Browse Images</a></span>
+              <%-- /image-browser and /image-upload are both role="admin,content-manager"-gated
+                   pages (cms-layout.xml), but this form itself has no such restriction -- it's
+                   reached via CheckCollectionPermissionCommand's collection-scoped add permission,
+                   a separate ACL model. Showing these buttons to a user who doesn't hold one of
+                   those two global roles would silently fail: Browse Images has no AJAX .fail()
+                   handler and just hangs on "Loading...", and the upload POST 404s. Everyone can
+                   still fall back to typing/pasting a URL directly into the field above. --%>
+              <c:if test="${userSession.hasRole('admin') || userSession.hasRole('content-manager')}">
+                <span class="input-group-label" style="padding: 0;"><a class="button small primary expanded no-gap" data-open="imageBrowserReveal">Browse Images</a></span>
+              </c:if>
             </div>
-            <label for="imageFile" class="button">Upload Image File...</label>
-            <input type="file" id="imageFile" class="show-for-sr" accept="image/jpeg,image/png,image/jpg" onchange="SavePhoto(this)">
+            <c:if test="${userSession.hasRole('admin') || userSession.hasRole('content-manager')}">
+              <label for="imageFile" class="button">Upload Image File...</label>
+              <input type="file" id="imageFile" class="show-for-sr" accept="image/jpeg,image/png,image/jpg" onchange="SavePhoto(this)">
+            </c:if>
           </label>
-          <div id="imageUploadError" class="callout alert" role="alert" style="display:none; margin-top: 1rem; padding: 1rem;">
-            <p id="imageErrorMsg" style="margin: 0;"></p>
-          </div>
+          <c:if test="${userSession.hasRole('admin') || userSession.hasRole('content-manager')}">
+            <div id="imageUploadError" class="callout alert" role="alert" style="display:none; margin-top: 1rem; padding: 1rem;">
+              <p id="imageErrorMsg" style="margin: 0;"></p>
+            </div>
+          </c:if>
         </div>
         <div class="small-4 cell">
           <c:set var="itemImageSrcset" value="${image:srcset(item.imageUrl)}"/>
@@ -601,6 +614,7 @@
       <c:if test="${!empty cancelUrl}"><span class="button-gap"><a class="button radius secondary" href="${ctx}<c:out value="${cancelUrl}"/>">Cancel</a></span></c:if>
     </div>
 </form>
+<c:if test="${userSession.hasRole('admin') || userSession.hasRole('content-manager')}">
 <div class="reveal large" id="imageBrowserReveal" data-reveal data-animation-in="slide-in-down fast" role="dialog" aria-modal="true" aria-label="Image Browser">
   <h3>Loading...</h3>
 </div>
@@ -619,3 +633,4 @@
     });
   })
 </script>
+</c:if>
