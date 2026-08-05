@@ -24,14 +24,17 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
+import com.simisinc.platform.application.cms.ImageCommand;
 import com.simisinc.platform.application.items.CheckCollectionPermissionCommand;
 import com.simisinc.platform.application.items.LoadCollectionCommand;
 import com.simisinc.platform.domain.model.User;
+import com.simisinc.platform.domain.model.cms.ImageVariant;
 import com.simisinc.platform.domain.model.items.Category;
 import com.simisinc.platform.domain.model.items.Collection;
 import com.simisinc.platform.domain.model.items.Item;
 import com.simisinc.platform.domain.model.items.ItemTag;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
+import com.simisinc.platform.infrastructure.persistence.cms.ImageVariantRepository;
 import com.simisinc.platform.infrastructure.persistence.items.CategoryRepository;
 import com.simisinc.platform.infrastructure.persistence.items.ItemRepository;
 import com.simisinc.platform.infrastructure.persistence.items.ItemSpecification;
@@ -149,6 +152,19 @@ public class CollectionItemsListWidget extends GenericWidget {
     // Query the data
     List<Item> itemList = ItemRepository.findAll(specification, constraints);
     context.getRequest().setAttribute("itemList", itemList);
+
+    // Batch-fetch existing image variants for every item's image in one query (issue #411 PR2)
+    List<Long> itemImageIds = new ArrayList<>();
+    if (itemList != null) {
+      for (Item listedItem : itemList) {
+        Long imageId = ImageCommand.parseImageId(listedItem.getImageUrl());
+        if (imageId != null) {
+          itemImageIds.add(imageId);
+        }
+      }
+    }
+    Map<Long, List<ImageVariant>> imageVariantsByImageId = ImageVariantRepository.findByImageIds(itemImageIds);
+    context.getRequest().setAttribute("imageVariantsByImageId", imageVariantsByImageId);
 
     // Carry the filter through pagination (paging_control.jspf appends this to each page link)
     String recordPagingParams = "collectionId=" + collection.getId() + (includeArchived ? "&includeArchived=true" : "");

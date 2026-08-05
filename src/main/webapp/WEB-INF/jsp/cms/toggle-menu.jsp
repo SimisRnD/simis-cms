@@ -17,6 +17,7 @@
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
 <%@ taglib prefix="font" uri="/WEB-INF/tlds/font-functions.tld" %>
+<%@ taglib prefix="image" uri="/WEB-INF/tlds/image-functions.tld" %>
 <%@ taglib prefix="url" uri="/WEB-INF/tlds/url-functions.tld" %>
 <%@ taglib prefix="text" uri="/WEB-INF/tlds/text-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
@@ -49,9 +50,12 @@
       <c:set var="logoSrc" scope="request"><c:out value="${sitePropertyMap['site.logo']}"/></c:set>
     </c:otherwise>
   </c:choose>
+  <c:set var="logoSrcset" value="${image:srcset(logoSrc)}"/>
   <c:choose>
     <c:when test="${!empty logoSrc}">
-      <div class="logo"><a href="${ctx}/"><img alt="Logo" src="${logoSrc}" loading="eager"/></a></div>
+      <div class="logo"><a href="${ctx}/"><img alt="Logo" src="${logoSrc}"
+        <c:if test="${not empty logoSrcset}"> srcset="<c:out value="${logoSrcset}"/>" sizes="200px"</c:if>
+        decoding="async"/></a></div>
     </c:when>
     <c:otherwise>
       <div class="logo"><a href="${ctx}/"><c:out value="${sitePropertyMap['site.name']}"/></a></div>

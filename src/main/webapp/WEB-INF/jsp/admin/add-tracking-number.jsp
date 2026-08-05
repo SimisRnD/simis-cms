@@ -16,6 +16,7 @@
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
+<%@ taglib prefix="image" uri="/WEB-INF/tlds/image-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="trackingNumber" class="com.simisinc.platform.domain.model.ecommerce.TrackingNumber" scope="request"/>
@@ -74,7 +75,12 @@
             <label for="orderItemTrackingNumber${orderEntryStatus.index}"></label>
           </div>
           <div class="small-3 medium-3 large-2 cell">
-            <c:if test="${!empty product.imageUrl}"><img src="<c:out value="${product.imageUrl}"/>"/></c:if>
+            <c:if test="${!empty product.imageUrl}">
+              <c:set var="trackingImageSrcset" value="${image:srcset(product.imageUrl)}"/>
+              <img src="<c:out value="${product.imageUrl}"/>"
+                <c:if test="${not empty trackingImageSrcset}"> srcset="<c:out value="${trackingImageSrcset}"/>" sizes="150px"</c:if>
+                loading="lazy" decoding="async"/>
+            </c:if>
           </div>
           <div class="small-8 medium-7 large-9 cell medium-text-left">
               <p class="no-gap">

@@ -20,6 +20,7 @@
 <%@ taglib prefix="url" uri="/WEB-INF/tlds/url-functions.tld" %>
 <%@ taglib prefix="text" uri="/WEB-INF/tlds/text-functions.tld" %>
 <%@ taglib prefix="category" uri="/WEB-INF/tlds/category-functions.tld" %>
+<%@ taglib prefix="image" uri="/WEB-INF/tlds/image-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="collection" class="com.simisinc.platform.domain.model.items.Collection" scope="request"/>
@@ -60,8 +61,11 @@
           </c:if>
           <c:choose>
             <c:when test="${showImage eq 'true' && !empty item.imageUrl}">
+              <c:set var="itemImageSrcset" value="${image:srcsetBatch(item.imageUrl, imageVariantsByImageId)}"/>
               <div class="item-image">
-                <img alt="item image" src="<c:out value="${item.imageUrl}"/>" loading="lazy" decoding="async" />
+                <img alt="item image" src="<c:out value="${item.imageUrl}"/>"
+                  <c:if test="${not empty itemImageSrcset}"> srcset="<c:out value="${itemImageSrcset}"/>" sizes="150px"</c:if>
+                  decoding="async" loading="lazy" />
               </div>
             </c:when>
             <c:when test="${showIcon eq 'true' && !empty collection.icon}">

@@ -18,6 +18,7 @@
 <%@ taglib prefix="js" uri="/WEB-INF/tlds/javascript-escape.tld" %>
 <%@ taglib prefix="product" uri="/WEB-INF/tlds/product-functions.tld" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
+<%@ taglib prefix="image" uri="/WEB-INF/tlds/image-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="productList" class="java.util.ArrayList" scope="request"/>
@@ -58,7 +59,12 @@
     <c:forEach items="${productList}" var="product">
       <tr>
         <td>
-          <c:if test="${!empty product.imageUrl}"><img src="<c:out value="${product.imageUrl}"/>" style="max-height: 100px; max-width: 100px"/></c:if>
+          <c:if test="${!empty product.imageUrl}">
+            <c:set var="listThumbSrcset" value="${image:srcset(product.imageUrl)}"/>
+            <img src="<c:out value="${product.imageUrl}"/>" style="max-height: 100px; max-width: 100px"
+              <c:if test="${not empty listThumbSrcset}"> srcset="<c:out value="${listThumbSrcset}"/>" sizes="100px"</c:if>
+              loading="lazy" decoding="async"/>
+          </c:if>
         </td>
         <td>
           <a href="${ctx}/admin/product?productId=${product.id}&returnPage=/admin/products"><c:out value="${product.nameWithCaption}" /></a>
