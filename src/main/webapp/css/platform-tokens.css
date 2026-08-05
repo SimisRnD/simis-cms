@@ -773,3 +773,30 @@ summary:focus-visible,
   }
 }
 
+/* Site logo light/dark swap (cms/logo.jsp). Same toggle idiom as the
+   scheme-toggle icons above -- both images are always in the markup, CSS
+   picks which one paints. Only rendered as a pair when logo.jsp actually has
+   two different sources; a single-source logo has neither class and is
+   unaffected by these rules. */
+.platform-logo-dark {
+  display: none;
+}
+
+:root[data-theme="dark"] .platform-logo-light {
+  display: none;
+}
+
+:root[data-theme="dark"] .platform-logo-dark {
+  display: inline-block;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="auto"] .platform-logo-light {
+    display: none;
+  }
+
+  :root[data-theme="auto"] .platform-logo-dark {
+    display: inline-block;
+  }
+}
+
