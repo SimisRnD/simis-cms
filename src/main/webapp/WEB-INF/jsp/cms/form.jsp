@@ -253,7 +253,7 @@
         </label>
       </c:otherwise>
     </c:choose>
-    <c:if test="${formField.required && empty formField.listOfOptions}">
+    <c:if test="${formField.required}">
       <p id="error-${widgetContext.uniqueId}<c:out value="${formField.name}"/>" class="error-message" role="alert" aria-live="polite">
         <i class="fa fa-exclamation-circle"></i><c:out value="${formField.label}"/> is required
       </p>
