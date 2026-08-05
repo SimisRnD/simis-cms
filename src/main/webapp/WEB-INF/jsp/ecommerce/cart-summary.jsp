@@ -53,7 +53,7 @@
     <div class="checkout-summary-item">
       <div class="grid-x grid-margin-x">
         <div class="small-3 cell">
-          <c:if test="${!empty product.imageUrl}"><img src="<c:out value="${product.imageUrl}"/>" /></c:if>
+          <c:if test="${!empty product.imageUrl}"><img src="<c:out value="${product.imageUrl}"/>" alt="<c:out value="${product.name}"/>" loading="lazy" decoding="async" /></c:if>
         </div>
         <div class="small-6 cell">
           <div class="item-name">

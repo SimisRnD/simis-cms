@@ -577,7 +577,7 @@
               <p>
                 <c:choose>
                   <c:when test="${!empty sitePropertyMap['site.logo']}">
-                    <img alt="Logo" style="max-width: 75%" src="<c:out value="${sitePropertyMap['site.logo']}"/>" />
+                    <img alt="Logo" style="max-width: 75%" src="<c:out value="${sitePropertyMap['site.logo']}"/>" loading="eager" />
                   </c:when>
                   <c:otherwise>
                     <c:out value="${sitePropertyMap['site.name']}"/>

@@ -22,6 +22,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
 import java.io.Serializable;
 import java.util.Map;
 
@@ -172,6 +173,19 @@ public class ServiceContext implements Serializable {
 
   public void setPathParam2(String pathParam2) {
     this.pathParam2 = pathParam2;
+  }
+
+  /**
+   * Deserializes the raw request body as JSON -- unlike {@link #getParameterMap()} (query string /
+   * form-encoded bodies only, populated by the servlet container), a write endpoint accepting a
+   * JSON payload has to read {@link #request}'s body directly. Reuses {@link RestServlet}'s shared
+   * {@code Jsonb} instance (same package) rather than building a second one per call.
+   *
+   * @throws IOException if the request body cannot be read
+   * @throws javax.json.bind.JsonbException if the body is not valid JSON, or does not match {@code type}
+   */
+  public <T> T readJsonBody(Class<T> type) throws IOException {
+    return RestServlet.JSONB.fromJson(request.getReader(), type);
   }
 
 }

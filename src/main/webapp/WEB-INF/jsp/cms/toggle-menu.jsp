@@ -51,7 +51,7 @@
   </c:choose>
   <c:choose>
     <c:when test="${!empty logoSrc}">
-      <div class="logo"><a href="${ctx}/"><img alt="Logo" src="${logoSrc}"/></a></div>
+      <div class="logo"><a href="${ctx}/"><img alt="Logo" src="${logoSrc}" loading="eager"/></a></div>
     </c:when>
     <c:otherwise>
       <div class="logo"><a href="${ctx}/"><c:out value="${sitePropertyMap['site.name']}"/></a></div>

@@ -61,7 +61,7 @@
     <c:set var="lastDate" scope="request" value="${date:formatMonthDayYear(activity.created)}"/>
     <li class="clear-float">
       <p class="platform-activity-image">
-        <img class="platform-activity-icon" src="${ctx}/images/apple-touch-icon.png" />
+        <img class="platform-activity-icon" src="${ctx}/images/apple-touch-icon.png" alt="" width="128" height="128" loading="lazy" decoding="async" />
       </p>
       <p class="platform-activity-content">
         <c:if test="${activity.createdBy gt 0}">
@@ -225,7 +225,7 @@
               var content =
 
                 "<p class=\"platform-activity-image\">" +
-                "<img class=\"platform-activity-icon\" src=\"" + platformActivityIconUrl + "\" />\n" +
+                "<img class=\"platform-activity-icon\" src=\"" + platformActivityIconUrl + "\" alt=\"\" width=\"128\" height=\"128\" loading=\"lazy\" decoding=\"async\" />\n" +
                 "</p>" +
                 "<p class=\"platform-activity-content\">" +
                 (activity.user ? "<span class=\"platform-activity-content-name\">" + activity.user.toHtmlEntities() + "</span> " : "") +
