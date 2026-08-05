@@ -278,6 +278,7 @@ public class SitemapServlet extends HttpServlet {
       WebPageSpecification spec = new WebPageSpecification();
       spec.setEnabled(1);
       spec.setInSitemap(true);
+      spec.setArchivedOnly(false);
       List<WebPage> pages = WebPageRepository.findAll(spec, null);
 
       if (pages != null) {
@@ -338,6 +339,7 @@ public class SitemapServlet extends HttpServlet {
     try {
       BlogPostSpecification spec = new BlogPostSpecification();
       spec.setPublishedOnly(true);
+      spec.setArchivedOnly(false);
       List<BlogPost> posts = BlogPostRepository.findAll(spec, null);
 
       if (posts != null) {

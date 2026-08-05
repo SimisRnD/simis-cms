@@ -34,6 +34,10 @@ public class WebPageSpecification extends Entity {
   private int searchable = DataConstants.UNDEFINED;
   private int inSitemap = DataConstants.UNDEFINED;
   private int hasRedirect = DataConstants.UNDEFINED;
+  // issue #427: mirrors CalendarEventSpecification's archivedOnly exactly -- UNDEFINED includes
+  // archived rows (the default, unchanged for any caller that never sets this), TRUE returns only
+  // archived rows, FALSE excludes them.
+  private int archivedOnly = DataConstants.UNDEFINED;
 
   public WebPageSpecification() {
   }
@@ -115,5 +119,17 @@ public class WebPageSpecification extends Entity {
 
   public void setHasRedirect(boolean hasRedirect) {
     this.hasRedirect = (hasRedirect ? DataConstants.TRUE : DataConstants.FALSE);
+  }
+
+  public int getArchivedOnly() {
+    return archivedOnly;
+  }
+
+  public void setArchivedOnly(int archivedOnly) {
+    this.archivedOnly = archivedOnly;
+  }
+
+  public void setArchivedOnly(boolean archivedOnly) {
+    this.archivedOnly = (archivedOnly ? DataConstants.TRUE : DataConstants.FALSE);
   }
 }

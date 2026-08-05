@@ -36,6 +36,7 @@
   <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
 <a class="button small radius primary" href="${ctx}/admin/blog?returnPage=/admin/blogs">Add a Blog <i class="fa fa-arrow-circle-right"></i></a>
+<a class="button small radius secondary" href="${ctx}/admin/blog-posts">All Blog Posts <i class="fa fa-arrow-circle-right"></i></a>
 <%@include file="../page_messages.jspf" %>
 <table class="unstriped">
   <thead>

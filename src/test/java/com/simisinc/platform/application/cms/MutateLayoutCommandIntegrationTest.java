@@ -203,6 +203,7 @@ class MutateLayoutCommandIntegrationTest {
           + "created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP, "
           + "modified TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP, "
           + "modified_by BIGINT REFERENCES users(user_id), "
+          + "archived TIMESTAMP(3) DEFAULT NULL, "
           + "role_id_list VARCHAR(100) DEFAULT NULL, "
           + "template VARCHAR(255), "
           + "page_xml TEXT, "

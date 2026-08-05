@@ -66,6 +66,9 @@ public class WebPage extends Entity implements Reviewable {
   private Timestamp created = null;
   private Timestamp modified = null;
   private long modifiedBy = -1;
+  // Bulk-actions archive state (issue #427), mirroring CalendarEvent.archived exactly -- no
+  // archivedBy companion column, matching calendar_events' own shape.
+  private Timestamp archived = null;
   private String roleIdList = null;
   private String pageXml = null;
   private String draftPageXml = null;
@@ -224,6 +227,14 @@ public class WebPage extends Entity implements Reviewable {
 
   public void setModifiedBy(long modifiedBy) {
     this.modifiedBy = modifiedBy;
+  }
+
+  public Timestamp getArchived() {
+    return archived;
+  }
+
+  public void setArchived(Timestamp archived) {
+    this.archived = archived;
   }
 
   public String getRoleIdList() {

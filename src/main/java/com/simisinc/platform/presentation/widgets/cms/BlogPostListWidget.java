@@ -135,6 +135,9 @@ public class BlogPostListWidget extends GenericWidget {
       blogPostSpecification.setPublishedOnly(true);
       blogPostSpecification.setStartDateIsBeforeNow(true);
       blogPostSpecification.setIsWithinEndDate(true);
+      // Issue #427: an archived post must actually disappear from this public listing -- mirrors
+      // the UpcomingCalendarEventsWidget/CalendarSearchResultsWidget exclusion added for #882.
+      blogPostSpecification.setArchivedOnly(false);
     }
 
     // Load the blog posts

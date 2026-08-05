@@ -238,6 +238,12 @@ public class PageServlet extends HttpServlet {
           response.sendError(HttpServletResponse.SC_NOT_FOUND);
           return;
         }
+        // Determine if this is an archived page (issue #427)
+        if (isArchivedBlockedFromPublicAccess(webPage, userSession)) {
+          controllerSession.clearAllWidgetData();
+          response.sendError(HttpServletResponse.SC_NOT_FOUND);
+          return;
+        }
         // Enforce publish schedule and expiry for non-editors
         if (!userSession.hasRole("admin") && !userSession.hasRole("content-manager")) {
           Timestamp now = new Timestamp(System.currentTimeMillis());
@@ -828,7 +834,12 @@ public class PageServlet extends HttpServlet {
       }
 
       // See if the site is in setup mode (allow any user?)
-      if (!userSession.hasRole("admin") &&
+      // A valid draft preview token (#419) takes precedence over the setup-mode placeholder,
+      // same as it does over isDraftBlockedFromPublicAccess above -- otherwise a customer
+      // building a pre-launch site (site.online=false) could never preview their own homepage
+      // draft before flipping site.online to true.
+      if (!validPreviewToken &&
+          !userSession.hasRole("admin") &&
           !userSession.hasRole("content-manager") &&
           "false".equals(sitePropertyMap.getOrDefault("site.online", "false"))) {
         if ("/".equals(pagePath)) {
@@ -1519,6 +1530,19 @@ public class PageServlet extends HttpServlet {
    */
   static boolean isDraftBlockedFromPublicAccess(WebPage webPage, UserSession userSession) {
     if (!webPage.getDraft() || StringUtils.isNotBlank(webPage.getPageXml())) {
+      return false;
+    }
+    return !userSession.hasRole("admin") && !userSession.hasRole("content-manager");
+  }
+
+  /**
+   * Issue #427: an archived page must actually come offline for the public, mirroring the
+   * draft-blocking check above -- admins/content-managers can still preview it (e.g. to confirm
+   * it's the right page before restoring), but everyone else gets the same 404 a deleted page
+   * would give.
+   */
+  static boolean isArchivedBlockedFromPublicAccess(WebPage webPage, UserSession userSession) {
+    if (webPage.getArchived() == null) {
       return false;
     }
     return !userSession.hasRole("admin") && !userSession.hasRole("content-manager");

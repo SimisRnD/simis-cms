@@ -22,9 +22,12 @@ import com.simisinc.platform.domain.model.cms.Blog;
 import com.simisinc.platform.domain.model.cms.BlogPost;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.persistence.cms.BlogPostRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.BlogPostSpecification;
+import com.simisinc.platform.presentation.controller.DataConstants;
 import com.simisinc.platform.presentation.controller.RequestConstants;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
 import java.util.ArrayList;
@@ -81,5 +84,33 @@ class BlogPostListWidgetTest extends WidgetBase {
     Assertions.assertNotNull(widgetContext);
     Assertions.assertTrue(widgetContext.hasJsp());
     Assertions.assertEquals(JSP, widgetContext.getJsp());
+  }
+
+  @Test
+  void executeExcludesArchivedPostsForAGuest() {
+    // Issue #427: bulk Archive must actually take a post out of this public listing -- review
+    // caught that this widget set publishedOnly/date-range filters for a guest but never
+    // archivedOnly, so an archived post stayed fully visible here.
+    preferences.put("blogUniqueId", "news");
+
+    Blog blog = new Blog();
+    blog.setId(1L);
+    blog.setUniqueId("news");
+    blog.setName("News");
+    blog.setEnabled(true);
+
+    try (MockedStatic<LoadBlogCommand> loadBlogCommandMockedStatic = mockStatic(LoadBlogCommand.class);
+        MockedStatic<BlogPostRepository> blogPostRepositoryMockedStatic = mockStatic(BlogPostRepository.class)) {
+      loadBlogCommandMockedStatic.when(() -> LoadBlogCommand.loadBlogByUniqueId(eq("news"))).thenReturn(blog);
+      blogPostRepositoryMockedStatic.when(() -> BlogPostRepository.findAll(any(), any()))
+          .thenReturn(new ArrayList<>());
+
+      new BlogPostListWidget().execute(widgetContext);
+
+      ArgumentCaptor<BlogPostSpecification> specCaptor = ArgumentCaptor.forClass(BlogPostSpecification.class);
+      blogPostRepositoryMockedStatic.verify(() -> BlogPostRepository.findAll(specCaptor.capture(), any()));
+      Assertions.assertEquals(DataConstants.FALSE, specCaptor.getValue().getArchivedOnly(),
+          "a guest must never see archived posts in this listing");
+    }
   }
 }

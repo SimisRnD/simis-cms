@@ -309,6 +309,44 @@ public class ContentRepository {
     }
   }
 
+  /**
+   * Snapshots {@code record}'s current live content into content_versions (#406) before a caller is
+   * about to overwrite it directly -- i.e. SaveContentCommand#saveSafeContent/saveSafeDeltaContent's
+   * "publish immediately" path, which (unlike {@link #publish}) writes the new value straight onto
+   * the in-memory record rather than promoting it from draft_content in SQL, so there is no
+   * outgoing-value SELECT for {@link #publish} to do this snapshot as part of. Must be
+   * called with {@code record} still holding its OLD content/contentFormat, before the caller
+   * mutates it to the new value. A brand-new record (id == -1) or one with no live content yet has
+   * nothing to snapshot.
+   *
+   * <p>This insert+prune is its own standalone transaction, not shared with the caller's subsequent
+   * {@link #save}: if the save that follows fails, the snapshot is not rolled back with it. That is
+   * an accepted, narrow inconsistency (an orphaned version row for a publish that didn't actually
+   * happen) rather than a correctness or security issue, and avoids threading a shared Connection
+   * through save()/update(), which do not currently accept one.
+   */
+  public static void snapshotBeforeDirectPublish(Content record, int versionHistoryLimit) {
+    if (record == null || record.getId() == -1 || StringUtils.isBlank(record.getContent())) {
+      return;
+    }
+    try (Connection connection = DB.getConnection();
+        AutoStartTransaction ignored = new AutoStartTransaction(connection);
+        AutoRollback transaction = new AutoRollback(connection)) {
+      ContentVersion version = new ContentVersion();
+      version.setContentId(record.getId());
+      version.setContent(ContentHtmlCommand.toHtml(record.getContent(), record.getContentFormat()));
+      version.setApprovedBy(record.getApprovedBy());
+      version.setReleaseReference(record.getReleaseReference());
+      if (ContentVersionRepository.insert(connection, version) == -1) {
+        throw new SQLException("The prior content version was not saved");
+      }
+      ContentVersionRepository.pruneOldest(connection, record.getId(), versionHistoryLimit);
+      transaction.commit();
+    } catch (SQLException se) {
+      LOG.error("SQLException: " + se.getMessage());
+    }
+  }
+
   public static void removeDraft(Content record) {
     if (record == null || StringUtils.isBlank(record.getUniqueId())) {
       return;

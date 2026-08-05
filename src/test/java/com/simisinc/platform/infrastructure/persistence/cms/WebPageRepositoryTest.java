@@ -186,6 +186,20 @@ class WebPageRepositoryTest {
   }
 
   @Test
+  void searchExcludesArchivedPages() {
+    // Issue #427: bulk Archive must actually take a page out of the internal search index too --
+    // this was found missing in review (search() built its own raw WHERE clause and never
+    // considered the archived column at all).
+    WebPage webPage = addWebPage("/archived", "Widgets", null, "A page about widgets", true, true, false);
+    webPage.setArchived(new Timestamp(System.currentTimeMillis()));
+    WebPageRepository.save(webPage);
+
+    List<WebPage> results = WebPageRepository.search("widgets", null);
+
+    assertTrue(results.isEmpty(), "an archived page must not appear in search results");
+  }
+
+  @Test
   void countExpiringSoonCountsAPageWithAFutureExpiresAt() {
     addWebPageWithExpiresAt("/soon-to-expire", new Timestamp(System.currentTimeMillis() + Duration.ofDays(1).toMillis()));
 
@@ -522,6 +536,36 @@ class WebPageRepositoryTest {
     assertTrue(reloaded.getDraft());
   }
 
+  @Test
+  void restoreDraftFromVersionClearsAnyStaleApprovalOnTheDraftItReplaces() {
+    // A draft already submitted-and-approved must not let its approval carry over to a DIFFERENT
+    // draft swapped in by a restore -- otherwise the restored content could publish without ever
+    // actually being reviewed (the same bypass shape fixed for #957/#958, and for Content's own
+    // restoreDraftFromVersion in #406).
+    WebPage webPage = new WebPage();
+    webPage.setLink("/restore-clears-approval");
+    webPage.setTitle("Restore Clears Approval");
+    webPage.setEnabled(true);
+    webPage.setSearchable(true);
+    webPage.setCreatedBy(1L);
+    webPage.setPageXml("<xml>live</xml>");
+    webPage.setDraftPageXml("<xml>a different, already-approved draft</xml>");
+    webPage.setDraftStatus(ContentReviewCommand.STATUS_SUBMITTED);
+    webPage.setSubmittedBy(10L);
+    webPage.setApprovedBy(20L);
+    webPage.setReleaseReference("cleared per PA case 2026-405");
+    WebPage saved = WebPageRepository.save(webPage);
+
+    WebPageRepository.restoreDraftFromVersion(saved.getId(), "<xml>an older version</xml>");
+
+    WebPage reloaded = WebPageRepository.findById(saved.getId());
+    assertEquals("<xml>an older version</xml>", reloaded.getDraftPageXml());
+    assertNull(reloaded.getDraftStatus());
+    assertEquals(-1L, reloaded.getSubmittedBy());
+    assertEquals(-1L, reloaded.getApprovedBy(), "the restored draft must require a fresh approval, not inherit the old one");
+    assertNull(reloaded.getReleaseReference());
+  }
+
   private static String addPreviewToken(long webPageId, String pagePath) {
     WebPagePreviewToken record = new WebPagePreviewToken();
     record.setWebPageId(webPageId);
@@ -566,6 +610,7 @@ class WebPageRepositoryTest {
           + "created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP, "
           + "modified TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP, "
           + "modified_by BIGINT, "
+          + "archived TIMESTAMP(3), "
           + "role_id_list VARCHAR(100), "
           + "page_xml TEXT, "
           + "draft_page_xml TEXT, "
