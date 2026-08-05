@@ -73,11 +73,11 @@
             <small style="color: #999999">${image.width}x${image.height}</small>
             <small style="color: #999999"><c:out value="${number:suffix(image.fileLength)}"/></small><br />
             <small style="color: #999999"><fmt:formatDate pattern="yyyy-MM-dd" value="${image.created}" /></small><br />
-            <small><a target="_blank" href="${ctx}/assets/img/${image.url}">Image Link</a></small><br />
+            <small><a target="_blank" href="${ctx}/assets/img/${fn:escapeXml(image.url)}">Image Link</a></small><br />
             <small><span class="usage-badge label secondary" data-image-id="${image.id}">Checking usage&hellip;</span></small><br />
             <button type="button" class="setFocalPointBtn button tiny secondary radius margin-top-5"
                     data-id="${image.id}" data-filename="${fn:escapeXml(image.filename)}"
-                    data-url="${ctx}/assets/img/${image.url}"
+                    data-url="${ctx}/assets/img/${fn:escapeXml(image.url)}"
                     data-focal-x="<c:out value="${image.focalX}"/>" data-focal-y="<c:out value="${image.focalY}"/>">
               <i class="fa fa-crosshairs"></i> Focal Point
             </button>
