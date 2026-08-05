@@ -110,6 +110,9 @@ CREATE TABLE web_pages (
   created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
   modified TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
   modified_by BIGINT REFERENCES users(user_id),
+  -- Bulk-actions archive state (issue #427), mirroring calendar_events.archived exactly -- see
+  -- UPGRADE_20260804.1003__web_pages_archived.sql for the equivalent change to existing databases.
+  archived TIMESTAMP(3) DEFAULT NULL,
   role_id_list VARCHAR(100) DEFAULT NULL,
   template VARCHAR(255),
   page_xml TEXT,

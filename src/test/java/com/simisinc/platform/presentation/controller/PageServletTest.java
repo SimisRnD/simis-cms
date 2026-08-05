@@ -539,6 +539,42 @@ class PageServletTest {
     assertFalse(PageServlet.isDraftBlockedFromPublicAccess(webPage, guestSession()));
   }
 
+  // Issue #427: bulk Archive must actually take a page offline for the public, mirroring the
+  // draft-blocking check above -- the review that caught this found the archived column was set
+  // by the bulk action but never consulted anywhere on the public-access path.
+
+  @Test
+  void isArchivedBlockedFromPublicAccessBlocksAGuestFromAnArchivedPage() {
+    WebPage webPage = new WebPage();
+    webPage.setArchived(new java.sql.Timestamp(System.currentTimeMillis()));
+
+    assertTrue(PageServlet.isArchivedBlockedFromPublicAccess(webPage, guestSession()));
+  }
+
+  @Test
+  void isArchivedBlockedFromPublicAccessNeverBlocksAnAdmin() {
+    WebPage webPage = new WebPage();
+    webPage.setArchived(new java.sql.Timestamp(System.currentTimeMillis()));
+
+    assertFalse(PageServlet.isArchivedBlockedFromPublicAccess(webPage, sessionWithRoles("admin")));
+  }
+
+  @Test
+  void isArchivedBlockedFromPublicAccessNeverBlocksAContentManager() {
+    WebPage webPage = new WebPage();
+    webPage.setArchived(new java.sql.Timestamp(System.currentTimeMillis()));
+
+    assertFalse(PageServlet.isArchivedBlockedFromPublicAccess(webPage, sessionWithRoles("content-manager")));
+  }
+
+  @Test
+  void isArchivedBlockedFromPublicAccessReturnsFalseWhenThePageIsNotArchived() {
+    WebPage webPage = new WebPage();
+    webPage.setArchived(null);
+
+    assertFalse(PageServlet.isArchivedBlockedFromPublicAccess(webPage, guestSession()));
+  }
+
   // Issue #827: this is what decides the excludeArchived argument PageServlet passes to
   // LoadItemCommand.loadItemByUniqueIdForAuthorizedUser for the matched page's item route --
   // true only for a page with no role/group/capability restriction at all (a genuinely public
