@@ -52,7 +52,7 @@
         <c:choose>
           <c:when test="${!empty item.imageUrl}">
             <div class="item-image">
-              <img alt="item image" src="<c:out value="${item.imageUrl}"/>" />
+              <img alt="item image" src="<c:out value="${item.imageUrl}"/>" loading="lazy" decoding="async" />
             </div>
           </c:when>
           <c:when test="${!empty collection:icon(item.collectionId)}">

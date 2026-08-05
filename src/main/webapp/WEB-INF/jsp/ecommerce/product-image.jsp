@@ -22,4 +22,4 @@
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="product" class="com.simisinc.platform.domain.model.ecommerce.Product" scope="request"/>
-<img alt="<c:out value="${product.nameWithCaption}"/>" src="<c:out value="${product.imageUrl}"/>"/>
+<img alt="<c:out value="${product.nameWithCaption}"/>" src="<c:out value="${product.imageUrl}"/>" loading="eager"/>

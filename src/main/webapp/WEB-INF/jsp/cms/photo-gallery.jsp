@@ -67,7 +67,7 @@
       <div id="photo-gallery" class="swiper-wrapper">
       <c:forEach items="${fileList}" var="file">
         <div class="swiper-slide">
-          <img src="${ctx}/assets/view/${file.url}" alt="Image" loading="lazy">
+          <img src="${ctx}/assets/view/${file.url}" alt="Image" loading="lazy" decoding="async"<c:if test="${file.width > 0 && file.height > 0}"> width="${file.width}" height="${file.height}"</c:if>>
           <div class="swiper-lazy-preloader"></div>
           <c:if test="${showCaption eq 'true'}"><p class="slider-caption"><c:out value="${file.title}"/></p></c:if>
         </div>
@@ -121,7 +121,8 @@
       let slides = [];
       for (let i = 0; i < data.photoList.length; i++) {
         let photo = data.photoList[i];
-        slides.push('<div class="swiper-slide"><img src="' + photo.url + '" loading="lazy"><div class="swiper-lazy-preloader"></div><c:if test="${showCaption eq 'true'}"><p class="slider-caption">' + photo.title + '</p></c:if></div>');
+        let dims = (photo.width && photo.height) ? (' width="' + photo.width + '" height="' + photo.height + '"') : '';
+        slides.push('<div class="swiper-slide"><img src="' + photo.url + '" loading="lazy" decoding="async"' + dims + '><div class="swiper-lazy-preloader"></div><c:if test="${showCaption eq 'true'}"><p class="slider-caption">' + photo.title + '</p></c:if></div>');
       }
       console.log(slides);
       swiper${widgetContext.uniqueId}.removeAllSlides();
