@@ -88,6 +88,9 @@ public class PhotoListAjax extends GenericWidget {
       sb.append("\"title\":\"").append(JsonCommand.toJson(escapeHtml(fileItem.getTitle()))).append("\",");
       sb.append("\"filename\":\"").append(JsonCommand.toJson(fileItem.getFilename())).append("\",");
       sb.append("\"url\":\"").append(JsonCommand.toJson(url)).append("\"");
+      if (fileItem.getWidth() > 0 && fileItem.getHeight() > 0) {
+        sb.append(",\"width\":").append(fileItem.getWidth()).append(",\"height\":").append(fileItem.getHeight());
+      }
       sb.append("}");
     }
 

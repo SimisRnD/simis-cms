@@ -26,10 +26,10 @@
             <a href="${ctx}/">Home</a>
           </c:when>
           <c:when test="${!empty sitePropertyMap['site.logo.white']}">
-            <a href="${ctx}/"><img src="<c:out value="${sitePropertyMap['site.logo.white']}"/>" alt="<c:out value="${sitePropertyMap['site.name']}"/>" /></a>
+            <a href="${ctx}/"><img src="<c:out value="${sitePropertyMap['site.logo.white']}"/>" alt="<c:out value="${sitePropertyMap['site.name']}"/>" loading="eager" /></a>
           </c:when>
           <c:otherwise>
-            <a href="${ctx}/"><img id="logo-small-title-bar" src="${ctx}/images/logo-white-color.png" alt="<c:out value="${sitePropertyMap['site.name']}"/>" /></a>
+            <a href="${ctx}/"><img id="logo-small-title-bar" src="${ctx}/images/logo-white-color.png" alt="<c:out value="${sitePropertyMap['site.name']}"/>" loading="eager" /></a>
             <%-- Defaults to the bundled logo; upgrades to the admin-configured one only once an
                  Image() probe confirms it actually loads, so a fresh install never 404s here. --%>
             <script nonce="${cspNonce}">(function(){var u='${js:escape(systemPropertyMap['system.www.context'])}/images/logo-white-color.png';var i=new Image();i.onload=function(){document.getElementById('logo-small-title-bar').src=u;};i.src=u;})();</script>
@@ -159,10 +159,10 @@
                         <a href="${ctx}/"><c:out value="${sitePropertyMap['site.name']}"/></a>
                       </c:when>
                       <c:when test="${!empty sitePropertyMap['site.logo']}">
-                        <a href="${ctx}/"><img src="<c:out value="${sitePropertyMap['site.logo']}"/>" alt="<c:out value="${sitePropertyMap['site.name']}"/>" /></a>
+                        <a href="${ctx}/"><img src="<c:out value="${sitePropertyMap['site.logo']}"/>" alt="<c:out value="${sitePropertyMap['site.name']}"/>" loading="eager" /></a>
                       </c:when>
                       <c:otherwise>
-                        <a href="${ctx}/"><img id="logo-header-pro" src="${ctx}/images/logo-header.png" alt="<c:out value="${sitePropertyMap['site.name']}"/>" /></a>
+                        <a href="${ctx}/"><img id="logo-header-pro" src="${ctx}/images/logo-header.png" alt="<c:out value="${sitePropertyMap['site.name']}"/>" loading="eager" /></a>
                         <script nonce="${cspNonce}">(function(){var u='${js:escape(systemPropertyMap['system.www.context'])}/images/logo-header.png';var i=new Image();i.onload=function(){document.getElementById('logo-header-pro').src=u;};i.src=u;})();</script>
                       </c:otherwise>
                     </c:choose>
@@ -335,10 +335,10 @@
               <a href="${ctx}/"><c:out value="${sitePropertyMap['site.name']}"/></a>
             </c:when>
             <c:when test="${!empty sitePropertyMap['site.logo']}">
-              <a href="${ctx}/"><img src="<c:out value="${sitePropertyMap['site.logo']}"/>" /></a>
+              <a href="${ctx}/"><img src="<c:out value="${sitePropertyMap['site.logo']}"/>" loading="eager" /></a>
             </c:when>
             <c:otherwise>
-              <a href="${ctx}/"><img id="logo-header-center" src="${ctx}/images/logo-header.png" /></a>
+              <a href="${ctx}/"><img id="logo-header-center" src="${ctx}/images/logo-header.png" loading="eager" /></a>
               <script nonce="${cspNonce}">(function(){var u='${js:escape(systemPropertyMap['system.www.context'])}/images/logo-header.png';var i=new Image();i.onload=function(){document.getElementById('logo-header-center').src=u;};i.src=u;})();</script>
             </c:otherwise>
           </c:choose>
@@ -405,10 +405,10 @@
               <c:when test="${themePropertyMap['theme.logo.color'] eq 'all-white'}">
                 <c:choose>
                   <c:when test="${!empty sitePropertyMap['site.logo.white']}">
-                    <li class="logo"><a href="${ctx}/"><img src="<c:out value="${sitePropertyMap['site.logo.white']}"/>" /></a></li>
+                    <li class="logo"><a href="${ctx}/"><img src="<c:out value="${sitePropertyMap['site.logo.white']}"/>" loading="eager" /></a></li>
                   </c:when>
                   <c:otherwise>
-                    <li class="logo"><a href="${ctx}/"><img id="logo-white-default" src="${ctx}/images/logo-white.png" /></a></li>
+                    <li class="logo"><a href="${ctx}/"><img id="logo-white-default" src="${ctx}/images/logo-white.png" loading="eager" /></a></li>
                     <script nonce="${cspNonce}">(function(){var u='${js:escape(systemPropertyMap['system.www.context'])}/images/logo-white.png';var i=new Image();i.onload=function(){document.getElementById('logo-white-default').src=u;};i.src=u;})();</script>
                   </c:otherwise>
                 </c:choose>
@@ -416,10 +416,10 @@
               <c:when test="${themePropertyMap['theme.logo.color'] eq 'color-and-white'}">
                 <c:choose>
                   <c:when test="${!empty sitePropertyMap['site.logo.mixed']}">
-                    <li class="logo"><a href="${ctx}/"><img src="<c:out value="${sitePropertyMap['site.logo.mixed']}"/>" /></a></li>
+                    <li class="logo"><a href="${ctx}/"><img src="<c:out value="${sitePropertyMap['site.logo.mixed']}"/>" loading="eager" /></a></li>
                   </c:when>
                   <c:otherwise>
-                    <li class="logo"><a href="${ctx}/"><img id="logo-white-color-default" src="${ctx}/images/logo-white-color.png" /></a></li>
+                    <li class="logo"><a href="${ctx}/"><img id="logo-white-color-default" src="${ctx}/images/logo-white-color.png" loading="eager" /></a></li>
                     <script nonce="${cspNonce}">(function(){var u='${js:escape(systemPropertyMap['system.www.context'])}/images/logo-white-color.png';var i=new Image();i.onload=function(){document.getElementById('logo-white-color-default').src=u;};i.src=u;})();</script>
                   </c:otherwise>
                 </c:choose>
@@ -430,10 +430,10 @@
               <c:otherwise>
                 <c:choose>
                   <c:when test="${!empty sitePropertyMap['site.logo']}">
-                    <li class="logo"><a href="${ctx}/"><img src="<c:out value="${sitePropertyMap['site.logo']}"/>" alt="<c:out value="${sitePropertyMap['site.name']}"/>" /></a></li>
+                    <li class="logo"><a href="${ctx}/"><img src="<c:out value="${sitePropertyMap['site.logo']}"/>" alt="<c:out value="${sitePropertyMap['site.name']}"/>" loading="eager" /></a></li>
                   </c:when>
                   <c:otherwise>
-                    <li class="logo"><a href="${ctx}/"><img id="logo-header-default" src="${ctx}/images/logo-header.png" alt="<c:out value="${sitePropertyMap['site.name']}"/>" /></a></li>
+                    <li class="logo"><a href="${ctx}/"><img id="logo-header-default" src="${ctx}/images/logo-header.png" alt="<c:out value="${sitePropertyMap['site.name']}"/>" loading="eager" /></a></li>
                     <script nonce="${cspNonce}">(function(){var u='${js:escape(systemPropertyMap['system.www.context'])}/images/logo-header.png';var i=new Image();i.onload=function(){document.getElementById('logo-header-default').src=u;};i.src=u;})();</script>
                   </c:otherwise>
                 </c:choose>
