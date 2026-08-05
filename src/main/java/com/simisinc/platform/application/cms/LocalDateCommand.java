@@ -21,7 +21,6 @@ import org.apache.commons.logging.LogFactory;
 
 import java.time.LocalDate;
 import java.time.LocalTime;
-import java.time.ZoneId;
 import java.util.Date;
 
 /**
@@ -36,13 +35,13 @@ public class LocalDateCommand {
 
   public static LocalDate convertToLocalDate(Date dateToConvert) {
     return dateToConvert.toInstant()
-        .atZone(ZoneId.systemDefault())
+        .atZone(FormatDateCommand.getSiteZoneId())
         .toLocalDate();
   }
 
   public static LocalTime convertToLocalTime(Date dateToConvert) {
     return dateToConvert.toInstant()
-        .atZone(ZoneId.systemDefault())
+        .atZone(FormatDateCommand.getSiteZoneId())
         .toLocalTime();
   }
 
