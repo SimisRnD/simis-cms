@@ -95,7 +95,53 @@
       <c:if test="${formField.required}">
         <c:choose>
           <c:when test="${!empty formField.listOfOptions}">
-
+            <c:choose>
+              <c:when test="${formField.type eq 'checkbox'}">
+                var fieldList = document.getElementsByName("${widgetContext.uniqueId}${js:escape(formField.name)}");
+                var errorEl = document.getElementById("error-${widgetContext.uniqueId}${js:escape(formField.name)}");
+                var isChecked = false;
+                for (var i = 0; i < fieldList.length; i++) {
+                  if (fieldList[i].checked) {
+                    isChecked = true;
+                    break;
+                  }
+                }
+                if (!isChecked) {
+                  if (errorEl) {
+                    errorEl.classList.add("show");
+                  }
+                  for (var i = 0; i < fieldList.length; i++) {
+                    fieldList[i].classList.add("form-field-error");
+                    fieldList[i].setAttribute("aria-invalid", "true");
+                  }
+                  hasErrors = true;
+                  if (!firstErrorField && fieldList.length > 0) firstErrorField = fieldList[0];
+                } else if (errorEl) {
+                  errorEl.classList.remove("show");
+                  for (var i = 0; i < fieldList.length; i++) {
+                    fieldList[i].classList.remove("form-field-error");
+                    fieldList[i].setAttribute("aria-invalid", "false");
+                  }
+                }
+              </c:when>
+              <c:otherwise>
+                var field = document.getElementById("${widgetContext.uniqueId}${js:escape(formField.name)}");
+                var errorEl = document.getElementById("error-${widgetContext.uniqueId}${js:escape(formField.name)}");
+                if (field.value.trim() === "") {
+                  if (errorEl) {
+                    errorEl.classList.add("show");
+                  }
+                  field.classList.add("form-field-error");
+                  field.setAttribute("aria-invalid", "true");
+                  hasErrors = true;
+                  if (!firstErrorField) firstErrorField = field;
+                } else if (errorEl) {
+                  errorEl.classList.remove("show");
+                  field.classList.remove("form-field-error");
+                  field.setAttribute("aria-invalid", "false");
+                }
+              </c:otherwise>
+            </c:choose>
           </c:when>
           <c:when test="${formField.type eq 'checkbox'}">
             var field = document.getElementById("${widgetContext.uniqueId}${js:escape(formField.name)}");
@@ -207,7 +253,7 @@
         </label>
       </c:otherwise>
     </c:choose>
-    <c:if test="${formField.required && empty formField.listOfOptions}">
+    <c:if test="${formField.required}">
       <p id="error-${widgetContext.uniqueId}<c:out value="${formField.name}"/>" class="error-message" role="alert" aria-live="polite">
         <i class="fa fa-exclamation-circle"></i><c:out value="${formField.label}"/> is required
       </p>
