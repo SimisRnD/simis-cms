@@ -310,6 +310,45 @@ class SaveWebRedirectCommandTest {
     }
   }
 
+  // --- Reserved-path check is case-insensitive (issue #992: "/ADMIN", "/Login", etc. sailed past
+  // a naive case-sensitive comparison against the all-lowercase RESERVED_FROM_PATH_PREFIXES) ---
+
+  @Test
+  void anUppercaseAdminConsolePathAsTheFromPathIsRejected() {
+    WebRedirect bean = bean(-1L, "/ADMIN/web-redirects", "/target", 301, true);
+    try (MockedStatic<WebRedirectRepository> repository = mockStatic(WebRedirectRepository.class)) {
+      DataException e = assertThrows(DataException.class, () -> SaveWebRedirectCommand.save(bean));
+      assertTrue(e.getMessage().contains("reserved system path"));
+      repository.verify(() -> WebRedirectRepository.save(any()), never());
+    }
+  }
+
+  @Test
+  void aMixedCaseLoginPathAsTheFromPathIsRejected() {
+    WebRedirect bean = bean(-1L, "/Login", "https://evil.example.com/harvest", 301, true);
+    try (MockedStatic<WebRedirectRepository> repository = mockStatic(WebRedirectRepository.class)) {
+      DataException e = assertThrows(DataException.class, () -> SaveWebRedirectCommand.save(bean));
+      assertTrue(e.getMessage().contains("reserved system path"));
+      repository.verify(() -> WebRedirectRepository.save(any()), never());
+    }
+  }
+
+  @Test
+  void aPathThatMerelyStartsWithAReservedWordInMixedCaseIsNotTreatedAsReserved() throws DataException {
+    // Same "shares a prefix but isn't the reserved path itself" guard as the lowercase case above,
+    // now exercised in mixed case to prove the new toLowerCase() normalization didn't loosen the
+    // startsWith(reserved + "/") boundary check.
+    WebRedirect bean = bean(-1L, "/AdminCustomers", "/target", 301, true);
+    try (MockedStatic<WebRedirectRepository> repository = mockStatic(WebRedirectRepository.class)) {
+      repository.when(() -> WebRedirectRepository.findByFromPath("/AdminCustomers")).thenReturn(null);
+      repository.when(() -> WebRedirectRepository.save(any())).thenAnswer(i -> i.getArgument(0));
+
+      WebRedirect saved = SaveWebRedirectCommand.save(bean);
+
+      assertEquals("/AdminCustomers", saved.getFromPath());
+    }
+  }
+
   // --- Redirect loop detection (issue #408 review: only a direct self-loop was rejected, so a
   // two-record cycle -- A -> B, B -> A -- passed validation and sent browsers into an infinite
   // series of redirects) ---
