@@ -107,6 +107,14 @@ public class UrlCommand {
    * null. Active schemes such as javascript: and data: are rejected, as are protocol-relative "//"
    * targets. Content-authored link values are rendered into href attributes, so this is the defense
    * at the source.
+   *
+   * <p>
+   * <strong>This is not open-redirect protection.</strong> Any {@code http://}/{@code https://} URL
+   * passes regardless of host -- callers that use the return value as an HTTP {@code Location}
+   * (e.g. a server-side redirect, as opposed to an href/src attribute) must apply their own
+   * destination restriction if an unrestricted external redirect is not acceptable there; see
+   * {@code SaveWebRedirectCommand} for an example.
+   * </p>
    */
   public static String sanitizeUrl(String url) {
     if (StringUtils.isBlank(url)) {

@@ -27,7 +27,9 @@ import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.FilterConfig;
@@ -49,11 +51,13 @@ import com.simisinc.platform.application.cms.BlockedIPListCommand;
 import com.simisinc.platform.application.cms.HostnameCommand;
 import com.simisinc.platform.application.cms.LoadBlockedIPListCommand;
 import com.simisinc.platform.application.cms.LoadRedirectsCommand;
+import com.simisinc.platform.application.cms.LoadWebRedirectCommand;
 import com.simisinc.platform.application.login.AuthenticateLoginCommand;
 import com.simisinc.platform.application.login.LogoutCommand;
 import com.simisinc.platform.application.login.MfaEnforcementCommand;
 import com.simisinc.platform.application.oauth.OAuthRequestCommand;
 import com.simisinc.platform.domain.model.User;
+import com.simisinc.platform.domain.model.cms.WebRedirect;
 
 /**
  * Verifies that the http to https redirect targets the configured site, and not the client-supplied Host header
@@ -114,10 +118,12 @@ class WebRequestFilterTest {
 
     try (MockedStatic<LoadSitePropertyCommand> siteProperties = mockStatic(LoadSitePropertyCommand.class);
         MockedStatic<LoadRedirectsCommand> redirects = mockStatic(LoadRedirectsCommand.class);
+        MockedStatic<LoadWebRedirectCommand> webRedirects = mockStatic(LoadWebRedirectCommand.class);
         MockedStatic<LoadBlockedIPListCommand> blockedIPList = mockStatic(LoadBlockedIPListCommand.class);
         MockedStatic<BlockedIPListCommand> blockedIPs = mockStatic(BlockedIPListCommand.class)) {
 
       redirects.when(LoadRedirectsCommand::load).thenReturn(null);
+      webRedirects.when(() -> LoadWebRedirectCommand.matchByFromPath(anyString())).thenReturn(null);
       blockedIPs.when(() -> BlockedIPListCommand.passesCheck(anyString(), anyString())).thenReturn(true);
       siteProperties.when(() -> LoadSitePropertyCommand.loadByName("site.url")).thenReturn(SITE_URL);
 
@@ -138,10 +144,12 @@ class WebRequestFilterTest {
 
     try (MockedStatic<LoadSitePropertyCommand> siteProperties = mockStatic(LoadSitePropertyCommand.class);
         MockedStatic<LoadRedirectsCommand> redirects = mockStatic(LoadRedirectsCommand.class);
+        MockedStatic<LoadWebRedirectCommand> webRedirects = mockStatic(LoadWebRedirectCommand.class);
         MockedStatic<LoadBlockedIPListCommand> blockedIPList = mockStatic(LoadBlockedIPListCommand.class);
         MockedStatic<BlockedIPListCommand> blockedIPs = mockStatic(BlockedIPListCommand.class)) {
 
       redirects.when(LoadRedirectsCommand::load).thenReturn(null);
+      webRedirects.when(() -> LoadWebRedirectCommand.matchByFromPath(anyString())).thenReturn(null);
       blockedIPs.when(() -> BlockedIPListCommand.passesCheck(anyString(), anyString())).thenReturn(true);
       siteProperties.when(() -> LoadSitePropertyCommand.loadByName("site.url")).thenReturn("");
 
@@ -165,10 +173,12 @@ class WebRequestFilterTest {
 
     try (MockedStatic<LoadSitePropertyCommand> siteProperties = mockStatic(LoadSitePropertyCommand.class);
         MockedStatic<LoadRedirectsCommand> redirects = mockStatic(LoadRedirectsCommand.class);
+        MockedStatic<LoadWebRedirectCommand> webRedirects = mockStatic(LoadWebRedirectCommand.class);
         MockedStatic<LoadBlockedIPListCommand> blockedIPList = mockStatic(LoadBlockedIPListCommand.class);
         MockedStatic<BlockedIPListCommand> blockedIPs = mockStatic(BlockedIPListCommand.class)) {
 
       redirects.when(LoadRedirectsCommand::load).thenReturn(null);
+      webRedirects.when(() -> LoadWebRedirectCommand.matchByFromPath(anyString())).thenReturn(null);
       blockedIPs.when(() -> BlockedIPListCommand.passesCheck(anyString(), anyString())).thenReturn(true);
       siteProperties.when(() -> LoadSitePropertyCommand.loadByName("site.url")).thenReturn(SITE_URL);
 
@@ -186,10 +196,12 @@ class WebRequestFilterTest {
 
     try (MockedStatic<LoadSitePropertyCommand> siteProperties = mockStatic(LoadSitePropertyCommand.class);
         MockedStatic<LoadRedirectsCommand> redirects = mockStatic(LoadRedirectsCommand.class);
+        MockedStatic<LoadWebRedirectCommand> webRedirects = mockStatic(LoadWebRedirectCommand.class);
         MockedStatic<LoadBlockedIPListCommand> blockedIPList = mockStatic(LoadBlockedIPListCommand.class);
         MockedStatic<BlockedIPListCommand> blockedIPs = mockStatic(BlockedIPListCommand.class)) {
 
       redirects.when(LoadRedirectsCommand::load).thenReturn(null);
+      webRedirects.when(() -> LoadWebRedirectCommand.matchByFromPath(anyString())).thenReturn(null);
       blockedIPs.when(() -> BlockedIPListCommand.passesCheck(anyString(), anyString())).thenReturn(true);
       siteProperties.when(() -> LoadSitePropertyCommand.loadByName("site.url")).thenReturn(SITE_URL);
 
@@ -275,6 +287,7 @@ class WebRequestFilterTest {
 
     try (MockedStatic<LoadSitePropertyCommand> siteProperties = mockStatic(LoadSitePropertyCommand.class);
         MockedStatic<LoadRedirectsCommand> redirects = mockStatic(LoadRedirectsCommand.class);
+        MockedStatic<LoadWebRedirectCommand> webRedirects = mockStatic(LoadWebRedirectCommand.class);
         MockedStatic<LoadBlockedIPListCommand> blockedIPList = mockStatic(LoadBlockedIPListCommand.class);
         MockedStatic<BlockedIPListCommand> blockedIPs = mockStatic(BlockedIPListCommand.class);
         MockedStatic<DoNotTrackCommand> doNotTrack = mockStatic(DoNotTrackCommand.class);
@@ -284,6 +297,7 @@ class WebRequestFilterTest {
         MockedStatic<LogoutCommand> logout = mockStatic(LogoutCommand.class)) {
 
       redirects.when(LoadRedirectsCommand::load).thenReturn(null);
+      webRedirects.when(() -> LoadWebRedirectCommand.matchByFromPath(anyString())).thenReturn(null);
       blockedIPs.when(() -> BlockedIPListCommand.passesCheck(anyString(), anyString())).thenReturn(true);
       // The stale remember-me token never resolves -- exactly the buggy lookup
       auth.when(() -> AuthenticateLoginCommand.getAuthenticatedUser("no-matching-db-row")).thenReturn(null);
@@ -320,6 +334,7 @@ class WebRequestFilterTest {
 
     try (MockedStatic<LoadSitePropertyCommand> siteProperties = mockStatic(LoadSitePropertyCommand.class);
         MockedStatic<LoadRedirectsCommand> redirects = mockStatic(LoadRedirectsCommand.class);
+        MockedStatic<LoadWebRedirectCommand> webRedirects = mockStatic(LoadWebRedirectCommand.class);
         MockedStatic<LoadBlockedIPListCommand> blockedIPList = mockStatic(LoadBlockedIPListCommand.class);
         MockedStatic<BlockedIPListCommand> blockedIPs = mockStatic(BlockedIPListCommand.class);
         MockedStatic<DoNotTrackCommand> doNotTrack = mockStatic(DoNotTrackCommand.class);
@@ -328,6 +343,7 @@ class WebRequestFilterTest {
         MockedStatic<LogoutCommand> logout = mockStatic(LogoutCommand.class)) {
 
       redirects.when(LoadRedirectsCommand::load).thenReturn(null);
+      webRedirects.when(() -> LoadWebRedirectCommand.matchByFromPath(anyString())).thenReturn(null);
       blockedIPs.when(() -> BlockedIPListCommand.passesCheck(anyString(), anyString())).thenReturn(true);
       // The account was suspended (or deleted) after the session was established
       auth.when(() -> AuthenticateLoginCommand.getAuthenticatedUser(22L)).thenReturn(null);
@@ -382,12 +398,14 @@ class WebRequestFilterTest {
 
     try (MockedStatic<LoadSitePropertyCommand> siteProperties = mockStatic(LoadSitePropertyCommand.class);
         MockedStatic<LoadRedirectsCommand> redirects = mockStatic(LoadRedirectsCommand.class);
+        MockedStatic<LoadWebRedirectCommand> webRedirects = mockStatic(LoadWebRedirectCommand.class);
         MockedStatic<LoadBlockedIPListCommand> blockedIPList = mockStatic(LoadBlockedIPListCommand.class);
         MockedStatic<BlockedIPListCommand> blockedIPs = mockStatic(BlockedIPListCommand.class);
         MockedStatic<OAuthRequestCommand> oauth = mockStatic(OAuthRequestCommand.class);
         MockedStatic<LogoutCommand> logout = mockStatic(LogoutCommand.class)) {
 
       redirects.when(LoadRedirectsCommand::load).thenReturn(null);
+      webRedirects.when(() -> LoadWebRedirectCommand.matchByFromPath(anyString())).thenReturn(null);
       blockedIPs.when(() -> BlockedIPListCommand.passesCheck(anyString(), anyString())).thenReturn(true);
       // Force an early return right after the logout call (the SSL redirect below it) so this
       // test doesn't have to stub the rest of the per-request pipeline (cookies, visitor
@@ -420,11 +438,13 @@ class WebRequestFilterTest {
 
     try (MockedStatic<LoadSitePropertyCommand> siteProperties = mockStatic(LoadSitePropertyCommand.class);
         MockedStatic<LoadRedirectsCommand> redirects = mockStatic(LoadRedirectsCommand.class);
+        MockedStatic<LoadWebRedirectCommand> webRedirects = mockStatic(LoadWebRedirectCommand.class);
         MockedStatic<LoadBlockedIPListCommand> blockedIPList = mockStatic(LoadBlockedIPListCommand.class);
         MockedStatic<BlockedIPListCommand> blockedIPs = mockStatic(BlockedIPListCommand.class);
         MockedStatic<LogoutCommand> logout = mockStatic(LogoutCommand.class)) {
 
       redirects.when(LoadRedirectsCommand::load).thenReturn(null);
+      webRedirects.when(() -> LoadWebRedirectCommand.matchByFromPath(anyString())).thenReturn(null);
       blockedIPs.when(() -> BlockedIPListCommand.passesCheck(anyString(), anyString())).thenReturn(true);
 
       WebRequestFilter filter = filterWithoutSSL(siteProperties);
@@ -433,6 +453,253 @@ class WebRequestFilterTest {
       logout.verify(() -> LogoutCommand.logout(any(), any()), never());
       verify(response).setHeader("Location", "/");
       verify(chain, never()).doFilter(request, response);
+    }
+  }
+
+  // --- Database-backed redirects (issue #408) ---
+  // WebRequestFilter now checks the admin-managed web_redirects table (via LoadWebRedirectCommand,
+  // through CacheManager.WEB_REDIRECT_CACHE) before falling back to the legacy redirects.csv map: a
+  // database match takes precedence when both define a rule for the same from_path, and the CSV
+  // lookup still works as a fallback for paths only the legacy file knows about during the
+  // migration/transition period.
+
+  private HttpServletRequest requestForResource(String requestURI) {
+    ServletContext servletContext = mock(ServletContext.class);
+    when(servletContext.getContextPath()).thenReturn("");
+
+    HttpServletRequest request = mock(HttpServletRequest.class);
+    when(request.getScheme()).thenReturn("https");
+    when(request.getMethod()).thenReturn("GET");
+    when(request.getServletContext()).thenReturn(servletContext);
+    when(request.getRequestURI()).thenReturn(requestURI);
+    when(request.getRemoteAddr()).thenReturn("203.0.113.9");
+    when(request.getServerName()).thenReturn("www.example.com");
+    // Only consulted when TRACE logging is enabled, but stub it regardless so this test's outcome
+    // doesn't depend on the runner's logging configuration
+    when(request.getHeaderNames()).thenReturn(Collections.emptyEnumeration());
+    return request;
+  }
+
+  private WebRedirect dbRedirect(String fromPath, String toUrl, int statusCode) {
+    WebRedirect redirect = new WebRedirect();
+    redirect.setFromPath(fromPath);
+    redirect.setToUrl(toUrl);
+    redirect.setStatusCode(statusCode);
+    redirect.setEnabled(true);
+    return redirect;
+  }
+
+  private WebRedirect disabledDbRedirect(String fromPath, String toUrl) {
+    WebRedirect redirect = dbRedirect(fromPath, toUrl, WebRedirect.PERMANENT);
+    redirect.setEnabled(false);
+    return redirect;
+  }
+
+  // Issue #408 review: a database row -- even a disabled one -- must be the final word on its
+  // from_path. Falling through to the legacy CSV fallback for a disabled row would silently
+  // resurrect a redirect an admin just turned off via the "disable" toggle, through the exact
+  // legacy mechanism the database-backed feature was meant to replace.
+  //
+  // Uses a /css/... resource so that, once neither redirect fires, the filter reaches the "allow
+  // some browser resources" bypass and calls chain.doFilter() a few lines later -- without that,
+  // asserting the request falls all the way through would need the full session/cookie/login mock
+  // rig other tests in this file build for that (e.g. loggedInRequest()), for no benefit here.
+  @Test
+  void aDisabledDbRedirectDoesNotFallThroughToTheCsvFallbackForTheSamePath() throws Exception {
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    FilterChain chain = mock(FilterChain.class);
+
+    Map<String, String> csvRedirects = new HashMap<>();
+    csvRedirects.put("/css/shared-path.css", "/csv-target");
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProperties = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<LoadRedirectsCommand> redirects = mockStatic(LoadRedirectsCommand.class);
+        MockedStatic<LoadWebRedirectCommand> webRedirects = mockStatic(LoadWebRedirectCommand.class);
+        MockedStatic<LoadBlockedIPListCommand> blockedIPList = mockStatic(LoadBlockedIPListCommand.class);
+        MockedStatic<BlockedIPListCommand> blockedIPs = mockStatic(BlockedIPListCommand.class)) {
+
+      redirects.when(LoadRedirectsCommand::load).thenReturn(csvRedirects);
+      webRedirects.when(() -> LoadWebRedirectCommand.matchByFromPath("/css/shared-path.css"))
+          .thenReturn(disabledDbRedirect("/css/shared-path.css", "/db-target"));
+      blockedIPs.when(() -> BlockedIPListCommand.passesCheck(anyString(), anyString())).thenReturn(true);
+
+      WebRequestFilter filter = filterWithoutSSL(siteProperties);
+      filter.doFilter(requestForResource("/css/shared-path.css"), response, chain);
+
+      verify(response, never()).setHeader(anyString(), anyString());
+      verify(chain).doFilter(any(), any());
+    }
+  }
+
+  // Issue #408 review: deleting a database-backed redirect whose from_path also happens to be
+  // defined in the legacy redirects.csv file must actually stop the redirect for the rest of this
+  // server's uptime, not just remove the database row while the CSV-backed fallback (loaded once at
+  // filter startup) keeps serving it -- see WebRedirectListWidget.remove() /
+  // WebRequestFilter.purgeCsvFallback(). Uses a /css/... resource for the same reason as the test
+  // above.
+  @Test
+  void purgeCsvFallbackStopsTheCsvFallbackFromServingADeletedPath() throws Exception {
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    FilterChain chain = mock(FilterChain.class);
+
+    Map<String, String> csvRedirects = new HashMap<>();
+    csvRedirects.put("/css/deleted-path.css", "/csv-target");
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProperties = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<LoadRedirectsCommand> redirects = mockStatic(LoadRedirectsCommand.class);
+        MockedStatic<LoadWebRedirectCommand> webRedirects = mockStatic(LoadWebRedirectCommand.class);
+        MockedStatic<LoadBlockedIPListCommand> blockedIPList = mockStatic(LoadBlockedIPListCommand.class);
+        MockedStatic<BlockedIPListCommand> blockedIPs = mockStatic(BlockedIPListCommand.class)) {
+
+      redirects.when(LoadRedirectsCommand::load).thenReturn(csvRedirects);
+      webRedirects.when(() -> LoadWebRedirectCommand.matchByFromPath(anyString())).thenReturn(null);
+      blockedIPs.when(() -> BlockedIPListCommand.passesCheck(anyString(), anyString())).thenReturn(true);
+
+      WebRequestFilter filter = filterWithoutSSL(siteProperties);
+
+      // Before the "delete", the CSV fallback still serves the shared path (baseline)
+      filter.doFilter(requestForResource("/css/deleted-path.css"), response, chain);
+      verify(response).setHeader("Location", "/csv-target");
+
+      // Simulate WebRedirectListWidget.remove() purging the deleted from_path
+      WebRequestFilter.purgeCsvFallback("/css/deleted-path.css");
+
+      HttpServletResponse secondResponse = mock(HttpServletResponse.class);
+      filter.doFilter(requestForResource("/css/deleted-path.css"), secondResponse, chain);
+      verify(secondResponse, never()).setHeader(anyString(), anyString());
+      verify(chain).doFilter(any(), any());
+    }
+  }
+
+  @Test
+  void dbBackedRedirectIsServedWhenPresent() throws Exception {
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    FilterChain chain = mock(FilterChain.class);
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProperties = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<LoadRedirectsCommand> redirects = mockStatic(LoadRedirectsCommand.class);
+        MockedStatic<LoadWebRedirectCommand> webRedirects = mockStatic(LoadWebRedirectCommand.class);
+        MockedStatic<LoadBlockedIPListCommand> blockedIPList = mockStatic(LoadBlockedIPListCommand.class);
+        MockedStatic<BlockedIPListCommand> blockedIPs = mockStatic(BlockedIPListCommand.class)) {
+
+      redirects.when(LoadRedirectsCommand::load).thenReturn(null);
+      webRedirects.when(() -> LoadWebRedirectCommand.matchByFromPath("/old-db-page"))
+          .thenReturn(dbRedirect("/old-db-page", "/new-db-page", WebRedirect.PERMANENT));
+      blockedIPs.when(() -> BlockedIPListCommand.passesCheck(anyString(), anyString())).thenReturn(true);
+
+      WebRequestFilter filter = filterWithoutSSL(siteProperties);
+      filter.doFilter(requestForResource("/old-db-page"), response, chain);
+
+      verify(response).setHeader("Location", "/new-db-page");
+      verify(response).setStatus(HttpServletResponse.SC_MOVED_PERMANENTLY);
+      verify(chain, never()).doFilter(any(), any());
+    }
+  }
+
+  @Test
+  void dbBackedRedirectTakesPrecedenceOverACsvRedirectForTheSamePath() throws Exception {
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    FilterChain chain = mock(FilterChain.class);
+
+    Map<String, String> csvRedirects = new HashMap<>();
+    csvRedirects.put("/shared-path", "/csv-target");
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProperties = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<LoadRedirectsCommand> redirects = mockStatic(LoadRedirectsCommand.class);
+        MockedStatic<LoadWebRedirectCommand> webRedirects = mockStatic(LoadWebRedirectCommand.class);
+        MockedStatic<LoadBlockedIPListCommand> blockedIPList = mockStatic(LoadBlockedIPListCommand.class);
+        MockedStatic<BlockedIPListCommand> blockedIPs = mockStatic(BlockedIPListCommand.class)) {
+
+      redirects.when(LoadRedirectsCommand::load).thenReturn(csvRedirects);
+      webRedirects.when(() -> LoadWebRedirectCommand.matchByFromPath("/shared-path"))
+          .thenReturn(dbRedirect("/shared-path", "/db-target", WebRedirect.PERMANENT));
+      blockedIPs.when(() -> BlockedIPListCommand.passesCheck(anyString(), anyString())).thenReturn(true);
+
+      WebRequestFilter filter = filterWithoutSSL(siteProperties);
+      filter.doFilter(requestForResource("/shared-path"), response, chain);
+
+      verify(response).setHeader("Location", "/db-target");
+      verify(response, never()).setHeader("Location", "/csv-target");
+    }
+  }
+
+  @Test
+  void csvRedirectIsStillServedAsAFallbackWhenNoDbRedirectMatches() throws Exception {
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    FilterChain chain = mock(FilterChain.class);
+
+    Map<String, String> csvRedirects = new HashMap<>();
+    csvRedirects.put("/legacy-only-path", "/legacy-target");
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProperties = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<LoadRedirectsCommand> redirects = mockStatic(LoadRedirectsCommand.class);
+        MockedStatic<LoadWebRedirectCommand> webRedirects = mockStatic(LoadWebRedirectCommand.class);
+        MockedStatic<LoadBlockedIPListCommand> blockedIPList = mockStatic(LoadBlockedIPListCommand.class);
+        MockedStatic<BlockedIPListCommand> blockedIPs = mockStatic(BlockedIPListCommand.class)) {
+
+      redirects.when(LoadRedirectsCommand::load).thenReturn(csvRedirects);
+      webRedirects.when(() -> LoadWebRedirectCommand.matchByFromPath(anyString())).thenReturn(null);
+      blockedIPs.when(() -> BlockedIPListCommand.passesCheck(anyString(), anyString())).thenReturn(true);
+
+      WebRequestFilter filter = filterWithoutSSL(siteProperties);
+      filter.doFilter(requestForResource("/legacy-only-path"), response, chain);
+
+      verify(response).setHeader("Location", "/legacy-target");
+      verify(response).setStatus(HttpServletResponse.SC_MOVED_PERMANENTLY);
+    }
+  }
+
+  @Test
+  void dbAndCsvRedirectsCoexistWhenTheyCoverDifferentPaths() throws Exception {
+    HttpServletResponse dbResponse = mock(HttpServletResponse.class);
+    HttpServletResponse csvResponse = mock(HttpServletResponse.class);
+    FilterChain chain = mock(FilterChain.class);
+
+    Map<String, String> csvRedirects = new HashMap<>();
+    csvRedirects.put("/csv-only-path", "/csv-target");
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProperties = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<LoadRedirectsCommand> redirects = mockStatic(LoadRedirectsCommand.class);
+        MockedStatic<LoadWebRedirectCommand> webRedirects = mockStatic(LoadWebRedirectCommand.class);
+        MockedStatic<LoadBlockedIPListCommand> blockedIPList = mockStatic(LoadBlockedIPListCommand.class);
+        MockedStatic<BlockedIPListCommand> blockedIPs = mockStatic(BlockedIPListCommand.class)) {
+
+      redirects.when(LoadRedirectsCommand::load).thenReturn(csvRedirects);
+      webRedirects.when(() -> LoadWebRedirectCommand.matchByFromPath("/db-only-path"))
+          .thenReturn(dbRedirect("/db-only-path", "/db-target", WebRedirect.PERMANENT));
+      webRedirects.when(() -> LoadWebRedirectCommand.matchByFromPath("/csv-only-path")).thenReturn(null);
+      blockedIPs.when(() -> BlockedIPListCommand.passesCheck(anyString(), anyString())).thenReturn(true);
+
+      WebRequestFilter filter = filterWithoutSSL(siteProperties);
+      filter.doFilter(requestForResource("/db-only-path"), dbResponse, chain);
+      filter.doFilter(requestForResource("/csv-only-path"), csvResponse, chain);
+
+      verify(dbResponse).setHeader("Location", "/db-target");
+      verify(csvResponse).setHeader("Location", "/csv-target");
+    }
+  }
+
+  @Test
+  void dbBackedRedirectHonorsA302StatusCode() throws Exception {
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    FilterChain chain = mock(FilterChain.class);
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProperties = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<LoadRedirectsCommand> redirects = mockStatic(LoadRedirectsCommand.class);
+        MockedStatic<LoadWebRedirectCommand> webRedirects = mockStatic(LoadWebRedirectCommand.class);
+        MockedStatic<LoadBlockedIPListCommand> blockedIPList = mockStatic(LoadBlockedIPListCommand.class);
+        MockedStatic<BlockedIPListCommand> blockedIPs = mockStatic(BlockedIPListCommand.class)) {
+
+      redirects.when(LoadRedirectsCommand::load).thenReturn(null);
+      webRedirects.when(() -> LoadWebRedirectCommand.matchByFromPath("/temp-redirect"))
+          .thenReturn(dbRedirect("/temp-redirect", "/temp-target", WebRedirect.TEMPORARY));
+      blockedIPs.when(() -> BlockedIPListCommand.passesCheck(anyString(), anyString())).thenReturn(true);
+
+      WebRequestFilter filter = filterWithoutSSL(siteProperties);
+      filter.doFilter(requestForResource("/temp-redirect"), response, chain);
+
+      verify(response).setHeader("Location", "/temp-target");
+      verify(response).setStatus(HttpServletResponse.SC_MOVED_TEMPORARILY);
     }
   }
 }
