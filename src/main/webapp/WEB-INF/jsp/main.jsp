@@ -20,6 +20,7 @@
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="font" uri="/WEB-INF/tlds/font-functions.tld" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
+<%@ taglib prefix="image" uri="/WEB-INF/tlds/image-functions.tld" %>
 <%@ taglib prefix="js" uri="/WEB-INF/tlds/javascript-escape.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="masterWebPage" class="com.simisinc.platform.domain.model.cms.WebPage" scope="request"/>
@@ -477,6 +478,7 @@
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/content/analytics')}"> class="is-active"</c:if>><a href="${ctx}/admin/content/analytics"><i class="${font:far()} fa-chart-line fa-fw"></i> <span>Analytics</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/sitemap')}"> class="is-active"</c:if>><a href="${ctx}/admin/sitemap"><i class="${font:far()} fa-sitemap fa-fw"></i> <span>Navigation Menu</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/web-page')}"> class="is-active"</c:if>><a href="${ctx}/admin/web-pages"><i class="${font:far()} fa-sticky-note fa-fw"></i> <span>Web Pages</span></a></li>
+              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/web-redirect')}"> class="is-active"</c:if>><a href="${ctx}/admin/web-redirects"><i class="${font:far()} fa-exchange-alt fa-fw"></i> <span>Web Redirects</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/image')}"> class="is-active"</c:if>><a href="${ctx}/admin/images"><i class="${font:far()} fa-image fa-fw"></i> <span>Images</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/content-list')}"> class="is-active"</c:if>><a href="${ctx}/admin/content-list"><i class="${font:far()} fa-th fa-fw"></i> <span>Content</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/blog')}"> class="is-active"</c:if>><a href="${ctx}/admin/blogs"><i class="${font:far()} fa-quote-right fa-fw"></i> <span>Blogs</span></a></li>
@@ -586,7 +588,10 @@
               <p>
                 <c:choose>
                   <c:when test="${!empty sitePropertyMap['site.logo']}">
-                    <img alt="Logo" style="max-width: 75%" src="<c:out value="${sitePropertyMap['site.logo']}"/>" />
+                    <c:set var="modalLogoSrcset" value="${image:srcset(sitePropertyMap['site.logo'])}"/>
+                    <img alt="Logo" style="max-width: 75%" src="<c:out value="${sitePropertyMap['site.logo']}"/>"
+                      <c:if test="${not empty modalLogoSrcset}"> srcset="<c:out value="${modalLogoSrcset}"/>" sizes="200px"</c:if>
+                      loading="eager" decoding="async" />
                   </c:when>
                   <c:otherwise>
                     <c:out value="${sitePropertyMap['site.name']}"/>

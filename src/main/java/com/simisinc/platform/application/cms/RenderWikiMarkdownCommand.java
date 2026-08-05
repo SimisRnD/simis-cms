@@ -62,6 +62,6 @@ public class RenderWikiMarkdownCommand {
     HtmlRenderer renderer = HtmlRenderer.builder(options).build();
 
     Node document = parser.parse(body == null ? "" : body);
-    return HtmlCommand.cleanRenderedMarkdown(renderer.render(document));
+    return ContentImageSrcsetCommand.injectSrcset(HtmlCommand.cleanRenderedMarkdown(renderer.render(document)));
   }
 }

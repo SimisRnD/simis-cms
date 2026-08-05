@@ -16,6 +16,7 @@
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
+<%@ taglib prefix="image" uri="/WEB-INF/tlds/image-functions.tld" %>
 <%@ taglib prefix="url" uri="/WEB-INF/tlds/url-functions.tld" %>
 <%@ taglib prefix="text" uri="/WEB-INF/tlds/text-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
@@ -50,9 +51,12 @@
     <c:set var="logoSrc" scope="request"><c:out value="${sitePropertyMap['site.logo']}"/></c:set>
   </c:otherwise>
 </c:choose>
+<c:set var="logoSrcset" value="${image:srcset(logoSrc)}"/>
 <c:choose>
   <c:when test="${!empty logoSrc}">
-    <a href="${ctx}/"><img alt="Logo" <c:if test="${!empty logoClass}">class="<c:out value="${logoClass}"/>" </c:if><c:if test="${!empty logoStyle}">style="<c:out value="${logoStyle}"/>" </c:if>src="<c:out value="${logoSrc}"/>" /></a>
+    <a href="${ctx}/"><img alt="Logo" <c:if test="${!empty logoClass}">class="<c:out value="${logoClass}"/>" </c:if><c:if test="${!empty logoStyle}">style="<c:out value="${logoStyle}"/>" </c:if>src="<c:out value="${logoSrc}"/>"
+      <c:if test="${not empty logoSrcset}"> srcset="<c:out value="${logoSrcset}"/>" sizes="200px"</c:if>
+      decoding="async" /></a>
     <c:if test="${!empty text}">
       <span class="menu-text" translate="no"><a href="${ctx}/"><c:out value="${text}"/></a></span>
     </c:if>

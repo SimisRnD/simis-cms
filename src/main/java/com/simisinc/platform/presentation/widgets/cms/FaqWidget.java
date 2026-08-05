@@ -22,6 +22,7 @@ import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
 
+import com.simisinc.platform.application.cms.ContentImageSrcsetCommand;
 import com.simisinc.platform.application.cms.HtmlCommand;
 import com.simisinc.platform.domain.model.cms.FaqQuestion;
 import com.simisinc.platform.presentation.controller.WidgetContext;
@@ -57,7 +58,7 @@ public class FaqWidget extends GenericWidget {
       }
       FaqQuestion faqQuestion = new FaqQuestion();
       faqQuestion.setQuestion(question);
-      faqQuestion.setAnswerHtml(answer);
+      faqQuestion.setAnswerHtml(ContentImageSrcsetCommand.injectSrcset(answer));
       faqQuestion.setAnswerText(HtmlCommand.text(answer));
       faqQuestionList.add(faqQuestion);
     }

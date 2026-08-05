@@ -53,11 +53,11 @@
           <li class="<c:if test="${cardStatus.first}">is-active </c:if>orbit-slide">
             <figure class="orbit-figure">
               <c:choose>
-                <c:when test="${display eq 'images'}"><img class="orbit-image" ${card} /></c:when>
-                <c:when test="${carouselSize eq 'large'}"><img class="orbit-image" src="${ctx}/images/widgets/image-640-480.png" alt="background image" /></c:when>
-                <c:when test="${carouselSize eq 'medium'}"><img class="orbit-image" src="${ctx}/images/widgets/image-1952-850.png" alt="background image" /></c:when>
-                <c:when test="${carouselSize eq 'tiny'}"><img class="orbit-image" src="${ctx}/images/widgets/image-2034-690.png" alt="background image" /></c:when>
-                <c:otherwise><img class="orbit-image" src="${ctx}/images/widgets/image-640-240.png" alt="background image"></c:otherwise>
+                <c:when test="${display eq 'images'}"><img class="orbit-image" ${card} <c:choose><c:when test="${cardStatus.first}">loading="eager"</c:when><c:otherwise>loading="lazy" decoding="async"</c:otherwise></c:choose> /></c:when>
+                <c:when test="${carouselSize eq 'large'}"><img class="orbit-image" src="${ctx}/images/widgets/image-640-480.png" alt="background image" width="640" height="480" <c:choose><c:when test="${cardStatus.first}">loading="eager"</c:when><c:otherwise>loading="lazy" decoding="async"</c:otherwise></c:choose> /></c:when>
+                <c:when test="${carouselSize eq 'medium'}"><img class="orbit-image" src="${ctx}/images/widgets/image-1952-850.png" alt="background image" width="1952" height="850" <c:choose><c:when test="${cardStatus.first}">loading="eager"</c:when><c:otherwise>loading="lazy" decoding="async"</c:otherwise></c:choose> /></c:when>
+                <c:when test="${carouselSize eq 'tiny'}"><img class="orbit-image" src="${ctx}/images/widgets/image-2034-690.png" alt="background image" width="2034" height="690" <c:choose><c:when test="${cardStatus.first}">loading="eager"</c:when><c:otherwise>loading="lazy" decoding="async"</c:otherwise></c:choose> /></c:when>
+                <c:otherwise><img class="orbit-image" src="${ctx}/images/widgets/image-640-240.png" alt="background image" width="640" height="240" <c:choose><c:when test="${cardStatus.first}">loading="eager"</c:when><c:otherwise>loading="lazy" decoding="async"</c:otherwise></c:choose>></c:otherwise>
               </c:choose>
               <c:if test="${display eq 'text'}">
               <figcaption class="orbit-caption">

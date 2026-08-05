@@ -16,12 +16,14 @@
 
 package com.simisinc.platform.application.cms;
 
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import java.sql.Timestamp;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.time.ZoneId;
 
 /**
  * Formats dates
@@ -51,5 +53,14 @@ public class FormatDateCommand {
     // 3:45 pm
     DateFormat timeFormat = new SimpleDateFormat("h:mm a");
     return timeFormat.format(timestamp);
+  }
+
+  /**
+   * The site's configured display timezone (site.timezone), which is what calendar/event dates
+   * are meant to be shown in -- falls back to the JVM's own default only if the property is
+   * unset, since the server's runtime zone is not guaranteed to match the configured site zone.
+   */
+  public static ZoneId getSiteZoneId() {
+    return ZoneId.of(LoadSitePropertyCommand.loadByName("site.timezone", ZoneId.systemDefault().getId()));
   }
 }

@@ -17,6 +17,7 @@
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
+<%@ taglib prefix="image" uri="/WEB-INF/tlds/image-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="playerList" class="java.util.ArrayList" scope="request"/>
@@ -49,7 +50,10 @@
       <td align="center" class="leaderboard-rank">${status.count}</td>
       <td align="left" width="100%" class="leaderboard-name">
         <c:if test="${!empty player['IMAGE']}">
-          <img class="leaderboard-photo" src="<c:out value="${player['IMAGE']}" />" />
+          <c:set var="leaderboardSrcset" value="${image:srcset(player['IMAGE'])}"/>
+          <img class="leaderboard-photo" src="<c:out value="${player['IMAGE']}" />"
+            <c:if test="${not empty leaderboardSrcset}"> srcset="<c:out value="${leaderboardSrcset}"/>" sizes="150px"</c:if>
+            decoding="async" loading="lazy" />
         </c:if>
         <c:out value="${player['NAME']}" />
       </td>

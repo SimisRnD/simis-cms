@@ -109,6 +109,12 @@ public class ContentCarouselWidget extends GenericWidget {
         int imgAttributesStartIdx = originalCard.indexOf("<img ") + 5;
         int imgAttributesEndIdx = originalCard.indexOf(">", imgAttributesStartIdx);
         String attributes = originalCard.substring(imgAttributesStartIdx, imgAttributesEndIdx);
+        // ContentImageSrcsetCommand (issue #411) may have already injected loading=/decoding= into
+        // this card's <img> tag upstream (ContentHtmlCommand.toHtml()) alongside srcset/sizes --
+        // strip those two specifically so they don't collide with the position-aware loading/
+        // decoding this JSP's own <c:choose> adds per-slide below (issue #413/#975); srcset/sizes
+        // are left in place since nothing else provides those.
+        attributes = attributes.replace(" decoding=\"async\"", "").replace(" loading=\"lazy\"", "");
         if (attributes.endsWith("/")) {
           attributes = attributes.substring(0, attributes.length() - 1);
         }

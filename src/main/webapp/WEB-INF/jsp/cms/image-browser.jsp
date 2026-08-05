@@ -20,6 +20,7 @@
 <%@ taglib prefix="text" uri="/WEB-INF/tlds/text-functions.tld" %>
 <%@ taglib prefix="url" uri="/WEB-INF/tlds/url-functions.tld" %>
 <%@ taglib prefix="number" uri="/WEB-INF/tlds/number-functions.tld" %>
+<%@ taglib prefix="image" uri="/WEB-INF/tlds/image-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="imageList" class="java.util.ArrayList" scope="request"/>
@@ -244,8 +245,12 @@
     <c:forEach items="${imageList}" var="image" varStatus="status">
       <div class="cell card">
         <div class="image-browser">
-          <button type="button" class="image-browser-select" onclick="mySubmit(this.dataset.src)" data-src="${ctx}/assets/img/${image.url}" aria-label="Select <c:out value="${image.filename}"/>">
-            <img src="${ctx}/assets/img/${image.url}" alt="">
+          <c:set var="imageHref" value="/assets/img/${image.url}"/>
+          <c:set var="mediaImageSrcset" value="${image:srcsetBatch(imageHref, imageVariantsByImageId)}"/>
+          <button type="button" class="image-browser-select" onclick="mySubmit(this.dataset.src)" data-src="<c:out value="${ctx}${imageHref}"/>" aria-label="Select <c:out value="${image.filename}"/>">
+            <img src="<c:out value="${ctx}${imageHref}"/>" alt=""
+              <c:if test="${not empty mediaImageSrcset}"> srcset="<c:out value="${mediaImageSrcset}"/>" sizes="150px"</c:if>
+              decoding="async"<c:if test="${!status.first}"> loading="lazy"</c:if>>
           </button>
         </div>
         <div class="card-section">

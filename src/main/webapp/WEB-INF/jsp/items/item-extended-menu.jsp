@@ -19,6 +19,7 @@
 <%@ taglib prefix="font" uri="/WEB-INF/tlds/font-functions.tld" %>
 <%@ taglib prefix="url" uri="/WEB-INF/tlds/url-functions.tld" %>
 <%@ taglib prefix="text" uri="/WEB-INF/tlds/text-functions.tld" %>
+<%@ taglib prefix="image" uri="/WEB-INF/tlds/image-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="collection" class="com.simisinc.platform.domain.model.items.Collection" scope="request"/>
@@ -41,8 +42,11 @@
     <h1>
       <c:choose>
         <c:when test="${!empty item.imageUrl}">
+          <c:set var="itemImageSrcset" value="${image:srcset(item.imageUrl)}"/>
           <%--                          <img src="/assets/img/1613486955904-2/SimIS%20Logo.png" />--%>
-          <img alt="item image" src="<c:out value="${item.imageUrl}"/>"/>
+          <img alt="item image" src="<c:out value="${item.imageUrl}"/>"
+            <c:if test="${not empty itemImageSrcset}"> srcset="<c:out value="${itemImageSrcset}"/>" sizes="200px"</c:if>
+            decoding="async"/>
         </c:when>
         <c:when test="${!empty collection.icon}">
           <i class="${font:fad()} fa-<c:out value="${collection.icon}" />"></i>

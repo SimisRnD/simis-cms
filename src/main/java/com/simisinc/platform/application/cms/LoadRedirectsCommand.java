@@ -39,7 +39,25 @@ public class LoadRedirectsCommand {
 
   private static Log LOG = LogFactory.getLog(LoadRedirectsCommand.class);
 
-  public static Map<String, String> load() {
+  // Issue #408 review: load() is called twice at startup -- once from ContextListener (via
+  // ImportLegacyRedirectsCommand) and once from WebRequestFilter.init() -- and, before this, each
+  // call re-parsed the file and re-logged the deprecation warning. Memoized here so the file is only
+  // ever actually read once per JVM; both call sites still get the (identical) result. There is
+  // deliberately no reload path -- the same "@todo option to reload" already noted in
+  // WebRequestFilter applies here too.
+  private static volatile boolean loaded = false;
+  private static Map<String, String> cachedRedirectMap = null;
+
+  public static synchronized Map<String, String> load() {
+    if (loaded) {
+      return cachedRedirectMap;
+    }
+    loaded = true;
+    cachedRedirectMap = loadFromDisk();
+    return cachedRedirectMap;
+  }
+
+  private static Map<String, String> loadFromDisk() {
 
     Map<String, String> redirectMap = new HashMap<>();
 
@@ -50,6 +68,16 @@ public class LoadRedirectsCommand {
       LOG.info("Skipping, no redirects found in: " + file.getAbsolutePath());
       return null;
     }
+
+    // Issue #408: redirects.csv is a legacy path being replaced by the database-backed web_redirects
+    // table managed from /admin/web-redirects (see WebRedirectRepository/LoadWebRedirectCommand).
+    // This file is still read for backward compatibility during the transition, and
+    // ImportLegacyRedirectsCommand can copy its rows into the database, but new redirects should be
+    // added through the admin UI going forward.
+    LOG.warn("Legacy redirects.csv found at " + file.getAbsolutePath() + " -- this file is deprecated in favor "
+        + "of the database-backed web_redirects table (manage redirects at /admin/web-redirects). It will "
+        + "continue to be read for backward compatibility, but consider migrating its entries (see "
+        + "ImportLegacyRedirectsCommand) and removing the file.");
 
     CsvParserSettings parserSettings = new CsvParserSettings();
     parserSettings.setLineSeparatorDetectionEnabled(true);

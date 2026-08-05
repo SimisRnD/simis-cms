@@ -19,6 +19,7 @@
 <%@ taglib prefix="html" uri="/WEB-INF/tlds/html-functions.tld" %>
 <%@ taglib prefix="text" uri="/WEB-INF/tlds/text-functions.tld" %>
 <%@ taglib prefix="date" uri="/WEB-INF/tlds/date-functions.tld" %>
+<%@ taglib prefix="image" uri="/WEB-INF/tlds/image-functions.tld" %>
 <%@ taglib prefix="user" uri="/WEB-INF/tlds/user-functions.tld" %>
 <%@ taglib prefix="url" uri="/WEB-INF/tlds/url-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
@@ -68,8 +69,11 @@
                 </div>
               </c:if>
               <c:if test="${showImage eq 'true' && !empty blogPost.imageUrl}">
+                <c:set var="blogImageSrcset" value="${image:srcsetBatch(blogPost.imageUrl, imageVariantsByImageId)}"/>
                 <div class="card-image">
-                  <a href="${ctx}/${blog.uniqueId}/${blogPost.uniqueId}"><img alt="Blog post banner image" src="${ctx}<c:out value="${blogPost.imageUrl}"/>"/></a>
+                  <a href="${ctx}/${blog.uniqueId}/${blogPost.uniqueId}"><img alt="Blog post banner image" src="${ctx}<c:out value="${blogPost.imageUrl}"/>"
+                    <c:if test="${not empty blogImageSrcset}"> srcset="<c:out value="${blogImageSrcset}"/>" sizes="(min-width: 1024px) 25vw, (min-width: 640px) 33vw, 50vw"</c:if>
+                    decoding="async" loading="lazy"/></a>
                 </div>
               </c:if>
               <c:if test="${showSummary eq 'true'}">

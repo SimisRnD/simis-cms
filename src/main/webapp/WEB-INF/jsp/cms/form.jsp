@@ -61,7 +61,8 @@
           return false;
       }
       var errorEl = document.getElementById("error-" + this.id);
-      if (errorEl && this.value.trim() !== "") {
+      var hasValue = this.type === "checkbox" ? this.checked : this.value.trim() !== "";
+      if (errorEl && hasValue) {
         errorEl.classList.remove("show");
         this.classList.remove("form-field-error");
         this.setAttribute("aria-invalid", "false");
@@ -95,6 +96,23 @@
         <c:choose>
           <c:when test="${!empty formField.listOfOptions}">
 
+          </c:when>
+          <c:when test="${formField.type eq 'checkbox'}">
+            var field = document.getElementById("${widgetContext.uniqueId}${js:escape(formField.name)}");
+            var errorEl = document.getElementById("error-${widgetContext.uniqueId}${js:escape(formField.name)}");
+            if (!field.checked) {
+              if (errorEl) {
+                errorEl.classList.add("show");
+              }
+              field.classList.add("form-field-error");
+              field.setAttribute("aria-invalid", "true");
+              hasErrors = true;
+              if (!firstErrorField) firstErrorField = field;
+            } else if (errorEl) {
+              errorEl.classList.remove("show");
+              field.classList.remove("form-field-error");
+              field.setAttribute("aria-invalid", "false");
+            }
           </c:when>
           <c:otherwise>
             var field = document.getElementById("${widgetContext.uniqueId}${js:escape(formField.name)}");
@@ -139,30 +157,56 @@
   <%@include file="../page_messages.jspf" %>
   <%-- Form Content --%>
   <c:forEach items="${formFieldList}" var="formField" varStatus="status">
-    <label><c:out value="${formField.label}"/><c:if test="${formField.required}"> <span class="required">*</span></c:if>
     <c:choose>
-      <c:when test="${!empty formField.listOfOptions}">
-        <select id="${widgetContext.uniqueId}<c:out value="${formField.name}"/>" name="${widgetContext.uniqueId}<c:out value="${formField.name}"/>">
-          <option value="">&lt; Please Choose &gt;</option>
+      <c:when test="${formField.type eq 'checkbox' && !empty formField.listOfOptions}">
+        <%-- Checkbox group: multiple checkboxes sharing one name, so a visitor can check several --%>
+        <fieldset>
+          <legend><c:out value="${formField.label}"/><c:if test="${formField.required}"> <span class="required">*</span></c:if></legend>
           <c:forEach items="${formField.listOfOptions}" var="option">
-            <option value="<c:out value="${option.key}"/>"><c:out value="${option.value}" /></option>
+            <label>
+              <input type="checkbox"
+                  id="${widgetContext.uniqueId}<c:out value="${formField.name}"/>-<c:out value="${option.key}"/>"
+                  name="${widgetContext.uniqueId}<c:out value="${formField.name}"/>"
+                  value="<c:out value="${option.key}"/>"/>
+              <c:out value="${option.value}" />
+            </label>
           </c:forEach>
-        </select>
-      </c:when>
-      <c:when test="${formField.type eq 'textarea'}">
-        <textarea id="${widgetContext.uniqueId}<c:out value="${formField.name}"/>" name="${widgetContext.uniqueId}<c:out value="${formField.name}"/>" style="height:120px"
-            <c:if test="${!empty formField.placeholder}"> placeholder="<c:out value="${formField.placeholder}" />"</c:if>
-            <c:if test="${formField.required}">required</c:if>><c:if test="${!empty formField.userValue}"><c:out value="${formField.userValue}" /></c:if></textarea>
+        </fieldset>
       </c:when>
       <c:otherwise>
-        <input type="text"
-            id="${widgetContext.uniqueId}<c:out value="${formField.name}"/>" name="${widgetContext.uniqueId}<c:out value="${formField.name}"/>"
-            <c:if test="${!empty formField.placeholder}">placeholder="<c:out value="${formField.placeholder}" />"</c:if>
-            <c:if test="${!empty formField.userValue}">value="<c:out value="${formField.userValue}" />"</c:if>
-            <c:if test="${formField.required}">required</c:if>>
+        <label><c:out value="${formField.label}"/><c:if test="${formField.required}"> <span class="required">*</span></c:if>
+        <c:choose>
+          <c:when test="${!empty formField.listOfOptions}">
+            <select id="${widgetContext.uniqueId}<c:out value="${formField.name}"/>" name="${widgetContext.uniqueId}<c:out value="${formField.name}"/>">
+              <option value="">&lt; Please Choose &gt;</option>
+              <c:forEach items="${formField.listOfOptions}" var="option">
+                <option value="<c:out value="${option.key}"/>"><c:out value="${option.value}" /></option>
+              </c:forEach>
+            </select>
+          </c:when>
+          <c:when test="${formField.type eq 'textarea'}">
+            <textarea id="${widgetContext.uniqueId}<c:out value="${formField.name}"/>" name="${widgetContext.uniqueId}<c:out value="${formField.name}"/>" style="height:120px"
+                <c:if test="${!empty formField.placeholder}"> placeholder="<c:out value="${formField.placeholder}" />"</c:if>
+                <c:if test="${formField.required}">required</c:if>><c:if test="${!empty formField.userValue}"><c:out value="${formField.userValue}" /></c:if></textarea>
+          </c:when>
+          <c:when test="${formField.type eq 'checkbox'}">
+            <%-- Single-toggle checkbox --%>
+            <input type="checkbox"
+                id="${widgetContext.uniqueId}<c:out value="${formField.name}"/>" name="${widgetContext.uniqueId}<c:out value="${formField.name}"/>"
+                value="true"
+                <c:if test="${formField.userValue eq 'true'}">checked</c:if>>
+          </c:when>
+          <c:otherwise>
+            <input type="text"
+                id="${widgetContext.uniqueId}<c:out value="${formField.name}"/>" name="${widgetContext.uniqueId}<c:out value="${formField.name}"/>"
+                <c:if test="${!empty formField.placeholder}">placeholder="<c:out value="${formField.placeholder}" />"</c:if>
+                <c:if test="${!empty formField.userValue}">value="<c:out value="${formField.userValue}" />"</c:if>
+                <c:if test="${formField.required}">required</c:if>>
+          </c:otherwise>
+        </c:choose>
+        </label>
       </c:otherwise>
     </c:choose>
-    </label>
     <c:if test="${formField.required && empty formField.listOfOptions}">
       <p id="error-${widgetContext.uniqueId}<c:out value="${formField.name}"/>" class="error-message" role="alert" aria-live="polite">
         <i class="fa fa-exclamation-circle"></i><c:out value="${formField.label}"/> is required
@@ -187,7 +231,7 @@
     <c:when test="${useCaptcha eq 'true'}">
       <p>
         Please enter the text value you see in the image:<br />
-        <img src="/assets/captcha" class="margin-bottom-10" /><br />
+        <img src="/assets/captcha" class="margin-bottom-10" alt="captcha" height="40" decoding="async" /><br />
         <input type="text" name="captcha" value="" required/>
       </p>
       <p>
