@@ -247,8 +247,8 @@
         <div class="image-browser">
           <c:set var="imageHref" value="/assets/img/${image.url}"/>
           <c:set var="mediaImageSrcset" value="${image:srcsetBatch(imageHref, imageVariantsByImageId)}"/>
-          <button type="button" class="image-browser-select" onclick="mySubmit(this.dataset.src)" data-src="${ctx}${imageHref}" aria-label="Select <c:out value="${image.filename}"/>">
-            <img src="${ctx}${imageHref}" alt=""
+          <button type="button" class="image-browser-select" onclick="mySubmit(this.dataset.src)" data-src="<c:out value="${ctx}${imageHref}"/>" aria-label="Select <c:out value="${image.filename}"/>">
+            <img src="<c:out value="${ctx}${imageHref}"/>" alt=""
               <c:if test="${not empty mediaImageSrcset}"> srcset="<c:out value="${mediaImageSrcset}"/>" sizes="150px"</c:if>
               decoding="async"<c:if test="${!status.first}"> loading="lazy"</c:if>>
           </button>
