@@ -371,10 +371,15 @@ public class WebPage extends Entity implements Reviewable {
   }
 
   /**
-   * True when this page has an expiresAt date set in the future (matches the "not yet happened"
-   * semantics used by WebPageRepository.countExpiringSoon())
+   * True when this page has an expiresAt date set within the next 30 days (matches
+   * WebPageRepository.countExpiringSoon()'s window)
    */
   public boolean isExpiringSoon() {
-    return expiresAt != null && expiresAt.getTime() > System.currentTimeMillis();
+    if (expiresAt == null) {
+      return false;
+    }
+    long now = System.currentTimeMillis();
+    long expiresAtMillis = expiresAt.getTime();
+    return expiresAtMillis > now && expiresAtMillis <= now + (30L * 24 * 60 * 60 * 1000);
   }
 }
