@@ -16,6 +16,8 @@
 
 package com.simisinc.platform.application.cms;
 
+import java.util.function.Predicate;
+
 import com.simisinc.platform.presentation.controller.UserSession;
 
 /**
@@ -52,21 +54,36 @@ public class EditorPermissionCommand {
 
   /** @return true only if the user may edit content (editor tier or above). */
   public static boolean canEditContent(UserSession userSession) {
-    return hasAnyRole(userSession, CONTENT_EDITOR_ROLES);
-  }
-
-  /** @return true only if the user may change page layout/structure (builder tier). */
-  public static boolean canBuildLayout(UserSession userSession) {
-    return hasAnyRole(userSession, LAYOUT_BUILDER_ROLES);
-  }
-
-  private static boolean hasAnyRole(UserSession userSession, String[] roles) {
     if (userSession == null) {
       // Closed-by-default: no session means no capability.
       return false;
     }
+    return hasContentEditorRole(userSession::hasRole);
+  }
+
+  /**
+   * Same check as {@link #canEditContent(UserSession)}, against any role-lookup function -- e.g. a
+   * REST caller's {@code ServiceContext::hasRole}, which has no {@link UserSession} to check
+   * against. Shares {@link #CONTENT_EDITOR_ROLES} so the JSP and REST write paths can't drift apart.
+   * Deliberately not named as a {@code canEditContent} overload: a bare Mockito {@code any()} at an
+   * existing {@code canEditContent(UserSession)} call site can't disambiguate between two same-named
+   * overloads at compile time.
+   */
+  public static boolean hasContentEditorRole(Predicate<String> hasRole) {
+    return hasAnyRole(hasRole, CONTENT_EDITOR_ROLES);
+  }
+
+  /** @return true only if the user may change page layout/structure (builder tier). */
+  public static boolean canBuildLayout(UserSession userSession) {
+    if (userSession == null) {
+      return false;
+    }
+    return hasAnyRole(userSession::hasRole, LAYOUT_BUILDER_ROLES);
+  }
+
+  private static boolean hasAnyRole(Predicate<String> hasRole, String[] roles) {
     for (String role : roles) {
-      if (userSession.hasRole(role)) {
+      if (hasRole.test(role)) {
         return true;
       }
     }
