@@ -703,15 +703,13 @@
   </page>
 
   <page name="/admin/community/analytics" role="admin,community-manager" title="Site Analytics">
-    <!--<section>-->
-      <!--<column class="small-12 cell">-->
-        <!--<widget name="breadcrumbs">-->
-          <!--<links>-->
-            <!--<link name="Analytics" value="" />-->
-          <!--</links>-->
-        <!--</widget>-->
-      <!--</column>-->
-    <!--</section>-->
+    <section class="grid-container">
+      <column class="small-12 cell">
+        <widget name="content" class="margin-bottom-0">
+          <html><![CDATA[<h5 class="platform-dashboard-section-label">Traffic &amp; Sessions</h5>]]></html>
+        </widget>
+      </column>
+    </section>
     <section class="grid-container grid-x grid-margin-x">
       <column class="small-12 medium-6 large-3 cell callout">
         <widget name="siteStats">
@@ -749,27 +747,6 @@
         </widget>
       </column>
       <column class="small-12 medium-6 large-3 cell callout">
-        <widget name="communityStats">
-          <icon>fa-mail-bulk</icon>
-          <title>Mailing List Subscribers</title>
-          <report>total-mailing-list-members</report>
-        </widget>
-      </column>
-      <column class="small-12 medium-6 large-3 cell callout">
-        <widget name="siteStats">
-          <icon>fa-star-half-stroke</icon>
-          <title>Mailing List Quality Score</title>
-          <report>mailing-list-quality-score</report>
-        </widget>
-      </column>
-      <column class="small-12 medium-6 large-3 cell callout">
-        <widget name="siteStats">
-          <icon>fa-users</icon>
-          <title>Total Users</title>
-          <report>total-users</report>
-        </widget>
-      </column>
-      <column class="small-12 medium-6 large-3 cell callout">
         <widget name="siteStats">
           <icon>fa-book-open</icon>
           <title>Pages per Session</title>
@@ -782,74 +759,6 @@
           <icon>fa-user-clock</icon>
           <title>Return Visitor Rate</title>
           <report>return-visitor-rate</report>
-          <days>30</days>
-        </widget>
-      </column>
-    </section>
-    <section class="grid-container grid-x grid-margin-x">
-      <column class="small-12 medium-6 large-3 cell callout">
-        <widget name="siteStats">
-          <icon>fa-mail-bulk</icon>
-          <title>Active Subscribers</title>
-          <report>active-mailing-list-subscribers</report>
-        </widget>
-      </column>
-      <column class="small-12 medium-6 large-3 cell callout">
-        <widget name="siteStats">
-          <icon>fa-user-check</icon>
-          <title>Enabled Accounts</title>
-          <report>enabled-accounts</report>
-        </widget>
-      </column>
-      <column class="small-12 medium-6 large-3 cell callout">
-        <widget name="siteStats">
-          <icon>fa-mail-bulk</icon>
-          <title>Unsubscribed</title>
-          <report>unsubscribed-mailing-list-members</report>
-        </widget>
-      </column>
-      <column class="small-12 medium-6 large-3 cell callout">
-        <widget name="siteStats">
-          <icon>fa-user-shield</icon>
-          <title>Validated Accounts</title>
-          <report>validated-accounts</report>
-        </widget>
-      </column>
-      <column class="small-12 medium-6 large-3 cell callout">
-        <widget name="siteStats">
-          <icon>fa-user-plus</icon>
-          <title>New This Month</title>
-          <report>new-registrations-this-month</report>
-        </widget>
-      </column>
-      <column class="small-12 medium-6 large-3 cell callout">
-        <widget name="siteStats">
-          <icon>fa-user-cog</icon>
-          <title>Admin/Staff Accounts</title>
-          <report>admin-staff-accounts</report>
-        </widget>
-      </column>
-      <column class="small-12 medium-6 large-3 cell callout">
-        <widget name="siteStats">
-          <icon>fa-user-friends</icon>
-          <title>Public Accounts</title>
-          <report>public-accounts</report>
-        </widget>
-      </column>
-    </section>
-    <section class="grid-container grid-x grid-margin-x">
-      <column class="small-12 medium-6 large-6 cell callout">
-        <widget name="siteStats">
-          <icon>fa-list-alt</icon>
-          <title>Total Form Submissions</title>
-          <report>total-form-submissions</report>
-        </widget>
-      </column>
-      <column class="small-12 medium-6 large-6 cell callout">
-        <widget name="siteStats">
-          <icon>fa-ban</icon>
-          <title>Spam-Flagged Submissions (30d)</title>
-          <report>form-submissions-spam-flagged</report>
           <days>30</days>
         </widget>
       </column>
@@ -905,39 +814,181 @@
           <type>line</type>
         </widget>
       </column>
+    </section>
+
+    <section class="grid-container">
+      <column class="small-12 cell">
+        <widget name="content" class="margin-bottom-0">
+          <html><![CDATA[<h5 class="platform-dashboard-section-label">Users &amp; Accounts</h5>]]></html>
+        </widget>
+      </column>
+    </section>
+    <section class="grid-container grid-x grid-margin-x">
+      <column class="small-12 medium-6 large-3 cell callout">
+        <widget name="siteStats">
+          <icon>fa-users</icon>
+          <title>Total Users</title>
+          <report>total-users</report>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 large-3 cell callout">
+        <widget name="siteStats">
+          <icon>fa-user-check</icon>
+          <title>Enabled Accounts</title>
+          <report>enabled-accounts</report>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 large-3 cell callout">
+        <widget name="siteStats">
+          <icon>fa-user-shield</icon>
+          <title>Validated Accounts</title>
+          <report>validated-accounts</report>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 large-3 cell callout">
+        <widget name="siteStats">
+          <icon>fa-user-plus</icon>
+          <title>New This Month</title>
+          <report>new-registrations-this-month</report>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 large-3 cell callout">
+        <widget name="siteStats">
+          <icon>fa-user-cog</icon>
+          <title>Admin/Staff Accounts</title>
+          <report>admin-staff-accounts</report>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 large-3 cell callout">
+        <widget name="siteStats">
+          <icon>fa-user-friends</icon>
+          <title>Public Accounts</title>
+          <report>public-accounts</report>
+        </widget>
+      </column>
+    </section>
+    <section>
       <column class="small-12 medium-6 cell">
         <widget name="siteStats" class="stats card">
-          <icon>fa-hourglass-half</icon>
-          <title>Avg Time on Page</title>
-          <report>avg-time-on-page</report>
-          <label>Page</label>
-          <value>Avg Time</value>
-          <days>30</days>
-          <limit>10</limit>
+          <title>Daily Active Users</title>
+          <label>Active Users</label>
+          <report>dau</report>
         </widget>
       </column>
       <column class="small-12 medium-6 cell">
         <widget name="siteStats" class="stats card">
-          <icon>fa-exclamation-triangle</icon>
-          <title>High Traffic, Low Engagement</title>
-          <report>high-traffic-low-engagement</report>
-          <label>Page</label>
-          <value>Hits / Avg Time</value>
-          <days>30</days>
-          <limit>10</limit>
+          <title>Monthly Active Users</title>
+          <label>Active Users</label>
+          <report>mau</report>
+          <type>bar</type>
         </widget>
       </column>
       <column class="small-12 medium-6 cell">
         <widget name="siteStats" class="stats card">
-          <icon>fa-star</icon>
-          <title>Low Traffic, High Engagement</title>
-          <report>low-traffic-high-engagement</report>
-          <label>Page</label>
-          <value>Hits / Avg Time</value>
-          <days>30</days>
-          <limit>10</limit>
+          <title>Daily User Registrations</title>
+          <label>User Registrations</label>
+          <report>daily-user-registrations</report>
         </widget>
       </column>
+      <column class="small-12 medium-6 cell">
+        <widget name="siteStats" class="stats card">
+          <title>Monthly User Registrations</title>
+          <label>User Registrations</label>
+          <report>monthly-user-registrations</report>
+          <type>bar</type>
+        </widget>
+      </column>
+    </section>
+
+    <section class="grid-container">
+      <column class="small-12 cell">
+        <widget name="content" class="margin-bottom-0">
+          <html><![CDATA[<h5 class="platform-dashboard-section-label">Mailing Lists</h5>]]></html>
+        </widget>
+      </column>
+    </section>
+    <section class="grid-container grid-x grid-margin-x">
+      <column class="small-12 medium-6 large-3 cell callout">
+        <widget name="communityStats">
+          <icon>fa-mail-bulk</icon>
+          <title>Mailing List Subscribers</title>
+          <report>total-mailing-list-members</report>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 large-3 cell callout">
+        <widget name="siteStats">
+          <icon>fa-star-half-stroke</icon>
+          <title>Mailing List Quality Score</title>
+          <report>mailing-list-quality-score</report>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 large-3 cell callout">
+        <widget name="siteStats">
+          <icon>fa-mail-bulk</icon>
+          <title>Active Subscribers</title>
+          <report>active-mailing-list-subscribers</report>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 large-3 cell callout">
+        <widget name="siteStats">
+          <icon>fa-mail-bulk</icon>
+          <title>Unsubscribed</title>
+          <report>unsubscribed-mailing-list-members</report>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 medium-6 cell">
+        <widget name="siteStats" class="stats card">
+          <title>Daily Mailing List Subscriptions</title>
+          <label>Subscriptions</label>
+          <report>daily-mailing-list-subscriptions</report>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 cell">
+        <widget name="siteStats" class="stats card">
+          <title>Monthly Mailing List Subscriptions</title>
+          <label>Subscriptions</label>
+          <report>monthly-mailing-list-subscriptions</report>
+          <type>bar</type>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 cell">
+        <widget name="siteStats" class="stats card">
+          <icon>fa-shield-halved</icon>
+          <title>Email Deliverability</title>
+          <label>Status</label>
+          <value>Subscribers</value>
+          <report>mailing-list-classification-breakdown</report>
+        </widget>
+      </column>
+    </section>
+
+    <section class="grid-container">
+      <column class="small-12 cell">
+        <widget name="content" class="margin-bottom-0">
+          <html><![CDATA[<h5 class="platform-dashboard-section-label">Forms</h5>]]></html>
+        </widget>
+      </column>
+    </section>
+    <section class="grid-container grid-x grid-margin-x">
+      <column class="small-12 medium-6 large-6 cell callout">
+        <widget name="siteStats">
+          <icon>fa-list-alt</icon>
+          <title>Total Form Submissions</title>
+          <report>total-form-submissions</report>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 large-6 cell callout">
+        <widget name="siteStats">
+          <icon>fa-ban</icon>
+          <title>Spam-Flagged Submissions (30d)</title>
+          <report>form-submissions-spam-flagged</report>
+          <days>30</days>
+        </widget>
+      </column>
+    </section>
+    <section>
       <column class="small-12 medium-6 cell">
         <widget name="siteStats" class="stats card">
           <title>Daily Form Submissions</title>
@@ -992,6 +1043,112 @@
         </widget>
       </column>
       -->
+      <!--
+      Requires the funnel.contactForm.pagePath / funnel.contactForm.formUniqueId site properties to be
+      configured (issue #565, phase 1); otherwise every stage reports zero, since nothing is being
+      recorded yet. Uncommented once a site opts in, the same way the conversion-rate tile above does.
+      <column class="small-12 medium-6 cell">
+        <widget name="siteStats" class="stats card">
+          <icon>fa-filter</icon>
+          <title>Contact Form Funnel (30d)</title>
+          <label>Stage</label>
+          <value>Count</value>
+          <report>contact-form-funnel</report>
+          <days>30</days>
+        </widget>
+      </column>
+      -->
+    </section>
+
+    <section class="grid-container">
+      <column class="small-12 cell">
+        <widget name="content" class="margin-bottom-0">
+          <html><![CDATA[<h5 class="platform-dashboard-section-label">Content Engagement</h5>]]></html>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 medium-6 cell">
+        <widget name="siteStats" class="stats card">
+          <icon>fa-hourglass-half</icon>
+          <title>Avg Time on Page</title>
+          <report>avg-time-on-page</report>
+          <label>Page</label>
+          <value>Avg Time</value>
+          <days>30</days>
+          <limit>10</limit>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 cell">
+        <widget name="siteStats" class="stats card">
+          <icon>fa-exclamation-triangle</icon>
+          <title>High Traffic, Low Engagement</title>
+          <report>high-traffic-low-engagement</report>
+          <label>Page</label>
+          <value>Hits / Avg Time</value>
+          <days>30</days>
+          <limit>10</limit>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 cell">
+        <widget name="siteStats" class="stats card">
+          <icon>fa-star</icon>
+          <title>Low Traffic, High Engagement</title>
+          <report>low-traffic-high-engagement</report>
+          <label>Page</label>
+          <value>Hits / Avg Time</value>
+          <days>30</days>
+          <limit>10</limit>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 cell">
+        <widget name="siteStats" class="stats card">
+          <icon>fa-filter</icon>
+          <title>Facet Usage Breakdown</title>
+          <report>facet-usage-breakdown</report>
+          <label>Facet</label>
+          <value>Searches</value>
+          <days>30</days>
+          <limit>10</limit>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 cell">
+        <widget name="siteStats" class="stats card">
+          <icon>fa-briefcase</icon>
+          <title>Traffic by Solution Type</title>
+          <label>Page Views</label>
+          <report>solution-type-traffic</report>
+          <type>bar</type>
+          <days>30</days>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 cell">
+        <widget name="siteStats" class="stats card">
+          <icon>fa-briefcase</icon>
+          <title>Engagement by Solution Type</title>
+          <label>Solution Type</label>
+          <value>Avg Page Views / Session</value>
+          <report>solution-type-engagement</report>
+          <days>30</days>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/community/search-analytics" role="admin,community-manager" title="Search Analytics">
+    <section class="grid-container">
+      <column class="small-12 cell">
+        <widget name="content" class="margin-bottom-0">
+          <html><![CDATA[<div class="callout primary radius">
+  <h4>What this page shows</h4>
+  <p>These reports come from two separate, independently-recorded systems that don't share a denominator -- don't try to reconcile their totals against each other.</p>
+  <p><strong>Top Search Terms</strong> counts page views that included a search query, logged once per page render regardless of what (if anything) was found.</p>
+  <p><strong>Zero-Result</strong> and <strong>Trending</strong> search terms count actual search executions across six content types (pages, content, blog, wiki, items, calendar), each with its own real result count. A single visitor search can produce multiple rows here -- one per content type searched.</p>
+</div>]]></html>
+        </widget>
+      </column>
+    </section>
+    <section>
       <column class="small-12 medium-6 cell">
         <widget name="siteStats" class="stats card">
           <icon>fa-search</icon>
@@ -1024,106 +1181,6 @@
           <limit>10</limit>
         </widget>
       </column>
-      <column class="small-12 medium-6 cell">
-        <widget name="siteStats" class="stats card">
-          <icon>fa-filter</icon>
-          <title>Facet Usage Breakdown</title>
-          <report>facet-usage-breakdown</report>
-          <label>Facet</label>
-          <value>Searches</value>
-          <days>30</days>
-          <limit>10</limit>
-        </widget>
-      </column>
-      <column class="small-12 medium-6 cell">
-        <widget name="siteStats" class="stats card">
-          <title>Daily User Registrations</title>
-          <label>User Registrations</label>
-          <report>daily-user-registrations</report>
-        </widget>
-      </column>
-      <column class="small-12 medium-6 cell">
-        <widget name="siteStats" class="stats card">
-          <title>Daily Mailing List Subscriptions</title>
-          <label>Subscriptions</label>
-          <report>daily-mailing-list-subscriptions</report>
-        </widget>
-      </column>
-      <column class="small-12 medium-6 cell">
-        <widget name="siteStats" class="stats card">
-          <title>Daily Active Users</title>
-          <label>Active Users</label>
-          <report>dau</report>
-        </widget>
-      </column>
-      <column class="small-12 medium-6 cell">
-        <widget name="siteStats" class="stats card">
-          <title>Monthly Active Users</title>
-          <label>Active Users</label>
-          <report>mau</report>
-          <type>bar</type>
-        </widget>
-      </column>
-      <column class="small-12 medium-6 cell">
-        <widget name="siteStats" class="stats card">
-          <title>Monthly User Registrations</title>
-          <label>User Registrations</label>
-          <report>monthly-user-registrations</report>
-          <type>bar</type>
-        </widget>
-      </column>
-      <column class="small-12 medium-6 cell">
-        <widget name="siteStats" class="stats card">
-          <title>Monthly Mailing List Subscriptions</title>
-          <label>Subscriptions</label>
-          <report>monthly-mailing-list-subscriptions</report>
-          <type>bar</type>
-        </widget>
-      </column>
-      <column class="small-12 medium-6 cell">
-        <widget name="siteStats" class="stats card">
-          <icon>fa-shield-halved</icon>
-          <title>Email Deliverability</title>
-          <label>Status</label>
-          <value>Subscribers</value>
-          <report>mailing-list-classification-breakdown</report>
-        </widget>
-      </column>
-      <column class="small-12 medium-6 cell">
-        <widget name="siteStats" class="stats card">
-          <icon>fa-briefcase</icon>
-          <title>Traffic by Solution Type</title>
-          <label>Page Views</label>
-          <report>solution-type-traffic</report>
-          <type>bar</type>
-          <days>30</days>
-        </widget>
-      </column>
-      <column class="small-12 medium-6 cell">
-        <widget name="siteStats" class="stats card">
-          <icon>fa-briefcase</icon>
-          <title>Engagement by Solution Type</title>
-          <label>Solution Type</label>
-          <value>Avg Page Views / Session</value>
-          <report>solution-type-engagement</report>
-          <days>30</days>
-        </widget>
-      </column>
-      <!--
-      Requires the funnel.contactForm.pagePath / funnel.contactForm.formUniqueId site properties to be
-      configured (issue #565, phase 1); otherwise every stage reports zero, since nothing is being
-      recorded yet. Uncommented once a site opts in, the same way the conversion-rate tile above does.
-      <column class="small-12 medium-6 cell">
-        <widget name="siteStats" class="stats card">
-          <icon>fa-filter</icon>
-          <title>Contact Form Funnel (30d)</title>
-          <label>Stage</label>
-          <value>Count</value>
-          <report>contact-form-funnel</report>
-          <days>30</days>
-        </widget>
-      </column>
-      -->
     </section>
   </page>
 

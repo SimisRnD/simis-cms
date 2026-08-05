@@ -451,6 +451,7 @@
             <ul class="vertical menu">
               <li class="section-title">Community</li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/community/analytics')}"> class="is-active"</c:if>><a href="${ctx}/admin/community/analytics"><i class="${font:far()} fa-chart-line fa-fw"></i> <span>Analytics</span></a></li>
+              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/community/search-analytics')}"> class="is-active"</c:if>><a href="${ctx}/admin/community/search-analytics"><i class="${font:far()} fa-search fa-fw"></i> <span>Search Analytics</span></a></li>
               <c:if test="${userSession.hasRole('admin')}">
                 <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/web-vitals')}"> class="is-active"</c:if>><a href="${ctx}/admin/web-vitals"><i class="${font:far()} fa-tachometer-alt fa-fw"></i> <span>Web Vitals</span></a></li>
               </c:if>
