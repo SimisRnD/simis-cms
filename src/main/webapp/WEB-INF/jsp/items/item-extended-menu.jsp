@@ -42,7 +42,7 @@
       <c:choose>
         <c:when test="${!empty item.imageUrl}">
           <%--                          <img src="/assets/img/1613486955904-2/SimIS%20Logo.png" />--%>
-          <img alt="item image" src="<c:out value="${item.imageUrl}"/>"/>
+          <img alt="item image" src="<c:out value="${item.imageUrl}"/>" loading="eager"/>
         </c:when>
         <c:when test="${!empty collection.icon}">
           <i class="${font:fad()} fa-<c:out value="${collection.icon}" />"></i>

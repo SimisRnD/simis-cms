@@ -18,7 +18,7 @@
 <jsp:useBean id="altText" class="java.lang.String" scope="request"/>
 <c:choose>
   <c:when test="${!empty imageUrl}">
-    <img class="platform-image-widget" src="<c:out value="${imageUrl}"/>" alt="<c:out value="${altText}"/>"/>
+    <img class="platform-image-widget" src="<c:out value="${imageUrl}"/>" alt="<c:out value="${altText}"/>" loading="lazy" decoding="async"/>
   </c:when>
   <c:otherwise>
     <%-- No image configured yet -- a placeholder, never a broken <img> tag --%>

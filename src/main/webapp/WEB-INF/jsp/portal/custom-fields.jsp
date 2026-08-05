@@ -35,7 +35,7 @@
       <p>${html:clean(field.value)}</p>
     </c:when>
     <c:when test="${'image' eq field.type}">
-      <p><img src="<c:out value="${field.value}" />" /></p>
+      <p><img src="<c:out value="${field.value}" />" alt="<c:out value="${field.label}" />" loading="lazy" decoding="async" /></p>
     </c:when>
     <c:when test="${'url' eq field.type && (fn:startsWith(field.value, 'http://') || fn:startsWith(field.value, 'https://'))}">
       <p><a class="button small no-gap" href="${url:encode(field.value)}" target="_blank" rel="nofollow"><c:out value="${field.label}" /> <i class="fa fa-external-link"></i></a></p>

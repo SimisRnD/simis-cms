@@ -140,7 +140,7 @@
   </c:if>
   <c:if test="${useCaptcha eq 'true' && empty googleSiteKey && empty turnstileSiteKey}">
     <p class="help-text">
-      Enter the text shown: <img src="/assets/captcha" alt="captcha" style="vertical-align: middle;" />
+      Enter the text shown: <img src="/assets/captcha" alt="captcha" style="vertical-align: middle;" height="40" decoding="async" />
       <input type="text" id="captcha${widgetContext.uniqueId}" required/>
     </p>
   </c:if>

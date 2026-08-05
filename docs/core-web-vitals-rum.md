@@ -323,6 +323,58 @@ SELECT DISTINCT url, metric_type FROM web_vitals WHERE created_at > NOW() - INTE
 
 **Total:** Negligible impact on user experience.
 
+## Image Loading Baseline (Issue #413)
+
+A prerequisite audit for the image transform pipeline (issue #411): added `loading`, `width`,
+`height`, and `decoding` attributes to `<img>` tags across public-facing widget templates, deliberately
+decoupled from #411's srcset/focal-point work so it could ship immediately. Only templates reachable
+from a real end-user page were touched — `WEB-INF/jsp/admin/*` and the other admin-gated JSPs
+(`cms/blog-editor.jsp`, `cms/image-browser.jsp`, `cms/web-page-templates.jsp`) are back-office
+screens, not a CWV concern, and were left alone.
+
+**Lazy-loaded (`loading="lazy" decoding="async"`)** — repeating list/grid/carousel content, where
+the image is never guaranteed to be above the fold: blog post lists (all 4 render variants), item
+directory listings (`items-list`, `items-search-results-list`, `items-card-view`), item
+relationships sidebar, ecommerce cart/order line items, product browser/card-slider grids,
+leaderboard photos, the generic `image` widget, custom-fields image type, activity-list icons, the
+photo-gallery swiper (both the server-rendered slides and the AJAX "switch album" slides), the
+footer logo, and all carousel slides after the first.
+
+**Exempted (`loading="eager"`, no lazy/decoding)** — structurally guaranteed above-the-fold chrome
+or single-hero-image widgets: every site-logo variant in the header (`layout-header-standard.jspf`,
+`layout-header-checkout.jspf`, `cms/logo.jsp`, `cms/toggle-menu.jsp`), the site-confirmation modal
+logo (`main.jsp`), the single-product-photo widget (`ecommerce/product-image.jsp`), the item-detail
+page header banner (`items/item-menu.jsp`, `items/item-extended-menu.jsp`), and a carousel's first
+(`is-active`) slide.
+
+**Left untouched, judgment call** — `items/item-full-form.jsp`'s `#imageUrlPreview`: a live
+JS-swapped upload preview next to the file input the user is actively using. Not passive list
+content (so `loading="lazy"` doesn't fit the exemption logic above either) and no static
+width/height is safe to hardcode since the displayed image changes at runtime to whatever file the
+user just picked.
+
+**Width/height** — only added where a real object with known dimensions is in scope at the template
+(`Item.imageUrl`, `Product.imageUrl`, `BlogPost.imageUrl`, and `sitePropertyMap['site.logo*']` are
+all plain `String`s with no companion dimension data, so most templates could not get this
+attribute without a data-model change, out of scope here):
+- `cms/photo-gallery.jsp` — `FileItem.getWidth()/getHeight()` (guarded: only emitted when > 0,
+  since pre-dimension-tracking rows default to -1). `PhotoListAjax.java`'s JSON payload was extended
+  with the same `width`/`height` fields (also guarded) so the "switch album" AJAX path gets the same
+  treatment as the initial server-rendered slides.
+- `items/activity-list.jsp` — the bundled `apple-touch-icon.png` is a fixed 128×128 asset (verified
+  against the actual file, not assumed from convention).
+- `cms/content-carousel.jsp`'s 4 static size-placeholder images (`image-640-480.png`,
+  `image-1952-850.png`, `image-2034-690.png`, `image-640-240.png`) — dimensions verified against the
+  actual files, not just parsed from the filenames.
+- Analytics tracking pixels got `width="1" height="1"` (not treated as lazy-loadable content — an
+  IO-based lazy load risks the beacon never firing for a visitor who doesn't scroll it into view).
+- Captcha images got a hardcoded `height="40"` (the server always renders at that height); `width`
+  varies per-request with the captcha text length and cannot be statically hardcoded.
+
+**Not done here, left for #411**: `srcset`/responsive variants, focal-point cropping, and
+`fetchpriority="high"` on LCP candidates — all explicitly out of scope per #413's own framing
+("independent of the image transform pipeline").
+
 ## Next Steps
 
 1. **Test with real visitor traffic** now that the collector is wired into `main.jsp`

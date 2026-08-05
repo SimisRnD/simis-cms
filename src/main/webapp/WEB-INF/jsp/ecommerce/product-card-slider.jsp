@@ -39,13 +39,13 @@
           <div class="card-image">
             <c:choose>
               <c:when test="${!empty productImageMap[product.uniqueId]}">
-                <a href="<c:out value="${ctx}${product.productUrl}"/>"><img alt="product image" src="<c:out value="${productImageMap[product.uniqueId]}"/>" /></a>
+                <a href="<c:out value="${ctx}${product.productUrl}"/>"><img alt="product image" src="<c:out value="${productImageMap[product.uniqueId]}"/>" loading="lazy" decoding="async" /></a>
               </c:when>
               <c:when test="${!empty product.imageUrl}">
-                <a href="${ctx}<c:out value="${product.productUrl}"/>"><img alt="product image" src="<c:out value="${product.imageUrl}"/>" /></a>
+                <a href="${ctx}<c:out value="${product.productUrl}"/>"><img alt="product image" src="<c:out value="${product.imageUrl}"/>" loading="lazy" decoding="async" /></a>
               </c:when>
               <c:otherwise>
-                <a href="${ctx}<c:out value="${product.productUrl}"/>"><img alt="product image placeholder" src="${ctx}/images/ecommerce/product-image-placeholder.png" width="500" height="300"></a>
+                <a href="${ctx}<c:out value="${product.productUrl}"/>"><img alt="product image placeholder" src="https://placehold.it/500x300" loading="lazy" decoding="async"></a>
               </c:otherwise>
             </c:choose>
           </div>
