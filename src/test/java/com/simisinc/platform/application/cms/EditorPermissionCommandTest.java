@@ -21,6 +21,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.Predicate;
 
 import org.junit.jupiter.api.Test;
 
@@ -86,5 +87,14 @@ class EditorPermissionCommandTest {
   void nullSessionGrantsNeither() {
     assertFalse(EditorPermissionCommand.canEditContent(null));
     assertFalse(EditorPermissionCommand.canBuildLayout(null));
+  }
+
+  @Test
+  void predicateOverloadChecksTheSameRoleListAsTheSessionOverload() {
+    // The REST write path (ContentService) has no UserSession -- only a role-lookup function --
+    // and must be denied/granted by the exact same role list as the JSP path, not a re-typed copy.
+    assertTrue(EditorPermissionCommand.hasContentEditorRole((Predicate<String>) "content-editor"::equals));
+    assertFalse(EditorPermissionCommand.hasContentEditorRole((Predicate<String>) "data-manager"::equals));
+    assertFalse(EditorPermissionCommand.hasContentEditorRole((Predicate<String>) role -> false));
   }
 }

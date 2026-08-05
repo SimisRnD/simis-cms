@@ -1400,6 +1400,34 @@
     </section>
   </page>
 
+  <page name="/admin/web-redirects" role="admin,content-manager" title="Web Redirects">
+    <section>
+      <column class="small-12 cell">
+        <widget name="webRedirectList">
+          <title>Web Redirects</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/web-redirect{?webRedirectId}" role="admin,content-manager" title="Web Redirect">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Web Redirects" value="/admin/web-redirects" />
+            <link name="Web Redirect" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 medium-10 large-8 cell">
+        <widget name="webRedirectForm" />
+      </column>
+    </section>
+  </page>
+
   <page name="/admin/web-page-designer" role="admin,content-manager" title="Web Page Designer">
     <section>
       <column class="small-12 cell">

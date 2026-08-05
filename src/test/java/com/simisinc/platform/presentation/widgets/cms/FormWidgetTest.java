@@ -25,6 +25,7 @@ import java.util.List;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
 import com.simisinc.platform.WidgetBase;
@@ -347,6 +348,168 @@ class FormWidgetTest extends WidgetBase {
               eq("contact"), eq(FormSubmissionFailureRepository.REASON_RATE_LIMITED), any(), any()));
         }
       }
+    }
+  }
+
+  private void addCheckboxGroupFieldPreferences(boolean required) {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"form\">\n" +
+            "  <formUniqueId>survey</formUniqueId>\n" +
+            "  <fields>\n" +
+            "    <field name=\"Which departments interest you?\" value=\"departments\" type=\"checkbox\"" +
+            " list=\"sales=Sales,marketing=Marketing,tech=Technical\" required=\"" + required + "\" />\n" +
+            "  </fields>\n" +
+            "</widget>");
+  }
+
+  @Test
+  void postJoinsMultipleCheckedCheckboxGroupOptionsInListOrder() {
+    // A checkbox group submits one repeated-name parameter per checked box -- getParameter() would
+    // only see the first. Submitted out of list order (tech before sales) to confirm the stored
+    // value follows listOfOptions order, not submission order.
+    addCheckboxGroupFieldPreferences(false);
+    widgetContext.getParameterMap().put(widgetContext.getUniqueId() + "departments", new String[] { "tech", "sales" });
+
+    try (MockedStatic<LoadSitePropertyCommand> property = mockStatic(LoadSitePropertyCommand.class)) {
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.service")).thenReturn(null);
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.google.sitekey")).thenReturn(null);
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.google.secretkey")).thenReturn(null);
+
+      try (MockedStatic<FormDataRepository> formDataRepositoryMockedStatic = mockStatic(FormDataRepository.class)) {
+        ArgumentCaptor<FormData> savedFormData = ArgumentCaptor.forClass(FormData.class);
+        formDataRepositoryMockedStatic.when(() -> FormDataRepository.save(savedFormData.capture())).thenReturn(new FormData());
+
+        try (MockedStatic<WorkflowManager> workflowManagerMockedStatic = mockStatic(WorkflowManager.class);
+            MockedStatic<FunnelEventCommand> funnelEventCommand = mockStatic(FunnelEventCommand.class)) {
+
+          FormWidget widget = new FormWidget();
+          WidgetContext result = widget.post(widgetContext);
+
+          Assertions.assertNull(result);
+          FormField departmentsField = savedFormData.getValue().getFormFieldList().get(0);
+          Assertions.assertEquals("Sales,Technical", departmentsField.getUserValue());
+        }
+      }
+    }
+  }
+
+  @Test
+  void postJoinsSingleCheckedCheckboxGroupOptionWithoutTrailingComma() {
+    addCheckboxGroupFieldPreferences(false);
+    widgetContext.getParameterMap().put(widgetContext.getUniqueId() + "departments", new String[] { "marketing" });
+
+    try (MockedStatic<LoadSitePropertyCommand> property = mockStatic(LoadSitePropertyCommand.class)) {
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.service")).thenReturn(null);
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.google.sitekey")).thenReturn(null);
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.google.secretkey")).thenReturn(null);
+
+      try (MockedStatic<FormDataRepository> formDataRepositoryMockedStatic = mockStatic(FormDataRepository.class)) {
+        ArgumentCaptor<FormData> savedFormData = ArgumentCaptor.forClass(FormData.class);
+        formDataRepositoryMockedStatic.when(() -> FormDataRepository.save(savedFormData.capture())).thenReturn(new FormData());
+
+        try (MockedStatic<WorkflowManager> workflowManagerMockedStatic = mockStatic(WorkflowManager.class);
+            MockedStatic<FunnelEventCommand> funnelEventCommand = mockStatic(FunnelEventCommand.class)) {
+
+          FormWidget widget = new FormWidget();
+          widget.post(widgetContext);
+
+          FormField departmentsField = savedFormData.getValue().getFormFieldList().get(0);
+          Assertions.assertEquals("Marketing", departmentsField.getUserValue());
+        }
+      }
+    }
+  }
+
+  @Test
+  void postDeduplicatesRepeatedCheckboxGroupValues() {
+    addCheckboxGroupFieldPreferences(false);
+    widgetContext.getParameterMap().put(widgetContext.getUniqueId() + "departments", new String[] { "sales", "sales" });
+
+    try (MockedStatic<LoadSitePropertyCommand> property = mockStatic(LoadSitePropertyCommand.class)) {
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.service")).thenReturn(null);
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.google.sitekey")).thenReturn(null);
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.google.secretkey")).thenReturn(null);
+
+      try (MockedStatic<FormDataRepository> formDataRepositoryMockedStatic = mockStatic(FormDataRepository.class)) {
+        ArgumentCaptor<FormData> savedFormData = ArgumentCaptor.forClass(FormData.class);
+        formDataRepositoryMockedStatic.when(() -> FormDataRepository.save(savedFormData.capture())).thenReturn(new FormData());
+
+        try (MockedStatic<WorkflowManager> workflowManagerMockedStatic = mockStatic(WorkflowManager.class);
+            MockedStatic<FunnelEventCommand> funnelEventCommand = mockStatic(FunnelEventCommand.class)) {
+
+          FormWidget widget = new FormWidget();
+          widget.post(widgetContext);
+
+          FormField departmentsField = savedFormData.getValue().getFormFieldList().get(0);
+          Assertions.assertEquals("Sales", departmentsField.getUserValue());
+        }
+      }
+    }
+  }
+
+  @Test
+  void postRequiredCheckboxGroupWithNoneCheckedIsRejected() {
+    addCheckboxGroupFieldPreferences(true);
+    // No parameter submitted at all for the group -- equivalent to every box left unchecked
+
+    try (MockedStatic<FormSubmissionFailureRepository> failureRepository = mockStatic(FormSubmissionFailureRepository.class)) {
+      FormWidget widget = new FormWidget();
+      WidgetContext result = widget.post(widgetContext);
+
+      Assertions.assertNotNull(result);
+      Assertions.assertEquals("Which departments interest you? is required", widgetContext.getWarningMessage());
+      failureRepository.verify(() -> FormSubmissionFailureRepository.record(
+          eq("survey"), eq(FormSubmissionFailureRepository.REASON_MISSING_FIELD), any(), any()));
+    }
+  }
+
+  @Test
+  void postCapturesCheckedSingleToggleCheckboxValue() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"form\">\n" +
+            "  <formUniqueId>subscribe</formUniqueId>\n" +
+            "  <fields>\n" +
+            "    <field name=\"Subscribe to updates\" value=\"subscribe\" type=\"checkbox\" required=\"true\" />\n" +
+            "  </fields>\n" +
+            "</widget>");
+    addQueryParameter(widgetContext, widgetContext.getUniqueId() + "subscribe", "true");
+
+    try (MockedStatic<FormDataRepository> formDataRepositoryMockedStatic = mockStatic(FormDataRepository.class)) {
+      ArgumentCaptor<FormData> savedFormData = ArgumentCaptor.forClass(FormData.class);
+      formDataRepositoryMockedStatic.when(() -> FormDataRepository.save(savedFormData.capture())).thenReturn(new FormData());
+
+      try (MockedStatic<WorkflowManager> workflowManagerMockedStatic = mockStatic(WorkflowManager.class);
+          MockedStatic<FunnelEventCommand> funnelEventCommand = mockStatic(FunnelEventCommand.class)) {
+
+        FormWidget widget = new FormWidget();
+        WidgetContext result = widget.post(widgetContext);
+
+        Assertions.assertNull(result);
+        FormField subscribeField = savedFormData.getValue().getFormFieldList().get(0);
+        Assertions.assertEquals("true", subscribeField.getUserValue());
+      }
+    }
+  }
+
+  @Test
+  void postRequiredSingleToggleCheckboxUncheckedIsRejected() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"form\">\n" +
+            "  <formUniqueId>subscribe</formUniqueId>\n" +
+            "  <fields>\n" +
+            "    <field name=\"Subscribe to updates\" value=\"subscribe\" type=\"checkbox\" required=\"true\" />\n" +
+            "  </fields>\n" +
+            "</widget>");
+    // Unchecked -- the browser submits nothing for this parameter at all
+
+    try (MockedStatic<FormSubmissionFailureRepository> failureRepository = mockStatic(FormSubmissionFailureRepository.class)) {
+      FormWidget widget = new FormWidget();
+      WidgetContext result = widget.post(widgetContext);
+
+      Assertions.assertNotNull(result);
+      Assertions.assertEquals("Subscribe to updates is required", widgetContext.getWarningMessage());
+      failureRepository.verify(() -> FormSubmissionFailureRepository.record(
+          eq("subscribe"), eq(FormSubmissionFailureRepository.REASON_MISSING_FIELD), any(), any()));
     }
   }
 
