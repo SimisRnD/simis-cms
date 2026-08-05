@@ -1,0 +1,133 @@
+/*
+ * Copyright 2026 SimIS Inc. (https://www.simiscms.com)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.simisinc.platform.presentation.widgets.admin.cms;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
+
+import java.lang.reflect.InvocationTargetException;
+
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
+
+import com.simisinc.platform.WidgetBase;
+import com.simisinc.platform.domain.model.cms.FormDefinition;
+import com.simisinc.platform.infrastructure.persistence.cms.FormDefinitionRepository;
+import com.simisinc.platform.presentation.controller.WidgetContext;
+
+/**
+ * @author SimIS Inc.
+ */
+class FormDefinitionFormWidgetTest extends WidgetBase {
+
+  @Test
+  void executeLoadsAnExistingFormById() {
+    FormDefinition contactUs = new FormDefinition();
+    contactUs.setId(5L);
+    contactUs.setName("Contact Us");
+
+    addQueryParameter(widgetContext, "formDefinitionId", "5");
+
+    try (MockedStatic<FormDefinitionRepository> formDefinitionRepository = mockStatic(FormDefinitionRepository.class)) {
+      formDefinitionRepository.when(() -> FormDefinitionRepository.findById(5L)).thenReturn(contactUs);
+
+      WidgetContext result = new FormDefinitionFormWidget().execute(widgetContext);
+
+      Assertions.assertEquals(FormDefinitionFormWidget.JSP, result.getJsp());
+      FormDefinition requestBean = (FormDefinition) request.getAttribute("formDefinition");
+      Assertions.assertEquals(5L, requestBean.getId());
+      Assertions.assertEquals("Contact Us", requestBean.getName());
+    }
+  }
+
+  @Test
+  void executeWithNoIdFallsBackToABlankBean() {
+    try (MockedStatic<FormDefinitionRepository> formDefinitionRepository = mockStatic(FormDefinitionRepository.class)) {
+      formDefinitionRepository.when(() -> FormDefinitionRepository.findById(-1L)).thenReturn(null);
+
+      WidgetContext result = new FormDefinitionFormWidget().execute(widgetContext);
+
+      FormDefinition requestBean = (FormDefinition) request.getAttribute("formDefinition");
+      Assertions.assertNotNull(requestBean);
+      Assertions.assertEquals(-1L, requestBean.getId());
+    }
+  }
+
+  @Test
+  void postSavesANewFormAndRedirectsToItsEditor() throws InvocationTargetException, IllegalAccessException {
+    addQueryParameter(widgetContext, "id", "-1");
+    addQueryParameter(widgetContext, "name", "Contact Us");
+    addQueryParameter(widgetContext, "title", "Get in touch");
+
+    try (MockedStatic<FormDefinitionRepository> formDefinitionRepository = mockStatic(FormDefinitionRepository.class)) {
+      formDefinitionRepository.when(() -> FormDefinitionRepository.findByUniqueId(any())).thenReturn(null);
+      formDefinitionRepository.when(() -> FormDefinitionRepository.save(any())).thenAnswer(invocation -> {
+        FormDefinition savedRecord = invocation.getArgument(0);
+        savedRecord.setId(9L);
+        return savedRecord;
+      });
+
+      WidgetContext result = new FormDefinitionFormWidget().post(widgetContext);
+
+      Assertions.assertEquals("Form was saved", result.getSuccessMessage());
+      Assertions.assertEquals("/admin/forms-editor?formDefinitionId=9", result.getRedirect());
+    }
+  }
+
+  @Test
+  void postWithABlankNameFailsValidationAndDoesNotSave() throws InvocationTargetException, IllegalAccessException {
+    addQueryParameter(widgetContext, "id", "-1");
+
+    try (MockedStatic<FormDefinitionRepository> formDefinitionRepository = mockStatic(FormDefinitionRepository.class)) {
+      WidgetContext result = new FormDefinitionFormWidget().post(widgetContext);
+
+      Assertions.assertNotNull(result.getErrorMessage());
+      Assertions.assertNull(result.getRedirect());
+      formDefinitionRepository.verify(() -> FormDefinitionRepository.save(any()), never());
+    }
+  }
+
+  /**
+   * Guards against reintroducing the createdBy-on-edit bug this codebase has already hit once in a
+   * sibling command (mailing lists) -- editing an existing form must not overwrite createdBy with
+   * whoever happens to be saving right now.
+   */
+  @Test
+  void postOnAnExistingFormPreservesTheOriginalCreatedBy() throws InvocationTargetException, IllegalAccessException {
+    FormDefinition existing = new FormDefinition();
+    existing.setId(5L);
+    existing.setUniqueId("contact-us");
+    existing.setName("Contact Us");
+    existing.setCreatedBy(42L);
+
+    addQueryParameter(widgetContext, "id", "5");
+    addQueryParameter(widgetContext, "name", "Contact Us");
+
+    try (MockedStatic<FormDefinitionRepository> formDefinitionRepository = mockStatic(FormDefinitionRepository.class)) {
+      formDefinitionRepository.when(() -> FormDefinitionRepository.findById(5L)).thenReturn(existing);
+      formDefinitionRepository.when(() -> FormDefinitionRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+      // The logged-in test user (see WidgetBase#login) is id 1, which must not clobber createdBy=42
+      new FormDefinitionFormWidget().post(widgetContext);
+
+      Assertions.assertEquals(42L, existing.getCreatedBy());
+      Assertions.assertEquals(1L, existing.getModifiedBy());
+    }
+  }
+}

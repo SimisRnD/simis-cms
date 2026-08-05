@@ -390,6 +390,53 @@
     </section>
   </page>
 
+  <page name="/admin/forms" role="admin,community-manager" title="Form Builder">
+    <section>
+      <column class="small-12 medium-10 large-9 cell">
+        <widget name="formsList">
+          <title>Forms</title>
+        </widget>
+      </column>
+      <column class="small-12 medium-2 large-3 cell">
+        <widget name="formDefinitionForm" class="callout radius primary">
+          <title>Add a form</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
+  <page name="/admin/forms-editor{?formDefinitionId}" role="admin,community-manager" title="Form Editor">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Forms" value="/admin/forms" />
+            <link name="Edit Form" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="formDefinitionForm">
+          <title>Form Settings</title>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 medium-8 large-8 cell">
+        <widget name="formFieldsList">
+          <title>Fields</title>
+        </widget>
+      </column>
+      <column class="small-12 medium-4 large-4 cell">
+        <widget name="formFieldForm" class="callout radius primary">
+          <title>Add a field</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
   <page name="/admin/mailing-lists" role="admin,community-manager" title="Mailing Lists">
     <!--<section>-->
       <!--<column class="small-12 cell">-->
