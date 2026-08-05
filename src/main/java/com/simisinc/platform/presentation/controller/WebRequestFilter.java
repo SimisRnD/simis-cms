@@ -56,6 +56,7 @@ import com.simisinc.platform.application.cms.BlockedIPListCommand;
 import com.simisinc.platform.application.cms.HostnameCommand;
 import com.simisinc.platform.application.cms.LoadBlockedIPListCommand;
 import com.simisinc.platform.application.cms.LoadRedirectsCommand;
+import com.simisinc.platform.application.cms.LoadWebRedirectCommand;
 import com.simisinc.platform.application.ecommerce.CartCommand;
 import com.simisinc.platform.application.ecommerce.LoadCartCommand;
 import com.simisinc.platform.application.ecommerce.PricingRuleCommand;
@@ -66,6 +67,7 @@ import com.simisinc.platform.application.oauth.OAuthLogoutCommand;
 import com.simisinc.platform.application.oauth.OAuthRequestCommand;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.Visitor;
+import com.simisinc.platform.domain.model.cms.WebRedirect;
 import com.simisinc.platform.domain.model.ecommerce.Cart;
 import com.simisinc.platform.domain.model.ecommerce.PricingRule;
 import com.simisinc.platform.domain.model.login.UserLogin;
@@ -84,7 +86,14 @@ public class WebRequestFilter implements Filter {
   private static Log LOG = LogFactory.getLog(WebRequestFilter.class);
 
   private boolean requireSSL = false;
-  private Map<String, String> redirectMap = null;
+
+  // Static (rather than an instance field): a servlet container creates exactly one instance of this
+  // filter per webapp, but WebRedirectListWidget needs a way to reach in and purge a single entry
+  // from the already-loaded legacy CSV fallback map when an admin deletes a database-backed redirect
+  // (issue #408) -- see purgeCsvFallback(). Without that, redirectMap (loaded once, here, at startup)
+  // would keep serving a from_path the admin just deleted for the rest of this server's uptime, since
+  // nothing else ever refreshes or invalidates it.
+  private static volatile Map<String, String> redirectMap = null;
 
   public void init(FilterConfig config) throws ServletException {
     LOG.info("WebRequestFilter starting up...");
@@ -159,8 +168,32 @@ public class WebRequestFilter implements Filter {
       return;
     }
 
-    // Check redirects
-    if (redirectMap != null) {
+    // Check redirects. The admin-managed, database-backed redirect (issue #408) is checked first and
+    // takes precedence over the legacy CSV file when both define a rule for the same path: the
+    // database is the new source of truth admins interact with at /admin/web-redirects, so an
+    // admin's edit should immediately shadow a stale/not-yet-migrated CSV entry rather than be
+    // silently overridden by it. The CSV lookup remains as a fallback during the transition period
+    // (see LoadRedirectsCommand/ImportLegacyRedirectsCommand) -- but only for a from_path the
+    // database has no opinion about at all. A from_path that IS a database row, even a disabled one,
+    // is fully governed by the database from that point on: falling through to the CSV map for a
+    // disabled row would silently resurrect an admin's own "disable" click via the legacy fallback it
+    // was specifically trying to turn off (issue #408 review). Deleting the row (rather than
+    // disabling it) is handled the same way for the life of this server via purgeCsvFallback() below
+    // -- see WebRedirectListWidget.remove().
+    WebRedirect webRedirect = LoadWebRedirectCommand.matchByFromPath(resource);
+    if (webRedirect != null) {
+      // The database has an explicit answer for this from_path -- never consult the CSV map below,
+      // whether that answer is "redirect" (enabled) or "don't" (disabled; falls through to normal
+      // request handling further down, the same as if no redirect existed at all)
+      if (webRedirect.getEnabled()) {
+        if (webRedirect.getStatusCode() == WebRedirect.TEMPORARY) {
+          do302(servletResponse, webRedirect.getToUrl());
+        } else {
+          do301(servletResponse, webRedirect.getToUrl());
+        }
+        return;
+      }
+    } else if (redirectMap != null) {
       String redirect = redirectMap.get(resource);
       if (redirect != null) {
         // Handle a redirect immediately
@@ -601,6 +634,26 @@ public class WebRequestFilter implements Filter {
    */
   static String safeRedirectPath(String requestURI) {
     return HostnameCommand.safeRedirectPath(requestURI);
+  }
+
+  /**
+   * Removes a single from_path from the in-memory legacy redirects.csv fallback map (issue #408),
+   * so it stops being served by the CSV-backed fallback in {@link #doFilter} for the rest of this
+   * server's uptime. {@code redirectMap} is parsed once at filter startup and, unlike the
+   * database-backed redirect, has no TTL or write-time invalidation of its own -- called by
+   * {@code WebRedirectListWidget} when an admin deletes a database row, so a from_path that also
+   * happens to be in the (deprecated but still-present) CSV file can't be silently resurrected by
+   * the fallback for the remainder of this run. This does not touch the CSV file on disk: if it
+   * still contains the same line, a subsequent server restart will re-populate this map (and
+   * ImportLegacyRedirectsCommand will re-import the row) -- removing the deprecated file, as the
+   * startup warning in LoadRedirectsCommand already recommends, is what makes a deletion permanent.
+   *
+   * @param fromPath the from_path an admin just removed from the database
+   */
+  public static void purgeCsvFallback(String fromPath) {
+    if (redirectMap != null && fromPath != null) {
+      redirectMap.remove(fromPath);
+    }
   }
 
   private void doHealthCheck(ServletRequest request, ServletResponse servletResponse) throws IOException {
