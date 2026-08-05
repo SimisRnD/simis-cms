@@ -243,6 +243,10 @@
   <widget name="socialMediaLinkList" class="com.simisinc.platform.presentation.widgets.admin.SocialMediaLinkListWidget" />
   <widget name="socialMediaLinkForm" class="com.simisinc.platform.presentation.widgets.admin.SocialMediaLinkFormWidget" />
   <widget name="formDataList" class="com.simisinc.platform.presentation.widgets.admin.cms.FormDataListWidget" />
+  <widget name="formsList" class="com.simisinc.platform.presentation.widgets.admin.cms.FormsListWidget" />
+  <widget name="formDefinitionForm" class="com.simisinc.platform.presentation.widgets.admin.cms.FormDefinitionFormWidget" />
+  <widget name="formFieldsList" class="com.simisinc.platform.presentation.widgets.admin.cms.FormFieldsListWidget" />
+  <widget name="formFieldForm" class="com.simisinc.platform.presentation.widgets.admin.cms.FormFieldFormWidget" />
   <widget name="datasets" class="com.simisinc.platform.presentation.widgets.admin.datasets.DatasetsWidget" />
   <widget name="datasetName" class="com.simisinc.platform.presentation.widgets.datasets.DatasetNameWidget" />
   <widget name="datasetUpload" class="com.simisinc.platform.presentation.widgets.admin.datasets.DatasetUploadWidget" />

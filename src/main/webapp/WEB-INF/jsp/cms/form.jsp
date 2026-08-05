@@ -141,6 +141,21 @@
   <c:forEach items="${formFieldList}" var="formField" varStatus="status">
     <label><c:out value="${formField.label}"/><c:if test="${formField.required}"> <span class="required">*</span></c:if>
     <c:choose>
+      <c:when test="${formField.type eq 'checkbox' && !empty formField.listOfOptions}">
+        <c:forEach items="${formField.listOfOptions}" var="option">
+          <input type="checkbox"
+              id="${widgetContext.uniqueId}<c:out value="${formField.name}"/>_<c:out value="${option.key}"/>"
+              name="${widgetContext.uniqueId}<c:out value="${formField.name}"/>" value="<c:out value="${option.key}"/>"/>
+          <label for="${widgetContext.uniqueId}<c:out value="${formField.name}"/>_<c:out value="${option.key}"/>"><c:out value="${option.value}" /></label>
+        </c:forEach>
+      </c:when>
+      <c:when test="${formField.type eq 'checkbox'}">
+        <input type="checkbox"
+            id="${widgetContext.uniqueId}<c:out value="${formField.name}"/>" name="${widgetContext.uniqueId}<c:out value="${formField.name}"/>"
+            value="true"
+            <c:if test="${!empty formField.userValue}">checked</c:if>
+            <c:if test="${formField.required}">required</c:if>/>
+      </c:when>
       <c:when test="${!empty formField.listOfOptions}">
         <select id="${widgetContext.uniqueId}<c:out value="${formField.name}"/>" name="${widgetContext.uniqueId}<c:out value="${formField.name}"/>">
           <option value="">&lt; Please Choose &gt;</option>

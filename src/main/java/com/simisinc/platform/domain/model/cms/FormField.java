@@ -39,6 +39,12 @@ public class FormField extends Entity {
   private String defaultValue = null;
   private String userValue = null;
 
+  // Database-backed form builder bookkeeping (issue #409). Both default to values the existing
+  // XML-preference rendering path (FormFieldCommand#parseFieldContent) never reads or sets, so this
+  // reuse of FormField for the admin-CRUD shape is additive and does not affect XML-defined forms.
+  private long formDefinitionId = -1;
+  private int fieldOrder = -1;
+
   public FormField() {
   }
 
@@ -112,5 +118,21 @@ public class FormField extends Entity {
 
   public void setRequired(boolean required) {
     isRequired = required;
+  }
+
+  public long getFormDefinitionId() {
+    return formDefinitionId;
+  }
+
+  public void setFormDefinitionId(long formDefinitionId) {
+    this.formDefinitionId = formDefinitionId;
+  }
+
+  public int getFieldOrder() {
+    return fieldOrder;
+  }
+
+  public void setFieldOrder(int fieldOrder) {
+    this.fieldOrder = fieldOrder;
   }
 }

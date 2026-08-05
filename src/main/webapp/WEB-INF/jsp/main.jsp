@@ -453,6 +453,7 @@
               <c:if test="${userSession.hasRole('admin')}">
                 <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/web-vitals')}"> class="is-active"</c:if>><a href="${ctx}/admin/web-vitals"><i class="${font:far()} fa-tachometer-alt fa-fw"></i> <span>Web Vitals</span></a></li>
               </c:if>
+              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/forms')}"> class="is-active"</c:if>><a href="${ctx}/admin/forms"><i class="${font:far()} fa-file-lines fa-fw"></i> <span>Form Builder</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/form-')}"> class="is-active"</c:if>><a href="${ctx}/admin/form-data"><i class="${font:far()} fa-list-alt fa-fw"></i> <span>Form Data</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/mailing-list') && !fn:startsWith(pageRenderInfo.name, '/admin/mailing-list-properties')}"> class="is-active"</c:if>><a href="${ctx}/admin/mailing-lists"><i class="${font:far()} fa-envelope fa-fw"></i> <span>Mailing Lists</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/newsletter-send')}"> class="is-active"</c:if>><a href="${ctx}/admin/newsletter-send"><i class="${font:far()} fa-paper-plane fa-fw"></i> <span>Send Newsletter</span></a></li>
