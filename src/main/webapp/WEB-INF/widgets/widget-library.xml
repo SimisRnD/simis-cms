@@ -210,6 +210,7 @@
   <widget name="mailingListMembers" class="com.simisinc.platform.presentation.widgets.mailinglists.MailingListMembersWidget" />
   <widget name="newsletterSend" class="com.simisinc.platform.presentation.widgets.admin.NewsletterSendWidget" />
   <widget name="newsletterUnsubscribe" class="com.simisinc.platform.presentation.widgets.mailinglists.NewsletterUnsubscribeWidget" />
+  <widget name="mailingListConfirmSubscription" class="com.simisinc.platform.presentation.widgets.mailinglists.MailingListConfirmSubscriptionWidget" />
   <widget name="folderList" class="com.simisinc.platform.presentation.widgets.admin.cms.FolderListWidget" />
   <widget name="folderDetails" class="com.simisinc.platform.presentation.widgets.admin.cms.FolderDetailsWidget" />
   <widget name="folderForm" class="com.simisinc.platform.presentation.widgets.admin.cms.FolderFormWidget" />

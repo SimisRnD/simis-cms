@@ -149,6 +149,7 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (22, 'MailChimp List Id', 'mailing-list.mailchimp.listId', '', 'text');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (24, 'ZeroBounce API Key', 'mailing-list.zerobounce.apiKey', '', 'text');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (26, 'Mailing List Quarantine Alert Threshold (%)', 'mailing-list.quarantine.alertThresholdPercent', '10', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (27, 'Mailing List Confirmation Link Expiry (days)', 'mailing-list.confirmation.expiryDays', '7', 'text');
 
 -- Search
 
