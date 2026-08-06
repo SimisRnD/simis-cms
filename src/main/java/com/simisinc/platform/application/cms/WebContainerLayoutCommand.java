@@ -16,6 +16,7 @@
 
 package com.simisinc.platform.application.cms;
 
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.infrastructure.cache.CacheManager;
 import com.simisinc.platform.presentation.controller.XMLFooterLoader;
 import com.simisinc.platform.presentation.controller.XMLHeaderLoader;
@@ -63,7 +64,13 @@ public class WebContainerLayoutCommand {
   public static Footer retrieveFooter(ServletContext servletContext, Map<String, String> widgetLibrary) {
     Footer footer = (Footer) CacheManager.getFromObjectCache(CacheManager.WEBSITE_FOOTER);
     if (footer == null) {
-      footer = XMLFooterLoader.retrieveFooter(servletContext, widgetLibrary, "footer.default");
+      // Use the footer layout preference, if set
+      String layout = LoadSitePropertyCommand.loadByName("theme.footer.layout", "footer.default");
+      footer = XMLFooterLoader.retrieveFooter(servletContext, widgetLibrary, layout);
+      if (footer == null && !"footer.default".equals(layout)) {
+        // The configured layout name didn't resolve to a known footer; fall back rather than break every page
+        footer = XMLFooterLoader.retrieveFooter(servletContext, widgetLibrary, "footer.default");
+      }
       CacheManager.addToObjectCache(CacheManager.WEBSITE_FOOTER, footer);
     }
     return footer;
