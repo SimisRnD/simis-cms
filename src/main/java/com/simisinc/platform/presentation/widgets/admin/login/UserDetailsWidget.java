@@ -25,6 +25,8 @@ import com.simisinc.platform.application.LoadUserCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.login.StepUpAuthCommand;
 import com.simisinc.platform.application.login.UnsuspendAccountCommand;
+import com.simisinc.platform.application.login.UserMfaCommand;
+import com.simisinc.platform.application.login.UserMfaRecoveryCodeCommand;
 import com.simisinc.platform.domain.events.cms.UnsuspendRequestedEvent;
 import com.simisinc.platform.domain.events.cms.UserAccountRestoredEvent;
 import com.simisinc.platform.domain.events.cms.UserPasswordResetEvent;
@@ -145,6 +147,30 @@ public class UserDetailsWidget extends GenericWidget {
       context.setRedirect("/admin/user-details?userId=" + userId);
       return resetPassword(context, user);
     }
+    if ("resetMfa".equals(action)) {
+      // Clearing another user's MFA enrollment requires step-up, same bar as Reset Password --
+      // and, matching resetPassword's own comment above, is intentionally kept OUT of action()'s
+      // dispatch table so a plain GET/action request can never reach it.
+      String stepUpCredential = context.getParameter("stepUpCredential");
+      if (!StepUpAuthCommand.isValid(context.getUserSession())) {
+        if (StringUtils.isBlank(stepUpCredential)) {
+          context.addSharedRequestValue("stepUpRequired", "true");
+          context.getRequest().setAttribute("user", user);
+          context.setJsp(JSP);
+          return context;
+        }
+        User actingUser = LoadUserCommand.loadUser(context.getUserId());
+        if (!StepUpAuthCommand.verify(context.getUserSession(), actingUser, stepUpCredential)) {
+          context.setErrorMessage("Re-authentication failed. Enter your password or authenticator code.");
+          context.addSharedRequestValue("stepUpRequired", "true");
+          context.getRequest().setAttribute("user", user);
+          context.setJsp(JSP);
+          return context;
+        }
+      }
+      context.setRedirect("/admin/user-details?userId=" + userId);
+      return resetMfa(context, user);
+    }
     if ("approveUnsuspend".equals(action)) {
       // Approving an unsuspend request requires step-up, same bar as Reset Password/Assign Roles --
       // and, matching resetPassword's own comment above, is intentionally kept OUT of action()'s
@@ -189,7 +215,7 @@ public class UserDetailsWidget extends GenericWidget {
       return context;
     }
     // Execute the action
-    // Note: resetPassword is intentionally NOT handled here -- it requires step-up
+    // Note: resetPassword and resetMfa are intentionally NOT handled here -- both require step-up
     // re-authentication (see post()) and must only be reachable through that gated path.
     context.setRedirect("/admin/user-details?userId=" + userId);
     String action = context.getParameter("action");
@@ -223,6 +249,29 @@ public class UserDetailsWidget extends GenericWidget {
     WorkflowManager.triggerWorkflowForEvent(new UserPasswordResetEvent(user, context.getUserSession().getUser()));
 
     context.setSuccessMessage("Password reset instructions have been sent to: " + user.getEmail());
+    return context;
+  }
+
+  private WidgetContext resetMfa(WidgetContext context, User user) {
+    // Not one that outranks the acting admin -- see targetOutranksActor()
+    if (targetOutranksActor(context, user)) {
+      context.setErrorMessage("You cannot reset MFA for an account with a higher role level than your own");
+      return context;
+    }
+    // Capture the target before disable/clear alter its in-memory state
+    String targetId = String.valueOf(user.getId());
+    String targetLabel = user.getEmail();
+
+    // Clear the second factor and any unused recovery codes -- reuses the same commands the
+    // self-service MyMfaSettingsWidget "disable" action calls on the user's own account.
+    UserMfaCommand.disable(user);
+    UserMfaRecoveryCodeCommand.clear(user);
+
+    // Record the admin-initiated MFA reset of another user
+    AuditEventCommand.record(context, AuditEventCommand.USER_MANAGEMENT, "user.mfa.reset",
+        AuditEventCommand.SUCCESS, "user", targetId, targetLabel, null);
+
+    context.setSuccessMessage("MFA has been reset for: " + targetLabel + ". They must re-enroll from scratch.");
     return context;
   }
 
