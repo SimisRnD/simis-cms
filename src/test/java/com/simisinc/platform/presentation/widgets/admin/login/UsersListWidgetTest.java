@@ -20,11 +20,13 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.junit.jupiter.api.Assertions;
@@ -38,6 +40,7 @@ import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.register.SaveUserCommand;
 import com.simisinc.platform.domain.model.Role;
 import com.simisinc.platform.domain.model.User;
+import com.simisinc.platform.domain.model.login.UserLogin;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.persistence.GroupRepository;
 import com.simisinc.platform.infrastructure.persistence.RoleRepository;
@@ -264,6 +267,82 @@ class UsersListWidgetTest extends WidgetBase {
       saveCmd.verify(() -> SaveUserCommand.saveUser(captor.capture()));
       Assertions.assertTrue(captor.getValue().getRoleList().isEmpty(),
           "a session whose role code isn't in the authoritative role list must fail closed and grant nothing");
+    }
+  }
+
+  /**
+   * execute() used to load each row's roles and last-login with one {@code RoleRepository.findAllByUserId}
+   * and one {@code UserLoginRepository.queryLastLogin} call per user (N+1). It now batches both into a
+   * single {@code findAllByUserIds}/{@code queryLastLogins} call and assigns per-row from the returned
+   * maps -- this confirms the page still renders each user's own roles and last-login correctly from
+   * that batched data, and that the old per-row methods are no longer called at all.
+   */
+  @Test
+  void executeAssignsRolesAndLastLoginFromTheBatchedMapsRatherThanPerRowQueries() {
+    setRoles(widgetContext, ADMIN);
+
+    User user1 = new User();
+    user1.setId(1L);
+    User user2 = new User();
+    user2.setId(2L);
+    User user3 = new User();
+    user3.setId(3L); // no roles, no login -- must end up with null roleList/lastLogin, not a crash
+
+    Role editorRole = role(1, 70, "content-editor", "Content Editor");
+    UserLogin user1Login = new UserLogin();
+    user1Login.setUserId(1L);
+    UserLogin user2Login = new UserLogin();
+    user2Login.setUserId(2L);
+
+    try (MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
+        MockedStatic<GroupRepository> groupRepo = mockStatic(GroupRepository.class);
+        MockedStatic<UserLoginRepository> loginRepo = mockStatic(UserLoginRepository.class);
+        MockedStatic<UnsuspendRequestRepository> requestRepo = mockStatic(UnsuspendRequestRepository.class)) {
+      userRepo.when(() -> UserRepository.findAll(any(), any(DataConstraints.class)))
+          .thenReturn(List.of(user1, user2, user3));
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
+      roleRepo.when(() -> RoleRepository.findAllByUserIds(List.of(1L, 2L, 3L)))
+          .thenReturn(Map.of(1L, List.of(editorRole)));
+      loginRepo.when(() -> UserLoginRepository.queryLastLogins(List.of(1L, 2L, 3L)))
+          .thenReturn(Map.of(1L, user1Login, 2L, user2Login));
+      groupRepo.when(GroupRepository::findAll).thenReturn(new ArrayList<>());
+      requestRepo.when(UnsuspendRequestRepository::countPending).thenReturn(0L);
+
+      new UsersListWidget().execute(widgetContext);
+
+      assertEquals(List.of(editorRole), user1.getRoleList());
+      assertEquals(user1Login, user1.getLastLogin());
+      Assertions.assertNull(user2.getRoleList(), "user2 has no assigned role -- must be null, not a missing-key crash");
+      assertEquals(user2Login, user2.getLastLogin());
+      Assertions.assertNull(user3.getRoleList());
+      Assertions.assertNull(user3.getLastLogin());
+
+      // The whole point of the batching: never fall back to a per-row call.
+      roleRepo.verify(() -> RoleRepository.findAllByUserId(anyLong()), never());
+      loginRepo.verify(() -> UserLoginRepository.queryLastLogin(anyLong()), never());
+    }
+  }
+
+  @Test
+  void executeNeverCallsTheBatchRepositoriesWhenThePageHasNoUsers() {
+    setRoles(widgetContext, ADMIN);
+
+    try (MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
+        MockedStatic<GroupRepository> groupRepo = mockStatic(GroupRepository.class);
+        MockedStatic<UserLoginRepository> loginRepo = mockStatic(UserLoginRepository.class);
+        MockedStatic<UnsuspendRequestRepository> requestRepo = mockStatic(UnsuspendRequestRepository.class)) {
+      userRepo.when(() -> UserRepository.findAll(any(), any(DataConstraints.class)))
+          .thenReturn(Collections.emptyList());
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
+      groupRepo.when(GroupRepository::findAll).thenReturn(new ArrayList<>());
+      requestRepo.when(UnsuspendRequestRepository::countPending).thenReturn(0L);
+
+      new UsersListWidget().execute(widgetContext);
+
+      roleRepo.verify(() -> RoleRepository.findAllByUserIds(any()), never());
+      loginRepo.verify(() -> UserLoginRepository.queryLastLogins(any()), never());
     }
   }
 
