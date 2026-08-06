@@ -214,7 +214,6 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (5, 'Email Address', 'social.email', '');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (10, 'Telephone', 'social.phone', '');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (15, 'Email Subscribe Link', 'social.subscribe.url', '');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (27, 'Instagram Access Token', 'social.instagram.accessToken', '', 'text');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (28, 'Instagram Facebook Page Value', 'social.instagram.facebookPageValue', '', 'text');
 

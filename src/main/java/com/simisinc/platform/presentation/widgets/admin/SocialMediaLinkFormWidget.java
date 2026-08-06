@@ -28,7 +28,7 @@ import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 
 /**
- * Adds a social media link (issue #516)
+ * Adds or edits a social media link (issue #516)
  *
  * @author SimIS Inc.
  */
@@ -40,14 +40,22 @@ public class SocialMediaLinkFormWidget extends GenericWidget {
 
   public WidgetContext execute(WidgetContext context) {
 
-    context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));
-    context.getRequest().setAttribute("title", context.getPreferences().get("title"));
-
     if (context.getRequestObject() != null) {
+      // Redisplaying a rejected submission (see post() below) -- keep whatever the admin typed,
+      // including an edit's id, so the error doesn't silently drop them back into "add" mode.
       context.getRequest().setAttribute("socialMediaLink", context.getRequestObject());
     } else {
-      context.getRequest().setAttribute("socialMediaLink", new SocialMediaLink());
+      long socialMediaLinkId = context.getParameterAsLong("socialMediaLinkId");
+      SocialMediaLink existing = socialMediaLinkId > -1 ? SocialMediaLinkRepository.findById(socialMediaLinkId) : null;
+      context.getRequest().setAttribute("socialMediaLink", existing != null ? existing : new SocialMediaLink());
     }
+
+    context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));
+    // The list widget's Edit link drives this same form into edit mode via ?socialMediaLinkId=,
+    // so the sidebar title should say so rather than always reading "Add a Platform".
+    SocialMediaLink socialMediaLink = (SocialMediaLink) context.getRequest().getAttribute("socialMediaLink");
+    context.getRequest().setAttribute("title",
+        socialMediaLink.getId() > -1 ? "Edit Platform" : context.getPreferences().get("title"));
 
     context.setJsp(JSP);
     return context;
@@ -71,6 +79,14 @@ public class SocialMediaLinkFormWidget extends GenericWidget {
       context.setRequestObject(socialMediaLinkBean);
       return context;
     }
+    // Same platform, twice, would render two icons for the same network in the footer -- reject it
+    // whether it's a brand-new entry or an edit renamed onto an existing platform.
+    SocialMediaLink existingByName = SocialMediaLinkRepository.findByPlatformName(socialMediaLinkBean.getPlatformName());
+    if (existingByName != null && !existingByName.getId().equals(socialMediaLinkBean.getId())) {
+      context.setErrorMessage("A link for " + socialMediaLinkBean.getPlatformName() + " already exists");
+      context.setRequestObject(socialMediaLinkBean);
+      return context;
+    }
 
     SocialMediaLink socialMediaLink = SocialMediaLinkRepository.save(socialMediaLinkBean);
     if (socialMediaLink == null) {
@@ -83,6 +99,9 @@ public class SocialMediaLinkFormWidget extends GenericWidget {
         AuditEventCommand.SUCCESS, "social_media_link", String.valueOf(socialMediaLink.getId()),
         socialMediaLink.getPlatformName(), null);
     context.setSuccessMessage("Record was saved");
+    // Clears socialMediaLinkId from the URL so the sidebar form returns to "Add a Platform" instead
+    // of continuing to edit the just-saved record.
+    context.setRedirect("/admin/social-media-settings");
     return context;
   }
 }

@@ -910,7 +910,12 @@
         return false;
       }
     </script>
-  <c:set var="doNotTrack" value="${header['DNT'] eq '1' || header['Sec-GPC'] eq '1'}"/>
+  <%-- Only actually suppresses tracking-script injection when analytics.honorDnt is on (default
+       off) -- previously this ignored that property entirely, so a DNT-sending visitor always had
+       GA4/GTM/SimpliFi/Brand CDN suppressed even when the admin left "Honor Do-Not-Track / Global
+       Privacy Control?" off, the opposite of what server-side recording (DoNotTrackCommand) does
+       with the same property. --%>
+  <c:set var="doNotTrack" value="${'true' eq analyticsPropertyMap['analytics.honorDnt'] && (header['DNT'] eq '1' || header['Sec-GPC'] eq '1')}"/>
   <c:if test="${!fn:startsWith(pageRenderInfo.name, '/admin') && !doNotTrack && (analyticsPropertyMap['analytics.consentRequired'] ne 'true' or cookie['analytics-consent'].value eq 'accepted')}">
     <c:if test="${!empty analyticsPropertyMap['analytics.service'] && 'google' eq analyticsPropertyMap['analytics.service'] && !empty analyticsPropertyMap['analytics.google.key']}">
       <script async src="https://www.googletagmanager.com/gtag/js?id=${js:escape(analyticsPropertyMap['analytics.google.key'])}" nonce="${cspNonce}"></script>
