@@ -46,7 +46,7 @@ import com.simisinc.platform.infrastructure.database.DataSource;
  * Verifies the zero-result and week-over-week trending queries against a real PostgreSQL instance,
  * since interval windows and grouping cannot be exercised meaningfully with a mock. Skipped
  * automatically when Docker is not available -- see WebPageRepositoryTest for the origin of this
- * pattern. deleteOld() is not covered here: it reads the analytics.retentionDays site property
+ * pattern. deleteOld() is not covered here: it reads the search.retentionDays site property
  * through LoadSitePropertyCommand/CacheManager, a subsystem this focused schema does not stand up,
  * matching WebPageHitRepository's own precedent of leaving its equivalent deleteOldWebHits()
  * untested at the integration level.

@@ -31,47 +31,54 @@
    ========================================================================== */
 
 :root {
-  /* Surfaces */
+  /* Surfaces - "Black Pearl" palette: ink/anthracite/link-blue on frost */
   --sc-surface: #ffffff;
   --sc-surface-raised: #ffffff;
-  --sc-surface-sunken: #f4f6f8;
+  --sc-surface-sunken: #f4f5f7;
   --sc-surface-overlay: #ffffff;
 
-  /* Text - contrast vs --sc-surface: text 19.80:1, muted 6.00:1, link 5.97:1 */
-  --sc-text: #0a0a0a;
-  --sc-text-muted: #5b6470;
+  /* Text - contrast vs --sc-surface: text 17.58:1, muted 4.58:1, link 4.58:1.
+     Pewter (#979CA4, 2.76:1 on white / 2.53:1 on frost as text) and
+     Platinum (#D9DCE1, 1.37:1 as a control border) both fail AA as given --
+     --sc-text-muted uses a darkened "pewter-strong" and --sc-border-control
+     a darkened "platinum-strong". True Pewter/Platinum are kept for
+     placeholder text (not AA-required) and decorative borders. */
+  --sc-text: #17191e;
+  --sc-text-muted: #71767d;
   --sc-text-inverse: #ffffff;
-  --sc-link: #1468a0;
-  --sc-link-hover: #0f4f7a;
+  --sc-link: #2c79be;
+  --sc-link-hover: #236098;
 
-  /* Lines. --sc-border is decorative (1.4.11 exempt).
-     --sc-border-control outlines real controls: 3.40:1 on white,
-     3.14:1 on --sc-surface-sunken. */
-  --sc-border: #d7dce2;
-  --sc-border-control: #858c95;
+  /* Lines. --sc-border is decorative (1.4.11 exempt), true Platinum.
+     --sc-border-control outlines real controls: 3.24:1 on white (platinum-strong). */
+  --sc-border: #d9dce1;
+  --sc-border-control: #8d8f92;
 
   /* Form fields */
   --sc-field-bg: #ffffff;
-  --sc-field-text: #0a0a0a;
-  --sc-field-placeholder: #5b6470;
-  --sc-field-disabled-bg: #eef1f4;
+  --sc-field-text: #17191e;
+  --sc-field-placeholder: #979ca4;
+  --sc-field-disabled-bg: #f4f5f7;
 
-  /* Focus ring - 5.97:1 on white, comfortably past the 3:1 that
+  /* Focus ring - Fixed link blue, 4.58:1 on white, well past the 3:1 that
      1.4.11 asks of a focus indicator. */
-  --sc-focus-ring: #1468a0;
+  --sc-focus-ring: #2c79be;
   --sc-focus-ring-width: 2px;
   --sc-focus-ring-offset: 2px;
 
-  /* Elevation */
-  --sc-shadow-sm: 0 1px 2px rgba(10, 10, 10, 0.08);
-  --sc-shadow-md: 0 2px 8px rgba(10, 10, 10, 0.10);
-  --sc-shadow-lg: 0 8px 24px rgba(10, 10, 10, 0.14);
+  /* Elevation - kept deliberately light: thin borders carry most of the
+     separation, shadows are a subtle assist rather than a floating-card
+     effect. */
+  --sc-shadow-sm: 0 1px 2px rgba(23, 25, 30, 0.06);
+  --sc-shadow-md: 0 1px 3px rgba(23, 25, 30, 0.08);
+  --sc-shadow-lg: 0 2px 6px rgba(23, 25, 30, 0.10);
 
   /* Radii and spacing - a small scale, so future components stop
-     inventing one-off pixel values. */
-  --sc-radius-sm: 3px;
-  --sc-radius-md: 6px;
-  --sc-radius-lg: 10px;
+     inventing one-off pixel values. Held near 4px sitewide rather than an
+     escalating scale, to read as crisp/structured rather than soft. */
+  --sc-radius-sm: 4px;
+  --sc-radius-md: 4px;
+  --sc-radius-lg: 4px;
   --sc-radius-pill: 999px;
 
   --sc-space-1: 0.25rem;
@@ -102,32 +109,34 @@
    ========================================================================== */
 
 :root[data-theme="dark"] {
-  --sc-surface: #16191d;
-  --sc-surface-raised: #1e2228;
-  --sc-surface-sunken: #101317;
-  --sc-surface-overlay: #1e2228;
+  --sc-surface: #17191e;
+  --sc-surface-raised: #53575c;
+  --sc-surface-sunken: #101115;
+  --sc-surface-overlay: #53575c;
 
-  /* contrast vs --sc-surface: text 14.49:1, muted 8.05:1, link 8.37:1 */
-  --sc-text: #e6e9ee;
-  --sc-text-muted: #a7b0bd;
-  --sc-text-inverse: #0a0a0a;
-  --sc-link: #7cb8f0;
-  --sc-link-hover: #a5cef5;
+  /* contrast vs --sc-surface: text 16.12:1, muted 5.01:1 (vs raised), link
+     4.61:1 (vs raised) -- lightened from the raw palette the same way the
+     light-mode values were darkened, see the light-mode block's note. */
+  --sc-text: #f4f5f7;
+  --sc-text-muted: #979ca4;
+  --sc-text-inverse: #17191e;
+  --sc-link: #609ace;
+  --sc-link-hover: #7fb0d9;
 
-  --sc-border: #333a44;
-  --sc-border-control: #6a7585; /* 3.78:1 on page, 3.42:1 on raised */
+  --sc-border: rgba(244, 245, 247, 0.12);
+  --sc-border-control: #d9dce1; /* true Platinum -- 10.05:1 on raised, no darkening needed here */
 
-  --sc-field-bg: #1b1f25;
-  --sc-field-text: #e6e9ee;
-  --sc-field-placeholder: #97a1af; /* 6.33:1 on --sc-field-bg */
-  --sc-field-disabled-bg: #23282f;
+  --sc-field-bg: #53575c;
+  --sc-field-text: #f4f5f7;
+  --sc-field-placeholder: #979ca4;
+  --sc-field-disabled-bg: #53575c;
 
-  --sc-focus-ring: #8ab4f8;
+  --sc-focus-ring: #609ace;
 
   /* Shadows read as noise on a dark page; lean on borders instead. */
-  --sc-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
-  --sc-shadow-md: 0 2px 8px rgba(0, 0, 0, 0.55);
-  --sc-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.6);
+  --sc-shadow-sm: 0 1px 0 rgba(255, 255, 255, 0.05), 0 1px 2px rgba(0, 0, 0, 0.4);
+  --sc-shadow-md: 0 1px 0 rgba(255, 255, 255, 0.05), 0 1px 3px rgba(0, 0, 0, 0.45);
+  --sc-shadow-lg: 0 2px 6px rgba(0, 0, 0, 0.5);
 
   color-scheme: dark;
 }
@@ -136,30 +145,30 @@
    data-theme stays light, which is what every pre-existing site gets. */
 @media (prefers-color-scheme: dark) {
   :root[data-theme="auto"] {
-    --sc-surface: #16191d;
-    --sc-surface-raised: #1e2228;
-    --sc-surface-sunken: #101317;
-    --sc-surface-overlay: #1e2228;
+    --sc-surface: #17191e;
+    --sc-surface-raised: #53575c;
+    --sc-surface-sunken: #101115;
+    --sc-surface-overlay: #53575c;
 
-    --sc-text: #e6e9ee;
-    --sc-text-muted: #a7b0bd;
-    --sc-text-inverse: #0a0a0a;
-    --sc-link: #7cb8f0;
-    --sc-link-hover: #a5cef5;
+    --sc-text: #f4f5f7;
+    --sc-text-muted: #979ca4;
+    --sc-text-inverse: #17191e;
+    --sc-link: #609ace;
+    --sc-link-hover: #7fb0d9;
 
-    --sc-border: #333a44;
-    --sc-border-control: #6a7585;
+    --sc-border: rgba(244, 245, 247, 0.12);
+    --sc-border-control: #d9dce1;
 
-    --sc-field-bg: #1b1f25;
-    --sc-field-text: #e6e9ee;
-    --sc-field-placeholder: #97a1af;
-    --sc-field-disabled-bg: #23282f;
+    --sc-field-bg: #53575c;
+    --sc-field-text: #f4f5f7;
+    --sc-field-placeholder: #979ca4;
+    --sc-field-disabled-bg: #53575c;
 
-    --sc-focus-ring: #8ab4f8;
+    --sc-focus-ring: #609ace;
 
-    --sc-shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.5);
-    --sc-shadow-md: 0 2px 8px rgba(0, 0, 0, 0.55);
-    --sc-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.6);
+    --sc-shadow-sm: 0 1px 0 rgba(255, 255, 255, 0.05), 0 1px 2px rgba(0, 0, 0, 0.45);
+    --sc-shadow-md: 0 1px 0 rgba(255, 255, 255, 0.05), 0 1px 2px rgba(0, 0, 0, 0.45), 0 10px 28px rgba(0, 0, 0, 0.45);
+    --sc-shadow-lg: 0 16px 40px rgba(0, 0, 0, 0.55);
 
     color-scheme: dark;
   }
@@ -184,6 +193,23 @@ summary:focus-visible,
   outline: var(--sc-focus-ring-width) solid var(--sc-focus-ring);
   outline-offset: var(--sc-focus-ring-offset);
   border-radius: var(--sc-radius-sm);
+}
+
+/* Checkbox/radio fill - native accent-color, not previously themed. Fixed to
+   the link-blue accent in both modes rather than tracking --sc-link, since
+   this is meant to read as a deliberate constant, not a mode-shifted token. */
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: #2c79be;
+}
+
+/* Dashboard stat tiles (.callout). Dark mode already recolors the border via
+   Layer 3b; light mode had no rule at all and was left on Foundation's
+   default translucent-black border. Also gives tiles the ~4px radius used
+   sitewide instead of Foundation's square corners. */
+.callout {
+  border-color: var(--sc-border);
+  border-radius: var(--sc-radius-md);
 }
 
 /* WCAG 2.2 SC 2.3.3 Animation from Interactions. Foundation, Motion UI and
@@ -769,6 +795,33 @@ summary:focus-visible,
   }
 
   :root[data-theme="auto"] .platform-color-scheme-toggle .platform-icon-dark {
+    display: inline-block;
+  }
+}
+
+/* Site logo light/dark swap (cms/logo.jsp). Same toggle idiom as the
+   scheme-toggle icons above -- both images are always in the markup, CSS
+   picks which one paints. Only rendered as a pair when logo.jsp actually has
+   two different sources; a single-source logo has neither class and is
+   unaffected by these rules. */
+.platform-logo-dark {
+  display: none;
+}
+
+:root[data-theme="dark"] .platform-logo-light {
+  display: none;
+}
+
+:root[data-theme="dark"] .platform-logo-dark {
+  display: inline-block;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root[data-theme="auto"] .platform-logo-light {
+    display: none;
+  }
+
+  :root[data-theme="auto"] .platform-logo-dark {
     display: inline-block;
   }
 }

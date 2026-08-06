@@ -189,6 +189,7 @@
         :root {
           <c:if test="${!empty themePropertyMap['theme.body.text.color']}">--sc-body-text-color:<c:out value="${themePropertyMap['theme.body.text.color']}" />;</c:if>
           <c:if test="${!empty themePropertyMap['theme.body.backgroundColor']}">--sc-body-background-color:<c:out value="${themePropertyMap['theme.body.backgroundColor']}" />;</c:if>
+          <c:if test="${!empty themePropertyMap['theme.link.color']}">--sc-link-color:<c:out value="${themePropertyMap['theme.link.color']}" />;</c:if>
           <c:if test="${!empty themePropertyMap['theme.button.text.color']}">--sc-button-text-color:<c:out value="${themePropertyMap['theme.button.text.color']}" />;</c:if>
           <c:if test="${!empty themePropertyMap['theme.button.default.backgroundColor']}">--sc-button-default-background-color:<c:out value="${themePropertyMap['theme.button.default.backgroundColor']}" />;</c:if>
           <c:if test="${!empty themePropertyMap['theme.button.default.hoverBackgroundColor']}">--sc-button-default-hover-background-color:<c:out value="${themePropertyMap['theme.button.default.hoverBackgroundColor']}" />;</c:if>
@@ -264,7 +265,7 @@
             <c:when test="${themePropertyMap['theme.fonts.headlines'] eq 'open-sans'}">h1, h2, h3, h4, h5, h6 { font-family: 'Open Sans', sans-serif;font-weight: 400; }</c:when>
             <c:when test="${themePropertyMap['theme.fonts.headlines'] eq 'oswald'}">h1, h2, h3, h4, h5, h6 { font-family: 'Oswald', sans-serif;font-weight: 400; }</c:when>
             <c:when test="${themePropertyMap['theme.fonts.headlines'] eq 'oxygen'}">h1, h2, h3, h4, h5, h6 { font-family: 'Oxygen', sans-serif;font-weight: 400; }</c:when>
-            <c:when test="${themePropertyMap['theme.fonts.headlines'] eq 'poppins'}">h1, h2, h3, h4, h5, h6 { font-family: 'Poppins', sans-serif;font-weight: 400; }</c:when>
+            <c:when test="${themePropertyMap['theme.fonts.headlines'] eq 'poppins'}">h1, h2, h3, h4, h5, h6 { font-family: 'Poppins', sans-serif;font-weight: 500; }</c:when>
             <c:when test="${themePropertyMap['theme.fonts.headlines'] eq 'questrial'}">h1, h2, h3, h4, h5, h6 { font-family: 'Questrial', sans-serif;font-weight: 400; }</c:when>
             <c:when test="${themePropertyMap['theme.fonts.headlines'] eq 'rubik'}">h1, h2, h3, h4, h5, h6 { font-family: 'Rubik', sans-serif;font-weight: 400; }</c:when>
             <c:when test="${themePropertyMap['theme.fonts.headlines'] eq 'source-sans-pro'}">h1, h2, h3, h4, h5, h6 { font-family: 'Source Sans Pro', sans-serif;font-weight: 400; }</c:when>
@@ -272,6 +273,7 @@
         </c:if>
         <c:if test="${!empty themePropertyMap['theme.body.text.color']}">body{color:var(--sc-body-text-color)}</c:if>
         <c:if test="${!empty themePropertyMap['theme.body.backgroundColor']}">body{background-color:var(--sc-body-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.link.color']}">a{color:var(--sc-link-color)}</c:if>
         <c:if test="${!empty themePropertyMap['theme.button.text.color']}">.button{color:var(--sc-button-text-color) !important}</c:if>
         <c:if test="${!empty themePropertyMap['theme.button.default.backgroundColor']}">.button{background-color:var(--sc-button-default-background-color)}</c:if>
         <c:if test="${!empty themePropertyMap['theme.button.default.hoverBackgroundColor']}">.button:hover, .button:focus{background-color:var(--sc-button-default-hover-background-color)}</c:if>
@@ -451,6 +453,7 @@
             <ul class="vertical menu">
               <li class="section-title">Community</li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/community/analytics')}"> class="is-active"</c:if>><a href="${ctx}/admin/community/analytics"><i class="${font:far()} fa-chart-line fa-fw"></i> <span>Analytics</span></a></li>
+              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/community/search-analytics')}"> class="is-active"</c:if>><a href="${ctx}/admin/community/search-analytics"><i class="${font:far()} fa-search fa-fw"></i> <span>Search Analytics</span></a></li>
               <c:if test="${userSession.hasRole('admin')}">
                 <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/web-vitals')}"> class="is-active"</c:if>><a href="${ctx}/admin/web-vitals"><i class="${font:far()} fa-tachometer-alt fa-fw"></i> <span>Web Vitals</span></a></li>
               </c:if>
@@ -523,6 +526,7 @@
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/app')}"> class="is-active"</c:if>><a href="${ctx}/admin/apps"><i class="${font:far()} fa-mobile fa-fw"></i> <span>Apps</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/blocked-ip-list')}"> class="is-active"</c:if>><a href="${ctx}/admin/blocked-ip-list"><i class="${font:far()} fa-shield-halved fa-fw"></i> <span>Blocked IPs</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/allowed-ip-list')}"> class="is-active"</c:if>><a href="${ctx}/admin/allowed-ip-list"><i class="${font:far()} fa-shield fa-fw"></i> <span>Allowed IPs</span></a></li>
+              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/bot-list')}"> class="is-active"</c:if>><a href="${ctx}/admin/bot-list"><i class="${font:far()} fa-robot fa-fw"></i> <span>Bot User Agents</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/role-capabilities')}"> class="is-active"</c:if>><a href="${ctx}/admin/role-capabilities"><i class="${font:far()} fa-user-lock fa-fw"></i> <span>Role Capabilities</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/audit-log')}"> class="is-active"</c:if>><a href="${ctx}/admin/audit-log"><i class="${font:far()} fa-clipboard-list fa-fw"></i> <span>Audit Log</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/analytics-retention')}"> class="is-active"</c:if>><a href="${ctx}/admin/analytics-retention"><i class="${font:far()} fa-trash-can fa-fw"></i> <span>Analytics Retention</span></a></li>
