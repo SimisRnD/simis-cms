@@ -37,10 +37,13 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
 import com.simisinc.platform.WidgetBase;
+import com.simisinc.platform.application.LoadUserCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.admin.SecretSitePropertiesCommand;
+import com.simisinc.platform.application.login.StepUpAuthCommand;
 import com.simisinc.platform.application.mailinglists.MailChimpCommand;
 import com.simisinc.platform.domain.model.SiteProperty;
+import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.infrastructure.persistence.SitePropertyRepository;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
 
@@ -184,6 +187,125 @@ class SitePropertiesEditorWidgetTest extends WidgetBase {
           never());
       assertEquals("mailchimp", stored.get(0).getValue(), "the action must not fall through to the save logic");
       assertEquals(SitePropertiesEditorWidget.JSP, widgetContext.getJsp());
+    }
+  }
+
+  @Test
+  void postToASecurityPrefixWithoutStepUpShowsReAuthPanelAndDoesNotSave() {
+    // Previously this redirected to /step-up-auth, a page that was never actually merged into the
+    // app -- the redirect resolved to a generic "not ready" placeholder and the save silently
+    // never happened. This proves the fix: an inline re-auth prompt on the same page instead.
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"sitePropertiesEditor\">\n" +
+        "  <prefix>mfa</prefix>\n" +
+        "</widget>");
+
+    List<SiteProperty> stored = new ArrayList<>();
+    stored.add(property("mfa.required.roles", "admin", "text"));
+    addQueryParameter(widgetContext, "mfa.required.roles", "admin,content-manager");
+
+    try (MockedStatic<SitePropertyRepository> repository = mockStatic(SitePropertyRepository.class)) {
+      repository.when(() -> SitePropertyRepository.findAllByPrefix(anyString())).thenReturn(stored);
+
+      new SitePropertiesEditorWidget().post(widgetContext);
+
+      repository.verify(
+          () -> SitePropertyRepository.saveAll(anyString(), org.mockito.ArgumentMatchers.anyList(), anyLong(), any()),
+          never());
+      assertEquals("true", widgetContext.getSharedRequestValue("stepUpRequired"));
+      assertNull(widgetContext.getRedirect(), "must not redirect to the dead /step-up-auth page");
+      assertEquals(SitePropertiesEditorWidget.JSP, widgetContext.getJsp());
+      assertEquals(stored, widgetContext.getRequest().getAttribute("sitePropertyList"),
+          "the editor must still have something to render alongside the re-auth prompt");
+    }
+  }
+
+  @Test
+  void postToASecurityPrefixWithAWrongStepUpCredentialShowsAnErrorAndDoesNotSave() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"sitePropertiesEditor\">\n" +
+        "  <prefix>mfa</prefix>\n" +
+        "</widget>");
+
+    List<SiteProperty> stored = new ArrayList<>();
+    stored.add(property("mfa.required.roles", "admin", "text"));
+    addQueryParameter(widgetContext, "mfa.required.roles", "admin,content-manager");
+    addQueryParameter(widgetContext, "stepUpCredential", "wrong-password");
+
+    User actingUser = new User();
+    actingUser.setId(1L);
+
+    try (MockedStatic<SitePropertyRepository> repository = mockStatic(SitePropertyRepository.class);
+        MockedStatic<LoadUserCommand> loadUser = mockStatic(LoadUserCommand.class);
+        MockedStatic<StepUpAuthCommand> stepUp = mockStatic(StepUpAuthCommand.class)) {
+      repository.when(() -> SitePropertyRepository.findAllByPrefix(anyString())).thenReturn(stored);
+      loadUser.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(actingUser);
+      stepUp.when(() -> StepUpAuthCommand.verify(any(), eq(actingUser), eq("wrong-password"))).thenReturn(false);
+
+      new SitePropertiesEditorWidget().post(widgetContext);
+
+      repository.verify(
+          () -> SitePropertyRepository.saveAll(anyString(), org.mockito.ArgumentMatchers.anyList(), anyLong(), any()),
+          never());
+      assertEquals("Re-authentication failed. Enter your password or authenticator code.", widgetContext.getErrorMessage());
+      assertEquals("true", widgetContext.getSharedRequestValue("stepUpRequired"));
+    }
+  }
+
+  @Test
+  void postToASecurityPrefixWithAValidStepUpCredentialSaves() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"sitePropertiesEditor\">\n" +
+        "  <prefix>mfa</prefix>\n" +
+        "</widget>");
+
+    List<SiteProperty> stored = new ArrayList<>();
+    stored.add(property("mfa.required.roles", "admin", "text"));
+    addQueryParameter(widgetContext, "mfa.required.roles", "admin,content-manager");
+    addQueryParameter(widgetContext, "stepUpCredential", "correct-password");
+
+    User actingUser = new User();
+    actingUser.setId(1L);
+
+    try (MockedStatic<SitePropertyRepository> repository = mockStatic(SitePropertyRepository.class);
+        MockedStatic<LoadUserCommand> loadUser = mockStatic(LoadUserCommand.class);
+        MockedStatic<StepUpAuthCommand> stepUp = mockStatic(StepUpAuthCommand.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      repository.when(() -> SitePropertyRepository.findAllByPrefix(anyString())).thenReturn(stored);
+      repository.when(() -> SitePropertyRepository.saveAll(anyString(), org.mockito.ArgumentMatchers.anyList(), anyLong(), any()))
+          .thenReturn(true);
+      loadUser.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(actingUser);
+      stepUp.when(() -> StepUpAuthCommand.verify(any(), eq(actingUser), eq("correct-password"))).thenReturn(true);
+      stepUp.when(() -> StepUpAuthCommand.isValid(any())).thenReturn(false);
+
+      new SitePropertiesEditorWidget().post(widgetContext);
+
+      repository.verify(
+          () -> SitePropertyRepository.saveAll(anyString(), org.mockito.ArgumentMatchers.anyList(), anyLong(), any()));
+      assertNull(widgetContext.getErrorMessage());
+      assertEquals("Values were saved", widgetContext.getSuccessMessage());
+    }
+  }
+
+  @Test
+  void postToANonSecurityPrefixIsUnaffectedByTheStepUpGate() {
+    // mail is not in SECURITY_PREFIXES -- confirms the gate is scoped to mfa/content.review/security only
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"sitePropertiesEditor\">\n" +
+        "  <prefix>mail</prefix>\n" +
+        "</widget>");
+
+    List<SiteProperty> stored = new ArrayList<>();
+    stored.add(property("mail.host.name", "smtp.example.com", "text"));
+    addQueryParameter(widgetContext, "mail.host.name", "smtp2.example.com");
+
+    try (MockedStatic<SitePropertyRepository> repository = mockStatic(SitePropertyRepository.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      repository.when(() -> SitePropertyRepository.findAllByPrefix(anyString())).thenReturn(stored);
+      repository.when(() -> SitePropertyRepository.saveAll(anyString(), org.mockito.ArgumentMatchers.anyList(), anyLong(), any()))
+          .thenReturn(true);
+
+      new SitePropertiesEditorWidget().post(widgetContext);
+
+      assertNull(widgetContext.getSharedRequestValue("stepUpRequired"));
+      repository.verify(
+          () -> SitePropertyRepository.saveAll(anyString(), org.mockito.ArgumentMatchers.anyList(), anyLong(), any()));
     }
   }
 
