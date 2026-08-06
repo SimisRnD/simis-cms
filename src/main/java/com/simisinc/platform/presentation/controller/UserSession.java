@@ -28,6 +28,7 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import java.io.Serializable;
+import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
@@ -61,6 +62,12 @@ public class UserSession implements Serializable {
   private List<Capability> capabilityList = null;
   private List<Group> groupList = null;
   private long loginTime = -1;
+  // The calendar day (site timezone) a user_logins row was last written for this session, so
+  // WebRequestFilter can write one row per day for an authenticated session rather than only once
+  // per HttpSession lifetime -- see WebRequestFilter.trackDailyLogin(). Session timeout refreshes
+  // on activity, so a continuously-active session can otherwise live for days without a fresh
+  // authentication event to trigger a new row, undercounting the Daily/Monthly Active Users tiles.
+  private LocalDate lastLoginTrackedDate = null;
   private long stepUpExpiresAt = 0L;
   private String formToken = UUID.randomUUID().toString();
   private boolean cookieChecked = false;
@@ -226,6 +233,14 @@ public class UserSession implements Serializable {
 
   public long getLoginTime() {
     return loginTime;
+  }
+
+  public LocalDate getLastLoginTrackedDate() {
+    return lastLoginTrackedDate;
+  }
+
+  public void setLastLoginTrackedDate(LocalDate lastLoginTrackedDate) {
+    this.lastLoginTrackedDate = lastLoginTrackedDate;
   }
 
   public long getStepUpExpiresAt() {

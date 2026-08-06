@@ -288,6 +288,58 @@ class FormWidgetTest extends WidgetBase {
   }
 
   @Test
+  void postRecordsTheFormUnavailableReasonWhenNoFieldsAreConfigured() {
+    // issue #563 follow-up -- loadFormFieldList() returning null (no fields resolved at all for this
+    // form) previously returned null from post() without recording anything. This is a configuration
+    // problem with the form itself, not a submitter leaving one required field blank on an otherwise
+    // valid form (see postError()/REASON_MISSING_FIELD above), so it must not reuse that reason.
+    preferences.put("formUniqueId", "empty-form");
+    // Deliberately no "fields" preference at all
+
+    try (MockedStatic<FormSubmissionFailureRepository> failureRepository = mockStatic(FormSubmissionFailureRepository.class)) {
+      FormWidget widget = new FormWidget();
+      WidgetContext result = widget.post(widgetContext);
+
+      Assertions.assertNull(result);
+      failureRepository.verify(() -> FormSubmissionFailureRepository.record(
+          eq("empty-form"), eq(FormSubmissionFailureRepository.REASON_FORM_UNAVAILABLE), any(), any()));
+    }
+  }
+
+  @Test
+  void postRecordsTheSystemErrorReasonWhenFormDataSaveFails() {
+    // issue #563 follow-up -- a genuine FormDataRepository.save() failure previously showed the
+    // submitter an error message but recorded nothing in the rejection-tracking system at all
+    initCommonPreferences();
+    session.setAttribute(SessionConstants.CAPTCHA_TEXT, "G1B8A");
+    addQueryParameter(widgetContext, "captcha", "G1B8A");
+    addQueryParameter(widgetContext, widgetContext.getUniqueId() + "name", "First Last");
+    addQueryParameter(widgetContext, widgetContext.getUniqueId() + "organization", "Organization");
+    addQueryParameter(widgetContext, widgetContext.getUniqueId() + "email", "email@example.com");
+    addQueryParameter(widgetContext, widgetContext.getUniqueId() + "comments", "These are my comments.");
+
+    try (MockedStatic<LoadSitePropertyCommand> property = mockStatic(LoadSitePropertyCommand.class)) {
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.service")).thenReturn(null);
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.google.sitekey")).thenReturn(null);
+      property.when(() -> LoadSitePropertyCommand.loadByName("captcha.google.secretkey")).thenReturn(null);
+
+      try (MockedStatic<FormDataRepository> formDataRepositoryMockedStatic = mockStatic(FormDataRepository.class)) {
+        formDataRepositoryMockedStatic.when(() -> FormDataRepository.save(any())).thenReturn(null);
+
+        try (MockedStatic<FormSubmissionFailureRepository> failureRepository = mockStatic(FormSubmissionFailureRepository.class)) {
+          FormWidget widget = new FormWidget();
+          WidgetContext result = widget.post(widgetContext);
+
+          Assertions.assertEquals(widgetContext, result, "a save failure redisplays the form (post() returns the context)");
+          Assertions.assertEquals("The form was not saved... try again?", widgetContext.getErrorMessage());
+          failureRepository.verify(() -> FormSubmissionFailureRepository.record(
+              eq("contact"), eq(FormSubmissionFailureRepository.REASON_SYSTEM_ERROR), any(), any()));
+        }
+      }
+    }
+  }
+
+  @Test
   void postCaptchaFailureRecordsTheCaptchaReason() {
     initCommonPreferences();
     // No CAPTCHA_TEXT in session, so CaptchaCommand.validateRequest will fail naturally -- but stub it

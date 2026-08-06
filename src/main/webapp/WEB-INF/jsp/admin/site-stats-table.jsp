@@ -17,6 +17,7 @@
 <%@ taglib prefix="fmt" uri="jakarta.tags.fmt" %>
 <%@ taglib prefix="js" uri="/WEB-INF/tlds/javascript-escape.tld" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
+<%@ taglib prefix="text" uri="/WEB-INF/tlds/text-functions.tld" %>
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="statisticsDataList" class="java.util.ArrayList" scope="request"/>
@@ -47,7 +48,16 @@
     <c:forEach items="${statisticsDataList}" var="data">
     <tr>
       <td><c:out value="${data.label}" /></td>
-      <td class="text-center"><fmt:formatNumber value="${data.value}" /></td>
+      <td class="text-center">
+        <c:choose>
+          <%-- Most reports put a plain number here (Hits, Submissions, Searches...), but a few
+               (avg-time-on-page, high/low-traffic-engagement) put pre-formatted display text like
+               "33.8s" or "185 hits, 33.8s avg" -- fmt:formatNumber throws on that and, uncaught,
+               takes down this entire page's render, not just this cell. --%>
+          <c:when test="${text:isNumeric(data.value)}"><fmt:formatNumber value="${data.value}" /></c:when>
+          <c:otherwise><c:out value="${data.value}" /></c:otherwise>
+        </c:choose>
+      </td>
     </tr>
     </c:forEach>
     <c:if test="${empty statisticsDataList}">
