@@ -189,6 +189,7 @@
         :root {
           <c:if test="${!empty themePropertyMap['theme.body.text.color']}">--sc-body-text-color:<c:out value="${themePropertyMap['theme.body.text.color']}" />;</c:if>
           <c:if test="${!empty themePropertyMap['theme.body.backgroundColor']}">--sc-body-background-color:<c:out value="${themePropertyMap['theme.body.backgroundColor']}" />;</c:if>
+          <c:if test="${!empty themePropertyMap['theme.link.color']}">--sc-link-color:<c:out value="${themePropertyMap['theme.link.color']}" />;</c:if>
           <c:if test="${!empty themePropertyMap['theme.button.text.color']}">--sc-button-text-color:<c:out value="${themePropertyMap['theme.button.text.color']}" />;</c:if>
           <c:if test="${!empty themePropertyMap['theme.button.default.backgroundColor']}">--sc-button-default-background-color:<c:out value="${themePropertyMap['theme.button.default.backgroundColor']}" />;</c:if>
           <c:if test="${!empty themePropertyMap['theme.button.default.hoverBackgroundColor']}">--sc-button-default-hover-background-color:<c:out value="${themePropertyMap['theme.button.default.hoverBackgroundColor']}" />;</c:if>
@@ -264,7 +265,7 @@
             <c:when test="${themePropertyMap['theme.fonts.headlines'] eq 'open-sans'}">h1, h2, h3, h4, h5, h6 { font-family: 'Open Sans', sans-serif;font-weight: 400; }</c:when>
             <c:when test="${themePropertyMap['theme.fonts.headlines'] eq 'oswald'}">h1, h2, h3, h4, h5, h6 { font-family: 'Oswald', sans-serif;font-weight: 400; }</c:when>
             <c:when test="${themePropertyMap['theme.fonts.headlines'] eq 'oxygen'}">h1, h2, h3, h4, h5, h6 { font-family: 'Oxygen', sans-serif;font-weight: 400; }</c:when>
-            <c:when test="${themePropertyMap['theme.fonts.headlines'] eq 'poppins'}">h1, h2, h3, h4, h5, h6 { font-family: 'Poppins', sans-serif;font-weight: 400; }</c:when>
+            <c:when test="${themePropertyMap['theme.fonts.headlines'] eq 'poppins'}">h1, h2, h3, h4, h5, h6 { font-family: 'Poppins', sans-serif;font-weight: 500; }</c:when>
             <c:when test="${themePropertyMap['theme.fonts.headlines'] eq 'questrial'}">h1, h2, h3, h4, h5, h6 { font-family: 'Questrial', sans-serif;font-weight: 400; }</c:when>
             <c:when test="${themePropertyMap['theme.fonts.headlines'] eq 'rubik'}">h1, h2, h3, h4, h5, h6 { font-family: 'Rubik', sans-serif;font-weight: 400; }</c:when>
             <c:when test="${themePropertyMap['theme.fonts.headlines'] eq 'source-sans-pro'}">h1, h2, h3, h4, h5, h6 { font-family: 'Source Sans Pro', sans-serif;font-weight: 400; }</c:when>
@@ -272,6 +273,7 @@
         </c:if>
         <c:if test="${!empty themePropertyMap['theme.body.text.color']}">body{color:var(--sc-body-text-color)}</c:if>
         <c:if test="${!empty themePropertyMap['theme.body.backgroundColor']}">body{background-color:var(--sc-body-background-color)}</c:if>
+        <c:if test="${!empty themePropertyMap['theme.link.color']}">a{color:var(--sc-link-color)}</c:if>
         <c:if test="${!empty themePropertyMap['theme.button.text.color']}">.button{color:var(--sc-button-text-color) !important}</c:if>
         <c:if test="${!empty themePropertyMap['theme.button.default.backgroundColor']}">.button{background-color:var(--sc-button-default-background-color)}</c:if>
         <c:if test="${!empty themePropertyMap['theme.button.default.hoverBackgroundColor']}">.button:hover, .button:focus{background-color:var(--sc-button-default-hover-background-color)}</c:if>
