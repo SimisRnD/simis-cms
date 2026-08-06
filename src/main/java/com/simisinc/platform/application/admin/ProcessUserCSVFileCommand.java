@@ -17,15 +17,18 @@
 package com.simisinc.platform.application.admin;
 
 import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.LoadUserCommand;
 import com.simisinc.platform.application.audit.SaveAuditEventCommand;
 import com.simisinc.platform.application.cms.SaveFilePartCommand;
 import com.simisinc.platform.application.filesystem.FileSystemCommand;
 import com.simisinc.platform.application.register.SaveUserCommand;
+import com.simisinc.platform.domain.events.cms.UserInvitedEvent;
 import com.simisinc.platform.domain.model.Group;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.cms.FileItem;
 import com.simisinc.platform.infrastructure.persistence.GroupRepository;
 import com.simisinc.platform.infrastructure.persistence.UserRepository;
+import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.UserSession;
 import com.simisinc.platform.presentation.controller.WidgetContext;
@@ -73,6 +76,11 @@ public class ProcessUserCSVFileCommand {
     if (context.getRequest() != null && context.getRequest().getRemoteAddr() != null) {
       actorIp = context.getRequest().getRemoteAddr();
     }
+
+    // Resolve the inviting admin once (same actor for every row) so each imported user can fire the
+    // same "user-invited" workflow event the manual Add User path fires -- mirrors the actor
+    // resolution above rather than reloading the admin's record on every row
+    User invitedByUser = LoadUserCommand.loadUser(actorUserId);
 
     FileItem fileItemBean = null;
     try {
@@ -157,6 +165,11 @@ public class ProcessUserCSVFileCommand {
         SaveAuditEventCommand.recordAdminEvent(AuditEventCommand.USER_MANAGEMENT, "user.create",
             AuditEventCommand.SUCCESS, actorUserId, actorUsername, actorIp, actorSessionId,
             "user", saved != null ? String.valueOf(saved.getId()) : null, email, "csv-import");
+        if (saved != null) {
+          // Fire the same invite/welcome workflow event the manual Add User path fires, so a
+          // CSV-imported account receives its invitation email too
+          WorkflowManager.triggerWorkflowForEvent(new UserInvitedEvent(saved, invitedByUser));
+        }
       }
 
     } catch (DataException | AccountException data) {
