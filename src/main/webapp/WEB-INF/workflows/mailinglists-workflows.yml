@@ -1,0 +1,13 @@
+# Mailing List Workflows
+---
+
+- id: mailing-list-member-confirmation-requested
+  vars:
+    member: '{{ event.member }}'
+    mailingList: '{{ event.mailingList }}'
+    confirmUrl: '{{ event.confirmUrl }}'
+  workflow:
+    - email:
+      to-email: '{{ member.emailAddress }}'
+      subject: '{{ site.name }} - Please confirm your subscription'
+      template: 'mailinglists/confirm-subscription'

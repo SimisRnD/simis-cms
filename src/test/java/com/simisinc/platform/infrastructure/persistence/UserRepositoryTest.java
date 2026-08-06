@@ -17,11 +17,18 @@
 package com.simisinc.platform.infrastructure.persistence;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
+
+import java.io.File;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -30,7 +37,10 @@ import org.mockito.MockedStatic;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.infrastructure.cache.CacheManager;
 import com.simisinc.platform.infrastructure.database.DB;
+import com.simisinc.platform.infrastructure.database.DataConstraints;
+import com.simisinc.platform.infrastructure.database.SqlJoins;
 import com.simisinc.platform.infrastructure.database.SqlUtils;
+import com.simisinc.platform.infrastructure.database.SqlValue;
 import com.simisinc.platform.infrastructure.persistence.login.UnsuspendRequestRepository;
 import com.simisinc.platform.infrastructure.persistence.login.UserTokenRepository;
 
@@ -127,6 +137,54 @@ class UserRepositoryTest {
     assertEquals(90, UserRepository.resolvePasswordMaxAgeDays("0"), "default on non-positive");
     assertEquals(90, UserRepository.resolvePasswordMaxAgeDays("-5"), "default on negative");
     assertEquals(180, UserRepository.resolvePasswordMaxAgeDays("180"), "valid value passes through");
+  }
+
+  /**
+   * The export must use an explicit column allowlist -- never SELECT * or the full-record buildRecord
+   * mapper -- so the password hash, MFA TOTP secret, and account-token/reset-token columns can never end
+   * up in the downloaded file, no matter what columns are added to the users table in the future.
+   */
+  @Test
+  void exportCsvSelectsExactlyTheIntendedColumnAllowlist() {
+    ArgumentCaptor<SqlUtils> selectFieldsCaptor = ArgumentCaptor.forClass(SqlUtils.class);
+    try (MockedStatic<DB> db = mockStatic(DB.class)) {
+      // exportCsv passes null for joins and orderBy (same shape as AuditLogRepository.exportCsv), so those
+      // two positions need a null-tolerant matcher -- any(Class) excludes null and would never match.
+      db.when(() -> DB.exportToCsvAllFrom(
+          anyString(), selectFieldsCaptor.capture(), nullable(SqlJoins.class), any(SqlUtils.class),
+          nullable(SqlUtils.class), any(DataConstraints.class), any(File.class)))
+          .thenAnswer(invocation -> null);
+
+      UserSpecification specification = new UserSpecification();
+      UserRepository.exportCsv(specification, new File("export.csv"));
+
+      List<SqlValue> selected = selectFieldsCaptor.getValue().getValues();
+      Set<String> selectedClauses = new LinkedHashSet<>();
+      for (SqlValue value : selected) {
+        selectedClauses.add(value.getFieldOrClause());
+      }
+
+      Set<String> expected = Set.of(
+          "first_name AS \"First Name\"",
+          "last_name AS \"Last Name\"",
+          "email AS \"Email\"",
+          "username AS \"Username\"",
+          "(SELECT string_agg(lr.title, ', ' ORDER BY lr.level DESC) FROM lookup_role lr "
+              + "JOIN user_roles ur ON ur.role_id = lr.role_id WHERE ur.user_id = users.user_id) AS \"Roles\"",
+          "enabled AS \"Enabled\"",
+          "validated AS \"Validated\"",
+          "created AS \"Created\"",
+          "(SELECT MAX(created) FROM user_logins WHERE user_id = users.user_id) AS \"Last Login\"");
+      assertEquals(expected, selectedClauses, "the export column list must match the allowlist exactly");
+
+      // Belt-and-suspenders: none of the secret columns may appear in any selected clause, by substring.
+      for (String clause : selectedClauses) {
+        String lower = clause.toLowerCase();
+        assertFalse(lower.contains("password"), "password must never be exported: " + clause);
+        assertFalse(lower.contains("mfa_secret"), "mfa_secret must never be exported: " + clause);
+        assertFalse(lower.contains("account_token"), "account_token must never be exported: " + clause);
+      }
+    }
   }
 
   private static String fieldValue(SqlUtils sqlUtils, String fieldName) {
