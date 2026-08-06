@@ -41,6 +41,7 @@ import com.simisinc.platform.domain.model.Role;
 import com.simisinc.platform.domain.model.SocialMediaLink;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.cms.FaqQuestion;
+import com.simisinc.platform.domain.model.cms.MenuTab;
 import com.simisinc.platform.domain.model.cms.WebPage;
 import com.simisinc.platform.domain.model.items.Collection;
 import com.simisinc.platform.domain.model.items.Item;
@@ -669,5 +670,16 @@ class PageServletTest {
     // A caller cannot smuggle in a second, conflicting token value via originalQuery.
     assertEquals("/page?a=1&previewToken=abc123",
         PageServlet.buildPreviewLink("/page", "a=1&previewToken=SMUGGLED", "abc123"));
+  }
+
+  @Test
+  void resolveMasterMenuTabListReturnsARealArrayListForAGuestOnAnOfflineSite() {
+    // layout.jsp's <jsp:useBean id="masterMenuTabList" class="java.util.ArrayList" scope="request"/>
+    // casts the request attribute to ArrayList -- Collections.emptyList() is not an ArrayList and
+    // throws a ClassCastException at render time (issue #1005 regression).
+    List<MenuTab> menuTabList = PageServlet.resolveMasterMenuTabList(false);
+
+    assertTrue(menuTabList instanceof ArrayList, "expected an ArrayList, got " + menuTabList.getClass());
+    assertTrue(menuTabList.isEmpty());
   }
 }

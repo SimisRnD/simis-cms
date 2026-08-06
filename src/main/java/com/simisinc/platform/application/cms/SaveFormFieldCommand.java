@@ -16,6 +16,8 @@
 
 package com.simisinc.platform.application.cms;
 
+import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
@@ -90,9 +92,29 @@ public class SaveFormFieldCommand {
     // The html/database field name defaults to a slug of the label, the same conversion
     // FormFieldCommand#generateHtmlName already performs for XML-defined fields, so an admin can
     // leave "Name" blank and still get a valid one
-    String name = StringUtils.isNotBlank(fieldBean.getName())
+    String requestedName = StringUtils.isNotBlank(fieldBean.getName())
         ? fieldBean.getName().trim()
         : FormFieldCommand.generateHtmlName(fieldBean.getLabel(), null);
+    // On the live form, every field's submitted value is read back by this exact string
+    // (FormWidget reads context.getParameter(widgetUniqueId + field.getName())), and a repeated
+    // HTML form-field name only ever yields its FIRST value to getParameter() -- so two fields on
+    // the same form sharing a Name isn't cosmetic, it's silent data loss: the second field's real
+    // answer is discarded and a blank second required field can pass validation by inheriting the
+    // first field's value. Neither the "Name" input's own uniqueness nor the label-based slug this
+    // falls back to when Name is left blank are deduped against sibling fields, so guarantee it here.
+    Set<String> siblingNames = new HashSet<>();
+    List<FormField> siblingFields = FormFieldRepository.findAllByFormDefinitionId(fieldBean.getFormDefinitionId());
+    for (FormField sibling : siblingFields) {
+      if (sibling.getId() != field.getId()) {
+        siblingNames.add(sibling.getName());
+      }
+    }
+    String name = requestedName;
+    int suffix = 2;
+    while (siblingNames.contains(name)) {
+      name = requestedName + "-" + suffix;
+      ++suffix;
+    }
     field.setName(name);
     field.setLabel(fieldBean.getLabel());
     field.setType(StringUtils.isNotBlank(fieldBean.getType()) ? fieldBean.getType() : "text");

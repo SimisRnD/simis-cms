@@ -38,6 +38,7 @@ import com.simisinc.platform.application.LoadUserCommand;
 import com.simisinc.platform.application.audit.SaveAuditEventCommand;
 import com.simisinc.platform.application.login.StepUpAuthCommand;
 import com.simisinc.platform.application.register.SaveUserCommand;
+import com.simisinc.platform.domain.model.Capability;
 import com.simisinc.platform.domain.model.Role;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.infrastructure.persistence.RoleRepository;
@@ -53,6 +54,13 @@ import com.simisinc.platform.presentation.controller.WidgetContext;
  * rejected outright rather than truncated, one bad id never aborts the rest of the batch, and
  * Reset Password / Assign Roles both require a fresh step-up re-authentication once per batch --
  * exactly the same bar the single-user forms already hold each of these actions to.
+ *
+ * bulkSuspendSkipsAnAccountThatOutranksTheActorButContinuesTheRestOfTheBatch guards a gap that was
+ * specific to the bulk checkbox path: UserDetailsWidget's single-account suspendAccount() already
+ * refuses to suspend an account with a higher role level than the acting admin's, but
+ * bulkSuspendAction() had no equivalent per-target check, so a community-manager (or a
+ * users:manage capability-only grantee with no legacy role) could reach an admin account through
+ * this path that the single-user form would refuse.
  *
  * @author SimIS Inc.
  */
@@ -112,8 +120,11 @@ class UsersListWidgetBulkActionsTest extends WidgetBase {
 
     try (MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
         MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
+        MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
         MockedStatic<SaveAuditEventCommand> audit = mockStatic(SaveAuditEventCommand.class)) {
       loadCmd.when(() -> LoadUserCommand.loadUser(5L)).thenReturn(other);
+      // The target (level 0, no roles) does not outrank the acting admin (level 100).
+      roleRepo.when(RoleRepository::findAll).thenReturn(Arrays.asList(role(1, 100, ADMIN)));
       userRepo.when(() -> UserRepository.suspendAccount(other, "compromised credentials")).thenReturn(other);
 
       WidgetContext result = new UsersListWidget().post(widgetContext);
@@ -131,6 +142,45 @@ class UsersListWidgetBulkActionsTest extends WidgetBase {
       // warning, not a plain success -- matching the same "partial" bucket as a not-found/failed id.
       assertTrue(result.getWarningMessage().contains("1 of 2"));
       assertTrue(result.getWarningMessage().contains("your own account"));
+    }
+  }
+
+  @Test
+  void bulkSuspendSkipsAnAccountThatOutranksTheActorButContinuesTheRestOfTheBatch() throws Exception {
+    // Without this guard, a community-manager (or, as of the users:manage capability, a user
+    // holding only that capability with no legacy role at all) could use this bulk checkbox path
+    // to suspend an admin account -- something the single-account suspendAccount() form on
+    // /admin/user-details already refuses (see UserDetailsWidgetTest).
+    setRoles(widgetContext, COMMUNITY_MANAGER);
+    multiValue("userId", "5", "6");
+    addQueryParameter(widgetContext, "command", "bulkSuspend");
+    addQueryParameter(widgetContext, "reason", "incident response");
+
+    User outranking = userWithId(5L);
+    List<Role> heldByOutranking = new ArrayList<>();
+    heldByOutranking.add(role(1, 100, ADMIN));
+    outranking.setRoleList(heldByOutranking);
+
+    User withinReach = userWithId(6L);
+
+    try (MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
+        MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
+        MockedStatic<SaveAuditEventCommand> audit = mockStatic(SaveAuditEventCommand.class)) {
+      loadCmd.when(() -> LoadUserCommand.loadUser(5L)).thenReturn(outranking);
+      loadCmd.when(() -> LoadUserCommand.loadUser(6L)).thenReturn(withinReach);
+      roleRepo.when(RoleRepository::findAll).thenReturn(Arrays.asList(role(2, 90, COMMUNITY_MANAGER), role(1, 100, ADMIN)));
+      userRepo.when(() -> UserRepository.suspendAccount(withinReach, "incident response")).thenReturn(withinReach);
+
+      WidgetContext result = new UsersListWidget().post(widgetContext);
+
+      // The outranking account (admin, level 100) was never touched; the other account (level 0,
+      // below the acting community-manager's level 90) was suspended normally.
+      userRepo.verify(() -> UserRepository.suspendAccount(outranking, "incident response"), never());
+      userRepo.verify(() -> UserRepository.suspendAccount(withinReach, "incident response"), times(1));
+      userRepo.verify(() -> UserRepository.suspendAccount(any(), any()), times(1));
+      assertTrue(result.getWarningMessage().contains("1 of 2"));
+      assertTrue(result.getWarningMessage().contains("Skipped (higher role level than yours): 1"));
     }
   }
 
@@ -377,6 +427,55 @@ class UsersListWidgetBulkActionsTest extends WidgetBase {
   @Test
   void nonAdminNonCommunityManagerCannotReachBulkActionsAtAll() throws Exception {
     setRoles(widgetContext, CONTENT_MANAGER);
+    multiValue("userId", "5");
+    addQueryParameter(widgetContext, "command", "bulkSuspend");
+    addQueryParameter(widgetContext, "reason", "n/a");
+
+    try (MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class)) {
+      new UsersListWidget().post(widgetContext);
+
+      loadCmd.verifyNoInteractions();
+      userRepo.verify(() -> UserRepository.suspendAccount(any(), any()), never());
+    }
+  }
+
+  // --- users:manage (issue #733 follow-up): the same permission gate this class already covers
+  // for hasRole(), now also reachable via a direct capability grant with no legacy role at all ---
+
+  @Test
+  void capabilityOnlyUserWithUsersManageCanExecuteABulkAction() throws Exception {
+    // No role set at all -- WidgetBase's default session already has an empty role list; the
+    // only thing granting access here is the users:manage capability (issue #733 follow-up).
+    Capability usersManage = new Capability();
+    usersManage.setCode("users:manage");
+    widgetContext.getUserSession().setCapabilityList(List.of(usersManage));
+    multiValue("userId", "5");
+    addQueryParameter(widgetContext, "command", "bulkSuspend");
+    addQueryParameter(widgetContext, "reason", "capability-only access check");
+
+    User other = userWithId(5L);
+
+    try (MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
+        MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
+        MockedStatic<SaveAuditEventCommand> audit = mockStatic(SaveAuditEventCommand.class)) {
+      loadCmd.when(() -> LoadUserCommand.loadUser(5L)).thenReturn(other);
+      // The acting session holds no role at all (capability-only), so it matches none of these by
+      // hasRole() and resolves to level 0 -- the target (also level 0, no roles) does not outrank it.
+      roleRepo.when(RoleRepository::findAll).thenReturn(Arrays.asList(role(1, 100, ADMIN)));
+      userRepo.when(() -> UserRepository.suspendAccount(other, "capability-only access check")).thenReturn(other);
+
+      WidgetContext result = new UsersListWidget().post(widgetContext);
+
+      userRepo.verify(() -> UserRepository.suspendAccount(other, "capability-only access check"), times(1));
+      assertTrue(result.getSuccessMessage().contains("1 of 1"));
+    }
+  }
+
+  @Test
+  void userWithNeitherRoleNorUsersManageCapabilityCannotReachBulkActionsAtAll() throws Exception {
+    // WidgetBase's default session has neither a role nor a capability list populated
     multiValue("userId", "5");
     addQueryParameter(widgetContext, "command", "bulkSuspend");
     addQueryParameter(widgetContext, "reason", "n/a");
