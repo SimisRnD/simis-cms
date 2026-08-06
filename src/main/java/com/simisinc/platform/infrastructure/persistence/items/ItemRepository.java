@@ -788,8 +788,50 @@ public class ItemRepository {
         }
       }
     }
-    return DB.selectAllFrom(
-        TABLE_NAME, select, joins, where, orderBy, constraints, ItemRepository::buildRecord);
+    // Issue: /admin/collection-records (the Records tab of a Collection) paged through buildRecord,
+    // which queries ItemCategoryRepository/ItemTagRepository once per row -- ~40 extra queries for
+    // a default 20-row page. buildBareRecord() below builds every Item without those per-row
+    // lookups, then attachCategoriesAndTags() batch-loads both associations for the whole page in
+    // two queries total and attaches them, instead of two queries per row.
+    DataResult result = DB.selectAllFrom(
+        TABLE_NAME, select, joins, where, orderBy, constraints, ItemRepository::buildBareRecord);
+    attachCategoriesAndTags((List<Item>) result.getRecords());
+    return result;
+  }
+
+  /**
+   * Batch-loads category and tag associations for a page of Items built via
+   * {@link #buildBareRecord} and attaches them (categoryIdList/tagIdList) -- the N+1 fix for
+   * query()'s multi-row listing path. Two queries total for the whole page (via
+   * {@link ItemCategoryRepository#findAllByItemIds} / {@link ItemTagRepository#findAllByItemIds}),
+   * rather than two queries per row. Sets categoryIdList/tagIdList to an empty array (never leaves
+   * them null) for an item with no associations, matching buildRecord()'s per-row behavior exactly.
+   */
+  private static void attachCategoriesAndTags(List<Item> records) {
+    if (records == null || records.isEmpty()) {
+      return;
+    }
+    List<Long> itemIds = new ArrayList<>();
+    for (Item item : records) {
+      itemIds.add(item.getId());
+    }
+    Map<Long, List<ItemCategory>> categoriesByItemId = ItemCategoryRepository.findAllByItemIds(itemIds);
+    Map<Long, List<ItemTag>> tagsByItemId = ItemTagRepository.findAllByItemIds(itemIds);
+    for (Item item : records) {
+      List<ItemCategory> categoryList = categoriesByItemId.getOrDefault(item.getId(), Collections.emptyList());
+      List<Long> categoryIdList = new ArrayList<>();
+      for (ItemCategory itemCategory : categoryList) {
+        categoryIdList.add(itemCategory.getCategoryId());
+      }
+      item.setCategoryIdList(categoryIdList.toArray(new Long[0]));
+
+      List<ItemTag> tagList = tagsByItemId.getOrDefault(item.getId(), Collections.emptyList());
+      List<Long> tagIdList = new ArrayList<>();
+      for (ItemTag itemTag : tagList) {
+        tagIdList.add(itemTag.getTagId());
+      }
+      item.setTagIdList(tagIdList.toArray(new Long[0]));
+    }
   }
 
   public static Item findById(long id) {
@@ -960,7 +1002,47 @@ public class ItemRepository {
     return ids;
   }
 
+  /**
+   * Builds an Item from the current ResultSet row AND populates categoryIdList/tagIdList via a
+   * per-row query each. Used by the single-record finders below (findById and friends), where two
+   * extra queries is the entire cost of the call, not a per-row multiplier -- the multi-row listing
+   * path (query()) uses {@link #buildBareRecord} plus {@link #attachCategoriesAndTags} instead so
+   * paging through a Collection's records doesn't pay two extra queries per row (the N+1 pattern
+   * that made /admin/collection-records issue ~40 extra queries per 20-row page).
+   */
   private static Item buildRecord(ResultSet rs) {
+    Item record = buildBareRecord(rs);
+    if (record == null) {
+      return null;
+    }
+    // Populate categoryIdList
+    List<ItemCategory> categoryList = ItemCategoryRepository.findAllByItemId(record.getId());
+    if (categoryList != null) {
+      List<Long> categoryIdList = new ArrayList<>();
+      for (ItemCategory itemCategory : categoryList) {
+        categoryIdList.add(itemCategory.getCategoryId());
+      }
+      record.setCategoryIdList(categoryIdList.toArray(new Long[0]));
+    }
+    // Populate tagIdList
+    List<ItemTag> tagList = ItemTagRepository.findAllByItemId(record.getId());
+    if (tagList != null) {
+      List<Long> tagIdList = new ArrayList<>();
+      for (ItemTag itemTag : tagList) {
+        tagIdList.add(itemTag.getTagId());
+      }
+      record.setTagIdList(tagIdList.toArray(new Long[0]));
+    }
+    return record;
+  }
+
+  /**
+   * Builds an Item from the current ResultSet row WITHOUT populating categoryIdList/tagIdList --
+   * the bare-record half of {@link #buildRecord}, used by query()'s multi-row listing path, which
+   * batch-attaches both associations for the whole page afterward instead (see
+   * {@link #attachCategoriesAndTags}).
+   */
+  private static Item buildBareRecord(ResultSet rs) {
     try {
       Item record = new Item();
       record.setId(rs.getLong("item_id"));
@@ -1012,27 +1094,9 @@ public class ItemRepository {
       if (DB.hasColumn(rs, "highlight")) {
         record.setHighlight(rs.getString("highlight"));
       }
-      // Populate categoryIdList
-      List<ItemCategory> categoryList = ItemCategoryRepository.findAllByItemId(record.getId());
-      if (categoryList != null) {
-        List<Long> categoryIdList = new ArrayList<>();
-        for (ItemCategory itemCategory : categoryList) {
-          categoryIdList.add(itemCategory.getCategoryId());
-        }
-        record.setCategoryIdList(categoryIdList.toArray(new Long[0]));
-      }
-      // Populate tagIdList
-      List<ItemTag> tagList = ItemTagRepository.findAllByItemId(record.getId());
-      if (tagList != null) {
-        List<Long> tagIdList = new ArrayList<>();
-        for (ItemTag itemTag : tagList) {
-          tagIdList.add(itemTag.getTagId());
-        }
-        record.setTagIdList(tagIdList.toArray(new Long[0]));
-      }
       return record;
     } catch (SQLException se) {
-      LOG.error("buildRecord", se);
+      LOG.error("buildBareRecord", se);
       return null;
     }
   }

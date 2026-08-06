@@ -18,6 +18,7 @@ package com.simisinc.platform.presentation.widgets.admin.items;
 
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.items.CategoryException;
+import com.simisinc.platform.application.items.CssColorValidationCommand;
 import com.simisinc.platform.application.items.SaveCategoryCommand;
 import com.simisinc.platform.domain.model.items.Category;
 import com.simisinc.platform.domain.model.items.Collection;
@@ -26,6 +27,7 @@ import com.simisinc.platform.infrastructure.persistence.items.CollectionReposito
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import org.apache.commons.beanutils.BeanUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import java.lang.reflect.InvocationTargetException;
 
@@ -84,6 +86,22 @@ public class CollectionCategoryFormWidget extends GenericWidget {
     Category categoryBean = new Category();
     BeanUtils.populate(categoryBean, context.getParameterMap());
     categoryBean.setCreatedBy(context.getUserId());
+
+    // Reject the whole save if either color value isn't a narrow, valid CSS color. Like
+    // Collection.headerTextColor/headerBgColor (see CollectionThemeEditorWidget), these values
+    // are rendered unescaped into an inline <style> block on public pages (main.jsp), so a value
+    // like "red;}body{display:none}/*" would let a data-manager inject arbitrary CSS/selectors
+    // into every visitor's view of this collection's public pages.
+    String headerTextColor = StringUtils.trimToNull(categoryBean.getHeaderTextColor());
+    String headerBgColor = StringUtils.trimToNull(categoryBean.getHeaderBgColor());
+    if (!CssColorValidationCommand.isValid(headerTextColor) || !CssColorValidationCommand.isValid(headerBgColor)) {
+      context.setErrorMessage(
+          "Invalid color value. Colors must be a hex value (#fff, #ffffff, #ffffffff) or an rgb()/rgba() value.");
+      context.setRequestObject(categoryBean);
+      return context;
+    }
+    categoryBean.setHeaderTextColor(headerTextColor);
+    categoryBean.setHeaderBgColor(headerBgColor);
 
     // Save the collection
     Category category = null;
