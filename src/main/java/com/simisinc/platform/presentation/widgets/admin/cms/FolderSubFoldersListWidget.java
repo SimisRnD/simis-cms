@@ -169,7 +169,15 @@ public class FolderSubFoldersListWidget extends GenericWidget {
       return null;
     }
 
-    // @todo make sure the folder's user group can delete
+    // Make sure the folder's user group can delete (a sub-folder's own permissions are governed by
+    // its parent folder's group grants)
+    boolean canDelete = context.hasRole("admin")
+        || CheckFolderPermissionCommand.userHasDeletePermission(record.getFolderId(), context.getUserId());
+    if (!canDelete) {
+      LOG.warn("No permission to delete sub-folder " + subFolderId);
+      context.setErrorMessage("Error. You do not have permission to delete this sub-folder.");
+      return context;
+    }
 
     try {
       DeleteSubFolderCommand.deleteSubFolder(record);
