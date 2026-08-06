@@ -49,6 +49,9 @@ public class SeoSitemapWidget extends GenericWidget {
   static String JSP = "/admin/seo-sitemap.jsp";
 
   public WidgetContext execute(WidgetContext context) {
+    context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));
+    context.getRequest().setAttribute("title", context.getPreferences().get("title"));
+
     List<WebPage> webPageList = WebPageRepository.findAll();
     context.getRequest().setAttribute("webPageList", webPageList);
 

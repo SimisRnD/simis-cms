@@ -179,6 +179,14 @@
     </section>
   </page>
 
+  <page name="/confirm-subscription" title="Confirm Subscription">
+    <section class="align-center">
+      <column class="small-12 medium-6 cell">
+        <widget name="mailingListConfirmSubscription" class="callout box radius" />
+      </column>
+    </section>
+  </page>
+
   <page name="/forgot-password" role="guest,admin,content-manager" title="Forgot Password" class="platform-dialog">
     <section id="platform-forgot-password" class="align-center">
       <column class="small-12 medium-7 large-5 cell">
