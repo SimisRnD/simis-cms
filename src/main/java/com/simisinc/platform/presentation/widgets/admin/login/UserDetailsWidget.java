@@ -25,6 +25,8 @@ import com.simisinc.platform.application.LoadUserCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.login.StepUpAuthCommand;
 import com.simisinc.platform.application.login.UnsuspendAccountCommand;
+import com.simisinc.platform.application.login.UserMfaCommand;
+import com.simisinc.platform.application.login.UserMfaRecoveryCodeCommand;
 import com.simisinc.platform.domain.events.cms.UnsuspendRequestedEvent;
 import com.simisinc.platform.domain.events.cms.UserAccountRestoredEvent;
 import com.simisinc.platform.domain.events.cms.UserPasswordResetEvent;
@@ -145,6 +147,30 @@ public class UserDetailsWidget extends GenericWidget {
       context.setRedirect("/admin/user-details?userId=" + userId);
       return resetPassword(context, user);
     }
+    if ("resetMfa".equals(action)) {
+      // Clearing another user's MFA enrollment requires step-up, same bar as Reset Password --
+      // and, matching resetPassword's own comment above, is intentionally kept OUT of action()'s
+      // dispatch table so a plain GET/action request can never reach it.
+      String stepUpCredential = context.getParameter("stepUpCredential");
+      if (!StepUpAuthCommand.isValid(context.getUserSession())) {
+        if (StringUtils.isBlank(stepUpCredential)) {
+          context.addSharedRequestValue("stepUpRequired", "true");
+          context.getRequest().setAttribute("user", user);
+          context.setJsp(JSP);
+          return context;
+        }
+        User actingUser = LoadUserCommand.loadUser(context.getUserId());
+        if (!StepUpAuthCommand.verify(context.getUserSession(), actingUser, stepUpCredential)) {
+          context.setErrorMessage("Re-authentication failed. Enter your password or authenticator code.");
+          context.addSharedRequestValue("stepUpRequired", "true");
+          context.getRequest().setAttribute("user", user);
+          context.setJsp(JSP);
+          return context;
+        }
+      }
+      context.setRedirect("/admin/user-details?userId=" + userId);
+      return resetMfa(context, user);
+    }
     if ("approveUnsuspend".equals(action)) {
       // Approving an unsuspend request requires step-up, same bar as Reset Password/Assign Roles --
       // and, matching resetPassword's own comment above, is intentionally kept OUT of action()'s
@@ -189,7 +215,7 @@ public class UserDetailsWidget extends GenericWidget {
       return context;
     }
     // Execute the action
-    // Note: resetPassword is intentionally NOT handled here -- it requires step-up
+    // Note: resetPassword and resetMfa are intentionally NOT handled here -- both require step-up
     // re-authentication (see post()) and must only be reachable through that gated path.
     context.setRedirect("/admin/user-details?userId=" + userId);
     String action = context.getParameter("action");
@@ -223,6 +249,35 @@ public class UserDetailsWidget extends GenericWidget {
     WorkflowManager.triggerWorkflowForEvent(new UserPasswordResetEvent(user, context.getUserSession().getUser()));
 
     context.setSuccessMessage("Password reset instructions have been sent to: " + user.getEmail());
+    return context;
+  }
+
+  private WidgetContext resetMfa(WidgetContext context, User user) {
+    // Not one that outranks the acting admin -- see targetOutranksActor()
+    if (targetOutranksActor(context, user)) {
+      context.setErrorMessage("You cannot reset MFA for an account with a higher role level than your own");
+      return context;
+    }
+    // Capture the target before disable/clear alter its in-memory state
+    String targetId = String.valueOf(user.getId());
+    String targetLabel = user.getEmail();
+
+    // Clear the second factor and any unused recovery codes -- reuses the same commands the
+    // self-service MyMfaSettingsWidget "disable" action calls on the user's own account.
+    boolean disabled = UserMfaCommand.disable(user);
+    UserMfaRecoveryCodeCommand.clear(user);
+
+    // Record the admin-initiated MFA reset of another user, matching deleteAccount()'s pattern of
+    // reflecting the actual DB-write outcome rather than assuming success.
+    if (disabled) {
+      AuditEventCommand.record(context, AuditEventCommand.USER_MANAGEMENT, "user.mfa.reset",
+          AuditEventCommand.SUCCESS, "user", targetId, targetLabel, null);
+      context.setSuccessMessage("MFA has been reset for: " + targetLabel + ". They must re-enroll from scratch.");
+    } else {
+      AuditEventCommand.record(context, AuditEventCommand.USER_MANAGEMENT, "user.mfa.reset",
+          AuditEventCommand.FAILURE, "user", targetId, targetLabel, "MFA disable write failed");
+      context.setErrorMessage("MFA reset failed for: " + targetLabel);
+    }
     return context;
   }
 
@@ -336,11 +391,17 @@ public class UserDetailsWidget extends GenericWidget {
    * True when the target account's highest role level exceeds the acting user's highest role level --
    * mirrors UserFormWidget's role-grant escalation guard so a lower-privileged admin (e.g.
    * community-manager, level 90, who reaches this page via admin-layout.xml's
-   * role="admin,community-manager") cannot suspend or restore an account that outranks them (e.g.
-   * admin, level 100). Both /admin/users and /admin/user-details are open to community-manager, and
-   * this is the only check standing between that role and acting on an admin account.
+   * role="admin,community-manager") cannot suspend, restore, or delete an account that outranks them
+   * (e.g. admin, level 100). Both /admin/users and /admin/user-details are open to community-manager
+   * -- and, as of the users:manage capability, to any user holding only that capability with no
+   * legacy role at all -- and this is the only check standing between that access and acting on an
+   * admin account.
+   * <p>
+   * Package-private (not private): UsersListWidget.bulkSuspendAction() re-checks this identical rule
+   * per selected account so the bulk path can't reach an account the single-account suspendAccount()
+   * below would refuse to touch.
    */
-  private static boolean targetOutranksActor(WidgetContext context, User user) {
+  static boolean targetOutranksActor(WidgetContext context, User user) {
     List<Role> allRoles = RoleRepository.findAll();
     int actingLevel = highestRoleLevel(context.getUserSession(), allRoles);
     int targetLevel = highestRoleLevel(user.getRoleList());
@@ -377,6 +438,13 @@ public class UserDetailsWidget extends GenericWidget {
     // Attempt to delete the account (but not own self)
     if (context.getUserId() == user.getId()) {
       context.setErrorMessage("You cannot delete your own account");
+      return context;
+    }
+    // Nor one that outranks the acting admin -- see targetOutranksActor(). Without this, any user
+    // who can reach this page (including a users:manage capability-only grantee with no admin or
+    // community-manager role) could permanently delete any other account, including an admin's.
+    if (targetOutranksActor(context, user)) {
+      context.setErrorMessage("You cannot delete an account with a higher role level than your own");
       return context;
     }
     // Capture identity before the record is removed

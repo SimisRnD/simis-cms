@@ -1239,7 +1239,7 @@
     </section>
   </page>
 
-  <page name="/admin/users" role="admin,community-manager" title="Users">
+  <page name="/admin/users" role="admin,community-manager" capability="users:manage" title="Users">
     <!--<section>-->
       <!--<column class="small-12 cell">-->
         <!--<widget name="breadcrumbs">-->
@@ -1258,7 +1258,7 @@
     </section>
   </page>
 
-  <page name="/admin/user-details{?userId}" role="admin,community-manager" title="User Details">
+  <page name="/admin/user-details{?userId}" role="admin,community-manager" capability="users:manage" title="User Details">
     <section>
       <column class="small-12 cell">
         <widget name="userDetails" />
@@ -1266,7 +1266,7 @@
     </section>
   </page>
 
-  <page name="/admin/unsuspend-requests" role="admin,community-manager" title="Unsuspend Requests">
+  <page name="/admin/unsuspend-requests" role="admin,community-manager" capability="users:manage" title="Unsuspend Requests">
     <section>
       <column class="small-12 cell">
         <widget name="unsuspendRequestsList">
@@ -1276,7 +1276,7 @@
     </section>
   </page>
 
-  <page name="/admin/modify-user{?userId}" role="admin,community-manager" title="Edit User">
+  <page name="/admin/modify-user{?userId}" role="admin,community-manager" capability="users:manage" title="Edit User">
     <section>
       <column class="small-12 cell">
         <widget name="userForm" />
@@ -1284,7 +1284,7 @@
     </section>
   </page>
 
-  <page name="/admin/groups" role="admin" title="User Groups">
+  <page name="/admin/groups" role="admin" capability="users:manage" title="User Groups">
     <!--<section>-->
       <!--<column class="small-12 cell">-->
         <!--<widget name="breadcrumbs">-->
@@ -1308,7 +1308,7 @@
     </section>
   </page>
 
-  <page name="/admin/group{?groupId}" role="admin" title="Edit Group">
+  <page name="/admin/group{?groupId}" role="admin" capability="users:manage" title="Edit Group">
     <section>
       <column class="small-12 cell">
         <widget name="breadcrumbs">

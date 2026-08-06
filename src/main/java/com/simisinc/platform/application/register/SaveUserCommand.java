@@ -79,6 +79,11 @@ public class SaveUserCommand {
         throw new DataException("The existing record could not be found");
       }
       user.setModifiedBy(userBean.getModifiedBy());
+      // See if a different user already has this email
+      User userWithEmail = UserRepository.findByEmailAddress(userBean.getEmail());
+      if (userWithEmail != null && userWithEmail.getId().longValue() != userBean.getId().longValue()) {
+        throw new AccountException("Information could not be saved. There is an account with this email address already.");
+      }
       // Validate (skip if managed by provider)
       if (!isSystemUser) {
         if (user.getId() == userBean.getModifiedBy()) {

@@ -31,6 +31,7 @@ import org.mockito.MockedStatic;
 import com.simisinc.platform.WidgetBase;
 import com.simisinc.platform.application.LoadUserCommand;
 import com.simisinc.platform.application.register.SaveUserCommand;
+import com.simisinc.platform.domain.model.Group;
 import com.simisinc.platform.domain.model.Role;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.infrastructure.persistence.GroupRepository;
@@ -89,6 +90,39 @@ class UserFormWidgetTest extends WidgetBase {
       User user = (User) widgetContext.getRequest().getAttribute("user");
       Assertions.assertNotNull(user, "a blank User must be set so the New User form can render");
       Assertions.assertEquals(-1L, user.getId().longValue(), "a blank User must keep the 'new record' id sentinel");
+    }
+  }
+
+  @Test
+  void executeExposesActingRoleLevelForCommunityManager() {
+    // user-form.jsp hides a role checkbox when role.level > actingRoleLevel (and not already held),
+    // and renders it checked+disabled when it is already held -- mirroring users-list.jsp's New User
+    // form. A community-manager (level 90) must not be offered admin (100).
+    setRoles(widgetContext, COMMUNITY_MANAGER);
+    try (MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
+        MockedStatic<GroupRepository> groupRepo = mockStatic(GroupRepository.class)) {
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
+      groupRepo.when(GroupRepository::findAll).thenReturn(new ArrayList<>());
+
+      new UserFormWidget().execute(widgetContext);
+
+      Assertions.assertEquals(90, widgetContext.getRequest().getAttribute("actingRoleLevel"),
+          "the edit-user form must only be able to offer roles at/below the community-manager's own level");
+    }
+  }
+
+  @Test
+  void executeExposesActingRoleLevelForAdmin() {
+    setRoles(widgetContext, ADMIN);
+    try (MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
+        MockedStatic<GroupRepository> groupRepo = mockStatic(GroupRepository.class)) {
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
+      groupRepo.when(GroupRepository::findAll).thenReturn(new ArrayList<>());
+
+      new UserFormWidget().execute(widgetContext);
+
+      Assertions.assertEquals(100, widgetContext.getRequest().getAttribute("actingRoleLevel"),
+          "an admin must still be offered every role, including admin itself");
     }
   }
 
@@ -187,6 +221,71 @@ class UserFormWidgetTest extends WidgetBase {
       List<String> codes = captor.getValue().getRoleList().stream().map(Role::getCode).toList();
       Assertions.assertTrue(codes.contains("admin"), "a higher role the target already holds must be preserved, not stripped");
       Assertions.assertTrue(codes.contains("content-editor"));
+    }
+  }
+
+  @Test
+  void postCannotGrantAllGuestsGroupEvenIfSubmitted() throws Exception {
+    // "All Guests" has no checkbox on the edit form (see users-list.jsp's New User modal, "not a
+    // logged in user group"), but the server must refuse it even if a request forges the parameter --
+    // the fix can't rely on the checkbox being hidden client-side.
+    setRoles(widgetContext, ADMIN);
+    grantStepUp(widgetContext);
+    addQueryParameter(widgetContext, "id", "-1");
+    Group allGuests = new Group("All Guests", "all-guests");
+    allGuests.setId(9L);
+    addQueryParameter(widgetContext, "groupId9", "9");
+
+    ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+    try (MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
+        MockedStatic<GroupRepository> groupRepo = mockStatic(GroupRepository.class);
+        MockedStatic<SaveUserCommand> saveCmd = mockStatic(SaveUserCommand.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
+      groupRepo.when(GroupRepository::findAll).thenReturn(List.of(allGuests));
+      saveCmd.when(() -> SaveUserCommand.saveUser(any())).thenReturn(savedUser());
+
+      new UserFormWidget().post(widgetContext);
+
+      saveCmd.verify(() -> SaveUserCommand.saveUser(captor.capture()));
+      List<String> names = captor.getValue().getGroupList().stream().map(Group::getName).toList();
+      Assertions.assertFalse(names.contains("All Guests"), "a new membership in 'All Guests' must never be granted through this form");
+    }
+  }
+
+  @Test
+  void editingExistingUserPreservesAllGuestsMembershipItAlreadyHeld() throws Exception {
+    // A user can already be a member of "All Guests" from a path that isn't gated the same way
+    // (e.g. CSV import's Groups column, or an OAuth group claim). Since the checkbox is hidden,
+    // an unrelated save must not silently drop that pre-existing membership.
+    setRoles(widgetContext, ADMIN);
+    grantStepUp(widgetContext);
+    addQueryParameter(widgetContext, "id", "5"); // editing an existing user; groupId9 left unchecked
+
+    Group allGuests = new Group("All Guests", "all-guests");
+    allGuests.setId(9L);
+    User target = new User();
+    target.setId(5L);
+    List<Group> held = new ArrayList<>();
+    held.add(allGuests);
+    target.setGroupList(held);
+
+    ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
+    try (MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
+        MockedStatic<GroupRepository> groupRepo = mockStatic(GroupRepository.class);
+        MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
+        MockedStatic<SaveUserCommand> saveCmd = mockStatic(SaveUserCommand.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
+      groupRepo.when(GroupRepository::findAll).thenReturn(List.of(allGuests));
+      loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(target);
+      saveCmd.when(() -> SaveUserCommand.saveUser(any())).thenReturn(savedUser());
+
+      new UserFormWidget().post(widgetContext);
+
+      saveCmd.verify(() -> SaveUserCommand.saveUser(captor.capture()));
+      List<String> names = captor.getValue().getGroupList().stream().map(Group::getName).toList();
+      Assertions.assertTrue(names.contains("All Guests"), "existing 'All Guests' membership must survive an unrelated save, not be silently stripped");
     }
   }
 }
