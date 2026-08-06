@@ -44,6 +44,12 @@ public class MailingListMember extends Entity {
   private Timestamp quarantined = null;
   private String quarantineReason = null;
   private String unsubscribeToken = null;
+  /** When the address owner clicked the confirm-subscription link (double opt-in). NULL means
+   *  still pending, or this membership bypassed confirmation entirely (CSV import, admin
+   *  manual-add). */
+  private Timestamp confirmed = null;
+  private String confirmToken = null;
+  private Timestamp confirmTokenExpires = null;
 
   /** Only populated by queries that join to emails -- not a mailing_list_members column. */
   private String emailAddress = null;
@@ -177,6 +183,30 @@ public class MailingListMember extends Entity {
 
   public void setUnsubscribeToken(String unsubscribeToken) {
     this.unsubscribeToken = unsubscribeToken;
+  }
+
+  public Timestamp getConfirmed() {
+    return confirmed;
+  }
+
+  public void setConfirmed(Timestamp confirmed) {
+    this.confirmed = confirmed;
+  }
+
+  public String getConfirmToken() {
+    return confirmToken;
+  }
+
+  public void setConfirmToken(String confirmToken) {
+    this.confirmToken = confirmToken;
+  }
+
+  public Timestamp getConfirmTokenExpires() {
+    return confirmTokenExpires;
+  }
+
+  public void setConfirmTokenExpires(Timestamp confirmTokenExpires) {
+    this.confirmTokenExpires = confirmTokenExpires;
   }
 
   public String getEmailAddress() {

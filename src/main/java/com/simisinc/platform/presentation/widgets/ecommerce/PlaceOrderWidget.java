@@ -230,7 +230,7 @@ public class PlaceOrderWidget extends GenericWidget {
           emailBean.setCreatedBy(context.getUserId());
           emailBean.setModifiedBy(context.getUserId());
         }
-        SaveEmailCommand.saveEmail(emailBean);
+        SaveEmailCommand.saveEmailRequiringConfirmation(emailBean);
       }
 
     } catch (AccountException ae) {
