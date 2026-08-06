@@ -235,6 +235,8 @@
   <widget name="blockedIPListForm" class="com.simisinc.platform.presentation.widgets.admin.BlockedIPFormWidget" />
   <widget name="allowedIP" class="com.simisinc.platform.presentation.widgets.admin.AllowedIPListWidget" />
   <widget name="allowedIPListForm" class="com.simisinc.platform.presentation.widgets.admin.AllowedIPFormWidget" />
+  <widget name="botUserAgent" class="com.simisinc.platform.presentation.widgets.admin.BotUserAgentListWidget" />
+  <widget name="botUserAgentForm" class="com.simisinc.platform.presentation.widgets.admin.BotUserAgentFormWidget" />
   <widget name="roleCapabilitiesList" class="com.simisinc.platform.presentation.widgets.admin.RoleCapabilitiesListWidget" />
   <widget name="roleCapabilitiesForm" class="com.simisinc.platform.presentation.widgets.admin.RoleCapabilitiesFormWidget" />
   <widget name="capabilityGrants" class="com.simisinc.platform.presentation.widgets.admin.CapabilityGrantsWidget" />

@@ -58,7 +58,13 @@ public class FormDataRepository {
     return DB.selectCountFrom(TABLE_NAME, where);
   }
 
-  private static DataResult query(FormDataSpecification specification, DataConstraints constraints) {
+  /**
+   * Builds the shared WHERE clause for a {@link FormDataSpecification}, used by both {@link #query}
+   * (the on-screen list) and {@link #export} (the CSV download) so the two can never drift apart --
+   * a filter added to one must be added to the other via this single method. A null specification
+   * yields a null where clause, i.e. no filtering at all.
+   */
+  private static SqlUtils createWhereStatement(FormDataSpecification specification) {
     SqlUtils where = null;
     if (specification != null) {
       where = new SqlUtils()
@@ -97,6 +103,11 @@ public class FormDataRepository {
       where.addIfExists("created >= ?", specification.getOccurredAfter());
       where.addIfExists("created < ?", specification.getOccurredBefore());
     }
+    return where;
+  }
+
+  private static DataResult query(FormDataSpecification specification, DataConstraints constraints) {
+    SqlUtils where = createWhereStatement(specification);
     return DB.selectAllFrom(TABLE_NAME, where, constraints, FormDataRepository::buildRecord);
   }
 
@@ -384,8 +395,13 @@ public class FormDataRepository {
   /**
    * Exports form submissions to a CSV file (issue #483) so an admin can pull the raw IP addresses
    * offline, e.g. to cross-reference a spam source before adding it to the IP block list.
+   * <p>
+   * {@code specification} scopes the export to the same criteria as the on-screen list (built via
+   * {@link #createWhereStatement}, the same method {@link #query} uses) so the exported CSV always
+   * matches what's currently filtered on screen instead of unconditionally dumping the whole table.
+   * A null specification exports every row, unfiltered, same as before this filter existed.
    */
-  public static void export(DataConstraints constraints, File file) {
+  public static void export(FormDataSpecification specification, DataConstraints constraints, File file) {
     SqlUtils selectFields = new SqlUtils()
         .addNames(
             "form_unique_id AS \"Form\"",
@@ -394,10 +410,11 @@ public class FormDataRepository {
             "url AS \"URL\"",
             "flagged_as_spam AS \"Spam Flagged\""
         );
+    SqlUtils where = createWhereStatement(specification);
     if (constraints == null) {
       constraints = new DataConstraints();
     }
     constraints.setDefaultColumnToSortBy("form_data_id desc");
-    DB.exportToCsvAllFrom(TABLE_NAME, selectFields, null, null, null, constraints, file);
+    DB.exportToCsvAllFrom(TABLE_NAME, selectFields, null, where, null, constraints, file);
   }
 }

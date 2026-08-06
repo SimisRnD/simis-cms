@@ -17,6 +17,7 @@
 package com.simisinc.platform.application.cms;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.lang3.math.NumberUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -56,6 +57,15 @@ public class TextCommand {
       }
     }
     return shortText.trim() + "...";
+  }
+
+  /**
+   * True if text can be parsed as a plain number (fmt:formatNumber's own contract, via
+   * Double.valueOf) -- used to guard that tag from a StatisticsData.value string that's actually
+   * pre-formatted display text (e.g. "33.8s"), which crashes the whole page render otherwise.
+   */
+  public static boolean isNumeric(String text) {
+    return text != null && NumberUtils.isParsable(text.trim());
   }
 
 }

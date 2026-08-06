@@ -34,6 +34,7 @@ import com.simisinc.platform.infrastructure.scheduler.cms.SystemHealthCheckClean
 import com.simisinc.platform.infrastructure.scheduler.cms.SystemHealthJob;
 import com.simisinc.platform.infrastructure.scheduler.cms.WebPageHitSnapshotJob;
 import com.simisinc.platform.infrastructure.scheduler.cms.WebPageHitsCleanupJob;
+import com.simisinc.platform.infrastructure.scheduler.cms.WebSearchCleanupJob;
 import com.simisinc.platform.infrastructure.scheduler.cms.WebVitalsAggregationJob;
 import com.simisinc.platform.infrastructure.scheduler.cms.WebVitalsCleanupJob;
 import com.simisinc.platform.infrastructure.scheduler.ecommerce.OrderManagementProcessNewOrders;
@@ -86,6 +87,7 @@ public class SchedulerManager {
   public static final String WEB_PAGE_HIT_SNAPSHOT_JOB = "WebPageHitSnapshot";
   public static final String WEB_PAGE_HITS_CLEANUP_JOB = "WebPageHitsCleanup";
   public static final String SEARCH_ANALYTICS_CLEANUP_JOB = "SearchAnalyticsCleanup";
+  public static final String WEB_SEARCH_CLEANUP_JOB = "WebSearchCleanup";
   public static final String WEB_VITALS_AGGREGATION_JOB = "WebVitalsAggregation";
   public static final String WEB_VITALS_CLEANUP_JOB = "WebVitalsCleanup";
   public static final String USER_TOKENS_CLEANUP_JOB = "UserTokensCleanup";
@@ -188,6 +190,7 @@ public class SchedulerManager {
         BackgroundJob.scheduleRecurrently(WEB_PAGE_HITS_CLEANUP_JOB, Cron.daily(4), WebPageHitsCleanupJob::execute);
         // Offset from the other 4am-ish cleanup jobs so they aren't all competing for DB time at once
         BackgroundJob.scheduleRecurrently(SEARCH_ANALYTICS_CLEANUP_JOB, Cron.daily(4, 10), SearchAnalyticsCleanupJob::execute);
+        BackgroundJob.scheduleRecurrently(WEB_SEARCH_CLEANUP_JOB, Cron.daily(4, 15), WebSearchCleanupJob::execute);
         BackgroundJob.scheduleRecurrently(WEB_VITALS_AGGREGATION_JOB, Cron.daily(23), WebVitalsAggregationJob::execute);
         BackgroundJob.scheduleRecurrently(WEB_VITALS_CLEANUP_JOB, Cron.daily(4, 5), WebVitalsCleanupJob::execute);
         BackgroundJob.scheduleRecurrently(USER_TOKENS_CLEANUP_JOB, Cron.hourly(), UserTokensCleanupJob::execute);
