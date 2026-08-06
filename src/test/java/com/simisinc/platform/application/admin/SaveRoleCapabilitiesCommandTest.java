@@ -21,9 +21,11 @@ import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 
+import java.sql.Connection;
 import java.util.List;
 import java.util.Set;
 
@@ -33,6 +35,7 @@ import org.mockito.MockedStatic;
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.domain.model.Capability;
 import com.simisinc.platform.domain.model.Role;
+import com.simisinc.platform.infrastructure.database.DB;
 import com.simisinc.platform.infrastructure.persistence.CapabilityRepository;
 import com.simisinc.platform.infrastructure.persistence.RoleCapabilityRepository;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
@@ -124,22 +127,28 @@ class SaveRoleCapabilitiesCommandTest {
   void revokesAnUncheckedCapabilityWhenAnotherRoleStillHasIt() throws Exception {
     Capability adminManage = capability("admin:manage", 5L);
     Role contentManagerRole = role("content-manager", 2);
+    Connection connection = mock(Connection.class);
 
     try (MockedStatic<CapabilityRepository> capabilityRepo = mockStatic(CapabilityRepository.class);
         MockedStatic<RoleCapabilityRepository> roleCapabilityRepo = mockStatic(RoleCapabilityRepository.class);
+        MockedStatic<DB> db = mockStatic(DB.class);
         MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
       capabilityRepo.when(CapabilityRepository::findAll).thenReturn(List.of(adminManage));
       capabilityRepo.when(() -> CapabilityRepository.findAllByRoleId(2)).thenReturn(List.of(adminManage));
+      db.when(DB::getConnection).thenReturn(connection);
       // The guard still runs (capability code is admin:manage), but excluding this role still
       // leaves 1 effective holder (e.g. another role with real members, or a direct grant), so the
-      // revoke is allowed to proceed.
-      roleCapabilityRepo.when(() -> RoleCapabilityRepository.countDistinctUsersHoldingCapability(5L, 2L, -1L))
+      // revoke is allowed to proceed. Both the count and the revoke run on the same connection
+      // the admin:manage guard's advisory lock was acquired on - see
+      // RoleCapabilityRepository#acquireAdminManageGuardLock.
+      roleCapabilityRepo.when(() -> RoleCapabilityRepository.countDistinctUsersHoldingCapability(connection, 5L, 2L, -1L))
           .thenReturn(1L);
-      roleCapabilityRepo.when(() -> RoleCapabilityRepository.revoke(2, 5L)).thenReturn(true);
+      roleCapabilityRepo.when(() -> RoleCapabilityRepository.revoke(connection, 2, 5L)).thenReturn(true);
 
       SaveRoleCapabilitiesCommand.save(null, contentManagerRole, Set.of(), "Accidentally granted, removing");
 
-      roleCapabilityRepo.verify(() -> RoleCapabilityRepository.revoke(2, 5L));
+      roleCapabilityRepo.verify(() -> RoleCapabilityRepository.acquireAdminManageGuardLock(connection));
+      roleCapabilityRepo.verify(() -> RoleCapabilityRepository.revoke(connection, 2, 5L));
       audit.verify(() -> AuditEventCommand.record(any(), eq(AuditEventCommand.AUTHORIZATION),
           eq("role_capability.revoke"), eq(AuditEventCommand.SUCCESS), eq("role_capability"),
           eq("admin:manage"), eq("content-manager"), eq("Accidentally granted, removing")));
@@ -179,13 +188,16 @@ class SaveRoleCapabilitiesCommandTest {
     // integration test against a real database, which is out of this command test's scope.)
     Capability adminManage = capability("admin:manage", 5L);
     Role roleWithRealMembers = role("admin", 5);
+    Connection connection = mock(Connection.class);
 
     try (MockedStatic<CapabilityRepository> capabilityRepo = mockStatic(CapabilityRepository.class);
         MockedStatic<RoleCapabilityRepository> roleCapabilityRepo = mockStatic(RoleCapabilityRepository.class);
+        MockedStatic<DB> db = mockStatic(DB.class);
         MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
       capabilityRepo.when(CapabilityRepository::findAll).thenReturn(List.of(adminManage));
       capabilityRepo.when(() -> CapabilityRepository.findAllByRoleId(5)).thenReturn(List.of(adminManage));
-      roleCapabilityRepo.when(() -> RoleCapabilityRepository.countDistinctUsersHoldingCapability(5L, 5L, -1L))
+      db.when(DB::getConnection).thenReturn(connection);
+      roleCapabilityRepo.when(() -> RoleCapabilityRepository.countDistinctUsersHoldingCapability(connection, 5L, 5L, -1L))
           .thenReturn(0L);
 
       DataException e = assertThrows(DataException.class,
@@ -193,7 +205,9 @@ class SaveRoleCapabilitiesCommandTest {
               "Trying to remove admin access"));
 
       assertEquals(true, e.getMessage().contains("no one would be left holding it"));
-      roleCapabilityRepo.verify(() -> RoleCapabilityRepository.revoke(anyLong(), anyLong()), never());
+      roleCapabilityRepo.verify(() -> RoleCapabilityRepository.acquireAdminManageGuardLock(connection));
+      roleCapabilityRepo.verify(() -> RoleCapabilityRepository.revoke(any(Connection.class), anyLong(), anyLong()),
+          never());
       audit.verify(() -> AuditEventCommand.record(any(), eq(AuditEventCommand.AUTHORIZATION),
           eq("role_capability.revoke"), eq(AuditEventCommand.FAILURE), eq("role_capability"),
           eq("admin:manage"), eq("admin"), any()));

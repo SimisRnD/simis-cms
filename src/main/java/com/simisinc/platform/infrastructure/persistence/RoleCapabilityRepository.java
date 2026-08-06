@@ -20,6 +20,7 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
@@ -47,6 +48,17 @@ public class RoleCapabilityRepository {
    */
   private static final long NO_EXCLUSION = -1L;
 
+  // A fixed key so every admin:manage self-lockout check-then-revoke - whether through a role's
+  // row here, or a user's direct capability_grants row via CapabilityGrantRepository - contends on
+  // the same advisory lock, and nothing else does. Must differ from AuditLogRepository's
+  // AUDIT_CHAIN_LOCK_KEY (872025601L): two unrelated features sharing a lock key would serialize
+  // against each other for no reason.
+  private static final long ADMIN_MANAGE_GUARD_LOCK_KEY = 704702001L;
+  // Cap the wait for the advisory lock (milliseconds) so a stalled holder cannot block an admin
+  // request thread unboundedly. A constant, never user input, so it is safe to inline into the SET
+  // statement.
+  private static final int ADMIN_MANAGE_GUARD_LOCK_TIMEOUT_MS = 2000;
+
   public static boolean grant(long roleId, long capabilityId) {
     SqlUtils insertValues = new SqlUtils()
         .add("role_id", roleId)
@@ -59,6 +71,40 @@ public class RoleCapabilityRepository {
         .add("role_id = ?", roleId)
         .add("capability_id = ?", capabilityId);
     return DB.deleteFrom(TABLE_NAME, where) > 0;
+  }
+
+  /**
+   * Same as {@link #revoke(long, long)}, but runs on a caller-supplied connection so it can share a
+   * transaction (and the admin:manage guard's advisory lock, held on that same connection) with the
+   * count that decided it was safe.
+   */
+  public static boolean revoke(Connection connection, long roleId, long capabilityId) throws SQLException {
+    SqlUtils where = new SqlUtils()
+        .add("role_id = ?", roleId)
+        .add("capability_id = ?", capabilityId);
+    return DB.deleteFrom(connection, TABLE_NAME, where) > 0;
+  }
+
+  /**
+   * Acquires the transaction-scoped advisory lock that serializes every admin:manage self-lockout
+   * check-then-revoke against every other one - across both this class's role-capability revoke and
+   * CapabilityGrantRepository's direct-grant revoke - so two concurrent revokes cannot both count
+   * the other's still-live holder and pass the guard before either commits. That race is exactly
+   * how two simultaneous "last role/grant standing" revokes could each see the other's holder as
+   * safety margin and both commit, leaving zero effective holders of admin:manage.
+   *
+   * <p>Must be called after {@code connection.setAutoCommit(false)} and before
+   * {@link #countDistinctUsersHoldingCapability(Connection, long, long, long)}; the lock is released
+   * automatically at commit or rollback (pg_advisory_xact_lock) and is never held across requests.
+   */
+  public static void acquireAdminManageGuardLock(Connection connection) throws SQLException {
+    try (Statement timeout = connection.createStatement()) {
+      timeout.execute("SET LOCAL lock_timeout = " + ADMIN_MANAGE_GUARD_LOCK_TIMEOUT_MS);
+    }
+    try (PreparedStatement lock = connection.prepareStatement("SELECT pg_advisory_xact_lock(?)")) {
+      lock.setLong(1, ADMIN_MANAGE_GUARD_LOCK_KEY);
+      lock.execute();
+    }
   }
 
   /**
@@ -88,11 +134,48 @@ public class RoleCapabilityRepository {
    */
   public static long countDistinctUsersHoldingCapability(long capabilityId, long excludeRoleId,
       long excludeGrantId) {
-    // Both branches join to users and require enabled = true AND validated IS NOT NULL -- the
-    // same two gates AuthenticateLoginCommand checks before allowing a login. A user who fails
-    // either can never authenticate, so counting them as a "still holds it" safety margin would
-    // let the self-lockout guard approve a revoke that leaves nobody who can actually log in and
-    // reach /admin/role-capabilities or /admin/capability-grants to fix it.
+    try (Connection connection = DB.getConnection()) {
+      return countDistinctUsersHoldingCapability(connection, capabilityId, excludeRoleId, excludeGrantId);
+    } catch (SQLException se) {
+      LOG.error("countDistinctUsersHoldingCapability SQLException: " + se.getMessage());
+      return 0;
+    }
+  }
+
+  /**
+   * Same effective-holder count as {@link #countDistinctUsersHoldingCapability(long, long, long)},
+   * but run on a caller-supplied connection instead of a fresh one from the pool, so it can share a
+   * single transaction - and the admin:manage guard's advisory lock, held on that same connection -
+   * with the revoke that follows it (see {@link #acquireAdminManageGuardLock(Connection)}). Unlike
+   * the no-connection overload, this one does NOT swallow SQLException: the caller is mid-
+   * transaction and must roll back on failure rather than silently treating a transient error as
+   * "0 holders" while leaving the transaction in an unknown state.
+   */
+  public static long countDistinctUsersHoldingCapability(Connection connection, long capabilityId,
+      long excludeRoleId, long excludeGrantId) throws SQLException {
+    String sql = buildCountDistinctUsersHoldingCapabilitySql(excludeRoleId, excludeGrantId);
+    try (PreparedStatement pst = connection.prepareStatement(sql)) {
+      int fieldIdx = 1;
+      pst.setLong(fieldIdx++, capabilityId);
+      if (excludeRoleId != NO_EXCLUSION) {
+        pst.setLong(fieldIdx++, excludeRoleId);
+      }
+      pst.setLong(fieldIdx++, capabilityId);
+      if (excludeGrantId != NO_EXCLUSION) {
+        pst.setLong(fieldIdx++, excludeGrantId);
+      }
+      try (ResultSet rs = pst.executeQuery()) {
+        return rs.next() ? rs.getLong(1) : 0;
+      }
+    }
+  }
+
+  // Both branches join to users and require enabled = true AND validated IS NOT NULL -- the same
+  // two gates AuthenticateLoginCommand checks before allowing a login. A user who fails either can
+  // never authenticate, so counting them as a "still holds it" safety margin would let the
+  // self-lockout guard approve a revoke that leaves nobody who can actually log in and reach
+  // /admin/role-capabilities or /admin/capability-grants to fix it.
+  private static String buildCountDistinctUsersHoldingCapabilitySql(long excludeRoleId, long excludeGrantId) {
     StringBuilder sql = new StringBuilder()
         .append("SELECT COUNT(DISTINCT effective_holders.user_id) FROM (")
         .append("SELECT user_roles.user_id AS user_id ")
@@ -116,26 +199,6 @@ public class RoleCapabilityRepository {
       sql.append("AND capability_grants.capability_grant_id != ? ");
     }
     sql.append(") AS effective_holders");
-
-    try (Connection connection = DB.getConnection();
-        PreparedStatement pst = connection.prepareStatement(sql.toString())) {
-      int fieldIdx = 1;
-      pst.setLong(fieldIdx++, capabilityId);
-      if (excludeRoleId != NO_EXCLUSION) {
-        pst.setLong(fieldIdx++, excludeRoleId);
-      }
-      pst.setLong(fieldIdx++, capabilityId);
-      if (excludeGrantId != NO_EXCLUSION) {
-        pst.setLong(fieldIdx++, excludeGrantId);
-      }
-      try (ResultSet rs = pst.executeQuery()) {
-        if (rs.next()) {
-          return rs.getLong(1);
-        }
-      }
-    } catch (SQLException se) {
-      LOG.error("countDistinctUsersHoldingCapability SQLException: " + se.getMessage());
-    }
-    return 0;
+    return sql.toString();
   }
 }
