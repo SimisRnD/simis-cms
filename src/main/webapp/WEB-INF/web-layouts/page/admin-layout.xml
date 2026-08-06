@@ -2109,7 +2109,7 @@
     </section>
   </page>
 
-  <page name="/admin/apis" role="admin" title="APIs">
+  <page name="/admin/apis" role="admin" capability="admin:manage" title="APIs">
     <section>
       <column class="small-12 cell">
         <widget name="content" class="callout">
@@ -2139,7 +2139,7 @@
     </section>
   </page>
 
-  <page name="/admin/apps" role="admin,data-manager" title="Apps">
+  <page name="/admin/apps" role="admin,data-manager" capability="admin:manage" title="Apps">
     <!--<section>-->
       <!--<column class="small-12 cell">-->
         <!--<widget name="breadcrumbs">-->
@@ -2163,7 +2163,7 @@
     </section>
   </page>
 
-  <page name="/admin/app{?appId}" role="admin,data-manager" title="Edit App">
+  <page name="/admin/app{?appId}" role="admin,data-manager" capability="admin:manage" title="Edit App">
     <section>
       <column class="small-12 cell">
         <widget name="breadcrumbs">
@@ -2183,7 +2183,7 @@
     </section>
   </page>
 
-  <page name="/admin/blocked-ip-list" role="admin" title="Blocked IP list">
+  <page name="/admin/blocked-ip-list" role="admin" capability="admin:manage" title="Blocked IP list">
     <section>
       <column class="small-12 medium-9 large-8 small-order-2 medium-order-1 small-margin-top-10 cell">
         <widget name="blockedIP">
@@ -2198,7 +2198,7 @@
     </section>
   </page>
 
-  <page name="/admin/allowed-ip-list" role="admin" title="Allowed IP list">
+  <page name="/admin/allowed-ip-list" role="admin" capability="admin:manage" title="Allowed IP list">
     <section>
       <column class="small-12 medium-9 large-8 small-order-2 medium-order-1 small-margin-top-10 cell">
         <widget name="allowedIP">
@@ -2213,7 +2213,7 @@
     </section>
   </page>
 
-  <page name="/admin/bot-list" role="admin" title="Bot User Agent List">
+  <page name="/admin/bot-list" role="admin" capability="admin:manage" title="Bot User Agent List">
     <section>
       <column class="small-12 medium-9 large-8 small-order-2 medium-order-1 small-margin-top-10 cell">
         <widget name="botUserAgent">
@@ -2248,7 +2248,7 @@
     </section>
   </page>
 
-  <page name="/admin/capability-grants{?userId}" role="admin" title="Capability Grants">
+  <page name="/admin/capability-grants{?userId}" role="admin" capability="admin:manage" title="Capability Grants">
     <section>
       <column class="small-12 medium-8 large-6 cell">
         <widget name="capabilityGrants">
@@ -2368,7 +2368,7 @@
     </section>
   </page>
 
-  <page name="/admin/audit-log" role="admin" title="Security Audit Log">
+  <page name="/admin/audit-log" role="admin" capability="admin:manage" title="Security Audit Log">
     <section>
       <column class="small-12 cell">
         <widget name="auditLogList">
