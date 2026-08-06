@@ -220,6 +220,16 @@ class WebPageRepositoryTest {
     assertEquals(0, WebPageRepository.countExpiringSoon());
   }
 
+  @Test
+  void countExpiringSoonExcludesAPageWhoseExpiresAtIsFarInTheFuture() {
+    // Regression test: countExpiringSoon() used to have no upper bound at all -- expires_at > now
+    // -- so a page set to expire years out counted the same as one expiring tomorrow, and this
+    // tile would sit permanently non-zero on any site that sets far-future expiration dates.
+    addWebPageWithExpiresAt("/expires-way-later", new Timestamp(System.currentTimeMillis() + Duration.ofDays(60).toMillis()));
+
+    assertEquals(0, WebPageRepository.countExpiringSoon());
+  }
+
   // --- date-range and author filters (issue #426, editorial calendar) ---
 
   @Test

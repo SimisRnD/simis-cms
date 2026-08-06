@@ -207,10 +207,11 @@ public class SearchAnalyticsRepository {
     return Math.max(threshold, 0);
   }
 
-  /** Prunes events older than the configured retention window (analytics.retentionDays, shared with
-   * web_page_hits and other analytics data -- see issue #365). */
+  /** Prunes events older than the configured retention window (search.retentionDays, shared with
+   * web_searches -- decoupled from analytics.retentionDays since the two search-logging tables back
+   * the Search Analytics page and can be pruned on their own, shorter schedule). */
   public static void deleteOld() {
-    int days = SessionRepository.resolveRetentionDays(LoadSitePropertyCommand.loadByName("analytics.retentionDays"));
+    int days = SessionRepository.resolveRetentionDays(LoadSitePropertyCommand.loadByName("search.retentionDays"));
     DB.deleteFrom(TABLE_NAME, new SqlUtils().add("created < NOW() - INTERVAL '" + days + " days'"));
   }
 }

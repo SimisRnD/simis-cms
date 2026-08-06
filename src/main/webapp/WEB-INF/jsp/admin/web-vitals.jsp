@@ -45,6 +45,7 @@
           <th title="First Contentful Paint">FCP (ms) <br/><small>&lt;1800 good</small></th>
           <th title="Time to First Byte">TTFB (ms) <br/><small>&lt;600 good</small></th>
           <th>Score</th>
+          <th title="Real-user samples the newest day's aggregate is based on">Samples</th>
         </tr>
       </thead>
       <tbody>
@@ -91,6 +92,7 @@
                 <span class="badge badge-danger">${summary.overallScore}</span>
               </c:if>
             </td>
+            <td><fmt:formatNumber value="${summary.sampleCount}" /></td>
           </tr>
         </c:forEach>
       </tbody>

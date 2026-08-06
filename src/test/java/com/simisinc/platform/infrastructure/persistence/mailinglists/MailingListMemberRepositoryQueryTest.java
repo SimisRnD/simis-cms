@@ -298,6 +298,30 @@ class MailingListMemberRepositoryQueryTest {
   }
 
   @Test
+  void addEmailToListDoesNotReactivateAQuarantinedMember() throws SQLException {
+    long listId = seedList("List A");
+    long emailId = seedEmail("spamtrap@example.com");
+    seedQuarantinedMembership(listId, emailId, "spamtrap"); // e.g. quarantineFlaggedMembers() (issue #564)
+    MailingList mailingList = new MailingList();
+    mailingList.setId(listId);
+    Email email = new Email();
+    email.setId(emailId);
+
+    MailingListMemberRepository.AddToListResult result = MailingListMemberRepository.addEmailToList(email,
+        mailingList);
+
+    assertTrue(!result.isCreated(), "the row already existed");
+    assertNotNull(result.getMember());
+    assertTrue(!result.getMember().getIsValid(),
+        "a quarantined address must not be silently reactivated by a resubscribe -- it must go through "
+            + "deliberate admin review first");
+    assertNotNull(result.getMember().getQuarantined(),
+        "the quarantine timestamp must not be cleared by a resubscribe");
+    assertEquals("spamtrap", result.getMember().getQuarantineReason(),
+        "the quarantine reason must not be cleared by a resubscribe");
+  }
+
+  @Test
   void findLastClassifiedAtReturnsNullWhenNoSubscriberHasBeenClassified() throws SQLException {
     long list = seedList("List A");
     seedMembership(list, seedEmail("unchecked@example.com"), true, null);
@@ -362,6 +386,18 @@ class MailingListMemberRepositoryQueryTest {
       String unsubscribedSql = unsubscribed == null ? "NULL" : "'" + unsubscribed + "'";
       statement.execute("INSERT INTO mailing_list_members (list_id, email_id, is_valid, unsubscribed) VALUES ("
           + listId + ", " + emailId + ", " + isValid + ", " + unsubscribedSql + ")");
+    }
+  }
+
+  /** A membership already archived by {@code quarantineFlaggedMembers()} -- is_valid=false, quarantined
+   *  timestamp set, quarantine_reason set, and (as that job does) unsubscribed left NULL since quarantine
+   *  is a distinct reason a membership stopped being active, not a person choosing to leave. */
+  private void seedQuarantinedMembership(long listId, long emailId, String quarantineReason) throws SQLException {
+    try (Connection connection = DB.getConnection();
+        Statement statement = connection.createStatement()) {
+      statement.execute("INSERT INTO mailing_list_members "
+          + "(list_id, email_id, is_valid, unsubscribed, quarantined, quarantine_reason) VALUES ("
+          + listId + ", " + emailId + ", false, NULL, CURRENT_TIMESTAMP, '" + quarantineReason + "')");
     }
   }
 

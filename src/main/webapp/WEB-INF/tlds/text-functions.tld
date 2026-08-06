@@ -28,4 +28,12 @@
         <function-class>com.simisinc.platform.application.cms.TextCommand</function-class>
         <function-signature>java.lang.String trim(java.lang.String,int,boolean)</function-signature>
     </function>
+    <function>
+        <description>
+            Returns true if the given text can be parsed as a plain number
+        </description>
+        <name>isNumeric</name>
+        <function-class>com.simisinc.platform.application.cms.TextCommand</function-class>
+        <function-signature>boolean isNumeric(java.lang.String)</function-signature>
+    </function>
 </taglib>

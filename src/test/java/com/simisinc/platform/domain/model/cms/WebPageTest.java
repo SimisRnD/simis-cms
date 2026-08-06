@@ -20,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.sql.Timestamp;
+import java.time.Duration;
 
 import org.junit.jupiter.api.Test;
 
@@ -85,5 +86,12 @@ class WebPageTest {
   @Test
   void aPageWithNoExpiresAtIsNotExpiringSoon() {
     assertFalse(new WebPage().isExpiringSoon());
+  }
+
+  @Test
+  void aPageWithAFarFutureExpiresAtIsNotExpiringSoon() {
+    WebPage webPage = new WebPage();
+    webPage.setExpiresAt(new Timestamp(System.currentTimeMillis() + Duration.ofDays(60).toMillis()));
+    assertFalse(webPage.isExpiringSoon());
   }
 }
