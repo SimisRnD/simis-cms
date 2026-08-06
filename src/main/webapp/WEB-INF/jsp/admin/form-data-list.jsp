@@ -90,6 +90,12 @@
   <input type="hidden" name="token" value="${userSession.formToken}"/>
   <%-- Form --%>
   <input type="hidden" name="command" value="downloadCSVFile"/>
+  <%-- Carry the currently active filters through so the export matches what's on screen (this is a
+       separate <form> from the GET filter form above, so it wouldn't otherwise see them) --%>
+  <input type="hidden" name="formUniqueId" value="<c:out value='${formUniqueId}'/>"/>
+  <input type="hidden" name="status" value="<c:out value='${status}'/>"/>
+  <input type="hidden" name="fromDate" value="<c:out value='${fromDate}'/>"/>
+  <input type="hidden" name="toDate" value="<c:out value='${toDate}'/>"/>
   <button type="submit" class="button small secondary radius"><i class="fa fa-download"></i> Download CSV</button>
 </form>
 <table>
