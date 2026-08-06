@@ -104,6 +104,62 @@ class FormDefinitionFormWidgetTest extends WidgetBase {
   }
 
   /**
+   * Guards against reintroducing the bug where unchecking "Enabled?" or "Check for spam?" had no
+   * effect: both fields default to true on a fresh FormDefinition bean, and BeanUtils.populate()
+   * never overwrites a property whose checkbox parameter is simply absent from the request (as an
+   * unchecked checkbox always is), so a form could never actually be disabled through this widget.
+   */
+  @Test
+  void postWithBothCheckboxesUncheckedSavesThemAsFalse() throws InvocationTargetException, IllegalAccessException {
+    FormDefinition existing = new FormDefinition();
+    existing.setId(5L);
+    existing.setUniqueId("contact-us");
+    existing.setName("Contact Us");
+    existing.setEnabled(true);
+    existing.setCheckForSpam(true);
+
+    // Neither "enabled" nor "checkForSpam" is present -- an unchecked HTML checkbox sends no
+    // parameter at all, this is not a value of "false" being submitted
+    addQueryParameter(widgetContext, "id", "5");
+    addQueryParameter(widgetContext, "name", "Contact Us");
+
+    try (MockedStatic<FormDefinitionRepository> formDefinitionRepository = mockStatic(FormDefinitionRepository.class)) {
+      formDefinitionRepository.when(() -> FormDefinitionRepository.findById(5L)).thenReturn(existing);
+      formDefinitionRepository.when(() -> FormDefinitionRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+      new FormDefinitionFormWidget().post(widgetContext);
+
+      Assertions.assertFalse(existing.getEnabled());
+      Assertions.assertFalse(existing.getCheckForSpam());
+    }
+  }
+
+  @Test
+  void postWithBothCheckboxesCheckedSavesThemAsTrue() throws InvocationTargetException, IllegalAccessException {
+    FormDefinition existing = new FormDefinition();
+    existing.setId(5L);
+    existing.setUniqueId("contact-us");
+    existing.setName("Contact Us");
+    existing.setEnabled(false);
+    existing.setCheckForSpam(false);
+
+    addQueryParameter(widgetContext, "id", "5");
+    addQueryParameter(widgetContext, "name", "Contact Us");
+    addQueryParameter(widgetContext, "enabled", "true");
+    addQueryParameter(widgetContext, "checkForSpam", "true");
+
+    try (MockedStatic<FormDefinitionRepository> formDefinitionRepository = mockStatic(FormDefinitionRepository.class)) {
+      formDefinitionRepository.when(() -> FormDefinitionRepository.findById(5L)).thenReturn(existing);
+      formDefinitionRepository.when(() -> FormDefinitionRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+      new FormDefinitionFormWidget().post(widgetContext);
+
+      Assertions.assertTrue(existing.getEnabled());
+      Assertions.assertTrue(existing.getCheckForSpam());
+    }
+  }
+
+  /**
    * Guards against reintroducing the createdBy-on-edit bug this codebase has already hit once in a
    * sibling command (mailing lists) -- editing an existing form must not overwrite createdBy with
    * whoever happens to be saving right now.
