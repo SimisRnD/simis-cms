@@ -58,4 +58,5 @@
 </form>
 <c:if test="${app.id ne -1}">
   <p class="help-text">To permanently remove this App instead, use the Delete action on the <a href="${ctx}/admin/apps">Apps list</a>. Prefer Delete over Enabled=No once a leaked credential has been confirmed and you've verified nothing else still needs its audit history -- Delete cannot be undone.</p>
+  <p class="help-text"><strong>Best practice:</strong> after saving a Client ID to a new integration, confirm it's actually being used by checking the <strong>Devices</strong> count on the <a href="${ctx}/admin/apps">Apps list</a> once the integration has had a chance to make its first call -- a count that stays at zero usually means the key never made it into the client's configuration, rather than a problem on this end.</p>
 </c:if>
