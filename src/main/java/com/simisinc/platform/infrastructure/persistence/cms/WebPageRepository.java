@@ -115,10 +115,19 @@ public class WebPageRepository {
     return DB.selectCountFrom(TABLE_NAME, where);
   }
 
+  // Lead time before an unexpired expires_at is counted as "expiring soon" -- mirrors
+  // FileItem.EXPIRING_SOON_WINDOW_MILLIS (issue #502), which exists specifically because an
+  // unbounded "expires_at > now" check (the previous behavior here) counts a page expiring 5
+  // years out the same as one expiring tomorrow, so this tile would sit permanently non-zero on
+  // any site that sets far-future expiration dates.
+  private static final long EXPIRING_SOON_WINDOW_MILLIS = 30L * 24 * 60 * 60 * 1000;
+
   public static long countExpiringSoon() {
+    long now = System.currentTimeMillis();
     SqlUtils where = new SqlUtils()
         .add("expires_at IS NOT NULL")
-        .add("expires_at > ?", new Timestamp(System.currentTimeMillis()));
+        .add("expires_at > ?", new Timestamp(now))
+        .add("expires_at <= ?", new Timestamp(now + EXPIRING_SOON_WINDOW_MILLIS));
     return DB.selectCountFrom(TABLE_NAME, where);
   }
 
