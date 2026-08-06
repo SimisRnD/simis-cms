@@ -22,6 +22,8 @@ import static org.mockito.Mockito.mockStatic;
 import java.util.ArrayList;
 import java.util.List;
 
+import javax.security.auth.login.AccountException;
+
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
@@ -146,5 +148,38 @@ class SaveUserCommandTest {
     DataException ex = Assertions.assertThrows(DataException.class,
         () -> runSaveUser(self, self, bean));
     Assertions.assertTrue(ex.getMessage().toLowerCase().contains("admin role from your own account"));
+  }
+
+  @Test
+  void editingUserEmailToOneUsedByADifferentAccountIsRejected() {
+    // Editing user (TARGET_ID) attempts to change their email to one already
+    // registered to a different account (id 99).
+    // Note: the editing user's username is deliberately different from the
+    // email being claimed, so a check that queries the username column
+    // instead of the email column would miss this collision entirely.
+    User editor = userWithRoles(EDITOR_ID, "admin");
+    User existing = userWithRoles(TARGET_ID, "users");
+    User bean = editBeanRequesting(TARGET_ID, EDITOR_ID, "users");
+    bean.setUsername("editing-user");
+    bean.setEmail("taken@example.com");
+
+    User otherAccountWithEmail = userWithRoles(99L, "users");
+    otherAccountWithEmail.setUsername("other-user");
+    otherAccountWithEmail.setEmail("taken@example.com");
+
+    try (MockedStatic<LoadUserCommand> loadUser = mockStatic(LoadUserCommand.class);
+         MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+         MockedStatic<GenerateUserUniqueIdCommand> genId = mockStatic(GenerateUserUniqueIdCommand.class)) {
+      loadUser.when(() -> LoadUserCommand.loadUser(bean.getModifiedBy())).thenReturn(editor);
+      loadUser.when(() -> LoadUserCommand.loadUser(bean.getId())).thenReturn(existing);
+      genId.when(() -> GenerateUserUniqueIdCommand.generateUniqueId(any(), any())).thenReturn("uniqueid");
+      userRepo.when(() -> UserRepository.findByEmailAddress("taken@example.com")).thenReturn(otherAccountWithEmail);
+      userRepo.when(() -> UserRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+      AccountException ex = Assertions.assertThrows(AccountException.class,
+          () -> SaveUserCommand.saveUser(bean));
+      Assertions.assertTrue(ex.getMessage().toLowerCase().contains("account with this email address already"),
+          "expected a clear duplicate-email message, got: " + ex.getMessage());
+    }
   }
 }
