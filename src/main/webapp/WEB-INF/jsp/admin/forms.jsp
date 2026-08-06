@@ -26,6 +26,13 @@
   <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
 <%@include file="../page_messages.jspf" %>
+<div class="callout primary radius">
+  <p style="margin-bottom:0">
+    Each row is a form definition -- its settings, success/notification text, and fields, built here
+    and placed on a live page separately as a "Form" widget. Click a name (or the pencil) to open its
+    full editor for Fields and Form Settings; use the "Add a form" panel to create a new one.
+  </p>
+</div>
 <table class="unstriped">
   <thead>
     <tr>
@@ -64,3 +71,38 @@
     </c:if>
   </tbody>
 </table>
+
+<h5>Putting a form on a live page</h5>
+<p>
+  Building or editing a form here doesn't publish it anywhere by itself. A "Form" widget still needs
+  to be placed on a page (through page/content editing) and pointed at this form via its numeric
+  database id, not the name or the unique id shown under it. That numeric id isn't displayed directly
+  in this list -- the easiest way to find it is to click a form's edit pencil and read the
+  <code>formDefinitionId</code> value out of the resulting URL. The unique id shown here (under the
+  name) is a different, internal value -- it's what submitted data is matched against, and it's what
+  regenerates if you rename the form -- but it isn't what a page uses to display the form.
+</p>
+
+<h5>Deleting a form</h5>
+<p>
+  Deleting a form is permanent and also deletes all of its fields -- the confirmation prompt says so.
+  It does <strong>not</strong> touch any data already submitted through it: submissions are matched to
+  a form by that internal unique id, not a database link back to this row, so prior submissions stay
+  exactly as they were in <a href="${ctx}/admin/form-data">Form Data</a>. One consequence worth
+  knowing: deleting a form frees its unique id for reuse, so a brand-new form later given the same
+  name could end up sharing that internal id with the deleted form's old, now-orphaned submissions.
+</p>
+
+<h5>Common problems and how to fix them</h5>
+<ul>
+  <li><strong>Unchecking "Enabled" on a form's settings doesn't actually take it offline, and neither
+    does unchecking "Check for spam."</strong> This is a known bug in the current build, not expected
+    behavior -- both checkboxes are silently saved as still-on regardless of what's checked, so a form
+    can't currently be disabled through this UI at all once created. A fix is in progress; until it
+    ships, the only way to stop a form from accepting submissions is to remove the "Form" widget from
+    the page it's placed on.</li>
+  <li><strong>"Form could not be deleted."</strong> Unlike some other admin pages, nothing here is
+    designed to block a delete (no existing-submissions check, no "still referenced elsewhere"
+    guard) -- if you see this, it's most likely a transient database-level failure. Try again, and
+    check the application server logs if it keeps happening.</li>
+</ul>

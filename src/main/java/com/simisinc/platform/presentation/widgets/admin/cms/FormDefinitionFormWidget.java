@@ -68,6 +68,13 @@ public class FormDefinitionFormWidget extends GenericWidget {
     // Populate the fields
     FormDefinition formDefinitionBean = new FormDefinition();
     BeanUtils.populate(formDefinitionBean, context.getParameterMap());
+    // An unchecked checkbox sends no request parameter at all, so BeanUtils.populate() never
+    // overwrites these -- fine for a field that defaults to false (like useCaptcha), but
+    // enabled/checkForSpam default to true on a fresh bean, so leaving them to populate() alone
+    // means unchecking either box in the UI has no effect and always saves as true. Set both
+    // explicitly from parameter presence instead.
+    formDefinitionBean.setEnabled(context.getParameter("enabled") != null);
+    formDefinitionBean.setCheckForSpam(context.getParameter("checkForSpam") != null);
     // createdBy is only honored by the command on insert (it preserves the original value on an
     // edit); modifiedBy always reflects whoever is saving right now
     formDefinitionBean.setCreatedBy(context.getUserId());
