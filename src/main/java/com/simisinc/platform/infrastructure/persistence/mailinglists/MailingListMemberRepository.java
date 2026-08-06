@@ -16,6 +16,7 @@
 
 package com.simisinc.platform.infrastructure.persistence.mailinglists;
 
+import com.simisinc.platform.application.audit.SaveAuditEventCommand;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.dashboard.StatisticsData;
 import com.simisinc.platform.domain.model.mailinglists.Email;
@@ -95,6 +96,11 @@ public class MailingListMemberRepository {
     // unsubscribed) from a harmless re-add of an already-active member (issue #452)
     MailingListMember existingBefore = findByListAndEmail(mailingList.getId(), email.getId());
     boolean previouslyUnsubscribed = existingBefore != null && existingBefore.getUnsubscribed() != null;
+    // A non-null quarantine_reason means quarantineFlaggedMembers() (issue #564) previously
+    // archived this membership for a confirmed-bad deliverability status (spamtrap/invalid/abuse/
+    // do_not_mail). That decision must not be silently reversed just because the same address
+    // resubscribes -- via the public signup form, a MailChimp sync, or a replayed subscription job.
+    boolean previouslyQuarantined = existingBefore != null && StringUtils.isNotBlank(existingBefore.getQuarantineReason());
 
     // Determine if the email is already listed
     SqlUtils insertValues = new SqlUtils()
@@ -109,6 +115,15 @@ public class MailingListMemberRepository {
       String set = "member_count = member_count + 1";
       SqlUtils where = new SqlUtils().add("list_id = ?", mailingList.getId());
       DB.update("mailing_lists", set, where);
+    } else if (previouslyQuarantined) {
+      // Blocked reactivation: leave is_valid=false and the quarantined/quarantine_reason columns
+      // untouched. A quarantined address only becomes eligible for sends again through deliberate
+      // admin review (the member-management table, issue #763), never automatically on resubscribe.
+      LOG.warn("Blocked reactivation of a quarantined mailing list member: listId=" + mailingList.getId() +
+          ", emailId=" + email.getId() + ", quarantineReason=" + existingBefore.getQuarantineReason());
+      SaveAuditEventCommand.recordAdminEvent("configuration", "mailing_list.reactivation_blocked", "success",
+          -1L, "system", null, null, "mailing_list_members", String.valueOf(existingBefore.getId()),
+          existingBefore.getEmailAddress(), "quarantine_reason=" + existingBefore.getQuarantineReason());
     } else {
       // Make sure email is set to subscribed
       SqlUtils updateValues = new SqlUtils()

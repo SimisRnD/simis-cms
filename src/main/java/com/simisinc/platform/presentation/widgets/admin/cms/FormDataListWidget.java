@@ -69,35 +69,7 @@ public class FormDataListWidget extends GenericWidget {
     String fromDate = context.getParameter("fromDate");
     String toDate = context.getParameter("toDate");
 
-    FormDataSpecification specification = new FormDataSpecification();
-    if (StringUtils.isNotBlank(formUniqueId)) {
-      specification.setFormUniqueId(formUniqueId);
-    }
-    if ("claimed".equalsIgnoreCase(status)) {
-      specification.setClaimed(true);
-    } else if ("processed".equalsIgnoreCase(status)) {
-      specification.setProcessed(true);
-    } else if ("dismissed".equalsIgnoreCase(status)) {
-      specification.setDismissed(true);
-    } else {
-      // Default view: the original hardcoded behavior -- awaiting review
-      specification.setDismissed(false);
-      specification.setProcessed(false);
-    }
-    if ("flagged".equalsIgnoreCase(spam)) {
-      specification.setFlaggedAsSpam(true);
-    } else if ("excluded".equalsIgnoreCase(spam)) {
-      specification.setFlaggedAsSpam(false);
-    }
-    // else: "All" (blank/unrecognized) -- leave flaggedAsSpam undefined, no filter applied
-    Timestamp from = parseDate(fromDate, 0);
-    Timestamp to = parseDate(toDate, 1);
-    if (from != null) {
-      specification.setOccurredAfter(from);
-    }
-    if (to != null) {
-      specification.setOccurredBefore(to);
-    }
+    FormDataSpecification specification = buildSpecificationFromParameters(context);
 
     // Load the latest form data
     List<FormData> formDataList = FormDataRepository.findAll(specification, constraints);
@@ -126,6 +98,45 @@ public class FormDataListWidget extends GenericWidget {
     // Show the editor
     context.setJsp(JSP);
     return context;
+  }
+
+  /**
+   * Builds the on-screen list's filter criteria from the current request parameters (issue #563's
+   * formUniqueId/status/fromDate/toDate filters). Shared by {@link #execute} (the on-screen list)
+   * and {@link #downloadCSVFile} (the CSV export) so the export can never drift from what's actually
+   * filtered on screen -- previously downloadCSVFile() ignored these parameters entirely and always
+   * exported the whole form_data table regardless of the active filters.
+   */
+  private FormDataSpecification buildSpecificationFromParameters(WidgetContext context) {
+    String formUniqueId = context.getParameter("formUniqueId");
+    String status = context.getParameter("status");
+    String fromDate = context.getParameter("fromDate");
+    String toDate = context.getParameter("toDate");
+
+    FormDataSpecification specification = new FormDataSpecification();
+    if (StringUtils.isNotBlank(formUniqueId)) {
+      specification.setFormUniqueId(formUniqueId);
+    }
+    if ("claimed".equalsIgnoreCase(status)) {
+      specification.setClaimed(true);
+    } else if ("processed".equalsIgnoreCase(status)) {
+      specification.setProcessed(true);
+    } else if ("dismissed".equalsIgnoreCase(status)) {
+      specification.setDismissed(true);
+    } else {
+      // Default view: the original hardcoded behavior -- awaiting review
+      specification.setDismissed(false);
+      specification.setProcessed(false);
+    }
+    Timestamp from = parseDate(fromDate, 0);
+    Timestamp to = parseDate(toDate, 1);
+    if (from != null) {
+      specification.setOccurredAfter(from);
+    }
+    if (to != null) {
+      specification.setOccurredBefore(to);
+    }
+    return specification;
   }
 
   /** Appends {@code name=urlEncoded(value)} to the paging query string when the value is present. */
@@ -219,7 +230,10 @@ public class FormDataListWidget extends GenericWidget {
     String displayFilename = "form-data-" + new SimpleDateFormat("yyyyMMdd-HHmm").format(new Date()) + "." + extension;
     File tempFile = FileSystemCommand.generateTempFile("exports", context.getUserId(), extension);
     try {
-      FormDataRepository.export(null, tempFile);
+      // Scope the export to the same filters currently applied to the on-screen list, instead of
+      // unconditionally dumping the whole form_data table
+      FormDataSpecification specification = buildSpecificationFromParameters(context);
+      FormDataRepository.export(specification, null, tempFile);
       String mimeType = "text/csv";
       MultipartFileSender.fromFile(tempFile)
           .with(context.getRequest())

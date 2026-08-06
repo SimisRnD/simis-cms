@@ -120,6 +120,19 @@ class FormSubmissionFailureRepositoryTest {
   }
 
   @Test
+  void recordAcceptsTheFormUnavailableAndSystemErrorReasons() {
+    // issue #563 follow-up -- new reasons for FormWidget.post()'s previously-silent early returns
+    // (REASON_FORM_UNAVAILABLE) and a genuine FormDataRepository.save() failure (REASON_SYSTEM_ERROR);
+    // also guards against either value exceeding the reason column's VARCHAR(30) constraint
+    FormSubmissionFailureRepository.record("contact-us", FormSubmissionFailureRepository.REASON_FORM_UNAVAILABLE,
+        "203.0.113.5", "https://example.org/contact-us");
+    FormSubmissionFailureRepository.record("contact-us", FormSubmissionFailureRepository.REASON_SYSTEM_ERROR,
+        "203.0.113.5", "https://example.org/contact-us");
+
+    assertEquals(2, DB.selectCountFrom("form_submission_failures"));
+  }
+
+  @Test
   void recordNeverThrowsEvenWithNullFields() {
     // record() is called from a security-sensitive rejection path; a recording failure must never
     // become a second, unrelated failure for the person submitting the form.

@@ -18,10 +18,12 @@ package com.simisinc.platform.presentation.widgets.admin.cms;
 
 import com.simisinc.platform.WidgetBase;
 import com.simisinc.platform.application.cms.FunnelEventCommand;
+import com.simisinc.platform.application.filesystem.FileSystemCommand;
 import com.simisinc.platform.domain.model.cms.FormData;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.persistence.cms.FormDataRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.FormDataSpecification;
+import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.DataConstants;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import org.junit.jupiter.api.Assertions;
@@ -398,6 +400,77 @@ class FormDataListWidgetTest extends WidgetBase {
   }
 
   @Test
+  void downloadCSVFilePassesTheActiveFiltersThroughToExport() throws Exception {
+    // Regression test: downloadCSVFile() previously called FormDataRepository.export(null, tempFile)
+    // with a hardcoded null, so filtering the on-screen list (formUniqueId/status/fromDate/toDate)
+    // and clicking "Download CSV" silently exported the whole table instead of the filtered view.
+    // The specification passed to export() must be built from the same request parameters as
+    // execute(), matching its filtering exactly.
+    addQueryParameter(widgetContext, "command", "downloadCSVFile");
+    addQueryParameter(widgetContext, "formUniqueId", "contact-us");
+    addQueryParameter(widgetContext, "status", "processed");
+    addQueryParameter(widgetContext, "fromDate", "2026-07-01");
+    addQueryParameter(widgetContext, "toDate", "2026-07-31");
+
+    setRoles(widgetContext, ADMIN);
+
+    ArgumentCaptor<FormDataSpecification> specCaptor = ArgumentCaptor.forClass(FormDataSpecification.class);
+    try (MockedStatic<FormDataRepository> formDataRepositoryMockedStatic = mockStatic(FormDataRepository.class);
+        MockedStatic<AuditEventCommand> auditEventCommand = mockStatic(AuditEventCommand.class);
+        MockedStatic<FileSystemCommand> fileSystemCommand = mockStatic(FileSystemCommand.class)) {
+      // generateTempFile() otherwise chases LoadSitePropertyCommand -> SitePropertyRepository -> a
+      // real DB connection this unit test doesn't have; only the specification passed to export()
+      // matters here, so stub it to a plain File with no filesystem/DB round trip.
+      fileSystemCommand.when(() -> FileSystemCommand.generateTempFile(any(), anyLong(), any()))
+          .thenReturn(new File("/tmp/does-not-exist.csv"));
+
+      FormDataListWidget widget = new FormDataListWidget();
+      widget.post(widgetContext);
+
+      formDataRepositoryMockedStatic.verify(
+          () -> FormDataRepository.export(specCaptor.capture(), any(), any(File.class)));
+    }
+
+    FormDataSpecification specification = specCaptor.getValue();
+    Assertions.assertNotNull(specification,
+        "export() must receive a specification built from the request's filters, not a hardcoded null");
+    Assertions.assertEquals("contact-us", specification.getFormUniqueId());
+    Assertions.assertEquals(DataConstants.TRUE, specification.getProcessed());
+    Assertions.assertNotNull(specification.getOccurredAfter());
+    Assertions.assertNotNull(specification.getOccurredBefore());
+    Assertions.assertTrue(specification.getOccurredBefore().after(specification.getOccurredAfter()));
+  }
+
+  @Test
+  void downloadCSVFileWithNoFiltersAppliedStillDefaultsToTheAwaitingReviewSpecification() throws Exception {
+    // No formUniqueId/status/fromDate/toDate params -- mirrors execute()'s own default (issue #563:
+    // the page's original hardcoded "awaiting review" view), so the export continues to match
+    // whatever the on-screen list is showing by default rather than silently reverting to "everything".
+    addQueryParameter(widgetContext, "command", "downloadCSVFile");
+
+    setRoles(widgetContext, ADMIN);
+
+    ArgumentCaptor<FormDataSpecification> specCaptor = ArgumentCaptor.forClass(FormDataSpecification.class);
+    try (MockedStatic<FormDataRepository> formDataRepositoryMockedStatic = mockStatic(FormDataRepository.class);
+        MockedStatic<AuditEventCommand> auditEventCommand = mockStatic(AuditEventCommand.class);
+        MockedStatic<FileSystemCommand> fileSystemCommand = mockStatic(FileSystemCommand.class)) {
+      fileSystemCommand.when(() -> FileSystemCommand.generateTempFile(any(), anyLong(), any()))
+          .thenReturn(new File("/tmp/does-not-exist.csv"));
+
+      FormDataListWidget widget = new FormDataListWidget();
+      widget.post(widgetContext);
+
+      formDataRepositoryMockedStatic.verify(
+          () -> FormDataRepository.export(specCaptor.capture(), any(), any(File.class)));
+    }
+
+    FormDataSpecification specification = specCaptor.getValue();
+    Assertions.assertNull(specification.getFormUniqueId());
+    Assertions.assertEquals(DataConstants.FALSE, specification.getDismissed());
+    Assertions.assertEquals(DataConstants.FALSE, specification.getProcessed());
+  }
+
+  @Test
   void postRejectsCallersWithoutTheRequiredRole() {
     // Logged in by default (WidgetBase.login()), but no admin/community-manager role granted
     addQueryParameter(widgetContext, "command", "downloadCSVFile");
@@ -409,7 +482,7 @@ class FormDataListWidgetTest extends WidgetBase {
 
         // The role gate must return before export() (and therefore any file download) is reached
         formDataRepositoryMockedStatic.verify(
-            () -> FormDataRepository.export(any(DataConstraints.class), any(File.class)), never());
+            () -> FormDataRepository.export(any(), any(DataConstraints.class), any(File.class)), never());
         Assertions.assertFalse(widgetContext.handledResponse(), "no file should be streamed back");
         Assertions.assertSame(widgetContext, result);
       }

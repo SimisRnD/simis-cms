@@ -19,12 +19,16 @@ package com.simisinc.platform.presentation.controller;
 import static com.simisinc.platform.application.cms.HostnameCommand.HOSTNAME_ALLOW_LIST;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -58,6 +62,7 @@ import com.simisinc.platform.application.login.MfaEnforcementCommand;
 import com.simisinc.platform.application.oauth.OAuthRequestCommand;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.cms.WebRedirect;
+import com.simisinc.platform.infrastructure.persistence.login.UserLoginRepository;
 
 /**
  * Verifies that the http to https redirect targets the configured site, and not the client-supplied Host header
@@ -294,7 +299,8 @@ class WebRequestFilterTest {
         MockedStatic<OAuthRequestCommand> oauth = mockStatic(OAuthRequestCommand.class);
         MockedStatic<AuthenticateLoginCommand> auth = mockStatic(AuthenticateLoginCommand.class);
         MockedStatic<MfaEnforcementCommand> mfa = mockStatic(MfaEnforcementCommand.class);
-        MockedStatic<LogoutCommand> logout = mockStatic(LogoutCommand.class)) {
+        MockedStatic<LogoutCommand> logout = mockStatic(LogoutCommand.class);
+        MockedStatic<UserLoginRepository> userLogins = mockStatic(UserLoginRepository.class)) {
 
       redirects.when(LoadRedirectsCommand::load).thenReturn(null);
       webRedirects.when(() -> LoadWebRedirectCommand.matchByFromPath(anyString())).thenReturn(null);
@@ -304,6 +310,10 @@ class WebRequestFilterTest {
       // But the CURRENT session's own user id is still a live, enabled account
       auth.when(() -> AuthenticateLoginCommand.getAuthenticatedUser(21L)).thenReturn(user);
       mfa.when(() -> MfaEnforcementCommand.requiresEnrollment(userSession, user)).thenReturn(false);
+      // This request reaches the daily-activity tracking added for the DAU/MAU fix, which needs a
+      // resolvable site timezone (see FormatDateCommand.getSiteZoneId()) -- not this test's concern,
+      // so pin it to a fixed zone rather than leave it unstubbed (null)
+      siteProperties.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), anyString())).thenReturn("UTC");
 
       WebRequestFilter filter = filterWithoutSSL(siteProperties);
       filter.doFilter(request, response, chain);
@@ -354,6 +364,145 @@ class WebRequestFilterTest {
       logout.verify(() -> LogoutCommand.logout(request, response));
       verify(response).setHeader("Location", "/login");
       verify(chain, never()).doFilter(request, response);
+    }
+  }
+
+  // --- Daily/Monthly Active Users tracking (DAU/MAU undercount fix) ---
+  // UserLoginRepository.findUniqueDailyLogins/findUniqueMonthlyLogins (the SiteStatsWidget
+  // Daily/Monthly Active Users tiles) COUNT(DISTINCT user_id) from user_logins. A row used to be
+  // written only once per fresh HttpSession -- at the moment it first became authenticated -- so a
+  // continuously-active user whose session survives past midnight (60-minute timeout, refreshed on
+  // activity; see web.xml) was never counted again after their first day. trackDailyLogin() now
+  // writes a row once per calendar day per session instead, using an in-memory tracked date on
+  // UserSession rather than a database read.
+
+  private static final ZoneId TEST_ZONE = ZoneId.of("UTC");
+
+  /** Stubs the pieces of the per-request pipeline that trackDailyLogin's placement in doFilter runs after. */
+  private void stubDailyLoginPrerequisites(User user, MockedStatic<LoadSitePropertyCommand> siteProperties,
+      MockedStatic<LoadRedirectsCommand> redirects, MockedStatic<LoadWebRedirectCommand> webRedirects,
+      MockedStatic<BlockedIPListCommand> blockedIPs, MockedStatic<AuthenticateLoginCommand> auth,
+      MockedStatic<MfaEnforcementCommand> mfa) {
+    redirects.when(LoadRedirectsCommand::load).thenReturn(null);
+    webRedirects.when(() -> LoadWebRedirectCommand.matchByFromPath(anyString())).thenReturn(null);
+    blockedIPs.when(() -> BlockedIPListCommand.passesCheck(anyString(), anyString())).thenReturn(true);
+    // getSiteZoneId() falls back to its passed-in default when unconfigured -- pin it to a known zone
+    siteProperties.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), anyString())).thenReturn(TEST_ZONE.getId());
+    auth.when(() -> AuthenticateLoginCommand.getAuthenticatedUser(user.getId())).thenReturn(user);
+    mfa.when(() -> MfaEnforcementCommand.requiresEnrollment(any(), eq(user))).thenReturn(false);
+  }
+
+  @Test
+  void aSessionNotYetTrackedTodayWritesAUserLoginsRowAndStampsTheDate() throws Exception {
+    User user = new User();
+    user.setId(50L);
+
+    UserSession userSession = new UserSession();
+    userSession.login(user);
+    // Simulate a session whose HttpSession survived past midnight: it was last tracked yesterday,
+    // with no fresh authentication event in between
+    LocalDate today = LocalDate.now(TEST_ZONE);
+    userSession.setLastLoginTrackedDate(today.minusDays(1));
+
+    HttpSession session = mock(HttpSession.class);
+    when(session.getAttribute(SessionConstants.USER)).thenReturn(userSession);
+
+    HttpServletRequest request = loggedInRequest(session, null);
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    FilterChain chain = mock(FilterChain.class);
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProperties = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<LoadRedirectsCommand> redirects = mockStatic(LoadRedirectsCommand.class);
+        MockedStatic<LoadWebRedirectCommand> webRedirects = mockStatic(LoadWebRedirectCommand.class);
+        MockedStatic<LoadBlockedIPListCommand> blockedIPList = mockStatic(LoadBlockedIPListCommand.class);
+        MockedStatic<BlockedIPListCommand> blockedIPs = mockStatic(BlockedIPListCommand.class);
+        MockedStatic<DoNotTrackCommand> doNotTrack = mockStatic(DoNotTrackCommand.class);
+        MockedStatic<OAuthRequestCommand> oauth = mockStatic(OAuthRequestCommand.class);
+        MockedStatic<AuthenticateLoginCommand> auth = mockStatic(AuthenticateLoginCommand.class);
+        MockedStatic<MfaEnforcementCommand> mfa = mockStatic(MfaEnforcementCommand.class);
+        MockedStatic<UserLoginRepository> userLogins = mockStatic(UserLoginRepository.class)) {
+
+      stubDailyLoginPrerequisites(user, siteProperties, redirects, webRedirects, blockedIPs, auth, mfa);
+
+      WebRequestFilter filter = filterWithoutSSL(siteProperties);
+      filter.doFilter(request, response, chain);
+
+      // A new calendar day since the last tracked activity -> exactly one row written
+      userLogins.verify(() -> UserLoginRepository.save(any()), times(1));
+      Assertions.assertEquals(today, userSession.getLastLoginTrackedDate());
+    }
+  }
+
+  @Test
+  void aSessionAlreadyTrackedTodayDoesNotWriteASecondRowOnTheNextRequest() throws Exception {
+    User user = new User();
+    user.setId(51L);
+
+    UserSession userSession = new UserSession();
+    userSession.login(user);
+    // Already recorded activity today (e.g. from an earlier request this same day)
+    LocalDate today = LocalDate.now(TEST_ZONE);
+    userSession.setLastLoginTrackedDate(today);
+
+    HttpSession session = mock(HttpSession.class);
+    when(session.getAttribute(SessionConstants.USER)).thenReturn(userSession);
+
+    HttpServletRequest request = loggedInRequest(session, null);
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    FilterChain chain = mock(FilterChain.class);
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProperties = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<LoadRedirectsCommand> redirects = mockStatic(LoadRedirectsCommand.class);
+        MockedStatic<LoadWebRedirectCommand> webRedirects = mockStatic(LoadWebRedirectCommand.class);
+        MockedStatic<LoadBlockedIPListCommand> blockedIPList = mockStatic(LoadBlockedIPListCommand.class);
+        MockedStatic<BlockedIPListCommand> blockedIPs = mockStatic(BlockedIPListCommand.class);
+        MockedStatic<DoNotTrackCommand> doNotTrack = mockStatic(DoNotTrackCommand.class);
+        MockedStatic<OAuthRequestCommand> oauth = mockStatic(OAuthRequestCommand.class);
+        MockedStatic<AuthenticateLoginCommand> auth = mockStatic(AuthenticateLoginCommand.class);
+        MockedStatic<MfaEnforcementCommand> mfa = mockStatic(MfaEnforcementCommand.class);
+        MockedStatic<UserLoginRepository> userLogins = mockStatic(UserLoginRepository.class)) {
+
+      stubDailyLoginPrerequisites(user, siteProperties, redirects, webRedirects, blockedIPs, auth, mfa);
+
+      WebRequestFilter filter = filterWithoutSSL(siteProperties);
+      filter.doFilter(request, response, chain);
+
+      // Same calendar day as the last tracked activity -> no write
+      userLogins.verify(() -> UserLoginRepository.save(any()), never());
+      Assertions.assertEquals(today, userSession.getLastLoginTrackedDate());
+    }
+  }
+
+  @Test
+  void trackDailyLoginWritesOnceOnADayBoundaryAndSkipsASecondCallTheSameDay() {
+    // Directly exercises the helper (matching the safeRedirectPath() static-helper pattern already
+    // used in this file) across two distinct simulated calendar days, without needing to mock
+    // LocalDate.now() itself.
+    User user = new User();
+    user.setId(52L);
+    UserSession userSession = new UserSession();
+    userSession.login(user);
+
+    LocalDate day1 = LocalDate.of(2026, 3, 1);
+    LocalDate day2 = LocalDate.of(2026, 3, 2);
+
+    try (MockedStatic<UserLoginRepository> userLogins = mockStatic(UserLoginRepository.class)) {
+      // Day 1, first request: never tracked before -> writes a row
+      boolean wroteDay1First = WebRequestFilter.trackDailyLogin(userSession, day1, "203.0.113.9", "test-agent");
+      Assertions.assertTrue(wroteDay1First);
+      Assertions.assertEquals(day1, userSession.getLastLoginTrackedDate());
+
+      // Day 1, second request (same day): already tracked -> no additional row
+      boolean wroteDay1Second = WebRequestFilter.trackDailyLogin(userSession, day1, "203.0.113.9", "test-agent");
+      Assertions.assertFalse(wroteDay1Second);
+
+      // Day 2: the tracked date changed -> writes a second, separate row
+      boolean wroteDay2 = WebRequestFilter.trackDailyLogin(userSession, day2, "203.0.113.9", "test-agent");
+      Assertions.assertTrue(wroteDay2);
+      Assertions.assertEquals(day2, userSession.getLastLoginTrackedDate());
+
+      // Exactly two rows total: one per distinct calendar day, none for the repeated same-day request
+      userLogins.verify(() -> UserLoginRepository.save(any()), times(2));
     }
   }
 

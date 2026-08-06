@@ -16,6 +16,9 @@
 
 package com.simisinc.platform.presentation.widgets.login;
 
+import java.time.LocalDate;
+import java.time.ZoneId;
+
 import javax.security.auth.login.LoginException;
 
 import org.junit.jupiter.api.Assertions;
@@ -60,6 +63,10 @@ class LoginWidgetTest extends WidgetBase {
 
   // RFC 6238 reference secret; the value is irrelevant here because code verification is stubbed.
   private static final String SECRET = "GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ";
+
+  // Matches WebRequestFilterTest's pinned zone for FormatDateCommand.getSiteZoneId() -- keeps
+  // "today" deterministic instead of depending on the JVM's default timezone.
+  private static final ZoneId TEST_ZONE = ZoneId.of("UTC");
 
   private static User mfaUser(long id) {
     User user = new User();
@@ -138,6 +145,8 @@ class LoginWidgetTest extends WidgetBase {
       rateLimit.when(() -> RateLimitCommand.isUsernameAllowedRightNow(anyString(), anyBoolean())).thenReturn(true);
       rateLimit.when(() -> RateLimitCommand.isIpAllowedRightNow(anyString(), anyBoolean())).thenReturn(true);
       siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean("site.online")).thenReturn(true);
+      // getSiteZoneId() falls back to its passed-in default when unconfigured -- pin it to a known zone
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), anyString())).thenReturn(TEST_ZONE.getId());
       widget.post(widgetContext);
 
       // A completed MFA login records both the second-factor success and the login itself
@@ -178,6 +187,8 @@ class LoginWidgetTest extends WidgetBase {
       rateLimit.when(() -> RateLimitCommand.isIpAllowedRightNow(anyString(), anyBoolean())).thenReturn(true);
       recovery.when(() -> UserMfaRecoveryCodeCommand.consume(any(), anyString())).thenReturn(true);
       siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean("site.online")).thenReturn(true);
+      // getSiteZoneId() falls back to its passed-in default when unconfigured -- pin it to a known zone
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), anyString())).thenReturn(TEST_ZONE.getId());
       widget.post(widgetContext);
     }
 
@@ -208,6 +219,8 @@ class LoginWidgetTest extends WidgetBase {
       auth.when(() -> AuthenticateLoginCommand.getAuthenticatedUser(anyString(), anyString(), anyString()))
           .thenReturn(user);
       siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean("site.online")).thenReturn(true);
+      // getSiteZoneId() falls back to its passed-in default when unconfigured -- pin it to a known zone
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), anyString())).thenReturn(TEST_ZONE.getId());
       widget.post(widgetContext);
 
       // A direct (no-MFA) login records a single login.success audit event
@@ -220,6 +233,38 @@ class LoginWidgetTest extends WidgetBase {
     Assertions.assertEquals("/my-page", widgetContext.getRedirect());
     Assertions.assertNull(widgetContext.getErrorMessage());
     verify(response, times(1)).addCookie(any());
+  }
+
+  @Test
+  void finalizingLoginStampsLastLoginTrackedDateSoTheRedirectedRequestDoesNotWriteADuplicateRow() {
+    // finalizeLogin() writes a user_logins row directly (not via WebRequestFilter.trackDailyLogin),
+    // so it must also seed UserSession.lastLoginTrackedDate itself -- otherwise the request that
+    // follows context.setRedirect("/my-page") would see the field still null and write a second
+    // row for the same user on the same day (see WebRequestFilter.trackDailyLogin).
+    addQueryParameter(widgetContext, "email", "user@example.com");
+    addQueryParameter(widgetContext, "password", "hunter2hunter2");
+    when(request.getRemoteAddr()).thenReturn("127.0.0.1");
+    UserSession userSession = new UserSession();
+    session.setAttribute(SessionConstants.USER, userSession);
+
+    User user = new User();
+    user.setId(7L);
+    user.setMfaEnabled(false);
+
+    LoginWidget widget = new LoginWidget();
+    try (MockedStatic<AuthenticateLoginCommand> auth = mockStatic(AuthenticateLoginCommand.class);
+        MockedStatic<UserLoginRepository> userLoginRepo = mockStatic(UserLoginRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<SaveAuditEventCommand> audit = mockStatic(SaveAuditEventCommand.class)) {
+      auth.when(() -> AuthenticateLoginCommand.getAuthenticatedUser(anyString(), anyString(), anyString()))
+          .thenReturn(user);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean("site.online")).thenReturn(true);
+      // getSiteZoneId() falls back to its passed-in default when unconfigured -- pin it to a known zone
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), anyString())).thenReturn(TEST_ZONE.getId());
+      widget.post(widgetContext);
+    }
+
+    Assertions.assertEquals(LocalDate.now(TEST_ZONE), userSession.getLastLoginTrackedDate());
   }
 
   @Test
@@ -246,6 +291,8 @@ class LoginWidgetTest extends WidgetBase {
       auth.when(() -> AuthenticateLoginCommand.getAuthenticatedUser(anyString(), anyString(), anyString()))
           .thenReturn(user);
       siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean("site.online")).thenReturn(true);
+      // getSiteZoneId() falls back to its passed-in default when unconfigured -- pin it to a known zone
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), anyString())).thenReturn(TEST_ZONE.getId());
       widget.post(widgetContext);
     }
 
