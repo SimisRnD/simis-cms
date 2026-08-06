@@ -18,7 +18,7 @@ package com.simisinc.platform.presentation.widgets.calendar;
 
 import com.simisinc.platform.application.cms.NumberCommand;
 
-import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.cms.FormatDateCommand;
 import com.simisinc.platform.domain.model.cms.Calendar;
 import com.simisinc.platform.domain.model.cms.CalendarEvent;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
@@ -114,7 +114,7 @@ public class UpcomingCalendarEventsWidget extends GenericWidget {
     }
 
     // Determine the query date range (from today on... using the site's timezone start of day)
-    ZoneId clientZoneId = ZoneId.of(LoadSitePropertyCommand.loadByName("site.timezone"));
+    ZoneId clientZoneId = FormatDateCommand.getSiteZoneId();
     Instant instant = Instant.now();
     ZonedDateTime zdt = ZonedDateTime.ofInstant(instant, clientZoneId);
     ZonedDateTime zdtStart = zdt.toLocalDate().atStartOfDay(clientZoneId);

@@ -31,6 +31,7 @@ import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
 
+import com.simisinc.platform.application.cms.FormatDateCommand;
 import com.simisinc.platform.application.json.JsonCommand;
 import com.simisinc.platform.domain.model.cms.Blog;
 import com.simisinc.platform.domain.model.cms.BlogPost;
@@ -410,7 +411,11 @@ public class EditorialCalendarAjax extends GenericWidget {
     sb.append("\"title\":\"").append(JsonCommand.toJson(title)).append("\",");
     sb.append("\"status\":\"").append(status).append("\"");
     if (date != null) {
-      sb.append(",\"date\":\"").append(new SimpleDateFormat("yyyy-MM-dd").format(date)).append("\"");
+      // Site-timezone-aware (not the JVM's default zone) so an event near local midnight lands on
+      // the same calendar day here as it does in FormatDateCommand's other siteZoneId-based
+      // formatting -- otherwise a server running in, say, UTC could show an entry one day off from
+      // the day an admin in the configured site timezone would expect.
+      sb.append(",\"date\":\"").append(FormatDateCommand.formatIsoDate(date, FormatDateCommand.getSiteZoneId())).append("\"");
     }
     sb.append(",\"editUrl\":\"").append(JsonCommand.toJson(editUrl)).append("\"");
     sb.append("}");

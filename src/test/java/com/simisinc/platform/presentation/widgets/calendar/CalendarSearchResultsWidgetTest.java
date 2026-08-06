@@ -20,6 +20,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
 
 import java.util.ArrayList;
@@ -75,7 +76,9 @@ class CalendarSearchResultsWidgetTest extends WidgetBase {
         MockedStatic<CalendarRepository> calendarRepository = mockStatic(CalendarRepository.class);
         MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
         MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
-      siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.timezone")).thenReturn("America/New_York");
+      // CalendarSearchResultsWidget now reads the site timezone via FormatDateCommand.getSiteZoneId(),
+      // which calls the two-arg loadByName(name, defaultValue) overload.
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
       repository.when(() -> CalendarEventRepository.findAll(any(CalendarEventSpecification.class), any())).thenReturn(eventList);
       calendarRepository.when(CalendarRepository::findAll).thenReturn(List.of(calendar(5, "Team Events"), calendar(6, "Holidays")));
       calendarRepository.when(() -> CalendarRepository.findById(5L)).thenReturn(calendar(5, "Team Events"));
@@ -109,7 +112,9 @@ class CalendarSearchResultsWidgetTest extends WidgetBase {
         MockedStatic<CalendarRepository> calendarRepository = mockStatic(CalendarRepository.class);
         MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
         MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
-      siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.timezone")).thenReturn("America/New_York");
+      // CalendarSearchResultsWidget now reads the site timezone via FormatDateCommand.getSiteZoneId(),
+      // which calls the two-arg loadByName(name, defaultValue) overload.
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
       repository.when(() -> CalendarEventRepository.findAll(any(CalendarEventSpecification.class), any())).thenReturn(new ArrayList<>());
       calendarRepository.when(CalendarRepository::findAll).thenReturn(new ArrayList<>());
 
@@ -130,7 +135,9 @@ class CalendarSearchResultsWidgetTest extends WidgetBase {
         MockedStatic<CalendarRepository> calendarRepository = mockStatic(CalendarRepository.class);
         MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
         MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
-      siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.timezone")).thenReturn("America/New_York");
+      // CalendarSearchResultsWidget now reads the site timezone via FormatDateCommand.getSiteZoneId(),
+      // which calls the two-arg loadByName(name, defaultValue) overload.
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
       repository.when(() -> CalendarEventRepository.findAll(any(CalendarEventSpecification.class), any())).thenReturn(new ArrayList<>());
       calendarRepository.when(CalendarRepository::findAll).thenReturn(List.of(calendar(5, "Team Events"), calendar(6, "Holidays")));
       calendarRepository.when(() -> CalendarRepository.findById(5L)).thenReturn(calendar(5, "Team Events"));
