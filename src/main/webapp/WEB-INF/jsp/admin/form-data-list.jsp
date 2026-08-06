@@ -66,6 +66,15 @@
       </label>
     </div>
     <div class="cell medium-3">
+      <label>Spam
+        <select name="spam">
+          <option value=""<c:if test="${empty spam}"> selected</c:if>>All</option>
+          <option value="flagged"<c:if test="${spam eq 'flagged'}"> selected</c:if>>Spam-Flagged Only</option>
+          <option value="excluded"<c:if test="${spam eq 'excluded'}"> selected</c:if>>Exclude Spam-Flagged</option>
+        </select>
+      </label>
+    </div>
+    <div class="cell medium-3">
       <label>From date
         <input type="date" name="fromDate" value="<c:out value='${fromDate}'/>">
       </label>
