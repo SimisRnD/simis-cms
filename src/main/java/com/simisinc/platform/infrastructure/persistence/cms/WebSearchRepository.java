@@ -16,8 +16,10 @@
 
 package com.simisinc.platform.infrastructure.persistence.cms;
 
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.infrastructure.database.DB;
 import com.simisinc.platform.infrastructure.database.SqlUtils;
+import com.simisinc.platform.infrastructure.persistence.SessionRepository;
 import com.simisinc.platform.domain.model.cms.WebSearch;
 import com.simisinc.platform.domain.model.dashboard.StatisticsData;
 import org.apache.commons.logging.Log;
@@ -112,5 +114,13 @@ public class WebSearchRepository {
       LOG.error("SQLException: " + se.getMessage());
     }
     return records;
+  }
+
+  /** Prunes page-view search records older than the configured retention window
+   * (search.retentionDays, shared with search_analytics -- see SearchAnalyticsRepository.deleteOld()).
+   * web_searches had no cleanup job prior to this and grew unbounded. */
+  public static void deleteOld() {
+    int days = SessionRepository.resolveRetentionDays(LoadSitePropertyCommand.loadByName("search.retentionDays"));
+    DB.deleteFrom(TABLE_NAME, new SqlUtils().add("search_date < NOW() - INTERVAL '" + days + " days'"));
   }
 }
