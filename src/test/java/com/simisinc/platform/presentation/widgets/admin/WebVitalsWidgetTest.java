@@ -19,7 +19,9 @@ package com.simisinc.platform.presentation.widgets.admin;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
@@ -67,6 +69,79 @@ class WebVitalsWidgetTest extends WidgetBase {
     MockedStatic<DB> db = mockStatic(DB.class);
     db.when(DB::getConnection).thenThrow(new SQLException("no database in this unit test"));
     return db;
+  }
+
+  /**
+   * Builds a row exactly as loadWebVitalsAggregates() shapes it (same keys/types: url,
+   * metricName, p75Value as Double, sampleCount as Long, aggregatedAt as Timestamp) so
+   * summarizeByUrl() can be exercised directly without mocking raw JDBC.
+   */
+  private static Map<String, Object> row(String url, String metricName, double p75Value, long sampleCount, String date) {
+    Map<String, Object> row = new HashMap<>();
+    row.put("url", url);
+    row.put("metricName", metricName);
+    row.put("p75Value", p75Value);
+    row.put("sampleCount", sampleCount);
+    row.put("aggregatedAt", Timestamp.valueOf(date + " 00:00:00"));
+    return row;
+  }
+
+  /**
+   * Regression test for the stale-summary bug: loadWebVitalsAggregates() orders
+   * "ORDER BY url, metric_type, aggregated_at DESC" -- newest day first within each url/metric
+   * group, spanning the last 7 days. summarizeByUrl() used to unconditionally overwrite each
+   * metric's fields on every row it processed, so the LAST row in each group (the OLDEST day)
+   * silently won instead of the newest. Feeding it rows in that same newest-first query order
+   * confirms the fix: the newest day's value/status/sample-count win, not the oldest.
+   */
+  @Test
+  void summarizeByUrlUsesTheNewestDayNotTheOldestWhenMultipleDaysExistPerMetric() {
+    List<Map<String, Object>> rows = List.of(
+        // CLS sorts before LCP alphabetically, so the real query places CLS's rows first for this
+        // url -- newest CLS day first, then progressively older CLS days.
+        row("/checkout", "CLS", 0.05, 800, "2026-08-05"), // newest CLS day -- must win
+        row("/checkout", "CLS", 0.50, 10, "2026-08-04"), // older -- must be ignored
+        // Then LCP's rows, again newest first.
+        row("/checkout", "LCP", 2000, 500, "2026-08-05"), // newest LCP day -- must win
+        row("/checkout", "LCP", 5000, 10, "2026-08-04"), // older -- must be ignored
+        row("/checkout", "LCP", 5000, 10, "2026-08-03")); // oldest -- must be ignored
+
+    Map<String, WebVitalsWidget.VitalsSummary> summary = new WebVitalsWidget().summarizeByUrl(rows);
+
+    WebVitalsWidget.VitalsSummary s = summary.get("/checkout");
+    Assertions.assertNotNull(s);
+
+    // LCP: newest day is 2000ms (good); the stale-summary bug would instead surface 5000ms (poor),
+    // the last/oldest row processed in the group.
+    Assertions.assertEquals(2000, s.getLcpP75(), "newest day's LCP value must win, not the oldest");
+    Assertions.assertEquals("good", s.getLcpStatus(), "newest day's status must win, not the oldest (poor)");
+
+    // CLS: newest day is 0.05 (good); the bug would instead surface 0.50 (poor).
+    Assertions.assertEquals(0.05, s.getClsP75(), 0.0001, "newest day's CLS value must win, not the oldest");
+    Assertions.assertEquals("good", s.getClsStatus(), "newest day's status must win, not the oldest (poor)");
+
+    // Sample count must be surfaced from the newest row actually processed for this url (CLS's
+    // newest day, since it sorts first per the real query order), not left at zero and not taken
+    // from a later/older row.
+    Assertions.assertEquals(800, s.getSampleCount(), "sample count must come from the newest row, not the oldest");
+  }
+
+  @Test
+  void summarizeByUrlLeavesFieldsAtDefaultsWhenNoRowsExistForThatMetric() {
+    List<Map<String, Object>> rows = List.of(row("/about", "LCP", 1000, 50, "2026-08-05"));
+
+    Map<String, WebVitalsWidget.VitalsSummary> summary = new WebVitalsWidget().summarizeByUrl(rows);
+
+    WebVitalsWidget.VitalsSummary s = summary.get("/about");
+    Assertions.assertEquals(1000, s.getLcpP75());
+    Assertions.assertEquals("good", s.getLcpStatus());
+    Assertions.assertEquals(50, s.getSampleCount());
+    // CLS/INP/FCP/TTFB never appeared in the rows for this url, so they stay at their defaults.
+    Assertions.assertEquals(0, s.getClsP75());
+    Assertions.assertEquals("unknown", s.getClsStatus());
+    Assertions.assertEquals("unknown", s.getInpStatus());
+    Assertions.assertEquals("unknown", s.getFcpStatus());
+    Assertions.assertEquals("unknown", s.getTtfbStatus());
   }
 
   @Test
