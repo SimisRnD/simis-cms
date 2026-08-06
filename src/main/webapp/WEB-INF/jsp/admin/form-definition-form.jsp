@@ -29,6 +29,13 @@
     <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
   </c:if>
   <%@include file="../page_messages.jspf" %>
+  <p class="help-text">
+    <strong>Name is admin-only</strong> -- it labels this form throughout the admin list and editor,
+    and it's the text this form's internal id is generated from, but a visitor never sees it. Title
+    and Subtitle are what actually appear on the public form itself. "Email submissions to" and
+    Success Title/Message control what happens after a visitor submits -- there's no
+    redirect-to-a-URL option; success is a message shown on its own success page.
+  </p>
   <%-- Form Content --%>
   <div class="grid-x grid-margin-x">
     <div class="small-12 medium-6 cell">
@@ -58,6 +65,9 @@
       <label>Email submissions to
         <input type="text" placeholder="name@example.com" name="emailTo" value="<c:out value="${formDefinition.emailTo}"/>">
       </label>
+      <p class="help-text" style="margin-top:-8px">Free text, not validated as an email address -- a
+        typo here means notifications silently go nowhere, with no error shown to you or the
+        submitter.</p>
     </div>
   </div>
   <label>Success Message
@@ -66,6 +76,16 @@
   <input id="useCaptcha" type="checkbox" name="useCaptcha" value="true" <c:if test="${formDefinition.useCaptcha}">checked</c:if>/><label for="useCaptcha">Use Captcha?</label>
   <input id="checkForSpam" type="checkbox" name="checkForSpam" value="true" <c:if test="${formDefinition.checkForSpam}">checked</c:if>/><label for="checkForSpam">Check for spam?</label>
   <input id="enabled" type="checkbox" name="enabled" value="true" <c:if test="${formDefinition.enabled}">checked</c:if>/><label for="enabled">Enabled?</label>
+  <div class="callout radius warning" style="margin-top:10px">
+    <p style="margin-bottom:0">
+      <i class="fa fa-exclamation-triangle"></i> <strong>Known issue:</strong> unchecking "Enabled?"
+      or "Check for spam?" currently has no effect -- both are silently saved as still-on no matter
+      what's checked here, on both a new form and an edit. A fix is in progress. Until it ships, the
+      only way to actually take a form offline is to remove its "Form" widget from the page it's
+      placed on -- disabled-looking submissions here will still go through if the widget stays in
+      place.
+    </p>
+  </div>
   <div class="button-container">
     <c:choose>
       <c:when test="${formDefinition.id eq -1}">

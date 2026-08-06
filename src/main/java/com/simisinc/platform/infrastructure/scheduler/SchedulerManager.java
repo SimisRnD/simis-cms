@@ -23,6 +23,7 @@ import com.simisinc.platform.infrastructure.scheduler.admin.CapabilityGrantExpir
 import com.simisinc.platform.infrastructure.scheduler.admin.DatasetsDownloadAndSyncJob;
 import com.simisinc.platform.infrastructure.scheduler.audit.AuditLogIntegrityJob;
 import com.simisinc.platform.infrastructure.scheduler.audit.AuditLogRetentionJob;
+import com.simisinc.platform.infrastructure.scheduler.cms.FormDataRetentionJob;
 import com.simisinc.platform.infrastructure.scheduler.cms.FormSubmissionFailureRetentionJob;
 import com.simisinc.platform.infrastructure.scheduler.cms.FunnelEventRetentionJob;
 import com.simisinc.platform.infrastructure.scheduler.cms.LoadSystemFilesJob;
@@ -102,6 +103,7 @@ public class SchedulerManager {
   public static final String EMAIL_CLASSIFICATION_JOB = "EmailClassification";
   public static final String MAILING_LIST_QUARANTINE_JOB = "MailingListQuarantine";
   public static final String FORM_SUBMISSION_FAILURE_RETENTION_JOB = "FormSubmissionFailureRetention";
+  public static final String FORM_DATA_RETENTION_JOB = "FormDataRetention";
   public static final String FUNNEL_EVENT_RETENTION_JOB = "FunnelEventRetention";
   public static final String NEWSLETTER_QUEUE_JOB = "NewsletterQueue";
 
@@ -211,6 +213,8 @@ public class SchedulerManager {
         BackgroundJob.scheduleRecurrently(MAILING_LIST_QUARANTINE_JOB, Cron.daily(3, 30), MailingListQuarantineJob::execute);
         BackgroundJob.scheduleRecurrently(FORM_SUBMISSION_FAILURE_RETENTION_JOB, Cron.daily(5), FormSubmissionFailureRetentionJob::execute);
         BackgroundJob.scheduleRecurrently(FUNNEL_EVENT_RETENTION_JOB, Cron.daily(5, 30), FunnelEventRetentionJob::execute);
+        // Offset from the other retention jobs above so they aren't all competing for DB time at once
+        BackgroundJob.scheduleRecurrently(FORM_DATA_RETENTION_JOB, Cron.daily(5, 45), FormDataRetentionJob::execute);
         BackgroundJob.scheduleRecurrently(NEWSLETTER_QUEUE_JOB, Cron.minutely(), NewsletterQueueJob::execute);
       }
     } catch (Exception se) {

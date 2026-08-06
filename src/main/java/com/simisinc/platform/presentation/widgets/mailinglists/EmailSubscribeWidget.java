@@ -77,7 +77,8 @@ public class EmailSubscribeWidget extends GenericWidget {
     if ("true".equals(isSuccess)) {
       context.getRequest().setAttribute("successTitle", context.getPreferences().get("successTitle"));
       context.getRequest().setAttribute("successMessage",
-          context.getPreferences().getOrDefault("successMessage", "You are now subscribed"));
+          context.getPreferences().getOrDefault("successMessage",
+              "Almost done! Check your email to confirm your subscription."));
       context.setJsp(SUCCESS_JSP);
       return context;
     }
@@ -194,9 +195,9 @@ public class EmailSubscribeWidget extends GenericWidget {
           // The blog's association was removed between this form rendering and being submitted
           throw new DataException("Sorry, this signup isn't available right now.");
         }
-        SaveEmailCommand.saveEmail(emailBean, mailingList);
+        SaveEmailCommand.saveEmailRequiringConfirmation(emailBean, mailingList);
       } else {
-        SaveEmailCommand.saveEmail(emailBean, mailingListName);
+        SaveEmailCommand.saveEmailRequiringConfirmation(emailBean, mailingListName);
       }
     } catch (DataException e) {
       context.setWarningMessage(e.getMessage());

@@ -44,6 +44,7 @@ import org.testcontainers.utility.DockerImageName;
 import com.simisinc.platform.domain.model.dashboard.StatisticsData;
 import com.simisinc.platform.domain.model.mailinglists.Email;
 import com.simisinc.platform.domain.model.mailinglists.MailingList;
+import com.simisinc.platform.domain.model.mailinglists.MailingListMember;
 import com.simisinc.platform.infrastructure.database.DB;
 import com.simisinc.platform.infrastructure.database.DataSource;
 
@@ -322,6 +323,287 @@ class MailingListMemberRepositoryQueryTest {
   }
 
   @Test
+  void addEmailToListRequiringConfirmationLeavesANewMemberPendingWithAToken() throws SQLException {
+    long listId = seedList("List A");
+    long emailId = seedEmail("new@example.com");
+    MailingList mailingList = new MailingList();
+    mailingList.setId(listId);
+    Email email = new Email();
+    email.setId(emailId);
+    Timestamp expires = new Timestamp(System.currentTimeMillis() + 7L * 86_400_000L);
+
+    MailingListMemberRepository.AddToListResult result = MailingListMemberRepository.addEmailToList(email,
+        mailingList, true, expires);
+
+    assertTrue(result.isCreated());
+    assertTrue(result.requiresConfirmation(), "a brand-new signup through a confirmation-requiring path must be reported as pending");
+    assertNotNull(result.getMember());
+    assertTrue(!result.getMember().getIsValid(), "a pending member must not be active yet");
+    assertNull(result.getMember().getConfirmed());
+    assertNotNull(result.getMember().getConfirmToken());
+    assertEquals(expires, result.getMember().getConfirmTokenExpires());
+  }
+
+  @Test
+  void addEmailToListRequiringConfirmationReissuesATokenForAPreviouslyUnsubscribedMember() throws SQLException {
+    long listId = seedList("List A");
+    long emailId = seedEmail("returning@example.com");
+    seedMembership(listId, emailId, false, "2026-07-01 00:00:00"); // previously unsubscribed
+    MailingList mailingList = new MailingList();
+    mailingList.setId(listId);
+    Email email = new Email();
+    email.setId(emailId);
+    Timestamp expires = new Timestamp(System.currentTimeMillis() + 7L * 86_400_000L);
+
+    MailingListMemberRepository.AddToListResult result = MailingListMemberRepository.addEmailToList(email,
+        mailingList, true, expires);
+
+    assertTrue(!result.isCreated(), "the row already existed");
+    assertTrue(result.requiresConfirmation());
+    assertNotNull(result.getMember().getConfirmToken());
+    assertNotNull(result.getMember().getUnsubscribed(),
+        "must not silently clear unsubscribed until the address owner actually reconfirms");
+    assertTrue(!result.getMember().getIsValid());
+  }
+
+  @Test
+  void addEmailToListRequiringConfirmationDoesNotReissueATokenForAnAlreadyActiveMember() throws SQLException {
+    long listId = seedList("List A");
+    long emailId = seedEmail("already-subscribed@example.com");
+    seedMembership(listId, emailId, true, null); // already active, never unsubscribed
+    MailingList mailingList = new MailingList();
+    mailingList.setId(listId);
+    Email email = new Email();
+    email.setId(emailId);
+    Timestamp expires = new Timestamp(System.currentTimeMillis() + 7L * 86_400_000L);
+
+    MailingListMemberRepository.AddToListResult result = MailingListMemberRepository.addEmailToList(email,
+        mailingList, true, expires);
+
+    assertTrue(!result.requiresConfirmation(),
+        "a duplicate signup from an already-active member must not be sent a fresh confirmation email");
+    assertNull(result.getMember().getConfirmToken());
+    assertTrue(result.getMember().getIsValid());
+  }
+
+  @Test
+  void addEmailToListRequiringConfirmationDoesNotReactivateAQuarantinedMember() throws SQLException {
+    long listId = seedList("List A");
+    long emailId = seedEmail("spamtrap@example.com");
+    seedQuarantinedMembership(listId, emailId, "spamtrap");
+    MailingList mailingList = new MailingList();
+    mailingList.setId(listId);
+    Email email = new Email();
+    email.setId(emailId);
+    Timestamp expires = new Timestamp(System.currentTimeMillis() + 7L * 86_400_000L);
+
+    MailingListMemberRepository.AddToListResult result = MailingListMemberRepository.addEmailToList(email,
+        mailingList, true, expires);
+
+    assertTrue(!result.requiresConfirmation());
+    assertNull(result.getMember().getConfirmToken());
+    assertNotNull(result.getMember().getQuarantined(), "the quarantine must not be cleared or reconfirmed around");
+  }
+
+  @Test
+  void findByConfirmTokenReturnsAPendingMemberByItsLiveToken() throws SQLException {
+    long listId = seedList("List A");
+    long emailId = seedEmail("pending@example.com");
+    MailingList mailingList = new MailingList();
+    mailingList.setId(listId);
+    Email email = new Email();
+    email.setId(emailId);
+    Timestamp expires = new Timestamp(System.currentTimeMillis() + 7L * 86_400_000L);
+    MailingListMemberRepository.AddToListResult created = MailingListMemberRepository.addEmailToList(email,
+        mailingList, true, expires);
+    String token = created.getMember().getConfirmToken();
+
+    MailingListMember found = MailingListMemberRepository.findByConfirmToken(token);
+
+    assertNotNull(found);
+    assertEquals("pending@example.com", found.getEmailAddress());
+  }
+
+  @Test
+  void findByConfirmTokenReturnsNullForAnExpiredToken() throws SQLException {
+    long listId = seedList("List A");
+    long emailId = seedEmail("expired@example.com");
+    MailingList mailingList = new MailingList();
+    mailingList.setId(listId);
+    Email email = new Email();
+    email.setId(emailId);
+    Timestamp alreadyExpired = new Timestamp(System.currentTimeMillis() - 1000L);
+    MailingListMemberRepository.AddToListResult created = MailingListMemberRepository.addEmailToList(email,
+        mailingList, true, alreadyExpired);
+    String token = created.getMember().getConfirmToken();
+
+    assertNull(MailingListMemberRepository.findByConfirmToken(token),
+        "an expired confirm link must behave exactly like an unknown one");
+  }
+
+  @Test
+  void confirmByTokenActivatesThePendingMemberAndClearsTheToken() throws SQLException {
+    long listId = seedList("List A");
+    long emailId = seedEmail("confirming@example.com");
+    MailingList mailingList = new MailingList();
+    mailingList.setId(listId);
+    Email email = new Email();
+    email.setId(emailId);
+    Timestamp expires = new Timestamp(System.currentTimeMillis() + 7L * 86_400_000L);
+    MailingListMemberRepository.AddToListResult created = MailingListMemberRepository.addEmailToList(email,
+        mailingList, true, expires);
+
+    MailingListMemberRepository.confirmByToken(created.getMember());
+
+    MailingListMember confirmed = MailingListMemberRepository.findByListAndEmail(listId, emailId);
+    assertTrue(confirmed.getIsValid());
+    assertNotNull(confirmed.getConfirmed());
+    assertNull(confirmed.getConfirmToken(), "the token must be single-use");
+    assertNull(MailingListMemberRepository.findByConfirmToken(created.getMember().getConfirmToken()),
+        "a re-clicked link must no longer resolve to anything");
+  }
+
+  @Test
+  void resolveConfirmationExpiryDaysFallsBackToTheDefaultOnABlankOrBadValue() {
+    assertEquals(7, MailingListMemberRepository.resolveConfirmationExpiryDays(null));
+    assertEquals(7, MailingListMemberRepository.resolveConfirmationExpiryDays(""));
+    assertEquals(7, MailingListMemberRepository.resolveConfirmationExpiryDays("not-a-number"));
+    assertEquals(14, MailingListMemberRepository.resolveConfirmationExpiryDays("14"));
+    assertEquals(1, MailingListMemberRepository.resolveConfirmationExpiryDays("0"), "clamps below the floor");
+    assertEquals(90, MailingListMemberRepository.resolveConfirmationExpiryDays("9999"), "clamps above the ceiling");
+  }
+
+  @Test
+  void findAllPendingStatusExcludesActiveAndTrustedBypassMembers() throws SQLException {
+    long listId = seedList("List A");
+    MailingList mailingList = new MailingList();
+    mailingList.setId(listId);
+    Timestamp expires = new Timestamp(System.currentTimeMillis() + 7L * 86_400_000L);
+
+    // A pending double opt-in signup
+    Email pendingEmail = new Email();
+    pendingEmail.setId(seedEmail("pending@example.com"));
+    MailingListMemberRepository.addEmailToList(pendingEmail, mailingList, true, expires);
+
+    // An immediately-active CSV/admin-add member (requiresConfirmation=false) -- must NOT show as pending
+    seedMembership(listId, seedEmail("csv-imported@example.com"), true, null);
+
+    MailingListMemberSpecification pendingSpec = new MailingListMemberSpecification();
+    pendingSpec.setMailingListId(listId);
+    pendingSpec.setStatus("pending");
+    List<MailingListMember> pending = MailingListMemberRepository.findAll(pendingSpec, null);
+    assertEquals(1, pending.size());
+    assertEquals("pending@example.com", pending.get(0).getEmailAddress());
+
+    MailingListMemberSpecification activeSpec = new MailingListMemberSpecification();
+    activeSpec.setMailingListId(listId);
+    activeSpec.setStatus("active");
+    List<MailingListMember> active = MailingListMemberRepository.findAll(activeSpec, null);
+    assertEquals(1, active.size(), "a pending (is_valid=false) member must not show up under 'active'");
+    assertEquals("csv-imported@example.com", active.get(0).getEmailAddress());
+  }
+
+  @Test
+  void addEmailToListRequiringConfirmationDoesNotReissueALiveToken() throws SQLException {
+    long listId = seedList("List A");
+    long emailId = seedEmail("resubmit@example.com");
+    MailingList mailingList = new MailingList();
+    mailingList.setId(listId);
+    Email email = new Email();
+    email.setId(emailId);
+    Timestamp expires = new Timestamp(System.currentTimeMillis() + 7L * 86_400_000L);
+
+    MailingListMemberRepository.AddToListResult first = MailingListMemberRepository.addEmailToList(email,
+        mailingList, true, expires);
+    assertTrue(first.confirmationEmailNeeded());
+    String firstToken = first.getMember().getConfirmToken();
+
+    MailingListMemberRepository.AddToListResult second = MailingListMemberRepository.addEmailToList(email,
+        mailingList, true, expires);
+
+    assertTrue(!second.confirmationEmailNeeded(),
+        "resubmitting the same address while a confirm link is still live must not send another email -- "
+            + "otherwise this is an unthrottled mail-bomb primitive against an arbitrary address");
+    assertEquals(firstToken, second.getMember().getConfirmToken(), "the existing live token must be reused, not replaced");
+  }
+
+  @Test
+  void addEmailToListRequiringConfirmationReissuesAfterTheOldTokenExpired() throws SQLException {
+    long listId = seedList("List A");
+    long emailId = seedEmail("expired-resubmit@example.com");
+    MailingList mailingList = new MailingList();
+    mailingList.setId(listId);
+    Email email = new Email();
+    email.setId(emailId);
+
+    MailingListMemberRepository.AddToListResult first = MailingListMemberRepository.addEmailToList(email,
+        mailingList, true, new Timestamp(System.currentTimeMillis() - 1000L)); // already expired
+    String firstToken = first.getMember().getConfirmToken();
+
+    MailingListMemberRepository.AddToListResult second = MailingListMemberRepository.addEmailToList(email,
+        mailingList, true, new Timestamp(System.currentTimeMillis() + 7L * 86_400_000L));
+
+    assertTrue(second.confirmationEmailNeeded(), "an expired token must be replaced, not silently treated as still live");
+    assertTrue(!firstToken.equals(second.getMember().getConfirmToken()));
+  }
+
+  @Test
+  void addEmailToListWithoutConfirmationClearsALeftoverPendingToken() throws SQLException {
+    long listId = seedList("List A");
+    long emailId = seedEmail("csv-overtakes-pending@example.com");
+    MailingList mailingList = new MailingList();
+    mailingList.setId(listId);
+    Email email = new Email();
+    email.setId(emailId);
+    Timestamp expires = new Timestamp(System.currentTimeMillis() + 7L * 86_400_000L);
+    MailingListMemberRepository.AddToListResult pending = MailingListMemberRepository.addEmailToList(email,
+        mailingList, true, expires); // public signup, awaiting confirmation
+    String oldToken = pending.getMember().getConfirmToken();
+
+    // Before the visitor clicks the link, an admin CSV-imports/manually-adds the same address
+    MailingListMemberRepository.AddToListResult activated = MailingListMemberRepository.addEmailToList(email,
+        mailingList, false, null);
+
+    assertTrue(activated.getMember().getIsValid());
+    assertNull(activated.getMember().getConfirmToken(),
+        "a leftover confirm_token must be cleared once the member is force-activated by a trusted path, or the "
+            + "old link stays clickable and re-fires a duplicate created/webhook event later, and the admin UI "
+            + "mislabels an active member as still pending");
+    assertNull(activated.getMember().getConfirmTokenExpires());
+    assertNull(MailingListMemberRepository.findByConfirmToken(oldToken),
+        "the old link must no longer resolve to anything once the member is force-activated");
+  }
+
+  @Test
+  void findAllPendingStatusIncludesAReactivationStyleSignupAndExcludesItFromUnsubscribed() throws SQLException {
+    long listId = seedList("List A");
+    long emailId = seedEmail("reactivating@example.com");
+    seedMembership(listId, emailId, false, "2026-07-01 00:00:00"); // previously unsubscribed
+    MailingList mailingList = new MailingList();
+    mailingList.setId(listId);
+    Email email = new Email();
+    email.setId(emailId);
+    Timestamp expires = new Timestamp(System.currentTimeMillis() + 7L * 86_400_000L);
+
+    // Re-signs up on a confirmation-required path -- unsubscribed stays set until they reconfirm
+    MailingListMemberRepository.addEmailToList(email, mailingList, true, expires);
+
+    MailingListMemberSpecification pendingSpec = new MailingListMemberSpecification();
+    pendingSpec.setMailingListId(listId);
+    pendingSpec.setStatus("pending");
+    List<MailingListMember> pending = MailingListMemberRepository.findAll(pendingSpec, null);
+    assertEquals(1, pending.size(),
+        "a previously-unsubscribed member re-signing up must show as pending, not be invisible to admins auditing "
+            + "outstanding confirmations");
+
+    MailingListMemberSpecification unsubSpec = new MailingListMemberSpecification();
+    unsubSpec.setMailingListId(listId);
+    unsubSpec.setStatus("unsubscribed");
+    List<MailingListMember> unsub = MailingListMemberRepository.findAll(unsubSpec, null);
+    assertEquals(0, unsub.size(), "must not also show under 'unsubscribed' while a reconfirmation is outstanding");
+  }
+
+  @Test
   void findLastClassifiedAtReturnsNullWhenNoSubscriberHasBeenClassified() throws SQLException {
     long list = seedList("List A");
     seedMembership(list, seedEmail("unchecked@example.com"), true, null);
@@ -437,7 +719,10 @@ class MailingListMemberRepositoryQueryTest {
           + "unsubscribe_token VARCHAR(255), "
           + "is_valid BOOLEAN DEFAULT true, "
           + "quarantined TIMESTAMP(3), "
-          + "quarantine_reason VARCHAR(50))");
+          + "quarantine_reason VARCHAR(50), "
+          + "confirmed TIMESTAMP(3), "
+          + "confirm_token VARCHAR(255), "
+          + "confirm_token_expires TIMESTAMP(3))");
       statement.execute("CREATE UNIQUE INDEX mail_lis_mem_uniq_idx ON mailing_list_members(list_id, email_id)");
     } catch (SQLException se) {
       throw new IllegalStateException("Could not create the mailing list metrics test schema", se);

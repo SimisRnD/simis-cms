@@ -456,7 +456,10 @@ class NewsletterSendQueueRepositoryTest {
           + "is_valid BOOLEAN DEFAULT true, "
           + "quarantined TIMESTAMP(3), "
           + "quarantine_reason VARCHAR(50), "
-          + "unsubscribe_token VARCHAR(255))");
+          + "unsubscribe_token VARCHAR(255), "
+          + "confirmed TIMESTAMP(3), "
+          + "confirm_token VARCHAR(255), "
+          + "confirm_token_expires TIMESTAMP(3))");
       statement.execute("CREATE UNIQUE INDEX mail_lis_mem_uniq_idx ON mailing_list_members(list_id, email_id)");
       statement.execute("CREATE UNIQUE INDEX mail_lis_mem_unsub_tok_idx ON mailing_list_members(unsubscribe_token)");
       statement.execute("CREATE TABLE mailing_list_history ("
