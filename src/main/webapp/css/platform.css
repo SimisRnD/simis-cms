@@ -129,15 +129,38 @@ p {
   margin-left: .5rem;
 }
 
-#platform-menu .menu .menu-text {
+#platform-menu .menu-text {
   padding: 0;
-  font-weight: 600;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 15.5px;
 }
 #platform-menu ul.menu li.logo a:hover {
   background: transparent !important;
 }
 #platform-menu .menu-body li.is-dropdown-submenu-item:last-child a {
   padding-bottom: 1rem;
+}
+/* Topbar nav typography. Selector groups mirror the theme-color rules in
+   main.jsp's inline <style> block exactly, so the same elements that pick
+   up theme.topbar.* colors pick up this weight/size treatment too. Weight
+   500 (not bold) marks the active/hover state, matching the sidebar. */
+#platform-menu ul.menu li a,
+#platform-small-menu ul.menu li a,
+#platform-small-menu .title-bar-title {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 14px;
+}
+#platform-menu ul.menu li > a:hover,
+#platform-menu ul.menu li.is-active > a,
+#platform-menu .is-active .is-dropdown-submenu-item a:hover {
+  font-weight: 500;
+}
+#platform-menu ul.is-dropdown-submenu li.is-dropdown-submenu-item a {
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 13.5px;
 }
 
 #platform-small-menu .logo { margin-left: auto; margin-right: auto; }
@@ -150,6 +173,9 @@ p {
 .utility-bar {
   background-color: #000000;
   color: #ffffff;
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 11.5px;
 }
 .utility-links {
   float: right;
@@ -169,6 +195,41 @@ p {
 .utility-bar a {
   color: #ffffff;
   text-decoration: underline;
+}
+
+/* Dashboard stat-tile groupings (siteStats widgets on /admin, grouped by
+   category via admin-layout.xml sections). A small tracked-out label with
+   a rule running to the right -- quieter than a full heading so five in a
+   row read as structure, not five competing headlines. */
+.platform-dashboard-section-label {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 6px 0 10px;
+  text-transform: uppercase;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 16px;
+  letter-spacing: 0.05em;
+  color: #53575c;
+}
+.platform-dashboard-section-label::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background-color: #d9dce1;
+}
+/* Panel binding each group's tiles into one visible unit -- the label sits
+   above it (its own section, so it stays outside the tint), the individual
+   white/callout tiles sit inside it. Radius is a step larger than the
+   tiles' own ~4px so the nesting reads as deliberate, not accidental. */
+.platform-dashboard-group {
+  background-color: #eceef1;
+  border: 1px solid #d9dce1;
+  border-radius: 10px;
+  padding: 20px;
+  margin-top: 10px;
+  margin-bottom: 16px;
 }
 
 /* Body */
@@ -851,39 +912,66 @@ ul.pagination li.pagination-next a:hover {
   margin: 0;
   padding: 0;
   min-height: 90vh;
-  background-color: #323232;
-  font-family: 'Source Sans Pro', sans-serif;
+  background-color: #17191e;
+  font-family: 'Inter', sans-serif;
   font-weight: 400;
-  line-height: 14px;
-  color: #9197a3;
-  font-size: 0.85rem;
+  font-size: 13.5px;
+  line-height: 1.4;
+  color: #d9dce1;
 }
 .admin-menu .platform-content {
   margin: 0;
 }
 .admin-menu .app-title {
   margin: 0;
-  font-weight: bold;
+  font-family: 'Poppins', sans-serif;
+  font-weight: 500;
+  font-size: 15.5px;
+  line-height: 1.3;
   padding: 10px 20px;
-  background-color: #4991e2;
+  background-color: #17191e;
   color: #ffffff;
+}
+/* Version number: de-emphasized metadata under the product name, not part
+   of the product-name treatment above. */
+.admin-menu .app-title small {
+  display: block;
+  margin-top: 2px;
+  font-family: 'Inter', sans-serif;
+  font-weight: 400;
+  font-size: 11px;
+  color: #979ca4;
 }
 .admin-menu .app-user {
   margin-bottom: 10px;
   padding: 10px 20px;
-  background-color: #3f424c;
+  background-color: #53575c;
+  font-family: 'Inter', sans-serif;
+  font-weight: 500;
+  font-size: 13px;
   color: #ffffff;
+}
+.admin-menu .app-user i {
+  color: #979ca4;
 }
 .admin-menu .section-title {
   margin-top: 4px;
   text-transform: uppercase;
-  font-weight: 600;
-  font-size: smaller;
+  font-weight: 500;
+  font-size: 11px;
+  letter-spacing: 0.05em;
   padding-left: 20px;
+  color: #979ca4;
 }
 .admin-menu a {
   padding-left: 20px;
-  color: #9197a3;
+  color: #d9dce1;
+  font-weight: 400;
+}
+/* Icons read one step quieter than their label -- pewter at rest, white
+   only once the item is active (see .is-active > a i below). */
+.admin-menu a i {
+  color: #979ca4;
 }
 .admin-menu ul {
   padding-left: 0;
@@ -900,12 +988,29 @@ ul.pagination li.pagination-next a:hover {
   padding-bottom: 6px;
 }
 .admin-menu li:hover {
-  background-color: #36444b;
+  background-color: #3e4045;
 }
 .admin-menu li.section-title:hover {
   background-color: transparent;
 }
 .admin-menu a:hover {
+  color: #ffffff;
+}
+/* Active sidebar item: Anthracite fill + a narrow link-blue indicator.
+   Higher specificity than Foundation's .menu .is-active > a (#1779ba) so
+   the admin shell's own active state wins without !important. The literal
+   indicator blue (#609ACE) is only 2.43:1 on this background -- below the
+   3:1 floor for a meaningful-state graphic (WCAG 1.4.11) -- so the inset
+   bar uses a 20%-lightened variant (3.10:1); #609ACE is kept as-is
+   wherever it appears as body/dark-mode link text instead. Weight 500 (not
+   bold) carries the emphasis, matching every other active-state label. */
+.admin-menu li.is-active > a {
+  background-color: #53575c;
+  color: #ffffff;
+  font-weight: 500;
+  box-shadow: inset 3px 0 0 #7faed7;
+}
+.admin-menu li.is-active > a i {
   color: #ffffff;
 }
 
