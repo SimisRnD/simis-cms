@@ -45,7 +45,9 @@ import com.simisinc.platform.infrastructure.database.DataSource;
 /**
  * Tests parsing of the geo-anomaly alert's configurable windows, plus (for
  * {@link #findTopCountriesByCount}) a real-Postgres integration test -- the geographic-anomaly
- * dashboard tile added for issue #569 slice 2.
+ * dashboard tile added for issue #569 slice 2. Also covers {@link SessionRepository#countByAppId},
+ * which backs the admin Apps list's "Devices" column (previously a hardcoded 0, not bound to any
+ * query).
  *
  * @author elizabeth houser
  */
@@ -246,6 +248,51 @@ class SessionRepositoryTest {
     assertEquals(2, results.size());
   }
 
+  // --- countByAppId() coverage -- backs the admin Apps list's "Devices" column, previously a
+  // hardcoded 0 not bound to any query at all ---
+
+  @Test
+  void countByAppIdCountsOnlySessionsForThatApp() {
+    seedSessionWithAppId(1L);
+    seedSessionWithAppId(1L);
+    seedSessionWithAppId(2L);
+
+    assertEquals(2, SessionRepository.countByAppId(1L));
+    assertEquals(1, SessionRepository.countByAppId(2L));
+  }
+
+  @Test
+  void countByAppIdReturnsZeroWhenNoSessionsAreAttributedToThatApp() {
+    seedSessionWithAppId(1L);
+
+    assertEquals(0, SessionRepository.countByAppId(2L));
+  }
+
+  @Test
+  void countByAppIdIgnoresSessionsWithNoAppId() {
+    // A session established outside of an API-key context (a normal browser visitor) has no app_id
+    seedSession("Canada", false, false, new Timestamp(System.currentTimeMillis()));
+    seedSessionWithAppId(1L);
+
+    assertEquals(1, SessionRepository.countByAppId(1L));
+  }
+
+  @Test
+  void countByAppIdReturnsZeroForANonPositiveAppIdWithoutQueryingTheDatabase() {
+    // -1 is App's "unsaved"/unset id -- must short-circuit rather than run a WHERE app_id = -1 scan
+    assertEquals(0, SessionRepository.countByAppId(-1L));
+    assertEquals(0, SessionRepository.countByAppId(0L));
+  }
+
+  private static void seedSessionWithAppId(long appId) {
+    try (Connection connection = DB.getConnection();
+        Statement statement = connection.createStatement()) {
+      statement.execute("INSERT INTO sessions (app_id) VALUES (" + appId + ")");
+    } catch (SQLException se) {
+      throw new IllegalStateException("Could not seed session with app_id", se);
+    }
+  }
+
   private static Timestamp hoursAgo(int hours) {
     return Timestamp.from(Instant.now().minus(Duration.ofHours(hours)));
   }
@@ -291,7 +338,9 @@ class SessionRepositoryTest {
 
   private static void createSchema() {
     // A focused subset of the real sessions schema -- enough for findTopCountriesByCount's
-    // window/bot/country filtering. FK constraints to unrelated tables are omitted.
+    // window/bot/country filtering, plus app_id for countByAppId(). FK to apps(app_id) is omitted
+    // (no apps table in this focused schema), matching this class's existing simplification of
+    // leaving out FKs to unrelated tables.
     try (Connection connection = DB.getConnection();
         Statement statement = connection.createStatement()) {
       statement.execute("DROP TABLE IF EXISTS sessions CASCADE");
@@ -301,7 +350,8 @@ class SessionRepositoryTest {
           + "created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP, "
           + "country VARCHAR(100), "
           + "is_bot BOOLEAN DEFAULT false, "
-          + "is_anonymous BOOLEAN NOT NULL DEFAULT false)");
+          + "is_anonymous BOOLEAN NOT NULL DEFAULT false, "
+          + "app_id BIGINT)");
     } catch (SQLException se) {
       throw new IllegalStateException("Could not create the sessions schema", se);
     }

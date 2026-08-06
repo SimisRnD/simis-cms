@@ -93,7 +93,10 @@ public class RateLimitCommand {
   }
 
   /**
-   * Rate limiting can be applied according to the IP address trying to log in, or access the site
+   * Rate limiting can be applied according to the IP address trying to log in, or access the site.
+   * Shared by every feature that rate-limits by raw IP -- web login, forgot-password, newsletter
+   * subscribe/unsubscribe, generic form submission, etc. -- so its bucket-keying must not change
+   * without checking all of those call sites.
    *
    * @param ipAddress
    * @param startWatching
@@ -101,6 +104,32 @@ public class RateLimitCommand {
    */
   public static boolean isIpAllowedRightNow(String ipAddress, boolean startWatching) {
     Cache cache = CacheManager.getCache(CacheManager.RATE_LIMIT_ATTEMPT_BY_IP_CACHE);
+    return isIpAllowedRightNowInCache(cache, ipAddress, startWatching);
+  }
+
+  /**
+   * Rate limiting for the REST API's own pre-auth checks in {@code RestRequestFilter} (an initial
+   * per-IP throttle, and a second check specifically for invalid/failed API-key attempts). This
+   * deliberately reads and writes a cache separate from {@link #isIpAllowedRightNow(String, boolean)}
+   * so that an IP repeatedly submitting a bad API key only throttles future API requests from that
+   * IP -- it never shares a bucket with, and can never exhaust the allowance for, that same IP's
+   * unrelated web login, forgot-password, newsletter, or form-submission attempts.
+   *
+   * @param ipAddress
+   * @param startWatching
+   * @return
+   */
+  public static boolean isApiIpAllowedRightNow(String ipAddress, boolean startWatching) {
+    Cache cache = CacheManager.getCache(CacheManager.RATE_LIMIT_ATTEMPT_BY_IP_API_CACHE);
+    return isIpAllowedRightNowInCache(cache, ipAddress, startWatching);
+  }
+
+  /**
+   * Shared bucket-check logic for {@link #isIpAllowedRightNow(String, boolean)} and
+   * {@link #isApiIpAllowedRightNow(String, boolean)} -- identical behavior and site-property-driven
+   * limit resolution, differing only in which cache (bucket namespace) is consulted.
+   */
+  private static boolean isIpAllowedRightNowInCache(Cache cache, String ipAddress, boolean startWatching) {
     Bucket bucket;
     synchronized (RateLimitCommand.class) {
       bucket = (Bucket) cache.getIfPresent(ipAddress);

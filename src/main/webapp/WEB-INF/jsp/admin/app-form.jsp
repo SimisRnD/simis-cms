@@ -33,7 +33,7 @@
     <label>Client ID
       <input type="text" class="no-gap" readonly value="<c:out value="${app.publicKey}"/>" aria-describedby="appClientIdHelpText" onclick="this.select();">
     </label>
-    <p class="help-text" id="appClientIdHelpText">Send this as the <code>X-API-Key</code> request header (or a <code>key</code> query parameter) when calling this application's REST API. It identifies which app is calling, but isn't itself proof of identity -- most endpoints also require an authenticated user via Basic or Bearer auth on top of it. Not sensitive on its own; safe to share with anyone building against this app's API.</p>
+    <p class="help-text" id="appClientIdHelpText">Send this as the <code>X-API-Key</code> request header (or a <code>key</code> query parameter) when calling this application's REST API. It identifies which app is calling, but isn't itself proof of identity -- most endpoints also require an authenticated user via Basic or Bearer auth on top of it. Not sensitive on its own; safe to share with anyone building against this app's API, or to embed directly in client-side scripts. There is deliberately no "Client Secret" shown anywhere for this App -- it isn't a credential to look for or rely on.</p>
   </c:if>
   <%-- Form Content --%>
   <label>Name <span class="required">*</span>
@@ -42,7 +42,20 @@
   <label>Description
     <input type="text" placeholder="Describe it..." name="summary" value="<c:out value="${app.summary}"/>">
   </label>
+  <label>Enabled?
+    <div class="switch large">
+      <input class="switch-input" id="app-enabled-yes-no" type="checkbox" name="enabled" value="true" aria-describedby="appEnabledHelpText"<c:if test="${app.enabled}"> checked</c:if>>
+      <label class="switch-paddle" for="app-enabled-yes-no">
+        <span class="switch-active" aria-hidden="true">Yes</span>
+        <span class="switch-inactive" aria-hidden="true">No</span>
+      </label>
+    </div>
+  </label>
+  <p class="help-text" id="appEnabledHelpText">Turn this off to immediately stop this App from authenticating API requests, without deleting its history or its Client ID. If a Client ID has been compromised, disabling it here takes effect right away.</p>
   <div class="button-container">
     <input type="submit" class="button radius success expanded" value="Save"/>
   </div>
 </form>
+<c:if test="${app.id ne -1}">
+  <p class="help-text">To permanently remove this App instead, use the Delete action on the <a href="${ctx}/admin/apps">Apps list</a>. Prefer Delete over Enabled=No once a leaked credential has been confirmed and you've verified nothing else still needs its audit history -- Delete cannot be undone.</p>
+</c:if>
