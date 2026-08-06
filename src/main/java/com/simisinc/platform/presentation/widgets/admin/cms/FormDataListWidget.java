@@ -65,6 +65,52 @@ public class FormDataListWidget extends GenericWidget {
     // Determine the filter criteria (issue #563 -- this page previously had zero filter controls)
     String formUniqueId = context.getParameter("formUniqueId");
     String status = context.getParameter("status");
+    String spam = context.getParameter("spam");
+    String fromDate = context.getParameter("fromDate");
+    String toDate = context.getParameter("toDate");
+
+    FormDataSpecification specification = buildSpecificationFromParameters(context);
+
+    // Load the latest form data
+    List<FormData> formDataList = FormDataRepository.findAll(specification, constraints);
+    context.getRequest().setAttribute("formDataList", formDataList);
+
+    // Echo the filter values back so the form keeps its state
+    context.getRequest().setAttribute("formUniqueId", formUniqueId);
+    context.getRequest().setAttribute("status", StringUtils.isBlank(status) ? "awaiting" : status);
+    context.getRequest().setAttribute("spam", spam);
+    context.getRequest().setAttribute("fromDate", fromDate);
+    context.getRequest().setAttribute("toDate", toDate);
+
+    // Carry the filters through pagination (paging_control.jspf appends this to each page link)
+    StringBuilder pagingParams = new StringBuilder();
+    appendParam(pagingParams, "formUniqueId", formUniqueId);
+    appendParam(pagingParams, "status", status);
+    appendParam(pagingParams, "spam", spam);
+    appendParam(pagingParams, "fromDate", fromDate);
+    appendParam(pagingParams, "toDate", toDate);
+    context.getRequest().setAttribute("recordPagingParams", pagingParams.toString());
+
+    // Standard request items
+    context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));
+    context.getRequest().setAttribute("title", context.getPreferences().get("title"));
+
+    // Show the editor
+    context.setJsp(JSP);
+    return context;
+  }
+
+  /**
+   * Builds the on-screen list's filter criteria from the current request parameters (issue #563's
+   * formUniqueId/status/fromDate/toDate filters). Shared by {@link #execute} (the on-screen list)
+   * and {@link #downloadCSVFile} (the CSV export) so the export can never drift from what's actually
+   * filtered on screen -- previously downloadCSVFile() ignored these parameters entirely and always
+   * exported the whole form_data table regardless of the active filters.
+   */
+  private FormDataSpecification buildSpecificationFromParameters(WidgetContext context) {
+    String formUniqueId = context.getParameter("formUniqueId");
+    String status = context.getParameter("status");
+    String spam = context.getParameter("spam");
     String fromDate = context.getParameter("fromDate");
     String toDate = context.getParameter("toDate");
 
@@ -83,6 +129,12 @@ public class FormDataListWidget extends GenericWidget {
       specification.setDismissed(false);
       specification.setProcessed(false);
     }
+    if ("flagged".equalsIgnoreCase(spam)) {
+      specification.setFlaggedAsSpam(true);
+    } else if ("excluded".equalsIgnoreCase(spam)) {
+      specification.setFlaggedAsSpam(false);
+    }
+    // Else "All" (blank/missing) -- flaggedAsSpam stays DataConstants.UNDEFINED, no WHERE clause added
     Timestamp from = parseDate(fromDate, 0);
     Timestamp to = parseDate(toDate, 1);
     if (from != null) {
@@ -91,32 +143,7 @@ public class FormDataListWidget extends GenericWidget {
     if (to != null) {
       specification.setOccurredBefore(to);
     }
-
-    // Load the latest form data
-    List<FormData> formDataList = FormDataRepository.findAll(specification, constraints);
-    context.getRequest().setAttribute("formDataList", formDataList);
-
-    // Echo the filter values back so the form keeps its state
-    context.getRequest().setAttribute("formUniqueId", formUniqueId);
-    context.getRequest().setAttribute("status", StringUtils.isBlank(status) ? "awaiting" : status);
-    context.getRequest().setAttribute("fromDate", fromDate);
-    context.getRequest().setAttribute("toDate", toDate);
-
-    // Carry the filters through pagination (paging_control.jspf appends this to each page link)
-    StringBuilder pagingParams = new StringBuilder();
-    appendParam(pagingParams, "formUniqueId", formUniqueId);
-    appendParam(pagingParams, "status", status);
-    appendParam(pagingParams, "fromDate", fromDate);
-    appendParam(pagingParams, "toDate", toDate);
-    context.getRequest().setAttribute("recordPagingParams", pagingParams.toString());
-
-    // Standard request items
-    context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));
-    context.getRequest().setAttribute("title", context.getPreferences().get("title"));
-
-    // Show the editor
-    context.setJsp(JSP);
-    return context;
+    return specification;
   }
 
   /** Appends {@code name=urlEncoded(value)} to the paging query string when the value is present. */
@@ -210,7 +237,10 @@ public class FormDataListWidget extends GenericWidget {
     String displayFilename = "form-data-" + new SimpleDateFormat("yyyyMMdd-HHmm").format(new Date()) + "." + extension;
     File tempFile = FileSystemCommand.generateTempFile("exports", context.getUserId(), extension);
     try {
-      FormDataRepository.export(null, tempFile);
+      // Scope the export to the same filters currently applied to the on-screen list, instead of
+      // unconditionally dumping the whole form_data table
+      FormDataSpecification specification = buildSpecificationFromParameters(context);
+      FormDataRepository.export(specification, null, tempFile);
       String mimeType = "text/csv";
       MultipartFileSender.fromFile(tempFile)
           .with(context.getRequest())

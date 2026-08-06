@@ -93,6 +93,39 @@ class UserFormWidgetTest extends WidgetBase {
   }
 
   @Test
+  void executeExposesActingRoleLevelForCommunityManager() {
+    // user-form.jsp hides a role checkbox when role.level > actingRoleLevel (and not already held),
+    // and renders it checked+disabled when it is already held -- mirroring users-list.jsp's New User
+    // form. A community-manager (level 90) must not be offered admin (100).
+    setRoles(widgetContext, COMMUNITY_MANAGER);
+    try (MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
+        MockedStatic<GroupRepository> groupRepo = mockStatic(GroupRepository.class)) {
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
+      groupRepo.when(GroupRepository::findAll).thenReturn(new ArrayList<>());
+
+      new UserFormWidget().execute(widgetContext);
+
+      Assertions.assertEquals(90, widgetContext.getRequest().getAttribute("actingRoleLevel"),
+          "the edit-user form must only be able to offer roles at/below the community-manager's own level");
+    }
+  }
+
+  @Test
+  void executeExposesActingRoleLevelForAdmin() {
+    setRoles(widgetContext, ADMIN);
+    try (MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
+        MockedStatic<GroupRepository> groupRepo = mockStatic(GroupRepository.class)) {
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
+      groupRepo.when(GroupRepository::findAll).thenReturn(new ArrayList<>());
+
+      new UserFormWidget().execute(widgetContext);
+
+      Assertions.assertEquals(100, widgetContext.getRequest().getAttribute("actingRoleLevel"),
+          "an admin must still be offered every role, including admin itself");
+    }
+  }
+
+  @Test
   void postWithoutStepUpShowsReAuthPanel() throws Exception {
     setRoles(widgetContext, ADMIN);
     addQueryParameter(widgetContext, "id", "-1");

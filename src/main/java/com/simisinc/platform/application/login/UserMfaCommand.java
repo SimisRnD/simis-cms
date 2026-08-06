@@ -89,8 +89,9 @@ public class UserMfaCommand {
    * Turns MFA off for a user and clears the stored secret.
    *
    * @param user the user
+   * @return true when the underlying database write succeeded, false if it failed
    */
-  public static void disable(User user) {
-    UserRepository.disableMfa(user);
+  public static boolean disable(User user) {
+    return UserRepository.disableMfa(user) != null;
   }
 }
