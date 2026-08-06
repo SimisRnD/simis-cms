@@ -47,6 +47,10 @@ public class FormDataRepository {
   private static String TABLE_NAME = "form_data";
   private static String[] PRIMARY_KEY = new String[]{"form_data_id"};
 
+  private static final int DEFAULT_RETENTION_DAYS = 90;
+  private static final int MIN_RETENTION_DAYS = 7;
+  private static final int MAX_RETENTION_DAYS = 3650;
+
   public static long countAwaitingReview() {
     SqlUtils where = new SqlUtils()
         .add("processed IS NULL")
@@ -307,6 +311,45 @@ public class FormDataRepository {
       record.setProcessedBy(userId);
     }
     return updated;
+  }
+
+  /**
+   * Deletes form_data rows that have reached a terminal state (an admin has processed or dismissed
+   * them) whose terminal timestamp is past the configured retention window. Rows still awaiting
+   * review (both processed and dismissed are null) are never touched here, regardless of age -- they
+   * represent unactioned work an admin may still need to see. GREATEST(processed, dismissed) ignores
+   * nulls in PostgreSQL, so it resolves to whichever of the two is set, or the later of the two if
+   * both are (e.g. dismissed, then later reopened and processed) -- "time since this became terminal",
+   * not "time since creation". Mirrors FormSubmissionFailureRepository.deleteOlderThan. Returns the
+   * number of rows removed.
+   */
+  public static int deleteOlderThan(int days) {
+    if (days < 1) {
+      return 0;
+    }
+    return DB.deleteFrom(TABLE_NAME, new SqlUtils()
+        .add("(processed IS NOT NULL OR dismissed IS NOT NULL)")
+        .add("GREATEST(processed, dismissed) < NOW() - INTERVAL '" + days + " days'"));
+  }
+
+  /** Parses the configured retention window to a bounded positive integer, defaulting to 90 days. */
+  public static int resolveRetentionDays(String value) {
+    if (StringUtils.isBlank(value)) {
+      return DEFAULT_RETENTION_DAYS;
+    }
+    int days;
+    try {
+      days = Integer.parseInt(value.trim());
+    } catch (NumberFormatException e) {
+      return DEFAULT_RETENTION_DAYS;
+    }
+    if (days < MIN_RETENTION_DAYS) {
+      return MIN_RETENTION_DAYS;
+    }
+    if (days > MAX_RETENTION_DAYS) {
+      return MAX_RETENTION_DAYS;
+    }
+    return days;
   }
 
   private static FormData buildRecord(ResultSet rs) {
