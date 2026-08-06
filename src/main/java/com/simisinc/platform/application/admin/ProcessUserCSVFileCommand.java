@@ -132,7 +132,10 @@ public class ProcessUserCSVFileCommand {
           String[] groups = record.getString("Groups").split(",");
           for (String group : groups) {
             String groupValue = group.trim();
-            if ("All Users".equals(groupValue)) {
+            // "All Guests" has no checkbox on the manual New User/edit-user forms (see
+            // users-list.jsp's New User modal, "not a logged in user group") -- keep this import
+            // path from being able to grant it to a real, logged-in user either.
+            if ("All Users".equals(groupValue) || "All Guests".equals(groupValue)) {
               continue;
             }
             Group thisGroup = GroupRepository.findByName(groupValue);
