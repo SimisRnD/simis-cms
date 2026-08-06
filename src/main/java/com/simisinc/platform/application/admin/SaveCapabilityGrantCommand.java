@@ -16,14 +16,19 @@
 
 package com.simisinc.platform.application.admin;
 
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.domain.model.Capability;
 import com.simisinc.platform.domain.model.CapabilityGrant;
 import com.simisinc.platform.domain.model.User;
+import com.simisinc.platform.infrastructure.database.DB;
 import com.simisinc.platform.infrastructure.persistence.CapabilityGrantRepository;
 import com.simisinc.platform.infrastructure.persistence.RoleCapabilityRepository;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
@@ -38,6 +43,8 @@ import com.simisinc.platform.presentation.controller.WidgetContext;
  * @author elizabeth houser
  */
 public class SaveCapabilityGrantCommand {
+
+  private static Log LOG = LogFactory.getLog(SaveCapabilityGrantCommand.class);
 
   /**
    * Same capability, same self-lockout rationale, as SaveRoleCapabilitiesCommand's
@@ -97,21 +104,8 @@ public class SaveCapabilityGrantCommand {
     }
 
     if (ADMIN_MANAGE_CAPABILITY.equals(capabilityGrant.getCapabilityCode())) {
-      // Effective holders after hypothetically removing *this grant's* contribution - a user
-      // covered by a role that also grants admin:manage is still fine without this direct grant,
-      // so they must not count against the "would this leave zero holders" check.
-      long remainingHoldersAfterRevoke = RoleCapabilityRepository.countDistinctUsersHoldingCapability(
-          capabilityGrant.getCapabilityId(), -1, capabilityGrant.getId());
-      if (remainingHoldersAfterRevoke == 0) {
-        AuditEventCommand.record(context, AuditEventCommand.AUTHORIZATION, "capability_grant.revoke",
-            AuditEventCommand.FAILURE, "capability_grant", capabilityGrant.getCapabilityCode(),
-            targetUser.getUsername(), "Refused: revoking " + targetUser.getUsername() +
-                "'s direct grant would leave no user holding this capability, via any role or direct grant");
-        throw new DataException("Cannot revoke \"" + capabilityGrant.getCapabilityCode() + "\" from " +
-            targetUser.getUsername() + " - no one would be left holding it, via any role or direct grant, " +
-            "and nobody could use this page to grant it back. Grant it to a role or another user first if " +
-            "you really want to remove it here.");
-      }
+      revokeAdminManageGrantGuarded(context, capabilityGrant, targetUser, reason);
+      return;
     }
 
     boolean wasRevoked = CapabilityGrantRepository.revoke(capabilityGrant.getId());
@@ -121,5 +115,91 @@ public class SaveCapabilityGrantCommand {
     AuditEventCommand.record(context, AuditEventCommand.AUTHORIZATION, "capability_grant.revoke",
         AuditEventCommand.SUCCESS, "capability_grant", capabilityGrant.getCapabilityCode(),
         targetUser.getUsername(), reason);
+  }
+
+  /**
+   * Validates and applies the admin:manage revoke for {@code capabilityGrant} as a single
+   * transaction, serialized by RoleCapabilityRepository's admin:manage guard lock, so the
+   * check-then-revoke is atomic with respect to every other concurrent admin:manage revoke -
+   * whether another direct grant here or a role's grant via SaveRoleCapabilitiesCommand. Without
+   * this, two concurrent revokes could each count the other's still-live holder, both pass the
+   * guard, and both commit, leaving zero effective holders. Throws DataException, and records the
+   * matching FAILURE audit event, without revoking anything, if this would leave zero effective
+   * holders.
+   */
+  private static void revokeAdminManageGrantGuarded(WidgetContext context, CapabilityGrant capabilityGrant,
+      User targetUser, String reason) throws DataException {
+    Connection connection = null;
+    boolean priorAutoCommit = true;
+    boolean safeToRevoke;
+    boolean wasRevoked = false;
+    try {
+      connection = DB.getConnection();
+      priorAutoCommit = connection.getAutoCommit();
+      connection.setAutoCommit(false);
+      RoleCapabilityRepository.acquireAdminManageGuardLock(connection);
+
+      // Effective holders after hypothetically removing *this grant's* contribution - a user
+      // covered by a role that also grants admin:manage is still fine without this direct grant,
+      // so they must not count against the "would this leave zero holders" check.
+      long remainingHoldersAfterRevoke = RoleCapabilityRepository.countDistinctUsersHoldingCapability(
+          connection, capabilityGrant.getCapabilityId(), -1, capabilityGrant.getId());
+      safeToRevoke = remainingHoldersAfterRevoke > 0;
+      if (safeToRevoke) {
+        wasRevoked = CapabilityGrantRepository.revoke(connection, capabilityGrant.getId());
+      }
+      connection.commit();
+    } catch (SQLException se) {
+      rollbackQuietly(connection);
+      LOG.error("Guarded admin:manage revoke failed for grant " + capabilityGrant.getId() + ": " +
+          se.getMessage(), se);
+      throw new DataException("Could not revoke \"" + capabilityGrant.getCapabilityCode() + "\" from " +
+          targetUser.getUsername() + " - a database error occurred while checking whether this would be safe");
+    } finally {
+      closeQuietly(connection, priorAutoCommit);
+    }
+
+    if (!safeToRevoke) {
+      AuditEventCommand.record(context, AuditEventCommand.AUTHORIZATION, "capability_grant.revoke",
+          AuditEventCommand.FAILURE, "capability_grant", capabilityGrant.getCapabilityCode(),
+          targetUser.getUsername(), "Refused: revoking " + targetUser.getUsername() +
+              "'s direct grant would leave no user holding this capability, via any role or direct grant");
+      throw new DataException("Cannot revoke \"" + capabilityGrant.getCapabilityCode() + "\" from " +
+          targetUser.getUsername() + " - no one would be left holding it, via any role or direct grant, " +
+          "and nobody could use this page to grant it back. Grant it to a role or another user first if " +
+          "you really want to remove it here.");
+    }
+    if (!wasRevoked) {
+      throw new DataException("The capability grant could not be revoked");
+    }
+    AuditEventCommand.record(context, AuditEventCommand.AUTHORIZATION, "capability_grant.revoke",
+        AuditEventCommand.SUCCESS, "capability_grant", capabilityGrant.getCapabilityCode(),
+        targetUser.getUsername(), reason);
+  }
+
+  private static void rollbackQuietly(Connection connection) {
+    if (connection != null) {
+      try {
+        connection.rollback();
+      } catch (SQLException se) {
+        LOG.error("Guarded admin:manage revoke rollback failed: " + se.getMessage());
+      }
+    }
+  }
+
+  private static void closeQuietly(Connection connection, boolean priorAutoCommit) {
+    if (connection == null) {
+      return;
+    }
+    try {
+      connection.setAutoCommit(priorAutoCommit);
+    } catch (SQLException se) {
+      LOG.debug("Could not restore autoCommit on the pooled connection");
+    }
+    try {
+      connection.close();
+    } catch (SQLException se) {
+      LOG.debug("Could not close the pooled connection");
+    }
   }
 }
