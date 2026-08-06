@@ -79,6 +79,21 @@ class PageServletTest {
   }
 
   @Test
+  void isGuestAuthPageMatchesOnlyTheThreeGuestFacingAuthPaths() {
+    // Regression test for issue #1005: these three (and only these three) get header/branding
+    // even while site.online is false, so a guest isn't dropped on a bare, unbranded form.
+    assertTrue(PageServlet.isGuestAuthPage("/login"));
+    assertTrue(PageServlet.isGuestAuthPage("/register"));
+    assertTrue(PageServlet.isGuestAuthPage("/forgot-password"));
+
+    assertFalse(PageServlet.isGuestAuthPage("/logout"));
+    assertFalse(PageServlet.isGuestAuthPage("/login/"));
+    assertFalse(PageServlet.isGuestAuthPage("/admin"));
+    assertFalse(PageServlet.isGuestAuthPage(""));
+    assertFalse(PageServlet.isGuestAuthPage(null));
+  }
+
+  @Test
   void generateJsonLdDataEscapesAPoisonedProductName() {
     // Regression test for issue #403: this used to poison an Item name to reach the Product
     // block, back when Product was (incorrectly) sourced from the generic Items/Collections

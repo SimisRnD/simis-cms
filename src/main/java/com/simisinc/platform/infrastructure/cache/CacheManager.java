@@ -97,8 +97,8 @@ public class CacheManager {
     LoadingCache<String, List<SiteProperty>> sitePropertyListCache = Caffeine.newBuilder()
         .maximumSize(10_000)
         .recordStats()
-//        .expireAfterWrite(5, TimeUnit.MINUTES)
-//        .refreshAfterWrite(1, TimeUnit.MINUTES)
+        .expireAfterWrite(5, TimeUnit.MINUTES)
+        .refreshAfterWrite(1, TimeUnit.MINUTES)
         .build(SitePropertyRepository::findAllByPrefix);
     cacheManager.put(SYSTEM_PROPERTY_PREFIX_CACHE, sitePropertyListCache);
 
@@ -106,8 +106,8 @@ public class CacheManager {
     LoadingCache<String, App> appCache = Caffeine.newBuilder()
         .maximumSize(1_000)
         .recordStats()
-//        .expireAfterWrite(5, TimeUnit.MINUTES)
-//        .refreshAfterWrite(1, TimeUnit.MINUTES)
+        .expireAfterWrite(5, TimeUnit.MINUTES)
+        .refreshAfterWrite(1, TimeUnit.MINUTES)
         .build(AppRepository::findByPublicKey);
     cacheManager.put(APP_CACHE, appCache);
 
@@ -123,8 +123,8 @@ public class CacheManager {
     LoadingCache<Long, Stylesheet> stylesheetCache = Caffeine.newBuilder()
         .maximumSize(100)
         .recordStats()
-//        .expireAfterWrite(5, TimeUnit.MINUTES)
-//        .refreshAfterWrite(1, TimeUnit.MINUTES)
+        .expireAfterWrite(5, TimeUnit.MINUTES)
+        .refreshAfterWrite(1, TimeUnit.MINUTES)
         .build(StylesheetRepository::findByWebPageId);
     cacheManager.put(STYLESHEET_WEB_PAGE_ID_CACHE, stylesheetCache);
 
@@ -132,8 +132,8 @@ public class CacheManager {
     LoadingCache<String, Content> contentCache = Caffeine.newBuilder()
         .maximumSize(10_000)
         .recordStats()
-//        .expireAfterWrite(5, TimeUnit.MINUTES)
-//        .refreshAfterWrite(1, TimeUnit.MINUTES)
+        .expireAfterWrite(5, TimeUnit.MINUTES)
+        .refreshAfterWrite(1, TimeUnit.MINUTES)
         .build(ContentRepository::findByUniqueId);
     cacheManager.put(CONTENT_UNIQUE_ID_CACHE, contentCache);
 
@@ -149,8 +149,8 @@ public class CacheManager {
     LoadingCache<String, Collection> collectionCache = Caffeine.newBuilder()
         .maximumSize(100)
         .recordStats()
-//        .expireAfterWrite(5, TimeUnit.MINUTES)
-//        .refreshAfterWrite(1, TimeUnit.MINUTES)
+        .expireAfterWrite(5, TimeUnit.MINUTES)
+        .refreshAfterWrite(1, TimeUnit.MINUTES)
         .build(CollectionRepository::findByUniqueId);
     cacheManager.put(COLLECTION_UNIQUE_ID_CACHE, collectionCache);
 
@@ -158,8 +158,8 @@ public class CacheManager {
     LoadingCache<String, TableOfContents> tableOfContentsCache = Caffeine.newBuilder()
         .maximumSize(100)
         .recordStats()
-//        .expireAfterWrite(5, TimeUnit.MINUTES)
-//        .refreshAfterWrite(1, TimeUnit.MINUTES)
+        .expireAfterWrite(5, TimeUnit.MINUTES)
+        .refreshAfterWrite(1, TimeUnit.MINUTES)
         .build(TableOfContentsRepository::findByUniqueId);
     cacheManager.put(TABLE_OF_CONTENTS_UNIQUE_ID_CACHE, tableOfContentsCache);
 

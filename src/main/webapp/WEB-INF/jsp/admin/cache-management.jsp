@@ -24,11 +24,11 @@
   <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
 <%@include file="../page_messages.jspf" %>
-<p class="small">
-  In-memory application caches (Caffeine) -- clearing a cache is immediate and does not require a
-  restart, and the next request simply reloads what it needs. Hit/miss/eviction counts accumulate
-  from the moment the application started, so they will read low right after a deploy.
-</p>
+<div class="callout primary radius">
+  <h6>What this page shows</h6>
+  <p>In-memory application caches (Caffeine) -- content/config caches (site properties, page content, collections, stylesheets, apps, table of contents), security caches (login/IP/app rate limiting), and a general-purpose object cache. Clearing one is immediate and needs no restart; the next request simply reloads what it needs from the database.</p>
+  <p>Hit/miss/eviction counts accumulate from the moment the application started, so they'll read low right after a deploy. "Last Cleared" only tracks an explicit clear from this page -- a cache that has silently expired and reloaded on its own (see below) still shows &#8212; there.</p>
+</div>
 
 <p>
   <a href="#" onclick="return confirmPostAction('Clear ALL caches? This cannot be undone.', '${widgetContext.uri}?command=clearAll&widget=${widgetContext.uniqueId}&token=${userSession.formToken}');" class="button alert">Clear All Caches</a>
@@ -80,4 +80,18 @@
     </c:forEach>
   </tbody>
 </table>
+</div>
+
+<h5>When to worry</h5>
+<div class="callout warning radius">
+  <p><strong>Evictions</strong> aren't automatically a problem -- Caffeine drops the least-recently-used entries once a cache hits its size cap, which is normal for a cache that's actually being used. Worth a look only if a cache with a high eviction count also has a low hit rate: that combination means entries are being pushed out before they get reused, so the size cap may be too small for real traffic.</p>
+  <p><strong>A low hit rate isn't automatically bad</strong> either -- some of these caches (the rate-limit ones especially) are naturally low-hit by design. It's only worth investigating for the content/config caches (site properties, page content, collections, stylesheets), where a persistently low hit rate suggests the cache isn't helping much for the traffic pattern this site actually gets.</p>
+  <p>If content you just edited still looks stale after a normal page reload, <strong>Clear</strong> the specific cache rather than <strong>Clear All Caches</strong> -- it's just as immediate and doesn't discard everything else that's still warm and useful.</p>
+</div>
+
+<h5>For Azure</h5>
+<div class="callout radius">
+  <p>These caches live in each instance's own memory, not anywhere shared. Clicking Clear (or Clear All) here only clears whichever Azure App Service instance happens to answer that click -- on more than one instance, the others aren't touched by it.</p>
+  <p>Every cache on this page now has a time-based backstop, so a value that's gone stale on a non-writing instance self-heals on its own: the content/config caches (site properties, page content, collections, stylesheets, apps, table of contents) refresh within about a minute of being accessed and fully expire within 5 minutes even if nothing accesses them; the rate-limit and object caches were already bounded (15 minutes to 24 hours, matching what each one is actually used for). None of them stay stale forever, even without a manual Clear on every instance.</p>
+  <p>That bound doesn't make this a distributed cache -- an edit still won't be instantly visible on every instance the moment you save it, just within the window above. If that gap ever becomes a real problem (e.g. for something that needs to be consistent immediately across instances), that would call for a proper shared/distributed cache, which is a separate, larger piece of work from what's here today.</p>
 </div>
