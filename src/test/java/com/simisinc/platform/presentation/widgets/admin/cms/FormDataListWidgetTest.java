@@ -285,6 +285,87 @@ class FormDataListWidgetTest extends WidgetBase {
   }
 
   @Test
+  void executeSpamFlaggedSetsFlaggedAsSpamTrue() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"formDataList\">\n" +
+        "  <title>Submitted Forms</title>\n" +
+        "</widget>");
+    addQueryParameter(widgetContext, "spam", "flagged");
+
+    ArgumentCaptor<FormDataSpecification> specCaptor = ArgumentCaptor.forClass(FormDataSpecification.class);
+    try (MockedStatic<FormDataRepository> formDataRepositoryMockedStatic = mockStatic(FormDataRepository.class)) {
+      formDataRepositoryMockedStatic.when(() -> FormDataRepository.findAll(specCaptor.capture(), any())).thenReturn(new ArrayList<>());
+
+      setRoles(widgetContext, ADMIN);
+      FormDataListWidget widget = new FormDataListWidget();
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals(DataConstants.TRUE, specCaptor.getValue().getFlaggedAsSpam());
+    Assertions.assertEquals("flagged", request.getAttribute("spam"));
+  }
+
+  @Test
+  void executeSpamExcludedSetsFlaggedAsSpamFalse() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"formDataList\">\n" +
+        "  <title>Submitted Forms</title>\n" +
+        "</widget>");
+    addQueryParameter(widgetContext, "spam", "excluded");
+
+    ArgumentCaptor<FormDataSpecification> specCaptor = ArgumentCaptor.forClass(FormDataSpecification.class);
+    try (MockedStatic<FormDataRepository> formDataRepositoryMockedStatic = mockStatic(FormDataRepository.class)) {
+      formDataRepositoryMockedStatic.when(() -> FormDataRepository.findAll(specCaptor.capture(), any())).thenReturn(new ArrayList<>());
+
+      setRoles(widgetContext, ADMIN);
+      FormDataListWidget widget = new FormDataListWidget();
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals(DataConstants.FALSE, specCaptor.getValue().getFlaggedAsSpam());
+    Assertions.assertEquals("excluded", request.getAttribute("spam"));
+  }
+
+  @Test
+  void executeDefaultSpamAppliesNoSpamFilter() {
+    // No spam param -- "All" is the default, and unlike status this applies NO filter at all
+    // (flaggedAsSpam stays DataConstants.UNDEFINED so the repository doesn't add a WHERE clause).
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"formDataList\">\n" +
+        "  <title>Submitted Forms</title>\n" +
+        "</widget>");
+
+    ArgumentCaptor<FormDataSpecification> specCaptor = ArgumentCaptor.forClass(FormDataSpecification.class);
+    try (MockedStatic<FormDataRepository> formDataRepositoryMockedStatic = mockStatic(FormDataRepository.class)) {
+      formDataRepositoryMockedStatic.when(() -> FormDataRepository.findAll(specCaptor.capture(), any())).thenReturn(new ArrayList<>());
+
+      setRoles(widgetContext, ADMIN);
+      FormDataListWidget widget = new FormDataListWidget();
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals(DataConstants.UNDEFINED, specCaptor.getValue().getFlaggedAsSpam());
+  }
+
+  @Test
+  void executeSpamFilterIsCarriedThroughPagingParams() {
+    // Pagination must preserve the spam filter the same way it preserves formUniqueId/status/dates
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"formDataList\">\n" +
+        "  <title>Submitted Forms</title>\n" +
+        "</widget>");
+    addQueryParameter(widgetContext, "spam", "flagged");
+
+    try (MockedStatic<FormDataRepository> formDataRepositoryMockedStatic = mockStatic(FormDataRepository.class)) {
+      formDataRepositoryMockedStatic.when(() -> FormDataRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+
+      setRoles(widgetContext, ADMIN);
+      FormDataListWidget widget = new FormDataListWidget();
+      widget.execute(widgetContext);
+    }
+
+    String pagingParams = (String) request.getAttribute("recordPagingParams");
+    Assertions.assertNotNull(pagingParams);
+    Assertions.assertTrue(pagingParams.contains("spam=flagged"));
+  }
+
+  @Test
   void executeFormUniqueIdAndDateRangeAreAppliedAndEchoedBack() {
     addPreferencesFromWidgetXml(widgetContext, "<widget name=\"formDataList\">\n" +
         "  <title>Submitted Forms</title>\n" +
