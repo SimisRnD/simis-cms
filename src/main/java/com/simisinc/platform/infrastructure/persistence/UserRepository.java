@@ -102,8 +102,15 @@ public class UserRepository {
         }
       }
     }
+    // Uses buildSummaryRecord rather than buildRecord: list-style queries (the /admin/users list,
+    // the editorial-calendar author dropdown, the user lookup autocomplete) never read
+    // User#getMfaSecret(), only the separate mfa_enabled boolean, so there is no reason to pay for
+    // a SecretCryptoCommand.decrypt() call (and its ERROR log on a misconfigured CMS_SECRET_KEY)
+    // on every MFA-enabled row of every list render. Single-record lookups (findByUserId,
+    // findByUsername, etc., used by login/MFA-verification flows that do need the plaintext seed)
+    // still go through buildRecord via DB.selectRecordFrom.
     return DB.selectAllFrom(
-        TABLE_NAME, select, where, orderBy, constraints, UserRepository::buildRecord);
+        TABLE_NAME, select, where, orderBy, constraints, UserRepository::buildSummaryRecord);
   }
 
   public static User findByUniqueId(String uniqueId) {
@@ -639,46 +646,73 @@ public class UserRepository {
     return false;
   }
 
+  /**
+   * The full row mapper, used by single-record lookups (by id, username, email, account token,
+   * etc.) where a caller may legitimately need the plaintext TOTP seed -- e.g. login/MFA
+   * verification. Decrypts mfa_secret on every call.
+   */
   private static User buildRecord(ResultSet rs) {
     try {
-      User record = new User();
-      record.setId(rs.getLong("user_id"));
-      record.setUniqueId(rs.getString("unique_id"));
-      record.setFirstName(rs.getString("first_name"));
-      record.setLastName(rs.getString("last_name"));
-      record.setOrganization(rs.getString("organization"));
-      record.setNickname(rs.getString("nickname"));
-      record.setEmail(rs.getString("email"));
-      record.setUsername(rs.getString("username"));
-      record.setPassword(rs.getString("password"));
-      record.setEnabled(rs.getBoolean("enabled"));
-      record.setCreated(rs.getTimestamp("created"));
-      record.setModified(rs.getTimestamp("modified"));
-      record.setAccountToken(rs.getString("account_token"));
-      record.setAccountTokenExpires(rs.getTimestamp("account_token_expires"));
-      record.setValidated(rs.getTimestamp("validated"));
-      record.setCreatedBy(rs.getLong("created_by"));
-      record.setModifiedBy(rs.getLong("modified_by"));
-      record.setTitle(rs.getString("title"));
-      record.setDepartment(rs.getString("department"));
-      record.setTimeZone(rs.getString("timezone"));
-      record.setCity(rs.getString("city"));
-      record.setState(rs.getString("state"));
-      record.setCountry(rs.getString("country"));
-      record.setPostalCode(rs.getString("postal_code"));
-      record.setLatitude(rs.getDouble("latitude"));
-      record.setLongitude(rs.getDouble("longitude"));
+      User record = buildSummaryFields(rs);
       // Decrypt the at-rest TOTP seed so callers always see plaintext (legacy plaintext passes through unchanged)
       record.setMfaSecret(SecretCryptoCommand.decrypt(rs.getString("mfa_secret")));
-      record.setMfaEnabled(rs.getBoolean("mfa_enabled"));
-      record.setFailedAttemptCount(rs.getInt("failed_attempt_count"));
-      record.setLockedUntil(rs.getTimestamp("locked_until"));
-      record.setLastPasswordChangedAt(rs.getTimestamp("last_password_changed_at"));
-      record.setSuspensionReason(rs.getString("suspension_reason"));
       return record;
     } catch (SQLException se) {
       LOG.error("buildRecord", se);
       return null;
     }
+  }
+
+  /**
+   * The row mapper used by list-style/multi-record queries (query(), i.e. findAll() and its
+   * callers such as the /admin/users list, the editorial-calendar author dropdown, and the user
+   * lookup autocomplete). None of those read User#getMfaSecret() -- only the separate mfa_enabled
+   * boolean -- so this skips the SecretCryptoCommand.decrypt() call that buildRecord() pays on
+   * every MFA-enabled row. mfaSecret is left null on the returned records.
+   */
+  private static User buildSummaryRecord(ResultSet rs) {
+    try {
+      return buildSummaryFields(rs);
+    } catch (SQLException se) {
+      LOG.error("buildSummaryRecord", se);
+      return null;
+    }
+  }
+
+  /** Populates every User field shared by buildRecord() and buildSummaryRecord() except mfaSecret. */
+  private static User buildSummaryFields(ResultSet rs) throws SQLException {
+    User record = new User();
+    record.setId(rs.getLong("user_id"));
+    record.setUniqueId(rs.getString("unique_id"));
+    record.setFirstName(rs.getString("first_name"));
+    record.setLastName(rs.getString("last_name"));
+    record.setOrganization(rs.getString("organization"));
+    record.setNickname(rs.getString("nickname"));
+    record.setEmail(rs.getString("email"));
+    record.setUsername(rs.getString("username"));
+    record.setPassword(rs.getString("password"));
+    record.setEnabled(rs.getBoolean("enabled"));
+    record.setCreated(rs.getTimestamp("created"));
+    record.setModified(rs.getTimestamp("modified"));
+    record.setAccountToken(rs.getString("account_token"));
+    record.setAccountTokenExpires(rs.getTimestamp("account_token_expires"));
+    record.setValidated(rs.getTimestamp("validated"));
+    record.setCreatedBy(rs.getLong("created_by"));
+    record.setModifiedBy(rs.getLong("modified_by"));
+    record.setTitle(rs.getString("title"));
+    record.setDepartment(rs.getString("department"));
+    record.setTimeZone(rs.getString("timezone"));
+    record.setCity(rs.getString("city"));
+    record.setState(rs.getString("state"));
+    record.setCountry(rs.getString("country"));
+    record.setPostalCode(rs.getString("postal_code"));
+    record.setLatitude(rs.getDouble("latitude"));
+    record.setLongitude(rs.getDouble("longitude"));
+    record.setMfaEnabled(rs.getBoolean("mfa_enabled"));
+    record.setFailedAttemptCount(rs.getInt("failed_attempt_count"));
+    record.setLockedUntil(rs.getTimestamp("locked_until"));
+    record.setLastPasswordChangedAt(rs.getTimestamp("last_password_changed_at"));
+    record.setSuspensionReason(rs.getString("suspension_reason"));
+    return record;
   }
 }
