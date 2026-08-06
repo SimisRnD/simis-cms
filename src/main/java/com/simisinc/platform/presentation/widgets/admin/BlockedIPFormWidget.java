@@ -73,8 +73,10 @@ public class BlockedIPFormWidget extends GenericWidget {
       return context;
     }
 
-    // Skip duplicates
-    if (BlockedIPRepository.findByIpAddress(blockedIPBean.getIpAddress()) != null) {
+    // Skip duplicates, excluding this record's own row so editing an entry without changing its
+    // address (e.g. just the Reason) isn't rejected as a collision with itself
+    BlockedIP existingBlockedIP = BlockedIPRepository.findByIpAddress(blockedIPBean.getIpAddress());
+    if (existingBlockedIP != null && !existingBlockedIP.getId().equals(blockedIPBean.getId())) {
       context.setWarningMessage("IP already exists");
       return context;
     }
