@@ -36,7 +36,7 @@ import static com.simisinc.platform.application.cms.GenerateBlogUniqueIdCommand.
  */
 public class SaveBlogCommand {
 
-  public static final String allowedChars = "abcdefghijklmnopqrstuvwyxz";
+  public static final String allowedChars = "abcdefghijklmnopqrstuvwxyz";
   private static Log LOG = LogFactory.getLog(SaveBlogCommand.class);
 
   public static Blog saveBlog(Blog blogBean) throws DataException {

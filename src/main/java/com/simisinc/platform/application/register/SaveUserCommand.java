@@ -40,7 +40,7 @@ public class SaveUserCommand {
 
   private static Log LOG = LogFactory.getLog(SaveUserCommand.class);
 
-  public static final String allowedChars = "1234567890abcdefghijklmnopqrstuvwyxz";
+  public static final String allowedChars = "1234567890abcdefghijklmnopqrstuvwxyz";
 
   public static User saveUser(User userBean) throws DataException, AccountException {
     return saveUser(userBean, false);
