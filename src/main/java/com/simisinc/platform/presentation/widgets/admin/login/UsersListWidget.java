@@ -348,6 +348,7 @@ public class UsersListWidget extends GenericWidget {
     BulkActor actor = new BulkActor(context);
     int succeeded = 0;
     int skippedSelf = 0;
+    int skippedOutranked = 0;
     int notFound = 0;
     int failed = 0;
     for (Long userId : userIds) {
@@ -360,6 +361,14 @@ public class UsersListWidget extends GenericWidget {
       User user = LoadUserCommand.loadUser(userId);
       if (user == null) {
         ++notFound;
+        continue;
+      }
+      // Nor one that outranks the acting admin -- mirrors the guard UserDetailsWidget's single-
+      // account suspendAccount() already enforces (targetOutranksActor()), so a community-manager,
+      // or a users:manage capability-only grantee with no legacy role, can't use this bulk checkbox
+      // path to suspend an account (e.g. an admin's) the single-user form would refuse to touch.
+      if (UserDetailsWidget.targetOutranksActor(context, user)) {
+        ++skippedOutranked;
         continue;
       }
       User result = UserRepository.suspendAccount(user, reason);
@@ -376,10 +385,10 @@ public class UsersListWidget extends GenericWidget {
     SaveAuditEventCommand.recordAdminEvent(AuditEventCommand.USER_MANAGEMENT, "user.bulk_disable",
         succeeded > 0 ? AuditEventCommand.SUCCESS : AuditEventCommand.FAILURE,
         actor.userId, actor.username, actor.ip, actor.sessionId, "user", null, null,
-        "suspended=" + succeeded + "; skippedSelf=" + skippedSelf + "; notFound=" + notFound
-            + "; failed=" + failed + "; reason=" + reason);
+        "suspended=" + succeeded + "; skippedSelf=" + skippedSelf + "; skippedOutranked=" + skippedOutranked
+            + "; notFound=" + notFound + "; failed=" + failed + "; reason=" + reason);
 
-    setBulkResultMessage(context, "suspended", succeeded, 0, userIds.size(), skippedSelf, notFound, failed);
+    setBulkResultMessage(context, "suspended", succeeded, 0, userIds.size(), skippedSelf, skippedOutranked, notFound, failed);
     context.setRedirect("/admin/users");
     return context;
   }
@@ -530,7 +539,7 @@ public class UsersListWidget extends GenericWidget {
         actor.userId, actor.username, actor.ip, actor.sessionId, "user", null, null,
         "reset=" + succeeded + "; notFound=" + notFound + "; failed=" + failed);
 
-    setBulkResultMessage(context, "sent a password reset email", succeeded, 0, userIds.size(), 0, notFound, failed);
+    setBulkResultMessage(context, "sent a password reset email", succeeded, 0, userIds.size(), 0, 0, notFound, failed);
     context.setRedirect("/admin/users");
     return context;
   }
@@ -615,7 +624,7 @@ public class UsersListWidget extends GenericWidget {
             + "; notFound=" + notFound + "; failed=" + failed);
 
     setBulkResultMessage(context, "granted the " + role.getTitle() + " role", succeeded, alreadyHadRole,
-        userIds.size(), 0, notFound, failed);
+        userIds.size(), 0, 0, notFound, failed);
     context.setRedirect("/admin/users");
     return context;
   }
@@ -696,7 +705,7 @@ public class UsersListWidget extends GenericWidget {
    * in the audit log instead, where every account gets its own event regardless of outcome.
    */
   private void setBulkResultMessage(WidgetContext context, String verb, int succeeded, int alreadyDone,
-      int totalSelected, int skippedSelf, int notFound, int failed) {
+      int totalSelected, int skippedSelf, int skippedOutranked, int notFound, int failed) {
     StringBuilder sb = new StringBuilder();
     sb.append(succeeded).append(" of ").append(totalSelected).append(" selected account")
         .append(totalSelected == 1 ? "" : "s").append(" ").append(verb).append(".");
@@ -705,6 +714,9 @@ public class UsersListWidget extends GenericWidget {
     }
     if (skippedSelf > 0) {
       sb.append(" Skipped: your own account.");
+    }
+    if (skippedOutranked > 0) {
+      sb.append(" Skipped (higher role level than yours): ").append(skippedOutranked).append(".");
     }
     if (notFound > 0) {
       sb.append(" Not found: ").append(notFound).append(".");

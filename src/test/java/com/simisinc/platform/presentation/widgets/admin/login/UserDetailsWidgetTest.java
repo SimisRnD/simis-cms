@@ -54,13 +54,14 @@ import com.simisinc.platform.presentation.controller.WidgetContext;
  * (redirect back to the same page, no error, no repository call). These tests call post() directly, the same
  * method a real request now reaches, so they fail if that dispatch gap reopens.
  *
- * communityManagerCannotSuspendAccountThatOutranksThem / communityManagerCannotRestoreAccountThatOutranksThem
- * guard a separate, pre-existing gap (predates issue #358, unrelated to it): suspendAccount()/restoreAccount()
- * only ever checked "is this my own account" -- neither checked the target's role level against the acting
- * admin's, even though both /admin/users and /admin/user-details are reachable by community-manager (level 90,
- * admin-layout.xml), one level below admin (level 100). Without this guard a community-manager could suspend or
- * restore an admin account outright. Mirrors the escalation guard UserFormWidget already applies to role grants
- * (see UserFormWidgetTest).
+ * communityManagerCannotSuspendAccountThatOutranksThem / communityManagerCannotRestoreAccountThatOutranksThem /
+ * communityManagerCannotDeleteAccountThatOutranksThem guard a shared gap: suspendAccount(), restoreAccount(), and
+ * deleteAccount() only ever checked "is this my own account" -- none checked the target's role level against the
+ * acting admin's, even though both /admin/users and /admin/user-details are reachable by community-manager
+ * (level 90, admin-layout.xml) and, as of the users:manage capability, by a user holding only that capability
+ * with no legacy role at all -- one level below admin (level 100). Without this guard, either could suspend,
+ * restore, or permanently delete an admin account outright. Mirrors the escalation guard UserFormWidget already
+ * applies to role grants (see UserFormWidgetTest). deleteAccount() was the last of the three still missing it.
  *
  * @author Elizabeth Houser
  */
@@ -325,12 +326,15 @@ class UserDetailsWidgetTest extends WidgetBase {
     addQueryParameter(widgetContext, "userId", "5");
     addQueryParameter(widgetContext, "action", "deleteAccount");
 
+    // An admin (level 100) acting on a non-elevated target -- not "outranks".
     User target = activeUser();
 
     try (MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
         MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
         MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
       loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(target);
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
       userRepo.when(() -> UserRepository.remove(target)).thenReturn(true);
 
       WidgetContext result = new UserDetailsWidget().post(widgetContext);
@@ -338,6 +342,62 @@ class UserDetailsWidgetTest extends WidgetBase {
       userRepo.verify(() -> UserRepository.remove(target), times(1));
       audit.verify(() -> AuditEventCommand.record(any(), eq(AuditEventCommand.USER_MANAGEMENT), eq("user.delete"),
           eq(AuditEventCommand.SUCCESS), eq("user"), eq("5"), eq("active@example.com"), any()), times(1));
+      Assertions.assertEquals("Account deleted", result.getSuccessMessage());
+    }
+  }
+
+  @Test
+  void communityManagerCannotDeleteAccountThatOutranksThem() throws Exception {
+    // Without this guard, any user who can reach this page -- including a community-manager, or,
+    // as of the users:manage capability, a user holding only that capability with no role at all --
+    // could permanently delete an admin account, since deleteAccount()'s only other check is
+    // "not yourself".
+    setRoles(widgetContext, COMMUNITY_MANAGER);
+    addQueryParameter(widgetContext, "userId", "5");
+    addQueryParameter(widgetContext, "action", "deleteAccount");
+
+    // The target holds admin (level 100), above the acting community-manager (level 90).
+    User target = adminUser();
+
+    try (MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
+        MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(target);
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
+
+      WidgetContext result = new UserDetailsWidget().post(widgetContext);
+
+      userRepo.verify(() -> UserRepository.remove(any()), never());
+      audit.verifyNoInteractions();
+      Assertions.assertEquals("You cannot delete an account with a higher role level than your own",
+          result.getErrorMessage());
+    }
+  }
+
+  @Test
+  void communityManagerCanDeleteAccountAtOrBelowTheirOwnLevel() throws Exception {
+    setRoles(widgetContext, COMMUNITY_MANAGER);
+    addQueryParameter(widgetContext, "userId", "5");
+    addQueryParameter(widgetContext, "action", "deleteAccount");
+
+    // The target holds community-manager (level 90), at the acting user's own level -- not "outranks".
+    User target = activeUser();
+    List<Role> held = new ArrayList<>();
+    held.add(role(3, 90, "community-manager", "Community Manager"));
+    target.setRoleList(held);
+
+    try (MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
+        MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(target);
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
+      userRepo.when(() -> UserRepository.remove(target)).thenReturn(true);
+
+      WidgetContext result = new UserDetailsWidget().post(widgetContext);
+
+      userRepo.verify(() -> UserRepository.remove(target), times(1));
       Assertions.assertEquals("Account deleted", result.getSuccessMessage());
     }
   }
