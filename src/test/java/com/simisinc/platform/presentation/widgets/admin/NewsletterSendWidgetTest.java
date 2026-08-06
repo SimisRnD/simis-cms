@@ -33,6 +33,8 @@ import org.mockito.MockedStatic;
 
 import com.simisinc.platform.WidgetBase;
 import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.mailinglists.MailChimpCommand;
 import com.simisinc.platform.application.mailinglists.NewsletterSendCommand;
 import com.simisinc.platform.domain.model.cms.BlogPost;
 import com.simisinc.platform.domain.model.mailinglists.MailingList;
@@ -65,15 +67,72 @@ class NewsletterSendWidgetTest extends WidgetBase {
     lists.add(mailingList(2L, "Disabled List", false));
 
     try (MockedStatic<MailingListRepository> listRepo = mockStatic(MailingListRepository.class);
-        MockedStatic<BlogPostRepository> blogRepo = mockStatic(BlogPostRepository.class)) {
+        MockedStatic<BlogPostRepository> blogRepo = mockStatic(BlogPostRepository.class);
+        MockedStatic<MailChimpCommand> mailChimp = mockStatic(MailChimpCommand.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class)) {
       listRepo.when(MailingListRepository::findAll).thenReturn(lists);
       blogRepo.when(() -> BlogPostRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+      mailChimp.when(MailChimpCommand::isEnabled).thenReturn(false);
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName("mail.host_name")).thenReturn("smtp.example.org");
 
       WidgetContext result = new NewsletterSendWidget().execute(widgetContext);
 
       List<MailingList> shown = (List<MailingList>) result.getRequest().getAttribute("mailingLists");
       assertEquals(1, shown.size());
       assertEquals("Active List", shown.get(0).getTitle());
+    }
+  }
+
+  @Test
+  void executeReportsNoSendMethodConfiguredWhenNeitherSmtpNorMailChimpAreSetUp() {
+    try (MockedStatic<MailingListRepository> listRepo = mockStatic(MailingListRepository.class);
+        MockedStatic<BlogPostRepository> blogRepo = mockStatic(BlogPostRepository.class);
+        MockedStatic<MailChimpCommand> mailChimp = mockStatic(MailChimpCommand.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class)) {
+      listRepo.when(MailingListRepository::findAll).thenReturn(new ArrayList<>());
+      blogRepo.when(() -> BlogPostRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+      mailChimp.when(MailChimpCommand::isEnabled).thenReturn(false);
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName("mail.host_name")).thenReturn(null);
+
+      WidgetContext result = new NewsletterSendWidget().execute(widgetContext);
+
+      assertEquals(false, result.getRequest().getAttribute("sendMethodConfigured"));
+    }
+  }
+
+  @Test
+  void executeReportsSendMethodConfiguredWhenSmtpAloneIsSetUp() {
+    try (MockedStatic<MailingListRepository> listRepo = mockStatic(MailingListRepository.class);
+        MockedStatic<BlogPostRepository> blogRepo = mockStatic(BlogPostRepository.class);
+        MockedStatic<MailChimpCommand> mailChimp = mockStatic(MailChimpCommand.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class)) {
+      listRepo.when(MailingListRepository::findAll).thenReturn(new ArrayList<>());
+      blogRepo.when(() -> BlogPostRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+      mailChimp.when(MailChimpCommand::isEnabled).thenReturn(false);
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName("mail.host_name")).thenReturn("smtp.example.org");
+
+      WidgetContext result = new NewsletterSendWidget().execute(widgetContext);
+
+      assertEquals(true, result.getRequest().getAttribute("sendMethodConfigured"));
+      assertEquals(false, result.getRequest().getAttribute("mailChimpEnabled"));
+    }
+  }
+
+  @Test
+  void executeReportsSendMethodConfiguredWhenMailChimpAloneIsEnabled() {
+    try (MockedStatic<MailingListRepository> listRepo = mockStatic(MailingListRepository.class);
+        MockedStatic<BlogPostRepository> blogRepo = mockStatic(BlogPostRepository.class);
+        MockedStatic<MailChimpCommand> mailChimp = mockStatic(MailChimpCommand.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class)) {
+      listRepo.when(MailingListRepository::findAll).thenReturn(new ArrayList<>());
+      blogRepo.when(() -> BlogPostRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+      mailChimp.when(MailChimpCommand::isEnabled).thenReturn(true);
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName("mail.host_name")).thenReturn(null);
+
+      WidgetContext result = new NewsletterSendWidget().execute(widgetContext);
+
+      assertEquals(true, result.getRequest().getAttribute("sendMethodConfigured"));
+      assertEquals(true, result.getRequest().getAttribute("mailChimpEnabled"));
     }
   }
 
@@ -133,9 +192,13 @@ class NewsletterSendWidgetTest extends WidgetBase {
 
     try (MockedStatic<MailingListRepository> listRepo = mockStatic(MailingListRepository.class);
         MockedStatic<BlogPostRepository> blogRepo = mockStatic(BlogPostRepository.class);
-        MockedStatic<NewsletterSendCommand> sendCommand = mockStatic(NewsletterSendCommand.class)) {
+        MockedStatic<NewsletterSendCommand> sendCommand = mockStatic(NewsletterSendCommand.class);
+        MockedStatic<MailChimpCommand> mailChimp = mockStatic(MailChimpCommand.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class)) {
       listRepo.when(MailingListRepository::findAll).thenReturn(new ArrayList<>());
       blogRepo.when(() -> BlogPostRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+      mailChimp.when(MailChimpCommand::isEnabled).thenReturn(false);
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName("mail.host_name")).thenReturn("smtp.example.org");
 
       WidgetContext result = new NewsletterSendWidget().post(widgetContext);
 
@@ -152,9 +215,13 @@ class NewsletterSendWidgetTest extends WidgetBase {
 
     try (MockedStatic<MailingListRepository> listRepo = mockStatic(MailingListRepository.class);
         MockedStatic<BlogPostRepository> blogRepo = mockStatic(BlogPostRepository.class);
-        MockedStatic<NewsletterSendCommand> sendCommand = mockStatic(NewsletterSendCommand.class)) {
+        MockedStatic<NewsletterSendCommand> sendCommand = mockStatic(NewsletterSendCommand.class);
+        MockedStatic<MailChimpCommand> mailChimp = mockStatic(MailChimpCommand.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class)) {
       listRepo.when(MailingListRepository::findAll).thenReturn(new ArrayList<>());
       blogRepo.when(() -> BlogPostRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+      mailChimp.when(MailChimpCommand::isEnabled).thenReturn(false);
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName("mail.host_name")).thenReturn("smtp.example.org");
 
       new NewsletterSendWidget().post(widgetContext);
 

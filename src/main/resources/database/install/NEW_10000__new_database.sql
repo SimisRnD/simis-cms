@@ -149,6 +149,7 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (22, 'MailChimp List Id', 'mailing-list.mailchimp.listId', '', 'text');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (24, 'ZeroBounce API Key', 'mailing-list.zerobounce.apiKey', '', 'text');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (26, 'Mailing List Quarantine Alert Threshold (%)', 'mailing-list.quarantine.alertThresholdPercent', '10', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (27, 'Mailing List Confirmation Link Expiry (days)', 'mailing-list.confirmation.expiryDays', '7', 'text');
 
 -- Search
 
@@ -173,6 +174,10 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (1, 'Audit log retention (days)', 'audit.retentionDays', '2555');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (2, 'Password Age Warning Threshold (days)', 'password.maxAgeDays', '90', 'text');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (11, 'Form submission failure retention (days)', 'formData.failureRetentionDays', '90');
+-- Only applies to form_data rows that have reached a terminal state (processed or dismissed by an
+-- admin) -- rows still awaiting review are never deleted by this, regardless of age. See
+-- FormDataRepository.deleteOlderThan and FormDataRetentionJob.
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (14, 'Form data retention (days, terminal-state only)', 'formData.retentionDays', '90');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (12, 'Web page version history limit (per page)', 'webPage.versionHistoryLimit', '20', 'text');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (13, 'Content block version history limit (per block)', 'content.versionHistoryLimit', '20', 'text');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (10, 'Analytics Service', 'analytics.service', 'google');
@@ -336,7 +341,11 @@ INSERT INTO capabilities (code, category, description) VALUES
   ('community:manage', 'community', 'Manage mailing lists, users, and community/forum content'),
   ('data:manage', 'data', 'Manage structured data items and collections'),
   ('ecommerce:manage', 'ecommerce', 'Manage products and orders'),
-  ('admin:manage', 'admin', 'Full administrative access to all site settings and configuration');
+  ('admin:manage', 'admin', 'Full administrative access to all site settings and configuration'),
+  -- Added by issue #733's follow-up: a dedicated capability for /admin/users and its sibling
+  -- Users/Groups pages, deliberately separate from admin:manage/community:manage so it can be
+  -- granted without also handing out unrelated admin/community access.
+  ('users:manage', 'users', 'Manage user accounts, user groups, and unsuspend requests');
 
 -- admin: the existing "admin OR X" pattern found at every one of the 191 hasRole() call sites
 -- means admin implicitly has every capability - expressed here as explicit rows so the table
@@ -355,6 +364,13 @@ INSERT INTO role_capabilities (role_id, capability_id)
 SELECT lr.role_id, c.capability_id
 FROM lookup_role lr, capabilities c
 WHERE lr.code = 'community-manager' AND c.code = 'community:manage';
+
+-- No community-manager row for users:manage: that role's existing role="admin,community-manager"
+-- attribute already covers /admin/users, /admin/user-details, /admin/unsuspend-requests, and
+-- /admin/modify-user, but NOT /admin/groups or /admin/group (role="admin" only). Mapping
+-- community-manager to this single capability would silently widen its access to the Groups
+-- pages once capability="users:manage" is added there - out of scope here, since this table is
+-- only meant to describe access that already exists, not grant new access.
 
 INSERT INTO role_capabilities (role_id, capability_id)
 SELECT lr.role_id, c.capability_id
