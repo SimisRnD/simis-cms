@@ -117,9 +117,9 @@ public class EmailSubscribeAjax extends GenericWidget {
     // Save the record
     try {
       if (selectedLists != null) {
-        SaveEmailCommand.saveEmail(emailBean, selectedLists);
+        SaveEmailCommand.saveEmailRequiringConfirmation(emailBean, selectedLists);
       } else {
-        SaveEmailCommand.saveEmail(emailBean);
+        SaveEmailCommand.saveEmailRequiringConfirmation(emailBean);
       }
       // Manage the related cookie
       context.getUserSession().setShowSiteNewsletterSignup(false);

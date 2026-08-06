@@ -35,12 +35,17 @@ import org.junit.jupiter.api.Test;
  * silent policy change. If the seed SQL and this test ever diverge, this test is the one that's
  * wrong - keep it in sync with the migration, not the other way around.
  *
+ * users:manage (UPGRADE_20260805.1200__users_manage_capability.sql, #733 follow-up) is a
+ * deliberate exception to that "read model" framing: it's a brand-new, independently grantable
+ * capability, not a restatement of a role's existing access, so only admin is seeded with it -
+ * see communityManagerDoesNotHaveUsersManage below for why community-manager is not.
+ *
  * @author elizabeth houser
  */
 class PermissionSeedEquivalenceTest {
 
   private static final List<String> ALL_CAPABILITIES = Arrays.asList(
-      "content:manage", "community:manage", "data:manage", "ecommerce:manage", "admin:manage");
+      "content:manage", "community:manage", "data:manage", "ecommerce:manage", "admin:manage", "users:manage");
 
   @Test
   void adminHasEveryCapability() {
@@ -56,6 +61,19 @@ class PermissionSeedEquivalenceTest {
   void communityManagerHasCommunityAndContentManage() {
     // The wiki widget's 3-way admin/content-manager/community-manager OR-check means
     // community-manager also needs content:manage's wiki slice - see the migration's comment.
+    assertRoleGrantsExactly("community-manager", List.of("community:manage", "content:manage"));
+  }
+
+  @Test
+  void communityManagerDoesNotHaveUsersManage() {
+    // community-manager's role="admin,community-manager" attribute already covers /admin/users,
+    // /admin/user-details, /admin/unsuspend-requests, and /admin/modify-user directly - but NOT
+    // /admin/groups or /admin/group (role="admin" only). Seeding community-manager with
+    // users:manage here would silently widen its access to the Groups pages once
+    // capability="users:manage" is added there, so it's deliberately left unseeded; already
+    // covered by communityManagerHasCommunityAndContentManage's exact-match assertion above, but
+    // named explicitly here since it's the one deviation from the "just restates hasRole()" story
+    // the other assertions in this file tell.
     assertRoleGrantsExactly("community-manager", List.of("community:manage", "content:manage"));
   }
 

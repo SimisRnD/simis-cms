@@ -49,7 +49,9 @@
 </script>
 <div style="margin-top: 6px;background-color:<c:out value="${themePropertyMap['theme.body.backgroundColor']}" />;">
   <div class="button-container float-right">
-    <a class="button small radius float-right" href="${ctx}/admin/capability-grants?userId=${user.id}">Capability Grants</a>
+    <c:if test="${userSession.hasRole('admin')}">
+      <a class="button small radius float-right" href="${ctx}/admin/capability-grants?userId=${user.id}">Capability Grants</a>
+    </c:if>
     <a class="button small radius float-right" href="${ctx}/admin/modify-user?userId=${user.id}">Modify User</a>
     <ul class="dropdown menu" style="padding-right: 15px;" data-dropdown-menu>
       <li>
@@ -58,6 +60,9 @@
           <c:if test="${user.enabled}">
             <li><a href="#" data-open="resetPasswordReveal">Reset Password</a></li>
             <li><a href="#" data-open="suspendAccountReveal">Suspend Account</a></li>
+          </c:if>
+          <c:if test="${user.mfaEnabled}">
+            <li><a href="#" data-open="resetMfaReveal">Reset MFA</a></li>
           </c:if>
           <%-- #492 Phase 3: an elevated-role account can't be reactivated by one admin acting
                alone -- Restore stays a direct one-click action for everyone else. --%>
@@ -510,6 +515,33 @@
       </div>
     </div>
     <input type="submit" class="button warning radius" value="Send Reset Email"/>
+    <button class="button secondary radius" type="button" data-close>Cancel</button>
+  </form>
+  <button class="close-button" data-close aria-label="Close reveal" type="button">
+    <span aria-hidden="true">&times;</span>
+  </button>
+</div>
+<div class="reveal" id="resetMfaReveal" role="dialog" aria-modal="true" aria-labelledby="resetMfaRevealTitle"
+     data-reveal data-close-on-click="true">
+  <h4 id="resetMfaRevealTitle">Reset MFA</h4>
+  <p>This immediately clears <strong><c:out value="${user.email}" /></strong>'s second factor and recovery codes.
+    They will need to re-enroll from scratch. Use this to recover an account that has lost its authenticator
+    device and exhausted its recovery codes.</p>
+  <form method="post">
+    <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
+    <input type="hidden" name="token" value="${userSession.formToken}"/>
+    <input type="hidden" name="action" value="resetMfa"/>
+    <input type="hidden" name="userId" value="${user.id}"/>
+    <div class="grid-x grid-padding-x">
+      <div class="small-12 cell">
+        <label for="resetMfaStepUpCredential">Your password or authenticator code <span class="required">*</span>
+          <input type="password" id="resetMfaStepUpCredential" name="stepUpCredential" maxlength="255"
+                 placeholder="Password or 6-digit code" required
+                 title="Re-authentication required to reset another user's MFA"/>
+        </label>
+      </div>
+    </div>
+    <input type="submit" class="button warning radius" value="Reset MFA"/>
     <button class="button secondary radius" type="button" data-close>Cancel</button>
   </form>
   <button class="close-button" data-close aria-label="Close reveal" type="button">

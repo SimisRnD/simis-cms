@@ -264,7 +264,10 @@
               either way, whether or not you touch this list.</p>
             <c:forEach items="${roleList}" var="role">
               <c:choose>
-                <c:when test="${role.code eq 'admin' && !userSession.hasRole('admin')}"><%-- --%></c:when>
+                <c:when test="${role.level > actingRoleLevel && !user.hasRole(role.code)}"><%-- above the editor's level, and not already held -- not grantable, omit --%></c:when>
+                <c:when test="${role.level > actingRoleLevel}">
+                  <input id="roleId${role.id}" type="checkbox" name="roleId${role.id}" value="${role.id}" checked disabled/><label for="roleId${role.id}"><c:out value="${role.title}" /> <small class="help-text" style="display:inline;margin-top:0;">(requires a higher role to change)</small></label><br />
+                </c:when>
                 <c:otherwise>
                   <input id="roleId${role.id}" type="checkbox" name="roleId${role.id}" value="${role.id}" <c:if test="${user.hasRole(role.code)}">checked</c:if>/><label for="roleId${role.id}"><c:out value="${role.title}" /></label><br />
                 </c:otherwise>
