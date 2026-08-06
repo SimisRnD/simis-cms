@@ -146,11 +146,20 @@ public class UserFormWidget extends GenericWidget {
       userBean.setRoleList(userRoleList);
     }
 
-    // Populate the groups
+    // Populate the groups -- "All Guests" has no checkbox on this form (see users-list.jsp's New
+    // User modal, "not a logged in user group"); if the target already belongs to it, e.g. via
+    // CSV/OAuth group provisioning, preserve that rather than letting an unrelated save drop it.
     List<Group> groupList = GroupRepository.findAll();
     if (groupList != null) {
+      boolean targetHasAllGuests = targetAlreadyHasAllGuests(userBean.getId());
       List<Group> userGroupList = new ArrayList<>();
       for (Group group : groupList) {
+        if ("All Guests".equals(group.getName())) {
+          if (targetHasAllGuests) {
+            userGroupList.add(group);
+          }
+          continue;
+        }
         String groupValue = context.getParameter("groupId" + group.getId());
         if (groupValue != null && groupValue.equals(String.valueOf(group.getId()))) {
           userGroupList.add(group);
@@ -232,5 +241,26 @@ public class UserFormWidget extends GenericWidget {
       }
     }
     return codes;
+  }
+
+  /**
+   * True when the target user already belongs to "All Guests" -- a group this form has no
+   * checkbox for (see users-list.jsp's New User modal, "not a logged in user group"). Existing
+   * membership is preserved rather than dropped by an unrelated save.
+   */
+  private static boolean targetAlreadyHasAllGuests(long userId) {
+    if (userId < 0) {
+      return false;
+    }
+    User existing = LoadUserCommand.loadUser(userId);
+    if (existing == null || existing.getGroupList() == null) {
+      return false;
+    }
+    for (Group group : existing.getGroupList()) {
+      if ("All Guests".equals(group.getName())) {
+        return true;
+      }
+    }
+    return false;
   }
 }

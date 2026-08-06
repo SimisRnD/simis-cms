@@ -285,7 +285,14 @@
             <p class="help-text" style="margin-bottom:6px">Unlike roles, group membership isn't
               level-ranked -- anyone who can reach this form can add or remove any group.</p>
             <c:forEach items="${groupList}" var="group">
-              <input id="groupId${group.id}" type="checkbox" name="groupId${group.id}" value="${group.id}" <c:if test="${user.hasGroup(group.uniqueId)}">checked</c:if>/><label for="groupId${group.id}"><c:out value="${group.name}" /></label><br />
+              <c:choose>
+                <c:when test="${group.name eq 'All Guests'}">
+                  <%-- not a logged in user group --%>
+                </c:when>
+                <c:otherwise>
+                  <input id="groupId${group.id}" type="checkbox" name="groupId${group.id}" value="${group.id}" <c:if test="${user.hasGroup(group.uniqueId)}">checked</c:if>/><label for="groupId${group.id}"><c:out value="${group.name}" /></label><br />
+                </c:otherwise>
+              </c:choose>
             </c:forEach>
           </div>
         </div>
