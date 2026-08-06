@@ -2152,6 +2152,21 @@
     </section>
   </page>
 
+  <page name="/admin/bot-list" role="admin" title="Bot User Agent List">
+    <section>
+      <column class="small-12 medium-9 large-8 small-order-2 medium-order-1 small-margin-top-10 cell">
+        <widget name="botUserAgent">
+          <title>Bot User Agent List</title>
+        </widget>
+      </column>
+      <column class="small-12 medium-3 large-4 small-order-1 medium-order-2 cell">
+        <widget name="botUserAgentForm" class="callout radius primary" sticky="true">
+          <title>Add to List</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
   <page name="/admin/role-capabilities" role="admin" capability="admin:manage" title="Role Capabilities">
     <section>
       <column class="small-12 cell">
