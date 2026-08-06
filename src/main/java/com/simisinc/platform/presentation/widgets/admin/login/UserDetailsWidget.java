@@ -391,11 +391,17 @@ public class UserDetailsWidget extends GenericWidget {
    * True when the target account's highest role level exceeds the acting user's highest role level --
    * mirrors UserFormWidget's role-grant escalation guard so a lower-privileged admin (e.g.
    * community-manager, level 90, who reaches this page via admin-layout.xml's
-   * role="admin,community-manager") cannot suspend or restore an account that outranks them (e.g.
-   * admin, level 100). Both /admin/users and /admin/user-details are open to community-manager, and
-   * this is the only check standing between that role and acting on an admin account.
+   * role="admin,community-manager") cannot suspend, restore, or delete an account that outranks them
+   * (e.g. admin, level 100). Both /admin/users and /admin/user-details are open to community-manager
+   * -- and, as of the users:manage capability, to any user holding only that capability with no
+   * legacy role at all -- and this is the only check standing between that access and acting on an
+   * admin account.
+   * <p>
+   * Package-private (not private): UsersListWidget.bulkSuspendAction() re-checks this identical rule
+   * per selected account so the bulk path can't reach an account the single-account suspendAccount()
+   * below would refuse to touch.
    */
-  private static boolean targetOutranksActor(WidgetContext context, User user) {
+  static boolean targetOutranksActor(WidgetContext context, User user) {
     List<Role> allRoles = RoleRepository.findAll();
     int actingLevel = highestRoleLevel(context.getUserSession(), allRoles);
     int targetLevel = highestRoleLevel(user.getRoleList());
@@ -432,6 +438,13 @@ public class UserDetailsWidget extends GenericWidget {
     // Attempt to delete the account (but not own self)
     if (context.getUserId() == user.getId()) {
       context.setErrorMessage("You cannot delete your own account");
+      return context;
+    }
+    // Nor one that outranks the acting admin -- see targetOutranksActor(). Without this, any user
+    // who can reach this page (including a users:manage capability-only grantee with no admin or
+    // community-manager role) could permanently delete any other account, including an admin's.
+    if (targetOutranksActor(context, user)) {
+      context.setErrorMessage("You cannot delete an account with a higher role level than your own");
       return context;
     }
     // Capture identity before the record is removed

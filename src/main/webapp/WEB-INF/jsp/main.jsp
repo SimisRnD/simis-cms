@@ -449,20 +449,26 @@
             </c:if>
           </ul>
           <%-- Community menu --%>
-          <c:if test="${userSession.hasRole('admin') || userSession.hasRole('community-manager')}">
+          <%-- Issue #733's follow-up: broadened so a user reachable only via the users:manage
+               capability (no legacy role) can discover the Users/User Groups links, not just hit
+               their URLs directly. The rest of this section's links have nothing to do with
+               users:manage, so they stay nested behind the original role-only check below. --%>
+          <c:if test="${userSession.hasRole('admin') || userSession.hasRole('community-manager') || userSession.hasPermission('users:manage')}">
             <ul class="vertical menu">
               <li class="section-title">Community</li>
-              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/community/analytics')}"> class="is-active"</c:if>><a href="${ctx}/admin/community/analytics"><i class="${font:far()} fa-chart-line fa-fw"></i> <span>Analytics</span></a></li>
-              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/community/search-analytics')}"> class="is-active"</c:if>><a href="${ctx}/admin/community/search-analytics"><i class="${font:far()} fa-search fa-fw"></i> <span>Search Analytics</span></a></li>
-              <c:if test="${userSession.hasRole('admin')}">
-                <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/web-vitals')}"> class="is-active"</c:if>><a href="${ctx}/admin/web-vitals"><i class="${font:far()} fa-tachometer-alt fa-fw"></i> <span>Web Vitals</span></a></li>
+              <c:if test="${userSession.hasRole('admin') || userSession.hasRole('community-manager')}">
+                <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/community/analytics')}"> class="is-active"</c:if>><a href="${ctx}/admin/community/analytics"><i class="${font:far()} fa-chart-line fa-fw"></i> <span>Analytics</span></a></li>
+                <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/community/search-analytics')}"> class="is-active"</c:if>><a href="${ctx}/admin/community/search-analytics"><i class="${font:far()} fa-search fa-fw"></i> <span>Search Analytics</span></a></li>
+                <c:if test="${userSession.hasRole('admin')}">
+                  <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/web-vitals')}"> class="is-active"</c:if>><a href="${ctx}/admin/web-vitals"><i class="${font:far()} fa-tachometer-alt fa-fw"></i> <span>Web Vitals</span></a></li>
+                </c:if>
+                <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/forms')}"> class="is-active"</c:if>><a href="${ctx}/admin/forms"><i class="${font:far()} fa-file-lines fa-fw"></i> <span>Form Builder</span></a></li>
+                <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/form-')}"> class="is-active"</c:if>><a href="${ctx}/admin/form-data"><i class="${font:far()} fa-list-alt fa-fw"></i> <span>Form Data</span></a></li>
+                <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/mailing-list') && !fn:startsWith(pageRenderInfo.name, '/admin/mailing-list-properties')}"> class="is-active"</c:if>><a href="${ctx}/admin/mailing-lists"><i class="${font:far()} fa-envelope fa-fw"></i> <span>Mailing Lists</span></a></li>
+                <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/newsletter-send')}"> class="is-active"</c:if>><a href="${ctx}/admin/newsletter-send"><i class="${font:far()} fa-paper-plane fa-fw"></i> <span>Send Newsletter</span></a></li>
               </c:if>
-              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/forms')}"> class="is-active"</c:if>><a href="${ctx}/admin/forms"><i class="${font:far()} fa-file-lines fa-fw"></i> <span>Form Builder</span></a></li>
-              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/form-')}"> class="is-active"</c:if>><a href="${ctx}/admin/form-data"><i class="${font:far()} fa-list-alt fa-fw"></i> <span>Form Data</span></a></li>
-              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/mailing-list') && !fn:startsWith(pageRenderInfo.name, '/admin/mailing-list-properties')}"> class="is-active"</c:if>><a href="${ctx}/admin/mailing-lists"><i class="${font:far()} fa-envelope fa-fw"></i> <span>Mailing Lists</span></a></li>
-              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/newsletter-send')}"> class="is-active"</c:if>><a href="${ctx}/admin/newsletter-send"><i class="${font:far()} fa-paper-plane fa-fw"></i> <span>Send Newsletter</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/user') || fn:startsWith(pageRenderInfo.name, '/admin/modify-user') || fn:startsWith(pageRenderInfo.name, '/admin/unsuspend-requests')}"> class="is-active"</c:if>><a href="${ctx}/admin/users"><i class="${font:far()} fa-user-circle fa-fw"></i> <span>Users</span></a></li>
-              <c:if test="${userSession.hasRole('admin')}">
+              <c:if test="${userSession.hasRole('admin') || userSession.hasPermission('users:manage')}">
                 <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/group')}"> class="is-active"</c:if>><a href="${ctx}/admin/groups"><i class="${font:far()} fa-users fa-fw"></i> <span>User Groups</span></a></li>
               </c:if>
               <%-- Editorial Calendar (issue #426) is authorized for community-manager too (see
@@ -470,7 +476,7 @@
                    section below is gated to admin/content-manager only. Duplicate just this one
                    link here, guarded so admin/content-manager users -- who already see it in the
                    Content section -- don't see it twice. --%>
-              <c:if test="${!userSession.hasRole('admin') && !userSession.hasRole('content-manager')}">
+              <c:if test="${(userSession.hasRole('admin') || userSession.hasRole('community-manager')) && !userSession.hasRole('admin') && !userSession.hasRole('content-manager')}">
                 <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/editorial-calendar')}"> class="is-active"</c:if>><a href="${ctx}/admin/editorial-calendar"><i class="${font:far()} fa-calendar-check fa-fw"></i> <span>Editorial Calendar</span></a></li>
               </c:if>
             </ul>
