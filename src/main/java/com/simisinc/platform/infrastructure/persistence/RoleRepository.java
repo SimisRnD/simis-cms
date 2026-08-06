@@ -25,9 +25,15 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Persists and retrieves role objects
@@ -83,6 +89,52 @@ public class RoleRepository {
       return (List<Role>) result.getRecords();
     }
     return null;
+  }
+
+  /**
+   * Batch form of {@link #findAllByUserId} for a widget rendering many users on one page (e.g.
+   * /admin/users) -- one query instead of one-per-row. Modeled on the IN-list pattern in
+   * {@code ImageVariantRepository#findByImageIds}, but plain JDBC rather than {@code DB.selectAllFrom}:
+   * the roles returned here come from a join against {@code user_roles}, and {@link #buildRecord}
+   * (reused as-is) maps a {@code lookup_role} row to a {@link Role} that has no {@code userId} field
+   * of its own, so the owning user id has to be read off the result set separately, per row, to know
+   * which map entry each role belongs to.
+   */
+  public static Map<Long, List<Role>> findAllByUserIds(Collection<Long> userIds) {
+    Map<Long, List<Role>> roleListByUserId = new LinkedHashMap<>();
+    if (userIds == null || userIds.isEmpty()) {
+      return roleListByUserId;
+    }
+    StringBuilder placeholders = new StringBuilder();
+    for (int i = 0; i < userIds.size(); i++) {
+      if (i > 0) {
+        placeholders.append(",");
+      }
+      placeholders.append("?");
+    }
+    String sql = "SELECT lookup_role.role_id, lookup_role.level, lookup_role.code, lookup_role.title, "
+        + "user_roles.user_id AS ur_user_id "
+        + "FROM lookup_role "
+        + "JOIN user_roles ON user_roles.role_id = lookup_role.role_id "
+        + "WHERE user_roles.user_id IN (" + placeholders + ") "
+        + "ORDER BY user_roles.user_id, lookup_role.role_id";
+    try (Connection connection = DB.getConnection();
+        PreparedStatement pst = connection.prepareStatement(sql)) {
+      int fieldIdx = 1;
+      for (Long userId : userIds) {
+        pst.setLong(fieldIdx++, userId);
+      }
+      try (ResultSet rs = pst.executeQuery()) {
+        while (rs.next()) {
+          Role role = buildRecord(rs);
+          long userId = rs.getLong("ur_user_id");
+          roleListByUserId.computeIfAbsent(userId, k -> new ArrayList<>()).add(role);
+        }
+      }
+    } catch (SQLException se) {
+      LOG.error("findAllByUserIds SQLException: " + se.getMessage());
+    }
+    return roleListByUserId;
   }
 
   public static List<Role> findAll() {
