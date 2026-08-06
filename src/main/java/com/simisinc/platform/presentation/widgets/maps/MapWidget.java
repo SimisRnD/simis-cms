@@ -35,7 +35,6 @@ public class MapWidget extends GenericWidget {
   static final long serialVersionUID = -8484048371911908893L;
 
   static String LEAFLET_JSP = "/maps/leaflet-js_map.jsp";
-  static String APPLE_MAP_JSP = "/maps/apple_map.jsp";
 
   public WidgetContext execute(WidgetContext context) {
 
@@ -74,11 +73,7 @@ public class MapWidget extends GenericWidget {
     String markerText = context.getPreferences().get("markerText");
     context.getRequest().setAttribute("markerText", markerText);
 
-    if ("apple".equals(mapCredentials.getService())) {
-      context.setJsp(APPLE_MAP_JSP);
-    } else {
-      context.setJsp(LEAFLET_JSP);
-    }
+    context.setJsp(LEAFLET_JSP);
     return context;
   }
 }
