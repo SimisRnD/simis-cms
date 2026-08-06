@@ -110,6 +110,7 @@ public class FormDataListWidget extends GenericWidget {
   private FormDataSpecification buildSpecificationFromParameters(WidgetContext context) {
     String formUniqueId = context.getParameter("formUniqueId");
     String status = context.getParameter("status");
+    String spam = context.getParameter("spam");
     String fromDate = context.getParameter("fromDate");
     String toDate = context.getParameter("toDate");
 
@@ -128,6 +129,12 @@ public class FormDataListWidget extends GenericWidget {
       specification.setDismissed(false);
       specification.setProcessed(false);
     }
+    if ("flagged".equalsIgnoreCase(spam)) {
+      specification.setFlaggedAsSpam(true);
+    } else if ("excluded".equalsIgnoreCase(spam)) {
+      specification.setFlaggedAsSpam(false);
+    }
+    // Else "All" (blank/missing) -- flaggedAsSpam stays DataConstants.UNDEFINED, no WHERE clause added
     Timestamp from = parseDate(fromDate, 0);
     Timestamp to = parseDate(toDate, 1);
     if (from != null) {
