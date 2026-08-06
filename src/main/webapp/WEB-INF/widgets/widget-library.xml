@@ -210,6 +210,7 @@
   <widget name="mailingListMembers" class="com.simisinc.platform.presentation.widgets.mailinglists.MailingListMembersWidget" />
   <widget name="newsletterSend" class="com.simisinc.platform.presentation.widgets.admin.NewsletterSendWidget" />
   <widget name="newsletterUnsubscribe" class="com.simisinc.platform.presentation.widgets.mailinglists.NewsletterUnsubscribeWidget" />
+  <widget name="mailingListConfirmSubscription" class="com.simisinc.platform.presentation.widgets.mailinglists.MailingListConfirmSubscriptionWidget" />
   <widget name="folderList" class="com.simisinc.platform.presentation.widgets.admin.cms.FolderListWidget" />
   <widget name="folderDetails" class="com.simisinc.platform.presentation.widgets.admin.cms.FolderDetailsWidget" />
   <widget name="folderForm" class="com.simisinc.platform.presentation.widgets.admin.cms.FolderFormWidget" />
@@ -235,6 +236,8 @@
   <widget name="blockedIPListForm" class="com.simisinc.platform.presentation.widgets.admin.BlockedIPFormWidget" />
   <widget name="allowedIP" class="com.simisinc.platform.presentation.widgets.admin.AllowedIPListWidget" />
   <widget name="allowedIPListForm" class="com.simisinc.platform.presentation.widgets.admin.AllowedIPFormWidget" />
+  <widget name="botUserAgent" class="com.simisinc.platform.presentation.widgets.admin.BotUserAgentListWidget" />
+  <widget name="botUserAgentForm" class="com.simisinc.platform.presentation.widgets.admin.BotUserAgentFormWidget" />
   <widget name="roleCapabilitiesList" class="com.simisinc.platform.presentation.widgets.admin.RoleCapabilitiesListWidget" />
   <widget name="roleCapabilitiesForm" class="com.simisinc.platform.presentation.widgets.admin.RoleCapabilitiesFormWidget" />
   <widget name="capabilityGrants" class="com.simisinc.platform.presentation.widgets.admin.CapabilityGrantsWidget" />

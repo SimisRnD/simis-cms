@@ -149,10 +149,12 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (22, 'MailChimp List Id', 'mailing-list.mailchimp.listId', '', 'text');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (24, 'ZeroBounce API Key', 'mailing-list.zerobounce.apiKey', '', 'text');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (26, 'Mailing List Quarantine Alert Threshold (%)', 'mailing-list.quarantine.alertThresholdPercent', '10', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (27, 'Mailing List Confirmation Link Expiry (days)', 'mailing-list.confirmation.expiryDays', '7', 'text');
 
 -- Search
 
 INSERT INTO site_properties (property_label, property_name, property_value, property_type) VALUES ('Zero-Result Search Alert Threshold (count/24h)', 'search.zeroResultAlertThreshold', '20', 'text');
+INSERT INTO site_properties (property_label, property_name, property_value, property_type) VALUES ('Search Log Retention (days)', 'search.retentionDays', '180', 'text');
 
 -- Maps
 
@@ -172,6 +174,10 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (1, 'Audit log retention (days)', 'audit.retentionDays', '2555');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (2, 'Password Age Warning Threshold (days)', 'password.maxAgeDays', '90', 'text');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (11, 'Form submission failure retention (days)', 'formData.failureRetentionDays', '90');
+-- Only applies to form_data rows that have reached a terminal state (processed or dismissed by an
+-- admin) -- rows still awaiting review are never deleted by this, regardless of age. See
+-- FormDataRepository.deleteOlderThan and FormDataRetentionJob.
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (14, 'Form data retention (days, terminal-state only)', 'formData.retentionDays', '90');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (12, 'Web page version history limit (per page)', 'webPage.versionHistoryLimit', '20', 'text');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (13, 'Content block version history limit (per block)', 'content.versionHistoryLimit', '20', 'text');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (10, 'Analytics Service', 'analytics.service', 'google');

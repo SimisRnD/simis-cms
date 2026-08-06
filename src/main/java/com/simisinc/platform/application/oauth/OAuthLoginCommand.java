@@ -19,6 +19,7 @@ package com.simisinc.platform.application.oauth;
 import com.simisinc.platform.application.CreateSessionCommand;
 import com.simisinc.platform.application.SaveSessionCommand;
 import com.simisinc.platform.application.audit.SaveAuditEventCommand;
+import com.simisinc.platform.application.cms.FormatDateCommand;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.login.OAuthToken;
 import com.simisinc.platform.domain.model.login.UserLogin;
@@ -37,6 +38,7 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import java.sql.Timestamp;
+import java.time.LocalDate;
 import java.util.UUID;
 
 import static com.simisinc.platform.presentation.controller.UserSession.OAUTH_SOURCE;
@@ -122,6 +124,9 @@ public class OAuthLoginCommand {
     String userAgent = request.getHeader("USER-AGENT");
     UserSession userSession = CreateSessionCommand.createSession(OAUTH_SOURCE, request.getSession().getId(), ipAddress, referer, userAgent);
     userSession.login(user);
+    // Stamp the tracked date so WebRequestFilter's daily-activity check (see trackDailyLogin)
+    // does not write a second row for today on the very next request under this session
+    userSession.setLastLoginTrackedDate(LocalDate.now(FormatDateCommand.getSiteZoneId()));
     SaveSessionCommand.saveSession(userSession);
     request.getSession().setAttribute(SessionConstants.USER, userSession);
     SaveAuditEventCommand.recordAuthentication("authentication.login.success", "success",
