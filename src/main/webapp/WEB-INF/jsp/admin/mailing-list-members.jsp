@@ -71,6 +71,7 @@
       <select id="memberStatus" name="status">
         <option value="">All statuses</option>
         <option value="active"<c:if test="${status eq 'active'}"> selected</c:if>>Active</option>
+        <option value="pending"<c:if test="${status eq 'pending'}"> selected</c:if>>Pending Confirmation</option>
         <option value="unsubscribed"<c:if test="${status eq 'unsubscribed'}"> selected</c:if>>Unsubscribed</option>
         <option value="quarantined"<c:if test="${status eq 'quarantined'}"> selected</c:if>>Quarantined</option>
       </select>
@@ -108,6 +109,12 @@
         <c:choose>
           <c:when test="${!empty member.quarantined}">
             <span class="label alert" title="Quarantined: <c:out value="${member.quarantineReason}"/>">Quarantined</span>
+          </c:when>
+          <c:when test="${!empty member.confirmToken}">
+            <%-- Checked before "unsubscribed" -- a previously-unsubscribed member re-signing up
+                 keeps their old unsubscribed timestamp until they actually reconfirm, so a live
+                 confirm_token here means a genuine pending reconfirmation, not a stale unsubscribe. --%>
+            <span class="label secondary" title="Sent a confirmation email, not yet clicked">Pending Confirmation</span>
           </c:when>
           <c:when test="${!empty member.unsubscribed}">
             <span class="label warning">Unsubscribed</span>
