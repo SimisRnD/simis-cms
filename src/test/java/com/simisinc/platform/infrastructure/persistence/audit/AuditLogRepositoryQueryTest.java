@@ -19,6 +19,7 @@ package com.simisinc.platform.infrastructure.persistence.audit;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
@@ -185,6 +186,29 @@ class AuditLogRepositoryQueryTest {
     } finally {
       file.delete();
     }
+  }
+
+  @Test
+  void findsTheMostRecentRecordForAGivenCategoryAndEventType() {
+    // Backs the audit-log-list.jsp integrity-check banner (AuditLogListWidget) -- must pick the newest of
+    // several matching rows, and ignore rows of a different category/eventType.
+    seed("configuration", "audit.integrity.check", "203.0.113.4", "audit_log", "10");
+    seed("configuration", "audit.integrity.check", "203.0.113.4", "audit_log", "11");
+    seed("configuration", "site_property.update", "203.0.113.4", "site_property", "theme");
+
+    AuditLog mostRecent = AuditLogRepository.findMostRecentByEventType("configuration", "audit.integrity.check");
+
+    assertNotNull(mostRecent);
+    assertEquals("11", mostRecent.getTargetId(), "expected the later of the two matching rows");
+  }
+
+  @Test
+  void findMostRecentByEventTypeReturnsNullWhenNoMatchingRecordExists() {
+    seed("authentication", "login.success", "203.0.113.4", "user", "42");
+
+    AuditLog mostRecent = AuditLogRepository.findMostRecentByEventType("configuration", "audit.integrity.check");
+
+    assertNull(mostRecent);
   }
 
   private void seed(String category, String eventType, String sourceIp, String targetType, String targetId) {

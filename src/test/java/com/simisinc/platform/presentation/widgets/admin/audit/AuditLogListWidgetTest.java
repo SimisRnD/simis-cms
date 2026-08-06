@@ -17,11 +17,15 @@
 package com.simisinc.platform.presentation.widgets.admin.audit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.when;
 
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -35,6 +39,9 @@ import org.mockito.MockedStatic;
 
 import com.simisinc.platform.WidgetBase;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.audit.AuditLogIntegrityCommand;
+import com.simisinc.platform.application.audit.AuditLogIntegrityCommand.AuditIntegrityResult;
+import com.simisinc.platform.domain.model.audit.AuditLog;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.persistence.audit.AuditLogRepository;
 import com.simisinc.platform.infrastructure.persistence.audit.AuditLogSpecification;
@@ -270,5 +277,138 @@ class AuditLogListWidgetTest extends WidgetBase {
     assertNull(AuditLogListWidget.resolveRangeCutoff(null));
     assertNull(AuditLogListWidget.resolveRangeCutoff(""));
     assertNull(AuditLogListWidget.resolveRangeCutoff("3 weeks ago"));
+  }
+
+  @Test
+  void integrityCheckBannerIsShownWhenTheMostRecentCheckFailed() {
+    setRoles(widgetContext, "admin");
+
+    AuditLog failedCheck = new AuditLog();
+    failedCheck.setOutcome("failure");
+    Timestamp occurred = Timestamp.valueOf("2026-08-05 04:30:00");
+    failedCheck.setOccurred(occurred);
+    failedCheck.setDetails("checked=120;reason=record_hash mismatch (the record was altered)");
+
+    try (MockedStatic<AuditLogRepository> repository = mockStatic(AuditLogRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      repository.when(() -> AuditLogRepository.findAll(any(AuditLogSpecification.class), any(DataConstraints.class)))
+          .thenReturn(new ArrayList<>());
+      repository.when(() -> AuditLogRepository.findMostRecentByEventType("configuration", "audit.integrity.check"))
+          .thenReturn(failedCheck);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("audit.retentionDays")).thenReturn(null);
+
+      new AuditLogListWidget().execute(widgetContext);
+
+      assertEquals(Boolean.TRUE, widgetContext.getRequest().getAttribute("integrityCheckFailed"));
+      assertEquals(occurred, widgetContext.getRequest().getAttribute("integrityCheckFailedAt"));
+      assertEquals("checked=120;reason=record_hash mismatch (the record was altered)",
+          widgetContext.getRequest().getAttribute("integrityCheckFailedDetails"));
+    }
+  }
+
+  @Test
+  void integrityCheckBannerIsNotShownWhenTheMostRecentCheckSucceeded() {
+    setRoles(widgetContext, "admin");
+
+    AuditLog passedCheck = new AuditLog();
+    passedCheck.setOutcome("success");
+    passedCheck.setOccurred(new Timestamp(System.currentTimeMillis()));
+
+    try (MockedStatic<AuditLogRepository> repository = mockStatic(AuditLogRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      repository.when(() -> AuditLogRepository.findAll(any(AuditLogSpecification.class), any(DataConstraints.class)))
+          .thenReturn(new ArrayList<>());
+      repository.when(() -> AuditLogRepository.findMostRecentByEventType("configuration", "audit.integrity.check"))
+          .thenReturn(passedCheck);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("audit.retentionDays")).thenReturn(null);
+
+      new AuditLogListWidget().execute(widgetContext);
+
+      assertNull(widgetContext.getRequest().getAttribute("integrityCheckFailed"),
+          "a passing check must not trigger the warning banner (avoids a false 'chain healthy' banner too)");
+    }
+  }
+
+  @Test
+  void integrityCheckBannerIsNotShownWhenNoCheckHasEverRun() {
+    setRoles(widgetContext, "admin");
+
+    try (MockedStatic<AuditLogRepository> repository = mockStatic(AuditLogRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class)) {
+      repository.when(() -> AuditLogRepository.findAll(any(AuditLogSpecification.class), any(DataConstraints.class)))
+          .thenReturn(new ArrayList<>());
+      repository.when(() -> AuditLogRepository.findMostRecentByEventType(anyString(), anyString()))
+          .thenReturn(null);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("audit.retentionDays")).thenReturn(null);
+
+      new AuditLogListWidget().execute(widgetContext);
+
+      assertNull(widgetContext.getRequest().getAttribute("integrityCheckFailed"),
+          "no integrity-check event has ever run, so nothing should be flagged as failed");
+    }
+  }
+
+  @Test
+  void onDemandIntegrityCheckCallsVerifyAndShowsASuccessMessageWhenTheChainIsIntact() {
+    setRoles(widgetContext, "admin");
+    addQueryParameter(widgetContext, "runIntegrityCheck", "true");
+
+    AuditIntegrityResult intactResult = mock(AuditIntegrityResult.class);
+    when(intactResult.isIntact()).thenReturn(true);
+    when(intactResult.getCheckedCount()).thenReturn(42L);
+
+    try (MockedStatic<AuditLogIntegrityCommand> integrityCommand = mockStatic(AuditLogIntegrityCommand.class)) {
+      integrityCommand.when(AuditLogIntegrityCommand::verify).thenReturn(intactResult);
+
+      WidgetContext result = new AuditLogListWidget().post(widgetContext);
+
+      integrityCommand.verify(AuditLogIntegrityCommand::verify);
+      assertNotNull(result);
+      assertNotNull(result.getSuccessMessage());
+      assertTrue(result.getSuccessMessage().contains("42"), "expected the checked-record count in the message: "
+          + result.getSuccessMessage());
+      assertNull(result.getErrorMessage());
+      assertEquals("/admin/audit-log", result.getRedirect());
+    }
+  }
+
+  @Test
+  void onDemandIntegrityCheckCallsVerifyAndShowsAnErrorMessageWhenTheChainIsBroken() {
+    setRoles(widgetContext, "admin");
+    addQueryParameter(widgetContext, "runIntegrityCheck", "true");
+
+    AuditIntegrityResult brokenResult = mock(AuditIntegrityResult.class);
+    when(brokenResult.isIntact()).thenReturn(false);
+    when(brokenResult.getFirstInvalidAuditId()).thenReturn(7L);
+    when(brokenResult.getCheckedCount()).thenReturn(6L);
+    when(brokenResult.getReason()).thenReturn("record_hash mismatch (the record was altered)");
+
+    try (MockedStatic<AuditLogIntegrityCommand> integrityCommand = mockStatic(AuditLogIntegrityCommand.class)) {
+      integrityCommand.when(AuditLogIntegrityCommand::verify).thenReturn(brokenResult);
+
+      WidgetContext result = new AuditLogListWidget().post(widgetContext);
+
+      integrityCommand.verify(AuditLogIntegrityCommand::verify);
+      assertNotNull(result);
+      assertNotNull(result.getErrorMessage());
+      assertTrue(result.getErrorMessage().contains("audit_id=7"), "expected the failing audit_id in the message: "
+          + result.getErrorMessage());
+      assertTrue(result.getErrorMessage().contains("record_hash mismatch"));
+      assertNull(result.getSuccessMessage());
+      assertEquals("/admin/audit-log", result.getRedirect());
+    }
+  }
+
+  @Test
+  void onDemandIntegrityCheckIsRefusedWithoutAdminRole() {
+    setRoles(widgetContext); // logged in, but no admin role
+    addQueryParameter(widgetContext, "runIntegrityCheck", "true");
+
+    try (MockedStatic<AuditLogIntegrityCommand> integrityCommand = mockStatic(AuditLogIntegrityCommand.class)) {
+      WidgetContext result = new AuditLogListWidget().post(widgetContext);
+
+      integrityCommand.verifyNoInteractions();
+      assertEquals(widgetContext, result);
+    }
   }
 }
