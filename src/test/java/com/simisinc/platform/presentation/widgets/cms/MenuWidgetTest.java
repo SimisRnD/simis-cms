@@ -18,11 +18,15 @@ package com.simisinc.platform.presentation.widgets.cms;
 
 import com.simisinc.platform.WidgetBase;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.cms.LoadTableOfContentsCommand;
+import com.simisinc.platform.domain.model.cms.TableOfContents;
+import com.simisinc.platform.domain.model.cms.TableOfContentsLink;
 import com.simisinc.platform.presentation.controller.RequestConstants;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -143,5 +147,60 @@ class MenuWidgetTest extends WidgetBase {
         .orElse(null);
     Assertions.assertNotNull(logoutLink, "Logout link missing from the admin dropdown");
     Assertions.assertEquals("/logout?token=" + expectedToken, logoutLink.get("link"));
+  }
+
+  @Test
+  void tableOfContentsLinkWithAttributeBreakoutPayloadIsNeutralized() {
+    // menu.jsp renders href="${ctx}${link['link']}" -- unlike the widget-preference <link> path
+    // (entriesList loop in MenuWidget.execute(), which already calls UrlCommand.sanitizeUrl()), the
+    // private addLink() helper used for tocUniqueId table-of-contents entries did NOT sanitize the
+    // link value before this test's fix, so a stored TOC entry containing a double-quote and an
+    // onmouseover payload would have been forwarded into linkList verbatim and broken out of the
+    // href attribute at render time. addLink() now runs the link through the same
+    // UrlCommand.sanitizeUrl() call, which rejects (returns null for) any value carrying a
+    // character outside its href-safe set -- including '"' -- so the payload never reaches the map
+    // that menu.jsp renders from.
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"menu\">\n" +
+            "  <tocUniqueId>toc-xss-test</tocUniqueId>\n" +
+            "</widget>");
+
+    request.setAttribute(RequestConstants.WEB_PAGE_PATH, "/");
+
+    TableOfContents tableOfContents = new TableOfContents();
+    tableOfContents.setTocUniqueId("toc-xss-test");
+    List<TableOfContentsLink> entries = new ArrayList<>();
+    entries.add(new TableOfContentsLink("Safe Link", "/help"));
+    entries.add(new TableOfContentsLink("XSS", "\" onmouseover=\"alert(document.cookie)"));
+    tableOfContents.setEntries(entries);
+
+    try (MockedStatic<LoadTableOfContentsCommand> tocCommand = mockStatic(LoadTableOfContentsCommand.class)) {
+      tocCommand.when(() -> LoadTableOfContentsCommand.loadByUniqueId("toc-xss-test", false)).thenReturn(tableOfContents);
+
+      MenuWidget widget = new MenuWidget();
+      widget.execute(widgetContext);
+      List<Map<String, String>> linkList = (List) widgetContext.getRequest().getAttribute("linkList");
+
+      Assertions.assertEquals(2, linkList.size());
+
+      // The legitimate entry is untouched
+      Map<String, String> safeLink = linkList.stream()
+          .filter(link -> "Safe Link".equals(link.get("name")))
+          .findFirst()
+          .orElse(null);
+      Assertions.assertNotNull(safeLink);
+      Assertions.assertEquals("/help", safeLink.get("link"));
+
+      // The malicious entry's link value never reaches the rendered map -- it is stripped (null),
+      // never the raw payload that could break out of the href attribute in menu.jsp
+      Map<String, String> xssLink = linkList.stream()
+          .filter(link -> "XSS".equals(link.get("name")))
+          .findFirst()
+          .orElse(null);
+      Assertions.assertNotNull(xssLink);
+      String renderedLink = xssLink.get("link");
+      Assertions.assertTrue(renderedLink == null || (!renderedLink.contains("\"") && !renderedLink.contains("onmouseover")),
+          "A link value containing '\"' and an event-handler payload must never reach the href attribute unescaped, but got: " + renderedLink);
+    }
   }
 }

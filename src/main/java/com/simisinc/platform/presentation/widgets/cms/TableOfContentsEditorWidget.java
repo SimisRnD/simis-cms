@@ -94,10 +94,26 @@ public class TableOfContentsEditorWidget extends GenericWidget {
     tableOfContentsBean.setModifiedBy(context.getUserId());
 
     // Determine the entries
+
+    // Count the submitted rows first so a blank/invalid Order value has a safe fallback to land on.
+    // context.getParameterAsInt("orderN") (its single-arg form) defaults an unparsable value to -1,
+    // and since the sort key below is built as the string concatenation of order + a zero-padded row
+    // number (see numberValue below), an order of -1 becomes a large *negative* key that sorts ahead
+    // of every entry with a real (>= 0) Order -- silently jumping an unset Order to the very front of
+    // the list instead of leaving it alone. Defaulting an unset Order to the total number of
+    // submitted rows instead keeps it out of that negative range and -- since this editor always
+    // pre-fills each row's Order with its own 1-based position (table-of-contents-editor.jsp) -- is
+    // guaranteed to be >= every other row's default/expected Order, so the entry lands at the end of
+    // the list instead.
+    int totalRows = 0;
+    while (context.getParameter("order" + (totalRows + 1)) != null) {
+      totalRows++;
+    }
+
     HashMap<Integer, TableOfContentsLink> map = new HashMap<>();
     int count = 1;
     while (context.getParameter("order" + count) != null) {
-      int order = context.getParameterAsInt("order" + count);
+      int order = context.getParameterAsInt("order" + count, totalRows);
       String name = context.getParameter("name" + count).trim();
       String link = context.getParameter("link" + count).trim();
       // Use the specified link or create one
