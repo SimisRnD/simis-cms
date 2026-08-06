@@ -27,7 +27,10 @@ import org.apache.commons.logging.LogFactory;
 import java.sql.*;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Persists and retrieves user login objects
@@ -73,6 +76,50 @@ public class UserLoginRepository {
       return (UserLogin) result.getRecords().get(0);
     }
     return null;
+  }
+
+  /**
+   * Batch form of {@link #queryLastLogin} for a widget rendering many users on one page (e.g.
+   * /admin/users) -- one query instead of one-per-row. {@code DISTINCT ON} is Postgres-specific, but
+   * this class already relies on Postgres-only SQL elsewhere ({@link #findUniqueDailyLogins},
+   * {@link #findUniqueMonthlyLogins} use {@code DATE_TRUNC}/{@code generate_series}), so it's
+   * consistent with precedent rather than a new dependency. {@code DISTINCT ON (user_id) ... ORDER BY
+   * user_id, created DESC} keeps just the most recent {@code user_logins} row per user_id in a single
+   * pass, restricted to the requested ids via an IN-list mirroring
+   * {@code ImageVariantRepository#findByImageIds}.
+   */
+  public static Map<Long, UserLogin> queryLastLogins(Collection<Long> userIds) {
+    Map<Long, UserLogin> lastLoginByUserId = new LinkedHashMap<>();
+    if (userIds == null || userIds.isEmpty()) {
+      return lastLoginByUserId;
+    }
+    StringBuilder placeholders = new StringBuilder();
+    for (int i = 0; i < userIds.size(); i++) {
+      if (i > 0) {
+        placeholders.append(",");
+      }
+      placeholders.append("?");
+    }
+    String sql = "SELECT DISTINCT ON (user_id) login_id, source, user_id, ip_address, user_agent, created "
+        + "FROM " + TABLE_NAME + " "
+        + "WHERE user_id IN (" + placeholders + ") "
+        + "ORDER BY user_id, created DESC";
+    try (Connection connection = DB.getConnection();
+        PreparedStatement pst = connection.prepareStatement(sql)) {
+      int fieldIdx = 1;
+      for (Long userId : userIds) {
+        pst.setLong(fieldIdx++, userId);
+      }
+      try (ResultSet rs = pst.executeQuery()) {
+        while (rs.next()) {
+          UserLogin login = buildRecord(rs);
+          lastLoginByUserId.put(login.getUserId(), login);
+        }
+      }
+    } catch (SQLException se) {
+      LOG.error("queryLastLogins SQLException: " + se.getMessage());
+    }
+    return lastLoginByUserId;
   }
 
   public static long queryTodaysLoginCount(long userId) {
