@@ -180,6 +180,29 @@ class UserDetailsWidgetTest extends WidgetBase {
   }
 
   @Test
+  void actionResetMfaIsNotHandledByTheGetActionPath() throws Exception {
+    // MFA reset requires step-up re-authentication (see post()), same bar as Reset Password. The
+    // GET/action() path must never reset MFA directly -- that would bypass step-up entirely,
+    // reachable via a plain GET request carrying the same parameters the UI's POST form uses.
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "userId", "5");
+    addQueryParameter(widgetContext, "action", "resetMfa");
+
+    try (MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
+        MockedStatic<UserMfaCommand> mfa = mockStatic(UserMfaCommand.class);
+        MockedStatic<UserMfaRecoveryCodeCommand> recovery = mockStatic(UserMfaRecoveryCodeCommand.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(lockedUser());
+
+      new UserDetailsWidget().action(widgetContext);
+
+      mfa.verify(() -> UserMfaCommand.disable(any()), never());
+      recovery.verify(() -> UserMfaRecoveryCodeCommand.clear(any()), never());
+      audit.verifyNoInteractions();
+    }
+  }
+
+  @Test
   void suspendAccountViaPostCallsRepositoryAndAudits() throws Exception {
     setRoles(widgetContext, ADMIN);
     addQueryParameter(widgetContext, "userId", "5");
@@ -545,6 +568,7 @@ class UserDetailsWidgetTest extends WidgetBase {
         MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
       loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(target);
       roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
+      mfa.when(() -> UserMfaCommand.disable(target)).thenReturn(true);
 
       WidgetContext result = new UserDetailsWidget().post(widgetContext);
 
@@ -556,6 +580,41 @@ class UserDetailsWidgetTest extends WidgetBase {
           eq(AuditEventCommand.SUCCESS), eq("user"), eq("5"), eq("active@example.com"), any()), times(1));
       Assertions.assertNotNull(result.getSuccessMessage());
       Assertions.assertEquals("/admin/user-details?userId=5", result.getRedirect());
+    }
+  }
+
+  @Test
+  void resetMfaViaPostRecordsFailureWhenTheMfaDisableWriteFails() throws Exception {
+    // UserMfaCommand.disable() returning false means UserRepository.disableMfa()'s DB write did not
+    // take (see UserRepository#disableMfa returning null on failure) -- resetMfa() must reflect that
+    // instead of unconditionally reporting success, matching deleteAccount()'s if/else pattern.
+    setRoles(widgetContext, ADMIN);
+    grantStepUp(widgetContext);
+    addQueryParameter(widgetContext, "userId", "5");
+    addQueryParameter(widgetContext, "action", "resetMfa");
+
+    User target = activeUser();
+    target.setMfaEnabled(true);
+    target.setMfaSecret("GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ");
+    List<Role> held = new ArrayList<>();
+    held.add(role(2, 80, "content-manager", "Content Manager"));
+    target.setRoleList(held);
+
+    try (MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
+        MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
+        MockedStatic<UserMfaCommand> mfa = mockStatic(UserMfaCommand.class);
+        MockedStatic<UserMfaRecoveryCodeCommand> recovery = mockStatic(UserMfaRecoveryCodeCommand.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(target);
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
+      mfa.when(() -> UserMfaCommand.disable(target)).thenReturn(false);
+
+      WidgetContext result = new UserDetailsWidget().post(widgetContext);
+
+      audit.verify(() -> AuditEventCommand.record(any(), eq(AuditEventCommand.USER_MANAGEMENT), eq("user.mfa.reset"),
+          eq(AuditEventCommand.FAILURE), eq("user"), eq("5"), eq("active@example.com"), any()), times(1));
+      Assertions.assertNull(result.getSuccessMessage());
+      Assertions.assertNotNull(result.getErrorMessage());
     }
   }
 }

@@ -264,14 +264,20 @@ public class UserDetailsWidget extends GenericWidget {
 
     // Clear the second factor and any unused recovery codes -- reuses the same commands the
     // self-service MyMfaSettingsWidget "disable" action calls on the user's own account.
-    UserMfaCommand.disable(user);
+    boolean disabled = UserMfaCommand.disable(user);
     UserMfaRecoveryCodeCommand.clear(user);
 
-    // Record the admin-initiated MFA reset of another user
-    AuditEventCommand.record(context, AuditEventCommand.USER_MANAGEMENT, "user.mfa.reset",
-        AuditEventCommand.SUCCESS, "user", targetId, targetLabel, null);
-
-    context.setSuccessMessage("MFA has been reset for: " + targetLabel + ". They must re-enroll from scratch.");
+    // Record the admin-initiated MFA reset of another user, matching deleteAccount()'s pattern of
+    // reflecting the actual DB-write outcome rather than assuming success.
+    if (disabled) {
+      AuditEventCommand.record(context, AuditEventCommand.USER_MANAGEMENT, "user.mfa.reset",
+          AuditEventCommand.SUCCESS, "user", targetId, targetLabel, null);
+      context.setSuccessMessage("MFA has been reset for: " + targetLabel + ". They must re-enroll from scratch.");
+    } else {
+      AuditEventCommand.record(context, AuditEventCommand.USER_MANAGEMENT, "user.mfa.reset",
+          AuditEventCommand.FAILURE, "user", targetId, targetLabel, "MFA disable write failed");
+      context.setErrorMessage("MFA reset failed for: " + targetLabel);
+    }
     return context;
   }
 
