@@ -22,6 +22,11 @@
   <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
 <%@include file="../page_messages.jspf" %>
+<div class="callout primary radius">
+  <h6>What this page shows</h6>
+  <p>A read-only view of the background job queue (JobRunr): how many jobs are in each state right now, and a list of the jobs in whichever state you select. <strong>SCHEDULED</strong> is waiting for its run time; <strong>ENQUEUED</strong> is waiting for a free worker; <strong>PROCESSING</strong> is running; <strong>FAILED</strong> exhausted its retries; <strong>SUCCEEDED</strong> finished normally. Two internal JobRunr states aren't shown -- a carbon-aware scheduling holdback state, and jobs that are soft-deleted pending permanent removal -- neither needs day-to-day monitoring.</p>
+  <p>Job data is stored in the same Postgres database as the rest of the app (not in memory), so what you see here is the real, shared state across every running instance, and it survives restarts and redeploys.</p>
+</div>
 <c:choose>
   <c:when test="${storageProviderUnavailable}">
     <p>The background job scheduler has not started yet, so no queue data is available. Try reloading this page in a moment.</p>
@@ -88,3 +93,21 @@
     </c:choose>
   </c:otherwise>
 </c:choose>
+
+<h5>Is a FAILED job a problem?</h5>
+<div class="callout warning radius">
+  <p>By the time a job reaches FAILED, JobRunr already retried it automatically (2 retries beyond the first attempt) -- it isn't a transient blip waiting to self-heal, something genuinely didn't work.</p>
+  <p>This page opens on the FAILED filter automatically whenever any jobs are currently failed, so you don't have to know to look for it.</p>
+  <p><strong>Usually fine to just note and move on:</strong> a single FAILED occurrence of a routine nightly cleanup/retention job (there are many -- audit log retention, session cleanup, analytics cleanup, and similar) will simply run again at its next scheduled time. One miss rarely matters.</p>
+  <p><strong>Worth checking soon:</strong> a job tied to something a person is waiting on -- order processing, shipping updates, newsletter sending -- failing means that customer-facing outcome didn't happen this cycle.</p>
+  <p><strong>Worth investigating now:</strong> the <em>same</em> job type failing across several consecutive scheduled runs, not just once. That's a persistent problem, not noise. Since most jobs read or write the database, a cluster of FAILED jobs appearing at the same time is often downstream of a database issue -- check the <a href="/admin/health-dashboard">System Health</a> page for the same time window.</p>
+  <p>This page doesn't show the job's actual exception yet -- that requires checking the application logs for the failure.</p>
+</div>
+
+<h5>For Azure</h5>
+<div class="callout radius">
+  <p>Job data lives in the same Postgres database as the app, not in each instance's memory. If you scale to more than one Azure App Service instance, JobRunr elects one instance as the coordinator so each recurring job still runs exactly once across the whole fleet, not once per instance -- and this page shows the true shared state regardless of which instance happens to serve your request.</p>
+  <p>An instance can be marked <code>CMS_NODE_TYPE=web</code> to opt out of running the recurring job set entirely (useful if you ever split off a dedicated web-serving instance from a worker instance) -- this is an optional lever, not something you need to set for normal scaling.</p>
+  <p>JobRunr ships its own separate dashboard; it's turned off in this deployment because its open-source edition has no built-in login, so it can't safely be exposed. This page is the intended way to monitor jobs here.</p>
+  <p><strong>Short history is expected, not a bug:</strong> SUCCEEDED jobs are pruned after 1 hour, so this page shows recent activity rather than a long-running history -- that's a deliberate, low retention window for this deployment, not data loss.</p>
+</div>
