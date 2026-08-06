@@ -22,8 +22,11 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import java.sql.Timestamp;
+
 import com.sanctionco.jmail.JMail;
 import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.maps.GeoIPCommand;
 import com.simisinc.platform.domain.events.mailinglists.MailingListMemberCreatedEvent;
 import com.simisinc.platform.domain.events.mailinglists.MailingListMemberUpdatedEvent;
@@ -52,6 +55,44 @@ public class SaveEmailCommand {
   }
 
   public static Email saveEmail(Email emailBean, String mailingListName) throws DataException {
+    return saveEmail(emailBean, resolveMailingList(mailingListName));
+  }
+
+  public static Email saveEmail(Email emailBean, MailingList mailingList) throws DataException {
+    return saveEmail(emailBean, List.of(mailingList));
+  }
+
+  /** Subscribes to every list in mailingLists (issue #598 -- a signup can choose more than one).
+   *  Trusted paths only (CSV import, admin manual-add) -- activates immediately, with no
+   *  confirmation step. Public self-service signup paths must call {@link
+   *  #saveEmailRequiringConfirmation(Email, List)} instead. */
+  public static Email saveEmail(Email emailBean, List<MailingList> mailingLists) throws DataException {
+    return saveEmail(emailBean, mailingLists, false);
+  }
+
+  public static Email saveEmailRequiringConfirmation(Email emailBean) throws DataException {
+    return saveEmailRequiringConfirmation(emailBean, (String) null);
+  }
+
+  public static Email saveEmailRequiringConfirmation(Email emailBean, String mailingListName) throws DataException {
+    return saveEmailRequiringConfirmation(emailBean, resolveMailingList(mailingListName));
+  }
+
+  public static Email saveEmailRequiringConfirmation(Email emailBean, MailingList mailingList) throws DataException {
+    return saveEmailRequiringConfirmation(emailBean, List.of(mailingList));
+  }
+
+  /**
+   * Double opt-in: for public self-service signup paths (the newsletter form, its ajax variant,
+   * and the checkout newsletter checkbox), a new or reactivated membership is left pending until
+   * the address owner clicks the link {@link MailingListConfirmationCommand} emails them, instead
+   * of activating immediately on nothing but a typed-in address.
+   */
+  public static Email saveEmailRequiringConfirmation(Email emailBean, List<MailingList> mailingLists) throws DataException {
+    return saveEmail(emailBean, mailingLists, true);
+  }
+
+  private static MailingList resolveMailingList(String mailingListName) {
     if (mailingListName == null) {
       mailingListName = "Newsletter";
     }
@@ -64,15 +105,11 @@ public class SaveEmailCommand {
       mailingList.setEnabled(true);
       mailingList = MailingListRepository.save(mailingList);
     }
-    return saveEmail(emailBean, mailingList);
+    return mailingList;
   }
 
-  public static Email saveEmail(Email emailBean, MailingList mailingList) throws DataException {
-    return saveEmail(emailBean, List.of(mailingList));
-  }
-
-  /** Subscribes to every list in mailingLists (issue #598 -- a signup can choose more than one). */
-  public static Email saveEmail(Email emailBean, List<MailingList> mailingLists) throws DataException {
+  private static Email saveEmail(Email emailBean, List<MailingList> mailingLists, boolean requiresConfirmation)
+      throws DataException {
     if (mailingLists == null || mailingLists.isEmpty()) {
       throw new DataException("Please choose at least one list to subscribe to");
     }
@@ -119,9 +156,31 @@ public class SaveEmailCommand {
     // #810 fix), so on the duplicate-email/update branch above, email.getCreatedBy() would still
     // be whoever originally created that address, not who is submitting this request
     User actingUser = emailBean.getCreatedBy() > -1 ? UserRepository.findByUserId(emailBean.getCreatedBy()) : null;
+
+    // Resolve once for the whole signup, not per-list -- every list in a multi-list signup shares
+    // one confirm-link expiry rather than drifting by milliseconds between addEmailToList() calls.
+    Timestamp confirmTokenExpires = null;
+    if (requiresConfirmation) {
+      int expiryDays = MailingListMemberRepository.resolveConfirmationExpiryDays(
+          LoadSitePropertyCommand.loadByName("mailing-list.confirmation.expiryDays"));
+      confirmTokenExpires = new Timestamp(System.currentTimeMillis() + expiryDays * 86_400_000L);
+    }
+
     for (MailingList mailingList : mailingLists) {
       MailingListMemberRepository.AddToListResult result = MailingListMemberRepository.addEmailToList(email,
-          mailingList);
+          mailingList, requiresConfirmation, confirmTokenExpires);
+      if (result != null && result.requiresConfirmation()) {
+        // Double opt-in: don't sync to a third-party list or fire the created/updated lifecycle
+        // yet -- the real lifecycle event fires once the recipient actually confirms (see the
+        // confirm-subscription widget). Only send the email when a fresh token was actually
+        // minted (confirmationEmailNeeded) -- addEmailToList() reuses a still-live token instead
+        // of reissuing one on a resubmit, so repeatedly submitting the same address doesn't
+        // resend a real outbound email on every request.
+        if (result.confirmationEmailNeeded()) {
+          MailingListConfirmationCommand.sendConfirmationEmail(result.getMember(), mailingList);
+        }
+        continue;
+      }
       MailingListMemberCommand.triggerEmailSubscriptionProcess(email, mailingList, true);
       if (result != null && result.getMember() != null) {
         // issue #452: webhook/workflow event for the mailing-list-member lifecycle. A "not

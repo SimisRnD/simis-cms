@@ -46,6 +46,15 @@ public class MailingListMemberCommand {
 
   private static Log LOG = LogFactory.getLog(MailingListMemberCommand.class);
 
+  /**
+   * A logged-in user's self-service "subscribe me" toggle (e.g. My Email Preferences), called
+   * with the account's own email address. Deliberately calls the immediate-activation {@link
+   * SaveEmailCommand#saveEmail(Email, MailingList)} rather than {@code
+   * saveEmailRequiringConfirmation(...)} -- unlike the public signup paths, the address here is
+   * always the caller's own account email, already proven via account validation at registration
+   * time (see AccountValidationWidget), so a second confirmation step would add friction with no
+   * consent benefit. A third trusted bypass, alongside CSV import and admin manual-add.
+   */
   public static void subscribe(MailingList mailingList, User user, UserSession userSession) throws DataException {
 
     if (mailingList == null) {

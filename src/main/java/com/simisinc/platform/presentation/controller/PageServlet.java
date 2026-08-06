@@ -1110,7 +1110,7 @@ public class PageServlet extends HttpServlet {
         // @todo determine if this is needed still (it is, but until all JSP layouts are removed?)
         // Load the main menu
         request.setAttribute(SHOW_MAIN_MENU, "true");
-        List<MenuTab> menuTabList = siteVisibleToUser ? LoadMenuTabsCommand.loadActiveIncludeMenuItemList() : Collections.emptyList();
+        List<MenuTab> menuTabList = resolveMasterMenuTabList(siteVisibleToUser);
         request.setAttribute(MASTER_MENU_TAB_LIST, menuTabList);
 
         // @note this is needed globally
@@ -1173,6 +1173,16 @@ public class PageServlet extends HttpServlet {
   /** True for the guest-facing auth pages that need header/branding even while site.online is false (issue #1005). */
   static boolean isGuestAuthPage(String pagePath) {
     return "/login".equals(pagePath) || "/register".equals(pagePath) || "/forgot-password".equals(pagePath);
+  }
+
+  /**
+   * Must return a real ArrayList (never Collections.emptyList()) -- layout.jsp's
+   * {@code <jsp:useBean id="masterMenuTabList" class="java.util.ArrayList" scope="request"/>} casts
+   * the existing request attribute to ArrayList instead of instantiating a new one, so any other
+   * List implementation throws a ClassCastException at render time.
+   */
+  static List<MenuTab> resolveMasterMenuTabList(boolean siteVisibleToUser) {
+    return siteVisibleToUser ? LoadMenuTabsCommand.loadActiveIncludeMenuItemList() : new ArrayList<>();
   }
 
   static String generateJsonLdData(PageRenderInfo pageRenderInfo, String siteUrl, String pagePath,

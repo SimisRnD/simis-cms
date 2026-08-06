@@ -53,6 +53,13 @@ public class FormSubmissionFailureRepository {
   public static final String REASON_BLANK = "blank";
   public static final String REASON_CAPTCHA_FAILED = "captcha_failed";
   public static final String REASON_RATE_LIMITED = "rate_limited";
+  /** The configured destination form itself could not accept the submission (missing/unresolved formId,
+   *  disabled, or has no fields configured) -- distinct from {@link #REASON_MISSING_FIELD}, which is the
+   *  submitter leaving one required field blank on an otherwise-valid, available form. */
+  public static final String REASON_FORM_UNAVAILABLE = "form_unavailable";
+  /** A validated, non-spam submission that still failed to persist (FormDataRepository.save() returned
+   *  null) -- a genuine backend/database problem, not anything the submitter did. */
+  public static final String REASON_SYSTEM_ERROR = "system_error";
 
   private static final int DEFAULT_RETENTION_DAYS = 90;
   private static final int MIN_RETENTION_DAYS = 7;
