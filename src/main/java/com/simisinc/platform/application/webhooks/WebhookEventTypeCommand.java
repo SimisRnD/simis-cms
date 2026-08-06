@@ -76,7 +76,8 @@ public class WebhookEventTypeCommand {
       new WebhookEventType("user-account-restored", "User account restored"),
       new WebhookEventType("mailing-list-member-created", "Mailing list member subscribed"),
       new WebhookEventType("mailing-list-member-updated", "Mailing list member subscription changed"),
-      new WebhookEventType("mailing-list-member-deleted", "Mailing list member removed"))));
+      new WebhookEventType("mailing-list-member-deleted", "Mailing list member removed"),
+      new WebhookEventType("mailing-list-member-confirmation-requested", "Mailing list member confirmation requested"))));
 
   private WebhookEventTypeCommand() {
     // Static utility, not instantiated

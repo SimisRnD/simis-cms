@@ -33,6 +33,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import java.io.File;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -51,10 +52,9 @@ public class UserRepository {
   private static String TABLE_NAME = "users";
   private static String[] PRIMARY_KEY = new String[]{"user_id"};
 
-  private static DataResult query(UserSpecification specification, DataConstraints constraints) {
-    SqlUtils select = new SqlUtils();
+  /** Shared by {@link #query} and {@link #exportCsv} so the export always honors the same filters as the page. */
+  private static SqlUtils createWhereStatement(UserSpecification specification) {
     SqlUtils where = new SqlUtils();
-    SqlUtils orderBy = new SqlUtils();
     if (specification != null) {
       where.addIfExists("user_id = ?", specification.getId(), -1);
       if (specification.getRoleId() > -1) {
@@ -102,13 +102,13 @@ public class UserRepository {
         }
       }
     }
-    // Uses buildSummaryRecord rather than buildRecord: list-style queries (the /admin/users list,
-    // the editorial-calendar author dropdown, the user lookup autocomplete) never read
-    // User#getMfaSecret(), only the separate mfa_enabled boolean, so there is no reason to pay for
-    // a SecretCryptoCommand.decrypt() call (and its ERROR log on a misconfigured CMS_SECRET_KEY)
-    // on every MFA-enabled row of every list render. Single-record lookups (findByUserId,
-    // findByUsername, etc., used by login/MFA-verification flows that do need the plaintext seed)
-    // still go through buildRecord via DB.selectRecordFrom.
+    return where;
+  }
+
+  private static DataResult query(UserSpecification specification, DataConstraints constraints) {
+    SqlUtils select = new SqlUtils();
+    SqlUtils where = createWhereStatement(specification);
+    SqlUtils orderBy = new SqlUtils();
     return DB.selectAllFrom(
         TABLE_NAME, select, where, orderBy, constraints, UserRepository::buildSummaryRecord);
   }
@@ -181,6 +181,37 @@ public class UserRepository {
     constraints.setDefaultColumnToSortBy("user_id desc");
     DataResult result = query(specification, constraints);
     return (List<User>) result.getRecords();
+  }
+
+  /**
+   * Exports every record matching the filter (unpaginated -- a fresh DataConstraints has no page size) to a
+   * CSV file, honoring the same WHERE clause {@link #query} builds from the specification so the export
+   * always matches whatever filter is applied on the page.
+   *
+   * <p>The column list is an explicit allowlist -- never {@code SELECT *} and never the full-record
+   * {@link #buildRecord} mapper -- so the password hash, MFA TOTP secret, and account-token/reset-token
+   * columns can never end up in the exported file, regardless of what {@link User} gains in the future.
+   * Roles and last-login are correlated subqueries (mirroring the {@code WHERE user_id = users.user_id}
+   * idiom {@link #query} already uses for role/group filters) rather than a plain JOIN, since a plain JOIN
+   * against user_roles or user_logins would multiply a row per role/login for a user with more than one.
+   */
+  public static void exportCsv(UserSpecification specification, File file) {
+    SqlUtils selectFields = new SqlUtils()
+        .addNames(
+            "first_name AS \"First Name\"",
+            "last_name AS \"Last Name\"",
+            "email AS \"Email\"",
+            "username AS \"Username\"",
+            "(SELECT string_agg(lr.title, ', ' ORDER BY lr.level DESC) FROM lookup_role lr " +
+                "JOIN user_roles ur ON ur.role_id = lr.role_id WHERE ur.user_id = users.user_id) AS \"Roles\"",
+            "enabled AS \"Enabled\"",
+            "validated AS \"Validated\"",
+            "created AS \"Created\"",
+            "(SELECT MAX(created) FROM user_logins WHERE user_id = users.user_id) AS \"Last Login\"");
+    SqlUtils where = createWhereStatement(specification);
+    DataConstraints constraints = new DataConstraints();
+    constraints.setDefaultColumnToSortBy("user_id desc");
+    DB.exportToCsvAllFrom(TABLE_NAME, selectFields, null, where, null, constraints, file);
   }
 
   public static List<StatisticsData> findMonthlyUserRegistrations(int monthsLimit) {
