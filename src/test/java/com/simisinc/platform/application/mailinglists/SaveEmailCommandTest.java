@@ -19,6 +19,7 @@ package com.simisinc.platform.application.mailinglists;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
@@ -32,6 +33,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
 import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.maps.GeoIPCommand;
 import com.simisinc.platform.domain.events.Event;
 import com.simisinc.platform.domain.events.mailinglists.MailingListMemberCreatedEvent;
@@ -101,8 +103,8 @@ class SaveEmailCommandTest {
 
       assertEquals(saved, result);
       emailRepo.verify(() -> EmailRepository.add(emailBean), times(1));
-      memberRepo.verify(() -> MailingListMemberRepository.addEmailToList(saved, lists.get(0)));
-      memberRepo.verify(() -> MailingListMemberRepository.addEmailToList(saved, lists.get(1)));
+      memberRepo.verify(() -> MailingListMemberRepository.addEmailToList(saved, lists.get(0), false, null));
+      memberRepo.verify(() -> MailingListMemberRepository.addEmailToList(saved, lists.get(1), false, null));
       memberCommand.verify(() -> MailingListMemberCommand.triggerEmailSubscriptionProcess(saved, lists.get(0), true));
       memberCommand.verify(() -> MailingListMemberCommand.triggerEmailSubscriptionProcess(saved, lists.get(1), true));
     }
@@ -129,9 +131,9 @@ class SaveEmailCommandTest {
         MockedStatic<WorkflowManager> workflowManager = mockStatic(WorkflowManager.class);
         MockedStatic<GeoIPCommand> geoIp = mockStatic(GeoIPCommand.class)) {
       emailRepo.when(() -> EmailRepository.add(emailBean)).thenReturn(saved);
-      memberRepo.when(() -> MailingListMemberRepository.addEmailToList(saved, listA))
+      memberRepo.when(() -> MailingListMemberRepository.addEmailToList(saved, listA, false, null))
           .thenReturn(new MailingListMemberRepository.AddToListResult(true, false, memberA));
-      memberRepo.when(() -> MailingListMemberRepository.addEmailToList(saved, listB))
+      memberRepo.when(() -> MailingListMemberRepository.addEmailToList(saved, listB, false, null))
           .thenReturn(new MailingListMemberRepository.AddToListResult(true, false, memberB));
 
       SaveEmailCommand.saveEmail(emailBean, List.of(listA, listB));
@@ -172,7 +174,8 @@ class SaveEmailCommandTest {
       emailRepo.when(() -> EmailRepository.add(emailBean)).thenReturn(null); // duplicate -> update branch
       emailRepo.when(() -> EmailRepository.findByEmailAddress("subscriber@example.com"))
           .thenReturn(existingWithADifferentOriginalCreator);
-      memberRepo.when(() -> MailingListMemberRepository.addEmailToList(existingWithADifferentOriginalCreator, mailingList))
+      memberRepo.when(() -> MailingListMemberRepository.addEmailToList(existingWithADifferentOriginalCreator,
+          mailingList, false, null))
           .thenReturn(new MailingListMemberRepository.AddToListResult(true, false, member));
       com.simisinc.platform.domain.model.User admin42 = new com.simisinc.platform.domain.model.User();
       admin42.setId(42L);
@@ -204,8 +207,8 @@ class SaveEmailCommandTest {
 
       SaveEmailCommand.saveEmail(emailBean, mailingList);
 
-      memberRepo.verify(() -> MailingListMemberRepository.addEmailToList(saved, mailingList), times(1));
-      memberRepo.verify(() -> MailingListMemberRepository.addEmailToList(any(), any()), times(1));
+      memberRepo.verify(() -> MailingListMemberRepository.addEmailToList(saved, mailingList, false, null), times(1));
+      memberRepo.verify(() -> MailingListMemberRepository.addEmailToList(any(), any(), anyBoolean(), any()), times(1));
     }
   }
 
@@ -225,7 +228,7 @@ class SaveEmailCommandTest {
         MockedStatic<WorkflowManager> workflowManager = mockStatic(WorkflowManager.class);
         MockedStatic<GeoIPCommand> geoIp = mockStatic(GeoIPCommand.class)) {
       emailRepo.when(() -> EmailRepository.add(emailBean)).thenReturn(saved);
-      memberRepo.when(() -> MailingListMemberRepository.addEmailToList(saved, mailingList))
+      memberRepo.when(() -> MailingListMemberRepository.addEmailToList(saved, mailingList, false, null))
           .thenReturn(new MailingListMemberRepository.AddToListResult(true, false, member));
 
       SaveEmailCommand.saveEmail(emailBean, mailingList);
@@ -255,7 +258,7 @@ class SaveEmailCommandTest {
         MockedStatic<WorkflowManager> workflowManager = mockStatic(WorkflowManager.class);
         MockedStatic<GeoIPCommand> geoIp = mockStatic(GeoIPCommand.class)) {
       emailRepo.when(() -> EmailRepository.add(emailBean)).thenReturn(saved);
-      memberRepo.when(() -> MailingListMemberRepository.addEmailToList(saved, mailingList))
+      memberRepo.when(() -> MailingListMemberRepository.addEmailToList(saved, mailingList, false, null))
           .thenReturn(new MailingListMemberRepository.AddToListResult(false, true, member));
 
       SaveEmailCommand.saveEmail(emailBean, mailingList);
@@ -291,7 +294,7 @@ class SaveEmailCommandTest {
         MockedStatic<WorkflowManager> workflowManager = mockStatic(WorkflowManager.class);
         MockedStatic<GeoIPCommand> geoIp = mockStatic(GeoIPCommand.class)) {
       emailRepo.when(() -> EmailRepository.add(emailBean)).thenReturn(saved);
-      memberRepo.when(() -> MailingListMemberRepository.addEmailToList(saved, mailingList))
+      memberRepo.when(() -> MailingListMemberRepository.addEmailToList(saved, mailingList, false, null))
           .thenReturn(new MailingListMemberRepository.AddToListResult(false, false, member));
 
       SaveEmailCommand.saveEmail(emailBean, mailingList);
@@ -340,7 +343,102 @@ class SaveEmailCommandTest {
 
       assertEquals(existing, result);
       emailRepo.verify(() -> EmailRepository.update(emailBean));
-      memberRepo.verify(() -> MailingListMemberRepository.addEmailToList(existing, lists.get(0)));
+      memberRepo.verify(() -> MailingListMemberRepository.addEmailToList(existing, lists.get(0), false, null));
+    }
+  }
+
+  @Test
+  void requiringConfirmationPassesTrueAndAResolvedExpiryToAddEmailToList() throws DataException {
+    Email emailBean = email("subscriber@example.com");
+    Email saved = email("subscriber@example.com");
+    saved.setId(5L);
+    MailingList mailingList = mailingList(1L, "News");
+    MailingListMember pendingMember = new MailingListMember();
+    pendingMember.setId(10L);
+    pendingMember.setEmailAddress("subscriber@example.com");
+    pendingMember.setConfirmToken("a-token");
+
+    try (MockedStatic<EmailRepository> emailRepo = mockStatic(EmailRepository.class);
+        MockedStatic<MailingListMemberRepository> memberRepo = mockStatic(MailingListMemberRepository.class);
+        MockedStatic<MailingListMemberCommand> memberCommand = mockStatic(MailingListMemberCommand.class);
+        MockedStatic<MailingListConfirmationCommand> confirmationCommand = mockStatic(MailingListConfirmationCommand.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<GeoIPCommand> geoIp = mockStatic(GeoIPCommand.class)) {
+      emailRepo.when(() -> EmailRepository.add(emailBean)).thenReturn(saved);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("mailing-list.confirmation.expiryDays")).thenReturn("7");
+      memberRepo.when(() -> MailingListMemberRepository.resolveConfirmationExpiryDays("7")).thenReturn(7);
+      memberRepo.when(() -> MailingListMemberRepository.addEmailToList(eq(saved), eq(mailingList), eq(true), any()))
+          .thenReturn(new MailingListMemberRepository.AddToListResult(true, false, true, pendingMember));
+
+      SaveEmailCommand.saveEmailRequiringConfirmation(emailBean, mailingList);
+
+      memberRepo.verify(() -> MailingListMemberRepository.addEmailToList(eq(saved), eq(mailingList), eq(true), any()));
+    }
+  }
+
+  @Test
+  void aPendingConfirmationResultSendsTheConfirmationEmailInsteadOfFiringTheCreatedEvent() throws DataException {
+    Email emailBean = email("subscriber@example.com");
+    Email saved = email("subscriber@example.com");
+    saved.setId(5L);
+    MailingList mailingList = mailingList(1L, "News");
+    MailingListMember pendingMember = new MailingListMember();
+    pendingMember.setId(10L);
+    pendingMember.setEmailAddress("subscriber@example.com");
+    pendingMember.setConfirmToken("a-token");
+
+    try (MockedStatic<EmailRepository> emailRepo = mockStatic(EmailRepository.class);
+        MockedStatic<MailingListMemberRepository> memberRepo = mockStatic(MailingListMemberRepository.class);
+        MockedStatic<MailingListMemberCommand> memberCommand = mockStatic(MailingListMemberCommand.class);
+        MockedStatic<MailingListConfirmationCommand> confirmationCommand = mockStatic(MailingListConfirmationCommand.class);
+        MockedStatic<WorkflowManager> workflowManager = mockStatic(WorkflowManager.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<GeoIPCommand> geoIp = mockStatic(GeoIPCommand.class)) {
+      emailRepo.when(() -> EmailRepository.add(emailBean)).thenReturn(saved);
+      memberRepo.when(() -> MailingListMemberRepository.addEmailToList(eq(saved), eq(mailingList), eq(true), any()))
+          .thenReturn(new MailingListMemberRepository.AddToListResult(true, false, true, pendingMember));
+
+      SaveEmailCommand.saveEmailRequiringConfirmation(emailBean, mailingList);
+
+      confirmationCommand.verify(
+          () -> MailingListConfirmationCommand.sendConfirmationEmail(pendingMember, mailingList));
+      workflowManager.verify(() -> WorkflowManager.triggerWorkflowForEvent(any()), never());
+      memberCommand.verify(
+          () -> MailingListMemberCommand.triggerEmailSubscriptionProcess(any(), any(), anyBoolean()), never());
+    }
+  }
+
+  @Test
+  void aPendingResultThatDoesNotNeedANewConfirmationEmailDoesNotSendOne() throws DataException {
+    // addEmailToList() reuses a still-live token instead of reissuing one on a resubmit --
+    // requiresConfirmation() stays true (still not active) but confirmationEmailNeeded() is
+    // false. Resending here on every resubmit would be an unthrottled mail-bomb primitive.
+    Email emailBean = email("subscriber@example.com");
+    Email saved = email("subscriber@example.com");
+    saved.setId(5L);
+    MailingList mailingList = mailingList(1L, "News");
+    MailingListMember pendingMember = new MailingListMember();
+    pendingMember.setId(10L);
+    pendingMember.setEmailAddress("subscriber@example.com");
+    pendingMember.setConfirmToken("still-live-token");
+
+    try (MockedStatic<EmailRepository> emailRepo = mockStatic(EmailRepository.class);
+        MockedStatic<MailingListMemberRepository> memberRepo = mockStatic(MailingListMemberRepository.class);
+        MockedStatic<MailingListMemberCommand> memberCommand = mockStatic(MailingListMemberCommand.class);
+        MockedStatic<MailingListConfirmationCommand> confirmationCommand = mockStatic(MailingListConfirmationCommand.class);
+        MockedStatic<WorkflowManager> workflowManager = mockStatic(WorkflowManager.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<GeoIPCommand> geoIp = mockStatic(GeoIPCommand.class)) {
+      emailRepo.when(() -> EmailRepository.add(emailBean)).thenReturn(saved);
+      memberRepo.when(() -> MailingListMemberRepository.addEmailToList(eq(saved), eq(mailingList), eq(true), any()))
+          .thenReturn(new MailingListMemberRepository.AddToListResult(false, false, true, false, pendingMember));
+
+      SaveEmailCommand.saveEmailRequiringConfirmation(emailBean, mailingList);
+
+      confirmationCommand.verify(() -> MailingListConfirmationCommand.sendConfirmationEmail(any(), any()), never());
+      workflowManager.verify(() -> WorkflowManager.triggerWorkflowForEvent(any()), never());
+      memberCommand.verify(
+          () -> MailingListMemberCommand.triggerEmailSubscriptionProcess(any(), any(), anyBoolean()), never());
     }
   }
 }

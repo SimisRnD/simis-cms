@@ -70,13 +70,13 @@ class EmailSubscribeAjaxTest extends WidgetBase {
       captcha.when(() -> CaptchaCommand.validateRequest(any())).thenReturn(true);
       rateLimit.when(() -> RateLimitCommand.isIpAllowedRightNow(any(), eq(true))).thenReturn(true);
       listRepo.when(MailingListRepository::findOnlineLists).thenReturn(null);
-      saveEmail.when(() -> SaveEmailCommand.saveEmail(any())).thenReturn(new Email());
+      saveEmail.when(() -> SaveEmailCommand.saveEmailRequiringConfirmation(any())).thenReturn(new Email());
 
       new EmailSubscribeAjax().execute(widgetContext);
 
       Assertions.assertEquals("{\"status\":\"0\"}", widgetContext.getJson());
-      saveEmail.verify(() -> SaveEmailCommand.saveEmail(any()));
-      saveEmail.verify(() -> SaveEmailCommand.saveEmail(any(), anyList()), never());
+      saveEmail.verify(() -> SaveEmailCommand.saveEmailRequiringConfirmation(any()));
+      saveEmail.verify(() -> SaveEmailCommand.saveEmailRequiringConfirmation(any(), anyList()), never());
     }
   }
 
@@ -93,7 +93,7 @@ class EmailSubscribeAjaxTest extends WidgetBase {
       String json = widgetContext.getJson();
       Assertions.assertTrue(json.contains("\"status\":\"1\""), json);
       Assertions.assertTrue(json.contains("verify you're human"), json);
-      saveEmail.verify(() -> SaveEmailCommand.saveEmail(any()), never());
+      saveEmail.verify(() -> SaveEmailCommand.saveEmailRequiringConfirmation(any()), never());
     }
   }
 
@@ -112,7 +112,7 @@ class EmailSubscribeAjaxTest extends WidgetBase {
       String json = widgetContext.getJson();
       Assertions.assertTrue(json.contains("\"status\":\"1\""), json);
       Assertions.assertTrue(json.contains(RateLimitCommand.INVALID_ATTEMPTS), json);
-      saveEmail.verify(() -> SaveEmailCommand.saveEmail(any()), never());
+      saveEmail.verify(() -> SaveEmailCommand.saveEmailRequiringConfirmation(any()), never());
     }
   }
 
@@ -163,12 +163,12 @@ class EmailSubscribeAjaxTest extends WidgetBase {
       captcha.when(() -> CaptchaCommand.validateRequest(any())).thenReturn(true);
       rateLimit.when(() -> RateLimitCommand.isIpAllowedRightNow(any(), eq(true))).thenReturn(true);
       listRepo.when(MailingListRepository::findOnlineLists).thenReturn(onlineLists);
-      saveEmail.when(() -> SaveEmailCommand.saveEmail(any(), anyList())).thenReturn(new Email());
+      saveEmail.when(() -> SaveEmailCommand.saveEmailRequiringConfirmation(any(), anyList())).thenReturn(new Email());
 
       new EmailSubscribeAjax().execute(widgetContext);
 
       Assertions.assertEquals("{\"status\":\"0\"}", widgetContext.getJson());
-      saveEmail.verify(() -> SaveEmailCommand.saveEmail(any(), eq(List.of(onlineLists.get(1)))));
+      saveEmail.verify(() -> SaveEmailCommand.saveEmailRequiringConfirmation(any(), eq(List.of(onlineLists.get(1)))));
     }
   }
 
@@ -193,8 +193,8 @@ class EmailSubscribeAjaxTest extends WidgetBase {
       String json = widgetContext.getJson();
       Assertions.assertTrue(json.contains("\"status\":\"1\""), json);
       Assertions.assertTrue(json.contains("choose at least one list"), json);
-      saveEmail.verify(() -> SaveEmailCommand.saveEmail(any(), anyList()), never());
-      saveEmail.verify(() -> SaveEmailCommand.saveEmail(any()), never());
+      saveEmail.verify(() -> SaveEmailCommand.saveEmailRequiringConfirmation(any(), anyList()), never());
+      saveEmail.verify(() -> SaveEmailCommand.saveEmailRequiringConfirmation(any()), never());
     }
   }
 
@@ -240,12 +240,12 @@ class EmailSubscribeAjaxTest extends WidgetBase {
       captcha.when(() -> CaptchaCommand.validateRequest(any())).thenReturn(true);
       rateLimit.when(() -> RateLimitCommand.isIpAllowedRightNow(any(), eq(true))).thenReturn(true);
       listRepo.when(MailingListRepository::findOnlineLists).thenReturn(onlineLists);
-      saveEmail.when(() -> SaveEmailCommand.saveEmail(any(), anyList())).thenReturn(new Email());
+      saveEmail.when(() -> SaveEmailCommand.saveEmailRequiringConfirmation(any(), anyList())).thenReturn(new Email());
 
       new EmailSubscribeAjax().execute(widgetContext);
 
       Assertions.assertEquals("{\"status\":\"0\"}", widgetContext.getJson());
-      saveEmail.verify(() -> SaveEmailCommand.saveEmail(any(), eq(onlineLists)));
+      saveEmail.verify(() -> SaveEmailCommand.saveEmailRequiringConfirmation(any(), eq(onlineLists)));
     }
   }
 }

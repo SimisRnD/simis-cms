@@ -1,5 +1,5 @@
 /*
- * Copyright 2026 SimIS Inc. (https://www.simiscms.com)
+ * Copyright 2022 SimIS Inc. (https://www.simiscms.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,139 +16,108 @@
 
 package com.simisinc.platform.application.admin;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.never;
-
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-import org.mockito.ArgumentCaptor;
-import org.mockito.MockedStatic;
-
 import com.simisinc.platform.WidgetBase;
-import com.simisinc.platform.application.LoadUserCommand;
 import com.simisinc.platform.application.audit.SaveAuditEventCommand;
 import com.simisinc.platform.application.cms.SaveFilePartCommand;
 import com.simisinc.platform.application.filesystem.FileSystemCommand;
 import com.simisinc.platform.application.register.SaveUserCommand;
-import com.simisinc.platform.domain.events.cms.UserInvitedEvent;
 import com.simisinc.platform.domain.model.Group;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.cms.FileItem;
 import com.simisinc.platform.infrastructure.persistence.GroupRepository;
 import com.simisinc.platform.infrastructure.persistence.UserRepository;
-import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
+import com.simisinc.platform.presentation.controller.AuditEventCommand;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
+
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.times;
 
 /**
- * The manual "Add User" path (UsersListWidget.addUserAction) fires a UserInvitedEvent so the new
- * account gets its invite/welcome email; the bulk CSV-import path historically did not, so
- * CSV-imported users were silently missing that email. These cover that a successfully saved row
- * fires the same event, resolving "invitedBy" from the uploading admin, and that a row whose save
- * did not produce a persisted user (saveUser() returned null, guarded the same way the audit event
- * already was) does not fire it.
- *
- * @author SimIS Inc.
+ * Proves ProcessUserCSVFileCommand.processCSV() only counts (and records a "success" audit event for)
+ * CSV rows that SaveUserCommand.saveUser() actually persisted. A row where saveUser() returns null --
+ * a caught DB-level failure inside UserRepository.add() -- must not inflate the "N users added" total
+ * reported back to the admin, and must be recorded as a failure instead, mirroring the null-check
+ * UsersListWidget#addUserAction already applies to the same saveUser() call (issue behind PR for
+ * over-counted CSV import success).
  */
 class ProcessUserCSVFileCommandTest extends WidgetBase {
 
-  private static Group allUsersGroup() {
-    Group group = new Group();
-    group.setId(1L);
-    group.setName("All Users");
-    return group;
-  }
+  private Path csvFile;
 
-  private static User invitingAdmin() {
-    User admin = new User();
-    admin.setId(1L);
-    admin.setEmail("admin@example.com");
-    return admin;
-  }
-
-  private static User savedUser(String email) {
-    User user = new User();
-    user.setId(42L);
-    user.setEmail(email);
-    return user;
-  }
-
-  private static Path writeCsv(Path dir, String content) throws Exception {
-    Path csv = dir.resolve("import.csv");
-    Files.writeString(csv, content, StandardCharsets.UTF_8);
-    return csv;
-  }
-
-  @Test
-  void successfullyImportedRowTriggersInviteEvent(@TempDir Path tempDir) throws Exception {
-    Path csvFile = writeCsv(tempDir, "Email,First Name,Last Name\ncsv-user@example.com,CSV,User\n");
-
-    FileItem fileItemBean = new FileItem();
-    fileItemBean.setFileServerPath("uploads/import.csv");
-
-    try (MockedStatic<SaveFilePartCommand> saveFilePart = mockStatic(SaveFilePartCommand.class);
-        MockedStatic<FileSystemCommand> fileSystem = mockStatic(FileSystemCommand.class);
-        MockedStatic<GroupRepository> groupRepo = mockStatic(GroupRepository.class);
-        MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
-        MockedStatic<SaveUserCommand> saveCmd = mockStatic(SaveUserCommand.class);
-        MockedStatic<SaveAuditEventCommand> audit = mockStatic(SaveAuditEventCommand.class);
-        MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
-        MockedStatic<WorkflowManager> workflow = mockStatic(WorkflowManager.class)) {
-
-      saveFilePart.when(() -> SaveFilePartCommand.saveFile(any())).thenReturn(fileItemBean);
-      fileSystem.when(FileSystemCommand::getFileServerRootPath).thenReturn(tempDir.toString());
-      fileSystem.when(() -> FileSystemCommand.resolveWithinRoot(any(), any())).thenReturn(csvFile.toFile());
-      groupRepo.when(() -> GroupRepository.findByName("All Users")).thenReturn(allUsersGroup());
-      userRepo.when(() -> UserRepository.findByUsername(anyString())).thenReturn(null);
-      loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(invitingAdmin());
-      saveCmd.when(() -> SaveUserCommand.saveUser(any())).thenReturn(savedUser("csv-user@example.com"));
-
-      int userCount = ProcessUserCSVFileCommand.processCSV(widgetContext);
-      assertEquals(1, userCount);
-
-      // The invite/welcome email is sent asynchronously off this event, the same way it is for the
-      // manual Add User form -- resolved once from the uploading admin (userId 1, per WidgetBase.login())
-      ArgumentCaptor<UserInvitedEvent> captor = ArgumentCaptor.forClass(UserInvitedEvent.class);
-      workflow.verify(() -> WorkflowManager.triggerWorkflowForEvent(captor.capture()));
-      assertEquals("csv-user@example.com", captor.getValue().getUser().getEmail());
-      assertEquals("admin@example.com", captor.getValue().getInvitedBy().getEmail());
+  @AfterEach
+  void cleanup() throws Exception {
+    if (csvFile != null) {
+      Files.deleteIfExists(csvFile);
     }
   }
 
   @Test
-  void rowWhoseSaveDidNotReturnAUserDoesNotTriggerInviteEvent(@TempDir Path tempDir) throws Exception {
-    Path csvFile = writeCsv(tempDir, "Email,First Name,Last Name\ncsv-user@example.com,CSV,User\n");
+  void aRowWhereSaveUserReturnsNullIsNotCountedAndIsRecordedAsAFailure() throws Exception {
+    setRoles(widgetContext, ADMIN);
+
+    csvFile = Files.createTempFile("user-import", ".csv");
+    Files.write(csvFile, ("Email,First Name,Last Name\n" +
+        "ok@example.com,Ok,User\n" +
+        "broken@example.com,Broken,User\n").getBytes(StandardCharsets.UTF_8), StandardOpenOption.TRUNCATE_EXISTING);
 
     FileItem fileItemBean = new FileItem();
-    fileItemBean.setFileServerPath("uploads/import.csv");
+    fileItemBean.setFileServerPath("uploads/user-import.csv");
+
+    Group allUsersGroup = new Group();
+    allUsersGroup.setId(1L);
+    allUsersGroup.setName("All Users");
+
+    User savedOkUser = new User();
+    savedOkUser.setId(42L);
+    savedOkUser.setEmail("ok@example.com");
 
     try (MockedStatic<SaveFilePartCommand> saveFilePart = mockStatic(SaveFilePartCommand.class);
         MockedStatic<FileSystemCommand> fileSystem = mockStatic(FileSystemCommand.class);
-        MockedStatic<GroupRepository> groupRepo = mockStatic(GroupRepository.class);
-        MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
-        MockedStatic<SaveUserCommand> saveCmd = mockStatic(SaveUserCommand.class);
-        MockedStatic<SaveAuditEventCommand> audit = mockStatic(SaveAuditEventCommand.class);
-        MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
-        MockedStatic<WorkflowManager> workflow = mockStatic(WorkflowManager.class)) {
+        MockedStatic<GroupRepository> groupRepository = mockStatic(GroupRepository.class);
+        MockedStatic<UserRepository> userRepository = mockStatic(UserRepository.class);
+        MockedStatic<SaveUserCommand> saveUserCommand = mockStatic(SaveUserCommand.class);
+        MockedStatic<SaveAuditEventCommand> audit = mockStatic(SaveAuditEventCommand.class)) {
 
-      saveFilePart.when(() -> SaveFilePartCommand.saveFile(any())).thenReturn(fileItemBean);
-      fileSystem.when(FileSystemCommand::getFileServerRootPath).thenReturn(tempDir.toString());
-      fileSystem.when(() -> FileSystemCommand.resolveWithinRoot(any(), any())).thenReturn(csvFile.toFile());
-      groupRepo.when(() -> GroupRepository.findByName("All Users")).thenReturn(allUsersGroup());
-      userRepo.when(() -> UserRepository.findByUsername(anyString())).thenReturn(null);
-      loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(invitingAdmin());
-      // Same guard the per-row audit event already relies on (saved != null)
-      saveCmd.when(() -> SaveUserCommand.saveUser(any())).thenReturn(null);
+      saveFilePart.when(() -> SaveFilePartCommand.saveFile(widgetContext)).thenReturn(fileItemBean);
+      fileSystem.when(FileSystemCommand::getFileServerRootPath).thenReturn("/tmp/");
+      fileSystem.when(() -> FileSystemCommand.resolveWithinRoot(anyString(), anyString()))
+          .thenReturn(csvFile.toFile());
+      groupRepository.when(() -> GroupRepository.findByName("All Users")).thenReturn(allUsersGroup);
+      userRepository.when(() -> UserRepository.findByUsername(anyString())).thenReturn(null);
 
-      ProcessUserCSVFileCommand.processCSV(widgetContext);
+      // Simulate SaveUserCommand.saveUser() returning null for one row, as it does on a caught
+      // DB-level failure inside UserRepository.add() -- the other row persists normally
+      saveUserCommand.when(() -> SaveUserCommand.saveUser(any(User.class))).thenAnswer(invocation -> {
+        User candidate = invocation.getArgument(0);
+        if ("broken@example.com".equals(candidate.getEmail())) {
+          return null;
+        }
+        return savedOkUser;
+      });
 
-      workflow.verify(() -> WorkflowManager.triggerWorkflowForEvent(any()), never());
+      int userCount = ProcessUserCSVFileCommand.processCSV(widgetContext);
+
+      Assertions.assertEquals(1, userCount, "Only the row that actually persisted should be counted");
+
+      audit.verify(() -> SaveAuditEventCommand.recordAdminEvent(eq(AuditEventCommand.USER_MANAGEMENT),
+          eq("user.create"), eq(AuditEventCommand.SUCCESS), eq(1L), any(), any(), any(),
+          eq("user"), eq("42"), eq("ok@example.com"), anyString()), times(1));
+
+      audit.verify(() -> SaveAuditEventCommand.recordAdminEvent(eq(AuditEventCommand.USER_MANAGEMENT),
+          eq("user.create"), eq(AuditEventCommand.FAILURE), eq(1L), any(), any(), any(),
+          eq("user"), eq(null), eq("broken@example.com"), anyString()), times(1));
     }
   }
 }
