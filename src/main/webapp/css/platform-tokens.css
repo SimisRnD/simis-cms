@@ -212,6 +212,14 @@ input[type="radio"] {
   border-radius: var(--sc-radius-md);
 }
 
+/* Foundation's own bare .callout background (a pale yellow, #fffdea) was
+   never overridden for light mode -- only the dark-mode background is set,
+   in Layer 3b below. Themed variants (primary/success/etc.) keep their
+   intentional color in both modes. */
+.callout:not(.primary):not(.secondary):not(.success):not(.warning):not(.alert):not(.header) {
+  background-color: var(--sc-surface-raised);
+}
+
 /* WCAG 2.2 SC 2.3.3 Animation from Interactions. Foundation, Motion UI and
    animate.css all animate by default; honour the OS setting. */
 @media (prefers-reduced-motion: reduce) {
