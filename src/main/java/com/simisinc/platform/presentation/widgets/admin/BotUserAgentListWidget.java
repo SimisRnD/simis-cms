@@ -73,8 +73,14 @@ public class BotUserAgentListWidget extends GenericWidget {
     long recordId = context.getParameterAsLong("botListId");
     if (recordId > -1) {
       BotUserAgent botUserAgent = BotUserAgentRepository.findById(recordId);
+      if (botUserAgent == null) {
+        // Already gone -- e.g. a double-click, or another admin removed it first. Report this
+        // distinctly rather than letting the delete attempt below NPE into a generic error
+        context.setWarningMessage("This entry was already removed.");
+        return context;
+      }
       // Capture the value before removal
-      String targetLabel = botUserAgent != null ? botUserAgent.getUserAgent() : null;
+      String targetLabel = botUserAgent.getUserAgent();
       try {
         boolean removed = DeleteBotUserAgentListCommand.delete(botUserAgent);
         AuditEventCommand.record(context, AuditEventCommand.CONFIGURATION, "bot_user_agent.remove",
@@ -144,15 +150,37 @@ public class BotUserAgentListWidget extends GenericWidget {
   private WidgetContext uploadCSVFileAction(WidgetContext context) {
     LOG.info("User is uploading a bot-list CSV file...");
     try {
-      int recordCount = ProcessBotListCSVFileCommand.processCSV(context);
+      ProcessBotListCSVFileCommand.ImportResult result = ProcessBotListCSVFileCommand.processCSV(context);
       AuditEventCommand.record(context, AuditEventCommand.CONFIGURATION, "bot_user_agent.import", AuditEventCommand.SUCCESS,
-          "bot_user_agent", null, null, "records=" + recordCount);
-      context.setSuccessMessage(recordCount + " record" + (recordCount != 1 ? "s" : "") + " added");
+          "bot_user_agent", null, null, "records=" + result.getRecordCount() + ", skipped=" + result.getSkippedCount());
+      context.setSuccessMessage(buildImportSummaryMessage(result));
     } catch (Exception e) {
       AuditEventCommand.record(context, AuditEventCommand.CONFIGURATION, "bot_user_agent.import", AuditEventCommand.FAILURE,
           "bot_user_agent", null, null, e.getMessage());
       context.setErrorMessage(e.getMessage());
     }
     return context;
+  }
+
+  private String buildImportSummaryMessage(ProcessBotListCSVFileCommand.ImportResult result) {
+    // Every row falls into exactly one bucket: added, removed (Remove=true), skipped as a
+    // duplicate (silently correct, not an error), or skipped due to an error. Only the last two
+    // get folded into "skipped" below since neither the admin nor this message can tell them
+    // apart from the ImportResult alone -- what matters is stating added/removed counts
+    // explicitly rather than letting them go unmentioned, which previously made a fully
+    // successful bulk-removal (0 added, N removed) read as "0 records added", i.e. as if nothing
+    // happened.
+    StringBuilder message = new StringBuilder();
+    message.append(result.getRecordCount()).append(" record").append(result.getRecordCount() != 1 ? "s" : "")
+        .append(" added");
+    if (result.getRemovedCount() > 0) {
+      message.append(", ").append(result.getRemovedCount()).append(" removed");
+    }
+    if (result.getSkippedCount() > 0) {
+      message.append(", ").append(result.getSkippedCount()).append(" skipped -- see the application log");
+    }
+    message.append(" (").append(result.getTotalRowCount()).append(" row")
+        .append(result.getTotalRowCount() != 1 ? "s" : "").append(" total)");
+    return message.toString();
   }
 }
