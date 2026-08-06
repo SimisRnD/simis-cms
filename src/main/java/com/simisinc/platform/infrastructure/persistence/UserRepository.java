@@ -33,6 +33,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
+import java.io.File;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -51,10 +52,9 @@ public class UserRepository {
   private static String TABLE_NAME = "users";
   private static String[] PRIMARY_KEY = new String[]{"user_id"};
 
-  private static DataResult query(UserSpecification specification, DataConstraints constraints) {
-    SqlUtils select = new SqlUtils();
+  /** Shared by {@link #query} and {@link #exportCsv} so the export always honors the same filters as the page. */
+  private static SqlUtils createWhereStatement(UserSpecification specification) {
     SqlUtils where = new SqlUtils();
-    SqlUtils orderBy = new SqlUtils();
     if (specification != null) {
       where.addIfExists("user_id = ?", specification.getId(), -1);
       if (specification.getRoleId() > -1) {
@@ -102,8 +102,15 @@ public class UserRepository {
         }
       }
     }
+    return where;
+  }
+
+  private static DataResult query(UserSpecification specification, DataConstraints constraints) {
+    SqlUtils select = new SqlUtils();
+    SqlUtils where = createWhereStatement(specification);
+    SqlUtils orderBy = new SqlUtils();
     return DB.selectAllFrom(
-        TABLE_NAME, select, where, orderBy, constraints, UserRepository::buildRecord);
+        TABLE_NAME, select, where, orderBy, constraints, UserRepository::buildSummaryRecord);
   }
 
   public static User findByUniqueId(String uniqueId) {
@@ -174,6 +181,37 @@ public class UserRepository {
     constraints.setDefaultColumnToSortBy("user_id desc");
     DataResult result = query(specification, constraints);
     return (List<User>) result.getRecords();
+  }
+
+  /**
+   * Exports every record matching the filter (unpaginated -- a fresh DataConstraints has no page size) to a
+   * CSV file, honoring the same WHERE clause {@link #query} builds from the specification so the export
+   * always matches whatever filter is applied on the page.
+   *
+   * <p>The column list is an explicit allowlist -- never {@code SELECT *} and never the full-record
+   * {@link #buildRecord} mapper -- so the password hash, MFA TOTP secret, and account-token/reset-token
+   * columns can never end up in the exported file, regardless of what {@link User} gains in the future.
+   * Roles and last-login are correlated subqueries (mirroring the {@code WHERE user_id = users.user_id}
+   * idiom {@link #query} already uses for role/group filters) rather than a plain JOIN, since a plain JOIN
+   * against user_roles or user_logins would multiply a row per role/login for a user with more than one.
+   */
+  public static void exportCsv(UserSpecification specification, File file) {
+    SqlUtils selectFields = new SqlUtils()
+        .addNames(
+            "first_name AS \"First Name\"",
+            "last_name AS \"Last Name\"",
+            "email AS \"Email\"",
+            "username AS \"Username\"",
+            "(SELECT string_agg(lr.title, ', ' ORDER BY lr.level DESC) FROM lookup_role lr " +
+                "JOIN user_roles ur ON ur.role_id = lr.role_id WHERE ur.user_id = users.user_id) AS \"Roles\"",
+            "enabled AS \"Enabled\"",
+            "validated AS \"Validated\"",
+            "created AS \"Created\"",
+            "(SELECT MAX(created) FROM user_logins WHERE user_id = users.user_id) AS \"Last Login\"");
+    SqlUtils where = createWhereStatement(specification);
+    DataConstraints constraints = new DataConstraints();
+    constraints.setDefaultColumnToSortBy("user_id desc");
+    DB.exportToCsvAllFrom(TABLE_NAME, selectFields, null, where, null, constraints, file);
   }
 
   public static List<StatisticsData> findMonthlyUserRegistrations(int monthsLimit) {
@@ -639,46 +677,73 @@ public class UserRepository {
     return false;
   }
 
+  /**
+   * The full row mapper, used by single-record lookups (by id, username, email, account token,
+   * etc.) where a caller may legitimately need the plaintext TOTP seed -- e.g. login/MFA
+   * verification. Decrypts mfa_secret on every call.
+   */
   private static User buildRecord(ResultSet rs) {
     try {
-      User record = new User();
-      record.setId(rs.getLong("user_id"));
-      record.setUniqueId(rs.getString("unique_id"));
-      record.setFirstName(rs.getString("first_name"));
-      record.setLastName(rs.getString("last_name"));
-      record.setOrganization(rs.getString("organization"));
-      record.setNickname(rs.getString("nickname"));
-      record.setEmail(rs.getString("email"));
-      record.setUsername(rs.getString("username"));
-      record.setPassword(rs.getString("password"));
-      record.setEnabled(rs.getBoolean("enabled"));
-      record.setCreated(rs.getTimestamp("created"));
-      record.setModified(rs.getTimestamp("modified"));
-      record.setAccountToken(rs.getString("account_token"));
-      record.setAccountTokenExpires(rs.getTimestamp("account_token_expires"));
-      record.setValidated(rs.getTimestamp("validated"));
-      record.setCreatedBy(rs.getLong("created_by"));
-      record.setModifiedBy(rs.getLong("modified_by"));
-      record.setTitle(rs.getString("title"));
-      record.setDepartment(rs.getString("department"));
-      record.setTimeZone(rs.getString("timezone"));
-      record.setCity(rs.getString("city"));
-      record.setState(rs.getString("state"));
-      record.setCountry(rs.getString("country"));
-      record.setPostalCode(rs.getString("postal_code"));
-      record.setLatitude(rs.getDouble("latitude"));
-      record.setLongitude(rs.getDouble("longitude"));
+      User record = buildSummaryFields(rs);
       // Decrypt the at-rest TOTP seed so callers always see plaintext (legacy plaintext passes through unchanged)
       record.setMfaSecret(SecretCryptoCommand.decrypt(rs.getString("mfa_secret")));
-      record.setMfaEnabled(rs.getBoolean("mfa_enabled"));
-      record.setFailedAttemptCount(rs.getInt("failed_attempt_count"));
-      record.setLockedUntil(rs.getTimestamp("locked_until"));
-      record.setLastPasswordChangedAt(rs.getTimestamp("last_password_changed_at"));
-      record.setSuspensionReason(rs.getString("suspension_reason"));
       return record;
     } catch (SQLException se) {
       LOG.error("buildRecord", se);
       return null;
     }
+  }
+
+  /**
+   * The row mapper used by list-style/multi-record queries (query(), i.e. findAll() and its
+   * callers such as the /admin/users list, the editorial-calendar author dropdown, and the user
+   * lookup autocomplete). None of those read User#getMfaSecret() -- only the separate mfa_enabled
+   * boolean -- so this skips the SecretCryptoCommand.decrypt() call that buildRecord() pays on
+   * every MFA-enabled row. mfaSecret is left null on the returned records.
+   */
+  private static User buildSummaryRecord(ResultSet rs) {
+    try {
+      return buildSummaryFields(rs);
+    } catch (SQLException se) {
+      LOG.error("buildSummaryRecord", se);
+      return null;
+    }
+  }
+
+  /** Populates every User field shared by buildRecord() and buildSummaryRecord() except mfaSecret. */
+  private static User buildSummaryFields(ResultSet rs) throws SQLException {
+    User record = new User();
+    record.setId(rs.getLong("user_id"));
+    record.setUniqueId(rs.getString("unique_id"));
+    record.setFirstName(rs.getString("first_name"));
+    record.setLastName(rs.getString("last_name"));
+    record.setOrganization(rs.getString("organization"));
+    record.setNickname(rs.getString("nickname"));
+    record.setEmail(rs.getString("email"));
+    record.setUsername(rs.getString("username"));
+    record.setPassword(rs.getString("password"));
+    record.setEnabled(rs.getBoolean("enabled"));
+    record.setCreated(rs.getTimestamp("created"));
+    record.setModified(rs.getTimestamp("modified"));
+    record.setAccountToken(rs.getString("account_token"));
+    record.setAccountTokenExpires(rs.getTimestamp("account_token_expires"));
+    record.setValidated(rs.getTimestamp("validated"));
+    record.setCreatedBy(rs.getLong("created_by"));
+    record.setModifiedBy(rs.getLong("modified_by"));
+    record.setTitle(rs.getString("title"));
+    record.setDepartment(rs.getString("department"));
+    record.setTimeZone(rs.getString("timezone"));
+    record.setCity(rs.getString("city"));
+    record.setState(rs.getString("state"));
+    record.setCountry(rs.getString("country"));
+    record.setPostalCode(rs.getString("postal_code"));
+    record.setLatitude(rs.getDouble("latitude"));
+    record.setLongitude(rs.getDouble("longitude"));
+    record.setMfaEnabled(rs.getBoolean("mfa_enabled"));
+    record.setFailedAttemptCount(rs.getInt("failed_attempt_count"));
+    record.setLockedUntil(rs.getTimestamp("locked_until"));
+    record.setLastPasswordChangedAt(rs.getTimestamp("last_password_changed_at"));
+    record.setSuspensionReason(rs.getString("suspension_reason"));
+    return record;
   }
 }

@@ -24,6 +24,7 @@ import org.apache.commons.logging.LogFactory;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.simisinc.platform.domain.events.Event;
+import com.simisinc.platform.domain.events.mailinglists.MailingListMemberConfirmationRequestedEvent;
 import com.simisinc.platform.domain.events.mailinglists.MailingListMemberCreatedEvent;
 import com.simisinc.platform.domain.events.mailinglists.MailingListMemberDeletedEvent;
 import com.simisinc.platform.domain.events.mailinglists.MailingListMemberUpdatedEvent;
@@ -171,6 +172,8 @@ public class BuildWebhookPayloadCommand {
     } else if (event instanceof MailingListMemberDeletedEvent mailingListMemberDeletedEvent) {
       putMailingListMember(data, mailingListMemberDeletedEvent.getMember(), mailingListMemberDeletedEvent.getMailingList());
       data.put("user", userSummary(mailingListMemberDeletedEvent.getUser()));
+    } else if (event instanceof MailingListMemberConfirmationRequestedEvent confirmationRequestedEvent) {
+      putMailingListMember(data, confirmationRequestedEvent.getMember(), confirmationRequestedEvent.getMailingList());
     } else {
       LOG.warn("No webhook payload mapping for event type: " + event.getClass().getName()
           + " -- delivering with an empty data object rather than failing the dispatch");

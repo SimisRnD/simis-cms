@@ -179,6 +179,11 @@ class EmailTemplateTests {
       ctx.setVariable("blogPost", blogPost);
       ctx.setVariable("blogPostUrl", "http://site.example.com/blog/a-post");
       ctx.setVariable("unsubscribeUrl", "http://site.example.com/unsubscribe?token=TEST");
+      // Double opt-in confirmation email
+      Map<String, String> mailingList = new HashMap<>();
+      mailingList.put("title", "Newsletter");
+      ctx.setVariable("mailingList", mailingList);
+      ctx.setVariable("confirmUrl", "http://site.example.com/confirm-subscription?token=TEST");
     }
 
     String html = templateEngine.process(template, ctx);
