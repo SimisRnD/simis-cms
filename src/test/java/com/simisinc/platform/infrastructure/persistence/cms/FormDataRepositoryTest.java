@@ -293,6 +293,76 @@ class FormDataRepositoryTest {
   }
 
   @Test
+  void deleteOlderThanRemovesOnlyOldTerminalStateRows() {
+    FormData oldProcessed = addSubmission("contact-us", false);
+    markProcessed(oldProcessed.getId(), 100);
+
+    FormData oldDismissed = addSubmission("contact-us", false);
+    markDismissed(oldDismissed.getId(), 100);
+
+    // Both processed and dismissed remain null -- an unactioned row, no matter how old
+    FormData oldAwaiting = addSubmission("contact-us", false);
+    backdate(oldAwaiting.getId(), 100);
+
+    FormData recentProcessed = addSubmission("contact-us", false);
+    markProcessed(recentProcessed.getId(), 5);
+
+    int deleted = FormDataRepository.deleteOlderThan(90);
+
+    assertEquals(2, deleted, "only the two old terminal-state rows should be deleted");
+    assertEquals(2, DB.selectCountFrom("form_data"));
+    assertNotNull(FormDataRepository.findById(oldAwaiting.getId()),
+        "an old but still-awaiting row must never be deleted, regardless of age");
+    assertNotNull(FormDataRepository.findById(recentProcessed.getId()),
+        "a row that only recently became terminal must not be deleted yet");
+  }
+
+  @Test
+  void deleteOlderThanNeverDeletesAnAwaitingReviewRowNoMatterHowOld() {
+    FormData veryOldAwaiting = addSubmission("contact-us", false);
+    backdate(veryOldAwaiting.getId(), 5000);
+
+    int deleted = FormDataRepository.deleteOlderThan(7);
+
+    assertEquals(0, deleted, "unactioned submissions represent work an admin may still need to see");
+    assertEquals(1, DB.selectCountFrom("form_data"));
+  }
+
+  @Test
+  void deleteOlderThanMeasuresFromTheLaterOfProcessedAndDismissed() {
+    // Dismissed long ago, then reopened and processed recently -- retention should key off the more
+    // recent terminal timestamp (processed), not the older one (dismissed)
+    FormData reopened = addSubmission("contact-us", false);
+    markDismissed(reopened.getId(), 100);
+    markProcessed(reopened.getId(), 5);
+
+    int deleted = FormDataRepository.deleteOlderThan(90);
+
+    assertEquals(0, deleted,
+        "the row became terminal again 5 days ago (processed), not 100 days ago (dismissed)");
+    assertEquals(1, DB.selectCountFrom("form_data"));
+  }
+
+  @Test
+  void deleteOlderThanReturnsZeroForNonPositiveDays() {
+    FormData oldProcessed = addSubmission("contact-us", false);
+    markProcessed(oldProcessed.getId(), 100);
+
+    assertEquals(0, FormDataRepository.deleteOlderThan(0));
+    assertEquals(1, DB.selectCountFrom("form_data"));
+  }
+
+  @Test
+  void resolveRetentionDaysAppliesDefaultAndBounds() {
+    assertEquals(90, FormDataRepository.resolveRetentionDays(null));
+    assertEquals(90, FormDataRepository.resolveRetentionDays(""));
+    assertEquals(45, FormDataRepository.resolveRetentionDays("45"));
+    assertEquals(7, FormDataRepository.resolveRetentionDays("1"), "below the floor should clamp to 7");
+    assertEquals(3650, FormDataRepository.resolveRetentionDays("999999"), "above the ceiling should clamp to 3650");
+    assertEquals(90, FormDataRepository.resolveRetentionDays("not-a-number"));
+  }
+
+  @Test
   void exportProducesOnlyAHeaderRowWhenThereAreNoRecords(@TempDir File tempDir) throws IOException {
     File file = new File(tempDir, "empty-export.csv");
     FormDataRepository.export(null, null, file);
@@ -347,6 +417,32 @@ class FormDataRepositoryTest {
       pst.executeUpdate();
     } catch (SQLException se) {
       throw new IllegalStateException("Could not backdate form_data row", se);
+    }
+  }
+
+  /** Directly rewrites {@code processed} to a backdated timestamp, for retention-window tests. */
+  private static void markProcessed(long formDataId, int daysAgo) {
+    try (Connection connection = DB.getConnection();
+        PreparedStatement pst = connection.prepareStatement(
+            "UPDATE form_data SET processed = NOW() - (? || ' days')::interval WHERE form_data_id = ?")) {
+      pst.setInt(1, daysAgo);
+      pst.setLong(2, formDataId);
+      pst.executeUpdate();
+    } catch (SQLException se) {
+      throw new IllegalStateException("Could not mark form_data row as processed", se);
+    }
+  }
+
+  /** Directly rewrites {@code dismissed} to a backdated timestamp, for retention-window tests. */
+  private static void markDismissed(long formDataId, int daysAgo) {
+    try (Connection connection = DB.getConnection();
+        PreparedStatement pst = connection.prepareStatement(
+            "UPDATE form_data SET dismissed = NOW() - (? || ' days')::interval WHERE form_data_id = ?")) {
+      pst.setInt(1, daysAgo);
+      pst.setLong(2, formDataId);
+      pst.executeUpdate();
+    } catch (SQLException se) {
+      throw new IllegalStateException("Could not mark form_data row as dismissed", se);
     }
   }
 
