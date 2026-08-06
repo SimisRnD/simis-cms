@@ -32,6 +32,7 @@ import com.simisinc.platform.domain.events.cms.UserPasswordResetEvent;
 import com.simisinc.platform.domain.model.Group;
 import com.simisinc.platform.domain.model.Role;
 import com.simisinc.platform.domain.model.User;
+import com.simisinc.platform.domain.model.login.UserLogin;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.persistence.GroupRepository;
 import com.simisinc.platform.infrastructure.persistence.RoleRepository;
@@ -56,6 +57,7 @@ import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Description
@@ -135,11 +137,20 @@ public class UsersListWidget extends GenericWidget {
     // Determine criteria
     UserSpecification specification = buildSpecification(query, statusFilter, mfaFilter, agingPasswordFilter);
 
-    // Load the users
+    // Load the users, then batch-load their roles and last-login in one query each rather than
+    // one query per row (a page of 20 users previously issued 41 round trips: 1 + 20 + 20).
     List<User> userList = UserRepository.findAll(specification, constraints);
-    for (User user : userList) {
-      user.setRoleList(RoleRepository.findAllByUserId(user.getId()));
-      user.setLastLogin(UserLoginRepository.queryLastLogin(user.getId()));
+    if (!userList.isEmpty()) {
+      List<Long> userIds = new ArrayList<>();
+      for (User user : userList) {
+        userIds.add(user.getId());
+      }
+      Map<Long, List<Role>> roleListByUserId = RoleRepository.findAllByUserIds(userIds);
+      Map<Long, UserLogin> lastLoginByUserId = UserLoginRepository.queryLastLogins(userIds);
+      for (User user : userList) {
+        user.setRoleList(roleListByUserId.get(user.getId()));
+        user.setLastLogin(lastLoginByUserId.get(user.getId()));
+      }
     }
     context.getRequest().setAttribute("userList", userList);
 

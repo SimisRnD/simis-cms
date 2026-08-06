@@ -154,22 +154,34 @@ public class FormWidget extends GenericWidget {
     // through execute() first.
     String formIdPref = context.getPreferences().get("formId");
     FormDefinition formDefinition = resolveFormDefinition(context, formIdPref);
-    if (StringUtils.isNotBlank(formIdPref) && formDefinition == null) {
-      return null;
-    }
-    if (formDefinition != null && !formDefinition.getEnabled()
-        && !(context.hasRole("admin") || context.hasRole("community-manager"))) {
-      return null;
-    }
 
     // A database-backed form's own generated uniqueId is authoritative when formId is configured
     // (issue #409 follow-up) -- form_data submissions must be keyed by the collision-checked value
     // SaveFormDefinitionCommand.generateUniqueId() produced, not a separately hand-typed preference
-    // that could collide with an unrelated form's formUniqueId
+    // that could collide with an unrelated form's formUniqueId. Resolved here, ahead of the
+    // early-return checks below (issue #563 follow-up), so each of them can record which form a
+    // rejected direct POST was aimed at.
     String formUniqueId = formDefinition != null ? formDefinition.getUniqueId() : context.getPreferences().get("formUniqueId");
+
+    if (StringUtils.isNotBlank(formIdPref) && formDefinition == null) {
+      // A direct POST naming a formId that no longer resolves (issue #563 follow-up) -- previously
+      // silent, unlike every other rejection path in this method
+      recordFailureQuietly(context, formUniqueId, FormSubmissionFailureRepository.REASON_FORM_UNAVAILABLE);
+      return null;
+    }
+    if (formDefinition != null && !formDefinition.getEnabled()
+        && !(context.hasRole("admin") || context.hasRole("community-manager"))) {
+      // A direct POST to a form an admin has since disabled (issue #563 follow-up) -- previously silent
+      recordFailureQuietly(context, formUniqueId, FormSubmissionFailureRepository.REASON_FORM_UNAVAILABLE);
+      return null;
+    }
 
     List<FormField> formFieldList = loadFormFieldList(context, formDefinition);
     if (formFieldList == null) {
+      // The form itself has no fields configured/resolvable (issue #563 follow-up) -- a configuration
+      // problem, not the submitter leaving a required field blank, so this must not reuse
+      // REASON_MISSING_FIELD (see the per-field loop below). Previously silent.
+      recordFailureQuietly(context, formUniqueId, FormSubmissionFailureRepository.REASON_FORM_UNAVAILABLE);
       return null;
     }
     for (FormField formField : formFieldList) {
@@ -270,7 +282,10 @@ public class FormWidget extends GenericWidget {
 
     // Store in the database
     if (FormDataRepository.save(formData) == null) {
+      // A genuine DB save failure (issue #563 follow-up) -- previously the submitter saw an error but
+      // nothing was recorded in the rejection-tracking system at all
       context.setErrorMessage("The form was not saved... try again?");
+      recordFailureQuietly(context, formUniqueId, FormSubmissionFailureRepository.REASON_SYSTEM_ERROR);
       context.setRequestObject(formData);
       return context;
     }

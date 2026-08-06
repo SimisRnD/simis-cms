@@ -247,7 +247,7 @@
       <select id="bulkRoleId" name="roleId" required>
         <c:forEach items="${roleList}" var="role">
           <c:choose>
-            <c:when test="${role.code eq 'admin' && !userSession.hasRole('admin')}"><%-- not offered --%></c:when>
+            <c:when test="${role.level > actingRoleLevel}"><%-- not offered --%></c:when>
             <c:otherwise>
               <option value="${role.id}"><c:out value="${role.title}" /></option>
             </c:otherwise>
