@@ -59,6 +59,7 @@ public class MailingListMemberRepository {
   private static final String QUARANTINE_TRIGGER_STATUSES_SQL = "('invalid', 'spamtrap', 'abuse', 'do_not_mail')";
 
   private static final int DEFAULT_QUARANTINE_ALERT_THRESHOLD_PERCENT = 10;
+  private static final int DEFAULT_CONFIRMATION_EXPIRY_DAYS = 7;
 
   /** Whether {@link #addEmailToList} inserted a new member row or reactivated an existing one
    *  (issue #452 -- the caller needs this to fire a created vs. updated lifecycle event), plus the
@@ -70,11 +71,33 @@ public class MailingListMemberRepository {
   public static final class AddToListResult {
     private final boolean created;
     private final boolean previouslyUnsubscribed;
+    private final boolean requiresConfirmation;
+    private final boolean confirmationEmailNeeded;
     private final MailingListMember member;
 
     public AddToListResult(boolean created, boolean previouslyUnsubscribed, MailingListMember member) {
+      this(created, previouslyUnsubscribed, false, false, member);
+    }
+
+    /** @param requiresConfirmation true when this call left the membership pending double
+     *  opt-in confirmation instead of activating it -- see {@link #addEmailToList(Email,
+     *  MailingList, boolean, Timestamp)}. */
+    public AddToListResult(boolean created, boolean previouslyUnsubscribed, boolean requiresConfirmation,
+        MailingListMember member) {
+      this(created, previouslyUnsubscribed, requiresConfirmation, requiresConfirmation, member);
+    }
+
+    /** @param confirmationEmailNeeded true only when this call actually minted a fresh
+     *  confirm_token (a brand-new pending row, or an existing one whose prior token had expired
+     *  or never existed) -- false when an already-live, unexpired token was reused instead. This
+     *  is what stops a resubmitted address from getting a fresh "please confirm" email on every
+     *  request; see the "requiresConfirmation" branch of {@link #addEmailToList}. */
+    public AddToListResult(boolean created, boolean previouslyUnsubscribed, boolean requiresConfirmation,
+        boolean confirmationEmailNeeded, MailingListMember member) {
       this.created = created;
       this.previouslyUnsubscribed = previouslyUnsubscribed;
+      this.requiresConfirmation = requiresConfirmation;
+      this.confirmationEmailNeeded = confirmationEmailNeeded;
       this.member = member;
     }
 
@@ -86,12 +109,37 @@ public class MailingListMemberRepository {
       return previouslyUnsubscribed;
     }
 
+    public boolean requiresConfirmation() {
+      return requiresConfirmation;
+    }
+
+    public boolean confirmationEmailNeeded() {
+      return confirmationEmailNeeded;
+    }
+
     public MailingListMember getMember() {
       return member;
     }
   }
 
   public static AddToListResult addEmailToList(Email email, MailingList mailingList) {
+    return addEmailToList(email, mailingList, false, null);
+  }
+
+  /**
+   * @param requiresConfirmation Double opt-in: public-facing signup paths must not activate a new
+   *     membership, or reactivate a previously-unsubscribed one, until the address owner proves
+   *     control by clicking the link {@link com.simisinc.platform.application.mailinglists.MailingListConfirmationCommand}
+   *     emails them. Trusted paths -- CSV import, admin manual-add -- pass false and get the
+   *     pre-existing immediate-activation behavior. Ignored (may be null) when false.
+   * @param confirmTokenExpires when the freshly-issued confirm_token stops being honored by
+   *     {@link #findByConfirmToken}; the caller resolves this from the configurable
+   *     mailing-list.confirmation.expiryDays site property (see {@link
+   *     #resolveConfirmationExpiryDays}) so every list in a single multi-list signup shares one
+   *     expiry rather than drifting by milliseconds between DB calls.
+   */
+  public static AddToListResult addEmailToList(Email email, MailingList mailingList, boolean requiresConfirmation,
+      Timestamp confirmTokenExpires) {
     // Capture prior state before mutating, so the caller can tell a genuine reactivation (was
     // unsubscribed) from a harmless re-add of an already-active member (issue #452)
     MailingListMember existingBefore = findByListAndEmail(mailingList.getId(), email.getId());
@@ -101,6 +149,10 @@ public class MailingListMemberRepository {
     // do_not_mail). That decision must not be silently reversed just because the same address
     // resubscribes -- via the public signup form, a MailChimp sync, or a replayed subscription job.
     boolean previouslyQuarantined = existingBefore != null && StringUtils.isNotBlank(existingBefore.getQuarantineReason());
+    // Already a confirmed, active member -- a duplicate signup is a harmless no-op, not a fresh
+    // consent event, so it never needs to (re)confirm or re-notify.
+    boolean alreadyActiveMember = existingBefore != null && existingBefore.getIsValid() && !previouslyUnsubscribed
+        && !previouslyQuarantined;
 
     // Determine if the email is already listed
     SqlUtils insertValues = new SqlUtils()
@@ -108,8 +160,14 @@ public class MailingListMemberRepository {
         .add("email_id", email.getId())
         .addIfExists("created_by", email.getCreatedBy(), -1)
         .addIfExists("modified_by", email.getCreatedBy(), -1);
+    if (requiresConfirmation) {
+      applyPendingConfirmation(insertValues, confirmTokenExpires);
+    } else {
+      insertValues.add("is_valid", true);
+    }
     long memberId = DB.insertInto(TABLE_NAME, insertValues, PRIMARY_KEY);
     boolean created = memberId > -1;
+    boolean confirmationEmailNeeded = created && requiresConfirmation;
     if (created) {
       // New member - Update the related count
       String set = "member_count = member_count + 1";
@@ -124,19 +182,68 @@ public class MailingListMemberRepository {
       SaveAuditEventCommand.recordAdminEvent("configuration", "mailing_list.reactivation_blocked", "success",
           -1L, "system", null, null, "mailing_list_members", String.valueOf(existingBefore.getId()),
           existingBefore.getEmailAddress(), "quarantine_reason=" + existingBefore.getQuarantineReason());
+    } else if (alreadyActiveMember && requiresConfirmation) {
+      // Nothing to do -- re-adding an already-confirmed, already-active member through a
+      // confirmation-requiring path must not re-issue a token or re-send a confirmation email.
+      // (requiresConfirmation=false falls through to the unconditional "make active" branch
+      // below, exactly as it did before double opt-in existed -- a harmless no-op update.)
+    } else if (requiresConfirmation) {
+      // Existing but inactive (unsubscribed, or a stale never-confirmed pending signup) row being
+      // re-added through a path that requires confirmation. Deliberately does NOT touch
+      // unsubscribed/is_valid here -- only confirmByToken() does that, once they click.
+      //
+      // If a still-live (unexpired) token is already outstanding, reuse it instead of minting a
+      // new one and sending another email -- without this, resubmitting the same address (the
+      // public form has no login/ownership check) would re-send a real outbound email on every
+      // single request, an unthrottled spam/mail-bomb primitive against an arbitrary address.
+      // Capping to one send per still-valid token means the worst case is exactly what every
+      // double opt-in system already accepts as normal: one confirmation email per address per
+      // confirm-link lifetime, however many times someone resubmits it.
+      boolean hasLiveToken = existingBefore != null && StringUtils.isNotBlank(existingBefore.getConfirmToken())
+          && existingBefore.getConfirmTokenExpires() != null
+          && existingBefore.getConfirmTokenExpires().after(new Timestamp(System.currentTimeMillis()));
+      if (!hasLiveToken) {
+        SqlUtils updateValues = new SqlUtils()
+            .add("modified", new Timestamp(System.currentTimeMillis()))
+            .addIfExists("modified_by", email.getModifiedBy(), -1);
+        applyPendingConfirmation(updateValues, confirmTokenExpires);
+        SqlUtils where = new SqlUtils()
+            .add("list_id = ?", mailingList.getId())
+            .add("email_id = ?", email.getId());
+        DB.update(TABLE_NAME, updateValues, where);
+        confirmationEmailNeeded = true;
+      }
     } else {
-      // Make sure email is set to subscribed
+      // Make sure email is set to subscribed. Also clears confirm_token/confirm_token_expires --
+      // without this, a member who had an outstanding double opt-in confirmation pending (via a
+      // public signup) and was then separately activated through a trusted path (CSV import,
+      // admin manual-add) would keep a live, clickable confirm link after already being fully
+      // active: clicking it would re-run confirmByToken() and fire a duplicate
+      // MailingListMemberCreatedEvent, and the admin member list would mislabel them "Pending
+      // Confirmation" indefinitely (see the "pending" status filter below, which relies on
+      // confirm_token being cleared the moment a member is genuinely active).
       SqlUtils updateValues = new SqlUtils()
           .add("unsubscribed", (Timestamp) null)
           .add("modified", new Timestamp(System.currentTimeMillis()))
           .addIfExists("modified_by", email.getModifiedBy(), -1)
-          .add("is_valid", true);
+          .add("is_valid", true)
+          .add("confirm_token", (String) null)
+          .add("confirm_token_expires", (Timestamp) null);
       SqlUtils where = new SqlUtils()
           .add("list_id = ?", mailingList.getId())
           .add("email_id = ?", email.getId());
       DB.update(TABLE_NAME, updateValues, where);
     }
-    return new AddToListResult(created, previouslyUnsubscribed, findByListAndEmail(mailingList.getId(), email.getId()));
+    boolean pendingConfirmation = requiresConfirmation && !alreadyActiveMember && !previouslyQuarantined;
+    return new AddToListResult(created, previouslyUnsubscribed, pendingConfirmation, confirmationEmailNeeded,
+        findByListAndEmail(mailingList.getId(), email.getId()));
+  }
+
+  private static SqlUtils applyPendingConfirmation(SqlUtils values, Timestamp confirmTokenExpires) {
+    return values
+        .add("is_valid", false)
+        .add("confirm_token", UUID.randomUUID().toString())
+        .add("confirm_token_expires", confirmTokenExpires);
   }
 
   public static void remove(Email email, MailingList mailingList) {
@@ -256,6 +363,67 @@ public class MailingListMemberRepository {
     DB.update(TABLE_NAME, updateValues, where);
   }
 
+  /** Looks up a pending member by their confirm-subscription link token, only while it hasn't
+   *  expired -- an expired token must behave exactly like an unknown one, matching
+   *  UserRepository.findByAccountToken's expiry-checked-in-SQL precedent. */
+  public static MailingListMember findByConfirmToken(String token) {
+    if (StringUtils.isBlank(token)) {
+      return null;
+    }
+    SqlUtils select = new SqlUtils().addNames("emails.email AS email_address");
+    SqlJoins joins = new SqlJoins().add(JOIN);
+    SqlUtils where = new SqlUtils()
+        .add("mailing_list_members.confirm_token = ?", token)
+        .add("(mailing_list_members.confirm_token_expires IS NULL OR mailing_list_members.confirm_token_expires > NOW())");
+    return (MailingListMember) DB.selectRecordFrom(TABLE_NAME, select, joins, where,
+        MailingListMemberRepository::buildRecordWithEmail);
+  }
+
+  /**
+   * Activates a pending membership once the address owner proves control by clicking the
+   * confirm-subscription link (double opt-in). Single-use: clears the token so a re-clicked link
+   * lands on a graceful already-confirmed state instead of erroring, mirroring
+   * unsubscribeByToken()'s shape. Also clears unsubscribed -- a reconfirmed resubscribe is no
+   * longer unsubscribed, whether this was a brand-new signup (already NULL) or a returning
+   * subscriber re-proving consent after having left.
+   */
+  public static void confirmByToken(MailingListMember member) {
+    Timestamp now = new Timestamp(System.currentTimeMillis());
+    SqlUtils updateValues = new SqlUtils()
+        .add("confirmed", now)
+        .add("is_valid", true)
+        .add("unsubscribed", (Timestamp) null)
+        .add("modified", now)
+        .add("confirm_token", (String) null)
+        .add("confirm_token_expires", (Timestamp) null);
+    SqlUtils where = new SqlUtils().add("member_id = ?", member.getId());
+    DB.update(TABLE_NAME, updateValues, where);
+  }
+
+  /**
+   * Parses the configurable mailing-list.confirmation.expiryDays site property, falling back to
+   * the default on a blank/unparseable value and clamping to a sane range -- mirrors
+   * resolveQuarantineAlertThresholdPercent's exact shape.
+   */
+  public static int resolveConfirmationExpiryDays(String value) {
+    if (StringUtils.isBlank(value)) {
+      return DEFAULT_CONFIRMATION_EXPIRY_DAYS;
+    }
+    int days;
+    try {
+      days = Integer.parseInt(value.trim());
+    } catch (NumberFormatException e) {
+      return DEFAULT_CONFIRMATION_EXPIRY_DAYS;
+    }
+    if (days < 1) {
+      return 1;
+    }
+    if (days > 90) {
+      return 90;
+    }
+    return days;
+  }
+
   private static MailingListMember buildRecordWithEmail(ResultSet rs) {
     try {
       MailingListMember record = new MailingListMember();
@@ -274,6 +442,9 @@ public class MailingListMemberRepository {
       record.setQuarantined(rs.getTimestamp("quarantined"));
       record.setQuarantineReason(rs.getString("quarantine_reason"));
       record.setUnsubscribeToken(rs.getString("unsubscribe_token"));
+      record.setConfirmed(rs.getTimestamp("confirmed"));
+      record.setConfirmToken(rs.getString("confirm_token"));
+      record.setConfirmTokenExpires(rs.getTimestamp("confirm_token_expires"));
       record.setEmailAddress(rs.getString("email_address"));
       return record;
     } catch (SQLException se) {
@@ -333,10 +504,26 @@ public class MailingListMemberRepository {
       if ("quarantined".equals(specification.getStatus())) {
         where.add("mailing_list_members.quarantined IS NOT NULL");
       } else if ("unsubscribed".equals(specification.getStatus())) {
+        // Excludes a row that's unsubscribed but has a live reconfirmation token outstanding --
+        // that's a "pending" row (see below), not a durably-unsubscribed one.
         where.add("mailing_list_members.unsubscribed IS NOT NULL");
+        where.add("mailing_list_members.confirm_token IS NULL");
+      } else if ("pending".equals(specification.getStatus())) {
+        // Awaiting double opt-in confirmation -- a live (not-yet-consumed) confirm_token is what
+        // distinguishes this from a CSV-imported/admin-added member, which never gets a
+        // confirm_token at all (addEmailToList's trusted-path branch always clears it), and from
+        // a durably-quarantined/unsubscribed member. Deliberately does NOT require
+        // unsubscribed IS NULL -- a previously-unsubscribed member re-signing up on a
+        // confirmation-required path keeps their unsubscribed timestamp until they actually
+        // reconfirm (see addEmailToList), so that row must still surface here.
+        where.add("mailing_list_members.quarantined IS NULL");
+        where.add("mailing_list_members.confirm_token IS NOT NULL");
       } else if ("active".equals(specification.getStatus())) {
+        // is_valid = true (not just quarantined/unsubscribed both NULL) so a pending-confirmation
+        // row -- introduced by double opt-in -- doesn't misclassify as active; see "pending" above.
         where.add("mailing_list_members.quarantined IS NULL");
         where.add("mailing_list_members.unsubscribed IS NULL");
+        where.add("mailing_list_members.is_valid = ?", true);
       }
     }
     if (constraints == null) {

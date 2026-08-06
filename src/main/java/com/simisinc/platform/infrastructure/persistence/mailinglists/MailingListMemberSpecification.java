@@ -27,7 +27,7 @@ public class MailingListMemberSpecification {
   private long mailingListId = -1;
   private String matchesEmail = null;
   private String matchesName = null;
-  /** One of "quarantined" / "unsubscribed" / "active", or null/blank for no status filter. */
+  /** One of "quarantined" / "unsubscribed" / "pending" / "active", or null/blank for no status filter. */
   private String status = null;
 
   public MailingListMemberSpecification() {

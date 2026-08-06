@@ -72,6 +72,8 @@ class SeoSitemapWidgetTest extends WidgetBase {
   void executeListsAllWebPagesAndTheCurrentSitemapStatus() {
     List<WebPage> webPageList = new ArrayList<>();
     webPageList.add(webPage(1L, "/about", "About", true));
+    preferences.put("title", "SEO Sitemap");
+    preferences.put("icon", "fa-map");
 
     try (MockedStatic<WebPageRepository> repository = mockStatic(WebPageRepository.class);
         MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class)) {
@@ -83,6 +85,9 @@ class SeoSitemapWidgetTest extends WidgetBase {
       assertEquals("/admin/seo-sitemap.jsp", result.getJsp());
       assertEquals(webPageList, result.getRequest().getAttribute("webPageList"));
       assertEquals(true, result.getRequest().getAttribute("sitemapEnabled"));
+      assertEquals("SEO Sitemap", result.getRequest().getAttribute("title"),
+          "the page heading was configured but never rendered because execute() never set this attribute");
+      assertEquals("fa-map", result.getRequest().getAttribute("icon"));
     }
   }
 

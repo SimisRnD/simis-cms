@@ -461,6 +461,37 @@ class WebComponentCommandTest {
         "the Page-specific overload must read page.getCapabilities(), not just page.getRoles()");
   }
 
+  // --- users:manage (issue #733 follow-up): /admin/users and its sibling Users/Groups pages
+  // (/admin/user-details, /admin/unsuspend-requests, /admin/modify-user, /admin/groups,
+  // /admin/group) previously carried role="..." only, with no capability= attribute at all, so a
+  // user granted users:manage directly -- but holding no admin/community-manager role -- was
+  // 404'd by this same page-level gate before UsersListWidget's own hasPermission() check
+  // (added alongside it) ever ran. ---
+
+  @Test
+  void capabilityOnlySessionCanReachAdminUsersPage() {
+    UserSession userSession = sessionWithCapability("users:manage");
+
+    Page page = new Page("/admin/users", null, null);
+    page.setRoles(List.of("admin", "community-manager"));
+    page.setCapabilities(List.of("users:manage"));
+
+    Assertions.assertTrue(WebComponentCommand.allowsUser(page, userSession),
+        "a user holding users:manage but no legacy role must still reach /admin/users");
+  }
+
+  @Test
+  void sessionWithNeitherRoleNorUsersManageCapabilityCannotReachAdminUsersPage() {
+    UserSession userSession = sessionWithCapability("some-other:capability");
+
+    Page page = new Page("/admin/users", null, null);
+    page.setRoles(List.of("admin", "community-manager"));
+    page.setCapabilities(List.of("users:manage"));
+
+    Assertions.assertFalse(WebComponentCommand.allowsUser(page, userSession),
+        "a user with neither the legacy role nor the users:manage capability must still be denied");
+  }
+
   // PageServlet's page-level access check (the "PAGE NOT ALLOWED" 404 gate, checked once per
   // request before any widget's execute()/post()/delete() runs) calls this exact Page overload.
   // #799/#800 removed several widgets' own redundant in-code hasRole("admin") checks on the theory

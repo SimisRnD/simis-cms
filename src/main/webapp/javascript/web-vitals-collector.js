@@ -84,6 +84,54 @@
   }
 
   /**
+   * Tracks the worst (highest-duration) user interaction observed via "event" performance
+   * entries, for INP (Interaction to Next Paint).
+   *
+   * "first-input" (First Input Delay) only ever fires once per page load and only measures the
+   * very first interaction; INP replaced FID as a Core Web Vital in March 2024 specifically
+   * because it instead measures the worst interaction latency across the page's entire
+   * lifetime. A single logical interaction (e.g. a tap or keystroke) can emit more than one
+   * "event" entry sharing the same interactionId, so entries are deduped down to each
+   * interaction's own worst entry.duration before comparing across interactions. This mirrors
+   * the core logic of Google's web-vitals.js library, simplified to a single worst value
+   * (this codebase does not track a percentile across many interactions).
+   */
+  function createInpTracker() {
+    var longestByInteractionId = {};
+
+    return {
+      // Processes one batch of PerformanceEventTiming entries (a PerformanceObserver callback
+      // may fire many times over a page's life, once per batch of new entries) and returns the
+      // worst interaction duration seen so far across all batches, or null if no qualifying
+      // interaction has been observed yet.
+      record: function(entries) {
+        entries.forEach(function(entry) {
+          // Entries without a positive interactionId are not real user interactions (some
+          // "event" entries fire for non-interactive events) -- ignore them.
+          if (!entry.interactionId) {
+            return;
+          }
+          var existing = longestByInteractionId[entry.interactionId] || 0;
+          if (entry.duration > existing) {
+            longestByInteractionId[entry.interactionId] = entry.duration;
+          }
+        });
+
+        var worst = null;
+        for (var id in longestByInteractionId) {
+          if (Object.prototype.hasOwnProperty.call(longestByInteractionId, id)) {
+            var duration = longestByInteractionId[id];
+            if (worst === null || duration > worst) {
+              worst = duration;
+            }
+          }
+        }
+        return worst;
+      }
+    };
+  }
+
+  /**
    * Collect Core Web Vitals using the standard Navigation Timing API
    * and Intersection Observer / PerformanceObserver APIs
    */
@@ -112,13 +160,17 @@
         setMetric('CLS', cls);
       });
 
-      // Capture First Input Delay / INP (Interaction to Next Paint)
-      captureMetric('first-input', function(entries) {
-        if (entries.length > 0) {
-          var firstEntry = entries[0];
-          setMetric('INP', Math.round(firstEntry.processingDuration));
+      // Capture INP (Interaction to Next Paint): the worst interaction latency observed so
+      // far. durationThreshold keeps sub-40ms entries (the vast majority, and not
+      // user-perceptible) out of the observer callback entirely, matching the default the
+      // web-vitals.js library itself uses.
+      var inpTracker = createInpTracker();
+      captureMetric('event', function(entries) {
+        var worst = inpTracker.record(entries);
+        if (worst !== null) {
+          setMetric('INP', Math.round(worst));
         }
-      });
+      }, { durationThreshold: 40 });
 
       // Capture FCP (First Contentful Paint)
       captureMetric('paint', function(entries) {
@@ -150,16 +202,26 @@
   }
 
   /**
-   * Capture a specific metric using PerformanceObserver
+   * Capture a specific metric using PerformanceObserver.
+   *
+   * @param {string} entryType   the PerformanceObserver entry type to observe
+   * @param {function} callback  invoked with each batch of new entries
+   * @param {Object} [observeOptions]  optional extra observe() options, e.g. durationThreshold
+   *   (used for "event" entries, per the Event Timing API). durationThreshold is only
+   *   recognized by the single-type observe() form (`type`), not the multi-type `entryTypes`
+   *   form used for every other metric here, so the init object is built accordingly.
    */
-  function captureMetric(entryType, callback) {
+  function captureMetric(entryType, callback, observeOptions) {
     try {
       var observer = new PerformanceObserver(function(list) {
         callback(list.getEntries());
       });
 
       // Capture entries that have already fired and those that fire in the future
-      observer.observe({ entryTypes: [entryType], buffered: true });
+      var observeInit = (observeOptions && typeof observeOptions.durationThreshold === 'number')
+        ? { type: entryType, buffered: true, durationThreshold: observeOptions.durationThreshold }
+        : { entryTypes: [entryType], buffered: true };
+      observer.observe(observeInit);
 
       // Clean up observer after some time (metrics stabilize ~5s after load)
       setTimeout(function() {
