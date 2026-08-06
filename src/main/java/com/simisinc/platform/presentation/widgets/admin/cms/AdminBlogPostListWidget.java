@@ -99,10 +99,19 @@ public class AdminBlogPostListWidget extends GenericWidget {
     List<BlogPost> blogPostList = BlogPostRepository.findAll(specification, constraints);
     context.getRequest().setAttribute("blogPostList", blogPostList);
 
-    // The Blog filter dropdown (mirrors CalendarEventListWidget's calendarList) -- also used to
-    // resolve each row's blog name/link in the JSP.
+    // The Blog filter dropdown (mirrors CalendarEventListWidget's calendarList)
     List<Blog> blogList = BlogRepository.findAll();
     context.getRequest().setAttribute("blogList", blogList);
+
+    // Resolves each row's blog name/link in the JSP in O(1) -- previously the JSP itself re-looped
+    // the entire blogList for every single post row to find its matching blog (O(posts x blogs)).
+    // Bounded by page size so it was never urgent, but cheap to fix while pagination work is
+    // already touching this same admin/cms area (issue: /admin/blogs guidance pass).
+    Map<Long, Blog> blogMap = new HashMap<>();
+    for (Blog blog : blogList) {
+      blogMap.put(blog.getId(), blog);
+    }
+    context.getRequest().setAttribute("blogMap", blogMap);
 
     // Governed publish workflow status per post (#407), keyed by post id -- only posts with a
     // pending draft carry an interesting label; mirrors WebPageListWidget's webPageReviewStatusMap.
