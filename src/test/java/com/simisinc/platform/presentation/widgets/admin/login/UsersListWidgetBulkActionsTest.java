@@ -38,6 +38,7 @@ import com.simisinc.platform.application.LoadUserCommand;
 import com.simisinc.platform.application.audit.SaveAuditEventCommand;
 import com.simisinc.platform.application.login.StepUpAuthCommand;
 import com.simisinc.platform.application.register.SaveUserCommand;
+import com.simisinc.platform.domain.model.Capability;
 import com.simisinc.platform.domain.model.Role;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.infrastructure.persistence.RoleRepository;
@@ -377,6 +378,51 @@ class UsersListWidgetBulkActionsTest extends WidgetBase {
   @Test
   void nonAdminNonCommunityManagerCannotReachBulkActionsAtAll() throws Exception {
     setRoles(widgetContext, CONTENT_MANAGER);
+    multiValue("userId", "5");
+    addQueryParameter(widgetContext, "command", "bulkSuspend");
+    addQueryParameter(widgetContext, "reason", "n/a");
+
+    try (MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class)) {
+      new UsersListWidget().post(widgetContext);
+
+      loadCmd.verifyNoInteractions();
+      userRepo.verify(() -> UserRepository.suspendAccount(any(), any()), never());
+    }
+  }
+
+  // --- users:manage (issue #733 follow-up): the same permission gate this class already covers
+  // for hasRole(), now also reachable via a direct capability grant with no legacy role at all ---
+
+  @Test
+  void capabilityOnlyUserWithUsersManageCanExecuteABulkAction() throws Exception {
+    // No role set at all -- WidgetBase's default session already has an empty role list; the
+    // only thing granting access here is the users:manage capability (issue #733 follow-up).
+    Capability usersManage = new Capability();
+    usersManage.setCode("users:manage");
+    widgetContext.getUserSession().setCapabilityList(List.of(usersManage));
+    multiValue("userId", "5");
+    addQueryParameter(widgetContext, "command", "bulkSuspend");
+    addQueryParameter(widgetContext, "reason", "capability-only access check");
+
+    User other = userWithId(5L);
+
+    try (MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
+        MockedStatic<SaveAuditEventCommand> audit = mockStatic(SaveAuditEventCommand.class)) {
+      loadCmd.when(() -> LoadUserCommand.loadUser(5L)).thenReturn(other);
+      userRepo.when(() -> UserRepository.suspendAccount(other, "capability-only access check")).thenReturn(other);
+
+      WidgetContext result = new UsersListWidget().post(widgetContext);
+
+      userRepo.verify(() -> UserRepository.suspendAccount(other, "capability-only access check"), times(1));
+      assertTrue(result.getSuccessMessage().contains("1 of 1"));
+    }
+  }
+
+  @Test
+  void userWithNeitherRoleNorUsersManageCapabilityCannotReachBulkActionsAtAll() throws Exception {
+    // WidgetBase's default session has neither a role nor a capability list populated
     multiValue("userId", "5");
     addQueryParameter(widgetContext, "command", "bulkSuspend");
     addQueryParameter(widgetContext, "reason", "n/a");

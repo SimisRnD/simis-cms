@@ -198,7 +198,7 @@ public class UsersListWidget extends GenericWidget {
 
   public WidgetContext post(WidgetContext context) throws InvocationTargetException, IllegalAccessException {
     // Permission is required
-    if (!(context.hasRole("admin") || context.hasRole("community-manager"))) {
+    if (!(context.hasRole("admin") || context.hasRole("community-manager") || context.hasPermission("users:manage"))) {
       return context;
     }
 
