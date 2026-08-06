@@ -90,6 +90,14 @@ public class AllowedIPFormWidget extends GenericWidget {
 
     // Determine the page to return to
     context.setSuccessMessage("Record was saved");
+    // Surface the cross-list shadowing warning SaveAllowedIPCommand computed during save() -- an
+    // Allowed entry always wins over a Blocked one (BlockedIPListCommand.passesCheck), so an
+    // admin adding an Allowed IP that overlaps an existing Blocked entry needs to know their new
+    // entry just silently neutralized that block, not discover it later.
+    String conflictWarning = SaveAllowedIPCommand.getLastConflictWarning();
+    if (conflictWarning != null) {
+      context.setWarningMessage(conflictWarning);
+    }
     return context;
   }
 }

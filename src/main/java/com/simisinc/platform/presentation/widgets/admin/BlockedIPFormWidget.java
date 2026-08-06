@@ -26,6 +26,7 @@ import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import org.apache.commons.beanutils.BeanUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import java.lang.reflect.InvocationTargetException;
 
@@ -67,8 +68,13 @@ public class BlockedIPFormWidget extends GenericWidget {
     BlockedIP blockedIPBean = new BlockedIP();
     BeanUtils.populate(blockedIPBean, context.getParameterMap());
 
-    // Don't add your own IP, whether as an exact match or as part of a submitted CIDR range
-    if (IpRangeCommand.matches(blockedIPBean.getIpAddress(), context.getRequest().getRemoteAddr())) {
+    // Don't add your own IP, whether as an exact match or as part of a submitted CIDR range.
+    // Trimmed here to match SaveBlockedIPCommand.save()'s own trim-before-validate -- otherwise
+    // incidental whitespace (e.g. pasted from a "what's my IP" tool) slips past this guard, then
+    // gets trimmed and saved for real by save(), silently blocking the admin's own current IP.
+    String submittedIpAddress = StringUtils.trimToNull(blockedIPBean.getIpAddress());
+    if (submittedIpAddress != null
+        && IpRangeCommand.matches(submittedIpAddress, context.getRequest().getRemoteAddr())) {
       context.setErrorMessage("Cannot add your own IP");
       return context;
     }
@@ -98,6 +104,14 @@ public class BlockedIPFormWidget extends GenericWidget {
 
     // Determine the page to return to
     context.setSuccessMessage("Record was saved");
+    // Surface the cross-list shadowing warning SaveBlockedIPCommand computed during save() -- an
+    // Allowed IP entry covering this same address means this block can never actually fire
+    // (Allowed always wins in BlockedIPListCommand.passesCheck), so the admin needs to know now,
+    // not discover it by separately cross-referencing the Allowed list later.
+    String conflictWarning = SaveBlockedIPCommand.getLastConflictWarning();
+    if (conflictWarning != null) {
+      context.setWarningMessage(conflictWarning);
+    }
     return context;
   }
 }
