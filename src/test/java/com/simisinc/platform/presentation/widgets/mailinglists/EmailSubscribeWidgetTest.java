@@ -128,8 +128,8 @@ class EmailSubscribeWidgetTest extends WidgetBase {
 
       new EmailSubscribeWidget().post(widgetContext);
 
-      saveEmail.verify(() -> SaveEmailCommand.saveEmail(any(), eq(mailingList)));
-      saveEmail.verify(() -> SaveEmailCommand.saveEmail(any(), any(String.class)), never());
+      saveEmail.verify(() -> SaveEmailCommand.saveEmailRequiringConfirmation(any(), eq(mailingList)));
+      saveEmail.verify(() -> SaveEmailCommand.saveEmailRequiringConfirmation(any(), any(String.class)), never());
     }
   }
 
@@ -164,7 +164,7 @@ class EmailSubscribeWidgetTest extends WidgetBase {
 
       new EmailSubscribeWidget().post(widgetContext);
 
-      saveEmail.verify(() -> SaveEmailCommand.saveEmail(any(), eq("Newsletter")));
+      saveEmail.verify(() -> SaveEmailCommand.saveEmailRequiringConfirmation(any(), eq("Newsletter")));
     }
   }
 }
