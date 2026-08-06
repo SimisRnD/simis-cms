@@ -54,6 +54,17 @@
         document.getElementById("fileForm").submit();
     }
 </script>
+<%-- Export: same filter criteria as the results below (mirrored as hidden fields since export is a POST) --%>
+<form method="post" autocomplete="off" class="float-left">
+  <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
+  <input type="hidden" name="token" value="${userSession.formToken}"/>
+  <input type="hidden" name="command" value="downloadCSVFile"/>
+  <input type="hidden" name="query" value="<c:out value='${query}'/>"/>
+  <input type="hidden" name="statusFilter" value="<c:out value='${statusFilter}'/>"/>
+  <input type="hidden" name="mfaFilter" value="<c:out value='${mfaFilter}'/>"/>
+  <input type="hidden" name="agingPasswordFilter" value="<c:out value='${agingPasswordFilter}'/>"/>
+  <button type="submit" class="button small secondary radius margin-left-10"><i class="fa fa-download"></i> Download CSV</button>
+</form>
 <form id="tableOptionsForm" method="get" autocomplete="off" class="float-right">
   <label for="statusFilter" class="show-for-sr">Status</label>
   <select id="statusFilter" name="statusFilter" class="float-left width-auto margin-right-10">
