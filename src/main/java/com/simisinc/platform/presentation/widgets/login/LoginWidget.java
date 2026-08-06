@@ -20,6 +20,7 @@ import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.RateLimitCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.audit.SaveAuditEventCommand;
+import com.simisinc.platform.application.cms.FormatDateCommand;
 import com.simisinc.platform.application.oauth.OAuthRequestCommand;
 import com.simisinc.platform.application.login.AuthenticateLoginCommand;
 import com.simisinc.platform.application.login.TotpCommand;
@@ -43,6 +44,7 @@ import javax.security.auth.login.LoginException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpSession;
 import java.sql.Timestamp;
+import java.time.LocalDate;
 import java.util.UUID;
 
 import static com.simisinc.platform.presentation.controller.UserSession.WEB_SOURCE;
@@ -195,6 +197,9 @@ public class LoginWidget extends GenericWidget {
     userLogin.setSessionId(userSession.getSessionId());
     userLogin.setUserAgent(context.getRequest().getHeader("USER-AGENT"));
     UserLoginRepository.save(userLogin);
+    // Stamp the tracked date so WebRequestFilter's daily-activity check (see trackDailyLogin)
+    // does not write a second row for today on the very next request (e.g. the redirect below)
+    userSession.setLastLoginTrackedDate(LocalDate.now(FormatDateCommand.getSiteZoneId()));
 
     // Audit the successful authentication (both the database trail and the JSON stream for the SIEM);
     // the details field carries the authentication source ("password" here, "oauth"/"token" elsewhere)
