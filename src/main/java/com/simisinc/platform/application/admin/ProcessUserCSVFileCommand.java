@@ -152,11 +152,19 @@ public class ProcessUserCSVFileCommand {
         user.setModifiedBy(context.getUserId());
 
         User saved = SaveUserCommand.saveUser(user);
-        ++userCount;
-        // Record each imported account so a bulk import is individually attributable
-        SaveAuditEventCommand.recordAdminEvent(AuditEventCommand.USER_MANAGEMENT, "user.create",
-            AuditEventCommand.SUCCESS, actorUserId, actorUsername, actorIp, actorSessionId,
-            "user", saved != null ? String.valueOf(saved.getId()) : null, email, "csv-import");
+        if (saved != null) {
+          ++userCount;
+          // Record each imported account so a bulk import is individually attributable
+          SaveAuditEventCommand.recordAdminEvent(AuditEventCommand.USER_MANAGEMENT, "user.create",
+              AuditEventCommand.SUCCESS, actorUserId, actorUsername, actorIp, actorSessionId,
+              "user", String.valueOf(saved.getId()), email, "csv-import");
+        } else {
+          // saveUser() caught a DB-level failure and returned null (see UserRepository.add()); the
+          // row was not persisted, so don't count it and record the failure instead
+          SaveAuditEventCommand.recordAdminEvent(AuditEventCommand.USER_MANAGEMENT, "user.create",
+              AuditEventCommand.FAILURE, actorUserId, actorUsername, actorIp, actorSessionId,
+              "user", null, email, "csv-import: user could not be saved");
+        }
       }
 
     } catch (DataException | AccountException data) {
