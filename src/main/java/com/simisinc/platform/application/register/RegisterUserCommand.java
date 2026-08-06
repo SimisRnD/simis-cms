@@ -29,6 +29,7 @@ import org.apache.commons.logging.LogFactory;
 
 import com.sanctionco.jmail.JMail;
 import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.PasswordPolicyCommand;
 import com.simisinc.platform.application.UserPasswordCommand;
 import com.simisinc.platform.domain.model.Group;
 import com.simisinc.platform.domain.model.User;
@@ -55,8 +56,9 @@ public class RegisterUserCommand {
       throw new DataException("Please check the fields and try again");
     }
 
-    if (userBean.getPassword().trim().length() < 6) {
-      throw new DataException("Passwords must be at least 6 characters");
+    String passwordViolation = PasswordPolicyCommand.validate(userBean.getPassword().trim());
+    if (passwordViolation != null) {
+      throw new DataException(passwordViolation);
     }
 
     if (!JMail.isValid(userBean.getEmail())) {

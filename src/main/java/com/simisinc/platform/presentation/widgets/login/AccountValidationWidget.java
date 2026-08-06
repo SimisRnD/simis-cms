@@ -18,6 +18,7 @@ package com.simisinc.platform.presentation.widgets.login;
 
 import org.apache.commons.lang3.StringUtils;
 
+import com.simisinc.platform.application.PasswordPolicyCommand;
 import com.simisinc.platform.application.UserPasswordCommand;
 import com.simisinc.platform.application.login.LogoutCommand;
 import com.simisinc.platform.domain.events.cms.UserRegisteredEvent;
@@ -118,8 +119,9 @@ public class AccountValidationWidget extends GenericWidget {
         context.setRedirect("/validate-account?confirmation=" + confirmation);
         return context;
       }
-      if (password.trim().length() < 8) {
-        context.setWarningMessage("Passwords must be at least 8 characters");
+      String passwordViolation = PasswordPolicyCommand.validate(password.trim());
+      if (passwordViolation != null) {
+        context.setWarningMessage(passwordViolation);
         context.setRedirect("/validate-account?confirmation=" + confirmation);
         return context;
       }

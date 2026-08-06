@@ -296,6 +296,11 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (22, 'OpenAuth Role Attribute', 'oauth.role.attribute', 'roles', 'text');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (24, 'OpenAuth Group Attribute', 'oauth.group.attribute', 'groups', 'text');
 
+-- Security
+
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (10, 'Minimum Password Length', 'security.password.minLength', '15', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (20, 'Require Password Complexity?', 'security.password.requireComplexity', 'true', 'boolean');
+
 CREATE TABLE lookup_role (
   role_id SERIAL PRIMARY KEY,
   level INTEGER NOT NULL,
