@@ -525,7 +525,7 @@
             </c:if>
           </c:if>
           <%-- API, Apps, etc. --%>
-          <c:if test="${userSession.hasRole('admin')}">
+          <c:if test="${userSession.hasRole('admin') || userSession.hasPermission('admin:manage')}">
             <ul class="vertical menu">
               <li class="section-title">Access</li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/api')}"> class="is-active"</c:if>><a href="${ctx}/admin/apis"><i class="${font:far()} fa-paper-plane fa-fw"></i> <span>APIs</span></a></li>

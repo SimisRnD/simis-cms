@@ -25,6 +25,7 @@
 </c:if>
 <h4><c:out value="${role.title}" /></h4>
 <%@include file="../page_messages.jspf" %>
+<p class="help-text">Capabilities checked below apply to everyone who holds this role. A user's effective access is the union of every role they hold plus any active direct grants made to them individually - a direct grant (see a user's Capability Grants page from their user details) can only add to what a role provides, never restrict it, so don't use this form to try to carve out an exception for one person.</p>
 <form method="post">
   <%-- Required by controller --%>
   <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
@@ -40,10 +41,12 @@
       </label>
     </c:forEach>
   </fieldset>
+  <p class="help-text">Revoking "admin:manage" is refused if no one would be left holding it through any role or direct grant. Every other capability can be revoked here down to zero holders with no warning - confirm some other path to that functionality exists first.</p>
   <label>Reason (required)
     <input type="text" name="reason" placeholder="Why is this change being made?" required>
   </label>
-  <p class="help-text">Every grant or revoke here is recorded in the platform's audit log along with this reason. Sessions already logged in as an affected user won't see the change take effect until they log in again.</p>
+  <p class="help-text">The reason you enter is the only free-text detail that lands in the audit trail for this exact change - write something a future reader would actually find useful (what changed and why, e.g. a ticket or decision reference), not "cleanup" or "fix".</p>
+  <p class="help-text">Every grant or revoke here is recorded in the platform's audit log along with this reason. Sessions already logged in as an affected user won't see the change take effect until they log in again - tell them to log out and back in if the change needs to apply now.</p>
   <div class="button-container">
     <input type="submit" class="button radius success" value="Save"/>
     <a href="${ctx}/admin/role-capabilities" class="button radius secondary">Cancel</a>
