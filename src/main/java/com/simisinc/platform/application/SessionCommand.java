@@ -16,15 +16,12 @@
 
 package com.simisinc.platform.application;
 
-import com.simisinc.platform.application.filesystem.FileSystemCommand;
+import com.simisinc.platform.application.cms.LoadBotUserAgentListCommand;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import java.io.File;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 /**
  * Methods for working with sessions
@@ -36,47 +33,21 @@ public class SessionCommand {
 
   private static Log LOG = LogFactory.getLog(SessionCommand.class);
 
+  // No longer read at runtime (bot detection is DB-backed -- see LoadBotUserAgentListCommand),
+  // but kept as a reference target for the already-applied Flyway migration
+  // V20220331_1001__update_bots.java, which must not be edited (that would change the checksum
+  // of a migration already recorded as run on existing databases).
   public static final String BOT_LIST = "bot-list.csv";
 
-  private static Map<String, List<String>> listMap = new HashMap<>();
-  private static Map<String, Long> lastModifiedMap = new HashMap<>();
-
   public static synchronized void load() {
-    load(BOT_LIST);
-  }
-
-  private static void load(String filename) {
-    // Get a file handle
-    String serverConfigPath = FileSystemCommand.getFileServerConfigPath();
-    File file = new File(serverConfigPath + "cms/" + filename);
-
-    // Determine if the file is new
-    if (lastModifiedMap.containsKey(filename) && !FileSystemCommand.isModified(file, lastModifiedMap.get(filename))) {
-      return;
-    }
-
-    // Load the file
-    List<String> list = FileSystemCommand.loadFileToList(file);
-
-    // Cache the result
-    listMap.put(filename, list);
-    lastModifiedMap.put(filename, file.lastModified());
-  }
-
-  public static void setList(String filename, List<String> list) {
-    listMap.put(filename, list);
-    lastModifiedMap.put(filename, 0L);
-  }
-
-  public static List<String> getBotList() {
-    return listMap.get(BOT_LIST);
+    LoadBotUserAgentListCommand.refreshCachedUserAgentList();
   }
 
   public static boolean checkForBot(String userAgent) {
     if (StringUtils.isBlank(userAgent)) {
       return true;
     }
-    List<String> botList = listMap.get(BOT_LIST);
+    List<String> botList = LoadBotUserAgentListCommand.retrieveCachedUserAgentList();
     if (botList == null || botList.isEmpty()) {
       return false;
     }

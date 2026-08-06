@@ -269,31 +269,52 @@ public class WebVitalsWidget extends GenericWidget {
     return results;
   }
 
-  private Map<String, VitalsSummary> summarizeByUrl(List<Map<String, Object>> vitalsData) {
+  /**
+   * Package-private (not private) so WebVitalsWidgetTest can feed it rows directly in the same
+   * newest-first order loadWebVitalsAggregates() produces, without mocking raw JDBC.
+   */
+  Map<String, VitalsSummary> summarizeByUrl(List<Map<String, Object>> vitalsData) {
     Map<String, VitalsSummary> summary = new LinkedHashMap<>();
 
     for (Map<String, Object> row : vitalsData) {
       String url = (String) row.get("url");
       String metricType = (String) row.get("metricName");
       double p75Value = (Double) row.get("p75Value");
+      long sampleCount = (Long) row.get("sampleCount");
 
       VitalsSummary s = summary.computeIfAbsent(url, k -> new VitalsSummary(url));
 
-      if ("LCP".equals(metricType)) {
+      // Rows arrive newest-first within each url/metric group (see loadWebVitalsAggregates()'s
+      // "ORDER BY url, metric_type, aggregated_at DESC"), so each field must only be set the FIRST
+      // time its metric is encountered -- otherwise this loop keeps overwriting through to the
+      // LAST row in the group, which is actually the OLDEST day in the 7-day window, and the
+      // summary table/badges would silently show stale (up to ~6-day-old) data as current. The
+      // "unknown" default status doubles as the not-yet-set guard, same as the other per-metric
+      // fields below.
+      if ("LCP".equals(metricType) && "unknown".equals(s.lcpStatus)) {
         s.lcpP75 = (int) Math.round(p75Value);
         s.lcpStatus = getStatus(p75Value, LCP_GOOD, LCP_NEEDS_WORK);
-      } else if ("CLS".equals(metricType)) {
+      } else if ("CLS".equals(metricType) && "unknown".equals(s.clsStatus)) {
         s.clsP75 = p75Value;
         s.clsStatus = getStatus(p75Value, CLS_GOOD, CLS_NEEDS_WORK);
-      } else if ("INP".equals(metricType)) {
+      } else if ("INP".equals(metricType) && "unknown".equals(s.inpStatus)) {
         s.inpP75 = (int) Math.round(p75Value);
         s.inpStatus = getStatus(p75Value, INP_GOOD, INP_NEEDS_WORK);
-      } else if ("FCP".equals(metricType)) {
+      } else if ("FCP".equals(metricType) && "unknown".equals(s.fcpStatus)) {
         s.fcpP75 = (int) Math.round(p75Value);
         s.fcpStatus = getStatus(p75Value, FCP_GOOD, FCP_NEEDS_WORK);
-      } else if ("TTFB".equals(metricType)) {
+      } else if ("TTFB".equals(metricType) && "unknown".equals(s.ttfbStatus)) {
         s.ttfbP75 = (int) Math.round(p75Value);
         s.ttfbStatus = getStatus(p75Value, TTFB_GOOD, TTFB_NEEDS_WORK);
+      }
+
+      // Same first-wins rule: the first row seen for this url is its newest aggregate (rows are
+      // grouped by url ahead of metric_type/aggregated_at), so this surfaces how many real-user
+      // samples that most-recent day's badges are actually based on -- a page with 2 samples
+      // should not look as trustworthy as one with 5,000. sample_count is always >= 1 for a row
+      // that exists, so the zero-value default doubles as the not-yet-set guard.
+      if (s.sampleCount == 0) {
+        s.sampleCount = sampleCount;
       }
     }
 
@@ -322,6 +343,7 @@ public class WebVitalsWidget extends GenericWidget {
     public String inpStatus = "unknown";
     public String fcpStatus = "unknown";
     public String ttfbStatus = "unknown";
+    public long sampleCount = 0;
 
     public VitalsSummary(String url) {
       this.url = url;
@@ -373,6 +395,10 @@ public class WebVitalsWidget extends GenericWidget {
 
     public String getTtfbStatus() {
       return ttfbStatus;
+    }
+
+    public long getSampleCount() {
+      return sampleCount;
     }
 
     public int getOverallScore() {

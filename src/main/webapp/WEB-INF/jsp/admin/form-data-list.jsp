@@ -137,7 +137,7 @@
             <small>GeoIP Location</small>
           </div>
           <div class="small-8 cell">
-            <small><c:out value="${geoip:location(formData.ipAddress, formData.ipAddress)}"/></small>
+            <small><c:out value="${geoip:location(formData.ipAddress, '--')}"/></small>
           </div>
         </div>
         <c:forEach items="${formData.formFieldList}" var="formField" varStatus="formFieldStatus">
