@@ -1094,15 +1094,27 @@ public class PageServlet extends HttpServlet {
       }
 
       // Determine global items
-      if (userSession.isLoggedIn() || "true".equals(sitePropertyMap.getOrDefault("site.online", "false"))) {
+      // Guest-facing auth pages (issue #1005): a guest hitting these while the site is still
+      // offline (e.g. before initial setup is finished) otherwise gets a bare form with no
+      // branding at all, since the header is the only thing on /login that carries the logo.
+      // siteVisibleToUser (not isGuestAuthPage alone) still gates the REAL nav/footer-link data:
+      // MenuTab/MenuItem carry no per-visitor visibility of their own (roleIdList is never read
+      // back from the DB -- see MenuItemRepository), so site.online was the only thing keeping
+      // an anonymous guest from seeing the full, real site structure before launch. Review of
+      // #1005 caught an earlier version of this fix that showed the real menu to guests too;
+      // MainMenuWidget and LlmsTxtServlet gate this same data the same way. This version shows
+      // just the header/branding shell to a guest on these 3 pages, with an empty nav underneath.
+      boolean isGuestAuthPage = isGuestAuthPage(pagePath);
+      boolean siteVisibleToUser = userSession.isLoggedIn() || "true".equals(sitePropertyMap.getOrDefault("site.online", "false"));
+      if (siteVisibleToUser || isGuestAuthPage) {
         // @todo determine if this is needed still (it is, but until all JSP layouts are removed?)
         // Load the main menu
         request.setAttribute(SHOW_MAIN_MENU, "true");
-        List<MenuTab> menuTabList = LoadMenuTabsCommand.loadActiveIncludeMenuItemList();
+        List<MenuTab> menuTabList = siteVisibleToUser ? LoadMenuTabsCommand.loadActiveIncludeMenuItemList() : Collections.emptyList();
         request.setAttribute(MASTER_MENU_TAB_LIST, menuTabList);
 
         // @note this is needed globally
-        if (!"container".equals(request.getSession().getAttribute(SessionConstants.X_VIEW_MODE))) {
+        if (siteVisibleToUser && !"container".equals(request.getSession().getAttribute(SessionConstants.X_VIEW_MODE))) {
           TableOfContents footerStickyLinks = LoadTableOfContentsCommand.loadByUniqueId("footer-sticky-links", false);
           request.setAttribute(FOOTER_STICKY_LINKS, footerStickyLinks);
         }
@@ -1156,6 +1168,11 @@ public class PageServlet extends HttpServlet {
     } catch (Exception e) {
       LOG.error("Page error caught: " + e.getMessage(), e);
     }
+  }
+
+  /** True for the guest-facing auth pages that need header/branding even while site.online is false (issue #1005). */
+  static boolean isGuestAuthPage(String pagePath) {
+    return "/login".equals(pagePath) || "/register".equals(pagePath) || "/forgot-password".equals(pagePath);
   }
 
   static String generateJsonLdData(PageRenderInfo pageRenderInfo, String siteUrl, String pagePath,
