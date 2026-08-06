@@ -33,6 +33,8 @@ import org.mockito.MockedStatic;
 
 import com.simisinc.platform.WidgetBase;
 import com.simisinc.platform.application.LoadUserCommand;
+import com.simisinc.platform.application.login.UserMfaCommand;
+import com.simisinc.platform.application.login.UserMfaRecoveryCodeCommand;
 import com.simisinc.platform.domain.model.Role;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.infrastructure.persistence.RoleRepository;
@@ -54,13 +56,21 @@ import com.simisinc.platform.presentation.controller.WidgetContext;
  * (redirect back to the same page, no error, no repository call). These tests call post() directly, the same
  * method a real request now reaches, so they fail if that dispatch gap reopens.
  *
- * communityManagerCannotSuspendAccountThatOutranksThem / communityManagerCannotRestoreAccountThatOutranksThem
- * guard a separate, pre-existing gap (predates issue #358, unrelated to it): suspendAccount()/restoreAccount()
- * only ever checked "is this my own account" -- neither checked the target's role level against the acting
- * admin's, even though both /admin/users and /admin/user-details are reachable by community-manager (level 90,
- * admin-layout.xml), one level below admin (level 100). Without this guard a community-manager could suspend or
- * restore an admin account outright. Mirrors the escalation guard UserFormWidget already applies to role grants
- * (see UserFormWidgetTest).
+ * communityManagerCannotSuspendAccountThatOutranksThem / communityManagerCannotRestoreAccountThatOutranksThem /
+ * communityManagerCannotDeleteAccountThatOutranksThem guard a shared gap: suspendAccount(), restoreAccount(), and
+ * deleteAccount() only ever checked "is this my own account" -- none checked the target's role level against the
+ * acting admin's, even though both /admin/users and /admin/user-details are reachable by community-manager
+ * (level 90, admin-layout.xml) and, as of the users:manage capability, by a user holding only that capability
+ * with no legacy role at all -- one level below admin (level 100). Without this guard, either could suspend,
+ * restore, or permanently delete an admin account outright. Mirrors the escalation guard UserFormWidget already
+ * applies to role grants (see UserFormWidgetTest). deleteAccount() was the last of the three still missing it.
+ *
+ * resetMfaWithoutStepUpDoesNotResetAndShowsReAuthPanel / resetMfaRefusesWhenTargetOutranksActor /
+ * resetMfaViaPostCallsCommandsAndAudits cover the admin "Reset MFA" lockout-recovery action: it requires a fresh
+ * step-up re-authentication exactly like Reset Password, refuses when the target outranks the acting admin exactly
+ * like Suspend/Restore, and on success clears the target's MFA secret/enabled flag and recovery codes by reusing
+ * the same UserMfaCommand/UserMfaRecoveryCodeCommand calls the self-service "disable" action already makes on the
+ * user's own account (see MyMfaSettingsWidgetTest).
  *
  * @author Elizabeth Houser
  */
@@ -166,6 +176,29 @@ class UserDetailsWidgetTest extends WidgetBase {
       new UserDetailsWidget().action(widgetContext);
 
       userRepo.verify(() -> UserRepository.createAccountToken(any()), never());
+      audit.verifyNoInteractions();
+    }
+  }
+
+  @Test
+  void actionResetMfaIsNotHandledByTheGetActionPath() throws Exception {
+    // MFA reset requires step-up re-authentication (see post()), same bar as Reset Password. The
+    // GET/action() path must never reset MFA directly -- that would bypass step-up entirely,
+    // reachable via a plain GET request carrying the same parameters the UI's POST form uses.
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "userId", "5");
+    addQueryParameter(widgetContext, "action", "resetMfa");
+
+    try (MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
+        MockedStatic<UserMfaCommand> mfa = mockStatic(UserMfaCommand.class);
+        MockedStatic<UserMfaRecoveryCodeCommand> recovery = mockStatic(UserMfaRecoveryCodeCommand.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(lockedUser());
+
+      new UserDetailsWidget().action(widgetContext);
+
+      mfa.verify(() -> UserMfaCommand.disable(any()), never());
+      recovery.verify(() -> UserMfaRecoveryCodeCommand.clear(any()), never());
       audit.verifyNoInteractions();
     }
   }
@@ -325,12 +358,15 @@ class UserDetailsWidgetTest extends WidgetBase {
     addQueryParameter(widgetContext, "userId", "5");
     addQueryParameter(widgetContext, "action", "deleteAccount");
 
+    // An admin (level 100) acting on a non-elevated target -- not "outranks".
     User target = activeUser();
 
     try (MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
         MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
         MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
       loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(target);
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
       userRepo.when(() -> UserRepository.remove(target)).thenReturn(true);
 
       WidgetContext result = new UserDetailsWidget().post(widgetContext);
@@ -338,6 +374,62 @@ class UserDetailsWidgetTest extends WidgetBase {
       userRepo.verify(() -> UserRepository.remove(target), times(1));
       audit.verify(() -> AuditEventCommand.record(any(), eq(AuditEventCommand.USER_MANAGEMENT), eq("user.delete"),
           eq(AuditEventCommand.SUCCESS), eq("user"), eq("5"), eq("active@example.com"), any()), times(1));
+      Assertions.assertEquals("Account deleted", result.getSuccessMessage());
+    }
+  }
+
+  @Test
+  void communityManagerCannotDeleteAccountThatOutranksThem() throws Exception {
+    // Without this guard, any user who can reach this page -- including a community-manager, or,
+    // as of the users:manage capability, a user holding only that capability with no role at all --
+    // could permanently delete an admin account, since deleteAccount()'s only other check is
+    // "not yourself".
+    setRoles(widgetContext, COMMUNITY_MANAGER);
+    addQueryParameter(widgetContext, "userId", "5");
+    addQueryParameter(widgetContext, "action", "deleteAccount");
+
+    // The target holds admin (level 100), above the acting community-manager (level 90).
+    User target = adminUser();
+
+    try (MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
+        MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(target);
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
+
+      WidgetContext result = new UserDetailsWidget().post(widgetContext);
+
+      userRepo.verify(() -> UserRepository.remove(any()), never());
+      audit.verifyNoInteractions();
+      Assertions.assertEquals("You cannot delete an account with a higher role level than your own",
+          result.getErrorMessage());
+    }
+  }
+
+  @Test
+  void communityManagerCanDeleteAccountAtOrBelowTheirOwnLevel() throws Exception {
+    setRoles(widgetContext, COMMUNITY_MANAGER);
+    addQueryParameter(widgetContext, "userId", "5");
+    addQueryParameter(widgetContext, "action", "deleteAccount");
+
+    // The target holds community-manager (level 90), at the acting user's own level -- not "outranks".
+    User target = activeUser();
+    List<Role> held = new ArrayList<>();
+    held.add(role(3, 90, "community-manager", "Community Manager"));
+    target.setRoleList(held);
+
+    try (MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
+        MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(target);
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
+      userRepo.when(() -> UserRepository.remove(target)).thenReturn(true);
+
+      WidgetContext result = new UserDetailsWidget().post(widgetContext);
+
+      userRepo.verify(() -> UserRepository.remove(target), times(1));
       Assertions.assertEquals("Account deleted", result.getSuccessMessage());
     }
   }
@@ -455,6 +547,134 @@ class UserDetailsWidgetTest extends WidgetBase {
       new UserDetailsWidget().post(widgetContext);
 
       userRepo.verify(() -> UserRepository.resetLockout(5L), times(1));
+    }
+  }
+
+  @Test
+  void resetMfaWithoutStepUpDoesNotResetAndShowsReAuthPanel() throws Exception {
+    // No stepUpCredential provided, and the session has no valid step-up token
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "userId", "5");
+    addQueryParameter(widgetContext, "action", "resetMfa");
+
+    User target = activeUser();
+    target.setMfaEnabled(true);
+
+    try (MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
+        MockedStatic<UserMfaCommand> mfa = mockStatic(UserMfaCommand.class);
+        MockedStatic<UserMfaRecoveryCodeCommand> recovery = mockStatic(UserMfaRecoveryCodeCommand.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(target);
+
+      WidgetContext result = new UserDetailsWidget().post(widgetContext);
+
+      mfa.verify(() -> UserMfaCommand.disable(any()), never());
+      recovery.verify(() -> UserMfaRecoveryCodeCommand.clear(any()), never());
+      audit.verifyNoInteractions();
+      Assertions.assertEquals("true", result.getSharedRequestValue("stepUpRequired"));
+      Assertions.assertEquals(UserDetailsWidget.JSP, result.getJsp());
+      Assertions.assertNull(result.getRedirect());
+    }
+  }
+
+  @Test
+  void resetMfaRefusesWhenTargetOutranksActor() throws Exception {
+    // The target holds admin (level 100), above the acting community-manager (level 90).
+    setRoles(widgetContext, COMMUNITY_MANAGER);
+    grantStepUp(widgetContext);
+    addQueryParameter(widgetContext, "userId", "5");
+    addQueryParameter(widgetContext, "action", "resetMfa");
+
+    User target = adminUser();
+    target.setMfaEnabled(true);
+
+    try (MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
+        MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
+        MockedStatic<UserMfaCommand> mfa = mockStatic(UserMfaCommand.class);
+        MockedStatic<UserMfaRecoveryCodeCommand> recovery = mockStatic(UserMfaRecoveryCodeCommand.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(target);
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
+
+      WidgetContext result = new UserDetailsWidget().post(widgetContext);
+
+      mfa.verify(() -> UserMfaCommand.disable(any()), never());
+      recovery.verify(() -> UserMfaRecoveryCodeCommand.clear(any()), never());
+      audit.verifyNoInteractions();
+      Assertions.assertEquals("You cannot reset MFA for an account with a higher role level than your own",
+          result.getErrorMessage());
+    }
+  }
+
+  @Test
+  void resetMfaViaPostCallsCommandsAndAudits() throws Exception {
+    setRoles(widgetContext, ADMIN);
+    grantStepUp(widgetContext);
+    addQueryParameter(widgetContext, "userId", "5");
+    addQueryParameter(widgetContext, "action", "resetMfa");
+
+    // Below the acting admin's level -- not "outranks", the reset must proceed.
+    User target = activeUser();
+    target.setMfaEnabled(true);
+    target.setMfaSecret("GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ");
+    List<Role> held = new ArrayList<>();
+    held.add(role(2, 80, "content-manager", "Content Manager"));
+    target.setRoleList(held);
+
+    try (MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
+        MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
+        MockedStatic<UserMfaCommand> mfa = mockStatic(UserMfaCommand.class);
+        MockedStatic<UserMfaRecoveryCodeCommand> recovery = mockStatic(UserMfaRecoveryCodeCommand.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(target);
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
+      mfa.when(() -> UserMfaCommand.disable(target)).thenReturn(true);
+
+      WidgetContext result = new UserDetailsWidget().post(widgetContext);
+
+      // The second factor and recovery codes are cleared through the same commands the
+      // self-service MyMfaSettingsWidget "disable" action already calls on the user's own account.
+      mfa.verify(() -> UserMfaCommand.disable(target), times(1));
+      recovery.verify(() -> UserMfaRecoveryCodeCommand.clear(target), times(1));
+      audit.verify(() -> AuditEventCommand.record(any(), eq(AuditEventCommand.USER_MANAGEMENT), eq("user.mfa.reset"),
+          eq(AuditEventCommand.SUCCESS), eq("user"), eq("5"), eq("active@example.com"), any()), times(1));
+      Assertions.assertNotNull(result.getSuccessMessage());
+      Assertions.assertEquals("/admin/user-details?userId=5", result.getRedirect());
+    }
+  }
+
+  @Test
+  void resetMfaViaPostRecordsFailureWhenTheMfaDisableWriteFails() throws Exception {
+    // UserMfaCommand.disable() returning false means UserRepository.disableMfa()'s DB write did not
+    // take (see UserRepository#disableMfa returning null on failure) -- resetMfa() must reflect that
+    // instead of unconditionally reporting success, matching deleteAccount()'s if/else pattern.
+    setRoles(widgetContext, ADMIN);
+    grantStepUp(widgetContext);
+    addQueryParameter(widgetContext, "userId", "5");
+    addQueryParameter(widgetContext, "action", "resetMfa");
+
+    User target = activeUser();
+    target.setMfaEnabled(true);
+    target.setMfaSecret("GEZDGNBVGY3TQOJQGEZDGNBVGY3TQOJQ");
+    List<Role> held = new ArrayList<>();
+    held.add(role(2, 80, "content-manager", "Content Manager"));
+    target.setRoleList(held);
+
+    try (MockedStatic<LoadUserCommand> loadCmd = mockStatic(LoadUserCommand.class);
+        MockedStatic<RoleRepository> roleRepo = mockStatic(RoleRepository.class);
+        MockedStatic<UserMfaCommand> mfa = mockStatic(UserMfaCommand.class);
+        MockedStatic<UserMfaRecoveryCodeCommand> recovery = mockStatic(UserMfaRecoveryCodeCommand.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      loadCmd.when(() -> LoadUserCommand.loadUser(anyLong())).thenReturn(target);
+      roleRepo.when(RoleRepository::findAll).thenReturn(allRoles());
+      mfa.when(() -> UserMfaCommand.disable(target)).thenReturn(false);
+
+      WidgetContext result = new UserDetailsWidget().post(widgetContext);
+
+      audit.verify(() -> AuditEventCommand.record(any(), eq(AuditEventCommand.USER_MANAGEMENT), eq("user.mfa.reset"),
+          eq(AuditEventCommand.FAILURE), eq("user"), eq("5"), eq("active@example.com"), any()), times(1));
+      Assertions.assertNull(result.getSuccessMessage());
+      Assertions.assertNotNull(result.getErrorMessage());
     }
   }
 }

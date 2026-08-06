@@ -75,9 +75,12 @@ public class UserFormWidget extends GenericWidget {
     context.getRequest().setAttribute("user", user);
     context.setPageTitle(user.getFullName());
 
-    // Shows any roles
+    // Shows any roles -- the JSP only offers/enables roles the editor is allowed to grant or revoke
+    // (see highestRoleLevel() below; matches the same request attribute UsersListWidget sets).
     List<Role> roleList = RoleRepository.findAll();
     context.getRequest().setAttribute("roleList", roleList);
+    context.getRequest().setAttribute("actingRoleLevel",
+        highestRoleLevel(context.getUserSession(), roleList != null ? roleList : new ArrayList<>()));
 
     // Show any groups
     List<Group> groupList = GroupRepository.findAll();

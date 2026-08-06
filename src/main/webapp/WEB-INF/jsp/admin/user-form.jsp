@@ -258,9 +258,16 @@
             <label>Roles</label>
           </div>
           <div class="small-9 cell">
+            <p class="help-text" style="margin-bottom:6px">You can only grant a role at or below your
+              own highest role level; a role you check above that level is silently not saved (no
+              error is shown) -- and a role the account already holds above your level stays in place
+              either way, whether or not you touch this list.</p>
             <c:forEach items="${roleList}" var="role">
               <c:choose>
-                <c:when test="${role.code eq 'admin' && !userSession.hasRole('admin')}"><%-- --%></c:when>
+                <c:when test="${role.level > actingRoleLevel && !user.hasRole(role.code)}"><%-- above the editor's level, and not already held -- not grantable, omit --%></c:when>
+                <c:when test="${role.level > actingRoleLevel}">
+                  <input id="roleId${role.id}" type="checkbox" name="roleId${role.id}" value="${role.id}" checked disabled/><label for="roleId${role.id}"><c:out value="${role.title}" /> <small class="help-text" style="display:inline;margin-top:0;">(requires a higher role to change)</small></label><br />
+                </c:when>
                 <c:otherwise>
                   <input id="roleId${role.id}" type="checkbox" name="roleId${role.id}" value="${role.id}" <c:if test="${user.hasRole(role.code)}">checked</c:if>/><label for="roleId${role.id}"><c:out value="${role.title}" /></label><br />
                 </c:otherwise>
@@ -275,6 +282,8 @@
             <label>Groups</label>
           </div>
           <div class="small-9 cell">
+            <p class="help-text" style="margin-bottom:6px">Unlike roles, group membership isn't
+              level-ranked -- anyone who can reach this form can add or remove any group.</p>
             <c:forEach items="${groupList}" var="group">
               <c:choose>
                 <c:when test="${group.name eq 'All Guests'}">
