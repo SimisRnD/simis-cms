@@ -69,7 +69,7 @@
                     (data.message ? data.message : "Please re-enter your email address using a proper format.");
                 return;
             }
-            document.getElementById('emailHelpText${widgetContext.uniqueId}').innerHTML = "Thanks for signing up for <c:out value="${js:escape(sitePropertyMap['site.name'])}"/> emails";
+            document.getElementById('emailHelpText${widgetContext.uniqueId}').innerHTML = "Almost done! Check your email to confirm your subscription to <c:out value="${js:escape(sitePropertyMap['site.name'])}"/> emails";
         });
     }
     <c:choose>

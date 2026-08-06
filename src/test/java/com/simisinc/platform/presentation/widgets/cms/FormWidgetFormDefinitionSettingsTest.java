@@ -41,6 +41,7 @@ import com.simisinc.platform.domain.model.cms.FormField;
 import com.simisinc.platform.infrastructure.persistence.cms.FormDataRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.FormDefinitionRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.FormFieldRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.FormSubmissionFailureRepository;
 import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 
@@ -105,14 +106,20 @@ class FormWidgetFormDefinitionSettingsTest extends WidgetBase {
     preferences.put("formId", "5");
     FormDefinition disabled = new FormDefinition();
     disabled.setId(5L);
+    disabled.setUniqueId("disabled-form");
     disabled.setEnabled(false);
 
-    try (MockedStatic<FormDefinitionRepository> formDefinitionRepository = mockStatic(FormDefinitionRepository.class)) {
+    try (MockedStatic<FormDefinitionRepository> formDefinitionRepository = mockStatic(FormDefinitionRepository.class);
+        MockedStatic<FormSubmissionFailureRepository> failureRepository = mockStatic(FormSubmissionFailureRepository.class)) {
       formDefinitionRepository.when(() -> FormDefinitionRepository.findById(5L)).thenReturn(disabled);
 
       WidgetContext result = new FormWidget().post(widgetContext);
 
       Assertions.assertNull(result, "a direct POST to a disabled database-backed form must not be accepted");
+      // issue #563 follow-up -- this rejection was previously silent; must not be reachable without
+      // recording it, and must not reuse REASON_MISSING_FIELD
+      failureRepository.verify(() -> FormSubmissionFailureRepository.record(
+          eq("disabled-form"), eq(FormSubmissionFailureRepository.REASON_FORM_UNAVAILABLE), any(), any()));
     }
   }
 
@@ -128,6 +135,27 @@ class FormWidgetFormDefinitionSettingsTest extends WidgetBase {
       WidgetContext result = new FormWidget().execute(widgetContext);
 
       Assertions.assertNull(result, "a stale/bad formId must hard-fail, not silently fall back to the XML fields preference");
+    }
+  }
+
+  @Test
+  void postRecordsAFailureWhenFormIdIsSetButTheFormDefinitionIsNotFound() {
+    // issue #563 follow-up -- a direct POST naming a formId that no longer resolves was previously
+    // silent, unlike every other rejection path in FormWidget.post()
+    preferences.put("formId", "99");
+    preferences.put("formUniqueId", "widget-preference-slug");
+
+    try (MockedStatic<FormDefinitionRepository> formDefinitionRepository = mockStatic(FormDefinitionRepository.class);
+        MockedStatic<FormSubmissionFailureRepository> failureRepository = mockStatic(FormSubmissionFailureRepository.class)) {
+      formDefinitionRepository.when(() -> FormDefinitionRepository.findById(99L)).thenReturn(null);
+
+      WidgetContext result = new FormWidget().post(widgetContext);
+
+      Assertions.assertNull(result, "a stale/bad formId must hard-fail, not silently fall back to the XML fields preference");
+      // formDefinition never resolved, so the widget-preference formUniqueId is the only identifier
+      // available -- matching how the success path resolves formUniqueId when formDefinition is null
+      failureRepository.verify(() -> FormSubmissionFailureRepository.record(
+          eq("widget-preference-slug"), eq(FormSubmissionFailureRepository.REASON_FORM_UNAVAILABLE), any(), any()));
     }
   }
 

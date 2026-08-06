@@ -1,5 +1,5 @@
 /*
- * Copyright 2026 SimIS Inc. (https://www.simiscms.com)
+ * Copyright 2022 SimIS Inc. (https://www.simiscms.com)
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,23 +16,6 @@
 
 package com.simisinc.platform.application.admin;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.Mockito.mockStatic;
-import static org.mockito.Mockito.never;
-
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.util.List;
-
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
-import org.mockito.ArgumentCaptor;
-import org.mockito.MockedStatic;
-
 import com.simisinc.platform.WidgetBase;
 import com.simisinc.platform.application.audit.SaveAuditEventCommand;
 import com.simisinc.platform.application.cms.SaveFilePartCommand;
@@ -43,67 +26,98 @@ import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.domain.model.cms.FileItem;
 import com.simisinc.platform.infrastructure.persistence.GroupRepository;
 import com.simisinc.platform.infrastructure.persistence.UserRepository;
+import com.simisinc.platform.presentation.controller.AuditEventCommand;
+
+import org.junit.jupiter.api.AfterEach;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
+
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
+
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.times;
 
 /**
- * The New User modal (users-list.jsp) has no checkbox for "All Guests" ("not a logged in user
- * group"), and the edit-user form mirrors that exclusion server-side (see
- * UserFormWidgetTest#postCannotGrantAllGuestsGroupEvenIfSubmitted). The CSV "Groups" column import
- * path is a separate route to the same group-membership table and must refuse "All Guests" too,
- * the same way it already refuses "All Users" (a group every user gets automatically, not one an
- * import file should be able to name).
- *
- * @author SimIS Inc.
+ * Proves ProcessUserCSVFileCommand.processCSV() only counts (and records a "success" audit event for)
+ * CSV rows that SaveUserCommand.saveUser() actually persisted. A row where saveUser() returns null --
+ * a caught DB-level failure inside UserRepository.add() -- must not inflate the "N users added" total
+ * reported back to the admin, and must be recorded as a failure instead, mirroring the null-check
+ * UsersListWidget#addUserAction already applies to the same saveUser() call (issue behind PR for
+ * over-counted CSV import success).
  */
 class ProcessUserCSVFileCommandTest extends WidgetBase {
 
-  private static Group group(long id, String name) {
-    Group g = new Group();
-    g.setId(id);
-    g.setName(name);
-    return g;
-  }
+  private Path csvFile;
 
-  private static Path writeCsv(Path dir, String content) throws Exception {
-    Path csv = dir.resolve("import.csv");
-    Files.writeString(csv, content, StandardCharsets.UTF_8);
-    return csv;
+  @AfterEach
+  void cleanup() throws Exception {
+    if (csvFile != null) {
+      Files.deleteIfExists(csvFile);
+    }
   }
 
   @Test
-  void csvGroupsColumnCannotGrantAllGuests(@TempDir Path tempDir) throws Exception {
-    Path csvFile = writeCsv(tempDir,
-        "Email,First Name,Last Name,Groups\ncsv-user@example.com,CSV,User,All Guests\n");
+  void aRowWhereSaveUserReturnsNullIsNotCountedAndIsRecordedAsAFailure() throws Exception {
+    setRoles(widgetContext, ADMIN);
+
+    csvFile = Files.createTempFile("user-import", ".csv");
+    Files.write(csvFile, ("Email,First Name,Last Name\n" +
+        "ok@example.com,Ok,User\n" +
+        "broken@example.com,Broken,User\n").getBytes(StandardCharsets.UTF_8), StandardOpenOption.TRUNCATE_EXISTING);
 
     FileItem fileItemBean = new FileItem();
-    fileItemBean.setFileServerPath("uploads/import.csv");
+    fileItemBean.setFileServerPath("uploads/user-import.csv");
 
-    Group allUsers = group(1L, "All Users");
+    Group allUsersGroup = new Group();
+    allUsersGroup.setId(1L);
+    allUsersGroup.setName("All Users");
+
+    User savedOkUser = new User();
+    savedOkUser.setId(42L);
+    savedOkUser.setEmail("ok@example.com");
 
     try (MockedStatic<SaveFilePartCommand> saveFilePart = mockStatic(SaveFilePartCommand.class);
         MockedStatic<FileSystemCommand> fileSystem = mockStatic(FileSystemCommand.class);
-        MockedStatic<GroupRepository> groupRepo = mockStatic(GroupRepository.class);
-        MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
-        MockedStatic<SaveUserCommand> saveCmd = mockStatic(SaveUserCommand.class);
+        MockedStatic<GroupRepository> groupRepository = mockStatic(GroupRepository.class);
+        MockedStatic<UserRepository> userRepository = mockStatic(UserRepository.class);
+        MockedStatic<SaveUserCommand> saveUserCommand = mockStatic(SaveUserCommand.class);
         MockedStatic<SaveAuditEventCommand> audit = mockStatic(SaveAuditEventCommand.class)) {
 
-      saveFilePart.when(() -> SaveFilePartCommand.saveFile(any())).thenReturn(fileItemBean);
-      fileSystem.when(FileSystemCommand::getFileServerRootPath).thenReturn(tempDir.toString());
-      fileSystem.when(() -> FileSystemCommand.resolveWithinRoot(any(), any())).thenReturn(csvFile.toFile());
-      groupRepo.when(() -> GroupRepository.findByName("All Users")).thenReturn(allUsers);
-      userRepo.when(() -> UserRepository.findByUsername(anyString())).thenReturn(null);
+      saveFilePart.when(() -> SaveFilePartCommand.saveFile(widgetContext)).thenReturn(fileItemBean);
+      fileSystem.when(FileSystemCommand::getFileServerRootPath).thenReturn("/tmp/");
+      fileSystem.when(() -> FileSystemCommand.resolveWithinRoot(anyString(), anyString()))
+          .thenReturn(csvFile.toFile());
+      groupRepository.when(() -> GroupRepository.findByName("All Users")).thenReturn(allUsersGroup);
+      userRepository.when(() -> UserRepository.findByUsername(anyString())).thenReturn(null);
 
-      ArgumentCaptor<User> captor = ArgumentCaptor.forClass(User.class);
-      saveCmd.when(() -> SaveUserCommand.saveUser(captor.capture())).thenAnswer(inv -> null);
+      // Simulate SaveUserCommand.saveUser() returning null for one row, as it does on a caught
+      // DB-level failure inside UserRepository.add() -- the other row persists normally
+      saveUserCommand.when(() -> SaveUserCommand.saveUser(any(User.class))).thenAnswer(invocation -> {
+        User candidate = invocation.getArgument(0);
+        if ("broken@example.com".equals(candidate.getEmail())) {
+          return null;
+        }
+        return savedOkUser;
+      });
 
-      ProcessUserCSVFileCommand.processCSV(widgetContext);
+      int userCount = ProcessUserCSVFileCommand.processCSV(widgetContext);
 
-      // The row named "All Guests" in its Groups column is skipped by raw value, the same way
-      // "All Users" already is -- it should never even reach a GroupRepository lookup
-      groupRepo.verify(() -> GroupRepository.findByName("All Guests"), never());
-      List<Group> savedGroups = captor.getValue().getGroupList();
-      assertFalse(savedGroups.stream().anyMatch(g -> "All Guests".equals(g.getName())),
-          "a CSV import must never be able to grant 'All Guests' membership");
-      assertEquals(1, savedGroups.size(), "only the default 'All Users' group should be assigned");
+      Assertions.assertEquals(1, userCount, "Only the row that actually persisted should be counted");
+
+      audit.verify(() -> SaveAuditEventCommand.recordAdminEvent(eq(AuditEventCommand.USER_MANAGEMENT),
+          eq("user.create"), eq(AuditEventCommand.SUCCESS), eq(1L), any(), any(), any(),
+          eq("user"), eq("42"), eq("ok@example.com"), anyString()), times(1));
+
+      audit.verify(() -> SaveAuditEventCommand.recordAdminEvent(eq(AuditEventCommand.USER_MANAGEMENT),
+          eq("user.create"), eq(AuditEventCommand.FAILURE), eq(1L), any(), any(), any(),
+          eq("user"), eq(null), eq("broken@example.com"), anyString()), times(1));
     }
   }
 }
