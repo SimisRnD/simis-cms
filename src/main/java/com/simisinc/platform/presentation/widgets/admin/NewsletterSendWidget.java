@@ -17,6 +17,8 @@
 package com.simisinc.platform.presentation.widgets.admin;
 
 import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.mailinglists.MailChimpCommand;
 import com.simisinc.platform.application.mailinglists.NewsletterSendCommand;
 import com.simisinc.platform.domain.model.cms.BlogPost;
 import com.simisinc.platform.domain.model.mailinglists.MailingList;
@@ -27,6 +29,7 @@ import com.simisinc.platform.infrastructure.persistence.mailinglists.MailingList
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
+import org.apache.commons.lang3.StringUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -61,6 +64,16 @@ public class NewsletterSendWidget extends GenericWidget {
     DataConstraints constraints = new DataConstraints(1, 50).setDefaultColumnToSortBy("published DESC");
     List<BlogPost> blogPosts = BlogPostRepository.findAll(specification, constraints);
     context.getRequest().setAttribute("blogPosts", blogPosts);
+
+    // Catch the #1 real-world failure mode before an admin wastes a send on it: neither delivery
+    // path is configured at all, so every recipient would silently fail (SMTP) or the enqueue
+    // itself would error out (MailChimp -- NewsletterSendCommand.sendViaMailChimp requires a
+    // reachable, correctly-keyed account). MailChimp being enabled makes the SMTP host irrelevant,
+    // so this only warns when BOTH are unset.
+    boolean mailChimpEnabled = MailChimpCommand.isEnabled();
+    boolean smtpConfigured = StringUtils.isNotBlank(LoadSitePropertyCommand.loadByName("mail.host_name"));
+    context.getRequest().setAttribute("sendMethodConfigured", mailChimpEnabled || smtpConfigured);
+    context.getRequest().setAttribute("mailChimpEnabled", mailChimpEnabled);
 
     context.setJsp(JSP);
     return context;

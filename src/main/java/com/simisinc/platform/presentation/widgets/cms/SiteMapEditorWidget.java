@@ -73,16 +73,23 @@ public class SiteMapEditorWidget extends GenericWidget {
 
     List<MenuTab> menuTabList = MenuTabRepository.findAll();
     for (MenuTab thisTab : menuTabList) {
-      // Check for a renamed menu tab
+      // Check for a renamed menu tab or icon
       String name = context.getParameter("menuTab" + thisTab.getId() + "name");
-      thisTab.setName(name);
-      // Update the menu tab icon
       String icon = context.getParameter("menuTab" + thisTab.getId() + "icon");
-      thisTab.setIcon(icon);
-      try {
-        SaveMenuTabCommand.renameTab(thisTab);
-      } catch (DataException e) {
-        LOG.error("Rename tab update error: " + e.getMessage());
+      boolean nameChanged = StringUtils.isNotBlank(name) && !name.equals(thisTab.getName());
+      boolean iconChanged = StringUtils.isNotBlank(icon) && !icon.equals(thisTab.getIcon());
+      if (nameChanged || iconChanged) {
+        if (nameChanged) {
+          thisTab.setName(name);
+        }
+        if (iconChanged) {
+          thisTab.setIcon(icon);
+        }
+        try {
+          SaveMenuTabCommand.renameTab(thisTab);
+        } catch (DataException e) {
+          LOG.error("Rename tab update error: " + e.getMessage());
+        }
       }
       // Check for a renamed link
       String link = context.getParameter("menuTab" + thisTab.getId() + "link");

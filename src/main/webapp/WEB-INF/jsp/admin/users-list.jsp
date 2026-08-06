@@ -31,6 +31,16 @@
   <h1><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h1>
 </c:if>
 <%@include file="../page_messages.jspf" %>
+<div class="callout primary radius">
+  <p style="margin-bottom:0">
+    Every account on the site: search and filter, add one at a time or in bulk, and act on many at
+    once (suspend, unsuspend, reset password, grant a role). Click a name to open that account's
+    <a href="${ctx}/admin/user-details">full detail page</a>, including its own actions (delete,
+    unlock, approve/deny an unsuspend request). Reachable by <strong>admin</strong> and
+    <strong>community-manager</strong> -- a community-manager has everything here except granting a
+    role above their own level, and the guardrails below apply the same way to both.
+  </p>
+</div>
 <c:if test="${pendingUnsuspendRequestCount gt 0}">
   <div class="callout warning radius">
     <a href="${ctx}/admin/unsuspend-requests">
@@ -54,6 +64,17 @@
         document.getElementById("fileForm").submit();
     }
 </script>
+<%-- Export: same filter criteria as the results below (mirrored as hidden fields since export is a POST) --%>
+<form method="post" autocomplete="off" class="float-left">
+  <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
+  <input type="hidden" name="token" value="${userSession.formToken}"/>
+  <input type="hidden" name="command" value="downloadCSVFile"/>
+  <input type="hidden" name="query" value="<c:out value='${query}'/>"/>
+  <input type="hidden" name="statusFilter" value="<c:out value='${statusFilter}'/>"/>
+  <input type="hidden" name="mfaFilter" value="<c:out value='${mfaFilter}'/>"/>
+  <input type="hidden" name="agingPasswordFilter" value="<c:out value='${agingPasswordFilter}'/>"/>
+  <button type="submit" class="button small secondary radius margin-left-10"><i class="fa fa-download"></i> Download CSV</button>
+</form>
 <form id="tableOptionsForm" method="get" autocomplete="off" class="float-right">
   <label for="statusFilter" class="show-for-sr">Status</label>
   <select id="statusFilter" name="statusFilter" class="float-left width-auto margin-right-10">
@@ -236,7 +257,7 @@
       <select id="bulkRoleId" name="roleId" required>
         <c:forEach items="${roleList}" var="role">
           <c:choose>
-            <c:when test="${role.code eq 'admin' && !userSession.hasRole('admin')}"><%-- not offered --%></c:when>
+            <c:when test="${role.level > actingRoleLevel}"><%-- not offered --%></c:when>
             <c:otherwise>
               <option value="${role.id}"><c:out value="${role.title}" /></option>
             </c:otherwise>
@@ -389,6 +410,119 @@
     </div>
   </form>
 </div>
+
+<hr>
+<h5>Adding users</h5>
+<ul>
+  <li><strong>New User</strong> creates one account and emails it an invitation with instructions to
+    set a password. The account shows as <strong>Inactive</strong> until that link is used -- there's
+    no separate "activate" step, using the link is what activates it.</li>
+  <li><strong>Upload CSV File</strong> creates many accounts at once. The file needs
+    <code>Email</code>, <code>First Name</code>, and <code>Last Name</code> columns; an optional
+    <code>Groups</code> column (comma-separated group names) adds group membership beyond the default
+    "All Users", and an optional <code>Date</code> column (<code>yyyy-MM-dd hh:mm:ss</code>) backdates
+    the created timestamp. A row is skipped as a likely duplicate, silently and not reported as an
+    error, if its email already matches an existing account's <em>username</em> -- true for any
+    account still using the default (its username was never set separately from its email), but not
+    a guaranteed email-uniqueness check once an account's username has been customized away from its
+    email on the edit form.
+    <strong>Unlike New User, CSV import sends no invitation email and grants no role</strong> -- every
+    imported account can't sign in until an admin explicitly sends it a password-reset email (select
+    the imported rows on this page and use <strong>Reset Password</strong> below), and has no role
+    beyond default group membership until one is granted via <strong>Assign Roles</strong> or the
+    account's own <a href="${ctx}/admin/user-details">detail page</a>.</li>
+  <li>The roles offered on the <strong>New User</strong> form are capped at
+    <strong>your own highest role level</strong> -- you can't grant admin from this form unless you
+    are yourself an admin, and community-managers won't see it as an option at all. CSV import has no
+    role selection at all, at any level -- see above.</li>
+</ul>
+
+<h5>Bulk actions</h5>
+<p>
+  Select rows with the checkboxes to reveal the bulk action bar. Selection is scoped to <strong>the
+  current page of results</strong> only (up to <c:out value="${recordPaging.pageSize}" /> at a time,
+  and a request is rejected outright, never silently trimmed, past 100 ids) -- "select all" does not
+  reach across pages.
+</p>
+<ul>
+  <li><strong>Assign Roles</strong> adds one role to every selected account; it never removes an
+    existing role, and an account that already has the role is counted as already-done, not a
+    failure. The <em>grant itself</em> is capped at your own role level either way -- but unlike New
+    User's role checkboxes, this dropdown's visible options aren't filtered by level, only "admin" is
+    hidden from non-admins by name. A community-manager may still see a role above their own level
+    listed here; picking it and submitting is rejected, just not hidden from the list first.</li>
+  <li><strong>Reset Password</strong> emails password-reset instructions to every selected account,
+    same as the single-account action on its detail page.</li>
+  <li><strong>Suspend</strong> requires a reason (via the modal; a raw request without one is not
+    rejected server-side the way Deny/Request Unsuspend are) and skips your own account if it's in
+    the selection -- suspending yourself out of the admin console isn't possible from here or from
+    the detail page. A suspended account can't sign in until it's unsuspended.
+    <strong>Unlike the single-account Suspend action on the detail page, this bulk action does not
+    currently check whether a selected account outranks you</strong> -- a community-manager can bulk-
+    suspend an admin account here even though they'd be refused doing the same thing one at a time
+    from that account's own page. Treat that gap as a reason to double-check a selection before
+    suspending in bulk, not as protection you can rely on.</li>
+  <li><strong>Unsuspend</strong> restores a suspended account directly -- <em>unless</em> that account
+    holds an elevated role (community-manager and above), in which case it can't be reactivated by one
+    admin acting alone: it's filed as a request instead, and a <em>different</em> eligible admin has to
+    review and approve it from that account's <a href="${ctx}/admin/user-details">detail page</a>
+    (or from <a href="${ctx}/admin/unsuspend-requests">Unsuspend Requests</a>). A reason is required
+    only when at least one selected account is elevated. Approval immediately invalidates the account's
+    password, so its owner has to set a new one.</li>
+  <li><strong>Reset Password</strong> and <strong>Assign Roles</strong> both require you to re-enter
+    your own password or authenticator code first (a "step-up" prompt) -- this re-authentication is
+    good for 5 minutes per session, so acting on several batches in a row won't re-prompt every time.
+    A missing or wrong step-up code rejects the whole batch before anything happens; nothing is done
+    partially.</li>
+  <li>No bulk action can ever grant a role above your own level or apply to more than 100 accounts at
+    once -- both are enforced on every account in the batch, not just checked once up front, so a
+    mixed selection can't slip a higher-level role grant through. The equivalent protection against
+    acting on an account that outranks you exists for Assign Roles' grant and (indirectly, via the
+    maker-checker approval requirement) for Unsuspend, but currently does <strong>not</strong> exist
+    for bulk Suspend -- see above.</li>
+</ul>
+
+<h5>Common problems and how to fix them</h5>
+<ul>
+  <li><strong>A CSV-imported user says they can't sign in.</strong> Expected -- CSV import sends no
+    invitation. Select them here and use bulk <strong>Reset Password</strong> to send them a
+    password-setup link.</li>
+  <li><strong>An admin role isn't offered when adding or promoting someone.</strong> You can only
+    grant a role at or below your own highest role level. If you need to grant admin and aren't one
+    yourself, an existing admin needs to do it (or grant you the role first).</li>
+  <li><strong>"You cannot suspend/restore an account with a higher role level than your own."</strong>
+    The same role-level guard that limits what you can grant also limits who you can act on for the
+    single-account Suspend and Restore actions on a detail page -- a community-manager can't suspend
+    or restore an admin account that way. That specific check does not extend to bulk Suspend on this
+    page (see "Bulk actions" above) or to Delete Account on the detail page, which today only blocks
+    deleting your own account, not a higher-level one.</li>
+  <li><strong>Unsuspending an elevated account didn't restore it immediately.</strong> By design -- a
+    community-manager or higher account requires a second, different admin's approval. Check
+    <a href="${ctx}/admin/unsuspend-requests">Unsuspend Requests</a> for its status.</li>
+  <li><strong>"Too many accounts were selected."</strong> The cap is 100 per bulk action. Narrow the
+    filters/search first, or run the action in smaller batches.</li>
+</ul>
+
+<h5>What to monitor</h5>
+<p>
+  The <a href="${ctx}/admin/audit-log">Audit Log</a> records every action on this page individually --
+  each account in a bulk batch gets its own event (so you can see exactly which 3 of 40 selected
+  accounts failed), plus one summary event for the batch as a whole. Watch in particular for repeated
+  <code>user.disable</code> (suspensions) or <code>user.delete</code> events you didn't expect, and for
+  the <span class="label warning radius">unsuspend request awaiting review</span> banner at the top of
+  this page piling up -- a growing queue usually means there aren't enough admins available to approve
+  each other's unsuspend requests (remember: the requester can't approve their own).
+</p>
+
+<div class="callout radius" style="margin-top:10px">
+  <p style="margin-bottom:0">
+    <i class="fa fa-info-circle"></i> <strong>Coming soon, not yet available:</strong> a CSV export/
+    download button on this page, a "Reset MFA" action on the account detail page, and moving this
+    page's access check from a hardcoded role list to the newer capability-grant system (so a custom
+    role could be given user-management access without also being a full community-manager).
+  </p>
+</div>
+
 <%--<script nonce="${cspNonce}">--%>
 <%--  $(document).on('open.zf.reveal', '[data-reveal]', function () {--%>
 <%--    let modal = $(this);--%>

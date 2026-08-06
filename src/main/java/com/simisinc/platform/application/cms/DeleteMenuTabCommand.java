@@ -41,7 +41,7 @@ public class DeleteMenuTabCommand {
       throw new DataException("The menu tab was not specified");
     }
 
-    if ("/".equals(menuTabBean.getLink()) && menuTabBean.getId() == -1) {
+    if ("/".equals(menuTabBean.getLink())) {
       throw new DataException("The Home menu tab cannot be deleted");
     }
 
