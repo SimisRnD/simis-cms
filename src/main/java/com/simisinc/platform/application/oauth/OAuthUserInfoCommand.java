@@ -115,7 +115,12 @@ public class OAuthUserInfoCommand {
       for (JsonNode jsonNode : json.get(groupAttribute)) {
         String groupValue = jsonNode.asText();
         Group thisGroup = GroupRepository.findByOAuthPath(groupValue);
-        if (thisGroup != null) {
+        // "All Guests" has no checkbox on the manual New User/edit-user forms (see
+        // users-list.jsp's New User modal, "not a logged in user group") -- keep an IdP group
+        // claim from being able to grant it to a real, logged-in user either. Checked against the
+        // resolved group's name, not the raw claim value, since oauth_path is an admin-configured
+        // mapping and need not literally read "All Guests".
+        if (thisGroup != null && !"All Guests".equals(thisGroup.getName())) {
           userGroupList.add(thisGroup);
         }
       }

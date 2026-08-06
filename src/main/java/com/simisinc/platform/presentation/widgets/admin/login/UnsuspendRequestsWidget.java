@@ -78,7 +78,7 @@ public class UnsuspendRequestsWidget extends GenericWidget {
   }
 
   public WidgetContext post(WidgetContext context) {
-    if (!(context.hasRole("admin") || context.hasRole("community-manager"))) {
+    if (!(context.hasRole("admin") || context.hasRole("community-manager") || context.hasPermission("users:manage"))) {
       return context;
     }
     context.getUserSession().renewFormToken();
