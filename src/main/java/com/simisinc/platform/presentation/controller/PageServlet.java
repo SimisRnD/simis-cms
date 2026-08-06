@@ -1110,7 +1110,7 @@ public class PageServlet extends HttpServlet {
         // @todo determine if this is needed still (it is, but until all JSP layouts are removed?)
         // Load the main menu
         request.setAttribute(SHOW_MAIN_MENU, "true");
-        List<MenuTab> menuTabList = siteVisibleToUser ? LoadMenuTabsCommand.loadActiveIncludeMenuItemList() : Collections.emptyList();
+        List<MenuTab> menuTabList = siteVisibleToUser ? LoadMenuTabsCommand.loadActiveIncludeMenuItemList() : new ArrayList<>();
         request.setAttribute(MASTER_MENU_TAB_LIST, menuTabList);
 
         // @note this is needed globally
