@@ -22,6 +22,7 @@ import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.admin.ProcessUserCSVFileCommand;
 import com.simisinc.platform.application.audit.SaveAuditEventCommand;
 import com.simisinc.platform.application.cms.UrlCommand;
+import com.simisinc.platform.application.filesystem.FileSystemCommand;
 import com.simisinc.platform.application.login.StepUpAuthCommand;
 import com.simisinc.platform.application.login.UnsuspendAccountCommand;
 import com.simisinc.platform.application.register.SaveUserCommand;
@@ -31,6 +32,7 @@ import com.simisinc.platform.domain.events.cms.UserPasswordResetEvent;
 import com.simisinc.platform.domain.model.Group;
 import com.simisinc.platform.domain.model.Role;
 import com.simisinc.platform.domain.model.User;
+import com.simisinc.platform.domain.model.login.UserLogin;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.persistence.GroupRepository;
 import com.simisinc.platform.infrastructure.persistence.RoleRepository;
@@ -39,6 +41,7 @@ import com.simisinc.platform.infrastructure.persistence.UserSpecification;
 import com.simisinc.platform.infrastructure.persistence.login.UnsuspendRequestRepository;
 import com.simisinc.platform.infrastructure.persistence.login.UserLoginRepository;
 import com.simisinc.platform.infrastructure.workflow.WorkflowManager;
+import com.simisinc.platform.presentation.controller.MultipartFileSender;
 import com.simisinc.platform.presentation.controller.RequestConstants;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
@@ -48,9 +51,13 @@ import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import javax.security.auth.login.AccountException;
+import java.io.File;
 import java.lang.reflect.InvocationTargetException;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Description
@@ -100,17 +107,10 @@ public class UsersListWidget extends GenericWidget {
     context.getRequest().setAttribute(RequestConstants.RECORD_QUERY, query);
 
     // Determine the filters
-    String statusFilterValue = context.getParameter("statusFilter", STATUS_FILTER_ANY);
-    String statusFilter = STATUS_FILTER_ANY;
-    if (STATUS_FILTER_ACTIVE.equals(statusFilterValue) || STATUS_FILTER_SUSPENDED.equals(statusFilterValue)
-        || STATUS_FILTER_LOCKED.equals(statusFilterValue) || STATUS_FILTER_INACTIVE.equals(statusFilterValue)) {
-      statusFilter = statusFilterValue;
-    }
+    String statusFilter = resolveStatusFilter(context);
     context.getRequest().setAttribute("statusFilter", statusFilter);
 
-    String mfaFilterValue = context.getParameter("mfaFilter", MFA_FILTER_ANY);
-    String mfaFilter = (MFA_FILTER_ENABLED.equals(mfaFilterValue) || MFA_FILTER_DISABLED.equals(mfaFilterValue))
-        ? mfaFilterValue : MFA_FILTER_ANY;
+    String mfaFilter = resolveMfaFilter(context);
     context.getRequest().setAttribute("mfaFilter", mfaFilter);
 
     // "1" is the only supported value today (a simple on/off toggle); the threshold itself comes
@@ -135,41 +135,22 @@ public class UsersListWidget extends GenericWidget {
     context.getRequest().setAttribute(RequestConstants.RECORD_PAGING_URI, pagingUri);
 
     // Determine criteria
-    UserSpecification specification = new UserSpecification();
-    if (StringUtils.isNotBlank(query)) {
-      specification.setMatchesName(query);
-    }
-    // Each status bucket is the same compound condition User.getAccountStatus() derives from, so
-    // the filter always matches what the badge actually shows.
-    if (STATUS_FILTER_ACTIVE.equals(statusFilter)) {
-      specification.setIsEnabled(true);
-      specification.setIsLocked(false);
-      specification.setIsVerified(true);
-    } else if (STATUS_FILTER_SUSPENDED.equals(statusFilter)) {
-      specification.setIsEnabled(false);
-    } else if (STATUS_FILTER_LOCKED.equals(statusFilter)) {
-      specification.setIsEnabled(true);
-      specification.setIsLocked(true);
-    } else if (STATUS_FILTER_INACTIVE.equals(statusFilter)) {
-      specification.setIsEnabled(true);
-      specification.setIsLocked(false);
-      specification.setIsVerified(false);
-    }
-    if (MFA_FILTER_ENABLED.equals(mfaFilter)) {
-      specification.setIsMfaEnabled(true);
-    } else if (MFA_FILTER_DISABLED.equals(mfaFilter)) {
-      specification.setIsMfaEnabled(false);
-    }
-    if (agingPasswordFilter) {
-      int maxAgeDays = UserRepository.resolvePasswordMaxAgeDays(LoadSitePropertyCommand.loadByName("password.maxAgeDays"));
-      specification.setPasswordOlderThanDays(maxAgeDays);
-    }
+    UserSpecification specification = buildSpecification(query, statusFilter, mfaFilter, agingPasswordFilter);
 
-    // Load the users
+    // Load the users, then batch-load their roles and last-login in one query each rather than
+    // one query per row (a page of 20 users previously issued 41 round trips: 1 + 20 + 20).
     List<User> userList = UserRepository.findAll(specification, constraints);
-    for (User user : userList) {
-      user.setRoleList(RoleRepository.findAllByUserId(user.getId()));
-      user.setLastLogin(UserLoginRepository.queryLastLogin(user.getId()));
+    if (!userList.isEmpty()) {
+      List<Long> userIds = new ArrayList<>();
+      for (User user : userList) {
+        userIds.add(user.getId());
+      }
+      Map<Long, List<Role>> roleListByUserId = RoleRepository.findAllByUserIds(userIds);
+      Map<Long, UserLogin> lastLoginByUserId = UserLoginRepository.queryLastLogins(userIds);
+      for (User user : userList) {
+        user.setRoleList(roleListByUserId.get(user.getId()));
+        user.setLastLogin(lastLoginByUserId.get(user.getId()));
+      }
     }
     context.getRequest().setAttribute("userList", userList);
 
@@ -198,7 +179,7 @@ public class UsersListWidget extends GenericWidget {
 
   public WidgetContext post(WidgetContext context) throws InvocationTargetException, IllegalAccessException {
     // Permission is required
-    if (!(context.hasRole("admin") || context.hasRole("community-manager"))) {
+    if (!(context.hasRole("admin") || context.hasRole("community-manager") || context.hasPermission("users:manage"))) {
       return context;
     }
 
@@ -211,6 +192,11 @@ public class UsersListWidget extends GenericWidget {
     // Upload file command
     if ("uploadCSVFile".equals(command)) {
       return uploadCSVFileAction(context);
+    }
+
+    // Download the currently filtered list as a CSV file
+    if ("downloadCSVFile".equals(command)) {
+      return downloadCSVFileAction(context);
     }
 
     // Bulk actions, selected from /admin/users' checkbox + action-bar UI
@@ -242,6 +228,100 @@ public class UsersListWidget extends GenericWidget {
     // Determine the page to return to
     context.setRedirect("/admin/users");
     return context;
+  }
+
+  /**
+   * Streams the currently filtered (unpaginated) user list as a CSV download -- the filter params are the
+   * same query/statusFilter/mfaFilter/agingPasswordFilter the list page's GET uses, resolved with the same
+   * helpers so the export always matches what the admin is currently looking at. The column allowlist that
+   * keeps secrets out of the file lives in {@link UserRepository#exportCsv}, not here.
+   */
+  private WidgetContext downloadCSVFileAction(WidgetContext context) {
+    String query = context.getParameter("query");
+    String statusFilter = resolveStatusFilter(context);
+    String mfaFilter = resolveMfaFilter(context);
+    boolean agingPasswordFilter = "1".equals(context.getParameter("agingPasswordFilter"));
+    UserSpecification specification = buildSpecification(query, statusFilter, mfaFilter, agingPasswordFilter);
+
+    String displayFilename = "users-" + new SimpleDateFormat("yyyyMMdd-HHmm").format(new Date()) + ".csv";
+    File tempFile = FileSystemCommand.generateTempFile("exports", context.getUserId(), "csv");
+    try {
+      UserRepository.exportCsv(specification, tempFile);
+      MultipartFileSender.fromFile(tempFile)
+          .with(context.getRequest())
+          .with(context.getResponse())
+          .withMimeType("text/csv")
+          .withFilename(displayFilename)
+          .serveResource();
+      // Exporting the user list is itself a data-access event worth auditing.
+      AuditEventCommand.record(context, AuditEventCommand.DATA_ACCESS, "user.export", AuditEventCommand.SUCCESS,
+          "user", "filtered", displayFilename, "format=csv");
+    } catch (Exception e) {
+      LOG.error("User export failed", e);
+      AuditEventCommand.record(context, AuditEventCommand.DATA_ACCESS, "user.export", AuditEventCommand.FAILURE,
+          "user", "filtered", displayFilename, "format=csv");
+    } finally {
+      if (tempFile.exists()) {
+        tempFile.delete();
+      }
+    }
+    context.setHandledResponse(true);
+    return context;
+  }
+
+  /** Validates the statusFilter request parameter, defaulting to "any" -- shared by execute() and the CSV export. */
+  private String resolveStatusFilter(WidgetContext context) {
+    String statusFilterValue = context.getParameter("statusFilter", STATUS_FILTER_ANY);
+    if (STATUS_FILTER_ACTIVE.equals(statusFilterValue) || STATUS_FILTER_SUSPENDED.equals(statusFilterValue)
+        || STATUS_FILTER_LOCKED.equals(statusFilterValue) || STATUS_FILTER_INACTIVE.equals(statusFilterValue)) {
+      return statusFilterValue;
+    }
+    return STATUS_FILTER_ANY;
+  }
+
+  /** Validates the mfaFilter request parameter, defaulting to "any" -- shared by execute() and the CSV export. */
+  private String resolveMfaFilter(WidgetContext context) {
+    String mfaFilterValue = context.getParameter("mfaFilter", MFA_FILTER_ANY);
+    return (MFA_FILTER_ENABLED.equals(mfaFilterValue) || MFA_FILTER_DISABLED.equals(mfaFilterValue))
+        ? mfaFilterValue : MFA_FILTER_ANY;
+  }
+
+  /**
+   * Builds the UserSpecification from already-resolved filter values -- shared by execute() (the page's
+   * GET) and downloadCSVFileAction() (the export's POST) so the two can never drift apart.
+   */
+  private UserSpecification buildSpecification(String query, String statusFilter, String mfaFilter,
+      boolean agingPasswordFilter) {
+    UserSpecification specification = new UserSpecification();
+    if (StringUtils.isNotBlank(query)) {
+      specification.setMatchesName(query);
+    }
+    // Each status bucket is the same compound condition User.getAccountStatus() derives from, so
+    // the filter always matches what the badge actually shows.
+    if (STATUS_FILTER_ACTIVE.equals(statusFilter)) {
+      specification.setIsEnabled(true);
+      specification.setIsLocked(false);
+      specification.setIsVerified(true);
+    } else if (STATUS_FILTER_SUSPENDED.equals(statusFilter)) {
+      specification.setIsEnabled(false);
+    } else if (STATUS_FILTER_LOCKED.equals(statusFilter)) {
+      specification.setIsEnabled(true);
+      specification.setIsLocked(true);
+    } else if (STATUS_FILTER_INACTIVE.equals(statusFilter)) {
+      specification.setIsEnabled(true);
+      specification.setIsLocked(false);
+      specification.setIsVerified(false);
+    }
+    if (MFA_FILTER_ENABLED.equals(mfaFilter)) {
+      specification.setIsMfaEnabled(true);
+    } else if (MFA_FILTER_DISABLED.equals(mfaFilter)) {
+      specification.setIsMfaEnabled(false);
+    }
+    if (agingPasswordFilter) {
+      int maxAgeDays = UserRepository.resolvePasswordMaxAgeDays(LoadSitePropertyCommand.loadByName("password.maxAgeDays"));
+      specification.setPasswordOlderThanDays(maxAgeDays);
+    }
+    return specification;
   }
 
   private WidgetContext addUserAction(WidgetContext context) throws InvocationTargetException, IllegalAccessException {
@@ -348,6 +428,7 @@ public class UsersListWidget extends GenericWidget {
     BulkActor actor = new BulkActor(context);
     int succeeded = 0;
     int skippedSelf = 0;
+    int skippedOutranked = 0;
     int notFound = 0;
     int failed = 0;
     for (Long userId : userIds) {
@@ -360,6 +441,14 @@ public class UsersListWidget extends GenericWidget {
       User user = LoadUserCommand.loadUser(userId);
       if (user == null) {
         ++notFound;
+        continue;
+      }
+      // Nor one that outranks the acting admin -- mirrors the guard UserDetailsWidget's single-
+      // account suspendAccount() already enforces (targetOutranksActor()), so a community-manager,
+      // or a users:manage capability-only grantee with no legacy role, can't use this bulk checkbox
+      // path to suspend an account (e.g. an admin's) the single-user form would refuse to touch.
+      if (UserDetailsWidget.targetOutranksActor(context, user)) {
+        ++skippedOutranked;
         continue;
       }
       User result = UserRepository.suspendAccount(user, reason);
@@ -376,10 +465,10 @@ public class UsersListWidget extends GenericWidget {
     SaveAuditEventCommand.recordAdminEvent(AuditEventCommand.USER_MANAGEMENT, "user.bulk_disable",
         succeeded > 0 ? AuditEventCommand.SUCCESS : AuditEventCommand.FAILURE,
         actor.userId, actor.username, actor.ip, actor.sessionId, "user", null, null,
-        "suspended=" + succeeded + "; skippedSelf=" + skippedSelf + "; notFound=" + notFound
-            + "; failed=" + failed + "; reason=" + reason);
+        "suspended=" + succeeded + "; skippedSelf=" + skippedSelf + "; skippedOutranked=" + skippedOutranked
+            + "; notFound=" + notFound + "; failed=" + failed + "; reason=" + reason);
 
-    setBulkResultMessage(context, "suspended", succeeded, 0, userIds.size(), skippedSelf, notFound, failed);
+    setBulkResultMessage(context, "suspended", succeeded, 0, userIds.size(), skippedSelf, skippedOutranked, notFound, failed);
     context.setRedirect("/admin/users");
     return context;
   }
@@ -530,7 +619,7 @@ public class UsersListWidget extends GenericWidget {
         actor.userId, actor.username, actor.ip, actor.sessionId, "user", null, null,
         "reset=" + succeeded + "; notFound=" + notFound + "; failed=" + failed);
 
-    setBulkResultMessage(context, "sent a password reset email", succeeded, 0, userIds.size(), 0, notFound, failed);
+    setBulkResultMessage(context, "sent a password reset email", succeeded, 0, userIds.size(), 0, 0, notFound, failed);
     context.setRedirect("/admin/users");
     return context;
   }
@@ -615,7 +704,7 @@ public class UsersListWidget extends GenericWidget {
             + "; notFound=" + notFound + "; failed=" + failed);
 
     setBulkResultMessage(context, "granted the " + role.getTitle() + " role", succeeded, alreadyHadRole,
-        userIds.size(), 0, notFound, failed);
+        userIds.size(), 0, 0, notFound, failed);
     context.setRedirect("/admin/users");
     return context;
   }
@@ -696,7 +785,7 @@ public class UsersListWidget extends GenericWidget {
    * in the audit log instead, where every account gets its own event regardless of outcome.
    */
   private void setBulkResultMessage(WidgetContext context, String verb, int succeeded, int alreadyDone,
-      int totalSelected, int skippedSelf, int notFound, int failed) {
+      int totalSelected, int skippedSelf, int skippedOutranked, int notFound, int failed) {
     StringBuilder sb = new StringBuilder();
     sb.append(succeeded).append(" of ").append(totalSelected).append(" selected account")
         .append(totalSelected == 1 ? "" : "s").append(" ").append(verb).append(".");
@@ -705,6 +794,9 @@ public class UsersListWidget extends GenericWidget {
     }
     if (skippedSelf > 0) {
       sb.append(" Skipped: your own account.");
+    }
+    if (skippedOutranked > 0) {
+      sb.append(" Skipped (higher role level than yours): ").append(skippedOutranked).append(".");
     }
     if (notFound > 0) {
       sb.append(" Not found: ").append(notFound).append(".");
