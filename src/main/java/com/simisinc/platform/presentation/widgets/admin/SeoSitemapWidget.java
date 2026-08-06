@@ -55,9 +55,18 @@ public class SeoSitemapWidget extends GenericWidget {
     List<WebPage> webPageList = WebPageRepository.findAll();
     context.getRequest().setAttribute("webPageList", webPageList);
 
+    // SitemapServlet actually requires all three of these to serve a real sitemap (site.url set,
+    // site.online, then site.sitemap.xml) -- the old status banner here only checked the last one,
+    // so a site that's offline or missing its URL could show "enabled and being served" with a
+    // preview link that 404s. Surface all three so the banner can say which gate is actually closed.
     Map<String, String> sitePropertyMap = LoadSitePropertyCommand.loadAsMap("site");
     boolean sitemapEnabled = "true".equals(sitePropertyMap.getOrDefault("site.sitemap.xml", "false"));
+    boolean siteOnline = "true".equals(sitePropertyMap.getOrDefault("site.online", "false"));
+    boolean siteUrlConfigured = StringUtils.isNotBlank(sitePropertyMap.get("site.url"));
     context.getRequest().setAttribute("sitemapEnabled", sitemapEnabled);
+    context.getRequest().setAttribute("siteOnline", siteOnline);
+    context.getRequest().setAttribute("siteUrlConfigured", siteUrlConfigured);
+    context.getRequest().setAttribute("sitemapActuallyServed", sitemapEnabled && siteOnline && siteUrlConfigured);
 
     context.setJsp(JSP);
     return context;
