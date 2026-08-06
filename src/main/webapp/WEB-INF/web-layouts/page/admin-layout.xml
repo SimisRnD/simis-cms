@@ -702,6 +702,16 @@
     </section>
   </page>
 
+  <page name="/admin/elearning-statements" role="admin" title="xAPI Statements">
+    <section>
+      <column class="small-12 cell">
+        <widget name="xapiStatementList">
+          <title>xAPI Statements</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
   <page name="/admin/mailing-list-properties" role="admin" title="Mailing List Settings">
     <section>
       <column class="small-12 large-10 cell">
@@ -2268,7 +2278,7 @@
   <page name="/admin/activity" role="admin,content-manager,community-manager,ecommerce-manager" title="Activity">
     <section>
       <column class="small-12 cell">
-        <widget name="xapiStatementList">
+        <widget name="activityFeed">
           <title>Activity</title>
         </widget>
       </column>
