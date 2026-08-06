@@ -51,7 +51,7 @@ import com.simisinc.platform.infrastructure.database.DB;
 
 /**
  * Verifies the FormDataRepository analytics methods (issue #563) and the CSV
- * {@link FormDataRepository#export(DataConstraints, File)} method (issue #483) against a real
+ * {@link FormDataRepository#export(FormDataSpecification, DataConstraints, File)} method (issue #483) against a real
  * PostgreSQL instance -- the count/trend/breakdown queries and the exported CSV content are only
  * meaningful once proven against real rows, not just "the SQL doesn't throw."
  *
@@ -203,7 +203,7 @@ class FormDataRepositoryTest {
     FormData spam = addFormData("newsletter-signup", "198.51.100.9", "https://example.org/newsletter", true);
 
     File file = new File(tempDir, "form-data-export.csv");
-    FormDataRepository.export(null, file);
+    FormDataRepository.export(null, null, file);
 
     List<String> lines = Files.readAllLines(file.toPath());
     assertEquals(3, lines.size(), "a header row plus one row per seeded record");
@@ -231,6 +231,57 @@ class FormDataRepositoryTest {
   }
 
   @Test
+  void exportWithASpecificationOnlyIncludesRowsMatchingTheFormFilter(@TempDir File tempDir) throws IOException {
+    // Regression test: FormDataRepository.export() previously took no filter argument at all and
+    // always dumped the whole table, so filtering the on-screen list to one form and clicking
+    // "Download CSV" silently exported every row instead of just the ones on screen.
+    FormData contactUsOne = addFormData("contact-us", "203.0.113.10", "https://example.org/contact", false);
+    FormData newsletter = addFormData("newsletter-signup", "203.0.113.11", "https://example.org/newsletter", false);
+    FormData contactUsTwo = addFormData("contact-us", "203.0.113.12", "https://example.org/contact", false);
+
+    FormDataSpecification specification = new FormDataSpecification();
+    specification.setFormUniqueId("contact-us");
+
+    File file = new File(tempDir, "filtered-by-form-export.csv");
+    FormDataRepository.export(specification, null, file);
+
+    List<String> lines = Files.readAllLines(file.toPath());
+    // Header plus exactly the two "contact-us" rows -- the "newsletter-signup" row must be excluded
+    assertEquals(3, lines.size(), "only the rows matching the formUniqueId filter should be exported: " + lines);
+    String body = String.join("\n", lines.subList(1, lines.size()));
+    assertTrue(body.contains(contactUsOne.getIpAddress()), "the matching contact-us row should be present: " + body);
+    assertTrue(body.contains(contactUsTwo.getIpAddress()), "the other matching contact-us row should be present: " + body);
+    assertTrue(!body.contains(newsletter.getIpAddress()), "the non-matching newsletter-signup row must be excluded: " + body);
+  }
+
+  @Test
+  void exportWithASpecificationScopesToTheMatchingFormAndStatus(@TempDir File tempDir) throws IOException {
+    // Combines a formUniqueId filter with a status filter (mirroring the widget's status dropdown),
+    // seeded across two forms and two statuses, to prove both criteria are applied as a WHERE clause
+    // rather than only one, or neither.
+    FormData matching = addFormData("contact-us", "203.0.113.20", "https://example.org/contact", false);
+    FormDataRepository.markAsProcessed(matching, 1L);
+
+    FormData wrongForm = addFormData("newsletter-signup", "203.0.113.21", "https://example.org/newsletter", false);
+    FormDataRepository.markAsProcessed(wrongForm, 1L);
+
+    // Right form, but never processed -- must be excluded by the status half of the filter
+    FormData wrongStatus = addFormData("contact-us", "203.0.113.22", "https://example.org/contact", false);
+    assertNotNull(wrongStatus);
+
+    FormDataSpecification specification = new FormDataSpecification();
+    specification.setFormUniqueId("contact-us");
+    specification.setProcessed(true);
+
+    File file = new File(tempDir, "filtered-by-form-and-status-export.csv");
+    FormDataRepository.export(specification, null, file);
+
+    List<String> lines = Files.readAllLines(file.toPath());
+    assertEquals(2, lines.size(), "header plus exactly the one row matching both the form and status filter: " + lines);
+    assertTrue(lines.get(1).contains(matching.getIpAddress()));
+  }
+
+  @Test
   void markAsProcessedIsOneShotSoARepeatCallReturnsFalse() {
     FormData formData = addSubmission("contact-us", false);
 
@@ -242,9 +293,79 @@ class FormDataRepositoryTest {
   }
 
   @Test
+  void deleteOlderThanRemovesOnlyOldTerminalStateRows() {
+    FormData oldProcessed = addSubmission("contact-us", false);
+    markProcessed(oldProcessed.getId(), 100);
+
+    FormData oldDismissed = addSubmission("contact-us", false);
+    markDismissed(oldDismissed.getId(), 100);
+
+    // Both processed and dismissed remain null -- an unactioned row, no matter how old
+    FormData oldAwaiting = addSubmission("contact-us", false);
+    backdate(oldAwaiting.getId(), 100);
+
+    FormData recentProcessed = addSubmission("contact-us", false);
+    markProcessed(recentProcessed.getId(), 5);
+
+    int deleted = FormDataRepository.deleteOlderThan(90);
+
+    assertEquals(2, deleted, "only the two old terminal-state rows should be deleted");
+    assertEquals(2, DB.selectCountFrom("form_data"));
+    assertNotNull(FormDataRepository.findById(oldAwaiting.getId()),
+        "an old but still-awaiting row must never be deleted, regardless of age");
+    assertNotNull(FormDataRepository.findById(recentProcessed.getId()),
+        "a row that only recently became terminal must not be deleted yet");
+  }
+
+  @Test
+  void deleteOlderThanNeverDeletesAnAwaitingReviewRowNoMatterHowOld() {
+    FormData veryOldAwaiting = addSubmission("contact-us", false);
+    backdate(veryOldAwaiting.getId(), 5000);
+
+    int deleted = FormDataRepository.deleteOlderThan(7);
+
+    assertEquals(0, deleted, "unactioned submissions represent work an admin may still need to see");
+    assertEquals(1, DB.selectCountFrom("form_data"));
+  }
+
+  @Test
+  void deleteOlderThanMeasuresFromTheLaterOfProcessedAndDismissed() {
+    // Dismissed long ago, then reopened and processed recently -- retention should key off the more
+    // recent terminal timestamp (processed), not the older one (dismissed)
+    FormData reopened = addSubmission("contact-us", false);
+    markDismissed(reopened.getId(), 100);
+    markProcessed(reopened.getId(), 5);
+
+    int deleted = FormDataRepository.deleteOlderThan(90);
+
+    assertEquals(0, deleted,
+        "the row became terminal again 5 days ago (processed), not 100 days ago (dismissed)");
+    assertEquals(1, DB.selectCountFrom("form_data"));
+  }
+
+  @Test
+  void deleteOlderThanReturnsZeroForNonPositiveDays() {
+    FormData oldProcessed = addSubmission("contact-us", false);
+    markProcessed(oldProcessed.getId(), 100);
+
+    assertEquals(0, FormDataRepository.deleteOlderThan(0));
+    assertEquals(1, DB.selectCountFrom("form_data"));
+  }
+
+  @Test
+  void resolveRetentionDaysAppliesDefaultAndBounds() {
+    assertEquals(90, FormDataRepository.resolveRetentionDays(null));
+    assertEquals(90, FormDataRepository.resolveRetentionDays(""));
+    assertEquals(45, FormDataRepository.resolveRetentionDays("45"));
+    assertEquals(7, FormDataRepository.resolveRetentionDays("1"), "below the floor should clamp to 7");
+    assertEquals(3650, FormDataRepository.resolveRetentionDays("999999"), "above the ceiling should clamp to 3650");
+    assertEquals(90, FormDataRepository.resolveRetentionDays("not-a-number"));
+  }
+
+  @Test
   void exportProducesOnlyAHeaderRowWhenThereAreNoRecords(@TempDir File tempDir) throws IOException {
     File file = new File(tempDir, "empty-export.csv");
-    FormDataRepository.export(null, file);
+    FormDataRepository.export(null, null, file);
 
     List<String> lines = Files.readAllLines(file.toPath());
     assertEquals(1, lines.size(), "only the header row should be written when form_data is empty");
@@ -259,7 +380,7 @@ class FormDataRepositoryTest {
 
     File file = new File(tempDir, "paged-export.csv");
     // Page 1 of size 1: only the most recently inserted row (form_data_id desc) should come back
-    FormDataRepository.export(new DataConstraints(1, 1), file);
+    FormDataRepository.export(null, new DataConstraints(1, 1), file);
 
     List<String> lines = Files.readAllLines(file.toPath());
     assertEquals(2, lines.size(), "header plus exactly one row when the page size limits the export");
@@ -296,6 +417,32 @@ class FormDataRepositoryTest {
       pst.executeUpdate();
     } catch (SQLException se) {
       throw new IllegalStateException("Could not backdate form_data row", se);
+    }
+  }
+
+  /** Directly rewrites {@code processed} to a backdated timestamp, for retention-window tests. */
+  private static void markProcessed(long formDataId, int daysAgo) {
+    try (Connection connection = DB.getConnection();
+        PreparedStatement pst = connection.prepareStatement(
+            "UPDATE form_data SET processed = NOW() - (? || ' days')::interval WHERE form_data_id = ?")) {
+      pst.setInt(1, daysAgo);
+      pst.setLong(2, formDataId);
+      pst.executeUpdate();
+    } catch (SQLException se) {
+      throw new IllegalStateException("Could not mark form_data row as processed", se);
+    }
+  }
+
+  /** Directly rewrites {@code dismissed} to a backdated timestamp, for retention-window tests. */
+  private static void markDismissed(long formDataId, int daysAgo) {
+    try (Connection connection = DB.getConnection();
+        PreparedStatement pst = connection.prepareStatement(
+            "UPDATE form_data SET dismissed = NOW() - (? || ' days')::interval WHERE form_data_id = ?")) {
+      pst.setInt(1, daysAgo);
+      pst.setLong(2, formDataId);
+      pst.executeUpdate();
+    } catch (SQLException se) {
+      throw new IllegalStateException("Could not mark form_data row as dismissed", se);
     }
   }
 

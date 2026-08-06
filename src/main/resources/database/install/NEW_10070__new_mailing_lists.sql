@@ -93,7 +93,10 @@ CREATE TABLE mailing_list_members (
   is_valid BOOLEAN DEFAULT true,
   quarantined TIMESTAMP(3),
   quarantine_reason VARCHAR(50),
-  unsubscribe_token VARCHAR(255)
+  unsubscribe_token VARCHAR(255),
+  confirmed TIMESTAMP(3),
+  confirm_token VARCHAR(255),
+  confirm_token_expires TIMESTAMP(3)
 );
 CREATE UNIQUE INDEX mail_lis_mem_uniq_idx ON mailing_list_members(list_id, email_id);
 CREATE INDEX mail_lis_mem_lid_idx ON mailing_list_members(list_id);
@@ -101,6 +104,7 @@ CREATE INDEX mail_lis_mem_eid_idx ON mailing_list_members(email_id);
 CREATE INDEX mail_lis_mem_quarantined_idx ON mailing_list_members(quarantined);
 CREATE INDEX mail_lis_mem_val_idx ON mailing_list_members(is_valid);
 CREATE UNIQUE INDEX mail_lis_mem_unsub_tok_idx ON mailing_list_members(unsubscribe_token);
+CREATE UNIQUE INDEX mail_lis_mem_confirm_tok_idx ON mailing_list_members(confirm_token);
 
 CREATE TABLE mailing_list_history (
   history_id BIGSERIAL PRIMARY KEY,
