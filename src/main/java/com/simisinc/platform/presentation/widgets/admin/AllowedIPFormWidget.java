@@ -65,8 +65,10 @@ public class AllowedIPFormWidget extends GenericWidget {
     AllowedIP allowedIPBean = new AllowedIP();
     BeanUtils.populate(allowedIPBean, context.getParameterMap());
 
-    // Skip duplicates
-    if (AllowedIPRepository.findByIpAddress(allowedIPBean.getIpAddress()) != null) {
+    // Skip duplicates, excluding this record's own row so editing an entry without changing its
+    // address (e.g. just the Reason) isn't rejected as a collision with itself
+    AllowedIP existingAllowedIP = AllowedIPRepository.findByIpAddress(allowedIPBean.getIpAddress());
+    if (existingAllowedIP != null && !existingAllowedIP.getId().equals(allowedIPBean.getId())) {
       context.setWarningMessage("IP already exists");
       return context;
     }
