@@ -85,6 +85,7 @@ class SaveRoleCapabilitiesCommandTest {
         MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
       capabilityRepo.when(CapabilityRepository::findAll).thenReturn(List.of(contentManage, dataManage));
       capabilityRepo.when(() -> CapabilityRepository.findAllByRoleId(4)).thenReturn(List.of(dataManage));
+      roleCapabilityRepo.when(() -> RoleCapabilityRepository.grant(4, 1L)).thenReturn(true);
 
       SaveRoleCapabilitiesCommand.save(null, dataManagerRole, Set.of("data:manage", "content:manage"),
           "Needs to help with content too");
@@ -98,6 +99,28 @@ class SaveRoleCapabilitiesCommandTest {
   }
 
   @Test
+  void grantDoesNotLogSuccessWhenTheUnderlyingInsertAffectsNoRows() throws Exception {
+    // A concurrent-edit race (e.g. two admins saving the same role at once) can make the INSERT a
+    // no-op; the audit trail must not claim a change happened when RoleCapabilityRepository itself
+    // reports it didn't.
+    Capability contentManage = capability("content:manage", 1L);
+    Role dataManagerRole = role("data-manager", 4);
+
+    try (MockedStatic<CapabilityRepository> capabilityRepo = mockStatic(CapabilityRepository.class);
+        MockedStatic<RoleCapabilityRepository> roleCapabilityRepo = mockStatic(RoleCapabilityRepository.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      capabilityRepo.when(CapabilityRepository::findAll).thenReturn(List.of(contentManage));
+      capabilityRepo.when(() -> CapabilityRepository.findAllByRoleId(4)).thenReturn(List.of());
+      roleCapabilityRepo.when(() -> RoleCapabilityRepository.grant(4, 1L)).thenReturn(false);
+
+      SaveRoleCapabilitiesCommand.save(null, dataManagerRole, Set.of("content:manage"), "Adding access");
+
+      roleCapabilityRepo.verify(() -> RoleCapabilityRepository.grant(4, 1L));
+      audit.verifyNoInteractions();
+    }
+  }
+
+  @Test
   void revokesAnUncheckedCapabilityWhenAnotherRoleStillHasIt() throws Exception {
     Capability adminManage = capability("admin:manage", 5L);
     Role contentManagerRole = role("content-manager", 2);
@@ -107,9 +130,12 @@ class SaveRoleCapabilitiesCommandTest {
         MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
       capabilityRepo.when(CapabilityRepository::findAll).thenReturn(List.of(adminManage));
       capabilityRepo.when(() -> CapabilityRepository.findAllByRoleId(2)).thenReturn(List.of(adminManage));
-      // The guard still runs (capability code is admin:manage), but a second role (simulated via
-      // the count) still holds it, so the revoke is allowed to proceed.
-      roleCapabilityRepo.when(() -> RoleCapabilityRepository.countRolesGrantedCapability(5L)).thenReturn(2L);
+      // The guard still runs (capability code is admin:manage), but excluding this role still
+      // leaves 1 effective holder (e.g. another role with real members, or a direct grant), so the
+      // revoke is allowed to proceed.
+      roleCapabilityRepo.when(() -> RoleCapabilityRepository.countDistinctUsersHoldingCapability(5L, 2L, -1L))
+          .thenReturn(1L);
+      roleCapabilityRepo.when(() -> RoleCapabilityRepository.revoke(2, 5L)).thenReturn(true);
 
       SaveRoleCapabilitiesCommand.save(null, contentManagerRole, Set.of(), "Accidentally granted, removing");
 
@@ -121,21 +147,52 @@ class SaveRoleCapabilitiesCommandTest {
   }
 
   @Test
-  void refusesToRevokeAdminManageWhenItIsTheLastRoleHoldingIt() {
+  void revokeDoesNotLogSuccessWhenTheUnderlyingDeleteAffectsNoRows() throws Exception {
+    Capability contentManage = capability("content:manage", 1L);
+    Role contentManagerRole = role("content-manager", 2);
+
+    try (MockedStatic<CapabilityRepository> capabilityRepo = mockStatic(CapabilityRepository.class);
+        MockedStatic<RoleCapabilityRepository> roleCapabilityRepo = mockStatic(RoleCapabilityRepository.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      capabilityRepo.when(CapabilityRepository::findAll).thenReturn(List.of(contentManage));
+      capabilityRepo.when(() -> CapabilityRepository.findAllByRoleId(2)).thenReturn(List.of(contentManage));
+      roleCapabilityRepo.when(() -> RoleCapabilityRepository.revoke(2, 1L)).thenReturn(false);
+
+      SaveRoleCapabilitiesCommand.save(null, contentManagerRole, Set.of(), "Accidentally granted, removing");
+
+      roleCapabilityRepo.verify(() -> RoleCapabilityRepository.revoke(2, 1L));
+      audit.verifyNoInteractions();
+    }
+  }
+
+  @Test
+  void refusesToRevokeAdminManageWhenItIsTheLastEffectiveHolderEvenWithAnEmptyDecoyRoleAlsoListed() {
+    // Reproduces the exact gap this guard exists to close: role A (id 5, being revoked here) has
+    // real members and holds admin:manage; role B is an orphaned/unused role that also technically
+    // lists admin:manage in role_capabilities but has zero assigned users. The *count of roles*
+    // granting the capability would be 2, which the old guard treated as safe -- but the
+    // *effective* holder count (what countDistinctUsersHoldingCapability actually computes, by
+    // joining through user_roles) correctly comes back 0 once role A's contribution is excluded,
+    // because role B contributes no real users. The guard must refuse based on that, not the stale
+    // role-count. (Role B itself is only implied here, via the mocked return value -- proving the
+    // join genuinely filters out a zero-member role belongs in a RoleCapabilityRepository-level
+    // integration test against a real database, which is out of this command test's scope.)
     Capability adminManage = capability("admin:manage", 5L);
-    Role adminRole = role("admin", 5);
+    Role roleWithRealMembers = role("admin", 5);
 
     try (MockedStatic<CapabilityRepository> capabilityRepo = mockStatic(CapabilityRepository.class);
         MockedStatic<RoleCapabilityRepository> roleCapabilityRepo = mockStatic(RoleCapabilityRepository.class);
         MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
       capabilityRepo.when(CapabilityRepository::findAll).thenReturn(List.of(adminManage));
       capabilityRepo.when(() -> CapabilityRepository.findAllByRoleId(5)).thenReturn(List.of(adminManage));
-      roleCapabilityRepo.when(() -> RoleCapabilityRepository.countRolesGrantedCapability(5L)).thenReturn(1L);
+      roleCapabilityRepo.when(() -> RoleCapabilityRepository.countDistinctUsersHoldingCapability(5L, 5L, -1L))
+          .thenReturn(0L);
 
       DataException e = assertThrows(DataException.class,
-          () -> SaveRoleCapabilitiesCommand.save(null, adminRole, Set.of(), "Trying to remove admin access"));
+          () -> SaveRoleCapabilitiesCommand.save(null, roleWithRealMembers, Set.of(),
+              "Trying to remove admin access"));
 
-      assertEquals(true, e.getMessage().contains("only role that currently has it"));
+      assertEquals(true, e.getMessage().contains("no one would be left holding it"));
       roleCapabilityRepo.verify(() -> RoleCapabilityRepository.revoke(anyLong(), anyLong()), never());
       audit.verify(() -> AuditEventCommand.record(any(), eq(AuditEventCommand.AUTHORIZATION),
           eq("role_capability.revoke"), eq(AuditEventCommand.FAILURE), eq("role_capability"),
@@ -155,10 +212,13 @@ class SaveRoleCapabilitiesCommandTest {
         MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
       capabilityRepo.when(CapabilityRepository::findAll).thenReturn(List.of(dataManage));
       capabilityRepo.when(() -> CapabilityRepository.findAllByRoleId(4)).thenReturn(List.of(dataManage));
+      roleCapabilityRepo.when(() -> RoleCapabilityRepository.revoke(4, 2L)).thenReturn(true);
 
       SaveRoleCapabilitiesCommand.save(null, dataManagerRole, Set.of(), "Retiring this feature area");
 
-      roleCapabilityRepo.verify(() -> RoleCapabilityRepository.countRolesGrantedCapability(anyLong()), never());
+      roleCapabilityRepo.verify(
+          () -> RoleCapabilityRepository.countDistinctUsersHoldingCapability(anyLong(), anyLong(), anyLong()),
+          never());
       roleCapabilityRepo.verify(() -> RoleCapabilityRepository.revoke(4, 2L));
     }
   }

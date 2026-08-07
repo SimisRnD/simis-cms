@@ -34,6 +34,8 @@ import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.audit.AuditLogIntegrityCommand;
+import com.simisinc.platform.application.audit.AuditLogIntegrityCommand.AuditIntegrityResult;
 import com.simisinc.platform.application.filesystem.FileSystemCommand;
 import com.simisinc.platform.domain.model.audit.AuditLog;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
@@ -50,6 +52,10 @@ import com.simisinc.platform.presentation.widgets.GenericWidget;
  * category, event type, outcome, actor, source IP, target type, target label, and an occurred-date range
  * (either an explicit range or a quick 1h/24h/7d/30d preset). Read-only and admin-only, plus CSV/JSON
  * export of the currently filtered results.
+ *
+ * <p>Also surfaces the tamper-evidence chain's health (see AuditLogIntegrityCommand): a prominent warning
+ * banner when the most recent check (nightly, via AuditLogIntegrityJob) found the chain broken, and an
+ * on-demand "Run Integrity Check Now" action so an admin does not have to wait for the next scheduled run.
  *
  * @author SimIS Inc.
  */
@@ -68,6 +74,12 @@ public class AuditLogListWidget extends GenericWidget {
   // load of this page (with or without filters) -- this admin page has never actually rendered.
   static final List<String> CATEGORY_LIST = new ArrayList<>(Arrays.asList(
       "authentication", "user_management", "authorization", "configuration", "content", "data_access"));
+
+  // Identifies the tamper-evidence chain check event that AuditLogIntegrityJob records on a failure (see
+  // its class javadoc and SaveAuditEventCommand.recordAdminEvent call) -- must match exactly.
+  private static final String INTEGRITY_CHECK_CATEGORY = "configuration";
+  private static final String INTEGRITY_CHECK_EVENT_TYPE = "audit.integrity.check";
+  private static final String OUTCOME_FAILURE = "failure";
 
   public WidgetContext execute(WidgetContext context) {
 
@@ -114,6 +126,19 @@ public class AuditLogListWidget extends GenericWidget {
     int retentionDays = AuditLogRepository.resolveRetentionDays(LoadSitePropertyCommand.loadByName("audit.retentionDays"));
     context.getRequest().setAttribute("retentionDays", retentionDays);
 
+    // Tamper-evidence chain status: the nightly AuditLogIntegrityJob (04:30) writes one audit_log row here
+    // when it finds the chain broken, but nothing previously surfaced that row any differently from routine
+    // config-change events. Warn prominently only on an actual failure -- deliberately show nothing when the
+    // latest check passed or none has ever run, so this does not read as "verified recently" when it may not
+    // have run in a while, and does not create alert fatigue on every page load.
+    AuditLog latestIntegrityCheck = AuditLogRepository.findMostRecentByEventType(
+        INTEGRITY_CHECK_CATEGORY, INTEGRITY_CHECK_EVENT_TYPE);
+    if (latestIntegrityCheck != null && OUTCOME_FAILURE.equals(latestIntegrityCheck.getOutcome())) {
+      context.getRequest().setAttribute("integrityCheckFailed", true);
+      context.getRequest().setAttribute("integrityCheckFailedAt", latestIntegrityCheck.getOccurred());
+      context.getRequest().setAttribute("integrityCheckFailedDetails", latestIntegrityCheck.getDetails());
+    }
+
     // Standard request items
     context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));
     context.getRequest().setAttribute("title", context.getPreferences().get("title"));
@@ -122,10 +147,13 @@ public class AuditLogListWidget extends GenericWidget {
     return context;
   }
 
-  /** Handles CSV/JSON export of the currently filtered (unpaginated) results. */
+  /** Handles CSV/JSON export of the currently filtered (unpaginated) results, and the on-demand integrity check. */
   public WidgetContext post(WidgetContext context) {
     if (!context.hasRole("admin")) {
       return context;
+    }
+    if (context.getParameterAsBoolean("runIntegrityCheck")) {
+      return runIntegrityCheckNow(context);
     }
     String command = context.getParameter("command");
     if ("downloadCSVFile".equals(command)) {
@@ -134,6 +162,26 @@ public class AuditLogListWidget extends GenericWidget {
       return downloadFile(context, "json");
     }
     return null;
+  }
+
+  /**
+   * Runs the tamper-evidence chain check synchronously, on demand -- otherwise the only trigger is the
+   * nightly AuditLogIntegrityJob at 04:30. AuditLogIntegrityCommand.verify() is a read-only walk of the
+   * chain; it does not itself write an audit_log row (only the scheduled job's failure path does, via
+   * SaveAuditEventCommand), so this on-demand run does not duplicate that recording -- its outcome is
+   * surfaced directly as a page message instead.
+   */
+  private WidgetContext runIntegrityCheckNow(WidgetContext context) {
+    AuditIntegrityResult result = AuditLogIntegrityCommand.verify();
+    if (result.isIntact()) {
+      context.setSuccessMessage(
+          "Audit log integrity check passed: " + result.getCheckedCount() + " record(s) verified, chain intact.");
+    } else {
+      context.setErrorMessage("Audit log integrity check FAILED at audit_id=" + result.getFirstInvalidAuditId()
+          + " (" + result.getCheckedCount() + " valid record(s) before it): " + result.getReason());
+    }
+    context.setRedirect("/admin/audit-log");
+    return context;
   }
 
   private WidgetContext downloadFile(WidgetContext context, String extension) {

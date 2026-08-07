@@ -23,7 +23,6 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import com.simisinc.platform.application.cms.FormFieldCommand;
 import com.simisinc.platform.domain.model.CustomField;
 
 /**
@@ -37,7 +36,11 @@ public class CustomFieldListMergeCommand {
   private static Log LOG = LogFactory.getLog(CustomFieldListMergeCommand.class);
 
   /**
-   * Merges two custom field lists while maintaining differences in options
+   * Merges two custom field lists, retaining the main list's field definitions (including its
+   * defined list-of-options) while adopting the secondary list's per-item values. A value from
+   * the secondary list that does not match any of the main list's defined options (e.g. because
+   * the field's type was changed after items had values saved against it) is kept as-is on the
+   * merged field, but is not added to the field's list of defined options.
    * @param mainList
    * @param secondaryList
    * @return
@@ -75,17 +78,22 @@ public class CustomFieldListMergeCommand {
         // Retain the value
         CustomField existingField = mergedList.get(name);
         existingField.setValue(thisCustomField.getValue());
-        if ("list".equals(existingField.getType())) {
-          // Merge the list options
-          LOG.debug("Existing list of options: " + existingField.getListOfOptions());
-          if (StringUtils.isNotBlank(thisCustomField.getValue())) {
-            if (!existingField.getListOfOptions().containsKey(thisCustomField.getValue())) {
-              existingField.getListOfOptions().put(
-                  FormFieldCommand.generateHtmlName(thisCustomField.getValue(), null), thisCustomField.getValue());
-              LOG.debug("Missing option from item: " + thisCustomField.getValue());
-
-            }
-          }
+        // Note: existingField is a reference into the live, cached collection's field
+        // definition (see LoadCollectionCommand, which serves Collection objects out of
+        // CacheManager), not a private copy. If a field's type was changed after items
+        // already had values saved against it (e.g. text -> list/select), an item's legacy
+        // value may no longer match any of the field's currently defined options. This
+        // method intentionally does NOT force such a value into the option list -- doing so
+        // used to silently and permanently grow the shared, cached field definition by one
+        // synthetic option per distinct legacy value ever encountered, which no admin ever
+        // asked for (see issue: type-change auto-injects phantom options). The legacy value
+        // is preserved on the item via setValue() above; it is simply left unmatched against
+        // the option list rather than being force-fit into it.
+        if ("list".equals(existingField.getType()) && StringUtils.isNotBlank(thisCustomField.getValue())
+            && existingField.getListOfOptions() != null
+            && !existingField.getListOfOptions().containsKey(thisCustomField.getValue())) {
+          LOG.debug("Item value does not match a defined option for field '" + name + "': "
+              + thisCustomField.getValue());
         }
       }
     }

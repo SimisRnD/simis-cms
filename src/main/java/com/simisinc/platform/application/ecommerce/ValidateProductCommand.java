@@ -34,7 +34,7 @@ import java.util.List;
  */
 public class ValidateProductCommand {
 
-  private static final String allowedChars = "abcdefghijklmnopqrstuvwyxz";
+  private static final String allowedChars = "abcdefghijklmnopqrstuvwxyz";
   private static final String skuAllowedChars = "ABCDEFGHIJKLMNOPQRSTUVWYXZ-1234567890";
   private static Log LOG = LogFactory.getLog(ValidateProductCommand.class);
 

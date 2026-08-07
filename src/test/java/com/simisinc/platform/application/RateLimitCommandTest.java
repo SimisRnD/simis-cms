@@ -102,6 +102,68 @@ class RateLimitCommandTest {
     }
   }
 
+  // --- isApiIpAllowedRightNow() is bucketed separately from isIpAllowedRightNow() ---
+
+  @Test
+  void isApiIpAllowedRightNowAllowsUpToTheConfiguredMaxAttempts() {
+    try (MockedStatic<LoadSitePropertyCommand> siteProperty = org.mockito.Mockito.mockStatic(LoadSitePropertyCommand.class)) {
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("security.rateLimit.ipMaxAttempts")).thenReturn("2");
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("security.rateLimit.ipWindowMinutes")).thenReturn("30");
+
+      String ip = "203.0.113.3-" + System.nanoTime();
+      assertTrue(RateLimitCommand.isApiIpAllowedRightNow(ip, true), "1st attempt should be allowed");
+      assertTrue(RateLimitCommand.isApiIpAllowedRightNow(ip, true), "2nd attempt should be allowed");
+      assertTrue(RateLimitCommand.isApiIpAllowedRightNow(ip, true), "3rd attempt should be allowed (configured max of 2 + the untouched-bucket first call)");
+      assertFalse(RateLimitCommand.isApiIpAllowedRightNow(ip, true), "4th attempt should be blocked");
+    }
+  }
+
+  @Test
+  void exhaustingTheApiIpBucketDoesNotAffectTheSharedIpBucketForTheSameIp() {
+    // The core of this change: an IP that exhausts its allowance via repeated bad API-key
+    // attempts (isApiIpAllowedRightNow) must not also lock that same IP out of web login,
+    // forgot-password, newsletter, or form-submission attempts (isIpAllowedRightNow) -- the two
+    // methods must read/write separate cache buckets, not merely separate keys in the same one.
+    try (MockedStatic<LoadSitePropertyCommand> siteProperty = org.mockito.Mockito.mockStatic(LoadSitePropertyCommand.class)) {
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("security.rateLimit.ipMaxAttempts")).thenReturn("1");
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("security.rateLimit.ipWindowMinutes")).thenReturn("30");
+
+      String ip = "203.0.113.4-" + System.nanoTime();
+
+      // Exhaust the API-only bucket for this IP.
+      assertTrue(RateLimitCommand.isApiIpAllowedRightNow(ip, true), "1st API attempt should be allowed (untouched-bucket call)");
+      assertTrue(RateLimitCommand.isApiIpAllowedRightNow(ip, true), "2nd API attempt should be allowed (configured max is 1)");
+      assertFalse(RateLimitCommand.isApiIpAllowedRightNow(ip, true), "3rd API attempt should be blocked");
+
+      // The shared (web login/forms/newsletter) bucket for the exact same IP must be untouched.
+      assertTrue(RateLimitCommand.isIpAllowedRightNow(ip, true), "1st shared-bucket attempt should still be allowed (untouched-bucket call)");
+      assertTrue(RateLimitCommand.isIpAllowedRightNow(ip, true), "2nd shared-bucket attempt should still be allowed (configured max is 1)");
+      assertFalse(RateLimitCommand.isIpAllowedRightNow(ip, true), "3rd shared-bucket attempt should be blocked on its own terms, not because the API bucket was already exhausted");
+    }
+  }
+
+  @Test
+  void exhaustingTheSharedIpBucketDoesNotAffectTheApiIpBucketForTheSameIp() {
+    // The mirror image of the test above: web login/forms/newsletter failures on an IP must not
+    // throttle that IP's future API requests either.
+    try (MockedStatic<LoadSitePropertyCommand> siteProperty = org.mockito.Mockito.mockStatic(LoadSitePropertyCommand.class)) {
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("security.rateLimit.ipMaxAttempts")).thenReturn("1");
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByName("security.rateLimit.ipWindowMinutes")).thenReturn("30");
+
+      String ip = "203.0.113.5-" + System.nanoTime();
+
+      // Exhaust the shared bucket for this IP.
+      assertTrue(RateLimitCommand.isIpAllowedRightNow(ip, true));
+      assertTrue(RateLimitCommand.isIpAllowedRightNow(ip, true));
+      assertFalse(RateLimitCommand.isIpAllowedRightNow(ip, true));
+
+      // The API-only bucket for the exact same IP must be untouched.
+      assertTrue(RateLimitCommand.isApiIpAllowedRightNow(ip, true), "1st API attempt should still be allowed (untouched-bucket call)");
+      assertTrue(RateLimitCommand.isApiIpAllowedRightNow(ip, true), "2nd API attempt should still be allowed (configured max is 1)");
+      assertFalse(RateLimitCommand.isApiIpAllowedRightNow(ip, true), "3rd API attempt should be blocked on its own terms, not because the shared bucket was already exhausted");
+    }
+  }
+
   @Test
   void isUsernameAllowedRightNowAllowsUpToTheConfiguredMaxAttempts() {
     try (MockedStatic<LoadSitePropertyCommand> siteProperty = org.mockito.Mockito.mockStatic(LoadSitePropertyCommand.class)) {

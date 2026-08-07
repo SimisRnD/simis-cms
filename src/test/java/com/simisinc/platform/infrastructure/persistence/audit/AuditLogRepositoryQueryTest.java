@@ -19,6 +19,7 @@ package com.simisinc.platform.infrastructure.persistence.audit;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.io.File;
@@ -30,6 +31,8 @@ import java.sql.Timestamp;
 import java.time.Duration;
 import java.util.List;
 import java.util.Properties;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Assumptions;
@@ -185,6 +188,71 @@ class AuditLogRepositoryQueryTest {
     } finally {
       file.delete();
     }
+  }
+
+  @Test
+  void findRecentActivityFiltersByMultipleCategoriesWithASingleInClauseQuery() {
+    // Issue #1006: the activity feed's multi-category checkbox filter against a real IN (...) query,
+    // not the per-category-query-and-merge pattern SiteStatsWidget.findRecentAdminActions used to use.
+    seed("authentication", "authentication.login.success", "203.0.113.4", "user", "1");
+    seed("content", "content.publish", "203.0.113.4", "web_page", "2");
+    seed("data_access", "data.export", "203.0.113.4", "dataset", "3");
+
+    List<AuditLog> results = AuditLogRepository.findRecentActivity(
+        Set.of("authentication", "content"), null, null, null);
+
+    assertEquals(2, results.size());
+    List<String> categories = results.stream().map(AuditLog::getEventCategory).collect(Collectors.toList());
+    assertTrue(categories.contains("authentication"));
+    assertTrue(categories.contains("content"));
+    assertFalse(categories.contains("data_access"));
+  }
+
+  @Test
+  void findRecentActivityWithNoCategoriesReturnsEveryCategory() {
+    seed("authentication", "authentication.login.success", "203.0.113.4", "user", "1");
+    seed("content", "content.publish", "203.0.113.4", "web_page", "2");
+    seed("data_access", "data.export", "203.0.113.4", "dataset", "3");
+
+    List<AuditLog> resultsNullSet = AuditLogRepository.findRecentActivity(null, null, null, null);
+    List<AuditLog> resultsEmptySet = AuditLogRepository.findRecentActivity(Set.of(), null, null, null);
+
+    assertEquals(3, resultsNullSet.size());
+    assertEquals(3, resultsEmptySet.size());
+  }
+
+  @Test
+  void findRecentActivityHonorsTheTrailingTimeWindow() throws Exception {
+    seed("content", "content.publish", "203.0.113.4", "web_page", "1");
+
+    // A row that is deliberately backdated past the window by writing directly, since
+    // AuditLogRepository.save() always stamps "occurred" close to now.
+    try (Connection connection = DB.getConnection(); Statement statement = connection.createStatement()) {
+      statement.execute("INSERT INTO audit_log (occurred, event_category, event_type, outcome, actor_username) "
+          + "VALUES (NOW() - INTERVAL '30 days', 'content', 'content.publish', 'success', 'old@example.com')");
+    }
+
+    List<AuditLog> withinLast7Days = AuditLogRepository.findRecentActivity(
+        null, Timestamp.from(java.time.Instant.now().minus(Duration.ofDays(7))), null, null);
+
+    assertEquals(1, withinLast7Days.size());
+    assertEquals("admin@example.com", withinLast7Days.get(0).getActorUsername());
+  }
+
+  @Test
+  void findRecentActivityStillHonorsAnUpperBoundWhenOneIsGiven() {
+    seed("content", "content.publish", "203.0.113.4", "web_page", "1");
+
+    // "before" set to a moment before the seeded row's occurred timestamp excludes it; a future "before"
+    // includes it -- proves the optional upper bound is wired through, not just the lower bound.
+    Timestamp aSecondAgo = Timestamp.from(java.time.Instant.now().minus(Duration.ofSeconds(1)));
+    Timestamp tomorrow = Timestamp.from(java.time.Instant.now().plus(Duration.ofDays(1)));
+
+    List<AuditLog> excluded = AuditLogRepository.findRecentActivity(null, null, aSecondAgo, null);
+    List<AuditLog> included = AuditLogRepository.findRecentActivity(null, null, tomorrow, null);
+
+    assertTrue(excluded.isEmpty());
+    assertEquals(1, included.size());
   }
 
   private void seed(String category, String eventType, String sourceIp, String targetType, String targetId) {

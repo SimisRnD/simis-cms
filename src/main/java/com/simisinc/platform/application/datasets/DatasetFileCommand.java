@@ -26,6 +26,7 @@ import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.filesystem.FileSystemCommand;
 import com.simisinc.platform.domain.model.datasets.Dataset;
 import com.simisinc.platform.domain.model.items.Collection;
+import com.simisinc.platform.infrastructure.persistence.datasets.DatasetRepository;
 
 /**
  * Functions for working with dataset files
@@ -191,21 +192,69 @@ public class DatasetFileCommand {
 
   public static boolean convertFileToCollection(Dataset dataset, Collection collection) throws Exception {
     int type = type(dataset.getFileType());
-    switch (type) {
-      case CSV:
-        return ConvertCSVFileCommand.convertFileToCollection(dataset, collection);
-      case JSON:
-        return ConvertJsonFileCommand.convertFileToCollection(dataset, collection);
-      case JSON_API:
-        // return ConvertJsonApiFileCommand.convertFileToCollection(dataset, collection);
-      case GEO_JSON:
-        // return ConvertGeoJsonFeedCommand.validateAllRows(dataset);
-      case RSS:
-        // return ConvertRSSFeedCommand.validateAllRows(dataset);
-      case TSV:
-        return ConvertTSVFileCommand.convertFileToCollection(dataset, collection);
-      default:
-        return false;
+    // Bug fix: JSON_API/GEO_JSON/RSS used to have no real case here -- the parsing
+    // implementations were commented out and, because none of those cases had a break or
+    // return, execution fell through into the TSV case and parsed raw XML/JSON as tab-separated
+    // text. Preview (see loadRows() above) already routes these three types to their real
+    // Load*Command parser (LoadJsonCommand/LoadGeoJsonFeedCommand/LoadRSSFeedCommand), so a real
+    // "Save & Sync" run now reuses those same, already-correct parsers instead of a disconnected
+    // Convert*FileCommand that doesn't exist.
+    try {
+      switch (type) {
+        case CSV:
+          return ConvertCSVFileCommand.convertFileToCollection(dataset, collection);
+        case JSON:
+          return ConvertJsonFileCommand.convertFileToCollection(dataset, collection);
+        case JSON_API:
+          return convertRowsToCollection(LoadJsonCommand.loadRecords(dataset, Integer.MAX_VALUE, false), dataset,
+              collection);
+        case GEO_JSON:
+          return convertRowsToCollection(LoadGeoJsonFeedCommand.loadRows(dataset, Integer.MAX_VALUE), dataset,
+              collection);
+        case RSS:
+          return convertRowsToCollection(LoadRSSFeedCommand.loadRows(dataset, Integer.MAX_VALUE), dataset,
+              collection);
+        case TSV:
+          return ConvertTSVFileCommand.convertFileToCollection(dataset, collection);
+        default:
+          return false;
+      }
+    } finally {
+      // Bug fix: release this dataset's skipDuplicates tracking state (see
+      // SaveDatasetRowCommand#clearDuplicateTracking) once the whole file has been converted --
+      // success or failure -- so a later sync of this dataset starts from a clean slate instead
+      // of treating a value from this run as an already-seen duplicate.
+      SaveDatasetRowCommand.clearDuplicateTracking(dataset);
     }
+  }
+
+  /**
+   * Saves an already-loaded list of dataset rows to the collection as Items, one row at a time,
+   * the same way {@link ConvertJsonFileCommand} does for the JSON case. Used for dataset types
+   * whose real parsing lives in a Load*Command class (the same class {@link #loadRows} already
+   * uses for Preview) rather than in a dedicated Convert*FileCommand.
+   */
+  private static boolean convertRowsToCollection(List<String[]> rows, Dataset dataset, Collection collection)
+      throws Exception {
+    if (rows == null) {
+      throw new DataException("No records were found to convert, dataset: " + dataset.getId());
+    }
+    int rowsProcessed = 0;
+    for (String[] row : rows) {
+      // Transform the row to item, then save
+      boolean isSaved = SaveDatasetRowCommand.saveRecord(row, dataset, collection);
+      if (!isSaved) {
+        throw new DataException("Save error");
+      }
+      ++rowsProcessed;
+      if (rowsProcessed % 100 == 0) {
+        LOG.debug("..." + rowsProcessed);
+        dataset.setRowsProcessed(rowsProcessed);
+        DatasetRepository.updateRowsProcessed(dataset);
+      }
+    }
+    dataset.setRowsProcessed(rowsProcessed);
+    DatasetRepository.updateRowsProcessed(dataset);
+    return true;
   }
 }

@@ -17,10 +17,13 @@
 package com.simisinc.platform.application.cms;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.mockStatic;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
 
 import com.simisinc.platform.domain.model.cms.WikiPage;
+import com.simisinc.platform.infrastructure.persistence.cms.WikiPageRepository;
 
 /**
  * Covers {@link GenerateWikiPageUniqueIdCommand#generateUniqueId}.
@@ -72,6 +75,42 @@ class GenerateWikiPageUniqueIdCommandTest {
     String uniqueId = GenerateWikiPageUniqueIdCommand.generateUniqueId(previousRecord, renamed);
 
     assertEquals("original-name", uniqueId);
+  }
+
+  @Test
+  void aGenuinelyNewPageDedupesItsUniqueIdAgainstAnExistingCollisionInTheSameWiki() {
+    // The other half of the "New Page" title-collision fix (WikiEditorWidget/wiki-page-list.jsp):
+    // a brand new page (previousRecord == null) whose title slugifies to the same value as an
+    // existing page in the SAME wiki must get a distinct, suffixed uniqueId ("faq-2"), never the
+    // colliding one -- otherwise two WikiPage rows would share one uniqueId and the losing page
+    // becomes unreachable/shadowed by the other under /{wikiUniqueId}/{pageUniqueId} routing.
+    WikiPage newRecord = new WikiPage();
+    newRecord.setWikiId(7L);
+    newRecord.setTitle("FAQ");
+
+    try (MockedStatic<WikiPageRepository> wikiPageRepository = mockStatic(WikiPageRepository.class)) {
+      wikiPageRepository.when(() -> WikiPageRepository.findByUniqueId(7L, "faq")).thenReturn(existingPage("faq", "FAQ"));
+      wikiPageRepository.when(() -> WikiPageRepository.findByUniqueId(7L, "faq-2")).thenReturn(null);
+
+      String uniqueId = GenerateWikiPageUniqueIdCommand.generateUniqueId(null, newRecord);
+
+      assertEquals("faq-2", uniqueId);
+    }
+  }
+
+  @Test
+  void aGenuinelyNewPageWithNoCollisionKeepsItsPlainSlug() {
+    WikiPage newRecord = new WikiPage();
+    newRecord.setWikiId(7L);
+    newRecord.setTitle("Getting Started");
+
+    try (MockedStatic<WikiPageRepository> wikiPageRepository = mockStatic(WikiPageRepository.class)) {
+      wikiPageRepository.when(() -> WikiPageRepository.findByUniqueId(7L, "getting-started")).thenReturn(null);
+
+      String uniqueId = GenerateWikiPageUniqueIdCommand.generateUniqueId(null, newRecord);
+
+      assertEquals("getting-started", uniqueId);
+    }
   }
 
   private static WikiPage existingPage(String uniqueId, String title) {
