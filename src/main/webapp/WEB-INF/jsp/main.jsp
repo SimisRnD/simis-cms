@@ -172,6 +172,12 @@
     <c:if test="${!empty themePropertyMap['theme.fonts.headlines'] && themePropertyMap['theme.fonts.headlines'] ne themePropertyMap['theme.fonts.body']}">
       <link rel="stylesheet" href="${ctx}/css/google-fonts/<c:out value="${themePropertyMap['theme.fonts.headlines']}"/>.css">
     </c:if>
+    <%-- The admin shell's sidebar/topbar/utility-bar chrome (platform.css) sets font-family: 'Inter'
+         unconditionally, regardless of the site's own theme.fonts.* choice -- so its @font-face has
+         to load unconditionally too. Skipped only when the theme already loaded it above. --%>
+    <c:if test="${themePropertyMap['theme.fonts.body'] ne 'inter' && themePropertyMap['theme.fonts.headlines'] ne 'inter'}">
+      <link rel="stylesheet" href="${ctx}/css/google-fonts/inter.css">
+    </c:if>
     <link rel="stylesheet" type="text/css" href="${ctx}/css/${font:fontawesome()}/css/all.min.css" />
     <link rel="stylesheet" type="text/css" href="${ctx}/css/${font:fontawesome()}/css/v4-shims.min.css" />
     <link rel="stylesheet" type="text/css" href="${ctx}/css/foundation-6.8.1/foundation.min.css" />
