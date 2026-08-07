@@ -84,7 +84,6 @@ public class OAuthAccessTokenCommand {
     oAuthToken.setTokenType("bearer");
     if (json.has("access_token")) {
       String accessToken = json.get("access_token").asText();
-      LOG.debug("ACCESS TOKEN: " + accessToken);
       // Check for access token payload
       if (accessToken.contains(".")) {
         

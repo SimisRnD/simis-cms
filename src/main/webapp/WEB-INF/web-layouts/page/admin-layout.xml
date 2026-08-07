@@ -1721,6 +1721,27 @@
     </section>
   </page>
 
+  <page name="/admin/web-page-review" role="admin,content-manager" title="Web Page Review">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Web Pages" value="/admin/web-pages" />
+            <link name="Review" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="webPageReview">
+          <icon>fa-clipboard-check</icon>
+          <title>Web Page Review</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
   <page name="/admin/web-redirects" role="admin,content-manager" title="Web Redirects">
     <section>
       <column class="small-12 cell">
@@ -2243,7 +2264,7 @@
     </section>
   </page>
 
-  <page name="/admin/apps" role="admin,data-manager" capability="admin:manage" title="Apps">
+  <page name="/admin/apps" role="admin" capability="admin:manage" title="Apps">
     <!--<section>-->
       <!--<column class="small-12 cell">-->
         <!--<widget name="breadcrumbs">-->
@@ -2280,7 +2301,7 @@
     </section>
   </page>
 
-  <page name="/admin/app{?appId}" role="admin,data-manager" capability="admin:manage" title="Edit App">
+  <page name="/admin/app{?appId}" role="admin" capability="admin:manage" title="Edit App">
     <section>
       <column class="small-12 cell">
         <widget name="breadcrumbs">
