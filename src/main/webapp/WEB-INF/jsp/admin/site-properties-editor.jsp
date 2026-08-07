@@ -391,6 +391,15 @@
           <c:if test="${siteProperty.name eq 'llms.description'}">
             <p class="help-text" id="llmsDescriptionHelpText">Optional additional context appended to /llms.txt after the site's name and Search engine description (set on the <a href="${ctx}/admin/site-properties">Site Settings</a> page, not here) -- for example, which sections of the site an LLM should treat as authoritative, or usage terms specific to automated/agentic consumers. Leave blank to generate /llms.txt from the site's name, description, navigation, and content alone.</p>
           </c:if>
+          <c:if test="${siteProperty.name eq 'maps.service.tiles'}">
+            <p class="help-text" id="mapsServiceTilesHelpText">Chooses where map background tiles load from. Must be exactly <code>openstreetmap</code> (the default; no account or key needed) or <code>custom</code> (a self-hosted tile server, using the URL below). Any other value -- including "google" or "apple" -- silently falls back to openstreetmap; there's no Google Maps or Apple Maps tile integration in this app today.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'maps.custom.tileserver.url'}">
+            <p class="help-text" id="mapsCustomTileserverUrlHelpText">Only used when Map Tiles Service above is exactly "custom". Must be a tile URL template containing the literal <code>{z}</code>, <code>{x}</code>, and <code>{y}</code> placeholders, for example <code>https://tiles.example.com/{z}/{x}/{y}.png</code>. An invalid or missing value here falls back to openstreetmap even with "custom" selected above.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'maps.service.geocoder'}">
+            <p class="help-text" id="mapsServiceGeocoderHelpText">Chooses the service used to turn an item's street address into map coordinates automatically. The only supported value is <code>nominatim</code> (OpenStreetMap's free geocoder); any other value, including blank, turns this off -- items keep whatever coordinates were entered by hand. Nominatim's own usage policy caps this at 1 request per second, which the app enforces itself; if deployed across multiple instances, each instance enforces that limit independently, so the effective rate can multiply with instance count.</p>
+          </c:if>
           <c:if test="${siteProperty.name eq 'site.cart'}">
             <p class="help-text" id="siteCartHelpText">Shows or hides the shopping cart across the site -- the cart link in the menu, add-to-cart buttons, and the cart page itself all check this independently, so it's enforced everywhere it appears, not just in navigation.</p>
           </c:if>
