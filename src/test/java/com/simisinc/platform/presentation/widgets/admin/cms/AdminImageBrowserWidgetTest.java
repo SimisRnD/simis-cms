@@ -240,9 +240,12 @@ class AdminImageBrowserWidgetTest extends WidgetBase {
   void executeWithNoSortByParamDefaultsToDateNewestFirst() {
     addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
 
-    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class)) {
+    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class);
+        MockedStatic<ImageTagRepository> imageTagRepositoryMockedStatic = mockStatic(ImageTagRepository.class)) {
       imageRepositoryMockedStatic.when(() -> ImageRepository.findAll(isNull(), any(DataConstraints.class)))
           .thenReturn(Collections.emptyList());
+      imageTagRepositoryMockedStatic.when(ImageTagRepository::findAll).thenReturn(Collections.emptyList());
+      imageTagRepositoryMockedStatic.when(ImageTagRepository::countAllByImageTagId).thenReturn(Collections.emptyMap());
 
       AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
       widget.execute(widgetContext);
@@ -263,9 +266,12 @@ class AdminImageBrowserWidgetTest extends WidgetBase {
     addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
     addQueryParameter(widgetContext, "sortBy", "name");
 
-    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class)) {
+    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class);
+        MockedStatic<ImageTagRepository> imageTagRepositoryMockedStatic = mockStatic(ImageTagRepository.class)) {
       imageRepositoryMockedStatic.when(() -> ImageRepository.findAll(isNull(), any(DataConstraints.class)))
           .thenReturn(Collections.emptyList());
+      imageTagRepositoryMockedStatic.when(ImageTagRepository::findAll).thenReturn(Collections.emptyList());
+      imageTagRepositoryMockedStatic.when(ImageTagRepository::countAllByImageTagId).thenReturn(Collections.emptyMap());
 
       AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
       widget.execute(widgetContext);
@@ -285,9 +291,12 @@ class AdminImageBrowserWidgetTest extends WidgetBase {
     addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
     addQueryParameter(widgetContext, "sortBy", "size");
 
-    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class)) {
+    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class);
+        MockedStatic<ImageTagRepository> imageTagRepositoryMockedStatic = mockStatic(ImageTagRepository.class)) {
       imageRepositoryMockedStatic.when(() -> ImageRepository.findAll(isNull(), any(DataConstraints.class)))
           .thenReturn(Collections.emptyList());
+      imageTagRepositoryMockedStatic.when(ImageTagRepository::findAll).thenReturn(Collections.emptyList());
+      imageTagRepositoryMockedStatic.when(ImageTagRepository::countAllByImageTagId).thenReturn(Collections.emptyMap());
 
       AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
       widget.execute(widgetContext);
@@ -306,9 +315,12 @@ class AdminImageBrowserWidgetTest extends WidgetBase {
     addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
     addQueryParameter(widgetContext, "sortBy", "not-a-real-sort");
 
-    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class)) {
+    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class);
+        MockedStatic<ImageTagRepository> imageTagRepositoryMockedStatic = mockStatic(ImageTagRepository.class)) {
       imageRepositoryMockedStatic.when(() -> ImageRepository.findAll(isNull(), any(DataConstraints.class)))
           .thenReturn(Collections.emptyList());
+      imageTagRepositoryMockedStatic.when(ImageTagRepository::findAll).thenReturn(Collections.emptyList());
+      imageTagRepositoryMockedStatic.when(ImageTagRepository::countAllByImageTagId).thenReturn(Collections.emptyMap());
 
       AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
       widget.execute(widgetContext);
@@ -327,9 +339,12 @@ class AdminImageBrowserWidgetTest extends WidgetBase {
     addQueryParameter(widgetContext, "query", "3d");
     addQueryParameter(widgetContext, "sortBy", "size");
 
-    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class)) {
+    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class);
+        MockedStatic<ImageTagRepository> imageTagRepositoryMockedStatic = mockStatic(ImageTagRepository.class)) {
       imageRepositoryMockedStatic.when(() -> ImageRepository.findAll(any(ImageSpecification.class), any(DataConstraints.class)))
           .thenReturn(Collections.emptyList());
+      imageTagRepositoryMockedStatic.when(ImageTagRepository::findAll).thenReturn(Collections.emptyList());
+      imageTagRepositoryMockedStatic.when(ImageTagRepository::countAllByImageTagId).thenReturn(Collections.emptyMap());
 
       AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
       widget.execute(widgetContext);
