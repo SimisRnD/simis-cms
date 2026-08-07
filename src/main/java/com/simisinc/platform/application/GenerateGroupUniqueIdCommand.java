@@ -29,7 +29,7 @@ import org.apache.commons.lang3.StringUtils;
  */
 public class GenerateGroupUniqueIdCommand {
 
-  private static final String ALLOWED_FINAL_CHARS = "abcdefghijklmnopqrstuvwyxz0123456789-";
+  private static final String ALLOWED_FINAL_CHARS = "abcdefghijklmnopqrstuvwxyz0123456789-";
 
   public static String generateUniqueId(Group previousGroup, Group group) {
 

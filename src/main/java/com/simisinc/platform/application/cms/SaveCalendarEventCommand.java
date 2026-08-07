@@ -36,7 +36,7 @@ import static com.simisinc.platform.application.cms.GenerateCalendarEventUniqueI
  */
 public class SaveCalendarEventCommand {
 
-  public static final String allowedChars = "abcdefghijklmnopqrstuvwyxz";
+  public static final String allowedChars = "abcdefghijklmnopqrstuvwxyz";
   private static Log LOG = LogFactory.getLog(SaveCalendarEventCommand.class);
 
   public static CalendarEvent saveCalendarEvent(CalendarEvent calendarEventBean) throws DataException {

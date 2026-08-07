@@ -33,7 +33,7 @@ import static com.simisinc.platform.application.cms.GenerateWikiPageUniqueIdComm
  */
 public class SaveWikiPageCommand {
 
-  public static final String allowedChars = "abcdefghijklmnopqrstuvwyxz";
+  public static final String allowedChars = "abcdefghijklmnopqrstuvwxyz";
   private static Log LOG = LogFactory.getLog(SaveWikiPageCommand.class);
 
   public static WikiPage saveWikiPage(WikiPage wikiPageBean) throws DataException {

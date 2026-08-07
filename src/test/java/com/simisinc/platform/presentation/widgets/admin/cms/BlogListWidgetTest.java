@@ -18,19 +18,25 @@ package com.simisinc.platform.presentation.widgets.admin.cms;
 
 import com.simisinc.platform.WidgetBase;
 import com.simisinc.platform.domain.model.cms.Blog;
+import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.persistence.cms.BlogPostRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.BlogRepository;
+import com.simisinc.platform.presentation.controller.RequestConstants;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 
 /**
  * @author matt rajkowski
@@ -52,15 +58,23 @@ class BlogListWidgetTest extends WidgetBase {
     blog.setUniqueId("blog");
     blogList.add(blog);
 
+    Map<Long, Long> blogPostCountMap = new HashMap<>();
+    blogPostCountMap.put(1L, 8L);
+
     try (MockedStatic<BlogRepository> blogRepositoryMockedStatic = mockStatic(BlogRepository.class)) {
-      blogRepositoryMockedStatic.when(BlogRepository::findAll).thenReturn(blogList);
+      blogRepositoryMockedStatic.when(() -> BlogRepository.findAll(any(), any())).thenReturn(blogList);
 
       try (MockedStatic<BlogPostRepository> blogPostRepositoryMockedStatic = mockStatic(BlogPostRepository.class)) {
-        blogPostRepositoryMockedStatic.when(() -> BlogPostRepository.findCount(any())).thenReturn(8L);
+        blogPostRepositoryMockedStatic.when(BlogPostRepository::countGroupedByBlogId).thenReturn(blogPostCountMap);
 
         // Execute the widget
         BlogListWidget widget = new BlogListWidget();
         widget.execute(widgetContext);
+
+        // Proves the N+1 per-row query was replaced with a single batched call -- not just that the
+        // new batched method exists alongside the old one still being used
+        blogPostRepositoryMockedStatic.verify(() -> BlogPostRepository.findCount(any()), never());
+        blogPostRepositoryMockedStatic.verify(BlogPostRepository::countGroupedByBlogId, times(1));
       }
     }
 
@@ -72,6 +86,47 @@ class BlogListWidgetTest extends WidgetBase {
 
     Map<Long, Long> blogPostCount = (Map) request.getAttribute("blogPostCount");
     Assertions.assertEquals(8L, blogPostCount.get(blog.getId()));
+  }
+
+  @Test
+  void executeHonorsPageAndItemsParameters() {
+    // Set query parameters
+    addQueryParameter(widgetContext, "page", "3");
+    addQueryParameter(widgetContext, "items", "10");
+
+    // Set widget preferences
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"blogList\">\n" +
+            "  <title>Blogs</title>\n" +
+            "</widget>");
+
+    ArgumentCaptor<DataConstraints> constraintsCaptor = ArgumentCaptor.forClass(DataConstraints.class);
+
+    try (MockedStatic<BlogRepository> blogRepositoryMockedStatic = mockStatic(BlogRepository.class)) {
+      blogRepositoryMockedStatic.when(() -> BlogRepository.findAll(any(), any(DataConstraints.class)))
+          .thenReturn(new ArrayList<>());
+
+      try (MockedStatic<BlogPostRepository> blogPostRepositoryMockedStatic = mockStatic(BlogPostRepository.class)) {
+        blogPostRepositoryMockedStatic.when(BlogPostRepository::countGroupedByBlogId).thenReturn(new HashMap<>());
+
+        // Execute the widget
+        BlogListWidget widget = new BlogListWidget();
+        widget.execute(widgetContext);
+      }
+
+      // Verify the page/items parameters reached the DataConstraints passed to the repository
+      blogRepositoryMockedStatic.verify(() -> BlogRepository.findAll(any(), constraintsCaptor.capture()));
+    }
+
+    DataConstraints usedConstraints = constraintsCaptor.getValue();
+    Assertions.assertEquals(3, usedConstraints.getPageNumber());
+    Assertions.assertEquals(10, usedConstraints.getPageSize());
+
+    // Verify the same DataConstraints instance was also published for paging_control.jspf
+    DataConstraints recordPaging = (DataConstraints) request.getAttribute(RequestConstants.RECORD_PAGING);
+    Assertions.assertNotNull(recordPaging);
+    Assertions.assertEquals(3, recordPaging.getPageNumber());
+    Assertions.assertEquals(10, recordPaging.getPageSize());
   }
 
   @Test

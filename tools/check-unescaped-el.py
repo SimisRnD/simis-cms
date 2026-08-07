@@ -314,6 +314,12 @@ ALLOWLIST: dict[str, str] = {
         "EL ternary: evaluates to one of the two literals 'primary'/'secondary' regardless of what range holds -- cannot carry markup.",
     "${range eq '30d' ? 'primary' : 'secondary'}":
         "EL ternary: evaluates to one of the two literals 'primary'/'secondary' regardless of what range holds -- cannot carry markup.",
+    "${range eq '14d' ? 'primary' : 'secondary'}":
+        "activity-feed.jsp's day-range preset buttons (issue #1006) -- same reasoning as "
+        "${range eq '1h' ? 'primary' : 'secondary'} above, just a different fixed preset value.",
+    "${range eq '90d' ? 'primary' : 'secondary'}":
+        "activity-feed.jsp's day-range preset buttons (issue #1006) -- same reasoning as "
+        "${range eq '1h' ? 'primary' : 'secondary'} above, just a different fixed preset value.",
 
     # JSTL loop-status objects (not user input).
     "${cartEntryStatus}":
