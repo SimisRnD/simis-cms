@@ -430,6 +430,9 @@
           <c:if test="${siteProperty.name eq 'features.item-tags-facet-search'}">
             <p class="help-text" id="featuresItemTagsFacetSearchHelpText">Turns on the item-tag filter in collection search results. Ships off -- a dark-launched, opt-in feature you turn on when you're ready to use it.</p>
           </c:if>
+          <c:if test="${siteProperty.name eq 'security.password.requireComplexity'}">
+            <p class="help-text" id="securityPasswordRequireComplexityHelpText">When on, a new password must include at least one uppercase letter, one lowercase letter, one number, and one special character, in addition to meeting the minimum length above. When off, only the length rule applies.</p>
+          </c:if>
           <c:if test="${siteProperty.name eq 'llms.description'}">
             <p class="help-text" id="llmsDescriptionHelpText">Optional additional context appended to /llms.txt after the site's name and Search engine description (set on the <a href="${ctx}/admin/site-properties">Site Settings</a> page, not here) -- for example, which sections of the site an LLM should treat as authoritative, or usage terms specific to automated/agentic consumers. Leave blank to generate /llms.txt from the site's name, description, navigation, and content alone.</p>
           </c:if>
@@ -441,6 +444,9 @@
           </c:if>
           <c:if test="${siteProperty.name eq 'maps.service.geocoder'}">
             <p class="help-text" id="mapsServiceGeocoderHelpText">Chooses the service used to turn an item's street address into map coordinates automatically. The only supported value is <code>nominatim</code> (OpenStreetMap's free geocoder); any other value, including blank, turns this off -- items keep whatever coordinates were entered by hand. Nominatim's own usage policy caps this at 1 request per second, which the app enforces itself; if deployed across multiple instances, each instance enforces that limit independently, so the effective rate can multiply with instance count.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'security.password.minLength'}">
+            <p class="help-text" id="securityPasswordMinLengthHelpText">The fewest characters a new password can have. Applies whenever a password is set or changed -- self-registration, a self-service or admin-forced reset, and guest checkout account creation -- never retroactively to a password someone already has. Never enforced below 8 characters even if set lower here.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'site.cart'}">
             <p class="help-text" id="siteCartHelpText">Shows or hides the shopping cart across the site -- the cart link in the menu, add-to-cart buttons, and the cart page itself all check this independently, so it's enforced everywhere it appears, not just in navigation.</p>
