@@ -41,7 +41,7 @@
     <td class="text-right"><c:out value="${retentionDays}"/> days</td>
   </tr>
 </table>
-<p class="subheader">The nightly job scrubs PII from session records older than the retention window. Use the button below to run the scrub immediately.</p>
+<p class="subheader">The nightly job scrubs PII from session records older than the retention window, and also prunes page-view history of the same age. Set the retention window on <a href="${ctx}/admin/configure-analytics">Analytics Settings</a> (Analytics data retention (days)) -- there's no editable field for it on this page. Use the button below to run the session scrub immediately.</p>
 <form method="post" onsubmit="return confirm('Are you sure you want to purge PII now? This immediately scrubs visitor PII from session records older than the retention window and cannot be undone.');">
   <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
   <input type="hidden" name="token" value="${userSession.formToken}"/>
