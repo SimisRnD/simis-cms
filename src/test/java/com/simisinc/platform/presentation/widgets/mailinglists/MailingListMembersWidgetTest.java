@@ -366,6 +366,24 @@ class MailingListMembersWidgetTest extends WidgetBase {
   }
 
   @Test
+  void deleteIsRefusedWithoutAdminOrCommunityManagerRole() {
+    // Regression test: delete() had no permission check at all, unlike post() right above it in
+    // this class -- any logged-in user who could reach this action directly (bypassing whatever
+    // the UI chooses to render) could remove any mailing list member.
+    setRoles(widgetContext); // logged in, no relevant role
+    addQueryParameter(widgetContext, "mailingListId", "1");
+    addQueryParameter(widgetContext, "emailId", "2");
+
+    try (MockedStatic<MailingListMemberRepository> memberRepo = mockStatic(MailingListMemberRepository.class);
+        MockedStatic<WorkflowManager> workflowManager = mockStatic(WorkflowManager.class)) {
+      new MailingListMembersWidget().delete(widgetContext);
+
+      memberRepo.verify(() -> MailingListMemberRepository.remove(any(), any()), never());
+      workflowManager.verify(() -> WorkflowManager.triggerWorkflowForEvent(any()), never());
+    }
+  }
+
+  @Test
   void blockIPIsRefusedWithoutAdminOrCommunityManagerRole() throws Exception {
     setRoles(widgetContext); // logged in, no relevant role
     addQueryParameter(widgetContext, "command", "blockIP");
