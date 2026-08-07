@@ -19,6 +19,7 @@ package com.simisinc.platform.application.datasets;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.times;
 
 import java.sql.Timestamp;
 import java.util.Calendar;
@@ -155,6 +156,89 @@ class SaveDatasetRowCommandTest {
       Assertions.assertEquals(12, itemCaptor.getValue().getItemOrder(),
           "a newly synced item must append after the collection's existing items "
               + "(getNextItemOrder), not silently fall back to the domain model's static default");
+    }
+  }
+
+  /**
+   * Regression test for the "skipDuplicates" field option being a no-op during a real sync:
+   * {@link SaveDatasetRowCommand#constructItem} used to call {@code isSkipped(options, value)},
+   * the 2-arg overload that always checks against a null map/-1 column id and so can never
+   * detect a repeat. A real sync feeds rows into {@link SaveDatasetRowCommand#saveRecord} one at
+   * a time (from a streaming parser or a per-row loop), so nothing carried a seen-value map
+   * forward from one call to the next -- unlike Preview (LoadCSVRowsCommand, LoadJsonCommand,
+   * LoadTSVRowsCommand), which already builds exactly that kind of map for a single load. This
+   * proves the second occurrence of a value in a "skipDuplicates" column is now dropped during a
+   * real sync, matching what Preview already reports.
+   */
+  @Test
+  void skipDuplicatesOptionDropsARepeatedValueAcrossSeparateSaveRecordCalls() {
+    Collection collection = new Collection();
+    collection.setId(5L);
+
+    Dataset dataset = new Dataset();
+    dataset.setId(99L);
+    dataset.setModifiedBy(1L);
+    dataset.setColumnNames(new String[] { "Name" });
+    dataset.setFieldTitles(new String[] { "" });
+    dataset.setFieldMappings(new String[] { "name" });
+    dataset.setFieldOptions(new String[] { "skipDuplicates" });
+
+    String[] firstRow = new String[] { "Widget A" };
+    String[] duplicateRow = new String[] { "Widget A" };
+
+    try (MockedStatic<ItemRepository> itemRepository = mockStatic(ItemRepository.class);
+        MockedStatic<SaveItemCommand> saveItemCommand = mockStatic(SaveItemCommand.class)) {
+      itemRepository.when(() -> ItemRepository.getNextItemOrder(5L)).thenReturn(1);
+      saveItemCommand.when(() -> SaveItemCommand.saveBatchItem(any(), any(Item.class))).thenReturn(true);
+
+      boolean firstSaved = SaveDatasetRowCommand.saveRecord(firstRow, dataset, collection);
+      boolean secondSaved = SaveDatasetRowCommand.saveRecord(duplicateRow, dataset, collection);
+
+      Assertions.assertTrue(firstSaved, "the first occurrence of a value is never a duplicate");
+      Assertions.assertTrue(secondSaved,
+          "a row skipped on purpose still reports success -- it isn't a save failure");
+      saveItemCommand.verify(() -> SaveItemCommand.saveBatchItem(any(), any(Item.class)), times(1));
+    } finally {
+      SaveDatasetRowCommand.clearDuplicateTracking(dataset);
+    }
+  }
+
+  /**
+   * Regression test for {@link SaveDatasetRowCommand#clearDuplicateTracking}: without it, a
+   * dataset's "skipDuplicates" state from one sync would still be present the next time the
+   * same dataset is synced, incorrectly treating that later run's first row as a repeat of a
+   * value from a prior run. {@link com.simisinc.platform.application.datasets.DatasetFileCommand}
+   * calls this once a dataset's file has been fully converted.
+   */
+  @Test
+  void clearDuplicateTrackingResetsSkipDuplicatesStateForALaterSync() {
+    Collection collection = new Collection();
+    collection.setId(6L);
+
+    Dataset dataset = new Dataset();
+    dataset.setId(100L);
+    dataset.setModifiedBy(1L);
+    dataset.setColumnNames(new String[] { "Name" });
+    dataset.setFieldTitles(new String[] { "" });
+    dataset.setFieldMappings(new String[] { "name" });
+    dataset.setFieldOptions(new String[] { "skipDuplicates" });
+
+    String[] row = new String[] { "Widget B" };
+
+    try (MockedStatic<ItemRepository> itemRepository = mockStatic(ItemRepository.class);
+        MockedStatic<SaveItemCommand> saveItemCommand = mockStatic(SaveItemCommand.class)) {
+      itemRepository.when(() -> ItemRepository.getNextItemOrder(6L)).thenReturn(1);
+      saveItemCommand.when(() -> SaveItemCommand.saveBatchItem(any(), any(Item.class))).thenReturn(true);
+
+      SaveDatasetRowCommand.saveRecord(row, dataset, collection);
+      SaveDatasetRowCommand.clearDuplicateTracking(dataset);
+      SaveDatasetRowCommand.saveRecord(row, dataset, collection);
+
+      // Without the reset, the second sync's row would incorrectly look like a repeat of the
+      // previous sync's row and get skipped instead of saved
+      saveItemCommand.verify(() -> SaveItemCommand.saveBatchItem(any(), any(Item.class)), times(2));
+    } finally {
+      SaveDatasetRowCommand.clearDuplicateTracking(dataset);
     }
   }
 }

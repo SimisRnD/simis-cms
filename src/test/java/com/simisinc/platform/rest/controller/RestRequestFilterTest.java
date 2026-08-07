@@ -44,6 +44,7 @@ import org.mockito.MockedStatic;
 
 import com.simisinc.platform.application.CreateSessionCommand;
 import com.simisinc.platform.application.LoadAppCommand;
+import com.simisinc.platform.application.RateLimitCommand;
 import com.simisinc.platform.application.SaveSessionCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.cms.HostnameCommand;
@@ -76,6 +77,13 @@ class RestRequestFilterTest {
   }
 
   private HttpServletRequest requestFor(String method, String requestURI, String authorizationHeader) {
+    // "localhost" makes isLocal true, short-circuiting both RateLimitCommand checks in the method
+    // without needing to mock that class at all.
+    return requestFor(method, requestURI, authorizationHeader, "localhost", "127.0.0.1");
+  }
+
+  private HttpServletRequest requestFor(String method, String requestURI, String authorizationHeader, String serverName,
+      String remoteAddr) {
     ServletContext servletContext = mock(ServletContext.class);
     when(servletContext.getContextPath()).thenReturn("");
 
@@ -84,10 +92,8 @@ class RestRequestFilterTest {
     when(request.getScheme()).thenReturn("https");
     when(request.getServletContext()).thenReturn(servletContext);
     when(request.getRequestURI()).thenReturn(requestURI);
-    // "localhost" makes isLocal true, short-circuiting both RateLimitCommand checks in the method
-    // without needing to mock that class at all.
-    when(request.getServerName()).thenReturn("localhost");
-    when(request.getRemoteAddr()).thenReturn("127.0.0.1");
+    when(request.getServerName()).thenReturn(serverName);
+    when(request.getRemoteAddr()).thenReturn(remoteAddr);
     when(request.getHeader("X-API-Key")).thenReturn("test-key");
     when(request.getHeader("Authorization")).thenReturn(authorizationHeader);
     return request;
@@ -249,6 +255,79 @@ class RestRequestFilterTest {
       createSession.verify(() -> CreateSessionCommand.createSession(anyString(), anyString(), anyString(), any(), any()),
           times(1));
       restServlet.verify(() -> RestServlet.sendError(eq(response), eq(401), anyString()), never());
+    }
+  }
+
+  @Test
+  void aNonLocalRequestWithAValidKeyConsultsTheIsolatedApiRateLimitBucket() throws Exception {
+    // Verifies the actual production wiring behind RateLimitCommand.isApiIpAllowedRightNow's
+    // isolated-bucket contract: every other test here stubs getServerName() to "localhost", which
+    // makes isLocal true and short-circuits both call sites in RestRequestFilter without ever
+    // exercising them. A non-local caller is required to prove the filter really calls the
+    // API-only method (and not the shared web isIpAllowedRightNow) at the pre-app-key check.
+    HttpServletRequest request = requestFor("GET", "/api/collections", null, "example.com", "203.0.113.5");
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    FilterChain chain = mock(FilterChain.class);
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<LoadAppCommand> loadApp = mockStatic(LoadAppCommand.class);
+        MockedStatic<RateLimitCommand> rateLimit = mockStatic(RateLimitCommand.class)) {
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean("site.api")).thenReturn(true);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean("site.online")).thenReturn(true);
+      loadApp.when(() -> LoadAppCommand.loadAppByPublicKey("test-key")).thenReturn(enabledApp());
+      rateLimit.when(() -> RateLimitCommand.isApiIpAllowedRightNow(anyString(), eq(false))).thenReturn(true);
+      // Unrelated per-app-per-minute bucket also gates this non-local path further down (line 250)
+      // -- stub it separately so this test isolates the isolated-IP-bucket call site under test.
+      rateLimit.when(() -> RateLimitCommand.isAppAllowedRightNow(any())).thenReturn(true);
+
+      new RestRequestFilter().doFilter(request, response, chain);
+
+      rateLimit.verify(() -> RateLimitCommand.isApiIpAllowedRightNow(eq("203.0.113.5"), eq(false)), times(1));
+      verify(chain, times(1)).doFilter(request, response);
+    }
+  }
+
+  @Test
+  void aNonLocalRequestThatFailsTheIsolatedApiRateLimitCheckIsRejectedWith429() throws Exception {
+    HttpServletRequest request = requestFor("GET", "/api/collections", null, "example.com", "203.0.113.5");
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    FilterChain chain = mock(FilterChain.class);
+
+    try (MockedStatic<RateLimitCommand> rateLimit = mockStatic(RateLimitCommand.class);
+        MockedStatic<RestServlet> restServlet = mockStatic(RestServlet.class)) {
+      rateLimit.when(() -> RateLimitCommand.isApiIpAllowedRightNow(anyString(), eq(false))).thenReturn(false);
+
+      new RestRequestFilter().doFilter(request, response, chain);
+
+      rateLimit.verify(() -> RateLimitCommand.isApiIpAllowedRightNow(eq("203.0.113.5"), eq(false)), times(1));
+      restServlet.verify(() -> RestServlet.sendError(eq(response), eq(429), anyString()), times(1));
+      verify(chain, never()).doFilter(any(), any());
+    }
+  }
+
+  @Test
+  void aNonLocalRequestWithAnInvalidKeyConsultsTheIsolatedApiRateLimitBucket() throws Exception {
+    // Covers the second call site (the invalid-key attempt-throttling branch), which passes a
+    // different second argument (true) than the pre-app-key check (false) -- both must resolve to
+    // the isolated API bucket, not the shared web bucket.
+    HttpServletRequest request = requestFor("GET", "/api/collections", null, "example.com", "203.0.113.5");
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    FilterChain chain = mock(FilterChain.class);
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<LoadAppCommand> loadApp = mockStatic(LoadAppCommand.class);
+        MockedStatic<RateLimitCommand> rateLimit = mockStatic(RateLimitCommand.class);
+        MockedStatic<RestServlet> restServlet = mockStatic(RestServlet.class)) {
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean("site.api")).thenReturn(true);
+      siteProperty.when(() -> LoadSitePropertyCommand.loadByNameAsBoolean("site.online")).thenReturn(true);
+      loadApp.when(() -> LoadAppCommand.loadAppByPublicKey("test-key")).thenReturn(null);
+      rateLimit.when(() -> RateLimitCommand.isApiIpAllowedRightNow(anyString(), eq(false))).thenReturn(true);
+      rateLimit.when(() -> RateLimitCommand.isApiIpAllowedRightNow(anyString(), eq(true))).thenReturn(true);
+
+      new RestRequestFilter().doFilter(request, response, chain);
+
+      rateLimit.verify(() -> RateLimitCommand.isApiIpAllowedRightNow(eq("203.0.113.5"), eq(true)), times(1));
+      restServlet.verify(() -> RestServlet.sendError(eq(response), eq(401), anyString()), times(1));
     }
   }
 }

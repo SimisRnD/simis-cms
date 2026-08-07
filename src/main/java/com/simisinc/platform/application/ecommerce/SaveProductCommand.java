@@ -34,8 +34,8 @@ import com.simisinc.platform.infrastructure.persistence.ecommerce.ProductReposit
  */
 public class SaveProductCommand {
 
-  private static final String allowedChars = "abcdefghijklmnopqrstuvwyxz0123456789";
-  private static final String allowedFinalChars = "abcdefghijklmnopqrstuvwyxz0123456789-";
+  private static final String allowedChars = "abcdefghijklmnopqrstuvwxyz0123456789";
+  private static final String allowedFinalChars = "abcdefghijklmnopqrstuvwxyz0123456789-";
   private static Log LOG = LogFactory.getLog(SaveProductCommand.class);
 
   public static Product saveProduct(Product productBean) throws DataException {

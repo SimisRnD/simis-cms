@@ -31,7 +31,7 @@ import org.apache.commons.logging.LogFactory;
  */
 public class SaveCollectionCommand {
 
-  private static final String allowedChars = "abcdefghijklmnopqrstuvwyxz";
+  private static final String allowedChars = "abcdefghijklmnopqrstuvwxyz";
   private static Log LOG = LogFactory.getLog(SaveCollectionCommand.class);
 
   public static Collection saveCollection(Collection collectionBean) throws DataException {

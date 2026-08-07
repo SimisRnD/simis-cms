@@ -37,6 +37,50 @@
 </c:if>
 <a class="button small radius primary" href="${ctx}/admin/calendar?returnPage=/admin/calendars">Add a Calendar <i class="fa fa-arrow-circle-right"></i></a>
 <%@include file="../page_messages.jspf" %>
+<p>
+  A <strong>Calendar</strong> is a named, colored container for events -- purely an internal
+  organizing concept, the same way a Blog groups posts. There's no public page listing every
+  calendar; instead, a page author wires one specific calendar into a page by its
+  <strong>Unique Id</strong> (below), set as the <code>calendarUniqueId</code> preference on a
+  <code>calendar</code>, <code>upcomingCalendarEvents</code>, or <code>calendarSearchResults</code>
+  widget.
+</p>
+<p class="help-text">
+  <i class="fa fa-info-circle"></i> <strong>No recurring events.</strong> Every event is a single,
+  independent record -- there's no built-in way to schedule something like "every Monday"
+  automatically on any calendar. If you need that, you'll be creating and maintaining each
+  occurrence by hand.
+</p>
+<h5>Two ways to view and edit events</h5>
+<p>
+  This page shows a compact list-and-small-calendar view. A calendar can also be placed on a live
+  page using the site's full interactive calendar widget, which adds a click-to-create/edit modal
+  directly on the calendar grid. Both are safe to edit from interchangeably -- editing an event here
+  or through that modal now saves the same complete set of fields either way.
+</p>
+<h5>Troubleshooting</h5>
+<ul>
+  <li><strong>Events aren't showing up on a public page.</strong> The most common cause is a
+    mismatched <code>calendarUniqueId</code> -- the value on the page's widget preference must
+    exactly match a calendar's Unique Id below, character for character.</li>
+  <li><strong># of events shows 0.</strong> Normal for a freshly-created calendar, or one whose
+    events were all deleted or moved elsewhere -- not an error.</li>
+</ul>
+<h5>Timezone</h5>
+<p>
+  Event dates and times display in the site's configured timezone (<strong>Site Properties &gt;
+  site.timezone</strong>), not your browser's or the server's local time.
+</p>
+<h5>As this grows</h5>
+<p>
+  Calendars themselves are typically few -- one per audience or purpose (events, holidays, etc.) --
+  so this table rarely grows large. Individual <strong>events</strong> are where volume shows up;
+  see the Events list below for search, filtering, pagination, and archiving as an individual
+  calendar's event count grows. Calendar and event data lives in the same PostgreSQL database as the
+  rest of the site, so deploying to a new environment needs no special provisioning beyond normal
+  database backup/restore. The interactive calendar UI (FullCalendar) is a vendored JavaScript
+  library bundled with the site, not a separate runtime dependency.
+</p>
 <table class="unstriped">
   <thead>
     <tr>
@@ -61,7 +105,9 @@
           <small><c:out value="${calendar.uniqueId}" /></small>
         </td>
         <td class="text-center">
-          <fmt:formatNumber value="${calendarEventCount[calendar.id]}" />
+          <%-- countGroupedByCalendarId() omits a calendar entirely when it has zero events (rather
+               than returning an explicit 0), so a missing entry must default to 0 here. --%>
+          <fmt:formatNumber value="${empty calendarEventCount[calendar.id] ? 0 : calendarEventCount[calendar.id]}" />
         </td>
         <td class="text-center">
           <a href="${ctx}/admin/calendar?calendarId=${calendar.id}&returnPage=/admin/calendars"><i class="${font:fas()} fa-edit"></i></a>

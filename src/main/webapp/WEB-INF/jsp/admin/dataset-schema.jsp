@@ -30,6 +30,13 @@
   <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
 <%@include file="../page_messages.jspf" %>
+<div class="callout primary radius">
+  <h6>How field mapping works</h6>
+  <p>Pick the target <strong>Collection</strong> below -- every mapped column becomes a field on Items in that Collection.</p>
+  <p><strong>Unique Field for Merge</strong> determines how a re-sync recognizes "this source row is the same Item as last time" on subsequent runs, so it updates the existing Item instead of creating a duplicate. Choose a source column that is genuinely stable and unique for every row, such as an ID or code. Avoid using a <strong>Name</strong> column for this -- names can collide across rows or change at the source, and either one breaks the match, which can create duplicate Items or silently update the wrong one.</p>
+  <p>In the Type list, the last option for each column (shown as <code>&lt;column name&gt;</code>) maps that column as a custom field. That only works if the column's name is an <em>exact</em> match to an existing Custom Field's <code>name</code> on the target Collection, defined on that Collection's own Custom Fields tab. If there's no matching Custom Field, the mapping still saves without error, but the data goes nowhere visible -- it won't show up on the Custom Fields tab or on the Item. Create the Custom Field first, then map to it here.</p>
+  <p style="margin-bottom:0">A column mapped to <strong>Image URL</strong> (or any other URL-type field) must contain a URL the server can reach over HTTP(S) -- there's no way here to upload binary image files directly from the source data.</p>
+</div>
 <form method="post" onsubmit="return checkForm()">
   <%-- Required by controller --%>
   <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>

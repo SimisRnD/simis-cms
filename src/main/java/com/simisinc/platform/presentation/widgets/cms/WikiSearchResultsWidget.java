@@ -122,39 +122,45 @@ public class WikiSearchResultsWidget extends GenericWidget {
     context.getRequest().setAttribute("showPaging", context.getPreferences().getOrDefault("showPaging", "true"));
     context.getRequest().setAttribute("returnPage", context.getRequest().getRequestURI());
 
-    if (wikiPageList == null || wikiPageList.isEmpty()) {
-      context.getRequest().setAttribute("searchResultList", new ArrayList<SearchResult>());
-      context.setJsp(JSP);
-      return context;
-    }
-
     // Resolve each result's wiki to build its link (/{wikiUniqueId}/{pageUniqueId}), memoized so a
     // page of results with repeated wikis does not re-query the same wiki
-    Map<Long, Wiki> wikiById = new HashMap<>();
     List<SearchResult> searchResultList = new ArrayList<>();
-    for (WikiPage wikiPage : wikiPageList) {
-      Wiki wiki = wikiById.computeIfAbsent(wikiPage.getWikiId(), WikiRepository::findById);
-      if (wiki == null) {
-        continue;
-      }
+    if (wikiPageList != null) {
+      Map<Long, Wiki> wikiById = new HashMap<>();
+      for (WikiPage wikiPage : wikiPageList) {
+        Wiki wiki = wikiById.computeIfAbsent(wikiPage.getWikiId(), WikiRepository::findById);
+        if (wiki == null) {
+          continue;
+        }
 
-      SearchResult searchResult = new SearchResult();
-      searchResult.setPageTitle(wikiPage.getTitle());
-      if (StringUtils.isNotBlank(wikiPage.getSummary())) {
-        searchResult.setPageDescription(wikiPage.getSummary());
-      }
-      searchResult.setLink("/" + wiki.getUniqueId() + "/" + wikiPage.getUniqueId());
+        SearchResult searchResult = new SearchResult();
+        searchResult.setPageTitle(wikiPage.getTitle());
+        if (StringUtils.isNotBlank(wikiPage.getSummary())) {
+          searchResult.setPageDescription(wikiPage.getSummary());
+        }
+        searchResult.setLink("/" + wiki.getUniqueId() + "/" + wikiPage.getUniqueId());
 
-      // Include an excerpt
-      String htmlContent = HtmlCommand.toHtml(wikiPage.getHighlight());
-      if (StringUtils.isNotBlank(htmlContent)) {
-        htmlContent = StringUtils.replace(htmlContent, "${b}", "<strong>");
-        htmlContent = StringUtils.replace(htmlContent, "${/b}", "</strong>");
-        searchResult.setHtmlExcerpt(htmlContent);
+        // Include an excerpt
+        String htmlContent = HtmlCommand.toHtml(wikiPage.getHighlight());
+        if (StringUtils.isNotBlank(htmlContent)) {
+          htmlContent = StringUtils.replace(htmlContent, "${b}", "<strong>");
+          htmlContent = StringUtils.replace(htmlContent, "${/b}", "</strong>");
+          searchResult.setHtmlExcerpt(htmlContent);
+        }
+        searchResultList.add(searchResult);
       }
-      searchResultList.add(searchResult);
     }
     context.getRequest().setAttribute("searchResultList", searchResultList);
+
+    // Determine if the widget is shown at all -- honors this widget's own showWhenEmpty
+    // preference (set on its web-template entry, see "Search Results.xml") the same way its
+    // sibling WebPageSearchResultsWidget does. Previously this was never read here, so a
+    // zero-result wiki search always rendered its "Documentation Found:" heading and empty-state
+    // text even though every other section on the same search-results page correctly disappeared.
+    boolean showWhenEmpty = "true".equals(context.getPreferences().getOrDefault("showWhenEmpty", "true"));
+    if (searchResultList.isEmpty() && !showWhenEmpty) {
+      return context;
+    }
 
     // Show the JSP
     context.setJsp(JSP);
