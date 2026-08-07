@@ -29,12 +29,12 @@ public class GenerateBlogPostUniqueIdCommand {
 
   public static String generateUniqueId(BlogPost previousRecord, BlogPost record) {
 
-    // Use an existing uniqueId
+    // An existing post's URL must stay stable across edits -- including a title change -- so a
+    // rename can never silently break inbound/external links to the post. This previously
+    // regenerated the slug from the new title whenever the title changed, which is exactly the
+    // case a rename hits.
     if (previousRecord != null && previousRecord.getUniqueId() != null) {
-      // See if the name changed
-      if (previousRecord.getTitle().equals(record.getTitle())) {
-        return previousRecord.getUniqueId();
-      }
+      return previousRecord.getUniqueId();
     }
 
     // Create a new one
