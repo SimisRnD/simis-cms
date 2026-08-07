@@ -94,11 +94,22 @@
             <small style="color: #999999"><fmt:formatDate pattern="yyyy-MM-dd" value="${image.created}" /></small><br />
             <small><a target="_blank" href="${ctx}/assets/img/${fn:escapeXml(image.url)}">Image Link</a></small><br />
             <small><span class="usage-badge label secondary" data-image-id="${image.id}">Checking usage&hellip;</span></small><br />
+            <c:if test="${!empty imageTagsByImageId[image.id]}">
+              <c:forEach items="${imageTagsByImageId[image.id]}" var="cardTag">
+                <span class="label secondary" style="margin:1px;"><c:out value="${cardTag.name}"/></span>
+              </c:forEach>
+              <br/>
+            </c:if>
             <button type="button" class="setFocalPointBtn button tiny secondary radius margin-top-5"
                     data-id="${image.id}" data-filename="${fn:escapeXml(image.filename)}"
                     data-url="${ctx}/assets/img/${fn:escapeXml(image.url)}"
                     data-focal-x="<c:out value="${image.focalX}"/>" data-focal-y="<c:out value="${image.focalY}"/>">
               <i class="fa fa-crosshairs"></i> Focal Point
+            </button>
+            <button type="button" class="setTagsBtn button tiny secondary radius margin-top-5"
+                    data-id="${image.id}" data-filename="${fn:escapeXml(image.filename)}"
+                    data-tag-ids="<c:forEach items="${imageTagsByImageId[image.id]}" var="cardTagId" varStatus="cardTagIdStatus">${cardTagId.id}<c:if test="${!cardTagIdStatus.last}">,</c:if></c:forEach>">
+              <i class="fa fa-tag"></i> Tags
             </button>
             <button type="button" class="deleteImageBtn button tiny alert radius margin-top-5"
                     data-id="${image.id}" data-filename="${fn:escapeXml(image.filename)}">
@@ -162,6 +173,38 @@
     <input type="hidden" name="focalX" id="focalXInput" value="50"/>
     <input type="hidden" name="focalY" id="focalYInput" value="50"/>
     <input type="submit" class="button radius" value="Save Focal Point"/>
+    <button class="button secondary radius" type="button" data-close>Cancel</button>
+  </form>
+  <button class="close-button" data-close aria-label="Close reveal" type="button">
+    <span aria-hidden="true">&times;</span>
+  </button>
+</div>
+<%-- Tag assignment (one shared modal, populated fresh at open time from the clicked card's
+     data-tag-ids, same shape as focalPointReveal above). Existing tags are checkboxes; the free-text
+     field finds-or-creates a tag by name and assigns it in the same save -- see
+     AdminImageBrowserWidget#setTagsAction. --%>
+<div class="reveal" id="tagsReveal" role="dialog" aria-modal="true" aria-labelledby="tagsRevealTitle"
+     data-reveal data-close-on-click="true">
+  <h4 id="tagsRevealTitle">Set Tags</h4>
+  <form method="post">
+    <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
+    <input type="hidden" name="token" value="${userSession.formToken}"/>
+    <input type="hidden" name="command" value="setTags"/>
+    <input type="hidden" name="imageId" id="tagsImageId" value=""/>
+    <div id="tagsCheckboxList">
+      <c:forEach items="${allImageTags}" var="modalTag">
+        <%-- Deliberately NOT named "tagId" -- this form has no action attribute, so it POSTs to the
+             current document URL, which still carries the page's own ?tagId= query-string filter
+             (if one is active) as a GET param. Sharing the name with the filter select above would
+             let servlet parameter-map merging silently re-add the filtered tag here regardless of
+             this checkbox's checked state. --%>
+        <label><input type="checkbox" name="assignTagId" value="${modalTag.id}" class="tagCheckbox" data-tag-id="${modalTag.id}"> <c:out value="${modalTag.name}"/></label>
+      </c:forEach>
+    </div>
+    <label for="newTagName">New tag
+      <input type="text" id="newTagName" name="newTagName" maxlength="255" placeholder="e.g. Homepage">
+    </label>
+    <input type="submit" class="button radius" value="Save Tags"/>
     <button class="button secondary radius" type="button" data-close>Cancel</button>
   </form>
   <button class="close-button" data-close aria-label="Close reveal" type="button">
@@ -410,6 +453,36 @@
     [focalXRange, focalYRange].forEach(function (range) {
       range.addEventListener('input', function () {
         setFocalMarker(parseFloat(focalXRange.value), parseFloat(focalYRange.value));
+      });
+    });
+
+    // Tag assignment
+    var $tagsReveal = $('#tagsReveal');
+    var tagsImageIdInput = document.getElementById('tagsImageId');
+    var newTagNameInput = document.getElementById('newTagName');
+
+    document.querySelectorAll('.setTagsBtn').forEach(function (btn) {
+      btn.addEventListener('click', function () {
+        tagsImageIdInput.value = btn.getAttribute('data-id');
+        newTagNameInput.value = '';
+        var currentTagIds = (btn.getAttribute('data-tag-ids') || '').split(',').filter(Boolean);
+        document.querySelectorAll('.tagCheckbox').forEach(function (cb) {
+          cb.checked = currentTagIds.indexOf(cb.getAttribute('data-tag-id')) !== -1;
+        });
+        $tagsReveal.foundation('open');
+      });
+    });
+
+    // Delete tag (Manage Tags panel, admin-only) -- confirm() first since this un-assigns the tag
+    // from every image that carries it, not just one.
+    document.querySelectorAll('.deleteImageTagBtn').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.preventDefault();
+        var id = btn.getAttribute('data-id');
+        var name = btn.getAttribute('data-name');
+        if (confirm('Delete the tag "' + name + '"? It will be removed from every image that has it.')) {
+          postAction('${widgetContext.uri}?command=deleteTag&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&imageTagId=' + id);
+        }
       });
     });
   })();

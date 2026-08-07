@@ -18,11 +18,16 @@ package com.simisinc.platform.presentation.widgets.admin.cms;
 
 import com.simisinc.platform.WidgetBase;
 import com.simisinc.platform.application.cms.DeleteImageCommand;
+import com.simisinc.platform.application.cms.DeleteImageTagCommand;
 import com.simisinc.platform.application.cms.ImageUsageCommand;
 import com.simisinc.platform.domain.model.cms.Image;
+import com.simisinc.platform.domain.model.cms.ImageTag;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
+import com.simisinc.platform.infrastructure.database.DB;
 import com.simisinc.platform.infrastructure.persistence.cms.ImageRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.ImageSpecification;
+import com.simisinc.platform.infrastructure.persistence.cms.ImageTagMapRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.ImageTagRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.ImageVariantRepository;
 import com.simisinc.platform.infrastructure.scheduler.cms.FocalPointVariantJob;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
@@ -33,6 +38,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
 import java.math.BigDecimal;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -40,9 +47,11 @@ import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
@@ -65,13 +74,20 @@ class AdminImageBrowserWidgetTest extends WidgetBase {
     imageList.add(image);
 
     try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class);
-        MockedStatic<ImageVariantRepository> imageVariantRepositoryMockedStatic = mockStatic(ImageVariantRepository.class)) {
+        MockedStatic<ImageVariantRepository> imageVariantRepositoryMockedStatic = mockStatic(ImageVariantRepository.class);
+        MockedStatic<ImageTagRepository> imageTagRepositoryMockedStatic = mockStatic(ImageTagRepository.class)) {
       imageRepositoryMockedStatic.when(() -> ImageRepository.findAll(isNull(), any(DataConstraints.class)))
           .thenReturn(imageList);
       // Issue #411 PR2's batch-prefetch: findAll() returns a non-empty list here, so
       // findByImageIds() is reached and must be mocked like any other repository call.
       imageVariantRepositoryMockedStatic.when(() -> ImageVariantRepository.findByImageIds(anyCollection()))
           .thenReturn(Collections.emptyMap());
+      // Same batch-prefetch shape for tags -- and execute() always fetches the tag filter
+      // dropdown's options and the Manage Tags panel's counts regardless.
+      imageTagRepositoryMockedStatic.when(() -> ImageTagRepository.findByImageIds(any()))
+          .thenReturn(Collections.emptyMap());
+      imageTagRepositoryMockedStatic.when(ImageTagRepository::findAll).thenReturn(Collections.emptyList());
+      imageTagRepositoryMockedStatic.when(ImageTagRepository::countAllByImageTagId).thenReturn(Collections.emptyMap());
 
       // Execute the widget
       AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
@@ -90,7 +106,13 @@ class AdminImageBrowserWidgetTest extends WidgetBase {
     addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
     addQueryParameter(widgetContext, "query", "3d");
 
-    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class)) {
+    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class);
+        MockedStatic<ImageTagRepository> imageTagRepositoryMockedStatic = mockStatic(ImageTagRepository.class)) {
+      // execute() always fetches the tag filter dropdown's options and the Manage Tags panel's
+      // counts, regardless of which branch runs below -- stub both so every one of these tests
+      // stays focused on what it's actually asserting.
+      imageTagRepositoryMockedStatic.when(ImageTagRepository::findAll).thenReturn(Collections.emptyList());
+      imageTagRepositoryMockedStatic.when(ImageTagRepository::countAllByImageTagId).thenReturn(Collections.emptyMap());
       imageRepositoryMockedStatic.when(() -> ImageRepository.findAll(any(ImageSpecification.class), any(DataConstraints.class)))
           .thenReturn(Collections.emptyList());
 
@@ -111,7 +133,13 @@ class AdminImageBrowserWidgetTest extends WidgetBase {
   void executeDefaultsPagingToPageOneAtTheDefaultPageSizeWhenNoPagingParamsAreGiven() {
     addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
 
-    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class)) {
+    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class);
+        MockedStatic<ImageTagRepository> imageTagRepositoryMockedStatic = mockStatic(ImageTagRepository.class)) {
+      // execute() always fetches the tag filter dropdown's options and the Manage Tags panel's
+      // counts, regardless of which branch runs below -- stub both so every one of these tests
+      // stays focused on what it's actually asserting.
+      imageTagRepositoryMockedStatic.when(ImageTagRepository::findAll).thenReturn(Collections.emptyList());
+      imageTagRepositoryMockedStatic.when(ImageTagRepository::countAllByImageTagId).thenReturn(Collections.emptyMap());
       imageRepositoryMockedStatic.when(() -> ImageRepository.findAll(isNull(), any(DataConstraints.class)))
           .thenReturn(Collections.emptyList());
 
@@ -130,7 +158,13 @@ class AdminImageBrowserWidgetTest extends WidgetBase {
     addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
     addQueryParameter(widgetContext, "page", "3");
 
-    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class)) {
+    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class);
+        MockedStatic<ImageTagRepository> imageTagRepositoryMockedStatic = mockStatic(ImageTagRepository.class)) {
+      // execute() always fetches the tag filter dropdown's options and the Manage Tags panel's
+      // counts, regardless of which branch runs below -- stub both so every one of these tests
+      // stays focused on what it's actually asserting.
+      imageTagRepositoryMockedStatic.when(ImageTagRepository::findAll).thenReturn(Collections.emptyList());
+      imageTagRepositoryMockedStatic.when(ImageTagRepository::countAllByImageTagId).thenReturn(Collections.emptyMap());
       imageRepositoryMockedStatic.when(() -> ImageRepository.findAll(isNull(), any(DataConstraints.class)))
           .thenReturn(Collections.emptyList());
 
@@ -150,7 +184,13 @@ class AdminImageBrowserWidgetTest extends WidgetBase {
     addQueryParameter(widgetContext, "query", "3d");
     addQueryParameter(widgetContext, "page", "2");
 
-    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class)) {
+    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class);
+        MockedStatic<ImageTagRepository> imageTagRepositoryMockedStatic = mockStatic(ImageTagRepository.class)) {
+      // execute() always fetches the tag filter dropdown's options and the Manage Tags panel's
+      // counts, regardless of which branch runs below -- stub both so every one of these tests
+      // stays focused on what it's actually asserting.
+      imageTagRepositoryMockedStatic.when(ImageTagRepository::findAll).thenReturn(Collections.emptyList());
+      imageTagRepositoryMockedStatic.when(ImageTagRepository::countAllByImageTagId).thenReturn(Collections.emptyMap());
       imageRepositoryMockedStatic.when(() -> ImageRepository.findAll(any(ImageSpecification.class), any(DataConstraints.class)))
           .thenReturn(Collections.emptyList());
 
@@ -173,7 +213,13 @@ class AdminImageBrowserWidgetTest extends WidgetBase {
     addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
     addQueryParameter(widgetContext, "page", "999");
 
-    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class)) {
+    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class);
+        MockedStatic<ImageTagRepository> imageTagRepositoryMockedStatic = mockStatic(ImageTagRepository.class)) {
+      // execute() always fetches the tag filter dropdown's options and the Manage Tags panel's
+      // counts, regardless of which branch runs below -- stub both so every one of these tests
+      // stays focused on what it's actually asserting.
+      imageTagRepositoryMockedStatic.when(ImageTagRepository::findAll).thenReturn(Collections.emptyList());
+      imageTagRepositoryMockedStatic.when(ImageTagRepository::countAllByImageTagId).thenReturn(Collections.emptyMap());
       // A real out-of-range OFFSET returns zero rows rather than erroring (see
       // ImageRepositorySearchTest's pagination tests for the real-DB proof); the widget must
       // simply pass that empty list through to the JSP, not treat it as a failure.
@@ -194,9 +240,12 @@ class AdminImageBrowserWidgetTest extends WidgetBase {
   void executeWithNoSortByParamDefaultsToDateNewestFirst() {
     addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
 
-    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class)) {
+    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class);
+        MockedStatic<ImageTagRepository> imageTagRepositoryMockedStatic = mockStatic(ImageTagRepository.class)) {
       imageRepositoryMockedStatic.when(() -> ImageRepository.findAll(isNull(), any(DataConstraints.class)))
           .thenReturn(Collections.emptyList());
+      imageTagRepositoryMockedStatic.when(ImageTagRepository::findAll).thenReturn(Collections.emptyList());
+      imageTagRepositoryMockedStatic.when(ImageTagRepository::countAllByImageTagId).thenReturn(Collections.emptyMap());
 
       AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
       widget.execute(widgetContext);
@@ -217,9 +266,12 @@ class AdminImageBrowserWidgetTest extends WidgetBase {
     addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
     addQueryParameter(widgetContext, "sortBy", "name");
 
-    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class)) {
+    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class);
+        MockedStatic<ImageTagRepository> imageTagRepositoryMockedStatic = mockStatic(ImageTagRepository.class)) {
       imageRepositoryMockedStatic.when(() -> ImageRepository.findAll(isNull(), any(DataConstraints.class)))
           .thenReturn(Collections.emptyList());
+      imageTagRepositoryMockedStatic.when(ImageTagRepository::findAll).thenReturn(Collections.emptyList());
+      imageTagRepositoryMockedStatic.when(ImageTagRepository::countAllByImageTagId).thenReturn(Collections.emptyMap());
 
       AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
       widget.execute(widgetContext);
@@ -239,9 +291,12 @@ class AdminImageBrowserWidgetTest extends WidgetBase {
     addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
     addQueryParameter(widgetContext, "sortBy", "size");
 
-    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class)) {
+    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class);
+        MockedStatic<ImageTagRepository> imageTagRepositoryMockedStatic = mockStatic(ImageTagRepository.class)) {
       imageRepositoryMockedStatic.when(() -> ImageRepository.findAll(isNull(), any(DataConstraints.class)))
           .thenReturn(Collections.emptyList());
+      imageTagRepositoryMockedStatic.when(ImageTagRepository::findAll).thenReturn(Collections.emptyList());
+      imageTagRepositoryMockedStatic.when(ImageTagRepository::countAllByImageTagId).thenReturn(Collections.emptyMap());
 
       AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
       widget.execute(widgetContext);
@@ -260,9 +315,12 @@ class AdminImageBrowserWidgetTest extends WidgetBase {
     addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
     addQueryParameter(widgetContext, "sortBy", "not-a-real-sort");
 
-    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class)) {
+    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class);
+        MockedStatic<ImageTagRepository> imageTagRepositoryMockedStatic = mockStatic(ImageTagRepository.class)) {
       imageRepositoryMockedStatic.when(() -> ImageRepository.findAll(isNull(), any(DataConstraints.class)))
           .thenReturn(Collections.emptyList());
+      imageTagRepositoryMockedStatic.when(ImageTagRepository::findAll).thenReturn(Collections.emptyList());
+      imageTagRepositoryMockedStatic.when(ImageTagRepository::countAllByImageTagId).thenReturn(Collections.emptyMap());
 
       AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
       widget.execute(widgetContext);
@@ -281,9 +339,12 @@ class AdminImageBrowserWidgetTest extends WidgetBase {
     addQueryParameter(widgetContext, "query", "3d");
     addQueryParameter(widgetContext, "sortBy", "size");
 
-    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class)) {
+    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class);
+        MockedStatic<ImageTagRepository> imageTagRepositoryMockedStatic = mockStatic(ImageTagRepository.class)) {
       imageRepositoryMockedStatic.when(() -> ImageRepository.findAll(any(ImageSpecification.class), any(DataConstraints.class)))
           .thenReturn(Collections.emptyList());
+      imageTagRepositoryMockedStatic.when(ImageTagRepository::findAll).thenReturn(Collections.emptyList());
+      imageTagRepositoryMockedStatic.when(ImageTagRepository::countAllByImageTagId).thenReturn(Collections.emptyMap());
 
       AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
       widget.execute(widgetContext);
@@ -656,6 +717,261 @@ class AdminImageBrowserWidgetTest extends WidgetBase {
   }
 
   @Test
+  void setTagsWithoutPermissionNeverTouchesTheRepository() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
+    // Default logged-in test user has no roles at all -- neither admin nor content-manager
+    widgetContext.getParameterMap().put("command", new String[] { "setTags" });
+    addQueryParameter(widgetContext, "imageId", "42");
+
+    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class)) {
+      AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
+      widget.post(widgetContext);
+
+      imageRepositoryMockedStatic.verifyNoInteractions();
+    }
+  }
+
+  @Test
+  void setTagsWithAnUnknownImageIdProducesAnErrorAndNeverOpensATransaction() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
+    setRoles(widgetContext, ADMIN);
+    widgetContext.getParameterMap().put("command", new String[] { "setTags" });
+    addQueryParameter(widgetContext, "imageId", "999");
+
+    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class);
+        MockedStatic<ImageTagMapRepository> imageTagMapRepositoryMockedStatic = mockStatic(ImageTagMapRepository.class)) {
+      imageRepositoryMockedStatic.when(() -> ImageRepository.findById(999L)).thenReturn(null);
+
+      AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
+      widget.post(widgetContext);
+
+      // The image lookup must fail before any DB transaction is opened to reconcile tags
+      imageTagMapRepositoryMockedStatic.verifyNoInteractions();
+    }
+
+    Assertions.assertNotNull(widgetContext.getErrorMessage());
+  }
+
+  @Test
+  void setTagsWithAdminRoleReplacesTheImagesFullTagAssignment() {
+    // The core "replace, not add" behavior: removeAll() must run before the insert loop, and only
+    // the checked (assignTagId) ids must be inserted -- not merged with whatever was there before.
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
+    setRoles(widgetContext, ADMIN);
+    widgetContext.getParameterMap().put("command", new String[] { "setTags" });
+    addQueryParameter(widgetContext, "imageId", "42");
+    widgetContext.getParameterMap().put("assignTagId", new String[] { "5", "9" });
+
+    Image image = new Image();
+    image.setId(42L);
+    image.setFilename("hero.png");
+    Connection jdbcConnection = mock(Connection.class);
+
+    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class);
+        MockedStatic<ImageTagMapRepository> imageTagMapRepositoryMockedStatic = mockStatic(ImageTagMapRepository.class);
+        MockedStatic<DB> dbMockedStatic = mockStatic(DB.class);
+        MockedStatic<AuditEventCommand> auditMockedStatic = mockStatic(AuditEventCommand.class)) {
+      imageRepositoryMockedStatic.when(() -> ImageRepository.findById(42L)).thenReturn(image);
+      dbMockedStatic.when(DB::getConnection).thenReturn(jdbcConnection);
+
+      AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
+      widget.post(widgetContext);
+
+      imageTagMapRepositoryMockedStatic.verify(() -> ImageTagMapRepository.removeAll(jdbcConnection, image));
+      imageTagMapRepositoryMockedStatic.verify(() -> ImageTagMapRepository.insertImageTagId(jdbcConnection, image, 5L));
+      imageTagMapRepositoryMockedStatic.verify(() -> ImageTagMapRepository.insertImageTagId(jdbcConnection, image, 9L));
+      auditMockedStatic.verify(() -> AuditEventCommand.record(any(), any(), eq("image.setTags"),
+          eq(AuditEventCommand.SUCCESS), eq("image"), eq("42"), eq("hero.png"), isNull()));
+    }
+
+    Assertions.assertEquals("Tags saved", widgetContext.getSuccessMessage());
+  }
+
+  @Test
+  void setTagsWithANewTagNameFindsOrCreatesItAndIncludesItInTheSavedSet() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
+    setRoles(widgetContext, ADMIN);
+    widgetContext.getParameterMap().put("command", new String[] { "setTags" });
+    addQueryParameter(widgetContext, "imageId", "42");
+    addQueryParameter(widgetContext, "newTagName", "Homepage");
+
+    Image image = new Image();
+    image.setId(42L);
+    image.setFilename("hero.png");
+    ImageTag newTag = new ImageTag();
+    newTag.setId(11L);
+    newTag.setName("Homepage");
+    Connection jdbcConnection = mock(Connection.class);
+
+    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class);
+        MockedStatic<ImageTagRepository> imageTagRepositoryMockedStatic = mockStatic(ImageTagRepository.class);
+        MockedStatic<ImageTagMapRepository> imageTagMapRepositoryMockedStatic = mockStatic(ImageTagMapRepository.class);
+        MockedStatic<DB> dbMockedStatic = mockStatic(DB.class)) {
+      imageRepositoryMockedStatic.when(() -> ImageRepository.findById(42L)).thenReturn(image);
+      imageTagRepositoryMockedStatic.when(() -> ImageTagRepository.findByName("Homepage")).thenReturn(null);
+      imageTagRepositoryMockedStatic.when(() -> ImageTagRepository.save(any())).thenReturn(newTag);
+      dbMockedStatic.when(DB::getConnection).thenReturn(jdbcConnection);
+
+      AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
+      widget.post(widgetContext);
+
+      imageTagMapRepositoryMockedStatic.verify(() -> ImageTagMapRepository.insertImageTagId(jdbcConnection, image, 11L));
+    }
+
+    Assertions.assertEquals("Tags saved", widgetContext.getSuccessMessage());
+  }
+
+  @Test
+  void setTagsWithABlankNewTagNameSkipsTheFindOrCreateAndClearsAllTags() {
+    // A blank newTagName is trimmed to null by StringUtils.trimToNull before reaching
+    // SaveImageTagCommand, so SaveImageTagCommand is never called -- but with no assignTagId
+    // checkboxes either, the desired tag set is empty. The transaction still runs (removeAll,
+    // then zero inserts), matching the "replace, not add" semantics: submitting the modal with
+    // nothing checked means "clear this image's tags", not "leave them alone".
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
+    setRoles(widgetContext, ADMIN);
+    widgetContext.getParameterMap().put("command", new String[] { "setTags" });
+    addQueryParameter(widgetContext, "imageId", "42");
+    addQueryParameter(widgetContext, "newTagName", "   ");
+
+    Image image = new Image();
+    image.setId(42L);
+    image.setFilename("hero.png");
+    Connection jdbcConnection = mock(Connection.class);
+
+    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class);
+        MockedStatic<ImageTagMapRepository> imageTagMapRepositoryMockedStatic = mockStatic(ImageTagMapRepository.class);
+        MockedStatic<DB> dbMockedStatic = mockStatic(DB.class)) {
+      imageRepositoryMockedStatic.when(() -> ImageRepository.findById(42L)).thenReturn(image);
+      dbMockedStatic.when(DB::getConnection).thenReturn(jdbcConnection);
+
+      AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
+      widget.post(widgetContext);
+
+      imageTagMapRepositoryMockedStatic.verify(() -> ImageTagMapRepository.removeAll(jdbcConnection, image));
+      imageTagMapRepositoryMockedStatic.verify(() -> ImageTagMapRepository.insertImageTagId(any(), any(), anyLong()), never());
+    }
+
+    Assertions.assertEquals("Tags saved", widgetContext.getSuccessMessage());
+  }
+
+  @Test
+  void setTagsWhenTheTransactionFailsRecordsFailureAndSetsAnErrorMessage() throws SQLException {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
+    setRoles(widgetContext, ADMIN);
+    widgetContext.getParameterMap().put("command", new String[] { "setTags" });
+    addQueryParameter(widgetContext, "imageId", "42");
+
+    Image image = new Image();
+    image.setId(42L);
+    image.setFilename("hero.png");
+
+    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class);
+        MockedStatic<DB> dbMockedStatic = mockStatic(DB.class);
+        MockedStatic<AuditEventCommand> auditMockedStatic = mockStatic(AuditEventCommand.class)) {
+      imageRepositoryMockedStatic.when(() -> ImageRepository.findById(42L)).thenReturn(image);
+      dbMockedStatic.when(DB::getConnection).thenThrow(new SQLException("no database in this unit test"));
+
+      AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
+      widget.post(widgetContext);
+
+      auditMockedStatic.verify(() -> AuditEventCommand.record(any(), any(), eq("image.setTags"),
+          eq(AuditEventCommand.FAILURE), eq("image"), eq("42"), eq("hero.png"), isNull()));
+    }
+
+    Assertions.assertEquals("Error. The tags could not be saved.", widgetContext.getErrorMessage());
+  }
+
+  @Test
+  void deleteTagWithContentManagerRoleIsRejectedAdminOnly() {
+    // Unlike every other action on this page, deleting a tag is admin-only (it un-assigns the tag
+    // from every image that carries it, not just one) -- content-manager alone must not be enough.
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
+    setRoles(widgetContext, CONTENT_MANAGER);
+    widgetContext.getParameterMap().put("command", new String[] { "deleteTag" });
+    addQueryParameter(widgetContext, "imageTagId", "5");
+
+    try (MockedStatic<ImageTagRepository> imageTagRepositoryMockedStatic = mockStatic(ImageTagRepository.class)) {
+      AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
+      widget.post(widgetContext);
+
+      imageTagRepositoryMockedStatic.verifyNoInteractions();
+    }
+  }
+
+  @Test
+  void deleteTagWithAdminRoleDeletesTheTag() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
+    setRoles(widgetContext, ADMIN);
+    widgetContext.getParameterMap().put("command", new String[] { "deleteTag" });
+    addQueryParameter(widgetContext, "imageTagId", "5");
+
+    ImageTag tag = new ImageTag();
+    tag.setId(5L);
+    tag.setName("Homepage");
+
+    try (MockedStatic<ImageTagRepository> imageTagRepositoryMockedStatic = mockStatic(ImageTagRepository.class);
+        MockedStatic<AuditEventCommand> auditMockedStatic = mockStatic(AuditEventCommand.class)) {
+      imageTagRepositoryMockedStatic.when(() -> ImageTagRepository.findById(5L)).thenReturn(tag);
+      imageTagRepositoryMockedStatic.when(() -> ImageTagRepository.remove(tag)).thenReturn(true);
+
+      AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
+      widget.post(widgetContext);
+
+      imageTagRepositoryMockedStatic.verify(() -> ImageTagRepository.remove(tag));
+      auditMockedStatic.verify(() -> AuditEventCommand.record(any(), any(), eq("imageTag.delete"),
+          eq(AuditEventCommand.SUCCESS), eq("imageTag"), eq("5"), eq("Homepage"), isNull()));
+    }
+
+    Assertions.assertEquals("Tag deleted", widgetContext.getSuccessMessage());
+  }
+
+  @Test
+  void deleteTagWhenRemoveReturnsFalseRecordsFailureAndSetsAnErrorMessage() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
+    setRoles(widgetContext, ADMIN);
+    widgetContext.getParameterMap().put("command", new String[] { "deleteTag" });
+    addQueryParameter(widgetContext, "imageTagId", "5");
+
+    ImageTag tag = new ImageTag();
+    tag.setId(5L);
+    tag.setName("Homepage");
+
+    try (MockedStatic<ImageTagRepository> imageTagRepositoryMockedStatic = mockStatic(ImageTagRepository.class);
+        MockedStatic<AuditEventCommand> auditMockedStatic = mockStatic(AuditEventCommand.class)) {
+      imageTagRepositoryMockedStatic.when(() -> ImageTagRepository.findById(5L)).thenReturn(tag);
+      imageTagRepositoryMockedStatic.when(() -> ImageTagRepository.remove(tag)).thenReturn(false);
+
+      AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
+      widget.post(widgetContext);
+
+      auditMockedStatic.verify(() -> AuditEventCommand.record(any(), any(), eq("imageTag.delete"),
+          eq(AuditEventCommand.FAILURE), eq("imageTag"), eq("5"), eq("Homepage"), isNull()));
+    }
+
+    Assertions.assertEquals("Error. The tag could not be deleted.", widgetContext.getErrorMessage());
+  }
+
+  @Test
+  void deleteTagWithAnUnknownImageTagIdProducesAnErrorAndDoesNotCallRemove() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
+    setRoles(widgetContext, ADMIN);
+    widgetContext.getParameterMap().put("command", new String[] { "deleteTag" });
+    addQueryParameter(widgetContext, "imageTagId", "999");
+
+    try (MockedStatic<ImageTagRepository> imageTagRepositoryMockedStatic = mockStatic(ImageTagRepository.class)) {
+      imageTagRepositoryMockedStatic.when(() -> ImageTagRepository.findById(999L)).thenReturn(null);
+
+      AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
+      widget.post(widgetContext);
+
+      imageTagRepositoryMockedStatic.verify(() -> ImageTagRepository.remove(any()), never());
+    }
+
+    Assertions.assertNotNull(widgetContext.getErrorMessage());
+  }
+
+  @Test
   void setFocalPointWithoutPermissionNeverTouchesTheRepository() {
     addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
     // Default logged-in test user has no roles at all -- neither admin nor content-manager
@@ -664,7 +980,13 @@ class AdminImageBrowserWidgetTest extends WidgetBase {
     addQueryParameter(widgetContext, "focalX", "50");
     addQueryParameter(widgetContext, "focalY", "50");
 
-    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class)) {
+    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class);
+        MockedStatic<ImageTagRepository> imageTagRepositoryMockedStatic = mockStatic(ImageTagRepository.class)) {
+      // execute() always fetches the tag filter dropdown's options and the Manage Tags panel's
+      // counts, regardless of which branch runs below -- stub both so every one of these tests
+      // stays focused on what it's actually asserting.
+      imageTagRepositoryMockedStatic.when(ImageTagRepository::findAll).thenReturn(Collections.emptyList());
+      imageTagRepositoryMockedStatic.when(ImageTagRepository::countAllByImageTagId).thenReturn(Collections.emptyMap());
       AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
       widget.post(widgetContext);
 
