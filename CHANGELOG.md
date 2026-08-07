@@ -7,7 +7,7 @@ Versions follow the project's `YYYYMMDD.NNNNN` release scheme; the git tag is th
 version prefixed with `v` (for example `v20260719.10000`). Database migrations
 apply automatically on startup — always take a database backup before upgrading.
 
-## [20260807.10000] - 2026-08-07
+## [20260807.10001] - 2026-08-07
 
 Third tagged release since `v20260719.10000` (2026-07-20): the governed
 draft/submit/approve/publish review workflow now extends to blog posts with
@@ -397,6 +397,15 @@ merged pull requests).
   removal action and the item member add form, which previously relied
   only on the surrounding page/widget configuration and could be invoked
   directly by any logged-in user (#1098).
+- Fixed the release-triggered container-image secret scan silently falling
+  back to an unbounded full-history scan instead of an incremental one
+  (the pinned TruffleHog action has no event-detection branch for
+  `release`, only for push/workflow_dispatch/schedule/pull_request), and
+  excluded two confirmed false-positive matches it surfaced -- a checksum
+  manifest entry and a pytest function name neither of which is a real
+  credential (#1106, #1107). This is a same-day decimal-increment release
+  (10001) solely to get a clean image publish through the fixed workflow;
+  no application code changed from 20260807.10000.
 
 ## [20260719.10000] - 2026-07-20
 
