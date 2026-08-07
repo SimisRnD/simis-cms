@@ -86,7 +86,7 @@ public class MoodleApiClientCommand {
     }
 
     // Send
-    LOG.debug("GET: " + url);
+    LOG.debug("GET: " + url.replace(token, "REDACTED"));
     String remoteContent = HttpGetCommand.execute(url);
 
     // Check for content

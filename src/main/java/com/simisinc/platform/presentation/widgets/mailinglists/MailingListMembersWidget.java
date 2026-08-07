@@ -280,6 +280,14 @@ public class MailingListMembersWidget extends GenericWidget {
   }
 
   public WidgetContext delete(WidgetContext context) {
+    // Permission is required (mirrors post()'s check above) -- the UI only offers this action to
+    // admins/community-managers, and the action must enforce the same restriction directly,
+    // since a raw POST to this action bypasses whatever the UI chooses to render.
+    if (!(context.hasRole("admin") || context.hasRole("community-manager"))) {
+      LOG.warn("Blocked mailing list member removal by an unauthorized user: " + context.getUserId());
+      return context;
+    }
+
     // Determine what's being removed
     long mailingListId = context.getParameterAsLong("mailingListId");
     long emailId = context.getParameterAsLong("emailId");
