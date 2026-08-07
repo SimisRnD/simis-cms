@@ -28,11 +28,13 @@ import java.util.List;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.domain.model.cms.CalendarEvent;
 import com.simisinc.platform.infrastructure.persistence.cms.CalendarEventRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.CalendarEventSpecification;
 import com.simisinc.platform.infrastructure.persistence.cms.CalendarRepository;
 
 /**
@@ -105,6 +107,55 @@ class CalendarAjaxEventsTest {
       String json = sb.toString();
       Assertions.assertTrue(json.contains("\"start\":\"2026-01-14\""), "start date must be in the site's timezone: " + json);
       Assertions.assertTrue(json.contains("\"end\":\"2026-01-15T24:00\""), "end date must be in the site's timezone: " + json);
+    }
+  }
+
+  /**
+   * Regression test: a calendar's "Online?" checkbox (Calendar.enabled) is meant to take its
+   * events off the public /json/calendar feed that small-calendar.jsp/full-calendar.jsp's
+   * FullCalendar grids render, mirroring CalendarEventDetailsWidget's existing admin/
+   * content-manager bypass for the single-event details page. CalendarAjax passes
+   * publishedOnly=true for a non-previewing visitor, so that same signal must also request the
+   * calendar-enabled filter from the repository.
+   */
+  @Test
+  void publishedOnlyTrueRequestsTheEnabledCalendarFilterFromTheRepository() {
+    StringBuilder sb = new StringBuilder();
+    try (MockedStatic<CalendarRepository> calendars = mockStatic(CalendarRepository.class);
+        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class)) {
+      calendars.when(CalendarRepository::findAll).thenReturn(new ArrayList<>());
+      events.when(() -> CalendarEventRepository.findAll(any(), any())).thenReturn(List.of());
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
+
+      CalendarAjaxEvents.addCalendarEvents(1L, null, new Date(0L), new Date(86400000L), sb, true);
+
+      ArgumentCaptor<CalendarEventSpecification> specCaptor = ArgumentCaptor.forClass(CalendarEventSpecification.class);
+      events.verify(() -> CalendarEventRepository.findAll(specCaptor.capture(), any()));
+      Assertions.assertTrue(specCaptor.getValue().isCalendarEnabledOnly());
+    }
+  }
+
+  /**
+   * The inverse of the above: CalendarAjax passes publishedOnly=false for an admin/content-manager
+   * previewer, who must still see events on a currently-offline calendar (same bypass as
+   * CalendarEventDetailsWidget).
+   */
+  @Test
+  void publishedOnlyFalseDoesNotRequestTheEnabledCalendarFilter() {
+    StringBuilder sb = new StringBuilder();
+    try (MockedStatic<CalendarRepository> calendars = mockStatic(CalendarRepository.class);
+        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class)) {
+      calendars.when(CalendarRepository::findAll).thenReturn(new ArrayList<>());
+      events.when(() -> CalendarEventRepository.findAll(any(), any())).thenReturn(List.of());
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
+
+      CalendarAjaxEvents.addCalendarEvents(1L, null, new Date(0L), new Date(86400000L), sb, false);
+
+      ArgumentCaptor<CalendarEventSpecification> specCaptor = ArgumentCaptor.forClass(CalendarEventSpecification.class);
+      events.verify(() -> CalendarEventRepository.findAll(specCaptor.capture(), any()));
+      Assertions.assertFalse(specCaptor.getValue().isCalendarEnabledOnly());
     }
   }
 }
