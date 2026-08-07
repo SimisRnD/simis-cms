@@ -67,8 +67,13 @@
           <br /><small><c:out value="${subFolder.summary}" /></small>
         </c:if>
       </td>
-      <td>
-
+      <td nowrap>
+        <c:if test="${canEdit eq 'true'}">
+          <a title="Rename sub-folder" href="${ctx}/admin/sub-folder?subFolderId=${subFolder.id}&returnPage=/admin/folder-details%3FfolderId=${folder.id}"><i class="fa fa-edit"></i></a>
+        </c:if>
+        <c:if test="${canDelete eq 'true'}">
+          <a title="Delete sub-folder" href="#" onclick="return confirmPostAction('Are you sure you want to delete <c:out value="${js:escape(subFolder.name)}" />?', '${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&subFolderId=${subFolder.id}');"><i class="fa fa-remove"></i></a>
+        </c:if>
       </td>
       <td class="text-center">
         <span data-tooltip class="top" title="Modified by <c:out value="${user:name(subFolder.modifiedBy)}" />">

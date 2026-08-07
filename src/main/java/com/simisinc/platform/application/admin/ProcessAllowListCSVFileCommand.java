@@ -35,6 +35,8 @@ import org.apache.commons.logging.LogFactory;
 
 import java.io.File;
 import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 
@@ -47,10 +49,87 @@ public class ProcessAllowListCSVFileCommand {
 
   private static Log LOG = LogFactory.getLog(ProcessAllowListCSVFileCommand.class);
 
-  public static int processCSV(WidgetContext context) throws DataException {
+  /**
+   * The outcome of a CSV import: how many rows were saved, removed, or skipped, plus a
+   * ready-to-display summary. A single malformed row no longer aborts the whole import (see
+   * processCSV()), so the caller needs more than a bare success count to tell the admin what
+   * actually happened.
+   */
+  public static final class ImportResult {
+    private final int savedCount;
+    private final int removedCount;
+    private final int skippedCount;
+    private final List<String> skipDetails;
+    private final List<String> conflictWarnings;
 
-    int recordCount = 0;
-    int removeCount = 0;
+    ImportResult(int savedCount, int removedCount, int skippedCount, List<String> skipDetails,
+        List<String> conflictWarnings) {
+      this.savedCount = savedCount;
+      this.removedCount = removedCount;
+      this.skippedCount = skippedCount;
+      this.skipDetails = Collections.unmodifiableList(skipDetails);
+      this.conflictWarnings = Collections.unmodifiableList(conflictWarnings);
+    }
+
+    public int getSavedCount() {
+      return savedCount;
+    }
+
+    public int getRemovedCount() {
+      return removedCount;
+    }
+
+    public int getSkippedCount() {
+      return skippedCount;
+    }
+
+    /** One entry per skipped row, e.g. "Row 3 (not-an-ip): A valid IPv4 or IPv6 address ... is required" */
+    public List<String> getSkipDetails() {
+      return skipDetails;
+    }
+
+    /**
+     * One entry per saved row that overlaps an entry on the Blocked list -- Allowed always wins
+     * (BlockedIPListCommand.passesCheck), so this silently neutralizes that block.
+     */
+    public List<String> getConflictWarnings() {
+      return conflictWarnings;
+    }
+
+    public String getSummaryMessage() {
+      int attemptedCount = savedCount + skippedCount;
+      StringBuilder message = new StringBuilder();
+      if (attemptedCount > 0) {
+        message.append("Imported ").append(savedCount).append(" of ").append(attemptedCount)
+            .append(" row").append(attemptedCount != 1 ? "s" : "").append(" successfully.");
+      } else {
+        message.append("No rows required an import.");
+      }
+      if (removedCount > 0) {
+        message.append(" ").append(removedCount).append(" record").append(removedCount != 1 ? "s" : "")
+            .append(" removed.");
+      }
+      if (skippedCount > 0) {
+        message.append(" ").append(skippedCount).append(" row").append(skippedCount != 1 ? "s" : "")
+            .append(" were skipped -- see the application log for details.");
+      }
+      if (!conflictWarnings.isEmpty()) {
+        message.append(" ").append(conflictWarnings.size()).append(" saved row")
+            .append(conflictWarnings.size() != 1 ? "s" : "")
+            .append(" overlap an entry already on the Blocked list, silently neutralizing that block --")
+            .append(" see the application log for details.");
+      }
+      return message.toString();
+    }
+  }
+
+  public static ImportResult processCSV(WidgetContext context) throws DataException {
+
+    int savedCount = 0;
+    int removedCount = 0;
+    int skippedCount = 0;
+    List<String> skipDetails = new ArrayList<>();
+    List<String> conflictWarnings = new ArrayList<>();
 
     FileItem fileItemBean = null;
     try {
@@ -80,58 +159,81 @@ public class ProcessAllowListCSVFileCommand {
         throw new DataException("CSV requires: IP Address column; optionally Date, Reason, Remove");
       }
 
-      // Process the records
+      // Process the records; each row is isolated in its own try/catch so one malformed row
+      // (e.g. an invalid address) is skipped and logged instead of aborting every row after it --
+      // rows before the failure are already saved and live by the time a thrown exception would
+      // otherwise be seen, so silently stopping partway through is worse than continuing
+      int rowNumber = 0;
       for (Record record : recordList) {
+        ++rowNumber;
+        String ipAddress = null;
+        try {
+          // IP Address is required
+          ipAddress = record.getString("IP Address");
 
-        // IP Address is required
-        String ipAddress = record.getString("IP Address");
-
-        String reason = null;
-        String remove = null;
-        if (parser.getRecordMetadata().containsColumn("Reason")) {
-          reason = record.getString("Reason");
-        }
-        if (parser.getRecordMetadata().containsColumn("Remove")) {
-          remove = record.getString("Remove");
-        }
-
-        // Handle deleted records
-        AllowedIP allowedIP = AllowedIPRepository.findByIpAddress(ipAddress);
-        if ("true".equalsIgnoreCase(remove)) {
-          if (allowedIP != null) {
-            if (DeleteAllowedIPListCommand.delete(allowedIP)) {
-              ++removeCount;
-            }
+          String reason = null;
+          String remove = null;
+          if (parser.getRecordMetadata().containsColumn("Reason")) {
+            reason = record.getString("Reason");
           }
-          continue;
-        }
+          if (parser.getRecordMetadata().containsColumn("Remove")) {
+            remove = record.getString("Remove");
+          }
 
-        // Skip duplicates
-        if (allowedIP != null) {
-          if ((StringUtils.isBlank(allowedIP.getReason()) &&
-              StringUtils.isBlank(reason)) ||
-              (allowedIP.getReason() != null && reason != null &&
-                  allowedIP.getReason().equals(reason))) {
+          // Handle deleted records
+          AllowedIP allowedIP = AllowedIPRepository.findByIpAddress(ipAddress);
+          if ("true".equalsIgnoreCase(remove)) {
+            if (allowedIP != null) {
+              if (DeleteAllowedIPListCommand.delete(allowedIP)) {
+                ++removedCount;
+              }
+            }
             continue;
           }
-        } else {
-          allowedIP = new AllowedIP();
-          allowedIP.setIpAddress(ipAddress);
-        }
 
-        // Optional fields
-        Date date = null;
-        if (parser.getRecordMetadata().containsColumn("Date")) {
-          date = record.getDate("Date");
-        }
+          // Skip duplicates
+          if (allowedIP != null) {
+            if ((StringUtils.isBlank(allowedIP.getReason()) &&
+                StringUtils.isBlank(reason)) ||
+                (allowedIP.getReason() != null && reason != null &&
+                    allowedIP.getReason().equals(reason))) {
+              continue;
+            }
+          } else {
+            allowedIP = new AllowedIP();
+            allowedIP.setIpAddress(ipAddress);
+          }
 
-        // Prepare the new record
-        allowedIP.setReason(reason);
-        if (date != null) {
-          allowedIP.setCreated(new Timestamp(date.getTime()));
+          // Optional fields
+          Date date = null;
+          if (parser.getRecordMetadata().containsColumn("Date")) {
+            date = record.getDate("Date");
+          }
+
+          // Prepare the new record
+          allowedIP.setReason(reason);
+          if (date != null) {
+            allowedIP.setCreated(new Timestamp(date.getTime()));
+          }
+          SaveAllowedIPCommand.save(allowedIP);
+          ++savedCount;
+          // Surface the cross-list shadowing warning the same way the single-entry form does --
+          // this new Allowed entry may silently neutralize an existing Blocked entry.
+          String conflictWarning = SaveAllowedIPCommand.getLastConflictWarning();
+          if (conflictWarning != null) {
+            String conflictDetail = "Row " + rowNumber + " (" + ipAddress + "): " + conflictWarning;
+            conflictWarnings.add(conflictDetail);
+            LOG.warn("Allowed IP CSV import saved a row overlapping the Blocked list -- " + conflictDetail);
+          }
+        } catch (Exception rowException) {
+          ++skippedCount;
+          String reasonMessage = rowException.getMessage() != null
+              ? rowException.getMessage()
+              : rowException.getClass().getSimpleName();
+          String detail = "Row " + rowNumber + (ipAddress != null ? " (" + ipAddress + ")" : "") + ": " + reasonMessage;
+          skipDetails.add(detail);
+          LOG.warn("Skipped a row while importing the allow list -- " + detail);
         }
-        SaveAllowedIPCommand.save(allowedIP);
-        ++recordCount;
       }
 
     } catch (DataException data) {
@@ -143,7 +245,7 @@ public class ProcessAllowListCSVFileCommand {
       // Clean up the file if it exists
       SaveFilePartCommand.cleanupFile(fileItemBean);
     }
-    LOG.debug("Records removed: " + removeCount);
-    return recordCount;
+    LOG.debug("Records saved: " + savedCount + ", removed: " + removedCount + ", skipped: " + skippedCount);
+    return new ImportResult(savedCount, removedCount, skippedCount, skipDetails, conflictWarnings);
   }
 }

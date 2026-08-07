@@ -29,7 +29,8 @@
       <th width="30"></th>
       <th>Platform</th>
       <th>URL</th>
-      <th width="30"></th>
+      <th width="60">Order</th>
+      <th width="60"></th>
     </tr>
   </thead>
   <tbody>
@@ -38,15 +39,18 @@
       <td><i class="fa ${fn:escapeXml(record.iconClass)}"></i></td>
       <td><c:out value="${record.platformName}" /></td>
       <td><a href="<c:out value="${record.url}"/>" target="_blank" rel="noopener noreferrer"><c:out value="${record.url}" /></a></td>
+      <td><c:out value="${record.linkOrder}" /></td>
       <td nowrap="true">
+        <a href="${ctx}/admin/social-media-settings?socialMediaLinkId=${record.id}"><i class="fa fa-pencil"></i></a>
         <a href="#" onclick="return confirmPostAction('Are you sure you want to remove <c:out value="${js:escape(record.platformName)}" />?', '${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&socialMediaLinkId=${record.id}');"><i class="fa fa-remove"></i></a>
       </td>
     </tr>
     </c:forEach>
     <c:if test="${empty socialMediaLinkList}">
       <tr>
-        <td colspan="4">No social media links have been added yet</td>
+        <td colspan="5">No social media links have been added yet</td>
       </tr>
     </c:if>
   </tbody>
 </table>
+<p class="help-text">These links show as icons in the site footer, in the order set above; the icon for each is picked automatically from the platform name.</p>

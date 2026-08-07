@@ -63,6 +63,18 @@ public class SocialMediaLinkRepository {
         SocialMediaLinkRepository::buildRecord);
   }
 
+  /** Case-insensitive lookup used to reject duplicate platform entries (e.g. "Instagram" and
+   *  "instagram") before they're saved -- see SocialMediaLinkFormWidget#post(). */
+  public static SocialMediaLink findByPlatformName(String platformName) {
+    if (StringUtils.isBlank(platformName)) {
+      return null;
+    }
+    return (SocialMediaLink) DB.selectRecordFrom(
+        TABLE_NAME,
+        new SqlUtils().add("LOWER(platform_name) = ?", platformName.trim().toLowerCase()),
+        SocialMediaLinkRepository::buildRecord);
+  }
+
   public static SocialMediaLink save(SocialMediaLink record) {
     if (record.getId() > -1) {
       return update(record);

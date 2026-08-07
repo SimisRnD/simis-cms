@@ -25,6 +25,7 @@
   <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
 <%@include file="../page_messages.jspf" %>
+<p class="help-text">Edit the dataset's display Name and Description shown on the Datasets list and other admin views -- these are informational labels and don't affect syncing or field mapping.</p>
 <form method="post" enctype="multipart/form-data">
   <%-- Required by controller --%>
   <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
