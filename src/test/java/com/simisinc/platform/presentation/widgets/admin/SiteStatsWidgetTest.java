@@ -35,6 +35,7 @@ import java.util.List;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
@@ -460,7 +461,8 @@ class SiteStatsWidgetTest extends WidgetBase {
             "</widget>");
 
     try (MockedStatic<AuditLogRepository> auditLogRepository = mockStatic(AuditLogRepository.class)) {
-      auditLogRepository.when(() -> AuditLogRepository.findAll(any(AuditLogSpecification.class), any(DataConstraints.class)))
+      auditLogRepository.when(() -> AuditLogRepository.findRecentActivity(
+          any(), any(Timestamp.class), any(), any(DataConstraints.class)))
           .thenReturn(List.of());
 
       setRoles(widgetContext, ADMIN);
@@ -472,28 +474,46 @@ class SiteStatsWidgetTest extends WidgetBase {
   }
 
   @Test
-  void findRecentAdminActionsMergesSortsAndTruncatesAcrossCategories() {
-    AuditLog oldest = eventAt("content", 1_000L);
-    AuditLog middle = eventAt("configuration", 2_000L);
-    AuditLog newest = eventAt("user_management", 3_000L);
+  void findRecentAdminActionsDelegatesToFindRecentActivityAcrossAllCategoriesWithATrailingWindow() {
+    // Issue #1006: this tile used to run one findAll query per category (content/configuration/
+    // user_management only, no time window) and merge the results in Java. It now delegates to the
+    // general-purpose findRecentActivity query -- unconstrained category set (null = all 6, including
+    // the authentication/authorization/data_access categories the old version omitted) and a real
+    // trailing window, matching the /admin/activity feed's default.
+    AuditLog newest = eventAt("authentication", 3_000L);
 
     try (MockedStatic<AuditLogRepository> auditLogRepository = mockStatic(AuditLogRepository.class)) {
-      auditLogRepository.when(() -> AuditLogRepository.findAll(
-          argThat(spec -> "content".equals(spec.getEventCategory())), any(DataConstraints.class)))
-          .thenReturn(List.of(oldest));
-      auditLogRepository.when(() -> AuditLogRepository.findAll(
-          argThat(spec -> "configuration".equals(spec.getEventCategory())), any(DataConstraints.class)))
-          .thenReturn(List.of(middle));
-      auditLogRepository.when(() -> AuditLogRepository.findAll(
-          argThat(spec -> "user_management".equals(spec.getEventCategory())), any(DataConstraints.class)))
+      auditLogRepository.when(() -> AuditLogRepository.findRecentActivity(
+          eq(null), any(Timestamp.class), eq(null), any(DataConstraints.class)))
           .thenReturn(List.of(newest));
 
-      List<AuditLog> result = SiteStatsWidget.findRecentAdminActions(2);
+      List<AuditLog> result = SiteStatsWidget.findRecentAdminActions(5);
 
-      // Newest first, and truncated to the requested limit even though 3 records were found
-      Assertions.assertEquals(2, result.size());
+      Assertions.assertEquals(1, result.size());
       Assertions.assertEquals(newest, result.get(0));
-      Assertions.assertEquals(middle, result.get(1));
+
+      // The window passed must be roughly "now minus the shared default trailing window", not unbounded
+      ArgumentCaptor<Timestamp> sinceCaptor = ArgumentCaptor.forClass(Timestamp.class);
+      auditLogRepository.verify(() -> AuditLogRepository.findRecentActivity(
+          eq(null), sinceCaptor.capture(), eq(null), any(DataConstraints.class)));
+      long expectedMillisAgo = Duration.ofDays(AuditLogRepository.DEFAULT_TRAILING_WINDOW_DAYS).toMillis();
+      long actualMillisAgo = System.currentTimeMillis() - sinceCaptor.getValue().getTime();
+      Assertions.assertTrue(Math.abs(actualMillisAgo - expectedMillisAgo) < 5_000,
+          "expected the cutoff to be ~" + AuditLogRepository.DEFAULT_TRAILING_WINDOW_DAYS + " days ago, was " + sinceCaptor.getValue());
+    }
+  }
+
+  @Test
+  void findRecentAdminActionsReturnsAnEmptyListRatherThanNullWhenNothingIsFound() {
+    try (MockedStatic<AuditLogRepository> auditLogRepository = mockStatic(AuditLogRepository.class)) {
+      auditLogRepository.when(() -> AuditLogRepository.findRecentActivity(
+          eq(null), any(Timestamp.class), eq(null), any(DataConstraints.class)))
+          .thenReturn(null);
+
+      List<AuditLog> result = SiteStatsWidget.findRecentAdminActions(5);
+
+      Assertions.assertNotNull(result);
+      Assertions.assertTrue(result.isEmpty());
     }
   }
 

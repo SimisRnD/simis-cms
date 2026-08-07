@@ -294,6 +294,7 @@
   <widget name="salesTaxNexusAddressForm" class="com.simisinc.platform.presentation.widgets.admin.ecommerce.SalesTaxNexusAddressFormWidget" />
   <widget name="xapiStatementList" class="com.simisinc.platform.presentation.widgets.admin.xapi.XapiStatementListWidget" />
   <widget name="auditLogList" class="com.simisinc.platform.presentation.widgets.admin.audit.AuditLogListWidget" />
+  <widget name="activityFeed" class="com.simisinc.platform.presentation.widgets.admin.audit.ActivityFeedWidget" />
   <widget name="healthDashboard" class="com.simisinc.platform.presentation.widgets.admin.HealthDashboardWidget" />
   <widget name="databaseMaintenance" class="com.simisinc.platform.presentation.widgets.admin.DatabaseMaintenanceWidget" />
   <widget name="cacheManagement" class="com.simisinc.platform.presentation.widgets.admin.CacheManagementWidget" />
