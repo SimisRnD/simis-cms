@@ -25,6 +25,8 @@ import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -59,6 +61,19 @@ import com.simisinc.platform.presentation.controller.DataConstants;
 class EditorialCalendarAjaxTest extends WidgetBase {
 
   private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
+
+  /** The zone mockSiteTimezone() pins site.timezone to, and therefore the zone the widget formats in. */
+  private static final ZoneId SITE_ZONE = ZoneId.of("America/New_York");
+
+  /**
+   * The calendar day an entry is anchored on, as the widget computes it: in the configured site
+   * timezone, not the JVM's. Asserting with a JVM-default formatter instead passes only when the
+   * runner's zone happens to agree with the site zone -- it is off by a day on a UTC CI runner for
+   * any instant late enough in the UTC day to still be the previous day in New York.
+   */
+  private static String siteZoneDate(Date date) {
+    return DateTimeFormatter.ISO_LOCAL_DATE.format(date.toInstant().atZone(SITE_ZONE));
+  }
 
   private static Timestamp daysFromNow(int days) {
     return new Timestamp(System.currentTimeMillis() + Duration.ofDays(days).toMillis());
@@ -95,7 +110,7 @@ class EditorialCalendarAjaxTest extends WidgetBase {
    */
   private static MockedStatic<LoadSitePropertyCommand> mockSiteTimezone() {
     MockedStatic<LoadSitePropertyCommand> mock = mockStatic(LoadSitePropertyCommand.class);
-    mock.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
+    mock.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn(SITE_ZONE.getId());
     return mock;
   }
 
@@ -588,7 +603,7 @@ class EditorialCalendarAjaxTest extends WidgetBase {
     String json = widgetContext.getJson();
     Assertions.assertTrue(json.contains("\"type\":\"Event\""), json);
     Assertions.assertTrue(json.contains("Week-Long Conference"), json);
-    Assertions.assertTrue(json.contains("\"date\":\"" + DATE_FORMAT.format(event.getEndDate()) + "\""),
+    Assertions.assertTrue(json.contains("\"date\":\"" + siteZoneDate(event.getEndDate()) + "\""),
         "a multi-day event that started before the range must be anchored on its in-range end date: " + json);
   }
 
