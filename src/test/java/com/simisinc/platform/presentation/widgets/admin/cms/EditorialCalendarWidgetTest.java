@@ -132,4 +132,54 @@ class EditorialCalendarWidgetTest extends WidgetBase {
     Assertions.assertEquals("Editorial Calendar", request.getAttribute("title"));
     Assertions.assertEquals("fa-calendar-check", request.getAttribute("icon"));
   }
+
+  // --- canEditPagesAndPosts (issue #426 Bug B) ---
+  //
+  // editorial-calendar.jsp's inline script reads this flag to decide, per rendered entry, whether
+  // a Page/Post is a clickable edit link or plain non-interactive text -- see
+  // EditorialCalendarWidget.java's comment. A pure community-manager (no admin/content-manager)
+  // has no edit access to /admin/web-page or /blog-editor (both 404 for that role -- see
+  // admin-layout.xml), even though they can see this page and every Page/Post entry on it.
+
+  @Test
+  void executeSetsCanEditPagesAndPostsTrueForAdmin() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"editorialCalendar\" />");
+    setRoles(widgetContext, ADMIN);
+
+    try (MockedStatic<UserRepository> users = mockStatic(UserRepository.class)) {
+      users.when(() -> UserRepository.findAll(any(), any())).thenReturn(List.of());
+
+      new EditorialCalendarWidget().execute(widgetContext);
+    }
+
+    Assertions.assertEquals("true", request.getAttribute("canEditPagesAndPosts"));
+  }
+
+  @Test
+  void executeSetsCanEditPagesAndPostsTrueForContentManager() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"editorialCalendar\" />");
+    setRoles(widgetContext, CONTENT_MANAGER);
+
+    try (MockedStatic<UserRepository> users = mockStatic(UserRepository.class)) {
+      users.when(() -> UserRepository.findAll(any(), any())).thenReturn(List.of());
+
+      new EditorialCalendarWidget().execute(widgetContext);
+    }
+
+    Assertions.assertEquals("true", request.getAttribute("canEditPagesAndPosts"));
+  }
+
+  @Test
+  void executeSetsCanEditPagesAndPostsFalseForCommunityManagerOnly() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"editorialCalendar\" />");
+    setRoles(widgetContext, COMMUNITY_MANAGER);
+
+    try (MockedStatic<UserRepository> users = mockStatic(UserRepository.class)) {
+      users.when(() -> UserRepository.findAll(any(), any())).thenReturn(List.of());
+
+      new EditorialCalendarWidget().execute(widgetContext);
+    }
+
+    Assertions.assertEquals("false", request.getAttribute("canEditPagesAndPosts"));
+  }
 }
