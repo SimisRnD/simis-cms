@@ -55,20 +55,41 @@ jobs:
         with:
           fetch-depth: 0
 
+      # base/head are deliberately left unset for push/workflow_dispatch/schedule -- at
+      # scan time HEAD *is* the default branch (this workflow only runs against main),
+      # so an explicit base/head there pins them to the same commit and TruffleHog
+      # refuses to scan ("BASE and HEAD commits are the same"). Leaving them unset lets
+      # the action fall back to its own event-aware detection for those three triggers.
+      #
+      # That built-in detection has no case for the "release" event, though: its bundled
+      # script only branches on push/workflow_dispatch/schedule/pull_request, so on a
+      # release BASE/HEAD silently stay empty and it falls back to an unbounded, full
+      # git-history scan -- surfacing years-old, already-shipped content (vendored jar
+      # bytes, test fixture strings, checksum files) as "new" findings instead of just
+      # what changed since the prior release. The step below computes that explicitly.
+      - name: Determine the previous release tag for an incremental scan range
+        if: github.event_name == 'release'
+        id: scan-range
+        run: |
+          git fetch --tags --force --quiet
+          mapfile -t TAGS < <(git tag --list 'v*.10000' | sort -V)
+          CURRENT="${{ github.event.release.tag_name }}"
+          PREV=""
+          for i in "${!TAGS[@]}"; do
+            if [ "${TAGS[$i]}" = "$CURRENT" ] && [ "$i" -gt 0 ]; then
+              PREV="${TAGS[$((i-1))]}"
+            fi
+          done
+          echo "base=$PREV" >> "$GITHUB_OUTPUT"
+
       # Secret scanning: detect hardcoded credentials (passwords, API keys, tokens)
       # before they reach the image. TruffleHog scans git history and the checked-out
       # code; a finding blocks the workflow to prevent secret leaks.
-      #
-      # base/head are deliberately left unset: this step runs on push/release/schedule/
-      # workflow_dispatch, not just PRs, and at scan time HEAD *is* the default branch
-      # (this workflow only runs against main), so an explicit base/head pins them to the
-      # same commit and TruffleHog refuses to scan ("BASE and HEAD commits are the same").
-      # Leaving them unset lets the action fall back to its own event-aware detection,
-      # which correctly derives the commit range from the triggering event instead.
       - name: Scan for secrets in code and history
         uses: trufflesecurity/trufflehog@6f3c981e7b77f235fd2702dd74af25fc4b72bf11 # v3.96.0
         with:
           path: ./
+          base: ${{ steps.scan-range.outputs.base }}
           # The action already runs with --fail internally; adding it again in
           # extra_args trips its "flag 'fail' cannot be repeated" error.
           extra_args: --json
