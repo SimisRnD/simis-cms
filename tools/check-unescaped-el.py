@@ -112,6 +112,11 @@ ALLOWLIST: dict[str, str] = {
         "through Base64.getUrlEncoder().withoutPadding() -- the URL-safe alphabet contains only "
         "[A-Za-z0-9_-], so it cannot hold a quote, angle bracket, or any other markup-breaking "
         "character in any context.",
+    "${canEditPagesAndPosts}":
+        "EditorialCalendarWidget.java sets this from a Java boolean via the ternary "
+        "`canEditPagesAndPosts ? \"true\" : \"false\"` -- same pattern as ${hideChartControls}/"
+        "${hideChartTitle} above -- so the request attribute is always exactly one of the two "
+        "literals true/false, never attacker-influenced.",
     "${errorMessage}":
         "WebVitalsWidget.java sets this to the hardcoded literal \"Error loading performance "
         "data\" on the catch path -- never derived from request input.",

@@ -28,12 +28,42 @@
   <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
 </c:if>
 <p class="help-text">
-  This page controls the top navigation menu shown on your website -- not an XML sitemap or a visual page map.
-  A <strong>tab</strong> is a top-level menu entry (e.g. "Solutions"); an <strong>item</strong> is a submenu entry
-  shown when a visitor opens a tab. Add tabs and items below, drag the <i class="fa fa-arrows-h"></i>/<i class="fa fa-arrows"></i>
+  This page designs the drop-down navigation menu shown across the very top of every page on your website --
+  not an XML sitemap and not a visual map of your pages. Everything you add or reorder here shows up immediately,
+  site-wide, for every visitor.
+</p>
+<div class="callout radius" style="max-width:460px;">
+  <p style="margin-bottom:8px;"><strong>Example: what a tab and its items look like to a visitor</strong></p>
+  <div style="border:1px solid #ccc;border-radius:4px;overflow:hidden;font-size:0.9rem;">
+    <div style="background:#2c2c2c;color:#fff;padding:8px 14px;display:flex;gap:20px;">
+      <span>Home</span>
+      <span style="border-bottom:2px solid #fff;padding-bottom:2px;">Solutions &#9662;</span>
+      <span>Contact Us</span>
+    </div>
+    <div style="background:#fff;padding:8px 14px;">
+      <div style="padding:2px 0;">Government Services</div>
+      <div style="padding:2px 0;">Commercial Services</div>
+    </div>
+  </div>
+  <p class="help-text" style="margin-top:8px;margin-bottom:0;">
+    "Solutions" is a <strong>tab</strong> (Name: Solutions, Link: /solutions) sitting in the bar across the top
+    of the site. "Government Services" and "Commercial Services" are <strong>items</strong> -- they only appear
+    in the drop-down underneath "Solutions" when a visitor opens it. A tab with no items just links straight to
+    its own page instead of opening a drop-down at all (that's what "Home" and "Contact Us" are above).
+  </p>
+</div>
+<p class="help-text">
+  Add tabs and items below, drag the <i class="fa fa-arrows-h"></i>/<i class="fa fa-arrows"></i>
   handles to reorder them, or click <i class="fa fa-circle-xmark"></i> to delete one. Changes take effect as soon as you save.
   This page can add and delete tabs/items but not change an existing one's link -- to rename an existing tab/item or change
   where it links, use <a href="${ctx}/admin/sitemap-editor">Navigation Menu Editor - Edit Links</a> instead.
+</p>
+<p class="help-text">
+  The first tab shown below (usually "Home") has no delete icon, no drag handle, and no "Add Item" box --
+  that's not a display bug. Whichever tab's link is exactly <code>/</code> is automatically pinned back to the
+  very first position every time you save a reorder here or on the Edit Links page, so it can never actually be
+  moved, and this page always renders it as locked to match. If your site has no tab linking to exactly
+  <code>/</code>, whichever tab happens to sort first gets this same locked treatment instead.
 </p>
 <%@include file="../page_messages.jspf" %>
 <form method="post">
@@ -134,6 +164,27 @@
     <a href="${ctx}/admin" class="button radius secondary">Cancel</a>
   </div>
 </form>
+<h5>Common problems and how to fix them</h5>
+<ul>
+  <li><strong>Deleting a tab also deletes every submenu item under it.</strong> The confirmation prompt tells you
+    how many items will go with it, but there's no way to keep the items and only remove the tab -- move anything
+    you want to keep to a different tab first.</li>
+  <li><strong>A visitor sees a tab that opens to nothing, or a submenu item that 404s.</strong> Neither this page
+    nor Edit Links checks that a Link actually points to a real page, and nothing here checks for duplicate
+    links either -- two tabs (or two items) can point at the same page, or at a page that doesn't exist, with no
+    warning.</li>
+  <li><strong>There's no way to temporarily hide a tab or item without deleting it.</strong> Everything added here
+    is immediately live to every visitor; there's no draft or disabled state exposed on this page.</li>
+  <li><strong>Known issue, fixed in progress:</strong> the server-side check that's supposed to block deleting
+    the Home tab even if someone bypasses this page's UI (e.g. by directly hitting the delete action with the
+    Home tab's id) doesn't currently fire. This page's own UI never exposes a way to do that -- the delete icon
+    is never shown for the locked first tab -- so this only matters if something else constructs that request
+    directly.</li>
+  <li><strong>Known issue, fixed in progress:</strong> clicking "Save Site Map Changes" currently attempts (and
+    fails) a wasted update for every existing tab's Name, since this page never actually lets you edit an
+    existing tab's name here -- that has no visible effect (the failed attempt is silently rejected before your
+    real name is touched), but it does mean an error gets logged on the server for every tab on every save.</li>
+</ul>
 <script src="${ctx}/javascript/dragula-3.7.3/dragula.min.js"></script>
 <script nonce="${cspNonce}">
   var menuTabs = dragula([document.getElementById('site-map-container')], {

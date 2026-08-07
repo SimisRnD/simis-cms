@@ -26,6 +26,27 @@
 <c:if test="${!empty title}">
   <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
+<p class="help-text">
+  Every page on the site lives here, in two views of the same underlying records. <strong>In Navigation
+  Menu</strong> below mirrors the site's actual top-nav hierarchy (see <a href="${ctx}/admin/sitemap">Navigation
+  Menu</a> to change it) -- it isn't searchable or filterable, and its rows aren't bulk-selectable, since it's
+  already organized by that hierarchy rather than a flat list. <strong>All Web Pages</strong> further down is
+  every non-archived page record, including every non-archived page shown above, plus anything created but never
+  added to the navigation menu -- that's the only place to search, filter by status, or use the bulk actions.
+  Archived pages are left out of it by default (see below); a page that's archived while still linked from the
+  navigation menu can still show up above with no matching row in this list, unless you switch the Status filter
+  to Archived.
+</p>
+<p class="help-text">
+  <strong>live</strong>/<strong>draft</strong>/<strong>301</strong>/<strong>404</strong>/<strong>archived</strong>
+  describe the page itself. <strong>404</strong> means a page record exists (so something links to it) but it
+  has no stored content -- a broken link waiting to happen, not evidence anything is actually wrong yet (fixing
+  it means adding content with the <i class="fa fa-code"></i> designer icon below, not the pencil -- see Common
+  Problems). A second, unrelated badge can appear alongside it, on a page in any of those states:
+  <strong>Pending Review</strong>/<strong>Approved</strong>/<strong>Draft</strong> means this page has a
+  separate, unpublished edit sitting in the governed review pipeline -- the page's own live content (or lack of
+  it) is unaffected until that edit is actually published, however that badge reads.
+</p>
 <%@include file="../page_messages.jspf" %>
 <table class="unstriped">
   <thead>
@@ -238,6 +259,12 @@
         <fmt:formatNumber value="${webPageRedirectCount}" /> redirects,
         <fmt:formatNumber value="${webPageBrokenCount}" /> broken
       </small>
+      <br />
+      <small class="subheader">
+        This summary always covers every page, regardless of the search/filter below -- but an archived page is
+        still folded into whichever of these buckets its other fields put it in (there's no separate archived
+        count here, even though the filterable list below excludes archived pages by default).
+      </small>
     </td>
   </tr>
   <tr>
@@ -278,6 +305,9 @@
         <button type="button" class="button tiny radius" id="bulkPublishBtn">Publish</button>
         <button type="button" class="button tiny radius" id="bulkUnpublishBtn">Unpublish</button>
         <button type="button" class="button tiny radius" id="bulkArchiveBtn">Archive</button>
+        <%-- No Unarchive action exists here or anywhere else on these pages -- once archived a page can
+             only be brought back by editing the database directly. This matches Calendar Events and
+             Blog Posts' identical bulk-archive precedent, not something unique to this page. --%>
         <%-- Issue #427 review fix: bulkDelete is admin-only server-side (WebPageListWidget#post), same
              as the single-item "Delete Page" button on web-page-form.jsp -- a content-manager must
              never even see this affordance, not just have it silently rejected on click. --%>
@@ -361,6 +391,28 @@
   </tbody>
 </table>
 <a class="button radius primary" href="${ctx}/admin/web-page?returnPage=/admin/web-pages">Add a Web Page <i class="fa fa-arrow-circle-right"></i></a>
+<h5>Common problems and how to fix them</h5>
+<ul>
+  <li><strong><i class="fa fa-edit"></i> vs <i class="fa fa-code"></i> -- which one do I want?</strong>
+    The pencil opens the regular field-by-field editor (title, keywords, description, publish settings) --
+    there's no content field on it at all, so it can't fix a 404. The code icon opens the raw page designer,
+    which is the only place that actually edits the page's content, and is easy to break a page with if you're
+    not familiar with it. This icon is only shown here to an admin, but the designer page itself accepts a
+    content manager too -- hiding the icon isn't the only thing standing between a content manager and it.</li>
+  <li><strong>A page shows 404 here but I can't tell why.</strong> It means a page record exists (so
+    something -- a nav-menu entry, a link elsewhere -- points to it) but it has no stored content yet. Add
+    content with the <i class="fa fa-code"></i> designer icon (the pencil icon can't do this), or delete the
+    record if it was created by mistake.</li>
+  <li><strong>I archived a page and now I can't find a way to bring it back.</strong> There is no Unarchive
+    action anywhere on these pages (the same is true for Calendar Events and Blog Posts) -- once archived, the
+    page immediately goes offline and can only be restored by editing the database directly. Filter by
+    "Archived" to confirm a page's status, but don't archive something you might need live again soon.</li>
+  <li><strong>Delete is permanent and admin-only</strong> -- unlike Publish/Unpublish/Archive, which any
+    content manager can do, only an admin can delete a page (single or in bulk), and there is no undo. Archive
+    is almost always the safer choice when you just want a page out of the way.</li>
+  <li><strong>A bulk action rejects my whole selection.</strong> Selections over 100 pages are rejected
+    outright rather than silently applied to only the first 100 -- reselect a smaller batch and try again.</li>
+</ul>
 <%-- Bulk action reveal modals -- selection is scoped to the "All Web Pages" rows currently checked
      on this page (see the JS below); each is populated at open time with the live selection, not
      just a count. Mirrors calendar-event-list.jsp's bulk reveal modals (issue #427/PR #911 pattern). --%>
