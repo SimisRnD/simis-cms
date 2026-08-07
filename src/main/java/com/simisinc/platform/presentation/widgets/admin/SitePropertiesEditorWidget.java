@@ -24,6 +24,7 @@ import com.simisinc.platform.application.cms.ColorCommand;
 import com.simisinc.platform.application.login.StepUpAuthCommand;
 import com.simisinc.platform.application.mailinglists.MailChimpCommand;
 import com.simisinc.platform.domain.model.SiteProperty;
+import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.infrastructure.cache.CacheManager;
 import com.simisinc.platform.infrastructure.persistence.SitePropertyRepository;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
