@@ -543,6 +543,11 @@ class LlmsTxtServletTest {
       webPageRepository.verify(() -> WebPageRepository.findAll(specCaptor.capture(), eq(null)));
       assertEquals(DataConstants.TRUE, specCaptor.getValue().getEnabled(), "expected only enabled pages to be requested");
       assertEquals(DataConstants.TRUE, specCaptor.getValue().getInSitemap(), "expected only in-sitemap pages to be requested");
+      // Regression test: this spec never excluded archived pages, unlike SitemapServlet's
+      // equivalent query for this same entity, so an archived page's title/description/link was
+      // still named here even though sitemap.xml (the other fully-public, unauthenticated listing
+      // of this entity) already excludes it.
+      assertEquals(DataConstants.FALSE, specCaptor.getValue().getArchivedOnly(), "expected archived pages to be excluded");
     }
   }
 
