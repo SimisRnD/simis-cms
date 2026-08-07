@@ -28,6 +28,7 @@ import java.sql.Statement;
 import java.sql.Timestamp;
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 import org.junit.jupiter.api.AfterAll;
@@ -400,6 +401,38 @@ class CalendarEventRepositoryTest {
     addEvent(calendar.getId(), "live-event", null, null);
 
     assertEquals(List.of("live-event"), uniqueIdsFor(new CalendarEventSpecification()));
+  }
+
+  // --- countGroupedByCalendarId() (CalendarListWidget's N+1 fix) ---
+
+  @Test
+  void countGroupedByCalendarIdReturnsEachCalendarsOwnTotal() {
+    Calendar calendarA = addCalendar("cal-grouped-count-a");
+    Calendar calendarB = addCalendar("cal-grouped-count-b");
+    addEvent(calendarA.getId(), "a-1", null, null);
+    addEvent(calendarA.getId(), "a-2", Timestamp.valueOf("2026-01-01 00:00:00"), null);
+    addEvent(calendarA.getId(), "a-3", null, Timestamp.valueOf("2026-06-01 00:00:00"));
+    addEvent(calendarB.getId(), "b-1", null, null);
+
+    Map<Long, Long> counts = CalendarEventRepository.countGroupedByCalendarId();
+
+    // All 3 of calendar A's events count, regardless of published/archived state -- this mirrors
+    // the old per-row findCount(specification-with-only-calendarId-set) behavior exactly, which
+    // never filtered on published/archived either.
+    assertEquals(3L, counts.get(calendarA.getId()));
+    assertEquals(1L, counts.get(calendarB.getId()));
+  }
+
+  @Test
+  void countGroupedByCalendarIdOmitsACalendarWithNoEvents() {
+    Calendar withEvents = addCalendar("cal-grouped-count-with-events");
+    Calendar withoutEvents = addCalendar("cal-grouped-count-without-events");
+    addEvent(withEvents.getId(), "only-event", null, null);
+
+    Map<Long, Long> counts = CalendarEventRepository.countGroupedByCalendarId();
+
+    assertEquals(1L, counts.get(withEvents.getId()));
+    assertFalse(counts.containsKey(withoutEvents.getId()), "a calendar with zero events must be absent, not present with a 0 value");
   }
 
   // --- update()/remove() paths the bulk actions drive ---

@@ -18,11 +18,15 @@ package com.simisinc.platform.presentation.widgets.admin.cms;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
 
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -32,6 +36,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
 import com.simisinc.platform.WidgetBase;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.cms.ContentReviewCommand;
 import com.simisinc.platform.domain.model.cms.Blog;
 import com.simisinc.platform.domain.model.cms.BlogPost;
@@ -57,6 +62,19 @@ class EditorialCalendarAjaxTest extends WidgetBase {
 
   private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
 
+  /** The zone mockSiteTimezone() pins site.timezone to, and therefore the zone the widget formats in. */
+  private static final ZoneId SITE_ZONE = ZoneId.of("America/New_York");
+
+  /**
+   * The calendar day an entry is anchored on, as the widget computes it: in the configured site
+   * timezone, not the JVM's. Asserting with a JVM-default formatter instead passes only when the
+   * runner's zone happens to agree with the site zone -- it is off by a day on a UTC CI runner for
+   * any instant late enough in the UTC day to still be the previous day in New York.
+   */
+  private static String siteZoneDate(Date date) {
+    return DateTimeFormatter.ISO_LOCAL_DATE.format(date.toInstant().atZone(SITE_ZONE));
+  }
+
   private static Timestamp daysFromNow(int days) {
     return new Timestamp(System.currentTimeMillis() + Duration.ofDays(days).toMillis());
   }
@@ -81,6 +99,19 @@ class EditorialCalendarAjaxTest extends WidgetBase {
   private void mockEmptyPagesAndPosts(MockedStatic<WebPageRepository> pages, MockedStatic<BlogPostRepository> posts) {
     pages.when(() -> WebPageRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
     posts.when(() -> BlogPostRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+  }
+
+  /**
+   * appendEntry()'s "date" field now goes through FormatDateCommand.getSiteZoneId(), which reads
+   * "site.timezone" via LoadSitePropertyCommand -- otherwise requiring a real DB connection
+   * through its Caffeine-backed cache. Mirrors ItemDateFacetCommandTest's identical helper. Only
+   * needed by tests that emit at least one entry with a non-null date -- an entry filtered out by
+   * statusFilter, or the undated feed (date is always null there), never reaches that code.
+   */
+  private static MockedStatic<LoadSitePropertyCommand> mockSiteTimezone() {
+    MockedStatic<LoadSitePropertyCommand> mock = mockStatic(LoadSitePropertyCommand.class);
+    mock.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn(SITE_ZONE.getId());
+    return mock;
   }
 
   // --- role gate ---
@@ -121,7 +152,8 @@ class EditorialCalendarAjaxTest extends WidgetBase {
 
     try (MockedStatic<WebPageRepository> pages = mockStatic(WebPageRepository.class);
         MockedStatic<BlogPostRepository> posts = mockStatic(BlogPostRepository.class);
-        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class)) {
+        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockSiteTimezone()) {
       pages.when(() -> WebPageRepository.findAll(any(), any())).thenReturn(List.of(page));
       mockEmptyPostsAndEvents(posts, events);
 
@@ -148,7 +180,8 @@ class EditorialCalendarAjaxTest extends WidgetBase {
 
     try (MockedStatic<WebPageRepository> pages = mockStatic(WebPageRepository.class);
         MockedStatic<BlogPostRepository> posts = mockStatic(BlogPostRepository.class);
-        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class)) {
+        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockSiteTimezone()) {
       pages.when(() -> WebPageRepository.findAll(any(), any())).thenReturn(List.of(page));
       mockEmptyPostsAndEvents(posts, events);
 
@@ -174,7 +207,8 @@ class EditorialCalendarAjaxTest extends WidgetBase {
 
     try (MockedStatic<WebPageRepository> pages = mockStatic(WebPageRepository.class);
         MockedStatic<BlogPostRepository> posts = mockStatic(BlogPostRepository.class);
-        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class)) {
+        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockSiteTimezone()) {
       pages.when(() -> WebPageRepository.findAll(any(), any())).thenReturn(List.of(page));
       mockEmptyPostsAndEvents(posts, events);
 
@@ -200,7 +234,8 @@ class EditorialCalendarAjaxTest extends WidgetBase {
 
     try (MockedStatic<WebPageRepository> pages = mockStatic(WebPageRepository.class);
         MockedStatic<BlogPostRepository> posts = mockStatic(BlogPostRepository.class);
-        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class)) {
+        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockSiteTimezone()) {
       pages.when(() -> WebPageRepository.findAll(any(), any())).thenReturn(List.of(page));
       mockEmptyPostsAndEvents(posts, events);
 
@@ -261,7 +296,8 @@ class EditorialCalendarAjaxTest extends WidgetBase {
     try (MockedStatic<WebPageRepository> pages = mockStatic(WebPageRepository.class);
         MockedStatic<BlogPostRepository> posts = mockStatic(BlogPostRepository.class);
         MockedStatic<BlogRepository> blogs = mockStatic(BlogRepository.class);
-        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class)) {
+        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockSiteTimezone()) {
       mockEmptyPagesAndEvents(pages, events);
       posts.when(() -> BlogPostRepository.findAll(any(), any())).thenReturn(List.of(post));
       blogs.when(BlogRepository::findAll).thenReturn(List.of(blog));
@@ -294,7 +330,8 @@ class EditorialCalendarAjaxTest extends WidgetBase {
     try (MockedStatic<WebPageRepository> pages = mockStatic(WebPageRepository.class);
         MockedStatic<BlogPostRepository> posts = mockStatic(BlogPostRepository.class);
         MockedStatic<BlogRepository> blogs = mockStatic(BlogRepository.class);
-        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class)) {
+        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockSiteTimezone()) {
       mockEmptyPagesAndEvents(pages, events);
       posts.when(() -> BlogPostRepository.findAll(any(), any())).thenReturn(List.of(post));
       blogs.when(BlogRepository::findAll).thenReturn(List.of(blog));
@@ -324,7 +361,8 @@ class EditorialCalendarAjaxTest extends WidgetBase {
     try (MockedStatic<WebPageRepository> pages = mockStatic(WebPageRepository.class);
         MockedStatic<BlogPostRepository> posts = mockStatic(BlogPostRepository.class);
         MockedStatic<BlogRepository> blogs = mockStatic(BlogRepository.class);
-        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class)) {
+        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockSiteTimezone()) {
       mockEmptyPagesAndEvents(pages, events);
       posts.when(() -> BlogPostRepository.findAll(any(), any())).thenReturn(List.of(post));
       blogs.when(BlogRepository::findAll).thenReturn(List.of(blog));
@@ -351,7 +389,8 @@ class EditorialCalendarAjaxTest extends WidgetBase {
 
     try (MockedStatic<WebPageRepository> pages = mockStatic(WebPageRepository.class);
         MockedStatic<BlogPostRepository> posts = mockStatic(BlogPostRepository.class);
-        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class)) {
+        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockSiteTimezone()) {
       mockEmptyPagesAndPosts(pages, posts);
       events.when(() -> CalendarEventRepository.findAll(any(), any())).thenReturn(List.of(event));
 
@@ -378,7 +417,8 @@ class EditorialCalendarAjaxTest extends WidgetBase {
 
     try (MockedStatic<WebPageRepository> pages = mockStatic(WebPageRepository.class);
         MockedStatic<BlogPostRepository> posts = mockStatic(BlogPostRepository.class);
-        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class)) {
+        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockSiteTimezone()) {
       mockEmptyPagesAndPosts(pages, posts);
       events.when(() -> CalendarEventRepository.findAll(any(), any())).thenReturn(List.of(event));
 
@@ -411,7 +451,8 @@ class EditorialCalendarAjaxTest extends WidgetBase {
 
     try (MockedStatic<WebPageRepository> pages = mockStatic(WebPageRepository.class);
         MockedStatic<BlogPostRepository> posts = mockStatic(BlogPostRepository.class);
-        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class)) {
+        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockSiteTimezone()) {
       pages.when(() -> WebPageRepository.findAll(any(), any())).thenReturn(List.of(page));
       mockEmptyPostsAndEvents(posts, events);
 
@@ -440,7 +481,8 @@ class EditorialCalendarAjaxTest extends WidgetBase {
 
     try (MockedStatic<WebPageRepository> pages = mockStatic(WebPageRepository.class);
         MockedStatic<BlogPostRepository> posts = mockStatic(BlogPostRepository.class);
-        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class)) {
+        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockSiteTimezone()) {
       pages.when(() -> WebPageRepository.findAll(any(), any())).thenReturn(List.of(page));
       mockEmptyPostsAndEvents(posts, events);
 
@@ -477,7 +519,8 @@ class EditorialCalendarAjaxTest extends WidgetBase {
     try (MockedStatic<WebPageRepository> pages = mockStatic(WebPageRepository.class);
         MockedStatic<BlogPostRepository> posts = mockStatic(BlogPostRepository.class);
         MockedStatic<BlogRepository> blogs = mockStatic(BlogRepository.class);
-        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class)) {
+        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockSiteTimezone()) {
       mockEmptyPagesAndEvents(pages, events);
       posts.when(() -> BlogPostRepository.findAll(any(), any())).thenReturn(List.of(post));
       blogs.when(BlogRepository::findAll).thenReturn(List.of(blog));
@@ -514,7 +557,8 @@ class EditorialCalendarAjaxTest extends WidgetBase {
     try (MockedStatic<WebPageRepository> pages = mockStatic(WebPageRepository.class);
         MockedStatic<BlogPostRepository> posts = mockStatic(BlogPostRepository.class);
         MockedStatic<BlogRepository> blogs = mockStatic(BlogRepository.class);
-        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class)) {
+        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockSiteTimezone()) {
       mockEmptyPagesAndEvents(pages, events);
       posts.when(() -> BlogPostRepository.findAll(any(), any())).thenReturn(List.of(post));
       blogs.when(BlogRepository::findAll).thenReturn(List.of(blog));
@@ -548,7 +592,8 @@ class EditorialCalendarAjaxTest extends WidgetBase {
 
     try (MockedStatic<WebPageRepository> pages = mockStatic(WebPageRepository.class);
         MockedStatic<BlogPostRepository> posts = mockStatic(BlogPostRepository.class);
-        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class)) {
+        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockSiteTimezone()) {
       mockEmptyPagesAndPosts(pages, posts);
       events.when(() -> CalendarEventRepository.findAll(any(), any())).thenReturn(List.of(event));
 
@@ -558,7 +603,7 @@ class EditorialCalendarAjaxTest extends WidgetBase {
     String json = widgetContext.getJson();
     Assertions.assertTrue(json.contains("\"type\":\"Event\""), json);
     Assertions.assertTrue(json.contains("Week-Long Conference"), json);
-    Assertions.assertTrue(json.contains("\"date\":\"" + DATE_FORMAT.format(event.getEndDate()) + "\""),
+    Assertions.assertTrue(json.contains("\"date\":\"" + siteZoneDate(event.getEndDate()) + "\""),
         "a multi-day event that started before the range must be anchored on its in-range end date: " + json);
   }
 
@@ -578,7 +623,8 @@ class EditorialCalendarAjaxTest extends WidgetBase {
 
     try (MockedStatic<WebPageRepository> pages = mockStatic(WebPageRepository.class);
         MockedStatic<BlogPostRepository> posts = mockStatic(BlogPostRepository.class);
-        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class)) {
+        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockSiteTimezone()) {
       mockEmptyPagesAndPosts(pages, posts);
       events.when(() -> CalendarEventRepository.findAll(any(), any())).thenReturn(List.of(event));
 
@@ -632,7 +678,8 @@ class EditorialCalendarAjaxTest extends WidgetBase {
 
     try (MockedStatic<WebPageRepository> pages = mockStatic(WebPageRepository.class);
         MockedStatic<BlogPostRepository> posts = mockStatic(BlogPostRepository.class);
-        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class)) {
+        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockSiteTimezone()) {
       pages.when(() -> WebPageRepository.findAll(any(), any())).thenReturn(List.of(page));
 
       new EditorialCalendarAjax().execute(widgetContext);
