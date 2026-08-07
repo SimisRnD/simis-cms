@@ -329,13 +329,28 @@
             <p class="help-text" id="securityGeoAnomalyRecentHoursHelpText">How many hours of the most recent traffic the Geo Anomaly tile checks for a country that wasn't among the top 5 during the Baseline Window above. A shorter window reacts faster to a new source of traffic but is noisier with normal day-to-day variation. Default is 24 hours.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'elearning.lrs.url'}">
-            <p class="help-text" id="elearningLrsUrlHelpText">This connects to a Learning Record Store (LRS) using xAPI, a learning-data standard created by the DoD's Advanced Distributed Learning (ADL) Initiative and encouraged for DoD systems under DoD Instruction 1322.26. ADL's own reference LRS (<a href="https://github.com/adlnet/ADL_LRS" target="_blank" rel="noreferrer">adlnet/ADL_LRS</a>) is now archived following the Initiative's 2025 shutdown. <a href="https://github.com/yetanalytics/lrsql" target="_blank" rel="noreferrer">Yet Analytics' SQL LRS</a> -- built by the first vendor to pass the DoD's full ADL LRS Test Suite -- is an actively maintained open-source alternative.</p>
+            <p class="help-text" id="elearningLrsUrlHelpText">This site's LRS xAPI integration doesn't currently forward anything to an external Learning Record Store -- see the toggle above. This field, together with LRS Key and LRS Secret below, is unused by any code path today. xAPI is a learning-data standard created by the DoD's Advanced Distributed Learning (ADL) Initiative and encouraged for DoD systems under DoD Instruction 1322.26. ADL's own reference LRS (<a href="https://github.com/adlnet/ADL_LRS" target="_blank" rel="noreferrer">adlnet/ADL_LRS</a>) is now archived following the Initiative's 2025 shutdown. <a href="https://github.com/yetanalytics/lrsql" target="_blank" rel="noreferrer">Yet Analytics' SQL LRS</a> -- built by the first vendor to pass the DoD's full ADL LRS Test Suite -- is an actively maintained open-source alternative, for whenever this integration is built out.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'elearning.lrs.key'}">
+            <p class="help-text" id="elearningLrsKeyHelpText">Not currently used by any code path -- see the LRS URL field's help text above.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'elearning.lrs.secret'}">
+            <p class="help-text" id="elearningLrsSecretHelpText">Not currently used by any code path -- see the LRS URL field's help text above. This value is stored encrypted and always appears blank here after saving.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'elearning.moodle.url'}">
             <p class="help-text" id="elearningMoodleUrlHelpText">Moodle is the world's most widely used open-source learning management system, created in 1999 by Martin Dougiamas and first released in 2002 -- now with an estimated 200+ million users and still under active development (<a href="https://github.com/moodle/moodle" target="_blank" rel="noreferrer">moodle/moodle</a>). Other actively maintained open-source LMS options include Open edX, Canvas LMS, Sakai, and Chamilo, though Moodle remains the largest by installed base.</p>
           </c:if>
+          <c:if test="${siteProperty.name eq 'elearning.perls.enabled'}">
+            <p class="help-text" id="elearningPerlsEnabledHelpText">This connects using real, working API/OAuth code (unlike LRS xAPI above), but the upstream PERLS service it targets was discontinued along with the rest of the ADL Initiative in 2025 -- see the URL field's help text. There's currently no known live PERLS server to point this at.</p>
+          </c:if>
           <c:if test="${siteProperty.name eq 'elearning.perls.url'}">
-            <p class="help-text" id="elearningPerlsUrlHelpText">PERLS (PERvasive Learning System) is a mobile, personalized microlearning app for informal and on-the-job training, developed and funded by the DoD's Advanced Distributed Learning (ADL) Initiative. Like ADL's LRS above, it's now archived following the Initiative's 2025 shutdown (<a href="https://github.com/adlnet/perls" target="_blank" rel="noreferrer">adlnet/perls</a>). Unlike LRS, no actively maintained open-source equivalent was found -- the closest comparisons are commercial microlearning platforms (e.g. Axonify, TalentCards), not open-source projects.</p>
+            <p class="help-text" id="elearningPerlsUrlHelpText">PERLS (PERvasive Learning System) is a mobile, personalized microlearning app for informal and on-the-job training, developed and funded by the DoD's Advanced Distributed Learning (ADL) Initiative. It's now archived following the Initiative's 2025 shutdown (<a href="https://github.com/adlnet/perls" target="_blank" rel="noreferrer">adlnet/perls</a>) -- unlike LRS, no actively maintained open-source equivalent was found, so this integration has no known live server to connect to today even though the client code itself works. The closest comparisons are commercial microlearning platforms (e.g. Axonify, TalentCards), not open-source projects.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'elearning.perls.clientId'}">
+            <p class="help-text" id="elearningPerlsClientIdHelpText">The OAuth client ID for a PERLS API application. See the toggle above for why this integration has no known live server to use it against today.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'elearning.perls.secret'}">
+            <p class="help-text" id="elearningPerlsSecretHelpText">The OAuth client secret paired with the Client Id above. This value is stored encrypted and always appears blank here after saving. See the toggle above for why this integration has no known live server to use it against today.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'bi.enabled'}">
             <p class="help-text" id="biEnabledHelpText">Despite the generic name, this only turns on embedding from a separately hosted Apache Superset instance (this does not install or host Superset itself) -- it has no effect on Metabase (its own "Enable Metabase?" toggle below controls that) or on Power BI (which needs no toggle at all; see the Power BI note on this page). There is currently no admin screen for placing a dashboard on a page -- a developer adds one by hand-editing that page's XML template with a <code>dashboardValue</code> (the Superset dashboard ID) and <code>dashboardEmbeddedId</code> (the embed ID Superset generates when embedding is enabled for that dashboard).</p>
@@ -565,6 +580,9 @@
       </p>
     </c:if>
     <p><button type="submit" name="action" value="testMailChimpConnection" formnovalidate class="button radius secondary">Test Connection</button></p>
+  </c:if>
+  <c:if test="${prefix eq 'elearning'}">
+    <p class="help-text">Connects this site to external learning platforms so course listings and calendar events can be pulled in automatically. Of the three integrations below, only Moodle has a real, working connection today -- LRS xAPI isn't wired to anything external yet, and PERLS has working client code but no live server left to connect to (each section's help text below explains why). The "Enable e-learning?" toggle above is a master switch: turning it off disables all three regardless of their own individual toggles.</p>
   </c:if>
   <c:if test="${prefix eq 'site'}">
     <p class="help-text">Header text and links have their own settings page (Utility Bar Settings); logo colors, fonts, and site-wide colors have their own (Theme Settings). Some of these fields only take effect together with another one above or below them -- the description for each notes when that's the case.</p>
