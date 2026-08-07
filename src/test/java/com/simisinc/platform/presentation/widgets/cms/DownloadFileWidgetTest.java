@@ -42,6 +42,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -196,6 +197,122 @@ class DownloadFileWidgetTest extends WidgetBase {
       auditMockedStatic.verify(() -> AuditEventCommand.record(any(WidgetContext.class),
           eq(AuditEventCommand.DATA_ACCESS), eq("folder_file.download"), eq(AuditEventCommand.SUCCESS),
           eq("folder_file"), eq("8"), eq("report.pdf"), eq(null)), times(1));
+    } finally {
+      tempFile.delete();
+      tempDir.toFile().delete();
+    }
+  }
+
+  @Test
+  void expiredFileIsDeniedToANonAdminUserAndRecordsAFailureAuditEvent() {
+    // Non-admin: the widget authorizes via loadLatestFileByIdForAuthorizedUser (not loadItemById).
+    setRequestUri("20240101010101-11/expired.pdf");
+
+    FileItem record = new FileItem();
+    record.setId(11L);
+    record.setWebPath("20240101010101");
+    record.setFileType("pdf");
+    record.setFilename("expired.pdf");
+    record.setExpirationDate(new Timestamp(System.currentTimeMillis() - 60_000));
+
+    try (MockedStatic<LoadFileCommand> loadFileMockedStatic = mockStatic(LoadFileCommand.class);
+        MockedStatic<AuditEventCommand> auditMockedStatic = mockStatic(AuditEventCommand.class)) {
+      loadFileMockedStatic
+          .when(() -> LoadFileCommand.loadLatestFileByIdForAuthorizedUser(eq("20240101010101"), eq(11L), anyLong()))
+          .thenReturn(record);
+
+      DownloadFileWidget widget = new DownloadFileWidget();
+      WidgetContext result = widget.execute(widgetContext);
+
+      Assertions.assertNull(result);
+      auditMockedStatic.verify(() -> AuditEventCommand.record(any(WidgetContext.class),
+          eq(AuditEventCommand.DATA_ACCESS), eq("folder_file.download"), eq(AuditEventCommand.FAILURE),
+          eq("folder_file"), eq("11"), eq(null), eq("file is expired")), times(1));
+    }
+  }
+
+  @Test
+  void expiredFileIsStillServedToAnAdminUserAndRecordsADownloadSuccessEvent() throws IOException {
+    setRoles(widgetContext, ADMIN);
+    setRequestUri("20240101010101-12/expired.pdf");
+
+    Path tempDir = Files.createTempDirectory("download-file-widget-expired-admin-test");
+    File tempFile = new File(tempDir.toFile(), "expired.pdf");
+    Files.writeString(tempFile.toPath(), "hello world");
+
+    FileItem record = new FileItem();
+    record.setId(12L);
+    record.setWebPath("20240101010101");
+    record.setFileType("pdf");
+    record.setFilename("expired.pdf");
+    record.setFileServerPath("/expired.pdf");
+    record.setMimeType("application/pdf");
+    record.setModified(new Timestamp(System.currentTimeMillis()));
+    record.setExpirationDate(new Timestamp(System.currentTimeMillis() - 60_000));
+
+    ServletOutputStream outputStream = mock(ServletOutputStream.class);
+    when(response.getOutputStream()).thenReturn(outputStream);
+
+    try (MockedStatic<LoadFileCommand> loadFileMockedStatic = mockStatic(LoadFileCommand.class);
+        MockedStatic<FileSystemCommand> fileSystemMockedStatic = mockStatic(FileSystemCommand.class);
+        MockedStatic<FileItemRepository> fileItemRepositoryMockedStatic = mockStatic(FileItemRepository.class);
+        MockedStatic<AuditEventCommand> auditMockedStatic = mockStatic(AuditEventCommand.class)) {
+      loadFileMockedStatic.when(() -> LoadFileCommand.loadItemById(12L)).thenReturn(record);
+      fileSystemMockedStatic.when(FileSystemCommand::getFileServerRootPath).thenReturn(tempDir.toString());
+
+      DownloadFileWidget widget = new DownloadFileWidget();
+      WidgetContext result = widget.execute(widgetContext);
+
+      Assertions.assertTrue(result.handledResponse());
+      fileItemRepositoryMockedStatic.verify(() -> FileItemRepository.incrementDownloadCount(record));
+      auditMockedStatic.verify(() -> AuditEventCommand.record(any(WidgetContext.class),
+          eq(AuditEventCommand.DATA_ACCESS), eq("folder_file.download"), eq(AuditEventCommand.SUCCESS),
+          eq("folder_file"), eq("12"), eq("expired.pdf"), eq(null)), times(1));
+    } finally {
+      tempFile.delete();
+      tempDir.toFile().delete();
+    }
+  }
+
+  @Test
+  void nonExpiredFileWithAFutureExpirationDateIsUnaffectedForANonAdminUser() throws IOException {
+    // Non-admin: the widget authorizes via loadLatestFileByIdForAuthorizedUser (not loadItemById).
+    setRequestUri("20240101010101-13/valid.pdf");
+
+    Path tempDir = Files.createTempDirectory("download-file-widget-future-expiration-test");
+    File tempFile = new File(tempDir.toFile(), "valid.pdf");
+    Files.writeString(tempFile.toPath(), "hello world");
+
+    FileItem record = new FileItem();
+    record.setId(13L);
+    record.setWebPath("20240101010101");
+    record.setFileType("pdf");
+    record.setFilename("valid.pdf");
+    record.setFileServerPath("/valid.pdf");
+    record.setMimeType("application/pdf");
+    record.setModified(new Timestamp(System.currentTimeMillis()));
+    record.setExpirationDate(new Timestamp(System.currentTimeMillis() + 60_000L * 60 * 24 * 365));
+
+    ServletOutputStream outputStream = mock(ServletOutputStream.class);
+    when(response.getOutputStream()).thenReturn(outputStream);
+
+    try (MockedStatic<LoadFileCommand> loadFileMockedStatic = mockStatic(LoadFileCommand.class);
+        MockedStatic<FileSystemCommand> fileSystemMockedStatic = mockStatic(FileSystemCommand.class);
+        MockedStatic<FileItemRepository> fileItemRepositoryMockedStatic = mockStatic(FileItemRepository.class);
+        MockedStatic<AuditEventCommand> auditMockedStatic = mockStatic(AuditEventCommand.class)) {
+      loadFileMockedStatic
+          .when(() -> LoadFileCommand.loadLatestFileByIdForAuthorizedUser(eq("20240101010101"), eq(13L), anyLong()))
+          .thenReturn(record);
+      fileSystemMockedStatic.when(FileSystemCommand::getFileServerRootPath).thenReturn(tempDir.toString());
+
+      DownloadFileWidget widget = new DownloadFileWidget();
+      WidgetContext result = widget.execute(widgetContext);
+
+      Assertions.assertTrue(result.handledResponse());
+      fileItemRepositoryMockedStatic.verify(() -> FileItemRepository.incrementDownloadCount(record));
+      auditMockedStatic.verify(() -> AuditEventCommand.record(any(WidgetContext.class),
+          eq(AuditEventCommand.DATA_ACCESS), eq("folder_file.download"), eq(AuditEventCommand.SUCCESS),
+          eq("folder_file"), eq("13"), eq("valid.pdf"), eq(null)), times(1));
     } finally {
       tempFile.delete();
       tempDir.toFile().delete();

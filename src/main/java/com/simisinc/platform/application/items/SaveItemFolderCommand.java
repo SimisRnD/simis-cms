@@ -31,7 +31,7 @@ import org.apache.commons.logging.LogFactory;
  */
 public class SaveItemFolderCommand {
 
-  private static final String allowedChars = "abcdefghijklmnopqrstuvwyxz0123456789";
+  private static final String allowedChars = "abcdefghijklmnopqrstuvwxyz0123456789";
   private static Log LOG = LogFactory.getLog(SaveItemFolderCommand.class);
 
   public static ItemFolder saveFolder(ItemFolder folderBean) throws DataException {

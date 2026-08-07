@@ -42,7 +42,7 @@ import com.simisinc.platform.infrastructure.persistence.items.ItemRepository;
  */
 public class SaveItemCommand {
 
-  public static final String allowedChars = "1234567890abcdefghijklmnopqrstuvwyxz";
+  public static final String allowedChars = "1234567890abcdefghijklmnopqrstuvwxyz";
   private static Log LOG = LogFactory.getLog(SaveItemCommand.class);
 
   public static Item saveItem(Item itemBean) throws DataException {

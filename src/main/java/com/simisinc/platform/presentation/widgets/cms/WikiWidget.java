@@ -119,7 +119,7 @@ public class WikiWidget extends GenericWidget {
 
   public WidgetContext action(WidgetContext context) {
     // Permission is required
-    if (!(context.hasRole("admin") || context.hasRole("content-manager") || context.hasRole("community-manager"))) {
+    if (!canManageWikiPages(context)) {
       return context;
     }
 
@@ -141,7 +141,24 @@ public class WikiWidget extends GenericWidget {
     return context;
   }
 
-  private WidgetContext deletePost(WidgetContext context, WikiPage wikiPage) {
+  /**
+   * The permission required to delete (or otherwise manage) a wiki page. Shared with
+   * {@code WikiPageListWidget}'s admin delete-this-page control (wiki-page-list.jsp) so that UI
+   * trigger enforces the exact same check as this widget's own deletePost action, rather than a
+   * separately-maintained (and possibly diverging) copy.
+   */
+  public static boolean canManageWikiPages(WidgetContext context) {
+    return context.hasRole("admin") || context.hasRole("content-manager") || context.hasRole("community-manager");
+  }
+
+  /**
+   * Deletes a wiki page and records the audit event. Public and static so
+   * {@code WikiPageListWidget}'s admin delete-this-page control can reuse this exact logic
+   * (repository call, audit event shape, success/error messaging) instead of duplicating it.
+   * Callers are responsible for their own permission check (see {@link #canManageWikiPages}) and
+   * for setting any redirect appropriate to where the control was triggered from.
+   */
+  public static WidgetContext deletePost(WidgetContext context, WikiPage wikiPage) {
     String targetId = String.valueOf(wikiPage.getId());
     String targetLabel = wikiPage.getTitle();
     // Attempt to delete the wiki page

@@ -129,4 +129,66 @@ class WikiSearchResultsWidgetTest extends WidgetBase {
   void executeReturnsNullForABlankQuery() {
     assertNull(new WikiSearchResultsWidget().execute(widgetContext));
   }
+
+  @Test
+  void executeStillShowsTheWidgetOnZeroResultsWhenShowWhenEmptyIsTrue() {
+    // The web-template default (see "Search Results.xml") and this widget's own default when the
+    // preference is absent -- unchanged current behavior.
+    addQueryParameter(widgetContext, "query", "widgets");
+    preferences.put("showWhenEmpty", "true");
+
+    try (MockedStatic<WikiPageRepository> repository = mockStatic(WikiPageRepository.class);
+        MockedStatic<WikiRepository> wikiRepository = mockStatic(WikiRepository.class);
+        MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
+      repository.when(() -> WikiPageRepository.findAll(any(WikiPageSpecification.class), any())).thenReturn(new ArrayList<>());
+      wikiRepository.when(WikiRepository::findAll).thenReturn(new ArrayList<>());
+
+      WidgetContext result = new WikiSearchResultsWidget().execute(widgetContext);
+
+      assertEquals(WikiSearchResultsWidget.JSP, result.getJsp());
+    }
+  }
+
+  @Test
+  void executeSuppressesTheWidgetOnZeroResultsWhenShowWhenEmptyIsFalse() {
+    // The bug: this preference was never read at all, so a zero-result wiki search kept
+    // rendering its "Documentation Found:" heading and empty-state text even though sibling
+    // sections on the same search-results page (e.g. webPageSearchResults, blogPostSearchResults)
+    // correctly disappeared with the identical preference set.
+    addQueryParameter(widgetContext, "query", "widgets");
+    preferences.put("showWhenEmpty", "false");
+
+    try (MockedStatic<WikiPageRepository> repository = mockStatic(WikiPageRepository.class);
+        MockedStatic<WikiRepository> wikiRepository = mockStatic(WikiRepository.class);
+        MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
+      repository.when(() -> WikiPageRepository.findAll(any(WikiPageSpecification.class), any())).thenReturn(new ArrayList<>());
+      wikiRepository.when(WikiRepository::findAll).thenReturn(new ArrayList<>());
+
+      WidgetContext result = new WikiSearchResultsWidget().execute(widgetContext);
+
+      assertNull(result.getJsp());
+    }
+  }
+
+  @Test
+  void executeStillShowsTheWidgetWhenShowWhenEmptyIsFalseButResultsExist() {
+    addQueryParameter(widgetContext, "query", "widgets");
+    preferences.put("showWhenEmpty", "false");
+
+    List<WikiPage> wikiPageList = new ArrayList<>();
+    wikiPageList.add(wikiPage(1L, 5L));
+
+    try (MockedStatic<WikiPageRepository> repository = mockStatic(WikiPageRepository.class);
+        MockedStatic<WikiRepository> wikiRepository = mockStatic(WikiRepository.class);
+        MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
+      repository.when(() -> WikiPageRepository.findAll(any(WikiPageSpecification.class), any())).thenReturn(wikiPageList);
+      wikiRepository.when(WikiRepository::findAll).thenReturn(List.of(wiki(5, "Engineering")));
+      wikiRepository.when(() -> WikiRepository.findById(5L)).thenReturn(wiki(5, "Engineering"));
+      repository.when(() -> WikiPageRepository.findCount(any(WikiPageSpecification.class))).thenReturn(1L);
+
+      WidgetContext result = new WikiSearchResultsWidget().execute(widgetContext);
+
+      assertEquals(WikiSearchResultsWidget.JSP, result.getJsp());
+    }
+  }
 }
