@@ -371,10 +371,10 @@
             <p class="help-text" id="siteSitemapXmlHelpText">Turns /sitemap.xml on or off. Also requires "Is online?" above to be on -- both toggles are checked, and either one being off stops the sitemap from generating.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'llms.enabled'}">
-            <p class="help-text" id="llmsEnabledHelpText">Turns /llms.txt on or off -- a curated, markdown-formatted summary of this site for LLM and agentic-browsing tools (a different audience from the search-engine crawlers robots.txt and sitemap.xml address). When off, /llms.txt returns a 404. Like the sitemap toggle, this also requires "Is online?" above to be on -- either one being off stops /llms.txt from generating. A static config/cms/llms.txt file on the server, if present, is always served instead of the generated version, regardless of either setting.</p>
+            <p class="help-text" id="llmsEnabledHelpText">Turns /llms.txt on or off -- a curated, markdown-formatted summary of this site for LLM and agentic-browsing tools (a different audience from the search-engine crawlers robots.txt and sitemap.xml address). When off, /llms.txt returns a 404. Like the sitemap toggle, this also requires "Is online?" (<code>site.online</code>, set on the <a href="${ctx}/admin/site-properties">Site Settings</a> page, not here) to be on -- either one being off stops /llms.txt from generating. A static config/cms/llms.txt file on the server, if present, is always served instead of the generated version, regardless of either setting.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'llms.description'}">
-            <p class="help-text" id="llmsDescriptionHelpText">Optional additional context appended to /llms.txt after the Search engine description above -- for example, which sections of the site an LLM should treat as authoritative, or usage terms specific to automated/agentic consumers. Leave blank to generate /llms.txt from the site's name, description, navigation, and content alone.</p>
+            <p class="help-text" id="llmsDescriptionHelpText">Optional additional context appended to /llms.txt after the site's name and Search engine description (set on the <a href="${ctx}/admin/site-properties">Site Settings</a> page, not here) -- for example, which sections of the site an LLM should treat as authoritative, or usage terms specific to automated/agentic consumers. Leave blank to generate /llms.txt from the site's name, description, navigation, and content alone.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'site.cart'}">
             <p class="help-text" id="siteCartHelpText">Shows or hides the shopping cart across the site -- the cart link in the menu, add-to-cart buttons, and the cart page itself all check this independently, so it's enforced everywhere it appears, not just in navigation.</p>
@@ -434,7 +434,31 @@
     <p><a href="${ctx}/contact-us" target="_blank" class="button radius secondary">Test CAPTCHA</a></p>
   </c:if>
   <c:if test="${prefix eq 'robots'}">
-    <p class="help-text">Controls what <a href="${ctx}/robots.txt" target="_blank" rel="noreferrer">/robots.txt</a> tells web crawlers. Admin pages are always excluded regardless of these settings. Each toggle below opts a specific AI crawler out of reading this site -- on by default, matching how the site behaved before these controls existed. A crawler being "off" here is a request, not an enforcement mechanism: well-behaved crawlers honor robots.txt, but nothing stops a crawler from ignoring it.</p>
+    <div class="callout primary radius">
+      <h6>What this page shows</h6>
+      <p>Controls what <a href="${ctx}/robots.txt" target="_blank" rel="noreferrer">/robots.txt</a> tells web crawlers. Admin pages are always excluded regardless of these settings. Each toggle below opts a specific AI crawler out of reading this site -- on by default, matching how the site behaved before these controls existed. A crawler being "off" here is a request, not an enforcement mechanism: well-behaved crawlers honor robots.txt, but nothing stops a crawler from ignoring it.</p>
+      <p><strong>A static <code>config/cms/robots.txt</code> file on the server, if present, is always served verbatim instead of the generated output -- every toggle below is ignored while that file exists.</strong> If changing a toggle here has no visible effect on the live <code>/robots.txt</code>, that file is almost always why; check with whoever manages the deployment.</p>
+      <p>Unlike <a href="${ctx}/admin/llms-properties">llms.txt</a>, robots.txt has no "Is online?" gate -- it's served the same whether the site is online or not, since it carries no content of its own to protect.</p>
+    </div>
+
+    <h5>When to worry</h5>
+    <div class="callout warning radius">
+      <p><strong>A crawler you disallowed is still showing up in traffic.</strong> robots.txt is an honor-system request, not a block -- a non-compliant crawler (or one ignoring robots.txt entirely, as several vendors' own documentation admits for their on-demand fetchers) will visit regardless. For actual enforcement, that traffic needs to be blocked at the <a href="${ctx}/admin/blocked-ip-list">Blocked IP list</a> or a layer in front of the application, not here.</p>
+      <p><strong>The sitemap line is missing from /robots.txt.</strong> It's only included when both <code>site.url</code> is configured and the <a href="${ctx}/admin/seo-sitemap">sitemap</a> itself is enabled -- a disabled sitemap correctly omits the line rather than advertising a URL that would 404.</p>
+    </div>
+  </c:if>
+  <c:if test="${prefix eq 'llms'}">
+    <div class="callout primary radius">
+      <h6>What this page shows</h6>
+      <p>Controls <a href="${ctx}/llms.txt" target="_blank" rel="noopener">/llms.txt <i class="fa fa-external-link"></i></a>, a curated, markdown-formatted summary of this site for LLM and agentic-browsing tools -- a different audience and format from robots.txt (crawler permissions) and sitemap.xml (page inventory). When enabled, it's generated automatically from the site's name, description, navigation, and content, optionally supplemented by the description field below.</p>
+      <p>A static <code>config/cms/llms.txt</code> file on the server, if present, is always served instead of the generated version, regardless of either toggle below -- if a change here doesn't show up on the live page, check for that file first.</p>
+    </div>
+
+    <h5>When to worry</h5>
+    <div class="callout warning radius">
+      <p><strong>/llms.txt returns a 404 even though it's enabled here.</strong> It also requires the site to be online (<code>site.online</code>, on the <a href="${ctx}/admin/site-properties">Site Settings</a> page) -- either gate being off stops generation.</p>
+      <p><strong>A change to the description or content doesn't appear.</strong> Saving invalidates the cache immediately, so this isn't a staleness issue in normal operation -- check for the static override file above before assuming something's stuck.</p>
+    </div>
   </c:if>
   <c:if test="${prefix eq 'security'}">
     <p class="help-text">Rate limiting blocks repeated automated attempts (spam form submissions, login brute-forcing) without needing a code change. Changes take effect for new attempts immediately; an IP or username already being watched keeps its previous limit until that tracking window expires.</p>

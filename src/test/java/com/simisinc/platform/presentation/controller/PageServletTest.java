@@ -137,6 +137,75 @@ class PageServletTest {
   }
 
   @Test
+  void computeArticleSchemaReturnsNullWhenNotABlogPostPage() {
+    // articleHeadline is only ever set by a content widget like BlogPostWidget; a plain page
+    // (or one whose bridged data hasn't run yet) must not get a fabricated Article entry
+    assertNull(PageServlet.computeArticleSchema(new PageRenderInfo()));
+  }
+
+  @Test
+  void computeArticleSchemaIncludesHeadlineDatesAndAuthor() {
+    PageRenderInfo pageRenderInfo = new PageRenderInfo();
+    pageRenderInfo.setArticleHeadline("Launch Announcement");
+    pageRenderInfo.setArticlePublishedDate(Timestamp.from(java.time.Instant.parse("2026-07-01T09:00:00Z")));
+    pageRenderInfo.setArticleModifiedDate(Timestamp.from(java.time.Instant.parse("2026-07-15T14:30:00Z")));
+    pageRenderInfo.setArticleAuthorName("Jane Author");
+
+    Map<String, Object> article = PageServlet.computeArticleSchema(pageRenderInfo);
+
+    assertEquals("Article", article.get("@type"));
+    assertEquals("Launch Announcement", article.get("headline"));
+    assertEquals("2026-07-01T09:00:00Z", article.get("datePublished"));
+    assertEquals("2026-07-15T14:30:00Z", article.get("dateModified"));
+    @SuppressWarnings("unchecked")
+    Map<String, Object> author = (Map<String, Object>) article.get("author");
+    assertEquals("Person", author.get("@type"));
+    assertEquals("Jane Author", author.get("name"));
+  }
+
+  @Test
+  void computeArticleSchemaOmitsAuthorWhenNotResolved() {
+    PageRenderInfo pageRenderInfo = new PageRenderInfo();
+    pageRenderInfo.setArticleHeadline("Launch Announcement");
+    pageRenderInfo.setArticlePublishedDate(Timestamp.from(java.time.Instant.parse("2026-07-01T09:00:00Z")));
+
+    Map<String, Object> article = PageServlet.computeArticleSchema(pageRenderInfo);
+
+    assertNull(article.get("author"));
+    assertNull(article.get("dateModified"));
+  }
+
+  @Test
+  void generateJsonLdDataIncludesArticleForABlogPostPage() {
+    // Regression test for the merge-dropped Article schema (see PR #611's merge history): the
+    // full bridging pipeline (BlogPostWidget -> WidgetContext -> WebContainerCommand ->
+    // PageRenderInfo) survived, but generateJsonLdData itself stopped reading it. A single-segment
+    // pagePath keeps computeBreadcrumbList out of the graph so Article's index stays predictable.
+    PageRenderInfo pageRenderInfo = new PageRenderInfo();
+    pageRenderInfo.setPageUrl("https://example.org/launch-announcement");
+    pageRenderInfo.setArticleHeadline("Launch Announcement");
+    pageRenderInfo.setArticlePublishedDate(Timestamp.from(java.time.Instant.parse("2026-07-01T09:00:00Z")));
+    pageRenderInfo.setArticleAuthorName("Jane Author");
+
+    Map<String, String> sitePropertyMap = new HashMap<>();
+    sitePropertyMap.put("site.name", "Example Co");
+
+    String jsonLd;
+    try (MockedStatic<SocialMediaLinkRepository> socialLinks = mockStatic(SocialMediaLinkRepository.class)) {
+      socialLinks.when(SocialMediaLinkRepository::findAll).thenReturn(Collections.emptyList());
+      jsonLd = PageServlet.generateJsonLdData(
+          pageRenderInfo, "https://example.org", "/launch-announcement", sitePropertyMap, null, null, null);
+    }
+
+    JsonNode parsed = assertDoesNotThrow(() -> MAPPER.readTree(jsonLd));
+    // @graph = [Organization, WebPage, Article] -- single-segment path, no BreadcrumbList
+    JsonNode article = parsed.get("@graph").get(2);
+    assertEquals("Article", article.get("@type").asText());
+    assertEquals("Launch Announcement", article.get("headline").asText());
+    assertEquals("Jane Author", article.get("author").get("name").asText());
+  }
+
+  @Test
   void computeFaqSchemaReturnsNullWhenThereAreNoQuestions() {
     assertNull(PageServlet.computeFaqSchema(new PageRenderInfo()));
   }
