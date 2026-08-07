@@ -74,6 +74,9 @@ import java.util.UUID;
  * widget" gate is UI-only, so this is the check that actually stops a crafted request from
  * overwriting some other widget's unrelated preference (issue #772 follow-up). Params: assetId,
  * pagePath, sectionIdx, columnIdx, widgetIdx, prefKey, token.
+ * DELETE /visual-editor/media/{assetId} - Soft-delete a media asset from the picker (see
+ * {@link #doDelete}). Requires the session CSRF token. Does not affect an asset already embedded
+ * into a live page -- {@link #handleServeFile} keeps serving it regardless.
  *
  * @author claude
  * @created 7/26/26
@@ -192,6 +195,101 @@ public class MediaApiController extends HttpServlet {
       response.setStatus(500);
       Map<String, Object> result = new HashMap<>();
       result.put("error", "Failed to process request");
+      try {
+        response.getWriter().write(objectMapper.writeValueAsString(result));
+      } catch (Exception ex) {
+        LOG.error("Error writing error response", ex);
+      }
+    }
+  }
+
+  /**
+   * DELETE /visual-editor/media/{assetId} - Soft-delete a media asset (issue #773 follow-up).
+   * {@code MediaAssetRepository.softDelete} already existed, and {@code findAll} already excludes
+   * soft-deleted rows above, but until now nothing in this controller ever called it -- there was no
+   * way to actually remove a mistaken upload from the picker.
+   *
+   * <p>Soft-delete only hides the asset from the picker/listing; it deliberately does NOT stop
+   * {@link #handleServeFile} from continuing to serve the file. An asset already embedded into a live
+   * page via {@link #handleWidgetUpdate} depends on that same URL resolving indefinitely (see this
+   * class's javadoc on why {@code handleServeFile} is unauthenticated) -- a soft-delete initiated from
+   * the picker, on an asset the admin may not realize is in use elsewhere, must not silently break an
+   * already-published page.
+   */
+  @Override
+  protected void doDelete(HttpServletRequest request, HttpServletResponse response)
+      throws ServletException, IOException {
+
+    response.setContentType("application/json");
+
+    try {
+      UserSession userSession = (UserSession) request.getSession().getAttribute(SessionConstants.USER);
+      if (userSession == null || !userSession.isLoggedIn()) {
+        response.setStatus(401);
+        Map<String, Object> result = new HashMap<>();
+        result.put("error", "Not authenticated");
+        response.getWriter().write(objectMapper.writeValueAsString(result));
+        return;
+      }
+
+      // Same tier as handleCreateAsset: removing a media asset is the same class of
+      // content-authoring action as creating one.
+      if (!EditorPermissionCommand.canEditContent(userSession)) {
+        response.setStatus(403);
+        Map<String, Object> result = new HashMap<>();
+        result.put("error", "Insufficient permission to delete media assets");
+        response.getWriter().write(objectMapper.writeValueAsString(result));
+        return;
+      }
+
+      // Matches handleUpload/handleWidgetUpdate's CSRF check -- deleting is at least as
+      // consequential as either of those mutations.
+      String token = request.getParameter("token");
+      if (token == null || !token.equals(userSession.getFormToken())) {
+        LOG.warn("media delete CSRF token mismatch from " + request.getRemoteAddr());
+        response.setStatus(403);
+        Map<String, Object> result = new HashMap<>();
+        result.put("error", "Invalid or missing CSRF token");
+        response.getWriter().write(objectMapper.writeValueAsString(result));
+        return;
+      }
+
+      String pathInfo = request.getPathInfo();
+      if (pathInfo == null || pathInfo.length() <= 1) {
+        response.setStatus(400);
+        Map<String, Object> result = new HashMap<>();
+        result.put("error", "assetId is required");
+        response.getWriter().write(objectMapper.writeValueAsString(result));
+        return;
+      }
+      String assetId = pathInfo.substring(1);
+
+      MediaAsset asset = MediaAssetRepository.findByAssetId(assetId);
+      if (asset == null) {
+        response.setStatus(404);
+        Map<String, Object> result = new HashMap<>();
+        result.put("error", "Media asset not found");
+        response.getWriter().write(objectMapper.writeValueAsString(result));
+        return;
+      }
+
+      if (!MediaAssetRepository.softDelete(asset.getId())) {
+        response.setStatus(500);
+        Map<String, Object> result = new HashMap<>();
+        result.put("error", "Failed to delete media asset");
+        response.getWriter().write(objectMapper.writeValueAsString(result));
+        return;
+      }
+
+      Map<String, Object> result = new HashMap<>();
+      result.put("success", true);
+      response.getWriter().write(objectMapper.writeValueAsString(result));
+
+    } catch (Exception e) {
+      LOG.error("Error deleting media asset: " + e.getMessage(), e);
+      response.setStatus(500);
+      Map<String, Object> result = new HashMap<>();
+      result.put("error", "Failed to delete media asset");
       try {
         response.getWriter().write(objectMapper.writeValueAsString(result));
       } catch (Exception ex) {

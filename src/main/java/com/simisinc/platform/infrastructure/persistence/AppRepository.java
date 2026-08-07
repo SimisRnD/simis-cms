@@ -163,6 +163,11 @@ public class AppRepository {
    */
   private static String encryptPrivateKey(String privateKey) {
     if (!SecretCryptoCommand.isEnabled()) {
+      // Matches V20260719_1004__reencrypt_secret_properties's identical fallback for the same
+      // reason (CMS_SECRET_KEY unset) -- that migration logs a warning rather than failing
+      // silently, and this save path should give an operator the same signal.
+      LOG.warn("CMS_SECRET_KEY is not configured; storing App privateKey unencrypted. "
+          + "Configure CMS_SECRET_KEY to encrypt this value at rest.");
       return privateKey;
     }
     return SecretCryptoCommand.encrypt(privateKey);

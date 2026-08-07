@@ -253,6 +253,11 @@ public class LlmsTxtServlet extends HttpServlet {
       WebPageSpecification spec = new WebPageSpecification();
       spec.setEnabled(1);
       spec.setInSitemap(true);
+      // Mirrors SitemapServlet.webPageEntries(), which deliberately excludes archived pages the
+      // same way -- archivedOnly defaults to UNDEFINED (includes both), so without this an
+      // archived page's title/description/link would still be named here even though
+      // sitemap.xml, the other fully-public unauthenticated listing of this same entity, does not.
+      spec.setArchivedOnly(false);
       List<WebPage> pages = WebPageRepository.findAll(spec, null);
 
       if (pages != null) {

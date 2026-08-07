@@ -75,6 +75,16 @@ public class ItemMemberFormWidget extends GenericWidget {
 
   public WidgetContext post(WidgetContext context) throws InvocationTargetException, IllegalAccessException {
 
+    // This widget is only wired into item-layout.xml with role="admin" (see the itemMemberForm
+    // entries there), which controls whether it's rendered -- not whether this action can be
+    // reached. Adding a member confers collection access, so the action must enforce the same
+    // restriction directly, mirroring ItemMembersListWidget.delete()'s equivalent check for
+    // removing a member (broken access control).
+    if (!context.hasRole("admin")) {
+      LOG.warn("Blocked member add by a non-admin user: " + context.getUserId());
+      return null;
+    }
+
     Item item = LoadItemCommand.loadItemByUniqueId(context.getParameter("itemUniqueId"));
     if (item == null) {
       return null;
