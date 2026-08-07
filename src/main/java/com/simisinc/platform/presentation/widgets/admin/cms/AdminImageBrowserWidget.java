@@ -138,10 +138,9 @@ public class AdminImageBrowserWidget extends GenericWidget {
     }
     context.getRequest().setAttribute(RequestConstants.RECORD_SORT_BY, sortBy);
 
-    // Carry the current search term, sort, and tag filter through pagination links
-    // (paging_control.jspf appends this to each page link's query string) so paging forward/back
-    // doesn't lose any of them. URL-encoded so the free-text search term cannot break the query
-    // string or the href.
+    // Carry the current search term and sort through pagination links (paging_control.jspf appends
+    // this to each page link's query string) so paging forward/back doesn't lose either. URL-encoded
+    // so the free-text search term cannot break the query string or the href.
     StringBuilder pagingParams = new StringBuilder();
     if (query != null) {
       pagingParams.append("query=").append(URLEncoder.encode(query, StandardCharsets.UTF_8));
@@ -151,12 +150,6 @@ public class AdminImageBrowserWidget extends GenericWidget {
         pagingParams.append("&");
       }
       pagingParams.append("sortBy=").append(sortBy);
-    }
-    if (tagId > -1) {
-      if (pagingParams.length() > 0) {
-        pagingParams.append("&");
-      }
-      pagingParams.append("tagId=").append(tagId);
     }
     if (pagingParams.length() > 0) {
       context.getRequest().setAttribute("recordPagingParams", pagingParams.toString());
@@ -548,7 +541,6 @@ public class AdminImageBrowserWidget extends GenericWidget {
   private String redirectWithQuery(WidgetContext context) {
     String query = StringUtils.trimToNull(context.getParameter("query"));
     String sortBy = context.getParameter(RequestConstants.RECORD_SORT_BY, "date");
-    long tagId = context.getParameterAsLong("tagId", -1);
     int page = context.getParameterAsInt("page", 1);
 
     StringBuilder redirect = new StringBuilder("/admin/images");
@@ -559,10 +551,6 @@ public class AdminImageBrowserWidget extends GenericWidget {
     }
     if (!"date".equals(sortBy)) {
       redirect.append(separator).append("sortBy=").append(sortBy);
-      separator = "&";
-    }
-    if (tagId > -1) {
-      redirect.append(separator).append("tagId=").append(tagId);
       separator = "&";
     }
     if (page > 1) {

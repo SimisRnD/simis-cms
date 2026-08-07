@@ -240,13 +240,7 @@ class AdminImageBrowserWidgetTest extends WidgetBase {
   void executeWithNoSortByParamDefaultsToDateNewestFirst() {
     addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
 
-    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class);
-        MockedStatic<ImageTagRepository> imageTagRepositoryMockedStatic = mockStatic(ImageTagRepository.class)) {
-      // execute() always fetches the tag filter dropdown's options and the Manage Tags panel's
-      // counts, regardless of which branch runs below -- stub both so every one of these tests
-      // stays focused on what it's actually asserting.
-      imageTagRepositoryMockedStatic.when(ImageTagRepository::findAll).thenReturn(Collections.emptyList());
-      imageTagRepositoryMockedStatic.when(ImageTagRepository::countAllByImageTagId).thenReturn(Collections.emptyMap());
+    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class)) {
       imageRepositoryMockedStatic.when(() -> ImageRepository.findAll(isNull(), any(DataConstraints.class)))
           .thenReturn(Collections.emptyList());
 
@@ -269,13 +263,7 @@ class AdminImageBrowserWidgetTest extends WidgetBase {
     addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
     addQueryParameter(widgetContext, "sortBy", "name");
 
-    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class);
-        MockedStatic<ImageTagRepository> imageTagRepositoryMockedStatic = mockStatic(ImageTagRepository.class)) {
-      // execute() always fetches the tag filter dropdown's options and the Manage Tags panel's
-      // counts, regardless of which branch runs below -- stub both so every one of these tests
-      // stays focused on what it's actually asserting.
-      imageTagRepositoryMockedStatic.when(ImageTagRepository::findAll).thenReturn(Collections.emptyList());
-      imageTagRepositoryMockedStatic.when(ImageTagRepository::countAllByImageTagId).thenReturn(Collections.emptyMap());
+    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class)) {
       imageRepositoryMockedStatic.when(() -> ImageRepository.findAll(isNull(), any(DataConstraints.class)))
           .thenReturn(Collections.emptyList());
 
@@ -297,13 +285,7 @@ class AdminImageBrowserWidgetTest extends WidgetBase {
     addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
     addQueryParameter(widgetContext, "sortBy", "size");
 
-    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class);
-        MockedStatic<ImageTagRepository> imageTagRepositoryMockedStatic = mockStatic(ImageTagRepository.class)) {
-      // execute() always fetches the tag filter dropdown's options and the Manage Tags panel's
-      // counts, regardless of which branch runs below -- stub both so every one of these tests
-      // stays focused on what it's actually asserting.
-      imageTagRepositoryMockedStatic.when(ImageTagRepository::findAll).thenReturn(Collections.emptyList());
-      imageTagRepositoryMockedStatic.when(ImageTagRepository::countAllByImageTagId).thenReturn(Collections.emptyMap());
+    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class)) {
       imageRepositoryMockedStatic.when(() -> ImageRepository.findAll(isNull(), any(DataConstraints.class)))
           .thenReturn(Collections.emptyList());
 
@@ -324,13 +306,7 @@ class AdminImageBrowserWidgetTest extends WidgetBase {
     addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
     addQueryParameter(widgetContext, "sortBy", "not-a-real-sort");
 
-    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class);
-        MockedStatic<ImageTagRepository> imageTagRepositoryMockedStatic = mockStatic(ImageTagRepository.class)) {
-      // execute() always fetches the tag filter dropdown's options and the Manage Tags panel's
-      // counts, regardless of which branch runs below -- stub both so every one of these tests
-      // stays focused on what it's actually asserting.
-      imageTagRepositoryMockedStatic.when(ImageTagRepository::findAll).thenReturn(Collections.emptyList());
-      imageTagRepositoryMockedStatic.when(ImageTagRepository::countAllByImageTagId).thenReturn(Collections.emptyMap());
+    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class)) {
       imageRepositoryMockedStatic.when(() -> ImageRepository.findAll(isNull(), any(DataConstraints.class)))
           .thenReturn(Collections.emptyList());
 
@@ -351,13 +327,7 @@ class AdminImageBrowserWidgetTest extends WidgetBase {
     addQueryParameter(widgetContext, "query", "3d");
     addQueryParameter(widgetContext, "sortBy", "size");
 
-    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class);
-        MockedStatic<ImageTagRepository> imageTagRepositoryMockedStatic = mockStatic(ImageTagRepository.class)) {
-      // execute() always fetches the tag filter dropdown's options and the Manage Tags panel's
-      // counts, regardless of which branch runs below -- stub both so every one of these tests
-      // stays focused on what it's actually asserting.
-      imageTagRepositoryMockedStatic.when(ImageTagRepository::findAll).thenReturn(Collections.emptyList());
-      imageTagRepositoryMockedStatic.when(ImageTagRepository::countAllByImageTagId).thenReturn(Collections.emptyMap());
+    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class)) {
       imageRepositoryMockedStatic.when(() -> ImageRepository.findAll(any(ImageSpecification.class), any(DataConstraints.class)))
           .thenReturn(Collections.emptyList());
 
@@ -366,32 +336,6 @@ class AdminImageBrowserWidgetTest extends WidgetBase {
     }
 
     Assertions.assertEquals("query=3d&sortBy=size", request.getAttribute("recordPagingParams"));
-  }
-
-  @Test
-  void executeWithATagIdParamFiltersByTagAndCarriesItInThePagingParams() {
-    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
-    addQueryParameter(widgetContext, "tagId", "5");
-
-    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class);
-        MockedStatic<ImageTagRepository> imageTagRepositoryMockedStatic = mockStatic(ImageTagRepository.class)) {
-      imageTagRepositoryMockedStatic.when(ImageTagRepository::findAll).thenReturn(Collections.emptyList());
-      imageTagRepositoryMockedStatic.when(ImageTagRepository::countAllByImageTagId).thenReturn(Collections.emptyMap());
-      imageRepositoryMockedStatic.when(() -> ImageRepository.findAll(any(ImageSpecification.class), any(DataConstraints.class)))
-          .thenReturn(Collections.emptyList());
-
-      AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
-      widget.execute(widgetContext);
-
-      ArgumentCaptor<ImageSpecification> specCaptor = ArgumentCaptor.forClass(ImageSpecification.class);
-      imageRepositoryMockedStatic.verify(() -> ImageRepository.findAll(specCaptor.capture(), any(DataConstraints.class)));
-      Assertions.assertEquals(5L, specCaptor.getValue().getTagId());
-      // findAll() (no-arg, "everything, unpaginated") must not also be called on the tag-filtered path
-      imageRepositoryMockedStatic.verify(ImageRepository::findAll, never());
-    }
-
-    Assertions.assertEquals(5L, request.getAttribute("tagId"));
-    Assertions.assertEquals("tagId=5", request.getAttribute("recordPagingParams"));
   }
 
   @Test

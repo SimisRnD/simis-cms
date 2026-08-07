@@ -26,9 +26,6 @@
 <jsp:useBean id="imageList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="query" class="java.lang.String" scope="request"/>
 <jsp:useBean id="sortBy" class="java.lang.String" scope="request"/>
-<jsp:useBean id="allImageTags" class="java.util.ArrayList" scope="request"/>
-<%-- tagId is a java.lang.Long request attribute -- read via plain EL below (no jsp:useBean; Long
-     has no public no-arg constructor so useBean rejects it). --%>
 <jsp:useBean id="recordPaging" class="com.simisinc.platform.infrastructure.database.DataConstraints" scope="request"/>
 <c:if test="${!empty title}">
   <h1><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h1>
@@ -44,43 +41,12 @@
       <option value="name" <c:if test="${sortBy eq 'name'}">selected</c:if>>Name (A-Z)</option>
       <option value="size" <c:if test="${sortBy eq 'size'}">selected</c:if>>Size (Largest First)</option>
     </select>
-    <c:if test="${!empty allImageTags}">
-      <label for="imageTagFilter" class="show-for-sr">Filter by tag</label>
-      <select id="imageTagFilter" name="tagId" class="input-group-field" style="max-width:220px;" onchange="this.form.submit();">
-        <option value="">All Tags</option>
-        <c:forEach items="${allImageTags}" var="filterTag">
-          <option value="${filterTag.id}" <c:if test="${tagId eq filterTag.id}">selected</c:if>><c:out value="${filterTag.name}"/></option>
-        </c:forEach>
-      </select>
-    </c:if>
     <div class="input-group-button">
       <button type="submit" class="button search" aria-label="Search"><i class="fa fa-search" aria-hidden="true"></i></button>
     </div>
   </div>
 </form>
 <div style="clear: both;"></div>
-<%-- Manage Tags -- a compact global list rather than a separate admin page/route, since the tag
-     pool is small and this is the only place tags are used. Counts are computed live (see
-     ImageTagRepository's class docs on why there is no maintained counter column). Delete is
-     admin-only (see AdminImageBrowserWidget#deleteTagAction) since it un-assigns the tag from
-     every image that carries it, not just one. --%>
-<c:if test="${!empty allImageTags}">
-  <details class="margin-bottom-10">
-    <summary>Manage Tags (<c:out value="${fn:length(allImageTags)}"/>)</summary>
-    <ul style="list-style:none; margin-left:0;">
-      <c:forEach items="${allImageTags}" var="manageTag">
-        <li style="display:inline-block; margin:2px 6px 2px 0;">
-          <span class="label secondary"><c:out value="${manageTag.name}"/>
-            (${empty imageTagCounts[manageTag.id] ? 0 : imageTagCounts[manageTag.id]})
-            <c:if test="${userSession.hasRole('admin')}">
-              <a href="#" title="Delete tag" class="deleteImageTagBtn" data-id="${manageTag.id}" data-name="${fn:escapeXml(manageTag.name)}">&times;</a>
-            </c:if>
-          </span>
-        </li>
-      </c:forEach>
-    </ul>
-  </details>
-</c:if>
 <%-- Client-side only -- filters the usage badges already being computed lazily below, on whichever
      images are on the current page. This deliberately does NOT run a server-side query across the
      whole (possibly 200+ image) list: ImageUsageCommand's usage scan is meant to run for one image
