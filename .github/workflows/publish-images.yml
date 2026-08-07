@@ -72,7 +72,13 @@ jobs:
         id: scan-range
         run: |
           git fetch --tags --force --quiet
-          mapfile -t TAGS < <(git tag --list 'v*.10000' | sort -V)
+          # 'v[0-9]*' (not 'v*.10000'): the project's own versioning convention
+          # bumps the decimal on a same-day re-release (e.g. v20260807.10001),
+          # so a glob anchored to ".10000" fails to match the *current* release
+          # tag against itself, silently empties PREV, and reintroduces the
+          # exact unbounded-scan problem this step exists to prevent. Confirmed
+          # by hand: v20260807.10001 hit this exact bug before this fix.
+          mapfile -t TAGS < <(git tag --list 'v[0-9]*' | sort -V)
           CURRENT="${{ github.event.release.tag_name }}"
           PREV=""
           for i in "${!TAGS[@]}"; do
