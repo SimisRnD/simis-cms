@@ -66,7 +66,13 @@ public class MediaAssetRepository {
       constraints = new DataConstraints();
     }
     constraints.setDefaultColumnToSortBy("created_at");
-    DataResult result = DB.selectAllFrom(TABLE_NAME, null, constraints, MediaAssetRepository::buildRecord);
+    // Excludes soft-deleted rows -- softDelete() only sets deleted_at, it never removes the row, so
+    // without this a "deleted" asset kept reappearing in the media library listing.
+    DataResult result = DB.selectAllFrom(
+        TABLE_NAME,
+        new SqlUtils().add("deleted_at IS NULL"),
+        constraints,
+        MediaAssetRepository::buildRecord);
     return (List<MediaAsset>) result.getRecords();
   }
 
