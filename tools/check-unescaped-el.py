@@ -77,6 +77,11 @@ NUMERIC = re.compile(
 # cover every occurrence. Add an entry only after tracing the value to its
 # source and confirming it is sanitized, validated, or structurally safe.
 ALLOWLIST: dict[str, str] = {
+    "${empty imageTagCounts[manageTag.id] ? 0 : imageTagCounts[manageTag.id]}":
+        "image-browser.jsp's Manage Tags panel: imageTagCounts is a Map<Long,Long> built by "
+        "ImageTagRepository.countAllByImageTagId() (a GROUP BY COUNT(*) query) and manageTag.id "
+        "is a Long primary key -- both branches of the ternary are always a Long or the literal "
+        "0, neither of which can carry markup.",
     "${empty status ? 'selected' : ''}":
         "web-page-list.jsp's status filter <select>: status is read as a plain query-string "
         "value and only ever compared with eq against fixed literals ('draft'/'redirect'/"
@@ -309,6 +314,12 @@ ALLOWLIST: dict[str, str] = {
         "EL ternary: evaluates to one of the two literals 'primary'/'secondary' regardless of what range holds -- cannot carry markup.",
     "${range eq '30d' ? 'primary' : 'secondary'}":
         "EL ternary: evaluates to one of the two literals 'primary'/'secondary' regardless of what range holds -- cannot carry markup.",
+    "${range eq '14d' ? 'primary' : 'secondary'}":
+        "activity-feed.jsp's day-range preset buttons (issue #1006) -- same reasoning as "
+        "${range eq '1h' ? 'primary' : 'secondary'} above, just a different fixed preset value.",
+    "${range eq '90d' ? 'primary' : 'secondary'}":
+        "activity-feed.jsp's day-range preset buttons (issue #1006) -- same reasoning as "
+        "${range eq '1h' ? 'primary' : 'secondary'} above, just a different fixed preset value.",
 
     # JSTL loop-status objects (not user input).
     "${cartEntryStatus}":
