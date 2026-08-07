@@ -59,6 +59,13 @@ public class ValidateApiAccessToWebPageCommand {
     if (!ValidateUserAccessToWebPageCommand.hasAccess(webPage.getLink(), userSession)) {
       return false;
     }
+    // Mirrors PageServlet.isArchivedBlockedFromPublicAccess(): an archived page is not part of
+    // the live-serving gate for admin/content-manager (who still need it resolvable to manage
+    // it), but must not be served to anyone else -- the REST API has no separate "not found"
+    // response, so this just folds into the same false/no-access result as everything else here.
+    if (webPage.getArchived() != null && !userSession.hasRole("admin") && !userSession.hasRole("content-manager")) {
+      return false;
+    }
     if (!userSession.hasRole("admin") && !userSession.hasRole("content-manager")) {
       Timestamp now = new Timestamp(System.currentTimeMillis());
       if (webPage.getPublishAt() != null && webPage.getPublishAt().after(now)) {

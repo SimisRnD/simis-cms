@@ -131,6 +131,36 @@ class ValidateApiAccessToWebPageCommandTest {
   }
 
   @Test
+  void returnsFalseForAnArchivedPage() {
+    // Regression test: this class never checked WebPage.getArchived() at all, unlike
+    // PageServlet.isArchivedBlockedFromPublicAccess() which this class's own javadoc claims to
+    // mirror -- an archived page's metadata was still served over the REST API.
+    WebPage webPage = webPageWithLink("/retired");
+    webPage.setArchived(new Timestamp(System.currentTimeMillis()));
+    try (MockedStatic<ValidateUserAccessToWebPageCommand> shared = mockStatic(ValidateUserAccessToWebPageCommand.class)) {
+      shared.when(() -> ValidateUserAccessToWebPageCommand.hasAccess(eq("/retired"), any(UserSession.class)))
+          .thenReturn(true);
+
+      assertFalse(ValidateApiAccessToWebPageCommand.hasAccess(webPage, null));
+    }
+  }
+
+  @Test
+  void anAdminSeesAnArchivedPageDespiteTheArchivedFlag() {
+    // Mirrors PageServlet.isArchivedBlockedFromPublicAccess(): admin/content-manager still need
+    // an archived page resolvable so it can be managed.
+    WebPage webPage = webPageWithLink("/retired");
+    webPage.setArchived(new Timestamp(System.currentTimeMillis()));
+    User admin = userWithRoles("admin");
+    try (MockedStatic<ValidateUserAccessToWebPageCommand> shared = mockStatic(ValidateUserAccessToWebPageCommand.class)) {
+      shared.when(() -> ValidateUserAccessToWebPageCommand.hasAccess(eq("/retired"), any(UserSession.class)))
+          .thenReturn(true);
+
+      assertTrue(ValidateApiAccessToWebPageCommand.hasAccess(webPage, admin));
+    }
+  }
+
+  @Test
   void returnsTrueForALivePageWithNoScheduleRestriction() {
     WebPage webPage = webPageWithLink("/about");
     try (MockedStatic<ValidateUserAccessToWebPageCommand> shared = mockStatic(ValidateUserAccessToWebPageCommand.class)) {
