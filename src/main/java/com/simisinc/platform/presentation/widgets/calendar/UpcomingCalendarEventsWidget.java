@@ -18,7 +18,7 @@ package com.simisinc.platform.presentation.widgets.calendar;
 
 import com.simisinc.platform.application.cms.NumberCommand;
 
-import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.cms.FormatDateCommand;
 import com.simisinc.platform.domain.model.cms.Calendar;
 import com.simisinc.platform.domain.model.cms.CalendarEvent;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
@@ -53,12 +53,17 @@ public class UpcomingCalendarEventsWidget extends GenericWidget {
   static String OVERVIEW_JSP = "/calendar/upcoming-events-overview.jsp";
   static String CARDS_JSP = "/calendar/upcoming-events-cards.jsp";
 
-  private static void insertPastEvent(List<CalendarEvent> calendarEventList, CalendarEventSpecification calSpec) {
+  private static void insertPastEvent(List<CalendarEvent> calendarEventList, CalendarEventSpecification calSpec,
+      boolean isPreviewer) {
     // Find the last event
     CalendarEventSpecification eventSpecification = new CalendarEventSpecification();
     eventSpecification.setPublishedOnly(true);
     // issue #882: archived events are excluded from every public-facing calendar surface
     eventSpecification.setArchivedOnly(false);
+    // A calendar switched offline ("Online?" unchecked) should not surface its events here for a
+    // regular visitor -- same admin/content-manager bypass as CalendarEventDetailsWidget's
+    // single-event view.
+    eventSpecification.setCalendarEnabledOnly(!isPreviewer);
     eventSpecification.setCalendarId(calSpec.getCalendarId());
     eventSpecification.setEndingDateRange(calSpec.getStartingDateRange());
     DataConstraints constraints = new DataConstraints(1, 1);
@@ -114,16 +119,22 @@ public class UpcomingCalendarEventsWidget extends GenericWidget {
     }
 
     // Determine the query date range (from today on... using the site's timezone start of day)
-    ZoneId clientZoneId = ZoneId.of(LoadSitePropertyCommand.loadByName("site.timezone"));
+    ZoneId clientZoneId = FormatDateCommand.getSiteZoneId();
     Instant instant = Instant.now();
     ZonedDateTime zdt = ZonedDateTime.ofInstant(instant, clientZoneId);
     ZonedDateTime zdtStart = zdt.toLocalDate().atStartOfDay(clientZoneId);
+
+    // A calendar switched offline ("Online?" unchecked) should not surface its events here for a
+    // regular visitor -- same admin/content-manager bypass as CalendarEventDetailsWidget's
+    // single-event view.
+    boolean isPreviewer = context.hasRole("admin") || context.hasRole("content-manager");
 
     // Build the list of upcoming events with the given specification
     CalendarEventSpecification eventSpecification = new CalendarEventSpecification();
     eventSpecification.setPublishedOnly(true);
     // issue #882: archived events are excluded from every public-facing calendar surface
     eventSpecification.setArchivedOnly(false);
+    eventSpecification.setCalendarEnabledOnly(!isPreviewer);
     if (calendarId > -1) {
       eventSpecification.setCalendarId(calendarId);
     }
@@ -139,7 +150,7 @@ public class UpcomingCalendarEventsWidget extends GenericWidget {
 
     // Determine if the last event should be included
     if (includeLastEvent) {
-      insertPastEvent(calendarEventList, eventSpecification);
+      insertPastEvent(calendarEventList, eventSpecification, isPreviewer);
     }
 
     // Determine if the widget can be shown

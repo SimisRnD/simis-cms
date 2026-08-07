@@ -18,6 +18,7 @@
 <jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="calendarEvent" class="com.simisinc.platform.domain.model.cms.CalendarEvent" scope="request"/>
+<jsp:useBean id="tagsListValue" class="java.lang.String" scope="request"/>
 <form method="post">
   <%-- Required by controller --%>
   <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
@@ -33,6 +34,12 @@
     <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
   </c:if>
   <%@include file="../page_messages.jspf" %>
+  <p class="help-text">
+    <i class="fa fa-info-circle"></i> <strong>No recurring events.</strong> This is a single,
+    independent event -- there's no way to make it repeat weekly/monthly automatically. A calendar's
+    own full page view offers a "Duplicate" button, but that only creates one more standalone copy,
+    not a linked series.
+  </p>
   <%-- Form Content --%>
   <label>Name
     <input type="text" placeholder="Name of event" name="title" value="<c:out value="${calendarEvent.title}"/>">
@@ -93,6 +100,34 @@
   </div>
   <link rel="stylesheet" href="${ctx}/javascript/foundation-datepicker-20180424/foundation-datepicker.css" />
   <script src="${ctx}/javascript/foundation-datepicker-20180424/foundation-datepicker.js"></script>
+  <label>Location
+    <input type="text" placeholder="Name of Location" name="location" value="<c:out value="${calendarEvent.location}"/>">
+  </label>
+  <small class="help-text"><i class="fa fa-info-circle"></i> A free-text label only (e.g. "Main Auditorium" or "Zoom"), not a lookup -- there's no address/map field on this form.</small>
+  <div class="grid-x grid-margin-x">
+    <div class="small-12 medium-6 cell">
+      <label>URL for more information
+        <input type="text" placeholder="Details Url" name="detailsUrl" value="<c:out value="${calendarEvent.detailsUrl}"/>">
+      </label>
+    </div>
+    <div class="small-12 medium-6 cell">
+      <label>URL to sign up
+        <input type="text" placeholder="Sign Up Url" name="signUpUrl" value="<c:out value="${calendarEvent.signUpUrl}"/>">
+      </label>
+    </div>
+  </div>
+  <label>Video / Meeting Link
+    <input type="text" placeholder="https://..." name="videoUrl" value="<c:out value="${calendarEvent.videoUrl}"/>">
+  </label>
+  <small class="help-text"><i class="fa fa-info-circle"></i> Paste a link to a video or live meeting (Teams, Zoom, Google Meet, a YouTube stream, etc). Shown as a "Join" button on the event's page.</small>
+  <label>Tags
+    <input type="text" placeholder="conference, quarterly, all-hands" name="tagsList" value="<c:out value="${tagsListValue}"/>" maxlength="255">
+  </label>
+  <small class="help-text"><i class="fa fa-info-circle"></i> Comma-separated list of tags for this event (e.g. "conference, quarterly, all-hands"). Limited to 255 characters total.</small>
+  <p>
+    <input id="enabled" type="checkbox" name="enabled" value="true" <c:if test="${!empty calendarEvent.published}">checked</c:if>/><label for="enabled">Publish it?</label>
+    <br/><small class="help-text"><i class="fa fa-info-circle"></i> Unchecked saves this event as a draft, hidden from the public calendar.</small>
+  </p>
   <div class="button-container">
     <c:choose>
       <c:when test="${!empty returnPage}">

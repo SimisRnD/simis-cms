@@ -29,12 +29,14 @@ public class GenerateWikiUniqueIdCommand {
 
   public static String generateUniqueId(Wiki previousRecord, Wiki record) {
 
-    // Use an existing uniqueId
+    // An existing wiki's URL prefix must stay stable across a rename -- a site page built from
+    // the "Wiki" web-template has this uniqueId baked into its own layout config (as
+    // wikiUniqueId) at creation time, so regenerating it here on a name change orphans the
+    // entire public wiki section (every page under it starts rendering wiki-not-setup.jsp even
+    // though the content is intact in the database). See GenerateWikiPageUniqueIdCommand for the
+    // identical fix already applied to individual wiki pages.
     if (previousRecord != null && previousRecord.getUniqueId() != null) {
-      // See if the name changed
-      if (previousRecord.getName().equals(record.getName())) {
-        return previousRecord.getUniqueId();
-      }
+      return previousRecord.getUniqueId();
     }
 
     // Create a new one

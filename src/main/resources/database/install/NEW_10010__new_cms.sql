@@ -208,6 +208,30 @@ CREATE TABLE images (
 CREATE INDEX images_created_idx ON images(created);
 CREATE INDEX images_web_path_idx ON images(web_path);
 
+-- Tags for images. Unlike items' tags (see NEW_10024__new_items.sql), images have no collection
+-- concept -- a tag here is a single global label, not scoped per anything. See
+-- UPGRADE_20260805.1250__image_tags.sql for existing databases.
+-- No image_count column here (unlike items' tags): keeping a running counter in sync would mean
+-- touching it at every image-tag assign/unassign AND image-delete code path. Since this is a small,
+-- admin-only pool, the tag-management panel just counts image_tag_map rows live instead.
+CREATE TABLE image_tags (
+  image_tag_id BIGSERIAL PRIMARY KEY,
+  name VARCHAR(255) NOT NULL,
+  created_by BIGINT REFERENCES users(user_id),
+  created TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP,
+  modified TIMESTAMP(3) DEFAULT CURRENT_TIMESTAMP
+);
+CREATE UNIQUE INDEX image_tags_name_uidx ON image_tags(LOWER(name));
+
+CREATE TABLE image_tag_map (
+  id BIGSERIAL PRIMARY KEY,
+  image_id BIGINT REFERENCES images(image_id) NOT NULL,
+  image_tag_id BIGINT REFERENCES image_tags(image_tag_id) NOT NULL
+);
+CREATE UNIQUE INDEX image_tag_map_uidx ON image_tag_map(image_id, image_tag_id);
+CREATE INDEX image_tag_map_image_idx ON image_tag_map(image_id);
+CREATE INDEX image_tag_map_tag_idx ON image_tag_map(image_tag_id);
+
 CREATE TABLE form_data (
   form_data_id BIGSERIAL PRIMARY KEY,
   form_unique_id VARCHAR(255),

@@ -18,6 +18,7 @@ package com.simisinc.platform.infrastructure.persistence.cms;
 
 import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -31,6 +32,7 @@ import java.sql.Timestamp;
 import java.time.Duration;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 import java.util.Properties;
 
 import org.junit.jupiter.api.AfterAll;
@@ -244,6 +246,34 @@ class BlogPostRepositoryTest {
     assertNull(BlogPostRepository.findById(savedB.getId()));
     assertEquals(0, countBlogPostTagsForPost(savedA.getId()));
     assertEquals(0, countBlogPostTagsForPost(savedB.getId()));
+  }
+
+  // --- grouped post counts (BlogListWidget's "# of posts" column, one query for every blog) ---
+
+  @Test
+  void countGroupedByBlogIdReturnsPerBlogCountsInOneQuery() {
+    long blogA = addBlog();
+    long blogB = addBlog();
+    BlogPostRepository.add(newPost(blogA, "a-post-1"));
+    BlogPostRepository.add(newPost(blogA, "a-post-2"));
+    BlogPostRepository.add(newPost(blogB, "b-post-1"));
+
+    Map<Long, Long> counts = BlogPostRepository.countGroupedByBlogId();
+
+    assertEquals(2L, counts.get(blogA));
+    assertEquals(1L, counts.get(blogB));
+  }
+
+  @Test
+  void countGroupedByBlogIdOmitsABlogWithNoPosts() {
+    long blogWithPosts = addBlog();
+    long blogWithoutPosts = addBlog();
+    BlogPostRepository.add(newPost(blogWithPosts, "only-post"));
+
+    Map<Long, Long> counts = BlogPostRepository.countGroupedByBlogId();
+
+    assertEquals(1L, counts.get(blogWithPosts));
+    assertFalse(counts.containsKey(blogWithoutPosts));
   }
 
   // --- date-range and author filters (issue #426, editorial calendar) ---

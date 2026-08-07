@@ -19,6 +19,8 @@ package com.simisinc.platform.presentation.widgets.admin.cms;
 import java.math.BigDecimal;
 import java.net.URLEncoder;
 import java.nio.charset.StandardCharsets;
+import java.sql.Connection;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -28,14 +30,23 @@ import java.util.Set;
 import org.apache.commons.lang3.StringUtils;
 import org.jobrunr.scheduling.BackgroundJobRequest;
 
+import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.cms.DeleteImageCommand;
+import com.simisinc.platform.application.cms.DeleteImageTagCommand;
 import com.simisinc.platform.application.cms.ImageUsageCommand;
+import com.simisinc.platform.application.cms.SaveImageTagCommand;
 import com.simisinc.platform.application.json.JsonCommand;
 import com.simisinc.platform.domain.model.cms.Image;
+import com.simisinc.platform.domain.model.cms.ImageTag;
 import com.simisinc.platform.domain.model.cms.ImageVariant;
+import com.simisinc.platform.infrastructure.database.AutoRollback;
+import com.simisinc.platform.infrastructure.database.AutoStartTransaction;
+import com.simisinc.platform.infrastructure.database.DB;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.persistence.cms.ImageRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.ImageSpecification;
+import com.simisinc.platform.infrastructure.persistence.cms.ImageTagMapRepository;
+import com.simisinc.platform.infrastructure.persistence.cms.ImageTagRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.ImageVariantRepository;
 import com.simisinc.platform.infrastructure.scheduler.cms.FocalPointVariantJob;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
@@ -90,6 +101,13 @@ public class AdminImageBrowserWidget extends GenericWidget {
     String query = StringUtils.trimToNull(context.getParameter("query"));
     context.getRequest().setAttribute("query", query);
 
+    // Determine the tag filter
+    long tagId = context.getParameterAsLong("tagId", -1);
+    context.getRequest().setAttribute("tagId", tagId);
+    List<ImageTag> allImageTags = ImageTagRepository.findAll();
+    context.getRequest().setAttribute("allImageTags", allImageTags);
+    context.getRequest().setAttribute("imageTagCounts", ImageTagRepository.countAllByImageTagId());
+
     // Determine the record paging (issue #498 slice 2) -- at most one page's worth of images is
     // loaded per request, not all 200+. Follows the same page/items request-param convention as
     // ContentListWidget/AllowedIPListWidget/etc.
@@ -99,17 +117,53 @@ public class AdminImageBrowserWidget extends GenericWidget {
     DataConstraints constraints = new DataConstraints(page, itemsPerPage);
     context.getRequest().setAttribute(RequestConstants.RECORD_PAGING, constraints);
 
-    // Carry the current search term through pagination links (paging_control.jspf appends this
-    // to each page link's query string) so paging forward/back doesn't lose the search. URL-encoded
+    // Sort by date/name/size -- an invalid or missing value falls back to "date", which maps to
+    // the same "created DESC" order this list used before sorting existed, so a plain page load
+    // (no sortBy param) keeps its prior ordering. Mirrors FolderFilesListWidget's sortBy switch
+    // (issue #502) -- the column name is chosen from this fixed allowlist, never taken from the
+    // request parameter directly, so it cannot be used to inject arbitrary SQL.
+    String sortBy = context.getParameter(RequestConstants.RECORD_SORT_BY, "date");
+    switch (sortBy) {
+      case "name":
+        constraints.setColumnToSortBy("filename");
+        break;
+      case "size":
+        constraints.setColumnToSortBy("file_length", "desc");
+        break;
+      case "date":
+      default:
+        sortBy = "date";
+        constraints.setColumnToSortBy("created", "desc");
+        break;
+    }
+    context.getRequest().setAttribute(RequestConstants.RECORD_SORT_BY, sortBy);
+
+    // Carry the current search term and sort through pagination links (paging_control.jspf appends
+    // this to each page link's query string) so paging forward/back doesn't lose either. URL-encoded
     // so the free-text search term cannot break the query string or the href.
+    StringBuilder pagingParams = new StringBuilder();
     if (query != null) {
-      context.getRequest().setAttribute("recordPagingParams", "query=" + URLEncoder.encode(query, StandardCharsets.UTF_8));
+      pagingParams.append("query=").append(URLEncoder.encode(query, StandardCharsets.UTF_8));
+    }
+    if (!"date".equals(sortBy)) {
+      if (pagingParams.length() > 0) {
+        pagingParams.append("&");
+      }
+      pagingParams.append("sortBy=").append(sortBy);
+    }
+    if (pagingParams.length() > 0) {
+      context.getRequest().setAttribute("recordPagingParams", pagingParams.toString());
     }
 
     List<Image> imageList;
-    if (query != null) {
+    if (query != null || tagId > -1) {
       ImageSpecification specification = new ImageSpecification();
-      specification.setMatchesName(query);
+      if (query != null) {
+        specification.setMatchesName(query);
+      }
+      if (tagId > -1) {
+        specification.setTagId(tagId);
+      }
       imageList = ImageRepository.findAll(specification, constraints);
     } else {
       imageList = ImageRepository.findAll(null, constraints);
@@ -125,6 +179,10 @@ public class AdminImageBrowserWidget extends GenericWidget {
     }
     Map<Long, List<ImageVariant>> imageVariantsByImageId = ImageVariantRepository.findByImageIds(browserImageIds);
     context.getRequest().setAttribute("imageVariantsByImageId", imageVariantsByImageId);
+
+    // Batch-fetch every listed image's tags in one query, same pattern as the variants above
+    Map<Long, List<ImageTag>> imageTagsByImageId = ImageTagRepository.findByImageIds(browserImageIds);
+    context.getRequest().setAttribute("imageTagsByImageId", imageTagsByImageId);
 
     // Show the editor
     context.setJsp(JSP);
@@ -205,6 +263,10 @@ public class AdminImageBrowserWidget extends GenericWidget {
       return bulkDeleteAction(context);
     } else if ("setFocalPoint".equals(command)) {
       return setFocalPointAction(context);
+    } else if ("setTags".equals(command)) {
+      return setTagsAction(context);
+    } else if ("deleteTag".equals(command)) {
+      return deleteTagAction(context);
     }
     return context;
   }
@@ -297,6 +359,117 @@ public class AdminImageBrowserWidget extends GenericWidget {
   }
 
   /**
+   * Replaces one image's full tag assignment in a single transaction (delete-all-then-insert,
+   * rather than diffing) -- called from the tag-assignment modal in image-browser.jsp. Existing
+   * tags are chosen via checkboxes ({@code assignTagId} params -- deliberately NOT {@code tagId},
+   * since the tagsReveal form has no action attribute and so POSTs to the current document URL,
+   * which can still carry the page's own {@code ?tagId=} filter query param; sharing the name
+   * would let that filter value silently re-enter the merged parameter array here regardless of
+   * checkbox state). {@code newTagName} is an optional free-text field that finds-or-creates a tag
+   * by name and includes it too, so an admin can introduce a brand new tag and assign it in the
+   * same save.
+   */
+  private WidgetContext setTagsAction(WidgetContext context) {
+    long imageId = context.getParameterAsLong("imageId", -1);
+    Image image = imageId > -1 ? ImageRepository.findById(imageId) : null;
+    if (image == null) {
+      context.setErrorMessage("Error. Image was not found.");
+      context.setRedirect(redirectWithQuery(context));
+      return context;
+    }
+
+    Set<Long> tagIds = new LinkedHashSet<>();
+    String[] tagIdParams = context.getParameterMap().get("assignTagId");
+    if (tagIdParams != null) {
+      for (String rawTagId : tagIdParams) {
+        try {
+          tagIds.add(Long.parseLong(rawTagId.trim()));
+        } catch (NumberFormatException e) {
+          // Dropped, not treated as a batch-ending error
+        }
+      }
+    }
+
+    String newTagName = StringUtils.trimToNull(context.getParameter("newTagName"));
+    if (newTagName != null) {
+      try {
+        ImageTag newTag = SaveImageTagCommand.saveImageTag(newTagName, context.getUserId());
+        tagIds.add(newTag.getId());
+      } catch (DataException e) {
+        context.setErrorMessage(e.getMessage());
+        context.setRedirect(redirectWithQuery(context));
+        return context;
+      }
+    }
+
+    boolean saved = false;
+    try (Connection connection = DB.getConnection();
+        AutoStartTransaction a = new AutoStartTransaction(connection);
+        AutoRollback transaction = new AutoRollback(connection)) {
+      ImageTagMapRepository.removeAll(connection, image);
+      for (Long tagId : tagIds) {
+        ImageTagMapRepository.insertImageTagId(connection, image, tagId);
+      }
+      transaction.commit();
+      saved = true;
+    } catch (SQLException se) {
+      LOG.error("SQLException: " + se.getMessage());
+    }
+
+    AuditEventCommand.record(context, AuditEventCommand.CONTENT, "image.setTags",
+        saved ? AuditEventCommand.SUCCESS : AuditEventCommand.FAILURE,
+        "image", String.valueOf(image.getId()), image.getFilename(), null);
+    if (saved) {
+      context.setSuccessMessage("Tags saved");
+    } else {
+      context.setErrorMessage("Error. The tags could not be saved.");
+    }
+    context.setRedirect(redirectWithQuery(context));
+    return context;
+  }
+
+  /**
+   * Deletes a tag globally -- from the "Manage Tags" panel in image-browser.jsp, unassigning it
+   * from every image that carries it. Admin-only, unlike every other action on this page (mirrors
+   * WebPageListWidget's stricter admin-only gate on its own most destructive, blast-radius-widest
+   * action) since this removes a tag from potentially many images at once, not just one.
+   */
+  private WidgetContext deleteTagAction(WidgetContext context) {
+    if (!context.hasRole("admin")) {
+      LOG.warn("No permission to delete an image tag");
+      return context;
+    }
+
+    long imageTagId = context.getParameterAsLong("imageTagId", -1);
+    ImageTag imageTag = imageTagId > -1 ? ImageTagRepository.findById(imageTagId) : null;
+    if (imageTag == null) {
+      context.setErrorMessage("Error. The tag was not found.");
+      context.setRedirect(redirectWithQuery(context));
+      return context;
+    }
+
+    boolean removed;
+    try {
+      removed = DeleteImageTagCommand.deleteImageTag(imageTag);
+    } catch (DataException e) {
+      context.setErrorMessage(e.getMessage());
+      context.setRedirect(redirectWithQuery(context));
+      return context;
+    }
+
+    AuditEventCommand.record(context, AuditEventCommand.CONTENT, "imageTag.delete",
+        removed ? AuditEventCommand.SUCCESS : AuditEventCommand.FAILURE,
+        "imageTag", String.valueOf(imageTag.getId()), imageTag.getName(), null);
+    if (removed) {
+      context.setSuccessMessage("Tag deleted");
+    } else {
+      context.setErrorMessage("Error. The tag could not be deleted.");
+    }
+    context.setRedirect(redirectWithQuery(context));
+    return context;
+  }
+
+  /**
    * Parses a 0-100 focal-point percentage, rejecting anything non-numeric or out of range rather
    * than trusting the client-side picker's own clamping.
    */
@@ -361,18 +534,23 @@ public class AdminImageBrowserWidget extends GenericWidget {
   }
 
   /**
-   * Builds the post-delete redirect back to the image grid, preserving both the search term and
+   * Builds the post-delete redirect back to the image grid, preserving the search term, sort, and
    * the page the admin was on (issue #498 slice 2) -- otherwise every delete bounces back to page 1
-   * of the (optionally search-filtered) grid instead of the page the admin was triaging.
+   * of the (optionally search-filtered/sorted) grid instead of the page the admin was triaging.
    */
   private String redirectWithQuery(WidgetContext context) {
     String query = StringUtils.trimToNull(context.getParameter("query"));
+    String sortBy = context.getParameter(RequestConstants.RECORD_SORT_BY, "date");
     int page = context.getParameterAsInt("page", 1);
 
     StringBuilder redirect = new StringBuilder("/admin/images");
     String separator = "?";
     if (query != null) {
       redirect.append(separator).append("query=").append(URLEncoder.encode(query, StandardCharsets.UTF_8));
+      separator = "&";
+    }
+    if (!"date".equals(sortBy)) {
+      redirect.append(separator).append("sortBy=").append(sortBy);
       separator = "&";
     }
     if (page > 1) {

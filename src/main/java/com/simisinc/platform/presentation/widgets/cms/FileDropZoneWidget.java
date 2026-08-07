@@ -28,6 +28,7 @@ import com.simisinc.platform.application.cms.LoadFolderCommand;
 import com.simisinc.platform.application.cms.SaveFileCommand;
 import com.simisinc.platform.application.cms.SaveFilePartCommand;
 import com.simisinc.platform.application.cms.ValidateFileCommand;
+import com.simisinc.platform.application.json.JsonCommand;
 import com.simisinc.platform.domain.model.cms.FileItem;
 import com.simisinc.platform.domain.model.cms.Folder;
 import com.simisinc.platform.presentation.controller.WidgetContext;
@@ -140,6 +141,13 @@ public class FileDropZoneWidget extends GenericWidget {
       SaveFilePartCommand.cleanupFile(fileItemBean);
       // Let the user know
       context.setErrorMessage(data.getMessage());
+      // This is a targeted widget POST (the dropzone form posts with a widget query parameter), so
+      // without a JSON/handled response the container falls through to a redirect. The XHR follows
+      // that redirect transparently and reports the reloaded page's 200 status back to the caller,
+      // and Dropzone.js decides success/error purely from the XHR status code -- so a rejected
+      // upload would otherwise still be reported as a success. Set a JSON error response so the XHR
+      // sees real content instead.
+      context.setJson("{\"error\": \"" + JsonCommand.toJson(data.getMessage()) + "\"}");
       return context;
     }
   }
