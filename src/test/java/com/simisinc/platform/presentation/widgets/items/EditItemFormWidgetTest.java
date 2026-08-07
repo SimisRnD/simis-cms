@@ -97,6 +97,49 @@ class EditItemFormWidgetTest extends WidgetBase {
     }
   }
 
+  /**
+   * IDOR regression test: item-full-form.jsp renders "id" as a plain hidden field, so
+   * BeanUtils.populate() would otherwise overwrite the permission-checked item's id with whatever a
+   * client submits. A user with edit rights on collection 5 (item 1's collection) submits id=999,
+   * hoping to redirect the save at some other item entirely. The save must still target item 1 --
+   * the id that was actually loaded and permission-checked -- regardless of what "id" is in the
+   * request body.
+   */
+  @Test
+  void postIgnoresAClientSuppliedIdAndSavesTheAuthorizedItem() throws Exception {
+    preferences.put("uniqueId", "the-item");
+    addQueryParameter(widgetContext, "id", "999");
+    addQueryParameter(widgetContext, "name", "Updated Widget");
+
+    Item existingItem = item(1L, 5L);
+
+    try (MockedStatic<LoadItemCommand> loadItemCommand = mockStatic(LoadItemCommand.class);
+        MockedStatic<LoadCollectionCommand> loadCollectionCommand = mockStatic(LoadCollectionCommand.class);
+        MockedStatic<CheckCollectionPermissionCommand> checkPermission = mockStatic(CheckCollectionPermissionCommand.class);
+        MockedStatic<CategoryRepository> categoryRepository = mockStatic(CategoryRepository.class);
+        MockedStatic<SaveItemCommand> saveItemCommand = mockStatic(SaveItemCommand.class)) {
+
+      loadItemCommand.when(() -> LoadItemCommand.loadItemByUniqueIdForAuthorizedUser(eq("the-item"), anyLong()))
+          .thenReturn(existingItem);
+      loadItemCommand.when(() -> LoadItemCommand.loadItemById(1L)).thenReturn(existingItem);
+      loadCollectionCommand.when(() -> LoadCollectionCommand.loadCollectionByIdForAuthorizedUser(eq(5L), anyLong()))
+          .thenReturn(collection(5L));
+      checkPermission.when(() -> CheckCollectionPermissionCommand.userHasEditPermission(eq(5L), anyLong()))
+          .thenReturn(true);
+      categoryRepository.when(() -> CategoryRepository.findAllByCollectionId(5L)).thenReturn(new ArrayList<>());
+
+      Item savedItem = item(1L, 5L);
+      saveItemCommand.when(() -> SaveItemCommand.saveItem(any(Item.class))).thenReturn(savedItem);
+
+      new EditItemFormWidget().post(widgetContext);
+
+      ArgumentCaptor<Item> itemCaptor = ArgumentCaptor.forClass(Item.class);
+      saveItemCommand.verify(() -> SaveItemCommand.saveItem(itemCaptor.capture()));
+      org.junit.jupiter.api.Assertions.assertEquals(1L, itemCaptor.getValue().getId(),
+          "a client-supplied id must not override the permission-checked item being edited");
+    }
+  }
+
   @Test
   void executeProvidesTheTagListForTheCheckboxGroup() {
     preferences.put("uniqueId", "the-item");

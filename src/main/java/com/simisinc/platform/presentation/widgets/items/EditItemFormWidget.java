@@ -166,8 +166,15 @@ public class EditItemFormWidget extends GenericWidget {
       return context;
     }
 
-    // Populate the fields
+    // Populate the fields. itemBean.getId() was resolved from the trusted, permission-checked
+    // URL path (line 149) -- BeanUtils.populate() would otherwise overwrite it with whatever
+    // `id` the client submits (item-full-form.jsp renders it as a plain hidden field), letting a
+    // user with edit rights on THIS collection point the save at an item in a different
+    // collection they were never granted access to. Re-assert the authorized id after populate
+    // so the save always targets the item that was actually permission-checked above.
+    long authorizedItemId = itemBean.getId();
     BeanUtils.populate(itemBean, context.getParameterMap());
+    itemBean.setId(authorizedItemId);
     itemBean.setModifiedBy(context.getUserId());
     itemBean.setIpAddress(context.getRequest().getRemoteAddr());
 
