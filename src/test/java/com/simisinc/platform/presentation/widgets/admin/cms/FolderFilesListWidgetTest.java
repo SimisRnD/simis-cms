@@ -327,9 +327,13 @@ class FolderFilesListWidgetTest extends WidgetBase {
     addQueryParameter(widgetContext, "expirationDate", "2026-09-01T14:30");
 
     try (MockedStatic<SaveFilePartCommand> saveFilePartCommand = mockStatic(SaveFilePartCommand.class);
-        MockedStatic<SaveFileCommand> saveFileCommand = mockStatic(SaveFileCommand.class)) {
+        MockedStatic<SaveFileCommand> saveFileCommand = mockStatic(SaveFileCommand.class);
+        MockedStatic<FileItemRepository> fileItemRepo = mockStatic(FileItemRepository.class)) {
       // No new file uploaded -> post() takes the "form update of an old version" (BeanUtils.populate) branch
       saveFilePartCommand.when(() -> SaveFilePartCommand.saveFile(widgetContext)).thenReturn(null);
+      // The ownership check re-loads the file being edited (id=42) and confirms it already
+      // belongs to the permission-checked folder (currentFolderId=10, set by setUpMetadataEditRequest)
+      fileItemRepo.when(() -> FileItemRepository.findById(42L)).thenReturn(fileWithFolder(42L, 10L));
 
       FileItem saved = new FileItem();
       saved.setId(42L);
@@ -349,8 +353,10 @@ class FolderFilesListWidgetTest extends WidgetBase {
     addQueryParameter(widgetContext, "expirationDate", "");
 
     try (MockedStatic<SaveFilePartCommand> saveFilePartCommand = mockStatic(SaveFilePartCommand.class);
-        MockedStatic<SaveFileCommand> saveFileCommand = mockStatic(SaveFileCommand.class)) {
+        MockedStatic<SaveFileCommand> saveFileCommand = mockStatic(SaveFileCommand.class);
+        MockedStatic<FileItemRepository> fileItemRepo = mockStatic(FileItemRepository.class)) {
       saveFilePartCommand.when(() -> SaveFilePartCommand.saveFile(widgetContext)).thenReturn(null);
+      fileItemRepo.when(() -> FileItemRepository.findById(42L)).thenReturn(fileWithFolder(42L, 10L));
 
       FileItem saved = new FileItem();
       saved.setId(42L);
@@ -370,8 +376,10 @@ class FolderFilesListWidgetTest extends WidgetBase {
     addQueryParameter(widgetContext, "expirationDate", "not-a-date");
 
     try (MockedStatic<SaveFilePartCommand> saveFilePartCommand = mockStatic(SaveFilePartCommand.class);
-        MockedStatic<SaveFileCommand> saveFileCommand = mockStatic(SaveFileCommand.class)) {
+        MockedStatic<SaveFileCommand> saveFileCommand = mockStatic(SaveFileCommand.class);
+        MockedStatic<FileItemRepository> fileItemRepo = mockStatic(FileItemRepository.class)) {
       saveFilePartCommand.when(() -> SaveFilePartCommand.saveFile(widgetContext)).thenReturn(null);
+      fileItemRepo.when(() -> FileItemRepository.findById(42L)).thenReturn(fileWithFolder(42L, 10L));
       // The parse failure is caught by post()'s existing AppException|DataException handler, which
       // calls SaveFilePartCommand.cleanupFile(fileItemBean) -- a mocked static's void methods are
       // no-ops by default, so this doesn't need an explicit stub.
@@ -379,6 +387,48 @@ class FolderFilesListWidgetTest extends WidgetBase {
       WidgetContext result = new FolderFilesListWidget().post(widgetContext);
 
       Assertions.assertEquals("Expiration date format is not valid", result.getErrorMessage());
+      saveFileCommand.verify(() -> SaveFileCommand.saveFile(any(FileItem.class)), never());
+    }
+  }
+
+  /**
+   * IDOR regression test: a user with add-permission on folder A submits another folder's file id
+   * (id=42, which really belongs to folder 99) alongside folderId=10 (the folder they were actually
+   * permission-checked against by setUpMetadataEditRequest/currentFolderId). Before this fix,
+   * BeanUtils.populate() would have trusted the client-submitted folderId=10 unconditionally,
+   * letting the request hijack folder 99's file into folder 10. The ownership check must reject
+   * this before SaveFileCommand.saveFile() is ever called.
+   */
+  @Test
+  void postRejectsUpdateWhenTheRequestedFileBelongsToADifferentFolder() throws Exception {
+    setUpMetadataEditRequest();
+
+    try (MockedStatic<SaveFilePartCommand> saveFilePartCommand = mockStatic(SaveFilePartCommand.class);
+        MockedStatic<SaveFileCommand> saveFileCommand = mockStatic(SaveFileCommand.class);
+        MockedStatic<FileItemRepository> fileItemRepo = mockStatic(FileItemRepository.class)) {
+      saveFilePartCommand.when(() -> SaveFilePartCommand.saveFile(widgetContext)).thenReturn(null);
+      fileItemRepo.when(() -> FileItemRepository.findById(42L)).thenReturn(fileWithFolder(42L, 99L));
+
+      WidgetContext result = new FolderFilesListWidget().post(widgetContext);
+
+      Assertions.assertNull(result);
+      saveFileCommand.verify(() -> SaveFileCommand.saveFile(any(FileItem.class)), never());
+    }
+  }
+
+  @Test
+  void postRejectsUpdateWhenTheRequestedFileDoesNotExist() throws Exception {
+    setUpMetadataEditRequest();
+
+    try (MockedStatic<SaveFilePartCommand> saveFilePartCommand = mockStatic(SaveFilePartCommand.class);
+        MockedStatic<SaveFileCommand> saveFileCommand = mockStatic(SaveFileCommand.class);
+        MockedStatic<FileItemRepository> fileItemRepo = mockStatic(FileItemRepository.class)) {
+      saveFilePartCommand.when(() -> SaveFilePartCommand.saveFile(widgetContext)).thenReturn(null);
+      fileItemRepo.when(() -> FileItemRepository.findById(42L)).thenReturn(null);
+
+      WidgetContext result = new FolderFilesListWidget().post(widgetContext);
+
+      Assertions.assertNull(result);
       saveFileCommand.verify(() -> SaveFileCommand.saveFile(any(FileItem.class)), never());
     }
   }

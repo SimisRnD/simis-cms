@@ -293,10 +293,26 @@ public class FolderFilesListWidget extends GenericWidget {
         AuditEventCommand.record(context, AuditEventCommand.CONTENT, "folder_file.version", AuditEventCommand.SUCCESS,
             "folder_file", String.valueOf(fileItem.getId()), fileItem.getFilename(), "version=" + fileItem.getVersion());
       } else {
-        // It's a form update of an old version
+        // It's a form update of an old version.
+        // folder-file-form.jsp always operates on an existing record and renders both `id` and
+        // `folderId` as plain hidden fields. Only `currentFolderId` (checked at line 260) has
+        // actually had its add-permission verified -- so before trusting anything else the
+        // client submits, confirm the record this request claims to update really belongs to
+        // that permission-checked folder. Without this, a user with add-permission on Folder A
+        // could submit another folder's file id plus folderId=A and hijack that file into A.
+        long requestedFileId = context.getParameterAsLong("id");
+        FileItem existingFileItem = FileItemRepository.findById(requestedFileId);
+        if (existingFileItem == null || existingFileItem.getFolderId() != currentFolderId) {
+          LOG.warn("No permission to update this file, or file not found in the current folder");
+          return null;
+        }
         // Populate the fields
         fileItemBean = new FileItem();
         BeanUtils.populate(fileItemBean, context.getParameterMap());
+        // Re-assert the authorized id/folderId after populate -- mass-assignment must not be
+        // able to move the file to a folder other than the one just verified above.
+        fileItemBean.setId(existingFileItem.getId());
+        fileItemBean.setFolderId(currentFolderId);
         // BeanUtils cannot reliably convert a raw datetime-local string ("expirationDate") to a
         // java.sql.Timestamp, so parse it explicitly and overwrite whatever BeanUtils did with it
         // (mirrors WebPageFormWidget.post()'s handling of publishAt/expiresAt)
