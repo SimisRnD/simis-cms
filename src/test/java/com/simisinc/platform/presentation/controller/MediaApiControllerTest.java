@@ -583,6 +583,54 @@ class MediaApiControllerTest {
     assertTrue(result.body.contains("storagePath is required"));
   }
 
+  // ── handleCreateAsset's storagePath ACL fix ────────────────────────────────────────────────
+
+  @Test
+  void createAssetRejectsAStoragePathOutsideTheMediaLibraryPrefix() throws Exception {
+    // handleServeFile streams anything resolvable under the shared file root with no further ACL
+    // check, and handleUpload only ever writes under generateFileServerSubPath("media-library").
+    // Before this fix, handleCreateAsset accepted any non-blank storagePath, so a user with edit
+    // permission here could register a record pointing at a folder/item file elsewhere under that
+    // same root that they were never granted access to, then read it back via handleServeFile.
+    UserSession userSession = loggedInSession("admin");
+    HttpServletRequest request = mock(HttpServletRequest.class);
+    HttpSession session = mock(HttpSession.class);
+    when(session.getAttribute(SessionConstants.USER)).thenReturn(userSession);
+    when(request.getSession()).thenReturn(session);
+    when(request.getPathInfo()).thenReturn(null);
+    when(request.getParameter("assetName")).thenReturn("handbook.pdf");
+    when(request.getParameter("storagePath")).thenReturn("folder/2026/07/26/handbook.pdf");
+
+    try (MockedStatic<MediaAssetRepository> assets = mockStatic(MediaAssetRepository.class)) {
+      Recorded result = runWidgetUpdate(request);
+
+      assertEquals(400, result.status);
+      assertTrue(result.body.contains("storagePath must reference a media-library upload"));
+      assets.verify(() -> MediaAssetRepository.save(any()), never());
+    }
+  }
+
+  @Test
+  void createAssetRejectsAStoragePathContainingATraversalSegment() throws Exception {
+    // A path can start with the media-library/ prefix and still walk out of it with "..".
+    UserSession userSession = loggedInSession("admin");
+    HttpServletRequest request = mock(HttpServletRequest.class);
+    HttpSession session = mock(HttpSession.class);
+    when(session.getAttribute(SessionConstants.USER)).thenReturn(userSession);
+    when(request.getSession()).thenReturn(session);
+    when(request.getPathInfo()).thenReturn(null);
+    when(request.getParameter("assetName")).thenReturn("handbook.pdf");
+    when(request.getParameter("storagePath")).thenReturn("media-library/../folder/handbook.pdf");
+
+    try (MockedStatic<MediaAssetRepository> assets = mockStatic(MediaAssetRepository.class)) {
+      Recorded result = runWidgetUpdate(request);
+
+      assertEquals(400, result.status);
+      assertTrue(result.body.contains("storagePath must reference a media-library upload"));
+      assets.verify(() -> MediaAssetRepository.save(any()), never());
+    }
+  }
+
   @Test
   void createAssetDefaultsAltTextToTheAssetNameWhenNotProvided() throws Exception {
     // alt_text is also NOT NULL; rather than adding a second required param, default it.

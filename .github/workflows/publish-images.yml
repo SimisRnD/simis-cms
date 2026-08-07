@@ -47,7 +47,13 @@ jobs:
       id-token: write         # keyless OIDC identity for build provenance
       attestations: write     # record the signed provenance + SBOM attestations
     steps:
+      # fetch-depth: 0 (full history) is required by the TruffleHog step below --
+      # the default shallow (depth-1) checkout only has the single commit being
+      # built, so "scans git history" would otherwise only ever see that one
+      # commit rather than genuinely scanning history for a leaked secret.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
 
       # Secret scanning: detect hardcoded credentials (passwords, API keys, tokens)
       # before they reach the image. TruffleHog scans git history and the checked-out

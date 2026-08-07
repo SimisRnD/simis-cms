@@ -76,22 +76,6 @@ public class MediaAssetRepository {
     return (List<MediaAsset>) result.getRecords();
   }
 
-  public static List<MediaAsset> findByType(String assetType, DataConstraints constraints) {
-    if (StringUtils.isBlank(assetType)) {
-      return null;
-    }
-    if (constraints == null) {
-      constraints = new DataConstraints();
-    }
-    constraints.setDefaultColumnToSortBy("created_at");
-    DataResult result = DB.selectAllFrom(
-        TABLE_NAME,
-        new SqlUtils().add("asset_type = ?", assetType),
-        constraints,
-        MediaAssetRepository::buildRecord);
-    return (List<MediaAsset>) result.getRecords();
-  }
-
   public static MediaAsset save(MediaAsset record) {
     if (record.getId() > -1) {
       return update(record);

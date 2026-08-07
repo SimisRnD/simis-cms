@@ -337,6 +337,21 @@ public class MediaApiController extends HttpServlet {
       return;
     }
 
+    // handleServeFile is deliberately unauthenticated and streams anything resolvable inside the
+    // shared file root -- resolveWithinRoot blocks escaping that root, but nothing previously
+    // stopped a caller here from registering a path pointing at ACL-protected folder/item content
+    // elsewhere under that same root. handleUpload only ever writes under the module-prefixed
+    // subpath generateFileServerSubPath("media-library") produces, so require any accepted
+    // storagePath to actually live in that same reserved subtree, and reject "../" outright since
+    // a within-root traversal could otherwise still walk out of it into another module's content.
+    if (storagePath.contains("..") || !storagePath.startsWith("media-library/")) {
+      response.setStatus(400);
+      Map<String, Object> result = new HashMap<>();
+      result.put("error", "storagePath must reference a media-library upload");
+      response.getWriter().write(objectMapper.writeValueAsString(result));
+      return;
+    }
+
     MediaAsset asset = new MediaAsset();
     asset.setAssetId(UUID.randomUUID().toString());
     asset.setAssetName(assetName);
