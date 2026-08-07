@@ -85,6 +85,18 @@ jobs:
       # Secret scanning: detect hardcoded credentials (passwords, API keys, tokens)
       # before they reach the image. TruffleHog scans git history and the checked-out
       # code; a finding blocks the workflow to prevent secret leaks.
+      #
+      # --exclude-globs suppresses two confirmed false positives, verified by hand
+      # against the real content each one matches:
+      #   - lib/PROVENANCE.sha256: a manifest of vendored-jar checksums (dependency-drift.yml's
+      #     provenance check). Every line is a SHA-256 hash by design, which any
+      #     entropy/pattern-based scanner will always read as a plausible secret.
+      #   - tools/tests/test_check_xml_well_formed.py: one pytest function's name (an
+      #     underscore-joined description of a nested-glob web-template test case) is
+      #     misidentified by TruffleHog's "Lob" detector as a verified Lob API key --
+      #     there is no Lob integration anywhere in this codebase. Deliberately not
+      #     quoting the exact identifier here -- spelling it out would just make this
+      #     comment itself the next false-positive match.
       - name: Scan for secrets in code and history
         uses: trufflesecurity/trufflehog@6f3c981e7b77f235fd2702dd74af25fc4b72bf11 # v3.96.0
         with:
@@ -92,7 +104,7 @@ jobs:
           base: ${{ steps.scan-range.outputs.base }}
           # The action already runs with --fail internally; adding it again in
           # extra_args trips its "flag 'fail' cannot be repeated" error.
-          extra_args: --json
+          extra_args: --json --exclude-globs=lib/PROVENANCE.sha256,tools/tests/test_check_xml_well_formed.py
 
       - name: Set up JDK 21
         uses: actions/setup-java@03ad4de0992f5dab5e18fcb136590ce7c4a0ac95 # v5
