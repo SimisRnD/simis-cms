@@ -18,12 +18,10 @@ package com.simisinc.platform.presentation.widgets.admin.cms;
 
 import com.simisinc.platform.domain.model.cms.Calendar;
 import com.simisinc.platform.infrastructure.persistence.cms.CalendarEventRepository;
-import com.simisinc.platform.infrastructure.persistence.cms.CalendarEventSpecification;
 import com.simisinc.platform.infrastructure.persistence.cms.CalendarRepository;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -49,14 +47,9 @@ public class CalendarListWidget extends GenericWidget {
     List<Calendar> calendarList = CalendarRepository.findAll();
     context.getRequest().setAttribute("calendarList", calendarList);
 
-    // Determine the event count
-    CalendarEventSpecification calendarEventSpecification = new CalendarEventSpecification();
-    Map<Long, Long> calendarEventCount = new HashMap<>();
-    for (Calendar calendar : calendarList) {
-      calendarEventSpecification.setCalendarId(calendar.getId());
-      long count = CalendarEventRepository.findCount(calendarEventSpecification);
-      calendarEventCount.put(calendar.getId(), count);
-    }
+    // Determine the event count for every calendar in a single grouped query (previously one
+    // findCount() round trip per calendar in a loop -- an N+1 query as the calendar count grows)
+    Map<Long, Long> calendarEventCount = CalendarEventRepository.countGroupedByCalendarId();
     context.getRequest().setAttribute("calendarEventCount", calendarEventCount);
 
     // Show the editor

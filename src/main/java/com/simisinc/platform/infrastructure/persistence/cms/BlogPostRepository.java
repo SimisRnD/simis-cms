@@ -23,7 +23,9 @@ import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
@@ -34,6 +36,7 @@ import com.simisinc.platform.domain.model.cms.Blog;
 import com.simisinc.platform.domain.model.cms.BlogPost;
 import com.simisinc.platform.domain.model.cms.BlogPostTag;
 import com.simisinc.platform.domain.model.cms.BlogTag;
+import com.simisinc.platform.domain.model.dashboard.StatisticsData;
 import com.simisinc.platform.infrastructure.database.AutoRollback;
 import com.simisinc.platform.infrastructure.database.AutoStartTransaction;
 import com.simisinc.platform.infrastructure.database.DB;
@@ -174,6 +177,23 @@ public class BlogPostRepository {
   public static long findCount(BlogPostSpecification specification) {
     SqlUtils where = createWhereStatement(specification);
     return DB.selectCountFrom(TABLE_NAME, where);
+  }
+
+  /**
+   * Post counts for every blog in a single query, keyed by blog_id -- BlogListWidget previously
+   * called {@link #findCount} once per blog in a loop to populate the "# of posts" column, an N+1
+   * query pattern that gets slower with every blog created. Mirrors
+   * {@code ItemRepository#countGroupedByCategory}'s exact shape (one {@code DB.selectGroupedFrom}
+   * call rather than one round trip per candidate). A blog with zero posts is simply absent from
+   * the returned map, same as that precedent.
+   */
+  public static Map<Long, Long> countGroupedByBlogId() {
+    List<StatisticsData> rows = DB.selectGroupedFrom(TABLE_NAME, "blog_id", "post_count", null, null, -1);
+    Map<Long, Long> counts = new HashMap<>();
+    for (StatisticsData row : rows) {
+      counts.put(Long.valueOf(row.getLabel()), Long.valueOf(row.getValue()));
+    }
+    return counts;
   }
 
   public static BlogPost save(BlogPost record) {

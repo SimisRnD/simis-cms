@@ -41,6 +41,13 @@
     <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
   </c:if>
   <%@include file="../page_messages.jspf" %>
+  <p class="help-text">
+    <i class="fa fa-info-circle"></i> A Calendar is just a named, colored container for events --
+    saving generates a Unique Id (shown in the Calendars list) that a page author sets as the
+    <code>calendarUniqueId</code> preference on a calendar-related widget to display this calendar's
+    events. There's no built-in support for recurring events on any calendar; every event added to
+    it is independent.
+  </p>
   <%-- Form Content --%>
   <label>Name <span class="required">*</span>
     <input type="text" placeholder="Events, Holidays, etc." name="name" value="<c:out value="${calendar.name}"/>" required>
@@ -52,6 +59,7 @@
     <input id="color" type="text" name="color" value="<c:out value="${calendar.color}"/>">
   </label>
   <input id="enabled" type="checkbox" name="enabled" value="true" <c:if test="${calendar.id == -1 || calendar.enabled}">checked</c:if>/><label for="enabled">Online?</label>
+  <br/><small class="help-text"><i class="fa fa-info-circle"></i> Turning this off hides this calendar's events from their own individual event pages for public visitors (admins/content-managers can still open them directly). It does not currently remove them from calendar grids or search/upcoming-events widgets elsewhere on the site -- those don't check this setting.</small>
   <div class="button-container">
     <c:choose>
       <c:when test="${!empty returnPage}">

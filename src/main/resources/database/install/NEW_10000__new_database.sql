@@ -127,6 +127,7 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (96, 'Alert Callout Text Color', 'theme.callout.alert.text.color', '#0a0a0a', 'color');
 
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (110, 'Footer Theme', 'theme.footer.style', 'custom', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (111, 'Footer Layout', 'theme.footer.layout', 'footer.default', 'text');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (112, 'Footer Background', 'theme.footer.backgroundColor', '#353535', 'color');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (114, 'Footer Text Color', 'theme.footer.text.color', '#acacac', 'color');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (116, 'Footer Links Color', 'theme.footer.links.color', '#cdcdcd', 'color');
@@ -162,9 +163,7 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (20, 'Map Geocoder Service', 'maps.service.geocoder', 'nominatim');
 -- UPDATE site_properties SET property_value = 'custom' WHERE property_name = 'maps.service.tiles';
 -- No property_type: the url validator rejects the required {z}/{x}/{y} placeholders; FindMapTilesCredentialsCommand validates instead
-INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (40, 'Custom Map Tiles Url ({z}/{x}/{y} template)', 'maps.custom.tileserver.url', '');
--- UPDATE site_properties SET property_value = 'google' WHERE property_name = 'maps.service.tiles';
--- INSERT INTO site_properties (property_label, property_name, property_value) VALUES ('Google Maps Access Token', 'maps.google.accesstoken', '');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value) VALUES (40, 'Custom Map Tiles URL ({z}/{x}/{y} template)', 'maps.custom.tileserver.url', '');
 
 -- Analytics
 
@@ -220,12 +219,12 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 
 -- BI
 
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (1, 'Enable bi?', 'bi.enabled', 'true', 'boolean');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (10, 'Superset Url', 'bi.superset.url', '', 'url');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (12, 'Superset Id', 'bi.superset.id', '', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (1, 'Enable Superset?', 'bi.enabled', 'true', 'boolean');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (10, 'Superset URL', 'bi.superset.url', '', 'url');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (12, 'Superset ID', 'bi.superset.id', '', 'text');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (14, 'Superset Secret', 'bi.superset.secret', '', 'text');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (16, 'Enable Metabase?', 'bi.metabase.enabled', 'true', 'boolean');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (18, 'Metabase Url', 'bi.metabase.url', '', 'url');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (18, 'Metabase URL', 'bi.metabase.url', '', 'url');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (20, 'Metabase Secret', 'bi.metabase.secret', '', 'text');
 
 -- E-Commerce

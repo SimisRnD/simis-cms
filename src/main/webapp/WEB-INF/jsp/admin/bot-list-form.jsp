@@ -36,6 +36,8 @@
   <label>Label
     <input type="text" placeholder="e.g. Google" name="label" value="<c:out value="${botList.label}"/>">
   </label>
+  <p class="help-text">Matching is a plain substring check against the visitor's raw User-Agent header, and it's <strong>case-sensitive</strong> -- copy the signature in the exact case from an actual server log rather than guessing. Prefer something specific over something short; a generic fragment can still match real browsers even at the minimum length. This only affects analytics counting, not what a bot is allowed to do.</p>
+  <p class="help-text">New entries only affect sessions created after you save -- test from a fresh/incognito session, since a session's bot status is decided once, at creation, and never re-evaluated.</p>
   <div class="button-container">
     <input type="submit" class="button radius success expanded" value="Save"/>
   </div>

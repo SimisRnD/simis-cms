@@ -37,10 +37,26 @@
     <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
   </c:if>
   <%@include file="../page_messages.jspf" %>
+  <c:if test="${blog.id != -1}">
+    <div class="callout radius warning">
+      <p style="margin-bottom:0">
+        <i class="fa fa-exclamation-triangle"></i> This category's Unique Id
+        (<code><c:out value="${blog.uniqueId}"/></code>) is part of every one of its posts' URLs
+        (<code>/<c:out value="${blog.uniqueId}"/>/post-unique-id</code>). Changing Name below
+        regenerates that id -- with no automatic redirect -- so every existing post link in this
+        category would break silently. If you rename it anyway, plan on manually adding entries on
+        the <a href="${ctx}/admin/web-redirects">Web Redirects</a> page for the old post URLs
+        afterward.
+      </p>
+    </div>
+  </c:if>
   <%-- Form Content --%>
   <label>Name <span class="required">*</span>
-    <input type="text" placeholder="Blog, News, Press Releases..." name="name" value="<c:out value="${blog.name}"/>" required>
+    <input type="text" placeholder="Blog, News, Press Releases..." name="name" aria-describedby="blogNameHelpText" value="<c:out value="${blog.name}"/>" required>
   </label>
+  <p class="help-text" id="blogNameHelpText">Also generates this category's Unique Id (shown in the
+    blog list, and used in every post's URL) the first time it's saved -- see the warning above
+    before renaming a category that already has posts in it.</p>
   <label>Description
     <input type="text" placeholder="Describe it..." name="description" value="<c:out value="${blog.description}"/>">
   </label>
@@ -51,11 +67,16 @@
         <option value="${mailingList.id}" <c:if test="${mailingList.id == blog.mailingListId}">selected</c:if>><c:out value="${mailingList.title}" /></option>
       </c:forEach>
     </select>
-    <small>When set, this blog's post editor defaults to notifying this list on publish.</small>
+    <small>When set, this blog's post editor defaults to notifying this list on publish. A page using
+      the Email Subscribe widget with this category's Unique Id also lets visitors subscribe to just
+      this category's updates, separately from any site-wide subscription option.</small>
   </label>
   <input id="enabled" type="checkbox" name="enabled" value="true" <c:if test="${blog.id == -1 || blog.enabled}">checked</c:if>/><label for="enabled">Online?</label>
   <c:if test="${blog.id != -1}">
     <p><a href="${ctx}/admin/blog-tags?blogId=${blog.id}">Manage this blog's tags...</a></p>
+    <p class="help-text">These tags belong only to this category -- another category with a similar
+      topic (e.g. also wanting an "Announcements" tag) needs its own separate tag record; tags are
+      never shared across categories.</p>
   </c:if>
   <div class="button-container">
     <c:choose>

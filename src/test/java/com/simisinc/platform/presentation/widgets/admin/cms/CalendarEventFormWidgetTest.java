@@ -16,17 +16,22 @@
 
 package com.simisinc.platform.presentation.widgets.admin.cms;
 
+import static org.junit.jupiter.api.Assertions.assertArrayEquals;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
 
 import java.sql.Timestamp;
 
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
 import com.simisinc.platform.WidgetBase;
+import com.simisinc.platform.application.cms.SaveCalendarEventCommand;
 import com.simisinc.platform.domain.model.cms.CalendarEvent;
 import com.simisinc.platform.infrastructure.persistence.cms.CalendarEventRepository;
 import com.simisinc.platform.presentation.controller.WidgetContext;
@@ -150,6 +155,239 @@ class CalendarEventFormWidgetTest extends WidgetBase {
 
       repository.verifyNoInteractions();
       assertEquals(rejected, result.getRequest().getAttribute("calendarEvent"));
+    }
+  }
+
+  /**
+   * The tagsList input is a single comma-separated text field, but the bean stores it as a
+   * String[] -- execute() pre-joins it into a request attribute so the JSP can render it through
+   * one c:out rather than escaping-then-reassembling an array inside an HTML attribute.
+   */
+  @Test
+  void executePreJoinsAnExistingEventsTagsListForTheTextInput() {
+    CalendarEvent existing = new CalendarEvent();
+    existing.setId(42L);
+    existing.setTagsList(new String[] { "conference", "quarterly", "all-hands" });
+
+    addQueryParameter(widgetContext, "calendarEventId", "42");
+
+    try (MockedStatic<CalendarEventRepository> repository = mockStatic(CalendarEventRepository.class)) {
+      repository.when(() -> CalendarEventRepository.findById(42L)).thenReturn(existing);
+
+      WidgetContext result = new CalendarEventFormWidget().execute(widgetContext);
+
+      assertEquals("conference, quarterly, all-hands", result.getRequest().getAttribute("tagsListValue"));
+    }
+  }
+
+  @Test
+  void executeSetsNoTagsListValueWhenTheEventHasNoTags() {
+    CalendarEvent existing = new CalendarEvent();
+    existing.setId(42L);
+
+    addQueryParameter(widgetContext, "calendarEventId", "42");
+
+    try (MockedStatic<CalendarEventRepository> repository = mockStatic(CalendarEventRepository.class)) {
+      repository.when(() -> CalendarEventRepository.findById(42L)).thenReturn(existing);
+
+      WidgetContext result = new CalendarEventFormWidget().execute(widgetContext);
+
+      assertNull(result.getRequest().getAttribute("tagsListValue"));
+    }
+  }
+
+  // --- permission gate (post()) ---
+
+  /**
+   * CalendarEventFormWidget.post() previously had no in-widget role check at all -- mutating a
+   * calendar event relied solely on the page-level role gate in admin-layout.xml. This mirrors
+   * CalendarWidget.post()'s identical admin/content-manager pairing for the same CalendarEvent
+   * entity.
+   */
+  @Test
+  void communityManagerCannotSaveAnEvent() throws Exception {
+    setRoles(widgetContext, COMMUNITY_MANAGER);
+    addQueryParameter(widgetContext, "calendarId", "3");
+    addQueryParameter(widgetContext, "title", "Town Hall");
+
+    try (MockedStatic<SaveCalendarEventCommand> saveCommand = mockStatic(SaveCalendarEventCommand.class)) {
+      new CalendarEventFormWidget().post(widgetContext);
+
+      saveCommand.verifyNoInteractions();
+    }
+  }
+
+  @Test
+  void contentManagerCanSaveAnEvent() throws Exception {
+    setRoles(widgetContext, CONTENT_MANAGER);
+    addQueryParameter(widgetContext, "calendarId", "3");
+    addQueryParameter(widgetContext, "title", "Town Hall");
+
+    CalendarEvent saved = new CalendarEvent();
+    saved.setId(50L);
+
+    try (MockedStatic<SaveCalendarEventCommand> saveCommand = mockStatic(SaveCalendarEventCommand.class)) {
+      saveCommand.when(() -> SaveCalendarEventCommand.saveCalendarEvent(any())).thenReturn(saved);
+
+      WidgetContext result = new CalendarEventFormWidget().post(widgetContext);
+
+      saveCommand.verify(() -> SaveCalendarEventCommand.saveCalendarEvent(any()), times(1));
+      assertEquals("Event was saved", result.getSuccessMessage());
+    }
+  }
+
+  // --- the critical bug fix: full field parity on save ---
+
+  /**
+   * The core regression this fix closes: previously, saving through this form only ever
+   * submitted id/calendarId/title/summary/allDay/startDate/endDate, so SaveCalendarEventCommand's
+   * unconditional full-overwrite semantics silently reset location/links/tags/published to
+   * blank/draft on every save. This proves a fully-populated submission now reaches the save
+   * command with every one of those fields intact.
+   */
+  @Test
+  void postSavesEveryFieldTheFullCalendarEditorAlsoSubmits() throws Exception {
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "id", "42");
+    addQueryParameter(widgetContext, "calendarId", "3");
+    addQueryParameter(widgetContext, "title", "Town Hall");
+    addQueryParameter(widgetContext, "summary", "Quarterly update");
+    addQueryParameter(widgetContext, "location", "Main Auditorium");
+    addQueryParameter(widgetContext, "detailsUrl", "https://example.org/details");
+    addQueryParameter(widgetContext, "signUpUrl", "https://example.org/signup");
+    addQueryParameter(widgetContext, "videoUrl", "https://example.org/meet");
+    addQueryParameter(widgetContext, "tagsList", "conference, quarterly, all-hands");
+    addQueryParameter(widgetContext, "enabled", "true");
+
+    CalendarEvent saved = new CalendarEvent();
+    saved.setId(42L);
+
+    try (MockedStatic<SaveCalendarEventCommand> saveCommand = mockStatic(SaveCalendarEventCommand.class)) {
+      saveCommand.when(() -> SaveCalendarEventCommand.saveCalendarEvent(any())).thenReturn(saved);
+
+      new CalendarEventFormWidget().post(widgetContext);
+
+      ArgumentCaptor<CalendarEvent> captor = ArgumentCaptor.forClass(CalendarEvent.class);
+      saveCommand.verify(() -> SaveCalendarEventCommand.saveCalendarEvent(captor.capture()));
+      CalendarEvent bean = captor.getValue();
+
+      assertEquals("Town Hall", bean.getTitle());
+      assertEquals("Quarterly update", bean.getSummary());
+      assertEquals("Main Auditorium", bean.getLocation());
+      assertEquals("https://example.org/details", bean.getDetailsUrl());
+      assertEquals("https://example.org/signup", bean.getSignUpUrl());
+      assertEquals("https://example.org/meet", bean.getVideoUrl());
+      assertArrayEquals(new String[] { "conference", "quarterly", "all-hands" }, bean.getTagsList());
+      assertNotNull(bean.getPublished());
+    }
+  }
+
+  @Test
+  void postWithTheEnabledCheckboxUncheckedSavesAsUnpublished() throws Exception {
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "id", "42");
+    addQueryParameter(widgetContext, "calendarId", "3");
+    addQueryParameter(widgetContext, "title", "Town Hall");
+    // No "enabled" parameter at all -- mirrors an unchecked HTML checkbox, which submits nothing.
+
+    CalendarEvent saved = new CalendarEvent();
+    saved.setId(42L);
+
+    try (MockedStatic<SaveCalendarEventCommand> saveCommand = mockStatic(SaveCalendarEventCommand.class)) {
+      saveCommand.when(() -> SaveCalendarEventCommand.saveCalendarEvent(any())).thenReturn(saved);
+
+      new CalendarEventFormWidget().post(widgetContext);
+
+      ArgumentCaptor<CalendarEvent> captor = ArgumentCaptor.forClass(CalendarEvent.class);
+      saveCommand.verify(() -> SaveCalendarEventCommand.saveCalendarEvent(captor.capture()));
+      assertNull(captor.getValue().getPublished());
+    }
+  }
+
+  @Test
+  void postWithNoTagsListParameterClearsTags() throws Exception {
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "id", "42");
+    addQueryParameter(widgetContext, "calendarId", "3");
+    addQueryParameter(widgetContext, "title", "Town Hall");
+    // No "tagsList" parameter at all -- e.g. every tag was removed from the field.
+
+    CalendarEvent saved = new CalendarEvent();
+    saved.setId(42L);
+
+    try (MockedStatic<SaveCalendarEventCommand> saveCommand = mockStatic(SaveCalendarEventCommand.class)) {
+      saveCommand.when(() -> SaveCalendarEventCommand.saveCalendarEvent(any())).thenReturn(saved);
+
+      new CalendarEventFormWidget().post(widgetContext);
+
+      ArgumentCaptor<CalendarEvent> captor = ArgumentCaptor.forClass(CalendarEvent.class);
+      saveCommand.verify(() -> SaveCalendarEventCommand.saveCalendarEvent(captor.capture()));
+      assertNull(captor.getValue().getTagsList());
+    }
+  }
+
+  @Test
+  void postTrimsAndDropsEmptyEntriesFromTheTagsListField() throws Exception {
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "id", "42");
+    addQueryParameter(widgetContext, "calendarId", "3");
+    addQueryParameter(widgetContext, "title", "Town Hall");
+    addQueryParameter(widgetContext, "tagsList", " conference ,, quarterly ,  ");
+
+    CalendarEvent saved = new CalendarEvent();
+    saved.setId(42L);
+
+    try (MockedStatic<SaveCalendarEventCommand> saveCommand = mockStatic(SaveCalendarEventCommand.class)) {
+      saveCommand.when(() -> SaveCalendarEventCommand.saveCalendarEvent(any())).thenReturn(saved);
+
+      new CalendarEventFormWidget().post(widgetContext);
+
+      ArgumentCaptor<CalendarEvent> captor = ArgumentCaptor.forClass(CalendarEvent.class);
+      saveCommand.verify(() -> SaveCalendarEventCommand.saveCalendarEvent(captor.capture()));
+      assertArrayEquals(new String[] { "conference", "quarterly" }, captor.getValue().getTagsList());
+    }
+  }
+
+  /**
+   * Simulates what the JSP now does after this fix: an edit form pre-filled with an existing
+   * event's full state (not just the handful of fields the old narrow form exposed), with only
+   * the title changed by the user. Proves the round-trip preserves everything else instead of
+   * silently wiping it -- the entire point of bringing this form up to field parity.
+   */
+  @Test
+  void editingOnlyTheTitleThroughAFullyPrefilledFormPreservesEveryOtherField() throws Exception {
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "id", "42");
+    addQueryParameter(widgetContext, "calendarId", "3");
+    addQueryParameter(widgetContext, "title", "Town Hall (rescheduled)");
+    addQueryParameter(widgetContext, "summary", "Quarterly update");
+    addQueryParameter(widgetContext, "location", "Main Auditorium");
+    addQueryParameter(widgetContext, "detailsUrl", "https://example.org/details");
+    addQueryParameter(widgetContext, "signUpUrl", "https://example.org/signup");
+    addQueryParameter(widgetContext, "videoUrl", "https://example.org/meet");
+    addQueryParameter(widgetContext, "tagsList", "quarterly, all-hands");
+    addQueryParameter(widgetContext, "enabled", "true");
+
+    CalendarEvent saved = new CalendarEvent();
+    saved.setId(42L);
+
+    try (MockedStatic<SaveCalendarEventCommand> saveCommand = mockStatic(SaveCalendarEventCommand.class)) {
+      saveCommand.when(() -> SaveCalendarEventCommand.saveCalendarEvent(any())).thenReturn(saved);
+
+      new CalendarEventFormWidget().post(widgetContext);
+
+      ArgumentCaptor<CalendarEvent> captor = ArgumentCaptor.forClass(CalendarEvent.class);
+      saveCommand.verify(() -> SaveCalendarEventCommand.saveCalendarEvent(captor.capture()));
+      CalendarEvent bean = captor.getValue();
+
+      assertEquals("Town Hall (rescheduled)", bean.getTitle());
+      assertEquals("Quarterly update", bean.getSummary());
+      assertEquals("Main Auditorium", bean.getLocation());
+      assertEquals("https://example.org/details", bean.getDetailsUrl());
+      assertEquals("https://example.org/signup", bean.getSignUpUrl());
+      assertEquals("https://example.org/meet", bean.getVideoUrl());
+      assertArrayEquals(new String[] { "quarterly", "all-hands" }, bean.getTagsList());
+      assertNotNull(bean.getPublished());
     }
   }
 }

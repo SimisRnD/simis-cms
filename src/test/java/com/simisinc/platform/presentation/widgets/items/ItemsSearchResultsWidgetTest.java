@@ -24,6 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
 
@@ -111,7 +112,10 @@ class ItemsSearchResultsWidgetTest extends WidgetBase {
         MockedStatic<TagRepository> tagRepository = mockStatic(TagRepository.class);
         MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
         MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
-      siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.timezone")).thenReturn("America/New_York");
+      // ItemDateFacetCommand.buckets() now reads the site timezone through
+      // FormatDateCommand.getSiteZoneId(), which calls the two-arg loadByName(name,
+      // defaultValue) overload.
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
       repository.when(() -> ItemRepository.findAll(specCaptor.capture(), any())).thenReturn(itemList);
       categoryRepository.when(CategoryRepository::findAll).thenReturn(categories(category(5, "Widgets"), category(6, "Gadgets")));
       tagRepository.when(TagRepository::findAll).thenReturn(new ArrayList<>());
@@ -157,7 +161,10 @@ class ItemsSearchResultsWidgetTest extends WidgetBase {
         MockedStatic<TagRepository> tagRepository = mockStatic(TagRepository.class);
         MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
         MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
-      siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.timezone")).thenReturn("America/New_York");
+      // ItemDateFacetCommand.buckets() now reads the site timezone through
+      // FormatDateCommand.getSiteZoneId(), which calls the two-arg loadByName(name,
+      // defaultValue) overload.
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
       repository.when(() -> ItemRepository.findAll(specCaptor.capture(), any())).thenReturn(new ArrayList<>());
       categoryRepository.when(CategoryRepository::findAll).thenReturn(new ArrayList<>());
       tagRepository.when(TagRepository::findAll).thenReturn(new ArrayList<>());
@@ -181,7 +188,10 @@ class ItemsSearchResultsWidgetTest extends WidgetBase {
         MockedStatic<TagRepository> tagRepository = mockStatic(TagRepository.class);
         MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
         MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
-      siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.timezone")).thenReturn("America/New_York");
+      // ItemDateFacetCommand.buckets() now reads the site timezone through
+      // FormatDateCommand.getSiteZoneId(), which calls the two-arg loadByName(name,
+      // defaultValue) overload.
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
       repository.when(() -> ItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
       categoryRepository.when(CategoryRepository::findAll).thenReturn(categories(category(5, "Widgets")));
       categoryRepository.when(() -> CategoryRepository.findById(5L)).thenReturn(category(5, "Widgets"));
@@ -220,7 +230,10 @@ class ItemsSearchResultsWidgetTest extends WidgetBase {
         MockedStatic<TagRepository> tagRepository = mockStatic(TagRepository.class);
         MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
         MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
-      siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.timezone")).thenReturn("America/New_York");
+      // ItemDateFacetCommand.buckets() now reads the site timezone through
+      // FormatDateCommand.getSiteZoneId(), which calls the two-arg loadByName(name,
+      // defaultValue) overload.
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
       repository.when(() -> ItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
       categoryRepository.when(CategoryRepository::findAll).thenReturn(categories(category(99, "Confidential HR Records")));
       // findById is stubbed to return the real name deliberately, to prove the widget does NOT
@@ -282,7 +295,10 @@ class ItemsSearchResultsWidgetTest extends WidgetBase {
         MockedStatic<TagRepository> tagRepository = mockStatic(TagRepository.class);
         MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
         MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
-      siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.timezone")).thenReturn("America/New_York");
+      // ItemDateFacetCommand.buckets() now reads the site timezone through
+      // FormatDateCommand.getSiteZoneId(), which calls the two-arg loadByName(name,
+      // defaultValue) overload.
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
       repository.when(() -> ItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
       tagRepository.when(TagRepository::findAll).thenReturn(new ArrayList<>());
       repository.when(() -> ItemRepository.countGroupedByTag(any())).thenReturn(new HashMap<>());
@@ -316,7 +332,10 @@ class ItemsSearchResultsWidgetTest extends WidgetBase {
         MockedStatic<TagRepository> tagRepository = mockStatic(TagRepository.class);
         MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
         MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
-      siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.timezone")).thenReturn("America/New_York");
+      // ItemDateFacetCommand.buckets() now reads the site timezone through
+      // FormatDateCommand.getSiteZoneId(), which calls the two-arg loadByName(name,
+      // defaultValue) overload.
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
       repository.when(() -> ItemRepository.findAll(specCaptor.capture(), any())).thenReturn(new ArrayList<>());
       categoryRepository.when(CategoryRepository::findAll).thenReturn(new ArrayList<>());
       tagRepository.when(TagRepository::findAll).thenReturn(new ArrayList<>());
@@ -343,7 +362,10 @@ class ItemsSearchResultsWidgetTest extends WidgetBase {
         MockedStatic<TagRepository> tagRepository = mockStatic(TagRepository.class);
         MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
         MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
-      siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.timezone")).thenReturn("America/New_York");
+      // ItemDateFacetCommand.buckets() now reads the site timezone through
+      // FormatDateCommand.getSiteZoneId(), which calls the two-arg loadByName(name,
+      // defaultValue) overload.
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
       repository.when(() -> ItemRepository.findAll(specCaptor.capture(), any())).thenReturn(new ArrayList<>());
       categoryRepository.when(CategoryRepository::findAll).thenReturn(new ArrayList<>());
       tagRepository.when(TagRepository::findAll).thenReturn(new ArrayList<>());
@@ -370,7 +392,10 @@ class ItemsSearchResultsWidgetTest extends WidgetBase {
         MockedStatic<TagRepository> tagRepository = mockStatic(TagRepository.class);
         MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
         MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
-      siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.timezone")).thenReturn("America/New_York");
+      // ItemDateFacetCommand.buckets() now reads the site timezone through
+      // FormatDateCommand.getSiteZoneId(), which calls the two-arg loadByName(name,
+      // defaultValue) overload.
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
       repository.when(() -> ItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
       categoryRepository.when(CategoryRepository::findAll).thenReturn(categories(category(5, "Widgets"), category(7, "Doohickeys")));
       categoryRepository.when(() -> CategoryRepository.findById(5L)).thenReturn(category(5, "Widgets"));
@@ -406,7 +431,10 @@ class ItemsSearchResultsWidgetTest extends WidgetBase {
         MockedStatic<TagRepository> tagRepository = mockStatic(TagRepository.class);
         MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
         MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
-      siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.timezone")).thenReturn("America/New_York");
+      // ItemDateFacetCommand.buckets() now reads the site timezone through
+      // FormatDateCommand.getSiteZoneId(), which calls the two-arg loadByName(name,
+      // defaultValue) overload.
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
       repository.when(() -> ItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
       categoryRepository.when(CategoryRepository::findAll).thenReturn(categories(category(5, "Widgets"), category(7, "Doohickeys")));
       categoryRepository.when(() -> CategoryRepository.findById(5L)).thenReturn(category(5, "Widgets"));
@@ -445,7 +473,10 @@ class ItemsSearchResultsWidgetTest extends WidgetBase {
         MockedStatic<TagRepository> tagRepository = mockStatic(TagRepository.class);
         MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
         MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
-      siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.timezone")).thenReturn("America/New_York");
+      // ItemDateFacetCommand.buckets() now reads the site timezone through
+      // FormatDateCommand.getSiteZoneId(), which calls the two-arg loadByName(name,
+      // defaultValue) overload.
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
       repository.when(() -> ItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
       categoryRepository.when(CategoryRepository::findAll).thenReturn(categories(category(5, "Widgets")));
       categoryRepository.when(() -> CategoryRepository.findById(5L)).thenReturn(category(5, "Widgets"));
@@ -478,7 +509,10 @@ class ItemsSearchResultsWidgetTest extends WidgetBase {
         MockedStatic<TagRepository> tagRepository = mockStatic(TagRepository.class);
         MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
         MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
-      siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.timezone")).thenReturn("America/New_York");
+      // ItemDateFacetCommand.buckets() now reads the site timezone through
+      // FormatDateCommand.getSiteZoneId(), which calls the two-arg loadByName(name,
+      // defaultValue) overload.
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
       repository.when(() -> ItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
       categoryRepository.when(CategoryRepository::findAll).thenReturn(categories(category(5, "Widgets")));
       categoryRepository.when(() -> CategoryRepository.findById(5L)).thenReturn(category(5, "Widgets"));
@@ -508,7 +542,10 @@ class ItemsSearchResultsWidgetTest extends WidgetBase {
         MockedStatic<TagRepository> tagRepository = mockStatic(TagRepository.class);
         MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
         MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
-      siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.timezone")).thenReturn("America/New_York");
+      // ItemDateFacetCommand.buckets() now reads the site timezone through
+      // FormatDateCommand.getSiteZoneId(), which calls the two-arg loadByName(name,
+      // defaultValue) overload.
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
       repository.when(() -> ItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
       categoryRepository.when(CategoryRepository::findAll).thenReturn(categories(category(5, "Widgets")));
       categoryRepository.when(() -> CategoryRepository.findById(5L)).thenReturn(category(5, "Widgets"));
@@ -534,7 +571,10 @@ class ItemsSearchResultsWidgetTest extends WidgetBase {
         MockedStatic<TagRepository> tagRepository = mockStatic(TagRepository.class);
         MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
         MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
-      siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.timezone")).thenReturn("America/New_York");
+      // ItemDateFacetCommand.buckets() now reads the site timezone through
+      // FormatDateCommand.getSiteZoneId(), which calls the two-arg loadByName(name,
+      // defaultValue) overload.
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
       repository.when(() -> ItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
       categoryRepository.when(CategoryRepository::findAll).thenReturn(new ArrayList<>());
       tagRepository.when(TagRepository::findAll).thenReturn(new ArrayList<>());
@@ -565,7 +605,10 @@ class ItemsSearchResultsWidgetTest extends WidgetBase {
         MockedStatic<TagRepository> tagRepository = mockStatic(TagRepository.class);
         MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
         MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
-      siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.timezone")).thenReturn("America/New_York");
+      // ItemDateFacetCommand.buckets() now reads the site timezone through
+      // FormatDateCommand.getSiteZoneId(), which calls the two-arg loadByName(name,
+      // defaultValue) overload.
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
       repository.when(() -> ItemRepository.findAll(specCaptor.capture(), any())).thenReturn(itemList);
       tagRepository.when(TagRepository::findAll).thenReturn(tags(tag(5, "Fiction"), tag(6, "History")));
       tagRepository.when(() -> TagRepository.findById(5L)).thenReturn(tag(5, "Fiction"));
@@ -611,7 +654,10 @@ class ItemsSearchResultsWidgetTest extends WidgetBase {
         MockedStatic<TagRepository> tagRepository = mockStatic(TagRepository.class);
         MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
         MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
-      siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.timezone")).thenReturn("America/New_York");
+      // ItemDateFacetCommand.buckets() now reads the site timezone through
+      // FormatDateCommand.getSiteZoneId(), which calls the two-arg loadByName(name,
+      // defaultValue) overload.
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
       repository.when(() -> ItemRepository.findAll(specCaptor.capture(), any())).thenReturn(new ArrayList<>());
       tagRepository.when(TagRepository::findAll).thenReturn(new ArrayList<>());
       repository.when(() -> ItemRepository.countGroupedByTag(any())).thenReturn(Map.of(5L, 1L, 7L, 1L));
@@ -639,7 +685,10 @@ class ItemsSearchResultsWidgetTest extends WidgetBase {
         MockedStatic<TagRepository> tagRepository = mockStatic(TagRepository.class);
         MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
         MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
-      siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.timezone")).thenReturn("America/New_York");
+      // ItemDateFacetCommand.buckets() now reads the site timezone through
+      // FormatDateCommand.getSiteZoneId(), which calls the two-arg loadByName(name,
+      // defaultValue) overload.
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
       repository.when(() -> ItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
       tagRepository.when(TagRepository::findAll).thenReturn(tags(tag(5, "Fiction"), tag(7, "History")));
       tagRepository.when(() -> TagRepository.findById(5L)).thenReturn(tag(5, "Fiction"));
@@ -673,7 +722,10 @@ class ItemsSearchResultsWidgetTest extends WidgetBase {
         MockedStatic<TagRepository> tagRepository = mockStatic(TagRepository.class);
         MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
         MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
-      siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.timezone")).thenReturn("America/New_York");
+      // ItemDateFacetCommand.buckets() now reads the site timezone through
+      // FormatDateCommand.getSiteZoneId(), which calls the two-arg loadByName(name,
+      // defaultValue) overload.
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
       repository.when(() -> ItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
       tagRepository.when(TagRepository::findAll).thenReturn(tags(tag(5, "Fiction"), tag(7, "History")));
       tagRepository.when(() -> TagRepository.findById(5L)).thenReturn(tag(5, "Fiction"));
@@ -711,7 +763,10 @@ class ItemsSearchResultsWidgetTest extends WidgetBase {
         MockedStatic<TagRepository> tagRepository = mockStatic(TagRepository.class);
         MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
         MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
-      siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.timezone")).thenReturn("America/New_York");
+      // ItemDateFacetCommand.buckets() now reads the site timezone through
+      // FormatDateCommand.getSiteZoneId(), which calls the two-arg loadByName(name,
+      // defaultValue) overload.
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
       repository.when(() -> ItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
       tagRepository.when(TagRepository::findAll).thenReturn(tags(tag(5, "Fiction")));
       tagRepository.when(() -> TagRepository.findById(5L)).thenReturn(tag(5, "Fiction"));
@@ -734,7 +789,10 @@ class ItemsSearchResultsWidgetTest extends WidgetBase {
         MockedStatic<CategoryRepository> categoryRepository = mockStatic(CategoryRepository.class);
         MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
         MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
-      siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.timezone")).thenReturn("America/New_York");
+      // ItemDateFacetCommand.buckets() now reads the site timezone through
+      // FormatDateCommand.getSiteZoneId(), which calls the two-arg loadByName(name,
+      // defaultValue) overload.
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
       repository.when(() -> ItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
       repository.when(() -> ItemRepository.countByDateRange(any(), any(), any())).thenReturn(0L);
 
@@ -764,7 +822,10 @@ class ItemsSearchResultsWidgetTest extends WidgetBase {
         MockedStatic<TagRepository> tagRepository = mockStatic(TagRepository.class);
         MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
         MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
-      siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.timezone")).thenReturn("America/New_York");
+      // ItemDateFacetCommand.buckets() now reads the site timezone through
+      // FormatDateCommand.getSiteZoneId(), which calls the two-arg loadByName(name,
+      // defaultValue) overload.
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
       repository.when(() -> ItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
       tagRepository.when(TagRepository::findAll).thenReturn(tags(tag(99, "Confidential Research Notes")));
       // findById is stubbed to return the real name deliberately, to prove the widget does NOT
@@ -797,7 +858,10 @@ class ItemsSearchResultsWidgetTest extends WidgetBase {
         MockedStatic<TagRepository> tagRepository = mockStatic(TagRepository.class);
         MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
         MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
-      siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.timezone")).thenReturn("America/New_York");
+      // ItemDateFacetCommand.buckets() now reads the site timezone through
+      // FormatDateCommand.getSiteZoneId(), which calls the two-arg loadByName(name,
+      // defaultValue) overload.
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
       repository.when(() -> ItemRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
       tagRepository.when(TagRepository::findAll).thenReturn(tags(tag(5, "Fiction")));
       tagRepository.when(() -> TagRepository.findById(5L)).thenReturn(tag(5, "Fiction"));
