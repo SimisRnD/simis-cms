@@ -248,7 +248,22 @@
             <p class="help-text" id="captchaTurnstileSitekeyHelpText">The public key that connects the site's forms to <a href="https://developers.cloudflare.com/turnstile/" target="_blank" rel="noreferrer">Cloudflare Turnstile</a>, a free CAPTCHA alternative to Google reCAPTCHA. It's sent to every visitor's browser, so it's safe to expose. Unlike Google reCAPTCHA v3, Turnstile needs no score-threshold tuning -- it's a pass/fail challenge, matching how this site's reCAPTCHA v2 integration already behaves. To get one, sign in to the Cloudflare dashboard's Turnstile section, add a site, and choose the widget mode of your choice; Cloudflare issues a Site Key and Secret Key together. Only takes effect when Captcha Service above is set to "turnstile".</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'mailing-list.service'}">
-            <p class="help-text" id="mailingListServiceHelpText">The only supported value today is "mailchimp" (case-insensitive). Any other value -- including a different service's name -- disables mailing-list sending entirely, the same as leaving this blank; nothing routes to a different provider based on what's typed here.</p>
+            <p class="help-text" id="mailingListServiceHelpText">The only supported value today is "mailchimp" (case-insensitive). Any other value -- including the shipped default of "None", or a different service's name -- disables mailing-list sending entirely, the same as leaving this blank; nothing routes to a different provider based on what's typed here.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'mailing-list.mailchimp.apiKey'}">
+            <p class="help-text" id="mailingListMailchimpApiKeyHelpText">Your MailChimp account's API key, from MailChimp's Account &gt; Extras &gt; API keys page. Both this and the Audience/List Id below must be set for MailChimp sync to work. This value is stored encrypted and always appears blank here after saving; leave it blank to keep the current key, or enter a new value to replace it.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'mailing-list.mailchimp.listId'}">
+            <p class="help-text" id="mailingListMailchimpListIdHelpText">The Audience ID (MailChimp calls this a "List Id" in its older API docs) of the MailChimp audience new subscribers sync to. Find it in MailChimp under Audience &gt; Settings &gt; Audience name and defaults.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'mailing-list.zerobounce.apiKey'}">
+            <p class="help-text" id="mailingListZerobounceApiKeyHelpText">Optional. A <a href="https://www.zerobounce.net/" target="_blank" rel="noreferrer">ZeroBounce</a> API key, used to validate email addresses' deliverability (catching typos, disposable addresses, and spam traps) in the background -- a nightly job checks any email that's never been validated, in batches, and skips cleanly with no error if this is left blank. This value is stored encrypted and always appears blank here after saving; leave it blank to keep the current key, or enter a new value to replace it.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'mailing-list.quarantine.alertThresholdPercent'}">
+            <p class="help-text" id="mailingListQuarantineAlertThresholdPercentHelpText">When the percentage of mailing-list members with a poor deliverability status (from ZeroBounce validation above) exceeds this, the "Mailing List Spam Rate" tile on the Community dashboard turns red. Like the Security Settings alert tiles, this is a passive dashboard indicator only -- nothing emails or pages anyone. Default is 10%.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'mailing-list.confirmation.expiryDays'}">
+            <p class="help-text" id="mailingListConfirmationExpiryDaysHelpText">How many days a double opt-in confirmation link stays valid before it expires. Only relevant for mailing lists with double opt-in enabled -- a subscriber who confirms after this window has passed needs to sign up again. Default is 7 days.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'theme.footer.style'}">
             <p class="help-text" id="themeFooterStyleHelpText">"Basic" shows the platform's built-in footer (custom text, privacy/terms links, controlled by the Site Settings page). "Custom XML" shows the footer chosen below under Footer Layout, editable through the on-page footer editor. "None" hides the footer entirely.</p>

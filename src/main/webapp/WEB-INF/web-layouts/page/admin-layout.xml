@@ -557,7 +557,7 @@
     </section>
   </page>
 
-  <page name="/admin/mail-properties" role="admin" title="Mail Server Settings">
+  <page name="/admin/mail-properties" role="admin" title="Email Settings">
     <!--<section>-->
       <!--<column class="small-12 cell">-->
         <!--<widget name="breadcrumbs">-->
