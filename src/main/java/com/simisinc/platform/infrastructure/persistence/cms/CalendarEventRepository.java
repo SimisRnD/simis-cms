@@ -18,6 +18,7 @@ package com.simisinc.platform.infrastructure.persistence.cms;
 
 import com.simisinc.platform.domain.model.cms.Calendar;
 import com.simisinc.platform.domain.model.cms.CalendarEvent;
+import com.simisinc.platform.domain.model.dashboard.StatisticsData;
 import com.simisinc.platform.infrastructure.database.*;
 import com.simisinc.platform.presentation.controller.DataConstants;
 import org.apache.commons.lang3.StringUtils;
@@ -29,7 +30,9 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Persists and retrieves calendar event objects
@@ -93,6 +96,12 @@ public class CalendarEventRepository {
       }
       // issue #426 (editorial calendar): the author filter, mirroring the calendarId clause above.
       where.addIfExists("created_by = ?", specification.getCreatedBy(), -1);
+      // A calendar's "Online?" checkbox gates its events off public list/feed surfaces (mirrors
+      // CalendarEventDetailsWidget's admin/content-manager bypass for the single-event page).
+      // false (the default for every pre-existing caller) is purely additive/unaffected.
+      if (specification.isCalendarEnabledOnly()) {
+        where.add("calendar_id IN (SELECT calendar_id FROM calendars WHERE enabled = true)");
+      }
     }
     return where;
   }
@@ -171,6 +180,25 @@ public class CalendarEventRepository {
   public static long findCount(CalendarEventSpecification specification) {
     SqlUtils where = createWhereStatement(specification);
     return DB.selectCountFrom(TABLE_NAME, where);
+  }
+
+  /**
+   * The "# of events" column on calendar-list.jsp used to be populated by CalendarListWidget
+   * looping over every calendar and issuing a separate findCount() round trip per row (an N+1
+   * query as the number of calendars grows). This computes every calendar's total event count
+   * (published, draft, and archived alike -- the same unfiltered count the old per-row findCount()
+   * call made) in a single GROUP BY query instead, mirroring ItemRepository#countGroupedByCategory's
+   * exact shape (DB.selectGroupedFrom). A calendar with zero events is simply absent from the
+   * returned map -- callers must treat a missing key as zero, same as the old per-row findCount()
+   * would have returned 0 for it.
+   */
+  public static Map<Long, Long> countGroupedByCalendarId() {
+    List<StatisticsData> rows = DB.selectGroupedFrom(TABLE_NAME, "calendar_id", "event_count", null, null, -1);
+    Map<Long, Long> counts = new HashMap<>();
+    for (StatisticsData row : rows) {
+      counts.put(Long.valueOf(row.getLabel()), Long.valueOf(row.getValue()));
+    }
+    return counts;
   }
 
   public static CalendarEvent save(CalendarEvent record) {

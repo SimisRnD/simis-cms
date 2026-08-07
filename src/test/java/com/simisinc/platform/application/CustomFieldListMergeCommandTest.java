@@ -138,19 +138,66 @@ public class CustomFieldListMergeCommandTest {
 
         assertTrue(!newList.isEmpty());
         assertTrue(newList.size() == 1);
+        // The item's legacy value is retained on the merged field...
         assertEquals("Option 4", newList.get("selection").getValue());
 
-        // Compare the lists
-        // Should have everything from list1, plus the value used in list2
-        // {option1=Option 1, option2=Option 2, option-3=Option 3, Option 4=Option 4}
-        System.out.println(newList.get("selection").getListOfOptions());
-        // newList.get("selection").getListOfOptions()
-
+        // ...but a value with no matching option must NOT be silently added to the field's
+        // defined list of options (that used to happen, and since the merged field is the same
+        // object as the live/cached collection definition, it permanently polluted the shared
+        // option list for every future request). The main list's original 3 options are the
+        // only options that should remain.
         Map<String, String> finalListOfOptions = newList.get("selection").getListOfOptions();
         assertTrue(finalListOfOptions.containsKey("option1"));
         assertTrue(finalListOfOptions.containsKey("option2"));
         assertTrue(finalListOfOptions.containsKey("option-3"));
-        assertTrue(finalListOfOptions.containsKey("option-4"));
+        assertEquals(3, finalListOfOptions.size());
+        assertTrue(!finalListOfOptions.containsKey("option-4"));
+        assertTrue(!finalListOfOptions.containsValue("Option 4"));
+    }
 
+    @Test
+    void testFieldTypeChangeDoesNotInjectSyntheticOptionForLegacyValue() {
+
+        // The collection's current field definition, after an admin changed the field's type
+        // from "text" to "list" and defined a fixed set of options
+        Map<String, CustomField> mainList = new LinkedHashMap<>();
+        CustomField currentFieldDefinition = new CustomField();
+        currentFieldDefinition.setName("status");
+        currentFieldDefinition.setType("list");
+        Map<String, String> definedOptions = new LinkedHashMap<>();
+        definedOptions.put("active", "Active");
+        definedOptions.put("inactive", "Inactive");
+        currentFieldDefinition.setListOfOptions(definedOptions);
+        mainList.put("status", currentFieldDefinition);
+
+        // An existing item that was saved back when "status" was a free-text field, so its
+        // stored value doesn't match either of the newly-defined options
+        Map<String, CustomField> secondaryList = new LinkedHashMap<>();
+        CustomField itemLegacyField = new CustomField();
+        itemLegacyField.setName("status");
+        itemLegacyField.setValue("Needs Review");
+        secondaryList.put("status", itemLegacyField);
+
+        // Merge repeatedly, as would happen across separate requests against the same cached
+        // collection field definition, to confirm the option list never grows
+        Map<String, CustomField> mergedList = null;
+        for (int i = 0; i < 3; i++) {
+            mergedList = CustomFieldListMergeCommand.mergeCustomFieldLists(mainList, secondaryList);
+        }
+
+        assertTrue(!mergedList.isEmpty());
+        // The item's legacy value is preserved as-is on the merged field
+        assertEquals("Needs Review", mergedList.get("status").getValue());
+
+        // The field's defined options are untouched: still exactly the two options the admin
+        // configured, with no synthetic option ever injected for the unmatched legacy value
+        Map<String, String> finalOptions = mergedList.get("status").getListOfOptions();
+        assertEquals(2, finalOptions.size());
+        assertTrue(finalOptions.containsKey("active"));
+        assertTrue(finalOptions.containsKey("inactive"));
+        assertTrue(!finalOptions.containsValue("Needs Review"));
+
+        // The original (shared/cached) field definition's option map itself was never mutated
+        assertEquals(2, definedOptions.size());
     }
 }

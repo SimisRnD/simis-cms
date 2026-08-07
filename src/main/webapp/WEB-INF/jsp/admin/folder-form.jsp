@@ -62,6 +62,19 @@
   <c:if test="${!empty groupList}">
     <fieldset>
       <legend>Access Groups</legend>
+      <div class="callout primary radius">
+        <p style="margin-bottom:0">
+          <strong>Allowed Access?</strong> controls how much of this folder a group's members can see:
+          <em>All Files</em> lets them view and download every file in this folder; <em>Own Files</em>
+          limits them to files they added themselves; <em>Files By Token Only</em> limits them to files
+          opened through a direct share link rather than by browsing the folder; <em>Drop Box Only</em>
+          lets them add files without being able to browse what's already there. <strong>Add</strong>,
+          <strong>Edit</strong>, and <strong>Delete</strong> are separate permissions layered on top of
+          that access: <em>Add</em> lets the group upload new files to this folder, <em>Edit</em> lets
+          them change an existing file's details, and <em>Delete</em> lets them remove files and
+          sub-folders.
+        </p>
+      </div>
       <table>
         <tr>
           <th class="text-left">Name</th>

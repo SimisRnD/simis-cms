@@ -851,4 +851,100 @@ class WebRequestFilterTest {
       verify(response).setStatus(HttpServletResponse.SC_MOVED_TEMPORARILY);
     }
   }
+
+  // --- Browser resource paths bypass the IP block ---
+  // A blocked IP's page request gets response.sendError(404), which Tomcat forwards internally to
+  // error-404.jsp WITHOUT re-running this filter for that forward -- so the error page's own HTML
+  // renders fine. But error-404.jsp loads its stylesheet via a normal <link> tag, which is a fresh,
+  // separate browser request that comes back through this filter from scratch. Before this fix, that
+  // asset request hit the IP-block check before ever reaching the "allow browser resources" exemption,
+  // so a blocked visitor's 404 page rendered with no CSS at all -- a visible tell (contradicting
+  // docs/ip-blocking.md's stated intent that a block should be indistinguishable from a real 404) that
+  // an ordinary "page really doesn't exist" 404 (fully styled) doesn't have.
+
+  @Test
+  void aBrowserResourcePathIsServedEvenWhenTheRequestingIpIsBlocked() throws Exception {
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    FilterChain chain = mock(FilterChain.class);
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProperties = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<LoadRedirectsCommand> redirects = mockStatic(LoadRedirectsCommand.class);
+        MockedStatic<LoadWebRedirectCommand> webRedirects = mockStatic(LoadWebRedirectCommand.class);
+        MockedStatic<LoadBlockedIPListCommand> blockedIPList = mockStatic(LoadBlockedIPListCommand.class);
+        MockedStatic<BlockedIPListCommand> blockedIPs = mockStatic(BlockedIPListCommand.class)) {
+
+      redirects.when(LoadRedirectsCommand::load).thenReturn(null);
+      webRedirects.when(() -> LoadWebRedirectCommand.matchByFromPath(anyString())).thenReturn(null);
+      // The requesting IP is blocked for every resource -- proves this is the browser-resource
+      // exemption at work, not a permissive stub
+      blockedIPs.when(() -> BlockedIPListCommand.passesCheck(anyString(), anyString())).thenReturn(false);
+
+      WebRequestFilter filter = filterWithoutSSL(siteProperties);
+      filter.doFilter(requestForResource("/css/site.css"), response, chain);
+
+      verify(chain).doFilter(any(), any());
+      verify(response, never()).sendError(HttpServletResponse.SC_NOT_FOUND);
+    }
+  }
+
+  @Test
+  void aNonResourcePathIsStillBlockedWhenTheRequestingIpIsBlocked() throws Exception {
+    // The exemption must not swallow the IP-block check entirely: an ordinary page path from the same
+    // blocked IP is still rejected with a 404 and never reaches the filter chain.
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    FilterChain chain = mock(FilterChain.class);
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProperties = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<LoadRedirectsCommand> redirects = mockStatic(LoadRedirectsCommand.class);
+        MockedStatic<LoadWebRedirectCommand> webRedirects = mockStatic(LoadWebRedirectCommand.class);
+        MockedStatic<LoadBlockedIPListCommand> blockedIPList = mockStatic(LoadBlockedIPListCommand.class);
+        MockedStatic<BlockedIPListCommand> blockedIPs = mockStatic(BlockedIPListCommand.class)) {
+
+      redirects.when(LoadRedirectsCommand::load).thenReturn(null);
+      webRedirects.when(() -> LoadWebRedirectCommand.matchByFromPath(anyString())).thenReturn(null);
+      blockedIPs.when(() -> BlockedIPListCommand.passesCheck(anyString(), anyString())).thenReturn(false);
+
+      WebRequestFilter filter = filterWithoutSSL(siteProperties);
+      filter.doFilter(requestForResource("/some-page"), response, chain);
+
+      verify(response).sendError(HttpServletResponse.SC_NOT_FOUND);
+      verify(chain, never()).doFilter(any(), any());
+    }
+  }
+
+  @Test
+  void anOrdinaryPageWhoseSlugMerelyStartsWithABrowserResourcePrefixIsStillBlocked() throws Exception {
+    // Regression test for a real bypass: the browser-resource exemption used to be a bare
+    // resource.startsWith("/images")-style prefix match, which also exempted any ordinary page
+    // whose slug happened to start with the same letters as a real static-asset directory
+    // (/images, /css, /fonts, /html, /javascript are all mapped as directories in web.xml) --
+    // letting a blocked visitor fetch full page content, not just static assets, from a blocked
+    // IP. Each of these is a plausible real page slug on a general-purpose CMS.
+    for (String resource : new String[] { "/images-of-our-team", "/css-tutorial-2026", "/javascript-basics",
+        "/html5-intro", "/fonts-of-the-80s" }) {
+      assertBlockedIpIsRejectedFor(resource);
+    }
+  }
+
+  private void assertBlockedIpIsRejectedFor(String resource) throws Exception {
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    FilterChain chain = mock(FilterChain.class);
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProperties = mockStatic(LoadSitePropertyCommand.class);
+        MockedStatic<LoadRedirectsCommand> redirects = mockStatic(LoadRedirectsCommand.class);
+        MockedStatic<LoadWebRedirectCommand> webRedirects = mockStatic(LoadWebRedirectCommand.class);
+        MockedStatic<LoadBlockedIPListCommand> blockedIPList = mockStatic(LoadBlockedIPListCommand.class);
+        MockedStatic<BlockedIPListCommand> blockedIPs = mockStatic(BlockedIPListCommand.class)) {
+
+      redirects.when(LoadRedirectsCommand::load).thenReturn(null);
+      webRedirects.when(() -> LoadWebRedirectCommand.matchByFromPath(anyString())).thenReturn(null);
+      blockedIPs.when(() -> BlockedIPListCommand.passesCheck(anyString(), anyString())).thenReturn(false);
+
+      WebRequestFilter filter = filterWithoutSSL(siteProperties);
+      filter.doFilter(requestForResource(resource), response, chain);
+
+      verify(response).sendError(HttpServletResponse.SC_NOT_FOUND);
+      verify(chain, never()).doFilter(any(), any());
+    }
+  }
 }

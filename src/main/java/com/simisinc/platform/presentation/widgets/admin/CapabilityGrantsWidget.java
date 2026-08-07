@@ -55,7 +55,11 @@ public class CapabilityGrantsWidget extends GenericWidget {
 
     User user = loadUser(context);
     if (user == null) {
-      return null;
+      // loadUser() already set an error message; still render the JSP (jsp:useBean will fall
+      // back to empty targetUser/capabilityList/grantList) so the error actually reaches the
+      // page instead of being silently dropped when the container skips a null-returning widget.
+      context.setJsp(JSP);
+      return context;
     }
 
     List<Capability> allCapabilities = CapabilityRepository.findAll();
@@ -135,8 +139,10 @@ public class CapabilityGrantsWidget extends GenericWidget {
   }
 
   /** Parses a yyyy-MM-dd date input as expiring at the start of the following day (inclusive of the
-   *  selected day); null when blank/invalid, meaning a permanent grant. */
-  private Timestamp parseExpiresAt(String value) {
+   *  selected day); null when nothing was submitted, meaning a permanent grant.
+   *  @throws DataException if a date WAS submitted but could not be parsed - a malformed
+   *  expiration must not silently degrade into a permanent grant. */
+  private Timestamp parseExpiresAt(String value) throws DataException {
     if (StringUtils.isBlank(value)) {
       return null;
     }
@@ -144,7 +150,7 @@ public class CapabilityGrantsWidget extends GenericWidget {
       LocalDate date = LocalDate.parse(value.trim()).plusDays(1);
       return Timestamp.valueOf(date.atStartOfDay());
     } catch (Exception e) {
-      return null;
+      throw new DataException("The expiration date could not be understood - please re-enter it");
     }
   }
 
@@ -152,7 +158,13 @@ public class CapabilityGrantsWidget extends GenericWidget {
     long userId = context.getParameterAsLong("userId", -1);
     User user = UserRepository.findByUserId(userId);
     if (user == null) {
+      // context.setErrorMessage() alone only sets a field on the WidgetContext object -- it's
+      // never copied onto the request for a first, non-redirected GET (only a POST-then-redirect
+      // hydrates it from controllerSession data). page_messages.jspf reads ${errorMessage} from
+      // request scope, so without this a stale link/bookmark to this page renders a normal-looking
+      // blank grant form with zero indication anything is wrong.
       context.setErrorMessage("User was not found");
+      context.getRequest().setAttribute("errorMessage", "User was not found");
     }
     return user;
   }

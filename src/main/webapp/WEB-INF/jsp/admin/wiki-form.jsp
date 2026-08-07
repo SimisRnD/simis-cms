@@ -38,8 +38,11 @@
   <%@include file="../page_messages.jspf" %>
   <%-- Form Content --%>
   <label>Name <span class="required">*</span>
-    <input type="text" placeholder="Documentation, Sales, Technical" name="name" value="<c:out value="${wiki.name}"/>" required>
+    <input type="text" placeholder="Documentation, Sales, Technical" name="name" aria-describedby="wikiNameHelpText" value="<c:out value="${wiki.name}"/>" required>
   </label>
+  <p class="help-text" id="wikiNameHelpText">Renaming a wiki changes only its display name here in
+    the admin -- its public URL prefix and every existing page link keep working, because the
+    internal identifier they're built from does not change when just the name is edited.</p>
   <label>Description
     <input type="text" placeholder="Describe it..." name="description" value="<c:out value="${wiki.description}"/>">
   </label>

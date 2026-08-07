@@ -34,8 +34,8 @@ public class SaveCategoryCommand {
 
   private static Log LOG = LogFactory.getLog(SaveCategoryCommand.class);
 
-  private static final String allowedChars = "abcdefghijklmnopqrstuvwyxz0123456789";
-  private static final String allowedFinalChars = "abcdefghijklmnopqrstuvwyxz0123456789-";
+  private static final String allowedChars = "abcdefghijklmnopqrstuvwxyz0123456789";
+  private static final String allowedFinalChars = "abcdefghijklmnopqrstuvwxyz0123456789-";
 
   public static Category saveCategory(Category categoryBean) throws DataException {
 
