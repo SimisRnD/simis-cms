@@ -26,11 +26,14 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 
 /**
  * @author matt rajkowski
@@ -49,15 +52,22 @@ class CalendarListWidgetTest extends WidgetBase {
     calendar.setUniqueId("calendar");
     calendarList.add(calendar);
 
+    Map<Long, Long> countsByCalendarId = new HashMap<>();
+    countsByCalendarId.put(1L, 8L);
+
     try (MockedStatic<CalendarRepository> calendarRepositoryMockedStatic = mockStatic(CalendarRepository.class)) {
       calendarRepositoryMockedStatic.when(CalendarRepository::findAll).thenReturn(calendarList);
 
       try (MockedStatic<CalendarEventRepository> calendarEventRepositoryMockedStatic = mockStatic(CalendarEventRepository.class)) {
-        calendarEventRepositoryMockedStatic.when(() -> CalendarEventRepository.findCount(any())).thenReturn(8L);
+        calendarEventRepositoryMockedStatic.when(CalendarEventRepository::countGroupedByCalendarId).thenReturn(countsByCalendarId);
 
         // Execute the widget
         CalendarListWidget widget = new CalendarListWidget();
         widget.execute(widgetContext);
+
+        // The N+1 fix: a single grouped-count call, never a per-row findCount() loop
+        calendarEventRepositoryMockedStatic.verify(CalendarEventRepository::countGroupedByCalendarId, times(1));
+        calendarEventRepositoryMockedStatic.verify(() -> CalendarEventRepository.findCount(any()), never());
       }
     }
 

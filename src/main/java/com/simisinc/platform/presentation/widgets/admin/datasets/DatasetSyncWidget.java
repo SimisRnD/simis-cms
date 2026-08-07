@@ -33,6 +33,7 @@ import com.simisinc.platform.infrastructure.persistence.items.ItemSpecification;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 import org.apache.commons.beanutils.BeanUtils;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -77,13 +78,24 @@ public class DatasetSyncWidget extends GenericWidget {
     }
 
     // Collection
-    Collection collection = LoadCollectionCommand.loadCollectionByUniqueId(dataset.getCollectionUniqueId());
+    String collectionUniqueId = dataset.getCollectionUniqueId();
+    Collection collection = null;
+    if (StringUtils.isNotBlank(collectionUniqueId)) {
+      collection = LoadCollectionCommand.loadCollectionByUniqueId(collectionUniqueId);
+    }
     if (collection != null) {
       context.getRequest().setAttribute("collection", collection);
-      if (collection != null) {
-        List<Category> categoryList = CategoryRepository.findAllByCollectionId(collection.getId());
-        context.getRequest().setAttribute("categoryList", categoryList);
-      }
+      List<Category> categoryList = CategoryRepository.findAllByCollectionId(collection.getId());
+      context.getRequest().setAttribute("categoryList", categoryList);
+    } else if (StringUtils.isNotBlank(collectionUniqueId)) {
+      // The dataset is mapped to a collection that can no longer be loaded (e.g. it was
+      // deleted after the mapping was set up). Previously this rendered a blank "Mapped
+      // Collection" field with no explanation, and the only symptom appeared later as an
+      // error when the admin clicked Save & Sync. Flag it here so the JSP can show an
+      // explicit warning banner instead.
+      context.getRequest().setAttribute("mappedCollectionMissing", Boolean.TRUE);
+      LOG.warn("Dataset " + dataset.getId() + " is mapped to collection '" + collectionUniqueId
+          + "' which could not be loaded (it may have been deleted)");
     }
 
     // New Collection

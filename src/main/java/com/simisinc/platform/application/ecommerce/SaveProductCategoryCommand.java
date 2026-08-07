@@ -31,8 +31,8 @@ import org.apache.commons.logging.LogFactory;
  */
 public class SaveProductCategoryCommand {
 
-  private static final String allowedChars = "abcdefghijklmnopqrstuvwyxz0123456789";
-  private static final String allowedFinalChars = "abcdefghijklmnopqrstuvwyxz0123456789-";
+  private static final String allowedChars = "abcdefghijklmnopqrstuvwxyz0123456789";
+  private static final String allowedFinalChars = "abcdefghijklmnopqrstuvwxyz0123456789-";
   private static Log LOG = LogFactory.getLog(SaveProductCategoryCommand.class);
 
   public static ProductCategory save(ProductCategory productCategoryBean) throws DataException {

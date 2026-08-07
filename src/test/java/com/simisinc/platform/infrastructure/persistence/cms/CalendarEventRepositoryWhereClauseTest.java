@@ -182,4 +182,44 @@ class CalendarEventRepositoryWhereClauseTest {
     assertTrue(whereContains(where, "archived IS NULL"));
     assertTrue(whereContains(where, "created_by = ?"));
   }
+
+  // --- calendarEnabledOnly (a calendar's "Online?" checkbox gating its events off public
+  // list/feed surfaces -- CalendarAjaxEvents, CalendarSearchResultsWidget, UpcomingCalendarEventsWidget) ---
+
+  @Test
+  void calendarEnabledOnlyTrueAddsTheEnabledCalendarSubqueryClause() {
+    CalendarEventSpecification specification = new CalendarEventSpecification();
+    specification.setCalendarEnabledOnly(true);
+
+    SqlUtils where = CalendarEventRepository.createWhereStatement(specification);
+
+    assertTrue(whereContains(where, "calendar_id IN (SELECT calendar_id FROM calendars WHERE enabled = true)"));
+  }
+
+  @Test
+  void calendarEnabledOnlyFalseByDefaultAddsNoEnabledCalendarClauseAtAll() {
+    // The default for every existing caller (admin-side event management, editorial calendar) --
+    // proves the new filter is purely additive and does not change existing query behavior.
+    CalendarEventSpecification specification = new CalendarEventSpecification();
+
+    SqlUtils where = CalendarEventRepository.createWhereStatement(specification);
+
+    assertFalse(whereContains(where, "calendars"));
+  }
+
+  @Test
+  void calendarEnabledOnlyCombinesWithPublishedOnlyAndArchivedOnlyAsAnd() {
+    // Mirrors how CalendarAjaxEvents/CalendarSearchResultsWidget/UpcomingCalendarEventsWidget
+    // actually build this specification for a non-previewing visitor.
+    CalendarEventSpecification specification = new CalendarEventSpecification();
+    specification.setPublishedOnly(true);
+    specification.setArchivedOnly(false);
+    specification.setCalendarEnabledOnly(true);
+
+    SqlUtils where = CalendarEventRepository.createWhereStatement(specification);
+
+    assertTrue(whereContains(where, "published IS NOT NULL"));
+    assertTrue(whereContains(where, "archived IS NULL"));
+    assertTrue(whereContains(where, "calendar_id IN (SELECT calendar_id FROM calendars WHERE enabled = true)"));
+  }
 }

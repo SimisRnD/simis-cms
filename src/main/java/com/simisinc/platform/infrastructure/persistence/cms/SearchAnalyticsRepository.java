@@ -191,6 +191,99 @@ public class SearchAnalyticsRepository {
     return DB.selectGroupedFrom(TABLE_NAME, "facet_key", "facet_key_count", where, orderBy, recordLimit);
   }
 
+  /** Search volume over the last {@code daysToLimit} days, grouped by search_type (pages/content/blog/
+   * wiki/items/calendar), busiest surface first (issue #1014). Every search event carries a
+   * search_type, so unlike findTopSearchPaths there's no null/blank filter needed here. daysToLimit
+   * and recordLimit are ints, so placing them in the interval/limit cannot inject SQL. */
+  public static List<StatisticsData> findSearchVolumeByType(int daysToLimit, int recordLimit) {
+    SqlUtils where = new SqlUtils()
+        .add("created > NOW() - INTERVAL '" + daysToLimit + " days'");
+    SqlUtils orderBy = new SqlUtils().add("search_type_count DESC");
+    return DB.selectGroupedFrom(TABLE_NAME, "search_type", "search_type_count", where, orderBy, recordLimit);
+  }
+
+  /** Zero-result rate over the last {@code daysToLimit} days, per search_type -- which of the six
+   * search surfaces (pages/content/blog/wiki/items/calendar) fails visitors most often, not just
+   * which terms fail (issue #1014). A per-type rate needs both a numerator and a denominator in the
+   * same row, so unlike findSearchVolumeByType this doesn't fit DB.selectGroupedFrom's single
+   * COUNT(*) shape -- hand-rolled SQL, mirroring findEngagementBySolutionType's per-group-computed-
+   * metric style in WebPageHitRepository. daysToLimit and recordLimit are ints, so placing them in
+   * the interval/limit cannot inject SQL. */
+  public static List<StatisticsData> findZeroResultRateByType(int daysToLimit, int recordLimit) {
+    String SQL_QUERY =
+        "SELECT search_type, " +
+            "ROUND(100.0 * SUM(CASE WHEN result_count = 0 THEN 1 ELSE 0 END) / COUNT(*), 1) AS zero_result_rate " +
+            "FROM " + TABLE_NAME + " " +
+            "WHERE created > NOW() - INTERVAL '" + daysToLimit + " days' " +
+            "GROUP BY search_type " +
+            "ORDER BY zero_result_rate DESC " +
+            "LIMIT " + recordLimit;
+    List<StatisticsData> records = null;
+    try (Connection connection = DB.getConnection();
+         PreparedStatement pst = connection.prepareStatement(SQL_QUERY);
+         ResultSet rs = pst.executeQuery()) {
+      records = new ArrayList<>();
+      while (rs.next()) {
+        StatisticsData data = new StatisticsData();
+        data.setLabel(rs.getString("search_type"));
+        // Locale.US pins the decimal separator to '.' regardless of JVM default locale, matching
+        // findAvgTimeOnPageByPath's precedent for the same reason.
+        data.setValue(String.format(java.util.Locale.US, "%.1f", rs.getDouble("zero_result_rate")));
+        records.add(data);
+      }
+    } catch (SQLException se) {
+      LOG.error("SQLException: " + se.getMessage());
+    }
+    return records;
+  }
+
+  /** Page paths that generated the most searches (of any outcome) over the last {@code daysToLimit}
+   * days (issue #1014) -- which pages visitors reach for and then search from, a candidate list for
+   * on-page navigation/content review. page_path is nullable (not every search-results widget sets
+   * it), so blank/null paths are excluded the same way findZeroResultTerms excludes blank queries.
+   * daysToLimit and recordLimit are ints, so placing them in the interval/limit cannot inject SQL. */
+  public static List<StatisticsData> findTopSearchPaths(int daysToLimit, int recordLimit) {
+    SqlUtils where = new SqlUtils()
+        .add("created > NOW() - INTERVAL '" + daysToLimit + " days'")
+        .add("page_path IS NOT NULL AND page_path <> ''");
+    SqlUtils orderBy = new SqlUtils().add("page_path_count DESC");
+    return DB.selectGroupedFrom(TABLE_NAME, "page_path", "page_path_count", where, orderBy, recordLimit);
+  }
+
+  /** Page paths that generated the most zero-result searches specifically over the last
+   * {@code daysToLimit} days (issue #1014) -- narrower than findTopSearchPaths: which pages are
+   * sending visitors into a search that comes up empty, the sharpest candidate list for a content
+   * gap or on-page navigation fix. daysToLimit and recordLimit are ints, so placing them in the
+   * interval/limit cannot inject SQL. */
+  public static List<StatisticsData> findTopZeroResultPaths(int daysToLimit, int recordLimit) {
+    SqlUtils where = new SqlUtils()
+        .add("created > NOW() - INTERVAL '" + daysToLimit + " days'")
+        .add("result_count = 0")
+        .add("page_path IS NOT NULL AND page_path <> ''");
+    SqlUtils orderBy = new SqlUtils().add("page_path_count DESC");
+    return DB.selectGroupedFrom(TABLE_NAME, "page_path", "page_path_count", where, orderBy, recordLimit);
+  }
+
+  // "Near-miss" means a search that technically succeeded (result_count > 0) but with so few results
+  // that recall is suspect and the term is worth a look -- 1 to 3 results, a fixed threshold rather
+  // than a configurable site property (issue #1014 called this out as a good candidate to stay
+  // hardcoded rather than become another admin-facing setting; revisit only if an operator asks for
+  // a different cutoff).
+  private static final String NEAR_MISS_RESULT_COUNT_RANGE = "result_count BETWEEN 1 AND 3";
+
+  /** Terms searched over the last {@code daysToLimit} days that returned a low-but-nonzero result
+   * count (see NEAR_MISS_RESULT_COUNT_RANGE), most-searched first -- these found something, but few
+   * enough results that recall may be poor, unlike findZeroResultTerms' hard failures (issue #1014).
+   * daysToLimit and recordLimit are ints, so placing them in the interval/limit cannot inject SQL. */
+  public static List<StatisticsData> findNearMissTerms(int daysToLimit, int recordLimit) {
+    SqlUtils where = new SqlUtils()
+        .add("created > NOW() - INTERVAL '" + daysToLimit + " days'")
+        .add(NEAR_MISS_RESULT_COUNT_RANGE)
+        .add("query IS NOT NULL AND query <> ''");
+    SqlUtils orderBy = new SqlUtils().add("query_count DESC");
+    return DB.selectGroupedFrom(TABLE_NAME, "query", "query_count", where, orderBy, recordLimit);
+  }
+
   /** Resolves the configurable zero-result-search alert threshold (search.zeroResultAlertThreshold),
    * falling back to the default when unset or unparseable, matching
    * MailingListMemberRepository.resolveQuarantineAlertThresholdPercent's precedent. */
