@@ -1721,6 +1721,27 @@
     </section>
   </page>
 
+  <page name="/admin/web-page-review" role="admin,content-manager" title="Web Page Review">
+    <section>
+      <column class="small-12 cell">
+        <widget name="breadcrumbs">
+          <links>
+            <link name="Web Pages" value="/admin/web-pages" />
+            <link name="Review" value="" />
+          </links>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 cell">
+        <widget name="webPageReview">
+          <icon>fa-clipboard-check</icon>
+          <title>Web Page Review</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
   <page name="/admin/web-redirects" role="admin,content-manager" title="Web Redirects">
     <section>
       <column class="small-12 cell">
