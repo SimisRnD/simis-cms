@@ -1051,4 +1051,137 @@ class MediaApiControllerTest {
     assertArrayEquals(fileBytes, out.toByteArray());
     verify(response, never()).setStatus(anyInt());
   }
+
+  // ── doDelete (Media Library delete feature) ────────────────────────────────────────────────
+
+  private static HttpServletRequest deleteRequestWithSession(UserSession userSession, String assetId, String token) {
+    HttpServletRequest request = mock(HttpServletRequest.class);
+    HttpSession session = mock(HttpSession.class);
+    when(session.getAttribute(SessionConstants.USER)).thenReturn(userSession);
+    when(request.getSession()).thenReturn(session);
+    when(request.getPathInfo()).thenReturn(assetId == null ? null : "/" + assetId);
+    when(request.getParameter("token")).thenReturn(token);
+    return request;
+  }
+
+  private static Recorded runDelete(HttpServletRequest request) throws Exception {
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    StringWriter body = new StringWriter();
+    when(response.getWriter()).thenReturn(new PrintWriter(body));
+    Recorded recorded = new Recorded();
+    doAnswer(inv -> {
+      recorded.status = inv.getArgument(0);
+      return null;
+    }).when(response).setStatus(anyInt());
+
+    new MediaApiController().doDelete(request, response);
+    recorded.body = body.toString();
+    return recorded;
+  }
+
+  @Test
+  void deleteRejectsWhenNotAuthenticated() throws Exception {
+    HttpServletRequest request = deleteRequestWithSession(null, "asset-123", "whatever");
+
+    Recorded result = runDelete(request);
+
+    assertEquals(401, result.status);
+    assertTrue(result.body.contains("Not authenticated"));
+  }
+
+  @Test
+  void deleteRejectsWhenUserLacksEditPermission() throws Exception {
+    UserSession userSession = loggedInSession(); // no roles at all
+    HttpServletRequest request = deleteRequestWithSession(userSession, "asset-123", userSession.getFormToken());
+
+    try (MockedStatic<MediaAssetRepository> assets = mockStatic(MediaAssetRepository.class)) {
+      Recorded result = runDelete(request);
+
+      assertEquals(403, result.status);
+      assertTrue(result.body.contains("Insufficient permission"));
+      assets.verify(() -> MediaAssetRepository.softDelete(anyLong()), never());
+    }
+  }
+
+  @Test
+  void deleteRejectsCsrfTokenMismatch() throws Exception {
+    UserSession userSession = loggedInSession("admin");
+    HttpServletRequest request = deleteRequestWithSession(userSession, "asset-123", "not-the-real-token");
+
+    try (MockedStatic<MediaAssetRepository> assets = mockStatic(MediaAssetRepository.class)) {
+      Recorded result = runDelete(request);
+
+      assertEquals(403, result.status);
+      assertTrue(result.body.contains("Invalid or missing CSRF token"));
+      assets.verify(() -> MediaAssetRepository.softDelete(anyLong()), never());
+    }
+  }
+
+  @Test
+  void deleteRejectsAMissingAssetId() throws Exception {
+    UserSession userSession = loggedInSession("admin");
+    HttpServletRequest request = deleteRequestWithSession(userSession, null, userSession.getFormToken());
+
+    Recorded result = runDelete(request);
+
+    assertEquals(400, result.status);
+    assertTrue(result.body.contains("assetId is required"));
+  }
+
+  @Test
+  void deleteReturns404ForAnUnknownAssetId() throws Exception {
+    UserSession userSession = loggedInSession("admin");
+    HttpServletRequest request = deleteRequestWithSession(userSession, "does-not-exist", userSession.getFormToken());
+
+    try (MockedStatic<MediaAssetRepository> assets = mockStatic(MediaAssetRepository.class)) {
+      assets.when(() -> MediaAssetRepository.findByAssetId("does-not-exist")).thenReturn(null);
+
+      Recorded result = runDelete(request);
+
+      assertEquals(404, result.status);
+      assertTrue(result.body.contains("Media asset not found"));
+      assets.verify(() -> MediaAssetRepository.softDelete(anyLong()), never());
+    }
+  }
+
+  @Test
+  void deleteSoftDeletesTheAssetAndReturnsSuccess() throws Exception {
+    UserSession userSession = loggedInSession("admin");
+    HttpServletRequest request = deleteRequestWithSession(userSession, "asset-123", userSession.getFormToken());
+
+    MediaAsset asset = new MediaAsset();
+    asset.setId(42L);
+    asset.setAssetId("asset-123");
+
+    try (MockedStatic<MediaAssetRepository> assets = mockStatic(MediaAssetRepository.class)) {
+      assets.when(() -> MediaAssetRepository.findByAssetId("asset-123")).thenReturn(asset);
+      assets.when(() -> MediaAssetRepository.softDelete(42L)).thenReturn(true);
+
+      Recorded result = runDelete(request);
+
+      assertEquals(200, result.status);
+      assertTrue(result.body.contains("\"success\":true"));
+      assets.verify(() -> MediaAssetRepository.softDelete(42L));
+    }
+  }
+
+  @Test
+  void deleteReturns500WhenTheSoftDeleteFails() throws Exception {
+    UserSession userSession = loggedInSession("admin");
+    HttpServletRequest request = deleteRequestWithSession(userSession, "asset-123", userSession.getFormToken());
+
+    MediaAsset asset = new MediaAsset();
+    asset.setId(42L);
+    asset.setAssetId("asset-123");
+
+    try (MockedStatic<MediaAssetRepository> assets = mockStatic(MediaAssetRepository.class)) {
+      assets.when(() -> MediaAssetRepository.findByAssetId("asset-123")).thenReturn(asset);
+      assets.when(() -> MediaAssetRepository.softDelete(42L)).thenReturn(false);
+
+      Recorded result = runDelete(request);
+
+      assertEquals(500, result.status);
+      assertTrue(result.body.contains("Failed to delete media asset"));
+    }
+  }
 }
