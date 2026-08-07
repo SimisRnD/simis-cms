@@ -28,10 +28,21 @@
   <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
 </c:if>
 <p class="help-text">
-  This page renames existing navigation tabs/items and changes the page they link to. Link must start with /
-  (e.g. /solutions). Reorder tabs and items with the <i class="fa fa-arrows-h"></i>/<i class="fa fa-arrows"></i>
-  drag handles or the arrow buttons. To add a new tab/item or to delete one, use
+  This page renames existing entries in the drop-down navigation menu across the top of your site, and changes
+  the page they link to -- a <strong>tab</strong> sits in the top bar itself (e.g. "Solutions"), an
+  <strong>item</strong> only appears in the drop-down underneath a tab once a visitor opens it (see the example
+  on the <a href="${ctx}/admin/sitemap">Navigation Menu Editor</a> page if that distinction isn't clear). Link
+  must start with / (e.g. /solutions); if you leave off the leading slash it's added for you rather than
+  rejected. Reorder tabs and items with the <i class="fa fa-arrows-h"></i>/<i class="fa fa-arrows"></i> drag
+  handles or the arrow buttons. To add a new tab/item or to delete one, use
   <a href="${ctx}/admin/sitemap">Navigation Menu Editor</a> instead.
+</p>
+<p class="help-text">
+  <strong>Save Site Map Changes saves every visible tab and item at once</strong> -- there's no per-row save, so
+  a typo in one field doesn't stop the rest of the page's edits from being saved. As on the Navigation Menu
+  Editor page, the first tab (usually "Home") has no editable Name/Link/Icon fields here, for the same reason:
+  whichever tab links to exactly <code>/</code> is always forced back to the first position on save, so it's
+  never actually reachable through this UI's rename/relink controls.
 </p>
 <%@include file="../page_messages.jspf" %>
 <c:if test="${empty menuTabList}">
@@ -117,6 +128,16 @@
     <a href="${ctx}/admin" class="button radius secondary">Cancel</a>
   </div>
 </form>
+<h5>Common problems and how to fix them</h5>
+<ul>
+  <li><strong>I changed a tab's Link and now the old page it used to point to has no way to be reached from the
+    menu.</strong> Changing a Link here only repoints the menu entry -- it doesn't touch the underlying page,
+    move it, or add a redirect. If anything still linked to the old path (bookmarks, search results, other
+    pages), set up a redirect separately rather than relying on the menu to keep working.</li>
+  <li><strong>I renamed a tab and the change didn't stick.</strong> Every field on this page is saved together
+    by the single "Save Site Map Changes" button at the bottom -- editing a field and navigating away without
+    clicking it discards that edit along with everything else unsaved on the page.</li>
+</ul>
 <script src="${ctx}/javascript/dragula-3.7.3/dragula.min.js"></script>
 <script nonce="${cspNonce}">
   var menuTabs = dragula([document.getElementById('site-map-container')], {
