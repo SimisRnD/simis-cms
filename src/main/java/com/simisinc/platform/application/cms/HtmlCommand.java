@@ -40,7 +40,7 @@ import java.util.UUID;
 public class HtmlCommand {
 
   private static Log LOG = LogFactory.getLog(HtmlCommand.class);
-  private static final String ALLOWED_CHARS = "abcdefghijklmnopqrstuvwyxz1234567890-";
+  private static final String ALLOWED_CHARS = "abcdefghijklmnopqrstuvwxyz1234567890-";
 
   /**
    * Turns HTML content into readable text

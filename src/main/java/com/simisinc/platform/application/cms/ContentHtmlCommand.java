@@ -644,7 +644,13 @@ public class ContentHtmlCommand {
     return context;
   }
 
-  private static WidgetContext deleteContent(WidgetContext context, Content content) {
+  /**
+   * Deletes a content block. Permission-checked by the caller ({@link #performWebAction}, or {@link
+   * com.simisinc.platform.presentation.widgets.admin.cms.ContentListWidget#delete} for the
+   * {@code /admin/content-list} row-delete action) -- this method itself assumes that check already
+   * happened, matching every other private action handler in this class.
+   */
+  public static WidgetContext deleteContent(WidgetContext context, Content content) {
     // Capture identity before the record is removed
     String targetId = String.valueOf(content.getId());
     String targetLabel = content.getUniqueId();

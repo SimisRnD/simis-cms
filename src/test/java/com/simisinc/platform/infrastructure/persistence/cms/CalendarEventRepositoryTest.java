@@ -306,6 +306,64 @@ class CalendarEventRepositoryTest {
     assertEquals(2, CalendarEventRepository.findCount(nonArchivedOnly));
   }
 
+  private static Calendar addCalendar(String uniqueId, boolean enabled) {
+    Calendar calendar = new Calendar();
+    calendar.setUniqueId(uniqueId);
+    calendar.setName(uniqueId);
+    calendar.setCreatedBy(1L);
+    calendar.setModifiedBy(1L);
+    calendar.setEnabled(enabled);
+    return CalendarRepository.add(calendar);
+  }
+
+  // --- calendarEnabledOnly: a calendar's "Online?" checkbox gates its events off public
+  // list/feed surfaces (CalendarAjaxEvents, CalendarSearchResultsWidget, UpcomingCalendarEventsWidget) ---
+
+  @Test
+  void calendarEnabledOnlyTrueExcludesEventsFromADisabledCalendar() {
+    Calendar onlineCalendar = addCalendar("cal-online", true);
+    Calendar offlineCalendar = addCalendar("cal-offline", false);
+    addEvent(onlineCalendar.getId(), "online-event", null, null);
+    addEvent(offlineCalendar.getId(), "offline-event", null, null);
+
+    CalendarEventSpecification specification = new CalendarEventSpecification();
+    specification.setCalendarEnabledOnly(true);
+
+    assertEquals(List.of("online-event"), uniqueIdsFor(specification));
+  }
+
+  @Test
+  void calendarEnabledOnlyFalseByDefaultReturnsEventsFromEveryCalendar() {
+    // Proves the new filter is purely additive: any caller that never touches
+    // calendarEnabledOnly (every admin-side caller) keeps seeing every calendar's events exactly
+    // as before, regardless of the calendar's "Online?" state.
+    Calendar onlineCalendar = addCalendar("cal-online-default", true);
+    Calendar offlineCalendar = addCalendar("cal-offline-default", false);
+    addEvent(onlineCalendar.getId(), "online-event-2", null, null);
+    addEvent(offlineCalendar.getId(), "offline-event-2", null, null);
+
+    List<String> uniqueIds = uniqueIdsFor(new CalendarEventSpecification());
+
+    assertTrue(uniqueIds.contains("online-event-2"));
+    assertTrue(uniqueIds.contains("offline-event-2"));
+  }
+
+  @Test
+  void findCountHonorsTheCalendarEnabledFilter() {
+    Calendar onlineCalendar = addCalendar("cal-online-count", true);
+    Calendar offlineCalendar = addCalendar("cal-offline-count", false);
+    addEvent(onlineCalendar.getId(), "online-1", null, null);
+    addEvent(onlineCalendar.getId(), "online-2", null, null);
+    addEvent(offlineCalendar.getId(), "offline-1", null, null);
+
+    CalendarEventSpecification enabledOnly = new CalendarEventSpecification();
+    enabledOnly.setCalendarEnabledOnly(true);
+    CalendarEventSpecification unfiltered = new CalendarEventSpecification();
+
+    assertEquals(2, CalendarEventRepository.findCount(enabledOnly));
+    assertEquals(3, CalendarEventRepository.findCount(unfiltered));
+  }
+
   // --- author filter (issue #426, editorial calendar) ---
 
   @Test

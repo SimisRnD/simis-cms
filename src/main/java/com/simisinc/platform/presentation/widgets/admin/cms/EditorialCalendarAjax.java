@@ -31,7 +31,7 @@ import java.util.Map;
 
 import org.apache.commons.lang3.StringUtils;
 
-import com.simisinc.platform.application.cms.FormatDateCommand;
+import com.simisinc.platform.application.cms.ContentReviewCommand;
 import com.simisinc.platform.application.json.JsonCommand;
 import com.simisinc.platform.domain.model.cms.Blog;
 import com.simisinc.platform.domain.model.cms.BlogPost;
@@ -53,8 +53,9 @@ import com.simisinc.platform.presentation.widgets.GenericWidget;
  * (publishAt/expiresAt), blog posts (startDate/endDate -- BlogPost has no publishAt/expiresAt
  * columns, see {@link BlogPostSpecification}'s field comment), and calendar events (their own
  * startDate). Each entry carries a title, a type badge (Page/Post/Event), a status
- * (Scheduled/Draft/Published/Expiring), the date it's anchored to, and the admin edit-form URL for
- * that content -- reusing the exact edit-form URL patterns
+ * (Scheduled/Pending Review/Draft/Published/Expiring -- see {@link #pageStatus}/{@link
+ * #postStatus} for why a page/post has one more status than an event), the date it's anchored to,
+ * and the admin edit-form URL for that content -- reusing the exact edit-form URL patterns
  * {@code web-page-list.jsp}/{@code blog-post-list.jsp}/{@code calendar-event-list.jsp} already use,
  * not new ones.
  *
@@ -233,14 +234,41 @@ public class EditorialCalendarAjax extends GenericWidget {
     }
   }
 
-  /** Page -- a future publishAt takes precedence (it IS the scheduling mechanism, issue #371);
-   * otherwise a page that has never gone live, or has a pending draft revision, reads as Draft. */
+  /**
+   * Page status -- governed-review state is checked BEFORE the future-publishAt check (fixes a
+   * bug found in the #426 research pass: the original order checked publishAt first, so a page
+   * still mid governed review with a future publishAt read as "Scheduled", which misleadingly
+   * implies it will go live on its own at that date. It will not -- {@link WebPageReviewWidget}
+   * shows nothing promotes a submitted-but-unapproved draft to live without an approver acting
+   * first. "Scheduled" is only correct once there is no pending draft in the way: PageServlet
+   * (see its "Enforce publish schedule and expiry for non-editors" block) and
+   * {@code ValidateApiAccessToWebPageCommand} both gate a page's public visibility on
+   * {@code publishAt} for exactly this case, so a draft-free page with a future publishAt really
+   * will go live automatically, unattended, right on schedule.
+   *
+   * <p>{@link WebPage#hasDraftContent()} (a non-blank {@code draftPageXml}) means a revision is
+   * somewhere in the submit/approve pipeline -- {@link ContentReviewCommand#listStatusLabel} is
+   * reused here for the exact same Draft/Pending Review/Approved vocabulary
+   * {@code WebPageListWidget}/{@code WebPageReviewWidget} already show elsewhere in the admin,
+   * rather than collapsing every one of those states into this class's own coarser "Draft" (the
+   * fuller fix, option (b) in the issue notes: {@code WebPageListWidget} already calls this
+   * exact method the exact same way -- {@code if (page.hasDraftContent()) { ... =
+   * ContentReviewCommand.listStatusLabel(page); }} -- so this is genuine reuse, not a new
+   * integration). {@code page.getDraft()} (the separate legacy "never went live at all" flag,
+   * unrelated to the governed-review pipeline -- see {@code SaveWebPageCommand}, which never
+   * touches draftPageXml/draftStatus) is checked next, preserving this class's original "Draft"
+   * label for that case since {@link ContentReviewCommand#listStatusLabel} has nothing to say
+   * about a page that was never enrolled in governed review to begin with.
+   */
   private static String pageStatus(WebPage page, Timestamp now) {
+    if (page.hasDraftContent()) {
+      return ContentReviewCommand.listStatusLabel(page);
+    }
+    if (page.getDraft()) {
+      return "Draft";
+    }
     if (page.getPublishAt() != null && page.getPublishAt().after(now)) {
       return "Scheduled";
-    }
-    if (page.getDraft() || page.hasDraftContent()) {
-      return "Draft";
     }
     return "Published";
   }
@@ -300,14 +328,35 @@ public class EditorialCalendarAjax extends GenericWidget {
     }
   }
 
-  /** Post -- a future startDate (the public-visibility gate, see BlogPostSpecification's field
-   * comment) takes precedence; otherwise a post that has never been published reads as Draft. */
+  /**
+   * Post status -- same governed-review-first ordering as {@link #pageStatus}, and for the same
+   * reason: the original order checked a future startDate first, so a post still mid governed
+   * review read as "Scheduled" even though {@link BlogPostReviewWidget} shows nothing publishes
+   * it without an approver acting first. "Scheduled" is only correct once there is no pending
+   * draft in the way -- a future startDate on an already-published post (published non-null) is
+   * the genuine public-visibility gate ({@link BlogPostSpecification}'s field comment,
+   * {@code startDateIsBeforeNow}), so that post really will become publicly visible unattended,
+   * right on schedule.
+   *
+   * <p>{@link BlogPost#hasDraftContent()} (non-blank body, not yet published) means this post is
+   * somewhere in the submit/approve pipeline -- {@link ContentReviewCommand#listStatusLabel} is
+   * reused here exactly the way {@code AdminBlogPostListWidget} already calls it (
+   * {@code if (blogPost.hasDraftContent()) { ... = ContentReviewCommand.listStatusLabel(...); }}),
+   * for the same Draft/Pending Review/Approved vocabulary rather than this class's own coarser
+   * "Draft". The {@code post.getPublished() == null} branch below only remains reachable for a
+   * post with a blank body (no draft content to label) that was still somehow never published --
+   * an edge case, but one {@link ContentReviewCommand#listStatusLabel} has nothing to say about
+   * either, since it requires {@code hasDraftContent()} to report anything but "Live".
+   */
   private static String postStatus(BlogPost post, Timestamp now) {
-    if (post.getStartDate() != null && post.getStartDate().after(now)) {
-      return "Scheduled";
+    if (post.hasDraftContent()) {
+      return ContentReviewCommand.listStatusLabel(post);
     }
     if (post.getPublished() == null) {
       return "Draft";
+    }
+    if (post.getStartDate() != null && post.getStartDate().after(now)) {
+      return "Scheduled";
     }
     return "Published";
   }
@@ -344,9 +393,30 @@ public class EditorialCalendarAjax extends GenericWidget {
     for (CalendarEvent event : eventList) {
       // An event's start/end IS the event -- unlike pages/posts there's no separate
       // publish-schedule field to also emit an "Expiring" entry for.
+      //
+      // CalendarEventRepository's own query (see its createWhereStatement) fetches a row when
+      // EITHER start_date OR end_date falls in [rangeStart, rangeEnd) -- a two-clause SQL OR --
+      // so a multi-day event that started before this range but is still ongoing/ending inside it
+      // (e.g. a week-long conference that started last month) is fetched here too. Anchoring only
+      // on getStartDate(), as this used to, then silently dropped that event: its start date
+      // isn't in the visible range for FullCalendar to plot an entry on, so inRange() below always
+      // failed and no entry was ever appended for it, even though the DB query fetched it. Prefer
+      // the start date when it's in range (the common case, unchanged from before); fall back to
+      // the end date only when the start date itself isn't in range. That keeps this a single
+      // calendar entry rather than mirroring addPages()/addPosts()'s two-separate-entries pattern
+      // (id suffixes "-publish"/"-expire") -- those fit a page's or post's genuinely distinct
+      // publish and expire moments, but an event's start/end are one continuous occurrence, not
+      // two, and duplicating the pattern here would double-render every ordinary single-day event
+      // (startDate == endDate, as most events are) into two identical same-day chips.
+      Timestamp anchor = null;
       if (event.getStartDate() != null && inRange(event.getStartDate(), rangeStart, rangeEnd)) {
+        anchor = event.getStartDate();
+      } else if (event.getEndDate() != null && inRange(event.getEndDate(), rangeStart, rangeEnd)) {
+        anchor = event.getEndDate();
+      }
+      if (anchor != null) {
         appendEntry(sb, "event-" + event.getId(), "Event", event.getTitle(), eventStatus(event, now),
-            event.getStartDate(), eventEditUrl(event), statusFilter);
+            anchor, eventEditUrl(event), statusFilter);
       }
     }
   }

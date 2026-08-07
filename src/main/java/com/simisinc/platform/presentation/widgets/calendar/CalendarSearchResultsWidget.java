@@ -80,11 +80,17 @@ public class CalendarSearchResultsWidget extends GenericWidget {
     // CalendarEventRepository, single-select since an event belongs to exactly one calendar)
     long selectedCalendarId = context.getParameterAsLong("calendarId", -1);
 
+    // A calendar switched offline ("Online?" unchecked) should not surface its events here for a
+    // regular visitor -- same admin/content-manager bypass as CalendarEventDetailsWidget's
+    // single-event view.
+    boolean isPreviewer = context.hasRole("admin") || context.hasRole("content-manager");
+
     // Search the calendar events
     CalendarEventSpecification eventSpecification = new CalendarEventSpecification();
     eventSpecification.setPublishedOnly(true);
     // issue #882: archived events are excluded from every public-facing calendar surface
     eventSpecification.setArchivedOnly(false);
+    eventSpecification.setCalendarEnabledOnly(!isPreviewer);
     eventSpecification.setSearchTerm(query);
     eventSpecification.setStartingDateRange(startingDateRange);
     if (selectedCalendarId != -1) {
@@ -106,6 +112,7 @@ public class CalendarSearchResultsWidget extends GenericWidget {
         CalendarEventSpecification countSpecification = new CalendarEventSpecification();
         countSpecification.setPublishedOnly(true);
         countSpecification.setArchivedOnly(false);
+        countSpecification.setCalendarEnabledOnly(!isPreviewer);
         countSpecification.setSearchTerm(query);
         countSpecification.setStartingDateRange(startingDateRange);
         countSpecification.setCalendarId(calendar.getId());
