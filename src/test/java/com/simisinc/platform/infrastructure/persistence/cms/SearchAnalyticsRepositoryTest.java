@@ -268,6 +268,142 @@ class SearchAnalyticsRepositoryTest {
   }
 
   @Test
+  void findSearchVolumeByTypeGroupsBySearchTypeAcrossTerms() {
+    addEvent("widgets", "pages", 3);
+    addEvent("gadgets", "pages", 1);
+    addEvent("foo", "items", 5);
+
+    List<StatisticsData> results = SearchAnalyticsRepository.findSearchVolumeByType(30, 10);
+
+    assertEquals(2, results.size());
+    assertEquals("pages", results.get(0).getLabel());
+    assertEquals("2", results.get(0).getValue());
+    assertEquals("items", results.get(1).getLabel());
+    assertEquals("1", results.get(1).getValue());
+  }
+
+  @Test
+  void findSearchVolumeByTypeExcludesEventsOutsideTheWindow() {
+    backdate(addEvent("ancient", "pages", 1).getId(), 40);
+    addEvent("recent", "items", 1);
+
+    List<StatisticsData> results = SearchAnalyticsRepository.findSearchVolumeByType(30, 10);
+
+    assertEquals(1, results.size());
+    assertEquals("items", results.get(0).getLabel());
+  }
+
+  @Test
+  void findZeroResultRateByTypeComputesAPercentagePerType() {
+    // pages: 1 of 2 searches zero-result -> 50.0%
+    addEvent("a", "pages", 0);
+    addEvent("b", "pages", 3);
+    // items: 2 of 2 searches zero-result -> 100.0%
+    addEvent("c", "items", 0);
+    addEvent("d", "items", 0);
+
+    List<StatisticsData> results = SearchAnalyticsRepository.findZeroResultRateByType(30, 10);
+
+    assertEquals(2, results.size());
+    assertEquals("items", results.get(0).getLabel(), "worst rate ranks first");
+    assertEquals("100.0", results.get(0).getValue());
+    assertEquals("pages", results.get(1).getLabel());
+    assertEquals("50.0", results.get(1).getValue());
+  }
+
+  @Test
+  void findZeroResultRateByTypeExcludesEventsOutsideTheWindow() {
+    backdate(addEvent("ancient", "pages", 0).getId(), 40);
+    addEvent("recent", "items", 2);
+
+    List<StatisticsData> results = SearchAnalyticsRepository.findZeroResultRateByType(30, 10);
+
+    assertEquals(1, results.size());
+    assertEquals("items", results.get(0).getLabel());
+    assertEquals("0.0", results.get(0).getValue());
+  }
+
+  @Test
+  void findTopSearchPathsGroupsByPagePathAndExcludesBlankPaths() {
+    addEventWithPath("widgets", "pages", 3, "/products");
+    addEventWithPath("gadgets", "pages", 1, "/products");
+    addEventWithPath("foo", "items", 5, "/catalog");
+    addEvent("bar", "pages", 2);
+
+    List<StatisticsData> results = SearchAnalyticsRepository.findTopSearchPaths(30, 10);
+
+    assertEquals(2, results.size());
+    assertEquals("/products", results.get(0).getLabel());
+    assertEquals("2", results.get(0).getValue());
+    assertEquals("/catalog", results.get(1).getLabel());
+    assertEquals("1", results.get(1).getValue());
+  }
+
+  @Test
+  void findTopSearchPathsExcludesEventsOutsideTheWindow() {
+    backdate(addEventWithPath("ancient", "pages", 1, "/old-page").getId(), 40);
+    addEventWithPath("recent", "pages", 1, "/new-page");
+
+    List<StatisticsData> results = SearchAnalyticsRepository.findTopSearchPaths(30, 10);
+
+    assertEquals(1, results.size());
+    assertEquals("/new-page", results.get(0).getLabel());
+  }
+
+  @Test
+  void findTopZeroResultPathsCountsOnlyZeroResultSearchesByPath() {
+    addEventWithPath("widgets", "pages", 3, "/products");
+    addEventWithPath("xylophone", "pages", 0, "/products");
+    addEventWithPath("yak", "pages", 0, "/products");
+    addEventWithPath("zither", "items", 0, "/catalog");
+
+    List<StatisticsData> results = SearchAnalyticsRepository.findTopZeroResultPaths(30, 10);
+
+    assertEquals(2, results.size());
+    assertEquals("/products", results.get(0).getLabel(), "2 zero-result searches outranks 1");
+    assertEquals("2", results.get(0).getValue());
+    assertEquals("/catalog", results.get(1).getLabel());
+    assertEquals("1", results.get(1).getValue());
+  }
+
+  @Test
+  void findTopZeroResultPathsExcludesEventsOutsideTheWindow() {
+    backdate(addEventWithPath("ancient", "pages", 0, "/old-page").getId(), 40);
+    addEventWithPath("recent", "pages", 0, "/new-page");
+
+    List<StatisticsData> results = SearchAnalyticsRepository.findTopZeroResultPaths(30, 10);
+
+    assertEquals(1, results.size());
+    assertEquals("/new-page", results.get(0).getLabel());
+  }
+
+  @Test
+  void findNearMissTermsIncludesOnlyLowButNonzeroResultCounts() {
+    addEvent("zero", "pages", 0);
+    addEvent("nearmiss1", "pages", 1);
+    addEvent("nearmiss3", "pages", 3);
+    addEvent("plenty", "pages", 4);
+
+    List<StatisticsData> results = SearchAnalyticsRepository.findNearMissTerms(30, 10);
+
+    assertEquals(2, results.size());
+    List<String> labels = List.of(results.get(0).getLabel(), results.get(1).getLabel());
+    assertTrue(labels.contains("nearmiss1"));
+    assertTrue(labels.contains("nearmiss3"));
+  }
+
+  @Test
+  void findNearMissTermsExcludesEventsOutsideTheWindow() {
+    backdate(addEvent("ancient", "pages", 2).getId(), 40);
+    addEvent("recent", "pages", 2);
+
+    List<StatisticsData> results = SearchAnalyticsRepository.findNearMissTerms(30, 10);
+
+    assertEquals(1, results.size());
+    assertEquals("recent", results.get(0).getLabel());
+  }
+
+  @Test
   void resolveZeroResultAlertThresholdFallsBackToDefaultWhenBlankOrUnparseable() {
     assertEquals(20, SearchAnalyticsRepository.resolveZeroResultAlertThreshold(null));
     assertEquals(20, SearchAnalyticsRepository.resolveZeroResultAlertThreshold(""));
@@ -320,6 +456,15 @@ class SearchAnalyticsRepositoryTest {
     searchAnalytics.setSearchType(searchType);
     searchAnalytics.setResultCount(resultCount);
     searchAnalytics.setFacetKey(facetKey);
+    return SearchAnalyticsRepository.save(searchAnalytics);
+  }
+
+  private static SearchAnalytics addEventWithPath(String query, String searchType, int resultCount, String pagePath) {
+    SearchAnalytics searchAnalytics = new SearchAnalytics();
+    searchAnalytics.setQuery(query);
+    searchAnalytics.setSearchType(searchType);
+    searchAnalytics.setResultCount(resultCount);
+    searchAnalytics.setPagePath(pagePath);
     return SearchAnalyticsRepository.save(searchAnalytics);
   }
 

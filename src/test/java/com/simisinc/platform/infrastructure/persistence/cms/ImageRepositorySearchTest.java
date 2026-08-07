@@ -126,7 +126,7 @@ class ImageRepositorySearchTest {
     }
     try (Connection connection = DB.getConnection();
         Statement statement = connection.createStatement()) {
-      statement.execute("TRUNCATE TABLE images RESTART IDENTITY");
+      statement.execute("TRUNCATE TABLE image_tag_map, image_tags, images RESTART IDENTITY CASCADE");
     } catch (SQLException se) {
       throw new IllegalStateException("Could not reset images table", se);
     }
@@ -273,6 +273,57 @@ class ImageRepositorySearchTest {
   }
 
   @Test
+  void tagIdFilterReturnsOnlyImagesCarryingThatTag() {
+    List<Image> all = ImageRepository.findAll();
+    long taggedImageId = all.stream().filter(i -> "GenSocialCard.png".equals(i.getFilename())).findFirst().get().getId();
+    long taggedImageTagId = insertImageTag("Homepage");
+    linkImageToTag(taggedImageId, taggedImageTagId);
+
+    ImageSpecification spec = new ImageSpecification();
+    spec.setTagId(taggedImageTagId);
+    List<Image> results = ImageRepository.findAll(spec, null);
+
+    assertEquals(1, results.size(), "only the one tagged image must be returned");
+    assertEquals("GenSocialCard.png", results.get(0).getFilename());
+  }
+
+  @Test
+  void tagIdFilterExcludesImagesNotCarryingThatTag() {
+    long taggedImageTagId = insertImageTag("Unused Tag");
+    // No image_tag_map row links any image to this tag
+
+    ImageSpecification spec = new ImageSpecification();
+    spec.setTagId(taggedImageTagId);
+    List<Image> results = ImageRepository.findAll(spec, null);
+
+    assertTrue(results.isEmpty(), "a tag with no assigned images must return an empty list, not everything");
+  }
+
+  @Test
+  void matchesNameAndTagIdComposeWithAndNotOr() {
+    // Two images match the filename search term "gen", but only one of them carries the tag --
+    // proves the two clauses are ANDed together, not ORed (which would also return the untagged match).
+    insertImage("GenBanner.png");
+    List<Image> all = ImageRepository.findAll();
+    long taggedImageId = all.stream().filter(i -> "GenSocialCard.png".equals(i.getFilename())).findFirst().get().getId();
+    long untaggedButNameMatchingImageId =
+        all.stream().filter(i -> "GenBanner.png".equals(i.getFilename())).findFirst().get().getId();
+    assertNotEquals(taggedImageId, untaggedButNameMatchingImageId);
+
+    long tagId = insertImageTag("Homepage");
+    linkImageToTag(taggedImageId, tagId);
+
+    ImageSpecification spec = new ImageSpecification();
+    spec.setMatchesName("gen");
+    spec.setTagId(tagId);
+    List<Image> results = ImageRepository.findAll(spec, null);
+
+    assertEquals(1, results.size(),
+        "only the image matching both the name search and the tag filter must be returned");
+    assertEquals("GenSocialCard.png", results.get(0).getFilename());
+  }
+
+  @Test
   void newlySavedImageDefaultsToADeadCenterFocalPoint() {
     Image saved = ImageRepository.findAll().get(0);
 
@@ -336,6 +387,8 @@ class ImageRepositorySearchTest {
   private static void createSchema() {
     try (Connection connection = DB.getConnection();
         Statement statement = connection.createStatement()) {
+      statement.execute("DROP TABLE IF EXISTS image_tag_map CASCADE");
+      statement.execute("DROP TABLE IF EXISTS image_tags CASCADE");
       statement.execute("DROP TABLE IF EXISTS images CASCADE");
       statement.execute("DROP TABLE IF EXISTS users CASCADE");
       statement.execute("CREATE TABLE users ("
@@ -357,8 +410,41 @@ class ImageRepositorySearchTest {
           + "web_path VARCHAR(50) NOT NULL, "
           + "focal_x NUMERIC(5,2) NOT NULL DEFAULT 50.00, "
           + "focal_y NUMERIC(5,2) NOT NULL DEFAULT 50.00)");
+      statement.execute("CREATE TABLE image_tags ("
+          + "image_tag_id BIGSERIAL PRIMARY KEY, "
+          + "name VARCHAR(255) NOT NULL)");
+      statement.execute("CREATE TABLE image_tag_map ("
+          + "id BIGSERIAL PRIMARY KEY, "
+          + "image_id BIGINT REFERENCES images(image_id) NOT NULL, "
+          + "image_tag_id BIGINT REFERENCES image_tags(image_tag_id) NOT NULL)");
     } catch (SQLException se) {
       throw new IllegalStateException("Could not create the images/users schema", se);
+    }
+  }
+
+  private static long insertImageTag(String name) {
+    try (Connection connection = DB.getConnection();
+        PreparedStatement pst = connection.prepareStatement(
+            "INSERT INTO image_tags (name) VALUES (?) RETURNING image_tag_id")) {
+      pst.setString(1, name);
+      try (ResultSet rs = pst.executeQuery()) {
+        rs.next();
+        return rs.getLong(1);
+      }
+    } catch (SQLException se) {
+      throw new IllegalStateException("Could not insert test image tag", se);
+    }
+  }
+
+  private static void linkImageToTag(long imageId, long imageTagId) {
+    try (Connection connection = DB.getConnection();
+        PreparedStatement pst = connection.prepareStatement(
+            "INSERT INTO image_tag_map (image_id, image_tag_id) VALUES (?, ?)")) {
+      pst.setLong(1, imageId);
+      pst.setLong(2, imageTagId);
+      pst.executeUpdate();
+    } catch (SQLException se) {
+      throw new IllegalStateException("Could not link test image to tag", se);
     }
   }
 

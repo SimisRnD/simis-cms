@@ -16,6 +16,7 @@
 
 package com.simisinc.platform.presentation.widgets.admin.cms;
 
+import com.simisinc.platform.application.cms.CheckFolderPermissionCommand;
 import com.simisinc.platform.application.cms.DeleteSubFolderCommand;
 import com.simisinc.platform.domain.model.cms.SubFolder;
 import com.simisinc.platform.infrastructure.persistence.cms.SubFolderRepository;
@@ -60,6 +61,16 @@ public class SubFolderDetailsWidget extends GenericWidget {
     long subFolderId = context.getParameterAsLong("subFolderId");
     if (subFolderId > -1) {
       SubFolder subFolder = SubFolderRepository.findById(subFolderId);
+      // Check the user's delete permission on the parent folder before removing this sub-folder --
+      // without this, any admin/content-manager/community-manager who can merely view this page could
+      // delete any sub-folder by id, regardless of the parent folder's own delete-permission ACL.
+      // Mirrors FolderDetailsWidget.delete(), with the admin bypass used by
+      // FolderSubFoldersListWidget/FolderFilesListWidget.
+      if (subFolder == null || !(context.hasRole("admin")
+          || CheckFolderPermissionCommand.userHasDeletePermission(subFolder.getFolderId(), context.getUserId()))) {
+        context.setErrorMessage("Error. Sub-Folder could not be deleted.");
+        return context;
+      }
       try {
         DeleteSubFolderCommand.deleteSubFolder(subFolder);
         context.setSuccessMessage("Sub-Folder deleted");

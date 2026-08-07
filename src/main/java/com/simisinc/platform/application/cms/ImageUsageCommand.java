@@ -45,6 +45,10 @@ import com.simisinc.platform.infrastructure.database.DB;
  * <li>raw {@code <img src="...">} tags embedded inside rich-text HTML bodies (CMS content blocks,
  * blog post bodies) -- inserted the same way, via the TinyMCE image-browser integration
  * (see the same JSP's {@code postMessage({mceAction: 'FileSelected', ...})} handler).</li>
+ * <li>the same URL, in markdown image syntax or raw HTML, inside a wiki page body -- unlike the
+ * sources above, {@code wiki-editor.jsp} has no image-browser integration of its own, so an author
+ * gets the URL by copying it from the image-browser popup or from {@code /admin/images}' "Image Link"
+ * and pastes it into the markdown by hand.</li>
  * </ul>
  * This is unrelated to the widget-XML-tree scan the sibling content-block-usage work (#499) uses --
  * that walks page layout structure; this matches a literal URL substring.
@@ -84,6 +88,7 @@ public class ImageUsageCommand {
       { "content", "content", "content_unique_id", "Content Block" },
       { "content", "draft_content", "content_unique_id", "Content Block (draft)" },
       { "blog_posts", "body", "title", "Blog Post" },
+      { "wiki_pages", "body", "title", "Wiki Page" },
   };
 
   private ImageUsageCommand() {

@@ -49,7 +49,9 @@ import com.simisinc.platform.infrastructure.persistence.cms.ImageRepository;
  * referenced through a plain varchar "image URL" column (e.g. {@code web_pages.page_image_url})
  * must be detected, an image referenced only through a raw {@code <img src="...">} inside an HTML
  * body ({@code content.content}/{@code content.draft_content}) must ALSO be detected -- not just
- * orphaned by omission -- and a genuinely unreferenced image must come back orphaned.
+ * orphaned by omission -- an image referenced only through markdown/HTML pasted into a wiki page
+ * body ({@code wiki_pages.body}) must ALSO be detected, and a genuinely unreferenced image must
+ * come back orphaned.
  *
  * @author SimIS Inc.
  */
@@ -115,6 +117,7 @@ class ImageUsageCommandTest {
       statement.execute("TRUNCATE TABLE images RESTART IDENTITY");
       statement.execute("TRUNCATE TABLE web_pages RESTART IDENTITY");
       statement.execute("TRUNCATE TABLE content RESTART IDENTITY");
+      statement.execute("TRUNCATE TABLE wiki_pages RESTART IDENTITY");
     } catch (SQLException se) {
       throw new IllegalStateException("Could not reset tables", se);
     }
@@ -162,6 +165,22 @@ class ImageUsageCommandTest {
   }
 
   @Test
+  void imageReferencedOnlyViaMarkdownPastedIntoAWikiPageBodyIsDetectedAsUsed() {
+    Image image = insertImage("wiki-diagram.png");
+    String fullUrl = "/assets/img/" + image.getUrl();
+    String markdownBody = "See the diagram below\n\n![architecture](" + fullUrl + ")\n\nmore text";
+    insertWikiPage("Architecture Overview", markdownBody);
+
+    List<ImageUsageCommand.UsageReference> usages = ImageUsageCommand.findUsages(image);
+
+    assertFalse(usages.isEmpty(),
+        "an image referenced only via markdown pasted into a wiki page body must be detected as used, "
+            + "not orphaned by omission");
+    assertTrue(usages.stream().anyMatch(u -> "Wiki Page".equals(u.getSourceType()) && "Architecture Overview".equals(u.getLabel())));
+    assertFalse(ImageUsageCommand.isOrphaned(image));
+  }
+
+  @Test
   void aGenuinelyUnusedImageIsCorrectlyFlaggedOrphaned() {
     Image image = insertImage("never-used.png");
     // A different image and unrelated page/content rows exist, but none reference this one.
@@ -203,6 +222,7 @@ class ImageUsageCommandTest {
   private static void createSchema() {
     try (Connection connection = DB.getConnection();
         Statement statement = connection.createStatement()) {
+      statement.execute("DROP TABLE IF EXISTS wiki_pages CASCADE");
       statement.execute("DROP TABLE IF EXISTS content CASCADE");
       statement.execute("DROP TABLE IF EXISTS web_pages CASCADE");
       statement.execute("DROP TABLE IF EXISTS images CASCADE");
@@ -237,6 +257,11 @@ class ImageUsageCommandTest {
           + "content_unique_id VARCHAR(255) UNIQUE, "
           + "content TEXT, "
           + "draft_content TEXT)");
+      // A focused subset of wiki_pages -- just title + body, the only columns this scan reads.
+      statement.execute("CREATE TABLE wiki_pages ("
+          + "wiki_page_id BIGSERIAL PRIMARY KEY, "
+          + "title VARCHAR(255) NOT NULL, "
+          + "body TEXT)");
     } catch (SQLException se) {
       throw new IllegalStateException("Could not create the test schema", se);
     }
@@ -280,6 +305,18 @@ class ImageUsageCommandTest {
       pst.executeUpdate();
     } catch (SQLException se) {
       throw new IllegalStateException("Could not insert test web page", se);
+    }
+  }
+
+  private static void insertWikiPage(String title, String body) {
+    try (Connection connection = DB.getConnection();
+        PreparedStatement pst = connection.prepareStatement(
+            "INSERT INTO wiki_pages (title, body) VALUES (?, ?)")) {
+      pst.setString(1, title);
+      pst.setString(2, body);
+      pst.executeUpdate();
+    } catch (SQLException se) {
+      throw new IllegalStateException("Could not insert test wiki page", se);
     }
   }
 
