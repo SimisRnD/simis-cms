@@ -220,7 +220,21 @@ public class EditItemFormWidget extends GenericWidget {
         String parameterName = context.getUniqueId() + field.getName();
         String parameterValue = context.getParameter(parameterName);
         if ("list".equals(field.getType()) && field.getListOfOptions() != null) {
-          field.setValue(field.getListOfOptions().get(parameterValue));
+          String resolvedValue = field.getListOfOptions().get(parameterValue);
+          if (resolvedValue != null) {
+            field.setValue(resolvedValue);
+          } else if (!field.getListOfOptions().containsValue(field.getValue())) {
+            // The field's current (legacy) value doesn't match any currently-defined option --
+            // e.g. the field's type/options changed after this item's value was saved. The
+            // <select> in item-full-form.jsp can't mark any <option> selected for it, so the
+            // browser silently submits the blank "< Please Choose >" placeholder even when the
+            // admin never touched this field. Don't let that submission wipe out data the admin
+            // didn't intend to change -- leave the existing (already-merged) value as-is.
+          } else {
+            // The current value WAS renderable as a selected option, so an unresolved submission
+            // here means the admin actually picked "< Please Choose >" -- honor it as a real clear.
+            field.setValue(null);
+          }
         } else {
           field.setValue(parameterValue);
         }

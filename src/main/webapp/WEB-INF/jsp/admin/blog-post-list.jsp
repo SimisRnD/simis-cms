@@ -20,6 +20,7 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="blogPostList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="blogList" class="java.util.ArrayList" scope="request"/>
+<jsp:useBean id="blogMap" class="java.util.HashMap" scope="request"/>
 <jsp:useBean id="blogPostReviewStatusMap" class="java.util.HashMap" scope="request"/>
 <jsp:useBean id="recordPaging" class="com.simisinc.platform.infrastructure.database.DataConstraints" scope="request"/>
 <c:if test="${!empty title}">
@@ -81,10 +82,7 @@
   </thead>
   <tbody>
     <c:forEach items="${blogPostList}" var="blogPost">
-      <c:set var="postBlog" value="${null}" />
-      <c:forEach items="${blogList}" var="blog">
-        <c:if test="${blog.id == blogPost.blogId}"><c:set var="postBlog" value="${blog}" /></c:if>
-      </c:forEach>
+      <c:set var="postBlog" value="${blogMap[blogPost.blogId]}" />
       <tr>
         <td><input type="checkbox" class="blogPostRowCheckbox" value="${blogPost.id}" data-title="${fn:escapeXml(blogPost.title)}" aria-label="Select ${fn:escapeXml(blogPost.title)}"></td>
         <td>

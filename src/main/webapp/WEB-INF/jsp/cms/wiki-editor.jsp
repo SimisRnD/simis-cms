@@ -48,7 +48,11 @@
   <input type="hidden" name="token" value="${userSession.formToken}"/>
   <%-- Form values --%>
   <input type="hidden" name="wikiUniqueId" value="<c:out value="${wiki.uniqueId}" />"/>
-  <input type="hidden" name="pageUniqueId" value="<c:out value="${wikiPage.uniqueId}" />"/>
+  <%-- wikiPageId (not pageUniqueId) is authoritative for save: it is the numeric id of the exact
+       record this editor was actually opened against (-1 for a genuinely new page), set
+       server-side by WikiEditorWidget.execute(). A client-typed title/slug is never trusted to
+       decide which page gets saved -- see WikiEditorWidget.post() for why. --%>
+  <input type="hidden" name="wikiPageId" value="${wikiPage.id}"/>
   <input type="hidden" name="returnPage" value="${returnPage}" />
   <%-- The editor --%>
   <%--<c:if test="${wikiPage.id ne -1}">--%>
@@ -148,23 +152,27 @@
       editor.focus();
 
       // Preview: render the editor's current (unsaved) buffer through the same server-side
-      // markdown path the live page uses, via the widget action framework -- a GET request
-      // carrying "action" routes to WikiEditorWidget.action() (WebContainerContext's method
-      // resolution). PageServlet requires both "widget" (which widget on the page the action
-      // targets) and "token" (the CSRF form token, checked uniformly for every targeted request
-      // regardless of what the widget's own action() does) or it 404s before dispatch.
+      // markdown path the live page uses, via the widget action framework. Submitted as a real
+      // POST body (not a GET query string) since a long page's content can otherwise silently
+      // exceed a typical servlet-container/proxy request-line-length limit -- request.getParameter()
+      // reads POST body form params the same as a query string, so this is purely a transport
+      // change; see WikiEditorWidget.post()'s delegation to action() for the one Java-side change
+      // it required (a real POST is dispatched to post(), not action() -- see WebContainerContext).
+      // "widget" (which widget on the page the action targets) and "token" (the CSRF form token,
+      // checked uniformly for every targeted request) are still required or PageServlet 404s
+      // before dispatch.
       if (textarea.attr('id') === 'content') {
         $('#wikiPreviewToggle').on('click', function() {
           var previewPanel = $('#wikiPreviewContent');
           previewPanel.html('<em>Rendering&#8230;</em>');
           $('a[href="#wikiPreviewPanel"]').trigger('click');
-          var qs = new URLSearchParams();
-          qs.append('action', 'preview');
-          qs.append('widget', '${widgetContext.uniqueId}');
-          qs.append('token', '${userSession.formToken}');
-          qs.append('wikiUniqueId', '${js:escape(wiki.uniqueId)}');
-          qs.append('content', editor.getSession().getValue());
-          fetch('${widgetContext.uri}?' + qs.toString())
+          var body = new URLSearchParams();
+          body.append('action', 'preview');
+          body.append('widget', '${widgetContext.uniqueId}');
+          body.append('token', '${userSession.formToken}');
+          body.append('wikiUniqueId', '${js:escape(wiki.uniqueId)}');
+          body.append('content', editor.getSession().getValue());
+          fetch('${widgetContext.uri}', { method: 'POST', body: body })
             .then(function(resp) { return resp.json(); })
             .then(function(data) {
               if (data.error) {

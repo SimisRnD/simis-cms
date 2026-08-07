@@ -40,6 +40,13 @@
   <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
 <%@include file="../page_messages.jspf" %>
+<div class="callout primary radius">
+  <p>This tab controls two independent things: whether the source file is <strong>re-downloaded on a schedule</strong>, and whether a successful download is <strong>synced into the mapped Collection</strong> as Items. Turning on "Download on a schedule?" by itself only refreshes the source file periodically -- it does not write or update any Items unless "Automatically sync to a collection?" is also turned on. Before relying on the schedule, click <strong>Save &amp; Sync</strong> once here to confirm the mapping actually produces the Items you expect.</p>
+  <p style="margin-bottom:0">After every sync, check <strong>Last Sync</strong> and its message below -- that's the primary place errors surface. It's a single status string, not a per-row log, so a partial failure (some rows succeeded, others didn't) may need manual reconciliation rather than give a full picture of what went wrong.</p>
+</div>
+<div class="callout warning radius">
+  <p style="margin-bottom:0">If scheduled downloads keep failing, retries back off from every 5 minutes up to once a day. After 30 consecutive failed attempts the dataset is marked permanently failed and the schedule stops retrying on its own -- there's no email or other proactive notice, only the Schedule Status badge on the <a href="${ctx}/admin/datasets">Datasets list</a> turning to "Failed". Check that page on a regular cadence, or set up external monitoring against it, if a dataset's freshness matters.</p>
+</div>
 <form method="post" onsubmit="return checkForm()">
   <%-- Required by controller --%>
   <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
@@ -65,12 +72,18 @@
       </p>
     </c:otherwise>
   </c:choose>
+  <c:if test="${mappedCollectionMissing}">
+  <div class="callout warning radius">
+    This dataset is mapped to a Collection that no longer exists (it was likely deleted). Sync
+    cannot run until you pick a different Collection to sync into, or recreate the missing one.
+  </div>
+  </c:if>
   <p>
     Mapped Collection:
     <c:if test="${!empty collection.name}"><span class="label"><c:out value="${collection.name}" /></span></c:if>
     <c:if test="${fn:startsWith(dataset.collectionUniqueId, 'NEW-')}"><span class="label">&lt;<c:out value="${dataset.name}"/>&gt;</span></c:if>
     <br />
-    Unique Column for Merge
+    Unique Column for Merge <small class="subheader">(set on the Map Fields tab)</small>
     <c:choose>
       <c:when test="${!empty dataset.uniqueColumnName}">
         <span class="label"><c:out value="${dataset.uniqueColumnName}" /></span>
@@ -138,6 +151,7 @@
         </select>
       </div>
     </div>
+    <p class="help-text">"Sync Merge Type" is intended to control which operations (add/update/delete) a sync performs; only one option is offered here today.</p>
   </fieldset>
 
   <div class="button-container">

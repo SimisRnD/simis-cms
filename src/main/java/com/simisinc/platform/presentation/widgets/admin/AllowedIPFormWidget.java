@@ -65,8 +65,10 @@ public class AllowedIPFormWidget extends GenericWidget {
     AllowedIP allowedIPBean = new AllowedIP();
     BeanUtils.populate(allowedIPBean, context.getParameterMap());
 
-    // Skip duplicates
-    if (AllowedIPRepository.findByIpAddress(allowedIPBean.getIpAddress()) != null) {
+    // Skip duplicates, excluding this record's own row so editing an entry without changing its
+    // address (e.g. just the Reason) isn't rejected as a collision with itself
+    AllowedIP existingAllowedIP = AllowedIPRepository.findByIpAddress(allowedIPBean.getIpAddress());
+    if (existingAllowedIP != null && !existingAllowedIP.getId().equals(allowedIPBean.getId())) {
       context.setWarningMessage("IP already exists");
       return context;
     }
@@ -90,6 +92,14 @@ public class AllowedIPFormWidget extends GenericWidget {
 
     // Determine the page to return to
     context.setSuccessMessage("Record was saved");
+    // Surface the cross-list shadowing warning SaveAllowedIPCommand computed during save() -- an
+    // Allowed entry always wins over a Blocked one (BlockedIPListCommand.passesCheck), so an
+    // admin adding an Allowed IP that overlaps an existing Blocked entry needs to know their new
+    // entry just silently neutralized that block, not discover it later.
+    String conflictWarning = SaveAllowedIPCommand.getLastConflictWarning();
+    if (conflictWarning != null) {
+      context.setWarningMessage(conflictWarning);
+    }
     return context;
   }
 }

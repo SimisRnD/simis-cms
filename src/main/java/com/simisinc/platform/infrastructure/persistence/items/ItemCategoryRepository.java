@@ -27,7 +27,10 @@ import org.apache.commons.logging.LogFactory;
 import java.sql.Connection;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 
 /**
  * Persists and retrieves item category objects
@@ -159,6 +162,37 @@ public class ItemCategoryRepository {
         null,
         ItemCategoryRepository::buildRecord);
     return (List<ItemCategory>) result.getRecords();
+  }
+
+  /**
+   * Batch form of {@link #findAllByItemId} for a page of items rendered together (e.g. the Records
+   * tab of a Collection at /admin/collection-records) -- one query for the whole page instead of a
+   * per-row round trip. Mirrors {@code ImageVariantRepository#findByImageIds}' IN-list pattern
+   * (issue #411 PR2): one {@code ?} per id, ids bound as real PreparedStatement parameters via
+   * SqlUtils' {@code Long[]} overload, never string-concatenated into the SQL text. An id with no
+   * matching rows is simply absent from the returned map (not present with an empty list).
+   */
+  public static Map<Long, List<ItemCategory>> findAllByItemIds(List<Long> itemIds) {
+    Map<Long, List<ItemCategory>> categoriesByItemId = new LinkedHashMap<>();
+    if (itemIds == null || itemIds.isEmpty()) {
+      return categoriesByItemId;
+    }
+    StringBuilder placeholders = new StringBuilder();
+    for (int i = 0; i < itemIds.size(); i++) {
+      if (i > 0) {
+        placeholders.append(",");
+      }
+      placeholders.append("?");
+    }
+    List<ItemCategory> categories = (List<ItemCategory>) DB.selectAllFrom(
+        TABLE_NAME,
+        new SqlUtils().add("item_id IN (" + placeholders + ")", itemIds.toArray(new Long[0])),
+        null,
+        ItemCategoryRepository::buildRecord).getRecords();
+    for (ItemCategory category : categories) {
+      categoriesByItemId.computeIfAbsent(category.getItemId(), k -> new ArrayList<>()).add(category);
+    }
+    return categoriesByItemId;
   }
 
   private static ItemCategory buildRecord(ResultSet rs) {

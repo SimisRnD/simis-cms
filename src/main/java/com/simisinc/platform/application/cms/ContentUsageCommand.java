@@ -109,33 +109,104 @@ public class ContentUsageCommand {
   }
 
   /**
+   * The result of one usage scan: the real, matchable usage map (see {@link #findUsageMap}), plus the
+   * literal prefixes seen in a {@code <uniqueId>} value that carries an unresolved EL placeholder --
+   * e.g. {@code product-details-} from {@code product-details-${item.uniqueId}} in
+   * {@code products-layout.xml}, keyed to the location(s) it was found in, same shape as {@code
+   * usageMap}. A real {@code Content} row whose uniqueId starts with one of these prefixes cannot be
+   * proven used by this static scan (the placeholder is only resolved per-item at render time), but it
+   * is not truly orphaned either -- it is <i>templated</i>. See
+   * {@link com.simisinc.platform.presentation.widgets.admin.cms.ContentListWidget} for how this
+   * distinguishes a "Templated" badge from "Orphaned" so admins aren't told to delete something that is
+   * actually wired to a live per-item template.
+   */
+  public record UsageScan(Map<String, List<String>> usageMap, Map<String, List<String>> templatedPrefixLocations) {
+  }
+
+  /**
    * Scans every admin-authored page and every filesystem web-layout template for content-family
    * widget references, and returns a map of content uniqueId to the (deduplicated, order-preserving)
    * list of locations that reference it: a page's link (e.g. "/careers") for a {@code web_pages} row,
    * or a template's resource path (e.g. "/WEB-INF/web-layouts/footer/footer-layout.xml") for a
-   * filesystem template. A content block with no entry in the returned map is unreferenced ("Orphaned").
+   * filesystem template. A content block with no entry in the returned map is unreferenced ("Orphaned"),
+   * unless it matches a {@link UsageScan#templatedPrefixLocations()} entry from {@link #scanUsage} --
+   * this convenience method exposes only the literal-match half of that scan, for the one caller
+   * ({@link ContentHtmlCommand}/{@link com.simisinc.platform.presentation.widgets.cms.ContentEditorWidget})
+   * that only ever looks up a single, already-resolved uniqueId and has no use for the templated half.
    *
    * @param servletContext used to enumerate and read the filesystem web-layout templates; may be null
    *     (e.g. in a unit test), in which case only the web_pages scan runs
    */
   public static Map<String, List<String>> findUsageMap(ServletContext servletContext) {
+    return scanUsage(servletContext).usageMap();
+  }
+
+  /**
+   * The full scan behind {@link #findUsageMap}, also returning which literal uniqueId prefixes were
+   * seen behind an unresolved EL placeholder (see {@link UsageScan}). Both halves come from the same
+   * single walk of the web_pages table and the filesystem web-layout templates, so a caller that needs
+   * both (e.g. {@link com.simisinc.platform.presentation.widgets.admin.cms.ContentListWidget}, for the
+   * Orphaned/Templated/Shared columns) does not pay for the scan twice.
+   *
+   * @param servletContext used to enumerate and read the filesystem web-layout templates; may be null
+   *     (e.g. in a unit test), in which case only the web_pages scan runs
+   */
+  public static UsageScan scanUsage(ServletContext servletContext) {
     Map<String, List<String>> usageMap = new LinkedHashMap<>();
+    Map<String, List<String>> templatedPrefixLocations = new LinkedHashMap<>();
 
     List<WebPage> webPageList = WebPageRepository.findAll();
     if (webPageList != null) {
       for (WebPage webPage : webPageList) {
-        addUsageFromXml(usageMap, webPage.getPageXml(), webPage.getLink());
+        addUsageFromXml(usageMap, templatedPrefixLocations, webPage.getPageXml(), webPage.getLink());
       }
     }
 
     if (servletContext != null) {
       for (String file : findWebLayoutFiles(servletContext)) {
         String xml = readResource(servletContext, file);
-        addUsageFromXml(usageMap, xml, file);
+        addUsageFromXml(usageMap, templatedPrefixLocations, xml, file);
       }
     }
 
-    return usageMap;
+    return new UsageScan(usageMap, templatedPrefixLocations);
+  }
+
+  /** Separates a multi-page template file's path from the specific {@code <page name="...">} it was
+   * found in, e.g. {@code /WEB-INF/web-layouts/page/cms-layout.xml#/login} -- see {@link
+   * #scopedLocation}. Not a real filesystem path character, so it can't collide with one. */
+  private static final char PAGE_SCOPE_SEPARATOR = '#';
+
+  /**
+   * Whether a usage location is a genuinely site-wide filesystem web-layout template (e.g. {@code
+   * footer-layout.xml}, which has no {@code <page>} wrapper at all and is rendered on every page that
+   * includes it) rather than a single {@code <page>} route bundled inside a multi-page template file
+   * like {@code admin-layout.xml}/{@code cms-layout.xml} (which each define dozens of independent
+   * routes in one physical file -- a widget reference inside one {@code <page>} block only affects
+   * that single route, exactly like a single admin-authored {@code web_pages} row). {@link
+   * #scopedLocation} records the latter kind with a {@code #pageName} suffix specifically so this
+   * method can tell them apart: only the un-suffixed, truly-global kind counts as inherently
+   * site-wide from a single reference.
+   */
+  public static boolean isFilesystemTemplateLocation(String location) {
+    return location != null && location.startsWith(WEB_LAYOUTS_PATH) && location.indexOf(PAGE_SCOPE_SEPARATOR) < 0;
+  }
+
+  /**
+   * Whether a content block's usage counts as "Shared" -- editing it can affect more than the single
+   * page an author might be looking at. True when the block is referenced from more than one location,
+   * OR from even a single {@link #isFilesystemTemplateLocation(String) filesystem template} location:
+   * a raw count of 1 undercounts a block like "site-footer", which has exactly one entry in the usage
+   * map (footer-layout.xml) but is actually included on every page on the site.
+   */
+  public static boolean isShared(List<String> locations) {
+    if (locations == null || locations.isEmpty()) {
+      return false;
+    }
+    if (locations.size() > 1) {
+      return true;
+    }
+    return isFilesystemTemplateLocation(locations.get(0));
   }
 
   /**
@@ -164,14 +235,23 @@ public class ContentUsageCommand {
       return null;
     }
     List<String> locations = usageMap.get(uniqueId);
-    if (locations == null || locations.size() <= 1) {
+    if (!isShared(locations)) {
       return null;
+    }
+    if (locations.size() == 1) {
+      // isShared() only returns true here because the lone location is a site-wide filesystem
+      // template (see #isFilesystemTemplateLocation) -- a raw "appears on 1 pages" would both read
+      // oddly and understate the real blast radius (a template like footer-layout.xml renders on
+      // every page, not just one).
+      return "This content is part of a site-wide template (" + locations.get(0)
+          + "). Update will affect every page that uses it.";
     }
     return "This content appears on " + locations.size() + " pages. Update will affect: "
         + String.join(", ", locations) + ".";
   }
 
-  private static void addUsageFromXml(Map<String, List<String>> usageMap, String xml, String location) {
+  private static void addUsageFromXml(Map<String, List<String>> usageMap, Map<String, List<String>> templatedPrefixLocations,
+      String xml, String location) {
     if (StringUtils.isBlank(xml) || StringUtils.isBlank(location)) {
       return;
     }
@@ -191,17 +271,14 @@ public class ContentUsageCommand {
         // entirely (an item/collection/table-of-contents widget, etc.) and must not be matched.
         continue;
       }
+      String widgetLocation = scopedLocation(widgetElement, location);
       String uniqueId = directChildText(widgetElement, "uniqueId");
-      if (StringUtils.isNotBlank(uniqueId)) {
-        addLocation(usageMap, uniqueId.trim(), location);
-      }
+      recordUsage(usageMap, templatedPrefixLocations, uniqueId, widgetLocation);
       List<String> extraChildTags = EXTRA_CONTENT_REFERENCE_CHILD_TAGS.get(widgetName);
       if (extraChildTags != null) {
         for (String childTag : extraChildTags) {
           String extraUniqueId = directChildText(widgetElement, childTag);
-          if (StringUtils.isNotBlank(extraUniqueId)) {
-            addLocation(usageMap, extraUniqueId.trim(), location);
-          }
+          recordUsage(usageMap, templatedPrefixLocations, extraUniqueId, widgetLocation);
         }
       }
       if ("contentTabs".equals(widgetName)) {
@@ -212,12 +289,78 @@ public class ContentUsageCommand {
         for (int t = 0; t < tabTags.getLength(); t++) {
           Element tab = (Element) tabTags.item(t);
           String contentUniqueId = tab.getAttribute("contentUniqueId");
-          if (StringUtils.isNotBlank(contentUniqueId)) {
-            addLocation(usageMap, contentUniqueId.trim(), location);
-          }
+          recordUsage(usageMap, templatedPrefixLocations, contentUniqueId, widgetLocation);
         }
       }
     }
+  }
+
+  /**
+   * Refines a filesystem template's bare resource path to {@code path#pageName} when the widget was
+   * found inside a {@code <page name="...">} element -- the shape every file directly under {@code
+   * WEB-INF/web-layouts/page/} uses (e.g. {@code admin-layout.xml}, {@code cms-layout.xml}), each
+   * bundling dozens of independent routes in one physical file. Without this, a widget used on just
+   * one of those routes would be indistinguishable from a truly file-scoped, render-on-every-page
+   * fragment like {@code footer-layout.xml} (which has no {@code <page>} wrapper at all, so this
+   * walk finds none and returns {@code location} unchanged) -- see {@link
+   * #isFilesystemTemplateLocation}, which relies on this suffix to tell the two apart.
+   * <p>
+   * Only applies when {@code location} is itself a filesystem path: a {@code web_pages} row's own
+   * XML is ALSO {@code <page name="...">}-wrapped (that's the literal format {@link
+   * com.simisinc.platform.domain.model.cms.WebPage#getPageXml()} is stored in), but its {@code
+   * location} is already the page's unique link (e.g. {@code /careers}), so appending the same page
+   * name again would just double it into {@code /careers#/careers}. That location is already
+   * maximally specific -- one row, one page -- so it needs no further scoping.
+   */
+  private static String scopedLocation(Element widgetElement, String location) {
+    if (!location.startsWith(WEB_LAYOUTS_PATH)) {
+      return location;
+    }
+    Node ancestor = widgetElement.getParentNode();
+    while (ancestor != null && ancestor.getNodeType() == Node.ELEMENT_NODE) {
+      Element ancestorElement = (Element) ancestor;
+      if ("page".equals(ancestorElement.getTagName())) {
+        String pageName = ancestorElement.getAttribute("name");
+        if (StringUtils.isNotBlank(pageName)) {
+          return location + PAGE_SCOPE_SEPARATOR + pageName;
+        }
+        break;
+      }
+      ancestor = ancestor.getParentNode();
+    }
+    return location;
+  }
+
+  /** Matches an unresolved EL placeholder anywhere in a candidate uniqueId, e.g. the {@code
+   * ${item.uniqueId}} in {@code product-details-${item.uniqueId}} (products-layout.xml). */
+  private static final String EL_PLACEHOLDER_MARKER = "${";
+
+  /**
+   * Records one {@code <uniqueId>}-shaped value found on a content-family widget. A value containing
+   * an unresolved EL placeholder (e.g. {@code product-details-${item.uniqueId}}) is never a real
+   * {@code content_unique_id} -- it is only resolved per-item at render time -- so recording it
+   * literally in {@code usageMap} would create a permanently-dead key that can never match a real
+   * Content row (issue #499 follow-up). Instead, the literal prefix before the placeholder is recorded
+   * in {@code templatedPrefixLocations}, so a real Content row that starts with it can be shown as
+   * "Templated" rather than falsely "Orphaned". A placeholder with no literal prefix at all (e.g. a
+   * bare {@code ${item.uniqueId}}) is skipped entirely -- an empty prefix would match every Content
+   * row, which is worse than not recording it.
+   */
+  private static void recordUsage(Map<String, List<String>> usageMap, Map<String, List<String>> templatedPrefixLocations,
+      String rawUniqueId, String location) {
+    if (StringUtils.isBlank(rawUniqueId)) {
+      return;
+    }
+    String uniqueId = rawUniqueId.trim();
+    int placeholderIdx = uniqueId.indexOf(EL_PLACEHOLDER_MARKER);
+    if (placeholderIdx > -1) {
+      String prefix = uniqueId.substring(0, placeholderIdx);
+      if (StringUtils.isNotBlank(prefix)) {
+        addLocation(templatedPrefixLocations, prefix, location);
+      }
+      return;
+    }
+    addLocation(usageMap, uniqueId, location);
   }
 
   /** The text of the first DIRECT child element named {@code childTagName}, or null if absent. Does

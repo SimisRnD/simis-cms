@@ -24,7 +24,7 @@ import com.simisinc.platform.application.cms.ColorCommand;
 import com.simisinc.platform.application.login.StepUpAuthCommand;
 import com.simisinc.platform.application.mailinglists.MailChimpCommand;
 import com.simisinc.platform.domain.model.SiteProperty;
-import com.simisinc.platform.domain.model.User;
+import com.simisinc.platform.infrastructure.cache.CacheManager;
 import com.simisinc.platform.infrastructure.persistence.SitePropertyRepository;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.SqlTimestampConverter;
@@ -257,6 +257,14 @@ public class SitePropertiesEditorWidget extends GenericWidget {
         SqlTimestampConverter converter = (SqlTimestampConverter) ConvertUtils.lookup(Timestamp.class);
         converter.setTimeZone(TimeZone.getTimeZone(ZoneId.of(timezone)));
         ConvertUtils.register(converter, Timestamp.class);
+      }
+      // The rendered Footer object is cached indefinitely (see WebContainerLayoutCommand), so a
+      // change to which named layout it's built from needs an explicit invalidation to take effect
+      for (SiteProperty siteProperty : siteProperties) {
+        if ("theme.footer.layout".equals(siteProperty.getName())) {
+          CacheManager.invalidateObjectCacheKey(CacheManager.WEBSITE_FOOTER);
+          break;
+        }
       }
       // Determine the page to return to
       context.setSuccessMessage("Values were saved");

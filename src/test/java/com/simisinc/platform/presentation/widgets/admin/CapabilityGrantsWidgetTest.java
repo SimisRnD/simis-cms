@@ -98,7 +98,7 @@ class CapabilityGrantsWidgetTest extends WidgetBase {
   }
 
   @Test
-  void executeReturnsNullWhenTheUserIsNotFound() {
+  void executeStillRendersTheJspWithTheErrorWhenTheUserIsNotFound() {
     widgetContext.getUserSession().setCapabilityList(List.of(capability("admin:manage", 5L)));
     addQueryParameter(widgetContext, "userId", "999");
 
@@ -107,7 +107,34 @@ class CapabilityGrantsWidgetTest extends WidgetBase {
 
       WidgetContext result = new CapabilityGrantsWidget().execute(widgetContext);
 
-      assertNull(result);
+      // Must not be null: the container only surfaces a widget's error message onto the page
+      // when the widget returns a non-null context, so silently returning null here would drop
+      // "User was not found" and render a blank page instead.
+      assertEquals(CapabilityGrantsWidget.JSP, result.getJsp());
+      assertEquals("User was not found", result.getErrorMessage());
+      // context.setErrorMessage() alone is not enough -- page_messages.jspf reads ${errorMessage}
+      // from REQUEST scope on a first, non-redirected GET, which only the request attribute (not
+      // the WidgetContext field) satisfies.
+      assertEquals("User was not found", result.getRequest().getAttribute("errorMessage"));
+    }
+  }
+
+  @Test
+  void executeStillRendersTheJspWithTheErrorWhenUserIdIsBlankOrMissing() {
+    // A distinct code path from the "well-formed but nonexistent id" case above -- no userId
+    // query parameter at all (e.g. a stale bookmark to the bare page), which resolves to -1
+    // rather than a real id.
+    widgetContext.getUserSession().setCapabilityList(List.of(capability("admin:manage", 5L)));
+
+    try (MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class)) {
+      userRepo.when(() -> UserRepository.findByUserId(-1L)).thenReturn(null);
+
+      WidgetContext result = new CapabilityGrantsWidget().execute(widgetContext);
+
+      userRepo.verify(() -> UserRepository.findByUserId(-1L));
+      assertEquals(CapabilityGrantsWidget.JSP, result.getJsp());
+      assertEquals("User was not found", result.getErrorMessage());
+      assertEquals("User was not found", result.getRequest().getAttribute("errorMessage"));
     }
   }
 
@@ -143,6 +170,32 @@ class CapabilityGrantsWidgetTest extends WidgetBase {
       saveCommand.verify(() -> SaveCapabilityGrantCommand.grant(any(), any(), eq(reportsExport), anyLong(),
           eq("Temporary contractor access"), isNull()));
       assertEquals("/admin/capability-grants?userId=10", result.getRedirect());
+    }
+  }
+
+  @Test
+  void postRejectsAnUnparseableExpirationDateInsteadOfGrantingPermanently() throws Exception {
+    widgetContext.getUserSession().setCapabilityList(List.of(capability("admin:manage", 5L)));
+    addQueryParameter(widgetContext, "userId", "10");
+    addQueryParameter(widgetContext, "command", "add");
+    addQueryParameter(widgetContext, "capabilityId", "3");
+    addQueryParameter(widgetContext, "reason", "Temporary contractor access");
+    addQueryParameter(widgetContext, "expiresAt", "not-a-date");
+
+    Capability reportsExport = capability("reports:export", 3L);
+    try (MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
+        MockedStatic<CapabilityRepository> capabilityRepo = mockStatic(CapabilityRepository.class);
+        MockedStatic<SaveCapabilityGrantCommand> saveCommand = mockStatic(SaveCapabilityGrantCommand.class)) {
+      userRepo.when(() -> UserRepository.findByUserId(10L)).thenReturn(targetUser(10L, "jsmith"));
+      capabilityRepo.when(CapabilityRepository::findAll).thenReturn(List.of(reportsExport));
+
+      WidgetContext result = new CapabilityGrantsWidget().post(widgetContext);
+
+      // A malformed date must be surfaced as a validation error, not silently treated as
+      // "no expiration" (permanent) - that would be the wrong failure direction for a
+      // security-relevant field.
+      saveCommand.verifyNoInteractions();
+      assertEquals("The expiration date could not be understood - please re-enter it", result.getErrorMessage());
     }
   }
 

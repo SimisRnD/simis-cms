@@ -27,7 +27,52 @@
   <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
 <%@include file="../page_messages.jspf" %>
-<p class="text-right"><small class="subheader">Events older than <c:out value="${retentionDays}"/> days are purged automatically.</small></p>
+<%-- Prominent, hard-to-miss warning: the nightly tamper-evidence chain check (AuditLogIntegrityJob) found the
+     chain broken. Deliberately rendered only on an actual failure -- see AuditLogListWidget#execute. --%>
+<c:if test="${integrityCheckFailed}">
+  <div class="callout alert radius" role="alert" tabindex="-1" style="border:3px solid #cc4b37">
+    <h5><i class="fa fa-triangle-exclamation"></i> Audit log tamper-evidence check FAILED</h5>
+    <p>
+      The automated check that verifies the audit log's tamper-evident hash chain detected a problem
+      <span title="<fmt:formatDate pattern='yyyy-MM-dd HH:mm:ss z' value='${integrityCheckFailedAt}' />"><c:out value="${date:relative(integrityCheckFailedAt)}" /></span>.
+      This means one or more records below may have been altered, deleted, reordered, or inserted outside of
+      the normal application. If the chain has genuinely been compromised, an attacker capable of rewriting
+      the database could also have made this page's own data look consistent -- so this UI alone cannot be
+      fully trusted to show what actually happened.
+    </p>
+    <p>
+      <strong>What to do:</strong> Do not rely solely on this page. Cross-check the independent, out-of-band
+      copy of these events in your SIEM / structured JSON audit log stream (every event is shipped there
+      specifically so a rewritten database can be detected against it) and escalate to your security team to
+      investigate before trusting audit records from around or after the time above.
+    </p>
+    <c:if test="${!empty integrityCheckFailedDetails}">
+      <p><small>Check details: <c:out value="${integrityCheckFailedDetails}" /></small></p>
+    </c:if>
+  </div>
+</c:if>
+<p class="text-right">
+  <small class="subheader">Events older than <c:out value="${retentionDays}"/> days are purged automatically.</small>
+  <a href="#" onclick="return confirmPostAction('Run the audit log tamper-evidence check now? This walks the entire chain and may take a few seconds on a large log.', '${widgetContext.uri}?runIntegrityCheck=true&widget=${widgetContext.uniqueId}&token=${userSession.formToken}');" class="button tiny">
+    <i class="fa fa-shield-halved"></i> Run Integrity Check Now
+  </a>
+</p>
+<div class="callout radius">
+  <h6>What this page shows</h6>
+  <p>Every event recorded here is written to two independent places at once: this database table (a tamper-evident hash chain, each row's hash covering the previous row's), and a separate structured JSON log line on the <code>AUDIT</code> logger. Both are populated by the same call, so under normal operation they always agree -- the JSON stream exists specifically so there's an out-of-band copy to check the database against if it's ever suspected of having been altered directly, bypassing the application.</p>
+</div>
+
+<h5>When to worry</h5>
+<div class="callout warning radius">
+  <p><strong>The integrity check banner above appears.</strong> Follow its instructions -- cross-check against the JSON stream, don't rely on this page alone until it's resolved.</p>
+  <p><strong>You expect an event that isn't here.</strong> Check <strong>Events older than N days are purged automatically</strong> above first -- it may simply have aged out. Beyond that, confirm the action you expected to be audited actually has a recording call in its code path; not every state change in the platform is wired to write an audit event, so "nothing shows up" can mean "correctly, nothing was recorded here" rather than a bug.</p>
+</div>
+
+<h5>For Azure</h5>
+<div class="callout radius">
+  <p>The nightly tamper-evidence check (04:30) and the analytics PII scrub (04:45, see <a href="${ctx}/admin/analytics-retention">Analytics Retention</a>) are both distributed-lock protected, so on a multi-instance Azure App Service deployment exactly one instance runs each of them per night -- they will not run redundantly on every instance.</p>
+  <p>The JSON <code>AUDIT</code> stream this page's cross-check advice depends on is written via the application's normal logger and reaches Log Analytics the same way as any other container stdout log (see <code>infra/modules/loganalytics.bicep</code>). If log routing or a filter is scoped to a specific logger name rather than everything, confirm it explicitly includes <code>AUDIT</code> -- otherwise the out-of-band copy this page's own integrity-failure guidance relies on may not actually be reaching your SIEM.</p>
+</div>
 <%-- Quick range presets: finer-grained (hour precision) than the date-only filter below. Picking one
      clears the explicit date range server-side (see AuditLogListWidget#buildSpecification). --%>
 <div class="button-group tiny">
