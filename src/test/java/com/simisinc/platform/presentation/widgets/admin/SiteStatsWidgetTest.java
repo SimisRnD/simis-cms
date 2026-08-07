@@ -1012,6 +1012,131 @@ class SiteStatsWidgetTest extends WidgetBase {
   }
 
   @Test
+  void executeSearchVolumeByType() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <title>Search Volume by Content Type</title>\n" +
+            "  <report>search-volume-by-type</report>\n" +
+            "  <days>30</days>\n" +
+            "  <limit>10</limit>\n" +
+            "</widget>");
+
+    List<StatisticsData> data = List.of(statistic("pages", "42"));
+    try (MockedStatic<SearchAnalyticsRepository> repository = mockStatic(SearchAnalyticsRepository.class)) {
+      repository.when(() -> SearchAnalyticsRepository.findSearchVolumeByType(30, 10)).thenReturn(data);
+
+      setRoles(widgetContext, ADMIN);
+      SiteStatsWidget widget = new SiteStatsWidget();
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals(SiteStatsWidget.TABLE_JSP, widgetContext.getJsp());
+    Assertions.assertEquals(data, request.getAttribute("statisticsDataList"));
+    Assertions.assertEquals("Content Type", request.getAttribute("label"));
+    Assertions.assertEquals("Searches", request.getAttribute("value"));
+  }
+
+  @Test
+  void executeZeroResultRateByType() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <title>Zero-Result Rate by Content Type</title>\n" +
+            "  <report>zero-result-rate-by-type</report>\n" +
+            "  <days>30</days>\n" +
+            "  <limit>10</limit>\n" +
+            "</widget>");
+
+    List<StatisticsData> data = List.of(statistic("items", "33.3"));
+    try (MockedStatic<SearchAnalyticsRepository> repository = mockStatic(SearchAnalyticsRepository.class)) {
+      repository.when(() -> SearchAnalyticsRepository.findZeroResultRateByType(30, 10)).thenReturn(data);
+
+      setRoles(widgetContext, ADMIN);
+      SiteStatsWidget widget = new SiteStatsWidget();
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals(SiteStatsWidget.TABLE_JSP, widgetContext.getJsp());
+    Assertions.assertEquals(data, request.getAttribute("statisticsDataList"));
+    Assertions.assertEquals("Content Type", request.getAttribute("label"));
+    Assertions.assertEquals("Zero-Result Rate %", request.getAttribute("value"));
+  }
+
+  @Test
+  void executeTopSearchPaths() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <title>Top Pages Generating Searches</title>\n" +
+            "  <report>top-search-paths</report>\n" +
+            "  <days>30</days>\n" +
+            "  <limit>10</limit>\n" +
+            "</widget>");
+
+    List<StatisticsData> data = List.of(statistic("/products", "17"));
+    try (MockedStatic<SearchAnalyticsRepository> repository = mockStatic(SearchAnalyticsRepository.class)) {
+      repository.when(() -> SearchAnalyticsRepository.findTopSearchPaths(30, 10)).thenReturn(data);
+
+      setRoles(widgetContext, ADMIN);
+      SiteStatsWidget widget = new SiteStatsWidget();
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals(SiteStatsWidget.TABLE_JSP, widgetContext.getJsp());
+    Assertions.assertEquals(data, request.getAttribute("statisticsDataList"));
+    Assertions.assertEquals("Page", request.getAttribute("label"));
+    Assertions.assertEquals("Searches", request.getAttribute("value"));
+  }
+
+  @Test
+  void executeTopZeroResultSearchPaths() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <title>Top Pages Generating Zero-Result Searches</title>\n" +
+            "  <report>top-zero-result-search-paths</report>\n" +
+            "  <days>30</days>\n" +
+            "  <limit>10</limit>\n" +
+            "</widget>");
+
+    List<StatisticsData> data = List.of(statistic("/catalog", "9"));
+    try (MockedStatic<SearchAnalyticsRepository> repository = mockStatic(SearchAnalyticsRepository.class)) {
+      repository.when(() -> SearchAnalyticsRepository.findTopZeroResultPaths(30, 10)).thenReturn(data);
+
+      setRoles(widgetContext, ADMIN);
+      SiteStatsWidget widget = new SiteStatsWidget();
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals(SiteStatsWidget.TABLE_JSP, widgetContext.getJsp());
+    Assertions.assertEquals(data, request.getAttribute("statisticsDataList"));
+    Assertions.assertEquals("Page", request.getAttribute("label"));
+    Assertions.assertEquals("Zero-Result Searches", request.getAttribute("value"));
+  }
+
+  @Test
+  void executeNearMissSearchTerms() {
+    addPreferencesFromWidgetXml(widgetContext,
+        "<widget name=\"siteStats\" class=\"stats card\">\n" +
+            "  <title>Near-Miss Search Terms</title>\n" +
+            "  <report>near-miss-search-terms</report>\n" +
+            "  <days>30</days>\n" +
+            "  <limit>10</limit>\n" +
+            "</widget>");
+
+    List<StatisticsData> data = List.of(statistic("widgets", "4"));
+    try (MockedStatic<SearchAnalyticsRepository> repository = mockStatic(SearchAnalyticsRepository.class)) {
+      repository.when(() -> SearchAnalyticsRepository.findNearMissTerms(30, 10)).thenReturn(data);
+
+      setRoles(widgetContext, ADMIN);
+      SiteStatsWidget widget = new SiteStatsWidget();
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals(SiteStatsWidget.TABLE_JSP, widgetContext.getJsp());
+    Assertions.assertEquals(data, request.getAttribute("statisticsDataList"));
+    Assertions.assertEquals("Search Term", request.getAttribute("label"));
+    Assertions.assertEquals("Low-Result Searches", request.getAttribute("value"));
+  }
+
+  @Test
   void executeConversionRate() {
     addPreferencesFromWidgetXml(widgetContext,
         "<widget name=\"siteStats\" class=\"stats card\">\n" +
