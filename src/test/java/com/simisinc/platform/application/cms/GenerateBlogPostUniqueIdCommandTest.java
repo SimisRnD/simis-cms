@@ -57,6 +57,22 @@ class GenerateBlogPostUniqueIdCommandTest {
   }
 
   @Test
+  void anExistingPostKeepsItsUniqueIdWhenRenamed() {
+    // This is the bug: renaming the title used to regenerate the slug from the new title,
+    // silently changing the post's URL and breaking every link that pointed at the old one.
+    BlogPost previousBlogPost = new BlogPost();
+    previousBlogPost.setUniqueId("monthly-update");
+    previousBlogPost.setTitle("Monthly Update");
+
+    BlogPost renamed = new BlogPost();
+    renamed.setTitle("Our Monthly Product Update for August");
+
+    String uniqueId = GenerateBlogPostUniqueIdCommand.generateUniqueId(previousBlogPost, renamed);
+    Assertions.assertEquals("monthly-update", uniqueId,
+        "an existing post's URL must not change when only its title changes");
+  }
+
+  @Test
   void generateUniqueIdForDuplicateBlogPost() {
     String existingUniqueId = "monthly-update";
     BlogPost existingPost = new BlogPost();

@@ -29,12 +29,13 @@ public class GenerateBlogUniqueIdCommand {
 
   public static String generateUniqueId(Blog previousRecord, Blog record) {
 
-    // Use an existing uniqueId
+    // An existing blog's URL prefix must stay stable across a rename -- a site page built from
+    // the "Blog" web-template has this uniqueId baked into its own layout config (as
+    // blogUniqueId) at creation time, so regenerating it here on a name change orphans the
+    // entire public blog section. See GenerateWikiUniqueIdCommand for the identical fix already
+    // applied to wiki containers.
     if (previousRecord != null && previousRecord.getUniqueId() != null) {
-      // See if the name changed
-      if (previousRecord.getName().equals(record.getName())) {
-        return previousRecord.getUniqueId();
-      }
+      return previousRecord.getUniqueId();
     }
 
     // Create a new one

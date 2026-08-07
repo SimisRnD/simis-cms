@@ -29,12 +29,14 @@ public class GenerateCalendarEventUniqueIdCommand {
 
   public static String generateUniqueId(CalendarEvent previousRecord, CalendarEvent record) {
 
-    // Use an existing uniqueId
+    // An existing event's URL must stay stable across edits -- including a title change or a move
+    // to a different calendar -- so a rename can never silently break inbound/external links to
+    // the event. This previously regenerated the slug from the new title whenever the title (or
+    // calendar) changed, which is exactly the case a rename hits. Note that CalendarEventDetailsWidget
+    // resolves the public event page by uniqueId alone (CalendarEventRepository.findByUniqueId(String)),
+    // not scoped by calendarId, so freezing here is safe even across a calendar move.
     if (previousRecord != null && previousRecord.getUniqueId() != null) {
-      // See if the name changed
-      if (previousRecord.getTitle().equals(record.getTitle()) && previousRecord.getCalendarId().equals(record.getCalendarId())) {
-        return previousRecord.getUniqueId();
-      }
+      return previousRecord.getUniqueId();
     }
 
     // Create a new one

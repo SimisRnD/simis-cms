@@ -59,6 +59,23 @@ class GenerateBlogUniqueIdCommandTest {
   }
 
   @Test
+  void anExistingBlogKeepsItsUniqueIdWhenRenamed() {
+    // This is the bug: renaming the name used to regenerate the slug from the new name, silently
+    // orphaning any site page whose "Blog" web-template layout config has the old uniqueId baked
+    // in as blogUniqueId.
+    Blog previousBlog = new Blog();
+    previousBlog.setUniqueId("news-blog");
+    previousBlog.setName("News Blog");
+
+    Blog renamed = new Blog();
+    renamed.setName("Company News & Updates");
+
+    String uniqueId = GenerateBlogUniqueIdCommand.generateUniqueId(previousBlog, renamed);
+    Assertions.assertEquals("news-blog", uniqueId,
+        "an existing blog's URL prefix must not change when only its name changes");
+  }
+
+  @Test
   void generateUniqueIdForDuplicateBlog() {
     String existingUniqueId = "news-blog";
     Blog existingBlog = new Blog();
