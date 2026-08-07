@@ -35,12 +35,14 @@ import com.simisinc.platform.domain.model.Capability;
 import com.simisinc.platform.domain.model.CapabilityGrant;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.infrastructure.persistence.CapabilityGrantRepository;
+import com.simisinc.platform.infrastructure.persistence.RoleCapabilityRepository;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
 
 /**
  * The only runtime path that mutates capability_grants (issue #702) - covers the required-reason
  * validation, the friendlier duplicate-active-grant refusal (vs. letting the DB's unique index
- * surface a raw constraint violation), and that both grant/revoke produce an audit event.
+ * surface a raw constraint violation), that both grant/revoke produce an audit event, and (mirroring
+ * SaveRoleCapabilitiesCommandTest) the admin:manage self-lockout guard on revoke.
  *
  * @author elizabeth houser
  */
@@ -163,6 +165,55 @@ class SaveCapabilityGrantCommandTest {
 
       assertThrows(DataException.class,
           () -> SaveCapabilityGrantCommand.revoke(null, existing, targetUser, "No longer needed"));
+    }
+  }
+
+  @Test
+  void revokeRefusesADirectAdminManageGrantWhenItIsTheLastEffectiveHolder() {
+    // The gap this guard closes: a capability-only administrator (no legacy admin role, just this
+    // direct grant) revoking their own/another's last admin:manage grant would previously sail
+    // through with no check at all, unlike the role-capabilities path.
+    User targetUser = user("jsmith", 10L);
+    CapabilityGrant adminManageGrant = grant(7L, 10L, 5L, "admin:manage");
+
+    try (MockedStatic<CapabilityGrantRepository> repo = mockStatic(CapabilityGrantRepository.class);
+        MockedStatic<RoleCapabilityRepository> roleCapabilityRepo = mockStatic(RoleCapabilityRepository.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      roleCapabilityRepo.when(() -> RoleCapabilityRepository.countDistinctUsersHoldingCapability(5L, -1L, 7L))
+          .thenReturn(0L);
+
+      DataException e = assertThrows(DataException.class,
+          () -> SaveCapabilityGrantCommand.revoke(null, adminManageGrant, targetUser, "No longer needed"));
+
+      assertEquals(true, e.getMessage().contains("no one would be left holding it"));
+      repo.verify(() -> CapabilityGrantRepository.revoke(anyLong()), never());
+      audit.verify(() -> AuditEventCommand.record(any(), eq(AuditEventCommand.AUTHORIZATION),
+          eq("capability_grant.revoke"), eq(AuditEventCommand.FAILURE), eq("capability_grant"),
+          eq("admin:manage"), eq("jsmith"), any()));
+    }
+  }
+
+  @Test
+  void revokeAllowsADirectAdminManageGrantWhenAnotherEffectiveHolderRemains() throws Exception {
+    // Someone else still effectively holds admin:manage (via a role that grants it, or their own
+    // direct grant) once this one grant is removed, so the revoke is a legitimate admin decision
+    // and must not be blocked.
+    User targetUser = user("jsmith", 10L);
+    CapabilityGrant adminManageGrant = grant(7L, 10L, 5L, "admin:manage");
+
+    try (MockedStatic<CapabilityGrantRepository> repo = mockStatic(CapabilityGrantRepository.class);
+        MockedStatic<RoleCapabilityRepository> roleCapabilityRepo = mockStatic(RoleCapabilityRepository.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      roleCapabilityRepo.when(() -> RoleCapabilityRepository.countDistinctUsersHoldingCapability(5L, -1L, 7L))
+          .thenReturn(1L);
+      repo.when(() -> CapabilityGrantRepository.revoke(7L)).thenReturn(true);
+
+      SaveCapabilityGrantCommand.revoke(null, adminManageGrant, targetUser, "No longer needed");
+
+      repo.verify(() -> CapabilityGrantRepository.revoke(7L));
+      audit.verify(() -> AuditEventCommand.record(any(), eq(AuditEventCommand.AUTHORIZATION),
+          eq("capability_grant.revoke"), eq(AuditEventCommand.SUCCESS), eq("capability_grant"),
+          eq("admin:manage"), eq("jsmith"), eq("No longer needed")));
     }
   }
 }

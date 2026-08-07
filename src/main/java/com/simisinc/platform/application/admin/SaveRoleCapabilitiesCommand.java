@@ -42,11 +42,13 @@ public class SaveRoleCapabilitiesCommand {
 
   /**
    * The single capability that gates access to this very page (RoleCapabilitiesFormWidget/
-   * RoleCapabilitiesListWidget both require it). If it ever reached zero role-holders, nobody
-   * could use this page to undo the mistake - a hard, unrecoverable lockout, not just an
-   * inconvenience. Guarded specifically, not generalized to every capability: revoking any
-   * *other* capability down to zero holders (e.g. retiring a role's access to a sunset feature)
-   * is a legitimate admin decision this command should not block.
+   * RoleCapabilitiesListWidget both require it). If it ever reached zero *effective* holders -
+   * zero distinct users covered by either a role that grants it or their own direct grant of it -
+   * nobody could use this page (or SaveCapabilityGrantCommand's per-user grant UI) to undo the
+   * mistake - a hard, unrecoverable lockout, not just an inconvenience. Guarded specifically, not
+   * generalized to every capability: revoking any *other* capability down to zero holders (e.g.
+   * retiring a role's access to a sunset feature) is a legitimate admin decision this command
+   * should not block.
    */
   private static final String ADMIN_MANAGE_CAPABILITY = "admin:manage";
 
@@ -79,29 +81,39 @@ public class SaveRoleCapabilitiesCommand {
     // never leaves some of this save's other changes half-applied.
     for (Capability capability : toRevoke) {
       if (ADMIN_MANAGE_CAPABILITY.equals(capability.getCode())) {
-        long remainingHolders = RoleCapabilityRepository.countRolesGrantedCapability(capability.getId());
-        if (remainingHolders <= 1) {
+        // Effective holders after hypothetically removing *this role's* contribution - not the
+        // pre-revoke total. A user covered by another role that also grants admin:manage, or by
+        // their own active direct grant, is still fine without this role, so they must not count
+        // against the "would this leave zero holders" check.
+        long remainingHoldersAfterRevoke = RoleCapabilityRepository.countDistinctUsersHoldingCapability(
+            capability.getId(), role.getId(), -1);
+        if (remainingHoldersAfterRevoke == 0) {
           // targetLabel = role.getCode() so this shows up under the same role.getCode()-filtered
           // History link the role-capabilities list page uses for every other event on this role.
           AuditEventCommand.record(context, AuditEventCommand.AUTHORIZATION, "role_capability.revoke",
               AuditEventCommand.FAILURE, "role_capability", capability.getCode(), role.getCode(),
-              "Refused: " + role.getCode() + " is the only role with this capability");
+              "Refused: revoking from " + role.getCode() + " would leave no user holding this capability, " +
+                  "via any role or direct grant");
           throw new DataException("Cannot revoke \"" + capability.getCode() + "\" from " + role.getTitle() +
-              " - it's the only role that currently has it, and removing it would leave nobody able to use this " +
-              "page to grant it back. Grant it to another role first if you really want to remove it here.");
+              " - no one would be left holding it, via any role or direct grant, and nobody could use this " +
+              "page to grant it back. Grant it to another role or user first if you really want to remove it here.");
         }
       }
     }
 
     for (Capability capability : toGrant) {
-      RoleCapabilityRepository.grant(role.getId(), capability.getId());
-      AuditEventCommand.record(context, AuditEventCommand.AUTHORIZATION, "role_capability.grant",
-          AuditEventCommand.SUCCESS, "role_capability", capability.getCode(), role.getCode(), reason);
+      boolean wasGranted = RoleCapabilityRepository.grant(role.getId(), capability.getId());
+      if (wasGranted) {
+        AuditEventCommand.record(context, AuditEventCommand.AUTHORIZATION, "role_capability.grant",
+            AuditEventCommand.SUCCESS, "role_capability", capability.getCode(), role.getCode(), reason);
+      }
     }
     for (Capability capability : toRevoke) {
-      RoleCapabilityRepository.revoke(role.getId(), capability.getId());
-      AuditEventCommand.record(context, AuditEventCommand.AUTHORIZATION, "role_capability.revoke",
-          AuditEventCommand.SUCCESS, "role_capability", capability.getCode(), role.getCode(), reason);
+      boolean wasRevoked = RoleCapabilityRepository.revoke(role.getId(), capability.getId());
+      if (wasRevoked) {
+        AuditEventCommand.record(context, AuditEventCommand.AUTHORIZATION, "role_capability.revoke",
+            AuditEventCommand.SUCCESS, "role_capability", capability.getCode(), role.getCode(), reason);
+      }
     }
   }
 
