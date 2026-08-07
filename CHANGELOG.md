@@ -7,7 +7,7 @@ Versions follow the project's `YYYYMMDD.NNNNN` release scheme; the git tag is th
 version prefixed with `v` (for example `v20260719.10000`). Database migrations
 apply automatically on startup — always take a database backup before upgrading.
 
-## [20260807.10001] - 2026-08-07
+## [20260807.10002] - 2026-08-07
 
 Third tagged release since `v20260719.10000` (2026-07-20): the governed
 draft/submit/approve/publish review workflow now extends to blog posts with
@@ -403,9 +403,13 @@ merged pull requests).
   `release`, only for push/workflow_dispatch/schedule/pull_request), and
   excluded two confirmed false-positive matches it surfaced -- a checksum
   manifest entry and a pytest function name neither of which is a real
-  credential (#1106, #1107). This is a same-day decimal-increment release
-  (10001) solely to get a clean image publish through the fixed workflow;
-  no application code changed from 20260807.10000.
+  credential (#1106, #1107). A follow-up fix corrected the previous-tag
+  lookup glob so it also matches same-day decimal-increment release tags
+  like `v20260807.10001`, which had been falling through and re-triggering
+  the same unbounded-scan fallback (#1109). This is a same-day
+  decimal-increment release (10002) solely to get a clean image publish
+  through the fully-fixed workflow; no application code changed from
+  20260807.10000.
 
 ## [20260719.10000] - 2026-07-20
 
