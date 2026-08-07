@@ -99,11 +99,42 @@ public class AdminImageBrowserWidget extends GenericWidget {
     DataConstraints constraints = new DataConstraints(page, itemsPerPage);
     context.getRequest().setAttribute(RequestConstants.RECORD_PAGING, constraints);
 
-    // Carry the current search term through pagination links (paging_control.jspf appends this
-    // to each page link's query string) so paging forward/back doesn't lose the search. URL-encoded
+    // Sort by date/name/size -- an invalid or missing value falls back to "date", which maps to
+    // the same "created DESC" order this list used before sorting existed, so a plain page load
+    // (no sortBy param) keeps its prior ordering. Mirrors FolderFilesListWidget's sortBy switch
+    // (issue #502) -- the column name is chosen from this fixed allowlist, never taken from the
+    // request parameter directly, so it cannot be used to inject arbitrary SQL.
+    String sortBy = context.getParameter(RequestConstants.RECORD_SORT_BY, "date");
+    switch (sortBy) {
+      case "name":
+        constraints.setColumnToSortBy("filename");
+        break;
+      case "size":
+        constraints.setColumnToSortBy("file_length", "desc");
+        break;
+      case "date":
+      default:
+        sortBy = "date";
+        constraints.setColumnToSortBy("created", "desc");
+        break;
+    }
+    context.getRequest().setAttribute(RequestConstants.RECORD_SORT_BY, sortBy);
+
+    // Carry the current search term and sort through pagination links (paging_control.jspf appends
+    // this to each page link's query string) so paging forward/back doesn't lose either. URL-encoded
     // so the free-text search term cannot break the query string or the href.
+    StringBuilder pagingParams = new StringBuilder();
     if (query != null) {
-      context.getRequest().setAttribute("recordPagingParams", "query=" + URLEncoder.encode(query, StandardCharsets.UTF_8));
+      pagingParams.append("query=").append(URLEncoder.encode(query, StandardCharsets.UTF_8));
+    }
+    if (!"date".equals(sortBy)) {
+      if (pagingParams.length() > 0) {
+        pagingParams.append("&");
+      }
+      pagingParams.append("sortBy=").append(sortBy);
+    }
+    if (pagingParams.length() > 0) {
+      context.getRequest().setAttribute("recordPagingParams", pagingParams.toString());
     }
 
     List<Image> imageList;
@@ -361,18 +392,23 @@ public class AdminImageBrowserWidget extends GenericWidget {
   }
 
   /**
-   * Builds the post-delete redirect back to the image grid, preserving both the search term and
+   * Builds the post-delete redirect back to the image grid, preserving the search term, sort, and
    * the page the admin was on (issue #498 slice 2) -- otherwise every delete bounces back to page 1
-   * of the (optionally search-filtered) grid instead of the page the admin was triaging.
+   * of the (optionally search-filtered/sorted) grid instead of the page the admin was triaging.
    */
   private String redirectWithQuery(WidgetContext context) {
     String query = StringUtils.trimToNull(context.getParameter("query"));
+    String sortBy = context.getParameter(RequestConstants.RECORD_SORT_BY, "date");
     int page = context.getParameterAsInt("page", 1);
 
     StringBuilder redirect = new StringBuilder("/admin/images");
     String separator = "?";
     if (query != null) {
       redirect.append(separator).append("query=").append(URLEncoder.encode(query, StandardCharsets.UTF_8));
+      separator = "&";
+    }
+    if (!"date".equals(sortBy)) {
+      redirect.append(separator).append("sortBy=").append(sortBy);
       separator = "&";
     }
     if (page > 1) {
