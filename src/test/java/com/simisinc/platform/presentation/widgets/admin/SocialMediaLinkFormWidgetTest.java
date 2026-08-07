@@ -34,6 +34,38 @@ import com.simisinc.platform.infrastructure.persistence.SocialMediaLinkRepositor
 class SocialMediaLinkFormWidgetTest extends WidgetBase {
 
   @Test
+  void executeShowsANewBlankRecordByDefault() {
+    try (MockedStatic<SocialMediaLinkRepository> repository = mockStatic(SocialMediaLinkRepository.class)) {
+      new SocialMediaLinkFormWidget().execute(widgetContext);
+
+      repository.verify(() -> SocialMediaLinkRepository.findById(any(Long.class)), never());
+    }
+
+    SocialMediaLink socialMediaLink = (SocialMediaLink) request.getAttribute("socialMediaLink");
+    Assertions.assertNotNull(socialMediaLink);
+    Assertions.assertEquals(-1L, (long) socialMediaLink.getId());
+  }
+
+  @Test
+  void executePopulatesTheFormWhenEditingAnExistingRecord() {
+    SocialMediaLink link = new SocialMediaLink();
+    link.setId(7L);
+    link.setPlatformName("Mastodon");
+    link.setUrl("https://mastodon.social/@simis");
+
+    addQueryParameter(widgetContext, "socialMediaLinkId", "7");
+
+    try (MockedStatic<SocialMediaLinkRepository> repository = mockStatic(SocialMediaLinkRepository.class)) {
+      repository.when(() -> SocialMediaLinkRepository.findById(7L)).thenReturn(link);
+
+      new SocialMediaLinkFormWidget().execute(widgetContext);
+    }
+
+    Assertions.assertEquals(link, request.getAttribute("socialMediaLink"));
+    Assertions.assertEquals("Edit Platform", request.getAttribute("title"));
+  }
+
+  @Test
   void postSavesAValidLink() throws Exception {
     addQueryParameter(widgetContext, "platformName", "Discord");
     addQueryParameter(widgetContext, "url", "https://discord.gg/simis");
@@ -80,5 +112,48 @@ class SocialMediaLinkFormWidgetTest extends WidgetBase {
     }
 
     Assertions.assertNotNull(widgetContext.getErrorMessage());
+  }
+
+  @Test
+  void postRejectsAPlatformThatAlreadyHasALinkWithoutSaving() throws Exception {
+    SocialMediaLink existing = new SocialMediaLink();
+    existing.setId(3L);
+    existing.setPlatformName("Instagram");
+
+    addQueryParameter(widgetContext, "platformName", "instagram");
+    addQueryParameter(widgetContext, "url", "https://instagram.com/anotherAccount");
+
+    try (MockedStatic<SocialMediaLinkRepository> repository = mockStatic(SocialMediaLinkRepository.class)) {
+      repository.when(() -> SocialMediaLinkRepository.findByPlatformName("instagram")).thenReturn(existing);
+
+      new SocialMediaLinkFormWidget().post(widgetContext);
+
+      repository.verify(() -> SocialMediaLinkRepository.save(any()), never());
+    }
+
+    Assertions.assertNotNull(widgetContext.getErrorMessage());
+  }
+
+  @Test
+  void postAllowsEditingARecordWithoutTriggeringItsOwnDuplicateCheck() throws Exception {
+    SocialMediaLink existing = new SocialMediaLink();
+    existing.setId(3L);
+    existing.setPlatformName("Instagram");
+
+    addQueryParameter(widgetContext, "id", "3");
+    addQueryParameter(widgetContext, "platformName", "Instagram");
+    addQueryParameter(widgetContext, "url", "https://instagram.com/SimISInc");
+
+    try (MockedStatic<SocialMediaLinkRepository> repository = mockStatic(SocialMediaLinkRepository.class)) {
+      repository.when(() -> SocialMediaLinkRepository.findByPlatformName("Instagram")).thenReturn(existing);
+      repository.when(() -> SocialMediaLinkRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
+
+      new SocialMediaLinkFormWidget().post(widgetContext);
+
+      repository.verify(() -> SocialMediaLinkRepository.save(any()));
+    }
+
+    Assertions.assertNotNull(widgetContext.getSuccessMessage());
+    Assertions.assertNull(widgetContext.getErrorMessage());
   }
 }

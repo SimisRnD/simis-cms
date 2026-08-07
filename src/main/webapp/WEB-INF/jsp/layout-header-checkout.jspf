@@ -34,9 +34,6 @@
                 <script nonce="${cspNonce}">(function(){var u='${js:escape(systemPropertyMap['system.www.context'])}/images/logo-header.png';var i=new Image();i.onload=function(){document.getElementById('logo-header-checkout').src=u;};i.src=u;})();</script>
               </c:otherwise>
             </c:choose>
-            <c:if test="${!empty analyticsPropertyMap['analytics.pixel.url'] && !fn:startsWith(pageRenderInfo.name, '/admin')}">
-              <img src="<c:out value="${analyticsPropertyMap['analytics.pixel.url']}" />" width="1" height="1" alt="" />
-            </c:if>
           </div>
         </div>
       </div>

@@ -844,9 +844,13 @@ public class PageServlet extends HttpServlet {
           "false".equals(sitePropertyMap.getOrDefault("site.online", "false"))) {
         if ("/".equals(pagePath)) {
           pageRef = WebPageXmlLayoutCommand.retrievePage("_new_install_");
-//        } else if (!"/login".equals(pagePath)) {
-          // @todo implement and test this...
-          // Redirect to /, except for login page
+        } else if (!isGuestAuthPage(pagePath)) {
+          // The site isn't open yet -- keep every other page behind the homepage splash. The
+          // 3 guest-facing auth pages (issue #1005: /login, /register, /forgot-password) stay
+          // reachable so a guest can still sign in/up before launch. /logout never reaches this
+          // servlet; it's handled directly in WebRequestFilter.
+          response.sendRedirect(contextPath + "/");
+          return;
         }
       }
 
@@ -1045,7 +1049,7 @@ public class PageServlet extends HttpServlet {
       // into pageRenderInfo during its own execute() -- generating it earlier would only ever see
       // the generic item/collection/webPage title & description, never a widget-specific one.
       if (StringUtils.isNotBlank(siteUrl) && StringUtils.isNotBlank(sitePropertyMap.get("site.name"))) {
-        String jsonLd = generateJsonLdData(pageRenderInfo, siteUrl, pagePath, sitePropertyMap, thisItem, thisCollection, webPage);
+        String jsonLd = generateJsonLdData(pageRenderInfo, siteUrl, pagePath, sitePropertyMap, thisItem, thisCollection, webPage, socialMediaLinkList);
         if (StringUtils.isNotBlank(jsonLd)) {
           pageRenderInfo.setJsonLdData(jsonLd);
         }
@@ -1187,7 +1191,8 @@ public class PageServlet extends HttpServlet {
 
   static String generateJsonLdData(PageRenderInfo pageRenderInfo, String siteUrl, String pagePath,
                                     Map<String, String> sitePropertyMap,
-                                    Item item, Collection collection, WebPage webPage) {
+                                    Item item, Collection collection, WebPage webPage,
+                                    List<SocialMediaLink> socialMediaLinkList) {
     try {
       ObjectMapper mapper = new ObjectMapper();
       Map<String, Object> jsonLd = new LinkedHashMap<>();
@@ -1212,8 +1217,10 @@ public class PageServlet extends HttpServlet {
           }
         }
 
-        // sameAs links this Organization to its social profiles (issue #403)
-        List<SocialMediaLink> socialMediaLinkList = SocialMediaLinkRepository.findAll();
+        // sameAs links this Organization to its social profiles (issue #403). Passed in rather
+        // than queried here -- the caller already loaded this same list once for the page's own
+        // footer/socialMediaLinks-widget rendering (PageServlet.service()); re-querying it a
+        // second time per request was a redundant, uncached DB round trip on every page view.
         if (socialMediaLinkList != null && !socialMediaLinkList.isEmpty()) {
           List<String> sameAs = new ArrayList<>();
           for (SocialMediaLink socialMediaLink : socialMediaLinkList) {
