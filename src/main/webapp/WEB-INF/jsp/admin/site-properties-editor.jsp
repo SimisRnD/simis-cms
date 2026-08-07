@@ -223,6 +223,18 @@
           <c:if test="${siteProperty.name eq 'analytics.brandcdn.value'}">
             <p class="help-text" id="analyticsBrandcdnValueHelpText">Two path values that together form a Brand CDN autoscript tag URL (tag.brandcdn.com/autoscript/&lt;value&gt;/&lt;value 2&gt;), provided by Brand CDN when setting up tracking with them. Both fields must be set for the tag to load; leave both blank if the site isn't using Brand CDN.</p>
           </c:if>
+          <c:if test="${siteProperty.name eq 'analytics.cookieless'}">
+            <p class="help-text" id="analyticsCookielessHelpText">When on, the site's analytics avoid setting a visitor-tracking cookie -- useful for staying under jurisdictions' cookie-consent-banner requirements. This is independent of the consent and Do-Not-Track settings below; all four privacy controls can be combined.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'analytics.anonymizeIp'}">
+            <p class="help-text" id="analyticsAnonymizeIpHelpText">When on, the visitor's IP address is truncated before analytics records it, so individual visitors can't be pinpointed by location. Independent of the retention window below, which controls how long records (anonymized or not) are kept at all.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'analytics.honorDnt'}">
+            <p class="help-text" id="analyticsHonorDntHelpText">When on, a visitor's browser-level Do Not Track or Global Privacy Control signal suppresses analytics scripts on that visit entirely -- a stronger opt-out than the anonymization above, since no record is created at all. Off by default because DNT/GPC has no legal enforcement in most jurisdictions and many sites ignore it; turn this on if the site's privacy policy commits to honoring it.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'analytics.consentRequired'}">
+            <p class="help-text" id="analyticsConsentRequiredHelpText">When on, visitors see an accept/decline banner and analytics scripts (and video embeds) only load after they accept. When off (the shipped default), analytics and video load immediately for everyone and the banner never appears -- there's no in-between "banner shown but analytics load anyway" state.</p>
+          </c:if>
           <c:if test="${siteProperty.name eq 'analytics.retentionDays'}">
             <p class="help-text" id="analyticsRetentionDaysHelpText">Also used outside analytics: this same window governs how long <code>web_page_hits</code> rows are kept (the nightly Web Page Hits Cleanup job deletes hits older than this many days) in addition to controlling the visitor-PII scrub on the <a href="${ctx}/admin/analytics-retention">Analytics Retention</a> page. Changing it for one reason changes both. Accepted range is 1-3650 days; blank or non-numeric input falls back to 365, and an out-of-range number is silently clamped to 1 or 3650 rather than rejected -- double-check the saved value here after submitting.</p>
           </c:if>

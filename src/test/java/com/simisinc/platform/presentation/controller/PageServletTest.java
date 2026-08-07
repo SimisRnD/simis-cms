@@ -192,7 +192,8 @@ class PageServletTest {
     try (MockedStatic<SocialMediaLinkRepository> socialLinks = mockStatic(SocialMediaLinkRepository.class)) {
       socialLinks.when(SocialMediaLinkRepository::findAll).thenReturn(Collections.emptyList());
       jsonLd = PageServlet.generateJsonLdData(
-          pageRenderInfo, "https://example.org", "/launch-announcement", sitePropertyMap, null, null, null);
+          pageRenderInfo, "https://example.org", "/launch-announcement", sitePropertyMap, null, null, null,
+          Collections.emptyList());
     }
 
     JsonNode parsed = assertDoesNotThrow(() -> MAPPER.readTree(jsonLd));
