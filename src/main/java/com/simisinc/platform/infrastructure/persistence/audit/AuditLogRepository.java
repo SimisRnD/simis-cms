@@ -284,6 +284,24 @@ public class AuditLogRepository {
     return rows.isEmpty() ? 0L : rows.get(0).getId();
   }
 
+  /**
+   * Returns the single most recent record for a given category/event type pair, or null if none exists.
+   * Used by the admin audit review page to surface the latest outcome of the tamper-evidence chain check
+   * (see AuditLogIntegrityJob / AuditLogIntegrityCommand) without scanning the full trail.
+   */
+  public static AuditLog findMostRecentByEventType(String category, String eventType) {
+    DataConstraints constraints = new DataConstraints();
+    constraints.setPageSize(1);
+    constraints.setUseCount(false);
+    constraints.setColumnToSortBy("audit_id", "desc");
+    SqlUtils where = new SqlUtils()
+        .add("event_category = ?", category)
+        .add("event_type = ?", eventType);
+    DataResult result = DB.selectAllFrom(TABLE_NAME, where, constraints, AuditLogRepository::buildRecord);
+    List<AuditLog> rows = (List<AuditLog>) result.getRecords();
+    return rows.isEmpty() ? null : rows.get(0);
+  }
+
   public static List<AuditLog> findAll(DataConstraints constraints) {
     if (constraints == null) {
       constraints = new DataConstraints();
