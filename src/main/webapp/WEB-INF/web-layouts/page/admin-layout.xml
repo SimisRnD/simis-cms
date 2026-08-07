@@ -736,22 +736,22 @@
     <section>
       <column class="small-12 medium-7 cell">
         <widget name="sitePropertiesEditor">
-          <title>Maps Settings</title>
+          <title>Map Settings</title>
           <prefix>maps</prefix>
         </widget>
       </column>
       <column class="medium-5 cell">
         <widget name="content" class="callout primary radius">
           <html><![CDATA[<h4>About Map Services</h4>
-          <ul><li>The Tiles service value can be 'openstreetmap' or 'custom' (a self-hosted tile server; set the Custom Map Tiles Url to a template like https://tiles.example.com/{z}/{x}/{y}.png)</li><li>The Geocoder service value can be 'nominatim'</li></ul>
-<h5>Nominatim Info</h5><p>No heavy uses; 1 request per second maximum.</p>
+          <ul><li>The Tiles Service value must be exactly <code>openstreetmap</code> or <code>custom</code> (a self-hosted tile server; set the Custom Map Tiles URL to a template like https://tiles.example.com/{z}/{x}/{y}.png). Any other value, including "google" or "apple", silently falls back to openstreetmap -- there is no Google Maps or Apple Maps tile integration today.</li><li>The Geocoder Service value must be exactly <code>nominatim</code>; any other value (including blank) turns off automatic address-to-coordinate lookups.</li></ul>
+<h5>Nominatim Usage</h5><p>Nominatim's usage policy caps this at 1 request per second, which this app enforces itself. If deployed with multiple app instances, keep in mind each instance enforces that limit independently -- so N instances can collectively send up to N requests per second.</p>
 ]]></html>
         </widget>
         <widget name="map" class="callout secondary radius">
-          <latitude>36.869648</latitude>
-          <longitude>-76.416138</longitude>
+          <latitude>36.7282</latitude>
+          <longitude>-76.5836</longitude>
           <markerTitle>SimIS HQ</markerTitle>
-          <markerText>Portsmouth, Virginia</markerText>
+          <markerText>Suffolk, Virginia</markerText>
         </widget>
       </column>
     </section>
