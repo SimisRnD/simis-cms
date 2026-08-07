@@ -21,7 +21,6 @@ import com.simisinc.platform.infrastructure.database.DB;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.database.DataResult;
 import com.simisinc.platform.infrastructure.database.SqlUtils;
-import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
@@ -39,15 +38,6 @@ public class CapabilityRepository {
   private static Log LOG = LogFactory.getLog(CapabilityRepository.class);
 
   private static String TABLE_NAME = "capabilities";
-
-  public static Capability findByCode(String code) {
-    if (StringUtils.isBlank(code)) {
-      return null;
-    }
-    return (Capability) DB.selectRecordFrom(
-        TABLE_NAME, new SqlUtils().add("code = ?", code),
-        CapabilityRepository::buildRecord);
-  }
 
   /**
    * All capabilities granted to any role the given user holds (user_roles -> role_capabilities).
