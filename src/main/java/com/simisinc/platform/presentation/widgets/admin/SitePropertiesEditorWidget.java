@@ -16,6 +16,7 @@
 
 package com.simisinc.platform.presentation.widgets.admin;
 
+import com.simisinc.platform.application.LoadUserCommand;
 import com.simisinc.platform.application.admin.AnalyticsTrackingIdCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.admin.SecretSitePropertiesCommand;
@@ -23,6 +24,8 @@ import com.simisinc.platform.application.cms.ColorCommand;
 import com.simisinc.platform.application.login.StepUpAuthCommand;
 import com.simisinc.platform.application.mailinglists.MailChimpCommand;
 import com.simisinc.platform.domain.model.SiteProperty;
+import com.simisinc.platform.domain.model.User;
+import com.simisinc.platform.infrastructure.cache.CacheManager;
 import com.simisinc.platform.infrastructure.persistence.SitePropertyRepository;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.SqlTimestampConverter;
@@ -95,11 +98,28 @@ public class SitePropertiesEditorWidget extends GenericWidget {
 
   public WidgetContext post(WidgetContext context) {
 
-    // Gate security-sensitive prefix changes behind a recent step-up (IA-2 / AC-6).
     String prefix = context.getPreferences().get(PREFIX_PREFERENCE);
+
+    // Gate security-sensitive prefix changes behind a recent step-up (IA-2 / AC-6). Uses the same
+    // inline re-authentication pattern as UserFormWidget/MyMfaSettingsWidget (a "stepUpRequired"
+    // shared value the JSP renders as a password/code prompt on the same form) rather than a page
+    // redirect -- a prior version redirected to /step-up-auth, a page that was never actually
+    // merged into the app, which made Save on these prefixes silently do nothing.
     if (isSecuritySensitivePrefix(prefix) && !StepUpAuthCommand.isValid(context.getUserSession())) {
-      context.setRedirect("/step-up-auth?return=" + context.getUri());
-      return context;
+      String stepUpCredential = context.getParameter("stepUpCredential");
+      boolean verified = false;
+      if (StringUtils.isNotBlank(stepUpCredential)) {
+        User actingUser = LoadUserCommand.loadUser(context.getUserId());
+        verified = StepUpAuthCommand.verify(context.getUserSession(), actingUser, stepUpCredential);
+        if (!verified) {
+          context.setErrorMessage("Re-authentication failed. Enter your password or authenticator code.");
+        }
+      }
+      if (!verified) {
+        context.addSharedRequestValue("stepUpRequired", "true");
+        redisplayEditor(context, prefix);
+        return context;
+      }
     }
 
     // One-off action, specific to the mailing-list settings page only (issue #523) -- a read-only
@@ -239,6 +259,14 @@ public class SitePropertiesEditorWidget extends GenericWidget {
         converter.setTimeZone(TimeZone.getTimeZone(ZoneId.of(timezone)));
         ConvertUtils.register(converter, Timestamp.class);
       }
+      // The rendered Footer object is cached indefinitely (see WebContainerLayoutCommand), so a
+      // change to which named layout it's built from needs an explicit invalidation to take effect
+      for (SiteProperty siteProperty : siteProperties) {
+        if ("theme.footer.layout".equals(siteProperty.getName())) {
+          CacheManager.invalidateObjectCacheKey(CacheManager.WEBSITE_FOOTER);
+          break;
+        }
+      }
       // Determine the page to return to
       context.setSuccessMessage("Values were saved");
     } else {
@@ -268,6 +296,25 @@ public class SitePropertiesEditorWidget extends GenericWidget {
 
     context.setJsp(JSP);
     return context;
+  }
+
+  /** Re-loads the current (saved, not submitted) properties and re-renders the editor -- used when
+   * a step-up re-authentication prompt needs to interrupt post() before any save is attempted. */
+  private void redisplayEditor(WidgetContext context, String prefix) {
+    List<SiteProperty> siteProperties = new ArrayList<>();
+    String[] prefixList = prefix.split(",");
+    for (String thisPrefix : prefixList) {
+      List<SiteProperty> sitePropertiesList = SitePropertyRepository.findAllByPrefix(thisPrefix);
+      if (sitePropertiesList != null) {
+        siteProperties.addAll(sitePropertiesList);
+      }
+    }
+    context.getRequest().setAttribute("sitePropertyList", siteProperties);
+    context.getRequest().setAttribute("secretPropertyNames", SecretSitePropertiesCommand.getSecretPropertyNames());
+    context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));
+    context.getRequest().setAttribute("title", context.getPreferences().get("title"));
+    context.getRequest().setAttribute("prefix", prefix);
+    context.setJsp(JSP);
   }
 
   private static boolean isSecuritySensitivePrefix(String prefix) {

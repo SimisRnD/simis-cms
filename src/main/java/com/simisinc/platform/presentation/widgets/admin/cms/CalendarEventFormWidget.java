@@ -28,6 +28,9 @@ import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.lang3.StringUtils;
 
 import java.lang.reflect.InvocationTargetException;
+import java.sql.Timestamp;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * Widget for displaying a system administration form to add/update calendar events
@@ -76,6 +79,14 @@ public class CalendarEventFormWidget extends GenericWidget {
       }
     }
 
+    // The bean's tagsList is a String[], but the JSP renders it as one comma-separated text input
+    // (matching full-calendar.jsp's modal). Pre-join it here so the JSP can emit it through a
+    // single c:out rather than escaping-then-reassembling an array inside an HTML attribute.
+    CalendarEvent formBean = (CalendarEvent) context.getRequest().getAttribute("calendarEvent");
+    if (formBean != null && formBean.getTagsList() != null && formBean.getTagsList().length > 0) {
+      context.getRequest().setAttribute("tagsListValue", String.join(", ", formBean.getTagsList()));
+    }
+
     // Show the editor
     context.setJsp(JSP);
     return context;
@@ -83,11 +94,56 @@ public class CalendarEventFormWidget extends GenericWidget {
 
   public WidgetContext post(WidgetContext context) throws InvocationTargetException, IllegalAccessException {
 
+    // Permission is required -- matches CalendarWidget.post()'s admin/content-manager pairing for
+    // calendar event mutations. This widget previously had no in-widget check at all, relying
+    // solely on the page-level role gate in admin-layout.xml (defense-in-depth gap).
+    if (!(context.hasRole("admin") || context.hasRole("content-manager"))) {
+      LOG.warn("No permission to modify calendar events");
+      return context;
+    }
+
+    // Don't accept multiple form posts
+    context.getUserSession().renewFormToken();
+
     // Populate the fields
     CalendarEvent calendarEventBean = new CalendarEvent();
     BeanUtils.populate(calendarEventBean, context.getParameterMap());
     calendarEventBean.setCreatedBy(context.getUserId());
     calendarEventBean.setModifiedBy(context.getUserId());
+
+    // The following two fields cannot be populated by BeanUtils.populate() above -- both mirror
+    // CalendarWidget.post()'s identical handling of the same form fields, since this form now
+    // submits them too (previously it only submitted id/calendarId/title/summary/allDay/
+    // startDate/endDate, so SaveCalendarEventCommand's unconditional overwrite of every field
+    // silently reset an existing event's location/links/tags/published status to blank/draft on
+    // every save through this page).
+
+    // tagsList is a String[] on the bean but a single comma-separated form field
+    String tagsListParam = context.getParameter("tagsList");
+    if (StringUtils.isNotBlank(tagsListParam)) {
+      String[] parsedTags = tagsListParam.split(",");
+      List<String> tagsList = new ArrayList<>();
+      for (String tag : parsedTags) {
+        String trimmed = tag.trim();
+        if (!trimmed.isEmpty()) {
+          tagsList.add(trimmed);
+        }
+      }
+      calendarEventBean.setTagsList(tagsList.isEmpty() ? null : tagsList.toArray(new String[0]));
+    } else {
+      calendarEventBean.setTagsList(null);
+    }
+
+    // published is a Timestamp on the bean, driven by the "enabled" checkbox -- same field name
+    // and semantics as CalendarWidget.post()'s "Publish it?" checkbox: checked sets published to
+    // now (re-publishing bumps the timestamp, same as the full calendar editor already does),
+    // unchecked clears it back to a draft.
+    String enabled = context.getParameter("enabled");
+    if (StringUtils.isNotBlank(enabled)) {
+      calendarEventBean.setPublished(new Timestamp(System.currentTimeMillis()));
+    } else {
+      calendarEventBean.setPublished(null);
+    }
 
     // Determine additional settings
     String returnPage = UrlCommand.getValidReturnPage(context.getParameter("returnPage"));

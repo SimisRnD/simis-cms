@@ -78,7 +78,12 @@ public class IpRangeCommand {
       return false;
     }
     if (!pattern.contains("/")) {
-      return pattern.equals(ipAddress);
+      // Case-insensitive: IPv6 literals are conventionally written with either case for their hex
+      // digits (e.g. "2001:DB8::1" and "2001:db8::1" are the same address), and this method's non-
+      // CIDR branch was a case-sensitive equals() -- most visibly a gap in the new cross-list
+      // overlap check (SaveAllowedIPCommand/SaveBlockedIPCommand#findCoveringEntry), which could
+      // miss a same-address-different-case entry on the other list as an overlap.
+      return pattern.equalsIgnoreCase(ipAddress);
     }
     String[] parts = pattern.split("/", 2);
     String network = parts[0];

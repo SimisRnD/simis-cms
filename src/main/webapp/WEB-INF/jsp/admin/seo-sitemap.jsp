@@ -24,21 +24,27 @@
 </c:if>
 <%@include file="../page_messages.jspf" %>
 
-<p>
-  This page manages the site's XML sitemap (<code>/sitemap.xml</code>) -- the file that tells
-  search engines which pages exist and how recently each one changed. It's a different feature
-  from the <strong>Navigation Menu</strong> editor (also confusingly called "Sitemap" in the admin
-  menu) -- that one controls the site's visible nav links, this one controls what a search engine
-  crawler sees.
-</p>
-<ul>
-  <li>Only web pages with <strong>Show in Sitemap.xml?</strong> switched on below are included.</li>
-  <li>Published items, blog posts, and wiki pages are included automatically and aren't listed here.</li>
-  <li>A page must also be enabled and not in draft to appear, regardless of this setting.</li>
-</ul>
+<div class="callout primary radius">
+  <h6>What this page shows</h6>
+  <p>
+    This page manages the site's XML sitemap (<code>/sitemap.xml</code>) -- the file that tells
+    search engines which pages exist and how recently each one changed. It's a different feature
+    from the <strong>Navigation Menu</strong> editor (also confusingly called "Sitemap" in the admin
+    menu) -- that one controls the site's visible nav links, this one controls what a search engine
+    crawler sees. Per-page priority and change-frequency aren't set here -- those remain on each
+    page's own edit form; this page only bulk-manages the include/exclude flag.
+  </p>
+  <ul>
+    <li>Only web pages with <strong>Show in Sitemap.xml?</strong> switched on below are included.</li>
+    <li>Published items, blog posts, and wiki pages are included automatically and aren't listed here.</li>
+    <li>A page must also be enabled to appear, regardless of this setting -- draft status has no effect: a
+      page with a pending edit still shows its last-published content in the sitemap (and everywhere else
+      public) until that edit is actually published.</li>
+  </ul>
+</div>
 
 <c:choose>
-  <c:when test="${sitemapEnabled}">
+  <c:when test="${sitemapActuallyServed}">
     <div class="callout radius success" style="margin-bottom:20px">
       <p style="margin-bottom:0">
         <i class="fa fa-check-circle"></i> The sitemap is enabled and being served.
@@ -49,13 +55,36 @@
   <c:otherwise>
     <div class="callout radius warning" style="margin-bottom:20px">
       <p style="margin-bottom:0">
-        <i class="fa fa-exclamation-triangle"></i> The sitemap is currently <strong>disabled</strong>
-        (<code>site.sitemap.xml</code>) -- <code>/sitemap.xml</code> returns a 404 regardless of the
-        per-page settings below. Enable it from the site properties editor to start serving it.
+        <i class="fa fa-exclamation-triangle"></i>
+        <c:choose>
+          <c:when test="${!sitemapEnabled}">
+            The sitemap is currently <strong>disabled</strong> (<code>site.sitemap.xml</code>) --
+            <code>/sitemap.xml</code> returns a 404 regardless of the per-page settings below. Enable it
+            from the site properties editor to start serving it.
+          </c:when>
+          <c:when test="${!siteUrlConfigured}">
+            <code>site.url</code> isn't configured yet, so <code>/sitemap.xml</code> returns a 404 even
+            though the sitemap toggle itself is on. Set the site URL in Site Settings first.
+          </c:when>
+          <c:otherwise>
+            The site is currently <strong>offline</strong> (<code>site.online</code>) --
+            <code>/sitemap.xml</code> returns a 404 until the site is taken online, the same as every
+            other public page. Turning the sitemap toggle on by itself is not enough while the site
+            is offline.
+          </c:otherwise>
+        </c:choose>
       </p>
     </div>
   </c:otherwise>
 </c:choose>
+
+<h5>Best practices</h5>
+<div class="callout radius">
+  <p>Before relying on this page's green "enabled and being served" status, actually open the
+    <a href="${ctx}/sitemap.xml" target="_blank" rel="noopener">preview link</a> -- it's the only way to
+    confirm search engines are seeing what you expect, since the count and content depend on which pages
+    are enabled, published, and individually flagged for inclusion, not just the toggle above.</p>
+</div>
 
 <form method="post">
   <%-- Required by controller --%>

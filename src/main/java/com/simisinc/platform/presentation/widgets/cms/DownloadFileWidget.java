@@ -97,6 +97,19 @@ public class DownloadFileWidget extends GenericWidget {
       return null;
     }
 
+    // An expired file's content is off-limits to everyone except admins (who still need access for
+    // management/verification purposes, matching the admin bypass used above to select which
+    // LoadFileCommand method authorized this request). This only blocks the content-serving path
+    // below (streaming, viewing, and the remote-URL redirect) -- it does not affect
+    // LoadFileCommand's other, non-content callers (e.g. edit-form metadata fetch, delete, version
+    // listing), which must keep working on expired files.
+    if (!context.hasRole("admin") && record.isExpired()) {
+      LOG.warn("File is expired: " + fileId);
+      AuditEventCommand.record(context, AuditEventCommand.DATA_ACCESS, accessEventType, AuditEventCommand.FAILURE,
+          "folder_file", String.valueOf(fileId), null, "file is expired");
+      return null;
+    }
+
     // A web path that doesn't match the file's current one belongs to a specific archived version
     // (see FileVersion#getUrl()) -- resolve that version so its own bytes are streamed, rather than
     // whatever is currently live. The access check above already used this web path (matched either

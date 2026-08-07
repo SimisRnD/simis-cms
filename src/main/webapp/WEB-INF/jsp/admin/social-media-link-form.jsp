@@ -22,6 +22,9 @@
   <%-- Required by controller --%>
   <input type="hidden" name="widget" value="${widgetContext.uniqueId}"/>
   <input type="hidden" name="token" value="${userSession.formToken}"/>
+  <%-- Carries an edit forward to save() as an update instead of a new record; stays -1 (the
+       SocialMediaLink default) for a fresh "Add a Platform" submission. --%>
+  <input type="hidden" name="id" value="${socialMediaLink.id}"/>
   <%-- Title and Message block --%>
   <c:if test="${!empty title}">
     <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
@@ -34,8 +37,14 @@
   <label>URL <span class="required">*</span>
     <input type="text" placeholder="https://..." name="url" value="<c:out value="${socialMediaLink.url}"/>" required>
   </label>
-  <p class="help-text">Add any platform -- the name is used to look up an icon for known platforms (Facebook, Instagram, LinkedIn, X/Twitter, Flickr, YouTube, Mastodon, TikTok, Discord, GitHub); anything else shows a generic link icon.</p>
+  <label>Order
+    <input type="number" name="linkOrder" value="<c:out value="${socialMediaLink.linkOrder}"/>">
+  </label>
+  <p class="help-text">Add any platform -- the name is used to look up an icon for known platforms (Facebook, Instagram, LinkedIn, X/Twitter, Flickr, YouTube, Mastodon, TikTok, Discord, GitHub); anything else shows a generic link icon. Order controls where the icon falls in the footer's row (lowest first); links that share a value fall back to alphabetical order.</p>
   <div class="button-container">
-    <input type="submit" class="button radius success expanded" value="Save"/>
+    <input type="submit" class="button radius success expanded" value="${socialMediaLink.id > -1 ? 'Save Changes' : 'Add Platform'}"/>
+    <c:if test="${socialMediaLink.id > -1}">
+      <a href="${ctx}/admin/social-media-settings" class="button radius secondary expanded">Cancel</a>
+    </c:if>
   </div>
 </form>

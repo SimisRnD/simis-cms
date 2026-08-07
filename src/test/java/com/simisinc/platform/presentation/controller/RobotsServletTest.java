@@ -151,6 +151,44 @@ class RobotsServletTest {
   }
 
   @Test
+  void doGetAdvertisesTheSitemapOnlyWhenItIsActuallyEnabled() throws Exception {
+    // Regression test: site.sitemap.xml defaults to false on a fresh install
+    // (NEW_10000__new_database.sql), so a Sitemap: line gated only on site.url being set
+    // advertised a URL that SitemapServlet would 404 on every new install by default.
+    HttpServletRequest request = mock(HttpServletRequest.class);
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    StringWriter body = new StringWriter();
+    when(response.getWriter()).thenReturn(new PrintWriter(body));
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadAsMap("robots")).thenReturn(new HashMap<>());
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.url")).thenReturn("https://example.org");
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.sitemap.xml")).thenReturn("false");
+      new RobotsServlet().doGet(request, response);
+    }
+
+    assertFalse(body.toString().contains("Sitemap:"),
+        "must not advertise a sitemap URL that site.sitemap.xml=false means SitemapServlet will 404 on");
+  }
+
+  @Test
+  void doGetAdvertisesTheSitemapWhenBothSiteUrlAndSitemapXmlAreConfigured() throws Exception {
+    HttpServletRequest request = mock(HttpServletRequest.class);
+    HttpServletResponse response = mock(HttpServletResponse.class);
+    StringWriter body = new StringWriter();
+    when(response.getWriter()).thenReturn(new PrintWriter(body));
+
+    try (MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadAsMap("robots")).thenReturn(new HashMap<>());
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.url")).thenReturn("https://example.org");
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.sitemap.xml")).thenReturn("true");
+      new RobotsServlet().doGet(request, response);
+    }
+
+    assertTrue(body.toString().contains("Sitemap: https://example.org/sitemap.xml\n"));
+  }
+
+  @Test
   void doGetServesACustomFileVerbatimInsteadOfGeneratedDefaults() throws Exception {
     File tempCmsPath = Files.createTempDirectory("robots-test").toFile();
     File configDir = new File(tempCmsPath, "config/cms");

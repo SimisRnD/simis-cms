@@ -17,6 +17,8 @@
 package com.simisinc.platform.presentation.widgets.admin.cms;
 
 import java.lang.reflect.InvocationTargetException;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -107,12 +109,20 @@ public class FolderFilesListWidget extends GenericWidget {
     // Determine permissions for UI
     boolean canEdit = CheckFolderPermissionCommand.userHasEditPermission(folder.getId(), context.getUserId());
     boolean canDelete = CheckFolderPermissionCommand.userHasDeletePermission(folder.getId(), context.getUserId());
+    // FolderFileFormWidget's actual permission check for adding a file/link is admin OR
+    // userHasAddPermission(folderId, userId) -- canAdd mirrors that exactly so the "Add File Link"
+    // button in the JSP can be shown to anyone who can really use the feature, not just
+    // admin/content-manager (issue: a community-manager or other role with real per-folder add
+    // permission via the folder's own group ACL previously had no button to find it).
+    boolean canAdd = CheckFolderPermissionCommand.userHasAddPermission(folder.getId(), context.getUserId());
     if (context.hasRole("admin")) {
       canEdit = true;
       canDelete = true;
+      canAdd = true;
     }
     context.getRequest().setAttribute("canEdit", canEdit ? "true" : "false");
     context.getRequest().setAttribute("canDelete", canDelete ? "true" : "false");
+    context.getRequest().setAttribute("canAdd", canAdd ? "true" : "false");
 
     // Load the folders for the drop-down so user can move file to different folder
     List<Folder> folderList;
@@ -153,7 +163,15 @@ public class FolderFilesListWidget extends GenericWidget {
     // "date", which maps to the same "created DESC" order this list used before sorting existed,
     // so a plain page load (no sortBy param) keeps its prior ordering.
     String sortBy = context.getParameter(RequestConstants.RECORD_SORT_BY, "date");
-    DataConstraints constraints = new DataConstraints();
+
+    // Paging -- previously this built a DataConstraints with no page size at all, so the entire
+    // file list rendered unpaginated regardless of folder size. Mirrors AdminBlogPostListWidget /
+    // FileVersionsListWidget's page/items request params + DataConstraints(page, itemsPerPage)
+    // pattern.
+    int limit = Integer.parseInt(context.getPreferences().getOrDefault("limit", "25"));
+    int page = context.getParameterAsInt("page", 1);
+    int itemsPerPage = context.getParameterAsInt("items", limit);
+    DataConstraints constraints = new DataConstraints(page, itemsPerPage);
     switch (sortBy) {
       case "name":
         constraints.setColumnToSortBy("title");
@@ -171,6 +189,18 @@ public class FolderFilesListWidget extends GenericWidget {
         break;
     }
     context.getRequest().setAttribute(RequestConstants.RECORD_SORT_BY, sortBy);
+    context.getRequest().setAttribute(RequestConstants.RECORD_PAGING, constraints);
+
+    // Carry folderId/subFolderId plus the search/sort criteria through pagination links
+    // (paging_control.jspf appends this to each page's href as "?" + recordPagingParams + "&page=N").
+    StringBuilder pagingParams = new StringBuilder();
+    appendPagingParam(pagingParams, "folderId", String.valueOf(folder.getId()));
+    if (subFolderId > -1) {
+      appendPagingParam(pagingParams, "subFolderId", String.valueOf(subFolderId));
+    }
+    appendPagingParam(pagingParams, RequestConstants.RECORD_QUERY, query);
+    appendPagingParam(pagingParams, RequestConstants.RECORD_SORT_BY, sortBy);
+    context.getRequest().setAttribute("recordPagingParams", pagingParams.toString());
 
     // Load the files
     List<FileItem> fileList = FileItemRepository.findAll(specification, constraints);
@@ -347,10 +377,25 @@ public class FolderFilesListWidget extends GenericWidget {
       return null;
     }
 
-    // @todo make sure the folder's user group can delete
-
     String targetId = String.valueOf(record.getId());
     String targetLabel = record.getFilename();
+
+    // The delete icon is already hidden in the UI for a user without delete permission on this
+    // folder, but that's UI-only -- the action itself must independently enforce it, or anyone who
+    // can merely view this page (any role the page's own admin-layout.xml role gate allows) could
+    // delete a file by requesting this action directly, regardless of this specific folder's own
+    // delete-permission ACL. Mirrors FolderDetailsWidget#delete's folder-delete permission check,
+    // using this class's own admin-bypass convention (see bulkDeleteAction's canDelete).
+    boolean canDelete = context.hasRole("admin")
+        || CheckFolderPermissionCommand.userHasDeletePermission(record.getFolderId(), context.getUserId());
+    if (!canDelete) {
+      LOG.warn("No permission to delete file " + fileId + " in folder " + record.getFolderId());
+      AuditEventCommand.record(context, AuditEventCommand.CONTENT, "folder_file.delete", AuditEventCommand.FAILURE,
+          "folder_file", targetId, targetLabel, "no permission to delete in this folder");
+      context.setErrorMessage("Error. You do not have permission to delete this file.");
+      return context;
+    }
+
     try {
       boolean removed = DeleteFileCommand.deleteFile(record);
       AuditEventCommand.record(context, AuditEventCommand.CONTENT, "folder_file.delete",
@@ -492,5 +537,19 @@ public class FolderFilesListWidget extends GenericWidget {
       return "/admin/sub-folder-details?folderId=" + folderId + "&subFolderId=" + subFolderId;
     }
     return "/admin/folder-details?folderId=" + folderId;
+  }
+
+  /**
+   * Appends {@code name=urlEncoded(value)} to the paging query string when the value is present.
+   * Mirrors AdminBlogPostListWidget#appendParam.
+   */
+  private void appendPagingParam(StringBuilder sb, String name, String value) {
+    if (StringUtils.isBlank(value)) {
+      return;
+    }
+    if (sb.length() > 0) {
+      sb.append("&");
+    }
+    sb.append(name).append("=").append(URLEncoder.encode(value, StandardCharsets.UTF_8));
   }
 }

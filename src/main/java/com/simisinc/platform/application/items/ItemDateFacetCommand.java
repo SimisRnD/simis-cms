@@ -16,7 +16,7 @@
 
 package com.simisinc.platform.application.items;
 
-import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.cms.FormatDateCommand;
 
 import java.sql.Timestamp;
 import java.time.Instant;
@@ -75,7 +75,7 @@ public class ItemDateFacetCommand {
    * Bounds are mutually exclusive so bucket counts partition the full result set.
    */
   public static List<DateFacetBucket> buckets() {
-    ZoneId siteZoneId = ZoneId.of(LoadSitePropertyCommand.loadByName("site.timezone"));
+    ZoneId siteZoneId = FormatDateCommand.getSiteZoneId();
     ZonedDateTime now = ZonedDateTime.ofInstant(Instant.now(), siteZoneId);
 
     Timestamp sevenDaysAgo = Timestamp.valueOf(now.minusDays(7).toLocalDateTime());

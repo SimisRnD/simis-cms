@@ -105,6 +105,66 @@ class SeoSitemapWidgetTest extends WidgetBase {
   }
 
   @Test
+  void executeReportsSitemapNotActuallyServedWhenSiteIsOffline() {
+    // Regression test: SitemapServlet requires site.url, site.online, AND site.sitemap.xml to
+    // serve a real sitemap -- the old status banner checked only the last one, so an offline site
+    // could show "enabled and being served" with a preview link that actually 404s.
+    Map<String, String> properties = new HashMap<>();
+    properties.put("site.sitemap.xml", "true");
+    properties.put("site.url", "https://example.org");
+    properties.put("site.online", "false");
+
+    try (MockedStatic<WebPageRepository> repository = mockStatic(WebPageRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class)) {
+      repository.when(WebPageRepository::findAll).thenReturn(new ArrayList<>());
+      siteProps.when(() -> LoadSitePropertyCommand.loadAsMap("site")).thenReturn(properties);
+
+      WidgetContext result = new SeoSitemapWidget().execute(widgetContext);
+
+      assertEquals(true, result.getRequest().getAttribute("sitemapEnabled"));
+      assertEquals(false, result.getRequest().getAttribute("siteOnline"));
+      assertEquals(false, result.getRequest().getAttribute("sitemapActuallyServed"),
+          "sitemapEnabled alone must not be reported as 'being served' when the site is offline");
+    }
+  }
+
+  @Test
+  void executeReportsSitemapNotActuallyServedWhenSiteUrlIsMissing() {
+    Map<String, String> properties = new HashMap<>();
+    properties.put("site.sitemap.xml", "true");
+    properties.put("site.online", "true");
+
+    try (MockedStatic<WebPageRepository> repository = mockStatic(WebPageRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class)) {
+      repository.when(WebPageRepository::findAll).thenReturn(new ArrayList<>());
+      siteProps.when(() -> LoadSitePropertyCommand.loadAsMap("site")).thenReturn(properties);
+
+      WidgetContext result = new SeoSitemapWidget().execute(widgetContext);
+
+      assertEquals(false, result.getRequest().getAttribute("siteUrlConfigured"));
+      assertEquals(false, result.getRequest().getAttribute("sitemapActuallyServed"));
+    }
+  }
+
+  @Test
+  void executeReportsSitemapActuallyServedWhenAllThreeConditionsAreMet() {
+    Map<String, String> properties = new HashMap<>();
+    properties.put("site.sitemap.xml", "true");
+    properties.put("site.url", "https://example.org");
+    properties.put("site.online", "true");
+
+    try (MockedStatic<WebPageRepository> repository = mockStatic(WebPageRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class)) {
+      repository.when(WebPageRepository::findAll).thenReturn(new ArrayList<>());
+      siteProps.when(() -> LoadSitePropertyCommand.loadAsMap("site")).thenReturn(properties);
+
+      WidgetContext result = new SeoSitemapWidget().execute(widgetContext);
+
+      assertEquals(true, result.getRequest().getAttribute("sitemapActuallyServed"));
+    }
+  }
+
+  @Test
   void postTurnsOnSitemapInclusionForAPageThatWasOff() {
     setRoles(widgetContext, ADMIN);
     WebPage page = webPage(1L, "/about", "About", false);

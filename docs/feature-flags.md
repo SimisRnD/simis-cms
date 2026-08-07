@@ -12,7 +12,7 @@ SimIS CMS has a lightweight per-feature toggle mechanism: `features.*` site prop
 A feature flag is just a boolean site property under the `features.` prefix (e.g. `features.layout-editor`). It uses the same site-property machinery every other admin setting does:
 
 - Properties are grouped and cached by their prefix (`LoadSitePropertyCommand`, backed by `CacheManager.SYSTEM_PROPERTY_PREFIX_CACHE`).
-- That cache has no configured TTL or refresh (those Caffeine builder options are deliberately commented out) -- a saved change is visible on the very next read only because `SitePropertyRepository.saveAll()` calls `CacheManager.invalidateKey()` for the prefix on every save. There's no background expiry to fall back on.
+- That cache expires after 5 minutes and refreshes in the background after 1 minute. A saved change is visible immediately on the instance that handled the save, because `SitePropertyRepository.saveAll()` calls `CacheManager.invalidateKey()` for the prefix on every save -- the TTL/refresh exists as a backstop for any *other* instance in a multi-instance deployment, which picks up the change within about a minute rather than instantly.
 - `/admin/feature-flags` is a normal `sitePropertiesEditor` widget page (`admin-layout.xml`) with `<prefix>features</prefix>`, the same generic editor used by `/admin/security-properties`, `/admin/captcha-properties`, and every other `/admin/*-properties` page.
 - Active flags are logged once at startup (`ContextListener`), so the log reflects the feature posture the application booted with.
 
@@ -28,7 +28,7 @@ if (FeatureFlagCommand.isEnabled("layout-editor")) {
 
 ## Adding a new flag
 
-1. Add one `INSERT INTO site_properties (...) VALUES (..., 'features.<name>', '<default>', 'boolean') ON CONFLICT (property_name) DO NOTHING;` row to a new file under `src/main/resources/database/upgrade/2026/`, **and** the equivalent plain `INSERT` (no `ON CONFLICT`, matching every other install-side seed) under `src/main/resources/database/install/` -- a fresh install never runs the `upgrade/` tree, so a flag seeded only there is missing on day one. See `NEW_10150__new_feature_flag_properties.sql` / `UPGRADE_20260802.1007__feature_flag_properties.sql` for the pattern this issue (#410) established.
+1. Add one `INSERT INTO site_properties (...) VALUES (..., 'features.<name>', '<default>', 'boolean') ON CONFLICT (property_name) DO NOTHING;` row to a new file under `src/main/resources/database/upgrade/2026/`, **and** the equivalent plain `INSERT` (no `ON CONFLICT`, matching every other install-side seed) under `src/main/resources/database/install/` -- a fresh install never runs the `upgrade/` tree, so a flag seeded only there is missing on day one. See `NEW_10150__new_feature_flag_properties.sql` / `UPGRADE_20260802.1009__feature_flag_properties.sql` for the pattern this issue (#410) established.
 2. Pick the default value deliberately:
    - Gating **new** behavior: default `false` (dark-launched, opt-in rollout).
    - Gating **existing, already-shipped** behavior you want an off-switch for: default `true`, so upgrading installs see no behavior change until someone flips it off.

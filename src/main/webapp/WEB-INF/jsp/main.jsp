@@ -496,8 +496,8 @@
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/editorial-calendar')}"> class="is-active"</c:if>><a href="${ctx}/admin/editorial-calendar"><i class="${font:far()} fa-calendar-check fa-fw"></i> <span>Editorial Calendar</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/folder')}"> class="is-active"</c:if>><a href="${ctx}/admin/folders"><i class="${font:far()} fa-copy fa-fw"></i> <span>Files &amp; Folders</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/wiki')}"> class="is-active"</c:if>><a href="${ctx}/admin/wikis"><i class="${font:far()} fa-file fa-fw"></i> <span>Wikis</span></a></li>
-              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/useful-links')}"> class="is-active"</c:if>><a href="${ctx}/admin/useful-links"><i class="${font:far()} fa-file fa-fw"></i> <span>Useful Links</span></a></li>
-              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/sticky-footer-links')}"> class="is-active"</c:if>><a href="${ctx}/admin/sticky-footer-links"><i class="${font:far()} fa-file fa-fw"></i> <span>Sticky Page Buttons</span></a></li>
+              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/useful-links')}"> class="is-active"</c:if>><a href="${ctx}/admin/useful-links"><i class="${font:far()} fa-list-alt fa-fw"></i> <span>Useful Links</span></a></li>
+              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/sticky-footer-links')}"> class="is-active"</c:if>><a href="${ctx}/admin/sticky-footer-links"><i class="${font:far()} fa-flag fa-fw"></i> <span>Sticky Page Buttons</span></a></li>
             </ul>
           </c:if>
           <%-- Data menu --%>
@@ -525,7 +525,7 @@
             </c:if>
           </c:if>
           <%-- API, Apps, etc. --%>
-          <c:if test="${userSession.hasRole('admin')}">
+          <c:if test="${userSession.hasRole('admin') || userSession.hasPermission('admin:manage')}">
             <ul class="vertical menu">
               <li class="section-title">Access</li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/api')}"> class="is-active"</c:if>><a href="${ctx}/admin/apis"><i class="${font:far()} fa-paper-plane fa-fw"></i> <span>APIs</span></a></li>
@@ -564,7 +564,8 @@
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/webhook')}"> class="is-active"</c:if>><a href="${ctx}/admin/webhooks"><i class="${font:far()} fa-plug fa-fw"></i> <span>Webhooks</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/integrations')}"> class="is-active"</c:if>><a href="${ctx}/admin/integrations"><i class="${font:far()} fa-puzzle-piece fa-fw"></i> <span>Integrations</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/ecommerce')}"> class="is-active"</c:if>><a href="${ctx}/admin/ecommerce-properties"><i class="${font:far()} fa-shopping-cart fa-fw"></i> <span>E-commerce Settings</span></a></li>
-              <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/elearning')}"> class="is-active"</c:if>><a href="${ctx}/admin/elearning-properties"><i class="${font:far()} fa-chalkboard-teacher fa-fw"></i> <span>E-learning Settings</span></a></li>
+              <li<c:if test="${pageRenderInfo.name eq '/admin/elearning-properties'}"> class="is-active"</c:if>><a href="${ctx}/admin/elearning-properties"><i class="${font:far()} fa-chalkboard-teacher fa-fw"></i> <span>E-learning Settings</span></a></li>
+              <li<c:if test="${pageRenderInfo.name eq '/admin/elearning-statements'}"> class="is-active"</c:if>><a href="${ctx}/admin/elearning-statements"><i class="${font:far()} fa-list fa-fw"></i> <span>xAPI Statements</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/mail-properties')}"> class="is-active"</c:if>><a href="${ctx}/admin/mail-properties"><i class="${font:far()} fa-cogs fa-fw"></i> <span>Email Settings</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/mailing-list-properties')}"> class="is-active"</c:if>><a href="${ctx}/admin/mailing-list-properties"><i class="${font:far()} fa-envelope fa-fw"></i> <span>Mailing List Settings</span></a></li>
               <li<c:if test="${fn:startsWith(pageRenderInfo.name, '/admin/maps')}"> class="is-active"</c:if>><a href="${ctx}/admin/maps-properties"><i class="${font:far()} fa-map fa-fw"></i> <span>Maps Settings</span></a></li>
@@ -680,7 +681,13 @@
         <div id="site-sticky-footer" class="animated slideInUp faster delay-1s hide-for-print">
         <c:forEach items="${footerStickyLinks.entries}" var="link">
           <c:choose>
-            <c:when test="${fn:startsWith(pageRenderInfo.name, link.link)}">
+            <%-- Exact match, not a prefix match -- pageRenderInfo.name is the canonical page path
+                 with no query string (PageServlet sets it from getRequestURI(), which never
+                 includes one). A prefix check here previously hid a button on any page whose path
+                 merely started with the same string as its target (e.g. a link to "/contact" also
+                 vanishing on "/contact-us"), and hid a "/" (Home) button on every single page,
+                 since every page path starts with "/". --%>
+            <c:when test="${pageRenderInfo.name eq link.link}">
 
             </c:when>
             <c:when test="${fn:startsWith(link.link, 'http://') || fn:startsWith(link.link, 'https://')}">
@@ -910,7 +917,12 @@
         return false;
       }
     </script>
-  <c:set var="doNotTrack" value="${header['DNT'] eq '1' || header['Sec-GPC'] eq '1'}"/>
+  <%-- Only actually suppresses tracking-script injection when analytics.honorDnt is on (default
+       off) -- previously this ignored that property entirely, so a DNT-sending visitor always had
+       GA4/GTM/SimpliFi/Brand CDN suppressed even when the admin left "Honor Do-Not-Track / Global
+       Privacy Control?" off, the opposite of what server-side recording (DoNotTrackCommand) does
+       with the same property. --%>
+  <c:set var="doNotTrack" value="${'true' eq analyticsPropertyMap['analytics.honorDnt'] && (header['DNT'] eq '1' || header['Sec-GPC'] eq '1')}"/>
   <c:if test="${!fn:startsWith(pageRenderInfo.name, '/admin') && !doNotTrack && (analyticsPropertyMap['analytics.consentRequired'] ne 'true' or cookie['analytics-consent'].value eq 'accepted')}">
     <c:if test="${!empty analyticsPropertyMap['analytics.service'] && 'google' eq analyticsPropertyMap['analytics.service'] && !empty analyticsPropertyMap['analytics.google.key']}">
       <script async src="https://www.googletagmanager.com/gtag/js?id=${js:escape(analyticsPropertyMap['analytics.google.key'])}" nonce="${cspNonce}"></script>
