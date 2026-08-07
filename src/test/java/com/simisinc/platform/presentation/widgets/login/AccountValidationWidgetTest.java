@@ -29,6 +29,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
 import com.simisinc.platform.WidgetBase;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.login.LogoutCommand;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.infrastructure.persistence.UserRepository;
@@ -60,14 +61,15 @@ class AccountValidationWidgetTest extends WidgetBase {
   void postAuditsRegistrationWhenTheUserWasNeverValidated() {
     logout(widgetContext);
     addQueryParameter(widgetContext, "confirmation", "a-real-token");
-    addQueryParameter(widgetContext, "password", "correcthorsebattery");
-    addQueryParameter(widgetContext, "password2", "correcthorsebattery");
+    addQueryParameter(widgetContext, "password", "Correct-Horse-B4ttery!");
+    addQueryParameter(widgetContext, "password2", "Correct-Horse-B4ttery!");
 
     User target = userWithToken(null);
 
     try (MockedStatic<UserRepository> userRepo = mockStatic(UserRepository.class);
         MockedStatic<WorkflowManager> workflow = mockStatic(WorkflowManager.class);
         MockedStatic<LogoutCommand> logoutCommand = mockStatic(LogoutCommand.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
         MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
       userRepo.when(() -> UserRepository.findByAccountToken("a-real-token")).thenReturn(target);
 
@@ -86,8 +88,8 @@ class AccountValidationWidgetTest extends WidgetBase {
   void postAuditsPasswordResetCompletionWhenTheUserWasAlreadyValidated() {
     logout(widgetContext);
     addQueryParameter(widgetContext, "confirmation", "a-real-token");
-    addQueryParameter(widgetContext, "password", "correcthorsebattery");
-    addQueryParameter(widgetContext, "password2", "correcthorsebattery");
+    addQueryParameter(widgetContext, "password", "Correct-Horse-B4ttery!");
+    addQueryParameter(widgetContext, "password2", "Correct-Horse-B4ttery!");
 
     User target = userWithToken(new Timestamp(System.currentTimeMillis() - 86_400_000L));
 
@@ -95,6 +97,7 @@ class AccountValidationWidgetTest extends WidgetBase {
         MockedStatic<WorkflowManager> workflow = mockStatic(WorkflowManager.class);
         MockedStatic<LogoutCommand> logoutCommand = mockStatic(LogoutCommand.class);
         MockedStatic<UnsuspendRequestRepository> requestRepo = mockStatic(UnsuspendRequestRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProperty = mockStatic(LoadSitePropertyCommand.class);
         MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
       userRepo.when(() -> UserRepository.findByAccountToken("a-real-token")).thenReturn(target);
       // #492 Phase 3: this completion is also checked against a pending maker-checker

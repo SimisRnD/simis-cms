@@ -32,11 +32,20 @@ public class ElearningCommand {
 
   private static Log LOG = LogFactory.getLog(ElearningCommand.class);
 
+  /**
+   * The master "Enable e-learning?" switch. Every per-integration check below requires this to be
+   * true in addition to its own toggle -- previously it was read here but never actually consulted
+   * by {@link #isLRSEnabled()}/{@link #isMoodleEnabled()}/{@link #isPERLSEnabled()}, so turning it
+   * off had no effect on any already-enabled integration.
+   */
   public static boolean isEnabled() {
     return ("true".equals(LoadSitePropertyCommand.loadByName("elearning.enabled", "false")));
   }
 
   public static boolean isLRSEnabled() {
+    if (!isEnabled()) {
+      return false;
+    }
     boolean enabled = ("true".equals(LoadSitePropertyCommand.loadByName("elearning.xapi.enabled", "false")));
     if (!enabled) {
       return false;
@@ -51,6 +60,9 @@ public class ElearningCommand {
   }
 
   public static boolean isMoodleEnabled() {
+    if (!isEnabled()) {
+      return false;
+    }
     boolean enabled = ("true".equals(LoadSitePropertyCommand.loadByName("elearning.moodle.enabled", "false")));
     if (!enabled) {
       return false;
@@ -64,6 +76,9 @@ public class ElearningCommand {
   }
 
   public static boolean isPERLSEnabled() {
+    if (!isEnabled()) {
+      return false;
+    }
     boolean enabled = ("true".equals(LoadSitePropertyCommand.loadByName("elearning.perls.enabled", "false")));
     if (!enabled) {
       LOG.debug("Not enabled");

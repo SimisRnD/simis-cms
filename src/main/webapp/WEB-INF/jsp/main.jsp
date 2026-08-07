@@ -172,6 +172,12 @@
     <c:if test="${!empty themePropertyMap['theme.fonts.headlines'] && themePropertyMap['theme.fonts.headlines'] ne themePropertyMap['theme.fonts.body']}">
       <link rel="stylesheet" href="${ctx}/css/google-fonts/<c:out value="${themePropertyMap['theme.fonts.headlines']}"/>.css">
     </c:if>
+    <%-- The admin shell's sidebar/topbar/utility-bar chrome (platform.css) sets font-family: 'Inter'
+         unconditionally, regardless of the site's own theme.fonts.* choice -- so its @font-face has
+         to load unconditionally too. Skipped only when the theme already loaded it above. --%>
+    <c:if test="${themePropertyMap['theme.fonts.body'] ne 'inter' && themePropertyMap['theme.fonts.headlines'] ne 'inter'}">
+      <link rel="stylesheet" href="${ctx}/css/google-fonts/inter.css">
+    </c:if>
     <link rel="stylesheet" type="text/css" href="${ctx}/css/${font:fontawesome()}/css/all.min.css" />
     <link rel="stylesheet" type="text/css" href="${ctx}/css/${font:fontawesome()}/css/v4-shims.min.css" />
     <link rel="stylesheet" type="text/css" href="${ctx}/css/foundation-6.8.1/foundation.min.css" />
@@ -917,7 +923,12 @@
         return false;
       }
     </script>
-  <c:set var="doNotTrack" value="${header['DNT'] eq '1' || header['Sec-GPC'] eq '1'}"/>
+  <%-- Only actually suppresses tracking-script injection when analytics.honorDnt is on (default
+       off) -- previously this ignored that property entirely, so a DNT-sending visitor always had
+       GA4/GTM/SimpliFi/Brand CDN suppressed even when the admin left "Honor Do-Not-Track / Global
+       Privacy Control?" off, the opposite of what server-side recording (DoNotTrackCommand) does
+       with the same property. --%>
+  <c:set var="doNotTrack" value="${'true' eq analyticsPropertyMap['analytics.honorDnt'] && (header['DNT'] eq '1' || header['Sec-GPC'] eq '1')}"/>
   <c:if test="${!fn:startsWith(pageRenderInfo.name, '/admin') && !doNotTrack && (analyticsPropertyMap['analytics.consentRequired'] ne 'true' or cookie['analytics-consent'].value eq 'accepted')}">
     <c:if test="${!empty analyticsPropertyMap['analytics.service'] && 'google' eq analyticsPropertyMap['analytics.service'] && !empty analyticsPropertyMap['analytics.google.key']}">
       <script async src="https://www.googletagmanager.com/gtag/js?id=${js:escape(analyticsPropertyMap['analytics.google.key'])}" nonce="${cspNonce}"></script>

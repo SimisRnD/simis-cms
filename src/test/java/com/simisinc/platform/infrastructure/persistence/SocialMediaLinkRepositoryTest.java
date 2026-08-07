@@ -170,6 +170,17 @@ class SocialMediaLinkRepositoryTest {
     assertNull(SocialMediaLinkRepository.findById(-1));
   }
 
+  @Test
+  void findByPlatformNameIsCaseInsensitive() {
+    addLink("Instagram", "https://instagram.com/SimISInc", 25);
+
+    assertNotNull(SocialMediaLinkRepository.findByPlatformName("instagram"));
+    assertNotNull(SocialMediaLinkRepository.findByPlatformName("INSTAGRAM"));
+    assertNotNull(SocialMediaLinkRepository.findByPlatformName("  Instagram  "));
+    assertNull(SocialMediaLinkRepository.findByPlatformName("Mastodon"));
+    assertNull(SocialMediaLinkRepository.findByPlatformName(""));
+  }
+
   private static SocialMediaLink addLink(String platformName, String url, int linkOrder) {
     SocialMediaLink link = new SocialMediaLink();
     link.setPlatformName(platformName);

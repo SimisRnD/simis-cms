@@ -25,6 +25,7 @@
   </c:when>
   <c:otherwise>
     <p class="help-text">Deliveries for <code><c:out value="${webhookSubscription.url}" /></code>. Test sends are never recorded here -- only genuine deliveries triggered by a real event.</p>
+    <p class="help-text"><strong>Pending</strong> is waiting on its first attempt. <strong>Failed (retrying)</strong> means every attempt so far got no successful response, but retries remain -- automatic, roughly 10 minutes, 1 hour, 4 hours, then 24 hours after the first attempt. <strong>Exhausted</strong> means all 5 attempts failed and this delivery will not be retried again; check the Response Code/Snippet columns for why (a non-2xx status, a timeout, or an unreachable/blocked URL), fix the receiving endpoint, and use Send a Test Delivery on the subscription to confirm it's fixed -- there is no way to manually re-trigger the original exhausted delivery itself.</p>
     <a class="button small radius secondary float-left" href="${ctx}/admin/webhook-subscription?webhookSubscriptionId=${webhookSubscription.id}">Back to Subscription</a>
     <table class="unstriped">
       <thead>
