@@ -63,6 +63,21 @@ public class EditorialCalendarWidget extends GenericWidget {
     context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));
     context.getRequest().setAttribute("title", context.getPreferences().get("title"));
 
+    // Bug B (#426 research follow-up): /admin/editorial-calendar and its /json/editorialCalendar
+    // feed are reachable by community-manager too (see admin-layout.xml/json-services.xml), so a
+    // pure community-manager (no admin/content-manager) sees every Page/Post entry here, but their
+    // edit targets -- /admin/web-page and /blog-editor -- are gated "admin,content-manager" only
+    // and 404 for that viewer (deliberately not changed by this fix; that's a separate
+    // permission-expansion decision). editorial-calendar.jsp's script reads this flag to decide,
+    // per rendered entry, whether a Page/Post is a clickable edit link or plain non-interactive
+    // text -- an Event entry is unaffected either way, since /admin/calendar-event already
+    // includes community-manager in its own role gate. A String "true"/"false" (not a raw EL
+    // boolean expression) is used for the same reason SupersetWidget.java sets
+    // hideChartTitle/hideChartControls this way: it's what's embedded directly into inline JS
+    // below, without a ternary in the JSP itself.
+    boolean canEditPagesAndPosts = context.hasRole("admin") || context.hasRole("content-manager");
+    context.getRequest().setAttribute("canEditPagesAndPosts", canEditPagesAndPosts ? "true" : "false");
+
     context.setJsp(JSP);
     return context;
   }

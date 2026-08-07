@@ -158,8 +158,23 @@ public class WebRequestFilter implements Filter {
       return;
     }
 
-    // Block and log certain requests
-    if (!BlockedIPListCommand.passesCheck(resource, ipAddress)) {
+    // Block and log certain requests -- except for the browser resource paths exempted below (css/js/
+    // images/fonts/etc), which are always allowed through regardless of IP-block status. This matters
+    // because a blocked IP's page request gets response.sendError(404), which Tomcat forwards
+    // internally to error-404.jsp WITHOUT re-running this filter for that forward -- so the error
+    // page's own HTML renders fine. But error-404.jsp loads its stylesheet via a normal <link> tag,
+    // which is a fresh, separate browser request that comes back through this filter from scratch; if
+    // that request were blocked too, a blocked visitor's 404 page would render with no CSS at all,
+    // while an ordinary "page really doesn't exist" 404 renders fully styled -- a visible tell that the
+    // visitor was specifically blocked, contradicting this filter's documented intent
+    // (docs/ip-blocking.md) that a block should be indistinguishable from a real 404. Checking
+    // isBrowserResourcePath() here (rather than moving the whole exemption block above this check)
+    // keeps this widening scoped to only the IP-block check -- the exemption still runs in its original
+    // position below, after the redirect/logout/SSL-redirect/REST-API checks, so those keep taking
+    // precedence over it for these same paths exactly as before (see e.g.
+    // WebRequestFilterTest#purgeCsvFallbackStopsTheCsvFallbackFromServingADeletedPath, which relies on
+    // a CSV redirect for a /css/... path still winning over this exemption).
+    if (!isBrowserResourcePath(resource) && !BlockedIPListCommand.passesCheck(resource, ipAddress)) {
       do404(servletResponse);
       return;
     }
@@ -260,14 +275,7 @@ public class WebRequestFilter implements Filter {
     }
 
     // Allow some browser resources
-    if (resource.startsWith("/favicon") ||
-        resource.startsWith("/css") ||
-        resource.startsWith("/fonts") ||
-        resource.startsWith("/html") ||
-        resource.startsWith("/images") ||
-        resource.startsWith("/javascript") ||
-        resource.startsWith("/combined.css") ||
-        resource.startsWith("/combined.js")) {
+    if (isBrowserResourcePath(resource)) {
       chain.doFilter(request, servletResponse);
       return;
     }
@@ -645,6 +653,37 @@ public class WebRequestFilter implements Filter {
    */
   static String safeRedirectPath(String requestURI) {
     return HostnameCommand.safeRedirectPath(requestURI);
+  }
+
+  /**
+   * Matches the browser resource paths (stylesheets, scripts, images, fonts, etc.) that are always
+   * allowed through, regardless of IP-block status -- see the exemption of the IP-block check in
+   * {@link #doFilter} for why this same test is applied there, ahead of
+   * {@code BlockedIPListCommand.passesCheck}, as well as at its original spot further down where it
+   * actually serves the request via {@code chain.doFilter}.
+   *
+   * @param resource the request path, relative to the context path
+   * @return true if the path is one of the always-allowed browser resource paths
+   */
+  private static boolean isBrowserResourcePath(String resource) {
+    // Path-boundary anchored, not a bare startsWith: web.xml maps /css/*, /fonts/*, /html/*,
+    // /images/*, /javascript/* as directories, so an unanchored prefix match here would also
+    // exempt any ordinary page whose slug merely starts with the same letters (e.g.
+    // /images-of-our-team, /css-tutorial-2026, /javascript-basics) from the IP-block check
+    // entirely -- a full, unmitigated bypass, since WebRequestFilter is the only place
+    // BlockedIPListCommand.passesCheck() is called.
+    return isPathOrPrefix(resource, "/favicon") ||
+        isPathOrPrefix(resource, "/css") ||
+        isPathOrPrefix(resource, "/fonts") ||
+        isPathOrPrefix(resource, "/html") ||
+        isPathOrPrefix(resource, "/images") ||
+        isPathOrPrefix(resource, "/javascript") ||
+        resource.equals("/combined.css") ||
+        resource.equals("/combined.js");
+  }
+
+  private static boolean isPathOrPrefix(String resource, String path) {
+    return resource.equals(path) || resource.startsWith(path + "/");
   }
 
   /**

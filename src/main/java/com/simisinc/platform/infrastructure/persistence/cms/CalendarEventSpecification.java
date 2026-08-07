@@ -50,6 +50,12 @@ public class CalendarEventSpecification {
   // this class's own calendarId field and WebPageSpecification/BlogPostSpecification's identical
   // new createdBy field.
   private long createdBy = -1L;
+  // A calendar's "Online?" checkbox (Calendar.enabled) is meant to take its events off every
+  // public-facing surface, mirroring CalendarEventDetailsWidget's existing admin/content-manager
+  // bypass for a single event's details page. Defaults to false (no filtering) so admin-side
+  // callers (event management, editorial calendar) that must still see every calendar's events
+  // are unaffected -- only the public list/feed widgets opt in for non-previewing visitors.
+  private boolean calendarEnabledOnly = false;
 
   public CalendarEventSpecification() {
   }
@@ -148,5 +154,13 @@ public class CalendarEventSpecification {
 
   public void setUndatedOnly(boolean undatedOnly) {
     this.undatedOnly = undatedOnly;
+  }
+
+  public boolean isCalendarEnabledOnly() {
+    return calendarEnabledOnly;
+  }
+
+  public void setCalendarEnabledOnly(boolean calendarEnabledOnly) {
+    this.calendarEnabledOnly = calendarEnabledOnly;
   }
 }

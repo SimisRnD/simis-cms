@@ -89,13 +89,20 @@ public class LoadRSSFeedCommand {
             row.add("none");
           }
         } else if ("description".equals(column)) {
-          String type = syndEntry.getDescription().getType();
-          if (type == null || "text/plain".equals(type)) {
-            row.add(syndEntry.getDescription().getValue());
-          } else if (type.contains("html")) {
-            row.add(HtmlCommand.text(syndEntry.getDescription().getValue()));
+          // An RSS entry is not required to have a <description> -- without this check, a real
+          // sync of a feed with such entries throws an unhandled NPE here (this method is now
+          // reached by DatasetFileCommand's real "Save & Sync" path, not just Preview).
+          if (syndEntry.getDescription() == null) {
+            row.add("");
           } else {
-            row.add(type + ": " + syndEntry.getDescription().getValue());
+            String type = syndEntry.getDescription().getType();
+            if (type == null || "text/plain".equals(type)) {
+              row.add(syndEntry.getDescription().getValue());
+            } else if (type.contains("html")) {
+              row.add(HtmlCommand.text(syndEntry.getDescription().getValue()));
+            } else {
+              row.add(type + ": " + syndEntry.getDescription().getValue());
+            }
           }
         }
       }

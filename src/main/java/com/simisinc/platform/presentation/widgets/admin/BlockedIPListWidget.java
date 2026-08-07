@@ -84,6 +84,13 @@ public class BlockedIPListWidget extends GenericWidget {
     context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));
     context.getRequest().setAttribute("title", context.getPreferences().get("title"));
 
+    // Diagnostic: show the admin exactly which IP this request resolves to. This is the same
+    // value WebRequestFilter/BlockedIPListCommand check every request against (request.getRemoteAddr(),
+    // already rewritten by TrustedProxyIpFilter when CMS_TRUSTED_PROXIES is configured) -- surfacing it
+    // here gives an admin a way to notice, from the UI, when a reverse proxy/load balancer is hiding
+    // every visitor's real IP behind its own, which would otherwise make IP blocking silently do nothing.
+    context.getRequest().setAttribute("currentClientIp", context.getRequest().getRemoteAddr());
+
     // Show the editor
     context.setJsp(JSP);
     return context;
@@ -175,10 +182,10 @@ public class BlockedIPListWidget extends GenericWidget {
   private WidgetContext uploadCSVFileAction(WidgetContext context) {
     LOG.info("User is uploading a CSV file...");
     try {
-      int recordCount = ProcessBlockListCSVFileCommand.processCSV(context);
+      ProcessBlockListCSVFileCommand.ImportResult result = ProcessBlockListCSVFileCommand.processCSV(context);
       AuditEventCommand.record(context, AuditEventCommand.CONFIGURATION, "blocked_ip.import", AuditEventCommand.SUCCESS,
-          "blocked_ip", null, null, "records=" + recordCount);
-      context.setSuccessMessage(recordCount + " record" + (recordCount != 1 ? "s" : "") + " added");
+          "blocked_ip", null, null, "records=" + result.getSavedCount());
+      context.setSuccessMessage(result.getSummaryMessage());
     } catch (Exception e) {
       AuditEventCommand.record(context, AuditEventCommand.CONFIGURATION, "blocked_ip.import", AuditEventCommand.FAILURE,
           "blocked_ip", null, null, e.getMessage());

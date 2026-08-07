@@ -51,12 +51,21 @@
           <dt>name</dt>
           <dd>form name</dd>
           <dt>type</dt>
-          <dd>text, textarea, html, list</dd>
+          <dd>text, textarea, html, list, image, url</dd>
           <dt>list</dt>
           <dd>comma-separated values or name=value</dd>
           <dt>filterable</dt>
           <dd>true to offer this field as a search filter (not yet used by any search page)</dd>
         </dl>
+      </div>
+      <div class="callout radius warning" style="margin-top:10px">
+        <p style="margin-bottom:0">
+          <i class="fa fa-exclamation-triangle"></i> The <code>name</code> value of a field is the
+          only thing that ties an imported value back to it: if a Dataset (see the Datasets page)
+          populates this collection from a CSV/Excel file, its column headers must match a field's
+          <code>name</code> here, or that column's data has nothing to attach to. Define the Custom
+          Fields you need here first, then create the Dataset -- not the other way around.
+        </p>
       </div>
     </div>
   </div>

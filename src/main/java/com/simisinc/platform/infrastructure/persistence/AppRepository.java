@@ -16,6 +16,7 @@
 
 package com.simisinc.platform.infrastructure.persistence;
 
+import com.simisinc.platform.application.SecretCryptoCommand;
 import com.simisinc.platform.domain.model.App;
 import com.simisinc.platform.infrastructure.cache.CacheManager;
 import com.simisinc.platform.infrastructure.database.*;
@@ -97,8 +98,9 @@ public class AppRepository {
         .add("name", StringUtils.trimToNull(record.getName()))
         .add("summary", StringUtils.trimToNull(record.getSummary()))
         .add("public_key", record.getPublicKey())
-        .add("private_key", record.getPrivateKey())
-        .add("created_by", record.getCreatedBy());
+        .add("private_key", encryptPrivateKey(record.getPrivateKey()))
+        .add("created_by", record.getCreatedBy())
+        .add("enabled", record.isEnabled());
     record.setId(DB.insertInto(TABLE_NAME, insertValues, PRIMARY_KEY));
     if (record.getId() == -1) {
       LOG.error("An id was not set!");
@@ -110,7 +112,9 @@ public class AppRepository {
   private static App update(App record) {
     SqlUtils updateValues = new SqlUtils()
         .add("name", StringUtils.trimToNull(record.getName()))
-        .add("summary", StringUtils.trimToNull(record.getSummary()));
+        .add("summary", StringUtils.trimToNull(record.getSummary()))
+        .add("private_key", encryptPrivateKey(record.getPrivateKey()))
+        .add("enabled", record.isEnabled());
     SqlUtils where = new SqlUtils()
         .add("app_id = ?", record.getId());
     if (DB.update(TABLE_NAME, updateValues, where)) {
@@ -119,6 +123,49 @@ public class AppRepository {
     }
     LOG.error("The update failed!");
     return null;
+  }
+
+  /**
+   * Permanently removes an app record (issue: no in-app remediation path for a leaked Client ID).
+   * The cache is invalidated the same way {@link #update} does, so a deleted app's key stops
+   * authenticating immediately rather than lingering in {@code CacheManager.APP_CACHE} until it
+   * expires -- {@code RestRequestFilter} looks up every API request's key through that cache.
+   */
+  public static boolean remove(App record) {
+    // sessions.app_id is a plain FK with no ON DELETE clause (NEW_10000__new_database.sql), and
+    // every authenticated REST call writes a sessions row with app_id set (RestRequestFilter),
+    // so any App that has ever been used has permanent referencing rows -- exactly the class of
+    // App (a leaked, actively-used credential) the admin UI's Delete action exists to remediate.
+    // Without this, DB.deleteFrom() below would fail the FK constraint and silently no-op,
+    // leaving the leaked credential fully intact despite the confirmation dialog promising it
+    // "will stop working immediately." Session rows themselves are untouched -- only their
+    // now-dangling app_id back-reference is cleared.
+    DB.update("sessions", "app_id = NULL", new SqlUtils().add("app_id = ?", record.getId()));
+    if (DB.deleteFrom(TABLE_NAME, new SqlUtils().add("app_id = ?", record.getId())) > 0) {
+      CacheManager.invalidateKey(CacheManager.APP_CACHE, record.getPublicKey());
+      return true;
+    }
+    return false;
+  }
+
+  /**
+   * Encrypts {@code privateKey} at rest via {@link SecretCryptoCommand}, mirroring the
+   * encrypt-on-write pattern {@code WebhookSubscriptionRepository} uses for its {@code secret}
+   * column. Unlike that caller, this does NOT call {@link SecretCryptoCommand#encrypt} unguarded:
+   * since issue #16, {@code encrypt()} fails closed (throws {@code IllegalStateException}) when no
+   * {@code CMS_SECRET_KEY} is configured, and App creation/update is core admin functionality (not
+   * an opt-in feature like MFA or webhooks) for a field (privateKey) that is confirmed unused
+   * anywhere else in this codebase. Making every App save newly depend on an unrelated environment
+   * variable would be a regression, so this checks {@link SecretCryptoCommand#isEnabled()} first and
+   * falls back to storing the value as-is (matching pre-encryption behavior) when no key is
+   * configured -- the same "skip rather than throw" precedent
+   * {@code V20260719_1004__reencrypt_secret_properties} uses for the identical reason.
+   */
+  private static String encryptPrivateKey(String privateKey) {
+    if (!SecretCryptoCommand.isEnabled()) {
+      return privateKey;
+    }
+    return SecretCryptoCommand.encrypt(privateKey);
   }
 
   /**
@@ -138,7 +185,10 @@ public class AppRepository {
       record.setCreated(rs.getTimestamp("created"));
       record.setModified(rs.getTimestamp("modified"));
       record.setPublicKey(rs.getString("public_key"));
-      record.setPrivateKey(rs.getString("private_key"));
+      // Decrypt on read (symmetric with encryptPrivateKey() above); legacy plaintext rows and
+      // blank values pass through decrypt() unchanged, so pre-existing rows saved before this
+      // change keep working exactly as before.
+      record.setPrivateKey(SecretCryptoCommand.decrypt(rs.getString("private_key")));
       record.setEnabled(rs.getBoolean("enabled"));
       return record;
     } catch (SQLException se) {

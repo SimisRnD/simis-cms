@@ -33,6 +33,8 @@ public class ImageSpecification extends Entity {
   private String matchesName = null;
   private long createdBy = -1;
   private String fileType = null;
+  // Filters to images carrying this image tag -- used by the /admin/images tag filter dropdown.
+  private long tagId = -1;
 
   public ImageSpecification() {
   }
@@ -75,6 +77,14 @@ public class ImageSpecification extends Entity {
 
   public void setFileType(String fileType) {
     this.fileType = fileType;
+  }
+
+  public long getTagId() {
+    return tagId;
+  }
+
+  public void setTagId(long tagId) {
+    this.tagId = tagId;
   }
 
 }

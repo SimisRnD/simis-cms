@@ -21,8 +21,8 @@ import com.simisinc.platform.infrastructure.persistence.BlockedIPRepository;
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * Loads blocked IP addresses list from cache or storage and handles updating the cache
@@ -34,6 +34,10 @@ public class LoadBlockedIPListCommand {
 
   private static Log LOG = LogFactory.getLog(LoadBlockedIPListCommand.class);
 
+  // CopyOnWriteArrayList: this list is read (streamed/iterated) on essentially every request via
+  // BlockedIPListCommand.passesCheck(), while being mutated only rarely, by admin add/delete
+  // actions -- a plain ArrayList would be vulnerable to ConcurrentModificationException under that
+  // read-heavy/write-rare access pattern.
   private static List<String> ipAddressList = null;
 
   public static List<String> retrieveCachedIpAddressList() {
@@ -48,25 +52,31 @@ public class LoadBlockedIPListCommand {
   }
 
   public static void addIpToCache(BlockedIP blockedIP) {
-    if (!ipAddressList.contains(blockedIP.getIpAddress())) {
-      ipAddressList.add(blockedIP.getIpAddress());
-    }
+    addIpToCache(blockedIP.getIpAddress());
   }
 
   public static void addIpToCache(String ipAddress) {
-    if (!ipAddressList.contains(ipAddress)) {
-      ipAddressList.add(ipAddress);
+    // Route through retrieveCachedIpAddressList() rather than the raw field so this is safe to
+    // call even if nothing has loaded the cache yet (the field would otherwise still be null)
+    List<String> list = retrieveCachedIpAddressList();
+    if (!list.contains(ipAddress)) {
+      list.add(ipAddress);
     }
   }
 
   public static void removeIpFromCache(BlockedIP blockedIP) {
-    while (ipAddressList.contains(blockedIP.getIpAddress())) {
-      ipAddressList.remove(blockedIP.getIpAddress());
+    removeIpFromCache(blockedIP.getIpAddress());
+  }
+
+  public static void removeIpFromCache(String ipAddress) {
+    List<String> list = retrieveCachedIpAddressList();
+    while (list.contains(ipAddress)) {
+      list.remove(ipAddress);
     }
   }
 
   public static List<String> loadIpAddressList() {
-    List<String> ipAddressList = new ArrayList<>();
+    List<String> ipAddressList = new CopyOnWriteArrayList<>();
     List<BlockedIP> blockedIP = BlockedIPRepository.findAll();
     for (BlockedIP record : blockedIP) {
       ipAddressList.add(record.getIpAddress());

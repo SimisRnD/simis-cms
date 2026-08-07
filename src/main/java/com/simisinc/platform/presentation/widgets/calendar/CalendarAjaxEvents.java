@@ -66,6 +66,11 @@ public class CalendarAjaxEvents {
     // viewer's publishedOnly/preview permission -- archived is a distinct "no longer relevant"
     // state, not a preview-gate concern.
     specification.setArchivedOnly(false);
+    // publishedOnly already encodes "this viewer cannot preview restricted content" (CalendarAjax
+    // passes !canSeeUnpublished for admin/content-manager) -- reuse it to also hide events whose
+    // calendar has been switched offline, same admin/content-manager bypass as
+    // CalendarEventDetailsWidget's single-event view.
+    specification.setCalendarEnabledOnly(publishedOnly);
     if (calendarId > -1) {
       specification.setCalendarId(calendarId);
     }

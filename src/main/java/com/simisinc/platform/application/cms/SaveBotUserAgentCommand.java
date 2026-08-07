@@ -33,12 +33,26 @@ public class SaveBotUserAgentCommand {
 
   private static Log LOG = LogFactory.getLog(SaveBotUserAgentCommand.class);
 
+  // Matching is a raw substring test (see SessionCommand.checkForBot()) against every visitor's
+  // User-Agent header, so a short/generic entry has an outsized blast radius: it can misclassify a
+  // large fraction of real traffic as bot. The shortest legitimate signature already shipped in the
+  // seed data (src/main/resources/database/install/NEW_10190__new_bot_list.sql) is "Slurp" (Yahoo),
+  // at 5 characters -- every other seeded value is 6+ characters. 5 is therefore the largest minimum
+  // that doesn't reject any real-world signature already in use, while still rejecting obviously
+  // too-short/generic entries (a single character or two, or a common short word).
+  static final int MIN_USER_AGENT_LENGTH = 5;
+
   public static BotUserAgent save(BotUserAgent botUserAgentBean) throws DataException {
 
     // Validate the required fields
     StringBuilder errorMessages = new StringBuilder();
-    if (StringUtils.isBlank(botUserAgentBean.getUserAgent())) {
+    String trimmedUserAgent = StringUtils.trimToNull(botUserAgentBean.getUserAgent());
+    if (StringUtils.isBlank(trimmedUserAgent)) {
       errorMessages.append("A partial user agent value is required");
+    } else if (trimmedUserAgent.length() < MIN_USER_AGENT_LENGTH) {
+      errorMessages.append("This value is too short/generic and would likely match a large amount of real visitor " +
+          "traffic -- use a more specific fragment of the actual User-Agent string (minimum " +
+          MIN_USER_AGENT_LENGTH + " characters)");
     }
     if (errorMessages.length() > 0) {
       throw new DataException("Please check the form and try again:\n" + errorMessages.toString());
@@ -46,23 +60,35 @@ public class SaveBotUserAgentCommand {
 
     // Transform the fields and store...
     BotUserAgent botUserAgent;
+    String previousUserAgent = null;
     if (botUserAgentBean.getId() > -1) {
       LOG.debug("Saving an existing record... ");
       botUserAgent = BotUserAgentRepository.findById(botUserAgentBean.getId());
       if (botUserAgent == null) {
         throw new DataException("The existing record could not be found");
       }
+      // Capture the pre-update value so the cache can be corrected below; once setUserAgent() is
+      // called on this object, the prior value is gone
+      previousUserAgent = botUserAgent.getUserAgent();
     } else {
       LOG.debug("Saving a new record... ");
       botUserAgent = new BotUserAgent();
     }
-    botUserAgent.setUserAgent(botUserAgentBean.getUserAgent());
+    botUserAgent.setUserAgent(trimmedUserAgent);
     botUserAgent.setLabel(botUserAgentBean.getLabel());
     if (botUserAgentBean.getCreated() != null) {
       botUserAgent.setCreated(botUserAgentBean.getCreated());
     }
     botUserAgent = BotUserAgentRepository.save(botUserAgent);
     if (botUserAgent != null) {
+      // On an update where the value actually changed, remove the stale old value from the
+      // in-memory cache first -- otherwise LoadBotUserAgentListCommand.addToCache() only appends,
+      // leaving the old (now-incorrect) substring live in SessionCommand.checkForBot() indefinitely
+      if (previousUserAgent != null && !previousUserAgent.equals(botUserAgent.getUserAgent())) {
+        BotUserAgent staleRecord = new BotUserAgent();
+        staleRecord.setUserAgent(previousUserAgent);
+        LoadBotUserAgentListCommand.removeFromCache(staleRecord);
+      }
       LoadBotUserAgentListCommand.addToCache(botUserAgent);
     }
     return botUserAgent;
