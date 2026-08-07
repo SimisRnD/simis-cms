@@ -191,6 +191,132 @@ class AdminImageBrowserWidgetTest extends WidgetBase {
   }
 
   @Test
+  void executeWithNoSortByParamDefaultsToDateNewestFirst() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
+
+    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class)) {
+      imageRepositoryMockedStatic.when(() -> ImageRepository.findAll(isNull(), any(DataConstraints.class)))
+          .thenReturn(Collections.emptyList());
+
+      AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
+      widget.execute(widgetContext);
+
+      ArgumentCaptor<DataConstraints> constraintsCaptor = ArgumentCaptor.forClass(DataConstraints.class);
+      imageRepositoryMockedStatic.verify(() -> ImageRepository.findAll(isNull(), constraintsCaptor.capture()));
+      Assertions.assertArrayEquals(new String[] { "created" }, constraintsCaptor.getValue().getColumnsToSortBy());
+      Assertions.assertArrayEquals(new String[] { "desc" }, constraintsCaptor.getValue().getSortOrder());
+    }
+
+    Assertions.assertEquals("date", request.getAttribute("sortBy"));
+    // The default sort must not appear in the paging-links param -- a plain page load stays bare
+    Assertions.assertNull(request.getAttribute("recordPagingParams"));
+  }
+
+  @Test
+  void executeWithSortByNameSortsByFilenameAscending() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
+    addQueryParameter(widgetContext, "sortBy", "name");
+
+    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class)) {
+      imageRepositoryMockedStatic.when(() -> ImageRepository.findAll(isNull(), any(DataConstraints.class)))
+          .thenReturn(Collections.emptyList());
+
+      AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
+      widget.execute(widgetContext);
+
+      ArgumentCaptor<DataConstraints> constraintsCaptor = ArgumentCaptor.forClass(DataConstraints.class);
+      imageRepositoryMockedStatic.verify(() -> ImageRepository.findAll(isNull(), constraintsCaptor.capture()));
+      Assertions.assertArrayEquals(new String[] { "filename" }, constraintsCaptor.getValue().getColumnsToSortBy());
+      Assertions.assertNull(constraintsCaptor.getValue().getSortOrder());
+    }
+
+    Assertions.assertEquals("name", request.getAttribute("sortBy"));
+    Assertions.assertEquals("sortBy=name", request.getAttribute("recordPagingParams"));
+  }
+
+  @Test
+  void executeWithSortBySizeSortsByFileLengthDescending() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
+    addQueryParameter(widgetContext, "sortBy", "size");
+
+    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class)) {
+      imageRepositoryMockedStatic.when(() -> ImageRepository.findAll(isNull(), any(DataConstraints.class)))
+          .thenReturn(Collections.emptyList());
+
+      AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
+      widget.execute(widgetContext);
+
+      ArgumentCaptor<DataConstraints> constraintsCaptor = ArgumentCaptor.forClass(DataConstraints.class);
+      imageRepositoryMockedStatic.verify(() -> ImageRepository.findAll(isNull(), constraintsCaptor.capture()));
+      Assertions.assertArrayEquals(new String[] { "file_length" }, constraintsCaptor.getValue().getColumnsToSortBy());
+      Assertions.assertArrayEquals(new String[] { "desc" }, constraintsCaptor.getValue().getSortOrder());
+    }
+
+    Assertions.assertEquals("size", request.getAttribute("sortBy"));
+  }
+
+  @Test
+  void executeWithAnUnrecognizedSortByFallsBackToDate() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
+    addQueryParameter(widgetContext, "sortBy", "not-a-real-sort");
+
+    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class)) {
+      imageRepositoryMockedStatic.when(() -> ImageRepository.findAll(isNull(), any(DataConstraints.class)))
+          .thenReturn(Collections.emptyList());
+
+      AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
+      widget.execute(widgetContext);
+
+      ArgumentCaptor<DataConstraints> constraintsCaptor = ArgumentCaptor.forClass(DataConstraints.class);
+      imageRepositoryMockedStatic.verify(() -> ImageRepository.findAll(isNull(), constraintsCaptor.capture()));
+      Assertions.assertArrayEquals(new String[] { "created" }, constraintsCaptor.getValue().getColumnsToSortBy());
+    }
+
+    Assertions.assertEquals("date", request.getAttribute("sortBy"));
+  }
+
+  @Test
+  void executeWithASearchQueryAndASortByCarriesBothInThePagingParams() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
+    addQueryParameter(widgetContext, "query", "3d");
+    addQueryParameter(widgetContext, "sortBy", "size");
+
+    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class)) {
+      imageRepositoryMockedStatic.when(() -> ImageRepository.findAll(any(ImageSpecification.class), any(DataConstraints.class)))
+          .thenReturn(Collections.emptyList());
+
+      AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals("query=3d&sortBy=size", request.getAttribute("recordPagingParams"));
+  }
+
+  @Test
+  void deleteWithAdminRolePreservesANonDefaultSortByOnRedirect() {
+    addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "imageId", "42");
+    addQueryParameter(widgetContext, "sortBy", "size");
+
+    Image image = new Image();
+    image.setId(42L);
+    image.setFilename("old-banner.png");
+
+    try (MockedStatic<ImageRepository> imageRepositoryMockedStatic = mockStatic(ImageRepository.class);
+        MockedStatic<DeleteImageCommand> deleteMockedStatic = mockStatic(DeleteImageCommand.class);
+        MockedStatic<AuditEventCommand> auditMockedStatic = mockStatic(AuditEventCommand.class)) {
+      imageRepositoryMockedStatic.when(() -> ImageRepository.findById(42L)).thenReturn(image);
+      deleteMockedStatic.when(() -> DeleteImageCommand.deleteImage(image)).thenReturn(true);
+
+      AdminImageBrowserWidget widget = new AdminImageBrowserWidget();
+      widget.delete(widgetContext);
+    }
+
+    Assertions.assertEquals("/admin/images?sortBy=size", widgetContext.getRedirect());
+  }
+
+  @Test
   void executeWithCheckUsageParamReturnsJsonInsteadOfRenderingTheJsp() {
     addPreferencesFromWidgetXml(widgetContext, "<widget name=\"adminImageBrowser\"/>");
     addQueryParameter(widgetContext, "checkUsage", "true");
