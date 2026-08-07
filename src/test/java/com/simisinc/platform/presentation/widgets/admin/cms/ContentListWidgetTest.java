@@ -17,11 +17,16 @@
 package com.simisinc.platform.presentation.widgets.admin.cms;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 
 import java.sql.Timestamp;
 import java.time.LocalDate;
@@ -29,6 +34,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -41,6 +47,8 @@ import com.simisinc.platform.domain.model.cms.Content;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.persistence.cms.ContentRepository;
 import com.simisinc.platform.infrastructure.persistence.cms.ContentSpecification;
+import com.simisinc.platform.presentation.controller.AuditEventCommand;
+import com.simisinc.platform.presentation.controller.WidgetContext;
 
 /**
  * Tests the /admin/content-list widget (issue #499): search/filter request parameters map onto the
@@ -69,7 +77,8 @@ class ContentListWidgetTest extends WidgetBase {
         MockedStatic<ContentUsageCommand> usageCommand = mockStatic(ContentUsageCommand.class)) {
       repository.when(() -> ContentRepository.findAll(any(ContentSpecification.class), any(DataConstraints.class)))
           .thenReturn(contentList);
-      usageCommand.when(() -> ContentUsageCommand.findUsageMap(any())).thenReturn(new LinkedHashMap<>());
+      usageCommand.when(() -> ContentUsageCommand.scanUsage(any()))
+          .thenReturn(new ContentUsageCommand.UsageScan(new LinkedHashMap<>(), new LinkedHashMap<>()));
 
       // Execute the widget
       ContentListWidget widget = new ContentListWidget();
@@ -95,7 +104,8 @@ class ContentListWidgetTest extends WidgetBase {
         MockedStatic<ContentUsageCommand> usageCommand = mockStatic(ContentUsageCommand.class)) {
       repository.when(() -> ContentRepository.findAll(any(ContentSpecification.class), any(DataConstraints.class)))
           .thenReturn(new ArrayList<>());
-      usageCommand.when(() -> ContentUsageCommand.findUsageMap(any())).thenReturn(new LinkedHashMap<>());
+      usageCommand.when(() -> ContentUsageCommand.scanUsage(any()))
+          .thenReturn(new ContentUsageCommand.UsageScan(new LinkedHashMap<>(), new LinkedHashMap<>()));
 
       new ContentListWidget().execute(widgetContext);
 
@@ -128,7 +138,8 @@ class ContentListWidgetTest extends WidgetBase {
         MockedStatic<ContentUsageCommand> usageCommand = mockStatic(ContentUsageCommand.class)) {
       repository.when(() -> ContentRepository.findAll(any(ContentSpecification.class), any(DataConstraints.class)))
           .thenReturn(new ArrayList<>());
-      usageCommand.when(() -> ContentUsageCommand.findUsageMap(any())).thenReturn(new LinkedHashMap<>());
+      usageCommand.when(() -> ContentUsageCommand.scanUsage(any()))
+          .thenReturn(new ContentUsageCommand.UsageScan(new LinkedHashMap<>(), new LinkedHashMap<>()));
 
       new ContentListWidget().execute(widgetContext);
 
@@ -152,7 +163,8 @@ class ContentListWidgetTest extends WidgetBase {
         MockedStatic<ContentUsageCommand> usageCommand = mockStatic(ContentUsageCommand.class)) {
       repository.when(() -> ContentRepository.findAll(any(ContentSpecification.class), any(DataConstraints.class)))
           .thenReturn(new ArrayList<>());
-      usageCommand.when(() -> ContentUsageCommand.findUsageMap(any())).thenReturn(new LinkedHashMap<>());
+      usageCommand.when(() -> ContentUsageCommand.scanUsage(any()))
+          .thenReturn(new ContentUsageCommand.UsageScan(new LinkedHashMap<>(), new LinkedHashMap<>()));
 
       new ContentListWidget().execute(widgetContext);
 
@@ -172,7 +184,8 @@ class ContentListWidgetTest extends WidgetBase {
         MockedStatic<ContentUsageCommand> usageCommand = mockStatic(ContentUsageCommand.class)) {
       repository.when(() -> ContentRepository.findAll(any(ContentSpecification.class), any(DataConstraints.class)))
           .thenReturn(new ArrayList<>());
-      usageCommand.when(() -> ContentUsageCommand.findUsageMap(any())).thenReturn(usageMap);
+      usageCommand.when(() -> ContentUsageCommand.scanUsage(any()))
+          .thenReturn(new ContentUsageCommand.UsageScan(usageMap, new LinkedHashMap<>()));
 
       new ContentListWidget().execute(widgetContext);
 
@@ -189,7 +202,8 @@ class ContentListWidgetTest extends WidgetBase {
         MockedStatic<ContentUsageCommand> usageCommand = mockStatic(ContentUsageCommand.class)) {
       repository.when(() -> ContentRepository.findAll(any(ContentSpecification.class), any(DataConstraints.class)))
           .thenReturn(new ArrayList<>());
-      usageCommand.when(() -> ContentUsageCommand.findUsageMap(any())).thenReturn(new LinkedHashMap<>());
+      usageCommand.when(() -> ContentUsageCommand.scanUsage(any()))
+          .thenReturn(new ContentUsageCommand.UsageScan(new LinkedHashMap<>(), new LinkedHashMap<>()));
 
       new ContentListWidget().execute(widgetContext);
 
@@ -209,7 +223,8 @@ class ContentListWidgetTest extends WidgetBase {
         MockedStatic<ContentUsageCommand> usageCommand = mockStatic(ContentUsageCommand.class)) {
       repository.when(() -> ContentRepository.findAll(any(ContentSpecification.class), any(DataConstraints.class)))
           .thenReturn(new ArrayList<>());
-      usageCommand.when(() -> ContentUsageCommand.findUsageMap(any())).thenReturn(new LinkedHashMap<>());
+      usageCommand.when(() -> ContentUsageCommand.scanUsage(any()))
+          .thenReturn(new ContentUsageCommand.UsageScan(new LinkedHashMap<>(), new LinkedHashMap<>()));
 
       new ContentListWidget().execute(widgetContext);
 
@@ -235,13 +250,178 @@ class ContentListWidgetTest extends WidgetBase {
         MockedStatic<ContentUsageCommand> usageCommand = mockStatic(ContentUsageCommand.class)) {
       repository.when(() -> ContentRepository.findAll(any(ContentSpecification.class), any(DataConstraints.class)))
           .thenReturn(contentList);
-      usageCommand.when(() -> ContentUsageCommand.findUsageMap(any())).thenReturn(new LinkedHashMap<>());
+      usageCommand.when(() -> ContentUsageCommand.scanUsage(any()))
+          .thenReturn(new ContentUsageCommand.UsageScan(new LinkedHashMap<>(), new LinkedHashMap<>()));
 
       new ContentListWidget().execute(widgetContext);
 
       Map<String, String> statusMap = (Map<String, String>) widgetContext.getRequest().getAttribute("contentStatusMap");
       assertEquals(ContentReviewCommand.LIST_STATUS_LIVE, statusMap.get("block-live"));
       assertEquals(ContentReviewCommand.LIST_STATUS_DRAFT, statusMap.get("block-draft"));
+    }
+  }
+
+  @Test
+  void sharedUniqueIdsIncludesMultiLocationAndSingleFilesystemTemplateButNotASingleWebPageLocation() {
+    // Bug fix (issue #499 follow-up): a block with exactly one usage location is only "Shared" when
+    // that lone location is a site-wide filesystem template (e.g. footer-layout.xml) -- a raw count
+    // of 1 must not be treated as Shared when the lone location is an ordinary web_pages page. See
+    // ContentUsageCommandTest for the underlying isShared()/isFilesystemTemplateLocation() logic --
+    // this test only proves the widget wires that logic into the "sharedUniqueIds" request attribute
+    // the JSP's Shared badge reads.
+    Map<String, List<String>> usageMap = new LinkedHashMap<>();
+    usageMap.put("multi-page-block", List.of("/careers", "/about-us"));
+    usageMap.put("site-footer", List.of("/WEB-INF/web-layouts/footer/footer-layout.xml"));
+    usageMap.put("solo-page-block", List.of("/careers"));
+
+    try (MockedStatic<ContentRepository> repository = mockStatic(ContentRepository.class);
+        MockedStatic<ContentUsageCommand> usageCommand = mockStatic(ContentUsageCommand.class)) {
+      repository.when(() -> ContentRepository.findAll(any(ContentSpecification.class), any(DataConstraints.class)))
+          .thenReturn(new ArrayList<>());
+      usageCommand.when(() -> ContentUsageCommand.scanUsage(any()))
+          .thenReturn(new ContentUsageCommand.UsageScan(usageMap, new LinkedHashMap<>()));
+      // isShared/isFilesystemTemplateLocation are simple pure logic, not what this test is targeting
+      // -- run the real implementation rather than stubbing it away (default would be a silent
+      // always-false for both, since mockStatic() with no answer configured returns the primitive
+      // default for an unstubbed boolean method).
+      usageCommand.when(() -> ContentUsageCommand.isShared(any())).thenCallRealMethod();
+      usageCommand.when(() -> ContentUsageCommand.isFilesystemTemplateLocation(any())).thenCallRealMethod();
+
+      new ContentListWidget().execute(widgetContext);
+
+      Set<String> sharedUniqueIds = (Set<String>) widgetContext.getRequest().getAttribute("sharedUniqueIds");
+      assertTrue(sharedUniqueIds.contains("multi-page-block"), "used on 2 pages must be Shared");
+      assertTrue(sharedUniqueIds.contains("site-footer"), "a single filesystem-template location must be Shared");
+      assertFalse(sharedUniqueIds.contains("solo-page-block"), "a single ordinary web_pages location must not be Shared");
+    }
+  }
+
+  @Test
+  void templatedContentLocationsMatchesAnOrphanedLookingBlockButSkipsAKnownUsedBlock() {
+    // Bug fix (issue #499 follow-up): a Content row with no real usage entry, but whose uniqueId
+    // starts with a literal prefix seen behind an unresolved EL placeholder (e.g.
+    // product-details-${item.uniqueId} in products-layout.xml), must be exposed as "Templated"
+    // rather than left to render as plain "Orphaned".
+    Content templated = new Content();
+    templated.setUniqueId("product-details-abc123");
+    Content alreadyUsed = new Content();
+    alreadyUsed.setUniqueId("product-details-already-known");
+    Content genuinelyOrphaned = new Content();
+    genuinelyOrphaned.setUniqueId("nobody-references-me");
+    List<Content> contentList = new ArrayList<>(List.of(templated, alreadyUsed, genuinelyOrphaned));
+
+    Map<String, List<String>> usageMap = new LinkedHashMap<>();
+    // alreadyUsed happens to also match the templated prefix, but it already has a real usage entry
+    // -- it must not appear in templatedContentLocations too (that map distinguishes Orphaned from
+    // Templated; it is not an extra badge for something already confirmed used).
+    usageMap.put("product-details-already-known", List.of("/some-page"));
+
+    Map<String, List<String>> templatedPrefixLocations = new LinkedHashMap<>();
+    templatedPrefixLocations.put("product-details-", List.of("/WEB-INF/web-layouts/collection/products-layout.xml"));
+
+    try (MockedStatic<ContentRepository> repository = mockStatic(ContentRepository.class);
+        MockedStatic<ContentUsageCommand> usageCommand = mockStatic(ContentUsageCommand.class)) {
+      repository.when(() -> ContentRepository.findAll(any(ContentSpecification.class), any(DataConstraints.class)))
+          .thenReturn(contentList);
+      usageCommand.when(() -> ContentUsageCommand.scanUsage(any()))
+          .thenReturn(new ContentUsageCommand.UsageScan(usageMap, templatedPrefixLocations));
+
+      new ContentListWidget().execute(widgetContext);
+
+      Map<String, List<String>> templatedContentLocations =
+          (Map<String, List<String>>) widgetContext.getRequest().getAttribute("templatedContentLocations");
+      assertEquals(List.of("/WEB-INF/web-layouts/collection/products-layout.xml"),
+          templatedContentLocations.get("product-details-abc123"));
+      assertFalse(templatedContentLocations.containsKey("product-details-already-known"),
+          "a block with a real usage entry must not also be flagged Templated");
+      assertFalse(templatedContentLocations.containsKey("nobody-references-me"),
+          "a block matching no templated prefix stays plain Orphaned");
+    }
+  }
+
+  @Test
+  void deleteRequiresEditorPermission() {
+    // Default WidgetBase login has no roles at all -- EditorPermissionCommand.canEditContent must
+    // deny, the same permission tier every other content-mutating action uses (issue #499 follow-up:
+    // ContentHtmlCommand#deleteContent was already fully implemented and audited, but nothing in the
+    // UI ever called it; this proves the new delete() entry point is still permission-gated).
+    addQueryParameter(widgetContext, "uniqueId", "some-block");
+
+    try (MockedStatic<ContentRepository> repository = mockStatic(ContentRepository.class)) {
+      WidgetContext result = new ContentListWidget().delete(widgetContext);
+
+      repository.verify(() -> ContentRepository.findByUniqueId(anyString()), never());
+      assertNotNull(result.getWarningMessage());
+      assertEquals("/example/path", result.getRedirect());
+    }
+  }
+
+  @Test
+  void deleteRemovesTheContentAndRedirectsBackToThisPage() {
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "uniqueId", "old-promo-banner");
+
+    Content content = new Content();
+    content.setId(42L);
+    content.setUniqueId("old-promo-banner");
+
+    try (MockedStatic<ContentRepository> repository = mockStatic(ContentRepository.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      repository.when(() -> ContentRepository.findByUniqueId("old-promo-banner")).thenReturn(content);
+      repository.when(() -> ContentRepository.remove(content)).thenReturn(true);
+
+      WidgetContext result = new ContentListWidget().delete(widgetContext);
+
+      repository.verify(() -> ContentRepository.remove(content));
+      audit.verify(() -> AuditEventCommand.record(eq(widgetContext), eq(AuditEventCommand.CONTENT), eq("content.delete"),
+          eq(AuditEventCommand.SUCCESS), eq("content"), eq("42"), eq("old-promo-banner"), any()));
+      assertEquals("The content was deleted", result.getSuccessMessage());
+      assertEquals("/example/path", result.getRedirect());
+    }
+  }
+
+  @Test
+  void deleteWhenRemoveFailsRecordsAFailureAuditEventAndSetsAnErrorMessage() {
+    // ContentHtmlCommand#deleteContent's ContentRepository.remove()==false branch was previously
+    // reachable only from performWebAction's now-defunct dead code path and had zero coverage from
+    // this new UI entry point -- a regression here (e.g. swallowing the failure, dropping the
+    // FAILURE audit record, or losing the error message on the redirect back to this page) would
+    // ship undetected.
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "uniqueId", "stubborn-block");
+
+    Content content = new Content();
+    content.setId(7L);
+    content.setUniqueId("stubborn-block");
+
+    try (MockedStatic<ContentRepository> repository = mockStatic(ContentRepository.class);
+        MockedStatic<AuditEventCommand> audit = mockStatic(AuditEventCommand.class)) {
+      repository.when(() -> ContentRepository.findByUniqueId("stubborn-block")).thenReturn(content);
+      repository.when(() -> ContentRepository.remove(content)).thenReturn(false);
+
+      WidgetContext result = new ContentListWidget().delete(widgetContext);
+
+      repository.verify(() -> ContentRepository.remove(content));
+      audit.verify(() -> AuditEventCommand.record(eq(widgetContext), eq(AuditEventCommand.CONTENT), eq("content.delete"),
+          eq(AuditEventCommand.FAILURE), eq("content"), eq("7"), eq("stubborn-block"), any()));
+      assertEquals("The content could not be deleted", result.getErrorMessage());
+      assertEquals("/example/path", result.getRedirect());
+    }
+  }
+
+  @Test
+  void deleteWithAnUnknownUniqueIdWarnsWithoutCallingRemove() {
+    setRoles(widgetContext, ADMIN);
+    addQueryParameter(widgetContext, "uniqueId", "already-gone");
+
+    try (MockedStatic<ContentRepository> repository = mockStatic(ContentRepository.class)) {
+      repository.when(() -> ContentRepository.findByUniqueId("already-gone")).thenReturn(null);
+
+      WidgetContext result = new ContentListWidget().delete(widgetContext);
+
+      repository.verify(() -> ContentRepository.remove(any()), never());
+      assertNotNull(result.getWarningMessage());
+      assertEquals("/example/path", result.getRedirect());
     }
   }
 }

@@ -93,6 +93,12 @@ public class CalendarEventRepository {
       }
       // issue #426 (editorial calendar): the author filter, mirroring the calendarId clause above.
       where.addIfExists("created_by = ?", specification.getCreatedBy(), -1);
+      // A calendar's "Online?" checkbox gates its events off public list/feed surfaces (mirrors
+      // CalendarEventDetailsWidget's admin/content-manager bypass for the single-event page).
+      // false (the default for every pre-existing caller) is purely additive/unaffected.
+      if (specification.isCalendarEnabledOnly()) {
+        where.add("calendar_id IN (SELECT calendar_id FROM calendars WHERE enabled = true)");
+      }
     }
     return where;
   }

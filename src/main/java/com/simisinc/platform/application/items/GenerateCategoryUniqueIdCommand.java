@@ -30,8 +30,8 @@ import com.simisinc.platform.infrastructure.persistence.items.CategoryRepository
  */
 public class GenerateCategoryUniqueIdCommand {
 
-  private static final String allowedChars = "abcdefghijklmnopqrstuvwyxz0123456789";
-  private static final String allowedFinalChars = "abcdefghijklmnopqrstuvwyxz0123456789-";
+  private static final String allowedChars = "abcdefghijklmnopqrstuvwxyz0123456789";
+  private static final String allowedFinalChars = "abcdefghijklmnopqrstuvwxyz0123456789-";
 
   public static String generateUniqueId(Category previousCategory, Category category) {
 

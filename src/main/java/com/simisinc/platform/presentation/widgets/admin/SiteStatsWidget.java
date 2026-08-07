@@ -51,7 +51,6 @@ import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -407,6 +406,51 @@ public class SiteStatsWidget extends GenericWidget {
       context.getRequest().setAttribute("label", context.getPreferences().getOrDefault("label", "Facet"));
       context.getRequest().setAttribute("value", context.getPreferences().getOrDefault("value", "Searches"));
       return TABLE_JSP;
+    } else if ("search-volume-by-type".equalsIgnoreCase(report)) {
+      // issue #1014: search_type is populated by every widget today and wasn't read back by any
+      // report -- which of the six search surfaces (pages/content/blog/wiki/items/calendar) gets
+      // used at all, not just which terms are searched.
+      List<StatisticsData> statisticsDataList = SearchAnalyticsRepository.findSearchVolumeByType(intervalValue, limit);
+      context.getRequest().setAttribute("statisticsDataList", statisticsDataList);
+      context.getRequest().setAttribute("label", context.getPreferences().getOrDefault("label", "Content Type"));
+      context.getRequest().setAttribute("value", context.getPreferences().getOrDefault("value", "Searches"));
+      return TABLE_JSP;
+    } else if ("zero-result-rate-by-type".equalsIgnoreCase(report)) {
+      // issue #1014: which search surface fails visitors most often, as a rate rather than a raw
+      // zero-result count, so a low-volume surface with a bad hit rate isn't hidden by a high-volume
+      // surface's larger raw count.
+      List<StatisticsData> statisticsDataList = SearchAnalyticsRepository.findZeroResultRateByType(intervalValue, limit);
+      context.getRequest().setAttribute("statisticsDataList", statisticsDataList);
+      context.getRequest().setAttribute("label", context.getPreferences().getOrDefault("label", "Content Type"));
+      context.getRequest().setAttribute("value", context.getPreferences().getOrDefault("value", "Zero-Result Rate %"));
+      return TABLE_JSP;
+    } else if ("top-search-paths".equalsIgnoreCase(report)) {
+      // issue #1014: page_path is populated by every search widget today and wasn't read back by
+      // any report -- which pages visitors are searching from, a candidate list for on-page
+      // navigation/content review.
+      List<StatisticsData> statisticsDataList = SearchAnalyticsRepository.findTopSearchPaths(intervalValue, limit);
+      context.getRequest().setAttribute("statisticsDataList", statisticsDataList);
+      context.getRequest().setAttribute("label", context.getPreferences().getOrDefault("label", "Page"));
+      context.getRequest().setAttribute("value", context.getPreferences().getOrDefault("value", "Searches"));
+      return TABLE_JSP;
+    } else if ("top-zero-result-search-paths".equalsIgnoreCase(report)) {
+      // issue #1014: narrower than top-search-paths -- which pages send visitors into a search that
+      // comes up empty, the sharpest candidate list for a content gap or on-page navigation fix.
+      List<StatisticsData> statisticsDataList = SearchAnalyticsRepository.findTopZeroResultPaths(intervalValue, limit);
+      context.getRequest().setAttribute("statisticsDataList", statisticsDataList);
+      context.getRequest().setAttribute("label", context.getPreferences().getOrDefault("label", "Page"));
+      context.getRequest().setAttribute("value", context.getPreferences().getOrDefault("value", "Zero-Result Searches"));
+      return TABLE_JSP;
+    } else if ("near-miss-search-terms".equalsIgnoreCase(report)) {
+      // issue #1014: terms that technically found something (1-3 results) but few enough that
+      // recall is suspect -- worth a look even though they wouldn't show up on the hard-failure
+      // zero-result-terms report. See SearchAnalyticsRepository.findNearMissTerms's javadoc for the
+      // fixed threshold.
+      List<StatisticsData> statisticsDataList = SearchAnalyticsRepository.findNearMissTerms(intervalValue, limit);
+      context.getRequest().setAttribute("statisticsDataList", statisticsDataList);
+      context.getRequest().setAttribute("label", context.getPreferences().getOrDefault("label", "Search Term"));
+      context.getRequest().setAttribute("value", context.getPreferences().getOrDefault("value", "Low-Result Searches"));
+      return TABLE_JSP;
     } else if ("total-form-submissions".equalsIgnoreCase(report)) {
       Long count = FormDataRepository.countTotalSubmissions();
       context.getRequest().setAttribute("numberValue", String.valueOf(count));
@@ -600,25 +644,23 @@ public class SiteStatsWidget extends GenericWidget {
   }
 
   /**
-   * Merges the most recent audit events across the categories an admin dashboard cares about.
-   * AuditLogSpecification filters on a single event_category, not a list, so this runs one small
-   * query per category and merges in Java rather than widening the shared specification/where-clause
-   * for a single dashboard tile.
+   * The dashboard's "Recent Admin Activity" tile. Issue #1006 generalized this: it used to run one small
+   * query per category (content/configuration/user_management only) and merge in Java, because
+   * AuditLogSpecification filtered on a single event_category and widening that shared where-clause for
+   * one dashboard tile wasn't worth it. AuditLogRepository#findRecentActivity now does a real
+   * {@code event_category IN (...)} query, so this tile gets all 6 categories (including the
+   * security-relevant authentication/authorization/data_access it previously omitted entirely) and a real
+   * trailing time window in one query, rather than "however far back this admin's most recent 5 actions
+   * happen to reach" -- the same window the /admin/activity feed defaults to, so the two surfaces describe
+   * "recent" the same way.
    */
   static List<AuditLog> findRecentAdminActions(int limit) {
-    List<AuditLog> merged = new ArrayList<>();
-    for (String category : new String[] { "content", "configuration", "user_management" }) {
-      AuditLogSpecification spec = new AuditLogSpecification();
-      spec.setEventCategory(category);
-      DataConstraints constraints = new DataConstraints();
-      constraints.setPageSize(limit);
-      constraints.setUseCount(false);
-      List<AuditLog> categoryRecords = AuditLogRepository.findAll(spec, constraints);
-      if (categoryRecords != null) {
-        merged.addAll(categoryRecords);
-      }
-    }
-    merged.sort(Comparator.comparing(AuditLog::getOccurred).reversed());
-    return merged.subList(0, Math.min(limit, merged.size()));
+    Timestamp since = Timestamp.from(
+        java.time.Instant.now().minus(AuditLogRepository.DEFAULT_TRAILING_WINDOW_DAYS, java.time.temporal.ChronoUnit.DAYS));
+    DataConstraints constraints = new DataConstraints();
+    constraints.setPageSize(limit);
+    constraints.setUseCount(false);
+    List<AuditLog> recentActivity = AuditLogRepository.findRecentActivity(null, since, null, constraints);
+    return recentActivity != null ? recentActivity : new ArrayList<>();
   }
 }
