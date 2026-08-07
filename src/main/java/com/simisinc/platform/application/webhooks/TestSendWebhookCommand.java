@@ -33,7 +33,7 @@ import com.simisinc.platform.domain.model.webhooks.WebhookSubscription;
  * Fires a single, synchronous "test send" of a sample payload to a {@code webhook_subscription}'s
  * URL (issue #453's dry-run button). Deliberately NOT {@code AttemptWebhookDeliveryCommand}: that
  * command is written exclusively to run as a JobRunr background job against a real, persisted
- * {@code webhook_delivery} row, and on failure schedules a real retry chain (up to ~35 minutes of
+ * {@code webhook_delivery} row, and on failure schedules a real retry chain (up to ~24 hours of
  * background attempts, see its own javadoc) that would misleadingly pollute the delivery log with
  * a row indistinguishable from a genuine subscriber delivery.
  *

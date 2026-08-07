@@ -83,7 +83,7 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (15, 'Web Page Text Color', 'theme.body.text.color', '#000000', 'color');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (16, 'Link Color', 'theme.link.color', '#0067ff', 'color');
 
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (17, 'System Alert Bar', 'theme.utilitybar.backgroundColor', '#0067ff', 'color');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (17, 'System Alert Bar', 'theme.utilitybar.backgroundColor', '#000000', 'color');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (18, 'System Alert Text Color', 'theme.utilitybar.text.color', '#ffffff', 'color');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (19, 'System Alert Link Color', 'theme.utilitybar.link.color', '#ffffff', 'color');
 
@@ -101,10 +101,10 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 -- INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (35, 'Drop Down Menu Hover Bg', 'theme.topbar.menu.dropdown.text.color', '#FFFFFF', 'color');
 
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (50, 'Button Text', 'theme.button.text.color', '#FFFFFF', 'color');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (52, 'Default Button', 'theme.button.default.backgroundColor', '#1779ba', 'color');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (54, 'Default Button Hover', 'theme.button.default.hoverBackgroundColor', '#126195', 'color');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (56, 'Primary Button', 'theme.button.primary.backgroundColor', '#1779ba', 'color');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (58, 'Primary Button Hover', 'theme.button.primary.hoverBackgroundColor', '#126195', 'color');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (52, 'Default Button', 'theme.button.default.backgroundColor', '#53575c', 'color');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (54, 'Default Button Hover', 'theme.button.default.hoverBackgroundColor', '#3e4045', 'color');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (56, 'Primary Button', 'theme.button.primary.backgroundColor', '#53575c', 'color');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (58, 'Primary Button Hover', 'theme.button.primary.hoverBackgroundColor', '#3e4045', 'color');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (60, 'Secondary Button', 'theme.button.secondary.backgroundColor', '#767676', 'color');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (62, 'Secondary Button Hover', 'theme.button.secondary.hoverBackgroundColor', '#5e5e5e', 'color');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (64, 'Success Button', 'theme.button.success.backgroundColor', '#43AC6A', 'color');
@@ -277,7 +277,6 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (22, 'LRS URL', 'elearning.lrs.url', '', 'url');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (23, 'LRS Key', 'elearning.lrs.key', '', 'text');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (24, 'LRS Secret', 'elearning.lrs.secret', '', 'text');
-INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (26, 'LRS Auth Header', 'elearning.lrs.authHeader', '', 'text');
 
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (30, 'Enable PERLS?', 'elearning.perls.enabled', 'false', 'boolean');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (32, 'PERLS URL', 'elearning.perls.url', '', 'url');
@@ -294,6 +293,11 @@ INSERT INTO site_properties (property_order, property_label, property_name, prop
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (20, 'OpenAuth Enabled', 'oauth.enabled', 'false', 'boolean');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (22, 'OpenAuth Role Attribute', 'oauth.role.attribute', 'roles', 'text');
 INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (24, 'OpenAuth Group Attribute', 'oauth.group.attribute', 'groups', 'text');
+
+-- Security
+
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (10, 'Minimum Password Length', 'security.password.minLength', '15', 'text');
+INSERT INTO site_properties (property_order, property_label, property_name, property_value, property_type) VALUES (20, 'Require Password Complexity?', 'security.password.requireComplexity', 'true', 'boolean');
 
 CREATE TABLE lookup_role (
   role_id SERIAL PRIMARY KEY,

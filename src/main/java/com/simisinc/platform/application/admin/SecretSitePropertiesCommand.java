@@ -52,7 +52,6 @@ public class SecretSitePropertiesCommand {
       "social.instagram.accessToken",
       "elearning.lrs.key",
       "elearning.lrs.secret",
-      "elearning.lrs.authHeader",
       "elearning.moodle.token",
       "elearning.perls.clientId",
       "elearning.perls.secret");

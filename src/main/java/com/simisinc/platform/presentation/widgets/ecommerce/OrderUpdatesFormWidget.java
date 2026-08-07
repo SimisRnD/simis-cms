@@ -22,6 +22,7 @@ import org.apache.commons.lang3.StringUtils;
 
 import com.sanctionco.jmail.JMail;
 import com.simisinc.platform.application.DataException;
+import com.simisinc.platform.application.PasswordPolicyCommand;
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 import com.simisinc.platform.application.ecommerce.CartCommand;
 import com.simisinc.platform.domain.model.ecommerce.Cart;
@@ -166,8 +167,9 @@ public class OrderUpdatesFormWidget extends GenericWidget {
     // Determine if an account needs to be created
     if ("createAccount".equals(submitButton)) {
       String password = context.getParameter("password");
-      if (StringUtils.isBlank(password) || password.trim().length() < 6) {
-        context.setErrorMessage("Passwords must be at least 6 characters");
+      String passwordViolation = PasswordPolicyCommand.validate(password == null ? null : password.trim());
+      if (passwordViolation != null) {
+        context.setErrorMessage(passwordViolation);
         context.setRedirect("/checkout/order-updates");
         return context;
       }

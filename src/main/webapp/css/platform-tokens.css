@@ -101,11 +101,17 @@
 /* ==========================================================================
    Layer 2 - Dark token overrides
    ==========================================================================
-   Note what is NOT overridden: brand accent colors. Foundation's primary
-   (#1779ba) carries white text at 4.69:1 and sits on the dark page at
-   3.76:1, so it stays legible. Lightening it would actually break the
-   button label (#2f8fd0 with white text is only 3.52:1) as well as losing
-   the site's brand color. Accents are left to the theme.
+   Note what is NOT overridden: brand accent colors (theme.button.*,
+   theme.utilitybar.*, etc.) -- whatever a site has configured stays as-is
+   in dark mode rather than being auto-relit. The fresh-install default is
+   Anthracite (#53575c): white text on it is 7.3:1, comfortably past the
+   4.5:1 floor, on the light page every site starts on. It is NOT verified
+   against the dark *page* background (#17191e) -- a button sitting
+   directly on bare dark-mode page (no white card under it) only reaches
+   2.4:1 there, short of the 3:1 non-text floor. The old default
+   (Foundation's #1779ba) had the same shape of gap, just less severe
+   (3.76:1) -- this was never solved for every combination, only judged
+   good enough for the common case. Accents are left to the theme.
    ========================================================================== */
 
 :root[data-theme="dark"] {
@@ -210,6 +216,14 @@ input[type="radio"] {
 .callout {
   border-color: var(--sc-border);
   border-radius: var(--sc-radius-md);
+}
+
+/* Foundation's own bare .callout background (a pale yellow, #fffdea) was
+   never overridden for light mode -- only the dark-mode background is set,
+   in Layer 3b below. Themed variants (primary/success/etc.) keep their
+   intentional color in both modes. */
+.callout:not(.primary):not(.secondary):not(.success):not(.warning):not(.alert):not(.header) {
+  background-color: var(--sc-surface-raised);
 }
 
 /* WCAG 2.2 SC 2.3.3 Animation from Interactions. Foundation, Motion UI and
