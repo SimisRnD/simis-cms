@@ -40,6 +40,8 @@ import java.sql.Timestamp;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Pattern;
 
 import static com.simisinc.platform.application.datasets.DatasetFieldOptionCommand.*;
@@ -53,6 +55,37 @@ import static com.simisinc.platform.application.datasets.DatasetFieldOptionComma
 public class SaveDatasetRowCommand {
 
   private static Log LOG = LogFactory.getLog(SaveDatasetRowCommand.class);
+
+  // Bug fix: a real "Save & Sync" run streams one row at a time into saveRecord()/constructItem()
+  // (from a CSV/TSV parser callback, or a per-row loop over already-loaded JSON/RSS/GeoJSON
+  // records), so nothing here previously carried a value forward from one row's isSkipped() call
+  // to the next. That's why the "skipDuplicates" field option -- which only works by remembering
+  // values already seen -- was a no-op during a real sync, even though Preview (LoadCSVRowsCommand,
+  // LoadJsonCommand, LoadTSVRowsCommand) already builds exactly this kind of map and correctly
+  // reports duplicates would be dropped. This map plays the same role for a real sync, just
+  // spanning the whole file (one entry per in-progress dataset id) instead of a single load call.
+  // DatasetFileCommand.convertFileToCollection() clears a dataset's entry via
+  // clearDuplicateTracking() once the whole file has been converted, so a later run starts clean.
+  private static final Map<Long, Map<String, String>> uniqueColumnValueMapByDatasetId = new ConcurrentHashMap<>();
+
+  private static Map<String, String> duplicateTrackingMapFor(Dataset dataset) {
+    // Must be a thread-safe map: two syncs of the same dataset id (e.g. a manual "Save & Sync"
+    // racing an already-running scheduled sync) share this same instance via computeIfAbsent, and
+    // concurrent structural modification of a plain HashMap is undefined behavior -- including a
+    // documented failure mode of an infinite loop / CPU-pegged worker thread during a concurrent
+    // resize. A ConcurrentHashMap can't corrupt itself that way.
+    return uniqueColumnValueMapByDatasetId.computeIfAbsent(dataset.getId(), id -> new ConcurrentHashMap<>());
+  }
+
+  /**
+   * Clears the running skipDuplicates tracking state built up for this dataset over the course
+   * of one real sync run. Must be called once the dataset's file has been fully converted
+   * (success or failure) so a later sync starts from a clean slate rather than treating a value
+   * from a previous run as a repeat.
+   */
+  public static void clearDuplicateTracking(Dataset dataset) {
+    uniqueColumnValueMapByDatasetId.remove(dataset.getId());
+  }
 
   public static boolean saveRecord(String[] row, Dataset dataset, Collection collection) {
 
@@ -115,6 +148,9 @@ public class SaveDatasetRowCommand {
     List<Long> categoryIdList = new ArrayList<>();
     boolean hasSplitOption = false;
     String splitValue = null;
+    // Shared across every row in this sync run, so skipDuplicates recognizes a value repeated
+    // across separate saveRecord() calls, not just within this one row (see field comment above)
+    Map<String, String> uniqueColumnValueMap = duplicateTrackingMapFor(dataset);
 
     for (int i = 0; i < fieldMappings.size(); i++) {
       if (row.length == i) {
@@ -130,8 +166,10 @@ public class SaveDatasetRowCommand {
       // Apply options to the field's value
       if (i < fieldOptions.size()) {
         String options = fieldOptions.get(i);
-        // Options which skip the record
-        if (isSkipped(options, value)) {
+        // Options which skip the record -- pass the dataset's running unique-value map (rather
+        // than the no-arg overload, which always checks with null/-1 and can never detect a
+        // duplicate) so skipDuplicates is honored the same way Preview already honors it
+        if (isSkipped(options, value, uniqueColumnValueMap, i)) {
           // Skip the record
           return null;
         }

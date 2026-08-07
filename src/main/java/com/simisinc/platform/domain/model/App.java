@@ -35,7 +35,9 @@ public class App extends Entity {
   private Timestamp modified = null;
   private String publicKey = null;
   private String privateKey = null;
-  private boolean enabled = false;
+  // Defaults to true to match the apps.enabled column's DB default (NEW_10000__new_database.sql) --
+  // a save path that forgets to set this explicitly must not silently diverge from a fresh DB row.
+  private boolean enabled = true;
 
   public App() {
   }

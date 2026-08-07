@@ -32,12 +32,13 @@ import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
  *
  * <p>
  * Reads go through {@link LoadSitePropertyCommand}, which is backed by
- * {@code CacheManager.SYSTEM_PROPERTY_PREFIX_CACHE} -- a cache with no configured TTL/refresh
- * (those Caffeine builder options are commented out). Correctness for a flag flip therefore depends
- * entirely on {@code SitePropertyRepository.saveAll()} calling
- * {@code CacheManager.invalidateKey(SYSTEM_PROPERTY_PREFIX_CACHE, "features")} on save, which it
- * already does for every prefix -- not on any cache expiry. A toggle from
- * {@code /admin/feature-flags} is visible on the very next read.
+ * {@code CacheManager.SYSTEM_PROPERTY_PREFIX_CACHE} -- a 5-minute-expiry, 1-minute-refresh Caffeine
+ * cache (bounded so a multi-instance deployment doesn't serve a stale flag value indefinitely on a
+ * node that didn't handle the save; see issue behind commit 5653e1b4). On the instance that handled
+ * the save, {@code SitePropertyRepository.saveAll()} calls
+ * {@code CacheManager.invalidateKey(SYSTEM_PROPERTY_PREFIX_CACHE, "features")}, so a toggle from
+ * {@code /admin/feature-flags} is visible there on the very next read. Any other instance picks up
+ * the change within about a minute via the cache's own refresh, not instantly.
  * </p>
  *
  * @author elizabeth houser

@@ -17,6 +17,7 @@
 package com.simisinc.platform.presentation.controller;
 
 import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.cms.ValidateUserAccessToWebPageCommand;
 import com.simisinc.platform.domain.model.cms.Blog;
 import com.simisinc.platform.domain.model.cms.BlogPost;
 import com.simisinc.platform.domain.model.cms.Wiki;
@@ -281,13 +282,21 @@ public class SitemapServlet extends HttpServlet {
       spec.setArchivedOnly(false);
       List<WebPage> pages = WebPageRepository.findAll(spec, null);
 
+      // sitemap.xml is fully public and unauthenticated -- a page's own enabled/inSitemap flags
+      // say nothing about whether an anonymous visitor is actually allowed to reach it (a role- or
+      // group-restricted page can still have "Show in Sitemap.xml?" on). Same check
+      // LlmsTxtServlet.buildPagesSection() already applies to this same entity, for the same
+      // reason: don't advertise a URL a guest would just be denied on.
+      UserSession anonymousSession = new UserSession();
+
       if (pages != null) {
         for (WebPage page : pages) {
           // Draft is deliberately not filtered here: a page keeps its published page_xml when
           // draft=true (draft only means it also has a pending edit -- see WebPageRepository.publish(),
           // the only place that clears page_xml, which always flips draft back to false in the same
           // statement). Blank pageXml is what correctly excludes a page that has never been published.
-          if (page != null && StringUtils.isNotBlank(page.getLink()) && StringUtils.isNotBlank(page.getPageXml())) {
+          if (page != null && StringUtils.isNotBlank(page.getLink()) && StringUtils.isNotBlank(page.getPageXml())
+              && ValidateUserAccessToWebPageCommand.hasAccess(page.getLink(), anonymousSession)) {
             String lastmod = page.getModified() != null ? formatDate(page.getModified()) : null;
             long modifiedTimestamp = page.getModified() != null ? page.getModified().getTime() : 0L;
             String changefreq = StringUtils.isNotBlank(page.getSitemapChangeFrequency())
@@ -309,6 +318,14 @@ public class SitemapServlet extends HttpServlet {
     try {
       ItemSpecification spec = new ItemSpecification();
       spec.setApprovedOnly(true);
+      // sitemap.xml is fully public and unauthenticated -- without this, an approved item in a
+      // private, group-restricted collection was still listed (existence, URL, and last-modified
+      // date disclosed to anyone), even though the item detail page itself correctly denies an
+      // anonymous visitor who follows the link. GUEST_ID is what actually applies the
+      // collections.allows_guests / group-membership restriction at the query level (see
+      // ItemRepository.createSearchWhereStatement) -- the same mechanism ItemsSearchResultsWidget
+      // already uses for real, live guest-facing search results.
+      spec.setForUserId(UserSession.GUEST_ID);
       List<Item> items = ItemRepository.findAll(spec, null);
 
       if (items != null) {
