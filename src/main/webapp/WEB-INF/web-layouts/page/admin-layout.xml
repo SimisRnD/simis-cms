@@ -1574,6 +1574,19 @@
 
   <page name="/admin/useful-links" role="admin,content-manager" title="Useful Links">
     <section>
+      <column class="small-12 cell">
+        <widget name="content" class="callout">
+          <uniqueId>admin-content-FF54248C-71B7-4B3C-966F-9B343310F510</uniqueId>
+          <html><![CDATA[<h5>About Useful Links</h5>
+          <p>These two lists fill in the two link columns shown in the footer of every public page on the site &mdash; the left column (<strong>Company</strong>) and the right column (<strong>Support</strong>), as labeled in the site footer.</p>
+          <p>Each row needs a <strong>Name</strong> (the text visitors click) and a <strong>Link</strong>. A Link can be an internal path (e.g. <code>/contact</code>) or a full external URL (e.g. <code>https://example.com</code>) &mdash; both are supported.</p>
+          <p>To remove an entry, clear its <strong>Name</strong> field and save; a row left with no Name is dropped from the list.</p>
+          <p>Looking for the floating action buttons shown on every page instead? See <a href="/admin/sticky-footer-links">Sticky Page Buttons</a>.</p>
+          ]]></html>
+        </widget>
+      </column>
+    </section>
+    <section>
       <column class="small-6 cell">
         <widget name="tableOfContentsEditor">
           <title>Footer Useful Links Column 1</title>
@@ -1590,6 +1603,18 @@
   </page>
 
   <page name="/admin/sticky-footer-links" role="admin,content-manager" title="Sticky Footer Links">
+    <section>
+      <column class="small-12 cell">
+        <widget name="content" class="callout">
+          <uniqueId>admin-content-55EC31E9-5FA5-4A33-95DB-111B8755789F</uniqueId>
+          <html><![CDATA[<h5>About Sticky Page Buttons</h5>
+          <p>This list controls a small floating button bar shown in the bottom-right corner of every public page on the site (it does not appear on admin pages). Unlike <a href="/admin/useful-links">Useful Links</a>, these buttons are hard to miss &mdash; changes here are visible immediately and prominently on every page, so double-check each link before saving.</p>
+          <p>A button automatically hides itself on the exact page it links to, so visitors are never shown a button that just takes them to the page they're already on.</p>
+          <p>Looking for a calmer, footer-column option instead? See <a href="/admin/useful-links">Useful Links</a>.</p>
+          ]]></html>
+        </widget>
+      </column>
+    </section>
     <section>
       <column class="small-6 cell">
         <widget name="tableOfContentsEditor">
