@@ -217,6 +217,7 @@
   }
 
   .media-file-item {
+    position: relative;
     aspect-ratio: 1;
     border: 1px solid #ddd;
     border-radius: 4px;
@@ -248,6 +249,40 @@
   .media-file-icon {
     font-size: 24px;
     color: #999;
+  }
+
+  .media-file-delete {
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    width: 22px;
+    height: 22px;
+    border-radius: 50%;
+    border: none;
+    background: rgba(0, 0, 0, 0.55);
+    color: white;
+    font-size: 11px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    transition: opacity 0.15s, background-color 0.15s;
+  }
+
+  .media-file-item:hover .media-file-delete,
+  .media-file-item:focus-within .media-file-delete,
+  .media-file-delete:focus {
+    opacity: 1;
+  }
+
+  .media-file-delete:hover {
+    background: rgba(192, 57, 43, 0.9);
+  }
+
+  .media-file-delete:focus {
+    outline: 2px solid #0066cc;
+    outline-offset: 1px;
   }
 
   .media-panel-pagination {
@@ -490,8 +525,71 @@
         }
       });
 
+      const deleteBtn = document.createElement('button');
+      deleteBtn.className = 'media-file-delete';
+      deleteBtn.type = 'button';
+      deleteBtn.setAttribute('aria-label', 'Delete ' + (asset.assetName || 'file'));
+      deleteBtn.innerHTML = '<i class="fa fa-trash" aria-hidden="true"></i>';
+      // stopPropagation: this button sits inside the item's own click target (handleSelectFile
+      // above), so without this a delete click would also select/apply the file being deleted.
+      deleteBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        handleDeleteFile(asset);
+      });
+      deleteBtn.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.stopPropagation();
+        }
+      });
+      item.appendChild(deleteBtn);
+
       gridContent.appendChild(item);
     });
+  }
+
+  function handleDeleteFile(asset) {
+    if (!window.confirm('Delete "' + (asset.assetName || 'this file') + '"? This removes it from the media library, but any page it is already embedded in keeps working.')) {
+      return;
+    }
+
+    const token = (typeof mainToken !== 'undefined') ? mainToken : '';
+    fetch('/visual-editor/media/' + encodeURIComponent(asset.assetId) + '?token=' + encodeURIComponent(token), {
+      method: 'DELETE'
+    })
+      .then(function (resp) {
+        return resp.json().catch(function () {
+          return {};
+        }).then(function (data) {
+          if (!resp.ok || !data.success) {
+            throw new Error((data && data.error) || ('Delete failed with status ' + resp.status));
+          }
+          return data;
+        });
+      })
+      .then(function () {
+        removeAssetFromGrid(asset);
+      })
+      .catch(function (err) {
+        console.error('Error deleting media asset:', asset.assetId, err);
+        showErrorState('Unable to delete "' + (asset.assetName || 'file') + '". ' + err.message);
+      });
+  }
+
+  // Mirrors addUploadedAssetToGrid's optimistic-update approach: removes the asset locally rather
+  // than re-fetching, so the current page/search/scroll position isn't disturbed by a delete.
+  function removeAssetFromGrid(asset) {
+    filteredAssets = filteredAssets.filter(a => a.assetId !== asset.assetId);
+    allAssets = allAssets.filter(a => a.assetId !== asset.assetId);
+    lastTotal = Math.max(0, lastTotal - 1);
+
+    renderFiles();
+    updatePagination(lastTotal);
+
+    const gridContent = grid.querySelector('.files');
+    if (filteredAssets.length === 0) {
+      gridContent.style.display = 'none';
+      grid.querySelector('.empty').style.display = '';
+    }
   }
 
   function handleSelectFile(asset) {

@@ -183,6 +183,27 @@ class MediaAssetRepositoryTest {
     assertNull(MediaAssetRepository.findById(-1));
   }
 
+  @Test
+  void softDeleteExcludesTheAssetFromFindAllButLeavesItFindableById() {
+    // Media Library delete feature: softDelete() only sets deleted_at, it never removes the row --
+    // findAll() (the query the picker's listing uses) must filter it out anyway, or a "deleted"
+    // asset keeps reappearing. findById/findByAssetId deliberately do NOT filter it out --
+    // handleServeFile still needs to resolve an asset already embedded into a live page.
+    MediaAsset visible = addAsset("asset-visible", "visible.jpg");
+    MediaAsset deleted = addAsset("asset-deleted", "deleted.jpg");
+
+    assertTrue(MediaAssetRepository.softDelete(deleted.getId()));
+
+    java.util.List<MediaAsset> all = MediaAssetRepository.findAll(null);
+    assertEquals(1, all.size());
+    assertEquals(visible.getId(), all.get(0).getId());
+
+    assertNotNull(MediaAssetRepository.findById(deleted.getId()),
+        "findById must still resolve a soft-deleted asset");
+    assertNotNull(MediaAssetRepository.findByAssetId("asset-deleted"),
+        "findByAssetId must still resolve a soft-deleted asset");
+  }
+
   private static MediaAsset addAsset(String assetId, String assetName) {
     MediaAsset asset = new MediaAsset();
     asset.setAssetId(assetId);

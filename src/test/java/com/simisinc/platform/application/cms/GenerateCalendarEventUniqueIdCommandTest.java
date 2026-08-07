@@ -58,6 +58,41 @@ class GenerateCalendarEventUniqueIdCommandTest {
   }
 
   @Test
+  void anExistingEventKeepsItsUniqueIdWhenRenamed() {
+    // This is the bug: renaming the title used to regenerate the slug from the new title,
+    // silently changing the event's URL and breaking every link that pointed at the old one.
+    CalendarEvent previousCalendarEvent = new CalendarEvent();
+    previousCalendarEvent.setUniqueId("my-event");
+    previousCalendarEvent.setTitle("My Event");
+    previousCalendarEvent.setCalendarId(1L);
+
+    CalendarEvent renamed = new CalendarEvent();
+    renamed.setTitle("My Rescheduled Event");
+    renamed.setCalendarId(1L);
+
+    String uniqueId = GenerateCalendarEventUniqueIdCommand.generateUniqueId(previousCalendarEvent, renamed);
+    Assertions.assertEquals("my-event", uniqueId,
+        "an existing event's URL must not change when only its title changes");
+  }
+
+  @Test
+  void anExistingEventKeepsItsUniqueIdWhenMovedToADifferentCalendar() {
+    // CalendarEventDetailsWidget resolves the public event page by uniqueId alone, not scoped by
+    // calendarId, so a calendar move must not regenerate the slug either.
+    CalendarEvent previousCalendarEvent = new CalendarEvent();
+    previousCalendarEvent.setUniqueId("my-event");
+    previousCalendarEvent.setTitle("My Event");
+    previousCalendarEvent.setCalendarId(1L);
+
+    CalendarEvent moved = new CalendarEvent();
+    moved.setTitle("My Event");
+    moved.setCalendarId(2L);
+
+    String uniqueId = GenerateCalendarEventUniqueIdCommand.generateUniqueId(previousCalendarEvent, moved);
+    Assertions.assertEquals("my-event", uniqueId);
+  }
+
+  @Test
   void generateUniqueIdForDuplicateCalendarEvent() {
     String existingUniqueId = "my-event";
     CalendarEvent existingCalendarEvent = new CalendarEvent();
