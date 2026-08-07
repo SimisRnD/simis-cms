@@ -16,20 +16,26 @@
 
 package com.simisinc.platform.presentation.widgets.cms;
 
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
 
 import com.simisinc.platform.WidgetBase;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
 
 import jakarta.servlet.http.Cookie;
 
 /**
  * Covers issue #428: YouTube and Vimeo url parsing, the youtube-nocookie.com domain, and the
  * consent gate -- VideoWidget#execute must not populate provider/embedUrl/thumbnailUrl (the "real
- * embed markup" video.jsp renders into the click-to-play button) unless the analytics-consent
- * cookie is present and "accepted"; without it, only the placeholder-driving attributes are set.
+ * embed markup" video.jsp renders into the click-to-play button) unless consent isn't required in
+ * the first place, or the analytics-consent cookie is present and "accepted"; without either,
+ * only the placeholder-driving attributes are set. Most tests below stub
+ * analytics.consentRequired=true so they exercise the cookie-gated branch; the two
+ * "ConsentNotRequired" tests cover the shipped default (issue #366/#428 fix).
  *
  * @author SimIS Inc.
  */
@@ -48,13 +54,21 @@ class VideoWidgetTest extends WidgetBase {
       "  <title>Sample Vimeo Video</title>\n" +
       "</widget>";
 
+  private static MockedStatic<LoadSitePropertyCommand> mockConsentRequired() {
+    MockedStatic<LoadSitePropertyCommand> mocked = mockStatic(LoadSitePropertyCommand.class);
+    mocked.when(() -> LoadSitePropertyCommand.loadByName("analytics.consentRequired")).thenReturn("true");
+    return mocked;
+  }
+
   @Test
   void executeWithYouTubeUrlAndConsentRendersNoCookieEmbedAndThumbnail() {
     when(request.getCookies()).thenReturn(new Cookie[] { ACCEPTED });
     addPreferencesFromWidgetXml(widgetContext, YOUTUBE_XML);
 
     VideoWidget widget = new VideoWidget();
-    widget.execute(widgetContext);
+    try (MockedStatic<LoadSitePropertyCommand> ignored = mockConsentRequired()) {
+      widget.execute(widgetContext);
+    }
 
     Assertions.assertEquals("true", request.getAttribute("consentGiven"));
     Assertions.assertEquals("youtube", request.getAttribute("provider"));
@@ -70,22 +84,24 @@ class VideoWidgetTest extends WidgetBase {
   void executeParsesYouTubeShortUrlAndEmbedUrlVariants() {
     when(request.getCookies()).thenReturn(new Cookie[] { ACCEPTED });
 
-    addPreferencesFromWidgetXml(widgetContext,
-        "<widget name=\"video\">\n" +
-            "  <videoUrl>https://youtu.be/dQw4w9WgXcQ</videoUrl>\n" +
-            "</widget>");
-    new VideoWidget().execute(widgetContext);
-    Assertions.assertEquals("youtube", request.getAttribute("provider"));
-    Assertions.assertEquals("https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?rel=0", request.getAttribute("embedUrl"));
+    try (MockedStatic<LoadSitePropertyCommand> ignored = mockConsentRequired()) {
+      addPreferencesFromWidgetXml(widgetContext,
+          "<widget name=\"video\">\n" +
+              "  <videoUrl>https://youtu.be/dQw4w9WgXcQ</videoUrl>\n" +
+              "</widget>");
+      new VideoWidget().execute(widgetContext);
+      Assertions.assertEquals("youtube", request.getAttribute("provider"));
+      Assertions.assertEquals("https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?rel=0", request.getAttribute("embedUrl"));
 
-    preferences.clear();
-    addPreferencesFromWidgetXml(widgetContext,
-        "<widget name=\"video\">\n" +
-            "  <videoUrl>https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ</videoUrl>\n" +
-            "</widget>");
-    new VideoWidget().execute(widgetContext);
-    Assertions.assertEquals("youtube", request.getAttribute("provider"));
-    Assertions.assertEquals("https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?rel=0", request.getAttribute("embedUrl"));
+      preferences.clear();
+      addPreferencesFromWidgetXml(widgetContext,
+          "<widget name=\"video\">\n" +
+              "  <videoUrl>https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ</videoUrl>\n" +
+              "</widget>");
+      new VideoWidget().execute(widgetContext);
+      Assertions.assertEquals("youtube", request.getAttribute("provider"));
+      Assertions.assertEquals("https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?rel=0", request.getAttribute("embedUrl"));
+    }
   }
 
   @Test
@@ -94,7 +110,9 @@ class VideoWidgetTest extends WidgetBase {
     addPreferencesFromWidgetXml(widgetContext, VIMEO_XML);
 
     VideoWidget widget = new VideoWidget();
-    widget.execute(widgetContext);
+    try (MockedStatic<LoadSitePropertyCommand> ignored = mockConsentRequired()) {
+      widget.execute(widgetContext);
+    }
 
     Assertions.assertEquals("true", request.getAttribute("consentGiven"));
     Assertions.assertEquals("vimeo", request.getAttribute("provider"));
@@ -112,7 +130,9 @@ class VideoWidgetTest extends WidgetBase {
     addPreferencesFromWidgetXml(widgetContext, YOUTUBE_XML);
 
     VideoWidget widget = new VideoWidget();
-    widget.execute(widgetContext);
+    try (MockedStatic<LoadSitePropertyCommand> ignored = mockConsentRequired()) {
+      widget.execute(widgetContext);
+    }
 
     Assertions.assertEquals("false", request.getAttribute("consentGiven"));
     // The real embed markup must never be populated without consent -- video.jsp's placeholder
@@ -129,7 +149,9 @@ class VideoWidgetTest extends WidgetBase {
     addPreferencesFromWidgetXml(widgetContext, VIMEO_XML);
 
     VideoWidget widget = new VideoWidget();
-    widget.execute(widgetContext);
+    try (MockedStatic<LoadSitePropertyCommand> ignored = mockConsentRequired()) {
+      widget.execute(widgetContext);
+    }
 
     Assertions.assertEquals("false", request.getAttribute("consentGiven"));
     Assertions.assertNull(request.getAttribute("provider"));
@@ -143,7 +165,9 @@ class VideoWidgetTest extends WidgetBase {
     addPreferencesFromWidgetXml(widgetContext, YOUTUBE_XML);
 
     VideoWidget widget = new VideoWidget();
-    widget.execute(widgetContext);
+    try (MockedStatic<LoadSitePropertyCommand> ignored = mockConsentRequired()) {
+      widget.execute(widgetContext);
+    }
 
     Assertions.assertEquals("false", request.getAttribute("consentGiven"));
     Assertions.assertNull(request.getAttribute("provider"));
@@ -156,7 +180,9 @@ class VideoWidgetTest extends WidgetBase {
     addPreferencesFromWidgetXml(widgetContext, YOUTUBE_XML);
 
     VideoWidget widget = new VideoWidget();
-    widget.execute(widgetContext);
+    try (MockedStatic<LoadSitePropertyCommand> ignored = mockConsentRequired()) {
+      widget.execute(widgetContext);
+    }
 
     Assertions.assertEquals("false", request.getAttribute("consentGiven"));
     Assertions.assertNull(request.getAttribute("embedUrl"));
@@ -167,7 +193,9 @@ class VideoWidgetTest extends WidgetBase {
     when(request.getCookies()).thenReturn(new Cookie[] { ACCEPTED });
 
     VideoWidget widget = new VideoWidget();
-    widget.execute(widgetContext);
+    try (MockedStatic<LoadSitePropertyCommand> ignored = mockConsentRequired()) {
+      widget.execute(widgetContext);
+    }
 
     Assertions.assertEquals("true", request.getAttribute("consentGiven"));
     Assertions.assertNull(request.getAttribute("provider"));
@@ -184,9 +212,46 @@ class VideoWidgetTest extends WidgetBase {
             "</widget>");
 
     VideoWidget widget = new VideoWidget();
-    widget.execute(widgetContext);
+    try (MockedStatic<LoadSitePropertyCommand> ignored = mockConsentRequired()) {
+      widget.execute(widgetContext);
+    }
 
     Assertions.assertNull(request.getAttribute("provider"));
     Assertions.assertNull(request.getAttribute("embedUrl"));
+  }
+
+  // issue #366/#428 fix: on the shipped default (analytics.consentRequired=false), the
+  // accept/decline banner never renders and the analytics-consent cookie can never become
+  // "accepted" -- so consent must be treated as given even with no cookie at all.
+
+  @Test
+  void executeWithConsentNotRequiredRendersEmbedRegardlessOfCookie() {
+    when(request.getCookies()).thenReturn(null);
+    addPreferencesFromWidgetXml(widgetContext, YOUTUBE_XML);
+
+    VideoWidget widget = new VideoWidget();
+    try (MockedStatic<LoadSitePropertyCommand> property = mockStatic(LoadSitePropertyCommand.class)) {
+      property.when(() -> LoadSitePropertyCommand.loadByName("analytics.consentRequired")).thenReturn("false");
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals("true", request.getAttribute("consentGiven"));
+    Assertions.assertEquals("youtube", request.getAttribute("provider"));
+    Assertions.assertEquals("https://www.youtube-nocookie.com/embed/dQw4w9WgXcQ?rel=0", request.getAttribute("embedUrl"));
+  }
+
+  @Test
+  void executeWithConsentRequiredPropertyUnsetTreatsItAsNotRequired() {
+    when(request.getCookies()).thenReturn(null);
+    addPreferencesFromWidgetXml(widgetContext, YOUTUBE_XML);
+
+    VideoWidget widget = new VideoWidget();
+    try (MockedStatic<LoadSitePropertyCommand> property = mockStatic(LoadSitePropertyCommand.class)) {
+      property.when(() -> LoadSitePropertyCommand.loadByName("analytics.consentRequired")).thenReturn(null);
+      widget.execute(widgetContext);
+    }
+
+    Assertions.assertEquals("true", request.getAttribute("consentGiven"));
+    Assertions.assertEquals("youtube", request.getAttribute("provider"));
   }
 }

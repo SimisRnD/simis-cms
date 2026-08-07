@@ -82,7 +82,7 @@
                   <input type="password" class="no-gap" value="" placeholder="<c:out value="${empty siteProperty.value ? 'not set' : 'value hidden'}"/>" disabled />
                 </c:when>
                 <c:otherwise>
-                  <input type="password" class="no-gap" name="${siteProperty.name}" value="" autocomplete="new-password" placeholder="<c:out value="${empty siteProperty.value ? 'not set' : 'value hidden; leave blank to keep it'}"/>"<c:if test="${siteProperty.name eq 'captcha.google.secretkey'}"> aria-describedby="captchaGoogleSecretkeyHelpText"</c:if><c:if test="${siteProperty.name eq 'captcha.turnstile.secretkey'}"> aria-describedby="captchaTurnstileSecretkeyHelpText"</c:if><c:if test="${siteProperty.name eq 'bi.superset.secret'}"> aria-describedby="biSupersetSecretHelpText"</c:if><c:if test="${siteProperty.name eq 'bi.metabase.secret'}"> aria-describedby="biMetabaseSecretHelpText"</c:if><c:if test="${siteProperty.name eq 'mail.password'}"> aria-describedby="mailPasswordHelpText"</c:if><c:if test="${siteProperty.name eq 'elearning.moodle.token'}"> aria-describedby="elearningMoodleTokenHelpText"</c:if><c:if test="${siteProperty.name eq 'elearning.lrs.key'}"> aria-describedby="elearningLrsKeyHelpText"</c:if><c:if test="${siteProperty.name eq 'elearning.lrs.secret'}"> aria-describedby="elearningLrsSecretHelpText"</c:if><c:if test="${siteProperty.name eq 'elearning.perls.clientId'}"> aria-describedby="elearningPerlsClientIdHelpText"</c:if><c:if test="${siteProperty.name eq 'elearning.perls.secret'}"> aria-describedby="elearningPerlsSecretHelpText"</c:if> />
+                  <input type="password" class="no-gap" name="${siteProperty.name}" value="" autocomplete="new-password" placeholder="<c:out value="${empty siteProperty.value ? 'not set' : 'value hidden; leave blank to keep it'}"/>"<c:if test="${siteProperty.name eq 'captcha.google.secretkey'}"> aria-describedby="captchaGoogleSecretkeyHelpText"</c:if><c:if test="${siteProperty.name eq 'captcha.turnstile.secretkey'}"> aria-describedby="captchaTurnstileSecretkeyHelpText"</c:if><c:if test="${siteProperty.name eq 'bi.superset.secret'}"> aria-describedby="biSupersetSecretHelpText"</c:if><c:if test="${siteProperty.name eq 'bi.metabase.secret'}"> aria-describedby="biMetabaseSecretHelpText"</c:if><c:if test="${siteProperty.name eq 'mail.password'}"> aria-describedby="mailPasswordHelpText"</c:if><c:if test="${siteProperty.name eq 'social.instagram.accessToken'}"> aria-describedby="socialInstagramAccessTokenHelpText"</c:if> />
                   <%-- issue #454: optional expiry, so a credential that's known to expire (e.g. an
                        OAuth token) shows up on the /admin/integrations hub before it lapses --%>
                   <label class="no-gap"><small>Expires (optional)</small>
@@ -128,10 +128,16 @@
               </select>
             </c:when>
             <c:when test="${siteProperty.name eq 'theme.footer.style'}">
-              <select name="${siteProperty.name}">
+              <select name="${siteProperty.name}" aria-describedby="themeFooterStyleHelpText">
                 <option value="default"<c:if test="${siteProperty.value eq 'default'}"> selected</c:if>>Basic</option>
                 <option value="custom"<c:if test="${siteProperty.value eq 'custom'}"> selected</c:if>>Custom XML</option>
                 <option value="none"<c:if test="${siteProperty.value eq 'none'}"> selected</c:if>>None</option>
+              </select>
+            </c:when>
+            <c:when test="${siteProperty.name eq 'theme.footer.layout'}">
+              <select name="${siteProperty.name}" aria-describedby="themeFooterLayoutHelpText">
+                <option value="footer.default"<c:if test="${siteProperty.value ne 'footer.4column'}"> selected</c:if>>Default Footer</option>
+                <option value="footer.4column"<c:if test="${siteProperty.value eq 'footer.4column'}"> selected</c:if>>4-Column Footer</option>
               </select>
             </c:when>
             <c:when test="${siteProperty.type eq 'font'}">
@@ -181,7 +187,7 @@
             </c:when>
             <c:when test="${siteProperty.type eq 'boolean'}">
               <div class="switch large">
-                <input class="switch-input" id="${siteProperty.name}-yes-no" type="checkbox" name="${siteProperty.name}" value="true"<c:if test="${siteProperty.value eq 'true'}"> checked</c:if><c:if test="${siteProperty.name eq 'bi.enabled'}"> aria-describedby="biEnabledHelpText"</c:if><c:if test="${siteProperty.name eq 'bi.metabase.enabled'}"> aria-describedby="biMetabaseEnabledHelpText"</c:if><c:if test="${siteProperty.name eq 'mail.ssl'}"> aria-describedby="mailSslHelpText"</c:if><c:if test="${siteProperty.name eq 'site.online'}"> aria-describedby="siteOnlineHelpText"</c:if><c:if test="${siteProperty.name eq 'site.api'}"> aria-describedby="siteApiHelpText"</c:if><c:if test="${siteProperty.name eq 'site.sitemap.xml'}"> aria-describedby="siteSitemapXmlHelpText"</c:if><c:if test="${siteProperty.name eq 'site.cart'}"> aria-describedby="siteCartHelpText"</c:if><c:if test="${siteProperty.name eq 'site.registrations'}"> aria-describedby="siteRegistrationsHelpText"</c:if><c:if test="${siteProperty.name eq 'site.login'}"> aria-describedby="siteLoginHelpText"</c:if><c:if test="${siteProperty.name eq 'site.confirmation'}"> aria-describedby="siteConfirmationHelpText"</c:if><c:if test="${siteProperty.name eq 'site.newsletter.overlay'}"> aria-describedby="siteNewsletterOverlayHelpText"</c:if><c:if test="${siteProperty.name eq 'llms.enabled'}"> aria-describedby="llmsEnabledHelpText"</c:if><c:if test="${siteProperty.name eq 'elearning.enabled'}"> aria-describedby="elearningEnabledHelpText"</c:if><c:if test="${siteProperty.name eq 'elearning.moodle.enabled'}"> aria-describedby="elearningMoodleEnabledHelpText"</c:if><c:if test="${siteProperty.name eq 'elearning.xapi.enabled'}"> aria-describedby="elearningXapiEnabledHelpText"</c:if><c:if test="${siteProperty.name eq 'elearning.perls.enabled'}"> aria-describedby="elearningPerlsEnabledHelpText"</c:if>>
+                <input class="switch-input" id="${siteProperty.name}-yes-no" type="checkbox" name="${siteProperty.name}" value="true"<c:if test="${siteProperty.value eq 'true'}"> checked</c:if><c:if test="${siteProperty.name eq 'bi.enabled'}"> aria-describedby="biEnabledHelpText"</c:if><c:if test="${siteProperty.name eq 'bi.metabase.enabled'}"> aria-describedby="biMetabaseEnabledHelpText"</c:if><c:if test="${siteProperty.name eq 'mail.ssl'}"> aria-describedby="mailSslHelpText"</c:if><c:if test="${siteProperty.name eq 'site.online'}"> aria-describedby="siteOnlineHelpText"</c:if><c:if test="${siteProperty.name eq 'site.api'}"> aria-describedby="siteApiHelpText"</c:if><c:if test="${siteProperty.name eq 'site.sitemap.xml'}"> aria-describedby="siteSitemapXmlHelpText"</c:if><c:if test="${siteProperty.name eq 'site.cart'}"> aria-describedby="siteCartHelpText"</c:if><c:if test="${siteProperty.name eq 'site.registrations'}"> aria-describedby="siteRegistrationsHelpText"</c:if><c:if test="${siteProperty.name eq 'site.login'}"> aria-describedby="siteLoginHelpText"</c:if><c:if test="${siteProperty.name eq 'site.confirmation'}"> aria-describedby="siteConfirmationHelpText"</c:if><c:if test="${siteProperty.name eq 'site.newsletter.overlay'}"> aria-describedby="siteNewsletterOverlayHelpText"</c:if><c:if test="${siteProperty.name eq 'llms.enabled'}"> aria-describedby="llmsEnabledHelpText"</c:if><c:if test="${siteProperty.name eq 'features.layout-editor'}"> aria-describedby="featuresLayoutEditorHelpText"</c:if><c:if test="${siteProperty.name eq 'features.item-tags-facet-search'}"> aria-describedby="featuresItemTagsFacetSearchHelpText"</c:if>>
                 <label class="switch-paddle" for="${siteProperty.name}-yes-no">
                 <span class="switch-active" aria-hidden="true">Yes</span>
                 <span class="switch-inactive" aria-hidden="true">No</span>
@@ -199,7 +205,7 @@
               <input type="text" class="no-gap" name="${siteProperty.name}" value="${html:toHtml(siteProperty.value)}" disabled />
             </c:when>
             <c:otherwise>
-              <input type="text" class="no-gap" name="${siteProperty.name}" value="${html:toHtml(siteProperty.value)}"<c:if test="${siteProperty.name eq 'analytics.service'}"> aria-describedby="analyticsServiceHelpText"</c:if><c:if test="${siteProperty.name eq 'analytics.google.key'}"> aria-describedby="analyticsGoogleKeyHelpText"</c:if><c:if test="${siteProperty.name eq 'analytics.google.tagmanager'}"> aria-describedby="analyticsGoogleTagmanagerHelpText"</c:if><c:if test="${siteProperty.name eq 'analytics.simplifi.value'}"> aria-describedby="analyticsSimplifiValueHelpText"</c:if><c:if test="${siteProperty.name eq 'analytics.brandcdn.value'}"> aria-describedby="analyticsBrandcdnValueHelpText"</c:if><c:if test="${siteProperty.name eq 'analytics.brandcdn.value2'}"> aria-describedby="analyticsBrandcdnValueHelpText"</c:if><c:if test="${siteProperty.name eq 'captcha.service'}"> aria-describedby="captchaServiceHelpText"</c:if><c:if test="${siteProperty.name eq 'captcha.google.sitekey'}"> aria-describedby="captchaGoogleSitekeyHelpText"</c:if><c:if test="${siteProperty.name eq 'captcha.turnstile.sitekey'}"> aria-describedby="captchaTurnstileSitekeyHelpText"</c:if><c:if test="${siteProperty.name eq 'bi.superset.id'}"> aria-describedby="biSupersetIdHelpText"</c:if><c:if test="${siteProperty.name eq 'mail.from_address'}"> aria-describedby="mailFromAddressHelpText"</c:if><c:if test="${siteProperty.name eq 'mail.from_name'}"> aria-describedby="mailFromNameHelpText"</c:if><c:if test="${siteProperty.name eq 'mail.host_name'}"> aria-describedby="mailHostNameHelpText"</c:if><c:if test="${siteProperty.name eq 'mail.port'}"> aria-describedby="mailPortHelpText"</c:if><c:if test="${siteProperty.name eq 'mail.username'}"> aria-describedby="mailUsernameHelpText"</c:if><c:if test="${siteProperty.name eq 'site.name'}"> aria-describedby="siteNameHelpText"</c:if><c:if test="${siteProperty.name eq 'site.name.keyword'}"> aria-describedby="siteNameKeywordHelpText"</c:if><c:if test="${siteProperty.name eq 'site.description'}"> aria-describedby="siteDescriptionHelpText"</c:if><c:if test="${siteProperty.name eq 'site.keywords'}"> aria-describedby="siteKeywordsHelpText"</c:if><c:if test="${siteProperty.name eq 'site.confirmation.line1'}"> aria-describedby="siteConfirmationLine1HelpText"</c:if><c:if test="${siteProperty.name eq 'site.confirmation.line2'}"> aria-describedby="siteConfirmationLine2HelpText"</c:if><c:if test="${siteProperty.name eq 'site.confirmation.declined.text'}"> aria-describedby="siteConfirmationDeclinedTextHelpText"</c:if><c:if test="${siteProperty.name eq 'site.newsletter.headline'}"> aria-describedby="siteNewsletterHeadlineHelpText"</c:if><c:if test="${siteProperty.name eq 'site.newsletter.message'}"> aria-describedby="siteNewsletterMessageHelpText"</c:if><c:if test="${siteProperty.name eq 'llms.description'}"> aria-describedby="llmsDescriptionHelpText"</c:if> />
+              <input type="text" class="no-gap" name="${siteProperty.name}" value="${html:toHtml(siteProperty.value)}"<c:if test="${siteProperty.name eq 'analytics.service'}"> aria-describedby="analyticsServiceHelpText"</c:if><c:if test="${siteProperty.name eq 'analytics.google.key'}"> aria-describedby="analyticsGoogleKeyHelpText"</c:if><c:if test="${siteProperty.name eq 'analytics.google.tagmanager'}"> aria-describedby="analyticsGoogleTagmanagerHelpText"</c:if><c:if test="${siteProperty.name eq 'analytics.simplifi.value'}"> aria-describedby="analyticsSimplifiValueHelpText"</c:if><c:if test="${siteProperty.name eq 'analytics.brandcdn.value'}"> aria-describedby="analyticsBrandcdnValueHelpText"</c:if><c:if test="${siteProperty.name eq 'analytics.brandcdn.value2'}"> aria-describedby="analyticsBrandcdnValueHelpText"</c:if><c:if test="${siteProperty.name eq 'analytics.retentionDays'}"> aria-describedby="analyticsRetentionDaysHelpText"</c:if><c:if test="${siteProperty.name eq 'captcha.service'}"> aria-describedby="captchaServiceHelpText"</c:if><c:if test="${siteProperty.name eq 'captcha.google.sitekey'}"> aria-describedby="captchaGoogleSitekeyHelpText"</c:if><c:if test="${siteProperty.name eq 'captcha.turnstile.sitekey'}"> aria-describedby="captchaTurnstileSitekeyHelpText"</c:if><c:if test="${siteProperty.name eq 'bi.superset.id'}"> aria-describedby="biSupersetIdHelpText"</c:if><c:if test="${siteProperty.name eq 'mail.from_address'}"> aria-describedby="mailFromAddressHelpText"</c:if><c:if test="${siteProperty.name eq 'mail.from_name'}"> aria-describedby="mailFromNameHelpText"</c:if><c:if test="${siteProperty.name eq 'mail.host_name'}"> aria-describedby="mailHostNameHelpText"</c:if><c:if test="${siteProperty.name eq 'mail.port'}"> aria-describedby="mailPortHelpText"</c:if><c:if test="${siteProperty.name eq 'mail.username'}"> aria-describedby="mailUsernameHelpText"</c:if><c:if test="${siteProperty.name eq 'site.name'}"> aria-describedby="siteNameHelpText"</c:if><c:if test="${siteProperty.name eq 'site.name.keyword'}"> aria-describedby="siteNameKeywordHelpText"</c:if><c:if test="${siteProperty.name eq 'site.description'}"> aria-describedby="siteDescriptionHelpText"</c:if><c:if test="${siteProperty.name eq 'site.keywords'}"> aria-describedby="siteKeywordsHelpText"</c:if><c:if test="${siteProperty.name eq 'site.confirmation.line1'}"> aria-describedby="siteConfirmationLine1HelpText"</c:if><c:if test="${siteProperty.name eq 'site.confirmation.line2'}"> aria-describedby="siteConfirmationLine2HelpText"</c:if><c:if test="${siteProperty.name eq 'site.confirmation.declined.text'}"> aria-describedby="siteConfirmationDeclinedTextHelpText"</c:if><c:if test="${siteProperty.name eq 'site.newsletter.headline'}"> aria-describedby="siteNewsletterHeadlineHelpText"</c:if><c:if test="${siteProperty.name eq 'site.newsletter.message'}"> aria-describedby="siteNewsletterMessageHelpText"</c:if><c:if test="${siteProperty.name eq 'llms.description'}"> aria-describedby="llmsDescriptionHelpText"</c:if><c:if test="${siteProperty.name eq 'analytics.cookieless'}"> aria-describedby="analyticsCookielessHelpText"</c:if><c:if test="${siteProperty.name eq 'analytics.anonymizeIp'}"> aria-describedby="analyticsAnonymizeIpHelpText"</c:if><c:if test="${siteProperty.name eq 'analytics.honorDnt'}"> aria-describedby="analyticsHonorDntHelpText"</c:if><c:if test="${siteProperty.name eq 'analytics.consentRequired'}"> aria-describedby="analyticsConsentRequiredHelpText"</c:if> />
             </c:otherwise>
           </c:choose>
           <c:if test="${siteProperty.name eq 'analytics.service'}">
@@ -217,6 +223,21 @@
           <c:if test="${siteProperty.name eq 'analytics.brandcdn.value'}">
             <p class="help-text" id="analyticsBrandcdnValueHelpText">Two path values that together form a Brand CDN autoscript tag URL (tag.brandcdn.com/autoscript/&lt;value&gt;/&lt;value 2&gt;), provided by Brand CDN when setting up tracking with them. Both fields must be set for the tag to load; leave both blank if the site isn't using Brand CDN.</p>
           </c:if>
+          <c:if test="${siteProperty.name eq 'analytics.cookieless'}">
+            <p class="help-text" id="analyticsCookielessHelpText">When on, the site's analytics avoid setting a visitor-tracking cookie -- useful for staying under jurisdictions' cookie-consent-banner requirements. This is independent of the consent and Do-Not-Track settings below; all four privacy controls can be combined.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'analytics.anonymizeIp'}">
+            <p class="help-text" id="analyticsAnonymizeIpHelpText">When on, the visitor's IP address is truncated before analytics records it, so individual visitors can't be pinpointed by location. Independent of the retention window below, which controls how long records (anonymized or not) are kept at all.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'analytics.honorDnt'}">
+            <p class="help-text" id="analyticsHonorDntHelpText">When on, a visitor's browser-level Do Not Track or Global Privacy Control signal suppresses analytics scripts on that visit entirely -- a stronger opt-out than the anonymization above, since no record is created at all. Off by default because DNT/GPC has no legal enforcement in most jurisdictions and many sites ignore it; turn this on if the site's privacy policy commits to honoring it.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'analytics.consentRequired'}">
+            <p class="help-text" id="analyticsConsentRequiredHelpText">When on, visitors see an accept/decline banner and analytics scripts (and video embeds) only load after they accept. When off (the shipped default), analytics and video load immediately for everyone and the banner never appears -- there's no in-between "banner shown but analytics load anyway" state.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'analytics.retentionDays'}">
+            <p class="help-text" id="analyticsRetentionDaysHelpText">Also used outside analytics: this same window governs how long <code>web_page_hits</code> rows are kept (the nightly Web Page Hits Cleanup job deletes hits older than this many days) in addition to controlling the visitor-PII scrub on the <a href="${ctx}/admin/analytics-retention">Analytics Retention</a> page. Changing it for one reason changes both. Accepted range is 1-3650 days; blank or non-numeric input falls back to 365, and an out-of-range number is silently clamped to 1 or 3650 rather than rejected -- double-check the saved value here after submitting.</p>
+          </c:if>
           <c:if test="${siteProperty.name eq 'captcha.service'}">
             <p class="help-text" id="captchaServiceHelpText">Chooses which CAPTCHA challenge protects the site's public forms. Supported values are "google" (Google reCAPTCHA v2, using the Google Site Key and Secret Key below) and "turnstile" (Cloudflare Turnstile, using the Turnstile Site Key and Secret Key below). This is a single site-wide choice -- every form uses the same provider. Leave this blank, or leave the chosen provider's Site Key blank, to fall back to the platform's built-in text-image challenge instead.</p>
           </c:if>
@@ -227,7 +248,28 @@
             <p class="help-text" id="captchaTurnstileSitekeyHelpText">The public key that connects the site's forms to <a href="https://developers.cloudflare.com/turnstile/" target="_blank" rel="noreferrer">Cloudflare Turnstile</a>, a free CAPTCHA alternative to Google reCAPTCHA. It's sent to every visitor's browser, so it's safe to expose. Unlike Google reCAPTCHA v3, Turnstile needs no score-threshold tuning -- it's a pass/fail challenge, matching how this site's reCAPTCHA v2 integration already behaves. To get one, sign in to the Cloudflare dashboard's Turnstile section, add a site, and choose the widget mode of your choice; Cloudflare issues a Site Key and Secret Key together. Only takes effect when Captcha Service above is set to "turnstile".</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'mailing-list.service'}">
-            <p class="help-text" id="mailingListServiceHelpText">The only supported value today is "mailchimp" (case-insensitive). Any other value -- including a different service's name -- disables mailing-list sending entirely, the same as leaving this blank; nothing routes to a different provider based on what's typed here.</p>
+            <p class="help-text" id="mailingListServiceHelpText">The only supported value today is "mailchimp" (case-insensitive). Any other value -- including the shipped default of "None", or a different service's name -- disables mailing-list sending entirely, the same as leaving this blank; nothing routes to a different provider based on what's typed here.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'mailing-list.mailchimp.apiKey'}">
+            <p class="help-text" id="mailingListMailchimpApiKeyHelpText">Your MailChimp account's API key, from MailChimp's Account &gt; Extras &gt; API keys page. Both this and the Audience/List Id below must be set for MailChimp sync to work. This value is stored encrypted and always appears blank here after saving; leave it blank to keep the current key, or enter a new value to replace it.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'mailing-list.mailchimp.listId'}">
+            <p class="help-text" id="mailingListMailchimpListIdHelpText">The Audience ID (MailChimp calls this a "List Id" in its older API docs) of the MailChimp audience new subscribers sync to. Find it in MailChimp under Audience &gt; Settings &gt; Audience name and defaults.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'mailing-list.zerobounce.apiKey'}">
+            <p class="help-text" id="mailingListZerobounceApiKeyHelpText">Optional. A <a href="https://www.zerobounce.net/" target="_blank" rel="noreferrer">ZeroBounce</a> API key, used to validate email addresses' deliverability (catching typos, disposable addresses, and spam traps) in the background -- a nightly job checks any email that's never been validated, in batches, and skips cleanly with no error if this is left blank. This value is stored encrypted and always appears blank here after saving; leave it blank to keep the current key, or enter a new value to replace it.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'mailing-list.quarantine.alertThresholdPercent'}">
+            <p class="help-text" id="mailingListQuarantineAlertThresholdPercentHelpText">When the percentage of mailing-list members with a poor deliverability status (from ZeroBounce validation above) exceeds this, the "Mailing List Spam Rate" tile on the Community dashboard turns red. Like the Security Settings alert tiles, this is a passive dashboard indicator only -- nothing emails or pages anyone. Default is 10%.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'mailing-list.confirmation.expiryDays'}">
+            <p class="help-text" id="mailingListConfirmationExpiryDaysHelpText">How many days a double opt-in confirmation link stays valid before it expires. Only relevant for mailing lists with double opt-in enabled -- a subscriber who confirms after this window has passed needs to sign up again. Default is 7 days.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'theme.footer.style'}">
+            <p class="help-text" id="themeFooterStyleHelpText">"Basic" shows the platform's built-in footer (custom text, privacy/terms links, controlled by the Site Settings page). "Custom XML" shows the footer chosen below under Footer Layout, editable through the on-page footer editor. "None" hides the footer entirely.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'theme.footer.layout'}">
+            <p class="help-text" id="themeFooterLayoutHelpText">Chooses which footer design is used. Only takes effect when Footer Style above is set to "Custom XML".</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'captcha.google.secretkey'}">
             <p class="help-text" id="captchaGoogleSecretkeyHelpText">The private key the server uses to verify captcha responses with Google. Never share it or commit it to source control. Google generates it together with the Site Key above, on the same reCAPTCHA admin console page; it's a similar-length alphanumeric string. This value is stored encrypted and always appears blank here after saving. Leave it blank to keep the current key, or enter a new value to replace it.</p>
@@ -277,17 +319,14 @@
           <c:if test="${siteProperty.name eq 'security.rateLimit.usernameWindowMinutes'}">
             <p class="help-text" id="securityRateLimitUsernameWindowMinutesHelpText">The rolling time window, in minutes, the per-username attempt count above is measured over. Default is 30 minutes.</p>
           </c:if>
-          <c:if test="${siteProperty.name eq 'elearning.enabled'}">
-            <p class="help-text" id="elearningEnabledHelpText">Master switch for all three e-learning integrations below (Moodle, LRS xAPI, PERLS) -- turning this off disables all of them regardless of their own individual toggles. Each integration still needs its own toggle turned on and configured to actually do anything.</p>
+          <c:if test="${siteProperty.name eq 'security.ipRequestRateAlertThreshold'}">
+            <p class="help-text" id="securityIpRequestRateAlertThresholdHelpText">When the busiest single non-bot IP address exceeds this many page requests in an hour, the "Request Rate Spike" tile on the Site Analytics dashboard turns red. This is a passive dashboard indicator only -- nothing emails, texts, or otherwise pages anyone, so someone has to actually look at the dashboard to notice. Default is 300.</p>
           </c:if>
-          <c:if test="${siteProperty.name eq 'elearning.moodle.enabled'}">
-            <p class="help-text" id="elearningMoodleEnabledHelpText">Moodle is the only one of the three e-learning integrations below with a real, working connection today (course listings, calendar events) -- see the URL field's help text for why LRS xAPI and PERLS currently don't connect to anything external.</p>
+          <c:if test="${siteProperty.name eq 'security.geoAnomalyBaselineDays'}">
+            <p class="help-text" id="securityGeoAnomalyBaselineDaysHelpText">How many days of "normal" traffic, immediately before the Recent Window below, the Geo Anomaly tile compares against to decide whether a country showing up now is new. Same passive-dashboard-only caveat as the alert threshold above -- see that note. Default is 30 days.</p>
           </c:if>
-          <c:if test="${siteProperty.name eq 'elearning.moodle.token'}">
-            <p class="help-text" id="elearningMoodleTokenHelpText">A Moodle web services token for a service account with permission to read courses and calendar events. Generate one in Moodle under Site administration &gt; Server &gt; Web services &gt; Manage tokens. This value is stored encrypted and always appears blank here after saving; leave it blank to keep the current token.</p>
-          </c:if>
-          <c:if test="${siteProperty.name eq 'elearning.xapi.enabled'}">
-            <p class="help-text" id="elearningXapiEnabledHelpText">This does not currently connect to anything external -- there's no code path today that forwards an xAPI statement to the LRS URL/Key/Secret below. xAPI-shaped activity is still recorded, but only into this site's own database, viewable on the Activity page in this admin. Turning this on has no other effect right now.</p>
+          <c:if test="${siteProperty.name eq 'security.geoAnomalyRecentHours'}">
+            <p class="help-text" id="securityGeoAnomalyRecentHoursHelpText">How many hours of the most recent traffic the Geo Anomaly tile checks for a country that wasn't among the top 5 during the Baseline Window above. A shorter window reacts faster to a new source of traffic but is noisier with normal day-to-day variation. Default is 24 hours.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'elearning.lrs.url'}">
             <p class="help-text" id="elearningLrsUrlHelpText">This site's LRS xAPI integration doesn't currently forward anything to an external Learning Record Store -- see the toggle above. This field, together with LRS Key and LRS Secret below, is unused by any code path today. xAPI is a learning-data standard created by the DoD's Advanced Distributed Learning (ADL) Initiative and encouraged for DoD systems under DoD Instruction 1322.26. ADL's own reference LRS (<a href="https://github.com/adlnet/ADL_LRS" target="_blank" rel="noreferrer">adlnet/ADL_LRS</a>) is now archived following the Initiative's 2025 shutdown. <a href="https://github.com/yetanalytics/lrsql" target="_blank" rel="noreferrer">Yet Analytics' SQL LRS</a> -- built by the first vendor to pass the DoD's full ADL LRS Test Suite -- is an actively maintained open-source alternative, for whenever this integration is built out.</p>
@@ -314,7 +353,7 @@
             <p class="help-text" id="elearningPerlsSecretHelpText">The OAuth client secret paired with the Client Id above. This value is stored encrypted and always appears blank here after saving. See the toggle above for why this integration has no known live server to use it against today.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'bi.enabled'}">
-            <p class="help-text" id="biEnabledHelpText">Turns on embedding dashboards from a separately hosted Apache Superset instance (this does not install or host Superset itself). There is currently no admin screen for placing a dashboard on a page -- a developer adds one by hand-editing that page's XML template with a <code>dashboardValue</code> (the Superset dashboard ID) and <code>dashboardEmbeddedId</code> (the embed ID Superset generates when embedding is enabled for that dashboard).</p>
+            <p class="help-text" id="biEnabledHelpText">Despite the generic name, this only turns on embedding from a separately hosted Apache Superset instance (this does not install or host Superset itself) -- it has no effect on Metabase (its own "Enable Metabase?" toggle below controls that) or on Power BI (which needs no toggle at all; see the Power BI note on this page). There is currently no admin screen for placing a dashboard on a page -- a developer adds one by hand-editing that page's XML template with a <code>dashboardValue</code> (the Superset dashboard ID) and <code>dashboardEmbeddedId</code> (the embed ID Superset generates when embedding is enabled for that dashboard).</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'bi.superset.url'}">
             <p class="help-text" id="biSupersetUrlHelpText">The base URL of your organization's Superset instance, for example <code>https://superset.example.com</code>. That instance must have the <code>EMBEDDED_SUPERSET</code> feature flag enabled and CORS configured to allow this site's domain before embedding will work.</p>
@@ -383,10 +422,25 @@
             <p class="help-text" id="siteSitemapXmlHelpText">Turns /sitemap.xml on or off. Also requires "Is online?" above to be on -- both toggles are checked, and either one being off stops the sitemap from generating.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'llms.enabled'}">
-            <p class="help-text" id="llmsEnabledHelpText">Turns /llms.txt on or off -- a curated, markdown-formatted summary of this site for LLM and agentic-browsing tools (a different audience from the search-engine crawlers robots.txt and sitemap.xml address). When off, /llms.txt returns a 404. Like the sitemap toggle, this also requires "Is online?" above to be on -- either one being off stops /llms.txt from generating. A static config/cms/llms.txt file on the server, if present, is always served instead of the generated version, regardless of either setting.</p>
+            <p class="help-text" id="llmsEnabledHelpText">Turns /llms.txt on or off -- a curated, markdown-formatted summary of this site for LLM and agentic-browsing tools (a different audience from the search-engine crawlers robots.txt and sitemap.xml address). When off, /llms.txt returns a 404. Like the sitemap toggle, this also requires "Is online?" (<code>site.online</code>, set on the <a href="${ctx}/admin/site-properties">Site Settings</a> page, not here) to be on -- either one being off stops /llms.txt from generating. A static config/cms/llms.txt file on the server, if present, is always served instead of the generated version, regardless of either setting.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'features.layout-editor'}">
+            <p class="help-text" id="featuresLayoutEditorHelpText">Turns the visual page-layout editing tools on the web page designer on or off. Ships on (the existing, already-shipped behavior) -- this exists as an off-switch, not an opt-in.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'features.item-tags-facet-search'}">
+            <p class="help-text" id="featuresItemTagsFacetSearchHelpText">Turns on the item-tag filter in collection search results. Ships off -- a dark-launched, opt-in feature you turn on when you're ready to use it.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'llms.description'}">
-            <p class="help-text" id="llmsDescriptionHelpText">Optional additional context appended to /llms.txt after the Search engine description above -- for example, which sections of the site an LLM should treat as authoritative, or usage terms specific to automated/agentic consumers. Leave blank to generate /llms.txt from the site's name, description, navigation, and content alone.</p>
+            <p class="help-text" id="llmsDescriptionHelpText">Optional additional context appended to /llms.txt after the site's name and Search engine description (set on the <a href="${ctx}/admin/site-properties">Site Settings</a> page, not here) -- for example, which sections of the site an LLM should treat as authoritative, or usage terms specific to automated/agentic consumers. Leave blank to generate /llms.txt from the site's name, description, navigation, and content alone.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'maps.service.tiles'}">
+            <p class="help-text" id="mapsServiceTilesHelpText">Chooses where map background tiles load from. Must be exactly <code>openstreetmap</code> (the default; no account or key needed) or <code>custom</code> (a self-hosted tile server, using the URL below). Any other value -- including "google" or "apple" -- silently falls back to openstreetmap; there's no Google Maps or Apple Maps tile integration in this app today.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'maps.custom.tileserver.url'}">
+            <p class="help-text" id="mapsCustomTileserverUrlHelpText">Only used when Map Tiles Service above is exactly "custom". Must be a tile URL template containing the literal <code>{z}</code>, <code>{x}</code>, and <code>{y}</code> placeholders, for example <code>https://tiles.example.com/{z}/{x}/{y}.png</code>. An invalid or missing value here falls back to openstreetmap even with "custom" selected above.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'maps.service.geocoder'}">
+            <p class="help-text" id="mapsServiceGeocoderHelpText">Chooses the service used to turn an item's street address into map coordinates automatically. The only supported value is <code>nominatim</code> (OpenStreetMap's free geocoder); any other value, including blank, turns this off -- items keep whatever coordinates were entered by hand. Nominatim's own usage policy caps this at 1 request per second, which the app enforces itself; if deployed across multiple instances, each instance enforces that limit independently, so the effective rate can multiply with instance count.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'site.cart'}">
             <p class="help-text" id="siteCartHelpText">Shows or hides the shopping cart across the site -- the cart link in the menu, add-to-cart buttons, and the cart page itself all check this independently, so it's enforced everywhere it appears, not just in navigation.</p>
@@ -436,20 +490,80 @@
           <c:if test="${siteProperty.name eq 'site.timezone'}">
             <p class="help-text" id="siteTimezoneHelpText">The site's default timezone, used wherever the platform displays or schedules something by time without a more specific timezone already available.</p>
           </c:if>
+          <c:if test="${siteProperty.name eq 'site.online'}">
+            <p class="help-text" id="siteOnlineHelpText">Turning this off swaps the homepage to a "coming soon" splash, hides the main nav menu, and blocks guest (keyless) API access and /sitemap.xml. It does not take other pages offline -- a web page, blog post, wiki page, or item reached by direct URL still renders normally for anonymous visitors while this is off.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'site.login'}">
+            <p class="help-text" id="siteLoginHelpText">Hides the Login link and blocks sign-in for everyone except existing admins, who can always still sign in even while this is off. Unlike "Allow registrations?", this only affects the password sign-in form -- an OAuth/SSO login (if configured) is not gated by this setting.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'site.header.page'}">
+            <p class="help-text" id="siteHeaderPageHelpText">A page path (e.g. <code>/about-us</code>), not a full URL -- and this same field is also editable from the Utility Bar Settings page.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'social.email'}">
+            <p class="help-text" id="socialEmailHelpText">A contact email address shown in the site footer, next to the Telephone number below if both are set. Leave blank to omit the whole contact line from the footer.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'social.phone'}">
+            <p class="help-text" id="socialPhoneHelpText">A contact phone number shown in the site footer, next to the Email Address above if both are set. Leave blank to omit the whole contact line from the footer.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'social.instagram.accessToken'}">
+            <p class="help-text" id="socialInstagramAccessTokenHelpText">A long-lived Instagram Graph API access token, used only by the Instagram feed-embed integration -- unrelated to the Social Profile Links above, which just link out to the platform. Generate one from a Facebook Developer app with the Instagram Graph API product added. This value is stored encrypted and always appears blank here after saving; leave it blank to keep the current token.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'social.instagram.facebookPageValue'}">
+            <p class="help-text" id="socialInstagramFacebookPageValueHelpText">The Facebook Page ID connected to the Instagram Business account being embedded -- required alongside the Access Token above for the Instagram feed-embed integration to authenticate.</p>
+          </c:if>
         </td>
       </tr>
     </c:forEach>
     </tbody>
   </table>
+  <c:if test="${prefix eq 'analytics'}">
+    <p class="help-text">The four privacy toggles above (Cookieless, Anonymize IP, Honor Do-Not-Track, Require consent) each control a different, independent slice of tracking -- turning one on doesn't turn on the others. Analytics Service and the keys below it are unaffected by any of them and load whenever they're set.</p>
+  </c:if>
+  <c:if test="${prefix eq 'social'}">
+    <p class="help-text">The Social Profile Links list above (Facebook, Instagram, etc.) controls the footer icon row. Everything on this page below is unrelated contact info and the separate Instagram feed-embed integration, not more platform links.</p>
+  </c:if>
   <c:if test="${prefix eq 'captcha'}">
     <p class="help-text">Google reCAPTCHA v2 or Cloudflare Turnstile -- whichever is chosen above as the Captcha Service -- protects public forms across the site (for example, the contact form, account registration, newsletter signup, and job/business listings) wherever that form has captcha enabled. Changes take effect immediately on next page load.</p>
     <p><a href="${ctx}/contact-us" target="_blank" class="button radius secondary">Test CAPTCHA</a></p>
   </c:if>
   <c:if test="${prefix eq 'robots'}">
-    <p class="help-text">Controls what <a href="${ctx}/robots.txt" target="_blank" rel="noreferrer">/robots.txt</a> tells web crawlers. Admin pages are always excluded regardless of these settings. Each toggle below opts a specific AI crawler out of reading this site -- on by default, matching how the site behaved before these controls existed. A crawler being "off" here is a request, not an enforcement mechanism: well-behaved crawlers honor robots.txt, but nothing stops a crawler from ignoring it.</p>
+    <div class="callout primary radius">
+      <h6>What this page shows</h6>
+      <p>Controls what <a href="${ctx}/robots.txt" target="_blank" rel="noreferrer">/robots.txt</a> tells web crawlers. Admin pages are always excluded regardless of these settings. Each toggle below opts a specific AI crawler out of reading this site -- on by default, matching how the site behaved before these controls existed. A crawler being "off" here is a request, not an enforcement mechanism: well-behaved crawlers honor robots.txt, but nothing stops a crawler from ignoring it.</p>
+      <p><strong>A static <code>config/cms/robots.txt</code> file on the server, if present, is always served verbatim instead of the generated output -- every toggle below is ignored while that file exists.</strong> If changing a toggle here has no visible effect on the live <code>/robots.txt</code>, that file is almost always why; check with whoever manages the deployment.</p>
+      <p>Unlike <a href="${ctx}/admin/llms-properties">llms.txt</a>, robots.txt has no "Is online?" gate -- it's served the same whether the site is online or not, since it carries no content of its own to protect.</p>
+    </div>
+
+    <h5>When to worry</h5>
+    <div class="callout warning radius">
+      <p><strong>A crawler you disallowed is still showing up in traffic.</strong> robots.txt is an honor-system request, not a block -- a non-compliant crawler (or one ignoring robots.txt entirely, as several vendors' own documentation admits for their on-demand fetchers) will visit regardless. For actual enforcement, that traffic needs to be blocked at the <a href="${ctx}/admin/blocked-ip-list">Blocked IP list</a> or a layer in front of the application, not here.</p>
+      <p><strong>The sitemap line is missing from /robots.txt.</strong> It's only included when both <code>site.url</code> is configured and the <a href="${ctx}/admin/seo-sitemap">sitemap</a> itself is enabled -- a disabled sitemap correctly omits the line rather than advertising a URL that would 404.</p>
+    </div>
+  </c:if>
+  <c:if test="${prefix eq 'llms'}">
+    <div class="callout primary radius">
+      <h6>What this page shows</h6>
+      <p>Controls <a href="${ctx}/llms.txt" target="_blank" rel="noopener">/llms.txt <i class="fa fa-external-link"></i></a>, a curated, markdown-formatted summary of this site for LLM and agentic-browsing tools -- a different audience and format from robots.txt (crawler permissions) and sitemap.xml (page inventory). When enabled, it's generated automatically from the site's name, description, navigation, and content, optionally supplemented by the description field below.</p>
+      <p>A static <code>config/cms/llms.txt</code> file on the server, if present, is always served instead of the generated version, regardless of either toggle below -- if a change here doesn't show up on the live page, check for that file first.</p>
+    </div>
+
+    <h5>When to worry</h5>
+    <div class="callout warning radius">
+      <p><strong>/llms.txt returns a 404 even though it's enabled here.</strong> It also requires the site to be online (<code>site.online</code>, on the <a href="${ctx}/admin/site-properties">Site Settings</a> page) -- either gate being off stops generation.</p>
+      <p><strong>A change to the description or content doesn't appear.</strong> Saving invalidates the cache immediately, so this isn't a staleness issue in normal operation -- check for the static override file above before assuming something's stuck.</p>
+    </div>
   </c:if>
   <c:if test="${prefix eq 'security'}">
-    <p class="help-text">Rate limiting blocks repeated automated attempts (spam form submissions, login brute-forcing) without needing a code change. Changes take effect for new attempts immediately; an IP or username already being watched keeps its previous limit until that tracking window expires.</p>
+    <p class="help-text">This page has two unrelated groups of settings: the four rate-limit fields above throttle repeated automated attempts (spam form submissions, login brute-forcing); the three alert-threshold fields below tune two passive indicator tiles ("Request Rate Spike" and "Geo Anomaly") on the Site Analytics dashboard. Neither group sends an email, text, or any other push notification -- someone has to open the dashboard to see them. For a hard block on a specific address, use the IP Allow/Block List page instead of tightening these numbers.</p>
+    <p class="help-text">A rate-limit change applies to new attempts right away, but an IP address or username that's already being watched keeps its old limit until it stops making attempts for 30 minutes straight -- which won't happen while an attack is still in progress. If you're mid-incident and need the new, stricter limit to apply immediately, restarting the app is the reliable way to do that (it clears the in-memory tracking for everyone, not just the attacker).</p>
+    <p class="help-text">Running on Azure App Service: rate-limit tracking lives in each instance's own memory, not a shared store, so scaling the App Service Plan out to N instances effectively multiplies these limits by N (a request round-robins to whichever instance is free, and each one counts independently). If you scale out and need a hard cap regardless of instance count, put a rate-limiting rule in front of the app (e.g. Azure Front Door or Application Gateway/WAF) rather than relying on these settings alone.</p>
+  </c:if>
+  <c:if test="${prefix eq 'features'}">
+    <p class="help-text">Feature flags are on/off switches for specific pieces of functionality, stored here as plain settings so a feature can be turned on or off without a code deployment -- useful for a staged rollout, or for turning something off quickly if it misbehaves. Each toggle below has its own description of exactly what it controls, since "feature flag" alone doesn't say what a given one does. Running on Azure App Service: a toggle takes effect immediately on the instance you saved it from, and within about a minute on any other instance if the App Service Plan is scaled out.</p>
+  </c:if>
+  <c:if test="${prefix eq 'bi'}">
+    <p class="help-text">This page configures embedded BI dashboards from Superset and Metabase -- separately hosted analytics tools this site links to, not something installed or run by this application. There's a third option, Power BI, that isn't configured here at all: a Power BI report published with "Publish to web" is embedded by placing its URL directly in a page's layout XML (see the <code>powerBi</code> widget), with no site property or admin form involved.</p>
+    <p class="help-text">Best practice: use a dedicated service account for the Superset username/password above, not a personal login, and rotate the Metabase embedding secret if you ever suspect it's been exposed -- anyone holding it can view any dashboard published for embedding. Since Power BI's "Publish to web" reports are public to anyone with the link (no login, no row-level security), never publish anything confidential that way.</p>
   </c:if>
   <c:if test="${prefix eq 'mail'}">
     <p class="help-text">If emails aren't sending, these settings are usually the first place to check -- especially the host, port, username/password, and SSL toggle above. Form submissions, newsletters, and every other outgoing email all go through this same configuration, so a mistake here is site-wide. After making a change, use the Mail Test panel to send yourself a confirmation email before relying on it for real traffic.</p>
@@ -472,6 +586,20 @@
   </c:if>
   <c:if test="${prefix eq 'site'}">
     <p class="help-text">Header text and links have their own settings page (Utility Bar Settings); logo colors, fonts, and site-wide colors have their own (Theme Settings). Some of these fields only take effect together with another one above or below them -- the description for each notes when that's the case.</p>
+    <p class="help-text">This page also has no extra re-authentication step, unlike the MFA and Security pages -- "Is online?" and "Enable API?" below are the two most consequential toggles here, and any already-logged-in admin can flip them.</p>
+  </c:if>
+  <c:if test="${prefix eq 'theme'}">
+    <p class="help-text">Changes here restyle the live site immediately for every visitor. "Custom XML" for Menu Theme or Footer Theme means the header/footer layout is built in the Website Designer (${ctx}/admin/web-container-designer), not on this page -- every other option here is a built-in template. "Match device, let visitor choose" for Color Scheme only has a visible effect once a developer/admin places the color-scheme-toggle widget somewhere on a page; it isn't added automatically.</p>
+    <p class="help-text">The three System Alert colors below are the same values shown on the Utility Bar Settings page -- editing either page changes what the other shows.</p>
+  </c:if>
+  <c:if test="${widgetContext.sharedRequestValueMap['stepUpRequired'] eq 'true'}">
+    <div class="callout radius warning">
+      <p><strong>Re-authentication required</strong> — this page's settings are security-sensitive.
+        Enter your password or 6-digit authenticator code, then click Save again.</p>
+      <input type="password" name="stepUpCredential" maxlength="255"
+             placeholder="Password or authenticator code"
+             title="Enter your password or 6-digit authenticator code"/>
+    </div>
   </c:if>
   <div class="button-container">
     <input type="submit" class="button radius success" value="Save" />
@@ -491,6 +619,7 @@
   <c:choose>
   <c:when test="${siteProperty.name eq 'theme.body.text.color'}">colorSelectorList.push('body');</c:when>
   <c:when test="${siteProperty.name eq 'theme.body.backgroundColor'}">colorSelectorList.push('body');</c:when>
+  <c:when test="${siteProperty.name eq 'theme.link.color'}">colorSelectorList.push('a');</c:when>
   <c:when test="${siteProperty.name eq 'theme.utilitybar.text.color'}">colorSelectorList.push('#platform-menu .utility-bar');</c:when>
   <c:when test="${siteProperty.name eq 'theme.utilitybar.link.color'}">colorSelectorList.push('#platform-menu .utility-bar a');</c:when>
   <c:when test="${siteProperty.name eq 'theme.utilitybar.backgroundColor'}">colorSelectorList.push('#platform-menu .utility-bar');</c:when>
@@ -502,6 +631,8 @@
   <c:when test="${siteProperty.name eq 'theme.topbar.menu.hoverTextColor'}">colorSelectorList.push('#platform-menu ul.menu li > a:hover,#platform-menu ul.menu li.is-active > a,#platform-menu .is-active .is-dropdown-submenu-item a:hover');</c:when>
   <c:when test="${siteProperty.name eq 'theme.topbar.menu.dropdown.backgroundColor'}">colorSelectorList.push('#platform-menu ul.is-dropdown-submenu li.is-dropdown-submenu-item');</c:when>
   <c:when test="${siteProperty.name eq 'theme.topbar.menu.dropdown.text.color'}">colorSelectorList.push('#platform-menu ul.is-dropdown-submenu li.is-dropdown-submenu-item a');</c:when>
+  <c:when test="${siteProperty.name eq 'theme.topbar.menu.activeBackgroundColor'}">colorSelectorList.push('#platform-menu ul.menu .active > a');</c:when>
+  <c:when test="${siteProperty.name eq 'theme.topbar.menu.activeTextColor'}">colorSelectorList.push('#platform-menu ul.menu .active > a');</c:when>
   <c:when test="${siteProperty.name eq 'theme.button.text.color'}">colorSelectorList.push('.button');</c:when>
   <c:when test="${siteProperty.name eq 'theme.button.default.backgroundColor'}">colorSelectorList.push('.button.base');</c:when>
   <c:when test="${siteProperty.name eq 'theme.button.default.hoverBackgroundColor'}">colorSelectorList.push('.button.base:hover, .button.base:focus');</c:when>

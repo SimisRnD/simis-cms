@@ -17,14 +17,14 @@
 package com.simisinc.platform.presentation.widgets.admin.cms;
 
 import com.simisinc.platform.domain.model.cms.Blog;
+import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.persistence.cms.BlogPostRepository;
-import com.simisinc.platform.infrastructure.persistence.cms.BlogPostSpecification;
 import com.simisinc.platform.infrastructure.persistence.cms.BlogRepository;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
+import com.simisinc.platform.presentation.controller.RequestConstants;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
 
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -46,18 +46,23 @@ public class BlogListWidget extends GenericWidget {
     context.getRequest().setAttribute("icon", context.getPreferences().get("icon"));
     context.getRequest().setAttribute("title", context.getPreferences().get("title"));
 
+    // Determine the record paging (mirrors AdminBlogPostListWidget's identical wiring for
+    // /admin/blog-posts -- this list had none at all, defaulting BlogRepository.findAll() to an
+    // unlimited page size, which gets slower and harder to scan as more blogs (categories) are added)
+    int limit = Integer.parseInt(context.getPreferences().getOrDefault("limit", "25"));
+    int page = context.getParameterAsInt("page", 1);
+    int itemsPerPage = context.getParameterAsInt("items", limit);
+    DataConstraints constraints = new DataConstraints(page, itemsPerPage);
+    constraints.setDefaultColumnToSortBy("blog_id");
+    context.getRequest().setAttribute(RequestConstants.RECORD_PAGING, constraints);
+
     // Load the blogs
-    List<Blog> blogList = BlogRepository.findAll();
+    List<Blog> blogList = BlogRepository.findAll(null, constraints);
     context.getRequest().setAttribute("blogList", blogList);
 
-    // Determine the post count
-    BlogPostSpecification blogPostSpecification = new BlogPostSpecification();
-    Map<Long, Long> blogPostCount = new HashMap<>();
-    for (Blog blog : blogList) {
-      blogPostSpecification.setBlogId(blog.getId());
-      long count = BlogPostRepository.findCount(blogPostSpecification);
-      blogPostCount.put(blog.getId(), count);
-    }
+    // Determine the post count for every blog in a single query (previously one findCount() call
+    // per blog in a loop -- an N+1 query pattern that got slower with every blog created)
+    Map<Long, Long> blogPostCount = BlogPostRepository.countGroupedByBlogId();
     context.getRequest().setAttribute("blogPostCount", blogPostCount);
 
     // Show the editor

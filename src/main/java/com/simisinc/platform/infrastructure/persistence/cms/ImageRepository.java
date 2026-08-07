@@ -57,6 +57,10 @@ public class ImageRepository {
       if (specification.getFileType() != null) {
         where.add("LOWER(file_type) = ?", specification.getFileType().toLowerCase());
       }
+      if (specification.getTagId() > -1) {
+        where.add("EXISTS (SELECT 1 FROM image_tag_map WHERE image_id = images.image_id AND image_tag_id = ?)",
+            specification.getTagId());
+      }
     }
     return DB.selectAllFrom(TABLE_NAME, where, constraints, ImageRepository::buildRecord);
   }

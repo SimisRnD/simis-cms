@@ -39,9 +39,9 @@ import com.simisinc.platform.domain.model.items.Item;
  * @author matt rajkowski
  * @created 6/24/21 9:00 PM
  */
-public class NominatimCommmand {
+public class NominatimCommand {
 
-  private static Log LOG = LogFactory.getLog(NominatimCommmand.class);
+  private static Log LOG = LogFactory.getLog(NominatimCommand.class);
 
   private static RateLimiter rateLimit = rateLimit().at1Request().per(SECOND);
 

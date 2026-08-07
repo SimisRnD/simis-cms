@@ -16,36 +16,37 @@
 <%@ taglib prefix="c" uri="jakarta.tags.core" %>
 <%@ taglib prefix="date" uri="/WEB-INF/tlds/date-functions.tld" %>
 <%@ taglib prefix="fn" uri="jakarta.tags.functions" %>
+<%@ taglib prefix="js" uri="/WEB-INF/tlds/javascript-escape.tld" %>
+<jsp:useBean id="userSession" class="com.simisinc.platform.presentation.controller.UserSession" scope="session"/>
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="pageListWiki" class="com.simisinc.platform.domain.model.cms.Wiki" scope="request"/>
 <jsp:useBean id="wikiPageList" class="java.util.ArrayList" scope="request"/>
 <h5>Pages</h5>
 <%--
-  The slug computed here is only a preview for the URL the admin is about to land on -- the
-  server remains authoritative: GenerateWikiPageUniqueIdCommand derives the real, final,
-  collision-checked uniqueId from whatever title is actually saved. This intentionally does not
-  need to match that logic exactly.
+  "New Page" no longer pre-computes a client-side slug or supplies a pageUniqueId -- the editor
+  opens in a real blank/new state with just the typed title carried over, and the server alone
+  generates the final, collision-checked uniqueId from that title at Save time (see
+  WikiEditorWidget.execute()/post() and GenerateWikiPageUniqueIdCommand's dedupe loop). This is
+  what makes the help text below true: a title matching an existing page can no longer be
+  silently routed into editing (and overwriting) it.
 --%>
 <script nonce="${cspNonce}">
-  function slugPreview(title) {
-    return title
-      .toLowerCase()
-      .replace(/&/g, "and")
-      .replace(/[^a-z0-9]+/g, "-")
-      .replace(/^-+|-+$/g, "") || "page";
-  }
   function createWikiPage() {
     var title = document.getElementById("newWikiPageTitle").value.trim();
     if (!title) {
       return false;
     }
-    var slug = slugPreview(title);
     var returnPage = encodeURIComponent("${widgetContext.uri}?wikiId=${pageListWiki.id}");
     window.location.href = "${ctx}/wiki-editor?wikiUniqueId=${pageListWiki.uniqueId}"
-      + "&pageUniqueId=" + encodeURIComponent(slug)
       + "&title=" + encodeURIComponent(title)
       + "&returnPage=" + returnPage;
     return false;
+  }
+  function deleteWikiPage(wikiPageId, title) {
+    var returnPage = encodeURIComponent("${widgetContext.uri}?wikiId=${pageListWiki.id}");
+    return confirmPostAction(
+      "Are you sure you want to DELETE \"" + title + "\"? This cannot be undone.",
+      "${widgetContext.uri}?action=deletePage&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&wikiPageId=" + wikiPageId + "&returnPage=" + returnPage);
   }
 </script>
 <form onsubmit="return createWikiPage();" class="margin-bottom-10">
@@ -55,13 +56,16 @@
       <button type="submit" class="button radius">New Page <i class="fa fa-plus"></i></button>
     </div>
   </div>
+  <p class="help-text">If the title matches an existing page in this wiki, the new page is still
+    created as a separate page -- a numbered suffix (e.g. "-2") is added to its URL so it can
+    never silently open or overwrite the existing one.</p>
 </form>
 <table class="unstriped">
   <thead>
     <tr>
-      <th width="60%">Title</th>
+      <th width="55%">Title</th>
       <th width="20%">Modified</th>
-      <th width="20%" class="text-center">Action</th>
+      <th width="25%" class="text-center">Action</th>
     </tr>
   </thead>
   <tbody>
@@ -79,6 +83,7 @@
         <td class="text-center">
           <a href="${ctx}/${pageListWiki.uniqueId}/${wikiPage.uniqueId}" title="View"><i class="fa fa-eye"></i></a>
           <a href="${ctx}/wiki-editor?wikiUniqueId=${pageListWiki.uniqueId}&pageUniqueId=${wikiPage.uniqueId}&returnPage=${widgetContext.uri}%3FwikiId%3D${pageListWiki.id}" title="Edit"><i class="fa fa-edit"></i></a>
+          <a href="#" title="Delete" onclick="return deleteWikiPage(${wikiPage.id}, '<c:out value="${js:escape(wikiPage.title)}" />');"><i class="fa fa-remove"></i></a>
         </td>
       </tr>
     </c:forEach>

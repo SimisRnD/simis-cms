@@ -21,13 +21,17 @@ import java.nio.charset.StandardCharsets;
 import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
 
+import com.simisinc.platform.application.cms.ContentHtmlCommand;
 import com.simisinc.platform.application.cms.ContentReviewCommand;
 import com.simisinc.platform.application.cms.ContentUsageCommand;
+import com.simisinc.platform.application.cms.EditorPermissionCommand;
 import com.simisinc.platform.domain.model.cms.Content;
 import com.simisinc.platform.infrastructure.database.DataConstraints;
 import com.simisinc.platform.infrastructure.persistence.cms.ContentRepository;
@@ -70,9 +74,45 @@ public class ContentListWidget extends GenericWidget {
     context.getRequest().setAttribute("contentList", contentList);
 
     // For each content block, which page(s) (or filesystem templates) reference it -- drives the
-    // "Used on: ..." display and the "Orphaned" badge (a block with no entry here is unreferenced).
-    Map<String, List<String>> contentUsageMap = ContentUsageCommand.findUsageMap(context.getRequest().getServletContext());
+    // "Used on: ..." display and the "Orphaned" badge (a block with no entry here is unreferenced). A
+    // single scan produces both the real usage map and the templated-prefix locations below (see
+    // ContentUsageCommand#scanUsage), so this page pays for the filesystem walk once, not twice.
+    ContentUsageCommand.UsageScan usageScan = ContentUsageCommand.scanUsage(context.getRequest().getServletContext());
+    Map<String, List<String>> contentUsageMap = usageScan.usageMap();
     context.getRequest().setAttribute("contentUsageMap", contentUsageMap);
+
+    // Which uniqueIds are "Shared" -- more than one usage location, or even a single site-wide
+    // filesystem-template location (see ContentUsageCommand#isShared) -- so the JSP's Shared badge
+    // isn't undercounted for a block like site-footer (exactly one entry in contentUsageMap, but
+    // actually rendered on every page via footer-layout.xml).
+    Set<String> sharedUniqueIds = new LinkedHashSet<>();
+    for (Map.Entry<String, List<String>> entry : contentUsageMap.entrySet()) {
+      if (ContentUsageCommand.isShared(entry.getValue())) {
+        sharedUniqueIds.add(entry.getKey());
+      }
+    }
+    context.getRequest().setAttribute("sharedUniqueIds", sharedUniqueIds);
+
+    // For a content block with no real usage entry above, whether its uniqueId matches a "templated"
+    // per-item pattern instead (e.g. product-details-${item.uniqueId} in products-layout.xml) -- if
+    // so it is genuinely wired to a live template, just not statically provable, so the JSP shows a
+    // "Templated" badge instead of "Orphaned" (issue #499 follow-up).
+    Map<String, List<String>> templatedContentLocations = new LinkedHashMap<>();
+    if (contentList != null) {
+      for (Content content : contentList) {
+        String uniqueId = content.getUniqueId();
+        if (uniqueId == null || contentUsageMap.containsKey(uniqueId)) {
+          continue;
+        }
+        for (Map.Entry<String, List<String>> prefixEntry : usageScan.templatedPrefixLocations().entrySet()) {
+          if (uniqueId.startsWith(prefixEntry.getKey())) {
+            templatedContentLocations.put(uniqueId, prefixEntry.getValue());
+            break;
+          }
+        }
+      }
+    }
+    context.getRequest().setAttribute("templatedContentLocations", templatedContentLocations);
 
     // For each content block, its governed-publish-workflow status label -- drives the Status
     // column. The derivation lives in one place (ContentReviewCommand.listStatusLabel) so the JSP
@@ -105,6 +145,39 @@ public class ContentListWidget extends GenericWidget {
 
     // Show the JSP
     context.setJsp(JSP);
+    return context;
+  }
+
+  /**
+   * Deletes a content block from this list page (issue #499 follow-up: {@link ContentHtmlCommand
+   * #deleteContent} was already fully implemented and audited, but nothing in the UI ever called it).
+   * Reached via {@code command=delete} (see {@code content-list.jsp}'s confirm link), which the
+   * controller routes to this method rather than {@link #execute} or {@link #post} -- see
+   * WebContainerContext#isDelete().
+   *
+   * <p>Uses the same permission tier as every other content-mutating action ({@link
+   * ContentHtmlCommand#performWebAction}) -- editor tier or above, not merely the page's own
+   * "admin"/"content-manager" role gate (see {@link EditorPermissionCommand}) -- so this cannot drift
+   * from the rest of the content system's permission model.
+   */
+  public WidgetContext delete(WidgetContext context) {
+    if (!EditorPermissionCommand.canEditContent(context.getUserSession())) {
+      context.setWarningMessage("You do not have permission to delete content");
+      context.setRedirect(context.getUri());
+      return context;
+    }
+    String uniqueId = context.getParameter("uniqueId");
+    Content content = ContentRepository.findByUniqueId(uniqueId);
+    if (content == null) {
+      context.setWarningMessage("That content was not found; it may have already been deleted");
+      context.setRedirect(context.getUri());
+      return context;
+    }
+    // The actual delete + permission-scoped audit record is ContentHtmlCommand#deleteContent's job
+    // already -- reused here rather than duplicated, since it was already fully implemented and
+    // audited, just unreachable from any UI.
+    context = ContentHtmlCommand.deleteContent(context, content);
+    context.setRedirect(context.getUri());
     return context;
   }
 

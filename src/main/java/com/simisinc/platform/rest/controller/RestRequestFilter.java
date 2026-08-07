@@ -115,8 +115,10 @@ public class RestRequestFilter implements Filter {
 
     boolean isLocal = "localhost".equals(request.getServerName()) || "127.0.0.1".equals(request.getServerName());
 
-    // Check if IP is rate limited
-    if (!isLocal && !RateLimitCommand.isIpAllowedRightNow(ipAddress, false)) {
+    // Check if IP is rate limited (a bucket scoped to the API alone -- see
+    // RateLimitCommand.isApiIpAllowedRightNow for why this must not share a bucket with web
+    // login/forms/newsletter rate limiting on the same IP)
+    if (!isLocal && !RateLimitCommand.isApiIpAllowedRightNow(ipAddress, false)) {
       do429(servletResponse);
       return;
     }
@@ -189,8 +191,9 @@ public class RestRequestFilter implements Filter {
     if (thisApp == null || !thisApp.isEnabled()) {
       LOG.debug("Invalid key");
 
-      // Limit the number of attempts per minute by ip for an invalid key
-      if (!RateLimitCommand.isIpAllowedRightNow(ipAddress, true)) {
+      // Limit the number of attempts per minute by ip for an invalid key (API-only bucket -- see
+      // RateLimitCommand.isApiIpAllowedRightNow)
+      if (!RateLimitCommand.isApiIpAllowedRightNow(ipAddress, true)) {
         do429(servletResponse);
         return;
       }

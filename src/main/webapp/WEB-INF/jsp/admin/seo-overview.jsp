@@ -72,8 +72,9 @@
     <strong><a href="${ctx}/admin/web-pages">Pages</a></strong> &mdash; each page's own edit form
     has a "Show in Sitemap.xml?" toggle plus a change-frequency and priority hint, controlling
     whether and how that page is listed in sitemap.xml. The
-    <a href="${ctx}/admin/seo-sitemap">SEO Sitemap</a> page manages that same setting in bulk,
-    across every page at once, and links to a live preview of the generated sitemap.xml.
+    <a href="${ctx}/admin/seo-sitemap">SEO Sitemap</a> page manages just that toggle in bulk,
+    across every page at once, and links to a live preview of the generated sitemap.xml --
+    change-frequency and priority remain page-by-page, on each page's own edit form.
   </li>
   <li>
     <strong>FAQ content</strong> &mdash; a page built with the FAQ widget automatically gets
@@ -81,8 +82,9 @@
     directly when responding to how-to and Q&amp;A style queries.
   </li>
   <li>
-    <strong><a href="${ctx}/admin">Dashboard search analytics</a></strong> &mdash; the site tracks
-    what visitors search for, including zero-result queries (content gaps worth filling) and
-    trending terms, shown as tiles on the main admin dashboard.
+    <strong><a href="${ctx}/admin/community/search-analytics">Search Analytics</a></strong> &mdash;
+    the site tracks what visitors search for, including zero-result queries (content gaps worth
+    filling) and trending terms, on its own dedicated page -- not tiles on the main admin
+    dashboard, which only shows a 24-hour zero-result count/alert.
   </li>
 </ul>

@@ -25,6 +25,7 @@ import com.simisinc.platform.presentation.widgets.GenericWidget;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 import org.apache.commons.beanutils.BeanUtils;
+import org.apache.commons.lang3.StringUtils;
 
 import java.lang.reflect.InvocationTargetException;
 
@@ -64,6 +65,12 @@ public class BotUserAgentFormWidget extends GenericWidget {
     // Populate the fields
     BotUserAgent botUserAgentBean = new BotUserAgent();
     BeanUtils.populate(botUserAgentBean, context.getParameterMap());
+
+    // Normalize whitespace before the duplicate check -- BotUserAgentRepository's add()/update()
+    // trim before the unique-constrained insert, so checking the raw, untrimmed value here can miss
+    // an existing duplicate and let it fall through to the DB layer, where it fails with a swallowed
+    // SQLException that surfaces as a generic, misleading error instead of "already exists"
+    botUserAgentBean.setUserAgent(StringUtils.trimToNull(botUserAgentBean.getUserAgent()));
 
     // Skip duplicates
     if (BotUserAgentRepository.findByUserAgent(botUserAgentBean.getUserAgent()) != null) {

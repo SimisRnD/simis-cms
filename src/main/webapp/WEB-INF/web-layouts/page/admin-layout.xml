@@ -557,7 +557,7 @@
     </section>
   </page>
 
-  <page name="/admin/mail-properties" role="admin" title="Mail Server Settings">
+  <page name="/admin/mail-properties" role="admin" title="Email Settings">
     <!--<section>-->
       <!--<column class="small-12 cell">-->
         <!--<widget name="breadcrumbs">-->
@@ -702,6 +702,16 @@
     </section>
   </page>
 
+  <page name="/admin/elearning-statements" role="admin" title="xAPI Statements">
+    <section>
+      <column class="small-12 cell">
+        <widget name="xapiStatementList">
+          <title>xAPI Statements</title>
+        </widget>
+      </column>
+    </section>
+  </page>
+
   <page name="/admin/mailing-list-properties" role="admin" title="Mailing List Settings">
     <section>
       <column class="small-12 large-10 cell">
@@ -726,22 +736,22 @@
     <section>
       <column class="small-12 medium-7 cell">
         <widget name="sitePropertiesEditor">
-          <title>Maps Settings</title>
+          <title>Map Settings</title>
           <prefix>maps</prefix>
         </widget>
       </column>
       <column class="medium-5 cell">
         <widget name="content" class="callout primary radius">
           <html><![CDATA[<h4>About Map Services</h4>
-          <ul><li>The Tiles service value can be 'openstreetmap' or 'custom' (a self-hosted tile server; set the Custom Map Tiles Url to a template like https://tiles.example.com/{z}/{x}/{y}.png)</li><li>The Geocoder service value can be 'nominatim'</li></ul>
-<h5>Nominatim Info</h5><p>No heavy uses; 1 request per second maximum.</p>
+          <ul><li>The Tiles Service value must be exactly <code>openstreetmap</code> or <code>custom</code> (a self-hosted tile server; set the Custom Map Tiles URL to a template like https://tiles.example.com/{z}/{x}/{y}.png). Any other value, including "google" or "apple", silently falls back to openstreetmap -- there is no Google Maps or Apple Maps tile integration today.</li><li>The Geocoder Service value must be exactly <code>nominatim</code>; any other value (including blank) turns off automatic address-to-coordinate lookups.</li></ul>
+<h5>Nominatim Usage</h5><p>Nominatim's usage policy caps this at 1 request per second, which this app enforces itself. If deployed with multiple app instances, keep in mind each instance enforces that limit independently -- so N instances can collectively send up to N requests per second.</p>
 ]]></html>
         </widget>
         <widget name="map" class="callout secondary radius">
-          <latitude>36.869648</latitude>
-          <longitude>-76.416138</longitude>
+          <latitude>36.7282</latitude>
+          <longitude>-76.5836</longitude>
           <markerTitle>SimIS HQ</markerTitle>
-          <markerText>Portsmouth, Virginia</markerText>
+          <markerText>Suffolk, Virginia</markerText>
         </widget>
       </column>
     </section>
@@ -1148,17 +1158,6 @@
       </column>
       <column class="small-12 medium-6 cell">
         <widget name="siteStats" class="stats card">
-          <icon>fa-filter</icon>
-          <title>Facet Usage Breakdown</title>
-          <report>facet-usage-breakdown</report>
-          <label>Facet</label>
-          <value>Searches</value>
-          <days>30</days>
-          <limit>10</limit>
-        </widget>
-      </column>
-      <column class="small-12 medium-6 cell">
-        <widget name="siteStats" class="stats card">
           <icon>fa-briefcase</icon>
           <title>Traffic by Solution Type</title>
           <label>Page Views</label>
@@ -1189,6 +1188,7 @@
   <p>These reports come from two separate, independently-recorded systems that don't share a denominator -- don't try to reconcile their totals against each other.</p>
   <p><strong>Top Search Terms</strong> counts page views that included a search query, logged once per page render regardless of what (if anything) was found.</p>
   <p><strong>Zero-Result</strong> and <strong>Trending</strong> search terms count actual search executions across six content types (pages, content, blog, wiki, items, calendar), each with its own real result count. A single visitor search can produce multiple rows here -- one per content type searched.</p>
+  <p>The reports further down break those same search executions down by content type, originating page, and near-miss (low-but-nonzero) result counts, to help narrow down where to focus. Like the tiles above, these are a floor, not a full census -- searches from logged-in staff and DNT/GPC-opted-out visitors aren't recorded at all.</p>
 </div>]]></html>
         </widget>
       </column>
@@ -1233,6 +1233,82 @@
           <report>trending-search-terms</report>
           <label>Search Term</label>
           <value>Searches This Week</value>
+          <limit>10</limit>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 cell">
+        <widget name="siteStats" class="stats card">
+          <icon>fa-filter</icon>
+          <title>Facet Usage Breakdown</title>
+          <report>facet-usage-breakdown</report>
+          <label>Facet</label>
+          <value>Searches</value>
+          <days>30</days>
+          <limit>10</limit>
+        </widget>
+      </column>
+    </section>
+
+    <section class="grid-container">
+      <column class="small-12 cell">
+        <widget name="content" class="margin-bottom-0">
+          <html><![CDATA[<h5 class="platform-dashboard-section-label">By Content Type &amp; Page</h5>]]></html>
+        </widget>
+      </column>
+    </section>
+    <section>
+      <column class="small-12 medium-6 cell">
+        <widget name="siteStats" class="stats card">
+          <icon>fa-list-alt</icon>
+          <title>Search Volume by Content Type</title>
+          <report>search-volume-by-type</report>
+          <label>Content Type</label>
+          <value>Searches</value>
+          <days>30</days>
+          <limit>10</limit>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 cell">
+        <widget name="siteStats" class="stats card">
+          <icon>fa-percentage</icon>
+          <title>Zero-Result Rate by Content Type</title>
+          <report>zero-result-rate-by-type</report>
+          <label>Content Type</label>
+          <value>Zero-Result Rate %</value>
+          <days>30</days>
+          <limit>10</limit>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 cell">
+        <widget name="siteStats" class="stats card">
+          <icon>fa-map</icon>
+          <title>Top Pages Generating Searches</title>
+          <report>top-search-paths</report>
+          <label>Page</label>
+          <value>Searches</value>
+          <days>30</days>
+          <limit>10</limit>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 cell">
+        <widget name="siteStats" class="stats card">
+          <icon>fa-map-marker-alt</icon>
+          <title>Top Pages Generating Zero-Result Searches</title>
+          <report>top-zero-result-search-paths</report>
+          <label>Page</label>
+          <value>Zero-Result Searches</value>
+          <days>30</days>
+          <limit>10</limit>
+        </widget>
+      </column>
+      <column class="small-12 medium-6 cell">
+        <widget name="siteStats" class="stats card">
+          <icon>fa-star-half-stroke</icon>
+          <title>Near-Miss Search Terms</title>
+          <report>near-miss-search-terms</report>
+          <label>Search Term</label>
+          <value>Low-Result Searches</value>
+          <days>30</days>
           <limit>10</limit>
         </widget>
       </column>
@@ -1498,6 +1574,19 @@
 
   <page name="/admin/useful-links" role="admin,content-manager" title="Useful Links">
     <section>
+      <column class="small-12 cell">
+        <widget name="content" class="callout">
+          <uniqueId>admin-content-FF54248C-71B7-4B3C-966F-9B343310F510</uniqueId>
+          <html><![CDATA[<h5>About Useful Links</h5>
+          <p>These two lists fill in the two link columns shown in the footer of every public page on the site &mdash; the left column (<strong>Company</strong>) and the right column (<strong>Support</strong>), as labeled in the site footer.</p>
+          <p>Each row needs a <strong>Name</strong> (the text visitors click) and a <strong>Link</strong>. A Link can be an internal path (e.g. <code>/contact</code>) or a full external URL (e.g. <code>https://example.com</code>) &mdash; both are supported.</p>
+          <p>To remove an entry, clear its <strong>Name</strong> field and save; a row left with no Name is dropped from the list.</p>
+          <p>Looking for the floating action buttons shown on every page instead? See <a href="/admin/sticky-footer-links">Sticky Page Buttons</a>.</p>
+          ]]></html>
+        </widget>
+      </column>
+    </section>
+    <section>
       <column class="small-6 cell">
         <widget name="tableOfContentsEditor">
           <title>Footer Useful Links Column 1</title>
@@ -1514,6 +1603,18 @@
   </page>
 
   <page name="/admin/sticky-footer-links" role="admin,content-manager" title="Sticky Footer Links">
+    <section>
+      <column class="small-12 cell">
+        <widget name="content" class="callout">
+          <uniqueId>admin-content-55EC31E9-5FA5-4A33-95DB-111B8755789F</uniqueId>
+          <html><![CDATA[<h5>About Sticky Page Buttons</h5>
+          <p>This list controls a small floating button bar shown in the bottom-right corner of every public page on the site (it does not appear on admin pages). Unlike <a href="/admin/useful-links">Useful Links</a>, these buttons are hard to miss &mdash; changes here are visible immediately and prominently on every page, so double-check each link before saving.</p>
+          <p>A button automatically hides itself on the exact page it links to, so visitors are never shown a button that just takes them to the page they're already on.</p>
+          <p>Looking for a calmer, footer-column option instead? See <a href="/admin/useful-links">Useful Links</a>.</p>
+          ]]></html>
+        </widget>
+      </column>
+    </section>
     <section>
       <column class="small-6 cell">
         <widget name="tableOfContentsEditor">
@@ -2109,13 +2210,14 @@
     </section>
   </page>
 
-  <page name="/admin/apis" role="admin" title="APIs">
+  <page name="/admin/apis" role="admin" capability="admin:manage" title="APIs">
     <section>
       <column class="small-12 cell">
         <widget name="content" class="callout">
           <title>Example</title>
           <html><![CDATA[
 <pre><code>http -a username:password POST http://localhost:8080/api/oauth2/authorize X-API-Key:&lt;secret_key&gt;</code></pre>
+<p style="font-size:0.875rem">This is a real human user login exchange (a username and password), not a machine-only credential flow. The <code>X-API-Key</code> header is the Client ID shown when editing an App on the <a href="/admin/apps">Apps</a> page -- it identifies which App is calling, but it isn't a secret.</p>
 <br />
 <pre><code>{
   "access_token": "you-receive-this",
@@ -2123,9 +2225,11 @@
   "first_name": "First", "last_name": "Last", "name": "First Last",
   "scope": "create", "token_type": "bearer"
 }</code></pre>
+<p style="font-size:0.875rem">The <code>"scope": "create"</code> value above is a fixed literal returned on every token response -- it isn't currently configurable and nothing in the platform enforces it. The access token grants the full access of whatever role the authenticating user already has, not a narrower scope.</p>
 <br />
 <pre><code>http -A bearer -a &lt;access_token&gt; GET http://localhost:8080/api/me X-API-Key:&lt;secret_key&gt;</code></pre><br />
 <pre><code>http GET http://localhost:8080/api/collections?key=&lt;secret_key&gt;</code></pre>
+<p style="font-size:0.875rem">The APIs table below is a partial reference: it's generated by scanning this app's REST route configuration. <code>oauth2/authorize</code> is handled directly by the security filter rather than the scanned configuration, so it's added as a built-in row ("RestRequestFilter (built-in)") rather than a scanned one -- it does appear below, just not sourced the same way as the rest of the table.</p>
 ]]></html>
         </widget>
       </column>
@@ -2139,7 +2243,7 @@
     </section>
   </page>
 
-  <page name="/admin/apps" role="admin,data-manager" title="Apps">
+  <page name="/admin/apps" role="admin,data-manager" capability="admin:manage" title="Apps">
     <!--<section>-->
       <!--<column class="small-12 cell">-->
         <!--<widget name="breadcrumbs">-->
@@ -2149,6 +2253,19 @@
         <!--</widget>-->
       <!--</column>-->
     <!--</section>-->
+    <section>
+      <column class="small-12 cell">
+        <widget name="content" class="callout">
+          <title>About Apps</title>
+          <html><![CDATA[
+<p>An <strong>App</strong> is a credential record that lets outside software authenticate to this SimIS instance's own REST API (inbound access). It has nothing to do with this CMS's own outbound connections to other services, such as payment processors -- those are configured elsewhere.</p>
+<p>The <strong>Client ID</strong> shown when editing an App is not a secret -- it's safe to embed in scripts or share with a vendor. It identifies the caller but doesn't authenticate it on its own; an actual user login via the flow documented on the <a href="/admin/apis">APIs</a> page is still required for anything beyond public/guest-level data.</p>
+<p>If a credential leaks or is otherwise compromised, use the <strong>Enabled</strong> toggle to disable the App immediately, then use <strong>Delete</strong> once you've confirmed nothing else still needs its history.</p>
+<p>There's no per-owner filtering on this list -- anyone with access to this page can see every App in the system, and now that access is limited to admins. Periodically review the list for Apps you don't recognize.</p>
+]]></html>
+        </widget>
+      </column>
+    </section>
     <section>
       <column class="small-12 medium-7 large-8 cell">
         <widget name="appsList">
@@ -2163,7 +2280,7 @@
     </section>
   </page>
 
-  <page name="/admin/app{?appId}" role="admin,data-manager" title="Edit App">
+  <page name="/admin/app{?appId}" role="admin,data-manager" capability="admin:manage" title="Edit App">
     <section>
       <column class="small-12 cell">
         <widget name="breadcrumbs">
@@ -2183,7 +2300,7 @@
     </section>
   </page>
 
-  <page name="/admin/blocked-ip-list" role="admin" title="Blocked IP list">
+  <page name="/admin/blocked-ip-list" role="admin" capability="admin:manage" title="Blocked IP list">
     <section>
       <column class="small-12 medium-9 large-8 small-order-2 medium-order-1 small-margin-top-10 cell">
         <widget name="blockedIP">
@@ -2198,7 +2315,7 @@
     </section>
   </page>
 
-  <page name="/admin/allowed-ip-list" role="admin" title="Allowed IP list">
+  <page name="/admin/allowed-ip-list" role="admin" capability="admin:manage" title="Allowed IP list">
     <section>
       <column class="small-12 medium-9 large-8 small-order-2 medium-order-1 small-margin-top-10 cell">
         <widget name="allowedIP">
@@ -2213,7 +2330,7 @@
     </section>
   </page>
 
-  <page name="/admin/bot-list" role="admin" title="Bot User Agent List">
+  <page name="/admin/bot-list" role="admin" capability="admin:manage" title="Bot User Agent List">
     <section>
       <column class="small-12 medium-9 large-8 small-order-2 medium-order-1 small-margin-top-10 cell">
         <widget name="botUserAgent">
@@ -2248,7 +2365,7 @@
     </section>
   </page>
 
-  <page name="/admin/capability-grants{?userId}" role="admin" title="Capability Grants">
+  <page name="/admin/capability-grants{?userId}" role="admin" capability="admin:manage" title="Capability Grants">
     <section>
       <column class="small-12 medium-8 large-6 cell">
         <widget name="capabilityGrants">
@@ -2329,7 +2446,7 @@
   <page name="/admin/activity" role="admin,content-manager,community-manager,ecommerce-manager" title="Activity">
     <section>
       <column class="small-12 cell">
-        <widget name="xapiStatementList">
+        <widget name="activityFeed">
           <title>Activity</title>
         </widget>
       </column>
@@ -2358,17 +2475,19 @@
       <column class="medium-5 cell">
         <widget name="content" class="callout primary radius">
           <html><![CDATA[<h4>About MFA Enforcement</h4>
-          <p><strong>Roles that must enrol MFA</strong>: enter a comma-separated list of role codes (e.g. <code>admin</code>) whose members must have two-factor authentication enrolled before accessing any page. Leave blank to disable enforcement — no user is affected until a role is listed.</p>
-          <p><strong>MFA enrolment page</strong>: the URL users are redirected to for MFA setup. This page must be reachable without MFA; the default <code>/my-profile</code> contains the two-factor authentication settings widget.</p>
-          <p class="callout warning radius" style="font-size:0.875rem"><strong>Before enabling:</strong> make sure at least one admin account already has MFA enrolled, and that the enrolment page URL is correct. Enabling enforcement for the <code>admin</code> role while no admin has MFA enrolled will redirect every admin to the enrolment page on their next request — they can still enrol there and recover normally.</p>
-          <p>Changing this setting is recorded in the <a href="/admin/audit-log">Security Audit Log</a> as a <code>setting.update</code> event — that record is the governance evidence for SSP IA-2(1).</p>
+          <p><strong>Roles that must enrol MFA</strong>: enter a comma-separated list of role codes (e.g. <code>admin</code>) whose members must have two-factor authentication enrolled before accessing any page. Role codes are matched case-sensitively. Leave blank to disable enforcement — no user is affected until a role is listed.</p>
+          <p><strong>MFA enrolment page</strong>: the URL users are redirected to for MFA setup. This page must be reachable without MFA; the default <code>/my-profile</code> contains the two-factor authentication settings widget. This field isn't checked to confirm the page actually exists, so a typo here can lock everyone out — see recovery options below.</p>
+          <p><strong>Saving requires re-authentication:</strong> because this is a security-sensitive page, Save will first ask for your password or authenticator code again if you haven't verified recently, then re-apply your changes once confirmed.</p>
+          <p class="callout warning radius" style="font-size:0.875rem"><strong>Before enabling:</strong> make sure at least one admin account already has MFA enrolled, and that the enrolment page URL is correct. Nothing enforces this automatically — enabling enforcement for the <code>admin</code> role while no admin has MFA enrolled will redirect every admin to the enrolment page on their next request.</p>
+          <p><strong>Recovery, if someone is locked out:</strong> a locked-out user can self-service with one of their MFA recovery codes (issued at enrolment). If those are lost too, another sufficiently-privileged admin can use the "Reset MFA" action on that user's page under <a href="/admin/users">Users</a>, which clears their TOTP secret and recovery codes. If the enrolment page URL itself is broken and no admin can reach it, the only remaining route is a direct database update clearing the <code>mfa.required.roles</code> value.</p>
+          <p>Changing this setting is recorded in the <a href="/admin/audit-log">Security Audit Log</a> as a <code>setting.update</code> event — that record is the governance evidence for SSP IA-2(1). Filter the log by event type <code>setting.update</code> and target type <code>site_property</code> to isolate MFA policy changes from every other settings page's saves.</p>
           ]]></html>
         </widget>
       </column>
     </section>
   </page>
 
-  <page name="/admin/audit-log" role="admin" title="Security Audit Log">
+  <page name="/admin/audit-log" role="admin" capability="admin:manage" title="Security Audit Log">
     <section>
       <column class="small-12 cell">
         <widget name="auditLogList">
