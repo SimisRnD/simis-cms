@@ -26,6 +26,7 @@ import java.text.SimpleDateFormat;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Date;
+import java.util.TimeZone;
 
 /**
  * Formats dates
@@ -49,15 +50,19 @@ public class FormatDateCommand {
 
   public static String formatMonthDayYear(Timestamp timestamp) {
     // May 25th 2018
-    SimpleDateFormat formatDayOfMonth  = new SimpleDateFormat("d");
+    TimeZone siteTimeZone = TimeZone.getTimeZone(getSiteZoneId());
+    SimpleDateFormat formatDayOfMonth = new SimpleDateFormat("d");
+    formatDayOfMonth.setTimeZone(siteTimeZone);
     int day = Integer.parseInt(formatDayOfMonth.format(timestamp));
     DateFormat dateFormat = new SimpleDateFormat("MMMM '" + suffixes[day] + ",' yyyy");
+    dateFormat.setTimeZone(siteTimeZone);
     return dateFormat.format(timestamp);
   }
 
   public static String formatTime(Timestamp timestamp) {
     // 3:45 pm
     DateFormat timeFormat = new SimpleDateFormat("h:mm a");
+    timeFormat.setTimeZone(TimeZone.getTimeZone(getSiteZoneId()));
     return timeFormat.format(timestamp);
   }
 

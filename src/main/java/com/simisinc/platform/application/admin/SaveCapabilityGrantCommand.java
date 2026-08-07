@@ -25,6 +25,7 @@ import com.simisinc.platform.domain.model.Capability;
 import com.simisinc.platform.domain.model.CapabilityGrant;
 import com.simisinc.platform.domain.model.User;
 import com.simisinc.platform.infrastructure.persistence.CapabilityGrantRepository;
+import com.simisinc.platform.infrastructure.persistence.RoleCapabilityRepository;
 import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
 
@@ -37,6 +38,15 @@ import com.simisinc.platform.presentation.controller.WidgetContext;
  * @author elizabeth houser
  */
 public class SaveCapabilityGrantCommand {
+
+  /**
+   * Same capability, same self-lockout rationale, as SaveRoleCapabilitiesCommand's
+   * ADMIN_MANAGE_CAPABILITY - see that constant's javadoc. Revoking a *direct* grant of it needs
+   * the identical guard: a capability-only administrator with no role granting admin:manage is
+   * exactly the pattern this feature exists to support, so their direct grant can just as easily
+   * be the last thing standing between the system and a hard lockout as a role's grant can.
+   */
+  private static final String ADMIN_MANAGE_CAPABILITY = "admin:manage";
 
   public static CapabilityGrant grant(WidgetContext context, User targetUser, Capability capability,
       long grantedByUserId, String reason, java.sql.Timestamp expiresAt) throws DataException {
@@ -85,6 +95,25 @@ public class SaveCapabilityGrantCommand {
     if (StringUtils.isBlank(reason)) {
       throw new DataException("A reason is required when revoking a capability grant");
     }
+
+    if (ADMIN_MANAGE_CAPABILITY.equals(capabilityGrant.getCapabilityCode())) {
+      // Effective holders after hypothetically removing *this grant's* contribution - a user
+      // covered by a role that also grants admin:manage is still fine without this direct grant,
+      // so they must not count against the "would this leave zero holders" check.
+      long remainingHoldersAfterRevoke = RoleCapabilityRepository.countDistinctUsersHoldingCapability(
+          capabilityGrant.getCapabilityId(), -1, capabilityGrant.getId());
+      if (remainingHoldersAfterRevoke == 0) {
+        AuditEventCommand.record(context, AuditEventCommand.AUTHORIZATION, "capability_grant.revoke",
+            AuditEventCommand.FAILURE, "capability_grant", capabilityGrant.getCapabilityCode(),
+            targetUser.getUsername(), "Refused: revoking " + targetUser.getUsername() +
+                "'s direct grant would leave no user holding this capability, via any role or direct grant");
+        throw new DataException("Cannot revoke \"" + capabilityGrant.getCapabilityCode() + "\" from " +
+            targetUser.getUsername() + " - no one would be left holding it, via any role or direct grant, " +
+            "and nobody could use this page to grant it back. Grant it to a role or another user first if " +
+            "you really want to remove it here.");
+      }
+    }
+
     boolean wasRevoked = CapabilityGrantRepository.revoke(capabilityGrant.getId());
     if (!wasRevoked) {
       throw new DataException("The capability grant could not be revoked");

@@ -24,9 +24,8 @@ import com.simisinc.platform.application.SaveAppCommand;
 import com.simisinc.platform.domain.model.App;
 import com.simisinc.platform.infrastructure.persistence.AppRepository;
 import com.simisinc.platform.presentation.widgets.GenericWidget;
+import com.simisinc.platform.presentation.controller.AuditEventCommand;
 import com.simisinc.platform.presentation.controller.WidgetContext;
-
-import org.apache.commons.beanutils.BeanUtils;
 
 /**
  * Description
@@ -62,26 +61,49 @@ public class AppFormWidget extends GenericWidget {
 
   public WidgetContext post(WidgetContext context) throws InvocationTargetException, IllegalAccessException {
 
-    // Populate the fields
+    // Read only the fields this form is meant to submit (name, summary, enabled) via explicit,
+    // named parameter reads, rather than BeanUtils.populate() against the full raw parameter map --
+    // that pattern is a mass-assignment-shaped risk (a crafted POST could set publicKey/privateKey/
+    // enabled directly through the bean), currently harmless only because SaveAppCommand happens not
+    // to read those particular fields back off the bean, which is fragile. Matches the same fix
+    // already applied to WebPageFormWidget's pageXml mass-assignment gap.
     App appBean = new App();
-    BeanUtils.populate(appBean, context.getParameterMap());
+    appBean.setId(context.getParameterAsLong("id"));
+    appBean.setName(context.getParameter("name"));
+    appBean.setSummary(context.getParameter("summary"));
+    // Checkbox: present (any value) when checked, absent from the parameter map when unchecked.
+    appBean.setEnabled(context.getParameter("enabled") != null);
     appBean.setCreatedBy(context.getUserId());
+
+    String eventType = appBean.getId() > -1 ? "app.update" : "app.create";
+
+    // Non-blocking duplicate-name check -- surfaced as a warning alongside the save confirmation,
+    // never blocks the save itself.
+    String duplicateNameWarning = SaveAppCommand.checkForDuplicateName(appBean);
 
     // Save the record
     App app = null;
     try {
-      app = SaveAppCommand.saveApp(appBean);
+      app = SaveAppCommand.saveApp(context, appBean);
       if (app == null) {
         throw new AppException("Your information could not be saved due to a system error. Please try again.");
       }
     } catch (DataException | AppException e) {
+      AuditEventCommand.record(context, AuditEventCommand.CONFIGURATION, eventType, AuditEventCommand.FAILURE,
+          "app", String.valueOf(appBean.getId()), appBean.getName(), e.getMessage());
       context.setErrorMessage(e.getMessage());
       context.setRequestObject(appBean);
       return context;
     }
 
+    AuditEventCommand.record(context, AuditEventCommand.CONFIGURATION, eventType, AuditEventCommand.SUCCESS,
+        "app", String.valueOf(app.getId()), app.getName(), null);
+
     // Determine the page to return to
     context.setSuccessMessage("App was saved");
+    if (duplicateNameWarning != null) {
+      context.setWarningMessage(duplicateNameWarning);
+    }
     context.setRedirect("/admin/apps");
     return context;
   }

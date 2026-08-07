@@ -43,6 +43,19 @@ public class ApisListWidget extends GenericWidget {
     for (Map<String, String> service : xmlServiceLoader.getServiceLibrary()) {
       apiList.add(service);
     }
+
+    // POST /api/oauth2/authorize (username/password -> bearer token) is handled as hardcoded
+    // logic directly inside RestRequestFilter rather than a declared <service> entry in
+    // rest-services.xml, so the scan above never finds it. It's the endpoint this admin page's
+    // own worked example is built around, so it's added here as a synthetic row rather than left
+    // missing from the table.
+    Map<String, String> oauth2AuthorizeService = new HashMap<>();
+    oauth2AuthorizeService.put("method", "post");
+    oauth2AuthorizeService.put("endpoint", "oauth2/authorize");
+    oauth2AuthorizeService.put("endpointValue", "oauth2/authorize");
+    oauth2AuthorizeService.put("serviceClass", "RestRequestFilter (built-in)");
+    apiList.add(oauth2AuthorizeService);
+
     apiList.sort(Comparator.comparing(o -> ((String) ((Map) o).get("endpoint"))));
     apiList.sort(Comparator.comparing(o -> ((String) ((Map) o).get("serviceClass"))));
     context.getRequest().setAttribute("apiList", apiList);

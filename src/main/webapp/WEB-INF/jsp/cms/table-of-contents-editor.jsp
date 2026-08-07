@@ -33,7 +33,7 @@
     <tr>
       <th width="10%">Order</th>
       <th width="40%">Name <span class="required">*</span></th>
-      <th width="50%">Web Page Link (/page) <span class="required">*</span></th>
+      <th width="50%">Link (internal path like /page, or full URL like https://example.com) <span class="required">*</span></th>
     </tr>
     </thead>
     <tbody>

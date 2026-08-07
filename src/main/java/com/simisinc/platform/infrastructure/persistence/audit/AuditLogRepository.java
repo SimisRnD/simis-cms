@@ -32,6 +32,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.logging.Log;
@@ -89,6 +90,11 @@ public class AuditLogRepository {
   private static final int DEFAULT_RETENTION_DAYS = 2555; // ~7 years
   private static final int MIN_RETENTION_DAYS = 90;       // a floor so retention cannot erase recent evidence
   private static final int MAX_RETENTION_DAYS = 3650;     // ~10 years, to avoid an unbounded interval
+
+  // The default trailing window for findRecentActivity's two callers (the /admin/activity feed and the
+  // admin dashboard's "Recent Admin Activity" tile) -- kept here, rather than duplicated as a constant on
+  // each widget, so the two stay in sync by construction rather than by convention.
+  public static final int DEFAULT_TRAILING_WINDOW_DAYS = 7;
 
   public static AuditLog save(AuditLog record) {
     return add(record);
@@ -321,8 +327,29 @@ public class AuditLogRepository {
           .addIfExists("target_label = ?", specification.getTargetLabel())
           .addIfExists("occurred >= ?", specification.getOccurredAfter())
           .addIfExists("occurred < ?", specification.getOccurredBefore());
+      // Multi-category filter (issue #1006): a single IN (...) clause rather than the "one query per
+      // category, merge in Java" pattern SiteStatsWidget.findRecentAdminActions used to use for its
+      // 3-category dashboard tile -- this is a clean extension of the existing addIfExists chain (same
+      // ? placeholders, single round trip, real DB-side pagination/count), and the activity feed this
+      // backs is visited far more often, by more roles, than that one dashboard tile ever was.
+      Set<String> categories = specification.getEventCategories();
+      if (categories != null && !categories.isEmpty()) {
+        where.add(inClause("event_category", categories.size()), categories.toArray(new String[0]));
+      }
     }
     return where;
+  }
+
+  /** {@code "column IN (?,?,?)"} with {@code count} placeholders (count must be >= 1). */
+  private static String inClause(String column, int count) {
+    StringBuilder sb = new StringBuilder(column).append(" IN (");
+    for (int i = 0; i < count; i++) {
+      if (i > 0) {
+        sb.append(",");
+      }
+      sb.append("?");
+    }
+    return sb.append(")").toString();
   }
 
   public static List<AuditLog> findAll(AuditLogSpecification specification, DataConstraints constraints) {
@@ -333,6 +360,31 @@ public class AuditLogRepository {
     SqlUtils where = createWhereStatement(specification);
     DataResult result = DB.selectAllFrom(TABLE_NAME, where, constraints, AuditLogRepository::buildRecord);
     return (List<AuditLog>) result.getRecords();
+  }
+
+  /**
+   * The general-purpose "what's been happening lately" query behind the admin activity feed (issue #1006)
+   * and, since it strictly generalizes the old logic, the admin dashboard's "Recent Admin Activity" tile
+   * (see SiteStatsWidget#findRecentAdminActions). A single DB-side query: {@code categories} become an
+   * {@code event_category IN (...)} clause (null/empty means all categories -- there is no need to spell
+   * out the 6-value CATEGORY_LIST here, omitting the IN-clause already means "unconstrained"), {@code after}
+   * is typically "now minus the feed's trailing window" and {@code before} is usually null (no upper bound;
+   * pass one only for a bounded historical window). Real pagination/limiting is the caller's
+   * {@code constraints}, same as every other findAll-style method here.
+   */
+  public static List<AuditLog> findRecentActivity(Set<String> categories, Timestamp after, Timestamp before,
+      DataConstraints constraints) {
+    AuditLogSpecification specification = new AuditLogSpecification();
+    if (categories != null && !categories.isEmpty()) {
+      specification.setEventCategories(categories);
+    }
+    if (after != null) {
+      specification.setOccurredAfter(after);
+    }
+    if (before != null) {
+      specification.setOccurredBefore(before);
+    }
+    return findAll(specification, constraints);
   }
 
   /** Exports every record matching the filter (unpaginated -- a fresh DataConstraints has no page size). */

@@ -26,8 +26,25 @@ function initializeDropzone(containerId, maxFilesize) {
         submitButton.disabled = false;
       });
 
-      this.on("success", function() {
-        successCount++;
+      this.on("success", function(file, response) {
+        // The widget POST behind this dropzone always answers the XHR with HTTP 200 -- even a
+        // server-rejected file (disallowed extension, oversized, etc.) -- so Dropzone's own
+        // status-code-based success/error split can't tell them apart here. When the response is
+        // JSON (it always is on this endpoint) and carries the widget's {"error": "..."} shape,
+        // treat it as a failure instead of a success so the admin doesn't see "uploaded" for a
+        // file that was actually rejected.
+        if (response && typeof response === 'object' && response.error) {
+          errorCount++;
+          if (file.previewElement) {
+            file.previewElement.classList.remove('dz-success');
+            file.previewElement.classList.add('dz-error');
+          }
+          var msg = document.createElement('p');
+          msg.textContent = file.name + ': ' + response.error;
+          errorRegion.appendChild(msg);
+        } else {
+          successCount++;
+        }
         myDropzone.processQueue();
       });
 

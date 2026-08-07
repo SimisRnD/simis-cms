@@ -128,10 +128,16 @@
               </select>
             </c:when>
             <c:when test="${siteProperty.name eq 'theme.footer.style'}">
-              <select name="${siteProperty.name}">
+              <select name="${siteProperty.name}" aria-describedby="themeFooterStyleHelpText">
                 <option value="default"<c:if test="${siteProperty.value eq 'default'}"> selected</c:if>>Basic</option>
                 <option value="custom"<c:if test="${siteProperty.value eq 'custom'}"> selected</c:if>>Custom XML</option>
                 <option value="none"<c:if test="${siteProperty.value eq 'none'}"> selected</c:if>>None</option>
+              </select>
+            </c:when>
+            <c:when test="${siteProperty.name eq 'theme.footer.layout'}">
+              <select name="${siteProperty.name}" aria-describedby="themeFooterLayoutHelpText">
+                <option value="footer.default"<c:if test="${siteProperty.value ne 'footer.4column'}"> selected</c:if>>Default Footer</option>
+                <option value="footer.4column"<c:if test="${siteProperty.value eq 'footer.4column'}"> selected</c:if>>4-Column Footer</option>
               </select>
             </c:when>
             <c:when test="${siteProperty.type eq 'font'}">
@@ -231,6 +237,12 @@
           </c:if>
           <c:if test="${siteProperty.name eq 'mailing-list.service'}">
             <p class="help-text" id="mailingListServiceHelpText">The only supported value today is "mailchimp" (case-insensitive). Any other value -- including a different service's name -- disables mailing-list sending entirely, the same as leaving this blank; nothing routes to a different provider based on what's typed here.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'theme.footer.style'}">
+            <p class="help-text" id="themeFooterStyleHelpText">"Basic" shows the platform's built-in footer (custom text, privacy/terms links, controlled by the Site Settings page). "Custom XML" shows the footer chosen below under Footer Layout, editable through the on-page footer editor. "None" hides the footer entirely.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'theme.footer.layout'}">
+            <p class="help-text" id="themeFooterLayoutHelpText">Chooses which footer design is used. Only takes effect when Footer Style above is set to "Custom XML".</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'captcha.google.secretkey'}">
             <p class="help-text" id="captchaGoogleSecretkeyHelpText">The private key the server uses to verify captcha responses with Google. Never share it or commit it to source control. Google generates it together with the Site Key above, on the same reCAPTCHA admin console page; it's a similar-length alphanumeric string. This value is stored encrypted and always appears blank here after saving. Leave it blank to keep the current key, or enter a new value to replace it.</p>

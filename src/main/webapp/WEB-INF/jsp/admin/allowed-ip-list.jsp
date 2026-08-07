@@ -24,10 +24,22 @@
 <jsp:useBean id="widgetContext" class="com.simisinc.platform.presentation.controller.WidgetContext" scope="request"/>
 <jsp:useBean id="allowedIPList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="recordPaging" class="com.simisinc.platform.infrastructure.database.DataConstraints" scope="request"/>
+<jsp:useBean id="currentClientIp" class="java.lang.String" scope="request"/>
 <c:if test="${!empty title}">
   <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
-<p class="help-text">IPs on this list bypass every other check in <code>WebRequestFilter</code> - the deny list, the <a href="${ctx}/admin/blocked-ip-list">Blocked IP list</a>, and the URL-probe auto-block - so a match here always lets the request through. Accepts a single IPv4/IPv6 address or a CIDR range (e.g. <code>203.0.113.0/24</code>). A separate, server-file-based allow list (<code>config/cms/ip-allow-list.csv</code>) is also still checked and isn't managed here; see <code>docs/ip-blocking.md</code>.</p>
+<p class="help-text">IPs on this list bypass every other check in <code>WebRequestFilter</code> - the deny list, the <a href="${ctx}/admin/blocked-ip-list">Blocked IP list</a>, and the URL-probe auto-block - so a match here always lets the request through, for every page on the site (aside from a couple of hardcoded exemptions, like the <code>/healthz</code> health check), not just specific ones. Accepts a single IPv4/IPv6 address or a CIDR range (e.g. <code>203.0.113.0/24</code>). A separate, server-file-based allow list (<code>config/cms/ip-allow-list.csv</code>) is also still checked and isn't managed here; see <code>docs/ip-blocking.md</code>.</p>
+<div class="callout radius">
+  <p style="margin-bottom:5px;"><strong>Your current request is being seen as:</strong> <code><c:out value="${currentClientIp}"/></code></p>
+  <p class="help-text" style="margin-bottom:0;">This is the same value the <a href="${ctx}/admin/blocked-ip-list">Blocked IP list</a>'s check compares entries against. If it doesn't look like your real IP -- for example, an internal/private address while you're browsing from the public internet -- this deployment is likely behind a reverse proxy or load balancer without <code>CMS_TRUSTED_PROXIES</code> configured, and every visitor is seen as the proxy's own address. Until that's fixed by whoever manages the deployment, IP blocking will silently not work correctly for anyone.</p>
+</div>
+<div class="callout warning radius">
+  <h6>Before you add an entry here</h6>
+  <ul style="margin-bottom:0;">
+    <li>Because an Allowed entry always wins, it's easy to accidentally undo a block: an entry here that also matches a <a href="${ctx}/admin/blocked-ip-list">Blocked IP</a> entry lets that address through anyway, since this list is checked first, before the block list is even consulted. Saving a new block on the Blocked IP page now warns inline when an Allowed entry like this would cover the same address.</li>
+    <li>A block only matches its own address family: an IPv4 entry never matches an IPv6 request and vice versa.</li>
+  </ul>
+</div>
 <%@include file="../page_messages.jspf" %>
 <form id="fileForm" method="post" enctype="multipart/form-data">
   <%-- Required by controller --%>
@@ -51,7 +63,7 @@
   <input type="hidden" name="command" value="downloadCSVFile" />
   <button class="button small secondary radius float-left margin-left-10"><i class="fa fa-download"></i> Download CSV File</button>
 </form>
-<p class="help-text">Upload requires an "IP Address" column, plus optional "Reason", "Date", and "Remove" columns; set Remove to "true" on a row to remove that IP from the allow list instead of adding it. Download includes IP Address, Date, and Reason.</p>
+<p class="help-text">Upload requires an "IP Address" column, plus optional "Reason", "Date", and "Remove" columns; set Remove to "true" on a row to remove that IP from the allow list instead of adding it. Download includes IP Address, Date, and Reason. After an import, read the result message above for the actual succeeded/skipped counts and re-check the list below -- don't assume a generic-looking message means every row landed.</p>
 <table class="unstriped stack">
   <thead>
     <tr>

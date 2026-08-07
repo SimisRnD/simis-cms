@@ -19,6 +19,8 @@ package com.simisinc.platform.application.items;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
 
 import java.sql.Timestamp;
@@ -36,13 +38,14 @@ import com.simisinc.platform.application.items.ItemDateFacetCommand.DateFacetBuc
 class ItemDateFacetCommandTest {
 
   /**
-   * ItemDateFacetCommand.buckets() reads "site.timezone" via LoadSitePropertyCommand (the same
-   * convention CalendarSearchResultsWidget already uses), which otherwise requires a real DB
-   * connection through its Caffeine-backed cache -- mock it to a fixed zone instead.
+   * ItemDateFacetCommand.buckets() reads "site.timezone" via FormatDateCommand.getSiteZoneId()
+   * (the same shared helper CalendarSearchResultsWidget/UpcomingCalendarEventsWidget now use too),
+   * which otherwise requires a real DB connection through LoadSitePropertyCommand's Caffeine-backed
+   * cache -- mock it to a fixed zone instead.
    */
   private static MockedStatic<LoadSitePropertyCommand> mockSiteTimezone() {
     MockedStatic<LoadSitePropertyCommand> mock = mockStatic(LoadSitePropertyCommand.class);
-    mock.when(() -> LoadSitePropertyCommand.loadByName("site.timezone")).thenReturn("America/New_York");
+    mock.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
     return mock;
   }
 

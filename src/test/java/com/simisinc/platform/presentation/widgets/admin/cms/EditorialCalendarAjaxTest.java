@@ -18,11 +18,15 @@ package com.simisinc.platform.presentation.widgets.admin.cms;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mockStatic;
 
 import java.sql.Timestamp;
 import java.text.SimpleDateFormat;
 import java.time.Duration;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -32,6 +36,8 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
 import com.simisinc.platform.WidgetBase;
+import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
+import com.simisinc.platform.application.cms.ContentReviewCommand;
 import com.simisinc.platform.domain.model.cms.Blog;
 import com.simisinc.platform.domain.model.cms.BlogPost;
 import com.simisinc.platform.domain.model.cms.CalendarEvent;
@@ -55,6 +61,19 @@ import com.simisinc.platform.presentation.controller.DataConstants;
 class EditorialCalendarAjaxTest extends WidgetBase {
 
   private static final SimpleDateFormat DATE_FORMAT = new SimpleDateFormat("yyyy-MM-dd");
+
+  /** The zone mockSiteTimezone() pins site.timezone to, and therefore the zone the widget formats in. */
+  private static final ZoneId SITE_ZONE = ZoneId.of("America/New_York");
+
+  /**
+   * The calendar day an entry is anchored on, as the widget computes it: in the configured site
+   * timezone, not the JVM's. Asserting with a JVM-default formatter instead passes only when the
+   * runner's zone happens to agree with the site zone -- it is off by a day on a UTC CI runner for
+   * any instant late enough in the UTC day to still be the previous day in New York.
+   */
+  private static String siteZoneDate(Date date) {
+    return DateTimeFormatter.ISO_LOCAL_DATE.format(date.toInstant().atZone(SITE_ZONE));
+  }
 
   private static Timestamp daysFromNow(int days) {
     return new Timestamp(System.currentTimeMillis() + Duration.ofDays(days).toMillis());
@@ -80,6 +99,19 @@ class EditorialCalendarAjaxTest extends WidgetBase {
   private void mockEmptyPagesAndPosts(MockedStatic<WebPageRepository> pages, MockedStatic<BlogPostRepository> posts) {
     pages.when(() -> WebPageRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
     posts.when(() -> BlogPostRepository.findAll(any(), any())).thenReturn(new ArrayList<>());
+  }
+
+  /**
+   * appendEntry()'s "date" field now goes through FormatDateCommand.getSiteZoneId(), which reads
+   * "site.timezone" via LoadSitePropertyCommand -- otherwise requiring a real DB connection
+   * through its Caffeine-backed cache. Mirrors ItemDateFacetCommandTest's identical helper. Only
+   * needed by tests that emit at least one entry with a non-null date -- an entry filtered out by
+   * statusFilter, or the undated feed (date is always null there), never reaches that code.
+   */
+  private static MockedStatic<LoadSitePropertyCommand> mockSiteTimezone() {
+    MockedStatic<LoadSitePropertyCommand> mock = mockStatic(LoadSitePropertyCommand.class);
+    mock.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn(SITE_ZONE.getId());
+    return mock;
   }
 
   // --- role gate ---
@@ -120,7 +152,8 @@ class EditorialCalendarAjaxTest extends WidgetBase {
 
     try (MockedStatic<WebPageRepository> pages = mockStatic(WebPageRepository.class);
         MockedStatic<BlogPostRepository> posts = mockStatic(BlogPostRepository.class);
-        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class)) {
+        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockSiteTimezone()) {
       pages.when(() -> WebPageRepository.findAll(any(), any())).thenReturn(List.of(page));
       mockEmptyPostsAndEvents(posts, events);
 
@@ -147,7 +180,8 @@ class EditorialCalendarAjaxTest extends WidgetBase {
 
     try (MockedStatic<WebPageRepository> pages = mockStatic(WebPageRepository.class);
         MockedStatic<BlogPostRepository> posts = mockStatic(BlogPostRepository.class);
-        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class)) {
+        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockSiteTimezone()) {
       pages.when(() -> WebPageRepository.findAll(any(), any())).thenReturn(List.of(page));
       mockEmptyPostsAndEvents(posts, events);
 
@@ -173,7 +207,8 @@ class EditorialCalendarAjaxTest extends WidgetBase {
 
     try (MockedStatic<WebPageRepository> pages = mockStatic(WebPageRepository.class);
         MockedStatic<BlogPostRepository> posts = mockStatic(BlogPostRepository.class);
-        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class)) {
+        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockSiteTimezone()) {
       pages.when(() -> WebPageRepository.findAll(any(), any())).thenReturn(List.of(page));
       mockEmptyPostsAndEvents(posts, events);
 
@@ -199,7 +234,8 @@ class EditorialCalendarAjaxTest extends WidgetBase {
 
     try (MockedStatic<WebPageRepository> pages = mockStatic(WebPageRepository.class);
         MockedStatic<BlogPostRepository> posts = mockStatic(BlogPostRepository.class);
-        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class)) {
+        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockSiteTimezone()) {
       pages.when(() -> WebPageRepository.findAll(any(), any())).thenReturn(List.of(page));
       mockEmptyPostsAndEvents(posts, events);
 
@@ -250,11 +286,18 @@ class EditorialCalendarAjaxTest extends WidgetBase {
     post.setBlogId(5L);
     post.setTitle("Upcoming Feature");
     post.setStartDate(daysFromNow(7));
+    // #426 status-ordering fix: "Scheduled" now requires the post to have actually been
+    // published (see postStatus()) -- a future startDate on a post that was never published
+    // (published == null) is the exact ordering bug this fix corrects (see
+    // postWithNoBodyAndNeverPublishedStillShowsDraftNotScheduled below), so this genuinely
+    // "already published, still gated by a future startDate" scenario needs published set too.
+    post.setPublished(daysFromNow(-1));
 
     try (MockedStatic<WebPageRepository> pages = mockStatic(WebPageRepository.class);
         MockedStatic<BlogPostRepository> posts = mockStatic(BlogPostRepository.class);
         MockedStatic<BlogRepository> blogs = mockStatic(BlogRepository.class);
-        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class)) {
+        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockSiteTimezone()) {
       mockEmptyPagesAndEvents(pages, events);
       posts.when(() -> BlogPostRepository.findAll(any(), any())).thenReturn(List.of(post));
       blogs.when(BlogRepository::findAll).thenReturn(List.of(blog));
@@ -287,7 +330,8 @@ class EditorialCalendarAjaxTest extends WidgetBase {
     try (MockedStatic<WebPageRepository> pages = mockStatic(WebPageRepository.class);
         MockedStatic<BlogPostRepository> posts = mockStatic(BlogPostRepository.class);
         MockedStatic<BlogRepository> blogs = mockStatic(BlogRepository.class);
-        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class)) {
+        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockSiteTimezone()) {
       mockEmptyPagesAndEvents(pages, events);
       posts.when(() -> BlogPostRepository.findAll(any(), any())).thenReturn(List.of(post));
       blogs.when(BlogRepository::findAll).thenReturn(List.of(blog));
@@ -317,7 +361,8 @@ class EditorialCalendarAjaxTest extends WidgetBase {
     try (MockedStatic<WebPageRepository> pages = mockStatic(WebPageRepository.class);
         MockedStatic<BlogPostRepository> posts = mockStatic(BlogPostRepository.class);
         MockedStatic<BlogRepository> blogs = mockStatic(BlogRepository.class);
-        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class)) {
+        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockSiteTimezone()) {
       mockEmptyPagesAndEvents(pages, events);
       posts.when(() -> BlogPostRepository.findAll(any(), any())).thenReturn(List.of(post));
       blogs.when(BlogRepository::findAll).thenReturn(List.of(blog));
@@ -344,7 +389,8 @@ class EditorialCalendarAjaxTest extends WidgetBase {
 
     try (MockedStatic<WebPageRepository> pages = mockStatic(WebPageRepository.class);
         MockedStatic<BlogPostRepository> posts = mockStatic(BlogPostRepository.class);
-        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class)) {
+        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockSiteTimezone()) {
       mockEmptyPagesAndPosts(pages, posts);
       events.when(() -> CalendarEventRepository.findAll(any(), any())).thenReturn(List.of(event));
 
@@ -371,7 +417,8 @@ class EditorialCalendarAjaxTest extends WidgetBase {
 
     try (MockedStatic<WebPageRepository> pages = mockStatic(WebPageRepository.class);
         MockedStatic<BlogPostRepository> posts = mockStatic(BlogPostRepository.class);
-        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class)) {
+        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockSiteTimezone()) {
       mockEmptyPagesAndPosts(pages, posts);
       events.when(() -> CalendarEventRepository.findAll(any(), any())).thenReturn(List.of(event));
 
@@ -379,6 +426,241 @@ class EditorialCalendarAjaxTest extends WidgetBase {
     }
 
     Assertions.assertTrue(widgetContext.getJson().contains("\"status\":\"Draft\""), widgetContext.getJson());
+  }
+
+  // --- status-ordering fix (#426 research pass): a page/post mid governed review must never
+  // read as "Scheduled" just because it also has a future publishAt/startDate -- see
+  // EditorialCalendarAjax.pageStatus()/postStatus(). eventStatus() already checked Draft before
+  // Scheduled and needed no fix; there's no equivalent test for it here for that reason. ---
+
+  @Test
+  void pagePendingReviewWithAFuturePublishAtDoesNotShowScheduled() {
+    setRoles(widgetContext, ADMIN);
+    setDateRange(0, 30);
+
+    WebPage page = new WebPage();
+    page.setId(60L);
+    page.setTitle("Mid Review With A Future Date");
+    page.setDraft(false);
+    // hasDraftContent() true (non-blank draftPageXml) + submitted, not yet approved: exactly the
+    // state that used to read as "Scheduled" because the future-publishAt check ran first.
+    page.setDraftPageXml("<xml>staged edit</xml>");
+    page.setDraftStatus(ContentReviewCommand.STATUS_SUBMITTED);
+    page.setSubmittedBy(5L);
+    page.setPublishAt(daysFromNow(5));
+
+    try (MockedStatic<WebPageRepository> pages = mockStatic(WebPageRepository.class);
+        MockedStatic<BlogPostRepository> posts = mockStatic(BlogPostRepository.class);
+        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockSiteTimezone()) {
+      pages.when(() -> WebPageRepository.findAll(any(), any())).thenReturn(List.of(page));
+      mockEmptyPostsAndEvents(posts, events);
+
+      new EditorialCalendarAjax().execute(widgetContext);
+    }
+
+    String json = widgetContext.getJson();
+    Assertions.assertTrue(json.contains("\"status\":\"Pending Review\""), json);
+    Assertions.assertFalse(json.contains("\"status\":\"Scheduled\""),
+        "a page still mid governed review must not read as Scheduled, even with a future publishAt: " + json);
+  }
+
+  @Test
+  void pageWithAnUnsubmittedDraftAndAFuturePublishAtShowsDraftNotScheduled() {
+    // hasDraftContent() true but draftStatus null/never-submitted: ContentReviewCommand.listStatusLabel
+    // reports this as "Draft" (being edited, not yet sent for review), not "Pending Review".
+    setRoles(widgetContext, ADMIN);
+    setDateRange(0, 30);
+
+    WebPage page = new WebPage();
+    page.setId(61L);
+    page.setTitle("Still Being Edited");
+    page.setDraft(false);
+    page.setDraftPageXml("<xml>work in progress</xml>");
+    page.setPublishAt(daysFromNow(5));
+
+    try (MockedStatic<WebPageRepository> pages = mockStatic(WebPageRepository.class);
+        MockedStatic<BlogPostRepository> posts = mockStatic(BlogPostRepository.class);
+        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockSiteTimezone()) {
+      pages.when(() -> WebPageRepository.findAll(any(), any())).thenReturn(List.of(page));
+      mockEmptyPostsAndEvents(posts, events);
+
+      new EditorialCalendarAjax().execute(widgetContext);
+    }
+
+    String json = widgetContext.getJson();
+    Assertions.assertTrue(json.contains("\"status\":\"Draft\""), json);
+    Assertions.assertFalse(json.contains("\"status\":\"Scheduled\""), json);
+  }
+
+  @Test
+  void postPendingReviewWithAFutureStartDateDoesNotShowScheduled() {
+    setRoles(widgetContext, ADMIN);
+    setDateRange(0, 30);
+
+    Blog blog = new Blog();
+    blog.setId(5L);
+    blog.setUniqueId("news");
+
+    BlogPost post = new BlogPost();
+    post.setId(62L);
+    post.setBlogId(5L);
+    post.setTitle("Mid Review Post With A Future Date");
+    // hasDraftContent() true (non-blank body, published still null) + submitted, not yet
+    // approved: exactly the state that used to read as "Scheduled" because the future-startDate
+    // check ran first.
+    post.setBody("Draft body text");
+    post.setPublished(null);
+    post.setDraftStatus(ContentReviewCommand.STATUS_SUBMITTED);
+    post.setSubmittedBy(5L);
+    post.setStartDate(daysFromNow(5));
+
+    try (MockedStatic<WebPageRepository> pages = mockStatic(WebPageRepository.class);
+        MockedStatic<BlogPostRepository> posts = mockStatic(BlogPostRepository.class);
+        MockedStatic<BlogRepository> blogs = mockStatic(BlogRepository.class);
+        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockSiteTimezone()) {
+      mockEmptyPagesAndEvents(pages, events);
+      posts.when(() -> BlogPostRepository.findAll(any(), any())).thenReturn(List.of(post));
+      blogs.when(BlogRepository::findAll).thenReturn(List.of(blog));
+
+      new EditorialCalendarAjax().execute(widgetContext);
+    }
+
+    String json = widgetContext.getJson();
+    Assertions.assertTrue(json.contains("\"status\":\"Pending Review\""), json);
+    Assertions.assertFalse(json.contains("\"status\":\"Scheduled\""),
+        "a post still mid governed review must not read as Scheduled, even with a future startDate: " + json);
+  }
+
+  @Test
+  void postWithNoBodyAndNeverPublishedStillShowsDraftNotScheduled() {
+    // hasDraftContent() requires a non-blank body -- a blank-body post with a future startDate
+    // (an edge case: a post record created but never actually written) falls through to the
+    // post.getPublished() == null check instead, which still correctly reads as Draft, not
+    // Scheduled.
+    setRoles(widgetContext, ADMIN);
+    setDateRange(0, 30);
+
+    Blog blog = new Blog();
+    blog.setId(5L);
+    blog.setUniqueId("news");
+
+    BlogPost post = new BlogPost();
+    post.setId(63L);
+    post.setBlogId(5L);
+    post.setTitle("Empty Shell Post");
+    post.setPublished(null);
+    post.setStartDate(daysFromNow(5));
+
+    try (MockedStatic<WebPageRepository> pages = mockStatic(WebPageRepository.class);
+        MockedStatic<BlogPostRepository> posts = mockStatic(BlogPostRepository.class);
+        MockedStatic<BlogRepository> blogs = mockStatic(BlogRepository.class);
+        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockSiteTimezone()) {
+      mockEmptyPagesAndEvents(pages, events);
+      posts.when(() -> BlogPostRepository.findAll(any(), any())).thenReturn(List.of(post));
+      blogs.when(BlogRepository::findAll).thenReturn(List.of(blog));
+
+      new EditorialCalendarAjax().execute(widgetContext);
+    }
+
+    String json = widgetContext.getJson();
+    Assertions.assertTrue(json.contains("\"status\":\"Draft\""), json);
+    Assertions.assertFalse(json.contains("\"status\":\"Scheduled\""), json);
+  }
+
+  // --- multi-day calendar events (Bug A, #426 research pass): CalendarEventRepository's own
+  // query fetches an event when EITHER start_date OR end_date falls in the requested range (a
+  // two-clause SQL OR); addEvents() used to anchor only on getStartDate(), silently dropping a
+  // multi-day event that started before the range but is still ongoing/ending inside it. ---
+
+  @Test
+  void multiDayEventStartingBeforeTheRangeButEndingInsideItStillAppears() {
+    setRoles(widgetContext, ADMIN);
+    setDateRange(0, 30);
+
+    CalendarEvent event = new CalendarEvent();
+    event.setId(70L);
+    event.setTitle("Week-Long Conference");
+    // Started 10 days ago -- before setDateRange(0, 30)'s window -- but still running, ending 5
+    // days from now, inside the window.
+    event.setStartDate(daysFromNow(-10));
+    event.setEndDate(daysFromNow(5));
+    event.setPublished(daysFromNow(-20));
+
+    try (MockedStatic<WebPageRepository> pages = mockStatic(WebPageRepository.class);
+        MockedStatic<BlogPostRepository> posts = mockStatic(BlogPostRepository.class);
+        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockSiteTimezone()) {
+      mockEmptyPagesAndPosts(pages, posts);
+      events.when(() -> CalendarEventRepository.findAll(any(), any())).thenReturn(List.of(event));
+
+      new EditorialCalendarAjax().execute(widgetContext);
+    }
+
+    String json = widgetContext.getJson();
+    Assertions.assertTrue(json.contains("\"type\":\"Event\""), json);
+    Assertions.assertTrue(json.contains("Week-Long Conference"), json);
+    Assertions.assertTrue(json.contains("\"date\":\"" + siteZoneDate(event.getEndDate()) + "\""),
+        "a multi-day event that started before the range must be anchored on its in-range end date: " + json);
+  }
+
+  @Test
+  void singleDayEventEmitsExactlyOneEntryNotTwo() {
+    // Guards the design decision in addEvents(): an ordinary single-day event (startDate ==
+    // endDate) must still emit exactly one calendar entry, not two identical same-day chips.
+    setRoles(widgetContext, ADMIN);
+    setDateRange(0, 30);
+
+    CalendarEvent event = new CalendarEvent();
+    event.setId(71L);
+    event.setTitle("Single Day Standup");
+    event.setStartDate(daysFromNow(6));
+    event.setEndDate(daysFromNow(6));
+    event.setPublished(daysFromNow(-1));
+
+    try (MockedStatic<WebPageRepository> pages = mockStatic(WebPageRepository.class);
+        MockedStatic<BlogPostRepository> posts = mockStatic(BlogPostRepository.class);
+        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockSiteTimezone()) {
+      mockEmptyPagesAndPosts(pages, posts);
+      events.when(() -> CalendarEventRepository.findAll(any(), any())).thenReturn(List.of(event));
+
+      new EditorialCalendarAjax().execute(widgetContext);
+    }
+
+    String json = widgetContext.getJson();
+    int entryCount = json.split("\"id\":\"event-71\"", -1).length - 1;
+    Assertions.assertEquals(1, entryCount, "expected exactly one entry for a single-day event: " + json);
+  }
+
+  @Test
+  void eventEndingBeforeTheRangeStartsIsStillExcluded() {
+    // Sanity check on the new start-or-end logic: an event that is entirely in the past (both
+    // dates before the requested range) must not appear just because the fallback now also checks
+    // getEndDate().
+    setRoles(widgetContext, ADMIN);
+    setDateRange(0, 30);
+
+    CalendarEvent event = new CalendarEvent();
+    event.setId(72L);
+    event.setTitle("Long Over");
+    event.setStartDate(daysFromNow(-20));
+    event.setEndDate(daysFromNow(-15));
+    event.setPublished(daysFromNow(-30));
+
+    try (MockedStatic<WebPageRepository> pages = mockStatic(WebPageRepository.class);
+        MockedStatic<BlogPostRepository> posts = mockStatic(BlogPostRepository.class);
+        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class)) {
+      mockEmptyPagesAndPosts(pages, posts);
+      events.when(() -> CalendarEventRepository.findAll(any(), any())).thenReturn(List.of(event));
+
+      new EditorialCalendarAjax().execute(widgetContext);
+    }
+
+    Assertions.assertEquals("[]", widgetContext.getJson());
   }
 
   // --- filters ---
@@ -396,7 +678,8 @@ class EditorialCalendarAjaxTest extends WidgetBase {
 
     try (MockedStatic<WebPageRepository> pages = mockStatic(WebPageRepository.class);
         MockedStatic<BlogPostRepository> posts = mockStatic(BlogPostRepository.class);
-        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class)) {
+        MockedStatic<CalendarEventRepository> events = mockStatic(CalendarEventRepository.class);
+        MockedStatic<LoadSitePropertyCommand> siteProps = mockSiteTimezone()) {
       pages.when(() -> WebPageRepository.findAll(any(), any())).thenReturn(List.of(page));
 
       new EditorialCalendarAjax().execute(widgetContext);

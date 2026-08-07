@@ -112,7 +112,10 @@ class WebPageSearchResultsWidgetTest extends WidgetBase {
         MockedStatic<TableOfContentsRepository> tocRepository = mockStatic(TableOfContentsRepository.class);
         MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
         MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
-      siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.timezone")).thenReturn("America/New_York");
+      // ItemDateFacetCommand.buckets() (called transitively via this widget) now reads the site
+      // timezone through FormatDateCommand.getSiteZoneId(), which calls the two-arg
+      // loadByName(name, defaultValue) overload.
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
       menuTabsCommand.when(LoadMenuTabsCommand::findAllActiveIncludeMenuItemList).thenReturn(new ArrayList<>());
       tocRepository.when(() -> TableOfContentsRepository.findAll(null, null)).thenReturn(new ArrayList<>());
       contentRepository.when(() -> ContentRepository.findAll(any(ContentSpecification.class), any())).thenReturn(null);
@@ -148,7 +151,10 @@ class WebPageSearchResultsWidgetTest extends WidgetBase {
         MockedStatic<TableOfContentsRepository> tocRepository = mockStatic(TableOfContentsRepository.class);
         MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
         MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
-      siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.timezone")).thenReturn("America/New_York");
+      // ItemDateFacetCommand.buckets() (called transitively via this widget) now reads the site
+      // timezone through FormatDateCommand.getSiteZoneId(), which calls the two-arg
+      // loadByName(name, defaultValue) overload.
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
       menuTabsCommand.when(LoadMenuTabsCommand::findAllActiveIncludeMenuItemList).thenReturn(new ArrayList<>());
       tocRepository.when(() -> TableOfContentsRepository.findAll(null, null)).thenReturn(new ArrayList<>());
       contentRepository.when(() -> ContentRepository.findAll(any(ContentSpecification.class), any())).thenReturn(null);
@@ -171,7 +177,10 @@ class WebPageSearchResultsWidgetTest extends WidgetBase {
         MockedStatic<TableOfContentsRepository> tocRepository = mockStatic(TableOfContentsRepository.class);
         MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class);
         MockedStatic<SearchAnalyticsCommand> analytics = mockStatic(SearchAnalyticsCommand.class)) {
-      siteProps.when(() -> LoadSitePropertyCommand.loadByName("site.timezone")).thenReturn("America/New_York");
+      // ItemDateFacetCommand.buckets() (called transitively via this widget) now reads the site
+      // timezone through FormatDateCommand.getSiteZoneId(), which calls the two-arg
+      // loadByName(name, defaultValue) overload.
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
       menuTabsCommand.when(LoadMenuTabsCommand::findAllActiveIncludeMenuItemList).thenReturn(new ArrayList<>());
       tocRepository.when(() -> TableOfContentsRepository.findAll(null, null)).thenReturn(new ArrayList<>());
       contentRepository.when(() -> ContentRepository.findAll(any(ContentSpecification.class), any())).thenReturn(null);
