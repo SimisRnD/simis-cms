@@ -26,6 +26,8 @@
   <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
 <%@include file="../page_messages.jspf" %>
+<%-- Shared header shown at the top of every dataset admin tab (Preview, Text Preview, Source, Sync, Map Fields, Configuration, Details):
+     the dataset's name, plus a row-count/processing-status badge and last-download time when showCount is "true". --%>
 <h5>
   <i class="fa fa-table"></i>
   <c:out value="${dataset.name}" />

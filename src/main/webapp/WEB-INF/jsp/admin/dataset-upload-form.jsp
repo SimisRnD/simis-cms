@@ -29,6 +29,7 @@
     <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}"/></h4>
   </c:if>
   <%@include file="../page_messages.jspf" %>
+  <p class="help-text">Creates a new Dataset: give it a name, supply a source URL or upload a file, and pick the matching Dataset Type. Once it's created, the source, sync schedule, and field mappings are configured on its own tabs.</p>
   <%-- Form Content --%>
   <label>Name <span class="required">*</span>
     <input type="text" placeholder="Give it a name..." name="name" value="<c:out value="${dataset.name}"/>" required>
@@ -43,7 +44,7 @@
   <label>Upload a file
     <input type="file" id="file" name="file" accept="text/csv,.csv,application/json,application/vnd.geo+json,.json,.geojson,text/tab-separated-values,.tsv">
   </label>
-  <p class="help-text">File must be a .csv, .tsv, .json, or .geojson</p>
+  <p class="help-text">File must be a .csv, .tsv, .json, or .geojson. RSS+XML and JSON API sources are supplied via URL above instead of a file upload.</p>
   <label>Dataset Type <span class="required">*</span>
     <select name="fileType">
       <option value="application/json"<c:if test="${dataset.fileType eq 'application/json'}"> selected</c:if>>JSON</option>

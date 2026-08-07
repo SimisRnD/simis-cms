@@ -38,6 +38,15 @@
 </form>
 --%>
 <a class="button small radius alert margin-left-10" href="#" onclick="return confirmPostAction('Are you sure you want to delete <c:out value="${js:escape(collection.name)}" />?', '${widgetContext.uri}?command=delete&widget=${widgetContext.uniqueId}&token=${userSession.formToken}&collectionId=${collection.id}');"><i class="fa fa-remove"></i> Delete</a>
+<div class="callout radius warning">
+  <p style="margin-bottom:0">
+    <i class="fa fa-exclamation-triangle"></i> <strong>Before you delete this collection, know this:</strong>
+    deleting it does <strong>not</strong> delete its items (records). The items become permanently
+    orphaned -- invisible and unreachable through the admin UI or the public site, but still sitting
+    in storage. This is deliberate current behavior, not a bug, and there is no built-in way to
+    recover or reattach those items afterward.
+  </p>
+</div>
 <p class="callout box radius">
   <c:if test="${!empty collection.description}">
     <small class="subheader"><c:out value="${collection.description}" /></small><br />

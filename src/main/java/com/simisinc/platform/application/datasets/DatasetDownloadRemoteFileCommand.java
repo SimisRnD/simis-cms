@@ -31,7 +31,6 @@ import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.github.fge.jackson.JsonLoader;
 import com.simisinc.platform.application.DataException;
 import com.simisinc.platform.application.admin.SaveTextFileCommand;
-import com.simisinc.platform.application.elearning.PERLSCourseListCommand;
 import com.simisinc.platform.application.filesystem.FileSystemCommand;
 import com.simisinc.platform.application.http.HttpDownloadFileCommand;
 import com.simisinc.platform.application.http.HttpGetCommand;
@@ -76,26 +75,27 @@ public class DatasetDownloadRemoteFileCommand {
     String dataPath = serverSubPath + uniqueFilename + "." + extension;
 
     // Download the file
+    // Bug fix: "JSON API" (application/vnd.api+json) used to be special-cased here to always
+    // fetch a hardcoded PERLS e-learning course list, ignoring whatever source url the admin
+    // configured on the Source tab entirely. The dataset-source.jsp Source tab itself documents
+    // "JSON API" as fetching from a url "the same way the other remote types do here; it isn't a
+    // separate connection mechanism" -- and the PERLS course list widget (RemoteCourseListWidget)
+    // already has its own, independent path to PERLS/Moodle that has nothing to do with the
+    // Dataset admin flow, so nothing relies on this special case. "JSON API" now downloads from
+    // dataset.getSourceUrl() like every other remote dataset type, honoring the admin's own
+    // paging/records-path configuration instead of a hardcoded "/data".
     File tempFile = new File(filesystemPath);
     try {
-      if ("application/vnd.api+json".equals(fileType)) {
-        File result = PERLSCourseListCommand.retrieveCourseListToFile(tempFile);
-        if (result == null) {
-          throw new DataException("JSON API File download error");
+      // Determine if there could be multiple JSON files
+      if (StringUtils.isNotBlank(dataset.getPagingUrlPath())) {
+        if (!downloadPagedFile(dataset.getSourceUrl(), dataset.getPagingUrlPath(), dataset.getRecordsPath(),
+            tempFile)) {
+          throw new DataException("File with paging download error from: " + dataset.getSourceUrl());
         }
-        dataset.setRecordsPath("/data");
       } else {
-        // Determine if there could be multiple JSON files
-        if (StringUtils.isNotBlank(dataset.getPagingUrlPath())) {
-          if (!downloadPagedFile(dataset.getSourceUrl(), dataset.getPagingUrlPath(), dataset.getRecordsPath(),
-              tempFile)) {
-            throw new DataException("File with paging download error from: " + dataset.getSourceUrl());
-          }
-        } else {
-          // Download a single JSON file
-          if (!HttpDownloadFileCommand.executeUserUrl(dataset.getSourceUrl(), tempFile)) {
-            throw new DataException("File download error from: " + dataset.getSourceUrl());
-          }
+        // Download a single JSON file
+        if (!HttpDownloadFileCommand.executeUserUrl(dataset.getSourceUrl(), tempFile)) {
+          throw new DataException("File download error from: " + dataset.getSourceUrl());
         }
       }
     } catch (Exception e) {
