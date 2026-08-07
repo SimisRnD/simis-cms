@@ -73,6 +73,14 @@ public class CalendarFormWidget extends GenericWidget {
 
   public WidgetContext post(WidgetContext context) throws InvocationTargetException, IllegalAccessException {
 
+    // Permission is required -- mirrors CalendarListWidget#delete()'s admin-only gate for the
+    // same Calendar entity. This widget previously had no in-widget check at all, relying solely
+    // on the page-level role gate in admin-layout.xml (defense-in-depth gap).
+    if (!context.hasRole("admin")) {
+      context.setWarningMessage("Must be an admin");
+      return context;
+    }
+
     // Populate the fields
     Calendar calendarBean = new Calendar();
     BeanUtils.populate(calendarBean, context.getParameterMap());

@@ -102,6 +102,18 @@ public class SessionRepository {
     return DB.selectCountFrom(TABLE_NAME, new SqlUtils().add("ip_address IS NOT NULL"));
   }
 
+  /**
+   * Total session count attributed to the given App's Client ID (the sessions.app_id column, set
+   * for sessions established via an API key -- see RestRequestFilter/SaveSessionCommand). Backs the
+   * admin Apps list's "Devices" column, which previously rendered a hardcoded 0 for every row.
+   */
+  public static long countByAppId(long appId) {
+    if (appId < 1) {
+      return 0;
+    }
+    return DB.selectCountFrom(TABLE_NAME, new SqlUtils().add("app_id = ?", appId));
+  }
+
   public static long countDistinctSessions(Timestamp startDate, Timestamp endDate) {
     // Query the data, skip some things
     SqlUtils where = new SqlUtils()

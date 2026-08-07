@@ -34,11 +34,13 @@
 <jsp:useBean id="fileList" class="java.util.ArrayList" scope="request"/>
 <jsp:useBean id="canEdit" class="java.lang.String" scope="request"/>
 <jsp:useBean id="canDelete" class="java.lang.String" scope="request"/>
+<jsp:useBean id="canAdd" class="java.lang.String" scope="request"/>
 <jsp:useBean id="query" class="java.lang.String" scope="request"/>
 <jsp:useBean id="sortBy" class="java.lang.String" scope="request"/>
+<jsp:useBean id="recordPaging" class="com.simisinc.platform.infrastructure.database.DataConstraints" scope="request"/>
 <script src="${ctx}/javascript/clipboard-2.0.11/clipboard.min.js"></script>
 <%@include file="../page_messages.jspf" %>
-<c:if test="${(userSession.hasRole('admin') || userSession.hasRole('content-manager'))}">
+<c:if test="${(userSession.hasRole('admin') || userSession.hasRole('content-manager') || canAdd eq 'true')}">
   <a href="${ctx}/admin/file-form?subFolderId=${subFolder.id}&folderId=${folder.id}&returnPage=${widgetContext.uri}%3FsubFolderId=${subFolder.id}%26folderId=${folder.id}" class="button small primary radius float-left"><i class="fa fa-plus"></i> Add File Link</a>
 </c:if>
 <%-- Search/sort (GET so the criteria live in the URL); folderId/subFolderId are carried as hidden
@@ -71,6 +73,16 @@
     </div>
   </div>
 </form>
+<c:if test="${canDelete eq 'true' && !empty fileList}">
+  <%-- Mirrors blog-post-list.jsp's bulk actions bar (id names/classes copied from there), adapted to
+       this page's single bulk action (Delete). Hidden until a row is checked; the JS below (already
+       present) shows/hides it, keeps the count current, and opens #bulkDeleteReveal on click. --%>
+  <div id="bulkActionsBar" class="callout radius" style="display:none;padding:10px 15px;margin-bottom:10px;">
+    <span id="bulkSelectedCount"></span>
+    <button type="button" class="button tiny alert radius" id="bulkDeleteBtn">Delete</button>
+  </div>
+  <p class="help-text">Select all is capped at up to 100 files at a time for bulk actions.</p>
+</c:if>
 <table class="unstriped">
   <thead>
     <tr>
@@ -107,7 +119,33 @@
           <img class="image-left" width="200" src="${ctx}/assets/view/${file.url}" />
         </c:if>
         <small>
-          <a href="javascript:selectFile(${file.id});"><c:out value="${file.title}" /></a>
+          <%-- File-type icon for everything that isn't an image (which already gets the thumbnail
+               above) -- pdf/video/url get a specific icon, anything else falls back to a generic
+               file icon. --%>
+          <c:if test="${fn:toLowerCase(file.fileType) ne 'image'}">
+            <c:choose>
+              <c:when test="${fn:toLowerCase(file.fileType) eq 'pdf'}"><i class="fa fa-file-pdf-o" title="PDF file"></i></c:when>
+              <c:when test="${fn:toLowerCase(file.fileType) eq 'video'}"><i class="fa fa-file-video-o" title="Video file"></i></c:when>
+              <c:when test="${fn:toLowerCase(file.fileType) eq 'url'}"><i class="fa fa-link" title="Link"></i></c:when>
+              <c:otherwise><i class="fa fa-file-o" title="File"></i></c:otherwise>
+            </c:choose>
+          </c:if>
+          <%-- selectFile() opens the edit-file modal (#fileFormReveal / #fileForm), which only exists
+               in the DOM for admin/content-manager (see the c:if guarding it below) -- a
+               community-manager (a real role allowed on this page, see admin-layout.xml) is not
+               excluded there because of a per-folder permission gap, but because post()'s own save
+               path unconditionally rejects any non-admin/content-manager role regardless of folder
+               ACL. So rather than widen the modal to a role whose save would still be rejected, the
+               link itself is gated the same way, and a community-manager sees a plain filename
+               instead of a link that throws when it can't find the modal. --%>
+          <c:choose>
+            <c:when test="${userSession.hasRole('admin') || userSession.hasRole('content-manager')}">
+              <a href="javascript:selectFile(${file.id});"><c:out value="${file.title}" /></a>
+            </c:when>
+            <c:otherwise>
+              <c:out value="${file.title}" />
+            </c:otherwise>
+          </c:choose>
           <c:choose>
             <c:when test="${date:relative(file.created) eq 'just now'}">
               <span class="label small round success">new</span>
@@ -187,6 +225,7 @@
     </c:forEach>
   </tbody>
 </table>
+<%@include file="../paging_control.jspf" %>
 <script nonce="${cspNonce}">
   // ClipboardJS.isSupported()
   var clipboard = new ClipboardJS('.clipboard');
@@ -266,7 +305,7 @@
     function refresh() {
       var n = selected().length;
       if ($count) {
-        $count.textContent = n + (n === 1 ? ' file selected  ' : ' files selected  ');
+        $count.textContent = n + (n === 1 ? ' file selected ' : ' files selected ');
       }
       if ($bar) {
         $bar.style.display = n > 0 ? '' : 'none';
@@ -392,6 +431,7 @@
       <label>Expiration date (optional)
         <input type="datetime-local" name="expirationDate" id="expirationDate" value="">
       </label>
+      <p class="help-text">Once this date passes, non-admin users can no longer download or view the file. It stays visible and manageable here, and admins keep full access.</p>
       <div class="button-container">
         <input type="submit" class="button radius success expanded" value="Save" />
       </div>

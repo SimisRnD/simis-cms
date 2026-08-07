@@ -36,6 +36,9 @@
   <h4><c:if test="${!empty icon}"><i class="fa ${fn:escapeXml(icon)}"></i> </c:if><c:out value="${title}" /></h4>
 </c:if>
 <%@include file="../page_messages.jspf" %>
+<div class="callout primary radius">
+  <p style="margin-bottom:0">This is where the dataset's source file or URL is set or replaced. For a URL source, "Save &amp; Download Remote File" fetches a fresh copy immediately; "Save" alone just records the URL and type without re-fetching. For <strong>CSV</strong> and <strong>TSV</strong> sources nothing else needs to be configured here -- once the columns look right on the Preview tab, go straight to Map Fields. <strong>JSON</strong>, <strong>JSON API</strong>, and <strong>GeoJSON</strong> sources may also need the Configuration tab to point at the records array within the response. "JSON API" fetches from a URL the same way the other remote types do here; it isn't a separate connection mechanism. <strong>RSS+XML</strong> reads a syndicated feed URL directly, similar to CSV/TSV.</p>
+</div>
 <form method="post" enctype="multipart/form-data">
   <%-- Required by controller --%>
   <input type="hidden" name="command" value="save" />

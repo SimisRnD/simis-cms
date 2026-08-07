@@ -128,10 +128,16 @@
               </select>
             </c:when>
             <c:when test="${siteProperty.name eq 'theme.footer.style'}">
-              <select name="${siteProperty.name}">
+              <select name="${siteProperty.name}" aria-describedby="themeFooterStyleHelpText">
                 <option value="default"<c:if test="${siteProperty.value eq 'default'}"> selected</c:if>>Basic</option>
                 <option value="custom"<c:if test="${siteProperty.value eq 'custom'}"> selected</c:if>>Custom XML</option>
                 <option value="none"<c:if test="${siteProperty.value eq 'none'}"> selected</c:if>>None</option>
+              </select>
+            </c:when>
+            <c:when test="${siteProperty.name eq 'theme.footer.layout'}">
+              <select name="${siteProperty.name}" aria-describedby="themeFooterLayoutHelpText">
+                <option value="footer.default"<c:if test="${siteProperty.value ne 'footer.4column'}"> selected</c:if>>Default Footer</option>
+                <option value="footer.4column"<c:if test="${siteProperty.value eq 'footer.4column'}"> selected</c:if>>4-Column Footer</option>
               </select>
             </c:when>
             <c:when test="${siteProperty.type eq 'font'}">
@@ -199,7 +205,7 @@
               <input type="text" class="no-gap" name="${siteProperty.name}" value="${html:toHtml(siteProperty.value)}" disabled />
             </c:when>
             <c:otherwise>
-              <input type="text" class="no-gap" name="${siteProperty.name}" value="${html:toHtml(siteProperty.value)}"<c:if test="${siteProperty.name eq 'analytics.service'}"> aria-describedby="analyticsServiceHelpText"</c:if><c:if test="${siteProperty.name eq 'analytics.google.key'}"> aria-describedby="analyticsGoogleKeyHelpText"</c:if><c:if test="${siteProperty.name eq 'analytics.google.tagmanager'}"> aria-describedby="analyticsGoogleTagmanagerHelpText"</c:if><c:if test="${siteProperty.name eq 'analytics.simplifi.value'}"> aria-describedby="analyticsSimplifiValueHelpText"</c:if><c:if test="${siteProperty.name eq 'analytics.brandcdn.value'}"> aria-describedby="analyticsBrandcdnValueHelpText"</c:if><c:if test="${siteProperty.name eq 'analytics.brandcdn.value2'}"> aria-describedby="analyticsBrandcdnValueHelpText"</c:if><c:if test="${siteProperty.name eq 'captcha.service'}"> aria-describedby="captchaServiceHelpText"</c:if><c:if test="${siteProperty.name eq 'captcha.google.sitekey'}"> aria-describedby="captchaGoogleSitekeyHelpText"</c:if><c:if test="${siteProperty.name eq 'captcha.turnstile.sitekey'}"> aria-describedby="captchaTurnstileSitekeyHelpText"</c:if><c:if test="${siteProperty.name eq 'bi.superset.id'}"> aria-describedby="biSupersetIdHelpText"</c:if><c:if test="${siteProperty.name eq 'mail.from_address'}"> aria-describedby="mailFromAddressHelpText"</c:if><c:if test="${siteProperty.name eq 'mail.from_name'}"> aria-describedby="mailFromNameHelpText"</c:if><c:if test="${siteProperty.name eq 'mail.host_name'}"> aria-describedby="mailHostNameHelpText"</c:if><c:if test="${siteProperty.name eq 'mail.port'}"> aria-describedby="mailPortHelpText"</c:if><c:if test="${siteProperty.name eq 'mail.username'}"> aria-describedby="mailUsernameHelpText"</c:if><c:if test="${siteProperty.name eq 'site.name'}"> aria-describedby="siteNameHelpText"</c:if><c:if test="${siteProperty.name eq 'site.name.keyword'}"> aria-describedby="siteNameKeywordHelpText"</c:if><c:if test="${siteProperty.name eq 'site.description'}"> aria-describedby="siteDescriptionHelpText"</c:if><c:if test="${siteProperty.name eq 'site.keywords'}"> aria-describedby="siteKeywordsHelpText"</c:if><c:if test="${siteProperty.name eq 'site.confirmation.line1'}"> aria-describedby="siteConfirmationLine1HelpText"</c:if><c:if test="${siteProperty.name eq 'site.confirmation.line2'}"> aria-describedby="siteConfirmationLine2HelpText"</c:if><c:if test="${siteProperty.name eq 'site.confirmation.declined.text'}"> aria-describedby="siteConfirmationDeclinedTextHelpText"</c:if><c:if test="${siteProperty.name eq 'site.newsletter.headline'}"> aria-describedby="siteNewsletterHeadlineHelpText"</c:if><c:if test="${siteProperty.name eq 'site.newsletter.message'}"> aria-describedby="siteNewsletterMessageHelpText"</c:if><c:if test="${siteProperty.name eq 'llms.description'}"> aria-describedby="llmsDescriptionHelpText"</c:if><c:if test="${siteProperty.name eq 'analytics.retentionDays'}"> aria-describedby="analyticsRetentionDaysHelpText"</c:if><c:if test="${siteProperty.name eq 'social.email'}"> aria-describedby="socialEmailHelpText"</c:if><c:if test="${siteProperty.name eq 'social.phone'}"> aria-describedby="socialPhoneHelpText"</c:if><c:if test="${siteProperty.name eq 'social.instagram.facebookPageValue'}"> aria-describedby="socialInstagramFacebookPageValueHelpText"</c:if> />
+              <input type="text" class="no-gap" name="${siteProperty.name}" value="${html:toHtml(siteProperty.value)}"<c:if test="${siteProperty.name eq 'analytics.service'}"> aria-describedby="analyticsServiceHelpText"</c:if><c:if test="${siteProperty.name eq 'analytics.google.key'}"> aria-describedby="analyticsGoogleKeyHelpText"</c:if><c:if test="${siteProperty.name eq 'analytics.google.tagmanager'}"> aria-describedby="analyticsGoogleTagmanagerHelpText"</c:if><c:if test="${siteProperty.name eq 'analytics.simplifi.value'}"> aria-describedby="analyticsSimplifiValueHelpText"</c:if><c:if test="${siteProperty.name eq 'analytics.brandcdn.value'}"> aria-describedby="analyticsBrandcdnValueHelpText"</c:if><c:if test="${siteProperty.name eq 'analytics.brandcdn.value2'}"> aria-describedby="analyticsBrandcdnValueHelpText"</c:if><c:if test="${siteProperty.name eq 'analytics.retentionDays'}"> aria-describedby="analyticsRetentionDaysHelpText"</c:if><c:if test="${siteProperty.name eq 'captcha.service'}"> aria-describedby="captchaServiceHelpText"</c:if><c:if test="${siteProperty.name eq 'captcha.google.sitekey'}"> aria-describedby="captchaGoogleSitekeyHelpText"</c:if><c:if test="${siteProperty.name eq 'captcha.turnstile.sitekey'}"> aria-describedby="captchaTurnstileSitekeyHelpText"</c:if><c:if test="${siteProperty.name eq 'bi.superset.id'}"> aria-describedby="biSupersetIdHelpText"</c:if><c:if test="${siteProperty.name eq 'mail.from_address'}"> aria-describedby="mailFromAddressHelpText"</c:if><c:if test="${siteProperty.name eq 'mail.from_name'}"> aria-describedby="mailFromNameHelpText"</c:if><c:if test="${siteProperty.name eq 'mail.host_name'}"> aria-describedby="mailHostNameHelpText"</c:if><c:if test="${siteProperty.name eq 'mail.port'}"> aria-describedby="mailPortHelpText"</c:if><c:if test="${siteProperty.name eq 'mail.username'}"> aria-describedby="mailUsernameHelpText"</c:if><c:if test="${siteProperty.name eq 'site.name'}"> aria-describedby="siteNameHelpText"</c:if><c:if test="${siteProperty.name eq 'site.name.keyword'}"> aria-describedby="siteNameKeywordHelpText"</c:if><c:if test="${siteProperty.name eq 'site.description'}"> aria-describedby="siteDescriptionHelpText"</c:if><c:if test="${siteProperty.name eq 'site.keywords'}"> aria-describedby="siteKeywordsHelpText"</c:if><c:if test="${siteProperty.name eq 'site.confirmation.line1'}"> aria-describedby="siteConfirmationLine1HelpText"</c:if><c:if test="${siteProperty.name eq 'site.confirmation.line2'}"> aria-describedby="siteConfirmationLine2HelpText"</c:if><c:if test="${siteProperty.name eq 'site.confirmation.declined.text'}"> aria-describedby="siteConfirmationDeclinedTextHelpText"</c:if><c:if test="${siteProperty.name eq 'site.newsletter.headline'}"> aria-describedby="siteNewsletterHeadlineHelpText"</c:if><c:if test="${siteProperty.name eq 'site.newsletter.message'}"> aria-describedby="siteNewsletterMessageHelpText"</c:if><c:if test="${siteProperty.name eq 'llms.description'}"> aria-describedby="llmsDescriptionHelpText"</c:if> />
             </c:otherwise>
           </c:choose>
           <c:if test="${siteProperty.name eq 'analytics.service'}">
@@ -217,20 +223,8 @@
           <c:if test="${siteProperty.name eq 'analytics.brandcdn.value'}">
             <p class="help-text" id="analyticsBrandcdnValueHelpText">Two path values that together form a Brand CDN autoscript tag URL (tag.brandcdn.com/autoscript/&lt;value&gt;/&lt;value 2&gt;), provided by Brand CDN when setting up tracking with them. Both fields must be set for the tag to load; leave both blank if the site isn't using Brand CDN.</p>
           </c:if>
-          <c:if test="${siteProperty.name eq 'analytics.cookieless'}">
-            <p class="help-text" id="analyticsCookielessHelpText">When on, the site's analytics avoid setting a visitor-tracking cookie -- useful for staying under jurisdictions' cookie-consent-banner requirements. This is independent of the consent and Do-Not-Track settings below; all four privacy controls can be combined.</p>
-          </c:if>
-          <c:if test="${siteProperty.name eq 'analytics.anonymizeIp'}">
-            <p class="help-text" id="analyticsAnonymizeIpHelpText">When on, the visitor's IP address is truncated before analytics records it, so individual visitors can't be pinpointed by location. Independent of the retention window below, which controls how long records (anonymized or not) are kept at all.</p>
-          </c:if>
-          <c:if test="${siteProperty.name eq 'analytics.honorDnt'}">
-            <p class="help-text" id="analyticsHonorDntHelpText">When on, a visitor's browser-level Do Not Track or Global Privacy Control signal suppresses analytics scripts on that visit entirely -- a stronger opt-out than the anonymization above, since no record is created at all. Off by default because DNT/GPC has no legal enforcement in most jurisdictions and many sites ignore it; turn this on if the site's privacy policy commits to honoring it.</p>
-          </c:if>
-          <c:if test="${siteProperty.name eq 'analytics.consentRequired'}">
-            <p class="help-text" id="analyticsConsentRequiredHelpText">When on, visitors see an accept/decline banner and analytics scripts (and video embeds) only load after they accept. When off (the shipped default), analytics and video load immediately for everyone and the banner never appears -- there's no in-between "banner shown but analytics load anyway" state.</p>
-          </c:if>
           <c:if test="${siteProperty.name eq 'analytics.retentionDays'}">
-            <p class="help-text" id="analyticsRetentionDaysHelpText">How long, in days, visitor session records (IP address, city, coordinates) and per-page view-count history are kept before a nightly job deletes them; defaults to 365 and is clamped between 1 and 3650. This is separate from the site-wide Audit Log retention and the Search retention settings, which are configured on their own pages. See <a href="${ctx}/admin/analytics-retention">Analytics Retention</a> to check how many session records currently hold PII and to run the cleanup job on demand.</p>
+            <p class="help-text" id="analyticsRetentionDaysHelpText">Also used outside analytics: this same window governs how long <code>web_page_hits</code> rows are kept (the nightly Web Page Hits Cleanup job deletes hits older than this many days) in addition to controlling the visitor-PII scrub on the <a href="${ctx}/admin/analytics-retention">Analytics Retention</a> page. Changing it for one reason changes both. Accepted range is 1-3650 days; blank or non-numeric input falls back to 365, and an out-of-range number is silently clamped to 1 or 3650 rather than rejected -- double-check the saved value here after submitting.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'captcha.service'}">
             <p class="help-text" id="captchaServiceHelpText">Chooses which CAPTCHA challenge protects the site's public forms. Supported values are "google" (Google reCAPTCHA v2, using the Google Site Key and Secret Key below) and "turnstile" (Cloudflare Turnstile, using the Turnstile Site Key and Secret Key below). This is a single site-wide choice -- every form uses the same provider. Leave this blank, or leave the chosen provider's Site Key blank, to fall back to the platform's built-in text-image challenge instead.</p>
@@ -243,6 +237,12 @@
           </c:if>
           <c:if test="${siteProperty.name eq 'mailing-list.service'}">
             <p class="help-text" id="mailingListServiceHelpText">The only supported value today is "mailchimp" (case-insensitive). Any other value -- including a different service's name -- disables mailing-list sending entirely, the same as leaving this blank; nothing routes to a different provider based on what's typed here.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'theme.footer.style'}">
+            <p class="help-text" id="themeFooterStyleHelpText">"Basic" shows the platform's built-in footer (custom text, privacy/terms links, controlled by the Site Settings page). "Custom XML" shows the footer chosen below under Footer Layout, editable through the on-page footer editor. "None" hides the footer entirely.</p>
+          </c:if>
+          <c:if test="${siteProperty.name eq 'theme.footer.layout'}">
+            <p class="help-text" id="themeFooterLayoutHelpText">Chooses which footer design is used. Only takes effect when Footer Style above is set to "Custom XML".</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'captcha.google.secretkey'}">
             <p class="help-text" id="captchaGoogleSecretkeyHelpText">The private key the server uses to verify captcha responses with Google. Never share it or commit it to source control. Google generates it together with the Site Key above, on the same reCAPTCHA admin console page; it's a similar-length alphanumeric string. This value is stored encrypted and always appears blank here after saving. Leave it blank to keep the current key, or enter a new value to replace it.</p>
@@ -371,10 +371,10 @@
             <p class="help-text" id="siteSitemapXmlHelpText">Turns /sitemap.xml on or off. Also requires "Is online?" above to be on -- both toggles are checked, and either one being off stops the sitemap from generating.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'llms.enabled'}">
-            <p class="help-text" id="llmsEnabledHelpText">Turns /llms.txt on or off -- a curated, markdown-formatted summary of this site for LLM and agentic-browsing tools (a different audience from the search-engine crawlers robots.txt and sitemap.xml address). When off, /llms.txt returns a 404. Like the sitemap toggle, this also requires "Is online?" above to be on -- either one being off stops /llms.txt from generating. A static config/cms/llms.txt file on the server, if present, is always served instead of the generated version, regardless of either setting.</p>
+            <p class="help-text" id="llmsEnabledHelpText">Turns /llms.txt on or off -- a curated, markdown-formatted summary of this site for LLM and agentic-browsing tools (a different audience from the search-engine crawlers robots.txt and sitemap.xml address). When off, /llms.txt returns a 404. Like the sitemap toggle, this also requires "Is online?" (<code>site.online</code>, set on the <a href="${ctx}/admin/site-properties">Site Settings</a> page, not here) to be on -- either one being off stops /llms.txt from generating. A static config/cms/llms.txt file on the server, if present, is always served instead of the generated version, regardless of either setting.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'llms.description'}">
-            <p class="help-text" id="llmsDescriptionHelpText">Optional additional context appended to /llms.txt after the Search engine description above -- for example, which sections of the site an LLM should treat as authoritative, or usage terms specific to automated/agentic consumers. Leave blank to generate /llms.txt from the site's name, description, navigation, and content alone.</p>
+            <p class="help-text" id="llmsDescriptionHelpText">Optional additional context appended to /llms.txt after the site's name and Search engine description (set on the <a href="${ctx}/admin/site-properties">Site Settings</a> page, not here) -- for example, which sections of the site an LLM should treat as authoritative, or usage terms specific to automated/agentic consumers. Leave blank to generate /llms.txt from the site's name, description, navigation, and content alone.</p>
           </c:if>
           <c:if test="${siteProperty.name eq 'site.cart'}">
             <p class="help-text" id="siteCartHelpText">Shows or hides the shopping cart across the site -- the cart link in the menu, add-to-cart buttons, and the cart page itself all check this independently, so it's enforced everywhere it appears, not just in navigation.</p>
@@ -452,7 +452,31 @@
     <p><a href="${ctx}/contact-us" target="_blank" class="button radius secondary">Test CAPTCHA</a></p>
   </c:if>
   <c:if test="${prefix eq 'robots'}">
-    <p class="help-text">Controls what <a href="${ctx}/robots.txt" target="_blank" rel="noreferrer">/robots.txt</a> tells web crawlers. Admin pages are always excluded regardless of these settings. Each toggle below opts a specific AI crawler out of reading this site -- on by default, matching how the site behaved before these controls existed. A crawler being "off" here is a request, not an enforcement mechanism: well-behaved crawlers honor robots.txt, but nothing stops a crawler from ignoring it.</p>
+    <div class="callout primary radius">
+      <h6>What this page shows</h6>
+      <p>Controls what <a href="${ctx}/robots.txt" target="_blank" rel="noreferrer">/robots.txt</a> tells web crawlers. Admin pages are always excluded regardless of these settings. Each toggle below opts a specific AI crawler out of reading this site -- on by default, matching how the site behaved before these controls existed. A crawler being "off" here is a request, not an enforcement mechanism: well-behaved crawlers honor robots.txt, but nothing stops a crawler from ignoring it.</p>
+      <p><strong>A static <code>config/cms/robots.txt</code> file on the server, if present, is always served verbatim instead of the generated output -- every toggle below is ignored while that file exists.</strong> If changing a toggle here has no visible effect on the live <code>/robots.txt</code>, that file is almost always why; check with whoever manages the deployment.</p>
+      <p>Unlike <a href="${ctx}/admin/llms-properties">llms.txt</a>, robots.txt has no "Is online?" gate -- it's served the same whether the site is online or not, since it carries no content of its own to protect.</p>
+    </div>
+
+    <h5>When to worry</h5>
+    <div class="callout warning radius">
+      <p><strong>A crawler you disallowed is still showing up in traffic.</strong> robots.txt is an honor-system request, not a block -- a non-compliant crawler (or one ignoring robots.txt entirely, as several vendors' own documentation admits for their on-demand fetchers) will visit regardless. For actual enforcement, that traffic needs to be blocked at the <a href="${ctx}/admin/blocked-ip-list">Blocked IP list</a> or a layer in front of the application, not here.</p>
+      <p><strong>The sitemap line is missing from /robots.txt.</strong> It's only included when both <code>site.url</code> is configured and the <a href="${ctx}/admin/seo-sitemap">sitemap</a> itself is enabled -- a disabled sitemap correctly omits the line rather than advertising a URL that would 404.</p>
+    </div>
+  </c:if>
+  <c:if test="${prefix eq 'llms'}">
+    <div class="callout primary radius">
+      <h6>What this page shows</h6>
+      <p>Controls <a href="${ctx}/llms.txt" target="_blank" rel="noopener">/llms.txt <i class="fa fa-external-link"></i></a>, a curated, markdown-formatted summary of this site for LLM and agentic-browsing tools -- a different audience and format from robots.txt (crawler permissions) and sitemap.xml (page inventory). When enabled, it's generated automatically from the site's name, description, navigation, and content, optionally supplemented by the description field below.</p>
+      <p>A static <code>config/cms/llms.txt</code> file on the server, if present, is always served instead of the generated version, regardless of either toggle below -- if a change here doesn't show up on the live page, check for that file first.</p>
+    </div>
+
+    <h5>When to worry</h5>
+    <div class="callout warning radius">
+      <p><strong>/llms.txt returns a 404 even though it's enabled here.</strong> It also requires the site to be online (<code>site.online</code>, on the <a href="${ctx}/admin/site-properties">Site Settings</a> page) -- either gate being off stops generation.</p>
+      <p><strong>A change to the description or content doesn't appear.</strong> Saving invalidates the cache immediately, so this isn't a staleness issue in normal operation -- check for the static override file above before assuming something's stuck.</p>
+    </div>
   </c:if>
   <c:if test="${prefix eq 'security'}">
     <p class="help-text">Rate limiting blocks repeated automated attempts (spam form submissions, login brute-forcing) without needing a code change. Changes take effect for new attempts immediately; an IP or username already being watched keeps its previous limit until that tracking window expires.</p>

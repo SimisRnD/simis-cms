@@ -37,20 +37,54 @@ import com.simisinc.platform.application.admin.LoadSitePropertyCommand;
  */
 class FormatDateCommandTest {
 
+  // formatMonthDayYear()/formatTime() now route through getSiteZoneId() (previously they used
+  // SimpleDateFormat with no zone at all, i.e. whatever zone the JVM happened to default to) --
+  // reaches LoadSitePropertyCommand's Caffeine-backed cache, which needs a real DB connection on a
+  // genuine cache miss, so every call in this file must mock LoadSitePropertyCommand explicitly.
   @Test
   void formatMonthDayYear() {
     long time = 1651362006994L;
     Timestamp timestamp = new Timestamp(time);
-    String formattedMonthDayYear = FormatDateCommand.formatMonthDayYear(timestamp);
-    Assertions.assertEquals("April 30th, 2022", formattedMonthDayYear);
+    try (MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
+      String formattedMonthDayYear = FormatDateCommand.formatMonthDayYear(timestamp);
+      Assertions.assertEquals("April 30th, 2022", formattedMonthDayYear);
+    }
+  }
+
+  @Test
+  void formatMonthDayYearUsesTheGivenZoneNotJvmDefault() {
+    // 1651362006994L is 2022-04-30T22:00:06Z -- still April 30th in New York (UTC-4 in April) but
+    // already May 1st in a zone far enough ahead of UTC, so this only passes if the configured
+    // site.timezone is actually honored.
+    Timestamp timestamp = new Timestamp(1651362006994L);
+    try (MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("Pacific/Auckland");
+      Assertions.assertEquals("May 1st, 2022", FormatDateCommand.formatMonthDayYear(timestamp));
+    }
   }
 
   @Test
   void formatTime() {
     long time = 1651362006994L;
     Timestamp timestamp = new Timestamp(time);
-    String formattedTime = FormatDateCommand.formatTime(timestamp);
-    Assertions.assertTrue(formattedTime.contains(":"));
+    try (MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
+      String formattedTime = FormatDateCommand.formatTime(timestamp);
+      Assertions.assertTrue(formattedTime.contains(":"));
+    }
+  }
+
+  @Test
+  void formatTimeUsesTheGivenZoneNotJvmDefault() {
+    // 1651362006994L is 23:40:06 UTC -- 7:40 PM in New York (UTC-4 in April). The AM/PM marker's
+    // case is locale-dependent, so this compares case-insensitively rather than hardcoding "PM"/"pm".
+    Timestamp timestamp = new Timestamp(1651362006994L);
+    try (MockedStatic<LoadSitePropertyCommand> siteProps = mockStatic(LoadSitePropertyCommand.class)) {
+      siteProps.when(() -> LoadSitePropertyCommand.loadByName(eq("site.timezone"), any())).thenReturn("America/New_York");
+      String formatted = FormatDateCommand.formatTime(timestamp);
+      Assertions.assertTrue(formatted.equalsIgnoreCase("7:40 pm"), formatted);
+    }
   }
 
   // 2026-01-15T02:30:00Z is 2026-01-14 21:30 in America/New_York (EST, UTC-5, no DST in

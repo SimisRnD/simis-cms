@@ -34,7 +34,7 @@ import static com.simisinc.platform.application.cms.GenerateWikiUniqueIdCommand.
  */
 public class SaveWikiCommand {
 
-  public static final String allowedChars = "abcdefghijklmnopqrstuvwyxz";
+  public static final String allowedChars = "abcdefghijklmnopqrstuvwxyz";
   private static Log LOG = LogFactory.getLog(SaveWikiCommand.class);
 
   public static Wiki saveWiki(Wiki wikiBean) throws DataException {

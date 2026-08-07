@@ -24,7 +24,7 @@ package com.simisinc.platform.application.cms;
  */
 public class GenerateLinkFromNameCommand {
 
-  public static final String allowedChars = "abcdefghijklmnopqrstuvwyxz1234567890";
+  public static final String allowedChars = "abcdefghijklmnopqrstuvwxyz1234567890";
 
   public static String getLink(String name) {
     // Force lowercase

@@ -107,8 +107,10 @@ public class RobotsServlet extends HttpServlet {
 
     sb.append("\n");
 
-    // Sitemap reference
-    if (StringUtils.isNotBlank(siteUrl)) {
+    // Sitemap reference -- only advertise it when SitemapServlet will actually serve something
+    // there. site.sitemap.xml defaults to false on a fresh install (NEW_10000__new_database.sql),
+    // so without this check every new install's robots.txt pointed crawlers at a 404 by default.
+    if (StringUtils.isNotBlank(siteUrl) && "true".equals(LoadSitePropertyCommand.loadByName("site.sitemap.xml"))) {
       sb.append("Sitemap: ").append(siteUrl).append("/sitemap.xml\n");
     }
 
